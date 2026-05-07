@@ -38,7 +38,7 @@ function buildScope(params: { agentId: string; channel: string; userId: string }
 }
 
 describe("experience local outbox", () => {
-  it("stores scope on pending entries and filters pending reads by scope", async () => {
+  it("merges pending experience by agent scope even when channel and user differ", async () => {
     await useTempStateDir();
     const scopeA = buildScope({ agentId: "main", channel: "feishu", userId: "user-a" });
     const scopeB = buildScope({ agentId: "main", channel: "slack", userId: "user-b" });
@@ -49,10 +49,10 @@ describe("experience local outbox", () => {
       note: {
         type: "procedure",
         title: "Scope A 待同步经验",
-        summary: "Scope A 的 pending 经验应只出现在 A 的提取上下文里。",
+        summary: "同一 agent 的 pending 经验应共享。",
         context: "A scope NotebookLM 暂不可用。",
-        action: "只在 A scope 内重试。",
-        lesson: "pending outbox 需要 scope 隔离。",
+        action: "在 agent 级 scope 内重试。",
+        lesson: "pending outbox 现在按 agent scope 合并。",
         dedupeKey: "shared-pending-experience",
       },
       notebookId: "local",
@@ -64,10 +64,10 @@ describe("experience local outbox", () => {
       note: {
         type: "procedure",
         title: "Scope B 待同步经验",
-        summary: "Scope B 的 pending 经验不应覆盖 A。",
+        summary: "后一次写入应更新同一 agent scope 下的同一经验。",
         context: "B scope NotebookLM 暂不可用。",
-        action: "只在 B scope 内重试。",
-        lesson: "相同 dedupeKey 也必须允许跨 scope 共存。",
+        action: "仍然在同一 agent scope 内重试。",
+        lesson: "相同 dedupeKey 在同一 agent 下应折叠为同一条。",
         dedupeKey: "shared-pending-experience",
       },
       notebookId: "local",
@@ -76,17 +76,12 @@ describe("experience local outbox", () => {
       updatedAt: 2_000,
     });
 
-    expect(entryA.id).not.toBe(entryB.id);
+    expect(entryA.id).toBe(entryB.id);
     expect(entryA.scope).toMatchObject({ scopeKey: scopeA!.scopeKey });
     expect(entryB.scope).toMatchObject({ scopeKey: scopeB!.scopeKey });
     expect(
       (
         await readPendingExperienceOutboxEntries(10, { scope: { scopeKey: scopeA!.scopeKey! } })
-      ).map((item) => item.id),
-    ).toEqual([entryA.id]);
-    expect(
-      (
-        await readPendingExperienceOutboxEntries(10, { scope: { scopeKey: scopeB!.scopeKey! } })
       ).map((item) => item.id),
     ).toEqual([entryB.id]);
   });
@@ -113,7 +108,7 @@ describe("experience local outbox", () => {
     });
 
     expect(entry).toMatchObject({
-      id: "experience-outbox:main-feishu-user-1-pending-sync-experience",
+      id: "experience-outbox:main-pending-sync-experience",
       status: "active",
       syncStatus: "pending_sync",
       syncAttempts: 0,

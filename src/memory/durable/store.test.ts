@@ -2,7 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { deleteDurableMemoryNote, resolveDurableMemoryDeletionPath, scanDurableMemoryScopeEntries, upsertDurableMemoryNote } from "./store.ts";
+import {
+  deleteDurableMemoryNote,
+  resolveDurableMemoryDeletionPath,
+  scanDurableMemoryScopeEntries,
+  upsertDurableMemoryNote,
+} from "./store.ts";
 
 async function createStateDir(): Promise<string> {
   return await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-durable-store-state-"));
@@ -59,26 +64,8 @@ describe("durable memory file store", () => {
     });
     expect(isolated.notePath).toBe("20 Projects/crawclaw-memory-refactor.md");
 
-    const scopeADir = path.join(
-      stateDir,
-      "durable-memory",
-      "agents",
-      "main",
-      "channels",
-      "discord",
-      "users",
-      "user-42",
-    );
-    const scopeBDir = path.join(
-      stateDir,
-      "durable-memory",
-      "agents",
-      "research",
-      "channels",
-      "discord",
-      "users",
-      "user-42",
-    );
+    const scopeADir = path.join(stateDir, "durable-memory", "agents", "main");
+    const scopeBDir = path.join(stateDir, "durable-memory", "agents", "research");
     const scopeAIndex = await fs.readFile(path.join(scopeADir, "MEMORY.md"), "utf8");
     const scopeBIndex = await fs.readFile(path.join(scopeBDir, "MEMORY.md"), "utf8");
     const scopeANote = await fs.readFile(
@@ -93,6 +80,7 @@ describe("durable memory file store", () => {
     expect(scopeBIndex).toContain("Other scope.");
     expect(scopeANote).toContain('type: "project"');
     expect(scopeANote).toContain('scope_agent_id: "main"');
+    expect(scopeANote).toContain('scope_key: "main"');
     expect(scopeANote).not.toContain("durable_memory_type:");
     expect(scopeANote).not.toContain("memory_bucket:");
 

@@ -27,8 +27,8 @@ export interface MemoryDurableIndexEntry {
   title: string
   scopeKey: string
   agentId: string
-  channel: string
-  userId: string
+  channel?: string
+  userId?: string
   updatedAt: string
   sizeBytes: number
   noteCount: number

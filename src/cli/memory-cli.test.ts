@@ -25,6 +25,7 @@ describe("registerMemoryCli", () => {
     const memory = program.commands.find((command) => command.name() === "memory");
     const status = memory?.commands.find((command) => command.name() === "status");
     const dream = memory?.commands.find((command) => command.name() === "dream");
+    const dreamRun = dream?.commands.find((command) => command.name() === "run");
     const promptJournalSummary = memory?.commands.find(
       (command) => command.name() === "prompt-journal-summary",
     );
@@ -34,6 +35,8 @@ describe("registerMemoryCli", () => {
     expect(status?.description()).toBe("显示 NotebookLM 经验 provider 状态");
     expect(promptJournalSummary?.helpInformation()).toContain("读取指定 journal JSONL 文件");
     expect(dream?.description()).toBe("查看并运行 durable-memory dream 过程");
+    expect(dreamRun?.options.some((option) => option.long === "--channel")).toBe(false);
+    expect(dreamRun?.options.some((option) => option.long === "--user")).toBe(false);
     expect(sessionSummary?.description()).toContain("逐 session summary");
   });
 });

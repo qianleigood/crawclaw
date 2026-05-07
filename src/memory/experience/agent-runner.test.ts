@@ -62,7 +62,7 @@ describe("experience extraction agent", () => {
 
   it("builds a task prompt from recent messages, summaries, and pending outbox entries", () => {
     const prompt = buildExperienceExtractionTaskPrompt({
-      scopeKey: "main:feishu:user-1",
+      scopeKey: "main",
       recentMessages: [
         { role: "user", content: "这次发布失败是因为先改了 service 再改 secret。", timestamp: 1 },
         { role: "user", content: "已验证：以后先更新 secret，再滚动 service。", timestamp: 2 },
@@ -91,7 +91,7 @@ describe("experience extraction agent", () => {
       maxNotes: 2,
     });
 
-    expect(prompt).toContain("Scope: main:feishu:user-1");
+    expect(prompt).toContain("Scope: main");
     expect(prompt).toContain("Session summary:");
     expect(prompt).toContain("gateway 发布顺序");
     expect(prompt).toContain("Existing local experience outbox:");
@@ -103,7 +103,7 @@ describe("experience extraction agent", () => {
 
   it("strips internal runtime context from recent messages", () => {
     const prompt = buildExperienceExtractionTaskPrompt({
-      scopeKey: "main:webchat:main",
+      scopeKey: "main",
       recentMessages: [
         {
           role: "user",
@@ -133,7 +133,7 @@ describe("experience extraction agent", () => {
 
   it("adds foreground experience writes as item-level constraints, not a window skip", () => {
     const prompt = buildExperienceExtractionTaskPrompt({
-      scopeKey: "main:feishu:user-1",
+      scopeKey: "main",
       recentMessages: [
         { role: "user", content: "A 已经写入，但后面又验证出 B。", timestamp: 1 },
         { role: "user", content: "B 是独立的可复用经验。", timestamp: 2 },
@@ -315,7 +315,7 @@ describe("experience extraction agent", () => {
       scope: scope!,
     });
     const otherScope = resolveDurableMemoryScope({
-      agentId: "main",
+      agentId: "research",
       channel: "slack",
       userId: "user-2",
       rootDir: path.join(dir, "durable-memory"),

@@ -285,25 +285,11 @@ describe("durable extraction agent e2e", () => {
       "durable-memory",
       "agents",
       "main",
-      "channels",
-      "feishu",
-      "users",
-      "user-1",
       "60 Preferences",
       "step-first-answers.md",
     );
     await expect(fs.readFile(notePath, "utf8")).resolves.toContain("默认先给可执行步骤");
-    const indexPath = path.join(
-      stateDir,
-      "durable-memory",
-      "agents",
-      "main",
-      "channels",
-      "feishu",
-      "users",
-      "user-1",
-      "MEMORY.md",
-    );
+    const indexPath = path.join(stateDir, "durable-memory", "agents", "main", "MEMORY.md");
     await expect(fs.readFile(indexPath, "utf8")).resolves.toContain("回答先给步骤");
 
     const manifest = await scanDurableMemoryManifest({

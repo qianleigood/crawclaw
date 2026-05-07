@@ -390,7 +390,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     );
   });
 
-  it("passes messageProvider-derived channel into lifecycle durable extraction", async () => {
+  it("passes messageProvider-derived channel metadata into lifecycle durable extraction", async () => {
     const stateDir = await createRuntimeRoot();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     const runtimeStore = createRuntimeStore();
@@ -401,7 +401,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
           {
             type: "feedback",
             title: "webchat scope",
-            description: "messageProvider 应作为后台记忆 scope channel。",
+            description: "messageProvider 应作为后台记忆来源元数据中的 channel。",
             dedupeKey: "webchat-provider-scope",
           },
         ],
@@ -453,7 +453,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     expect(durableExtractionRunner).toHaveBeenCalledWith(
       expect.objectContaining({
         scope: expect.objectContaining({
-          scopeKey: "main:webchat:cli",
+          scopeKey: "main",
           channel: "webchat",
           userId: "cli",
         }),
@@ -547,10 +547,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
           "durable-memory",
           "agents",
           "main",
-          "channels",
-          "feishu",
-          "users",
-          "user-1",
           "60 Preferences",
           "step-first-answers.md",
         ),
@@ -622,7 +618,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
       | ExperienceExtractionRunParams
       | undefined;
     expect(runnerInput?.sessionId).toBe("session-experience-extract-1");
-    expect(runnerInput?.scope.scopeKey).toBe("main:feishu:user-1");
+    expect(runnerInput?.scope.scopeKey).toBe("main");
     expect(runnerInput?.recentMessages).toHaveLength(2);
   });
 
@@ -1093,10 +1089,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
           "durable-memory",
           "agents",
           "main",
-          "channels",
-          "feishu",
-          "users",
-          "user-1",
           "60 Preferences",
           "later-turn-after-direct-write.md",
         ),
@@ -1172,10 +1164,6 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
           "durable-memory",
           "agents",
           "main",
-          "channels",
-          "feishu",
-          "users",
-          "user-1",
           "80 References",
           "experience-duplicate.md",
         ),
@@ -1242,18 +1230,7 @@ describe("createContextMemoryRuntime() lifecycle-driven memory scheduling", () =
     await drainSharedDurableExtractionWorkers();
     await vi.waitFor(async () => {
       await fs.access(
-        path.join(
-          stateDir,
-          "durable-memory",
-          "agents",
-          "main",
-          "channels",
-          "feishu",
-          "users",
-          "user-1",
-          "60 Preferences",
-          "first-note.md",
-        ),
+        path.join(stateDir, "durable-memory", "agents", "main", "60 Preferences", "first-note.md"),
       );
     });
 

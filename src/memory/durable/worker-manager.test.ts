@@ -467,16 +467,12 @@ describe("DurableExtractionWorkerManager", () => {
     expect(secondCall?.sessionId).toBe("session-scope-b");
   });
 
-  it("allows different durable scopes to run concurrently up to the global limit", async () => {
+  it("serializes runs for the same agent even when channel and user differ", async () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
     let releaseFirst!: () => void;
-    let releaseSecond!: () => void;
     const first = new Promise<void>((resolve) => {
       releaseFirst = resolve;
-    });
-    const second = new Promise<void>((resolve) => {
-      releaseSecond = resolve;
     });
     const runtimeStore = createRuntimeStore();
     const runner = createRunnerQueue([
@@ -485,16 +481,15 @@ describe("DurableExtractionWorkerManager", () => {
         result: {
           status: "written",
           notesSaved: 1,
-          reason: "first different-scope run",
+          reason: "first agent-scoped run",
           advanceCursor: true,
         },
       },
       {
-        waitFor: second,
         result: {
           status: "written",
           notesSaved: 1,
-          reason: "second different-scope run",
+          reason: "second agent-scoped run",
           advanceCursor: true,
         },
       },
@@ -515,14 +510,121 @@ describe("DurableExtractionWorkerManager", () => {
     });
 
     await appendVisibleMessage(runtimeStore, {
-      sessionId: "session-scope-user-a",
-      content: "第一个用户触发 durable memory。",
+      sessionId: "session-agent-a",
+      content: "同一个 agent 的第一个会话触发 durable memory。",
       turnIndex: 1,
     });
     await manager.submitTurn({
-      sessionId: "session-scope-user-a",
+      sessionId: "session-agent-a",
+      sessionKey: "agent:main:discord:direct:user-a",
+      newMessages: [
+        makeAgentUserMessage({ content: "同一个 agent 的第一个会话触发 durable memory。" }),
+      ] as never,
+      messageCursor: 1,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "discord",
+        senderId: "user-a",
+        parentForkContext: createParentForkContext(),
+      },
+    });
+
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(1);
+    });
+
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-agent-b",
+      content: "同一个 agent 的第二个会话触发 durable memory。",
+      turnIndex: 1,
+    });
+    await manager.submitTurn({
+      sessionId: "session-agent-b",
+      sessionKey: "agent:main:slack:direct:user-b",
+      newMessages: [
+        makeAgentUserMessage({ content: "同一个 agent 的第二个会话触发 durable memory。" }),
+      ] as never,
+      messageCursor: 1,
+      runtimeContext: {
+        agentId: "main",
+        messageChannel: "slack",
+        senderId: "user-b",
+        parentForkContext: createParentForkContext(),
+      },
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 25));
+    expect(runner).toHaveBeenCalledTimes(1);
+    expect(manager.getStatus()).toMatchObject({
+      runningCount: 1,
+      queuedCount: 1,
+    });
+
+    releaseFirst();
+
+    await vi.waitFor(() => {
+      expect(runner).toHaveBeenCalledTimes(2);
+    });
+    const secondCall = runner.mock.calls.at(-1)?.[0];
+    expect(secondCall?.sessionId).toBe("session-agent-b");
+  });
+
+  it("allows different agents to run concurrently up to the global limit", async () => {
+    const stateDir = await createStateDir();
+    process.env.CRAWCLAW_STATE_DIR = stateDir;
+    let releaseFirst!: () => void;
+    let releaseSecond!: () => void;
+    const first = new Promise<void>((resolve) => {
+      releaseFirst = resolve;
+    });
+    const second = new Promise<void>((resolve) => {
+      releaseSecond = resolve;
+    });
+    const runtimeStore = createRuntimeStore();
+    const runner = createRunnerQueue([
+      {
+        waitFor: first,
+        result: {
+          status: "written",
+          notesSaved: 1,
+          reason: "first different-agent run",
+          advanceCursor: true,
+        },
+      },
+      {
+        waitFor: second,
+        result: {
+          status: "written",
+          notesSaved: 1,
+          reason: "second different-agent run",
+          advanceCursor: true,
+        },
+      },
+    ]);
+
+    const { getSharedDurableExtractionWorkerManager } = await import("./worker-manager.ts");
+    const manager = getSharedDurableExtractionWorkerManager({
+      config: {
+        enabled: true,
+        maxNotesPerTurn: 2,
+        minEligibleTurnsBetweenRuns: 1,
+        maxConcurrentWorkers: 2,
+        workerIdleTtlMs: 60_000,
+      },
+      runtimeStore: runtimeStore as unknown as RuntimeStore,
+      runner,
+      logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+    });
+
+    await appendVisibleMessage(runtimeStore, {
+      sessionId: "session-agent-main",
+      content: "main agent 触发 durable memory。",
+      turnIndex: 1,
+    });
+    await manager.submitTurn({
+      sessionId: "session-agent-main",
       sessionKey: "agent:main:feishu:direct:user-a",
-      newMessages: [makeAgentUserMessage({ content: "第一个用户触发 durable memory。" })] as never,
+      newMessages: [makeAgentUserMessage({ content: "main agent 触发 durable memory。" })] as never,
       messageCursor: 1,
       runtimeContext: {
         agentId: "main",
@@ -532,18 +634,20 @@ describe("DurableExtractionWorkerManager", () => {
       },
     });
     await appendVisibleMessage(runtimeStore, {
-      sessionId: "session-scope-user-b",
-      content: "第二个用户触发 durable memory。",
+      sessionId: "session-agent-research",
+      content: "research agent 触发 durable memory。",
       turnIndex: 1,
     });
     await manager.submitTurn({
-      sessionId: "session-scope-user-b",
-      sessionKey: "agent:main:feishu:direct:user-b",
-      newMessages: [makeAgentUserMessage({ content: "第二个用户触发 durable memory。" })] as never,
+      sessionId: "session-agent-research",
+      sessionKey: "agent:research:slack:direct:user-b",
+      newMessages: [
+        makeAgentUserMessage({ content: "research agent 触发 durable memory。" }),
+      ] as never,
       messageCursor: 1,
       runtimeContext: {
-        agentId: "main",
-        messageChannel: "feishu",
+        agentId: "research",
+        messageChannel: "slack",
         senderId: "user-b",
         parentForkContext: createParentForkContext(),
       },

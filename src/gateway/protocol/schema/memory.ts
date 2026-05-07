@@ -94,8 +94,8 @@ export const MemoryDurableIndexEntrySchema = Type.Object(
     title: Type.String(),
     scopeKey: NonEmptyString,
     agentId: NonEmptyString,
-    channel: NonEmptyString,
-    userId: NonEmptyString,
+    channel: Type.Optional(Type.String()),
+    userId: Type.Optional(Type.String()),
     updatedAt: Type.String(),
     sizeBytes: Type.Integer({ minimum: 0 }),
     noteCount: Type.Integer({ minimum: 0 }),
@@ -215,8 +215,6 @@ export const MemoryAdminOverviewResultSchema = Type.Object(
 export const MemoryScopeParamsSchema = Type.Object(
   {
     agent: Type.Optional(Type.String()),
-    channel: Type.Optional(Type.String()),
-    user: Type.Optional(Type.String()),
     scopeKey: Type.Optional(Type.String()),
   },
   { additionalProperties: false },

@@ -1,5 +1,5 @@
-import type { DurableMemoryType } from "../types/orchestration.ts";
 import type { FrontmatterMap } from "../markdown/frontmatter.ts";
+import type { DurableMemoryType } from "../types/orchestration.ts";
 
 export const DURABLE_MEMORY_FOLDERS: Record<DurableMemoryType, string> = {
   user: "30 People",
@@ -27,22 +27,21 @@ export type DurableMemoryWriteInput = DurableMemoryNoteInput & {
 export function normalizeDurableMemoryType(
   value: string | null | undefined,
 ): DurableMemoryType | null {
-  return value === "user" ||
-    value === "feedback" ||
-    value === "project" ||
-    value === "reference"
+  return value === "user" || value === "feedback" || value === "project" || value === "reference"
     ? value
     : null;
 }
 
 export function slugifyDurableMemoryValue(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_]+/g, "-")
-    .replace(/[^a-z0-9\u4e00-\u9fff-]/g, "")
-    .replace(/-{2,}/g, "-")
-    .replace(/^-|-$/g, "") || "memory";
+  return (
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[\s_]+/g, "-")
+      .replace(/[^a-z0-9\u4e00-\u9fff-]/g, "")
+      .replace(/-{2,}/g, "-")
+      .replace(/^-|-$/g, "") || "memory"
+  );
 }
 
 export function deriveDurableMemoryFilename(
@@ -61,9 +60,7 @@ export function deriveDurableMemoryNotePath(
 function uniqueStrings(values: Array<string | undefined | null>): string[] {
   return Array.from(
     new Set(
-      values
-        .map((value) => value?.trim())
-        .filter((value): value is string => Boolean(value)),
+      values.map((value) => value?.trim()).filter((value): value is string => Boolean(value)),
     ),
   );
 }
@@ -90,9 +87,7 @@ export function normalizeDurableMemoryWriteInput(
   };
 }
 
-export function buildDurableMemoryFrontmatterLines(
-  input: DurableMemoryWriteInput,
-): string[] {
+export function buildDurableMemoryFrontmatterLines(input: DurableMemoryWriteInput): string[] {
   const normalized = normalizeDurableMemoryWriteInput(input);
   const timestamp = new Date().toISOString();
   const aliases = uniqueStrings([...(normalized.aliases ?? []), normalized.dedupeKey?.trim()]);
@@ -144,7 +139,7 @@ export function buildDurableMemoryFrontmatter(
           scope_agent_id: scope.agentId,
           scope_channel: scope.channel,
           scope_user_id: scope.userId,
-          scope_key: scope.scopeKey ?? `${scope.agentId}:${scope.channel}:${scope.userId}`,
+          scope_key: scope.scopeKey ?? scope.agentId,
         }
       : {}),
     ...(normalized.dedupeKey?.trim() ? { dedupe_key: normalized.dedupeKey.trim() } : {}),
@@ -156,22 +151,14 @@ export function buildDurableMemoryFrontmatter(
 export function buildDurableMemoryBody(input: DurableMemoryWriteInput): string {
   const normalized = normalizeDurableMemoryWriteInput(input);
   const description = resolveDurableMemoryDescription(normalized);
-  const sections: string[] = [
-    `# ${normalized.title}`,
-    "",
-    "## Summary",
-    description,
-  ];
+  const sections: string[] = [`# ${normalized.title}`, "", "## Summary", description];
   if (normalized.why?.trim()) {
     sections.push("", "## Why", normalized.why.trim());
   }
   if (normalized.howToApply?.trim()) {
     sections.push("", "## How to apply", normalized.howToApply.trim());
   }
-  if (
-    normalized.body?.trim() &&
-    normalized.body.trim() !== description
-  ) {
+  if (normalized.body?.trim() && normalized.body.trim() !== description) {
     sections.push("", "## Details", normalized.body.trim());
   }
   return sections.join("\n\n").trim();

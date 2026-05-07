@@ -25,8 +25,8 @@ crawclaw memory refresh
 crawclaw memory login
 crawclaw memory dream status --json
 crawclaw memory dream history --json
-crawclaw memory dream run --agent main --channel telegram --user alice --force
-crawclaw memory dream run --agent main --channel telegram --user alice --dry-run --session-limit 6 --signal-limit 6
+crawclaw memory dream run --agent main --force
+crawclaw memory dream run --scope-key main --dry-run --session-limit 6 --signal-limit 6
 crawclaw memory session-summary status --agent main --session-id sess-1 --json
 crawclaw memory session-summary refresh --agent main --session-id sess-1 --session-key agent:main:sess-1 --force
 crawclaw memory status --json
@@ -57,15 +57,15 @@ crawclaw memory prompt-journal-summary --json --days 1
 `memory dream status`:
 
 - `--json`: print machine-readable file watermark and lock state.
-- `--agent <id>` / `--channel <id>` / `--user <id>`: resolve one durable scope.
-- `--scope-key <key>`: inspect one explicit durable scope.
+- `--agent <id>`: inspect one agent-scoped durable scope.
+- `--scope-key <key>`: inspect one explicit durable scope. Use the agent id only.
 - `--verbose`: emit detailed logs.
 
 `memory dream run`:
 
 - `--json`: print machine-readable run result.
-- `--agent <id>` / `--channel <id>` / `--user <id>`: resolve one durable scope.
-- `--scope-key <key>`: run one explicit durable scope.
+- `--agent <id>`: run one agent-scoped durable scope.
+- `--scope-key <key>`: run one explicit durable scope. Use the agent id only.
 - `--force`: bypass the min-hours and min-sessions gates for the manual run.
 - `--dry-run`: preview the dream window without taking the file lock or writing durable memory.
 - `--session-limit <n>`: cap how many recent sessions feed the manual run or preview.
@@ -75,8 +75,8 @@ crawclaw memory prompt-journal-summary --json --days 1
 `memory dream history`:
 
 - `--json`: print machine-readable history availability.
-- `--agent <id>` / `--channel <id>` / `--user <id>`: resolve one durable scope.
-- `--scope-key <key>`: filter one explicit durable scope.
+- `--agent <id>`: inspect one agent-scoped durable scope.
+- `--scope-key <key>`: filter one explicit durable scope. Use the agent id only.
 - `--verbose`: emit detailed logs.
 
 `memory session-summary status`:
@@ -111,6 +111,8 @@ Notes:
   active for the inspected scope. `closedLoopActive=false` with
   `closedLoopReason=disabled` means config disabled it; `scope_unresolved`
   means status could not resolve the durable scope being inspected.
+- dream CLI scope selection is agent-only. Old `agent + channel + user` inputs
+  and old colon-delimited durable scope keys are no longer accepted.
 - `memory dream run` triggers one manual durable-memory dream pass for a scope.
 - `memory dream run --dry-run` previews the same gating/input collection path without spawning the dream agent.
 - `memory dream history` no longer reads runtime DB run history; Dream uses the

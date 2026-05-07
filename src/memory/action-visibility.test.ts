@@ -34,11 +34,11 @@ describe("buildMemoryActionVisibilityProjection", () => {
       buildMemoryActionVisibilityProjection({
         kind: "dream",
         phase: "gather",
-        summary: "main:feishu:user-1",
+        summary: "main",
       }),
     ).toEqual({
       projectedTitle: "Dream gathering signal",
-      projectedSummary: "main:feishu:user-1",
+      projectedSummary: "main",
     });
   });
 

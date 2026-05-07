@@ -100,16 +100,7 @@ async function listCandidateNotePaths(scope: DurableMemoryScope): Promise<{
   indexHooks: Map<string, string>;
 }> {
   const scopeDir =
-    scope.rootDir ??
-    path.join(
-      resolveDurableMemoryRootDir(),
-      "agents",
-      scope.agentId,
-      "channels",
-      scope.channel,
-      "users",
-      scope.userId,
-    );
+    scope.rootDir ?? path.join(resolveDurableMemoryRootDir(), "agents", scope.agentId);
   const indexPath = resolveDurableMemoryIndexPath(scope);
   const indexExists = await fs
     .stat(indexPath)
@@ -151,15 +142,7 @@ export async function scanDurableMemoryManifest(params: {
   const maxFiles = Math.max(1, Math.min(params.maxFiles ?? 200, 1000));
   const scopeDir =
     params.scope.rootDir ??
-    path.join(
-      resolveDurableMemoryRootDir(),
-      "agents",
-      params.scope.agentId,
-      "channels",
-      params.scope.channel,
-      "users",
-      params.scope.userId,
-    );
+    path.join(resolveDurableMemoryRootDir(), "agents", params.scope.agentId);
   const { notePaths: candidatePaths, indexHooks } = await listCandidateNotePaths(params.scope);
   const entries: DurableMemoryManifestEntry[] = [];
 

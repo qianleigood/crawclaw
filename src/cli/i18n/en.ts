@@ -1466,9 +1466,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.memory.option.json": "Print JSON",
   "command.memory.option.verbose": "Verbose logging",
   "command.memory.option.agent": "Agent id for scope resolution",
-  "command.memory.option.channel": "Channel id for scope resolution",
-  "command.memory.option.user": "User id for scope resolution",
-  "command.memory.option.scopeKey": "Explicit durable scope key",
+  "command.memory.option.scopeKey": "Explicit durable scope key (agent id only)",
   "command.memory.status.description": "Show NotebookLM experience provider status",
   "command.memory.refresh.description":
     "Refresh NotebookLM experience auth from the configured cookie fallback",

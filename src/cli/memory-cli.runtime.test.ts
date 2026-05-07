@@ -166,7 +166,7 @@ Nothing yet.
         status: "preview",
         reason: "dry_run_preview",
         preview: {
-          scopeKey: "main:telegram:alice",
+          scopeKey: "main",
           recentSessionIds: ["s1", "s2"],
           recentSessionCount: 2,
           recentSignalCount: 2,
@@ -187,8 +187,6 @@ Nothing yet.
   it("renders dream status from the file watermark", async () => {
     await runMemoryDreamStatus({
       agent: "main",
-      channel: "telegram",
-      user: "alice",
     });
 
     expect(runtimeLogs.join("\n")).toContain("Last consolidated:");
@@ -207,8 +205,6 @@ Nothing yet.
   it("runs dream dry-run preview with bounded session/signal inputs", async () => {
     await runMemoryDreamRun({
       agent: "main",
-      channel: "telegram",
-      user: "alice",
       dryRun: true,
       sessionLimit: "6",
       signalLimit: "4",
@@ -232,7 +228,7 @@ Nothing yet.
     process.env.RUNTIME_DB_PATH = "/tmp/crawclaw-memory-cli-runtime-test.sqlite";
 
     await runMemoryDreamRun({
-      scopeKey: "main:telegram:alice",
+      scopeKey: "main",
       dryRun: true,
       sessionLimit: "2",
       signalLimit: "1",
@@ -243,9 +239,7 @@ Nothing yet.
       expect.objectContaining({
         scope: expect.objectContaining({
           agentId: "main",
-          channel: "telegram",
-          userId: "alice",
-          scopeKey: "main:telegram:alice",
+          scopeKey: "main",
         }),
         triggerSource: "manual_cli",
         dryRun: true,
@@ -267,7 +261,15 @@ Nothing yet.
     await runMemoryDreamRun({});
 
     expect(runtimeErrors.join("\n")).toContain(
-      "Memory dream run requires --scope-key or --agent/--channel/--user.",
+      "Memory dream run requires an agent-only --scope-key or --agent.",
+    );
+  });
+
+  it("rejects legacy colon-delimited dream scope keys", async () => {
+    await runMemoryDreamStatus({ scopeKey: "main:telegram:alice" });
+
+    expect(runtimeErrors.join("\n")).toContain(
+      "Memory dream commands accept only agent-only --scope-key values.",
     );
   });
 

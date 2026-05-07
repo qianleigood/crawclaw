@@ -81,12 +81,9 @@ export function registerMemoryCli(program: Command) {
             t("command.memory.example.promptJournalSummary"),
           ],
           ["crawclaw memory dream status --json", t("command.memory.example.dreamStatus")],
+          ["crawclaw memory dream run --agent main --force", t("command.memory.example.dreamRun")],
           [
-            "crawclaw memory dream run --agent main --channel telegram --user alice --force",
-            t("command.memory.example.dreamRun"),
-          ],
-          [
-            "crawclaw memory dream run --agent main --channel telegram --user alice --dry-run --session-limit 6",
+            "crawclaw memory dream run --scope-key main --dry-run --session-limit 6",
             t("command.memory.example.dreamDryRun"),
           ],
           [
@@ -157,8 +154,6 @@ export function registerMemoryCli(program: Command) {
     .description(t("command.memory.dream.status.description"))
     .option("--json", t("command.memory.option.json"))
     .option("--agent <id>", t("command.memory.option.agent"))
-    .option("--channel <id>", t("command.memory.option.channel"))
-    .option("--user <id>", t("command.memory.option.user"))
     .option("--scope-key <key>", t("command.memory.option.scopeKey"))
     .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {
@@ -170,8 +165,6 @@ export function registerMemoryCli(program: Command) {
     .description(t("command.memory.dream.run.description"))
     .option("--json", t("command.memory.option.json"))
     .option("--agent <id>", t("command.memory.option.agent"))
-    .option("--channel <id>", t("command.memory.option.channel"))
-    .option("--user <id>", t("command.memory.option.user"))
     .option("--scope-key <key>", t("command.memory.option.scopeKey"))
     .option("--force", t("command.memory.dream.run.option.force"), false)
     .option("--dry-run", t("command.memory.dream.run.option.dryRun"), false)
@@ -187,8 +180,6 @@ export function registerMemoryCli(program: Command) {
     .description(t("command.memory.dream.history.description"))
     .option("--json", t("command.memory.option.json"))
     .option("--agent <id>", t("command.memory.option.agent"))
-    .option("--channel <id>", t("command.memory.option.channel"))
-    .option("--user <id>", t("command.memory.option.user"))
     .option("--scope-key <key>", t("command.memory.option.scopeKey"))
     .option("--verbose", t("command.memory.option.verbose"), false)
     .action(async (opts: MemoryCommandOptions) => {

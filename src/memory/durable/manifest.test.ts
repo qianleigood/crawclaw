@@ -41,7 +41,7 @@ describe("durable memory manifest", () => {
           agentId: "main",
           channel: "discord",
           userId: "user-42",
-          scopeKey: "main:discord:user-42",
+          scopeKey: "main",
           rootDir: scopeDir,
         },
       });

@@ -9,8 +9,8 @@ export interface DurableMemoryIndexDocumentEntry {
   title: string;
   scopeKey: string;
   agentId: string;
-  channel: string;
-  userId: string;
+  channel?: string;
+  userId?: string;
   updatedAt: string;
   sizeBytes: number;
   noteCount: number;
@@ -35,28 +35,18 @@ function decodeScopeSegment(value: string): string {
 
 function parseScope(
   relativePath: string,
-): Pick<DurableMemoryIndexDocumentEntry, "agentId" | "channel" | "userId" | "scopeKey"> | null {
+): Pick<DurableMemoryIndexDocumentEntry, "agentId" | "scopeKey"> | null {
   const segments = relativePath.split("/");
-  if (
-    segments.length !== 7 ||
-    segments[0] !== "agents" ||
-    segments[2] !== "channels" ||
-    segments[4] !== "users" ||
-    segments[6] !== "MEMORY.md"
-  ) {
+  if (segments.length !== 3 || segments[0] !== "agents" || segments[2] !== "MEMORY.md") {
     return null;
   }
   const agentId = decodeScopeSegment(segments[1] ?? "");
-  const channel = decodeScopeSegment(segments[3] ?? "");
-  const userId = decodeScopeSegment(segments[5] ?? "");
-  if (!agentId || !channel || !userId) {
+  if (!agentId) {
     return null;
   }
   return {
     agentId,
-    channel,
-    userId,
-    scopeKey: `${agentId}:${channel}:${userId}`,
+    scopeKey: agentId,
   };
 }
 

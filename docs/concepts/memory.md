@@ -13,7 +13,7 @@ CrawClaw remembers things through a layered memory system:
 
 - **Session memory** for short-lived task continuity inside one session
 - **Durable memory** for long-term user and collaboration facts, scoped by
-  `agentId + channel + userId`
+  `agentId`
 - **Experience memory** backed by NotebookLM prompt-time recall, NotebookLM
   writeback, a local pending outbox for failed writes, and a background
   Experience Agent
@@ -38,8 +38,11 @@ Session-summary file edits stay restricted to their owning background agent.
 ## Durable memory files
 
 Durable memory is stored as plain Markdown files under the scoped durable-memory
-directory. Each memory is a standalone note, and each scope has its own
+directory. Each memory is a standalone note, and each agent scope has its own
 `MEMORY.md` index.
+
+The old `agentId + channel + userId` durable/experience scope has been removed.
+Current runtimes only read and write the agent-scoped layout.
 
 `MEMORY.md` now follows bounded durable-index constraints:
 
@@ -349,12 +352,22 @@ to use.
 These layers do not share the same boundaries:
 
 - **Session memory** is isolated per session.
-- **Durable memory** is shared whenever runs resolve to the same
-  `agentId + channel + userId` scope.
+- **Session summary** remains keyed by `sessionId` and is not shared across
+  sessions.
+- **Durable memory** is shared whenever runs resolve to the same `agentId`
+  scope.
 - **Experience memory** uses the same NotebookLM provider configuration and
   prompt-facing recall across runs, while the local pending outbox is scoped by
-  the same `agentId + channel + userId` boundary and the extraction cursor is
-  tracked per session.
+  the same `agentId` boundary and the extraction cursor is still tracked per
+  session.
+
+`channel` and `userId` can still be recorded as source metadata on extracted
+memory records, but they no longer determine storage directories, scope keys,
+or long-term memory isolation.
+
+Manual dream inspection and execution follow the same boundary: use `--agent`
+or an explicit `scopeKey` equal to the agent id. The old channel/user-based
+scope inputs are no longer accepted.
 
 All agents that use the built-in memory runtime receive the same agent memory
 routing contract. This guidance is not limited to the `main` agent.
@@ -393,8 +406,8 @@ crawclaw memory refresh  # Refresh NotebookLM auth from cookie fallback
 crawclaw memory sync     # Flush pending experience notes to NotebookLM
 crawclaw memory dream status --json
 crawclaw memory dream history --json
-crawclaw memory dream run --agent main --channel telegram --user alice --force
-crawclaw memory dream run --agent main --channel telegram --user alice --dry-run --session-limit 6 --signal-limit 6
+crawclaw memory dream run --agent main --force
+crawclaw memory dream run --scope-key main --dry-run --session-limit 6 --signal-limit 6
 crawclaw memory prompt-journal-summary --json --days 1
 crawclaw agent export-context --task-id <task-id> --json
 ```

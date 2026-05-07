@@ -100,7 +100,7 @@ describe("runDurableMemoryAgentOnce", () => {
     });
 
     const taskPrompt = buildDurableMemoryAgentTaskPrompt({
-      scopeKey: "main:feishu:user-1",
+      scopeKey: "main",
       newMessageCount: 2,
       existingEntries: [],
       maxNotes: 2,
@@ -136,7 +136,7 @@ describe("runDurableMemoryAgentOnce", () => {
 
     expect(
       buildDurableMemoryAgentTaskPrompt({
-        scopeKey: "main:feishu:user-1",
+        scopeKey: "main",
         newMessageCount: 3,
         existingEntries: [],
         maxNotes: 2,
@@ -282,7 +282,7 @@ describe("runDurableMemoryAgentOnce", () => {
         kind: "memory",
         status: "started",
         projectedTitle: "Durable memory agent scheduled",
-        projectedSummary: "main:feishu:user-1",
+        projectedSummary: "main",
         detail: expect.objectContaining({
           memoryKind: "durable_memory",
           memoryPhase: "scheduled",
@@ -294,7 +294,7 @@ describe("runDurableMemoryAgentOnce", () => {
         kind: "memory",
         status: "running",
         projectedTitle: "Durable memory agent running",
-        projectedSummary: "main:feishu:user-1",
+        projectedSummary: "main",
         detail: expect.objectContaining({
           memoryKind: "durable_memory",
           memoryPhase: "running",

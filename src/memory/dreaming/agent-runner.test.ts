@@ -126,7 +126,7 @@ describe("runDreamAgentOnce", () => {
     expect(systemPrompt).toContain("index hook");
 
     const taskPrompt = buildDreamTaskPrompt({
-      scopeKey: "main:feishu:user-1",
+      scopeKey: "main",
       triggerSource: "stop",
       lastSuccessAt: null,
       recentTranscriptRefs: [{ sessionId: "s1", path: "/tmp/s1.jsonl" }],

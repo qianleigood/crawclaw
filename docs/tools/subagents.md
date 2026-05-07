@@ -27,7 +27,7 @@ Sub-agents are isolated, but not in every dimension:
   (`requesterSessionKey`, requester delivery origin, parent/child refs).
 - Session memory is isolated because it is keyed by the child `sessionId`.
 - Durable memory can still be shared when parent and child resolve to the same
-  `agentId + channel + userId` scope.
+  `agentId` scope.
 - NotebookLM experience recall is queried from the same configured backend during
   child prompt assembly; it is not partitioned by session id.
 - Same-agent spawns inherit the caller workspace by default. Cross-agent spawns

@@ -12,15 +12,7 @@ describe("durable memory index documents", () => {
   it("lists scoped MEMORY.md index files and opens selected content", async () => {
     const stateDir = await createStateDir();
     const rootDir = path.join(stateDir, "durable-memory");
-    const scopeDir = path.join(
-      rootDir,
-      "agents",
-      "main",
-      "channels",
-      "discord",
-      "users",
-      encodeURIComponent("user:42"),
-    );
+    const scopeDir = path.join(rootDir, "agents", "main");
     await fs.mkdir(path.join(scopeDir, "20 Projects"), { recursive: true });
     await fs.writeFile(
       path.join(scopeDir, "MEMORY.md"),
@@ -43,11 +35,9 @@ describe("durable memory index documents", () => {
 
     expect(result.items).toEqual([
       expect.objectContaining({
-        id: "agents/main/channels/discord/users/user%3A42/MEMORY.md",
-        scopeKey: "main:discord:user:42",
+        id: "agents/main/MEMORY.md",
+        scopeKey: "main",
         agentId: "main",
-        channel: "discord",
-        userId: "user:42",
         title: "MEMORY.md",
         noteCount: 1,
       }),
@@ -58,7 +48,7 @@ describe("durable memory index documents", () => {
       id: result.items[0]?.id ?? "",
     });
 
-    expect(document.item.scopeKey).toBe("main:discord:user:42");
+    expect(document.item.scopeKey).toBe("main");
     expect(document.content).toContain("Gateway recovery");
   });
 

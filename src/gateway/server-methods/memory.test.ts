@@ -16,6 +16,7 @@ const mocks = vi.hoisted(() => ({
   getSharedAutoDreamSchedulerMock: vi.fn(),
   getSharedSessionSummarySchedulerMock: vi.fn(),
   readSessionSummaryFileMock: vi.fn(),
+  resolveDurableMemoryScopeMock: vi.fn(),
   sqliteRuntimeStoreInitMock: vi.fn(),
   sqliteRuntimeStoreCloseMock: vi.fn(),
   sqliteRuntimeStoreListMessagesByTurnRangeMock: vi.fn(),
@@ -46,7 +47,7 @@ vi.mock("../../memory/cli-api.js", () => ({
   readSessionSummaryFile: mocks.readSessionSummaryFileMock,
   readSessionSummarySectionText: vi.fn(),
   refreshNotebookLmProviderState: vi.fn(),
-  resolveDurableMemoryScope: vi.fn(),
+  resolveDurableMemoryScope: mocks.resolveDurableMemoryScopeMock,
   resolveDreamClosedLoopStatus: vi.fn().mockReturnValue({
     closedLoopActive: true,
     closedLoopReason: "active",
@@ -182,6 +183,19 @@ describe("memoryHandlers", () => {
         lockStaleAfterMs: 3_600_000,
       },
     });
+    mocks.resolveDurableMemoryScopeMock.mockImplementation((params: { agentId?: string }) => {
+      const agentId = params.agentId?.trim();
+      if (!agentId) {
+        return null;
+      }
+      return {
+        agentId,
+        channel: "local",
+        userId: "local",
+        scopeKey: agentId,
+        rootDir: `/tmp/durable/agents/${agentId}`,
+      };
+    });
     mocks.sqliteRuntimeStoreInitMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreCloseMock.mockResolvedValue(undefined);
     mocks.sqliteRuntimeStoreListMessagesByTurnRangeMock.mockResolvedValue([]);
@@ -306,7 +320,7 @@ describe("memoryHandlers", () => {
   });
 
   it("includes file watermark state in dream status responses", async () => {
-    const opts = createOptions("memory.dream.status", { scopeKey: "main:telegram:alice" });
+    const opts = createOptions("memory.dream.status", { scopeKey: "main" });
 
     await memoryHandlers["memory.dream.status"](opts);
 
@@ -315,6 +329,7 @@ describe("memoryHandlers", () => {
       expect.objectContaining({
         closedLoopActive: true,
         closedLoopReason: "active",
+        scopeKey: "main",
         historyPersisted: false,
         state: expect.objectContaining({
           lastConsolidatedAt: 100,
@@ -322,6 +337,20 @@ describe("memoryHandlers", () => {
         }),
       }),
       undefined,
+    );
+  });
+
+  it("rejects legacy colon-delimited dream scope keys", async () => {
+    const opts = createOptions("memory.dream.status", { scopeKey: "main:telegram:alice" });
+
+    await memoryHandlers["memory.dream.status"](opts);
+
+    expect(opts.respond).toHaveBeenCalledWith(
+      false,
+      undefined,
+      expect.objectContaining({
+        message: "memory.dream.* accepts only agent-only scopeKey values",
+      }),
     );
   });
 
@@ -381,12 +410,10 @@ describe("memoryHandlers", () => {
     mocks.listDurableMemoryIndexDocumentsMock.mockResolvedValue({
       items: [
         {
-          id: "agents/main/channels/discord/users/alice/MEMORY.md",
-          relativePath: "agents/main/channels/discord/users/alice/MEMORY.md",
-          scopeKey: "main:discord:alice",
+          id: "agents/main/MEMORY.md",
+          relativePath: "agents/main/MEMORY.md",
+          scopeKey: "main",
           agentId: "main",
-          channel: "discord",
-          userId: "alice",
           title: "Alice memory",
           updatedAt: "2026-05-01T00:00:00.000Z",
           sizeBytes: 120,
@@ -430,7 +457,7 @@ describe("memoryHandlers", () => {
           recentUpdatedAt: "2026-05-01T00:00:00.000Z",
           items: [
             expect.objectContaining({
-              scopeKey: "main:discord:alice",
+              scopeKey: "main",
               noteCount: 2,
             }),
           ],
@@ -465,7 +492,7 @@ describe("memoryHandlers", () => {
 
   it("runs dream from an explicit durable scope key", async () => {
     const opts = createOptions("memory.dream.run", {
-      scopeKey: "main:telegram:alice",
+      scopeKey: "main",
       force: true,
       sessionLimit: 3,
       signalLimit: 2,
@@ -478,9 +505,7 @@ describe("memoryHandlers", () => {
       expect.objectContaining({
         scope: expect.objectContaining({
           agentId: "main",
-          channel: "telegram",
-          userId: "alice",
-          scopeKey: "main:telegram:alice",
+          scopeKey: "main",
         }),
         bypassGate: true,
         sessionLimit: 3,
@@ -675,8 +700,8 @@ describe("memoryHandlers", () => {
     mocks.listDurableMemoryIndexDocumentsMock.mockResolvedValue({
       items: [
         {
-          id: "agents/main/channels/discord/users/user/MEMORY.md",
-          scopeKey: "main:discord:user",
+          id: "agents/main/MEMORY.md",
+          scopeKey: "main",
           title: "MEMORY.md",
         },
       ],
@@ -691,8 +716,8 @@ describe("memoryHandlers", () => {
       {
         items: [
           expect.objectContaining({
-            id: "agents/main/channels/discord/users/user/MEMORY.md",
-            scopeKey: "main:discord:user",
+            id: "agents/main/MEMORY.md",
+            scopeKey: "main",
           }),
         ],
       },
@@ -703,20 +728,20 @@ describe("memoryHandlers", () => {
   it("opens a durable memory index document", async () => {
     mocks.readDurableMemoryIndexDocumentMock.mockResolvedValue({
       item: {
-        id: "agents/main/channels/discord/users/user/MEMORY.md",
-        scopeKey: "main:discord:user",
+        id: "agents/main/MEMORY.md",
+        scopeKey: "main",
         title: "MEMORY.md",
       },
       content: "# MEMORY.md\n\n- [Gateway](./20 Projects/gateway.md)\n",
     });
     const opts = createOptions("memory.durable.index.get", {
-      id: "agents/main/channels/discord/users/user/MEMORY.md",
+      id: "agents/main/MEMORY.md",
     });
 
     await memoryHandlers["memory.durable.index.get"](opts);
 
     expect(mocks.readDurableMemoryIndexDocumentMock).toHaveBeenCalledWith({
-      id: "agents/main/channels/discord/users/user/MEMORY.md",
+      id: "agents/main/MEMORY.md",
     });
     expect(opts.respond).toHaveBeenCalledWith(
       true,

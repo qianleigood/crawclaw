@@ -67,7 +67,7 @@ Child runs do not all share the same state:
   transcript.
 - **Session memory** stays isolated because it is keyed by `sessionId`.
 - **Durable memory** can be shared across parent and child runs when they
-  resolve to the same `agentId + channel + userId` scope.
+  resolve to the same `agentId` scope.
 - **Experience recall** is queried from the same NotebookLM backend during prompt
   assembly; it is not partitioned by session id.
 - **Workspace inheritance** is same-agent by default. Cross-agent spawns switch

@@ -519,7 +519,7 @@ export class DurableExtractionWorkerManager {
   }
 
   private resolveScopeLockKey(scope: DurableMemoryScope): string {
-    return scope.scopeKey ?? `${scope.agentId}:${scope.channel}:${scope.userId}`;
+    return scope.scopeKey ?? scope.agentId;
   }
 
   private takeNextRunnableSessionKey(): string | null {

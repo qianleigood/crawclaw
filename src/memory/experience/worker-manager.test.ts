@@ -243,6 +243,11 @@ describe("ExperienceExtractionWorkerManager", () => {
       ],
     });
     expect(runtimeStore.maintenanceUpdates).toHaveLength(1);
+    expect(runtimeStore.createMaintenanceRun).toHaveBeenCalledWith(
+      expect.objectContaining({
+        scope: "main",
+      }),
+    );
     const metrics = JSON.parse(runtimeStore.maintenanceUpdates[0]?.metricsJson ?? "{}") as {
       foregroundWriteCount?: number;
     };

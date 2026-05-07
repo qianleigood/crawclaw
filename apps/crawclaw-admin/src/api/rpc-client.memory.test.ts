@@ -64,12 +64,10 @@ describe('RPCClient memory methods', () => {
           recentUpdatedAt: '2026-05-01T00:00:00.000Z',
           items: [
             {
-              id: 'agents/main/channels/discord/users/alice/MEMORY.md',
-              relativePath: 'agents/main/channels/discord/users/alice/MEMORY.md',
-              scopeKey: 'main:discord:alice',
+              id: 'agents/main/MEMORY.md',
+              relativePath: 'agents/main/MEMORY.md',
+              scopeKey: 'main',
               agentId: 'main',
-              channel: 'discord',
-              userId: 'alice',
               title: 'Alice memory',
               updatedAt: '2026-05-01T00:00:00.000Z',
               sizeBytes: 120,
@@ -120,7 +118,7 @@ describe('RPCClient memory methods', () => {
     expect(ws.requests[0]?.method).toBe('memory.admin.overview')
     expect(ws.requests[0]?.params).toEqual({ durableLimit: 3, experienceLimit: 4 })
     expect(result.provider.ready).toBe(true)
-    expect(result.durable.items[0]?.scopeKey).toBe('main:discord:alice')
+    expect(result.durable.items[0]?.scopeKey).toBe('main')
     expect(result.experience.pendingSyncCount).toBe(1)
   })
 

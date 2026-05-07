@@ -54,10 +54,10 @@ describe("durable memory common helpers", () => {
     expect(body).toContain("## How to apply");
     expect(scope).not.toBeNull();
     expect(toPosixPathForAssert(resolveDurableMemoryScopeDir(scope!))).toContain(
-      "/durable-memory/agents/main/channels/discord/users/user-42",
+      "/durable-memory/agents/main",
     );
     expect(toPosixPathForAssert(resolveDurableMemoryIndexPath(scope!))).toContain(
-      "/durable-memory/agents/main/channels/discord/users/user-42/MEMORY.md",
+      "/durable-memory/agents/main/MEMORY.md",
     );
     expect(toPosixPathForAssert(resolveDurableMemoryRootDir())).toContain("/durable-memory");
   });
@@ -70,7 +70,7 @@ describe("durable memory common helpers", () => {
       agentId: "main",
       channel: "local",
       userId: "main",
-      scopeKey: "main:local:main",
+      scopeKey: "main",
     });
 
     const fallbackScope = resolveDurableMemoryScope({
@@ -81,7 +81,7 @@ describe("durable memory common helpers", () => {
       agentId: "main",
       channel: "local",
       userId: "local",
-      scopeKey: "main:local:local",
+      scopeKey: "main",
     });
   });
 });

@@ -182,27 +182,25 @@ export async function runMemoryStatus(opts: MemoryCommandOptions) {
   defaultRuntime.log("");
 }
 
-function resolveDreamScopeFromOptions(opts: MemoryCommandOptions) {
+function resolveDreamScopeFromOptions(opts: MemoryCommandOptions): {
+  scopeKey?: string;
+  scope?: NonNullable<ReturnType<typeof resolveDurableMemoryScope>>;
+  error?: string;
+} {
   if (opts.scopeKey?.trim()) {
     const scopeKey = opts.scopeKey.trim();
-    const [agentId, channel, userId, ...extra] = scopeKey.split(":");
-    if (agentId && channel && userId && extra.length === 0) {
-      return {
-        scopeKey,
-        scope: {
-          agentId,
-          channel,
-          userId,
-          scopeKey,
-        },
-      };
+    if (scopeKey.includes(":")) {
+      return { error: "Memory dream commands accept only agent-only --scope-key values." };
     }
-    return { scopeKey };
+    const scope = resolveDurableMemoryScope({
+      agentId: scopeKey,
+      fallbackToLocal: true,
+    });
+    return scope?.scopeKey ? { scopeKey: scope.scopeKey, scope } : {};
   }
   const scope = resolveDurableMemoryScope({
     agentId: opts.agent,
-    channel: opts.channel,
-    userId: opts.user,
+    fallbackToLocal: Boolean(opts.agent),
   });
   return scope?.scopeKey ? { scopeKey: scope.scopeKey, scope } : {};
 }
@@ -219,8 +217,13 @@ export async function runMemoryDreamStatus(opts: MemoryCommandOptions) {
   setVerbose(Boolean(opts.verbose));
   const { config: cfg, diagnostics } = await loadMemoryCommandConfig("memory dream status");
   emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
-  const memoryConfig = resolveMemoryRuntimeConfig(cfg);
   const scope = resolveDreamScopeFromOptions(opts);
+  if (scope.error) {
+    defaultRuntime.error(scope.error);
+    process.exitCode = 1;
+    return;
+  }
+  const memoryConfig = resolveMemoryRuntimeConfig(cfg);
   const state = scope.scope
     ? await readDreamConsolidationStatus({
         scope: scope.scope,
@@ -270,6 +273,11 @@ export async function runMemoryDreamHistory(opts: MemoryCommandOptions) {
   emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
   void cfg;
   const scope = resolveDreamScopeFromOptions(opts);
+  if (scope.error) {
+    defaultRuntime.error(scope.error);
+    process.exitCode = 1;
+    return;
+  }
   const payload = {
     scopeKey: scope.scopeKey ?? null,
     historyPersisted: false,
@@ -293,8 +301,13 @@ export async function runMemoryDreamRun(opts: MemoryCommandOptions) {
   const { config: cfg, diagnostics } = await loadMemoryCommandConfig("memory dream run");
   emitMemorySecretResolveDiagnostics(diagnostics, { json: Boolean(opts.json) });
   const resolvedScope = resolveDreamScopeFromOptions(opts);
+  if (resolvedScope.error) {
+    defaultRuntime.error(resolvedScope.error);
+    process.exitCode = 1;
+    return;
+  }
   if (!resolvedScope.scopeKey || !resolvedScope.scope) {
-    defaultRuntime.error("Memory dream run requires --scope-key or --agent/--channel/--user.");
+    defaultRuntime.error("Memory dream run requires an agent-only --scope-key or --agent.");
     process.exitCode = 1;
     return;
   }

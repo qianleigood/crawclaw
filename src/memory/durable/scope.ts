@@ -89,16 +89,12 @@ export function resolveDurableMemoryScope(params: {
     params.rootDir?.trim() || resolveDurableMemoryRootDir(),
     "agents",
     agentId,
-    "channels",
-    normalizedChannel,
-    "users",
-    normalizedUserId,
   );
   return {
     agentId,
     channel: normalizedChannel,
     userId: normalizedUserId,
-    scopeKey: `${agentId}:${normalizedChannel}:${normalizedUserId}`,
+    scopeKey: agentId,
     rootDir,
   };
 }
@@ -107,10 +103,7 @@ export function resolveDurableMemoryScopeDir(
   scope: Pick<DurableMemoryScope, "agentId" | "channel" | "userId" | "scopeKey" | "rootDir">,
   rootDir = resolveDurableMemoryRootDir(),
 ): string {
-  return (
-    scope.rootDir ??
-    path.join(rootDir, "agents", scope.agentId, "channels", scope.channel, "users", scope.userId)
-  );
+  return scope.rootDir ?? path.join(rootDir, "agents", scope.agentId);
 }
 
 export function getDurableMemoryScopeDir(scope: DurableMemoryScope): string {

@@ -560,7 +560,12 @@ describe("AutoDreamScheduler", () => {
       dryRun: true,
     });
 
-    expect(result.preview?.recentSessionIds).toEqual(["current-session", "same-scope-thread"]);
+    expect(result.preview?.recentSessionIds).toEqual([
+      "current-session",
+      "other-user-session",
+      "other-channel-session",
+      "same-scope-thread",
+    ]);
   });
 
   it("includes the triggering stop-phase session in the current dream input", async () => {

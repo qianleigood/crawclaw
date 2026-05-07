@@ -1,7 +1,5 @@
 export type MemoryCommandOptions = {
   agent?: string;
-  channel?: string;
-  user?: string;
   scopeKey?: string;
   sessionId?: string;
   sessionKey?: string;

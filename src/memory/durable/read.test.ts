@@ -59,7 +59,7 @@ describe("durable memory recall", () => {
           agentId: "main",
           channel: "discord",
           userId: "user-42",
-          scopeKey: "main:discord:user-42",
+          scopeKey: "main",
           rootDir: scopeDir,
         },
         maxFiles: 1,
@@ -128,7 +128,7 @@ describe("durable memory recall", () => {
           agentId: "main",
           channel: "discord",
           userId: "user-42",
-          scopeKey: "main:discord:user-42",
+          scopeKey: "main",
           rootDir: scopeDir,
         },
       });
@@ -157,7 +157,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       const selectedTail = "TAIL-FROM-FULL-NOTE";
@@ -236,7 +236,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       await fs.writeFile(
@@ -284,7 +284,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       await fs.writeFile(
@@ -343,7 +343,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       await fs.writeFile(
@@ -408,7 +408,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       await fs.writeFile(
@@ -474,7 +474,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       await fs.writeFile(
@@ -538,7 +538,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       await fs.writeFile(
@@ -599,7 +599,7 @@ describe("durable memory recall", () => {
         agentId: "main",
         channel: "discord",
         userId: "user-42",
-        scopeKey: "main:discord:user-42",
+        scopeKey: "main",
         rootDir: scopeDir,
       };
       await fs.writeFile(

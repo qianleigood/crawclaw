@@ -432,9 +432,7 @@ describe("agent.inspect command", () => {
     await agentInspectCommand({ runId: "run-dream" }, runtime);
 
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Dream:"));
-    expect(runtime.log).toHaveBeenCalledWith(
-      expect.stringContaining("Scope: main:channel:chat%3Auser%3Auser-1"),
-    );
+    expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Scope: main"));
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Closed loop: active"));
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Last consolidated: 100"));
     expect(runtime.log).toHaveBeenCalledWith(expect.stringContaining("Lock active: yes"));
@@ -568,7 +566,7 @@ describe("agent.inspect command", () => {
       refs: {},
       warnings: [],
       dream: {
-        scopeKey: "main:channel:chat%3Auser%3Auser-1",
+        scopeKey: "main",
         enabled: true,
         closedLoopActive: true,
         closedLoopReason: "active",
@@ -585,7 +583,7 @@ describe("agent.inspect command", () => {
     });
 
     expect(rendered).toContain("Dream:");
-    expect(rendered).toContain("Scope: main:channel:chat%3Auser%3Auser-1");
+    expect(rendered).toContain("Scope: main");
     expect(rendered).toContain("Enabled: yes");
     expect(rendered).toContain("Closed loop: active");
     expect(rendered).not.toContain("Transcript fallback:");

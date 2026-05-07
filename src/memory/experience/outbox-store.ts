@@ -15,8 +15,8 @@ export type ExperienceSyncStatus = (typeof EXPERIENCE_SYNC_STATUSES)[number];
 
 export interface ExperienceOutboxScope {
   agentId: string;
-  channel: string;
-  userId: string;
+  channel?: string;
+  userId?: string;
   scopeKey: string;
 }
 
@@ -132,13 +132,18 @@ function normalizeExperienceOutboxScope(
   value: Partial<ExperienceOutboxScope> | DurableMemoryScope | null | undefined,
 ): ExperienceOutboxScope | null {
   const agentId = value?.agentId?.trim();
-  const channel = value?.channel?.trim();
-  const userId = value?.userId?.trim();
   const scopeKey = value?.scopeKey?.trim();
-  if (!agentId || !channel || !userId || !scopeKey) {
+  if (!agentId || !scopeKey) {
     return null;
   }
-  return { agentId, channel, userId, scopeKey };
+  const channel = value?.channel?.trim();
+  const userId = value?.userId?.trim();
+  return {
+    agentId,
+    scopeKey,
+    ...(channel ? { channel } : {}),
+    ...(userId ? { userId } : {}),
+  };
 }
 
 function normalizeExperienceOutboxEntry(raw: unknown): ExperienceOutboxEntry | null {

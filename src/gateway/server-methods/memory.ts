@@ -237,27 +237,34 @@ function buildNotebookLmSetupConfig(
   };
 }
 
-function resolveDreamScopeParams(params: Record<string, unknown>) {
+function resolveDreamScopeParams(params: Record<string, unknown>): {
+  scopeKey?: string;
+  scope?: NonNullable<ReturnType<typeof resolveDurableMemoryScope>>;
+  error?: string;
+} {
+  if ("channel" in params || "user" in params) {
+    return {
+      error: "memory.dream.* accepts only agent or agent-only scopeKey",
+    };
+  }
   const scopeKey = readOptionalString(params.scopeKey);
   if (scopeKey) {
-    const [agentId, channel, userId, ...extra] = scopeKey.split(":");
-    if (agentId && channel && userId && extra.length === 0) {
+    const agentId = scopeKey.trim();
+    if (agentId.includes(":")) {
       return {
-        scopeKey,
-        scope: {
-          agentId,
-          channel,
-          userId,
-          scopeKey,
-        },
+        error: "memory.dream.* accepts only agent-only scopeKey values",
       };
     }
-    return { scopeKey };
+    const scope = resolveDurableMemoryScope({
+      agentId,
+      fallbackToLocal: true,
+    });
+    return scope?.scopeKey ? { scopeKey: scope.scopeKey, scope } : {};
   }
+  const agentId = readOptionalString(params.agent);
   const scope = resolveDurableMemoryScope({
-    agentId: readOptionalString(params.agent),
-    channel: readOptionalString(params.channel),
-    userId: readOptionalString(params.user),
+    agentId,
+    fallbackToLocal: Boolean(agentId),
   });
   return scope?.scopeKey ? { scopeKey: scope.scopeKey, scope } : {};
 }
@@ -485,6 +492,10 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const cfg = await loadResolvedMemoryConfig();
       const memoryConfig = resolveMemoryConfig(cfg.memory ?? {});
       const scope = resolveDreamScopeParams(asRecord(params));
+      if (scope.error) {
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, scope.error));
+        return;
+      }
       const state = scope.scope
         ? await readDreamConsolidationStatus({
             scope: scope.scope,
@@ -524,6 +535,10 @@ export const memoryHandlers: GatewayRequestHandlers = {
       const cfg = await loadResolvedMemoryConfig();
       void cfg;
       const scope = resolveDreamScopeParams(asRecord(params));
+      if (scope.error) {
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, scope.error));
+        return;
+      }
       respond(
         true,
         {
@@ -549,13 +564,17 @@ export const memoryHandlers: GatewayRequestHandlers = {
     try {
       const cfg = await loadResolvedMemoryConfig();
       const resolvedScope = resolveDreamScopeParams(asRecord(params));
+      if (resolvedScope.error) {
+        respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, resolvedScope.error));
+        return;
+      }
       if (!resolvedScope.scopeKey || !resolvedScope.scope) {
         respond(
           false,
           undefined,
           errorShape(
             ErrorCodes.INVALID_REQUEST,
-            "memory.dream.run requires scopeKey or agent/channel/user scope filters",
+            "memory.dream.run requires an agent-only scopeKey or agent filter",
           ),
         );
         return;
