@@ -164,6 +164,7 @@ async function resolveCliProgramArguments(params: {
   dev?: boolean;
   runtime?: GatewayRuntimePreference;
   nodePath?: string;
+  runtimeEntryPath?: string;
 }): Promise<GatewayProgramArgs> {
   const execPath = process.execPath;
   const runtime = params.runtime ?? "auto";
@@ -171,7 +172,10 @@ async function resolveCliProgramArguments(params: {
   if (runtime === "node") {
     const nodePath =
       params.nodePath ?? (isNodeRuntime(execPath) ? execPath : await resolveNodePath());
-    const cliEntrypointPath = await resolveCliEntrypointPathForService();
+    const cliEntrypointPath = params.runtimeEntryPath
+      ? path.resolve(params.runtimeEntryPath)
+      : await resolveCliEntrypointPathForService();
+    await fs.access(cliEntrypointPath);
     return {
       programArguments: [nodePath, cliEntrypointPath, ...params.args],
     };
@@ -237,6 +241,7 @@ export async function resolveGatewayProgramArguments(params: {
   dev?: boolean;
   runtime?: GatewayRuntimePreference;
   nodePath?: string;
+  runtimeEntryPath?: string;
 }): Promise<GatewayProgramArgs> {
   const gatewayArgs = ["gateway", "--port", String(params.port)];
   return resolveCliProgramArguments({
@@ -244,6 +249,7 @@ export async function resolveGatewayProgramArguments(params: {
     dev: params.dev,
     runtime: params.runtime,
     nodePath: params.nodePath,
+    runtimeEntryPath: params.runtimeEntryPath,
   });
 }
 
@@ -257,6 +263,7 @@ export async function resolveNodeProgramArguments(params: {
   dev?: boolean;
   runtime?: GatewayRuntimePreference;
   nodePath?: string;
+  runtimeEntryPath?: string;
 }): Promise<GatewayProgramArgs> {
   const args = ["node", "run", "--host", params.host, "--port", String(params.port)];
   if (params.tls || params.tlsFingerprint) {
@@ -276,5 +283,6 @@ export async function resolveNodeProgramArguments(params: {
     dev: params.dev,
     runtime: params.runtime,
     nodePath: params.nodePath,
+    runtimeEntryPath: params.runtimeEntryPath,
   });
 }

@@ -53,6 +53,10 @@ export async function runDaemonInstall(opts: DaemonInstallOptions) {
     fail('Invalid --runtime (use "node" or "bun")');
     return;
   }
+  if (opts.runtimeEntry?.trim() && runtimeRaw !== "node") {
+    fail("Invalid --runtime-entry (only supported with --runtime node)");
+    return;
+  }
 
   const service = resolveGatewayService();
   let loaded = false;
@@ -124,6 +128,7 @@ export async function runDaemonInstall(opts: DaemonInstallOptions) {
     env: installEnv,
     port,
     runtime: runtimeRaw,
+    runtimeEntryPath: opts.runtimeEntry,
     warn: (message) => {
       if (json) {
         warnings.push(message);

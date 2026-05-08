@@ -1,21 +1,21 @@
 ---
-summary: "Install and operate CrawClaw Desktop, the local desktop client"
+summary: "Install and operate CrawClaw Desktop, the local-first desktop app"
 read_when:
-  - You want CrawClaw as a desktop client
-  - You need to know where desktop state and local Gateway state are stored
+  - You want the default local desktop entrypoint for CrawClaw
+  - You need to know what the desktop app bundles and starts
   - You are validating platform support or release assets
 title: "Desktop"
 ---
 
 # Desktop
 
-CrawClaw Desktop is the default local app experience for macOS, Windows, and Linux. It packages the Vue Admin UI, the local Admin backend, and a bundled CrawClaw runtime into one Electron app.
+CrawClaw Desktop is the default local app for CrawClaw on macOS, Windows, and Linux. It reuses the Vue admin UI and local Node backend, but the product boundary is local-first: the desktop app bundles the CrawClaw runtime, initializes `~/.crawclaw`, installs or refreshes the local Gateway service, starts that service, then opens the admin UI against the local Gateway.
 
-On first launch, the desktop host initializes the local `~/.crawclaw/crawclaw.json`, starts the Admin backend on a random loopback port, and connects the UI to the local Gateway at `127.0.0.1`. The Gateway is treated as a background service: closing the window hides the desktop UI, but it does not stop the Gateway.
+The CLI, headless, Docker, and server flows remain supported for advanced and server deployments. They are no longer the primary desktop user flow.
 
 ## Trust model
 
-The desktop app is a local client for your own machine. It can expose the same host-level capabilities as the admin backend, including file browsing, terminal sessions, backups, system metrics, and supported remote desktop controls.
+CrawClaw Desktop is a local admin console for the current machine. It can expose the same host-level capabilities as the admin backend, including file browsing, terminal sessions, backups, system metrics, and supported remote desktop controls.
 
 The Electron host keeps the browser window on the local backend origin and exposes only a small preload bridge for host-owned actions such as opening external links. Ordinary admin actions still go through the local backend HTTP and SSE surface.
 
@@ -23,10 +23,20 @@ The backend runs in desktop mode with these constraints:
 
 - It binds to loopback only.
 - It uses a random local port selected by the desktop host.
-- It only connects to the local CrawClaw Gateway in desktop-local mode.
-- It stores desktop UI state outside the app bundle.
-- It stores Gateway runtime state in `~/.crawclaw`.
-- It disables npm global self-update behavior and points users to desktop release assets.
+- It stores mutable state outside the app bundle.
+- It connects only to the local Gateway managed by the desktop runtime.
+- It disables npm global self-update behavior and points users to GitHub Releases for desktop updates.
+
+## Bundled runtime
+
+Desktop packages include the production CrawClaw runtime under the app resources directory:
+
+```text
+runtime/crawclaw/crawclaw.mjs
+runtime/crawclaw/node_modules/
+```
+
+The packaged app uses this embedded runtime for service install, service start, status checks, and log reads. End users do not need a globally installed `crawclaw` binary or a preconfigured shell `PATH` for the desktop flow.
 
 ## Supported platforms
 
@@ -40,23 +50,29 @@ Desktop release assets are built for:
 
 Platform-sensitive features may still differ by OS. The app queries `/api/desktop/capabilities` and disables unsupported actions with the backend-provided reason instead of hiding the route entirely.
 
-## Local Gateway
+## Gateway service
 
-CrawClaw Desktop writes or repairs the minimum local Gateway defaults without overwriting existing user choices:
+On first launch, CrawClaw Desktop prepares the local runtime state in `~/.crawclaw` and writes missing local defaults:
 
 - `gateway.mode=local`
-- `gateway.bind=loopback`
-- `gateway.port=18789` when no port exists yet
-- `gateway.reload.mode=hybrid`
-- token auth when no Gateway auth mode is configured yet
+- loopback binding
+- the default local Gateway port
+- online reconfigure behavior
+- local authentication material for the desktop Gateway
 
-The Admin backend receives the local WebSocket URL and token from the desktop bootstrap path. The frontend does not store or edit the Gateway secret directly.
+The desktop app installs or refreshes the OS user service through the existing launchd, systemd, or Windows service path. The installed command points at the embedded runtime entrypoint instead of a global `crawclaw` command.
 
-Remote Gateway profiles and Hermes switching are not part of CrawClaw Desktop. Use the CLI or a web Admin deployment when you need to administer a remote or headless Gateway.
+Closing the desktop window hides the UI and keeps the Gateway service running. Quitting the desktop app exits the Electron UI and local admin backend, but it does not stop the Gateway. Use the Gateway Service controls in Settings to explicitly start, stop, restart, or inspect logs.
 
 ## State locations
 
-The app uses the standard Electron `userData` directory for desktop UI state:
+Runtime state is shared with the CLI under:
+
+```text
+~/.crawclaw
+```
+
+Electron `userData` stores only desktop UI and admin backend state. The layout is:
 
 ```text
 config.json
@@ -66,23 +82,25 @@ backups/
 logs/
 ```
 
-The admin backend receives these paths through `CRAWCLAW_ADMIN_*` environment variables and writes SQLite data, backups, and logs under that state directory instead of the installed application bundle.
+The admin backend receives these paths through `CRAWCLAW_ADMIN_*` environment variables and writes SQLite data, backups, and logs under the desktop state directory instead of the installed application bundle.
 
-The CrawClaw runtime state remains in:
+## Gateway connection
+
+CrawClaw Desktop connects to the local Gateway using:
 
 ```text
-~/.crawclaw/
+ws://127.0.0.1:18789
 ```
 
-The bundled runtime is packaged under the application resources at `runtime/crawclaw` and is used for desktop service commands. Desktop service controls must not depend on a global `crawclaw` command in `PATH`.
+Remote Gateway, VPS, and headless server deployments are managed through the CLI and server install documentation instead of the desktop UI.
 
 ## Updates
 
-Desktop builds update the app and bundled Gateway runtime together. When a desktop update is available, use the platform asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
+Desktop builds update as a single desktop package: the app, embedded CrawClaw runtime, local admin backend, and UI are delivered together. The desktop UI does not call the CLI npm self-update path.
 
-The admin UI also switches update copy in desktop mode so it links to Releases instead of calling the npm update endpoint.
+When a desktop update is available, install the platform asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
 
-## Current limitations
+## Beta limitations
 
 - Automatic desktop update downloads are not included in this pass.
 - Store distribution is not included.
@@ -96,7 +114,6 @@ For local packaging work:
 ```bash
 pnpm admin:build
 pnpm admin:desktop:build
-pnpm admin:desktop:stage-runtime
 pnpm admin:desktop:pack
 ```
 
@@ -106,4 +123,4 @@ For release validation:
 pnpm admin:desktop:release-check
 ```
 
-See [Updating](/install/updating) for the CLI and Gateway update flow. Desktop app updates are handled through GitHub Releases.
+See [Updating](/install/updating) for the CLI and server update flow. Desktop app updates are handled through GitHub Releases.

@@ -1,7 +1,7 @@
 import { spawn } from 'child_process'
 import { existsSync, mkdirSync } from 'fs'
 import { homedir } from 'os'
-import { join } from 'path'
+import { delimiter, join } from 'path'
 import net from 'net'
 
 export function normalizeAppLocale(input) {
@@ -21,6 +21,26 @@ function isFalseLike(value) {
 
 function resolveStateDir(env) {
   return env.CRAWCLAW_STATE_DIR?.trim() || join(homedir(), '.crawclaw')
+}
+
+function resolveNodeMajor(env) {
+  const raw = env.CRAWCLAW_RUNTIME_NODE_VERSION?.trim() || process.versions.node || ''
+  const major = Number.parseInt(raw.replace(/^v/, '').split('.')[0] || '', 10)
+  return Number.isFinite(major) && major > 0 ? major : 0
+}
+
+function resolvePluginRuntimeRoots(env) {
+  const override = env.CRAWCLAW_PLUGIN_RUNTIMES_DIR?.trim()
+  if (override) {
+    return override.split(delimiter).map((entry) => entry.trim()).filter(Boolean)
+  }
+  return [join(resolveStateDir(env), 'runtimes')]
+}
+
+function resolvePluginRuntimeDir(env, id) {
+  const roots = resolvePluginRuntimeRoots(env)
+  const candidates = roots.map((root) => join(root, `node-${resolveNodeMajor(env)}`, id))
+  return candidates.find((candidate) => existsSync(candidate)) || candidates[0] || join(resolveStateDir(env), 'runtimes', `node-${resolveNodeMajor(env)}`, id)
 }
 
 function canConnect(host, port, timeoutMs = 300) {
@@ -75,7 +95,7 @@ export class N8nService {
       return this.env.CRAWCLAW_N8N_BIN.trim()
     }
     const suffix = process.platform === 'win32' ? 'n8n.cmd' : 'n8n'
-    return join(resolveStateDir(this.env), 'runtimes', 'n8n', 'node_modules', '.bin', suffix)
+    return join(resolvePluginRuntimeDir(this.env, 'n8n'), 'node_modules', '.bin', suffix)
   }
 
   resolveUserFolder() {
@@ -199,8 +219,11 @@ export class N8nService {
   }
 
   getStatus() {
+    const binExists = existsSync(this.resolveBinPath())
     return {
       managed: this.isManagedEnabled(),
+      runtimeState: binExists ? 'available' : 'missing-runtime',
+      missingRuntime: !binExists,
       externalRunning: this.externalRunning,
       running: !!this.process && !this.process.killed,
       pid: this.process?.pid || null,

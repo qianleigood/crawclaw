@@ -39,6 +39,7 @@ const capabilities: DesktopCapabilities = {
 
 describe('useDesktopStore', () => {
   beforeEach(() => {
+    installLocalStorage()
     setActivePinia(createPinia())
     mocks.getDesktopCapabilities.mockReset()
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -84,4 +85,40 @@ describe('useDesktopStore', () => {
 
     expect(store.capabilityUnavailableReason('files', 'Fallback')).toBe('Fallback')
   })
+
+  it('defaults desktop onboarding and advanced mode to simple first-run values', () => {
+    const store = useDesktopStore()
+
+    expect(store.onboardingComplete).toBe(false)
+    expect(store.advancedMode).toBe(false)
+  })
+
+  it('persists desktop onboarding completion and advanced mode preference', () => {
+    const store = useDesktopStore()
+
+    store.completeOnboarding()
+    store.setAdvancedMode(true)
+
+    expect(localStorage.getItem('crawclaw-desktop-onboarding-complete')).toBe('true')
+    expect(localStorage.getItem('crawclaw-desktop-advanced-mode')).toBe('true')
+
+    setActivePinia(createPinia())
+    const reloaded = useDesktopStore()
+
+    expect(reloaded.onboardingComplete).toBe(true)
+    expect(reloaded.advancedMode).toBe(true)
+  })
 })
+
+function installLocalStorage() {
+  const values = new Map<string, string>()
+  Object.defineProperty(globalThis, 'localStorage', {
+    configurable: true,
+    value: {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      clear: () => values.clear(),
+    },
+  })
+}

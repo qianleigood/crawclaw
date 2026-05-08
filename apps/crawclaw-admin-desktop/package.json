@@ -7,9 +7,8 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "npm run build && electron .",
-    "stage:runtime": "node ../../scripts/admin-desktop-stage-runtime.mjs",
-    "pack": "npm run build && npm run stage:runtime && npm run rebuild:admin-native && electron-builder --dir",
-    "dist": "npm run build && npm run stage:runtime && npm run rebuild:admin-native && electron-builder",
+    "pack": "npm run build && npm run rebuild:admin-native && node ../../scripts/admin-desktop-electron-builder.mjs --dir",
+    "dist": "npm run build && npm run rebuild:admin-native && node ../../scripts/admin-desktop-electron-builder.mjs",
     "rebuild:native": "electron-rebuild && npm run rebuild:admin-native",
     "rebuild:admin-native": "electron-rebuild --module-dir ../crawclaw-admin --only better-sqlite3,node-pty,ssh2,cpu-features"
   },

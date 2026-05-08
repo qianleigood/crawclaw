@@ -30,6 +30,12 @@ extraResources:
       - "**/*"
       - "!**/.cache/**"
       - "!**/*.map"
+  - from: .runtime/crawclaw/node_modules
+    to: runtime/crawclaw/node_modules
+    filter:
+      - "**/*"
+      - "!**/.cache/**"
+      - "!**/*.map"
 mac:
   target:
     - dmg

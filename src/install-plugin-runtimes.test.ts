@@ -53,6 +53,8 @@ type RuntimeInstallScript = {
   listManagedPluginRuntimeInstallPlan: (params?: {
     arch?: NodeJS.Architecture;
     platform?: NodeJS.Platform;
+    profile?: string;
+    runtimeIds?: string[];
   }) => Array<{
     id: string;
     installTime: boolean;
@@ -432,6 +434,30 @@ describe("install-plugin-runtimes", () => {
         },
       },
     ]);
+  });
+
+  it("selects the desktop core runtime profile without heavyweight optional runtimes", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(
+      script
+        .listManagedPluginRuntimeInstallPlan({ profile: "desktop-core" })
+        .map((entry) => entry.id),
+    ).toEqual([
+      "browser",
+      "core-skills",
+      "open-websearch",
+      "scrapling-fetch",
+      "notebooklm-mcp-cli",
+    ]);
+  });
+
+  it("selects a single optional runtime for desktop on-demand installs", async () => {
+    const script = await loadRuntimeInstallScript();
+
+    expect(
+      script.listManagedPluginRuntimeInstallPlan({ runtimeIds: ["n8n"] }).map((entry) => entry.id),
+    ).toEqual(["n8n"]);
   });
 
   it("resolves the version-paired n8n Chinese editor UI archive", async () => {

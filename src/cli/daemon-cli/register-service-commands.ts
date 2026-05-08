@@ -77,6 +77,7 @@ export function addGatewayServiceCommands(parent: Command, opts?: { statusDescri
     .description(t("command.daemon.install.description"))
     .option("--port <port>", t("command.daemon.install.option.port"))
     .option("--runtime <runtime>", t("command.daemon.install.option.runtime"))
+    .option("--runtime-entry <path>", t("command.daemon.install.option.runtimeEntry"))
     .option("--token <token>", t("command.daemon.install.option.token"))
     .option("--force", t("command.daemon.install.option.force"), false)
     .option("--json", t("command.daemon.option.json"), false)

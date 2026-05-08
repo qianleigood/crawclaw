@@ -706,10 +706,9 @@ async function handleCreateSession() {
 
 .sessions-hero {
   border-radius: var(--radius-lg);
-  background:
-    radial-gradient(circle at 84% 16%, rgba(32, 128, 240, 0.22), transparent 36%),
-    linear-gradient(120deg, var(--bg-card), rgba(24, 160, 88, 0.08));
-  border: 1px solid rgba(32, 128, 240, 0.18);
+  background: var(--bg-card);
+  border: 1px solid var(--desktop-border);
+  box-shadow: none;
 }
 
 .sessions-hero-title {
@@ -757,8 +756,8 @@ async function handleCreateSession() {
 }
 
 .sessions-action-btn:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+  transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 1100px) {

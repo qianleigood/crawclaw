@@ -1,14 +1,17 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { WebSocket } from "ws";
 import { resolveMainSessionKeyFromConfig } from "../config/sessions.js";
 import { drainSystemEvents } from "../infra/system-events.js";
 import {
+  connectReq,
   connectOk,
   installGatewayTestHooks,
   rpcReq,
   startServerWithClient,
   testState,
+  trackConnectChallengeNonce,
   withGatewayServer,
 } from "./test-helpers.js";
 
@@ -266,9 +269,8 @@ describe("gateway hot reload", () => {
         providers: {
           vault: {
             source: "exec",
-            command: process.execPath,
-            allowSymlinkCommand: true,
-            args: [params.resolverScriptPath, params.modePath, params.tokenValue],
+            command: params.resolverScriptPath,
+            args: [params.modePath, params.tokenValue],
           },
         },
       },
@@ -440,6 +442,28 @@ describe("gateway hot reload", () => {
     );
   }
 
+  async function openWebSocket(port: number): Promise<WebSocket> {
+    const ws = new WebSocket(`ws://127.0.0.1:${port}`);
+    trackConnectChallengeNonce(ws);
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        ws.off("open", onOpen);
+        ws.off("error", onError);
+      };
+      const onOpen = () => {
+        cleanup();
+        resolve();
+      };
+      const onError = (err: Error) => {
+        cleanup();
+        reject(err);
+      };
+      ws.once("open", onOpen);
+      ws.once("error", onError);
+    });
+    return ws;
+  }
+
   it("applies hot reload actions and emits restart signal", async () => {
     await withGatewayServer(async () => {
       const onHotReload = hoisted.getOnHotReload();
@@ -521,9 +545,9 @@ describe("gateway hot reload", () => {
 
       const restartResult = onRestart?.(
         {
-          changedPaths: ["gateway.port"],
+          changedPaths: ["unknownField"],
           restartGateway: true,
-          restartReasons: ["gateway.port"],
+          restartReasons: ["unknownField"],
           hotReasons: [],
           reloadHooks: false,
           restartGmailWatcher: false,
@@ -538,6 +562,77 @@ describe("gateway hot reload", () => {
 
       expect(signalSpy).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it("rebuilds listeners and applies gateway auth reload without process restart", async () => {
+    const oldToken = "gateway-auth-reload-old-token";
+    const newToken = "gateway-auth-reload-new-token";
+    const previousGatewayAuth = testState.gatewayAuth;
+    const previousGatewayTokenEnv = process.env.CRAWCLAW_GATEWAY_TOKEN;
+    testState.gatewayAuth = { mode: "token", token: oldToken };
+    process.env.CRAWCLAW_GATEWAY_TOKEN = oldToken;
+
+    const { server, ws, port, envSnapshot } = await startServerWithClient(oldToken);
+    try {
+      await connectOk(ws, { token: oldToken });
+      const onHotReload = hoisted.getOnHotReload();
+      expect(onHotReload).toBeTypeOf("function");
+
+      await expect(
+        onHotReload?.(
+          {
+            changedPaths: ["gateway.auth.token"],
+            restartGateway: false,
+            restartReasons: [],
+            hotReasons: ["gateway.auth.token"],
+            reloadHooks: false,
+            restartGmailWatcher: false,
+            restartCron: false,
+            restartHeartbeat: false,
+            restartHealthMonitor: false,
+            restartChannels: new Set(),
+            rebuildListeners: true,
+            noopPaths: [],
+          },
+          {
+            gateway: {
+              auth: {
+                mode: "token",
+                token: newToken,
+              },
+            },
+          },
+        ),
+      ).resolves.toBeUndefined();
+
+      const oldAuthWs = await openWebSocket(port);
+      try {
+        const oldAuthResponse = await connectReq(oldAuthWs, {
+          token: oldToken,
+          timeoutMs: 2_000,
+        });
+        expect(oldAuthResponse.ok).toBe(false);
+      } finally {
+        oldAuthWs.close();
+      }
+
+      const newAuthWs = await openWebSocket(port);
+      try {
+        await connectOk(newAuthWs, { token: newToken });
+      } finally {
+        newAuthWs.close();
+      }
+    } finally {
+      testState.gatewayAuth = previousGatewayAuth;
+      if (previousGatewayTokenEnv === undefined) {
+        delete process.env.CRAWCLAW_GATEWAY_TOKEN;
+      } else {
+        process.env.CRAWCLAW_GATEWAY_TOKEN = previousGatewayTokenEnv;
+      }
+      envSnapshot.restore();
+      ws.close();
+      await server.close();
+    }
   });
 
   it("fails startup when required secret refs are unresolved", async () => {
@@ -795,7 +890,8 @@ describe("gateway hot reload", () => {
     await fs.mkdir(path.dirname(resolverScriptPath), { recursive: true });
     await fs.writeFile(
       resolverScriptPath,
-      `const fs = require("node:fs");
+      `#!${process.execPath}
+const fs = require("node:fs");
 let input = "";
 process.stdin.setEncoding("utf8");
 process.stdin.on("data", (chunk) => {
@@ -831,6 +927,7 @@ process.stdin.on("end", () => {
 `,
       "utf8",
     );
+    await fs.chmod(resolverScriptPath, 0o700);
     await fs.writeFile(modePath, "ok\n", "utf8");
     await writeGatewayTokenExecRefConfig({
       resolverScriptPath,

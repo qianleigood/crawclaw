@@ -949,7 +949,7 @@
     "admin:build": "npm --prefix apps/crawclaw-admin run build",
     "admin:desktop:build": "npm --prefix apps/crawclaw-admin-desktop run build",
     "admin:desktop:dist": "node scripts/admin-desktop-build.mjs",
-    "admin:desktop:pack": "npm --prefix apps/crawclaw-admin-desktop run pack",
+    "admin:desktop:pack": "pnpm admin:desktop:stage-runtime && npm --prefix apps/crawclaw-admin-desktop run pack",
     "admin:desktop:release-check": "node scripts/admin-desktop-release-check.mjs",
     "admin:desktop:stage-runtime": "node scripts/admin-desktop-stage-runtime.mjs",
     "audit:seams": "node scripts/audit-seams.mjs",

@@ -24,10 +24,25 @@ export type PluginRuntimeManifest = {
   plugins?: Record<string, PluginRuntimeManifestEntry>;
 };
 
-export function resolvePluginRuntimeStateRoot(env: NodeJS.ProcessEnv = process.env): string {
+function resolveDefaultPluginRuntimeStateRoot(env: NodeJS.ProcessEnv = process.env): string {
   const override = env.CRAWCLAW_STATE_DIR?.trim();
   const stateDir = override || path.join(os.homedir(), ".crawclaw");
   return path.join(stateDir, "runtimes");
+}
+
+export function resolvePluginRuntimeStateRoots(env: NodeJS.ProcessEnv = process.env): string[] {
+  const runtimesOverride = env.CRAWCLAW_PLUGIN_RUNTIMES_DIR?.trim();
+  if (!runtimesOverride) {
+    return [resolveDefaultPluginRuntimeStateRoot(env)];
+  }
+  return runtimesOverride
+    .split(path.delimiter)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+}
+
+export function resolvePluginRuntimeStateRoot(env: NodeJS.ProcessEnv = process.env): string {
+  return resolvePluginRuntimeStateRoots(env)[0] ?? resolveDefaultPluginRuntimeStateRoot(env);
 }
 
 export function resolveCurrentNodeMajor(
@@ -42,6 +57,18 @@ export function resolvePluginRuntimesRoot(env: NodeJS.ProcessEnv = process.env):
   return path.join(resolvePluginRuntimeStateRoot(env), `node-${resolveCurrentNodeMajor(env)}`);
 }
 
+function resolvePluginRuntimeDir(pluginId: string, env: NodeJS.ProcessEnv = process.env): string {
+  const roots = resolvePluginRuntimeStateRoots(env);
+  const candidates = roots.map((root) =>
+    path.join(root, `node-${resolveCurrentNodeMajor(env)}`, pluginId),
+  );
+  return (
+    candidates.find((candidate) => fs.existsSync(candidate)) ??
+    candidates[0] ??
+    path.join(resolvePluginRuntimesRoot(env), pluginId)
+  );
+}
+
 export function resolvePluginRuntimeManifestPath(env: NodeJS.ProcessEnv = process.env): string {
   return path.join(resolvePluginRuntimeStateRoot(env), "manifest.json");
 }
@@ -49,12 +76,32 @@ export function resolvePluginRuntimeManifestPath(env: NodeJS.ProcessEnv = proces
 export function readPluginRuntimeManifest(
   env: NodeJS.ProcessEnv = process.env,
 ): PluginRuntimeManifest {
-  const manifestPath = resolvePluginRuntimeManifestPath(env);
-  try {
-    return JSON.parse(fs.readFileSync(manifestPath, "utf8")) as PluginRuntimeManifest;
-  } catch {
+  const manifests: PluginRuntimeManifest[] = [];
+  for (const root of resolvePluginRuntimeStateRoots(env)) {
+    try {
+      manifests.push(
+        JSON.parse(
+          fs.readFileSync(path.join(root, "manifest.json"), "utf8"),
+        ) as PluginRuntimeManifest,
+      );
+    } catch {
+      // Keep scanning fallback runtime roots.
+    }
+  }
+  if (manifests.length === 0) {
     return { plugins: {} };
   }
+  return manifests.toReversed().reduce<PluginRuntimeManifest>(
+    (merged, manifest) => ({
+      ...merged,
+      ...manifest,
+      plugins: {
+        ...merged.plugins,
+        ...manifest.plugins,
+      },
+    }),
+    { plugins: {} },
+  );
 }
 
 export function writePluginRuntimeManifest(
@@ -130,15 +177,15 @@ export function getPluginRuntimeManifestHealth(
 }
 
 export function resolveOpenWebSearchRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
-  return path.join(resolvePluginRuntimesRoot(env), "open-websearch");
+  return resolvePluginRuntimeDir("open-websearch", env);
 }
 
 export function resolveBrowserRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
-  return path.join(resolvePluginRuntimesRoot(env), "browser");
+  return resolvePluginRuntimeDir("browser", env);
 }
 
 export function resolveN8nRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
-  return path.join(resolvePluginRuntimesRoot(env), "n8n");
+  return resolvePluginRuntimeDir("n8n", env);
 }
 
 export function resolveBrowserRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
@@ -178,7 +225,7 @@ export function createN8nRuntimeEnv(params: {
 }
 
 export function resolveScraplingFetchRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
-  return path.join(resolvePluginRuntimesRoot(env), "scrapling-fetch");
+  return resolvePluginRuntimeDir("scrapling-fetch", env);
 }
 
 export function resolveScraplingFetchRuntimeVenvDir(env: NodeJS.ProcessEnv = process.env): string {
@@ -186,11 +233,11 @@ export function resolveScraplingFetchRuntimeVenvDir(env: NodeJS.ProcessEnv = pro
 }
 
 export function resolveNotebookLmRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
-  return path.join(resolvePluginRuntimesRoot(env), "notebooklm-mcp-cli");
+  return resolvePluginRuntimeDir("notebooklm-mcp-cli", env);
 }
 
 export function resolveQwen3TtsRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
-  return path.join(resolvePluginRuntimesRoot(env), "qwen3-tts");
+  return resolvePluginRuntimeDir("qwen3-tts", env);
 }
 
 export function resolveQwen3TtsRuntimeVenvDir(env: NodeJS.ProcessEnv = process.env): string {
@@ -249,6 +296,8 @@ export async function runPluginRuntimeInstall(
   params: {
     cwd?: string;
     env?: NodeJS.ProcessEnv;
+    profile?: string;
+    runtimeIds?: string[];
     stdio?: "inherit" | "pipe";
   } = {},
 ): Promise<void> {
@@ -268,8 +317,13 @@ export async function runPluginRuntimeInstall(
   const cwd = params.cwd ?? packageRoot;
   const env = params.env ?? process.env;
   const scriptPath = path.join(packageRoot, "scripts", "install-plugin-runtimes.mjs");
+  const args = [
+    scriptPath,
+    ...(params.profile ? ["--profile", params.profile] : []),
+    ...(params.runtimeIds ?? []).flatMap((runtimeId) => ["--runtime", runtimeId]),
+  ];
   await new Promise<void>((resolve, reject) => {
-    const child = spawn(process.execPath, [scriptPath], {
+    const child = spawn(process.execPath, args, {
       cwd,
       env,
       stdio: params.stdio ?? "inherit",

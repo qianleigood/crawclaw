@@ -272,6 +272,24 @@ describe("runDaemonInstall", () => {
     expect(actionState.warnings.some((warning) => warning.includes("Auto-generated"))).toBe(true);
   });
 
+  it("passes desktop runtime entrypoint into the install plan", async () => {
+    await runDaemonInstall({
+      json: true,
+      runtime: "node",
+      runtimeEntry:
+        "/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/crawclaw.mjs",
+    });
+
+    expect(actionState.failed).toEqual([]);
+    expect(buildGatewayInstallPlanMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runtime: "node",
+        runtimeEntryPath:
+          "/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/crawclaw.mjs",
+      }),
+    );
+  });
+
   it("continues Linux install when service probe hits a non-fatal systemd bus failure", async () => {
     service.isLoaded.mockRejectedValueOnce(
       new Error("systemctl is-enabled unavailable: Failed to connect to bus"),

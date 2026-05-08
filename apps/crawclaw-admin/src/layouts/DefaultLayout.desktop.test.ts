@@ -14,8 +14,9 @@ const mocks = vi.hoisted(() => {
     wsConnect: vi.fn(),
     wsDisconnect: vi.fn(),
     ensureCapabilitiesLoaded: vi.fn(),
-    isDesktopLocal: false,
-    route: { meta: { gateway: 'crawclaw' } as Record<string, unknown> },
+    isDesktopMode: true,
+    onboardingComplete: true,
+    route: { name: 'Dashboard', meta: { gateway: 'crawclaw' } as Record<string, unknown> },
     routerReplace: vi.fn(),
     routerPush: vi.fn(),
     hermesStore,
@@ -31,7 +32,10 @@ vi.mock('naive-ui', () => {
 
   return {
     NLayout: LayoutStub,
-    NLayoutSider: LayoutStub,
+    NLayoutSider: {
+      props: ['collapsed'],
+      template: '<aside data-test="layout-sider" :data-collapsed="String(collapsed)"><slot /></aside>',
+    },
     NLayoutHeader: LayoutStub,
     NLayoutContent: LayoutStub,
   }
@@ -59,7 +63,8 @@ vi.mock('@/stores/hermes/connection', () => ({
 vi.mock('@/stores/desktop', () => ({
   useDesktopStore: () => ({
     ensureCapabilitiesLoaded: mocks.ensureCapabilitiesLoaded,
-    isDesktopLocal: mocks.isDesktopLocal,
+    isDesktopMode: mocks.isDesktopMode,
+    onboardingComplete: mocks.onboardingComplete,
   }),
 }))
 
@@ -83,8 +88,14 @@ describe('DefaultLayout desktop capabilities', () => {
     mocks.routerReplace.mockReset()
     mocks.routerPush.mockReset()
     mocks.route.meta = { gateway: 'crawclaw' }
+    mocks.route.name = 'Dashboard'
     mocks.hermesStore.currentGateway = 'crawclaw'
-    mocks.isDesktopLocal = false
+    mocks.isDesktopMode = true
+    mocks.onboardingComplete = true
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 1024,
+    })
   })
 
   it('loads desktop capabilities once when the authenticated CrawClaw layout boots', async () => {
@@ -102,8 +113,7 @@ describe('DefaultLayout desktop capabilities', () => {
     expect(mocks.ensureCapabilitiesLoaded).toHaveBeenCalledTimes(1)
   })
 
-  it('forces CrawClaw mode in desktop-local mode and does not connect Hermes', async () => {
-    mocks.isDesktopLocal = true
+  it('does not start Hermes when desktop-local mode locks the app to CrawClaw', async () => {
     mocks.hermesStore.currentGateway = 'hermes'
     mocks.route.meta = { gateway: 'hermes' }
 
@@ -117,9 +127,44 @@ describe('DefaultLayout desktop capabilities', () => {
 
     await nextTick()
 
-    expect(mocks.hermesStore.currentGateway).toBe('crawclaw')
-    expect(mocks.wsConnect).toHaveBeenCalledTimes(1)
     expect(mocks.hermesStore.connect).not.toHaveBeenCalled()
+    expect(mocks.wsConnect).toHaveBeenCalledTimes(1)
     expect(mocks.routerReplace).toHaveBeenCalledWith('/')
+  })
+
+  it('sends first-run desktop users to onboarding before the workbench', async () => {
+    mocks.onboardingComplete = false
+    mocks.route.name = 'Dashboard'
+
+    mount(DefaultLayout, {
+      global: {
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+
+    expect(mocks.routerReplace).toHaveBeenCalledWith({ name: 'DesktopOnboarding' })
+  })
+
+  it('keeps the desktop sidebar expanded and relies on the fixed minimum desktop width', async () => {
+    Object.defineProperty(window, 'innerWidth', {
+      configurable: true,
+      value: 390,
+    })
+
+    const wrapper = mount(DefaultLayout, {
+      global: {
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+
+    expect(wrapper.find('[data-test="layout-sider"]').attributes('data-collapsed')).toBe('false')
   })
 })

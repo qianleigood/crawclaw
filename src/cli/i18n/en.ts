@@ -1347,6 +1347,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.daemon.install.description": "Install the Gateway service (launchd/systemd/schtasks)",
   "command.daemon.install.option.port": "Gateway port",
   "command.daemon.install.option.runtime": "Daemon runtime (node|bun). Default: node",
+  "command.daemon.install.option.runtimeEntry": "Node CLI entrypoint for the installed service",
   "command.daemon.install.option.token": "Gateway token (token auth)",
   "command.daemon.install.option.force": "Reinstall/overwrite if already installed",
   "command.daemon.uninstall.description":

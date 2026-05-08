@@ -551,33 +551,28 @@ onMounted(() => {
   --channel-text-muted: var(--text-secondary);
   --channel-link: #2563eb;
   --channel-link-hover: #1d4ed8;
-  --channel-thanks-bg:
-    radial-gradient(circle at 88% -30%, rgba(24, 160, 88, 0.2), transparent 42%),
-    linear-gradient(125deg, rgba(32, 128, 240, 0.12), rgba(24, 160, 88, 0.08)),
-    var(--channel-soft-bg);
-  --channel-thanks-border: rgba(32, 128, 240, 0.24);
-  --channel-pill-bg: rgba(32, 128, 240, 0.08);
-  --channel-pill-bg-hover: rgba(32, 128, 240, 0.15);
-  --channel-pill-border: rgba(32, 128, 240, 0.3);
-  --channel-desc-bg:
-    linear-gradient(135deg, rgba(32, 128, 240, 0.11), rgba(32, 128, 240, 0.05)),
-    var(--channel-soft-bg);
-  --channel-desc-border: rgba(32, 128, 240, 0.24);
+  --channel-thanks-bg: var(--bg-primary);
+  --channel-thanks-border: var(--desktop-border);
+  --channel-pill-bg: rgba(0, 122, 255, 0.08);
+  --channel-pill-bg-hover: rgba(0, 122, 255, 0.14);
+  --channel-pill-border: rgba(0, 122, 255, 0.22);
+  --channel-desc-bg: var(--bg-primary);
+  --channel-desc-border: var(--desktop-border);
   --channel-collapse-hover: rgba(32, 128, 240, 0.06);
   --toolbar-refresh-bg: var(--bg-primary);
   --toolbar-refresh-border: var(--border-color);
   --toolbar-refresh-text: var(--text-primary);
   --toolbar-refresh-bg-hover: var(--bg-secondary);
-  --toolbar-refresh-shadow: 0 6px 14px rgba(15, 23, 42, 0.1);
-  --toolbar-refresh-shadow-hover: 0 10px 18px rgba(15, 23, 42, 0.14);
-  --toolbar-save-shadow: 0 8px 18px rgba(5, 150, 105, 0.26);
-  --toolbar-save-shadow-hover: 0 12px 22px rgba(5, 150, 105, 0.32);
-  --toolbar-apply-shadow: 0 8px 18px rgba(245, 158, 11, 0.26);
-  --toolbar-apply-shadow-hover: 0 12px 22px rgba(245, 158, 11, 0.32);
-  border-radius: 18px;
+  --toolbar-refresh-shadow: none;
+  --toolbar-refresh-shadow-hover: none;
+  --toolbar-save-shadow: none;
+  --toolbar-save-shadow-hover: none;
+  --toolbar-apply-shadow: none;
+  --toolbar-apply-shadow-hover: none;
+  border-radius: 14px;
   border: 1px solid var(--channel-card-border);
   background: var(--channel-card-bg);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 :global([data-theme='dark'] .channel-root-card) {
@@ -624,7 +619,7 @@ onMounted(() => {
 }
 
 .toolbar-actions :deep(.toolbar-btn:not(.n-button--disabled):hover) {
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .toolbar-actions :deep(.toolbar-btn:not(.n-button--disabled):active) {
@@ -645,26 +640,27 @@ onMounted(() => {
 }
 
 .toolbar-actions :deep(.toolbar-btn--save.n-button) {
-  background: linear-gradient(135deg, #16a34a 0%, #059669 100%) !important;
+  background: var(--desktop-accent) !important;
   border: none !important;
   color: #ffffff !important;
   box-shadow: var(--toolbar-save-shadow);
 }
 
 .toolbar-actions :deep(.toolbar-btn--save.n-button:not(.n-button--disabled):hover) {
-  filter: brightness(1.04);
+  filter: none;
+  background: var(--desktop-accent-strong) !important;
   box-shadow: var(--toolbar-save-shadow-hover);
 }
 
 .toolbar-actions :deep(.toolbar-btn--apply.n-button) {
-  background: linear-gradient(135deg, #f59e0b 0%, #f97316 100%) !important;
+  background: var(--desktop-warning) !important;
   border: none !important;
-  color: #ffffff !important;
+  color: #1d1d1f !important;
   box-shadow: var(--toolbar-apply-shadow);
 }
 
 .toolbar-actions :deep(.toolbar-btn--apply.n-button:not(.n-button--disabled):hover) {
-  filter: brightness(1.04);
+  filter: brightness(0.98);
   box-shadow: var(--toolbar-apply-shadow-hover);
 }
 
@@ -738,7 +734,7 @@ onMounted(() => {
 
 .guide-pill:hover {
   background: var(--channel-pill-bg-hover);
-  transform: translateY(-1px);
+  transform: none;
 }
 
 .channel-header-row {

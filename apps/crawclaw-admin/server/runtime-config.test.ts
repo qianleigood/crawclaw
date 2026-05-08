@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   loadAdminRuntimeConfig,
+  removeDesktopLocalGatewayEnvKeys,
   removeDesktopSecretEnvKeys,
   resolveCrawClawStateDir,
 } from './runtime-config.js'
@@ -148,14 +149,13 @@ describe('loadAdminRuntimeConfig', () => {
     expect(config.authUsername).toBe('persisted-admin')
   })
 
-  it('desktop-local mode ignores persisted remote Gateway and Hermes profile values', () => {
+  it('desktop-local mode ignores persisted remote Gateway profile values', () => {
     const configPath = writeEnvFile([
-      'CRAWCLAW_WS_URL=ws://persisted-gateway:18789',
+      'CRAWCLAW_WS_URL=ws://remote-gateway.example.test:18789',
       'CRAWCLAW_AUTH_TOKEN=persisted-token',
       'CRAWCLAW_AUTH_PASSWORD=persisted-password',
-      'HERMES_WEB_URL=http://persisted-hermes:9119',
-      'HERMES_API_URL=http://persisted-hermes:8642',
-      'HERMES_API_KEY=persisted-hermes-key',
+      'HERMES_WEB_URL=https://hermes.example.test',
+      'HERMES_API_URL=https://hermes-api.example.test',
     ].join('\n'))
 
     const config = loadAdminRuntimeConfig(
@@ -163,23 +163,24 @@ describe('loadAdminRuntimeConfig', () => {
         CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
         CRAWCLAW_ADMIN_DESKTOP_LOCAL: '1',
         CRAWCLAW_ADMIN_CONFIG_PATH: configPath,
-        CRAWCLAW_DESKTOP_RUNTIME_ROOT: '/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw',
-        CRAWCLAW_STATE_DIR: '/Users/test/.crawclaw',
         CRAWCLAW_WS_URL: 'ws://127.0.0.1:18789',
         CRAWCLAW_AUTH_TOKEN: 'desktop-token',
+        CRAWCLAW_DESKTOP_RUNTIME_ROOT: '/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw',
+        CRAWCLAW_DESKTOP_NODE_PATH: '/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/bin/node',
+        CRAWCLAW_PLUGIN_RUNTIMES_DIR: '/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/runtimes',
       },
       { platform: 'linux', homeDir: '/tmp/home' }
     )
 
     expect(config.desktopLocal).toBe(true)
-    expect(config.CRAWCLAW_DESKTOP_RUNTIME_ROOT).toBe('/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw')
     expect(config.crawclawWsUrl).toBe('ws://127.0.0.1:18789')
     expect(config.crawclawAuthToken).toBe('desktop-token')
     expect(config.crawclawAuthPassword).toBe('')
-    expect(config.CRAWCLAW_STATE_DIR).toBe('/Users/test/.crawclaw')
     expect(config.HERMES_WEB_URL).toBe('')
     expect(config.HERMES_API_URL).toBe('')
-    expect(config.HERMES_API_KEY).toBe('')
+    expect(config.CRAWCLAW_DESKTOP_RUNTIME_ROOT).toBe('/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw')
+    expect(config.CRAWCLAW_DESKTOP_NODE_PATH).toBe('/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/bin/node')
+    expect(config.CRAWCLAW_PLUGIN_RUNTIMES_DIR).toBe('/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/runtimes')
   })
 
   it('removes canonical and legacy Gateway secrets from desktop config snapshots', () => {
@@ -199,6 +200,22 @@ describe('loadAdminRuntimeConfig', () => {
 
     expect(config).toEqual({
       CRAWCLAW_WS_URL: 'ws://gateway:18789',
+      AUTH_USERNAME: 'admin',
+    })
+  })
+
+  it('removes remote Gateway connection fields from desktop-local config snapshots', () => {
+    const config = {
+      CRAWCLAW_WS_URL: 'ws://remote-gateway:18789',
+      CRAWCLAW_AUTH_TOKEN: 'token',
+      CRAWCLAW_AUTH_PASSWORD: 'password',
+      [`${legacyPrefix}_WS_URL`]: 'ws://legacy-remote-gateway:18789',
+      AUTH_USERNAME: 'admin',
+    }
+
+    removeDesktopLocalGatewayEnvKeys(config)
+
+    expect(config).toEqual({
       AUTH_USERNAME: 'admin',
     })
   })

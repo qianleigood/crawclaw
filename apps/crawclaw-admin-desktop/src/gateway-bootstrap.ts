@@ -2,99 +2,87 @@ import { randomBytes } from 'node:crypto'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-export interface DesktopGatewayBootstrapOptions {
-  stateDir: string
-  initialConfig?: Record<string, unknown>
-  tokenFactory?: () => string
-}
+type JsonObject = Record<string, unknown>
 
-export interface DesktopGatewayBootstrapResult {
-  stateDir: string
-  configPath: string
+export interface BootstrapLocalGatewayConfigResult {
+  changed: boolean
   port: number
   wsUrl: string
   authToken?: string
-  changed: boolean
+  authPassword?: string
 }
 
-type JsonRecord = Record<string, unknown>
-
-const DEFAULT_GATEWAY_PORT = 18789
-
-export async function bootstrapLocalGatewayConfig(
-  options: DesktopGatewayBootstrapOptions
-): Promise<DesktopGatewayBootstrapResult> {
-  const configPath = join(options.stateDir, 'crawclaw.json')
-  await mkdir(options.stateDir, { recursive: true })
-
-  const loaded = await readGatewayConfig(configPath, options.initialConfig)
-  const gateway = ensureRecord(loaded.config, 'gateway')
-  let changed = loaded.changed
+export async function bootstrapLocalGatewayConfig(params: {
+  stateDir: string
+  configPath?: string
+  initialConfig?: JsonObject
+  tokenFactory?: () => string
+}): Promise<BootstrapLocalGatewayConfigResult> {
+  const configPath = params.configPath ?? join(params.stateDir, 'crawclaw.json')
+  const config = params.initialConfig ?? await readJsonConfig(configPath)
+  const gateway = readObject(config.gateway)
+  let changed = false
 
   changed = setDefault(gateway, 'mode', 'local') || changed
   changed = setDefault(gateway, 'bind', 'loopback') || changed
-  changed = setDefault(gateway, 'port', DEFAULT_GATEWAY_PORT) || changed
+  changed = setDefault(gateway, 'port', 18789) || changed
 
-  const reload = ensureRecord(gateway, 'reload')
+  const reload = readObject(gateway.reload)
   changed = setDefault(reload, 'mode', 'hybrid') || changed
+  if (gateway.reload !== reload) {
+    gateway.reload = reload
+    changed = true
+  }
 
-  const auth = ensureRecord(gateway, 'auth')
-  if (!isNonEmptyString(auth.mode)) {
-    const token = options.tokenFactory?.() ?? randomBytes(32).toString('hex')
+  const auth = readObject(gateway.auth)
+  if (Object.keys(auth).length === 0) {
     auth.mode = 'token'
-    auth.token = token
-    changed = true
-  } else if (auth.mode === 'token' && !isNonEmptyString(auth.token)) {
-    const token = options.tokenFactory?.() ?? randomBytes(32).toString('hex')
-    auth.token = token
+    auth.token = params.tokenFactory?.() ?? randomBytes(24).toString('base64url')
+    gateway.auth = auth
     changed = true
   }
 
-  if (changed) {
-    await writeFile(configPath, `${JSON.stringify(loaded.config, null, 2)}\n`, {
-      encoding: 'utf-8',
-      mode: 0o600,
-    })
+  if (config.gateway !== gateway) {
+    config.gateway = gateway
+    changed = true
   }
 
-  const port = readGatewayPort(gateway.port)
-  const authToken = auth.mode === 'token' && isNonEmptyString(auth.token) ? auth.token : undefined
+  if (changed || params.initialConfig) {
+    await mkdir(params.stateDir, { recursive: true })
+    await writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8')
+  }
+
+  const port = readPort(gateway.port)
+  const token = typeof auth.token === 'string' ? auth.token : undefined
+  const password = typeof auth.password === 'string' ? auth.password : undefined
   return {
-    stateDir: options.stateDir,
-    configPath,
+    changed,
     port,
     wsUrl: `ws://127.0.0.1:${port}`,
-    authToken,
-    changed,
+    ...(token ? { authToken: token } : {}),
+    ...(password ? { authPassword: password } : {}),
   }
 }
 
-async function readGatewayConfig(
-  configPath: string,
-  initialConfig?: Record<string, unknown>
-): Promise<{ config: JsonRecord; changed: boolean }> {
+async function readJsonConfig(configPath: string): Promise<JsonObject> {
   try {
     const parsed = JSON.parse(await readFile(configPath, 'utf-8')) as unknown
-    return { config: isRecord(parsed) ? parsed : {}, changed: !isRecord(parsed) }
+    return readObject(parsed)
   } catch (error) {
-    if (!isMissingFileError(error)) {
-      throw error
+    if (isMissingFileError(error)) {
+      return {}
     }
-    return { config: cloneRecord(initialConfig), changed: true }
+    throw error
   }
 }
 
-function ensureRecord(target: JsonRecord, key: string): JsonRecord {
-  const value = target[key]
-  if (isRecord(value)) {
-    return value
-  }
-  const next: JsonRecord = {}
-  target[key] = next
-  return next
+function readObject(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonObject
+    : {}
 }
 
-function setDefault(target: JsonRecord, key: string, value: string | number): boolean {
+function setDefault(target: JsonObject, key: string, value: unknown): boolean {
   if (target[key] !== undefined) {
     return false
   }
@@ -102,32 +90,8 @@ function setDefault(target: JsonRecord, key: string, value: string | number): bo
   return true
 }
 
-function readGatewayPort(value: unknown): number {
-  if (typeof value === 'number' && Number.isInteger(value) && value > 0) {
-    return value
-  }
-  if (typeof value === 'string' && value.trim()) {
-    const parsed = Number(value)
-    if (Number.isInteger(parsed) && parsed > 0) {
-      return parsed
-    }
-  }
-  return DEFAULT_GATEWAY_PORT
-}
-
-function cloneRecord(value: unknown): JsonRecord {
-  if (!isRecord(value)) {
-    return {}
-  }
-  return JSON.parse(JSON.stringify(value)) as JsonRecord
-}
-
-function isRecord(value: unknown): value is JsonRecord {
-  return !!value && typeof value === 'object' && !Array.isArray(value)
-}
-
-function isNonEmptyString(value: unknown): value is string {
-  return typeof value === 'string' && value.trim().length > 0
+function readPort(value: unknown): number {
+  return typeof value === 'number' && Number.isFinite(value) ? value : 18789
 }
 
 function isMissingFileError(error: unknown): boolean {

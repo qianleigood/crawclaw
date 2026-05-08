@@ -18,10 +18,15 @@ type RuntimeListOptions = {
 
 type RuntimeInstallOptions = {
   json?: boolean;
+  profile?: string;
+  runtime?: string[];
 };
 
 async function installAndReport(opts: RuntimeInstallOptions, action: "install" | "repair") {
-  await runPluginRuntimeInstall();
+  await runPluginRuntimeInstall({
+    profile: opts.profile,
+    runtimeIds: opts.runtime,
+  });
   const manifest = readPluginRuntimeManifest();
   const health = getPluginRuntimeManifestHealth();
   if (opts.json) {
@@ -124,6 +129,8 @@ export function registerRuntimesCli(program: Command) {
     .command("install")
     .description(t("command.runtimes.install.description"))
     .option("--json", t("command.runtimes.option.json"))
+    .option("--profile <profile>", "Runtime install profile")
+    .option("--runtime <id>", "Install one runtime id", collectRuntimeId, [])
     .action(async (opts: RuntimeInstallOptions) => {
       await installAndReport(opts, "install");
     });
@@ -132,7 +139,13 @@ export function registerRuntimesCli(program: Command) {
     .command("repair")
     .description(t("command.runtimes.repair.description"))
     .option("--json", t("command.runtimes.option.json"))
+    .option("--profile <profile>", "Runtime install profile")
+    .option("--runtime <id>", "Repair one runtime id", collectRuntimeId, [])
     .action(async (opts: RuntimeInstallOptions) => {
       await installAndReport(opts, "repair");
     });
+}
+
+function collectRuntimeId(value: string, previous: string[]): string[] {
+  return [...previous, value];
 }

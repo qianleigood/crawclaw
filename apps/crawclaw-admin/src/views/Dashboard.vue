@@ -26,6 +26,7 @@ import { useI18n } from 'vue-i18n'
 import StatCard from '@/components/common/StatCard.vue'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useHermesConnectionStore } from '@/stores/hermes/connection'
+import { useDesktopStore } from '@/stores/desktop'
 import { formatRelativeTime } from '@/utils/format'
 import type {
   CostUsageSummary,
@@ -43,7 +44,9 @@ type UsageMode = 'tokens' | 'cost'
 const router = useRouter()
 const wsStore = useWebSocketStore()
 const hermesConnStore = useHermesConnectionStore()
+const desktopStore = useDesktopStore()
 const isHermes = computed(() => hermesConnStore.currentGateway === 'hermes')
+const showAdvancedActions = computed(() => !desktopStore.isDesktopMode || desktopStore.advancedMode)
 const { t, locale } = useI18n()
 const loading = ref(true)
 const refreshing = ref(false)
@@ -851,7 +854,7 @@ function viewModels() {
             <template #icon><NIcon :component="ChatboxEllipsesOutline" /></template>
             {{ t('routes.chat') }}
           </NButton>
-          <NButton secondary @click="viewCron">{{ t('routes.cron') }}</NButton>
+          <NButton v-if="showAdvancedActions" secondary @click="viewCron">{{ t('routes.cron') }}</NButton>
           <NButton secondary @click="viewModels">{{ t('routes.models') }}</NButton>
         </NSpace>
 
@@ -864,13 +867,13 @@ function viewModels() {
         <NGridItem>
           <StatCard :title="t('pages.dashboard.stats.sessions')" :value="stats.sessionCount" :icon="ChatbubblesOutline" color="#18a058" />
         </NGridItem>
-        <NGridItem>
+        <NGridItem v-if="showAdvancedActions">
           <StatCard :title="t('pages.dashboard.stats.cronJobs')" :value="stats.cronCount" :icon="CalendarOutline" color="#f0a020" />
         </NGridItem>
         <NGridItem>
           <StatCard :title="t('pages.dashboard.stats.models')" :value="stats.modelCount" :icon="SparklesOutline" color="#2080f0" />
         </NGridItem>
-        <NGridItem>
+        <NGridItem v-if="showAdvancedActions">
           <StatCard :title="t('pages.dashboard.stats.skills')" :value="stats.installedSkills" :icon="ExtensionPuzzleOutline" color="#8b5cf6" />
         </NGridItem>
         <NGridItem>
@@ -1095,10 +1098,9 @@ function viewModels() {
 
 .dashboard-hero {
   border-radius: var(--radius-lg);
-  background:
-    radial-gradient(circle at 84% 16%, rgba(24, 160, 88, 0.22), transparent 36%),
-    linear-gradient(120deg, var(--bg-card), rgba(42, 127, 255, 0.08));
-  border: 1px solid rgba(42, 127, 255, 0.18);
+  background: var(--bg-card);
+  border: 1px solid var(--desktop-border);
+  box-shadow: none;
 }
 
 .dashboard-hero-top {
@@ -1186,9 +1188,9 @@ function viewModels() {
 
 .trend-chart-panel {
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 10px;
-  background: linear-gradient(180deg, rgba(42, 127, 255, 0.06), transparent 38%);
+  background: var(--bg-primary);
 }
 
 .trend-chart-canvas {

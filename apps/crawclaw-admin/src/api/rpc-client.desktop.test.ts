@@ -72,4 +72,92 @@ describe('RPCClient desktop methods', () => {
     expect(ws.requests).toEqual([])
     expect(result).toEqual(capabilities)
   })
+
+  it('runs desktop runtime service actions through authenticated HTTP endpoints', async () => {
+    const ws = new FakeWebSocket()
+    const calls: Array<{ url: string; method: string; authorization: string | null; body: string | null }> = []
+    const fetchFn: typeof fetch = async (input, init) => {
+      calls.push({
+        url: String(input),
+        method: init?.method ?? 'GET',
+        authorization: new Headers(init?.headers).get('Authorization'),
+        body: typeof init?.body === 'string' ? init.body : null,
+      })
+      return new Response(JSON.stringify({ ok: true, action: 'service.restart', result: { ok: true } }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    const client = new RPCClient(ws as unknown as RpcSocket, {
+      fetch: fetchFn,
+      getToken: () => 'token-1',
+    })
+
+    const result = await client.restartDesktopGatewayService()
+
+    expect(result).toEqual({ action: 'service.restart', result: { ok: true } })
+    expect(calls).toEqual([
+      {
+        url: '/api/desktop/runtime/service/restart',
+        method: 'POST',
+        authorization: 'Bearer token-1',
+        body: null,
+      },
+    ])
+    expect(ws.requests).toEqual([])
+  })
+
+  it('loads and installs desktop optional runtimes through authenticated HTTP endpoints', async () => {
+    const ws = new FakeWebSocket()
+    const calls: Array<{ url: string; method: string; authorization: string | null; body: string | null }> = []
+    const fetchFn: typeof fetch = async (input, init) => {
+      calls.push({
+        url: String(input),
+        method: init?.method ?? 'GET',
+        authorization: new Headers(init?.headers).get('Authorization'),
+        body: typeof init?.body === 'string' ? init.body : null,
+      })
+      if (String(input).endsWith('/install')) {
+        return new Response(JSON.stringify({ ok: true, runtime: { id: 'n8n', state: 'healthy', installed: true } }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      }
+      return new Response(JSON.stringify({
+        ok: true,
+        runtimes: [{ id: 'n8n', name: 'n8n', state: 'not-installed', installed: false }],
+      }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      })
+    }
+    const client = new RPCClient(ws as unknown as RpcSocket, {
+      fetch: fetchFn,
+      getToken: () => 'token-1',
+    })
+
+    expect(await client.listDesktopOptionalRuntimes()).toEqual([
+      { id: 'n8n', name: 'n8n', state: 'not-installed', installed: false },
+    ])
+    expect(await client.installDesktopOptionalRuntime('n8n')).toEqual({
+      id: 'n8n',
+      state: 'healthy',
+      installed: true,
+    })
+    expect(calls).toEqual([
+      {
+        url: '/api/desktop/runtimes',
+        method: 'GET',
+        authorization: 'Bearer token-1',
+        body: null,
+      },
+      {
+        url: '/api/desktop/runtimes/install',
+        method: 'POST',
+        authorization: 'Bearer token-1',
+        body: '{"id":"n8n"}',
+      },
+    ])
+    expect(ws.requests).toEqual([])
+  })
 })

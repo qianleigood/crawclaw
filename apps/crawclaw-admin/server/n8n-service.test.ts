@@ -1,4 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { mkdtempSync, rmSync } from 'fs'
+import { join } from 'path'
+import { tmpdir } from 'os'
 import { N8nService } from './n8n-service.js'
 
 describe('N8nService runtime env updates', () => {
@@ -26,5 +29,21 @@ describe('N8nService runtime env updates', () => {
     await service.updateEnv({ CRAWCLAW_N8N_MANAGED: 'true', CRAWCLAW_N8N_PORT: '5680' })
 
     expect(service.externalRunning).toBe(false)
+  })
+
+  it('reports missing runtime instead of treating n8n as managed', async () => {
+    const stateDir = mkdtempSync(join(tmpdir(), 'crawclaw-missing-n8n-runtime-'))
+    const service = new N8nService({
+      CRAWCLAW_STATE_DIR: stateDir,
+    })
+    try {
+      expect(service.getStatus()).toMatchObject({
+        managed: false,
+        runtimeState: 'missing-runtime',
+        missingRuntime: true,
+      })
+    } finally {
+      rmSync(stateDir, { recursive: true, force: true })
+    }
   })
 })

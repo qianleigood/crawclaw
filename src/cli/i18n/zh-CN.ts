@@ -1280,6 +1280,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.daemon.install.description": "安装 Gateway 服务（launchd/systemd/schtasks）",
   "command.daemon.install.option.port": "Gateway 端口",
   "command.daemon.install.option.runtime": "Daemon runtime（node|bun）。默认：node",
+  "command.daemon.install.option.runtimeEntry": "安装到服务中的 Node CLI 入口文件",
   "command.daemon.install.option.token": "Gateway token（token auth）",
   "command.daemon.install.option.force": "已安装时重新安装/覆盖",
   "command.daemon.uninstall.description": "卸载 Gateway 服务（launchd/systemd/schtasks）",

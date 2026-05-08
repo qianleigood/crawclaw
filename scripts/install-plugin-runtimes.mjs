@@ -78,6 +78,14 @@ const QWEN3_TTS_SUPPORTED_PLATFORMS = [
   "win32:x64",
   "win32:arm64",
 ];
+const DESKTOP_CORE_RUNTIME_IDS = [
+  "browser",
+  "core-skills",
+  "open-websearch",
+  "scrapling-fetch",
+  "notebooklm-mcp-cli",
+];
+const DESKTOP_OPTIONAL_RUNTIME_IDS = ["n8n", "skill-openai-whisper", "qwen3-tts"];
 
 function resolvePlatformPythonCandidates(platform = process.platform) {
   const baseCandidates = [
@@ -846,7 +854,7 @@ function installBrowserRuntime(env = process.env) {
   };
 }
 
-function listManagedPluginRuntimeInstallers() {
+function listAllManagedPluginRuntimeInstallers() {
   const installers = [
     { id: "browser", installer: installBrowserRuntime },
     { id: "core-skills", installer: installCoreSkillsRuntime },
@@ -864,10 +872,53 @@ function listManagedPluginRuntimeInstallers() {
   return installers;
 }
 
+function selectRuntimeIds(params = {}) {
+  const runtimeIds = normalizeRuntimeIds(params.runtimeIds);
+  if (runtimeIds.length > 0) {
+    return runtimeIds;
+  }
+  const profile = params.profile ?? process.env.CRAWCLAW_RUNTIME_INSTALL_PROFILE ?? "full";
+  switch (profile) {
+    case "desktop-core":
+      return DESKTOP_CORE_RUNTIME_IDS;
+    case "desktop-optional":
+      return DESKTOP_OPTIONAL_RUNTIME_IDS;
+    case "full":
+      return null;
+    default:
+      throw new Error(`Unknown plugin runtime install profile: ${profile}`);
+  }
+}
+
+function normalizeRuntimeIds(runtimeIds) {
+  if (!Array.isArray(runtimeIds)) {
+    return [];
+  }
+  return runtimeIds.map((id) => String(id || "").trim()).filter(Boolean);
+}
+
+function filterRuntimeEntries(entries, params = {}) {
+  const selectedIds = selectRuntimeIds(params);
+  if (!selectedIds) {
+    return entries;
+  }
+  const selected = new Set(selectedIds);
+  const filtered = entries.filter((entry) => selected.has(entry.id));
+  const missing = selectedIds.filter((id) => !entries.some((entry) => entry.id === id));
+  if (missing.length > 0) {
+    throw new Error(`Unknown plugin runtime id: ${missing.join(", ")}`);
+  }
+  return filtered;
+}
+
+function listManagedPluginRuntimeInstallers(params = {}) {
+  return filterRuntimeEntries(listAllManagedPluginRuntimeInstallers(), params);
+}
+
 export function listManagedPluginRuntimeInstallPlan(params = {}) {
   const platform = params.platform ?? process.platform;
   const arch = params.arch ?? process.arch;
-  return [
+  const plan = [
     {
       id: "browser",
       installTime: true,
@@ -942,6 +993,7 @@ export function listManagedPluginRuntimeInstallPlan(params = {}) {
       },
     },
   ];
+  return filterRuntimeEntries(plan, params);
 }
 
 export function runPluginRuntimeInstall(params = {}) {
@@ -950,9 +1002,13 @@ export function runPluginRuntimeInstall(params = {}) {
   if (env[DISABLE_RUNTIME_POSTINSTALL_ENV]?.trim()) {
     return;
   }
+  const runtimes = listManagedPluginRuntimeInstallers({
+    profile: params.profile ?? env.CRAWCLAW_RUNTIME_INSTALL_PROFILE,
+    runtimeIds: params.runtimeIds,
+  });
   const manifest = readManifest(env);
   const nextPlugins = { ...manifest.plugins };
-  for (const runtime of listManagedPluginRuntimeInstallers()) {
+  for (const runtime of runtimes) {
     nextPlugins[runtime.id] = installRuntimeOrUnavailable(runtime.id, runtime.installer, env, log);
   }
   const nextManifest = {
@@ -972,7 +1028,7 @@ export function runPluginRuntimeInstall(params = {}) {
     plugins: nextPlugins,
   };
   writeManifest(nextManifest, env);
-  const runtimeIds = listManagedPluginRuntimeInstallers().map((runtime) => runtime.id);
+  const runtimeIds = runtimes.map((runtime) => runtime.id);
   log.log(`[postinstall] installed plugin runtimes: ${runtimeIds.join(", ")}`);
   const unavailable = Object.entries(nextPlugins)
     .filter(([, entry]) => entry?.state !== "healthy")
@@ -983,5 +1039,25 @@ export function runPluginRuntimeInstall(params = {}) {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {
-  runPluginRuntimeInstall();
+  runPluginRuntimeInstall(parseRuntimeInstallArgs(process.argv.slice(2)));
+}
+
+function parseRuntimeInstallArgs(args) {
+  const runtimeIds = [];
+  let profile;
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--profile") {
+      profile = args[index + 1];
+      index += 1;
+    } else if (arg.startsWith("--profile=")) {
+      profile = arg.slice("--profile=".length);
+    } else if (arg === "--runtime") {
+      runtimeIds.push(args[index + 1]);
+      index += 1;
+    } else if (arg.startsWith("--runtime=")) {
+      runtimeIds.push(arg.slice("--runtime=".length));
+    }
+  }
+  return { profile, runtimeIds };
 }

@@ -76,6 +76,44 @@ describe("plugin-runtimes", () => {
     expect(resolveQwen3TtsRuntimePython(env)).toContain("qwen3-tts");
   });
 
+  it("resolves runtime paths under the explicit plugin runtimes dir", () => {
+    const env = {
+      ...makeEnv(),
+      CRAWCLAW_PLUGIN_RUNTIMES_DIR: path.join(os.tmpdir(), "crawclaw-bundled-runtimes"),
+    };
+
+    expect(resolvePluginRuntimesRoot(env)).toBe(
+      path.join(env.CRAWCLAW_PLUGIN_RUNTIMES_DIR, `node-${process.versions.node.split(".")[0]}`),
+    );
+    expect(resolvePluginRuntimeManifestPath(env)).toBe(
+      path.join(env.CRAWCLAW_PLUGIN_RUNTIMES_DIR, "manifest.json"),
+    );
+  });
+
+  it("falls back from user optional runtimes to bundled desktop core runtimes", () => {
+    const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-runtime-user-"));
+    const bundledRoot = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-runtime-bundled-"));
+    tempRoots.push(stateDir, bundledRoot);
+    const env: NodeJS.ProcessEnv = {
+      ...process.env,
+      CRAWCLAW_STATE_DIR: stateDir,
+      CRAWCLAW_PLUGIN_RUNTIMES_DIR: [
+        path.join(stateDir, "runtimes"),
+        path.join(bundledRoot, "runtimes"),
+      ].join(path.delimiter),
+      CRAWCLAW_RUNTIME_NODE_VERSION: "24.14.1",
+    };
+    fs.mkdirSync(path.join(bundledRoot, "runtimes", "node-24", "scrapling-fetch"), {
+      recursive: true,
+    });
+    fs.mkdirSync(path.join(stateDir, "runtimes", "node-24", "n8n"), { recursive: true });
+
+    expect(resolveScraplingFetchRuntimePython(env)).toContain(
+      path.join(bundledRoot, "runtimes", "node-24", "scrapling-fetch"),
+    );
+    expect(resolveN8nRuntimeBin(env)).toContain(path.join(stateDir, "runtimes", "node-24", "n8n"));
+  });
+
   it("maps CrawClaw locales into n8n startup env", () => {
     expect(normalizeN8nLocale("zh-CN")).toBe("zh-CN");
     expect(normalizeN8nLocale("zh_Hans_CN.UTF-8")).toBe("zh-CN");

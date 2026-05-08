@@ -94,6 +94,7 @@ function formatTokens(tokens: number): string {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 16px;
   background: rgba(0, 0, 0, 0.3);
   border-bottom: 1px solid var(--border-color, #333);
@@ -102,26 +103,39 @@ function formatTokens(tokens: number): string {
 .toolbar-left {
   display: flex;
   align-items: center;
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .toolbar-title {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
   font-size: 16px;
   font-weight: 600;
   color: #fff;
 }
 
+.toolbar-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .toolbar-center {
   display: flex;
-  gap: 20px;
+  flex: 1 1 320px;
+  justify-content: center;
+  min-width: 0;
+  gap: 8px;
 }
 
 .stat-badge {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
   padding: 4px 12px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 16px;
@@ -134,12 +148,20 @@ function formatTokens(tokens: number): string {
 }
 
 .stat-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: 11px;
   color: #999;
 }
 
 .toolbar-right {
   display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  min-width: 0;
   gap: 8px;
 }
+
 </style>

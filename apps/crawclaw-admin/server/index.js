@@ -8,11 +8,17 @@ import { existsSync, readFileSync, writeFileSync, readdirSync, statSync, realpat
 import { CrawClawGateway } from './gateway.js'
 import { N8nService, normalizeAppLocale } from './n8n-service.js'
 import { buildDesktopCapabilities, desktopServerPlatform } from './desktop-capabilities.js'
+import {
+  installDesktopOptionalRuntime,
+  listDesktopOptionalRuntimes,
+  runDesktopRuntimeApiAction,
+} from './desktop-runtime-api.js'
 import { runAdminUpdate } from './update-mode.js'
 import {
   loadAdminRuntimeConfig,
   normalizeCrawClawEnvSnapshot,
   readEnvValue,
+  removeDesktopLocalGatewayEnvKeys,
   removeDesktopSecretEnvKeys,
   removeLegacyCrawClawEnvKeys,
   resolveCrawClawStateDir,
@@ -24,11 +30,6 @@ import { execSync } from 'child_process'
 import pty from 'node-pty'
 import db, { createBackupRecord, updateBackupRecord, getBackupRecord, getBackupRecords, getBackupRecordsCount, deleteBackupRecord } from './database.js'
 import hermesProxyRouter, { initHermesConfig, setAuthMiddleware } from './hermes-proxy.js'
-import {
-  readDesktopRuntimeStatus,
-  runDesktopServiceAction,
-  tailDesktopGatewayLogs,
-} from './desktop-runtime.js'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -48,6 +49,24 @@ function debug(...args) {
   }
 }
 
+function blockHermesApiInDesktopLocal(req, res, next) {
+  if (!envConfig.desktopLocal) {
+    next()
+    return
+  }
+
+  const path = req.path || ''
+  if (path === '/api/hermes' || path.startsWith('/api/hermes/') || path === '/api/hermes-cli' || path.startsWith('/api/hermes-cli/')) {
+    res.status(404).json({
+      ok: false,
+      error: { message: 'Hermes is not available in CrawClaw Desktop.' },
+    })
+    return
+  }
+
+  next()
+}
+
 const app = express()
 const server = createServer(app)
 const JSON_BODY_LIMIT = '25mb'
@@ -63,12 +82,10 @@ const sessions = new Map()
 app.use(cors())
 app.use(express.json({ limit: JSON_BODY_LIMIT }))
 
-// Desktop-local mode is a single local CrawClaw product surface; Hermes remains
-// available only in the web/admin deployment mode.
-if (!envConfig.desktopLocal) {
-  initHermesConfig(envConfig)
-  app.use(hermesProxyRouter)
-}
+// 初始化 Hermes 代理
+initHermesConfig(envConfig)
+app.use(blockHermesApiInDesktopLocal)
+app.use(hermesProxyRouter)
 
 function buildServerRuntimeEnv() {
   return normalizeCrawClawEnvSnapshot({
@@ -415,64 +432,67 @@ app.get('/api/desktop/capabilities', authMiddleware, (req, res) => {
   }
 })
 
-function requireDesktopLocalRuntime(res) {
-  if (envConfig.desktopLocal && envConfig.CRAWCLAW_DESKTOP_RUNTIME_ROOT) {
-    return true
-  }
-  res.status(404).json({ ok: false, error: { message: 'Desktop local runtime is not available.' } })
-  return false
-}
-
-function desktopRuntimeParams() {
-  return {
-    runtimeRoot: envConfig.CRAWCLAW_DESKTOP_RUNTIME_ROOT,
-    env: buildServerRuntimeEnv(),
-    authToken: envConfig.CRAWCLAW_AUTH_TOKEN,
-    wsUrl: envConfig.CRAWCLAW_WS_URL,
-    port: Number(new URL(envConfig.CRAWCLAW_WS_URL).port || 18789),
-  }
-}
-
-app.get('/api/desktop/runtime/status', authMiddleware, async (req, res) => {
-  if (!requireDesktopLocalRuntime(res)) {
-    return
-  }
+function handleDesktopRuntimeAction(action, req, res) {
   try {
-    const status = await readDesktopRuntimeStatus(desktopRuntimeParams())
-    res.json({ ok: true, status })
-  } catch (err) {
-    res.status(500).json({ ok: false, error: { message: err.message } })
-  }
-})
-
-app.post('/api/desktop/runtime/service/:action', authMiddleware, async (req, res) => {
-  if (!requireDesktopLocalRuntime(res)) {
-    return
-  }
-  const action = req.params.action
-  if (!['start', 'stop', 'restart'].includes(action)) {
-    res.status(400).json({ ok: false, error: { message: 'Unsupported desktop service action.' } })
-    return
-  }
-  try {
-    const result = await runDesktopServiceAction({ ...desktopRuntimeParams(), action })
-    res.json({ ok: true, result })
-  } catch (err) {
-    res.status(500).json({ ok: false, error: { message: err.message } })
-  }
-})
-
-app.get('/api/desktop/runtime/logs/tail', authMiddleware, (req, res) => {
-  if (!requireDesktopLocalRuntime(res)) {
-    return
-  }
-  try {
-    const maxBytes = Number(req.query.maxBytes || 64 * 1024)
-    const logs = tailDesktopGatewayLogs({
-      stateDir: envConfig.CRAWCLAW_STATE_DIR,
-      maxBytes: Number.isFinite(maxBytes) && maxBytes > 0 ? Math.min(maxBytes, 1024 * 1024) : 64 * 1024,
+    const result = runDesktopRuntimeApiAction({
+      envConfig,
+      action,
+      body: req.body,
+      baseEnv: buildServerRuntimeEnv(),
+      nodePath: envConfig.CRAWCLAW_DESKTOP_NODE_PATH || process.execPath,
     })
-    res.json({ ok: true, logs })
+    res.json({ ok: true, action, result })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+}
+
+app.post('/api/desktop/runtime/bootstrap', authMiddleware, (req, res) => {
+  handleDesktopRuntimeAction('bootstrap', req, res)
+})
+
+app.get('/api/desktop/runtime/status', authMiddleware, (req, res) => {
+  handleDesktopRuntimeAction('status', req, res)
+})
+
+app.post('/api/desktop/runtime/service/start', authMiddleware, (req, res) => {
+  handleDesktopRuntimeAction('service.start', req, res)
+})
+
+app.post('/api/desktop/runtime/service/stop', authMiddleware, (req, res) => {
+  handleDesktopRuntimeAction('service.stop', req, res)
+})
+
+app.post('/api/desktop/runtime/service/restart', authMiddleware, (req, res) => {
+  handleDesktopRuntimeAction('service.restart', req, res)
+})
+
+app.post('/api/desktop/runtime/logs/tail', authMiddleware, (req, res) => {
+  handleDesktopRuntimeAction('logs.tail', req, res)
+})
+
+app.get('/api/desktop/runtimes', authMiddleware, (req, res) => {
+  try {
+    const runtimes = listDesktopOptionalRuntimes({
+      envConfig,
+      baseEnv: buildServerRuntimeEnv(),
+      nodePath: envConfig.CRAWCLAW_DESKTOP_NODE_PATH || process.execPath,
+    })
+    res.json({ ok: true, runtimes })
+  } catch (err) {
+    res.status(500).json({ ok: false, error: { message: err.message } })
+  }
+})
+
+app.post('/api/desktop/runtimes/install', authMiddleware, (req, res) => {
+  try {
+    const runtime = installDesktopOptionalRuntime({
+      envConfig,
+      runtimeId: req.body?.id,
+      baseEnv: buildServerRuntimeEnv(),
+      nodePath: envConfig.CRAWCLAW_DESKTOP_NODE_PATH || process.execPath,
+    })
+    res.json({ ok: true, runtime })
   } catch (err) {
     res.status(500).json({ ok: false, error: { message: err.message } })
   }
@@ -519,7 +539,9 @@ function ensureParentDir(filePath) {
 
 function sanitizeAdminConfigForDisk(config) {
   removeLegacyCrawClawEnvKeys(config)
-  if (envConfig.paths.runtimeMode === 'desktop') {
+  if (envConfig.desktopLocal) {
+    removeDesktopLocalGatewayEnvKeys(config)
+  } else if (envConfig.paths.runtimeMode === 'desktop') {
     removeDesktopSecretEnvKeys(config)
   }
   return config
@@ -606,7 +628,9 @@ app.get('/api/config', authMiddleware, (req, res) => {
     }
     const content = readFileSync(configPath, 'utf-8')
     const config = normalizeCrawClawEnvSnapshot(parseEnvFile(content))
-    if (envConfig.paths.runtimeMode === 'desktop') {
+    if (envConfig.desktopLocal) {
+      removeDesktopLocalGatewayEnvKeys(config)
+    } else if (envConfig.paths.runtimeMode === 'desktop') {
       removeDesktopSecretEnvKeys(config)
     }
     res.json({ ok: true, config })

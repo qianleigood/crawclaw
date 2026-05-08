@@ -63,6 +63,8 @@ const runTarget = ref<WorkflowListEntry | null>(null)
 const resumeTarget = ref<WorkflowExecutionView | null>(null)
 const n8nBaseUrl = ref<string | null>(null)
 const n8nStatusError = ref<string | null>(null)
+const n8nRuntimeMissing = ref(false)
+const n8nRuntimeInstalling = ref(false)
 
 const filteredWorkflows = computed(() => {
   const query = searchQuery.value.trim().toLowerCase()
@@ -201,9 +203,40 @@ async function refreshN8nStatus() {
       throw new Error(`HTTP ${response.status}`)
     }
     const payload = await response.json()
-    n8nBaseUrl.value = payload?.status?.baseUrl || null
+    const status = payload?.status || {}
+    n8nBaseUrl.value = status.baseUrl || null
+    n8nRuntimeMissing.value = status.missingRuntime === true || status.runtimeState === 'missing-runtime'
   } catch (error) {
     n8nStatusError.value = error instanceof Error ? error.message : String(error)
+  }
+}
+
+async function installN8nRuntime() {
+  n8nRuntimeInstalling.value = true
+  n8nStatusError.value = null
+  try {
+    const token = localStorage.getItem('auth_token')
+    const response = await fetch('/api/desktop/runtimes/install', {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: 'n8n' }),
+    })
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`)
+    }
+    const payload = await response.json()
+    if (!payload?.ok) {
+      throw new Error(payload?.error?.message || t('pages.workflows.messages.n8nRuntimeInstallFailed'))
+    }
+    message.success(t('pages.workflows.messages.n8nRuntimeInstalled'))
+    await refreshN8nStatus()
+  } catch (error) {
+    n8nStatusError.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    n8nRuntimeInstalling.value = false
   }
 }
 
@@ -783,6 +816,19 @@ onMounted(() => {
               <NAlert v-else-if="n8nStatusError" type="warning" class="page-alert">
                 {{ n8nStatusError }}
               </NAlert>
+              <NAlert v-else-if="n8nRuntimeMissing" type="warning" class="page-alert">
+                <NSpace align="center" justify="space-between">
+                  <span>{{ t('pages.workflows.n8n.missingRuntime') }}</span>
+                  <NButton
+                    size="small"
+                    type="primary"
+                    :loading="n8nRuntimeInstalling"
+                    @click="installN8nRuntime"
+                  >
+                    {{ t('pages.workflows.actions.installN8nRuntime') }}
+                  </NButton>
+                </NSpace>
+              </NAlert>
 
               <NSpace v-if="workflowStore.n8nDetails" vertical size="large">
                 <div class="n8n-header">
@@ -861,7 +907,10 @@ onMounted(() => {
                 </div>
               </NSpace>
 
-              <NEmpty v-else :description="t('pages.workflows.emptyN8n')" />
+              <NEmpty
+                v-else-if="!n8nRuntimeMissing"
+                :description="t('pages.workflows.emptyN8n')"
+              />
             </NSpin>
           </NTabPane>
         </NTabs>

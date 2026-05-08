@@ -96,6 +96,7 @@ export async function buildGatewayInstallPlan(params: {
   runtime: GatewayDaemonRuntime;
   devMode?: boolean;
   nodePath?: string;
+  runtimeEntryPath?: string;
   warn?: DaemonInstallWarnFn;
   /** Full config to extract env vars from (env vars + inline env keys). */
   config?: CrawClawConfig;
@@ -112,6 +113,7 @@ export async function buildGatewayInstallPlan(params: {
     dev: devMode,
     runtime: params.runtime,
     nodePath,
+    runtimeEntryPath: params.runtimeEntryPath,
   });
   await emitDaemonInstallRuntimeWarning({
     env: params.env,

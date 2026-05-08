@@ -382,6 +382,23 @@ describe("buildServiceEnvironment", () => {
       "/home/user/.nvm/versions/node/v22.22.0/bin",
     );
   });
+
+  it("forwards desktop bundled runtime paths to the gateway service", () => {
+    const env = buildServiceEnvironment({
+      env: {
+        HOME: "/home/user",
+        CRAWCLAW_DESKTOP_RUNTIME_ROOT: " /opt/CrawClaw Desktop/runtime/crawclaw ",
+        CRAWCLAW_PLUGIN_RUNTIMES_DIR: " /opt/CrawClaw Desktop/runtime/crawclaw/runtimes ",
+      },
+      port: 18789,
+      platform: "linux",
+    });
+
+    expect(env.CRAWCLAW_DESKTOP_RUNTIME_ROOT).toBe("/opt/CrawClaw Desktop/runtime/crawclaw");
+    expect(env.CRAWCLAW_PLUGIN_RUNTIMES_DIR).toBe(
+      "/opt/CrawClaw Desktop/runtime/crawclaw/runtimes",
+    );
+  });
 });
 
 describe("buildNodeServiceEnvironment", () => {

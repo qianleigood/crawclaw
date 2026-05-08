@@ -119,4 +119,35 @@ describe("resolveGatewayProgramArguments", () => {
     ]);
     expect(result.workingDirectory).toBe(path.resolve("/repo"));
   });
+
+  it("uses an explicit runtime entrypoint when installing a node service", async () => {
+    const runtimeEntryPath = path.resolve(
+      "/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/crawclaw.mjs",
+    );
+    process.argv = [
+      "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
+      runtimeEntryPath,
+    ];
+    fsMocks.access.mockImplementation(async (target: string) => {
+      if (target === runtimeEntryPath) {
+        return;
+      }
+      throw new Error("missing");
+    });
+
+    const result = await resolveGatewayProgramArguments({
+      port: 18789,
+      runtime: "node",
+      nodePath: "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
+      runtimeEntryPath,
+    });
+
+    expect(result.programArguments).toEqual([
+      "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
+      runtimeEntryPath,
+      "gateway",
+      "--port",
+      "18789",
+    ]);
+  });
 });

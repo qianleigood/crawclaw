@@ -33,6 +33,7 @@ import { useSkillStore } from '@/stores/skill'
 import { useWebSocketStore } from '@/stores/websocket'
 import { formatDate, formatRelativeTime, parseSessionKey, truncate } from '@/utils/format'
 import { renderSimpleMarkdown } from '@/utils/markdown'
+import { createDesktopScreenshotDraft, getCrawClawDesktopHost, type DesktopScreenshotResult } from '@/utils/desktop-host'
 import { useEdgeTTS } from '@/composables/useEdgeTTS'
 import { useTTSSettings } from '@/composables/useTTSSettings'
 import type { AgentInstance, ChatMessage, ChatMessageContent, SessionsUsageSession, Skill } from '@/api/types'
@@ -1427,6 +1428,18 @@ const activeSlashSuggestion = computed(() => {
 
 const eventCleanups: Array<() => void> = []
 
+function handleDesktopScreenshotCaptured(result: DesktopScreenshotResult) {
+  const nextDraft = createDesktopScreenshotDraft(result, t('pages.chat.input.screenshotPrompt'))
+  if (!nextDraft) {
+    message.error(t('pages.chat.input.screenshotFailed', { reason: result.error || t('common.capabilityUnavailable') }))
+    return
+  }
+
+  const currentDraft = draft.value.trim()
+  draft.value = currentDraft ? `${currentDraft}\n\n${nextDraft}` : nextDraft
+  message.success(t('pages.chat.input.screenshotAttached'))
+}
+
 function ensureSessionKey(): string {
   const normalized = sessionKeyInput.value.trim() || 'main'
   sessionKeyInput.value = normalized
@@ -2547,6 +2560,10 @@ onMounted(async () => {
   void configStore.fetchConfig()
   void skillStore.fetchSkills()
   document.addEventListener('click', handleCodeCopy)
+  const desktopHost = getCrawClawDesktopHost()
+  if (desktopHost) {
+    eventCleanups.push(desktopHost.onScreenshotCaptured(handleDesktopScreenshotCaptured))
+  }
 
   eventCleanups.push(
     wsStore.subscribe('event', (evt: unknown) => {
@@ -3405,13 +3422,15 @@ async function handleSend() {
 
 <style scoped>
 .chat-page {
-  min-height: 0;
+  min-height: calc(100vh - var(--desktop-toolbar-height) - 40px);
+  display: flex;
+  flex-direction: column;
 }
 
 /* 桌面端：让聊天区尽量占满可用高度，提升 transcript 可视面积 */
 @media (min-width: 1024px) {
   .chat-page {
-    height: calc(100vh - var(--header-height) - 48px);
+    height: calc(100vh - var(--desktop-toolbar-height) - 40px);
     display: flex;
     flex-direction: column;
   }
@@ -3668,7 +3687,9 @@ async function handleSend() {
 }
 
 .chat-side-card {
-  border-radius: var(--radius);
+  border: 1px solid var(--desktop-border);
+  border-radius: 12px;
+  box-shadow: none;
 }
 
 .chat-main-column {
@@ -3772,13 +3793,15 @@ async function handleSend() {
 
 .chat-transcript-card,
 .chat-compose-card {
-  border-radius: var(--radius);
+  border-radius: 12px;
 }
 
 .chat-transcript-card {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  border: 1px solid var(--desktop-border);
+  box-shadow: none;
 }
 
 :deep(.chat-transcript-card .n-card__content) {
@@ -3803,7 +3826,7 @@ async function handleSend() {
 
 .chat-transcript {
   border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  border-radius: 12px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -3811,16 +3834,14 @@ async function handleSend() {
   padding-bottom: 20px;
   overflow-anchor: none;
   overscroll-behavior: contain;
-  background:
-    radial-gradient(circle at top right, rgba(24, 160, 88, 0.06), transparent 30%),
-    var(--bg-primary);
+  background: var(--bg-primary);
 }
 
 .chat-compose-card {
   flex-shrink: 0;
-  border: 1px solid var(--border-color);
+  border: 1px solid var(--desktop-border);
   background: var(--bg-card);
-  box-shadow: var(--shadow-sm);
+  box-shadow: none;
 }
 
 .chat-slash-panel {
@@ -3906,7 +3927,7 @@ async function handleSend() {
   max-width: min(840px, 88%);
   margin-bottom: 12px;
   padding: 10px 12px;
-  border-radius: 10px;
+  border-radius: 14px;
   border: 1px solid var(--border-color);
   background: var(--bg-secondary);
 }
@@ -3930,14 +3951,14 @@ async function handleSend() {
 
 .chat-bubble.is-user {
   margin-left: auto;
-  border-color: rgba(24, 160, 88, 0.35);
-  background: rgba(24, 160, 88, 0.09);
+  border-color: color-mix(in srgb, var(--desktop-accent) 32%, var(--desktop-border));
+  background: color-mix(in srgb, var(--desktop-accent) 12%, var(--bg-primary));
 }
 
 .chat-bubble.is-assistant {
   margin-right: auto;
-  border-color: rgba(24, 144, 255, 0.3);
-  background: rgba(24, 144, 255, 0.08);
+  border-color: var(--desktop-border);
+  background: var(--bg-primary);
 }
 
 .chat-bubble.is-tool {

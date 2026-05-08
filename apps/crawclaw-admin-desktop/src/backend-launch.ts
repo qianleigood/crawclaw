@@ -1,6 +1,6 @@
 import { access } from 'node:fs/promises'
 import { createServer } from 'node:net'
-import { join } from 'node:path'
+import { delimiter, join } from 'node:path'
 import { randomUUID } from 'node:crypto'
 import type { UtilityProcess } from 'electron'
 import type { DesktopAppPaths } from './app-paths.js'
@@ -9,10 +9,13 @@ export interface DesktopGatewayConfig {
   wsUrl: string
   authToken?: string
   authPassword?: string
-  runtimeRoot: string
-  crawclawStateDir: string
-  nodePath?: string
   locale?: string
+  hermesWebUrl?: string
+  hermesApiUrl?: string
+  hermesApiKey?: string
+  runtimeRoot?: string
+  nodePath?: string
+  crawclawStateDir?: string
 }
 
 export interface BackendLaunchResult {
@@ -30,8 +33,8 @@ export async function startAdminBackend(params: {
   const entryPoint = join(params.adminRoot, 'server', 'index.js')
   await access(entryPoint)
 
-  let exitCode: number | null | undefined
   const { utilityProcess } = await import('electron')
+  let exitCode: number | null | undefined
   const child = utilityProcess.fork(entryPoint, [], {
     cwd: params.adminRoot,
     env: buildBackendEnv(params.paths, params.gateway, port),
@@ -59,11 +62,10 @@ export async function startAdminBackend(params: {
 export function buildBackendEnv(
   paths: DesktopAppPaths,
   gateway: DesktopGatewayConfig,
-  port: number,
-  baseEnv: NodeJS.ProcessEnv = process.env
+  port: number
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {
-    ...baseEnv,
+    ...process.env,
     CRAWCLAW_ADMIN_RUNTIME_MODE: 'desktop',
     CRAWCLAW_ADMIN_DESKTOP_LOCAL: '1',
     CRAWCLAW_ADMIN_BIND_HOST: '127.0.0.1',
@@ -74,21 +76,37 @@ export function buildBackendEnv(
     CRAWCLAW_ADMIN_BACKUP_DIR: paths.backupDir,
     CRAWCLAW_ADMIN_LOG_DIR: paths.logDir,
     CRAWCLAW_ADMIN_SESSION_SECRET: randomUUID(),
-    CRAWCLAW_DESKTOP_RUNTIME_ROOT: gateway.runtimeRoot,
-    CRAWCLAW_DESKTOP_NODE_PATH: gateway.nodePath ?? '',
-    CRAWCLAW_STATE_DIR: gateway.crawclawStateDir,
+    CRAWCLAW_STATE_DIR: gateway.crawclawStateDir ?? process.env.CRAWCLAW_STATE_DIR ?? paths.stateDir,
     CRAWCLAW_WS_URL: gateway.wsUrl,
     CRAWCLAW_AUTH_TOKEN: gateway.authToken ?? '',
     CRAWCLAW_AUTH_PASSWORD: gateway.authPassword ?? '',
-    ELECTRON_RUN_AS_NODE: gateway.nodePath ? '1' : undefined,
-    HERMES_WEB_URL: undefined,
-    HERMES_API_URL: undefined,
-    HERMES_API_KEY: undefined,
   }
 
   setOptionalEnv(env, 'CRAWCLAW_LOCALE', gateway.locale)
+  setOptionalEnv(env, 'CRAWCLAW_DESKTOP_RUNTIME_ROOT', gateway.runtimeRoot)
+  setOptionalEnv(env, 'CRAWCLAW_DESKTOP_NODE_PATH', gateway.nodePath)
+  setOptionalEnv(
+    env,
+    'CRAWCLAW_PLUGIN_RUNTIMES_DIR',
+    process.env.CRAWCLAW_PLUGIN_RUNTIMES_DIR ||
+      resolveDesktopPluginRuntimesDir(gateway.crawclawStateDir ?? env.CRAWCLAW_STATE_DIR, gateway.runtimeRoot)
+  )
+  setOptionalEnv(env, 'HERMES_WEB_URL', gateway.hermesWebUrl)
+  setOptionalEnv(env, 'HERMES_API_URL', gateway.hermesApiUrl)
+  setOptionalEnv(env, 'HERMES_API_KEY', gateway.hermesApiKey)
 
   return env
+}
+
+function resolveDesktopPluginRuntimesDir(stateDir: string | undefined, runtimeRoot: string | undefined): string | undefined {
+  if (!runtimeRoot?.trim()) {
+    return undefined
+  }
+  const roots = [
+    stateDir?.trim() ? join(stateDir, 'runtimes') : undefined,
+    join(runtimeRoot, 'runtimes'),
+  ].filter((value): value is string => !!value)
+  return roots.join(delimiter)
 }
 
 function setOptionalEnv(env: NodeJS.ProcessEnv, key: string, value: string | undefined): void {

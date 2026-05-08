@@ -9,6 +9,7 @@ const desktopDir = join(rootDir, "apps", "crawclaw-admin-desktop");
 
 ensureNpmInstall(adminDir);
 runNpm(adminDir, ["run", "build"]);
+runNode(rootDir, ["scripts/admin-desktop-stage-runtime.mjs"]);
 ensureNpmInstall(desktopDir);
 runNpm(desktopDir, ["run", "rebuild:native"]);
 runNpm(desktopDir, ["run", "dist"]);
@@ -31,6 +32,19 @@ function runNpm(cwd, args) {
   }
   const suffix = result.signal ? `signal ${result.signal}` : `exit ${String(result.status)}`;
   throw new Error(`npm ${args.join(" ")} failed in ${cwd} with ${suffix}`);
+}
+
+function runNode(cwd, args) {
+  const result = spawnSync(process.execPath, args, {
+    cwd,
+    stdio: "inherit",
+    env: process.env,
+  });
+  if (result.status === 0) {
+    return;
+  }
+  const suffix = result.signal ? `signal ${result.signal}` : `exit ${String(result.status)}`;
+  throw new Error(`node ${args.join(" ")} failed in ${cwd} with ${suffix}`);
 }
 
 function npmCommand() {

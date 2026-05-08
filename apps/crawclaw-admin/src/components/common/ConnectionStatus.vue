@@ -231,8 +231,9 @@ function handleCustomUpdate() {
 </script>
 
 <template>
-  <NSpace :size="8" align="center">
+  <NSpace :size="8" align="center" class="connection-status">
     <a
+      class="connection-status__github"
       href="https://github.com/qianleigood/crawclaw/tree/main/apps/crawclaw-admin"
       target="_blank"
       rel="noopener noreferrer"
@@ -242,70 +243,76 @@ function handleCustomUpdate() {
     </a>
     <NTag
       v-if="wsStore.gatewayVersion"
+      class="connection-status__version"
       size="small"
       :bordered="false"
       round
     >
       CrawClaw {{ wsStore.gatewayVersion }}
     </NTag>
-    <NPopover 
+    <span
       v-if="hasUpdate && wsStore.state === ConnectionState.CONNECTED && displayLatestVersion"
-      trigger="click" 
-      placement="bottom" 
-      :width="280"
+      class="connection-status__update"
     >
-      <template #trigger>
-        <NButton
-          size="small"
-          type="primary"
-          text
-          :loading="isUpdating"
-          :disabled="isUpdating"
-        >
-          {{ isUpdating ? t('components.connectionStatus.updating') : t('components.connectionStatus.newVersionAvailable', { version: displayLatestVersion }) }}
-        </NButton>
-      </template>
-      <div style="padding: 12px;">
-        <template v-if="isDesktopUpdateMode()">
-          <div style="margin-bottom: 8px;">
-            {{ t('components.connectionStatus.desktopUpdateMessage') }}
-          </div>
+      <NPopover
+        trigger="click" 
+        placement="bottom" 
+        :width="280"
+      >
+        <template #trigger>
           <NButton
-            tag="a"
             size="small"
             type="primary"
-            :href="DESKTOP_RELEASES_URL"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {{ t('components.connectionStatus.openReleases') }}
-          </NButton>
-        </template>
-        <template v-else>
-        <div style="margin-bottom: 8px;">{{ t('components.connectionStatus.upgradeToVersion') }}</div>
-        <NSpace align="center">
-          <NSelect
-            v-model:value="selectedVersion"
-            :options="versionOptions"
-            :placeholder="t('components.connectionStatus.selectVersion')"
-            size="small"
-            style="width: 180px;"
-            :disabled="isUpdating || isLoadingVersions"
-            :loading="isLoadingVersions"
-          />
-          <NButton
-            size="small"
-            @click="handleCustomUpdate"
+            text
             :loading="isUpdating"
-            :disabled="isUpdating || !selectedVersion || isLoadingVersions"
+            :disabled="isUpdating"
           >
-            {{ t('components.connectionStatus.upgrade') }}
+            {{ isUpdating ? t('components.connectionStatus.updating') : t('components.connectionStatus.newVersionAvailable', { version: displayLatestVersion }) }}
           </NButton>
-        </NSpace>
         </template>
-      </div>
-    </NPopover>
+        <div style="padding: 12px;">
+          <template v-if="isDesktopUpdateMode()">
+            <div style="margin-bottom: 8px;">
+              {{ t('components.connectionStatus.desktopUpdateMessage') }}
+            </div>
+            <NButton
+              tag="a"
+              size="small"
+              type="primary"
+              :href="DESKTOP_RELEASES_URL"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {{ t('components.connectionStatus.openReleases') }}
+            </NButton>
+          </template>
+          <template v-else>
+          <div style="margin-bottom: 8px;">{{ t('components.connectionStatus.upgradeToVersion') }}</div>
+          <NSpace align="center">
+            <NSelect
+              v-model:value="selectedVersion"
+              :options="versionOptions"
+              :placeholder="t('components.connectionStatus.selectVersion')"
+              size="small"
+              style="width: 180px;"
+              :disabled="isUpdating || isLoadingVersions"
+              :loading="isLoadingVersions"
+            />
+            <NButton
+              size="small"
+              @click="handleCustomUpdate"
+              :loading="isUpdating"
+              :disabled="isUpdating || !selectedVersion || isLoadingVersions"
+            >
+              {{ t('components.connectionStatus.upgrade') }}
+            </NButton>
+          </NSpace>
+          </template>
+        </div>
+      </NPopover>
+    </span>
     <NTag
+      class="connection-status__state"
       :type="status.type"
       round
       size="small"

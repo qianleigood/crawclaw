@@ -30,26 +30,19 @@ const DESKTOP_SECRET_ENV_KEYS = [
   'CRAWCLAW_AUTH_PASSWORD',
   'HERMES_API_KEY',
 ]
-const DESKTOP_REMOTE_RUNTIME_ENV_KEYS = [
-  'CRAWCLAW_WS_URL',
-  'HERMES_WEB_URL',
-  'HERMES_API_URL',
-  'HERMES_API_KEY',
-]
 
 export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
   const paths = resolveAdminPaths(env, opts)
   const envPath = opts.envPath || DEFAULT_ENV_PATH
   const desktopLocal = paths.runtimeMode === 'desktop' && env.CRAWCLAW_ADMIN_DESKTOP_LOCAL === '1'
   const parsed =
-    paths.runtimeMode === 'desktop'
-      ? readDesktopConfig(paths.configPath, env, { desktopLocal })
-      : readDotEnv(envPath, env)
+    paths.runtimeMode === 'desktop' ? readDesktopConfig(paths.configPath, env) : readDotEnv(envPath, env)
   const port = Number(env.CRAWCLAW_ADMIN_PORT || parsed.PORT || 3001)
   const bindHost = resolveBindHost(paths.runtimeMode, env.CRAWCLAW_ADMIN_BIND_HOST)
-  const crawclawWsUrl = readEnvValue(parsed, 'CRAWCLAW_WS_URL', 'ws://localhost:18789')
-  const crawclawAuthToken = readEnvValue(parsed, 'CRAWCLAW_AUTH_TOKEN', '')
-  const crawclawAuthPassword = readEnvValue(parsed, 'CRAWCLAW_AUTH_PASSWORD', '')
+  const crawclawSource = desktopLocal ? env : parsed
+  const crawclawWsUrl = readEnvValue(crawclawSource, 'CRAWCLAW_WS_URL', 'ws://localhost:18789')
+  const crawclawAuthToken = readEnvValue(crawclawSource, 'CRAWCLAW_AUTH_TOKEN', '')
+  const crawclawAuthPassword = readEnvValue(crawclawSource, 'CRAWCLAW_AUTH_PASSWORD', '')
   const crawclawLocale = readEnvValue(parsed, 'CRAWCLAW_LOCALE', '')
   const crawclawHome = readEnvValue(parsed, 'CRAWCLAW_HOME', '')
   const crawclawStateDir = readEnvValue(
@@ -68,12 +61,11 @@ export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
     parsed.CRAWCLAW_ADMIN_DEV_FRONTEND_URL || parsed.DEV_FRONTEND_URL || 'http://localhost:3000'
   const mediaDir = parsed.CRAWCLAW_ADMIN_MEDIA_DIR || parsed.MEDIA_DIR || ''
   const logLevel = parsed.CRAWCLAW_ADMIN_LOG_LEVEL || parsed.LOG_LEVEL || 'INFO'
-  const hermesWebUrl = parsed.HERMES_WEB_URL || ''
-  const hermesApiUrl = parsed.HERMES_API_URL || ''
-  const hermesApiKey = parsed.HERMES_API_KEY || ''
+  const hermesWebUrl = desktopLocal ? '' : parsed.HERMES_WEB_URL || ''
+  const hermesApiUrl = desktopLocal ? '' : parsed.HERMES_API_URL || ''
+  const hermesApiKey = desktopLocal ? '' : parsed.HERMES_API_KEY || ''
   const hermesCliPath = parsed.HERMES_CLI_PATH || ''
   const hermesHome = parsed.HERMES_HOME || ''
-  const desktopRuntimeRoot = desktopLocal ? env.CRAWCLAW_DESKTOP_RUNTIME_ROOT || '' : ''
 
   return {
     paths,
@@ -109,7 +101,9 @@ export function loadAdminRuntimeConfig(env = process.env, opts = {}) {
     HERMES_API_KEY: hermesApiKey,
     HERMES_CLI_PATH: hermesCliPath,
     HERMES_HOME: hermesHome,
-    CRAWCLAW_DESKTOP_RUNTIME_ROOT: desktopRuntimeRoot,
+    CRAWCLAW_DESKTOP_RUNTIME_ROOT: env.CRAWCLAW_DESKTOP_RUNTIME_ROOT || parsed.CRAWCLAW_DESKTOP_RUNTIME_ROOT || '',
+    CRAWCLAW_DESKTOP_NODE_PATH: env.CRAWCLAW_DESKTOP_NODE_PATH || parsed.CRAWCLAW_DESKTOP_NODE_PATH || '',
+    CRAWCLAW_PLUGIN_RUNTIMES_DIR: env.CRAWCLAW_PLUGIN_RUNTIMES_DIR || parsed.CRAWCLAW_PLUGIN_RUNTIMES_DIR || '',
   }
 }
 
@@ -142,11 +136,12 @@ export function removeDesktopSecretEnvKeys(source) {
   }
 }
 
-export function removeDesktopRemoteRuntimeEnvKeys(source) {
-  for (const key of DESKTOP_REMOTE_RUNTIME_ENV_KEYS) {
-    delete source[key]
-    delete source[legacyCrawClawEnvKey(key)]
-  }
+export function removeDesktopLocalGatewayEnvKeys(source) {
+  removeDesktopSecretEnvKeys(source)
+  delete source.CRAWCLAW_WS_URL
+  delete source[legacyCrawClawEnvKey('CRAWCLAW_WS_URL')]
+  delete source.HERMES_WEB_URL
+  delete source.HERMES_API_URL
 }
 
 export function resolveCrawClawStateDir(env = process.env, opts = {}) {
@@ -160,13 +155,9 @@ function readDotEnv(envPath, fallbackEnv) {
   return existsSync(envPath) ? parse(readFileSync(envPath, 'utf-8')) : fallbackEnv
 }
 
-function readDesktopConfig(configPath, env, opts = {}) {
+function readDesktopConfig(configPath, env) {
   const persisted = existsSync(configPath) ? parse(readFileSync(configPath, 'utf-8')) : {}
   removeDesktopSecretEnvKeys(persisted)
-  if (opts.desktopLocal) {
-    removeDesktopRemoteRuntimeEnvKeys(persisted)
-    return { ...persisted, ...env }
-  }
   return { ...env, ...persisted }
 }
 

@@ -15,18 +15,34 @@ const desktopStore = useDesktopStore()
 const route = useRoute()
 const router = useRouter()
 
-const isCrawClaw = computed(() => desktopStore.isDesktopLocal || connStore.currentGateway === 'crawclaw')
+const isCrawClaw = computed(() => connStore.currentGateway === 'crawclaw')
+const isDesktopMode = computed(() => desktopStore.isDesktopMode ?? false)
+const contentStyle = computed(() => isDesktopMode.value ? 'padding: 0;' : 'padding: 24px;')
 
-function enforceDesktopLocalGateway() {
-  if (desktopStore.isDesktopLocal && connStore.currentGateway !== 'crawclaw') {
-    connStore.currentGateway = 'crawclaw'
-    connStore.disconnect()
-  }
-}
+onMounted(() => {
+  void initializeGatewayConnection()
+})
 
-onMounted(async () => {
+async function initializeGatewayConnection() {
   await desktopStore.ensureCapabilitiesLoaded()
-  enforceDesktopLocalGateway()
+
+  if (isDesktopMode.value) {
+    connStore.disconnect()
+    connStore.currentGateway = 'crawclaw'
+    wsStore.connect()
+    if (!desktopStore.onboardingComplete && route.name !== 'DesktopOnboarding') {
+      router.replace({ name: 'DesktopOnboarding' })
+      return
+    }
+    if (desktopStore.onboardingComplete && route.name === 'DesktopOnboarding') {
+      router.replace('/')
+      return
+    }
+    if (route.meta?.gateway && route.meta.gateway !== 'crawclaw') {
+      router.replace('/')
+    }
+    return
+  }
 
   if (isCrawClaw.value) {
     wsStore.connect()
@@ -41,10 +57,16 @@ onMounted(async () => {
   if (routeGateway && routeGateway !== currentGateway) {
     router.replace(isCrawClaw.value ? '/' : '/hermes/chat')
   }
-})
+}
 
 watch(isCrawClaw, (val) => {
-  enforceDesktopLocalGateway()
+  if (isDesktopMode.value && !val) {
+    connStore.disconnect()
+    connStore.currentGateway = 'crawclaw'
+    wsStore.connect()
+    router.push('/')
+    return
+  }
 
   if (val) {
     wsStore.connect()
@@ -70,13 +92,18 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <NLayout has-sider position="absolute" class="app-layout-root">
+  <NLayout
+    has-sider
+    position="absolute"
+    class="app-layout-root"
+    :class="{ 'app-layout-root--desktop': isDesktopMode }"
+  >
     <NLayoutSider
       class="app-layout-sider"
       bordered
       collapse-mode="width"
-      :collapsed-width="64"
-      :width="240"
+      :collapsed-width="isDesktopMode ? 68 : 64"
+      :width="isDesktopMode ? 252 : 240"
       :collapsed="collapsed"
       show-trigger
       :native-scrollbar="false"
@@ -95,7 +122,7 @@ onUnmounted(() => {
       <NLayoutContent
         class="app-layout-content"
         :native-scrollbar="false"
-        content-style="padding: 24px;"
+        :content-style="contentStyle"
       >
         <div class="page-container">
           <RouterView v-slot="{ Component }">
@@ -132,8 +159,36 @@ onUnmounted(() => {
   background: var(--bg-card);
 }
 
+.app-layout-root--desktop {
+  min-width: var(--desktop-min-window-width);
+  background: var(--desktop-bg);
+}
+
+.app-layout-root--desktop .app-layout-main {
+  min-width: calc(var(--desktop-min-window-width) - var(--sidebar-width));
+}
+
+.app-layout-root--desktop .app-layout-sider {
+  background: var(--desktop-sidebar-bg);
+  border-right-color: var(--desktop-sidebar-border);
+}
+
+.app-layout-root--desktop .app-layout-header {
+  height: var(--desktop-toolbar-height);
+  padding: 0 18px 0 22px;
+  background: var(--desktop-toolbar-bg);
+  border-bottom-color: var(--desktop-border);
+  backdrop-filter: blur(18px);
+}
+
 .app-layout-content {
   height: calc(100vh - var(--header-height));
+}
+
+.app-layout-root--desktop .app-layout-content {
+  height: calc(100vh - var(--desktop-toolbar-height));
+  background: var(--desktop-bg);
+  overflow-x: auto;
 }
 
 :deep(.app-layout-content .n-layout-scroll-container) {

@@ -2988,10 +2988,9 @@ function handleCreateProviderClick() {
 
 .models-overview-card {
   border-radius: var(--radius-lg);
-  background:
-    radial-gradient(circle at 86% 12%, rgba(32, 128, 240, 0.18), transparent 36%),
-    linear-gradient(125deg, var(--bg-card), rgba(24, 160, 88, 0.08));
-  border: 1px solid rgba(32, 128, 240, 0.16);
+  background: var(--bg-card);
+  border: 1px solid var(--desktop-border);
+  box-shadow: none;
 }
 
 .models-overview-title {
@@ -3042,11 +3041,9 @@ function handleCreateProviderClick() {
 
 .models-quick-item {
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px;
-  background:
-    radial-gradient(circle at 88% 10%, rgba(24, 160, 88, 0.12), transparent 45%),
-    var(--bg-primary);
+  background: var(--bg-primary);
 }
 
 .models-quick-item-header {
@@ -3083,7 +3080,7 @@ function handleCreateProviderClick() {
 
 .models-panel {
   border: 1px solid var(--border-color);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 12px;
   background: var(--bg-primary);
   overflow: hidden;
@@ -3126,8 +3123,8 @@ function handleCreateProviderClick() {
 }
 
 .models-action-btn:not(:disabled):hover {
-  transform: translateY(-1px);
-  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12);
+  transform: none;
+  box-shadow: none;
 }
 
 .models-panel-toolbar {

@@ -102,6 +102,9 @@ import type {
   Esp32StatusSummary,
   DesktopCapabilities,
   DesktopCapability,
+  DesktopOptionalRuntime,
+  DesktopRuntimeActionResponse,
+  DesktopRuntimeLogsTailParams,
 } from './types'
 
 let requestId = 0
@@ -2623,6 +2626,36 @@ export class RPCClient {
     }
   }
 
+  private normalizeDesktopRuntimeActionResponse(value: unknown): DesktopRuntimeActionResponse {
+    const row = this.asRecord(value)
+    return {
+      action: this.asString(row.action, ''),
+      result: row.result ?? null,
+    }
+  }
+
+  private normalizeDesktopOptionalRuntime(value: unknown): DesktopOptionalRuntime {
+    const row = this.asRecord(value)
+    const reason = this.asOptionalString(row.reason)
+    const error = this.asOptionalString(row.error)
+    const version = this.asOptionalString(row.version)
+    const installDir = this.asOptionalString(row.installDir)
+    const description = this.asOptionalString(row.description)
+    const estimatedSize = this.asOptionalString(row.estimatedSize)
+    return {
+      id: this.asString(row.id),
+      name: this.asOptionalString(row.name),
+      state: this.asString(row.state, 'unknown'),
+      installed: this.asBoolean(row.installed, false),
+      ...(description ? { description } : {}),
+      ...(estimatedSize ? { estimatedSize } : {}),
+      ...(reason ? { reason } : {}),
+      ...(error ? { error } : {}),
+      ...(version ? { version } : {}),
+      ...(installDir ? { installDir } : {}),
+    }
+  }
+
   private async readHttpJson(response: Response): Promise<unknown> {
     try {
       return await response.json()
@@ -2646,6 +2679,33 @@ export class RPCClient {
     const response = await this.fetchFn(path, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     })
+    const payload = await this.readHttpJson(response)
+    if (!response.ok) {
+      throw new Error(this.httpErrorMessage(payload, `HTTP ${response.status}`))
+    }
+
+    const row = this.asRecord(payload)
+    if (row.ok === false) {
+      throw new Error(this.httpErrorMessage(payload, 'Request failed'))
+    }
+    return payload
+  }
+
+  private async httpPost(path: string, body?: unknown): Promise<unknown> {
+    const token = this.getToken()
+    const headers = new Headers()
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`)
+    }
+    const init: RequestInit = {
+      method: 'POST',
+      headers,
+    }
+    if (body !== undefined) {
+      headers.set('Content-Type', 'application/json')
+      init.body = JSON.stringify(body)
+    }
+    const response = await this.fetchFn(path, init)
     const payload = await this.readHttpJson(response)
     if (!response.ok) {
       throw new Error(this.httpErrorMessage(payload, `HTTP ${response.status}`))
@@ -2702,6 +2762,54 @@ export class RPCClient {
       throw new Error('Desktop capabilities response missing capabilities')
     }
     return this.normalizeDesktopCapabilities(row.capabilities)
+  }
+
+  async bootstrapDesktopRuntime(): Promise<DesktopRuntimeActionResponse> {
+    return this.normalizeDesktopRuntimeActionResponse(
+      await this.httpPost('/api/desktop/runtime/bootstrap')
+    )
+  }
+
+  async getDesktopRuntimeStatus(): Promise<DesktopRuntimeActionResponse> {
+    return this.normalizeDesktopRuntimeActionResponse(await this.httpGet('/api/desktop/runtime/status'))
+  }
+
+  async startDesktopGatewayService(): Promise<DesktopRuntimeActionResponse> {
+    return this.normalizeDesktopRuntimeActionResponse(
+      await this.httpPost('/api/desktop/runtime/service/start')
+    )
+  }
+
+  async stopDesktopGatewayService(): Promise<DesktopRuntimeActionResponse> {
+    return this.normalizeDesktopRuntimeActionResponse(
+      await this.httpPost('/api/desktop/runtime/service/stop')
+    )
+  }
+
+  async restartDesktopGatewayService(): Promise<DesktopRuntimeActionResponse> {
+    return this.normalizeDesktopRuntimeActionResponse(
+      await this.httpPost('/api/desktop/runtime/service/restart')
+    )
+  }
+
+  async tailDesktopRuntimeLogs(
+    params: DesktopRuntimeLogsTailParams = {}
+  ): Promise<DesktopRuntimeActionResponse> {
+    return this.normalizeDesktopRuntimeActionResponse(
+      await this.httpPost('/api/desktop/runtime/logs/tail', params)
+    )
+  }
+
+  async listDesktopOptionalRuntimes(): Promise<DesktopOptionalRuntime[]> {
+    const payload = await this.httpGet('/api/desktop/runtimes')
+    const row = this.asRecord(payload)
+    const runtimes = Array.isArray(row.runtimes) ? row.runtimes : []
+    return runtimes.map((runtime) => this.normalizeDesktopOptionalRuntime(runtime))
+  }
+
+  async installDesktopOptionalRuntime(id: string): Promise<DesktopOptionalRuntime> {
+    const payload = await this.httpPost('/api/desktop/runtimes/install', { id })
+    return this.normalizeDesktopOptionalRuntime(this.asRecord(payload).runtime)
   }
 
   // --- Config ---

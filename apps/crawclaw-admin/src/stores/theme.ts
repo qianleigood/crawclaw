@@ -5,13 +5,9 @@ export type ThemeMode = 'light' | 'dark'
 
 const STORAGE_KEY = 'crawclaw_theme'
 
-function getSystemTheme(): ThemeMode {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-}
-
 export const useThemeStore = defineStore('theme', () => {
   const stored = localStorage.getItem(STORAGE_KEY) as ThemeMode | null
-  const mode = ref<ThemeMode>(stored || 'dark')
+  const mode = ref<ThemeMode>(stored || 'light')
 
   watch(mode, (val) => {
     localStorage.setItem(STORAGE_KEY, val)
