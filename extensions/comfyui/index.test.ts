@@ -1,4 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
+
+const nativeMocks = vi.hoisted(() => ({
+  runNativePluginOperation: vi.fn(),
+}));
+
+vi.mock("crawclaw/plugin-sdk/native-plugin-runtime", () => ({
+  runNativePluginOperation: nativeMocks.runNativePluginOperation,
+}));
+
 import entry from "./index.js";
 import type { CrawClawPluginApi, GatewayRequestHandlerOptions } from "./runtime-api.js";
 
@@ -93,6 +102,11 @@ describe("comfyui plugin entry", () => {
   });
 
   it("resolves ComfyUI status paths from the default agent workspace", async () => {
+    nativeMocks.runNativePluginOperation.mockResolvedValueOnce({
+      baseUrl: "http://127.0.0.1:8188",
+      workflowsDir: "/tmp/artist-workspace/.crawclaw/comfyui/workflows",
+      outputDir: "/tmp/artist-workspace/.crawclaw/comfyui/outputs",
+    });
     const recorder = createApiRecorder({
       config: {
         agents: {
@@ -122,9 +136,21 @@ describe("comfyui plugin entry", () => {
         },
       },
     ]);
+    expect(nativeMocks.runNativePluginOperation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plugin: "comfyui",
+        operation: "status",
+        input: expect.objectContaining({ workspaceDir: "/tmp/artist-workspace" }),
+      }),
+    );
   });
 
   it("uses explicit workspaceDir params for ComfyUI status", async () => {
+    nativeMocks.runNativePluginOperation.mockResolvedValueOnce({
+      baseUrl: "http://127.0.0.1:8188",
+      workflowsDir: "/tmp/explicit-workspace/.crawclaw/comfyui/workflows",
+      outputDir: "/tmp/explicit-workspace/.crawclaw/comfyui/outputs",
+    });
     const recorder = createApiRecorder();
     entry.register(recorder.api);
 

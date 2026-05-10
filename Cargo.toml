@@ -1,0 +1,4 @@
+[workspace]
+members = ["crates/crawclaw-native-plugins"]
+resolver = "2"
+

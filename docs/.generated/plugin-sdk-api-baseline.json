@@ -2053,7 +2053,7 @@
           "exportName": "ChannelConfigUiHint",
           "kind": "type",
           "source": {
-            "line": 40,
+            "line": 41,
             "path": "src/channels/plugins/types.plugin.ts"
           }
         },
@@ -2098,7 +2098,7 @@
           "exportName": "ChannelPlugin",
           "kind": "type",
           "source": {
-            "line": 81,
+            "line": 87,
             "path": "src/channels/plugins/types.plugin.ts"
           }
         },
@@ -2125,7 +2125,7 @@
           "exportName": "CrawClawPluginApi",
           "kind": "type",
           "source": {
-            "line": 1882,
+            "line": 1883,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2152,7 +2152,7 @@
           "exportName": "CrawClawPluginDefinition",
           "kind": "type",
           "source": {
-            "line": 1864,
+            "line": 1865,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2197,7 +2197,7 @@
           "exportName": "CrawClawToolSchema",
           "kind": "type",
           "source": {
-            "line": 2849,
+            "line": 2850,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2793,7 +2793,7 @@
           "exportName": "CrawClawPluginApi",
           "kind": "type",
           "source": {
-            "line": 1882,
+            "line": 1883,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2820,7 +2820,7 @@
           "exportName": "CrawClawPluginDefinition",
           "kind": "type",
           "source": {
-            "line": 1864,
+            "line": 1865,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2865,7 +2865,7 @@
           "exportName": "CrawClawToolSchema",
           "kind": "type",
           "source": {
-            "line": 2849,
+            "line": 2850,
             "path": "src/plugins/types.ts"
           }
         },
@@ -3928,7 +3928,7 @@
           "exportName": "expectChannelInboundContextContract",
           "kind": "function",
           "source": {
-            "line": 856,
+            "line": 858,
             "path": "src/channels/plugins/contracts/suites.ts"
           }
         },
@@ -4018,7 +4018,7 @@
           "exportName": "primeChannelOutboundSendMock",
           "kind": "function",
           "source": {
-            "line": 804,
+            "line": 806,
             "path": "src/channels/plugins/contracts/suites.ts"
           }
         },
@@ -4108,7 +4108,7 @@
           "exportName": "setDefaultChannelPluginRegistryForTests",
           "kind": "function",
           "source": {
-            "line": 50,
+            "line": 68,
             "path": "src/commands/channel-test-helpers.ts"
           }
         },

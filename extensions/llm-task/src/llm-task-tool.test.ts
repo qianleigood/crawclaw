@@ -1,39 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-vi.mock("@sinclair/typebox", () => ({
-  Type: {
-    Object: (schema: unknown) => schema,
-    String: (schema?: unknown) => schema,
-    Optional: (schema: unknown) => schema,
-    Unknown: (schema?: unknown) => schema,
-    Number: (schema?: unknown) => schema,
-  },
+const nativeMocks = vi.hoisted(() => ({
+  runNativePluginOperation: vi.fn(),
 }));
 
-vi.mock("ajv", () => ({
-  default: class MockAjv {
-    compile(schema: unknown) {
-      return (value: unknown) => {
-        if (
-          schema &&
-          typeof schema === "object" &&
-          !Array.isArray(schema) &&
-          (schema as { properties?: Record<string, { type?: string }> }).properties?.foo?.type ===
-            "string"
-        ) {
-          const ok = typeof (value as { foo?: unknown })?.foo === "string";
-          (this as { errors?: Array<{ instancePath: string; message: string }> }).errors = ok
-            ? undefined
-            : [{ instancePath: "/foo", message: "must be string" }];
-          return ok;
-        }
-        (this as { errors?: Array<{ instancePath: string; message: string }> }).errors = undefined;
-        return true;
-      };
-    }
-
-    errors?: Array<{ instancePath: string; message: string }>;
-  },
+vi.mock("crawclaw/plugin-sdk/native-plugin-runtime", () => ({
+  runNativePluginOperation: nativeMocks.runNativePluginOperation,
 }));
 
 vi.mock("../api.js", async (importOriginal) => {
@@ -41,7 +13,6 @@ vi.mock("../api.js", async (importOriginal) => {
   return {
     ...actual,
     resolvePreferredCrawClawTmpDir: () => "/tmp",
-    supportsXHighThinking: () => false,
   };
 });
 
@@ -52,8 +23,127 @@ const runEmbeddedPiAgent = vi.fn(async () => ({
   payloads: [{ text: "{}" }],
 }));
 
-// oxlint-disable-next-line typescript/no-explicit-any
-function fakeApi(overrides: any = {}) {
+type FakeApiOverrides = {
+  config?: Record<string, unknown>;
+  pluginConfig?: Record<string, unknown>;
+};
+
+function normalizeThinkLevel(value: string): string | undefined {
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "on") {
+    return "low";
+  }
+  return ["off", "minimal", "low", "medium", "high", "adaptive", "xhigh"].includes(normalized)
+    ? normalized
+    : undefined;
+}
+
+function defaultModelPair(defaultModel: unknown) {
+  const raw =
+    typeof defaultModel === "string"
+      ? defaultModel
+      : typeof (defaultModel as { primary?: unknown } | undefined)?.primary === "string"
+        ? (defaultModel as { primary: string }).primary
+        : "";
+  const [provider, ...modelParts] = raw.split("/");
+  const model = modelParts.join("/");
+  return provider && model ? { provider, model } : {};
+}
+
+function configureNativeMock() {
+  nativeMocks.runNativePluginOperation.mockImplementation(
+    async (options: { operation: string; input: Record<string, unknown> }) => {
+      if (options.operation === "prepare") {
+        const params = options.input.params as Record<string, unknown>;
+        const pluginConfig = options.input.pluginConfig as Record<string, unknown>;
+        const defaults = defaultModelPair(options.input.defaultModel);
+        const provider =
+          (typeof params.provider === "string" && params.provider.trim()) ||
+          (typeof pluginConfig.defaultProvider === "string" &&
+            pluginConfig.defaultProvider.trim()) ||
+          defaults.provider;
+        const model =
+          (typeof params.model === "string" && params.model.trim()) ||
+          (typeof pluginConfig.defaultModel === "string" && pluginConfig.defaultModel.trim()) ||
+          defaults.model;
+        if (!provider || !model) {
+          throw new Error("provider/model could not be resolved");
+        }
+        if (typeof params.prompt !== "string" || !params.prompt.trim()) {
+          throw new Error("prompt required");
+        }
+        const allowedModels = Array.isArray(pluginConfig.allowedModels)
+          ? pluginConfig.allowedModels
+          : [];
+        const modelKey = `${provider}/${model}`;
+        if (allowedModels.length > 0 && !allowedModels.includes(modelKey)) {
+          throw new Error(`Model not allowed by llm-task plugin config: ${modelKey}`);
+        }
+        const thinkLevel =
+          typeof params.thinking === "string" && params.thinking.trim()
+            ? normalizeThinkLevel(params.thinking)
+            : undefined;
+        if (typeof params.thinking === "string" && params.thinking.trim() && !thinkLevel) {
+          throw new Error(`Invalid thinking level "${params.thinking}".`);
+        }
+        if (thinkLevel === "xhigh") {
+          throw new Error(
+            'Thinking level "xhigh" is only supported for xhigh-capable OpenAI models.',
+          );
+        }
+        return {
+          provider,
+          model,
+          thinkLevel,
+          timeoutMs: typeof params.timeoutMs === "number" ? params.timeoutMs : 30_000,
+          fullPrompt: `TASK:\n${params.prompt}`,
+          workspaceDir: options.input.workspaceDir,
+          streamParams: {
+            temperature: params.temperature ?? null,
+            maxTokens: params.maxTokens ?? pluginConfig.maxTokens ?? null,
+          },
+        };
+      }
+      if (options.operation === "complete") {
+        const input = options.input as {
+          payloads?: Array<{ text?: string; isError?: boolean }>;
+          schema?: unknown;
+          provider?: string;
+          model?: string;
+        };
+        const text = (input.payloads ?? [])
+          .filter((payload) => payload.isError !== true)
+          .map((payload) => payload.text ?? "")
+          .join("\n")
+          .trim();
+        const raw = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+        let parsed: unknown;
+        try {
+          parsed = JSON.parse(raw);
+        } catch {
+          throw new Error("LLM returned invalid JSON");
+        }
+        if (
+          input.schema &&
+          typeof input.schema === "object" &&
+          !Array.isArray(input.schema) &&
+          (input.schema as { properties?: Record<string, { type?: string }> }).properties?.foo
+            ?.type === "string" &&
+          typeof (parsed as { foo?: unknown }).foo !== "string"
+        ) {
+          throw new Error("LLM JSON did not match schema: /foo must be string");
+        }
+        return {
+          content: [{ type: "text", text: JSON.stringify(parsed, null, 2) }],
+          details: { json: parsed, provider: input.provider, model: input.model },
+        };
+      }
+      throw new Error(`unexpected native operation ${options.operation}`);
+    },
+  );
+}
+
+function fakeApi(overrides: FakeApiOverrides = {}) {
   return {
     id: "llm-task",
     name: "llm-task",
@@ -75,8 +165,7 @@ function fakeApi(overrides: any = {}) {
 }
 
 function mockEmbeddedRunJson(payload: unknown) {
-  // oxlint-disable-next-line typescript/no-explicit-any
-  (runEmbeddedPiAgent as any).mockResolvedValueOnce({
+  runEmbeddedPiAgent.mockResolvedValueOnce({
     meta: {},
     payloads: [{ text: JSON.stringify(payload) }],
   });
@@ -85,40 +174,43 @@ function mockEmbeddedRunJson(payload: unknown) {
 async function executeEmbeddedRun(input: Record<string, unknown>) {
   const tool = createLlmTaskTool(fakeApi());
   await tool.execute("id", input);
-  // oxlint-disable-next-line typescript/no-explicit-any
-  return (runEmbeddedPiAgent as any).mock.calls[0]?.[0];
+  return runEmbeddedPiAgent.mock.calls[0]?.[0];
 }
 
 describe("llm-task tool (json-only)", () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    configureNativeMock();
+  });
 
-  it("returns parsed json", async () => {
-    // oxlint-disable-next-line typescript/no-explicit-any
-    (runEmbeddedPiAgent as any).mockResolvedValueOnce({
+  it("returns parsed json from the native completion path", async () => {
+    runEmbeddedPiAgent.mockResolvedValueOnce({
       meta: {},
       payloads: [{ text: JSON.stringify({ foo: "bar" }) }],
     });
     const tool = createLlmTaskTool(fakeApi());
     const res = await tool.execute("id", { prompt: "return foo" });
-    // oxlint-disable-next-line typescript/no-explicit-any
-    expect((res as any).details.json).toEqual({ foo: "bar" });
+    expect(res.details.json).toEqual({ foo: "bar" });
+    expect(nativeMocks.runNativePluginOperation).toHaveBeenCalledWith(
+      expect.objectContaining({ plugin: "llm-task", operation: "prepare" }),
+    );
+    expect(nativeMocks.runNativePluginOperation).toHaveBeenCalledWith(
+      expect.objectContaining({ plugin: "llm-task", operation: "complete" }),
+    );
   });
 
   it("strips fenced json", async () => {
-    // oxlint-disable-next-line typescript/no-explicit-any
-    (runEmbeddedPiAgent as any).mockResolvedValueOnce({
+    runEmbeddedPiAgent.mockResolvedValueOnce({
       meta: {},
       payloads: [{ text: '```json\n{"ok":true}\n```' }],
     });
     const tool = createLlmTaskTool(fakeApi());
     const res = await tool.execute("id", { prompt: "return ok" });
-    // oxlint-disable-next-line typescript/no-explicit-any
-    expect((res as any).details.json).toEqual({ ok: true });
+    expect(res.details.json).toEqual({ ok: true });
   });
 
   it("validates schema", async () => {
-    // oxlint-disable-next-line typescript/no-explicit-any
-    (runEmbeddedPiAgent as any).mockResolvedValueOnce({
+    runEmbeddedPiAgent.mockResolvedValueOnce({
       meta: {},
       payloads: [{ text: JSON.stringify({ foo: "bar" }) }],
     });
@@ -130,13 +222,11 @@ describe("llm-task tool (json-only)", () => {
       additionalProperties: false,
     };
     const res = await tool.execute("id", { prompt: "return foo", schema });
-    // oxlint-disable-next-line typescript/no-explicit-any
-    expect((res as any).details.json).toEqual({ foo: "bar" });
+    expect(res.details.json).toEqual({ foo: "bar" });
   });
 
   it("throws on invalid json", async () => {
-    // oxlint-disable-next-line typescript/no-explicit-any
-    (runEmbeddedPiAgent as any).mockResolvedValueOnce({
+    runEmbeddedPiAgent.mockResolvedValueOnce({
       meta: {},
       payloads: [{ text: "not-json" }],
     });
@@ -145,8 +235,7 @@ describe("llm-task tool (json-only)", () => {
   });
 
   it("throws on schema mismatch", async () => {
-    // oxlint-disable-next-line typescript/no-explicit-any
-    (runEmbeddedPiAgent as any).mockResolvedValueOnce({
+    runEmbeddedPiAgent.mockResolvedValueOnce({
       meta: {},
       payloads: [{ text: JSON.stringify({ foo: 1 }) }],
     });
@@ -162,20 +251,20 @@ describe("llm-task tool (json-only)", () => {
       provider: "anthropic",
       model: "claude-4-sonnet",
     });
-    expect(call.provider).toBe("anthropic");
-    expect(call.model).toBe("claude-4-sonnet");
+    expect(call?.provider).toBe("anthropic");
+    expect(call?.model).toBe("claude-4-sonnet");
   });
 
   it("passes thinking override to embedded runner", async () => {
     mockEmbeddedRunJson({ ok: true });
     const call = await executeEmbeddedRun({ prompt: "x", thinking: "high" });
-    expect(call.thinkLevel).toBe("high");
+    expect(call?.thinkLevel).toBe("high");
   });
 
   it("normalizes thinking aliases", async () => {
     mockEmbeddedRunJson({ ok: true });
     const call = await executeEmbeddedRun({ prompt: "x", thinking: "on" });
-    expect(call.thinkLevel).toBe("low");
+    expect(call?.thinkLevel).toBe("low");
   });
 
   it("throws on invalid thinking level", async () => {
@@ -196,7 +285,7 @@ describe("llm-task tool (json-only)", () => {
   it("does not pass thinkLevel when thinking is omitted", async () => {
     mockEmbeddedRunJson({ ok: true });
     const call = await executeEmbeddedRun({ prompt: "x" });
-    expect(call.thinkLevel).toBeUndefined();
+    expect(call?.thinkLevel).toBeUndefined();
   });
 
   it("enforces allowedModels", async () => {
@@ -212,6 +301,6 @@ describe("llm-task tool (json-only)", () => {
   it("disables tools for embedded run", async () => {
     mockEmbeddedRunJson({ ok: true });
     const call = await executeEmbeddedRun({ prompt: "x" });
-    expect(call.disableTools).toBe(true);
+    expect(call?.disableTools).toBe(true);
   });
 });

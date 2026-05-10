@@ -4,9 +4,6 @@
   "private": true,
   "description": "CrawClaw local ComfyUI workflow builder plugin",
   "type": "module",
-  "dependencies": {
-    "@sinclair/typebox": "0.34.49"
-  },
   "crawclaw": {
     "extensions": [
       "./index.ts"

@@ -1,9 +1,7 @@
-import { EventEmitter } from "node:events";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { PassThrough } from "node:stream";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawPluginApi, CrawClawPluginToolContext } from "../runtime-api.js";
 import {
   createWindowsCmdShimFixture,
@@ -13,20 +11,15 @@ import {
 } from "./test-helpers.js";
 import { resolveWindowsLobsterSpawn } from "./windows-spawn.js";
 
-const spawnState = vi.hoisted(() => ({
-  queue: [] as Array<{ stdout: string; stderr?: string; exitCode?: number }>,
-  spawn: vi.fn(),
+const nativeMocks = vi.hoisted(() => ({
+  runNativePluginOperation: vi.fn(),
 }));
 
-vi.mock("node:child_process", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("node:child_process")>();
-  return {
-    ...actual,
-    spawn: (...args: unknown[]) => spawnState.spawn(...args),
-  };
-});
+vi.mock("crawclaw/plugin-sdk/native-plugin-runtime", () => ({
+  runNativePluginOperation: nativeMocks.runNativePluginOperation,
+}));
 
-let createLobsterTool: typeof import("./lobster-tool.js").createLobsterTool;
+import { createLobsterTool } from "./lobster-tool.js";
 
 function fakeApi(overrides: Partial<CrawClawPluginApi> = {}): CrawClawPluginApi {
   return {
@@ -36,8 +29,7 @@ function fakeApi(overrides: Partial<CrawClawPluginApi> = {}): CrawClawPluginApi 
     registrationMode: "full",
     config: {},
     pluginConfig: {},
-    // oxlint-disable-next-line typescript/no-explicit-any
-    runtime: { version: "test" } as any,
+    runtime: { version: "test" } as CrawClawPluginApi["runtime"],
     logger: { info() {}, warn() {}, error() {}, debug() {} },
     registerTool() {},
     registerChannel() {},
@@ -89,80 +81,14 @@ async function expectUnwrappedShim(params: {
 }
 
 describe("lobster plugin tool", () => {
-  let tempDir = "";
-  const originalProcessState = snapshotPlatformPathEnv();
-
-  beforeAll(async () => {
-    ({ createLobsterTool } = await import("./lobster-tool.js"));
-
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-lobster-plugin-"));
-  });
-
   afterEach(() => {
-    restorePlatformPathEnv(originalProcessState);
+    vi.clearAllMocks();
   });
 
-  afterAll(async () => {
-    if (!tempDir) {
-      return;
-    }
-    if (process.platform === "win32") {
-      await fs.rm(tempDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 50 });
-    } else {
-      await fs.rm(tempDir, { recursive: true, force: true });
-    }
-  });
-
-  beforeEach(() => {
-    spawnState.queue.length = 0;
-    spawnState.spawn.mockReset();
-    spawnState.spawn.mockImplementation(() => {
-      const next = spawnState.queue.shift() ?? { stdout: "" };
-      const stdout = new PassThrough();
-      const stderr = new PassThrough();
-      const child = new EventEmitter() as EventEmitter & {
-        stdout: PassThrough;
-        stderr: PassThrough;
-        kill: (signal?: string) => boolean;
-      };
-      child.stdout = stdout;
-      child.stderr = stderr;
-      child.kill = () => true;
-
-      setImmediate(() => {
-        if (next.stderr) {
-          stderr.end(next.stderr);
-        } else {
-          stderr.end();
-        }
-        stdout.end(next.stdout);
-        child.emit("exit", next.exitCode ?? 0);
-        child.emit("close", next.exitCode ?? 0);
-      });
-
-      return child;
-    });
-  });
-
-  const queueSuccessfulEnvelope = (hello = "world") => {
-    spawnState.queue.push({
-      stdout: JSON.stringify({
-        ok: true,
-        status: "ok",
-        output: [{ hello }],
-        requiresApproval: null,
-      }),
-    });
-  };
-
-  it("runs lobster and returns parsed envelope in details", async () => {
-    spawnState.queue.push({
-      stdout: JSON.stringify({
-        ok: true,
-        status: "ok",
-        output: [{ hello: "world" }],
-        requiresApproval: null,
-      }),
+  it("runs lobster through the Rust native plugin runtime", async () => {
+    nativeMocks.runNativePluginOperation.mockResolvedValueOnce({
+      content: [{ type: "text", text: "{}" }],
+      details: { ok: true, status: "ok" },
     });
 
     const tool = createLobsterTool(fakeApi());
@@ -172,66 +98,19 @@ describe("lobster plugin tool", () => {
       timeoutMs: 1000,
     });
 
-    expect(spawnState.spawn).toHaveBeenCalled();
-    expect(res.details).toMatchObject({ ok: true, status: "ok" });
-  });
-
-  it("tolerates noisy stdout before the JSON envelope", async () => {
-    const payload = { ok: true, status: "ok", output: [], requiresApproval: null };
-    spawnState.queue.push({
-      stdout: `noise before json\n${JSON.stringify(payload)}`,
-    });
-
-    const tool = createLobsterTool(fakeApi());
-    const res = await tool.execute("call-noisy", {
-      action: "run",
-      pipeline: "noop",
+    expect(nativeMocks.runNativePluginOperation).toHaveBeenCalledWith({
+      plugin: "lobster",
+      operation: "execute",
+      input: {
+        params: { action: "run", pipeline: "noop", timeoutMs: 1000 },
+        cwd: process.cwd(),
+      },
       timeoutMs: 1000,
     });
-
     expect(res.details).toMatchObject({ ok: true, status: "ok" });
   });
 
-  it("requires action", async () => {
-    const tool = createLobsterTool(fakeApi());
-    await expect(tool.execute("call-action-missing", {})).rejects.toThrow(/action required/);
-  });
-
-  it("requires pipeline for run action", async () => {
-    const tool = createLobsterTool(fakeApi());
-    await expect(
-      tool.execute("call-pipeline-missing", {
-        action: "run",
-      }),
-    ).rejects.toThrow(/pipeline required/);
-  });
-
-  it("requires token and approve for resume action", async () => {
-    const tool = createLobsterTool(fakeApi());
-    await expect(
-      tool.execute("call-resume-token-missing", {
-        action: "resume",
-        approve: true,
-      }),
-    ).rejects.toThrow(/token required/);
-    await expect(
-      tool.execute("call-resume-approve-missing", {
-        action: "resume",
-        token: "resume-token",
-      }),
-    ).rejects.toThrow(/approve required/);
-  });
-
-  it("rejects unknown action", async () => {
-    const tool = createLobsterTool(fakeApi());
-    await expect(
-      tool.execute("call-action-unknown", {
-        action: "explode",
-      }),
-    ).rejects.toThrow(/Unknown action/);
-  });
-
-  it("rejects absolute cwd", async () => {
+  it("rejects absolute cwd before invoking the native runtime", async () => {
     const tool = createLobsterTool(fakeApi());
     await expect(
       tool.execute("call2c", {
@@ -240,6 +119,7 @@ describe("lobster plugin tool", () => {
         cwd: "/tmp",
       }),
     ).rejects.toThrow(/cwd must be a relative path/);
+    expect(nativeMocks.runNativePluginOperation).not.toHaveBeenCalled();
   });
 
   it("rejects cwd that escapes the gateway working directory", async () => {
@@ -251,79 +131,10 @@ describe("lobster plugin tool", () => {
         cwd: "../../etc",
       }),
     ).rejects.toThrow(/must stay within/);
+    expect(nativeMocks.runNativePluginOperation).not.toHaveBeenCalled();
   });
 
-  it("rejects invalid JSON from lobster", async () => {
-    spawnState.queue.push({ stdout: "nope" });
-
-    const tool = createLobsterTool(fakeApi());
-    await expect(
-      tool.execute("call3", {
-        action: "run",
-        pipeline: "noop",
-      }),
-    ).rejects.toThrow(/invalid JSON/);
-  });
-
-  it("runs Windows cmd shims through Node without enabling shell", async () => {
-    setProcessPlatform("win32");
-    const shimScriptPath = path.join(tempDir, "shim-dist", "lobster-cli.cjs");
-    const shimPath = path.join(tempDir, "shim-bin", "lobster.cmd");
-    await createWindowsCmdShimFixture({
-      shimPath,
-      scriptPath: shimScriptPath,
-      shimLine: `"%dp0%\\..\\shim-dist\\lobster-cli.cjs" %*`,
-    });
-    process.env.PATHEXT = ".CMD;.EXE";
-    process.env.PATH = `${path.dirname(shimPath)};${process.env.PATH ?? ""}`;
-    queueSuccessfulEnvelope();
-
-    const tool = createLobsterTool(fakeApi());
-    await tool.execute("call-win-shim", {
-      action: "run",
-      pipeline: "noop",
-    });
-
-    const [command, argv, options] = spawnState.spawn.mock.calls[0] ?? [];
-    expect(command).toBe(process.execPath);
-    expect(argv).toEqual([shimScriptPath, "run", "--mode", "tool", "noop"]);
-    expect(options).toMatchObject({ windowsHide: true });
-    expect(options).not.toHaveProperty("shell");
-  });
-
-  it("does not retry a failed Windows spawn with shell fallback", async () => {
-    setProcessPlatform("win32");
-    spawnState.spawn.mockReset();
-    spawnState.spawn.mockImplementationOnce(() => {
-      const child = new EventEmitter() as EventEmitter & {
-        stdout: PassThrough;
-        stderr: PassThrough;
-        kill: (signal?: string) => boolean;
-      };
-      child.stdout = new PassThrough();
-      child.stderr = new PassThrough();
-      child.kill = () => true;
-      const err = Object.assign(new Error("spawn failed"), { code: "ENOENT" });
-      setImmediate(() => {
-        child.stdout.end();
-        child.stderr.end();
-        child.emit("error", err);
-        child.emit("close", 1);
-      });
-      return child;
-    });
-
-    const tool = createLobsterTool(fakeApi());
-    await expect(
-      tool.execute("call-win-no-retry", {
-        action: "run",
-        pipeline: "noop",
-      }),
-    ).rejects.toThrow(/spawn failed/);
-    expect(spawnState.spawn).toHaveBeenCalledTimes(1);
-  });
-
-  it("can be gated off in sandboxed contexts", async () => {
+  it("can be gated off in sandboxed contexts", () => {
     const api = fakeApi();
     const factoryTool = (ctx: CrawClawPluginToolContext) => {
       if (ctx.sandboxed) {
@@ -341,11 +152,6 @@ describe("resolveWindowsLobsterSpawn", () => {
   let tempDir = "";
   const originalProcessState = snapshotPlatformPathEnv();
 
-  beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-lobster-win-spawn-"));
-    setProcessPlatform("win32");
-  });
-
   afterEach(async () => {
     restorePlatformPathEnv(originalProcessState);
     if (tempDir) {
@@ -354,9 +160,16 @@ describe("resolveWindowsLobsterSpawn", () => {
     }
   });
 
+  async function makeWindowsTempDir() {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-lobster-win-spawn-"));
+    setProcessPlatform("win32");
+    return tempDir;
+  }
+
   it("unwraps cmd shim with %dp0% token", async () => {
-    const scriptPath = path.join(tempDir, "shim-dist", "lobster-cli.cjs");
-    const shimPath = path.join(tempDir, "shim", "lobster.cmd");
+    const dir = await makeWindowsTempDir();
+    const scriptPath = path.join(dir, "shim-dist", "lobster-cli.cjs");
+    const shimPath = path.join(dir, "shim", "lobster.cmd");
     await expectUnwrappedShim({
       shimPath,
       scriptPath,
@@ -365,8 +178,9 @@ describe("resolveWindowsLobsterSpawn", () => {
   });
 
   it("unwraps cmd shim with %~dp0% token", async () => {
-    const scriptPath = path.join(tempDir, "shim-dist", "lobster-cli.cjs");
-    const shimPath = path.join(tempDir, "shim", "lobster.cmd");
+    const dir = await makeWindowsTempDir();
+    const scriptPath = path.join(dir, "shim-dist", "lobster-cli.cjs");
+    const shimPath = path.join(dir, "shim", "lobster.cmd");
     await expectUnwrappedShim({
       shimPath,
       scriptPath,
@@ -375,8 +189,9 @@ describe("resolveWindowsLobsterSpawn", () => {
   });
 
   it("ignores node.exe shim entries and picks lobster script", async () => {
-    const shimDir = path.join(tempDir, "shim-with-node");
-    const scriptPath = path.join(tempDir, "shim-dist-node", "lobster-cli.cjs");
+    const dir = await makeWindowsTempDir();
+    const shimDir = path.join(dir, "shim-with-node");
+    const scriptPath = path.join(dir, "shim-dist-node", "lobster-cli.cjs");
     const shimPath = path.join(shimDir, "lobster.cmd");
     await fs.mkdir(path.dirname(scriptPath), { recursive: true });
     await fs.mkdir(shimDir, { recursive: true });
@@ -395,8 +210,9 @@ describe("resolveWindowsLobsterSpawn", () => {
   });
 
   it("resolves lobster.cmd from PATH and unwraps npm layout shim", async () => {
-    const binDir = path.join(tempDir, "node_modules", ".bin");
-    const packageDir = path.join(tempDir, "node_modules", "lobster");
+    const dir = await makeWindowsTempDir();
+    const binDir = path.join(dir, "node_modules", ".bin");
+    const packageDir = path.join(dir, "node_modules", "lobster");
     const scriptPath = path.join(packageDir, "dist", "cli.js");
     const shimPath = path.join(binDir, "lobster.cmd");
     await fs.mkdir(path.dirname(scriptPath), { recursive: true });
@@ -421,7 +237,8 @@ describe("resolveWindowsLobsterSpawn", () => {
   });
 
   it("fails fast when wrapper cannot be resolved without shell execution", async () => {
-    const badShimPath = path.join(tempDir, "bad-shim", "lobster.cmd");
+    const dir = await makeWindowsTempDir();
+    const badShimPath = path.join(dir, "bad-shim", "lobster.cmd");
     await fs.mkdir(path.dirname(badShimPath), { recursive: true });
     await fs.writeFile(badShimPath, "@echo off\r\nREM no entrypoint\r\n", "utf8");
 

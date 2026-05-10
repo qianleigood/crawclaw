@@ -1,12 +1,5 @@
+import { runNativePluginOperation } from "crawclaw/plugin-sdk/native-plugin-runtime";
 import type { CrawClawPluginApi, GatewayRequestHandlerOptions } from "../runtime-api.js";
-import { resolveComfyUiConfig } from "./config.js";
-import {
-  listWorkflowArtifacts,
-  listWorkflowOutputSummaries,
-  listWorkflowRunRecords,
-  loadWorkflowDetail,
-} from "./store.js";
-import { createComfyUiWorkflowTool } from "./tool.js";
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -40,23 +33,27 @@ function resolveControlPlaneContext(api: CrawClawPluginApi, params: Record<strin
   return { agentId, workspaceDir };
 }
 
-async function executeComfyUiTool(
+async function runComfyUiNative<T>(
   api: CrawClawPluginApi,
+  operation: string,
   params: Record<string, unknown>,
-): Promise<unknown> {
-  const { agentId, workspaceDir } = resolveControlPlaneContext(api, params);
-  const tool = createComfyUiWorkflowTool(
-    {
+): Promise<T> {
+  const { workspaceDir } = resolveControlPlaneContext(api, params);
+  return await runNativePluginOperation<T>({
+    plugin: "comfyui",
+    operation,
+    input: {
+      params,
+      pluginConfig: api.pluginConfig ?? {},
       workspaceDir,
-      agentId,
-      config: api.config,
     },
-    {
-      pluginConfig: api.pluginConfig,
-    },
-  );
-  const result = await tool.execute("comfyui-gateway", params);
-  return (result as { details?: unknown }).details;
+    timeoutMs:
+      typeof params.runTimeoutMs === "number"
+        ? params.runTimeoutMs
+        : typeof params.requestTimeoutMs === "number"
+          ? params.requestTimeoutMs
+          : undefined,
+  });
 }
 
 function registerReadMethod(
@@ -68,16 +65,9 @@ function registerReadMethod(
 }
 
 export function registerComfyUiGatewayMethods(api: CrawClawPluginApi): void {
-  const resolveConfig = (params: Record<string, unknown>) =>
-    resolveComfyUiConfig({
-      workspaceDir: resolveControlPlaneContext(api, params).workspaceDir,
-      pluginConfig: api.pluginConfig,
-    });
-
-  registerReadMethod(api, "comfyui.status", ({ params, respond }) => {
+  registerReadMethod(api, "comfyui.status", async ({ params, respond }) => {
     try {
-      const { baseUrl, workflowsDir, outputDir } = resolveConfig(params);
-      respond(true, { baseUrl, workflowsDir, outputDir });
+      respond(true, await runComfyUiNative(api, "status", params));
     } catch (error) {
       respond(false, { error: errorMessage(error) });
     }
@@ -85,13 +75,10 @@ export function registerComfyUiGatewayMethods(api: CrawClawPluginApi): void {
 
   registerReadMethod(api, "comfyui.workflows.list", async ({ params, respond }) => {
     try {
-      const config = resolveConfig(params);
-      respond(true, {
-        workflows: await listWorkflowArtifacts({
-          workflowsDir: config.workflowsDir,
-          limit: readLimit(params, 100),
-        }),
-      });
+      respond(
+        true,
+        await runComfyUiNative(api, "workflows-list", { ...params, limit: readLimit(params, 100) }),
+      );
     } catch (error) {
       respond(false, { error: errorMessage(error) });
     }
@@ -104,12 +91,7 @@ export function registerComfyUiGatewayMethods(api: CrawClawPluginApi): void {
         respond(false, { error: "workflowId required" });
         return;
       }
-      respond(true, {
-        workflow: await loadWorkflowDetail({
-          workflowsDir: resolveConfig(params).workflowsDir,
-          workflowId,
-        }),
-      });
+      respond(true, await runComfyUiNative(api, "workflow-get", { ...params, workflowId }));
     } catch (error) {
       respond(false, { error: errorMessage(error) });
     }
@@ -117,14 +99,10 @@ export function registerComfyUiGatewayMethods(api: CrawClawPluginApi): void {
 
   registerReadMethod(api, "comfyui.runs.list", async ({ params, respond }) => {
     try {
-      const config = resolveConfig(params);
-      respond(true, {
-        runs: await listWorkflowRunRecords({
-          workflowsDir: config.workflowsDir,
-          workflowId: readStringParam(params, "workflowId"),
-          limit: readLimit(params, 50),
-        }),
-      });
+      respond(
+        true,
+        await runComfyUiNative(api, "runs-list", { ...params, limit: readLimit(params, 50) }),
+      );
     } catch (error) {
       respond(false, { error: errorMessage(error) });
     }
@@ -132,14 +110,10 @@ export function registerComfyUiGatewayMethods(api: CrawClawPluginApi): void {
 
   registerReadMethod(api, "comfyui.outputs.list", async ({ params, respond }) => {
     try {
-      const config = resolveConfig(params);
-      respond(true, {
-        outputs: await listWorkflowOutputSummaries({
-          workflowsDir: config.workflowsDir,
-          workflowId: readStringParam(params, "workflowId"),
-          limit: readLimit(params, 50),
-        }),
-      });
+      respond(
+        true,
+        await runComfyUiNative(api, "outputs-list", { ...params, limit: readLimit(params, 50) }),
+      );
     } catch (error) {
       respond(false, { error: errorMessage(error) });
     }
@@ -152,7 +126,10 @@ export function registerComfyUiGatewayMethods(api: CrawClawPluginApi): void {
         respond(false, { error: "workflowId required" });
         return;
       }
-      respond(true, await executeComfyUiTool(api, { ...params, action: "validate", workflowId }));
+      respond(
+        true,
+        await runComfyUiNative(api, "tool", { ...params, action: "validate", workflowId }),
+      );
     } catch (error) {
       respond(false, { error: errorMessage(error) });
     }
@@ -173,7 +150,7 @@ export function registerComfyUiGatewayMethods(api: CrawClawPluginApi): void {
         }
         respond(
           true,
-          await executeComfyUiTool(api, {
+          await runComfyUiNative(api, "tool", {
             ...params,
             action: "run",
             workflowId,

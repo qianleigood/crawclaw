@@ -308,11 +308,7 @@ importers:
 
   extensions/cloudflare-ai-gateway: {}
 
-  extensions/comfyui:
-    dependencies:
-      '@sinclair/typebox':
-        specifier: 0.34.49
-        version: 0.34.49
+  extensions/comfyui: {}
 
   extensions/copilot-proxy: {}
 
@@ -502,20 +498,9 @@ importers:
 
   extensions/litellm: {}
 
-  extensions/llm-task:
-    dependencies:
-      '@sinclair/typebox':
-        specifier: 0.34.49
-        version: 0.34.49
-      ajv:
-        specifier: ^8.18.0
-        version: 8.18.0
+  extensions/llm-task: {}
 
-  extensions/lobster:
-    dependencies:
-      '@sinclair/typebox':
-        specifier: 0.34.49
-        version: 0.34.49
+  extensions/lobster: {}
 
   extensions/matrix:
     dependencies:

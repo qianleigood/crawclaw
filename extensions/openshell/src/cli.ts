@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
+import { runNativePluginOperation } from "crawclaw/plugin-sdk/native-plugin-runtime";
 import {
   buildExecRemoteCommand,
   createSshSandboxSessionFromConfigText,
-  runPluginCommandWithTimeout,
   shellEscape,
   type SshSandboxSession,
 } from "crawclaw/plugin-sdk/sandbox";
@@ -79,11 +79,19 @@ export async function runOpenShellCli(params: {
   cwd?: string;
   timeoutMs?: number;
 }): Promise<{ code: number; stdout: string; stderr: string }> {
-  return await runPluginCommandWithTimeout({
-    argv: [...buildOpenShellBaseArgv(params.context.config), ...params.args],
-    cwd: params.cwd,
+  return await runNativePluginOperation<{ code: number; stdout: string; stderr: string }>({
+    plugin: "openshell",
+    operation: "run-cli",
+    input: {
+      config: {
+        ...params.context.config,
+        command: resolveOpenShellCommand(params.context.config.command),
+      },
+      args: params.args,
+      cwd: params.cwd,
+      timeoutMs: params.timeoutMs ?? params.context.timeoutMs ?? params.context.config.timeoutMs,
+    },
     timeoutMs: params.timeoutMs ?? params.context.timeoutMs ?? params.context.config.timeoutMs,
-    env: process.env,
   });
 }
 
