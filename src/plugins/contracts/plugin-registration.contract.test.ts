@@ -15,11 +15,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
     mediaUnderstandingProviderIds: ["deepgram"],
   },
   {
-    pluginId: "elevenlabs",
-    speechProviderIds: ["elevenlabs"],
-    requireSpeechVoices: true,
-  },
-  {
     pluginId: "fal",
     providerIds: ["fal"],
   },
@@ -33,11 +28,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   {
     pluginId: "groq",
     mediaUnderstandingProviderIds: ["groq"],
-  },
-  {
-    pluginId: "microsoft",
-    speechProviderIds: ["microsoft"],
-    requireSpeechVoices: true,
   },
   {
     pluginId: "minimax",
@@ -66,15 +56,18 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   {
     pluginId: "openai",
     providerIds: ["openai", "openai-codex"],
-    speechProviderIds: ["openai"],
     mediaUnderstandingProviderIds: ["openai", "openai-codex"],
     cliBackendIds: ["codex-cli"],
-    requireSpeechVoices: true,
     requireDescribeImages: true,
   },
   {
     pluginId: "open-websearch",
     webSearchProviderIds: ["open-websearch"],
+  },
+  {
+    pluginId: "qwen3-tts",
+    speechProviderIds: ["qwen3-tts"],
+    requireSpeechVoices: true,
   },
   {
     pluginId: "scrapling-fetch",

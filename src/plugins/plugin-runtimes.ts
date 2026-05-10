@@ -240,8 +240,16 @@ export function resolveQwen3TtsRuntimeDir(env: NodeJS.ProcessEnv = process.env):
   return resolvePluginRuntimeDir("qwen3-tts", env);
 }
 
+export function resolveOpenAiWhisperRuntimeDir(env: NodeJS.ProcessEnv = process.env): string {
+  return resolvePluginRuntimeDir("skill-openai-whisper", env);
+}
+
 export function resolveQwen3TtsRuntimeVenvDir(env: NodeJS.ProcessEnv = process.env): string {
   return path.join(resolveQwen3TtsRuntimeDir(env), "venv");
+}
+
+export function resolveOpenAiWhisperRuntimeVenvDir(env: NodeJS.ProcessEnv = process.env): string {
+  return path.join(resolveOpenAiWhisperRuntimeDir(env), "venv");
 }
 
 export function resolveNotebookLmRuntimeVenvDir(env: NodeJS.ProcessEnv = process.env): string {
@@ -258,6 +266,12 @@ export function resolveQwen3TtsRuntimePython(env: NodeJS.ProcessEnv = process.en
   return process.platform === "win32"
     ? path.join(resolveQwen3TtsRuntimeVenvDir(env), "Scripts", "python.exe")
     : path.join(resolveQwen3TtsRuntimeVenvDir(env), "bin", "python");
+}
+
+export function resolveOpenAiWhisperRuntimePython(env: NodeJS.ProcessEnv = process.env): string {
+  return process.platform === "win32"
+    ? path.join(resolveOpenAiWhisperRuntimeVenvDir(env), "Scripts", "python.exe")
+    : path.join(resolveOpenAiWhisperRuntimeVenvDir(env), "bin", "python");
 }
 
 export function resolveNotebookLmRuntimePython(env: NodeJS.ProcessEnv = process.env): string {

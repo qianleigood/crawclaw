@@ -10,17 +10,15 @@ const TEST_CFG = {} as CrawClawConfig;
 const ensureManagedQwen3TtsDaemon = vi.hoisted(() =>
   vi.fn(async (config: { baseUrl: string }) => config.baseUrl),
 );
+const runNativePluginOperation = vi.hoisted(() => vi.fn());
 
 vi.mock("./daemon.js", () => ({
   ensureManagedQwen3TtsDaemon,
 }));
 
-function jsonResponse(body: unknown, status = 200): Response {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { "Content-Type": "application/json" },
-  });
-}
+vi.mock("crawclaw/plugin-sdk/native-plugin-runtime", () => ({
+  runNativePluginOperation,
+}));
 
 describe("resolveQwen3TtsProviderConfig", () => {
   it("defaults to the Apple Silicon MLX runtime on darwin arm64", () => {
@@ -64,7 +62,7 @@ describe("resolveQwen3TtsProviderConfig", () => {
 
     expect(config.autoStart).toBe(true);
     expect(config.managedRuntime).toBe("mlx-audio");
-    expect(config.launchCommand).toContain("/runtimes/qwen3-tts/venv/bin/python");
+    expect(config.launchCommand).toContain("/qwen3-tts/venv/bin/python");
     expect(config.launchArgs?.[0]).toMatch(/qwen3_tts_sidecar\.py$/);
   });
 
@@ -85,7 +83,7 @@ describe("resolveQwen3TtsProviderConfig", () => {
     expect(config.runtime).toBe("qwen-tts");
     expect(config.baseUrl).toBe("http://127.0.0.1:8013");
     expect(config.managedRuntime).toBe("qwen-tts");
-    expect(config.launchCommand).toContain("/runtimes/qwen3-tts/venv/bin/python");
+    expect(config.launchCommand).toContain("/qwen3-tts/venv/bin/python");
     expect(config.launchArgs?.[0]).toMatch(/qwen3_tts_python_sidecar\.py$/);
     expect(config.supported).toBe(true);
   });
@@ -107,7 +105,7 @@ describe("resolveQwen3TtsProviderConfig", () => {
     expect(config.runtime).toBe("qwen-tts");
     expect(config.baseUrl).toBe("http://127.0.0.1:8013");
     expect(config.managedRuntime).toBe("qwen-tts");
-    expect(config.launchCommand).toContain("/runtimes/qwen3-tts/venv/bin/python");
+    expect(config.launchCommand).toContain("/qwen3-tts/venv/bin/python");
     expect(config.launchArgs?.[0]).toMatch(/qwen3_tts_python_sidecar\.py$/);
     expect(config.supported).toBe(true);
   });
@@ -140,12 +138,10 @@ describe("resolveQwen3TtsProviderConfig", () => {
 });
 
 describe("buildQwen3TtsSpeechProvider", () => {
-  const originalFetch = globalThis.fetch;
-
   afterEach(() => {
-    globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
     ensureManagedQwen3TtsDaemon.mockClear();
+    runNativePluginOperation.mockReset();
   });
 
   it("stays disabled until explicitly enabled in provider config", () => {
@@ -184,15 +180,12 @@ describe("buildQwen3TtsSpeechProvider", () => {
       },
       { platform: "darwin", arch: "arm64" },
     );
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({
-        audioBase64: Buffer.from("preset-audio").toString("base64"),
-        outputFormat: "wav",
-        fileExtension: ".wav",
-        voiceCompatible: false,
-      }),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    runNativePluginOperation.mockResolvedValue({
+      audioBase64: Buffer.from("preset-audio").toString("base64"),
+      outputFormat: "wav",
+      fileExtension: ".wav",
+      voiceCompatible: false,
+    });
 
     const result = await provider.synthesize({
       text: "今天先验证普通回复。",
@@ -210,22 +203,19 @@ describe("buildQwen3TtsSpeechProvider", () => {
         baseUrl: "http://127.0.0.1:8011",
       }),
     );
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8011/synthesize",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          task: "preset",
-          text: "今天先验证普通回复。",
-          model: "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
-          voice: "vivian",
-          language: "Auto",
-          instructions: "natural, warm, expressive",
-          responseFormat: "wav",
+    expect(runNativePluginOperation).toHaveBeenCalledWith({
+      plugin: "qwen3-tts",
+      operation: "synthesize",
+      input: expect.objectContaining({
+        text: "今天先验证普通回复。",
+        target: "audio-file",
+        providerConfig: expect.objectContaining({
           runtime: "mlx-audio",
+          baseUrl: "http://127.0.0.1:8011",
         }),
       }),
-    );
+      timeoutMs: 30_000,
+    });
   });
 
   it("routes clone profiles with reference audio metadata", async () => {
@@ -251,15 +241,12 @@ describe("buildQwen3TtsSpeechProvider", () => {
       },
       { platform: "linux", arch: "x64" },
     );
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({
-        audioBase64: Buffer.from("clone-audio").toString("base64"),
-        outputFormat: "wav",
-        fileExtension: ".wav",
-        voiceCompatible: false,
-      }),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    runNativePluginOperation.mockResolvedValue({
+      audioBase64: Buffer.from("clone-audio").toString("base64"),
+      outputFormat: "wav",
+      fileExtension: ".wav",
+      voiceCompatible: false,
+    });
 
     await provider.synthesize({
       text: "这次测试克隆音色。",
@@ -269,26 +256,19 @@ describe("buildQwen3TtsSpeechProvider", () => {
       timeoutMs: 30_000,
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8013/synthesize",
-      expect.objectContaining({
-        method: "POST",
+    expect(runNativePluginOperation).toHaveBeenCalledWith({
+      plugin: "qwen3-tts",
+      operation: "synthesize",
+      input: expect.objectContaining({
+        text: "这次测试克隆音色。",
+        target: "audio-file",
+        providerConfig: expect.objectContaining({
+          runtime: "qwen-tts",
+          defaultProfile: "owner",
+        }),
       }),
-    );
-    const calls = fetchMock.mock.calls as unknown as Array<[string, RequestInit]>;
-    const firstCall = calls[0];
-    const request = firstCall?.[1];
-    const body = JSON.parse(String(request?.body)) as Record<string, unknown>;
-    expect(body).toMatchObject({
-      task: "clone",
-      text: "这次测试克隆音色。",
-      model: "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
-      refText: "reference transcript",
-      language: "zh",
-      responseFormat: "wav",
-      runtime: "qwen-tts",
+      timeoutMs: 30_000,
     });
-    expect(typeof body.refAudio).toBe("string");
   });
 
   it("uses an agent-bound profile before the default profile", async () => {
@@ -322,15 +302,12 @@ describe("buildQwen3TtsSpeechProvider", () => {
       },
       { platform: "linux", arch: "x64" },
     );
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({
-        audioBase64: Buffer.from("agent-profile-audio").toString("base64"),
-        outputFormat: "wav",
-        fileExtension: ".wav",
-        voiceCompatible: false,
-      }),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    runNativePluginOperation.mockResolvedValue({
+      audioBase64: Buffer.from("agent-profile-audio").toString("base64"),
+      outputFormat: "wav",
+      fileExtension: ".wav",
+      voiceCompatible: false,
+    });
 
     const request: Parameters<NonNullable<typeof provider.synthesize>>[0] & { agentId: string } = {
       text: "这个销售智能体应该使用绑定音色。",
@@ -342,12 +319,16 @@ describe("buildQwen3TtsSpeechProvider", () => {
     };
     await provider.synthesize(request);
 
-    const calls = fetchMock.mock.calls as unknown as Array<[string, RequestInit]>;
-    const body = JSON.parse(String(calls[0]?.[1]?.body)) as Record<string, unknown>;
-    expect(body).toMatchObject({
-      task: "clone",
-      refText: "owner reference transcript",
-      language: "zh",
+    expect(runNativePluginOperation).toHaveBeenCalledWith({
+      plugin: "qwen3-tts",
+      operation: "synthesize",
+      input: expect.objectContaining({
+        agentId: "sales",
+        providerConfig: expect.objectContaining({
+          agentProfiles: { sales: "owner" },
+        }),
+      }),
+      timeoutMs: 30_000,
     });
   });
 
@@ -372,15 +353,12 @@ describe("buildQwen3TtsSpeechProvider", () => {
       },
       { platform: "win32", arch: "x64" },
     );
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({
-        audioBase64: Buffer.from("design-audio").toString("base64"),
-        outputFormat: "wav",
-        fileExtension: ".wav",
-        voiceCompatible: false,
-      }),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    runNativePluginOperation.mockResolvedValue({
+      audioBase64: Buffer.from("design-audio").toString("base64"),
+      outputFormat: "wav",
+      fileExtension: ".wav",
+      voiceCompatible: false,
+    });
 
     await provider.synthesize({
       text: "This is a design profile test.",
@@ -390,21 +368,19 @@ describe("buildQwen3TtsSpeechProvider", () => {
       timeoutMs: 30_000,
     });
 
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8013/synthesize",
-      expect.objectContaining({
-        method: "POST",
-        body: JSON.stringify({
-          task: "design",
-          text: "This is a design profile test.",
-          model: "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
-          prompt: "A calm mature narrator with warm tone and clear articulation",
-          language: "en",
-          responseFormat: "wav",
+    expect(runNativePluginOperation).toHaveBeenCalledWith({
+      plugin: "qwen3-tts",
+      operation: "synthesize",
+      input: expect.objectContaining({
+        text: "This is a design profile test.",
+        target: "audio-file",
+        providerConfig: expect.objectContaining({
           runtime: "qwen-tts",
+          defaultProfile: "narrator",
         }),
       }),
-    );
+      timeoutMs: 30_000,
+    });
   });
 
   it("synthesizes telephony audio through the dedicated local endpoint", async () => {
@@ -419,14 +395,11 @@ describe("buildQwen3TtsSpeechProvider", () => {
       },
       { platform: "darwin", arch: "arm64" },
     );
-    const fetchMock = vi.fn(async () =>
-      jsonResponse({
-        audioBase64: Buffer.from("telephony-audio").toString("base64"),
-        outputFormat: "pcm",
-        sampleRate: 24_000,
-      }),
-    );
-    globalThis.fetch = fetchMock as unknown as typeof fetch;
+    runNativePluginOperation.mockResolvedValue({
+      audioBase64: Buffer.from("telephony-audio").toString("base64"),
+      outputFormat: "pcm",
+      sampleRate: 24_000,
+    });
 
     const result = await provider.synthesizeTelephony?.({
       text: "电话语音测试",
@@ -439,12 +412,15 @@ describe("buildQwen3TtsSpeechProvider", () => {
       outputFormat: "pcm",
       sampleRate: 24_000,
     });
-    expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8011/synthesize-telephony",
-      expect.objectContaining({
-        method: "POST",
+    expect(runNativePluginOperation).toHaveBeenCalledWith({
+      plugin: "qwen3-tts",
+      operation: "synthesize",
+      input: expect.objectContaining({
+        text: "电话语音测试",
+        target: "telephony",
       }),
-    );
+      timeoutMs: 30_000,
+    });
   });
 
   it("returns built-in Qwen voices for voice listing", async () => {

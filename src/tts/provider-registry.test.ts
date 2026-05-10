@@ -91,9 +91,9 @@ describe("speech provider registry", () => {
             ...createEmptyPluginRegistry(),
             speechProviders: [
               {
-                pluginId: "test-microsoft",
+                pluginId: "test-qwen3-tts",
                 source: "test",
-                provider: createSpeechProvider("microsoft", ["edge"]),
+                provider: createSpeechProvider("qwen3-tts"),
               },
             ],
           },
@@ -101,15 +101,12 @@ describe("speech provider registry", () => {
 
     const cfg = {} as CrawClawConfig;
 
-    expect(listSpeechProviders(cfg).map((provider) => provider.id)).toEqual(["microsoft"]);
-    expect(getSpeechProvider("edge", cfg)?.id).toBe("microsoft");
+    expect(listSpeechProviders(cfg).map((provider) => provider.id)).toEqual(["qwen3-tts"]);
+    expect(getSpeechProvider("qwen3-tts", cfg)?.id).toBe("qwen3-tts");
     expect(resolveRuntimePluginRegistryMock).toHaveBeenCalledWith({
       config: {
         plugins: {
           entries: {
-            elevenlabs: { enabled: true },
-            microsoft: { enabled: true },
-            openai: { enabled: true },
             "qwen3-tts": { enabled: true },
           },
         },

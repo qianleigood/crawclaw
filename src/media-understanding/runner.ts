@@ -2,6 +2,7 @@ import { constants as fsConstants } from "node:fs";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { hasAvailableAuthForProvider } from "../agents/model-auth.js";
 import {
   findModelInCatalog,
@@ -24,6 +25,7 @@ import {
   resolveIMessageAttachmentRoots,
 } from "../media/inbound-path-policy.js";
 import { getDefaultMediaLocalRoots } from "../media/local-roots.js";
+import { resolveOpenAiWhisperRuntimePython } from "../plugins/plugin-runtimes.js";
 import { runExec } from "../process/exec.js";
 import {
   MediaAttachmentCache,
@@ -267,6 +269,24 @@ async function resolveLocalWhisperEntry(): Promise<MediaUnderstandingModelConfig
   };
 }
 
+function resolveBundledOpenAiWhisperScriptPath(): string {
+  return fileURLToPath(new URL("../../skills/openai-whisper/transcribe_mlx.py", import.meta.url));
+}
+
+async function resolveManagedOpenAiWhisperEntry(): Promise<MediaUnderstandingModelConfig | null> {
+  const python = resolveOpenAiWhisperRuntimePython();
+  const script = resolveBundledOpenAiWhisperScriptPath();
+  if (!(await isExecutable(python)) || !(await fileExists(script))) {
+    return null;
+  }
+  return {
+    type: "cli",
+    command: python,
+    model: "mlx-community/whisper-turbo",
+    args: [script, "{{MediaPath}}", "mlx-community/whisper-turbo", "--output-format", "txt"],
+  };
+}
+
 async function resolveSherpaOnnxEntry(): Promise<MediaUnderstandingModelConfig | null> {
   if (!(await hasBinary("sherpa-onnx-offline"))) {
     return null;
@@ -305,6 +325,10 @@ async function resolveSherpaOnnxEntry(): Promise<MediaUnderstandingModelConfig |
 }
 
 async function resolveLocalAudioEntry(): Promise<MediaUnderstandingModelConfig | null> {
+  const managedOpenAiWhisper = await resolveManagedOpenAiWhisperEntry();
+  if (managedOpenAiWhisper) {
+    return managedOpenAiWhisper;
+  }
   const sherpa = await resolveSherpaOnnxEntry();
   if (sherpa) {
     return sherpa;
@@ -462,15 +486,18 @@ async function resolveAutoEntries(params: {
   capability: MediaUnderstandingCapability;
   activeModel?: ActiveMediaModel;
 }): Promise<MediaUnderstandingModelConfig[]> {
-  const activeEntry = await resolveActiveModelEntry(params);
-  if (activeEntry) {
-    return [activeEntry];
+  if (params.capability !== "audio") {
+    const activeEntry = await resolveActiveModelEntry(params);
+    if (activeEntry) {
+      return [activeEntry];
+    }
   }
   if (params.capability === "audio") {
     const localAudio = await resolveLocalAudioEntry();
     if (localAudio) {
       return [localAudio];
     }
+    return [];
   }
   if (params.capability === "image") {
     const imageModelEntries = resolveImageModelFromAgentDefaults(params.cfg);

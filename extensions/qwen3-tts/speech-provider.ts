@@ -1,13 +1,14 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { runNativePluginOperation } from "crawclaw/plugin-sdk/native-plugin-runtime";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechProviderConfig,
   SpeechProviderOverrides,
   SpeechProviderPlugin,
 } from "crawclaw/plugin-sdk/speech";
-import { asObject, readResponseTextLimited, trimToUndefined } from "crawclaw/plugin-sdk/speech";
+import { asObject, trimToUndefined } from "crawclaw/plugin-sdk/speech";
 import { resolveManagedQwen3TtsRuntimePython } from "crawclaw/plugin-sdk/state-paths";
 import { resolveUserPath } from "crawclaw/plugin-sdk/text-runtime";
 import { ensureManagedQwen3TtsDaemon } from "./daemon.js";
@@ -504,110 +505,6 @@ function readOverrides(overrides: SpeechProviderOverrides | undefined): Qwen3Tts
   };
 }
 
-function resolveProfile(
-  config: ResolvedQwen3TtsProviderConfig,
-  overrides: Qwen3TtsProviderOverrides,
-  agentId?: string,
-): ResolvedQwen3TtsProfile {
-  const profileId =
-    overrides.profile ??
-    (agentId ? config.agentProfiles[agentId] : undefined) ??
-    config.defaultProfile;
-  const profile = config.profiles[profileId];
-  if (!profile) {
-    throw new Error(`Qwen3-TTS profile "${profileId}" is not defined`);
-  }
-  return profile;
-}
-
-function resolvePresetModel(profile: PresetProfile, overrides: Qwen3TtsProviderOverrides): string {
-  return overrides.model ?? PRESET_MODEL_BY_QUALITY[profile.quality];
-}
-
-function resolveCloneModel(profile: CloneProfile, overrides: Qwen3TtsProviderOverrides): string {
-  return overrides.model ?? CLONE_MODEL_BY_QUALITY[profile.quality];
-}
-
-function buildSynthesisPayload(params: {
-  text: string;
-  config: ResolvedQwen3TtsProviderConfig;
-  overrides: Qwen3TtsProviderOverrides;
-  agentId?: string;
-  responseFormat: string;
-}): Record<string, unknown> {
-  const profile = resolveProfile(params.config, params.overrides, params.agentId);
-  if (profile.source === "preset") {
-    return {
-      task: "preset",
-      text: params.text,
-      model: resolvePresetModel(profile, params.overrides),
-      voice: params.overrides.voice ?? profile.voice,
-      language: params.overrides.language ?? profile.language,
-      instructions: params.overrides.instructions ?? profile.instructions,
-      responseFormat: params.responseFormat,
-      runtime: params.config.runtime,
-    };
-  }
-  if (profile.source === "clone") {
-    if (!profile.refText) {
-      throw new Error("Qwen3-TTS clone profile requires refText");
-    }
-    return {
-      task: "clone",
-      text: params.text,
-      model: resolveCloneModel(profile, params.overrides),
-      refAudio: profile.refAudio,
-      refText: profile.refText,
-      language: params.overrides.language ?? profile.language,
-      instructions: params.overrides.instructions ?? profile.instructions,
-      responseFormat: params.responseFormat,
-      runtime: params.config.runtime,
-    };
-  }
-  return {
-    task: "design",
-    text: params.text,
-    model: params.overrides.model ?? VOICE_DESIGN_MODEL,
-    prompt: profile.prompt,
-    language: params.overrides.language ?? profile.language,
-    responseFormat: params.responseFormat,
-    runtime: params.config.runtime,
-  };
-}
-
-async function postSidecarJson(
-  url: string,
-  body: Record<string, unknown>,
-  timeoutMs: number,
-): Promise<SidecarSynthesisResponse> {
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-    },
-    body: JSON.stringify(body),
-    signal: AbortSignal.timeout(timeoutMs),
-  });
-  if (!response.ok) {
-    const detail = await readResponseTextLimited(response, 500);
-    throw new Error(`Qwen3-TTS sidecar error (${response.status}): ${detail || "unknown error"}`);
-  }
-  const payload = asObject(await response.json());
-  const audioBase64 = trimToUndefined(payload?.audioBase64);
-  const outputFormat = trimToUndefined(payload?.outputFormat);
-  if (!audioBase64 || !outputFormat) {
-    throw new Error("Qwen3-TTS sidecar returned an incomplete response");
-  }
-  return {
-    audioBase64,
-    outputFormat,
-    fileExtension: trimToUndefined(payload?.fileExtension),
-    voiceCompatible: payload?.voiceCompatible === true,
-    sampleRate: typeof payload?.sampleRate === "number" ? payload.sampleRate : undefined,
-  };
-}
-
 function parseDirectiveToken(ctx: SpeechDirectiveTokenParseContext) {
   switch (ctx.key) {
     case "voice":
@@ -662,17 +559,22 @@ export function buildQwen3TtsSpeechProvider(): SpeechProviderPlugin {
       const overrides = readOverrides(providerOverrides);
       const responseFormat = target === "voice-note" ? "opus" : "wav";
       const baseUrl = await ensureManagedQwen3TtsDaemon(config);
-      const response = await postSidecarJson(
-        `${baseUrl}/synthesize`,
-        buildSynthesisPayload({
+      const response = await runNativePluginOperation<SidecarSynthesisResponse>({
+        plugin: QWEN3_TTS_PROVIDER_ID,
+        operation: "synthesize",
+        input: {
           text,
-          config,
-          overrides,
-          agentId,
+          target,
           responseFormat,
-        }),
+          agentId,
+          providerConfig: {
+            ...config,
+            baseUrl,
+          },
+          providerOverrides: overrides,
+        },
         timeoutMs,
-      );
+      });
       return {
         audioBuffer: Buffer.from(response.audioBase64, "base64"),
         outputFormat: response.outputFormat,
@@ -683,16 +585,21 @@ export function buildQwen3TtsSpeechProvider(): SpeechProviderPlugin {
     synthesizeTelephony: async ({ text, providerConfig, timeoutMs }) => {
       const config = readProviderConfig(providerConfig);
       const baseUrl = await ensureManagedQwen3TtsDaemon(config);
-      const response = await postSidecarJson(
-        `${baseUrl}/synthesize-telephony`,
-        buildSynthesisPayload({
+      const response = await runNativePluginOperation<SidecarSynthesisResponse>({
+        plugin: QWEN3_TTS_PROVIDER_ID,
+        operation: "synthesize",
+        input: {
           text,
-          config,
-          overrides: {},
+          target: "telephony",
           responseFormat: "pcm",
-        }),
+          providerConfig: {
+            ...config,
+            baseUrl,
+          },
+          providerOverrides: {},
+        },
         timeoutMs,
-      );
+      });
       return {
         audioBuffer: Buffer.from(response.audioBase64, "base64"),
         outputFormat: response.outputFormat,

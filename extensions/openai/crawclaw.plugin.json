@@ -33,7 +33,6 @@
     }
   ],
   "contracts": {
-    "speechProviders": ["openai"],
     "mediaUnderstandingProviders": ["openai", "openai-codex"]
   },
   "configSchema": {
