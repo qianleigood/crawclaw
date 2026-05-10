@@ -8,8 +8,6 @@
     "node-edge-tts": "^1.2.10"
   },
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

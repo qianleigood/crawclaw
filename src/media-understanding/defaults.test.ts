@@ -14,8 +14,8 @@ describe("DEFAULT_AUDIO_MODELS", () => {
 });
 
 describe("AUTO_AUDIO_KEY_PROVIDERS", () => {
-  it("includes mistral auto key resolution", () => {
-    expect(AUTO_AUDIO_KEY_PROVIDERS).toContain("mistral");
+  it("keeps remote audio transcription out of automatic key resolution", () => {
+    expect(AUTO_AUDIO_KEY_PROVIDERS).toEqual([]);
   });
 });
 

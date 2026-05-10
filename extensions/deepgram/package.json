@@ -5,8 +5,6 @@
   "description": "CrawClaw Deepgram media-understanding provider",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

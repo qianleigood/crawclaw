@@ -652,6 +652,9 @@ function discoverInDirectory(params: {
       }
       continue;
     }
+    if (extensionResolution.status === "empty") {
+      continue;
+    }
 
     const bundleDiscovery = discoverBundleInRoot({
       rootDir: fullPath,
@@ -782,6 +785,9 @@ function discoverFromPath(params: {
           packageDir: resolved,
         });
       }
+      return;
+    }
+    if (extensionResolution.status === "empty") {
       return;
     }
 

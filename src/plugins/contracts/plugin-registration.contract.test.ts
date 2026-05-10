@@ -11,10 +11,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
     requireDescribeImages: true,
   },
   {
-    pluginId: "deepgram",
-    mediaUnderstandingProviderIds: ["deepgram"],
-  },
-  {
     pluginId: "fal",
     providerIds: ["fal"],
   },

@@ -454,6 +454,22 @@ describe("discoverCrawClawPlugins", () => {
     expectCandidateIds(candidates, { includes, excludes });
   });
 
+  it("skips package default index discovery when crawclaw extensions is explicitly empty", async () => {
+    const stateDir = makeTempDir();
+    const packageDir = path.join(stateDir, "extensions", "retired-speech");
+    mkdirSafe(packageDir);
+    writePluginPackageManifest({
+      packageDir,
+      packageName: "@crawclaw/retired-speech",
+      extensions: [],
+    });
+    writePluginEntry(path.join(packageDir, "index.ts"));
+
+    const { candidates } = await discoverWithStateDir(stateDir, {});
+
+    expect(candidates.map((candidate) => candidate.idHint)).not.toContain("retired-speech");
+  });
+
   it.each([
     {
       name: "auto-detects Codex bundles as bundle candidates",
