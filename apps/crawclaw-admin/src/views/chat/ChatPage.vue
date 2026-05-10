@@ -31,6 +31,7 @@ import { useConfigStore } from '@/stores/config'
 import { useSessionStore } from '@/stores/session'
 import { useSkillStore } from '@/stores/skill'
 import { useWebSocketStore } from '@/stores/websocket'
+import { useDesktopStore } from '@/stores/desktop'
 import { formatDate, formatRelativeTime, parseSessionKey, truncate } from '@/utils/format'
 import { renderSimpleMarkdown } from '@/utils/markdown'
 import { createDesktopScreenshotDraft, getCrawClawDesktopHost, type DesktopScreenshotResult } from '@/utils/desktop-host'
@@ -46,6 +47,7 @@ const configStore = useConfigStore()
 const sessionStore = useSessionStore()
 const skillStore = useSkillStore()
 const wsStore = useWebSocketStore()
+const desktopStore = useDesktopStore()
 const { t, locale } = useI18n()
 
 const sessionKeyInput = ref('')
@@ -65,6 +67,8 @@ const showAgentDetails = ref(false)
 const aborting = ref(false)
 const nowMs = ref(Date.now())
 let nowTimer: ReturnType<typeof setInterval> | null = null
+const isDesktopSimpleMode = computed(() => desktopStore.isDesktopMode && !desktopStore.advancedMode)
+const showAdvancedChatControls = computed(() => !isDesktopSimpleMode.value)
 
 // 侧边栏折叠状态
 const sideCollapsed = ref(false)
@@ -1023,10 +1027,21 @@ const stats = computed(() => {
 })
 
 const renderedMessages = computed<RenderMessage[]>(() => {
+  const baseList = isDesktopSimpleMode.value
+    ? visibleMessageEntries.value.filter(hasSimpleVisibleContent)
+    : visibleMessageEntries.value
   const role = roleFilter.value
-  if (role === 'all') return visibleMessageEntries.value
-  return visibleMessageEntries.value.filter((entry) => entry.item.role === role)
+  if (role === 'all') return baseList
+  return baseList.filter((entry) => entry.item.role === role)
 })
+
+function hasSimpleVisibleContent(entry: RenderMessage): boolean {
+  if (entry.item.role === 'tool') return false
+  if (entry.structured) {
+    return entry.structured.plainTexts.some((text) => text.trim().length > 0) || entry.structured.images.length > 0
+  }
+  return entry.item.content.trim().length > 0
+}
 
 const filteredQuickReplies = computed(() => {
   const query = quickReplySearch.value.trim().toLowerCase()
@@ -2685,10 +2700,17 @@ async function handleSend() {
 </script>
 
 <template>
-  <div class="chat-page">
-    <NCard :title="t('pages.chat.title')" class="app-card chat-root-card">
+  <div
+    class="chat-page"
+    :class="{ 'chat-page--simple': isDesktopSimpleMode }"
+  >
+    <NCard
+      :title="showAdvancedChatControls ? t('pages.chat.title') : undefined"
+      class="app-card chat-root-card"
+      :class="{ 'chat-root-card--simple': isDesktopSimpleMode }"
+    >
       <template #header-extra>
-        <NSpace :size="8" class="app-toolbar">
+        <NSpace v-if="showAdvancedChatControls" :size="8" class="app-toolbar">
           <div v-if="sessionTokenMetricTags.length" class="chat-token-metrics">
             <NTag
               v-for="metric in sessionTokenMetricTags"
@@ -2713,8 +2735,23 @@ async function handleSend() {
         </NSpace>
       </template>
 
-      <NGrid cols="1 l:3" responsive="screen" :x-gap="12" :y-gap="12" class="chat-grid" :class="{ 'chat-grid--collapsed': sideCollapsed }">
-        <NGridItem :span="1" class="chat-grid-side" :class="{ 'chat-grid-side--collapsed': sideCollapsed }">
+      <NGrid
+        cols="1 l:3"
+        responsive="screen"
+        :x-gap="12"
+        :y-gap="12"
+        class="chat-grid"
+        :class="{
+          'chat-grid--collapsed': sideCollapsed,
+          'chat-grid--simple': isDesktopSimpleMode,
+        }"
+      >
+        <NGridItem
+          v-if="showAdvancedChatControls"
+          :span="1"
+          class="chat-grid-side"
+          :class="{ 'chat-grid-side--collapsed': sideCollapsed }"
+        >
           <!-- 折叠按钮 -->
           <div class="chat-side-collapse-btn" @click="sideCollapsed = !sideCollapsed">
             <NIcon :component="ChevronBackOutline" size="14" />
@@ -2850,15 +2887,15 @@ async function handleSend() {
           </NCard>
         </NGridItem>
 
-        <NGridItem :span="sideCollapsed ? 3 : 2" class="chat-grid-main">
+        <NGridItem :span="showAdvancedChatControls && !sideCollapsed ? 2 : 3" class="chat-grid-main">
           <!-- 展开按钮（侧边栏折叠时显示） -->
-          <div v-if="sideCollapsed" class="chat-side-expand-btn" @click="sideCollapsed = false">
+          <div v-if="showAdvancedChatControls && sideCollapsed" class="chat-side-expand-btn" @click="sideCollapsed = false">
             <NIcon :component="ChevronForwardOutline" size="14" />
           </div>
           
           <div class="chat-main-column">
             <NCard embedded :bordered="false" class="chat-transcript-card">
-              <NSpace justify="space-between" align="center" style="margin-bottom: 10px;">
+              <NSpace v-if="showAdvancedChatControls" justify="space-between" align="center" style="margin-bottom: 10px;">
                 <NSpace align="center" :size="8">
                   <NTag size="small" type="info" :bordered="false" round>
                     {{ t('pages.chat.sessionTag', { key: normalizedSessionKey }) }}
@@ -2882,7 +2919,13 @@ async function handleSend() {
                         class="chat-bubble"
                         :class="`is-${entry.item.role}`"
                       >
-                        <NSpace justify="space-between" align="center" class="chat-bubble-meta" :size="8">
+                        <NSpace
+                          v-if="showAdvancedChatControls"
+                          justify="space-between"
+                          align="center"
+                          class="chat-bubble-meta"
+                          :size="8"
+                        >
                           <NSpace align="center" :size="6">
                             <NTag size="small" :type="roleType(entry.item.role)" :bordered="false" round>
                               {{ roleLabel(entry.item.role) }}
@@ -2897,7 +2940,7 @@ async function handleSend() {
                         </NSpace>
 
                         <div v-if="entry.structured" class="structured-message-list">
-                          <div v-if="entry.structured.toolCalls.length" class="tool-call-list">
+                          <div v-if="showAdvancedChatControls && entry.structured.toolCalls.length" class="tool-call-list">
                             <div
                               v-for="(tool, toolIndex) in entry.structured.toolCalls"
                               :key="`${entry.key}-tool-${toolIndex}`"
@@ -2939,7 +2982,7 @@ async function handleSend() {
                             </div>
                           </div>
 
-                          <div v-if="entry.structured.toolResults.length" class="tool-result-list">
+                          <div v-if="showAdvancedChatControls && entry.structured.toolResults.length" class="tool-result-list">
                             <div
                               v-for="(result, resultIndex) in entry.structured.toolResults"
                               :key="`${entry.key}-tool-result-${resultIndex}`"
@@ -2997,7 +3040,7 @@ async function handleSend() {
                             </div>
                           </div>
 
-                          <div v-if="entry.structured.validationErrors.length" class="validation-error-list">
+                          <div v-if="showAdvancedChatControls && entry.structured.validationErrors.length" class="validation-error-list">
                             <div
                               v-for="(validation, validationIndex) in entry.structured.validationErrors"
                               :key="`${entry.key}-validation-${validationIndex}`"
@@ -3037,7 +3080,7 @@ async function handleSend() {
                             <div class="chat-bubble-content structured-plain-text chat-markdown"
                               v-html="renderChatMarkdown(entry.structured.plainTexts.join('\n'), entry.item.role)"
                             ></div>
-                            <div class="chat-content-copy-btn">
+                            <div v-if="showAdvancedChatControls" class="chat-content-copy-btn">
                               <NTooltip>
                                 <template #trigger>
                                   <NButton quaternary size="tiny" @click="copyMessageContent(entry)">
@@ -3048,7 +3091,7 @@ async function handleSend() {
                                 </template>
                                 {{ t('common.copy') }}
                               </NTooltip>
-                              <NTooltip v-if="entry.item.role === 'user' || entry.item.role === 'assistant'">
+                              <NTooltip v-if="showAdvancedChatControls && (entry.item.role === 'user' || entry.item.role === 'assistant')">
                                 <template #trigger>
                                   <NButton
                                     quaternary
@@ -3089,7 +3132,7 @@ async function handleSend() {
                             class="chat-bubble-content chat-markdown"
                             v-html="renderChatMarkdown(entry.item.content, entry.item.role)"
                           ></div>
-                          <div class="chat-content-copy-btn">
+                          <div v-if="showAdvancedChatControls" class="chat-content-copy-btn">
                             <NTooltip>
                               <template #trigger>
                                 <NButton quaternary size="tiny" @click="copyMessageContent(entry)">
@@ -3100,7 +3143,7 @@ async function handleSend() {
                               </template>
                               {{ t('common.copy') }}
                             </NTooltip>
-                            <NTooltip v-if="entry.item.role === 'user' || entry.item.role === 'assistant'">
+                            <NTooltip v-if="showAdvancedChatControls && (entry.item.role === 'user' || entry.item.role === 'assistant')">
                               <template #trigger>
                                 <NButton
                                   quaternary
@@ -3122,7 +3165,9 @@ async function handleSend() {
 
                     <NEmpty
                       v-else
-                      :description="visibleMessageEntries.length ? t('pages.chat.messages.emptyFiltered') : t('common.noMessages')"
+                      :description="isDesktopSimpleMode
+                        ? t('pages.chat.messages.simpleEmpty')
+                        : (visibleMessageEntries.length ? t('pages.chat.messages.emptyFiltered') : t('common.noMessages'))"
                       style="padding: 72px 0;"
                     />
                   </div>
@@ -3136,7 +3181,7 @@ async function handleSend() {
                   v-model:value="draft"
                   type="textarea"
                   :autosize="{ minRows: 3, maxRows: 8 }"
-                  :placeholder="t('pages.chat.input.placeholder')"
+                  :placeholder="isDesktopSimpleMode ? t('pages.chat.input.simplePlaceholder') : t('pages.chat.input.placeholder')"
                   @keydown="handleDraftKeydown"
                 />
 
@@ -3270,7 +3315,7 @@ async function handleSend() {
                       {{ agentStatusText }}
                     </NTag>
                     <NButton
-                      v-if="hasAgentDetails"
+                      v-if="showAdvancedChatControls && hasAgentDetails"
                       size="tiny"
                       text
                       @click="showAgentDetails = !showAgentDetails"
@@ -3280,7 +3325,7 @@ async function handleSend() {
                   </NSpace>
                 </div>
 
-                <div v-if="showAgentDetails && hasAgentDetails" class="chat-agent-details">
+                <div v-if="showAdvancedChatControls && showAgentDetails && hasAgentDetails" class="chat-agent-details">
                   <NSpace vertical :size="6">
                     <NText depth="3" style="font-size: 12px;">
                       {{ t('pages.chat.agentDetails.phaseDuration', { duration: formatDurationMs(nowMs - currentAgentStatus.sinceMs) }) }}
@@ -3337,10 +3382,12 @@ async function handleSend() {
 
                 <NSpace justify="space-between" align="center">
                   <NText depth="3" style="font-size: 12px;">
-                    {{ t('pages.chat.input.sendHint', { key: normalizedSessionKey }) }}
+                    {{ isDesktopSimpleMode
+                      ? t('pages.chat.input.simpleSendHint')
+                      : t('pages.chat.input.sendHint', { key: normalizedSessionKey }) }}
                   </NText>
                   <NSpace :size="8">
-                    <NButton size="small" secondary :disabled="!draft" @click="draft = ''">
+                    <NButton v-if="showAdvancedChatControls" size="small" secondary :disabled="!draft" @click="draft = ''">
                       {{ t('pages.chat.actions.clearInput') }}
                     </NButton>
                     <NButton
@@ -3425,6 +3472,81 @@ async function handleSend() {
   min-height: calc(100vh - var(--desktop-toolbar-height) - 40px);
   display: flex;
   flex-direction: column;
+}
+
+.chat-page--simple {
+  height: calc(100vh - var(--desktop-toolbar-height) - 40px);
+  min-height: calc(100vh - var(--desktop-toolbar-height) - 40px);
+}
+
+.chat-root-card--simple.n-card {
+  flex: 1;
+  min-height: 0;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.chat-root-card--simple :deep(.n-card-header) {
+  display: none;
+}
+
+.chat-root-card--simple :deep(.n-card__content) {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 0 !important;
+}
+
+.chat-grid--simple {
+  flex: 1;
+  min-height: 0;
+  display: flex !important;
+}
+
+.chat-grid--simple .chat-grid-main {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+.chat-page--simple .chat-main-column {
+  flex: 1;
+  gap: 10px;
+}
+
+.chat-page--simple .chat-transcript-card {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.chat-page--simple .chat-transcript {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 24px min(9vw, 96px) 18px;
+}
+
+.chat-page--simple .chat-compose-card {
+  width: min(860px, 100%);
+  margin: 0 auto;
+  border-radius: 18px;
+  background: var(--bg-card);
+}
+
+.chat-page--simple .chat-bubble {
+  max-width: min(720px, 82%);
+  padding: 11px 14px;
+  border-radius: 18px;
+}
+
+.chat-page--simple .chat-markdown {
+  font-size: 13.5px;
+  line-height: 1.68;
 }
 
 /* 桌面端：让聊天区尽量占满可用高度，提升 transcript 可视面积 */

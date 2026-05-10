@@ -16,6 +16,12 @@ import {
 import { hasAuthForProvider, resolveDefaultModelRef } from "./model-config.helpers.js";
 import { anthropicAnalyzePdf, geminiAnalyzePdf } from "./pdf-native-providers.js";
 import {
+  buildPdfToolResultDetails,
+  loadPdfToolDocuments,
+  normalizePdfToolInput,
+  type PdfSandboxConfig,
+} from "./pdf-tool-runtime.js";
+import {
   coercePdfAssistantText,
   coercePdfModelConfig,
   parsePageRange,
@@ -30,12 +36,6 @@ import {
   type AnyAgentTool,
   type ToolFsPolicy,
 } from "./tool-runtime.helpers.js";
-import {
-  buildPdfToolResultDetails,
-  loadPdfToolDocuments,
-  normalizePdfToolInput,
-  type PdfSandboxConfig,
-} from "./pdf-tool-runtime.js";
 
 const DEFAULT_MAX_BYTES_MB = 10;
 const DEFAULT_MAX_PAGES = 20;

@@ -122,7 +122,6 @@ src/agents/
 │   ├── gateway-tool.ts
 │   ├── image-tool.ts
 │   ├── message-tool.ts
-│   ├── nodes-tool.ts
 │   ├── session*.ts
 │   ├── web-*.ts
 │   └── ...

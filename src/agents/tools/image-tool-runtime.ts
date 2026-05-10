@@ -26,7 +26,10 @@ export type LoadedImageInput = {
   rewrittenFrom?: string;
 };
 
-export function pickMaxBytes(cfg?: { agents?: { defaults?: { mediaMaxMb?: number } } }, maxBytesMb?: number) {
+export function pickMaxBytes(
+  cfg?: { agents?: { defaults?: { mediaMaxMb?: number } } },
+  maxBytesMb?: number,
+) {
   if (typeof maxBytesMb === "number" && Number.isFinite(maxBytesMb) && maxBytesMb > 0) {
     return Math.floor(maxBytesMb * 1024 * 1024);
   }
@@ -101,14 +104,13 @@ export async function loadImageToolInputs(params: {
   sandbox?: ImageSandboxConfig;
   fsPolicy?: ToolFsPolicy;
 }) {
-  const sandboxConfig: SandboxedBridgeMediaPathConfig | null =
-    params.sandbox?.root?.trim()
-      ? {
-          root: params.sandbox.root.trim(),
-          bridge: params.sandbox.bridge,
-          workspaceOnly: params.fsPolicy?.workspaceOnly === true,
-        }
-      : null;
+  const sandboxConfig: SandboxedBridgeMediaPathConfig | null = params.sandbox?.root?.trim()
+    ? {
+        root: params.sandbox.root.trim(),
+        bridge: params.sandbox.bridge,
+        workspaceOnly: params.fsPolicy?.workspaceOnly === true,
+      }
+    : null;
 
   const loadedImages: LoadedImageInput[] = [];
   for (const imageRawInput of params.imageInputs) {

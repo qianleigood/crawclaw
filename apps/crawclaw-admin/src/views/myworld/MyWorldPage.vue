@@ -172,8 +172,6 @@ const toolCategories = [
   { nameKey: 'myworld.toolCategories.ui', tools: ['browser', 'canvas'] },
   { nameKey: 'myworld.toolCategories.messaging', tools: ['message'] },
   { nameKey: 'myworld.toolCategories.automation', tools: ['cron', 'gateway'] },
-  { nameKey: 'myworld.toolCategories.nodes', tools: ['nodes'] },
-  { nameKey: 'myworld.toolCategories.agents', tools: ['agents_list'] },
   { nameKey: 'myworld.toolCategories.media', tools: ['image', 'image_generate', 'tts'] },
 ]
 

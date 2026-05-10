@@ -1,7 +1,7 @@
 import type { CrawClawConfig } from "../../config/config.js";
+import { resolveSharedContextArchiveService } from "./runtime.js";
 import type { ContextArchiveService } from "./service.js";
 import type { ContextArchiveRunRecord } from "./types.js";
-import { resolveSharedContextArchiveService } from "./runtime.js";
 
 type ContextArchiveRunCaptureService = Pick<
   ContextArchiveService,

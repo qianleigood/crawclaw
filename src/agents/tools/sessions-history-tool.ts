@@ -3,13 +3,13 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readStringParam } from "./common.js";
-import { processSessionsHistoryMessages } from "./sessions-history-tool-ops.js";
 import {
   resolveAccessibleSessionReference,
   resolveSessionAccessPolicies,
   resolveSessionToolContext,
   stripToolMessages,
 } from "./sessions-helpers.js";
+import { processSessionsHistoryMessages } from "./sessions-history-tool-ops.js";
 
 const SessionsHistoryToolSchema = Type.Object({
   sessionKey: Type.String(),

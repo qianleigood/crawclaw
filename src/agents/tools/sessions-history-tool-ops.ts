@@ -139,10 +139,7 @@ function enforceSessionsHistoryHardCap(params: {
   return { items: placeholder, bytes: jsonUtf8Bytes(placeholder), hardCapped: true };
 }
 
-export function processSessionsHistoryMessages(params: {
-  messages: unknown[];
-  maxBytes: number;
-}): {
+export function processSessionsHistoryMessages(params: { messages: unknown[]; maxBytes: number }): {
   messages: unknown[];
   truncated: boolean;
   droppedMessages: boolean;

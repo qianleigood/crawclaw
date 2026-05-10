@@ -1,11 +1,11 @@
 import { loadConfig } from "../../config/config.js";
-import { normalizeHttpWebhookUrl } from "../../cron/webhook-url.js";
 import type { CronDelivery, CronMessageChannel } from "../../cron/types.js";
+import { normalizeHttpWebhookUrl } from "../../cron/webhook-url.js";
 import { parseAgentSessionKey } from "../../sessions/session-key-utils.js";
 import { extractTextFromChatContent } from "../../shared/chat-content.js";
 import { truncateUtf16Safe } from "../../utils.js";
-import type { GatewayCallOptions } from "./gateway.js";
 import type { CronGatewayCaller } from "./cron-gateway.js";
+import type { GatewayCallOptions } from "./gateway.js";
 import { resolveInternalSessionKey, resolveMainSessionAlias } from "./sessions-helpers.js";
 
 const REMINDER_CONTEXT_MESSAGES_MAX = 10;
@@ -177,7 +177,9 @@ export function normalizeAgentTurnCronDelivery(params: {
     (typeof delivery?.channel === "string" && delivery.channel.trim()) ||
     (typeof delivery?.to === "string" && delivery.to.trim());
   const shouldInfer =
-    (params.deliveryValue == null || delivery) && (mode === "" || mode === "announce") && !hasTarget;
+    (params.deliveryValue == null || delivery) &&
+    (mode === "" || mode === "announce") &&
+    !hasTarget;
   if (!shouldInfer) {
     return delivery;
   }

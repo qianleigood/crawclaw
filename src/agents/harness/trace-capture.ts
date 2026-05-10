@@ -1,6 +1,3 @@
-import { readAgentTaskRuntimeMetadataSync } from "../runtime/agent-metadata-store.js";
-import { readTaskTrajectorySync, type TaskTrajectory } from "../tasks/task-trajectory.js";
-import type { ProgressEnvelope } from "../loop/types.js";
 import { getTaskById } from "../../tasks/runtime-internal.js";
 import type {
   AgentTaskMetadata,
@@ -9,6 +6,9 @@ import type {
   TaskStatus,
   TaskTerminalOutcome,
 } from "../../tasks/task-registry.types.js";
+import type { ProgressEnvelope } from "../loop/types.js";
+import { readAgentTaskRuntimeMetadataSync } from "../runtime/agent-metadata-store.js";
+import { readTaskTrajectorySync, type TaskTrajectory } from "../tasks/task-trajectory.js";
 
 export type HarnessTaskSnapshot = {
   taskId: string;

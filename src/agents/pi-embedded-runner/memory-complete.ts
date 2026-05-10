@@ -2,15 +2,15 @@ import type { Api, Model } from "@mariozechner/pi-ai";
 import type { AuthStorage } from "@mariozechner/pi-coding-agent";
 import type { CrawClawConfig } from "../../config/config.js";
 import {
-  applyAuthHeaderOverride,
-  applyLocalNoAuthHeaderOverride,
-  type ResolvedProviderAuth,
-} from "../model-auth.js";
-import {
   createResolvedRouteCompleteFn,
   type CompleteFn,
   type CompleteRoute,
 } from "../../memory/extraction/llm.js";
+import {
+  applyAuthHeaderOverride,
+  applyLocalNoAuthHeaderOverride,
+  type ResolvedProviderAuth,
+} from "../model-auth.js";
 
 type SupportedMemoryApi = CompleteRoute["api"];
 
@@ -66,7 +66,9 @@ export function createEmbeddedMemoryCompleteFn(params: {
 
     const apiKey = await authStorage.getApiKey(provider, { includeFallback: true });
     if (!apiKey) {
-      throw new Error(`[memory] No API key available for durable extraction provider "${provider}".`);
+      throw new Error(
+        `[memory] No API key available for durable extraction provider "${provider}".`,
+      );
     }
 
     const runtimeAuth: ResolvedProviderAuth = {

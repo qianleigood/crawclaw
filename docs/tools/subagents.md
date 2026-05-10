@@ -162,9 +162,9 @@ Allowlist:
 - Sandbox inheritance guard: if the requester session is sandboxed, `sessions_spawn` rejects targets that would run unsandboxed.
 - `agents.defaults.subagents.requireAgentId` / `agents.list[].subagents.requireAgentId`: when true, block `sessions_spawn` calls that omit `agentId` (forces explicit profile selection). Default: false.
 
-Discovery:
+Target discovery:
 
-- Use `agents_list` to see which agent ids are currently allowed for `sessions_spawn`.
+- `sessions_spawn` returns the currently allowed target agent ids when `agentId` is required, invalid, or not allowed.
 
 Auto-archive:
 

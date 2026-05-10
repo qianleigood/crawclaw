@@ -133,10 +133,9 @@ export function recordDiscoveredSkills(params: {
       ...(state.discoveredSkillNames ?? []),
       ...normalizedDiscovered,
     ]);
-    state.discoverCount = params.discoverCount ?? ((state.discoverCount ?? 0) + 1);
+    state.discoverCount = params.discoverCount ?? (state.discoverCount ?? 0) + 1;
     state.discoverBudgetRemaining =
-      params.discoverBudgetRemaining ??
-      Math.max(0, (state.discoverBudgetRemaining ?? 0) - 1);
+      params.discoverBudgetRemaining ?? Math.max(0, (state.discoverBudgetRemaining ?? 0) - 1);
   });
 }
 
@@ -161,9 +160,9 @@ export function inferLoadedSkillNameFromToolCall(params: {
         ? params.toolParams.file_path
         : typeof params.toolParams?.filePath === "string"
           ? params.toolParams.filePath
-        : typeof params.toolParams?.file === "string"
-          ? params.toolParams.file
-        : undefined;
+          : typeof params.toolParams?.file === "string"
+            ? params.toolParams.file
+            : undefined;
   const normalizedPath = rawPath?.trim().replaceAll("\\", "/");
   if (!normalizedPath) {
     return undefined;

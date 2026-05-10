@@ -34,7 +34,6 @@ const OWNER_ONLY_TOOL_APPROVAL_CLASS_FALLBACKS = new Map<string, OwnerOnlyToolAp
   ["whatsapp_login", "interactive"],
   ["cron", "control_plane"],
   ["gateway", "control_plane"],
-  ["nodes", "exec_capable"],
 ]);
 
 export function resolveOwnerOnlyToolApprovalClass(

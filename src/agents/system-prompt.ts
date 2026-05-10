@@ -321,18 +321,14 @@ export function buildAgentSystemPromptSections(params: {
     // Channel docking: add login tools here when a channel needs interactive linking.
     browser: "Control web browser",
     canvas: "Present/eval/snapshot the Canvas",
-    nodes: "List/describe/notify/camera/screen on paired nodes",
     cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
     message: "Send messages and channel actions",
     gateway: "Restart, apply config, or run updates on the running CrawClaw process",
-    agents_list: acpSpawnRuntimeEnabled
-      ? 'List CrawClaw agent ids allowed for sessions_spawn when runtime="subagent" (not ACP harness ids)'
-      : "List CrawClaw agent ids allowed for sessions_spawn",
     sessions_list: "List other sessions (incl. sub-agents) with filters/last",
     sessions_history: "Fetch history for another session/sub-agent",
     sessions_send: "Send a message to another session/sub-agent",
     sessions_spawn: acpSpawnRuntimeEnabled
-      ? 'Spawn an isolated sub-agent or ACP coding session (runtime="acp" requires `agentId` unless `acp.defaultAgent` is configured; ACP harness ids follow acp.allowedAgents, not agents_list)'
+      ? 'Spawn an isolated sub-agent or ACP coding session (runtime="acp" requires `agentId` unless `acp.defaultAgent` is configured; ACP harness ids follow acp.allowedAgents)'
       : "Spawn an isolated sub-agent session",
     subagents: "List, steer, or kill sub-agent runs for this requester session",
     session_status:
@@ -357,11 +353,9 @@ export function buildAgentSystemPromptSections(params: {
     "web_fetch",
     "browser",
     "canvas",
-    "nodes",
     "cron",
     "message",
     "gateway",
-    "agents_list",
     "sessions_list",
     "sessions_history",
     "sessions_send",
@@ -526,7 +520,6 @@ export function buildAgentSystemPromptSections(params: {
             `- ${processToolName}: manage background exec sessions`,
             "- browser: control CrawClaw's dedicated browser",
             "- canvas: present/eval/snapshot the Canvas",
-            "- nodes: list/describe/notify/camera/screen on paired nodes",
             "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
             "- sessions_list: list sessions",
             "- sessions_history: fetch session history",
@@ -541,7 +534,7 @@ export function buildAgentSystemPromptSections(params: {
         ? [
             'For requests like "do this in codex/claude code/cursor/gemini" or similar ACP harnesses, treat it as ACP harness intent and call `sessions_spawn` with `runtime: "acp"`.',
             'On Discord, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`) unless the user asks otherwise.',
-            "Set `agentId` explicitly unless `acp.defaultAgent` is configured, and do not route ACP harness requests through `subagents`/`agents_list` or local PTY exec flows.",
+            "Set `agentId` explicitly unless `acp.defaultAgent` is configured, and do not route ACP harness requests through `subagents` or local PTY exec flows.",
             'For ACP harness thread spawns, do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path.',
           ]
         : []),

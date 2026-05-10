@@ -6,7 +6,10 @@ import {
   resetAgentEventsForTest,
   resetAgentRunContextForTest,
 } from "../../infra/agent-events.js";
-import { resetDiagnosticSessionStateForTest, updateDiagnosticSessionState } from "../../logging/diagnostic-session-state.js";
+import {
+  resetDiagnosticSessionStateForTest,
+  updateDiagnosticSessionState,
+} from "../../logging/diagnostic-session-state.js";
 import { createRunningTaskRun } from "../../tasks/task-executor.js";
 import { resetTaskRegistryForTests } from "../../tasks/task-registry.js";
 import { withStateDirEnv } from "../../test-helpers/state-dir-env.js";
@@ -14,14 +17,14 @@ import {
   flushTaskTrajectoryWritesForTest,
   resetTaskTrajectoryBridgeForTest,
 } from "../tasks/task-trajectory.js";
+import { upsertAgentTaskRuntimeMetadata } from "./agent-metadata-store.js";
+import { buildAgentOpsSummary } from "./agent-ops-summary.js";
 import {
   markAgentRunCompleted,
   registerAgentRuntimeRun,
   resetAgentProgressEventsForTest,
 } from "./agent-progress.js";
-import { upsertAgentTaskRuntimeMetadata } from "./agent-metadata-store.js";
 import { resetAgentRuntimeStateForTest } from "./agent-runtime-state.js";
-import { buildAgentOpsSummary } from "./agent-ops-summary.js";
 
 const NOW = Date.UTC(2026, 3, 7, 12, 0, 0);
 

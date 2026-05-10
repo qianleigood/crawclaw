@@ -193,7 +193,6 @@ export default {
       ui: 'UI',
       messaging: 'Messaging',
       automation: 'Automation',
-      nodes: 'Nodes',
       agents: 'Agents',
       media: 'Media',
     },
@@ -1537,6 +1536,7 @@ export default {
       messages: {
         abortRequested: 'Stop requested',
         abortFailed: 'Stop failed: {reason}',
+        simpleEmpty: 'Type one thing you want CrawClaw to do. Replies appear here.',
         emptyFiltered: 'No messages for current filter',
       },
       tts: {
@@ -1545,7 +1545,9 @@ export default {
         error: 'TTS synthesis failed',
       },
       input: {
+        simplePlaceholder: 'Ask CrawClaw to do something...',
         placeholder: 'Type a message (type / for CrawClaw commands, Enter to send, Shift+Enter for new line)',
+        simpleSendHint: 'Enter to send, Shift+Enter for new line',
         sendHint: 'Sending to: {key} | Enter send, Shift+Enter newline, Ctrl/Cmd+Enter send',
         screenshotPrompt: 'Please inspect this screenshot and answer based on what is visible.',
         screenshotAttached: 'Screenshot added to the message',
@@ -2482,7 +2484,6 @@ export default {
           ui: 'UI',
           messaging: 'Messaging',
           automation: 'Automation',
-          nodes: 'Nodes',
           agents: 'Agents',
           media: 'Media',
         },

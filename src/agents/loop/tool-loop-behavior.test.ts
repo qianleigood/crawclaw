@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  resolveToolLoopBehavior,
-  resolveToolLoopCategory,
-} from "./tool-loop-behavior.js";
+import { resolveToolLoopBehavior, resolveToolLoopCategory } from "./tool-loop-behavior.js";
 
 describe("tool-loop-behavior", () => {
   it("classifies polling tools from params", () => {

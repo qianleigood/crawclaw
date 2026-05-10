@@ -111,31 +111,6 @@
         "snapshot": { "label": "snapshot", "detailKeys": ["format", "node", "nodeId"] }
       }
     },
-    "nodes": {
-      "emoji": "📱",
-      "title": "Nodes",
-      "actions": {
-        "status": { "label": "status" },
-        "describe": { "label": "describe", "detailKeys": ["node", "nodeId"] },
-        "pending": { "label": "pending" },
-        "approve": { "label": "approve", "detailKeys": ["requestId"] },
-        "reject": { "label": "reject", "detailKeys": ["requestId"] },
-        "notify": { "label": "notify", "detailKeys": ["node", "nodeId", "title", "body"] },
-        "camera_snap": {
-          "label": "camera snap",
-          "detailKeys": ["node", "nodeId", "facing", "deviceId"]
-        },
-        "camera_list": { "label": "camera list", "detailKeys": ["node", "nodeId"] },
-        "camera_clip": {
-          "label": "camera clip",
-          "detailKeys": ["node", "nodeId", "facing", "duration", "durationMs"]
-        },
-        "screen_record": {
-          "label": "screen record",
-          "detailKeys": ["node", "nodeId", "duration", "durationMs", "fps", "screenIndex"]
-        }
-      }
-    },
     "cron": {
       "emoji": "⏰",
       "title": "Cron",

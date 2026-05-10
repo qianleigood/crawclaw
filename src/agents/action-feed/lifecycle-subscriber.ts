@@ -1,9 +1,9 @@
-import { emitAgentActionEvent } from "./emit.js";
 import {
   registerRunLoopLifecycleHandler,
   unregisterRunLoopLifecycleHandler,
 } from "../runtime/lifecycle/bus.js";
 import type { RunLoopLifecycleEvent } from "../runtime/lifecycle/types.js";
+import { emitAgentActionEvent } from "./emit.js";
 
 type CompactionLifecycleMetadata = {
   trigger?: string;
@@ -12,9 +12,9 @@ type CompactionLifecycleMetadata = {
 };
 
 function resolveCompactionMetadata(event: RunLoopLifecycleEvent): CompactionLifecycleMetadata {
-  return (typeof event.metadata === "object" && event.metadata
-    ? event.metadata
-    : {}) as CompactionLifecycleMetadata;
+  return (
+    typeof event.metadata === "object" && event.metadata ? event.metadata : {}
+  ) as CompactionLifecycleMetadata;
 }
 
 function resolveLifecycleRunId(event: RunLoopLifecycleEvent): string {

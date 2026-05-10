@@ -119,9 +119,16 @@ describe("crawclaw-tools: subagents (sessions_spawn allowlist)", () => {
       agentChannel: "whatsapp",
     });
     const result = await tool.execute(callId, { task: "do thing", agentId });
-    const details = result.details as { status?: string; error?: string };
+    const details = result.details as {
+      status?: string;
+      error?: string;
+      allowAny?: boolean;
+      allowedAgents?: Array<{ id: string; configured?: boolean }>;
+    };
     expect(details.status).toBe("error");
     expect(details.error).toContain("Invalid agentId");
+    expect(details.allowAny).toBe(true);
+    expect(details.allowedAgents?.map((agent) => agent.id)).toEqual(["main"]);
     expect(callGatewayMock).not.toHaveBeenCalled();
   }
 
@@ -143,6 +150,8 @@ describe("crawclaw-tools: subagents (sessions_spawn allowlist)", () => {
     });
     expect(result.details).toMatchObject({
       status: "forbidden",
+      allowAny: false,
+      allowedAgents: [{ id: "main", configured: false }],
     });
     expect(callGatewayMock).not.toHaveBeenCalled();
   });
@@ -176,6 +185,11 @@ describe("crawclaw-tools: subagents (sessions_spawn allowlist)", () => {
     });
     expect(result.details).toMatchObject({
       status: "forbidden",
+      allowAny: false,
+      allowedAgents: [
+        { id: "main", configured: true },
+        { id: "alpha", configured: false },
+      ],
     });
     expect(callGatewayMock).not.toHaveBeenCalled();
   });
@@ -255,6 +269,49 @@ describe("crawclaw-tools: subagents (sessions_spawn allowlist)", () => {
     expect(result.details).toMatchObject({
       status: "forbidden",
       error: expect.stringContaining("sessions_spawn requires explicit agentId"),
+      allowAny: false,
+      allowedAgents: [{ id: "main", configured: true }],
+    });
+    expect(callGatewayMock).not.toHaveBeenCalled();
+  });
+
+  it("reports configured allowed targets when explicit agentId is required", async () => {
+    setSessionsSpawnConfigOverride({
+      session: {
+        mainKey: "main",
+        scope: "per-sender",
+      },
+      agents: {
+        list: [
+          {
+            id: "main",
+            name: "Main",
+            subagents: {
+              allowAgents: ["research"],
+              requireAgentId: true,
+            },
+          },
+          {
+            id: "research",
+            name: "Research",
+          },
+        ],
+      },
+    });
+
+    const tool = await getSessionsSpawnTool({
+      agentSessionKey: "main",
+      agentChannel: "whatsapp",
+    });
+
+    const result = await tool.execute("call13-targets", { task: "do thing" });
+    expect(result.details).toMatchObject({
+      status: "forbidden",
+      allowAny: false,
+      allowedAgents: [
+        { id: "main", name: "Main", configured: true },
+        { id: "research", name: "Research", configured: true },
+      ],
     });
     expect(callGatewayMock).not.toHaveBeenCalled();
   });
@@ -336,7 +393,13 @@ describe("crawclaw-tools: subagents (sessions_spawn allowlist)", () => {
     const details = result.details as { status?: string; error?: string };
     expect(details.status).toBe("error");
     expect(details.error).toContain("Invalid agentId");
-    expect(details.error).toContain("agents_list");
+    expect(result.details).toMatchObject({
+      allowAny: true,
+      allowedAgents: [
+        { id: "main", configured: true },
+        { id: "research", configured: true },
+      ],
+    });
     expect(callGatewayMock).not.toHaveBeenCalled();
   });
 

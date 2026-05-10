@@ -18,6 +18,7 @@ const router = useRouter()
 const isCrawClaw = computed(() => connStore.currentGateway === 'crawclaw')
 const isDesktopMode = computed(() => desktopStore.isDesktopMode ?? false)
 const contentStyle = computed(() => isDesktopMode.value ? 'padding: 0;' : 'padding: 24px;')
+const desktopHomeRoute = computed(() => desktopStore.advancedMode ? { name: 'Dashboard' } : { name: 'Chat' })
 
 onMounted(() => {
   void initializeGatewayConnection()
@@ -35,11 +36,15 @@ async function initializeGatewayConnection() {
       return
     }
     if (desktopStore.onboardingComplete && route.name === 'DesktopOnboarding') {
-      router.replace('/')
+      router.replace(desktopHomeRoute.value)
+      return
+    }
+    if (!desktopStore.advancedMode && route.name === 'Dashboard') {
+      router.replace({ name: 'Chat' })
       return
     }
     if (route.meta?.gateway && route.meta.gateway !== 'crawclaw') {
-      router.replace('/')
+      router.replace(desktopHomeRoute.value)
     }
     return
   }
@@ -64,7 +69,7 @@ watch(isCrawClaw, (val) => {
     connStore.disconnect()
     connStore.currentGateway = 'crawclaw'
     wsStore.connect()
-    router.push('/')
+    router.push(desktopHomeRoute.value)
     return
   }
 

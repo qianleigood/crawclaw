@@ -47,6 +47,12 @@ export type SpawnSubagentContext = {
   workspaceDir?: string;
 };
 
+export type AllowedSubagentTarget = {
+  id: string;
+  name?: string;
+  configured: boolean;
+};
+
 export const SUBAGENT_SPAWN_ACCEPTED_NOTE =
   "Auto-announce is push-based. After spawning children, do NOT call sessions_list, sessions_history, exec sleep, or any polling tool. Wait for completion events to arrive as user messages, track expected child session keys, and only send your final answer after ALL expected completions arrive. If a child completion event arrives AFTER your final answer, reply ONLY with NO_REPLY.";
 
@@ -61,6 +67,8 @@ export type SpawnSubagentResult = {
   note?: string;
   modelApplied?: boolean;
   error?: string;
+  allowAny?: boolean;
+  allowedAgents?: AllowedSubagentTarget[];
   attachments?: {
     count: number;
     totalBytes: number;

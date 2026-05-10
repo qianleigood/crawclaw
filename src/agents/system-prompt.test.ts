@@ -318,13 +318,12 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain(
       'runtime="acp" requires `agentId` unless `acp.defaultAgent` is configured',
     );
-    expect(prompt).toContain("not agents_list");
   });
 
   it("guides harness requests to ACP thread-bound spawns", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      toolNames: ["sessions_spawn", "subagents", "agents_list", "exec"],
+      toolNames: ["sessions_spawn", "subagents", "exec"],
     });
 
     expect(prompt).toContain(
@@ -334,7 +333,7 @@ describe("buildAgentSystemPrompt", () => {
       'On Discord, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`)',
     );
     expect(prompt).toContain(
-      "do not route ACP harness requests through `subagents`/`agents_list` or local PTY exec flows",
+      "do not route ACP harness requests through `subagents` or local PTY exec flows",
     );
     expect(prompt).toContain(
       'do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path',
@@ -344,7 +343,7 @@ describe("buildAgentSystemPrompt", () => {
   it("omits ACP harness guidance when ACP is disabled", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      toolNames: ["sessions_spawn", "subagents", "agents_list", "exec"],
+      toolNames: ["sessions_spawn", "subagents", "exec"],
       acpEnabled: false,
     });
 
@@ -354,13 +353,12 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain('runtime="acp" requires `agentId`');
     expect(prompt).not.toContain("not ACP harness ids");
     expect(prompt).toContain("- sessions_spawn: Spawn an isolated sub-agent session");
-    expect(prompt).toContain("- agents_list: List CrawClaw agent ids allowed for sessions_spawn");
   });
 
   it("omits ACP harness spawn guidance for sandboxed sessions and shows ACP block note", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      toolNames: ["sessions_spawn", "subagents", "agents_list", "exec"],
+      toolNames: ["sessions_spawn", "subagents", "exec"],
       sandboxInfo: {
         enabled: true,
       },

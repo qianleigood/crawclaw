@@ -115,8 +115,6 @@ const commonTools = [
   "message",
   "cron",
   "gateway",
-  "nodes",
-  "agents_list",
   "image",
   "image_generate",
   "tts",
@@ -162,14 +160,6 @@ const toolCategories = [
   {
     nameKey: "pages.agents.form.toolCategories.automation",
     tools: ["cron", "gateway"],
-  },
-  {
-    nameKey: "pages.agents.form.toolCategories.nodes",
-    tools: ["nodes"],
-  },
-  {
-    nameKey: "pages.agents.form.toolCategories.agents",
-    tools: ["agents_list"],
   },
   {
     nameKey: "pages.agents.form.toolCategories.media",

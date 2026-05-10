@@ -123,7 +123,9 @@ export function validateSessionsSpawnToolParams(
   return null;
 }
 
-export function buildSessionsSpawnRequest(parsed: SessionsSpawnToolParams): SpawnAgentSessionParams {
+export function buildSessionsSpawnRequest(
+  parsed: SessionsSpawnToolParams,
+): SpawnAgentSessionParams {
   return {
     runtime: parsed.runtime,
     task: parsed.task,

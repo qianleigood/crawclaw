@@ -32,11 +32,7 @@ function normalizeJsonValue(value: unknown, seen = new WeakSet<object>()): unkno
   if (value == null) {
     return value;
   }
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
     return value;
   }
   if (value instanceof Date) {
@@ -123,9 +119,10 @@ async function readBlobMeta(metaPath: string): Promise<BlobMetaFile | null> {
 
 export type ContextArchiveBlobStore = ReturnType<typeof createContextArchiveBlobStore>;
 
-export function createContextArchiveBlobStore(
-  params?: { rootDir?: string; env?: NodeJS.ProcessEnv },
-) {
+export function createContextArchiveBlobStore(params?: {
+  rootDir?: string;
+  env?: NodeJS.ProcessEnv;
+}) {
   const rootDir = path.resolve(
     params?.rootDir?.trim() || path.join(resolveStateDir(params?.env), "context-archive"),
   );

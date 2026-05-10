@@ -132,7 +132,7 @@ export function buildSubagentSystemPrompt(params: {
       ...(acpEnabled
         ? [
             'For ACP harness sessions (codex/claudecode/gemini), use `sessions_spawn` with `runtime: "acp"` (set `agentId` unless `acp.defaultAgent` is configured).',
-            '`agents_list` and `subagents` apply to CrawClaw sub-agents (`runtime: "subagent"`); ACP harness ids are controlled by `acp.allowedAgents`.',
+            '`subagents` applies to CrawClaw sub-agents (`runtime: "subagent"`); ACP harness ids are controlled by `acp.allowedAgents`.',
             "Do not ask users to run slash commands or CLI when `sessions_spawn` can do it directly.",
             "Do not use `exec` (`crawclaw ...`, `acpx ...`) to spawn ACP sessions.",
             'Use `subagents` only for CrawClaw subagents (`runtime: "subagent"`).',

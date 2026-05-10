@@ -8,8 +8,8 @@ const createAndRegisterDefaultExecApprovalRequestMock = vi.hoisted(() => vi.fn()
 const buildExecApprovalPendingToolResultMock = vi.hoisted(() => vi.fn());
 const buildExecApprovalUnavailableToolResultMock = vi.hoisted(() => vi.fn());
 const buildExecApprovalFollowupTargetMock = vi.hoisted(() => vi.fn(() => null));
-const resolveExecApprovalGuardUnavailableMock = vi.hoisted(
-  () => vi.fn<() => ReturnType<typeof resolveExecApprovalGuardUnavailable>>(() => null),
+const resolveExecApprovalGuardUnavailableMock = vi.hoisted(() =>
+  vi.fn<() => ReturnType<typeof resolveExecApprovalGuardUnavailable>>(() => null),
 );
 const mergeExecApprovalWarningTextMock = vi.hoisted(() =>
   vi.fn((...parts: Array<string | null | undefined>) =>

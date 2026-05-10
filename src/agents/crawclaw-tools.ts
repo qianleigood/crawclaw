@@ -14,7 +14,6 @@ import { isReviewSpawnSource } from "./review-agent.js";
 import type { SandboxFsBridge } from "./sandbox/fs-bridge.js";
 import type { SpawnedToolContext } from "./spawned-context.js";
 import type { ToolFsPolicy } from "./tool-fs-policy.js";
-import { createAgentsListTool } from "./tools/agents-list-tool.js";
 import { createCanvasTool } from "./tools/canvas-tool.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { createCronTool } from "./tools/cron-tool.js";
@@ -28,7 +27,6 @@ import {
   createMemoryNoteWriteTool,
 } from "./tools/memory-file-tools.js";
 import { createMessageTool } from "./tools/message-tool.js";
-import { createNodesTool } from "./tools/nodes-tool.js";
 import { createPdfTool } from "./tools/pdf-tool.js";
 import { createReviewTaskTool } from "./tools/review-task-tool.js";
 import { createSessionStatusTool } from "./tools/session-status-tool.js";
@@ -88,8 +86,6 @@ export function createCrawClawTools(
     hasRepliedRef?: { value: boolean };
     /** If true, the model has native vision capability */
     modelHasVision?: boolean;
-    /** If true, nodes action="invoke" can call media-returning commands directly. */
-    allowMediaInvokeCommands?: boolean;
     /** Explicit agent ID override for cron/hook sessions. */
     requesterAgentIdOverride?: string;
     /** Require explicit message targets (no implicit last-route sends). */
@@ -255,16 +251,6 @@ export function createCrawClawTools(
       });
   const tools: AnyAgentTool[] = [
     createCanvasTool({ config: options?.config }),
-    createNodesTool({
-      agentSessionKey: options?.agentSessionKey,
-      agentChannel: options?.agentChannel,
-      agentAccountId: options?.agentAccountId,
-      currentChannelId: options?.currentChannelId,
-      currentThreadTs: options?.currentThreadTs,
-      config: options?.config,
-      modelHasVision: options?.modelHasVision,
-      allowMediaInvokeCommands: options?.allowMediaInvokeCommands,
-    }),
     createCronTool({
       agentSessionKey: options?.agentSessionKey,
     }),
@@ -284,10 +270,6 @@ export function createCrawClawTools(
     ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
     ...(experienceWriteTool ? [experienceWriteTool] : []),
     ...(reviewTaskTool ? [reviewTaskTool] : []),
-    createAgentsListTool({
-      agentSessionKey: options?.agentSessionKey,
-      requesterAgentIdOverride: options?.requesterAgentIdOverride,
-    }),
     createSessionsListTool({
       agentSessionKey: options?.agentSessionKey,
       sandboxed: options?.sandboxed,

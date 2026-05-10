@@ -49,7 +49,7 @@ describe("createCrawClawTools owner authorization", () => {
     const tools = readToolByName();
     expect(tools.get("cron")?.ownerOnly).toBe(true);
     expect(tools.get("gateway")?.ownerOnly).toBe(true);
-    expect(tools.get("nodes")?.ownerOnly).toBe(true);
+    expect(tools.has("nodes")).toBe(false);
   });
 
   it("registers scoped memory file write as a non-owner core tool", () => {

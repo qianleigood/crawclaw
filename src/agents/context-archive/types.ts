@@ -1,9 +1,9 @@
+import type { RuntimeStore } from "../../memory/runtime/runtime-store.ts";
 import type {
   ContextArchiveMode,
   ContextArchiveRunKind,
   ContextArchiveRunStatus,
 } from "../../memory/types/runtime.ts";
-import type { RuntimeStore } from "../../memory/runtime/runtime-store.ts";
 
 export type ContextArchiveBlobEncoding = "utf8" | "base64";
 

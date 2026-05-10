@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { promises as fs } from "node:fs";
 import { formatThinkingLevels, normalizeThinkLevel } from "../auto-reply/thinking.js";
 import { DEFAULT_SUBAGENT_MAX_SPAWN_DEPTH } from "../config/agent-limits.js";
+import type { CrawClawConfig } from "../config/config.js";
 import {
   isValidAgentId,
   isCronSessionKey,
@@ -50,6 +51,7 @@ import {
   SUBAGENT_SPAWN_MODES,
   SUBAGENT_SPAWN_SANDBOX_MODES,
   SUBAGENT_SPAWN_SESSION_ACCEPTED_NOTE,
+  type AllowedSubagentTarget,
   type SpawnSubagentContext,
   type SpawnSubagentMode,
   type SpawnSubagentParams,
@@ -79,6 +81,61 @@ export type {
   SpawnSubagentSandboxMode,
 };
 
+type AllowedSubagentTargets = {
+  allowAny: boolean;
+  allowedAgents: AllowedSubagentTarget[];
+};
+
+export function resolveAllowedSubagentTargets(
+  cfg: CrawClawConfig,
+  requesterAgentId: string,
+): AllowedSubagentTargets {
+  const allowAgents = resolveAgentConfig(cfg, requesterAgentId)?.subagents?.allowAgents ?? [];
+  const allowAny = allowAgents.some((value) => value.trim() === "*");
+  const allowSet = new Set(
+    allowAgents
+      .filter((value) => value.trim() && value.trim() !== "*")
+      .map((value) => normalizeAgentId(value)),
+  );
+
+  const configuredAgents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
+  const configuredIds = configuredAgents.map((entry) => normalizeAgentId(entry.id));
+  const configuredIdSet = new Set(configuredIds);
+  const configuredNameMap = new Map<string, string>();
+  for (const entry of configuredAgents) {
+    const name = entry?.name?.trim() ?? "";
+    if (!name) {
+      continue;
+    }
+    configuredNameMap.set(normalizeAgentId(entry.id), name);
+  }
+
+  const allowed = new Set<string>();
+  allowed.add(requesterAgentId);
+  if (allowAny) {
+    for (const id of configuredIds) {
+      allowed.add(id);
+    }
+  } else {
+    for (const id of allowSet) {
+      allowed.add(id);
+    }
+  }
+
+  const rest = Array.from(allowed)
+    .filter((id) => id !== requesterAgentId)
+    .toSorted((a, b) => a.localeCompare(b));
+  const ordered = [requesterAgentId, ...rest];
+  return {
+    allowAny,
+    allowedAgents: ordered.map((id) => ({
+      id,
+      name: configuredNameMap.get(id),
+      configured: configuredIdSet.has(id),
+    })),
+  };
+}
+
 export async function spawnSubagentDirect(
   params: SpawnSubagentParams,
   ctx: SpawnSubagentContext,
@@ -87,6 +144,25 @@ export async function spawnSubagentDirect(
   const label = params.label?.trim() || "";
   const explicitSpawnSource = params.spawnSource?.trim();
   const requestedAgentId = params.agentId?.trim();
+  const cfg = loadSubagentConfig();
+  const { mainKey, alias } = resolveMainSessionAlias(cfg);
+  const requesterSessionKey = ctx.agentSessionKey;
+  const requesterInternalKey = requesterSessionKey
+    ? resolveInternalSessionKey({
+        key: requesterSessionKey,
+        alias,
+        mainKey,
+      })
+    : alias;
+  const requesterDisplayKey = resolveDisplaySessionKey({
+    key: requesterInternalKey,
+    alias,
+    mainKey,
+  });
+  const requesterAgentId = normalizeAgentId(
+    ctx.requesterAgentIdOverride ?? parseAgentSessionKey(requesterInternalKey)?.agentId,
+  );
+  const allowedTargets = resolveAllowedSubagentTargets(cfg, requesterAgentId);
 
   // Reject malformed agentId before normalizeAgentId can mangle it.
   // Without this gate, error-message strings like "Agent not found: xyz" pass
@@ -95,7 +171,9 @@ export async function spawnSubagentDirect(
   if (requestedAgentId && !isValidAgentId(requestedAgentId)) {
     return {
       status: "error",
-      error: `Invalid agentId "${requestedAgentId}". Agent IDs must match [a-z0-9][a-z0-9_-]{0,63}. Use agents_list to discover valid targets.`,
+      error: `Invalid agentId "${requestedAgentId}". Agent IDs must match [a-z0-9][a-z0-9_-]{0,63}.`,
+      allowAny: allowedTargets.allowAny,
+      allowedAgents: allowedTargets.allowedAgents,
     };
   }
   const modelOverride = params.model;
@@ -126,8 +204,6 @@ export async function spawnSubagentDirect(
     threadId: ctx.agentThreadId,
   });
   const hookRunner = getSubagentHookRunner();
-  const cfg = loadSubagentConfig();
-
   // When agent omits runTimeoutSeconds, use the config default.
   // Falls back to 0 (no timeout) if config key is also unset,
   // preserving current behavior for existing deployments.
@@ -146,21 +222,6 @@ export async function spawnSubagentDirect(
       : undefined;
   let modelApplied = false;
   let threadBindingReady = false;
-  const { mainKey, alias } = resolveMainSessionAlias(cfg);
-  const requesterSessionKey = ctx.agentSessionKey;
-  const requesterInternalKey = requesterSessionKey
-    ? resolveInternalSessionKey({
-        key: requesterSessionKey,
-        alias,
-        mainKey,
-      })
-    : alias;
-  const requesterDisplayKey = resolveDisplaySessionKey({
-    key: requesterInternalKey,
-    alias,
-    mainKey,
-  });
-
   const callerDepth = getSubagentDepthFromSessionStore(requesterInternalKey, { cfg });
   const maxSpawnDepth =
     cfg.agents?.defaults?.subagents?.maxSpawnDepth ?? DEFAULT_SUBAGENT_MAX_SPAWN_DEPTH;
@@ -180,9 +241,6 @@ export async function spawnSubagentDirect(
     };
   }
 
-  const requesterAgentId = normalizeAgentId(
-    ctx.requesterAgentIdOverride ?? parseAgentSessionKey(requesterInternalKey)?.agentId,
-  );
   const requireAgentId =
     resolveAgentConfig(cfg, requesterAgentId)?.subagents?.requireAgentId ??
     cfg.agents?.defaults?.subagents?.requireAgentId ??
@@ -190,25 +248,22 @@ export async function spawnSubagentDirect(
   if (requireAgentId && !requestedAgentId?.trim()) {
     return {
       status: "forbidden",
-      error:
-        "sessions_spawn requires explicit agentId when requireAgentId is configured. Use agents_list to see allowed agent ids.",
+      error: "sessions_spawn requires explicit agentId when requireAgentId is configured.",
+      allowAny: allowedTargets.allowAny,
+      allowedAgents: allowedTargets.allowedAgents,
     };
   }
   const targetAgentId = requestedAgentId ? normalizeAgentId(requestedAgentId) : requesterAgentId;
   if (targetAgentId !== requesterAgentId) {
-    const allowAgents = resolveAgentConfig(cfg, requesterAgentId)?.subagents?.allowAgents ?? [];
-    const allowAny = allowAgents.some((value) => value.trim() === "*");
     const normalizedTargetId = targetAgentId.toLowerCase();
-    const allowSet = new Set(
-      allowAgents
-        .filter((value) => value.trim() && value.trim() !== "*")
-        .map((value) => normalizeAgentId(value).toLowerCase()),
-    );
-    if (!allowAny && !allowSet.has(normalizedTargetId)) {
-      const allowedText = allowSet.size > 0 ? Array.from(allowSet).join(", ") : "none";
+    const allowedSet = new Set(allowedTargets.allowedAgents.map((agent) => agent.id.toLowerCase()));
+    if (!allowedTargets.allowAny && !allowedSet.has(normalizedTargetId)) {
+      const allowedText = allowedTargets.allowedAgents.map((agent) => agent.id).join(", ");
       return {
         status: "forbidden",
         error: `agentId is not allowed for sessions_spawn (allowed: ${allowedText})`,
+        allowAny: allowedTargets.allowAny,
+        allowedAgents: allowedTargets.allowedAgents,
       };
     }
   }

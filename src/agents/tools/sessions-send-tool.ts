@@ -19,8 +19,8 @@ import {
   stripToolMessages,
 } from "./sessions-helpers.js";
 import { buildAgentToAgentMessageContext, resolvePingPongTurns } from "./sessions-send-helpers.js";
-import { runSessionsSendA2AFlow } from "./sessions-send-tool.a2a.js";
 import { buildSessionsSendResult } from "./sessions-send-tool-results.js";
+import { runSessionsSendA2AFlow } from "./sessions-send-tool.a2a.js";
 
 const SessionsSendToolSchema = Type.Object({
   sessionKey: Type.Optional(Type.String()),
@@ -212,8 +212,7 @@ export function createSessionsSendTool(opts?: {
           status: visibleSession.status,
           error: visibleSession.error,
           sessionKey:
-            visibleSession.displayKey ??
-            (typeof sessionKey === "string" ? sessionKey : undefined),
+            visibleSession.displayKey ?? (typeof sessionKey === "string" ? sessionKey : undefined),
         });
       }
       // Normalize sessionKey/sessionId input into a canonical session key.

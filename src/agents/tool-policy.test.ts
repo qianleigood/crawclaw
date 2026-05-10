@@ -83,7 +83,7 @@ describe("tool-policy", () => {
     expect(isOwnerOnlyToolName("whatsapp_login")).toBe(true);
     expect(isOwnerOnlyToolName("cron")).toBe(true);
     expect(isOwnerOnlyToolName("gateway")).toBe(true);
-    expect(isOwnerOnlyToolName("nodes")).toBe(true);
+    expect(isOwnerOnlyToolName("nodes")).toBe(false);
     expect(isOwnerOnlyToolName("read")).toBe(false);
   });
 
@@ -91,7 +91,7 @@ describe("tool-policy", () => {
     expect(resolveOwnerOnlyToolApprovalClass("whatsapp_login")).toBe("interactive");
     expect(resolveOwnerOnlyToolApprovalClass("cron")).toBe("control_plane");
     expect(resolveOwnerOnlyToolApprovalClass("gateway")).toBe("control_plane");
-    expect(resolveOwnerOnlyToolApprovalClass("nodes")).toBe("exec_capable");
+    expect(resolveOwnerOnlyToolApprovalClass("nodes")).toBeUndefined();
     expect(resolveOwnerOnlyToolApprovalClass("read")).toBeUndefined();
   });
 
@@ -104,7 +104,6 @@ describe("tool-policy", () => {
     expect(Object.fromEntries(sharedBackstops)).toEqual({
       cron: "control_plane",
       gateway: "control_plane",
-      nodes: "exec_capable",
       whatsapp_login: "interactive",
     });
   });
@@ -144,7 +143,7 @@ describe("tool-policy", () => {
     ).toContain("optional-demo");
   });
 
-  it("strips nodes for non-owner senders via fallback policy", () => {
+  it("does not treat removed nodes as an owner-only fallback", () => {
     const tools = [
       {
         name: "read",
@@ -158,7 +157,10 @@ describe("tool-policy", () => {
       },
     ] as unknown as AnyAgentTool[];
 
-    expect(applyOwnerOnlyToolPolicy(tools, false).map((tool) => tool.name)).toEqual(["read"]);
+    expect(applyOwnerOnlyToolPolicy(tools, false).map((tool) => tool.name)).toEqual([
+      "read",
+      "nodes",
+    ]);
     expect(applyOwnerOnlyToolPolicy(tools, true).map((tool) => tool.name)).toEqual([
       "read",
       "nodes",

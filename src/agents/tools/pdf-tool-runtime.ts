@@ -1,6 +1,7 @@
 import { loadWebMediaRaw } from "../../media/web-media.js";
 import { resolveUserPath } from "../../utils.js";
 import { resolvePromptAndModelOverride } from "./media-tool-shared.js";
+import { resolveMediaToolLocalRoots } from "./media-tool-shared.js";
 import {
   createSandboxBridgeReadFile,
   resolveSandboxedBridgeMediaPath,
@@ -8,7 +9,6 @@ import {
   type SandboxFsBridge,
   type ToolFsPolicy,
 } from "./tool-runtime.helpers.js";
-import { resolveMediaToolLocalRoots } from "./media-tool-shared.js";
 
 const DEFAULT_MAX_PDFS = 10;
 const DEFAULT_PROMPT = "Analyze this PDF document.";

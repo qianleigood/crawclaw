@@ -1246,7 +1246,7 @@ Optional sandboxing for the embedded agent. See [Sandboxing](/gateway/sandboxing
           "sessions_spawn",
           "session_status",
         ],
-        deny: ["browser", "canvas", "nodes", "cron", "discord", "gateway"],
+        deny: ["browser", "canvas", "cron", "discord", "gateway"],
       },
     },
   },
@@ -1577,7 +1577,6 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
             "process",
             "browser",
             "canvas",
-            "nodes",
             "cron",
             "gateway",
             "image",
@@ -1851,8 +1850,6 @@ special-agent-only tools such as `session_summary_file_read`,
 | `group:ui`              | `browser`, `canvas`                                                                                                                |
 | `group:messaging`       | `message`                                                                                                                          |
 | `group:automation`      | `cron`, `gateway`                                                                                                                  |
-| `group:nodes`           | `nodes`                                                                                                                            |
-| `group:agents`          | `agents_list`                                                                                                                      |
 | `group:skills`          | `discover_skills`                                                                                                                  |
 | `group:workflow`        | `workflow`, `workflowize`                                                                                                          |
 | `group:review`          | `review_task`                                                                                                                      |

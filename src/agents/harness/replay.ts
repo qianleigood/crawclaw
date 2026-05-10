@@ -1,9 +1,14 @@
 import type { ToolLoopDetectionConfig } from "../../config/types.tools.js";
 import type { SessionState } from "../../logging/diagnostic-session-state.js";
-import { getToolCallStats, detectToolCallLoopByFingerprint, recordProgressEnvelope, type LoopDetectionResult } from "../tool-loop-detection.js";
 import { decideLoopPolicyAction, type LoopPolicyAction } from "../loop/policy-engine.js";
-import { evaluateCompletionGuard, type CompletionGuardResult } from "../tasks/completion-guard.js";
 import type { ProgressEnvelope } from "../loop/types.js";
+import { evaluateCompletionGuard, type CompletionGuardResult } from "../tasks/completion-guard.js";
+import {
+  getToolCallStats,
+  detectToolCallLoopByFingerprint,
+  recordProgressEnvelope,
+  type LoopDetectionResult,
+} from "../tool-loop-detection.js";
 import type { HarnessTrace } from "./trace-capture.js";
 
 export type HarnessLoopReplayEvent = {
@@ -89,9 +94,7 @@ export function replayHarnessTrace(params: {
     trace: params.trace,
     ...(completion ? { completion } : {}),
     ...(storedCompletion ? { storedCompletion } : {}),
-    ...(typeof completionMatchesStored === "boolean"
-      ? { completionMatchesStored }
-      : {}),
+    ...(typeof completionMatchesStored === "boolean" ? { completionMatchesStored } : {}),
     loopEvents,
     finalLoopStats: getToolCallStats(state),
   };

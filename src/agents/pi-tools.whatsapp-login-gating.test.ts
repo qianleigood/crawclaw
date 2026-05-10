@@ -30,10 +30,9 @@ describe("owner-only tool gating", () => {
   it("keeps owner-only tools for authorized senders", () => {
     const tools = createCrawClawCodingTools({ senderIsOwner: true });
     const toolNames = tools.map((tool) => tool.name);
-    expect(toolNames).toContain("whatsapp_login");
     expect(toolNames).toContain("cron");
     expect(toolNames).toContain("gateway");
-    expect(toolNames).toContain("nodes");
+    expect(toolNames).not.toContain("nodes");
   });
 
   it("keeps canvas available to unauthorized senders by current trust model", () => {

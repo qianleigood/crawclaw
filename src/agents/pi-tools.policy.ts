@@ -27,7 +27,6 @@ import { normalizeToolName } from "./tool-policy.js";
 const SUBAGENT_TOOL_DENY_ALWAYS = [
   // System admin - dangerous from subagent
   "gateway",
-  "agents_list",
   // Interactive setup - not a task
   "whatsapp_login",
   // Status/scheduling - main agent coordinates

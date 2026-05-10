@@ -87,11 +87,11 @@ describe('AppSidebar desktop mode', () => {
 
     expect(wrapper.text()).toContain('routes.nav.daily')
     expect(wrapper.text()).toContain('routes.nav.setup')
-    expect(wrapper.text()).toContain('routes.dashboard')
     expect(wrapper.text()).toContain('routes.chat')
     expect(wrapper.text()).toContain('routes.models')
     expect(wrapper.text()).toContain('routes.channels')
     expect(wrapper.text()).toContain('routes.settings')
+    expect(wrapper.text()).not.toContain('routes.dashboard')
     expect(wrapper.text()).not.toContain('routes.terminal')
     expect(wrapper.text()).not.toContain('routes.files')
     expect(wrapper.text()).not.toContain('routes.monitor')
@@ -103,6 +103,7 @@ describe('AppSidebar desktop mode', () => {
     const wrapper = mount(AppSidebar, { props: { collapsed: false } })
 
     expect(wrapper.text()).toContain('routes.nav.advanced')
+    expect(wrapper.text()).toContain('routes.dashboard')
     expect(wrapper.text()).toContain('routes.terminal')
     expect(wrapper.text()).toContain('routes.files')
     expect(wrapper.text()).toContain('routes.monitor')

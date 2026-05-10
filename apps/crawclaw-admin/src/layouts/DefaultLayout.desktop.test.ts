@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => {
     routerReplace: vi.fn(),
     routerPush: vi.fn(),
     hermesStore,
+    advancedMode: false,
   }
 })
 
@@ -65,6 +66,7 @@ vi.mock('@/stores/desktop', () => ({
     ensureCapabilitiesLoaded: mocks.ensureCapabilitiesLoaded,
     isDesktopMode: mocks.isDesktopMode,
     onboardingComplete: mocks.onboardingComplete,
+    advancedMode: mocks.advancedMode,
   }),
 }))
 
@@ -92,6 +94,7 @@ describe('DefaultLayout desktop capabilities', () => {
     mocks.hermesStore.currentGateway = 'crawclaw'
     mocks.isDesktopMode = true
     mocks.onboardingComplete = true
+    mocks.advancedMode = false
     Object.defineProperty(window, 'innerWidth', {
       configurable: true,
       value: 1024,
@@ -129,7 +132,43 @@ describe('DefaultLayout desktop capabilities', () => {
 
     expect(mocks.hermesStore.connect).not.toHaveBeenCalled()
     expect(mocks.wsConnect).toHaveBeenCalledTimes(1)
-    expect(mocks.routerReplace).toHaveBeenCalledWith('/')
+    expect(mocks.routerReplace).toHaveBeenCalledWith({ name: 'Chat' })
+  })
+
+  it('uses chat as the desktop simple-mode home instead of the dashboard', async () => {
+    mocks.route.name = 'Dashboard'
+    mocks.route.meta = { gateway: 'crawclaw' }
+    mocks.advancedMode = false
+
+    mount(DefaultLayout, {
+      global: {
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+
+    expect(mocks.routerReplace).toHaveBeenCalledWith({ name: 'Chat' })
+  })
+
+  it('keeps the dashboard route available in desktop advanced mode', async () => {
+    mocks.route.name = 'Dashboard'
+    mocks.route.meta = { gateway: 'crawclaw' }
+    mocks.advancedMode = true
+
+    mount(DefaultLayout, {
+      global: {
+        stubs: {
+          RouterView: true,
+        },
+      },
+    })
+
+    await nextTick()
+
+    expect(mocks.routerReplace).not.toHaveBeenCalledWith({ name: 'Chat' })
   })
 
   it('sends first-run desktop users to onboarding before the workbench', async () => {

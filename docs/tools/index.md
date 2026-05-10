@@ -52,22 +52,22 @@ CrawClaw has three layers that work together:
 
 These tools ship with CrawClaw and are available without installing any plugins:
 
-| Tool                                       | What it does                                             | Page                                    |
-| ------------------------------------------ | -------------------------------------------------------- | --------------------------------------- |
-| `exec` / `process`                         | Run shell commands, manage background processes          | [Exec](/tools/exec)                     |
-| `code_execution`                           | Run sandboxed remote Python analysis                     | [Code Execution](/tools/code-execution) |
-| `browser`                                  | Control a Chromium browser (navigate, click, screenshot) | [Browser](/tools/browser)               |
-| `web_search` / `x_search` / `web_fetch`    | Search the web, search X posts, fetch page content       | [Web](/tools/web)                       |
-| `image`                                    | Analyze one or more images with a vision model           | [Image Tool](/tools/image)              |
-| `pdf`                                      | Analyze PDF files with native and fallback extraction    | [PDF Tool](/tools/pdf)                  |
-| `tts`                                      | Convert text replies into audio                          | [Text-to-Speech](/tools/tts)            |
-| `read` / `write` / `edit`                  | File I/O in the workspace                                |                                         |
-| `apply_patch`                              | Multi-hunk file patches                                  | [Apply Patch](/tools/apply-patch)       |
-| `message`                                  | Send messages across all channels                        | [Agent Send](/tools/agent-send)         |
-| `canvas`                                   | Drive node Canvas (present, eval, snapshot)              |                                         |
-| `nodes`                                    | Discover and target paired devices                       |                                         |
-| `cron` / `gateway`                         | Manage scheduled jobs, restart gateway                   |                                         |
-| `sessions_*` / `subagents` / `agents_list` | Session management, turn-yield, and sub-agents           | [Sub-agents](/tools/subagents)          |
+| Tool                                    | What it does                                             | Page                                    |
+| --------------------------------------- | -------------------------------------------------------- | --------------------------------------- |
+| `exec` / `process`                      | Run shell commands, manage background processes          | [Exec](/tools/exec)                     |
+| `code_execution`                        | Run sandboxed remote Python analysis                     | [Code Execution](/tools/code-execution) |
+| `browser`                               | Control a Chromium browser (navigate, click, screenshot) | [Browser](/tools/browser)               |
+| `web_search` / `x_search` / `web_fetch` | Search the web, search X posts, fetch page content       | [Web](/tools/web)                       |
+| `image`                                 | Analyze one or more images with a vision model           | [Image Tool](/tools/image)              |
+| `pdf`                                   | Analyze PDF files with native and fallback extraction    | [PDF Tool](/tools/pdf)                  |
+| `tts`                                   | Convert text replies into audio                          | [Text-to-Speech](/tools/tts)            |
+| `read` / `write` / `edit`               | File I/O in the workspace                                |                                         |
+| `apply_patch`                           | Multi-hunk file patches                                  | [Apply Patch](/tools/apply-patch)       |
+| `message`                               | Send messages across all channels                        | [Agent Send](/tools/agent-send)         |
+| `canvas`                                | Drive node Canvas (present, eval, snapshot)              |                                         |
+| `nodes`                                 | Discover and target paired devices                       |                                         |
+| `cron` / `gateway`                      | Manage scheduled jobs, restart gateway                   |                                         |
+| `sessions_*` / `subagents`              | Session management, turn-yield, and sub-agents           | [Sub-agents](/tools/subagents)          |
 
 `image` and `pdf` are conditionally registered: CrawClaw only exposes them
 when it can resolve usable media-capable models for the current agent.
@@ -132,7 +132,6 @@ Use `group:*` shorthands in allow/deny lists:
 | `group:automation`      | cron, gateway                                                                                                          |
 | `group:messaging`       | message                                                                                                                |
 | `group:nodes`           | nodes                                                                                                                  |
-| `group:agents`          | agents_list                                                                                                            |
 | `group:skills`          | discover_skills                                                                                                        |
 | `group:workflow`        | workflow, workflowize                                                                                                  |
 | `group:review`          | review_task                                                                                                            |

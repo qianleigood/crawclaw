@@ -1,8 +1,8 @@
 import type { ToolLoopDetectionConfig } from "../../config/types.tools.js";
-import { WARNING_THRESHOLD, hashToolCall } from "../tool-loop-detection.js";
 import type { ProgressEnvelope } from "../loop/types.js";
-import type { HarnessTrace } from "./trace-capture.js";
+import { WARNING_THRESHOLD, hashToolCall } from "../tool-loop-detection.js";
 import { replayHarnessTrace, type HarnessReplayResult } from "./replay.js";
+import type { HarnessTrace } from "./trace-capture.js";
 
 export type HarnessScenario = {
   name: string;

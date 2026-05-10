@@ -22,7 +22,7 @@ export const routes: RouteRecordRaw[] = [
         path: '',
         name: 'Dashboard',
         component: () => import('@/views/Dashboard.vue'),
-        meta: { titleKey: 'routes.dashboard', icon: 'GridOutline', gateway: 'crawclaw' },
+        meta: { titleKey: 'routes.dashboard', icon: 'GridOutline', gateway: 'crawclaw', desktopAdvanced: true },
       },
       {
         path: 'chat',

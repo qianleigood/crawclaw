@@ -14,7 +14,6 @@ import { scheduleGatewaySigusr1Restart } from "../../infra/restart.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { stringEnum } from "../schema/typebox.js";
 import { type AnyAgentTool, jsonResult, readStringParam } from "./common.js";
-import { callGatewayTool, readGatewayCallOptions } from "./gateway.js";
 import {
   applyGatewayConfig,
   getGatewayConfigSnapshot,
@@ -23,6 +22,7 @@ import {
   resolveGatewayConfigWriteParams,
   runGatewayUpdate,
 } from "./gateway-tool-ops.js";
+import { callGatewayTool, readGatewayCallOptions } from "./gateway.js";
 
 const log = createSubsystemLogger("gateway-tool");
 const PROTECTED_GATEWAY_CONFIG_PATHS = ["tools.exec.ask", "tools.exec.security"] as const;

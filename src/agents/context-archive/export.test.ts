@@ -2,11 +2,8 @@ import fs from "node:fs/promises";
 import { afterEach, describe, expect, it } from "vitest";
 import { SqliteRuntimeStore } from "../../memory/runtime/sqlite-runtime-store.ts";
 import { createTrackedTempDirs } from "../../test-utils/tracked-temp-dirs.js";
+import { exportContextArchiveRun, exportContextArchiveSnapshot } from "./export.js";
 import { createContextArchiveService } from "./service.js";
-import {
-  exportContextArchiveRun,
-  exportContextArchiveSnapshot,
-} from "./export.js";
 
 const tempDirs = createTrackedTempDirs();
 const stores: SqliteRuntimeStore[] = [];
@@ -67,7 +64,9 @@ describe("context archive export", () => {
     const eventLines = (await fs.readFile(exported!.refs.eventsRef, "utf8"))
       .trim()
       .split("\n")
-      .map((line) => JSON.parse(line) as { type: string; payloadBlobHash?: string; payload?: unknown });
+      .map(
+        (line) => JSON.parse(line) as { type: string; payloadBlobHash?: string; payload?: unknown },
+      );
     expect(eventLines).toHaveLength(1);
     expect(eventLines[0]).toMatchObject({
       type: "turn.model_visible_context",
@@ -94,6 +93,8 @@ describe("context archive export", () => {
       taskId: "task-export-2",
     });
 
-    expect(snapshot.runs.map((run) => run.run.id).toSorted()).toEqual([runA.id, runB.id].toSorted());
+    expect(snapshot.runs.map((run) => run.run.id).toSorted()).toEqual(
+      [runA.id, runB.id].toSorted(),
+    );
   });
 });

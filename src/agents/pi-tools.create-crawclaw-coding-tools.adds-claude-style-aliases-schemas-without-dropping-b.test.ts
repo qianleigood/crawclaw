@@ -7,7 +7,7 @@ const defaultTools = createCrawClawCodingTools({ senderIsOwner: true });
 
 describe("createCrawClawCodingTools", () => {
   it("preserves action enums in normalized schemas", () => {
-    const toolNames = ["canvas", "nodes", "cron", "gateway", "message"];
+    const toolNames = ["canvas", "cron", "gateway", "message"];
     const missingNames = toolNames.filter(
       (name) => !defaultTools.some((candidate) => candidate.name === name),
     );

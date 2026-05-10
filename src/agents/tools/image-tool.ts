@@ -9,16 +9,20 @@ import {
 } from "../../plugin-sdk/media-understanding.js";
 import { isMinimaxVlmProvider } from "../minimax-vlm.js";
 import {
+  buildImageToolResultDetails,
+  loadImageToolInputs,
+  normalizeImageToolInput,
+  pickMaxBytes,
+  type ImageSandboxConfig,
+} from "./image-tool-runtime.js";
+import {
   coerceImageAssistantText,
   coerceImageModelConfig,
   decodeDataUrl,
   type ImageModelConfig,
   resolveProviderVisionModelFromConfig,
 } from "./image-tool.helpers.js";
-import {
-  applyImageModelConfigDefaults,
-  buildTextToolResult,
-} from "./media-tool-shared.js";
+import { applyImageModelConfigDefaults, buildTextToolResult } from "./media-tool-shared.js";
 import {
   buildToolModelConfigFromCandidates,
   hasToolModelConfig,
@@ -29,13 +33,6 @@ import {
   type AnyAgentTool,
   type ToolFsPolicy,
 } from "./tool-runtime.helpers.js";
-import {
-  buildImageToolResultDetails,
-  loadImageToolInputs,
-  normalizeImageToolInput,
-  pickMaxBytes,
-  type ImageSandboxConfig,
-} from "./image-tool-runtime.js";
 
 const ANTHROPIC_IMAGE_PRIMARY = "anthropic/claude-opus-4-6";
 const ANTHROPIC_IMAGE_FALLBACK = "anthropic/claude-opus-4-5";

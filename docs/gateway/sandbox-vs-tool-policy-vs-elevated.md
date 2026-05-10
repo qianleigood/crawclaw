@@ -96,7 +96,6 @@ Available groups:
 - `group:automation`: `cron`, `gateway`
 - `group:messaging`: `message`
 - `group:nodes`: `nodes`
-- `group:agents`: `agents_list`
 - `group:skills`: `discover_skills`
 - `group:workflow`: `workflow`, `workflowize`
 - `group:review`: `review_task`

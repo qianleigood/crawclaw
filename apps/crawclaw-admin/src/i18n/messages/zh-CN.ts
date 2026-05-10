@@ -193,7 +193,6 @@ export default {
       ui: '界面',
       messaging: '消息',
       automation: '自动化',
-      nodes: '节点',
       agents: '智能体',
       media: '媒体',
     },
@@ -1540,6 +1539,7 @@ export default {
       messages: {
         abortRequested: '已发送停止请求',
         abortFailed: '停止失败：{reason}',
+        simpleEmpty: '开始输入一句话，CrawClaw 会在这里回复。',
         emptyFiltered: '当前筛选下无消息',
       },
       tts: {
@@ -1548,7 +1548,9 @@ export default {
         error: '语音合成失败',
       },
       input: {
+        simplePlaceholder: '输入你想让 CrawClaw 做的事...',
         placeholder: '输入消息（输入 / 可查看 CrawClaw 命令，Enter 发送，Shift+Enter 换行）',
+        simpleSendHint: 'Enter 发送，Shift+Enter 换行',
         sendHint: '当前发送到：{key} ｜ Enter 发送，Shift+Enter 换行，Ctrl/Cmd+Enter 发送',
         screenshotPrompt: '请根据这张截图中可见的内容回答。',
         screenshotAttached: '截图已加入输入框',
@@ -2486,7 +2488,6 @@ export default {
           ui: '界面',
           messaging: '消息',
           automation: '自动化',
-          nodes: '节点',
           agents: '智能体',
           media: '媒体',
         },

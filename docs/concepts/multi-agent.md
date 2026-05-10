@@ -482,7 +482,7 @@ and a tighter tool policy:
             "sessions_spawn",
             "session_status",
           ],
-          deny: ["write", "edit", "apply_patch", "browser", "canvas", "nodes", "cron"],
+          deny: ["write", "edit", "apply_patch", "browser", "canvas", "cron"],
         },
       },
     ],

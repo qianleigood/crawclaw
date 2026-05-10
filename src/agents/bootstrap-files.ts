@@ -84,7 +84,8 @@ export async function resolveBootstrapFilesForRun(params: {
     runKind: params.runKind,
   });
   const bootstrapFiles =
-    (params.contextMode ?? "full") === "lightweight" && (params.runKind ?? "default") === "heartbeat"
+    (params.contextMode ?? "full") === "lightweight" &&
+    (params.runKind ?? "default") === "heartbeat"
       ? contextFilteredFiles
       : filterBootstrapFilesForSession(contextFilteredFiles, sessionKey);
 

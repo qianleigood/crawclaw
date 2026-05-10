@@ -38,7 +38,6 @@ export {
   shouldResolveSessionIdInput,
   shouldVerifyRequesterSpawnedSessionVisibility,
 } from "./sessions-resolution.js";
-import { resolveSessionReference, resolveVisibleSessionReference } from "./sessions-resolution.js";
 import { type CrawClawConfig, loadConfig } from "../../config/config.js";
 import {
   DEFAULT_AGENT_ID,
@@ -53,6 +52,7 @@ import {
   stripModelSpecialTokens,
   stripThinkingTagsFromText,
 } from "../pi-embedded-utils.js";
+import { resolveSessionReference, resolveVisibleSessionReference } from "./sessions-resolution.js";
 
 export type SessionKind = "main" | "group" | "cron" | "hook" | "node" | "other";
 
@@ -207,10 +207,7 @@ export async function resolveAccessibleSessionReference(params: {
   return visibleSession;
 }
 
-export function resolveSessionAccessPolicies(params: {
-  cfg: CrawClawConfig;
-  sandboxed?: boolean;
-}) {
+export function resolveSessionAccessPolicies(params: { cfg: CrawClawConfig; sandboxed?: boolean }) {
   return {
     a2aPolicy: createAgentToAgentPolicy(params.cfg),
     visibility: resolveEffectiveSessionToolsVisibility({

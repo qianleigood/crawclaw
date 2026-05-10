@@ -54,8 +54,11 @@ describe("emitAgentActionEvent", () => {
       agentId: "main",
       taskId: "task-1",
     });
-    mocks.getRuntimeConfigSnapshot.mockReturnValue({ memory: { contextArchive: { mode: "replay" } } });
-    const events: Array<{ stream: string; sessionKey?: string; data: Record<string, unknown> }> = [];
+    mocks.getRuntimeConfigSnapshot.mockReturnValue({
+      memory: { contextArchive: { mode: "replay" } },
+    });
+    const events: Array<{ stream: string; sessionKey?: string; data: Record<string, unknown> }> =
+      [];
     const stop = onAgentEvent((event) => {
       events.push({
         stream: event.stream,

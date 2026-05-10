@@ -67,11 +67,6 @@
         }
       }
     },
-    "agents_list": {
-      "emoji": "🧭",
-      "title": "Agents",
-      "detailKeys": []
-    },
     "web_search": {
       "emoji": "🔎",
       "title": "Web Search",

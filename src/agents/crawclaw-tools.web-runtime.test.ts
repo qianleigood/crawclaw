@@ -31,9 +31,6 @@ function mockToolFactory(name: string) {
   return () => createStubTool(name);
 }
 
-vi.mock("./tools/agents-list-tool.js", () => ({
-  createAgentsListTool: mockToolFactory("agents_list_stub"),
-}));
 vi.mock("./tools/canvas-tool.js", () => ({
   createCanvasTool: mockToolFactory("canvas_stub"),
 }));
@@ -48,9 +45,6 @@ vi.mock("./tools/image-tool.js", () => ({
 }));
 vi.mock("./tools/message-tool.js", () => ({
   createMessageTool: mockToolFactory("message_stub"),
-}));
-vi.mock("./tools/nodes-tool.js", () => ({
-  createNodesTool: mockToolFactory("nodes_stub"),
 }));
 vi.mock("./tools/pdf-tool.js", () => ({
   createPdfTool: mockToolFactory("pdf_stub"),

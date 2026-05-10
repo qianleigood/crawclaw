@@ -295,11 +295,9 @@ describe("createCrawClawCodingTools", () => {
     const coreTools = new Set([
       "browser",
       "canvas",
-      "nodes",
       "cron",
       "message",
       "gateway",
-      "agents_list",
       "sessions_list",
       "sessions_history",
       "sessions_send",

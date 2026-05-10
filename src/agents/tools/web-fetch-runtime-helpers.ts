@@ -16,10 +16,7 @@ import {
   truncateText,
   type ExtractMode,
 } from "./web-fetch-utils.js";
-import {
-  type CacheEntry,
-  writeCache,
-} from "./web-shared.js";
+import { type CacheEntry, writeCache } from "./web-shared.js";
 
 const DEFAULT_FETCH_MAX_CHARS = 50_000;
 const DEFAULT_FETCH_MAX_RESPONSE_BYTES = 2_000_000;
@@ -410,14 +407,16 @@ function normalizeProviderWebFetchPayload(params: {
   });
 }
 
-export async function maybeFetchProviderWebFetchPayload(params: WebFetchRuntimeParams & {
-  urlToFetch: string;
-  cacheKey: string;
-  tookMs: number;
-  usedFallback: boolean;
-  ignoreErrorPayloads?: boolean;
-  cache: Map<string, CacheEntry<Record<string, unknown>>>;
-}): Promise<Record<string, unknown> | null> {
+export async function maybeFetchProviderWebFetchPayload(
+  params: WebFetchRuntimeParams & {
+    urlToFetch: string;
+    cacheKey: string;
+    tookMs: number;
+    usedFallback: boolean;
+    ignoreErrorPayloads?: boolean;
+    cache: Map<string, CacheEntry<Record<string, unknown>>>;
+  },
+): Promise<Record<string, unknown> | null> {
   if (!params.providerFallback) {
     return null;
   }
