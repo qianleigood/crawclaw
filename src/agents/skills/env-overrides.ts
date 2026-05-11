@@ -1,11 +1,11 @@
 import type { CrawClawConfig } from "../../config/config.js";
 import { normalizeResolvedSecretInputString } from "../../config/types.secrets.js";
+import { sanitizeEnvVars, validateEnvVarValue } from "../../infra/env-sanitize.js";
 import {
   isDangerousHostEnvOverrideVarName,
   isDangerousHostEnvVarName,
 } from "../../infra/host-env-security.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
-import { sanitizeEnvVars, validateEnvVarValue } from "../sandbox/sanitize-env-vars.js";
 import { resolveSkillConfig } from "./config.js";
 import { resolveSkillKey } from "./frontmatter.js";
 import { resolveSkillRuntimeConfig } from "./runtime-config.js";

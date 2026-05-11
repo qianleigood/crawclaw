@@ -1,10 +1,7 @@
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
-import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolvePathFromInput } from "../../agents/path-policy.js";
-import { assertMediaNotDataUrl, resolveSandboxedMediaSource } from "../../agents/sandbox-paths.js";
-import { ensureSandboxWorkspaceForSession } from "../../agents/sandbox.js";
-import { resolveEffectiveToolFsWorkspaceOnly } from "../../agents/tool-fs-policy.js";
 import type { CrawClawConfig } from "../../config/config.js";
+import { assertMediaNotDataUrl } from "../../media/source-policy.js";
 import type { ReplyPayload } from "../types.js";
 
 const HTTP_URL_RE = /^https?:\/\//i;
@@ -36,26 +33,6 @@ export function createReplyMediaPathNormalizer(params: {
   sessionKey?: string;
   workspaceDir: string;
 }): (payload: ReplyPayload) => Promise<ReplyPayload> {
-  const agentId = params.sessionKey
-    ? resolveSessionAgentId({ sessionKey: params.sessionKey, config: params.cfg })
-    : undefined;
-  const workspaceOnly = resolveEffectiveToolFsWorkspaceOnly({
-    cfg: params.cfg,
-    agentId,
-  });
-  let sandboxRootPromise: Promise<string | undefined> | undefined;
-
-  const resolveSandboxRoot = async (): Promise<string | undefined> => {
-    if (!sandboxRootPromise) {
-      sandboxRootPromise = ensureSandboxWorkspaceForSession({
-        config: params.cfg,
-        sessionKey: params.sessionKey,
-        workspaceDir: params.workspaceDir,
-      }).then((sandbox) => sandbox?.workspaceDir);
-    }
-    return await sandboxRootPromise;
-  };
-
   const normalizeMediaSource = async (raw: string): Promise<string> => {
     const media = raw.trim();
     if (!media) {
@@ -64,23 +41,6 @@ export function createReplyMediaPathNormalizer(params: {
     assertMediaNotDataUrl(media);
     if (HTTP_URL_RE.test(media)) {
       return media;
-    }
-    const sandboxRoot = await resolveSandboxRoot();
-    if (sandboxRoot) {
-      try {
-        return await resolveSandboxedMediaSource({
-          media,
-          sandboxRoot,
-        });
-      } catch (err) {
-        if (workspaceOnly || !isLikelyLocalMediaSource(media)) {
-          throw err;
-        }
-        if (FILE_URL_RE.test(media)) {
-          return media;
-        }
-        return resolvePathFromInput(media, params.workspaceDir);
-      }
     }
     if (!isLikelyLocalMediaSource(media)) {
       return media;

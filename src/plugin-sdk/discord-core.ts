@@ -4,7 +4,7 @@ export { buildChannelConfigSchema, getChatChannelMeta } from "./channel-plugin-c
 export type { CrawClawConfig } from "../config/config.js";
 export type { DiscordConfig } from "../config/types.discord.js";
 export { withNormalizedTimestamp } from "../agents/date-time.js";
-export { assertMediaNotDataUrl } from "../agents/sandbox-paths.js";
+export { assertMediaNotDataUrl } from "../media/source-policy.js";
 export {
   type ActionGate,
   jsonResult,

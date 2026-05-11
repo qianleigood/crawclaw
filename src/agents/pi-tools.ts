@@ -16,12 +16,7 @@ import { isSubagentSessionKey } from "../routing/session-key.js";
 import { resolveGatewayMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
 import { createApplyPatchTool } from "./apply-patch.js";
-import {
-  createExecTool,
-  createProcessTool,
-  type ExecToolDefaults,
-  type ProcessToolDefaults,
-} from "./bash-tools.js";
+import type { ExecToolDefaults, ProcessToolDefaults } from "./bash-tools.js";
 import { listChannelAgentTools } from "./channel-tools.js";
 import { shouldSuppressManagedWebSearchTool } from "./codex-native-web-search.js";
 import { createCrawClawTools } from "./crawclaw-tools.js";
@@ -43,19 +38,21 @@ import {
   createHostWorkspaceEditTool,
   createHostWorkspaceWriteTool,
   createCrawClawReadTool,
-  createSandboxedEditTool,
-  createSandboxedReadTool,
-  createSandboxedWriteTool,
   normalizeToolParams,
   patchToolSchemaForClaudeCompatibility,
   wrapToolMemoryFlushAppendOnlyWrite,
   wrapToolWorkspaceRootGuard,
-  wrapToolWorkspaceRootGuardWithOptions,
   wrapToolParamNormalization,
 } from "./pi-tools.read.js";
 import { normalizeToolParameters } from "./pi-tools.schema.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
-import type { SandboxContext } from "./sandbox.js";
+import {
+  createRustBashTool,
+  createRustFindTool,
+  createRustGrepTool,
+  createRustLsTool,
+  createRustProcessTool,
+} from "./runtime-tools/core-tools.js";
 import { cleanSchemaForGemini } from "./schema/clean-for-gemini.js";
 import type { SkillSemanticRetriever } from "./skills/discovery.js";
 import { createSkillSemanticRetrieverFromConfig } from "./skills/semantic-retrieval.js";
@@ -83,9 +80,7 @@ function isOpenAIProvider(provider?: string) {
 const TOOL_DENY_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>> = {
   voice: ["tts"],
 };
-const TOOL_ALLOW_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>> = {
-  node: ["canvas", "discover_skills", "image", "pdf", "tts", "web_fetch", "web_search"],
-};
+const TOOL_ALLOW_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>> = {};
 const MEMORY_FLUSH_ALLOWED_TOOL_NAMES = new Set(["read", "write"]);
 
 function normalizeMessageProvider(messageProvider?: string): string | undefined {
@@ -277,7 +272,6 @@ function resolveExecConfig(params: { cfg?: CrawClawConfig; agentId?: string }) {
     host: agentExec?.host ?? globalExec?.host,
     security: agentExec?.security ?? globalExec?.security,
     ask: agentExec?.ask ?? globalExec?.ask,
-    node: agentExec?.node ?? globalExec?.node,
     pathPrepend: agentExec?.pathPrepend ?? globalExec?.pathPrepend,
     safeBins: agentExec?.safeBins ?? globalExec?.safeBins,
     strictInlineEval: agentExec?.strictInlineEval ?? globalExec?.strictInlineEval,
@@ -341,7 +335,6 @@ export function createCrawClawCodingTools(options?: {
   agentAccountId?: string;
   messageTo?: string;
   messageThreadId?: string | number;
-  sandbox?: SandboxContext | null;
   sessionKey?: string;
   /** Ephemeral session UUID — regenerated on /new. */
   sessionId?: string;
@@ -355,8 +348,6 @@ export function createCrawClawCodingTools(options?: {
   workspaceDir?: string;
   /**
    * Workspace directory that spawned subagents should inherit.
-   * When sandboxing uses a copied workspace (`ro` or `none`), workspaceDir is the
-   * sandbox copy but subagents should inherit the real agent workspace instead.
    * Defaults to workspaceDir when not set.
    */
   spawnWorkspaceDir?: string;
@@ -432,8 +423,6 @@ export function createCrawClawCodingTools(options?: {
     sessionId: string;
   };
 }): AnyAgentTool[] {
-  const execToolName = "exec";
-  const sandbox = options?.sandbox?.enabled ? options.sandbox : undefined;
   const isMemoryFlushRun = options?.trigger === "memory";
   if (isMemoryFlushRun && !options?.memoryFlushWritePath) {
     throw new Error("memoryFlushWritePath required for memory-triggered tool runs");
@@ -456,10 +445,6 @@ export function createCrawClawCodingTools(options?: {
     modelProvider: options?.modelProvider,
     modelId: options?.modelId,
   });
-  // Prefer the already-resolved sandbox context policy. Recomputing from
-  // sessionKey/config can lose the real sandbox agent when callers pass a
-  // legacy alias like `main` instead of an agent session key.
-  const sandboxToolPolicy = sandbox?.tools;
   const groupPolicy = resolveGroupToolPolicy({
     config: options?.config,
     sessionKey: options?.sessionKey,
@@ -551,7 +536,6 @@ export function createCrawClawCodingTools(options?: {
     agentPolicyWithSpecialAllow,
     agentProviderPolicyWithSpecialAllow,
     groupPolicyWithSpecialAllow,
-    sandboxToolPolicy,
     subagentPolicy,
     specialAgentPromptAllowPolicy,
   ]);
@@ -560,9 +544,6 @@ export function createCrawClawCodingTools(options?: {
   const fsPolicy = createToolFsPolicy({
     workspaceOnly: isMemoryFlushRun || fsConfig.workspaceOnly,
   });
-  const sandboxRoot = sandbox?.workspaceDir;
-  const sandboxFsBridge = sandbox?.fsBridge;
-  const allowWorkspaceWrites = sandbox?.workspaceAccess !== "ro";
   const workspaceRoot = resolveWorkspaceRoot(options?.workspaceDir);
   const workspaceOnly = fsPolicy.workspaceOnly;
   const applyPatchConfig = execConfig.applyPatch;
@@ -578,28 +559,10 @@ export function createCrawClawCodingTools(options?: {
       allowModels: applyPatchConfig?.allowModels,
     });
 
-  if (sandboxRoot && !sandboxFsBridge) {
-    throw new Error("Sandbox filesystem bridge is unavailable.");
-  }
   const imageSanitization = resolveImageSanitizationLimits(options?.config);
 
   const base = (createCodingTools(workspaceRoot) as unknown as AnyAgentTool[]).flatMap((tool) => {
     if (tool.name === "read") {
-      if (sandboxRoot) {
-        const sandboxed = createSandboxedReadTool({
-          root: sandboxRoot,
-          bridge: sandboxFsBridge!,
-          modelContextWindowTokens: options?.modelContextWindowTokens,
-          imageSanitization,
-        });
-        return [
-          workspaceOnly
-            ? wrapToolWorkspaceRootGuardWithOptions(sandboxed, sandboxRoot, {
-                containerWorkdir: sandbox.containerWorkdir,
-              })
-            : sandboxed,
-        ];
-      }
       const freshReadTool = createReadTool(workspaceRoot);
       const wrapped = createCrawClawReadTool(freshReadTool, {
         modelContextWindowTokens: options?.modelContextWindowTokens,
@@ -607,33 +570,29 @@ export function createCrawClawCodingTools(options?: {
       });
       return [workspaceOnly ? wrapToolWorkspaceRootGuard(wrapped, workspaceRoot) : wrapped];
     }
-    if (tool.name === "bash" || tool.name === execToolName) {
+    if (tool.name === "bash" || tool.name === "exec") {
+      return [];
+    }
+    if (tool.name === "grep" || tool.name === "find" || tool.name === "ls") {
       return [];
     }
     if (tool.name === "write") {
-      if (sandboxRoot) {
-        return [];
-      }
       const wrapped = createHostWorkspaceWriteTool(workspaceRoot, { workspaceOnly });
       return [workspaceOnly ? wrapToolWorkspaceRootGuard(wrapped, workspaceRoot) : wrapped];
     }
     if (tool.name === "edit") {
-      if (sandboxRoot) {
-        return [];
-      }
       const wrapped = createHostWorkspaceEditTool(workspaceRoot, { workspaceOnly });
       return [workspaceOnly ? wrapToolWorkspaceRootGuard(wrapped, workspaceRoot) : wrapped];
     }
     return [tool];
   });
   const { cleanupMs: cleanupMsOverride, ...execDefaults } = options?.exec ?? {};
-  const execTool = createExecTool({
+  const execTool = createRustBashTool(workspaceRoot, {
     ...execDefaults,
     host: options?.exec?.host ?? execConfig.host,
     security: options?.exec?.security ?? execConfig.security,
     ask: options?.exec?.ask ?? execConfig.ask,
     trigger: options?.trigger,
-    node: options?.exec?.node ?? execConfig.node,
     pathPrepend: options?.exec?.pathPrepend ?? execConfig.pathPrepend,
     safeBins: options?.exec?.safeBins ?? execConfig.safeBins,
     strictInlineEval: options?.exec?.strictInlineEval ?? execConfig.strictInlineEval,
@@ -656,32 +615,17 @@ export function createCrawClawCodingTools(options?: {
     notifyOnExit: options?.exec?.notifyOnExit ?? execConfig.notifyOnExit,
     notifyOnExitEmptySuccess:
       options?.exec?.notifyOnExitEmptySuccess ?? execConfig.notifyOnExitEmptySuccess,
-    sandbox: sandbox
-      ? {
-          containerName: sandbox.containerName,
-          workspaceDir: sandbox.workspaceDir,
-          containerWorkdir: sandbox.containerWorkdir,
-          env: sandbox.backend?.env ?? sandbox.docker.env,
-          buildExecSpec: sandbox.backend?.buildExecSpec.bind(sandbox.backend),
-          finalizeExec: sandbox.backend?.finalizeExec?.bind(sandbox.backend),
-        }
-      : undefined,
   });
-  const processTool = createProcessTool({
+  const processTool = createRustProcessTool({
     cleanupMs: cleanupMsOverride ?? execConfig.cleanupMs,
     scopeKey,
   });
-  const applyPatchTool =
-    !applyPatchEnabled || (sandboxRoot && !allowWorkspaceWrites)
-      ? null
-      : createApplyPatchTool({
-          cwd: sandboxRoot ?? workspaceRoot,
-          sandbox:
-            sandboxRoot && allowWorkspaceWrites
-              ? { root: sandboxRoot, bridge: sandboxFsBridge! }
-              : undefined,
-          workspaceOnly: applyPatchWorkspaceOnly,
-        });
+  const applyPatchTool = !applyPatchEnabled
+    ? null
+    : createApplyPatchTool({
+        cwd: workspaceRoot,
+        workspaceOnly: applyPatchWorkspaceOnly,
+      });
   const skillSemanticRetrieve =
     options?.skillSemanticRetrieve ??
     createSkillSemanticRetrieverFromConfig({
@@ -690,30 +634,9 @@ export function createCrawClawCodingTools(options?: {
     });
   const tools: AnyAgentTool[] = [
     ...base,
-    ...(sandboxRoot
-      ? allowWorkspaceWrites
-        ? [
-            workspaceOnly
-              ? wrapToolWorkspaceRootGuardWithOptions(
-                  createSandboxedEditTool({ root: sandboxRoot, bridge: sandboxFsBridge! }),
-                  sandboxRoot,
-                  {
-                    containerWorkdir: sandbox.containerWorkdir,
-                  },
-                )
-              : createSandboxedEditTool({ root: sandboxRoot, bridge: sandboxFsBridge! }),
-            workspaceOnly
-              ? wrapToolWorkspaceRootGuardWithOptions(
-                  createSandboxedWriteTool({ root: sandboxRoot, bridge: sandboxFsBridge! }),
-                  sandboxRoot,
-                  {
-                    containerWorkdir: sandbox.containerWorkdir,
-                  },
-                )
-              : createSandboxedWriteTool({ root: sandboxRoot, bridge: sandboxFsBridge! }),
-          ]
-        : []
-      : []),
+    createRustGrepTool(workspaceRoot) as unknown as AnyAgentTool,
+    createRustFindTool(workspaceRoot) as unknown as AnyAgentTool,
+    createRustLsTool(workspaceRoot) as unknown as AnyAgentTool,
     ...(applyPatchTool ? [applyPatchTool as unknown as AnyAgentTool] : []),
     execTool as unknown as AnyAgentTool,
     processTool as unknown as AnyAgentTool,
@@ -727,10 +650,7 @@ export function createCrawClawCodingTools(options?: {
     // Channel docking: include channel-defined agent tools (login, etc.).
     ...listChannelAgentTools({ cfg: options?.config }),
     ...createCrawClawTools({
-      sandboxBrowserBridgeUrl: sandbox?.browser?.bridgeUrl,
-      sandboxBrowserCdpUrl: sandbox?.browser?.cdpUrl,
-      sandboxBrowserPinchTabUrl: sandbox?.browser?.pinchTabUrl,
-      allowHostBrowserControl: sandbox ? sandbox.browserAllowHostControl : true,
+      allowHostBrowserControl: true,
       agentSessionKey: options?.sessionKey,
       agentChannel: resolveGatewayMessageChannel(options?.messageProvider),
       durableMemoryChannel: normalizeMessageProvider(options?.messageProvider),
@@ -743,14 +663,11 @@ export function createCrawClawCodingTools(options?: {
       agentGroupChannel: options?.groupChannel ?? null,
       agentGroupSpace: options?.groupSpace ?? null,
       agentDir: options?.agentDir,
-      sandboxRoot,
-      sandboxFsBridge,
       fsPolicy,
       workspaceDir: workspaceRoot,
       spawnWorkspaceDir: options?.spawnWorkspaceDir
         ? resolveWorkspaceRoot(options.spawnWorkspaceDir)
         : undefined,
-      sandboxed: !!sandbox,
       config: options?.config,
       pluginToolAllowlist: collectExplicitAllowlist([
         profilePolicy,
@@ -760,7 +677,6 @@ export function createCrawClawCodingTools(options?: {
         agentPolicy,
         agentProviderPolicy,
         groupPolicy,
-        sandboxToolPolicy,
         subagentPolicy,
       ]),
       currentChannelId: options?.currentChannelId,
@@ -795,13 +711,8 @@ export function createCrawClawCodingTools(options?: {
           if (tool.name === "write") {
             return [
               wrapToolMemoryFlushAppendOnlyWrite(tool, {
-                root: sandboxRoot ?? workspaceRoot,
+                root: workspaceRoot,
                 relativePath: memoryFlushWritePath,
-                containerWorkdir: sandbox?.containerWorkdir,
-                sandbox:
-                  sandboxRoot && sandboxFsBridge
-                    ? { root: sandboxRoot, bridge: sandboxFsBridge }
-                    : undefined,
               }),
             ];
           }
@@ -845,7 +756,6 @@ export function createCrawClawCodingTools(options?: {
         groupPolicy: groupPolicyWithSpecialAllow,
         agentId,
       }),
-      { policy: sandboxToolPolicy, label: "sandbox tools.allow" },
       { policy: subagentPolicy, label: "subagent tools.allow" },
       { policy: specialAgentPromptAllowPolicy, label: "special-agent tools.allow" },
     ],

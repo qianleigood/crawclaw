@@ -1,9 +1,7 @@
-import { assertMediaNotDataUrl, resolveSandboxedMediaSource } from "../../agents/sandbox-paths.js";
 import { readStringParam } from "../../agents/tools/common.js";
 import { resolveChannelMessageToolMediaSourceParamKeys } from "../../channels/plugins/message-action-discovery.js";
 import type { ChannelId, ChannelMessageActionName } from "../../channels/plugins/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import { createRootScopedReadFile } from "../../infra/fs-safe.js";
 import { basenameFromMediaSource } from "../../infra/local-file-access.js";
 import {
   buildOutboundMediaLoadOptions,
@@ -12,6 +10,7 @@ import {
   type OutboundMediaReadFile,
 } from "../../media/load-options.js";
 import { extensionForMime } from "../../media/mime.js";
+import { assertMediaNotDataUrl } from "../../media/source-policy.js";
 import { loadWebMedia } from "../../media/web-media.js";
 import { resolveSnakeCaseParamKey } from "../../param-key.js";
 import { readBooleanParam as readBooleanParamShared } from "../../plugin-sdk/boolean-param.js";
@@ -166,31 +165,16 @@ function normalizeBase64Payload(params: { base64?: string; contentType?: string 
   };
 }
 
-export type AttachmentMediaPolicy =
-  | {
-      mode: "sandbox";
-      sandboxRoot: string;
-    }
-  | {
-      mode: "host";
-      mediaAccess?: OutboundMediaAccess;
-    };
+export type AttachmentMediaPolicy = {
+  mediaAccess?: OutboundMediaAccess;
+};
 
 export function resolveAttachmentMediaPolicy(params: {
-  sandboxRoot?: string;
   mediaAccess?: OutboundMediaAccess;
   mediaLocalRoots?: readonly string[];
   mediaReadFile?: OutboundMediaReadFile;
 }): AttachmentMediaPolicy {
-  const sandboxRoot = params.sandboxRoot?.trim();
-  if (sandboxRoot) {
-    return {
-      mode: "sandbox",
-      sandboxRoot,
-    };
-  }
   return {
-    mode: "host",
     mediaAccess: resolveOutboundMediaAccess({
       mediaAccess: params.mediaAccess,
       mediaLocalRoots: params.mediaLocalRoots,
@@ -202,28 +186,12 @@ export function resolveAttachmentMediaPolicy(params: {
 function buildAttachmentMediaLoadOptions(params: {
   policy: AttachmentMediaPolicy;
   maxBytes?: number;
-}):
-  | {
-      maxBytes?: number;
-      sandboxValidated: true;
-      readFile: (filePath: string) => Promise<Buffer>;
-    }
-  | {
-      maxBytes?: number;
-      localRoots?: readonly string[] | "any";
-      readFile?: OutboundMediaReadFile;
-      hostReadCapability?: boolean;
-    } {
-  if (params.policy.mode === "sandbox") {
-    const readSandboxFile = createRootScopedReadFile({
-      rootDir: params.policy.sandboxRoot.trim(),
-    });
-    return {
-      maxBytes: params.maxBytes,
-      sandboxValidated: true,
-      readFile: readSandboxFile,
-    };
-  }
+}): {
+  maxBytes?: number;
+  localRoots?: readonly string[] | "any";
+  readFile?: OutboundMediaReadFile;
+  hostReadCapability?: boolean;
+} {
   return buildOutboundMediaLoadOptions({
     maxBytes: params.maxBytes,
     mediaAccess: params.policy.mediaAccess,
@@ -285,13 +253,11 @@ async function hydrateAttachmentPayload(params: {
   }
 }
 
-export async function normalizeSandboxMediaParams(params: {
+export async function normalizeMediaParams(params: {
   args: Record<string, unknown>;
   mediaPolicy: AttachmentMediaPolicy;
   extraParamKeys?: readonly string[];
 }): Promise<void> {
-  const sandboxRoot =
-    params.mediaPolicy.mode === "sandbox" ? params.mediaPolicy.sandboxRoot.trim() : undefined;
   for (const key of buildActionMediaSourceParamKeys(params.extraParamKeys)) {
     const entry = resolveMediaParamEntry(params.args, key);
     if (!entry) {
@@ -299,21 +265,10 @@ export async function normalizeSandboxMediaParams(params: {
     }
     const raw = entry.value;
     assertMediaNotDataUrl(raw);
-    if (!sandboxRoot) {
-      continue;
-    }
-    const normalized = await resolveSandboxedMediaSource({ media: raw, sandboxRoot });
-    if (normalized !== raw) {
-      params.args[entry.key] = normalized;
-    }
   }
 }
 
-export async function normalizeSandboxMediaList(params: {
-  values: string[];
-  sandboxRoot?: string;
-}): Promise<string[]> {
-  const sandboxRoot = params.sandboxRoot?.trim();
+export async function normalizeMediaList(params: { values: string[] }): Promise<string[]> {
   const normalized: string[] = [];
   const seen = new Set<string>();
   for (const value of params.values) {
@@ -322,14 +277,11 @@ export async function normalizeSandboxMediaList(params: {
       continue;
     }
     assertMediaNotDataUrl(raw);
-    const resolved = sandboxRoot
-      ? await resolveSandboxedMediaSource({ media: raw, sandboxRoot })
-      : raw;
-    if (seen.has(resolved)) {
+    if (seen.has(raw)) {
       continue;
     }
-    seen.add(resolved);
-    normalized.push(resolved);
+    seen.add(raw);
+    normalized.push(raw);
   }
   return normalized;
 }
