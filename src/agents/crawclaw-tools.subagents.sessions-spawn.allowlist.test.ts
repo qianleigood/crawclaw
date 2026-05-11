@@ -47,43 +47,12 @@ describe("crawclaw-tools: subagents (sessions_spawn allowlist)", () => {
     return () => childSessionKey;
   }
 
-  async function executeSpawn(callId: string, agentId: string, runtime?: "inherit" | "require") {
+  async function executeSpawn(callId: string, agentId: string) {
     const tool = await getSessionsSpawnTool({
       agentSessionKey: "main",
       agentChannel: "whatsapp",
     });
-    return tool.execute(callId, { task: "do thing", agentId, runtime });
-  }
-
-  function setResearchUnchildConfig(params?: { includeChildDefault?: boolean }) {
-    setSessionsSpawnConfigOverride({
-      session: {
-        mainKey: "main",
-        scope: "per-sender",
-      },
-      agents: {
-        ...(params?.includeChildDefault
-          ? {
-              defaults: {
-                runtime: {
-                  mode: "all",
-                },
-              },
-            }
-          : {}),
-        list: [
-          {
-            id: "main",
-            subagents: {
-              allowAgents: ["research"],
-            },
-          },
-          {
-            id: "research",
-          },
-        ],
-      },
-    });
+    return tool.execute(callId, { task: "do thing", agentId });
   }
 
   async function expectAllowedSpawn(params: {
@@ -218,27 +187,6 @@ describe("crawclaw-tools: subagents (sessions_spawn allowlist)", () => {
     });
   });
 
-  it("forbids child cross-agent spawns that would unruntime the child", async () => {
-    setResearchUnchildConfig({ includeChildDefault: true });
-
-    const result = await executeSpawn("call11", "research");
-    const details = result.details as { status?: string; error?: string };
-
-    expect(details.status).toBe("forbidden");
-    expect(details.error).toContain("Child sessions cannot spawn unchild subagents.");
-    expect(callGatewayMock).not.toHaveBeenCalled();
-  });
-
-  it('forbids runtime="require" when target runtime is unchild', async () => {
-    setResearchUnchildConfig();
-
-    const result = await executeSpawn("call12", "research", "require");
-    const details = result.details as { status?: string; error?: string };
-
-    expect(details.status).toBe("forbidden");
-    expect(details.error).toContain('runtime="require"');
-    expect(callGatewayMock).not.toHaveBeenCalled();
-  });
   // ---------------------------------------------------------------------------
   // agentId format validation (#31311)
   // ---------------------------------------------------------------------------

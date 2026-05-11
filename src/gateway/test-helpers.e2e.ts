@@ -49,7 +49,7 @@ export async function connectGatewayClient(params: {
   timeoutMessage?: string;
 }) {
   const role = params.role ?? "operator";
-  const scopes = params.scopes ?? (role === "node" ? [] : undefined);
+  const scopes = params.scopes;
   const platform = params.platform ?? process.platform;
   const identityRoot = process.env.CRAWCLAW_STATE_DIR ?? process.env.HOME ?? os.tmpdir();
   const deviceIdentity =
