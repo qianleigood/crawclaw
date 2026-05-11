@@ -32,7 +32,7 @@
 **CrawClaw Desktop**。桌面 app 会内置 CrawClaw runtime，初始化
 `~/.crawclaw`，安装并启动本机 Gateway 服务，然后打开连接本机 Gateway 的管理界面。
 
-下面的 CLI 流程适合高级本机控制、headless、Docker 和服务器部署。
+下面的 CLI 流程适合高级本机控制、headless 和服务器部署。
 
 使用推荐安装脚本：
 
@@ -56,7 +56,7 @@ crawclaw onboard --install-daemon
 
 ```bash
 crawclaw gateway status
-crawclaw tui
+crawclaw agent --message "hello"
 ```
 
 文档：
@@ -92,18 +92,9 @@ pnpm build
 pnpm crawclaw onboard
 ```
 
-Docker 是可选路径，适合隔离或 headless 部署：
-
-```bash
-./scripts/docker/setup.sh
-docker compose run --rm crawclaw-cli tui
-```
-
 更多安装路径：
 
-- [Docker](https://docs.crawclaw.ai/install/docker)
 - [Nix](https://docs.crawclaw.ai/install/nix)
-- [Podman](https://docs.crawclaw.ai/install/podman)
 - [云服务器和 VPS 部署](https://docs.crawclaw.ai/install)
 - [更新](https://docs.crawclaw.ai/install/updating)
 - [卸载](https://docs.crawclaw.ai/install/uninstall)
@@ -129,7 +120,6 @@ CrawClaw 以消息渠道为优先入口。QuickStart 和主渠道选择器优先
 ## CrawClaw 提供什么
 
 - **Gateway runtime**：一个长驻进程负责 routing、auth、sessions、渠道事件、WebSocket/HTTP APIs、OpenAI-compatible endpoints 和客户端连接。
-- **Agent runtime**：模型调用、流式输出、工具调用、subagents、sandboxing、执行事件和 provider orchestration 都在 Gateway 后面运行。
 - **Tools and skills**：内置工具覆盖 shell 执行、文件编辑、浏览器自动化、web search/fetch、消息、媒体、cron、sessions 和 device nodes。Skills 负责告诉 agent 何时以及如何使用这些工具。
 - **Memory runtime**：context assembly、compaction、durable extraction、recall、session summaries 和维护流程是运行时服务。
 - **Automation**：scheduled tasks、background tasks、task flows、hooks、standing orders 和 main-session wakes 取代临时的 heartbeat 风格自动化。
@@ -148,7 +138,7 @@ CrawClaw 以消息渠道为优先入口。QuickStart 和主渠道选择器优先
 ```mermaid
 flowchart LR
   Channels["Chat channels"] --> Gateway["Gateway"]
-  Clients["CLI, TUI, WebChat, custom clients"] --> Gateway
+  Clients["CLI, WebChat, custom clients"] --> Gateway
   Nodes["Paired nodes"] --> Gateway
   Gateway --> Agent["Agent runtime"]
   Agent --> Tools["Typed tools and policy"]
@@ -172,21 +162,20 @@ Gateway 是核心边界。客户端和渠道连接 Gateway；agent runtime 位�
 
 ## 仓库地图
 
-| 路径                             | 作用                                                                      |
-| -------------------------------- | ------------------------------------------------------------------------- |
-| [src/gateway](src/gateway)       | Gateway 控制面、protocol、auth、health、pairing 和 runtime services       |
-| [src/agents](src/agents)         | Agent runtime、tools、subagents、sandboxing、provider execution 和 events |
-| [src/memory](src/memory)         | Durable memory、recall、summaries、compaction 和 context assembly         |
-| [src/workflows](src/workflows)   | Workflow registry、n8n bridge、execution records 和 workflow operations   |
-| [src/channels](src/channels)     | channel/plugin 边界后的核心渠道实现                                       |
-| [src/plugins](src/plugins)       | plugin discovery、manifests、loading、registry 和 contract enforcement    |
-| [src/plugin-sdk](src/plugin-sdk) | 面向插件代码的 public SDK contracts                                       |
-| [extensions](extensions)         | 渠道、providers、浏览器后端、speech、media 和 tools 的 bundled plugins    |
-| [packages](packages)             | workspace 支持包                                                          |
-| [skills](skills)                 | 随包发布的 runtime skills                                                 |
-| [docs](docs)                     | Mintlify 文档源文件                                                       |
-| [test](test)                     | 共享测试基础设施和 fixtures                                               |
-| [scripts](scripts)               | install、build、Docker、release、generated baseline 和维护脚本            |
+| 路径                             | 作用                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------- |
+| [src/gateway](src/gateway)       | Gateway 控制面、protocol、auth、health、pairing 和 runtime services     |
+| [src/memory](src/memory)         | Durable memory、recall、summaries、compaction 和 context assembly       |
+| [src/workflows](src/workflows)   | Workflow registry、n8n bridge、execution records 和 workflow operations |
+| [src/channels](src/channels)     | channel/plugin 边界后的核心渠道实现                                     |
+| [src/plugins](src/plugins)       | plugin discovery、manifests、loading、registry 和 contract enforcement  |
+| [src/plugin-sdk](src/plugin-sdk) | 面向插件代码的 public SDK contracts                                     |
+| [extensions](extensions)         | 渠道、providers、浏览器后端、speech、media 和 tools 的 bundled plugins  |
+| [packages](packages)             | workspace 支持包                                                        |
+| [skills](skills)                 | 随包发布的 runtime skills                                               |
+| [docs](docs)                     | Mintlify 文档源文件                                                     |
+| [test](test)                     | 共享测试基础设施和 fixtures                                             |
+| [scripts](scripts)               | install、build、release、generated baseline 和维护脚本                  |
 
 维护者文档：
 

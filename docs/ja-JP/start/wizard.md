@@ -23,7 +23,7 @@ crawclaw onboard
 ```
 
 <Info>
-最速で初回チャットを開始する方法：`crawclaw tui` を実行します（チャンネル設定は不要）。ドキュメント：[TUI](/cli/tui)。
+最速で初回チャットを開始する方法：`crawclaw agent --message "hello"` を実行します（チャンネル設定は不要）。
 </Info>
 
 ## クイックスタート vs 詳細設定

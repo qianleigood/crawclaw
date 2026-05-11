@@ -292,9 +292,9 @@ The audit checks for:
 
 The request didn't come from an IP in `gateway.trustedProxies`. Check:
 
-- Is the proxy IP correct? (Docker container IPs can change)
+- Is the proxy IP correct?
 - Is there a load balancer in front of your proxy?
-- Use `docker inspect` or `kubectl get pods -o wide` to find actual IPs
+- Use your process manager or orchestration layer to find actual IPs.
 
 ### "trusted_proxy_user_missing"
 

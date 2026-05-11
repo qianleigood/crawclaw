@@ -152,7 +152,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   </Accordion>
 
   <Accordion title="How do I start chatting after onboarding?">
-    Use a connected channel or launch the local terminal interface with `crawclaw tui`.
+    Use a connected channel or open the desktop client.
   </Accordion>
 
   <Accordion title="How do I authenticate a gateway client (token) on localhost vs remote?">
@@ -204,9 +204,6 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     If you want extra headroom (logs, media, other services), **2GB is recommended**, but it's
     not a hard minimum.
 
-    Tip: a small Pi/VPS can host the Gateway, and you can pair **nodes** on your laptop/phone for
-    local screen/camera/canvas or command execution. See [Nodes](/nodes).
-
   </Accordion>
 
   <Accordion title="Any tips for Raspberry Pi installs?">
@@ -222,7 +219,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   </Accordion>
 
   <Accordion title="It is stuck on wake up my friend / onboarding will not hatch. What now?">
-    That screen depends on the Gateway being reachable and authenticated. The TUI also sends
+    That screen depends on the Gateway being reachable and authenticated. Desktop clients also send
     "Wake up, my friend!" automatically on first hatch. If you see that line with **no reply**
     and tokens stay at 0, the agent never ran.
 
@@ -486,7 +483,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   <Accordion title="How do I install CrawClaw on a VPS?">
     Any Linux VPS works. Install on the server, then use SSH/Tailscale to reach the Gateway.
 
-    Guides: [exe.dev](/install/exe-dev), [Hetzner](/install/hetzner), [Fly.io](/install/fly).
+    Guides: [exe.dev](/install/exe-dev), [DigitalOcean](/install/digitalocean), and [Azure](/install/azure).
     Remote access: [Gateway remote](/gateway/remote).
 
   </Accordion>
@@ -495,20 +492,13 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     We keep a **hosting hub** with the common providers. Pick one and follow the guide:
 
     - [VPS hosting](/vps) (all providers in one place)
-    - [Fly.io](/install/fly)
-    - [Hetzner](/install/hetzner)
     - [exe.dev](/install/exe-dev)
 
     How it works in the cloud: the **Gateway runs on the server**, and you access it
     from your laptop/phone via a gateway client (or Tailscale/SSH). Your state + workspace
     live on the server, so treat the host as the source of truth and back it up.
 
-    You can pair **nodes** (Mac/headless) to that cloud Gateway to access
-    local screen/camera/canvas or run commands on your laptop while keeping the
-    Gateway in the cloud.
-
     Hub: [Platforms](/platforms). Remote access: [Gateway remote](/gateway/remote).
-    Nodes: [Nodes](/nodes), [Nodes CLI](/cli/nodes).
 
   </Accordion>
 
@@ -667,9 +657,9 @@ for usage/billing and raise limits as needed.
     No. CrawClaw runs on macOS, Linux, or native Windows. A Mac mini is optional - some people
     buy one as an always-on host, but a small VPS, home server, or Raspberry Pi-class box works too.
 
-    You only need a Mac **for macOS-only tools**. For iMessage, use [BlueBubbles](/channels/bluebubbles) (recommended) - the BlueBubbles server runs on any Mac, and the Gateway can run on Linux or elsewhere. If you want other macOS-only tools, run the Gateway on a Mac or pair a macOS node.
+    You only need a Mac **for macOS-only tools**. For iMessage, use [BlueBubbles](/channels/bluebubbles) (recommended) - the BlueBubbles server runs on any Mac, and the Gateway can run on Linux or elsewhere. If you want other macOS-only tools, run the Gateway on a Mac.
 
-    Docs: [BlueBubbles](/channels/bluebubbles), [Nodes](/nodes), [Remote gateway](/gateway/remote).
+    Docs: [BlueBubbles](/channels/bluebubbles), [Remote gateway](/gateway/remote).
 
   </Accordion>
 
@@ -682,23 +672,7 @@ for usage/billing and raise limits as needed.
     - Run the Gateway on Linux/VPS, and run the BlueBubbles server on any Mac signed into Messages.
     - Run everything on the Mac if you want the simplest single-machine setup.
 
-    Docs: [BlueBubbles](/channels/bluebubbles), [Nodes](/nodes),
-    [Remote gateway](/gateway/remote).
-
-  </Accordion>
-
-  <Accordion title="If I buy a Mac mini to run CrawClaw, can I connect it to my MacBook Pro?">
-    Yes. The **Mac mini can run the Gateway**, and your MacBook Pro can connect as a
-    **node** (companion device). Nodes don't run the Gateway - they provide extra
-    capabilities like screen/camera/canvas and `system.run` on that device.
-
-    Common pattern:
-
-    - Gateway on the Mac mini (always-on).
-    - MacBook Pro runs a node host and pairs to the Gateway.
-    - Use `crawclaw nodes status` / `crawclaw nodes list` to see it.
-
-    Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes).
+    Docs: [BlueBubbles](/channels/bluebubbles), [Remote gateway](/gateway/remote).
 
   </Accordion>
 
@@ -821,7 +795,6 @@ for usage/billing and raise limits as needed.
     - **Dedicated host (VPS/Mac mini/Pi):** always-on, fewer sleep/reboot interruptions, cleaner permissions, easier to keep running.
     - **Shared laptop/desktop:** totally fine for testing and active use, but expect pauses when the machine sleeps or updates.
 
-    If you want the best of both worlds, keep the Gateway on a dedicated host and pair your laptop as a **node** for local screen/camera/exec tools. See [Nodes](/nodes).
     For security guidance, read [Security](/gateway/security).
 
   </Accordion>
@@ -871,7 +844,6 @@ for usage/billing and raise limits as needed.
 
     - **Your devices, your data:** run the Gateway wherever you want (Mac, Linux, VPS) and keep the
       workspace + session history local.
-    - **Real channels, not a web sandbox:** WhatsApp/Telegram/Slack/Discord/Signal/iMessage/etc.
     - **Model-agnostic:** use Anthropic, OpenAI, MiniMax, OpenRouter, etc., with per-agent routing
       and failover.
     - **Local-only option:** run local models so **all data can stay on your device** if you want.
@@ -928,10 +900,9 @@ for usage/billing and raise limits as needed.
     Advantages:
 
     - **Persistent memory + workspace** across sessions
-    - **Multi-platform access** (WhatsApp, Telegram, Slack, Discord, TUI)
+    - **Multi-platform access** (WhatsApp, Telegram, Slack, Discord, desktop clients)
     - **Tool orchestration** (browser, files, scheduling, hooks)
     - **Always-on Gateway** (run on a VPS, interact from anywhere)
-    - **Nodes** for local browser/screen/camera/exec
 
     Showcase: [https://crawclaw.ai/showcase](https://crawclaw.ai/showcase)
 
@@ -1045,15 +1016,12 @@ for usage/billing and raise limits as needed.
   <Accordion title="Can I run Apple macOS-only skills from Linux?">
     Not directly. macOS skills are gated by `metadata.crawclaw.os` plus required binaries, and skills only appear in the system prompt when they are eligible on the **Gateway host**. On Linux, `darwin`-only skills (like `apple-notes`, `apple-reminders`, `things-mac`) will not load unless you override the gating.
 
-    You have three supported patterns:
+    You have two supported patterns:
 
     **Option A - run the Gateway on a Mac (simplest).**
     Run the Gateway where the macOS binaries exist, then connect from Linux in [remote mode](#gateway-ports-already-running-and-remote-mode) or over Tailscale. The skills load normally because the Gateway host is macOS.
 
-    **Option B - use a macOS node (no SSH).**
-    Run the Gateway on Linux, pair a macOS node host, and set **Node Run Commands** to "Always Ask" or "Always Allow" on the Mac. CrawClaw can treat macOS-only skills as eligible when the required binaries exist on the node. The agent runs those skills via the `nodes` tool. If you choose "Always Ask", approving "Always Allow" in the prompt adds that command to the allowlist.
-
-    **Option C - proxy macOS binaries over SSH (advanced).**
+    **Option B - proxy macOS binaries over SSH (advanced).**
     Keep the Gateway on Linux, but make the required CLI binaries resolve to SSH wrappers that run on a Mac. Then override the skill to allow Linux so it stays eligible.
 
     1. Create an SSH wrapper for the binary (example: `memo` for Apple Notes):
@@ -1128,45 +1096,22 @@ for usage/billing and raise limits as needed.
     }
     ```
 
-    If the Gateway runs elsewhere, either run a node host on the browser machine or use remote CDP.
+    If the Gateway runs elsewhere, use remote CDP.
 
   </Accordion>
 </AccordionGroup>
 
-## Sandboxing and memory
-
 <AccordionGroup>
-  <Accordion title="Is there a dedicated sandboxing doc?">
-    Yes. See [Sandboxing](/gateway/sandboxing). For Docker-specific setup (full gateway in Docker or sandbox images), see [Docker](/install/docker).
+    Yes. See [Security](/gateway/security).
   </Accordion>
 
-  <Accordion title="Docker feels limited - how do I enable full features?">
-    The default image is security-first and runs as the `node` user, so it does not
-    include system packages, Homebrew, or bundled browsers. For a fuller setup:
-
-    - Persist `/home/node` with `CRAWCLAW_HOME_VOLUME` so caches survive.
-    - Bake system deps into the image with `CRAWCLAW_DOCKER_APT_PACKAGES`.
-    - Install Playwright browsers via the bundled CLI:
-      `node /app/node_modules/playwright-core/cli.js install chromium`
-    - Set `PLAYWRIGHT_BROWSERS_PATH` and ensure the path is persisted.
-
-    Docs: [Docker](/install/docker), [Browser](/tools/browser).
-
-  </Accordion>
-
-  <Accordion title="Can I keep DMs personal but make groups public/sandboxed with one agent?">
     Yes - if your private traffic is **DMs** and your public traffic is **groups**.
 
-    Use `agents.defaults.sandbox.mode: "non-main"` so group/channel sessions (non-main keys) run in Docker, while the main DM session stays on-host. Then restrict what tools are available in sandboxed sessions via `tools.sandbox.tools`.
 
     Setup walkthrough + example config: [Groups: personal DMs + public groups](/channels/groups#pattern-personal-dms-public-groups-single-agent)
 
-    Key config reference: [Gateway configuration](/gateway/configuration-reference#agentsdefaultssandbox)
-
   </Accordion>
 
-  <Accordion title="How do I bind a host folder into the sandbox?">
-    Set `agents.defaults.sandbox.docker.binds` to `["host:path:mode"]` (e.g., `"/home/user/src:/src:ro"`). Global + per-agent binds merge; per-agent binds are ignored when `scope: "shared"`. Use `:ro` for anything sensitive and remember binds bypass the sandbox filesystem walls. See [Sandboxing](/gateway/sandboxing#custom-bind-mounts) and [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated#bind-mounts-security-quick-check) for examples and safety notes.
   </Accordion>
 
   <Accordion title="How does memory work?">
@@ -1177,7 +1122,6 @@ for usage/billing and raise limits as needed.
 
     CrawClaw also runs a **silent pre-compaction memory flush** to remind the model
     to write durable notes before auto-compaction. This only runs when the workspace
-    is writable (read-only sandboxes skip it). See [Memory](/concepts/memory).
 
   </Accordion>
 
@@ -1301,10 +1245,8 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="Can agents work outside the workspace?">
-    Yes. The workspace is the **default cwd** and memory anchor, not a hard sandbox.
     Relative paths resolve inside the workspace, but absolute paths can access other
-    host locations unless sandboxing is enabled. If you need isolation, use
-    [`agents.defaults.sandbox`](/gateway/sandboxing) or per-agent sandbox settings. If you
+    host locations. If you need hard isolation, run CrawClaw on an isolated host or VM. If you
     want a repo to be the default working directory, point that agent's
     `workspace` to the repo root. The CrawClaw repo is just source code; keep the
     workspace separate unless you intentionally want the agent to work inside it.
@@ -1476,15 +1418,14 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="How do I run a central Gateway with specialized workers across devices?">
-    The common pattern is **one Gateway** (e.g. Raspberry Pi) plus **nodes** and **agents**:
+    The common pattern is **one Gateway** (e.g. Raspberry Pi) plus **agents**:
 
     - **Gateway (central):** owns channels (Signal/WhatsApp), routing, and sessions.
-    - **Nodes (devices):** Macs/headless node hosts connect as peripherals and expose local tools (`system.run`, `canvas`, `camera`).
     - **Agents (workers):** separate brains/workspaces for special roles (e.g. "Hetzner ops", "Personal data").
     - **Sub-agents:** spawn background work from a main agent when you want parallelism.
-    - **TUI:** connect to the Gateway and switch agents/sessions.
+    - **Desktop client:** connect to the Gateway and switch agents/sessions.
 
-    Docs: [Nodes](/nodes), [Remote access](/gateway/remote), [Multi-Agent Routing](/concepts/multi-agent), [Sub-agents](/tools/subagents), [TUI](/cli/tui).
+    Docs: [Remote access](/gateway/remote), [Multi-Agent Routing](/concepts/multi-agent), [Sub-agents](/tools/subagents).
 
   </Accordion>
 
@@ -1496,7 +1437,6 @@ for usage/billing and raise limits as needed.
       browser: { headless: true },
       agents: {
         defaults: {
-          sandbox: { browser: { headless: true } },
         },
       },
     }
@@ -1518,46 +1458,9 @@ for usage/billing and raise limits as needed.
   </Accordion>
 </AccordionGroup>
 
-## Remote gateways and nodes
+## Remote gateways
 
 <AccordionGroup>
-  <Accordion title="How do commands propagate between Telegram, the gateway, and nodes?">
-    Telegram messages are handled by the **gateway**. The gateway runs the agent and
-    only then calls nodes over the **Gateway WebSocket** when a node tool is needed:
-
-    Telegram → Gateway → Agent → `node.*` → Node → Gateway → Telegram
-
-    Nodes don't see inbound provider traffic; they only receive node RPC calls.
-
-  </Accordion>
-
-  <Accordion title="How can my agent access my computer if the Gateway is hosted remotely?">
-    Short answer: **pair your computer as a node**. The Gateway runs elsewhere, but it can
-    call `node.*` tools (screen, camera, system) on your local machine over the Gateway WebSocket.
-
-    Typical setup:
-
-    1. Run the Gateway on the always-on host (VPS/home server).
-    2. Put the Gateway host + your computer on the same tailnet.
-    3. Ensure the Gateway WS is reachable (tailnet bind or SSH tunnel).
-    4. Open your local client or node host, connect over SSH tunnel or direct tailnet,
-       and let it register as a node.
-    5. Approve the node on the Gateway:
-
-       ```bash
-       crawclaw devices list
-       crawclaw devices approve <requestId>
-       ```
-
-    No separate TCP bridge is required; nodes connect over the Gateway WebSocket.
-
-    Security reminder: pairing a macOS node allows `system.run` on that machine. Only
-    pair devices you trust, and review [Security](/gateway/security).
-
-    Docs: [Nodes](/nodes), [Gateway protocol](/gateway/protocol), [Remote gateway](/gateway/remote), [Security](/gateway/security).
-
-  </Accordion>
-
   <Accordion title="Tailscale is connected but I get no replies. What now?">
     Check the basics:
 
@@ -1611,29 +1514,8 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="Is there a benefit to using a node on my personal laptop instead of SSH from a VPS?">
-    Yes - nodes are the first-class way to reach your laptop from a remote Gateway, and they
-    unlock more than shell access. The Gateway runs on macOS, Linux, or native Windows and is
-    lightweight (a small VPS or Raspberry Pi-class box is fine; 4 GB RAM is plenty), so a common
-    setup is an always-on host plus your laptop as a node.
-
-    - **No inbound SSH required.** Nodes connect out to the Gateway WebSocket and use device pairing.
-    - **Safer execution controls.** `system.run` is gated by node allowlists/approvals on that laptop.
-    - **More device tools.** Nodes expose `canvas`, `camera`, and `screen` in addition to `system.run`.
-    - **Local browser automation.** Keep the Gateway on a VPS, but run the browser locally through a node host on the laptop, or expose a remote CDP endpoint from that machine.
-
-    SSH is fine for ad-hoc shell access, but nodes are simpler for ongoing agent workflows and
-    device automation.
-
-    Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes), [Browser](/tools/browser).
-
-  </Accordion>
-
-  <Accordion title="Do nodes run a gateway service?">
-    No. Only **one gateway** should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)). Nodes are peripherals that connect
-    to the gateway (macOS node mode plus headless node hosts). For headless node
-    hosts and CLI control, see [Node host CLI](/cli/node).
-
+  <Accordion title="Do remote clients run a gateway service?">
+    No. Only **one gateway** should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)).
     `gateway` and `discovery` changes reconfigure online. Listener-level gateway changes can briefly reconnect clients.
 
   </Accordion>
@@ -1682,15 +1564,15 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="How do I connect a Mac node to a remote Gateway (Tailscale Serve)?">
-    Serve exposes the **Gateway browser-client surface + WS**. Nodes connect over the same Gateway WS endpoint.
+  <Accordion title="How do I connect a remote client to a remote Gateway (Tailscale Serve)?">
+    Serve exposes the **Gateway browser-client surface + WS**.
 
     Recommended setup:
 
-    1. **Make sure the VPS + Mac are on the same tailnet**.
-    2. **Use a remote client or node host** (SSH target can be the tailnet hostname).
-       It can tunnel the Gateway port and connect as a node.
-    3. **Approve the node** on the gateway:
+    1. **Make sure the client and Gateway host are on the same tailnet**.
+    2. **Use a remote client** (SSH target can be the tailnet hostname).
+       It can tunnel the Gateway port and connect to the Gateway.
+    3. **Approve the device** on the gateway:
 
        ```bash
        crawclaw devices list
@@ -1701,16 +1583,6 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="Should I install on a second laptop or just add a node?">
-    If you only need **local tools** (screen/camera/exec) on the second laptop, add it as a
-    **node**. That keeps a single Gateway and avoids duplicated config. Local node tools are
-    currently macOS-only, but we plan to extend them to other OSes.
-
-    Install a second Gateway only when you need **hard isolation** or two fully separate bots.
-
-    Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes), [Multiple gateways](/gateway/multiple-gateways).
-
-  </Accordion>
 </AccordionGroup>
 
 ## Env vars and .env loading
@@ -1997,10 +1869,10 @@ for usage/billing and raise limits as needed.
     - Always-on Gateway host (VPS/Mac mini).
     - One agent per role (bindings).
     - Slack channel(s) bound to those agents.
-    - Local browser via a node host or remote CDP when needed.
+    - Local browser on the Gateway host or remote CDP when needed.
 
     Docs: [Multi-Agent Routing](/concepts/multi-agent), [Slack](/channels/slack),
-    [Browser](/tools/browser), [Nodes](/nodes).
+    [Browser](/tools/browser).
 
   </Accordion>
 </AccordionGroup>
@@ -2075,11 +1947,10 @@ for usage/billing and raise limits as needed.
 
     Security note: smaller or heavily quantized models are more vulnerable to prompt
     injection. We strongly recommend **large models** for any bot that can use tools.
-    If you still want small models, enable sandboxing and strict tool allowlists.
 
     Docs: [Ollama](/providers/ollama), [Local models](/gateway/local-models),
     [Model providers](/concepts/model-providers), [Security](/gateway/security),
-    [Sandboxing](/gateway/sandboxing).
+    [Security](/gateway/security).
 
   </Accordion>
 
@@ -2511,7 +2382,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     Fix:
 
-    - Fastest local check: `crawclaw tui`.
+    - Fastest local check: `crawclaw gateway status`.
     - If you don't have a token yet: `crawclaw doctor --generate-gateway-token`.
     - If remote, tunnel first: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/`.
     - Set `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`) on the gateway host.
@@ -2573,10 +2444,9 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     2. Don't open the WS port in a normal browser tab.
     3. If auth is on, include the token/password in the `connect` frame.
 
-    If you're using the CLI or TUI, the URL should look like:
+    If you're using a remote Gateway client, the URL should look like:
 
     ```
-    crawclaw tui --url ws://<host>:18789 --token <token>
     ```
 
     Protocol details: [Gateway protocol](/gateway/protocol).
@@ -2702,7 +2572,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
   </Accordion>
 
-  <Accordion title="TUI shows no output. What should I check?">
+  <Accordion title="Desktop client shows no output. What should I check?">
     First confirm the Gateway is reachable and the agent can run:
 
     ```bash
@@ -2711,10 +2581,10 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     crawclaw logs --follow
     ```
 
-    In the TUI, use `/status` to see the current state. If you expect replies in a chat
+    Use `crawclaw gateway status` to see the current state. If you expect replies in a chat
     channel, make sure delivery is enabled (`/deliver on`).
 
-    Docs: [TUI](/cli/tui), [Slash commands](/tools/slash-commands).
+    Docs: [Slash commands](/tools/slash-commands).
 
   </Accordion>
 
@@ -2769,10 +2639,9 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     - The target channel supports outbound media and isn't blocked by allowlists.
     - The file is within the provider's size limits (images are resized to max 2048px).
-    - `tools.fs.workspaceOnly=true` keeps local-path sends limited to workspace, temp/media-store, and sandbox-validated files.
     - `tools.fs.workspaceOnly=false` lets `MEDIA:` send host-local files the agent can already read, but only for media plus safe document types (images, audio, video, PDF, and Office docs). Plain text and secret-like files are still blocked.
 
-    See [Images](/nodes/images).
+    See [Messages](/concepts/messages).
 
   </Accordion>
 </AccordionGroup>
@@ -2804,7 +2673,6 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     - using a read-only or tool-disabled "reader" agent to summarize untrusted content
     - keeping `web_search` / `web_fetch` / `browser` off for tool-enabled agents
-    - sandboxing and strict tool allowlists
 
     Details: [Security](/gateway/security).
 
@@ -2838,7 +2706,6 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     Yes, **if** the agent is chat-only and the input is trusted. Smaller tiers are
     more susceptible to instruction hijacking, so avoid them for tool-enabled agents
     or when reading untrusted content. If you must use a smaller model, lock down
-    tools and run inside a sandbox. See [Security](/gateway/security).
   </Accordion>
 
   <Accordion title="I ran /start in Telegram but did not get a pairing code">

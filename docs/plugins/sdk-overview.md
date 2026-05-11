@@ -220,7 +220,6 @@ plugin-defined id).
 
 - `before_tool_call`: returning `{ block: true }` is terminal. Once any handler sets it, lower-priority handlers are skipped.
 - `before_tool_call`: returning `{ block: false }` is treated as no decision (same as omitting `block`), not as an override.
-- `before_tool_call`: the hook context includes runtime-derived `guard` information. When the run is task-backed, `guard.capability` can carry persisted sandbox/workspace/model/spawn metadata.
 - `before_install`: returning `{ block: true }` is terminal. Once any handler sets it, lower-priority handlers are skipped.
 - `before_install`: returning `{ block: false }` is treated as no decision (same as omitting `block`), not as an override.
 - `message_sending`: returning `{ cancel: true }` is terminal. Once any handler sets it, lower-priority handlers are skipped.

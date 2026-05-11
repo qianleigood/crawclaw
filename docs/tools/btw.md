@@ -84,9 +84,9 @@ Because BTW uses a separate live event and is not replayed from
 
 ## Surface behavior
 
-### TUI
+### desktop client
 
-In TUI, BTW is rendered inline in the current session view, but it remains
+In desktop client, BTW is rendered inline in the current session view, but it remains
 ephemeral:
 
 - visibly distinct from a normal assistant reply
@@ -108,7 +108,7 @@ in `chat.history`, so the persistence contract is already correct for web.
 
 Browser-facing clients still need a dedicated `chat.side_result` consumer to
 render BTW live in the browser. Until that client-side support lands, BTW is a
-Gateway-level feature with full TUI and external-channel behavior, but not yet
+Gateway-level feature with full desktop client and external-channel behavior, but not yet
 a complete browser UX.
 
 ## When to use BTW

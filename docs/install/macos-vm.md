@@ -1,28 +1,21 @@
 ---
-summary: "Run CrawClaw in a sandboxed macOS VM (local or hosted) when you need isolation or iMessage"
 read_when:
   - You want CrawClaw isolated from your main macOS environment
-  - You want iMessage integration (BlueBubbles) in a sandbox
   - You want a resettable macOS environment you can clone
   - You want to compare local vs hosted macOS VM options
 title: "macOS VMs"
 ---
 
-# CrawClaw on macOS VMs (Sandboxing)
-
 ## Recommended default (most users)
 
 - **Small Linux VPS** for an always-on Gateway and low cost. See [VPS hosting](/vps).
 - **Dedicated hardware** (Mac mini or Linux box) if you want full control and a **residential IP** for browser automation. Many sites block data center IPs, so local browsing often works better.
-- **Hybrid:** keep the Gateway on a cheap VPS, and connect your Mac as a **node** when you need browser/UI automation. See [Nodes](/nodes) and [Gateway remote](/gateway/remote).
 
 Use a macOS VM when you specifically need macOS-only capabilities (iMessage/BlueBubbles) or want strict isolation from your daily Mac.
 
 ## macOS VM options
 
 ### Local VM on your Apple Silicon Mac (Lume)
-
-Run CrawClaw in a sandboxed macOS VM on your existing Apple Silicon Mac using [Lume](https://cua.ai/docs/lume).
 
 This gives you:
 
@@ -272,10 +265,8 @@ For true always-on, consider a dedicated Mac mini or a small VPS. See [VPS hosti
 ## Related docs
 
 - [VPS hosting](/vps)
-- [Nodes](/nodes)
 - [Gateway remote](/gateway/remote)
 - [BlueBubbles channel](/channels/bluebubbles)
 - [Lume Quickstart](https://cua.ai/docs/lume/guide/getting-started/quickstart)
 - [Lume CLI Reference](https://cua.ai/docs/lume/reference/cli-reference)
 - [Unattended VM Setup](https://cua.ai/docs/lume/guide/fundamentals/unattended-setup) (advanced)
-- [Docker Sandboxing](/install/docker) (alternative isolation approach)

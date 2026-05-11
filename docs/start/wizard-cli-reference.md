@@ -115,7 +115,7 @@ It does not install or modify anything on the remote host.
 </Steps>
 
 <Note>
-If no GUI is detected, the wizard stays on CLI/TUI-friendly next steps instead of trying to open a browser surface.
+If no GUI is detected, the wizard stays on CLI-friendly next steps instead of trying to open a browser surface.
 </Note>
 
 ## Remote mode details

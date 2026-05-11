@@ -19,7 +19,7 @@ CrawClaw has three layers that work together:
 
 <Steps>
   <Step title="Tools are what the agent calls">
-    A tool is a typed function the agent can invoke (e.g. `exec`, `browser`,
+    A tool is a typed function the agent can invoke (e.g. `bash`, `browser`,
     `web_search`, `message`). CrawClaw ships a set of **built-in tools** and
     plugins can register additional ones.
 
@@ -52,22 +52,21 @@ CrawClaw has three layers that work together:
 
 These tools ship with CrawClaw and are available without installing any plugins:
 
-| Tool                                    | What it does                                             | Page                                    |
-| --------------------------------------- | -------------------------------------------------------- | --------------------------------------- |
-| `exec` / `process`                      | Run shell commands, manage background processes          | [Exec](/tools/exec)                     |
-| `code_execution`                        | Run sandboxed remote Python analysis                     | [Code Execution](/tools/code-execution) |
-| `browser`                               | Control a Chromium browser (navigate, click, screenshot) | [Browser](/tools/browser)               |
-| `web_search` / `x_search` / `web_fetch` | Search the web, search X posts, fetch page content       | [Web](/tools/web)                       |
-| `image`                                 | Analyze one or more images with a vision model           | [Image Tool](/tools/image)              |
-| `pdf`                                   | Analyze PDF files with native and fallback extraction    | [PDF Tool](/tools/pdf)                  |
-| `tts`                                   | Convert text replies into audio                          | [Text-to-Speech](/tools/tts)            |
-| `read` / `write` / `edit`               | File I/O in the workspace                                |                                         |
-| `apply_patch`                           | Multi-hunk file patches                                  | [Apply Patch](/tools/apply-patch)       |
-| `message`                               | Send messages across all channels                        | [Agent Send](/tools/agent-send)         |
-| `canvas`                                | Drive node Canvas (present, eval, snapshot)              |                                         |
-| `nodes`                                 | Discover and target paired devices                       |                                         |
-| `cron` / `gateway`                      | Manage scheduled jobs, restart gateway                   |                                         |
-| `sessions_*` / `subagents`              | Session management, turn-yield, and sub-agents           | [Sub-agents](/tools/subagents)          |
+| Tool                                | What it does                                             | Page                              |
+| ----------------------------------- | -------------------------------------------------------- | --------------------------------- |
+| `bash` / `process`                  | Run shell commands, manage background processes          | [Exec](/tools/exec)               |
+| `grep` / `find` / `ls`              | Search and inspect workspace files through Rust runtime  | [Exec](/tools/exec)               |
+| `browser`                           | Control a Chromium browser (navigate, click, screenshot) | [Browser](/tools/browser)         |
+| `web_search` / `web_fetch`          | Search the web or fetch page content                     | [Web](/tools/web)                 |
+| `image`                             | Analyze one or more images with a vision model           | [Image Tool](/tools/image)        |
+| `pdf`                               | Analyze PDF files with native and fallback extraction    | [PDF Tool](/tools/pdf)            |
+| `tts`                               | Convert text replies into audio                          | [Text-to-Speech](/tools/tts)      |
+| `read` / `write` / `edit`           | File I/O in the workspace                                |                                   |
+| `apply_patch`                       | Multi-hunk file patches                                  | [Apply Patch](/tools/apply-patch) |
+| `message`                           | Send messages across all channels                        | [Agent Send](/tools/agent-send)   |
+| `cron`                              | Manage scheduled jobs                                    |                                   |
+| `sessions_spawn` / `sessions_yield` | Spawn sub-agents and receive results                     | [Sub-agents](/tools/subagents)    |
+| `session_status`                    | Inspect current session status                           |                                   |
 
 `image` and `pdf` are conditionally registered: CrawClaw only exposes them
 when it can resolve usable media-capable models for the current agent.
@@ -97,7 +96,7 @@ config. Deny always wins over allow.
 {
   tools: {
     allow: ["group:fs", "browser", "web_search"],
-    deny: ["exec"],
+    deny: ["bash"],
   },
 }
 ```
@@ -111,12 +110,11 @@ Lifecycle gates run before policy allow/deny. `full` removes the profile
 restriction, but it does not expose runtime-conditional or special-agent-only
 tools by itself.
 
-| Profile     | What it includes                                                                                                                            |
-| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `full`      | No profile restriction; runtime, owner, sandbox, provider, and special-agent gates still apply                                              |
-| `coding`    | File I/O, runtime, web, sessions, browser, skills discovery, workflow tools, review, durable/experience memory writes, cron, image, and PDF |
-| `messaging` | Messaging, session list/history/send/status                                                                                                 |
-| `minimal`   | `session_status` only                                                                                                                       |
+| Profile     | What it includes                                                                                                                          |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `coding`    | File I/O, bash/process, grep/find/ls, web, sessions_spawn/sessions_yield/session_status, browser, skills discovery, and experience writes |
+| `messaging` | Messaging and session_status                                                                                                              |
+| `minimal`   | `session_status` only                                                                                                                     |
 
 ### Tool groups
 
@@ -124,14 +122,13 @@ Use `group:*` shorthands in allow/deny lists:
 
 | Group                   | Tools                                                                                                                  |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------- |
-| `group:runtime`         | exec, bash, process, code_execution                                                                                    |
+| `group:runtime`         | bash, process, grep, find, ls                                                                                          |
 | `group:fs`              | read, write, edit, apply_patch                                                                                         |
-| `group:web`             | web_search, web_fetch, x_search                                                                                        |
+| `group:web`             | web_search, web_fetch                                                                                                  |
 | `group:sessions`        | sessions_list, sessions_history, sessions_send, sessions_spawn, sessions_yield, subagents, session_status              |
 | `group:ui`              | browser, canvas                                                                                                        |
 | `group:automation`      | cron, gateway                                                                                                          |
 | `group:messaging`       | message                                                                                                                |
-| `group:nodes`           | nodes                                                                                                                  |
 | `group:skills`          | discover_skills                                                                                                        |
 | `group:workflow`        | workflow, workflowize                                                                                                  |
 | `group:review`          | review_task                                                                                                            |

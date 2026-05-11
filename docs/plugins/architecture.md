@@ -422,7 +422,6 @@ let plugins plug into it.
 ## Execution model
 
 Native CrawClaw plugins run **in-process** with the Gateway. They are not
-sandboxed. A loaded native plugin has the same process-level trust boundary as
 core code.
 
 Implications:
@@ -441,7 +440,6 @@ workspace plugins as development-time code, not production defaults.
 
 For bundled workspace package names, keep the plugin id anchored in the npm
 name: `@crawclaw/<id>` by default, or an approved typed suffix such as
-`-provider`, `-plugin`, `-speech`, `-sandbox`, or `-media-understanding` when
 the package intentionally exposes a narrower plugin role.
 
 Important trust note:

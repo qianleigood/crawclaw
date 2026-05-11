@@ -9,34 +9,61 @@ title: "Desktop"
 
 # Desktop
 
-CrawClaw Desktop is the default local app for CrawClaw on macOS, Windows, and Linux. It reuses the Vue admin UI and local Node backend, but the product boundary is local-first: the desktop app bundles the CrawClaw runtime, initializes `~/.crawclaw`, installs or refreshes the local Gateway service, starts that service, then opens the admin UI against the local Gateway.
+## Tauri and Rust runtime
 
-The CLI, headless, Docker, and server flows remain supported for advanced and server deployments. They are no longer the primary desktop user flow.
+CrawClaw Desktop lives under `apps/crawclaw-desktop` and uses:
+
+- Tauri v2 for the desktop shell and local process boundary.
+- React and Vite for the desktop workbench UI.
+- A Rust Gateway bound to `127.0.0.1` for local HTTP and SSE.
+- A Rust runtime binary under `runtime/crawclaw/bin/crawclaw`.
+- JS plugin execution through Pi QuickJS extensions managed by the Rust plugin host.
+- Rust-native Agent and session control for desktop chat, `sessions_*`, and sub-agents.
+- Local speech output through the bundled `qwen3-tts` native path.
+
+The desktop UI talks to `/api/desktop/bootstrap`, `/api/desktop/state`,
+`/api/desktop/runtime`, `/api/desktop/events`, `/api/desktop/search`, and the
+matching mutation routes on the local Rust Gateway. Desktop session APIs such as
+`/api/desktop/sessions/spawn`, `/api/desktop/sessions/send`, and
+`/api/desktop/sessions/yield` are backed by the Rust runtime store and do not
+start the legacy TypeScript Gateway. The old Admin Desktop package is retired;
+new desktop work should target the Tauri app.
+
+The CLI, headless, and server flows remain supported for advanced and server deployments. They are no longer the primary desktop user flow.
 
 ## Trust model
 
-CrawClaw Desktop is a local admin console for the current machine. It can expose the same host-level capabilities as the admin backend, including file browsing, terminal sessions, backups, system metrics, and supported remote desktop controls.
+CrawClaw Desktop is a local control surface for the current machine. It can expose host-level capabilities through the Rust Gateway, including file access, terminal sessions, backups, system metrics, and supported desktop controls.
 
-The Electron host keeps the browser window on the local backend origin and exposes only a small preload bridge for host-owned actions such as opening external links. Ordinary admin actions still go through the local backend HTTP and SSE surface.
+The Tauri host keeps system integration in the shell and sends ordinary business actions through the local Rust Gateway HTTP and SSE surface.
 
 The backend runs in desktop mode with these constraints:
 
 - It binds to loopback only.
 - It uses a random local port selected by the desktop host.
 - It stores mutable state outside the app bundle.
-- It connects only to the local Gateway managed by the desktop runtime.
-- It disables npm global self-update behavior and points users to GitHub Releases for desktop updates.
+- It manages only the local Rust Gateway.
+- It does not use npm global self-update behavior; desktop updates come from GitHub Releases.
 
 ## Bundled runtime
 
 Desktop packages include the production CrawClaw runtime under the app resources directory:
 
 ```text
-runtime/crawclaw/crawclaw.mjs
-runtime/crawclaw/node_modules/
+runtime/crawclaw/bin/crawclaw
+runtime/crawclaw/runtimes/manifest.json
+runtime/crawclaw/providers/manifest.json
+runtime/crawclaw/plugins/manifest.json
 ```
 
-The packaged app uses this embedded runtime for service install, service start, status checks, and log reads. End users do not need a globally installed `crawclaw` binary or a preconfigured shell `PATH` for the desktop flow.
+The packaged app uses this embedded Rust runtime for local Gateway status checks,
+Agent/session state, sub-agent routing, local plugin execution, and desktop
+runtime resources. End users do not need a globally installed `crawclaw` binary
+or a preconfigured shell `PATH` for the desktop flow.
+
+Desktop speech is intentionally local-first. The desktop package exposes the
+native `qwen3-tts` path for text-to-speech; cloud speech plugins are not part of
+the default desktop Gateway surface.
 
 ## Supported platforms
 
@@ -52,7 +79,7 @@ Platform-sensitive features may still differ by OS. The app queries `/api/deskto
 
 ## Gateway service
 
-On first launch, CrawClaw Desktop prepares the local runtime state in `~/.crawclaw` and writes missing local defaults:
+On first launch, CrawClaw Desktop prepares local runtime state in `~/.crawclaw` and writes missing local defaults:
 
 - `gateway.mode=local`
 - loopback binding
@@ -60,9 +87,11 @@ On first launch, CrawClaw Desktop prepares the local runtime state in `~/.crawcl
 - online reconfigure behavior
 - local authentication material for the desktop Gateway
 
-The desktop app installs or refreshes the OS user service through the existing launchd, systemd, or Windows service path. The installed command points at the embedded runtime entrypoint instead of a global `crawclaw` command.
-
-Closing the desktop window hides the UI and keeps the Gateway service running. Quitting the desktop app exits the Electron UI and local admin backend, but it does not stop the Gateway. Use the Gateway Service controls in Settings to explicitly start, stop, restart, or inspect logs.
+The desktop app starts or discovers the local Rust Gateway and passes a
+per-launch session token to the renderer. The Rust Gateway owns desktop Agent
+chat, session history, sub-agent spawn/send/yield, and local plugin calls.
+Closing the desktop window hides the UI. Quitting the desktop app exits the
+Tauri shell and its local Gateway process.
 
 ## State locations
 
@@ -72,17 +101,16 @@ Runtime state is shared with the CLI under:
 ~/.crawclaw
 ```
 
-Electron `userData` stores only desktop UI and admin backend state. The layout is:
+Tauri app data stores only desktop UI and shell state. The layout is:
 
 ```text
 config.json
-admin.env
 data/
 backups/
 logs/
 ```
 
-The admin backend receives these paths through `CRAWCLAW_ADMIN_*` environment variables and writes SQLite data, backups, and logs under the desktop state directory instead of the installed application bundle.
+Runtime state, transcripts, memory, plugin manifests, and provider configuration remain outside the installed application bundle.
 
 ## Gateway connection
 
@@ -96,7 +124,7 @@ Remote Gateway, VPS, and headless server deployments are managed through the CLI
 
 ## Updates
 
-Desktop builds update as a single desktop package: the app, embedded CrawClaw runtime, local admin backend, and UI are delivered together. The desktop UI does not call the CLI npm self-update path.
+Desktop builds update as a single desktop package: the app, embedded Rust runtime, and UI are delivered together. The desktop UI does not call the CLI npm self-update path.
 
 When a desktop update is available, install the platform asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
 
@@ -112,15 +140,15 @@ When a desktop update is available, install the platform asset from [GitHub Rele
 For local packaging work:
 
 ```bash
-pnpm admin:build
-pnpm admin:desktop:build
-pnpm admin:desktop:pack
+pnpm desktop:tauri:stage-runtime
+pnpm desktop:tauri:dev
+pnpm desktop:tauri:build
 ```
 
 For release validation:
 
 ```bash
-pnpm admin:desktop:release-check
+pnpm desktop:tauri:release-check
 ```
 
 See [Updating](/install/updating) for the CLI and server update flow. Desktop app updates are handled through GitHub Releases.

@@ -368,7 +368,6 @@ If a skill fails with "exec format error":
 
 1. Check if the binary has an ARM64 build
 2. Try building from source
-3. Or use a Docker container with ARM support
 
 ### WiFi Drops
 
@@ -403,6 +402,4 @@ echo 'wireless-power off' | sudo tee -a /etc/network/interfaces
 
 - [Linux guide](/platforms/linux) — general Linux setup
 - [DigitalOcean guide](/platforms/digitalocean) — cloud alternative
-- [Hetzner guide](/install/hetzner) — Docker setup
 - [Tailscale](/gateway/tailscale) — remote access
-- [Nodes](/nodes) — pair your laptop/phone with the Pi gateway

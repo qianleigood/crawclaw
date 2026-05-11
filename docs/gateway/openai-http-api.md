@@ -174,7 +174,6 @@ Set `stream: true` to receive Server-Sent Events (SSE):
 For a basic Open WebUI connection:
 
 - Base URL: `http://127.0.0.1:18789/v1`
-- Docker on macOS base URL: `http://host.docker.internal:18789/v1`
 - API key: your Gateway bearer token
 - Model: `crawclaw/default`
 

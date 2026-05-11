@@ -11,5 +11,4 @@ Search the live docs index.
 
 ```bash
 crawclaw docs browser remote-cdp
-crawclaw docs sandbox allowHostControl
 ```

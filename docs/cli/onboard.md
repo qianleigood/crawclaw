@@ -163,11 +163,10 @@ Flow notes:
 
 - `quickstart`: minimal prompts, auto-generates a gateway token.
 - `manual`: full prompts for port/bind/auth (alias of `advanced`).
-- In the web-search step, choosing **Grok** can trigger a separate follow-up
-  prompt to enable `x_search` with the same `XAI_API_KEY` and optionally pick
-  an `x_search` model. Other web-search providers do not show that prompt.
+- The web-search step uses the bundled Open-WebSearch path for the
+  model-visible `web_search` tool.
 - Local onboarding DM scope behavior: [CLI Setup Reference](/start/wizard-cli-reference#outputs-and-internals).
-- Fastest first local chat: `crawclaw tui`.
+- Fastest first chat: connect a channel or open the desktop client.
 - Custom Provider: connect any OpenAI or Anthropic compatible endpoint,
   including hosted providers not listed. Use Unknown to auto-detect.
 

@@ -1,8 +1,8 @@
 ---
-summary: "Pairing overview: approve who can DM you + which nodes can join"
+summary: "Pairing overview: approve who can DM you and which clients can join"
 read_when:
   - Setting up DM access control
-  - Pairing a new node device
+  - Pairing a new client device
   - Reviewing CrawClaw security posture
 title: "Pairing"
 ---
@@ -13,7 +13,7 @@ title: "Pairing"
 It is used in two places:
 
 1. **DM pairing** (who is allowed to talk to the bot)
-2. **Node pairing** (which devices/nodes are allowed to join the gateway network)
+2. **Device pairing** (which local clients are allowed to join the gateway network)
 
 Security context: [Security](/gateway/security)
 
@@ -59,15 +59,12 @@ Account scoping behavior:
 
 Treat these as sensitive (they gate access to your assistant).
 
-## 2) Node device pairing (macOS/headless nodes)
+## 2) Device pairing
 
-Nodes connect to the Gateway as **devices** with `role: node`. The Gateway
-creates a device pairing request that must be approved.
+Gateway clients can connect as **devices**. The Gateway creates a device pairing
+request that must be approved before the client can use authenticated device APIs.
 
-Historical note: archived mobile node flows also used the same device-pair handshake,
-but those source trees have been removed from this repository.
-
-### Approve a node device
+### Approve a device
 
 ```bash
 crawclaw devices list
@@ -79,17 +76,12 @@ If the same device retries with different auth details (for example different
 role/scopes/public key), the previous pending request is superseded and a new
 `requestId` is created.
 
-### Node pairing state storage
+### Device pairing state storage
 
 Stored under `~/.crawclaw/devices/`:
 
 - `pending.json` (short-lived; pending requests expire)
 - `paired.json` (paired devices + tokens)
-
-### Notes
-
-- The legacy `node.pair.*` API (CLI: `crawclaw nodes pending/approve`) is a
-  separate gateway-owned pairing store. WS nodes still require device pairing.
 
 ## Related docs
 

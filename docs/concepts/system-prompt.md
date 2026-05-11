@@ -23,14 +23,11 @@ The prompt is intentionally compact and uses fixed sections:
 - **Workspace**: working directory (`agents.defaults.workspace`).
 - **Documentation**: local path to CrawClaw docs (repo or npm package) and when to read them.
 - **Workspace Files (injected)**: indicates bootstrap files are included below.
-- **Sandbox** (when enabled): indicates sandboxed runtime, sandbox paths, and whether elevated exec is available.
 - **Current Date & Time**: user-local time, timezone, and time format.
 - **Reply Tags**: optional reply tag syntax for supported providers.
 - **Heartbeats**: event-driven main-session wake prompt and ack behavior, when a wake run provides a heartbeat prompt.
 - **Runtime**: host, OS, node, model, repo root (when detected), thinking level (one line).
 - **Reasoning**: current visibility level + /reasoning toggle hint.
-
-Safety guardrails in the system prompt are advisory. They guide model behavior but do not enforce policy. Use tool policy, exec approvals, sandboxing, and channel allowlists for hard enforcement; operators can disable these by design.
 
 ## Prompt modes
 
@@ -41,7 +38,6 @@ CrawClaw can render smaller system prompts for sub-agents. The runtime sets a
 - `minimal`: used for sub-agents; omits **Skills**, **Memory Recall**, **CrawClaw
   Self-Update**, **Model Aliases**, **User Identity**, **Reply Tags**,
   **Messaging**, **Silent Replies**, and legacy **Heartbeats**. Tooling, **Safety**,
-  Workspace, Sandbox, Current Date & Time (when known), Runtime, and injected
   context stay available.
 - `none`: returns only the base identity line.
 

@@ -33,9 +33,7 @@ available from `~/.crawclaw/skills`. See [Skills: per-agent vs shared](/tools/sk
 The Gateway can host **one agent** (default) or **many agents** side-by-side.
 
 **Workspace note:** each agent’s workspace is the **default cwd**, not a hard
-sandbox. Relative paths resolve inside the workspace, but absolute paths can
-reach other host locations unless sandboxing is enabled. See
-[Sandboxing](/gateway/sandboxing).
+[Security](/gateway/security).
 
 ## Paths (quick map)
 
@@ -468,7 +466,6 @@ and a tighter tool policy:
         groupChat: {
           mentionPatterns: ["@family", "@familybot", "@Family Bot"],
         },
-        sandbox: {
           mode: "all",
           scope: "agent",
         },
@@ -502,13 +499,8 @@ and a tighter tool policy:
 Notes:
 
 - Tool allow/deny lists are **tools**, not skills. If a skill needs to run a
-  binary, ensure `exec` is allowed and the binary exists in the sandbox.
 - For stricter gating, set `agents.list[].groupChat.mentionPatterns` and keep
   group allowlists enabled for the channel.
-
-## Per-Agent Sandbox and Tool Configuration
-
-Each agent can have its own sandbox and tool restrictions:
 
 ```js
 {
@@ -517,20 +509,17 @@ Each agent can have its own sandbox and tool restrictions:
       {
         id: "personal",
         workspace: "~/.crawclaw/workspace-personal",
-        sandbox: {
-          mode: "off",  // No sandbox for personal agent
         },
         // No tool restrictions - all tools available
       },
       {
         id: "family",
         workspace: "~/.crawclaw/workspace-family",
-        sandbox: {
-          mode: "all",     // Always sandboxed
-          scope: "agent",  // One container per agent
-          docker: {
-            // Optional one-time setup after container creation
-            setupCommand: "apt-get update && apt-get install -y git curl",
+          scope: "agent",  // One runtime per agent
+          backend: "ssh",
+          ssh: {
+            target: "user@gateway-host:22",
+            workspaceRoot: "/tmp/crawclaw-family",
           },
         },
         tools: {
@@ -543,20 +532,16 @@ Each agent can have its own sandbox and tool restrictions:
 }
 ```
 
-Note: `setupCommand` lives under `sandbox.docker` and runs once on container creation.
-Per-agent `sandbox.docker.*` overrides are ignored when the resolved scope is `"shared"`.
-
 **Benefits:**
 
 - **Security isolation**: Restrict tools for untrusted agents
-- **Resource control**: Sandbox specific agents while keeping others on host
 - **Flexible policies**: Different permissions per agent
 
 Note: `tools.elevated` is **global** and sender-based; it is not configurable per agent.
 If you need per-agent boundaries, use `agents.list[].tools` to deny `exec`.
 For group targeting, use `agents.list[].groupChat.mentionPatterns` so @mentions map cleanly to the intended agent.
 
-See [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools) for detailed examples.
+See [Subagents](/tools/subagents) for detailed examples.
 
 ## Related
 

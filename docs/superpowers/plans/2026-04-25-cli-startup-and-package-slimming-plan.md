@@ -226,7 +226,7 @@ read_when:
 
   ```bash
   pnpm test -- src/plugins/loader.test.ts
-  node crawclaw.mjs gateway status --json
+  ./dist/native/crawclaw gateway status --json
   node --import tsx scripts/bench-cli-startup.ts --case statusJson --runs 5 --warmup 1
   ```
 
@@ -345,7 +345,7 @@ read_when:
 - [ ] `node crawclaw.mjs --help`
 - [ ] `node crawclaw.mjs status --json`
 - [ ] `node crawclaw.mjs agents list --json`
-- [ ] `node crawclaw.mjs gateway status --json`
+- [ ] `./dist/native/crawclaw gateway status --json`
 - [ ] `pnpm build`
 - [ ] `npm pack --dry-run --json --ignore-scripts`
 

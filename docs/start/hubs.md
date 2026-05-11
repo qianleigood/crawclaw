@@ -29,7 +29,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 
 ## Installation + updates
 
-- [Docker](/install/docker)
 - [Nix](/install/nix)
 - [Updating / rollback](/install/updating)
 - [Bun workflow (experimental)](/install/bun)
@@ -84,14 +83,14 @@ Use these hubs to discover every page, including deep dives and reference docs t
 
 - [Gateway runbook](/gateway)
 - [Network model](/gateway/network-model)
-- [Gateway pairing](/gateway/pairing)
+- [Pairing](/channels/pairing)
 - [Gateway lock](/gateway/gateway-lock)
 - [Background process](/gateway/background-process)
 - [Health](/gateway/health)
 - [Heartbeat compatibility](/gateway/heartbeat)
 - [Doctor](/gateway/doctor)
 - [Logging](/gateway/logging)
-- [Sandboxing](/gateway/sandboxing)
+- [Security](/gateway/security)
 - [Remote access](/gateway/remote)
 - [Remote gateway README](/gateway/remote-gateway-readme)
 - [Tailscale](/gateway/tailscale)
@@ -115,16 +114,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Browser control](/tools/browser)
 - [Browser (Linux troubleshooting)](/tools/browser-linux-troubleshooting)
 - [Polls](/cli/message)
-
-## Nodes, media, voice
-
-- [Nodes overview](/nodes)
-- [Camera](/nodes/camera)
-- [Images](/nodes/images)
-- [Audio](/nodes/audio)
-- [Location command](/nodes/location-command)
-- [Voice wake](/nodes/voicewake)
-- [Talk mode](/nodes/talk)
 
 ## Platforms
 

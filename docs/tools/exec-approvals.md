@@ -1,25 +1,21 @@
 ---
-summary: "Exec approvals, allowlists, and sandbox escape prompts"
 read_when:
   - Configuring exec approvals or allowlists
-  - Implementing exec approval UX in node hosts or web control surfaces
-  - Reviewing sandbox escape prompts and implications
+  - Implementing exec approval UX in web control surfaces
 title: "Exec Approvals"
 ---
 
 # Exec approvals
 
-Exec approvals are the **node host guardrail** for letting a sandboxed agent run
-commands on a real host (`gateway` or `node`). Think of it like a safety interlock:
+commands on the gateway host. Think of it like a safety interlock:
 commands are allowed only when policy + allowlist + (optional) user approval all agree.
 Exec approvals are **in addition** to tool policy and elevated gating (unless elevated is set to `full`, which skips approvals).
 Effective policy is the **stricter** of `tools.exec.*` and approvals defaults; if an approvals field is omitted, the `tools.exec` value is used.
 Host exec also uses the local approvals state on that machine. A host-local
 `ask: "always"` in `~/.crawclaw/exec-approvals.json` keeps prompting even if
 session or config defaults request `ask: "on-miss"`.
-Use `crawclaw approvals get`, `crawclaw approvals get --gateway`, or
-`crawclaw approvals get --node <id|name|ip>` to inspect the requested policy,
-host policy sources, and the effective result.
+Use `crawclaw approvals get` or `crawclaw approvals get --gateway` to inspect the requested
+policy, host policy sources, and the effective result.
 
 If no approval UI is available, any request that requires a prompt is
 resolved by the **ask fallback** (default: deny).
@@ -29,24 +25,17 @@ resolved by the **ask fallback** (default: deny).
 Exec approvals are enforced locally on the execution host:
 
 - **gateway host** → `crawclaw` process on the gateway machine
-- **node host** → node runner (managed node host or headless node host)
 
 Trust model note:
 
 - Gateway-authenticated callers are trusted operators for that Gateway.
-- Paired nodes extend that trusted operator capability onto the node host.
 - Exec approvals reduce accidental execution risk, but are not a per-user auth boundary.
-- Approved node-host runs bind canonical execution context: canonical cwd, exact argv, env
-  binding when present, and pinned executable path when applicable.
 - For shell scripts and direct interpreter/runtime file invocations, CrawClaw also tries to bind
   one concrete local file operand. If that bound file changes after approval but before execution,
   the run is denied instead of executing drifted content.
 - This file binding is intentionally best-effort, not a complete semantic model of every
   interpreter/runtime loader path. If approval mode cannot identify exactly one concrete local
   file to bind, it refuses to mint an approval-backed run instead of pretending full coverage.
-
-Managed node hosts may split approval UI and execution into separate local
-components, but the approval contract stays the same.
 
 ## Settings and storage
 
@@ -104,9 +93,7 @@ This is now the default host behavior unless you tighten it explicitly:
 
 Important distinction:
 
-- `tools.exec.host=auto` chooses where exec runs: sandbox when available, otherwise gateway.
 - YOLO chooses how host exec is approved: `security=full` plus `ask=off`.
-- `auto` does not let a tool call override a sandboxed session to `gateway` or `node`. If you want a different host, set `tools.exec.host` or use `/exec host=...` explicitly.
 
 If you want a more conservative setup, tighten either layer back to `allowlist` / `on-miss`
 or `deny`.
@@ -124,21 +111,6 @@ Then set the host approvals file to match:
 
 ```bash
 crawclaw approvals set --stdin <<'EOF'
-{
-  version: 1,
-  defaults: {
-    security: "full",
-    ask: "off",
-    askFallback: "full"
-  }
-}
-EOF
-```
-
-For a node host, apply the same approvals file on that node instead:
-
-```bash
-crawclaw approvals set --node <id|name|ip> --stdin <<'EOF'
 {
   version: 1,
   defaults: {
@@ -223,13 +195,13 @@ Each allowlist entry tracks:
 ## Auto-allow skill CLIs
 
 When **Auto-allow skill CLIs** is enabled, executables referenced by known skills
-are treated as allowlisted on nodes (macOS node or headless node host). This uses
-`skills.bins` over the Gateway RPC to fetch the skill bin list. Disable this if you want strict manual allowlists.
+are treated as allowlisted on the Gateway host. This uses `skills.bins` over the
+Gateway RPC to fetch the skill bin list. Disable this if you want strict manual allowlists.
 
 Important trust notes:
 
 - This is an **implicit convenience allowlist**, separate from manual path allowlist entries.
-- It is intended for trusted operator environments where Gateway and node are in the same trust boundary.
+- It is intended for trusted operator environments.
 - If you require strict explicit trust, keep `autoAllowSkills: false` and use manual path allowlist entries only.
 
 ## Safe bins (stdin-only)
@@ -349,20 +321,15 @@ or approval prompt.
 
 Approval-capable clients can edit defaults, per-agent overrides, and allowlists.
 Pick a scope (Defaults or an agent), tweak the policy, and add/remove allowlist
-patterns. If a node does not advertise exec approvals yet, edit its local
-`~/.crawclaw/exec-approvals.json` directly.
+patterns.
 
-CLI: `crawclaw approvals` supports gateway or node editing (see [Approvals CLI](/cli/approvals)).
+CLI: `crawclaw approvals` supports local and Gateway editing (see [Approvals CLI](/cli/approvals)).
 
 ## Approval flow
 
 When a prompt is required, the gateway broadcasts `exec.approval.requested` to operator clients.
-Approval-capable clients resolve it via `exec.approval.resolve`, then the gateway forwards the
-approved request to the node host.
-
-For `host=node`, approval requests include a canonical `systemRunPlan` payload. The gateway uses
-that plan as the authoritative command/cwd/session context when forwarding approved `system.run`
-requests.
+Approval-capable clients resolve it via `exec.approval.resolve`, then the Gateway runs or denies
+the approved request.
 
 ## Interpreter/runtime commands
 
@@ -377,7 +344,6 @@ Approval-backed interpreter/runtime runs are intentionally conservative:
   (for example package scripts, eval forms, runtime-specific loader chains, or ambiguous multi-file
   forms), approval-backed execution is denied instead of claiming semantic coverage it does not
   have.
-- For those workflows, prefer sandboxing, a separate host boundary, or an explicit trusted
   allowlist/full workflow where the operator accepts the broader runtime semantics.
 
 When approvals are required, the exec tool returns immediately with an approval id. Use that id to
@@ -589,6 +555,5 @@ Related:
 ## Related
 
 - [Exec](/tools/exec) — shell command execution tool
-- [Sandboxing](/gateway/sandboxing) — sandbox modes and workspace access
 - [Security](/gateway/security) — security model and hardening
-- [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated) — when to use each
+- [Security](/gateway/security) — when to use each

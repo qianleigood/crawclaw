@@ -65,7 +65,7 @@ crawclaw gateway --port 18789
 
 Now message the assistant number from your allowlisted phone.
 
-When onboarding finishes, use a channel or launch the terminal interface with `crawclaw tui`.
+When onboarding finishes, use a channel or open the desktop client.
 
 ## Give the agent a workspace (AGENTS)
 
@@ -192,7 +192,6 @@ CrawClaw extracts these and sends them as media alongside the text.
 
 Local-path behavior follows the same file-read trust model as the agent:
 
-- If `tools.fs.workspaceOnly` is `true`, outbound `MEDIA:` local paths stay restricted to the CrawClaw temp root, the media cache, agent workspace paths, and sandbox-generated files.
 - If `tools.fs.workspaceOnly` is `false`, outbound `MEDIA:` can use host-local files the agent is already allowed to read.
 - Host-local sends still only allow media and safe document types (images, audio, video, PDF, and Office documents). Plain text and secret-like files are not treated as sendable media.
 

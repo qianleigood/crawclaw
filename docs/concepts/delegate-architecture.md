@@ -104,22 +104,17 @@ Use per-agent tool policy (v2026.1.6+) to enforce boundaries at the Gateway leve
 }
 ```
 
-### Sandbox isolation
-
-For high-security deployments, sandbox the delegate agent so it cannot access the host filesystem or network beyond its allowed tools:
-
 ```json5
 {
   id: "delegate",
   workspace: "~/.crawclaw/workspace-delegate",
-  sandbox: {
     mode: "all",
     scope: "agent",
   },
 }
 ```
 
-See [Sandboxing](/gateway/sandboxing) and [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools).
+See [Security](/gateway/security) and [Subagents](/tools/subagents).
 
 ### Audit trail
 
@@ -287,10 +282,9 @@ The delegate's `AGENTS.md` defines its autonomous authority — what it may do w
 The delegate model works for any small organization:
 
 1. **Create one delegate agent** per organization.
-2. **Harden first** — tool restrictions, sandbox, hard blocks, audit trail.
-3. **Grant scoped permissions** via the identity provider (least privilege).
-4. **Define [standing orders](/automation/standing-orders)** for autonomous operations.
-5. **Schedule cron jobs** for recurring tasks.
-6. **Review and adjust** the capability tier as trust builds.
+2. **Grant scoped permissions** via the identity provider (least privilege).
+3. **Define [standing orders](/automation/standing-orders)** for autonomous operations.
+4. **Schedule cron jobs** for recurring tasks.
+5. **Review and adjust** the capability tier as trust builds.
 
 Multiple organizations can share one Gateway server using multi-agent routing — each org gets its own isolated agent, workspace, and credentials.

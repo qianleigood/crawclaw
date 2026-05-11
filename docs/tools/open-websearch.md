@@ -82,5 +82,3 @@ CrawClaw uses the built-in supported engine set automatically for managed
 ## Related
 
 - [Web Search overview](/tools/web)
-- [DuckDuckGo Search](/tools/duckduckgo-search)
-- [SearXNG Search](/tools/searxng-search)

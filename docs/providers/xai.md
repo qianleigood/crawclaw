@@ -27,12 +27,9 @@ crawclaw onboard --auth-choice xai-api-key
 }
 ```
 
-CrawClaw now uses the xAI Responses API as the bundled xAI transport. The same
-`XAI_API_KEY` can also power Grok-backed `web_search`, first-class `x_search`,
-and remote `code_execution`.
+CrawClaw now uses the xAI Responses API as the bundled xAI transport.
 If you store an xAI key under `plugins.entries.xai.config.webSearch.apiKey`,
 the bundled xAI model provider now reuses that key as a fallback too.
-`code_execution` tuning lives under `plugins.entries.xai.config.codeExecution`.
 
 ## Current bundled model catalog
 
@@ -47,14 +44,6 @@ CrawClaw now includes these xAI model families out of the box:
 The plugin also forward-resolves newer `grok-4*` and `grok-code-fast*` ids when
 they follow the same API shape.
 
-## Web search
-
-The bundled `grok` web-search provider uses `XAI_API_KEY` too:
-
-```bash
-crawclaw config set tools.web.search.provider grok
-```
-
 ## Known limits
 
 - Auth is API-key only today. There is no xAI OAuth/device-code flow in CrawClaw yet.
@@ -63,7 +52,5 @@ crawclaw config set tools.web.search.provider grok
 ## Notes
 
 - CrawClaw applies xAI-specific tool-schema and tool-call compatibility fixes automatically on the shared runner path.
-- `web_search`, `x_search`, and `code_execution` are exposed as CrawClaw tools. CrawClaw enables the specific xAI built-in it needs inside each tool request instead of attaching all native tools to every chat turn.
-- `x_search` and `code_execution` are owned by the bundled xAI plugin rather than hardcoded into the core model runtime.
-- `code_execution` is remote xAI sandbox execution, not local [`exec`](/tools/exec).
+- xAI is a model provider only. CrawClaw no longer exposes xAI-owned web search or remote code-execution add-ons as agent tools.
 - For the broader provider overview, see [Model providers](/providers/index).

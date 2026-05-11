@@ -1,20 +1,14 @@
 ---
-summary: "Elevated exec mode: run commands on the gateway host from a sandboxed agent"
 read_when:
   - Adjusting elevated mode defaults, allowlists, or slash command behavior
-  - Understanding how sandboxed agents can access the host
 title: "Elevated Mode"
 ---
 
 # Elevated Mode
 
-When an agent runs inside a sandbox, its `exec` commands are confined to the
-sandbox environment. **Elevated mode** lets the agent break out and run commands
 on the gateway host instead, with configurable approval gates.
 
 <Info>
-  Elevated mode only changes behavior when the agent is **sandboxed**. For
-  unsandboxed agents, exec already runs on the host.
 </Info>
 
 ## Directives
@@ -26,7 +20,6 @@ Control elevated mode per-session with slash commands:
 | `/elevated on`   | Run on the gateway host, keep exec approvals        |
 | `/elevated ask`  | Same as `on` (alias)                                |
 | `/elevated full` | Run on the gateway host **and** skip exec approvals |
-| `/elevated off`  | Return to sandbox-confined execution                |
 
 Also available as `/elev on|off|ask|full`.
 
@@ -71,7 +64,6 @@ Send `/elevated` with no argument to see the current level.
 
   <Step title="Commands run on the host">
     With elevated active, `exec` calls route to the gateway host instead of the
-    sandbox. In `full` mode, exec approvals are skipped. In `on`/`ask` mode,
     configured approval rules still apply.
   </Step>
 </Steps>
@@ -110,5 +102,4 @@ Allowlist entry formats:
 
 - [Exec tool](/tools/exec) — shell command execution
 - [Exec approvals](/tools/exec-approvals) — approval and allowlist system
-- [Sandboxing](/gateway/sandboxing) — sandbox configuration
-- [Sandbox vs Tool Policy vs Elevated](/gateway/sandbox-vs-tool-policy-vs-elevated)
+- [Security](/gateway/security)

@@ -9,7 +9,7 @@ title: "gateway"
 
 # Gateway CLI
 
-The Gateway is CrawClaw’s WebSocket server (channels, nodes, sessions, hooks).
+The Gateway is CrawClaw’s WebSocket server (channels, sessions, hooks).
 
 Subcommands in this page live under `crawclaw gateway …`.
 
@@ -38,7 +38,7 @@ Notes:
 - By default, the Gateway refuses to start unless `gateway.mode=local` is set in `~/.crawclaw/crawclaw.json`. Use `--allow-unconfigured` for ad-hoc/dev runs.
 - Binding beyond loopback without auth is blocked (safety guardrail).
 - `SIGUSR1` triggers an in-process restart when authorized (`commands.restart` is enabled by default; set `commands.restart: false` to block manual restart, while gateway tool/config apply/update remain allowed).
-- `SIGINT`/`SIGTERM` handlers stop the gateway process, but they don’t restore any custom terminal state. If you wrap the CLI with a TUI or raw-mode input, restore the terminal before exit.
+- `SIGINT`/`SIGTERM` handlers stop the gateway process, but they don’t restore any custom terminal state. If you wrap the CLI with a desktop client or raw-mode input, restore the terminal before exit.
 
 ### Options
 

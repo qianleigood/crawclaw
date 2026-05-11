@@ -19,7 +19,7 @@ crawclaw onboard
 ```
 
 <Info>
-Fastest first local chat: run `crawclaw tui`.
+Fastest first chat: connect a channel or open the desktop client.
 </Info>
 
 To reconfigure later:

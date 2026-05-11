@@ -86,4 +86,3 @@ CrawClaw reads JSON5 config from `CRAWCLAW_CONFIG_PATH` and stores mutable data 
 
 - [nix-crawclaw](https://github.com/crawclaw/nix-crawclaw) -- full setup guide
 - [Wizard](/start/wizard) -- non-Nix CLI setup
-- [Docker](/install/docker) -- containerized setup

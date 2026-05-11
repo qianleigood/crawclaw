@@ -235,7 +235,6 @@ claude auth status
       models: {
         "claude-cli/claude-sonnet-4-6": {},
       },
-      sandbox: { mode: "off" },
     },
   },
 }

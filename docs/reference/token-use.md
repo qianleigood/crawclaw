@@ -66,7 +66,7 @@ Use these in chat:
 
 Other surfaces:
 
-- **TUI/Web TUI:** `/status` + `/usage` are supported.
+- **Web clients:** `/status` + `/usage` are supported.
 - **CLI:** `crawclaw status --usage` and `crawclaw channels list` show
   provider quota windows (not per-response costs).
 

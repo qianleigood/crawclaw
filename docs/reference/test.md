@@ -7,7 +7,7 @@ title: "Tests"
 
 # Tests
 
-- Full testing kit (suites, live, Docker): [Testing](/help/testing)
+- Full testing kit (suites and live tests): [Testing](/help/testing)
 
 - `pnpm test:force`: Kills any lingering gateway process holding the default control port, then runs the full Vitest suite with an isolated gateway port so server tests don’t collide with a running instance. Use this when a prior gateway run left port 18789 occupied.
 - `pnpm test:coverage`: Runs the unit suite with V8 coverage (via `vitest.unit.config.ts`). Global thresholds are 70% lines/branches/functions/statements. Coverage excludes integration-heavy entrypoints (CLI wiring and gateway/telegram bridges) to keep the target focused on unit-testable logic.
@@ -24,11 +24,9 @@ title: "Tests"
 - `pnpm test:perf:profile:runner`: writes CPU + heap profiles for the unit runner (`.artifacts/vitest-runner-profile`).
 - `pnpm test:perf:update-timings`: refreshes the checked-in slow-file timing snapshot used by `scripts/test-parallel.mjs`.
 - Gateway integration: opt-in via `CRAWCLAW_TEST_INCLUDE_GATEWAY=1 pnpm test` or `pnpm test:gateway`.
-- `pnpm test:e2e`: Runs gateway end-to-end smoke tests (multi-instance WS/HTTP/node pairing). Defaults to `forks` + adaptive workers in `vitest.e2e.config.ts`; tune with `CRAWCLAW_E2E_WORKERS=<n>` and set `CRAWCLAW_E2E_VERBOSE=1` for verbose logs.
+- `pnpm test:e2e`: Runs gateway end-to-end smoke tests (multi-instance WS/HTTP). Defaults to `forks` + adaptive workers in `vitest.e2e.config.ts`; tune with `CRAWCLAW_E2E_WORKERS=<n>` and set `CRAWCLAW_E2E_VERBOSE=1` for verbose logs.
   Generic embedded-agent E2E helpers now default to `minimax/MiniMax-M2.7`; provider-specific regression suites still keep their targeted provider configs.
 - `pnpm test:live`: Runs provider live tests (minimax/zai). Requires API keys and `LIVE=1` (or provider-specific `*_LIVE_TEST=1`) to unskip.
-- `pnpm test:docker:openwebui`: Starts Dockerized CrawClaw + Open WebUI, signs in through Open WebUI, checks `/api/models`, then runs a real proxied chat through `/api/chat/completions`. Requires a usable live model key (for example OpenAI in `~/.profile`), pulls an external Open WebUI image, and is not expected to be CI-stable like the normal unit/e2e suites.
-- `pnpm test:docker:mcp-channels`: Starts a seeded Gateway container and a second client container that spawns `crawclaw mcp serve`, then verifies routed conversation discovery, transcript reads, attachment metadata, live event queue behavior, outbound send routing, and Claude-style channel + permission notifications over the real stdio bridge. The Claude notification assertion reads the raw stdio MCP frames directly so the smoke reflects what the bridge actually emits.
 
 ## Local PR gate
 
@@ -99,23 +97,3 @@ Checked-in fixture:
 - `test/fixtures/cli-startup-bench.json`
 - Refresh with `pnpm test:startup:bench:update`
 - Compare current results against the fixture with `pnpm test:startup:bench:check`
-
-## Onboarding E2E (Docker)
-
-Docker is optional; this is only needed for containerized onboarding smoke tests.
-
-Full cold-start flow in a clean Linux container:
-
-```bash
-scripts/e2e/onboard-docker.sh
-```
-
-This script drives the interactive wizard via a pseudo-tty, verifies config/workspace/session files, then starts the gateway and runs `crawclaw health`.
-
-## QR import smoke (Docker)
-
-Ensures `qrcode-terminal` loads under the supported Docker Node runtime (Node 24.x):
-
-```bash
-pnpm test:docker:qr
-```

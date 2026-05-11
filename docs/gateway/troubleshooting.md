@@ -1,5 +1,5 @@
 ---
-summary: "Deep troubleshooting runbook for gateway, channels, automation, nodes, and browser"
+summary: "Deep troubleshooting runbook for gateway, channels, automation, and browser"
 read_when:
   - The troubleshooting hub pointed you here for deeper diagnosis
   - You need stable symptom based runbook sections with exact commands
@@ -169,7 +169,7 @@ Look for:
 
 Common signatures:
 
-- `Gateway start blocked: set gateway.mode=local` → local gateway mode is not enabled. Fix: set `gateway.mode="local"` in your config (or run `crawclaw configure`). If you are running CrawClaw via Podman, the default config path is `~/.crawclaw/crawclaw.json`.
+- `Gateway start blocked: set gateway.mode=local` → local gateway mode is not enabled. Fix: set `gateway.mode="local"` in your config (or run `crawclaw configure`).
 - `refusing to bind gateway ... without auth` → non-loopback bind without token/password.
 - `another gateway instance is already listening` / `EADDRINUSE` → port conflict.
 
@@ -241,37 +241,6 @@ Related:
 - [/automation/cron-jobs#troubleshooting](/automation/cron-jobs#troubleshooting)
 - [/automation/cron-jobs](/automation/cron-jobs)
 - [/gateway/heartbeat](/gateway/heartbeat)
-
-## Node paired tool fails
-
-If a node is paired but tools fail, isolate foreground, permission, and approval state.
-
-```bash
-crawclaw nodes status
-crawclaw nodes describe --node <idOrNameOrIp>
-crawclaw approvals get --node <idOrNameOrIp>
-crawclaw logs --follow
-crawclaw status
-```
-
-Look for:
-
-- Node online with expected capabilities.
-- OS permission grants for camera/mic/location/screen.
-- Exec approvals and allowlist state.
-
-Common signatures:
-
-- `NODE_BACKGROUND_UNAVAILABLE` → node app must be in foreground.
-- `*_PERMISSION_REQUIRED` / `LOCATION_PERMISSION_REQUIRED` → missing OS permission.
-- `SYSTEM_RUN_DENIED: approval required` → exec approval pending.
-- `SYSTEM_RUN_DENIED: allowlist miss` → command blocked by allowlist.
-
-Related:
-
-- [/nodes/troubleshooting](/nodes/troubleshooting)
-- [/nodes/index](/nodes/index)
-- [/tools/exec-approvals](/tools/exec-approvals)
 
 ## Browser tool fails
 
@@ -365,7 +334,7 @@ crawclaw doctor
 
 What to check:
 
-- Pending device approvals for dashboard/nodes.
+- Pending device approvals for dashboard clients.
 - Pending DM pairing approvals after policy or identity changes.
 
 Common signatures:
@@ -382,6 +351,6 @@ crawclaw gateway restart
 
 Related:
 
-- [/gateway/pairing](/gateway/pairing)
+- [/channels/pairing](/channels/pairing)
 - [/gateway/authentication](/gateway/authentication)
 - [/gateway/background-process](/gateway/background-process)

@@ -66,7 +66,7 @@ Recommended flow (dev profile + dev bootstrap):
 
 ```bash
 pnpm gateway:dev
-CRAWCLAW_PROFILE=dev crawclaw tui
+CRAWCLAW_PROFILE=dev crawclaw gateway status
 ```
 
 If you don’t have a global install yet, run the CLI via `pnpm crawclaw ...`.

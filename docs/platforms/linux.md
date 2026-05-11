@@ -10,7 +10,7 @@ title: "Linux App"
 The Gateway is fully supported on Linux. **Node is the recommended runtime**.
 Bun is not recommended for the Gateway (WhatsApp/Telegram bugs).
 
-Linux support is focused on CLI, Gateway, plugins, and node host operation.
+Linux support is focused on CLI, Gateway, and plugins.
 
 ## Beginner quick path (VPS)
 
@@ -18,7 +18,7 @@ Linux support is focused on CLI, Gateway, plugins, and node host operation.
 2. `npm i -g crawclaw@latest`
 3. `crawclaw onboard --install-daemon`
 4. From your laptop: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
-5. Run `crawclaw tui` locally, or connect a supported Gateway client through the SSH tunnel
+5. Run `crawclaw gateway status` locally, or connect a supported Gateway client through the SSH tunnel
 
 Full Linux server guide: [Linux Server](/vps). Step-by-step VPS example: [exe.dev](/install/exe-dev)
 
@@ -26,7 +26,7 @@ Full Linux server guide: [Linux Server](/vps). Step-by-step VPS example: [exe.de
 
 - [Getting Started](/start/getting-started)
 - [Install & updates](/install/updating)
-- Optional flows: [Bun (experimental)](/install/bun), [Nix](/install/nix), [Docker](/install/docker)
+- Optional flows: [Bun (experimental)](/install/bun), [Nix](/install/nix)
 
 ## Gateway
 

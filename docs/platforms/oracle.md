@@ -302,4 +302,3 @@ tar -czvf crawclaw-backup.tar.gz ~/.crawclaw ~/.crawclaw/workspace
 - [Tailscale integration](/gateway/tailscale) — full Tailscale docs
 - [Gateway configuration](/gateway/configuration) — all config options
 - [DigitalOcean guide](/platforms/digitalocean) — if you want paid + easier signup
-- [Hetzner guide](/install/hetzner) — Docker-based alternative

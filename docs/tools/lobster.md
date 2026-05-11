@@ -31,7 +31,6 @@ Lobster is intentionally small. The goal is not "a new language," it's a predict
 - **Approve/resume is built in**: A normal program can prompt a human, but it can’t _pause and resume_ with a durable token without you inventing that runtime yourself.
 - **Determinism + auditability**: Pipelines are data, so they’re easy to log, diff, replay, and review.
 - **Constrained surface for AI**: A tiny grammar + JSON piping reduces “creative” code paths and makes validation realistic.
-- **Safety policy baked in**: Timeouts, output caps, sandbox checks, and allowlists are enforced by the runtime, not each script.
 - **Still programmable**: Each step can call any CLI or script. If you want JS/TS, generate `.lobster` files from code.
 
 ## How it works
@@ -319,7 +318,6 @@ OpenProse pairs well with Lobster: use `/prose` to orchestrate multi-agent prep,
 
 - **Local subprocess only** — no network calls from the plugin itself.
 - **No secrets** — Lobster doesn't manage OAuth; it calls CrawClaw tools that do.
-- **Sandbox-aware** — disabled when the tool context is sandboxed.
 - **Hardened** — fixed executable name (`lobster`) on `PATH`; timeouts and output caps enforced.
 
 ## Troubleshooting

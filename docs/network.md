@@ -29,8 +29,7 @@ Key references:
 
 ## Pairing + identity
 
-- [Pairing overview (DM + nodes)](/channels/pairing)
-- [Gateway-owned node pairing](/gateway/pairing)
+- [Pairing overview](/channels/pairing)
 - [Devices CLI (pairing + token rotation)](/cli/devices)
 - [Pairing CLI (DM approvals)](/cli/pairing)
 
@@ -46,11 +45,6 @@ Local trust:
 - [Bonjour / mDNS](/gateway/bonjour)
 - [Remote access (SSH)](/gateway/remote)
 - [Tailscale](/gateway/tailscale)
-
-## Nodes + transports
-
-- [Nodes overview](/nodes)
-- [Bridge protocol (legacy nodes)](/gateway/bridge-protocol)
 
 ## Security
 

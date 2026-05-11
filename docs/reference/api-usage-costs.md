@@ -58,7 +58,7 @@ Inbound media can be summarized/transcribed before the reply runs. This uses mod
 - Image: OpenAI / Anthropic / Google.
 - Video: Google.
 
-See [Media understanding](/nodes/media-understanding).
+See [Media attachments](/concepts/messages#attachments-and-media).
 
 ### 3) Memory
 
@@ -125,7 +125,7 @@ Talk mode can invoke **ElevenLabs** when configured:
 
 - `ELEVENLABS_API_KEY` or `talk.apiKey`
 
-See [Talk mode](/nodes/talk).
+See [TTS](/tools/tts).
 
 ### 10) Skills (third-party APIs)
 

@@ -1537,7 +1537,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 
 </Accordion>
 
-优先级细节见 [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools)。
+优先级细节见 [Subagents](/tools/subagents)。
 
 ---
 

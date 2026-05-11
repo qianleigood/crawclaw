@@ -190,7 +190,7 @@
 - Do not set test workers above 16; tried already.
 - Keep Vitest on `forks` only. Do not introduce or reintroduce any non-`forks` Vitest pool or alternate execution mode in configs, wrapper scripts, or default test commands without explicit approval in this chat. This includes `threads`, `vmThreads`, `vmForks`, and any future/nonstandard pool variant.
 - If local Vitest runs cause memory pressure, the wrapper now derives budgets from host capabilities (CPU, memory band, current load). For a conservative explicit override during land/gate runs, use `CRAWCLAW_TEST_PROFILE=serial CRAWCLAW_TEST_SERIAL_GATEWAY=1 pnpm test`.
-- Live tests (real keys): `CRAWCLAW_LIVE_TEST=1 pnpm test:live` (CrawClaw-only) or `LIVE=1 pnpm test:live` (includes provider live tests). Docker: `pnpm test:docker:live-models`, `pnpm test:docker:live-gateway`. Onboarding Docker E2E: `pnpm test:docker:onboard`.
+- Live tests (real keys): `CRAWCLAW_LIVE_TEST=1 pnpm test:live` (CrawClaw-only) or `LIVE=1 pnpm test:live` (includes provider live tests).
 - `pnpm test:live` defaults quiet now. Keep `[live]` progress; suppress profile/gateway chatter. Full logs: `CRAWCLAW_LIVE_TEST_QUIET=0 pnpm test:live`.
 - Full kit + what’s covered: `docs/help/testing.md`.
 - Changelog: user-facing changes only; no internal/meta notes (version alignment, appcast reminders, release process).

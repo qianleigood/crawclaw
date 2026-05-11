@@ -23,8 +23,6 @@ crawclaw doctor
 crawclaw doctor --yes
 ```
 
-Accept defaults without prompting (including restart/service/sandbox repair steps when applicable).
-
 ```bash
 crawclaw doctor --repair
 ```
@@ -41,7 +39,6 @@ Apply aggressive repairs too (overwrites custom supervisor configs).
 crawclaw doctor --non-interactive
 ```
 
-Run without prompts and only apply safe migrations (config normalization + on-disk state moves). Skips restart/service/sandbox actions that require human confirmation.
 Legacy state migrations run automatically when detected.
 
 ```bash
@@ -73,7 +70,6 @@ cat ~/.crawclaw/crawclaw.json
 - Config file permission checks (chmod 600) when running locally.
 - Model auth health: checks OAuth expiry, can refresh expiring tokens, and reports auth-profile cooldown/disabled states.
 - Extra workspace dir detection (`~/crawclaw`).
-- Sandbox image repair when sandboxing is enabled.
 - Legacy service migration and extra gateway detection.
 - Matrix channel legacy state migration (in `--fix` / `--repair` mode).
 - Gateway runtime checks (service installed but not running; cached launchd label).
@@ -135,7 +131,6 @@ Current migrations:
 - `bindings[].match.accountID` → `bindings[].match.accountId`
 - For channels with named `accounts` but missing `accounts.default`, move account-scoped top-level single-account channel values into `channels.<channel>.accounts.default` when present
 - `identity` → `agents.list[].identity`
-- `agent.*` → `agents.defaults` + `tools.*` (tools/elevated/exec/sandbox/subagents)
 - `agent.model`/`allowedModels`/`modelAliases`/`modelFallbacks`/`imageModelFallbacks`
   → `agents.defaults.models` + `agents.defaults.model.primary/fallbacks` + `agents.defaults.imageModel.primary/fallbacks`
 - `browser.ssrfPolicy.allowPrivateNetwork` → `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork`
@@ -274,10 +269,7 @@ Doctor also reports auth profiles that are temporarily unusable due to:
 If `hooks.gmail.model` is set, doctor validates the model reference against the
 catalog and allowlist and warns when it won’t resolve or is disallowed.
 
-### 7) Sandbox image repair
-
-When sandboxing is enabled, doctor checks Docker images and offers to build or
-switch to legacy names if the current image is missing.
+that can be detected without mutating the runtime.
 
 ### 7b) Bundled plugin runtime deps
 

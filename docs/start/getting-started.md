@@ -46,7 +46,7 @@ Need to install Node? See [Node setup](/install/node).
     </Tabs>
 
     <Note>
-    Other install methods (Docker, Nix, npm): [Install](/install).
+    Other install methods (Nix, npm): [Install](/install).
     </Note>
 
   </Step>
@@ -70,13 +70,9 @@ Need to install Node? See [Node setup](/install/node).
 
   </Step>
   <Step title="Send your first message">
-    Use a connected channel or run the terminal interface:
+    Use a connected channel or the desktop client.
 
-    ```bash
-    crawclaw tui
-    ```
-
-    Want to chat from your phone instead? The fastest channel to set up is
+    The fastest channel to set up is
     [Telegram](/channels/telegram) (just a bot token). See [Channels](/channels)
     for all options.
 
@@ -93,7 +89,6 @@ Need to install Node? See [Node setup](/install/node).
     Control who can message your agent.
   </Card>
   <Card title="Configure the Gateway" href="/gateway/configuration" icon="settings">
-    Models, tools, sandbox, and advanced settings.
   </Card>
   <Card title="Browse tools" href="/tools" icon="wrench">
     Browser, exec, web search, skills, and plugins.

@@ -23,7 +23,6 @@ For onboarding details, see [Onboarding (CLI)](/start/wizard).
 
 - Node 24.x (stable) or Node 25.x (experimental)
 - `pnpm`
-- Docker (optional; only for containerized setup/e2e — see [Docker](/install/docker))
 
 ## Tailoring strategy (so updates do not hurt)
 
@@ -51,7 +50,7 @@ If you don’t have a global install yet, run it via `pnpm crawclaw setup`.
 After `pnpm build`, you can run the packaged CLI directly:
 
 ```bash
-node crawclaw.mjs gateway --port 18789 --verbose
+./dist/native/crawclaw gateway --port 18789
 ```
 
 ## Stable workflow

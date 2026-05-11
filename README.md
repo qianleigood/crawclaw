@@ -36,7 +36,7 @@ For local desktop use, install **CrawClaw Desktop** from
 app bundles the CrawClaw runtime, initializes `~/.crawclaw`, installs and starts
 the local Gateway service, and opens the admin UI against that local Gateway.
 
-Use the CLI flow below for advanced local control, headless, Docker, and server
+Use the CLI flow below for advanced local control, headless, and server
 deployments.
 
 Install with the recommended script:
@@ -61,7 +61,7 @@ Verify the Gateway and start chatting:
 
 ```bash
 crawclaw gateway status
-crawclaw tui
+crawclaw agent --message "hello"
 ```
 
 Docs:
@@ -97,18 +97,9 @@ pnpm build
 pnpm crawclaw onboard
 ```
 
-Docker is optional and useful for isolated or headless deployments:
-
-```bash
-./scripts/docker/setup.sh
-docker compose run --rm crawclaw-cli tui
-```
-
 More install paths:
 
-- [Docker](https://docs.crawclaw.ai/install/docker)
 - [Nix](https://docs.crawclaw.ai/install/nix)
-- [Podman](https://docs.crawclaw.ai/install/podman)
 - [Cloud and VPS deployments](https://docs.crawclaw.ai/install)
 - [Updating](https://docs.crawclaw.ai/install/updating)
 - [Uninstall](https://docs.crawclaw.ai/install/uninstall)
@@ -140,7 +131,6 @@ Start here:
 - **Gateway runtime**: one long-running process owns routing, auth, sessions,
   channel events, WebSocket/HTTP APIs, OpenAI-compatible endpoints, and client
   connections.
-- **Agent runtime**: model calls, streaming, tool calls, subagents, sandboxing,
   execution events, and provider orchestration run behind the Gateway.
 - **Tools and skills**: built-in tools cover shell execution, file edits,
   browser automation, web search/fetch, messaging, media, cron, sessions, and
@@ -166,7 +156,7 @@ Useful references:
 ```mermaid
 flowchart LR
   Channels["Chat channels"] --> Gateway["Gateway"]
-  Clients["CLI, TUI, WebChat, custom clients"] --> Gateway
+  Clients["CLI, WebChat, custom clients"] --> Gateway
   Nodes["Paired nodes"] --> Gateway
   Gateway --> Agent["Agent runtime"]
   Agent --> Tools["Typed tools and policy"]
@@ -195,7 +185,6 @@ Key docs:
 | Path                             | Purpose                                                                             |
 | -------------------------------- | ----------------------------------------------------------------------------------- |
 | [src/gateway](src/gateway)       | Gateway control plane, protocol, auth, health, pairing, and runtime services        |
-| [src/agents](src/agents)         | Agent runtime, tools, subagents, sandboxing, provider execution, and events         |
 | [src/memory](src/memory)         | Durable memory, recall, summaries, compaction, and context assembly                 |
 | [src/workflows](src/workflows)   | Workflow registry, n8n bridge, execution records, and workflow operations           |
 | [src/channels](src/channels)     | Core channel implementation behind the channel/plugin boundary                      |
@@ -206,7 +195,7 @@ Key docs:
 | [skills](skills)                 | Shipped runtime skills                                                              |
 | [docs](docs)                     | Mintlify documentation source                                                       |
 | [test](test)                     | Shared test infrastructure and fixtures                                             |
-| [scripts](scripts)               | Install, build, Docker, release, generated baseline, and maintenance scripts        |
+| [scripts](scripts)               | Install, build, release, generated baseline, and maintenance scripts                |
 
 Maintainer docs:
 

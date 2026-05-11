@@ -1,9 +1,9 @@
 ---
-summary: "Node discovery and transports (Bonjour, Tailscale, SSH) for finding the gateway"
+summary: "Gateway discovery and transports (Bonjour, Tailscale, SSH)"
 read_when:
   - Implementing or changing Bonjour discovery/advertising
   - Adjusting remote connection modes (direct vs SSH)
-  - Designing node discovery + pairing for remote nodes
+  - Designing client discovery and pairing
 title: "Discovery and Transports"
 ---
 
@@ -12,22 +12,21 @@ title: "Discovery and Transports"
 CrawClaw has two distinct problems that look similar on the surface:
 
 1. **Operator remote control**: a Gateway client controlling a gateway running elsewhere.
-2. **Node pairing**: node hosts (and future nodes) finding a gateway and pairing securely.
+2. **Client pairing**: trusted clients finding a gateway and pairing securely.
 
-The design goal is to keep all network discovery/advertising in the **Node Gateway** (`crawclaw gateway`) and keep clients and node hosts as consumers.
+The design goal is to keep all network discovery/advertising in the **Gateway** (`crawclaw gateway`) and keep clients as consumers.
 
 ## Terms
 
-- **Gateway**: a single long-running gateway process that owns state (sessions, pairing, node registry) and runs channels. Most setups use one per host; isolated multi-gateway setups are possible.
+- **Gateway**: a single long-running gateway process that owns state (sessions, pairing) and runs channels. Most setups use one per host; isolated multi-gateway setups are possible.
 - **Gateway WS (control plane)**: the WebSocket endpoint on `127.0.0.1:18789` by default; can be bound to LAN/tailnet via `gateway.bind`.
 - **Direct WS transport**: a LAN/tailnet-facing Gateway WS endpoint (no SSH).
 - **SSH transport (fallback)**: remote control by forwarding `127.0.0.1:18789` over SSH.
-- **Legacy TCP bridge (deprecated/removed)**: older node transport (see [Bridge protocol](/gateway/bridge-protocol)); no longer advertised for discovery.
+- **Legacy TCP bridge (removed)**: older bridge transport; no longer advertised for discovery.
 
 Protocol details:
 
 - [Gateway protocol](/gateway/protocol)
-- [Bridge protocol (legacy)](/gateway/bridge-protocol)
 
 ## Why we keep both "direct" and SSH
 
@@ -111,9 +110,9 @@ Recommended client behavior:
 
 ## Pairing + auth (direct transport)
 
-The gateway is the source of truth for node/client admission.
+The gateway is the source of truth for client admission.
 
-- Pairing requests are created/approved/rejected in the gateway (see [Gateway pairing](/gateway/pairing)).
+- Pairing requests are created/approved/rejected in the gateway (see [Pairing](/channels/pairing)).
 - The gateway enforces:
   - auth (token / keypair)
   - scopes/ACLs (the gateway is not a raw proxy to every method)

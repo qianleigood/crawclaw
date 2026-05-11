@@ -36,12 +36,8 @@ This page describes the current CLI behavior. If commands change, update this do
 - [`models`](/cli/models)
 - [`memory`](/cli/memory)
 - [`directory`](/cli/directory)
-- [`nodes`](/cli/nodes)
 - [`devices`](/cli/devices)
-- [`node`](/cli/node)
 - [`approvals`](/cli/approvals)
-- [`sandbox`](/cli/sandbox)
-- [`tui`](/cli/tui)
 - [`cron`](/cli/cron)
 - [`tasks`](/cli/index#tasks)
 - [`dns`](/cli/dns)
@@ -61,7 +57,6 @@ This page describes the current CLI behavior. If commands change, update this do
 
 - `--dev`: isolate state under `~/.crawclaw-dev` and shift default ports.
 - `--profile <name>`: isolate state under `~/.crawclaw-<name>`.
-- `--container <name>`: target a named container for execution.
 - `--no-color`: disable ANSI colors.
 - `--update`: shorthand for `crawclaw update` (source installs only).
 - `-V`, `--version`, `-v`: print version and exit.
@@ -209,7 +204,6 @@ crawclaw [--dev] [--profile <name>] <command>
     scan
     auth add|login|login-github-copilot|setup-token|paste-token
     auth order get|set|clear
-  sandbox
     list
     recreate
     explain
@@ -223,16 +217,7 @@ crawclaw [--dev] [--profile <name>] <command>
     disable
     runs
     run
-  nodes
   devices
-  node
-    run
-    status
-    install
-    uninstall
-    start
-    stop
-    restart
   approvals
     get
     set
@@ -283,7 +268,6 @@ crawclaw [--dev] [--profile <name>] <command>
   docs
   dns
     setup
-  tui
 ```
 
 Note: plugins can add additional top-level commands (for example `crawclaw voicecall`).
@@ -792,7 +776,7 @@ Options:
 Notes:
 
 - Default `status --json` is a fast local snapshot; use `status --json --deep` or `status --json --all` when you need live probes.
-- Overview includes Gateway + node host service status when available.
+- Overview includes Gateway service status when available.
 
 ### Usage tracking
 
@@ -1160,65 +1144,6 @@ Subcommands:
 
 All `cron` commands accept `--url`, `--token`, `--timeout`, `--expect-final`.
 
-## Node host
-
-`node` runs a **headless node host** or manages it as a background service. See
-[`crawclaw node`](/cli/node).
-
-Subcommands:
-
-- `node run --host <gateway-host> --port 18789`
-- `node status`
-- `node install [--host <gateway-host>] [--port <port>] [--tls] [--tls-fingerprint <sha256>] [--node-id <id>] [--display-name <name>] [--runtime <node|bun>] [--force]`
-- `node uninstall`
-- `node stop`
-- `node restart`
-
-Auth notes:
-
-- `node` resolves gateway auth from env/config (no `--token`/`--password` flags): `CRAWCLAW_GATEWAY_TOKEN` / `CRAWCLAW_GATEWAY_PASSWORD`, then `gateway.auth.*`. In local mode, node host intentionally ignores `gateway.remote.*`; in `gateway.mode=remote`, `gateway.remote.*` participates per remote precedence rules.
-- Node-host auth resolution only honors `CRAWCLAW_GATEWAY_*` env vars.
-
-## Nodes
-
-`nodes` talks to the Gateway and targets paired headless node hosts. Device and
-chat pairing lives under `devices`. See [/nodes](/nodes).
-
-Common options:
-
-- `--url`, `--token`, `--timeout`, `--json`
-
-Subcommands:
-
-- `nodes status [--connected] [--last-connected <duration>]`
-- `nodes describe --node <id|name|ip>`
-- `nodes list [--connected] [--last-connected <duration>]`
-- `nodes pending`
-- `nodes approve <requestId>`
-- `nodes reject <requestId>`
-- `nodes rename --node <id|name|ip> --name <displayName>`
-- `nodes invoke --node <id|name|ip> --command <command> [--params <json>] [--invoke-timeout <ms>] [--idempotency-key <key>]`
-- `nodes notify --node <id|name|ip> [--title <text>] [--body <text>] [--sound <name>] [--priority <passive|active|timeSensitive>] [--delivery <system|overlay|auto>] [--invoke-timeout <ms>]` (mac only)
-
-Camera:
-
-- `nodes camera list --node <id|name|ip>`
-- `nodes camera snap --node <id|name|ip> [--facing front|back|both] [--device-id <id>] [--max-width <px>] [--quality <0-1>] [--delay-ms <ms>] [--invoke-timeout <ms>]`
-- `nodes camera clip --node <id|name|ip> [--facing front|back] [--device-id <id>] [--duration <ms|10s|1m>] [--no-audio] [--invoke-timeout <ms>]`
-
-Canvas + screen:
-
-- `nodes canvas snapshot --node <id|name|ip> [--format png|jpg|jpeg] [--max-width <px>] [--quality <0-1>] [--invoke-timeout <ms>]`
-- `nodes canvas present --node <id|name|ip> [--target <urlOrPath>] [--x <px>] [--y <px>] [--width <px>] [--height <px>] [--invoke-timeout <ms>]`
-- `nodes canvas hide --node <id|name|ip> [--invoke-timeout <ms>]`
-- `nodes canvas navigate <url> --node <id|name|ip> [--invoke-timeout <ms>]`
-- `nodes canvas eval [<js>] --node <id|name|ip> [--js <code>] [--invoke-timeout <ms>]`
-- `nodes screen record --node <id|name|ip> [--screen <index>] [--duration <ms|10s>] [--fps <n>] [--no-audio] [--out <path>] [--invoke-timeout <ms>]`
-
-Location:
-
-- `nodes location get --node <id|name|ip> [--max-age <ms>] [--accuracy <coarse|balanced|precise>] [--location-timeout <ms>] [--invoke-timeout <ms>]`
-
 ## Browser
 
 Browser automation is exposed as the agent `browser` tool, not as a standalone
@@ -1230,21 +1155,3 @@ the Gateway [Tools Invoke API](/gateway/tools-invoke-http-api).
 ### `docs [query...]`
 
 Search the live docs index.
-
-## TUI
-
-### `tui`
-
-Open the terminal UI connected to the Gateway.
-
-Options:
-
-- `--url <url>`
-- `--token <token>`
-- `--password <password>`
-- `--session <key>`
-- `--deliver`
-- `--thinking <level>`
-- `--message <text>`
-- `--timeout-ms <ms>` (defaults to `agents.defaults.timeoutSeconds`)
-- `--history-limit <n>`

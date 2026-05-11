@@ -1,5 +1,5 @@
 ---
-summary: "Install CrawClaw — installer script, npm/pnpm, from source, Docker, and more"
+summary: "Install CrawClaw — desktop app, installer script, npm/pnpm, from source, and more"
 read_when:
   - You need an install method other than the Getting Started quickstart
   - You want to deploy to a cloud platform
@@ -111,15 +111,9 @@ Or skip the link and use `pnpm crawclaw ...` from inside the repo. See [Setup](/
 npm install -g github:crawclaw/crawclaw#main
 ```
 
-### Containers and package managers
+### Package managers and alternate runtimes
 
 <CardGroup cols={2}>
-  <Card title="Docker" href="/install/docker" icon="container">
-    Containerized or headless deployments.
-  </Card>
-  <Card title="Podman" href="/install/podman" icon="container">
-    Rootless container alternative to Docker.
-  </Card>
   <Card title="Nix" href="/install/nix" icon="snowflake">
     Declarative install via Nix flake.
   </Card>
@@ -145,14 +139,8 @@ Deploy CrawClaw on a cloud server or VPS:
 
 <CardGroup cols={3}>
   <Card title="VPS" href="/vps">Any Linux VPS</Card>
-  <Card title="Docker VM" href="/install/docker-vm-runtime">Shared Docker steps</Card>
-  <Card title="Kubernetes" href="/install/kubernetes">K8s</Card>
-  <Card title="Fly.io" href="/install/fly">Fly.io</Card>
-  <Card title="Hetzner" href="/install/hetzner">Hetzner</Card>
-  <Card title="GCP" href="/install/gcp">Google Cloud</Card>
   <Card title="Azure" href="/install/azure">Azure</Card>
   <Card title="Railway" href="/install/railway">Railway</Card>
-  <Card title="Render" href="/install/render">Render</Card>
   <Card title="Northflank" href="/install/northflank">Northflank</Card>
 </CardGroup>
 

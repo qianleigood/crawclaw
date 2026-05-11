@@ -81,9 +81,6 @@ The Gateway is the single source of truth for sessions, routing, and channel con
   <Card title="Media support" icon="image">
     Send and receive images, audio, and documents.
   </Card>
-  <Card title="Node mode" icon="smartphone">
-    Pair nodes for Canvas, camera, and local-device workflows.
-  </Card>
 </Columns>
 
 ## Quick start
@@ -100,7 +97,7 @@ The Gateway is the single source of truth for sessions, routing, and channel con
     ```
   </Step>
   <Step title="Chat">
-    Connect a channel ([Telegram](/channels/telegram) is fastest) and chat from your phone, or use the CLI/TUI locally.
+    Connect a channel ([Telegram](/channels/telegram) is fastest) and chat from your phone, or use the desktop client locally.
   </Step>
 </Steps>
 
@@ -154,9 +151,6 @@ Example:
   </Card>
   <Card title="Channels" href="/channels/telegram" icon="message-square">
     Channel-specific setup for WhatsApp, Telegram, Discord, and more.
-  </Card>
-  <Card title="Nodes" href="/nodes" icon="smartphone">
-    macOS node mode with pairing, Canvas, camera, and device actions.
   </Card>
   <Card title="Help" href="/help" icon="life-buoy">
     Common fixes and troubleshooting entry point.

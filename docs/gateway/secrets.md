@@ -43,9 +43,7 @@ Examples of inactive surfaces:
 - Web search provider-specific keys that are not selected by `tools.web.search.provider`.
   In auto mode (provider unset), keys are consulted by precedence for provider auto-detection until one resolves.
   After selection, non-selected provider keys are treated as inactive until selected.
-- Sandbox SSH auth material (`agents.defaults.sandbox.ssh.identityData`,
   `certificateData`, `knownHostsData`, plus per-agent overrides) is active only
-  when the effective sandbox backend is `ssh` for the default agent or an enabled agent.
 - `gateway.remote.token` / `gateway.remote.password` SecretRefs are active if one of these is true:
   - `gateway.mode=remote`
   - `gateway.remote.url` is configured
@@ -323,15 +321,10 @@ MCP server env vars configured via `plugins.entries.acpx.config.mcpServers` supp
 
 Plaintext string values still work. Env-template refs like `${MCP_SERVER_API_KEY}` and SecretRef objects are resolved during gateway activation before the MCP server process is spawned. As with other SecretRef surfaces, unresolved refs only block activation when the `acpx` plugin is effectively active.
 
-## Sandbox SSH auth material
-
-The core `ssh` sandbox backend also supports SecretRefs for SSH auth material:
-
 ```json5
 {
   agents: {
     defaults: {
-      sandbox: {
         mode: "all",
         backend: "ssh",
         ssh: {
@@ -348,9 +341,7 @@ The core `ssh` sandbox backend also supports SecretRefs for SSH auth material:
 
 Runtime behavior:
 
-- CrawClaw resolves these refs during sandbox activation, not lazily during each SSH call.
 - Resolved values are written to temp files with restrictive permissions and used in generated SSH config.
-- If the effective sandbox backend is not `ssh`, these refs stay inactive and do not block startup.
 
 ## Supported credential surface
 

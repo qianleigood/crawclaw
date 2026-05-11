@@ -48,7 +48,7 @@ first pass.
 - Do not support ComfyUI Cloud in the first pass.
 - Do not add a second CrawClaw workflow engine.
 - Do not wire this into `workflowize` or n8n in the first pass.
-- Do not reintroduce a core `image_generate` tool.
+- Do not reintroduce a core image-generation agent tool.
 - Do not define a generic image/video generation provider capability yet.
 - Do not guarantee that every arbitrary prompt can produce a valid graph on
   every local ComfyUI installation.

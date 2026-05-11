@@ -30,7 +30,6 @@ The main product lives under `src/`.
 Primary domains:
 
 - `src/gateway`: control plane, auth, protocol, server methods, and gateway services
-- `src/agents`: agent runtime, tool registration, providers, subagents, sandbox execution
 - `src/memory`: memory ingest, storage, retrieval, orchestration, compaction
 - `src/workflows`: workflow registry, compilation, n8n bridge, execution sync
 - `src/cron`: scheduled execution and delivery
@@ -100,7 +99,6 @@ These paths form the build/release/delivery system:
 
 - `scripts/`
 - `.github/`
-- `Dockerfile`
 - release metadata in `package.json`
 
 This layer is operationally critical, but it is not the same thing as the

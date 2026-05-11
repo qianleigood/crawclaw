@@ -22,9 +22,6 @@ title: "Features"
   <Card title="Media" icon="image">
     Images, audio, and documents in and out.
   </Card>
-  <Card title="Node mode" icon="smartphone">
-    macOS node mode with pairing and local device commands.
-  </Card>
 </Columns>
 
 ## Full list
@@ -55,13 +52,8 @@ title: "Features"
 - Voice note transcription
 - Text-to-speech with multiple providers
 
-**Nodes and local devices:**
-
-- macOS node mode with pairing, camera, screen recording, location, and voice flows
-
 **Tools and automation:**
 
-- Browser automation, exec, sandboxing
 - Web search (bundled Open-WebSearch + plugin providers)
 - Cron jobs and event-driven main-session wakes
 - Skills, plugins, and workflow pipelines (Lobster)

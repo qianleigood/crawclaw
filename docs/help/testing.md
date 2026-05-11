@@ -1,5 +1,5 @@
 ---
-summary: "Testing kit: unit/e2e/live suites, Docker runners, and what each test covers"
+summary: "Testing kit: unit/e2e/live suites and what each test covers"
 read_when:
   - Running tests locally or in CI
   - Adding regressions for model/provider bugs
@@ -9,7 +9,7 @@ title: "Testing"
 
 # Testing
 
-CrawClaw has three Vitest suites (unit/integration, e2e, live) and a small set of Docker runners.
+CrawClaw has three Vitest suites: unit/integration, e2e, and live.
 
 This doc is a “how we test” guide:
 
@@ -115,28 +115,11 @@ Think of the suites as “increasing realism” (and increasing flakiness/cost):
   - `CRAWCLAW_E2E_VERBOSE=1` to re-enable verbose console output.
 - Scope:
   - Multi-instance gateway end-to-end behavior
-  - WebSocket/HTTP surfaces, node pairing, and heavier networking
+  - WebSocket/HTTP surfaces and heavier networking
 - Expectations:
   - Runs in CI (when enabled in the pipeline)
   - No real keys required
   - More moving parts than unit tests (can be slower)
-
-### E2E: OpenShell backend smoke
-
-- Command: `pnpm test:e2e:openshell`
-- File: `test/openshell-sandbox.e2e.test.ts`
-- Scope:
-  - Starts an isolated OpenShell gateway on the host via Docker
-  - Creates a sandbox from a temporary local Dockerfile
-  - Exercises CrawClaw's OpenShell backend over real `sandbox ssh-config` + SSH exec
-  - Verifies remote-canonical filesystem behavior through the sandbox fs bridge
-- Expectations:
-  - Opt-in only; not part of the default `pnpm test:e2e` run
-  - Requires a local `openshell` CLI plus a working Docker daemon
-  - Uses isolated `HOME` / `XDG_CONFIG_HOME`, then destroys the test gateway and sandbox
-- Useful overrides:
-  - `CRAWCLAW_E2E_OPENSHELL=1` to enable the test when running the broader e2e suite manually
-  - `CRAWCLAW_E2E_OPENSHELL_COMMAND=/path/to/openshell` to point at a non-default CLI binary or wrapper script
 
 ### Live (real providers + real models)
 
@@ -175,7 +158,6 @@ Use this decision table:
 Live tests are split into two layers so we can isolate failures:
 
 - “Direct model” tells us the provider/model can answer at all with the given key.
-- “Gateway smoke” tells us the full gateway+agent pipeline works for that model (sessions, history, tools, sandbox policy, etc.).
 
 ### Layer 1: Direct model completion (no gateway)
 
@@ -292,19 +274,6 @@ CRAWCLAW_LIVE_CLI_BACKEND=1 \
   pnpm test:live src/gateway/gateway-cli-backend.live.test.ts
 ```
 
-Docker recipe:
-
-```bash
-pnpm test:docker:live-cli-backend
-```
-
-Notes:
-
-- The Docker runner lives at `scripts/test-live-cli-backend-docker.sh`.
-- It runs the live CLI-backend smoke inside the repo Docker image as the non-root `node` user, because Claude CLI rejects `bypassPermissions` when invoked as root.
-- For `claude-cli`, it installs the Linux `@anthropic-ai/claude-code` package into a cached writable prefix at `CRAWCLAW_DOCKER_CLI_TOOLS_DIR` (default: `~/.cache/crawclaw/docker-cli-tools`).
-- It copies `~/.claude` into the container when available, but on machines where Claude auth is backed by `ANTHROPIC_API_KEY`, it also preserves `ANTHROPIC_API_KEY` / `ANTHROPIC_API_KEY_OLD` for the child Claude CLI via `CRAWCLAW_LIVE_CLI_BACKEND_PRESERVE_ENV`.
-
 ## Live: ACP bind smoke (`/acp spawn ... --bind here`)
 
 - Test: `src/gateway/gateway-acp-bind.live.test.ts`
@@ -335,18 +304,6 @@ CRAWCLAW_LIVE_ACP_BIND=1 \
   CRAWCLAW_LIVE_ACP_BIND_AGENT=claude \
   pnpm test:live src/gateway/gateway-acp-bind.live.test.ts
 ```
-
-Docker recipe:
-
-```bash
-pnpm test:docker:live-acp-bind
-```
-
-Docker notes:
-
-- The Docker runner lives at `scripts/test-live-acp-bind-docker.sh`.
-- It sources `~/.profile`, copies the matching CLI auth home (`~/.claude` or `~/.codex`) into the container, installs `acpx` into a writable npm prefix, then installs the requested live CLI (`@anthropic-ai/claude-code` or `@openai/codex`) if missing.
-- Inside Docker, the runner sets `CRAWCLAW_LIVE_ACP_BIND_ACPX_COMMAND=$HOME/.npm-global/bin/acpx` so acpx keeps provider env vars from the sourced profile available to the child harness CLI.
 
 ### Recommended live recipes
 
@@ -439,7 +396,7 @@ Live tests discover credentials the same way the CLI does. Practical implication
 - Config: `~/.crawclaw/crawclaw.json` (or `CRAWCLAW_CONFIG_PATH`)
 - Live local runs copy the active config plus auth stores into a temp test home by default; `agents.*.workspace` / `agentDir` path overrides are stripped in that staged copy so probes stay off your real host workspace.
 
-If you want to rely on env keys (e.g. exported in your `~/.profile`), run local tests after `source ~/.profile`, or use the Docker runners below (they can mount `~/.profile` into the container).
+If you want to rely on env keys (e.g. exported in your `~/.profile`), run local tests after `source ~/.profile`.
 
 ## Deepgram live (audio transcription)
 
@@ -462,61 +419,6 @@ If you want to rely on env keys (e.g. exported in your `~/.profile`), run local 
 - Optional auth behavior:
   - `CRAWCLAW_LIVE_REQUIRE_PROFILE_KEYS=1` to force profile-store auth and ignore env-only overrides
 
-## Docker runners (optional "works in Linux" checks)
-
-These Docker runners split into two buckets:
-
-- Live-model runners: `test:docker:live-models` and `test:docker:live-gateway` run only their matching profile-key live file inside the repo Docker image (`src/agents/models.profiles.live.test.ts` and `src/gateway/gateway-models.profiles.live.test.ts`), mounting your local config dir and workspace (and sourcing `~/.profile` if mounted). The matching local entrypoints are `test:live:models-profiles` and `test:live:gateway-profiles`.
-- Docker live runners default to a smaller smoke cap so a full Docker sweep stays practical:
-  `test:docker:live-models` defaults to `CRAWCLAW_LIVE_MAX_MODELS=12`, and
-  `test:docker:live-gateway` defaults to `CRAWCLAW_LIVE_GATEWAY_SMOKE=1`,
-  `CRAWCLAW_LIVE_GATEWAY_MAX_MODELS=8`,
-  `CRAWCLAW_LIVE_GATEWAY_STEP_TIMEOUT_MS=45000`, and
-  `CRAWCLAW_LIVE_GATEWAY_MODEL_TIMEOUT_MS=90000`. Override those env vars when you
-  explicitly want the larger exhaustive scan.
-- `test:docker:all` builds the live Docker image once via `test:docker:live-build`, then reuses it for the two live Docker lanes.
-- Container smoke runners: `test:docker:openwebui`, `test:docker:onboard`, `test:docker:gateway-network`, `test:docker:mcp-channels`, and `test:docker:plugins` boot one or more real containers and verify higher-level integration paths.
-
-The live-model Docker runners also bind-mount only the needed CLI auth homes (or all supported ones when the run is not narrowed), then copy them into the container home before the run so external-CLI OAuth can refresh tokens without mutating the host auth store:
-
-- Direct models: `pnpm test:docker:live-models` (script: `scripts/test-live-models-docker.sh`)
-- ACP bind smoke: `pnpm test:docker:live-acp-bind` (script: `scripts/test-live-acp-bind-docker.sh`)
-- CLI backend smoke: `pnpm test:docker:live-cli-backend` (script: `scripts/test-live-cli-backend-docker.sh`)
-- Gateway + dev agent: `pnpm test:docker:live-gateway` (script: `scripts/test-live-gateway-models-docker.sh`)
-- Open WebUI live smoke: `pnpm test:docker:openwebui` (script: `scripts/e2e/openwebui-docker.sh`)
-- Onboarding wizard (TTY, full scaffolding): `pnpm test:docker:onboard` (script: `scripts/e2e/onboard-docker.sh`)
-- Gateway networking (two containers, WS auth + health): `pnpm test:docker:gateway-network` (script: `scripts/e2e/gateway-network-docker.sh`)
-- MCP channel bridge (seeded Gateway + stdio bridge + raw Claude notification-frame smoke): `pnpm test:docker:mcp-channels` (script: `scripts/e2e/mcp-channels-docker.sh`)
-- Plugins (install smoke + `/plugin` alias + Claude-bundle restart semantics): `pnpm test:docker:plugins` (script: `scripts/e2e/plugins-docker.sh`)
-
-The live-model Docker runners also bind-mount the current checkout read-only and
-stage it into a temporary workdir inside the container. This keeps the runtime
-image slim while still running Vitest against your exact local source/config.
-They also set `CRAWCLAW_SKIP_CHANNELS=1` so gateway live probes do not start
-real Telegram/Discord/etc. channel workers inside the container.
-`test:docker:live-models` still runs `pnpm test:live`, so pass through
-`CRAWCLAW_LIVE_GATEWAY_*` as well when you need to narrow or exclude gateway
-live coverage from that Docker lane.
-`test:docker:openwebui` is a higher-level compatibility smoke: it starts an
-CrawClaw gateway container with the OpenAI-compatible HTTP endpoints enabled,
-starts a pinned Open WebUI container against that gateway, signs in through
-Open WebUI, verifies `/api/models` exposes `crawclaw/default`, then sends a
-real chat request through Open WebUI's `/api/chat/completions` proxy.
-The first run can be noticeably slower because Docker may need to pull the
-Open WebUI image and Open WebUI may need to finish its own cold-start setup.
-This lane expects a usable live model key, and `CRAWCLAW_PROFILE_FILE`
-(`~/.profile` by default) is the primary way to provide it in Dockerized runs.
-Successful runs print a small JSON payload like `{ "ok": true, "model":
-"crawclaw/default", ... }`.
-`test:docker:mcp-channels` is intentionally deterministic and does not need a
-real Telegram, Discord, or iMessage account. It boots a seeded Gateway
-container, starts a second container that spawns `crawclaw mcp serve`, then
-verifies routed conversation discovery, transcript reads, attachment metadata,
-live event queue behavior, outbound send routing, and Claude-style channel +
-permission notifications over the real stdio MCP bridge. The notification check
-inspects the raw stdio MCP frames directly so the smoke validates what the
-bridge actually emits, not just what a specific client SDK happens to surface.
-
 Manual ACP plain-language thread smoke (not CI):
 
 - `bun scripts/dev/discord-acp-plain-language-smoke.ts --channel <discord-channel-id> ...`
@@ -527,13 +429,11 @@ Useful env vars:
 - `CRAWCLAW_CONFIG_DIR=...` (default: `~/.crawclaw`) mounted to `/home/node/.crawclaw`
 - `CRAWCLAW_WORKSPACE_DIR=...` (default: `~/.crawclaw/workspace`) mounted to `/home/node/.crawclaw/workspace`
 - `CRAWCLAW_PROFILE_FILE=...` (default: `~/.profile`) mounted to `/home/node/.profile` and sourced before running tests
-- `CRAWCLAW_DOCKER_CLI_TOOLS_DIR=...` (default: `~/.cache/crawclaw/docker-cli-tools`) mounted to `/home/node/.npm-global` for cached CLI installs inside Docker
 - External CLI auth dirs under `$HOME` are mounted read-only under `/host-auth/...`, then copied into `/home/node/...` before tests start
   - Default: mount all supported dirs (`.codex`, `.claude`, `.minimax`)
   - Narrowed provider runs mount only the needed dirs inferred from `CRAWCLAW_LIVE_PROVIDERS` / `CRAWCLAW_LIVE_GATEWAY_PROVIDERS`
-  - Override manually with `CRAWCLAW_DOCKER_AUTH_DIRS=all`, `CRAWCLAW_DOCKER_AUTH_DIRS=none`, or a comma list like `CRAWCLAW_DOCKER_AUTH_DIRS=.claude,.codex`
 - `CRAWCLAW_LIVE_GATEWAY_MODELS=...` / `CRAWCLAW_LIVE_MODELS=...` to narrow the run
-- `CRAWCLAW_LIVE_GATEWAY_PROVIDERS=...` / `CRAWCLAW_LIVE_PROVIDERS=...` to filter providers in-container
+- `CRAWCLAW_LIVE_GATEWAY_PROVIDERS=...` / `CRAWCLAW_LIVE_PROVIDERS=...` to filter providers
 - `CRAWCLAW_LIVE_REQUIRE_PROFILE_KEYS=1` to ensure creds come from the profile store (not env)
 - `CRAWCLAW_OPENWEBUI_MODEL=...` to choose the model exposed by the gateway for the Open WebUI smoke
 - `CRAWCLAW_OPENWEBUI_PROMPT=...` to override the nonce-check prompt used by the Open WebUI smoke
@@ -562,7 +462,6 @@ What’s still missing for skills (see [Skills](/tools/skills)):
 
 - **Decisioning:** when skills are listed in the prompt, does the agent pick the right skill (or avoid irrelevant ones)?
 - **Compliance:** does the agent read `SKILL.md` before use and follow required steps/args?
-- **Workflow contracts:** multi-turn scenarios that assert tool order, session history carryover, and sandbox boundaries.
 
 Future evals should stay deterministic first:
 

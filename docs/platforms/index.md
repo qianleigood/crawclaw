@@ -23,9 +23,7 @@ Linux, macOS, and Windows are supported Gateway host targets today.
 ## VPS & hosting
 
 - VPS hub: [VPS hosting](/vps)
-- Fly.io: [Fly.io](/install/fly)
-- Hetzner (Docker): [Hetzner](/install/hetzner)
-- GCP (Compute Engine): [GCP](/install/gcp)
+
 - Azure (Linux VM): [Azure](/install/azure)
 - exe.dev (VM + HTTPS proxy): [exe.dev](/install/exe-dev)
 

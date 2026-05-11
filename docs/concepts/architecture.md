@@ -14,8 +14,6 @@ title: "Gateway Architecture"
 - Control-plane clients (CLI, automations, and browser-authenticated clients) connect to the
   Gateway over **WebSocket** on the configured bind host (default
   `127.0.0.1:18789`).
-- **Nodes** (macOS/headless) also connect over **WebSocket**, but
-  declare `role: node` with explicit caps/commands.
 - One Gateway per host; it is the only place that opens a WhatsApp session.
 
 ## Components and flows
@@ -32,17 +30,6 @@ title: "Gateway Architecture"
 - One WS connection per client.
 - Send requests (`health`, `status`, `send`, `agent`, `system-presence`).
 - Subscribe to events (`tick`, `agent`, `presence`, `shutdown`).
-
-### Nodes (macOS / headless)
-
-- Connect to the **same WS server** with `role: node`.
-- Provide a device identity in `connect`; pairing is **device‑based** (role `node`) and
-  approval lives in the device pairing store.
-- Expose commands like `canvas.*`, `camera.*`, `screen.record`, `location.get`.
-
-Protocol details:
-
-- [Gateway protocol](/gateway/protocol)
 
 ## Connection lifecycle (single client)
 
@@ -76,11 +63,10 @@ sequenceDiagram
   must match or the socket closes.
 - Idempotency keys are required for side‑effecting methods (`send`, `agent`) to
   safely retry; the server keeps a short‑lived dedupe cache.
-- Nodes must include `role: "node"` plus caps/commands/permissions in `connect`.
 
 ## Pairing + local trust
 
-- All WS clients (operators + nodes) include a **device identity** on `connect`.
+- WS clients include a **device identity** on `connect`.
 - New device IDs require pairing approval; the Gateway issues a **device token**
   for subsequent connects.
 - **Local** connects (loopback or the gateway host’s own tailnet address) can be

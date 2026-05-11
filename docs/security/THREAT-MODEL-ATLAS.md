@@ -101,7 +101,6 @@ Nothing is explicitly out of scope for this threat model.
 │                 TRUST BOUNDARY 3: Tool Execution                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │                  EXECUTION SANDBOX                        │   │
-│  │  • Docker sandbox OR Host (exec-approvals)                │   │
 │  │  • Node remote execution                                  │   │
 │  │  • SSRF protection (DNS pinning + IP blocking)            │   │
 │  └──────────────────────────────────────────────────────────┘   │
@@ -177,15 +176,15 @@ Nothing is explicitly out of scope for this threat model.
 
 #### T-ACCESS-001: Pairing Code Interception
 
-| Attribute               | Value                                                                                                         |
-| ----------------------- | ------------------------------------------------------------------------------------------------------------- |
-| **ATLAS ID**            | AML.T0040 - AI Model Inference API Access                                                                     |
-| **Description**         | Attacker intercepts pairing code during pairing grace period (1h for DM channel pairing, 5m for node pairing) |
-| **Attack Vector**       | Shoulder surfing, network sniffing, social engineering                                                        |
-| **Affected Components** | Device pairing system                                                                                         |
-| **Current Mitigations** | 1h expiry (DM pairing) / 5m expiry (node pairing), codes sent via existing channel                            |
-| **Residual Risk**       | Medium - Grace period exploitable                                                                             |
-| **Recommendations**     | Reduce grace period, add confirmation step                                                                    |
+| Attribute               | Value                                                        |
+| ----------------------- | ------------------------------------------------------------ |
+| **ATLAS ID**            | AML.T0040 - AI Model Inference API Access                    |
+| **Description**         | Attacker intercepts pairing code during pairing grace period |
+| **Attack Vector**       | Shoulder surfing, network sniffing, social engineering       |
+| **Affected Components** | Device pairing system                                        |
+| **Current Mitigations** | Pairing expiry, codes sent via existing channel              |
+| **Residual Risk**       | Medium - Grace period exploitable                            |
+| **Recommendations**     | Reduce grace period, add confirmation step                   |
 
 #### T-ACCESS-002: AllowFrom Spoofing
 
@@ -269,15 +268,13 @@ Nothing is explicitly out of scope for this threat model.
 
 #### T-PERSIST-001: Malicious Skill Installation
 
-| Attribute               | Value                                                                    |
-| ----------------------- | ------------------------------------------------------------------------ |
-| **ATLAS ID**            | AML.T0010.001 - Supply Chain Compromise: AI Software                     |
-| **Description**         | Attacker publishes malicious skill to ClawHub                            |
-| **Attack Vector**       | Create account, publish skill with hidden malicious code                 |
-| **Affected Components** | ClawHub, skill loading, agent execution                                  |
-| **Current Mitigations** | GitHub account age verification, pattern-based moderation flags          |
-| **Residual Risk**       | Critical - No sandboxing, limited review                                 |
-| **Recommendations**     | VirusTotal integration (in progress), skill sandboxing, community review |
+| Attribute               | Value                                                           |
+| ----------------------- | --------------------------------------------------------------- |
+| **ATLAS ID**            | AML.T0010.001 - Supply Chain Compromise: AI Software            |
+| **Description**         | Attacker publishes malicious skill to ClawHub                   |
+| **Attack Vector**       | Create account, publish skill with hidden malicious code        |
+| **Affected Components** | ClawHub, skill loading, agent execution                         |
+| **Current Mitigations** | GitHub account age verification, pattern-based moderation flags |
 
 #### T-PERSIST-002: Skill Update Poisoning
 
@@ -397,7 +394,6 @@ Nothing is explicitly out of scope for this threat model.
 | **Affected Components** | Skill execution environment                             |
 | **Current Mitigations** | None specific to skills                                 |
 | **Residual Risk**       | Critical - Skills run with agent privileges             |
-| **Recommendations**     | Skill sandboxing, credential isolation                  |
 
 ---
 
@@ -411,9 +407,6 @@ Nothing is explicitly out of scope for this threat model.
 | **Description**         | Attacker executes arbitrary commands on user system |
 | **Attack Vector**       | Prompt injection combined with exec approval bypass |
 | **Affected Components** | Bash tool, command execution                        |
-| **Current Mitigations** | Exec approvals, Docker sandbox option               |
-| **Residual Risk**       | Critical - Host execution without sandbox           |
-| **Recommendations**     | Default to sandbox, improve approval UX             |
 
 #### T-IMPACT-002: Resource Exhaustion (DoS)
 
@@ -542,7 +535,6 @@ T-EXEC-002 → T-EXFIL-001 → External exfiltration
 | ID    | Recommendation                              | Addresses                  |
 | ----- | ------------------------------------------- | -------------------------- |
 | R-001 | Complete VirusTotal integration             | T-PERSIST-001, T-EVADE-001 |
-| R-002 | Implement skill sandboxing                  | T-PERSIST-001, T-EXFIL-003 |
 | R-003 | Add output validation for sensitive actions | T-EXEC-001, T-EXEC-002     |
 
 ### 6.2 Short-term (P1)
@@ -582,14 +574,13 @@ T-EXEC-002 → T-EXFIL-001 → External exfiltration
 
 ### 7.2 Key Security Files
 
-| Path                                | Purpose                     | Risk Level   |
-| ----------------------------------- | --------------------------- | ------------ |
-| `src/infra/exec-approvals.ts`       | Command approval logic      | **Critical** |
-| `src/gateway/auth.ts`               | Gateway authentication      | **Critical** |
-| `src/infra/net/ssrf.ts`             | SSRF protection             | **Critical** |
-| `src/security/external-content.ts`  | Prompt injection mitigation | **Critical** |
-| `src/agents/sandbox/tool-policy.ts` | Tool policy enforcement     | **Critical** |
-| `src/routing/resolve-route.ts`      | Session isolation           | **Medium**   |
+| Path                               | Purpose                     | Risk Level   |
+| ---------------------------------- | --------------------------- | ------------ |
+| `src/infra/exec-approvals.ts`      | Command approval logic      | **Critical** |
+| `src/gateway/auth.ts`              | Gateway authentication      | **Critical** |
+| `src/infra/net/ssrf.ts`            | SSRF protection             | **Critical** |
+| `src/security/external-content.ts` | Prompt injection mitigation | **Critical** |
+| `src/routing/resolve-route.ts`     | Session isolation           | **Medium**   |
 
 ### 7.3 Glossary
 

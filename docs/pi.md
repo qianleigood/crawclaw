@@ -8,14 +8,13 @@ read_when:
 
 # Pi Integration Architecture
 
-This document describes how CrawClaw integrates with [pi-coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) and its sibling packages (`pi-ai`, `pi-agent-core`, `pi-tui`) to power its AI agent capabilities.
+This document describes how CrawClaw integrates with [pi-coding-agent](https://github.com/badlogic/pi-mono/tree/main/packages/coding-agent) and its sibling packages (`pi-ai`, `pi-agent-core`) to power its AI agent capabilities.
 
 ## Overview
 
 CrawClaw uses the pi SDK to embed an AI coding agent into its messaging gateway architecture. Instead of spawning pi as a subprocess or using RPC mode, CrawClaw directly imports and instantiates pi's `AgentSession` via `createAgentSession()`. This embedded approach provides:
 
 - Full control over session lifecycle and event handling
-- Custom tool injection (messaging, sandbox, channel-specific actions)
 - System prompt customization per channel/context
 - Session persistence with branching/compaction support
 - Multi-account auth profile rotation with failover
@@ -27,8 +26,7 @@ CrawClaw uses the pi SDK to embed an AI coding agent into its messaging gateway 
 {
   "@mariozechner/pi-agent-core": "0.70.0",
   "@mariozechner/pi-ai": "0.70.0",
-  "@mariozechner/pi-coding-agent": "0.70.0",
-  "@mariozechner/pi-tui": "0.70.0"
+  "@mariozechner/pi-coding-agent": "0.70.0"
 }
 ```
 
@@ -37,7 +35,6 @@ CrawClaw uses the pi SDK to embed an AI coding agent into its messaging gateway 
 | `pi-ai`           | Core LLM abstractions: `Model`, `streamSimple`, message types, provider APIs                           |
 | `pi-agent-core`   | Agent loop, tool execution, `AgentMessage` types                                                       |
 | `pi-coding-agent` | High-level SDK: `createAgentSession`, `SessionManager`, `AuthStorage`, `ModelRegistry`, built-in tools |
-| `pi-tui`          | Terminal UI components (used in CrawClaw's local TUI mode)                                             |
 
 ## File Structure
 
@@ -63,7 +60,6 @@ src/agents/
 │   ├── logger.ts                  # Subsystem logger
 │   ├── model.ts                   # Model resolution via ModelRegistry
 │   ├── runs.ts                    # Active run tracking, abort, queue
-│   ├── sandbox-info.ts            # Sandbox info for system prompt
 │   ├── session-manager-cache.ts   # SessionManager instance caching
 │   ├── session-manager-init.ts    # Session file initialization
 │   ├── system-prompt.ts           # System prompt builder
@@ -109,8 +105,6 @@ src/agents/
 ├── transcript-policy.ts           # Transcript validation policy
 ├── skills.ts                      # Skill snapshot/prompt building
 ├── skills/                        # Skill subsystem
-├── sandbox.ts                     # Sandbox context resolution
-├── sandbox/                       # Sandbox subsystem
 ├── channel-tools.ts               # Channel-specific tool injection
 ├── crawclaw-tools.ts              # CrawClaw-specific tools
 ├── bash-tools.ts                  # exec/process tools
@@ -119,7 +113,6 @@ src/agents/
 │   ├── browser-tool.ts
 │   ├── canvas-tool.ts
 │   ├── cron-tool.ts
-│   ├── gateway-tool.ts
 │   ├── image-tool.ts
 │   ├── message-tool.ts
 │   ├── session*.ts
@@ -245,12 +238,10 @@ to re-inject image payloads.
 ### Tool Pipeline
 
 1. **Base Tools**: pi's `createCodingTools` / `createReadTool` output (read, bash, edit, write)
-2. **Custom Replacements**: CrawClaw replaces bash with `exec`/`process`, customizes read/edit/write for sandbox
-3. **CrawClaw Tools**: messaging, browser, canvas, sessions, cron, gateway, etc.
-4. **Channel Tools**: Discord/Telegram/Slack/WhatsApp-specific action tools
-5. **Policy Filtering**: Tools filtered by profile, provider, agent, group, sandbox policies
-6. **Schema Normalization**: Schemas cleaned for Gemini/OpenAI quirks
-7. **AbortSignal Wrapping**: Tools wrapped to respect abort signals
+2. **CrawClaw Tools**: messaging, browser, canvas, sessions, cron, gateway, etc.
+3. **Channel Tools**: Discord/Telegram/Slack/WhatsApp-specific action tools
+4. **Schema Normalization**: Schemas cleaned for Gemini/OpenAI quirks
+5. **AbortSignal Wrapping**: Tools wrapped to respect abort signals
 
 ### Tool Definition Adapter
 
@@ -276,7 +267,6 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
 `splitSdkTools()` passes all tools via `customTools`:
 
 ```typescript
-export function splitSdkTools(options: { tools: AnyAgentTool[]; sandboxEnabled: boolean }) {
   return {
     builtInTools: [], // Empty. We override everything
     customTools: toToolDefinitions(options.tools),
@@ -284,11 +274,7 @@ export function splitSdkTools(options: { tools: AnyAgentTool[]; sandboxEnabled: 
 }
 ```
 
-This ensures CrawClaw's policy filtering, sandbox integration, and extended toolset remain consistent across providers.
-
 ## System Prompt Construction
-
-The system prompt is built in `buildAgentSystemPrompt()` (`system-prompt.ts`). It assembles a full prompt with sections including Tooling, Tool Call Style, Safety guardrails, CrawClaw CLI reference, Skills, Docs, Workspace, Sandbox, Messaging, Reply Tags, Voice, Silent Replies, legacy Heartbeats, Runtime metadata, plus Memory and Reactions when enabled, and optional context files and extra system prompt content. Sections are trimmed for minimal prompt mode used by subagents.
 
 The prompt is applied after session creation via `applySystemPromptOverrideToSession()`:
 
@@ -473,19 +459,11 @@ if (fallbackThinking) {
 }
 ```
 
-## Sandbox Integration
-
-When sandbox mode is enabled, tools and paths are constrained:
-
 ```typescript
-const sandbox = await resolveSandboxContext({
   config: params.config,
-  sessionKey: sandboxSessionKey,
   workspaceDir: resolvedWorkspace,
 });
 
-if (sandboxRoot) {
-  // Use sandboxed read/edit/write tools
   // Exec runs in container
   // Browser uses bridge URL
 }
@@ -510,17 +488,6 @@ if (sandboxRoot) {
 - `apply_patch` tool for Codex models
 - Thinking level downgrade handling
 
-## TUI Integration
-
-CrawClaw also has a local TUI mode that uses pi-tui components directly:
-
-```typescript
-// src/tui/tui.ts
-import { ... } from "@mariozechner/pi-tui";
-```
-
-This provides the interactive terminal experience similar to pi's native mode.
-
 ## Key Differences from Pi CLI
 
 | Aspect          | Pi CLI                  | CrawClaw Embedded                                                                              |
@@ -531,7 +498,7 @@ This provides the interactive terminal experience similar to pi's native mode.
 | Session storage | `~/.pi/agent/sessions/` | `~/.crawclaw/agents/<agentId>/sessions/` (or `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/`) |
 | Auth            | Single credential       | Multi-profile with rotation                                                                    |
 | Extensions      | Loaded from disk        | Programmatic + disk paths                                                                      |
-| Event handling  | TUI rendering           | Callback-based (onBlockReply, etc.)                                                            |
+| Event handling  | Native rendering        | Callback-based (onBlockReply, etc.)                                                            |
 
 ## Future Considerations
 

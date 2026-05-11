@@ -39,7 +39,6 @@ For fastest triage, include all of the following:
 - For exposed-secret reports: proof the credential is CrawClaw-owned (or grants access to CrawClaw-operated infrastructure/services).
 - Explicit statement that the report does not rely on adversarial operators sharing one gateway host/config.
 - Scope check explaining why the report is **not** covered by the Out of Scope section below.
-- For command-risk/parity reports (for example obfuscation detection differences), a concrete boundary-bypass path is required (auth/approval/allowlist/sandbox). Parity-only findings are treated as hardening, not vulnerabilities.
 
 Reports that miss these requirements may be closed as `invalid` or `no-action`.
 
@@ -48,17 +47,12 @@ Reports that miss these requirements may be closed as `invalid` or `no-action`.
 These are frequently reported but are typically closed with no code change:
 
 - Prompt-injection-only chains without a boundary bypass (prompt injection is out of scope).
-- Operator-intended local features (for example TUI local `!` shell) presented as remote injection.
-- Reports that treat explicit operator-control surfaces (for example `canvas.eval`, browser evaluate/script execution, or direct `node.invoke` execution primitives) as vulnerabilities without demonstrating an auth/policy/sandbox boundary bypass. These capabilities are intentional when enabled and are trusted-operator features, not standalone security bugs.
-- Authorized user-triggered local actions presented as privilege escalation. Example: an allowlisted/owner sender running `/export-session /absolute/path.html` to write on the host. In this trust model, authorized user actions are trusted host actions unless you demonstrate an auth/sandbox/boundary bypass.
+- Operator-intended local features presented as remote injection without a boundary bypass.
 - Reports that only show a malicious plugin executing privileged actions after a trusted operator installs/enables it.
 - Reports that assume per-user multi-tenant authorization on a shared gateway host/config.
-- Reports that only show quoted/replied/thread/forwarded supplemental context from non-allowlisted senders being visible to the model, without demonstrating an auth, policy, approval, or sandbox boundary bypass.
 - Reports that treat the Gateway HTTP compatibility endpoints (`POST /v1/chat/completions`, `POST /v1/responses`) as if they implemented scoped operator auth (`operator.write` vs `operator.admin`). These endpoints authenticate the shared Gateway bearer secret/password and are documented full operator-access surfaces, not per-user/per-scope boundaries.
 - Reports that assume `x-crawclaw-scopes` can reduce or redefine shared-secret bearer auth on the OpenAI-compatible HTTP endpoints. For shared-secret auth (`gateway.auth.mode="token"` or `"password"`), those endpoints ignore narrower bearer-declared scopes and restore the full default operator scope set plus owner semantics.
 - Reports that treat `POST /tools/invoke` under shared-secret bearer auth (`gateway.auth.mode="token"` or `"password"`) as a narrower per-request/per-scope authorization surface. That endpoint is designed as the same trusted-operator HTTP boundary: shared-secret bearer auth is full operator access there, narrower `x-crawclaw-scopes` values do not reduce that path, and owner-only tool policy follows the shared-secret operator contract.
-- Reports that only show differences in heuristic detection/parity (for example obfuscation-pattern detection on one exec path but not another, such as `node.invoke -> system.run` parity gaps) without demonstrating bypass of auth, approvals, allowlist enforcement, sandboxing, or other documented trust boundaries.
-- Reports that only show an ACP tool can indirectly execute, mutate, orchestrate sessions, or reach another tool/runtime without demonstrating bypass of ACP prompt/approval, allowlist enforcement, sandboxing, or another documented trust boundary. ACP silent approval is intentionally limited to narrow readonly classes; parity-only indirect-command findings are hardening, not vulnerabilities.
 - ReDoS/DoS claims that require trusted operator configuration input (for example catastrophic regex in `sessionFilter` or `logging.redactPatterns`) without a trust-boundary bypass.
 - Archive/install extraction claims that require pre-existing local filesystem priming in trusted state (for example planting symlink/hardlink aliases under destination directories such as skills/tools paths) without showing an untrusted path that can create/control that primitive.
 - Reports that depend on replacing or rewriting an already-approved executable path on a trusted host (same-path inode/content swap) without showing an untrusted path to perform that write.
@@ -108,10 +102,7 @@ CrawClaw does **not** model one gateway as a multi-tenant, adversarial user boun
 - Recommended mode: one user per machine/host (or VPS), one gateway for that user, and one or more agents inside that gateway.
 - If multiple users need CrawClaw, use one VPS (or host/OS user boundary) per user.
 - For advanced setups, multiple gateways on one machine are possible, but only with strict isolation and are not the recommended default.
-- Exec behavior is host-first by default: `agents.defaults.sandbox.mode` defaults to `off`.
-- `tools.exec.host` defaults to `auto`: sandbox when sandbox runtime is active for the session, otherwise gateway.
 - Implicit exec calls (no explicit host in the tool call) follow the same behavior.
-- This is expected in CrawClaw's one-user trusted-operator model. If you need isolation, enable sandbox mode (`non-main`/`all`) and keep strict tool policy.
 
 ## Trusted Plugin Concept (Core)
 
@@ -119,28 +110,21 @@ Plugins/extensions are part of CrawClaw's trusted computing base for a gateway.
 
 - Installing or enabling a plugin grants it the same trust level as local code running on that gateway host.
 - Plugin behavior such as reading env/files or running host commands is expected inside this trust boundary.
-- Security reports must show a boundary bypass (for example unauthenticated plugin load, allowlist/policy bypass, or sandbox/path-safety bypass), not only malicious behavior from a trusted-installed plugin.
 
 ## Out of Scope
 
 - Public Internet Exposure
 - Using CrawClaw in ways that the docs recommend not to
 - Deployments where mutually untrusted/adversarial operators share one gateway host and config (for example, reports expecting per-operator isolation for `sessions.list`, `sessions.preview`, `chat.history`, or similar control-plane reads)
-- Prompt-injection-only attacks (without a policy/auth/sandbox boundary bypass)
 - Reports that require write access to trusted local state (`~/.crawclaw`, workspace files like `MEMORY.md` / `memory/*.md`)
 - Reports where exploitability depends on attacker-controlled pre-existing symlink/hardlink filesystem state in trusted local paths (for example extraction/install target trees) unless a separate untrusted boundary bypass is shown that creates that state.
-- Reports whose only claim is sandbox/workspace read expansion through trusted local skill/workspace symlink state (for example `skills/*/SKILL.md` symlink chains) unless a separate untrusted boundary bypass is shown that creates/controls that state.
 - Reports whose only claim is post-approval executable identity drift on a trusted host via same-path file replacement/rewrite unless a separate untrusted boundary bypass is shown for that host write primitive.
-- Reports where the only demonstrated impact is an already-authorized sender intentionally invoking a local-action command (for example `/export-session` writing to an absolute host path) without bypassing auth, sandbox, or another documented boundary
-- Reports whose only claim is use of an explicit trusted-operator control surface (for example `canvas.eval`, browser evaluate/script execution, or direct `node.invoke` execution) without demonstrating an auth, policy, allowlist, approval, or sandbox bypass.
 - Reports where the only claim is that a trusted-installed/enabled plugin can execute with gateway/host privileges (documented trust model behavior).
 - Any report whose only claim is that an operator-enabled `dangerous*`/`dangerously*` config option weakens defaults (these are explicit break-glass tradeoffs by design)
 - Reports that depend on trusted operator-supplied configuration values to trigger availability impact (for example custom regex patterns). These may still be fixed as defense-in-depth hardening, but are not security-boundary bypasses.
 - Reports whose only claim is heuristic/parity drift in command-risk detection (for example obfuscation-pattern checks) across exec surfaces, without a demonstrated trust-boundary bypass. These are hardening-only findings and are not vulnerabilities; triage may close them as `invalid`/`no-action` or track them separately as low/informational hardening.
-- Reports whose only claim is that an ACP-exposed tool can indirectly execute commands, mutate host state, or reach another privileged tool/runtime without demonstrating a bypass of ACP prompt/approval, allowlist enforcement, sandboxing, or another documented trust boundary. These are hardening-only findings, not vulnerabilities.
 - Reports whose only claim is that exec approvals do not semantically model every interpreter/runtime loader form, subcommand, flag combination, package script, or transitive module/config import. Exec approvals bind exact request context and best-effort direct local file operands; they are not a complete semantic model of everything a runtime may load.
 - Exposed secrets that are third-party/user-controlled credentials (not CrawClaw-owned and not granting access to CrawClaw-operated infrastructure/services) without demonstrated CrawClaw impact
-- Reports whose only claim is host-side exec when sandbox runtime is disabled/unavailable (documented default behavior in the trusted-operator model), without a boundary bypass.
 - Reports whose only claim is that a platform-provided upload destination URL is untrusted (for example Microsoft Teams `fileConsent/invoke` `uploadInfo.uploadUrl`) without proving attacker control in an authenticated production flow.
 
 ## Deployment Assumptions
@@ -158,7 +142,6 @@ CrawClaw security guidance assumes:
 CrawClaw's security model is "personal assistant" (one trusted operator, potentially many agents), not "shared multi-tenant bus."
 
 - If multiple people can message the same tool-enabled agent (for example a shared Slack workspace), they can all steer that agent within its granted permissions.
-- Non-owner sender status only affects owner-only tools/commands. If a non-owner can still access a non-owner-only tool on that same agent (for example `canvas`), that is within the granted tool boundary unless the report demonstrates an auth, policy, allowlist, approval, or sandbox bypass.
 - Session or memory scoping reduces context bleed, but does **not** create per-user host authorization boundaries.
 - For mixed-trust or adversarial users, isolate by OS user/host/gateway and use separate credentials per boundary.
 - A company-shared agent can be a valid setup when users are in the same trust boundary and the agent is strictly business-only.
@@ -179,17 +162,13 @@ Current channel behavior is not fully uniform:
 - some channels already filter parts of supplemental context by sender allowlist
 - other channels still pass supplemental context as received
 
-Reports that only show supplemental-context visibility differences are typically hardening/consistency findings unless they also demonstrate a documented boundary bypass (auth, policy, approvals, sandbox, or equivalent).
-
 Hardening roadmap may add explicit visibility modes (for example `all`, `allowlist`, `allowlist_quote`) so operators can opt into stricter context filtering with predictable tradeoffs.
 
 ## Agent and Model Assumptions
 
 - The model/agent is **not** a trusted principal. Assume prompt/content injection can manipulate behavior.
-- Security boundaries come from host/config trust, auth, tool policy, sandboxing, and exec approvals.
 - Prompt injection by itself is not a vulnerability report unless it crosses one of those boundaries.
 - Hook/webhook-driven payloads should be treated as untrusted content; keep unsafe bypass flags disabled unless doing tightly scoped debugging (`hooks.gmail.allowUnsafeExternalContent`, `hooks.mappings[].allowUnsafeExternalContent`).
-- Weak model tiers are generally easier to prompt-inject. For tool-enabled or hook-driven agents, prefer strong modern model tiers and strict tool policy (for example `tools.profile: "messaging"` or stricter), plus sandboxing where possible.
 
 ## Gateway and Node trust concept
 
@@ -199,7 +178,6 @@ CrawClaw separates routing from execution, but both remain inside the same opera
 - **Node** is an execution extension of the Gateway. Pairing a node grants operator-level remote capability on that node.
 - **Exec approvals** (allowlist/ask UI) are operator guardrails to reduce accidental command execution, not a multi-tenant authorization boundary.
 - Exec approvals bind exact command/cwd/env context and, when CrawClaw can identify one concrete local script/file operand, that file snapshot too. This is best-effort integrity hardening, not a complete semantic model of every interpreter/runtime loader path.
-- Differences in command-risk warning heuristics between exec surfaces (`gateway`, `node`, `sandbox`) do not, by themselves, constitute a security-boundary bypass.
 - For untrusted-user isolation, split by trust boundary: separate gateways and separate OS users/hosts per boundary.
 
 ## Workspace Memory Trust Boundary
@@ -207,7 +185,6 @@ CrawClaw separates routing from execution, but both remain inside the same opera
 `MEMORY.md` and `memory/*.md` are plain workspace files and are treated as trusted local operator state.
 
 - If someone can edit workspace memory files, they already crossed the trusted operator boundary.
-- Durable memory recall over those files is expected behavior, not a sandbox/security boundary.
 - Example report pattern considered out of scope: "attacker writes malicious content into `memory/*.md`, then memory recall surfaces it."
 - If you need isolation between mutually untrusted users, split by OS user or host and run separate gateways.
 
@@ -216,19 +193,13 @@ CrawClaw separates routing from execution, but both remain inside the same opera
 Plugins/extensions are loaded **in-process** with the Gateway and are treated as trusted code.
 
 - Plugins can execute with the same OS privileges as the CrawClaw process.
-- Runtime helpers (for example `runtime.system.runCommandWithTimeout`) are convenience APIs, not a sandbox boundary.
 - Only install plugins you trust, and prefer `plugins.allow` to pin explicit trusted plugin ids.
-
-## Temp Folder Boundary (Media/Sandbox)
-
-CrawClaw uses a dedicated temp root for local media handoff and sandbox-adjacent temp artifacts:
 
 - Preferred temp root: `/tmp/crawclaw` (when available and safe on the host).
 - Fallback temp root: `os.tmpdir()/crawclaw` (or `crawclaw-<uid>` on multi-user hosts).
 
 Security boundary notes:
 
-- Sandbox media validation allows absolute temp paths only under the CrawClaw-managed temp root.
 - Arbitrary host tmp paths are not treated as trusted media roots.
 - Plugin/extension code should use CrawClaw temp helpers (`resolvePreferredCrawClawTmpDir`, `buildRandomTempFilePath`, `withTempDownloadPath`) rather than raw `os.tmpdir()` defaults when handling media files.
 - Enforcement reference points:
@@ -251,10 +222,6 @@ For threat model + hardening guidance (including `crawclaw security audit --deep
 ### Sub-agent delegation hardening
 
 - Keep `sessions_spawn` denied unless you explicitly need delegated runs.
-- Keep `agents.list[].subagents.allowAgents` narrow, and only include agents with sandbox settings you trust.
-- When delegation must stay sandboxed, call `sessions_spawn` with `sandbox: "require"` (default is `inherit`).
-  - `sandbox: "require"` rejects the spawn unless the target child runtime is sandboxed.
-  - This prevents a less-restricted session from delegating work into an unsandboxed child by mistake.
 
 ### Web Interface Safety
 
@@ -288,22 +255,6 @@ Verify your Node.js version:
 
 ```bash
 node --version  # Should be v22.12.0 or later
-```
-
-### Docker Security
-
-When running CrawClaw in Docker:
-
-1. The official image runs as a non-root user (`node`) for reduced attack surface
-2. Use `--read-only` flag when possible for additional filesystem protection
-3. Limit container capabilities with `--cap-drop=ALL`
-
-Example secure Docker run:
-
-```bash
-docker run --read-only --cap-drop=ALL \
-  -v crawclaw-data:/app/data \
-  crawclaw/crawclaw:latest
 ```
 
 ## Security Scanning

@@ -54,7 +54,6 @@ Use the tool argument instead of the old CLI form:
 | `crawclaw browser type <ref> x` | `{ "action": "act", "kind": "type", "ref": "<ref>", "text": "x" }` |
 
 The old `--browser-profile <name>` flag maps to the tool's `profile` argument.
-Use `target` (`sandbox`, `host`, or `node`) when you need to pin where the
 browser runs.
 
 ## If the browser tool is missing
@@ -80,11 +79,8 @@ Related: [Browser tool](/tools/browser#missing-browser-tool)
 
 ## Remote browser control
 
-If the Gateway runs on a different machine than the browser, run a **node host**
-on the machine that has Chrome/Brave/Edge/Chromium. The Gateway can proxy
-`browser` tool actions to that node.
-
-Use `gateway.nodes.browser.mode` to control auto-routing and
-`gateway.nodes.browser.node` to pin a specific node if multiple are connected.
+If the Gateway runs on a different machine than the browser, configure a remote
+CDP endpoint with `browser.profiles.<name>.cdpUrl` or run the browser on the
+Gateway host.
 
 Security + remote setup: [Browser tool](/tools/browser), [Remote access](/gateway/remote), [Tailscale](/gateway/tailscale), [Security](/gateway/security)

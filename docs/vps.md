@@ -21,9 +21,6 @@ tuning that applies everywhere.
   <Card title="Northflank" href="/install/northflank">One-click, browser setup</Card>
   <Card title="DigitalOcean" href="/install/digitalocean">Simple paid VPS</Card>
   <Card title="Oracle Cloud" href="/install/oracle">Always Free ARM tier</Card>
-  <Card title="Fly.io" href="/install/fly">Fly Machines</Card>
-  <Card title="Hetzner" href="/install/hetzner">Docker on Hetzner VPS</Card>
-  <Card title="GCP" href="/install/gcp">Compute Engine</Card>
   <Card title="Azure" href="/install/azure">Linux VM</Card>
   <Card title="exe.dev" href="/install/exe-dev">VM with HTTPS proxy</Card>
   <Card title="Raspberry Pi" href="/install/raspberry-pi">ARM self-hosted</Card>
@@ -53,14 +50,6 @@ Running a single agent for a team is a valid setup when every user is in the sam
 - If users are adversarial to each other, split by gateway/host/OS user.
 
 Security model details: [Security](/gateway/security).
-
-## Using nodes with a VPS
-
-You can keep the Gateway in the cloud and pair **nodes** on your local devices
-(Mac/headless). Nodes provide local screen/camera/canvas and `system.run`
-capabilities while the Gateway stays in the cloud.
-
-Docs: [Nodes](/nodes), [Nodes CLI](/cli/nodes).
 
 ## Startup tuning for small VMs and ARM hosts
 

@@ -234,36 +234,6 @@ flowchart TD
 
   </Accordion>
 
-  <Accordion title="Node is paired but tool fails camera canvas screen exec">
-    ```bash
-    crawclaw status
-    crawclaw gateway status
-    crawclaw nodes status
-    crawclaw nodes describe --node <idOrNameOrIp>
-    crawclaw logs --follow
-    ```
-
-    Good output looks like:
-
-    - Node is listed as connected and paired for role `node`.
-    - Capability exists for the command you are invoking.
-    - Permission state is granted for the tool.
-
-    Common log signatures:
-
-    - `NODE_BACKGROUND_UNAVAILABLE` → bring node app to foreground.
-    - `*_PERMISSION_REQUIRED` → OS permission was denied/missing.
-    - `SYSTEM_RUN_DENIED: approval required` → exec approval is pending.
-    - `SYSTEM_RUN_DENIED: allowlist miss` → command not on exec allowlist.
-
-    Deep pages:
-
-    - [/gateway/troubleshooting#node-paired-tool-fails](/gateway/troubleshooting#node-paired-tool-fails)
-    - [/nodes/troubleshooting](/nodes/troubleshooting)
-    - [/tools/exec-approvals](/tools/exec-approvals)
-
-  </Accordion>
-
   <Accordion title="Exec suddenly asks for approval">
     ```bash
     crawclaw config get tools.exec.host
@@ -275,9 +245,8 @@ flowchart TD
     What changed:
 
     - If `tools.exec.host` is unset, the default is `auto`.
-    - `host=auto` resolves to `sandbox` when a sandbox runtime is active, `gateway` otherwise.
-    - `host=auto` is routing only; the no-prompt "YOLO" behavior comes from `security=full` plus `ask=off` on gateway/node.
-    - On `gateway` and `node`, unset `tools.exec.security` defaults to `full`.
+    - `host=auto` is routing only; the no-prompt "YOLO" behavior comes from `security=full` plus `ask=off` on the Gateway host.
+    - On `gateway`, unset `tools.exec.security` defaults to `full`.
     - Unset `tools.exec.ask` defaults to `off`.
     - Result: if you are seeing approvals, some host-local or per-session policy tightened exec away from the current defaults.
 
@@ -294,13 +263,11 @@ flowchart TD
 
     - Set only `tools.exec.host=gateway` if you just want stable host routing.
     - Use `security=allowlist` with `ask=on-miss` if you want host exec but still want review on allowlist misses.
-    - Enable sandbox mode if you want `host=auto` to resolve back to `sandbox`.
 
     Common log signatures:
 
     - `Approval required.` → command is waiting on `/approve ...`.
-    - `SYSTEM_RUN_DENIED: approval required` → node-host exec approval is pending.
-    - `exec host=sandbox requires a sandbox runtime for this session` → implicit/explicit sandbox selection but sandbox mode is off.
+    - `SYSTEM_RUN_DENIED: approval required` → gateway exec approval is pending.
 
     Deep pages:
 

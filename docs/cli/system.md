@@ -45,7 +45,7 @@ Flags:
 
 ## `system presence`
 
-List the current system presence entries the Gateway knows about (nodes,
+List the current system presence entries the Gateway knows about (clients,
 instances, and similar status lines).
 
 Flags:

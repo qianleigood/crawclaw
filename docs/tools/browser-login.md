@@ -43,17 +43,10 @@ If you have multiple profiles, pass the tool's `profile` argument explicitly
 - **Read/search/threads:** use the **host** browser (manual login).
 - **Post updates:** use the **host** browser (manual login).
 
-## Sandboxing + host browser access
-
-Sandboxed browser sessions are **more likely** to trigger bot detection. For X/Twitter (and other strict sites), prefer the **host** browser.
-
-If the agent is sandboxed, the browser tool defaults to the sandbox. To allow host control:
-
 ```json5
 {
   agents: {
     defaults: {
-      sandbox: {
         mode: "non-main",
         browser: {
           allowHostControl: true,
@@ -74,5 +67,3 @@ Then target the host browser:
   "url": "https://x.com"
 }
 ```
-
-Or disable sandboxing for the agent that posts updates.

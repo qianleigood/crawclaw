@@ -174,7 +174,6 @@ Personal AI health assistant integrating Oura ring data with calendar, appointme
 <Card title="Kev's Dream Team (14+ Agents)" icon="robot" href="https://github.com/adam91holt/orchestrated-ai-articles">
   **@adam91holt** • `multi-agent` `orchestration` `architecture` `manifesto`
 
-14+ agents under one gateway with Opus 4.5 orchestrator delegating to Codex workers. Comprehensive [technical write-up](https://github.com/adam91holt/orchestrated-ai-articles) covering the Dream Team roster, model selection, sandboxing, webhooks, heartbeats, and delegation flows. [Clawdspace](https://github.com/adam91holt/clawdspace) for agent sandboxing. [Blog post](https://adams-ai-journey.ghost.io/2026-the-year-of-the-orchestrator/).
 </Card>
 
 <Card title="Linear CLI" icon="terminal" href="https://github.com/Finesssee/linear-cli">
@@ -324,7 +323,7 @@ Multi-lingual audio transcription via OpenRouter (Gemini, etc). Available on Cla
 <CardGroup cols={2}>
 
 <Card title="Home Assistant Add-on" icon="home" href="https://github.com/ngutman/crawclaw-ha-addon">
-  **@ngutman** • `homeassistant` `docker` `raspberry-pi`
+  **@ngutman** • `homeassistant` `raspberry-pi`
   
   CrawClaw gateway running on Home Assistant OS with SSH tunnel support and persistent state.
 </Card>

@@ -14,7 +14,8 @@ validated graph, compile it to ComfyUI API-format prompt JSON, run it after
 approval, and download generated outputs.
 
 This tool is plugin-owned. It does not replace the `image` analysis tool, does
-not restore `image_generate`, and does not change n8n workflow semantics.
+not restore the old image-generation agent tool, and does not change n8n
+workflow semantics.
 
 ## Availability
 

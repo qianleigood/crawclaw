@@ -15,10 +15,8 @@ Note: The **Model** section now includes a multi-select for the
 Tip: `crawclaw config` without a subcommand opens the same wizard. Use
 `crawclaw config get|set|unset` for non-interactive edits.
 
-For web search, `crawclaw configure --section web` lets you choose a provider
-and configure its credentials. If you choose **Grok**, configure can also show
-a separate follow-up step to enable `x_search` with the same `XAI_API_KEY` and
-pick an `x_search` model. Other web-search providers do not show that step.
+For web search, `crawclaw configure --section web` configures the bundled
+Open-WebSearch path used by the model-visible `web_search` tool.
 
 Related:
 

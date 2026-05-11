@@ -82,11 +82,11 @@
     },
     {
       "source": "/brave-search",
-      "destination": "/tools/brave-search"
+      "destination": "/tools/open-websearch"
     },
     {
       "source": "/perplexity",
-      "destination": "/tools/perplexity-search"
+      "destination": "/tools/web"
     },
     {
       "source": "/web-fetch",
@@ -94,23 +94,23 @@
     },
     {
       "source": "/duckduckgo-search",
-      "destination": "/tools/duckduckgo-search"
+      "destination": "/tools/open-websearch"
     },
     {
       "source": "/exa-search",
-      "destination": "/tools/exa-search"
+      "destination": "/tools/open-websearch"
     },
     {
       "source": "/gemini-search",
-      "destination": "/tools/gemini-search"
+      "destination": "/tools/open-websearch"
     },
     {
       "source": "/grok-search",
-      "destination": "/tools/grok-search"
+      "destination": "/tools/open-websearch"
     },
     {
       "source": "/kimi-search",
-      "destination": "/tools/kimi-search"
+      "destination": "/tools/open-websearch"
     },
     {
       "source": "/tts",
@@ -261,14 +261,6 @@
       "destination": "/channels/whatsapp"
     },
     {
-      "source": "/sandbox",
-      "destination": "/cli/sandbox"
-    },
-    {
-      "source": "/sandboxing",
-      "destination": "/gateway/sandboxing"
-    },
-    {
       "source": "/AGENTS.default",
       "destination": "/reference/AGENTS.default"
     },
@@ -295,10 +287,6 @@
     {
       "source": "/architecture",
       "destination": "/concepts/architecture"
-    },
-    {
-      "source": "/audio",
-      "destination": "/nodes/audio"
     },
     {
       "source": "/background-process",
@@ -335,10 +323,6 @@
     {
       "source": "/automation/auth-monitoring",
       "destination": "/gateway/authentication"
-    },
-    {
-      "source": "/camera",
-      "destination": "/nodes/camera"
     },
     {
       "source": "/clawd",
@@ -391,14 +375,6 @@
     {
       "source": "/discovery",
       "destination": "/gateway/discovery"
-    },
-    {
-      "source": "/docker",
-      "destination": "/install/docker"
-    },
-    {
-      "source": "/podman",
-      "destination": "/install/podman"
     },
     {
       "source": "/doctor",
@@ -461,10 +437,6 @@
       "destination": "/start/hubs"
     },
     {
-      "source": "/images",
-      "destination": "/nodes/images"
-    },
-    {
       "source": "/imessage",
       "destination": "/channels/imessage"
     },
@@ -479,10 +451,6 @@
     {
       "source": "/location",
       "destination": "/channels/location"
-    },
-    {
-      "source": "/location-command",
-      "destination": "/nodes/location-command"
     },
     {
       "source": "/lore",
@@ -681,10 +649,6 @@
       "destination": "/gateway/tailscale"
     },
     {
-      "source": "/talk",
-      "destination": "/nodes/talk"
-    },
-    {
       "source": "/telegram",
       "destination": "/channels/telegram"
     },
@@ -745,10 +709,6 @@
       "destination": "/install/updating"
     },
     {
-      "source": "/voicewake",
-      "destination": "/nodes/voicewake"
-    },
-    {
       "source": "/webhook",
       "destination": "/automation/cron-jobs"
     },
@@ -805,28 +765,8 @@
       "destination": "/install/northflank"
     },
     {
-      "source": "/render",
-      "destination": "/install/render"
-    },
-    {
-      "source": "/gcp",
-      "destination": "/install/gcp"
-    },
-    {
       "source": "/azure",
       "destination": "/install/azure"
-    },
-    {
-      "source": "/platforms/fly",
-      "destination": "/install/fly"
-    },
-    {
-      "source": "/platforms/hetzner",
-      "destination": "/install/hetzner"
-    },
-    {
-      "source": "/platforms/gcp",
-      "destination": "/install/gcp"
     },
     {
       "source": "/platforms/azure",
@@ -843,10 +783,6 @@
     {
       "source": "/platforms/railway",
       "destination": "/install/railway"
-    },
-    {
-      "source": "/platforms/render",
-      "destination": "/install/render"
     },
     {
       "source": "/platforms/northflank",
@@ -919,34 +855,21 @@
                 "pages": ["install/index", "install/desktop", "install/installer", "install/node"]
               },
               {
-                "group": "Containers",
-                "pages": [
-                  "install/ansible",
-                  "install/bun",
-                  "install/clawdock",
-                  "install/docker",
-                  "install/nix",
-                  "install/podman"
-                ]
+                "group": "Alternative runtimes",
+                "pages": ["install/ansible", "install/bun", "install/nix"]
               },
               {
                 "group": "Hosting",
                 "pages": [
                   "install/azure",
                   "install/digitalocean",
-                  "install/docker-vm-runtime",
                   "install/exe-dev",
-                  "install/fly",
-                  "install/gcp",
-                  "install/hetzner",
-                  "install/kubernetes",
                   "vps",
                   "install/macos-vm",
                   "install/northflank",
                   "install/oracle",
                   "install/railway",
-                  "install/raspberry-pi",
-                  "install/render"
+                  "install/raspberry-pi"
                 ]
               },
               {
@@ -1150,22 +1073,9 @@
                   },
                   {
                     "group": "Web Tools",
-                    "pages": [
-                      "tools/web-fetch",
-                      "tools/web",
-                      "tools/open-websearch",
-                      "tools/brave-search",
-                      "tools/duckduckgo-search",
-                      "tools/exa-search",
-                      "tools/gemini-search",
-                      "tools/grok-search",
-                      "tools/kimi-search",
-                      "tools/perplexity-search",
-                      "tools/searxng-search"
-                    ]
+                    "pages": ["tools/web-fetch", "tools/web", "tools/open-websearch"]
                   },
                   "tools/btw",
-                  "tools/code-execution",
                   "tools/comfyui",
                   "tools/diffs",
                   "tools/elevated",
@@ -1182,12 +1092,7 @@
               },
               {
                 "group": "Agent coordination",
-                "pages": [
-                  "tools/agent-send",
-                  "tools/subagents",
-                  "tools/acp-agents",
-                  "tools/multi-agent-sandbox-tools"
-                ]
+                "pages": ["tools/agent-send", "tools/subagents", "tools/acp-agents"]
               }
             ]
           },
@@ -1290,19 +1195,13 @@
                     ]
                   },
                   {
-                    "group": "Security and sandboxing",
-                    "pages": [
-                      "gateway/security/index",
-                      "gateway/sandboxing",
-                      "gateway/openshell",
-                      "gateway/sandbox-vs-tool-policy-vs-elevated"
-                    ]
+                    "group": "Security",
+                    "pages": ["gateway/security/index"]
                   },
                   {
                     "group": "Protocols and APIs",
                     "pages": [
                       "gateway/protocol",
-                      "gateway/bridge-protocol",
                       "gateway/openai-http-api",
                       "gateway/openresponses-http-api",
                       "gateway/tools-invoke-http-api",
@@ -1315,7 +1214,6 @@
                     "pages": [
                       "network",
                       "gateway/network-model",
-                      "gateway/pairing",
                       "gateway/discovery",
                       "gateway/bonjour"
                     ]
@@ -1332,26 +1230,6 @@
                   "security/formal-verification",
                   "security/THREAT-MODEL-ATLAS",
                   "security/CONTRIBUTING-THREAT-MODEL"
-                ]
-              },
-              {
-                "group": "Nodes and media",
-                "pages": [
-                  "nodes/index",
-                  "nodes/troubleshooting",
-                  {
-                    "group": "Media capabilities",
-                    "pages": [
-                      "nodes/media-understanding",
-                      "nodes/images",
-                      "nodes/audio",
-                      "nodes/camera"
-                    ]
-                  },
-                  {
-                    "group": "Node features",
-                    "pages": ["nodes/talk", "nodes/voicewake", "nodes/location-command"]
-                  }
                 ]
               }
             ]
@@ -1406,14 +1284,7 @@
                   },
                   {
                     "group": "Tools and execution",
-                    "pages": [
-                      "cli/approvals",
-                      "cli/cron",
-                      "cli/flows",
-                      "cli/node",
-                      "cli/nodes",
-                      "cli/sandbox"
-                    ]
+                    "pages": ["cli/approvals", "cli/cron", "cli/flows"]
                   },
                   {
                     "group": "Configuration",
@@ -1422,10 +1293,6 @@
                   {
                     "group": "Plugins and skills",
                     "pages": ["cli/plugins", "cli/runtimes", "cli/skills"]
-                  },
-                  {
-                    "group": "Interfaces",
-                    "pages": ["cli/tui"]
                   },
                   {
                     "group": "Utility",
@@ -1571,12 +1438,7 @@
               },
               {
                 "group": "安装方式",
-                "pages": [
-                  "zh-CN/install/docker",
-                  "zh-CN/install/nix",
-                  "zh-CN/install/ansible",
-                  "zh-CN/install/bun"
-                ]
+                "pages": ["zh-CN/install/nix", "zh-CN/install/ansible", "zh-CN/install/bun"]
               },
               {
                 "group": "维护",
@@ -1590,13 +1452,9 @@
                 "group": "托管与部署",
                 "pages": [
                   "zh-CN/vps",
-                  "zh-CN/install/fly",
-                  "zh-CN/install/hetzner",
-                  "zh-CN/install/gcp",
                   "zh-CN/install/macos-vm",
                   "zh-CN/install/exe-dev",
                   "zh-CN/install/railway",
-                  "zh-CN/install/render",
                   "zh-CN/install/northflank"
                 ]
               },
@@ -1710,7 +1568,6 @@
                 "group": "内置工具",
                 "pages": [
                   "zh-CN/tools/apply-patch",
-                  "zh-CN/tools/brave-search",
                   "zh-CN/tools/elevated",
                   "zh-CN/tools/exec",
                   "zh-CN/tools/exec-approvals",
@@ -1718,7 +1575,6 @@
                   "zh-CN/tools/llm-task",
                   "zh-CN/tools/lobster",
                   "zh-CN/tools/open-websearch",
-                  "zh-CN/tools/perplexity-search",
                   "zh-CN/tools/pdf",
                   "zh-CN/tools/reactions",
                   "zh-CN/tools/thinking",
@@ -1735,11 +1591,7 @@
               },
               {
                 "group": "代理协作",
-                "pages": [
-                  "zh-CN/tools/agent-send",
-                  "zh-CN/tools/subagents",
-                  "zh-CN/tools/multi-agent-sandbox-tools"
-                ]
+                "pages": ["zh-CN/tools/agent-send", "zh-CN/tools/subagents"]
               },
               {
                 "group": "技能",
@@ -1765,20 +1617,6 @@
               {
                 "group": "自动化与任务",
                 "pages": ["zh-CN/automation/hooks", "zh-CN/automation/cron-jobs"]
-              },
-              {
-                "group": "媒体与设备",
-                "pages": [
-                  "zh-CN/nodes/index",
-                  "zh-CN/nodes/troubleshooting",
-                  "zh-CN/nodes/media-understanding",
-                  "zh-CN/nodes/images",
-                  "zh-CN/nodes/audio",
-                  "zh-CN/nodes/camera",
-                  "zh-CN/nodes/talk",
-                  "zh-CN/nodes/voicewake",
-                  "zh-CN/nodes/location-command"
-                ]
               }
             ]
           },
@@ -1863,18 +1701,13 @@
                     ]
                   },
                   {
-                    "group": "安全与沙箱",
-                    "pages": [
-                      "zh-CN/gateway/security/index",
-                      "zh-CN/gateway/sandboxing",
-                      "zh-CN/gateway/sandbox-vs-tool-policy-vs-elevated"
-                    ]
+                    "group": "安全",
+                    "pages": ["zh-CN/gateway/security/index"]
                   },
                   {
                     "group": "协议与 API",
                     "pages": [
                       "zh-CN/gateway/protocol",
-                      "zh-CN/gateway/bridge-protocol",
                       "zh-CN/gateway/openai-http-api",
                       "zh-CN/gateway/openresponses-http-api",
                       "zh-CN/gateway/tools-invoke-http-api",
@@ -1886,7 +1719,6 @@
                     "group": "网络与发现",
                     "pages": [
                       "zh-CN/gateway/network-model",
-                      "zh-CN/gateway/pairing",
                       "zh-CN/gateway/discovery",
                       "zh-CN/gateway/bonjour"
                     ]
@@ -1938,19 +1770,15 @@
                   "zh-CN/cli/memory",
                   "zh-CN/cli/message",
                   "zh-CN/cli/models",
-                  "zh-CN/cli/node",
-                  "zh-CN/cli/nodes",
                   "zh-CN/cli/onboard",
                   "zh-CN/cli/pairing",
                   "zh-CN/cli/plugins",
-                  "zh-CN/cli/sandbox",
                   "zh-CN/cli/security",
                   "zh-CN/cli/sessions",
                   "zh-CN/cli/setup",
                   "zh-CN/cli/skills",
                   "zh-CN/cli/status",
                   "zh-CN/cli/system",
-                  "zh-CN/cli/tui",
                   "zh-CN/cli/uninstall",
                   "zh-CN/cli/update",
                   "zh-CN/cli/voicecall",

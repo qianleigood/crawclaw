@@ -81,17 +81,15 @@ This is acceptable when everyone using that agent is in the same trust boundary 
 
 If you mix personal and company identities on the same runtime, you collapse the separation and increase personal-data exposure risk.
 
-## Gateway and node trust concept
+## Gateway trust concept
 
-Treat Gateway and node as one operator trust domain, with different roles:
+Treat the Gateway host as the operator trust domain:
 
 - **Gateway** is the control plane and policy surface (`gateway.auth`, tool policy, routing).
-- **Node** is remote execution surface paired to that Gateway (commands, device actions, host-local capabilities).
-- A caller authenticated to the Gateway is trusted at Gateway scope. After pairing, node actions are trusted operator actions on that node.
+- A caller authenticated to the Gateway is trusted at Gateway scope.
 - `sessionKey` is routing/context selection, not per-user auth.
 - Exec approvals (allowlist + ask) are guardrails for operator intent, not hostile multi-tenant isolation.
-- CrawClaw's product default for trusted single-operator setups is that host exec on `gateway`/`node` is allowed without approval prompts (`security="full"`, `ask="off"` unless you tighten it). That default is intentional UX, not a vulnerability by itself.
-- Exec approvals bind exact request context and best-effort direct local file operands; they do not semantically model every runtime/interpreter loader path. Use sandboxing and host isolation for strong boundaries.
+- CrawClaw's product default for trusted single-operator setups is that Gateway host exec is allowed without approval prompts (`security="full"`, `ask="off"` unless you tighten it). That default is intentional UX, not a vulnerability by itself.
 
 If you need hostile-user isolation, split trust boundaries by OS user/host and run separate gateways.
 
@@ -99,25 +97,21 @@ If you need hostile-user isolation, split trust boundaries by OS user/host and r
 
 Use this as the quick model when triaging risk:
 
-| Boundary or control                         | What it means                                     | Common misread                                                                |
-| ------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------------------------- |
-| `gateway.auth` (token/password/device auth) | Authenticates callers to gateway APIs             | "Needs per-message signatures on every frame to be secure"                    |
-| `sessionKey`                                | Routing key for context/session selection         | "Session key is a user auth boundary"                                         |
-| Prompt/content guardrails                   | Reduce model abuse risk                           | "Prompt injection alone proves auth bypass"                                   |
-| `canvas.eval` / browser evaluate            | Intentional operator capability when enabled      | "Any JS eval primitive is automatically a vuln in this trust model"           |
-| Local TUI `!` shell                         | Explicit operator-triggered local execution       | "Local shell convenience command is remote injection"                         |
-| Node pairing and node commands              | Operator-level remote execution on paired devices | "Remote device control should be treated as untrusted user access by default" |
+| Boundary or control                         | What it means                                | Common misread                                                      |
+| ------------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------- |
+| `gateway.auth` (token/password/device auth) | Authenticates callers to gateway APIs        | "Needs per-message signatures on every frame to be secure"          |
+| `sessionKey`                                | Routing key for context/session selection    | "Session key is a user auth boundary"                               |
+| Prompt/content guardrails                   | Reduce model abuse risk                      | "Prompt injection alone proves auth bypass"                         |
+| `canvas.eval` / browser evaluate            | Intentional operator capability when enabled | "Any JS eval primitive is automatically a vuln in this trust model" |
 
 ## Not vulnerabilities by design
 
 These patterns are commonly reported and are usually closed as no-action unless a real boundary bypass is shown:
 
-- Prompt-injection-only chains without a policy/auth/sandbox bypass.
 - Claims that assume hostile multi-tenant operation on one shared host/config.
 - Claims that classify normal operator read-path access (for example `sessions.list`/`sessions.preview`/`chat.history`) as IDOR in a shared-gateway setup.
 - Localhost-only deployment findings (for example HSTS on loopback-only gateway).
 - Discord inbound webhook signature findings for inbound paths that do not exist in this repo.
-- Reports that treat node pairing metadata as a hidden second per-command approval layer for `system.run`, when the real execution boundary is still the gateway's global node command policy plus the node's own exec approvals.
 - "Missing per-user authorization" findings that treat `sessionKey` as an auth token.
 
 ## Researcher preflight checklist
@@ -186,9 +180,6 @@ Set `contextVisibility` per channel or per room/conversation. See [Group Chats](
 
 Advisory triage guidance:
 
-- Claims that only show "model can see quoted or historical text from non-allowlisted senders" are hardening findings addressable with `contextVisibility`, not auth or sandbox boundary bypasses by themselves.
-- To be security-impacting, reports still need a demonstrated trust-boundary bypass (auth, policy, sandbox, approval, or another documented boundary).
-
 ## What the audit checks (high level)
 
 - **Inbound access** (DM policies, group policies, allowlists): can strangers trigger the bot?
@@ -196,11 +187,10 @@ Advisory triage guidance:
 - **Exec approval drift** (`security=full`, `autoAllowSkills`, interpreter allowlists without `strictInlineEval`): are host-exec guardrails still doing what you think they are?
   - `security="full"` is a broad posture warning, not proof of a bug. It is the chosen default for trusted personal-assistant setups; tighten it only when your threat model needs approval or allowlist guardrails.
 - **Network exposure** (Gateway bind/auth, Tailscale Serve/Funnel, weak/short auth tokens).
-- **Browser control exposure** (remote nodes, relay ports, remote CDP endpoints).
+- **Browser control exposure** (remote CDP endpoints, relay ports).
 - **Local disk hygiene** (permissions, symlinks, config includes, “synced folder” paths).
 - **Plugins** (extensions exist without an explicit allowlist).
-- **Policy drift/misconfig** (sandbox docker settings configured but sandbox mode off; ineffective `gateway.nodes.denyCommands` patterns because matching is exact command-name only (for example `system.run`) and does not inspect shell text; dangerous `gateway.nodes.allowCommands` entries; global `tools.profile="minimal"` overridden by per-agent profiles; extension plugin tools reachable under permissive tool policy).
-- **Runtime expectation drift** (for example assuming implicit exec still means `sandbox` when `tools.exec.host` now defaults to `auto`, or explicitly setting `tools.exec.host="sandbox"` while sandbox mode is off).
+- **Policy drift/misconfig** (global `tools.profile="minimal"` overridden by per-agent profiles; extension plugin tools reachable under permissive tool policy).
 - **Model hygiene** (warn when configured models look legacy; not a hard block).
 
 If you run `--deep`, CrawClaw also attempts a best-effort live Gateway probe.
@@ -224,9 +214,8 @@ Use this when auditing access or deciding what to back up:
 
 When the audit prints findings, treat this as a priority order:
 
-1. **Anything “open” + tools enabled**: lock down DMs/groups first (pairing/allowlists), then tighten tool policy/sandboxing.
 2. **Public network exposure** (LAN bind, Funnel, missing auth): fix immediately.
-3. **Browser control remote exposure**: treat it like operator access (tailnet-only, pair nodes deliberately, avoid public exposure).
+3. **Browser control remote exposure**: treat it like operator access (tailnet-only, authenticated, avoid public exposure).
 4. **Permissions**: make sure state/config/credentials/auth are not group/world-readable.
 5. **Plugins/extensions**: only load what you explicitly trust.
 6. **Model choice**: prefer modern, instruction-hardened models for any bot with tools.
@@ -244,7 +233,6 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `gateway.loopback_no_auth`                                    | critical      | Reverse-proxied loopback may become unauthenticated                                  | `gateway.auth.*`, proxy setup                                                                        | no       |
 | `gateway.http.no_auth`                                        | warn/critical | Gateway HTTP APIs reachable with `auth.mode="none"`                                  | `gateway.auth.mode`, `gateway.http.endpoints.*`                                                      | no       |
 | `gateway.tools_invoke_http.dangerous_allow`                   | warn/critical | Re-enables dangerous tools over HTTP API                                             | `gateway.tools.allow`                                                                                | no       |
-| `gateway.nodes.allow_commands_dangerous`                      | warn/critical | Enables high-impact node commands (camera/screen/contacts/calendar/SMS)              | `gateway.nodes.allowCommands`                                                                        | no       |
 | `gateway.tailscale_funnel`                                    | critical      | Public internet exposure                                                             | `gateway.tailscale.mode`                                                                             | no       |
 | `gateway.browser_client.allowed_origins_required`             | critical      | Non-loopback browser client access without explicit browser-origin allowlist         | `gateway.browserClients.allowedOrigins`                                                              | no       |
 | `gateway.browser_client.host_header_origin_fallback`          | warn/critical | Enables Host-header origin fallback (DNS rebinding hardening downgrade)              | `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback`                                    | no       |
@@ -260,10 +248,6 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `hooks.request_session_key_enabled`                           | warn/critical | External caller can choose sessionKey                                                | `hooks.allowRequestSessionKey`                                                                       | no       |
 | `hooks.request_session_key_prefixes_missing`                  | warn/critical | No bound on external session key shapes                                              | `hooks.allowedSessionKeyPrefixes`                                                                    | no       |
 | `logging.redact_off`                                          | warn          | Sensitive values leak to logs/status                                                 | `logging.redactSensitive`                                                                            | yes      |
-| `sandbox.docker_config_mode_off`                              | warn          | Sandbox Docker config present but inactive                                           | `agents.*.sandbox.mode`                                                                              | no       |
-| `sandbox.dangerous_network_mode`                              | critical      | Sandbox Docker network uses `host` or `container:*` namespace-join mode              | `agents.*.sandbox.docker.network`                                                                    | no       |
-| `tools.exec.host_sandbox_no_sandbox_defaults`                 | warn          | `exec host=sandbox` fails closed when sandbox is off                                 | `tools.exec.host`, `agents.defaults.sandbox.mode`                                                    | no       |
-| `tools.exec.host_sandbox_no_sandbox_agents`                   | warn          | Per-agent `exec host=sandbox` fails closed when sandbox is off                       | `agents.list[].tools.exec.host`, `agents.list[].sandbox.mode`                                        | no       |
 | `tools.exec.security_full_configured`                         | warn/critical | Host exec is running with `security="full"`                                          | `tools.exec.security`, `agents.list[].tools.exec.security`                                           | no       |
 | `tools.exec.auto_allow_skills_enabled`                        | warn          | Exec approvals trust skill bins implicitly                                           | `~/.crawclaw/exec-approvals.json`                                                                    | no       |
 | `tools.exec.allowlist_interpreter_without_strict_inline_eval` | warn          | Interpreter allowlists permit inline eval without forced reapproval                  | `tools.exec.strictInlineEval`, `agents.list[].tools.exec.strictInlineEval`, exec approvals allowlist | no       |
@@ -272,11 +256,8 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `skills.workspace.symlink_escape`                             | warn          | Workspace `skills/**/SKILL.md` resolves outside workspace root (symlink-chain drift) | workspace `skills/**` filesystem state                                                               | no       |
 | `security.exposure.open_channels_with_exec`                   | warn/critical | Shared/public rooms can reach exec-enabled agents                                    | `channels.*.dmPolicy`, `channels.*.groupPolicy`, `tools.exec.*`, `agents.list[].tools.exec.*`        | no       |
 | `security.exposure.open_groups_with_elevated`                 | critical      | Open groups + elevated tools create high-impact prompt-injection paths               | `channels.*.groupPolicy`, `tools.elevated.*`                                                         | no       |
-| `security.exposure.open_groups_with_runtime_or_fs`            | critical/warn | Open groups can reach command/file tools without sandbox/workspace guards            | `channels.*.groupPolicy`, `tools.profile/deny`, `tools.fs.workspaceOnly`, `agents.*.sandbox.mode`    | no       |
-| `security.trust_model.multi_user_heuristic`                   | warn          | Config looks multi-user while gateway trust model is personal-assistant              | split trust boundaries, or shared-user hardening (`sandbox.mode`, tool deny/workspace scoping)       | no       |
 | `tools.profile_minimal_overridden`                            | warn          | Agent overrides bypass global minimal profile                                        | `agents.list[].tools.profile`                                                                        | no       |
 | `plugins.tools_reachable_permissive_policy`                   | warn          | Extension tools reachable in permissive contexts                                     | `tools.profile` + tool allow/deny                                                                    | no       |
-| `models.small_params`                                         | critical/info | Small models + unsafe tool surfaces raise injection risk                             | model choice + sandbox/tool policy                                                                   | no       |
 
 ## Browser clients over HTTP
 
@@ -330,12 +311,6 @@ schema:
 - `channels.irc.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
 - `channels.mattermost.dangerouslyAllowNameMatching` (extension channel)
 - `channels.mattermost.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
-- `agents.defaults.sandbox.docker.dangerouslyAllowReservedContainerTargets`
-- `agents.defaults.sandbox.docker.dangerouslyAllowExternalBindSources`
-- `agents.defaults.sandbox.docker.dangerouslyAllowContainerNamespaceJoin`
-- `agents.list[<index>].sandbox.docker.dangerouslyAllowReservedContainerTargets`
-- `agents.list[<index>].sandbox.docker.dangerouslyAllowExternalBindSources`
-- `agents.list[<index>].sandbox.docker.dangerouslyAllowContainerNamespaceJoin`
 
 ## Reverse Proxy Configuration
 
@@ -388,32 +363,21 @@ This is required for session continuity and (optionally) session memory indexing
 boundary and lock down permissions on `~/.crawclaw` (see the audit section below). If you need
 stronger isolation between agents, run them under separate OS users or separate hosts.
 
-## Node execution (system.run)
+## Gateway execution (system.run)
 
-If a macOS node is paired, the Gateway can invoke `system.run` on that node. This is **remote code execution** on the Mac:
+The Gateway can run local commands through the `exec` tool. Treat this as
+remote code execution on the Gateway host:
 
-- Requires node pairing (approval + token).
-- Gateway node pairing is not a per-command approval surface. It establishes node identity/trust and token issuance.
-- The Gateway applies a coarse global node command policy via `gateway.nodes.allowCommands` / `denyCommands`.
-- Controlled on the Mac via **Settings → Exec approvals** (security + ask + allowlist).
-- The per-node `system.run` policy is the node's own exec approvals file (`exec.approvals.node.*`), which can be stricter or looser than the gateway's global command-ID policy.
-- A node running with `security="full"` and `ask="off"` is following the default trusted-operator model. Treat that as expected behavior unless your deployment explicitly requires a tighter approval or allowlist stance.
+- Host execution is controlled by **Settings -> Exec approvals** (security + ask + allowlist).
 - Approval mode binds exact request context and, when possible, one concrete local script/file operand. If CrawClaw cannot identify exactly one direct local file for an interpreter/runtime command, approval-backed execution is denied rather than promising full semantic coverage.
-- If you don’t want remote execution, set security to **deny** and remove node pairing for that Mac.
+- If you do not want host command execution, deny or remove the `exec` tool.
 
-This distinction matters for triage:
-
-- A reconnecting paired node advertising a different command list is not, by itself, a vulnerability if the Gateway global policy and the node's local exec approvals still enforce the actual execution boundary.
-- Reports that treat node pairing metadata as a second hidden per-command approval layer are usually policy/UX confusion, not a security boundary bypass.
-
-## Dynamic skills (watcher / remote nodes)
+## Dynamic skills (watcher)
 
 CrawClaw can refresh the skills list mid-session:
 
 - **Skills watcher**: changes to `SKILL.md` can update the skills snapshot on the next agent turn.
-- **Remote nodes**: connecting a macOS node can make macOS-only skills eligible (based on bin probing).
-
-Treat skill folders as **trusted code** and restrict who can modify them.
+  Treat skill folders as **trusted code** and restrict who can modify them.
 
 ## The Threat Model
 
@@ -437,7 +401,6 @@ Most failures here are not fancy exploits — they’re “someone messaged the 
 CrawClaw’s stance:
 
 - **Identity first:** decide who can talk to the bot (DM pairing / allowlists / explicit “open”).
-- **Scope next:** decide where the bot is allowed to act (group allowlists + mention gating, tools, sandboxing, device permissions).
 - **Model last:** assume the model can be manipulated; design so manipulation has limited blast radius.
 
 ## Command authorization model
@@ -551,13 +514,9 @@ Details: [Configuration](/gateway/configuration) and [Groups](/channels/groups)
 
 Prompt injection is when an attacker crafts a message that manipulates the model into doing something unsafe (“ignore your instructions”, “dump your filesystem”, “follow this link and run commands”, etc.).
 
-Even with strong system prompts, **prompt injection is not solved**. System prompt guardrails are soft guidance only; hard enforcement comes from tool policy, exec approvals, sandboxing, and channel allowlists (and operators can disable these by design). What helps in practice:
-
 - Keep inbound DMs locked down (pairing/allowlists).
 - Prefer mention gating in groups; avoid “always-on” bots in public rooms.
 - Treat links, attachments, and pasted instructions as hostile by default.
-- Run sensitive tool execution in a sandbox; keep secrets out of the agent’s reachable filesystem.
-- Note: sandboxing is opt-in. If sandbox mode is off, implicit `host=auto` resolves to the gateway host. Explicit `host=sandbox` still fails closed because no sandbox runtime is available. Set `host=gateway` if you want that behavior to be explicit in config.
 - Limit high-risk tools (`exec`, `browser`, `web_fetch`, `web_search`) to trusted agents or explicit allowlists.
 - If you allowlist interpreters (`python`, `node`, `ruby`, `perl`, `php`, `lua`, `osascript`), enable `tools.exec.strictInlineEval` so inline eval forms still need explicit approval.
 - **Model choice matters:** older/smaller/legacy models are significantly less robust against prompt injection and tool misuse. For tool-enabled agents, use the strongest latest-generation, instruction-hardened model available.
@@ -581,12 +540,10 @@ Guidance:
 
 - Keep these unset/false in production.
 - Only enable temporarily for tightly scoped debugging.
-- If enabled, isolate that agent (sandbox + minimal tools + dedicated session namespace).
 
 Hooks risk note:
 
 - Hook payloads are untrusted content, even when delivery comes from systems you control (mail/docs/web content can carry prompt injection).
-- Weak model tiers increase this risk. For hook-driven automation, prefer strong modern model tiers and keep tool policy tight (`tools.profile: "messaging"` or stricter), plus sandboxing where possible.
 
 ### Prompt injection does not require public DMs
 
@@ -606,7 +563,6 @@ tool calls. Reduce the blast radius by:
   `gateway.http.endpoints.responses.images.urlAllowlist`, and keep `maxUrlParts` low.
   Empty allowlists are treated as unset; use `files.allowUrl: false` / `images.allowUrl: false`
   if you want to disable URL fetching entirely.
-- Enabling sandboxing and strict tool allowlists for any agent that touches untrusted input.
 - Keeping secrets out of prompts; pass them via env/config on the gateway host instead.
 
 ### Model strength (security note)
@@ -621,8 +577,6 @@ Recommendations:
 
 - **Use the latest generation, best-tier model** for any bot that can run tools or touch files/networks.
 - **Do not use older/weaker/smaller tiers** for tool-enabled agents or untrusted inboxes; the prompt-injection risk is too high.
-- If you must use a smaller model, **reduce blast radius** (read-only tools, strong sandboxing, minimal filesystem access, strict allowlists).
-- When running small models, **enable sandboxing for all sessions** and **disable web_search/web_fetch/browser** unless inputs are tightly controlled.
 - For chat-only personal assistants with trusted input and no tools, smaller models are usually fine.
 
 <a id="reasoning-verbose-output-in-groups"></a>
@@ -674,52 +628,6 @@ Rules of thumb:
 - Prefer Tailscale Serve over LAN binds (Serve keeps the Gateway on loopback, and Tailscale handles access).
 - If you must bind to LAN, firewall the port to a tight allowlist of source IPs; do not port-forward it broadly.
 - Never expose the Gateway unauthenticated on `0.0.0.0`.
-
-### 0.4.1) Docker port publishing + UFW (`DOCKER-USER`)
-
-If you run CrawClaw with Docker on a VPS, remember that published container ports
-(`-p HOST:CONTAINER` or Compose `ports:`) are routed through Docker's forwarding
-chains, not only host `INPUT` rules.
-
-To keep Docker traffic aligned with your firewall policy, enforce rules in
-`DOCKER-USER` (this chain is evaluated before Docker's own accept rules).
-On many modern distros, `iptables`/`ip6tables` use the `iptables-nft` frontend
-and still apply these rules to the nftables backend.
-
-Minimal allowlist example (IPv4):
-
-```bash
-# /etc/ufw/after.rules (append as its own *filter section)
-*filter
-:DOCKER-USER - [0:0]
--A DOCKER-USER -m conntrack --ctstate ESTABLISHED,RELATED -j RETURN
--A DOCKER-USER -s 127.0.0.0/8 -j RETURN
--A DOCKER-USER -s 10.0.0.0/8 -j RETURN
--A DOCKER-USER -s 172.16.0.0/12 -j RETURN
--A DOCKER-USER -s 192.168.0.0/16 -j RETURN
--A DOCKER-USER -s 100.64.0.0/10 -j RETURN
--A DOCKER-USER -p tcp --dport 80 -j RETURN
--A DOCKER-USER -p tcp --dport 443 -j RETURN
--A DOCKER-USER -m conntrack --ctstate NEW -j DROP
--A DOCKER-USER -j RETURN
-COMMIT
-```
-
-IPv6 has separate tables. Add a matching policy in `/etc/ufw/after6.rules` if
-Docker IPv6 is enabled.
-
-Avoid hardcoding interface names like `eth0` in docs snippets. Interface names
-vary across VPS images (`ens3`, `enp*`, etc.) and mismatches can accidentally
-skip your deny rule.
-
-Quick validation after reload:
-
-```bash
-ufw reload
-iptables -S DOCKER-USER
-ip6tables -S DOCKER-USER
-nmap -sT -p 1-65535 <public-ip> --open
-```
 
 Expected external ports should be only what you intentionally expose (for most
 setups: SSH + your reverse proxy ports).
@@ -858,16 +766,12 @@ Trusted proxies:
 
 See [Tailscale](/gateway/tailscale) and [Remote access](/gateway/remote).
 
-### 0.6.1) Browser control via node host (recommended)
-
-If your Gateway is remote but the browser runs on another machine, run a **node host**
-on the browser machine and let the Gateway proxy browser actions (see [Browser tool](/tools/browser)).
-Treat node pairing like admin access.
+### 0.6.1) Remote browser control
 
 Recommended pattern:
 
-- Keep the Gateway and node host on the same tailnet (Tailscale).
-- Pair the node intentionally; disable browser proxy routing if you don’t need it.
+- Prefer local browser control on the Gateway host.
+- For remote browsers, use an authenticated remote CDP endpoint and keep it tailnet-only.
 
 Avoid:
 
@@ -885,7 +789,6 @@ Assume anything under `~/.crawclaw/` (or `$CRAWCLAW_STATE_DIR/`) may contain sec
 - `agents/<agentId>/agent/auth.json`: legacy compatibility file. Static `api_key` entries are scrubbed when discovered.
 - `agents/<agentId>/sessions/**`: session transcripts (`*.jsonl`) + routing metadata (`sessions.json`) that can contain private messages and tool output.
 - bundled plugin packages: installed plugins (plus their `node_modules/`).
-- `sandboxes/**`: tool sandbox workspaces; can accumulate copies of files you read/write inside the sandbox.
 
 Hardening tips:
 
@@ -948,18 +851,13 @@ For phone-number-based channels, consider running your AI on a separate phone nu
 - Personal number: Your conversations stay private
 - Bot number: AI handles these, with appropriate boundaries
 
-### 4) Read-only mode (via sandbox + tools)
-
 You can build a read-only profile by combining:
 
-- `agents.defaults.sandbox.workspaceAccess: "ro"` (or `"none"` for no workspace access)
 - tool allow/deny lists that block `write`, `edit`, `apply_patch`, `exec`, `process`, etc.
 
 Additional hardening options:
 
-- `tools.exec.applyPatch.workspaceOnly: true` (default): ensures `apply_patch` cannot write/delete outside the workspace directory even when sandboxing is off. Set to `false` only if you intentionally want `apply_patch` to touch files outside the workspace.
 - `tools.fs.workspaceOnly: true` (optional): restricts `read`/`write`/`edit`/`apply_patch` paths and native prompt image auto-load paths to the workspace directory (useful if you allow absolute paths today and want a single guardrail).
-- Keep filesystem roots narrow: avoid broad roots like your home directory for agent workspaces/sandbox workspaces. Broad roots can expose sensitive local files (for example state/config under `~/.crawclaw`) to filesystem tools.
 
 ### 5) Secure baseline (copy/paste)
 
@@ -982,28 +880,14 @@ One “safe default” config that keeps the Gateway private, requires DM pairin
 }
 ```
 
-If you want “safer by default” tool execution too, add a sandbox + deny dangerous tools for any non-owner agent (example below under “Per-agent access profiles”).
-
 Built-in baseline for chat-driven agent turns: non-owner senders cannot use the `cron` or `gateway` tools.
 
-## Sandboxing (recommended)
-
-Dedicated doc: [Sandboxing](/gateway/sandboxing)
+Dedicated doc: [Security](/gateway/security)
 
 Two complementary approaches:
 
-- **Run the full Gateway in Docker** (container boundary): [Docker](/install/docker)
-- **Tool sandbox** (`agents.defaults.sandbox`, host gateway + Docker-isolated tools): [Sandboxing](/gateway/sandboxing)
-
-Note: to prevent cross-agent access, keep `agents.defaults.sandbox.scope` at `"agent"` (default)
 or `"session"` for stricter per-session isolation. `scope: "shared"` uses a
 single container/workspace.
-
-Also consider agent workspace access inside the sandbox:
-
-- `agents.defaults.sandbox.workspaceAccess: "none"` (default) keeps the agent workspace off-limits; tools run against a sandbox workspace under `~/.crawclaw/sandboxes`
-- `agents.defaults.sandbox.workspaceAccess: "ro"` mounts the agent workspace read-only at `/agent` (disables `write`/`edit`/`apply_patch`)
-- `agents.defaults.sandbox.workspaceAccess: "rw"` mounts the agent workspace read/write at `/workspace`
 
 Important: `tools.elevated` is the global baseline escape hatch that runs exec on the host. Keep `tools.elevated.allowFrom` tight and don’t enable it for strangers. You can further restrict elevated per agent via `agents.list[].tools.elevated`. See [Elevated Mode](/tools/elevated).
 
@@ -1013,8 +897,6 @@ If you allow session tools, treat delegated sub-agent runs as another boundary d
 
 - Deny `sessions_spawn` unless the agent truly needs delegation.
 - Keep `agents.list[].subagents.allowAgents` restricted to known-safe target agents.
-- For any workflow that must remain sandboxed, call `sessions_spawn` with `sandbox: "require"` (default is `inherit`).
-- `sandbox: "require"` fails fast when the target child runtime is not sandboxed.
 
 ## Browser control risks
 
@@ -1024,12 +906,10 @@ access those accounts and data. Treat browser profiles as **sensitive state**:
 
 - Prefer a dedicated profile for the agent (the default `crawclaw` profile).
 - Avoid pointing the agent at your personal daily-driver profile.
-- Keep host browser control disabled for sandboxed agents unless you trust them.
 - Treat browser downloads as untrusted input; prefer an isolated downloads directory.
 - Disable browser sync/password managers in the agent profile if possible (reduces blast radius).
 - For remote gateways, assume “browser control” is equivalent to “operator access” to whatever that profile can reach.
-- Keep the Gateway and node hosts tailnet-only; avoid exposing browser control ports to LAN or public Internet.
-- Disable browser proxy routing when you don’t need it (`gateway.nodes.browser.mode="off"`).
+- Keep the Gateway and remote browser endpoints tailnet-only; avoid exposing browser control ports to LAN or public Internet.
 - Browser control against a personal daily-driver profile is **not** “safer”; it can act as you in whatever that profile can reach.
 
 ### Browser SSRF policy (trusted-network default)
@@ -1058,18 +938,11 @@ Example strict policy:
 
 ## Per-agent access profiles (multi-agent)
 
-With multi-agent routing, each agent can have its own sandbox + tool policy:
 use this to give **full access**, **read-only**, or **no access** per agent.
-See [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools) for full details
+See [Subagents](/tools/subagents) for full details
 and precedence rules.
 
 Common use cases:
-
-- Personal agent: full access, no sandbox
-- Family/work agent: sandboxed + read-only tools
-- Public agent: sandboxed + no filesystem/shell tools
-
-### Example: full access (no sandbox)
 
 ```json5
 {
@@ -1078,7 +951,6 @@ Common use cases:
       {
         id: "personal",
         workspace: "~/.crawclaw/workspace-personal",
-        sandbox: { mode: "off" },
       },
     ],
   },
@@ -1094,7 +966,6 @@ Common use cases:
       {
         id: "family",
         workspace: "~/.crawclaw/workspace-family",
-        sandbox: {
           mode: "all",
           scope: "agent",
           workspaceAccess: "ro",
@@ -1118,7 +989,6 @@ Common use cases:
       {
         id: "public",
         workspace: "~/.crawclaw/workspace-public",
-        sandbox: {
           mode: "all",
           scope: "agent",
           workspaceAccess: "none",
@@ -1148,7 +1018,6 @@ Common use cases:
             "process",
             "browser",
             "canvas",
-            "nodes",
             "cron",
             "gateway",
             "image",

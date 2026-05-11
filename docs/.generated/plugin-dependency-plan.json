@@ -295,9 +295,7 @@
       ],
       "channelIds": [],
       "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49"
-      },
+      "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/comfyui",
       "enabledByDefault": true,
@@ -359,6 +357,7 @@
       },
       "devDependencies": {
         "@types/node": "^22.0.0",
+        "crawclaw": "workspace:*",
         "dotenv": "^17.3.1",
         "tsx": "^4.6.0",
         "typescript": "^5.3.0"
@@ -398,9 +397,7 @@
       "enabledByDefault": false,
       "id": "deepgram",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/deepgram/crawclaw.plugin.json",
@@ -598,21 +595,17 @@
     },
     {
       "capabilities": [
-        "contract"
+        "support"
       ],
       "channelIds": [],
-      "contractKeys": [
-        "speechProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/elevenlabs",
       "enabledByDefault": false,
       "id": "elevenlabs",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/elevenlabs/crawclaw.plugin.json",
@@ -623,6 +616,43 @@
       "private": true,
       "providerIds": [],
       "version": "2026.4.1-beta.1"
+    },
+    {
+      "capabilities": [
+        "channel"
+      ],
+      "channelIds": [
+        "esp32"
+      ],
+      "contractKeys": [],
+      "dependencies": {
+        "@sinclair/typebox": "0.34.49",
+        "aedes": "^1.0.2",
+        "zod": "^4.3.6"
+      },
+      "devDependencies": {
+        "crawclaw": "workspace:*"
+      },
+      "dir": "extensions/esp32",
+      "enabledByDefault": false,
+      "id": "esp32",
+      "install": {
+        "entryPoints": [
+          "./index.ts"
+        ],
+        "npmSpec": "@crawclaw/esp32",
+        "stageRuntimeDependencies": false
+      },
+      "manifestPath": "extensions/esp32/crawclaw.plugin.json",
+      "optionalDependencies": {},
+      "packageJsonPath": "extensions/esp32/package.json",
+      "packageName": "@crawclaw/esp32",
+      "peerDependencies": {
+        "crawclaw": ">=2026.4.1"
+      },
+      "private": false,
+      "providerIds": [],
+      "version": "2026.5.3"
     },
     {
       "capabilities": [
@@ -1082,10 +1112,7 @@
       ],
       "channelIds": [],
       "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49",
-        "ajv": "^8.18.0"
-      },
+      "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/llm-task",
       "enabledByDefault": false,
@@ -1111,9 +1138,7 @@
       ],
       "channelIds": [],
       "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49"
-      },
+      "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/lobster",
       "enabledByDefault": false,
@@ -1215,12 +1240,10 @@
     },
     {
       "capabilities": [
-        "contract"
+        "support"
       ],
       "channelIds": [],
-      "contractKeys": [
-        "speechProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {
         "node-edge-tts": "^1.2.10"
       },
@@ -1229,9 +1252,7 @@
       "enabledByDefault": false,
       "id": "microsoft",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/microsoft/crawclaw.plugin.json",
@@ -1626,8 +1647,7 @@
       ],
       "channelIds": [],
       "contractKeys": [
-        "mediaUnderstandingProviders",
-        "speechProviders"
+        "mediaUnderstandingProviders"
       ],
       "dependencies": {},
       "devDependencies": {},
@@ -1747,32 +1767,6 @@
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
-      "dir": "extensions/openshell",
-      "enabledByDefault": false,
-      "id": "openshell",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/openshell/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/openshell/package.json",
-      "packageName": "@crawclaw/openshell-sandbox",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
       "dir": "extensions/perplexity",
       "enabledByDefault": false,
       "id": "perplexity",
@@ -1880,6 +1874,34 @@
       "private": false,
       "providerIds": [],
       "version": "2026.4.20"
+    },
+    {
+      "capabilities": [
+        "contract"
+      ],
+      "channelIds": [],
+      "contractKeys": [
+        "speechProviders"
+      ],
+      "dependencies": {},
+      "devDependencies": {},
+      "dir": "extensions/qwen3-tts",
+      "enabledByDefault": true,
+      "id": "qwen3-tts",
+      "install": {
+        "entryPoints": [
+          "./index.ts"
+        ],
+        "stageRuntimeDependencies": false
+      },
+      "manifestPath": "extensions/qwen3-tts/crawclaw.plugin.json",
+      "optionalDependencies": {},
+      "packageJsonPath": "extensions/qwen3-tts/package.json",
+      "packageName": "@crawclaw/qwen3-tts-speech",
+      "peerDependencies": {},
+      "private": true,
+      "providerIds": [],
+      "version": "2026.5.3"
     },
     {
       "capabilities": [
@@ -2519,13 +2541,10 @@
     },
     {
       "capabilities": [
-        "provider",
-        "contract"
+        "provider"
       ],
       "channelIds": [],
-      "contractKeys": [
-        "tools"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/xai",
@@ -2862,7 +2881,6 @@
       "@mariozechner/pi-agent-core": "0.70.0",
       "@mariozechner/pi-ai": "0.70.0",
       "@mariozechner/pi-coding-agent": "0.70.0",
-      "@mariozechner/pi-tui": "0.70.0",
       "@matrix-org/matrix-sdk-crypto-wasm": "18.1.0",
       "@modelcontextprotocol/sdk": "1.29.0",
       "@mozilla/readability": "^0.6.0",
@@ -2931,11 +2949,10 @@
       "vitest": "^4.1.2"
     },
     "engines": {
-      "node": ">=22.14.0"
+      "node": ">=24.0.0 <26"
     },
     "optionalDependencies": {
-      "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0",
-      "openshell": "0.1.0"
+      "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0"
     },
     "packageManager": "pnpm@10.32.1",
     "peerDependencies": {
@@ -3009,18 +3026,18 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "bundledPluginCount": 88,
+    "bundledPluginCount": 89,
     "capabilityCounts": {
-      "channel": 24,
+      "channel": 25,
       "cli": 1,
       "cli-backend": 3,
-      "contract": 17,
+      "contract": 15,
       "provider": 37,
       "skill": 7,
-      "support": 16
+      "support": 17
     },
     "disabledByDefaultCount": 43,
-    "enabledByDefaultCount": 45,
+    "enabledByDefaultCount": 46,
     "pluginRuntimeDependencyVersionSplits": [
       {
         "name": "https-proxy-agent",
@@ -3079,6 +3096,11 @@
             "version": "^4.0.0"
           },
           {
+            "pluginId": "esp32",
+            "section": "dependencies",
+            "version": "^4.3.6"
+          },
+          {
             "pluginId": "googlechat",
             "section": "dependencies",
             "version": "^4.3.6"
@@ -3120,6 +3142,7 @@
       "bluebubbles",
       "ddingtalk",
       "discord",
+      "esp32",
       "feishu",
       "googlechat",
       "line",
@@ -3137,9 +3160,9 @@
       "zalouser"
     ],
     "rootDependencyCounts": {
-      "dependencies": 53,
+      "dependencies": 52,
       "devDependencies": 23,
-      "optionalDependencies": 2,
+      "optionalDependencies": 1,
       "peerDependencies": 2
     },
     "stagedRuntimeDependencyPluginIds": [

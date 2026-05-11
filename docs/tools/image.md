@@ -62,7 +62,6 @@ Input notes:
 Reference notes:
 
 - Unsupported URI schemes are rejected with `unsupported_image_reference`.
-- In sandbox mode, remote `http(s)` URLs are rejected.
 - With workspace-only file policy enabled, local file paths outside allowed
   roots are rejected.
 
@@ -108,14 +107,12 @@ Path fields:
 
 - single image input: `details.image`
 - multiple image inputs: `details.images[]` with `image` entries
-- sandbox path rewrite metadata (when applicable): `rewrittenFrom`
 
 ## Error behavior
 
 - Missing image input: throws `image required`
 - Too many images: returns structured error in `details.error = "too_many_images"`
 - Unsupported reference scheme: returns `details.error = "unsupported_image_reference"`
-- Sandboxed remote URL: throws `Sandboxed image tool does not allow remote URLs.`
 
 ## Examples
 

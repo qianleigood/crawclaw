@@ -1154,244 +1154,6 @@ See [Streaming](/concepts/streaming) for behavior + chunking details.
 
 See [Typing Indicators](/concepts/typing-indicators).
 
-<a id="agentsdefaultssandbox"></a>
-
-### `agents.defaults.sandbox`
-
-Optional sandboxing for the embedded agent. See [Sandboxing](/gateway/sandboxing) for the full guide.
-
-```json5
-{
-  agents: {
-    defaults: {
-      sandbox: {
-        mode: "non-main", // off | non-main | all
-        backend: "docker", // docker | ssh | openshell
-        scope: "agent", // session | agent | shared
-        workspaceAccess: "none", // none | ro | rw
-        workspaceRoot: "~/.crawclaw/sandboxes",
-        docker: {
-          image: "crawclaw-sandbox:bookworm-slim",
-          containerPrefix: "crawclaw-sbx-",
-          workdir: "/workspace",
-          readOnlyRoot: true,
-          tmpfs: ["/tmp", "/var/tmp", "/run"],
-          network: "none",
-          user: "1000:1000",
-          capDrop: ["ALL"],
-          env: { LANG: "C.UTF-8" },
-          setupCommand: "apt-get update && apt-get install -y git curl jq",
-          pidsLimit: 256,
-          memory: "1g",
-          memorySwap: "2g",
-          cpus: 1,
-          ulimits: {
-            nofile: { soft: 1024, hard: 2048 },
-            nproc: 256,
-          },
-          seccompProfile: "/path/to/seccomp.json",
-          apparmorProfile: "crawclaw-sandbox",
-          dns: ["1.1.1.1", "8.8.8.8"],
-          extraHosts: ["internal.service:10.0.0.5"],
-          binds: ["/home/user/source:/source:rw"],
-        },
-        ssh: {
-          target: "user@gateway-host:22",
-          command: "ssh",
-          workspaceRoot: "/tmp/crawclaw-sandboxes",
-          strictHostKeyChecking: true,
-          updateHostKeys: true,
-          identityFile: "~/.ssh/id_ed25519",
-          certificateFile: "~/.ssh/id_ed25519-cert.pub",
-          knownHostsFile: "~/.ssh/known_hosts",
-          // SecretRefs / inline contents also supported:
-          // identityData: { source: "env", provider: "default", id: "SSH_IDENTITY" },
-          // certificateData: { source: "env", provider: "default", id: "SSH_CERTIFICATE" },
-          // knownHostsData: { source: "env", provider: "default", id: "SSH_KNOWN_HOSTS" },
-        },
-        browser: {
-          enabled: false,
-          image: "crawclaw-sandbox-browser:bookworm-slim",
-          network: "crawclaw-sandbox-browser",
-          cdpPort: 9222,
-          cdpSourceRange: "172.21.0.1/32",
-          vncPort: 5900,
-          noVncPort: 6080,
-          headless: false,
-          enableNoVnc: true,
-          allowHostControl: false,
-          autoStart: true,
-          autoStartTimeoutMs: 12000,
-        },
-        prune: {
-          idleHours: 24,
-          maxAgeDays: 7,
-        },
-      },
-    },
-  },
-  tools: {
-    sandbox: {
-      tools: {
-        allow: [
-          "exec",
-          "process",
-          "read",
-          "write",
-          "edit",
-          "apply_patch",
-          "sessions_list",
-          "sessions_history",
-          "sessions_send",
-          "sessions_spawn",
-          "session_status",
-        ],
-        deny: ["browser", "canvas", "cron", "discord", "gateway"],
-      },
-    },
-  },
-}
-```
-
-<Accordion title="Sandbox details">
-
-**Backend:**
-
-- `docker`: local Docker runtime (default)
-- `ssh`: generic SSH-backed remote runtime
-- `openshell`: OpenShell runtime
-
-When `backend: "openshell"` is selected, runtime-specific settings move to
-`plugins.entries.openshell.config`.
-
-**SSH backend config:**
-
-- `target`: SSH target in `user@host[:port]` form
-- `command`: SSH client command (default: `ssh`)
-- `workspaceRoot`: absolute remote root used for per-scope workspaces
-- `identityFile` / `certificateFile` / `knownHostsFile`: existing local files passed to OpenSSH
-- `identityData` / `certificateData` / `knownHostsData`: inline contents or SecretRefs that CrawClaw materializes into temp files at runtime
-- `strictHostKeyChecking` / `updateHostKeys`: OpenSSH host-key policy knobs
-
-**SSH auth precedence:**
-
-- `identityData` wins over `identityFile`
-- `certificateData` wins over `certificateFile`
-- `knownHostsData` wins over `knownHostsFile`
-- SecretRef-backed `*Data` values are resolved from the active secrets runtime snapshot before the sandbox session starts
-
-**SSH backend behavior:**
-
-- seeds the remote workspace once after create or recreate
-- then keeps the remote SSH workspace canonical
-- routes `exec`, file tools, and media paths over SSH
-- does not sync remote changes back to the host automatically
-- does not support sandbox browser containers
-
-**Workspace access:**
-
-- `none`: per-scope sandbox workspace under `~/.crawclaw/sandboxes`
-- `ro`: sandbox workspace at `/workspace`, agent workspace mounted read-only at `/agent`
-- `rw`: agent workspace mounted read/write at `/workspace`
-
-**Scope:**
-
-- `session`: per-session container + workspace
-- `agent`: one container + workspace per agent (default)
-- `shared`: shared container and workspace (no cross-session isolation)
-
-**OpenShell plugin config:**
-
-```json5
-{
-  plugins: {
-    entries: {
-      openshell: {
-        enabled: true,
-        config: {
-          mode: "mirror", // mirror | remote
-          from: "crawclaw",
-          remoteWorkspaceDir: "/sandbox",
-          remoteAgentWorkspaceDir: "/agent",
-          gateway: "lab", // optional
-          gatewayEndpoint: "https://lab.example", // optional
-          policy: "strict", // optional OpenShell policy id
-          providers: ["openai"], // optional
-          autoProviders: true,
-          timeoutSeconds: 120,
-        },
-      },
-    },
-  },
-}
-```
-
-**OpenShell mode:**
-
-- `mirror`: seed remote from local before exec, sync back after exec; local workspace stays canonical
-- `remote`: seed remote once when the sandbox is created, then keep the remote workspace canonical
-
-In `remote` mode, host-local edits made outside CrawClaw are not synced into the sandbox automatically after the seed step.
-Transport is SSH into the OpenShell sandbox, but the plugin owns sandbox lifecycle and optional mirror sync.
-
-**`setupCommand`** runs once after container creation (via `sh -lc`). Needs network egress, writable root, root user.
-
-**Containers default to `network: "none"`** — set to `"bridge"` (or a custom bridge network) if the agent needs outbound access.
-`"host"` is blocked. `"container:<id>"` is blocked by default unless you explicitly set
-`sandbox.docker.dangerouslyAllowContainerNamespaceJoin: true` (break-glass).
-
-**Inbound attachments** are staged into `media/inbound/*` in the active workspace.
-
-**`docker.binds`** mounts additional host directories; global and per-agent binds are merged.
-
-**Sandboxed browser** (`sandbox.browser.enabled`): Chromium + CDP in a container. noVNC URL injected into system prompt. Does not require `browser.enabled` in `crawclaw.json`.
-noVNC observer access uses VNC auth by default and CrawClaw emits a short-lived token URL (instead of exposing the password in the shared URL).
-
-- `allowHostControl: false` (default) blocks sandboxed sessions from targeting the host browser.
-- `network` defaults to `crawclaw-sandbox-browser` (dedicated bridge network). Set to `bridge` only when you explicitly want global bridge connectivity.
-- `cdpSourceRange` optionally restricts CDP ingress at the container edge to a CIDR range (for example `172.21.0.1/32`).
-- `sandbox.browser.binds` mounts additional host directories into the sandbox browser container only. When set (including `[]`), it replaces `docker.binds` for the browser container.
-- Launch defaults are defined in `scripts/sandbox-browser-entrypoint.sh` and tuned for container hosts:
-  - `--remote-debugging-address=127.0.0.1`
-  - `--remote-debugging-port=<derived from CRAWCLAW_BROWSER_CDP_PORT>`
-  - `--user-data-dir=${HOME}/.chrome`
-  - `--no-first-run`
-  - `--no-default-browser-check`
-  - `--disable-3d-apis`
-  - `--disable-gpu`
-  - `--disable-software-rasterizer`
-  - `--disable-dev-shm-usage`
-  - `--disable-background-networking`
-  - `--disable-features=TranslateUI`
-  - `--disable-breakpad`
-  - `--disable-crash-reporter`
-  - `--renderer-process-limit=2`
-  - `--no-zygote`
-  - `--metrics-recording-only`
-  - `--disable-extensions` (default enabled)
-  - `--disable-3d-apis`, `--disable-software-rasterizer`, and `--disable-gpu` are
-    enabled by default and can be disabled with
-    `CRAWCLAW_BROWSER_DISABLE_GRAPHICS_FLAGS=0` if WebGL/3D usage requires it.
-  - `CRAWCLAW_BROWSER_DISABLE_EXTENSIONS=0` re-enables extensions if your workflow
-    depends on them.
-  - `--renderer-process-limit=2` can be changed with
-    `CRAWCLAW_BROWSER_RENDERER_PROCESS_LIMIT=<N>`; set `0` to use Chromium's
-    default process limit.
-  - plus `--no-sandbox` and `--disable-setuid-sandbox` when `noSandbox` is enabled.
-  - Defaults are the container image baseline; use a custom browser image with a custom
-    entrypoint to change container defaults.
-
-</Accordion>
-
-Browser sandboxing and `sandbox.docker.binds` are currently Docker-only.
-
-Build images:
-
-```bash
-scripts/sandbox-setup.sh           # main sandbox image
-scripts/sandbox-browser-setup.sh   # optional browser image
-```
-
 ### `agents.list` (per-agent overrides)
 
 ```json5
@@ -1416,7 +1178,6 @@ scripts/sandbox-browser-setup.sh   # optional browser image
           avatar: "avatars/samantha.png",
         },
         groupChat: { mentionPatterns: ["@crawclaw"] },
-        sandbox: { mode: "off" },
         runtime: {
           type: "acp",
           acp: {
@@ -1450,7 +1211,6 @@ scripts/sandbox-browser-setup.sh   # optional browser image
 - `identity.avatar`: workspace-relative path, `http(s)` URL, or `data:` URI.
 - `identity` derives defaults: `ackReaction` from `emoji`, `mentionPatterns` from `name`/`emoji`.
 - `subagents.allowAgents`: allowlist of agent ids for `sessions_spawn` (`["*"]` = any; default: same agent only).
-- Sandbox inheritance guard: if the requester session is sandboxed, `sessions_spawn` rejects targets that would run unsandboxed.
 - `subagents.requireAgentId`: when true, block `sessions_spawn` calls that omit `agentId` (forces explicit profile selection; default: false).
 
 ---
@@ -1498,8 +1258,6 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
 
 ### Per-agent access profiles
 
-<Accordion title="Full access (no sandbox)">
-
 ```json5
 {
   agents: {
@@ -1507,7 +1265,6 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
       {
         id: "personal",
         workspace: "~/.crawclaw/workspace-personal",
-        sandbox: { mode: "off" },
       },
     ],
   },
@@ -1525,7 +1282,6 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
       {
         id: "family",
         workspace: "~/.crawclaw/workspace-family",
-        sandbox: { mode: "all", scope: "agent", workspaceAccess: "ro" },
         tools: {
           allow: [
             "read",
@@ -1554,7 +1310,6 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
       {
         id: "public",
         workspace: "~/.crawclaw/workspace-public",
-        sandbox: { mode: "all", scope: "agent", workspaceAccess: "none" },
         tools: {
           allow: [
             "sessions_list",
@@ -1590,7 +1345,7 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
 
 </Accordion>
 
-See [Multi-Agent Sandbox & Tools](/tools/multi-agent-sandbox-tools) for precedence details.
+See [Subagents](/tools/subagents) for precedence details.
 
 ---
 
@@ -1832,20 +1587,19 @@ conditional tools still require their runtime/plugin/channel capability, and
 special-agent-only tools such as `session_summary_file_read`,
 `session_summary_file_edit` are not main-agent defaults.
 
-| Profile     | Includes                                                                                                                                                                   |
-| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `minimal`   | `session_status` only                                                                                                                                                      |
-| `coding`    | `group:fs`, `group:runtime`, `group:web`, `group:sessions`, `browser`, `discover_skills`, `workflow`, `workflowize`, `review_task`, `group:memory`, `cron`, `image`, `pdf` |
-| `messaging` | `group:messaging`, `sessions_list`, `sessions_history`, `sessions_send`, `session_status`                                                                                  |
-| `full`      | No profile restriction (runtime, owner, sandbox, provider, and special-agent gates still apply)                                                                            |
+| Profile     | Includes                                                                                                                                              |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `minimal`   | `session_status` only                                                                                                                                 |
+| `coding`    | `group:fs`, `group:runtime`, `group:web`, `sessions_spawn`, `sessions_yield`, `session_status`, `browser`, `discover_skills`, `write_experience_note` |
+| `messaging` | `group:messaging`, `session_status`                                                                                                                   |
 
 ### Tool groups
 
 | Group                   | Tools                                                                                                                              |
 | ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `group:runtime`         | `exec`, `process`, `code_execution` (`bash` is accepted as an alias for `exec`)                                                    |
+| `group:runtime`         | `bash`, `process`, `grep`, `find`, `ls`                                                                                            |
 | `group:fs`              | `read`, `write`, `edit`, `apply_patch`                                                                                             |
-| `group:web`             | `web_search`, `web_fetch`, `x_search`                                                                                              |
+| `group:web`             | `web_search`, `web_fetch`                                                                                                          |
 | `group:sessions`        | `sessions_list`, `sessions_history`, `sessions_send`, `sessions_spawn`, `sessions_yield`, `subagents`, `session_status`            |
 | `group:ui`              | `browser`, `canvas`                                                                                                                |
 | `group:messaging`       | `message`                                                                                                                          |
@@ -1864,8 +1618,6 @@ to `main` unless the host opened those tools for the current turn or the run is
 a matching special agent.
 
 ### `tools.allow` / `tools.deny`
-
-Global tool allow/deny policy (deny wins). Case-insensitive, supports `*` wildcards. Applied even when Docker sandbox is off.
 
 ```json5
 {
@@ -1909,7 +1661,6 @@ Controls elevated (host) exec access:
 
 - Per-agent override (`agents.list[].tools.elevated`) can only further restrict.
 - `/elevated on|off|ask|full` stores state per session; inline directives apply to single message.
-- Elevated `exec` runs on the host, bypasses sandboxing.
 
 ### `tools.exec`
 
@@ -2080,7 +1831,6 @@ Notes:
 - `tree`: current session + sessions spawned by the current session (subagents).
 - `agent`: any session belonging to the current agent id (can include other users if you run per-sender sessions under the same agent id).
 - `all`: any session. Cross-agent targeting still requires `tools.agentToAgent`.
-- Sandbox clamp: when the current session is sandboxed and `agents.defaults.sandbox.sessionToolsVisibility="spawned"`, visibility is forced to `tree` even if `tools.sessions.visibility="all"`.
 
 ### `tools.sessions_spawn`
 
@@ -2514,7 +2264,6 @@ See [Plugins](/tools/plugin).
     },
     color: "#FF4500",
     // headless: false,
-    // noSandbox: false,
     // extraArgs: [],
   },
 }
@@ -2598,7 +2347,6 @@ See [Plugins](/tools/plugin).
 - `port`: single multiplexed port for WS + HTTP. Precedence: `--port` > `CRAWCLAW_GATEWAY_PORT` > `gateway.port` > `18789`.
 - `bind`: `auto`, `loopback` (default), `lan` (`0.0.0.0`), `tailnet` (Tailscale IP only), or `custom`.
 - **Legacy bind aliases**: use bind mode values in `gateway.bind` (`auto`, `loopback`, `lan`, `tailnet`, `custom`), not host aliases (`0.0.0.0`, `127.0.0.1`, `localhost`, `::`, `::1`).
-- **Docker note**: the default `loopback` bind listens on `127.0.0.1` inside the container. With Docker bridge networking (`-p 18789:18789`), traffic arrives on `eth0`, so the gateway is unreachable. Use `--network host`, or set `bind: "lan"` (or `bind: "custom"` with `customBindHost: "0.0.0.0"`) to listen on all interfaces.
 - **Auth**: required by default. Non-loopback binds require a shared token/password. Onboarding wizard generates a token by default.
 - If both `gateway.auth.token` and `gateway.auth.password` are configured (including SecretRefs), set `gateway.auth.mode` explicitly to `token` or `password`. Startup and service install/repair flows fail when both are configured and mode is unset.
 - `gateway.auth.mode: "none"`: explicit no-auth mode. Use only for trusted local loopback setups; this is intentionally not offered by onboarding prompts.
@@ -3176,7 +2924,7 @@ See `agents.list` identity fields under [Agent defaults](#agent-defaults).
 
 ## Bridge (legacy, removed)
 
-Current builds no longer include the TCP bridge. Nodes connect over the Gateway WebSocket. `bridge.*` keys are no longer part of the config schema (validation fails until removed; `crawclaw doctor --fix` can strip unknown keys).
+Current builds no longer include the TCP bridge. `bridge.*` keys are no longer part of the config schema (validation fails until removed; `crawclaw doctor --fix` can strip unknown keys).
 
 <Accordion title="Legacy bridge config (historical reference)">
 

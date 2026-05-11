@@ -63,17 +63,13 @@ CrawClaw also injects context markers into spawned child processes:
 - `CRAWCLAW_SHELL=exec` (legacy: `CRAWCLAW_SHELL=exec`): set for commands run through the `exec` tool.
 - `CRAWCLAW_SHELL=acp` (legacy: `CRAWCLAW_SHELL=acp`): set for ACP runtime backend process spawns (for example `acpx`).
 - `CRAWCLAW_SHELL=acp-client` (legacy: `CRAWCLAW_SHELL=acp-client`): set for `crawclaw acp client` when it spawns the ACP bridge process.
-- `CRAWCLAW_SHELL=tui-local` (legacy: `CRAWCLAW_SHELL=tui-local`): set for local TUI `!` shell commands.
 
 These are runtime markers (not required user config). They can be used in shell/profile logic
 to apply context-specific rules.
 
 ## Terminal env vars
 
-- `CRAWCLAW_LANG=zh-CN`: set the CLI and TUI language when `--lang` and `cli.language` are not set.
-- `CRAWCLAW_THEME=light` (legacy: `CRAWCLAW_THEME=light`): force the light TUI palette when your terminal has a light background.
-- `CRAWCLAW_THEME=dark` (legacy: `CRAWCLAW_THEME=dark`): force the dark TUI palette.
-- `COLORFGBG`: if your terminal exports it, CrawClaw uses the background color hint to auto-pick the TUI palette.
+- `CRAWCLAW_LANG=zh-CN`: set the CLI language when `--lang` and `cli.language` are not set.
 
 ## Env var substitution in config
 

@@ -33,7 +33,7 @@ If you want a higher-level overview first, start with:
 
 CrawClaw is designed around a single **Gateway process** that owns session state.
 
-- UIs (browser clients, TUI, and other clients) should query the Gateway for session lists and token counts.
+- UIs (browser clients and other clients) should query the Gateway for session lists and token counts.
 - In remote mode, session files are on the remote host; “checking your local Mac files” won’t reflect what the Gateway is using.
 
 ---

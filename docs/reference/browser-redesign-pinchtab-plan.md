@@ -12,7 +12,6 @@ read_when:
 
 - `browser` 工具保持单一入口（工具名不变）。
 - 底层执行内核统一为 PinchTab。
-- 保留多路由能力（`host | sandbox | node`），但路由只负责“选路”，不承担执行细节。
 - 移除现有多执行栈的耦合逻辑，统一到 PinchTab 单内核。
 
 ## 已完成（本批）
@@ -27,7 +26,6 @@ read_when:
 ### PR-1（已落地）
 
 - 路由与执行解耦（不改变行为）
-- 引入 `BrowserToolRouteDeps`，隔离 `host/sandbox/node` 判定与代理调用
 
 ### PR-2（核心迁移，已完成）
 
@@ -43,7 +41,6 @@ read_when:
 
 ### PR-3（多路由接入 PinchTab）
 
-- `sandbox` 路由接入 sandbox 暴露的 PinchTab 端点
 - `node` 路由改为节点侧 PinchTab 执行
 - 会话键统一：`<target>:<sessionId>[:<nodeId>]`
 
@@ -56,10 +53,8 @@ read_when:
 #### PR-4 当前进度
 
 - 已完成：
-  - `browser` 工具的 `host` / `sandbox` 主执行链已切到 PinchTab
   - `browser-tool` 测试已改到新的 session/ref 协议，不再断言旧 host runtime
   - `targetId` 依赖型 host act 请求现在直接拒绝，不再伪兼容
-  - `browser-tool.ts` 内部已删除不可达的 host/sandbox 旧 runtime 分支，node 兼容路径与主工具执行链已明显解耦
   - `gateway/browser.request` 的本地 fallback 已改为复用 `runBrowserProxyCommand`，不再直接持有旧 control dispatcher
   - `browser` / `browser-runtime` facade 已移除 `browserHandlers` 对外导出，开始收缩纯兼容 public surface
   - 面向用户的 browser / CLI / plugin 文档已开始从“browser control server”改写为“compatibility service / automation path”
@@ -86,7 +81,6 @@ read_when:
 - 路由/服务层：
   - `extensions/browser/src/server.ts`
   - `extensions/browser/src/control-service.ts`
-  - `extensions/browser/src/browser/bridge-server.ts`（若 sandbox 改为纯 CDP）
   - `extensions/browser/src/gateway/browser-request.ts`（若不再走 gateway method）
 - 执行层（旧）：
   - `extensions/browser/src/browser/client.ts`

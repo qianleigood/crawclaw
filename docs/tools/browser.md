@@ -3,7 +3,7 @@ summary: "Integrated browser automation tool backed by PinchTab"
 read_when:
   - Adding agent-controlled browser automation
   - Debugging why CrawClaw is interfering with your own Chrome
-  - Implementing browser settings + lifecycle in local clients or node hosts
+  - Implementing browser settings + lifecycle in local clients
 title: "Browser (CrawClaw-managed)"
 ---
 
@@ -94,7 +94,6 @@ CrawClaw now runs the `browser` tool through PinchTab across all routes.
 Current scope:
 
 - `host` route talks to the local PinchTab server.
-- `sandbox` route talks to the sandbox-exposed PinchTab endpoint.
 - `node` route uses the node-side PinchTab proxy path.
 - Legacy `targetId`-only workflows are intentionally no longer adapted.
 
@@ -188,7 +187,6 @@ Browser settings live in `~/.crawclaw/crawclaw.json`.
     defaultProfile: "crawclaw",
     color: "#FF4500",
     headless: false,
-    noSandbox: false,
     profiles: {
       crawclaw: { color: "#FF4500" },
       work: { color: "#0066CC" },
@@ -214,7 +212,6 @@ Notes:
 ## Local vs remote control
 
 - **Local control (default):** the Gateway starts the loopback control service and can launch a local browser.
-- **Remote control (node host):** run a node host on the machine that has the browser; the Gateway proxies browser actions to it.
 - **Remote CDP:** set `browser.profiles.<name>.cdpUrl` (or `browser.cdpUrl`) to
   attach to a remote Chromium-based browser. In this case, CrawClaw will not launch a local browser.
 
@@ -226,22 +223,6 @@ Remote CDP URLs can include auth:
 CrawClaw preserves the auth when calling `/json/*` endpoints and when connecting
 to the CDP WebSocket. Prefer environment variables or secrets managers for
 tokens instead of committing them to config files.
-
-## Node browser proxy (zero-config default)
-
-If you run a **node host** on the machine that has your browser, CrawClaw can
-auto-route browser tool calls to that node without any extra browser config.
-This is the default path for remote gateways.
-
-Notes:
-
-- The node host exposes its local browser automation capability via a **proxy command**.
-- Profiles come from the node’s own `browser.profiles` config (same as local).
-- `nodeHost.browserProxy.allowProfiles` is optional. Leave it empty for the legacy/default behavior: all configured profiles remain reachable through the proxy, including profile create/delete routes.
-- If you set `nodeHost.browserProxy.allowProfiles`, CrawClaw treats it as a least-privilege boundary: only allowlisted profiles can be targeted, and persistent profile create/delete routes are blocked on the proxy surface.
-- Disable if you don’t want it:
-  - On the node: `nodeHost.browserProxy.enabled=false`
-  - On the gateway: `gateway.nodes.browser.mode="off"`
 
 ## Browserless (hosted remote CDP)
 
@@ -329,9 +310,9 @@ Notes:
 
 Key ideas:
 
-- Browser control is loopback-only; access flows through the Gateway’s auth or node pairing.
+- Browser control is loopback-only by default; access flows through the Gateway’s auth.
 - If browser control is enabled and no auth is configured, CrawClaw auto-generates `gateway.auth.token` on startup and persists it to config.
-- Keep the Gateway and any node hosts on a private network (Tailscale); avoid public exposure.
+- Keep the Gateway and any remote CDP endpoints on a private network (Tailscale); avoid public exposure.
 - Treat remote CDP URLs/tokens as secrets; prefer env vars or a secrets manager.
 
 Remote CDP tips:
@@ -344,7 +325,7 @@ Remote CDP tips:
 CrawClaw supports multiple named profiles (routing configs). Profiles can be:
 
 - **crawclaw-managed**: a dedicated managed browser profile routed through PinchTab
-- **remote**: run a node host on the machine that has the browser and let the Gateway proxy browser actions there
+- **remote**: attach to a remote Chromium browser through CDP
 
 Defaults:
 
@@ -425,13 +406,11 @@ Practical guidance:
 High-level flow:
 
 - The bundled browser plugin routes calls through **PinchTab** on `host`,
-  `sandbox`, or `node`.
 - The browser control server now uses the same PinchTab backend for browser
   lifecycle and tab management endpoints such as status/start/stop/reset and
   tab list/open/focus/close, so tool and HTTP entrypoints share the same runtime
   for these operations.
 - PinchTab is the single execution backend for the bundled browser server and
-  tool routes on `host`, `sandbox`, and `node`.
 
 This design keeps the agent on a stable, deterministic interface while letting
 you keep browser automation on one control plane.
@@ -616,7 +595,7 @@ These are useful for “make the site behave like X” workflows:
   execute arbitrary JavaScript in the page context. Prompt injection can steer
   this. Disable it with `browser.evaluateEnabled=false` if you do not need it.
 - For logins and anti-bot notes (X/Twitter, etc.), see [Browser login + X/Twitter posting](/tools/browser-login).
-- Keep the Gateway/node host private (loopback or tailnet-only).
+- Keep the Gateway private (loopback or tailnet-only).
 - Remote CDP endpoints are powerful; tunnel and protect them.
 
 Strict-mode example (block private/internal destinations by default):
@@ -651,15 +630,11 @@ How it maps:
 - `browser screenshot` captures pixels (full page or element).
 - `browser` accepts:
   - `profile` to choose a named browser profile (crawclaw, chrome, or remote CDP).
-  - `target` (`sandbox` | `host` | `node`) to select where the browser lives.
-  - In sandboxed sessions, `target: "host"` requires `agents.defaults.sandbox.browser.allowHostControl=true`.
-  - If `target` is omitted: sandboxed sessions default to `sandbox`, non-sandbox sessions default to `host`.
-  - If a browser-capable node is connected, the tool may auto-route to it unless you pin `target="host"` or `target="node"`.
+  - `target` (`host`) to select the Gateway host browser.
 
 This keeps the agent deterministic and avoids brittle selectors.
 
 ## Related
 
 - [Tools Overview](/tools) — all available agent tools
-- [Sandboxing](/gateway/sandboxing) — browser control in sandboxed environments
 - [Security](/gateway/security) — browser control risks and hardening

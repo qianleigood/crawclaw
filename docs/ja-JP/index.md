@@ -43,8 +43,8 @@ x-i18n:
   <Card title="ウィザードを実行" href="/start/wizard" icon="sparkles">
     `crawclaw onboard`とペアリングフローによるガイド付きセットアップ。
   </Card>
-  <Card title="Terminal UI" href="/cli/tui" icon="terminal">
-    ローカルTUIでGatewayに接続してチャットを開始します。
+  <Card title="CLI Agent" href="/cli" icon="terminal">
+    ローカルCLIでGatewayに接続してチャットを開始します。
   </Card>
 </Columns>
 
@@ -57,7 +57,7 @@ flowchart LR
   A["チャットアプリ + プラグイン"] --> B["Gateway"]
   B --> C["Piエージェント"]
   B --> D["CLI"]
-  B --> E["TUI"]
+  B --> E["CLI clients"]
   B --> F["Browser-origin clients"]
   B --> G["Node integrations"]
 ```
@@ -114,7 +114,7 @@ Gatewayは、セッション、ルーティング、チャネル接続の信頼�
 
 Gateway起動後は、ローカル端末またはリモートアクセス経路から利用します。
 
-- ローカル端末: `crawclaw tui`
+- ローカル端末: `crawclaw agent --message "hello"`
 - リモートアクセス: [リモートアクセス](/gateway/remote) および [Tailscale](/gateway/tailscale)
 
 <p align="center">
@@ -156,9 +156,6 @@ Gateway起動後は、ローカル端末またはリモートアクセス経路�
   </Card>
   <Card title="チャネル" href="/channels/telegram" icon="message-square">
     WhatsApp、Telegram、Discordなどのチャネル固有のセットアップ。
-  </Card>
-  <Card title="ノード" href="/nodes" icon="smartphone">
-    ペアリングとヘッドレスノード連携。
   </Card>
   <Card title="ヘルプ" href="/help" icon="life-buoy">
     一般的な修正とトラブルシューティングのエントリーポイント。

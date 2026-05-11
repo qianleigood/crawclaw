@@ -54,8 +54,7 @@ Recommended flow:
   - `pnpm gateway:dev`
 - Trigger the agent directly:
   - `pnpm crawclaw agent --message "Hello" --thinking low`
-- Use the TUI for interactive debugging:
-  - `pnpm tui`
+- Use the desktop client or `pnpm crawclaw agent --message "Hello" --thinking low` for interactive debugging.
 
 For tool call behavior, prompt for a `read` or `exec` action so you can see tool streaming and payload handling.
 

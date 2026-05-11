@@ -258,7 +258,7 @@ CrawClaw 只接受完全符合 schema 的配置。未知键、类型格式错误
 
     先构建镜像：`scripts/sandbox-setup.sh`
 
-    完整指南请参阅 [Sandboxing](/gateway/sandboxing)，所有选项请参阅 [完整参考](/gateway/configuration-reference#sandbox)。
+    完整指南请参阅 [Security](/gateway/security)，所有选项请参阅 [完整参考](/gateway/configuration-reference#sandbox)。
 
   </Accordion>
 

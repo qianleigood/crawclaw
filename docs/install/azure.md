@@ -306,6 +306,5 @@ This removes the resource group and everything inside it (VM, VNet, NSG, Bastion
 ## Next steps
 
 - Set up messaging channels: [Channels](/channels)
-- Pair local devices as nodes: [Nodes](/nodes)
 - Configure the Gateway: [Gateway configuration](/gateway/configuration)
 - For more details on CrawClaw Azure deployment with the GitHub Copilot model provider: [CrawClaw on Azure with GitHub Copilot](https://github.com/johnsonshi/crawclaw-azure-github-copilot)

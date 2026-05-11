@@ -18,7 +18,7 @@ x-i18n:
 目標：ゼロから最小限のセットアップで最初の動作するチャットを実現する。
 
 <Info>
-最速のチャット方法：`crawclaw tui`を実行します（チャンネル設定は不要）。ドキュメント：[TUI](/cli/tui)。
+最速のチャット方法：`crawclaw agent --message "hello"`を実行します（チャンネル設定は不要）。
 </Info>
 
 ## 前提条件
@@ -70,13 +70,13 @@ x-i18n:
   </Step>
   <Step title="ローカルUIを開く">
     ```bash
-    crawclaw tui
+    crawclaw agent --message "hello"
     ```
   </Step>
 </Steps>
 
 <Check>
-`crawclaw tui` が開くか、Webクライアントが接続できれば、Gatewayは使用可能です。
+CLI agent コマンドが応答するか、Webクライアントが接続できれば、Gatewayは使用可能です。
 </Check>
 
 ## オプションの確認と追加機能
@@ -115,7 +115,7 @@ x-i18n:
 
 - 実行中のGateway
 - 構成済みの認証
-- `crawclaw tui` へのアクセスまたは接続済みのチャンネル
+- CLI agent コマンドへのアクセスまたは接続済みのチャンネル
 
 ## 次のステップ
 

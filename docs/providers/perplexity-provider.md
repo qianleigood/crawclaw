@@ -12,8 +12,8 @@ The Perplexity plugin provides web search capabilities through the Perplexity
 Search API or Perplexity Sonar via OpenRouter.
 
 <Note>
-This page covers the Perplexity **provider** setup. For the Perplexity
-**tool** (how the agent uses it), see [Perplexity tool](/tools/perplexity-search).
+This page covers legacy Perplexity web-search provider setup. CrawClaw's
+model-visible `web_search` tool now uses [Open-WebSearch](/tools/open-websearch).
 </Note>
 
 - Type: web search provider (not a model provider)

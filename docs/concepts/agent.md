@@ -22,8 +22,6 @@ Recommended: use `crawclaw setup` to create `~/.crawclaw/crawclaw.json` if missi
 
 Full workspace layout + backup guide: [Agent workspace](/concepts/agent-workspace)
 
-If `agents.defaults.sandbox` is enabled, non-main sessions can override this with
-per-session workspaces under `agents.defaults.sandbox.workspaceRoot` (see
 [Gateway configuration](/gateway/configuration)).
 
 ## Bootstrap files (injected)
@@ -139,7 +137,6 @@ Task-backed runs also persist runtime metadata and completion traces under:
 The task JSON stores runtime metadata (session refs, mode, parent/child agent
 links, spawn source). The trajectory JSON stores step traces, completion
 evidence, and completion-guard output. The capability snapshot stores the
-runtime-facing execution envelope (runtime, model, sandbox, workspace, and
 requester refs) used by guard and inspection.
 
 ## Steering while streaming

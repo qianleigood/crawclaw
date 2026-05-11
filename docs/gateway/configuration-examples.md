@@ -268,20 +268,12 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       mediaMaxMb: 5,
       typingIntervalSeconds: 5,
       maxConcurrent: 3,
-      sandbox: {
         mode: "non-main",
         scope: "session", // preferred over legacy perSession: true
-        workspaceRoot: "~/.crawclaw/sandboxes",
-        docker: {
-          image: "crawclaw-sandbox:bookworm-slim",
-          workdir: "/workspace",
-          readOnlyRoot: true,
-          tmpfs: ["/tmp", "/var/tmp", "/run"],
-          network: "none",
-          user: "1000:1000",
-        },
-        browser: {
-          enabled: false,
+        backend: "ssh",
+        workspaceAccess: "rw",
+        ssh: {
+          target: "user@gateway-host:22",
         },
       },
     },

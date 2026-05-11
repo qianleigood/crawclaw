@@ -173,4 +173,4 @@ sequences (e.g. spaces become `\032`).
 ## Related docs
 
 - Discovery policy and transport selection: [Discovery](/gateway/discovery)
-- Node pairing + approvals: [Gateway pairing](/gateway/pairing)
+- Pairing + approvals: [Pairing](/channels/pairing)

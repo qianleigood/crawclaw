@@ -285,7 +285,6 @@ The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names whil
 
 `install.ps1` is the supported native Windows entrypoint for CLI and Gateway
 installs. Successful installation does not imply full Windows parity with
-macOS-only integrations or every Linux sandbox behavior. Use the Windows
 platform matrix for the product boundary: [Windows](/platforms/windows).
 
 ### Native Windows validation path

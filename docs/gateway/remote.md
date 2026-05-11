@@ -10,7 +10,7 @@ title: "Remote Access"
 This repo supports “remote over SSH” by keeping a single Gateway (the master) running on a dedicated host (desktop/server) and connecting clients to it.
 
 - For **operators**: SSH tunneling is the universal fallback.
-- For **nodes and future devices**: connect to the Gateway **WebSocket** (LAN/tailnet or SSH tunnel as needed).
+- For **remote clients**: connect to the Gateway **WebSocket** (LAN/tailnet or SSH tunnel as needed).
 
 ## The core idea
 
@@ -20,7 +20,7 @@ This repo supports “remote over SSH” by keeping a single Gateway (the master
 ## Common VPN/tailnet setups (where the agent lives)
 
 Think of the **Gateway host** as “where the agent lives.” It owns sessions, auth profiles, channels, and state.
-Your laptop/desktop (and nodes) connect to that host.
+Your laptop/desktop clients connect to that host.
 
 ### 1) Always-on Gateway in your tailnet (VPS or home server)
 
@@ -28,7 +28,7 @@ Run the Gateway on a persistent host and reach it via **Tailscale** or SSH.
 
 - Keep `gateway.bind: "loopback"` and use **Tailscale Serve** or SSH tunnels for remote clients.
 - **Fallback:** keep loopback + SSH tunnel from any machine that needs access.
-- **Examples:** [exe.dev](/install/exe-dev) (easy VM) or [Hetzner](/install/hetzner) (production VPS).
+- **Examples:** [exe.dev](/install/exe-dev) for an easy VM, or [DigitalOcean](/install/digitalocean) for a conventional VPS.
 
 This is ideal when your laptop sleeps often but you want the agent always-on.
 
@@ -51,19 +51,17 @@ Guide: [Tailscale](/gateway/tailscale).
 
 ## Command flow (what runs where)
 
-One gateway service owns state + channels. Nodes are peripherals.
+One gateway service owns state, channels, and host-side tools.
 
-Flow example (Telegram → node):
+Flow example (Telegram -> Gateway tool):
 
 - Telegram message arrives at the **Gateway**.
-- Gateway runs the **agent** and decides whether to call a node tool.
-- Gateway calls the **node** over the Gateway WebSocket (`node.*` RPC).
-- Node returns the result; Gateway replies back out to Telegram.
+- Gateway runs the **agent** and calls local tools when policy allows.
+- Gateway replies back out to Telegram.
 
 Notes:
 
-- **Nodes do not run the gateway service.** Only one gateway should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)).
-- Node mode is just a node client over the Gateway WebSocket.
+- Only one gateway should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)).
 
 ## SSH tunnel (CLI + tools)
 
@@ -144,7 +142,7 @@ Short version: **keep the Gateway loopback-only** unless you’re sure you need 
   headers when `gateway.auth.allowTailscale: true`; HTTP API endpoints still
   require token/password auth. This tokenless flow assumes the gateway host is
   trusted. Set it to `false` if you want tokens/passwords everywhere.
-- Treat browser control like operator access: tailnet-only + deliberate node pairing.
+- Treat browser control like operator access: tailnet-only and authenticated.
 
 Deep dive: [Security](/gateway/security).
 

@@ -24,5 +24,5 @@ If you’re looking for conceptual questions (not “something broke”):
 
 - **Environment variables:** [Where CrawClaw loads env vars and precedence](/help/environment)
 - **Debugging:** [Watch mode, raw streams, and dev profile](/help/debugging)
-- **Testing:** [Test suites, live tests, and Docker runners](/help/testing)
+- **Testing:** [Test suites and live tests](/help/testing)
 - **Scripts:** [Repository helper scripts](/help/scripts)

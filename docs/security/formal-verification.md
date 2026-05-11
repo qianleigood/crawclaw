@@ -65,15 +65,15 @@ make <target>
 
 See also: `docs/gateway-exposure-matrix.md` in the models repo.
 
-### Node exec pipeline (highest-risk capability)
+### Gateway exec pipeline (highest-risk capability)
 
-**Claim:** `exec host=node` requires (a) node command allowlist plus declared commands and (b) live approval when configured; approvals are tokenized to prevent replay (in the model).
+**Claim:** `exec host=gateway` requires live approval when configured; approvals are tokenized to prevent replay (in the model).
 
 - Green runs:
-  - `make nodes-pipeline`
+  - `make gateway-exec-pipeline`
   - `make approvals-token`
 - Red (expected):
-  - `make nodes-pipeline-negative`
+  - `make gateway-exec-pipeline-negative`
   - `make approvals-token-negative`
 
 ### Pairing store (DM gating)

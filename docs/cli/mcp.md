@@ -300,28 +300,6 @@ If a conversation is missing from `conversations_list`, the usual cause is not
 MCP configuration. It is missing or incomplete route metadata in the underlying
 Gateway session.
 
-## Testing
-
-CrawClaw ships a deterministic Docker smoke for this bridge:
-
-```bash
-pnpm test:docker:mcp-channels
-```
-
-That smoke:
-
-- starts a seeded Gateway container
-- starts a second container that spawns `crawclaw mcp serve`
-- verifies conversation discovery, transcript reads, attachment metadata reads,
-  live event queue behavior, and outbound send routing
-- validates Claude-style channel and permission notifications over the real
-  stdio MCP bridge
-
-This is the fastest way to prove the bridge works without wiring a real
-Telegram, Discord, or iMessage account into the test run.
-
-For broader testing context, see [Testing](/help/testing).
-
 ## Troubleshooting
 
 ### No conversations returned

@@ -105,16 +105,14 @@ crawclaw gateway --tailscale funnel --auth password
   or `tailscale funnel` configuration on shutdown.
 - `gateway.bind: "tailnet"` is a direct Tailnet bind (no HTTPS, no Serve/Funnel).
 - `gateway.bind: "auto"` prefers loopback; use `tailnet` if you want Tailnet-only.
-- Serve/Funnel only expose the **Gateway browser client + WS**. Nodes connect over
-  the same Gateway WS endpoint, so Serve can work for node access.
+- Serve/Funnel expose the **Gateway browser client + WS**.
 
 ## Browser control (remote Gateway + local browser)
 
 If you run the Gateway on one machine but want to drive a browser on another machine,
-run a **node host** on the browser machine and keep both on the same tailnet.
-The Gateway will proxy browser actions to the node; no separate control server or Serve URL needed.
+use a remote CDP endpoint and keep it on the same tailnet.
 
-Avoid Funnel for browser control; treat node pairing like operator access.
+Avoid Funnel for browser control; treat remote CDP like operator access.
 
 ## Tailscale prerequisites + limits
 

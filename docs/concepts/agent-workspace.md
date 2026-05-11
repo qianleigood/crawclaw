@@ -14,12 +14,9 @@ file tools and for workspace context. Keep it private and treat it as memory.
 This is separate from `~/.crawclaw/`, which stores config, credentials, and
 sessions.
 
-**Important:** the workspace is the **default cwd**, not a hard sandbox. Tools
 resolve relative paths against the workspace, but absolute paths can still reach
-elsewhere on the host unless sandboxing is enabled. If you need isolation, use
-[`agents.defaults.sandbox`](/gateway/sandboxing) (and/or per‑agent sandbox config).
-When sandboxing is enabled and `workspaceAccess` is not `"rw"`, tools operate
-inside a sandbox workspace under `~/.crawclaw/sandboxes`, not your host workspace.
+elsewhere on the host. If you need hard isolation, run CrawClaw on an isolated host
+or VM and keep sensitive paths out of that environment.
 
 ## Default location
 
@@ -38,7 +35,6 @@ inside a sandbox workspace under `~/.crawclaw/sandboxes`, not your host workspac
 
 `crawclaw onboard`, `crawclaw configure`, or `crawclaw setup` will create the
 workspace and seed the bootstrap files if they are missing.
-Sandbox seed copies only accept regular in-workspace files; symlink/hardlink
 aliases that resolve outside the source workspace are ignored.
 
 If you already manage the workspace files yourself, you can disable bootstrap
@@ -233,12 +229,9 @@ Suggested `.gitignore` starter:
 
 - Multi-agent routing can use different workspaces per agent. See
   [Channel routing](/channels/channel-routing) for routing configuration.
-- If `agents.defaults.sandbox` is enabled, non-main sessions can use per-session sandbox
-  workspaces under `agents.defaults.sandbox.workspaceRoot`.
 
 ## Related
 
 - [Standing Orders](/automation/standing-orders) — persistent instructions in workspace files
 - [Heartbeat](/gateway/heartbeat) — event-driven wake migration notes
 - [Session](/concepts/session) — session storage paths
-- [Sandboxing](/gateway/sandboxing) — workspace access in sandboxed environments

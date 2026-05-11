@@ -9,9 +9,8 @@ title: "Gateway Protocol"
 
 # Gateway protocol (WebSocket)
 
-The Gateway WS protocol is the **single control plane + node transport** for
-CrawClaw. All clients (CLI, browser-authenticated clients, node-mode clients,
-headless nodes, and automation) connect over WebSocket and declare their **role** + **scope**
+The Gateway WS protocol is the **single control plane** for CrawClaw. Clients
+(CLI, browser-authenticated clients, and automation) connect over WebSocket and declare their **role** + **scope**
 at handshake time.
 
 ## Transport
@@ -153,26 +152,10 @@ Method scope is only the first gate. Some slash commands reached through
 `chat.send` apply stricter command-level checks on top. For example, persistent
 `/config set` and `/config unset` writes require `operator.admin`.
 
-### Caps/commands/permissions (node)
-
-Nodes declare capability claims at connect time:
-
-- `caps`: high-level capability categories.
-- `commands`: command allowlist for invoke.
-- `permissions`: granular toggles (e.g. `screen.record`, `camera.capture`).
-
-The Gateway treats these as **claims** and enforces server-side allowlists.
-
 ## Presence
 
 - `system-presence` returns entries keyed by device identity.
-- Presence entries include `deviceId`, `roles`, and `scopes` so UIs can show a single row per device
-  even when it connects as both **operator** and **node**.
-
-### Node helper methods
-
-- Nodes may call `skills.bins` to fetch the current list of skill executables
-  for auto-allow checks.
+- Presence entries include `deviceId`, `roles`, and `scopes` so UIs can show a single row per device.
 
 ### Operator helper methods
 
@@ -201,7 +184,6 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 
 - When an exec request needs approval, the gateway broadcasts `exec.approval.requested`.
 - Operator clients resolve by calling `exec.approval.resolve` (requires `operator.approvals` scope).
-- For `host=node`, `exec.approval.request` must include `systemRunPlan` (canonical `argv`/`cwd`/`rawCommand`/session metadata). Requests missing `systemRunPlan` are rejected.
 
 ## Agent delivery fallback
 
@@ -236,7 +218,7 @@ The Gateway treats these as **claims** and enforces server-side allowlists.
 
 ## Device identity + pairing
 
-- Nodes should include a stable device identity (`device.id`) derived from a
+- Clients should include a stable device identity (`device.id`) derived from a
   keypair fingerprint.
 - Gateways issue tokens per device + role.
 - Pairing approvals are required for new device IDs unless local auto-approval
@@ -284,5 +266,5 @@ Migration target:
 ## Scope
 
 This protocol exposes the **full gateway API** (status, channels, models, chat,
-agent, sessions, nodes, approvals, etc.). The exact surface is defined by the
+agent, sessions, approvals, etc.). The exact surface is defined by the
 TypeBox schemas in `src/gateway/protocol/schema.ts`.

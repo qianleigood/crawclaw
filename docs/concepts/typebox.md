@@ -60,7 +60,6 @@ Common methods + events:
 | Messaging | `send`, `poll`, `agent`, `agent.wait`                     | side-effects need `idempotencyKey` |
 | Chat      | `chat.history`, `chat.send`, `chat.abort`, `chat.inject`  | Gateway-native chat methods        |
 | Sessions  | `sessions.list`, `sessions.patch`, `sessions.delete`      | session admin                      |
-| Nodes     | `node.list`, `node.invoke`, `node.pair.*`                 | Gateway WS + node actions          |
 | Events    | `tick`, `presence`, `agent`, `chat`, `health`, `shutdown` | server push                        |
 
 Authoritative pieces now live in different layers:
@@ -244,21 +243,19 @@ In `src/gateway/protocol/index.ts`, export an AJV validator:
 export const validateSystemEchoParams = ajv.compile<SystemEchoParams>(SystemEchoParamsSchema);
 ```
 
-3. **Server behavior**
+3. **Gateway behavior**
 
-Add a handler in `src/gateway/server-methods/system.ts`:
+Add the Rust Gateway method in `crates/crawclaw-gateway/src/lib.rs`:
 
-```ts
-export const systemHandlers: GatewayRequestHandlers = {
-  "system.echo": ({ params, respond }) => {
-    const text = String(params.text ?? "");
-    respond(true, { ok: true, text });
-  },
-};
+```rust
+"system.echo" => Ok(json!({
+    "ok": true,
+    "text": params.get("text").and_then(Value::as_str).unwrap_or_default(),
+})),
 ```
 
-Register it in `src/gateway/server-methods.ts` (already merges `systemHandlers`),
-then add `"system.echo"` to `METHODS` in `src/gateway/server.ts`.
+Keep the TypeScript protocol schema/client types in sync, but do not add a
+new TypeScript Gateway runtime handler. The local Gateway runtime is Rust-owned.
 
 4. **Regenerate**
 

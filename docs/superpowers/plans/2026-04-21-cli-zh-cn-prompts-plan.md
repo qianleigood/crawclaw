@@ -89,7 +89,6 @@ read_when:
 - `src/commands/channels/**/*.ts`
 - `src/commands/sessions*.ts`
 - `src/commands/agents*.ts`
-- `src/cli/nodes-cli/*.ts`
 - `src/cli/hooks-cli.ts`
 - `src/cli/pairing-cli.ts`
 - `src/cli/secrets-cli.ts`
@@ -484,7 +483,6 @@ scripts/committer "CLI: localize onboarding configure doctor and update prompts"
 - Modify: `src/commands/channels/**/*.ts`
 - Modify: `src/commands/sessions*.ts`
 - Modify: `src/commands/agents*.ts`
-- Modify: `src/cli/nodes-cli/*.ts`
 - Modify: `src/cli/hooks-cli.ts`
 - Modify: `src/cli/pairing-cli.ts`
 - Test: `src/commands/status*.test.ts`
@@ -533,7 +531,6 @@ scripts/committer "CLI: localize status and operational command prompts" \
   src/commands/status.ts \
   src/commands/channels.ts \
   src/commands/agents.commands.status.ts \
-  src/cli/nodes-cli/register.status.ts \
   src/cli/hooks-cli.ts \
   src/cli/pairing-cli.ts \
   src/commands/status.summary.test.ts \

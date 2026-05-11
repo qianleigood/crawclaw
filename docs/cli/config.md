@@ -19,7 +19,6 @@ crawclaw config schema
 crawclaw config get browser.executablePath
 crawclaw config set browser.executablePath "/usr/bin/google-chrome"
 crawclaw config set cron.enabled true
-crawclaw config set agents.list[0].tools.exec.node "node-id-or-name"
 crawclaw config set channels.discord.token --ref-provider default --ref-source env --ref-id DISCORD_BOT_TOKEN
 crawclaw config set secrets.providers.vaultfile --provider-source file --provider-path /etc/crawclaw/secrets.json --provider-mode json
 crawclaw config unset plugins.entries.brave.config.webSearch.apiKey
@@ -49,13 +48,6 @@ Paths use dot or bracket notation:
 ```bash
 crawclaw config get agents.defaults.workspace
 crawclaw config get agents.list[0].id
-```
-
-Use the agent list index to target a specific agent:
-
-```bash
-crawclaw config get agents.list
-crawclaw config set agents.list[1].tools.exec.node "node-id-or-name"
 ```
 
 ## Values

@@ -192,10 +192,7 @@ Tips:
 
 ### Local relay
 
-```bash
-# Start strfry
-docker run -p 7777:7777 ghcr.io/hoytech/strfry
-```
+Start a local Nostr relay using the relay project's own install instructions, then point CrawClaw at that relay URL.
 
 ```json5
 {

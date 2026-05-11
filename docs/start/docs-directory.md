@@ -25,7 +25,7 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 - [Slash commands](/tools/slash-commands)
 - [Multi-agent routing](/concepts/multi-agent)
 - [Updating and rollback](/install/updating)
-- [Pairing (DM and nodes)](/channels/pairing)
+- [Pairing](/channels/pairing)
 - [Nix mode](/install/nix)
 - [CrawClaw assistant setup](/start/crawclaw)
 - [Skills](/tools/skills)
@@ -33,7 +33,6 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 - [Workspace templates](/reference/templates/AGENTS)
 - [RPC adapters](/reference/rpc)
 - [Gateway runbook](/gateway)
-- [Nodes (iOS and Android)](/nodes)
 - [Discovery and transports](/gateway/discovery)
 - [Remote access](/gateway/remote)
 
@@ -47,8 +46,7 @@ For a complete map of the docs, see [Docs hubs](/start/hubs).
 - [iMessage (legacy)](/channels/imessage)
 - [Groups](/channels/groups)
 - [WhatsApp group messages](/channels/group-messages)
-- [Media images](/nodes/images)
-- [Media audio](/nodes/audio)
+- [Messages and media](/concepts/messages)
 
 ## Platforms
 
