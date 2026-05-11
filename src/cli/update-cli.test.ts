@@ -27,8 +27,7 @@ const inspectPortUsage = vi.fn();
 const classifyPortListener = vi.fn();
 const formatPortDiagnostics = vi.fn();
 const pathExists = vi.fn();
-const syncPluginsForUpdateChannel = vi.fn();
-const updateNpmInstalledPlugins = vi.fn();
+const updatePluginsWithRustLifecycle = vi.fn();
 const nodeVersionSatisfiesEngine = vi.fn();
 const { defaultRuntime: runtimeCapture, resetRuntimeCapture } = createCliRuntimeCapture();
 
@@ -100,9 +99,8 @@ vi.mock("../utils.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../plugins/update.js", () => ({
-  syncPluginsForUpdateChannel: (...args: unknown[]) => syncPluginsForUpdateChannel(...args),
-  updateNpmInstalledPlugins: (...args: unknown[]) => updateNpmInstalledPlugins(...args),
+vi.mock("../plugins/rust-lifecycle.js", () => ({
+  updatePluginsWithRustLifecycle: (...args: unknown[]) => updatePluginsWithRustLifecycle(...args),
 }));
 
 vi.mock("./update-cli/shared.js", async (importOriginal) => {
@@ -386,20 +384,13 @@ describe("update-cli", () => {
     classifyPortListener.mockReturnValue("gateway");
     formatPortDiagnostics.mockReturnValue(["Port 18789 is already in use."]);
     pathExists.mockResolvedValue(false);
-    syncPluginsForUpdateChannel.mockResolvedValue({
-      changed: false,
-      config: baseConfig,
-      summary: {
-        switchedToBundled: [],
-        switchedToNpm: [],
-        warnings: [],
-        errors: [],
+    updatePluginsWithRustLifecycle.mockResolvedValue({
+      ok: true,
+      value: {
+        changed: false,
+        outcomes: [],
       },
-    });
-    updateNpmInstalledPlugins.mockResolvedValue({
-      changed: false,
       config: baseConfig,
-      outcomes: [],
     });
     vi.mocked(runDaemonInstall).mockResolvedValue(undefined);
     vi.mocked(runDaemonRestart).mockResolvedValue(true);
@@ -888,23 +879,16 @@ describe("update-cli", () => {
     expect(defaultRuntime.exit).toHaveBeenCalledWith(1);
   });
 
-  it("keeps the requested channel when plugin sync writes config after update", async () => {
+  it("keeps the requested channel when Rust plugin update writes config after update", async () => {
     const tempDir = createCaseDir("crawclaw-update");
     mockPackageInstallStatus(tempDir);
-    syncPluginsForUpdateChannel.mockImplementation(async ({ config }) => ({
-      changed: true,
-      config,
-      summary: {
-        switchedToBundled: [],
-        switchedToNpm: [],
-        warnings: [],
-        errors: [],
+    updatePluginsWithRustLifecycle.mockImplementation(async ({ config }) => ({
+      ok: true,
+      value: {
+        changed: true,
+        outcomes: [],
       },
-    }));
-    updateNpmInstalledPlugins.mockImplementation(async ({ config }) => ({
-      changed: false,
       config,
-      outcomes: [],
     }));
 
     await updateCommand({ channel: "beta", yes: true });

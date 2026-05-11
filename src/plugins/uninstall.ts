@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import type { CrawClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
-import { resolvePluginInstallDir } from "./install.js";
+import { resolvePluginInstallDir } from "./install-metadata.js";
 import { defaultSlotIdForKey } from "./slots.js";
 
 export type UninstallActions = {

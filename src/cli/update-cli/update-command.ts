@@ -37,7 +37,7 @@ import {
   resolveGlobalPackageRoot,
 } from "../../infra/update-global.js";
 import { runGatewayUpdate, type UpdateRunResult } from "../../infra/update-runner.js";
-import { syncPluginsForUpdateChannel, updateNpmInstalledPlugins } from "../../plugins/update.js";
+import { updatePluginsWithRustLifecycle } from "../../plugins/rust-lifecycle.js";
 import { runCommandWithTimeout } from "../../process/exec.js";
 import { defaultRuntime } from "../../runtime.js";
 import { stylePromptMessage } from "../../terminal/prompt-style.js";
@@ -553,37 +553,26 @@ async function updatePluginsAfterCoreUpdate(params: {
     return;
   }
 
-  const pluginLogger = params.opts.json
-    ? {}
-    : {
-        info: (msg: string) => defaultRuntime.log(msg),
-        warn: (msg: string) => defaultRuntime.log(theme.warn(msg)),
-        error: (msg: string) => defaultRuntime.log(theme.error(msg)),
-      };
-
   if (!params.opts.json) {
     defaultRuntime.log("");
     defaultRuntime.log(theme.heading(t("update.plugins.heading")));
   }
 
-  const syncResult = await syncPluginsForUpdateChannel({
+  const result = await updatePluginsWithRustLifecycle({
+    all: true,
     config: params.configSnapshot.config,
-    channel: params.channel,
-    workspaceDir: params.root,
-    logger: pluginLogger,
   });
-  let pluginConfig = syncResult.config;
+  if (!result.ok) {
+    if (!params.opts.json) {
+      defaultRuntime.log(theme.error(result.error));
+    }
+    return;
+  }
 
-  const npmResult = await updateNpmInstalledPlugins({
-    config: pluginConfig,
-    skipIds: new Set(syncResult.summary.switchedToNpm),
-    logger: pluginLogger,
-  });
-  pluginConfig = npmResult.config;
-
-  if (syncResult.changed || npmResult.changed) {
+  const changed = result.value.changed === true || result.value.requiresRestart === true;
+  if (changed && result.config) {
     await replaceConfigFile({
-      nextConfig: pluginConfig,
+      nextConfig: result.config,
       baseHash: params.configSnapshot.hash,
     });
   }
@@ -592,47 +581,17 @@ async function updatePluginsAfterCoreUpdate(params: {
     return;
   }
 
-  const summarizeList = (list: string[]) => {
-    if (list.length <= 6) {
-      return list.join(", ");
-    }
-    return t("update.plugins.summary.truncatedList", {
-      items: list.slice(0, 6).join(", "),
-      count: list.length - 6,
-    });
-  };
+  const outcomes = Array.isArray(result.value.outcomes)
+    ? result.value.outcomes.filter((entry): entry is { status?: string; message?: string } => {
+        return Boolean(entry && typeof entry === "object");
+      })
+    : [];
+  const updated = outcomes.filter((entry) => entry.status === "updated").length;
+  const unchanged = outcomes.filter((entry) => entry.status === "unchanged").length;
+  const failed = outcomes.filter((entry) => entry.status === "error").length;
+  const skipped = outcomes.filter((entry) => entry.status === "skipped").length;
 
-  if (syncResult.summary.switchedToBundled.length > 0) {
-    defaultRuntime.log(
-      theme.muted(
-        t("update.plugins.switchedToBundled", {
-          plugins: summarizeList(syncResult.summary.switchedToBundled),
-        }),
-      ),
-    );
-  }
-  if (syncResult.summary.switchedToNpm.length > 0) {
-    defaultRuntime.log(
-      theme.muted(
-        t("update.plugins.restoredNpm", {
-          plugins: summarizeList(syncResult.summary.switchedToNpm),
-        }),
-      ),
-    );
-  }
-  for (const warning of syncResult.summary.warnings) {
-    defaultRuntime.log(theme.warn(warning));
-  }
-  for (const error of syncResult.summary.errors) {
-    defaultRuntime.log(theme.error(error));
-  }
-
-  const updated = npmResult.outcomes.filter((entry) => entry.status === "updated").length;
-  const unchanged = npmResult.outcomes.filter((entry) => entry.status === "unchanged").length;
-  const failed = npmResult.outcomes.filter((entry) => entry.status === "error").length;
-  const skipped = npmResult.outcomes.filter((entry) => entry.status === "skipped").length;
-
-  if (npmResult.outcomes.length === 0) {
+  if (outcomes.length === 0) {
     defaultRuntime.log(theme.muted(t("update.plugins.noUpdatesNeeded")));
   } else {
     const parts = [
@@ -648,11 +607,11 @@ async function updatePluginsAfterCoreUpdate(params: {
     defaultRuntime.log(theme.muted(t("update.plugins.summary.line", { parts: parts.join(", ") })));
   }
 
-  for (const outcome of npmResult.outcomes) {
+  for (const outcome of outcomes) {
     if (outcome.status !== "error") {
       continue;
     }
-    defaultRuntime.log(theme.error(outcome.message));
+    defaultRuntime.log(theme.error(outcome.message ?? "Plugin update failed."));
   }
 }
 

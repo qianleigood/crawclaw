@@ -1,12 +1,3 @@
-import fs from "node:fs";
-import { buildNpmInstallRecordFields } from "../../cli/npm-resolution.js";
-import {
-  buildPreferredClawHubSpec,
-  createPluginInstallLogger,
-  decidePreferredClawHubFallback,
-  resolveFileNpmSpecToLocalPath,
-} from "../../cli/plugins-command-helpers.js";
-import { persistPluginInstall } from "../../cli/plugins-install-persist.js";
 import {
   readConfigFileSnapshot,
   validateConfigObjectWithPlugins,
@@ -14,12 +5,8 @@ import {
 } from "../../config/config.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { PluginInstallRecord } from "../../config/types.plugins.js";
-import { resolveArchiveKind } from "../../infra/archive.js";
-import { parseClawHubPluginSpec } from "../../infra/clawhub.js";
-import { installPluginFromClawHub } from "../../plugins/clawhub.js";
-import { installPluginFromNpmSpec, installPluginFromPath } from "../../plugins/install.js";
-import { clearPluginManifestRegistryCache } from "../../plugins/manifest-registry.js";
 import type { PluginRecord } from "../../plugins/registry.js";
+import { installPluginWithRustLifecycle } from "../../plugins/rust-lifecycle.js";
 import {
   buildAllPluginInspectReports,
   buildPluginDiagnosticsReport,
@@ -29,7 +16,6 @@ import {
   type PluginStatusReport,
 } from "../../plugins/status.js";
 import { setPluginEnabledInConfig } from "../../plugins/toggle-config.js";
-import { resolveUserPath } from "../../utils.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import {
   rejectNonOwnerCommand,
@@ -137,140 +123,36 @@ function findPlugin(report: PluginStatusReport, rawName: string): PluginRecord |
   );
 }
 
-function looksLikeLocalPluginInstallSpec(raw: string): boolean {
-  return (
-    raw.startsWith(".") ||
-    raw.startsWith("~") ||
-    raw.startsWith("/") ||
-    raw.endsWith(".ts") ||
-    raw.endsWith(".js") ||
-    raw.endsWith(".mjs") ||
-    raw.endsWith(".cjs") ||
-    raw.endsWith(".tgz") ||
-    raw.endsWith(".tar.gz") ||
-    raw.endsWith(".tar") ||
-    raw.endsWith(".zip")
-  );
-}
-
-async function installPluginFromPluginsCommand(params: {
+async function installPluginViaRustLifecycle(params: {
   raw: string;
   config: CrawClawConfig;
 }): Promise<{ ok: true; pluginId: string } | { ok: false; error: string }> {
-  const fileSpec = resolveFileNpmSpecToLocalPath(params.raw);
-  if (fileSpec && !fileSpec.ok) {
-    return { ok: false, error: fileSpec.error };
-  }
-  const normalized = fileSpec && fileSpec.ok ? fileSpec.path : params.raw;
-  const resolved = resolveUserPath(normalized);
-
-  if (fs.existsSync(resolved)) {
-    const result = await installPluginFromPath({
-      path: resolved,
-      logger: createPluginInstallLogger(),
-    });
-    if (!result.ok) {
-      return { ok: false, error: result.error };
-    }
-    clearPluginManifestRegistryCache();
-    const source: "archive" | "path" = resolveArchiveKind(resolved) ? "archive" : "path";
-    await persistPluginInstall({
-      config: params.config,
-      pluginId: result.pluginId,
-      install: {
-        source,
-        sourcePath: resolved,
-        installPath: result.targetDir,
-        version: result.version,
-      },
-    });
-    return { ok: true, pluginId: result.pluginId };
-  }
-
-  if (looksLikeLocalPluginInstallSpec(params.raw)) {
-    return { ok: false, error: `Path not found: ${resolved}` };
-  }
-
-  const clawhubSpec = parseClawHubPluginSpec(params.raw);
-  if (clawhubSpec) {
-    const result = await installPluginFromClawHub({
-      spec: params.raw,
-      logger: createPluginInstallLogger(),
-    });
-    if (!result.ok) {
-      return { ok: false, error: result.error };
-    }
-    clearPluginManifestRegistryCache();
-    await persistPluginInstall({
-      config: params.config,
-      pluginId: result.pluginId,
-      install: {
-        source: "clawhub",
-        spec: params.raw,
-        installPath: result.targetDir,
-        version: result.version,
-        integrity: result.clawhub.integrity,
-        resolvedAt: result.clawhub.resolvedAt,
-        clawhubUrl: result.clawhub.clawhubUrl,
-        clawhubPackage: result.clawhub.clawhubPackage,
-        clawhubFamily: result.clawhub.clawhubFamily,
-        clawhubChannel: result.clawhub.clawhubChannel,
-      },
-    });
-    return { ok: true, pluginId: result.pluginId };
-  }
-
-  const preferredClawHubSpec = buildPreferredClawHubSpec(params.raw);
-  if (preferredClawHubSpec) {
-    const clawhubResult = await installPluginFromClawHub({
-      spec: preferredClawHubSpec,
-      logger: createPluginInstallLogger(),
-    });
-    if (clawhubResult.ok) {
-      clearPluginManifestRegistryCache();
-      await persistPluginInstall({
-        config: params.config,
-        pluginId: clawhubResult.pluginId,
-        install: {
-          source: "clawhub",
-          spec: preferredClawHubSpec,
-          installPath: clawhubResult.targetDir,
-          version: clawhubResult.version,
-          integrity: clawhubResult.clawhub.integrity,
-          resolvedAt: clawhubResult.clawhub.resolvedAt,
-          clawhubUrl: clawhubResult.clawhub.clawhubUrl,
-          clawhubPackage: clawhubResult.clawhub.clawhubPackage,
-          clawhubFamily: clawhubResult.clawhub.clawhubFamily,
-          clawhubChannel: clawhubResult.clawhub.clawhubChannel,
-        },
-      });
-      return { ok: true, pluginId: clawhubResult.pluginId };
-    }
-    if (decidePreferredClawHubFallback(clawhubResult) !== "fallback_to_npm") {
-      return { ok: false, error: clawhubResult.error };
-    }
-  }
-
-  const result = await installPluginFromNpmSpec({
-    spec: params.raw,
-    logger: createPluginInstallLogger(),
+  const result = await installPluginWithRustLifecycle({
+    raw: params.raw,
+    config: params.config,
   });
   if (!result.ok) {
     return { ok: false, error: result.error };
   }
-  clearPluginManifestRegistryCache();
-  const installRecord = buildNpmInstallRecordFields({
-    spec: params.raw,
-    installPath: result.targetDir,
-    version: result.version,
-    resolution: result.npmResolution,
-  });
-  await persistPluginInstall({
-    config: params.config,
-    pluginId: result.pluginId,
-    install: installRecord,
-  });
-  return { ok: true, pluginId: result.pluginId };
+  if (result.config) {
+    const validated = validateConfigObjectWithPlugins(result.config);
+    if (!validated.ok) {
+      return {
+        ok: false,
+        error: `Rust plugin install produced invalid config: ${validated.issues
+          .map((issue) => issue.message)
+          .join("; ")}`,
+      };
+    }
+    await writeConfigFile(validated.config);
+  }
+  const pluginId =
+    typeof result.value.pluginId === "string"
+      ? result.value.pluginId
+      : typeof result.value.id === "string"
+        ? result.value.id
+        : params.raw;
+  return { ok: true, pluginId };
 }
 
 async function loadPluginCommandState(
@@ -403,7 +285,7 @@ export const handlePluginsCommand: CommandHandler = async (params, allowTextComm
   }
 
   if (pluginsCommand.action === "install") {
-    const installed = await installPluginFromPluginsCommand({
+    const installed = await installPluginViaRustLifecycle({
       raw: pluginsCommand.spec,
       config: structuredClone(loaded.config),
     });

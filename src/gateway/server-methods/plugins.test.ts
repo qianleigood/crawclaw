@@ -2,27 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   buildPluginSnapshotReport: vi.fn(),
-  enablePluginFromControlPlane: vi.fn(),
-  disablePluginFromControlPlane: vi.fn(),
-  installPluginFromControlPlane: vi.fn(),
+  installPluginWithRustLifecycle: vi.fn(),
+  setPluginEnabledWithRustLifecycle: vi.fn(),
 }));
 
 vi.mock("../../plugins/status.js", () => ({
   buildPluginSnapshotReport: mocks.buildPluginSnapshotReport,
 }));
 
-vi.mock("../../plugins/control-plane.js", () => ({
-  enablePluginFromControlPlane: mocks.enablePluginFromControlPlane,
-  disablePluginFromControlPlane: mocks.disablePluginFromControlPlane,
-  installPluginFromControlPlane: mocks.installPluginFromControlPlane,
-  PluginControlPlaneError: class PluginControlPlaneError extends Error {
-    constructor(
-      public readonly kind: "invalid-request" | "unavailable",
-      message: string,
-    ) {
-      super(message);
-    }
-  },
+vi.mock("../../plugins/rust-lifecycle.js", () => ({
+  installPluginWithRustLifecycle: mocks.installPluginWithRustLifecycle,
+  setPluginEnabledWithRustLifecycle: mocks.setPluginEnabledWithRustLifecycle,
 }));
 
 import { coreGatewayHandlers } from "../server-methods.js";
@@ -132,11 +122,13 @@ describe("gateway plugins.list", () => {
     );
   });
 
-  it("enables plugins through the control-plane helper", async () => {
-    mocks.enablePluginFromControlPlane.mockResolvedValue({
-      pluginId: "browser",
-      warnings: ["slot warning"],
-      requiresRestart: true,
+  it("enables plugins through the Rust lifecycle helper", async () => {
+    mocks.setPluginEnabledWithRustLifecycle.mockResolvedValue({
+      ok: true,
+      value: {
+        id: "browser",
+        enabled: true,
+      },
     });
 
     const respond = vi.fn();
@@ -161,27 +153,28 @@ describe("gateway plugins.list", () => {
       context: {} as never,
     });
 
-    expect(mocks.enablePluginFromControlPlane).toHaveBeenCalledWith({
-      pluginId: "browser",
-      baseHash: "cfg-1",
+    expect(mocks.setPluginEnabledWithRustLifecycle).toHaveBeenCalledWith({
+      id: "browser",
+      enabled: true,
     });
     expect(respond).toHaveBeenCalledWith(
       true,
       {
         ok: true,
-        pluginId: "browser",
-        warnings: ["slot warning"],
-        requiresRestart: true,
+        id: "browser",
+        enabled: true,
       },
       undefined,
     );
   });
 
-  it("disables plugins through the control-plane helper", async () => {
-    mocks.disablePluginFromControlPlane.mockResolvedValue({
-      pluginId: "browser",
-      warnings: [],
-      requiresRestart: true,
+  it("disables plugins through the Rust lifecycle helper", async () => {
+    mocks.setPluginEnabledWithRustLifecycle.mockResolvedValue({
+      ok: true,
+      value: {
+        id: "browser",
+        enabled: false,
+      },
     });
 
     const respond = vi.fn();
@@ -206,28 +199,30 @@ describe("gateway plugins.list", () => {
       context: {} as never,
     });
 
-    expect(mocks.disablePluginFromControlPlane).toHaveBeenCalledWith({
-      pluginId: "browser",
-      baseHash: undefined,
+    expect(mocks.setPluginEnabledWithRustLifecycle).toHaveBeenCalledWith({
+      id: "browser",
+      enabled: false,
     });
     expect(respond).toHaveBeenCalledWith(
       true,
       {
         ok: true,
-        pluginId: "browser",
-        warnings: [],
-        requiresRestart: true,
+        id: "browser",
+        enabled: false,
       },
       undefined,
     );
   });
 
-  it("installs plugins through the control-plane helper", async () => {
-    mocks.installPluginFromControlPlane.mockResolvedValue({
-      pluginId: "matrix",
-      warnings: [],
-      requiresRestart: true,
-      installSource: "npm",
+  it("installs plugins through the Rust lifecycle helper", async () => {
+    mocks.installPluginWithRustLifecycle.mockResolvedValue({
+      ok: true,
+      value: {
+        pluginId: "matrix",
+        warnings: [],
+        requiresRestart: true,
+        installSource: "npm",
+      },
     });
 
     const respond = vi.fn();
@@ -252,9 +247,8 @@ describe("gateway plugins.list", () => {
       context: {} as never,
     });
 
-    expect(mocks.installPluginFromControlPlane).toHaveBeenCalledWith({
+    expect(mocks.installPluginWithRustLifecycle).toHaveBeenCalledWith({
       raw: "@crawclaw/matrix",
-      baseHash: "cfg-1",
     });
     expect(respond).toHaveBeenCalledWith(
       true,

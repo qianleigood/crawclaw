@@ -3,7 +3,7 @@ import type { HookInstallRecord } from "../config/types.hooks.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
 import { updateNpmInstalledHookPacks } from "../hooks/update.js";
 import { parseRegistryNpmSpec } from "../infra/npm-registry-spec.js";
-import { updateNpmInstalledPlugins } from "../plugins/update.js";
+import { updatePluginsWithRustLifecycle } from "../plugins/rust-lifecycle.js";
 import { defaultRuntime } from "../runtime.js";
 import { theme } from "../terminal/theme.js";
 import { createCliTranslator, getActiveCliLocale } from "./i18n/index.js";
@@ -12,6 +12,17 @@ import {
   extractInstalledNpmPackageName,
 } from "./plugins-command-helpers.js";
 import { promptYesNo } from "./prompt.js";
+
+type PluginUpdateOutcome = {
+  status?: string;
+  message?: string;
+};
+
+type PluginUpdateResult = {
+  changed: boolean;
+  config: ReturnType<typeof loadConfig>;
+  outcomes: PluginUpdateOutcome[];
+};
 
 function resolvePluginUpdateSelection(params: {
   installs: Record<string, PluginInstallRecord>;
@@ -119,30 +130,55 @@ export async function runPluginUpdateCommand(params: {
     return defaultRuntime.exit(1);
   }
 
-  const pluginResult = await updateNpmInstalledPlugins({
+  const pluginResult: PluginUpdateResult = {
+    changed: false,
     config: cfg,
-    pluginIds: pluginSelection.pluginIds,
-    specOverrides: pluginSelection.specOverrides,
-    dryRun: params.opts.dryRun,
-    logger,
-    onIntegrityDrift: async (drift) => {
-      const specLabel = drift.resolvedSpec ?? drift.spec;
-      defaultRuntime.log(
-        theme.warn(
-          t("plugins.update.integrityDrift.plugin", {
-            pluginId: drift.pluginId,
-            spec: specLabel,
-          }) +
-            `\n${t("plugins.update.expected")}: ${drift.expectedIntegrity}` +
-            `\n${t("plugins.update.actual")}:   ${drift.actualIntegrity}`,
-        ),
+    outcomes: [],
+  };
+  if (pluginSelection.pluginIds.length > 0) {
+    const rustResults = [];
+    if (params.opts.all) {
+      rustResults.push(
+        await updatePluginsWithRustLifecycle({
+          all: true,
+          dryRun: params.opts.dryRun,
+          config: cfg,
+        }),
       );
-      if (drift.dryRun) {
-        return true;
+    } else {
+      for (const id of pluginSelection.pluginIds) {
+        rustResults.push(
+          await updatePluginsWithRustLifecycle({
+            id,
+            dryRun: params.opts.dryRun,
+            config: pluginResult.config,
+          }),
+        );
       }
-      return await promptYesNo(t("plugins.update.continuePlugin", { pluginId: drift.pluginId }));
-    },
-  });
+    }
+    for (const result of rustResults) {
+      if (!result.ok) {
+        pluginResult.outcomes.push({
+          status: "error",
+          message: result.error,
+        });
+        continue;
+      }
+      pluginResult.config = result.config ?? pluginResult.config;
+      pluginResult.changed =
+        pluginResult.changed ||
+        result.value.changed === true ||
+        result.value.requiresRestart === true;
+      const outcomes = result.value.outcomes;
+      if (Array.isArray(outcomes)) {
+        pluginResult.outcomes.push(
+          ...outcomes.filter((outcome): outcome is PluginUpdateOutcome => {
+            return Boolean(outcome && typeof outcome === "object");
+          }),
+        );
+      }
+    }
+  }
   const hookResult = await updateNpmInstalledHookPacks({
     config: pluginResult.config,
     hookIds: hookSelection.hookIds,

@@ -1,5 +1,5 @@
 import type { BundledPluginSource } from "../plugins/bundled-sources.js";
-import { PLUGIN_INSTALL_ERROR_CODE } from "../plugins/install.js";
+import { PLUGIN_INSTALL_ERROR_CODE } from "../plugins/install-metadata.js";
 import { shortenHomePath } from "../utils.js";
 
 type BundledLookup = (params: {

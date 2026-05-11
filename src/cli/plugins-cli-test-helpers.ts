@@ -12,23 +12,18 @@ export const replaceConfigFile = vi.fn(
   async (params: { nextConfig: CrawClawConfig }) => await writeConfigFile(params.nextConfig),
 );
 export const resolveStateDir = vi.fn(() => "/tmp/crawclaw-state");
-export const installPluginFromMarketplace = vi.fn();
 export const listMarketplacePlugins = vi.fn();
 export const resolveMarketplaceInstallShortcut = vi.fn();
 export const enablePluginInConfig = vi.fn();
-export const recordPluginInstall = vi.fn();
-export const clearPluginManifestRegistryCache = vi.fn();
 export const buildPluginSnapshotReport = vi.fn();
 export const buildPluginDiagnosticsReport = vi.fn();
 export const buildPluginCompatibilityNotices = vi.fn();
 export const applyExclusiveSlotSelection = vi.fn();
 export const uninstallPlugin = vi.fn();
-export const updateNpmInstalledPlugins = vi.fn();
+export const installPluginWithRustLifecycle = vi.fn();
+export const updatePluginsWithRustLifecycle = vi.fn();
 export const updateNpmInstalledHookPacks = vi.fn();
 export const promptYesNo = vi.fn();
-export const installPluginFromNpmSpec = vi.fn();
-export const installPluginFromPath = vi.fn();
-export const installPluginFromClawHub = vi.fn();
 export const parseClawHubPluginSpec = vi.fn();
 export const installHooksFromNpmSpec = vi.fn();
 export const installHooksFromPath = vi.fn();
@@ -55,7 +50,6 @@ vi.mock("../config/paths.js", () => ({
 }));
 
 vi.mock("../plugins/marketplace.js", () => ({
-  installPluginFromMarketplace: (...args: unknown[]) => installPluginFromMarketplace(...args),
   listMarketplacePlugins: (...args: unknown[]) => listMarketplacePlugins(...args),
   resolveMarketplaceInstallShortcut: (...args: unknown[]) =>
     resolveMarketplaceInstallShortcut(...args),
@@ -63,14 +57,6 @@ vi.mock("../plugins/marketplace.js", () => ({
 
 vi.mock("../plugins/enable.js", () => ({
   enablePluginInConfig: (...args: unknown[]) => enablePluginInConfig(...args),
-}));
-
-vi.mock("../plugins/installs.js", () => ({
-  recordPluginInstall: (...args: unknown[]) => recordPluginInstall(...args),
-}));
-
-vi.mock("../plugins/manifest-registry.js", () => ({
-  clearPluginManifestRegistryCache: () => clearPluginManifestRegistryCache(),
 }));
 
 vi.mock("../plugins/status.js", () => ({
@@ -92,8 +78,9 @@ vi.mock("../plugins/uninstall.js", () => ({
   }) => installRecord?.installPath ?? installRecord?.sourcePath ?? null,
 }));
 
-vi.mock("../plugins/update.js", () => ({
-  updateNpmInstalledPlugins: (...args: unknown[]) => updateNpmInstalledPlugins(...args),
+vi.mock("../plugins/rust-lifecycle.js", () => ({
+  installPluginWithRustLifecycle: (...args: unknown[]) => installPluginWithRustLifecycle(...args),
+  updatePluginsWithRustLifecycle: (...args: unknown[]) => updatePluginsWithRustLifecycle(...args),
 }));
 
 vi.mock("../hooks/update.js", () => ({
@@ -102,14 +89,6 @@ vi.mock("../hooks/update.js", () => ({
 
 vi.mock("./prompt.js", () => ({
   promptYesNo: (...args: unknown[]) => promptYesNo(...args),
-}));
-
-vi.mock("../plugins/install.js", () => ({
-  PLUGIN_INSTALL_ERROR_CODE: {
-    NPM_PACKAGE_NOT_FOUND: "npm_package_not_found",
-  },
-  installPluginFromNpmSpec: (...args: unknown[]) => installPluginFromNpmSpec(...args),
-  installPluginFromPath: (...args: unknown[]) => installPluginFromPath(...args),
 }));
 
 vi.mock("../hooks/install.js", () => ({
@@ -127,7 +106,6 @@ vi.mock("../plugins/clawhub.js", () => ({
     PACKAGE_NOT_FOUND: "package_not_found",
     VERSION_NOT_FOUND: "version_not_found",
   },
-  installPluginFromClawHub: (...args: unknown[]) => installPluginFromClawHub(...args),
   formatClawHubSpecifier: ({ name, version }: { name: string; version?: string }) =>
     `clawhub:${name}${version ? `@${version}` : ""}`,
 }));
@@ -152,23 +130,18 @@ export function resetPluginsCliTestState() {
   writeConfigFile.mockReset();
   replaceConfigFile.mockReset();
   resolveStateDir.mockReset();
-  installPluginFromMarketplace.mockReset();
   listMarketplacePlugins.mockReset();
   resolveMarketplaceInstallShortcut.mockReset();
   enablePluginInConfig.mockReset();
-  recordPluginInstall.mockReset();
-  clearPluginManifestRegistryCache.mockReset();
   buildPluginSnapshotReport.mockReset();
   buildPluginDiagnosticsReport.mockReset();
   buildPluginCompatibilityNotices.mockReset();
   applyExclusiveSlotSelection.mockReset();
   uninstallPlugin.mockReset();
-  updateNpmInstalledPlugins.mockReset();
+  installPluginWithRustLifecycle.mockReset();
+  updatePluginsWithRustLifecycle.mockReset();
   updateNpmInstalledHookPacks.mockReset();
   promptYesNo.mockReset();
-  installPluginFromNpmSpec.mockReset();
-  installPluginFromPath.mockReset();
-  installPluginFromClawHub.mockReset();
   parseClawHubPluginSpec.mockReset();
   installHooksFromNpmSpec.mockReset();
   installHooksFromPath.mockReset();
@@ -199,12 +172,7 @@ export function resetPluginsCliTestState() {
   );
   resolveStateDir.mockReturnValue("/tmp/crawclaw-state");
   resolveMarketplaceInstallShortcut.mockResolvedValue(null);
-  installPluginFromMarketplace.mockResolvedValue({
-    ok: false,
-    error: "marketplace install failed",
-  });
   enablePluginInConfig.mockImplementation((cfg: CrawClawConfig) => ({ config: cfg }));
-  recordPluginInstall.mockImplementation((cfg: CrawClawConfig) => cfg);
   const defaultPluginReport = {
     plugins: [],
     diagnostics: [],
@@ -229,26 +197,28 @@ export function resetPluginsCliTestState() {
       directory: false,
     },
   });
-  updateNpmInstalledPlugins.mockResolvedValue({
-    outcomes: [],
-    changed: false,
-    config: {} as CrawClawConfig,
+  installPluginWithRustLifecycle.mockResolvedValue({
+    ok: false,
+    error: "plugin install disabled in test",
   });
-  updateNpmInstalledHookPacks.mockResolvedValue({
-    outcomes: [],
-    changed: false,
-    config: {} as CrawClawConfig,
-  });
+  updatePluginsWithRustLifecycle.mockImplementation(
+    async (params: { config?: CrawClawConfig }) => ({
+      ok: true,
+      value: {
+        outcomes: [],
+        changed: false,
+      },
+      config: params.config ?? ({} as CrawClawConfig),
+    }),
+  );
+  updateNpmInstalledHookPacks.mockImplementation(
+    async ({ config }: { config: CrawClawConfig }) => ({
+      outcomes: [],
+      changed: false,
+      config,
+    }),
+  );
   promptYesNo.mockResolvedValue(true);
-  installPluginFromPath.mockResolvedValue({ ok: false, error: "path install disabled in test" });
-  installPluginFromNpmSpec.mockResolvedValue({
-    ok: false,
-    error: "npm install disabled in test",
-  });
-  installPluginFromClawHub.mockResolvedValue({
-    ok: false,
-    error: "clawhub install disabled in test",
-  });
   parseClawHubPluginSpec.mockReturnValue(null);
   installHooksFromPath.mockResolvedValue({
     ok: false,

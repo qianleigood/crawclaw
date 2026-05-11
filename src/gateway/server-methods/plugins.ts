@@ -1,9 +1,7 @@
 import {
-  disablePluginFromControlPlane,
-  enablePluginFromControlPlane,
-  installPluginFromControlPlane,
-  PluginControlPlaneError,
-} from "../../plugins/control-plane.js";
+  installPluginWithRustLifecycle,
+  setPluginEnabledWithRustLifecycle,
+} from "../../plugins/rust-lifecycle.js";
 import { buildPluginSnapshotReport } from "../../plugins/status.js";
 import {
   ErrorCodes,
@@ -17,18 +15,7 @@ import {
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 import { assertValidParams } from "./validation.js";
 
-function respondPluginControlPlaneError(respond: RespondFn, error: unknown) {
-  if (error instanceof PluginControlPlaneError) {
-    respond(
-      false,
-      undefined,
-      errorShape(
-        error.kind === "invalid-request" ? ErrorCodes.INVALID_REQUEST : ErrorCodes.UNAVAILABLE,
-        error.message,
-      ),
-    );
-    return;
-  }
+function respondPluginLifecycleError(respond: RespondFn, error: unknown) {
   respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, String(error)));
 }
 
@@ -65,14 +52,18 @@ export const pluginsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
-      const p = params as { id: string; baseHash?: string };
-      const result = await enablePluginFromControlPlane({
-        pluginId: p.id,
-        baseHash: p.baseHash,
+      const p = params as { id: string };
+      const result = await setPluginEnabledWithRustLifecycle({
+        id: p.id,
+        enabled: true,
       });
-      respond(true, { ok: true, ...result }, undefined);
+      if (!result.ok) {
+        respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, result.error));
+        return;
+      }
+      respond(true, { ok: true, ...result.value }, undefined);
     } catch (error) {
-      respondPluginControlPlaneError(respond, error);
+      respondPluginLifecycleError(respond, error);
     }
   },
   "plugins.disable": async ({ params, respond }) => {
@@ -88,14 +79,18 @@ export const pluginsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
-      const p = params as { id: string; baseHash?: string };
-      const result = await disablePluginFromControlPlane({
-        pluginId: p.id,
-        baseHash: p.baseHash,
+      const p = params as { id: string };
+      const result = await setPluginEnabledWithRustLifecycle({
+        id: p.id,
+        enabled: false,
       });
-      respond(true, { ok: true, ...result }, undefined);
+      if (!result.ok) {
+        respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, result.error));
+        return;
+      }
+      respond(true, { ok: true, ...result.value }, undefined);
     } catch (error) {
-      respondPluginControlPlaneError(respond, error);
+      respondPluginLifecycleError(respond, error);
     }
   },
   "plugins.install": async ({ params, respond }) => {
@@ -111,14 +106,15 @@ export const pluginsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
-      const p = params as { raw: string; baseHash?: string };
-      const result = await installPluginFromControlPlane({
-        raw: p.raw,
-        baseHash: p.baseHash,
-      });
-      respond(true, { ok: true, ...result }, undefined);
+      const p = params as { raw: string };
+      const result = await installPluginWithRustLifecycle({ raw: p.raw });
+      if (!result.ok) {
+        respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, result.error));
+        return;
+      }
+      respond(true, { ok: true, ...result.value }, undefined);
     } catch (error) {
-      respondPluginControlPlaneError(respond, error);
+      respondPluginLifecycleError(respond, error);
     }
   },
 };

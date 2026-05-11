@@ -3,7 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { resolvePluginInstallDir } from "./install.js";
+import { resolvePluginInstallDir } from "./install-metadata.js";
 import {
   removePluginFromConfig,
   resolveUninstallChannelConfigKeys,

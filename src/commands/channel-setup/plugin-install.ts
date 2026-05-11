@@ -13,13 +13,12 @@ import {
 } from "../../plugins/bundled-sources.js";
 import { clearPluginDiscoveryCache } from "../../plugins/discovery.js";
 import { enablePluginInConfig } from "../../plugins/enable.js";
-import { installPluginFromNpmSpec } from "../../plugins/install.js";
-import { buildNpmResolutionInstallFields, recordPluginInstall } from "../../plugins/installs.js";
 import { loadCrawClawPlugins } from "../../plugins/loader.js";
 import { createPluginLoaderLogger } from "../../plugins/logger.js";
 import { loadPluginManifestRegistry } from "../../plugins/manifest-registry.js";
 import type { PluginRegistry } from "../../plugins/registry.js";
 import { getActivePluginChannelRegistry } from "../../plugins/runtime.js";
+import { installPluginWithRustLifecycle } from "../../plugins/rust-lifecycle.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import type { WizardPrompter } from "../../wizard/prompts.js";
 
@@ -185,25 +184,21 @@ export async function ensureChannelSetupPluginInstalled(params: {
     return { cfg: next, installed: true, pluginId };
   }
 
-  const result = await installPluginFromNpmSpec({
-    spec: entry.install.npmSpec,
-    logger: {
-      info: (msg) => runtime.log?.(msg),
-      warn: (msg) => runtime.log?.(msg),
-    },
+  const result = await installPluginWithRustLifecycle({
+    raw: entry.install.npmSpec,
+    config: next,
   });
 
   if (result.ok) {
-    next = enablePluginInConfig(next, result.pluginId).config;
-    next = recordPluginInstall(next, {
-      pluginId: result.pluginId,
-      source: "npm",
-      spec: entry.install.npmSpec,
-      installPath: result.targetDir,
-      version: result.version,
-      ...buildNpmResolutionInstallFields(result.npmResolution),
-    });
-    return { cfg: next, installed: true, pluginId: result.pluginId };
+    next = result.config ?? next;
+    const pluginId =
+      typeof result.value.pluginId === "string"
+        ? result.value.pluginId
+        : typeof result.value.id === "string"
+          ? result.value.id
+          : (entry.pluginId ?? entry.id);
+    next = enablePluginInConfig(next, pluginId).config;
+    return { cfg: next, installed: true, pluginId };
   }
 
   await prompter.note(

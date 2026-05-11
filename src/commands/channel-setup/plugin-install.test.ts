@@ -18,10 +18,10 @@ vi.mock("node:fs", async (importOriginal) => {
   };
 });
 
-const installPluginFromNpmSpec = vi.fn();
+const installPluginWithRustLifecycle = vi.fn();
 const applyPluginAutoEnable = vi.fn();
-vi.mock("../../plugins/install.js", () => ({
-  installPluginFromNpmSpec: (...args: unknown[]) => installPluginFromNpmSpec(...args),
+vi.mock("../../plugins/rust-lifecycle.js", () => ({
+  installPluginWithRustLifecycle: (...args: unknown[]) => installPluginWithRustLifecycle(...args),
 }));
 
 vi.mock("../../config/plugin-auto-enable.js", () => ({
@@ -168,11 +168,23 @@ describe("ensureChannelSetupPluginInstalled", () => {
     });
     const cfg: CrawClawConfig = { plugins: { allow: ["other"] } };
     vi.mocked(fs.existsSync).mockReturnValue(false);
-    installPluginFromNpmSpec.mockResolvedValue({
+    installPluginWithRustLifecycle.mockResolvedValue({
       ok: true,
-      pluginId: "zalo",
-      targetDir: "/tmp/zalo",
-      extensions: [],
+      value: {
+        pluginId: "zalo",
+      },
+      config: {
+        plugins: {
+          allow: ["other"],
+          installs: {
+            zalo: {
+              source: "npm",
+              spec: "@crawclaw/zalo",
+              installPath: "/tmp/zalo",
+            },
+          },
+        },
+      },
     });
 
     const result = await ensureChannelSetupPluginInstalled({
@@ -188,9 +200,10 @@ describe("ensureChannelSetupPluginInstalled", () => {
     expect(result.cfg.plugins?.installs?.zalo?.source).toBe("npm");
     expect(result.cfg.plugins?.installs?.zalo?.spec).toBe("@crawclaw/zalo");
     expect(result.cfg.plugins?.installs?.zalo?.installPath).toBe("/tmp/zalo");
-    expect(installPluginFromNpmSpec).toHaveBeenCalledWith(
-      expect.objectContaining({ spec: "@crawclaw/zalo" }),
-    );
+    expect(installPluginWithRustLifecycle).toHaveBeenCalledWith({
+      raw: "@crawclaw/zalo",
+      config: cfg,
+    });
   });
 
   it("uses local path when selected", async () => {
@@ -348,7 +361,7 @@ describe("ensureChannelSetupPluginInstalled", () => {
     });
     const cfg: CrawClawConfig = {};
     mockRepoLocalPathExists();
-    installPluginFromNpmSpec.mockResolvedValue({
+    installPluginWithRustLifecycle.mockResolvedValue({
       ok: false,
       error: "nope",
     });

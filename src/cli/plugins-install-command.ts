@@ -1,20 +1,13 @@
 import fs from "node:fs";
 import { cleanStaleMatrixPluginConfig } from "../commands/doctor/providers/matrix.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { loadConfig, readConfigFileSnapshot } from "../config/config.js";
+import { loadConfig, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
 import { installHooksFromNpmSpec, installHooksFromPath } from "../hooks/install.js";
 import { resolveArchiveKind } from "../infra/archive.js";
-import { parseClawHubPluginSpec } from "../infra/clawhub.js";
 import { extractErrorCode, formatErrorMessage } from "../infra/errors.js";
-import { type BundledPluginSource, findBundledPluginSource } from "../plugins/bundled-sources.js";
-import { formatClawHubSpecifier, installPluginFromClawHub } from "../plugins/clawhub.js";
 import type { InstallSafetyOverrides } from "../plugins/install-security-scan.js";
-import { installPluginFromNpmSpec, installPluginFromPath } from "../plugins/install.js";
-import { clearPluginManifestRegistryCache } from "../plugins/manifest-registry.js";
-import {
-  installPluginFromMarketplace,
-  resolveMarketplaceInstallShortcut,
-} from "../plugins/marketplace.js";
+import { resolveMarketplaceInstallShortcut } from "../plugins/marketplace.js";
+import { installPluginWithRustLifecycle } from "../plugins/rust-lifecycle.js";
 import { defaultRuntime } from "../runtime.js";
 import { theme } from "../terminal/theme.js";
 import { shortenHomePath } from "../utils.js";
@@ -26,47 +19,10 @@ import {
   type PluginInstallRequestContext,
 } from "./plugin-install-config-policy.js";
 import {
-  resolveBundledInstallPlanBeforeNpm,
-  resolveBundledInstallPlanForNpmFailure,
-} from "./plugin-install-plan.js";
-import {
-  buildPreferredClawHubSpec,
   createHookPackInstallLogger,
-  createPluginInstallLogger,
-  decidePreferredClawHubFallback,
   formatPluginInstallWithHookFallbackError,
 } from "./plugins-command-helpers.js";
-import { persistHookPackInstall, persistPluginInstall } from "./plugins-install-persist.js";
-
-async function installBundledPluginSource(params: {
-  config: CrawClawConfig;
-  rawSpec: string;
-  bundledSource: BundledPluginSource;
-  warning: string;
-}) {
-  const existing = params.config.plugins?.load?.paths ?? [];
-  const mergedPaths = Array.from(new Set([...existing, params.bundledSource.localPath]));
-  await persistPluginInstall({
-    config: {
-      ...params.config,
-      plugins: {
-        ...params.config.plugins,
-        load: {
-          ...params.config.plugins?.load,
-          paths: mergedPaths,
-        },
-      },
-    },
-    pluginId: params.bundledSource.pluginId,
-    install: {
-      source: "path",
-      spec: params.rawSpec,
-      sourcePath: params.bundledSource.localPath,
-      installPath: params.bundledSource.localPath,
-    },
-    warningMessage: params.warning,
-  });
-}
+import { persistHookPackInstall } from "./plugins-install-persist.js";
 
 async function tryInstallHookPackFromLocalPath(params: {
   config: CrawClawConfig;
@@ -280,115 +236,39 @@ export async function runPluginInstallCommand(params: {
     return defaultRuntime.exit(1);
   }
 
-  if (opts.marketplace) {
-    const result = await installPluginFromMarketplace({
-      dangerouslyForceUnsafeInstall: opts.dangerouslyForceUnsafeInstall,
-      marketplace: opts.marketplace,
-      plugin: raw,
-      logger: createPluginInstallLogger(),
-    });
-    if (!result.ok) {
-      defaultRuntime.error(result.error);
-      return defaultRuntime.exit(1);
+  const result = await installPluginWithRustLifecycle({
+    raw,
+    marketplace: opts.marketplace,
+    link: opts.link,
+    pin: opts.pin,
+    dangerouslyForceUnsafeInstall: opts.dangerouslyForceUnsafeInstall,
+    config: cfg,
+  });
+  if (result.ok) {
+    if (result.config) {
+      await writeConfigFile(result.config);
     }
-
-    clearPluginManifestRegistryCache();
-    await persistPluginInstall({
-      config: cfg,
-      pluginId: result.pluginId,
-      install: {
-        source: "marketplace",
-        installPath: result.targetDir,
-        version: result.version,
-        marketplaceName: result.marketplaceName,
-        marketplaceSource: result.marketplaceSource,
-        marketplacePlugin: result.marketplacePlugin,
-      },
-    });
     return;
   }
 
   const resolved = request.resolvedPath ?? request.normalizedSpec;
-
-  if (fs.existsSync(resolved)) {
-    if (opts.link) {
-      const existing = cfg.plugins?.load?.paths ?? [];
-      const merged = Array.from(new Set([...existing, resolved]));
-      const probe = await installPluginFromPath({ path: resolved, dryRun: true });
-      if (!probe.ok) {
-        const hookFallback = await tryInstallHookPackFromLocalPath({
-          config: cfg,
-          resolvedPath: resolved,
-          link: true,
-        });
-        if (hookFallback.ok) {
-          return;
-        }
-        defaultRuntime.error(
-          formatPluginInstallWithHookFallbackError(probe.error, hookFallback.error),
-        );
-        return defaultRuntime.exit(1);
-      }
-
-      await persistPluginInstall({
-        config: {
-          ...cfg,
-          plugins: {
-            ...cfg.plugins,
-            load: {
-              ...cfg.plugins?.load,
-              paths: merged,
-            },
-          },
-        },
-        pluginId: probe.pluginId,
-        install: {
-          source: "path",
-          sourcePath: resolved,
-          installPath: resolved,
-          version: probe.version,
-        },
-        successMessage: `Linked plugin path: ${shortenHomePath(resolved)}`,
-      });
+  const localPathExists = fs.existsSync(resolved);
+  if (opts.link && !localPathExists) {
+    defaultRuntime.error(result.error || "`--link` requires a local path.");
+    return defaultRuntime.exit(1);
+  }
+  if (localPathExists) {
+    const hookFallback = await tryInstallHookPackFromLocalPath({
+      config: cfg,
+      resolvedPath: resolved,
+      link: opts.link,
+    });
+    if (hookFallback.ok) {
       return;
     }
-
-    const result = await installPluginFromPath({
-      dangerouslyForceUnsafeInstall: opts.dangerouslyForceUnsafeInstall,
-      path: resolved,
-      logger: createPluginInstallLogger(),
-    });
-    if (!result.ok) {
-      const hookFallback = await tryInstallHookPackFromLocalPath({
-        config: cfg,
-        resolvedPath: resolved,
-      });
-      if (hookFallback.ok) {
-        return;
-      }
-      defaultRuntime.error(
-        formatPluginInstallWithHookFallbackError(result.error, hookFallback.error),
-      );
-      return defaultRuntime.exit(1);
-    }
-
-    clearPluginManifestRegistryCache();
-    const source: "archive" | "path" = resolveArchiveKind(resolved) ? "archive" : "path";
-    await persistPluginInstall({
-      config: cfg,
-      pluginId: result.pluginId,
-      install: {
-        source,
-        sourcePath: resolved,
-        installPath: result.targetDir,
-        version: result.version,
-      },
-    });
-    return;
-  }
-
-  if (opts.link) {
-    defaultRuntime.error("`--link` requires a local path.");
+    defaultRuntime.error(
+      formatPluginInstallWithHookFallbackError(result.error, hookFallback.error),
+    );
     return defaultRuntime.exit(1);
   }
 
@@ -404,143 +284,23 @@ export async function runPluginInstallCommand(params: {
       ".zip",
     ])
   ) {
-    defaultRuntime.error(`Path not found: ${resolved}`);
+    defaultRuntime.error(result.error || `Path not found: ${resolved}`);
     return defaultRuntime.exit(1);
   }
 
-  const bundledPreNpmPlan = resolveBundledInstallPlanBeforeNpm({
-    rawSpec: raw,
-    findBundledSource: (lookup) => findBundledPluginSource({ lookup }),
-  });
-  if (bundledPreNpmPlan) {
-    await installBundledPluginSource({
-      config: cfg,
-      rawSpec: raw,
-      bundledSource: bundledPreNpmPlan.bundledSource,
-      warning: bundledPreNpmPlan.warning,
-    });
-    return;
+  if (opts.marketplace) {
+    defaultRuntime.error(result.error);
+    return defaultRuntime.exit(1);
   }
 
-  const clawhubSpec = parseClawHubPluginSpec(raw);
-  if (clawhubSpec) {
-    const result = await installPluginFromClawHub({
-      dangerouslyForceUnsafeInstall: opts.dangerouslyForceUnsafeInstall,
-      spec: raw,
-      logger: createPluginInstallLogger(),
-    });
-    if (!result.ok) {
-      defaultRuntime.error(result.error);
-      return defaultRuntime.exit(1);
-    }
-
-    clearPluginManifestRegistryCache();
-    await persistPluginInstall({
-      config: cfg,
-      pluginId: result.pluginId,
-      install: {
-        source: "clawhub",
-        spec: formatClawHubSpecifier({
-          name: result.clawhub.clawhubPackage,
-          version: result.clawhub.version,
-        }),
-        installPath: result.targetDir,
-        version: result.version,
-        integrity: result.clawhub.integrity,
-        resolvedAt: result.clawhub.resolvedAt,
-        clawhubUrl: result.clawhub.clawhubUrl,
-        clawhubPackage: result.clawhub.clawhubPackage,
-        clawhubFamily: result.clawhub.clawhubFamily,
-        clawhubChannel: result.clawhub.clawhubChannel,
-      },
-    });
-    return;
-  }
-
-  const preferredClawHubSpec = buildPreferredClawHubSpec(raw);
-  if (preferredClawHubSpec) {
-    const clawhubResult = await installPluginFromClawHub({
-      dangerouslyForceUnsafeInstall: opts.dangerouslyForceUnsafeInstall,
-      spec: preferredClawHubSpec,
-      logger: createPluginInstallLogger(),
-    });
-    if (clawhubResult.ok) {
-      clearPluginManifestRegistryCache();
-      await persistPluginInstall({
-        config: cfg,
-        pluginId: clawhubResult.pluginId,
-        install: {
-          source: "clawhub",
-          spec: formatClawHubSpecifier({
-            name: clawhubResult.clawhub.clawhubPackage,
-            version: clawhubResult.clawhub.version,
-          }),
-          installPath: clawhubResult.targetDir,
-          version: clawhubResult.version,
-          integrity: clawhubResult.clawhub.integrity,
-          resolvedAt: clawhubResult.clawhub.resolvedAt,
-          clawhubUrl: clawhubResult.clawhub.clawhubUrl,
-          clawhubPackage: clawhubResult.clawhub.clawhubPackage,
-          clawhubFamily: clawhubResult.clawhub.clawhubFamily,
-          clawhubChannel: clawhubResult.clawhub.clawhubChannel,
-        },
-      });
-      return;
-    }
-    if (decidePreferredClawHubFallback(clawhubResult) !== "fallback_to_npm") {
-      defaultRuntime.error(clawhubResult.error);
-      return defaultRuntime.exit(1);
-    }
-  }
-
-  const result = await installPluginFromNpmSpec({
-    dangerouslyForceUnsafeInstall: opts.dangerouslyForceUnsafeInstall,
-    spec: raw,
-    logger: createPluginInstallLogger(),
-  });
-  if (!result.ok) {
-    const bundledFallbackPlan = resolveBundledInstallPlanForNpmFailure({
-      rawSpec: raw,
-      code: result.code,
-      findBundledSource: (lookup) => findBundledPluginSource({ lookup }),
-    });
-    if (!bundledFallbackPlan) {
-      const hookFallback = await tryInstallHookPackFromNpmSpec({
-        config: cfg,
-        spec: raw,
-        pin: opts.pin,
-      });
-      if (hookFallback.ok) {
-        return;
-      }
-      defaultRuntime.error(
-        formatPluginInstallWithHookFallbackError(result.error, hookFallback.error),
-      );
-      return defaultRuntime.exit(1);
-    }
-
-    await installBundledPluginSource({
-      config: cfg,
-      rawSpec: raw,
-      bundledSource: bundledFallbackPlan.bundledSource,
-      warning: bundledFallbackPlan.warning,
-    });
-    return;
-  }
-
-  clearPluginManifestRegistryCache();
-  const installRecord = resolvePinnedNpmInstallRecordForCli(
-    raw,
-    Boolean(opts.pin),
-    result.targetDir,
-    result.version,
-    result.npmResolution,
-    defaultRuntime.log,
-    theme.warn,
-  );
-  await persistPluginInstall({
+  const hookFallback = await tryInstallHookPackFromNpmSpec({
     config: cfg,
-    pluginId: result.pluginId,
-    install: installRecord,
+    spec: raw,
+    pin: opts.pin,
   });
+  if (hookFallback.ok) {
+    return;
+  }
+  defaultRuntime.error(formatPluginInstallWithHookFallbackError(result.error, hookFallback.error));
+  return defaultRuntime.exit(1);
 }

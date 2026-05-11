@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { installedPluginRoot } from "../../test/helpers/bundled-plugin-paths.js";
-import { PLUGIN_INSTALL_ERROR_CODE } from "../plugins/install.js";
+import { PLUGIN_INSTALL_ERROR_CODE } from "../plugins/install-metadata.js";
 import {
   resolveBundledInstallPlanForCatalogEntry,
   resolveBundledInstallPlanBeforeNpm,
