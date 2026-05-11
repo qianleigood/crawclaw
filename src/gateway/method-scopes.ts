@@ -143,7 +143,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "memory.experience.outbox.prune",
     "memory.experience.sync.flush",
     "agentRuntime.cancel",
-    "push.test",
     "workflow.enable",
     "workflow.disable",
     "workflow.archive",

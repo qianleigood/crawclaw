@@ -41,7 +41,6 @@ const TAG_PRIORITY: Record<ConfigTag, number> = {
 const TAG_OVERRIDES: Record<string, ConfigTag[]> = {
   "gateway.auth.token": ["security", "auth", "access", "network"],
   "gateway.auth.password": ["security", "auth", "access", "network"],
-  "gateway.push.apns.relay.baseUrl": ["network", "advanced"],
   "gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback": [
     "security",
     "access",

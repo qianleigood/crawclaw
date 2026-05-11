@@ -22,7 +22,6 @@ import { logsHandlers } from "./server-methods/logs.js";
 import { memoryHandlers } from "./server-methods/memory.js";
 import { modelsHandlers } from "./server-methods/models.js";
 import { pluginsHandlers } from "./server-methods/plugins.js";
-import { pushHandlers } from "./server-methods/push.js";
 import { sendHandlers } from "./server-methods/send.js";
 import { sessionsHandlers } from "./server-methods/sessions.js";
 import { skillsHandlers } from "./server-methods/skills.js";
@@ -109,7 +108,6 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...sessionsHandlers,
   ...systemHandlers,
   ...updateHandlers,
-  ...pushHandlers,
   ...sendHandlers,
   ...usageHandlers,
   ...workflowHandlers,

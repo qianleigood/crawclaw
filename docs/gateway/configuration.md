@@ -242,63 +242,6 @@ When validation fails:
 
   </Accordion>
 
-  <Accordion title="Enable relay-backed push for official iOS builds">
-    Relay-backed push is configured in `crawclaw.json`.
-
-    Set this in gateway config:
-
-    ```json5
-    {
-      gateway: {
-        push: {
-          apns: {
-            relay: {
-              baseUrl: "https://relay.example.com",
-              // Optional. Default: 10000
-              timeoutMs: 10000,
-            },
-          },
-        },
-      },
-    }
-    ```
-
-    CLI equivalent:
-
-    ```bash
-    crawclaw config set gateway.push.apns.relay.baseUrl https://relay.example.com
-    ```
-
-    What this does:
-
-    - Lets the gateway send `push.test`, wake nudges, and reconnect wakes through the external relay.
-    - Uses a registration-scoped send grant forwarded by the paired relay client. The gateway does not need a deployment-wide relay token.
-    - Binds each relay-backed registration to the gateway identity that the paired relay client connected to, so another gateway cannot reuse the stored registration.
-    - Keeps local/manual builds on direct APNs. Relay-backed sends apply only to distributed builds that registered through the relay.
-    - Must match the relay base URL baked into the distributed client build, so registration and send traffic reach the same relay deployment.
-
-    End-to-end flow:
-
-    1. Install a distributed client build that was compiled with the same relay base URL.
-    2. Configure `gateway.push.apns.relay.baseUrl` on the gateway.
-    3. Pair the relay client to the gateway and let both node and operator sessions connect.
-    4. The relay client fetches the gateway identity, registers with the relay using the required attestation/receipt flow, and then publishes the relay-backed `push.apns.register` payload to the paired gateway.
-    5. The gateway stores the relay handle and send grant, then uses them for `push.test`, wake nudges, and reconnect wakes.
-
-    Operational notes:
-
-    - If you switch the relay client to a different gateway, reconnect it so it can publish a new relay registration bound to that gateway.
-    - If you ship a new client build that points at a different relay deployment, it refreshes its cached relay registration instead of reusing the old relay origin.
-
-    Compatibility note:
-
-    - `CRAWCLAW_APNS_RELAY_BASE_URL` and `CRAWCLAW_APNS_RELAY_TIMEOUT_MS` still work as temporary env overrides.
-    - `CRAWCLAW_APNS_RELAY_ALLOW_HTTP=true` remains a loopback-only development escape hatch; do not persist HTTP relay URLs in config.
-
-    Historical mobile relay flows are no longer part of the active repository surface.
-
-  </Accordion>
-
   <Accordion title="Replace legacy heartbeat with cron">
     ```json5
     {

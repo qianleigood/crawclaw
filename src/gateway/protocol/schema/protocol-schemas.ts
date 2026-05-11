@@ -188,7 +188,6 @@ import {
   PluginsInstallParamsSchema,
   PluginsListParamsSchema,
 } from "./plugins.js";
-import { PushTestParamsSchema, PushTestResultSchema } from "./push.js";
 import {
   SecretsReloadParamsSchema,
   SecretsResolveAssignmentSchema,
@@ -319,8 +318,6 @@ export const ProtocolSchemas = {
   AgentIdentityResult: AgentIdentityResultSchema,
   AgentWaitParams: AgentWaitParamsSchema,
   WakeParams: WakeParamsSchema,
-  PushTestParams: PushTestParamsSchema,
-  PushTestResult: PushTestResultSchema,
   SecretsReloadParams: SecretsReloadParamsSchema,
   SecretsResolveParams: SecretsResolveParamsSchema,
   SecretsResolveAssignment: SecretsResolveAssignmentSchema,

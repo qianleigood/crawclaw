@@ -254,11 +254,6 @@ export const FIELD_LABELS: Record<string, string> = {
   "gateway.browserClients.allowInsecureAuth": "Insecure Browser-Origin Auth Toggle",
   "gateway.browserClients.dangerouslyDisableDeviceAuth":
     "Dangerously Disable Browser-Origin Device Auth",
-  "gateway.push": "Gateway Push Delivery",
-  "gateway.push.apns": "Gateway APNs Delivery",
-  "gateway.push.apns.relay": "Gateway APNs Relay",
-  "gateway.push.apns.relay.baseUrl": "Gateway APNs Relay Base URL",
-  "gateway.push.apns.relay.timeoutMs": "Gateway APNs Relay Timeout (ms)",
   "gateway.http.endpoints.chatCompletions.enabled": "OpenAI Chat Completions Endpoint",
   "gateway.http.endpoints.chatCompletions.maxBodyBytes": "OpenAI Chat Completions Max Body Bytes",
   "gateway.http.endpoints.chatCompletions.maxImageParts": "OpenAI Chat Completions Max Image Parts",

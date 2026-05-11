@@ -80,7 +80,6 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.remote.tlsFingerprint": "sha256:ab12cd34…",
   "gateway.remote.sshTarget": "user@host",
   "gateway.browserClients.allowedOrigins": "https://control.example.com",
-  "gateway.push.apns.relay.baseUrl": "https://relay.example.com",
   "channels.mattermost.baseUrl": "https://chat.example.com",
   "agents.list[].identity.avatar": "avatars/crawclaw.png",
 };

@@ -338,21 +338,6 @@ export type GatewayHttpConfig = {
   securityHeaders?: GatewayHttpSecurityHeadersConfig;
 };
 
-export type GatewayPushApnsRelayConfig = {
-  /** Base HTTPS URL for the external iOS APNs relay service. */
-  baseUrl?: string;
-  /** Timeout in milliseconds for relay send requests (default: 10000). */
-  timeoutMs?: number;
-};
-
-export type GatewayPushApnsConfig = {
-  relay?: GatewayPushApnsRelayConfig;
-};
-
-export type GatewayPushConfig = {
-  apns?: GatewayPushApnsConfig;
-};
-
 export type GatewayToolsConfig = {
   /** Tools to deny via gateway HTTP /tools/invoke (extends defaults). */
   deny?: string[];
@@ -392,7 +377,6 @@ export type GatewayConfig = {
   reload?: GatewayReloadConfig;
   tls?: GatewayTlsConfig;
   http?: GatewayHttpConfig;
-  push?: GatewayPushConfig;
   /**
    * IPs of trusted reverse proxies (e.g. Traefik, nginx). When a connection
    * arrives from one of these IPs, the Gateway trusts `x-forwarded-for`

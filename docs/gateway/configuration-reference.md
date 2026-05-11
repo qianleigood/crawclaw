@@ -2329,14 +2329,6 @@ See [Plugins](/tools/plugin).
       // Remove tools from the default HTTP deny list
       allow: ["gateway"],
     },
-    push: {
-      apns: {
-        relay: {
-          baseUrl: "https://relay.example.com",
-          timeoutMs: 10000,
-        },
-      },
-    },
   },
 }
 ```
@@ -2361,11 +2353,6 @@ See [Plugins](/tools/plugin).
 - `remote.transport`: `ssh` (default) or `direct` (ws/wss). For `direct`, `remote.url` must be `ws://` or `wss://`.
 - `CRAWCLAW_ALLOW_INSECURE_PRIVATE_WS=1`: client-side break-glass override that allows plaintext `ws://` to trusted private-network IPs; default remains loopback-only for plaintext.
 - `gateway.remote.token` / `.password` are remote-client credential fields. They do not configure gateway auth by themselves.
-- `gateway.push.apns.relay.baseUrl`: base HTTPS URL for the external APNs relay used by distributed client builds after they publish relay-backed registrations to the gateway. This URL must match the relay URL compiled into the client build.
-- `gateway.push.apns.relay.timeoutMs`: gateway-to-relay send timeout in milliseconds. Defaults to `10000`.
-- Relay-backed registrations are delegated to a specific gateway identity. The paired relay client fetches `gateway.identity.get`, includes that identity in the relay registration, and forwards a registration-scoped send grant to the gateway. Another gateway cannot reuse that stored registration.
-- `CRAWCLAW_APNS_RELAY_BASE_URL` / `CRAWCLAW_APNS_RELAY_TIMEOUT_MS`: temporary env overrides for the relay config above.
-- `CRAWCLAW_APNS_RELAY_ALLOW_HTTP=true`: development-only escape hatch for loopback HTTP relay URLs. Production relay URLs should stay on HTTPS.
 - `gateway.channelHealthCheckMinutes`: channel health-monitor interval in minutes. Set `0` to disable health-monitor restarts globally. Default: `5`.
 - `gateway.channelStaleEventThresholdMinutes`: stale-socket threshold in minutes. Keep this greater than or equal to `gateway.channelHealthCheckMinutes`. Default: `30`.
 - `gateway.channelMaxRestartsPerHour`: maximum health-monitor restarts per channel/account in a rolling hour. Default: `10`.

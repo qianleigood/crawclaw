@@ -102,7 +102,6 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
       "gateway.allowRealIpFallback",
       "gateway.tls",
       "gateway.http",
-      "gateway.push",
       "gateway.tools",
       "gateway.webchat",
       "gateway",
