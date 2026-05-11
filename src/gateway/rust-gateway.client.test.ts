@@ -7,7 +7,7 @@ import type { Readable } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { GatewayClient } from "./client.js";
-import type { HelloOk } from "./protocol/index.js";
+import type { EventFrame, HelloOk } from "./protocol/index.js";
 
 type RustGatewayChild = ChildProcessByStdio<null, Readable, Readable>;
 type GatewayClientOptions = ConstructorParameters<typeof GatewayClient>[0];
@@ -16,6 +16,7 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../
 const toolchainHome = resolveToolchainHome();
 const children: RustGatewayChild[] = [];
 const tempDirs: string[] = [];
+let debugGatewayBuilt = false;
 
 afterEach(async () => {
   await Promise.all(children.splice(0).map(stopChild));
@@ -78,7 +79,12 @@ describe("Rust Gateway bridge", () => {
 
     await waitForHealth(port, () => stderr);
 
-    const { client, hello: helloPromise } = startGatewayClient(port);
+    const events: EventFrame[] = [];
+    const { client, hello: helloPromise } = startGatewayClient(port, {
+      onEvent: (event) => {
+        events.push(event);
+      },
+    });
     try {
       await helloPromise;
 
@@ -284,7 +290,14 @@ describe("Rust Gateway bridge", () => {
         {},
       );
       expect(typeof usage.updatedAt).toBe("number");
-      expect(usage.providers).toEqual([]);
+      expect(Array.isArray(usage.providers)).toBe(true);
+      for (const provider of usage.providers ?? []) {
+        expect(provider).toMatchObject({
+          displayName: expect.any(String),
+          provider: expect.any(String),
+          windows: expect.any(Array),
+        });
+      }
 
       const doctor = await client.request<{ ok?: boolean; implementation?: string }>(
         "doctor.memory.status",
@@ -315,6 +328,17 @@ describe("Rust Gateway bridge", () => {
         result: { status: "skipped", mode: "git", reason: "no-upstream" },
       });
 
+      const identity = await client.request<{ deviceId?: string; publicKey?: string }>(
+        "gateway.identity.get",
+        {},
+      );
+      expect(identity.deviceId).toMatch(/^[a-f0-9]{64}$/);
+      expect(identity.publicKey).toBeTruthy();
+      expect(fs.existsSync(path.join(stateDir, "identity", "device.json"))).toBe(true);
+
+      const noWake = await client.request<null>("system.mainSessionWake.last", {});
+      expect(noWake).toBeNull();
+
       const created = await client.request<{
         key?: string;
         sessionId?: string;
@@ -333,6 +357,13 @@ describe("Rust Gateway bridge", () => {
       }>("sessions.list", {});
       expect(list.count).toBe(1);
       expect(list.sessions?.[0]).toMatchObject({ key: "agent:main:main", label: "Rust Main" });
+
+      await client.request<{ status?: string }>("wake", { text: "wake from client test" });
+      const lastWake = await client.request<{ status?: string; preview?: string }>(
+        "last-main-session-wake",
+        {},
+      );
+      expect(lastWake).toMatchObject({ status: "sent", preview: "wake from client test" });
 
       fs.appendFileSync(
         created.entry?.sessionFile ?? "",
@@ -379,6 +410,53 @@ describe("Rust Gateway bridge", () => {
         "second scratch line",
       ]);
 
+      const sessionSubscription = await client.request<{ subscribed?: boolean }>(
+        "sessions.subscribe",
+        {},
+      );
+      expect(sessionSubscription.subscribed).toBe(true);
+      const messageSubscription = await client.request<{ subscribed?: boolean; key?: string }>(
+        "sessions.messages.subscribe",
+        { key: "agent:main:scratch" },
+      );
+      expect(messageSubscription).toMatchObject({
+        subscribed: true,
+        key: "agent:main:scratch",
+      });
+
+      const sessionMessageEvent = waitForGatewayEvent(events, (event) => {
+        const payload = event.payload as { sessionKey?: string } | undefined;
+        return event.event === "session.message" && payload?.sessionKey === "agent:main:scratch";
+      });
+      const sessionsChangedEvent = waitForGatewayEvent(events, (event) => {
+        const payload = event.payload as { session?: { key?: string } } | undefined;
+        return event.event === "sessions.changed" && payload?.session?.key === "agent:main:scratch";
+      });
+      await client.request<{ status?: string }>("sessions.send", {
+        key: "agent:main:scratch",
+        message: "message from subscription",
+      });
+      const [messageEvent, changedEvent] = await Promise.all([
+        sessionMessageEvent,
+        sessionsChangedEvent,
+      ]);
+      expect(messageEvent).toMatchObject({
+        event: "session.message",
+        payload: {
+          content: "message from subscription",
+          role: "user",
+          sessionKey: "agent:main:scratch",
+        },
+      });
+      expect(changedEvent).toMatchObject({
+        event: "sessions.changed",
+        payload: {
+          session: {
+            key: "agent:main:scratch",
+          },
+        },
+      });
+
       const injected = await client.request<{ ok?: boolean; messageId?: string }>("chat.inject", {
         sessionKey: "agent:main:scratch",
         message: "assistant injected from rust",
@@ -392,7 +470,7 @@ describe("Rust Gateway bridge", () => {
       }>("chat.history", { sessionKey: "agent:main:scratch", limit: 2 });
       expect(chatHistory.sessionKey).toBe("agent:main:scratch");
       expect(chatHistory.messages?.map((message) => message.content)).toEqual([
-        "second scratch line",
+        "message from subscription",
         "assistant injected from rust",
       ]);
 
@@ -483,8 +561,34 @@ function startGatewayClient(
   return { client, hello };
 }
 
+function waitForGatewayEvent(
+  events: EventFrame[],
+  predicate: (event: EventFrame) => boolean,
+): Promise<EventFrame> {
+  const existing = events.find(predicate);
+  if (existing) {
+    return Promise.resolve(existing);
+  }
+  return new Promise((resolve, reject) => {
+    const started = Date.now();
+    const timer = setInterval(() => {
+      const event = events.find(predicate);
+      if (event) {
+        clearInterval(timer);
+        resolve(event);
+        return;
+      }
+      if (Date.now() - started > 2_000) {
+        clearInterval(timer);
+        reject(new Error("timed out waiting for gateway event"));
+      }
+    }, 10);
+  });
+}
+
 function spawnRustGateway(port: number, extraEnv: NodeJS.ProcessEnv = {}): RustGatewayChild {
   const debugBinary = path.join(repoRoot, "target", "debug", "crawclaw-gateway");
+  ensureRustGatewayBinary(debugBinary);
   if (fs.existsSync(debugBinary)) {
     return spawn(debugBinary, ["--bind", "127.0.0.1", "--port", String(port)], {
       cwd: repoRoot,
@@ -521,6 +625,30 @@ function spawnRustGateway(port: number, extraEnv: NodeJS.ProcessEnv = {}): RustG
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
+}
+
+function ensureRustGatewayBinary(debugBinary: string): void {
+  if (debugGatewayBuilt) {
+    return;
+  }
+  const result = spawnSync("cargo", ["build", "-q", "-p", "crawclaw-gateway"], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      CARGO_HOME: process.env.CARGO_HOME ?? path.join(toolchainHome, ".cargo"),
+      RUSTUP_HOME: process.env.RUSTUP_HOME ?? path.join(toolchainHome, ".rustup"),
+    },
+  });
+  if (result.status !== 0) {
+    throw new Error(
+      `cargo build -q -p crawclaw-gateway failed\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+    );
+  }
+  if (!fs.existsSync(debugBinary)) {
+    throw new Error(`cargo build did not create ${debugBinary}`);
+  }
+  debugGatewayBuilt = true;
 }
 
 function createGitUpdateRoot(): string {

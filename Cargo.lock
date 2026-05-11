@@ -1276,12 +1276,16 @@ name = "crawclaw-gateway"
 version = "2026.5.3"
 dependencies = [
  "axum",
+ "base64 0.22.1",
  "chrono",
  "crawclaw-providers",
  "crawclaw-runtime",
  "futures-util",
+ "ring",
+ "rusqlite",
  "serde",
  "serde_json",
+ "sha2 0.10.9",
  "tokio",
 ]
 

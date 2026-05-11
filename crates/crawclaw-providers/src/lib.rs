@@ -29,6 +29,330 @@ pub struct ProviderSecretRefCapabilities {
     pub exec: bool,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderAuthEnvVars {
+    pub provider: &'static str,
+    pub env_vars: &'static [&'static str],
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderPlugin {
+    pub plugin_id: &'static str,
+    pub providers: &'static [&'static str],
+}
+
+pub const BUNDLED_PROVIDER_PLUGINS: &[BundledProviderPlugin] = &[
+    BundledProviderPlugin {
+        plugin_id: "amazon-bedrock",
+        providers: &["amazon-bedrock"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "anthropic",
+        providers: &["anthropic"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "anthropic-vertex",
+        providers: &["anthropic-vertex"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "byteplus",
+        providers: &["byteplus", "byteplus-plan"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "chutes",
+        providers: &["chutes"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "cloudflare-ai-gateway",
+        providers: &["cloudflare-ai-gateway"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "copilot-proxy",
+        providers: &["copilot-proxy"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "deepseek",
+        providers: &["deepseek"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "fal",
+        providers: &["fal"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "github-copilot",
+        providers: &["github-copilot"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "google",
+        providers: &["google", "google-gemini-cli"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "huggingface",
+        providers: &["huggingface"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "kilocode",
+        providers: &["kilocode"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "kimi",
+        providers: &["kimi", "kimi-coding"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "litellm",
+        providers: &["litellm"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "microsoft-foundry",
+        providers: &["microsoft-foundry"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "minimax",
+        providers: &["minimax", "minimax-portal"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "mistral",
+        providers: &["mistral"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "modelstudio",
+        providers: &["modelstudio"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "moonshot",
+        providers: &["moonshot"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "nvidia",
+        providers: &["nvidia"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "ollama",
+        providers: &["ollama"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "openai",
+        providers: &["openai", "openai-codex"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "opencode",
+        providers: &["opencode"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "opencode-go",
+        providers: &["opencode-go"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "openrouter",
+        providers: &["openrouter"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "qianfan",
+        providers: &["qianfan"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "sglang",
+        providers: &["sglang"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "synthetic",
+        providers: &["synthetic"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "together",
+        providers: &["together"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "venice",
+        providers: &["venice"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "vercel-ai-gateway",
+        providers: &["vercel-ai-gateway"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "vllm",
+        providers: &["vllm"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "volcengine",
+        providers: &["volcengine", "volcengine-plan"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "xai",
+        providers: &["xai"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "xiaomi",
+        providers: &["xiaomi"],
+    },
+    BundledProviderPlugin {
+        plugin_id: "zai",
+        providers: &["zai"],
+    },
+];
+
+pub const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
+    ProviderAuthEnvVars {
+        provider: "anthropic",
+        env_vars: &["ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "brave",
+        env_vars: &["BRAVE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "byteplus",
+        env_vars: &["BYTEPLUS_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "chutes",
+        env_vars: &["CHUTES_API_KEY", "CHUTES_OAUTH_TOKEN"],
+    },
+    ProviderAuthEnvVars {
+        provider: "cloudflare-ai-gateway",
+        env_vars: &["CLOUDFLARE_AI_GATEWAY_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "deepseek",
+        env_vars: &["DEEPSEEK_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "exa",
+        env_vars: &["EXA_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "fal",
+        env_vars: &["FAL_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "github-copilot",
+        env_vars: &["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"],
+    },
+    ProviderAuthEnvVars {
+        provider: "google",
+        env_vars: &["GEMINI_API_KEY", "GOOGLE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "huggingface",
+        env_vars: &["HUGGINGFACE_HUB_TOKEN", "HF_TOKEN"],
+    },
+    ProviderAuthEnvVars {
+        provider: "kilocode",
+        env_vars: &["KILOCODE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "kimi",
+        env_vars: &["KIMI_API_KEY", "KIMICODE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "kimi-coding",
+        env_vars: &["KIMI_API_KEY", "KIMICODE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "litellm",
+        env_vars: &["LITELLM_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "microsoft-foundry",
+        env_vars: &["AZURE_OPENAI_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "minimax",
+        env_vars: &["MINIMAX_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "minimax-portal",
+        env_vars: &["MINIMAX_OAUTH_TOKEN", "MINIMAX_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "mistral",
+        env_vars: &["MISTRAL_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "modelstudio",
+        env_vars: &["MODELSTUDIO_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "moonshot",
+        env_vars: &["MOONSHOT_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "nvidia",
+        env_vars: &["NVIDIA_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "ollama",
+        env_vars: &["OLLAMA_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "openai",
+        env_vars: &["OPENAI_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "opencode",
+        env_vars: &["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "opencode-go",
+        env_vars: &["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "openrouter",
+        env_vars: &["OPENROUTER_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "perplexity",
+        env_vars: &["PERPLEXITY_API_KEY", "OPENROUTER_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "qianfan",
+        env_vars: &["QIANFAN_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "sglang",
+        env_vars: &["SGLANG_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "synthetic",
+        env_vars: &["SYNTHETIC_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "together",
+        env_vars: &["TOGETHER_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "venice",
+        env_vars: &["VENICE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "vercel-ai-gateway",
+        env_vars: &["AI_GATEWAY_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "vllm",
+        env_vars: &["VLLM_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "volcengine",
+        env_vars: &["VOLCANO_ENGINE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "xai",
+        env_vars: &["XAI_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "xiaomi",
+        env_vars: &["XIAOMI_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "zai",
+        env_vars: &["ZAI_API_KEY", "Z_AI_API_KEY"],
+    },
+];
+
 const RUST_PROVIDER_CAPABILITIES: ProviderTransportCapabilities = ProviderTransportCapabilities {
     streaming: true,
     tool_calling: true,
@@ -277,6 +601,28 @@ pub fn native_provider_ids() -> Vec<&'static str> {
         .iter()
         .map(|provider| provider.id)
         .collect()
+}
+
+pub fn bundled_provider_plugins() -> Vec<BundledProviderPlugin> {
+    BUNDLED_PROVIDER_PLUGINS.to_vec()
+}
+
+pub fn bundled_provider_ids() -> Vec<&'static str> {
+    BUNDLED_PROVIDER_PLUGINS
+        .iter()
+        .flat_map(|plugin| plugin.providers.iter().copied())
+        .collect()
+}
+
+pub fn bundled_provider_auth_env_vars() -> Vec<ProviderAuthEnvVars> {
+    BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES.to_vec()
+}
+
+pub fn bundled_provider_auth_env_vars_for(provider: &str) -> Option<&'static [&'static str]> {
+    BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES
+        .iter()
+        .find(|entry| entry.provider == provider)
+        .map(|entry| entry.env_vars)
 }
 
 fn resolve_provider_transport(
@@ -1350,8 +1696,11 @@ fn stream_chunk_json(chunk: &str) -> Result<Option<Value>, ProviderTransportErro
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::{BTreeMap, BTreeSet};
+    use std::fs;
     use std::io::{Read, Write};
     use std::net::TcpListener;
+    use std::path::PathBuf;
     use std::sync::mpsc;
     use std::thread;
 
@@ -1402,6 +1751,7 @@ mod tests {
         "xiaomi",
         "zai",
     ];
+    const NON_CHAT_PROVIDER_PLUGINS: &[&str] = &["fal"];
 
     #[test]
     fn covers_phase_three_provider_transport_families() {
@@ -1445,6 +1795,66 @@ mod tests {
                 "{provider} should not advertise exec SecretRef support"
             );
         }
+    }
+
+    #[test]
+    fn bundled_provider_auth_env_vars_cover_plugin_manifest_snapshot() {
+        let actual = bundled_provider_auth_env_vars()
+            .into_iter()
+            .map(|entry| {
+                (
+                    entry.provider.to_string(),
+                    entry
+                        .env_vars
+                        .iter()
+                        .map(|value| (*value).to_string())
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        assert_eq!(actual, collect_manifest_provider_auth_env_vars());
+        assert_eq!(
+            actual.get("fal").map(Vec::as_slice),
+            Some(&["FAL_KEY".to_string()][..])
+        );
+    }
+
+    #[test]
+    fn bundled_provider_plugins_cover_plugin_manifest_snapshot() {
+        let actual = bundled_provider_plugins()
+            .into_iter()
+            .map(|entry| {
+                (
+                    entry.plugin_id.to_string(),
+                    entry
+                        .providers
+                        .iter()
+                        .map(|value| (*value).to_string())
+                        .collect::<Vec<_>>(),
+                )
+            })
+            .collect::<BTreeMap<_, _>>();
+
+        assert_eq!(actual, collect_manifest_provider_plugins());
+        assert_eq!(
+            actual.get("fal").map(Vec::as_slice),
+            Some(&["fal".to_string()][..])
+        );
+    }
+
+    #[test]
+    fn native_chat_transports_cover_all_chat_provider_plugins() {
+        let native = native_provider_ids().into_iter().collect::<BTreeSet<_>>();
+        let missing = bundled_provider_ids()
+            .into_iter()
+            .filter(|provider| {
+                !NON_CHAT_PROVIDER_PLUGINS.contains(provider) && !native.contains(provider)
+            })
+            .collect::<Vec<_>>();
+
+        assert_eq!(missing, Vec::<&str>::new());
+        assert!(!native.contains("fal"));
     }
 
     #[test]
@@ -1678,6 +2088,84 @@ mod tests {
                 expected.map(ToOwned::to_owned)
             );
         }
+    }
+
+    fn collect_manifest_provider_auth_env_vars() -> BTreeMap<String, Vec<String>> {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let extensions_dir = repo_root.join("extensions");
+        let mut entries = BTreeMap::new();
+
+        for item in fs::read_dir(extensions_dir).expect("extensions dir") {
+            let manifest_path = item
+                .expect("extension dir")
+                .path()
+                .join("crawclaw.plugin.json");
+            if !manifest_path.is_file() {
+                continue;
+            }
+            let manifest = fs::read_to_string(&manifest_path).expect("manifest");
+            let manifest: Value = serde_json::from_str(&manifest).expect("manifest json");
+            let Some(auth_env_vars) = manifest
+                .get("providerAuthEnvVars")
+                .and_then(Value::as_object)
+            else {
+                continue;
+            };
+
+            for (provider, env_vars) in auth_env_vars {
+                let Some(env_vars) = env_vars.as_array() else {
+                    continue;
+                };
+                let env_vars = env_vars
+                    .iter()
+                    .filter_map(Value::as_str)
+                    .map(str::trim)
+                    .filter(|value| !value.is_empty())
+                    .map(str::to_string)
+                    .collect::<Vec<_>>();
+                if !provider.trim().is_empty() && !env_vars.is_empty() {
+                    entries.insert(provider.trim().to_string(), env_vars);
+                }
+            }
+        }
+
+        entries
+    }
+
+    fn collect_manifest_provider_plugins() -> BTreeMap<String, Vec<String>> {
+        let repo_root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+        let extensions_dir = repo_root.join("extensions");
+        let mut entries = BTreeMap::new();
+
+        for item in fs::read_dir(extensions_dir).expect("extensions dir") {
+            let manifest_path = item
+                .expect("extension dir")
+                .path()
+                .join("crawclaw.plugin.json");
+            if !manifest_path.is_file() {
+                continue;
+            }
+            let manifest = fs::read_to_string(&manifest_path).expect("manifest");
+            let manifest: Value = serde_json::from_str(&manifest).expect("manifest json");
+            let Some(providers) = manifest.get("providers").and_then(Value::as_array) else {
+                continue;
+            };
+            let providers = providers
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(str::to_string)
+                .collect::<Vec<_>>();
+            let Some(plugin_id) = manifest.get("id").and_then(Value::as_str).map(str::trim) else {
+                continue;
+            };
+            if !plugin_id.is_empty() && !providers.is_empty() {
+                entries.insert(plugin_id.to_string(), providers);
+            }
+        }
+
+        entries
     }
 
     fn serve_once(response_body: &'static str) -> (String, mpsc::Receiver<String>) {

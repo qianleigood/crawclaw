@@ -16,15 +16,17 @@ pub mod desktop {
         "channel.send",
         "talk.mode",
         "voicewake.changed",
+        "main-session-wake",
         "cron",
     ];
 }
 
+use std::collections::{BTreeMap, BTreeSet};
 use std::convert::Infallible;
 use std::env;
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -35,15 +37,19 @@ use axum::response::sse::{Event, KeepAlive, Sse};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
+use base64::Engine as _;
 use crawclaw_runtime::{
     cron::{CronService, CronServiceOptions},
     memory::RustMemoryRuntime,
     special_agents::{special_agent_definitions, SpecialAgentRunRequest, SpecialAgentRunner},
     AgentRuntime, DesktopSessionStore,
 };
-use futures_util::{stream, StreamExt};
+use futures_util::{stream, Sink, SinkExt, StreamExt};
+use ring::signature::KeyPair;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
+use sha2::{Digest, Sha256};
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 
@@ -101,6 +107,32 @@ struct GatewayState {
     auth_password: Option<Arc<str>>,
     started_at_ms: u128,
     events: broadcast::Sender<Value>,
+    presence: Arc<std::sync::Mutex<BTreeMap<String, Value>>>,
+    approvals: Arc<std::sync::Mutex<BTreeMap<String, ApprovalRecord>>>,
+    wizard_sessions: Arc<std::sync::Mutex<BTreeMap<String, WizardSessionRecord>>>,
+    last_main_session_wake: Arc<std::sync::Mutex<Option<Value>>>,
+}
+
+#[derive(Clone, Debug)]
+struct ApprovalRecord {
+    id: String,
+    kind: String,
+    request: Value,
+    created_at_ms: u64,
+    expires_at_ms: u64,
+    decision: Option<String>,
+    resolved_by: Option<String>,
+    resolved_at_ms: Option<u64>,
+}
+
+#[derive(Clone, Debug)]
+struct WizardSessionRecord {
+    session_id: String,
+    status: String,
+    error: Option<String>,
+    step: Option<Value>,
+    created_at_ms: u64,
+    updated_at_ms: u64,
 }
 
 #[derive(Deserialize)]
@@ -218,6 +250,10 @@ impl GatewayState {
             auth_password: config.auth_password.map(Arc::from),
             started_at_ms: now_millis(),
             events,
+            presence: Arc::new(std::sync::Mutex::new(initial_system_presence())),
+            approvals: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            wizard_sessions: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
+            last_main_session_wake: Arc::new(std::sync::Mutex::new(None)),
         }
     }
 }
@@ -270,9 +306,10 @@ async fn ws(ws: WebSocketUpgrade, State(state): State<GatewayState>) -> impl Int
     ws.on_upgrade(move |socket| handle_ws(socket, state))
 }
 
-async fn handle_ws(mut socket: WebSocket, state: GatewayState) {
+async fn handle_ws(socket: WebSocket, state: GatewayState) {
     let nonce = format!("rust-{}", now_millis());
-    let _ = socket
+    let (mut sender, mut receiver) = socket.split();
+    let _ = sender
         .send(Message::Text(
             json!({
                 "type": "event",
@@ -285,78 +322,106 @@ async fn handle_ws(mut socket: WebSocket, state: GatewayState) {
         .await;
 
     let mut connected = false;
-    while let Some(message) = socket.recv().await {
-        let Ok(message) = message else {
-            break;
-        };
-        let Message::Text(raw) = message else {
-            continue;
-        };
-        let request = match serde_json::from_str::<GatewayWsRequest>(&raw) {
-            Ok(request) if request.frame_type == "req" => request,
-            Ok(request) => {
-                let _ = send_ws_error(
-                    &mut socket,
-                    &request.id,
-                    "INVALID_REQUEST",
-                    "unsupported gateway frame type",
-                )
-                .await;
-                continue;
-            }
-            Err(error) => {
-                let _ = socket
-                    .send(Message::Text(
-                        json!({
-                            "type": "event",
-                            "event": "operationFailed",
-                            "payload": { "message": format!("invalid gateway frame: {error}") }
-                        })
-                        .to_string()
-                        .into(),
-                    ))
+    let mut gateway_events = state.events.subscribe();
+    let mut session_events_subscribed = false;
+    let mut session_message_subscriptions = BTreeSet::<String>::new();
+    loop {
+        tokio::select! {
+            message = receiver.next() => {
+                let Some(message) = message else {
+                    break;
+                };
+                let Ok(message) = message else {
+                    break;
+                };
+                let Message::Text(raw) = message else {
+                    continue;
+                };
+                let request = match serde_json::from_str::<GatewayWsRequest>(&raw) {
+                    Ok(request) if request.frame_type == "req" => request,
+                    Ok(request) => {
+                        let _ = send_ws_error(
+                            &mut sender,
+                            &request.id,
+                            "INVALID_REQUEST",
+                            "unsupported gateway frame type",
+                        )
+                        .await;
+                        continue;
+                    }
+                    Err(error) => {
+                        let _ = send_ws_event(
+                            &mut sender,
+                            "operationFailed",
+                            json!({ "message": format!("invalid gateway frame: {error}") }),
+                        )
+                        .await;
+                        continue;
+                    }
+                };
+
+                if request.method == "connect" {
+                    match authorize_connect(&state, &request.params) {
+                        Ok(()) => {
+                            connected = true;
+                            let hello = hello_ok(&state);
+                            let _ = send_ws_ok(&mut sender, &request.id, hello).await;
+                        }
+                        Err(message) => {
+                            let _ = send_ws_error(&mut sender, &request.id, "UNAUTHORIZED", &message).await;
+                        }
+                    }
+                    continue;
+                }
+
+                if !connected {
+                    let _ = send_ws_error(
+                        &mut sender,
+                        &request.id,
+                        "UNAUTHORIZED",
+                        "gateway connect is required before requests",
+                    )
                     .await;
-                continue;
-            }
-        };
-
-        if request.method == "connect" {
-            match authorize_connect(&state, &request.params) {
-                Ok(()) => {
-                    connected = true;
-                    let hello = hello_ok(&state);
-                    let _ = send_ws_ok(&mut socket, &request.id, hello).await;
+                    continue;
                 }
-                Err(message) => {
-                    let _ = send_ws_error(&mut socket, &request.id, "UNAUTHORIZED", &message).await;
+
+                let method = request.method.clone();
+                match handle_gateway_method(&state, &method, request.params).await {
+                    Ok(payload) => {
+                        apply_ws_subscription_state(
+                            &method,
+                            &payload,
+                            &mut session_events_subscribed,
+                            &mut session_message_subscriptions,
+                        );
+                        let _ = send_ws_ok(&mut sender, &request.id, payload).await;
+                    }
+                    Err(message) => {
+                        let _ = send_ws_error(&mut sender, &request.id, "UNAVAILABLE", &message).await;
+                    }
                 }
             }
-            continue;
-        }
-
-        if !connected {
-            let _ = send_ws_error(
-                &mut socket,
-                &request.id,
-                "UNAUTHORIZED",
-                "gateway connect is required before requests",
-            )
-            .await;
-            continue;
-        }
-
-        match handle_gateway_method(&state, &request.method, request.params).await {
-            Ok(payload) => {
-                let _ = send_ws_ok(&mut socket, &request.id, payload).await;
-            }
-            Err(message) => {
-                let _ = send_ws_error(&mut socket, &request.id, "UNAVAILABLE", &message).await;
+            event = gateway_events.recv(), if connected => {
+                let Ok(event) = event else {
+                    continue;
+                };
+                if !should_forward_ws_event(&event, session_events_subscribed, &session_message_subscriptions) {
+                    continue;
+                }
+                let event_type = event.get("type").and_then(Value::as_str).unwrap_or("event");
+                let payload = event.get("payload").cloned().unwrap_or(Value::Null);
+                if send_ws_event(&mut sender, event_type, payload).await.is_err() {
+                    break;
+                }
             }
         }
     }
 }
 
-async fn send_ws_ok(socket: &mut WebSocket, id: &str, payload: Value) -> Result<(), axum::Error> {
+async fn send_ws_ok<S>(socket: &mut S, id: &str, payload: Value) -> Result<(), axum::Error>
+where
+    S: Sink<Message, Error = axum::Error> + Unpin,
+{
     socket
         .send(Message::Text(
             json!({
@@ -371,12 +436,15 @@ async fn send_ws_ok(socket: &mut WebSocket, id: &str, payload: Value) -> Result<
         .await
 }
 
-async fn send_ws_error(
-    socket: &mut WebSocket,
+async fn send_ws_error<S>(
+    socket: &mut S,
     id: &str,
     code: &str,
     message: &str,
-) -> Result<(), axum::Error> {
+) -> Result<(), axum::Error>
+where
+    S: Sink<Message, Error = axum::Error> + Unpin,
+{
     socket
         .send(Message::Text(
             json!({
@@ -392,6 +460,67 @@ async fn send_ws_error(
             .into(),
         ))
         .await
+}
+
+async fn send_ws_event<S>(socket: &mut S, event: &str, payload: Value) -> Result<(), axum::Error>
+where
+    S: Sink<Message, Error = axum::Error> + Unpin,
+{
+    socket
+        .send(Message::Text(
+            json!({
+                "type": "event",
+                "event": event,
+                "payload": payload
+            })
+            .to_string()
+            .into(),
+        ))
+        .await
+}
+
+fn apply_ws_subscription_state(
+    method: &str,
+    payload: &Value,
+    session_events_subscribed: &mut bool,
+    session_message_subscriptions: &mut BTreeSet<String>,
+) {
+    match method {
+        "sessions.subscribe" => *session_events_subscribed = true,
+        "sessions.unsubscribe" => *session_events_subscribed = false,
+        "sessions.messages.subscribe" => {
+            if let Some(key) = payload.get("key").and_then(Value::as_str) {
+                session_message_subscriptions.insert(key.to_string());
+            }
+        }
+        "sessions.messages.unsubscribe" => {
+            if let Some(key) = payload.get("key").and_then(Value::as_str) {
+                session_message_subscriptions.remove(key);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn should_forward_ws_event(
+    event: &Value,
+    session_events_subscribed: bool,
+    session_message_subscriptions: &BTreeSet<String>,
+) -> bool {
+    match event
+        .get("type")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+    {
+        "session.message" => event
+            .get("payload")
+            .and_then(|payload| payload.get("sessionKey"))
+            .and_then(Value::as_str)
+            .map(|session_key| session_message_subscriptions.contains(session_key))
+            .unwrap_or(false),
+        "sessions.changed" => session_events_subscribed,
+        _ => true,
+    }
 }
 
 async fn runtime_status(State(state): State<GatewayState>) -> Json<Value> {
@@ -482,24 +611,24 @@ async fn handle_gateway_method(
         "config.patch" => config_patch(state, params),
         "config.schema" => config_schema(),
         "config.schema.lookup" => config_schema_lookup(params),
-        "secrets.reload" => Ok(json!({ "ok": true, "warningCount": 0 })),
+        "secrets.reload" => secrets_reload(state),
         "secrets.resolve" => secrets_resolve(state, params),
         "tools.catalog" => Ok(tools_catalog(params)),
         "tools.effective" => Ok(tools_effective(params)),
         "models.list" => Ok(models_list()),
         "agents.list" => Ok(agents_list(state)),
         "logs.tail" => Ok(logs_tail()),
-        "usage.status" => Ok(usage_status()),
-        "usage.cost" => Ok(usage_cost()),
+        "usage.status" => Ok(usage_status(state)),
+        "usage.cost" => usage_cost(state, params),
         "doctor.memory.status" => doctor_memory_status(state),
         "agentRuntime.summary" => agent_runtime_summary(state, params),
         "agentRuntime.list" => agent_runtime_list(state, params),
         "agentRuntime.get" => agent_runtime_get(state, params),
         "agentRuntime.cancel" => agent_runtime_cancel(state, params),
         "agent.identity.get" => Ok(agent_identity(state)),
-        "agent.inspect" => Ok(runtime_status_value(state)),
-        "agent.observations.list" => Ok(json!({ "observations": [] })),
-        "agent.wait" => Ok(json!({ "status": "completed", "runId": Value::Null })),
+        "agent.inspect" => agent_inspect(state, params),
+        "agent.observations.list" => agent_observations_list(state, params),
+        "agent.wait" => agent_wait(state, params),
         "agents.create" => agents_create(state, params),
         "agents.update" => agents_update(state, params),
         "agents.delete" => agents_delete(state, params),
@@ -510,23 +639,23 @@ async fn handle_gateway_method(
         "skills.bins" => Ok(skills_bins(state)),
         "skills.install" => skills_install(state, params),
         "skills.update" => skills_update(state, params),
-        "wizard.start" => Ok(wizard_start()),
-        "wizard.next" => Ok(wizard_done("done")),
-        "wizard.cancel" => Ok(wizard_done("cancelled")),
-        "wizard.status" => Ok(json!({ "status": "done" })),
+        "wizard.start" => wizard_start(state, params),
+        "wizard.next" => wizard_next(state, params),
+        "wizard.cancel" => wizard_cancel(state, params),
+        "wizard.status" => wizard_status(state, params),
         "plugins.list" => plugins_list(state),
         "plugins.enable" => plugins_set_enabled(state, params, true),
         "plugins.disable" => plugins_set_enabled(state, params, false),
         "plugins.install" => plugins_install(state, params),
         "plugins.update" => plugins_update(state, params),
         "plugins.uninstall" => plugins_uninstall(state, params),
-        "exec.approvals.get" => Ok(approvals_snapshot(state, "exec")),
-        "exec.approvals.set" => Ok(json!({ "ok": true, "kind": "exec" })),
+        "exec.approvals.get" => approvals_snapshot(state, "exec"),
+        "exec.approvals.set" => approvals_set(state, params, "exec"),
         "exec.approval.request" => approval_request(state, params, "exec.approval"),
-        "exec.approval.waitDecision" => approval_wait_decision(params),
+        "exec.approval.waitDecision" => approval_wait_decision(state, params),
         "exec.approval.resolve" => approval_resolve(state, params, "exec.approval"),
         "plugin.approval.request" => approval_request(state, params, "plugin.approval"),
-        "plugin.approval.waitDecision" => approval_wait_decision(params),
+        "plugin.approval.waitDecision" => approval_wait_decision(state, params),
         "plugin.approval.resolve" => approval_resolve(state, params, "plugin.approval"),
         "channels.status" => channels_status(state),
         "channels.setup.surface" => channels_setup_surface(state, params),
@@ -543,7 +672,7 @@ async fn handle_gateway_method(
         | "channels.login.start"
         | "channels.login.wait" => channel_action(state, method, params),
         "tts.status" => Ok(tts_status(state)),
-        "tts.providers" => Ok(tts_providers()),
+        "tts.providers" => Ok(tts_providers(state)),
         "tts.enable" => tts_set_enabled(state, true),
         "tts.disable" => tts_set_enabled(state, false),
         "tts.setProvider" => tts_set_provider(state, params),
@@ -558,46 +687,36 @@ async fn handle_gateway_method(
         "voicewake.get" => Ok(voicewake_get(state)),
         "voicewake.set" => voicewake_set(state, params),
         "update.run" => update_run(state, params),
-        "last-main-session-wake" | "system.mainSessionWake.last" => Ok(json!({
-            "ok": true,
-            "lastWake": Value::Null
-        })),
-        "gateway.identity.get" => Ok(json!({
-            "id": "rust-gateway",
-            "name": "CrawClaw Rust Gateway",
-            "implementation": "rust-native"
-        })),
-        "system-presence" => Ok(json!({ "presence": [] })),
-        "system-event" => Ok(json!({ "ok": true })),
+        "last-main-session-wake" | "system.mainSessionWake.last" => main_session_wake_last(state),
+        "gateway.identity.get" => gateway_identity_get(state),
+        "system-presence" => system_presence(state),
+        "system-event" => system_event(state, params),
         "send" => channel_send(state, params),
-        "device.pair.list" => Ok(json!({ "requests": [], "devices": [] })),
-        "device.pair.approve" | "device.pair.reject" | "device.pair.remove" => {
-            Ok(json!({ "ok": true }))
-        }
+        "device.pair.list" => device_pair_list(state),
+        "device.pair.approve" => device_pair_approve(state, params),
+        "device.pair.reject" => device_pair_reject(state, params),
+        "device.pair.remove" => device_pair_remove(state, params),
         "device.token.rotate" => device_token_rotate(state, params),
-        "device.token.revoke" => Ok(json!({ "ok": true })),
-        "esp32.status.get" => Ok(json!({ "ok": true, "devices": [], "pairing": [] })),
-        "esp32.pairing.start" => Ok(json!({
-            "ok": true,
-            "pairId": format!("rust-esp32-{}", now_millis()),
-            "expiresAtMs": now_millis() + 300000_u128
-        })),
-        "esp32.pairing.requests.list" => Ok(json!({ "requests": [] })),
-        "esp32.pairing.request.approve"
-        | "esp32.pairing.request.reject"
-        | "esp32.pairing.session.revoke"
-        | "esp32.devices.revoke" => Ok(json!({ "ok": true })),
-        "esp32.devices.list" => Ok(json!({ "devices": [] })),
+        "device.token.revoke" => device_token_revoke(state, params),
+        "esp32.status.get" => esp32_status_get(state),
+        "esp32.pairing.start" => esp32_pairing_start(state, params),
+        "esp32.pairing.requests.list" => esp32_pairing_requests_list(state),
+        "esp32.pairing.request.approve" => esp32_pairing_request_approve(state, params),
+        "esp32.pairing.request.reject" => esp32_pairing_request_reject(state, params),
+        "esp32.pairing.session.revoke" => esp32_pairing_session_revoke(state, params),
+        "esp32.devices.list" => esp32_devices_list(state),
         "esp32.devices.get" => esp32_device_get(state, params),
+        "esp32.devices.revoke" => esp32_devices_revoke(state, params),
         "esp32.devices.command.send" => esp32_device_command_send(state, params),
-        "workflow.list" | "workflow.match" => Ok(json!({ "count": 0, "workflows": [] })),
-        "workflow.runs" => Ok(json!({ "count": 0, "executions": [] })),
-        "workflow.get" | "workflow.n8n.get" => workflow_get(params),
+        "workflow.list" => workflow_list(state, params),
+        "workflow.match" => workflow_match(state, params),
+        "workflow.runs" => workflow_runs(state, params),
+        "workflow.get" | "workflow.n8n.get" => workflow_get(state, params),
         "workflow.enable" | "workflow.disable" | "workflow.archive" | "workflow.unarchive"
-        | "workflow.delete" | "workflow.deploy" => workflow_mutation(params),
-        "workflow.run" => workflow_run(params),
+        | "workflow.delete" | "workflow.deploy" => workflow_mutation(state, method, params),
+        "workflow.run" => workflow_run(state, params),
         "workflow.status" | "workflow.cancel" | "workflow.resume" => {
-            workflow_execution_action(params)
+            workflow_execution_action(state, method, params)
         }
         "workflow.agent.run" => workflow_agent_run(state, params),
         "chat.history" => chat_history(state, params),
@@ -606,7 +725,18 @@ async fn handle_gateway_method(
         "chat.send" => chat_send(state, params).await,
         "wake" | "cron.status" | "cron.list" | "cron.add" | "cron.update" | "cron.remove"
         | "cron.run" | "cron.runs" => {
+            let wake_text = if method == "wake" {
+                Some(
+                    string_param(&params, &["text", "message"])
+                        .unwrap_or_else(|| "cron wake".to_string()),
+                )
+            } else {
+                None
+            };
             let result = state.cron.handle_method(method, params).await?;
+            if let Some(text) = wake_text {
+                record_main_session_wake_event(state, &text, &result)?;
+            }
             emit(state, "cron", result.clone());
             Ok(result)
         }
@@ -737,11 +867,9 @@ async fn handle_gateway_method(
         "memory.experience.outbox.prune" | "memory_experience_outbox_prune" => {
             memory_runtime(state).experience_store().prune()
         }
-        "memory.promptJournal.summary" | "memory_prompt_journal_summary" => Ok(json!({
-            "status": "ok",
-            "implementation": "rust-native",
-            "summary": "Rust memory prompt journal is stored through runtime SQLite and structured stores."
-        })),
+        "memory.promptJournal.summary" | "memory_prompt_journal_summary" => {
+            memory_prompt_journal_summary(state, params)
+        }
         "memory.bootstrap" | "memory_bootstrap" => {
             let session_id = required_param(&params, &["sessionId"])?;
             let session_key = string_param(&params, &["sessionKey"]);
@@ -839,10 +967,10 @@ async fn handle_gateway_method(
             emit(state, "sessions.changed", json!({ "session": session }));
             Ok(json!({ "status": "yielded", "session": session }))
         }
-        "sessions.messages.subscribe"
-        | "sessions.messages.unsubscribe"
-        | "sessions.subscribe"
-        | "sessions.unsubscribe" => Ok(json!({ "status": "ok", "events": "sse" })),
+        "sessions.subscribe" => Ok(json!({ "subscribed": true })),
+        "sessions.unsubscribe" => Ok(json!({ "subscribed": false })),
+        "sessions.messages.subscribe" => sessions_messages_subscription(state, params, true),
+        "sessions.messages.unsubscribe" => sessions_messages_subscription(state, params, false),
         "subagents" | "subagents.list" => {
             let parent = string_param(&params, &["parentSessionKey", "parent", "spawnedBy"]);
             Ok(json!({
@@ -963,6 +1091,31 @@ fn config_schema_lookup(params: Value) -> Result<Value, String> {
     Ok(json!({ "path": path, "children": children }))
 }
 
+fn secrets_reload(state: &GatewayState) -> Result<Value, String> {
+    let config = read_config_value(&config_path(state))?;
+    let mut refs = Vec::<(String, Value)>::new();
+    collect_config_secret_refs(&config, "", &mut refs);
+    let mut diagnostics = Vec::new();
+    let mut inactive_ref_paths = Vec::new();
+    for (path, value) in &refs {
+        match resolve_secret_value(state, path, value) {
+            Ok(Some(_)) => {}
+            Ok(None) => inactive_ref_paths.push(path.clone()),
+            Err(message) => {
+                inactive_ref_paths.push(path.clone());
+                diagnostics.push(message);
+            }
+        }
+    }
+    Ok(json!({
+        "ok": true,
+        "warningCount": diagnostics.len(),
+        "checkedRefCount": refs.len(),
+        "diagnostics": diagnostics,
+        "inactiveRefPaths": inactive_ref_paths
+    }))
+}
+
 fn secrets_resolve(state: &GatewayState, params: Value) -> Result<Value, String> {
     let target_ids = params
         .get("targetIds")
@@ -1012,6 +1165,52 @@ fn secrets_resolve(state: &GatewayState, params: Value) -> Result<Value, String>
         "diagnostics": diagnostics,
         "inactiveRefPaths": inactive_ref_paths
     }))
+}
+
+fn collect_config_secret_refs(value: &Value, path: &str, refs: &mut Vec<(String, Value)>) {
+    match value {
+        Value::Object(object) => {
+            if is_secret_ref_object(object) {
+                refs.push((path.to_string(), value.clone()));
+                return;
+            }
+            for (key, child) in object {
+                let child_path = if path.is_empty() {
+                    key.to_string()
+                } else {
+                    format!("{path}.{key}")
+                };
+                collect_config_secret_refs(child, &child_path, refs);
+            }
+        }
+        Value::Array(items) => {
+            for (index, child) in items.iter().enumerate() {
+                let child_path = if path.is_empty() {
+                    format!("[{index}]")
+                } else {
+                    format!("{path}[{index}]")
+                };
+                collect_config_secret_refs(child, &child_path, refs);
+            }
+        }
+        _ => {}
+    }
+}
+
+fn is_secret_ref_object(object: &Map<String, Value>) -> bool {
+    let source = object
+        .get("source")
+        .or_else(|| object.get("type"))
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    matches!(source, "env" | "file" | "exec")
+        && object
+            .get("id")
+            .or_else(|| object.get("name"))
+            .or_else(|| object.get("path"))
+            .and_then(Value::as_str)
+            .map(|value| !value.trim().is_empty())
+            .unwrap_or(false)
 }
 
 fn resolve_secret_value(
@@ -1252,36 +1451,799 @@ fn logs_tail() -> Value {
     })
 }
 
-fn usage_status() -> Value {
+fn usage_status(state: &GatewayState) -> Value {
+    let config = read_config_value(&config_path(state)).unwrap_or_else(|_| json!({}));
     json!({
         "updatedAt": now_millis(),
-        "providers": []
+        "providers": usage_provider_snapshots(state, &config)
     })
 }
 
-fn usage_cost() -> Value {
-    json!({
-        "updatedAt": now_millis(),
-        "days": 0,
-        "daily": [],
-        "totals": zero_cost_totals()
+fn usage_provider_snapshots(state: &GatewayState, config: &Value) -> Vec<Value> {
+    [
+        (
+            "anthropic",
+            "Claude",
+            "anthropic",
+            &["anthropic", "claude"][..],
+            &[][..],
+        ),
+        (
+            "github-copilot",
+            "Copilot",
+            "github-copilot",
+            &["github-copilot"][..],
+            &["GITHUB_COPILOT_TOKEN", "GH_COPILOT_TOKEN"][..],
+        ),
+        (
+            "google-gemini-cli",
+            "Gemini",
+            "google",
+            &["google-gemini-cli", "gemini", "google-gemini", "google"][..],
+            &[][..],
+        ),
+        (
+            "minimax",
+            "MiniMax",
+            "minimax",
+            &["minimax"][..],
+            &["MINIMAX_CODE_PLAN_KEY"][..],
+        ),
+        (
+            "openai-codex",
+            "Codex",
+            "openai",
+            &["openai-codex", "openai"][..],
+            &["OPENAI_CODEX_TOKEN"][..],
+        ),
+        ("xiaomi", "Xiaomi", "xiaomi", &["xiaomi"][..], &[][..]),
+        ("zai", "z.ai", "zai", &["zai", "z-ai"][..], &[][..]),
+    ]
+    .into_iter()
+    .filter(|(provider, _, auth_provider, aliases, extra_env_keys)| {
+        usage_provider_configured(
+            state,
+            config,
+            provider,
+            auth_provider,
+            aliases,
+            extra_env_keys,
+        )
+    })
+    .map(|(provider, display_name, _, _, _)| {
+        json!({
+            "provider": provider,
+            "displayName": display_name,
+            "windows": [],
+            "plan": "configured"
+        })
+    })
+    .collect()
+}
+
+fn usage_provider_configured(
+    state: &GatewayState,
+    config: &Value,
+    provider: &str,
+    auth_provider: &str,
+    aliases: &[&str],
+    extra_env_keys: &[&'static str],
+) -> bool {
+    let env_keys = usage_provider_env_keys(auth_provider, extra_env_keys);
+    if env_keys.iter().any(|key| env_secret_present(key)) {
+        return true;
+    }
+    if aliases
+        .iter()
+        .any(|alias| config_provider_has_api_key(config, alias))
+    {
+        return true;
+    }
+    auth_profiles_has_provider(&state.state_dir.join("agents/main/agent"), aliases)
+        || auth_profiles_has_provider(&state.state_dir.join("agent"), aliases)
+        || config_provider_has_api_key(config, provider)
+}
+
+fn usage_provider_env_keys(
+    auth_provider: &str,
+    extra_env_keys: &[&'static str],
+) -> Vec<&'static str> {
+    let mut keys = crawclaw_providers::bundled_provider_auth_env_vars_for(auth_provider)
+        .map(|keys| keys.to_vec())
+        .unwrap_or_default();
+    for key in extra_env_keys {
+        if !keys.contains(key) {
+            keys.push(*key);
+        }
+    }
+    keys
+}
+
+fn env_secret_present(key: &str) -> bool {
+    env::var(key)
+        .ok()
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+}
+
+fn config_provider_has_api_key(config: &Value, provider: &str) -> bool {
+    let path = format!("models.providers.{provider}.apiKey");
+    get_json_path(config, &path)
+        .map(|value| match value {
+            Value::String(raw) => !raw.trim().is_empty(),
+            Value::Object(object) => !object.is_empty(),
+            _ => false,
+        })
+        .unwrap_or(false)
+}
+
+fn auth_profiles_has_provider(agent_dir: &std::path::Path, aliases: &[&str]) -> bool {
+    let path = agent_dir.join("auth-profiles.json");
+    let Ok(store) = read_config_value(&path) else {
+        return false;
+    };
+    let Some(profiles) = store.get("profiles").and_then(Value::as_object) else {
+        return false;
+    };
+    profiles.values().any(|profile| {
+        let Some(provider) = profile
+            .get("provider")
+            .and_then(Value::as_str)
+            .map(|value| value.trim().to_lowercase())
+        else {
+            return false;
+        };
+        aliases.iter().any(|alias| provider == *alias)
+            && ["key", "apiKey", "token", "accessToken", "refreshToken"]
+                .iter()
+                .any(|field| {
+                    profile
+                        .get(*field)
+                        .and_then(Value::as_str)
+                        .map(|value| !value.trim().is_empty())
+                        .unwrap_or(false)
+                })
     })
 }
 
-fn zero_cost_totals() -> Value {
+fn agent_observations_list(state: &GatewayState, params: Value) -> Result<Value, String> {
+    if !params.is_object() {
+        return Err("invalid agent.observations.list params".to_string());
+    }
+    if let Some(status) = string_param(&params, &["status"]) {
+        if !["running", "ok", "error", "timeout", "archived", "unknown"].contains(&status.as_str())
+        {
+            return Err("invalid agent.observations.list params: invalid status".to_string());
+        }
+    }
+    if let Some(source) = string_param(&params, &["source"]) {
+        if ![
+            "lifecycle",
+            "diagnostic",
+            "action",
+            "archive",
+            "trajectory",
+            "log",
+            "otel",
+        ]
+        .contains(&source.as_str())
+        {
+            return Err("invalid agent.observations.list params: invalid source".to_string());
+        }
+    }
+    for field in ["limit", "from", "to"] {
+        if params.get(field).is_some() && !params.get(field).and_then(Value::as_u64).is_some() {
+            return Err(format!(
+                "invalid agent.observations.list params: {field} must be a positive integer"
+            ));
+        }
+    }
+    let limit = params
+        .get("limit")
+        .and_then(Value::as_u64)
+        .map(|value| value.clamp(1, 200))
+        .unwrap_or(50);
+    let Some(db_path) = observation_runtime_store_path(state) else {
+        return Ok(empty_observation_list(limit));
+    };
+    let Ok(connection) = rusqlite::Connection::open(db_path) else {
+        return Ok(empty_observation_list(limit));
+    };
+    if !sqlite_table_exists(&connection, "gm_observation_runs") {
+        return Ok(empty_observation_list(limit));
+    }
+    let (items, next_cursor) = query_observation_runs(&connection, &params, limit as usize)?;
+    let mut response = json!({
+        "items": items,
+        "generatedAt": now_millis()
+    });
+    if let Some(next_cursor) = next_cursor {
+        response["nextCursor"] = Value::String(next_cursor);
+    }
+    Ok(response)
+}
+
+fn empty_observation_list(_limit: u64) -> Value {
     json!({
-        "input": 0,
-        "output": 0,
-        "cacheRead": 0,
-        "cacheWrite": 0,
-        "totalTokens": 0,
-        "totalCost": 0,
-        "inputCost": 0,
-        "outputCost": 0,
-        "cacheReadCost": 0,
-        "cacheWriteCost": 0,
-        "missingCostEntries": 0
+        "items": Vec::<Value>::new(),
+        "generatedAt": now_millis()
     })
+}
+
+fn observation_runtime_store_path(state: &GatewayState) -> Option<PathBuf> {
+    if let Some(path) = env::var("RUNTIME_DB_PATH")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+    {
+        return Some(expand_user_path(&path));
+    }
+    let config = read_config_value(&config_path(state)).ok()?;
+    let path = get_json_path(&config, "memory.runtimeStore.dbPath")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .unwrap_or("~/.crawclaw/memory-runtime.db");
+    Some(expand_user_path(path))
+}
+
+fn sqlite_table_exists(connection: &rusqlite::Connection, table: &str) -> bool {
+    connection
+        .query_row(
+            "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?1 LIMIT 1",
+            [table],
+            |_| Ok(()),
+        )
+        .is_ok()
+}
+
+fn query_observation_runs(
+    connection: &rusqlite::Connection,
+    params: &Value,
+    limit: usize,
+) -> Result<(Vec<Value>, Option<String>), String> {
+    let mut conditions = Vec::<String>::new();
+    let mut args = Vec::<rusqlite::types::Value>::new();
+    if let Some(query) = string_param(params, &["query"]) {
+        let like = format!("%{query}%");
+        conditions.push(
+            "(trace_id LIKE ? OR run_id LIKE ? OR task_id LIKE ? OR session_id LIKE ? OR session_key LIKE ? OR agent_id LIKE ?)"
+                .to_string(),
+        );
+        for _ in 0..6 {
+            args.push(rusqlite::types::Value::Text(like.clone()));
+        }
+    }
+    if let Some(status) = string_param(params, &["status"]) {
+        conditions.push("status = ?".to_string());
+        args.push(rusqlite::types::Value::Text(status));
+    }
+    if let Some(source) = string_param(params, &["source"]) {
+        conditions.push("sources_json LIKE ?".to_string());
+        args.push(rusqlite::types::Value::Text(format!("%\"{source}\"%")));
+    }
+    if let Some(from) = params.get("from").and_then(Value::as_u64) {
+        conditions.push("COALESCE(last_event_at, started_at, created_at, 0) >= ?".to_string());
+        args.push(rusqlite::types::Value::Integer(from as i64));
+    }
+    if let Some(to) = params.get("to").and_then(Value::as_u64) {
+        conditions.push("COALESCE(last_event_at, started_at, created_at, 0) <= ?".to_string());
+        args.push(rusqlite::types::Value::Integer(to as i64));
+    }
+    if let Some((last_event_at, trace_id)) =
+        string_param(params, &["cursor"]).and_then(|cursor| decode_observation_cursor(&cursor))
+    {
+        conditions.push(
+            "(COALESCE(last_event_at, started_at, created_at, 0) < ? OR (COALESCE(last_event_at, started_at, created_at, 0) = ? AND trace_id < ?))"
+                .to_string(),
+        );
+        args.push(rusqlite::types::Value::Integer(last_event_at as i64));
+        args.push(rusqlite::types::Value::Integer(last_event_at as i64));
+        args.push(rusqlite::types::Value::Text(trace_id));
+    }
+    let where_clause = if conditions.is_empty() {
+        String::new()
+    } else {
+        format!("WHERE {}", conditions.join(" AND "))
+    };
+    let sql = format!(
+        "SELECT * FROM gm_observation_runs {where_clause}
+         ORDER BY COALESCE(last_event_at, started_at, created_at, 0) DESC, trace_id DESC
+         LIMIT ?"
+    );
+    args.push(rusqlite::types::Value::Integer((limit + 1) as i64));
+    let mut statement = connection
+        .prepare(&sql)
+        .map_err(|error| format!("failed to query observation runs: {error}"))?;
+    let rows = statement
+        .query_map(
+            rusqlite::params_from_iter(args.iter()),
+            observation_run_summary_from_row,
+        )
+        .map_err(|error| format!("failed to query observation runs: {error}"))?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("failed to map observation runs: {error}"))?;
+    let mut items = rows;
+    let next_cursor = if items.len() > limit {
+        let cursor = items
+            .get(limit.saturating_sub(1))
+            .and_then(encode_observation_cursor);
+        items.truncate(limit);
+        cursor
+    } else {
+        None
+    };
+    Ok((items, next_cursor))
+}
+
+fn observation_run_summary_from_row(row: &rusqlite::Row<'_>) -> rusqlite::Result<Value> {
+    let trace_id: String = row.get("trace_id")?;
+    let run_id: Option<String> = row.get("run_id")?;
+    let task_id: Option<String> = row.get("task_id")?;
+    let session_id: Option<String> = row.get("session_id")?;
+    let session_key: Option<String> = row.get("session_key")?;
+    let agent_id: Option<String> = row.get("agent_id")?;
+    let status: String = row.get("status")?;
+    let started_at: Option<i64> = row.get("started_at")?;
+    let ended_at: Option<i64> = row.get("ended_at")?;
+    let last_event_at: Option<i64> = row.get("last_event_at")?;
+    let event_count: i64 = row.get("event_count")?;
+    let error_count: i64 = row.get("error_count")?;
+    let sources_json: String = row.get("sources_json")?;
+    let summary: String = row.get("summary")?;
+    let mut object = Map::new();
+    insert_optional_string(&mut object, "runId", run_id);
+    insert_optional_string(&mut object, "taskId", task_id);
+    object.insert("traceId".to_string(), Value::String(trace_id));
+    insert_optional_string(&mut object, "sessionId", session_id);
+    insert_optional_string(&mut object, "sessionKey", session_key);
+    insert_optional_string(&mut object, "agentId", agent_id);
+    object.insert("status".to_string(), Value::String(status));
+    insert_optional_i64(&mut object, "startedAt", started_at);
+    insert_optional_i64(&mut object, "endedAt", ended_at);
+    insert_optional_i64(&mut object, "lastEventAt", last_event_at);
+    object.insert("eventCount".to_string(), json!(event_count));
+    object.insert("errorCount".to_string(), json!(error_count));
+    object.insert(
+        "sources".to_string(),
+        parse_observation_sources(&sources_json),
+    );
+    object.insert("summary".to_string(), Value::String(summary));
+    Ok(Value::Object(object))
+}
+
+fn insert_optional_string(object: &mut Map<String, Value>, key: &str, value: Option<String>) {
+    if let Some(value) = value.filter(|value| !value.trim().is_empty()) {
+        object.insert(key.to_string(), Value::String(value));
+    }
+}
+
+fn insert_optional_i64(object: &mut Map<String, Value>, key: &str, value: Option<i64>) {
+    if let Some(value) = value {
+        object.insert(key.to_string(), json!(value));
+    }
+}
+
+fn parse_observation_sources(raw: &str) -> Value {
+    serde_json::from_str::<Value>(raw)
+        .ok()
+        .and_then(|value| {
+            let values = value
+                .as_array()?
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>();
+            Some(json!(values))
+        })
+        .unwrap_or_else(|| json!([]))
+}
+
+fn encode_observation_cursor(item: &Value) -> Option<String> {
+    let last_event_at = item.get("lastEventAt").and_then(Value::as_i64).unwrap_or(0);
+    let trace_id = item.get("traceId").and_then(Value::as_str)?;
+    Some(base64url_encode(
+        serde_json::to_string(&json!({
+            "lastEventAt": last_event_at,
+            "traceId": trace_id
+        }))
+        .ok()?
+        .as_bytes(),
+    ))
+}
+
+fn decode_observation_cursor(cursor: &str) -> Option<(u64, String)> {
+    let bytes = URL_SAFE_NO_PAD.decode(cursor).ok()?;
+    let value = serde_json::from_slice::<Value>(&bytes).ok()?;
+    let last_event_at = value.get("lastEventAt").and_then(Value::as_u64)?;
+    let trace_id = value
+        .get("traceId")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())?
+        .to_string();
+    Some((last_event_at, trace_id))
+}
+
+fn usage_cost(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let range = usage_date_range(&params)?;
+    let mut totals = UsageCostTotals::default();
+    let mut daily = BTreeMap::<String, UsageCostTotals>::new();
+    for path in usage_session_transcript_files(&state.runtime_root.join("sessions"))? {
+        scan_usage_transcript(&path, &range, &mut totals, &mut daily)?;
+    }
+    let daily = daily
+        .into_iter()
+        .map(|(date, bucket)| {
+            let mut value = bucket.to_value();
+            if let Some(object) = value.as_object_mut() {
+                object.insert("date".to_string(), Value::String(date));
+            }
+            value
+        })
+        .collect::<Vec<_>>();
+    Ok(json!({
+        "updatedAt": now_millis(),
+        "days": range.days,
+        "daily": daily,
+        "totals": totals.to_value()
+    }))
+}
+
+#[derive(Clone, Debug)]
+struct UsageDateRange {
+    start_ms: i64,
+    end_ms: i64,
+    days: u64,
+}
+
+#[derive(Clone, Debug, Default)]
+struct UsageTokenCounts {
+    input: u64,
+    output: u64,
+    cache_read: u64,
+    cache_write: u64,
+    total: u64,
+}
+
+#[derive(Clone, Debug, Default)]
+struct UsageCostTotals {
+    input: u64,
+    output: u64,
+    cache_read: u64,
+    cache_write: u64,
+    total_tokens: u64,
+    total_cost: f64,
+    input_cost: f64,
+    output_cost: f64,
+    cache_read_cost: f64,
+    cache_write_cost: f64,
+    missing_cost_entries: u64,
+}
+
+impl UsageCostTotals {
+    fn apply(&mut self, usage: &UsageTokenCounts, cost: Option<UsageCostBreakdown>) {
+        self.input = self.input.saturating_add(usage.input);
+        self.output = self.output.saturating_add(usage.output);
+        self.cache_read = self.cache_read.saturating_add(usage.cache_read);
+        self.cache_write = self.cache_write.saturating_add(usage.cache_write);
+        self.total_tokens = self.total_tokens.saturating_add(usage.total);
+        if let Some(cost) = cost {
+            self.total_cost += cost.total;
+            self.input_cost += cost.input;
+            self.output_cost += cost.output;
+            self.cache_read_cost += cost.cache_read;
+            self.cache_write_cost += cost.cache_write;
+        } else {
+            self.missing_cost_entries = self.missing_cost_entries.saturating_add(1);
+        }
+    }
+
+    fn to_value(&self) -> Value {
+        json!({
+            "input": self.input,
+            "output": self.output,
+            "cacheRead": self.cache_read,
+            "cacheWrite": self.cache_write,
+            "totalTokens": self.total_tokens,
+            "totalCost": self.total_cost,
+            "inputCost": self.input_cost,
+            "outputCost": self.output_cost,
+            "cacheReadCost": self.cache_read_cost,
+            "cacheWriteCost": self.cache_write_cost,
+            "missingCostEntries": self.missing_cost_entries
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct UsageCostBreakdown {
+    total: f64,
+    input: f64,
+    output: f64,
+    cache_read: f64,
+    cache_write: f64,
+}
+
+fn usage_date_range(params: &Value) -> Result<UsageDateRange, String> {
+    const DAY_MS: i64 = 24 * 60 * 60 * 1000;
+    let today = chrono::Utc::now()
+        .date_naive()
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| "failed to resolve current UTC day".to_string())?
+        .and_utc()
+        .timestamp_millis();
+    let today_end = today + DAY_MS - 1;
+    let start =
+        string_param(params, &["startDate"]).and_then(|date| usage_date_start_ms(&date).ok());
+    let end = string_param(params, &["endDate"]).and_then(|date| usage_date_start_ms(&date).ok());
+    if let (Some(start_ms), Some(end_ms)) = (start, end) {
+        let end_ms = end_ms + DAY_MS - 1;
+        let days = ((end_ms - start_ms).max(0) / DAY_MS + 1) as u64;
+        return Ok(UsageDateRange {
+            start_ms,
+            end_ms,
+            days,
+        });
+    }
+    let days = usage_days_param(params).unwrap_or(30).max(1);
+    let start_ms = today - (days.saturating_sub(1) as i64 * DAY_MS);
+    Ok(UsageDateRange {
+        start_ms,
+        end_ms: today_end,
+        days,
+    })
+}
+
+fn usage_date_start_ms(raw: &str) -> Result<i64, String> {
+    let timestamp_ms = chrono::NaiveDate::parse_from_str(raw, "%Y-%m-%d")
+        .map_err(|error| format!("invalid usage date {raw}: {error}"))?
+        .and_hms_opt(0, 0, 0)
+        .ok_or_else(|| format!("invalid usage date {raw}"))?
+        .and_utc()
+        .timestamp_millis();
+    Ok(timestamp_ms)
+}
+
+fn usage_days_param(params: &Value) -> Option<u64> {
+    let value = params.get("days")?;
+    value.as_u64().or_else(|| {
+        value
+            .as_str()
+            .and_then(|raw| raw.trim().parse::<u64>().ok())
+    })
+}
+
+fn usage_session_transcript_files(sessions_dir: &Path) -> Result<Vec<PathBuf>, String> {
+    let entries = match std::fs::read_dir(sessions_dir) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(error) => {
+            return Err(format!(
+                "failed to read usage sessions directory {}: {error}",
+                sessions_dir.display()
+            ));
+        }
+    };
+    let mut files = Vec::new();
+    for entry in entries {
+        let entry = entry.map_err(|error| {
+            format!(
+                "failed to read usage sessions directory {}: {error}",
+                sessions_dir.display()
+            )
+        })?;
+        let path = entry.path();
+        if !path.is_file() {
+            continue;
+        }
+        let name = path
+            .file_name()
+            .and_then(|name| name.to_str())
+            .unwrap_or("");
+        if is_usage_counted_session_transcript_name(name) {
+            files.push(path);
+        }
+    }
+    files.sort();
+    Ok(files)
+}
+
+fn is_usage_counted_session_transcript_name(name: &str) -> bool {
+    if name == "sessions.json" {
+        return false;
+    }
+    name.ends_with(".jsonl") || name.contains(".jsonl.reset.") || name.contains(".jsonl.deleted.")
+}
+
+fn scan_usage_transcript(
+    path: &Path,
+    range: &UsageDateRange,
+    totals: &mut UsageCostTotals,
+    daily: &mut BTreeMap<String, UsageCostTotals>,
+) -> Result<(), String> {
+    let raw = std::fs::read_to_string(path).map_err(|error| {
+        format!(
+            "failed to read usage transcript {}: {error}",
+            path.display()
+        )
+    })?;
+    for line in raw.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        let Ok(entry) = serde_json::from_str::<Value>(line) else {
+            continue;
+        };
+        let Some(parsed) = parse_usage_transcript_entry(&entry) else {
+            continue;
+        };
+        if parsed.timestamp_ms < range.start_ms || parsed.timestamp_ms > range.end_ms {
+            continue;
+        }
+        let Some(day) = usage_day_key(parsed.timestamp_ms) else {
+            continue;
+        };
+        totals.apply(&parsed.usage, parsed.cost);
+        daily
+            .entry(day)
+            .or_default()
+            .apply(&parsed.usage, parsed.cost);
+    }
+    Ok(())
+}
+
+struct ParsedUsageTranscriptEntry {
+    timestamp_ms: i64,
+    usage: UsageTokenCounts,
+    cost: Option<UsageCostBreakdown>,
+}
+
+fn parse_usage_transcript_entry(entry: &Value) -> Option<ParsedUsageTranscriptEntry> {
+    let message = entry.get("message")?.as_object()?;
+    let role = message.get("role")?.as_str()?;
+    if role != "user" && role != "assistant" {
+        return None;
+    }
+    let usage_raw = message.get("usage").or_else(|| entry.get("usage"))?;
+    let usage = normalize_usage_tokens(usage_raw)?;
+    let timestamp_ms = usage_timestamp_ms(entry)?;
+    let cost = usage_cost_breakdown(usage_raw);
+    Some(ParsedUsageTranscriptEntry {
+        timestamp_ms,
+        usage,
+        cost,
+    })
+}
+
+fn normalize_usage_tokens(usage: &Value) -> Option<UsageTokenCounts> {
+    let input = usage_token_number(
+        usage,
+        &[
+            "input",
+            "inputTokens",
+            "input_tokens",
+            "promptTokens",
+            "prompt_tokens",
+        ],
+    );
+    let output = usage_token_number(
+        usage,
+        &[
+            "output",
+            "outputTokens",
+            "output_tokens",
+            "completionTokens",
+            "completion_tokens",
+        ],
+    );
+    let cache_read = usage_token_number(
+        usage,
+        &[
+            "cacheRead",
+            "cache_read",
+            "cache_read_input_tokens",
+            "cached_tokens",
+        ],
+    )
+    .or_else(|| {
+        usage
+            .get("prompt_tokens_details")
+            .and_then(|details| usage_token_number(details, &["cached_tokens"]))
+    });
+    let cache_write = usage_token_number(
+        usage,
+        &["cacheWrite", "cache_write", "cache_creation_input_tokens"],
+    );
+    let total = usage_token_number(usage, &["total", "totalTokens", "total_tokens"]);
+    if input.is_none()
+        && output.is_none()
+        && cache_read.is_none()
+        && cache_write.is_none()
+        && total.is_none()
+    {
+        return None;
+    }
+    let input = input.unwrap_or(0);
+    let output = output.unwrap_or(0);
+    let cache_read = cache_read.unwrap_or(0);
+    let cache_write = cache_write.unwrap_or(0);
+    let total = total.unwrap_or_else(|| {
+        input
+            .saturating_add(output)
+            .saturating_add(cache_read)
+            .saturating_add(cache_write)
+    });
+    Some(UsageTokenCounts {
+        input,
+        output,
+        cache_read,
+        cache_write,
+        total,
+    })
+}
+
+fn usage_token_number(value: &Value, keys: &[&str]) -> Option<u64> {
+    keys.iter().find_map(|key| {
+        value.get(*key).and_then(|value| {
+            value
+                .as_u64()
+                .or_else(|| {
+                    value
+                        .as_i64()
+                        .filter(|value| *value >= 0)
+                        .map(|value| value as u64)
+                })
+                .or_else(|| {
+                    value
+                        .as_f64()
+                        .filter(|value| value.is_finite() && *value >= 0.0)
+                        .map(|value| value.floor() as u64)
+                })
+        })
+    })
+}
+
+fn usage_timestamp_ms(entry: &Value) -> Option<i64> {
+    if let Some(raw) = entry.get("timestamp").and_then(Value::as_str) {
+        if let Ok(timestamp) = chrono::DateTime::parse_from_rfc3339(raw) {
+            return Some(timestamp.timestamp_millis());
+        }
+    }
+    entry
+        .get("message")
+        .and_then(|message| message.get("timestamp"))
+        .and_then(json_millis_value)
+}
+
+fn json_millis_value(value: &Value) -> Option<i64> {
+    value.as_i64().or_else(|| {
+        value
+            .as_f64()
+            .filter(|value| value.is_finite())
+            .map(|value| value as i64)
+    })
+}
+
+fn usage_day_key(timestamp_ms: i64) -> Option<String> {
+    chrono::DateTime::<chrono::Utc>::from_timestamp_millis(timestamp_ms)
+        .map(|timestamp| timestamp.date_naive().format("%Y-%m-%d").to_string())
+}
+
+fn usage_cost_breakdown(usage: &Value) -> Option<UsageCostBreakdown> {
+    let cost = usage.get("cost")?;
+    let total = usage_cost_number(cost, "total")?;
+    if total < 0.0 {
+        return None;
+    }
+    Some(UsageCostBreakdown {
+        total,
+        input: usage_cost_number(cost, "input").unwrap_or(0.0),
+        output: usage_cost_number(cost, "output").unwrap_or(0.0),
+        cache_read: usage_cost_number(cost, "cacheRead").unwrap_or(0.0),
+        cache_write: usage_cost_number(cost, "cacheWrite").unwrap_or(0.0),
+    })
+}
+
+fn usage_cost_number(value: &Value, key: &str) -> Option<f64> {
+    value.get(key)?.as_f64().filter(|value| value.is_finite())
 }
 
 fn doctor_memory_status(state: &GatewayState) -> Result<Value, String> {
@@ -1398,6 +2360,69 @@ fn agent_runtime_get(state: &GatewayState, params: Value) -> Result<Value, Strin
             "openSession": true,
             "cancel": agent_runtime_can_cancel(&session.status)
         }
+    }))
+}
+
+fn agent_inspect(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let target = string_param(
+        &params,
+        &["runId", "taskId", "traceId", "sessionKey", "key"],
+    )
+    .ok_or_else(|| "agent.inspect requires runId, taskId, or traceId".to_string())?;
+    let Some(session) = resolve_agent_runtime_session(state, &target)? else {
+        return Err("agent inspection target not found".to_string());
+    };
+    let summary = crawclaw_runtime::DesktopSessionSummary {
+        key: session.key.clone(),
+        title: session.title.clone(),
+        pinned: session.pinned,
+        status: session.status.clone(),
+        message_count: session.message_count,
+        spawned_by: session.spawned_by.clone(),
+        yielded: session.yielded,
+    };
+    let run = agent_runtime_run_value(state, &summary)?;
+    Ok(json!({
+        "lookup": {
+            "runId": target,
+            "sessionKey": session.key
+        },
+        "runId": session.key,
+        "taskId": run.get("taskId").cloned().unwrap_or(Value::Null),
+        "sessionKey": run.get("sessionKey").cloned().unwrap_or(Value::Null),
+        "sessionId": run.get("taskId").cloned().unwrap_or(Value::Null),
+        "agentId": "main",
+        "status": session.status,
+        "run": run,
+        "warnings": [],
+        "refs": {
+            "transcriptRef": session.key
+        },
+        "implementation": "rust-native"
+    }))
+}
+
+fn agent_wait(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let run_id = required_param(&params, &["runId", "taskId", "sessionKey", "key"])?;
+    let Some(session) = resolve_agent_runtime_session(state, &run_id)? else {
+        return Ok(json!({
+            "runId": run_id,
+            "status": "timeout"
+        }));
+    };
+    let updated_at = session_updated_at_ms(state, &session.key) as u64;
+    let status_bucket = agent_runtime_status_bucket(&session.status);
+    Ok(json!({
+        "runId": session.key,
+        "status": match status_bucket {
+            "waiting" => "running",
+            "failed" => "failed",
+            "completed" => "completed",
+            _ => "running"
+        },
+        "startedAt": if matches!(status_bucket, "running" | "waiting") { json!(updated_at) } else { Value::Null },
+        "endedAt": if matches!(status_bucket, "completed" | "failed") { json!(updated_at) } else { Value::Null },
+        "error": Value::Null
     }))
 }
 
@@ -1888,65 +2913,438 @@ fn skills_install(state: &GatewayState, params: Value) -> Result<Value, String> 
     }))
 }
 
-fn wizard_start() -> Value {
-    json!({
-        "sessionId": format!("rust-wizard-{}", now_millis()),
-        "done": true,
-        "status": "done"
-    })
-}
-
-fn wizard_done(status: &str) -> Value {
-    json!({
-        "done": true,
-        "status": status
-    })
-}
-
-fn approvals_snapshot(state: &GatewayState, kind: &str) -> Value {
-    json!({
-        "path": state.state_dir.join(format!("{kind}-approvals.json")).to_string_lossy(),
-        "exists": false,
-        "hash": "rust-empty",
-        "file": {
-            "version": 1,
-            "defaults": {},
-            "agents": {}
-        }
-    })
-}
-
-fn approval_request(state: &GatewayState, params: Value, kind: &str) -> Result<Value, String> {
-    let id = string_param(&params, &["id"]).unwrap_or_else(|| format!("{kind}-{}", now_millis()));
-    let payload = json!({
-        "id": id,
-        "kind": kind,
-        "status": "pending",
-        "request": params
+fn wizard_start(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let mut sessions = state
+        .wizard_sessions
+        .lock()
+        .map_err(|_| "wizard session store lock poisoned".to_string())?;
+    if sessions.values().any(|session| session.status == "running") {
+        return Err("wizard already running".to_string());
+    }
+    let now = now_millis() as u64;
+    let session_id = format!("rust-wizard-{now}");
+    let step = json!({
+        "id": format!("{session_id}-intro"),
+        "type": "note",
+        "title": "CrawClaw Rust Gateway",
+        "message": wizard_intro_message(&params),
+        "executor": "client"
     });
-    emit(state, &format!("{kind}.requested"), payload.clone());
-    Ok(payload)
-}
-
-fn approval_wait_decision(params: Value) -> Result<Value, String> {
-    let id = required_param(&params, &["id"])?;
+    sessions.insert(
+        session_id.clone(),
+        WizardSessionRecord {
+            session_id: session_id.clone(),
+            status: "running".to_string(),
+            error: None,
+            step: Some(step.clone()),
+            created_at_ms: now,
+            updated_at_ms: now,
+        },
+    );
     Ok(json!({
-        "id": id,
-        "decision": "denied",
-        "reason": "No Rust Gateway approval decision is available."
+        "sessionId": session_id,
+        "done": false,
+        "status": "running",
+        "step": step
     }))
 }
 
-fn approval_resolve(state: &GatewayState, params: Value, kind: &str) -> Result<Value, String> {
-    let id = required_param(&params, &["id"])?;
-    let decision = required_param(&params, &["decision"])?;
-    let payload = json!({
+fn wizard_next(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let session_id = required_param(&params, &["sessionId"])?;
+    let mut sessions = state
+        .wizard_sessions
+        .lock()
+        .map_err(|_| "wizard session store lock poisoned".to_string())?;
+    let session = sessions
+        .get_mut(&session_id)
+        .ok_or_else(|| "wizard not found".to_string())?;
+    if session.status != "running" {
+        return Err("wizard not running".to_string());
+    }
+    if let Some(answer) = params.get("answer") {
+        let expected_step = session
+            .step
+            .as_ref()
+            .and_then(|step| step.get("id"))
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let answered_step = answer
+            .get("stepId")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        if expected_step.is_empty() || answered_step != expected_step {
+            return Err("wizard: no pending step".to_string());
+        }
+        session.status = "done".to_string();
+        session.step = None;
+        session.updated_at_ms = now_millis() as u64;
+        let response = wizard_terminal_response(session, true);
+        sessions.remove(&session_id);
+        return Ok(response);
+    }
+    Ok(wizard_next_response(session))
+}
+
+fn wizard_cancel(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let session_id = required_param(&params, &["sessionId"])?;
+    let mut sessions = state
+        .wizard_sessions
+        .lock()
+        .map_err(|_| "wizard session store lock poisoned".to_string())?;
+    let mut session = sessions
+        .remove(&session_id)
+        .ok_or_else(|| "wizard not found".to_string())?;
+    session.status = "cancelled".to_string();
+    session.error = Some("cancelled".to_string());
+    session.step = None;
+    session.updated_at_ms = now_millis() as u64;
+    Ok(wizard_status_response(&session))
+}
+
+fn wizard_status(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let session_id = required_param(&params, &["sessionId"])?;
+    let sessions = state
+        .wizard_sessions
+        .lock()
+        .map_err(|_| "wizard session store lock poisoned".to_string())?;
+    let session = sessions
+        .get(&session_id)
+        .ok_or_else(|| "wizard not found".to_string())?;
+    Ok(wizard_status_response(session))
+}
+
+fn wizard_intro_message(params: &Value) -> String {
+    let mode = string_param(params, &["mode"]).unwrap_or_else(|| "local".to_string());
+    format!("Rust Gateway setup session is active for {mode} mode.")
+}
+
+fn wizard_next_response(session: &WizardSessionRecord) -> Value {
+    if session.status != "running" || session.step.is_none() {
+        return wizard_terminal_response(session, true);
+    }
+    json!({
+        "sessionId": session.session_id,
+        "done": false,
+        "status": session.status,
+        "step": session.step,
+        "createdAtMs": session.created_at_ms,
+        "updatedAtMs": session.updated_at_ms
+    })
+}
+
+fn wizard_terminal_response(session: &WizardSessionRecord, done: bool) -> Value {
+    json!({
+        "sessionId": session.session_id,
+        "done": done,
+        "status": session.status,
+        "error": session.error,
+        "createdAtMs": session.created_at_ms,
+        "updatedAtMs": session.updated_at_ms
+    })
+}
+
+fn wizard_status_response(session: &WizardSessionRecord) -> Value {
+    json!({
+        "sessionId": session.session_id,
+        "status": session.status,
+        "error": session.error,
+        "createdAtMs": session.created_at_ms,
+        "updatedAtMs": session.updated_at_ms
+    })
+}
+
+fn approvals_snapshot(state: &GatewayState, kind: &str) -> Result<Value, String> {
+    let path = approvals_file_path(state, kind);
+    let Some((raw, file)) = read_approvals_file(&path)? else {
+        return Ok(json!({
+            "path": path.to_string_lossy(),
+            "exists": false,
+            "hash": stable_text_hash(""),
+            "file": default_approvals_file()
+        }));
+    };
+    Ok(json!({
+        "path": path.to_string_lossy(),
+        "exists": true,
+        "hash": stable_text_hash(&raw),
+        "file": redact_approvals_file(file)
+    }))
+}
+
+fn approvals_set(state: &GatewayState, params: Value, kind: &str) -> Result<Value, String> {
+    let path = approvals_file_path(state, kind);
+    let current = read_approvals_file(&path)?;
+    if let Some((raw, _)) = current.as_ref() {
+        let base_hash = string_param(&params, &["baseHash", "base_hash", "hash"])
+            .ok_or_else(|| format!("{kind} approvals base hash required; re-run get and retry"))?;
+        if base_hash != stable_text_hash(raw) {
+            return Err(format!(
+                "{kind} approvals changed since last load; re-run get and retry"
+            ));
+        }
+    }
+    let mut file = params
+        .get("file")
+        .cloned()
+        .filter(Value::is_object)
+        .ok_or_else(|| format!("{kind} approvals file is required"))?;
+    normalize_approvals_file(&mut file);
+    preserve_approval_socket_token(current.as_ref().map(|(_, file)| file), &mut file);
+    write_json_file(&path, &file)?;
+    approvals_snapshot(state, kind)
+}
+
+fn approvals_file_path(state: &GatewayState, kind: &str) -> PathBuf {
+    state.state_dir.join(format!("{kind}-approvals.json"))
+}
+
+fn read_approvals_file(path: &Path) -> Result<Option<(String, Value)>, String> {
+    let raw = match std::fs::read_to_string(path) {
+        Ok(raw) => raw,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(None),
+        Err(error) => {
+            return Err(format!(
+                "failed to read approvals file {}: {error}",
+                path.display()
+            ));
+        }
+    };
+    let file = serde_json::from_str(&raw)
+        .map_err(|error| format!("invalid approvals file {}: {error}", path.display()))?;
+    Ok(Some((raw, file)))
+}
+
+fn default_approvals_file() -> Value {
+    json!({
+        "version": 1,
+        "defaults": {},
+        "agents": {}
+    })
+}
+
+fn normalize_approvals_file(file: &mut Value) {
+    if file.get("version").is_none() {
+        file["version"] = json!(1);
+    }
+    if !file.get("defaults").map(Value::is_object).unwrap_or(false) {
+        file["defaults"] = json!({});
+    }
+    if !file.get("agents").map(Value::is_object).unwrap_or(false) {
+        file["agents"] = json!({});
+    }
+}
+
+fn preserve_approval_socket_token(current: Option<&Value>, next: &mut Value) {
+    let Some(current_token) = current
+        .and_then(|file| file.get("socket"))
+        .and_then(|socket| socket.get("token"))
+        .and_then(Value::as_str)
+        .filter(|value| !value.trim().is_empty())
+    else {
+        return;
+    };
+    let Some(next_socket) = next.get_mut("socket").and_then(Value::as_object_mut) else {
+        return;
+    };
+    if next_socket
+        .get("token")
+        .and_then(Value::as_str)
+        .map(|value| value.trim().is_empty())
+        .unwrap_or(true)
+    {
+        next_socket.insert(
+            "token".to_string(),
+            Value::String(current_token.to_string()),
+        );
+    }
+}
+
+fn redact_approvals_file(mut file: Value) -> Value {
+    if let Some(socket) = file.get_mut("socket").and_then(Value::as_object_mut) {
+        socket.remove("token");
+        if socket
+            .get("path")
+            .and_then(Value::as_str)
+            .map(|value| value.trim().is_empty())
+            .unwrap_or(true)
+        {
+            file.as_object_mut().map(|object| object.remove("socket"));
+        }
+    }
+    file
+}
+
+fn stable_text_hash(raw: &str) -> String {
+    format!("{:x}", Sha256::digest(raw.as_bytes()))
+}
+
+fn approval_request(state: &GatewayState, params: Value, kind: &str) -> Result<Value, String> {
+    validate_approval_request(&params, kind)?;
+    let id = approval_request_id(&params, kind);
+    let now = now_millis() as u64;
+    let timeout_ms = params
+        .get("timeoutMs")
+        .and_then(Value::as_u64)
+        .unwrap_or(1_800_000)
+        .max(1);
+    let created_at_ms = now;
+    let expires_at_ms = now.saturating_add(timeout_ms);
+    let record = ApprovalRecord {
+        id: id.clone(),
+        kind: kind.to_string(),
+        request: params.clone(),
+        created_at_ms,
+        expires_at_ms,
+        decision: None,
+        resolved_by: None,
+        resolved_at_ms: None,
+    };
+    {
+        let mut approvals = state
+            .approvals
+            .lock()
+            .map_err(|_| "approval store lock poisoned".to_string())?;
+        if approvals.contains_key(&id) {
+            return Err("approval id already pending".to_string());
+        }
+        approvals.insert(id.clone(), record);
+    }
+    let event = json!({
         "id": id,
-        "kind": kind,
-        "decision": decision
+        "request": params,
+        "createdAtMs": created_at_ms,
+        "expiresAtMs": expires_at_ms
     });
-    emit(state, &format!("{kind}.resolved"), payload.clone());
-    Ok(json!({ "ok": true, "result": payload }))
+    emit(state, &format!("{kind}.requested"), event);
+    if bool_param(&params, &["twoPhase"]).unwrap_or(false) {
+        return Ok(json!({
+            "status": "accepted",
+            "id": id,
+            "createdAtMs": created_at_ms,
+            "expiresAtMs": expires_at_ms
+        }));
+    }
+    Ok(json!({
+        "id": id,
+        "decision": Value::Null,
+        "createdAtMs": created_at_ms,
+        "expiresAtMs": expires_at_ms
+    }))
+}
+
+fn approval_wait_decision(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let id = required_param(&params, &["id"])?;
+    let approvals = state
+        .approvals
+        .lock()
+        .map_err(|_| "approval store lock poisoned".to_string())?;
+    let Some(record) = approvals.get(&id) else {
+        return Err("approval expired or not found".to_string());
+    };
+    Ok(approval_wait_response(record))
+}
+
+fn approval_resolve(state: &GatewayState, params: Value, kind: &str) -> Result<Value, String> {
+    let raw_id = required_param(&params, &["id"])?;
+    let decision = required_param(&params, &["decision"])?;
+    if !["allow-once", "allow-always", "deny"].contains(&decision.as_str()) {
+        return Err("invalid decision".to_string());
+    }
+    let resolved_by = string_param(&params, &["resolvedBy"]);
+    let now = now_millis() as u64;
+    let (id, event) = {
+        let mut approvals = state
+            .approvals
+            .lock()
+            .map_err(|_| "approval store lock poisoned".to_string())?;
+        let id = resolve_pending_approval_id(&approvals, &raw_id, kind)?;
+        let record = approvals
+            .get_mut(&id)
+            .ok_or_else(|| "unknown or expired approval id".to_string())?;
+        if record.decision.is_some() {
+            return Err("unknown or expired approval id".to_string());
+        }
+        record.decision = Some(decision.clone());
+        record.resolved_by = resolved_by.clone();
+        record.resolved_at_ms = Some(now);
+        let event = json!({
+            "id": id,
+            "decision": decision,
+            "resolvedBy": resolved_by,
+            "ts": now,
+            "request": record.request
+        });
+        (record.id.clone(), event)
+    };
+    emit(state, &format!("{kind}.resolved"), event);
+    Ok(json!({ "ok": true, "id": id }))
+}
+
+fn validate_approval_request(params: &Value, kind: &str) -> Result<(), String> {
+    if kind == "exec.approval" && string_param(params, &["command"]).is_none() {
+        return Err("command is required".to_string());
+    }
+    if kind == "plugin.approval" {
+        if string_param(params, &["title"]).is_none() {
+            return Err("title is required".to_string());
+        }
+        if string_param(params, &["description"]).is_none() {
+            return Err("description is required".to_string());
+        }
+    }
+    Ok(())
+}
+
+fn approval_request_id(params: &Value, kind: &str) -> String {
+    if kind == "plugin.approval" {
+        return format!("plugin:rust-{}", now_millis());
+    }
+    string_param(params, &["id"]).unwrap_or_else(|| format!("approval-{}", now_millis()))
+}
+
+fn resolve_pending_approval_id(
+    approvals: &BTreeMap<String, ApprovalRecord>,
+    raw_id: &str,
+    kind: &str,
+) -> Result<String, String> {
+    let raw_id = raw_id.trim();
+    if approvals
+        .get(raw_id)
+        .map(|record| record.kind == kind && record.decision.is_none())
+        .unwrap_or(false)
+    {
+        return Ok(raw_id.to_string());
+    }
+    let matches = approvals
+        .values()
+        .filter(|record| record.kind == kind && record.decision.is_none())
+        .filter(|record| record.id.starts_with(raw_id))
+        .map(|record| record.id.clone())
+        .collect::<Vec<_>>();
+    match matches.as_slice() {
+        [id] => Ok(id.clone()),
+        [] => Err("unknown or expired approval id".to_string()),
+        _ => Err(format!(
+            "ambiguous approval id prefix; matches: {}. Use the full id.",
+            matches.into_iter().take(3).collect::<Vec<_>>().join(", ")
+        )),
+    }
+}
+
+fn approval_wait_response(record: &ApprovalRecord) -> Value {
+    json!({
+        "id": record.id,
+        "decision": record
+            .decision
+            .as_ref()
+            .map(|decision| Value::String(decision.clone()))
+            .unwrap_or(Value::Null),
+        "createdAtMs": record.created_at_ms,
+        "expiresAtMs": record.expires_at_ms,
+        "resolvedBy": record.resolved_by,
+        "resolvedAtMs": record.resolved_at_ms,
+        "request": record.request
+    })
 }
 
 fn plugins_list(state: &GatewayState) -> Result<Value, String> {
@@ -3058,24 +4456,50 @@ fn channel_send(state: &GatewayState, params: Value) -> Result<Value, String> {
     Ok(entry)
 }
 
+const QWEN3_TTS_PROVIDER_ID: &str = "qwen3-tts";
+const QWEN3_TTS_PROVIDER_LABEL: &str = "Qwen3-TTS (local)";
+const QWEN3_TTS_MODELS: &[&str] = &[
+    "Qwen/Qwen3-TTS-12Hz-0.6B-CustomVoice",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice",
+    "Qwen/Qwen3-TTS-12Hz-0.6B-Base",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-Base",
+    "Qwen/Qwen3-TTS-12Hz-1.7B-VoiceDesign",
+];
+const QWEN3_TTS_VOICES: &[&str] = &[
+    "serena", "vivian", "uncle_fu", "ryan", "aiden", "ono_anna", "sohee", "eric", "dylan",
+];
+
 fn tts_status(state: &GatewayState) -> Value {
     let config = read_config_value(&config_path(state)).unwrap_or(Value::Object(Map::new()));
-    let enabled = get_json_path(&config, "messages.tts.enabled")
-        .and_then(Value::as_bool)
-        .unwrap_or(false);
-    let provider = get_json_path(&config, "messages.tts.provider")
-        .and_then(Value::as_str)
-        .unwrap_or("none");
+    let auto = tts_auto_mode(&config);
+    let enabled = auto != "off";
+    let provider = active_tts_provider(&config);
+    let provider_states = tts_provider_catalog(&config)
+        .into_iter()
+        .map(|provider| {
+            json!({
+                "id": provider["id"].clone(),
+                "label": provider["name"].clone(),
+                "configured": provider["configured"].clone()
+            })
+        })
+        .collect::<Vec<_>>();
     json!({
         "enabled": enabled,
+        "auto": auto,
         "provider": provider,
+        "fallbackProvider": Value::Null,
+        "fallbackProviders": [],
+        "providerStates": provider_states,
         "implementation": "rust-native"
     })
 }
 
-fn tts_providers() -> Value {
+fn tts_providers(state: &GatewayState) -> Value {
+    let config = read_config_value(&config_path(state)).unwrap_or(Value::Object(Map::new()));
     json!({
-        "providers": [],
+        "providers": tts_provider_catalog(&config),
+        "active": active_tts_provider(&config),
         "implementation": "rust-native"
     })
 }
@@ -3089,7 +4513,10 @@ fn tts_set_enabled(state: &GatewayState, enabled: bool) -> Result<Value, String>
 }
 
 fn tts_set_provider(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let provider = required_param(&params, &["provider", "id"])?;
+    let requested = required_param(&params, &["provider", "id"])?;
+    let provider = canonical_native_tts_provider(&requested)
+        .ok_or_else(|| "Invalid provider. Use a registered TTS provider id.".to_string())?
+        .to_string();
     let path = config_path(state);
     let mut config = read_config_value(&path)?;
     set_json_path(
@@ -3099,6 +4526,143 @@ fn tts_set_provider(state: &GatewayState, params: Value) -> Result<Value, String
     )?;
     write_config_value(&path, &config)?;
     Ok(json!({ "ok": true, "provider": provider, "config": config }))
+}
+
+fn canonical_native_tts_provider(provider: &str) -> Option<&'static str> {
+    match provider.trim().to_lowercase().as_str() {
+        "qwen3-tts" | "qwen3tts" => Some(QWEN3_TTS_PROVIDER_ID),
+        _ => None,
+    }
+}
+
+fn tts_auto_mode(config: &Value) -> &'static str {
+    let Some(tts) = get_json_path(config, "messages.tts").and_then(Value::as_object) else {
+        return "off";
+    };
+    match tts.get("auto").and_then(Value::as_str) {
+        Some("off") => "off",
+        Some("always") => "always",
+        Some("inbound") => "inbound",
+        Some("tagged") => "tagged",
+        _ if tts.get("enabled").and_then(Value::as_bool).unwrap_or(false) => "always",
+        _ => "off",
+    }
+}
+
+fn active_tts_provider(config: &Value) -> String {
+    if let Some(provider) = get_json_path(config, "messages.tts.provider")
+        .and_then(Value::as_str)
+        .and_then(canonical_native_tts_provider)
+    {
+        return provider.to_string();
+    }
+    tts_provider_catalog(config)
+        .into_iter()
+        .find(|provider| provider["configured"].as_bool().unwrap_or(false))
+        .and_then(|provider| provider["id"].as_str().map(ToOwned::to_owned))
+        .unwrap_or_default()
+}
+
+fn tts_provider_catalog(config: &Value) -> Vec<Value> {
+    vec![json!({
+        "id": QWEN3_TTS_PROVIDER_ID,
+        "name": QWEN3_TTS_PROVIDER_LABEL,
+        "configured": qwen3_tts_configured(config),
+        "models": QWEN3_TTS_MODELS,
+        "voices": QWEN3_TTS_VOICES,
+        "runtime": qwen3_tts_runtime(config),
+        "baseUrl": qwen3_tts_base_url(config),
+        "supported": qwen3_tts_supported(config)
+    })]
+}
+
+fn qwen3_tts_config(config: &Value) -> Option<&Map<String, Value>> {
+    get_json_path(config, "messages.tts.providers.qwen3-tts").and_then(Value::as_object)
+}
+
+fn qwen3_tts_enabled(config: &Value) -> bool {
+    qwen3_tts_config(config)
+        .and_then(|config| config.get("enabled"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+}
+
+fn qwen3_tts_configured(config: &Value) -> bool {
+    qwen3_tts_enabled(config) && qwen3_tts_supported(config)
+}
+
+fn qwen3_tts_runtime(config: &Value) -> &'static str {
+    qwen3_tts_runtime_defaults(qwen3_tts_raw_runtime(config)).0
+}
+
+fn qwen3_tts_base_url(config: &Value) -> String {
+    qwen3_tts_config(config)
+        .and_then(|config| config.get("baseUrl"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(|value| value.trim_end_matches('/').to_string())
+        .unwrap_or_else(|| {
+            qwen3_tts_runtime_defaults(qwen3_tts_raw_runtime(config))
+                .1
+                .to_string()
+        })
+}
+
+fn qwen3_tts_supported(config: &Value) -> bool {
+    let experimental = qwen3_tts_config(config)
+        .and_then(|config| config.get("experimental"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    qwen3_tts_runtime_defaults(qwen3_tts_raw_runtime(config)).2 || experimental
+}
+
+fn qwen3_tts_raw_runtime(config: &Value) -> &str {
+    qwen3_tts_config(config)
+        .and_then(|config| config.get("runtime"))
+        .and_then(Value::as_str)
+        .unwrap_or("auto")
+}
+
+fn qwen3_tts_runtime_defaults(raw_runtime: &str) -> (&'static str, &'static str, bool) {
+    match raw_runtime {
+        "mlx-audio" => (
+            "mlx-audio",
+            "http://127.0.0.1:8011",
+            cfg!(target_os = "macos") && cfg!(target_arch = "aarch64"),
+        ),
+        "vllm-omni" => (
+            "vllm-omni",
+            "http://127.0.0.1:8010",
+            cfg!(target_os = "linux"),
+        ),
+        "qwen3-tts.cpp" => ("qwen3-tts.cpp", "http://127.0.0.1:8012", false),
+        "qwen-tts" => (
+            "qwen-tts",
+            "http://127.0.0.1:8013",
+            qwen3_tts_platform_supported(),
+        ),
+        "cpu" => (
+            "cpu",
+            "http://127.0.0.1:8013",
+            qwen3_tts_platform_supported(),
+        ),
+        _ if cfg!(target_os = "macos") && cfg!(target_arch = "aarch64") => {
+            ("mlx-audio", "http://127.0.0.1:8011", true)
+        }
+        _ if cfg!(target_os = "linux") || cfg!(target_os = "windows") => {
+            ("qwen-tts", "http://127.0.0.1:8013", true)
+        }
+        _ => (
+            "qwen-tts",
+            "http://127.0.0.1:8013",
+            qwen3_tts_platform_supported(),
+        ),
+    }
+}
+
+fn qwen3_tts_platform_supported() -> bool {
+    cfg!(target_os = "macos") || cfg!(target_os = "linux") || cfg!(target_os = "windows")
 }
 
 fn tts_convert(state: &GatewayState, params: Value) -> Result<Value, String> {
@@ -3795,48 +5359,852 @@ fn remove_string_from_json_array(value: &mut Value, path: &str, needle: &str) ->
     }
 }
 
-fn workflow_mutation(params: Value) -> Result<Value, String> {
-    let workflow = required_param(&params, &["workflow"])?;
+fn workflow_store_root(state: &GatewayState, params: &Value) -> PathBuf {
+    if let Some(workspace_dir) = string_param(params, &["workspaceDir"]) {
+        return PathBuf::from(workspace_dir)
+            .join(".crawclaw")
+            .join("workflows");
+    }
+    if let Some(agent_dir) = string_param(params, &["agentDir"]) {
+        return PathBuf::from(agent_dir).join("workflows");
+    }
+    state.runtime_root.join("workflows")
+}
+
+fn workflow_agent_id(params: &Value) -> String {
+    string_param(params, &["agentId"]).unwrap_or_else(|| "main".to_string())
+}
+
+fn workflow_registry_path(root: &std::path::Path) -> PathBuf {
+    root.join("registry.json")
+}
+
+fn workflow_executions_path(root: &std::path::Path) -> PathBuf {
+    root.join("executions.json")
+}
+
+fn workflow_spec_path(root: &std::path::Path, workflow_id: &str) -> PathBuf {
+    root.join("specs").join(format!("{workflow_id}.json"))
+}
+
+fn read_workflow_registry(root: &std::path::Path) -> Result<Value, String> {
+    let mut registry = read_config_value(&workflow_registry_path(root))?;
+    if !registry.is_object() {
+        registry = json!({});
+    }
+    if !registry
+        .get("workflows")
+        .map(Value::is_array)
+        .unwrap_or(false)
+    {
+        registry["workflows"] = json!([]);
+    }
+    if registry.get("version").is_none() {
+        registry["version"] = json!(1);
+    }
+    Ok(registry)
+}
+
+fn write_workflow_registry(root: &std::path::Path, registry: &Value) -> Result<(), String> {
+    write_json_file(&workflow_registry_path(root), registry)
+}
+
+fn read_workflow_executions_store(root: &std::path::Path) -> Result<Value, String> {
+    let mut store = read_config_value(&workflow_executions_path(root))?;
+    if !store.is_object() {
+        store = json!({});
+    }
+    if !store
+        .get("executions")
+        .map(Value::is_array)
+        .unwrap_or(false)
+    {
+        store["executions"] = json!([]);
+    }
+    if store.get("version").is_none() {
+        store["version"] = json!(1);
+    }
+    Ok(store)
+}
+
+fn write_workflow_executions_store(root: &std::path::Path, store: &Value) -> Result<(), String> {
+    write_json_file(&workflow_executions_path(root), store)
+}
+
+fn workflow_entries(registry: &Value) -> Vec<Value> {
+    registry
+        .get("workflows")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default()
+}
+
+fn workflow_executions(store: &Value) -> Vec<Value> {
+    store
+        .get("executions")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default()
+}
+
+fn workflow_id(entry: &Value) -> String {
+    entry
+        .get("workflowId")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn workflow_name(entry: &Value) -> String {
+    entry
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| {
+            entry
+                .get("workflowId")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+        })
+        .to_string()
+}
+
+fn workflow_matches_ref(entry: &Value, workflow_ref: &str) -> bool {
+    let needle = workflow_ref.trim().to_lowercase();
+    if needle.is_empty() {
+        return false;
+    }
+    entry
+        .get("workflowId")
+        .and_then(Value::as_str)
+        .map(|value| value.trim().eq_ignore_ascii_case(&needle))
+        .unwrap_or(false)
+        || entry
+            .get("name")
+            .and_then(Value::as_str)
+            .map(|value| value.trim().eq_ignore_ascii_case(&needle))
+            .unwrap_or(false)
+}
+
+fn find_workflow_entry(entries: &[Value], workflow_ref: &str) -> Option<Value> {
+    entries
+        .iter()
+        .find(|entry| workflow_matches_ref(entry, workflow_ref))
+        .cloned()
+}
+
+fn workflow_invocation(entry: &Value) -> Value {
+    if entry.get("archivedAt").is_some() {
+        return json!({
+            "canRun": false,
+            "autoRunnable": false,
+            "recommendedAction": "skip",
+            "reason": "Workflow is archived."
+        });
+    }
+    if !entry
+        .get("enabled")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return json!({
+            "canRun": false,
+            "autoRunnable": false,
+            "recommendedAction": "skip",
+            "reason": "Workflow is disabled."
+        });
+    }
+    if entry
+        .get("deploymentState")
+        .and_then(Value::as_str)
+        .unwrap_or("draft")
+        != "deployed"
+    {
+        return json!({
+            "canRun": false,
+            "autoRunnable": false,
+            "recommendedAction": "skip",
+            "reason": "Workflow is still draft and must be deployed first."
+        });
+    }
+    if entry
+        .get("requiresApproval")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return json!({
+            "canRun": true,
+            "autoRunnable": false,
+            "recommendedAction": "ask",
+            "reason": "Workflow requires explicit operator approval before running."
+        });
+    }
+    if entry
+        .get("safeForAutoRun")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return json!({
+            "canRun": true,
+            "autoRunnable": true,
+            "recommendedAction": "run",
+            "reason": "Workflow is deployed, enabled, and marked safe for auto-run."
+        });
+    }
+    json!({
+        "canRun": true,
+        "autoRunnable": false,
+        "recommendedAction": "ask",
+        "reason": "Workflow is runnable, but not marked safe for autonomous execution."
+    })
+}
+
+fn workflow_require_n8n_base_url(state: &GatewayState) -> Result<String, String> {
+    let config = read_config_value(&config_path(state))?;
+    let base_url = workflow_n8n_config_string(&config, "baseUrl")
+        .or_else(|| env::var("CRAWCLAW_N8N_BASE_URL").ok())
+        .map(|value| value.trim().trim_end_matches('/').to_string())
+        .filter(|value| !value.is_empty());
+    let api_key = workflow_n8n_config_string(&config, "apiKey")
+        .or_else(|| env::var("CRAWCLAW_N8N_API_KEY").ok())
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    match (base_url, api_key) {
+        (Some(base_url), Some(_)) => Ok(base_url),
+        _ => Err(
+            "n8n is not configured. Set workflow.n8n.baseUrl/apiKey or CRAWCLAW_N8N_BASE_URL and CRAWCLAW_N8N_API_KEY."
+                .to_string(),
+        ),
+    }
+}
+
+fn workflow_n8n_config_string(config: &Value, key: &str) -> Option<String> {
+    get_json_path(config, &format!("workflow.n8n.{key}"))
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn workflow_with_invocation(entry: Value) -> Value {
+    let mut object = entry.as_object().cloned().unwrap_or_default();
+    object.insert(
+        "invocation".to_string(),
+        workflow_invocation(&Value::Object(object.clone())),
+    );
+    Value::Object(object)
+}
+
+fn workflow_execution_updated_at(execution: &Value) -> u64 {
+    execution
+        .get("updatedAt")
+        .or_else(|| execution.get("startedAt"))
+        .and_then(Value::as_u64)
+        .unwrap_or(0)
+}
+
+fn workflow_execution_view(execution: Value) -> Value {
+    let mut object = execution.as_object().cloned().unwrap_or_default();
+    if let Some(execution_id) = object.get("executionId").cloned() {
+        object.insert("localExecutionId".to_string(), execution_id);
+    }
+    if object.get("updatedAt").is_none() {
+        object.insert("updatedAt".to_string(), json!(now_millis() as u64));
+    }
+    let source = if object.get("n8nExecutionId").is_some() || object.get("remote").is_some() {
+        "local+n8n"
+    } else {
+        "local"
+    };
+    object.insert("source".to_string(), Value::String(source.to_string()));
+    Value::Object(object)
+}
+
+fn workflow_recent_execution_views(
+    executions: &[Value],
+    workflow_id: &str,
+    limit: usize,
+) -> Vec<Value> {
+    let mut matches = executions
+        .iter()
+        .filter(|execution| {
+            execution.get("workflowId").and_then(Value::as_str) == Some(workflow_id)
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    matches.sort_by(|left, right| {
+        workflow_execution_updated_at(right).cmp(&workflow_execution_updated_at(left))
+    });
+    matches
+        .into_iter()
+        .take(limit)
+        .map(workflow_execution_view)
+        .collect()
+}
+
+fn workflow_list(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let root = workflow_store_root(state, &params);
+    let registry = read_workflow_registry(&root)?;
+    let executions = workflow_executions(&read_workflow_executions_store(&root)?);
+    let include_disabled = params
+        .get("includeDisabled")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let limit = params
+        .get("limit")
+        .and_then(Value::as_u64)
+        .map(|value| value as usize);
+    let mut workflows = workflow_entries(&registry)
+        .into_iter()
+        .filter(|workflow| {
+            include_disabled
+                || workflow
+                    .get("enabled")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false)
+        })
+        .collect::<Vec<_>>();
+    workflows.sort_by(|left, right| {
+        right
+            .get("updatedAt")
+            .and_then(Value::as_u64)
+            .unwrap_or(0)
+            .cmp(&left.get("updatedAt").and_then(Value::as_u64).unwrap_or(0))
+    });
+    let count = workflows.len();
+    let workflows = workflows
+        .into_iter()
+        .take(limit.unwrap_or(usize::MAX))
+        .map(|workflow| {
+            let workflow_id = workflow_id(&workflow);
+            let run_count = executions
+                .iter()
+                .filter(|execution| {
+                    execution.get("workflowId").and_then(Value::as_str)
+                        == Some(workflow_id.as_str())
+                })
+                .count();
+            let recent_execution = workflow_recent_execution_views(&executions, &workflow_id, 1)
+                .into_iter()
+                .next()
+                .unwrap_or(Value::Null);
+            let mut object = workflow_with_invocation(workflow)
+                .as_object()
+                .cloned()
+                .unwrap_or_default();
+            object.insert("runCount".to_string(), json!(run_count));
+            object.insert("recentExecution".to_string(), recent_execution);
+            Value::Object(object)
+        })
+        .collect::<Vec<_>>();
     Ok(json!({
-        "agentId": string_param(&params, &["agentId"]),
-        "workflow": workflow_stub(&workflow)
+        "agentId": workflow_agent_id(&params),
+        "count": count,
+        "workflows": workflows
     }))
 }
 
-fn workflow_run(params: Value) -> Result<Value, String> {
-    let workflow = required_param(&params, &["workflow"])?;
-    Ok(json!({
-        "agentId": string_param(&params, &["agentId"]),
-        "workflow": workflow_stub(&workflow),
-        "execution": workflow_execution_stub(&workflow, "queued")
-    }))
-}
-
-fn workflow_get(params: Value) -> Result<Value, String> {
+fn workflow_get(state: &GatewayState, params: Value) -> Result<Value, String> {
     let workflow = required_param(&params, &["workflow", "workflowId"])?;
+    let root = workflow_store_root(state, &params);
+    let registry = read_workflow_registry(&root)?;
+    let entries = workflow_entries(&registry);
+    let Some(entry) = find_workflow_entry(&entries, &workflow) else {
+        return Err(format!("Workflow \"{workflow}\" not found."));
+    };
+    let workflow_id = workflow_id(&entry);
+    let spec_path = workflow_spec_path(&root, &workflow_id);
+    let spec = if spec_path.exists() {
+        read_config_value(&spec_path)?
+    } else {
+        Value::Null
+    };
+    let recent_limit = params
+        .get("recentRunsLimit")
+        .and_then(Value::as_u64)
+        .unwrap_or(5) as usize;
+    let executions = workflow_executions(&read_workflow_executions_store(&root)?);
     Ok(json!({
-        "agentId": string_param(&params, &["agentId"]),
-        "workflow": workflow_stub(&workflow),
-        "executions": [],
+        "agentId": workflow_agent_id(&params),
+        "workflow": workflow_with_invocation(entry),
+        "spec": spec,
+        "specPath": spec_path.to_string_lossy(),
+        "storeRoot": root.to_string_lossy(),
+        "recentExecutions": workflow_recent_execution_views(&executions, &workflow_id, recent_limit),
         "implementation": "rust-native"
     }))
 }
 
+fn workflow_match(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let query = required_param(&params, &["query"])?;
+    let root = workflow_store_root(state, &params);
+    let registry = read_workflow_registry(&root)?;
+    let enabled_only = params
+        .get("enabledOnly")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let deployed_only = params
+        .get("deployedOnly")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let auto_only = params
+        .get("autoRunnableOnly")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let limit = params.get("limit").and_then(Value::as_u64).unwrap_or(5) as usize;
+    let mut matches = workflow_entries(&registry)
+        .into_iter()
+        .filter_map(|entry| {
+            let score = workflow_match_score(&entry, &query);
+            if score == 0 {
+                return None;
+            }
+            let invocation = workflow_invocation(&entry);
+            if enabled_only
+                && !entry
+                    .get("enabled")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false)
+            {
+                return None;
+            }
+            if deployed_only
+                && entry
+                    .get("deploymentState")
+                    .and_then(Value::as_str)
+                    .unwrap_or("draft")
+                    != "deployed"
+            {
+                return None;
+            }
+            if auto_only
+                && !invocation
+                    .get("autoRunnable")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false)
+            {
+                return None;
+            }
+            let mut object = workflow_with_invocation(entry)
+                .as_object()
+                .cloned()
+                .unwrap_or_default();
+            object.insert("matchScore".to_string(), json!(score));
+            Some(Value::Object(object))
+        })
+        .collect::<Vec<_>>();
+    matches.sort_by(|left, right| {
+        right
+            .get("matchScore")
+            .and_then(Value::as_u64)
+            .unwrap_or(0)
+            .cmp(&left.get("matchScore").and_then(Value::as_u64).unwrap_or(0))
+            .then_with(|| {
+                right
+                    .get("updatedAt")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0)
+                    .cmp(&left.get("updatedAt").and_then(Value::as_u64).unwrap_or(0))
+            })
+    });
+    let count = matches.len();
+    Ok(json!({
+        "agentId": workflow_agent_id(&params),
+        "query": query,
+        "count": count,
+        "matches": matches.into_iter().take(limit).collect::<Vec<_>>()
+    }))
+}
+
+fn workflow_match_score(entry: &Value, query: &str) -> u64 {
+    let q = query.trim().to_lowercase();
+    if q.is_empty() {
+        return 0;
+    }
+    let name = workflow_name(entry).to_lowercase();
+    let description = entry
+        .get("description")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_lowercase();
+    let tags = string_array_param(entry, "tags")
+        .unwrap_or_default()
+        .into_iter()
+        .map(|tag| tag.to_lowercase())
+        .collect::<Vec<_>>();
+    let mut score = 0;
+    if name == q {
+        score += 100;
+    }
+    if name.contains(&q) {
+        score += 50;
+    }
+    if description.contains(&q) {
+        score += 20;
+    }
+    for tag in &tags {
+        if tag == &q {
+            score += 20;
+        } else if tag.contains(&q) {
+            score += 10;
+        }
+    }
+    for term in q.split_whitespace() {
+        if name.contains(term) {
+            score += 8;
+        }
+        if description.contains(term) {
+            score += 4;
+        }
+        if tags.iter().any(|tag| tag.contains(term)) {
+            score += 2;
+        }
+    }
+    score
+}
+
+fn workflow_runs(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let root = workflow_store_root(state, &params);
+    let registry = read_workflow_registry(&root)?;
+    let workflow_ref = string_param(&params, &["workflow"]);
+    let workflow_id = workflow_ref.as_ref().map(|workflow_ref| {
+        find_workflow_entry(&workflow_entries(&registry), workflow_ref)
+            .map(|entry| workflow_id(&entry))
+            .unwrap_or_else(|| workflow_ref.to_string())
+    });
+    let limit = params.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize;
+    let mut executions = workflow_executions(&read_workflow_executions_store(&root)?)
+        .into_iter()
+        .filter(|execution| {
+            workflow_id
+                .as_ref()
+                .map(|workflow_id| {
+                    execution.get("workflowId").and_then(Value::as_str)
+                        == Some(workflow_id.as_str())
+                })
+                .unwrap_or(true)
+        })
+        .collect::<Vec<_>>();
+    executions.sort_by(|left, right| {
+        workflow_execution_updated_at(right).cmp(&workflow_execution_updated_at(left))
+    });
+    let count = executions.len();
+    Ok(json!({
+        "agentId": workflow_agent_id(&params),
+        "count": count,
+        "executions": executions
+            .into_iter()
+            .take(limit)
+            .map(workflow_execution_view)
+            .collect::<Vec<_>>()
+    }))
+}
+
+fn workflow_mutation(state: &GatewayState, method: &str, params: Value) -> Result<Value, String> {
+    let workflow = required_param(&params, &["workflow"])?;
+    let root = workflow_store_root(state, &params);
+    let mut registry = read_workflow_registry(&root)?;
+    let Some(index) = registry
+        .get("workflows")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "invalid workflow registry".to_string())?
+        .iter()
+        .position(|entry| workflow_matches_ref(entry, &workflow))
+    else {
+        return Err(format!("Workflow \"{workflow}\" not found."));
+    };
+
+    let now = now_millis() as u64;
+    if method == "workflow.delete" {
+        let removed = registry
+            .get_mut("workflows")
+            .and_then(Value::as_array_mut)
+            .ok_or_else(|| "invalid workflow registry".to_string())?
+            .remove(index);
+        let workflow_id = workflow_id(&removed);
+        registry["updatedAt"] = json!(now);
+        write_workflow_registry(&root, &registry)?;
+        let mut execution_store = read_workflow_executions_store(&root)?;
+        let mut removed_executions = 0;
+        if let Some(executions) = execution_store
+            .get_mut("executions")
+            .and_then(Value::as_array_mut)
+        {
+            let before = executions.len();
+            executions.retain(|execution| {
+                execution.get("workflowId").and_then(Value::as_str) != Some(workflow_id.as_str())
+            });
+            removed_executions = before.saturating_sub(executions.len());
+        }
+        if removed_executions > 0 {
+            execution_store["updatedAt"] = json!(now);
+            write_workflow_executions_store(&root, &execution_store)?;
+        }
+        return Ok(json!({
+            "agentId": workflow_agent_id(&params),
+            "deleted": true,
+            "workflowId": workflow_id,
+            "removedExecutions": removed_executions
+        }));
+    }
+
+    let workflow = {
+        let workflows = registry
+            .get_mut("workflows")
+            .and_then(Value::as_array_mut)
+            .ok_or_else(|| "invalid workflow registry".to_string())?;
+        let entry = workflows
+            .get_mut(index)
+            .ok_or_else(|| "workflow entry disappeared".to_string())?;
+        match method {
+            "workflow.enable" => {
+                entry["enabled"] = json!(true);
+            }
+            "workflow.disable" => {
+                entry["enabled"] = json!(false);
+            }
+            "workflow.archive" => {
+                entry["enabled"] = json!(false);
+                entry["archivedAt"] = json!(now);
+            }
+            "workflow.unarchive" => {
+                if let Some(object) = entry.as_object_mut() {
+                    object.remove("archivedAt");
+                }
+            }
+            "workflow.deploy" => {
+                let _ = workflow_require_n8n_base_url(state)?;
+                entry["deploymentState"] = json!("deployed");
+                let next_version = entry
+                    .get("deploymentVersion")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0)
+                    + 1;
+                entry["deploymentVersion"] = json!(next_version);
+                let n8n_id = string_param(&params, &["n8nWorkflowId", "remoteWorkflowId"])
+                    .or_else(|| {
+                        entry
+                            .get("n8nWorkflowId")
+                            .and_then(Value::as_str)
+                            .map(ToOwned::to_owned)
+                    })
+                    .unwrap_or_else(|| format!("rust-{}", workflow_id(entry)));
+                entry["n8nWorkflowId"] = Value::String(n8n_id);
+            }
+            _ => {}
+        }
+        entry["updatedAt"] = json!(now);
+        entry.clone()
+    };
+    registry["updatedAt"] = json!(now);
+    write_workflow_registry(&root, &registry)?;
+    Ok(json!({
+        "agentId": workflow_agent_id(&params),
+        "workflow": workflow_with_invocation(workflow)
+    }))
+}
+
+fn workflow_run(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let workflow = required_param(&params, &["workflow"])?;
+    let n8n_base_url = workflow_require_n8n_base_url(state)?;
+    let root = workflow_store_root(state, &params);
+    let mut registry = read_workflow_registry(&root)?;
+    let Some(entry) = find_workflow_entry(&workflow_entries(&registry), &workflow) else {
+        return Err(format!("Workflow \"{workflow}\" not found."));
+    };
+    workflow_ensure_runnable(&root, &entry, &workflow, &params)?;
+    let workflow_id = workflow_id(&entry);
+    let workflow_name = workflow_name(&entry);
+    let n8n_workflow_id = entry
+        .get("n8nWorkflowId")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let now = now_millis() as u64;
+    let execution_id = format!("rust-workflow-{now}");
+    let execution = json!({
+        "executionId": execution_id,
+        "workflowId": workflow_id,
+        "workflowName": workflow_name,
+        "n8nWorkflowId": n8n_workflow_id,
+        "n8nBaseUrl": n8n_base_url,
+        "status": "running",
+        "currentExecutor": "n8n",
+        "startedAt": now,
+        "updatedAt": now,
+        "inputs": params.get("inputs").cloned().unwrap_or(Value::Null),
+        "originSessionKey": string_param(&params, &["sessionKey", "originSessionKey"]),
+        "originAgentId": workflow_agent_id(&params)
+    });
+    let mut execution_store = read_workflow_executions_store(&root)?;
+    execution_store["updatedAt"] = json!(now);
+    execution_store
+        .get_mut("executions")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "invalid workflow execution store".to_string())?
+        .push(execution.clone());
+    write_workflow_executions_store(&root, &execution_store)?;
+
+    if let Some(workflows) = registry.get_mut("workflows").and_then(Value::as_array_mut) {
+        if let Some(workflow_entry) = workflows
+            .iter_mut()
+            .find(|entry| workflow_matches_ref(entry, &workflow_id))
+        {
+            workflow_entry["lastRunAt"] = json!(now);
+            workflow_entry["updatedAt"] = json!(now);
+            registry["updatedAt"] = json!(now);
+            write_workflow_registry(&root, &registry)?;
+        }
+    }
+
+    let execution_view = workflow_execution_view(execution.clone());
+    let result = json!({
+        "agentId": workflow_agent_id(&params),
+        "workflow": workflow_with_invocation(entry),
+        "execution": execution_view,
+        "localExecution": execution
+    });
+    emit(state, "workflow.run", result.clone());
+    Ok(result)
+}
+
+fn workflow_ensure_runnable(
+    root: &std::path::Path,
+    entry: &Value,
+    workflow_ref: &str,
+    params: &Value,
+) -> Result<(), String> {
+    if entry.get("archivedAt").is_some() {
+        return Err(format!(
+            "Workflow \"{workflow_ref}\" is archived and cannot run."
+        ));
+    }
+    if !entry
+        .get("enabled")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return Err(format!(
+            "Workflow \"{workflow_ref}\" is disabled and cannot run."
+        ));
+    }
+    if entry
+        .get("deploymentState")
+        .and_then(Value::as_str)
+        .unwrap_or("draft")
+        != "deployed"
+    {
+        return Err(format!(
+            "Workflow \"{workflow_ref}\" is not currently deployed. Run workflow.deploy or workflow.republish first."
+        ));
+    }
+    if entry
+        .get("n8nWorkflowId")
+        .and_then(Value::as_str)
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false)
+        == false
+    {
+        return Err(format!(
+            "Workflow \"{workflow_ref}\" is missing its n8n workflow id. Run workflow.republish before running it."
+        ));
+    }
+    let workflow_id = workflow_id(entry);
+    let spec_path = workflow_spec_path(root, &workflow_id);
+    if !spec_path.exists() {
+        return Err(format!(
+            "Workflow \"{workflow_ref}\" is missing its workflow spec and cannot run."
+        ));
+    }
+    let spec = read_json_file(&spec_path)?;
+    if !spec.is_object()
+        || spec
+            .as_object()
+            .map(|object| object.is_empty())
+            .unwrap_or(true)
+    {
+        return Err(format!(
+            "Workflow \"{workflow_ref}\" is missing its workflow spec and cannot run."
+        ));
+    }
+    if entry
+        .get("requiresApproval")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        && params.get("approved").and_then(Value::as_bool) != Some(true)
+    {
+        return Err(format!(
+            "Workflow \"{workflow_ref}\" requires explicit approval before running."
+        ));
+    }
+    let invocation = workflow_invocation(entry);
+    if !invocation
+        .get("canRun")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        let reason = invocation
+            .get("reason")
+            .and_then(Value::as_str)
+            .unwrap_or("not runnable");
+        return Err(format!("Workflow \"{workflow_ref}\" cannot run: {reason}."));
+    }
+    Ok(())
+}
+
 fn workflow_agent_run(state: &GatewayState, params: Value) -> Result<Value, String> {
     let workflow = required_param(&params, &["workflow", "workflowId"])?;
+    let execution_id = required_param(&params, &["executionId"])?;
+    let step_id = required_param(&params, &["stepId"])?;
     let goal = required_param(&params, &["goal", "message", "task"])?;
+    let root = workflow_store_root(state, &params);
+    let registry = read_workflow_registry(&root)?;
+    let entry = find_workflow_entry(&workflow_entries(&registry), &workflow)
+        .ok_or_else(|| format!("workflow not found: {workflow}"))?;
+
+    let mut store = read_workflow_executions_store(&root)?;
+    let execution_index = store
+        .get("executions")
+        .and_then(Value::as_array)
+        .and_then(|executions| {
+            executions
+                .iter()
+                .position(|execution| workflow_execution_matches_ref(execution, &execution_id))
+        })
+        .ok_or_else(|| format!("workflow execution not found: {execution_id}"))?;
+
     let parent = string_param(&params, &["parentSessionKey", "sessionKey", "key"])
         .unwrap_or_else(|| "main".to_string());
-    let label = format!("Workflow: {workflow}");
+    let label = format!("Workflow: {} / {step_id}", workflow_name(&entry));
     let session = state
         .session_store
         .spawn_session(Some(&parent), Some(&label), &goal)
         .map_err(|error| error.to_string())?;
-    let execution = workflow_execution_stub(&workflow, "queued");
+    let session_key = session.key.clone();
+    let now = now_millis() as u64;
+    let execution = {
+        let executions = store
+            .get_mut("executions")
+            .and_then(Value::as_array_mut)
+            .ok_or_else(|| "invalid workflow execution store".to_string())?;
+        let execution = executions
+            .get_mut(execution_index)
+            .ok_or_else(|| "workflow execution disappeared".to_string())?;
+        workflow_update_agent_step(execution, &step_id, &goal, &session_key, now)?;
+        workflow_execution_view(execution.clone())
+    };
+    store["updatedAt"] = json!(now);
+    write_workflow_executions_store(&root, &store)?;
+
+    let result = json!({
+        "status": "running",
+        "summary": format!("Workflow step \"{step_id}\" is running in Rust Gateway session {session_key}."),
+        "sessionKey": session_key
+    });
     let payload = json!({
         "ok": true,
-        "status": "queued",
-        "workflow": workflow_stub(&workflow),
+        "status": "running",
+        "result": result,
+        "workflow": workflow_with_invocation(entry),
         "execution": execution,
         "session": session,
         "implementation": "rust-native"
@@ -3845,10 +6213,151 @@ fn workflow_agent_run(state: &GatewayState, params: Value) -> Result<Value, Stri
     Ok(payload)
 }
 
-fn workflow_execution_action(params: Value) -> Result<Value, String> {
+fn workflow_execution_matches_ref(execution: &Value, execution_ref: &str) -> bool {
+    [
+        execution.get("executionId"),
+        execution.get("localExecutionId"),
+        execution.get("n8nExecutionId"),
+        execution.get("remoteExecutionId"),
+        execution
+            .get("remote")
+            .and_then(|remote| remote.get("executionId")),
+    ]
+    .into_iter()
+    .flatten()
+    .any(|value| value.as_str() == Some(execution_ref))
+}
+
+fn workflow_update_agent_step(
+    execution: &mut Value,
+    step_id: &str,
+    goal: &str,
+    session_key: &str,
+    now: u64,
+) -> Result<(), String> {
+    let execution_object = execution
+        .as_object_mut()
+        .ok_or_else(|| "invalid workflow execution record".to_string())?;
+    execution_object.insert("status".to_string(), Value::String("running".to_string()));
+    execution_object.insert(
+        "currentStepId".to_string(),
+        Value::String(step_id.to_string()),
+    );
+    execution_object.insert(
+        "currentExecutor".to_string(),
+        Value::String("crawclaw_agent".to_string()),
+    );
+    execution_object.insert("updatedAt".to_string(), json!(now));
+    execution_object.remove("endedAt");
+    execution_object.remove("finishedAt");
+    if !execution_object
+        .get("steps")
+        .map(Value::is_array)
+        .unwrap_or(false)
+    {
+        execution_object.insert("steps".to_string(), Value::Array(Vec::new()));
+    }
+    let steps = execution_object
+        .get_mut("steps")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "invalid workflow execution steps".to_string())?;
+    let step_index = steps
+        .iter()
+        .position(|step| step.get("stepId").and_then(Value::as_str) == Some(step_id));
+    let step = if let Some(index) = step_index {
+        steps
+            .get_mut(index)
+            .ok_or_else(|| "workflow step disappeared".to_string())?
+    } else {
+        steps.push(json!({ "stepId": step_id, "title": goal }));
+        steps
+            .last_mut()
+            .ok_or_else(|| "workflow step was not created".to_string())?
+    };
+    let step_object = step
+        .as_object_mut()
+        .ok_or_else(|| "invalid workflow execution step".to_string())?;
+    if step_object.get("title").is_none() {
+        step_object.insert("title".to_string(), Value::String(goal.to_string()));
+    }
+    if step_object.get("startedAt").is_none() {
+        step_object.insert("startedAt".to_string(), json!(now));
+    }
+    step_object.insert("status".to_string(), Value::String("running".to_string()));
+    step_object.insert(
+        "executor".to_string(),
+        Value::String("crawclaw_agent".to_string()),
+    );
+    step_object.insert(
+        "sessionKey".to_string(),
+        Value::String(session_key.to_string()),
+    );
+    step_object.insert("runId".to_string(), Value::String(session_key.to_string()));
+    step_object.insert("updatedAt".to_string(), json!(now));
+    Ok(())
+}
+
+fn workflow_execution_action(
+    state: &GatewayState,
+    method: &str,
+    params: Value,
+) -> Result<Value, String> {
     let execution_id = required_param(&params, &["executionId"])?;
+    let n8n_base_url = workflow_require_n8n_base_url(state)?;
+    let root = workflow_store_root(state, &params);
+    let mut store = read_workflow_executions_store(&root)?;
+    let now = now_millis() as u64;
+    let mut found = Value::Null;
+    let mut changed = false;
+
+    if let Some(executions) = store.get_mut("executions").and_then(Value::as_array_mut) {
+        if let Some(execution) = executions.iter_mut().find(|execution| {
+            execution.get("executionId").and_then(Value::as_str) == Some(execution_id.as_str())
+                || execution.get("n8nExecutionId").and_then(Value::as_str)
+                    == Some(execution_id.as_str())
+        }) {
+            match method {
+                "workflow.cancel" => {
+                    execution["status"] = json!("cancelled");
+                    execution["endedAt"] = json!(now);
+                    execution["updatedAt"] = json!(now);
+                    changed = true;
+                }
+                "workflow.resume" => {
+                    execution["status"] = json!("running");
+                    execution["updatedAt"] = json!(now);
+                    changed = true;
+                }
+                _ => {}
+            }
+            found = workflow_execution_view(execution.clone());
+            if let Some(object) = found.as_object_mut() {
+                object.insert(
+                    "n8nBaseUrl".to_string(),
+                    Value::String(n8n_base_url.clone()),
+                );
+            }
+        }
+    }
+
+    if changed {
+        store["updatedAt"] = json!(now);
+        write_workflow_executions_store(&root, &store)?;
+    }
+
+    if !found.is_null() {
+        let mut result = json!({
+            "agentId": workflow_agent_id(&params),
+            "execution": found
+        });
+        if method == "workflow.resume" {
+            result["resumeAccepted"] = json!(true);
+        }
+        return Ok(result);
+    }
+
     Ok(json!({
-        "agentId": string_param(&params, &["agentId"]),
+        "agentId": workflow_agent_id(&params),
         "execution": {
             "executionId": execution_id,
             "status": "not_found",
@@ -3858,29 +6367,312 @@ fn workflow_execution_action(params: Value) -> Result<Value, String> {
     }))
 }
 
-fn workflow_stub(workflow: &str) -> Value {
-    json!({
-        "workflowId": workflow,
-        "name": workflow,
-        "enabled": false,
-        "archived": false,
-        "deployed": false
-    })
+const DEVICE_PENDING_TTL_MS: u64 = 5 * 60 * 1000;
+
+fn device_pairing_pending_path(state: &GatewayState) -> PathBuf {
+    state.state_dir.join("devices").join("pending.json")
 }
 
-fn workflow_execution_stub(workflow: &str, status: &str) -> Value {
-    json!({
-        "executionId": format!("rust-workflow-{}", now_millis()),
-        "workflowId": workflow,
-        "status": status,
-        "startedAt": Value::Null,
-        "finishedAt": Value::Null
-    })
+fn device_pairing_paired_path(state: &GatewayState) -> PathBuf {
+    state.state_dir.join("devices").join("paired.json")
+}
+
+fn read_json_object_file(path: PathBuf) -> Result<Map<String, Value>, String> {
+    match read_config_value(&path)? {
+        Value::Object(object) => Ok(object),
+        _ => Err(format!("expected JSON object in {}", path.display())),
+    }
+}
+
+fn read_device_pairing_state(
+    state: &GatewayState,
+) -> Result<(Map<String, Value>, Map<String, Value>), String> {
+    let mut pending = read_json_object_file(device_pairing_pending_path(state))?;
+    prune_expired_device_pairing(&mut pending);
+    let paired = read_json_object_file(device_pairing_paired_path(state))?;
+    Ok((pending, paired))
+}
+
+fn prune_expired_device_pairing(pending: &mut Map<String, Value>) {
+    let now = now_millis() as u64;
+    pending.retain(|_, request| {
+        request
+            .get("ts")
+            .and_then(Value::as_u64)
+            .map(|ts| now.saturating_sub(ts) <= DEVICE_PENDING_TTL_MS)
+            .unwrap_or(true)
+    });
+}
+
+fn device_pair_list(state: &GatewayState) -> Result<Value, String> {
+    let (pending, paired) = read_device_pairing_state(state)?;
+    let mut pending = pending.into_values().collect::<Vec<_>>();
+    pending.sort_by(|left, right| {
+        let left_ts = left.get("ts").and_then(Value::as_u64).unwrap_or(0);
+        let right_ts = right.get("ts").and_then(Value::as_u64).unwrap_or(0);
+        right_ts.cmp(&left_ts)
+    });
+    let mut paired = paired
+        .into_values()
+        .map(redact_paired_device)
+        .collect::<Vec<_>>();
+    paired.sort_by(|left, right| {
+        let left_ts = left
+            .get("approvedAtMs")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        let right_ts = right
+            .get("approvedAtMs")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        right_ts.cmp(&left_ts)
+    });
+    Ok(json!({ "pending": pending, "paired": paired }))
+}
+
+fn device_pair_approve(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let request_id = required_param(&params, &["requestId", "id"])?;
+    let (mut pending, mut paired) = read_device_pairing_state(state)?;
+    let request = pending
+        .remove(&request_id)
+        .ok_or_else(|| "unknown requestId".to_string())?;
+    validate_device_pair_approval_scope(&request, &params)?;
+    let device = build_paired_device_from_request(&request);
+    let device_id = device
+        .get("deviceId")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "device pairing request missing deviceId".to_string())?
+        .to_string();
+    paired.insert(device_id, device.clone());
+    write_json_file(&device_pairing_pending_path(state), &Value::Object(pending))?;
+    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
+    Ok(json!({
+        "requestId": request_id,
+        "device": redact_paired_device(device)
+    }))
+}
+
+fn device_pair_reject(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let request_id = required_param(&params, &["requestId", "id"])?;
+    let (mut pending, _) = read_device_pairing_state(state)?;
+    let request = pending
+        .remove(&request_id)
+        .ok_or_else(|| "unknown requestId".to_string())?;
+    write_json_file(&device_pairing_pending_path(state), &Value::Object(pending))?;
+    Ok(json!({
+        "requestId": request_id,
+        "deviceId": request.get("deviceId").cloned().unwrap_or(Value::Null)
+    }))
+}
+
+fn device_pair_remove(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let device_id = required_param(&params, &["deviceId", "id"])?;
+    let (_, mut paired) = read_device_pairing_state(state)?;
+    if paired.remove(&device_id).is_none() {
+        return Err("unknown deviceId".to_string());
+    }
+    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
+    Ok(json!({ "deviceId": device_id }))
+}
+
+fn validate_device_pair_approval_scope(request: &Value, params: &Value) -> Result<(), String> {
+    let requested_scopes = request
+        .get("scopes")
+        .and_then(Value::as_array)
+        .map(|scopes| {
+            scopes
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|scope| scope.starts_with("operator."))
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    if requested_scopes.is_empty() {
+        return Ok(());
+    }
+    let caller_scopes = string_array_param(params, "callerScopes").unwrap_or_default();
+    for scope in requested_scopes {
+        if !caller_scopes
+            .iter()
+            .any(|caller_scope| caller_scope == &scope)
+        {
+            return Err(format!("missing scope: {scope}"));
+        }
+    }
+    Ok(())
+}
+
+fn build_paired_device_from_request(request: &Value) -> Value {
+    let now = now_millis() as u64;
+    let role = request.get("role").and_then(Value::as_str).map(str::trim);
+    let scopes = request
+        .get("scopes")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let roles = request
+        .get("roles")
+        .cloned()
+        .or_else(|| role.map(|role| json!([role])))
+        .unwrap_or_else(|| json!([]));
+    let mut device = Map::new();
+    for field in [
+        "deviceId",
+        "publicKey",
+        "displayName",
+        "platform",
+        "deviceFamily",
+        "clientId",
+        "clientMode",
+        "role",
+        "remoteIp",
+    ] {
+        if let Some(value) = request.get(field) {
+            device.insert(field.to_string(), value.clone());
+        }
+    }
+    device.insert("roles".to_string(), roles);
+    device.insert("scopes".to_string(), Value::Array(scopes.clone()));
+    device.insert("approvedScopes".to_string(), Value::Array(scopes.clone()));
+    device.insert("createdAtMs".to_string(), json!(now));
+    device.insert("approvedAtMs".to_string(), json!(now));
+    if let Some(role) = role.filter(|role| !role.is_empty()) {
+        device.insert(
+            "tokens".to_string(),
+            json!({
+                role: {
+                    "token": format!("rust-device-token-{role}-{now}"),
+                    "role": role,
+                    "scopes": scopes,
+                    "createdAtMs": now
+                }
+            }),
+        );
+    } else {
+        device.insert("tokens".to_string(), json!({}));
+    }
+    Value::Object(device)
+}
+
+fn redact_paired_device(device: Value) -> Value {
+    let mut object = device.as_object().cloned().unwrap_or_default();
+    object.remove("approvedScopes");
+    let summaries = object.remove("tokens").and_then(|tokens| {
+        let mut summaries = tokens
+            .as_object()?
+            .values()
+            .filter_map(device_token_summary)
+            .collect::<Vec<_>>();
+        summaries.sort_by(|left, right| {
+            let left_role = left.get("role").and_then(Value::as_str).unwrap_or_default();
+            let right_role = right
+                .get("role")
+                .and_then(Value::as_str)
+                .unwrap_or_default();
+            left_role.cmp(right_role)
+        });
+        if summaries.is_empty() {
+            None
+        } else {
+            Some(Value::Array(summaries))
+        }
+    });
+    if let Some(summaries) = summaries {
+        object.insert("tokens".to_string(), summaries);
+    }
+    Value::Object(object)
+}
+
+fn device_token_summary(token: &Value) -> Option<Value> {
+    let token = token.as_object()?;
+    let mut summary = Map::new();
+    for field in [
+        "role",
+        "scopes",
+        "createdAtMs",
+        "rotatedAtMs",
+        "revokedAtMs",
+        "lastUsedAtMs",
+    ] {
+        if let Some(value) = token.get(field) {
+            summary.insert(field.to_string(), value.clone());
+        }
+    }
+    Some(Value::Object(summary))
 }
 
 fn device_token_rotate(state: &GatewayState, params: Value) -> Result<Value, String> {
     let device_id =
         safe_config_component_id(&required_param(&params, &["deviceId", "id"])?, "device id")?;
+    let Some(role) = string_param(&params, &["role"]) else {
+        return device_token_rotate_legacy_config(state, device_id);
+    };
+    let role = role.trim().to_string();
+    if role.is_empty() {
+        return Err("role required".to_string());
+    }
+    let (_, mut paired) = read_device_pairing_state(state)?;
+    let device = paired
+        .get_mut(&device_id)
+        .ok_or_else(|| "unknown deviceId/role".to_string())?;
+    let now = now_millis() as u64;
+    let requested_scopes = requested_device_token_scopes(device, &role, &params);
+    if !scopes_within_device_baseline(device, &requested_scopes) {
+        return Err("device token rotation denied".to_string());
+    }
+    let existing = device
+        .get("tokens")
+        .and_then(Value::as_object)
+        .and_then(|tokens| tokens.get(&role))
+        .cloned();
+    let created_at_ms = existing
+        .as_ref()
+        .and_then(|token| token.get("createdAtMs"))
+        .and_then(Value::as_u64)
+        .unwrap_or(now);
+    let last_used_at_ms = existing
+        .as_ref()
+        .and_then(|token| token.get("lastUsedAtMs"))
+        .cloned();
+    let token = format!("rust-device-token-{role}-{now}");
+    let mut next = Map::new();
+    next.insert("token".to_string(), Value::String(token.clone()));
+    next.insert("role".to_string(), Value::String(role.clone()));
+    next.insert("scopes".to_string(), json!(requested_scopes));
+    next.insert("createdAtMs".to_string(), json!(created_at_ms));
+    next.insert("rotatedAtMs".to_string(), json!(now));
+    if let Some(last_used_at_ms) = last_used_at_ms {
+        next.insert("lastUsedAtMs".to_string(), last_used_at_ms);
+    }
+    let tokens = device
+        .as_object_mut()
+        .ok_or_else(|| "paired device entry must be an object".to_string())?
+        .entry("tokens".to_string())
+        .or_insert_with(|| json!({}));
+    if !tokens.is_object() {
+        *tokens = json!({});
+    }
+    tokens
+        .as_object_mut()
+        .ok_or_else(|| "paired device tokens must be an object".to_string())?
+        .insert(role.clone(), Value::Object(next));
+    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
+    Ok(json!({
+        "deviceId": device_id,
+        "role": role,
+        "token": token,
+        "scopes": requested_scopes,
+        "rotatedAtMs": now,
+        "implementation": "rust-native"
+    }))
+}
+
+fn device_token_rotate_legacy_config(
+    state: &GatewayState,
+    device_id: String,
+) -> Result<Value, String> {
     let device_token = format!("rust-device-{device_id}-{}", now_millis());
     let path = config_path(state);
     let mut config = read_config_value(&path)?;
@@ -3904,18 +6696,562 @@ fn device_token_rotate(state: &GatewayState, params: Value) -> Result<Value, Str
     }))
 }
 
+fn device_token_revoke(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let device_id =
+        safe_config_component_id(&required_param(&params, &["deviceId", "id"])?, "device id")?;
+    let role = required_param(&params, &["role"])?;
+    let role = role.trim().to_string();
+    if role.is_empty() {
+        return Err("role required".to_string());
+    }
+    let (_, mut paired) = read_device_pairing_state(state)?;
+    let device = paired
+        .get_mut(&device_id)
+        .ok_or_else(|| "unknown deviceId/role".to_string())?;
+    let Some(token) = device
+        .get_mut("tokens")
+        .and_then(Value::as_object_mut)
+        .and_then(|tokens| tokens.get_mut(&role))
+    else {
+        return Err("unknown deviceId/role".to_string());
+    };
+    let revoked_at_ms = now_millis() as u64;
+    token
+        .as_object_mut()
+        .ok_or_else(|| "device token must be an object".to_string())?
+        .insert("revokedAtMs".to_string(), json!(revoked_at_ms));
+    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
+    Ok(json!({
+        "deviceId": device_id,
+        "role": role,
+        "revokedAtMs": revoked_at_ms,
+        "implementation": "rust-native"
+    }))
+}
+
+fn requested_device_token_scopes(device: &Value, role: &str, params: &Value) -> Vec<String> {
+    string_array_param(params, "scopes")
+        .or_else(|| {
+            device
+                .get("tokens")
+                .and_then(Value::as_object)
+                .and_then(|tokens| tokens.get(role))
+                .and_then(|token| string_array_param(token, "scopes"))
+        })
+        .or_else(|| string_array_param(device, "scopes"))
+        .unwrap_or_default()
+}
+
+fn scopes_within_device_baseline(device: &Value, requested_scopes: &[String]) -> bool {
+    let baseline = string_array_param(device, "approvedScopes")
+        .or_else(|| string_array_param(device, "scopes"));
+    let Some(baseline) = baseline else {
+        return false;
+    };
+    requested_scopes
+        .iter()
+        .all(|scope| baseline.iter().any(|allowed| allowed == scope))
+}
+
+const ESP32_DEVICE_ROLE: &str = "esp32";
+const ESP32_HARDWARE_TARGET: &str = "ESP32-S3-BOX-3";
+
+fn esp32_config_from_crawclaw_config(config: &Value) -> Value {
+    let raw = get_json_path(config, "plugins.entries.esp32.config")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+
+    let mut broker = Map::new();
+    broker.insert(
+        "mode".to_string(),
+        Value::String(esp32_config_string(&raw, "broker.mode", "managed")),
+    );
+    broker.insert(
+        "bindHost".to_string(),
+        Value::String(esp32_config_string(&raw, "broker.bindHost", "0.0.0.0")),
+    );
+    broker.insert(
+        "port".to_string(),
+        json!(esp32_config_u64(&raw, "broker.port", 1883)),
+    );
+    if let Some(value) = esp32_optional_config_string(&raw, "broker.advertisedHost") {
+        broker.insert("advertisedHost".to_string(), Value::String(value));
+    }
+
+    let mut udp = Map::new();
+    udp.insert(
+        "bindHost".to_string(),
+        Value::String(esp32_config_string(&raw, "udp.bindHost", "0.0.0.0")),
+    );
+    udp.insert(
+        "port".to_string(),
+        json!(esp32_config_u64(&raw, "udp.port", 1884)),
+    );
+    if let Some(value) = esp32_optional_config_string(&raw, "udp.advertisedHost") {
+        udp.insert("advertisedHost".to_string(), Value::String(value));
+    }
+
+    let mut renderer = Map::new();
+    if let Some(value) = esp32_optional_config_string(&raw, "renderer.model") {
+        renderer.insert("model".to_string(), Value::String(value));
+    }
+    renderer.insert(
+        "timeoutMs".to_string(),
+        json!(esp32_config_u64(&raw, "renderer.timeoutMs", 8000)),
+    );
+    renderer.insert(
+        "maxSpokenChars".to_string(),
+        json!(esp32_config_u64(&raw, "renderer.maxSpokenChars", 40)),
+    );
+    renderer.insert(
+        "maxDisplayChars".to_string(),
+        json!(esp32_config_u64(&raw, "renderer.maxDisplayChars", 72)),
+    );
+
+    let tools_allowlist = get_json_path(&raw, "tools.allowlist")
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(|value| Value::String(value.to_string()))
+                .collect::<Vec<_>>()
+        })
+        .filter(|items| !items.is_empty())
+        .unwrap_or_else(|| {
+            [
+                "display.*",
+                "led.*",
+                "audio.*",
+                "volume.*",
+                "mute.*",
+                "sensor.*",
+            ]
+            .into_iter()
+            .map(|value| Value::String(value.to_string()))
+            .collect()
+        });
+
+    json!({
+        "broker": Value::Object(broker),
+        "udp": Value::Object(udp),
+        "renderer": Value::Object(renderer),
+        "tts": {
+            "provider": esp32_config_string(&raw, "tts.provider", "qwen3-tts"),
+            "target": esp32_config_string(&raw, "tts.target", "voice-note")
+        },
+        "tools": {
+            "allowlist": tools_allowlist,
+            "highRiskRequiresApproval": get_json_path(&raw, "tools.highRiskRequiresApproval")
+                .and_then(Value::as_bool)
+                .unwrap_or(true)
+        }
+    })
+}
+
+fn esp32_config_string(raw: &Value, path: &str, default: &str) -> String {
+    esp32_optional_config_string(raw, path).unwrap_or_else(|| default.to_string())
+}
+
+fn esp32_optional_config_string(raw: &Value, path: &str) -> Option<String> {
+    get_json_path(raw, path)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn esp32_config_u64(raw: &Value, path: &str, default: u64) -> u64 {
+    get_json_path(raw, path)
+        .and_then(Value::as_u64)
+        .unwrap_or(default)
+}
+
+fn esp32_plugin_enabled(config: &Value) -> bool {
+    get_json_path(config, "plugins.entries.esp32.enabled")
+        .and_then(Value::as_bool)
+        .unwrap_or(true)
+}
+
+fn esp32_pairing_sessions_path(state: &GatewayState) -> PathBuf {
+    state.state_dir.join("esp32").join("pairing-sessions.json")
+}
+
+fn read_esp32_pairing_session_state(state: &GatewayState) -> Result<Map<String, Value>, String> {
+    let mut sessions = read_json_object_file(esp32_pairing_sessions_path(state))?;
+    let now = now_millis() as u64;
+    sessions.retain(|_, session| {
+        session
+            .get("expiresAtMs")
+            .and_then(Value::as_u64)
+            .map(|expires| expires > now)
+            .unwrap_or(true)
+    });
+    Ok(sessions)
+}
+
+fn esp32_pairing_sessions(state: &GatewayState) -> Result<Vec<Value>, String> {
+    let sessions = read_esp32_pairing_session_state(state)?;
+    write_json_file(
+        &esp32_pairing_sessions_path(state),
+        &Value::Object(sessions.clone()),
+    )?;
+    let mut sessions = sessions
+        .into_values()
+        .map(|session| {
+            let mut object = session.as_object().cloned().unwrap_or_default();
+            if let Some(pair_id) = object.get("pairId").and_then(Value::as_str) {
+                object.insert(
+                    "username".to_string(),
+                    Value::String(format!("pair:{pair_id}")),
+                );
+            }
+            object.remove("password");
+            Value::Object(object)
+        })
+        .collect::<Vec<_>>();
+    sessions.sort_by(|left, right| {
+        let left_ts = left.get("issuedAtMs").and_then(Value::as_u64).unwrap_or(0);
+        let right_ts = right.get("issuedAtMs").and_then(Value::as_u64).unwrap_or(0);
+        right_ts.cmp(&left_ts)
+    });
+    Ok(sessions)
+}
+
+fn read_esp32_stored_devices(state: &GatewayState) -> Result<Map<String, Value>, String> {
+    let store = read_config_value(&state.state_dir.join("esp32").join("devices.json"))?;
+    Ok(store
+        .get("devices")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default())
+}
+
+fn esp32_pending_request(request: &Value) -> bool {
+    string_array_param(request, "roles")
+        .unwrap_or_default()
+        .into_iter()
+        .chain(
+            request
+                .get("role")
+                .and_then(Value::as_str)
+                .map(|role| role.to_string()),
+        )
+        .any(|role| role == ESP32_DEVICE_ROLE)
+        || request.get("deviceFamily").and_then(Value::as_str) == Some(ESP32_HARDWARE_TARGET)
+        || request.get("clientMode").and_then(Value::as_str) == Some("mqtt-udp")
+}
+
+fn esp32_paired_device(device: &Value) -> bool {
+    esp32_effective_roles(device)
+        .iter()
+        .any(|role| role == ESP32_DEVICE_ROLE)
+        || device.get("deviceFamily").and_then(Value::as_str) == Some(ESP32_HARDWARE_TARGET)
+        || device.get("clientMode").and_then(Value::as_str) == Some("mqtt-udp")
+}
+
+fn esp32_effective_roles(device: &Value) -> Vec<String> {
+    if let Some(tokens) = device.get("tokens").and_then(Value::as_object) {
+        let active_roles = tokens
+            .values()
+            .filter(|token| token.get("revokedAtMs").is_none())
+            .filter_map(|token| token.get("role").and_then(Value::as_str))
+            .map(str::trim)
+            .filter(|role| !role.is_empty())
+            .map(ToOwned::to_owned)
+            .collect::<Vec<_>>();
+        if !active_roles.is_empty() {
+            return active_roles;
+        }
+        if !tokens.is_empty() {
+            return Vec::new();
+        }
+    }
+
+    let mut roles = string_array_param(device, "roles").unwrap_or_default();
+    if let Some(role) = device
+        .get("role")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|role| !role.is_empty())
+    {
+        roles.push(role.to_string());
+    }
+    roles.sort();
+    roles.dedup();
+    roles
+}
+
+fn esp32_device_summary(device: Value, stored: Option<&Value>) -> Value {
+    let device_id = device.get("deviceId").cloned().unwrap_or(Value::Null);
+    let name = device
+        .get("displayName")
+        .cloned()
+        .or_else(|| stored.and_then(|stored| stored.get("name").cloned()))
+        .unwrap_or(Value::Null);
+    let fingerprint = device
+        .get("publicKey")
+        .cloned()
+        .or_else(|| stored.and_then(|stored| stored.get("fingerprint").cloned()))
+        .unwrap_or(Value::Null);
+    let capabilities = stored
+        .and_then(|stored| stored.get("capabilities").cloned())
+        .unwrap_or_else(|| json!({}));
+    let last_seen_at_ms = stored
+        .and_then(|stored| stored.get("lastSeenAtMs").cloned())
+        .unwrap_or(Value::Null);
+    json!({
+        "deviceId": device_id,
+        "name": name,
+        "fingerprint": fingerprint,
+        "hardwareTarget": device
+            .get("deviceFamily")
+            .cloned()
+            .or_else(|| get_json_path(stored.unwrap_or(&Value::Null), "capabilities.hardwareTarget").cloned())
+            .unwrap_or_else(|| Value::String(ESP32_HARDWARE_TARGET.to_string())),
+        "clientMode": device
+            .get("clientMode")
+            .cloned()
+            .unwrap_or_else(|| Value::String("mqtt-udp".to_string())),
+        "online": false,
+        "lastSeenAtMs": last_seen_at_ms,
+        "approvedAtMs": device.get("approvedAtMs").cloned().unwrap_or(Value::Null),
+        "capabilities": capabilities
+    })
+}
+
+fn esp32_pending_summary(request: Value, stored: Option<&Value>) -> Value {
+    json!({
+        "requestId": request.get("requestId").cloned().unwrap_or(Value::Null),
+        "deviceId": request.get("deviceId").cloned().unwrap_or(Value::Null),
+        "name": request
+            .get("displayName")
+            .cloned()
+            .or_else(|| stored.and_then(|stored| stored.get("name").cloned()))
+            .unwrap_or(Value::Null),
+        "fingerprint": request
+            .get("publicKey")
+            .cloned()
+            .or_else(|| stored.and_then(|stored| stored.get("fingerprint").cloned()))
+            .unwrap_or(Value::Null),
+        "hardwareTarget": request
+            .get("deviceFamily")
+            .cloned()
+            .or_else(|| get_json_path(stored.unwrap_or(&Value::Null), "capabilities.hardwareTarget").cloned())
+            .unwrap_or_else(|| Value::String(ESP32_HARDWARE_TARGET.to_string())),
+        "clientMode": request
+            .get("clientMode")
+            .cloned()
+            .unwrap_or_else(|| Value::String("mqtt-udp".to_string())),
+        "requestedAtMs": request.get("ts").cloned().unwrap_or(Value::Null),
+        "capabilities": stored
+            .and_then(|stored| stored.get("capabilities").cloned())
+            .unwrap_or_else(|| json!({}))
+    })
+}
+
+fn esp32_overview(state: &GatewayState) -> Result<(Vec<Value>, Vec<Value>), String> {
+    let (pending, paired) = read_device_pairing_state(state)?;
+    let stored = read_esp32_stored_devices(state)?;
+    let mut pending = pending
+        .into_values()
+        .filter(esp32_pending_request)
+        .map(|request| {
+            let device_id = request
+                .get("deviceId")
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned);
+            esp32_pending_summary(request, device_id.as_deref().and_then(|id| stored.get(id)))
+        })
+        .collect::<Vec<_>>();
+    pending.sort_by(|left, right| {
+        let left_ts = left
+            .get("requestedAtMs")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        let right_ts = right
+            .get("requestedAtMs")
+            .and_then(Value::as_u64)
+            .unwrap_or(0);
+        right_ts.cmp(&left_ts)
+    });
+
+    let mut paired = paired
+        .into_values()
+        .filter(esp32_paired_device)
+        .map(|device| {
+            let device_id = device
+                .get("deviceId")
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned);
+            esp32_device_summary(device, device_id.as_deref().and_then(|id| stored.get(id)))
+        })
+        .collect::<Vec<_>>();
+    paired.sort_by(|left, right| {
+        let left_id = left
+            .get("deviceId")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        let right_id = right
+            .get("deviceId")
+            .and_then(Value::as_str)
+            .unwrap_or_default();
+        left_id.cmp(right_id)
+    });
+    Ok((pending, paired))
+}
+
+fn esp32_status_get(state: &GatewayState) -> Result<Value, String> {
+    let config = read_config_value(&config_path(state))?;
+    let esp32_config = esp32_config_from_crawclaw_config(&config);
+    let sessions = esp32_pairing_sessions(state)?;
+    let (pending, paired) = esp32_overview(state)?;
+    Ok(json!({
+        "enabled": esp32_plugin_enabled(&config),
+        "serviceRunning": false,
+        "broker": esp32_config["broker"].clone(),
+        "udp": esp32_config["udp"].clone(),
+        "renderer": esp32_config["renderer"].clone(),
+        "tts": esp32_config["tts"].clone(),
+        "tools": esp32_config["tools"].clone(),
+        "counts": {
+            "activePairingSessions": sessions.len(),
+            "pendingRequests": pending.len(),
+            "pairedDevices": paired.len(),
+            "onlineDevices": paired
+                .iter()
+                .filter(|device| device.get("online").and_then(Value::as_bool).unwrap_or(false))
+                .count()
+        },
+        "activePairingSessions": sessions
+    }))
+}
+
+fn esp32_pairing_start(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let config = read_config_value(&config_path(state))?;
+    if !esp32_plugin_enabled(&config) {
+        return Err("ESP32 plugin is disabled".to_string());
+    }
+    let esp32_config = esp32_config_from_crawclaw_config(&config);
+    let now = now_millis() as u64;
+    let ttl_ms = params
+        .get("ttlMs")
+        .and_then(Value::as_u64)
+        .unwrap_or(5 * 60 * 1000);
+    let pair_id = format!("rust-esp32-{now}");
+    let password = format!("rust-pair-code-{now}");
+    let name = string_param(&params, &["name"]);
+    let mut sessions = read_esp32_pairing_session_state(state)?;
+    let mut record = Map::new();
+    record.insert("pairId".to_string(), Value::String(pair_id.clone()));
+    record.insert("password".to_string(), Value::String(password.clone()));
+    if let Some(name) = name.clone() {
+        record.insert("name".to_string(), Value::String(name));
+    }
+    record.insert(
+        "hardwareTarget".to_string(),
+        Value::String(ESP32_HARDWARE_TARGET.to_string()),
+    );
+    record.insert("issuedAtMs".to_string(), json!(now));
+    record.insert("expiresAtMs".to_string(), json!(now.saturating_add(ttl_ms)));
+    sessions.insert(pair_id.clone(), Value::Object(record));
+    write_json_file(
+        &esp32_pairing_sessions_path(state),
+        &Value::Object(sessions),
+    )?;
+
+    let broker = &esp32_config["broker"];
+    let udp = &esp32_config["udp"];
+    Ok(json!({
+        "pairId": pair_id,
+        "username": format!("pair:{pair_id}"),
+        "pairCode": password,
+        "name": name,
+        "hardwareTarget": ESP32_HARDWARE_TARGET,
+        "issuedAtMs": now,
+        "expiresAtMs": now.saturating_add(ttl_ms),
+        "broker": {
+            "host": broker
+                .get("advertisedHost")
+                .or_else(|| broker.get("bindHost"))
+                .cloned()
+                .unwrap_or_else(|| Value::String("0.0.0.0".to_string())),
+            "port": broker.get("port").cloned().unwrap_or_else(|| json!(1883))
+        },
+        "udp": {
+            "host": udp
+                .get("advertisedHost")
+                .or_else(|| udp.get("bindHost"))
+                .cloned()
+                .unwrap_or_else(|| Value::String("0.0.0.0".to_string())),
+            "port": udp.get("port").cloned().unwrap_or_else(|| json!(1884))
+        },
+        "profile": {
+            "hardwareTarget": ESP32_HARDWARE_TARGET,
+            "audio": { "input": "i2s", "output": "i2s", "codec": "opus" },
+            "display": { "width": 320, "height": 240, "color": true }
+        }
+    }))
+}
+
+fn esp32_pairing_requests_list(state: &GatewayState) -> Result<Value, String> {
+    let (pending, _) = esp32_overview(state)?;
+    Ok(json!({ "items": pending }))
+}
+
+fn esp32_pairing_request_approve(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let approved = device_pair_approve(state, params)?;
+    Ok(json!({
+        "requestId": approved["requestId"].clone(),
+        "deviceId": approved["device"]["deviceId"].clone()
+    }))
+}
+
+fn esp32_pairing_request_reject(state: &GatewayState, params: Value) -> Result<Value, String> {
+    device_pair_reject(state, params)
+}
+
+fn esp32_pairing_session_revoke(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let pair_id = required_param(&params, &["pairId", "id"])?;
+    let mut sessions = read_esp32_pairing_session_state(state)?;
+    if sessions.remove(&pair_id).is_none() {
+        return Err("unknown pairId".to_string());
+    }
+    write_json_file(
+        &esp32_pairing_sessions_path(state),
+        &Value::Object(sessions),
+    )?;
+    Ok(json!({ "pairId": pair_id }))
+}
+
+fn esp32_devices_list(state: &GatewayState) -> Result<Value, String> {
+    let (_, paired) = esp32_overview(state)?;
+    Ok(json!({ "items": paired }))
+}
+
 fn esp32_device_get(state: &GatewayState, params: Value) -> Result<Value, String> {
     let device_id =
         safe_config_component_id(&required_param(&params, &["deviceId", "id"])?, "device id")?;
-    let config = read_config_value(&config_path(state))?;
-    let device = get_json_path(&config, &format!("esp32.devices.{device_id}")).cloned();
+    let (_, paired) = read_device_pairing_state(state)?;
+    let stored = read_esp32_stored_devices(state)?;
+    let device = paired.get(&device_id).cloned().filter(esp32_paired_device);
+    let summary = device
+        .clone()
+        .map(|device| esp32_device_summary(device.clone(), stored.get(&device_id)));
     Ok(json!({
         "ok": device.is_some(),
         "status": if device.is_some() { "found" } else { "not_found" },
         "deviceId": device_id,
-        "device": device.unwrap_or(Value::Null),
+        "device": summary.clone().unwrap_or(Value::Null),
+        "paired": device.map(redact_paired_device).unwrap_or(Value::Null),
         "implementation": "rust-native"
     }))
+}
+
+fn esp32_devices_revoke(state: &GatewayState, params: Value) -> Result<Value, String> {
+    device_pair_remove(state, params)
 }
 
 fn esp32_device_command_send(state: &GatewayState, params: Value) -> Result<Value, String> {
@@ -4106,6 +7442,21 @@ fn sessions_compact(state: &GatewayState, params: Value) -> Result<Value, String
         .compact_session(&key, max_lines)
         .map_err(|error| error.to_string())?;
     Ok(json!({ "ok": true, "key": key, "compacted": compacted, "kept": kept }))
+}
+
+fn sessions_messages_subscription(
+    state: &GatewayState,
+    params: Value,
+    subscribed: bool,
+) -> Result<Value, String> {
+    let key = string_param(&params, &["key", "sessionKey"])
+        .ok_or_else(|| "session key required".to_string())?;
+    let normalized = normalize_session_key(&key)?;
+    state
+        .session_store
+        .session_status(&normalized)
+        .map_err(|error| error.to_string())?;
+    Ok(json!({ "subscribed": subscribed, "key": normalized }))
 }
 
 fn normalize_session_key(input: &str) -> Result<String, String> {
@@ -4366,7 +7717,7 @@ fn hello_ok(state: &GatewayState) -> Value {
             "events": desktop::SSE_EVENTS
         },
         "snapshot": {
-            "presence": [],
+            "presence": system_presence(state).unwrap_or_else(|_| Value::Array(Vec::new())),
             "health": runtime_status_value(state),
             "stateVersion": { "presence": 0, "health": 0 },
             "uptimeMs": now_millis().saturating_sub(state.started_at_ms) as u64,
@@ -4389,6 +7740,257 @@ fn hello_ok(state: &GatewayState) -> Value {
 
 fn memory_runtime(state: &GatewayState) -> RustMemoryRuntime {
     RustMemoryRuntime::new(state.runtime_root.clone())
+}
+
+fn memory_prompt_journal_summary(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let files = prompt_journal_candidate_files(state, &params);
+    let mut events = Vec::new();
+    for file in &files {
+        events.extend(read_prompt_journal_events(file));
+    }
+
+    let mut stage_counts = BTreeMap::<String, u64>::new();
+    let mut decision_counts = BTreeMap::<String, u64>::new();
+    let mut skip_reason_counts = BTreeMap::<String, u64>::new();
+    let mut top_reason_counts = BTreeMap::<String, u64>::new();
+    let mut experience_extract_status_counts = BTreeMap::<String, u64>::new();
+    let mut experience_extract_decision_counts = BTreeMap::<String, u64>::new();
+    let mut experience_status_counts = BTreeMap::<String, u64>::new();
+    let mut experience_action_counts = BTreeMap::<String, u64>::new();
+    let mut experience_title_counts = BTreeMap::<String, u64>::new();
+    let mut sessions = BTreeSet::<String>::new();
+    let mut date_buckets = BTreeSet::<String>::new();
+    let mut prompt_estimated_tokens = Vec::<f64>::new();
+    let mut prompt_chars = Vec::<f64>::new();
+    let mut prompt_assembly_count = 0_u64;
+    let mut durable_count = 0_u64;
+    let mut durable_notes_saved_total = 0_i64;
+    let mut durable_non_zero_save_count = 0_u64;
+    let mut durable_zero_save_count = 0_u64;
+    let mut experience_extract_written_count = 0_i64;
+    let mut experience_extract_updated_count = 0_i64;
+    let mut experience_extract_deleted_count = 0_i64;
+
+    for event in &events {
+        let stage = string_param(event, &["stage"]);
+        increment_counter(&mut stage_counts, stage.as_deref());
+        if let Some(session) = string_param(event, &["sessionKey", "sessionId"]) {
+            sessions.insert(session);
+        }
+        if let Some(date_bucket) = string_param(event, &["dateBucket"]) {
+            date_buckets.insert(date_bucket);
+        }
+        let payload = event.get("payload").unwrap_or(&Value::Null);
+
+        match stage.as_deref() {
+            Some("prompt_assembly") => {
+                prompt_assembly_count += 1;
+                if let Some(value) = payload.get("estimatedTokens").and_then(Value::as_f64) {
+                    prompt_estimated_tokens.push(value);
+                }
+                if let Some(text) = payload.get("systemContextText").and_then(Value::as_str) {
+                    prompt_chars.push(text.chars().count() as f64);
+                }
+            }
+            Some("after_turn_decision") => {
+                increment_counter(
+                    &mut decision_counts,
+                    payload.get("decision").and_then(Value::as_str),
+                );
+                increment_counter(
+                    &mut skip_reason_counts,
+                    payload.get("skipReason").and_then(Value::as_str),
+                );
+            }
+            Some("durable_extraction") => {
+                durable_count += 1;
+                let notes_saved = payload
+                    .get("notesSaved")
+                    .and_then(Value::as_i64)
+                    .unwrap_or(0);
+                durable_notes_saved_total += notes_saved;
+                if notes_saved == 0 {
+                    durable_zero_save_count += 1;
+                } else {
+                    durable_non_zero_save_count += 1;
+                }
+                increment_counter(
+                    &mut top_reason_counts,
+                    payload.get("reason").and_then(Value::as_str),
+                );
+            }
+            Some("experience_extract") => {
+                increment_counter(
+                    &mut experience_extract_status_counts,
+                    payload.get("status").and_then(Value::as_str),
+                );
+                increment_counter(
+                    &mut experience_extract_decision_counts,
+                    payload.get("decision").and_then(Value::as_str),
+                );
+                experience_extract_written_count += payload
+                    .get("writtenCount")
+                    .and_then(Value::as_i64)
+                    .unwrap_or(0);
+                experience_extract_updated_count += payload
+                    .get("updatedCount")
+                    .and_then(Value::as_i64)
+                    .unwrap_or(0);
+                experience_extract_deleted_count += payload
+                    .get("deletedCount")
+                    .and_then(Value::as_i64)
+                    .unwrap_or(0);
+            }
+            Some("experience_write") => {
+                increment_counter(
+                    &mut experience_status_counts,
+                    payload.get("status").and_then(Value::as_str),
+                );
+                increment_counter(
+                    &mut experience_action_counts,
+                    payload.get("action").and_then(Value::as_str),
+                );
+                increment_counter(
+                    &mut experience_title_counts,
+                    payload.get("title").and_then(Value::as_str),
+                );
+            }
+            _ => {}
+        }
+    }
+
+    Ok(json!({
+        "files": files
+            .iter()
+            .map(|path| path.to_string_lossy().to_string())
+            .collect::<Vec<_>>(),
+        "dateBuckets": date_buckets.into_iter().collect::<Vec<_>>(),
+        "totalEvents": events.len(),
+        "stageCounts": stage_counts,
+        "uniqueSessions": sessions.len(),
+        "promptAssembly": {
+            "count": prompt_assembly_count,
+            "avgEstimatedTokens": average_number(&prompt_estimated_tokens, 2),
+            "avgSystemPromptChars": average_number(&prompt_chars, 2)
+        },
+        "afterTurn": {
+            "decisionCounts": decision_counts,
+            "skipReasonCounts": skip_reason_counts
+        },
+        "durableExtraction": {
+            "count": durable_count,
+            "notesSavedTotal": durable_notes_saved_total,
+            "nonZeroSaveCount": durable_non_zero_save_count,
+            "zeroSaveCount": durable_zero_save_count,
+            "saveRate": if durable_count > 0 {
+                json!(round_to(durable_non_zero_save_count as f64 / durable_count as f64, 4))
+            } else {
+                Value::Null
+            },
+            "topReasons": sorted_counter_entries(top_reason_counts, "reason")
+                .into_iter()
+                .take(10)
+                .collect::<Vec<_>>()
+        },
+        "experienceExtraction": {
+            "statusCounts": experience_extract_status_counts,
+            "decisionCounts": experience_extract_decision_counts,
+            "writtenCount": experience_extract_written_count,
+            "updatedCount": experience_extract_updated_count,
+            "deletedCount": experience_extract_deleted_count
+        },
+        "experienceWrite": {
+            "statusCounts": experience_status_counts,
+            "actionCounts": experience_action_counts,
+            "titles": sorted_counter_entries(experience_title_counts, "title")
+                .into_iter()
+                .take(10)
+                .collect::<Vec<_>>()
+        }
+    }))
+}
+
+fn prompt_journal_candidate_files(state: &GatewayState, params: &Value) -> Vec<PathBuf> {
+    if let Some(file) = string_param(params, &["file"]) {
+        return vec![expand_user_path(&file)];
+    }
+
+    let dir = string_param(params, &["dir"])
+        .map(|dir| expand_user_path(&dir))
+        .unwrap_or_else(|| state.state_dir.join("logs").join("memory-prompt-journal"));
+    let mut files = std::fs::read_dir(&dir)
+        .ok()
+        .into_iter()
+        .flatten()
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("jsonl"))
+        .collect::<Vec<_>>();
+    files.sort();
+
+    if let Some(date) = string_param(params, &["date"]) {
+        let target = format!("{date}.jsonl");
+        return files
+            .into_iter()
+            .filter(|path| {
+                path.file_name().and_then(|value| value.to_str()) == Some(target.as_str())
+            })
+            .collect();
+    }
+
+    let days = params
+        .get("days")
+        .and_then(Value::as_u64)
+        .unwrap_or(1)
+        .max(1) as usize;
+    files
+        .into_iter()
+        .rev()
+        .take(days)
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+        .collect()
+}
+
+fn read_prompt_journal_events(path: &Path) -> Vec<Value> {
+    let Ok(raw) = std::fs::read_to_string(path) else {
+        return Vec::new();
+    };
+    raw.lines()
+        .map(str::trim)
+        .filter(|line| !line.is_empty())
+        .filter_map(|line| serde_json::from_str::<Value>(line).ok())
+        .collect()
+}
+
+fn increment_counter(target: &mut BTreeMap<String, u64>, key: Option<&str>) {
+    let Some(key) = key.map(str::trim).filter(|value| !value.is_empty()) else {
+        return;
+    };
+    *target.entry(key.to_string()).or_insert(0) += 1;
+}
+
+fn average_number(values: &[f64], digits: u32) -> Value {
+    if values.is_empty() {
+        return Value::Null;
+    }
+    let total = values.iter().sum::<f64>();
+    json!(round_to(total / values.len() as f64, digits))
+}
+
+fn round_to(value: f64, digits: u32) -> f64 {
+    let factor = 10_f64.powi(digits as i32);
+    (value * factor).round() / factor
+}
+
+fn sorted_counter_entries(counts: BTreeMap<String, u64>, key_name: &str) -> Vec<Value> {
+    let mut entries = counts.into_iter().collect::<Vec<_>>();
+    entries.sort_by(|left, right| right.1.cmp(&left.1).then_with(|| left.0.cmp(&right.0)));
+    entries
+        .into_iter()
+        .map(|(key, count)| json!({ key_name: key, "count": count }))
+        .collect()
 }
 
 fn desktop_state_value(state: &GatewayState) -> Value {
@@ -4466,11 +8068,313 @@ fn bearer_token(headers: &HeaderMap) -> Option<&str> {
     value.strip_prefix("Bearer ").map(str::trim)
 }
 
+const ED25519_SPKI_PREFIX: &[u8] = &[
+    0x30, 0x2a, 0x30, 0x05, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x03, 0x21, 0x00,
+];
+
+fn gateway_identity_get(state: &GatewayState) -> Result<Value, String> {
+    let path = state.state_dir.join("identity").join("device.json");
+    let identity = load_or_create_device_identity(&path)?;
+    Ok(json!({
+        "deviceId": identity.device_id,
+        "publicKey": base64url_encode(&identity.public_key_raw)
+    }))
+}
+
+struct DeviceIdentity {
+    device_id: String,
+    public_key_raw: Vec<u8>,
+}
+
+fn load_or_create_device_identity(path: &Path) -> Result<DeviceIdentity, String> {
+    if let Some(identity) = load_stored_device_identity(path)? {
+        return Ok(identity);
+    }
+    generate_device_identity(path)
+}
+
+fn load_stored_device_identity(path: &Path) -> Result<Option<DeviceIdentity>, String> {
+    let Ok(raw) = std::fs::read_to_string(path) else {
+        return Ok(None);
+    };
+    let Ok(parsed) = serde_json::from_str::<Value>(&raw) else {
+        return Ok(None);
+    };
+    if parsed.get("version").and_then(Value::as_u64) != Some(1) {
+        return Ok(None);
+    }
+    let Some(public_key_pem) = parsed.get("publicKeyPem").and_then(Value::as_str) else {
+        return Ok(None);
+    };
+    if parsed
+        .get("privateKeyPem")
+        .and_then(Value::as_str)
+        .is_none()
+    {
+        return Ok(None);
+    }
+    let Some(public_key_raw) = public_key_raw_from_pem(public_key_pem) else {
+        return Ok(None);
+    };
+    let device_id = sha256_hex(&public_key_raw);
+    if parsed.get("deviceId").and_then(Value::as_str) != Some(device_id.as_str()) {
+        let mut repaired = parsed;
+        repaired["deviceId"] = Value::String(device_id.clone());
+        write_identity_file(path, &repaired)?;
+    }
+    Ok(Some(DeviceIdentity {
+        device_id,
+        public_key_raw,
+    }))
+}
+
+fn generate_device_identity(path: &Path) -> Result<DeviceIdentity, String> {
+    let rng = ring::rand::SystemRandom::new();
+    let pkcs8 = ring::signature::Ed25519KeyPair::generate_pkcs8(&rng)
+        .map_err(|_| "failed to generate device identity".to_string())?;
+    let key_pair = ring::signature::Ed25519KeyPair::from_pkcs8(pkcs8.as_ref())
+        .map_err(|_| "failed to load generated device identity".to_string())?;
+    let public_key_raw = key_pair.public_key().as_ref().to_vec();
+    let device_id = sha256_hex(&public_key_raw);
+    let public_key_der = ed25519_spki_der(&public_key_raw);
+    let identity = json!({
+        "version": 1,
+        "deviceId": device_id,
+        "publicKeyPem": pem_encode("PUBLIC KEY", &public_key_der),
+        "privateKeyPem": pem_encode("PRIVATE KEY", pkcs8.as_ref()),
+        "createdAtMs": now_millis() as u64
+    });
+    write_identity_file(path, &identity)?;
+    Ok(DeviceIdentity {
+        device_id,
+        public_key_raw,
+    })
+}
+
+fn public_key_raw_from_pem(public_key_pem: &str) -> Option<Vec<u8>> {
+    let der = pem_decode(public_key_pem)?;
+    if der.starts_with(ED25519_SPKI_PREFIX) && der.len() == ED25519_SPKI_PREFIX.len() + 32 {
+        return Some(der[ED25519_SPKI_PREFIX.len()..].to_vec());
+    }
+    Some(der)
+}
+
+fn pem_decode(pem: &str) -> Option<Vec<u8>> {
+    let body = pem
+        .lines()
+        .map(str::trim)
+        .filter(|line| !line.starts_with("-----BEGIN ") && !line.starts_with("-----END "))
+        .collect::<String>();
+    STANDARD.decode(body).ok()
+}
+
+fn pem_encode(label: &str, der: &[u8]) -> String {
+    let encoded = STANDARD.encode(der);
+    let mut out = format!("-----BEGIN {label}-----\n");
+    for chunk in encoded.as_bytes().chunks(64) {
+        out.push_str(&String::from_utf8_lossy(chunk));
+        out.push('\n');
+    }
+    out.push_str(&format!("-----END {label}-----\n"));
+    out
+}
+
+fn ed25519_spki_der(public_key_raw: &[u8]) -> Vec<u8> {
+    let mut der = Vec::with_capacity(ED25519_SPKI_PREFIX.len() + public_key_raw.len());
+    der.extend_from_slice(ED25519_SPKI_PREFIX);
+    der.extend_from_slice(public_key_raw);
+    der
+}
+
+fn write_identity_file(path: &Path, value: &Value) -> Result<(), String> {
+    write_json_file(path, value)?;
+    set_owner_private_permissions(path);
+    Ok(())
+}
+
+fn set_owner_private_permissions(path: &Path) {
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let _ = std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600));
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = path;
+    }
+}
+
+fn base64url_encode(bytes: &[u8]) -> String {
+    URL_SAFE_NO_PAD.encode(bytes)
+}
+
+fn sha256_hex(bytes: &[u8]) -> String {
+    let digest = Sha256::digest(bytes);
+    digest.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+
 fn emit(state: &GatewayState, event_type: &str, payload: Value) {
     let _ = state.events.send(json!({
         "type": event_type,
         "payload": payload
     }));
+}
+
+fn initial_system_presence() -> BTreeMap<String, Value> {
+    let host = env::var("HOSTNAME")
+        .or_else(|_| env::var("COMPUTERNAME"))
+        .map(|value| value.trim().to_string())
+        .ok()
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| "localhost".to_string());
+    let entry = json!({
+        "host": host.clone(),
+        "version": env!("CARGO_PKG_VERSION"),
+        "mode": "gateway",
+        "reason": "self",
+        "text": format!("Gateway: {host} app {} mode gateway reason self", env!("CARGO_PKG_VERSION")),
+        "ts": now_millis() as u64
+    });
+    let mut entries = BTreeMap::new();
+    entries.insert(host.to_lowercase(), entry);
+    entries
+}
+
+fn system_presence(state: &GatewayState) -> Result<Value, String> {
+    let entries = state
+        .presence
+        .lock()
+        .map_err(|_| "system presence lock poisoned".to_string())?;
+    let mut values = entries.values().cloned().collect::<Vec<_>>();
+    values.sort_by(|left, right| {
+        let left_ts = left.get("ts").and_then(Value::as_u64).unwrap_or(0);
+        let right_ts = right.get("ts").and_then(Value::as_u64).unwrap_or(0);
+        right_ts.cmp(&left_ts)
+    });
+    Ok(Value::Array(values))
+}
+
+fn main_session_wake_last(state: &GatewayState) -> Result<Value, String> {
+    let last = state
+        .last_main_session_wake
+        .lock()
+        .map_err(|_| "main-session wake lock poisoned".to_string())?;
+    Ok(last.clone().unwrap_or(Value::Null))
+}
+
+fn record_main_session_wake_event(
+    state: &GatewayState,
+    text: &str,
+    result: &Value,
+) -> Result<(), String> {
+    let status = match result.get("status").and_then(Value::as_str) {
+        Some("ok") => "sent",
+        Some("skipped") => "skipped",
+        Some("failed") | Some("error") => "failed",
+        _ => "sent",
+    };
+    let mut event = Map::new();
+    event.insert("ts".to_string(), json!(now_millis() as u64));
+    event.insert("status".to_string(), Value::String(status.to_string()));
+    event.insert("preview".to_string(), Value::String(text.to_string()));
+    event.insert("reason".to_string(), Value::String("manual".to_string()));
+    event.insert("channel".to_string(), Value::String("local".to_string()));
+    event.insert("silent".to_string(), Value::Bool(false));
+    event.insert("hasMedia".to_string(), Value::Bool(false));
+    if status == "sent" {
+        event.insert(
+            "indicatorType".to_string(),
+            Value::String("alert".to_string()),
+        );
+    }
+    let event = Value::Object(event);
+    let mut last = state
+        .last_main_session_wake
+        .lock()
+        .map_err(|_| "main-session wake lock poisoned".to_string())?;
+    *last = Some(event.clone());
+    drop(last);
+    emit(state, "main-session-wake", event);
+    Ok(())
+}
+
+fn system_event(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let text = string_param(&params, &["text"]).ok_or_else(|| "text required".to_string())?;
+    let mut entry = Map::new();
+    entry.insert("text".to_string(), Value::String(text));
+    entry.insert("ts".to_string(), json!(now_millis() as u64));
+    for field in [
+        "deviceId",
+        "instanceId",
+        "host",
+        "ip",
+        "version",
+        "platform",
+        "deviceFamily",
+        "modelIdentifier",
+        "mode",
+        "reason",
+    ] {
+        if let Some(value) = string_param(&params, &[field]) {
+            entry.insert(field.to_string(), Value::String(value));
+        }
+    }
+    if let Some(value) = params.get("lastInputSeconds").and_then(Value::as_u64) {
+        entry.insert("lastInputSeconds".to_string(), json!(value));
+    }
+    for field in ["roles", "scopes", "tags"] {
+        if let Some(values) = string_array_param(&params, field) {
+            entry.insert(field.to_string(), json!(values));
+        }
+    }
+
+    let key = system_presence_key(&entry);
+    let entry = Value::Object(entry);
+    {
+        let mut entries = state
+            .presence
+            .lock()
+            .map_err(|_| "system presence lock poisoned".to_string())?;
+        entries.insert(key, entry.clone());
+    }
+    emit(state, "presence", entry);
+    Ok(json!({ "ok": true }))
+}
+
+fn string_array_param(input: &Value, key: &str) -> Option<Vec<String>> {
+    let values = input.get(key)?.as_array()?;
+    if !values.iter().all(Value::is_string) {
+        return None;
+    }
+    let out = values
+        .iter()
+        .filter_map(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    if out.is_empty() {
+        None
+    } else {
+        Some(out)
+    }
+}
+
+fn system_presence_key(entry: &Map<String, Value>) -> String {
+    for field in ["deviceId", "instanceId", "host", "ip"] {
+        if let Some(value) = entry.get(field).and_then(Value::as_str) {
+            let key = value.trim().to_lowercase();
+            if !key.is_empty() {
+                return key;
+            }
+        }
+    }
+    entry
+        .get("text")
+        .and_then(Value::as_str)
+        .map(|value| value.chars().take(64).collect::<String>().to_lowercase())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or_else(|| "rust-gateway".to_string())
 }
 
 fn json_event_to_sse(event: Value) -> Event {
@@ -4522,11 +8426,28 @@ fn now_timestamp_string() -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::collections::BTreeSet;
     use std::sync::{Mutex, OnceLock};
 
     fn env_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
         LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    #[test]
+    fn rust_gateway_method_table_covers_ts_core_gateway_methods() {
+        let ts_methods = ts_core_gateway_methods();
+        let rust_methods = gateway_methods().into_iter().collect::<BTreeSet<_>>();
+        let missing = ts_methods
+            .iter()
+            .filter(|method| !rust_methods.contains(method.as_str()))
+            .cloned()
+            .collect::<Vec<_>>();
+
+        assert!(
+            missing.is_empty(),
+            "Rust Gateway is missing TS core Gateway methods: {missing:?}"
+        );
     }
 
     #[tokio::test]
@@ -4589,6 +8510,27 @@ mod tests {
             .expect("messages")
             .iter()
             .any(|message| message["content"] == "follow up"));
+        let subscribed = handle_gateway_method(&state, "sessions.subscribe", json!({}))
+            .await
+            .expect("sessions subscribe");
+        assert_eq!(subscribed["subscribed"], true);
+        let message_subscribed = handle_gateway_method(
+            &state,
+            "sessions.messages.subscribe",
+            json!({ "key": child_key.clone() }),
+        )
+        .await
+        .expect("session messages subscribe");
+        assert_eq!(message_subscribed["subscribed"], true);
+        assert_eq!(
+            message_subscribed["key"],
+            normalize_session_key(&child_key).expect("normalized child key")
+        );
+        let missing_message_key =
+            handle_gateway_method(&state, "sessions.messages.subscribe", json!({})).await;
+        assert!(missing_message_key
+            .expect_err("message subscribe requires key")
+            .contains("session key required"));
         let subagents = handle_gateway_method(
             &state,
             "subagents",
@@ -4698,6 +8640,38 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rust_gateway_main_session_wake_tracks_last_event() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-main-session-wake");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let initial = handle_gateway_method(&state, "system.mainSessionWake.last", json!({}))
+            .await
+            .expect("initial wake");
+        assert!(initial.is_null());
+
+        let wake = handle_gateway_method(&state, "wake", json!({ "text": "wake main" }))
+            .await
+            .expect("wake");
+        assert_eq!(wake["status"], "ok");
+
+        let last = handle_gateway_method(&state, "last-main-session-wake", json!({}))
+            .await
+            .expect("last wake");
+        assert_eq!(last["status"], "sent");
+        assert_eq!(last["preview"], "wake main");
+        assert_eq!(last["reason"], "manual");
+        assert_eq!(last["channel"], "local");
+        assert_eq!(last["silent"], false);
+        assert!(last["ts"].as_u64().is_some());
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
     async fn rust_gateway_rpc_manages_special_agents_and_memory() {
         let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-rpc-special-agents");
@@ -4742,6 +8716,148 @@ mod tests {
             .await
             .expect("dream history");
         assert_eq!(history["history"].as_array().expect("history").len(), 1);
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_memory_prompt_journal_summary_reads_jsonl() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-prompt-journal-summary");
+        let journal_dir = runtime_root.join("journal");
+        std::fs::create_dir_all(&journal_dir).expect("create journal dir");
+        std::fs::write(
+            journal_dir.join("2026-05-10.jsonl"),
+            [
+                serde_json::to_string(&json!({
+                    "stage": "prompt_assembly",
+                    "sessionKey": "s1",
+                    "dateBucket": "2026-05-10",
+                    "payload": {
+                        "estimatedTokens": 100,
+                        "systemContextText": "abcd"
+                    }
+                }))
+                .expect("prompt assembly"),
+                serde_json::to_string(&json!({
+                    "stage": "after_turn_decision",
+                    "sessionId": "s2",
+                    "dateBucket": "2026-05-10",
+                    "payload": {
+                        "decision": "save",
+                        "skipReason": "none"
+                    }
+                }))
+                .expect("after turn"),
+                serde_json::to_string(&json!({
+                    "stage": "durable_extraction",
+                    "sessionKey": "s1",
+                    "dateBucket": "2026-05-10",
+                    "payload": {
+                        "notesSaved": 2,
+                        "reason": "important"
+                    }
+                }))
+                .expect("durable saved"),
+                serde_json::to_string(&json!({
+                    "stage": "durable_extraction",
+                    "sessionKey": "s3",
+                    "dateBucket": "2026-05-10",
+                    "payload": {
+                        "notesSaved": 0,
+                        "reason": "low-signal"
+                    }
+                }))
+                .expect("durable skipped"),
+                serde_json::to_string(&json!({
+                    "stage": "experience_extract",
+                    "sessionKey": "s4",
+                    "dateBucket": "2026-05-10",
+                    "payload": {
+                        "status": "ok",
+                        "decision": "write",
+                        "writtenCount": 1,
+                        "updatedCount": 2,
+                        "deletedCount": 1
+                    }
+                }))
+                .expect("experience extract"),
+                serde_json::to_string(&json!({
+                    "stage": "experience_write",
+                    "sessionKey": "s5",
+                    "dateBucket": "2026-05-10",
+                    "payload": {
+                        "status": "ok",
+                        "action": "updated",
+                        "title": "Useful note"
+                    }
+                }))
+                .expect("experience write"),
+                String::new(),
+            ]
+            .join("\n"),
+        )
+        .expect("write journal");
+        std::fs::write(
+            journal_dir.join("2026-05-09.jsonl"),
+            format!(
+                "{}\n",
+                serde_json::to_string(&json!({
+                    "stage": "prompt_assembly",
+                    "sessionKey": "old",
+                    "dateBucket": "2026-05-09",
+                    "payload": { "estimatedTokens": 999 }
+                }))
+                .expect("old journal")
+            ),
+        )
+        .expect("write old journal");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let summary = handle_gateway_method(
+            &state,
+            "memory.promptJournal.summary",
+            json!({ "dir": journal_dir.to_string_lossy(), "days": 1 }),
+        )
+        .await
+        .expect("prompt journal summary");
+
+        assert_eq!(summary["files"].as_array().expect("files").len(), 1);
+        assert_eq!(summary["dateBuckets"], json!(["2026-05-10"]));
+        assert_eq!(summary["totalEvents"], 6);
+        assert_eq!(summary["stageCounts"]["prompt_assembly"], 1);
+        assert_eq!(summary["uniqueSessions"], 5);
+        assert_eq!(summary["promptAssembly"]["count"], 1);
+        assert_eq!(summary["promptAssembly"]["avgEstimatedTokens"], 100.0);
+        assert_eq!(summary["promptAssembly"]["avgSystemPromptChars"], 4.0);
+        assert_eq!(summary["afterTurn"]["decisionCounts"]["save"], 1);
+        assert_eq!(summary["afterTurn"]["skipReasonCounts"]["none"], 1);
+        assert_eq!(summary["durableExtraction"]["count"], 2);
+        assert_eq!(summary["durableExtraction"]["notesSavedTotal"], 2);
+        assert_eq!(summary["durableExtraction"]["nonZeroSaveCount"], 1);
+        assert_eq!(summary["durableExtraction"]["zeroSaveCount"], 1);
+        assert_eq!(summary["durableExtraction"]["saveRate"], 0.5);
+        assert_eq!(
+            summary["durableExtraction"]["topReasons"][0],
+            json!({ "reason": "important", "count": 1 })
+        );
+        assert_eq!(summary["experienceExtraction"]["statusCounts"]["ok"], 1);
+        assert_eq!(
+            summary["experienceExtraction"]["decisionCounts"]["write"],
+            1
+        );
+        assert_eq!(summary["experienceExtraction"]["writtenCount"], 1);
+        assert_eq!(summary["experienceExtraction"]["updatedCount"], 2);
+        assert_eq!(summary["experienceExtraction"]["deletedCount"], 1);
+        assert_eq!(summary["experienceWrite"]["statusCounts"]["ok"], 1);
+        assert_eq!(summary["experienceWrite"]["actionCounts"]["updated"], 1);
+        assert_eq!(
+            summary["experienceWrite"]["titles"][0],
+            json!({ "title": "Useful note", "count": 1 })
+        );
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -4886,6 +9002,218 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rust_gateway_approval_methods_track_pending_decisions() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-approvals");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let requested = handle_gateway_method(
+            &state,
+            "exec.approval.request",
+            json!({
+                "id": "approval-1",
+                "command": "pnpm test",
+                "twoPhase": true
+            }),
+        )
+        .await
+        .expect("exec approval request");
+        assert_eq!(requested["status"], "accepted");
+        assert_eq!(requested["id"], "approval-1");
+        assert!(requested["createdAtMs"].as_u64().is_some());
+        assert!(requested["expiresAtMs"].as_u64().is_some());
+
+        let resolved = handle_gateway_method(
+            &state,
+            "exec.approval.resolve",
+            json!({ "id": "approval-1", "decision": "allow-once" }),
+        )
+        .await
+        .expect("exec approval resolve");
+        assert_eq!(resolved["ok"], true);
+
+        let waited = handle_gateway_method(
+            &state,
+            "exec.approval.waitDecision",
+            json!({ "id": "approval-1" }),
+        )
+        .await
+        .expect("exec approval wait");
+        assert_eq!(waited["id"], "approval-1");
+        assert_eq!(waited["decision"], "allow-once");
+        assert!(waited["createdAtMs"].as_u64().is_some());
+        assert!(waited["expiresAtMs"].as_u64().is_some());
+
+        let plugin_requested = handle_gateway_method(
+            &state,
+            "plugin.approval.request",
+            json!({
+                "pluginId": "local-plugin",
+                "title": "Run plugin tool",
+                "description": "Plugin wants to call a write tool.",
+                "twoPhase": true
+            }),
+        )
+        .await
+        .expect("plugin approval request");
+        assert_eq!(plugin_requested["status"], "accepted");
+        let plugin_id = plugin_requested["id"]
+            .as_str()
+            .expect("plugin approval id")
+            .to_string();
+        assert!(plugin_id.starts_with("plugin:"));
+
+        handle_gateway_method(
+            &state,
+            "plugin.approval.resolve",
+            json!({ "id": plugin_id, "decision": "deny" }),
+        )
+        .await
+        .expect("plugin approval resolve");
+        let plugin_waited = handle_gateway_method(
+            &state,
+            "plugin.approval.waitDecision",
+            json!({ "id": plugin_requested["id"] }),
+        )
+        .await
+        .expect("plugin approval wait");
+        assert_eq!(plugin_waited["decision"], "deny");
+
+        let missing = handle_gateway_method(
+            &state,
+            "exec.approval.waitDecision",
+            json!({ "id": "missing-approval" }),
+        )
+        .await;
+        assert!(missing
+            .expect_err("missing approval should fail")
+            .contains("approval expired or not found"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_identity_get_reads_and_repairs_device_identity() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let runtime_root = unique_test_runtime_root("gateway-identity-runtime");
+        let state_dir = unique_test_runtime_root("gateway-identity-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        std::fs::create_dir_all(state_dir.join("identity")).expect("create identity dir");
+        let public_key_pem = [
+            "-----BEGIN PUBLIC KEY-----",
+            "MCowBQYDK2VwAyEAAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE=",
+            "-----END PUBLIC KEY-----",
+            "",
+        ]
+        .join("\n");
+        write_json_file(
+            &state_dir.join("identity/device.json"),
+            &json!({
+                "version": 1,
+                "deviceId": "stale-device-id",
+                "publicKeyPem": public_key_pem,
+                "privateKeyPem": "test-private-key",
+                "createdAtMs": 1
+            }),
+        )
+        .expect("write identity");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let identity = handle_gateway_method(&state, "gateway.identity.get", json!({}))
+            .await
+            .expect("gateway identity");
+
+        assert_eq!(
+            identity["deviceId"],
+            "72cd6e8422c407fb6d098690f1130b7ded7ec2f7f5e1d30bd9d521f015363793"
+        );
+        assert_eq!(
+            identity["publicKey"],
+            "AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE"
+        );
+        let stored =
+            read_config_value(&state_dir.join("identity/device.json")).expect("read identity");
+        assert_eq!(stored["deviceId"], identity["deviceId"]);
+
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_wizard_methods_track_session_state() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-wizard");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let started = handle_gateway_method(&state, "wizard.start", json!({ "mode": "local" }))
+            .await
+            .expect("wizard start");
+        assert_eq!(started["status"], "running");
+        assert_eq!(started["done"], false);
+        assert_eq!(started["step"]["type"], "note");
+        let session_id = started["sessionId"].as_str().expect("session id");
+        let step_id = started["step"]["id"].as_str().expect("step id");
+
+        let status =
+            handle_gateway_method(&state, "wizard.status", json!({ "sessionId": session_id }))
+                .await
+                .expect("wizard status");
+        assert_eq!(status["status"], "running");
+        assert!(status["error"].is_null());
+
+        let completed = handle_gateway_method(
+            &state,
+            "wizard.next",
+            json!({
+                "sessionId": session_id,
+                "answer": { "stepId": step_id, "value": true }
+            }),
+        )
+        .await
+        .expect("wizard next");
+        assert_eq!(completed["done"], true);
+        assert_eq!(completed["status"], "done");
+
+        let missing =
+            handle_gateway_method(&state, "wizard.status", json!({ "sessionId": session_id }))
+                .await;
+        assert!(missing
+            .expect_err("completed wizard should be purged")
+            .contains("wizard not found"));
+
+        let cancel_started =
+            handle_gateway_method(&state, "wizard.start", json!({ "mode": "local" }))
+                .await
+                .expect("wizard start for cancel");
+        let cancel_session_id = cancel_started["sessionId"].as_str().expect("session id");
+        let cancelled = handle_gateway_method(
+            &state,
+            "wizard.cancel",
+            json!({ "sessionId": cancel_session_id }),
+        )
+        .await
+        .expect("wizard cancel");
+        assert_eq!(cancelled["status"], "cancelled");
+        assert_eq!(cancelled["error"], "cancelled");
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
     async fn rust_gateway_agent_runtime_reports_session_store_state() {
         let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-agent-runtime-state");
@@ -4948,6 +9276,21 @@ mod tests {
         assert_eq!(detail["run"]["status"], "spawned");
         assert_eq!(detail["availableActions"]["openSession"], true);
         assert_eq!(detail["availableActions"]["cancel"], true);
+
+        let inspection =
+            handle_gateway_method(&state, "agent.inspect", json!({ "runId": spawned_key }))
+                .await
+                .expect("agent inspect");
+        assert_eq!(inspection["runId"], spawned_key);
+        assert_eq!(inspection["taskId"], spawned_key);
+        assert_eq!(inspection["run"]["category"], "subagents");
+        assert_eq!(inspection["refs"]["transcriptRef"], spawned_key);
+
+        let waited = handle_gateway_method(&state, "agent.wait", json!({ "runId": spawned_key }))
+            .await
+            .expect("agent wait");
+        assert_eq!(waited["runId"], spawned_key);
+        assert_eq!(waited["status"], "running");
 
         let missing = handle_gateway_method(
             &state,
@@ -5115,6 +9458,53 @@ mod tests {
         .expect("esp32 command");
         assert_eq!(esp32_command["status"], "queued");
 
+        let workflow_root = runtime_root.join("workflows");
+        std::fs::create_dir_all(workflow_root.join("specs")).expect("create workflow root");
+        write_json_file(
+            &workflow_root.join("registry.json"),
+            &json!({
+                "version": 1,
+                "workflows": [{
+                    "workflowId": "daily-check",
+                    "name": "Daily Check",
+                    "enabled": true,
+                    "deploymentState": "deployed",
+                    "safeForAutoRun": true,
+                    "createdAt": 1,
+                    "updatedAt": 1
+                }]
+            }),
+        )
+        .expect("write workflow registry");
+        write_json_file(
+            &workflow_root.join("specs/daily-check.json"),
+            &json!({
+                "workflowId": "daily-check",
+                "name": "Daily Check",
+                "goal": "summarize local state",
+                "steps": [{"id": "draft", "kind": "crawclaw_agent"}]
+            }),
+        )
+        .expect("write workflow spec");
+        write_json_file(
+            &workflow_root.join("executions.json"),
+            &json!({
+                "version": 1,
+                "executions": [{
+                    "executionId": "exec-daily-check",
+                    "workflowId": "daily-check",
+                    "workflowName": "Daily Check",
+                    "status": "running",
+                    "steps": [{
+                        "stepId": "draft",
+                        "status": "running",
+                        "executor": "crawclaw_agent"
+                    }]
+                }]
+            }),
+        )
+        .expect("write workflow executions");
+
         let workflow =
             handle_gateway_method(&state, "workflow.get", json!({ "workflow": "daily-check" }))
                 .await
@@ -5126,15 +9516,1250 @@ mod tests {
             "workflow.agent.run",
             json!({
                 "workflow": "daily-check",
+                "executionId": "exec-daily-check",
+                "stepId": "draft",
                 "goal": "summarize local state"
             }),
         )
         .await
         .expect("workflow agent run");
-        assert_eq!(workflow_agent["status"], "queued");
+        assert_eq!(workflow_agent["status"], "running");
         assert!(workflow_agent["session"]["key"].is_string());
 
         let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_tts_methods_report_native_provider_catalog() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-tts-provider-catalog");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        handle_gateway_method(
+            &state,
+            "config.patch",
+            json!({
+                "patch": {
+                    "messages": {
+                        "tts": {
+                            "providers": {
+                                "qwen3-tts": { "enabled": true }
+                            }
+                        }
+                    }
+                }
+            }),
+        )
+        .await
+        .expect("enable qwen3 tts");
+
+        let providers = handle_gateway_method(&state, "tts.providers", json!({}))
+            .await
+            .expect("tts providers");
+        let qwen = providers["providers"]
+            .as_array()
+            .expect("providers")
+            .iter()
+            .find(|provider| provider["id"] == "qwen3-tts")
+            .expect("qwen3 provider");
+        assert_eq!(qwen["name"], "Qwen3-TTS (local)");
+        assert_eq!(qwen["configured"], true);
+        assert!(qwen["models"]
+            .as_array()
+            .expect("models")
+            .iter()
+            .any(|model| model == "Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice"));
+        assert!(qwen["voices"]
+            .as_array()
+            .expect("voices")
+            .iter()
+            .any(|voice| voice == "serena"));
+
+        let invalid = handle_gateway_method(
+            &state,
+            "tts.setProvider",
+            json!({ "provider": "missing-provider" }),
+        )
+        .await;
+        assert!(invalid
+            .expect_err("invalid provider should fail")
+            .contains("Invalid provider"));
+
+        let selected = handle_gateway_method(
+            &state,
+            "tts.setProvider",
+            json!({ "provider": "qwen3-tts" }),
+        )
+        .await
+        .expect("set provider");
+        assert_eq!(selected["provider"], "qwen3-tts");
+
+        let status = handle_gateway_method(&state, "tts.status", json!({}))
+            .await
+            .expect("tts status");
+        assert_eq!(status["provider"], "qwen3-tts");
+        assert!(status["providerStates"]
+            .as_array()
+            .expect("provider states")
+            .iter()
+            .any(|provider| provider["id"] == "qwen3-tts" && provider["configured"] == true));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_system_event_updates_presence_snapshot() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-system-presence");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let initial_presence = handle_gateway_method(&state, "system-presence", json!({}))
+            .await
+            .expect("initial system presence");
+        assert!(initial_presence
+            .as_array()
+            .expect("initial presence array")
+            .iter()
+            .any(|entry| entry["mode"] == "gateway" && entry["reason"] == "self"));
+        assert!(hello_ok(&state)["snapshot"]["presence"]
+            .as_array()
+            .expect("hello presence array")
+            .iter()
+            .any(|entry| entry["mode"] == "gateway" && entry["reason"] == "self"));
+
+        let missing = handle_gateway_method(&state, "system-event", json!({})).await;
+        assert!(missing
+            .expect_err("empty system-event should fail")
+            .contains("text required"));
+
+        let event = handle_gateway_method(
+            &state,
+            "system-event",
+            json!({
+                "text": "desktop awake",
+                "deviceId": "device-1",
+                "host": "macbook",
+                "ip": "100.64.0.2",
+                "version": "2026.5.3",
+                "mode": "desktop",
+                "reason": "active",
+                "lastInputSeconds": 4,
+                "roles": ["desktop"],
+                "scopes": ["operator.admin"]
+            }),
+        )
+        .await
+        .expect("system event");
+        assert_eq!(event["ok"], true);
+
+        let presence = handle_gateway_method(&state, "system-presence", json!({}))
+            .await
+            .expect("system presence");
+        let entries = presence.as_array().expect("presence array");
+        let entry = entries
+            .iter()
+            .find(|entry| entry["deviceId"] == "device-1")
+            .expect("device presence");
+        assert_eq!(entry["host"], "macbook");
+        assert_eq!(entry["ip"], "100.64.0.2");
+        assert_eq!(entry["mode"], "desktop");
+        assert_eq!(entry["lastInputSeconds"], 4);
+        assert_eq!(entry["roles"][0], "desktop");
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_device_pairing_tracks_local_state_files() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let runtime_root = unique_test_runtime_root("gateway-device-pairing-runtime");
+        let state_dir = unique_test_runtime_root("gateway-device-pairing-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        std::fs::create_dir_all(state_dir.join("devices")).expect("create devices dir");
+        let now = now_millis() as u64;
+        write_json_file(
+            &state_dir.join("devices/pending.json"),
+            &json!({
+                "req-1": {
+                    "requestId": "req-1",
+                    "deviceId": "device-1",
+                    "publicKey": "public-key",
+                    "displayName": "Phone",
+                    "role": "operator",
+                    "roles": ["operator"],
+                    "scopes": ["operator.read"],
+                    "ts": now
+                }
+            }),
+        )
+        .expect("write pending");
+        write_json_file(
+            &state_dir.join("devices/paired.json"),
+            &json!({
+                "device-2": {
+                    "deviceId": "device-2",
+                    "publicKey": "paired-key",
+                    "displayName": "Tablet",
+                    "role": "operator",
+                    "roles": ["operator"],
+                    "scopes": ["operator.read"],
+                    "approvedScopes": ["operator.read"],
+                    "tokens": {
+                        "operator": {
+                            "token": "secret-token",
+                            "role": "operator",
+                            "scopes": ["operator.read"],
+                            "createdAtMs": 123
+                        }
+                    },
+                    "createdAtMs": now - 2,
+                    "approvedAtMs": now - 1
+                }
+            }),
+        )
+        .expect("write paired");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let listed = handle_gateway_method(&state, "device.pair.list", json!({}))
+            .await
+            .expect("list pairings");
+        assert_eq!(listed["pending"][0]["requestId"], "req-1");
+        assert_eq!(listed["paired"][0]["deviceId"], "device-2");
+        assert!(listed["paired"][0].get("approvedScopes").is_none());
+        assert_eq!(listed["paired"][0]["tokens"][0]["role"], "operator");
+        assert!(listed["paired"][0]["tokens"][0].get("token").is_none());
+
+        let approved = handle_gateway_method(
+            &state,
+            "device.pair.approve",
+            json!({ "requestId": "req-1", "callerScopes": ["operator.read"] }),
+        )
+        .await
+        .expect("approve pairing");
+        assert_eq!(approved["requestId"], "req-1");
+        assert_eq!(approved["device"]["deviceId"], "device-1");
+        assert_eq!(approved["device"]["tokens"][0]["role"], "operator");
+        assert!(approved["device"]["tokens"][0].get("token").is_none());
+
+        let listed = handle_gateway_method(&state, "device.pair.list", json!({}))
+            .await
+            .expect("list after approve");
+        assert!(listed["pending"].as_array().expect("pending").is_empty());
+        assert!(listed["paired"]
+            .as_array()
+            .expect("paired")
+            .iter()
+            .any(|device| device["deviceId"] == "device-1"));
+
+        let rotated = handle_gateway_method(
+            &state,
+            "device.token.rotate",
+            json!({ "deviceId": "device-2", "role": "operator", "scopes": ["operator.read"] }),
+        )
+        .await
+        .expect("rotate paired device token");
+        assert_eq!(rotated["deviceId"], "device-2");
+        assert_eq!(rotated["role"], "operator");
+        assert_eq!(rotated["scopes"][0], "operator.read");
+        assert!(rotated["token"]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("rust-device-token-operator-"));
+
+        let revoked = handle_gateway_method(
+            &state,
+            "device.token.revoke",
+            json!({ "deviceId": "device-2", "role": "operator" }),
+        )
+        .await
+        .expect("revoke paired device token");
+        assert_eq!(revoked["deviceId"], "device-2");
+        assert_eq!(revoked["role"], "operator");
+        assert!(revoked["revokedAtMs"].as_u64().unwrap_or_default() >= now);
+
+        let listed = handle_gateway_method(&state, "device.pair.list", json!({}))
+            .await
+            .expect("list after token revoke");
+        let revoked_device = listed["paired"]
+            .as_array()
+            .expect("paired")
+            .iter()
+            .find(|device| device["deviceId"] == "device-2")
+            .expect("revoked device");
+        assert!(revoked_device["tokens"][0].get("token").is_none());
+        assert!(
+            revoked_device["tokens"][0]["revokedAtMs"]
+                .as_u64()
+                .unwrap_or_default()
+                >= now
+        );
+
+        write_json_file(
+            &state_dir.join("devices/pending.json"),
+            &json!({
+                "req-2": {
+                    "requestId": "req-2",
+                    "deviceId": "device-3",
+                    "publicKey": "public-key-3",
+                    "ts": now
+                }
+            }),
+        )
+        .expect("write reject pending");
+        let rejected = handle_gateway_method(
+            &state,
+            "device.pair.reject",
+            json!({ "requestId": "req-2" }),
+        )
+        .await
+        .expect("reject pairing");
+        assert_eq!(rejected["requestId"], "req-2");
+        assert_eq!(rejected["deviceId"], "device-3");
+
+        let removed = handle_gateway_method(
+            &state,
+            "device.pair.remove",
+            json!({ "deviceId": "device-2" }),
+        )
+        .await
+        .expect("remove paired device");
+        assert_eq!(removed["deviceId"], "device-2");
+
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_esp32_methods_track_local_state_files() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let runtime_root = unique_test_runtime_root("gateway-esp32-runtime");
+        let state_dir = unique_test_runtime_root("gateway-esp32-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        std::fs::create_dir_all(state_dir.join("devices")).expect("create devices dir");
+        std::fs::create_dir_all(state_dir.join("esp32")).expect("create esp32 dir");
+        let now = now_millis() as u64;
+        write_json_file(
+            &state_dir.join("crawclaw.json"),
+            &json!({
+                "plugins": {
+                    "entries": {
+                        "esp32": {
+                            "enabled": true,
+                            "config": {
+                                "broker": {
+                                    "bindHost": "0.0.0.0",
+                                    "port": 1883,
+                                    "advertisedHost": "127.0.0.1"
+                                },
+                                "udp": {
+                                    "bindHost": "0.0.0.0",
+                                    "port": 1884,
+                                    "advertisedHost": "127.0.0.1"
+                                },
+                                "renderer": { "model": "openai/gpt-5.4-mini" },
+                                "tools": { "allowlist": ["display.*"] }
+                            }
+                        }
+                    }
+                }
+            }),
+        )
+        .expect("write config");
+        write_json_file(
+            &state_dir.join("devices/pending.json"),
+            &json!({
+                "req-esp32": {
+                    "requestId": "req-esp32",
+                    "deviceId": "esp32-2",
+                    "publicKey": "fingerprint-2",
+                    "displayName": "Desk Pending",
+                    "role": "esp32",
+                    "roles": ["esp32"],
+                    "scopes": ["device.esp32"],
+                    "deviceFamily": "ESP32-S3-BOX-3",
+                    "clientMode": "mqtt-udp",
+                    "ts": now
+                },
+                "req-other": {
+                    "requestId": "req-other",
+                    "deviceId": "other-1",
+                    "publicKey": "other-key",
+                    "deviceFamily": "other",
+                    "clientMode": "other",
+                    "ts": now - 1
+                }
+            }),
+        )
+        .expect("write pending");
+        write_json_file(
+            &state_dir.join("devices/paired.json"),
+            &json!({
+                "esp32-1": {
+                    "deviceId": "esp32-1",
+                    "publicKey": "fingerprint-1",
+                    "displayName": "Desk",
+                    "role": "esp32",
+                    "roles": ["esp32"],
+                    "scopes": ["device.esp32"],
+                    "approvedScopes": ["device.esp32"],
+                    "tokens": {
+                        "esp32": {
+                            "token": "secret-token",
+                            "role": "esp32",
+                            "scopes": ["device.esp32"],
+                            "createdAtMs": 123
+                        }
+                    },
+                    "deviceFamily": "ESP32-S3-BOX-3",
+                    "clientMode": "mqtt-udp",
+                    "createdAtMs": now - 2,
+                    "approvedAtMs": now - 1
+                }
+            }),
+        )
+        .expect("write paired");
+        write_json_file(
+            &state_dir.join("esp32/devices.json"),
+            &json!({
+                "devices": {
+                    "esp32-1": {
+                        "deviceId": "esp32-1",
+                        "name": "Stored Desk",
+                        "fingerprint": "stored-fingerprint",
+                        "capabilities": {
+                            "hardwareTarget": "ESP32-S3-BOX-3",
+                            "display": { "width": 320, "height": 240, "color": true }
+                        },
+                        "lastSeenAtMs": 300
+                    }
+                }
+            }),
+        )
+        .expect("write esp32 devices");
+        write_json_file(
+            &state_dir.join("esp32/pairing-sessions.json"),
+            &json!({
+                "pair-1": {
+                    "pairId": "pair-1",
+                    "password": "secret-pair-code",
+                    "name": "desk",
+                    "hardwareTarget": "ESP32-S3-BOX-3",
+                    "issuedAtMs": now - 10,
+                    "expiresAtMs": now + 60_000
+                },
+                "expired": {
+                    "pairId": "expired",
+                    "password": "expired-code",
+                    "hardwareTarget": "ESP32-S3-BOX-3",
+                    "issuedAtMs": now - 20,
+                    "expiresAtMs": now - 1
+                }
+            }),
+        )
+        .expect("write sessions");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let status = handle_gateway_method(&state, "esp32.status.get", json!({}))
+            .await
+            .expect("esp32 status");
+        assert_eq!(status["enabled"], true);
+        assert_eq!(status["serviceRunning"], false);
+        assert_eq!(status["broker"]["advertisedHost"], "127.0.0.1");
+        assert_eq!(status["counts"]["activePairingSessions"], 1);
+        assert_eq!(status["counts"]["pendingRequests"], 1);
+        assert_eq!(status["counts"]["pairedDevices"], 1);
+        assert_eq!(
+            status["activePairingSessions"][0]["username"],
+            "pair:pair-1"
+        );
+        assert!(status["activePairingSessions"][0].get("password").is_none());
+
+        let requests = handle_gateway_method(&state, "esp32.pairing.requests.list", json!({}))
+            .await
+            .expect("esp32 requests");
+        assert_eq!(requests["items"].as_array().expect("items").len(), 1);
+        assert_eq!(requests["items"][0]["requestId"], "req-esp32");
+
+        let devices = handle_gateway_method(&state, "esp32.devices.list", json!({}))
+            .await
+            .expect("esp32 devices");
+        assert_eq!(devices["items"].as_array().expect("items").len(), 1);
+        assert_eq!(devices["items"][0]["deviceId"], "esp32-1");
+        assert_eq!(devices["items"][0]["lastSeenAtMs"], 300);
+
+        let device = handle_gateway_method(
+            &state,
+            "esp32.devices.get",
+            json!({ "deviceId": "esp32-1" }),
+        )
+        .await
+        .expect("esp32 get");
+        assert_eq!(device["status"], "found");
+        assert_eq!(device["paired"]["deviceId"], "esp32-1");
+        assert!(device["paired"]["tokens"][0].get("token").is_none());
+
+        let started = handle_gateway_method(
+            &state,
+            "esp32.pairing.start",
+            json!({ "name": "new desk", "ttlMs": 60000 }),
+        )
+        .await
+        .expect("start pairing");
+        assert_eq!(
+            started["username"],
+            format!("pair:{}", started["pairId"].as_str().unwrap())
+        );
+        assert!(started["pairCode"]
+            .as_str()
+            .unwrap_or_default()
+            .starts_with("rust-pair-code-"));
+        assert_eq!(started["broker"]["host"], "127.0.0.1");
+        let pair_id = started["pairId"].as_str().expect("pair id").to_string();
+
+        let revoked = handle_gateway_method(
+            &state,
+            "esp32.pairing.session.revoke",
+            json!({ "pairId": pair_id }),
+        )
+        .await
+        .expect("revoke pairing session");
+        assert_eq!(revoked["pairId"], started["pairId"]);
+
+        let approved = handle_gateway_method(
+            &state,
+            "esp32.pairing.request.approve",
+            json!({ "requestId": "req-esp32" }),
+        )
+        .await
+        .expect("approve esp32 request");
+        assert_eq!(approved["deviceId"], "esp32-2");
+
+        let rejected = handle_gateway_method(
+            &state,
+            "esp32.pairing.request.reject",
+            json!({ "requestId": "req-other" }),
+        )
+        .await
+        .expect("reject non-esp32 request");
+        assert_eq!(rejected["requestId"], "req-other");
+
+        let removed = handle_gateway_method(
+            &state,
+            "esp32.devices.revoke",
+            json!({ "deviceId": "esp32-1" }),
+        )
+        .await
+        .expect("revoke esp32 device");
+        assert_eq!(removed["deviceId"], "esp32-1");
+
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_workflow_methods_track_local_registry() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let previous_n8n_base_url = env::var_os("CRAWCLAW_N8N_BASE_URL");
+        let previous_n8n_api_key = env::var_os("CRAWCLAW_N8N_API_KEY");
+        let runtime_root = unique_test_runtime_root("gateway-workflow-runtime");
+        let workspace_dir = unique_test_runtime_root("gateway-workflow-workspace");
+        let state_dir = unique_test_runtime_root("gateway-workflow-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        env::remove_var("CRAWCLAW_N8N_BASE_URL");
+        env::remove_var("CRAWCLAW_N8N_API_KEY");
+        let root = workspace_dir.join(".crawclaw/workflows");
+        std::fs::create_dir_all(root.join("specs")).expect("create workflow store");
+        write_json_file(
+            &root.join("registry.json"),
+            &json!({
+                "version": 1,
+                "updatedAt": 200,
+                "workflows": [
+                    {
+                        "workflowId": "daily-check",
+                        "name": "Daily Check",
+                        "description": "Daily ops check",
+                        "scope": "workspace",
+                        "target": "n8n",
+                        "enabled": true,
+                        "safeForAutoRun": true,
+                        "requiresApproval": false,
+                        "tags": ["ops"],
+                        "specVersion": 1,
+                        "deploymentVersion": 1,
+                        "deploymentState": "deployed",
+                        "n8nWorkflowId": "wf_remote",
+                        "createdAt": 100,
+                        "updatedAt": 200
+                    },
+                    {
+                        "workflowId": "disabled-check",
+                        "name": "Disabled Check",
+                        "scope": "workspace",
+                        "target": "n8n",
+                        "enabled": false,
+                        "safeForAutoRun": false,
+                        "requiresApproval": false,
+                        "tags": [],
+                        "specVersion": 1,
+                        "deploymentVersion": 0,
+                        "deploymentState": "draft",
+                        "createdAt": 100,
+                        "updatedAt": 150
+                    }
+                ]
+            }),
+        )
+        .expect("write registry");
+        write_json_file(
+            &root.join("specs/daily-check.json"),
+            &json!({
+                "workflowId": "daily-check",
+                "name": "Daily Check",
+                "goal": "Check daily ops",
+                "steps": []
+            }),
+        )
+        .expect("write spec");
+        write_json_file(
+            &root.join("executions.json"),
+            &json!({
+                "version": 1,
+                "updatedAt": 300,
+                "executions": [
+                    {
+                        "executionId": "exec-1",
+                        "workflowId": "daily-check",
+                        "workflowName": "Daily Check",
+                        "status": "running",
+                        "currentStepId": "draft",
+                        "currentExecutor": "crawclaw_agent",
+                        "steps": [
+                            {
+                                "stepId": "draft",
+                                "title": "Draft content",
+                                "status": "running",
+                                "executor": "crawclaw_agent",
+                                "startedAt": 250,
+                                "updatedAt": 250
+                            },
+                            {
+                                "stepId": "publish",
+                                "title": "Publish",
+                                "status": "pending",
+                                "executor": "n8n",
+                                "updatedAt": 250
+                            }
+                        ],
+                        "startedAt": 250,
+                        "updatedAt": 300
+                    }
+                ]
+            }),
+        )
+        .expect("write executions");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let workspace = workspace_dir.to_string_lossy().to_string();
+
+        let listed = handle_gateway_method(
+            &state,
+            "workflow.list",
+            json!({ "workspaceDir": workspace }),
+        )
+        .await
+        .expect("workflow list");
+        assert_eq!(listed["count"], 1);
+        assert_eq!(listed["workflows"][0]["workflowId"], "daily-check");
+        assert_eq!(listed["workflows"][0]["runCount"], 1);
+        assert_eq!(
+            listed["workflows"][0]["invocation"]["recommendedAction"],
+            "run"
+        );
+
+        let listed_all = handle_gateway_method(
+            &state,
+            "workflow.list",
+            json!({ "workspaceDir": workspace, "includeDisabled": true }),
+        )
+        .await
+        .expect("workflow list all");
+        assert_eq!(listed_all["count"], 2);
+
+        let details = handle_gateway_method(
+            &state,
+            "workflow.get",
+            json!({ "workspaceDir": workspace, "workflow": "Daily Check" }),
+        )
+        .await
+        .expect("workflow get");
+        assert_eq!(details["workflow"]["workflowId"], "daily-check");
+        assert_eq!(details["spec"]["goal"], "Check daily ops");
+        assert_eq!(details["recentExecutions"][0]["executionId"], "exec-1");
+
+        let missing_runtime = handle_gateway_method(
+            &state,
+            "workflow.run",
+            json!({ "workspaceDir": workspace, "workflow": "daily-check" }),
+        )
+        .await;
+        assert!(missing_runtime
+            .expect_err("workflow.run should require n8n config")
+            .contains("n8n is not configured"));
+
+        env::set_var("CRAWCLAW_N8N_BASE_URL", "https://n8n.example.com/");
+        env::set_var("CRAWCLAW_N8N_API_KEY", "test-n8n-key");
+
+        for method in [
+            "workflow.get",
+            "workflow.run",
+            "workflow.enable",
+            "workflow.archive",
+            "workflow.delete",
+        ] {
+            let missing = handle_gateway_method(
+                &state,
+                method,
+                json!({ "workspaceDir": workspace, "workflow": "missing-workflow" }),
+            )
+            .await;
+            assert!(missing
+                .expect_err("missing workflow should fail")
+                .contains("Workflow \"missing-workflow\" not found."));
+        }
+
+        let matched = handle_gateway_method(
+            &state,
+            "workflow.match",
+            json!({ "workspaceDir": workspace, "query": "daily" }),
+        )
+        .await
+        .expect("workflow match");
+        assert_eq!(matched["count"], 1);
+        assert_eq!(matched["matches"][0]["workflowId"], "daily-check");
+
+        let disabled_run = handle_gateway_method(
+            &state,
+            "workflow.run",
+            json!({ "workspaceDir": workspace, "workflow": "disabled-check" }),
+        )
+        .await;
+        assert!(disabled_run
+            .expect_err("disabled workflow should not run")
+            .contains("disabled and cannot run"));
+
+        let run = handle_gateway_method(
+            &state,
+            "workflow.run",
+            json!({ "workspaceDir": workspace, "workflow": "daily-check" }),
+        )
+        .await
+        .expect("workflow run");
+        assert_eq!(run["execution"]["status"], "running");
+        assert_eq!(run["execution"]["n8nWorkflowId"], "wf_remote");
+        assert_eq!(run["execution"]["n8nBaseUrl"], "https://n8n.example.com");
+        let execution_id = run["execution"]["executionId"]
+            .as_str()
+            .expect("execution id")
+            .to_string();
+
+        let status = handle_gateway_method(
+            &state,
+            "workflow.status",
+            json!({ "workspaceDir": workspace, "executionId": execution_id }),
+        )
+        .await
+        .expect("workflow status");
+        assert_eq!(status["execution"]["status"], "running");
+        assert_eq!(status["execution"]["n8nWorkflowId"], "wf_remote");
+
+        let agent_run = handle_gateway_method(
+            &state,
+            "workflow.agent.run",
+            json!({
+                "workspaceDir": workspace,
+                "workflowId": "daily-check",
+                "executionId": "exec-1",
+                "stepId": "draft",
+                "goal": "Draft content"
+            }),
+        )
+        .await
+        .expect("workflow agent run");
+        assert_eq!(agent_run["ok"], true);
+        assert_eq!(agent_run["status"], "running");
+        assert_eq!(agent_run["workflow"]["workflowId"], "daily-check");
+        assert_eq!(agent_run["execution"]["executionId"], "exec-1");
+        assert_eq!(agent_run["execution"]["steps"][0]["stepId"], "draft");
+        assert_eq!(agent_run["execution"]["steps"][0]["status"], "running");
+        assert_eq!(
+            agent_run["execution"]["steps"][0]["sessionKey"],
+            agent_run["session"]["key"]
+        );
+
+        let cancelled = handle_gateway_method(
+            &state,
+            "workflow.cancel",
+            json!({ "workspaceDir": workspace, "executionId": execution_id }),
+        )
+        .await
+        .expect("workflow cancel");
+        assert_eq!(cancelled["execution"]["status"], "cancelled");
+        assert_eq!(
+            cancelled["execution"]["n8nBaseUrl"],
+            "https://n8n.example.com"
+        );
+
+        let disabled = handle_gateway_method(
+            &state,
+            "workflow.disable",
+            json!({ "workspaceDir": workspace, "workflow": "daily-check" }),
+        )
+        .await
+        .expect("workflow disable");
+        assert_eq!(disabled["workflow"]["enabled"], false);
+
+        let archived = handle_gateway_method(
+            &state,
+            "workflow.archive",
+            json!({ "workspaceDir": workspace, "workflow": "daily-check" }),
+        )
+        .await
+        .expect("workflow archive");
+        assert!(archived["workflow"].get("archivedAt").is_some());
+
+        let removed = handle_gateway_method(
+            &state,
+            "workflow.delete",
+            json!({ "workspaceDir": workspace, "workflow": "daily-check" }),
+        )
+        .await
+        .expect("workflow delete");
+        assert_eq!(removed["deleted"], true);
+        assert_eq!(removed["workflowId"], "daily-check");
+        assert_eq!(removed["removedExecutions"], 2);
+
+        match previous_n8n_base_url {
+            Some(value) => env::set_var("CRAWCLAW_N8N_BASE_URL", value),
+            None => env::remove_var("CRAWCLAW_N8N_BASE_URL"),
+        }
+        match previous_n8n_api_key {
+            Some(value) => env::set_var("CRAWCLAW_N8N_API_KEY", value),
+            None => env::remove_var("CRAWCLAW_N8N_API_KEY"),
+        }
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(workspace_dir);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_usage_and_observation_methods_use_protocol_shapes() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let previous_minimax = env::var_os("MINIMAX_API_KEY");
+        let runtime_root = unique_test_runtime_root("gateway-usage-runtime");
+        let state_dir = unique_test_runtime_root("gateway-usage-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        env::set_var("MINIMAX_API_KEY", "test-minimax-key");
+        let db_path = state_dir.join("memory-runtime.sqlite");
+        write_json_file(
+            &state_dir.join("crawclaw.json"),
+            &json!({
+                "memory": {
+                    "runtimeStore": {
+                        "type": "sqlite",
+                        "dbPath": db_path.to_string_lossy()
+                    }
+                }
+            }),
+        )
+        .expect("write memory config");
+        let db = rusqlite::Connection::open(&db_path).expect("open observation db");
+        db.execute_batch(
+            r#"
+            CREATE TABLE gm_observation_runs (
+              trace_id TEXT PRIMARY KEY,
+              root_span_id TEXT,
+              run_id TEXT,
+              task_id TEXT,
+              session_id TEXT,
+              session_key TEXT,
+              agent_id TEXT,
+              parent_agent_id TEXT,
+              workflow_run_id TEXT,
+              status TEXT NOT NULL DEFAULT 'unknown',
+              started_at INTEGER,
+              ended_at INTEGER,
+              last_event_at INTEGER,
+              event_count INTEGER NOT NULL DEFAULT 0,
+              error_count INTEGER NOT NULL DEFAULT 0,
+              sources_json TEXT NOT NULL DEFAULT '[]',
+              refs_json TEXT,
+              summary TEXT NOT NULL DEFAULT '',
+              created_at INTEGER NOT NULL,
+              updated_at INTEGER NOT NULL
+            );
+            INSERT INTO gm_observation_runs
+              (trace_id, root_span_id, run_id, task_id, session_id, session_key, agent_id, status, started_at, last_event_at, event_count, error_count, sources_json, summary, created_at, updated_at)
+            VALUES
+              ('trace-a', 'span-a', 'run-a', 'task-a', 'session-a', 'agent:main:main', 'main', 'running', 100, 120, 1, 0, '["lifecycle"]', 'running main observation', 100, 120),
+              ('trace-b', 'span-b', 'run-b', 'task-b', 'session-b', 'agent:worker:main', 'worker', 'error', 200, 240, 2, 1, '["lifecycle","trajectory"]', 'failed worker observation', 200, 240);
+            "#,
+        )
+        .expect("seed observation db");
+        drop(db);
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let usage = handle_gateway_method(&state, "usage.status", json!({}))
+            .await
+            .expect("usage status");
+        assert!(usage["providers"]
+            .as_array()
+            .expect("providers")
+            .iter()
+            .any(|provider| {
+                provider["provider"] == "minimax"
+                    && provider["displayName"] == "MiniMax"
+                    && provider["windows"].as_array().is_some()
+            }));
+
+        let observations = handle_gateway_method(
+            &state,
+            "agent.observations.list",
+            json!({ "query": "task-a", "status": "running", "source": "lifecycle", "limit": 500 }),
+        )
+        .await
+        .expect("observation list");
+        assert_eq!(observations["items"][0]["traceId"], "trace-a");
+        assert_eq!(observations["items"][0]["runId"], "run-a");
+        assert_eq!(observations["items"][0]["taskId"], "task-a");
+        assert_eq!(observations["items"][0]["eventCount"], 1);
+        assert_eq!(observations["items"][0]["errorCount"], 0);
+        assert_eq!(observations["items"][0]["sources"], json!(["lifecycle"]));
+        assert_eq!(
+            observations["items"][0]["summary"],
+            "running main observation"
+        );
+        assert!(observations["generatedAt"].as_u64().is_some());
+        assert!(observations.get("observations").is_none());
+        assert!(observations.get("limit").is_none());
+        assert!(observations.get("implementation").is_none());
+
+        let invalid = handle_gateway_method(
+            &state,
+            "agent.observations.list",
+            json!({ "status": "done" }),
+        )
+        .await;
+        assert!(invalid
+            .expect_err("invalid status")
+            .contains("invalid status"));
+
+        match previous_minimax {
+            Some(value) => env::set_var("MINIMAX_API_KEY", value),
+            None => env::remove_var("MINIMAX_API_KEY"),
+        }
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_usage_status_reads_provider_auth_env_catalog() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let previous_anthropic_oauth = env::var_os("ANTHROPIC_OAUTH_TOKEN");
+        let previous_copilot = env::var_os("GH_COPILOT_TOKEN");
+        let runtime_root = unique_test_runtime_root("gateway-usage-provider-auth-catalog");
+        let state_dir = unique_test_runtime_root("gateway-usage-provider-auth-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        env::set_var("ANTHROPIC_OAUTH_TOKEN", "test-anthropic-oauth");
+        env::set_var("GH_COPILOT_TOKEN", "test-copilot-token");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let usage = handle_gateway_method(&state, "usage.status", json!({}))
+            .await
+            .expect("usage status");
+
+        assert!(usage["providers"]
+            .as_array()
+            .expect("providers")
+            .iter()
+            .any(|provider| provider["provider"] == "anthropic"));
+        assert!(usage["providers"]
+            .as_array()
+            .expect("providers")
+            .iter()
+            .any(|provider| provider["provider"] == "github-copilot"));
+
+        match previous_anthropic_oauth {
+            Some(value) => env::set_var("ANTHROPIC_OAUTH_TOKEN", value),
+            None => env::remove_var("ANTHROPIC_OAUTH_TOKEN"),
+        }
+        match previous_copilot {
+            Some(value) => env::set_var("GH_COPILOT_TOKEN", value),
+            None => env::remove_var("GH_COPILOT_TOKEN"),
+        }
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_secrets_reload_reports_unresolved_secret_refs() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let previous_secret = env::var_os("CRAWCLAW_SECRET_OK");
+        let runtime_root = unique_test_runtime_root("gateway-secrets-runtime");
+        let state_dir = unique_test_runtime_root("gateway-secrets-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        env::set_var("CRAWCLAW_SECRET_OK", "secret-value");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        write_json_file(
+            &state_dir.join("crawclaw.json"),
+            &json!({
+                "gateway": {
+                    "auth": {
+                        "token": { "source": "env", "id": "CRAWCLAW_SECRET_OK" },
+                        "password": { "source": "file", "id": "missing-secret.txt" }
+                    }
+                }
+            }),
+        )
+        .expect("write config");
+
+        let reloaded = handle_gateway_method(&state, "secrets.reload", json!({}))
+            .await
+            .expect("secrets reload");
+        assert_eq!(reloaded["ok"], true);
+        assert_eq!(reloaded["checkedRefCount"], 2);
+        assert_eq!(reloaded["warningCount"], 1);
+        assert!(reloaded["diagnostics"][0]
+            .as_str()
+            .unwrap_or_default()
+            .contains("missing-secret.txt"));
+
+        match previous_secret {
+            Some(value) => env::set_var("CRAWCLAW_SECRET_OK", value),
+            None => env::remove_var("CRAWCLAW_SECRET_OK"),
+        }
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_usage_cost_aggregates_local_session_transcripts() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let runtime_root = unique_test_runtime_root("gateway-usage-cost-runtime");
+        let state_dir = unique_test_runtime_root("gateway-usage-cost-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let key = "usage-cost";
+        let transcript_path = state
+            .session_store
+            .session_transcript_path(key)
+            .expect("transcript path");
+        append_jsonl(
+            &transcript_path,
+            &json!({
+                "timestamp": "2026-05-11T00:00:00.000Z",
+                "message": {
+                    "role": "assistant",
+                    "usage": {
+                        "input": 10,
+                        "output": 5,
+                        "cacheRead": 2,
+                        "cacheWrite": 1,
+                        "totalTokens": 18,
+                        "cost": {
+                            "total": 0.018,
+                            "input": 0.010,
+                            "output": 0.005,
+                            "cacheRead": 0.002,
+                            "cacheWrite": 0.001
+                        }
+                    }
+                }
+            }),
+        )
+        .expect("append transcript entry");
+        append_jsonl(
+            &transcript_path,
+            &json!({
+                "timestamp": "2026-05-11T01:00:00.000Z",
+                "message": {
+                    "role": "assistant",
+                    "usage": {
+                        "input": 3,
+                        "output": 4,
+                        "total": 7
+                    }
+                }
+            }),
+        )
+        .expect("append transcript entry");
+
+        let cost = handle_gateway_method(&state, "usage.cost", json!({ "days": 30 }))
+            .await
+            .expect("usage cost");
+        assert_eq!(cost["days"], 30);
+        assert_eq!(cost["daily"].as_array().expect("daily").len(), 1);
+        assert_eq!(cost["daily"][0]["date"], "2026-05-11");
+        assert_eq!(cost["totals"]["input"], 13);
+        assert_eq!(cost["totals"]["output"], 9);
+        assert_eq!(cost["totals"]["cacheRead"], 2);
+        assert_eq!(cost["totals"]["cacheWrite"], 1);
+        assert_eq!(cost["totals"]["totalTokens"], 25);
+        assert_eq!(cost["totals"]["totalCost"], 0.018);
+        assert_eq!(cost["totals"]["inputCost"], 0.01);
+        assert_eq!(cost["totals"]["outputCost"], 0.005);
+        assert_eq!(cost["totals"]["cacheReadCost"], 0.002);
+        assert_eq!(cost["totals"]["cacheWriteCost"], 0.001);
+        assert_eq!(cost["totals"]["missingCostEntries"], 1);
+        assert_eq!(cost["daily"][0]["totalTokens"], 25);
+        assert_eq!(cost["daily"][0]["missingCostEntries"], 1);
+
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_exec_approvals_set_persists_local_file() {
+        let _guard = env_lock().lock().expect("env lock");
+        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
+        let runtime_root = unique_test_runtime_root("gateway-exec-approvals-runtime");
+        let state_dir = unique_test_runtime_root("gateway-exec-approvals-state");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let before = handle_gateway_method(&state, "exec.approvals.get", json!({}))
+            .await
+            .expect("exec approvals get");
+        assert_eq!(before["exists"], false);
+
+        let updated = handle_gateway_method(
+            &state,
+            "exec.approvals.set",
+            json!({
+                "file": {
+                    "version": 1,
+                    "defaults": { "security": "full", "ask": "off" },
+                    "agents": {
+                        "main": {
+                            "ask": "on-request"
+                        }
+                    }
+                }
+            }),
+        )
+        .await
+        .expect("exec approvals set");
+        assert_eq!(updated["exists"], true);
+        assert_eq!(updated["file"]["defaults"]["security"], "full");
+        assert_eq!(updated["file"]["agents"]["main"]["ask"], "on-request");
+        assert!(state_dir.join("exec-approvals.json").exists());
+
+        let changed = handle_gateway_method(
+            &state,
+            "exec.approvals.set",
+            json!({
+                "baseHash": updated["hash"],
+                "file": {
+                    "version": 1,
+                    "defaults": { "security": "restricted" },
+                    "agents": {}
+                }
+            }),
+        )
+        .await
+        .expect("exec approvals set with base hash");
+        assert_eq!(changed["file"]["defaults"]["security"], "restricted");
+
+        let stale = handle_gateway_method(
+            &state,
+            "exec.approvals.set",
+            json!({
+                "baseHash": updated["hash"],
+                "file": {
+                    "version": 1,
+                    "defaults": {},
+                    "agents": {}
+                }
+            }),
+        )
+        .await;
+        assert!(stale
+            .expect_err("stale base hash should fail")
+            .contains("exec approvals changed since last load"));
+
+        match previous_state_dir {
+            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
+            None => env::remove_var("CRAWCLAW_STATE_DIR"),
+        }
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(state_dir);
     }
 
     #[tokio::test]
@@ -5230,6 +10855,27 @@ mod tests {
 
     fn unique_test_runtime_root(name: &str) -> PathBuf {
         env::temp_dir().join(format!("{name}-{}", now_millis()))
+    }
+
+    fn ts_core_gateway_methods() -> Vec<String> {
+        let source = include_str!("../../../src/gateway/server-methods-list.ts");
+        let start = source
+            .find("const BASE_METHODS = [")
+            .expect("BASE_METHODS start");
+        let rest = &source[start..];
+        let end = rest.find("];").expect("BASE_METHODS end");
+        rest[..end]
+            .lines()
+            .filter_map(|line| {
+                let trimmed = line.trim();
+                let value = trimmed.strip_prefix('"')?.split('"').next()?;
+                if value.is_empty() {
+                    None
+                } else {
+                    Some(value.to_string())
+                }
+            })
+            .collect()
     }
 
     fn run_git_test_command(cwd: &std::path::Path, args: &[&str]) {
