@@ -27,6 +27,7 @@ use std::env;
 use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::{Path, PathBuf};
+use std::process::Command;
 use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -215,6 +216,11 @@ pub async fn run_gateway(config: GatewayRunConfig) -> Result<(), String> {
     axum::serve(listener, app)
         .await
         .map_err(|error| format!("Rust Gateway exited: {error}"))
+}
+
+pub async fn call_local_gateway_method(method: &str, params: Value) -> Result<Value, String> {
+    let state = GatewayState::new(GatewayRunConfig::default());
+    handle_gateway_method(&state, method, params).await
 }
 
 impl GatewayState {
@@ -982,6 +988,9 @@ async fn handle_gateway_method(
 }
 
 fn config_path(state: &GatewayState) -> PathBuf {
+    if let Some(value) = env::var_os("CRAWCLAW_CONFIG_PATH").filter(|value| !value.is_empty()) {
+        return PathBuf::from(value);
+    }
     state.state_dir.join("crawclaw.json")
 }
 
@@ -3498,20 +3507,23 @@ fn plugins_set_enabled(
 }
 
 fn plugins_install(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let (mut manifest, source_root, install_source) = plugin_install_manifest(&params)?;
-    let id = resolve_plugin_install_id(&params, &manifest)?;
-    normalize_plugin_manifest(&mut manifest, &id)?;
-    let plugin_dir = plugin_install_dir(state, &id);
-    let manifest_path = plugin_dir.join("crawclaw.plugin.json");
-    let source_path = source_root.unwrap_or_else(|| plugin_dir.clone());
-
-    if !same_filesystem_path(&source_path, &plugin_dir) {
-        copy_plugin_directory(&source_path, &plugin_dir)?;
+    let mut source = plugin_install_source(state, &params, "install")?;
+    let id = resolve_plugin_install_id(&params, &source.manifest)?;
+    normalize_plugin_manifest(&mut source.manifest, &id)?;
+    let link = bool_param(&params, &["link"]).unwrap_or(false);
+    let plugin_dir = if link {
+        source
+            .source_root
+            .clone()
+            .ok_or_else(|| "plugins.install link requires a local plugin directory".to_string())?
     } else {
-        std::fs::create_dir_all(&plugin_dir)
-            .map_err(|error| format!("failed to create plugin directory: {error}"))?;
-    }
-    write_json_file(&manifest_path, &manifest)?;
+        plugin_install_dir(state, &id)
+    };
+    let manifest_path = if link {
+        plugin_dir.join("crawclaw.plugin.json")
+    } else {
+        install_plugin_source(&source, &plugin_dir, false)?
+    };
 
     let path = config_path(state);
     let mut config = read_config_value(&path)?;
@@ -3521,21 +3533,41 @@ fn plugins_install(state: &GatewayState, params: Value) -> Result<Value, String>
         Value::Bool(true),
     )?;
     delete_json_path(&mut config, &format!("plugins.entries.{id}.source"));
+    if link {
+        add_string_to_json_array(
+            &mut config,
+            "plugins.load.paths",
+            &plugin_dir.to_string_lossy(),
+        )?;
+    }
+    let mut install_record = plugin_install_record(&source, &plugin_dir);
+    if bool_param(&params, &["pin"]).unwrap_or(false) && source.install_source == "npm" {
+        if let Some(resolved_spec) = install_record
+            .get("resolvedSpec")
+            .and_then(Value::as_str)
+            .map(ToOwned::to_owned)
+        {
+            if let Some(record) = install_record.as_object_mut() {
+                record.insert("spec".to_string(), Value::String(resolved_spec));
+            }
+        }
+    }
     set_json_path(
         &mut config,
         &format!("plugins.installs.{id}"),
-        plugin_install_record(install_source, &source_path, &plugin_dir, &manifest),
+        install_record,
     )?;
     write_config_value(&path, &config)?;
+    cleanup_plugin_temp_dir(&source);
     Ok(json!({
         "ok": true,
         "pluginId": id,
         "id": id,
-        "installSource": install_source,
+        "installSource": source.install_source,
         "requiresRestart": true,
         "warnings": [],
         "manifestPath": manifest_path.to_string_lossy(),
-        "manifest": manifest,
+        "manifest": source.manifest,
         "implementation": "rust-native"
     }))
 }
@@ -3563,7 +3595,10 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
             .get("source")
             .and_then(Value::as_str)
             .unwrap_or_default();
-        if source != "path" && source != "bundled" {
+        if !matches!(
+            source,
+            "path" | "bundled" | "archive" | "npm" | "clawhub" | "marketplace"
+        ) {
             outcomes.push(json!({
                 "pluginId": id,
                 "status": "skipped",
@@ -3571,22 +3606,24 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
             }));
             continue;
         }
-        let Some(source_path_raw) = record.get("sourcePath").and_then(Value::as_str) else {
-            outcomes.push(json!({
-                "pluginId": id,
-                "status": "skipped",
-                "message": format!("Skipping \"{id}\" (missing sourcePath).")
-            }));
-            continue;
-        };
-        let source_path = normalize_plugin_filesystem_path(state, source_path_raw);
         let install_path = record
             .get("installPath")
             .and_then(Value::as_str)
             .map(|value| normalize_plugin_filesystem_path(state, value))
             .unwrap_or_else(|| plugin_install_dir(state, &id));
-        let source_manifest_path = match plugin_manifest_path_from_source(&source_path) {
-            Ok((_, manifest_path)) => manifest_path,
+        let source_params = match plugin_update_source_params(state, &id, &record, &params) {
+            Ok(params) => params,
+            Err(message) => {
+                outcomes.push(json!({
+                    "pluginId": id,
+                    "status": "skipped",
+                    "message": message
+                }));
+                continue;
+            }
+        };
+        let mut source = match plugin_install_source(state, &source_params, "update") {
+            Ok(source) => source,
             Err(message) => {
                 outcomes.push(json!({
                     "pluginId": id,
@@ -3596,20 +3633,39 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
                 continue;
             }
         };
-        let next_manifest = match read_json_file(&source_manifest_path) {
-            Ok(manifest) => manifest,
-            Err(message) => {
+        normalize_plugin_manifest(&mut source.manifest, &id)?;
+        if source.install_source == "npm" {
+            let expected_integrity = record.get("integrity").and_then(Value::as_str).filter(|_| {
+                record.get("spec").and_then(Value::as_str)
+                    == source.record_fields.get("spec").and_then(Value::as_str)
+            });
+            let actual_integrity = source
+                .record_fields
+                .get("integrity")
+                .and_then(Value::as_str);
+            if expected_integrity.is_some()
+                && actual_integrity.is_some()
+                && expected_integrity != actual_integrity
+                && !force
+            {
+                cleanup_plugin_temp_dir(&source);
                 outcomes.push(json!({
                     "pluginId": id,
                     "status": "error",
-                    "message": message
+                    "message": format!(
+                        "Integrity drift detected for \"{id}\"; pass force=true to update."
+                    ),
+                    "expectedIntegrity": expected_integrity,
+                    "actualIntegrity": actual_integrity
                 }));
                 continue;
             }
-        };
+        }
+        let next_manifest = source.manifest.clone();
         let next_id = match resolve_plugin_manifest_id(&next_manifest) {
             Ok(next_id) => next_id,
             Err(message) => {
+                cleanup_plugin_temp_dir(&source);
                 outcomes.push(json!({
                     "pluginId": id,
                     "status": "error",
@@ -3619,6 +3675,7 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
             }
         };
         if next_id != id {
+            cleanup_plugin_temp_dir(&source);
             outcomes.push(json!({
                 "pluginId": id,
                 "status": "error",
@@ -3646,35 +3703,11 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
         let should_update = force || current_manifest.is_none() || current_version != next_version;
 
         if should_update && !dry_run {
-            if !same_filesystem_path(&source_path, &install_path) {
-                copy_plugin_directory(&source_path, &install_path)?;
-            } else {
-                std::fs::create_dir_all(&install_path).map_err(|error| {
-                    format!(
-                        "failed to create plugin directory {}: {error}",
-                        install_path.display()
-                    )
-                })?;
-            }
-            write_json_file(&installed_manifest_path, &next_manifest)?;
             let mut next_record = record.as_object().cloned().unwrap_or_default();
-            next_record.insert("source".to_string(), Value::String(source.to_string()));
-            next_record.insert(
-                "sourcePath".to_string(),
-                Value::String(source_path.to_string_lossy().to_string()),
-            );
-            next_record.insert(
-                "installPath".to_string(),
-                Value::String(install_path.to_string_lossy().to_string()),
-            );
-            if let Some(version) = next_version.clone() {
-                next_record.insert("version".to_string(), Value::String(version));
-            } else {
-                next_record.remove("version");
-            }
-            next_record.insert(
-                "installedAt".to_string(),
-                Value::String(now_timestamp_string()),
+            install_plugin_source(&source, &install_path, false)?;
+            merge_plugin_install_record(
+                &mut next_record,
+                plugin_install_record(&source, &install_path),
             );
             set_json_path(
                 &mut config,
@@ -3695,6 +3728,7 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
             "currentVersion": current_version,
             "nextVersion": next_version
         }));
+        cleanup_plugin_temp_dir(&source);
     }
 
     if changed && !dry_run {
@@ -3711,7 +3745,7 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
 }
 
 fn plugins_uninstall(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let id = safe_config_component_id(&required_param(&params, &["id", "pluginId"])?, "plugin id")?;
+    let id = safe_plugin_id(&required_param(&params, &["id", "pluginId"])?)?;
     let keep_files = bool_param(&params, &["keepFiles", "keep_files"]).unwrap_or(false);
     let path = config_path(state);
     let mut config = read_config_value(&path)?;
@@ -3803,36 +3837,82 @@ fn plugins_uninstall(state: &GatewayState, params: Value) -> Result<Value, Strin
     }))
 }
 
-fn plugin_install_manifest(
+#[derive(Debug)]
+struct PluginInstallSource {
+    manifest: Value,
+    source_root: Option<PathBuf>,
+    source_path: Option<PathBuf>,
+    install_source: String,
+    record_fields: Map<String, Value>,
+    package_dependencies: bool,
+    cleanup_roots: Vec<PathBuf>,
+}
+
+fn plugin_install_source(
+    _state: &GatewayState,
     params: &Value,
-) -> Result<(Value, Option<PathBuf>, &'static str), String> {
+    mode: &str,
+) -> Result<PluginInstallSource, String> {
     if let Some(raw) = string_param(params, &["raw", "source", "path"]) {
         let source = expand_user_path(&raw);
-        let (source_root, manifest_path) = plugin_manifest_path_from_source(&source)?;
-        return Ok((read_json_file(&manifest_path)?, Some(source_root), "path"));
+        if source.exists() {
+            return plugin_install_source_from_path(&source, "path", Some(source.clone()), None);
+        }
+        if raw.trim().starts_with("clawhub:") {
+            return plugin_install_source_from_clawhub(&raw);
+        }
+        return plugin_install_source_from_npm_spec(&raw, mode);
     }
     if let Some(manifest) = params.get("manifest") {
-        return Ok((manifest.clone(), None, "manifest"));
+        return Ok(PluginInstallSource {
+            manifest: manifest.clone(),
+            source_root: None,
+            source_path: None,
+            install_source: "manifest".to_string(),
+            record_fields: Map::new(),
+            package_dependencies: false,
+            cleanup_roots: Vec::new(),
+        });
+    }
+    if let Some(spec) = string_param(params, &["npmSpec", "spec"]) {
+        return plugin_install_source_from_npm_spec(&spec, mode);
+    }
+    if let Some(spec) = string_param(params, &["clawhubSpec"]) {
+        return plugin_install_source_from_clawhub(&spec);
+    }
+    if let Some(marketplace) = string_param(params, &["marketplace", "marketplaceSource"]) {
+        let plugin = required_param(params, &["plugin", "marketplacePlugin", "pluginId", "id"])?;
+        return plugin_install_source_from_marketplace(&marketplace, &plugin);
     }
     let id = required_param(params, &["pluginId", "id", "name"])?;
-    let safe_id = safe_config_component_id(&id, "plugin id")?;
+    let safe_id = safe_plugin_id(&id)?;
     if let Some((source_root, manifest_path)) = bundled_plugin_manifest_path(&safe_id) {
-        return Ok((
-            read_json_file(&manifest_path)?,
-            Some(source_root),
-            "bundled",
-        ));
+        return Ok(PluginInstallSource {
+            manifest: read_json_file(&manifest_path)?,
+            source_root: Some(source_root.clone()),
+            source_path: Some(source_root),
+            install_source: "bundled".to_string(),
+            record_fields: Map::new(),
+            package_dependencies: false,
+            cleanup_roots: Vec::new(),
+        });
     }
-    Ok((
-        json!({
-            "id": id,
-            "name": id,
-            "version": "0.0.0",
-            "runtime": "rust-local"
-        }),
-        None,
-        "generated",
-    ))
+    plugin_install_source_from_npm_spec(&id, mode).or_else(|_| {
+        Ok(PluginInstallSource {
+            manifest: json!({
+                "id": id,
+                "name": id,
+                "version": "0.0.0",
+                "runtime": "rust-local"
+            }),
+            source_root: None,
+            source_path: None,
+            install_source: "generated".to_string(),
+            record_fields: Map::new(),
+            package_dependencies: false,
+            cleanup_roots: Vec::new(),
+        })
+    })
 }
 
 fn resolve_plugin_install_id(params: &Value, manifest: &Value) -> Result<String, String> {
@@ -3845,10 +3925,10 @@ fn resolve_plugin_install_id(params: &Value, manifest: &Value) -> Result<String,
         .clone()
         .or_else(|| manifest_id.clone())
         .ok_or_else(|| "plugins.install requires pluginId or manifest.id".to_string())?;
-    let id = safe_config_component_id(&raw, "plugin id")?;
+    let id = safe_plugin_id(&raw)?;
     if let (Some(requested), Some(manifest_id)) = (requested, manifest_id) {
-        let requested = safe_config_component_id(&requested, "plugin id")?;
-        let manifest_id = safe_config_component_id(&manifest_id, "plugin id")?;
+        let requested = safe_plugin_id(&requested)?;
+        let manifest_id = safe_plugin_id(&manifest_id)?;
         if requested != manifest_id {
             return Err(format!(
                 "plugins.install pluginId \"{requested}\" does not match manifest id \"{manifest_id}\""
@@ -3863,7 +3943,7 @@ fn resolve_plugin_manifest_id(manifest: &Value) -> Result<String, String> {
         .get("id")
         .and_then(Value::as_str)
         .ok_or_else(|| "plugin manifest requires id".to_string())?;
-    safe_config_component_id(id, "plugin id")
+    safe_plugin_id(id)
 }
 
 fn normalize_plugin_manifest(manifest: &mut Value, id: &str) -> Result<(), String> {
@@ -3882,23 +3962,23 @@ fn normalize_plugin_manifest(manifest: &mut Value, id: &str) -> Result<(), Strin
     Ok(())
 }
 
-fn plugin_install_record(
-    source_kind: &str,
-    source_path: &std::path::Path,
-    install_path: &std::path::Path,
-    manifest: &Value,
-) -> Value {
-    let mut record = Map::new();
-    record.insert("source".to_string(), Value::String(source_kind.to_string()));
+fn plugin_install_record(source: &PluginInstallSource, install_path: &std::path::Path) -> Value {
+    let mut record = source.record_fields.clone();
     record.insert(
-        "sourcePath".to_string(),
-        Value::String(source_path.to_string_lossy().to_string()),
+        "source".to_string(),
+        Value::String(source.install_source.to_string()),
     );
+    if let Some(source_path) = &source.source_path {
+        record.insert(
+            "sourcePath".to_string(),
+            Value::String(source_path.to_string_lossy().to_string()),
+        );
+    }
     record.insert(
         "installPath".to_string(),
         Value::String(install_path.to_string_lossy().to_string()),
     );
-    if let Some(version) = plugin_manifest_version(manifest) {
+    if let Some(version) = plugin_manifest_version(&source.manifest) {
         record.insert("version".to_string(), Value::String(version));
     }
     record.insert(
@@ -3908,9 +3988,41 @@ fn plugin_install_record(
     Value::Object(record)
 }
 
+fn merge_plugin_install_record(record: &mut Map<String, Value>, next: Value) {
+    if let Some(next) = next.as_object() {
+        for field in [
+            "source",
+            "spec",
+            "sourcePath",
+            "installPath",
+            "version",
+            "resolvedName",
+            "resolvedVersion",
+            "resolvedSpec",
+            "integrity",
+            "shasum",
+            "resolvedAt",
+            "installedAt",
+            "marketplaceName",
+            "marketplaceSource",
+            "marketplacePlugin",
+            "clawhubUrl",
+            "clawhubPackage",
+            "clawhubFamily",
+            "clawhubChannel",
+        ] {
+            if let Some(value) = next.get(field) {
+                record.insert(field.to_string(), value.clone());
+            } else {
+                record.remove(field);
+            }
+        }
+    }
+}
+
 fn resolve_plugin_update_targets(config: &Value, params: &Value) -> Result<Vec<String>, String> {
     if let Some(id) = string_param(params, &["id", "pluginId"]) {
-        return Ok(vec![safe_config_component_id(&id, "plugin id")?]);
+        return Ok(vec![safe_plugin_id(&id)?]);
     }
     if bool_param(params, &["all"]).unwrap_or(false) {
         let ids = get_json_path(config, "plugins.installs")
@@ -3952,6 +4064,280 @@ fn plugin_manifest_path_from_source(
     ))
 }
 
+fn plugin_install_source_from_path(
+    source: &std::path::Path,
+    install_source: &str,
+    source_path: Option<PathBuf>,
+    cleanup_root: Option<PathBuf>,
+) -> Result<PluginInstallSource, String> {
+    if source.is_file() && resolve_archive_kind(source).is_some() {
+        let extract = extract_plugin_archive(source)?;
+        let root = resolve_extracted_plugin_root(&extract)?;
+        let archive_install_source = if install_source == "path" {
+            "archive"
+        } else {
+            install_source
+        };
+        let mut source = plugin_install_source_from_path(
+            &root,
+            archive_install_source,
+            source_path.or_else(|| Some(source.to_path_buf())),
+            Some(extract),
+        )?;
+        if let Some(cleanup_root) = cleanup_root {
+            source.cleanup_roots.push(cleanup_root);
+        }
+        return Ok(source);
+    }
+    let (source_root, manifest_path) = match plugin_manifest_path_from_source(source) {
+        Ok(value) => value,
+        Err(_) => {
+            return plugin_install_source_from_package_dir(
+                source,
+                install_source,
+                source_path,
+                cleanup_root,
+            )
+        }
+    };
+    Ok(PluginInstallSource {
+        manifest: read_json_file(&manifest_path)?,
+        source_root: Some(source_root),
+        source_path,
+        install_source: install_source.to_string(),
+        record_fields: Map::new(),
+        package_dependencies: false,
+        cleanup_roots: cleanup_root.into_iter().collect(),
+    })
+}
+
+fn plugin_install_source_from_package_dir(
+    source: &std::path::Path,
+    install_source: &str,
+    source_path: Option<PathBuf>,
+    cleanup_root: Option<PathBuf>,
+) -> Result<PluginInstallSource, String> {
+    if !source.is_dir() {
+        return Err(format!(
+            "plugin source is not a directory: {}",
+            source.display()
+        ));
+    }
+    let package_path = source.join("package.json");
+    if !package_path.exists() {
+        return Err(format!(
+            "Rust plugins.install supports plugin directories, archives, npm specs, marketplace specs, or ClawHub specs; not found: {}",
+            source.display()
+        ));
+    }
+    let package = read_json_file(&package_path)?;
+    let extensions = package_crawclaw_extensions(&package)?;
+    let package_name = package
+        .get("name")
+        .and_then(Value::as_str)
+        .unwrap_or("plugin")
+        .trim()
+        .to_string();
+    let manifest_id = source
+        .join("crawclaw.plugin.json")
+        .exists()
+        .then(|| read_json_file(&source.join("crawclaw.plugin.json")))
+        .transpose()?
+        .and_then(|manifest| {
+            manifest
+                .get("id")
+                .and_then(Value::as_str)
+                .map(ToOwned::to_owned)
+        });
+    let plugin_id = manifest_id.unwrap_or_else(|| package_name.clone());
+    safe_plugin_id(&plugin_id)?;
+    let version = package
+        .get("version")
+        .and_then(Value::as_str)
+        .unwrap_or("0.0.0")
+        .to_string();
+    let mut manifest = json!({
+        "id": plugin_id,
+        "name": package_name,
+        "version": version,
+        "main": extensions.first().cloned().unwrap_or_else(|| "index.js".to_string()),
+        "extensions": extensions
+    });
+    if let Some(auth_env_vars) = package
+        .get("crawclaw")
+        .and_then(|value| value.get("providerAuthEnvVars"))
+        .cloned()
+    {
+        manifest["providerAuthEnvVars"] = auth_env_vars;
+    }
+    Ok(PluginInstallSource {
+        manifest,
+        source_root: Some(source.to_path_buf()),
+        source_path,
+        install_source: install_source.to_string(),
+        record_fields: Map::new(),
+        package_dependencies: package
+            .get("dependencies")
+            .and_then(Value::as_object)
+            .map(|deps| !deps.is_empty())
+            .unwrap_or(false),
+        cleanup_roots: cleanup_root.into_iter().collect(),
+    })
+}
+
+fn plugin_install_source_from_npm_spec(
+    spec: &str,
+    _mode: &str,
+) -> Result<PluginInstallSource, String> {
+    let packed = pack_npm_spec_to_archive(spec)?;
+    let mut source = plugin_install_source_from_path(
+        &packed.archive_path,
+        "npm",
+        None,
+        Some(packed.temp_root.clone()),
+    )?;
+    source
+        .record_fields
+        .insert("spec".to_string(), Value::String(spec.to_string()));
+    if let Some(name) = packed.metadata.get("name").and_then(Value::as_str) {
+        source
+            .record_fields
+            .insert("resolvedName".to_string(), Value::String(name.to_string()));
+    }
+    if let Some(version) = packed.metadata.get("version").and_then(Value::as_str) {
+        source.record_fields.insert(
+            "resolvedVersion".to_string(),
+            Value::String(version.to_string()),
+        );
+    }
+    if let Some(resolved_spec) = packed.metadata.get("resolvedSpec").and_then(Value::as_str) {
+        source.record_fields.insert(
+            "resolvedSpec".to_string(),
+            Value::String(resolved_spec.to_string()),
+        );
+    }
+    if let Some(integrity) = packed.metadata.get("integrity").and_then(Value::as_str) {
+        source.record_fields.insert(
+            "integrity".to_string(),
+            Value::String(integrity.to_string()),
+        );
+    }
+    if let Some(shasum) = packed.metadata.get("shasum").and_then(Value::as_str) {
+        source
+            .record_fields
+            .insert("shasum".to_string(), Value::String(shasum.to_string()));
+    }
+    source.record_fields.insert(
+        "resolvedAt".to_string(),
+        Value::String(now_timestamp_string()),
+    );
+    Ok(source)
+}
+
+fn plugin_install_source_from_clawhub(spec: &str) -> Result<PluginInstallSource, String> {
+    let parsed = parse_clawhub_spec(spec)?;
+    let base_url =
+        env::var("CRAWCLAW_CLAWHUB_URL").unwrap_or_else(|_| "https://clawhub.ai".to_string());
+    let version = parsed
+        .version
+        .clone()
+        .unwrap_or_else(|| "latest".to_string());
+    let tmp_root = create_plugin_temp_dir("crawclaw-clawhub-package")?;
+    let archive_path = tmp_root.join(format!("{}.zip", safe_filename(&parsed.name)));
+    let download_url = if version == "latest" {
+        format!(
+            "{}/api/v1/packages/{}/download",
+            base_url.trim_end_matches('/'),
+            percent_encode_path_segment(&parsed.name)
+        )
+    } else {
+        format!(
+            "{}/api/v1/packages/{}/download?version={}",
+            base_url.trim_end_matches('/'),
+            percent_encode_path_segment(&parsed.name),
+            percent_encode_path_segment(&version)
+        )
+    };
+    download_url_to_file(&download_url, &archive_path)?;
+    let integrity = file_sha256_integrity(&archive_path)?;
+    let mut source =
+        plugin_install_source_from_path(&archive_path, "clawhub", None, Some(tmp_root.clone()))?;
+    source
+        .record_fields
+        .insert("spec".to_string(), Value::String(spec.to_string()));
+    source
+        .record_fields
+        .insert("integrity".to_string(), Value::String(integrity));
+    source.record_fields.insert(
+        "resolvedAt".to_string(),
+        Value::String(now_timestamp_string()),
+    );
+    source.record_fields.insert(
+        "clawhubUrl".to_string(),
+        Value::String(base_url.trim_end_matches('/').to_string()),
+    );
+    source.record_fields.insert(
+        "clawhubPackage".to_string(),
+        Value::String(parsed.name.clone()),
+    );
+    source.record_fields.insert(
+        "clawhubFamily".to_string(),
+        Value::String("code-plugin".to_string()),
+    );
+    if let Some(version) = parsed.version {
+        source
+            .record_fields
+            .insert("version".to_string(), Value::String(version));
+    }
+    Ok(source)
+}
+
+fn plugin_install_source_from_marketplace(
+    marketplace: &str,
+    plugin: &str,
+) -> Result<PluginInstallSource, String> {
+    let loaded = load_marketplace(marketplace)?;
+    let entries = loaded
+        .manifest
+        .get("plugins")
+        .and_then(Value::as_array)
+        .ok_or_else(|| format!("invalid marketplace JSON at {marketplace}: missing plugins[]"))?;
+    let entry = entries
+        .iter()
+        .find(|entry| entry.get("name").and_then(Value::as_str) == Some(plugin))
+        .ok_or_else(|| format!("plugin \"{plugin}\" not found in marketplace {marketplace}"))?;
+    let source_value = entry
+        .get("source")
+        .ok_or_else(|| format!("marketplace plugin \"{plugin}\" missing source"))?;
+    let resolved = resolve_marketplace_plugin_source(source_value, &loaded.root_dir)?;
+    let cleanup_root = resolved
+        .cleanup_root
+        .clone()
+        .or_else(|| loaded.cleanup_root.clone());
+    let mut source =
+        plugin_install_source_from_path(&resolved.source_path, "marketplace", None, cleanup_root)?;
+    source.record_fields.insert(
+        "marketplaceSource".to_string(),
+        Value::String(marketplace.to_string()),
+    );
+    source.record_fields.insert(
+        "marketplacePlugin".to_string(),
+        Value::String(plugin.to_string()),
+    );
+    if let Some(name) = loaded.manifest.get("name").and_then(Value::as_str) {
+        source.record_fields.insert(
+            "marketplaceName".to_string(),
+            Value::String(name.to_string()),
+        );
+    }
+    if let Some(version) = entry.get("version").and_then(Value::as_str) {
+        source
+            .record_fields
+            .insert("version".to_string(), Value::String(version.to_string()));
+    }
+    Ok(source)
+}
+
 fn bundled_plugin_manifest_path(id: &str) -> Option<(PathBuf, PathBuf)> {
     let repo_root = env::var_os("CRAWCLAW_REPO_ROOT")
         .map(PathBuf::from)
@@ -3963,8 +4349,37 @@ fn bundled_plugin_manifest_path(id: &str) -> Option<(PathBuf, PathBuf)> {
         .then_some((source_root, manifest_path))
 }
 
+#[derive(Debug)]
+struct PackedNpmArchive {
+    archive_path: PathBuf,
+    metadata: Value,
+    temp_root: PathBuf,
+}
+
+#[derive(Debug)]
+struct ParsedClawHubSpec {
+    name: String,
+    version: Option<String>,
+}
+
+#[derive(Debug)]
+struct LoadedMarketplace {
+    manifest: Value,
+    root_dir: PathBuf,
+    cleanup_root: Option<PathBuf>,
+}
+
+#[derive(Debug)]
+struct MarketplacePluginSource {
+    source_path: PathBuf,
+    cleanup_root: Option<PathBuf>,
+}
+
 fn plugin_install_dir(state: &GatewayState, id: &str) -> PathBuf {
-    state.runtime_root.join("plugins").join(id)
+    state
+        .runtime_root
+        .join("plugins")
+        .join(encode_plugin_install_dir_name(id))
 }
 
 fn normalize_plugin_filesystem_path(state: &GatewayState, raw: &str) -> PathBuf {
@@ -3981,6 +4396,614 @@ fn plugin_manifest_version(manifest: &Value) -> Option<String> {
         .get("version")
         .and_then(Value::as_str)
         .map(ToOwned::to_owned)
+}
+
+fn safe_plugin_id(raw: &str) -> Result<String, String> {
+    let value = raw.trim();
+    if value.is_empty()
+        || value == "."
+        || value == ".."
+        || value.contains('\\')
+        || value.contains("..")
+    {
+        return Err("plugin id must be a safe local identifier".to_string());
+    }
+    if value.contains('.') {
+        return Err("plugin id cannot contain dots".to_string());
+    }
+    let segments = value.split('/').collect::<Vec<_>>();
+    match segments.as_slice() {
+        [single] if !single.starts_with('@') && !single.is_empty() => Ok(value.to_string()),
+        [scope, name]
+            if scope.starts_with('@')
+                && scope.len() > 1
+                && !name.is_empty()
+                && *name != "."
+                && *name != ".." =>
+        {
+            Ok(value.to_string())
+        }
+        _ => Err("invalid plugin id: scoped ids must use @scope/name format".to_string()),
+    }
+}
+
+fn safe_filename(raw: &str) -> String {
+    let mut result = raw
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '-' || ch == '_' || ch == '.' {
+                ch
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>();
+    if result.is_empty() || result == "." || result == ".." {
+        result = "plugin".to_string();
+    }
+    result
+}
+
+fn encode_plugin_install_dir_name(id: &str) -> String {
+    if !id.contains('/') {
+        return safe_filename(id);
+    }
+    let hash = Sha256::digest(id.as_bytes())
+        .iter()
+        .take(5)
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    format!("@{}-{hash}", safe_filename(&id.replace('/', "-")))
+}
+
+fn package_crawclaw_extensions(package: &Value) -> Result<Vec<String>, String> {
+    let Some(entries) = package
+        .get("crawclaw")
+        .and_then(|value| value.get("extensions"))
+        .and_then(Value::as_array)
+    else {
+        return Err(
+            "package.json missing crawclaw.extensions; update the plugin package to include crawclaw.extensions".to_string(),
+        );
+    };
+    let values = entries
+        .iter()
+        .filter_map(Value::as_str)
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .map(ToOwned::to_owned)
+        .collect::<Vec<_>>();
+    if values.is_empty() {
+        return Err("package.json crawclaw.extensions is empty".to_string());
+    }
+    Ok(values)
+}
+
+fn install_plugin_source(
+    source: &PluginInstallSource,
+    plugin_dir: &Path,
+    dry_run: bool,
+) -> Result<PathBuf, String> {
+    let manifest_path = plugin_dir.join("crawclaw.plugin.json");
+    if dry_run {
+        return Ok(manifest_path);
+    }
+    if let Some(source_root) = &source.source_root {
+        if !same_filesystem_path(source_root, plugin_dir) {
+            copy_plugin_directory(source_root, plugin_dir)?;
+        } else {
+            std::fs::create_dir_all(plugin_dir).map_err(|error| {
+                format!(
+                    "failed to create plugin directory {}: {error}",
+                    plugin_dir.display()
+                )
+            })?;
+        }
+    } else {
+        std::fs::create_dir_all(plugin_dir)
+            .map_err(|error| format!("failed to create plugin directory: {error}"))?;
+    }
+    write_json_file(&manifest_path, &source.manifest)?;
+    if source.package_dependencies {
+        install_plugin_package_dependencies(plugin_dir)?;
+    }
+    Ok(manifest_path)
+}
+
+fn cleanup_plugin_temp_dir(source: &PluginInstallSource) {
+    for path in &source.cleanup_roots {
+        let _ = std::fs::remove_dir_all(path);
+    }
+}
+
+fn install_plugin_package_dependencies(plugin_dir: &Path) -> Result<(), String> {
+    if !plugin_dir.join("package.json").exists() {
+        return Ok(());
+    }
+    let output = Command::new("npm")
+        .args(["install", "--omit=dev", "--ignore-scripts"])
+        .current_dir(plugin_dir)
+        .env("COREPACK_ENABLE_DOWNLOAD_PROMPT", "0")
+        .env("NPM_CONFIG_IGNORE_SCRIPTS", "true")
+        .output()
+        .map_err(|error| format!("failed to run npm install: {error}"))?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Err(format!(
+        "npm install failed: {}",
+        if stderr.is_empty() { stdout } else { stderr }
+    ))
+}
+
+fn resolve_archive_kind(path: &Path) -> Option<&'static str> {
+    let name = path.file_name()?.to_str()?.to_ascii_lowercase();
+    if name.ends_with(".tar.gz") || name.ends_with(".tgz") {
+        return Some("tgz");
+    }
+    if name.ends_with(".tar") {
+        return Some("tar");
+    }
+    if name.ends_with(".zip") {
+        return Some("zip");
+    }
+    None
+}
+
+fn create_plugin_temp_dir(prefix: &str) -> Result<PathBuf, String> {
+    let root = env::temp_dir().join(format!("{prefix}-{}", now_millis()));
+    std::fs::create_dir_all(&root).map_err(|error| {
+        format!(
+            "failed to create temp directory {}: {error}",
+            root.display()
+        )
+    })?;
+    Ok(root)
+}
+
+fn extract_plugin_archive(archive_path: &Path) -> Result<PathBuf, String> {
+    let kind = resolve_archive_kind(archive_path)
+        .ok_or_else(|| format!("unsupported archive: {}", archive_path.display()))?;
+    let extract_root = create_plugin_temp_dir("crawclaw-plugin-archive")?;
+    let mut command = if kind == "zip" {
+        let mut command = Command::new("unzip");
+        command
+            .arg("-q")
+            .arg(archive_path)
+            .arg("-d")
+            .arg(&extract_root);
+        command
+    } else {
+        let mut command = Command::new("tar");
+        if kind == "tgz" {
+            command.arg("-xzf");
+        } else {
+            command.arg("-xf");
+        }
+        command.arg(archive_path).arg("-C").arg(&extract_root);
+        command
+    };
+    let output = command
+        .output()
+        .map_err(|error| format!("failed to extract archive: {error}"))?;
+    if output.status.success() {
+        return Ok(extract_root);
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let _ = std::fs::remove_dir_all(&extract_root);
+    Err(format!(
+        "failed to extract archive: {}",
+        if stderr.is_empty() { stdout } else { stderr }
+    ))
+}
+
+fn has_plugin_root_marker(path: &Path) -> bool {
+    path.join("package.json").exists()
+        || path.join("crawclaw.plugin.json").exists()
+        || path.join(".codex-plugin/plugin.json").exists()
+        || path.join(".claude-plugin/plugin.json").exists()
+        || path.join(".cursor-plugin/plugin.json").exists()
+}
+
+fn resolve_extracted_plugin_root(extract_root: &Path) -> Result<PathBuf, String> {
+    if has_plugin_root_marker(extract_root) {
+        return Ok(extract_root.to_path_buf());
+    }
+    let mut candidates = Vec::new();
+    for entry in std::fs::read_dir(extract_root)
+        .map_err(|error| format!("failed to read extracted archive root: {error}"))?
+    {
+        let entry = entry.map_err(|error| format!("failed to inspect extracted entry: {error}"))?;
+        if entry
+            .file_type()
+            .map_err(|error| format!("failed to inspect extracted file type: {error}"))?
+            .is_dir()
+            && has_plugin_root_marker(&entry.path())
+        {
+            candidates.push(entry.path());
+        }
+    }
+    match candidates.len() {
+        1 => Ok(candidates.remove(0)),
+        0 => Err("archive did not contain a plugin package root".to_string()),
+        _ => Err("archive contained multiple plugin package roots".to_string()),
+    }
+}
+
+fn run_command_capture(program: &str, args: &[&str], cwd: Option<&Path>) -> Result<String, String> {
+    let mut command = Command::new(program);
+    command.args(args);
+    if let Some(cwd) = cwd {
+        command.current_dir(cwd);
+    }
+    let output = command
+        .env("COREPACK_ENABLE_DOWNLOAD_PROMPT", "0")
+        .env("NPM_CONFIG_IGNORE_SCRIPTS", "true")
+        .output()
+        .map_err(|error| format!("failed to run {program}: {error}"))?;
+    if output.status.success() {
+        return Ok(String::from_utf8_lossy(&output.stdout).to_string());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Err(format!(
+        "{program} failed: {}",
+        if stderr.is_empty() { stdout } else { stderr }
+    ))
+}
+
+fn parse_npm_pack_json_output(raw: &str) -> Option<(String, Value)> {
+    let trimmed = raw.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let candidates = if let Some(start) = trimmed.find('[') {
+        vec![trimmed, &trimmed[start..]]
+    } else {
+        vec![trimmed]
+    };
+    for candidate in candidates {
+        let parsed = serde_json::from_str::<Value>(candidate).ok()?;
+        let entries = if let Some(array) = parsed.as_array() {
+            array.clone()
+        } else {
+            vec![parsed]
+        };
+        for entry in entries.into_iter().rev() {
+            let Some(filename) = entry.get("filename").and_then(Value::as_str) else {
+                continue;
+            };
+            let name = entry.get("name").and_then(Value::as_str);
+            let version = entry.get("version").and_then(Value::as_str);
+            let resolved_spec = name
+                .zip(version)
+                .map(|(name, version)| format!("{name}@{version}"));
+            let metadata = json!({
+                "name": name,
+                "version": version,
+                "resolvedSpec": resolved_spec,
+                "integrity": entry.get("integrity").and_then(Value::as_str),
+                "shasum": entry.get("shasum").and_then(Value::as_str)
+            });
+            return Some((filename.to_string(), metadata));
+        }
+    }
+    None
+}
+
+fn pack_npm_spec_to_archive(spec: &str) -> Result<PackedNpmArchive, String> {
+    let tmp_root = create_plugin_temp_dir("crawclaw-npm-pack")?;
+    let stdout = match run_command_capture(
+        "npm",
+        &["pack", spec, "--ignore-scripts", "--json"],
+        Some(&tmp_root),
+    ) {
+        Ok(stdout) => stdout,
+        Err(error) => {
+            let _ = std::fs::remove_dir_all(&tmp_root);
+            if error.contains("E404") || error.contains("not in this registry") {
+                return Err(format!("Package not found on npm: {spec}."));
+            }
+            return Err(error);
+        }
+    };
+    let (filename, metadata) = parse_npm_pack_json_output(&stdout)
+        .ok_or_else(|| "npm pack produced no archive".to_string())?;
+    let archive_path = if Path::new(&filename).is_absolute() {
+        PathBuf::from(&filename)
+    } else {
+        tmp_root.join(&filename)
+    };
+    if !archive_path.exists() {
+        let _ = std::fs::remove_dir_all(&tmp_root);
+        return Err("npm pack produced no archive".to_string());
+    }
+    Ok(PackedNpmArchive {
+        archive_path,
+        metadata,
+        temp_root: tmp_root,
+    })
+}
+
+fn parse_clawhub_spec(raw: &str) -> Result<ParsedClawHubSpec, String> {
+    let spec = raw
+        .trim()
+        .strip_prefix("clawhub:")
+        .ok_or_else(|| format!("invalid ClawHub plugin spec: {raw}"))?
+        .trim();
+    if spec.is_empty() {
+        return Err(format!("invalid ClawHub plugin spec: {raw}"));
+    }
+    if let Some(index) = spec
+        .rfind('@')
+        .filter(|index| *index > 0 && *index < spec.len() - 1)
+    {
+        return Ok(ParsedClawHubSpec {
+            name: spec[..index].trim().to_string(),
+            version: Some(spec[index + 1..].trim().to_string()),
+        });
+    }
+    Ok(ParsedClawHubSpec {
+        name: spec.to_string(),
+        version: None,
+    })
+}
+
+fn percent_encode_path_segment(raw: &str) -> String {
+    raw.bytes()
+        .flat_map(|byte| {
+            let keep = byte.is_ascii_alphanumeric() || matches!(byte, b'-' | b'_' | b'.' | b'~');
+            if keep {
+                vec![byte as char]
+            } else {
+                format!("%{byte:02X}").chars().collect::<Vec<_>>()
+            }
+        })
+        .collect()
+}
+
+fn download_url_to_file(url: &str, target: &Path) -> Result<(), String> {
+    let output = Command::new("curl")
+        .args(["-fsSL", url, "-o"])
+        .arg(target)
+        .output()
+        .map_err(|error| format!("failed to run curl: {error}"))?;
+    if output.status.success() {
+        return Ok(());
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+    Err(format!("failed to download {url}: {stderr}"))
+}
+
+fn file_sha256_integrity(path: &Path) -> Result<String, String> {
+    let bytes = std::fs::read(path)
+        .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
+    Ok(format!(
+        "sha256-{}",
+        STANDARD.encode(Sha256::digest(&bytes))
+    ))
+}
+
+fn load_marketplace(source: &str) -> Result<LoadedMarketplace, String> {
+    let path = expand_user_path(source);
+    if path.exists() {
+        return load_marketplace_from_path(&path, None);
+    }
+    let tmp_root = create_plugin_temp_dir("crawclaw-marketplace")?;
+    let repo_dir = tmp_root.join("repo");
+    let repo = if source.starts_with("http://")
+        || source.starts_with("https://")
+        || source.starts_with("git@")
+        || source.starts_with("ssh://")
+    {
+        source.to_string()
+    } else if source.split('/').count() == 2 {
+        format!("https://github.com/{source}.git")
+    } else {
+        let _ = std::fs::remove_dir_all(&tmp_root);
+        return Err(format!("unsupported marketplace source: {source}"));
+    };
+    if let Err(error) = run_command_capture(
+        "git",
+        &[
+            "clone",
+            "--depth",
+            "1",
+            &repo,
+            repo_dir.to_string_lossy().as_ref(),
+        ],
+        None,
+    ) {
+        let _ = std::fs::remove_dir_all(&tmp_root);
+        return Err(error);
+    }
+    load_marketplace_from_path(&repo_dir, Some(tmp_root))
+}
+
+fn load_marketplace_from_path(
+    path: &Path,
+    cleanup_root: Option<PathBuf>,
+) -> Result<LoadedMarketplace, String> {
+    let root = if path.is_file() {
+        path.parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| format!("marketplace manifest {} has no parent", path.display()))?
+    } else if path.file_name().and_then(|name| name.to_str()) == Some(".claude-plugin") {
+        path.parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| format!("marketplace path {} has no parent", path.display()))?
+    } else {
+        path.to_path_buf()
+    };
+    let manifest_path = if path.is_file() {
+        path.to_path_buf()
+    } else {
+        [
+            root.join(".claude-plugin/marketplace.json"),
+            root.join("marketplace.json"),
+        ]
+        .into_iter()
+        .find(|candidate| candidate.exists())
+        .ok_or_else(|| format!("marketplace manifest not found under {}", root.display()))?
+    };
+    Ok(LoadedMarketplace {
+        manifest: read_json_file(&manifest_path)?,
+        root_dir: root,
+        cleanup_root,
+    })
+}
+
+fn resolve_marketplace_plugin_source(
+    raw: &Value,
+    marketplace_root: &Path,
+) -> Result<MarketplacePluginSource, String> {
+    if let Some(source) = raw.as_str() {
+        return resolve_marketplace_source_string(source, marketplace_root);
+    }
+    let Some(object) = raw.as_object() else {
+        return Err("marketplace plugin source must be a string or object".to_string());
+    };
+    let kind = object
+        .get("type")
+        .or_else(|| object.get("source"))
+        .and_then(Value::as_str)
+        .unwrap_or("path");
+    match kind {
+        "path" => resolve_marketplace_source_string(
+            object
+                .get("path")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "path source missing path".to_string())?,
+            marketplace_root,
+        ),
+        "url" => resolve_marketplace_source_string(
+            object
+                .get("url")
+                .and_then(Value::as_str)
+                .ok_or_else(|| "url source missing url".to_string())?,
+            marketplace_root,
+        ),
+        other => Err(format!(
+            "unsupported marketplace plugin source kind: {other}"
+        )),
+    }
+}
+
+fn resolve_marketplace_source_string(
+    source: &str,
+    marketplace_root: &Path,
+) -> Result<MarketplacePluginSource, String> {
+    if source.starts_with("http://") || source.starts_with("https://") {
+        if resolve_archive_kind(Path::new(source)).is_none() {
+            return Err(format!("unsupported remote plugin path source: {source}"));
+        }
+        let tmp_root = create_plugin_temp_dir("crawclaw-marketplace-download")?;
+        let target = tmp_root.join(
+            Path::new(source)
+                .file_name()
+                .and_then(|name| name.to_str())
+                .map(safe_filename)
+                .unwrap_or_else(|| "plugin.tgz".to_string()),
+        );
+        download_url_to_file(source, &target)?;
+        return Ok(MarketplacePluginSource {
+            source_path: target,
+            cleanup_root: Some(tmp_root),
+        });
+    }
+    let resolved = if Path::new(source).is_absolute() {
+        PathBuf::from(source)
+    } else {
+        marketplace_root.join(source)
+    };
+    let canonical_source = resolved.canonicalize().map_err(|error| {
+        format!(
+            "failed to resolve marketplace source {}: {error}",
+            resolved.display()
+        )
+    })?;
+    if !Path::new(source).is_absolute() {
+        let canonical_root = marketplace_root
+            .canonicalize()
+            .map_err(|error| format!("failed to resolve marketplace root: {error}"))?;
+        if !canonical_source.starts_with(canonical_root) {
+            return Err(format!("plugin source escapes marketplace root: {source}"));
+        }
+    }
+    Ok(MarketplacePluginSource {
+        source_path: canonical_source,
+        cleanup_root: None,
+    })
+}
+
+fn plugin_update_source_params(
+    state: &GatewayState,
+    id: &str,
+    record: &Value,
+    params: &Value,
+) -> Result<Value, String> {
+    let source = record
+        .get("source")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    match source {
+        "path" | "bundled" | "archive" => {
+            let Some(source_path_raw) = record.get("sourcePath").and_then(Value::as_str) else {
+                return Err(format!("Skipping \"{id}\" (missing sourcePath)."));
+            };
+            Ok(json!({
+                "raw": normalize_plugin_filesystem_path(state, source_path_raw).to_string_lossy(),
+                "pluginId": id
+            }))
+        }
+        "npm" => {
+            let spec = params
+                .get("specOverrides")
+                .and_then(|value| value.get(id))
+                .and_then(Value::as_str)
+                .or_else(|| record.get("spec").and_then(Value::as_str))
+                .ok_or_else(|| format!("Skipping \"{id}\" (missing npm spec)."))?;
+            Ok(json!({ "npmSpec": spec, "pluginId": id }))
+        }
+        "clawhub" => {
+            let spec = record
+                .get("spec")
+                .and_then(Value::as_str)
+                .or_else(|| record.get("clawhubPackage").and_then(Value::as_str))
+                .map(|value| {
+                    if value.starts_with("clawhub:") {
+                        value.to_string()
+                    } else {
+                        format!("clawhub:{value}")
+                    }
+                })
+                .ok_or_else(|| format!("Skipping \"{id}\" (missing ClawHub package metadata)."))?;
+            Ok(json!({ "clawhubSpec": spec, "pluginId": id }))
+        }
+        "marketplace" => {
+            let marketplace = record
+                .get("marketplaceSource")
+                .and_then(Value::as_str)
+                .ok_or_else(|| {
+                    format!("Skipping \"{id}\" (missing marketplace source metadata).")
+                })?;
+            let plugin = record
+                .get("marketplacePlugin")
+                .and_then(Value::as_str)
+                .ok_or_else(|| {
+                    format!("Skipping \"{id}\" (missing marketplace plugin metadata).")
+                })?;
+            Ok(json!({
+                "marketplaceSource": marketplace,
+                "marketplacePlugin": plugin,
+                "pluginId": id
+            }))
+        }
+        _ => Err(format!("Skipping \"{id}\" (source: {source}).")),
+    }
 }
 
 fn same_filesystem_path(left: &std::path::Path, right: &std::path::Path) -> bool {
@@ -5479,6 +6502,21 @@ fn remove_string_from_json_array(value: &mut Value, path: &str, needle: &str) ->
     } else {
         set_json_path(value, path, Value::Array(next)).is_ok()
     }
+}
+
+fn add_string_to_json_array(value: &mut Value, path: &str, entry: &str) -> Result<(), String> {
+    let mut next = get_json_path(value, path)
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    if next
+        .iter()
+        .any(|value| value.as_str().map(|value| value == entry).unwrap_or(false))
+    {
+        return Ok(());
+    }
+    next.push(Value::String(entry.to_string()));
+    set_json_path(value, path, Value::Array(next))
 }
 
 fn workflow_store_root(state: &GatewayState, params: &Value) -> PathBuf {
@@ -7635,6 +8673,7 @@ fn runtime_status_value(state: &GatewayState) -> Value {
         "stateDir": state.state_dir.to_string_lossy(),
         "runtimeRoot": state.runtime_root.to_string_lossy(),
         "jsPluginRuntime": "pi-quickjs",
+        "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
         "gatewayMethods": gateway_methods(),
         "coreTools": crawclaw_runtime::pi_agent_rust_tool_names()
     })
@@ -9181,6 +10220,151 @@ mod tests {
             .ends_with("extensions/fal"));
 
         let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_plugins_install_update_npm_file_spec() {
+        let _guard = env_lock().lock().expect("env lock");
+        if Command::new("npm").arg("--version").output().is_err() {
+            return;
+        }
+        let runtime_root = unique_test_runtime_root("gateway-plugin-npm-runtime");
+        let source_root = unique_test_runtime_root("gateway-plugin-npm-source");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        std::fs::create_dir_all(&source_root).expect("create npm package source");
+        write_json_file(
+            &source_root.join("package.json"),
+            &json!({
+                "name": "npm-demo",
+                "version": "1.0.0",
+                "crawclaw": {
+                    "extensions": ["index.mjs"]
+                }
+            }),
+        )
+        .expect("write package");
+        std::fs::write(source_root.join("index.mjs"), "export default {};\n")
+            .expect("write source entrypoint");
+        let spec = format!("file:{}", source_root.to_string_lossy());
+
+        let installed = handle_gateway_method(&state, "plugins.install", json!({ "raw": spec }))
+            .await
+            .expect("install npm file spec");
+        assert_eq!(installed["ok"], true);
+        assert_eq!(installed["pluginId"], "npm-demo");
+        assert_eq!(installed["installSource"], "npm");
+        let installed_root = runtime_root.join("plugins/npm-demo");
+        assert!(installed_root.join("package.json").exists());
+        assert!(installed_root.join("crawclaw.plugin.json").exists());
+
+        let config = read_config_value(&config_path(&state)).expect("read config");
+        assert_eq!(
+            get_json_path(&config, "plugins.installs.npm-demo.source").and_then(Value::as_str),
+            Some("npm")
+        );
+        assert_eq!(
+            get_json_path(&config, "plugins.installs.npm-demo.resolvedName")
+                .and_then(Value::as_str),
+            Some("npm-demo")
+        );
+        assert!(get_json_path(&config, "plugins.installs.npm-demo.integrity").is_some());
+
+        write_json_file(
+            &source_root.join("package.json"),
+            &json!({
+                "name": "npm-demo",
+                "version": "1.1.0",
+                "crawclaw": {
+                    "extensions": ["index.mjs"]
+                }
+            }),
+        )
+        .expect("update package");
+        let updated = handle_gateway_method(
+            &state,
+            "plugins.update",
+            json!({ "id": "npm-demo", "force": true }),
+        )
+        .await
+        .expect("update npm file spec");
+        assert_eq!(updated["ok"], true);
+        assert_eq!(updated["changed"], true);
+        assert_eq!(updated["outcomes"][0]["status"], "updated");
+        assert_eq!(updated["outcomes"][0]["currentVersion"], "1.0.0");
+        assert_eq!(updated["outcomes"][0]["nextVersion"], "1.1.0");
+        let installed_manifest =
+            read_json_file(&installed_root.join("crawclaw.plugin.json")).expect("manifest");
+        assert_eq!(installed_manifest["version"], "1.1.0");
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(source_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_plugins_install_local_marketplace() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-plugin-marketplace-runtime");
+        let marketplace_root = unique_test_runtime_root("gateway-plugin-marketplace-source");
+        let plugin_root = marketplace_root.join("plugins/market-demo");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        std::fs::create_dir_all(&plugin_root).expect("create marketplace plugin");
+        write_json_file(
+            &marketplace_root.join("marketplace.json"),
+            &json!({
+                "name": "Local Marketplace",
+                "plugins": [
+                    {
+                        "name": "market-demo",
+                        "version": "2.0.0",
+                        "source": "plugins/market-demo"
+                    }
+                ]
+            }),
+        )
+        .expect("write marketplace");
+        write_json_file(
+            &plugin_root.join("crawclaw.plugin.json"),
+            &json!({
+                "id": "market-demo",
+                "name": "Market Demo",
+                "version": "2.0.0"
+            }),
+        )
+        .expect("write plugin manifest");
+
+        let installed = handle_gateway_method(
+            &state,
+            "plugins.install",
+            json!({
+                "marketplaceSource": marketplace_root.to_string_lossy(),
+                "marketplacePlugin": "market-demo"
+            }),
+        )
+        .await
+        .expect("install marketplace plugin");
+        assert_eq!(installed["ok"], true);
+        assert_eq!(installed["pluginId"], "market-demo");
+        assert_eq!(installed["installSource"], "marketplace");
+
+        let config = read_config_value(&config_path(&state)).expect("read config");
+        assert_eq!(
+            get_json_path(&config, "plugins.installs.market-demo.source").and_then(Value::as_str),
+            Some("marketplace")
+        );
+        assert_eq!(
+            get_json_path(&config, "plugins.installs.market-demo.marketplacePlugin")
+                .and_then(Value::as_str),
+            Some("market-demo")
+        );
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(marketplace_root);
     }
 
     #[tokio::test]

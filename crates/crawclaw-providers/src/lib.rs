@@ -43,6 +43,26 @@ pub struct BundledProviderPlugin {
     pub providers: &'static [&'static str],
 }
 
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderPluginMetadata {
+    pub plugin_id: String,
+    pub providers: Vec<String>,
+    pub auth_env_vars: Value,
+    pub auth_choices: Value,
+    pub capabilities: BundledProviderPluginCapabilities,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderPluginCapabilities {
+    pub chat: bool,
+    pub non_chat: bool,
+    pub image_generation: bool,
+    pub cli_backend: bool,
+    pub media_understanding: bool,
+}
+
 pub const BUNDLED_PROVIDER_PLUGINS: &[BundledProviderPlugin] = &[
     BundledProviderPlugin {
         plugin_id: "amazon-bedrock",
@@ -192,6 +212,157 @@ pub const BUNDLED_PROVIDER_PLUGINS: &[BundledProviderPlugin] = &[
         plugin_id: "zai",
         providers: &["zai"],
     },
+];
+
+const BUNDLED_PROVIDER_PLUGIN_MANIFESTS: &[(&str, &str)] = &[
+    (
+        "amazon-bedrock",
+        include_str!("../../../extensions/amazon-bedrock/crawclaw.plugin.json"),
+    ),
+    (
+        "anthropic",
+        include_str!("../../../extensions/anthropic/crawclaw.plugin.json"),
+    ),
+    (
+        "anthropic-vertex",
+        include_str!("../../../extensions/anthropic-vertex/crawclaw.plugin.json"),
+    ),
+    (
+        "byteplus",
+        include_str!("../../../extensions/byteplus/crawclaw.plugin.json"),
+    ),
+    (
+        "chutes",
+        include_str!("../../../extensions/chutes/crawclaw.plugin.json"),
+    ),
+    (
+        "cloudflare-ai-gateway",
+        include_str!("../../../extensions/cloudflare-ai-gateway/crawclaw.plugin.json"),
+    ),
+    (
+        "copilot-proxy",
+        include_str!("../../../extensions/copilot-proxy/crawclaw.plugin.json"),
+    ),
+    (
+        "deepseek",
+        include_str!("../../../extensions/deepseek/crawclaw.plugin.json"),
+    ),
+    (
+        "fal",
+        include_str!("../../../extensions/fal/crawclaw.plugin.json"),
+    ),
+    (
+        "github-copilot",
+        include_str!("../../../extensions/github-copilot/crawclaw.plugin.json"),
+    ),
+    (
+        "google",
+        include_str!("../../../extensions/google/crawclaw.plugin.json"),
+    ),
+    (
+        "huggingface",
+        include_str!("../../../extensions/huggingface/crawclaw.plugin.json"),
+    ),
+    (
+        "kilocode",
+        include_str!("../../../extensions/kilocode/crawclaw.plugin.json"),
+    ),
+    (
+        "kimi",
+        include_str!("../../../extensions/kimi-coding/crawclaw.plugin.json"),
+    ),
+    (
+        "litellm",
+        include_str!("../../../extensions/litellm/crawclaw.plugin.json"),
+    ),
+    (
+        "microsoft-foundry",
+        include_str!("../../../extensions/microsoft-foundry/crawclaw.plugin.json"),
+    ),
+    (
+        "minimax",
+        include_str!("../../../extensions/minimax/crawclaw.plugin.json"),
+    ),
+    (
+        "mistral",
+        include_str!("../../../extensions/mistral/crawclaw.plugin.json"),
+    ),
+    (
+        "modelstudio",
+        include_str!("../../../extensions/modelstudio/crawclaw.plugin.json"),
+    ),
+    (
+        "moonshot",
+        include_str!("../../../extensions/moonshot/crawclaw.plugin.json"),
+    ),
+    (
+        "nvidia",
+        include_str!("../../../extensions/nvidia/crawclaw.plugin.json"),
+    ),
+    (
+        "ollama",
+        include_str!("../../../extensions/ollama/crawclaw.plugin.json"),
+    ),
+    (
+        "openai",
+        include_str!("../../../extensions/openai/crawclaw.plugin.json"),
+    ),
+    (
+        "opencode",
+        include_str!("../../../extensions/opencode/crawclaw.plugin.json"),
+    ),
+    (
+        "opencode-go",
+        include_str!("../../../extensions/opencode-go/crawclaw.plugin.json"),
+    ),
+    (
+        "openrouter",
+        include_str!("../../../extensions/openrouter/crawclaw.plugin.json"),
+    ),
+    (
+        "qianfan",
+        include_str!("../../../extensions/qianfan/crawclaw.plugin.json"),
+    ),
+    (
+        "sglang",
+        include_str!("../../../extensions/sglang/crawclaw.plugin.json"),
+    ),
+    (
+        "synthetic",
+        include_str!("../../../extensions/synthetic/crawclaw.plugin.json"),
+    ),
+    (
+        "together",
+        include_str!("../../../extensions/together/crawclaw.plugin.json"),
+    ),
+    (
+        "venice",
+        include_str!("../../../extensions/venice/crawclaw.plugin.json"),
+    ),
+    (
+        "vercel-ai-gateway",
+        include_str!("../../../extensions/vercel-ai-gateway/crawclaw.plugin.json"),
+    ),
+    (
+        "vllm",
+        include_str!("../../../extensions/vllm/crawclaw.plugin.json"),
+    ),
+    (
+        "volcengine",
+        include_str!("../../../extensions/volcengine/crawclaw.plugin.json"),
+    ),
+    (
+        "xai",
+        include_str!("../../../extensions/xai/crawclaw.plugin.json"),
+    ),
+    (
+        "xiaomi",
+        include_str!("../../../extensions/xiaomi/crawclaw.plugin.json"),
+    ),
+    (
+        "zai",
+        include_str!("../../../extensions/zai/crawclaw.plugin.json"),
+    ),
 ];
 
 pub const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
@@ -607,6 +778,13 @@ pub fn bundled_provider_plugins() -> Vec<BundledProviderPlugin> {
     BUNDLED_PROVIDER_PLUGINS.to_vec()
 }
 
+pub fn bundled_provider_plugin_metadata() -> Vec<BundledProviderPluginMetadata> {
+    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+        .iter()
+        .map(|(plugin_id, raw)| parse_bundled_provider_plugin_metadata(plugin_id, raw))
+        .collect()
+}
+
 pub fn bundled_provider_ids() -> Vec<&'static str> {
     BUNDLED_PROVIDER_PLUGINS
         .iter()
@@ -623,6 +801,65 @@ pub fn bundled_provider_auth_env_vars_for(provider: &str) -> Option<&'static [&'
         .iter()
         .find(|entry| entry.provider == provider)
         .map(|entry| entry.env_vars)
+}
+
+fn parse_bundled_provider_plugin_metadata(
+    plugin_id: &str,
+    raw: &str,
+) -> BundledProviderPluginMetadata {
+    let manifest = serde_json::from_str::<Value>(raw).unwrap_or_else(|_| json!({}));
+    let providers = manifest
+        .get("providers")
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned)
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let auth_env_vars = manifest
+        .get("providerAuthEnvVars")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let auth_choices = manifest
+        .get("providerAuthChoices")
+        .cloned()
+        .unwrap_or_else(|| json!([]));
+    let chat = providers.iter().any(|provider| {
+        NATIVE_PROVIDER_TRANSPORTS
+            .iter()
+            .any(|entry| entry.id == provider)
+    });
+    let contracts = manifest
+        .get("contracts")
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    let media_understanding = contracts
+        .get("mediaUnderstandingProviders")
+        .and_then(Value::as_array)
+        .map(|values| !values.is_empty())
+        .unwrap_or(false);
+    let cli_backend = manifest
+        .get("cliBackends")
+        .and_then(Value::as_array)
+        .map(|values| !values.is_empty())
+        .unwrap_or(false);
+    let image_generation = plugin_id == "fal";
+    BundledProviderPluginMetadata {
+        plugin_id: plugin_id.to_string(),
+        providers,
+        auth_env_vars,
+        auth_choices,
+        capabilities: BundledProviderPluginCapabilities {
+            chat,
+            non_chat: !chat,
+            image_generation,
+            cli_backend,
+            media_understanding,
+        },
+    }
 }
 
 fn resolve_provider_transport(
@@ -1841,6 +2078,35 @@ mod tests {
             actual.get("fal").map(Vec::as_slice),
             Some(&["fal".to_string()][..])
         );
+    }
+
+    #[test]
+    fn bundled_provider_plugin_metadata_exposes_auth_and_non_chat_capabilities() {
+        let metadata = bundled_provider_plugin_metadata();
+        assert_eq!(metadata.len(), bundled_provider_plugins().len());
+
+        let openai = metadata
+            .iter()
+            .find(|entry| entry.plugin_id == "openai")
+            .expect("openai metadata");
+        assert!(openai.capabilities.chat);
+        assert!(openai.capabilities.cli_backend);
+        assert!(openai.capabilities.media_understanding);
+        assert!(openai
+            .auth_choices
+            .as_array()
+            .expect("auth choices")
+            .iter()
+            .any(|choice| choice["choiceId"] == "openai-api-key"));
+        assert_eq!(openai.auth_env_vars["openai"], json!(["OPENAI_API_KEY"]));
+
+        let fal = metadata
+            .iter()
+            .find(|entry| entry.plugin_id == "fal")
+            .expect("fal metadata");
+        assert!(!fal.capabilities.chat);
+        assert!(fal.capabilities.non_chat);
+        assert!(fal.capabilities.image_generation);
     }
 
     #[test]

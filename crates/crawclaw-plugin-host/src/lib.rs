@@ -134,7 +134,7 @@ pub struct PluginHostCapability {
 pub fn phase_three_capability() -> PluginHostCapability {
     PluginHostCapability {
         manifest_read_model: true,
-        rust_or_wasm_entry_required: false,
+        rust_or_wasm_entry_required: true,
         pi_quickjs_extensions: true,
     }
 }
@@ -877,7 +877,7 @@ mod tests {
         let capability = phase_three_capability();
 
         assert!(capability.manifest_read_model);
-        assert!(!capability.rust_or_wasm_entry_required);
+        assert!(capability.rust_or_wasm_entry_required);
         assert!(capability.pi_quickjs_extensions);
     }
 

@@ -28,6 +28,7 @@ async fn main() {
         "health" => health(args),
         "config" => config(args),
         "gateway" => gateway(args).await,
+        "plugins" => plugins(args).await,
         "memory" => memory(args),
         "completion" => completion(args),
         "channels" => channels(args),
@@ -109,6 +110,7 @@ fn status(args: Vec<String>) {
             "implementation": "rust-native",
             "providers": crawclaw_providers::native_provider_ids(),
             "providerTransports": crawclaw_providers::native_provider_transports(),
+            "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
             "channels": crawclaw_plugin_host::native_channel_ids(),
         }));
         return;
@@ -147,6 +149,321 @@ fn channels(args: Vec<String>) {
 
     eprintln!("usage: crawclaw channels list [--json]");
     std::process::exit(2);
+}
+
+struct PluginsCommandResult {
+    json: bool,
+    value: serde_json::Value,
+    lines: Vec<String>,
+}
+
+async fn plugins(args: Vec<String>) {
+    match plugins_command_result(&args).await {
+        Ok(result) => {
+            if result.json {
+                print_json(result.value);
+                return;
+            }
+            for line in result.lines {
+                println!("{line}");
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+async fn plugins_command_result(args: &[String]) -> Result<PluginsCommandResult, String> {
+    if args.is_empty() || has_flag(args, "--help") || has_flag(args, "-h") {
+        return Ok(PluginsCommandResult {
+            json: false,
+            value: serde_json::Value::Null,
+            lines: plugins_usage(),
+        });
+    }
+
+    match args[0].as_str() {
+        "list" => plugins_list_command(&args[1..]).await,
+        "install" => plugins_install_command(&args[1..]).await,
+        "update" => plugins_update_command(&args[1..]).await,
+        "enable" => plugins_toggle_command(&args[1..], "plugins.enable", true).await,
+        "disable" => plugins_toggle_command(&args[1..], "plugins.disable", false).await,
+        "uninstall" | "remove" => plugins_uninstall_command(&args[1..]).await,
+        other => Err(format!("unsupported crawclaw plugins command: {other}")),
+    }
+}
+
+fn plugins_usage() -> Vec<String> {
+    vec![
+        "crawclaw plugins list [--json]".to_string(),
+        "crawclaw plugins install <path-or-spec-or-plugin> [--json] [--link] [--pin] [--marketplace <source>]".to_string(),
+        "crawclaw plugins update [id] [--all] [--dry-run] [--force] [--json]".to_string(),
+        "crawclaw plugins enable <id> [--json]".to_string(),
+        "crawclaw plugins disable <id> [--json]".to_string(),
+        "crawclaw plugins uninstall <id> [--keep-files] [--json]".to_string(),
+    ]
+}
+
+async fn plugins_list_command(args: &[String]) -> Result<PluginsCommandResult, String> {
+    let json_output = has_flag(args, "--json");
+    let value =
+        crawclaw_gateway::call_local_gateway_method("plugins.list", serde_json::json!({})).await?;
+    let lines = if json_output {
+        Vec::new()
+    } else {
+        plugin_list_lines(&value)
+    };
+    Ok(PluginsCommandResult {
+        json: json_output,
+        value,
+        lines,
+    })
+}
+
+async fn plugins_install_command(args: &[String]) -> Result<PluginsCommandResult, String> {
+    let json_output = has_flag(args, "--json");
+    let positionals = collect_positionals(args, &["--marketplace"])?;
+    let raw = positionals
+        .first()
+        .ok_or_else(|| "usage: crawclaw plugins install <path-or-spec-or-plugin>".to_string())?;
+    let marketplace = string_flag_value(args, "--marketplace")?;
+    if marketplace.is_some() && has_flag(args, "--link") {
+        return Err("`--link` is not supported with `--marketplace`.".to_string());
+    }
+
+    let mut params = serde_json::Map::new();
+    if let Some(marketplace) = marketplace {
+        params.insert(
+            "marketplaceSource".to_string(),
+            serde_json::Value::String(marketplace),
+        );
+        params.insert(
+            "marketplacePlugin".to_string(),
+            serde_json::Value::String(raw.clone()),
+        );
+    } else {
+        params.insert("raw".to_string(), serde_json::Value::String(raw.clone()));
+    }
+    for (key, flag) in [
+        ("link", "--link"),
+        ("pin", "--pin"),
+        (
+            "dangerouslyForceUnsafeInstall",
+            "--dangerously-force-unsafe-install",
+        ),
+    ] {
+        if has_flag(args, flag) {
+            params.insert(key.to_string(), serde_json::Value::Bool(true));
+        }
+    }
+
+    let value = crawclaw_gateway::call_local_gateway_method(
+        "plugins.install",
+        serde_json::Value::Object(params),
+    )
+    .await?;
+    let plugin_id = value
+        .get("pluginId")
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or(raw.as_str())
+        .to_string();
+    Ok(PluginsCommandResult {
+        json: json_output,
+        value,
+        lines: if json_output {
+            Vec::new()
+        } else {
+            vec![
+                format!("Installed plugin \"{plugin_id}\"."),
+                "Restart the gateway to apply changes.".to_string(),
+            ]
+        },
+    })
+}
+
+async fn plugins_update_command(args: &[String]) -> Result<PluginsCommandResult, String> {
+    let json_output = has_flag(args, "--json");
+    let positionals = collect_positionals(args, &[])?;
+    let all = has_flag(args, "--all");
+    if !all && positionals.is_empty() {
+        return Err("Provide a plugin id, or use --all.".to_string());
+    }
+
+    let mut params = serde_json::Map::new();
+    if all {
+        params.insert("all".to_string(), serde_json::Value::Bool(true));
+    } else if let Some(id) = positionals.first() {
+        params.insert("id".to_string(), serde_json::Value::String(id.clone()));
+    }
+    for (key, flag) in [("dryRun", "--dry-run"), ("force", "--force")] {
+        if has_flag(args, flag) {
+            params.insert(key.to_string(), serde_json::Value::Bool(true));
+        }
+    }
+
+    let value = crawclaw_gateway::call_local_gateway_method(
+        "plugins.update",
+        serde_json::Value::Object(params),
+    )
+    .await?;
+    let mut lines = plugin_update_lines(&value);
+    if value
+        .get("requiresRestart")
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(false)
+    {
+        lines.push("Restart the gateway to apply changes.".to_string());
+    }
+    Ok(PluginsCommandResult {
+        json: json_output,
+        value,
+        lines: if json_output { Vec::new() } else { lines },
+    })
+}
+
+async fn plugins_toggle_command(
+    args: &[String],
+    method: &str,
+    enabled: bool,
+) -> Result<PluginsCommandResult, String> {
+    let json_output = has_flag(args, "--json");
+    let id = collect_positionals(args, &[])?
+        .first()
+        .cloned()
+        .ok_or_else(|| {
+            format!(
+                "usage: crawclaw plugins {} <id>",
+                if enabled { "enable" } else { "disable" }
+            )
+        })?;
+    let value =
+        crawclaw_gateway::call_local_gateway_method(method, serde_json::json!({ "id": id }))
+            .await?;
+    Ok(PluginsCommandResult {
+        json: json_output,
+        value,
+        lines: if json_output {
+            Vec::new()
+        } else {
+            vec![format!(
+                "{} plugin \"{}\". Restart the gateway to apply changes.",
+                if enabled { "Enabled" } else { "Disabled" },
+                id
+            )]
+        },
+    })
+}
+
+async fn plugins_uninstall_command(args: &[String]) -> Result<PluginsCommandResult, String> {
+    let json_output = has_flag(args, "--json");
+    let id = collect_positionals(args, &[])?
+        .first()
+        .cloned()
+        .ok_or_else(|| "usage: crawclaw plugins uninstall <id>".to_string())?;
+    let value = crawclaw_gateway::call_local_gateway_method(
+        "plugins.uninstall",
+        serde_json::json!({
+            "id": id,
+            "keepFiles": has_flag(args, "--keep-files")
+        }),
+    )
+    .await?;
+    Ok(PluginsCommandResult {
+        json: json_output,
+        value,
+        lines: if json_output {
+            Vec::new()
+        } else {
+            vec![format!(
+                "Uninstalled plugin \"{id}\". Restart the gateway to apply changes."
+            )]
+        },
+    })
+}
+
+fn plugin_list_lines(value: &serde_json::Value) -> Vec<String> {
+    let Some(plugins) = value.get("plugins").and_then(serde_json::Value::as_array) else {
+        return vec!["No plugins installed.".to_string()];
+    };
+    if plugins.is_empty() {
+        return vec!["No plugins installed.".to_string()];
+    }
+    plugins
+        .iter()
+        .map(|plugin| {
+            let id = plugin
+                .get("id")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("unknown");
+            let status = plugin
+                .get("status")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("unknown");
+            let version = plugin
+                .get("version")
+                .and_then(serde_json::Value::as_str)
+                .unwrap_or("-");
+            format!("{id}\t{status}\t{version}")
+        })
+        .collect()
+}
+
+fn plugin_update_lines(value: &serde_json::Value) -> Vec<String> {
+    value
+        .get("outcomes")
+        .and_then(serde_json::Value::as_array)
+        .map(|outcomes| {
+            outcomes
+                .iter()
+                .filter_map(|outcome| {
+                    outcome
+                        .get("message")
+                        .and_then(serde_json::Value::as_str)
+                        .map(ToOwned::to_owned)
+                })
+                .collect::<Vec<_>>()
+        })
+        .filter(|lines| !lines.is_empty())
+        .unwrap_or_else(|| vec!["No plugin updates were applied.".to_string()])
+}
+
+fn string_flag_value(args: &[String], flag: &str) -> Result<Option<String>, String> {
+    let Some(index) = args.iter().position(|arg| arg == flag) else {
+        return Ok(None);
+    };
+    args.get(index + 1)
+        .filter(|value| !value.starts_with('-'))
+        .cloned()
+        .map(Some)
+        .ok_or_else(|| format!("{flag} requires a value"))
+}
+
+fn collect_positionals(args: &[String], value_flags: &[&str]) -> Result<Vec<String>, String> {
+    let mut values = Vec::new();
+    let mut index = 0;
+    while index < args.len() {
+        let arg = &args[index];
+        if arg == "--" {
+            values.extend(args.iter().skip(index + 1).cloned());
+            break;
+        }
+        if arg.starts_with('-') {
+            if value_flags.iter().any(|flag| *flag == arg) {
+                if args.get(index + 1).is_none() {
+                    return Err(format!("{arg} requires a value"));
+                }
+                index += 2;
+            } else {
+                index += 1;
+            }
+            continue;
+        }
+        values.push(arg.clone());
+        index += 1;
+    }
+    Ok(values)
 }
 
 fn config(args: Vec<String>) {
@@ -370,19 +687,19 @@ fn write_completion_state(shells: &[&str]) -> Result<(), String> {
 fn completion_script(shell: &str) -> String {
     match shell {
         "fish" => {
-            "complete -c crawclaw -f -a 'channels gateway memory desktop-runtime runtime runtimes completion daemon doctor'\n"
+            "complete -c crawclaw -f -a 'channels gateway plugins memory desktop-runtime runtime runtimes completion daemon doctor'\n"
                 .to_string()
         }
         "powershell" => {
-            "Register-ArgumentCompleter -Native -CommandName crawclaw -ScriptBlock { param($wordToComplete) 'channels','gateway','memory','desktop-runtime','runtime','runtimes','completion','daemon','doctor' | Where-Object { $_ -like \"$wordToComplete*\" } }\n"
+            "Register-ArgumentCompleter -Native -CommandName crawclaw -ScriptBlock { param($wordToComplete) 'channels','gateway','plugins','memory','desktop-runtime','runtime','runtimes','completion','daemon','doctor' | Where-Object { $_ -like \"$wordToComplete*\" } }\n"
                 .to_string()
         }
         "bash" => {
-            "_crawclaw_completions() { COMPREPLY=( $(compgen -W \"channels gateway memory desktop-runtime runtime runtimes completion daemon doctor\" -- \"${COMP_WORDS[COMP_CWORD]}\") ); }\ncomplete -F _crawclaw_completions crawclaw\n"
+            "_crawclaw_completions() { COMPREPLY=( $(compgen -W \"channels gateway plugins memory desktop-runtime runtime runtimes completion daemon doctor\" -- \"${COMP_WORDS[COMP_CWORD]}\") ); }\ncomplete -F _crawclaw_completions crawclaw\n"
                 .to_string()
         }
         _ => {
-            "#compdef crawclaw\n_arguments '1:command:(channels gateway memory desktop-runtime runtime runtimes completion daemon doctor)'\n"
+            "#compdef crawclaw\n_arguments '1:command:(channels gateway plugins memory desktop-runtime runtime runtimes completion daemon doctor)'\n"
                 .to_string()
         }
     }
@@ -787,6 +1104,7 @@ fn desktop_runtime(args: Vec<String>) {
             "runtime": "ready",
             "providers": crawclaw_providers::native_provider_ids(),
             "providerTransports": crawclaw_providers::native_provider_transports(),
+            "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
             "channels": crawclaw_plugin_host::native_channel_ids(),
             "jsPluginRuntime": "pi-quickjs"
         }));
@@ -837,6 +1155,7 @@ fn stage_runtime(output: PathBuf) {
         serde_json::to_vec_pretty(&serde_json::json!({
             "providers": crawclaw_providers::native_provider_ids(),
             "transports": crawclaw_providers::native_provider_transports(),
+            "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
         }))
         .expect("provider manifest json"),
     )
@@ -957,7 +1276,7 @@ fn print_json(value: serde_json::Value) {
 
 fn print_help() {
     println!("crawclaw - Rust-native CrawClaw runtime");
-    println!("commands: status, health, config, channels, gateway, memory, desktop-runtime, runtime, runtimes, completion, daemon, doctor");
+    println!("commands: status, health, config, channels, gateway, plugins, memory, desktop-runtime, runtime, runtimes, completion, daemon, doctor");
 }
 
 #[cfg(test)]
@@ -970,8 +1289,8 @@ mod tests {
 
     use super::{
         build_gateway_systemd_unit, completion_cache_path, config_get, config_set,
-        normalize_root_args, parse_config_value, parse_gateway_run_config, stage_runtime,
-        systemd_escape_arg, write_completion_state, GatewayBind,
+        normalize_root_args, parse_config_value, parse_gateway_run_config, plugins_command_result,
+        stage_runtime, systemd_escape_arg, write_completion_state, GatewayBind,
     };
 
     fn env_lock() -> &'static Mutex<()> {
@@ -1071,6 +1390,66 @@ mod tests {
         assert!(completion_cache_path(&dir.join("completions"), "powershell").exists());
 
         restore_env("CRAWCLAW_STATE_DIR", previous);
+        let _ = fs::remove_dir_all(dir);
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn plugins_install_command_uses_rust_gateway_lifecycle() {
+        let _guard = env_lock().lock().expect("env lock");
+        let dir = unique_temp_dir("plugins-command");
+        let state_dir = dir.join("state");
+        let config_path = state_dir.join("crawclaw.json");
+        let plugin_dir = dir.join("plugin");
+        fs::create_dir_all(&plugin_dir).unwrap();
+        fs::write(
+            plugin_dir.join("crawclaw.plugin.json"),
+            r#"{"id":"rust-cli-demo","name":"Rust CLI Demo","version":"1.0.0"}"#,
+        )
+        .unwrap();
+
+        let previous_state = env::var_os("CRAWCLAW_STATE_DIR");
+        let previous_config = env::var_os("CRAWCLAW_CONFIG_PATH");
+        let previous_runtime = env::var_os("CRAWCLAW_RUNTIME_ROOT");
+        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
+        env::set_var("CRAWCLAW_CONFIG_PATH", &config_path);
+        env::set_var("CRAWCLAW_RUNTIME_ROOT", state_dir.join("runtime"));
+
+        let installed = plugins_command_result(&[
+            "install".to_string(),
+            plugin_dir.to_string_lossy().to_string(),
+            "--json".to_string(),
+        ])
+        .await
+        .unwrap();
+        assert!(installed.json);
+        assert_eq!(installed.value["implementation"], "rust-native");
+        assert_eq!(installed.value["pluginId"], "rust-cli-demo");
+
+        let config: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&config_path).unwrap()).unwrap();
+        assert_eq!(
+            config["plugins"]["entries"]["rust-cli-demo"]["enabled"],
+            true
+        );
+        assert_eq!(
+            config["plugins"]["installs"]["rust-cli-demo"]["source"],
+            "path"
+        );
+
+        let updated = plugins_command_result(&[
+            "update".to_string(),
+            "rust-cli-demo".to_string(),
+            "--dry-run".to_string(),
+            "--json".to_string(),
+        ])
+        .await
+        .unwrap();
+        assert!(updated.json);
+        assert_eq!(updated.value["implementation"], "rust-native");
+
+        restore_env("CRAWCLAW_STATE_DIR", previous_state);
+        restore_env("CRAWCLAW_CONFIG_PATH", previous_config);
+        restore_env("CRAWCLAW_RUNTIME_ROOT", previous_runtime);
         let _ = fs::remove_dir_all(dir);
     }
 

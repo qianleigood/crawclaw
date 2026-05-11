@@ -334,7 +334,8 @@ esac
         plugin_dir.join("crawclaw.plugin.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "id": "test-js",
-            "entrypoint": "index.mjs"
+            "entrypoint": "index.mjs",
+            "allowJsPluginFallback": true
         }))
         .expect("plugin manifest json"),
     )
@@ -389,6 +390,57 @@ esac
             .unwrap_or_default()
             .contains(r#"test-js/echo: {"output":"pi-quickjs:pi-quickjs:hi"}"#)
     }));
+}
+
+#[cfg(unix)]
+#[tokio::test]
+async fn gateway_blocks_desktop_js_plugin_fallback_without_manifest_opt_in() {
+    let runtime_layout = create_runtime_fixture(
+        "desktop-pi-quickjs-plugin-denied",
+        r#"#!/bin/sh
+case "$*" in
+  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
+  *"desktop-api"*|*"crawclaw.mjs"*) echo "node desktop bridge must not run" >&2; exit 9 ;;
+  *) echo "unexpected args: $*" >&2; exit 9 ;;
+esac
+"#,
+    );
+    write_plugin_manifest(&runtime_layout);
+    let plugin_dir = runtime_layout.runtime_root.join("plugins").join("test-js");
+    fs::create_dir_all(&plugin_dir).expect("plugin dir");
+    fs::write(
+        plugin_dir.join("crawclaw.plugin.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "id": "test-js",
+            "entrypoint": "index.mjs"
+        }))
+        .expect("plugin manifest json"),
+    )
+    .expect("plugin manifest");
+    fs::write(
+        plugin_dir.join("index.mjs"),
+        "export default { async register(api) { api.registerTool({ name: 'echo', execute: async () => ({ ok: true }) }); } };",
+    )
+    .expect("plugin entry");
+
+    let server = start_gateway_server(GatewayConfig {
+        app_name: "CrawClaw Desktop".to_string(),
+        app_version: "test".to_string(),
+        runtime_layout,
+        session_token: "session".to_string(),
+    })
+    .await
+    .expect("gateway should start");
+
+    let body = r#"{"input":{"message":"hi"}}"#;
+    let request_body = format!(
+        "POST /api/desktop/plugins/test-js/tools/echo/invoke HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        body.len(),
+        body
+    );
+    let (status, _) = request(server.addr, &request_body).await;
+
+    assert_eq!(status, 500);
 }
 
 #[cfg(unix)]

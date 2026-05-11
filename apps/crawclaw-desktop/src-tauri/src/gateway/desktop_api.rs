@@ -1551,6 +1551,19 @@ async fn invoke_plugin_tool_operation(
             return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
         }
         None => {
+            if !plugin_manifest_allows_js_fallback(&state.runtime_root, &plugin_id) {
+                let _ = state.events.send(DesktopEvent::ToolResult {
+                    thread_id,
+                    tool_id: tool_id.clone(),
+                    ok: false,
+                });
+                return Err(plugin_host_status(
+                    state,
+                    PluginHostError::Invalid(format!(
+                        "No Rust native tool is registered for {plugin_id}/{tool_id}; packaged desktop JS plugin fallback requires allowJsPluginFallback=true in the plugin manifest."
+                    )),
+                ));
+            }
             match invoke_js_plugin_tool(&state.runtime_root, &plugin_id, &tool_id, tool_input).await
             {
                 Ok(result) => result,
@@ -1580,6 +1593,31 @@ async fn invoke_plugin_tool_operation(
         ok: true,
     });
     emit_state_changed(state).await
+}
+
+fn plugin_manifest_allows_js_fallback(runtime_root: &std::path::Path, plugin_id: &str) -> bool {
+    if std::env::var("CRAWCLAW_DESKTOP_ALLOW_JS_PLUGIN_FALLBACK").as_deref() == Ok("1") {
+        return true;
+    }
+    let manifest_path = runtime_root
+        .join("plugins")
+        .join(plugin_id)
+        .join("crawclaw.plugin.json");
+    let Ok(raw) = std::fs::read_to_string(manifest_path) else {
+        return false;
+    };
+    let Ok(manifest) = serde_json::from_str::<Value>(&raw) else {
+        return false;
+    };
+    manifest
+        .get("allowJsPluginFallback")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        || manifest
+            .get("compat")
+            .and_then(|compat| compat.get("jsPluginFallback"))
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
 }
 
 async fn invoke_rust_native_plugin_tool(
