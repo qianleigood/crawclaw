@@ -28,10 +28,10 @@ describe("resolveExecApprovalCommandDisplay", () => {
       },
     },
     {
-      name: "falls back to node systemRunPlan values and sanitizes preview text",
+      name: "falls back to systemRunPlan values and sanitizes preview text",
       input: {
         command: "",
-        host: "node" as const,
+        host: "gateway" as const,
         systemRunPlan: {
           argv: ["python3", "-c", "print(1)"],
           cwd: null,
@@ -47,7 +47,7 @@ describe("resolveExecApprovalCommandDisplay", () => {
       },
     },
     {
-      name: "ignores systemRunPlan fallback for gateway hosts",
+      name: "uses systemRunPlan fallback when explicit command is missing",
       input: {
         command: "",
         host: "gateway" as const,
@@ -61,7 +61,7 @@ describe("resolveExecApprovalCommandDisplay", () => {
         },
       },
       expected: {
-        commandText: "",
+        commandText: "echo hi",
         commandPreview: null,
       },
     },

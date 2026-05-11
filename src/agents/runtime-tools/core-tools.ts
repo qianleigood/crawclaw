@@ -82,7 +82,7 @@ const bashSchema = Type.Object({
   ),
   background: Type.Optional(Type.Boolean({ description: "Start the command in the background" })),
   timeout: Type.Optional(Type.Number({ description: "Foreground command timeout in seconds" })),
-  host: Type.Optional(Type.String({ description: "Execution host: auto, gateway, or node" })),
+  host: Type.Optional(Type.String({ description: "Execution host: auto or gateway" })),
   security: Type.Optional(
     Type.String({ description: "Execution security policy: full, allowlist, or deny" }),
   ),

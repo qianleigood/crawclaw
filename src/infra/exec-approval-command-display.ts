@@ -27,13 +27,9 @@ export function resolveExecApprovalCommandDisplay(request: ExecApprovalRequestPa
   commandText: string;
   commandPreview: string | null;
 } {
-  const commandTextSource =
-    request.command ||
-    (request.host === "node" && request.systemRunPlan ? request.systemRunPlan.commandText : "");
+  const commandTextSource = request.command || request.systemRunPlan?.commandText || "";
   const commandText = sanitizeExecApprovalDisplayText(commandTextSource);
-  const previewSource =
-    request.commandPreview ??
-    (request.host === "node" ? (request.systemRunPlan?.commandPreview ?? null) : null);
+  const previewSource = request.commandPreview ?? request.systemRunPlan?.commandPreview ?? null;
   return {
     commandText,
     commandPreview: normalizePreview(commandText, previewSource),

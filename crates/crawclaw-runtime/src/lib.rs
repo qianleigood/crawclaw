@@ -16,8 +16,10 @@ use core_tools::build_pi_agent_rust_tool_registry;
 
 use crawclaw_core::{RuntimeCompatMode, RuntimeCompatStatus, RuntimeStatusValue};
 use crawclaw_providers::{
-    send_native_provider_conversation, NativeProviderConfig, NativeProviderMessage,
-    NativeProviderMessageRole, ProviderTransportError,
+    send_native_provider_conversation, send_native_provider_conversation_with_options,
+    NativeProviderConfig, NativeProviderContentBlock, NativeProviderMessage,
+    NativeProviderMessageRole, NativeProviderRequestOptions, NativeProviderTool,
+    ProviderTransportError,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -1524,7 +1526,8 @@ impl AgentRuntime {
         let history = self.load_thread_history(&thread_id)?;
         let assistant_text = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
-                let provider_config = ProviderResolver::resolve_desktop_config(&config)?;
+                let provider_config =
+                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
                 self.pi_agent_backend
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
@@ -1536,7 +1539,8 @@ impl AgentRuntime {
                     .await?
             }
             DesktopAgentRuntimeMode::NativeProvider => {
-                let provider_config = ProviderResolver::resolve_desktop_config(&config)?;
+                let provider_config =
+                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
                 self.native_provider_backend
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
@@ -1718,9 +1722,22 @@ impl pi::sdk::Provider for CrawClawPiProvider {
                 "missing provider conversation messages",
             ));
         }
-        let text = send_native_provider_conversation(&self.config, &messages)
-            .await
-            .map_err(|error| pi::sdk::Error::provider(self.name(), error.to_string()))?;
+        let options = NativeProviderRequestOptions {
+            stream: true,
+            tools: context
+                .tools
+                .iter()
+                .map(|tool| NativeProviderTool {
+                    name: tool.name.clone(),
+                    description: Some(tool.description.clone()),
+                    input_schema: tool.parameters.clone(),
+                })
+                .collect(),
+        };
+        let text =
+            send_native_provider_conversation_with_options(&self.config, &messages, &options)
+                .await
+                .map_err(|error| pi::sdk::Error::provider(self.name(), error.to_string()))?;
         let message = pi_assistant_message(&self.config, text.clone());
         let mut partial = message.clone();
         partial.content.clear();
@@ -1758,6 +1775,27 @@ fn pi_user_content_text(content: &pi::sdk::UserContent) -> String {
     }
 }
 
+fn pi_user_content_blocks(content: &pi::sdk::UserContent) -> Vec<NativeProviderContentBlock> {
+    match content {
+        pi::sdk::UserContent::Text(text) => vec![NativeProviderContentBlock::text(text.clone())],
+        pi::sdk::UserContent::Blocks(blocks) => blocks
+            .iter()
+            .filter_map(|block| match block {
+                pi::sdk::ContentBlock::Text(text) => {
+                    Some(NativeProviderContentBlock::text(text.text.clone()))
+                }
+                pi::sdk::ContentBlock::Image(image) => {
+                    Some(NativeProviderContentBlock::image_base64(
+                        image.mime_type.clone(),
+                        image.data.clone(),
+                    ))
+                }
+                _ => None,
+            })
+            .collect(),
+    }
+}
+
 fn pi_assistant_content_text(content: &[pi::sdk::ContentBlock]) -> String {
     content
         .iter()
@@ -1778,14 +1816,16 @@ fn pi_messages_to_native_provider_messages(
             pi::sdk::Message::User(user) => Some(NativeProviderMessage {
                 role: NativeProviderMessageRole::User,
                 content: pi_user_content_text(&user.content),
+                blocks: pi_user_content_blocks(&user.content),
             }),
             pi::sdk::Message::Assistant(assistant) => Some(NativeProviderMessage {
                 role: NativeProviderMessageRole::Assistant,
                 content: pi_assistant_content_text(&assistant.content),
+                blocks: Vec::new(),
             }),
             _ => None,
         })
-        .filter(|message| !message.content.trim().is_empty())
+        .filter(|message| !message.content.trim().is_empty() || !message.blocks.is_empty())
         .collect()
 }
 
@@ -1814,6 +1854,7 @@ fn agent_message_to_native_provider_message(
             AgentRuntimeMessageRole::Assistant => NativeProviderMessageRole::Assistant,
         },
         content: content.to_string(),
+        blocks: Vec::new(),
     })
 }
 
@@ -1898,7 +1939,7 @@ struct DesktopAgentProviderConfig {
     runtime: DesktopAgentRuntimeMode,
     provider: String,
     base_url: Option<String>,
-    api_key: Option<String>,
+    api_key: Option<Value>,
     model: Option<String>,
     api_version: Option<String>,
 }
@@ -1925,6 +1966,7 @@ impl DesktopAgentProviderConfig {
 impl ProviderResolver {
     fn resolve_desktop_config(
         config: &DesktopAgentProviderConfig,
+        runtime_root: &Path,
     ) -> Result<NativeProviderConfig, AgentRuntimeError> {
         if config.provider.trim().is_empty() {
             return Err(AgentRuntimeError::ProviderUnavailable(
@@ -1934,10 +1976,64 @@ impl ProviderResolver {
         Ok(NativeProviderConfig {
             provider: config.provider.trim().to_string(),
             base_url: optional_config_value(config.base_url.as_deref()),
-            api_key: optional_config_value(config.api_key.as_deref()),
+            api_key: resolve_secret_input_string(runtime_root, config.api_key.as_ref(), "apiKey")?,
             model: optional_config_value(config.model.as_deref()),
             api_version: optional_config_value(config.api_version.as_deref()),
         })
+    }
+}
+
+fn resolve_secret_input_string(
+    runtime_root: &Path,
+    value: Option<&Value>,
+    field: &str,
+) -> Result<Option<String>, AgentRuntimeError> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    if let Some(raw) = value.as_str() {
+        return Ok(optional_config_value(Some(raw)));
+    }
+    let Some(object) = value.as_object() else {
+        return Err(AgentRuntimeError::ProviderUnavailable(format!(
+            "Desktop agent provider config {field} must be a string or SecretRef."
+        )));
+    };
+    let source = object
+        .get("source")
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    let id = object.get("id").and_then(Value::as_str).unwrap_or_default();
+    match source {
+        "env" => std::env::var(id)
+            .map(|secret| optional_config_value(Some(&secret)))
+            .map_err(|_| {
+                AgentRuntimeError::ProviderUnavailable(format!(
+                    "Environment variable {id} for desktop provider {field} is not set."
+                ))
+            }),
+        "file" => {
+            let path = PathBuf::from(id);
+            let path = if path.is_absolute() {
+                path
+            } else {
+                runtime_root.join(path)
+            };
+            fs::read_to_string(&path)
+                .map(|secret| optional_config_value(Some(secret.trim_end())))
+                .map_err(|error| {
+                    AgentRuntimeError::ProviderUnavailable(format!(
+                        "Failed to read file SecretRef {} for desktop provider {field}: {error}",
+                        path.display()
+                    ))
+                })
+        }
+        "exec" => Err(AgentRuntimeError::ProviderUnavailable(format!(
+            "Exec SecretRef resolution for desktop provider {field} is not enabled in the Rust runtime."
+        ))),
+        _ => Err(AgentRuntimeError::ProviderUnavailable(format!(
+            "Unsupported SecretRef source {source} for desktop provider {field}."
+        ))),
     }
 }
 
@@ -1951,6 +2047,8 @@ fn optional_config_value(value: Option<&str>) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use futures::StreamExt;
+    use pi::sdk::Provider;
     use serde_json::json;
     use std::future::Future;
     use std::io::Read;
@@ -2555,9 +2653,59 @@ mod tests {
         let request = request_rx.recv().expect("captured provider request");
         assert!(request.contains(r#""role":"user""#));
         assert!(request.contains(r#""role":"assistant""#));
-        assert!(request.contains(r#""content":"previous user""#));
-        assert!(request.contains(r#""content":"previous assistant""#));
-        assert!(request.contains(r#""content":"hello bridge""#));
+        assert!(request.contains("previous user"));
+        assert!(request.contains("previous assistant"));
+        assert!(request.contains("hello bridge"));
+    }
+
+    #[tokio::test]
+    async fn pi_agent_rust_provider_bridge_passes_streaming_tools_and_images() {
+        let (provider_base_url, request_rx) =
+            start_openai_compatible_provider("reply from provider bridge");
+        let provider = CrawClawPiProvider {
+            config: NativeProviderConfig {
+                provider: "openai-compatible".to_string(),
+                base_url: Some(provider_base_url),
+                api_key: Some("test-key".to_string()),
+                model: Some("test-model".to_string()),
+                api_version: None,
+            },
+        };
+        let context = pi::sdk::ProviderContext::owned(
+            None,
+            vec![pi::sdk::Message::User(pi::sdk::UserMessage {
+                content: pi::sdk::UserContent::Blocks(vec![
+                    pi::sdk::ContentBlock::Text(pi::sdk::TextContent::new("describe this")),
+                    pi::sdk::ContentBlock::Image(pi::sdk::ImageContent {
+                        data: "iVBORw0KGgo=".to_string(),
+                        mime_type: "image/png".to_string(),
+                    }),
+                ]),
+                timestamp: 1,
+            })],
+            vec![pi::sdk::ToolDef {
+                name: "lookup_weather".to_string(),
+                description: "Look up weather".to_string(),
+                parameters: json!({ "type": "object" }),
+            }],
+        );
+
+        let stream = provider
+            .stream(&context, &pi::sdk::StreamOptions::default())
+            .await
+            .expect("provider stream");
+        let events = stream
+            .collect::<Vec<_>>()
+            .await
+            .into_iter()
+            .collect::<Result<Vec<_>, _>>()
+            .expect("stream events");
+
+        assert!(!events.is_empty());
+        let request = request_rx.recv().expect("captured provider request");
+        assert!(request.contains(r#""stream":true"#));
+        assert!(request.contains("lookup_weather"));
+        assert!(request.contains("iVBORw0KGgo="));
     }
 
     #[tokio::test]
@@ -2611,21 +2759,47 @@ mod tests {
 
     #[test]
     fn desktop_agent_provider_config_builds_native_provider_config() {
+        let runtime_root = unique_test_runtime_root("desktop-agent-provider-config");
         let config = DesktopAgentProviderConfig {
             runtime: DesktopAgentRuntimeMode::NativeProvider,
             provider: "anthropic".to_string(),
             base_url: Some("https://api.anthropic.com".to_string()),
-            api_key: Some("secret".to_string()),
+            api_key: Some(json!("secret")),
             model: Some("sonnet-4.6".to_string()),
             api_version: Some("2023-06-01".to_string()),
         };
 
-        let native_config =
-            ProviderResolver::resolve_desktop_config(&config).expect("native provider config");
+        let native_config = ProviderResolver::resolve_desktop_config(&config, &runtime_root)
+            .expect("native provider config");
 
         assert_eq!(native_config.provider, "anthropic");
         assert_eq!(native_config.model.as_deref(), Some("sonnet-4.6"));
         assert_eq!(native_config.api_version.as_deref(), Some("2023-06-01"));
+    }
+
+    #[test]
+    fn desktop_agent_provider_config_resolves_file_secret_ref_api_key() {
+        let runtime_root = unique_test_runtime_root("desktop-agent-provider-secret-ref");
+        let secret_path = runtime_root.join("secrets").join("provider-api-key");
+        fs::create_dir_all(secret_path.parent().expect("secret parent")).expect("secret dir");
+        fs::write(&secret_path, "resolved-secret\n").expect("write secret");
+        let config = DesktopAgentProviderConfig {
+            runtime: DesktopAgentRuntimeMode::NativeProvider,
+            provider: "openai-compatible".to_string(),
+            base_url: Some("https://api.example.test/v1".to_string()),
+            api_key: Some(json!({
+                "source": "file",
+                "provider": "default",
+                "id": secret_path.to_string_lossy()
+            })),
+            model: Some("model-a".to_string()),
+            api_version: None,
+        };
+
+        let native_config = ProviderResolver::resolve_desktop_config(&config, &runtime_root)
+            .expect("native provider config");
+
+        assert_eq!(native_config.api_key.as_deref(), Some("resolved-secret"));
     }
 
     #[derive(Clone)]
@@ -2666,10 +2840,9 @@ mod tests {
         let (request_tx, request_rx) = mpsc::channel();
         thread::spawn(move || {
             let (mut stream, _) = listener.accept().expect("provider request");
-            let mut request = [0_u8; 8192];
-            let count = stream.read(&mut request).expect("read request");
+            let request = read_http_request(&mut stream);
             request_tx
-                .send(String::from_utf8_lossy(&request[..count]).to_string())
+                .send(String::from_utf8_lossy(&request).to_string())
                 .expect("send captured request");
             let body = serde_json::to_string(&json!({
                 "choices": [
@@ -2690,6 +2863,41 @@ mod tests {
             .expect("write response");
         });
         (format!("http://{addr}/v1"), request_rx)
+    }
+
+    fn read_http_request(stream: &mut std::net::TcpStream) -> Vec<u8> {
+        let mut request = Vec::new();
+        let mut buffer = [0_u8; 8192];
+        loop {
+            let count = stream.read(&mut buffer).expect("read request");
+            if count == 0 {
+                break;
+            }
+            request.extend_from_slice(&buffer[..count]);
+            if http_request_complete(&request) {
+                break;
+            }
+        }
+        request
+    }
+
+    fn http_request_complete(request: &[u8]) -> bool {
+        let Some(header_end) = request.windows(4).position(|window| window == b"\r\n\r\n") else {
+            return false;
+        };
+        let headers = String::from_utf8_lossy(&request[..header_end]);
+        let content_length = headers.lines().find_map(|line| {
+            let (name, value) = line.split_once(':')?;
+            if name.eq_ignore_ascii_case("content-length") {
+                value.trim().parse::<usize>().ok()
+            } else {
+                None
+            }
+        });
+        let Some(content_length) = content_length else {
+            return true;
+        };
+        request.len() >= header_end + 4 + content_length
     }
 
     fn tool_output_text(output: &pi::sdk::ToolOutput) -> String {

@@ -492,10 +492,10 @@ async fn handle_gateway_method(
         "usage.status" => Ok(usage_status()),
         "usage.cost" => Ok(usage_cost()),
         "doctor.memory.status" => doctor_memory_status(state),
-        "agentRuntime.summary" => Ok(agent_runtime_summary()),
-        "agentRuntime.list" => Ok(agent_runtime_list()),
+        "agentRuntime.summary" => agent_runtime_summary(state),
+        "agentRuntime.list" => agent_runtime_list(state, params),
         "agentRuntime.get" => agent_runtime_get(state, params),
-        "agentRuntime.cancel" => Ok(json!({ "ok": true, "cancelled": false })),
+        "agentRuntime.cancel" => agent_runtime_cancel(state, params),
         "agent.identity.get" => Ok(agent_identity(state)),
         "agent.inspect" => Ok(runtime_status_value(state)),
         "agent.observations.list" => Ok(json!({ "observations": [] })),
@@ -1295,7 +1295,11 @@ fn doctor_memory_status(state: &GatewayState) -> Result<Value, String> {
     }))
 }
 
-fn agent_runtime_summary() -> Value {
+fn agent_runtime_summary(_state: &GatewayState) -> Result<Value, String> {
+    Ok(agent_runtime_summary_value())
+}
+
+fn agent_runtime_summary_value() -> Value {
     json!({
         "running": 0,
         "failed": 0,
@@ -1313,12 +1317,20 @@ fn agent_runtime_summary() -> Value {
     })
 }
 
-fn agent_runtime_list() -> Value {
-    json!({
-        "summary": agent_runtime_summary(),
+fn agent_runtime_list(_state: &GatewayState, _params: Value) -> Result<Value, String> {
+    Ok(json!({
+        "summary": agent_runtime_summary_value(),
         "count": 0,
         "runs": []
-    })
+    }))
+}
+
+fn agent_runtime_cancel(_state: &GatewayState, params: Value) -> Result<Value, String> {
+    Ok(json!({
+        "ok": true,
+        "cancelled": false,
+        "taskId": string_param(&params, &["taskId", "runId", "sessionKey", "key"])
+    }))
 }
 
 fn agent_runtime_get(state: &GatewayState, params: Value) -> Result<Value, String> {

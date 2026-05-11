@@ -9,11 +9,36 @@ const rootDir = path.resolve(path.dirname(__filename), "..");
 
 export function resolveCrawClawDesktopTauriRuntimeStagePaths(checkRootDir = process.cwd()) {
   const runtimeRoot = path.join(checkRootDir, "apps", "crawclaw-desktop", ".runtime", "crawclaw");
-  const binaryName = process.platform === "win32" ? "crawclaw.exe" : "crawclaw";
+  const binaryName = runtimeBinaryName(process.platform);
   return {
     runtimeRoot,
     runtimeBinaryPath: path.join(runtimeRoot, "bin", binaryName),
     sourceRuntimeBinaryPath: path.join(checkRootDir, "target", "release", binaryName),
+  };
+}
+
+export function resolveCrawClawDesktopTauriPackagedRuntimePaths(
+  checkRootDir = process.cwd(),
+  platform = process.platform,
+) {
+  if (platform !== "darwin") {
+    return null;
+  }
+  const runtimeRoot = path.join(
+    checkRootDir,
+    "target",
+    "release",
+    "bundle",
+    "macos",
+    "CrawClaw Desktop.app",
+    "Contents",
+    "Resources",
+    "runtime",
+    "crawclaw",
+  );
+  return {
+    runtimeRoot,
+    runtimeBinaryPath: path.join(runtimeRoot, "bin", runtimeBinaryName(platform)),
   };
 }
 
@@ -88,23 +113,42 @@ export function assertCrawClawDesktopTauriReleaseInputs(params = {}) {
   const paths = resolveCrawClawDesktopTauriRuntimeStagePaths(checkRootDir);
   assertRuntimeTree(paths);
   assertRuntimeSmoke(paths, params.spawnSyncImpl ?? spawnSync);
+  assertPackagedRuntimeTree(checkRootDir, params);
   if (params.checkGeneratedPaths !== false) {
     assertNoDirtyGeneratedPaths(checkRootDir, params.spawnSyncImpl ?? spawnSync);
   }
 }
 
-function assertRuntimeTree(paths) {
-  assertExecutableFile(paths.runtimeBinaryPath, "embedded Rust runtime binary");
+function assertRuntimeTree(paths, label = "embedded") {
+  assertExecutableFile(paths.runtimeBinaryPath, `${label} Rust runtime binary`);
   assertFile(
     path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
-    "embedded managed plugin runtime manifest",
+    `${label} managed plugin runtime manifest`,
   );
   assertFile(
     path.join(paths.runtimeRoot, "channels", "manifest.json"),
-    "embedded Rust channel manifest",
+    `${label} Rust channel manifest`,
   );
   assertRustChannelManifest(path.join(paths.runtimeRoot, "channels", "manifest.json"));
+  assertProviderTransportManifest(
+    path.join(paths.runtimeRoot, "providers", "manifest.json"),
+    label,
+  );
   assertNoDisallowedNodeRuntimeEntrypoints(paths.runtimeRoot);
+}
+
+function assertPackagedRuntimeTree(checkRootDir, params) {
+  if (params.checkPackagedBundle === false) {
+    return;
+  }
+  const paths = resolveCrawClawDesktopTauriPackagedRuntimePaths(
+    checkRootDir,
+    params.platform ?? process.platform,
+  );
+  if (!paths) {
+    return;
+  }
+  assertRuntimeTree(paths, "packaged Tauri macOS app embedded runtime");
 }
 
 function assertRustChannelManifest(manifestPath) {
@@ -118,6 +162,32 @@ function assertRustChannelManifest(manifestPath) {
     JSON.stringify(["ddingtalk", "feishu", "esp32", "qqbot", "weixin"]),
     "embedded Rust channel ids",
   );
+}
+
+function assertProviderTransportManifest(manifestPath, label) {
+  assertFile(manifestPath, `${label} Rust provider transport manifest`);
+  const manifest = readJson(manifestPath);
+  const transports = Array.isArray(manifest.transports) ? manifest.transports : [];
+  if (transports.length === 0) {
+    throw new Error(`${label} Rust provider transport manifest is missing transports`);
+  }
+  for (const transport of transports) {
+    const capabilities = transport?.capabilities ?? {};
+    if (
+      capabilities.streaming !== true ||
+      capabilities.toolCalling !== true ||
+      capabilities.multimodal !== true ||
+      capabilities.secretRef?.env !== true ||
+      capabilities.secretRef?.file !== true ||
+      capabilities.secretRef?.exec !== false
+    ) {
+      throw new Error(
+        `${label} Rust provider transport manifest has incomplete capabilities for ${String(
+          transport?.id ?? "unknown",
+        )}`,
+      );
+    }
+  }
 }
 
 function assertRuntimeSmoke(paths, spawnSyncImpl) {
@@ -313,6 +383,10 @@ function pnpmCommand() {
 
 function cargoCommand() {
   return process.platform === "win32" ? "cargo.exe" : "cargo";
+}
+
+function runtimeBinaryName(platform) {
+  return platform === "win32" ? "crawclaw.exe" : "crawclaw";
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {

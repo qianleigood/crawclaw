@@ -30,6 +30,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
         if (command === "cargo" && args.includes("run")) {
           fs.mkdirSync(path.join(paths.runtimeRoot, "runtimes"), { recursive: true });
           fs.mkdirSync(path.join(paths.runtimeRoot, "channels"), { recursive: true });
+          fs.mkdirSync(path.join(paths.runtimeRoot, "providers"), { recursive: true });
           fs.writeFileSync(
             path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
             "{}\n",
@@ -38,6 +39,11 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           fs.writeFileSync(
             path.join(paths.runtimeRoot, "channels", "manifest.json"),
             channelManifestJson(),
+            "utf8",
+          );
+          fs.writeFileSync(
+            path.join(paths.runtimeRoot, "providers", "manifest.json"),
+            providerManifestJson(),
             "utf8",
           );
         }
@@ -121,6 +127,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
       ["binary", /embedded Rust runtime binary/],
       ["manifest", /embedded managed plugin runtime manifest/],
       ["channels", /embedded Rust channel manifest/],
+      ["providers", /embedded Rust provider transport manifest/],
     ];
 
     for (const [omit, expectedMessage] of cases) {
@@ -191,6 +198,60 @@ void describe("crawclaw tauri desktop runtime staging", () => {
       /Disallowed Node runtime entrypoint remains/,
     );
   });
+
+  void it("release check requires the packaged macOS app to embed the Rust runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-packaged-"));
+    writeReleaseFixture(rootDir, { omitPackagedRuntime: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          platform: "darwin",
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /packaged Tauri macOS app embedded runtime/,
+    );
+  });
+
+  void it("release check rejects Node runtime entrypoints in the packaged macOS runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-packaged-node-"));
+    writeReleaseFixture(rootDir, { packagedNodeRuntimeEntrypoint: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          platform: "darwin",
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /Disallowed Node runtime entrypoint remains/,
+    );
+  });
+
+  void it("release check requires packaged provider transport capabilities", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-packaged-providers-"));
+    writeReleaseFixture(rootDir, { omitPackagedProviders: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          platform: "darwin",
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /packaged Tauri macOS app embedded runtime Rust provider transport manifest/,
+    );
+  });
 });
 
 function writeReleaseFixture(rootDir, options = {}) {
@@ -200,6 +261,7 @@ function writeReleaseFixture(rootDir, options = {}) {
   fs.mkdirSync(path.join(paths.runtimeRoot, "bin"), { recursive: true });
   fs.mkdirSync(path.join(paths.runtimeRoot, "runtimes"), { recursive: true });
   fs.mkdirSync(path.join(paths.runtimeRoot, "channels"), { recursive: true });
+  fs.mkdirSync(path.join(paths.runtimeRoot, "providers"), { recursive: true });
   const scripts = options.legacyElectron
     ? { "admin:desktop:build": "npm --prefix apps/crawclaw-admin-desktop run build" }
     : {};
@@ -244,6 +306,13 @@ function writeReleaseFixture(rootDir, options = {}) {
       "utf8",
     );
   }
+  if (options.omit !== "providers") {
+    fs.writeFileSync(
+      path.join(paths.runtimeRoot, "providers", "manifest.json"),
+      providerManifestJson(),
+      "utf8",
+    );
+  }
   if (options.legacyElectron) {
     fs.mkdirSync(path.join(rootDir, "apps", "crawclaw-admin-desktop"), { recursive: true });
     fs.mkdirSync(path.join(rootDir, "scripts"), { recursive: true });
@@ -264,13 +333,59 @@ function writeReleaseFixture(rootDir, options = {}) {
       "utf8",
     );
   }
+  if (!options.omitPackagedRuntime) {
+    const packagedRoot = packagedMacRuntimeRoot(rootDir);
+    fs.mkdirSync(path.join(packagedRoot, "bin"), { recursive: true });
+    fs.mkdirSync(path.join(packagedRoot, "runtimes"), { recursive: true });
+    fs.mkdirSync(path.join(packagedRoot, "channels"), { recursive: true });
+    fs.mkdirSync(path.join(packagedRoot, "providers"), { recursive: true });
+    fs.writeFileSync(
+      path.join(packagedRoot, "bin", process.platform === "win32" ? "crawclaw.exe" : "crawclaw"),
+      "#!/bin/sh\nexit 0\n",
+      "utf8",
+    );
+    fs.writeFileSync(path.join(packagedRoot, "runtimes", "manifest.json"), "{}\n", "utf8");
+    fs.writeFileSync(
+      path.join(packagedRoot, "channels", "manifest.json"),
+      channelManifestJson(),
+      "utf8",
+    );
+    if (!options.omitPackagedProviders) {
+      fs.writeFileSync(
+        path.join(packagedRoot, "providers", "manifest.json"),
+        providerManifestJson(),
+        "utf8",
+      );
+    }
+    if (options.packagedNodeRuntimeEntrypoint) {
+      fs.writeFileSync(path.join(packagedRoot, "crawclaw.mjs"), "export {};\n", "utf8");
+    }
+  }
   if (process.platform !== "win32") {
-    for (const executablePath of [paths.runtimeBinaryPath]) {
+    for (const executablePath of [
+      paths.runtimeBinaryPath,
+      path.join(packagedMacRuntimeRoot(rootDir), "bin", "crawclaw"),
+    ]) {
       if (fs.existsSync(executablePath)) {
         fs.chmodSync(executablePath, 0o755);
       }
     }
   }
+}
+
+function packagedMacRuntimeRoot(rootDir) {
+  return path.join(
+    rootDir,
+    "target",
+    "release",
+    "bundle",
+    "macos",
+    "CrawClaw Desktop.app",
+    "Contents",
+    "Resources",
+    "runtime",
+    "crawclaw",
+  );
 }
 
 function channelManifestJson() {
@@ -282,6 +397,28 @@ function channelManifestJson() {
       { id: "esp32" },
       { id: "qqbot" },
       { id: "weixin" },
+    ],
+  })}\n`;
+}
+
+function providerManifestJson() {
+  return `${JSON.stringify({
+    providers: ["openai"],
+    transports: [
+      {
+        id: "openai",
+        transport: "openai-responses",
+        capabilities: {
+          streaming: true,
+          toolCalling: true,
+          multimodal: true,
+          secretRef: {
+            env: true,
+            file: true,
+            exec: false,
+          },
+        },
+      },
     ],
   })}\n`;
 }

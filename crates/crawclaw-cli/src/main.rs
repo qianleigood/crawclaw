@@ -108,6 +108,7 @@ fn status(args: Vec<String>) {
             "runtime": "ready",
             "implementation": "rust-native",
             "providers": crawclaw_providers::native_provider_ids(),
+            "providerTransports": crawclaw_providers::native_provider_transports(),
             "channels": crawclaw_plugin_host::native_channel_ids(),
         }));
         return;
@@ -785,6 +786,7 @@ fn desktop_runtime(args: Vec<String>) {
             "ok": true,
             "runtime": "ready",
             "providers": crawclaw_providers::native_provider_ids(),
+            "providerTransports": crawclaw_providers::native_provider_transports(),
             "channels": crawclaw_plugin_host::native_channel_ids(),
             "jsPluginRuntime": "pi-quickjs"
         }));
@@ -834,6 +836,7 @@ fn stage_runtime(output: PathBuf) {
         providers_dir.join("manifest.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "providers": crawclaw_providers::native_provider_ids(),
+            "transports": crawclaw_providers::native_provider_transports(),
         }))
         .expect("provider manifest json"),
     )

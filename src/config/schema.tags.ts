@@ -61,7 +61,6 @@ const PREFIX_RULES: Array<{ prefix: string; tags: ConfigTag[] }> = [
   { prefix: "channels.", tags: ["channels", "network"] },
   { prefix: "tools.", tags: ["tools"] },
   { prefix: "gateway.", tags: ["network"] },
-  { prefix: "nodehost.", tags: ["network"] },
   { prefix: "discovery.", tags: ["network"] },
   { prefix: "auth.", tags: ["auth", "access"] },
   { prefix: "memory.", tags: ["storage"] },

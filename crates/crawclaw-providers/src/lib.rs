@@ -9,46 +9,88 @@ use serde_json::{json, Value};
 pub struct ProviderTransport {
     pub id: &'static str,
     pub transport: &'static str,
+    pub capabilities: ProviderTransportCapabilities,
 }
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderTransportCapabilities {
+    pub streaming: bool,
+    pub tool_calling: bool,
+    pub multimodal: bool,
+    pub secret_ref: ProviderSecretRefCapabilities,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderSecretRefCapabilities {
+    pub env: bool,
+    pub file: bool,
+    pub exec: bool,
+}
+
+const RUST_PROVIDER_CAPABILITIES: ProviderTransportCapabilities = ProviderTransportCapabilities {
+    streaming: true,
+    tool_calling: true,
+    multimodal: true,
+    secret_ref: ProviderSecretRefCapabilities {
+        env: true,
+        file: true,
+        exec: false,
+    },
+};
 
 pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
     ProviderTransport {
         id: "anthropic",
         transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "azure-openai",
         transport: "azure-openai-responses",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "bedrock",
         transport: "bedrock-converse-stream",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "github-copilot",
         transport: "github-copilot",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "google",
         transport: "google-generative-ai",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "ollama",
         transport: "ollama",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "openai",
         transport: "openai-responses",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "openai-codex",
         transport: "openai-codex-responses",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
         id: "openai-compatible",
         transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
     },
 ];
+
+pub fn native_provider_transports() -> Vec<ProviderTransport> {
+    NATIVE_PROVIDER_TRANSPORTS.to_vec()
+}
 
 pub fn native_provider_ids() -> Vec<&'static str> {
     NATIVE_PROVIDER_TRANSPORTS
@@ -148,6 +190,28 @@ impl NativeProviderMessageRole {
 pub struct NativeProviderMessage {
     pub role: NativeProviderMessageRole,
     pub content: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub blocks: Vec<NativeProviderContentBlock>,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(tag = "type", rename_all = "camelCase")]
+pub enum NativeProviderContentBlock {
+    Text { text: String },
+    Image { mime_type: String, data: String },
+}
+
+impl NativeProviderContentBlock {
+    pub fn text(text: impl Into<String>) -> Self {
+        Self::Text { text: text.into() }
+    }
+
+    pub fn image_base64(mime_type: impl Into<String>, data: impl Into<String>) -> Self {
+        Self::Image {
+            mime_type: mime_type.into(),
+            data: data.into(),
+        }
+    }
 }
 
 impl NativeProviderMessage {
@@ -155,6 +219,7 @@ impl NativeProviderMessage {
         Self {
             role: NativeProviderMessageRole::User,
             content: content.into(),
+            blocks: Vec::new(),
         }
     }
 
@@ -162,6 +227,15 @@ impl NativeProviderMessage {
         Self {
             role: NativeProviderMessageRole::Assistant,
             content: content.into(),
+            blocks: Vec::new(),
+        }
+    }
+
+    pub fn user_blocks(blocks: Vec<NativeProviderContentBlock>) -> Self {
+        Self {
+            role: NativeProviderMessageRole::User,
+            content: native_content_blocks_text(&blocks),
+            blocks,
         }
     }
 }
@@ -184,6 +258,19 @@ pub enum NativeProviderResponseFormat {
     BedrockConverse,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct NativeProviderRequestOptions {
+    pub stream: bool,
+    pub tools: Vec<NativeProviderTool>,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct NativeProviderTool {
+    pub name: String,
+    pub description: Option<String>,
+    pub input_schema: Value,
+}
+
 pub async fn send_native_provider_message(
     config: &NativeProviderConfig,
     user_text: &str,
@@ -195,7 +282,21 @@ pub async fn send_native_provider_conversation(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
 ) -> Result<String, ProviderTransportError> {
-    let request = build_native_provider_conversation_request(config, messages)?;
+    send_native_provider_conversation_with_options(
+        config,
+        messages,
+        &NativeProviderRequestOptions::default(),
+    )
+    .await
+}
+
+pub async fn send_native_provider_conversation_with_options(
+    config: &NativeProviderConfig,
+    messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
+) -> Result<String, ProviderTransportError> {
+    let request =
+        build_native_provider_conversation_request_with_options(config, messages, options)?;
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
         .build()
@@ -235,6 +336,18 @@ pub fn build_native_provider_conversation_request(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
+    build_native_provider_conversation_request_with_options(
+        config,
+        messages,
+        &NativeProviderRequestOptions::default(),
+    )
+}
+
+pub fn build_native_provider_conversation_request_with_options(
+    config: &NativeProviderConfig,
+    messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
+) -> Result<NativeProviderRequest, ProviderTransportError> {
     let messages = normalize_native_provider_messages(messages)?;
     match config.provider.as_str() {
         "openai" | "openai-codex" => openai_responses_request(
@@ -243,21 +356,23 @@ pub fn build_native_provider_conversation_request(
             "Authorization",
             "Bearer ",
             &messages,
+            options,
         ),
-        "azure-openai" => azure_openai_request(config, &messages),
-        "anthropic" => anthropic_messages_request(config, &messages),
-        "google" => google_generate_content_request(config, &messages),
-        "ollama" => ollama_chat_request(config, &messages),
-        "bedrock" => bedrock_converse_request(config, &messages),
+        "azure-openai" => azure_openai_request(config, &messages, options),
+        "anthropic" => anthropic_messages_request(config, &messages, options),
+        "google" => google_generate_content_request(config, &messages, options),
+        "ollama" => ollama_chat_request(config, &messages, options),
+        "bedrock" => bedrock_converse_request(config, &messages, options),
         "github-copilot" => chat_completions_request(
             config,
             "https://api.githubcopilot.com",
             "Authorization",
             "Bearer ",
             &messages,
+            options,
         ),
         "openai-compatible" => {
-            chat_completions_request(config, "", "Authorization", "Bearer ", &messages)
+            chat_completions_request(config, "", "Authorization", "Bearer ", &messages, options)
         }
         provider => Err(ProviderTransportError::Unsupported(format!(
             "Rust provider transport is not registered: {provider}"
@@ -380,12 +495,18 @@ fn openai_responses_request(
     auth_header: &str,
     auth_prefix: &str,
     messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let base_url = config
         .base_url
         .as_deref()
         .unwrap_or(default_base_url)
         .trim_end_matches('/');
+    let mut body = json!({
+        "model": required(&config.model, "model")?,
+        "input": openai_responses_input(messages),
+    });
+    apply_openai_responses_options(&mut body, options);
     Ok(NativeProviderRequest {
         url: join_url_path(base_url, "responses"),
         headers: vec![auth_pair(
@@ -393,10 +514,7 @@ fn openai_responses_request(
             auth_prefix,
             required(&config.api_key, "apiKey")?,
         )],
-        body: json!({
-            "model": required(&config.model, "model")?,
-            "input": openai_responses_input(messages),
-        }),
+        body,
         response_format: NativeProviderResponseFormat::OpenAiResponses,
     })
 }
@@ -404,22 +522,25 @@ fn openai_responses_request(
 fn azure_openai_request(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let base_url = required(&config.base_url, "baseUrl")?;
     let api_version = config
         .api_version
         .as_deref()
         .unwrap_or("2025-04-01-preview");
+    let mut body = json!({
+        "model": required(&config.model, "model")?,
+        "input": openai_responses_input(messages),
+    });
+    apply_openai_responses_options(&mut body, options);
     Ok(NativeProviderRequest {
         url: format!(
             "{}?api-version={api_version}",
             join_url_path(base_url.trim_end_matches('/'), "responses")
         ),
         headers: vec![("api-key".to_string(), required(&config.api_key, "apiKey")?)],
-        body: json!({
-            "model": required(&config.model, "model")?,
-            "input": openai_responses_input(messages),
-        }),
+        body,
         response_format: NativeProviderResponseFormat::OpenAiResponses,
     })
 }
@@ -427,12 +548,19 @@ fn azure_openai_request(
 fn anthropic_messages_request(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let base_url = config
         .base_url
         .as_deref()
         .unwrap_or("https://api.anthropic.com")
         .trim_end_matches('/');
+    let mut body = json!({
+        "model": required(&config.model, "model")?,
+        "max_tokens": 1024,
+        "messages": native_messages_for_anthropic(messages),
+    });
+    apply_anthropic_options(&mut body, options);
     Ok(NativeProviderRequest {
         url: join_url_path(base_url, "v1/messages"),
         headers: vec![
@@ -442,11 +570,7 @@ fn anthropic_messages_request(
             ),
             ("anthropic-version".to_string(), "2023-06-01".to_string()),
         ],
-        body: json!({
-            "model": required(&config.model, "model")?,
-            "max_tokens": 1024,
-            "messages": native_messages_for_chat(messages),
-        }),
+        body,
         response_format: NativeProviderResponseFormat::AnthropicMessages,
     })
 }
@@ -454,6 +578,7 @@ fn anthropic_messages_request(
 fn google_generate_content_request(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let base_url = config
         .base_url
@@ -461,16 +586,23 @@ fn google_generate_content_request(
         .unwrap_or("https://generativelanguage.googleapis.com/v1beta")
         .trim_end_matches('/');
     let model = required(&config.model, "model")?;
+    let mut body = json!({
+        "contents": native_messages_for_google(messages),
+    });
+    apply_google_options(&mut body, options);
+    let method = if options.stream {
+        "streamGenerateContent"
+    } else {
+        "generateContent"
+    };
     Ok(NativeProviderRequest {
         url: format!(
-            "{}/models/{model}:generateContent?key={}",
+            "{}/models/{model}:{method}?key={}",
             base_url,
             required(&config.api_key, "apiKey")?
         ),
         headers: Vec::new(),
-        body: json!({
-            "contents": native_messages_for_google(messages),
-        }),
+        body,
         response_format: NativeProviderResponseFormat::GoogleGenerateContent,
     })
 }
@@ -478,6 +610,7 @@ fn google_generate_content_request(
 fn ollama_chat_request(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let base_url = config
         .base_url
@@ -488,14 +621,16 @@ fn ollama_chat_request(
     if let Some(api_key) = non_empty(config.api_key.as_deref()) {
         headers.push(auth_pair("Authorization", "Bearer ", api_key.to_string()));
     }
+    let mut body = json!({
+        "model": required(&config.model, "model")?,
+        "messages": native_messages_for_ollama(messages),
+        "stream": options.stream,
+    });
+    apply_ollama_options(&mut body, options);
     Ok(NativeProviderRequest {
         url: join_url_path(base_url, "api/chat"),
         headers,
-        body: json!({
-            "model": required(&config.model, "model")?,
-            "messages": native_messages_for_chat(messages),
-            "stream": false,
-        }),
+        body,
         response_format: NativeProviderResponseFormat::OllamaChat,
     })
 }
@@ -503,6 +638,7 @@ fn ollama_chat_request(
 fn bedrock_converse_request(
     config: &NativeProviderConfig,
     messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let base_url = required(&config.base_url, "baseUrl")?;
     let model = required(&config.model, "model")?;
@@ -510,15 +646,22 @@ fn bedrock_converse_request(
     if let Some(api_key) = non_empty(config.api_key.as_deref()) {
         headers.push(auth_pair("Authorization", "Bearer ", api_key.to_string()));
     }
+    let mut body = json!({
+        "messages": native_messages_for_bedrock(messages),
+    });
+    apply_bedrock_options(&mut body, options);
+    let method = if options.stream {
+        "converse-stream"
+    } else {
+        "converse"
+    };
     Ok(NativeProviderRequest {
         url: join_url_path(
             base_url.trim_end_matches('/'),
-            &format!("model/{model}/converse"),
+            &format!("model/{model}/{method}"),
         ),
         headers,
-        body: json!({
-            "messages": native_messages_for_bedrock(messages),
-        }),
+        body,
         response_format: NativeProviderResponseFormat::BedrockConverse,
     })
 }
@@ -529,6 +672,7 @@ fn chat_completions_request(
     auth_header: &str,
     auth_prefix: &str,
     messages: &[NativeProviderMessage],
+    options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let base_url = config
         .base_url
@@ -543,6 +687,12 @@ fn chat_completions_request(
     } else {
         join_url_path(base_url.trim_end_matches('/'), "chat/completions")
     };
+    let mut body = json!({
+        "model": required(&config.model, "model")?,
+        "messages": native_messages_for_chat(messages),
+        "stream": options.stream,
+    });
+    apply_chat_completions_options(&mut body, options);
     Ok(NativeProviderRequest {
         url,
         headers: vec![auth_pair(
@@ -550,11 +700,7 @@ fn chat_completions_request(
             auth_prefix,
             required(&config.api_key, "apiKey")?,
         )],
-        body: json!({
-            "model": required(&config.model, "model")?,
-            "messages": native_messages_for_chat(messages),
-            "stream": false,
-        }),
+        body,
         response_format: NativeProviderResponseFormat::ChatCompletions,
     })
 }
@@ -566,12 +712,14 @@ fn normalize_native_provider_messages(
         .iter()
         .filter_map(|message| {
             let content = message.content.trim();
-            if content.is_empty() {
+            let blocks = normalize_native_content_blocks(&message.blocks);
+            if content.is_empty() && blocks.is_empty() {
                 None
             } else {
                 Some(NativeProviderMessage {
                     role: message.role,
                     content: content.to_string(),
+                    blocks,
                 })
             }
         })
@@ -584,13 +732,72 @@ fn normalize_native_provider_messages(
     Ok(normalized)
 }
 
+fn normalize_native_content_blocks(
+    blocks: &[NativeProviderContentBlock],
+) -> Vec<NativeProviderContentBlock> {
+    blocks
+        .iter()
+        .filter_map(|block| match block {
+            NativeProviderContentBlock::Text { text } => non_empty(Some(text.as_str()))
+                .map(|text| NativeProviderContentBlock::text(text.to_string())),
+            NativeProviderContentBlock::Image { mime_type, data } => {
+                let mime_type = non_empty(Some(mime_type.as_str()))?;
+                let data = non_empty(Some(data.as_str()))?;
+                Some(NativeProviderContentBlock::image_base64(
+                    mime_type.to_string(),
+                    data.to_string(),
+                ))
+            }
+        })
+        .collect()
+}
+
+fn native_content_blocks_text(blocks: &[NativeProviderContentBlock]) -> String {
+    blocks
+        .iter()
+        .filter_map(|block| match block {
+            NativeProviderContentBlock::Text { text } => non_empty(Some(text.as_str())),
+            NativeProviderContentBlock::Image { .. } => None,
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
 fn openai_responses_input(messages: &[NativeProviderMessage]) -> Value {
     if let [message] = messages {
-        if message.role == NativeProviderMessageRole::User {
+        if message.role == NativeProviderMessageRole::User && message.blocks.is_empty() {
             return Value::String(message.content.clone());
         }
     }
-    Value::Array(native_messages_for_chat(messages))
+    Value::Array(
+        messages
+            .iter()
+            .map(|message| {
+                json!({
+                    "role": message.role.as_chat_role(),
+                    "content": openai_responses_content(message),
+                })
+            })
+            .collect(),
+    )
+}
+
+fn openai_responses_content(message: &NativeProviderMessage) -> Value {
+    let blocks = native_message_blocks(message);
+    Value::Array(
+        blocks
+            .iter()
+            .map(|block| match block {
+                NativeProviderContentBlock::Text { text } => {
+                    json!({ "type": "input_text", "text": text })
+                }
+                NativeProviderContentBlock::Image { mime_type, data } => json!({
+                    "type": "input_image",
+                    "image_url": data_url(mime_type, data)
+                }),
+            })
+            .collect(),
+    )
 }
 
 fn native_messages_for_chat(messages: &[NativeProviderMessage]) -> Vec<Value> {
@@ -599,7 +806,19 @@ fn native_messages_for_chat(messages: &[NativeProviderMessage]) -> Vec<Value> {
         .map(|message| {
             json!({
                 "role": message.role.as_chat_role(),
-                "content": message.content,
+                "content": chat_content(message),
+            })
+        })
+        .collect()
+}
+
+fn native_messages_for_anthropic(messages: &[NativeProviderMessage]) -> Vec<Value> {
+    messages
+        .iter()
+        .map(|message| {
+            json!({
+                "role": message.role.as_chat_role(),
+                "content": anthropic_content(message),
             })
         })
         .collect()
@@ -611,7 +830,7 @@ fn native_messages_for_google(messages: &[NativeProviderMessage]) -> Vec<Value> 
         .map(|message| {
             json!({
                 "role": message.role.as_google_role(),
-                "parts": [{ "text": message.content }],
+                "parts": google_parts(message),
             })
         })
         .collect()
@@ -623,10 +842,223 @@ fn native_messages_for_bedrock(messages: &[NativeProviderMessage]) -> Vec<Value>
         .map(|message| {
             json!({
                 "role": message.role.as_chat_role(),
-                "content": [{ "text": message.content }],
+                "content": bedrock_content(message),
             })
         })
         .collect()
+}
+
+fn native_messages_for_ollama(messages: &[NativeProviderMessage]) -> Vec<Value> {
+    messages
+        .iter()
+        .map(|message| {
+            let mut value = json!({
+                "role": message.role.as_chat_role(),
+                "content": native_content_blocks_text(&native_message_blocks(message)),
+            });
+            let images = native_message_blocks(message)
+                .iter()
+                .filter_map(|block| match block {
+                    NativeProviderContentBlock::Image { data, .. } => {
+                        Some(Value::String(data.clone()))
+                    }
+                    NativeProviderContentBlock::Text { .. } => None,
+                })
+                .collect::<Vec<_>>();
+            if !images.is_empty() {
+                value["images"] = Value::Array(images);
+            }
+            value
+        })
+        .collect()
+}
+
+fn native_message_blocks(message: &NativeProviderMessage) -> Vec<NativeProviderContentBlock> {
+    if !message.blocks.is_empty() {
+        return message.blocks.clone();
+    }
+    vec![NativeProviderContentBlock::text(message.content.clone())]
+}
+
+fn chat_content(message: &NativeProviderMessage) -> Value {
+    if message.blocks.is_empty() {
+        return Value::String(message.content.clone());
+    }
+    Value::Array(
+        native_message_blocks(message)
+            .iter()
+            .map(|block| match block {
+                NativeProviderContentBlock::Text { text } => {
+                    json!({ "type": "text", "text": text })
+                }
+                NativeProviderContentBlock::Image { mime_type, data } => json!({
+                    "type": "image_url",
+                    "image_url": { "url": data_url(mime_type, data) }
+                }),
+            })
+            .collect(),
+    )
+}
+
+fn anthropic_content(message: &NativeProviderMessage) -> Value {
+    if message.blocks.is_empty() {
+        return Value::String(message.content.clone());
+    }
+    Value::Array(
+        native_message_blocks(message)
+            .iter()
+            .map(|block| match block {
+                NativeProviderContentBlock::Text { text } => {
+                    json!({ "type": "text", "text": text })
+                }
+                NativeProviderContentBlock::Image { mime_type, data } => json!({
+                    "type": "image",
+                    "source": {
+                        "type": "base64",
+                        "media_type": mime_type,
+                        "data": data
+                    }
+                }),
+            })
+            .collect(),
+    )
+}
+
+fn google_parts(message: &NativeProviderMessage) -> Vec<Value> {
+    native_message_blocks(message)
+        .iter()
+        .map(|block| match block {
+            NativeProviderContentBlock::Text { text } => json!({ "text": text }),
+            NativeProviderContentBlock::Image { mime_type, data } => json!({
+                "inlineData": {
+                    "mimeType": mime_type,
+                    "data": data
+                }
+            }),
+        })
+        .collect()
+}
+
+fn bedrock_content(message: &NativeProviderMessage) -> Vec<Value> {
+    native_message_blocks(message)
+        .iter()
+        .map(|block| match block {
+            NativeProviderContentBlock::Text { text } => json!({ "text": text }),
+            NativeProviderContentBlock::Image { mime_type, data } => json!({
+                "image": {
+                    "format": image_format_from_mime(mime_type),
+                    "source": { "bytes": data }
+                }
+            }),
+        })
+        .collect()
+}
+
+fn data_url(mime_type: &str, data: &str) -> String {
+    format!("data:{mime_type};base64,{data}")
+}
+
+fn image_format_from_mime(mime_type: &str) -> &str {
+    mime_type
+        .rsplit('/')
+        .next()
+        .filter(|format| !format.trim().is_empty())
+        .unwrap_or("png")
+}
+
+fn apply_openai_responses_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if options.stream {
+        body["stream"] = Value::Bool(true);
+    }
+    if !options.tools.is_empty() {
+        body["tools"] = Value::Array(options.tools.iter().map(openai_responses_tool).collect());
+        body["tool_choice"] = Value::String("auto".to_string());
+    }
+}
+
+fn apply_chat_completions_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if !options.tools.is_empty() {
+        body["tools"] = Value::Array(options.tools.iter().map(openai_chat_tool).collect());
+        body["tool_choice"] = Value::String("auto".to_string());
+    }
+}
+
+fn apply_anthropic_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if options.stream {
+        body["stream"] = Value::Bool(true);
+    }
+    if !options.tools.is_empty() {
+        body["tools"] = Value::Array(options.tools.iter().map(anthropic_tool).collect());
+        body["tool_choice"] = json!({ "type": "auto" });
+    }
+}
+
+fn apply_google_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if !options.tools.is_empty() {
+        body["tools"] = json!([{
+            "functionDeclarations": options.tools.iter().map(google_tool).collect::<Vec<_>>()
+        }]);
+    }
+}
+
+fn apply_ollama_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if !options.tools.is_empty() {
+        body["tools"] = Value::Array(options.tools.iter().map(openai_chat_tool).collect());
+    }
+}
+
+fn apply_bedrock_options(body: &mut Value, options: &NativeProviderRequestOptions) {
+    if !options.tools.is_empty() {
+        body["toolConfig"] = json!({
+            "tools": options.tools.iter().map(bedrock_tool).collect::<Vec<_>>()
+        });
+    }
+}
+
+fn openai_responses_tool(tool: &NativeProviderTool) -> Value {
+    json!({
+        "type": "function",
+        "name": tool.name,
+        "description": tool.description.as_deref().unwrap_or(""),
+        "parameters": tool.input_schema,
+    })
+}
+
+fn openai_chat_tool(tool: &NativeProviderTool) -> Value {
+    json!({
+        "type": "function",
+        "function": {
+            "name": tool.name,
+            "description": tool.description.as_deref().unwrap_or(""),
+            "parameters": tool.input_schema,
+        }
+    })
+}
+
+fn anthropic_tool(tool: &NativeProviderTool) -> Value {
+    json!({
+        "name": tool.name,
+        "description": tool.description.as_deref().unwrap_or(""),
+        "input_schema": tool.input_schema,
+    })
+}
+
+fn google_tool(tool: &NativeProviderTool) -> Value {
+    json!({
+        "name": tool.name,
+        "description": tool.description.as_deref().unwrap_or(""),
+        "parameters": tool.input_schema,
+    })
+}
+
+fn bedrock_tool(tool: &NativeProviderTool) -> Value {
+    json!({
+        "toolSpec": {
+            "name": tool.name,
+            "description": tool.description.as_deref().unwrap_or(""),
+            "inputSchema": { "json": tool.input_schema }
+        }
+    })
 }
 
 fn required(value: &Option<String>, field: &str) -> Result<String, ProviderTransportError> {
@@ -719,11 +1151,115 @@ mod tests {
     }
 
     #[test]
+    fn native_provider_capability_matrix_covers_runtime_transport_features() {
+        let transports = native_provider_transports();
+        assert_eq!(transports.len(), native_provider_ids().len());
+
+        for provider in [
+            "openai",
+            "openai-codex",
+            "azure-openai",
+            "anthropic",
+            "google",
+            "ollama",
+            "bedrock",
+            "github-copilot",
+            "openai-compatible",
+        ] {
+            let transport = transports
+                .iter()
+                .find(|transport| transport.id == provider)
+                .unwrap_or_else(|| panic!("missing provider transport {provider}"));
+            assert!(
+                transport.capabilities.streaming,
+                "{provider} should advertise streaming"
+            );
+            assert!(
+                transport.capabilities.tool_calling,
+                "{provider} should advertise tool calling"
+            );
+            assert!(
+                transport.capabilities.multimodal,
+                "{provider} should advertise multimodal input"
+            );
+            assert!(
+                transport.capabilities.secret_ref.env && transport.capabilities.secret_ref.file,
+                "{provider} should advertise env/file SecretRef support"
+            );
+            assert!(
+                !transport.capabilities.secret_ref.exec,
+                "{provider} should not advertise exec SecretRef support"
+            );
+        }
+    }
+
+    #[test]
     fn openai_compatible_endpoint_honors_explicit_v1_base_url() {
         assert_eq!(
             openai_compatible_chat_completions_url("http://127.0.0.1:11434/v1"),
             "http://127.0.0.1:11434/v1/chat/completions"
         );
+    }
+
+    #[test]
+    fn builds_streaming_tool_and_multimodal_requests_for_native_transports() {
+        let tool = NativeProviderTool {
+            name: "lookup_weather".to_string(),
+            description: Some("Look up weather".to_string()),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "city": { "type": "string" }
+                },
+                "required": ["city"]
+            }),
+        };
+        let messages = vec![NativeProviderMessage::user_blocks(vec![
+            NativeProviderContentBlock::text("describe this image"),
+            NativeProviderContentBlock::image_base64("image/png", "iVBORw0KGgo="),
+        ])];
+
+        for provider in [
+            "openai",
+            "openai-codex",
+            "azure-openai",
+            "anthropic",
+            "google",
+            "ollama",
+            "bedrock",
+            "github-copilot",
+            "openai-compatible",
+        ] {
+            let request = build_native_provider_conversation_request_with_options(
+                &NativeProviderConfig {
+                    provider: provider.to_string(),
+                    base_url: Some(format!("https://example.test/{provider}")),
+                    api_key: Some("secret".to_string()),
+                    model: Some("model-a".to_string()),
+                    api_version: Some("2025-04-01-preview".to_string()),
+                },
+                &messages,
+                &NativeProviderRequestOptions {
+                    stream: true,
+                    tools: vec![tool.clone()],
+                },
+            )
+            .unwrap_or_else(|error| panic!("{provider} request should build: {error}"));
+            let body = serde_json::to_string(&request.body).expect("request body json");
+
+            assert!(
+                body.contains("lookup_weather"),
+                "{provider} should include tool declarations"
+            );
+            assert!(
+                body.contains("describe this image") && body.contains("iVBORw0KGgo="),
+                "{provider} should include text and image content"
+            );
+            assert!(
+                body.contains("stream") || request.url.contains("stream"),
+                "{provider} should opt into streaming at the transport layer"
+            );
+        }
     }
 
     #[test]

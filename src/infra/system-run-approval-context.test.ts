@@ -8,9 +8,9 @@ import {
 describe("resolveSystemRunApprovalRequestContext", () => {
   test.each([
     {
-      name: "uses full approval text and separate preview for node system.run plans",
+      name: "uses full approval text and separate preview for system.run plans",
       params: {
-        host: "node",
+        host: "gateway",
         command: "jq --version",
         systemRunPlan: {
           argv: ["./env", "sh", "-c", "jq --version"],
@@ -28,9 +28,9 @@ describe("resolveSystemRunApprovalRequestContext", () => {
       },
     },
     {
-      name: "derives preview from fallback command for older node plans",
+      name: "derives preview from fallback command for older plans",
       params: {
-        host: "node",
+        host: "gateway",
         command: "jq --version",
         systemRunPlan: {
           argv: ["./env", "sh", "-c", "jq --version"],
@@ -49,7 +49,7 @@ describe("resolveSystemRunApprovalRequestContext", () => {
     expect(resolveSystemRunApprovalRequestContext(params)).toMatchObject(expected);
   });
 
-  test("falls back to explicit request params for gateway hosts", () => {
+  test("falls back to explicit request params when no plan is provided", () => {
     const context = resolveSystemRunApprovalRequestContext({
       host: "gateway",
       command: "jq --version",
@@ -57,10 +57,6 @@ describe("resolveSystemRunApprovalRequestContext", () => {
       cwd: "/tmp",
       agentId: "main",
       sessionKey: "agent:main:main",
-      systemRunPlan: {
-        argv: ["ignored"],
-        commandText: "ignored",
-      },
     });
 
     expect(context.plan).toBeNull();
