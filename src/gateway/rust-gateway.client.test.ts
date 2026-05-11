@@ -1,4 +1,4 @@
-import { spawn, type ChildProcessByStdio } from "node:child_process";
+import { spawn, spawnSync, type ChildProcessByStdio } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
@@ -63,10 +63,12 @@ describe("Rust Gateway bridge", () => {
   it("serves config and session methods from the Rust runtime domains", async () => {
     const port = await getFreePort();
     const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-rust-gateway-"));
+    const runtimeRoot = createGitUpdateRoot();
     tempDirs.push(stateDir);
     const child = spawnRustGateway(port, {
       CRAWCLAW_SECRET_TEST: "sk-rust-secret",
       CRAWCLAW_STATE_DIR: stateDir,
+      CRAWCLAW_RUNTIME_ROOT: runtimeRoot,
     });
     children.push(child);
     let stderr = "";
@@ -302,8 +304,16 @@ describe("Rust Gateway bridge", () => {
       );
       expect(runtimeList).toMatchObject({ count: 0, runs: [] });
 
-      const update = await client.request<{ ok?: boolean; status?: string }>("update.run", {});
-      expect(update).toMatchObject({ ok: true, status: "noop" });
+      const update = await client.request<{
+        ok?: boolean;
+        status?: string;
+        result?: { status?: string; mode?: string; reason?: string };
+      }>("update.run", {});
+      expect(update).toMatchObject({
+        ok: true,
+        status: "skipped",
+        result: { status: "skipped", mode: "git", reason: "no-upstream" },
+      });
 
       const created = await client.request<{
         key?: string;
@@ -511,6 +521,30 @@ function spawnRustGateway(port: number, extraEnv: NodeJS.ProcessEnv = {}): RustG
       stdio: ["ignore", "pipe", "pipe"],
     },
   );
+}
+
+function createGitUpdateRoot(): string {
+  const runtimeRoot = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-rust-runtime-"));
+  tempDirs.push(runtimeRoot);
+  runGit(runtimeRoot, ["init", "-q"]);
+  runGit(runtimeRoot, ["config", "user.email", "test@example.com"]);
+  runGit(runtimeRoot, ["config", "user.name", "Test User"]);
+  fs.writeFileSync(
+    path.join(runtimeRoot, "package.json"),
+    `${JSON.stringify({ name: "crawclaw", version: "0.0.0" })}\n`,
+  );
+  runGit(runtimeRoot, ["add", "package.json"]);
+  runGit(runtimeRoot, ["commit", "-q", "-m", "init"]);
+  return runtimeRoot;
+}
+
+function runGit(cwd: string, args: string[]): void {
+  const result = spawnSync("git", args, { cwd, encoding: "utf8" });
+  if (result.status !== 0) {
+    throw new Error(
+      `git ${args.join(" ")} failed\nstdout: ${result.stdout}\nstderr: ${result.stderr}`,
+    );
+  }
 }
 
 function resolveToolchainHome(): string {

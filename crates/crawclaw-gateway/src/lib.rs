@@ -26,7 +26,7 @@ use std::io::Write;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::path::PathBuf;
 use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
 use axum::extract::{Query, State};
@@ -492,7 +492,7 @@ async fn handle_gateway_method(
         "usage.status" => Ok(usage_status()),
         "usage.cost" => Ok(usage_cost()),
         "doctor.memory.status" => doctor_memory_status(state),
-        "agentRuntime.summary" => agent_runtime_summary(state),
+        "agentRuntime.summary" => agent_runtime_summary(state, params),
         "agentRuntime.list" => agent_runtime_list(state, params),
         "agentRuntime.get" => agent_runtime_get(state, params),
         "agentRuntime.cancel" => agent_runtime_cancel(state, params),
@@ -557,12 +557,7 @@ async fn handle_gateway_method(
         }
         "voicewake.get" => Ok(voicewake_get(state)),
         "voicewake.set" => voicewake_set(state, params),
-        "update.run" => Ok(json!({
-            "ok": true,
-            "status": "noop",
-            "implementation": "rust-native",
-            "message": "Rust Gateway update runner is idle."
-        })),
+        "update.run" => update_run(state, params),
         "last-main-session-wake" | "system.mainSessionWake.last" => Ok(json!({
             "ok": true,
             "lastWake": Value::Null
@@ -1297,33 +1292,61 @@ fn doctor_memory_status(state: &GatewayState) -> Result<Value, String> {
     }))
 }
 
-fn agent_runtime_summary(_state: &GatewayState) -> Result<Value, String> {
-    Ok(agent_runtime_summary_value())
+fn agent_runtime_summary(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let sessions = agent_runtime_filtered_sessions(state, &params)?;
+    Ok(agent_runtime_summary_value(&sessions))
 }
 
-fn agent_runtime_summary_value() -> Value {
-    json!({
-        "running": 0,
-        "failed": 0,
-        "waiting": 0,
-        "completed": 0,
-        "lastCompletedAt": Value::Null,
-        "byCategory": {
-            "memory": 0,
-            "review": 0,
-            "subagents": 0,
-            "acp": 0,
-            "cron": 0,
-            "cli": 0
+fn agent_runtime_summary_value(sessions: &[crawclaw_runtime::DesktopSessionSummary]) -> Value {
+    let mut by_category = Map::new();
+    for category in ["memory", "review", "subagents", "acp", "cron", "cli"] {
+        by_category.insert(category.to_string(), json!(0));
+    }
+    let mut running = 0;
+    let mut failed = 0;
+    let mut waiting = 0;
+    let mut completed = 0;
+    for session in sessions {
+        let category = agent_runtime_category(session);
+        let count = by_category
+            .get(&category)
+            .and_then(Value::as_u64)
+            .unwrap_or(0)
+            + 1;
+        by_category.insert(category, json!(count));
+        match agent_runtime_status_bucket(&session.status) {
+            "running" => running += 1,
+            "waiting" => waiting += 1,
+            "failed" => failed += 1,
+            _ => completed += 1,
         }
+    }
+    json!({
+        "running": running,
+        "failed": failed,
+        "waiting": waiting,
+        "completed": completed,
+        "lastCompletedAt": Value::Null,
+        "byCategory": Value::Object(by_category)
     })
 }
 
-fn agent_runtime_list(_state: &GatewayState, _params: Value) -> Result<Value, String> {
+fn agent_runtime_list(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let sessions = agent_runtime_filtered_sessions(state, &params)?;
+    let limit = params
+        .get("limit")
+        .and_then(Value::as_u64)
+        .map(|value| value.max(1) as usize)
+        .unwrap_or(40);
+    let runs = sessions
+        .iter()
+        .take(limit)
+        .map(|session| agent_runtime_run_value(state, session))
+        .collect::<Result<Vec<_>, _>>()?;
     Ok(json!({
-        "summary": agent_runtime_summary_value(),
-        "count": 0,
-        "runs": []
+        "summary": agent_runtime_summary_value(&sessions),
+        "count": runs.len(),
+        "runs": runs
     }))
 }
 
@@ -1336,26 +1359,212 @@ fn agent_runtime_cancel(_state: &GatewayState, params: Value) -> Result<Value, S
 }
 
 fn agent_runtime_get(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let task_id = string_param(&params, &["taskId", "runId", "sessionKey", "key"])
-        .unwrap_or_else(|| "main".to_string());
-    let session_key = normalize_session_key(&task_id).unwrap_or_else(|_| "agent:main:main".into());
-    let session = state
-        .session_store
-        .session_status(&session_key)
-        .ok()
-        .flatten();
+    let task_id = required_param(&params, &["taskId", "runId", "sessionKey", "key"])?;
+    let Some(session) = resolve_agent_runtime_session(state, &task_id)? else {
+        return Err(format!("Task not found: {task_id}"));
+    };
+    let run = agent_runtime_run_value(
+        state,
+        &crawclaw_runtime::DesktopSessionSummary {
+            key: session.key.clone(),
+            title: session.title.clone(),
+            pinned: session.pinned,
+            status: session.status.clone(),
+            message_count: session.message_count,
+            spawned_by: session.spawned_by.clone(),
+            yielded: session.yielded,
+        },
+    )?;
     Ok(json!({
-        "ok": true,
-        "taskId": task_id,
-        "status": session
-            .as_ref()
-            .map(|session| session.status.as_str())
-            .unwrap_or("completed"),
-        "implementation": "rust-native",
-        "runtime": "rust-native",
-        "sessionKey": session_key,
-        "session": session
+        "run": run,
+        "contract": {
+            "definitionId": Value::Null,
+            "definitionLabel": Value::Null,
+            "spawnSource": run.get("spawnSource").cloned().unwrap_or(Value::Null),
+            "executionMode": Value::Null,
+            "transcriptPolicy": Value::Null,
+            "cleanup": Value::Null,
+            "defaultRunTimeoutSeconds": Value::Null,
+            "toolAllowlistCount": Value::Null
+        },
+        "metadata": {
+            "mode": "desktop-session",
+            "runtimeStateRef": Value::Null,
+            "transcriptRef": session.key,
+            "trajectoryRef": Value::Null,
+            "capabilitySnapshotRef": Value::Null
+        },
+        "availableActions": {
+            "openSession": true,
+            "cancel": agent_runtime_can_cancel(&session.status)
+        }
     }))
+}
+
+fn agent_runtime_filtered_sessions(
+    state: &GatewayState,
+    params: &Value,
+) -> Result<Vec<crawclaw_runtime::DesktopSessionSummary>, String> {
+    let category = string_param(params, &["category"]).unwrap_or_else(|| "all".to_string());
+    let status = string_param(params, &["status"]).unwrap_or_else(|| "all".to_string());
+    let agent = string_param(params, &["agent"]);
+    let session_key = string_param(params, &["sessionKey", "key"]);
+    let task_id = string_param(params, &["taskId"]);
+    let run_id = string_param(params, &["runId"]);
+    let mut sessions = state
+        .session_store
+        .list_summaries()
+        .map_err(|error| error.to_string())?
+        .into_iter()
+        .filter(|session| category == "all" || agent_runtime_category(session) == category)
+        .filter(|session| status == "all" || agent_runtime_status_bucket(&session.status) == status)
+        .filter(|_session| match agent.as_deref() {
+            Some(agent) => agent == "main",
+            None => true,
+        })
+        .filter(|session| {
+            session_key
+                .as_deref()
+                .map(|query| agent_runtime_session_matches_key(session, query))
+                .unwrap_or(true)
+        })
+        .filter(|session| {
+            task_id
+                .as_deref()
+                .map(|query| agent_runtime_session_matches_key(session, query))
+                .unwrap_or(true)
+        })
+        .filter(|session| {
+            run_id
+                .as_deref()
+                .map(|query| agent_runtime_session_matches_key(session, query))
+                .unwrap_or(true)
+        })
+        .collect::<Vec<_>>();
+    sessions.sort_by(|left, right| right.key.cmp(&left.key));
+    Ok(sessions)
+}
+
+fn agent_runtime_session_matches_key(
+    session: &crawclaw_runtime::DesktopSessionSummary,
+    query: &str,
+) -> bool {
+    let query = query.trim();
+    if query.is_empty() {
+        return true;
+    }
+    if session.key == query || session.key.contains(query) {
+        return true;
+    }
+    normalize_session_key(query)
+        .map(|normalized| session.key == normalized || session.key.contains(&normalized))
+        .unwrap_or(false)
+}
+
+fn resolve_agent_runtime_session(
+    state: &GatewayState,
+    task_id: &str,
+) -> Result<Option<crawclaw_runtime::DesktopSessionStatus>, String> {
+    if let Some(session) = state
+        .session_store
+        .session_status(task_id)
+        .map_err(|error| error.to_string())?
+    {
+        return Ok(Some(session));
+    }
+    let normalized = normalize_session_key(task_id)?;
+    if normalized == task_id {
+        return Ok(None);
+    }
+    state
+        .session_store
+        .session_status(&normalized)
+        .map_err(|error| error.to_string())
+}
+
+fn agent_runtime_category(session: &crawclaw_runtime::DesktopSessionSummary) -> String {
+    if session.spawned_by.is_some() {
+        return "subagents".to_string();
+    }
+    let searchable = format!("{} {}", session.key, session.title).to_lowercase();
+    if searchable.contains("memory")
+        || searchable.contains("dream")
+        || searchable.contains("session-summary")
+        || searchable.contains("durable")
+    {
+        return "memory".to_string();
+    }
+    if searchable.contains("review") {
+        return "review".to_string();
+    }
+    if searchable.contains("acp") {
+        return "acp".to_string();
+    }
+    if searchable.contains("cron") || searchable.contains("schedule") {
+        return "cron".to_string();
+    }
+    "cli".to_string()
+}
+
+fn agent_runtime_status_bucket(status: &str) -> &'static str {
+    match status.trim() {
+        "queued" | "pending" | "spawned" | "waiting" => "waiting",
+        "running" | "active" | "processing" => "running",
+        "failed" | "error" | "timed_out" | "lost" => "failed",
+        _ => "completed",
+    }
+}
+
+fn agent_runtime_can_cancel(status: &str) -> bool {
+    matches!(agent_runtime_status_bucket(status), "running" | "waiting")
+}
+
+fn agent_runtime_run_value(
+    state: &GatewayState,
+    session: &crawclaw_runtime::DesktopSessionSummary,
+) -> Result<Value, String> {
+    let updated_at = session_updated_at_ms(state, &session.key);
+    let status_bucket = agent_runtime_status_bucket(&session.status);
+    Ok(json!({
+        "taskId": session.key,
+        "category": agent_runtime_category(session),
+        "runtime": "desktop-session",
+        "status": session.status,
+        "title": session.title,
+        "summary": if session.message_count > 0 {
+            Value::String(format!("{} message{}", session.message_count, if session.message_count == 1 { "" } else { "s" }))
+        } else {
+            Value::Null
+        },
+        "sessionKey": session.spawned_by.clone().unwrap_or_else(|| session.key.clone()),
+        "ownerKey": session.spawned_by.clone().unwrap_or_else(|| session.key.clone()),
+        "scopeKind": "session",
+        "childSessionKey": if session.spawned_by.is_some() { Value::String(session.key.clone()) } else { Value::Null },
+        "agentId": "main",
+        "runId": Value::Null,
+        "parentTaskId": Value::Null,
+        "sourceId": session.spawned_by,
+        "spawnSource": if session.spawned_by.is_some() { Value::String("sessions.spawn".to_string()) } else { Value::Null },
+        "progressSummary": Value::Null,
+        "terminalSummary": Value::Null,
+        "error": Value::Null,
+        "createdAt": updated_at,
+        "updatedAt": updated_at,
+        "startedAt": if matches!(status_bucket, "running" | "waiting") { json!(updated_at) } else { Value::Null },
+        "endedAt": if status_bucket == "completed" || status_bucket == "failed" { json!(updated_at) } else { Value::Null }
+    }))
+}
+
+fn session_updated_at_ms(state: &GatewayState, key: &str) -> u128 {
+    state
+        .session_store
+        .session_transcript_path(key)
+        .ok()
+        .and_then(|path| std::fs::metadata(path).ok())
+        .and_then(|metadata| metadata.modified().ok())
+        .and_then(|modified| modified.duration_since(UNIX_EPOCH).ok())
+        .map(|duration| duration.as_millis())
+        .unwrap_or_else(now_millis)
 }
 
 fn agent_identity(state: &GatewayState) -> Value {
@@ -3016,6 +3225,293 @@ fn voicewake_set(state: &GatewayState, params: Value) -> Result<Value, String> {
     Ok(json!({ "ok": true, "config": current }))
 }
 
+fn update_run(state: &GatewayState, _params: Value) -> Result<Value, String> {
+    let started = Instant::now();
+    let Some(root) = resolve_update_git_root(state) else {
+        let result = json!({
+            "status": "error",
+            "mode": "unknown",
+            "reason": "no-git-root",
+            "steps": [],
+            "durationMs": started.elapsed().as_millis()
+        });
+        return Ok(json!({
+            "ok": false,
+            "status": "error",
+            "result": result,
+            "restart": Value::Null,
+            "implementation": "rust-native"
+        }));
+    };
+
+    let before_sha =
+        update_command_stdout(&root, &["git", "-C", path_str(&root), "rev-parse", "HEAD"])
+            .unwrap_or_default()
+            .trim()
+            .to_string();
+    let mut steps = Vec::new();
+
+    let clean_check = run_update_step(
+        "clean check",
+        &["git", "-C", path_str(&root), "status", "--porcelain"],
+        &root,
+    );
+    let dirty = clean_check
+        .get("stdoutTail")
+        .and_then(Value::as_str)
+        .map(|value| !value.trim().is_empty())
+        .unwrap_or(false);
+    steps.push(clean_check);
+    if dirty {
+        let result = update_result(
+            "skipped",
+            "git",
+            &root,
+            Some("dirty"),
+            &before_sha,
+            None,
+            steps,
+            started.elapsed().as_millis(),
+        );
+        return Ok(update_run_response(result));
+    }
+
+    let upstream_check = run_update_step(
+        "upstream check",
+        &[
+            "git",
+            "-C",
+            path_str(&root),
+            "rev-parse",
+            "--abbrev-ref",
+            "--symbolic-full-name",
+            "@{upstream}",
+        ],
+        &root,
+    );
+    let has_upstream = update_step_success(&upstream_check);
+    steps.push(upstream_check);
+    if !has_upstream {
+        let result = update_result(
+            "skipped",
+            "git",
+            &root,
+            Some("no-upstream"),
+            &before_sha,
+            None,
+            steps,
+            started.elapsed().as_millis(),
+        );
+        return Ok(update_run_response(result));
+    }
+
+    let fetch = run_update_step(
+        "git fetch",
+        &[
+            "git",
+            "-C",
+            path_str(&root),
+            "fetch",
+            "--all",
+            "--prune",
+            "--tags",
+        ],
+        &root,
+    );
+    let fetch_ok = update_step_success(&fetch);
+    steps.push(fetch);
+    if !fetch_ok {
+        let result = update_result(
+            "error",
+            "git",
+            &root,
+            Some("fetch-failed"),
+            &before_sha,
+            None,
+            steps,
+            started.elapsed().as_millis(),
+        );
+        return Ok(update_run_response(result));
+    }
+
+    let upstream_sha_step = run_update_step(
+        "git rev-parse @{upstream}",
+        &["git", "-C", path_str(&root), "rev-parse", "@{upstream}"],
+        &root,
+    );
+    let upstream_sha = upstream_sha_step
+        .get("stdoutTail")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned);
+    let upstream_ok = update_step_success(&upstream_sha_step);
+    steps.push(upstream_sha_step);
+    let Some(upstream_sha) = upstream_sha.filter(|_| upstream_ok) else {
+        let result = update_result(
+            "error",
+            "git",
+            &root,
+            Some("no-upstream-sha"),
+            &before_sha,
+            None,
+            steps,
+            started.elapsed().as_millis(),
+        );
+        return Ok(update_run_response(result));
+    };
+
+    if upstream_sha == before_sha {
+        let result = update_result(
+            "skipped",
+            "git",
+            &root,
+            Some("up-to-date"),
+            &before_sha,
+            Some(&before_sha),
+            steps,
+            started.elapsed().as_millis(),
+        );
+        return Ok(update_run_response(result));
+    }
+
+    let result = update_result(
+        "skipped",
+        "git",
+        &root,
+        Some("update-available"),
+        &before_sha,
+        Some(&upstream_sha),
+        steps,
+        started.elapsed().as_millis(),
+    );
+    Ok(update_run_response(result))
+}
+
+fn resolve_update_git_root(state: &GatewayState) -> Option<PathBuf> {
+    let mut candidates = vec![state.runtime_root.clone()];
+    if let Ok(cwd) = env::current_dir() {
+        candidates.push(cwd);
+    }
+    for candidate in candidates {
+        let Ok(output) = std::process::Command::new("git")
+            .args(["-C", path_str(&candidate), "rev-parse", "--show-toplevel"])
+            .output()
+        else {
+            continue;
+        };
+        if output.status.success() {
+            let root = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if !root.is_empty() {
+                return Some(PathBuf::from(root));
+            }
+        }
+    }
+    None
+}
+
+fn run_update_step(name: &str, argv: &[&str], cwd: &std::path::Path) -> Value {
+    let started = Instant::now();
+    let output = std::process::Command::new(argv[0])
+        .args(&argv[1..])
+        .current_dir(cwd)
+        .output();
+    let duration_ms = started.elapsed().as_millis();
+    match output {
+        Ok(output) => json!({
+            "name": name,
+            "command": argv.join(" "),
+            "cwd": cwd.to_string_lossy(),
+            "durationMs": duration_ms,
+            "exitCode": output.status.code(),
+            "stdoutTail": trim_update_log_tail(&String::from_utf8_lossy(&output.stdout)),
+            "stderrTail": trim_update_log_tail(&String::from_utf8_lossy(&output.stderr))
+        }),
+        Err(error) => json!({
+            "name": name,
+            "command": argv.join(" "),
+            "cwd": cwd.to_string_lossy(),
+            "durationMs": duration_ms,
+            "exitCode": Value::Null,
+            "stdoutTail": Value::Null,
+            "stderrTail": error.to_string()
+        }),
+    }
+}
+
+fn update_step_success(step: &Value) -> bool {
+    step.get("exitCode")
+        .and_then(Value::as_i64)
+        .map(|code| code == 0)
+        .unwrap_or(false)
+}
+
+fn update_command_stdout(cwd: &std::path::Path, argv: &[&str]) -> Option<String> {
+    let output = std::process::Command::new(argv[0])
+        .args(&argv[1..])
+        .current_dir(cwd)
+        .output()
+        .ok()?;
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).to_string())
+    } else {
+        None
+    }
+}
+
+fn update_result(
+    status: &str,
+    mode: &str,
+    root: &std::path::Path,
+    reason: Option<&str>,
+    before_sha: &str,
+    after_sha: Option<&str>,
+    steps: Vec<Value>,
+    duration_ms: u128,
+) -> Value {
+    json!({
+        "status": status,
+        "mode": mode,
+        "root": root.to_string_lossy(),
+        "reason": reason,
+        "before": {
+            "sha": if before_sha.is_empty() { Value::Null } else { Value::String(before_sha.to_string()) }
+        },
+        "after": after_sha.map(|sha| json!({ "sha": sha })),
+        "steps": steps,
+        "durationMs": duration_ms
+    })
+}
+
+fn update_run_response(result: Value) -> Value {
+    let status = result
+        .get("status")
+        .and_then(Value::as_str)
+        .unwrap_or("error")
+        .to_string();
+    json!({
+        "ok": status != "error",
+        "status": status,
+        "result": result,
+        "restart": Value::Null,
+        "implementation": "rust-native"
+    })
+}
+
+fn trim_update_log_tail(raw: &str) -> Value {
+    const MAX_LOG_CHARS: usize = 8000;
+    if raw.is_empty() {
+        return Value::Null;
+    }
+    let chars = raw.chars().collect::<Vec<_>>();
+    let start = chars.len().saturating_sub(MAX_LOG_CHARS);
+    Value::String(chars[start..].iter().collect())
+}
+
+fn path_str(path: &std::path::Path) -> &str {
+    path.to_str().unwrap_or("")
+}
+
 fn chat_history(state: &GatewayState, params: Value) -> Result<Value, String> {
     let session_key = normalize_session_key(&required_param(&params, &["sessionKey", "key"])?)?;
     let mut messages = state
@@ -4390,6 +4886,121 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rust_gateway_agent_runtime_reports_session_store_state() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-agent-runtime-state");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        handle_gateway_method(
+            &state,
+            "sessions.create",
+            json!({ "key": "main", "label": "Main Agent" }),
+        )
+        .await
+        .expect("create main session");
+        handle_gateway_method(
+            &state,
+            "sessions.patch",
+            json!({ "key": "agent:main:main", "status": "running" }),
+        )
+        .await
+        .expect("mark main running");
+        let spawned = handle_gateway_method(
+            &state,
+            "sessions.spawn",
+            json!({
+                "parentSessionKey": "agent:main:main",
+                "label": "Review worker",
+                "task": "review the gateway state"
+            }),
+        )
+        .await
+        .expect("spawn subagent session");
+        let spawned_key = spawned["session"]["key"].as_str().expect("spawned key");
+
+        let summary = handle_gateway_method(&state, "agentRuntime.summary", json!({}))
+            .await
+            .expect("runtime summary");
+        assert_eq!(summary["running"], 1);
+        assert_eq!(summary["waiting"], 1);
+        assert_eq!(summary["completed"], 0);
+        assert_eq!(summary["byCategory"]["cli"], 1);
+        assert_eq!(summary["byCategory"]["subagents"], 1);
+
+        let list = handle_gateway_method(&state, "agentRuntime.list", json!({ "limit": 10 }))
+            .await
+            .expect("runtime list");
+        assert_eq!(list["count"], 2);
+        assert!(list["runs"]
+            .as_array()
+            .expect("runs")
+            .iter()
+            .any(|run| run["taskId"] == spawned_key && run["category"] == "subagents"));
+
+        let detail =
+            handle_gateway_method(&state, "agentRuntime.get", json!({ "taskId": spawned_key }))
+                .await
+                .expect("runtime get");
+        assert_eq!(detail["run"]["taskId"], spawned_key);
+        assert_eq!(detail["run"]["status"], "spawned");
+        assert_eq!(detail["availableActions"]["openSession"], true);
+        assert_eq!(detail["availableActions"]["cancel"], true);
+
+        let missing = handle_gateway_method(
+            &state,
+            "agentRuntime.get",
+            json!({ "taskId": "missing-runtime-task" }),
+        )
+        .await;
+        assert!(missing
+            .expect_err("missing runtime task should fail")
+            .contains("Task not found: missing-runtime-task"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_update_run_reports_git_state_instead_of_noop() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-update-run-state");
+        std::fs::create_dir_all(&runtime_root).expect("create update root");
+        run_git_test_command(&runtime_root, &["init", "-q"]);
+        run_git_test_command(&runtime_root, &["config", "user.email", "test@example.com"]);
+        run_git_test_command(&runtime_root, &["config", "user.name", "Test User"]);
+        std::fs::write(
+            runtime_root.join("package.json"),
+            "{\"name\":\"crawclaw\",\"version\":\"0.0.0\"}\n",
+        )
+        .expect("write package");
+        run_git_test_command(&runtime_root, &["add", "package.json"]);
+        run_git_test_command(&runtime_root, &["commit", "-q", "-m", "init"]);
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let update = handle_gateway_method(&state, "update.run", json!({}))
+            .await
+            .expect("update run");
+
+        assert_eq!(update["ok"], true);
+        assert_ne!(update["status"], "noop");
+        assert_eq!(update["result"]["status"], "skipped");
+        assert_eq!(update["result"]["mode"], "git");
+        assert_eq!(update["result"]["reason"], "no-upstream");
+        assert!(update["result"]["steps"]
+            .as_array()
+            .expect("steps")
+            .iter()
+            .any(|step| step["name"] == "clean check"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
     async fn rust_gateway_replaces_high_priority_placeholders_with_local_results() {
         let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-high-priority-placeholders");
@@ -4398,12 +5009,20 @@ mod tests {
             ..GatewayRunConfig::default()
         });
 
+        handle_gateway_method(
+            &state,
+            "sessions.create",
+            json!({ "key": "main", "label": "Rust Main" }),
+        )
+        .await
+        .expect("create runtime session");
         let runtime_task =
             handle_gateway_method(&state, "agentRuntime.get", json!({ "taskId": "main" }))
                 .await
                 .expect("agent runtime get");
-        assert_eq!(runtime_task["implementation"], "rust-native");
-        assert_ne!(runtime_task["status"], "unavailable");
+        assert_eq!(runtime_task["run"]["taskId"], "agent:main:main");
+        assert_eq!(runtime_task["run"]["runtime"], "desktop-session");
+        assert_eq!(runtime_task["availableActions"]["openSession"], true);
 
         let installed_skill = handle_gateway_method(
             &state,
@@ -4611,5 +5230,20 @@ mod tests {
 
     fn unique_test_runtime_root(name: &str) -> PathBuf {
         env::temp_dir().join(format!("{name}-{}", now_millis()))
+    }
+
+    fn run_git_test_command(cwd: &std::path::Path, args: &[&str]) {
+        let output = std::process::Command::new("git")
+            .args(args)
+            .current_dir(cwd)
+            .output()
+            .expect("run git");
+        assert!(
+            output.status.success(),
+            "git {:?} failed\nstdout: {}\nstderr: {}",
+            args,
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
+        );
     }
 }
