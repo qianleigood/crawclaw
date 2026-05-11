@@ -3349,28 +3349,127 @@ fn approval_wait_response(record: &ApprovalRecord) -> Value {
 
 fn plugins_list(state: &GatewayState) -> Result<Value, String> {
     let config = read_config_value(&config_path(state))?;
-    let plugins = get_json_path(&config, "plugins.entries")
+    let entry_ids = get_json_path(&config, "plugins.entries")
         .and_then(Value::as_object)
-        .map(|entries| {
-            entries
-                .iter()
-                .map(|(id, entry)| {
-                    json!({
-                        "id": id,
-                        "enabled": entry.get("enabled").and_then(Value::as_bool).unwrap_or(false),
-                        "configured": entry.get("config").is_some(),
-                        "source": "config",
-                        "config": entry.get("config").cloned().unwrap_or(Value::Null)
-                    })
-                })
-                .collect::<Vec<_>>()
-        })
+        .map(|entries| entries.keys().cloned().collect::<Vec<_>>())
         .unwrap_or_default();
+    let install_ids = get_json_path(&config, "plugins.installs")
+        .and_then(Value::as_object)
+        .map(|installs| installs.keys().cloned().collect::<Vec<_>>())
+        .unwrap_or_default();
+    let plugin_ids = entry_ids
+        .into_iter()
+        .chain(install_ids)
+        .collect::<BTreeSet<_>>();
+    let plugins = plugin_ids
+        .into_iter()
+        .map(|id| {
+            let entry = get_json_path(&config, &format!("plugins.entries.{id}"));
+            let install = get_json_path(&config, &format!("plugins.installs.{id}"));
+            plugin_list_entry(state, &id, entry, install)
+        })
+        .collect::<Vec<_>>();
     Ok(json!({
         "workspaceDir": state.runtime_root.join("plugins").to_string_lossy(),
         "plugins": plugins,
         "diagnostics": []
     }))
+}
+
+fn plugin_list_entry(
+    state: &GatewayState,
+    id: &str,
+    entry: Option<&Value>,
+    install: Option<&Value>,
+) -> Value {
+    let install_path = install
+        .and_then(|record| record.get("installPath").and_then(Value::as_str))
+        .map(|value| normalize_plugin_filesystem_path(state, value))
+        .unwrap_or_else(|| plugin_install_dir(state, id));
+    let manifest_path = install_path.join("crawclaw.plugin.json");
+    let manifest = if manifest_path.exists() {
+        read_json_file(&manifest_path).ok()
+    } else {
+        None
+    };
+    let name = manifest
+        .as_ref()
+        .and_then(|manifest| manifest.get("name").and_then(Value::as_str))
+        .unwrap_or(id);
+    let version = manifest
+        .as_ref()
+        .and_then(plugin_manifest_version)
+        .or_else(|| {
+            install
+                .and_then(|record| record.get("version").and_then(Value::as_str))
+                .map(ToOwned::to_owned)
+        });
+    let enabled = entry
+        .and_then(|entry| entry.get("enabled").and_then(Value::as_bool))
+        .unwrap_or(false);
+    let config = entry
+        .and_then(|entry| entry.get("config").cloned())
+        .unwrap_or(Value::Null);
+    let source_path = install.and_then(|record| record.get("sourcePath").and_then(Value::as_str));
+    let mut snapshot = Map::new();
+    snapshot.insert("id".to_string(), Value::String(id.to_string()));
+    snapshot.insert("name".to_string(), Value::String(name.to_string()));
+    snapshot.insert("enabled".to_string(), Value::Bool(enabled));
+    snapshot.insert("configured".to_string(), Value::Bool(!config.is_null()));
+    snapshot.insert("config".to_string(), config);
+    snapshot.insert(
+        "status".to_string(),
+        Value::String(
+            if install.is_some() {
+                if manifest_path.exists() {
+                    "installed"
+                } else {
+                    "missing"
+                }
+            } else {
+                "configured"
+            }
+            .to_string(),
+        ),
+    );
+    snapshot.insert(
+        "origin".to_string(),
+        Value::String(if install.is_some() { "local" } else { "config" }.to_string()),
+    );
+    snapshot.insert(
+        "source".to_string(),
+        Value::String(source_path.unwrap_or("config").to_string()),
+    );
+    if let Some(version) = version {
+        snapshot.insert("version".to_string(), Value::String(version));
+    }
+    if let Some(record) = install {
+        snapshot.insert(
+            "installSource".to_string(),
+            Value::String(
+                record
+                    .get("source")
+                    .and_then(Value::as_str)
+                    .unwrap_or("unknown")
+                    .to_string(),
+            ),
+        );
+        if let Some(source_path) = source_path {
+            snapshot.insert(
+                "sourcePath".to_string(),
+                Value::String(source_path.to_string()),
+            );
+        }
+        snapshot.insert(
+            "installPath".to_string(),
+            Value::String(install_path.to_string_lossy().to_string()),
+        );
+        snapshot.insert(
+            "manifestPath".to_string(),
+            Value::String(manifest_path.to_string_lossy().to_string()),
+        );
+    }
+    Value::Object(snapshot)
 }
 
 fn plugins_set_enabled(
@@ -3399,7 +3498,7 @@ fn plugins_set_enabled(
 }
 
 fn plugins_install(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let (mut manifest, source_root) = plugin_install_manifest(&params)?;
+    let (mut manifest, source_root, install_source) = plugin_install_manifest(&params)?;
     let id = resolve_plugin_install_id(&params, &manifest)?;
     normalize_plugin_manifest(&mut manifest, &id)?;
     let plugin_dir = plugin_install_dir(state, &id);
@@ -3425,14 +3524,14 @@ fn plugins_install(state: &GatewayState, params: Value) -> Result<Value, String>
     set_json_path(
         &mut config,
         &format!("plugins.installs.{id}"),
-        plugin_install_record(&source_path, &plugin_dir, &manifest),
+        plugin_install_record(install_source, &source_path, &plugin_dir, &manifest),
     )?;
     write_config_value(&path, &config)?;
     Ok(json!({
         "ok": true,
         "pluginId": id,
         "id": id,
-        "installSource": "path",
+        "installSource": install_source,
         "requiresRestart": true,
         "warnings": [],
         "manifestPath": manifest_path.to_string_lossy(),
@@ -3464,7 +3563,7 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
             .get("source")
             .and_then(Value::as_str)
             .unwrap_or_default();
-        if source != "path" {
+        if source != "path" && source != "bundled" {
             outcomes.push(json!({
                 "pluginId": id,
                 "status": "skipped",
@@ -3559,7 +3658,7 @@ fn plugins_update(state: &GatewayState, params: Value) -> Result<Value, String> 
             }
             write_json_file(&installed_manifest_path, &next_manifest)?;
             let mut next_record = record.as_object().cloned().unwrap_or_default();
-            next_record.insert("source".to_string(), Value::String("path".to_string()));
+            next_record.insert("source".to_string(), Value::String(source.to_string()));
             next_record.insert(
                 "sourcePath".to_string(),
                 Value::String(source_path.to_string_lossy().to_string()),
@@ -3704,16 +3803,26 @@ fn plugins_uninstall(state: &GatewayState, params: Value) -> Result<Value, Strin
     }))
 }
 
-fn plugin_install_manifest(params: &Value) -> Result<(Value, Option<PathBuf>), String> {
+fn plugin_install_manifest(
+    params: &Value,
+) -> Result<(Value, Option<PathBuf>, &'static str), String> {
     if let Some(raw) = string_param(params, &["raw", "source", "path"]) {
         let source = expand_user_path(&raw);
         let (source_root, manifest_path) = plugin_manifest_path_from_source(&source)?;
-        return Ok((read_json_file(&manifest_path)?, Some(source_root)));
+        return Ok((read_json_file(&manifest_path)?, Some(source_root), "path"));
     }
     if let Some(manifest) = params.get("manifest") {
-        return Ok((manifest.clone(), None));
+        return Ok((manifest.clone(), None, "manifest"));
     }
     let id = required_param(params, &["pluginId", "id", "name"])?;
+    let safe_id = safe_config_component_id(&id, "plugin id")?;
+    if let Some((source_root, manifest_path)) = bundled_plugin_manifest_path(&safe_id) {
+        return Ok((
+            read_json_file(&manifest_path)?,
+            Some(source_root),
+            "bundled",
+        ));
+    }
     Ok((
         json!({
             "id": id,
@@ -3722,6 +3831,7 @@ fn plugin_install_manifest(params: &Value) -> Result<(Value, Option<PathBuf>), S
             "runtime": "rust-local"
         }),
         None,
+        "generated",
     ))
 }
 
@@ -3773,12 +3883,13 @@ fn normalize_plugin_manifest(manifest: &mut Value, id: &str) -> Result<(), Strin
 }
 
 fn plugin_install_record(
+    source_kind: &str,
     source_path: &std::path::Path,
     install_path: &std::path::Path,
     manifest: &Value,
 ) -> Value {
     let mut record = Map::new();
-    record.insert("source".to_string(), Value::String("path".to_string()));
+    record.insert("source".to_string(), Value::String(source_kind.to_string()));
     record.insert(
         "sourcePath".to_string(),
         Value::String(source_path.to_string_lossy().to_string()),
@@ -3839,6 +3950,17 @@ fn plugin_manifest_path_from_source(
         "Rust plugins.install supports local plugin directories or crawclaw.plugin.json files; not found: {}",
         source.display()
     ))
+}
+
+fn bundled_plugin_manifest_path(id: &str) -> Option<(PathBuf, PathBuf)> {
+    let repo_root = env::var_os("CRAWCLAW_REPO_ROOT")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../.."));
+    let source_root = repo_root.join("extensions").join(id);
+    let manifest_path = source_root.join("crawclaw.plugin.json");
+    manifest_path
+        .exists()
+        .then_some((source_root, manifest_path))
 }
 
 fn plugin_install_dir(state: &GatewayState, id: &str) -> PathBuf {
@@ -8961,6 +9083,31 @@ mod tests {
                 .and_then(Value::as_str),
             Some(source_root.to_string_lossy().as_ref())
         );
+        let listed = handle_gateway_method(&state, "plugins.list", json!({}))
+            .await
+            .expect("list plugins");
+        let listed_plugin = listed["plugins"]
+            .as_array()
+            .expect("plugins")
+            .iter()
+            .find(|plugin| plugin["id"] == "quickjs-demo")
+            .expect("installed plugin in list");
+        assert_eq!(listed_plugin["name"], "QuickJS Demo");
+        assert_eq!(listed_plugin["version"], "1.0.0");
+        assert_eq!(listed_plugin["status"], "installed");
+        assert_eq!(listed_plugin["origin"], "local");
+        assert_eq!(listed_plugin["installSource"], "path");
+        assert_eq!(
+            listed_plugin["sourcePath"],
+            source_root.to_string_lossy().as_ref()
+        );
+        assert_eq!(
+            listed_plugin["manifestPath"],
+            installed_root
+                .join("crawclaw.plugin.json")
+                .to_string_lossy()
+                .as_ref()
+        );
 
         write_json_file(
             &source_root.join("crawclaw.plugin.json"),
@@ -8999,6 +9146,41 @@ mod tests {
 
         let _ = std::fs::remove_dir_all(runtime_root);
         let _ = std::fs::remove_dir_all(source_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_plugins_install_resolves_bundled_plugin_id() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-plugin-bundled-install-runtime");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let installed =
+            handle_gateway_method(&state, "plugins.install", json!({ "pluginId": "fal" }))
+                .await
+                .expect("install bundled plugin");
+        assert_eq!(installed["ok"], true);
+        assert_eq!(installed["pluginId"], "fal");
+        assert_eq!(installed["installSource"], "bundled");
+        assert_eq!(
+            installed["manifest"]["providerAuthEnvVars"]["fal"],
+            json!(["FAL_KEY"])
+        );
+        assert!(runtime_root.join("plugins/fal/index.ts").exists());
+
+        let config = read_config_value(&config_path(&state)).expect("read config");
+        assert_eq!(
+            get_json_path(&config, "plugins.installs.fal.source").and_then(Value::as_str),
+            Some("bundled")
+        );
+        assert!(get_json_path(&config, "plugins.installs.fal.sourcePath")
+            .and_then(Value::as_str)
+            .unwrap_or_default()
+            .ends_with("extensions/fal"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
     }
 
     #[tokio::test]
