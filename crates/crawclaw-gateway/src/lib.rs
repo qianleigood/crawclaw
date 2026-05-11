@@ -3494,6 +3494,7 @@ mod tests {
 
     #[tokio::test]
     async fn rust_gateway_rpc_manages_sessions_and_subagents() {
+        let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-rpc-sessions");
         let state = GatewayState::new(GatewayRunConfig {
             runtime_root: Some(runtime_root.clone()),
@@ -3661,6 +3662,7 @@ mod tests {
 
     #[tokio::test]
     async fn rust_gateway_rpc_manages_special_agents_and_memory() {
+        let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-rpc-special-agents");
         let state = GatewayState::new(GatewayRunConfig {
             runtime_root: Some(runtime_root.clone()),
@@ -3709,6 +3711,7 @@ mod tests {
 
     #[test]
     fn runtime_status_advertises_rust_core_gateway_methods() {
+        let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-runtime-status");
         let state = GatewayState::new(GatewayRunConfig {
             runtime_root: Some(runtime_root.clone()),
@@ -3744,6 +3747,7 @@ mod tests {
 
     #[tokio::test]
     async fn rust_gateway_replaces_high_priority_placeholders_with_local_results() {
+        let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-high-priority-placeholders");
         let state = GatewayState::new(GatewayRunConfig {
             runtime_root: Some(runtime_root.clone()),
@@ -3872,6 +3876,7 @@ mod tests {
 
     #[tokio::test]
     async fn rust_gateway_channel_lifecycle_tracks_native_local_delivery() {
+        let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-channel-lifecycle");
         let state = GatewayState::new(GatewayRunConfig {
             runtime_root: Some(runtime_root.clone()),
