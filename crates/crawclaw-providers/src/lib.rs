@@ -42,7 +42,17 @@ const RUST_PROVIDER_CAPABILITIES: ProviderTransportCapabilities = ProviderTransp
 
 pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
     ProviderTransport {
+        id: "amazon-bedrock",
+        transport: "bedrock-converse-stream",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
         id: "anthropic",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "anthropic-vertex",
         transport: "anthropic-messages",
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
@@ -57,6 +67,36 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
+        id: "byteplus",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "byteplus-plan",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "chutes",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "cloudflare-ai-gateway",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "copilot-proxy",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "deepseek",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
         id: "github-copilot",
         transport: "github-copilot",
         capabilities: RUST_PROVIDER_CAPABILITIES,
@@ -64,6 +104,71 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
     ProviderTransport {
         id: "google",
         transport: "google-generative-ai",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "google-gemini-cli",
+        transport: "google-generative-ai",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "huggingface",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "kilocode",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "kimi",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "kimi-coding",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "litellm",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "microsoft-foundry",
+        transport: "openai-responses",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "minimax",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "minimax-portal",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "mistral",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "modelstudio",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "moonshot",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "nvidia",
+        transport: "openai-completions",
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
     ProviderTransport {
@@ -86,6 +191,81 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
         transport: "openai-completions",
         capabilities: RUST_PROVIDER_CAPABILITIES,
     },
+    ProviderTransport {
+        id: "opencode",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "opencode-go",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "openrouter",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "qianfan",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "sglang",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "synthetic",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "together",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "venice",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "vercel-ai-gateway",
+        transport: "anthropic-messages",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "vllm",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "volcengine",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "volcengine-plan",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "xai",
+        transport: "openai-responses",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "xiaomi",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
+    ProviderTransport {
+        id: "zai",
+        transport: "openai-completions",
+        capabilities: RUST_PROVIDER_CAPABILITIES,
+    },
 ];
 
 pub fn native_provider_transports() -> Vec<ProviderTransport> {
@@ -97,6 +277,28 @@ pub fn native_provider_ids() -> Vec<&'static str> {
         .iter()
         .map(|provider| provider.id)
         .collect()
+}
+
+fn resolve_provider_transport(
+    config: &NativeProviderConfig,
+) -> Result<&str, ProviderTransportError> {
+    if let Some(api) = non_empty(config.api.as_deref()) {
+        return Ok(api);
+    }
+    NATIVE_PROVIDER_TRANSPORTS
+        .iter()
+        .find(|transport| transport.id == config.provider)
+        .map(|transport| transport.transport)
+        .ok_or_else(|| {
+            ProviderTransportError::Unsupported(format!(
+                "Rust provider transport is not registered: {}",
+                config.provider
+            ))
+        })
+}
+
+fn is_default_openai_provider(provider: &str) -> bool {
+    provider == "openai" || provider == "openai-codex"
 }
 
 pub fn default_model_options() -> Vec<String> {
@@ -145,6 +347,7 @@ pub async fn send_openai_compatible_message(
             base_url: Some(config.base_url.clone()),
             api_key: Some(config.api_key.clone()),
             model: Some(config.model.clone()),
+            api: None,
             api_version: None,
         },
         user_text,
@@ -159,6 +362,8 @@ pub struct NativeProviderConfig {
     pub base_url: Option<String>,
     pub api_key: Option<String>,
     pub model: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub api: Option<String>,
     pub api_version: Option<String>,
 }
 
@@ -349,20 +554,24 @@ pub fn build_native_provider_conversation_request_with_options(
     options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let messages = normalize_native_provider_messages(messages)?;
-    match config.provider.as_str() {
-        "openai" | "openai-codex" => openai_responses_request(
+    match resolve_provider_transport(config)? {
+        "openai-responses" | "openai-codex-responses" => openai_responses_request(
             config,
-            "https://api.openai.com/v1",
+            if is_default_openai_provider(&config.provider) {
+                "https://api.openai.com/v1"
+            } else {
+                ""
+            },
             "Authorization",
             "Bearer ",
             &messages,
             options,
         ),
-        "azure-openai" => azure_openai_request(config, &messages, options),
-        "anthropic" => anthropic_messages_request(config, &messages, options),
-        "google" => google_generate_content_request(config, &messages, options),
+        "azure-openai-responses" => azure_openai_request(config, &messages, options),
+        "anthropic-messages" => anthropic_messages_request(config, &messages, options),
+        "google-generative-ai" => google_generate_content_request(config, &messages, options),
         "ollama" => ollama_chat_request(config, &messages, options),
-        "bedrock" => bedrock_converse_request(config, &messages, options),
+        "bedrock-converse-stream" => bedrock_converse_request(config, &messages, options),
         "github-copilot" => chat_completions_request(
             config,
             "https://api.githubcopilot.com",
@@ -371,11 +580,11 @@ pub fn build_native_provider_conversation_request_with_options(
             &messages,
             options,
         ),
-        "openai-compatible" => {
+        "openai-completions" => {
             chat_completions_request(config, "", "Authorization", "Bearer ", &messages, options)
         }
-        provider => Err(ProviderTransportError::Unsupported(format!(
-            "Rust provider transport is not registered: {provider}"
+        transport => Err(ProviderTransportError::Unsupported(format!(
+            "Rust provider transport is not implemented: {transport}"
         ))),
     }
 }
@@ -497,18 +706,14 @@ fn openai_responses_request(
     messages: &[NativeProviderMessage],
     options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
-    let base_url = config
-        .base_url
-        .as_deref()
-        .unwrap_or(default_base_url)
-        .trim_end_matches('/');
+    let base_url = resolve_base_url(config, default_base_url)?;
     let mut body = json!({
         "model": required(&config.model, "model")?,
         "input": openai_responses_input(messages),
     });
     apply_openai_responses_options(&mut body, options);
     Ok(NativeProviderRequest {
-        url: join_url_path(base_url, "responses"),
+        url: join_url_path(&base_url, "responses"),
         headers: vec![auth_pair(
             auth_header,
             auth_prefix,
@@ -550,11 +755,14 @@ fn anthropic_messages_request(
     messages: &[NativeProviderMessage],
     options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
-    let base_url = config
-        .base_url
-        .as_deref()
-        .unwrap_or("https://api.anthropic.com")
-        .trim_end_matches('/');
+    let base_url = resolve_base_url(
+        config,
+        if config.provider == "anthropic" {
+            "https://api.anthropic.com"
+        } else {
+            ""
+        },
+    )?;
     let mut body = json!({
         "model": required(&config.model, "model")?,
         "max_tokens": 1024,
@@ -562,7 +770,7 @@ fn anthropic_messages_request(
     });
     apply_anthropic_options(&mut body, options);
     Ok(NativeProviderRequest {
-        url: join_url_path(base_url, "v1/messages"),
+        url: join_url_path(&base_url, "v1/messages"),
         headers: vec![
             (
                 "x-api-key".to_string(),
@@ -580,11 +788,14 @@ fn google_generate_content_request(
     messages: &[NativeProviderMessage],
     options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
-    let base_url = config
-        .base_url
-        .as_deref()
-        .unwrap_or("https://generativelanguage.googleapis.com/v1beta")
-        .trim_end_matches('/');
+    let base_url = resolve_base_url(
+        config,
+        if config.provider == "google" {
+            "https://generativelanguage.googleapis.com/v1beta"
+        } else {
+            ""
+        },
+    )?;
     let model = required(&config.model, "model")?;
     let mut body = json!({
         "contents": native_messages_for_google(messages),
@@ -703,6 +914,21 @@ fn chat_completions_request(
         body,
         response_format: NativeProviderResponseFormat::ChatCompletions,
     })
+}
+
+fn resolve_base_url(
+    config: &NativeProviderConfig,
+    default_base_url: &str,
+) -> Result<String, ProviderTransportError> {
+    config
+        .base_url
+        .as_deref()
+        .filter(|base_url| !base_url.trim().is_empty())
+        .or_else(|| non_empty(Some(default_base_url)))
+        .map(|base_url| base_url.trim_end_matches('/').to_string())
+        .ok_or_else(|| {
+            ProviderTransportError::Unavailable("Provider config is missing baseUrl.".to_string())
+        })
 }
 
 fn normalize_native_provider_messages(
@@ -1129,22 +1355,60 @@ mod tests {
     use std::sync::mpsc;
     use std::thread;
 
+    const RUST_NATIVE_CHAT_MODEL_PROVIDERS: &[&str] = &[
+        "amazon-bedrock",
+        "anthropic",
+        "anthropic-vertex",
+        "azure-openai",
+        "bedrock",
+        "byteplus",
+        "byteplus-plan",
+        "chutes",
+        "cloudflare-ai-gateway",
+        "copilot-proxy",
+        "deepseek",
+        "github-copilot",
+        "google",
+        "google-gemini-cli",
+        "huggingface",
+        "kilocode",
+        "kimi",
+        "kimi-coding",
+        "litellm",
+        "microsoft-foundry",
+        "minimax",
+        "minimax-portal",
+        "mistral",
+        "modelstudio",
+        "moonshot",
+        "nvidia",
+        "ollama",
+        "openai",
+        "openai-codex",
+        "openai-compatible",
+        "opencode",
+        "opencode-go",
+        "openrouter",
+        "qianfan",
+        "sglang",
+        "synthetic",
+        "together",
+        "venice",
+        "vercel-ai-gateway",
+        "vllm",
+        "volcengine",
+        "volcengine-plan",
+        "xai",
+        "xiaomi",
+        "zai",
+    ];
+
     #[test]
     fn covers_phase_three_provider_transport_families() {
         let ids = native_provider_ids();
-        for required in [
-            "openai",
-            "openai-codex",
-            "azure-openai",
-            "anthropic",
-            "google",
-            "ollama",
-            "bedrock",
-            "github-copilot",
-            "openai-compatible",
-        ] {
+        for required in RUST_NATIVE_CHAT_MODEL_PROVIDERS {
             assert!(
-                ids.contains(&required),
+                ids.contains(required),
                 "missing provider transport {required}"
             );
         }
@@ -1155,20 +1419,10 @@ mod tests {
         let transports = native_provider_transports();
         assert_eq!(transports.len(), native_provider_ids().len());
 
-        for provider in [
-            "openai",
-            "openai-codex",
-            "azure-openai",
-            "anthropic",
-            "google",
-            "ollama",
-            "bedrock",
-            "github-copilot",
-            "openai-compatible",
-        ] {
+        for provider in RUST_NATIVE_CHAT_MODEL_PROVIDERS {
             let transport = transports
                 .iter()
-                .find(|transport| transport.id == provider)
+                .find(|transport| transport.id == *provider)
                 .unwrap_or_else(|| panic!("missing provider transport {provider}"));
             assert!(
                 transport.capabilities.streaming,
@@ -1219,23 +1473,14 @@ mod tests {
             NativeProviderContentBlock::image_base64("image/png", "iVBORw0KGgo="),
         ])];
 
-        for provider in [
-            "openai",
-            "openai-codex",
-            "azure-openai",
-            "anthropic",
-            "google",
-            "ollama",
-            "bedrock",
-            "github-copilot",
-            "openai-compatible",
-        ] {
+        for provider in RUST_NATIVE_CHAT_MODEL_PROVIDERS {
             let request = build_native_provider_conversation_request_with_options(
                 &NativeProviderConfig {
-                    provider: provider.to_string(),
+                    provider: (*provider).to_string(),
                     base_url: Some(format!("https://example.test/{provider}")),
                     api_key: Some("secret".to_string()),
                     model: Some("model-a".to_string()),
+                    api: None,
                     api_version: Some("2025-04-01-preview".to_string()),
                 },
                 &messages,
@@ -1264,23 +1509,14 @@ mod tests {
 
     #[test]
     fn builds_native_http_requests_for_all_phase_three_provider_families() {
-        for provider in [
-            "openai",
-            "openai-codex",
-            "azure-openai",
-            "anthropic",
-            "google",
-            "ollama",
-            "bedrock",
-            "github-copilot",
-            "openai-compatible",
-        ] {
+        for provider in RUST_NATIVE_CHAT_MODEL_PROVIDERS {
             let request = build_native_provider_request(
                 &NativeProviderConfig {
-                    provider: provider.to_string(),
+                    provider: (*provider).to_string(),
                     base_url: Some(format!("https://example.test/{provider}")),
                     api_key: Some("secret".to_string()),
                     model: Some("model-a".to_string()),
+                    api: None,
                     api_version: Some("2025-04-01-preview".to_string()),
                 },
                 "hello",
@@ -1308,6 +1544,7 @@ mod tests {
                 base_url: Some("https://example.test/openai-compatible".to_string()),
                 api_key: Some("secret".to_string()),
                 model: Some("model-a".to_string()),
+                api: None,
                 api_version: None,
             },
             &[
@@ -1381,6 +1618,7 @@ mod tests {
                 base_url: Some(base_url),
                 api_key: Some("test-key".to_string()),
                 model: Some("model-a".to_string()),
+                api: None,
                 api_version: None,
             },
             "hello provider",

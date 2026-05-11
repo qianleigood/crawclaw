@@ -6,6 +6,53 @@ import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
 const rootDir = path.resolve(path.dirname(__filename), "..");
+const REQUIRED_PROVIDER_TRANSPORT_IDS = [
+  "amazon-bedrock",
+  "anthropic",
+  "anthropic-vertex",
+  "azure-openai",
+  "bedrock",
+  "byteplus",
+  "byteplus-plan",
+  "chutes",
+  "cloudflare-ai-gateway",
+  "copilot-proxy",
+  "deepseek",
+  "github-copilot",
+  "google",
+  "google-gemini-cli",
+  "huggingface",
+  "kilocode",
+  "kimi",
+  "kimi-coding",
+  "litellm",
+  "microsoft-foundry",
+  "minimax",
+  "minimax-portal",
+  "mistral",
+  "modelstudio",
+  "moonshot",
+  "nvidia",
+  "ollama",
+  "openai",
+  "openai-codex",
+  "openai-compatible",
+  "opencode",
+  "opencode-go",
+  "openrouter",
+  "qianfan",
+  "sglang",
+  "synthetic",
+  "together",
+  "venice",
+  "vercel-ai-gateway",
+  "vllm",
+  "volcengine",
+  "volcengine-plan",
+  "xai",
+  "xiaomi",
+  "zai",
+];
 
 export function resolveCrawClawDesktopTauriRuntimeStagePaths(checkRootDir = process.cwd()) {
   const runtimeRoot = path.join(checkRootDir, "apps", "crawclaw-desktop", ".runtime", "crawclaw");
@@ -51,14 +98,6 @@ export function stageCrawClawDesktopTauriRuntime(params = {}) {
   fs.rmSync(paths.runtimeRoot, { recursive: true, force: true });
   fs.mkdirSync(path.dirname(paths.runtimeRoot), { recursive: true });
 
-  if ((params.env ?? process.env).CRAWCLAW_DESKTOP_SKIP_ROOT_BUILD !== "1") {
-    runChecked(runCommand, {
-      cwd: checkRootDir,
-      command: pnpmCommand(),
-      args: ["build"],
-      env: buildEnv,
-    });
-  }
   runChecked(runCommand, {
     cwd: checkRootDir,
     command: cargoCommand(),
@@ -67,8 +106,8 @@ export function stageCrawClawDesktopTauriRuntime(params = {}) {
   });
   runChecked(runCommand, {
     cwd: checkRootDir,
-    command: cargoCommand(),
-    args: ["run", "-p", "crawclaw-cli", "--", "runtime", "stage", "--output", paths.runtimeRoot],
+    command: paths.sourceRuntimeBinaryPath,
+    args: ["runtime", "stage", "--output", paths.runtimeRoot],
     env: buildEnv,
   });
 
@@ -134,7 +173,7 @@ function assertRuntimeTree(paths, label = "embedded") {
     path.join(paths.runtimeRoot, "providers", "manifest.json"),
     label,
   );
-  assertNoDisallowedNodeRuntimeEntrypoints(paths.runtimeRoot);
+  assertNoDisallowedNodeRuntimeSurface(paths.runtimeRoot);
 }
 
 function assertPackagedRuntimeTree(checkRootDir, params) {
@@ -170,6 +209,12 @@ function assertProviderTransportManifest(manifestPath, label) {
   const transports = Array.isArray(manifest.transports) ? manifest.transports : [];
   if (transports.length === 0) {
     throw new Error(`${label} Rust provider transport manifest is missing transports`);
+  }
+  const transportIds = new Set(transports.map((transport) => transport?.id).filter(Boolean));
+  for (const id of REQUIRED_PROVIDER_TRANSPORT_IDS) {
+    if (!transportIds.has(id)) {
+      throw new Error(`${label} Rust provider transport manifest is missing ${id}`);
+    }
   }
   for (const transport of transports) {
     const capabilities = transport?.capabilities ?? {};
@@ -271,10 +316,14 @@ function assertNoLegacyDesktopSurface(runtimeRoot) {
   }
 }
 
-function assertNoDisallowedNodeRuntimeEntrypoints(runtimeRoot) {
+function assertNoDisallowedNodeRuntimeSurface(runtimeRoot) {
   for (const filePath of walkFiles(runtimeRoot)) {
     if (!filePath.endsWith(".mjs")) {
-      continue;
+      const basename = path.basename(filePath);
+      if (basename !== "package.json" && !filePath.split(path.sep).includes("node_modules")) {
+        continue;
+      }
+      throw new Error(`Disallowed Node runtime package surface remains: ${filePath}`);
     }
     throw new Error(`Disallowed Node runtime entrypoint remains: ${filePath}`);
   }
@@ -302,7 +351,6 @@ function createDesktopRuntimeDeployEnv(baseEnv, paths) {
     ...baseEnv,
     CRAWCLAW_STATE_DIR: paths.runtimeRoot,
     CRAWCLAW_PLUGIN_RUNTIMES_DIR: path.join(paths.runtimeRoot, "runtimes"),
-    CRAWCLAW_RUNTIME_INSTALL_PROFILE: "desktop-core",
   };
 }
 
@@ -375,10 +423,6 @@ function runCommandSync({ cwd, command, args, env, stdio = "inherit" }) {
     env,
     encoding: stdio === "pipe" ? "utf-8" : undefined,
   });
-}
-
-function pnpmCommand() {
-  return process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 }
 
 function cargoCommand() {

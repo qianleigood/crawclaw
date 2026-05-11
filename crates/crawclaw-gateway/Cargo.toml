@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 axum = { version = "0.8", features = ["ws"] }
+chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 crawclaw-providers = { path = "../crawclaw-providers" }
 crawclaw-runtime = { path = "../crawclaw-runtime" }
 futures-util = "0.3"

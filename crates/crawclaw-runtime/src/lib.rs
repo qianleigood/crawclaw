@@ -1941,6 +1941,7 @@ struct DesktopAgentProviderConfig {
     base_url: Option<String>,
     api_key: Option<Value>,
     model: Option<String>,
+    api: Option<String>,
     api_version: Option<String>,
 }
 
@@ -1978,6 +1979,7 @@ impl ProviderResolver {
             base_url: optional_config_value(config.base_url.as_deref()),
             api_key: resolve_secret_input_string(runtime_root, config.api_key.as_ref(), "apiKey")?,
             model: optional_config_value(config.model.as_deref()),
+            api: optional_config_value(config.api.as_deref()),
             api_version: optional_config_value(config.api_version.as_deref()),
         })
     }
@@ -2668,6 +2670,7 @@ mod tests {
                 base_url: Some(provider_base_url),
                 api_key: Some("test-key".to_string()),
                 model: Some("test-model".to_string()),
+                api: None,
                 api_version: None,
             },
         };
@@ -2766,6 +2769,7 @@ mod tests {
             base_url: Some("https://api.anthropic.com".to_string()),
             api_key: Some(json!("secret")),
             model: Some("sonnet-4.6".to_string()),
+            api: Some("anthropic-messages".to_string()),
             api_version: Some("2023-06-01".to_string()),
         };
 
@@ -2774,6 +2778,7 @@ mod tests {
 
         assert_eq!(native_config.provider, "anthropic");
         assert_eq!(native_config.model.as_deref(), Some("sonnet-4.6"));
+        assert_eq!(native_config.api.as_deref(), Some("anthropic-messages"));
         assert_eq!(native_config.api_version.as_deref(), Some("2023-06-01"));
     }
 
@@ -2793,6 +2798,7 @@ mod tests {
                 "id": secret_path.to_string_lossy()
             })),
             model: Some("model-a".to_string()),
+            api: None,
             api_version: None,
         };
 

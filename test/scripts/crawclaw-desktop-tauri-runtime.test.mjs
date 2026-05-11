@@ -27,7 +27,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           fs.mkdirSync(targetDir, { recursive: true });
           fs.writeFileSync(paths.sourceRuntimeBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
         }
-        if (command === "cargo" && args.includes("run")) {
+        if (command === paths.sourceRuntimeBinaryPath && args[0] === "runtime") {
           fs.mkdirSync(path.join(paths.runtimeRoot, "runtimes"), { recursive: true });
           fs.mkdirSync(path.join(paths.runtimeRoot, "channels"), { recursive: true });
           fs.mkdirSync(path.join(paths.runtimeRoot, "providers"), { recursive: true });
@@ -54,7 +54,6 @@ void describe("crawclaw tauri desktop runtime staging", () => {
     assert.deepEqual(
       calls.map((call) => ({ cwd: call.cwd, command: call.command, args: call.args })),
       [
-        { cwd: rootDir, command: "pnpm", args: ["build"] },
         {
           cwd: rootDir,
           command: "cargo",
@@ -62,17 +61,8 @@ void describe("crawclaw tauri desktop runtime staging", () => {
         },
         {
           cwd: rootDir,
-          command: "cargo",
-          args: [
-            "run",
-            "-p",
-            "crawclaw-cli",
-            "--",
-            "runtime",
-            "stage",
-            "--output",
-            paths.runtimeRoot,
-          ],
+          command: paths.sourceRuntimeBinaryPath,
+          args: ["runtime", "stage", "--output", paths.runtimeRoot],
         },
       ],
     );
@@ -81,7 +71,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
       calls.at(-1).env.CRAWCLAW_PLUGIN_RUNTIMES_DIR,
       path.join(paths.runtimeRoot, "runtimes"),
     );
-    assert.equal(calls.at(-1).env.CRAWCLAW_RUNTIME_INSTALL_PROFILE, "desktop-core");
+    assert.equal(calls.at(-1).env.CRAWCLAW_RUNTIME_INSTALL_PROFILE, undefined);
     assert.equal(fs.existsSync(path.join(paths.runtimeRoot, "stale.txt")), false);
     assert.equal(fs.existsSync(paths.runtimeBinaryPath), true);
   });
@@ -196,6 +186,23 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           },
         }),
       /Disallowed Node runtime entrypoint remains/,
+    );
+  });
+
+  void it("release check rejects Node package surfaces in the embedded runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-node-package-"));
+    writeReleaseFixture(rootDir, { nodeRuntimePackageSurface: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /Disallowed Node runtime package surface remains/,
     );
   });
 
@@ -333,6 +340,17 @@ function writeReleaseFixture(rootDir, options = {}) {
       "utf8",
     );
   }
+  if (options.nodeRuntimePackageSurface) {
+    fs.writeFileSync(path.join(paths.runtimeRoot, "package.json"), "{}\n", "utf8");
+    fs.mkdirSync(path.join(paths.runtimeRoot, "node_modules", "legacy-provider"), {
+      recursive: true,
+    });
+    fs.writeFileSync(
+      path.join(paths.runtimeRoot, "node_modules", "legacy-provider", "index.js"),
+      "export {};\n",
+      "utf8",
+    );
+  }
   if (!options.omitPackagedRuntime) {
     const packagedRoot = packagedMacRuntimeRoot(rootDir);
     fs.mkdirSync(path.join(packagedRoot, "bin"), { recursive: true });
@@ -402,23 +420,68 @@ function channelManifestJson() {
 }
 
 function providerManifestJson() {
+  const providers = [
+    "amazon-bedrock",
+    "anthropic",
+    "anthropic-vertex",
+    "azure-openai",
+    "bedrock",
+    "byteplus",
+    "byteplus-plan",
+    "chutes",
+    "cloudflare-ai-gateway",
+    "copilot-proxy",
+    "deepseek",
+    "github-copilot",
+    "google",
+    "google-gemini-cli",
+    "huggingface",
+    "kilocode",
+    "kimi",
+    "kimi-coding",
+    "litellm",
+    "microsoft-foundry",
+    "minimax",
+    "minimax-portal",
+    "mistral",
+    "modelstudio",
+    "moonshot",
+    "nvidia",
+    "ollama",
+    "openai",
+    "openai-codex",
+    "openai-compatible",
+    "opencode",
+    "opencode-go",
+    "openrouter",
+    "qianfan",
+    "sglang",
+    "synthetic",
+    "together",
+    "venice",
+    "vercel-ai-gateway",
+    "vllm",
+    "volcengine",
+    "volcengine-plan",
+    "xai",
+    "xiaomi",
+    "zai",
+  ];
   return `${JSON.stringify({
-    providers: ["openai"],
-    transports: [
-      {
-        id: "openai",
-        transport: "openai-responses",
-        capabilities: {
-          streaming: true,
-          toolCalling: true,
-          multimodal: true,
-          secretRef: {
-            env: true,
-            file: true,
-            exec: false,
-          },
+    providers,
+    transports: providers.map((id) => ({
+      id,
+      transport: "openai-completions",
+      capabilities: {
+        streaming: true,
+        toolCalling: true,
+        multimodal: true,
+        secretRef: {
+          env: true,
+          file: true,
+          exec: false,
         },
       },
-    ],
+    })),
   })}\n`;
 }
