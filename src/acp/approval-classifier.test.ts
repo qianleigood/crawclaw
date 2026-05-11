@@ -78,12 +78,6 @@ describe("classifyAcpToolApproval", () => {
       expectedClass: "control_plane",
     },
     {
-      title: "nodes: list",
-      rawInput: { name: "nodes", action: "list" },
-      expectedToolName: "nodes",
-      expectedClass: "exec_capable",
-    },
-    {
       title: "whatsapp_login: start",
       rawInput: { name: "whatsapp_login" },
       expectedToolName: "whatsapp_login",

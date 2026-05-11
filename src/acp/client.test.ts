@@ -405,14 +405,6 @@ describe("resolvePermissionRequest", () => {
       },
     },
     {
-      toolName: "nodes",
-      title: "nodes: list",
-      rawInput: {
-        name: "nodes",
-        action: "list",
-      },
-    },
-    {
       toolName: "whatsapp_login",
       title: "whatsapp_login: start",
       rawInput: {

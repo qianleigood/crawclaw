@@ -1,13 +1,11 @@
 # Gateway Protocol Boundary
 
-This directory defines the Gateway wire contract for operator clients and
-nodes.
+This directory defines the Gateway wire contract for operator clients.
 
 ## Public Contracts
 
 - Docs:
   - `docs/gateway/protocol.md`
-  - `docs/gateway/bridge-protocol.md`
   - `docs/concepts/architecture.md`
 - Definition files:
   - `src/gateway/protocol/schema.ts`
