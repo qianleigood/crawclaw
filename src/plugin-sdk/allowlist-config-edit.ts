@@ -16,7 +16,10 @@ export {
   createNestedAllowlistOverrideResolver,
   readConfiguredAllowlistEntries,
 } from "./allowlist-config-edit-helpers.js";
-export type { AllowlistGroupOverride, AllowlistNameResolution } from "./allowlist-config-edit-helpers.js";
+export type {
+  AllowlistGroupOverride,
+  AllowlistNameResolution,
+} from "./allowlist-config-edit-helpers.js";
 
 const DM_ALLOWLIST_CONFIG_PATHS: AllowlistConfigPaths = {
   readPaths: [["allowFrom"]],

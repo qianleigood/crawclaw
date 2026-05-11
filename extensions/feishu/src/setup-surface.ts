@@ -38,10 +38,7 @@ function normalizeString(value: unknown): string | undefined {
   return trimmed || undefined;
 }
 
-function setFeishuGroupAllowFrom(
-  cfg: CrawClawConfig,
-  groupAllowFrom: string[],
-): CrawClawConfig {
+function setFeishuGroupAllowFrom(cfg: CrawClawConfig, groupAllowFrom: string[]): CrawClawConfig {
   return {
     ...cfg,
     channels: {

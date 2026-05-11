@@ -2,10 +2,7 @@ import type { IncomingMessage } from "node:http";
 import os from "node:os";
 import type { WebSocket } from "ws";
 import { loadConfig } from "../../../config/config.js";
-import {
-  revokeDeviceBootstrapToken,
-  verifyDeviceBootstrapToken,
-} from "../../../infra/device-bootstrap.js";
+import { verifyDeviceBootstrapToken } from "../../../infra/device-bootstrap.js";
 import {
   deriveDeviceIdFromPublicKey,
   normalizeDevicePublicKeyBase64Url,
@@ -21,14 +18,7 @@ import {
   updatePairedDeviceMetadata,
   verifyDeviceToken,
 } from "../../../infra/device-pairing.js";
-import {
-  getPairedNode,
-  requestNodePairing,
-  updatePairedNodeMetadata,
-} from "../../../infra/node-pairing.js";
-import { recordRemoteNodeInfo, refreshRemoteNodeBins } from "../../../infra/skills-remote.js";
 import { upsertPresence } from "../../../infra/system-presence.js";
-import { loadVoiceWakeConfig } from "../../../infra/voicewake.js";
 import { rawDataToString } from "../../../infra/ws.js";
 import type { createSubsystemLogger } from "../../../logging/subsystem.js";
 import { roleScopesAllow } from "../../../shared/operator-scope-compat.js";
@@ -50,7 +40,6 @@ import {
   isTrustedProxyAddress,
   resolveClientIp,
 } from "../../net.js";
-import { reconcileNodePairingOnConnect } from "../../node-connect-reconcile.js";
 import { checkBrowserOrigin } from "../../origin-check.js";
 import {
   ConnectErrorDetailCodes,
@@ -750,7 +739,7 @@ export function attachGatewayWsMessageHandler(params: {
           };
           const requirePairing = async (
             reason: "not-paired" | "role-upgrade" | "scope-upgrade" | "metadata-upgrade",
-            existingPairedDevice: Awaited<ReturnType<typeof getPairedDevice>> | null = null,
+            _existingPairedDevice: Awaited<ReturnType<typeof getPairedDevice>> | null = null,
           ) => {
             const pairingStateAllowsRequestedAccess = (
               pairedCandidate: Awaited<ReturnType<typeof getPairedDevice>>,
@@ -785,23 +774,11 @@ export function attachGatewayWsMessageHandler(params: {
               isWebchat,
               reason,
             });
-            // QR bootstrap onboarding is node-only and single-use. When a fresh device presents
-            // a valid bootstrap token for the baseline node profile, complete pairing in the same
-            // handshake so iOS does not get stuck retrying with an already-consumed bootstrap token.
-            const allowSilentBootstrapPairing =
-              authMethod === "bootstrap-token" &&
-              reason === "not-paired" &&
-              role === "node" &&
-              scopes.length === 0 &&
-              !existingPairedDevice;
             const pairing = await requestDevicePairing({
               deviceId: device.id,
               publicKey: devicePublicKey,
               ...clientPairingMetadata,
-              silent:
-                reason === "scope-upgrade"
-                  ? false
-                  : allowSilentLocalPairing || allowSilentBootstrapPairing,
+              silent: reason === "scope-upgrade" ? false : allowSilentLocalPairing,
             });
             const context = buildRequestContext();
             let approved: Awaited<ReturnType<typeof approveDevicePairing>> | undefined;
@@ -826,16 +803,6 @@ export function attachGatewayWsMessageHandler(params: {
                 callerScopes: scopes,
               });
               if (approved?.status === "approved") {
-                if (allowSilentBootstrapPairing && bootstrapTokenCandidate) {
-                  const revoked = await revokeDeviceBootstrapToken({
-                    token: bootstrapTokenCandidate,
-                  });
-                  if (!revoked.removed) {
-                    logGateway.warn(
-                      `bootstrap token revoke skipped after silent auto-approval device=${approved.device.deviceId}`,
-                    );
-                  }
-                }
                 logGateway.info(
                   `device pairing auto-approved device=${approved.device.deviceId} role=${approved.device.role ?? "unknown"}`,
                 );
@@ -986,23 +953,6 @@ export function attachGatewayWsMessageHandler(params: {
           ? await ensureDeviceToken({ deviceId: device.id, role, scopes })
           : null;
 
-        if (role === "node") {
-          const reconciliation = await reconcileNodePairingOnConnect({
-            cfg: loadConfig(),
-            connectParams,
-            pairedNode: await getPairedNode(connectParams.device?.id ?? connectParams.client.id),
-            reportedClientIp,
-            requestPairing: async (input) => await requestNodePairing(input),
-          });
-          if (reconciliation.pendingPairing?.created) {
-            const requestContext = buildRequestContext();
-            requestContext.broadcast("node.pair.requested", reconciliation.pendingPairing.request, {
-              dropIfSlow: true,
-            });
-          }
-          connectParams.commands = reconciliation.effectiveCommands;
-        }
-
         const shouldTrackPresence = !isGatewayCliClient(connectParams.client);
         const clientId = connectParams.client.id;
         const instanceId = connectParams.client.instanceId;
@@ -1086,56 +1036,6 @@ export function attachGatewayWsMessageHandler(params: {
         setSocketMaxPayload(socket, MAX_PAYLOAD_BYTES);
         setClient(nextClient);
         setHandshakeState("connected");
-        if (role === "node") {
-          const context = buildRequestContext();
-          const nodeSession = context.nodeRegistry.register(nextClient, {
-            remoteIp: reportedClientIp,
-          });
-          const instanceIdRaw = connectParams.client.instanceId;
-          const instanceId = typeof instanceIdRaw === "string" ? instanceIdRaw.trim() : "";
-          const nodeIdsForPairing = new Set<string>([nodeSession.nodeId]);
-          if (instanceId) {
-            nodeIdsForPairing.add(instanceId);
-          }
-          for (const nodeId of nodeIdsForPairing) {
-            void updatePairedNodeMetadata(nodeId, {
-              lastConnectedAtMs: nodeSession.connectedAtMs,
-            }).catch((err) =>
-              logGateway.warn(`failed to record last connect for ${nodeId}: ${formatForLog(err)}`),
-            );
-          }
-          recordRemoteNodeInfo({
-            nodeId: nodeSession.nodeId,
-            displayName: nodeSession.displayName,
-            platform: nodeSession.platform,
-            deviceFamily: nodeSession.deviceFamily,
-            commands: nodeSession.commands,
-            remoteIp: nodeSession.remoteIp,
-          });
-          void refreshRemoteNodeBins({
-            nodeId: nodeSession.nodeId,
-            platform: nodeSession.platform,
-            deviceFamily: nodeSession.deviceFamily,
-            commands: nodeSession.commands,
-            cfg: loadConfig(),
-          }).catch((err) =>
-            logGateway.warn(
-              `remote bin probe failed for ${nodeSession.nodeId}: ${formatForLog(err)}`,
-            ),
-          );
-          void loadVoiceWakeConfig()
-            .then((cfg) => {
-              context.nodeRegistry.sendEvent(nodeSession.nodeId, "voicewake.changed", {
-                triggers: cfg.triggers,
-              });
-            })
-            .catch((err) =>
-              logGateway.warn(
-                `voicewake snapshot failed for ${nodeSession.nodeId}: ${formatForLog(err)}`,
-              ),
-            );
-        }
-
         logWs("out", "hello-ok", {
           connId,
           methods: gatewayMethods.length,

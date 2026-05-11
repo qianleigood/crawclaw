@@ -8,7 +8,7 @@ It owns:
 - tool registration and tool runtime
 - subagent orchestration
 - special-agent substrate
-- sandboxed process and filesystem execution
+- process and filesystem tool execution
 - execution-event emission and streaming glue
 
 ## Start Here
@@ -37,7 +37,7 @@ It owns:
 - If agent code needs new gateway behavior, add or extend a narrow runtime seam first.
 - Do not create a private background-agent mechanism. Use `src/agents/special/runtime/**` for maintenance or review agents.
 - Keep execution visibility, tool lifecycle output, and workflow projection on the shared event path instead of ad hoc strings.
-- Prefer an existing subdomain such as `tools`, `runtime`, `special`, `skills`, `sandbox`, or `query-context` before adding another top-level catch-all file.
+- Prefer an existing subdomain such as `tools`, `runtime`, `special`, `skills`, or `query-context` before adding another top-level catch-all file.
 
 ## Review Notes
 

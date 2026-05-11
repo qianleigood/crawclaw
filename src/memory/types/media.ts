@@ -31,7 +31,11 @@ export interface MessageLinkBlock {
   title?: string;
 }
 
-export type MessageBlock = MessageTextBlock | MessageImageBlock | MessageFileBlock | MessageLinkBlock;
+export type MessageBlock =
+  | MessageTextBlock
+  | MessageImageBlock
+  | MessageFileBlock
+  | MessageLinkBlock;
 
 export interface MediaAsset {
   mediaId: string;

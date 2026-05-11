@@ -173,7 +173,6 @@ const SAFE_CURL_PIPE_URLS = [
   { host: "get.pnpm.io" },
   { host: "bun.sh", pathPrefix: "/install" },
   { host: "sh.rustup.rs" },
-  { host: "get.docker.com" },
   { host: "install.python-poetry.org" },
   { host: "raw.githubusercontent.com", pathPrefix: "/Homebrew" },
   { host: "raw.githubusercontent.com", pathPrefix: "/nvm-sh/nvm" },

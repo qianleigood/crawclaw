@@ -235,7 +235,7 @@ export function resolveExecHostApprovalContext(params: {
   agentId?: string;
   security: ExecSecurity;
   ask: ExecAsk;
-  host: "gateway" | "node";
+  host: "gateway";
 }): ExecHostApprovalContext {
   const approvals = resolveExecApprovals(params.agentId, {
     security: params.security,
@@ -398,7 +398,7 @@ export function shouldResolveExecApprovalUnavailableInline(params: {
 
 export function buildHeadlessExecApprovalDeniedMessage(params: {
   trigger?: string;
-  host: "gateway" | "node";
+  host: "gateway";
   security: ExecSecurity;
   ask: ExecAsk;
   askFallback: ResolvedExecApprovals["agent"]["askFallback"];
@@ -439,7 +439,7 @@ export async function sendExecApprovalFollowupResult(
 }
 
 export function buildExecApprovalPendingToolResult(params: {
-  host: "gateway" | "node";
+  host: "gateway";
   command: string;
   cwd: string | undefined;
   warningText: string;
@@ -450,7 +450,6 @@ export function buildExecApprovalPendingToolResult(params: {
   sentApproverDms: boolean;
   unavailableReason: ExecApprovalUnavailableReason | null;
   allowedDecisions?: readonly ExecApprovalDecision[];
-  nodeId?: string;
 }): AgentToolResult<ExecToolDetails> {
   const allowedDecisions = params.allowedDecisions ?? resolveExecApprovalAllowedDecisions();
   return {
@@ -473,7 +472,6 @@ export function buildExecApprovalPendingToolResult(params: {
                 command: params.command,
                 cwd: params.cwd,
                 host: params.host,
-                nodeId: params.nodeId,
               }),
       },
     ],
@@ -487,7 +485,6 @@ export function buildExecApprovalPendingToolResult(params: {
             host: params.host,
             command: params.command,
             cwd: params.cwd,
-            nodeId: params.nodeId,
             warningText: params.warningText,
           } satisfies ExecToolDetails)
         : ({
@@ -499,21 +496,19 @@ export function buildExecApprovalPendingToolResult(params: {
             host: params.host,
             command: params.command,
             cwd: params.cwd,
-            nodeId: params.nodeId,
             warningText: params.warningText,
           } satisfies ExecToolDetails),
   };
 }
 
 export function buildExecApprovalUnavailableToolResult(params: {
-  host: "gateway" | "node";
+  host: "gateway";
   command: string;
   cwd: string | undefined;
   warningText?: string;
   unavailableReason: ExecApprovalUnavailableReason;
   channelLabel?: string;
   sentApproverDms?: boolean;
-  nodeId?: string;
 }): AgentToolResult<ExecToolDetails> {
   return {
     content: [
@@ -536,7 +531,6 @@ export function buildExecApprovalUnavailableToolResult(params: {
       host: params.host,
       command: params.command,
       cwd: params.cwd,
-      nodeId: params.nodeId,
       warningText: params.warningText,
     } satisfies ExecToolDetails,
   };

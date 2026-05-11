@@ -29,7 +29,6 @@ SNAPSHOT_ID=""
 SNAPSHOT_STATE=""
 SNAPSHOT_NAME=""
 GUEST_CRAWCLAW_BIN="/opt/homebrew/bin/crawclaw"
-GUEST_CRAWCLAW_ENTRY="/opt/homebrew/lib/node_modules/crawclaw/crawclaw.mjs"
 GUEST_NODE_BIN="/opt/homebrew/bin/node"
 GUEST_NPM_BIN="/opt/homebrew/bin/npm"
 
@@ -806,18 +805,18 @@ $guilds_json
 __CRAWCLAW_GUILDS__
 token="\$(tr -d '\n' </tmp/crawclaw-discord-token)"
 guilds_json="\$(cat /tmp/crawclaw-discord-guilds.json)"
-$GUEST_NODE_BIN $GUEST_CRAWCLAW_ENTRY config set channels.discord.token "\$token"
-$GUEST_NODE_BIN $GUEST_CRAWCLAW_ENTRY config set channels.discord.enabled true
-$GUEST_NODE_BIN $GUEST_CRAWCLAW_ENTRY config set channels.discord.groupPolicy allowlist
-$GUEST_NODE_BIN $GUEST_CRAWCLAW_ENTRY config set channels.discord.guilds "\$guilds_json" --strict-json
-$GUEST_NODE_BIN $GUEST_CRAWCLAW_ENTRY gateway restart
+$GUEST_CRAWCLAW_BIN config set channels.discord.token "\$token"
+$GUEST_CRAWCLAW_BIN config set channels.discord.enabled true
+$GUEST_CRAWCLAW_BIN config set channels.discord.groupPolicy allowlist
+$GUEST_CRAWCLAW_BIN config set channels.discord.guilds "\$guilds_json" --strict-json
+$GUEST_CRAWCLAW_BIN gateway restart
 for _ in 1 2 3 4 5 6 7 8; do
-  if $GUEST_NODE_BIN $GUEST_CRAWCLAW_ENTRY gateway status --deep --require-rpc >/dev/null 2>&1; then
+  if $GUEST_CRAWCLAW_BIN gateway status --deep --require-rpc >/dev/null 2>&1; then
     break
   fi
   sleep 2
 done
-$GUEST_NODE_BIN $GUEST_CRAWCLAW_ENTRY channels status --probe --json
+$GUEST_CRAWCLAW_BIN channels status --probe --json
 rm -f /tmp/crawclaw-discord-token /tmp/crawclaw-discord-guilds.json
 EOF
 )"

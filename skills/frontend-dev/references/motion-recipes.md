@@ -212,9 +212,9 @@ export function TextScramble({ text, className }: { text: string; className?: st
         text
           .split("")
           .map((char, i) =>
-            i < iteration.current ? char : chars[Math.floor(Math.random() * chars.length)]
+            i < iteration.current ? char : chars[Math.floor(Math.random() * chars.length)],
           )
-          .join("")
+          .join(""),
       );
       iteration.current += 1 / 3;
       if (iteration.current >= text.length) clearInterval(id);
@@ -344,7 +344,11 @@ Card-to-modal expansion using `layoutId`.
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 
-export function MorphCard({ id, preview, detail }: {
+export function MorphCard({
+  id,
+  preview,
+  detail,
+}: {
   id: string;
   preview: React.ReactNode;
   detail: React.ReactNode;
@@ -352,8 +356,11 @@ export function MorphCard({ id, preview, detail }: {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <motion.div layoutId={`card-${id}`} onClick={() => setOpen(true)}
-        className="cursor-pointer rounded-2xl bg-white p-6 shadow-md">
+      <motion.div
+        layoutId={`card-${id}`}
+        onClick={() => setOpen(true)}
+        className="cursor-pointer rounded-2xl bg-white p-6 shadow-md"
+      >
         {preview}
       </motion.div>
 
@@ -361,12 +368,16 @@ export function MorphCard({ id, preview, detail }: {
         {open && (
           <>
             <motion.div
-              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="fixed inset-0 bg-black/40 z-40"
               onClick={() => setOpen(false)}
             />
-            <motion.div layoutId={`card-${id}`}
-              className="fixed inset-4 md:inset-20 z-50 rounded-2xl bg-white p-8 shadow-2xl overflow-auto">
+            <motion.div
+              layoutId={`card-${id}`}
+              className="fixed inset-4 md:inset-20 z-50 rounded-2xl bg-white p-8 shadow-2xl overflow-auto"
+            >
               {detail}
             </motion.div>
           </>
@@ -380,28 +391,38 @@ export function MorphCard({ id, preview, detail }: {
 ## Scroll Animation Patterns
 
 ### Sticky Scroll Stack
+
 Cards pin to top and stack over each other.
+
 - Each card: `position: sticky; top: calc(var(--index) * 2rem)`
 - Depth illusion: `scale(calc(1 - var(--index) * 0.03))`
 
 ### Split-Screen Parallax
+
 Two viewport halves scroll at different speeds.
+
 - Left: `translateY` at 0.5x scroll speed (GSAP `scrub`)
 - Mobile: collapse to single column, disable parallax
 
 ### Zoom Parallax
+
 Hero image scales 1 to 1.5 on scroll.
+
 ```tsx
 scrollTrigger: { trigger: heroRef, start: "top top", end: "bottom top", scrub: true }
 gsap.to(imageRef, { scale: 1.5, ease: "none" });
 ```
 
 ### Text Mask Reveal
+
 Large typography as window into video/image background.
+
 - `background-clip: text` + `color: transparent`
 - Animate `background-position` on scroll
 
 ### Curtain Reveal
+
 Hero splits in half, each side slides away on scroll.
+
 - Two halves clipped with `clip-path: inset(0 50% 0 0)` and `inset(0 0 0 50%)`
 - GSAP animates `xPercent: -100` and `xPercent: 100`

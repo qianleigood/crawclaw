@@ -8,7 +8,7 @@ type PreparedLlmTask = {
   provider: string;
   model: string;
   authProfileId?: string;
-  thinkLevel?: string;
+  thinkLevel?: EmbeddedPiRunParams["thinkLevel"];
   timeoutMs: number;
   fullPrompt: string;
   workspaceDir: string;
@@ -23,6 +23,10 @@ type LlmTaskResult = {
 type EmbeddedRunResult = {
   payloads?: Array<{ text?: string; isError?: boolean }>;
 };
+
+type EmbeddedPiRunParams = Parameters<
+  CrawClawPluginApi["runtime"]["agent"]["runEmbeddedPiAgent"]
+>[0];
 
 const LlmTaskSchema = {
   type: "object",

@@ -125,7 +125,7 @@ describe("push APNs send semantics", () => {
     const result = await sendApnsBackgroundWake({
       registration,
       nodeId: "ios-node-wake",
-      wakeReason: "node.invoke",
+      wakeReason: "device.invoke",
       auth,
       requestSender: send,
     });
@@ -139,8 +139,8 @@ describe("push APNs send semantics", () => {
         "content-available": 1,
       },
       crawclaw: {
-        kind: "node.wake",
-        reason: "node.invoke",
+        kind: "device.wake",
+        reason: "device.invoke",
         nodeId: "ios-node-wake",
       },
     });
@@ -231,8 +231,8 @@ describe("push APNs send semantics", () => {
     const sent = send.mock.calls[0]?.[0];
     expect(sent?.payload).toMatchObject({
       crawclaw: {
-        kind: "node.wake",
-        reason: "node.invoke",
+        kind: "device.wake",
+        reason: "device.wake",
         nodeId: "ios-node-wake-default-reason",
       },
     });
@@ -320,7 +320,7 @@ describe("push APNs send semantics", () => {
       payload: {
         aps: { "content-available": 1 },
         crawclaw: {
-          kind: "node.wake",
+          kind: "device.wake",
           reason: "queue.retry",
           nodeId: "ios-node-relay-wake",
         },

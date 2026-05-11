@@ -11,10 +11,7 @@ import {
 } from "../../agents/runtime/agent-progress.js";
 import { emitAgentEvent, onAgentEvent, resetAgentEventsForTest } from "../../infra/agent-events.js";
 import { formatZonedTimestamp } from "../../infra/format-time/format-datetime.js";
-import {
-  buildSystemRunApprovalBinding,
-  buildSystemRunApprovalEnvBinding,
-} from "../../infra/system-run-approval-binding.js";
+import { buildSystemRunApprovalEnvBinding } from "../../infra/system-run-approval-binding.js";
 import { resetLogger, setLoggerOverride } from "../../logging.js";
 import { ExecApprovalManager } from "../exec-approval-manager.js";
 import { validateExecApprovalRequestParams } from "../protocol/index.js";
@@ -402,8 +399,7 @@ describe("exec approval handlers", () => {
       sessionKey: "agent:main:main",
     },
     cwd: "/tmp",
-    nodeId: "node-1",
-    host: "node",
+    host: "gateway",
     timeoutMs: 2000,
   } as const;
 
@@ -438,37 +434,6 @@ describe("exec approval handlers", () => {
       ...defaultExecApprovalRequestParams,
       ...params.params,
     } as unknown as ExecApprovalRequestArgs["params"];
-    const hasExplicitPlan = !!params.params && Object.hasOwn(params.params, "systemRunPlan");
-    if (
-      !hasExplicitPlan &&
-      (requestParams as { host?: string }).host === "node" &&
-      Array.isArray((requestParams as { commandArgv?: unknown }).commandArgv)
-    ) {
-      const commandArgv = (requestParams as { commandArgv: unknown[] }).commandArgv.map((entry) =>
-        String(entry),
-      );
-      const cwdValue =
-        typeof (requestParams as { cwd?: unknown }).cwd === "string"
-          ? ((requestParams as { cwd: string }).cwd ?? null)
-          : null;
-      const commandText =
-        typeof (requestParams as { command?: unknown }).command === "string"
-          ? ((requestParams as { command: string }).command ?? null)
-          : null;
-      requestParams.systemRunPlan = {
-        argv: commandArgv,
-        cwd: cwdValue,
-        commandText: commandText ?? commandArgv.join(" "),
-        agentId:
-          typeof (requestParams as { agentId?: unknown }).agentId === "string"
-            ? ((requestParams as { agentId: string }).agentId ?? null)
-            : null,
-        sessionKey:
-          typeof (requestParams as { sessionKey?: unknown }).sessionKey === "string"
-            ? ((requestParams as { sessionKey: string }).sessionKey ?? null)
-            : null,
-      };
-    }
     return params.handlers["exec.approval.request"]({
       params: requestParams,
       respond: params.respond as unknown as ExecApprovalRequestArgs["respond"],
@@ -542,8 +507,7 @@ describe("exec approval handlers", () => {
     const baseParams = {
       command: "echo hi",
       cwd: "/tmp",
-      nodeId: "node-1",
-      host: "node",
+      host: "gateway",
     };
 
     it.each([
@@ -557,40 +521,21 @@ describe("exec approval handlers", () => {
     });
   });
 
-  it("rejects host=node approval requests without nodeId", async () => {
+  it("rejects host=node approval requests", async () => {
     const { handlers, respond, context } = createExecApprovalFixture();
     await requestExecApproval({
       handlers,
       respond,
       context,
       params: {
-        nodeId: undefined,
+        host: "node",
       },
     });
     expect(respond).toHaveBeenCalledWith(
       false,
       undefined,
       expect.objectContaining({
-        message: "nodeId is required for host=node",
-      }),
-    );
-  });
-
-  it("rejects host=node approval requests without systemRunPlan", async () => {
-    const { handlers, respond, context } = createExecApprovalFixture();
-    await requestExecApproval({
-      handlers,
-      respond,
-      context,
-      params: {
-        systemRunPlan: undefined,
-      },
-    });
-    expect(respond).toHaveBeenCalledWith(
-      false,
-      undefined,
-      expect.objectContaining({
-        message: "systemRunPlan is required for host=node",
+        message: "host=node is no longer supported",
       }),
     );
   });
@@ -728,7 +673,7 @@ describe("exec approval handlers", () => {
     expect(manager.lookupPendingId("abcdef")).toEqual({ kind: "exact", id: "abcdef" });
   });
 
-  it("stores versioned system.run binding and sorted env keys on approval request", async () => {
+  it("stores sorted env keys without node system.run binding on approval request", async () => {
     const { handlers, broadcasts, respond, context } = createExecApprovalFixture();
     await requestExecApproval({
       handlers,
@@ -747,13 +692,7 @@ describe("exec approval handlers", () => {
     expect(requested).toBeTruthy();
     const request = (requested?.payload as { request?: Record<string, unknown> })?.request ?? {};
     expect(request["envKeys"]).toEqual(["A_VAR", "Z_VAR"]);
-    expect(request["systemRunBinding"]).toEqual(
-      buildSystemRunApprovalBinding({
-        argv: ["echo", "ok"],
-        cwd: "/tmp",
-        env: { A_VAR: "a", Z_VAR: "z" },
-      }).binding,
-    );
+    expect(request["systemRunBinding"]).toBeNull();
   });
 
   it("includes Windows-compatible env keys in approval env bindings", async () => {
@@ -778,16 +717,10 @@ describe("exec approval handlers", () => {
       "ProgramFiles(x86)": "C:\\Program Files (x86)",
     });
     expect(request["envKeys"]).toEqual(envBinding.envKeys);
-    expect(request["systemRunBinding"]).toEqual(
-      buildSystemRunApprovalBinding({
-        argv: ["cmd.exe", "/c", "echo", "ok"],
-        cwd: "/tmp",
-        env: { "ProgramFiles(x86)": "C:\\Program Files (x86)" },
-      }).binding,
-    );
+    expect(request["systemRunBinding"]).toBeNull();
   });
 
-  it("stores sorted env keys for gateway approvals without node-only binding", async () => {
+  it("stores sorted env keys for gateway approvals without system.run binding", async () => {
     const { handlers, broadcasts, respond, context } = createExecApprovalFixture();
     await requestExecApproval({
       handlers,
@@ -795,7 +728,6 @@ describe("exec approval handlers", () => {
       context,
       params: {
         host: "gateway",
-        nodeId: undefined,
         systemRunPlan: undefined,
         env: {
           Z_VAR: "z",
@@ -852,7 +784,7 @@ describe("exec approval handlers", () => {
     });
   });
 
-  it("derives a command preview from the fallback command for older node plans", async () => {
+  it("derives a command preview from the fallback command for older approval plans", async () => {
     const { handlers, broadcasts, respond, context } = createExecApprovalFixture();
     await requestExecApproval({
       handlers,
@@ -881,7 +813,7 @@ describe("exec approval handlers", () => {
     );
   });
 
-  it("sanitizes invisible Unicode format chars in approval display text without changing node bindings", async () => {
+  it("sanitizes invisible Unicode format chars in approval display text without changing approval plans", async () => {
     const { handlers, broadcasts, respond, context } = createExecApprovalFixture();
     await requestExecApproval({
       handlers,

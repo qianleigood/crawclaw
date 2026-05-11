@@ -12,8 +12,7 @@ export type RequestExecApprovalDecisionParams = {
   systemRunPlan?: SystemRunApprovalPlan;
   env?: Record<string, string>;
   cwd: string | undefined;
-  nodeId?: string;
-  host: "gateway" | "node";
+  host: "gateway";
   security: ExecSecurity;
   ask: ExecAsk;
   agentId?: string;
@@ -40,7 +39,6 @@ function buildExecApprovalRequestToolParams(
     systemRunPlan: params.systemRunPlan,
     env: params.env,
     cwd: params.cwd,
-    nodeId: params.nodeId,
     host: params.host,
     security: params.security,
     ask: params.ask,
@@ -155,8 +153,7 @@ type HostExecApprovalParams = {
   systemRunPlan?: SystemRunApprovalPlan;
   env?: Record<string, string>;
   workdir: string | undefined;
-  host: "gateway" | "node";
-  nodeId?: string;
+  host: "gateway";
   security: ExecSecurity;
   ask: ExecAsk;
   agentId?: string;
@@ -211,7 +208,6 @@ function buildHostApprovalDecisionParams(
     systemRunPlan: params.systemRunPlan,
     env: params.env,
     cwd: params.workdir,
-    nodeId: params.nodeId,
     host: params.host,
     security: params.security,
     ask: params.ask,

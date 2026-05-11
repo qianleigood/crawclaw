@@ -1,5 +1,5 @@
 import type { CrawClawConfig } from "../../config/config.js";
-import { isSubagentSessionKey, resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
+import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
 import {
   listSpawnedSessionKeys,
   resolveInternalSessionKey,
@@ -32,37 +32,21 @@ export function resolveSessionToolsVisibility(cfg: CrawClawConfig): SessionTools
 
 export function resolveEffectiveSessionToolsVisibility(params: {
   cfg: CrawClawConfig;
-  sandboxed: boolean;
 }): SessionToolsVisibility {
-  const visibility = resolveSessionToolsVisibility(params.cfg);
-  if (!params.sandboxed) {
-    return visibility;
-  }
-  const sandboxClamp = params.cfg.agents?.defaults?.sandbox?.sessionToolsVisibility ?? "spawned";
-  if (sandboxClamp === "spawned" && visibility !== "tree") {
-    return "tree";
-  }
-  return visibility;
+  return resolveSessionToolsVisibility(params.cfg);
 }
 
-export function resolveSandboxSessionToolsVisibility(cfg: CrawClawConfig): "spawned" | "all" {
-  return cfg.agents?.defaults?.sandbox?.sessionToolsVisibility ?? "spawned";
-}
-
-export function resolveSandboxedSessionToolContext(params: {
+export function resolveSessionToolAccessContext(params: {
   cfg: CrawClawConfig;
   agentSessionKey?: string;
-  sandboxed?: boolean;
 }): {
   mainKey: string;
   alias: string;
-  visibility: "spawned" | "all";
   requesterInternalKey: string | undefined;
   effectiveRequesterKey: string;
   restrictToSpawned: boolean;
 } {
   const { mainKey, alias } = resolveMainSessionAlias(params.cfg);
-  const visibility = resolveSandboxSessionToolsVisibility(params.cfg);
   const requesterInternalKey =
     typeof params.agentSessionKey === "string" && params.agentSessionKey.trim()
       ? resolveInternalSessionKey({
@@ -72,18 +56,12 @@ export function resolveSandboxedSessionToolContext(params: {
         })
       : undefined;
   const effectiveRequesterKey = requesterInternalKey ?? alias;
-  const restrictToSpawned =
-    params.sandboxed === true &&
-    visibility === "spawned" &&
-    !!requesterInternalKey &&
-    !isSubagentSessionKey(requesterInternalKey);
   return {
     mainKey,
     alias,
-    visibility,
     requesterInternalKey,
     effectiveRequesterKey,
-    restrictToSpawned,
+    restrictToSpawned: false,
   };
 }
 

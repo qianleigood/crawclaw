@@ -1,6 +1,7 @@
 # Python Legacy / Fallback
 
 ## 目录
+
 - 什么时候回退 Python
 - Python 运行约定
 - 常用 Python 命令
@@ -9,6 +10,7 @@
 ## 什么时候回退 Python
 
 优先使用 Node + Puppeteer。只有在这些情况回退 Python：
+
 - `search-feeds` 需要筛选器交互（`sort-by` / `note-type` / `publish-time` / `search-scope` / `location`）
 - 需要使用尚未迁移到 Node 的历史细节流程
 - 需要对照旧链路排障
@@ -76,6 +78,7 @@ Python 版仍可通过飞书发送登录二维码：
 ```
 
 说明：
+
 - creator 域会先点二维码入口再截图。
 - home 域会直接截可视区，不先点击。
 - 发送后走被动等待登录成功，不再主动刷新页面。

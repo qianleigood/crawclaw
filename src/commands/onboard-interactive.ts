@@ -22,7 +22,7 @@ export async function runInteractiveSetup(
     }
     throw err;
   } finally {
-    // Keep stdin paused so non-daemon runs can exit cleanly (e.g. Docker setup).
+    // Keep stdin paused so non-daemon runs can exit cleanly.
     restoreTerminalState("setup finish", { resumeStdinIfPaused: false });
     if (exitCode !== null) {
       runtime.exit(exitCode);

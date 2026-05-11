@@ -60,10 +60,10 @@ let userID = userIDString.flatMap { Int($0) }
 
 Avoid `!` force unwrapping. Use safe alternatives:
 
-| Instead of | Use |
-|------------|-----|
-| `value!` | `if let value = value { }` |
-| `array[0]` (unsafe) | `array.first` |
+| Instead of           | Use                                        |
+| -------------------- | ------------------------------------------ |
+| `value!`             | `if let value = value { }`                 |
+| `array[0]` (unsafe)  | `array.first`                              |
 | `dictionary["key"]!` | `dictionary["key", default: defaultValue]` |
 
 ---
@@ -184,7 +184,7 @@ protocol Repository {
 
 class UserRepository: Repository {
     typealias Item = User
-    
+
     func fetchAll() async throws -> [User] { /* ... */ }
     func save(_ item: User) async throws { /* ... */ }
 }
@@ -255,11 +255,11 @@ enum Result<Success, Failure: Error> {
 }
 ```
 
-| Type | Use When |
-|------|----------|
-| `struct` | Data models, coordinates, independent values |
-| `class` | Shared state, identity matters, inheritance needed |
-| `enum` | Finite set of options, state machines |
+| Type     | Use When                                           |
+| -------- | -------------------------------------------------- |
+| `struct` | Data models, coordinates, independent values       |
+| `class`  | Shared state, identity matters, inheritance needed |
+| `enum`   | Finite set of options, state machines              |
 
 ---
 
@@ -304,18 +304,18 @@ Use when reference should never be nil during object lifetime:
 ```swift
 class CreditCard {
     unowned let customer: Customer
-    
+
     init(customer: Customer) {
         self.customer = customer
     }
 }
 ```
 
-| Keyword | Use When |
-|---------|----------|
-| `weak` | Reference may become nil |
+| Keyword   | Use When                        |
+| --------- | ------------------------------- |
+| `weak`    | Reference may become nil        |
 | `unowned` | Reference guaranteed to outlive |
-| None | Strong ownership needed |
+| None      | Strong ownership needed         |
 
 ---
 
@@ -336,7 +336,7 @@ enum NetworkError: Error {
 enum ValidationError: LocalizedError {
     case emptyField(name: String)
     case invalidFormat(field: String, expected: String)
-    
+
     var errorDescription: String? {
         switch self {
         case .emptyField(let name):
@@ -456,18 +456,18 @@ let profile = try await ProfileData(
 ```swift
 actor BankAccount {
     private var balance: Double = 0
-    
+
     func deposit(_ amount: Double) {
         balance += amount
     }
-    
+
     func withdraw(_ amount: Double) throws {
         guard balance >= amount else {
             throw BankError.insufficientFunds
         }
         balance -= amount
     }
-    
+
     func getBalance() -> Double {
         balance
     }
@@ -486,11 +486,11 @@ let balance = await account.getBalance()
 class ViewModel: ObservableObject {
     @Published var isLoading = false
     @Published var users: [User] = []
-    
+
     func loadUsers() async {
         isLoading = true
         defer { isLoading = false }
-        
+
         do {
             users = try await fetchUsers()
         } catch {
@@ -512,7 +512,7 @@ func fetchWithTimeout() async throws -> Data {
             try await Task.sleep(for: .seconds(10))
             throw TimeoutError()
         }
-        
+
         let result = try await group.next()!
         group.cancelAll()
         return result
@@ -536,13 +536,13 @@ func longOperation() async throws {
 
 ### 8.1 Access Levels
 
-| Level | Scope |
-|-------|-------|
-| `private` | Enclosing declaration only |
-| `fileprivate` | Entire source file |
-| `internal` | Module (default) |
-| `public` | Other modules can access |
-| `open` | Other modules can subclass/override |
+| Level         | Scope                               |
+| ------------- | ----------------------------------- |
+| `private`     | Enclosing declaration only          |
+| `fileprivate` | Entire source file                  |
+| `internal`    | Module (default)                    |
+| `public`      | Other modules can access            |
+| `open`        | Other modules can subclass/override |
 
 ### 8.2 Best Practices
 
@@ -550,10 +550,10 @@ func longOperation() async throws {
 public class UserService {
     // Public API
     public func fetchUser(id: Int) async throws -> User { }
-    
+
     // Internal helper
     func buildRequest(for id: Int) -> URLRequest { }
-    
+
     // Private implementation detail
     private let session: URLSession
     private var cache: [Int: User] = [:]
@@ -565,7 +565,7 @@ public class UserService {
 ```swift
 public struct Counter {
     public private(set) var count = 0
-    
+
     public mutating func increment() {
         count += 1
     }
@@ -635,15 +635,15 @@ var body: some View {
 
 ### 10.1 Common SwiftUI Property Wrappers
 
-| Wrapper | Use Case |
-|---------|----------|
-| `@State` | View-local mutable state |
-| `@Binding` | Two-way connection to parent state |
-| `@StateObject` | View-owned observable object |
-| `@ObservedObject` | Passed-in observable object |
-| `@EnvironmentObject` | Shared object from ancestor |
-| `@Environment` | System environment values |
-| `@Published` | Observable property in class |
+| Wrapper              | Use Case                           |
+| -------------------- | ---------------------------------- |
+| `@State`             | View-local mutable state           |
+| `@Binding`           | Two-way connection to parent state |
+| `@StateObject`       | View-owned observable object       |
+| `@ObservedObject`    | Passed-in observable object        |
+| `@EnvironmentObject` | Shared object from ancestor        |
+| `@Environment`       | System environment values          |
+| `@Published`         | Observable property in class       |
 
 ### 10.2 Custom Property Wrappers
 
@@ -652,12 +652,12 @@ var body: some View {
 struct Clamped<Value: Comparable> {
     private var value: Value
     let range: ClosedRange<Value>
-    
+
     var wrappedValue: Value {
         get { value }
         set { value = min(max(newValue, range.lowerBound), range.upperBound) }
     }
-    
+
     init(wrappedValue: Value, _ range: ClosedRange<Value>) {
         self.range = range
         self.value = min(max(wrappedValue, range.lowerBound), range.upperBound)
@@ -725,16 +725,19 @@ UIView.animate(withDuration: 0.3) {
 ## Checklist
 
 ### Safety
+
 - [ ] No force unwrapping (`!`) except for IB outlets and known-safe cases
 - [ ] All optionals handled with `if let`, `guard let`, or `??`
 - [ ] No implicitly unwrapped optionals (`!`) in data models
 
 ### Memory
+
 - [ ] Escaping closures capture `self` intentionally; use `[weak self]` or `[unowned self]` to avoid retain cycles when needed
 - [ ] Delegate properties are `weak`
 - [ ] No retain cycles between objects
 
 ### Concurrency
+
 - [ ] Async functions used instead of completion handlers
 - [ ] Mutable state shared across concurrency domains is isolated, often with actors
 - [ ] Types crossing concurrency domains use `Sendable` when appropriate
@@ -742,11 +745,13 @@ UIView.animate(withDuration: 0.3) {
 - [ ] Task cancellation checked in long operations
 
 ### Access Control
+
 - [ ] `private` used for implementation details
 - [ ] `public` API is minimal and intentional
 - [ ] No unnecessary `internal` exposure
 
 ### Naming
+
 - [ ] Types use PascalCase
 - [ ] Functions and variables use camelCase
 - [ ] Booleans have `is`/`has`/`should` prefix
@@ -754,4 +759,4 @@ UIView.animate(withDuration: 0.3) {
 
 ---
 
-*Swift and Apple are trademarks of Apple Inc.*
+_Swift and Apple are trademarks of Apple Inc._

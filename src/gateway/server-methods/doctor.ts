@@ -1,6 +1,9 @@
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
+import {
+  resolveDoctorMemoryHealth,
+  type DoctorMemoryHealthSummary,
+} from "../../commands/doctor-memory-health.js";
 import { loadConfig } from "../../config/config.js";
-import { resolveDoctorMemoryHealth, type DoctorMemoryHealthSummary } from "../../commands/doctor-memory-health.js";
 import type { GatewayRequestHandlers } from "./types.js";
 
 export type DoctorMemoryStatusPayload = {

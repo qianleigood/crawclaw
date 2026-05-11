@@ -49,7 +49,7 @@ describe("resolveSystemRunApprovalRequestContext", () => {
     expect(resolveSystemRunApprovalRequestContext(params)).toMatchObject(expected);
   });
 
-  test("falls back to explicit request params for non-node hosts", () => {
+  test("falls back to explicit request params for gateway hosts", () => {
     const context = resolveSystemRunApprovalRequestContext({
       host: "gateway",
       command: "jq --version",

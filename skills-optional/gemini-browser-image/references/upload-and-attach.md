@@ -5,6 +5,7 @@ Use this reference for Gemini image-guided jobs.
 ## Preferred path
 
 Prefer this tested route before trying native fallbacks:
+
 1. Return Gemini to a fresh or zero-state image flow.
 2. Enter `制作图片`.
 3. Open the upload menu.
@@ -19,11 +20,13 @@ It now prefers `filechooser -> setFiles()` and only falls back when chooser capt
 
 Do not treat upload as successful just because the menu click worked.
 Use the stricter ready signal:
+
 - preview is visible
 - remove button is visible
 - send button reports `aria-disabled="false"`
 
 Do not rely on these alone:
+
 - `send.disabled=false`
 - file name text
 - `uploaded-img`
@@ -36,6 +39,7 @@ When behavior becomes inconsistent, normalize back to the tested route above.
 ## Multi-image guidance
 
 When multiple references are useful:
+
 - pass them together in one chooser action when possible
 - tell Gemini what each image contributes, such as subject, background, lighting, or color mood
 - verify attachment readiness after the full batch, not only after the first file
@@ -44,6 +48,7 @@ When multiple references are useful:
 
 Use `scripts/select_file_in_open_panel.sh <absolute-file-path> [timeout-seconds] [target-app]` only after Gemini already opened a real macOS file chooser.
 That helper:
+
 - waits for the open panel
 - opens `前往文件夹`
 - pastes the absolute path
@@ -52,6 +57,7 @@ That helper:
 
 Use `scripts/chrome_ax_helper.swift` only for Accessibility / AXUIElement / CGEvent diagnostics or native-trigger fallback work.
 Typical commands:
+
 - `dump-windows`
 - `dump-focused`
 - `dump-tree --contains '上传文件'`

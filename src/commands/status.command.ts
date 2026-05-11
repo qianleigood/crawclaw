@@ -4,7 +4,7 @@ import type { MainSessionWakeEventPayload } from "../infra/main-session-wake-eve
 import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import type { HealthSummary } from "./health.js";
-import { getDaemonStatusSummary, getNodeDaemonStatusSummary } from "./status.daemon.js";
+import { getDaemonStatusSummary } from "./status.daemon.js";
 
 let providerUsagePromise: Promise<typeof import("../infra/provider-usage.js")> | undefined;
 let securityAuditModulePromise: Promise<typeof import("../security/audit.runtime.js")> | undefined;
@@ -17,7 +17,6 @@ let statusAllModulePromise: Promise<typeof import("./status-all.js")> | undefine
 let statusCommandTextRuntimePromise:
   | Promise<typeof import("./status.command.text-runtime.js")>
   | undefined;
-let statusNodeModeModulePromise: Promise<typeof import("./status.node-mode.js")> | undefined;
 
 function loadProviderUsage() {
   providerUsagePromise ??= import("../infra/provider-usage.js");
@@ -52,11 +51,6 @@ function loadStatusAllModule() {
 function loadStatusCommandTextRuntime() {
   statusCommandTextRuntimePromise ??= import("./status.command.text-runtime.js");
   return statusCommandTextRuntimePromise;
-}
-
-function loadStatusNodeModeModule() {
-  statusNodeModeModulePromise ??= import("./status.node-mode.js");
-  return statusNodeModeModulePromise;
 }
 
 function resolvePairingRecoveryContext(params: {
@@ -209,10 +203,7 @@ export async function statusCommand(
   });
 
   if (opts.json) {
-    const [daemon, nodeDaemon] = await Promise.all([
-      getDaemonStatusSummary(),
-      getNodeDaemonStatusSummary(),
-    ]);
+    const daemon = await getDaemonStatusSummary();
     writeRuntimeJson(runtime, {
       ...summary,
       os: osSummary,
@@ -232,7 +223,6 @@ export async function statusCommand(
         authWarning: gatewayProbeAuthWarning ?? null,
       },
       gatewayService: daemon,
-      nodeService: nodeDaemon,
       agents: agentStatus,
       securityAudit,
       secretDiagnostics,
@@ -291,21 +281,9 @@ export async function statusCommand(
     runtime.log("");
   }
 
-  const [daemon, nodeDaemon] = await Promise.all([
-    getDaemonStatusSummary(),
-    getNodeDaemonStatusSummary(),
-  ]);
-  const nodeOnlyGateway = await loadStatusNodeModeModule().then(({ resolveNodeOnlyGatewayInfo }) =>
-    resolveNodeOnlyGatewayInfo({
-      daemon,
-      node: nodeDaemon,
-    }),
-  );
+  const daemon = await getDaemonStatusSummary();
 
   const gatewayValue = (() => {
-    if (nodeOnlyGateway) {
-      return nodeOnlyGateway.gatewayValue;
-    }
     const target = remoteUrlMissing
       ? `fallback ${gatewayConnection.url}`
       : `${gatewayConnection.url}${gatewayConnection.urlSource ? ` (${gatewayConnection.urlSource})` : ""}`;
@@ -353,13 +331,6 @@ export async function statusCommand(
     }
     const installedPrefix = daemon.managedByCrawClaw ? "installed · " : "";
     return `${daemon.label} ${installedPrefix}${daemon.loadedText}${daemon.runtimeShort ? ` · ${daemon.runtimeShort}` : ""}`;
-  })();
-  const nodeDaemonValue = (() => {
-    if (nodeDaemon.installed === false) {
-      return `${nodeDaemon.label} not installed`;
-    }
-    const installedPrefix = nodeDaemon.managedByCrawClaw ? "installed · " : "";
-    return `${nodeDaemon.label} ${installedPrefix}${nodeDaemon.loadedText}${nodeDaemon.runtimeShort ? ` · ${nodeDaemon.runtimeShort}` : ""}`;
   })();
 
   const defaults = summary.sessions.defaults;
@@ -460,7 +431,6 @@ export async function statusCommand(
       ? [{ Item: "Gateway auth warning", Value: warn(gatewayProbeAuthWarning) }]
       : []),
     { Item: "Gateway service", Value: daemonValue },
-    { Item: "Node service", Value: nodeDaemonValue },
     { Item: "Agents", Value: agentsValue },
     { Item: "Plugin compatibility", Value: pluginCompatibilityValue },
     { Item: "Probes", Value: probesValue },
@@ -735,11 +705,7 @@ export async function statusCommand(
   runtime.log(
     `  ${t("status.next.needDebugLive").padEnd(19)} ${formatCliCommand("crawclaw logs --follow")}`,
   );
-  if (nodeOnlyGateway) {
-    runtime.log(
-      `  ${t("status.next.needNodeService").padEnd(19)} ${formatCliCommand("crawclaw node status")}`,
-    );
-  } else if (gatewayReachable) {
+  if (gatewayReachable) {
     runtime.log(
       `  ${t("status.next.needTestChannels").padEnd(19)} ${formatCliCommand("crawclaw status --deep")}`,
     );

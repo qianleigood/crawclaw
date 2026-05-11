@@ -1,6 +1,7 @@
 # Risk Guard / Human Action
 
 ## 目录
+
 - Human-action 档位
 - 默认策略
 - 风控护栏
@@ -9,11 +10,13 @@
 ## Human-action 档位
 
 Node 侧支持：
+
 - `--interaction-mode safe`
 - `--interaction-mode normal`
 - `--interaction-mode fast`
 
 这些档位会统一影响：
+
 - 鼠标移动轨迹
 - 点击前后停顿
 - 输入节奏
@@ -28,6 +31,7 @@ Node 侧支持：
 - `fast` 只用于联调/测试，不建议生产高频使用。
 
 页面保留策略：
+
 - 读命令默认自动关闭临时页
 - 登录/发布页默认保留
 - 如需强制保留：`--keep-page-open`
@@ -38,16 +42,21 @@ Node 侧支持：
 当前 Node 侧已加入：
 
 ### 1. 最小间隔控制
+
 按 `account + actionType + interactionMode` 生效，动作类型包括：
+
 - `fill`
 - `publish`
 - `comment`
 
 命中后会输出：
+
 - `RISK_GUARD_WAIT:`
 
 ### 2. 风控信号检测
+
 发布/评论链路会检测这些文本或选择器：
+
 - 请求太频繁
 - 操作太频繁
 - 请稍后再试
@@ -57,25 +66,34 @@ Node 侧支持：
 - 账号异常 / 风险提示
 
 命中后会抛：
+
 - `RISK_SIGNAL_DETECTED`
 
 ### 3. 冷却时间
+
 若最近一次同类动作命中过风险信号，会进入冷却期，期间直接抛：
+
 - `RISK_COOLDOWN_ACTIVE`
 
 ### 4. 配额
+
 当前默认：
+
 - `publish`：24h 窗口限额
 - `comment`：1h 窗口限额
 
 超额会抛：
+
 - `RISK_QUOTA_EXCEEDED`
 
 ### 5. 连续异常自动降档
+
 若同一账号同类高风险动作连续报错达到阈值，会自动把当前动作降到 `safe`，并输出：
+
 - `RISK_GUARD_MODE_OVERRIDE`
 
 状态文件：
+
 - `tmp/risk_guard_state.json`
 
 ## 常见信号与错误

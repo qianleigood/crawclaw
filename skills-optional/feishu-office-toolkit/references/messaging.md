@@ -18,12 +18,12 @@ POST /messaging/send
 
 **请求参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `receive_id` | string | ✅ | 接收者 ID |
-| `receive_id_type` | string | ✅ | ID 类型：`open_id`/`user_id`/`email`/`chat_id` |
-| `msg_type` | string | ✅ | 消息类型：`text`/`post`/`interactive`/`image`/`file`/`media` |
-| `content` | string | ✅ | 消息内容（JSON 字符串） |
+| 参数              | 类型   | 必填 | 说明                                                         |
+| ----------------- | ------ | ---- | ------------------------------------------------------------ |
+| `receive_id`      | string | ✅   | 接收者 ID                                                    |
+| `receive_id_type` | string | ✅   | ID 类型：`open_id`/`user_id`/`email`/`chat_id`               |
+| `msg_type`        | string | ✅   | 消息类型：`text`/`post`/`interactive`/`image`/`file`/`media` |
+| `content`         | string | ✅   | 消息内容（JSON 字符串）                                      |
 
 **发送文本消息：**
 
@@ -85,11 +85,11 @@ POST /messaging/reply
 
 **请求参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `message_id` | string | ✅ | 要回复的消息 ID |
-| `msg_type` | string | ✅ | 消息类型 |
-| `content` | string | ✅ | 消息内容（JSON 字符串） |
+| 参数         | 类型   | 必填 | 说明                    |
+| ------------ | ------ | ---- | ----------------------- |
+| `message_id` | string | ✅   | 要回复的消息 ID         |
+| `msg_type`   | string | ✅   | 消息类型                |
+| `content`    | string | ✅   | 消息内容（JSON 字符串） |
 
 **请求示例：**
 
@@ -108,7 +108,7 @@ curl -X POST http://127.0.0.1:8002/messaging/reply \
 ### 文本消息 (text)
 
 ```json
-{"text": "你好，这是一条消息"}
+{ "text": "你好，这是一条消息" }
 ```
 
 支持 @ 用户：`{"text": "<at user_id=\"ou_xxx\">张三</at> 请查看"}`
@@ -121,9 +121,9 @@ curl -X POST http://127.0.0.1:8002/messaging/reply \
     "title": "标题",
     "content": [
       [
-        {"tag": "text", "text": "普通文本"},
-        {"tag": "a", "text": "链接文字", "href": "https://example.com"},
-        {"tag": "at", "user_id": "ou_xxx"}
+        { "tag": "text", "text": "普通文本" },
+        { "tag": "a", "text": "链接文字", "href": "https://example.com" },
+        { "tag": "at", "user_id": "ou_xxx" }
       ]
     ]
   }
@@ -135,11 +135,11 @@ curl -X POST http://127.0.0.1:8002/messaging/reply \
 ```json
 {
   "elements": [
-    {"tag": "markdown", "content": "**标题**\n内容文本"},
+    { "tag": "markdown", "content": "**标题**\n内容文本" },
     {
       "tag": "action",
       "actions": [
-        {"tag": "button", "text": {"tag": "plain_text", "content": "确认"}, "type": "primary"}
+        { "tag": "button", "text": { "tag": "plain_text", "content": "确认" }, "type": "primary" }
       ]
     }
   ]
@@ -149,7 +149,7 @@ curl -X POST http://127.0.0.1:8002/messaging/reply \
 ### 视频消息 (media)
 
 ```json
-{"file_key": "file_v3_xxx"}
+{ "file_key": "file_v3_xxx" }
 ```
 
 说明：
@@ -169,7 +169,7 @@ curl -X POST http://127.0.0.1:8002/messaging/reply \
 
 ## 飞书 API 参考
 
-| 本地端点 | 飞书 API |
-|----------|----------|
-| `POST /messaging/send` | `POST /open-apis/im/v1/messages` |
+| 本地端点                | 飞书 API                                           |
+| ----------------------- | -------------------------------------------------- |
+| `POST /messaging/send`  | `POST /open-apis/im/v1/messages`                   |
 | `POST /messaging/reply` | `POST /open-apis/im/v1/messages/:message_id/reply` |

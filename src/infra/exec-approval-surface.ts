@@ -22,8 +22,6 @@ function labelForChannel(channel?: string): string {
       return "Discord";
     case "telegram":
       return "Telegram";
-    case "tui":
-      return "terminal UI";
     case INTERNAL_MESSAGE_CHANNEL:
       return "Gateway client";
     default:
@@ -38,7 +36,7 @@ export function resolveExecApprovalInitiatingSurfaceState(params: {
 }): ExecApprovalInitiatingSurfaceState {
   const channel = normalizeMessageChannel(params.channel);
   const channelLabel = labelForChannel(channel);
-  if (!channel || channel === INTERNAL_MESSAGE_CHANNEL || channel === "tui") {
+  if (!channel || channel === INTERNAL_MESSAGE_CHANNEL) {
     return { kind: "enabled", channel, channelLabel };
   }
 

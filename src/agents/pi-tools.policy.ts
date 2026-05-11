@@ -11,14 +11,12 @@ import { normalizeAgentId } from "../routing/session-key.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
-import { pickSandboxToolPolicy } from "./sandbox-tool-policy.js";
-import type { SandboxToolPolicy } from "./sandbox.js";
 import {
   resolveStoredSubagentCapabilities,
   type SubagentSessionRole,
 } from "./subagent-capabilities.js";
 import { isToolAllowedByPolicies, isToolAllowedByPolicyName } from "./tool-policy-match.js";
-import { normalizeToolName } from "./tool-policy.js";
+import { normalizeToolName, pickToolPolicy, type ToolPolicyLike } from "./tool-policy.js";
 
 /**
  * Tools always denied for sub-agents regardless of depth.
@@ -72,7 +70,7 @@ function resolveSubagentDenyListForRole(role: SubagentSessionRole): string[] {
   return [...SUBAGENT_TOOL_DENY_ALWAYS];
 }
 
-export function resolveSubagentToolPolicy(cfg?: CrawClawConfig, depth?: number): SandboxToolPolicy {
+export function resolveSubagentToolPolicy(cfg?: CrawClawConfig, depth?: number): ToolPolicyLike {
   const configured = cfg?.tools?.subagents?.tools;
   const maxSpawnDepth =
     cfg?.agents?.defaults?.subagents?.maxSpawnDepth ?? DEFAULT_SUBAGENT_MAX_SPAWN_DEPTH;
@@ -94,7 +92,7 @@ export function resolveSubagentToolPolicy(cfg?: CrawClawConfig, depth?: number):
 export function resolveSubagentToolPolicyForSession(
   cfg: CrawClawConfig | undefined,
   sessionKey: string,
-): SandboxToolPolicy {
+): ToolPolicyLike {
   const configured = cfg?.tools?.subagents?.tools;
   const capabilities = resolveStoredSubagentCapabilities(sessionKey, { cfg });
   const allow = Array.isArray(configured?.allow) ? configured.allow : undefined;
@@ -112,7 +110,7 @@ export function resolveSubagentToolPolicyForSession(
   return { allow: mergedAllow, deny };
 }
 
-export function filterToolsByPolicy(tools: AnyAgentTool[], policy?: SandboxToolPolicy) {
+export function filterToolsByPolicy(tools: AnyAgentTool[], policy?: ToolPolicyLike) {
   if (!policy) {
     return tools;
   }
@@ -226,7 +224,7 @@ function resolveImplicitProfileAlsoAllow(params: {
     hasExplicitToolSection(params.agentTools?.exec) ||
     hasExplicitToolSection(params.globalTools?.exec)
   ) {
-    implicit.add("exec");
+    implicit.add("bash");
     implicit.add("process");
   }
   if (
@@ -259,7 +257,7 @@ export function resolveEffectiveToolPolicy(params: {
   const agentTools = agentConfig?.tools;
   const globalTools = params.config?.tools;
 
-  const profile = agentTools?.profile ?? globalTools?.profile;
+  const profile = agentTools?.profile ?? globalTools?.profile ?? "coding";
   const providerPolicy = resolveProviderToolPolicy({
     byProvider: globalTools?.byProvider,
     modelProvider: params.modelProvider,
@@ -281,10 +279,10 @@ export function resolveEffectiveToolPolicy(params: {
       : undefined;
   return {
     agentId,
-    globalPolicy: pickSandboxToolPolicy(globalTools),
-    globalProviderPolicy: pickSandboxToolPolicy(providerPolicy),
-    agentPolicy: pickSandboxToolPolicy(agentTools),
-    agentProviderPolicy: pickSandboxToolPolicy(agentProviderPolicy),
+    globalPolicy: pickToolPolicy(globalTools),
+    globalProviderPolicy: pickToolPolicy(providerPolicy),
+    agentPolicy: pickToolPolicy(agentTools),
+    agentProviderPolicy: pickToolPolicy(agentProviderPolicy),
     profile,
     providerProfile: agentProviderPolicy?.profile ?? providerPolicy?.profile,
     // alsoAllow is applied at the profile stage (to avoid being filtered out early).
@@ -310,7 +308,7 @@ export function resolveGroupToolPolicy(params: {
   senderName?: string | null;
   senderUsername?: string | null;
   senderE164?: string | null;
-}): SandboxToolPolicy | undefined {
+}): ToolPolicyLike | undefined {
   if (!params.config) {
     return undefined;
   }
@@ -353,7 +351,7 @@ export function resolveGroupToolPolicy(params: {
       senderUsername: params.senderUsername,
       senderE164: params.senderE164,
     });
-  return pickSandboxToolPolicy(toolsConfig);
+  return pickToolPolicy(toolsConfig);
 }
 
 export { isToolAllowedByPolicies, isToolAllowedByPolicyName } from "./tool-policy-match.js";

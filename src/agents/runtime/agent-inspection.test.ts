@@ -85,7 +85,6 @@ describe("agent-inspection", () => {
           mode: "background",
           spawnSource: "sessions_spawn",
           model: "openai/gpt-5.4-mini",
-          sandboxed: true,
           workspaceDir: "/workspace/worker",
           requesterSessionKey: "agent:main:main",
         },
@@ -227,13 +226,11 @@ describe("agent-inspection", () => {
         capabilitySnapshot: {
           taskId: created.taskId,
           model: "openai/gpt-5.4-mini",
-          sandboxed: true,
           workspaceDir: "/workspace/worker",
         },
         guard: {
           interactiveApprovalBlocker: "background",
           interactiveApprovalAvailable: false,
-          sandboxed: true,
         },
         loop: {
           progressCount: 1,

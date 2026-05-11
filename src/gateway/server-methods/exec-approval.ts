@@ -9,10 +9,7 @@ import {
   resolveExecApprovalRequestAllowedDecisions,
   type ExecApprovalDecision,
 } from "../../infra/exec-approvals.js";
-import {
-  buildSystemRunApprovalBinding,
-  buildSystemRunApprovalEnvBinding,
-} from "../../infra/system-run-approval-binding.js";
+import { buildSystemRunApprovalEnvBinding } from "../../infra/system-run-approval-binding.js";
 import { resolveSystemRunApprovalRequestContext } from "../../infra/system-run-approval-context.js";
 import type { ExecApprovalManager } from "../exec-approval-manager.js";
 import {
@@ -67,7 +64,6 @@ export function createExecApprovalHandlers(
         env?: Record<string, string>;
         cwd?: string;
         systemRunPlan?: unknown;
-        nodeId?: string;
         host?: string;
         security?: string;
         ask?: string;
@@ -86,7 +82,14 @@ export function createExecApprovalHandlers(
         typeof p.timeoutMs === "number" ? p.timeoutMs : DEFAULT_EXEC_APPROVAL_TIMEOUT_MS;
       const explicitId = typeof p.id === "string" && p.id.trim().length > 0 ? p.id.trim() : null;
       const host = typeof p.host === "string" ? p.host.trim() : "";
-      const nodeId = typeof p.nodeId === "string" ? p.nodeId.trim() : "";
+      if (host === "node") {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "host=node is no longer supported"),
+        );
+        return;
+      }
       const approvalContext = resolveSystemRunApprovalRequestContext({
         host,
         command: p.command,
@@ -104,48 +107,11 @@ export function createExecApprovalHandlers(
       const effectiveSessionId = resolveApprovalSessionId({
         sessionKey: effectiveSessionKey,
       });
-      if (host === "node" && !nodeId) {
-        respond(
-          false,
-          undefined,
-          errorShape(ErrorCodes.INVALID_REQUEST, "nodeId is required for host=node"),
-        );
-        return;
-      }
-      if (host === "node" && !approvalContext.plan) {
-        respond(
-          false,
-          undefined,
-          errorShape(ErrorCodes.INVALID_REQUEST, "systemRunPlan is required for host=node"),
-        );
-        return;
-      }
       if (!effectiveCommandText) {
         respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, "command is required"));
         return;
       }
-      if (
-        host === "node" &&
-        (!Array.isArray(effectiveCommandArgv) || effectiveCommandArgv.length === 0)
-      ) {
-        respond(
-          false,
-          undefined,
-          errorShape(ErrorCodes.INVALID_REQUEST, "commandArgv is required for host=node"),
-        );
-        return;
-      }
       const envBinding = buildSystemRunApprovalEnvBinding(p.env);
-      const systemRunBinding =
-        host === "node"
-          ? buildSystemRunApprovalBinding({
-              argv: effectiveCommandArgv,
-              cwd: effectiveCwd,
-              agentId: effectiveAgentId,
-              sessionKey: effectiveSessionKey,
-              env: p.env,
-            })
-          : null;
       if (explicitId && manager.getSnapshot(explicitId)) {
         respond(
           false,
@@ -156,16 +122,14 @@ export function createExecApprovalHandlers(
       }
       const request = {
         command: sanitizeExecApprovalDisplayText(effectiveCommandText),
-        commandPreview:
-          host === "node" || !approvalContext.commandPreview
-            ? undefined
-            : sanitizeExecApprovalDisplayText(approvalContext.commandPreview),
-        commandArgv: host === "node" ? undefined : effectiveCommandArgv,
+        commandPreview: !approvalContext.commandPreview
+          ? undefined
+          : sanitizeExecApprovalDisplayText(approvalContext.commandPreview),
+        commandArgv: effectiveCommandArgv,
         envKeys: envBinding.envKeys.length > 0 ? envBinding.envKeys : undefined,
-        systemRunBinding: systemRunBinding?.binding ?? null,
+        systemRunBinding: null,
         systemRunPlan: approvalContext.plan,
         cwd: effectiveCwd ?? null,
-        nodeId: host === "node" ? nodeId : null,
         host: host || null,
         security: p.security ?? null,
         ask: p.ask ?? null,

@@ -6,26 +6,21 @@ import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../src/utils/message
 import {
   type ChatEventPayload,
   type GatewayInstance,
-  connectNode,
+  connectStatusClient,
   extractFirstTextBlock,
   postJson,
   spawnGatewayInstance,
   stopGatewayInstance,
   waitForChatFinalEvent,
-  waitForNodeStatus,
 } from "./helpers/gateway-e2e-harness.js";
 
 const E2E_TIMEOUT_MS = 120_000;
 
 describe("gateway multi-instance e2e", () => {
   const instances: GatewayInstance[] = [];
-  const nodeClients: GatewayClient[] = [];
   const chatClients: GatewayClient[] = [];
 
   afterAll(async () => {
-    for (const client of nodeClients) {
-      client.stop();
-    }
     for (const client of chatClients) {
       client.stop();
     }
@@ -34,48 +29,40 @@ describe("gateway multi-instance e2e", () => {
     }
   });
 
-  it(
-    "spins up two gateways and exercises WS + HTTP + node pairing",
-    { timeout: E2E_TIMEOUT_MS },
-    async () => {
-      const [gwA, gwB] = await Promise.all([spawnGatewayInstance("a"), spawnGatewayInstance("b")]);
-      instances.push(gwA, gwB);
+  it("spins up two gateways and exercises WS + HTTP", { timeout: E2E_TIMEOUT_MS }, async () => {
+    const [gwA, gwB] = await Promise.all([spawnGatewayInstance("a"), spawnGatewayInstance("b")]);
+    instances.push(gwA, gwB);
 
-      const [hookResA, hookResB] = await Promise.all([
-        postJson(
-          `http://127.0.0.1:${gwA.port}/hooks/wake`,
-          {
-            text: "wake a",
-            mode: "now",
-          },
-          { "x-crawclaw-token": gwA.hookToken },
-        ),
-        postJson(
-          `http://127.0.0.1:${gwB.port}/hooks/wake`,
-          {
-            text: "wake b",
-            mode: "now",
-          },
-          { "x-crawclaw-token": gwB.hookToken },
-        ),
-      ]);
-      expect(hookResA.status).toBe(200);
-      expect((hookResA.json as { ok?: boolean } | undefined)?.ok).toBe(true);
-      expect(hookResB.status).toBe(200);
-      expect((hookResB.json as { ok?: boolean } | undefined)?.ok).toBe(true);
+    const [hookResA, hookResB] = await Promise.all([
+      postJson(
+        `http://127.0.0.1:${gwA.port}/hooks/wake`,
+        {
+          text: "wake a",
+          mode: "now",
+        },
+        { "x-crawclaw-token": gwA.hookToken },
+      ),
+      postJson(
+        `http://127.0.0.1:${gwB.port}/hooks/wake`,
+        {
+          text: "wake b",
+          mode: "now",
+        },
+        { "x-crawclaw-token": gwB.hookToken },
+      ),
+    ]);
+    expect(hookResA.status).toBe(200);
+    expect((hookResA.json as { ok?: boolean } | undefined)?.ok).toBe(true);
+    expect(hookResB.status).toBe(200);
+    expect((hookResB.json as { ok?: boolean } | undefined)?.ok).toBe(true);
 
-      const [nodeA, nodeB] = await Promise.all([
-        connectNode(gwA, "node-a"),
-        connectNode(gwB, "node-b"),
-      ]);
-      nodeClients.push(nodeA.client, nodeB.client);
-
-      await Promise.all([
-        waitForNodeStatus(gwA, nodeA.nodeId),
-        waitForNodeStatus(gwB, nodeB.nodeId),
-      ]);
-    },
-  );
+    const [statusA, statusB] = await Promise.all([
+      connectStatusClient(gwA),
+      connectStatusClient(gwB),
+    ]);
+    statusA.stop();
+    statusB.stop();
+  });
 
   it(
     "delivers final chat event for telegram-shaped session keys",

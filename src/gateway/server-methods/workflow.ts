@@ -33,7 +33,6 @@ import {
   resolveWorkflowControlContext,
 } from "../../workflows/control-runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import { respondUnavailableOnThrow } from "./nodes.helpers.js";
 import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
@@ -61,6 +60,18 @@ function isOptionalStringArray(value: unknown): value is readonly string[] | und
 
 function isOptionalPositiveNumber(value: unknown): value is number | undefined {
   return value === undefined || (typeof value === "number" && Number.isFinite(value) && value > 0);
+}
+
+async function respondUnavailableOnThrow(
+  respond: RespondFn,
+  fn: () => Promise<void>,
+): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, message));
+  }
 }
 
 function isOptionalWorkflowActivation(value: unknown): boolean {

@@ -9,7 +9,6 @@ import { resolveUserTimezone } from "../../agents/date-time.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
 import { compactEmbeddedPiSession, runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
-import { resolveSandboxConfigForAgent, resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import {
   derivePromptTokens,
   hasNonzeroUsage,
@@ -563,23 +562,8 @@ export async function runMemoryFlushIfNeeded(params: {
     return params.sessionEntry;
   }
 
-  const memoryFlushWritable = (() => {
-    if (!params.sessionKey) {
-      return true;
-    }
-    const runtime = resolveSandboxRuntimeStatus({
-      cfg: params.cfg,
-      sessionKey: params.sessionKey,
-    });
-    if (!runtime.sandboxed) {
-      return true;
-    }
-    const sandboxCfg = resolveSandboxConfigForAgent(params.cfg, runtime.agentId);
-    return sandboxCfg.workspaceAccess === "rw";
-  })();
-
   const isCli = isCliProvider(params.followupRun.run.provider, params.cfg);
-  const canAttemptFlush = memoryFlushWritable && !params.isHeartbeat && !isCli;
+  const canAttemptFlush = !params.isHeartbeat && !isCli;
   let entry =
     params.sessionEntry ??
     (params.sessionKey ? params.sessionStore?.[params.sessionKey] : undefined);
@@ -713,7 +697,7 @@ export async function runMemoryFlushIfNeeded(params: {
     `memoryFlush check: sessionKey=${params.sessionKey} ` +
       `tokenCount=${tokenCountForFlush ?? "undefined"} ` +
       `contextWindow=${contextWindowTokens} threshold=${flushThreshold} ` +
-      `isHeartbeat=${params.isHeartbeat} isCli=${isCli} memoryFlushWritable=${memoryFlushWritable} ` +
+      `isHeartbeat=${params.isHeartbeat} isCli=${isCli} canAttemptFlush=${canAttemptFlush} ` +
       `compactionCount=${entry?.compactionCount ?? 0} memoryFlushCompactionCount=${entry?.memoryFlushCompactionCount ?? "undefined"} ` +
       `persistedPromptTokens=${persistedPromptTokens ?? "undefined"} persistedFresh=${entry?.totalTokensFresh === true} ` +
       `promptTokensEst=${promptTokenEstimate ?? "undefined"} transcriptPromptTokens=${transcriptPromptTokens ?? "undefined"} transcriptOutputTokens=${transcriptOutputTokens ?? "undefined"} ` +
@@ -722,9 +706,7 @@ export async function runMemoryFlushIfNeeded(params: {
   );
 
   const shouldFlushMemory =
-    (memoryFlushWritable &&
-      !params.isHeartbeat &&
-      !isCli &&
+    (canAttemptFlush &&
       shouldRunMemoryFlush({
         entry,
         tokenCount: tokenCountForFlush,

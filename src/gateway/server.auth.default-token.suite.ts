@@ -9,7 +9,6 @@ import {
   getPreauthHandshakeTimeoutMsFromEnv,
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
-  NODE_CLIENT,
   onceMessage,
   openWs,
   PROTOCOL_VERSION,
@@ -192,12 +191,6 @@ export function registerDefaultAuthTokenSuite(): void {
           expectConnectOk: true,
           expectStatusOk: false,
           expectStatusError: "missing scope",
-        },
-        {
-          name: "node + valid shared token => rejected without device",
-          opts: { role: "node", token, device: null, client: NODE_CLIENT },
-          expectConnectOk: false,
-          expectConnectError: "device identity required",
         },
         {
           name: "operator + invalid shared token => unauthorized",

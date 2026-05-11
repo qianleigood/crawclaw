@@ -5,13 +5,13 @@ import {
   type CommandInteraction,
   type CommandOptions,
 } from "@buape/carbon";
+import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import type { DiscordAccountConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
   ApplicationCommandOptionType,
   ChannelType as DiscordChannelType,
   type APIApplicationCommandChannelOption,
 } from "discord-api-types/v10";
-import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
-import type { DiscordAccountConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { formatMention } from "../mentions.js";
 import { normalizeDiscordSlug } from "../monitor/allow-list.js";
 import { resolveDiscordChannelInfo } from "../monitor/message-utils.js";

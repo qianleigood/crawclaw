@@ -17,10 +17,6 @@ export {
   collectLikelyMultiUserSetupFindings,
   collectMinimalProfileOverrideFindings,
   collectModelHygieneFindings,
-  collectNodeDangerousAllowCommandFindings,
-  collectNodeDenyCommandPatternFindings,
-  collectSandboxDangerousConfigFindings,
-  collectSandboxDockerNoopFindings,
   collectSecretsInConfigFindings,
   collectSmallModelRiskFindings,
   collectSyncedFolderFindings,
@@ -29,7 +25,6 @@ export {
 
 // Async collectors
 export {
-  collectSandboxBrowserHashLabelFindings,
   collectIncludeFilePermFindings,
   collectInstalledSkillsCodeSafetyFindings,
   collectPluginsCodeSafetyFindings,

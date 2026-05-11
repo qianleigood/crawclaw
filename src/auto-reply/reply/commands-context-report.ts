@@ -52,7 +52,7 @@ async function resolveContextReport(
 
   const bootstrapMaxChars = resolveBootstrapMaxChars(params.cfg);
   const bootstrapTotalMaxChars = resolveBootstrapTotalMaxChars(params.cfg);
-  const { systemPrompt, tools, skillsPrompt, bootstrapFiles, injectedFiles, sandboxRuntime } =
+  const { systemPrompt, tools, skillsPrompt, bootstrapFiles, injectedFiles } =
     await resolveCommandsSystemPromptBundle(params);
 
   return buildSystemPromptReport({
@@ -65,7 +65,6 @@ async function resolveContextReport(
     workspaceDir: params.workspaceDir,
     bootstrapMaxChars,
     bootstrapTotalMaxChars,
-    sandbox: { mode: sandboxRuntime.mode, sandboxed: sandboxRuntime.sandboxed },
     systemPrompt,
     bootstrapFiles,
     injectedFiles,
@@ -125,7 +124,6 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
     return `- ${f.name}: ${status} | raw ${raw} | injected ${injected}`;
   });
 
-  const sandboxLine = `Sandbox: mode=${report.sandbox?.mode ?? "unknown"} sandboxed=${report.sandbox?.sandboxed ?? false}`;
   const toolSchemaLine = `Tool schemas (JSON): ${formatCharsAndTokens(report.tools.schemaChars)} (counts toward context; not shown as text)`;
   const toolListLine = `Tool list (system prompt text): ${formatCharsAndTokens(report.tools.listChars)}`;
   const skillNameSet = new Set(report.skills.entries.map((s) => s.name));
@@ -201,7 +199,6 @@ export async function buildContextReply(params: HandleCommandsParams): Promise<R
     `Workspace: ${workspaceLabel}`,
     `Bootstrap max/file: ${bootstrapMaxLabel}`,
     `Bootstrap max/total: ${bootstrapTotalLabel}`,
-    sandboxLine,
     systemPromptLine,
     ...(bootstrapWarningLines.length ? ["", ...bootstrapWarningLines] : []),
     "",

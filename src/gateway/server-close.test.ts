@@ -20,7 +20,6 @@ describe("createGatewayCloseHandler", () => {
       cron: { stop: vi.fn() },
       mainSessionWakeRunner: { stop: vi.fn() } as never,
       updateCheckStop: null,
-      nodePresenceTimers: new Map(),
       broadcast: vi.fn(),
       tickInterval: setInterval(() => undefined, 60_000),
       healthInterval: setInterval(() => undefined, 60_000),

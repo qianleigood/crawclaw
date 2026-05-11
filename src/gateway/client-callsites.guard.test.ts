@@ -9,8 +9,6 @@ const ALLOWED_GATEWAY_CLIENT_CALLSITES = new Set([
   "src/gateway/call.ts",
   "src/gateway/operator-approvals-client.ts",
   "src/gateway/probe.ts",
-  "src/node-host/runner.ts",
-  "src/tui/gateway-chat.ts",
 ]);
 
 async function collectSourceFiles(dir: string): Promise<string[]> {

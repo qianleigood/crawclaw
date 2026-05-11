@@ -1,7 +1,20 @@
 ---
 name: platform-login-helper
 description: Check Xiaohongshu login state, start or refresh QR-code login, capture the QR screenshot for the current chat, and verify login after the user scans. Use when the user asks to check whether Xiaohongshu is logged in, re-login after session expiry, open a QR code for scanning, or block downstream collection/publishing until login is confirmed. Suitable as a shared login gate for content-collection and publishing workflows. Douyin is not fully wired yet and should be treated as blocked unless a custom command is explicitly provided.
-metadata: { "crawclaw": { "workflow": { "portability": "human", "stepKind": "human_wait", "waitKind": "input", "requiresApproval": true, "notes": "This login gate requires a human QR scan before the workflow can continue." } } }
+metadata:
+  {
+    "crawclaw":
+      {
+        "workflow":
+          {
+            "portability": "human",
+            "stepKind": "human_wait",
+            "waitKind": "input",
+            "requiresApproval": true,
+            "notes": "This login gate requires a human QR scan before the workflow can continue.",
+          },
+      },
+  }
 ---
 
 # Platform Login Helper
@@ -39,6 +52,7 @@ python3 scripts/check_login.py --platforms xiaohongshu --xhs-account zenbliss --
 ```
 
 Exit codes:
+
 - `0` = logged in
 - `1` = not logged in
 - `2` = blocked / unsupported / timeout / error
@@ -52,6 +66,7 @@ node scripts/start_login.js --platform xiaohongshu --account zenbliss --port 922
 ```
 
 The script prints JSON with:
+
 - `status` (`qr_ready` or `already_logged_in`)
 - `account`
 - `port`

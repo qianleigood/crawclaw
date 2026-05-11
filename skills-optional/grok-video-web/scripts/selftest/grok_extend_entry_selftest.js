@@ -1,14 +1,16 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const os = require('os');
-const path = require('path');
-const vm = require('vm');
-const { resolvePuppeteerCore, resolveChromeExecutablePath } = require('../grok_puppeteer_lib');
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
+const vm = require("vm");
+const { resolvePuppeteerCore, resolveChromeExecutablePath } = require("../grok_puppeteer_lib");
 
 function assert(condition, message) {
-  if (!condition) {throw new Error(message);}
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 async function sleep(ms) {
@@ -16,13 +18,15 @@ async function sleep(ms) {
 }
 
 function extractExtendHelpers() {
-  const extendPath = path.join(__dirname, '..', 'grok_video_extend.js');
-  const source = fs.readFileSync(extendPath, 'utf8');
-  const match = source.match(/function parseHasTextSelector[\s\S]*?\nasync function scanResultUrls/);
+  const extendPath = path.join(__dirname, "..", "grok_video_extend.js");
+  const source = fs.readFileSync(extendPath, "utf8");
+  const match = source.match(
+    /function parseHasTextSelector[\s\S]*?\nasync function scanResultUrls/,
+  );
   if (!match) {
-    throw new Error('Unable to extract extend entry helpers from grok_video_extend.js');
+    throw new Error("Unable to extract extend entry helpers from grok_video_extend.js");
   }
-  return match[0].replace(/\nasync function scanResultUrls$/, '');
+  return match[0].replace(/\nasync function scanResultUrls$/, "");
 }
 
 function buildFixtureHtml() {
@@ -90,50 +94,76 @@ function buildFixtureHtml() {
 
 async function main() {
   const puppeteer = resolvePuppeteerCore();
-  const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), 'grok-extend-entry-selftest-'));
+  const profileDir = fs.mkdtempSync(path.join(os.tmpdir(), "grok-extend-entry-selftest-"));
   const browser = await puppeteer.launch({
-    executablePath: resolveChromeExecutablePath(''),
+    executablePath: resolveChromeExecutablePath(""),
     headless: true,
     userDataDir: profileDir,
     defaultViewport: { width: 1440, height: 900 },
-    args: ['--no-sandbox', '--disable-dev-shm-usage'],
+    args: ["--no-sandbox", "--disable-dev-shm-usage"],
   });
 
   try {
     const page = await browser.newPage();
-    await page.setContent(buildFixtureHtml(), { waitUntil: 'domcontentloaded' });
+    await page.setContent(buildFixtureHtml(), { waitUntil: "domcontentloaded" });
 
     const sandbox = {
       module: { exports: {} },
       exports: {},
       sleep,
     };
-    vm.runInNewContext(`${extractExtendHelpers()}\nmodule.exports = { detectPrimaryExtendEntry, detectSecondaryExtendEntry, detectDurationControl, waitForLocator };`, sandbox, {
-      filename: 'grok_extend_entry_selftest.vm',
-    });
+    vm.runInNewContext(
+      `${extractExtendHelpers()}\nmodule.exports = { detectPrimaryExtendEntry, detectSecondaryExtendEntry, detectDurationControl, waitForLocator };`,
+      sandbox,
+      {
+        filename: "grok_extend_entry_selftest.vm",
+      },
+    );
 
-    const { detectPrimaryExtendEntry, detectSecondaryExtendEntry, detectDurationControl, waitForLocator } = sandbox.module.exports;
+    const {
+      detectPrimaryExtendEntry,
+      detectSecondaryExtendEntry,
+      detectDurationControl,
+      waitForLocator,
+    } = sandbox.module.exports;
 
     const primary = await detectPrimaryExtendEntry(page);
-    assert(primary, 'primary extend entry should be detected');
-    assert(primary.clickTarget === 'button', 'primary extend entry must target button');
-    assert(/known_(primary_(button|svg)_xpath|secondary_menu_trigger(?:_svg_xpath_parent_button)?)|css_selector/.test(primary.source || ''), 'primary entry should come from known locator path');
+    assert(primary, "primary extend entry should be detected");
+    assert(primary.clickTarget === "button", "primary extend entry must target button");
+    assert(
+      /known_(primary_(button|svg)_xpath|secondary_menu_trigger(?:_svg_xpath_parent_button)?)|css_selector/.test(
+        primary.source || "",
+      ),
+      "primary entry should come from known locator path",
+    );
 
     await page.click(primary.selector);
-    const secondary = await waitForLocator(page, detectSecondaryExtendEntry, { timeoutMs: 1500, intervalMs: 100 });
-    assert(secondary, 'secondary Extend video entry should appear after primary click');
-    assert(/Extend video/i.test(secondary.text || ''), 'secondary entry text should be Extend video');
+    const secondary = await waitForLocator(page, detectSecondaryExtendEntry, {
+      timeoutMs: 1500,
+      intervalMs: 100,
+    });
+    assert(secondary, "secondary Extend video entry should appear after primary click");
+    assert(
+      /Extend video/i.test(secondary.text || ""),
+      "secondary entry text should be Extend video",
+    );
 
     await page.click(secondary.selector);
-    const plus6 = await detectDurationControl(page, '6s');
-    assert(plus6, '+6s duration should be detected after secondary click');
+    const plus6 = await detectDurationControl(page, "6s");
+    assert(plus6, "+6s duration should be detected after secondary click");
 
-    console.log(JSON.stringify({
-      ok: true,
-      primary,
-      secondary,
-      duration6: plus6,
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          ok: true,
+          primary,
+          secondary,
+          duration6: plus6,
+        },
+        null,
+        2,
+      ),
+    );
   } finally {
     await browser.close().catch(() => {});
     fs.rmSync(profileDir, { recursive: true, force: true });

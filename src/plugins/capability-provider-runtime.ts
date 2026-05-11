@@ -8,13 +8,9 @@ import { resolveRuntimePluginRegistry } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import type { PluginRegistry } from "./registry.js";
 
-type CapabilityProviderRegistryKey =
-  | "speechProviders"
-  | "mediaUnderstandingProviders";
+type CapabilityProviderRegistryKey = "speechProviders" | "mediaUnderstandingProviders";
 
-type CapabilityContractKey =
-  | "speechProviders"
-  | "mediaUnderstandingProviders";
+type CapabilityContractKey = "speechProviders" | "mediaUnderstandingProviders";
 
 type CapabilityProviderForKey<K extends CapabilityProviderRegistryKey> =
   PluginRegistry[K][number] extends { provider: infer T } ? T : never;

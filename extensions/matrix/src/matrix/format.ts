@@ -1,5 +1,5 @@
-import MarkdownIt from "markdown-it";
 import { isAutoLinkedFileRef } from "crawclaw/plugin-sdk/text-runtime";
+import MarkdownIt from "markdown-it";
 import type { MatrixClient } from "./sdk.js";
 import { isMatrixQualifiedUserId } from "./target-ids.js";
 

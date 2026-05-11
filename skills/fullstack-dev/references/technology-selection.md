@@ -12,14 +12,14 @@ Structured decision framework for backend and full-stack technology choices. Pre
 
 ### Non-Functional Requirements (Quantify!)
 
-| Dimension | Question | Bad Answer | Good Answer |
-|-----------|----------|-----------|-------------|
-| Scale | How many concurrent users? | "Lots" | "1K concurrent, 500 RPS peak" |
-| Latency | Acceptable p99 response time? | "Fast" | "< 200ms API, < 2s reports" |
-| Availability | Required uptime? | "Always up" | "99.9% (8.7h downtime/year)" |
-| Data volume | Expected storage growth? | "A lot" | "100GB/year, 10M rows" |
-| Consistency | Strong vs eventual? | "Consistent" | "Strong for payments, eventual for feeds" |
-| Compliance | Regulatory? | "Some" | "GDPR data residency EU, SOC 2 Type II" |
+| Dimension    | Question                      | Bad Answer   | Good Answer                               |
+| ------------ | ----------------------------- | ------------ | ----------------------------------------- |
+| Scale        | How many concurrent users?    | "Lots"       | "1K concurrent, 500 RPS peak"             |
+| Latency      | Acceptable p99 response time? | "Fast"       | "< 200ms API, < 2s reports"               |
+| Availability | Required uptime?              | "Always up"  | "99.9% (8.7h downtime/year)"              |
+| Data volume  | Expected storage growth?      | "A lot"      | "100GB/year, 10M rows"                    |
+| Consistency  | Strong vs eventual?           | "Consistent" | "Strong for payments, eventual for feeds" |
+| Compliance   | Regulatory?                   | "Some"       | "GDPR data residency EU, SOC 2 Type II"   |
 
 ### Team Constraints
 
@@ -35,19 +35,20 @@ Structured decision framework for backend and full-stack technology choices. Pre
 
 Score each option 1-5 on weighted criteria:
 
-| Criterion | Weight | Option A | Option B | Option C |
-|-----------|--------|----------|----------|----------|
-| Meets functional requirements | 5× | _ | _ | _ |
-| Meets non-functional requirements | 5× | _ | _ | _ |
-| Team expertise / learning curve | 4× | _ | _ | _ |
-| Ecosystem maturity (libs, tools) | 3× | _ | _ | _ |
-| Community & long-term viability | 3× | _ | _ | _ |
-| Operational complexity | 3× | _ | _ | _ |
-| Hiring pool availability | 2× | _ | _ | _ |
-| Cost (license + infra + training) | 2× | _ | _ | _ |
-| **Weighted Total** | | _ | _ | _ |
+| Criterion                         | Weight | Option A | Option B | Option C |
+| --------------------------------- | ------ | -------- | -------- | -------- |
+| Meets functional requirements     | 5×     | \_       | \_       | \_       |
+| Meets non-functional requirements | 5×     | \_       | \_       | \_       |
+| Team expertise / learning curve   | 4×     | \_       | \_       | \_       |
+| Ecosystem maturity (libs, tools)  | 3×     | \_       | \_       | \_       |
+| Community & long-term viability   | 3×     | \_       | \_       | \_       |
+| Operational complexity            | 3×     | \_       | \_       | \_       |
+| Hiring pool availability          | 2×     | \_       | \_       | \_       |
+| Cost (license + infra + training) | 2×     | \_       | \_       | \_       |
+| **Weighted Total**                |        | \_       | \_       | \_       |
 
 **Rules:**
+
 - Any option scoring **1 on a 5× criterion** → automatically disqualified
 - Options within **10%** of each other → choose what team knows best
 - Options within **15%** → run a **time-boxed PoC** (2-5 days max)
@@ -116,31 +117,31 @@ What data model?
 
 ### Caching Strategy
 
-| Pattern | Technology | When |
-|---------|-----------|------|
-| Application cache | Redis / Valkey | Sessions, frequent reads, rate limiting |
-| HTTP cache | CDN (Cloudflare/Vercel) | Static assets, public API responses |
-| Query cache | Materialized views | Complex aggregations, dashboards |
-| In-process cache | LRU (in-memory) | Config, small lookup tables |
-| Edge cache | Cloudflare KV / Vercel KV | Global low-latency reads |
+| Pattern           | Technology                | When                                    |
+| ----------------- | ------------------------- | --------------------------------------- |
+| Application cache | Redis / Valkey            | Sessions, frequent reads, rate limiting |
+| HTTP cache        | CDN (Cloudflare/Vercel)   | Static assets, public API responses     |
+| Query cache       | Materialized views        | Complex aggregations, dashboards        |
+| In-process cache  | LRU (in-memory)           | Config, small lookup tables             |
+| Edge cache        | Cloudflare KV / Vercel KV | Global low-latency reads                |
 
 ### Message Queue / Event Streaming
 
-| Pattern | Technology | When |
-|---------|-----------|------|
-| Task queue (background jobs) | BullMQ / Celery / SQS | Email, exports, payments |
-| Event streaming (replay, audit) | Kafka / Redpanda | Event sourcing, real-time pipelines |
-| Lightweight pub/sub | Redis Streams / NATS | Simple notifications, broadcasting |
-| Request-reply (sync over async) | NATS / RabbitMQ RPC | Internal service calls |
+| Pattern                         | Technology            | When                                |
+| ------------------------------- | --------------------- | ----------------------------------- |
+| Task queue (background jobs)    | BullMQ / Celery / SQS | Email, exports, payments            |
+| Event streaming (replay, audit) | Kafka / Redpanda      | Event sourcing, real-time pipelines |
+| Lightweight pub/sub             | Redis Streams / NATS  | Simple notifications, broadcasting  |
+| Request-reply (sync over async) | NATS / RabbitMQ RPC   | Internal service calls              |
 
 ### Hosting / Deployment
 
-| Model | Technology | When |
-|-------|-----------|------|
-| Serverless (auto-scale) | Vercel / Cloudflare Workers / Lambda | Variable traffic, pay-per-use |
-| Container (predictable) | Cloud Run / Render / Railway / Fly.io | Steady traffic, simple ops |
-| Kubernetes (large scale) | EKS / GKE / AKS | 10+ services, team has K8s expertise |
-| VPS (full control) | DigitalOcean / Hetzner / EC2 | Predictable workload, cost-sensitive |
+| Model                    | Technology                            | When                                 |
+| ------------------------ | ------------------------------------- | ------------------------------------ |
+| Serverless (auto-scale)  | Vercel / Cloudflare Workers / Lambda  | Variable traffic, pay-per-use        |
+| Container (predictable)  | Cloud Run / Render / Railway / Fly.io | Steady traffic, simple ops           |
+| Kubernetes (large scale) | EKS / GKE / AKS                       | 10+ services, team has K8s expertise |
+| VPS (full control)       | DigitalOcean / Hetzner / EC2          | Predictable workload, cost-sensitive |
 
 ---
 
@@ -154,21 +155,26 @@ What data model?
 ## Status: Proposed | Accepted | Deprecated | Superseded by ADR-{NNN}
 
 ## Context
+
 What problem are we solving? What forces are at play?
 
 ## Decision
+
 What did we choose and why?
 
 ## Evaluation
+
 | Criterion | Weight | Chosen | Runner-up |
-|-----------|--------|--------|-----------|
+| --------- | ------ | ------ | --------- |
 
 ## Consequences
+
 - Positive: ...
 - Negative: ...
 - Risks: ...
 
 ## Alternatives Rejected
+
 - Option B: rejected because...
 - Option C: rejected because...
 ```
@@ -179,63 +185,63 @@ What did we choose and why?
 
 ### A: Startup / MVP (Speed)
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| Language | TypeScript | One language front + back |
-| Framework | Next.js (full-stack) or NestJS (API) | Fast iteration |
-| Database | PostgreSQL (Supabase / Neon) | Managed, generous free tier |
-| Auth | Better Auth / Clerk | No auth code to maintain |
-| Cache | Redis (Upstash) | Serverless-friendly |
-| Hosting | Vercel / Railway | Zero-config deploys |
+| Layer     | Choice                               | Why                         |
+| --------- | ------------------------------------ | --------------------------- |
+| Language  | TypeScript                           | One language front + back   |
+| Framework | Next.js (full-stack) or NestJS (API) | Fast iteration              |
+| Database  | PostgreSQL (Supabase / Neon)         | Managed, generous free tier |
+| Auth      | Better Auth / Clerk                  | No auth code to maintain    |
+| Cache     | Redis (Upstash)                      | Serverless-friendly         |
+| Hosting   | Vercel / Railway                     | Zero-config deploys         |
 
 ### B: SaaS / Business App (Balance)
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| Language | TypeScript or Python | Team preference |
-| Framework | NestJS or FastAPI | Structured, testable |
-| Database | PostgreSQL | Reliable, feature-rich |
-| Queue | BullMQ (Redis) | Simple background jobs |
-| Auth | OAuth 2.0 + JWT | Standard, flexible |
-| Hosting | AWS ECS / Cloud Run | Scalable containers |
-| Monitoring | Datadog / Grafana + Prometheus | Full observability |
+| Layer      | Choice                         | Why                    |
+| ---------- | ------------------------------ | ---------------------- |
+| Language   | TypeScript or Python           | Team preference        |
+| Framework  | NestJS or FastAPI              | Structured, testable   |
+| Database   | PostgreSQL                     | Reliable, feature-rich |
+| Queue      | BullMQ (Redis)                 | Simple background jobs |
+| Auth       | OAuth 2.0 + JWT                | Standard, flexible     |
+| Hosting    | AWS ECS / Cloud Run            | Scalable containers    |
+| Monitoring | Datadog / Grafana + Prometheus | Full observability     |
 
 ### C: High-Performance (Scale)
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| Language | Go or Rust | Max throughput, low latency |
-| Database | PostgreSQL + Redis + ClickHouse | OLTP + cache + analytics |
-| Queue | Kafka / Redpanda | High-throughput streaming |
-| Hosting | Kubernetes (EKS/GKE) | Fine-grained scaling |
-| Monitoring | Prometheus + Grafana + Jaeger | Metrics + tracing |
+| Layer      | Choice                          | Why                         |
+| ---------- | ------------------------------- | --------------------------- |
+| Language   | Go or Rust                      | Max throughput, low latency |
+| Database   | PostgreSQL + Redis + ClickHouse | OLTP + cache + analytics    |
+| Queue      | Kafka / Redpanda                | High-throughput streaming   |
+| Hosting    | Kubernetes (EKS/GKE)            | Fine-grained scaling        |
+| Monitoring | Prometheus + Grafana + Jaeger   | Metrics + tracing           |
 
 ### D: AI / ML Application
 
-| Layer | Choice | Why |
-|-------|--------|-----|
-| Language | Python (API) + TypeScript (frontend) | ML libs + modern UI |
-| Framework | FastAPI + Next.js | Async + SSR |
-| Database | PostgreSQL + pgvector | Relational + embeddings |
-| Queue | Celery + Redis | ML job processing |
-| Hosting | Modal / AWS GPU / Replicate | GPU access |
+| Layer     | Choice                               | Why                     |
+| --------- | ------------------------------------ | ----------------------- |
+| Language  | Python (API) + TypeScript (frontend) | ML libs + modern UI     |
+| Framework | FastAPI + Next.js                    | Async + SSR             |
+| Database  | PostgreSQL + pgvector                | Relational + embeddings |
+| Queue     | Celery + Redis                       | ML job processing       |
+| Hosting   | Modal / AWS GPU / Replicate          | GPU access              |
 
 ---
 
 ## Anti-Patterns
 
-| # | ❌ Don't | ✅ Do Instead |
-|---|---------|--------------|
-| 1 | "X is trending on HN" | Evaluate against YOUR requirements |
-| 2 | Resume-Driven Development | Choose what team can maintain |
-| 3 | "Must scale to 1M users" (day 1) | Build for 10× current need, not 1000× |
-| 4 | Evaluate for weeks | Time-box to 3-5 days, then decide |
-| 5 | No decision documentation | Write ADR for every major choice |
-| 6 | Ignore operational cost | Include deploy, monitor, debug cost |
-| 7 | "We'll rewrite later" | Assume you won't. Choose carefully. |
-| 8 | Microservices by default | Start monolith, extract when needed |
-| 9 | Different DB per service (day 1) | One database, split when justified |
-| 10 | "It worked at Google" | You're not Google. Scale to YOUR context. |
+| #   | ❌ Don't                         | ✅ Do Instead                             |
+| --- | -------------------------------- | ----------------------------------------- |
+| 1   | "X is trending on HN"            | Evaluate against YOUR requirements        |
+| 2   | Resume-Driven Development        | Choose what team can maintain             |
+| 3   | "Must scale to 1M users" (day 1) | Build for 10× current need, not 1000×     |
+| 4   | Evaluate for weeks               | Time-box to 3-5 days, then decide         |
+| 5   | No decision documentation        | Write ADR for every major choice          |
+| 6   | Ignore operational cost          | Include deploy, monitor, debug cost       |
+| 7   | "We'll rewrite later"            | Assume you won't. Choose carefully.       |
+| 8   | Microservices by default         | Start monolith, extract when needed       |
+| 9   | Different DB per service (day 1) | One database, split when justified        |
+| 10  | "It worked at Google"            | You're not Google. Scale to YOUR context. |
 
 ---
 

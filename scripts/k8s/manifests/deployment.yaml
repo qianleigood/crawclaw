@@ -52,10 +52,13 @@ spec:
           image: ghcr.io/crawclaw/crawclaw:slim
           imagePullPolicy: IfNotPresent
           command:
-            - node
-            - /app/dist/index.js
+            - /app/dist/native/crawclaw
             - gateway
-            - run
+            - --bind
+            - lan
+            - --port
+            - "18789"
+            - --allow-unconfigured
           ports:
             - name: gateway
               containerPort: 18789

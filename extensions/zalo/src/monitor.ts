@@ -28,11 +28,7 @@ import {
   type ZaloWebhookTarget,
 } from "./monitor.webhook.js";
 import { resolveZaloProxyFetch } from "./proxy.js";
-import type {
-  MarkdownTableMode,
-  CrawClawConfig,
-  OutboundReplyPayload,
-} from "./runtime-api.js";
+import type { MarkdownTableMode, CrawClawConfig, OutboundReplyPayload } from "./runtime-api.js";
 import {
   createChannelPairingController,
   createChannelReplyPipeline,

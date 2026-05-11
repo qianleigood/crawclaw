@@ -768,24 +768,6 @@ $0 \\"$1\\"" touch {marker}`,
     });
   });
 
-  it("prevents allow-always bypass for sandbox-exec wrapper chains", () => {
-    if (process.platform === "win32") {
-      return;
-    }
-    const dir = makeTempDir();
-    const echo = makeExecutable(dir, "echo");
-    makeExecutable(dir, "id");
-    const env = makePathEnv(dir);
-    expectAllowAlwaysBypassBlocked({
-      dir,
-      firstCommand:
-        "/usr/bin/sandbox-exec -p '(deny default) (allow process*)' /bin/zsh -lc 'echo warmup-ok'",
-      secondCommand: "/usr/bin/sandbox-exec -p '(allow default)' /bin/zsh -lc 'id > marker'",
-      env,
-      persistedPattern: echo,
-    });
-  });
-
   it("prevents allow-always bypass for time wrapper chains", () => {
     if (process.platform === "win32") {
       return;

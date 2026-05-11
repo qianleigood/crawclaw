@@ -1,6 +1,6 @@
+import type { CrawClawPluginApi } from "crawclaw/plugin-sdk/plugin-entry";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestPluginApi } from "../../test/helpers/plugins/plugin-api.js";
-import type { CrawClawPluginApi } from "crawclaw/plugin-sdk/plugin-entry";
 
 const runtimeMocks = vi.hoisted(() => ({
   registerFeishuCliCli: vi.fn(),

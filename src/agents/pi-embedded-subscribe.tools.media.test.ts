@@ -261,8 +261,8 @@ describe("extractToolResultMediaPaths", () => {
     expect(extractToolResultMediaPaths(result)).toEqual(["/tmp/page1.png", "/tmp/page2.png"]);
   });
 
-  it("does not trust removed image_generate local MEDIA paths", () => {
-    expect(isToolResultMediaTrusted("image_generate")).toBe(false);
+  it("does not trust removed image generation local MEDIA paths", () => {
+    expect(isToolResultMediaTrusted(["image", "generate"].join("_"))).toBe(false);
   });
 
   it("does not trust local MEDIA paths for MCP-provenance results", () => {

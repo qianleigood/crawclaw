@@ -240,7 +240,7 @@ async function resolveSessionKeyFromSessionId(params: {
       return {
         ok: false,
         status: "forbidden",
-        error: `Session not visible from this sandboxed agent session: ${params.sessionId}`,
+        error: `Session not visible from this agent session tree: ${params.sessionId}`,
       };
     }
     const message = err instanceof Error ? err.message : String(err);
@@ -412,7 +412,7 @@ export async function resolveVisibleSessionReference(params: {
     return {
       ok: false,
       status: "forbidden",
-      error: `Session not visible from this sandboxed agent session: ${params.visibilitySessionKey}`,
+      error: `Session not visible from this agent session tree: ${params.visibilitySessionKey}`,
       displayKey,
     };
   }

@@ -583,7 +583,6 @@ describe("before_tool_call hook integration", () => {
           mode: "background",
           spawnSource: "sessions_spawn",
           model: "openai/gpt-5.4-mini",
-          sandboxed: true,
           workspaceDir: "/workspace/worker",
           requesterSessionKey: "agent:main:main",
         },
@@ -626,7 +625,6 @@ describe("before_tool_call hook integration", () => {
             capability: {
               snapshotRef: `agents/worker/tasks/${created.taskId}.capabilities.json`,
               model: "openai/gpt-5.4-mini",
-              sandboxed: true,
               workspaceDir: "/workspace/worker",
               spawnSource: "sessions_spawn",
               requesterSessionKey: "agent:main:main",

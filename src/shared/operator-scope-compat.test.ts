@@ -80,24 +80,24 @@ describe("roleScopesAllow", () => {
     ).toBe(false);
   });
 
-  it("uses strict matching for non-operator roles", () => {
+  it("uses strict matching for non-operator legacy roles", () => {
     expect(
       roleScopesAllow({
-        role: "node",
+        role: "legacy",
         requestedScopes: ["system.run"],
         allowedScopes: ["operator.admin", "system.run"],
       }),
     ).toBe(true);
     expect(
       roleScopesAllow({
-        role: "node",
+        role: "legacy",
         requestedScopes: ["system.run"],
         allowedScopes: ["operator.admin"],
       }),
     ).toBe(false);
     expect(
       roleScopesAllow({
-        role: " node ",
+        role: " legacy ",
         requestedScopes: [" system.run ", "system.run", "  "],
         allowedScopes: ["system.run", "operator.admin"],
       }),
@@ -144,7 +144,7 @@ describe("roleScopesAllow", () => {
   it("returns null when all requested scopes are satisfied", () => {
     expect(
       resolveMissingRequestedScope({
-        role: "node",
+        role: "legacy",
         requestedScopes: ["system.run"],
         allowedScopes: ["system.run", "operator.admin"],
       }),

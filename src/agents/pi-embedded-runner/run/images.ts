@@ -6,12 +6,7 @@ import { resolveMediaBufferPath, getMediaDir } from "../../../media/store.js";
 import { loadWebMedia } from "../../../media/web-media.js";
 import { resolveUserPath } from "../../../utils.js";
 import type { ImageSanitizationLimits } from "../../image-sanitization.js";
-import {
-  createSandboxBridgeReadFile,
-  resolveSandboxedBridgeMediaPath,
-} from "../../sandbox-media-paths.js";
-import { assertSandboxPath } from "../../sandbox-paths.js";
-import type { SandboxFsBridge } from "../../sandbox/fs-bridge.js";
+import { toRelativeWorkspacePath } from "../../path-policy.js";
 import { sanitizeImageBlocks } from "../../tool-images.js";
 import { log } from "../logger.js";
 
@@ -335,7 +330,7 @@ export function detectImageReferences(prompt: string): DetectedImageRef[] {
  *
  * @param ref The detected image reference
  * @param workspaceDir The current workspace directory for resolving relative paths
- * @param options Optional settings for sandbox and size limits
+ * @param options Optional settings for workspace guard and size limits
  * @returns The loaded image content, or null if loading failed
  */
 export async function loadImageFromRef(
@@ -344,7 +339,6 @@ export async function loadImageFromRef(
   options?: {
     maxBytes?: number;
     workspaceOnly?: boolean;
-    sandbox?: { root: string; bridge: SandboxFsBridge };
   },
 ): Promise<ImageContent | null> {
   // Handle Gateway claim-check URIs (media://inbound/<id>).
@@ -388,44 +382,17 @@ export async function loadImageFromRef(
   try {
     let targetPath = ref.resolved;
 
-    // Resolve paths relative to sandbox or workspace as needed
-    if (options?.sandbox) {
-      try {
-        const resolved = await resolveSandboxedBridgeMediaPath({
-          sandbox: {
-            root: options.sandbox.root,
-            bridge: options.sandbox.bridge,
-            workspaceOnly: options.workspaceOnly,
-          },
-          mediaPath: targetPath,
-        });
-        targetPath = resolved.resolved;
-      } catch (err) {
-        log.debug(
-          `Native image: sandbox validation failed for ${ref.resolved}: ${err instanceof Error ? err.message : String(err)}`,
-        );
-        return null;
-      }
-    } else if (!path.isAbsolute(targetPath)) {
+    if (!path.isAbsolute(targetPath)) {
       targetPath = path.resolve(workspaceDir, targetPath);
     }
-    if (options?.workspaceOnly && !options?.sandbox) {
-      const root = options?.sandbox?.root ?? workspaceDir;
-      await assertSandboxPath({
-        filePath: targetPath,
-        cwd: root,
-        root,
+    if (options?.workspaceOnly) {
+      toRelativeWorkspacePath(workspaceDir, targetPath, {
+        cwd: workspaceDir,
       });
     }
 
     // loadWebMedia handles local file paths (including file:// URLs)
-    const media = options?.sandbox
-      ? await loadWebMedia(targetPath, {
-          maxBytes: options.maxBytes,
-          sandboxValidated: true,
-          readFile: createSandboxBridgeReadFile({ sandbox: options.sandbox }),
-        })
-      : await loadWebMedia(targetPath, options?.maxBytes);
+    const media = await loadWebMedia(targetPath, options?.maxBytes);
 
     if (media.kind !== "image") {
       log.debug(`Native image: not an image file: ${targetPath} (got ${media.kind})`);
@@ -476,7 +443,6 @@ export async function detectAndLoadPromptImages(params: {
   maxBytes?: number;
   maxDimensionPx?: number;
   workspaceOnly?: boolean;
-  sandbox?: { root: string; bridge: SandboxFsBridge };
 }): Promise<{
   /** Images for the current prompt (existingImages + detected in current prompt) */
   images: ImageContent[];
@@ -522,7 +488,6 @@ export async function detectAndLoadPromptImages(params: {
     const image = await loadImageFromRef(ref, params.workspaceDir, {
       maxBytes: params.maxBytes,
       workspaceOnly: params.workspaceOnly,
-      sandbox: params.sandbox,
     });
     if (image) {
       promptRefImages.push(image);
@@ -537,7 +502,6 @@ export async function detectAndLoadPromptImages(params: {
     const image = await loadImageFromRef(ref, params.workspaceDir, {
       maxBytes: params.maxBytes,
       workspaceOnly: params.workspaceOnly,
-      sandbox: params.sandbox,
     });
     offloadedImages.push(image);
     if (image) {

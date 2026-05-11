@@ -46,39 +46,15 @@ export const SUB_CLI_DESCRIPTORS = [
   },
   {
     name: "approvals",
-    description: "Manage exec approvals (gateway or node host)",
+    description: "Manage exec approvals",
     descriptionKey: "command.approvals.description",
     hasSubcommands: true,
   },
   {
-    name: "nodes",
-    description: "Manage gateway node hosts; device pairing lives under devices",
-    descriptionKey: "command.nodes.description",
-    hasSubcommands: true,
-  },
-  {
     name: "devices",
-    description: "Manage chat/mobile device pairing; node hosts live under nodes",
+    description: "Manage chat/mobile device pairing",
     descriptionKey: "command.devices.description",
     hasSubcommands: true,
-  },
-  {
-    name: "node",
-    description: "Run and manage the headless node host service",
-    descriptionKey: "command.node.description",
-    hasSubcommands: true,
-  },
-  {
-    name: "sandbox",
-    description: "Manage sandbox containers for agent isolation",
-    descriptionKey: "command.sandbox.description",
-    hasSubcommands: true,
-  },
-  {
-    name: "tui",
-    description: "Open a terminal UI connected to the Gateway",
-    descriptionKey: "command.tui.description",
-    hasSubcommands: false,
   },
   {
     name: "cron",

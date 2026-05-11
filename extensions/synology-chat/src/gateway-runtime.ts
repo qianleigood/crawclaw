@@ -1,7 +1,4 @@
-import {
-  DEFAULT_ACCOUNT_ID,
-  type CrawClawConfig,
-} from "crawclaw/plugin-sdk/account-resolution";
+import { DEFAULT_ACCOUNT_ID, type CrawClawConfig } from "crawclaw/plugin-sdk/account-resolution";
 import { waitUntilAbort } from "crawclaw/plugin-sdk/channel-lifecycle";
 import { registerPluginHttpRoute } from "crawclaw/plugin-sdk/webhook-ingress";
 import { listAccountIds, resolveAccount } from "./accounts.js";

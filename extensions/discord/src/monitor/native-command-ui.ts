@@ -11,7 +11,6 @@ import {
   type ComponentData,
   type StringSelectMenuInteraction,
 } from "@buape/carbon";
-import { ButtonStyle } from "discord-api-types/v10";
 import { resolveDefaultModelForAgent } from "crawclaw/plugin-sdk/agent-runtime";
 import {
   buildCommandTextFromArgs,
@@ -30,6 +29,7 @@ import { loadSessionStore, resolveStorePath } from "crawclaw/plugin-sdk/config-r
 import type { ResolvedAgentRoute } from "crawclaw/plugin-sdk/routing";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { chunkItems, withTimeout } from "crawclaw/plugin-sdk/text-runtime";
+import { ButtonStyle } from "discord-api-types/v10";
 import { resolveDiscordChannelConfigWithFallback, resolveDiscordGuildEntry } from "./allow-list.js";
 import { resolveDiscordChannelInfo } from "./message-utils.js";
 import {

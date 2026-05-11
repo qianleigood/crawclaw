@@ -14,7 +14,7 @@ const token = getArg("--token") ?? process.env.CRAWCLAW_GATEWAY_TOKEN;
 
 if (!urlRaw || !token) {
   writeStderrLine(
-      "Usage: bun scripts/dev/gateway-smoke.ts --url <wss://host[:port]> --token <gateway.auth.token>\n" +
+    "Usage: bun scripts/dev/gateway-smoke.ts --url <wss://host[:port]> --token <gateway.auth.token>\n" +
       "Or set env: CRAWCLAW_GATEWAY_URL / CRAWCLAW_GATEWAY_TOKEN",
   );
   process.exit(1);

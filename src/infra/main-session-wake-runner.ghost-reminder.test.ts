@@ -7,7 +7,7 @@ import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import {
   seedMainSessionStore,
   setupTelegramHeartbeatPluginRuntimeForTests,
-  withTempHeartbeatSandbox,
+  withTempHeartbeatFixture,
 } from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
@@ -102,7 +102,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
     calledCtx: { Provider?: string; Body?: string; ForceSenderIsOwnerFalse?: boolean } | null;
     replyCallCount: number;
   }> => {
-    return withTempHeartbeatSandbox(
+    return withTempHeartbeatFixture(
       async ({ tmpDir, storePath }) => {
         const { sendTelegram, getReplySpy } = createMainSessionWakeDeps(params.replyText);
         const { cfg, sessionKey } = await createConfig({
@@ -232,7 +232,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
   });
 
   it("routes wake-triggered heartbeat replies using queued system-event delivery context", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg: CrawClawConfig = {
         agents: {
           defaults: {
@@ -290,7 +290,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
   });
 
   it("does not reuse stale turn-source routing for isolated wake runs", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg: CrawClawConfig = {
         agents: {
           defaults: {

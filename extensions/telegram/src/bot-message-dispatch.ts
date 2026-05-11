@@ -1,4 +1,3 @@
-import type { Bot } from "grammy";
 import { resolveAgentDir } from "crawclaw/plugin-sdk/agent-runtime";
 import {
   findModelInCatalog,
@@ -32,6 +31,7 @@ import type { ReplyPayload } from "crawclaw/plugin-sdk/reply-runtime";
 import { resolveAutoTopicLabelConfig, generateTopicLabel } from "crawclaw/plugin-sdk/reply-runtime";
 import { danger, logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
+import type { Bot } from "grammy";
 import { defaultTelegramBotDeps, type TelegramBotDeps } from "./bot-deps.js";
 import type { TelegramMessageContext } from "./bot-message-context.js";
 import type { TelegramBotOptions } from "./bot.js";

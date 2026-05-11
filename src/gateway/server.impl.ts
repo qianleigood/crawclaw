@@ -1,6 +1,5 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js";
-import { registerSkillsChangeListener } from "../agents/skills/refresh.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
 import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
 import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
@@ -39,11 +38,6 @@ import {
   formatPluginInstallPathIssue,
 } from "../infra/plugin-install-path-warnings.js";
 import { setGatewaySigusr1RestartPolicy, setPreRestartDeferralCheck } from "../infra/restart.js";
-import {
-  primeRemoteSkillsCache,
-  refreshRemoteBinsForConnectedNodes,
-  setSkillsRemoteRegistry,
-} from "../infra/skills-remote.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { scheduleGatewayUpdateCheck } from "../infra/update-startup.js";
 import { startDiagnosticHeartbeat, stopDiagnosticHeartbeat } from "../logging/diagnostic.js";
@@ -92,7 +86,6 @@ import {
 } from "./events.js";
 import { ExecApprovalManager } from "./exec-approval-manager.js";
 import { startGatewayModelPricingRefresh } from "./model-pricing-cache.js";
-import { NodeRegistry } from "./node-registry.js";
 import { createChannelManager } from "./server-channels.js";
 import {
   createAgentEventHandler,
@@ -110,12 +103,9 @@ import {
 import { GATEWAY_EVENTS, listGatewayMethods } from "./server-methods-list.js";
 import { coreGatewayHandlers } from "./server-methods.js";
 import { createExecApprovalHandlers } from "./server-methods/exec-approval.js";
-import { safeParseJson } from "./server-methods/nodes.helpers.js";
 import { createPluginApprovalHandlers } from "./server-methods/plugin-approval.js";
 import { createSecretsHandlers } from "./server-methods/secrets.js";
-import { hasConnectedMobileNode } from "./server-mobile-nodes.js";
 import { loadGatewayModelCatalog } from "./server-model-catalog.js";
-import { createNodeSubscriptionManager } from "./server-node-subscriptions.js";
 import {
   loadGatewayStartupPlugins,
   reloadDeferredGatewayPlugins,
@@ -722,9 +712,6 @@ export async function startGatewayServer(
   };
   let stopGatewayUpdateCheck = () => {};
   let tailscaleCleanup: (() => Promise<void>) | null = null;
-  let skillsRefreshTimer: ReturnType<typeof setTimeout> | null = null;
-  const skillsRefreshDelayMs = 30_000;
-  let skillsChangeUnsub = () => {};
   let channelHealthMonitor: ReturnType<typeof startChannelHealthMonitor> | null = null;
   let stopModelPricingRefresh = () => {};
   let configReloader: { stop: () => Promise<void> } = { stop: async () => {} };
@@ -732,11 +719,6 @@ export async function startGatewayServer(
     if (diagnosticsEnabled) {
       stopDiagnosticHeartbeat();
     }
-    if (skillsRefreshTimer) {
-      clearTimeout(skillsRefreshTimer);
-      skillsRefreshTimer = null;
-    }
-    skillsChangeUnsub();
     authRateLimiter?.dispose();
     browserAuthRateLimiter.dispose();
     stopModelPricingRefresh();
@@ -751,7 +733,6 @@ export async function startGatewayServer(
       cron,
       mainSessionWakeRunner,
       updateCheckStop: stopGatewayUpdateCheck,
-      nodePresenceTimers,
       broadcast,
       tickInterval,
       healthInterval,
@@ -769,26 +750,11 @@ export async function startGatewayServer(
       httpServers,
     })({ reason: "gateway startup failed" });
   };
-  const nodeRegistry = new NodeRegistry();
-  const nodePresenceTimers = new Map<string, ReturnType<typeof setInterval>>();
-  const nodeSubscriptions = createNodeSubscriptionManager();
   const sessionEventSubscribers = createSessionEventSubscriberRegistry();
   const sessionMessageSubscribers = createSessionMessageSubscriberRegistry();
-  const nodeSendEvent = (opts: { nodeId: string; event: string; payloadJSON?: string | null }) => {
-    const payload = safeParseJson(opts.payloadJSON ?? null);
-    nodeRegistry.sendEvent(opts.nodeId, opts.event, payload);
-  };
-  const nodeSendToSession = (sessionKey: string, event: string, payload: unknown) =>
-    nodeSubscriptions.sendToSession(sessionKey, event, payload, nodeSendEvent);
-  const nodeSendToAllSubscribed = (event: string, payload: unknown) =>
-    nodeSubscriptions.sendToAllSubscribed(event, payload, nodeSendEvent);
-  const nodeSubscribe = nodeSubscriptions.subscribe;
-  const nodeUnsubscribe = nodeSubscriptions.unsubscribe;
-  const nodeUnsubscribeAll = nodeSubscriptions.unsubscribeAll;
   const broadcastVoiceWakeChanged = (triggers: string[]) => {
     broadcast("voicewake.changed", { triggers }, { dropIfSlow: true });
   };
-  const hasMobileNodeConnected = () => hasConnectedMobileNode(nodeRegistry);
   applyGatewayLaneConcurrency(cfgAtStart);
 
   let cronState = buildGatewayCronService({
@@ -829,34 +795,10 @@ export async function startGatewayServer(
     }
 
     if (!minimalTestGateway) {
-      setSkillsRemoteRegistry(nodeRegistry);
-      void primeRemoteSkillsCache();
-    }
-    // Debounce skills-triggered node probes to avoid feedback loops and rapid-fire invokes.
-    // Skills changes can happen in bursts (e.g., file watcher events), and each probe
-    // takes time to complete. A 30-second delay ensures we batch changes together.
-    skillsChangeUnsub = minimalTestGateway
-      ? () => {}
-      : registerSkillsChangeListener((event) => {
-          if (event.reason === "remote-node") {
-            return;
-          }
-          if (skillsRefreshTimer) {
-            clearTimeout(skillsRefreshTimer);
-          }
-          skillsRefreshTimer = setTimeout(() => {
-            skillsRefreshTimer = null;
-            const latest = loadConfig();
-            void refreshRemoteBinsForConnectedNodes(latest);
-          }, skillsRefreshDelayMs);
-        });
-
-    if (!minimalTestGateway) {
       startTaskRegistryMaintenance();
       ({ tickInterval, healthInterval, dedupeCleanup, mediaCleanup } =
         startGatewayMaintenanceTimers({
           broadcast,
-          nodeSendToAllSubscribed,
           getPresenceVersion,
           getHealthVersion,
           refreshGatewayHealthSnapshot,
@@ -869,7 +811,6 @@ export async function startGatewayServer(
           chatDeltaLastBroadcastLen,
           removeChatRun,
           agentRunSeq,
-          nodeSendToSession,
           ...(typeof cfgAtStart.media?.ttlHours === "number"
             ? { mediaCleanupTtlMs: resolveMediaCleanupTtlMs(cfgAtStart.media.ttlHours) }
             : {}),
@@ -882,7 +823,6 @@ export async function startGatewayServer(
           createAgentEventHandler({
             broadcast,
             broadcastToConnIds,
-            nodeSendToSession,
             agentRunSeq,
             chatRunState,
             resolveSessionKeyForRun,
@@ -1197,12 +1137,6 @@ export async function startGatewayServer(
       getHealthVersion,
       broadcast,
       broadcastToConnIds,
-      nodeSendToSession,
-      nodeSendToAllSubscribed,
-      nodeSubscribe,
-      nodeUnsubscribe,
-      nodeUnsubscribeAll,
-      hasConnectedMobileNode: hasMobileNodeConnected,
       hasExecApprovalClients: (excludeConnId?: string) => {
         for (const gatewayClient of clients) {
           if (excludeConnId && gatewayClient.connId === excludeConnId) {
@@ -1232,7 +1166,6 @@ export async function startGatewayServer(
           }
         }
       },
-      nodeRegistry,
       agentRunSeq,
       chatAbortControllers,
       chatAbortedRuns: chatRunState.abortedRuns,
@@ -1700,7 +1633,7 @@ export async function startGatewayServer(
               }
             },
             reloadBrowserRuntime: () => {
-              // Browser runtime config is read lazily by browser/node-host call sites.
+              // Browser runtime config is read lazily by browser call sites.
               // Keeping an owner here prevents browser settings from falling back to restart.
             },
           });
@@ -1760,7 +1693,6 @@ export async function startGatewayServer(
       cron,
       mainSessionWakeRunner,
       updateCheckStop: stopGatewayUpdateCheck,
-      nodePresenceTimers,
       broadcast,
       tickInterval,
       healthInterval,
@@ -1789,11 +1721,6 @@ export async function startGatewayServer(
       if (diagnosticsEnabled) {
         stopDiagnosticHeartbeat();
       }
-      if (skillsRefreshTimer) {
-        clearTimeout(skillsRefreshTimer);
-        skillsRefreshTimer = null;
-      }
-      skillsChangeUnsub();
       authRateLimiter?.dispose();
       browserAuthRateLimiter.dispose();
       stopModelPricingRefresh();

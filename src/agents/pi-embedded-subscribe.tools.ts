@@ -138,9 +138,12 @@ const TRUSTED_TOOL_RESULT_MEDIA = new Set([
   "canvas",
   "cron",
   "edit",
-  "exec",
+  "bash",
   "gateway",
   "image",
+  "grep",
+  "find",
+  "ls",
   "message",
   "process",
   "read",
@@ -153,7 +156,6 @@ const TRUSTED_TOOL_RESULT_MEDIA = new Set([
   "tts",
   "web_fetch",
   "web_search",
-  "x_search",
   "write",
 ]);
 const HTTP_URL_RE = /^https?:\/\//i;

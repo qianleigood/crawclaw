@@ -53,9 +53,9 @@ describe("exec approvals wildcard agent", () => {
   });
 });
 
-describe("exec approvals node host allowlist check", () => {
-  // These tests verify the allowlist satisfaction logic used by the node host path
-  // The node host checks: matchAllowlist() || isSafeBinUsage() for each command segment
+describe("exec approvals host allowlist check", () => {
+  // These tests verify the allowlist satisfaction logic used by the host exec path.
+  // Host exec checks: matchAllowlist() || isSafeBinUsage() for each command segment.
   // Using hardcoded resolution objects for cross-platform compatibility
 
   it.each([

@@ -234,7 +234,9 @@ describe("web media loading", () => {
 
   it("respects maxBytes for raw URL fetches", async () => {
     fetchRemoteMediaMock.mockRejectedValueOnce(
-      new Error("Failed to fetch media from https://example.com/too-big.png: payload exceeds maxBytes 1024"),
+      new Error(
+        "Failed to fetch media from https://example.com/too-big.png: payload exceeds maxBytes 1024",
+      ),
     );
 
     await expect(loadWebMediaRaw("https://example.com/too-big.png", 1024)).rejects.toThrow(
@@ -436,23 +438,12 @@ describe("local media root guard", () => {
     ).rejects.toMatchObject({ code: "invalid-root" });
   });
 
-  it("allows default CrawClaw state workspace and sandbox roots", async () => {
+  it("allows default CrawClaw state workspace roots", async () => {
     const stateDir = resolveStateDir();
     const readFile = vi.fn(async () => Buffer.from("generated-media"));
 
     await expect(
       loadWebMedia(path.join(stateDir, "workspace", "tmp", "render.bin"), {
-        maxBytes: 1024 * 1024,
-        readFile,
-      }),
-    ).resolves.toEqual(
-      expect.objectContaining({
-        kind: undefined,
-      }),
-    );
-
-    await expect(
-      loadWebMedia(path.join(stateDir, "sandboxes", "session-1", "frame.bin"), {
         maxBytes: 1024 * 1024,
         readFile,
       }),

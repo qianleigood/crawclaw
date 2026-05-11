@@ -16,7 +16,6 @@ import {
   hasHelpOrVersion,
   isRootHelpInvocation,
 } from "./argv.js";
-import { maybeRunCliInContainer, parseCliContainerArgs } from "./container-target.js";
 import { applyCliProfileEnv, parseCliProfileArgs } from "./profile.js";
 import { tryRouteCli } from "./route.js";
 import { normalizeWindowsArgv } from "./windows-argv.js";
@@ -111,29 +110,12 @@ function shouldLoadCliDotEnv(env: NodeJS.ProcessEnv = process.env): boolean {
 
 export async function runCli(argv: string[] = process.argv) {
   const originalArgv = normalizeWindowsArgv(argv);
-  const parsedContainer = parseCliContainerArgs(originalArgv);
-  if (!parsedContainer.ok) {
-    throw new Error(parsedContainer.error);
-  }
-  const parsedProfile = parseCliProfileArgs(parsedContainer.argv);
+  const parsedProfile = parseCliProfileArgs(originalArgv);
   if (!parsedProfile.ok) {
     throw new Error(parsedProfile.error);
   }
   if (parsedProfile.profile) {
     applyCliProfileEnv({ profile: parsedProfile.profile });
-  }
-  const containerTargetName =
-    parsedContainer.container ?? process.env.CRAWCLAW_CONTAINER?.trim() ?? null;
-  if (containerTargetName && parsedProfile.profile) {
-    throw new Error("--container cannot be combined with --profile/--dev");
-  }
-
-  const containerTarget = maybeRunCliInContainer(originalArgv);
-  if (containerTarget.handled) {
-    if (containerTarget.exitCode !== 0) {
-      process.exitCode = containerTarget.exitCode;
-    }
-    return;
   }
   let normalizedArgv = parsedProfile.argv;
 

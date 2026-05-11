@@ -30,14 +30,14 @@ final messagesProvider = StreamProvider<List<Message>>((ref) {
 
 ### Provider Type Reference
 
-| Provider | Use Case |
-|----------|----------|
-| `Provider` | Computed/derived values, dependency injection |
-| `StateProvider` | Simple mutable state (counter, toggle) |
-| `FutureProvider` | Async operations (one-time fetch) |
-| `StreamProvider` | Real-time data streams |
-| `NotifierProvider` | Complex state with methods |
-| `AsyncNotifierProvider` | Async state with methods |
+| Provider                | Use Case                                      |
+| ----------------------- | --------------------------------------------- |
+| `Provider`              | Computed/derived values, dependency injection |
+| `StateProvider`         | Simple mutable state (counter, toggle)        |
+| `FutureProvider`        | Async operations (one-time fetch)             |
+| `StreamProvider`        | Real-time data streams                        |
+| `NotifierProvider`      | Complex state with methods                    |
+| `AsyncNotifierProvider` | Async state with methods                      |
 
 ## Notifier Pattern (Riverpod 2.0)
 
@@ -56,9 +56,9 @@ class TodoList extends _$TodoList {
   void toggle(String id) {
     state = [
       for (final todo in state)
-        if (todo.id == id) 
-          todo.copyWith(completed: !todo.completed) 
-        else 
+        if (todo.id == id)
+          todo.copyWith(completed: !todo.completed)
+        else
           todo,
     ];
   }
@@ -209,24 +209,24 @@ final user = ref.watch(userByIdProvider('123'));
 
 ## Best Practices
 
-| Do | Don't |
-|----|-------|
-| Use `ref.watch()` in build | Use `ref.watch()` in callbacks |
-| Use `ref.read()` in callbacks | Use `ref.read()` in build |
+| Do                                   | Don't                            |
+| ------------------------------------ | -------------------------------- |
+| Use `ref.watch()` in build           | Use `ref.watch()` in callbacks   |
+| Use `ref.read()` in callbacks        | Use `ref.read()` in build        |
 | Use `select()` for granular rebuilds | Watch entire state unnecessarily |
-| Create new state instances | Mutate state directly |
-| Use `AsyncValue.guard()` for errors | Catch errors manually |
+| Create new state instances           | Mutate state directly            |
+| Use `AsyncValue.guard()` for errors  | Catch errors manually            |
 
 ## Quick Reference
 
-| Method | When to Use |
-|--------|-------------|
-| `ref.watch()` | In build method, rebuilds on change |
-| `ref.read()` | In callbacks, one-time read |
-| `ref.listen()` | Side effects on change |
-| `ref.invalidate()` | Force provider refresh |
-| `ref.refresh()` | Invalidate and get new value |
+| Method             | When to Use                         |
+| ------------------ | ----------------------------------- |
+| `ref.watch()`      | In build method, rebuilds on change |
+| `ref.read()`       | In callbacks, one-time read         |
+| `ref.listen()`     | Side effects on change              |
+| `ref.invalidate()` | Force provider refresh              |
+| `ref.refresh()`    | Invalidate and get new value        |
 
 ---
 
-*Riverpod is an open-source state management library by Remi Rousselet.*
+_Riverpod is an open-source state management library by Remi Rousselet._

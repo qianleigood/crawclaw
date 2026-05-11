@@ -89,8 +89,8 @@ describe("infra/device-auth-store", () => {
       });
       storeDeviceAuthToken({
         deviceId: "device-1",
-        role: "node",
-        token: "node-token",
+        role: "legacy",
+        token: "legacy-token",
         env,
       });
 
@@ -101,8 +101,8 @@ describe("infra/device-auth-store", () => {
       });
 
       expect(loadDeviceAuthToken({ deviceId: "device-1", role: "operator", env })).toBeNull();
-      expect(loadDeviceAuthToken({ deviceId: "device-1", role: "node", env })).toMatchObject({
-        token: "node-token",
+      expect(loadDeviceAuthToken({ deviceId: "device-1", role: "legacy", env })).toMatchObject({
+        token: "legacy-token",
       });
     });
   });

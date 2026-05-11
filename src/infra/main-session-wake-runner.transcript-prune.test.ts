@@ -7,7 +7,7 @@ import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import {
   seedSessionStore,
   setupTelegramHeartbeatPluginRuntimeForTests,
-  withTempTelegramHeartbeatSandbox,
+  withTempTelegramHeartbeatFixture,
 } from "./main-session-wake-runner.test-utils.js";
 
 beforeEach(() => {
@@ -42,7 +42,7 @@ describe("heartbeat transcript pruning", () => {
     };
     expectPruned: boolean;
   }) {
-    await withTempTelegramHeartbeatSandbox(
+    await withTempTelegramHeartbeatFixture(
       async ({ tmpDir, storePath, replySpy }) => {
         const sessionKey = resolveMainSessionKey(undefined);
         const transcriptPath = path.join(tmpDir, `${params.sessionId}.jsonl`);

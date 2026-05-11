@@ -9,8 +9,7 @@ import {
   shouldClearStoredApnsRegistration,
 } from "../../infra/push-apns.js";
 import { ErrorCodes, errorShape, validatePushTestParams } from "../protocol/index.js";
-import { respondInvalidParams, respondUnavailableOnThrow } from "./nodes.helpers.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
   if (typeof value !== "string") {
@@ -18,6 +17,32 @@ function normalizeOptionalString(value: unknown): string | undefined {
   }
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function respondInvalidParams(params: {
+  respond: RespondFn;
+  method: string;
+  validator: { errors?: unknown };
+}) {
+  params.respond(
+    false,
+    undefined,
+    errorShape(ErrorCodes.INVALID_REQUEST, `invalid params for ${params.method}`, {
+      details: params.validator.errors,
+    }),
+  );
+}
+
+async function respondUnavailableOnThrow(
+  respond: RespondFn,
+  fn: () => Promise<void>,
+): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, message));
+  }
 }
 
 export const pushHandlers: GatewayRequestHandlers = {

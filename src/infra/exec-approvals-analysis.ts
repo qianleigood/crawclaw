@@ -363,11 +363,10 @@ const WINDOWS_ALWAYS_UNSAFE_TOKENS = new Set(["\n", "\r", "%", "`"]);
 
 function findWindowsUnsupportedToken(command: string): string | null {
   let inDouble = false;
-  // Single-quote tracking is intentionally omitted here.  cmd.exe (used by the
-  // node-host exec path via buildNodeShellCommand) does not recognise single
-  // quotes as quoting, so metacharacters inside single-quoted strings remain
-  // active at runtime.  Rejecting them at this layer keeps both execution paths
-  // (PowerShell gateway and cmd.exe node-host) safe.
+  // Single-quote tracking is intentionally omitted here. cmd.exe does not
+  // recognise single quotes as quoting, so metacharacters inside single-quoted
+  // strings remain active at runtime. Rejecting them at this layer keeps the
+  // Windows gateway execution path safe.
   // tokenizeWindowsSegment does track single quotes for accurate argv extraction
   // during enforcement, which is a separate concern from the safety check here.
   for (let i = 0; i < command.length; i++) {

@@ -12,7 +12,6 @@ export type AgentSpawnToolContext = {
   agentGroupChannel?: string | null;
   agentGroupSpace?: string | null;
   requesterAgentIdOverride?: string;
-  sandboxed?: boolean;
   workspaceDir?: string;
 };
 
@@ -26,7 +25,6 @@ export type NormalizedAgentSpawnContext = {
   agentGroupChannel?: string;
   agentGroupSpace?: string;
   requesterAgentIdOverride?: string;
-  sandboxed?: boolean;
   workspaceDir?: string;
   requesterOrigin?: ReturnType<typeof normalizeDeliveryContext>;
 };
@@ -72,7 +70,6 @@ export function normalizeAgentSpawnContext(
     ...(normalizeOptionalText(value?.requesterAgentIdOverride)
       ? { requesterAgentIdOverride: normalizeOptionalText(value?.requesterAgentIdOverride) }
       : {}),
-    ...(value?.sandboxed === true ? { sandboxed: true } : {}),
     ...(normalizeOptionalText(value?.workspaceDir)
       ? { workspaceDir: normalizeOptionalText(value?.workspaceDir) }
       : {}),
@@ -112,6 +109,5 @@ export function toAcpSpawnContext(value?: NormalizedAgentSpawnContext | null): S
     ...(value?.agentTo ? { agentTo: value.agentTo } : {}),
     ...(value?.agentThreadId !== undefined ? { agentThreadId: value.agentThreadId } : {}),
     ...(value?.agentGroupId ? { agentGroupId: value.agentGroupId } : {}),
-    ...(value?.sandboxed === true ? { sandboxed: true } : {}),
   };
 }

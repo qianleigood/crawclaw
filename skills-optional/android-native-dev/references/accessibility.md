@@ -6,15 +6,15 @@ Comprehensive accessibility requirements for Android applications.
 
 ### Minimum Standards
 
-| Requirement | Specification |
-|-------------|---------------|
-| Color contrast (text) | 4.5:1 minimum |
-| Color contrast (large text) | 3:1 minimum |
-| Color contrast (UI components) | 3:1 minimum |
-| Touch targets | 48 × 48dp minimum |
-| Content descriptions | All interactive elements |
-| Focus indicators | Clearly visible |
-| Screen reader support | Proper semantics |
+| Requirement                    | Specification            |
+| ------------------------------ | ------------------------ |
+| Color contrast (text)          | 4.5:1 minimum            |
+| Color contrast (large text)    | 3:1 minimum              |
+| Color contrast (UI components) | 3:1 minimum              |
+| Touch targets                  | 48 × 48dp minimum        |
+| Content descriptions           | All interactive elements |
+| Focus indicators               | Clearly visible          |
+| Screen reader support          | Proper semantics         |
 
 ## Content Labels
 
@@ -23,12 +23,14 @@ Comprehensive accessibility requirements for Android applications.
 Use for non-text interactive elements.
 
 **When to use:**
+
 - ImageView, ImageButton
 - CheckBox, Switch (state description)
 - Custom drawable views
 - Icons that convey meaning
 
 **When NOT to use:**
+
 - TextView (uses text content automatically)
 - Decorative images (set to null)
 - Elements with labelFor relationship
@@ -47,30 +49,30 @@ Link labels to input fields by setting labelFor on the TextView to reference the
 
 ### Do's
 
-| Practice | Example |
-|----------|---------|
-| Be concise | "Save" not "Click here to save" |
-| Describe action/purpose | "Delete message" |
-| Be unique in context | "Delete item 3" not just "Delete" |
-| Update dynamically | "Pause" ↔ "Play" based on state |
+| Practice                | Example                           |
+| ----------------------- | --------------------------------- |
+| Be concise              | "Save" not "Click here to save"   |
+| Describe action/purpose | "Delete message"                  |
+| Be unique in context    | "Delete item 3" not just "Delete" |
+| Update dynamically      | "Pause" ↔ "Play" based on state   |
 
 ### Don'ts
 
-| Avoid | Reason |
-|-------|--------|
-| Include element type | TalkBack announces "button" automatically |
-| Say "button", "image", etc. | Redundant with accessibility info |
-| Use "click" or "tap" | Input method varies |
-| Leave empty/generic | "Button" or "Image" is unhelpful |
+| Avoid                       | Reason                                    |
+| --------------------------- | ----------------------------------------- |
+| Include element type        | TalkBack announces "button" automatically |
+| Say "button", "image", etc. | Redundant with accessibility info         |
+| Use "click" or "tap"        | Input method varies                       |
+| Leave empty/generic         | "Button" or "Image" is unhelpful          |
 
 ### Examples
 
-| Bad | Good |
-|-----|------|
-| "Save button" | "Save" |
-| "Click here to submit" | "Submit" |
-| "Image" | "Profile photo of John" |
-| "Button 1" | "Add to cart" |
+| Bad                    | Good                    |
+| ---------------------- | ----------------------- |
+| "Save button"          | "Save"                  |
+| "Click here to submit" | "Submit"                |
+| "Image"                | "Profile photo of John" |
+| "Button 1"             | "Add to cart"           |
 
 ## Focus and Navigation
 
@@ -96,6 +98,7 @@ Identify screen regions with `accessibilityPaneTitle`. Accessibility services an
 ## Decorative Elements
 
 Skip elements that don't convey information:
+
 - Set `contentDescription="@null"`
 - Or set `importantForAccessibility="no"`
 
@@ -115,17 +118,18 @@ Make default actions more descriptive using `ViewCompat.replaceAccessibilityActi
 
 Combine color with other indicators:
 
-| Information | Color + Alternative |
-|-------------|---------------------|
-| Error state | Red + error icon + text |
-| Success | Green + checkmark + text |
+| Information    | Color + Alternative             |
+| -------------- | ------------------------------- |
+| Error state    | Red + error icon + text         |
+| Success        | Green + checkmark + text        |
 | Required field | Red asterisk + "Required" label |
-| Selected item | Highlight + checkmark + bold |
-| Link text | Blue + underline |
+| Selected item  | Highlight + checkmark + bold    |
+| Link text      | Blue + underline                |
 
 ### Contrast Testing
 
 Use tools to verify contrast:
+
 - Android Accessibility Scanner
 - Contrast Checker plugins
 - Manual calculation: (L1 + 0.05) / (L2 + 0.05)
@@ -134,11 +138,11 @@ Use tools to verify contrast:
 
 ### Minimum Sizes
 
-| Element | Minimum | Recommended |
-|---------|---------|-------------|
-| Standard | 48 × 48dp | 48 × 48dp |
-| Primary actions | 48 × 48dp | 56 × 56dp |
-| Kids apps | 56 × 56dp | 64 × 64dp |
+| Element         | Minimum   | Recommended |
+| --------------- | --------- | ----------- |
+| Standard        | 48 × 48dp | 48 × 48dp   |
+| Primary actions | 48 × 48dp | 56 × 56dp   |
+| Kids apps       | 56 × 56dp | 64 × 64dp   |
 
 ### Spacing
 
@@ -151,11 +155,11 @@ Use tools to verify contrast:
 
 Announce dynamic content changes using `accessibilityLiveRegion`:
 
-| Mode | Usage |
-|------|-------|
-| polite | Announces when user is idle |
-| assertive | Interrupts current speech |
-| none | No automatic announcements |
+| Mode      | Usage                       |
+| --------- | --------------------------- |
+| polite    | Announces when user is idle |
+| assertive | Interrupts current speech   |
+| none      | No automatic announcements  |
 
 ### Custom Announcements
 
@@ -189,11 +193,11 @@ Use `announceForAccessibility()` sparingly—prefer live regions.
 
 ### Automated Testing
 
-| Tool | Purpose |
-|------|---------|
-| Accessibility Scanner | On-device scanning |
+| Tool                          | Purpose            |
+| ----------------------------- | ------------------ |
+| Accessibility Scanner         | On-device scanning |
 | Espresso Accessibility Checks | Automated UI tests |
-| Lint checks | Static analysis |
+| Lint checks                   | Static analysis    |
 
 ### Checklist
 

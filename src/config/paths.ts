@@ -204,8 +204,8 @@ function parseGatewayPortEnvValue(raw: string | undefined): number | null {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
-  // Docker Compose publish strings can leak into host CLI env loading via repo `.env`,
-  // for example `127.0.0.1:18789` or `[::1]:18789`. Accept only explicit host:port forms.
+  // Port publish strings can leak into host CLI env loading via repo `.env`.
+  // Accept only explicit host:port forms, for example `127.0.0.1:18789`.
   const bracketedIpv6Match = trimmed.match(/^\[[^\]]+\]:(\d+)$/);
   if (bracketedIpv6Match?.[1]) {
     const parsed = Number.parseInt(bracketedIpv6Match[1], 10);

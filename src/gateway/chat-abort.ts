@@ -42,7 +42,6 @@ export type ChatAbortOps = {
   ) => { sessionKey: string; clientRunId: string } | undefined;
   agentRunSeq: Map<string, number>;
   broadcast: (event: string, payload: unknown, opts?: { dropIfSlow?: boolean }) => void;
-  nodeSendToSession: (sessionKey: string, event: string, payload: unknown) => void;
 };
 
 function broadcastChatAborted(
@@ -70,7 +69,6 @@ function broadcastChatAborted(
       : undefined,
   };
   ops.broadcast("chat", payload);
-  ops.nodeSendToSession(sessionKey, "chat", payload);
 }
 
 export function abortChatRunById(

@@ -102,7 +102,6 @@ describe("web_fetch Cloudflare Markdown for Agents", () => {
           },
         },
       },
-      sandboxed: false,
       runtimeWebFetch: {
         providerConfigured: "removed-provider",
         providerSource: "configured",

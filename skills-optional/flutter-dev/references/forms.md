@@ -628,29 +628,29 @@ class _AutoSaveFormState extends State<AutoSaveForm> {
 
 ## Common Keyboard Types
 
-| Type | Usage |
-|------|-------|
-| `TextInputType.text` | General text |
-| `TextInputType.emailAddress` | Email with @ keyboard |
-| `TextInputType.phone` | Phone number pad |
-| `TextInputType.number` | Numeric keyboard |
-| `TextInputType.numberWithOptions(decimal: true)` | Numbers with decimal |
-| `TextInputType.multiline` | Multi-line text |
-| `TextInputType.url` | URL with shortcuts |
+| Type                                             | Usage                 |
+| ------------------------------------------------ | --------------------- |
+| `TextInputType.text`                             | General text          |
+| `TextInputType.emailAddress`                     | Email with @ keyboard |
+| `TextInputType.phone`                            | Phone number pad      |
+| `TextInputType.number`                           | Numeric keyboard      |
+| `TextInputType.numberWithOptions(decimal: true)` | Numbers with decimal  |
+| `TextInputType.multiline`                        | Multi-line text       |
+| `TextInputType.url`                              | URL with shortcuts    |
 
 ## Form Checklist
 
-| Item | Implementation |
-|------|----------------|
-| GlobalKey | `GlobalKey<FormState>()` for form |
-| Dispose controllers | Clean up in `dispose()` |
-| Validation | Client + server-side |
-| Input formatters | Phone, currency, etc. |
-| Keyboard types | Match input type |
-| Text actions | `textInputAction` for flow |
-| Loading state | Disable during submission |
-| Error display | Show below fields |
+| Item                | Implementation                    |
+| ------------------- | --------------------------------- |
+| GlobalKey           | `GlobalKey<FormState>()` for form |
+| Dispose controllers | Clean up in `dispose()`           |
+| Validation          | Client + server-side              |
+| Input formatters    | Phone, currency, etc.             |
+| Keyboard types      | Match input type                  |
+| Text actions        | `textInputAction` for flow        |
+| Loading state       | Disable during submission         |
+| Error display       | Show below fields                 |
 
 ---
 
-*Flutter and Material Design are trademarks of Google LLC.*
+_Flutter and Material Design are trademarks of Google LLC._

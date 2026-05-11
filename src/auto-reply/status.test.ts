@@ -617,7 +617,7 @@ describe("buildStatusMessage", () => {
       queue: { mode: "collect", depth: 0 },
     });
 
-    expect(normalizeTestText(text)).toContain("Runtime: docker/all");
+    expect(normalizeTestText(text)).toContain("Runtime: sandbox/all");
   });
 
   it("shows verbose/elevated labels only when enabled", () => {

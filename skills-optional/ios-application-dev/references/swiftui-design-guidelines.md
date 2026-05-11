@@ -48,7 +48,7 @@ Never place interactive or essential content under the status bar, Dynamic Islan
 ZStack {
     LinearGradient(colors: [.blue, .purple], startPoint: .top, endPoint: .bottom)
         .ignoresSafeArea()
-    
+
     VStack {
         Text("Welcome")
             .font(.largeTitle)
@@ -66,9 +66,9 @@ VStack {
     ScrollView {
         // Content
     }
-    
+
     Spacer()
-    
+
     Button("Submit") { submit() }
         .buttonStyle(.borderedProminent)
         .padding(.horizontal)
@@ -92,10 +92,10 @@ var body: some View {
 }
 ```
 
-| Size Class | Devices |
-|------------|---------|
+| Size Class    | Devices                                 |
+| ------------- | --------------------------------------- |
 | Compact width | iPhone portrait, small iPhone landscape |
-| Regular width | iPad, large iPhone landscape |
+| Regular width | iPad, large iPhone landscape            |
 
 Use flexible layouts, avoid hardcoded widths:
 
@@ -140,13 +140,13 @@ TabView(selection: $selectedTab) {
             Label("Home", systemImage: "house")
         }
         .tag(Tab.home)
-    
+
     DiscoverView()
         .tabItem {
             Label("Discover", systemImage: "magnifyingglass")
         }
         .tag(Tab.discover)
-    
+
     AccountView()
         .tabItem {
             Label("Account", systemImage: "person")
@@ -158,16 +158,19 @@ TabView(selection: $selectedTab) {
 ### 2.2 Navigation Architecture
 
 **Tab Bar (Flat)** — For 3-5 equal-importance sections
+
 - Always visible except when covered by modals
 - Each tab maintains its own navigation stack
 - Most important content leftmost (easier thumb access)
 
 **Hierarchical (Drill-Down)** — For tree-structured info
+
 - Push/pop navigation with back button
 - Minimize depth (3-4 levels max)
 - Provide search as escape hatch for deep trees
 
 **Modal (Focused Tasks)** — For self-contained workflows
+
 - Full-screen for critical tasks
 - Page sheet for dismissible tasks (swipe-down)
 - Clear Done/Cancel with confirmation if data loss possible
@@ -230,26 +233,26 @@ When users navigate back and then forward, or switch tabs, restore the previous 
 
 Always use semantic text styles—they scale with Dynamic Type automatically:
 
-| Style | Usage |
-|-------|-------|
-| `.largeTitle` | Screen titles |
-| `.title`, `.title2`, `.title3` | Section headers |
-| `.headline` | Emphasized body text |
-| `.body` | Primary content (17pt default) |
-| `.callout` | Secondary emphasized |
-| `.subheadline` | Supporting labels |
-| `.footnote`, `.caption` | Tertiary info |
-| `.caption2` | Minimum size (11pt) |
+| Style                          | Usage                          |
+| ------------------------------ | ------------------------------ |
+| `.largeTitle`                  | Screen titles                  |
+| `.title`, `.title2`, `.title3` | Section headers                |
+| `.headline`                    | Emphasized body text           |
+| `.body`                        | Primary content (17pt default) |
+| `.callout`                     | Secondary emphasized           |
+| `.subheadline`                 | Supporting labels              |
+| `.footnote`, `.caption`        | Tertiary info                  |
+| `.caption2`                    | Minimum size (11pt)            |
 
 ```swift
 VStack(alignment: .leading, spacing: 8) {
     Text("Article Title")
         .font(.headline)
-    
+
     Text("Published by Author Name")
         .font(.subheadline)
         .foregroundStyle(.secondary)
-    
+
     Text(articleBody)
         .font(.body)
 }
@@ -319,21 +322,24 @@ SF Symbols automatically match text weight, scale with Dynamic Type, and align t
 Never use hard-coded RGB, hex, or `.black`/`.white` directly. Use semantic colors:
 
 **Labels:**
+
 - `.primary`, `.secondary`, `.tertiary`, `.quaternary`
 
 **Backgrounds:**
+
 - `Color(.systemBackground)` — primary surface
 - `Color(.secondarySystemBackground)` — cards, grouped
 - `Color(.tertiarySystemBackground)` — nested elements
 
 **System Colors (adapt to appearance):**
+
 - `.blue`, `.red`, `.green`, `.orange`, `.yellow`, `.purple`, `.pink`, `.cyan`, `.mint`, `.teal`, `.indigo`, `.brown`, `.gray`
 
 ```swift
 VStack {
     Text("Primary content")
         .foregroundStyle(.primary)
-    
+
     Text("Supporting info")
         .foregroundStyle(.secondary)
 }
@@ -343,6 +349,7 @@ VStack {
 ### 4.2 Custom Colors Need 4 Variants
 
 For custom colors, define in asset catalog with all appearance combinations:
+
 1. Light mode
 2. Dark mode
 3. Light mode + High Contrast
@@ -357,7 +364,7 @@ For dynamic colors in code:
 
 ```swift
 let dynamicColor = UIColor { traits in
-    traits.userInterfaceStyle == .dark 
+    traits.userInterfaceStyle == .dark
         ? UIColor(red: 0.9, green: 0.9, blue: 1.0, alpha: 1.0)
         : UIColor(red: 0.1, green: 0.1, blue: 0.2, alpha: 1.0)
 }
@@ -525,10 +532,10 @@ Use the built-in button styles appropriately:
 VStack(spacing: 16) {
     Button("Checkout") { checkout() }
         .buttonStyle(.borderedProminent)
-    
+
     Button("Add to Wishlist") { addToWishlist() }
         .buttonStyle(.bordered)
-    
+
     Button("Remove Item", role: .destructive) { removeItem() }
 }
 ```
@@ -574,17 +581,20 @@ Present sheets for self-contained tasks. Always provide a way to dismiss (close 
 Most iOS apps are lists ("90% of mobile design is list design").
 
 **List Styles:**
+
 - `.insetGrouped` — Modern default (rounded corners, margins)
 - `.grouped` — Traditional grouped sections
 - `.plain` — Edge-to-edge rows
 - `.sidebar` — Three-column iPad layout
 
 **Swipe Actions:**
+
 - Leading swipe → Positive actions (mark read, archive)
 - Trailing swipe → Destructive actions (delete at far right)
 - Maximum 3-4 actions per side
 
 **Row Accessories:**
+
 - Chevron → Indicates navigation
 - Checkmark → Shows selection
 - Detail button → Additional info without navigation
@@ -600,7 +610,7 @@ List {
                     } label: {
                         Label("Delete", systemImage: "trash")
                     }
-                    
+
                     Button {
                         markRead(notification)
                     } label: {
@@ -678,6 +688,7 @@ ImageThumbnail(image: image)
 ### 7.8 Forms and Input
 
 **Text Fields:**
+
 - 44pt minimum height
 - Match keyboard type to input (`.emailAddress`, `.numberPad`, `.URL`)
 - Clear button when text entered
@@ -690,11 +701,11 @@ Form {
             .textContentType(.emailAddress)
             .keyboardType(.emailAddress)
             .autocapitalization(.none)
-        
+
         SecureField("Password", text: $password)
             .textContentType(.password)
     }
-    
+
     Section {
         Button("Sign In") { signIn() }
             .disabled(email.isEmpty || password.isEmpty)
@@ -703,6 +714,7 @@ Form {
 ```
 
 **Pickers:**
+
 - Inline → 3-7 options
 - Menu → 2-5 options (iOS 14+)
 - Wheel → Date/time or long lists
@@ -717,7 +729,7 @@ Form {
 VStack {
     ProgressView(value: uploadProgress, total: 1.0)
         .progressViewStyle(.linear)
-    
+
     Text("\(Int(uploadProgress * 100))% uploaded")
         .font(.caption)
         .foregroundStyle(.secondary)
@@ -819,11 +831,11 @@ List(items) { item in
 
 Provide tactile response for significant actions:
 
-| Generator | Usage |
-|-----------|-------|
-| `UIImpactFeedbackGenerator` | Physical impacts (.light, .medium, .heavy) |
-| `UINotificationFeedbackGenerator` | Success, warning, error |
-| `UISelectionFeedbackGenerator` | Selection changes |
+| Generator                         | Usage                                      |
+| --------------------------------- | ------------------------------------------ |
+| `UIImpactFeedbackGenerator`       | Physical impacts (.light, .medium, .heavy) |
+| `UINotificationFeedbackGenerator` | Success, warning, error                    |
+| `UISelectionFeedbackGenerator`    | Selection changes                          |
 
 ```swift
 Button("Complete") {
@@ -864,19 +876,19 @@ struct LocationPermissionView: View {
             Image(systemName: "location.fill")
                 .font(.system(size: 48))
                 .foregroundStyle(.blue)
-            
+
             Text("Find Nearby Places")
                 .font(.title2.bold())
-            
+
             Text("We use your location to show relevant results. Your location is never stored or shared.")
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
-            
+
             Button("Enable Location") {
                 locationManager.requestWhenInUseAuthorization()
             }
             .buttonStyle(.borderedProminent)
-            
+
             Button("Not Now") { dismiss() }
                 .foregroundStyle(.secondary)
         }
@@ -984,41 +996,41 @@ var body: some View {
 
 ### Navigation & Structure
 
-| Component | When to Use |
-|-----------|-------------|
-| `TabView` | 3-5 main app sections |
-| `NavigationStack` | Hierarchical content drill-down |
-| `.sheet` | Focused tasks requiring user completion |
-| `.alert` | Decisions that block workflow |
-| `.contextMenu` | Additional actions (always provide alternatives) |
+| Component         | When to Use                                      |
+| ----------------- | ------------------------------------------------ |
+| `TabView`         | 3-5 main app sections                            |
+| `NavigationStack` | Hierarchical content drill-down                  |
+| `.sheet`          | Focused tasks requiring user completion          |
+| `.alert`          | Decisions that block workflow                    |
+| `.contextMenu`    | Additional actions (always provide alternatives) |
 
 ### Data Display
 
-| Component | When to Use |
-|-----------|-------------|
-| `List` | Scrollable rows with sections |
-| `LazyVGrid` / `LazyHGrid` | Grid layouts |
-| `.searchable` | Filterable content |
-| `ProgressView` | Loading or task progress |
+| Component                 | When to Use                   |
+| ------------------------- | ----------------------------- |
+| `List`                    | Scrollable rows with sections |
+| `LazyVGrid` / `LazyHGrid` | Grid layouts                  |
+| `.searchable`             | Filterable content            |
+| `ProgressView`            | Loading or task progress      |
 
 ### User Input
 
-| Component | When to Use |
-|-----------|-------------|
-| `TextField` | Single-line text |
-| `TextEditor` | Multi-line text |
-| `Picker` | Selection from options |
-| `Toggle` | Binary on/off choice |
-| `Stepper` | Numeric increment/decrement |
+| Component    | When to Use                 |
+| ------------ | --------------------------- |
+| `TextField`  | Single-line text            |
+| `TextEditor` | Multi-line text             |
+| `Picker`     | Selection from options      |
+| `Toggle`     | Binary on/off choice        |
+| `Stepper`    | Numeric increment/decrement |
 
 ### System Features
 
-| Component | When to Use |
-|-----------|-------------|
-| `ShareLink` | Content sharing |
-| `LocationButton` | One-time location access |
-| `PhotosPicker` | Image selection |
-| `UIImpactFeedbackGenerator` | Tactile response |
+| Component                   | When to Use              |
+| --------------------------- | ------------------------ |
+| `ShareLink`                 | Content sharing          |
+| `LocationButton`            | One-time location access |
+| `PhotosPicker`              | Image selection          |
+| `UIImpactFeedbackGenerator` | Tactile response         |
 
 ---
 
@@ -1026,23 +1038,23 @@ var body: some View {
 
 Avoid these common HIG violations:
 
-| Pattern | Problem | Solution |
-|---------|---------|----------|
-| Hamburger/drawer menu | Hides navigation, users miss features | Use TabView with 3-5 tabs |
-| Broken back swipe | Custom gestures block system navigation | Keep NavigationStack default behavior |
-| Full-screen spinner | App feels frozen, no progress indication | Use skeleton views with `.redacted()` |
-| Logo splash screen | Artificial delay, wastes user time | Match launch screen to first view |
-| Permissions at launch | Users deny without context | Request when action requires it |
-| Fixed font sizes | Breaks Dynamic Type, accessibility issues | Use `.font(.body)` semantic styles |
-| Color-only status | Colorblind users miss information | Add icons or text labels |
-| Alert overuse | Interrupts flow for minor info | Use inline messages or banners |
-| Hidden tab bar | Users lose navigation context | Keep tab bar visible on push |
-| Content in unsafe areas | Text hidden under notch/Dynamic Island | Only ignore safe area for backgrounds |
-| No modal dismiss | Users trapped in view | Add cancel button and swipe dismiss |
-| Gesture-only actions | Accessibility users blocked | Provide button/menu alternatives |
-| Small tap targets | Frequent mis-taps | Minimum 44x44pt hit area |
-| Nested modals | Navigation confusion | Use NavigationStack within single sheet |
-| Hardcoded colors | Broken in Dark Mode | Use semantic colors or asset variants |
+| Pattern                 | Problem                                   | Solution                                |
+| ----------------------- | ----------------------------------------- | --------------------------------------- |
+| Hamburger/drawer menu   | Hides navigation, users miss features     | Use TabView with 3-5 tabs               |
+| Broken back swipe       | Custom gestures block system navigation   | Keep NavigationStack default behavior   |
+| Full-screen spinner     | App feels frozen, no progress indication  | Use skeleton views with `.redacted()`   |
+| Logo splash screen      | Artificial delay, wastes user time        | Match launch screen to first view       |
+| Permissions at launch   | Users deny without context                | Request when action requires it         |
+| Fixed font sizes        | Breaks Dynamic Type, accessibility issues | Use `.font(.body)` semantic styles      |
+| Color-only status       | Colorblind users miss information         | Add icons or text labels                |
+| Alert overuse           | Interrupts flow for minor info            | Use inline messages or banners          |
+| Hidden tab bar          | Users lose navigation context             | Keep tab bar visible on push            |
+| Content in unsafe areas | Text hidden under notch/Dynamic Island    | Only ignore safe area for backgrounds   |
+| No modal dismiss        | Users trapped in view                     | Add cancel button and swipe dismiss     |
+| Gesture-only actions    | Accessibility users blocked               | Provide button/menu alternatives        |
+| Small tap targets       | Frequent mis-taps                         | Minimum 44x44pt hit area                |
+| Nested modals           | Navigation confusion                      | Use NavigationStack within single sheet |
+| Hardcoded colors        | Broken in Dark Mode                       | Use semantic colors or asset variants   |
 
 ---
 
@@ -1051,6 +1063,7 @@ Avoid these common HIG violations:
 Code review checklist for SwiftUI apps:
 
 ### Layout
+
 - [ ] Interactive elements have 44pt minimum touch area
 - [ ] Essential content stays within safe area bounds
 - [ ] Main actions positioned for one-handed use (bottom)
@@ -1058,6 +1071,7 @@ Code review checklist for SwiftUI apps:
 - [ ] Spacing uses 8pt increments
 
 ### Navigation
+
 - [ ] Main sections use bottom TabView (3-5 tabs)
 - [ ] No drawer/hamburger navigation
 - [ ] Root views show large navigation titles
@@ -1065,29 +1079,34 @@ Code review checklist for SwiftUI apps:
 - [ ] Tab state persists when switching
 
 ### Text & Fonts
+
 - [ ] Text uses semantic styles (`.body`, `.headline`, etc.)
 - [ ] Dynamic Type works at all sizes including accessibility
 - [ ] Content reflows without truncation at large sizes
 - [ ] No text below 11pt
 
 ### Colors
+
 - [ ] Uses `.primary`, `.secondary`, `Color(.systemBackground)`
 - [ ] Custom colors have light/dark variants in assets
 - [ ] Status indicators combine color with icon/text
 - [ ] Text contrast ratio meets WCAG AA
 
 ### Accessibility
+
 - [ ] Icon buttons have `.accessibilityLabel()`
 - [ ] VoiceOver order matches logical flow
 - [ ] Animations respect `accessibilityReduceMotion`
 - [ ] All actions have non-gesture alternatives
 
 ### Modals & Alerts
+
 - [ ] Alerts reserved for critical decisions only
 - [ ] Sheets provide clear dismiss mechanism
 - [ ] No stacked modal presentations
 
 ### Permissions
+
 - [ ] Permissions requested at point of use
 - [ ] Pre-permission explanation screens used
 - [ ] Core features work without sign-in
@@ -1142,26 +1161,30 @@ NavigationSplitView(columnVisibility: $columnVisibility) {
 Run through these scenarios before shipping:
 
 **Visual consistency:**
+
 - Switch between Light/Dark mode—does everything remain readable?
 - Crank Dynamic Type to maximum—does layout adapt or break?
 - Enable Bold Text—do custom fonts respond?
 
 **Interaction quality:**
+
 - Can you complete every action using only VoiceOver?
 - Do all buttons feel tappable on first try (no mis-taps)?
 - Does back-swipe work everywhere in navigation?
 
 **Edge cases:**
+
 - What happens on iPhone SE's small screen?
 - What happens on iPad with keyboard attached?
 - What shows when network fails mid-operation?
 - What happens if user denies permissions?
 
 **Platform compliance:**
+
 - Are you using SF Symbols instead of custom icon PNGs?
 - Are all colors from semantic palette or asset catalog with variants?
 - Do destructive actions require explicit confirmation?
 
 ---
 
-*SwiftUI, SF Symbols, Dynamic Island, and Apple are trademarks of Apple Inc.*
+_SwiftUI, SF Symbols, Dynamic Island, and Apple are trademarks of Apple Inc._

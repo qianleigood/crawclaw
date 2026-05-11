@@ -20,6 +20,7 @@ Use this reference when you need input coverage, output layout, default analysis
 ## Typical job directory
 
 The workflow writes a job directory containing:
+
 - job metadata
 - manifests
 - source videos
@@ -31,6 +32,7 @@ The workflow writes a job directory containing:
 ## Feishu behavior
 
 When configured, completion can automatically send:
+
 - a text summary
 - a `.docx` report
 

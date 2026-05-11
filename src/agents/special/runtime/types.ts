@@ -75,7 +75,6 @@ export type SpecialAgentDefinition = {
   runtime?: SpawnAgentSessionParams["runtime"];
   mode?: SpawnAgentSessionParams["mode"];
   cleanup?: SpawnAgentSessionParams["cleanup"];
-  sandbox?: SpawnAgentSessionParams["sandbox"];
   expectsCompletionMessage?: boolean;
   defaultRunTimeoutSeconds?: number;
   defaultMaxTurns?: number;

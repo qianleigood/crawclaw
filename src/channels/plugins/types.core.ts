@@ -65,7 +65,7 @@ export type ChannelMessageToolDiscovery = {
   schema?: ChannelMessageToolSchemaContribution | ChannelMessageToolSchemaContribution[] | null;
   /**
    * Plugin-owned message-tool params that carry media sources. Core uses this
-   * to derive sandbox path normalization and host media access without
+   * to derive local path normalization and host media access without
    * hardcoding plugin-specific param names.
    */
   mediaSourceParams?: ChannelMessageToolMediaSourceParams | null;

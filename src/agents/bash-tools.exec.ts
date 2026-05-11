@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
+import { resolveBoundaryPath } from "../infra/boundary-path.js";
 import { analyzeShellCommand } from "../infra/exec-approvals-analysis.js";
 import {
   type ExecHost,
@@ -20,10 +21,8 @@ import { parseAgentSessionKey, resolveAgentIdFromSessionKey } from "../routing/s
 import { splitShellArgs } from "../utils/shell-argv.js";
 import { markBackgrounded } from "./bash-process-registry.js";
 import { processGatewayAllowlist } from "./bash-tools.exec-host-gateway.js";
-import { executeNodeHostCommand } from "./bash-tools.exec-host-node.js";
 import {
   DEFAULT_MAX_OUTPUT,
-  DEFAULT_PATH,
   DEFAULT_PENDING_MAX_OUTPUT,
   type ExecProcessOutcome,
   applyPathPrepend,
@@ -43,18 +42,14 @@ import type {
   ExecToolDetails,
 } from "./bash-tools.exec-types.js";
 import {
-  buildSandboxEnv,
   clampWithDefault,
   coerceEnv,
   readEnvInt,
-  resolveSandboxWorkdir,
   resolveWorkdir,
   truncateMiddle,
 } from "./bash-tools.shared.js";
-import { assertSandboxPath } from "./sandbox-paths.js";
 import { failedTextResult, textResult } from "./tools/common.js";
 
-export type { BashSandboxConfig } from "./bash-tools.shared.js";
 export type {
   ExecElevatedDefaults,
   ExecToolDefaults,
@@ -792,10 +787,11 @@ async function validateScriptFileForShellBleed(params: {
     // Best-effort: only validate if file exists and is reasonably small.
     let stat: { isFile(): boolean; size: number };
     try {
-      await assertSandboxPath({
-        filePath: absPath,
-        cwd: params.workdir,
-        root: params.workdir,
+      await resolveBoundaryPath({
+        absolutePath: absPath,
+        rootPath: params.workdir,
+        boundaryLabel: "workdir",
+        intent: "read",
       });
       stat = await fs.stat(absPath);
     } catch {
@@ -1205,8 +1201,8 @@ export function createExecTool(
     (parsedAgentSession ? resolveAgentIdFromSessionKey(defaults?.sessionKey) : undefined);
 
   return {
-    name: "exec",
-    label: "exec",
+    name: "bash",
+    label: "bash",
     get description() {
       return buildExecToolDescription(agentId);
     },
@@ -1272,7 +1268,6 @@ export function createExecTool(
       const elevatedRequested = elevatedMode !== "off";
       if (elevatedRequested) {
         if (!elevatedDefaults?.enabled || !elevatedDefaults.allowed) {
-          const runtime = defaults?.sandbox ? "sandboxed" : "direct";
           const gates: string[] = [];
           const contextParts: string[] = [];
           const provider = defaults?.messageProvider?.trim();
@@ -1292,7 +1287,7 @@ export function createExecTool(
           }
           throw new Error(
             [
-              `elevated is not available right now (runtime=${runtime}).`,
+              "elevated is not available right now (runtime=direct).",
               `Failing gates: ${gates.join(", ")}`,
               contextParts.length > 0 ? `Context: ${contextParts.join(" ")}` : undefined,
               "Fix-it keys:",
@@ -1313,13 +1308,11 @@ export function createExecTool(
         configuredTarget: defaults?.host,
         requestedTarget: normalizeExecTarget(params.host),
         elevatedRequested,
-        sandboxAvailable: Boolean(defaults?.sandbox),
       });
       const host: ExecHost = target.effectiveHost;
 
       const approvalDefaults = loadExecApprovals().defaults;
-      const configuredSecurity =
-        defaults?.security ?? approvalDefaults?.security ?? (host === "sandbox" ? "deny" : "full");
+      const configuredSecurity = defaults?.security ?? approvalDefaults?.security ?? "full";
       const requestedSecurity = normalizeExecSecurity(params.security);
       let security = minSecurity(configuredSecurity, requestedSecurity ?? configuredSecurity);
       if (elevatedRequested && elevatedMode === "full") {
@@ -1334,54 +1327,18 @@ export function createExecTool(
         ask = "off";
       }
 
-      const sandbox = host === "sandbox" ? defaults?.sandbox : undefined;
-      if (target.selectedTarget === "sandbox" && !sandbox) {
-        throw new Error(
-          [
-            "exec host=sandbox requires a sandbox runtime for this session.",
-            'Enable sandbox mode (`agents.defaults.sandbox.mode="non-main"` or `"all"`) or use host=auto/gateway/node.',
-          ].join("\n"),
-        );
-      }
       const explicitWorkdir = params.workdir?.trim() || undefined;
       const defaultWorkdir = defaults?.cwd?.trim() || undefined;
-      let workdir: string | undefined;
-      let containerWorkdir = sandbox?.containerWorkdir;
-      if (sandbox) {
-        const sandboxWorkdir = explicitWorkdir ?? defaultWorkdir ?? process.cwd();
-        const resolved = await resolveSandboxWorkdir({
-          workdir: sandboxWorkdir,
-          sandbox,
-          warnings,
-        });
-        workdir = resolved.hostWorkdir;
-        containerWorkdir = resolved.containerWorkdir;
-      } else if (host === "node") {
-        // For remote node execution, only forward a cwd that was explicitly
-        // requested on the tool call. The gateway's workspace root is wired in as a
-        // local default, but it is not meaningful on the remote node and would
-        // recreate the cross-platform approval failure this path is fixing.
-        // When no explicit cwd was given, the gateway's own
-        // process.cwd() is meaningless on the remote node (especially cross-platform,
-        // e.g. Linux gateway + Windows node) and would cause
-        // "SYSTEM_RUN_DENIED: approval requires an existing canonical cwd".
-        // Passing undefined lets the node use its own default working directory.
-        workdir = explicitWorkdir;
-      } else {
-        const rawWorkdir = explicitWorkdir ?? defaultWorkdir ?? process.cwd();
-        workdir = resolveWorkdir(rawWorkdir, warnings);
-      }
+      const rawWorkdir = explicitWorkdir ?? defaultWorkdir ?? process.cwd();
+      const workdir = resolveWorkdir(rawWorkdir, warnings);
       rejectExecApprovalShellCommand(params.command);
 
       const inheritedBaseEnv = coerceEnv(process.env);
-      const hostEnvResult =
-        host === "sandbox"
-          ? null
-          : sanitizeHostExecEnvWithDiagnostics({
-              baseEnv: inheritedBaseEnv,
-              overrides: params.env,
-              blockPathOverrides: true,
-            });
+      const hostEnvResult = sanitizeHostExecEnvWithDiagnostics({
+        baseEnv: inheritedBaseEnv,
+        overrides: params.env,
+        blockPathOverrides: true,
+      });
       if (
         hostEnvResult &&
         params.env &&
@@ -1417,17 +1374,9 @@ export function createExecTool(
         throw new Error(`Security Violation: ${suffix}.`);
       }
 
-      const env =
-        sandbox && host === "sandbox"
-          ? buildSandboxEnv({
-              defaultPath: DEFAULT_PATH,
-              paramsEnv: params.env,
-              sandboxEnv: sandbox.env,
-              containerWorkdir: containerWorkdir ?? sandbox.containerWorkdir,
-            })
-          : (hostEnvResult?.env ?? inheritedBaseEnv);
+      const env = hostEnvResult.env;
 
-      if (!sandbox && host === "gateway" && !params.env?.PATH) {
+      if (host === "gateway" && !params.env?.PATH) {
         const shellPath = getShellPathFromLoginShell({
           env: process.env,
           timeoutMs: resolveShellEnvFallbackTimeoutMs(process.env),
@@ -1435,43 +1384,7 @@ export function createExecTool(
         applyShellPath(env, shellPath);
       }
 
-      // `tools.exec.pathPrepend` is only meaningful when exec runs locally (gateway) or in the sandbox.
-      // Node hosts intentionally ignore request-scoped PATH overrides, so don't pretend this applies.
-      if (host === "node" && defaultPathPrepend.length > 0) {
-        warnings.push(
-          "Warning: tools.exec.pathPrepend is ignored for host=node. Configure PATH on the node host/service instead.",
-        );
-      } else {
-        applyPathPrepend(env, defaultPathPrepend);
-      }
-
-      if (host === "node") {
-        return executeNodeHostCommand({
-          command: params.command,
-          workdir,
-          env,
-          requestedEnv: params.env,
-          requestedNode: params.node?.trim(),
-          boundNode: defaults?.node?.trim(),
-          runId: defaults?.runId,
-          sessionKey: defaults?.sessionKey,
-          turnSourceChannel: defaults?.messageProvider,
-          turnSourceTo: defaults?.currentChannelId,
-          turnSourceAccountId: defaults?.accountId,
-          turnSourceThreadId: defaults?.currentThreadTs,
-          agentId,
-          security,
-          ask,
-          strictInlineEval: defaults?.strictInlineEval,
-          trigger: defaults?.trigger,
-          timeoutSec: params.timeout,
-          defaultTimeoutSec,
-          approvalRunningNoticeMs,
-          warnings,
-          notifySessionKey,
-          trustedSafeBinDirs,
-        });
-      }
+      applyPathPrepend(env, defaultPathPrepend);
 
       if (!workdir) {
         throw new Error("exec internal error: local execution requires a resolved workdir");
@@ -1483,7 +1396,7 @@ export function createExecTool(
           workdir,
           env,
           requestedEnv: params.env,
-          pty: params.pty === true && !sandbox,
+          pty: params.pty === true,
           timeoutSec: params.timeout,
           defaultTimeoutSec,
           security,
@@ -1523,7 +1436,7 @@ export function createExecTool(
         ? null
         : (explicitTimeoutSec ?? defaultTimeoutSec);
       const getWarningText = () => (warnings.length ? `${warnings.join("\n")}\n\n` : "");
-      const usePty = params.pty === true && !sandbox;
+      const usePty = params.pty === true;
 
       // Preflight: catch a common model failure mode (shell syntax leaking into Python/JS sources)
       // before we execute and burn tokens in cron loops.
@@ -1534,8 +1447,6 @@ export function createExecTool(
         execCommand: execCommandOverride,
         workdir,
         env,
-        sandbox,
-        containerWorkdir,
         usePty,
         warnings,
         maxOutput,

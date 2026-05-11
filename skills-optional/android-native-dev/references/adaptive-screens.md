@@ -10,70 +10,70 @@ Google defines three progressive quality tiers for adaptive apps:
 
 Minimum requirements for all apps:
 
-| Requirement | Description |
-|-------------|-------------|
-| Full screen | App fills display, no letterboxing |
+| Requirement           | Description                         |
+| --------------------- | ----------------------------------- |
+| Full screen           | App fills display, no letterboxing  |
 | Configuration changes | Handles rotation, folding, resizing |
-| Multi-window | Supports split-screen mode |
-| Basic input | Keyboard, mouse, trackpad support |
+| Multi-window          | Supports split-screen mode          |
+| Basic input           | Keyboard, mouse, trackpad support   |
 
 ### Tier 2: Adaptive Optimized (Better)
 
 Enhanced experience:
 
-| Requirement | Description |
-|-------------|-------------|
-| Layout optimization | Responsive layouts for all sizes |
-| Enhanced input | Full keyboard shortcuts, mouse hover states |
-| Continuity | Seamless state preservation |
+| Requirement         | Description                                 |
+| ------------------- | ------------------------------------------- |
+| Layout optimization | Responsive layouts for all sizes            |
+| Enhanced input      | Full keyboard shortcuts, mouse hover states |
+| Continuity          | Seamless state preservation                 |
 
 ### Tier 1: Adaptive Differentiated (Best)
 
 Device-specific excellence:
 
-| Requirement | Description |
-|-------------|-------------|
-| Multitasking | Drag and drop, activity embedding |
+| Requirement       | Description                       |
+| ----------------- | --------------------------------- |
+| Multitasking      | Drag and drop, activity embedding |
 | Foldable postures | Table-top mode, book mode support |
-| Stylus | Full stylus input support |
-| Desktop | Windowed mode optimization |
+| Stylus            | Full stylus input support         |
+| Desktop           | Windowed mode optimization        |
 
 ## Screen Size Classes
 
 ### Width-Based Classes
 
-| Class | Width | Typical Devices |
-|-------|-------|-----------------|
-| Compact | < 600dp | Phone portrait |
-| Medium | 600-840dp | Tablet portrait, phone landscape |
-| Expanded | > 840dp | Tablet landscape, desktop |
+| Class    | Width     | Typical Devices                  |
+| -------- | --------- | -------------------------------- |
+| Compact  | < 600dp   | Phone portrait                   |
+| Medium   | 600-840dp | Tablet portrait, phone landscape |
+| Expanded | > 840dp   | Tablet landscape, desktop        |
 
 ### Layout Strategies
 
-| Screen Class | Navigation | Content Layout |
-|--------------|------------|----------------|
-| Compact | Bottom nav | Single pane |
-| Medium | Nav rail | List-detail (optional) |
-| Expanded | Nav drawer/rail | List-detail, multi-pane |
+| Screen Class | Navigation      | Content Layout          |
+| ------------ | --------------- | ----------------------- |
+| Compact      | Bottom nav      | Single pane             |
+| Medium       | Nav rail        | List-detail (optional)  |
+| Expanded     | Nav drawer/rail | List-detail, multi-pane |
 
 ## Configuration Changes
 
 ### Must Handle
 
-| Change | Trigger |
-|--------|---------|
-| Rotation | Device rotated |
-| Fold/Unfold | Foldable state change |
-| Window resize | Multi-window adjustment |
-| Split screen | Enter/exit split mode |
-| Keyboard | External keyboard attach/detach |
+| Change        | Trigger                         |
+| ------------- | ------------------------------- |
+| Rotation      | Device rotated                  |
+| Fold/Unfold   | Foldable state change           |
+| Window resize | Multi-window adjustment         |
+| Split screen  | Enter/exit split mode           |
+| Keyboard      | External keyboard attach/detach |
 
 ### Configuration Handling
 
-| Approach | Description |
-|----------|-------------|
-| Let system handle | Default, activity recreated |
-| Handle manually | Declare configChanges, implement onConfigurationChanged |
+| Approach          | Description                                             |
+| ----------------- | ------------------------------------------------------- |
+| Let system handle | Default, activity recreated                             |
+| Handle manually   | Declare configChanges, implement onConfigurationChanged |
 
 ### State Preservation
 
@@ -85,11 +85,11 @@ Device-specific excellence:
 
 ### Requirements
 
-| Feature | Status |
-|---------|--------|
+| Feature            | Status                 |
+| ------------------ | ---------------------- |
 | resizeableActivity | true (default API 24+) |
-| Minimum size | Support 220dp width |
-| State handling | Preserve across resize |
+| Minimum size       | Support 220dp width    |
+| State handling     | Preserve across resize |
 
 ### Best Practices
 
@@ -102,12 +102,12 @@ Device-specific excellence:
 
 ### Postures
 
-| Posture | Description | Use Case |
-|---------|-------------|----------|
-| Flat | Fully open | Normal tablet use |
-| Half-opened (tabletop) | Hinged at ~90° horizontal | Video calls, media |
-| Half-opened (book) | Hinged at ~90° vertical | Reading, productivity |
-| Folded | Closed | Compact phone mode |
+| Posture                | Description               | Use Case              |
+| ---------------------- | ------------------------- | --------------------- |
+| Flat                   | Fully open                | Normal tablet use     |
+| Half-opened (tabletop) | Hinged at ~90° horizontal | Video calls, media    |
+| Half-opened (book)     | Hinged at ~90° vertical   | Reading, productivity |
+| Folded                 | Closed                    | Compact phone mode    |
 
 ### Design Considerations
 
@@ -120,70 +120,70 @@ Device-specific excellence:
 
 ### Keyboard Support
 
-| Requirement | Implementation |
-|-------------|----------------|
-| Tab navigation | Focusable elements in order |
-| Enter/Space | Activates focused element |
-| Arrow keys | Navigate lists, grids |
-| Shortcuts | Common actions (Ctrl+S, etc.) |
-| Focus indicators | Visible focus states |
+| Requirement      | Implementation                |
+| ---------------- | ----------------------------- |
+| Tab navigation   | Focusable elements in order   |
+| Enter/Space      | Activates focused element     |
+| Arrow keys       | Navigate lists, grids         |
+| Shortcuts        | Common actions (Ctrl+S, etc.) |
+| Focus indicators | Visible focus states          |
 
 ### Mouse/Trackpad Support
 
-| Requirement | Implementation |
-|-------------|----------------|
-| Hover states | Visual feedback on hover |
-| Right-click | Context menu support |
-| Scroll | Smooth scrolling |
+| Requirement    | Implementation           |
+| -------------- | ------------------------ |
+| Hover states   | Visual feedback on hover |
+| Right-click    | Context menu support     |
+| Scroll         | Smooth scrolling         |
 | Pointer cursor | Appropriate cursor types |
 
 ### Stylus Support
 
-| Feature | Implementation |
-|---------|----------------|
-| Pressure sensitivity | Variable stroke width |
-| Palm rejection | Ignore palm touches |
-| Tilt detection | Shading effects |
-| Hover preview | Show cursor before touch |
+| Feature              | Implementation           |
+| -------------------- | ------------------------ |
+| Pressure sensitivity | Variable stroke width    |
+| Palm rejection       | Ignore palm touches      |
+| Tilt detection       | Shading effects          |
+| Hover preview        | Show cursor before touch |
 
 ## Navigation Patterns
 
 ### By Screen Width
 
-| Width | Primary Nav | Secondary Nav |
-|-------|-------------|---------------|
-| < 600dp | Bottom nav (3-5 items) | Hamburger menu |
-| 600-840dp | Navigation rail | Drawer on demand |
-| > 840dp | Permanent drawer or rail | Drawer or none |
+| Width     | Primary Nav              | Secondary Nav    |
+| --------- | ------------------------ | ---------------- |
+| < 600dp   | Bottom nav (3-5 items)   | Hamburger menu   |
+| 600-840dp | Navigation rail          | Drawer on demand |
+| > 840dp   | Permanent drawer or rail | Drawer or none   |
 
 ### Navigation Rail Specs
 
-| Property | Value |
-|----------|-------|
-| Width | 80dp |
-| Icon size | 24dp |
-| Touch target | 56dp |
-| Items | 3-7 destinations |
-| FAB | Optional, at top |
+| Property     | Value            |
+| ------------ | ---------------- |
+| Width        | 80dp             |
+| Icon size    | 24dp             |
+| Touch target | 56dp             |
+| Items        | 3-7 destinations |
+| FAB          | Optional, at top |
 
 ### Permanent Navigation Drawer
 
-| Property | Value |
-|----------|-------|
-| Width | 256-360dp |
-| Position | Left edge (LTR) |
-| Behavior | Always visible |
-| Content | Full labels, icons |
+| Property | Value              |
+| -------- | ------------------ |
+| Width    | 256-360dp          |
+| Position | Left edge (LTR)    |
+| Behavior | Always visible     |
+| Content  | Full labels, icons |
 
 ## Responsive Layouts
 
 ### Breakpoints
 
-| Class | Width Range |
-|-------|-------------|
-| COMPACT | < 600dp |
-| MEDIUM | 600-840dp |
-| EXPANDED | > 840dp |
+| Class    | Width Range |
+| -------- | ----------- |
+| COMPACT  | < 600dp     |
+| MEDIUM   | 600-840dp   |
+| EXPANDED | > 840dp     |
 
 Use WindowSizeClass to determine current breakpoint and adapt layout accordingly.
 
@@ -211,13 +211,13 @@ Use WindowSizeClass to determine current breakpoint and adapt layout accordingly
 
 ### Device Matrix
 
-| Device Type | Test Priority |
-|-------------|---------------|
-| Phone (portrait) | Required |
-| Phone (landscape) | Required |
-| Tablet (both orientations) | Required |
-| Foldable (all postures) | High |
-| Desktop/Chromebook | Medium |
+| Device Type                | Test Priority |
+| -------------------------- | ------------- |
+| Phone (portrait)           | Required      |
+| Phone (landscape)          | Required      |
+| Tablet (both orientations) | Required      |
+| Foldable (all postures)    | High          |
+| Desktop/Chromebook         | Medium        |
 
 ### Test Cases
 

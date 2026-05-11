@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { ChannelType } from "discord-api-types/v10";
 import {
   clearRuntimeConfigSnapshot,
   setRuntimeConfigSnapshot,
   type CrawClawConfig,
 } from "crawclaw/plugin-sdk/config-runtime";
 import { getSessionBindingService } from "crawclaw/plugin-sdk/conversation-runtime";
+import { ChannelType } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const hoisted = vi.hoisted(() => {

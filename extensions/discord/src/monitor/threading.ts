@@ -1,5 +1,4 @@
 import { ChannelType, type Client } from "@buape/carbon";
-import { Routes } from "discord-api-types/v10";
 import {
   resolveChannelModelOverride,
   type CrawClawConfig,
@@ -9,6 +8,7 @@ import { createReplyReferencePlanner } from "crawclaw/plugin-sdk/reply-runtime";
 import { buildAgentSessionKey } from "crawclaw/plugin-sdk/routing";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { truncateUtf16Safe } from "crawclaw/plugin-sdk/text-runtime";
+import { Routes } from "discord-api-types/v10";
 import type { DiscordChannelConfigResolved } from "./allow-list.js";
 import type { DiscordMessageEvent } from "./listeners.js";
 import {

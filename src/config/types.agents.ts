@@ -1,6 +1,6 @@
 import type { ChatType } from "../channels/chat-type.js";
 import type { AgentDefaultsConfig } from "./types.agent-defaults.js";
-import type { AgentModelConfig, AgentSandboxConfig } from "./types.agents-shared.js";
+import type { AgentModelConfig } from "./types.agents-shared.js";
 import type { HumanDelayConfig, IdentityConfig } from "./types.base.js";
 import type { GroupChatConfig } from "./types.messages.js";
 import type { AgentToolsConfig } from "./types.tools.js";
@@ -87,8 +87,6 @@ export type AgentConfig = {
     /** Require explicit agentId in sessions_spawn (no default same-as-caller). */
     requireAgentId?: boolean;
   };
-  /** Optional per-agent sandbox overrides. */
-  sandbox?: AgentSandboxConfig;
   /** Optional per-agent stream params (e.g. cacheRetention, temperature). */
   params?: Record<string, unknown>;
   tools?: AgentToolsConfig;

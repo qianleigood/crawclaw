@@ -2,7 +2,6 @@ import { resolveAgentDir, resolveSessionAgentId } from "../../agents/agent-scope
 import { renderExecTargetLabel } from "../../agents/bash-tools.exec-runtime.js";
 import { describeExecRiskDiagnostic, resolveExecPosture } from "../../agents/exec-posture.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
-import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { updateSessionStore } from "../../config/sessions.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { formatThinkingLevels, formatXHighModelHint, supportsXHighThinking } from "../thinking.js";
@@ -63,11 +62,7 @@ export async function handleDirectiveOnly(
     config: params.cfg,
   });
   const agentDir = resolveAgentDir(params.cfg, activeAgentId);
-  const runtimeIsSandboxed = resolveSandboxRuntimeStatus({
-    cfg: params.cfg,
-    sessionKey: params.sessionKey,
-  }).sandboxed;
-  const shouldHintDirectRuntime = directives.hasElevatedDirective && !runtimeIsSandboxed;
+  const shouldHintDirectRuntime = directives.hasElevatedDirective;
   const allowInternalExecPersistence = canPersistInternalExecDirective({
     messageProvider: params.messageProvider,
     surface: params.surface,
@@ -189,7 +184,6 @@ export async function handleDirectiveOnly(
       if (!elevatedEnabled || !elevatedAllowed) {
         return {
           text: formatElevatedUnavailableText({
-            runtimeSandboxed: runtimeIsSandboxed,
             failures: params.elevatedFailures,
             sessionKey: params.sessionKey,
           }),
@@ -212,7 +206,6 @@ export async function handleDirectiveOnly(
   if (directives.hasElevatedDirective && (!elevatedEnabled || !elevatedAllowed)) {
     return {
       text: formatElevatedUnavailableText({
-        runtimeSandboxed: runtimeIsSandboxed,
         failures: params.elevatedFailures,
         sessionKey: params.sessionKey,
       }),
@@ -221,7 +214,7 @@ export async function handleDirectiveOnly(
   if (directives.hasExecDirective) {
     if (directives.invalidExecHost) {
       return {
-        text: `Unrecognized exec host "${directives.rawExecHost ?? ""}". Valid hosts: auto, sandbox, gateway, node.`,
+        text: `Unrecognized exec host "${directives.rawExecHost ?? ""}". Valid hosts: auto, gateway.`,
       };
     }
     if (directives.invalidExecSecurity) {
@@ -244,19 +237,17 @@ export async function handleDirectiveOnly(
         cfg: params.cfg,
         sessionEntry,
         agentId: activeAgentId,
-        sandboxAvailable: runtimeIsSandboxed,
       });
       const execDiagnostic = describeExecRiskDiagnostic(execDefaults);
-      const nodeLabel = execDefaults.node ? `node=${execDefaults.node}` : "node=(unset)";
       return {
         text: withOptions(
           [
-            `Current exec defaults: host=${renderExecTargetLabel(execDefaults.host)}, effective=${execDefaults.effectiveHost}, security=${execDefaults.security}, ask=${execDefaults.ask}, ${nodeLabel}.`,
+            `Current exec defaults: host=${renderExecTargetLabel(execDefaults.host)}, effective=${execDefaults.effectiveHost}, security=${execDefaults.security}, ask=${execDefaults.ask}.`,
             execDiagnostic,
           ]
             .filter(Boolean)
             .join("\n"),
-          "host=auto|sandbox|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>",
+          "host=auto|gateway, security=deny|allowlist|full, ask=off|on-miss|always",
         ),
       };
     }

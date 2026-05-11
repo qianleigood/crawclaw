@@ -1,11 +1,9 @@
-import { isNodeRoleMethod } from "./method-scopes.js";
-
-export const GATEWAY_ROLES = ["operator", "node"] as const;
+export const GATEWAY_ROLES = ["operator"] as const;
 
 export type GatewayRole = (typeof GATEWAY_ROLES)[number];
 
 export function parseGatewayRole(roleRaw: unknown): GatewayRole | null {
-  if (roleRaw === "operator" || roleRaw === "node") {
+  if (roleRaw === "operator") {
     return roleRaw;
   }
   return null;
@@ -16,8 +14,6 @@ export function roleCanSkipDeviceIdentity(role: GatewayRole, sharedAuthOk: boole
 }
 
 export function isRoleAuthorizedForMethod(role: GatewayRole, method: string): boolean {
-  if (isNodeRoleMethod(method)) {
-    return role === "node";
-  }
+  void method;
   return role === "operator";
 }

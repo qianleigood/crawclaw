@@ -37,6 +37,7 @@ Each step = one action, 2–5 minutes:
 ### Task N: [Component Name]
 
 **Files:**
+
 - Create: `exact/path/to/file.py`
 - Modify: `exact/path/to/existing.py`
 - Test: `tests/exact/path/to/test_file.py`

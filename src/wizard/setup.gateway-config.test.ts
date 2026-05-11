@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import { DEFAULT_DANGEROUS_NODE_COMMANDS } from "../gateway/node-command-policy.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter, WizardSelectParams } from "./prompts.js";
 
@@ -94,7 +93,7 @@ describe("configureGatewayForSetup", () => {
     const result = await runGatewayConfig();
 
     expect(result.settings.gatewayToken).toBe("generated-token");
-    expect(result.nextConfig.gateway?.nodes?.denyCommands).toEqual(DEFAULT_DANGEROUS_NODE_COMMANDS);
+    expect(result.nextConfig.gateway).not.toHaveProperty("nodes");
   });
 
   it("prefers CRAWCLAW_GATEWAY_TOKEN during quickstart token setup", async () => {

@@ -18,7 +18,6 @@ export {
   queueEmbeddedPiMessage,
   waitForEmbeddedPiRunEnd,
 } from "./pi-embedded-runner/runs.js";
-export { buildEmbeddedSandboxInfo } from "./pi-embedded-runner/sandbox-info.js";
 export { createSystemPromptOverride } from "./pi-embedded-runner/system-prompt.js";
 export { splitSdkTools } from "./pi-embedded-runner/tool-split.js";
 export type {

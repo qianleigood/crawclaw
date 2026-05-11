@@ -83,7 +83,7 @@ function selectPreferredInstallSpec(
     () => (prefs.preferBrew && brewAvailable ? brewSpec : undefined),
     () => uvSpec,
     () => nodeSpec,
-    // Only prefer brew when available to avoid guaranteed failure on Linux/Docker.
+    // Only prefer brew when available to avoid guaranteed failure on Linux.
     () => (brewAvailable ? brewSpec : undefined),
     () => goSpec,
     // Prefer download over an unavailable brew spec.

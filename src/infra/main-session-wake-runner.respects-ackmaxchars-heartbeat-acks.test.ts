@@ -5,8 +5,8 @@ import { runMainSessionWakeOnce, type MainSessionWakeDeps } from "./main-session
 import { installMainSessionWakeRunnerTestRuntime } from "./main-session-wake-runner.test-harness.js";
 import {
   seedMainSessionStore,
-  withTempHeartbeatSandbox,
-  withTempTelegramHeartbeatSandbox,
+  withTempHeartbeatFixture,
+  withTempTelegramHeartbeatFixture,
 } from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
@@ -167,7 +167,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
   }
 
   it("respects ackMaxChars for heartbeat acks", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg = createWhatsAppHeartbeatConfig({
         tmpDir,
         storePath,
@@ -195,7 +195,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
   });
 
   it("sends HEARTBEAT_OK when visibility.showOk is true", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg = createWhatsAppHeartbeatConfig({
         tmpDir,
         storePath,
@@ -243,7 +243,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
       expectedText: "History check complete",
     },
   ])("$title", async ({ replyText, messages, expectedCalls, expectedText }) => {
-    await withTempTelegramHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempTelegramHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const sendTelegram = await runTelegramHeartbeatWithDefaults({
         tmpDir,
         storePath,
@@ -260,7 +260,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
   });
 
   it("skips heartbeat LLM calls when visibility disables all output", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg = createWhatsAppHeartbeatConfig({
         tmpDir,
         storePath,
@@ -289,7 +289,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
   });
 
   it("skips delivery for markup-wrapped HEARTBEAT_OK", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg = await createSeededWhatsAppHeartbeatConfig({
         tmpDir,
         storePath,
@@ -309,7 +309,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
   });
 
   it("does not regress updatedAt when restoring heartbeat sessions", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const originalUpdatedAt = 1000;
       const bumpedUpdatedAt = 2000;
       const cfg = createWhatsAppHeartbeatConfig({
@@ -353,7 +353,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
   });
 
   it("skips WhatsApp delivery when not linked or running", async () => {
-    await withTempHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg = await createSeededWhatsAppHeartbeatConfig({
         tmpDir,
         storePath,
@@ -383,7 +383,7 @@ describe("runMainSessionWakeOnce ack handling", () => {
     telegram: Record<string, unknown>;
     expectedAccountId: string | undefined;
   }): Promise<void> {
-    await withTempTelegramHeartbeatSandbox(async ({ tmpDir, storePath, replySpy }) => {
+    await withTempTelegramHeartbeatFixture(async ({ tmpDir, storePath, replySpy }) => {
       const cfg = createHeartbeatConfig({
         tmpDir,
         storePath,

@@ -132,7 +132,7 @@ describe("session reference shape detection", () => {
 });
 
 describe("resolved session visibility checks", () => {
-  it("requires spawned-session verification only for sandboxed key-based cross-session access", () => {
+  it("requires spawned-session verification only for child key-based cross-session access", () => {
     expect(
       shouldVerifyRequesterSpawnedSessionVisibility({
         requesterSessionKey: "agent:main:main",

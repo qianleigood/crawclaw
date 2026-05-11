@@ -13,6 +13,7 @@ Random fixes waste time and create new bugs. Symptom fixes are failure.
 ## When to Use
 
 Any technical issue:
+
 - Test failures
 - Bugs in production
 - Unexpected behaviour
@@ -48,8 +49,9 @@ Complete each phase before proceeding to the next.
 4. **Gather evidence in multi-component systems**
 
    When the system has multiple layers (API → service → database, CI → build → signing):
-   
+
    Before proposing fixes, add diagnostic instrumentation at each boundary:
+
    ```
    For each component boundary:
      - Log what data enters

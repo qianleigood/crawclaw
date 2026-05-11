@@ -1959,7 +1959,6 @@ export class AcpSessionManager {
           parentAgentId,
           mode: "background",
           spawnSource: "sessions_spawn",
-          sandboxed: false,
           requesterSessionKey: context.requesterSessionKey,
         },
         runId: context.runId,

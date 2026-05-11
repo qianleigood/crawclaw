@@ -135,9 +135,6 @@ export type CrawClawPluginToolContext = {
   /** Ephemeral session UUID - regenerated on /new. Use for per-conversation isolation. */
   sessionId?: string;
   browser?: {
-    sandboxBridgeUrl?: string;
-    sandboxCdpUrl?: string;
-    sandboxPinchTabUrl?: string;
     allowHostControl?: boolean;
   };
   messageChannel?: string;
@@ -149,7 +146,6 @@ export type CrawClawPluginToolContext = {
   requesterSenderId?: string;
   /** Whether the trusted sender is an owner. */
   senderIsOwner?: boolean;
-  sandboxed?: boolean;
 };
 
 export type CrawClawPluginToolFactory = (

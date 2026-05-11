@@ -88,7 +88,6 @@ async function startAgentRun(params: {
 export function createSessionsSendTool(opts?: {
   agentSessionKey?: string;
   agentChannel?: GatewayMessageChannel;
-  sandboxed?: boolean;
   config?: CrawClawConfig;
   callGateway?: GatewayCaller;
 }): AnyAgentTool {
@@ -106,7 +105,6 @@ export function createSessionsSendTool(opts?: {
         resolveSessionToolContext(opts);
       const { a2aPolicy, visibility: sessionVisibility } = resolveSessionAccessPolicies({
         cfg,
-        sandboxed: opts?.sandboxed,
       });
 
       const sessionKeyParam = readStringParam(params, "sessionKey");
@@ -125,13 +123,6 @@ export function createSessionsSendTool(opts?: {
         const requestedAgentId = labelAgentIdParam
           ? normalizeAgentId(labelAgentIdParam)
           : undefined;
-
-        if (restrictToSpawned && requestedAgentId && requestedAgentId !== requesterAgentId) {
-          return buildSessionsSendResult({
-            status: "forbidden",
-            error: "Sandboxed sessions_send label lookup is limited to this agent",
-          });
-        }
 
         if (requesterAgentId && requestedAgentId && requestedAgentId !== requesterAgentId) {
           if (!a2aPolicy.enabled) {
@@ -164,12 +155,6 @@ export function createSessionsSendTool(opts?: {
           resolvedKey = typeof resolved?.key === "string" ? resolved.key.trim() : "";
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          if (restrictToSpawned) {
-            return buildSessionsSendResult({
-              status: "forbidden",
-              error: "Session not visible from this sandboxed agent session.",
-            });
-          }
           return buildSessionsSendResult({
             status: "error",
             error: msg || `No session found with label: ${labelParam}`,
@@ -177,12 +162,6 @@ export function createSessionsSendTool(opts?: {
         }
 
         if (!resolvedKey) {
-          if (restrictToSpawned) {
-            return buildSessionsSendResult({
-              status: "forbidden",
-              error: "Session not visible from this sandboxed agent session.",
-            });
-          }
           return buildSessionsSendResult({
             status: "error",
             error: `No session found with label: ${labelParam}`,

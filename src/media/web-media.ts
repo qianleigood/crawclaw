@@ -35,10 +35,10 @@ type WebMediaOptions = {
   maxBytes?: number;
   optimizeImages?: boolean;
   ssrfPolicy?: SsrFPolicy;
-  /** Allowed root directories for local path reads. "any" is deprecated; prefer sandboxValidated + readFile. */
+  /** Allowed root directories for local path reads. "any" is deprecated; prefer trustedLocalPath + readFile. */
   localRoots?: readonly string[] | "any";
-  /** Caller already validated the local path (sandbox/other guards); requires readFile override. */
-  sandboxValidated?: boolean;
+  /** Caller already validated the local path through another guard; requires readFile override. */
+  trustedLocalPath?: boolean;
   readFile?: (filePath: string) => Promise<Buffer>;
   /** Host-local fs-policy read piggyback; rejects plaintext-like document sends. */
   hostReadCapability?: boolean;
@@ -220,7 +220,7 @@ async function loadWebMediaInternal(
     optimizeImages = true,
     ssrfPolicy,
     localRoots,
-    sandboxValidated = false,
+    trustedLocalPath = false,
     readFile: readFileOverride,
     hostReadCapability = false,
     workspaceDir,
@@ -339,15 +339,15 @@ async function loadWebMediaInternal(
     });
   }
 
-  if ((sandboxValidated || localRoots === "any") && !readFileOverride) {
+  if ((trustedLocalPath || localRoots === "any") && !readFileOverride) {
     throw new LocalMediaAccessError(
       "unsafe-bypass",
-      "Refusing localRoots bypass without readFile override. Use sandboxValidated with readFile, or pass explicit localRoots.",
+      "Refusing localRoots bypass without readFile override. Use trustedLocalPath with readFile, or pass explicit localRoots.",
     );
   }
 
   // Guard local reads against allowed directory roots to prevent file exfiltration.
-  if (!(sandboxValidated || localRoots === "any")) {
+  if (!(trustedLocalPath || localRoots === "any")) {
     await assertLocalMediaAllowed(mediaUrl, localRoots);
   }
 

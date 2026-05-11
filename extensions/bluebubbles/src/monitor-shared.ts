@@ -6,7 +6,7 @@ export {
   DEFAULT_WEBHOOK_PATH,
   normalizeWebhookPath,
   resolveWebhookPathFromConfig,
-  } from "./webhook-shared.js";
+} from "./webhook-shared.js";
 
 export type BlueBubblesRuntimeEnv = {
   log?: (message: string) => void;

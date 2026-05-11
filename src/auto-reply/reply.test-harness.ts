@@ -118,7 +118,8 @@ function getInstalledReplyRuntimeMocks(): ReplyRuntimeMocks {
 
 vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
-  runEmbeddedPiAgent: (...args: unknown[]) => getInstalledReplyRuntimeMocks().runEmbeddedPiAgent(...args),
+  runEmbeddedPiAgent: (...args: unknown[]) =>
+    getInstalledReplyRuntimeMocks().runEmbeddedPiAgent(...args),
   queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
   resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
@@ -126,7 +127,8 @@ vi.mock("../agents/pi-embedded.js", () => ({
 }));
 
 vi.mock("../agents/model-catalog.runtime.js", () => ({
-  loadModelCatalog: (...args: unknown[]) => getInstalledReplyRuntimeMocks().loadModelCatalog(...args),
+  loadModelCatalog: (...args: unknown[]) =>
+    getInstalledReplyRuntimeMocks().loadModelCatalog(...args),
 }));
 
 vi.mock("../agents/auth-profiles/session-override.js", () => ({

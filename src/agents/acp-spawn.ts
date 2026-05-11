@@ -54,15 +54,12 @@ import {
   startAcpSpawnParentStreamRelay,
 } from "./acp-spawn-parent-stream.js";
 import { resolveAgentConfig, resolveDefaultAgentId } from "./agent-scope.js";
-import { resolveSandboxRuntimeStatus } from "./sandbox/runtime-status.js";
 import { resolveInternalSessionKey, resolveMainSessionAlias } from "./tools/sessions-helpers.js";
 
 const log = createSubsystemLogger("agents/acp-spawn");
 
 export const ACP_SPAWN_MODES = ["run", "session"] as const;
 export type SpawnAcpMode = (typeof ACP_SPAWN_MODES)[number];
-export const ACP_SPAWN_SANDBOX_MODES = ["inherit", "require"] as const;
-export type SpawnAcpSandboxMode = (typeof ACP_SPAWN_SANDBOX_MODES)[number];
 export const ACP_SPAWN_STREAM_TARGETS = ["parent"] as const;
 export type SpawnAcpStreamTarget = (typeof ACP_SPAWN_STREAM_TARGETS)[number];
 
@@ -74,7 +71,6 @@ export type SpawnAcpParams = {
   cwd?: string;
   mode?: SpawnAcpMode;
   thread?: boolean;
-  sandbox?: SpawnAcpSandboxMode;
   streamTo?: SpawnAcpStreamTarget;
 };
 
@@ -86,7 +82,6 @@ export type SpawnAcpContext = {
   agentThreadId?: string | number;
   /** Group chat ID for channels that distinguish group vs. topic (e.g. Telegram). */
   agentGroupId?: string;
-  sandboxed?: boolean;
 };
 
 export type SpawnAcpResult = {
@@ -103,27 +98,6 @@ export const ACP_SPAWN_ACCEPTED_NOTE =
   "initial ACP task queued in isolated session; follow-ups continue in the bound thread.";
 export const ACP_SPAWN_SESSION_ACCEPTED_NOTE =
   "thread-bound ACP session stays active after this task; continue in-thread for follow-ups.";
-
-export function resolveAcpSpawnRuntimePolicyError(params: {
-  cfg: CrawClawConfig;
-  requesterSessionKey?: string;
-  requesterSandboxed?: boolean;
-  sandbox?: SpawnAcpSandboxMode;
-}): string | undefined {
-  const sandboxMode = params.sandbox === "require" ? "require" : "inherit";
-  const requesterRuntime = resolveSandboxRuntimeStatus({
-    cfg: params.cfg,
-    sessionKey: params.requesterSessionKey,
-  });
-  const requesterSandboxed = params.requesterSandboxed === true || requesterRuntime.sandboxed;
-  if (requesterSandboxed) {
-    return 'Sandboxed sessions cannot spawn ACP sessions because runtime="acp" runs on the host. Use runtime="subagent" from sandboxed sessions.';
-  }
-  if (sandboxMode === "require") {
-    return 'sessions_spawn sandbox="require" is unsupported for runtime="acp" because ACP sessions run outside the sandbox. Use runtime="subagent" or sandbox="inherit".';
-  }
-  return undefined;
-}
 
 type PreparedAcpThreadBinding = {
   channel: string;
@@ -779,19 +753,6 @@ export async function spawnAcpDirect(
   }
 
   let requestThreadBinding = params.thread === true;
-  const runtimePolicyError = resolveAcpSpawnRuntimePolicyError({
-    cfg,
-    requesterSessionKey: ctx.agentSessionKey,
-    requesterSandboxed: ctx.sandboxed,
-    sandbox: params.sandbox,
-  });
-  if (runtimePolicyError) {
-    return {
-      status: "forbidden",
-      error: runtimePolicyError,
-    };
-  }
-
   const spawnMode = resolveSpawnMode({
     requestedMode: params.mode,
     threadRequested: requestThreadBinding,

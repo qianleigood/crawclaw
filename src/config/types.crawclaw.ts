@@ -13,7 +13,6 @@ import type { McpConfig } from "./types.mcp.js";
 import type { MemoryConfig } from "./types.memory.js";
 import type { BroadcastConfig, CommandsConfig, MessagesConfig } from "./types.messages.js";
 import type { ModelsConfig } from "./types.models.js";
-import type { NodeHostConfig } from "./types.node-host.js";
 import type { PluginsConfig } from "./types.plugins.js";
 import type { SecretsConfig } from "./types.secrets.js";
 import type { SkillsConfig } from "./types.skills.js";
@@ -77,7 +76,6 @@ export type CrawClawConfig = {
   skills?: SkillsConfig;
   plugins?: PluginsConfig;
   models?: ModelsConfig;
-  nodeHost?: NodeHostConfig;
   agents?: AgentsConfig;
   tools?: ToolsConfig;
   workflow?: WorkflowConfig;

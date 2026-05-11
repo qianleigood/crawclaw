@@ -5,27 +5,28 @@ Bloc state management guide covering events, states, Cubit, and widget integrati
 ## When to Use Bloc
 
 Use **Bloc/Cubit** when you need:
+
 - Explicit event → state transitions
 - Complex business logic with multiple events
 - Predictable, testable state flows
 - Clear separation between UI and logic
 
-| Use Case | Recommended |
-|----------|-------------|
-| Simple mutable state | Riverpod |
-| Computed values | Riverpod |
-| Event-driven workflows | Bloc |
-| Forms, auth, wizards | Bloc |
-| Feature modules with complex logic | Bloc |
+| Use Case                           | Recommended |
+| ---------------------------------- | ----------- |
+| Simple mutable state               | Riverpod    |
+| Computed values                    | Riverpod    |
+| Event-driven workflows             | Bloc        |
+| Forms, auth, wizards               | Bloc        |
+| Feature modules with complex logic | Bloc        |
 
 ## Core Concepts
 
-| Concept | Description |
-|---------|-------------|
-| Event | User or system input that triggers state change |
-| State | Immutable representation of UI state |
-| Bloc | Maps events to new states |
-| Cubit | Simplified Bloc without events |
+| Concept | Description                                     |
+| ------- | ----------------------------------------------- |
+| Event   | User or system input that triggers state change |
+| State   | Immutable representation of UI state            |
+| Bloc    | Maps events to new states                       |
+| Cubit   | Simplified Bloc without events                  |
 
 ## Cubit (Recommended for Simpler Logic)
 
@@ -255,27 +256,27 @@ blocTest<CounterBloc, CounterState>(
 
 ## Best Practices
 
-| Do | Don't |
-|----|-------|
-| Keep states immutable | Mutate state directly |
-| Use small, focused blocs | Create "god blocs" with everything |
-| One feature = one bloc | Share blocs across unrelated features |
-| Use Cubit for simple cases | Overcomplicate with Bloc unnecessarily |
-| Test all state transitions | Skip bloc testing |
-| Use `buildWhen`/`listenWhen` | Rebuild on every state change |
+| Do                           | Don't                                  |
+| ---------------------------- | -------------------------------------- |
+| Keep states immutable        | Mutate state directly                  |
+| Use small, focused blocs     | Create "god blocs" with everything     |
+| One feature = one bloc       | Share blocs across unrelated features  |
+| Use Cubit for simple cases   | Overcomplicate with Bloc unnecessarily |
+| Test all state transitions   | Skip bloc testing                      |
+| Use `buildWhen`/`listenWhen` | Rebuild on every state change          |
 
 ## Widget Reference
 
-| Widget | Purpose |
-|--------|---------|
-| `BlocBuilder` | UI rebuilds based on state |
-| `BlocListener` | Side effects (navigation, snackbar) |
-| `BlocConsumer` | Both builder and listener |
-| `BlocSelector` | Granular state selection |
-| `BlocProvider` | Dependency injection |
-| `MultiBlocProvider` | Multiple bloc injection |
-| `RepositoryProvider` | Repository injection |
+| Widget               | Purpose                             |
+| -------------------- | ----------------------------------- |
+| `BlocBuilder`        | UI rebuilds based on state          |
+| `BlocListener`       | Side effects (navigation, snackbar) |
+| `BlocConsumer`       | Both builder and listener           |
+| `BlocSelector`       | Granular state selection            |
+| `BlocProvider`       | Dependency injection                |
+| `MultiBlocProvider`  | Multiple bloc injection             |
+| `RepositoryProvider` | Repository injection                |
 
 ---
 
-*Bloc is an open-source state management library by Felix Angelov.*
+_Bloc is an open-source state management library by Felix Angelov._

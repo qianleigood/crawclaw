@@ -115,7 +115,6 @@ const CHOICE_LABEL_ZH_CN: Record<string, string> = {
   "on-miss": "未命中时",
   on: "开启",
   provider: "提供方",
-  sandbox: "沙盒",
   status: "状态",
   stream: "流式",
   summary: "摘要",

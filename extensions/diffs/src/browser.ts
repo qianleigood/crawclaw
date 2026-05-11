@@ -278,9 +278,7 @@ function injectBaseHref(html: string): string {
   return html.replace("<head>", `<head><base href="${LOCAL_VIEWER_BASE_HREF}" />`);
 }
 
-async function resolveBrowserExecutablePath(
-  config: CrawClawConfig,
-): Promise<string | undefined> {
+async function resolveBrowserExecutablePath(config: CrawClawConfig): Promise<string | undefined> {
   const cacheKey = JSON.stringify({
     configPath: config.browser?.executablePath?.trim() || "",
     env: [

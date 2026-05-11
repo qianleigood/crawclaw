@@ -1,6 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { PluginSdkDocCategory, PluginSdkDocEntrypoint } from "../../scripts/lib/plugin-sdk-doc-metadata.ts";
+import type {
+  PluginSdkDocCategory,
+  PluginSdkDocEntrypoint,
+} from "../../scripts/lib/plugin-sdk-doc-metadata.ts";
 import {
   loadCurrentFile,
   renderPluginSdkApiBaselineData,

@@ -6,17 +6,11 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { GatewayClient } from "../../src/gateway/client.js";
-import { connectGatewayClient } from "../../src/gateway/test-helpers.e2e.js";
-import { loadOrCreateDeviceIdentity } from "../../src/infra/device-identity.js";
 import { extractFirstTextBlock } from "../../src/shared/chat-message-content.js";
 import { sleep } from "../../src/utils.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../../src/utils/message-channel.js";
 
 export { extractFirstTextBlock };
-
-type NodeListPayload = {
-  nodes?: Array<{ nodeId?: string; connected?: boolean; paired?: boolean }>;
-};
 
 export type ChatEventPayload = {
   runId?: string;
@@ -41,8 +35,6 @@ export type GatewayInstance = {
 const GATEWAY_START_TIMEOUT_MS = 60_000;
 const GATEWAY_STOP_TIMEOUT_MS = 1_500;
 const GATEWAY_CONNECT_STATUS_TIMEOUT_MS = 2_000;
-const GATEWAY_NODE_STATUS_TIMEOUT_MS = 4_000;
-const GATEWAY_NODE_STATUS_POLL_MS = 20;
 
 const getFreePort = async () => {
   const srv = net.createServer();
@@ -262,32 +254,7 @@ export async function postJson(
   });
 }
 
-export async function connectNode(
-  inst: GatewayInstance,
-  label: string,
-): Promise<{ client: GatewayClient; nodeId: string }> {
-  const identityPath = path.join(inst.homeDir, `${label}-device.json`);
-  const deviceIdentity = loadOrCreateDeviceIdentity(identityPath);
-  const nodeId = deviceIdentity.deviceId;
-  const client = await connectGatewayClient({
-    url: `ws://127.0.0.1:${inst.port}`,
-    token: inst.gatewayToken,
-    clientName: GATEWAY_CLIENT_NAMES.NODE_HOST,
-    clientDisplayName: label,
-    clientVersion: "1.0.0",
-    platform: "macos",
-    mode: GATEWAY_CLIENT_MODES.NODE,
-    role: "node",
-    scopes: [],
-    caps: ["system"],
-    commands: ["system.run"],
-    deviceIdentity,
-    timeoutMessage: `timeout waiting for ${label} to connect`,
-  });
-  return { client, nodeId };
-}
-
-async function connectStatusClient(
+export async function connectStatusClient(
   inst: GatewayInstance,
   timeoutMs = GATEWAY_CONNECT_STATUS_TIMEOUT_MS,
 ): Promise<GatewayClient> {
@@ -329,36 +296,11 @@ async function connectStatusClient(
     });
 
     timer = setTimeout(() => {
-      finish(new Error("timeout waiting for node.list"));
+      finish(new Error("timeout waiting for gateway hello"));
     }, timeoutMs);
 
     client.start();
   });
-}
-
-export async function waitForNodeStatus(
-  inst: GatewayInstance,
-  nodeId: string,
-  timeoutMs = GATEWAY_NODE_STATUS_TIMEOUT_MS,
-) {
-  const deadline = Date.now() + timeoutMs;
-  const client = await connectStatusClient(
-    inst,
-    Math.min(GATEWAY_CONNECT_STATUS_TIMEOUT_MS, timeoutMs),
-  );
-  try {
-    while (Date.now() < deadline) {
-      const list = await client.request<NodeListPayload>("node.list", {});
-      const match = list.nodes?.find((n) => n.nodeId === nodeId);
-      if (match?.connected && match?.paired) {
-        return;
-      }
-      await sleep(GATEWAY_NODE_STATUS_POLL_MS);
-    }
-  } finally {
-    client.stop();
-  }
-  throw new Error(`timeout waiting for node status for ${nodeId}`);
 }
 
 export async function waitForChatFinalEvent(params: {

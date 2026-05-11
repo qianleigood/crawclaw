@@ -5,11 +5,7 @@ import {
 } from "crawclaw/plugin-sdk/account-helpers";
 import { normalizeAccountId } from "crawclaw/plugin-sdk/account-id";
 import { resolveAccountEntry } from "crawclaw/plugin-sdk/routing";
-import type {
-  DiscordAccountConfig,
-  DiscordActionConfig,
-  CrawClawConfig,
-} from "./runtime-api.js";
+import type { DiscordAccountConfig, DiscordActionConfig, CrawClawConfig } from "./runtime-api.js";
 import { resolveDiscordToken } from "./token.js";
 
 export type ResolvedDiscordAccount = {

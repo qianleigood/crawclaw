@@ -1,6 +1,6 @@
 import type { Client } from "@buape/carbon";
-import type { GatewayPresenceUpdate } from "discord-api-types/v10";
 import { buildAgentSessionKey } from "crawclaw/plugin-sdk/routing";
+import type { GatewayPresenceUpdate } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { DiscordChannelConfigResolved } from "./allow-list.js";
 import {

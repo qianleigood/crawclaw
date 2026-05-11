@@ -6,7 +6,7 @@
   "cpuProfDir": null,
   "heapProfDir": null,
   "primary": {
-    "entry": "crawclaw.mjs",
+    "entry": "dist/native/crawclaw",
     "cases": [
       {
         "id": "version",

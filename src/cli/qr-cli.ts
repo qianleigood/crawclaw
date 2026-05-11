@@ -235,7 +235,7 @@ export function registerQrCli(program: Command) {
 
         const lines: string[] = [
           theme.heading("Pairing QR"),
-          "Scan this with a CrawClaw node companion that supports QR onboarding.",
+          "Scan this with a CrawClaw client that supports QR onboarding.",
           "",
         ];
 

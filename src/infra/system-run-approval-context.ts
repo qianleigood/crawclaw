@@ -90,9 +90,8 @@ export function resolveSystemRunApprovalRequestContext(params: {
   agentId?: unknown;
   sessionKey?: unknown;
 }): SystemRunApprovalRequestContext {
-  const host = normalizeNonEmptyString(params.host) ?? "";
-  const normalizedPlan =
-    host === "node" ? normalizeSystemRunApprovalPlan(params.systemRunPlan) : null;
+  void params.host;
+  const normalizedPlan = normalizeSystemRunApprovalPlan(params.systemRunPlan ?? null);
   const fallbackArgv = normalizeStringArray(params.commandArgv);
   const fallbackCommand = normalizeCommandText(params.command);
   const commandText = normalizedPlan

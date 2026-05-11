@@ -40,16 +40,18 @@ NEXT_PUBLIC_API_URL=https://api.example.com
 ```typescript
 // Backend: environment-aware CORS
 const ALLOWED_ORIGINS = {
-  development: ['http://localhost:3000', 'http://localhost:5173'],
-  staging: ['https://staging.example.com'],
-  production: ['https://example.com', 'https://www.example.com'],
+  development: ["http://localhost:3000", "http://localhost:5173"],
+  staging: ["https://staging.example.com"],
+  production: ["https://example.com", "https://www.example.com"],
 };
 
-app.use(cors({
-  origin: ALLOWED_ORIGINS[process.env.NODE_ENV || 'development'],
-  credentials: true,  // needed for cookies (auth)
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-}));
+app.use(
+  cors({
+    origin: ALLOWED_ORIGINS[process.env.NODE_ENV || "development"],
+    credentials: true, // needed for cookies (auth)
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  }),
+);
 ```
 
 ---
@@ -61,6 +63,7 @@ app.use(cors({
 **Cause:** CORS is a browser security feature. Postman/curl skip it.
 
 **Fix:**
+
 1. Backend must return `Access-Control-Allow-Origin: https://your-frontend.com`
 2. For cookies/auth: `credentials: true` on both sides
 3. Check that preflight `OPTIONS` request returns correct headers

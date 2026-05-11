@@ -697,8 +697,8 @@ describe.skipIf(isWindows)("restart-stale-pids", () => {
       expect(() => __testing.callSleepSyncRaw(1)).not.toThrow();
     });
 
-    it("falls back to busy-wait when Atomics.wait throws (Worker / sandboxed env)", () => {
-      // Atomics.wait throws in Worker threads and some sandboxed runtimes.
+    it("falls back to busy-wait when Atomics.wait throws (Worker / child env)", () => {
+      // Atomics.wait throws in Worker threads and some child runtimes.
       // The catch branch must handle this without propagating the exception.
       const origWait = Atomics.wait;
       Atomics.wait = () => {

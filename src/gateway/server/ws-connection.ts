@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { WebSocket, WebSocketServer } from "ws";
-import { removeRemoteNodeInfo } from "../../infra/skills-remote.js";
 import { upsertPresence } from "../../infra/system-presence.js";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
 import { truncateUtf16Safe } from "../../utils.js";
@@ -254,13 +253,6 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
       }
       const context = buildRequestContext();
       context.unsubscribeAllSessionEvents(connId);
-      if (client?.connect?.role === "node") {
-        const nodeId = context.nodeRegistry.unregister(connId);
-        if (nodeId) {
-          removeRemoteNodeInfo(nodeId);
-          context.nodeUnsubscribeAll(nodeId);
-        }
-      }
       logWs("out", "close", {
         connId,
         code,

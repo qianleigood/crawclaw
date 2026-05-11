@@ -44,7 +44,7 @@ const opts = parseFlagArgs(
   {
     baseline: cliStartupBenchManifestPath,
     report: "",
-    entry: "crawclaw.mjs",
+    entry: "dist/native/crawclaw",
     preset: "all",
     runs: 1,
     warmup: 0,

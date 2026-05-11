@@ -1,10 +1,6 @@
 import fs from "node:fs/promises";
 import { Static, Type } from "@sinclair/typebox";
-import type {
-  AnyAgentTool,
-  CrawClawPluginApi,
-  CrawClawPluginToolContext,
-} from "../api.js";
+import type { AnyAgentTool, CrawClawPluginApi, CrawClawPluginToolContext } from "../api.js";
 import { PlaywrightDiffScreenshotter, type DiffScreenshotter } from "./browser.js";
 import { resolveDiffImageRenderOptions } from "./config.js";
 import { renderDiffDocument } from "./render.js";

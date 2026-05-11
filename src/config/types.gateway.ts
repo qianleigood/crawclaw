@@ -353,20 +353,6 @@ export type GatewayPushConfig = {
   apns?: GatewayPushApnsConfig;
 };
 
-export type GatewayNodesConfig = {
-  /** Browser routing policy for node-hosted browser proxies. */
-  browser?: {
-    /** Routing mode (default: auto). */
-    mode?: "auto" | "manual" | "off";
-    /** Pin to a specific node id/name (optional). */
-    node?: string;
-  };
-  /** Additional node.invoke commands to allow on the gateway. */
-  allowCommands?: string[];
-  /** Commands to deny even if they appear in the defaults or node claims. */
-  denyCommands?: string[];
-};
-
 export type GatewayToolsConfig = {
   /** Tools to deny via gateway HTTP /tools/invoke (extends defaults). */
   deny?: string[];
@@ -407,7 +393,6 @@ export type GatewayConfig = {
   tls?: GatewayTlsConfig;
   http?: GatewayHttpConfig;
   push?: GatewayPushConfig;
-  nodes?: GatewayNodesConfig;
   /**
    * IPs of trusted reverse proxies (e.g. Traefik, nginx). When a connection
    * arrives from one of these IPs, the Gateway trusts `x-forwarded-for`

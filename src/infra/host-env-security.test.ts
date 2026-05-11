@@ -3,6 +3,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { CRAWCLAW_CLI_ENV_VALUE } from "./crawclaw-exec-env.js";
 import {
   isDangerousHostEnvOverrideVarName,
   isDangerousHostEnvVarName,
@@ -11,7 +12,6 @@ import {
   sanitizeHostExecEnvWithDiagnostics,
   sanitizeSystemRunEnvOverrides,
 } from "./host-env-security.js";
-import { CRAWCLAW_CLI_ENV_VALUE } from "./crawclaw-exec-env.js";
 
 function findSystemCommandPath(command: string) {
   if (process.platform === "win32") {
@@ -186,9 +186,6 @@ describe("isDangerousHostEnvVarName", () => {
     expect(isDangerousHostEnvVarName("SSL_CERT_DIR")).toBe(false);
     expect(isDangerousHostEnvVarName("requests_ca_bundle")).toBe(false);
     expect(isDangerousHostEnvVarName("CURL_CA_BUNDLE")).toBe(false);
-    expect(isDangerousHostEnvVarName("DOCKER_HOST")).toBe(false);
-    expect(isDangerousHostEnvVarName("docker_cert_path")).toBe(false);
-    expect(isDangerousHostEnvVarName("DOCKER_TLS_VERIFY")).toBe(false);
     expect(isDangerousHostEnvVarName("CARGO_REGISTRIES_CRATES_IO_INDEX")).toBe(false);
     expect(isDangerousHostEnvVarName("AWS_CONFIG_FILE")).toBe(false);
     expect(isDangerousHostEnvVarName("aws_config_file")).toBe(false);
@@ -264,10 +261,6 @@ describe("sanitizeHostExecEnv", () => {
         UV_INDEX_URL: "https://example.invalid/simple",
         UV_DEFAULT_INDEX: "https://example.invalid/simple",
         UV_EXTRA_INDEX_URL: "https://example.invalid/simple",
-        DOCKER_HOST: "tcp://example.invalid:2376",
-        DOCKER_TLS_VERIFY: "1",
-        DOCKER_CERT_PATH: "/tmp/evil-docker-certs",
-        DOCKER_CONTEXT: "evil-remote",
         LIBRARY_PATH: "/tmp/evil-lib",
         CPATH: "/tmp/evil-headers",
         C_INCLUDE_PATH: "/tmp/evil-c-headers",
@@ -336,10 +329,6 @@ describe("sanitizeHostExecEnv", () => {
     expect(env.UV_INDEX_URL).toBeUndefined();
     expect(env.UV_DEFAULT_INDEX).toBeUndefined();
     expect(env.UV_EXTRA_INDEX_URL).toBeUndefined();
-    expect(env.DOCKER_HOST).toBeUndefined();
-    expect(env.DOCKER_TLS_VERIFY).toBeUndefined();
-    expect(env.DOCKER_CERT_PATH).toBeUndefined();
-    expect(env.DOCKER_CONTEXT).toBeUndefined();
     expect(env.LIBRARY_PATH).toBeUndefined();
     expect(env.CPATH).toBeUndefined();
     expect(env.C_INCLUDE_PATH).toBeUndefined();
@@ -364,7 +353,7 @@ describe("sanitizeHostExecEnv", () => {
     expect(env.ZDOTDIR).toBe("/tmp/trusted-zdotdir");
   });
 
-  it("keeps trusted inherited proxy, TLS, and Docker env while blocking overrides", () => {
+  it("keeps trusted inherited proxy and TLS env while blocking overrides", () => {
     const env = sanitizeHostExecEnv({
       baseEnv: {
         PATH: "/usr/bin:/bin",
@@ -373,12 +362,10 @@ describe("sanitizeHostExecEnv", () => {
         NODE_TLS_REJECT_UNAUTHORIZED: "0",
         SSL_CERT_DIR: "/etc/ssl/certs",
         CURL_CA_BUNDLE: "/etc/ssl/cert.pem",
-        DOCKER_TLS_VERIFY: "1",
       },
       overrides: {
         HTTP_PROXY: "http://evil-proxy.example.test:8080",
         NODE_TLS_REJECT_UNAUTHORIZED: "1",
-        DOCKER_TLS_VERIFY: "0",
       },
     });
 
@@ -390,11 +377,10 @@ describe("sanitizeHostExecEnv", () => {
       NODE_TLS_REJECT_UNAUTHORIZED: "0",
       SSL_CERT_DIR: "/etc/ssl/certs",
       CURL_CA_BUNDLE: "/etc/ssl/cert.pem",
-      DOCKER_TLS_VERIFY: "1",
     });
   });
 
-  it("blocks proxy, TLS, and Docker override values explicitly", () => {
+  it("blocks proxy and TLS override values explicitly", () => {
     expect(isDangerousHostEnvOverrideVarName("HTTPS_PROXY")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("https_proxy")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("HTTP_PROXY")).toBe(true);
@@ -407,9 +393,6 @@ describe("sanitizeHostExecEnv", () => {
     expect(isDangerousHostEnvOverrideVarName("SSL_CERT_DIR")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("requests_ca_bundle")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("CURL_CA_BUNDLE")).toBe(true);
-    expect(isDangerousHostEnvOverrideVarName("DOCKER_HOST")).toBe(true);
-    expect(isDangerousHostEnvOverrideVarName("docker_cert_path")).toBe(true);
-    expect(isDangerousHostEnvOverrideVarName("DOCKER_TLS_VERIFY")).toBe(true);
   });
 
   it("drops dangerous inherited shell trace keys", () => {
@@ -506,8 +489,6 @@ describe("isDangerousHostEnvOverrideVarName", () => {
     expect(isDangerousHostEnvOverrideVarName("UV_INDEX_URL")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("uv_default_index")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("UV_EXTRA_INDEX_URL")).toBe(true);
-    expect(isDangerousHostEnvOverrideVarName("DOCKER_HOST")).toBe(true);
-    expect(isDangerousHostEnvOverrideVarName("docker_context")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("NODE_EXTRA_CA_CERTS")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("ssl_cert_file")).toBe(true);
     expect(isDangerousHostEnvOverrideVarName("REQUESTS_CA_BUNDLE")).toBe(true);
@@ -558,10 +539,6 @@ describe("sanitizeHostExecEnvWithDiagnostics", () => {
         UV_INDEX_URL: "https://example.invalid/simple",
         UV_DEFAULT_INDEX: "https://example.invalid/simple",
         UV_EXTRA_INDEX_URL: "https://example.invalid/simple",
-        DOCKER_HOST: "tcp://example.invalid:2376",
-        DOCKER_TLS_VERIFY: "1",
-        DOCKER_CERT_PATH: "/tmp/evil-docker-certs",
-        DOCKER_CONTEXT: "evil-remote",
         LIBRARY_PATH: "/tmp/evil-lib",
         CPATH: "/tmp/evil-headers",
         C_INCLUDE_PATH: "/tmp/evil-c-headers",
@@ -601,10 +578,6 @@ describe("sanitizeHostExecEnvWithDiagnostics", () => {
       "CPLUS_INCLUDE_PATH",
       "CURL_CA_BUNDLE",
       "CXX",
-      "DOCKER_CERT_PATH",
-      "DOCKER_CONTEXT",
-      "DOCKER_HOST",
-      "DOCKER_TLS_VERIFY",
       "GIT_SSL_CAINFO",
       "GIT_SSL_CAPATH",
       "GIT_SSL_NO_VERIFY",
@@ -658,10 +631,6 @@ describe("sanitizeHostExecEnvWithDiagnostics", () => {
     expect(result.env.GIT_SSL_NO_VERIFY).toBeUndefined();
     expect(result.env.GIT_SSL_CAINFO).toBeUndefined();
     expect(result.env.GIT_SSL_CAPATH).toBeUndefined();
-    expect(result.env.DOCKER_HOST).toBeUndefined();
-    expect(result.env.DOCKER_TLS_VERIFY).toBeUndefined();
-    expect(result.env.DOCKER_CERT_PATH).toBeUndefined();
-    expect(result.env.DOCKER_CONTEXT).toBeUndefined();
     expect(result.env.LIBRARY_PATH).toBeUndefined();
     expect(result.env.CPATH).toBeUndefined();
     expect(result.env.C_INCLUDE_PATH).toBeUndefined();

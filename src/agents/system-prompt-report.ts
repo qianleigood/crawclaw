@@ -99,7 +99,6 @@ export function buildSystemPromptReport(params: {
   bootstrapMaxChars: number;
   bootstrapTotalMaxChars?: number;
   bootstrapTruncation?: SessionSystemPromptReport["bootstrapTruncation"];
-  sandbox?: SessionSystemPromptReport["sandbox"];
   systemPrompt: string;
   bootstrapFiles: WorkspaceBootstrapFile[];
   injectedFiles: EmbeddedContextFile[];
@@ -136,7 +135,6 @@ export function buildSystemPromptReport(params: {
     bootstrapMaxChars: params.bootstrapMaxChars,
     bootstrapTotalMaxChars: params.bootstrapTotalMaxChars,
     ...(params.bootstrapTruncation ? { bootstrapTruncation: params.bootstrapTruncation } : {}),
-    sandbox: params.sandbox,
     systemPrompt: {
       chars: systemPrompt.length,
       projectContextChars,

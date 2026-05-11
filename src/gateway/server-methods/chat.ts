@@ -979,7 +979,6 @@ function createChatAbortOps(context: GatewayRequestContext): ChatAbortOps {
     removeChatRun: context.removeChatRun,
     agentRunSeq: context.agentRunSeq,
     broadcast: context.broadcast,
-    nodeSendToSession: context.nodeSendToSession,
   };
 }
 
@@ -1135,7 +1134,7 @@ function nextChatSeq(context: { agentRunSeq: Map<string, number> }, runId: strin
 }
 
 function broadcastChatFinal(params: {
-  context: Pick<GatewayRequestContext, "broadcast" | "nodeSendToSession" | "agentRunSeq">;
+  context: Pick<GatewayRequestContext, "broadcast" | "agentRunSeq">;
   runId: string;
   sessionKey: string;
   message?: Record<string, unknown>;
@@ -1152,7 +1151,6 @@ function broadcastChatFinal(params: {
     message: stripInlineDirectiveTagsFromMessageForDisplay(strippedEnvelopeMessage),
   };
   params.context.broadcast("chat", payload);
-  params.context.nodeSendToSession(params.sessionKey, "chat", payload);
   params.context.agentRunSeq.delete(params.runId);
 }
 
@@ -1169,7 +1167,7 @@ function isBtwReplyPayload(payload: ReplyPayload | undefined): payload is ReplyP
 }
 
 function broadcastSideResult(params: {
-  context: Pick<GatewayRequestContext, "broadcast" | "nodeSendToSession" | "agentRunSeq">;
+  context: Pick<GatewayRequestContext, "broadcast" | "agentRunSeq">;
   payload: SideResultPayload;
 }) {
   const seq = nextChatSeq({ agentRunSeq: params.context.agentRunSeq }, params.payload.runId);
@@ -1177,14 +1175,10 @@ function broadcastSideResult(params: {
     ...params.payload,
     seq,
   });
-  params.context.nodeSendToSession(params.payload.sessionKey, "chat.side_result", {
-    ...params.payload,
-    seq,
-  });
 }
 
 function broadcastChatError(params: {
-  context: Pick<GatewayRequestContext, "broadcast" | "nodeSendToSession" | "agentRunSeq">;
+  context: Pick<GatewayRequestContext, "broadcast" | "agentRunSeq">;
   runId: string;
   sessionKey: string;
   errorMessage?: string;
@@ -1198,7 +1192,6 @@ function broadcastChatError(params: {
     errorMessage: params.errorMessage,
   };
   params.context.broadcast("chat", payload);
-  params.context.nodeSendToSession(params.sessionKey, "chat", payload);
   params.context.agentRunSeq.delete(params.runId);
 }
 
@@ -1976,7 +1969,6 @@ export const chatHandlers: GatewayRequestHandlers = {
       ),
     };
     context.broadcast("chat", chatPayload);
-    context.nodeSendToSession(sessionKey, "chat", chatPayload);
 
     respond(true, { ok: true, messageId: appended.messageId });
   },

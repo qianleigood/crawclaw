@@ -46,9 +46,6 @@ async function createFixtureRepo(): Promise<string> {
     engines: {
       node: ">=24.0.0 <26",
     },
-    optionalDependencies: {
-      openshell: "0.1.0",
-    },
     packageManager: "pnpm@10.32.1",
     pnpm: {
       ignoredBuiltDependencies: ["koffi"],

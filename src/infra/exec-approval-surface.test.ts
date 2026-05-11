@@ -66,14 +66,6 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
       },
     },
     {
-      channel: "tui",
-      expected: {
-        kind: "enabled",
-        channel: "tui",
-        channelLabel: "terminal UI",
-      },
-    },
-    {
       channel: "web",
       expected: {
         kind: "enabled",

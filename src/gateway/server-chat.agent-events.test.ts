@@ -76,7 +76,6 @@ describe("agent event handler", () => {
     const handler = createAgentEventHandler({
       broadcast,
       broadcastToConnIds,
-      nodeSendToSession,
       agentRunSeq,
       chatRunState,
       resolveSessionKeyForRun: params?.resolveSessionKeyForRun ?? (() => undefined),

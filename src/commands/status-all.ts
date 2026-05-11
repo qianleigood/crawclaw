@@ -10,7 +10,6 @@ import {
   resolveGatewayPort,
 } from "../config/config.js";
 import { readLastGatewayErrorLine } from "../daemon/diagnostics.js";
-import { resolveNodeService } from "../daemon/node-service.js";
 import type { GatewayService } from "../daemon/service.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
@@ -38,7 +37,6 @@ import { buildChannelsTable } from "./status-all/channels.js";
 import { formatDurationPrecise, formatGatewayAuthUsed } from "./status-all/format.js";
 import { pickGatewaySelfPresence } from "./status-all/gateway.js";
 import { buildStatusAllReportLines } from "./status-all/report-lines.js";
-import { resolveNodeOnlyGatewayInfo } from "./status.node-mode.js";
 import { readServiceStatusSummary } from "./status.service-summary.js";
 import { formatUpdateOneLiner } from "./status.update.js";
 
@@ -189,14 +187,6 @@ export async function statusAllCommand(
       }
     };
     const daemon = await readServiceSummary(resolveGatewayService());
-    const nodeService = await readServiceSummary(resolveNodeService());
-    const nodeOnlyGateway =
-      daemon && nodeService
-        ? await resolveNodeOnlyGatewayInfo({
-            daemon,
-            node: nodeService,
-          })
-        : null;
     progress.tick();
 
     progress.setLabel("Scanning agents…");
@@ -210,9 +200,6 @@ export async function statusAllCommand(
     progress.tick();
 
     const connectionDetailsForReport = (() => {
-      if (nodeOnlyGateway) {
-        return nodeOnlyGateway.connectionDetails;
-      }
       if (!remoteUrlMissing) {
         return connection.message;
       }
@@ -237,16 +224,14 @@ export async function statusAllCommand(
       : {};
 
     progress.setLabel("Querying gateway…");
-    const health = nodeOnlyGateway
-      ? undefined
-      : gatewayReachable
-        ? await callGateway({
-            config: cfg,
-            method: "health",
-            timeoutMs: Math.min(8000, opts?.timeoutMs ?? 10_000),
-            ...callOverrides,
-          }).catch((err) => ({ error: String(err) }))
-        : { error: gatewayProbe?.error ?? "gateway unreachable" };
+    const health = gatewayReachable
+      ? await callGateway({
+          config: cfg,
+          method: "health",
+          timeoutMs: Math.min(8000, opts?.timeoutMs ?? 10_000),
+          ...callOverrides,
+        }).catch((err) => ({ error: String(err) }))
+      : { error: gatewayProbe?.error ?? "gateway unreachable" };
 
     const channelsStatus = gatewayReachable
       ? await callGateway({
@@ -309,9 +294,7 @@ export async function statusAllCommand(
         ? `unreachable (${gatewayProbe.error})`
         : "unreachable";
     const gatewayAuth = gatewayReachable ? ` · auth ${formatGatewayAuthUsed(probeAuth)}` : "";
-    const gatewayValue =
-      nodeOnlyGateway?.gatewayValue ??
-      `${gatewayMode}${remoteUrlMissing ? " (remote.url missing)" : ""} · ${gatewayTarget} (${connection.urlSource}) · ${gatewayStatus}${gatewayAuth}`;
+    const gatewayValue = `${gatewayMode}${remoteUrlMissing ? " (remote.url missing)" : ""} · ${gatewayTarget} (${connection.urlSource}) · ${gatewayStatus}${gatewayAuth}`;
     const gatewaySelfLine =
       gatewaySelf?.host || gatewaySelf?.ip || gatewaySelf?.version || gatewaySelf?.platform
         ? [
@@ -368,14 +351,6 @@ export async function statusAllCommand(
               : `${daemon.label} ${daemon.managedByCrawClaw ? "installed · " : ""}${daemon.loadedText}${daemon.runtime?.status ? ` · ${daemon.runtime.status}` : ""}${daemon.runtime?.pid ? ` (pid ${daemon.runtime.pid})` : ""}`,
           }
         : { Item: "Gateway service", Value: "unknown" },
-      nodeService
-        ? {
-            Item: "Node service",
-            Value: !nodeService.installed
-              ? `${nodeService.label} not installed`
-              : `${nodeService.label} ${nodeService.managedByCrawClaw ? "installed · " : ""}${nodeService.loadedText}${nodeService.runtime?.status ? ` · ${nodeService.runtime.status}` : ""}${nodeService.runtime?.pid ? ` (pid ${nodeService.runtime.pid})` : ""}`,
-          }
-        : { Item: "Node service", Value: "unknown" },
       {
         Item: "Agents",
         Value: `${agentStatus.agents.length} total · ${agentStatus.bootstrapPendingCount} bootstrapping · ${aliveAgents} active · ${agentStatus.totalSessions} sessions`,
@@ -421,7 +396,6 @@ export async function statusAllCommand(
         channelIssues,
         gatewayReachable,
         health,
-        nodeOnlyGateway,
       },
     });
 

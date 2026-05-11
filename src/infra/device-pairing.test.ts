@@ -34,12 +34,12 @@ async function setupPairedOperatorDevice(baseDir: string, scopes: string[]) {
   await approveDevicePairing(request.request.requestId, { callerScopes: scopes }, baseDir);
 }
 
-async function setupPairedNodeDevice(baseDir: string) {
+async function setupPairedLegacyDevice(baseDir: string) {
   const request = await requestDevicePairing(
     {
-      deviceId: "node-1",
-      publicKey: "public-key-node-1",
-      role: "node",
+      deviceId: "legacy-1",
+      publicKey: "public-key-legacy-1",
+      role: "legacy",
       scopes: [],
     },
     baseDir,
@@ -151,7 +151,7 @@ describe("device pairing tokens", () => {
       {
         deviceId: "device-1",
         publicKey: "public-key-1",
-        role: "node",
+        role: "legacy",
         scopes: [],
       },
       baseDir,
@@ -169,7 +169,7 @@ describe("device pairing tokens", () => {
     expect(second.created).toBe(true);
     expect(second.request.requestId).not.toBe(first.request.requestId);
     expect(second.request.role).toBe("operator");
-    expect(second.request.roles).toEqual(expect.arrayContaining(["node", "operator"]));
+    expect(second.request.roles).toEqual(expect.arrayContaining(["legacy", "operator"]));
     expect(second.request.scopes).toEqual(
       expect.arrayContaining(["operator.read", "operator.write"]),
     );
@@ -184,7 +184,7 @@ describe("device pairing tokens", () => {
       baseDir,
     );
     const paired = await getPairedDevice("device-1", baseDir);
-    expect(paired?.roles).toEqual(expect.arrayContaining(["node", "operator"]));
+    expect(paired?.roles).toEqual(expect.arrayContaining(["legacy", "operator"]));
     expect(paired?.scopes).toEqual(expect.arrayContaining(["operator.read", "operator.write"]));
   });
 
@@ -194,7 +194,7 @@ describe("device pairing tokens", () => {
       {
         deviceId: "device-1",
         publicKey: "public-key-1",
-        role: "node",
+        role: "legacy",
         scopes: [],
         silent: false,
       },
@@ -406,19 +406,19 @@ describe("device pairing tokens", () => {
     expect(after?.approvedScopes).toEqual(["operator.read"]);
   });
 
-  test("preserves explicit empty scope baselines for node device tokens", async () => {
+  test("preserves explicit empty scope baselines for legacy device tokens", async () => {
     const baseDir = await createPairingBaseDir();
-    await setupPairedNodeDevice(baseDir);
+    await setupPairedLegacyDevice(baseDir);
 
-    const paired = await getPairedDevice("node-1", baseDir);
+    const paired = await getPairedDevice("legacy-1", baseDir);
     expect(paired?.scopes).toEqual([]);
     expect(paired?.approvedScopes).toEqual([]);
 
-    const seededToken = requireToken(paired?.tokens?.node?.token);
+    const seededToken = requireToken(paired?.tokens?.legacy?.token);
     await expect(
       ensureDeviceToken({
-        deviceId: "node-1",
-        role: "node",
+        deviceId: "legacy-1",
+        role: "legacy",
         scopes: [],
         baseDir,
       }),
@@ -426,9 +426,9 @@ describe("device pairing tokens", () => {
 
     await expect(
       verifyDeviceToken({
-        deviceId: "node-1",
+        deviceId: "legacy-1",
         token: seededToken,
-        role: "node",
+        role: "legacy",
         scopes: [],
         baseDir,
       }),
@@ -570,7 +570,7 @@ describe("device pairing tokens", () => {
       {
         deviceId: "device-1",
         publicKey: "public-key-1",
-        role: "node",
+        role: "legacy",
       },
       baseDir,
     );
@@ -579,36 +579,36 @@ describe("device pairing tokens", () => {
     let paired = await getPairedDevice("device-1", baseDir);
     expect(paired).toBeDefined();
     if (!paired) {
-      throw new Error("expected paired node device");
+      throw new Error("expected paired legacy device");
     }
-    expect(paired?.roles).toContain("node");
-    expect(listEffectivePairedDeviceRoles(paired)).toEqual(["node"]);
-    expect(hasEffectivePairedDeviceRole(paired, "node")).toBe(true);
+    expect(paired?.roles).toContain("legacy");
+    expect(listEffectivePairedDeviceRoles(paired)).toEqual(["legacy"]);
+    expect(hasEffectivePairedDeviceRole(paired, "legacy")).toBe(true);
 
-    await revokeDeviceToken({ deviceId: "device-1", role: "node", baseDir });
+    await revokeDeviceToken({ deviceId: "device-1", role: "legacy", baseDir });
 
     paired = await getPairedDevice("device-1", baseDir);
     expect(paired).toBeDefined();
     if (!paired) {
-      throw new Error("expected paired node device after revoke");
+      throw new Error("expected paired legacy device after revoke");
     }
-    expect(paired?.roles).toContain("node");
+    expect(paired?.roles).toContain("legacy");
     expect(listEffectivePairedDeviceRoles(paired)).toEqual([]);
-    expect(hasEffectivePairedDeviceRole(paired, "node")).toBe(false);
+    expect(hasEffectivePairedDeviceRole(paired, "legacy")).toBe(false);
   });
 
   test("falls back to legacy role fields when tokens map is empty", async () => {
     const device: PairedDevice = {
       deviceId: "device-fallback",
       publicKey: "pk-fallback",
-      role: "node",
-      roles: ["node", "operator"],
+      role: "legacy",
+      roles: ["legacy", "operator"],
       tokens: {},
       createdAtMs: Date.now(),
       approvedAtMs: Date.now(),
     };
-    expect(listEffectivePairedDeviceRoles(device)).toEqual(["node", "operator"]);
-    expect(hasEffectivePairedDeviceRole(device, "node")).toBe(true);
+    expect(listEffectivePairedDeviceRoles(device)).toEqual(["legacy", "operator"]);
+    expect(hasEffectivePairedDeviceRole(device, "legacy")).toBe(true);
     expect(hasEffectivePairedDeviceRole(device, "operator")).toBe(true);
   });
 

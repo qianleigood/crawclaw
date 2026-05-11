@@ -48,7 +48,7 @@ describe("ws connect policy", () => {
     expect(
       evaluateMissingDeviceIdentity({
         hasDeviceIdentity: true,
-        role: "node",
+        role: "operator",
         isBrowserClients: false,
         browserClientsAuthPolicy: policy,
         trustedProxyAuthOk: false,
@@ -142,20 +142,6 @@ describe("ws connect policy", () => {
       }).kind,
     ).toBe("reject-unauthorized");
 
-    expect(
-      evaluateMissingDeviceIdentity({
-        hasDeviceIdentity: false,
-        role: "node",
-        isBrowserClients: false,
-        browserClientsAuthPolicy: policy,
-        trustedProxyAuthOk: false,
-        sharedAuthOk: true,
-        authOk: true,
-        hasSharedAuth: true,
-        isLocalClient: false,
-      }).kind,
-    ).toBe("reject-device-required");
-
     // Trusted-proxy authenticated Browser client should bypass device-identity gating.
     expect(
       evaluateMissingDeviceIdentity({
@@ -189,25 +175,6 @@ describe("ws connect policy", () => {
         isLocalClient: false,
       }).kind,
     ).toBe("allow");
-
-    // Regression: dangerouslyDisableDeviceAuth bypass must NOT extend to node-role
-    // sessions — the break-glass flag is scoped to operator Browser client only.
-    // A device-less node-role connection must still be rejected even when the flag
-    // is set, to prevent the flag from being abused to admit unauthorized node
-    // registrations.
-    expect(
-      evaluateMissingDeviceIdentity({
-        hasDeviceIdentity: false,
-        role: "node",
-        isBrowserClients: true,
-        browserClientsAuthPolicy: bypass,
-        trustedProxyAuthOk: false,
-        sharedAuthOk: false,
-        authOk: false,
-        hasSharedAuth: false,
-        isLocalClient: false,
-      }).kind,
-    ).toBe("reject-device-required");
   });
 
   test("dangerouslyDisableDeviceAuth skips pairing for operator browser-client only", () => {
@@ -222,7 +189,6 @@ describe("ws connect policy", () => {
       deviceRaw: null,
     });
     expect(shouldSkipBrowserClientsPairing(bypass, "operator", false)).toBe(true);
-    expect(shouldSkipBrowserClientsPairing(bypass, "node", false)).toBe(false);
     expect(shouldSkipBrowserClientsPairing(strict, "operator", false)).toBe(false);
     expect(shouldSkipBrowserClientsPairing(strict, "operator", true)).toBe(true);
   });
@@ -240,8 +206,6 @@ describe("ws connect policy", () => {
     });
     // Browser client + operator + auth.mode=none: skip pairing (the fix for #42931)
     expect(shouldSkipBrowserClientsPairing(browserClients, "operator", false, "none")).toBe(true);
-    // Browser client + node role + auth.mode=none: still require pairing
-    expect(shouldSkipBrowserClientsPairing(browserClients, "node", false, "none")).toBe(false);
     // Non-Control-UI + operator + auth.mode=none: still require pairing
     // (prevents #43478 regression where ALL clients bypassed pairing)
     expect(shouldSkipBrowserClientsPairing(nonBrowserClients, "operator", false, "none")).toBe(
@@ -257,7 +221,7 @@ describe("ws connect policy", () => {
 
   test("trusted-proxy browser-client bypass only applies to operator + trusted-proxy auth", () => {
     const cases: Array<{
-      role: "operator" | "node";
+      role: "operator";
       authMode: string;
       authOk: boolean;
       authMethod: string | undefined;
@@ -269,13 +233,6 @@ describe("ws connect policy", () => {
         authOk: true,
         authMethod: "trusted-proxy",
         expected: true,
-      },
-      {
-        role: "node",
-        authMode: "trusted-proxy",
-        authOk: true,
-        authMethod: "trusted-proxy",
-        expected: false,
       },
       {
         role: "operator",

@@ -1,10 +1,10 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
 import type { DoctorMemoryStatusPayload } from "../gateway/server-methods/doctor.js";
-import type { DoctorMemoryHealthSummary } from "./doctor-memory-health.js";
 import { collectChannelStatusIssues } from "../infra/channels-status-issues.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
+import type { DoctorMemoryHealthSummary } from "./doctor-memory-health.js";
 import { formatHealthCheckFailure } from "./health-format.js";
 import { healthCommand } from "./health.js";
 

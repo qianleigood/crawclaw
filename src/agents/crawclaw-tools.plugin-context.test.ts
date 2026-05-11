@@ -107,12 +107,9 @@ describe("createCrawClawTools plugin context", () => {
     );
   });
 
-  it("forwards browser session wiring to plugin tool context", () => {
+  it("forwards browser host-control policy to plugin tool context", () => {
     createCrawClawTools({
       config: {} as never,
-      sandboxBrowserBridgeUrl: "http://127.0.0.1:9999",
-      sandboxBrowserCdpUrl: "http://127.0.0.1:9222",
-      sandboxBrowserPinchTabUrl: "http://127.0.0.1:9867",
       allowHostBrowserControl: true,
     });
 
@@ -120,9 +117,6 @@ describe("createCrawClawTools plugin context", () => {
       expect.objectContaining({
         context: expect.objectContaining({
           browser: {
-            sandboxBridgeUrl: "http://127.0.0.1:9999",
-            sandboxCdpUrl: "http://127.0.0.1:9222",
-            sandboxPinchTabUrl: "http://127.0.0.1:9867",
             allowHostControl: true,
           },
         }),

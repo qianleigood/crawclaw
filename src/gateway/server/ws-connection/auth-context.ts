@@ -182,7 +182,7 @@ export async function resolveConnectAuthDecision(params: {
       // Prefer an explicit valid bootstrap token even when another auth path
       // (for example tailscale serve header auth) already succeeded. QR pairing
       // relies on the server classifying the handshake as bootstrap-token so the
-      // initial node pairing can be silently auto-approved and the bootstrap
+      // initial device pairing can be silently auto-approved and the bootstrap
       // token can be revoked after approval.
       authOk = true;
       authMethod = "bootstrap-token";

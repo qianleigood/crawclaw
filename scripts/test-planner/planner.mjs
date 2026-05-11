@@ -1402,8 +1402,8 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
                 cache_key_suffix: "node22",
                 command: [
                   "pnpm build",
-                  "node crawclaw.mjs --help",
-                  "node crawclaw.mjs status --json --timeout 1",
+                  "dist/native/crawclaw --help",
+                  "dist/native/crawclaw status --json --timeout 1",
                   "pnpm test:build:singleton",
                 ].join("\n"),
               },

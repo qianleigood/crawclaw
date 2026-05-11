@@ -128,7 +128,6 @@ export const AgentRuntimeContractSchema = Type.Object(
     executionMode: NullableString,
     transcriptPolicy: NullableString,
     cleanup: NullableString,
-    sandbox: NullableString,
     defaultRunTimeoutSeconds: NullableNumber,
     toolAllowlistCount: NullableNumber,
   },

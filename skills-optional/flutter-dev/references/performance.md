@@ -238,34 +238,34 @@ AnimatedContainer(
 
 ### Key Metrics
 
-| Metric | Target | Action if Exceeded |
-|--------|--------|-------------------|
-| Frame time | < 16ms (60fps) | Profile build/paint |
-| Build time | < 8ms | Add const, extract widgets |
-| Paint time | < 8ms | Add RepaintBoundary |
-| Memory | Stable | Check for leaks |
+| Metric     | Target         | Action if Exceeded         |
+| ---------- | -------------- | -------------------------- |
+| Frame time | < 16ms (60fps) | Profile build/paint        |
+| Build time | < 8ms          | Add const, extract widgets |
+| Paint time | < 8ms          | Add RepaintBoundary        |
+| Memory     | Stable         | Check for leaks            |
 
 ### Common Issues
 
-| Issue | Symptom | Solution |
-|-------|---------|----------|
-| Expensive builds | High build time | Extract const widgets |
-| Excessive repaints | High paint time | Add RepaintBoundary |
-| Memory leaks | Growing memory | Dispose controllers |
-| Jank | Dropped frames | Use compute() |
+| Issue              | Symptom         | Solution              |
+| ------------------ | --------------- | --------------------- |
+| Expensive builds   | High build time | Extract const widgets |
+| Excessive repaints | High paint time | Add RepaintBoundary   |
+| Memory leaks       | Growing memory  | Dispose controllers   |
+| Jank               | Dropped frames  | Use compute()         |
 
 ## Performance Checklist
 
-| Check | Solution |
-|-------|----------|
-| Unnecessary rebuilds | Add `const`, use `select()` |
-| Large lists | Use `ListView.builder` |
-| Image loading | Use `cached_network_image` |
-| Heavy computation | Use `compute()` |
-| Jank in animations | Use `RepaintBoundary` |
-| Memory leaks | Dispose controllers, cancel subscriptions |
-| Network calls | Cache responses, debounce requests |
-| Startup time | Defer initialization, lazy loading |
+| Check                | Solution                                  |
+| -------------------- | ----------------------------------------- |
+| Unnecessary rebuilds | Add `const`, use `select()`               |
+| Large lists          | Use `ListView.builder`                    |
+| Image loading        | Use `cached_network_image`                |
+| Heavy computation    | Use `compute()`                           |
+| Jank in animations   | Use `RepaintBoundary`                     |
+| Memory leaks         | Dispose controllers, cancel subscriptions |
+| Network calls        | Cache responses, debounce requests        |
+| Startup time         | Defer initialization, lazy loading        |
 
 ## Dispose Pattern
 
@@ -302,5 +302,4 @@ class _MyWidgetState extends State<MyWidget> {
 
 ---
 
-*Flutter and DevTools are trademarks of Google LLC.*
-
+_Flutter and DevTools are trademarks of Google LLC._

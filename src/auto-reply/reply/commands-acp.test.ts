@@ -1297,19 +1297,10 @@ describe("/acp command", () => {
     expect(hoisted.sessionBindingBindMock).not.toHaveBeenCalled();
   });
 
-  it("forbids /acp spawn from sandboxed requester sessions", async () => {
-    const cfg = {
-      ...baseCfg,
-      agents: {
-        defaults: {
-          sandbox: { mode: "all" },
-        },
-      },
-    } satisfies CrawClawConfig;
+  it("forbids /acp spawn from child requester sessions", async () => {
+    const result = await runDiscordAcpCommand("/acp spawn codex", baseCfg);
 
-    const result = await runDiscordAcpCommand("/acp spawn codex", cfg);
-
-    expect(result?.reply?.text).toContain("Sandboxed sessions cannot spawn ACP sessions");
+    expect(result?.reply?.text).toContain("Child sessions cannot spawn ACP sessions");
     expect(hoisted.requireAcpRuntimeBackendMock).not.toHaveBeenCalled();
     expect(hoisted.ensureSessionMock).not.toHaveBeenCalled();
     expect(hoisted.sessionBindingBindMock).not.toHaveBeenCalled();

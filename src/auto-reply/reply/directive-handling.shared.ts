@@ -1,4 +1,3 @@
-import { formatCliCommand } from "../../cli/command-format.js";
 import { SYSTEM_MARK, prefixSystemMessage } from "../../infra/system-message.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import type { ElevatedLevel, ReasoningLevel } from "./directives.js";
@@ -12,7 +11,7 @@ export const withOptions = (line: string, options: string) =>
   `${line}\n${formatOptionsLine(options)}`;
 
 export const formatElevatedRuntimeHint = () =>
-  `${SYSTEM_MARK} Runtime is direct; sandboxing does not apply.`;
+  `${SYSTEM_MARK} Runtime is direct; exec runs on the configured host target.`;
 
 export const formatInternalExecPersistenceDeniedText = () =>
   "Exec defaults require operator.admin for internal gateway callers; skipped persistence.";
@@ -48,7 +47,7 @@ export const formatElevatedEvent = (level: ElevatedLevel) => {
   if (level === "ask" || level === "on") {
     return "Elevated ASK — exec runs on host; approvals may still apply.";
   }
-  return "Elevated OFF — exec stays in sandbox.";
+  return "Elevated OFF — exec stays in direct runtime.";
 };
 
 export const formatReasoningEvent = (level: ReasoningLevel) => {
@@ -85,25 +84,17 @@ export function enqueueModeSwitchEvents(params: {
 }
 
 export function formatElevatedUnavailableText(params: {
-  runtimeSandboxed: boolean;
   failures?: Array<{ gate: string; key: string }>;
   sessionKey?: string;
 }): string {
   const lines: string[] = [];
-  lines.push(
-    `elevated is not available right now (runtime=${params.runtimeSandboxed ? "sandboxed" : "direct"}).`,
-  );
+  lines.push("elevated is not available right now (runtime=direct).");
   const failures = params.failures ?? [];
   if (failures.length > 0) {
     lines.push(`Failing gates: ${failures.map((f) => `${f.gate} (${f.key})`).join(", ")}`);
   } else {
     lines.push(
       "Fix-it keys: tools.elevated.enabled, tools.elevated.allowFrom.<provider>, agents.list[].tools.elevated.*",
-    );
-  }
-  if (params.sessionKey) {
-    lines.push(
-      `See: ${formatCliCommand(`crawclaw sandbox explain --session ${params.sessionKey}`)}`,
     );
   }
   return lines.join("\n");

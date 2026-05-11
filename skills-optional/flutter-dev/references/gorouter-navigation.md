@@ -13,7 +13,7 @@ final goRouter = GoRouter(
   redirect: (context, state) {
     final isLoggedIn = /* check auth state */;
     final isAuthRoute = state.matchedLocation.startsWith('/auth');
-    
+
     if (!isLoggedIn && !isAuthRoute) {
       return '/auth/login';
     }
@@ -94,14 +94,14 @@ context.pushNamed('details', pathParameters: {'id': '123'}, extra: data);
 
 ### Navigation Reference
 
-| Method | Behavior |
-|--------|----------|
-| `context.go()` | Navigate, replace entire stack |
-| `context.push()` | Navigate, add to stack |
-| `context.pop()` | Go back one level |
-| `context.pushReplacement()` | Replace current route |
-| `context.goNamed()` | Navigate by route name |
-| `context.canPop()` | Check if can go back |
+| Method                      | Behavior                       |
+| --------------------------- | ------------------------------ |
+| `context.go()`              | Navigate, replace entire stack |
+| `context.push()`            | Navigate, add to stack         |
+| `context.pop()`             | Go back one level              |
+| `context.pushReplacement()` | Replace current route          |
+| `context.goNamed()`         | Navigate by route name         |
+| `context.canPop()`          | Check if can go back           |
 
 ## Shell Routes (Persistent UI)
 
@@ -132,7 +132,7 @@ final goRouter = GoRouter(
 
 class ScaffoldWithNavBar extends StatelessWidget {
   final Widget child;
-  
+
   const ScaffoldWithNavBar({super.key, required this.child});
 
   @override
@@ -150,7 +150,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
       ),
     );
   }
-  
+
   int _calculateSelectedIndex(BuildContext context) {
     final location = GoRouterState.of(context).matchedLocation;
     if (location.startsWith('/home')) return 0;
@@ -158,7 +158,7 @@ class ScaffoldWithNavBar extends StatelessWidget {
     if (location.startsWith('/profile')) return 2;
     return 0;
   }
-  
+
   void _onItemTapped(int index, BuildContext context) {
     switch (index) {
       case 0: context.go('/home');
@@ -191,13 +191,13 @@ context.goNamed('search', queryParameters: {'q': 'flutter', 'page': '2'});
 ```dart
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
-  
+
   return GoRouter(
     refreshListenable: authState,
     redirect: (context, state) {
       final isLoggedIn = authState.isAuthenticated;
       final isAuthRoute = state.matchedLocation.startsWith('/auth');
-      
+
       if (!isLoggedIn && !isAuthRoute) return '/auth/login';
       if (isLoggedIn && isAuthRoute) return '/';
       return null;
@@ -244,14 +244,14 @@ GoRoute(
 
 ## Best Practices
 
-| Do | Don't |
-|----|-------|
-| Use named routes for maintainability | Hardcode paths everywhere |
-| Use `push()` for detail screens | Use `go()` for all navigation |
-| Pass simple data via `extra` | Pass complex objects via URL |
-| Use redirect for auth guards | Check auth in every screen |
-| Use ShellRoute for persistent UI | Rebuild nav bar in every screen |
+| Do                                   | Don't                           |
+| ------------------------------------ | ------------------------------- |
+| Use named routes for maintainability | Hardcode paths everywhere       |
+| Use `push()` for detail screens      | Use `go()` for all navigation   |
+| Pass simple data via `extra`         | Pass complex objects via URL    |
+| Use redirect for auth guards         | Check auth in every screen      |
+| Use ShellRoute for persistent UI     | Rebuild nav bar in every screen |
 
 ---
 
-*GoRouter is an open-source navigation package for Flutter.*
+_GoRouter is an open-source navigation package for Flutter._

@@ -349,7 +349,7 @@ export async function runAgentTurnWithFallback(params: {
 
                 // CLI backends don't emit streaming assistant events, so we need to
                 // emit one with the final text so server-chat can populate its buffer
-                // and send the response to TUI/WebSocket clients.
+                // and send the response to WebSocket clients.
                 const cliText = result.payloads?.[0]?.text?.trim();
                 if (cliText) {
                   emitAgentEvent({

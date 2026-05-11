@@ -11,11 +11,11 @@ export {
   discoverHuggingfaceModels,
   HUGGINGFACE_BASE_URL,
   HUGGINGFACE_MODEL_CATALOG,
-  } from "./models.js";
+} from "./models.js";
 
 export async function buildHuggingfaceProvider(
   discoveryApiKey?: string,
-  ): Promise<ModelProviderConfig> {
+): Promise<ModelProviderConfig> {
   const resolvedSecret = discoveryApiKey?.trim() ?? "";
   const models =
     resolvedSecret !== ""
@@ -23,7 +23,7 @@ export async function buildHuggingfaceProvider(
       : HUGGINGFACE_MODEL_CATALOG.map(buildHuggingfaceModelDefinition);
   return {
     baseUrl: HUGGINGFACE_BASE_URL,
-  api: "openai-completions",
-  models,
-};
+    api: "openai-completions",
+    models,
+  };
 }

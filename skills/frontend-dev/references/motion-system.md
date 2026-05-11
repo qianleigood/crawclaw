@@ -11,11 +11,11 @@ Use this reference when the request needs animation, scroll choreography, cinema
 
 ## Intensity scale
 
-| Intensity | Behavior |
-|---|---|
-| 1-3 | restrained, subtle, mostly static |
-| 4-6 | polished UI motion, premium but practical |
-| 7-10 | cinematic sequences, storytelling motion, stronger choreography |
+| Intensity | Behavior                                                        |
+| --------- | --------------------------------------------------------------- |
+| 1-3       | restrained, subtle, mostly static                               |
+| 4-6       | polished UI motion, premium but practical                       |
+| 7-10      | cinematic sequences, storytelling motion, stronger choreography |
 
 ## Performance rules
 

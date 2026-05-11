@@ -38,8 +38,14 @@ export function LoginForm({ onSubmit }: { onSubmit: (data: FormData) => void }) 
         control={control}
         name="email"
         render={({ field: { onChange, onBlur, value } }) => (
-          <TextInput value={value} onChangeText={onChange} onBlur={onBlur}
-            placeholder="Email" keyboardType="email-address" autoCapitalize="none" />
+          <TextInput
+            value={value}
+            onChangeText={onChange}
+            onBlur={onBlur}
+            placeholder="Email"
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
         )}
       />
       {errors.email && <Text style={styles.error}>{errors.email.message}</Text>}
@@ -60,28 +66,42 @@ export function LoginForm({ onSubmit }: { onSubmit: (data: FormData) => void }) 
 import { z } from "zod";
 
 // Registration form
-const registerSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").max(50),
-  email: z.string().email("Invalid email address"),
-  password: z.string()
-    .min(8, "At least 8 characters")
-    .regex(/[A-Z]/, "Must contain uppercase letter")
-    .regex(/[0-9]/, "Must contain a number"),
-  confirmPassword: z.string(),
-  age: z.number({ invalid_type_error: "Age must be a number" }).int().min(18, "Must be 18+").optional(),
-  role: z.enum(["admin", "user", "guest"]),
-  agreedToTerms: z.literal(true, { errorMap: () => ({ message: "Must agree to terms" }) }),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords do not match",
-  path: ["confirmPassword"],
-});
+const registerSchema = z
+  .object({
+    name: z.string().min(2, "Name must be at least 2 characters").max(50),
+    email: z.string().email("Invalid email address"),
+    password: z
+      .string()
+      .min(8, "At least 8 characters")
+      .regex(/[A-Z]/, "Must contain uppercase letter")
+      .regex(/[0-9]/, "Must contain a number"),
+    confirmPassword: z.string(),
+    age: z
+      .number({ invalid_type_error: "Age must be a number" })
+      .int()
+      .min(18, "Must be 18+")
+      .optional(),
+    role: z.enum(["admin", "user", "guest"]),
+    agreedToTerms: z.literal(true, { errorMap: () => ({ message: "Must agree to terms" }) }),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
 
 // All-optional schema — use .optional() or .partial()
 const profileSchema = registerSchema.pick({ name: true, email: true }).partial();
 
 // Nested objects — compose schemas with z.array() and references
-const addressSchema = z.object({ street: z.string().min(1), city: z.string().min(1), country: z.string().length(2) });
-const orderSchema = z.object({ items: z.array(z.object({ productId: z.string(), quantity: z.number().int().positive() })).min(1), shippingAddress: addressSchema });
+const addressSchema = z.object({
+  street: z.string().min(1),
+  city: z.string().min(1),
+  country: z.string().length(2),
+});
+const orderSchema = z.object({
+  items: z.array(z.object({ productId: z.string(), quantity: z.number().int().positive() })).min(1),
+  shippingAddress: addressSchema,
+});
 ```
 
 ## Form State
@@ -100,9 +120,9 @@ const {
     errors,
     isSubmitting,
     isValid,
-    isDirty,           // Any field changed from defaultValues
-    dirtyFields,       // Which fields changed
-    touchedFields,     // Which fields were focused
+    isDirty, // Any field changed from defaultValues
+    dirtyFields, // Which fields changed
+    touchedFields, // Which fields were focused
   },
 } = useForm<FormData>({ resolver: zodResolver(schema) });
 
@@ -114,7 +134,7 @@ const allValues = watch(); // Watch all
 setValue("email", "prefilled@example.com", { shouldValidate: true });
 
 // Reset form
-reset();                          // Back to defaultValues
+reset(); // Back to defaultValues
 reset({ email: "new@email.com" }); // Reset with new values
 
 // Set server-side errors
@@ -140,7 +160,9 @@ const onSubmit = async (data: FormData) => {
 };
 
 // Display root error
-{errors.root && <Text style={styles.rootError}>{errors.root.message}</Text>}
+{
+  errors.root && <Text style={styles.rootError}>{errors.root.message}</Text>;
+}
 ```
 
 ## Multi-Step Forms
@@ -237,10 +259,14 @@ function TagsForm() {
               <TextInput value={value} onChangeText={onChange} placeholder="Tag" />
             )}
           />
-          <Pressable onPress={() => remove(index)}><Text>✕</Text></Pressable>
+          <Pressable onPress={() => remove(index)}>
+            <Text>✕</Text>
+          </Pressable>
         </View>
       ))}
-      <Pressable onPress={() => append({ value: "" })}><Text>+ Add Tag</Text></Pressable>
+      <Pressable onPress={() => append({ value: "" })}>
+        <Text>+ Add Tag</Text>
+      </Pressable>
     </View>
   );
 }
@@ -259,7 +285,7 @@ export function FormScreen() {
     >
       <ScrollView
         contentInsetAdjustmentBehavior="automatic"
-        keyboardShouldPersistTaps="handled"  // Tapping outside keyboard doesn't dismiss
+        keyboardShouldPersistTaps="handled" // Tapping outside keyboard doesn't dismiss
       >
         <LoginForm />
       </ScrollView>

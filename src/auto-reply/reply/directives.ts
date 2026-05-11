@@ -207,12 +207,5 @@ export function extractStatusDirective(body?: string): {
   return extractSimpleDirective(body, ["status"]);
 }
 
-export type {
-ElevatedLevel,
-NoticeLevel,
-ReasoningLevel,
-ThinkLevel,
-VerboseLevel,
-};
-export { extractExecDirective,
-} from "./exec/directive.js";
+export type { ElevatedLevel, NoticeLevel, ReasoningLevel, ThinkLevel, VerboseLevel };
+export { extractExecDirective } from "./exec/directive.js";

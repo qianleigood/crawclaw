@@ -23,7 +23,7 @@ This document describes how the OpenProse VM tracks execution state using a **Po
 **Requires:**
 
 1. The `psql` command-line tool must be available in your PATH
-2. A running PostgreSQL server (local, Docker, or cloud)
+2. A running PostgreSQL server (local or cloud)
 
 ### Installing psql
 
@@ -133,17 +133,12 @@ If your program has 10 parallel branches completing at once, PostgreSQL will be 
 
 ## Database Setup
 
-### Option 1: Docker (Recommended)
+### Option 1: Local PostgreSQL
 
 The fastest path to a running PostgreSQL instance:
 
 ```bash
-docker run -d \
-  --name prose-pg \
-  -e POSTGRES_DB=prose \
-  -e POSTGRES_HOST_AUTH_METHOD=trust \
-  -p 5432:5432 \
-  postgres:16
+createdb prose
 ```
 
 Then configure the connection:
@@ -156,11 +151,8 @@ echo "OPENPROSE_POSTGRES_URL=postgresql://postgres@localhost:5432/prose" > .pros
 Management commands:
 
 ```bash
-docker ps | grep prose-pg    # Check if running
-docker logs prose-pg         # View logs
-docker stop prose-pg         # Stop
-docker start prose-pg        # Start again
-docker rm -f prose-pg        # Remove completely
+pg_isready                   # Check if running
+dropdb prose                 # Remove completely
 ```
 
 ### Option 2: Local PostgreSQL

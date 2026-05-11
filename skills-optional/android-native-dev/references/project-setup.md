@@ -5,6 +5,7 @@ Use this reference when you need project bootstrap, Gradle structure, flavors, w
 ## Start by assessing the project state
 
 Typical scenarios:
+
 - empty directory
 - existing Gradle wrapper
 - Android Studio project without full wrapper setup
@@ -28,6 +29,7 @@ Before business logic, make sure the project can build with the equivalent of `a
 Use product flavors when environments or tiers truly differ.
 
 Examples:
+
 - dev / staging / prod
 - free / paid
 

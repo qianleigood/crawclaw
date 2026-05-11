@@ -65,12 +65,23 @@ describe("gateway-processes", () => {
 
   it("reads linux process args from /proc and parses cmdlines", () => {
     setPlatform("linux");
-    readFileSyncMock.mockReturnValue("node\0dist/index.js\0gateway\0run\0");
-    parseProcCmdlineMock.mockReturnValue(["node", "dist/index.js", "gateway", "run"]);
+    const rawCmdline = ["/app/dist/native/crawclaw", "gateway", "--port", "18789", ""].join("\0");
+    readFileSyncMock.mockReturnValue(rawCmdline);
+    parseProcCmdlineMock.mockReturnValue([
+      "/app/dist/native/crawclaw",
+      "gateway",
+      "--port",
+      "18789",
+    ]);
 
-    expect(readGatewayProcessArgsSync(4242)).toEqual(["node", "dist/index.js", "gateway", "run"]);
+    expect(readGatewayProcessArgsSync(4242)).toEqual([
+      "/app/dist/native/crawclaw",
+      "gateway",
+      "--port",
+      "18789",
+    ]);
     expect(readFileSyncMock).toHaveBeenCalledWith("/proc/4242/cmdline", "utf8");
-    expect(parseProcCmdlineMock).toHaveBeenCalledWith("node\0dist/index.js\0gateway\0run\0");
+    expect(parseProcCmdlineMock).toHaveBeenCalledWith(rawCmdline);
   });
 
   it("reads darwin process args from ps output and returns null on ps failure", () => {
@@ -79,7 +90,7 @@ describe("gateway-processes", () => {
       .mockReturnValueOnce({
         error: null,
         status: 0,
-        stdout: "node /repo/dist/index.js gateway run\n",
+        stdout: "/app/dist/native/crawclaw gateway --port 18789\n",
       })
       .mockReturnValueOnce({
         error: null,
@@ -88,10 +99,10 @@ describe("gateway-processes", () => {
       });
 
     expect(readGatewayProcessArgsSync(123)).toEqual([
-      "node",
-      "/repo/dist/index.js",
+      "/app/dist/native/crawclaw",
       "gateway",
-      "run",
+      "--port",
+      "18789",
     ]);
     expect(readGatewayProcessArgsSync(124)).toBeNull();
   });

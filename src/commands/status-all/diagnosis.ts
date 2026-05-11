@@ -16,7 +16,6 @@ import {
   type PluginCompatibilityNotice,
 } from "../../plugins/status.js";
 import type { FeishuCliStatusResolution } from "../feishu-cli-status.js";
-import type { NodeOnlyGatewayInfo } from "../status.node-mode.js";
 import { formatTimeAgo, redactSecrets } from "./format.js";
 import { readFileTailLines, summarizeLogTail } from "./gateway.js";
 
@@ -76,7 +75,6 @@ export async function appendStatusAllDiagnosis(params: {
   channelIssues: ChannelIssueLike[];
   gatewayReachable: boolean;
   health: unknown;
-  nodeOnlyGateway: NodeOnlyGatewayInfo | null;
 }) {
   const { lines, muted, ok, warn, fail } = params;
 
@@ -297,11 +295,6 @@ export async function appendStatusAllDiagnosis(params: {
     if (params.channelIssues.length > 12) {
       lines.push(`  ${muted(`… +${params.channelIssues.length - 12} more`)}`);
     }
-  } else if (params.nodeOnlyGateway) {
-    emitCheck(
-      `Channel issues skipped (node-only mode; query ${params.nodeOnlyGateway.gatewayTarget})`,
-      "ok",
-    );
   } else {
     emitCheck(
       `Channel issues skipped (gateway ${params.gatewayReachable ? "query failed" : "unreachable"})`,

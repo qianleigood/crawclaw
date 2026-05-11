@@ -93,11 +93,11 @@ class ResponsiveLayout extends StatelessWidget {
 
 ### Breakpoint Reference
 
-| Type | Width | Usage |
-|------|-------|-------|
-| Mobile | < 650pt | Single column, bottom nav |
-| Tablet | 650-1100pt | Two columns, side nav optional |
-| Desktop | > 1100pt | Multi-column, persistent nav |
+| Type    | Width      | Usage                          |
+| ------- | ---------- | ------------------------------ |
+| Mobile  | < 650pt    | Single column, bottom nav      |
+| Tablet  | 650-1100pt | Two columns, side nav optional |
+| Desktop | > 1100pt   | Multi-column, persistent nav   |
 
 ## Custom Hooks (flutter_hooks)
 
@@ -136,15 +136,15 @@ class CounterWidget extends HookWidget {
 
 ### Common Hooks
 
-| Hook | Purpose |
-|------|---------|
-| `useState` | Local state management |
-| `useEffect` | Side effects with cleanup |
-| `useMemoized` | Expensive computation caching |
-| `useTextEditingController` | Text field controller |
-| `useAnimationController` | Animation controller |
-| `useFocusNode` | Focus management |
-| `useIsMounted` | Check if widget is mounted |
+| Hook                       | Purpose                       |
+| -------------------------- | ----------------------------- |
+| `useState`                 | Local state management        |
+| `useEffect`                | Side effects with cleanup     |
+| `useMemoized`              | Expensive computation caching |
+| `useTextEditingController` | Text field controller         |
+| `useAnimationController`   | Animation controller          |
+| `useFocusNode`             | Focus management              |
+| `useIsMounted`             | Check if widget is mounted    |
 
 ## Sliver Patterns
 
@@ -183,14 +183,14 @@ CustomScrollView(
 
 ### Sliver Types
 
-| Sliver | Usage |
-|--------|-------|
-| `SliverAppBar` | Collapsing app bar |
-| `SliverList` | Lazy list |
-| `SliverGrid` | Lazy grid |
-| `SliverToBoxAdapter` | Single non-sliver widget |
-| `SliverPadding` | Add padding to sliver |
-| `SliverFillRemaining` | Fill remaining space |
+| Sliver                | Usage                    |
+| --------------------- | ------------------------ |
+| `SliverAppBar`        | Collapsing app bar       |
+| `SliverList`          | Lazy list                |
+| `SliverGrid`          | Lazy grid                |
+| `SliverToBoxAdapter`  | Single non-sliver widget |
+| `SliverPadding`       | Add padding to sliver    |
+| `SliverFillRemaining` | Fill remaining space     |
 
 ## Key Usage Patterns
 
@@ -210,24 +210,24 @@ ListView.builder(
 )
 ```
 
-| Key Type | When to Use |
-|----------|-------------|
-| `ValueKey` | Unique ID available |
-| `ObjectKey` | Object identity matters |
-| `UniqueKey` | Force rebuild |
+| Key Type    | When to Use              |
+| ----------- | ------------------------ |
+| `ValueKey`  | Unique ID available      |
+| `ObjectKey` | Object identity matters  |
+| `UniqueKey` | Force rebuild            |
 | `GlobalKey` | Access state across tree |
 
 ## Optimization Checklist
 
-| Pattern | Implementation |
-|---------|----------------|
-| const widgets | Add `const` to static widgets |
-| Keys | Use `ValueKey` for list items |
-| Select | `ref.watch(provider.select(...))` |
-| RepaintBoundary | Isolate expensive repaints |
-| ListView.builder | Lazy loading for lists |
-| const constructors | Always use when possible |
+| Pattern            | Implementation                    |
+| ------------------ | --------------------------------- |
+| const widgets      | Add `const` to static widgets     |
+| Keys               | Use `ValueKey` for list items     |
+| Select             | `ref.watch(provider.select(...))` |
+| RepaintBoundary    | Isolate expensive repaints        |
+| ListView.builder   | Lazy loading for lists            |
+| const constructors | Always use when possible          |
 
 ---
 
-*Flutter and Material Design are trademarks of Google LLC.*
+_Flutter and Material Design are trademarks of Google LLC._

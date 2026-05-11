@@ -79,26 +79,26 @@ python3 scripts/feishu_file_sender.py \
 3. 上传文件到飞书（`im/v1/files`），获取 `file_key`。
 4. 调用消息发送接口（`im/v1/messages`）发送到目标聊天/用户。
 
-1. Resolve current agent id by matching `cwd` to the configured workspace.
-2. Read Feishu `appId/appSecret` from `~/.crawclaw/crawclaw.json` via bindings.
-3. Upload the file to Feishu (`im/v1/files`) and get `file_key`.
-4. Send a file message (`im/v1/messages`) to the target chat/user.
+5. Resolve current agent id by matching `cwd` to the configured workspace.
+6. Read Feishu `appId/appSecret` from `~/.crawclaw/crawclaw.json` via bindings.
+7. Upload the file to Feishu (`im/v1/files`) and get `file_key`.
+8. Send a file message (`im/v1/messages`) to the target chat/user.
 
 ## 常见错误处理 | Error Handling
 
-| 问题 | 原因 | 解决办法 |
-|------|------|---------|
-| `Missing receive_id` | 未传 `--receive-id` 且无环境变量 | 设置 `CRAWCLAW_CHAT_ID` 或传入 `--receive-id` |
-| `No Feishu account binding` | 缺少 agent 绑定 | 确保 CrawClaw 配置中 agentId → accountId 绑定存在 |
-| `Bot/User can NOT be out of the chat (230002)` | 机器人不在群内 | 将机器人加入群或发送到其他群 |
-| `HTTPError` | API 调用失败 | 查看响应 `log_id` 与飞书排障链接 |
+| 问题                                           | 原因                             | 解决办法                                          |
+| ---------------------------------------------- | -------------------------------- | ------------------------------------------------- |
+| `Missing receive_id`                           | 未传 `--receive-id` 且无环境变量 | 设置 `CRAWCLAW_CHAT_ID` 或传入 `--receive-id`     |
+| `No Feishu account binding`                    | 缺少 agent 绑定                  | 确保 CrawClaw 配置中 agentId → accountId 绑定存在 |
+| `Bot/User can NOT be out of the chat (230002)` | 机器人不在群内                   | 将机器人加入群或发送到其他群                      |
+| `HTTPError`                                    | API 调用失败                     | 查看响应 `log_id` 与飞书排障链接                  |
 
-| Issue | Cause | Fix |
-|------|------|-----|
-| `Missing receive_id` | No `--receive-id` and no env | Set `CRAWCLAW_CHAT_ID` or pass `--receive-id` |
-| `No Feishu account binding` | Agent binding missing | Ensure bindings map agentId → accountId in CrawClaw config |
-| `Bot/User can NOT be out of the chat (230002)` | Bot not in chat | Add the bot to the chat or send to a different chat |
-| `HTTPError` | API failure | Check response `log_id` and Feishu troubleshooting link |
+| Issue                                          | Cause                        | Fix                                                        |
+| ---------------------------------------------- | ---------------------------- | ---------------------------------------------------------- |
+| `Missing receive_id`                           | No `--receive-id` and no env | Set `CRAWCLAW_CHAT_ID` or pass `--receive-id`              |
+| `No Feishu account binding`                    | Agent binding missing        | Ensure bindings map agentId → accountId in CrawClaw config |
+| `Bot/User can NOT be out of the chat (230002)` | Bot not in chat              | Add the bot to the chat or send to a different chat        |
+| `HTTPError`                                    | API failure                  | Check response `log_id` and Feishu troubleshooting link    |
 
 ## 配置说明 | Configuration
 

@@ -84,15 +84,11 @@ describe("browser plugin", () => {
     tool({
       sessionKey: "agent:main:webchat:direct:123",
       browser: {
-        sandboxBridgeUrl: "http://127.0.0.1:9999",
-        sandboxPinchTabUrl: "http://127.0.0.1:9867",
         allowHostControl: true,
       },
     });
 
     expect(runtimeApiMocks.createBrowserTool).toHaveBeenCalledWith({
-      sandboxBridgeUrl: "http://127.0.0.1:9999",
-      sandboxPinchTabUrl: "http://127.0.0.1:9867",
       allowHostControl: true,
       agentSessionKey: "agent:main:webchat:direct:123",
     });

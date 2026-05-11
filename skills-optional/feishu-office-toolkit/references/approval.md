@@ -30,11 +30,12 @@ GET /approval/types
 
 **查询参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `user_id` | string | 否 | 用户 open_id，传入后会从该用户的历史审批中发现审批类型 |
+| 参数      | 类型   | 必填 | 说明                                                   |
+| --------- | ------ | ---- | ------------------------------------------------------ |
+| `user_id` | string | 否   | 用户 open_id，传入后会从该用户的历史审批中发现审批类型 |
 
 **数据来源：**
+
 - 环境变量 `FEISHU_APPROVAL_CODES` 中预配置的审批类型（`source: config`）
 - 用户历史审批实例中发现的审批类型（`source: discovered`）
 
@@ -43,8 +44,8 @@ GET /approval/types
 ```json
 {
   "approval_types": [
-    {"name": "请假", "approval_code": "CODE1", "source": "config"},
-    {"name": "补卡", "approval_code": "48D49517-...", "source": "discovered"}
+    { "name": "请假", "approval_code": "CODE1", "source": "config" },
+    { "name": "补卡", "approval_code": "48D49517-...", "source": "discovered" }
   ],
   "hint": ""
 }
@@ -65,7 +66,7 @@ GET /approval/definitions/{approval_code}
   "approval_code": "48D49517-C979-447E-AD93-4BAE0FBC57EA",
   "approval_name": "补卡",
   "form": "[{\"id\":\"widgetRemedyGroupV2\",\"type\":\"remedyGroupV2\",\"name\":\"补卡\"}]",
-  "node_list": [{"node_id": "6dbe...", "node_type": "AND", "name": "审批"}]
+  "node_list": [{ "node_id": "6dbe...", "node_type": "AND", "name": "审批" }]
 }
 ```
 
@@ -79,12 +80,12 @@ POST /approval/create
 
 **请求参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `approval_code` | string | ✅ | 审批定义 Code |
-| `open_id` | string | ✅ | 发起人的 open_id（`ou_` 开头） |
-| `form` | string | ✅ | 审批表单内容（JSON 字符串，控件结构可通过查看审批定义获取） |
-| `department_id` | string | 否 | 发起人所属部门 ID（多部门用户需填写） |
+| 参数            | 类型   | 必填 | 说明                                                        |
+| --------------- | ------ | ---- | ----------------------------------------------------------- |
+| `approval_code` | string | ✅   | 审批定义 Code                                               |
+| `open_id`       | string | ✅   | 发起人的 open*id（`ou*` 开头）                              |
+| `form`          | string | ✅   | 审批表单内容（JSON 字符串，控件结构可通过查看审批定义获取） |
+| `department_id` | string | 否   | 发起人所属部门 ID（多部门用户需填写）                       |
 
 **请求示例：**
 
@@ -116,14 +117,14 @@ GET /approval/list
 
 **查询参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `approval_code` | string | 否 | 审批定义 Code |
-| `user_id` | string | 否 | 发起人 open_id |
-| `instance_status` | string | 否 | 状态：`PENDING`/`APPROVED`/`REJECT`/`RECALL`/`ALL` |
-| `start_time` | string | 否 | 起始时间（Unix 毫秒时间戳） |
-| `end_time` | string | 否 | 结束时间（Unix 毫秒时间戳） |
-| `page_size` | int | 否 | 每页数量，默认 10 |
+| 参数              | 类型   | 必填 | 说明                                               |
+| ----------------- | ------ | ---- | -------------------------------------------------- |
+| `approval_code`   | string | 否   | 审批定义 Code                                      |
+| `user_id`         | string | 否   | 发起人 open_id                                     |
+| `instance_status` | string | 否   | 状态：`PENDING`/`APPROVED`/`REJECT`/`RECALL`/`ALL` |
+| `start_time`      | string | 否   | 起始时间（Unix 毫秒时间戳）                        |
+| `end_time`        | string | 否   | 结束时间（Unix 毫秒时间戳）                        |
+| `page_size`       | int    | 否   | 每页数量，默认 10                                  |
 
 **请求示例：**
 
@@ -164,14 +165,14 @@ GET /approval/tasks
 
 **查询参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `user_id` | string | ✅ | 审批人 open_id |
-| `approval_code` | string | 否 | 审批定义 Code |
-| `instance_code` | string | 否 | 审批实例 Code |
-| `task_status` | string | 否 | 任务状态（默认 `PENDING`） |
-| `page_size` | int | 否 | 每页数量（默认 10） |
-| `page_token` | string | 否 | 翻页令牌 |
+| 参数            | 类型   | 必填 | 说明                       |
+| --------------- | ------ | ---- | -------------------------- |
+| `user_id`       | string | ✅   | 审批人 open_id             |
+| `approval_code` | string | 否   | 审批定义 Code              |
+| `instance_code` | string | 否   | 审批实例 Code              |
+| `task_status`   | string | 否   | 任务状态（默认 `PENDING`） |
+| `page_size`     | int    | 否   | 每页数量（默认 10）        |
+| `page_token`    | string | 否   | 翻页令牌                   |
 
 **响应示例：**
 
@@ -181,9 +182,9 @@ GET /approval/tasks
   "page_token": "",
   "tasks": [
     {
-      "task": {"id": "7605931414537653476", "status": "PENDING"},
-      "instance": {"code": "619697E7-...", "title": "张三 · 病假"},
-      "approval": {"code": "48D49517-...", "name": "请假"}
+      "task": { "id": "7605931414537653476", "status": "PENDING" },
+      "instance": { "code": "619697E7-...", "title": "张三 · 病假" },
+      "approval": { "code": "48D49517-...", "name": "请假" }
     }
   ]
 }
@@ -197,14 +198,14 @@ POST /approval/tasks/approve
 
 **请求参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `approval_code` | string | ✅ | 审批定义 Code |
-| `instance_code` | string | ✅ | 审批实例 Code |
-| `task_id` | string | ✅ | 任务 ID |
-| `open_id` | string | ✅ | 审批人 open_id |
-| `comment` | string | 否 | 同意意见 |
-| `form` | string | 否 | 表单补充（部分审批可能需要） |
+| 参数            | 类型   | 必填 | 说明                         |
+| --------------- | ------ | ---- | ---------------------------- |
+| `approval_code` | string | ✅   | 审批定义 Code                |
+| `instance_code` | string | ✅   | 审批实例 Code                |
+| `task_id`       | string | ✅   | 任务 ID                      |
+| `open_id`       | string | ✅   | 审批人 open_id               |
+| `comment`       | string | 否   | 同意意见                     |
+| `form`          | string | 否   | 表单补充（部分审批可能需要） |
 
 ### 9. 拒绝审批任务
 
@@ -224,11 +225,11 @@ POST /approval/tasks/transfer
 
 **请求参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `approval_code` | string | ✅ | 审批定义 Code |
-| `instance_code` | string | ✅ | 审批实例 Code |
-| `user_id` | string | ✅ | 审批提交人 open_id |
+| 参数            | 类型   | 必填 | 说明               |
+| --------------- | ------ | ---- | ------------------ |
+| `approval_code` | string | ✅   | 审批定义 Code      |
+| `instance_code` | string | ✅   | 审批实例 Code      |
+| `user_id`       | string | ✅   | 审批提交人 open_id |
 
 **请求示例：**
 
@@ -262,27 +263,27 @@ curl -X POST http://127.0.0.1:8002/approval/cancel \
 
 ### 常见表单控件类型
 
-| 控件类型 | 说明 | value 格式 |
-|----------|------|------------|
-| `input` | 单行文本 | `"文本内容"` |
-| `textarea` | 多行文本 | `"文本内容"` |
-| `number` | 数字 | `123.45` |
-| `date` | 日期 | `"2026-02-12T09:00:00+08:00"` (RFC3339) |
-| `leaveGroup` | 请假控件组 | `{"name":"年假","start":"...","end":"...","interval":2.0}` |
+| 控件类型        | 说明       | value 格式                                                   |
+| --------------- | ---------- | ------------------------------------------------------------ |
+| `input`         | 单行文本   | `"文本内容"`                                                 |
+| `textarea`      | 多行文本   | `"文本内容"`                                                 |
+| `number`        | 数字       | `123.45`                                                     |
+| `date`          | 日期       | `"2026-02-12T09:00:00+08:00"` (RFC3339)                      |
+| `leaveGroup`    | 请假控件组 | `{"name":"年假","start":"...","end":"...","interval":2.0}`   |
 | `remedyGroupV2` | 补卡控件组 | `[{"date":"2026-02-12","remedy_time":"...","reason":"..."}]` |
-| `tripGroup` | 出差控件组 | `{"schedule":[...],"interval":2.0,"reason":"..."}` |
+| `tripGroup`     | 出差控件组 | `{"schedule":[...],"interval":2.0,"reason":"..."}`           |
 
 ## 飞书 API 参考
 
-| 本地端点 | 飞书 API |
-|----------|----------|
-| `GET /approval/types` | 环境变量 + `POST /open-apis/approval/v4/instances/query` |
-| `GET /approval/definitions/{code}` | `GET /open-apis/approval/v4/approvals/:approval_code` |
-| `POST /approval/create` | `POST /open-apis/approval/v4/instances` |
-| `GET /approval/list` | `POST /open-apis/approval/v4/instances/query` |
-| `GET /approval/{instance_code}` | `GET /open-apis/approval/v4/instances/:instance_code` |
-| `POST /approval/cancel` | `POST /open-apis/approval/v4/instances/cancel` |
-| `GET /approval/tasks` | `POST /open-apis/approval/v4/tasks/search` |
-| `POST /approval/tasks/approve` | `POST /open-apis/approval/v4/tasks/approve` |
-| `POST /approval/tasks/reject` | `POST /open-apis/approval/v4/tasks/reject` |
-| `POST /approval/tasks/transfer` | `POST /open-apis/approval/v4/tasks/transfer` |
+| 本地端点                           | 飞书 API                                                 |
+| ---------------------------------- | -------------------------------------------------------- |
+| `GET /approval/types`              | 环境变量 + `POST /open-apis/approval/v4/instances/query` |
+| `GET /approval/definitions/{code}` | `GET /open-apis/approval/v4/approvals/:approval_code`    |
+| `POST /approval/create`            | `POST /open-apis/approval/v4/instances`                  |
+| `GET /approval/list`               | `POST /open-apis/approval/v4/instances/query`            |
+| `GET /approval/{instance_code}`    | `GET /open-apis/approval/v4/instances/:instance_code`    |
+| `POST /approval/cancel`            | `POST /open-apis/approval/v4/instances/cancel`           |
+| `GET /approval/tasks`              | `POST /open-apis/approval/v4/tasks/search`               |
+| `POST /approval/tasks/approve`     | `POST /open-apis/approval/v4/tasks/approve`              |
+| `POST /approval/tasks/reject`      | `POST /open-apis/approval/v4/tasks/reject`               |
+| `POST /approval/tasks/transfer`    | `POST /open-apis/approval/v4/tasks/transfer`             |

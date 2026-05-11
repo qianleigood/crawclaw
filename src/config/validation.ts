@@ -1,6 +1,7 @@
 import path from "node:path";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { CHANNEL_IDS, normalizeChatChannelId } from "../channels/registry.js";
+import { GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA } from "../generated/config/bundled-channel-config-metadata.generated.js";
 import { withBundledPluginAllowlistCompat } from "../plugins/bundled-compat.js";
 import { listBundledWebSearchPluginIds } from "../plugins/bundled-web-search-ids.js";
 import {
@@ -21,7 +22,6 @@ import { isCanonicalDottedDecimalIPv4, isLoopbackIpAddress } from "../shared/net
 import { isRecord } from "../utils.js";
 import { findDuplicateAgentDirs, formatDuplicateAgentDirError } from "./agent-dirs.js";
 import { appendAllowedValuesHint, summarizeAllowedValues } from "./allowed-values.js";
-import { GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA } from "../generated/config/bundled-channel-config-metadata.generated.js";
 import { collectChannelSchemaMetadata } from "./channel-config-metadata.js";
 import { findLegacyConfigIssues } from "./legacy.js";
 import { materializeRuntimeConfig } from "./materialize.js";

@@ -17,22 +17,12 @@ const { acpAction, registerAcpCli } = vi.hoisted(() => {
   return { acpAction: action, registerAcpCli: register };
 });
 
-const { nodesAction, registerNodesCli } = vi.hoisted(() => {
-  const action = vi.fn();
-  const register = vi.fn((program: Command) => {
-    const nodes = program.command("nodes");
-    nodes.command("list").action(action);
-  });
-  return { nodesAction: action, registerNodesCli: register };
-});
-
 const configModule = vi.hoisted(() => ({
   loadConfig: vi.fn(),
   readConfigFileSnapshot: vi.fn(),
 }));
 
 vi.mock("../acp-cli.js", () => ({ registerAcpCli }));
-vi.mock("../nodes-cli.js", () => ({ registerNodesCli }));
 vi.mock("../../config/config.js", () => configModule);
 
 describe("registerSubCliCommands", () => {
@@ -65,8 +55,6 @@ describe("registerSubCliCommands", () => {
     }
     registerAcpCli.mockClear();
     acpAction.mockClear();
-    registerNodesCli.mockClear();
-    nodesAction.mockClear();
     configModule.loadConfig.mockReset();
     configModule.readConfigFileSnapshot.mockReset();
   });
@@ -106,6 +94,15 @@ describe("registerSubCliCommands", () => {
     expect(getSubCliEntries().map((entry) => entry.name)).not.toContain("daemon");
   });
 
+  it("does not expose the removed sandbox command", async () => {
+    const program = createRegisteredProgram(["node", "crawclaw"]);
+    const names = program.commands.map((cmd) => cmd.name());
+
+    expect(names).not.toContain("sandbox");
+    expect(getSubCliEntries().map((entry) => entry.name)).not.toContain("sandbox");
+    await expect(registerSubCliByName(program, "sandbox")).resolves.toBe(false);
+  });
+
   it("returns null for plugin registration when the config snapshot is invalid", async () => {
     configModule.readConfigFileSnapshot.mockResolvedValueOnce({
       valid: false,
@@ -126,17 +123,6 @@ describe("registerSubCliCommands", () => {
 
     await expect(loadValidatedConfigForPluginRegistration()).resolves.toBe(loadedConfig);
     expect(configModule.loadConfig).toHaveBeenCalledTimes(1);
-  });
-
-  it("re-parses argv for lazy subcommands", async () => {
-    const program = createRegisteredProgram(["node", "crawclaw", "nodes", "list"], "crawclaw");
-
-    expect(program.commands.map((cmd) => cmd.name())).toEqual(["nodes"]);
-
-    await program.parseAsync(["nodes", "list"], { from: "user" });
-
-    expect(registerNodesCli).toHaveBeenCalledTimes(1);
-    expect(nodesAction).toHaveBeenCalledTimes(1);
   });
 
   it("replaces placeholder when registering a subcommand by name", async () => {

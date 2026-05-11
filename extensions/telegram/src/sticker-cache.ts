@@ -8,12 +8,12 @@ import {
 } from "crawclaw/plugin-sdk/agent-runtime";
 import { resolveDefaultModelForAgent } from "crawclaw/plugin-sdk/agent-runtime";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { STATE_DIR } from "crawclaw/plugin-sdk/config-runtime";
 import { loadJsonFile, saveJsonFile } from "crawclaw/plugin-sdk/json-store";
 import { AUTO_IMAGE_KEY_PROVIDERS, DEFAULT_IMAGE_MODELS } from "crawclaw/plugin-sdk/media-runtime";
 import { resolveAutoImageModel } from "crawclaw/plugin-sdk/media-runtime";
 import { describeImageFileWithModel } from "crawclaw/plugin-sdk/media-understanding-runtime";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
-import { STATE_DIR } from "crawclaw/plugin-sdk/config-runtime";
 
 const CACHE_FILE = path.join(STATE_DIR, "telegram", "sticker-cache.json");
 const CACHE_VERSION = 1;

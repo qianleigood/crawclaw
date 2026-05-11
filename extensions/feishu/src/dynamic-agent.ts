@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import type {
-  CrawClawConfig,
-  PluginRuntime,
-} from "../runtime-api.js";
+import type { CrawClawConfig, PluginRuntime } from "../runtime-api.js";
 import type { DynamicAgentCreationConfig } from "./types.js";
 
 export type MaybeCreateDynamicAgentResult = {
@@ -43,7 +40,7 @@ export async function maybeCreateDynamicAgent(params: {
   if (dynamicCfg.maxAgents !== undefined) {
     const feishuAgentCount = (cfg.agents?.list ?? []).filter(
       (a: NonNullable<NonNullable<CrawClawConfig["agents"]>["list"]>[number]) =>
-      a.id.startsWith("feishu-"),
+        a.id.startsWith("feishu-"),
     ).length;
     if (feishuAgentCount >= dynamicCfg.maxAgents) {
       log(

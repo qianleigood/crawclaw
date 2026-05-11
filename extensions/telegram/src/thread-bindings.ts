@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { resolveStateDir } from "crawclaw/plugin-sdk/config-runtime";
 import {
   formatThreadBindingDurationLabel,
   registerSessionBindingAdapter,
@@ -15,7 +16,6 @@ import {
 import { writeJsonFileAtomically } from "crawclaw/plugin-sdk/json-store";
 import { normalizeAccountId } from "crawclaw/plugin-sdk/routing";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
-import { resolveStateDir } from "crawclaw/plugin-sdk/config-runtime";
 import { createForumTopicTelegram } from "./send.js";
 import { resolveTelegramToken } from "./token.js";
 

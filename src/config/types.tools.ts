@@ -221,14 +221,12 @@ export type GroupToolPolicyBySenderConfig = Record<string, GroupToolPolicyConfig
 
 export type ExecToolConfig = {
   /** Exec host routing (default: auto). */
-  host?: "auto" | "sandbox" | "gateway" | "node";
-  /** Exec security mode (default: deny for sandbox, full for gateway/node). */
+  host?: "auto" | "gateway";
+  /** Exec security mode (default: full). */
   security?: "deny" | "allowlist" | "full";
   /** Exec ask mode (default: off). */
   ask?: "off" | "on-miss" | "always";
-  /** Default node binding for exec.host=node (node id/name). */
-  node?: string;
-  /** Directories to prepend to PATH when running exec (gateway/sandbox). */
+  /** Directories to prepend to PATH when running exec on the gateway. */
   pathPrepend?: string[];
   /** Safe stdin-only binaries that can run without allowlist entries. */
   safeBins?: string[];
@@ -303,14 +301,6 @@ export type AgentToolsConfig = {
   fs?: FsToolsConfig;
   /** Runtime loop detection for repetitive/ stuck tool-call patterns. */
   loopDetection?: ToolLoopDetectionConfig;
-  sandbox?: {
-    tools?: {
-      allow?: string[];
-      /** Additional allowlist entries merged into allow and/or the sandbox default allowlist. */
-      alsoAllow?: string[];
-      deny?: string[];
-    };
-  };
 };
 
 export type ToolsConfig = {
@@ -355,21 +345,6 @@ export type ToolsConfig = {
         };
       };
     } & Record<string, unknown>;
-    /** X (formerly Twitter) search tool configuration using xAI Grok. */
-    x_search?: {
-      /** Enable X search tool (default: true when xAI auth is available via plugin config or XAI_API_KEY). */
-      enabled?: boolean;
-      /** Model id to use for X search. */
-      model?: string;
-      /** Keep inline citations in the xAI response payload when available. */
-      inlineCitations?: boolean;
-      /** Optional max search/tool turns for xAI to use internally. */
-      maxTurns?: number;
-      /** Timeout in seconds for X search requests. */
-      timeoutSeconds?: number;
-      /** Cache TTL in minutes for X search results. */
-      cacheTtlMinutes?: number;
-    };
     fetch?: {
       /** Enable web fetch tool (default: true). */
       enabled?: boolean;
@@ -463,15 +438,6 @@ export type ToolsConfig = {
     tools?: {
       allow?: string[];
       /** Additional allowlist entries merged into allow and/or default sub-agent denylist. */
-      alsoAllow?: string[];
-      deny?: string[];
-    };
-  };
-  /** Sandbox tool policy defaults (deny wins). */
-  sandbox?: {
-    tools?: {
-      allow?: string[];
-      /** Additional allowlist entries merged into allow and/or the sandbox default allowlist. */
       alsoAllow?: string[];
       deny?: string[];
     };

@@ -33,7 +33,6 @@ const SessionStatusToolSchema = Type.Object({
 export function createSessionStatusTool(opts?: {
   agentSessionKey?: string;
   config?: CrawClawConfig;
-  sandboxed?: boolean;
 }): AnyAgentTool {
   return {
     label: "Session Status",
@@ -46,7 +45,6 @@ export function createSessionStatusTool(opts?: {
       const { cfg, mainKey, alias, effectiveRequesterKey } = resolveSessionToolContext(opts);
       const { a2aPolicy, visibility } = resolveSessionAccessPolicies({
         cfg,
-        sandboxed: opts?.sandboxed,
       });
       const requesterAgentId = resolveAgentIdFromSessionKey(
         opts?.agentSessionKey ?? effectiveRequesterKey,
@@ -159,13 +157,13 @@ export function createSessionStatusTool(opts?: {
           alias,
           mainKey,
           requesterInternalKey: effectiveRequesterKey,
-          restrictToSpawned: opts?.sandboxed === true,
+          restrictToSpawned: false,
         });
         if (resolvedSession.ok && resolvedSession.resolvedViaSessionId) {
           const visibleSession = await resolveVisibleSessionReference({
             resolvedSession,
             requesterSessionKey: effectiveRequesterKey,
-            restrictToSpawned: opts?.sandboxed === true,
+            restrictToSpawned: false,
             visibilitySessionKey: requestedKeyRaw,
           });
           if (!visibleSession.ok) {
@@ -190,8 +188,6 @@ export function createSessionStatusTool(opts?: {
             mainKey,
             requesterInternalKey: storeScopedRequesterKey,
           });
-        } else if (!resolvedSession.ok && opts?.sandboxed === true) {
-          throw new Error("Session status visibility is restricted to the current session tree.");
         }
       }
 

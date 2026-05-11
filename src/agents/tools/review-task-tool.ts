@@ -167,7 +167,6 @@ export function createReviewTaskTool(
     agentAccountId?: string;
     agentTo?: string;
     agentThreadId?: string | number;
-    sandboxed?: boolean;
     requesterAgentIdOverride?: string;
   } & SpawnedToolContext,
 ): AnyAgentTool {
@@ -239,7 +238,6 @@ export function createReviewTaskTool(
               agentGroupChannel: opts?.agentGroupChannel,
               agentGroupSpace: opts?.agentGroupSpace,
               requesterAgentIdOverride: opts?.requesterAgentIdOverride,
-              sandboxed: opts?.sandboxed,
               workspaceDir: opts?.workspaceDir,
             },
             spawnOverrides: {

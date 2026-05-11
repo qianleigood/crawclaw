@@ -181,7 +181,7 @@ describe("directive behavior", () => {
       );
       expect(execText).not.toContain("without approval prompts");
       expect(execText).toContain(
-        "Options: host=auto|sandbox|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>.",
+        "Options: host=auto|runtime|gateway|node, security=deny|allowlist|full, ask=off|on-miss|always, node=<id>.",
       );
       expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
     });
@@ -316,10 +316,10 @@ describe("directive behavior", () => {
       for (const scenario of [
         {
           body: "/elevated off",
-          config: makeAllowlistedElevatedConfig(home, { sandbox: { mode: "off" } }),
+          config: makeAllowlistedElevatedConfig(home, { runtime: { mode: "off" } }),
           expectedSnippets: [
             "Elevated mode disabled.",
-            "Runtime is direct; sandboxing does not apply.",
+            "Runtime is direct; host isolation does not apply.",
           ],
         },
         {

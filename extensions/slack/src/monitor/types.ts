@@ -1,7 +1,4 @@
-import type {
-  CrawClawConfig,
-  SlackSlashCommandConfig,
-} from "crawclaw/plugin-sdk/config-runtime";
+import type { CrawClawConfig, SlackSlashCommandConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
 import type { SlackFile, SlackMessageEvent } from "../types.js";
 

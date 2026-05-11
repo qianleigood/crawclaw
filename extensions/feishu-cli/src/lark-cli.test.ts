@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const runPluginCommandWithTimeoutMock = vi.hoisted(() => vi.fn());
 
-vi.mock("crawclaw/plugin-sdk/sandbox", () => ({
+vi.mock("crawclaw/plugin-sdk/process-runtime", () => ({
   runPluginCommandWithTimeout: runPluginCommandWithTimeoutMock,
+  resolveWindowsCommandShim: (command: string) => command,
 }));
 
 import { getFeishuCliStatus, runInteractiveLarkCliCommand, runLarkCliJson } from "./lark-cli.js";

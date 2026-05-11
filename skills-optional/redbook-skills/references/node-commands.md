@@ -1,6 +1,7 @@
 # Node Commands
 
 ## 目录
+
 - 登录与二维码
 - 读取类命令
 - 发布类命令
@@ -18,6 +19,7 @@
 ```
 
 说明：
+
 - `login` / `re-login` / `switch-account` 走 creator 域。
 - `home-login` 走主页登录弹层。
 - 登录/发布类页面默认保留，不自动关闭。
@@ -36,6 +38,7 @@
 ```
 
 说明：
+
 - `search-feeds` 当前未迁移筛选器交互（`sort-by` / `note-type` / `publish-time` / `search-scope` / `location`），复杂筛选时回退 Python。
 - 读取类命令默认自动关闭新开的临时页。
 
@@ -64,6 +67,7 @@
 ```
 
 说明：
+
 - `--video-url` 会先下载到本地临时文件，再复用本地视频上传链路。
 - 图文/视频都支持“正文最后一行 `#标签1 #标签2`”自动话题选择。
 - `publish` / `click-publish` 已补充发布成功轮询判定。
@@ -77,6 +81,7 @@
 ```
 
 说明：
+
 - `reply-to-comment` 优先走通知页定位目标回复入口。
 - 建议先 `--dry-run` 验证定位，再执行真实回复。
 - 评论类动作对风控更敏感，默认用 `safe`。

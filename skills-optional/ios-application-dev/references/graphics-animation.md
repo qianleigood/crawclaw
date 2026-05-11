@@ -10,27 +10,27 @@ For custom shapes, paths, and animations:
 class CircularProgressView: UIView {
     private let trackLayer = CAShapeLayer()
     private let progressLayer = CAShapeLayer()
-    
+
     var progress: CGFloat = 0 {
         didSet { updateProgress() }
     }
-    
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupLayers()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupLayers()
     }
-    
+
     private func setupLayers() {
         let center = CGPoint(x: bounds.midX, y: bounds.midY)
         let radius = min(bounds.width, bounds.height) / 2 - 10
         let startAngle = -CGFloat.pi / 2
         let endAngle = startAngle + 2 * CGFloat.pi
-        
+
         let circularPath = UIBezierPath(
             arcCenter: center,
             radius: radius,
@@ -38,14 +38,14 @@ class CircularProgressView: UIView {
             endAngle: endAngle,
             clockwise: true
         )
-        
+
         trackLayer.path = circularPath.cgPath
         trackLayer.strokeColor = UIColor.systemGray5.cgColor
         trackLayer.fillColor = UIColor.clear.cgColor
         trackLayer.lineWidth = 10
         trackLayer.lineCap = .round
         layer.addSublayer(trackLayer)
-        
+
         progressLayer.path = circularPath.cgPath
         progressLayer.strokeColor = UIColor.systemBlue.cgColor
         progressLayer.fillColor = UIColor.clear.cgColor
@@ -54,16 +54,16 @@ class CircularProgressView: UIView {
         progressLayer.strokeEnd = 0
         layer.addSublayer(progressLayer)
     }
-    
+
     override func layoutSubviews() {
         super.layoutSubviews()
         setupLayers()
     }
-    
+
     private func updateProgress() {
         progressLayer.strokeEnd = progress
     }
-    
+
     func animateProgress(to value: CGFloat, duration: TimeInterval = 0.5) {
         let animation = CABasicAnimation(keyPath: "strokeEnd")
         animation.fromValue = progressLayer.strokeEnd
@@ -126,17 +126,17 @@ customPath.addCurve(
 ```swift
 class GradientButton: UIButton {
     private let gradientLayer = CAGradientLayer()
-    
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupGradient()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupGradient()
     }
-    
+
     private func setupGradient() {
         gradientLayer.colors = [
             UIColor.systemBlue.cgColor,
@@ -147,7 +147,7 @@ class GradientButton: UIButton {
         gradientLayer.cornerRadius = 12
         layer.insertSublayer(gradientLayer, at: 0)
     }
-    
+
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = bounds
@@ -160,17 +160,17 @@ class GradientButton: UIButton {
 ```swift
 class GradientBackgroundView: UIView {
     private let gradientLayer = CAGradientLayer()
-    
+
     override init(frame: CGRect) {
         super.init(frame: frame)
         setupGradient()
     }
-    
+
     required init?(coder: NSCoder) {
         super.init(coder: coder)
         setupGradient()
     }
-    
+
     private func setupGradient() {
         gradientLayer.colors = [
             UIColor.systemBackground.cgColor,
@@ -181,12 +181,12 @@ class GradientBackgroundView: UIView {
         gradientLayer.endPoint = CGPoint(x: 0.5, y: 1)
         layer.insertSublayer(gradientLayer, at: 0)
     }
-    
+
     override func layoutSubviews() {
         super.layoutSubviews()
         gradientLayer.frame = bounds
     }
-    
+
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
         gradientLayer.colors = [
@@ -199,12 +199,12 @@ class GradientBackgroundView: UIView {
 
 ### Gradient Types
 
-| Type | Configuration |
-|------|---------------|
+| Type                | Configuration                                |
+| ------------------- | -------------------------------------------- |
 | Linear (horizontal) | `startPoint: (0, 0.5)`, `endPoint: (1, 0.5)` |
-| Linear (vertical) | `startPoint: (0.5, 0)`, `endPoint: (0.5, 1)` |
-| Diagonal | `startPoint: (0, 0)`, `endPoint: (1, 1)` |
-| Radial | Use `CAGradientLayer.type = .radial` |
+| Linear (vertical)   | `startPoint: (0.5, 0)`, `endPoint: (0.5, 1)` |
+| Diagonal            | `startPoint: (0, 0)`, `endPoint: (1, 1)`     |
+| Radial              | Use `CAGradientLayer.type = .radial`         |
 
 ## Core Animation
 
@@ -241,7 +241,7 @@ func animateAlongPath() {
         controlPoint1: CGPoint(x: 150, y: 50),
         controlPoint2: CGPoint(x: 50, y: 250)
     )
-    
+
     let animation = CAKeyframeAnimation(keyPath: "position")
     animation.path = path.cgPath
     animation.duration = 2.0
@@ -257,17 +257,17 @@ func animateMultiple() {
     let scaleAnimation = CABasicAnimation(keyPath: "transform.scale")
     scaleAnimation.fromValue = 1.0
     scaleAnimation.toValue = 1.5
-    
+
     let opacityAnimation = CABasicAnimation(keyPath: "opacity")
     opacityAnimation.fromValue = 1.0
     opacityAnimation.toValue = 0.0
-    
+
     let group = CAAnimationGroup()
     group.animations = [scaleAnimation, opacityAnimation]
     group.duration = 0.5
     group.fillMode = .forwards
     group.isRemovedOnCompletion = false
-    
+
     layer.add(group, forKey: "multipleAnimations")
 }
 ```
@@ -337,14 +337,14 @@ UIView.animateKeyframes(withDuration: 1.0, delay: 0) {
 
 ## Timing Functions
 
-| Name | Description |
-|------|-------------|
-| `.linear` | Constant speed |
-| `.easeIn` | Slow start |
-| `.easeOut` | Slow end |
+| Name             | Description        |
+| ---------------- | ------------------ |
+| `.linear`        | Constant speed     |
+| `.easeIn`        | Slow start         |
+| `.easeOut`       | Slow end           |
 | `.easeInEaseOut` | Slow start and end |
-| `.default` | System default |
+| `.default`       | System default     |
 
 ---
 
-*UIKit, Core Animation, and Apple are trademarks of Apple Inc.*
+_UIKit, Core Animation, and Apple are trademarks of Apple Inc._

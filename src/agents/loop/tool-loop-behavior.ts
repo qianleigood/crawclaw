@@ -25,7 +25,7 @@ const WRITE_TOOL_NAMES = new Set([
   "write",
 ]);
 
-const SEARCH_TOOL_NAMES = new Set(["search", "web_search", "x_search"]);
+const SEARCH_TOOL_NAMES = new Set(["search", "web_search"]);
 
 const FETCH_TOOL_NAMES = new Set(["fetch", "web_fetch"]);
 

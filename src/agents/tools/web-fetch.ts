@@ -404,17 +404,15 @@ async function runWebFetch(params: WebFetchRuntimeParams): Promise<Record<string
 
 export function createWebFetchTool(options?: {
   config?: CrawClawConfig;
-  sandboxed?: boolean;
   runtimeWebFetch?: RuntimeWebFetchMetadata;
 }): AnyAgentTool | null {
   const fetch = resolveWebFetchConfig(options?.config);
-  if (!resolveWebFetchEnabled({ fetch, sandboxed: options?.sandboxed })) {
+  if (!resolveWebFetchEnabled({ fetch })) {
     return null;
   }
   const readabilityEnabled = resolveFetchReadabilityEnabled(fetch);
   const providerFallback = resolveWebFetchDefinition({
     config: options?.config,
-    sandboxed: options?.sandboxed,
     runtimeWebFetch: options?.runtimeWebFetch,
     preferRuntimeProviders: true,
   });

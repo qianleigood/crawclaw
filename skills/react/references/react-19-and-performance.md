@@ -19,6 +19,7 @@ Use this reference when the task involves React 19 features, performance, Suspen
 ## Rendering traps
 
 Watch for:
+
 - unstable keys
 - mutated state
 - accidental rerender loops

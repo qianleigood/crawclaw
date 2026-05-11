@@ -1,6 +1,3 @@
-import fs from "node:fs/promises";
-import path from "node:path";
-import { DEFAULT_BOOTSTRAP_FILENAME } from "../agents/workspace.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import {
   buildGatewayInstallPlan,
@@ -23,9 +20,6 @@ import type { CrawClawConfig } from "../config/config.js";
 import { describeGatewayServiceRestart, resolveGatewayService } from "../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { restoreTerminalState } from "../terminal/restore.js";
-import { runTui } from "../tui/tui.js";
-import { resolveUserPath } from "../utils.js";
 import { listConfiguredWebSearchProviders } from "../web-search/runtime.js";
 import type { WizardPrompter } from "./prompts.js";
 import { setupWizardShellCompletion } from "./setup.completion.js";
@@ -106,7 +100,7 @@ export async function finalizeSetupWizard(
 
   if (process.platform === "linux" && !systemdAvailable && installDaemon) {
     await prompter.note(
-      "Systemd user services are unavailable; skipping service install. Use your container supervisor or `docker compose up -d`.",
+      "Systemd user services are unavailable; skipping service install. Run the gateway in the foreground or under your service supervisor.",
       "Gateway service",
     );
     installDaemon = false;
@@ -285,15 +279,6 @@ export async function finalizeSetupWizard(
     runtime,
   });
 
-  await prompter.note(
-    [
-      "Add nodes for extra features:",
-      "- Node hosts for system commands and local features",
-      "- Headless nodes attached through the Gateway",
-    ].join("\n"),
-    "Optional nodes",
-  );
-
   const links = resolveBrowserClientsLinks({
     bind: settings.bind,
     port: settings.port,
@@ -330,33 +315,9 @@ export async function finalizeSetupWizard(
   const gatewayStatusLine = gatewayProbe.ok
     ? "Gateway: reachable"
     : `Gateway: not detected${gatewayProbe.detail ? ` (${gatewayProbe.detail})` : ""}`;
-  const bootstrapPath = path.join(
-    resolveUserPath(options.workspaceDir),
-    DEFAULT_BOOTSTRAP_FILENAME,
-  );
-  const hasBootstrap = await fs
-    .access(bootstrapPath)
-    .then(() => true)
-    .catch(() => false);
-
   await prompter.note([`Gateway WS: ${links.wsUrl}`, gatewayStatusLine].join("\n"), "Gateway");
 
-  let hatchChoice: "tui" | "later" | null = null;
-  let launchedTui = false;
-
   if (!opts.skipUi && gatewayProbe.ok) {
-    if (hasBootstrap) {
-      await prompter.note(
-        [
-          "This is the defining action that makes your agent you.",
-          "Please take your time.",
-          "The more you tell it, the better the experience will be.",
-          'We will send: "Wake up, my friend!"',
-        ].join("\n"),
-        "Start TUI (best option!)",
-      );
-    }
-
     await prompter.note(
       [
         "Gateway token: shared auth for the Gateway.",
@@ -366,32 +327,8 @@ export async function finalizeSetupWizard(
       ].join("\n"),
       "Token",
     );
-
-    hatchChoice = await prompter.select({
-      message: "How do you want to hatch your bot?",
-      options: [
-        { value: "tui", label: "Hatch in TUI (recommended)" },
-        { value: "later", label: "Do this later" },
-      ],
-      initialValue: "tui",
-    });
-
-    if (hatchChoice === "tui") {
-      restoreTerminalState("pre-setup tui", { resumeStdinIfPaused: true });
-      await runTui({
-        url: links.wsUrl,
-        token: settings.authMode === "token" ? settings.gatewayToken : undefined,
-        password: settings.authMode === "password" ? resolvedGatewayPassword : "",
-        // Safety: setup TUI should not auto-deliver to lastProvider/lastTo.
-        deliver: false,
-        message: hasBootstrap ? "Wake up, my friend!" : undefined,
-      });
-      launchedTui = true;
-    } else {
-      await prompter.note(`When you're ready: ${formatCliCommand("crawclaw tui")}`, "Later");
-    }
   } else if (opts.skipUi) {
-    await prompter.note("Skipping TUI prompt.", "TUI");
+    await prompter.note("Skipping local client prompt.", "Client");
   }
 
   await prompter.note(
@@ -529,10 +466,8 @@ export async function finalizeSetupWizard(
   );
 
   await prompter.outro(
-    launchedTui
-      ? "Onboarding complete. TUI launched for your first session."
-      : "Onboarding complete. Start interacting with CrawClaw from the CLI or TUI.",
+    "Onboarding complete. Start interacting with CrawClaw from a connected channel or desktop client.",
   );
 
-  return { launchedTui };
+  return { launchedTui: false };
 }

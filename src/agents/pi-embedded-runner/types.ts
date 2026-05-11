@@ -97,19 +97,3 @@ export type EmbeddedPiCompactResult = {
     details?: unknown;
   };
 };
-
-export type EmbeddedSandboxInfo = {
-  enabled: boolean;
-  workspaceDir?: string;
-  containerWorkspaceDir?: string;
-  workspaceAccess?: "none" | "ro" | "rw";
-  agentWorkspaceMount?: string;
-  browserBridgeUrl?: string;
-  browserPinchTabUrl?: string;
-  browserNoVncUrl?: string;
-  hostBrowserAllowed?: boolean;
-  elevated?: {
-    allowed: boolean;
-    defaultLevel: "on" | "off" | "ask" | "full";
-  };
-};

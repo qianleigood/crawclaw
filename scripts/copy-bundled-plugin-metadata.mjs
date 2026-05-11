@@ -180,7 +180,7 @@ function copyDeclaredPluginSkillPaths(params) {
     });
     const target = resolveBundledSkillTarget(raw);
     if (!fs.existsSync(sourcePath)) {
-      // Some Docker/lightweight builds intentionally omit optional plugin-local
+      // Some lightweight builds intentionally omit optional plugin-local
       // dependencies. Only advertise skill paths that were actually bundled.
       console.warn(
         `[bundled-plugin-metadata] skipping missing skill path ${sourcePath} (plugin ${params.manifest.id ?? path.basename(params.pluginDir)})`,

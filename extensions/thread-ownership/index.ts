@@ -95,7 +95,7 @@ export default definePluginEntry({
       if (mentionedThreads.has(`${channelId}:${threadTs}`)) return;
 
       try {
-        // The forwarder is an internal service (e.g. a Docker container); allow private-network
+        // The forwarder is an internal service; allow private-network
         // access but pin DNS so DNS-rebinding attacks cannot pivot to a different internal host.
         const { response: resp, release } = await fetchWithSsrFGuard({
           url: `${forwarderUrl}/api/v1/ownership/${channelId}/${threadTs}`,

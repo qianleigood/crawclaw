@@ -1,14 +1,12 @@
 export const GATEWAY_CLIENT_IDS = {
   WEBCHAT_UI: "webchat-ui",
   BROWSER_CLIENT: "crawclaw-browser-client",
-  TUI: "crawclaw-tui",
   WEBCHAT: "webchat",
   CLI: "cli",
   GATEWAY_CLIENT: "gateway-client",
   MACOS_APP: "crawclaw-macos",
   IOS_APP: "crawclaw-ios",
   ANDROID_APP: "crawclaw-android",
-  NODE_HOST: "node-host",
   TEST: "test",
   FINGERPRINT: "fingerprint",
   PROBE: "crawclaw-probe",
@@ -25,7 +23,6 @@ export const GATEWAY_CLIENT_MODES = {
   CLI: "cli",
   UI: "ui",
   BACKEND: "backend",
-  NODE: "node",
   PROBE: "probe",
   TEST: "test",
 } as const;

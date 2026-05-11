@@ -7,10 +7,7 @@ import { shortenHomePath } from "../utils.js";
 import { safeParseJsonWithSchema, safeParseWithSchema } from "../utils/zod-parse.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 
-const LEGACY_MANIFEST_CONTRACT_KEYS = [
-  "speechProviders",
-  "mediaUnderstandingProviders",
-] as const;
+const LEGACY_MANIFEST_CONTRACT_KEYS = ["speechProviders", "mediaUnderstandingProviders"] as const;
 
 type LegacyManifestContractMigration = {
   manifestPath: string;

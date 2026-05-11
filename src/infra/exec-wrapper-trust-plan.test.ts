@@ -43,19 +43,6 @@ describe("resolveExecWrapperTrustPlan", () => {
       },
     },
     {
-      name: "unwraps sandbox-exec wrappers before evaluating nested shell payloads",
-      enabled: process.platform !== "win32",
-      argv: ["/usr/bin/sandbox-exec", "-p", "(allow default)", "sh", "-lc", "echo hi"],
-      expected: {
-        argv: ["sh", "-lc", "echo hi"],
-        policyArgv: ["sh", "-lc", "echo hi"],
-        wrapperChain: ["sandbox-exec"],
-        policyBlocked: false,
-        shellWrapperExecutable: true,
-        shellInlineCommand: "echo hi",
-      },
-    },
-    {
       name: "fails closed for unsupported shell multiplexer applets",
       enabled: true,
       argv: ["busybox", "sed", "-n", "1p"],

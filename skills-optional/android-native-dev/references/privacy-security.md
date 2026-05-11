@@ -6,12 +6,12 @@ Security best practices and privacy requirements for Android applications.
 
 ### Principle of Least Privilege
 
-| Rule | Implementation |
-|------|----------------|
-| Request minimum | Only permissions essential for core features |
-| Request when needed | At point of use, not app startup |
-| Explain why | Show rationale before system dialog |
-| Degrade gracefully | App works (limited) if denied |
+| Rule                | Implementation                               |
+| ------------------- | -------------------------------------------- |
+| Request minimum     | Only permissions essential for core features |
+| Request when needed | At point of use, not app startup             |
+| Explain why         | Show rationale before system dialog          |
+| Degrade gracefully  | App works (limited) if denied                |
 
 ### Permission Request Flow
 
@@ -23,44 +23,44 @@ Security best practices and privacy requirements for Android applications.
 
 ### Sensitive Permissions
 
-| Permission | Consideration |
-|------------|---------------|
-| Location | Use coarse if fine not needed |
-| Camera | Request only when capturing |
-| Microphone | Request only when recording |
-| Contacts | Consider contact picker intent |
-| Storage | Use scoped storage |
-| SMS/Call Log | Restricted, needs approval |
+| Permission   | Consideration                  |
+| ------------ | ------------------------------ |
+| Location     | Use coarse if fine not needed  |
+| Camera       | Request only when capturing    |
+| Microphone   | Request only when recording    |
+| Contacts     | Consider contact picker intent |
+| Storage      | Use scoped storage             |
+| SMS/Call Log | Restricted, needs approval     |
 
 ### Alternative Approaches
 
-| Instead of... | Consider... |
-|---------------|-------------|
-| READ_CONTACTS | Contact picker intent |
-| ACCESS_FINE_LOCATION | Coarse location |
+| Instead of...         | Consider...              |
+| --------------------- | ------------------------ |
+| READ_CONTACTS         | Contact picker intent    |
+| ACCESS_FINE_LOCATION  | Coarse location          |
 | READ_EXTERNAL_STORAGE | Storage Access Framework |
-| CAMERA | Camera intent |
+| CAMERA                | Camera intent            |
 
 ## Data Storage
 
 ### Storage Types
 
-| Type | Security | Usage |
-|------|----------|-------|
-| Internal storage | Private to app | Sensitive data |
-| External storage | World-readable | Shared files only |
-| SharedPreferences | Private, unencrypted | Non-sensitive settings |
-| EncryptedSharedPreferences | Private, encrypted | Sensitive settings |
-| Room database | Private, optional encryption | Structured data |
+| Type                       | Security                     | Usage                  |
+| -------------------------- | ---------------------------- | ---------------------- |
+| Internal storage           | Private to app               | Sensitive data         |
+| External storage           | World-readable               | Shared files only      |
+| SharedPreferences          | Private, unencrypted         | Non-sensitive settings |
+| EncryptedSharedPreferences | Private, encrypted           | Sensitive settings     |
+| Room database              | Private, optional encryption | Structured data        |
 
 ### Sensitive Data Rules
 
-| Rule | Implementation |
-|------|----------------|
-| Store internally | Use internal storage, not external |
-| Encrypt at rest | Use EncryptedSharedPreferences, SQLCipher |
-| Don't log | Never log PII or credentials |
-| Clear on logout | Wipe user data completely |
+| Rule             | Implementation                            |
+| ---------------- | ----------------------------------------- |
+| Store internally | Use internal storage, not external        |
+| Encrypt at rest  | Use EncryptedSharedPreferences, SQLCipher |
+| Don't log        | Never log PII or credentials              |
+| Clear on logout  | Wipe user data completely                 |
 
 ### Data Logging
 
@@ -77,6 +77,7 @@ Never log sensitive data such as passwords, emails, tokens, or personal informat
 ### Network Security Config
 
 Define a network security configuration that:
+
 - Disables cleartext traffic
 - Specifies trusted certificate authorities
 - Optionally implements certificate pinning for high-security apps
@@ -90,6 +91,7 @@ For high-security apps, pin certificates to prevent MITM attacks. Include backup
 ### Credential Manager
 
 Integrate Credential Manager for unified sign-in supporting:
+
 - Passkeys
 - Federated identity
 - Traditional passwords
@@ -97,6 +99,7 @@ Integrate Credential Manager for unified sign-in supporting:
 ### Biometric Authentication
 
 Use biometric authentication for sensitive operations like:
+
 - Financial transactions
 - Accessing sensitive documents
 - Confirming identity
@@ -104,6 +107,7 @@ Use biometric authentication for sensitive operations like:
 ### Autofill Support
 
 Provide autofill hints on input fields:
+
 - emailAddress, username for identity fields
 - password for credential fields
 - creditCardNumber, postalCode for payment fields
@@ -112,12 +116,12 @@ Provide autofill hints on input fields:
 
 ### Exported Components
 
-| Component | Exported Rule |
-|-----------|---------------|
-| Launcher Activity | exported="true" with intent-filter |
-| Internal Activity | exported="false" |
-| Internal Service | exported="false" |
-| Content Provider (shared) | exported="true" with permissions |
+| Component                 | Exported Rule                      |
+| ------------------------- | ---------------------------------- |
+| Launcher Activity         | exported="true" with intent-filter |
+| Internal Activity         | exported="false"                   |
+| Internal Service          | exported="false"                   |
+| Content Provider (shared) | exported="true" with permissions   |
 
 Always explicitly set the exported attribute on all components.
 
@@ -140,20 +144,20 @@ Use FLAG_IMMUTABLE for PendingIntents unless mutability is required. This preven
 
 ### Safe WebView Configuration
 
-| Setting | Recommendation |
-|---------|----------------|
-| JavaScript | Disabled unless required |
-| File access | Disabled |
-| Content access | Disabled |
-| Universal file access | Never enable |
+| Setting               | Recommendation           |
+| --------------------- | ------------------------ |
+| JavaScript            | Disabled unless required |
+| File access           | Disabled                 |
+| Content access        | Disabled                 |
+| Universal file access | Never enable             |
 
 ### Avoid Dangerous Practices
 
-| Don't | Why |
-|-------|-----|
-| setAllowUniversalAccessFromFileURLs(true) | Security vulnerability |
-| addJavascriptInterface() with untrusted content | Code injection risk |
-| Load untrusted URLs | XSS, phishing |
+| Don't                                           | Why                    |
+| ----------------------------------------------- | ---------------------- |
+| setAllowUniversalAccessFromFileURLs(true)       | Security vulnerability |
+| addJavascriptInterface() with untrusted content | Code injection risk    |
+| Load untrusted URLs                             | XSS, phishing          |
 
 ## Cryptography
 
@@ -175,11 +179,11 @@ Use FLAG_IMMUTABLE for PendingIntents unless mutability is required. This preven
 
 ### No Dynamic Code Loading
 
-| Don't | Do Instead |
-|-------|------------|
-| Load code at runtime | Android App Bundles |
-| Download DEX files | Play Feature Delivery |
-| Execute scripts | Predefined functionality |
+| Don't                | Do Instead               |
+| -------------------- | ------------------------ |
+| Load code at runtime | Android App Bundles      |
+| Download DEX files   | Play Feature Delivery    |
+| Execute scripts      | Predefined functionality |
 
 ### Debug Code Removal
 
@@ -191,21 +195,21 @@ Use FLAG_IMMUTABLE for PendingIntents unless mutability is required. This preven
 
 ### Don't Use Hardware IDs
 
-| Identifier | Status |
-|------------|--------|
-| IMEI | Don't use |
-| MAC address | Don't use |
-| Serial number | Don't use |
-| Android ID | Limited use only |
+| Identifier    | Status           |
+| ------------- | ---------------- |
+| IMEI          | Don't use        |
+| MAC address   | Don't use        |
+| Serial number | Don't use        |
+| Android ID    | Limited use only |
 
 ### Recommended Alternatives
 
-| Use Case | Solution |
-|----------|----------|
-| Analytics | Firebase Analytics ID |
-| Advertising | Advertising ID (resettable) |
-| App instance | Generate UUID on install |
-| User identity | Account-based ID |
+| Use Case      | Solution                    |
+| ------------- | --------------------------- |
+| Analytics     | Firebase Analytics ID       |
+| Advertising   | Advertising ID (resettable) |
+| App instance  | Generate UUID on install    |
+| User identity | Account-based ID            |
 
 ## Google Play Policies
 
@@ -218,12 +222,12 @@ Use FLAG_IMMUTABLE for PendingIntents unless mutability is required. This preven
 
 ### User Data Policy
 
-| Rule | Requirement |
-|------|-------------|
-| Transparency | Clear disclosure of data use |
-| Security | Protect user data appropriately |
-| Minimization | Collect only what's needed |
-| Control | Allow users to manage data |
+| Rule         | Requirement                     |
+| ------------ | ------------------------------- |
+| Transparency | Clear disclosure of data use    |
+| Security     | Protect user data appropriately |
+| Minimization | Collect only what's needed      |
+| Control      | Allow users to manage data      |
 
 ## Security Checklist
 

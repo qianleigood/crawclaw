@@ -9,7 +9,6 @@ export type AgentInteractiveApprovalBlocker = "heartbeat" | "background" | "hidd
 export type AgentGuardCapability = {
   snapshotRef?: string;
   model?: string;
-  sandboxed?: boolean;
   workspaceDir?: string;
   spawnSource?: string;
   requesterSessionKey?: string;
@@ -23,7 +22,6 @@ export type AgentGuardContext = {
   sessionId?: string;
   runtime?: TaskRuntime;
   mode?: AgentTaskMode;
-  sandboxed?: boolean;
   capability?: AgentGuardCapability;
   browserClientsVisible: boolean;
   heartbeat: boolean;
@@ -42,7 +40,6 @@ export function resolveAgentGuardContext(params?: {
   agentId?: string;
   sessionKey?: string;
   sessionId?: string;
-  sandboxed?: boolean;
 }): AgentGuardContext {
   const runId = normalizeOptionalString(params?.runId);
   const runtimeState = runId ? getAgentRuntimeState(runId) : undefined;
@@ -65,14 +62,11 @@ export function resolveAgentGuardContext(params?: {
   const capabilitySnapshot = capabilitySnapshotRef
     ? readAgentTaskCapabilitySnapshotSync(capabilitySnapshotRef)
     : undefined;
-  const sandboxed =
-    capabilitySnapshot?.sandboxed ?? (params?.sandboxed === true ? true : undefined);
   const capability: AgentGuardCapability | undefined =
     capabilitySnapshot || capabilitySnapshotRef
       ? {
           ...(capabilitySnapshotRef ? { snapshotRef: capabilitySnapshotRef } : {}),
           ...(capabilitySnapshot?.model ? { model: capabilitySnapshot.model } : {}),
-          ...(sandboxed ? { sandboxed } : {}),
           ...(capabilitySnapshot?.workspaceDir
             ? { workspaceDir: capabilitySnapshot.workspaceDir }
             : {}),
@@ -86,9 +80,7 @@ export function resolveAgentGuardContext(params?: {
             ? { requesterAgentIdOverride: capabilitySnapshot.requesterAgentIdOverride }
             : {}),
         }
-      : sandboxed
-        ? { sandboxed }
-        : undefined;
+      : undefined;
 
   const interactiveApprovalBlocker = heartbeat
     ? "heartbeat"
@@ -111,7 +103,6 @@ export function resolveAgentGuardContext(params?: {
     ...(sessionId ? { sessionId } : {}),
     ...(runtime ? { runtime } : {}),
     ...(mode ? { mode } : {}),
-    ...(sandboxed ? { sandboxed } : {}),
     ...(capability ? { capability } : {}),
     browserClientsVisible,
     heartbeat,

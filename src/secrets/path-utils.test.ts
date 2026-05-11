@@ -40,7 +40,7 @@ describe("secrets path utils", () => {
   it("setPathExistingStrict throws when path does not already exist", () => {
     const config = createAgentListConfig();
     expect(() =>
-      setPathExistingStrict(config, ["agents", "list", "0", "sandbox", "ssh", "identityData"], "x"),
+      setPathExistingStrict(config, ["agents", "list", "0", "tools", "exec", "node"], "x"),
     ).toThrow(/Path segment does not exist/);
   });
 

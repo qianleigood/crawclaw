@@ -82,13 +82,13 @@ function expectRemovedPluginWarnings(
   expect(result.ok).toBe(true);
   if (result.ok) {
     const message = `plugin removed: ${removedLabel} (stale config entry ignored; remove it from plugins config)`;
-      expect(result.warnings).toEqual(
-        expect.arrayContaining([
-          { path: `plugins.entries.${removedId}`, message },
-          { path: "plugins.allow", message },
-          { path: "plugins.deny", message },
-        ]),
-      );
+    expect(result.warnings).toEqual(
+      expect.arrayContaining([
+        { path: `plugins.entries.${removedId}`, message },
+        { path: "plugins.allow", message },
+        { path: "plugins.deny", message },
+      ]),
+    );
   }
 }
 

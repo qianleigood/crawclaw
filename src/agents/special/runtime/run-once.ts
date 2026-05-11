@@ -79,7 +79,6 @@ async function buildSpawnParams(params: SpecialAgentSpawnRequest) {
     label: params.definition.label,
     mode: isolatedRun ? "run" : (spawnOverrides.mode ?? params.definition.mode ?? "run"),
     cleanup: spawnOverrides.cleanup ?? params.definition.cleanup ?? "keep",
-    sandbox: spawnOverrides.sandbox ?? params.definition.sandbox ?? "inherit",
     spawnSource: params.definition.spawnSource,
     expectsCompletionMessage:
       spawnOverrides.expectsCompletionMessage ??

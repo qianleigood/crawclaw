@@ -21,13 +21,13 @@ Asset naming:
 
 ### Framework mapping
 
-| Framework | Asset location | Component location |
-|---|---|---|
-| Pure HTML | `./assets/` | inline or `./js/` |
-| React / Next.js | `public/assets/` | `src/components/` |
-| Vue / Nuxt | `public/assets/` | `src/components/` |
+| Framework          | Asset location   | Component location    |
+| ------------------ | ---------------- | --------------------- |
+| Pure HTML          | `./assets/`      | inline or `./js/`     |
+| React / Next.js    | `public/assets/` | `src/components/`     |
+| Vue / Nuxt         | `public/assets/` | `src/components/`     |
 | Svelte / SvelteKit | `static/assets/` | `src/lib/components/` |
-| Astro | `public/assets/` | `src/components/` |
+| Astro              | `public/assets/` | `src/components/`     |
 
 ## Baseline conventions
 
@@ -41,11 +41,11 @@ Asset naming:
 
 ## Design dials
 
-| Dial | Default | Meaning |
-|---|---:|---|
-| `DESIGN_VARIANCE` | 8 | 1 = symmetric / 10 = asymmetric |
-| `MOTION_INTENSITY` | 6 | 1 = static / 10 = cinematic |
-| `VISUAL_DENSITY` | 4 | 1 = airy / 10 = packed |
+| Dial               | Default | Meaning                         |
+| ------------------ | ------: | ------------------------------- |
+| `DESIGN_VARIANCE`  |       8 | 1 = symmetric / 10 = asymmetric |
+| `MOTION_INTENSITY` |       6 | 1 = static / 10 = cinematic     |
+| `VISUAL_DENSITY`   |       4 | 1 = airy / 10 = packed          |
 
 Adapt them from the user request rather than treating them as fixed.
 

@@ -13,7 +13,10 @@ import {
   resolveOpenAiCompatibleHttpOperatorScopes,
 } from "./http-utils.js";
 import { authorizeOperatorScopesForMethod } from "./method-scopes.js";
-import { executeWorkflowAgentRun, validateWorkflowAgentRunParams } from "./server-methods/workflow.js";
+import {
+  executeWorkflowAgentRun,
+  validateWorkflowAgentRunParams,
+} from "./server-methods/workflow.js";
 
 const DEFAULT_BODY_BYTES = 2 * 1024 * 1024;
 const WORKFLOW_AGENT_HTTP_PATH = "/workflows/agent/run";

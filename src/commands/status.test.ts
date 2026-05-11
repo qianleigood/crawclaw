@@ -196,7 +196,6 @@ const mocks = vi.hoisted(() => ({
   }),
   resolveMainSessionKey: vi.fn().mockReturnValue("agent:main:main"),
   resolveStorePath: vi.fn().mockReturnValue("/tmp/sessions.json"),
-  loadNodeHostConfig: vi.fn().mockResolvedValue(null),
   webAuthExists: vi.fn().mockResolvedValue(true),
   getWebAuthAgeMs: vi.fn().mockReturnValue(5000),
   readWebSelfId: vi.fn().mockReturnValue({ e164: "+1999" }),
@@ -261,22 +260,6 @@ const mocks = vi.hoisted(() => ({
     readCommand: async () => ({
       programArguments: ["node", "dist/entry.js", "gateway"],
       sourcePath: "/tmp/Library/LaunchAgents/ai.crawclaw.gateway.plist",
-    }),
-  }),
-  resolveNodeService: vi.fn().mockReturnValue({
-    label: "LaunchAgent",
-    loadedText: "loaded",
-    notLoadedText: "not loaded",
-    stage: async () => {},
-    install: async () => {},
-    uninstall: async () => {},
-    stop: async () => {},
-    restart: async () => ({ outcome: "completed" as const }),
-    isLoaded: async () => true,
-    readRuntime: async () => ({ status: "running", pid: 4321 }),
-    readCommand: async () => ({
-      programArguments: ["node", "dist/entry.js", "node-host"],
-      sourcePath: "/tmp/Library/LaunchAgents/ai.crawclaw.node.plist",
     }),
   }),
 }));
@@ -431,12 +414,6 @@ vi.mock("../daemon/service.js", async (importOriginal) => {
     resolveGatewayService: mocks.resolveGatewayService,
   };
 });
-vi.mock("../daemon/node-service.js", () => ({
-  resolveNodeService: mocks.resolveNodeService,
-}));
-vi.mock("../node-host/config.js", () => ({
-  loadNodeHostConfig: mocks.loadNodeHostConfig,
-}));
 vi.mock("../tasks/task-registry.maintenance.js", () => ({
   getInspectableTaskRegistrySummary: mocks.getInspectableTaskRegistrySummary,
   getInspectableTaskAuditSummary: mocks.getInspectableTaskAuditSummary,
@@ -478,8 +455,6 @@ describe("statusCommand", () => {
     mocks.resolveMainSessionKey.mockReturnValue("agent:main:main");
     mocks.resolveStorePath.mockReset();
     mocks.resolveStorePath.mockReturnValue("/tmp/sessions.json");
-    mocks.loadNodeHostConfig.mockReset();
-    mocks.loadNodeHostConfig.mockResolvedValue(null);
     mocks.probeGateway.mockReset();
     mocks.probeGateway.mockResolvedValue(createDefaultProbeGatewayResult());
     mocks.callGateway.mockReset();
@@ -550,23 +525,6 @@ describe("statusCommand", () => {
         sourcePath: "/tmp/Library/LaunchAgents/ai.crawclaw.gateway.plist",
       }),
     });
-    mocks.resolveNodeService.mockReset();
-    mocks.resolveNodeService.mockReturnValue({
-      label: "LaunchAgent",
-      loadedText: "loaded",
-      notLoadedText: "not loaded",
-      stage: async () => {},
-      install: async () => {},
-      uninstall: async () => {},
-      stop: async () => {},
-      restart: async () => ({ outcome: "completed" as const }),
-      isLoaded: async () => true,
-      readRuntime: async () => ({ status: "running", pid: 4321 }),
-      readCommand: async () => ({
-        programArguments: ["node", "dist/entry.js", "node-host"],
-        sourcePath: "/tmp/Library/LaunchAgents/ai.crawclaw.node.plist",
-      }),
-    });
     runtimeLogMock.mockClear();
     (runtime.error as Mock<(...args: unknown[]) => void>).mockClear();
   });
@@ -593,7 +551,6 @@ describe("statusCommand", () => {
     expect(payload.securityAudit.summary.critical).toBe(1);
     expect(payload.securityAudit.summary.warn).toBe(1);
     expect(payload.gatewayService.label).toBe("LaunchAgent");
-    expect(payload.nodeService.label).toBe("LaunchAgent");
     expect(payload.pluginCompatibility).toEqual({
       count: 0,
       warnings: [],
@@ -755,33 +712,6 @@ describe("statusCommand", () => {
         mocks.loadSessionStore.mockImplementation(originalLoadSessionStore);
       }
     }
-  });
-
-  it("shows node-only gateway info when no local gateway service is installed", async () => {
-    mocks.resolveGatewayService.mockReturnValueOnce({
-      label: "LaunchAgent",
-      loadedText: "loaded",
-      notLoadedText: "not loaded",
-      stage: async () => {},
-      install: async () => {},
-      uninstall: async () => {},
-      stop: async () => {},
-      restart: async () => ({ outcome: "completed" as const }),
-      isLoaded: async () => false,
-      readRuntime: async () => undefined,
-      readCommand: async () => null,
-    });
-    mocks.loadNodeHostConfig.mockResolvedValueOnce({
-      version: 1,
-      nodeId: "node-1",
-      gateway: { host: "gateway.example.com", port: 19000 },
-    });
-
-    const joined = await runStatusAndGetJoinedLogs();
-    expect(joined).toContain("node → gateway.example.com:19000 · no local gateway");
-    expect(joined).not.toContain("Gateway: local · ws://127.0.0.1:18789");
-    expect(joined).toContain("crawclaw --profile isolated node status");
-    expect(joined).not.toContain("Fix reachability first");
   });
 
   it("shows gateway auth when reachable", async () => {

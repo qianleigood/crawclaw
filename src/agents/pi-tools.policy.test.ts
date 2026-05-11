@@ -240,15 +240,15 @@ describe("resolveSubagentToolPolicy depth awareness", () => {
 });
 
 describe("resolveEffectiveToolPolicy", () => {
-  it("implicitly re-exposes exec and process when tools.exec is configured", () => {
+  it("implicitly re-exposes bash and process when tools.exec is configured", () => {
     const cfg = {
       tools: {
         profile: "messaging",
-        exec: { host: "sandbox" },
+        exec: { host: "gateway" },
       },
     } as CrawClawConfig;
     const result = resolveEffectiveToolPolicy({ config: cfg });
-    expect(result.profileAlsoAllow).toEqual(["exec", "process"]);
+    expect(result.profileAlsoAllow).toEqual(["bash", "process"]);
   });
 
   it("implicitly re-exposes read, write, and edit when tools.fs is configured", () => {
@@ -267,11 +267,11 @@ describe("resolveEffectiveToolPolicy", () => {
       tools: {
         profile: "messaging",
         alsoAllow: ["web_search"],
-        exec: { host: "sandbox" },
+        exec: { host: "gateway" },
       },
     } as CrawClawConfig;
     const result = resolveEffectiveToolPolicy({ config: cfg });
-    expect(result.profileAlsoAllow).toEqual(["web_search", "exec", "process"]);
+    expect(result.profileAlsoAllow).toEqual(["web_search", "bash", "process"]);
   });
 
   it("uses agent tool sections when resolving implicit exposure", () => {

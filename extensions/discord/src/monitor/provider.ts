@@ -7,7 +7,6 @@ import {
   type Modal,
 } from "@buape/carbon";
 import { GatewayCloseCodes, type GatewayPlugin } from "@buape/carbon/gateway";
-import { Routes } from "discord-api-types/v10";
 import {
   listNativeCommandSpecsForConfig,
   listSkillCommandsForAgents,
@@ -20,6 +19,12 @@ import {
 } from "crawclaw/plugin-sdk/config-runtime";
 import type { CrawClawConfig, ReplyToMode } from "crawclaw/plugin-sdk/config-runtime";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
+import {
+  GROUP_POLICY_BLOCKED_LABEL,
+  resolveDefaultGroupPolicy,
+  resolveOpenProviderRuntimeGroupPolicy,
+  warnMissingProviderGroupPolicyFallbackOnce,
+} from "crawclaw/plugin-sdk/config-runtime";
 import { createConnectedChannelStatusPatch } from "crawclaw/plugin-sdk/gateway-runtime";
 import { getPluginCommandSpecs } from "crawclaw/plugin-sdk/plugin-runtime";
 import { resolveTextChunkLimit } from "crawclaw/plugin-sdk/reply-runtime";
@@ -32,14 +37,9 @@ import {
 } from "crawclaw/plugin-sdk/runtime-env";
 import { createSubsystemLogger } from "crawclaw/plugin-sdk/runtime-env";
 import { createNonExitingRuntime, type RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
-import {
-  GROUP_POLICY_BLOCKED_LABEL,
-  resolveDefaultGroupPolicy,
-  resolveOpenProviderRuntimeGroupPolicy,
-  warnMissingProviderGroupPolicyFallbackOnce,
-} from "crawclaw/plugin-sdk/config-runtime";
 import { formatErrorMessage } from "crawclaw/plugin-sdk/ssrf-runtime";
 import { summarizeStringEntries } from "crawclaw/plugin-sdk/text-runtime";
+import { Routes } from "discord-api-types/v10";
 import { resolveDiscordAccount } from "../accounts.js";
 import { isDiscordExecApprovalClientEnabled } from "../exec-approvals.js";
 import { fetchDiscordApplicationId } from "../probe.js";

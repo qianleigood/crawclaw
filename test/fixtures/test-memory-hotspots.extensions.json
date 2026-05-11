@@ -20,10 +20,6 @@
       "deltaKb": 1824522,
       "sources": ["checks-fast-extensions:2026-04-03"]
     },
-    "extensions/browser/src/node-host/invoke-browser.test.ts": {
-      "deltaKb": 1719665,
-      "sources": ["checks-fast-extensions:2026-04-03"]
-    },
     "extensions/msteams/src/graph-members.test.ts": {
       "deltaKb": 1646264,
       "sources": ["checks-fast-extensions:2026-04-03"]

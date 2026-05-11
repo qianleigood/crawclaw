@@ -26,11 +26,11 @@ Controller (HTTP) -> Service (business logic) -> Repository (data access)
 
 ### Responsibilities
 
-| Layer | Owns | Must not own |
-|---|---|---|
+| Layer      | Owns                                          | Must not own                      |
+| ---------- | --------------------------------------------- | --------------------------------- |
 | Controller | parse request, validate input, shape response | business logic, direct DB queries |
-| Service | business rules, orchestration, transactions | HTTP request/response types |
-| Repository | data access, external I/O | business rules |
+| Service    | business rules, orchestration, transactions   | HTTP request/response types       |
+| Repository | data access, external I/O                     | business rules                    |
 
 ## Configuration
 

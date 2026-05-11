@@ -7,26 +7,25 @@ import type { CrawClawPluginApi } from "../types.js";
 export {
   registerProviderPlugins as registerProviders,
   requireRegisteredProvider as requireProvider,
-  } from "../../test-utils/plugin-registration.js";
+} from "../../test-utils/plugin-registration.js";
 
 export function uniqueSortedStrings(values: readonly string[]) {
-  return [...new Set(values)].toSorted((left,
-  right) => left.localeCompare(right));
+  return [...new Set(values)].toSorted((left, right) => left.localeCompare(right));
 }
 
 export function createPluginRegistryFixture(config = {} as CrawClawConfig) {
   return {
     config,
-  registry: createPluginRegistry({
+    registry: createPluginRegistry({
       logger: {
         info() {},
-  warn() {},
-  error() {},
-  debug() {},
-  },
-  runtime: {} as PluginRuntime,
-  }),
-};
+        warn() {},
+        error() {},
+        debug() {},
+      },
+      runtime: {} as PluginRuntime,
+    }),
+  };
 }
 
 export function registerTestPlugin(params: {

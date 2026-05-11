@@ -382,13 +382,13 @@ class RtlAwareWidget extends StatelessWidget {
 
 ### Directional Widgets
 
-| Standard | Directional |
-|----------|-------------|
-| `EdgeInsets` | `EdgeInsetsDirectional` |
-| `Padding` | `Padding` with `EdgeInsetsDirectional` |
-| `Align` | `AlignmentDirectional` |
-| `Positioned` | `PositionedDirectional` |
-| `BorderRadius` | `BorderRadiusDirectional` |
+| Standard       | Directional                            |
+| -------------- | -------------------------------------- |
+| `EdgeInsets`   | `EdgeInsetsDirectional`                |
+| `Padding`      | `Padding` with `EdgeInsetsDirectional` |
+| `Align`        | `AlignmentDirectional`                 |
+| `Positioned`   | `PositionedDirectional`                |
+| `BorderRadius` | `BorderRadiusDirectional`              |
 
 ```dart
 // Use directional
@@ -482,29 +482,29 @@ void main() {
 
 ## ARB Placeholders Reference
 
-| Type | Format Options |
-|------|----------------|
-| `String` | None |
-| `int` | `compact`, `compactCurrency`, `compactLong`, `compactSimpleCurrency` |
-| `double` | `compact`, `compactCurrency`, `currency`, `decimalPattern`, `decimalPercentPattern`, `percentPattern`, `scientificPattern`, `simpleCurrency` |
-| `DateTime` | Any `DateFormat` pattern (yMd, yMMMd, jm, etc.) |
-| `num` | Same as `int` and `double` |
+| Type       | Format Options                                                                                                                               |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `String`   | None                                                                                                                                         |
+| `int`      | `compact`, `compactCurrency`, `compactLong`, `compactSimpleCurrency`                                                                         |
+| `double`   | `compact`, `compactCurrency`, `currency`, `decimalPattern`, `decimalPercentPattern`, `percentPattern`, `scientificPattern`, `simpleCurrency` |
+| `DateTime` | Any `DateFormat` pattern (yMd, yMMMd, jm, etc.)                                                                                              |
+| `num`      | Same as `int` and `double`                                                                                                                   |
 
 ## Localization Checklist
 
-| Item | Implementation |
-|------|----------------|
-| Dependencies | `flutter_localizations`, `intl` |
-| l10n.yaml | Configure ARB paths and output |
-| ARB files | Create for each supported locale |
-| App config | Add delegates and supported locales |
-| Generate | Run `flutter gen-l10n` |
-| Use translations | `AppLocalizations.of(context)` |
-| Date/number formatting | Use `intl` formatters with locale |
-| RTL support | Use directional widgets |
-| Persist preference | Save user's locale choice |
-| Testing | Test with different locales |
+| Item                   | Implementation                      |
+| ---------------------- | ----------------------------------- |
+| Dependencies           | `flutter_localizations`, `intl`     |
+| l10n.yaml              | Configure ARB paths and output      |
+| ARB files              | Create for each supported locale    |
+| App config             | Add delegates and supported locales |
+| Generate               | Run `flutter gen-l10n`              |
+| Use translations       | `AppLocalizations.of(context)`      |
+| Date/number formatting | Use `intl` formatters with locale   |
+| RTL support            | Use directional widgets             |
+| Persist preference     | Save user's locale choice           |
+| Testing                | Test with different locales         |
 
 ---
 
-*Flutter is a trademark of Google LLC. intl is an open-source package by the Dart team.*
+_Flutter is a trademark of Google LLC. intl is an open-source package by the Dart team._

@@ -1,5 +1,5 @@
-import type { Bot } from "grammy";
 import { createFinalizableDraftLifecycle } from "crawclaw/plugin-sdk/channel-lifecycle";
+import type { Bot } from "grammy";
 import { buildTelegramThreadParams, type TelegramThreadSpec } from "./bot/helpers.js";
 import { isSafeToRetrySendError, isTelegramClientRejection } from "./network-errors.js";
 import { normalizeTelegramReplyToMessageId } from "./outbound-params.js";

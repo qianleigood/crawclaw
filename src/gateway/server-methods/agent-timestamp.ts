@@ -27,7 +27,7 @@ export interface TimestampInjectionOptions {
  * timestamps ({@link formatZonedTimestamp}), keeping token cost low (~7
  * tokens) and format consistent across all agent contexts.
  *
- * Used by the gateway `agent` and `chat.send` handlers to give TUI, web,
+ * Used by the gateway `agent` and `chat.send` handlers to give web and desktop
  * spawned subagents, `sessions_send`, and heartbeat wake events date/time
  * awareness — without modifying the system prompt (which is cached).
  *

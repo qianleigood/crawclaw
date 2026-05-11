@@ -1,4 +1,3 @@
-import { resolveNodeService } from "../daemon/node-service.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { formatDaemonRuntimeShort } from "./status.format.js";
 import { readServiceStatusSummary } from "./status.service-summary.js";
@@ -13,12 +12,8 @@ type DaemonStatusSummary = {
   runtimeShort: string | null;
 };
 
-async function buildDaemonStatusSummary(
-  serviceLabel: "gateway" | "node",
-): Promise<DaemonStatusSummary> {
-  const service = serviceLabel === "gateway" ? resolveGatewayService() : resolveNodeService();
-  const fallbackLabel = serviceLabel === "gateway" ? "Daemon" : "Node";
-  const summary = await readServiceStatusSummary(service, fallbackLabel);
+export async function getDaemonStatusSummary(): Promise<DaemonStatusSummary> {
+  const summary = await readServiceStatusSummary(resolveGatewayService(), "Daemon");
   return {
     label: summary.label,
     installed: summary.installed,
@@ -28,12 +23,4 @@ async function buildDaemonStatusSummary(
     loadedText: summary.loadedText,
     runtimeShort: formatDaemonRuntimeShort(summary.runtime),
   };
-}
-
-export async function getDaemonStatusSummary(): Promise<DaemonStatusSummary> {
-  return await buildDaemonStatusSummary("gateway");
-}
-
-export async function getNodeDaemonStatusSummary(): Promise<DaemonStatusSummary> {
-  return await buildDaemonStatusSummary("node");
 }

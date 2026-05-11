@@ -34,7 +34,7 @@ describe("browser client", () => {
     vi.unstubAllGlobals();
   });
 
-  it("wraps connection failures with a sandbox hint", async () => {
+  it("wraps connection failures with a browser bridge hint", async () => {
     const refused = Object.assign(new Error("connect ECONNREFUSED 127.0.0.1"), {
       code: "ECONNREFUSED",
     });
@@ -44,7 +44,7 @@ describe("browser client", () => {
 
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(fetchFailed));
 
-    await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(/sandboxed session/i);
+    await expect(browserStatus("http://127.0.0.1:18791")).rejects.toThrow(/browser bridge/i);
   });
 
   it("adds useful timeout messaging for abort-like failures", async () => {

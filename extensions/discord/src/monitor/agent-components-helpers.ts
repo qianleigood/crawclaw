@@ -8,8 +8,6 @@ import {
   type StringSelectMenuInteraction,
   type UserSelectMenuInteraction,
 } from "@buape/carbon";
-import type { APIStringSelectComponent } from "discord-api-types/v10";
-import { ChannelType } from "discord-api-types/v10";
 import { createChannelPairingChallengeIssuer } from "crawclaw/plugin-sdk/channel-pairing";
 import { resolveCommandAuthorizedFromAuthorizers } from "crawclaw/plugin-sdk/command-auth";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
@@ -23,6 +21,8 @@ import { resolveAgentRoute } from "crawclaw/plugin-sdk/routing";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import * as securityRuntime from "crawclaw/plugin-sdk/security-runtime";
 import { logError } from "crawclaw/plugin-sdk/text-runtime";
+import type { APIStringSelectComponent } from "discord-api-types/v10";
+import { ChannelType } from "discord-api-types/v10";
 import {
   parseDiscordComponentCustomId,
   parseDiscordModalCustomId,

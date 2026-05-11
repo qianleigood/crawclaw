@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
     check: () => ({ allowed: true }),
   })),
   resolveEffectiveSessionToolsVisibility: vi.fn(() => "all"),
-  resolveSandboxedSessionToolContext: vi.fn(() => ({
+  resolveChildSessionToolContext: vi.fn(() => ({
     mainKey: "main",
     alias: "main",
     requesterInternalKey: undefined,
@@ -26,7 +26,7 @@ vi.mock("./sessions-helpers.js", async (importActual) => {
     createAgentToAgentPolicy: () => mocks.createAgentToAgentPolicy(),
     createSessionVisibilityGuard: async () => await mocks.createSessionVisibilityGuard(),
     resolveEffectiveSessionToolsVisibility: () => mocks.resolveEffectiveSessionToolsVisibility(),
-    resolveSandboxedSessionToolContext: () => mocks.resolveSandboxedSessionToolContext(),
+    resolveChildSessionToolContext: () => mocks.resolveChildSessionToolContext(),
   };
 });
 
@@ -44,7 +44,7 @@ describe("sessions-list-tool", () => {
       check: () => ({ allowed: true }),
     });
     mocks.resolveEffectiveSessionToolsVisibility.mockReturnValue("all");
-    mocks.resolveSandboxedSessionToolContext.mockReturnValue({
+    mocks.resolveChildSessionToolContext.mockReturnValue({
       mainKey: "main",
       alias: "main",
       requesterInternalKey: undefined,

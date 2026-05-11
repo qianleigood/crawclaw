@@ -433,8 +433,6 @@ export type ChatEventBroadcast = (
   opts?: { dropIfSlow?: boolean },
 ) => void;
 
-export type NodeSendToSession = (sessionKey: string, event: string, payload: unknown) => void;
-
 export type AgentEventHandlerOptions = {
   broadcast: ChatEventBroadcast;
   broadcastToConnIds: (
@@ -443,7 +441,6 @@ export type AgentEventHandlerOptions = {
     connIds: ReadonlySet<string>,
     opts?: { dropIfSlow?: boolean },
   ) => void;
-  nodeSendToSession: NodeSendToSession;
   agentRunSeq: Map<string, number>;
   chatRunState: ChatRunState;
   resolveSessionKeyForRun: (runId: string) => string | undefined;
@@ -455,7 +452,6 @@ export type AgentEventHandlerOptions = {
 export function createAgentEventHandler({
   broadcast,
   broadcastToConnIds,
-  nodeSendToSession,
   agentRunSeq,
   chatRunState,
   resolveSessionKeyForRun,
@@ -581,7 +577,6 @@ export function createAgentEventHandler({
       },
     };
     broadcast("chat", payload, { dropIfSlow: true });
-    nodeSendToSession(sessionKey, "chat", payload);
   };
 
   const resolveBufferedChatTextState = (clientRunId: string, sourceRunId: string) => {
@@ -638,7 +633,6 @@ export function createAgentEventHandler({
       },
     };
     broadcast("chat", flushPayload, { dropIfSlow: true });
-    nodeSendToSession(sessionKey, "chat", flushPayload);
     chatRunState.deltaLastBroadcastLen.set(clientRunId, text.length);
     chatRunState.deltaSentAt.set(clientRunId, now);
   };
@@ -678,7 +672,6 @@ export function createAgentEventHandler({
             : undefined,
       };
       broadcast("chat", payload);
-      nodeSendToSession(sessionKey, "chat", payload);
       return;
     }
     const payload = {
@@ -689,7 +682,6 @@ export function createAgentEventHandler({
       errorMessage: error ? formatForLog(error) : undefined,
     };
     broadcast("chat", payload);
-    nodeSendToSession(sessionKey, "chat", payload);
   };
 
   const resolveToolVerboseLevel = (runId: string, sessionKey?: string) => {
@@ -800,15 +792,6 @@ export function createAgentEventHandler({
       evt.stream === "lifecycle" && typeof evt.data?.phase === "string" ? evt.data.phase : null;
 
     if (isBrowserClientsVisible && sessionKey) {
-      // Send tool events to node/channel subscribers only when verbose is enabled;
-      // WS clients already received the event above via broadcastToConnIds.
-      if (!isToolEvent || toolVerbose !== "off") {
-        nodeSendToSession(
-          sessionKey,
-          "agent",
-          isToolEvent ? { ...toolPayload, ...buildSessionEventSnapshot(sessionKey) } : agentPayload,
-        );
-      }
       if (!isAborted && evt.stream === "assistant" && typeof evt.data?.text === "string") {
         emitChatDelta(sessionKey, clientRunId, evt.runId, evt.seq, evt.data.text, evt.data.delta);
       } else if (!isAborted && (lifecyclePhase === "end" || lifecyclePhase === "error")) {

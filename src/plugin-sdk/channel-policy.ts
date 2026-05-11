@@ -7,7 +7,7 @@ import { createScopedDmSecurityResolver } from "./channel-config-helpers.js";
 export type {
   GroupToolPolicyBySenderConfig,
   GroupToolPolicyConfig,
-  } from "../config/types.tools.js";
+} from "../config/types.tools.js";
 export {
   composeAccountWarningCollectors,
   buildOpenGroupPolicyConfigureRouteAllowlistWarning,
@@ -31,21 +31,20 @@ export {
   projectConfigAccountIdWarningCollector,
   projectConfigWarningCollector,
   projectWarningCollector,
-  } from "../channels/plugins/group-policy-warnings.js";
+} from "../channels/plugins/group-policy-warnings.js";
 export { buildAccountScopedDmSecurityPolicy } from "../channels/plugins/helpers.js";
 export {
   resolveChannelGroupRequireMention,
   resolveChannelGroupToolsPolicy,
   resolveToolsBySender,
-  } from "../config/group-policy.js";
+} from "../config/group-policy.js";
 export {
   DM_GROUP_ACCESS_REASON,
   readStoreAllowFromForDmPolicy,
   resolveDmGroupAccessWithLists,
   resolveEffectiveAllowFromLists,
-  } from "../security/dm-policy-shared.js";
-export { createAllowlistProviderRestrictSendersWarningCollector,
-};
+} from "../security/dm-policy-shared.js";
+export { createAllowlistProviderRestrictSendersWarningCollector };
 
 /** Compose the common DM policy resolver with restrict-senders group warnings. */
 export function createRestrictSendersChannelSecurity<

@@ -119,7 +119,7 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain("## Heartbeats");
     expect(prompt).toContain("## Safety");
     expect(prompt).toContain(
-      "For long waits, avoid rapid poll loops: use exec with enough yieldMs or process(action=poll, timeout=<ms>).",
+      "For long waits, avoid rapid poll loops: use bash with enough yieldMs or process(action=poll, timeout=<ms>).",
     );
     expect(prompt).toContain("You have no independent goals");
     expect(prompt).toContain("Prioritize safety and human oversight");
@@ -149,13 +149,13 @@ describe("buildAgentSystemPrompt", () => {
     );
   });
 
-  it("tells the agent not to execute /approve through exec", () => {
+  it("tells the agent not to execute /approve through bash", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
     });
 
     expect(prompt).toContain(
-      "Never execute /approve through exec or any other shell/tool path; /approve is a user-facing approval command, not a shell command.",
+      "Never execute /approve through bash or any other shell/tool path; /approve is a user-facing approval command, not a shell command.",
     );
   });
 
@@ -166,7 +166,7 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain(
-      "When exec returns approval-pending, include the concrete /approve command from tool output",
+      "When bash returns approval-pending, include the concrete /approve command from tool output",
     );
     expect(prompt).not.toContain("allow-once|allow-always|deny");
   });
@@ -178,13 +178,13 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain(
-      "When exec returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear",
+      "When bash returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear",
     );
     expect(prompt).toContain(
       "Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.",
     );
     expect(prompt).not.toContain(
-      "When exec returns approval-pending, include the concrete /approve command from tool output",
+      "When bash returns approval-pending, include the concrete /approve command from tool output",
     );
   });
 
@@ -195,13 +195,13 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain(
-      "When exec returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear",
+      "When bash returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear",
     );
     expect(prompt).toContain(
       "Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.",
     );
     expect(prompt).not.toContain(
-      "When exec returns approval-pending, include the concrete /approve command from tool output",
+      "When bash returns approval-pending, include the concrete /approve command from tool output",
     );
   });
 
@@ -287,10 +287,10 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain(
-      "For long waits, avoid rapid poll loops: use exec with enough yieldMs or process(action=poll, timeout=<ms>).",
+      "For long waits, avoid rapid poll loops: use bash with enough yieldMs or process(action=poll, timeout=<ms>).",
     );
     expect(prompt).toContain("Completion is push-based: it will auto-announce when done.");
-    expect(prompt).toContain("Do not poll `subagents list` / `sessions_list` in a loop");
+    expect(prompt).toContain("Do not poll session status in a loop");
     expect(prompt).toContain(
       "When a first-class tool exists for an action, use the tool directly instead of asking the user to run equivalent CLI or slash commands.",
     );
@@ -299,7 +299,7 @@ describe("buildAgentSystemPrompt", () => {
   it("lists available tools when provided", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      toolNames: ["exec", "sessions_list", "sessions_history", "sessions_send"],
+      toolNames: ["bash", "sessions_list", "sessions_history", "sessions_send"],
     });
 
     expect(prompt).toContain("Tool availability (filtered by policy):");
@@ -323,7 +323,7 @@ describe("buildAgentSystemPrompt", () => {
   it("guides harness requests to ACP thread-bound spawns", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      toolNames: ["sessions_spawn", "subagents", "exec"],
+      toolNames: ["sessions_spawn", "subagents", "bash"],
     });
 
     expect(prompt).toContain(
@@ -332,9 +332,7 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain(
       'On Discord, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`)',
     );
-    expect(prompt).toContain(
-      "do not route ACP harness requests through `subagents` or local PTY exec flows",
-    );
+    expect(prompt).toContain("do not route ACP harness requests through local PTY bash flows");
     expect(prompt).toContain(
       'do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path',
     );
@@ -343,7 +341,7 @@ describe("buildAgentSystemPrompt", () => {
   it("omits ACP harness guidance when ACP is disabled", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      toolNames: ["sessions_spawn", "subagents", "exec"],
+      toolNames: ["sessions_spawn", "subagents", "bash"],
       acpEnabled: false,
     });
 
@@ -355,39 +353,17 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("- sessions_spawn: Spawn an isolated sub-agent session");
   });
 
-  it("omits ACP harness spawn guidance for sandboxed sessions and shows ACP block note", () => {
-    const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/crawclaw",
-      toolNames: ["sessions_spawn", "subagents", "exec"],
-      sandboxInfo: {
-        enabled: true,
-      },
-    });
-
-    expect(prompt).not.toContain('runtime="acp" requires `agentId`');
-    expect(prompt).not.toContain("ACP harness ids follow acp.allowedAgents");
-    expect(prompt).not.toContain(
-      'For requests like "do this in codex/claude code/gemini", treat it as ACP harness intent',
-    );
-    expect(prompt).not.toContain(
-      'do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path',
-    );
-    expect(prompt).toContain("ACP harness spawns are blocked from sandboxed sessions");
-    expect(prompt).toContain('`runtime: "acp"`');
-    expect(prompt).toContain('Use `runtime: "subagent"` instead.');
-  });
-
   it("preserves tool casing in the prompt", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      toolNames: ["Read", "Exec", "process"],
+      toolNames: ["Read", "Bash", "process"],
       skillsPrompt:
         "<available_skills>\n  <skill>\n    <name>demo</name>\n  </skill>\n</available_skills>",
       docsPath: "/tmp/crawclaw/docs",
     });
 
     expect(prompt).toContain("- Read: Read file contents");
-    expect(prompt).toContain("- Exec: Run shell commands");
+    expect(prompt).toContain("- Bash: Run shell commands");
     expect(prompt).toContain(
       "- If exactly one skill clearly applies: read its SKILL.md at <location> with `Read`, then follow it.",
     );
@@ -499,21 +475,6 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("## Model Aliases");
     expect(prompt).toContain("Prefer aliases when specifying model overrides");
     expect(prompt).toContain("- Opus: anthropic/claude-opus-4-5");
-  });
-
-  it("adds ClaudeBot self-update guidance when gateway tool is available", () => {
-    const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/crawclaw",
-      toolNames: ["gateway", "exec"],
-    });
-
-    expect(prompt).toContain("## CrawClaw Self-Update");
-    expect(prompt).toContain("config.schema.lookup");
-    expect(prompt).toContain("config.apply");
-    expect(prompt).toContain("config.patch");
-    expect(prompt).toContain("update.run");
-    expect(prompt).not.toContain("Use config.schema to");
-    expect(prompt).not.toContain("config.schema, config.apply");
   });
 
   it("includes skills guidance when skills prompt is present", () => {
@@ -710,33 +671,6 @@ describe("buildAgentSystemPrompt", () => {
     expect(line).toContain("thinking=low");
   });
 
-  it("describes sandboxed runtime and elevated when allowed", () => {
-    const prompt = buildAgentSystemPrompt({
-      workspaceDir: "/tmp/crawclaw",
-      sandboxInfo: {
-        enabled: true,
-        workspaceDir: "/tmp/sandbox",
-        containerWorkspaceDir: "/workspace",
-        workspaceAccess: "ro",
-        agentWorkspaceMount: "/agent",
-        elevated: { allowed: true, defaultLevel: "on" },
-      },
-    });
-
-    expect(prompt).toContain("Your working directory is: /workspace");
-    expect(prompt).toContain(
-      "For read/write/edit/apply_patch, file paths resolve against host workspace: /tmp/crawclaw. For bash/exec commands, use sandbox container paths under /workspace (or relative paths from that workdir), not host paths.",
-    );
-    expect(prompt).toContain("Sandbox container workdir: /workspace");
-    expect(prompt).toContain(
-      "Sandbox host mount source (file tools bridge only; not valid inside sandbox exec): /tmp/sandbox",
-    );
-    expect(prompt).toContain("You are running in a sandboxed runtime");
-    expect(prompt).toContain("Sub-agents stay sandboxed");
-    expect(prompt).toContain("User can toggle with /elevated on|off|ask|full.");
-    expect(prompt).toContain("Current elevated level: on");
-  });
-
   it("includes reaction guidance when provided", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
@@ -769,11 +703,11 @@ describe("buildSubagentSystemPrompt", () => {
     expect(prompt).toContain("For ACP harness sessions (codex/claudecode/gemini)");
     expect(prompt).toContain("set `agentId` unless `acp.defaultAgent` is configured");
     expect(prompt).toContain("Do not ask users to run slash commands or CLI");
-    expect(prompt).toContain("Do not use `exec` (`crawclaw ...`, `acpx ...`)");
+    expect(prompt).toContain("Do not use `bash` (`crawclaw ...`, `acpx ...`)");
     expect(prompt).toContain("Use `subagents` only for CrawClaw subagents");
     expect(prompt).toContain("Subagent results auto-announce back to you");
     expect(prompt).toContain(
-      "After spawning children, do NOT call sessions_list, sessions_history, exec sleep, or any polling tool.",
+      "After spawning children, do NOT call sessions_list, sessions_history, bash sleep, or any polling tool.",
     );
     expect(prompt).toContain(
       "Track expected child session keys and only send your final answer after completion events for ALL expected children arrive.",

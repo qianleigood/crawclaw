@@ -16,7 +16,6 @@ export {
 } from "../../shared/assistant-error-format.js";
 import { formatExecDeniedUserMessage } from "../exec-approval-result.js";
 import { stripInternalRuntimeContext } from "../internal-runtime-context.js";
-import { formatSandboxToolPolicyBlockedMessage } from "../sandbox/runtime-status.js";
 import { stableStringify } from "../stable-stringify.js";
 import {
   isAuthErrorMessage,
@@ -863,20 +862,6 @@ export function formatAssistantErrorText(
   }
   if (!raw) {
     return "LLM request failed with an unknown error.";
-  }
-
-  const unknownTool =
-    raw.match(/unknown tool[:\s]+["']?([a-z0-9_-]+)["']?/i) ??
-    raw.match(/tool\s+["']?([a-z0-9_-]+)["']?\s+(?:not found|is not available)/i);
-  if (unknownTool?.[1]) {
-    const rewritten = formatSandboxToolPolicyBlockedMessage({
-      cfg: opts?.cfg,
-      sessionKey: opts?.sessionKey,
-      toolName: unknownTool[1],
-    });
-    if (rewritten) {
-      return rewritten;
-    }
   }
 
   if (isContextOverflowError(raw)) {

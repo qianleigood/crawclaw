@@ -15,7 +15,6 @@ const TEST_DEFINITION: SpecialAgentDefinition = {
   },
   mode: "run",
   cleanup: "keep",
-  sandbox: "inherit",
   expectsCompletionMessage: false,
 };
 

@@ -100,10 +100,7 @@ describe("plugin activation boundary", () => {
 
   function importBrowserAmbientModules() {
     browserAmbientImportsPromise ??= Promise.all([
-      import("./agents/sandbox/browser.js"),
-      import("./agents/sandbox/context.js"),
       import("./commands/doctor-browser.js"),
-      import("./node-host/runner.js"),
       import("./security/audit.js"),
       import("./security/audit-extra.sync.js"),
     ]).then(() => undefined);

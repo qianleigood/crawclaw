@@ -15,6 +15,7 @@ For CREATE and REFORMAT, read `design/design.md` before choosing visual treatmen
 ## When to choose this skill
 
 Use it when:
+
 - the final artifact should be PDF-first
 - visual quality and print-readiness matter
 - the user wants a branded or presentation-quality deliverable

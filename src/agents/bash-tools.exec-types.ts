@@ -2,14 +2,12 @@ import type { ExecApprovalUnavailableReason } from "../infra/exec-approval-reply
 import type { ExecApprovalDecision } from "../infra/exec-approvals.js";
 import type { ExecAsk, ExecHost, ExecSecurity, ExecTarget } from "../infra/exec-approvals.js";
 import type { SafeBinProfileFixture } from "../infra/exec-safe-bin-policy.js";
-import type { BashSandboxConfig } from "./bash-tools.shared.js";
 
 export type ExecToolDefaults = {
   host?: ExecTarget;
   security?: ExecSecurity;
   ask?: ExecAsk;
   trigger?: string;
-  node?: string;
   pathPrepend?: string[];
   safeBins?: string[];
   strictInlineEval?: boolean;
@@ -20,7 +18,6 @@ export type ExecToolDefaults = {
   backgroundMs?: number;
   timeoutSec?: number;
   approvalRunningNoticeMs?: number;
-  sandbox?: BashSandboxConfig;
   elevated?: ExecElevatedDefaults;
   allowBackground?: boolean;
   scopeKey?: string;
@@ -66,7 +63,6 @@ export type ExecToolDetails =
       host: ExecHost;
       command: string;
       cwd?: string;
-      nodeId?: string;
       warningText?: string;
     }
   | {
@@ -77,6 +73,5 @@ export type ExecToolDetails =
       host: ExecHost;
       command: string;
       cwd?: string;
-      nodeId?: string;
       warningText?: string;
     };

@@ -4,14 +4,20 @@ export function durableMemoryAgeDays(updatedAt: number): number {
 
 export function durableMemoryAge(updatedAt: number): string {
   const days = durableMemoryAgeDays(updatedAt);
-  if (days === 0) {return "today";}
-  if (days === 1) {return "yesterday";}
+  if (days === 0) {
+    return "today";
+  }
+  if (days === 1) {
+    return "yesterday";
+  }
   return `${days} days ago`;
 }
 
 export function durableMemoryFreshnessText(updatedAt: number): string {
   const days = durableMemoryAgeDays(updatedAt);
-  if (days <= 1) {return "";}
+  if (days <= 1) {
+    return "";
+  }
   return [
     `This durable memory is ${days} days old.`,
     "Durable memory is a point-in-time observation, not live state.",

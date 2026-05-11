@@ -136,7 +136,6 @@ describe("agent.inspect command", () => {
         interactiveApprovalBlocker: "background",
         browserClientsVisible: false,
         heartbeat: false,
-        sandboxed: true,
       },
       completion: {
         version: 1,

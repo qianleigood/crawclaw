@@ -41,11 +41,11 @@ Gate 6: Post-Release Validation      → Did it actually work in production?
 
 ### Evidence Template
 
-| Requirement | Test | Status | Notes |
-|-------------|------|--------|-------|
-| User can create order | `orders.api.test:creates order` | ✅ PASS | |
-| Empty cart → error | `orders.api.test:rejects empty` | ✅ PASS | |
-| Payment failure handled | `payments.test:handles decline` | ✅ PASS | |
+| Requirement             | Test                            | Status  | Notes |
+| ----------------------- | ------------------------------- | ------- | ----- |
+| User can create order   | `orders.api.test:creates order` | ✅ PASS |       |
+| Empty cart → error      | `orders.api.test:rejects empty` | ✅ PASS |       |
+| Payment failure handled | `payments.test:handles decline` | ✅ PASS |       |
 
 ---
 
@@ -55,7 +55,7 @@ Gate 6: Post-Release Validation      → Did it actually work in production?
 
 ### Performance
 
-- [ ] Response time within budget (p95 < ___ms) — measured, not assumed
+- [ ] Response time within budget (p95 < \_\_\_ms) — measured, not assumed
 - [ ] No N+1 queries (checked with query logging)
 - [ ] New queries use indexes (`EXPLAIN ANALYZE`)
 - [ ] Pagination works on large datasets
@@ -80,12 +80,12 @@ Gate 6: Post-Release Validation      → Did it actually work in production?
 
 ### Evidence
 
-| Metric | Target | Actual | Status |
-|--------|--------|--------|--------|
-| p95 response | < 500ms | ___ms | ✅/❌ |
-| p99 response | < 1000ms | ___ms | ✅/❌ |
-| Error rate (load) | < 0.1% | ___% | ✅/❌ |
-| Throughput | > ___ RPS | ___ RPS | ✅/❌ |
+| Metric            | Target       | Actual     | Status |
+| ----------------- | ------------ | ---------- | ------ |
+| p95 response      | < 500ms      | \_\_\_ms   | ✅/❌  |
+| p99 response      | < 1000ms     | \_\_\_ms   | ✅/❌  |
+| Error rate (load) | < 0.1%       | \_\_\_%    | ✅/❌  |
+| Throughput        | > \_\_\_ RPS | \_\_\_ RPS | ✅/❌  |
 
 ---
 
@@ -152,11 +152,13 @@ Gate 6: Post-Release Validation      → Did it actually work in production?
 ## Rollback Plan: [Feature]
 
 ### When to rollback
+
 - Error rate > 1% sustained 5 minutes
 - p99 latency > 3000ms sustained 10 minutes
 - Critical business function broken
 
 ### Steps
+
 1. Revert deploy: [command]
 2. Rollback migration (if applied): [command]
 3. Invalidate cache: [command]
@@ -164,6 +166,7 @@ Gate 6: Post-Release Validation      → Did it actually work in production?
 5. Verify rollback: [verification steps]
 
 ### Estimated time: [X minutes]
+
 ### Data recovery: [procedure if data was modified]
 ```
 
@@ -198,10 +201,10 @@ Gate 6: Post-Release Validation      → Did it actually work in production?
 
 ### Canary Decision Table
 
-| Metric | Baseline | Canary OK | STOP | ROLLBACK |
-|--------|----------|-----------|------|----------|
-| Error rate | 0.05% | < 0.1% | 0.5% | > 1% |
-| p95 latency | 300ms | < 500ms | 700ms | > 1000ms |
+| Metric      | Baseline | Canary OK | STOP  | ROLLBACK |
+| ----------- | -------- | --------- | ----- | -------- |
+| Error rate  | 0.05%    | < 0.1%    | 0.5%  | > 1%     |
+| p95 latency | 300ms    | < 500ms   | 700ms | > 1000ms |
 
 ---
 
@@ -228,15 +231,16 @@ Gate 6: Post-Release Validation      → Did it actually work in production?
 
 ```markdown
 ## Release Report: [Feature]
+
 - Deployed: [timestamp] by @[engineer]
 - Duration: [minutes]
 
-| Check | Status | Notes |
-|-------|--------|-------|
-| Health checks | ✅ | All healthy |
-| Error rate | ✅ | 0.03% (baseline: 0.05%) |
-| p95 latency | ✅ | 310ms (baseline: 300ms) |
-| Core flow | ✅ | Order creation verified |
+| Check         | Status | Notes                   |
+| ------------- | ------ | ----------------------- |
+| Health checks | ✅     | All healthy             |
+| Error rate    | ✅     | 0.03% (baseline: 0.05%) |
+| p95 latency   | ✅     | 310ms (baseline: 300ms) |
+| Core flow     | ✅     | Order creation verified |
 
 Issues found: None / [details]
 Rollback used: No / Yes: [reason]
@@ -248,17 +252,18 @@ Rollback used: No / Yes: [reason]
 
 Score each gate **0-2**: (0 = not checked, 1 = partially, 2 = fully verified with evidence)
 
-| Gate | Score |
-|------|-------|
-| 1. Functional Acceptance | /2 |
-| 2. Non-Functional Acceptance | /2 |
-| 3. Security Review | /2 |
-| 4. Deployment Readiness | /2 |
-| 5. Release Execution Plan | /2 |
-| 6. Post-Release Validation Plan | /2 |
-| **Total** | **/12** |
+| Gate                            | Score   |
+| ------------------------------- | ------- |
+| 1. Functional Acceptance        | /2      |
+| 2. Non-Functional Acceptance    | /2      |
+| 3. Security Review              | /2      |
+| 4. Deployment Readiness         | /2      |
+| 5. Release Execution Plan       | /2      |
+| 6. Post-Release Validation Plan | /2      |
+| **Total**                       | **/12** |
 
 **Decision:**
+
 - **12/12** → Ship it ✅
 - **10-11** → Ship with documented exceptions + owner assigned
 - **< 10** → Do NOT release. Fix gaps first.
@@ -267,12 +272,12 @@ Score each gate **0-2**: (0 = not checked, 1 = partially, 2 = fully verified wit
 
 ## Common Rationalizations
 
-| ❌ Excuse | ✅ Reality |
-|----------|-----------|
-| "It's a small change" | Small changes cause outages every day |
-| "We tested locally" | Local ≠ production |
-| "We'll fix it if it breaks" | You'll fix it at 3 AM. Prevent now. |
-| "Deadline is today" | Broken code costs more than late code |
-| "CI passed" | CI doesn't check everything. Run the checklist. |
-| "We can always rollback" | Only if you planned and tested rollback |
-| "We did this last time fine" | Survivorship bias. Checklist every time. |
+| ❌ Excuse                    | ✅ Reality                                      |
+| ---------------------------- | ----------------------------------------------- |
+| "It's a small change"        | Small changes cause outages every day           |
+| "We tested locally"          | Local ≠ production                              |
+| "We'll fix it if it breaks"  | You'll fix it at 3 AM. Prevent now.             |
+| "Deadline is today"          | Broken code costs more than late code           |
+| "CI passed"                  | CI doesn't check everything. Run the checklist. |
+| "We can always rollback"     | Only if you planned and tested rollback         |
+| "We did this last time fine" | Survivorship bias. Checklist every time.        |

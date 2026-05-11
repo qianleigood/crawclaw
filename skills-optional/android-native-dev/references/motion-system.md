@@ -6,32 +6,32 @@ Animation and transition specifications for Material Design 3.
 
 ### Four Core Characteristics
 
-| Principle | Description |
-|-----------|-------------|
-| **Responsive** | Quickly responds to user input at the point of interaction |
-| **Natural** | Follows real-world physics (gravity, friction, momentum) |
-| **Aware** | Elements are aware of surroundings and other elements |
-| **Intentional** | Guides focus to the right place at the right time |
+| Principle       | Description                                                |
+| --------------- | ---------------------------------------------------------- |
+| **Responsive**  | Quickly responds to user input at the point of interaction |
+| **Natural**     | Follows real-world physics (gravity, friction, momentum)   |
+| **Aware**       | Elements are aware of surroundings and other elements      |
+| **Intentional** | Guides focus to the right place at the right time          |
 
 ## Duration Guidelines
 
 ### By Interaction Type
 
-| Type | Duration | Usage |
-|------|----------|-------|
-| Micro | 50-100ms | Ripples, state changes, hover |
-| Short | 100-200ms | Simple transitions, toggles |
-| Medium | 200-300ms | Expanding, collapsing, revealing |
-| Long | 300-500ms | Complex choreography, page transitions |
+| Type   | Duration  | Usage                                  |
+| ------ | --------- | -------------------------------------- |
+| Micro  | 50-100ms  | Ripples, state changes, hover          |
+| Short  | 100-200ms | Simple transitions, toggles            |
+| Medium | 200-300ms | Expanding, collapsing, revealing       |
+| Long   | 300-500ms | Complex choreography, page transitions |
 
 ### By Device Type
 
-| Device | Typical Duration | Adjustment |
-|--------|------------------|------------|
-| Mobile | 300ms | Baseline |
-| Tablet | 390ms | +30% slower |
-| Desktop | 150-200ms | Faster, more responsive |
-| Wearable | 210ms | -30% faster |
+| Device   | Typical Duration | Adjustment              |
+| -------- | ---------------- | ----------------------- |
+| Mobile   | 300ms            | Baseline                |
+| Tablet   | 390ms            | +30% slower             |
+| Desktop  | 150-200ms        | Faster, more responsive |
+| Wearable | 210ms            | -30% faster             |
 
 ### Duration Rules
 
@@ -44,19 +44,19 @@ Animation and transition specifications for Material Design 3.
 
 ### Standard Curves
 
-| Curve | Usage | Characteristics |
-|-------|-------|-----------------|
-| **Standard** | Most common transitions | Quick acceleration, slow deceleration |
-| **Emphasized** | Important/significant transitions | More dramatic curve |
-| **Decelerate** | Elements entering screen | Starts fast, ends slow |
-| **Accelerate** | Elements leaving screen permanently | Starts slow, ends fast |
-| **Sharp** | Elements temporarily leaving | Quick, snappy motion |
+| Curve          | Usage                               | Characteristics                       |
+| -------------- | ----------------------------------- | ------------------------------------- |
+| **Standard**   | Most common transitions             | Quick acceleration, slow deceleration |
+| **Emphasized** | Important/significant transitions   | More dramatic curve                   |
+| **Decelerate** | Elements entering screen            | Starts fast, ends slow                |
+| **Accelerate** | Elements leaving screen permanently | Starts slow, ends fast                |
+| **Sharp**      | Elements temporarily leaving        | Quick, snappy motion                  |
 
 ### Curve Values (Cubic Bezier)
 
-| Curve | Value |
-|-------|-------|
-| Standard | cubic-bezier(0.2, 0.0, 0.0, 1.0) |
+| Curve      | Value                            |
+| ---------- | -------------------------------- |
+| Standard   | cubic-bezier(0.2, 0.0, 0.0, 1.0) |
 | Emphasized | cubic-bezier(0.2, 0.0, 0.0, 1.0) |
 | Decelerate | cubic-bezier(0.0, 0.0, 0.0, 1.0) |
 | Accelerate | cubic-bezier(0.3, 0.0, 1.0, 1.0) |
@@ -89,11 +89,11 @@ Best for: Navigation from card/list item to detail screen
 
 Best for: Same-level navigation (tabs, stepper)
 
-| Axis | Direction | Usage |
-|------|-----------|-------|
-| X-axis | Horizontal | Tabs, horizontal paging |
-| Y-axis | Vertical | Vertical lists, feeds |
-| Z-axis | Depth | Parent-child relationships |
+| Axis   | Direction  | Usage                      |
+| ------ | ---------- | -------------------------- |
+| X-axis | Horizontal | Tabs, horizontal paging    |
+| Y-axis | Vertical   | Vertical lists, feeds      |
+| Z-axis | Depth      | Parent-child relationships |
 
 ### Fade Through
 
@@ -116,36 +116,36 @@ Best for: Show/hide single elements
 
 ### FAB
 
-| State | Animation |
-|-------|-----------|
-| Appear | Scale up + fade in |
-| Disappear | Scale down + fade out |
-| Transform | Morph to extended FAB |
-| Press | Elevation change (3dp → 8dp) |
+| State     | Animation                    |
+| --------- | ---------------------------- |
+| Appear    | Scale up + fade in           |
+| Disappear | Scale down + fade out        |
+| Transform | Morph to extended FAB        |
+| Press     | Elevation change (3dp → 8dp) |
 
 ### Bottom Sheet
 
-| State | Animation |
-|-------|-----------|
-| Expand | Slide up with decelerate curve |
-| Collapse | Slide down with accelerate curve |
-| Dismiss | Swipe down with velocity-based duration |
+| State    | Animation                               |
+| -------- | --------------------------------------- |
+| Expand   | Slide up with decelerate curve          |
+| Collapse | Slide down with accelerate curve        |
+| Dismiss  | Swipe down with velocity-based duration |
 
 ### Navigation
 
-| Pattern | Animation |
-|---------|-----------|
-| Push | Incoming slides from right, outgoing shifts left |
-| Pop | Incoming slides from left, outgoing shifts right |
-| Modal | Slide up from bottom |
+| Pattern | Animation                                        |
+| ------- | ------------------------------------------------ |
+| Push    | Incoming slides from right, outgoing shifts left |
+| Pop     | Incoming slides from left, outgoing shifts right |
+| Modal   | Slide up from bottom                             |
 
 ### Cards
 
-| State | Animation |
-|-------|-----------|
-| Expand | Container transform to detail |
-| Press | Subtle elevation increase |
-| Reorder | Follow finger with physics |
+| State   | Animation                     |
+| ------- | ----------------------------- |
+| Expand  | Container transform to detail |
+| Press   | Subtle elevation increase     |
+| Reorder | Follow finger with physics    |
 
 ## Loading & Progress
 
@@ -187,13 +187,13 @@ Best for: Show/hide single elements
 
 ### Android Animation APIs
 
-| API | Usage |
-|-----|-------|
-| MotionLayout | Complex, coordinated animations |
-| Transition | Activity/Fragment transitions |
-| Animator | Property animations |
-| AnimatedContent | Compose content transitions |
-| animateContentSize | Compose size changes |
+| API                | Usage                           |
+| ------------------ | ------------------------------- |
+| MotionLayout       | Complex, coordinated animations |
+| Transition         | Activity/Fragment transitions   |
+| Animator           | Property animations             |
+| AnimatedContent    | Compose content transitions     |
+| animateContentSize | Compose size changes            |
 
 ### Performance Tips
 

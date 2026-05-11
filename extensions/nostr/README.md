@@ -90,13 +90,8 @@ processed unless approved.
 
 ### Local Relay (Recommended)
 
-```bash
-# Using strfry
-docker run -p 7777:7777 ghcr.io/hoytech/strfry
-
-# Configure crawclaw to use local relay
-"relays": ["ws://localhost:7777"]
-```
+Start a local relay using the relay project's install instructions, then
+configure CrawClaw with `relays: ["ws://localhost:7777"]`.
 
 ### Manual Test
 

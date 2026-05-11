@@ -156,7 +156,6 @@ export async function prepareCliRunContext(
       warningMode: bootstrapPromptWarningMode,
       warning: bootstrapPromptWarning,
     }),
-    sandbox: { mode: "off", sandboxed: false },
     systemPrompt,
     bootstrapFiles,
     injectedFiles: contextFiles,

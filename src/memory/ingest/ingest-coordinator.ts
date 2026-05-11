@@ -1,7 +1,7 @@
+import { MediaService } from "../media/media-service.ts";
+import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { MemoryRuntimeConfig } from "../types/config.ts";
 import type { GmMessageRow } from "../types/runtime.ts";
-import type { RuntimeStore } from "../runtime/runtime-store.ts";
-import { MediaService } from "../media/media-service.ts";
 import { normalizeIncomingMessage } from "../util/message.ts";
 
 export interface IngestCoordinatorOptions {
@@ -14,10 +14,12 @@ export class IngestCoordinator {
   private readonly mediaService: MediaService;
 
   constructor(private readonly options: IngestCoordinatorOptions) {
-    this.mediaService = options.mediaService ?? new MediaService({
-      cacheRoot: options.config?.multimodal.storage.cacheDir,
-      maxAssetBytes: options.config?.multimodal.storage.maxAssetBytes,
-    });
+    this.mediaService =
+      options.mediaService ??
+      new MediaService({
+        cacheRoot: options.config?.multimodal.storage.cacheDir,
+        maxAssetBytes: options.config?.multimodal.storage.maxAssetBytes,
+      });
   }
 
   async ingestMessage(input: {

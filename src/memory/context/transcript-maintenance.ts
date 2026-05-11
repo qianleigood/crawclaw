@@ -24,7 +24,8 @@ export async function runTranscriptMaintenance(params: {
   trigger?: string | null;
   rewriteTranscriptEntries?: RewriteTranscriptEntries;
 }) {
-  const { runtimeStore, logger, sessionId, sessionFile, trigger, rewriteTranscriptEntries } = params;
+  const { runtimeStore, logger, sessionId, sessionFile, trigger, rewriteTranscriptEntries } =
+    params;
   if (typeof rewriteTranscriptEntries !== "function") {
     return {
       changed: false,
@@ -52,9 +53,13 @@ export async function runTranscriptMaintenance(params: {
   let skippedShort = 0;
 
   for (const entry of branch) {
-    if (entry.type !== "message") {continue;}
+    if (entry.type !== "message") {
+      continue;
+    }
     turnCounter += 1;
-    if (turnCounter >= compactionState.preservedTailStartTurn) {break;}
+    if (turnCounter >= compactionState.preservedTailStartTurn) {
+      break;
+    }
     const message = entry.message;
     if (isCompactedTranscriptMessage(message)) {
       skippedAlreadyCompacted += 1;

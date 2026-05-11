@@ -1,8 +1,9 @@
 import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type { SkillRoutingResult } from "../types/orchestration.ts";
 
-export function renderSkillRoutingSection(result: SkillRoutingResult | null | undefined):
-  { text: string; estimatedTokens: number } | null {
+export function renderSkillRoutingSection(
+  result: SkillRoutingResult | null | undefined,
+): { text: string; estimatedTokens: number } | null {
   if (!result || !result.shortlisted.length) return null;
   const lines = [
     "## Skill routing",

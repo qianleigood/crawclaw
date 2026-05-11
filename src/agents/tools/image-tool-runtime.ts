@@ -3,21 +3,10 @@ import { loadWebMedia } from "../../media/web-media.js";
 import { resolveUserPath } from "../../utils.js";
 import { decodeDataUrl } from "./image-tool.helpers.js";
 import { resolveMediaToolLocalRoots, resolvePromptAndModelOverride } from "./media-tool-shared.js";
-import {
-  createSandboxBridgeReadFile,
-  resolveSandboxedBridgeMediaPath,
-  type SandboxedBridgeMediaPathConfig,
-  type SandboxFsBridge,
-  type ToolFsPolicy,
-} from "./tool-runtime.helpers.js";
+import { type ToolFsPolicy } from "./tool-runtime.helpers.js";
 
 const DEFAULT_MAX_IMAGES = 20;
 const DEFAULT_PROMPT = "Describe the image.";
-
-export type ImageSandboxConfig = {
-  root: string;
-  bridge: SandboxFsBridge;
-};
 
 export type LoadedImageInput = {
   buffer: Buffer;
@@ -101,17 +90,8 @@ export async function loadImageToolInputs(params: {
   imageInputs: string[];
   workspaceDir?: string;
   maxBytes?: number;
-  sandbox?: ImageSandboxConfig;
   fsPolicy?: ToolFsPolicy;
 }) {
-  const sandboxConfig: SandboxedBridgeMediaPathConfig | null = params.sandbox?.root?.trim()
-    ? {
-        root: params.sandbox.root.trim(),
-        bridge: params.sandbox.bridge,
-        workspaceOnly: params.fsPolicy?.workspaceOnly === true,
-      }
-    : null;
-
   const loadedImages: LoadedImageInput[] = [];
   for (const imageRawInput of params.imageInputs) {
     const trimmed = imageRawInput.trim();
@@ -143,14 +123,7 @@ export async function loadImageToolInputs(params: {
       };
     }
 
-    if (sandboxConfig && isHttpUrl) {
-      throw new Error("Sandboxed image tool does not allow remote URLs.");
-    }
-
     const resolvedImage = (() => {
-      if (sandboxConfig) {
-        return imageRaw;
-      }
       if (imageRaw.startsWith("~")) {
         return resolveUserPath(imageRaw);
       }
@@ -168,17 +141,11 @@ export async function loadImageToolInputs(params: {
     })();
     const resolvedPathInfo: { resolved: string; rewrittenFrom?: string } = isDataUrl
       ? { resolved: "" }
-      : sandboxConfig
-        ? await resolveSandboxedBridgeMediaPath({
-            sandbox: sandboxConfig,
-            mediaPath: resolvedImage,
-            inboundFallbackDir: "media/inbound",
-          })
-        : {
-            resolved: resolvedImage.startsWith("file://")
-              ? resolvedImage.slice("file://".length)
-              : resolvedImage,
-          };
+      : {
+          resolved: resolvedImage.startsWith("file://")
+            ? resolvedImage.slice("file://".length)
+            : resolvedImage,
+        };
     const resolvedPath = isDataUrl ? null : resolvedPathInfo.resolved;
     const mediaLocalRoots =
       params.fsPolicy?.workspaceOnly === true
@@ -200,16 +167,10 @@ export async function loadImageToolInputs(params: {
 
     const media = isDataUrl
       ? decodeDataUrl(resolvedImage)
-      : sandboxConfig
-        ? await loadWebMedia(resolvedPath ?? resolvedImage, {
-            maxBytes: params.maxBytes,
-            sandboxValidated: true,
-            readFile: createSandboxBridgeReadFile({ sandbox: sandboxConfig }),
-          })
-        : await loadWebMedia(resolvedPath ?? resolvedImage, {
-            maxBytes: params.maxBytes,
-            localRoots: mediaLocalRoots,
-          });
+      : await loadWebMedia(resolvedPath ?? resolvedImage, {
+          maxBytes: params.maxBytes,
+          localRoots: mediaLocalRoots,
+        });
     if (media.kind !== "image") {
       throw new Error(`Unsupported media type: ${media.kind}`);
     }

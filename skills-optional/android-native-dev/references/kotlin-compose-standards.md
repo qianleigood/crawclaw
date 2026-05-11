@@ -21,6 +21,7 @@ Use this reference when implementing Kotlin, coroutines, Compose UI, naming, sta
 ## Lifecycle / resource management
 
 Treat lifecycle-sensitive resources carefully:
+
 - subscriptions
 - flows
 - camera / media resources

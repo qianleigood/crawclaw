@@ -44,16 +44,16 @@ Currently only `image-01`.
 
 ## Aspect ratios & dimensions
 
-| Ratio | Pixels | Use case |
-|-------|--------|----------|
-| `1:1` | 1024x1024 | Avatar, icon, square thumbnail |
-| `16:9` | 1280x720 | Hero banner, video thumbnail |
-| `4:3` | 1152x864 | Standard landscape |
-| `3:2` | 1248x832 | Photo-style |
-| `2:3` | 832x1248 | Portrait, mobile |
-| `3:4` | 864x1152 | Portrait card |
-| `9:16` | 720x1280 | Mobile fullscreen, story |
-| `21:9` | 1344x576 | Ultra-wide banner |
+| Ratio  | Pixels    | Use case                       |
+| ------ | --------- | ------------------------------ |
+| `1:1`  | 1024x1024 | Avatar, icon, square thumbnail |
+| `16:9` | 1280x720  | Hero banner, video thumbnail   |
+| `4:3`  | 1152x864  | Standard landscape             |
+| `3:2`  | 1248x832  | Photo-style                    |
+| `2:3`  | 832x1248  | Portrait, mobile               |
+| `3:4`  | 864x1152  | Portrait card                  |
+| `9:16` | 720x1280  | Mobile fullscreen, story       |
+| `21:9` | 1344x576  | Ultra-wide banner              |
 
 Custom dimensions also supported: width/height in [512, 2048], must be divisible by 8.
 

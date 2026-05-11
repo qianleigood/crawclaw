@@ -11,7 +11,7 @@ private func setupLabels() {
     let titleLabel = UILabel()
     titleLabel.font = .preferredFont(forTextStyle: .headline)
     titleLabel.adjustsFontForContentSizeCategory = true
-    
+
     let bodyLabel = UILabel()
     bodyLabel.font = .preferredFont(forTextStyle: .body)
     bodyLabel.adjustsFontForContentSizeCategory = true
@@ -36,29 +36,29 @@ let customFont = UIFont.scaled("Avenir-Medium", size: 16, for: .body)
 
 ### Text Style Reference
 
-| Style | Default Size | Usage |
-|-------|--------------|-------|
-| `.largeTitle` | 34pt | Screen titles |
-| `.title1` | 28pt | Primary headings |
-| `.title2` | 22pt | Secondary headings |
-| `.title3` | 20pt | Tertiary headings |
-| `.headline` | 17pt (semibold) | Important information |
-| `.body` | 17pt | Body text |
-| `.callout` | 16pt | Explanatory text |
-| `.subheadline` | 15pt | Subtitles |
-| `.footnote` | 13pt | Footnotes |
-| `.caption1` | 12pt | Labels |
-| `.caption2` | 11pt | Small labels |
+| Style          | Default Size    | Usage                 |
+| -------------- | --------------- | --------------------- |
+| `.largeTitle`  | 34pt            | Screen titles         |
+| `.title1`      | 28pt            | Primary headings      |
+| `.title2`      | 22pt            | Secondary headings    |
+| `.title3`      | 20pt            | Tertiary headings     |
+| `.headline`    | 17pt (semibold) | Important information |
+| `.body`        | 17pt            | Body text             |
+| `.callout`     | 16pt            | Explanatory text      |
+| `.subheadline` | 15pt            | Subtitles             |
+| `.footnote`    | 13pt            | Footnotes             |
+| `.caption1`    | 12pt            | Labels                |
+| `.caption2`    | 11pt            | Small labels          |
 
 ### Adapting Layout for Large Text
 
 ```swift
 override func traitCollectionDidChange(_ previous: UITraitCollection?) {
     super.traitCollectionDidChange(previous)
-    
+
     let isLargeText = traitCollection.preferredContentSizeCategory.isAccessibilityCategory
     contentStack.axis = isLargeText ? .vertical : .horizontal
-    
+
     if isLargeText {
         iconImageView.snp.remakeConstraints { make in
             make.size.equalTo(64)
@@ -91,14 +91,14 @@ borderView.layer.borderColor = UIColor.separator.cgColor
 
 ### System Color Reference
 
-| Color | Light Mode | Dark Mode | Usage |
-|-------|------------|-----------|-------|
-| `.systemBackground` | White | Black | Main background |
-| `.secondarySystemBackground` | Light gray | Dark gray | Card/grouped background |
-| `.tertiarySystemBackground` | Lighter gray | Medium gray | Nested content background |
-| `.label` | Black | White | Primary text |
-| `.secondaryLabel` | Gray | Light gray | Secondary text |
-| `.tertiaryLabel` | Light gray | Dark gray | Auxiliary text |
+| Color                        | Light Mode   | Dark Mode   | Usage                     |
+| ---------------------------- | ------------ | ----------- | ------------------------- |
+| `.systemBackground`          | White        | Black       | Main background           |
+| `.secondarySystemBackground` | Light gray   | Dark gray   | Card/grouped background   |
+| `.tertiarySystemBackground`  | Lighter gray | Medium gray | Nested content background |
+| `.label`                     | Black        | White       | Primary text              |
+| `.secondaryLabel`            | Gray         | Light gray  | Secondary text            |
+| `.tertiaryLabel`             | Light gray   | Dark gray   | Auxiliary text            |
 
 ### Custom Color Adaptation
 
@@ -142,7 +142,7 @@ class ProductCell: UICollectionViewCell {
         }
         set {}
     }
-    
+
     override var accessibilityTraits: UIAccessibilityTraits {
         get {
             var traits: UIAccessibilityTraits = .button
@@ -164,7 +164,7 @@ class CustomContainerView: UIView {
         get { false }
         set {}
     }
-    
+
     override var accessibilityElements: [Any]? {
         get {
             return [titleLabel, actionButton, detailLabel]
@@ -228,32 +228,37 @@ NotificationCenter.default.addObserver(
 ## Accessibility Checklist
 
 ### Basic Requirements
+
 - [ ] All icon buttons have `accessibilityLabel`
 - [ ] Custom controls have correct `accessibilityTraits`
 - [ ] Images have `accessibilityLabel` or marked as decorative
 - [ ] Forms have clear error messages
 
 ### Dynamic Type
+
 - [ ] Using `preferredFont(forTextStyle:)`
 - [ ] Set `adjustsFontForContentSizeCategory = true`
 - [ ] Layout adapts at accessibility sizes
 - [ ] Text is not truncated
 
 ### Color Contrast
+
 - [ ] Body text contrast >= 4.5:1
 - [ ] Large text contrast >= 3:1
 - [ ] Information not conveyed by color alone
 
 ### Motion
+
 - [ ] Respect Reduce Motion setting
 - [ ] No flashing or rapid animation
 - [ ] Auto-playing animations can be paused
 
 ### Interaction
+
 - [ ] Touch targets >= 44x44pt
 - [ ] Gestures have alternative actions
 - [ ] Timeouts can be extended
 
 ---
 
-*UIKit, VoiceOver, Dynamic Type, and Apple are trademarks of Apple Inc.*
+_UIKit, VoiceOver, Dynamic Type, and Apple are trademarks of Apple Inc._

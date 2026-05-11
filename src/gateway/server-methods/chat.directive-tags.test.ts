@@ -235,7 +235,6 @@ function extractFirstTextBlock(payload: unknown): string | undefined {
 function createChatContext(): Pick<
   GatewayRequestContext,
   | "broadcast"
-  | "nodeSendToSession"
   | "loadGatewayModelCatalog"
   | "agentRunSeq"
   | "chatAbortControllers"
@@ -249,7 +248,6 @@ function createChatContext(): Pick<
 > {
   return {
     broadcast: vi.fn() as unknown as GatewayRequestContext["broadcast"],
-    nodeSendToSession: vi.fn() as unknown as GatewayRequestContext["nodeSendToSession"],
     loadGatewayModelCatalog: vi.fn(async () => [
       { provider: "anthropic", id: "claude-opus-4-6", input: ["text", "image"] },
     ]) as unknown as GatewayRequestContext["loadGatewayModelCatalog"],
@@ -540,13 +538,6 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
         sessionKey: "agent:main:canon",
       }),
     );
-    expect(context.nodeSendToSession).toHaveBeenCalledWith(
-      "agent:main:canon",
-      "chat",
-      expect.objectContaining({
-        sessionKey: "agent:main:canon",
-      }),
-    );
   });
 
   it("chat.send non-streaming final strips external untrusted wrapper metadata from final payload text", async () => {
@@ -580,13 +571,6 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
     });
 
     expect(payload).toEqual(
-      expect.objectContaining({
-        sessionKey: "agent:main:canon",
-      }),
-    );
-    expect(context.nodeSendToSession).toHaveBeenCalledWith(
-      "agent:main:canon",
-      "chat",
       expect.objectContaining({
         sessionKey: "agent:main:canon",
       }),
@@ -832,7 +816,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
         connect: {
           client: {
             mode: GATEWAY_CLIENT_MODES.UI,
-            id: "crawclaw-tui",
+            id: GATEWAY_CLIENT_NAMES.BROWSER_CLIENT,
           },
         },
       } as unknown,
@@ -873,7 +857,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
         connect: {
           client: {
             mode: GATEWAY_CLIENT_MODES.UI,
-            id: "crawclaw-tui",
+            id: GATEWAY_CLIENT_NAMES.BROWSER_CLIENT,
           },
         },
       } as unknown,
@@ -1194,7 +1178,7 @@ describe("chat directive tag stripping for non-streaming final payloads", () => 
         connect: {
           client: {
             mode: GATEWAY_CLIENT_MODES.UI,
-            id: "crawclaw-tui",
+            id: GATEWAY_CLIENT_NAMES.BROWSER_CLIENT,
           },
         },
       } as unknown,

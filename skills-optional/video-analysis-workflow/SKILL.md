@@ -10,13 +10,17 @@ description: 本地视频与短视频链接分析工作流。支持抖音、小�
 ## 核心工作流
 
 ### 1. 提交任务
+
 使用 `run.sh submit` 提交本地视频或短视频链接。
 
 ### 2. 由 dispatcher 调度
+
 后台 dispatcher 统一调度任务与镜头分析子流程。
 
 ### 3. 逐镜头分析并汇总
+
 工作流会做：
+
 - 下载 / 解析输入
 - 预处理视频
 - 分镜检测
@@ -24,7 +28,9 @@ description: 本地视频与短视频链接分析工作流。支持抖音、小�
 - 生成报告和结构化结果
 
 ### 4. 查询、控制与发送结果
+
 支持：
+
 - list / status
 - pause / resume / retry-failed / cancel
 - 完成后自动飞书发送摘要与 `.docx`
@@ -32,6 +38,7 @@ description: 本地视频与短视频链接分析工作流。支持抖音、小�
 ## 适用场景
 
 优先用于：
+
 - 需要异步长任务
 - 不希望主会话被长分析堵住
 - 需要结构化报告、镜头截图、可查询任务状态
@@ -40,12 +47,16 @@ description: 本地视频与短视频链接分析工作流。支持抖音、小�
 ## Reference routing
 
 ### Job 生命周期与调度
+
 读 `references/job-lifecycle.md`，当你需要：
+
 - 理解 submit / dispatcher / scene worker 的主路径
 - 排查卡住、重试、暂停恢复等任务控制问题
 
 ### 输入、输出与飞书发送
+
 读 `references/inputs-outputs-and-feishu.md`，当你需要：
+
 - 确认支持的输入类型
 - 理解 job 输出结构
 - 解释默认报告交付与飞书自动发送

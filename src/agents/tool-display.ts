@@ -109,7 +109,6 @@ const DETAIL_LABEL_OVERRIDES: Record<string, string> = {
   sessionKey: "session",
   targetId: "target",
   targetUrl: "url",
-  nodeId: "node",
   requestId: "request",
   messageId: "message",
   threadId: "thread",

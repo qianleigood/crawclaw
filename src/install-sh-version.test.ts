@@ -98,12 +98,7 @@ describe("install.sh version resolution", () => {
 
       const hostileCwd = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-install-stdin-"));
       tempRoots.push(hostileCwd);
-      const hostileHelper = path.join(
-        hostileCwd,
-        "docker",
-        "install-sh-common",
-        "version-parse.sh",
-      );
+      const hostileHelper = path.join(hostileCwd, "install-sh-common", "version-parse.sh");
       fs.mkdirSync(path.dirname(hostileHelper), { recursive: true });
       fs.writeFileSync(
         hostileHelper,

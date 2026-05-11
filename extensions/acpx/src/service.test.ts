@@ -8,10 +8,7 @@ import {
   requireAcpRuntimeBackend,
 } from "crawclaw/plugin-sdk/acp-runtime";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type {
-  AcpRuntime,
-  CrawClawPluginServiceContext,
-} from "../runtime-api.js";
+import type { AcpRuntime, CrawClawPluginServiceContext } from "../runtime-api.js";
 import { ACPX_BUNDLED_BIN, ACPX_PINNED_VERSION } from "./config.js";
 import { createAcpxRuntimeService } from "./service.js";
 

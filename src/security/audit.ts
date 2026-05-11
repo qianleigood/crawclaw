@@ -1,6 +1,5 @@
 import { isIP } from "node:net";
 import path from "node:path";
-import { resolveSandboxConfigForAgent } from "../agents/sandbox.js";
 import { hasPotentialConfiguredChannels } from "../channels/config-presence.js";
 import type { listChannelPlugins } from "../channels/plugins/index.js";
 import { formatCliCommand } from "../cli/command-format.js";
@@ -33,7 +32,6 @@ import { collectEnabledInsecureOrDangerousFlags } from "./dangerous-config-flags
 import { DEFAULT_GATEWAY_HTTP_TOOL_DENY } from "./dangerous-tools.js";
 import type { ExecFn } from "./windows-acl.js";
 
-type ExecDockerRawFn = typeof import("../agents/sandbox/docker.js").execDockerRaw;
 type ProbeGatewayFn = typeof import("../gateway/probe.js").probeGateway;
 
 export type SecurityAuditSeverity = "info" | "warn" | "critical";
@@ -85,8 +83,6 @@ export type SecurityAuditOptions = {
   plugins?: ReturnType<typeof listChannelPlugins>;
   /** Dependency injection for tests (Windows ACL checks). */
   execIcacls?: ExecFn;
-  /** Dependency injection for tests (Docker label checks). */
-  execDockerRawFn?: ExecDockerRawFn;
   /** Optional preloaded config snapshot to skip audit-time config file reads. */
   configSnapshot?: ConfigFileSnapshot | null;
   /** Optional cache for code-safety summaries across repeated deep audits. */
@@ -109,7 +105,6 @@ type AuditExecutionContext = {
   stateDir: string;
   configPath: string;
   execIcacls?: ExecFn;
-  execDockerRawFn?: ExecDockerRawFn;
   probeGatewayFn?: ProbeGatewayFn;
   plugins?: ReturnType<typeof listChannelPlugins>;
   configSnapshot: ConfigFileSnapshot | null;
@@ -892,50 +887,9 @@ function collectElevatedFindings(cfg: CrawClawConfig): SecurityAuditFinding[] {
 
 function collectExecRuntimeFindings(cfg: CrawClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
-  const globalExecHost = cfg.tools?.exec?.host;
   const globalStrictInlineEval = cfg.tools?.exec?.strictInlineEval === true;
-  const defaultSandboxMode = resolveSandboxConfigForAgent(cfg).mode;
-  const defaultHostIsExplicitSandbox = globalExecHost === "sandbox";
   const approvals = loadExecApprovals();
-
-  if (defaultHostIsExplicitSandbox && defaultSandboxMode === "off") {
-    findings.push({
-      checkId: "tools.exec.host_sandbox_no_sandbox_defaults",
-      severity: "warn",
-      title: "Exec host is sandbox but sandbox mode is off",
-      detail:
-        "tools.exec.host is explicitly set to sandbox while agents.defaults.sandbox.mode=off. " +
-        "In this mode, exec fails closed because no sandbox runtime is available.",
-      remediation:
-        'Enable sandbox mode (`agents.defaults.sandbox.mode="non-main"` or `"all"`) or set tools.exec.host to "gateway" with approvals.',
-    });
-  }
-
   const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
-  const riskyAgents = agents
-    .filter(
-      (entry) =>
-        entry &&
-        typeof entry === "object" &&
-        typeof entry.id === "string" &&
-        entry.tools?.exec?.host === "sandbox" &&
-        resolveSandboxConfigForAgent(cfg, entry.id).mode === "off",
-    )
-    .map((entry) => entry.id)
-    .slice(0, 5);
-
-  if (riskyAgents.length > 0) {
-    findings.push({
-      checkId: "tools.exec.host_sandbox_no_sandbox_agents",
-      severity: "warn",
-      title: "Agent exec host uses sandbox while sandbox mode is off",
-      detail:
-        `agents.list.*.tools.exec.host is set to sandbox for: ${riskyAgents.join(", ")}. ` +
-        "With sandbox mode off, exec fails closed for those agents.",
-      remediation:
-        'Enable sandbox mode for these agents (`agents.list[].sandbox.mode`) or set their tools.exec.host to "gateway".',
-    });
-  }
 
   const effectiveExecScopes = Array.from(
     new Map(
@@ -1361,7 +1315,6 @@ async function createAuditExecutionContext(
     stateDir,
     configPath,
     execIcacls: opts.execIcacls,
-    execDockerRawFn: opts.execDockerRawFn,
     probeGatewayFn: opts.probeGatewayFn,
     plugins: opts.plugins,
     configSnapshot,
@@ -1387,10 +1340,6 @@ export async function runSecurityAudit(opts: SecurityAuditOptions): Promise<Secu
   findings.push(...auditNonDeep.collectHooksHardeningFindings(cfg, env));
   findings.push(...auditNonDeep.collectGatewayHttpNoAuthFindings(cfg, env));
   findings.push(...auditNonDeep.collectGatewayHttpSessionKeyOverrideFindings(cfg));
-  findings.push(...auditNonDeep.collectSandboxDockerNoopFindings(cfg));
-  findings.push(...auditNonDeep.collectSandboxDangerousConfigFindings(cfg));
-  findings.push(...auditNonDeep.collectNodeDenyCommandPatternFindings(cfg));
-  findings.push(...auditNonDeep.collectNodeDangerousAllowCommandFindings(cfg));
   findings.push(...auditNonDeep.collectMinimalProfileOverrideFindings(cfg));
   findings.push(...auditNonDeep.collectSecretsInConfigFindings(cfg));
   findings.push(...auditNonDeep.collectModelHygieneFindings(cfg));
@@ -1428,11 +1377,6 @@ export async function runSecurityAudit(opts: SecurityAuditOptions): Promise<Secu
       })),
     );
     findings.push(...(await auditNonDeep.collectWorkspaceSkillSymlinkEscapeFindings({ cfg })));
-    findings.push(
-      ...(await auditNonDeep.collectSandboxBrowserHashLabelFindings({
-        execDockerRawFn: context.execDockerRawFn,
-      })),
-    );
     findings.push(...(await auditNonDeep.collectPluginsTrustFindings({ cfg, stateDir })));
     if (context.deep) {
       const auditDeep = await loadAuditDeepModule();

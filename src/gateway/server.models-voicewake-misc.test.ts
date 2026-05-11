@@ -10,10 +10,8 @@ import { GatewayLockError } from "../infra/gateway-lock.js";
 import { getActivePluginRegistry, setActivePluginRegistry } from "../plugins/runtime.js";
 import { createOutboundTestPlugin } from "../test-utils/channel-plugins.js";
 import { createTempHomeEnv } from "../test-utils/temp-home.js";
-import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
 import { createRegistry } from "./server.e2e-registry-helpers.js";
 import {
-  connectOk,
   getFreePort,
   installGatewayTestHooks,
   occupyPort,
@@ -23,14 +21,12 @@ import {
   startConnectedServerWithClient,
   startGatewayServer,
   startServerWithClient,
-  trackConnectChallengeNonce,
 } from "./test-helpers.js";
 
 installGatewayTestHooks({ scope: "suite" });
 
 let server: Awaited<ReturnType<typeof startServerWithClient>>["server"];
 let ws: WebSocket;
-let port: number;
 
 afterAll(async () => {
   ws.close();
@@ -41,7 +37,6 @@ beforeAll(async () => {
   const started = await startConnectedServerWithClient();
   server = started.server;
   ws = started.ws;
-  port = started.port;
 });
 
 const whatsappOutbound: ChannelOutboundAdapter = {
@@ -254,53 +249,6 @@ describe("gateway server models + voicewake", () => {
       });
     },
   );
-
-  test("pushes voicewake.changed to nodes on connect and on updates", async () => {
-    await withTempHome(async () => {
-      const nodeWs = new WebSocket(`ws://127.0.0.1:${port}`);
-      trackConnectChallengeNonce(nodeWs);
-      await new Promise<void>((resolve) => nodeWs.once("open", resolve));
-      const firstEventP = onceMessage(
-        nodeWs,
-        (o) => o.type === "event" && o.event === "voicewake.changed",
-      );
-      await connectOk(nodeWs, {
-        role: "node",
-        client: {
-          id: GATEWAY_CLIENT_NAMES.NODE_HOST,
-          version: "1.0.0",
-          platform: "ios",
-          mode: GATEWAY_CLIENT_MODES.NODE,
-        },
-      });
-
-      const first = (await firstEventP) as { event?: string; payload?: unknown };
-      expect(first.event).toBe("voicewake.changed");
-      expect((first.payload as { triggers?: unknown } | undefined)?.triggers).toEqual([
-        "crawclaw",
-        "claude",
-        "computer",
-      ]);
-
-      const broadcastP = onceMessage(
-        nodeWs,
-        (o) => o.type === "event" && o.event === "voicewake.changed",
-      );
-      const setRes = await rpcReq<{ triggers: string[] }>(ws, "voicewake.set", {
-        triggers: ["crawclaw", "computer"],
-      });
-      expect(setRes.ok).toBe(true);
-
-      const broadcast = (await broadcastP) as { event?: string; payload?: unknown };
-      expect(broadcast.event).toBe("voicewake.changed");
-      expect((broadcast.payload as { triggers?: unknown } | undefined)?.triggers).toEqual([
-        "crawclaw",
-        "computer",
-      ]);
-
-      nodeWs.close();
-    });
-  });
 
   test("models.list returns model catalog", async () => {
     seedPiCatalog();

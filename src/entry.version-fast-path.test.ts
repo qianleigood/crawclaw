@@ -11,7 +11,6 @@ const isRootVersionInvocationMock = vi.hoisted(() => vi.fn(() => true));
 const normalizeEnvMock = vi.hoisted(() => vi.fn());
 const normalizeWindowsArgvMock = vi.hoisted(() => vi.fn((argv: string[]) => argv));
 const parseCliProfileArgsMock = vi.hoisted(() => vi.fn((argv: string[]) => ({ ok: true, argv })));
-const resolveCliContainerTargetMock = vi.hoisted(() => vi.fn<() => string | null>(() => null));
 const resolveCommitHashMock = vi.hoisted(() => vi.fn<() => string | null>(() => "abc1234"));
 const runCliMock = vi.hoisted(() => vi.fn(async () => {}));
 const shouldSkipRespawnForArgvMock = vi.hoisted(() => vi.fn(() => true));
@@ -19,11 +18,6 @@ const shouldSkipRespawnForArgvMock = vi.hoisted(() => vi.fn(() => true));
 vi.mock("./cli/argv.js", () => ({
   isRootHelpInvocation: isRootHelpInvocationMock,
   isRootVersionInvocation: isRootVersionInvocationMock,
-}));
-
-vi.mock("./cli/container-target.js", () => ({
-  parseCliContainerArgs: (argv: string[]) => ({ ok: true, container: null, argv }),
-  resolveCliContainerTarget: resolveCliContainerTargetMock,
 }));
 
 vi.mock("./cli/profile.js", () => ({
@@ -124,34 +118,5 @@ describe("entry root version fast path", () => {
     });
 
     logSpy.mockRestore();
-  });
-
-  it("skips the host version fast path when a container target is active", async () => {
-    resolveCliContainerTargetMock.mockReturnValue("demo");
-    const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-
-    await importEntry("container-target");
-    await vi.waitFor(() => {
-      expect(runCliMock).toHaveBeenCalledWith(["node", "crawclaw", "--version"]);
-    });
-    expect(logSpy).not.toHaveBeenCalled();
-    expect(exitSpy).not.toHaveBeenCalled();
-
-    logSpy.mockRestore();
-  });
-
-  it("allows root version container mode when gateway override env vars are set", async () => {
-    resolveCliContainerTargetMock.mockReturnValue("demo");
-    process.env.CRAWCLAW_GATEWAY_TOKEN = "demo-token";
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-
-    await importEntry("gateway-override");
-    await vi.waitFor(() => {
-      expect(runCliMock).toHaveBeenCalledWith(["node", "crawclaw", "--version"]);
-    });
-    expect(errorSpy).not.toHaveBeenCalled();
-    expect(exitSpy).not.toHaveBeenCalled();
-
-    errorSpy.mockRestore();
   });
 });

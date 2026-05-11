@@ -21,6 +21,7 @@ Use this reference when you need the operational checklist and delivery format.
 ## Output format
 
 When useful, provide:
+
 - revised text
 - short note on what changed
 - optional bullets on the strongest remaining risks
@@ -28,6 +29,7 @@ When useful, provide:
 ## Quality scoring dimensions
 
 Evaluate the rewrite by:
+
 - naturalness
 - clarity
 - meaning preservation

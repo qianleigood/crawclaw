@@ -21,7 +21,12 @@ import { Platform, StyleSheet } from "react-native";
 
 const styles = StyleSheet.create({
   shadow: Platform.select({
-    ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
+    ios: {
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+    },
     android: { elevation: 4 },
   }),
 });
@@ -93,7 +98,7 @@ import { twMerge } from "tailwind-merge";
 
 const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 
-<View className={cn("p-4", isActive && "bg-blue-500", isDisabled && "opacity-50")} />
+<View className={cn("p-4", isActive && "bg-blue-500", isDisabled && "opacity-50")} />;
 ```
 
 ## Theming and Dark Mode

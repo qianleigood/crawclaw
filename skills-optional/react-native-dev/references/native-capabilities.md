@@ -20,13 +20,13 @@ if (!permission?.granted) {
 }
 ```
 
-| Module | Permission Hook |
-|--------|----------------|
-| `expo-camera` | `useCameraPermissions()` |
-| `expo-location` | `useForegroundPermissions()` / `useBackgroundPermissions()` |
-| `expo-media-library` | `usePermissions()` |
-| `expo-notifications` | `getPermissionsAsync()` / `requestPermissionsAsync()` |
-| `expo-contacts` | `usePermissions()` |
+| Module               | Permission Hook                                             |
+| -------------------- | ----------------------------------------------------------- |
+| `expo-camera`        | `useCameraPermissions()`                                    |
+| `expo-location`      | `useForegroundPermissions()` / `useBackgroundPermissions()` |
+| `expo-media-library` | `usePermissions()`                                          |
+| `expo-notifications` | `getPermissionsAsync()` / `requestPermissionsAsync()`       |
+| `expo-contacts`      | `usePermissions()`                                          |
 
 For modules without a hook, use `requestPermissionsAsync()` / `getPermissionsAsync()` directly.
 
@@ -95,15 +95,15 @@ Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 Haptics.selectionAsync();
 ```
 
-| Style | When to Use |
-|-------|-------------|
-| `ImpactFeedbackStyle.Light` | Button taps, toggles |
-| `ImpactFeedbackStyle.Medium` | Drag snaps, significant actions |
-| `ImpactFeedbackStyle.Heavy` | Destructive actions, impacts |
-| `NotificationFeedbackType.Success` | Task completed |
-| `NotificationFeedbackType.Warning` | Attention needed |
-| `NotificationFeedbackType.Error` | Action failed |
-| `selectionAsync()` | Picker/slider value changes |
+| Style                              | When to Use                     |
+| ---------------------------------- | ------------------------------- |
+| `ImpactFeedbackStyle.Light`        | Button taps, toggles            |
+| `ImpactFeedbackStyle.Medium`       | Drag snaps, significant actions |
+| `ImpactFeedbackStyle.Heavy`        | Destructive actions, impacts    |
+| `NotificationFeedbackType.Success` | Task completed                  |
+| `NotificationFeedbackType.Warning` | Attention needed                |
+| `NotificationFeedbackType.Error`   | Action failed                   |
+| `selectionAsync()`                 | Picker/slider value changes     |
 
 ## Notifications
 
@@ -138,7 +138,7 @@ Notifications.setNotificationHandler({
 });
 
 // Listen for received/tapped notifications
-const subscription = Notifications.addNotificationReceivedListener(notification => {
+const subscription = Notifications.addNotificationReceivedListener((notification) => {
   // Notification received while app is foregrounded
 });
 ```

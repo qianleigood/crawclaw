@@ -41,7 +41,6 @@ export {
   installPinnedHostnameTestHooks,
 } from "../media-understanding/audio.test-helpers.ts";
 export { isLiveTestEnabled } from "../agents/live-test-helpers.js";
-export { createSandboxTestContext } from "../agents/sandbox/test-fixtures.js";
 export { writeSkill } from "../agents/skills.e2e-test-helpers.js";
 export { __testing } from "../acp/control-plane/manager.js";
 export { __testing as acpManagerTesting } from "../acp/control-plane/manager.js";

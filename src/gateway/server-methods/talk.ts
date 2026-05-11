@@ -287,15 +287,7 @@ export const talkHandlers: GatewayRequestHandlers = {
       respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
     }
   },
-  "talk.mode": ({ params, respond, context, client, isWebchatConnect }) => {
-    if (client && isWebchatConnect(client.connect) && !context.hasConnectedMobileNode()) {
-      respond(
-        false,
-        undefined,
-        errorShape(ErrorCodes.UNAVAILABLE, "talk disabled: no connected iOS/Android nodes"),
-      );
-      return;
-    }
+  "talk.mode": ({ params, respond, context }) => {
     if (!validateTalkModeParams(params)) {
       respond(
         false,

@@ -7,7 +7,6 @@ describe("entry root help fast path", () => {
 
     const handled = tryHandleRootHelpFastPath(["node", "crawclaw", "--help"], {
       outputRootHelp: outputRootHelpMock,
-      env: {},
     });
     await Promise.resolve();
 
@@ -20,23 +19,7 @@ describe("entry root help fast path", () => {
 
     const handled = tryHandleRootHelpFastPath(["node", "crawclaw", "status", "--help"], {
       outputRootHelp: outputRootHelpMock,
-      env: {},
     });
-
-    expect(handled).toBe(false);
-    expect(outputRootHelpMock).not.toHaveBeenCalled();
-  });
-
-  it("skips the host help fast path when a container target is active", () => {
-    const outputRootHelpMock = vi.fn();
-
-    const handled = tryHandleRootHelpFastPath(
-      ["node", "crawclaw", "--container", "demo", "--help"],
-      {
-        outputRootHelp: outputRootHelpMock,
-        env: {},
-      },
-    );
 
     expect(handled).toBe(false);
     expect(outputRootHelpMock).not.toHaveBeenCalled();

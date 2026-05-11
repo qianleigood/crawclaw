@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
@@ -16,19 +16,11 @@ if (!isLinux && !isMac) {
 const repoRoot = process.cwd();
 const tmpHome = mkdtempSync(path.join(os.tmpdir(), "crawclaw-startup-memory-"));
 const tmpDir = process.env.TMPDIR || process.env.TEMP || process.env.TMP || os.tmpdir();
-const rssHookPath = path.join(tmpHome, "measure-rss.mjs");
-const MAX_RSS_MARKER = "__CRAWCLAW_MAX_RSS_KB__=";
-
-writeFileSync(
-  rssHookPath,
-  [
-    "process.on('exit', () => {",
-    "  const usage = typeof process.resourceUsage === 'function' ? process.resourceUsage() : null;",
-    `  if (usage && typeof usage.maxRSS === 'number') console.error('${MAX_RSS_MARKER}' + String(usage.maxRSS));`,
-    "});",
-    "",
-  ].join("\n"),
-  "utf8",
+const nativeCli = path.join(
+  repoRoot,
+  "dist",
+  "native",
+  process.platform === "win32" ? "crawclaw.exe" : "crawclaw",
 );
 
 const DEFAULT_LIMITS_MB = {
@@ -41,21 +33,21 @@ const cases = [
   {
     id: "help",
     label: "--help",
-    args: ["crawclaw.mjs", "--help"],
+    args: [nativeCli, "--help"],
     limitMb: Number(process.env.CRAWCLAW_STARTUP_MEMORY_HELP_MB ?? DEFAULT_LIMITS_MB.help),
   },
   {
     id: "statusJson",
     label: "status --json",
-    args: ["crawclaw.mjs", "status", "--json"],
+    args: [nativeCli, "status", "--json"],
     limitMb: Number(
       process.env.CRAWCLAW_STARTUP_MEMORY_STATUS_JSON_MB ?? DEFAULT_LIMITS_MB.statusJson,
     ),
   },
   {
     id: "gatewayStatus",
-    label: "gateway status",
-    args: ["crawclaw.mjs", "gateway", "status"],
+    label: "gateway --help",
+    args: [nativeCli, "gateway", "--help"],
     limitMb: Number(
       process.env.CRAWCLAW_STARTUP_MEMORY_GATEWAY_STATUS_MB ?? DEFAULT_LIMITS_MB.gatewayStatus,
     ),
@@ -63,7 +55,7 @@ const cases = [
 ];
 
 function formatFixGuidance(testCase, details) {
-  const command = `node ${testCase.args.join(" ")}`;
+  const command = testCase.args.join(" ");
   const guidance = [
     "[startup-memory] Fix guidance",
     `Case: ${testCase.label}`,
@@ -89,12 +81,12 @@ function formatFailure(testCase, message, details = "") {
 }
 
 function parseMaxRssMb(stderr) {
-  const matches = [...stderr.matchAll(new RegExp(`^${MAX_RSS_MARKER}(\\d+)\\s*$`, "gm"))];
-  const lastMatch = matches.at(-1);
-  if (!lastMatch) {
-    return null;
+  if (isMac) {
+    const match = stderr.match(/^\s*(\d+)\s+maximum resident set size\s*$/m);
+    return match?.[1] ? Number(match[1]) / 1024 / 1024 : null;
   }
-  return Number(lastMatch[1]) / 1024;
+  const match = stderr.match(/Maximum resident set size.*:\s*(\d+)/);
+  return match?.[1] ? Number(match[1]) / 1024 : null;
 }
 
 function buildBenchEnv() {
@@ -126,7 +118,7 @@ function buildBenchEnv() {
     env.NODE_DISABLE_COMPILE_CACHE = "1";
   }
   // Keep the benchmark on a single process so RSS reflects the actual command
-  // path rather than the warning-suppression respawn wrapper.
+  // path rather than a respawn wrapper.
   env.CRAWCLAW_NO_RESPAWN = "1";
 
   return env;
@@ -134,7 +126,8 @@ function buildBenchEnv() {
 
 function runCase(testCase) {
   const env = buildBenchEnv();
-  const result = spawnSync(process.execPath, ["--import", rssHookPath, ...testCase.args], {
+  const timeArgs = [isMac ? "-l" : "-v", ...testCase.args];
+  const result = spawnSync("/usr/bin/time", timeArgs, {
     cwd: repoRoot,
     env,
     encoding: "utf8",
@@ -176,6 +169,9 @@ function runCase(testCase) {
 }
 
 try {
+  if (!existsSync(nativeCli)) {
+    throw new Error(`Missing native CLI at ${nativeCli}. Run \`pnpm build\` first.`);
+  }
   for (const testCase of cases) {
     runCase(testCase);
   }

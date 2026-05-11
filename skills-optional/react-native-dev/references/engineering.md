@@ -46,19 +46,20 @@ my-app/
 
 ### Route Conventions
 
-| File | Route | Notes |
-|------|-------|-------|
-| `app/index.tsx` | `/` | Home/root |
-| `app/about.tsx` | `/about` | Static route |
-| `app/user/[id].tsx` | `/user/:id` | Dynamic segment |
-| `app/user/[...rest].tsx` | `/user/*` | Catch-all |
-| `app/(tabs)/home.tsx` | `/home` | Group (not in URL) |
-| `app/(a,b)/shared.tsx` | Shared between tabs `a` and `b` | Multi-group |
-| `app/_layout.tsx` | Layout wrapper | No route |
-| `app/+not-found.tsx` | 404 page | |
-| `app/api/users+api.ts` | `/api/users` | Server route |
+| File                     | Route                           | Notes              |
+| ------------------------ | ------------------------------- | ------------------ |
+| `app/index.tsx`          | `/`                             | Home/root          |
+| `app/about.tsx`          | `/about`                        | Static route       |
+| `app/user/[id].tsx`      | `/user/:id`                     | Dynamic segment    |
+| `app/user/[...rest].tsx` | `/user/*`                       | Catch-all          |
+| `app/(tabs)/home.tsx`    | `/home`                         | Group (not in URL) |
+| `app/(a,b)/shared.tsx`   | Shared between tabs `a` and `b` | Multi-group        |
+| `app/_layout.tsx`        | Layout wrapper                  | No route           |
+| `app/+not-found.tsx`     | 404 page                        |                    |
+| `app/api/users+api.ts`   | `/api/users`                    | Server route       |
 
 **Rules**:
+
 - Routes only in `app/` — no components, types, or utils
 - Always have a route matching `/`
 - Use kebab-case filenames (`user-profile.tsx`, not `UserProfile.tsx`)
@@ -101,16 +102,19 @@ Metro resolves `paths` and `baseUrl` from `tsconfig.json` natively — no extra 
 module.exports = {
   presets: ["babel-preset-expo"],
   plugins: [
-    ["module-resolver", {
-      root: ["./"],
-      alias: {
-        "@": "./",
-        "@components": "./components",
-        "@hooks": "./hooks",
-        "@stores": "./stores",
-        "@services": "./services",
+    [
+      "module-resolver",
+      {
+        root: ["./"],
+        alias: {
+          "@": "./",
+          "@components": "./components",
+          "@hooks": "./hooks",
+          "@stores": "./stores",
+          "@services": "./services",
+        },
       },
-    }],
+    ],
   ],
 };
 ```
@@ -167,7 +171,12 @@ export const colors = {
 
 // constants/spacing.ts — 8pt grid
 export const spacing = {
-  xs: 4, sm: 8, md: 16, lg: 24, xl: 32, xxl: 48,
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
 } as const;
 
 // constants/typography.ts
@@ -241,6 +250,7 @@ my-monorepo/
 ```
 
 **Monorepo rules**:
+
 - **Keep native dependencies in the app package** (`apps/mobile`) — never in shared packages
 - Use a single version of each dependency across all packages
 - Shared packages should be pure JS/TS only
@@ -282,9 +292,7 @@ npx expo install expo-font
 // app.json — config plugin (preferred over manual linking)
 {
   "expo": {
-    "plugins": [
-      ["expo-font", { "fonts": ["./assets/fonts/Inter-Regular.ttf"] }]
-    ]
+    "plugins": [["expo-font", { "fonts": ["./assets/fonts/Inter-Regular.ttf"] }]]
   }
 }
 ```
@@ -298,7 +306,9 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [loaded] = useFonts({ "Inter-Regular": require("../assets/fonts/Inter-Regular.ttf") });
-  useEffect(() => { if (loaded) SplashScreen.hideAsync(); }, [loaded]);
+  useEffect(() => {
+    if (loaded) SplashScreen.hideAsync();
+  }, [loaded]);
   if (!loaded) return null;
   return <Stack />;
 }
@@ -359,12 +369,12 @@ npx expo install expo@next --fix
 
 ### Notable Changes Across SDK Versions
 
-| Version | What Changed |
-|---------|-------------|
-| SDK 53 | New Architecture on by default; Expo Go requires it; `autoprefixer` no longer needed |
-| SDK 54 | React 19 (`use()` replaces `useContext`, `<Context>` replaces `<Context.Provider>`, `forwardRef` removed); React Compiler available; `EXPO_USE_FAST_RESOLVER` removed |
-| SDK 55 | NativeTabs API updated — Icon/Label/Badge accessed via `NativeTabs.Trigger.*` |
-| Ongoing | `expo-av` deprecated in favor of `expo-audio` + `expo-video` |
+| Version | What Changed                                                                                                                                                          |
+| ------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SDK 53  | New Architecture on by default; Expo Go requires it; `autoprefixer` no longer needed                                                                                  |
+| SDK 54  | React 19 (`use()` replaces `useContext`, `<Context>` replaces `<Context.Provider>`, `forwardRef` removed); React Compiler available; `EXPO_USE_FAST_RESOLVER` removed |
+| SDK 55  | NativeTabs API updated — Icon/Label/Badge accessed via `NativeTabs.Trigger.*`                                                                                         |
+| Ongoing | `expo-av` deprecated in favor of `expo-audio` + `expo-video`                                                                                                          |
 
 ### React 19 Patterns (SDK 54+)
 
@@ -402,8 +412,8 @@ A typical `eas.json` has three tiers:
   "cli": { "version": ">= 16.0.1", "appVersionSource": "remote" },
   "build": {
     "development": { "developmentClient": true, "distribution": "internal", "autoIncrement": true },
-    "preview":     { "distribution": "internal", "autoIncrement": true },
-    "production":  { "autoIncrement": true, "ios": { "resourceClass": "m-medium" } }
+    "preview": { "distribution": "internal", "autoIncrement": true },
+    "production": { "autoIncrement": true, "ios": { "resourceClass": "m-medium" } }
   }
 }
 ```
@@ -519,6 +529,7 @@ export default function NoteScreen() {
 ```
 
 Rules:
+
 - `"use dom"` must be the first statement in the file
 - One default export per file; cannot be mixed with native components
 - Props must be serializable (strings, numbers, booleans, plain objects/arrays)

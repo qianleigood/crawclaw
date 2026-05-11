@@ -143,7 +143,7 @@ describe("installScheduledTask", () => {
         stdout: new PassThrough(),
         programArguments: ["node", "gateway.js"],
         environment: {
-          PATH: "C:\\Windows\\System32;C:\\Program Files\\Docker\\Docker\\resources\\bin",
+          PATH: "C:\\Windows\\System32;C:\\Tools\\bin",
           CRAWCLAW_GATEWAY_PORT: "18789",
         },
       });

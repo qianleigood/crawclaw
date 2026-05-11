@@ -70,22 +70,6 @@ export const ExecApprovalsSetParamsSchema = Type.Object(
   { additionalProperties: false },
 );
 
-export const ExecApprovalsNodeGetParamsSchema = Type.Object(
-  {
-    nodeId: NonEmptyString,
-  },
-  { additionalProperties: false },
-);
-
-export const ExecApprovalsNodeSetParamsSchema = Type.Object(
-  {
-    nodeId: NonEmptyString,
-    file: ExecApprovalsFileSchema,
-    baseHash: Type.Optional(NonEmptyString),
-  },
-  { additionalProperties: false },
-);
-
 export const ExecApprovalRequestParamsSchema = Type.Object(
   {
     id: Type.Optional(NonEmptyString),
@@ -119,7 +103,6 @@ export const ExecApprovalRequestParamsSchema = Type.Object(
     ),
     env: Type.Optional(Type.Record(NonEmptyString, Type.String())),
     cwd: Type.Optional(Type.Union([Type.String(), Type.Null()])),
-    nodeId: Type.Optional(Type.Union([NonEmptyString, Type.Null()])),
     host: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     security: Type.Optional(Type.Union([Type.String(), Type.Null()])),
     ask: Type.Optional(Type.Union([Type.String(), Type.Null()])),

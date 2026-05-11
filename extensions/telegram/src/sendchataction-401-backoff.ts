@@ -1,9 +1,9 @@
-import type { Bot } from "grammy";
 import {
   computeBackoff,
   sleepWithAbort,
   type BackoffPolicy,
 } from "crawclaw/plugin-sdk/runtime-env";
+import type { Bot } from "grammy";
 
 export type TelegramSendChatActionLogger = (message: string) => void;
 

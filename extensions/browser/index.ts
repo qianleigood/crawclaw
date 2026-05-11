@@ -25,9 +25,6 @@ export default definePluginEntry({
     });
     api.registerTool(((ctx: CrawClawPluginToolContext) =>
       createBrowserTool({
-        sandboxBridgeUrl: ctx.browser?.sandboxBridgeUrl,
-        sandboxCdpUrl: ctx.browser?.sandboxCdpUrl,
-        sandboxPinchTabUrl: ctx.browser?.sandboxPinchTabUrl,
         allowHostControl: ctx.browser?.allowHostControl,
         agentSessionKey: ctx.sessionKey,
       })) as CrawClawPluginToolFactory);

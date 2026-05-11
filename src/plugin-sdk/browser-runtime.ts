@@ -126,8 +126,6 @@ export const resolveRequestedBrowserProfile: FacadeModule["resolveRequestedBrows
   loadFacadeModule()["resolveRequestedBrowserProfile"](
     ...args,
   )) as FacadeModule["resolveRequestedBrowserProfile"];
-export const runBrowserProxyCommand: FacadeModule["runBrowserProxyCommand"] = ((...args) =>
-  loadFacadeModule()["runBrowserProxyCommand"](...args)) as FacadeModule["runBrowserProxyCommand"];
 export const startBrowserBridgeServer: FacadeModule["startBrowserBridgeServer"] = ((...args) =>
   loadFacadeModule()["startBrowserBridgeServer"](
     ...args,

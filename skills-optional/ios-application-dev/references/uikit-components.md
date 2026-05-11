@@ -9,44 +9,44 @@ Stack views simplify auto layout for linear arrangements:
 ```swift
 class FormViewController: UIViewController {
     private let mainStack = UIStackView()
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         mainStack.axis = .vertical
         mainStack.spacing = 16
         mainStack.alignment = .fill
         mainStack.distribution = .fill
-        
+
         view.addSubview(mainStack)
         mainStack.snp.makeConstraints { make in
             make.top.equalTo(view.safeAreaLayoutGuide).offset(20)
             make.leading.trailing.equalToSuperview().inset(16)
         }
-        
+
         let headerStack = UIStackView()
         headerStack.axis = .horizontal
         headerStack.spacing = 12
         headerStack.alignment = .center
-        
+
         let avatarView = UIImageView()
         avatarView.snp.makeConstraints { make in
             make.size.equalTo(48)
         }
-        
+
         let labelStack = UIStackView()
         labelStack.axis = .vertical
         labelStack.spacing = 4
         labelStack.addArrangedSubview(titleLabel)
         labelStack.addArrangedSubview(subtitleLabel)
-        
+
         headerStack.addArrangedSubview(avatarView)
         headerStack.addArrangedSubview(labelStack)
-        
+
         mainStack.addArrangedSubview(headerStack)
         mainStack.addArrangedSubview(contentView)
         mainStack.addArrangedSubview(actionButton)
-        
+
         mainStack.setCustomSpacing(24, after: headerStack)
     }
 }
@@ -54,13 +54,13 @@ class FormViewController: UIViewController {
 
 ### StackView Properties
 
-| Property | Options | Usage |
-|----------|---------|-------|
-| `axis` | `.horizontal`, `.vertical` | Layout direction |
-| `distribution` | `.fill`, `.fillEqually`, `.fillProportionally`, `.equalSpacing`, `.equalCentering` | Space distribution |
-| `alignment` | `.fill`, `.leading`, `.center`, `.trailing` | Cross-axis alignment |
-| `spacing` | CGFloat | Uniform spacing |
-| `setCustomSpacing(_:after:)` | - | Variable spacing |
+| Property                     | Options                                                                            | Usage                |
+| ---------------------------- | ---------------------------------------------------------------------------------- | -------------------- |
+| `axis`                       | `.horizontal`, `.vertical`                                                         | Layout direction     |
+| `distribution`               | `.fill`, `.fillEqually`, `.fillProportionally`, `.equalSpacing`, `.equalCentering` | Space distribution   |
+| `alignment`                  | `.fill`, `.leading`, `.center`, `.trailing`                                        | Cross-axis alignment |
+| `spacing`                    | CGFloat                                                                            | Uniform spacing      |
+| `setCustomSpacing(_:after:)` | -                                                                                  | Variable spacing     |
 
 ## UIButton.Configuration (iOS 15+)
 
@@ -137,12 +137,12 @@ func showOptions() {
     sheet.addAction(UIAlertAction(title: "Edit", style: .default) { _ in })
     sheet.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in })
     sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-    
+
     if let popover = sheet.popoverPresentationController {
         popover.sourceView = optionsButton
         popover.sourceRect = optionsButton.bounds
     }
-    
+
     present(sheet, animated: true)
 }
 ```
@@ -156,19 +156,19 @@ func showInputAlert() {
         message: "Enter a new name",
         preferredStyle: .alert
     )
-    
+
     alert.addTextField { textField in
         textField.placeholder = "Name"
         textField.autocapitalizationType = .words
     }
-    
+
     alert.addAction(UIAlertAction(title: "Save", style: .default) { _ in
         if let name = alert.textFields?.first?.text {
             self.rename(to: name)
         }
     })
     alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-    
+
     present(alert, animated: true)
 }
 ```
@@ -179,12 +179,12 @@ func showInputAlert() {
 class SearchableListVC: UIViewController, UISearchResultsUpdating {
     private let searchController = UISearchController(searchResultsController: nil)
     private var allItems: [Item] = []
-    
+
     override func viewDidLoad() {
         super.viewDidLoad()
         setupSearch()
     }
-    
+
     private func setupSearch() {
         searchController.searchResultsUpdater = self
         searchController.obscuresBackgroundDuringPresentation = false
@@ -192,7 +192,7 @@ class SearchableListVC: UIViewController, UISearchResultsUpdating {
         navigationItem.searchController = searchController
         definesPresentationContext = true
     }
-    
+
     func updateSearchResults(for searchController: UISearchController) {
         let query = searchController.searchBar.text ?? ""
         let filtered = query.isEmpty ? allItems : allItems.filter {
@@ -230,18 +230,18 @@ extension PhotoCell: UIContextMenuInteractionDelegate {
                 title: "Share",
                 image: UIImage(systemName: "square.and.arrow.up")
             ) { _ in }
-            
+
             let favorite = UIAction(
                 title: "Favorite",
                 image: UIImage(systemName: "heart")
             ) { _ in }
-            
+
             let delete = UIAction(
                 title: "Delete",
                 image: UIImage(systemName: "trash"),
                 attributes: .destructive
             ) { _ in }
-            
+
             return UIMenu(children: [share, favorite, delete])
         }
     }
@@ -294,4 +294,4 @@ func collectionView(
 
 ---
 
-*UIKit and Apple are trademarks of Apple Inc.*
+_UIKit and Apple are trademarks of Apple Inc._

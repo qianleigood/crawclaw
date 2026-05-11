@@ -26,7 +26,7 @@ async function verifyBootstrapToken(
     token,
     deviceId: "device-123",
     publicKey: "public-key-123",
-    role: "node",
+    role: "operator",
     scopes: [],
     baseDir,
     ...overrides,
@@ -64,7 +64,7 @@ describe("device bootstrap tokens", () => {
       ts: Date.now(),
       issuedAtMs: Date.now(),
       profile: {
-        roles: ["node", "operator"],
+        roles: ["operator"],
         scopes: ["operator.read", "operator.talk.secrets", "operator.write"],
       },
     });
@@ -143,7 +143,7 @@ describe("device bootstrap tokens", () => {
             ts: issuedAtMs,
             issuedAtMs,
             profile: {
-              roles: ["node", "operator"],
+              roles: ["operator"],
               scopes: ["operator.read", "operator.talk.secrets", "operator.write"],
             },
           },
@@ -264,7 +264,7 @@ describe("device bootstrap tokens", () => {
         token: "missing-token",
         deviceId: "device-123",
         publicKey: "public-key-123",
-        role: "node",
+        role: "operator",
         scopes: [],
         baseDir,
       }),

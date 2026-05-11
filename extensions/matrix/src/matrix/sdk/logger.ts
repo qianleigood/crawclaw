@@ -1,6 +1,6 @@
 import { format } from "node:util";
-import { redactSensitiveText } from "crawclaw/plugin-sdk/runtime-env";
 import type { RuntimeLogger } from "crawclaw/plugin-sdk/plugin-runtime";
+import { redactSensitiveText } from "crawclaw/plugin-sdk/runtime-env";
 import { getMatrixRuntime } from "../../runtime.js";
 
 export type Logger = {

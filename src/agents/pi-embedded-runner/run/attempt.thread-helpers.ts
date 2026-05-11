@@ -1,16 +1,10 @@
 import type { CrawClawConfig } from "../../../config/config.js";
 export const ATTEMPT_CACHE_TTL_CUSTOM_TYPE = "crawclaw.cache-ttl";
 
-export function resolveAttemptSpawnWorkspaceDir(params: {
-  sandbox?: {
-    enabled?: boolean;
-    workspaceAccess?: string;
-  } | null;
+export function resolveAttemptSpawnWorkspaceDir(_params: {
   resolvedWorkspace: string;
 }): string | undefined {
-  return params.sandbox?.enabled && params.sandbox.workspaceAccess !== "rw"
-    ? params.resolvedWorkspace
-    : undefined;
+  return undefined;
 }
 
 export function shouldUseOpenAIWebSocketTransport(params: {

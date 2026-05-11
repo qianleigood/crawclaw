@@ -4,7 +4,7 @@ import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import { installMainSessionWakeRunnerTestRuntime } from "./main-session-wake-runner.test-harness.js";
 import {
   seedMainSessionStore,
-  withTempHeartbeatSandbox,
+  withTempHeartbeatFixture,
 } from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
@@ -20,7 +20,7 @@ describe("runMainSessionWakeOnce", () => {
   });
 
   it("uses the delivery target as sender when lastTo differs", async () => {
-    await withTempHeartbeatSandbox(
+    await withTempHeartbeatFixture(
       async ({ tmpDir, storePath, replySpy }) => {
         const cfg: CrawClawConfig = {
           agents: {

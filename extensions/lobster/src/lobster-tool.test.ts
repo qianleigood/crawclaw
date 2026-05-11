@@ -62,7 +62,6 @@ function fakeCtx(overrides: Partial<CrawClawPluginToolContext> = {}): CrawClawPl
     sessionKey: "main",
     messageChannel: undefined,
     agentAccountId: undefined,
-    sandboxed: false,
     ...overrides,
   };
 }
@@ -134,17 +133,11 @@ describe("lobster plugin tool", () => {
     expect(nativeMocks.runNativePluginOperation).not.toHaveBeenCalled();
   });
 
-  it("can be gated off in sandboxed contexts", () => {
+  it("creates the tool from plugin context", () => {
     const api = fakeApi();
-    const factoryTool = (ctx: CrawClawPluginToolContext) => {
-      if (ctx.sandboxed) {
-        return null;
-      }
-      return createLobsterTool(api);
-    };
+    const factoryTool = (_ctx: CrawClawPluginToolContext) => createLobsterTool(api);
 
-    expect(factoryTool(fakeCtx({ sandboxed: true }))).toBeNull();
-    expect(factoryTool(fakeCtx({ sandboxed: false }))?.name).toBe("lobster");
+    expect(factoryTool(fakeCtx())?.name).toBe("lobster");
   });
 });
 

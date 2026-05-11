@@ -390,7 +390,7 @@ describe("real-world config patterns", () => {
           channels: { whatsapp: { dmPolicy: "pairing", allowFrom: ["+49123"] } },
         },
         [configPath("agents", "defaults.json")]: {
-          agents: { defaults: { sandbox: { mode: "all" } } },
+          agents: { defaults: { workspace: "/srv/crawclaw/work" } },
         },
       },
       obj: {
@@ -399,7 +399,7 @@ describe("real-world config patterns", () => {
       expected: {
         gateway: { port: 18789, bind: "loopback" },
         channels: { whatsapp: { dmPolicy: "pairing", allowFrom: ["+49123"] } },
-        agents: { defaults: { sandbox: { mode: "all" } } },
+        agents: { defaults: { workspace: "/srv/crawclaw/work" } },
       },
     },
   ] as const)("supports common modular include layouts: $name", ({ obj, files, expected }) => {

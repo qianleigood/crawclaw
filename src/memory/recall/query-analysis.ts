@@ -25,11 +25,47 @@ export interface RecallRoutingConfig {
 }
 
 const DEFAULT_STOPWORDS = new Set([
-  "the", "and", "for", "with", "this", "that", "from", "into", "about",
-  "error", "issue", "problem", "failed", "failure", "query", "node", "nodes",
-  "plugin", "plugins", "gateway", "session", "chat", "history", "dispatch",
-  "received", "message", "messages", "recalled", "knowledge", "execution", "nodes", "edges",
-  "一个", "这个", "那个", "一下", "就是", "然后", "因为", "问题", "报错",
+  "the",
+  "and",
+  "for",
+  "with",
+  "this",
+  "that",
+  "from",
+  "into",
+  "about",
+  "error",
+  "issue",
+  "problem",
+  "failed",
+  "failure",
+  "query",
+  "node",
+  "nodes",
+  "plugin",
+  "plugins",
+  "gateway",
+  "session",
+  "chat",
+  "history",
+  "dispatch",
+  "received",
+  "message",
+  "messages",
+  "recalled",
+  "knowledge",
+  "execution",
+  "nodes",
+  "edges",
+  "一个",
+  "这个",
+  "那个",
+  "一下",
+  "就是",
+  "然后",
+  "因为",
+  "问题",
+  "报错",
 ]);
 
 function stripHighNoiseLogText(input: string): string {
@@ -57,14 +93,30 @@ export function tokenizeRecallText(input: string): string[] {
 
 function isNoiseToken(token: string): boolean {
   const t = token.toLowerCase();
-  if (t.length <= 1) {return true;}
-  if (/^\d+$/.test(t)) {return true;}
-  if (/^[0-9a-f]{6,}$/i.test(t)) {return true;}
-  if (/^(true|false|null|undefined)$/i.test(t)) {return true;}
-  if (/^\d+(ms|s|m|h|kb|mb|gb)$/i.test(t)) {return true;}
-  if (/^(chat|send|history|status|config|get|poll|reply|replies|queuedfinal)$/i.test(t)) {return true;}
-  if (/^(received|dispatch|complete|running|active|loaded|ready|missing|scope)$/i.test(t)) {return true;}
-  if (DEFAULT_STOPWORDS.has(t)) {return true;}
+  if (t.length <= 1) {
+    return true;
+  }
+  if (/^\d+$/.test(t)) {
+    return true;
+  }
+  if (/^[0-9a-f]{6,}$/i.test(t)) {
+    return true;
+  }
+  if (/^(true|false|null|undefined)$/i.test(t)) {
+    return true;
+  }
+  if (/^\d+(ms|s|m|h|kb|mb|gb)$/i.test(t)) {
+    return true;
+  }
+  if (/^(chat|send|history|status|config|get|poll|reply|replies|queuedfinal)$/i.test(t)) {
+    return true;
+  }
+  if (/^(received|dispatch|complete|running|active|loaded|ready|missing|scope)$/i.test(t)) {
+    return true;
+  }
+  if (DEFAULT_STOPWORDS.has(t)) {
+    return true;
+  }
   return false;
 }
 
@@ -75,15 +127,17 @@ function toEffectiveTokens(tokens: string[]): string[] {
 function extractEntityHints(tokens: string[], maxHints: number): string[] {
   const hints = new Set<string>();
   for (const token of tokens) {
-    if (isNoiseToken(token)) {continue;}
+    if (isNoiseToken(token)) {
+      continue;
+    }
     if (
-      token.includes("/")
-      || token.includes("-")
-      || token.includes(":")
-      || /\.(md|ts|js|json|yaml|yml|sql|tsx)$/.test(token)
-      || /[A-Z][a-zA-Z]+/.test(token)
-      || /[A-Za-z]+\d+[A-Za-z\d]*/.test(token)
-      || /(?:Exception|Error|Timeout|Traceback|Neo4j|Qdrant|Lucene|CrawClaw)/i.test(token)
+      token.includes("/") ||
+      token.includes("-") ||
+      token.includes(":") ||
+      /\.(md|ts|js|json|yaml|yml|sql|tsx)$/.test(token) ||
+      /[A-Z][a-zA-Z]+/.test(token) ||
+      /[A-Za-z]+\d+[A-Za-z\d]*/.test(token) ||
+      /(?:Exception|Error|Timeout|Traceback|Neo4j|Qdrant|Lucene|CrawClaw)/i.test(token)
     ) {
       hints.add(token);
     }
@@ -95,23 +149,42 @@ function pickMatches(input: string, pattern: RegExp, limit: number): string[] {
   const matches = new Set<string>();
   for (const match of input.matchAll(pattern)) {
     const value = (match[1] ?? match[0] ?? "").trim();
-    if (!value) {continue;}
+    if (!value) {
+      continue;
+    }
     matches.add(value);
-    if (matches.size >= limit) {break;}
+    if (matches.size >= limit) {
+      break;
+    }
   }
   return [...matches];
 }
 
 function extractStructuredLogSignals(normalizedText: string, effectiveTokens: string[]) {
-  const extractedExceptions = pickMatches(normalizedText, /\b((?:TooManyNestedClauses)|[A-Z][A-Za-z0-9]*(?:Exception|Error|Timeout|Failure|Traceback))\b/g, 4);
-  const extractedProcedures = pickMatches(normalizedText, /\b((?:db\.index\.fulltext\.queryNodes|[A-Za-z_][A-Za-z0-9_.]*\([^)]*\)|[A-Za-z_][A-Za-z0-9_.]*\.[A-Za-z_][A-Za-z0-9_.]*))\b/g, 4)
-    .filter((value) => /queryNodes|fulltext|search|recall|extract|sync|backfill|neo4j|qdrant/i.test(value));
+  const extractedExceptions = pickMatches(
+    normalizedText,
+    /\b((?:TooManyNestedClauses)|[A-Z][A-Za-z0-9]*(?:Exception|Error|Timeout|Failure|Traceback))\b/g,
+    4,
+  );
+  const extractedProcedures = pickMatches(
+    normalizedText,
+    /\b((?:db\.index\.fulltext\.queryNodes|[A-Za-z_][A-Za-z0-9_.]*\([^)]*\)|[A-Za-z_][A-Za-z0-9_.]*\.[A-Za-z_][A-Za-z0-9_.]*))\b/g,
+    4,
+  ).filter((value) =>
+    /queryNodes|fulltext|search|recall|extract|sync|backfill|neo4j|qdrant/i.test(value),
+  );
   const extractedComponents = effectiveTokens
-    .filter((token) => /memory-runtime|memory|lucene|crawclaw|execution|recall|fulltext/i.test(token))
+    .filter((token) =>
+      /memory-runtime|memory|lucene|crawclaw|execution|recall|fulltext/i.test(token),
+    )
     .slice(0, 4);
   const extractedSymptoms = [
     ...pickMatches(normalizedText, /\b(maxClauseCount(?:\s*(?:is set to|=)\s*\d+)?)\b/gi, 2),
-    ...pickMatches(normalizedText, /\b(recall failed|query failed|clause(?:s)? overflow|too many nested clauses)\b/gi, 3),
+    ...pickMatches(
+      normalizedText,
+      /\b(recall failed|query failed|clause(?:s)? overflow|too many nested clauses)\b/gi,
+      3,
+    ),
   ].slice(0, 4);
   return {
     extractedComponents: [...new Set(extractedComponents)],
@@ -128,8 +201,15 @@ function detectShape(input: {
   hasStackTraceLikeText: boolean;
   hasQuotedLogBlock: boolean;
 }): RecallQueryShape {
-  const { rawLength, lineCount, effectiveTokenCount, hasStackTraceLikeText, hasQuotedLogBlock } = input;
-  if (rawLength <= 80 && lineCount <= 2 && effectiveTokenCount <= 8 && !hasStackTraceLikeText && !hasQuotedLogBlock) {
+  const { rawLength, lineCount, effectiveTokenCount, hasStackTraceLikeText, hasQuotedLogBlock } =
+    input;
+  if (
+    rawLength <= 80 &&
+    lineCount <= 2 &&
+    effectiveTokenCount <= 8 &&
+    !hasStackTraceLikeText &&
+    !hasQuotedLogBlock
+  ) {
     return "keyword";
   }
   if (rawLength > 220 || lineCount > 6 || hasStackTraceLikeText || hasQuotedLogBlock) {
@@ -147,12 +227,26 @@ function estimateClauseCount(input: {
   hasErrorLikeText: boolean;
   hasStackTraceLikeText: boolean;
 }): number {
-  const { effectiveTokenCount, entityHintCount, fieldCount, avgExpansionPerToken, hasNarrativeShape, hasErrorLikeText, hasStackTraceLikeText } = input;
+  const {
+    effectiveTokenCount,
+    entityHintCount,
+    fieldCount,
+    avgExpansionPerToken,
+    hasNarrativeShape,
+    hasErrorLikeText,
+    hasStackTraceLikeText,
+  } = input;
   let base = effectiveTokenCount * fieldCount * avgExpansionPerToken;
   base -= Math.min(entityHintCount * 2, base * 0.15);
-  if (hasNarrativeShape) {base *= 1.25;}
-  if (hasErrorLikeText) {base *= 1.15;}
-  if (hasStackTraceLikeText) {base *= 1.25;}
+  if (hasNarrativeShape) {
+    base *= 1.25;
+  }
+  if (hasErrorLikeText) {
+    base *= 1.15;
+  }
+  if (hasStackTraceLikeText) {
+    base *= 1.25;
+  }
   return Math.ceil(base);
 }
 
@@ -161,12 +255,19 @@ export function analyzeRecallQuery(raw: string, routing: RecallRoutingConfig): R
   const tokens = tokenizeRecallText(normalizedText);
   const effectiveTokens = toEffectiveTokens(tokens);
   const entityHints = extractEntityHints(effectiveTokens, routing.entityHintLimit);
-  const { extractedComponents, extractedExceptions, extractedProcedures, extractedSymptoms } = extractStructuredLogSignals(normalizedText, effectiveTokens);
+  const { extractedComponents, extractedExceptions, extractedProcedures, extractedSymptoms } =
+    extractStructuredLogSignals(normalizedText, effectiveTokens);
   const lineCount = normalizedText ? normalizedText.split("\n").length : 0;
 
-  const hasCodeLikeText = /[{}();=<>]/.test(normalizedText) || /\b(function|const|let|class|return|if|else)\b/.test(normalizedText);
-  const hasStackTraceLikeText = /\bat\s+\S+\s+\(/.test(normalizedText) || /Traceback|Exception|Caused by:/i.test(normalizedText);
-  const hasPathLikeText = /\/[A-Za-z0-9._/-]+/.test(normalizedText) || /[A-Za-z0-9._-]+\.(ts|js|md|json|yaml|yml)/.test(normalizedText);
+  const hasCodeLikeText =
+    /[{}();=<>]/.test(normalizedText) ||
+    /\b(function|const|let|class|return|if|else)\b/.test(normalizedText);
+  const hasStackTraceLikeText =
+    /\bat\s+\S+\s+\(/.test(normalizedText) ||
+    /Traceback|Exception|Caused by:/i.test(normalizedText);
+  const hasPathLikeText =
+    /\/[A-Za-z0-9._/-]+/.test(normalizedText) ||
+    /[A-Za-z0-9._-]+\.(ts|js|md|json|yaml|yml)/.test(normalizedText);
   const hasErrorLikeText = /error|failed|exception|timeout|panic|trace/i.test(normalizedText);
   const hasQuotedLogBlock = normalizedText.includes("```") || lineCount > 8;
   const shape = detectShape({

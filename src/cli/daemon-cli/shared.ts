@@ -4,7 +4,6 @@ import {
   resolveGatewaySystemdServiceName,
   resolveGatewayWindowsTaskName,
 } from "../../daemon/constants.js";
-import { resolveDaemonContainerContext } from "../../daemon/container-context.js";
 import { formatRuntimeStatus } from "../../daemon/runtime-format.js";
 import {
   buildPlatformRuntimeLogHints,
@@ -18,7 +17,6 @@ import { createDaemonActionContext } from "./response.js";
 
 export { formatRuntimeStatus };
 export { parsePort };
-export { resolveDaemonContainerContext };
 
 export function createDaemonInstallActionContext(jsonFlag: unknown) {
   const json = Boolean(jsonFlag);
@@ -183,30 +181,11 @@ export function renderRuntimeHints(
 
 export function renderGatewayServiceStartHints(env: NodeJS.ProcessEnv = process.env): string[] {
   const profile = env.CRAWCLAW_PROFILE;
-  const container = resolveDaemonContainerContext(env);
-  const hints = buildPlatformServiceStartHints({
+  return buildPlatformServiceStartHints({
     installCommand: formatCliCommand("crawclaw gateway install", env),
     startCommand: formatCliCommand("crawclaw gateway", env),
     launchAgentPlistPath: `~/Library/LaunchAgents/${resolveGatewayLaunchAgentLabel(profile)}.plist`,
     systemdServiceName: resolveGatewaySystemdServiceName(profile),
     windowsTaskName: resolveGatewayWindowsTaskName(profile),
   });
-  if (!container) {
-    return hints;
-  }
-  return [`Restart the container or the service that manages it for ${container}.`];
-}
-
-export function filterContainerGenericHints(
-  hints: string[],
-  env: NodeJS.ProcessEnv = process.env,
-): string[] {
-  if (!resolveDaemonContainerContext(env)) {
-    return hints;
-  }
-  return hints.filter(
-    (hint) =>
-      !hint.includes("If you're in a container, run the gateway in the foreground instead of") &&
-      !hint.includes("systemd user services are unavailable; install/enable systemd"),
-  );
 }

@@ -15,8 +15,8 @@ const resolveMediaDir = () => path.join(resolveConfigDir(), "media");
 export const MEDIA_MAX_BYTES = 5 * 1024 * 1024; // 5MB default
 const MAX_BYTES = MEDIA_MAX_BYTES;
 const DEFAULT_TTL_MS = 2 * 60 * 1000; // 2 minutes
-// Files are intentionally readable by non-owner UIDs so Docker sandbox containers can access
-// inbound media. The containing state/media directories remain 0o700, which is the trust boundary.
+// Files are intentionally readable by helper runtimes that may use a different UID.
+// The containing state/media directories remain 0o700, which is the trust boundary.
 const MEDIA_FILE_MODE = 0o644;
 type CleanOldMediaOptions = {
   recursive?: boolean;

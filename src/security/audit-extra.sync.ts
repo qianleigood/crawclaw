@@ -1,15 +1,14 @@
-import { resolveSandboxConfigForAgent } from "../agents/sandbox/config.js";
-import { isDangerousNetworkMode, normalizeNetworkMode } from "../agents/sandbox/network-mode.js";
 /**
  * Synchronous security audit collector functions.
  *
  * These functions analyze config-based security properties without I/O.
  */
-import { resolveSandboxToolPolicyForAgent } from "../agents/sandbox/tool-policy.js";
-import type { SandboxToolPolicy } from "../agents/sandbox/types.js";
-import { getBlockedBindReason } from "../agents/sandbox/validate-sandbox-security.js";
 import { isToolAllowedByPolicies } from "../agents/tool-policy-match.js";
-import { resolveToolProfilePolicy } from "../agents/tool-policy.js";
+import {
+  pickToolPolicy,
+  resolveToolProfilePolicy,
+  type ToolPolicyLike,
+} from "../agents/tool-policy.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
@@ -19,14 +18,9 @@ import {
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { resolveAllowedAgentIds } from "../gateway/hooks-policy.js";
-import {
-  DEFAULT_DANGEROUS_NODE_COMMANDS,
-  resolveNodeCommandAllowlist,
-} from "../gateway/node-command-policy.js";
 import { resolveBrowserConfig } from "../plugin-sdk/browser-config.js";
 import { hasBundledWebSearchCredential } from "../plugins/bundled-web-search-registry.js";
 import { inferParamBFromIdOrName } from "../shared/model-param-b.js";
-import { pickSandboxToolPolicy } from "./audit-tool-policy.js";
 
 export type SecurityAuditFinding = {
   checkId: string;
@@ -185,142 +179,25 @@ function extractAgentIdFromSource(source: string): string | null {
   return match?.[1] ?? null;
 }
 
-function hasConfiguredDockerConfig(
-  docker: Record<string, unknown> | undefined | null,
-): docker is Record<string, unknown> {
-  if (!docker || typeof docker !== "object") {
-    return false;
-  }
-  return Object.values(docker).some((value) => value !== undefined);
-}
-
-function normalizeNodeCommand(value: unknown): string {
-  return typeof value === "string" ? value.trim() : "";
-}
-
-function listKnownNodeCommands(cfg: CrawClawConfig): Set<string> {
-  const baseCfg: CrawClawConfig = {
-    ...cfg,
-    gateway: {
-      ...cfg.gateway,
-      nodes: {
-        ...cfg.gateway?.nodes,
-        denyCommands: [],
-      },
-    },
-  };
-  const out = new Set<string>();
-  for (const platform of ["ios", "android", "macos", "linux", "windows", "unknown"]) {
-    const allow = resolveNodeCommandAllowlist(baseCfg, { platform });
-    for (const cmd of allow) {
-      const normalized = normalizeNodeCommand(cmd);
-      if (normalized) {
-        out.add(normalized);
-      }
-    }
-  }
-  return out;
-}
-
-function looksLikeNodeCommandPattern(value: string): boolean {
-  if (!value) {
-    return false;
-  }
-  if (/[?*[\]{}(),|]/.test(value)) {
-    return true;
-  }
-  if (
-    value.startsWith("/") ||
-    value.endsWith("/") ||
-    value.startsWith("^") ||
-    value.endsWith("$")
-  ) {
-    return true;
-  }
-  return /\s/.test(value) || value.includes("group:");
-}
-
-function editDistance(a: string, b: string): number {
-  if (a === b) {
-    return 0;
-  }
-  if (!a) {
-    return b.length;
-  }
-  if (!b) {
-    return a.length;
-  }
-
-  const dp: number[] = Array.from({ length: b.length + 1 }, (_, j) => j);
-
-  for (let i = 1; i <= a.length; i++) {
-    let prev = dp[0];
-    dp[0] = i;
-    for (let j = 1; j <= b.length; j++) {
-      const temp = dp[j];
-      const cost = a[i - 1] === b[j - 1] ? 0 : 1;
-      dp[j] = Math.min(dp[j] + 1, dp[j - 1] + 1, prev + cost);
-      prev = temp;
-    }
-  }
-
-  return dp[b.length];
-}
-
-function suggestKnownNodeCommands(unknown: string, known: Set<string>): string[] {
-  const needle = unknown.trim();
-  if (!needle) {
-    return [];
-  }
-
-  // Fast path: prefix-ish suggestions.
-  const prefix = needle.includes(".") ? needle.split(".").slice(0, 2).join(".") : needle;
-  const prefixHits = Array.from(known)
-    .filter((cmd) => cmd.startsWith(prefix))
-    .slice(0, 3);
-  if (prefixHits.length > 0) {
-    return prefixHits;
-  }
-
-  // Fuzzy: Levenshtein over a small-ish known set.
-  const ranked = Array.from(known)
-    .map((cmd) => ({ cmd, d: editDistance(needle, cmd) }))
-    .toSorted((a, b) => a.d - b.d || a.cmd.localeCompare(b.cmd));
-
-  const best = ranked[0]?.d ?? Infinity;
-  const threshold = Math.max(2, Math.min(4, best));
-  return ranked
-    .filter((r) => r.d <= threshold)
-    .slice(0, 3)
-    .map((r) => r.cmd);
-}
-
 function resolveToolPolicies(params: {
   cfg: CrawClawConfig;
   agentTools?: AgentToolsConfig;
-  sandboxMode?: "off" | "non-main" | "all";
-  agentId?: string | null;
-}): SandboxToolPolicy[] {
-  const policies: SandboxToolPolicy[] = [];
+}): ToolPolicyLike[] {
+  const policies: ToolPolicyLike[] = [];
   const profile = params.agentTools?.profile ?? params.cfg.tools?.profile;
   const profilePolicy = resolveToolProfilePolicy(profile);
   if (profilePolicy) {
     policies.push(profilePolicy);
   }
 
-  const globalPolicy = pickSandboxToolPolicy(params.cfg.tools ?? undefined);
+  const globalPolicy = pickToolPolicy(params.cfg.tools ?? undefined);
   if (globalPolicy) {
     policies.push(globalPolicy);
   }
 
-  const agentPolicy = pickSandboxToolPolicy(params.agentTools);
+  const agentPolicy = pickToolPolicy(params.agentTools);
   if (agentPolicy) {
     policies.push(agentPolicy);
-  }
-
-  if (params.sandboxMode === "all") {
-    const sandboxPolicy = resolveSandboxToolPolicyForAgent(params.cfg, params.agentId ?? undefined);
-    policies.push(sandboxPolicy);
   }
 
   return policies;
@@ -486,12 +363,9 @@ function collectRiskyToolExposureContexts(cfg: CrawClawConfig): {
   const riskyContexts: string[] = [];
   let hasRuntimeRisk = false;
   for (const context of contexts) {
-    const sandboxMode = resolveSandboxConfigForAgent(cfg, context.agentId).mode;
     const policies = resolveToolPolicies({
       cfg,
       agentTools: context.tools,
-      sandboxMode,
-      agentId: context.agentId ?? null,
     });
     const runtimeTools = ["exec", "process"].filter((tool) =>
       isToolAllowedByPolicies(tool, policies),
@@ -500,8 +374,8 @@ function collectRiskyToolExposureContexts(cfg: CrawClawConfig): {
       isToolAllowedByPolicies(tool, policies),
     );
     const fsWorkspaceOnly = context.tools?.fs?.workspaceOnly ?? cfg.tools?.fs?.workspaceOnly;
-    const runtimeUnguarded = runtimeTools.length > 0 && sandboxMode !== "all";
-    const fsUnguarded = fsTools.length > 0 && sandboxMode !== "all" && fsWorkspaceOnly !== true;
+    const runtimeUnguarded = runtimeTools.length > 0;
+    const fsUnguarded = fsTools.length > 0 && fsWorkspaceOnly !== true;
     if (!runtimeUnguarded && !fsUnguarded) {
       continue;
     }
@@ -509,7 +383,7 @@ function collectRiskyToolExposureContexts(cfg: CrawClawConfig): {
       hasRuntimeRisk = true;
     }
     riskyContexts.push(
-      `${context.label} (sandbox=${sandboxMode}; runtime=[${runtimeTools.join(", ") || "off"}]; fs=[${fsTools.join(", ") || "off"}]; fs.workspaceOnly=${
+      `${context.label} (runtime=[${runtimeTools.join(", ") || "off"}]; fs=[${fsTools.join(", ") || "off"}]; fs.workspaceOnly=${
         fsWorkspaceOnly === true ? "true" : "false"
       })`,
     );
@@ -779,298 +653,6 @@ export function collectGatewayHttpNoAuthFindings(
   return findings;
 }
 
-export function collectSandboxDockerNoopFindings(cfg: CrawClawConfig): SecurityAuditFinding[] {
-  const findings: SecurityAuditFinding[] = [];
-  const configuredPaths: string[] = [];
-  const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
-
-  const defaultsSandbox = cfg.agents?.defaults?.sandbox;
-  const hasDefaultDocker = hasConfiguredDockerConfig(
-    defaultsSandbox?.docker as Record<string, unknown> | undefined,
-  );
-  const defaultMode = defaultsSandbox?.mode ?? "off";
-  const hasAnySandboxEnabledAgent = agents.some((entry) => {
-    if (!entry || typeof entry !== "object" || typeof entry.id !== "string") {
-      return false;
-    }
-    return resolveSandboxConfigForAgent(cfg, entry.id).mode !== "off";
-  });
-  if (hasDefaultDocker && defaultMode === "off" && !hasAnySandboxEnabledAgent) {
-    configuredPaths.push("agents.defaults.sandbox.docker");
-  }
-
-  for (const entry of agents) {
-    if (!entry || typeof entry !== "object" || typeof entry.id !== "string") {
-      continue;
-    }
-    if (!hasConfiguredDockerConfig(entry.sandbox?.docker as Record<string, unknown> | undefined)) {
-      continue;
-    }
-    if (resolveSandboxConfigForAgent(cfg, entry.id).mode === "off") {
-      configuredPaths.push(`agents.list.${entry.id}.sandbox.docker`);
-    }
-  }
-
-  if (configuredPaths.length === 0) {
-    return findings;
-  }
-
-  findings.push({
-    checkId: "sandbox.docker_config_mode_off",
-    severity: "warn",
-    title: "Sandbox docker settings configured while sandbox mode is off",
-    detail:
-      "These docker settings will not take effect until sandbox mode is enabled:\n" +
-      configuredPaths.map((entry) => `- ${entry}`).join("\n"),
-    remediation:
-      'Enable sandbox mode (`agents.defaults.sandbox.mode="non-main"` or `"all"`) where needed, or remove unused docker settings.',
-  });
-
-  return findings;
-}
-
-export function collectSandboxDangerousConfigFindings(cfg: CrawClawConfig): SecurityAuditFinding[] {
-  const findings: SecurityAuditFinding[] = [];
-  const agents = Array.isArray(cfg.agents?.list) ? cfg.agents.list : [];
-
-  const configs: Array<{ source: string; docker: Record<string, unknown> }> = [];
-  const defaultDocker = cfg.agents?.defaults?.sandbox?.docker;
-  if (defaultDocker && typeof defaultDocker === "object") {
-    configs.push({
-      source: "agents.defaults.sandbox.docker",
-      docker: defaultDocker as Record<string, unknown>,
-    });
-  }
-  for (const entry of agents) {
-    if (!entry || typeof entry !== "object" || typeof entry.id !== "string") {
-      continue;
-    }
-    const agentDocker = entry.sandbox?.docker;
-    if (agentDocker && typeof agentDocker === "object") {
-      configs.push({
-        source: `agents.list.${entry.id}.sandbox.docker`,
-        docker: agentDocker as Record<string, unknown>,
-      });
-    }
-  }
-
-  for (const { source, docker } of configs) {
-    const binds = Array.isArray(docker.binds) ? docker.binds : [];
-    for (const bind of binds) {
-      if (typeof bind !== "string") {
-        continue;
-      }
-      const blocked = getBlockedBindReason(bind);
-      if (!blocked) {
-        continue;
-      }
-      if (blocked.kind === "non_absolute") {
-        findings.push({
-          checkId: "sandbox.bind_mount_non_absolute",
-          severity: "warn",
-          title: "Sandbox bind mount uses a non-absolute source path",
-          detail:
-            `${source}.binds contains "${bind}" which uses source path "${blocked.sourcePath}". ` +
-            "Non-absolute bind sources are hard to validate safely and may resolve unexpectedly.",
-          remediation: `Rewrite "${bind}" to use an absolute host path (for example: /home/user/project:/project:ro).`,
-        });
-        continue;
-      }
-      if (blocked.kind !== "covers" && blocked.kind !== "targets") {
-        continue;
-      }
-      const verb = blocked.kind === "covers" ? "covers" : "targets";
-      findings.push({
-        checkId: "sandbox.dangerous_bind_mount",
-        severity: "critical",
-        title: "Dangerous bind mount in sandbox config",
-        detail:
-          `${source}.binds contains "${bind}" which ${verb} blocked path "${blocked.blockedPath}". ` +
-          "This can expose host system directories or the Docker socket to sandbox containers.",
-        remediation: `Remove "${bind}" from ${source}.binds. Use project-specific paths instead.`,
-      });
-    }
-
-    const network = typeof docker.network === "string" ? docker.network : undefined;
-    const normalizedNetwork = normalizeNetworkMode(network);
-    if (isDangerousNetworkMode(network)) {
-      const modeLabel = normalizedNetwork === "host" ? '"host"' : `"${network}"`;
-      const detail =
-        normalizedNetwork === "host"
-          ? `${source}.network is "host" which bypasses container network isolation entirely.`
-          : `${source}.network is ${modeLabel} which joins another container namespace and can bypass sandbox network isolation.`;
-      findings.push({
-        checkId: "sandbox.dangerous_network_mode",
-        severity: "critical",
-        title: "Dangerous network mode in sandbox config",
-        detail,
-        remediation:
-          `Set ${source}.network to "bridge", "none", or a custom bridge network name.` +
-          ` Use ${source}.dangerouslyAllowContainerNamespaceJoin=true only as a break-glass override when you fully trust this runtime.`,
-      });
-    }
-
-    const seccompProfile =
-      typeof docker.seccompProfile === "string" ? docker.seccompProfile : undefined;
-    if (seccompProfile && seccompProfile.trim().toLowerCase() === "unconfined") {
-      findings.push({
-        checkId: "sandbox.dangerous_seccomp_profile",
-        severity: "critical",
-        title: "Seccomp unconfined in sandbox config",
-        detail: `${source}.seccompProfile is "unconfined" which disables syscall filtering.`,
-        remediation: `Remove ${source}.seccompProfile or use a custom seccomp profile file.`,
-      });
-    }
-
-    const apparmorProfile =
-      typeof docker.apparmorProfile === "string" ? docker.apparmorProfile : undefined;
-    if (apparmorProfile && apparmorProfile.trim().toLowerCase() === "unconfined") {
-      findings.push({
-        checkId: "sandbox.dangerous_apparmor_profile",
-        severity: "critical",
-        title: "AppArmor unconfined in sandbox config",
-        detail: `${source}.apparmorProfile is "unconfined" which disables AppArmor enforcement.`,
-        remediation: `Remove ${source}.apparmorProfile or use a named AppArmor profile.`,
-      });
-    }
-  }
-
-  const browserExposurePaths: string[] = [];
-  const defaultBrowser = resolveSandboxConfigForAgent(cfg).browser;
-  if (
-    defaultBrowser.enabled &&
-    defaultBrowser.network.trim().toLowerCase() === "bridge" &&
-    !defaultBrowser.cdpSourceRange?.trim()
-  ) {
-    browserExposurePaths.push("agents.defaults.sandbox.browser");
-  }
-  for (const entry of agents) {
-    if (!entry || typeof entry !== "object" || typeof entry.id !== "string") {
-      continue;
-    }
-    const browser = resolveSandboxConfigForAgent(cfg, entry.id).browser;
-    if (!browser.enabled) {
-      continue;
-    }
-    if (browser.network.trim().toLowerCase() !== "bridge") {
-      continue;
-    }
-    if (browser.cdpSourceRange?.trim()) {
-      continue;
-    }
-    browserExposurePaths.push(`agents.list.${entry.id}.sandbox.browser`);
-  }
-  if (browserExposurePaths.length > 0) {
-    findings.push({
-      checkId: "sandbox.browser_cdp_bridge_unrestricted",
-      severity: "warn",
-      title: "Sandbox browser CDP may be reachable by peer containers",
-      detail:
-        "These sandbox browser configs use Docker bridge networking with no CDP source restriction:\n" +
-        browserExposurePaths.map((entry) => `- ${entry}`).join("\n"),
-      remediation:
-        "Set sandbox.browser.network to a dedicated bridge network (recommended default: crawclaw-sandbox-browser), " +
-        "or set sandbox.browser.cdpSourceRange (for example 172.21.0.1/32) to restrict container-edge CDP ingress.",
-    });
-  }
-
-  return findings;
-}
-
-export function collectNodeDenyCommandPatternFindings(cfg: CrawClawConfig): SecurityAuditFinding[] {
-  const findings: SecurityAuditFinding[] = [];
-  const denyListRaw = cfg.gateway?.nodes?.denyCommands;
-  if (!Array.isArray(denyListRaw) || denyListRaw.length === 0) {
-    return findings;
-  }
-
-  const denyList = denyListRaw.map(normalizeNodeCommand).filter(Boolean);
-  if (denyList.length === 0) {
-    return findings;
-  }
-
-  const knownCommands = listKnownNodeCommands(cfg);
-  const patternLike = denyList.filter((entry) => looksLikeNodeCommandPattern(entry));
-  const unknownExact = denyList.filter(
-    (entry) => !looksLikeNodeCommandPattern(entry) && !knownCommands.has(entry),
-  );
-  if (patternLike.length === 0 && unknownExact.length === 0) {
-    return findings;
-  }
-
-  const detailParts: string[] = [];
-  if (patternLike.length > 0) {
-    detailParts.push(
-      `Pattern-like entries (not supported by exact matching): ${patternLike.join(", ")}`,
-    );
-  }
-  if (unknownExact.length > 0) {
-    const unknownDetails = unknownExact
-      .map((entry) => {
-        const suggestions = suggestKnownNodeCommands(entry, knownCommands);
-        if (suggestions.length === 0) {
-          return entry;
-        }
-        return `${entry} (did you mean: ${suggestions.join(", ")})`;
-      })
-      .join(", ");
-
-    detailParts.push(`Unknown command names (not in defaults/allowCommands): ${unknownDetails}`);
-  }
-  const examples = Array.from(knownCommands).slice(0, 8);
-
-  findings.push({
-    checkId: "gateway.nodes.deny_commands_ineffective",
-    severity: "warn",
-    title: "Some gateway.nodes.denyCommands entries are ineffective",
-    detail:
-      "gateway.nodes.denyCommands uses exact node command-name matching only (for example `system.run`), not shell-text filtering inside a command payload.\n" +
-      detailParts.map((entry) => `- ${entry}`).join("\n"),
-    remediation:
-      `Use exact command names (for example: ${examples.join(", ")}). ` +
-      "If you need broader restrictions, remove risky command IDs from allowCommands/default workflows and tighten tools.exec policy.",
-  });
-
-  return findings;
-}
-
-export function collectNodeDangerousAllowCommandFindings(
-  cfg: CrawClawConfig,
-): SecurityAuditFinding[] {
-  const findings: SecurityAuditFinding[] = [];
-  const allowRaw = cfg.gateway?.nodes?.allowCommands;
-  if (!Array.isArray(allowRaw) || allowRaw.length === 0) {
-    return findings;
-  }
-
-  const allow = new Set(allowRaw.map(normalizeNodeCommand).filter(Boolean));
-  if (allow.size === 0) {
-    return findings;
-  }
-
-  const deny = new Set((cfg.gateway?.nodes?.denyCommands ?? []).map(normalizeNodeCommand));
-  const dangerousAllowed = DEFAULT_DANGEROUS_NODE_COMMANDS.filter(
-    (cmd) => allow.has(cmd) && !deny.has(cmd),
-  );
-  if (dangerousAllowed.length === 0) {
-    return findings;
-  }
-
-  findings.push({
-    checkId: "gateway.nodes.allow_commands_dangerous",
-    severity: isGatewayRemotelyExposed(cfg) ? "critical" : "warn",
-    title: "Dangerous node commands explicitly enabled",
-    detail:
-      `gateway.nodes.allowCommands includes: ${dangerousAllowed.join(", ")}. ` +
-      "These commands can trigger high-impact device actions (camera/screen/contacts/calendar/reminders/SMS).",
-    remediation:
-      "Remove these entries from gateway.nodes.allowCommands (recommended). " +
-      "If you keep them, treat gateway auth as full operator access and keep gateway exposure local/tailnet-only.",
-  });
-
-  return findings;
-}
-
 export function collectMinimalProfileOverrideFindings(cfg: CrawClawConfig): SecurityAuditFinding[] {
   const findings: SecurityAuditFinding[] = [];
   if (cfg.tools?.profile !== "minimal") {
@@ -1221,7 +803,6 @@ export function collectSmallModelRiskFindings(params: {
   const exposureSet = new Set<string>();
   for (const entry of smallModels) {
     const agentId = extractAgentIdFromSource(entry.source);
-    const sandboxMode = resolveSandboxConfigForAgent(params.cfg, agentId ?? undefined).mode;
     const agentTools =
       agentId && params.cfg.agents?.list
         ? params.cfg.agents.list.find((agent) => agent?.id === agentId)?.tools
@@ -1229,8 +810,6 @@ export function collectSmallModelRiskFindings(params: {
     const policies = resolveToolPolicies({
       cfg: params.cfg,
       agentTools,
-      sandboxMode,
-      agentId,
     });
     const exposed: string[] = [];
     if (isWebSearchEnabled(params.cfg, params.env)) {
@@ -1251,15 +830,14 @@ export function collectSmallModelRiskFindings(params: {
     for (const tool of exposed) {
       exposureSet.add(tool);
     }
-    const sandboxLabel = sandboxMode === "all" ? "sandbox=all" : `sandbox=${sandboxMode}`;
     const exposureLabel = exposed.length > 0 ? ` web=[${exposed.join(", ")}]` : " web=[off]";
-    const safe = sandboxMode === "all" && exposed.length === 0;
+    const safe = exposed.length === 0;
     if (!safe) {
       hasUnsafe = true;
     }
     const statusLabel = safe ? "ok" : "unsafe";
     modelLines.push(
-      `- ${entry.id} (${entry.paramB}B) @ ${entry.source} (${statusLabel}; ${sandboxLabel};${exposureLabel})`,
+      `- ${entry.id} (${entry.paramB}B) @ ${entry.source} (${statusLabel};${exposureLabel})`,
     );
   }
 
@@ -1272,7 +850,7 @@ export function collectSmallModelRiskFindings(params: {
   findings.push({
     checkId: "models.small_params",
     severity: hasUnsafe ? "critical" : "info",
-    title: "Small models require sandboxing and web tools disabled",
+    title: "Small models require web tools disabled",
     detail:
       `Small models (<=${SMALL_MODEL_PARAM_B_MAX}B params) detected:\n` +
       modelLines.join("\n") +
@@ -1281,7 +859,7 @@ export function collectSmallModelRiskFindings(params: {
       `\n` +
       "Small models are not recommended for untrusted inputs.",
     remediation:
-      'If you must use small models, enable sandboxing for all sessions (agents.defaults.sandbox.mode="all") and disable web_search/web_fetch/browser (tools.deny=["group:web","browser"]).',
+      'If you must use small models, disable web_search/web_fetch/browser (tools.deny=["group:web","browser"]) and avoid exposing them to untrusted inputs.',
   });
 
   return findings;
@@ -1319,7 +897,7 @@ export function collectExposureMatrixFindings(cfg: CrawClawConfig): SecurityAudi
         `Risky tool exposure contexts:\n${riskyContexts.map((line) => `- ${line}`).join("\n")}\n` +
         "Prompt injection in open groups can trigger command/file actions in these contexts.",
       remediation:
-        'For open groups, prefer tools.profile="messaging" (or deny group:runtime/group:fs), set tools.fs.workspaceOnly=true, and use agents.defaults.sandbox.mode="all" for exposed agents.',
+        'For open groups, prefer tools.profile="messaging" (or deny group:runtime/group:fs) and set tools.fs.workspaceOnly=true for exposed agents.',
     });
   }
 
@@ -1335,7 +913,7 @@ export function collectLikelyMultiUserSetupFindings(cfg: CrawClawConfig): Securi
 
   const { riskyContexts, hasRuntimeRisk } = collectRiskyToolExposureContexts(cfg);
   const impactLine = hasRuntimeRisk
-    ? "Runtime/process tools are exposed without full sandboxing in at least one context."
+    ? "Runtime/process tools are exposed in at least one context."
     : "No unguarded runtime/process tools were detected by this heuristic.";
   const riskyContextsDetail =
     riskyContexts.length > 0
@@ -1352,7 +930,7 @@ export function collectLikelyMultiUserSetupFindings(cfg: CrawClawConfig): Securi
       `\n${impactLine}\n${riskyContextsDetail}\n` +
       "CrawClaw's default security model is personal-assistant (one trusted operator boundary), not hostile multi-tenant isolation on one shared gateway.",
     remediation:
-      'If users may be mutually untrusted, split trust boundaries (separate gateways + credentials, ideally separate OS users/hosts). If you intentionally run shared-user access, set agents.defaults.sandbox.mode="all", keep tools.fs.workspaceOnly=true, deny runtime/fs/web tools unless required, and keep personal/private identities + credentials off that runtime.',
+      "If users may be mutually untrusted, split trust boundaries (separate gateways + credentials, ideally separate OS users/hosts). If you intentionally run shared-user access, keep tools.fs.workspaceOnly=true, deny runtime/fs/web tools unless required, and keep personal/private identities + credentials off that runtime.",
   });
 
   return findings;

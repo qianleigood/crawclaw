@@ -3,11 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { getModel } from "@mariozechner/pi-ai";
 import { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
-import OpenAI from "openai";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { encodePngRgba, fillPixel } from "crawclaw/plugin-sdk/media-runtime";
 import type { ResolvedTtsConfig } from "crawclaw/plugin-sdk/speech-runtime";
+import OpenAI from "openai";
 import { describe, expect, it } from "vitest";
 import {
   registerProviderPlugin,

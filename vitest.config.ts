@@ -201,8 +201,7 @@ export default defineConfig({
         "src/gateway/call.ts",
         "src/process/tau-rpc.ts",
         "src/process/exec.ts",
-        // Interactive UIs/flows are intentionally validated via manual/e2e runs.
-        "src/tui/**",
+        // Interactive flows are intentionally validated via manual/e2e runs.
         "src/wizard/**",
         // Channel surfaces are largely integration-tested (or manually validated).
         "src/browser/**",

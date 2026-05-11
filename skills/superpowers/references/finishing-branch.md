@@ -83,6 +83,7 @@ Report: "Keeping branch `<name>`. You can return to it later."
 ### Option 4: Discard
 
 **Confirm first:**
+
 ```
 This will permanently delete:
 - Branch <name>
@@ -92,6 +93,7 @@ Type 'discard' to confirm.
 ```
 
 Wait for exact word "discard". Then:
+
 ```bash
 git checkout <base-branch>
 git branch -D <feature-branch>
@@ -99,12 +101,12 @@ git branch -D <feature-branch>
 
 ## Quick Reference
 
-| Option | Merge | Push | Keep Branch | Delete Branch |
-|--------|-------|------|-------------|---------------|
-| 1. Merge locally | ✓ | — | — | ✓ |
-| 2. Create PR | — | ✓ | ✓ | — |
-| 3. Keep as-is | — | — | ✓ | — |
-| 4. Discard | — | — | — | ✓ (force) |
+| Option           | Merge | Push | Keep Branch | Delete Branch |
+| ---------------- | ----- | ---- | ----------- | ------------- |
+| 1. Merge locally | ✓     | —    | —           | ✓             |
+| 2. Create PR     | —     | ✓    | ✓           | —             |
+| 3. Keep as-is    | —     | —    | ✓           | —             |
+| 4. Discard       | —     | —    | —           | ✓ (force)     |
 
 ## Common Mistakes
 

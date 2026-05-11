@@ -13,7 +13,6 @@ import {
   resolveXaiModelCompatPatch,
   shouldContributeXaiCompat,
 } from "./api.js";
-import { createCodeExecutionTool } from "./code-execution.js";
 import { applyXaiConfig, XAI_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildXaiProvider } from "./provider-catalog.js";
 import { isModernXaiModel, resolveXaiForwardCompatModel } from "./provider-models.js";
@@ -22,7 +21,6 @@ import {
   createXaiToolCallArgumentDecodingWrapper,
   createXaiToolPayloadCompatibilityWrapper,
 } from "./stream.js";
-import { createXSearchTool } from "./x-search.js";
 
 const PROVIDER_ID = "xai";
 
@@ -144,23 +142,5 @@ export default defineSingleProviderPluginEntry({
     normalizeModelId: ({ modelId }) => normalizeXaiModelId(modelId),
     resolveDynamicModel: (ctx) => resolveXaiForwardCompatModel({ providerId: PROVIDER_ID, ctx }),
     isModernModelRef: ({ modelId }) => isModernXaiModel(modelId),
-  },
-  register(api) {
-    api.registerTool(
-      (ctx) =>
-        createCodeExecutionTool({
-          config: ctx.config,
-          runtimeConfig: ctx.runtimeConfig,
-        }),
-      { name: "code_execution" },
-    );
-    api.registerTool(
-      (ctx) =>
-        createXSearchTool({
-          config: ctx.config,
-          runtimeConfig: ctx.runtimeConfig,
-        }),
-      { name: "x_search" },
-    );
   },
 });

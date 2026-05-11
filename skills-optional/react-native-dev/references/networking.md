@@ -56,7 +56,11 @@ export default function RootLayout() {
 
 ```tsx
 function TaskList({ projectId }: { projectId: string }) {
-  const { data: tasks, isPending, error } = useQuery({
+  const {
+    data: tasks,
+    isPending,
+    error,
+  } = useQuery({
     queryKey: ["projects", projectId, "tasks"],
     queryFn: () => api.get<Task[]>(`/projects/${projectId}/tasks`),
   });

@@ -4,10 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { buildHarnessReport } from "../agents/harness/report.js";
 import { getBuiltinHarnessScenarios } from "../agents/harness/scenario-runner.js";
 import { withTempDir } from "../test-helpers/temp-dir.js";
-import {
-  agentsHarnessPromoteCheckCommand,
-  agentsHarnessReportCommand,
-} from "./agents.harness.js";
+import { agentsHarnessPromoteCheckCommand, agentsHarnessReportCommand } from "./agents.harness.js";
 
 function createRuntime() {
   return {

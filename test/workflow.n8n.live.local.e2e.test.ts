@@ -22,7 +22,7 @@ const POLL_MS = 500;
 const LIVE_N8N_BASE_URL = process.env.CRAWCLAW_N8N_BASE_URL?.trim();
 const LIVE_N8N_API_KEY = process.env.CRAWCLAW_N8N_API_KEY?.trim();
 const LIVE_GATEWAY_TOKEN = process.env.CRAWCLAW_GATEWAY_TOKEN?.trim();
-const LIVE_CALLBACK_HOST = process.env.CRAWCLAW_N8N_CALLBACK_HOST?.trim() || "host.docker.internal";
+const LIVE_CALLBACK_HOST = process.env.CRAWCLAW_N8N_CALLBACK_HOST?.trim() || "127.0.0.1";
 
 function checkpoint(label: string, extra?: unknown) {
   const suffix = extra === undefined ? "" : ` ${JSON.stringify(extra)}`;

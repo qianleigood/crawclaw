@@ -4,13 +4,12 @@ import { enableCompileCache } from "node:module";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { isRootHelpInvocation, isRootVersionInvocation } from "./cli/argv.js";
-import { parseCliContainerArgs, resolveCliContainerTarget } from "./cli/container-target.js";
 import { applyCliProfileEnv, parseCliProfileArgs } from "./cli/profile.js";
 import { normalizeWindowsArgv } from "./cli/windows-argv.js";
 import { buildCliRespawnPlan } from "./entry.respawn.js";
+import { ensureCrawClawExecMarkerOnProcess } from "./infra/crawclaw-exec-env.js";
 import { isTruthyEnvValue, normalizeEnv } from "./infra/env.js";
 import { isMainModule } from "./infra/is-main.js";
-import { ensureCrawClawExecMarkerOnProcess } from "./infra/crawclaw-exec-env.js";
 import { installProcessWarningFilter } from "./infra/warning-filter.js";
 import { attachChildProcessBridge } from "./process/child-process-bridge.js";
 
@@ -101,9 +100,6 @@ if (
   }
 
   function tryHandleRootVersionFastPath(argv: string[]): boolean {
-    if (resolveCliContainerTarget(argv)) {
-      return false;
-    }
     if (!isRootVersionInvocation(argv)) {
       return false;
     }
@@ -126,22 +122,10 @@ if (
   process.argv = normalizeWindowsArgv(process.argv);
 
   if (!ensureCliRespawnReady()) {
-    const parsedContainer = parseCliContainerArgs(process.argv);
-    if (!parsedContainer.ok) {
-      console.error(`[crawclaw] ${parsedContainer.error}`);
-      process.exit(2);
-    }
-
-    const parsed = parseCliProfileArgs(parsedContainer.argv);
+    const parsed = parseCliProfileArgs(process.argv);
     if (!parsed.ok) {
       // Keep it simple; Commander will handle rich help/errors after we strip flags.
       console.error(`[crawclaw] ${parsed.error}`);
-      process.exit(2);
-    }
-
-    const containerTargetName = resolveCliContainerTarget(process.argv);
-    if (containerTargetName && parsed.profile) {
-      console.error("[crawclaw] --container cannot be combined with --profile/--dev");
       process.exit(2);
     }
 
@@ -162,12 +146,8 @@ export function tryHandleRootHelpFastPath(
   deps: {
     outputRootHelp?: () => void | Promise<void>;
     onError?: (error: unknown) => void;
-    env?: NodeJS.ProcessEnv;
   } = {},
 ): boolean {
-  if (resolveCliContainerTarget(argv, deps.env)) {
-    return false;
-  }
   if (!isRootHelpInvocation(argv)) {
     return false;
   }

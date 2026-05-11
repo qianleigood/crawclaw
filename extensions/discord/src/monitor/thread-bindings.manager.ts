@@ -1,4 +1,3 @@
-import { Routes } from "discord-api-types/v10";
 import { getRuntimeConfigSnapshot, type CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
   registerSessionBindingAdapter,
@@ -10,6 +9,7 @@ import {
 } from "crawclaw/plugin-sdk/conversation-runtime";
 import { normalizeAccountId, resolveAgentIdFromSessionKey } from "crawclaw/plugin-sdk/routing";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
+import { Routes } from "discord-api-types/v10";
 import { createDiscordRestClient } from "../client.js";
 import {
   createThreadForBinding,

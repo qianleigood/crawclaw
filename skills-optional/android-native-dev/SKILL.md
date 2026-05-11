@@ -17,17 +17,22 @@ metadata:
 ## Core workflow
 
 ### 1. Assess project state
+
 Figure out whether the project is:
+
 - empty
 - already using Gradle wrapper
 - an Android Studio project that still needs wrapper / config cleanup
 - partially configured or broken
 
 ### 2. Stabilize the build first
+
 Before business logic, ensure the equivalent of `assembleDebug` can succeed.
 
 ### 3. Implement with the right layer in mind
+
 Route your work between:
+
 - project / Gradle setup
 - Kotlin and coroutine logic
 - Jetpack Compose UI
@@ -36,7 +41,9 @@ Route your work between:
 - quality / testing
 
 ### 4. Verify before handoff
+
 Check:
+
 - build success
 - important warnings and errors
 - test coverage at the correct layer
@@ -45,21 +52,27 @@ Check:
 ## Reference routing
 
 ### Project setup
+
 Read `references/project-setup.md` when you need:
+
 - Gradle / wrapper readiness
 - baseline Android project files
 - product flavors and build variants
 - configuration bootstrap
 
 ### Kotlin and Compose
+
 Read `references/kotlin-compose-standards.md` when you need:
+
 - Kotlin code standards
 - null safety / coroutines / lifecycle rules
 - Compose state and UI guidance
 - Material Design 3 alignment
 
 ### Build, testing, and quality
+
 Read `references/build-and-quality.md` when you need:
+
 - build error diagnosis
 - Android quality checks
 - testing strategy

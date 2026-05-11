@@ -136,7 +136,6 @@ describe("sessions_spawn tool", () => {
   it("forwards ACP sandbox options and requester sandbox context", async () => {
     const tool = createSessionsSpawnTool({
       agentSessionKey: "agent:main:subagent:parent",
-      sandboxed: true,
     });
 
     await tool.execute("call-2b", {
@@ -154,7 +153,6 @@ describe("sessions_spawn tool", () => {
       }),
       expect.objectContaining({
         agentSessionKey: "agent:main:subagent:parent",
-        sandboxed: true,
       }),
     );
   });

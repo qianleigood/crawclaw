@@ -3,10 +3,7 @@ import os from "node:os";
 import path from "node:path";
 import { resolveOAuthDir, resolveStateDir } from "./config/paths.js";
 import { logVerbose, shouldLogVerbose } from "./globals.js";
-import {
-  resolveEffectiveHomeDir,
-  resolveHomeRelativePath,
-} from "./infra/home-dir.js";
+import { resolveEffectiveHomeDir, resolveHomeRelativePath } from "./infra/home-dir.js";
 import { isPlainObject } from "./infra/plain-object.js";
 import { formatTerminalLink } from "./terminal/terminal-link.js";
 

@@ -37,9 +37,6 @@ vi.mock("./tools/canvas-tool.js", () => ({
 vi.mock("./tools/cron-tool.js", () => ({
   createCronTool: mockToolFactory("cron_stub"),
 }));
-vi.mock("./tools/gateway-tool.js", () => ({
-  createGatewayTool: mockToolFactory("gateway_stub"),
-}));
 vi.mock("./tools/image-tool.js", () => ({
   createImageTool: mockToolFactory("image_stub"),
 }));
@@ -85,7 +82,6 @@ let createWebFetchTool: typeof import("./tools/web-tools.js").createWebFetchTool
 function requireWebSearchTool(config: CrawClawConfig, runtimeWebSearch?: RuntimeWebSearchMetadata) {
   const tool = createWebSearchTool({
     config,
-    sandboxed: true,
     runtimeWebSearch,
   });
   expect(tool).toBeDefined();
@@ -98,7 +94,6 @@ function requireWebSearchTool(config: CrawClawConfig, runtimeWebSearch?: Runtime
 function requireWebFetchTool(config: CrawClawConfig, runtimeWebFetch?: RuntimeWebFetchMetadata) {
   const tool = createWebFetchTool({
     config,
-    sandboxed: true,
     runtimeWebFetch,
   });
   expect(tool).toBeDefined();

@@ -1,8 +1,10 @@
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import process from "node:process";
-import { resolveWindowsCommandShim } from "crawclaw/plugin-sdk/process-runtime";
-import { runPluginCommandWithTimeout } from "crawclaw/plugin-sdk/sandbox";
+import {
+  resolveWindowsCommandShim,
+  runPluginCommandWithTimeout,
+} from "crawclaw/plugin-sdk/process-runtime";
 import type { FeishuCliPluginConfig } from "./config.js";
 
 export type FeishuCliStatus = {

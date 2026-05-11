@@ -39,19 +39,19 @@ class _ImplicitAnimationExampleState extends State<ImplicitAnimationExample> {
 
 ### Common Implicit Widgets
 
-| Widget | Animates |
-|--------|----------|
-| `AnimatedContainer` | Size, color, padding, decoration |
-| `AnimatedOpacity` | Opacity |
-| `AnimatedPadding` | Padding |
-| `AnimatedPositioned` | Position in Stack |
-| `AnimatedAlign` | Alignment |
-| `AnimatedCrossFade` | Cross-fade between two widgets |
-| `AnimatedSwitcher` | Transition between child widgets |
-| `AnimatedDefaultTextStyle` | Text style |
-| `AnimatedScale` | Scale transform |
-| `AnimatedRotation` | Rotation transform |
-| `AnimatedSlide` | Slide offset |
+| Widget                     | Animates                         |
+| -------------------------- | -------------------------------- |
+| `AnimatedContainer`        | Size, color, padding, decoration |
+| `AnimatedOpacity`          | Opacity                          |
+| `AnimatedPadding`          | Padding                          |
+| `AnimatedPositioned`       | Position in Stack                |
+| `AnimatedAlign`            | Alignment                        |
+| `AnimatedCrossFade`        | Cross-fade between two widgets   |
+| `AnimatedSwitcher`         | Transition between child widgets |
+| `AnimatedDefaultTextStyle` | Text style                       |
+| `AnimatedScale`            | Scale transform                  |
+| `AnimatedRotation`         | Rotation transform               |
+| `AnimatedSlide`            | Slide offset                     |
 
 ### AnimatedSwitcher
 
@@ -437,15 +437,15 @@ GoRoute(
 
 ## Common Curves
 
-| Curve | Usage |
-|-------|-------|
-| `Curves.easeInOut` | General purpose (default) |
-| `Curves.easeOut` | Deceleration (entering) |
-| `Curves.easeIn` | Acceleration (exiting) |
-| `Curves.elasticOut` | Bouncy effect |
-| `Curves.bounceOut` | Bounce at end |
-| `Curves.fastOutSlowIn` | Material standard |
-| `Curves.easeOutCubic` | Smooth deceleration |
+| Curve                  | Usage                     |
+| ---------------------- | ------------------------- |
+| `Curves.easeInOut`     | General purpose (default) |
+| `Curves.easeOut`       | Deceleration (entering)   |
+| `Curves.easeIn`        | Acceleration (exiting)    |
+| `Curves.elasticOut`    | Bouncy effect             |
+| `Curves.bounceOut`     | Bounce at end             |
+| `Curves.fastOutSlowIn` | Material standard         |
+| `Curves.easeOutCubic`  | Smooth deceleration       |
 
 ## Animation Performance
 
@@ -473,25 +473,25 @@ class PerformantAnimation extends StatelessWidget {
 
 ### Performance Tips
 
-| Tip | Implementation |
-|-----|----------------|
-| Use `child` parameter | Pass static content to `child` in `AnimatedBuilder` |
-| `RepaintBoundary` | Isolate animated widgets |
-| Avoid `Opacity` widget | Use `FadeTransition` instead |
-| Prefer transforms | `Transform` is cheaper than layout changes |
-| Pre-compute values | Calculate in `initState`, not `build` |
+| Tip                    | Implementation                                      |
+| ---------------------- | --------------------------------------------------- |
+| Use `child` parameter  | Pass static content to `child` in `AnimatedBuilder` |
+| `RepaintBoundary`      | Isolate animated widgets                            |
+| Avoid `Opacity` widget | Use `FadeTransition` instead                        |
+| Prefer transforms      | `Transform` is cheaper than layout changes          |
+| Pre-compute values     | Calculate in `initState`, not `build`               |
 
 ## Animation Checklist
 
-| Item | Implementation |
-|------|----------------|
-| Simple animations | Use implicit widgets |
-| Complex sequences | Use `AnimationController` |
-| Widget transitions | `AnimatedSwitcher` with key |
-| Cross-page elements | `Hero` with unique tags |
-| Page transitions | `CustomTransitionPage` |
-| Performance | `RepaintBoundary` + `child` parameter |
+| Item                | Implementation                        |
+| ------------------- | ------------------------------------- |
+| Simple animations   | Use implicit widgets                  |
+| Complex sequences   | Use `AnimationController`             |
+| Widget transitions  | `AnimatedSwitcher` with key           |
+| Cross-page elements | `Hero` with unique tags               |
+| Page transitions    | `CustomTransitionPage`                |
+| Performance         | `RepaintBoundary` + `child` parameter |
 
 ---
 
-*Flutter and Material Design are trademarks of Google LLC.*
+_Flutter and Material Design are trademarks of Google LLC._

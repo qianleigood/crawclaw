@@ -1,5 +1,5 @@
-import { Routes } from "discord-api-types/v10";
 import { loadWebMediaRaw } from "crawclaw/plugin-sdk/web-media";
+import { Routes } from "discord-api-types/v10";
 import { normalizeEmojiName, resolveDiscordRest } from "./send.shared.js";
 import type { DiscordEmojiUpload, DiscordReactOpts, DiscordStickerUpload } from "./send.types.js";
 import { DISCORD_MAX_EMOJI_BYTES, DISCORD_MAX_STICKER_BYTES } from "./send.types.js";

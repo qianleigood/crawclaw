@@ -1,13 +1,12 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const {
-  buildTimelineAdjustmentPlan,
-  evaluateTimelineAdjustment,
-} = require('../grok_video_extend');
+const { buildTimelineAdjustmentPlan, evaluateTimelineAdjustment } = require("../grok_video_extend");
 
 function assert(condition, message) {
-  if (!condition) {throw new Error(message);}
+  if (!condition) {
+    throw new Error(message);
+  }
 }
 
 function makeProbe({ startPct, endPct, handleSelectors = true } = {}) {
@@ -15,7 +14,7 @@ function makeProbe({ startPct, endPct, handleSelectors = true } = {}) {
     detected: true,
     currentSelection: {
       detected: true,
-      source: 'handles',
+      source: "handles",
       startPct,
       endPct,
     },
@@ -26,17 +25,19 @@ function makeProbe({ startPct, endPct, handleSelectors = true } = {}) {
       },
       selection: {
         detected: true,
-        source: 'handles',
+        source: "handles",
         startPct,
         endPct,
       },
-      handles: handleSelectors ? {
-        start: { selector: '[data-crawclaw-timeline-handle="0"]', positionPct: startPct },
-        end: { selector: '[data-crawclaw-timeline-handle="1"]', positionPct: endPct },
-      } : {
-        start: null,
-        end: null,
-      },
+      handles: handleSelectors
+        ? {
+            start: { selector: '[data-crawclaw-timeline-handle="0"]', positionPct: startPct },
+            end: { selector: '[data-crawclaw-timeline-handle="1"]', positionPct: endPct },
+          }
+        : {
+            start: null,
+            end: null,
+          },
       rangeInputs: {
         start: null,
         end: null,
@@ -47,67 +48,97 @@ function makeProbe({ startPct, endPct, handleSelectors = true } = {}) {
 
 const planFixtures = [
   {
-    name: 'builds handle drag plan with real target deltas',
+    name: "builds handle drag plan with real target deltas",
     probe: makeProbe({ startPct: 18, endPct: 74 }),
-    request: { requested: true, valid: true, targetStartPct: 12, targetEndPct: 88, tolerancePct: 3 },
+    request: {
+      requested: true,
+      valid: true,
+      targetStartPct: 12,
+      targetEndPct: 88,
+      tolerancePct: 3,
+    },
     check(plan) {
-      assert(plan.ok === true, 'plan should be available');
-      assert(plan.mode === 'handle_drag', 'plan should choose handle drag');
-      assert(plan.actions.length === 2, 'plan should drag both boundaries');
-      assert(plan.actions[0].edge === 'start' && plan.actions[0].direction === 'decrease', 'start edge should move left');
-      assert(plan.actions[1].edge === 'end' && plan.actions[1].direction === 'increase', 'end edge should move right');
+      assert(plan.ok === true, "plan should be available");
+      assert(plan.mode === "handle_drag", "plan should choose handle drag");
+      assert(plan.actions.length === 2, "plan should drag both boundaries");
+      assert(
+        plan.actions[0].edge === "start" && plan.actions[0].direction === "decrease",
+        "start edge should move left",
+      );
+      assert(
+        plan.actions[1].edge === "end" && plan.actions[1].direction === "increase",
+        "end edge should move right",
+      );
     },
   },
   {
-    name: 'fails planning when controls are unresolved',
+    name: "fails planning when controls are unresolved",
     probe: makeProbe({ startPct: 18, endPct: 74, handleSelectors: false }),
-    request: { requested: true, valid: true, targetStartPct: 10, targetEndPct: 80, tolerancePct: 3 },
+    request: {
+      requested: true,
+      valid: true,
+      targetStartPct: 10,
+      targetEndPct: 80,
+      tolerancePct: 3,
+    },
     check(plan) {
-      assert(plan.ok === false, 'plan should fail without controls');
-      assert(plan.reasons.includes('boundary_controls_unresolved'), 'unresolved controls should be explicit');
+      assert(plan.ok === false, "plan should fail without controls");
+      assert(
+        plan.reasons.includes("boundary_controls_unresolved"),
+        "unresolved controls should be explicit",
+      );
     },
   },
 ];
 
 const evaluationFixtures = [
   {
-    name: 'validation accepts target hit within tolerance',
+    name: "validation accepts target hit within tolerance",
     request: { requested: true, targetStartPct: 12, targetEndPct: 88, tolerancePct: 3 },
     beforeProbe: makeProbe({ startPct: 18, endPct: 74 }),
     afterProbe: makeProbe({ startPct: 12.8, endPct: 87.2 }),
     check(result) {
-      assert(result.outcome === 'success', 'within tolerance should succeed');
-      assert(result.achieved === true, 'achieved should be true');
+      assert(result.outcome === "success", "within tolerance should succeed");
+      assert(result.achieved === true, "achieved should be true");
     },
   },
   {
-    name: 'validation rejects no change',
+    name: "validation rejects no change",
     request: { requested: true, targetStartPct: 12, targetEndPct: 88, tolerancePct: 3 },
     beforeProbe: makeProbe({ startPct: 18, endPct: 74 }),
     afterProbe: makeProbe({ startPct: 18, endPct: 74 }),
     check(result) {
-      assert(result.outcome === 'failed', 'no change should fail');
-      assert(result.failureReason === 'selection_did_not_change', 'failure reason should be explicit');
+      assert(result.outcome === "failed", "no change should fail");
+      assert(
+        result.failureReason === "selection_did_not_change",
+        "failure reason should be explicit",
+      );
     },
   },
   {
-    name: 'validation rejects wrong direction',
+    name: "validation rejects wrong direction",
     request: { requested: true, targetStartPct: 12, targetEndPct: 88, tolerancePct: 3 },
     beforeProbe: makeProbe({ startPct: 18, endPct: 74 }),
     afterProbe: makeProbe({ startPct: 24, endPct: 68 }),
     check(result) {
-      assert(result.outcome === 'failed', 'wrong direction should fail');
-      assert(result.failureReason === 'selection_changed_in_wrong_direction', 'wrong direction reason should be explicit');
+      assert(result.outcome === "failed", "wrong direction should fail");
+      assert(
+        result.failureReason === "selection_changed_in_wrong_direction",
+        "wrong direction reason should be explicit",
+      );
     },
   },
   {
-    name: 'validation distinguishes credible change without target hit',
+    name: "validation distinguishes credible change without target hit",
     request: { requested: true, targetStartPct: 12, targetEndPct: 88, tolerancePct: 3 },
     beforeProbe: makeProbe({ startPct: 18, endPct: 74 }),
     afterProbe: makeProbe({ startPct: 15, endPct: 81 }),
     check(result) {
-      assert(result.outcome === 'changed_but_not_achieved', 'partial but credible move should stay unresolved for submit');
-      assert(result.credibleChange === true, 'credible change should be surfaced');
+      assert(
+        result.outcome === "changed_but_not_achieved",
+        "partial but credible move should stay unresolved for submit",
+      );
+      assert(result.credibleChange === true, "credible change should be surfaced");
     },
   },
 ];

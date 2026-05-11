@@ -22,7 +22,7 @@ import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-pay
 import type { ReplyPayload } from "crawclaw/plugin-sdk/reply-runtime";
 import { redactSensitiveText } from "crawclaw/plugin-sdk/runtime-env";
 import { isVerbose, logVerbose } from "crawclaw/plugin-sdk/runtime-env";
-import { resolvePreferredCrawClawTmpDir } from "crawclaw/plugin-sdk/sandbox";
+import { resolvePreferredCrawClawTmpDir } from "crawclaw/plugin-sdk/temp-path";
 import { CONFIG_DIR, resolveUserPath, stripMarkdown } from "crawclaw/plugin-sdk/text-runtime";
 import {
   canonicalizeSpeechProviderId,

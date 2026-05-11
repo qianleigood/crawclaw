@@ -1,10 +1,10 @@
 import type { ChannelType, Client, Message } from "@buape/carbon";
-import { StickerFormatType, type APIAttachment, type APIStickerItem } from "discord-api-types/v10";
 import { fetchRemoteMedia, type FetchLike } from "crawclaw/plugin-sdk/media-runtime";
 import { saveMediaBuffer } from "crawclaw/plugin-sdk/media-runtime";
 import { buildMediaPayload } from "crawclaw/plugin-sdk/reply-payload";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import type { SsrFPolicy } from "crawclaw/plugin-sdk/ssrf-runtime";
+import { StickerFormatType, type APIAttachment, type APIStickerItem } from "discord-api-types/v10";
 import { mergeAbortSignals } from "./timeouts.js";
 
 const DISCORD_CDN_HOSTNAMES = [

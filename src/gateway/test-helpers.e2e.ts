@@ -37,7 +37,7 @@ export async function connectGatewayClient(params: {
   mode?: GatewayClientMode;
   platform?: string;
   deviceFamily?: string;
-  role?: "operator" | "node";
+  role?: "operator";
   scopes?: string[];
   caps?: string[];
   commands?: string[];

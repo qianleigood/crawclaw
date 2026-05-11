@@ -1,6 +1,6 @@
-import { ChannelType, Routes } from "discord-api-types/v10";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
+import { ChannelType, Routes } from "discord-api-types/v10";
 import { createDiscordRestClient } from "../client.js";
 import { sendMessageDiscord, sendWebhookMessageDiscord } from "../send.js";
 import { createThreadDiscord } from "../send.messages.js";

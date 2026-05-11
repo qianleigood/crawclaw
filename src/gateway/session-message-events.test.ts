@@ -161,12 +161,12 @@ describe("session.message websocket events", () => {
     try {
       const subscribedWs = await harness.openWs();
       const unsubscribedWs = await harness.openWs();
-      const nodeWs = await harness.openWs();
+      const unscopedWs = await harness.openWs();
       try {
         await connectOk(subscribedWs, { scopes: ["operator.read"] });
         await rpcReq(subscribedWs, "sessions.subscribe");
         await connectOk(unsubscribedWs, { scopes: ["operator.read"] });
-        await connectOk(nodeWs, { role: "node", scopes: [] });
+        await connectOk(unscopedWs, { scopes: [] });
 
         const subscribedEvent = onceMessage(
           subscribedWs,
@@ -194,7 +194,7 @@ describe("session.message websocket events", () => {
         await expectNoMessageWithin({
           watch: () =>
             onceMessage(
-              nodeWs,
+              unscopedWs,
               (message) => message.type === "event" && message.event === "session.message",
               300,
             ),
@@ -202,7 +202,7 @@ describe("session.message websocket events", () => {
       } finally {
         subscribedWs.close();
         unsubscribedWs.close();
-        nodeWs.close();
+        unscopedWs.close();
       }
     } finally {
       await harness.close();

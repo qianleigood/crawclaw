@@ -36,9 +36,11 @@ export function formatChannelStreamingDecisionReason(
   }
 }
 
-export function formatChannelStreamingDecision(params: ChannelStreamingDecision & {
-  renderMode?: string | undefined;
-}): string {
+export function formatChannelStreamingDecision(
+  params: ChannelStreamingDecision & {
+    renderMode?: string | undefined;
+  },
+): string {
   if (params.enabled) {
     return `enabled via ${params.surface}`;
   }

@@ -68,17 +68,15 @@ function resetLocalSnapshot() {
 }
 
 vi.mock("./gateway-rpc.js", () => ({
+  addGatewayClientOptions: (cmd: Command) =>
+    cmd
+      .option("--url <url>", "Gateway URL")
+      .option("--token <token>", "Gateway token")
+      .option("--timeout <ms>", "Timeout", "30000")
+      .option("--expect-final", "Expect final", false),
   callGatewayFromCli: (method: string, opts: unknown, params?: unknown) =>
     mocks.callGatewayFromCli(method, opts, params),
 }));
-
-vi.mock("./nodes-cli/rpc.js", async () => {
-  const actual = await vi.importActual<typeof import("./nodes-cli/rpc.js")>("./nodes-cli/rpc.js");
-  return {
-    ...actual,
-    resolveNodeId: vi.fn(async () => "node-1"),
-  };
-});
 
 vi.mock("../runtime.js", () => ({
   defaultRuntime: mocks.defaultRuntime,
@@ -128,7 +126,7 @@ describe("exec approvals CLI", () => {
     defaultRuntime.exit.mockClear();
   });
 
-  it("routes get command to local, gateway, and node modes", async () => {
+  it("routes get command to local and gateway modes", async () => {
     await runApprovalsCommand(["approvals", "get"]);
 
     expect(callGatewayFromCli).not.toHaveBeenCalled();
@@ -145,15 +143,6 @@ describe("exec approvals CLI", () => {
       {},
     );
     expect(callGatewayFromCli).toHaveBeenNthCalledWith(2, "config.get", expect.anything(), {});
-    expect(runtimeErrors).toHaveLength(0);
-    callGatewayFromCli.mockClear();
-
-    await runApprovalsCommand(["approvals", "get", "--node", "macbook"]);
-
-    expect(callGatewayFromCli).toHaveBeenCalledWith("exec.approvals.node.get", expect.anything(), {
-      nodeId: "node-1",
-    });
-    expect(callGatewayFromCli).toHaveBeenCalledWith("config.get", expect.anything(), {});
     expect(runtimeErrors).toHaveLength(0);
   });
 
@@ -252,68 +241,6 @@ describe("exec approvals CLI", () => {
     );
   });
 
-  it("adds combined node effective policy to json output", async () => {
-    callGatewayFromCli.mockImplementation(
-      async (method: string, _opts: unknown, params?: unknown) => {
-        if (method === "config.get") {
-          return {
-            config: {
-              tools: {
-                exec: {
-                  security: "full",
-                  ask: "off",
-                },
-              },
-            },
-          };
-        }
-        if (method === "exec.approvals.node.get") {
-          return {
-            path: "/tmp/node-exec-approvals.json",
-            exists: true,
-            hash: "hash-node-1",
-            file: {
-              version: 1,
-              defaults: { security: "allowlist", ask: "always", askFallback: "deny" },
-              agents: {},
-            },
-          };
-        }
-        return { method, params };
-      },
-    );
-
-    await runApprovalsCommand(["approvals", "get", "--node", "macbook", "--json"]);
-
-    expect(defaultRuntime.writeJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        effectivePolicy: {
-          note: "Effective exec policy is the node host approvals file intersected with gateway tools.exec policy.",
-          scopes: [
-            expect.objectContaining({
-              scopeLabel: "tools.exec",
-              security: expect.objectContaining({
-                requested: "full",
-                host: "allowlist",
-                effective: "allowlist",
-              }),
-              ask: expect.objectContaining({
-                requested: "off",
-                host: "always",
-                effective: "always",
-              }),
-              askFallback: expect.objectContaining({
-                effective: "deny",
-                source: "/tmp/node-exec-approvals.json defaults.askFallback",
-              }),
-            }),
-          ],
-        },
-      }),
-      0,
-    );
-  });
-
   it("keeps gateway approvals output when config.get fails", async () => {
     callGatewayFromCli.mockImplementation(
       async (method: string, _opts: unknown, params?: unknown) => {
@@ -338,38 +265,6 @@ describe("exec approvals CLI", () => {
       expect.objectContaining({
         effectivePolicy: {
           note: "Config unavailable.",
-          scopes: [],
-        },
-      }),
-      0,
-    );
-    expect(runtimeErrors).toHaveLength(0);
-  });
-
-  it("keeps node approvals output when gateway config is unavailable", async () => {
-    callGatewayFromCli.mockImplementation(
-      async (method: string, _opts: unknown, params?: unknown) => {
-        if (method === "config.get") {
-          throw new Error("gateway config unavailable");
-        }
-        if (method === "exec.approvals.node.get") {
-          return {
-            path: "/tmp/node-exec-approvals.json",
-            exists: true,
-            hash: "hash-node-1",
-            file: { version: 1, agents: {} },
-          };
-        }
-        return { method, params };
-      },
-    );
-
-    await runApprovalsCommand(["approvals", "get", "--node", "macbook", "--json"]);
-
-    expect(defaultRuntime.writeJson).toHaveBeenCalledWith(
-      expect.objectContaining({
-        effectivePolicy: {
-          note: "Gateway config unavailable. Node output above shows host approvals state only, and final runtime policy still intersects with gateway tools.exec.",
           scopes: [],
         },
       }),

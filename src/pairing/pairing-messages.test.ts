@@ -7,8 +7,7 @@ describe("buildPairingReply", () => {
   let envSnapshot: ReturnType<typeof captureEnv>;
 
   beforeEach(() => {
-    envSnapshot = captureEnv(["CRAWCLAW_CONTAINER_HINT", "CRAWCLAW_PROFILE"]);
-    delete process.env.CRAWCLAW_CONTAINER_HINT;
+    envSnapshot = captureEnv(["CRAWCLAW_PROFILE"]);
     process.env.CRAWCLAW_PROFILE = "isolated";
   });
 

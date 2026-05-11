@@ -59,7 +59,12 @@ export function collectMediaEvidenceFromMessages(
             title: block.caption ?? block.alt ?? block.url,
             alt: block.alt,
             caption: block.caption,
-            isPrimary: Boolean((block.mediaId && preferredPrimaryMediaId && block.mediaId === preferredPrimaryMediaId) || (primaryFromMessage && (block.mediaId ?? primaryFromMessage) === primaryFromMessage)),
+            isPrimary: Boolean(
+              (block.mediaId &&
+                preferredPrimaryMediaId &&
+                block.mediaId === preferredPrimaryMediaId) ||
+              (primaryFromMessage && (block.mediaId ?? primaryFromMessage) === primaryFromMessage),
+            ),
           }
         : isFileBlock(block)
           ? {
@@ -71,12 +76,22 @@ export function collectMediaEvidenceFromMessages(
               path: block.path,
               mimeType: block.mimeType,
               title: block.title ?? block.name ?? block.path,
-              isPrimary: Boolean((block.mediaId && preferredPrimaryMediaId && block.mediaId === preferredPrimaryMediaId) || (primaryFromMessage && (block.mediaId ?? primaryFromMessage) === primaryFromMessage)),
+              isPrimary: Boolean(
+                (block.mediaId &&
+                  preferredPrimaryMediaId &&
+                  block.mediaId === preferredPrimaryMediaId) ||
+                (primaryFromMessage &&
+                  (block.mediaId ?? primaryFromMessage) === primaryFromMessage),
+              ),
             }
           : null;
-      if (!item) {continue;}
+      if (!item) {
+        continue;
+      }
       const key = dedupeKey(item);
-      if (seen.has(key)) {continue;}
+      if (seen.has(key)) {
+        continue;
+      }
       seen.add(key);
       items.push(item);
     }
@@ -87,7 +102,9 @@ export function collectMediaEvidenceFromMessages(
     if (explicitPrimary) {
       explicitPrimary.isPrimary = true;
       for (const item of items) {
-        if (item !== explicitPrimary) {item.isPrimary = false;}
+        if (item !== explicitPrimary) {
+          item.isPrimary = false;
+        }
       }
     }
   }
@@ -104,21 +121,34 @@ export async function loadMediaMessagesFromSourceRefs(
   sessionId: string | null | undefined,
   sourceRefs: PromotionSourceRef[],
 ): Promise<PromotionMessageLike[]> {
-  if (!sessionId) {return [];}
+  if (!sessionId) {
+    return [];
+  }
   const windows = sourceRefs
-    .filter((ref) => ref.kind === "window" && typeof ref.startTurn === "number" && typeof ref.endTurn === "number")
+    .filter(
+      (ref) =>
+        ref.kind === "window" &&
+        typeof ref.startTurn === "number" &&
+        typeof ref.endTurn === "number",
+    )
     .map((ref) => ({ startTurn: ref.startTurn!, endTurn: ref.endTurn! }));
 
-  if (!windows.length) {return [];}
+  if (!windows.length) {
+    return [];
+  }
 
   const rows = await Promise.all(
-    windows.map((window) => runtimeStore.listMessagesByTurnRange(sessionId, window.startTurn, window.endTurn)),
+    windows.map((window) =>
+      runtimeStore.listMessagesByTurnRange(sessionId, window.startTurn, window.endTurn),
+    ),
   );
 
   const out: PromotionMessageLike[] = [];
   const seen = new Set<string>();
   for (const row of rows.flat()) {
-    if (seen.has(row.id)) {continue;}
+    if (seen.has(row.id)) {
+      continue;
+    }
     seen.add(row.id);
     out.push({
       id: row.id,

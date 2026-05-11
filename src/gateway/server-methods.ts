@@ -21,8 +21,6 @@ import { healthHandlers } from "./server-methods/health.js";
 import { logsHandlers } from "./server-methods/logs.js";
 import { memoryHandlers } from "./server-methods/memory.js";
 import { modelsHandlers } from "./server-methods/models.js";
-import { nodePendingHandlers } from "./server-methods/nodes-pending.js";
-import { nodeHandlers } from "./server-methods/nodes.js";
 import { pluginsHandlers } from "./server-methods/plugins.js";
 import { pushHandlers } from "./server-methods/push.js";
 import { sendHandlers } from "./server-methods/send.js";
@@ -68,9 +66,6 @@ function authorizeGatewayMethod(method: string, client: GatewayRequestOptions["c
   if (!isRoleAuthorizedForMethod(role, method)) {
     return errorShape(ErrorCodes.INVALID_REQUEST, `unauthorized role: ${role}`);
   }
-  if (role === "node") {
-    return null;
-  }
   if (scopes.includes(ADMIN_SCOPE)) {
     return null;
   }
@@ -114,8 +109,6 @@ export const coreGatewayHandlers: GatewayRequestHandlers = {
   ...sessionsHandlers,
   ...systemHandlers,
   ...updateHandlers,
-  ...nodeHandlers,
-  ...nodePendingHandlers,
   ...pushHandlers,
   ...sendHandlers,
   ...usageHandlers,

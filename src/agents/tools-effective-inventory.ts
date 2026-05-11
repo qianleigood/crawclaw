@@ -8,7 +8,6 @@ import { describeExecRiskDiagnostic, resolveExecPosture } from "./exec-posture.j
 import { resolveModel } from "./pi-embedded-runner/model.js";
 import { createCrawClawCodingTools } from "./pi-tools.js";
 import { isToolAllowedByPolicyName, resolveEffectiveToolPolicy } from "./pi-tools.policy.js";
-import { resolveSandboxRuntimeStatus } from "./sandbox.js";
 import {
   listCoreToolSections,
   resolveCoreToolLifecycle,
@@ -27,7 +26,6 @@ export type EffectiveToolGate =
   | "special"
   | "host"
   | "owner"
-  | "sandbox"
   | "provider"
   | "config";
 
@@ -99,7 +97,6 @@ export type ResolveEffectiveToolInventoryParams = {
   modelHasVision?: boolean;
   requireExplicitMessageTarget?: boolean;
   disableMessageTool?: boolean;
-  sandboxAvailable?: boolean;
 };
 
 function resolveEffectiveToolLabel(tool: AnyAgentTool): string {
@@ -331,22 +328,16 @@ function maybeDescribeExecRisk(params: {
   cfg: CrawClawConfig;
   sessionEntry?: SessionEntry;
   agentId: string;
-  sessionKey?: string;
-  sandboxAvailable?: boolean;
   availableTools: EffectiveToolInventoryEntry[];
 }): string | undefined {
-  if (!params.availableTools.some((tool) => tool.id === "exec")) {
+  if (!params.availableTools.some((tool) => tool.id === "bash")) {
     return undefined;
   }
-  const sandboxAvailable =
-    params.sandboxAvailable ??
-    resolveSandboxRuntimeStatus({ cfg: params.cfg, sessionKey: params.sessionKey }).sandboxed;
   return describeExecRiskDiagnostic(
     resolveExecPosture({
       cfg: params.cfg,
       sessionEntry: params.sessionEntry,
       agentId: params.agentId,
-      sandboxAvailable,
     }),
   );
 }
@@ -429,8 +420,6 @@ export function resolveEffectiveToolInventory(
     cfg: params.cfg,
     sessionEntry: params.sessionEntry,
     agentId,
-    sessionKey: params.sessionKey,
-    sandboxAvailable: params.sandboxAvailable,
     availableTools: entries,
   });
   const diagnostics = buildDiagnostics([

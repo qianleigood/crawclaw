@@ -56,7 +56,6 @@ vi.mock("./shared.js", () => ({
   filterDaemonEnv: () => ({}),
   formatRuntimeStatus: () => "running (pid 8000)",
   resolveRuntimeStatusColor: () => "",
-  resolveDaemonContainerContext: () => null,
   renderRuntimeHints: () => [],
   safeDaemonEnv: () => [],
 }));

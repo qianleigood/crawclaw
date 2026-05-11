@@ -9,7 +9,6 @@ import {
 } from "../agents/model-selection.js";
 import { resolveExtraParams } from "../agents/pi-embedded-runner/extra-params.js";
 import { resolveOpenAITextVerbosity } from "../agents/pi-embedded-runner/openai-stream-wrappers.js";
-import { resolveSandboxRuntimeStatus } from "../agents/sandbox.js";
 import type { SkillCommandSpec } from "../agents/skills.js";
 import { describeToolForVerbose } from "../agents/tool-description-summary.js";
 import { normalizeToolName } from "../agents/tool-policy-shared.js";
@@ -19,7 +18,6 @@ import { resolveChannelModelOverride } from "../channels/model-overrides.js";
 import { isCommandFlagEnabled } from "../config/commands.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
-  resolveMainSessionKey,
   resolveSessionFilePath,
   resolveSessionFilePathOptions,
   type SessionEntry,
@@ -143,48 +141,8 @@ function resolveConfiguredTextVerbosity(params: {
   );
 }
 
-function resolveRuntimeLabel(
-  args: Pick<StatusArgs, "config" | "agent" | "sessionKey" | "sessionScope">,
-): string {
-  const sessionKey = args.sessionKey?.trim();
-  if (args.config && sessionKey) {
-    const runtimeStatus = resolveSandboxRuntimeStatus({
-      cfg: args.config,
-      sessionKey,
-    });
-    const sandboxMode = runtimeStatus.mode ?? "off";
-    if (sandboxMode === "off") {
-      return "direct";
-    }
-    const runtime = runtimeStatus.sandboxed ? "docker" : sessionKey ? "direct" : "unknown";
-    return `${runtime}/${sandboxMode}`;
-  }
-
-  const sandboxMode = args.agent?.sandbox?.mode ?? "off";
-  if (sandboxMode === "off") {
-    return "direct";
-  }
-  const sandboxed = (() => {
-    if (!sessionKey) {
-      return false;
-    }
-    if (sandboxMode === "all") {
-      return true;
-    }
-    if (args.config) {
-      return resolveSandboxRuntimeStatus({
-        cfg: args.config,
-        sessionKey,
-      }).sandboxed;
-    }
-    const sessionScope = args.sessionScope ?? "per-sender";
-    const mainKey = resolveMainSessionKey({
-      session: { scope: sessionScope },
-    });
-    return sessionKey !== mainKey.trim();
-  })();
-  const runtime = sandboxed ? "docker" : sessionKey ? "direct" : "unknown";
-  return `${runtime}/${sandboxMode}`;
+function resolveRuntimeLabel(): string {
+  return "direct";
 }
 
 const formatTokens = (total: number | null | undefined, contextTokens: number | null) => {
@@ -651,7 +609,7 @@ export function buildStatusMessage(args: StatusArgs): string {
     args.agent?.elevatedDefault ??
     "on";
 
-  const runtime = { label: resolveRuntimeLabel(args) };
+  const runtime = { label: resolveRuntimeLabel() };
 
   const updatedAt = entry?.updatedAt;
   const sessionLine = [

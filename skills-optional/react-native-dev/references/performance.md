@@ -41,6 +41,7 @@ const ProductRow = memo(function ProductRow({ product }: { product: Product }) {
 ```
 
 Key points:
+
 - Wrap list items with `memo` to skip re-renders when props haven't changed
 - Always provide `estimatedItemSize` — FlashList uses it for layout estimation
 - Extract `renderItem` or use a named component to keep stable references
@@ -88,11 +89,7 @@ Controlled `TextInput` (with `value` + `onChangeText`) can lag on Android becaus
 ```tsx
 const ref = useRef<TextInput>(null);
 
-<TextInput
-  ref={ref}
-  defaultValue=""
-  onEndEditing={(e) => handleSearch(e.nativeEvent.text)}
-/>
+<TextInput ref={ref} defaultValue="" onEndEditing={(e) => handleSearch(e.nativeEvent.text)} />;
 ```
 
 ## Startup Time (TTI)
@@ -130,6 +127,7 @@ npx source-map-explorer dist/bundles/ios/*.js
 ```
 
 Common wins:
+
 - **Direct imports** — `import groupBy from "lodash/groupBy"` instead of `import { groupBy } from "lodash"`
 - **Remove dead Intl polyfills** — Hermes ships with built-in `Intl` support since SDK 50
 - **Tree shaking** — Enable via `"experiments": { "treeShaking": true }` in app config (SDK 52+)
@@ -142,6 +140,7 @@ android.enableProguardInReleaseBuilds=true
 ```
 
 Inspect the final artifact:
+
 - iOS: download the `.ipa` from EAS, unzip, check `Payload/*.app` size
 - Android: open the `.aab`/`.apk` in Android Studio → Build → Analyze APK
 
@@ -204,12 +203,12 @@ const drag = Gesture.Pan().onUpdate((e) => {
 
 ## Troubleshooting Guide
 
-| Symptom | Where to Look | Likely Fix |
-|---------|--------------|------------|
-| Scroll jank in long lists | JS thread — re-renders | Virtualized list + memoized items |
-| Typing lag in search bar | JS thread — controlled input | Uncontrolled `TextInput` with `defaultValue` |
-| Slow cold start | Bundle size, sync init | Mmap bundle, preload routes, lazy screens |
-| App binary too large | Native assets, unused libs | R8 (Android), analyze bundle, direct imports |
-| Growing memory over time | Effect cleanup | Return teardown from every `useEffect` |
-| Choppy enter/exit animation | Animated properties | Only `transform` + `opacity`, use worklets |
-| Re-renders cascade across app | Global state shape | Atomic selectors (Zustand/Jotai), React Compiler |
+| Symptom                       | Where to Look                | Likely Fix                                       |
+| ----------------------------- | ---------------------------- | ------------------------------------------------ |
+| Scroll jank in long lists     | JS thread — re-renders       | Virtualized list + memoized items                |
+| Typing lag in search bar      | JS thread — controlled input | Uncontrolled `TextInput` with `defaultValue`     |
+| Slow cold start               | Bundle size, sync init       | Mmap bundle, preload routes, lazy screens        |
+| App binary too large          | Native assets, unused libs   | R8 (Android), analyze bundle, direct imports     |
+| Growing memory over time      | Effect cleanup               | Return teardown from every `useEffect`           |
+| Choppy enter/exit animation   | Animated properties          | Only `transform` + `opacity`, use worklets       |
+| Re-renders cascade across app | Global state shape           | Atomic selectors (Zustand/Jotai), React Compiler |

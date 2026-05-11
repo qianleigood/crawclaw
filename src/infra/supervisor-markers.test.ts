@@ -60,6 +60,8 @@ describe("detectRespawnSupervisor", () => {
         "linux",
       ),
     ).toBeNull();
-    expect(detectRespawnSupervisor({ LAUNCH_JOB_LABEL: "ai.crawclaw.gateway" }, "freebsd")).toBeNull();
+    expect(
+      detectRespawnSupervisor({ LAUNCH_JOB_LABEL: "ai.crawclaw.gateway" }, "freebsd"),
+    ).toBeNull();
   });
 });

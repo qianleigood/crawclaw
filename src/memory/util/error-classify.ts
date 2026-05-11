@@ -16,7 +16,9 @@ export interface ClassifiedError {
 
 function extractStatusCode(message: string): number | undefined {
   const match = message.match(/\b(4\d\d|5\d\d)\b/);
-  if (!match) {return undefined;}
+  if (!match) {
+    return undefined;
+  }
   return Number(match[1]);
 }
 
@@ -33,20 +35,57 @@ export function classifyError(error: unknown): ClassifiedError {
     return { kind: "timeout_error", message, retryable: true, statusCode };
   }
 
-  if (lower.includes("dimension mismatch") || lower.includes("configured=") || lower.includes("config") || lower.includes("schema")) {
+  if (
+    lower.includes("dimension mismatch") ||
+    lower.includes("configured=") ||
+    lower.includes("config") ||
+    lower.includes("schema")
+  ) {
     return { kind: "config_error", message, retryable: false, statusCode };
   }
 
-  if (lower.includes("embedding api") || lower.includes("embeddings") || lower.includes("embedding dimension") || lower.includes("vectorlength")) {
-    return { kind: "embedding_error", message, retryable: !statusCode || statusCode >= 500, statusCode };
+  if (
+    lower.includes("embedding api") ||
+    lower.includes("embeddings") ||
+    lower.includes("embedding dimension") ||
+    lower.includes("vectorlength")
+  ) {
+    return {
+      kind: "embedding_error",
+      message,
+      retryable: !statusCode || statusCode >= 500,
+      statusCode,
+    };
   }
 
-  if (lower.includes("qdrant") || lower.includes("collection") || lower.includes("payload index") || lower.includes("vector store") || lower.includes("searchknowledge")) {
-    return { kind: "vector_store_error", message, retryable: !(statusCode && statusCode < 500), statusCode };
+  if (
+    lower.includes("qdrant") ||
+    lower.includes("collection") ||
+    lower.includes("payload index") ||
+    lower.includes("vector store") ||
+    lower.includes("searchknowledge")
+  ) {
+    return {
+      kind: "vector_store_error",
+      message,
+      retryable: !(statusCode && statusCode < 500),
+      statusCode,
+    };
   }
 
-  if (lower.includes("neo4j") || lower.includes("bolt://") || lower.includes("verifyconnectivity") || lower.includes("cypher") || lower.includes("graph store")) {
-    return { kind: "graph_store_error", message, retryable: !(statusCode && statusCode < 500), statusCode };
+  if (
+    lower.includes("neo4j") ||
+    lower.includes("bolt://") ||
+    lower.includes("verifyconnectivity") ||
+    lower.includes("cypher") ||
+    lower.includes("graph store")
+  ) {
+    return {
+      kind: "graph_store_error",
+      message,
+      retryable: !(statusCode && statusCode < 500),
+      statusCode,
+    };
   }
 
   if (statusCode && statusCode >= 500) {

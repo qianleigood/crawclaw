@@ -48,8 +48,8 @@ export function shouldSkipBrowserClientsPairing(
   // friction without security value since any client can already connect
   // without credentials. Guard with policy.isBrowserClients because this function
   // is called for ALL clients (not just Browser client) at the call site.
-  // Scope to operator role so node-role sessions still need device identity
-  // (#43478 was reverted for skipping ALL clients).
+  // Scope to operator role so open-auth deployments do not skip pairing for
+  // non-browser clients (#43478 was reverted for skipping ALL clients).
   if (policy.isBrowserClients && role === "operator" && authMode === "none") {
     return true;
   }
@@ -125,9 +125,8 @@ export function evaluateMissingDeviceIdentity(params: {
   ) {
     // dangerouslyDisableDeviceAuth: true — operator has explicitly opted out of
     // device-identity enforcement for this Browser client.  Allow for operator-role
-    // sessions only; node-role sessions must still satisfy device identity so
-    // that the break-glass flag cannot be abused to admit device-less node
-    // registrations (see #45405 review).
+    // sessions only so the break-glass flag stays scoped to browser operators
+    // (see #45405 review).
     return { kind: "allow" };
   }
   if (params.isBrowserClients && !params.browserClientsAuthPolicy.allowBypass) {

@@ -1,5 +1,5 @@
-import { Routes } from "discord-api-types/v10";
 import { loadConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { Routes } from "discord-api-types/v10";
 import {
   buildReactionIdentifier,
   createDiscordClient,

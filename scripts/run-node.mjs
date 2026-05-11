@@ -1,27 +1,20 @@
 #!/usr/bin/env node
-import { spawn, spawnSync } from "node:child_process";
+import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { pathToFileURL } from "node:url";
-import { resolveGitHead, writeBuildStamp as writeDistBuildStamp } from "./build-stamp.mjs";
+import { resolveGitHead } from "./build-stamp.mjs";
 import {
   BUNDLED_PLUGIN_PATH_PREFIX,
   BUNDLED_PLUGIN_ROOT_DIR,
 } from "./lib/bundled-plugin-paths.mjs";
-import { runRuntimePostBuild } from "./runtime-postbuild.mjs";
-
-const buildScript = "scripts/tsdown-build.mjs";
-const compilerArgs = [buildScript, "--no-clean"];
 
 const runNodeSourceRoots = ["src", BUNDLED_PLUGIN_ROOT_DIR];
 const runNodeConfigFiles = ["tsconfig.json", "package.json", "tsdown.config.ts"];
 export const runNodeWatchedPaths = [...runNodeSourceRoots, ...runNodeConfigFiles];
 const extensionSourceFilePattern = /\.(?:[cm]?[jt]sx?)$/;
-const extensionRestartMetadataFiles = new Set([
-  "crawclaw.plugin.json",
-  "package.json",
-]);
+const extensionRestartMetadataFiles = new Set(["crawclaw.plugin.json", "package.json"]);
 
 const normalizePath = (filePath) => String(filePath ?? "").replaceAll("\\", "/");
 
@@ -239,20 +232,6 @@ export const resolveBuildRequirement = (deps) => {
   return { shouldBuild: false, reason: "clean" };
 };
 
-const BUILD_REASON_LABELS = {
-  force_build: "forced by CRAWCLAW_FORCE_BUILD",
-  missing_build_stamp: "build stamp missing",
-  missing_dist_entry: "dist entry missing",
-  config_newer: "config newer than build stamp",
-  build_stamp_missing_head: "build stamp missing git head",
-  git_head_changed: "git head changed",
-  dirty_watched_tree: "dirty watched source tree",
-  source_mtime_newer: "source mtime newer than build stamp",
-  clean: "clean",
-};
-
-const formatBuildReason = (reason) => BUILD_REASON_LABELS[reason] ?? reason;
-
 const logRunner = (message, deps) => {
   if (deps.env.CRAWCLAW_RUNNER_LOG === "0") {
     return;
@@ -260,14 +239,50 @@ const logRunner = (message, deps) => {
   deps.stderr.write(`[crawclaw] ${message}\n`);
 };
 
-const runCrawClaw = async (deps) => {
-  const nodeProcess = deps.spawn(deps.execPath, ["crawclaw.mjs", ...deps.args], {
+export const resolveRustCliInvocation = (deps) => {
+  const envBinary = deps.env.CRAWCLAW_RUST_CLI_BIN?.trim();
+  if (envBinary) {
+    return { cmd: envBinary, args: [] };
+  }
+
+  const binaryName = process.platform === "win32" ? "crawclaw.exe" : "crawclaw";
+  const candidates = [
+    path.join(deps.cwd, "dist", "native", binaryName),
+    path.join(deps.cwd, "target", "debug", binaryName),
+    path.join(deps.cwd, "target", "release", binaryName),
+  ];
+  for (const candidate of candidates) {
+    if (deps.fs.existsSync(candidate)) {
+      return { cmd: candidate, args: [] };
+    }
+  }
+
+  const hasCargoWorkspace =
+    deps.fs.existsSync(path.join(deps.cwd, "Cargo.toml")) &&
+    deps.fs.existsSync(path.join(deps.cwd, "crates", "crawclaw-cli", "Cargo.toml"));
+  if (hasCargoWorkspace) {
+    return {
+      cmd: deps.env.CARGO?.trim() || "cargo",
+      args: ["run", "--quiet", "-p", "crawclaw-cli", "--"],
+    };
+  }
+
+  return null;
+};
+
+const runRustCrawClaw = async (deps, args) => {
+  const invocation = resolveRustCliInvocation(deps);
+  if (!invocation) {
+    logRunner("Rust CLI is unavailable.", deps);
+    return 1;
+  }
+  const child = deps.spawn(invocation.cmd, [...invocation.args, ...args], {
     cwd: deps.cwd,
     env: deps.env,
     stdio: "inherit",
   });
   const res = await new Promise((resolve) => {
-    nodeProcess.on("exit", (exitCode, exitSignal) => {
+    child.on("exit", (exitCode, exitSignal) => {
       resolve({ exitCode, exitSignal });
     });
   });
@@ -277,36 +292,9 @@ const runCrawClaw = async (deps) => {
   return res.exitCode ?? 1;
 };
 
-const syncRuntimeArtifacts = (deps) => {
-  try {
-    runRuntimePostBuild({ cwd: deps.cwd });
-  } catch (error) {
-    logRunner(
-      `Failed to write runtime build artifacts: ${error?.message ?? "unknown error"}`,
-      deps,
-    );
-    return false;
-  }
-  return true;
-};
-
-const writeBuildStamp = (deps) => {
-  try {
-    writeDistBuildStamp({
-      cwd: deps.cwd,
-      fs: deps.fs,
-      spawnSync: deps.spawnSync,
-    });
-  } catch (error) {
-    // Best-effort stamp; still allow the runner to start.
-    logRunner(`Failed to write build stamp: ${error?.message ?? "unknown error"}`, deps);
-  }
-};
-
 export async function runNodeMain(params = {}) {
   const deps = {
     spawn: params.spawn ?? spawn,
-    spawnSync: params.spawnSync ?? spawnSync,
     fs: params.fs ?? fs,
     stderr: params.stderr ?? process.stderr,
     execPath: params.execPath ?? process.execPath,
@@ -315,49 +303,7 @@ export async function runNodeMain(params = {}) {
     env: params.env ? { ...params.env } : { ...process.env },
   };
 
-  deps.distRoot = path.join(deps.cwd, "dist");
-  deps.distEntry = path.join(deps.distRoot, "/entry.js");
-  deps.buildStampPath = path.join(deps.distRoot, ".buildstamp");
-  deps.sourceRoots = runNodeSourceRoots.map((sourceRoot) => ({
-    name: sourceRoot,
-    path: path.join(deps.cwd, sourceRoot),
-  }));
-  deps.configFiles = runNodeConfigFiles.map((filePath) => path.join(deps.cwd, filePath));
-
-  const buildRequirement = resolveBuildRequirement(deps);
-  if (!buildRequirement.shouldBuild) {
-    if (!syncRuntimeArtifacts(deps)) {
-      return 1;
-    }
-    return await runCrawClaw(deps);
-  }
-
-  logRunner(
-    `Building TypeScript (dist is stale: ${buildRequirement.reason} - ${formatBuildReason(buildRequirement.reason)}).`,
-    deps,
-  );
-  const buildCmd = deps.execPath;
-  const buildArgs = compilerArgs;
-  const build = deps.spawn(buildCmd, buildArgs, {
-    cwd: deps.cwd,
-    env: deps.env,
-    stdio: "inherit",
-  });
-
-  const buildRes = await new Promise((resolve) => {
-    build.on("exit", (exitCode, exitSignal) => resolve({ exitCode, exitSignal }));
-  });
-  if (buildRes.exitSignal) {
-    return 1;
-  }
-  if (buildRes.exitCode !== 0 && buildRes.exitCode !== null) {
-    return buildRes.exitCode;
-  }
-  if (!syncRuntimeArtifacts(deps)) {
-    return 1;
-  }
-  writeBuildStamp(deps);
-  return await runCrawClaw(deps);
+  return await runRustCrawClaw(deps, deps.args);
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) {

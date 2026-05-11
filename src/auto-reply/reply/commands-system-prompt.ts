@@ -4,7 +4,6 @@ import { resolveBootstrapContextForRun } from "../../agents/bootstrap-files.js";
 import { resolveDefaultModelForAgent } from "../../agents/model-selection.js";
 import type { EmbeddedContextFile } from "../../agents/pi-embedded-helpers.js";
 import { createCrawClawCodingTools } from "../../agents/pi-tools.js";
-import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { buildWorkspaceSkillsPrompt } from "../../agents/skills.js";
 import { buildSystemPromptParams } from "../../agents/system-prompt-params.js";
 import { buildAgentSystemPrompt } from "../../agents/system-prompt.js";
@@ -20,7 +19,6 @@ export type CommandsSystemPromptBundle = {
   skillsPrompt: string;
   bootstrapFiles: WorkspaceBootstrapFile[];
   injectedFiles: EmbeddedContextFile[];
-  sandboxRuntime: ReturnType<typeof resolveSandboxRuntimeStatus>;
 };
 
 export async function resolveCommandsSystemPromptBundle(
@@ -43,10 +41,6 @@ export async function resolveCommandsSystemPromptBundle(
       return "";
     }
   })();
-  const sandboxRuntime = resolveSandboxRuntimeStatus({
-    cfg: params.cfg,
-    sessionKey: params.ctx.SessionKey ?? params.sessionKey,
-  });
   const tools = (() => {
     try {
       return createCrawClawCodingTools({
@@ -94,17 +88,6 @@ export async function resolveCommandsSystemPromptBundle(
       defaultModel: defaultModelLabel,
     },
   });
-  const sandboxInfo = sandboxRuntime.sandboxed
-    ? {
-        enabled: true,
-        workspaceDir,
-        workspaceAccess: "rw" as const,
-        elevated: {
-          allowed: params.elevated.allowed,
-          defaultLevel: (params.resolvedElevatedLevel ?? "off") as "on" | "off" | "ask" | "full",
-        },
-      }
-    : { enabled: false };
   const ttsHint = params.cfg ? buildTtsSystemPromptHint(params.cfg) : undefined;
 
   const systemPrompt = buildAgentSystemPrompt({
@@ -126,8 +109,7 @@ export async function resolveCommandsSystemPromptBundle(
     ttsHint,
     acpEnabled: params.cfg?.acp?.enabled !== false,
     runtimeInfo,
-    sandboxInfo,
   });
 
-  return { systemPrompt, tools, skillsPrompt, bootstrapFiles, injectedFiles, sandboxRuntime };
+  return { systemPrompt, tools, skillsPrompt, bootstrapFiles, injectedFiles };
 }

@@ -27,6 +27,7 @@ app/
 ```
 
 **Rules**:
+
 - Routes live only in `app/` — never co-locate components, types, or utils there
 - Always have a route matching `/` (may be inside a group)
 - Remove old route files when restructuring navigation
@@ -58,9 +59,9 @@ export default function RootLayout() {
 
 ## Tabs — Which to Use
 
-| Scenario | Use |
-|----------|-----|
-| Custom design system, cross-platform | **JS Tabs** (stable, fully customizable) |
+| Scenario                                | Use                                           |
+| --------------------------------------- | --------------------------------------------- |
+| Custom design system, cross-platform    | **JS Tabs** (stable, fully customizable)      |
 | iOS-native look, Liquid Glass (iOS 26+) | **NativeTabs** (alpha, limited customization) |
 
 ## JS Tabs
@@ -152,7 +153,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 
 const router = useRouter();
 router.push("/settings");
-router.replace("/login");   // No back button
+router.replace("/login"); // No back button
 router.back();
 
 // Access route params
@@ -181,20 +182,13 @@ const { id } = useLocalSearchParams<{ id: string }>();
 ```tsx
 <Link href="/settings" asChild>
   <Link.Trigger>
-    <Pressable><Card /></Pressable>
+    <Pressable>
+      <Card />
+    </Pressable>
   </Link.Trigger>
   <Link.Menu>
-    <Link.MenuAction
-      title="Share"
-      icon="square.and.arrow.up"
-      onPress={handleShare}
-    />
-    <Link.MenuAction
-      title="Delete"
-      icon="trash"
-      destructive
-      onPress={handleDelete}
-    />
+    <Link.MenuAction title="Share" icon="square.and.arrow.up" onPress={handleShare} />
+    <Link.MenuAction title="Delete" icon="trash" destructive onPress={handleDelete} />
     <Link.Menu title="More" icon="ellipsis">
       <Link.MenuAction title="Copy" icon="doc.on.doc" onPress={() => {}} />
     </Link.Menu>
@@ -207,9 +201,11 @@ const { id } = useLocalSearchParams<{ id: string }>();
 ```tsx
 <Link href="/detail">
   <Link.Trigger>
-    <Pressable><Card /></Pressable>
+    <Pressable>
+      <Card />
+    </Pressable>
   </Link.Trigger>
-  <Link.Preview />  {/* Shows peek preview on 3D touch / long press */}
+  <Link.Preview /> {/* Shows peek preview on 3D touch / long press */}
 </Link>
 ```
 
@@ -260,11 +256,7 @@ When a route belongs to a Stack, its first child should almost always be a Scrol
 
 ```tsx
 export default function HomeScreen() {
-  return (
-    <ScrollView contentInsetAdjustmentBehavior="automatic">
-      {/* Content */}
-    </ScrollView>
-  );
+  return <ScrollView contentInsetAdjustmentBehavior="automatic">{/* Content */}</ScrollView>;
 }
 ```
 

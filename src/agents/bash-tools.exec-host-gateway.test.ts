@@ -129,8 +129,8 @@ describe("processGatewayAllowlist", () => {
       preResolvedDecision: null,
       initiatingSurface: {
         kind: "enabled",
-        channel: "tui",
-        channelLabel: "terminal UI",
+        channel: "web",
+        channelLabel: "Gateway client",
       },
       sentApproverDms: false,
       unavailableReason: null,

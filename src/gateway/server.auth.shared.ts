@@ -126,13 +126,6 @@ const TRUSTED_PROXY_BROWSER_CLIENT_HEADERS = {
   "x-forwarded-user": "peter@example.com",
 } as const;
 
-const NODE_CLIENT = {
-  id: GATEWAY_CLIENT_NAMES.NODE_HOST,
-  version: "1.0.0",
-  platform: "test",
-  mode: GATEWAY_CLIENT_MODES.NODE,
-};
-
 const BACKEND_GATEWAY_CLIENT = {
   id: GATEWAY_CLIENT_NAMES.GATEWAY_CLIENT,
   version: "1.0.0",
@@ -163,7 +156,7 @@ async function createSignedDevice(params: {
   scopes: string[];
   clientId: string;
   clientMode: string;
-  role?: "operator" | "node";
+  role?: "operator";
   identityPath?: string;
   nonce: string;
   signedAtMs?: number;
@@ -368,7 +361,6 @@ export {
   getFreePort,
   getTrackedConnectChallengeNonce,
   installGatewayTestHooks,
-  NODE_CLIENT,
   onceMessage,
   openTailscaleWs,
   openWs,

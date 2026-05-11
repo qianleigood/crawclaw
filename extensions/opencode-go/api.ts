@@ -4,7 +4,7 @@ export {
   applyOpencodeGoConfig,
   applyOpencodeGoProviderConfig,
   OPENCODE_GO_DEFAULT_MODEL_REF,
-  } from "./onboard.js";
+} from "./onboard.js";
 
 function resolveCurrentPrimaryModel(model: unknown): string | undefined {
   if (typeof model === "string") {
@@ -22,15 +22,13 @@ function resolveCurrentPrimaryModel(model: unknown): string | undefined {
 
 export function applyOpencodeGoModelDefault(
   cfg: import("crawclaw/plugin-sdk/provider-onboard").CrawClawConfig,
-  ): {
+): {
   next: import("crawclaw/plugin-sdk/provider-onboard").CrawClawConfig;
   changed: boolean;
 } {
   const current = resolveCurrentPrimaryModel(cfg.agents?.defaults?.model);
   if (current === OPENCODE_GO_DEFAULT_MODEL_REF) {
-    return { next: cfg,
-  changed: false,
-};
+    return { next: cfg, changed: false };
   }
   return {
     next: {

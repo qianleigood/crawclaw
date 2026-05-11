@@ -65,7 +65,7 @@ describe("collectSmallModelRiskFindings", () => {
 
   it.each([
     {
-      name: "small model without sandbox all stays critical even when browser/web tools are off",
+      name: "small model with browser/web tools off is informational",
       cfg: baseCfg,
       env: {},
     },
@@ -76,7 +76,7 @@ describe("collectSmallModelRiskFindings", () => {
     });
 
     expect(finding?.checkId).toBe("models.small_params");
-    expect(finding?.severity).toBe("critical");
+    expect(finding?.severity).toBe("info");
     expect(finding?.detail).toContain("ollama/mistral-8b");
     expect(finding?.detail).toContain("web=[off]");
     expect(finding?.detail).toContain("No web/browser tools detected");

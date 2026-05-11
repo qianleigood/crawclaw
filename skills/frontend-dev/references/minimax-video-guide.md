@@ -32,34 +32,34 @@ download_video(file_id, "cat.mp4")
 
 ## Models
 
-| Model | Resolution | Duration | Notes |
-|-------|-----------|----------|-------|
-| `MiniMax-Hailuo-2.3` | 768P, 1080P | 6s, 10s (768P only) | Latest, recommended |
-| `MiniMax-Hailuo-02` | 768P, 1080P | 6s, 10s (768P only) | Previous gen |
-| `T2V-01-Director` | 720P | 6s | Camera control optimized |
-| `T2V-01` | 720P | 6s | Base model |
+| Model                | Resolution  | Duration            | Notes                    |
+| -------------------- | ----------- | ------------------- | ------------------------ |
+| `MiniMax-Hailuo-2.3` | 768P, 1080P | 6s, 10s (768P only) | Latest, recommended      |
+| `MiniMax-Hailuo-02`  | 768P, 1080P | 6s, 10s (768P only) | Previous gen             |
+| `T2V-01-Director`    | 720P        | 6s                  | Camera control optimized |
+| `T2V-01`             | 720P        | 6s                  | Base model               |
 
 ## Camera commands
 
 Insert `[Command]` in prompt text to control camera movement:
 
-| Command | Effect |
-|---------|--------|
-| `[Truck left]` | Camera moves left |
-| `[Truck right]` | Camera moves right |
-| `[Push in]` | Camera moves toward subject |
-| `[Pull out]` | Camera moves away from subject |
-| `[Pan left]` | Camera rotates left (fixed position) |
-| `[Pan right]` | Camera rotates right (fixed position) |
-| `[Tilt up]` | Camera tilts upward |
-| `[Tilt down]` | Camera tilts downward |
-| `[Pedestal up]` | Camera rises vertically |
-| `[Pedestal down]` | Camera lowers vertically |
-| `[Zoom in]` | Lens zooms in |
-| `[Zoom out]` | Lens zooms out |
-| `[Static shot]` | No camera movement |
-| `[Tracking shot]` | Camera follows subject |
-| `[Shake]` | Handheld shake effect |
+| Command           | Effect                                |
+| ----------------- | ------------------------------------- |
+| `[Truck left]`    | Camera moves left                     |
+| `[Truck right]`   | Camera moves right                    |
+| `[Push in]`       | Camera moves toward subject           |
+| `[Pull out]`      | Camera moves away from subject        |
+| `[Pan left]`      | Camera rotates left (fixed position)  |
+| `[Pan right]`     | Camera rotates right (fixed position) |
+| `[Tilt up]`       | Camera tilts upward                   |
+| `[Tilt down]`     | Camera tilts downward                 |
+| `[Pedestal up]`   | Camera rises vertically               |
+| `[Pedestal down]` | Camera lowers vertically              |
+| `[Zoom in]`       | Lens zooms in                         |
+| `[Zoom out]`      | Lens zooms out                        |
+| `[Static shot]`   | No camera movement                    |
+| `[Tracking shot]` | Camera follows subject                |
+| `[Shake]`         | Handheld shake effect                 |
 
 Example: `"A runner sprints through a forest trail [Tracking shot]"`
 

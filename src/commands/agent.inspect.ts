@@ -641,9 +641,6 @@ export function formatAgentInspection(snapshot: AgentInspectionSnapshot): string
     if (snapshot.guard.interactiveApprovalBlocker) {
       lines.push(`  Blocker: ${snapshot.guard.interactiveApprovalBlocker}`);
     }
-    if (snapshot.guard.sandboxed !== undefined) {
-      lines.push(`  Sandboxed: ${snapshot.guard.sandboxed ? "yes" : "no"}`);
-    }
     if (!snapshot.guard.browserClientsVisible) {
       lines.push("  Hidden browser client: yes");
     }

@@ -320,34 +320,6 @@ describe("resolveAgentConfig", () => {
     ).toBe(false);
   });
 
-  it("should return agent-specific sandbox config", () => {
-    const cfg: CrawClawConfig = {
-      agents: {
-        list: [
-          {
-            id: "work",
-            workspace: "~/crawclaw-work",
-            sandbox: {
-              mode: "all",
-              scope: "agent",
-              perSession: false,
-              workspaceAccess: "ro",
-              workspaceRoot: "~/sandboxes",
-            },
-          },
-        ],
-      },
-    };
-    const result = resolveAgentConfig(cfg, "work");
-    expect(result?.sandbox).toEqual({
-      mode: "all",
-      scope: "agent",
-      perSession: false,
-      workspaceAccess: "ro",
-      workspaceRoot: "~/sandboxes",
-    });
-  });
-
   it("should return agent-specific tools config", () => {
     const cfg: CrawClawConfig = {
       agents: {
@@ -378,17 +350,13 @@ describe("resolveAgentConfig", () => {
     });
   });
 
-  it("should return both sandbox and tools config", () => {
+  it("should return agent-specific tools config with workspace", () => {
     const cfg: CrawClawConfig = {
       agents: {
         list: [
           {
             id: "family",
             workspace: "~/crawclaw-family",
-            sandbox: {
-              mode: "all",
-              scope: "agent",
-            },
             tools: {
               allow: ["read"],
               deny: ["exec"],
@@ -398,7 +366,7 @@ describe("resolveAgentConfig", () => {
       },
     };
     const result = resolveAgentConfig(cfg, "family");
-    expect(result?.sandbox?.mode).toBe("all");
+    expect(result?.workspace).toBe("~/crawclaw-family");
     expect(result?.tools?.allow).toEqual(["read"]);
   });
 

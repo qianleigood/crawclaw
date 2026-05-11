@@ -11,12 +11,6 @@ export {
   translateCliText,
 } from "./text.js";
 export { parseCliLocaleFlag, resolveCliLocale } from "./locale.js";
-export {
-  formatTuiEnabledDisabled,
-  formatTuiOnOff,
-  formatTuiStateLabel,
-  translateTuiText,
-} from "./tui.js";
 
 export function resolveCliLocaleFromRuntime(argv: readonly string[]): CliLocale {
   let configLanguage: string | undefined;

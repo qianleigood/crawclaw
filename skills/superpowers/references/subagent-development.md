@@ -105,8 +105,8 @@ Report: approve or list issues by severity.
 
 ## Review Severity Actions
 
-| Severity | Action |
-|----------|--------|
-| Critical | Fix before proceeding — blocks next task |
-| Important | Fix before proceeding |
-| Minor | Note, address later |
+| Severity  | Action                                   |
+| --------- | ---------------------------------------- |
+| Critical  | Fix before proceeding — blocks next task |
+| Important | Fix before proceeding                    |
+| Minor     | Note, address later                      |

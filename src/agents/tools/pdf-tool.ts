@@ -19,7 +19,6 @@ import {
   buildPdfToolResultDetails,
   loadPdfToolDocuments,
   normalizePdfToolInput,
-  type PdfSandboxConfig,
 } from "./pdf-tool-runtime.js";
 import {
   coercePdfAssistantText,
@@ -287,7 +286,6 @@ export function createPdfTool(options?: {
   config?: CrawClawConfig;
   agentDir?: string;
   workspaceDir?: string;
-  sandbox?: PdfSandboxConfig;
   fsPolicy?: ToolFsPolicy;
 }): AnyAgentTool | null {
   const agentDir = options?.agentDir?.trim();
@@ -355,7 +353,6 @@ export function createPdfTool(options?: {
         pdfInputs: normalized.pdfInputs,
         maxBytes: normalized.maxBytes,
         workspaceDir: options?.workspaceDir,
-        sandbox: options?.sandbox,
         fsPolicy: options?.fsPolicy,
       });
       if (!loadResult.ok) {

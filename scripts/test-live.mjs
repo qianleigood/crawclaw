@@ -21,8 +21,7 @@ for (const arg of process.argv.slice(2)) {
 const env = {
   ...process.env,
   CRAWCLAW_LIVE_TEST: process.env.CRAWCLAW_LIVE_TEST || "1",
-  CRAWCLAW_LIVE_TEST_QUIET:
-    quietOverride ?? process.env.CRAWCLAW_LIVE_TEST_QUIET ?? "1",
+  CRAWCLAW_LIVE_TEST_QUIET: quietOverride ?? process.env.CRAWCLAW_LIVE_TEST_QUIET ?? "1",
 };
 
 const command = process.platform === "win32" ? "pnpm.cmd" : "pnpm";

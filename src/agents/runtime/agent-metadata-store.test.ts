@@ -69,7 +69,6 @@ describe("agent-metadata-store", () => {
           mode: "background",
           spawnSource: "sessions_spawn",
           model: "openai/gpt-5.4-mini",
-          sandboxed: true,
           workspaceDir: "/workspace/worker",
           requesterSessionKey: "agent:main:main",
         },
@@ -122,7 +121,6 @@ describe("agent-metadata-store", () => {
         parentAgentId: "main",
         mode: "background",
         model: "openai/gpt-5.4-mini",
-        sandboxed: true,
         workspaceDir: "/workspace/worker",
         requesterSessionKey: "agent:main:main",
       });

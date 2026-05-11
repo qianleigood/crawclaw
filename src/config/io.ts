@@ -2020,7 +2020,7 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       const nodeErr = err as NodeJS.ErrnoException;
       let message: string;
       if (nodeErr?.code === "EACCES") {
-        // Permission denied - common in Docker/container deployments where the
+        // Permission denied - common in locked-down service deployments where the
         // config file is owned by root but the gateway runs as a non-root user.
         const uid = process.getuid?.();
         const uidHint = typeof uid === "number" ? String(uid) : "$(id -u)";

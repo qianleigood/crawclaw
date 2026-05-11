@@ -377,9 +377,7 @@ describe("copyBundledPluginMetadata", () => {
 
     expect(fs.existsSync(path.join(repoRoot, "dist", "extensions", "speech-core"))).toBe(true);
     expect(
-      fs.existsSync(
-        path.join(repoRoot, "dist", "extensions", "speech-core", "runtime-api.js"),
-      ),
+      fs.existsSync(path.join(repoRoot, "dist", "extensions", "speech-core", "runtime-api.js")),
     ).toBe(true);
     expect(
       fs.existsSync(

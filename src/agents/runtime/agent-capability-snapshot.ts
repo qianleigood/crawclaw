@@ -17,7 +17,6 @@ export type AgentCapabilitySnapshot = {
   mode?: AgentTaskMode;
   spawnSource?: string;
   model?: string;
-  sandboxed?: boolean;
   workspaceDir?: string;
   requesterSessionKey?: string;
   requesterAgentIdOverride?: string;
@@ -30,7 +29,6 @@ export type AgentCapabilitySnapshotInput = {
   mode?: AgentTaskMode;
   spawnSource?: string | null;
   model?: string | null;
-  sandboxed?: boolean;
   workspaceDir?: string | null;
   requesterSessionKey?: string | null;
   requesterAgentIdOverride?: string | null;
@@ -138,7 +136,6 @@ export function normalizeAgentCapabilitySnapshot(
     ...(normalizeOptionalString(typeof record.model === "string" ? record.model : undefined)
       ? { model: normalizeOptionalString(record.model as string) }
       : {}),
-    ...(record.sandboxed === true ? { sandboxed: true } : {}),
     ...(normalizeOptionalString(
       typeof record.workspaceDir === "string" ? record.workspaceDir : undefined,
     )
@@ -185,7 +182,6 @@ export function createAgentCapabilitySnapshot(params: {
     ...(normalizeOptionalString(params.snapshot.model)
       ? { model: normalizeOptionalString(params.snapshot.model) }
       : {}),
-    ...(params.snapshot.sandboxed === true ? { sandboxed: true } : {}),
     ...(normalizeOptionalString(params.snapshot.workspaceDir)
       ? { workspaceDir: normalizeOptionalString(params.snapshot.workspaceDir) }
       : {}),

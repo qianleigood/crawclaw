@@ -11,13 +11,10 @@ import type { GatewayMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentWorkspaceDir, resolveSessionAgentId } from "./agent-scope.js";
 import { applyPluginToolDeliveryDefaults } from "./plugin-tool-delivery-defaults.js";
 import { isReviewSpawnSource } from "./review-agent.js";
-import type { SandboxFsBridge } from "./sandbox/fs-bridge.js";
 import type { SpawnedToolContext } from "./spawned-context.js";
 import type { ToolFsPolicy } from "./tool-fs-policy.js";
-import { createCanvasTool } from "./tools/canvas-tool.js";
 import type { AnyAgentTool } from "./tools/common.js";
 import { createCronTool } from "./tools/cron-tool.js";
-import { createGatewayTool } from "./tools/gateway-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
 import {
   createMemoryManifestReadTool,
@@ -56,9 +53,6 @@ let openClawToolsDeps: CrawClawToolsDeps = defaultCrawClawToolsDeps;
 
 export function createCrawClawTools(
   options?: {
-    sandboxBrowserBridgeUrl?: string;
-    sandboxBrowserCdpUrl?: string;
-    sandboxBrowserPinchTabUrl?: string;
     allowHostBrowserControl?: boolean;
     agentSessionKey?: string;
     agentChannel?: GatewayMessageChannel;
@@ -68,10 +62,7 @@ export function createCrawClawTools(
     /** Thread/topic identifier for routing replies to the originating thread. */
     agentThreadId?: string | number;
     agentDir?: string;
-    sandboxRoot?: string;
-    sandboxFsBridge?: SandboxFsBridge;
     fsPolicy?: ToolFsPolicy;
-    sandboxed?: boolean;
     config?: CrawClawConfig;
     pluginToolAllowlist?: string[];
     /** Current channel ID for auto-threading (Slack). */
@@ -108,12 +99,7 @@ export function createCrawClawTools(
     senderIsOwner?: boolean;
     /** Ephemeral session UUID — regenerated on /new. */
     sessionId?: string;
-    /**
-     * Workspace directory to pass to spawned subagents for inheritance.
-     * Defaults to workspaceDir. Use this to pass the actual agent workspace when the
-     * session itself is running in a copied-workspace sandbox (`ro` or `none`) so
-     * subagents inherit the real workspace path instead of the sandbox copy.
-     */
+    /** Workspace directory to pass to spawned subagents for inheritance. */
     spawnWorkspaceDir?: string;
     /** Callback invoked when sessions_yield tool is called. */
     onYield?: (message: string) => Promise<void> | void;
@@ -144,16 +130,11 @@ export function createCrawClawTools(
   });
   const runtimeWebTools = getActiveRuntimeWebToolsMetadata();
   const runtimeSnapshot = getActiveSecretsRuntimeSnapshot();
-  const sandbox =
-    options?.sandboxRoot && options?.sandboxFsBridge
-      ? { root: options.sandboxRoot, bridge: options.sandboxFsBridge }
-      : undefined;
   const imageTool = options?.agentDir?.trim()
     ? createImageTool({
         config: options?.config,
         agentDir: options.agentDir,
         workspaceDir,
-        sandbox,
         fsPolicy: options?.fsPolicy,
         modelHasVision: options?.modelHasVision,
       })
@@ -163,18 +144,15 @@ export function createCrawClawTools(
         config: options?.config,
         agentDir: options.agentDir,
         workspaceDir,
-        sandbox,
         fsPolicy: options?.fsPolicy,
       })
     : null;
   const webSearchTool = createWebSearchTool({
     config: options?.config,
-    sandboxed: options?.sandboxed,
     runtimeWebSearch: runtimeWebTools?.search,
   });
   const webFetchTool = createWebFetchTool({
     config: options?.config,
-    sandboxed: options?.sandboxed,
     runtimeWebFetch: runtimeWebTools?.fetch,
   });
   const experienceWriteTool = createExperienceWriteTool({
@@ -228,7 +206,6 @@ export function createCrawClawTools(
         agentGroupId: options?.agentGroupId,
         agentGroupChannel: options?.agentGroupChannel,
         agentGroupSpace: options?.agentGroupSpace,
-        sandboxed: options?.sandboxed,
         requesterAgentIdOverride: options?.requesterAgentIdOverride,
         workspaceDir: spawnWorkspaceDir,
       });
@@ -245,22 +222,16 @@ export function createCrawClawTools(
         currentMessageId: options?.currentMessageId,
         replyToMode: options?.replyToMode,
         hasRepliedRef: options?.hasRepliedRef,
-        sandboxRoot: options?.sandboxRoot,
         requireExplicitTarget: options?.requireExplicitMessageTarget,
         requesterSenderId: options?.requesterSenderId ?? undefined,
       });
   const tools: AnyAgentTool[] = [
-    createCanvasTool({ config: options?.config }),
     createCronTool({
       agentSessionKey: options?.agentSessionKey,
     }),
     ...(messageTool ? [messageTool] : []),
     createTtsTool({
       agentChannel: options?.agentChannel,
-      config: options?.config,
-    }),
-    createGatewayTool({
-      agentSessionKey: options?.agentSessionKey,
       config: options?.config,
     }),
     ...(memoryManifestReadTool ? [memoryManifestReadTool] : []),
@@ -272,20 +243,17 @@ export function createCrawClawTools(
     ...(reviewTaskTool ? [reviewTaskTool] : []),
     createSessionsListTool({
       agentSessionKey: options?.agentSessionKey,
-      sandboxed: options?.sandboxed,
       config: resolvedConfig,
       callGateway: openClawToolsDeps.callGateway,
     }),
     createSessionsHistoryTool({
       agentSessionKey: options?.agentSessionKey,
-      sandboxed: options?.sandboxed,
       config: resolvedConfig,
       callGateway: openClawToolsDeps.callGateway,
     }),
     createSessionsSendTool({
       agentSessionKey: options?.agentSessionKey,
       agentChannel: options?.agentChannel,
-      sandboxed: options?.sandboxed,
       config: resolvedConfig,
       callGateway: openClawToolsDeps.callGateway,
     }),
@@ -302,7 +270,6 @@ export function createCrawClawTools(
       agentGroupId: options?.agentGroupId,
       agentGroupChannel: options?.agentGroupChannel,
       agentGroupSpace: options?.agentGroupSpace,
-      sandboxed: options?.sandboxed,
       requesterAgentIdOverride: options?.requesterAgentIdOverride,
       workspaceDir: spawnWorkspaceDir,
     }),
@@ -312,7 +279,6 @@ export function createCrawClawTools(
     createSessionStatusTool({
       agentSessionKey: options?.agentSessionKey,
       config: resolvedConfig,
-      sandboxed: options?.sandboxed,
     }),
     createWorkflowizeTool({
       workspaceDir,
@@ -343,9 +309,6 @@ export function createCrawClawTools(
       sessionKey: options?.agentSessionKey,
       sessionId: options?.sessionId,
       browser: {
-        sandboxBridgeUrl: options?.sandboxBrowserBridgeUrl,
-        sandboxCdpUrl: options?.sandboxBrowserCdpUrl,
-        sandboxPinchTabUrl: options?.sandboxBrowserPinchTabUrl,
         allowHostControl: options?.allowHostBrowserControl,
       },
       messageChannel: options?.agentChannel,
@@ -353,7 +316,6 @@ export function createCrawClawTools(
       deliveryContext,
       requesterSenderId: options?.requesterSenderId ?? undefined,
       senderIsOwner: options?.senderIsOwner ?? undefined,
-      sandboxed: options?.sandboxed,
     },
     existingToolNames: new Set(tools.map((tool) => tool.name)),
     toolAllowlist: options?.pluginToolAllowlist,

@@ -889,12 +889,12 @@ describe("applyPluginAutoEnable", () => {
 
       const result = applyPluginAutoEnable({
         config: makeApnChannelConfig(),
-      env: {
-        ...process.env,
-        CRAWCLAW_HOME: undefined,
-        CRAWCLAW_STATE_DIR: stateDir,
-        CRAWCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
-      },
+        env: {
+          ...process.env,
+          CRAWCLAW_HOME: undefined,
+          CRAWCLAW_STATE_DIR: stateDir,
+          CRAWCLAW_BUNDLED_PLUGINS_DIR: "/nonexistent/bundled/plugins",
+        },
       });
 
       expect(result.config.plugins?.entries?.["apn-channel"]?.enabled).toBe(true);

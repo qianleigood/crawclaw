@@ -52,11 +52,11 @@ export type {
   GatewayServiceStartResult,
   GatewayServiceStageArgs,
   GatewayServiceState,
-  } from "./service-types.js";
+} from "./service-types.js";
 
 function ignoreServiceWriteResult<TArgs extends GatewayServiceInstallArgs>(
   write: (args: TArgs) => Promise<unknown>,
-  ): (args: TArgs) => Promise<void> {
+): (args: TArgs) => Promise<void> {
   return async (args: TArgs) => {
     await write(args);
   };

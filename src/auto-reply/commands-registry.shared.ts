@@ -217,18 +217,10 @@ export function buildBuiltinChatCommands(): ChatCommandDefinition[] {
       category: "status",
     }),
     defineChatCommand({
-      key: "nodes",
-      nativeName: "nodes",
-      description: "List paired node hosts; device pairing is /devices.",
-      descriptionZhCN: "列出已配对节点主机；设备配对见 /devices。",
-      textAlias: "/nodes",
-      category: "status",
-    }),
-    defineChatCommand({
       key: "devices",
       nativeName: "devices",
-      description: "List DM/device pairing; node hosts are /nodes.",
-      descriptionZhCN: "列出私信/设备配对；节点主机见 /nodes。",
+      description: "List DM/device pairing.",
+      descriptionZhCN: "列出私信/设备配对。",
       textAlias: "/devices",
       category: "status",
     }),
@@ -882,10 +874,10 @@ export function buildBuiltinChatCommands(): ChatCommandDefinition[] {
       args: [
         {
           name: "host",
-          description: "sandbox, gateway, or node",
-          descriptionZhCN: "sandbox、gateway 或 node",
+          description: "gateway or node",
+          descriptionZhCN: "gateway 或 node",
           type: "string",
-          choices: ["sandbox", "gateway", "node"],
+          choices: ["gateway", "node"],
         },
         {
           name: "security",

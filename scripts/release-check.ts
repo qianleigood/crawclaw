@@ -20,7 +20,7 @@ type PackResult = { files?: PackFile[]; filename?: string; unpackedSize?: number
 
 const requiredPathGroups = [
   ["dist/index.js", "dist/index.mjs"],
-  ["dist/entry.js", "dist/entry.mjs"],
+  ["dist/native/crawclaw", "dist/native/crawclaw.exe"],
   ...listPluginSdkDistArtifacts(),
   ...listBundledPluginPackArtifacts(),
   ...listStaticExtensionAssetOutputs(),

@@ -14,7 +14,6 @@ import {
 } from "./sessions-spawn-tool-ops.js";
 
 const SESSIONS_SPAWN_RUNTIMES = ["subagent", "acp"] as const;
-const SESSIONS_SPAWN_SANDBOX_MODES = ["inherit", "require"] as const;
 // Keep the schema local to avoid a circular import through acp-spawn/crawclaw-tools.
 const SESSIONS_SPAWN_ACP_STREAM_TARGETS = ["parent"] as const;
 const UNSUPPORTED_SESSIONS_SPAWN_PARAM_KEYS = [
@@ -48,7 +47,6 @@ const SessionsSpawnToolSchema = Type.Object({
   thread: Type.Optional(Type.Boolean()),
   mode: optionalStringEnum(SUBAGENT_SPAWN_MODES),
   cleanup: optionalStringEnum(["delete", "keep"] as const),
-  sandbox: optionalStringEnum(SESSIONS_SPAWN_SANDBOX_MODES),
   streamTo: optionalStringEnum(SESSIONS_SPAWN_ACP_STREAM_TARGETS),
 
   // Inline attachments (snapshot-by-value).
@@ -80,7 +78,6 @@ export function createSessionsSpawnTool(
     agentAccountId?: string;
     agentTo?: string;
     agentThreadId?: string | number;
-    sandboxed?: boolean;
     /** Explicit agent ID override for cron/hook sessions where session key parsing may not work. */
     requesterAgentIdOverride?: string;
   } & SpawnedToolContext,

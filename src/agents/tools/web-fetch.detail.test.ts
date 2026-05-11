@@ -59,7 +59,6 @@ describe("web_fetch detail shaping", () => {
           },
         },
       },
-      sandboxed: false,
     });
 
     const result = await tool?.execute?.("call", { url: "https://example.com/article" });
@@ -115,7 +114,6 @@ describe("web_fetch detail shaping", () => {
           },
         },
       },
-      sandboxed: false,
     });
 
     const result = await tool?.execute?.("call", {

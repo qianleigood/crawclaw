@@ -1,4 +1,1 @@
-export {
-  readSessionUpdatedAt,
-  resolveStorePath,
-} from "./config-runtime.js";
+export { readSessionUpdatedAt, resolveStorePath } from "./config-runtime.js";

@@ -34,11 +34,7 @@ describe("parseWindowsCmdline", () => {
   });
 
   it("collapses consecutive spaces outside quotes", () => {
-    expect(parseWindowsCmdline("node.exe   gateway   run")).toEqual([
-      "node.exe",
-      "gateway",
-      "run",
-    ]);
+    expect(parseWindowsCmdline("node.exe   gateway   run")).toEqual(["node.exe", "gateway", "run"]);
   });
 });
 
@@ -47,27 +43,19 @@ describe("isGatewayArgv", () => {
     expect(isGatewayArgv(["node", "dist/index.js", "--port", "18789"])).toBe(false);
   });
 
-  it("matches known entrypoints across slash and case variants", () => {
-    expect(isGatewayArgv(["NODE", "C:\\CrawClaw\\DIST\\ENTRY.JS", "gateway"])).toBe(true);
-    expect(isGatewayArgv(["bun", "/srv/crawclaw/scripts/run-node.mjs", "gateway"])).toBe(true);
-    expect(isGatewayArgv(["node", "/srv/crawclaw/crawclaw.mjs", "gateway"])).toBe(true);
-    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/entry.ts", "gateway"])).toBe(true);
-    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/index.ts", "gateway"])).toBe(true);
+  it("does not treat old TS entrypoints as Gateway runtimes", () => {
+    expect(isGatewayArgv(["NODE", "C:\\CrawClaw\\DIST\\ENTRY.JS", "gateway"])).toBe(false);
+    expect(isGatewayArgv(["bun", "/srv/crawclaw/scripts/run-node.mjs", "gateway"])).toBe(false);
+    expect(isGatewayArgv(["node", "/srv/crawclaw/crawclaw.mjs", "gateway"])).toBe(false);
+    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/entry.ts", "gateway"])).toBe(false);
+    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/index.ts", "gateway"])).toBe(false);
   });
 
-  it("matches the crawclaw executable but gates the gateway binary behind the opt-in flag", () => {
+  it("matches the crawclaw executable and the Rust gateway binary", () => {
     expect(isGatewayArgv(["C:\\bin\\crawclaw.cmd", "gateway"])).toBe(true);
-    expect(isGatewayArgv(["/usr/local/bin/crawclaw-gateway", "gateway"])).toBe(false);
-    expect(
-      isGatewayArgv(["/usr/local/bin/crawclaw-gateway", "gateway"], {
-        allowGatewayBinary: true,
-      }),
-    ).toBe(true);
-    expect(
-      isGatewayArgv(["C:\\bin\\crawclaw-gateway.EXE", "gateway"], {
-        allowGatewayBinary: true,
-      }),
-    ).toBe(true);
+    expect(isGatewayArgv(["/app/dist/native/crawclaw", "gateway"])).toBe(true);
+    expect(isGatewayArgv(["/usr/local/bin/crawclaw-gateway", "--bind", "127.0.0.1"])).toBe(true);
+    expect(isGatewayArgv(["C:\\bin\\crawclaw-gateway.EXE", "--port", "18789"])).toBe(true);
   });
 
   it("rejects unknown gateway argv even when the token is present", () => {

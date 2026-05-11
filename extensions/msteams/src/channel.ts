@@ -20,11 +20,7 @@ import {
 import { createLazyRuntimeNamedExport } from "crawclaw/plugin-sdk/lazy-runtime";
 import { createRuntimeOutboundDelegates } from "crawclaw/plugin-sdk/outbound-runtime";
 import { createComputedAccountStatusAdapter } from "crawclaw/plugin-sdk/status-helpers";
-import type {
-  ChannelMessageActionName,
-  ChannelPlugin,
-  CrawClawConfig,
-} from "../runtime-api.js";
+import type { ChannelMessageActionName, ChannelPlugin, CrawClawConfig } from "../runtime-api.js";
 import {
   buildProbeChannelStatusSummary,
   chunkTextForOutbound,

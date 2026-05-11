@@ -27,7 +27,6 @@ export type HookContext = {
   /** Ephemeral session UUID — regenerated on /new. */
   sessionId?: string;
   runId?: string;
-  sandboxed?: boolean;
   loopDetection?: ToolLoopDetectionConfig;
   specialToolAllowlist?: string[];
   specialToolGuard?: SpecialToolGuardContext;
@@ -796,7 +795,6 @@ export async function runBeforeToolCallHook(args: {
     agentId: effectiveAgentId,
     sessionKey: effectiveSessionKey,
     sessionId: effectiveSessionId,
-    sandboxed: args.ctx?.sandboxed,
   });
   const specialToolAllowlist = args.ctx?.specialToolAllowlist;
   const normalizedSpecialAllowlist = Array.isArray(specialToolAllowlist)

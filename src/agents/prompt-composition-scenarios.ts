@@ -37,17 +37,7 @@ export type PromptScenario = {
 };
 
 function buildCommonSystemParams(workspaceDir: string) {
-  const toolNames = [
-    "bash",
-    "read",
-    "edit",
-    "grep",
-    "glob",
-    "message",
-    "web_search",
-    "x_search",
-    "web_fetch",
-  ];
+  const toolNames = ["bash", "read", "edit", "grep", "glob", "message", "web_search", "web_fetch"];
   const toolSummaries = buildToolSummaryMap(
     toolNames.map((name) => ({ name, description: `${name} tool` }) as never),
   );
@@ -147,17 +137,9 @@ function buildToolRichSystemPrompt(params: {
   const { runtimeInfo, userTimezone, userTime, userTimeFormat } = buildCommonSystemParams(
     params.workspaceDir,
   );
-  const tools = [
-    "bash",
-    "read",
-    "edit",
-    "grep",
-    "glob",
-    "message",
-    "web_search",
-    "x_search",
-    "web_fetch",
-  ].map((name) => ({ ...createStubTool(name), description: `${name} tool` }));
+  const tools = ["bash", "read", "edit", "grep", "glob", "message", "web_search", "web_fetch"].map(
+    (name) => ({ ...createStubTool(name), description: `${name} tool` }),
+  );
   return buildEmbeddedSystemPrompt({
     workspaceDir: params.workspaceDir,
     reasoningTagHint: false,

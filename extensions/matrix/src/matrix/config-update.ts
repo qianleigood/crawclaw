@@ -13,7 +13,7 @@ export {
   resolveMatrixConfigFieldPath,
   resolveMatrixConfigPath,
   shouldStoreMatrixAccountAtTopLevel,
-  } from "./config-paths.js";
+} from "./config-paths.js";
 
 export type MatrixAccountPatch = {
   name?: string | null;

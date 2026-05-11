@@ -2,14 +2,14 @@ import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { Bot } from "grammy";
 import {
   normalizeTelegramCommandName,
   TELEGRAM_COMMAND_NAME_PATTERN,
 } from "crawclaw/plugin-sdk/config-runtime";
+import { resolveStateDir } from "crawclaw/plugin-sdk/config-runtime";
 import { logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
-import { resolveStateDir } from "crawclaw/plugin-sdk/config-runtime";
+import type { Bot } from "grammy";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 
 export const TELEGRAM_MAX_COMMANDS = 100;

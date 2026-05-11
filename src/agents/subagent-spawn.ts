@@ -14,7 +14,6 @@ import { normalizeDeliveryContext } from "../utils/delivery-context.js";
 import { resolveAgentConfig } from "./agent-scope.js";
 import { AGENT_LANE_SUBAGENT } from "./lanes.js";
 import { resolveSubagentSpawnModelSelection } from "./model-selection.js";
-import { resolveSandboxRuntimeStatus } from "./sandbox/runtime-status.js";
 import {
   mapToolContextToSpawnedRunMetadata,
   normalizeSpawnedRunMetadata,
@@ -49,14 +48,12 @@ import {
   splitModelRef,
   SUBAGENT_SPAWN_ACCEPTED_NOTE,
   SUBAGENT_SPAWN_MODES,
-  SUBAGENT_SPAWN_SANDBOX_MODES,
   SUBAGENT_SPAWN_SESSION_ACCEPTED_NOTE,
   type AllowedSubagentTarget,
   type SpawnSubagentContext,
   type SpawnSubagentMode,
   type SpawnSubagentParams,
   type SpawnSubagentResult,
-  type SpawnSubagentSandboxMode,
 } from "./subagents/spawn-types.js";
 import { readStringParam } from "./tools/common.js";
 import {
@@ -70,16 +67,9 @@ export {
   splitModelRef,
   SUBAGENT_SPAWN_ACCEPTED_NOTE,
   SUBAGENT_SPAWN_MODES,
-  SUBAGENT_SPAWN_SANDBOX_MODES,
   SUBAGENT_SPAWN_SESSION_ACCEPTED_NOTE,
 };
-export type {
-  SpawnSubagentContext,
-  SpawnSubagentMode,
-  SpawnSubagentParams,
-  SpawnSubagentResult,
-  SpawnSubagentSandboxMode,
-};
+export type { SpawnSubagentContext, SpawnSubagentMode, SpawnSubagentParams, SpawnSubagentResult };
 
 type AllowedSubagentTargets = {
   allowAny: boolean;
@@ -179,7 +169,6 @@ export async function spawnSubagentDirect(
   const modelOverride = params.model;
   const thinkingOverrideRaw = params.thinking;
   const requestThreadBinding = params.thread === true;
-  const sandboxMode = params.sandbox === "require" ? "require" : "inherit";
   const spawnMode = resolveSpawnMode({
     requestedMode: params.mode,
     threadRequested: requestThreadBinding,
@@ -268,28 +257,6 @@ export async function spawnSubagentDirect(
     }
   }
   const childSessionKey = `agent:${targetAgentId}:subagent:${crypto.randomUUID()}`;
-  const requesterRuntime = resolveSandboxRuntimeStatus({
-    cfg,
-    sessionKey: requesterInternalKey,
-  });
-  const childRuntime = resolveSandboxRuntimeStatus({
-    cfg,
-    sessionKey: childSessionKey,
-  });
-  if (!childRuntime.sandboxed && (requesterRuntime.sandboxed || sandboxMode === "require")) {
-    if (requesterRuntime.sandboxed) {
-      return {
-        status: "forbidden",
-        error:
-          "Sandboxed sessions cannot spawn unsandboxed subagents. Set a sandboxed target agent or use the same agent runtime.",
-      };
-    }
-    return {
-      status: "forbidden",
-      error:
-        'sessions_spawn sandbox="require" needs a sandboxed target runtime. Pick a sandboxed agentId or use sandbox="inherit".',
-    };
-  }
   const childDepth = callerDepth + 1;
   const spawnedByKey = requesterInternalKey;
   const childCapabilities = resolveSubagentCapabilities({
@@ -441,7 +408,7 @@ export async function spawnSubagentDirect(
     childSessionKey,
     label: label || undefined,
     task,
-    acpEnabled: cfg.acp?.enabled !== false && !childRuntime.sandboxed,
+    acpEnabled: cfg.acp?.enabled !== false,
     childDepth,
     maxSpawnDepth,
   });

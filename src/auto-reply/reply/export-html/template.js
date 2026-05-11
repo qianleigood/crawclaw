@@ -962,7 +962,6 @@
       yml: "yaml",
       xml: "xml",
       md: "markdown",
-      dockerfile: "dockerfile",
     };
     return extToLang[ext];
   }
@@ -1164,7 +1163,7 @@
         // Check for pre-rendered custom tool HTML
         const rendered = renderedTools?.[call.id];
         if (rendered?.callHtml || rendered?.resultHtml) {
-          // Custom tool with pre-rendered HTML from TUI renderer
+          // Custom tool with pre-rendered HTML from the chat renderer
           if (rendered.callHtml) {
             html += `<div class="tool-header ansi-rendered">${rendered.callHtml}</div>`;
           } else {

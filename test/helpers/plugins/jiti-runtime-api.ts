@@ -213,7 +213,7 @@ import { createJiti } from "jiti";
 const modulePath = ${JSON.stringify(params.modulePath)};
 const exportNames = ${JSON.stringify(params.exportNames)};
 const alias = ${JSON.stringify(alias)};
-const jiti = createJiti(path.join(${JSON.stringify(root)}, "crawclaw.mjs"), {
+const jiti = createJiti(path.join(${JSON.stringify(root)}, "package.json"), {
   interopDefault: true,
   tryNative: false,
   fsCache: false,

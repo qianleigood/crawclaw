@@ -22,7 +22,6 @@ type GatewayCaller = typeof callGateway;
 
 export function createSessionsHistoryTool(opts?: {
   agentSessionKey?: string;
-  sandboxed?: boolean;
   config?: CrawClawConfig;
   callGateway?: GatewayCaller;
 }): AnyAgentTool {
@@ -41,7 +40,6 @@ export function createSessionsHistoryTool(opts?: {
         resolveSessionToolContext(opts);
       const { a2aPolicy, visibility } = resolveSessionAccessPolicies({
         cfg,
-        sandboxed: opts?.sandboxed,
       });
       const visibleSession = await resolveAccessibleSessionReference({
         sessionKey: sessionKeyParam,

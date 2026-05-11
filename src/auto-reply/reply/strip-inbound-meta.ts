@@ -1,6 +1,6 @@
 /**
  * Strips CrawClaw-injected inbound metadata blocks from a user-role message
- * text before it is displayed in any client surface (TUI, webchat, node hosts).
+ * text before it is displayed in any client surface (webchat, desktop clients).
  *
  * Background: `buildInboundUserContextPrefix` in `inbound-meta.ts` prepends
  * structured metadata blocks (Conversation info, Sender info, reply context,

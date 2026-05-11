@@ -1,7 +1,7 @@
 import type { MainSessionWakeEventPayload } from "../infra/main-session-wake-events.js";
 import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
-import { getDaemonStatusSummary, getNodeDaemonStatusSummary } from "./status.daemon.js";
+import { getDaemonStatusSummary } from "./status.daemon.js";
 import { scanStatusJsonFast } from "./status.scan.fast-json.js";
 
 let providerUsagePromise: Promise<typeof import("../infra/provider-usage.js")> | undefined;
@@ -75,10 +75,7 @@ export async function statusJsonCommand(
         }).catch(() => null)
       : null;
 
-  const [daemon, nodeDaemon] = await Promise.all([
-    getDaemonStatusSummary(),
-    getNodeDaemonStatusSummary(),
-  ]);
+  const daemon = await getDaemonStatusSummary();
   const channelInfo = resolveUpdateChannelDisplay({
     configChannel: normalizeUpdateChannel(scan.cfg.update?.channel),
     installKind: scan.update.installKind,
@@ -105,7 +102,6 @@ export async function statusJsonCommand(
       authWarning: scan.gatewayProbeAuthWarning ?? null,
     },
     gatewayService: daemon,
-    nodeService: nodeDaemon,
     agents: scan.agentStatus,
     secretDiagnostics: scan.secretDiagnostics,
     ...(securityAudit ? { securityAudit } : {}),

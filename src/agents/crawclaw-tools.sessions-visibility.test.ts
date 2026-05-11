@@ -37,10 +37,9 @@ async function loadFreshCrawClawToolsModuleForTest() {
   ({ createCrawClawTools } = await import("./crawclaw-tools.js"));
 }
 
-function getSessionsHistoryTool(options?: { sandboxed?: boolean }) {
+function getSessionsHistoryTool() {
   const tool = createCrawClawTools({
     agentSessionKey: "main",
-    sandboxed: options?.sandboxed,
   }).find((candidate) => candidate.name === "sessions_history");
   expect(tool).toBeDefined();
   if (!tool) {
@@ -116,11 +115,11 @@ describe("sessions tools visibility", () => {
     });
   });
 
-  it("clamps sandboxed sessions to tree when agents.defaults.sandbox.sessionToolsVisibility=spawned", async () => {
+  it("clamps child sessions to tree when agents.defaults.runtime.sessionToolsVisibility=spawned", async () => {
     mockConfig = {
       session: { mainKey: "main", scope: "per-sender" },
       tools: { sessions: { visibility: "all" }, agentToAgent: { enabled: true, allow: ["*"] } },
-      agents: { defaults: { sandbox: { sessionToolsVisibility: "spawned" } } },
+      agents: { defaults: { runtime: { sessionToolsVisibility: "spawned" } } },
     };
     mockGatewayWithHistory((req) => {
       if (req.method === "sessions.list" && req.params?.spawnedBy === "main") {
@@ -129,7 +128,7 @@ describe("sessions tools visibility", () => {
       return undefined;
     });
 
-    const tool = getSessionsHistoryTool({ sandboxed: true });
+    const tool = getSessionsHistoryTool();
 
     const denied = await tool.execute("call4", {
       sessionKey: "agent:other:main",

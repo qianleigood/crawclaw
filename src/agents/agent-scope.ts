@@ -45,7 +45,6 @@ type ResolvedAgentConfig = {
   identity?: AgentEntry["identity"];
   groupChat?: AgentEntry["groupChat"];
   subagents?: AgentEntry["subagents"];
-  sandbox?: AgentEntry["sandbox"];
   tools?: AgentEntry["tools"];
 };
 
@@ -149,7 +148,6 @@ export function resolveAgentConfig(
     identity: entry.identity,
     groupChat: entry.groupChat,
     subagents: typeof entry.subagents === "object" && entry.subagents ? entry.subagents : undefined,
-    sandbox: entry.sandbox,
     tools: entry.tools,
   };
 }

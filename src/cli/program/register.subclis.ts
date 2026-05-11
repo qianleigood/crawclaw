@@ -104,7 +104,7 @@ const entries: SubCliEntry[] = [
   },
   {
     name: "approvals",
-    description: "Manage exec approvals (gateway or node host)",
+    description: "Manage exec approvals",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../exec-approvals-cli.js");
@@ -112,48 +112,12 @@ const entries: SubCliEntry[] = [
     },
   },
   {
-    name: "nodes",
-    description: "Manage gateway node hosts; device pairing lives under devices",
-    hasSubcommands: true,
-    register: async (program) => {
-      const mod = await import("../nodes-cli.js");
-      mod.registerNodesCli(program);
-    },
-  },
-  {
     name: "devices",
-    description: "Manage chat/mobile device pairing; node hosts live under nodes",
+    description: "Manage chat/mobile device pairing",
     hasSubcommands: true,
     register: async (program) => {
       const mod = await import("../devices-cli.js");
       mod.registerDevicesCli(program);
-    },
-  },
-  {
-    name: "node",
-    description: "Run and manage the headless node host service",
-    hasSubcommands: true,
-    register: async (program) => {
-      const mod = await import("../node-cli.js");
-      mod.registerNodeCli(program);
-    },
-  },
-  {
-    name: "sandbox",
-    description: "Manage sandbox containers for agent isolation",
-    hasSubcommands: true,
-    register: async (program) => {
-      const mod = await import("../sandbox-cli.js");
-      mod.registerSandboxCli(program);
-    },
-  },
-  {
-    name: "tui",
-    description: "Open a terminal UI connected to the Gateway",
-    hasSubcommands: false,
-    register: async (program) => {
-      const mod = await import("../tui-cli.js");
-      mod.registerTuiCli(program);
     },
   },
   {

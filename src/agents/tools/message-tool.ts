@@ -33,7 +33,6 @@ type MessageToolOptions = {
   currentMessageId?: string | number;
   replyToMode?: "off" | "first" | "all";
   hasRepliedRef?: { value: boolean };
-  sandboxRoot?: string;
   requireExplicitTarget?: boolean;
   requesterSenderId?: string;
 };
@@ -207,7 +206,6 @@ export function createMessageTool(options?: MessageToolOptions): AnyAgentTool {
         sessionKey: options?.agentSessionKey,
         sessionId: options?.sessionId,
         agentId: resolvedAgentId,
-        sandboxRoot: options?.sandboxRoot,
         abortSignal: signal,
       });
 

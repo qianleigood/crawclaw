@@ -50,10 +50,7 @@ describe("target registry pattern helpers", () => {
   it("expands wildcard and array patterns over config objects", () => {
     const root = {
       agents: {
-        list: [
-          { sandbox: { ssh: { identityData: "a" } } },
-          { sandbox: { ssh: { identityData: "b" } } },
-        ],
+        list: [{ tools: { exec: { host: "gateway" } } }, { tools: { exec: { host: "auto" } } }],
       },
       talk: {
         providers: {
@@ -63,10 +60,7 @@ describe("target registry pattern helpers", () => {
       },
     };
 
-    const arrayMatches = expandPathTokens(
-      root,
-      parsePathPattern("agents.list[].sandbox.ssh.identityData"),
-    );
+    const arrayMatches = expandPathTokens(root, parsePathPattern("agents.list[].tools.exec.host"));
     expect(
       arrayMatches.map((entry) => ({
         segments: entry.segments.join("."),
@@ -75,14 +69,14 @@ describe("target registry pattern helpers", () => {
       })),
     ).toEqual([
       {
-        segments: "agents.list.0.sandbox.ssh.identityData",
+        segments: "agents.list.0.tools.exec.host",
         captures: ["0"],
-        value: "a",
+        value: "gateway",
       },
       {
-        segments: "agents.list.1.sandbox.ssh.identityData",
+        segments: "agents.list.1.tools.exec.host",
         captures: ["1"],
-        value: "b",
+        value: "auto",
       },
     ]);
 

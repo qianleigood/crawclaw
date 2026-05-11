@@ -45,7 +45,6 @@ describe("method scope resolution", () => {
     ["workflow.agent.run", ["operator.write"]],
     ["sessions.messages.subscribe", ["operator.read"]],
     ["sessions.messages.unsubscribe", ["operator.read"]],
-    ["node.pair.approve", ["operator.write"]],
     ["poll", ["operator.write"]],
     ["config.patch", ["operator.admin"]],
     ["channels.account.login.start", ["operator.admin"]],
@@ -62,8 +61,8 @@ describe("method scope resolution", () => {
     expect(resolveLeastPrivilegeOperatorScopesForMethod(method)).toEqual(expected);
   });
 
-  it("leaves node-only pending drain outside operator scopes", () => {
-    expect(resolveLeastPrivilegeOperatorScopesForMethod("node.pending.drain")).toEqual([]);
+  it("returns empty scopes for removed methods", () => {
+    expect(resolveLeastPrivilegeOperatorScopesForMethod("removed.method")).toEqual([]);
   });
 
   it("returns empty scopes for unknown methods", () => {
@@ -99,7 +98,7 @@ describe("operator scope authorization", () => {
       allowed: false,
       missingScope: "operator.write",
     });
-    expect(authorizeOperatorScopesForMethod("node.pair.approve", ["operator.pairing"])).toEqual({
+    expect(authorizeOperatorScopesForMethod("sessions.create", ["operator.read"])).toEqual({
       allowed: false,
       missingScope: "operator.write",
     });
@@ -156,11 +155,6 @@ describe("plugin approval method registration", () => {
 });
 
 describe("core gateway method classification", () => {
-  it("treats node-role methods as classified even without operator scopes", () => {
-    expect(isGatewayMethodClassified("node.pending.drain")).toBe(true);
-    expect(isGatewayMethodClassified("node.pending.pull")).toBe(true);
-  });
-
   it("classifies every exposed core gateway handler method", () => {
     const unclassified = Object.keys(coreGatewayHandlers).filter(
       (method) => !isGatewayMethodClassified(method),

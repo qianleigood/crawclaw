@@ -27,9 +27,9 @@ import { inheritOptionFromParent } from "../command-options.js";
 import { createCliTranslator } from "../i18n/index.js";
 import { forceFreePortAndWait, waitForPortBindable } from "../ports.js";
 import { getProgramContext } from "../program/program-context.js";
-import { withProgress } from "../progress.js";
 import { ensureDevGatewayConfig } from "./dev.js";
 import { runGatewayLoop } from "./run-loop.js";
+import { startRustGatewayServer } from "./rust-server.js";
 import {
   describeUnknownError,
   extractGatewayMiskeys,
@@ -226,14 +226,6 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
   if (rawStreamPath) {
     process.env.CRAWCLAW_RAW_STREAM_PATH = rawStreamPath;
   }
-
-  // The heaviest part of gateway startup is loading the server module tree
-  // (channels, plugins, HTTP stack, etc.). Show a spinner so the user sees
-  // progress instead of a silent 15-20 s pause (especially on Windows/NTFS).
-  const { startGatewayServer } = await withProgress(
-    { label: "Loading gateway modules…", indeterminate: true },
-    async () => import("../../gateway/server.js"),
-  );
 
   setConsoleTimestampPrefix(true);
 
@@ -465,6 +457,11 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
           ...(opts.tailscaleResetOnExit ? { resetOnExit: true } : {}),
         }
       : undefined;
+  const rustAuth = {
+    mode: resolvedAuthMode,
+    ...(hasToken ? { token: tokenValue } : {}),
+    ...(hasPassword ? { password: passwordValue } : {}),
+  };
 
   gatewayLog.info("starting gateway…");
   const startLoop = async () =>
@@ -472,9 +469,10 @@ async function runGatewayCommand(opts: GatewayRunOpts) {
       runtime: defaultRuntime,
       lockPort: port,
       start: async () =>
-        await startGatewayServer(port, {
+        await startRustGatewayServer(port, {
           bind,
-          auth: authOverride,
+          customBindHost: toOptionString(cfg.gateway?.customBindHost),
+          auth: rustAuth,
           tailscale: tailscaleOverride,
         }),
     });

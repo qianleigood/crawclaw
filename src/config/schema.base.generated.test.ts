@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
+import { GENERATED_BASE_CONFIG_SCHEMA } from "../generated/config/schema.base.generated.js";
 import { SENSITIVE_URL_HINT_TAG } from "../shared/net/redact-sensitive-url.js";
 import { computeBaseConfigSchemaResponse } from "./schema-base.js";
-import { GENERATED_BASE_CONFIG_SCHEMA } from "../generated/config/schema.base.generated.js";
 
 describe("generated base config schema", () => {
   it("matches the computed base config schema payload", () => {

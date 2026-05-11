@@ -53,7 +53,6 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
     cachePolicy: createShortMemoryCachePolicy(),
     mode: "run",
     cleanup: "keep",
-    sandbox: "inherit",
     expectsCompletionMessage: false,
     defaultRunTimeoutSeconds: params.defaultRunTimeoutSeconds,
     ...(typeof params.defaultMaxTurns === "number"

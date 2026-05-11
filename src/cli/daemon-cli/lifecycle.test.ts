@@ -129,8 +129,7 @@ describe("runDaemonRestart health checks", () => {
   });
 
   beforeEach(() => {
-    envSnapshot = captureEnv(["CRAWCLAW_CONTAINER_HINT", "CRAWCLAW_PROFILE"]);
-    delete process.env.CRAWCLAW_CONTAINER_HINT;
+    envSnapshot = captureEnv(["CRAWCLAW_PROFILE"]);
     service.readCommand.mockReset();
     service.restart.mockReset();
     runServiceRestart.mockReset();

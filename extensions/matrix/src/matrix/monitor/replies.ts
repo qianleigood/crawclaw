@@ -1,12 +1,7 @@
 import { getMatrixRuntime } from "../../runtime.js";
 import type { MatrixClient } from "../sdk.js";
 import { chunkMatrixText, sendMessageMatrix } from "../send.js";
-import type {
-  MarkdownTableMode,
-  CrawClawConfig,
-  ReplyPayload,
-  RuntimeEnv,
-} from "./runtime-api.js";
+import type { MarkdownTableMode, CrawClawConfig, ReplyPayload, RuntimeEnv } from "./runtime-api.js";
 
 const THINKING_TAG_RE = /<\s*\/?\s*(?:think(?:ing)?|thought|antthinking)\b[^<>]*>/gi;
 const THINKING_BLOCK_RE =

@@ -5,7 +5,7 @@ import { resolveAgentMainSessionKey, resolveMainSessionKey } from "../config/ses
 import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import {
   seedSessionStore,
-  withTempHeartbeatSandbox,
+  withTempHeartbeatFixture,
 } from "./main-session-wake-runner.test-utils.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
@@ -26,7 +26,7 @@ async function withHeartbeatFixture(
     seedSession: (sessionKey: string, input: SeedSessionInput) => Promise<void>;
   }) => Promise<unknown>,
 ): Promise<unknown> {
-  return withTempHeartbeatSandbox(
+  return withTempHeartbeatFixture(
     async ({ tmpDir, storePath }) => {
       const seedSession = async (sessionKey: string, input: SeedSessionInput) => {
         await seedSessionStore(storePath, sessionKey, {

@@ -27,7 +27,7 @@ type LobsterToolResult = {
   details: Record<string, unknown>;
 };
 
-function normalizeForCwdSandbox(p: string): string {
+function normalizeForCwdBoundary(p: string): string {
   const normalized = path.normalize(p);
   return process.platform === "win32" ? normalized.toLowerCase() : normalized;
 }
@@ -43,7 +43,7 @@ function resolveCwd(cwdRaw: unknown): string {
   const base = process.cwd();
   const resolved = path.resolve(base, cwd);
 
-  const rel = path.relative(normalizeForCwdSandbox(base), normalizeForCwdSandbox(resolved));
+  const rel = path.relative(normalizeForCwdBoundary(base), normalizeForCwdBoundary(resolved));
   if (rel === "" || rel === ".") {
     return resolved;
   }

@@ -24,7 +24,11 @@ module.exports = { presets: ["babel-preset-expo"], plugins: ["react-native-reani
 // app/_layout.tsx — wrap root in GestureHandlerRootView
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 export default function RootLayout() {
-  return <GestureHandlerRootView style={{ flex: 1 }}><Stack /></GestureHandlerRootView>;
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Stack />
+    </GestureHandlerRootView>
+  );
 }
 ```
 
@@ -55,18 +59,18 @@ import Animated, {
 
 ### Built-in Presets
 
-| Category | Entering | Exiting |
-|----------|----------|---------|
-| Fade | `FadeIn`, `FadeInUp`, `FadeInDown`, `FadeInLeft`, `FadeInRight` | `FadeOut*` |
-| Slide | `SlideInUp`, `SlideInDown`, `SlideInLeft`, `SlideInRight` | `SlideOut*` |
-| Zoom | `ZoomIn`, `ZoomInUp`, `ZoomInDown` | `ZoomOut*` |
-| Bounce | `BounceIn`, `BounceInUp`, `BounceInDown` | `BounceOut*` |
-| Flip | `FlipInXUp`, `FlipInYLeft` | `FlipOut*` |
-| Roll | `RollInLeft`, `RollInRight` | `RollOut*` |
-| Stretch | `StretchInX`, `StretchInY` | `StretchOut*` |
-| Pinwheel | `PinwheelIn` | `PinwheelOut` |
-| Rotate | `RotateInDownLeft` | `RotateOut*` |
-| LightSpeed | `LightSpeedInLeft` | `LightSpeedOut*` |
+| Category   | Entering                                                        | Exiting          |
+| ---------- | --------------------------------------------------------------- | ---------------- |
+| Fade       | `FadeIn`, `FadeInUp`, `FadeInDown`, `FadeInLeft`, `FadeInRight` | `FadeOut*`       |
+| Slide      | `SlideInUp`, `SlideInDown`, `SlideInLeft`, `SlideInRight`       | `SlideOut*`      |
+| Zoom       | `ZoomIn`, `ZoomInUp`, `ZoomInDown`                              | `ZoomOut*`       |
+| Bounce     | `BounceIn`, `BounceInUp`, `BounceInDown`                        | `BounceOut*`     |
+| Flip       | `FlipInXUp`, `FlipInYLeft`                                      | `FlipOut*`       |
+| Roll       | `RollInLeft`, `RollInRight`                                     | `RollOut*`       |
+| Stretch    | `StretchInX`, `StretchInY`                                      | `StretchOut*`    |
+| Pinwheel   | `PinwheelIn`                                                    | `PinwheelOut`    |
+| Rotate     | `RotateInDownLeft`                                              | `RotateOut*`     |
+| LightSpeed | `LightSpeedInLeft`                                              | `LightSpeedOut*` |
 
 ## Shared Values & useAnimatedStyle
 
@@ -103,7 +107,7 @@ offset.value = withSequence(
   withSpring(0),
 );
 
-<Animated.View style={animStyle} />
+<Animated.View style={animStyle} />;
 ```
 
 ## useDerivedValue
@@ -160,7 +164,7 @@ const animStyle = useAnimatedStyle(() => ({
 
 <GestureDetector gesture={panGesture}>
   <Animated.View style={animStyle} />
-</GestureDetector>
+</GestureDetector>;
 ```
 
 ```tsx
@@ -176,8 +180,12 @@ const baseScale = useSharedValue(1);
 const savedScale = useSharedValue(1);
 
 const pinchGesture = Gesture.Pinch()
-  .onUpdate((e) => { baseScale.value = savedScale.value * e.scale; })
-  .onEnd(() => { savedScale.value = baseScale.value; });
+  .onUpdate((e) => {
+    baseScale.value = savedScale.value * e.scale;
+  })
+  .onEnd(() => {
+    savedScale.value = baseScale.value;
+  });
 
 // Composed gestures
 const composed = Gesture.Simultaneous(panGesture, pinchGesture);
@@ -201,9 +209,11 @@ const scrollHandler = useAnimatedScrollHandler((e) => {
 
 // Parallax header
 const headerStyle = useAnimatedStyle(() => ({
-  transform: [{
-    translateY: interpolate(scrollY.value, [0, 200], [0, -100], Extrapolation.CLAMP),
-  }],
+  transform: [
+    {
+      translateY: interpolate(scrollY.value, [0, 200], [0, -100], Extrapolation.CLAMP),
+    },
+  ],
   opacity: interpolate(scrollY.value, [0, 200], [1, 0], Extrapolation.CLAMP),
 }));
 
@@ -211,7 +221,7 @@ const headerStyle = useAnimatedStyle(() => ({
   <Animated.View style={headerStyle}>
     <Text>Parallax Header</Text>
   </Animated.View>
-</Animated.ScrollView>
+</Animated.ScrollView>;
 ```
 
 ## Zoom Transitions (Expo Router, iOS 18+)
@@ -225,18 +235,20 @@ import { Link } from "expo-router";
       <Image source={thumbnail} />
     </Pressable>
   </Link.AppleZoom>
-</Link>
+</Link>;
 ```
 
 ## Adding Animations to State Changes
 
 ```tsx
 // ✓ Always add entering/exiting for state-driven UI changes
-{isVisible && (
-  <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
-    <Toast message={message} />
-  </Animated.View>
-)}
+{
+  isVisible && (
+    <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(150)}>
+      <Toast message={message} />
+    </Animated.View>
+  );
+}
 
 // ✓ AnimatedFlatList for list item changes
 import Animated from "react-native-reanimated";
@@ -245,10 +257,10 @@ const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
 
 ## Common Mistakes
 
-| Wrong | Right |
-|-------|-------|
-| Animate `width`/`height` | Animate `transform: scaleX/scaleY` |
-| Inline JS math in `useAnimatedStyle` | `useDerivedValue` for computations |
-| `Pressable` inside `GestureDetector` | `Gesture.Tap()` |
-| `async` in worklet | Run async outside, update sharedValue in callback |
-| Frequent `console.log` in worklet | `console.log` works but serializes to JS thread — use sparingly in hot paths |
+| Wrong                                | Right                                                                        |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| Animate `width`/`height`             | Animate `transform: scaleX/scaleY`                                           |
+| Inline JS math in `useAnimatedStyle` | `useDerivedValue` for computations                                           |
+| `Pressable` inside `GestureDetector` | `Gesture.Tap()`                                                              |
+| `async` in worklet                   | Run async outside, update sharedValue in callback                            |
+| Frequent `console.log` in worklet    | `console.log` works but serializes to JS thread — use sparingly in hot paths |

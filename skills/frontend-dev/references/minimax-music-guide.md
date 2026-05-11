@@ -49,25 +49,26 @@ print(f"Size: {result['size']} bytes")
 
 ## Models
 
-| Model | Features |
-|-------|----------|
+| Model        | Features                                                                       |
+| ------------ | ------------------------------------------------------------------------------ |
 | `music-2.5+` | Recommended. Supports instrumental mode, complete song structures, hi-fi audio |
-| `music-2.5` | Standard model. No instrumental mode |
+| `music-2.5`  | Standard model. No instrumental mode                                           |
 
 ## Prompt Writing
 
 The `prompt` parameter describes music style using comma-separated descriptors:
 
-| Category | Examples |
-|----------|----------|
-| Genre | Blues, Pop, Rock, Jazz, Electronic, Hip-hop, Folk, Classical |
-| Mood | Soulful, Melancholy, Upbeat, Energetic, Peaceful, Dark, Nostalgic |
-| Scenario | Rainy night, Summer day, Road trip, Late night, Sunrise |
-| Instrumentation | Electric guitar, Piano, Acoustic, Synthesizer, Strings |
-| Vocal type | Male vocals, Female vocals, Soft vocals, Powerful vocals |
-| Tempo | Slow tempo, Fast tempo, Mid-tempo, Relaxed |
+| Category        | Examples                                                          |
+| --------------- | ----------------------------------------------------------------- |
+| Genre           | Blues, Pop, Rock, Jazz, Electronic, Hip-hop, Folk, Classical      |
+| Mood            | Soulful, Melancholy, Upbeat, Energetic, Peaceful, Dark, Nostalgic |
+| Scenario        | Rainy night, Summer day, Road trip, Late night, Sunrise           |
+| Instrumentation | Electric guitar, Piano, Acoustic, Synthesizer, Strings            |
+| Vocal type      | Male vocals, Female vocals, Soft vocals, Powerful vocals          |
+| Tempo           | Slow tempo, Fast tempo, Mid-tempo, Relaxed                        |
 
 **Example prompts:**
+
 ```
 "Soulful Blues, Rainy Night, Melancholy, Male Vocals, Slow Tempo"
 "Upbeat Pop, Summer Vibes, Female Vocals, Energetic, Synth-heavy"
@@ -81,26 +82,27 @@ Use structure tags in brackets to organize song sections:
 
 ### Structure Tags
 
-| Tag | Purpose |
-|-----|---------|
-| `[Intro]` | Opening section (can be instrumental) |
-| `[Verse]` / `[Verse 1]` | Story/narrative sections |
-| `[Pre-Chorus]` | Build-up before chorus |
-| `[Chorus]` | Main hook, typically repeated |
-| `[Post Chorus]` | Extension after chorus |
-| `[Bridge]` | Contrasting section near end |
-| `[Interlude]` | Instrumental break |
-| `[Solo]` | Instrumental solo (add direction: "slow, bluesy") |
-| `[Outro]` | Closing section |
-| `[Break]` | Short pause or transition |
-| `[Hook]` | Catchy repeated phrase |
-| `[Build Up]` | Tension building section |
-| `[Inst]` | Instrumental section |
-| `[Transition]` | Section change |
+| Tag                     | Purpose                                           |
+| ----------------------- | ------------------------------------------------- |
+| `[Intro]`               | Opening section (can be instrumental)             |
+| `[Verse]` / `[Verse 1]` | Story/narrative sections                          |
+| `[Pre-Chorus]`          | Build-up before chorus                            |
+| `[Chorus]`              | Main hook, typically repeated                     |
+| `[Post Chorus]`         | Extension after chorus                            |
+| `[Bridge]`              | Contrasting section near end                      |
+| `[Interlude]`           | Instrumental break                                |
+| `[Solo]`                | Instrumental solo (add direction: "slow, bluesy") |
+| `[Outro]`               | Closing section                                   |
+| `[Break]`               | Short pause or transition                         |
+| `[Hook]`                | Catchy repeated phrase                            |
+| `[Build Up]`            | Tension building section                          |
+| `[Inst]`                | Instrumental section                              |
+| `[Transition]`          | Section change                                    |
 
 ### Backing Vocals & Directions
 
 Use parentheses for backing vocals or performance notes:
+
 ```
 (Ooh, yeah)
 (Harmonize)
@@ -151,31 +153,37 @@ Under the neon lights...
 
 ## Audio Settings
 
-| Parameter | Options | Default | Notes |
-|-----------|---------|---------|-------|
-| `format` | mp3, wav, pcm | mp3 | WAV for highest quality |
-| `sample_rate` | 16000, 24000, 32000, 44100 | 44100 | 44100 recommended |
-| `bitrate` | 32000, 64000, 128000, 256000 | 256000 | Higher = better quality |
+| Parameter     | Options                      | Default | Notes                   |
+| ------------- | ---------------------------- | ------- | ----------------------- |
+| `format`      | mp3, wav, pcm                | mp3     | WAV for highest quality |
+| `sample_rate` | 16000, 24000, 32000, 44100   | 44100   | 44100 recommended       |
+| `bitrate`     | 32000, 64000, 128000, 256000 | 256000  | Higher = better quality |
 
 ## Generation Modes
 
 ### 1. Instrumental Only
+
 ```bash
 python scripts/minimax_music.py --prompt "Ambient electronic, space theme" --instrumental -o ambient.mp3
 ```
+
 - Requires `music-2.5+` model
 - Only `prompt` needed, no lyrics
 
 ### 2. With Custom Lyrics
+
 ```bash
 python scripts/minimax_music.py --prompt "Pop ballad, emotional" --lyrics "[verse]\nYour lyrics here" -o ballad.mp3
 ```
+
 - Provide both `prompt` (style) and `lyrics` (words + structure)
 
 ### 3. Auto-Generated Lyrics
+
 ```bash
 python scripts/minimax_music.py --prompt "Rock anthem about freedom" --auto-lyrics -o rock.mp3
 ```
+
 - System generates lyrics from prompt
 - Good for quick generation when lyrics aren't critical
 
@@ -197,20 +205,20 @@ python scripts/minimax_music.py --prompt "Rock anthem about freedom" --auto-lyri
 
 ## Common Use Cases
 
-| Use Case | Command |
-|----------|---------|
-| Background music | `--prompt "Lo-fi, calm, ambient" --instrumental` |
-| Landing page hero | `--prompt "Cinematic, inspiring, building" --instrumental` |
-| Podcast intro | `--prompt "Upbeat, energetic, short" --instrumental` |
-| Demo song | `--prompt "Pop, catchy" --auto-lyrics` |
-| Custom jingle | `--prompt "Happy, bright, corporate" --lyrics "[hook]\nYour brand name"` |
+| Use Case          | Command                                                                  |
+| ----------------- | ------------------------------------------------------------------------ |
+| Background music  | `--prompt "Lo-fi, calm, ambient" --instrumental`                         |
+| Landing page hero | `--prompt "Cinematic, inspiring, building" --instrumental`               |
+| Podcast intro     | `--prompt "Upbeat, energetic, short" --instrumental`                     |
+| Demo song         | `--prompt "Pop, catchy" --auto-lyrics`                                   |
+| Custom jingle     | `--prompt "Happy, bright, corporate" --lyrics "[hook]\nYour brand name"` |
 
 ## Error Handling
 
-| Error Code | Meaning | Solution |
-|------------|---------|----------|
-| 1002 | Rate limit | Wait and retry |
-| 1004 | Auth failed | Check API key |
-| 1008 | Insufficient balance | Top up account |
-| 1026 | Content flagged | Rephrase prompt/lyrics |
-| 2013 | Invalid parameters | Check prompt/lyrics length |
+| Error Code | Meaning              | Solution                   |
+| ---------- | -------------------- | -------------------------- |
+| 1002       | Rate limit           | Wait and retry             |
+| 1004       | Auth failed          | Check API key              |
+| 1008       | Insufficient balance | Top up account             |
+| 1026       | Content flagged      | Rephrase prompt/lyrics     |
+| 2013       | Invalid parameters   | Check prompt/lyrics length |

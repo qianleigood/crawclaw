@@ -324,7 +324,7 @@ export async function launchCrawClawChrome(
       userDataDir,
     });
     // stdio tuple: discard stdout to prevent buffer saturation in constrained
-    // environments (e.g. Docker), while keeping stderr piped for diagnostics.
+    // constrained environments, while keeping stderr piped for diagnostics.
     // Cast to ChildProcessWithoutNullStreams so callers can use .stderr safely;
     // the tuple overload resolution varies across @types/node versions.
     return spawn(exe.path, args, {

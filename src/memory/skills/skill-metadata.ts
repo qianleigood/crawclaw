@@ -24,7 +24,10 @@ function normalizeArray(value: unknown): string[] {
   const normalized = typeof value === "string" ? compactWhitespace(value) : "";
   if (!normalized) return [];
   if (!normalized.includes(",")) return [normalized];
-  return normalized.split(",").map((item) => compactWhitespace(item)).filter(Boolean);
+  return normalized
+    .split(",")
+    .map((item) => compactWhitespace(item))
+    .filter(Boolean);
 }
 
 function readFrontmatter(filePath: string): Record<string, unknown> {
@@ -114,20 +117,27 @@ function readSkillBodyDescription(filePath: string): string {
 }
 
 function inferFamily(text: string): UnifiedSkillFamily {
-  if (/(incident|outage|rollback|runtime|recover|restore|故障|恢复|回滚|异常)/i.test(text)) return "incident";
-  if (/(sop|runbook|deploy|release|ops|debug|troubleshoot|排查|操作|流程|运维)/i.test(text)) return "operations";
+  if (/(incident|outage|rollback|runtime|recover|restore|故障|恢复|回滚|异常)/i.test(text))
+    return "incident";
+  if (/(sop|runbook|deploy|release|ops|debug|troubleshoot|排查|操作|流程|运维)/i.test(text))
+    return "operations";
   if (/(architecture|design|decision|trade ?off|架构|设计|决策)/i.test(text)) return "architecture";
-  if (/(preference|default|workspace|repo|style|习惯|默认|偏好)/i.test(text)) return "workspace-defaults";
+  if (/(preference|default|workspace|repo|style|习惯|默认|偏好)/i.test(text))
+    return "workspace-defaults";
   if (/(image|multimodal|audio|video|视觉|多模态)/i.test(text)) return "multimodal";
   return "other";
 }
 
 function inferIntents(text: string, family: UnifiedSkillFamily): UnifiedRecallIntent[] {
   const intents = new Set<UnifiedRecallIntent>();
-  if (family === "architecture" || /(decision|why|trade ?off|架构|设计|为什么)/i.test(text)) intents.add("decision");
-  if (family === "operations" || /(sop|steps|runbook|how to|步骤|流程|排查)/i.test(text)) intents.add("sop");
-  if (family === "workspace-defaults" || /(default|preference|always|never|默认|偏好)/i.test(text)) intents.add("preference");
-  if (family === "incident" || /(runtime|incident|latest|recent|运行时|最近|故障)/i.test(text)) intents.add("runtime");
+  if (family === "architecture" || /(decision|why|trade ?off|架构|设计|为什么)/i.test(text))
+    intents.add("decision");
+  if (family === "operations" || /(sop|steps|runbook|how to|步骤|流程|排查)/i.test(text))
+    intents.add("sop");
+  if (family === "workspace-defaults" || /(default|preference|always|never|默认|偏好)/i.test(text))
+    intents.add("preference");
+  if (family === "incident" || /(runtime|incident|latest|recent|运行时|最近|故障)/i.test(text))
+    intents.add("runtime");
   if (/(history|postmortem|previous|上次|历史)/i.test(text)) intents.add("history");
   if (/(lookup|entity|where is|是什么|哪一个)/i.test(text)) intents.add("entity_lookup");
   if (!intents.size) intents.add("broad");
@@ -136,10 +146,13 @@ function inferIntents(text: string, family: UnifiedSkillFamily): UnifiedRecallIn
 
 function inferLayers(text: string, family: UnifiedSkillFamily): UnifiedRecallLayer[] {
   const layers = new Set<UnifiedRecallLayer>();
-  if (family === "architecture" || /(decision|why|trade ?off|架构|设计)/i.test(text)) layers.add("key_decisions");
+  if (family === "architecture" || /(decision|why|trade ?off|架构|设计)/i.test(text))
+    layers.add("key_decisions");
   if (family === "operations" || /(sop|runbook|步骤|流程|排查)/i.test(text)) layers.add("sop");
-  if (family === "workspace-defaults" || /(default|preference|偏好|默认)/i.test(text)) layers.add("preferences");
-  if (family === "incident" || /(runtime|incident|signal|recent|运行时|近期)/i.test(text)) layers.add("runtime_signals");
+  if (family === "workspace-defaults" || /(default|preference|偏好|默认)/i.test(text))
+    layers.add("preferences");
+  if (family === "incident" || /(runtime|incident|signal|recent|运行时|近期)/i.test(text))
+    layers.add("runtime_signals");
   if (!layers.size) layers.add("sources");
   return [...layers];
 }
@@ -172,7 +185,9 @@ function parseSkillMetadata(filePath: string): SkillMetadata | null {
   const declaration = validateSkillFrontmatter(frontmatter);
   const skillDir = path.dirname(filePath);
   const declared: Partial<SkillMetadata> = declaration.ok ? declaration.value : {};
-  const name = compactWhitespace(String(declared.name ?? frontmatter.name ?? path.basename(skillDir)));
+  const name = compactWhitespace(
+    String(declared.name ?? frontmatter.name ?? path.basename(skillDir)),
+  );
   if (!name) return null;
   const description = compactWhitespace(
     typeof declared.description === "string"
@@ -182,27 +197,43 @@ function parseSkillMetadata(filePath: string): SkillMetadata | null {
         : readSkillBodyDescription(filePath),
   );
   const tags = declared.tags ?? normalizeArray(frontmatter.tags);
-  const family = compactWhitespace(typeof declared.family === "string" ? declared.family : typeof frontmatter.family === "string" ? frontmatter.family : "");
-  const familyResolved = (family
-    ? family as UnifiedSkillFamily
-    : inferFamily(`${name} ${description} ${tags.join(" ")}`));
-  const intents = (declared.intents ?? normalizeArray(frontmatter.intents)) as UnifiedRecallIntent[];
+  const family = compactWhitespace(
+    typeof declared.family === "string"
+      ? declared.family
+      : typeof frontmatter.family === "string"
+        ? frontmatter.family
+        : "",
+  );
+  const familyResolved = family
+    ? (family as UnifiedSkillFamily)
+    : inferFamily(`${name} ${description} ${tags.join(" ")}`);
+  const intents = (declared.intents ??
+    normalizeArray(frontmatter.intents)) as UnifiedRecallIntent[];
   const layers = (declared.layers ?? normalizeArray(frontmatter.layers)) as UnifiedRecallLayer[];
-  const priority = declared.priority
-    ?? (typeof frontmatter.priority === "string" ? Number(frontmatter.priority) || undefined : undefined)
-    ?? inferPriority(familyResolved);
+  const priority =
+    declared.priority ??
+    (typeof frontmatter.priority === "string"
+      ? Number(frontmatter.priority) || undefined
+      : undefined) ??
+    inferPriority(familyResolved);
 
   return {
     name,
     description,
     location: filePath,
     family: familyResolved,
-    intents: intents.length ? intents : inferIntents(`${name} ${description} ${tags.join(" ")}`, familyResolved),
-    layers: layers.length ? layers : inferLayers(`${name} ${description} ${tags.join(" ")}`, familyResolved),
+    intents: intents.length
+      ? intents
+      : inferIntents(`${name} ${description} ${tags.join(" ")}`, familyResolved),
+    layers: layers.length
+      ? layers
+      : inferLayers(`${name} ${description} ${tags.join(" ")}`, familyResolved),
     tags,
     workspaceScope: declared.workspaceScope ?? normalizeArray(frontmatter.workspaceScope),
     priority,
-    disableModelInvocation: declared.disableModelInvocation ?? (compactWhitespace(String(frontmatter.disableModelInvocation ?? "")).toLowerCase() === "true"),
+    disableModelInvocation:
+      declared.disableModelInvocation ??
+      compactWhitespace(String(frontmatter.disableModelInvocation ?? "")).toLowerCase() === "true",
   };
 }
 
@@ -269,8 +300,9 @@ export function buildSkillIndex(params: {
       seen.set(metadata.name, metadata);
     }
   }
-  const skills = [...seen.values()].sort((left, right) =>
-    (right.priority ?? 0) - (left.priority ?? 0) || left.name.localeCompare(right.name),
+  const skills = [...seen.values()].sort(
+    (left, right) =>
+      (right.priority ?? 0) - (left.priority ?? 0) || left.name.localeCompare(right.name),
   );
   if (!skills.length) {
     params.logger?.warn?.("[memory] skill index is empty; skill routing will stay advisory only");
@@ -311,8 +343,9 @@ export function buildSkillIndexFromAvailableSkills(params: {
       disableModelInvocation: false,
     });
   }
-  const skills = [...seen.values()].sort((left, right) =>
-    (right.priority ?? 0) - (left.priority ?? 0) || left.name.localeCompare(right.name),
+  const skills = [...seen.values()].sort(
+    (left, right) =>
+      (right.priority ?? 0) - (left.priority ?? 0) || left.name.localeCompare(right.name),
   );
   if (!skills.length) {
     params.logger?.warn?.("[memory] skill index is empty after reading host availableSkills");

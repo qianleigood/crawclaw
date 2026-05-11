@@ -493,12 +493,12 @@ describe("applySkillEnvOverrides", () => {
       name: "override-env-skill",
       description: "Needs env",
       metadata:
-        '{"crawclaw":{"requires":{"env":["HTTPS_PROXY","NODE_TLS_REJECT_UNAUTHORIZED","DOCKER_HOST"]}}}',
+        '{"crawclaw":{"requires":{"env":["HTTPS_PROXY","NODE_TLS_REJECT_UNAUTHORIZED","TOOL_RUNTIME_HOST"]}}}',
     });
 
     const entries = loadWorkspaceSkillEntries(workspaceDir, resolveTestSkillDirs(workspaceDir));
 
-    withClearedEnv(["HTTPS_PROXY", "NODE_TLS_REJECT_UNAUTHORIZED", "DOCKER_HOST"], () => {
+    withClearedEnv(["HTTPS_PROXY", "NODE_TLS_REJECT_UNAUTHORIZED", "TOOL_RUNTIME_HOST"], () => {
       const restore = applySkillEnvOverrides({
         skills: entries,
         config: {
@@ -508,7 +508,7 @@ describe("applySkillEnvOverrides", () => {
                 env: {
                   HTTPS_PROXY: "http://proxy.example.test:8080",
                   NODE_TLS_REJECT_UNAUTHORIZED: "0",
-                  DOCKER_HOST: "tcp://docker.example.test:2376",
+                  TOOL_RUNTIME_HOST: "tcp://runtime.example.test:2376",
                 },
               },
             },
@@ -519,12 +519,12 @@ describe("applySkillEnvOverrides", () => {
       try {
         expect(process.env.HTTPS_PROXY).toBeUndefined();
         expect(process.env.NODE_TLS_REJECT_UNAUTHORIZED).toBeUndefined();
-        expect(process.env.DOCKER_HOST).toBeUndefined();
+        expect(process.env.TOOL_RUNTIME_HOST).toBeUndefined();
       } finally {
         restore();
         expect(process.env.HTTPS_PROXY).toBeUndefined();
         expect(process.env.NODE_TLS_REJECT_UNAUTHORIZED).toBeUndefined();
-        expect(process.env.DOCKER_HOST).toBeUndefined();
+        expect(process.env.TOOL_RUNTIME_HOST).toBeUndefined();
       }
     });
   });

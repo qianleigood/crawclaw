@@ -84,19 +84,12 @@ export async function handlePortError(
   throw new Error("unreachable");
 }
 
-export {
-PortInUseError,
-};
-export type {
-PortListener,
-PortListenerKind,
-PortUsage,
-PortUsageStatus,
-};
+export { PortInUseError };
+export type { PortListener, PortListenerKind, PortUsage, PortUsageStatus };
 export {
   buildPortHints,
-classifyPortListener,
-formatPortDiagnostics,
-isDualStackLoopbackGatewayListeners,
+  classifyPortListener,
+  formatPortDiagnostics,
+  isDualStackLoopbackGatewayListeners,
 } from "./ports-format.js";
 export { inspectPortUsage } from "./ports-inspect.js";

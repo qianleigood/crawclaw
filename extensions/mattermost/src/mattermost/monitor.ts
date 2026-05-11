@@ -89,11 +89,11 @@ import { deactivateSlashCommands, getSlashCommandState } from "./slash-state.js"
 export {
   evaluateMattermostMentionGate,
   mapMattermostChannelTypeToChatType,
-  } from "./monitor-gating.js";
+} from "./monitor-gating.js";
 export type {
   MattermostMentionGateInput,
   MattermostRequireMentionResolverInput,
-  } from "./monitor-gating.js";
+} from "./monitor-gating.js";
 
 export type MonitorMattermostOpts = {
   botToken?: string;

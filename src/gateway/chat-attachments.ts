@@ -59,7 +59,7 @@ export type ParsedMessageWithImages = {
    * It is intentionally separate from `images` because downstream model calls
    * do not receive these as inline image blocks.
    *
-   * ⚠️  Call sites (chat.ts, agent.ts, server-node-events.ts) MUST also pass
+   * ⚠️  Call sites (chat.ts, agent.ts) MUST also pass
    * `supportsImages: modelSupportsImages(model)` so that text-only model runs
    * do not inject unresolvable media:// markers into prompt text.
    */
@@ -282,7 +282,7 @@ function normalizeAttachment(
  * Pass `supportsImages: false` for text-only model runs so that no media://
  * markers are injected into prompt text.
  *
- * ⚠️  Call sites in chat.ts, agent.ts, and server-node-events.ts MUST be
+ * ⚠️  Call sites in chat.ts and agent.ts MUST be
  * updated to pass `supportsImages: modelSupportsImages(model)`. Until they do,
  * text-only model runs receive unresolvable media:// markers in their prompt.
  *
@@ -519,7 +519,7 @@ export async function parseMessageWithAttachments(
           // Track for cleanup if a subsequent attachment fails.
           savedMediaIds.push(savedMedia.id);
 
-          // Opaque URI — compatible with workspaceOnly sandboxes and decouples
+          // Opaque URI — compatible with workspaceOnly mode and decouples
           // the Gateway from the agent's filesystem layout.
           const mediaRef = `media://inbound/${savedMedia.id}`;
 

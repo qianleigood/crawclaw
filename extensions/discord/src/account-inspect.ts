@@ -8,10 +8,7 @@ import {
   resolveDefaultDiscordAccountId,
   resolveDiscordAccountConfig,
 } from "./accounts.js";
-import type {
-  DiscordAccountConfig,
-  CrawClawConfig,
-} from "./runtime-api.js";
+import type { DiscordAccountConfig, CrawClawConfig } from "./runtime-api.js";
 
 export type DiscordCredentialStatus = "available" | "configured_unavailable" | "missing";
 

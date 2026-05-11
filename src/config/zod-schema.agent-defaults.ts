@@ -1,10 +1,6 @@
 import { z } from "zod";
 import { isValidNonNegativeByteSizeString } from "./byte-size.js";
-import {
-  HeartbeatSchema,
-  AgentSandboxSchema,
-  AgentModelSchema,
-} from "./zod-schema.agent-runtime.js";
+import { HeartbeatSchema, AgentModelSchema } from "./zod-schema.agent-runtime.js";
 import {
   BlockStreamingChunkSchema,
   BlockStreamingCoalesceSchema,
@@ -206,7 +202,6 @@ export const AgentDefaultsSchema = z
       })
       .strict()
       .optional(),
-    sandbox: AgentSandboxSchema,
   })
   .strict()
   .optional();

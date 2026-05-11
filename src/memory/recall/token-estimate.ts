@@ -6,24 +6,36 @@ const STRUCTURAL_PUNCT = /[-*•#>`~_=+|\\/:;,.!?()[\]{}"']/;
 
 function consumeWhile(text: string, start: number, predicate: (char: string) => boolean): number {
   let index = start;
-  while (index < text.length && predicate(text[index])) {index += 1;}
+  while (index < text.length && predicate(text[index])) {
+    index += 1;
+  }
   return index;
 }
 
 function estimateAsciiWordTokens(length: number): number {
-  if (length <= 0) {return 0;}
-  if (length <= 4) {return 1;}
-  if (length <= 8) {return 2;}
+  if (length <= 0) {
+    return 0;
+  }
+  if (length <= 4) {
+    return 1;
+  }
+  if (length <= 8) {
+    return 2;
+  }
   return Math.ceil(length / 4);
 }
 
 function estimateDigitTokens(length: number): number {
-  if (length <= 0) {return 0;}
+  if (length <= 0) {
+    return 0;
+  }
   return Math.max(1, Math.ceil(length / 2.5));
 }
 
 function estimatePunctuationTokens(length: number): number {
-  if (length <= 0) {return 0;}
+  if (length <= 0) {
+    return 0;
+  }
   return Math.max(1, Math.ceil(length * 0.5));
 }
 
@@ -33,7 +45,9 @@ function estimatePunctuationTokens(length: number): number {
  * so prompt packing is less likely to exceed the real model budget.
  */
 export function estimateTokenCount(text: string): number {
-  if (!text) {return 0;}
+  if (!text) {
+    return 0;
+  }
 
   let tokens = 0;
   let index = 0;
@@ -44,7 +58,9 @@ export function estimateTokenCount(text: string): number {
     const char = text[index];
 
     if (char === "\n") {
-      if (currentLineHasContent) {nonEmptyLineCount += 1;}
+      if (currentLineHasContent) {
+        nonEmptyLineCount += 1;
+      }
       currentLineHasContent = false;
       tokens += 0.2;
       index += 1;
@@ -91,7 +107,9 @@ export function estimateTokenCount(text: string): number {
     index += 1;
   }
 
-  if (currentLineHasContent) {nonEmptyLineCount += 1;}
+  if (currentLineHasContent) {
+    nonEmptyLineCount += 1;
+  }
   tokens += Math.ceil(nonEmptyLineCount * 0.15);
 
   return Math.max(1, Math.ceil(tokens));

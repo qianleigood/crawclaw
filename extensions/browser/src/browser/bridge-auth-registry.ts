@@ -4,7 +4,7 @@ type BridgeAuth = {
 };
 
 // In-process registry for loopback-only bridge servers that require auth, but
-// are addressed via dynamic ephemeral ports (e.g. sandbox browser bridge).
+// are addressed via dynamic ephemeral ports.
 const authByPort = new Map<number, BridgeAuth>();
 
 export function setBridgeAuthForPort(port: number, auth: BridgeAuth): void {

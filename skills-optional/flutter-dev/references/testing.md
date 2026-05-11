@@ -4,11 +4,11 @@ Flutter testing guide covering widget tests, unit tests, integration tests, and 
 
 ## Test Types
 
-| Type | Purpose | Speed | Scope |
-|------|---------|-------|-------|
-| Unit tests | Business logic, utilities | Fast | Single function/class |
-| Widget tests | UI components | Medium | Single widget |
-| Integration tests | Full user flows | Slow | Multiple screens |
+| Type              | Purpose                   | Speed  | Scope                 |
+| ----------------- | ------------------------- | ------ | --------------------- |
+| Unit tests        | Business logic, utilities | Fast   | Single function/class |
+| Widget tests      | UI components             | Medium | Single widget         |
+| Integration tests | Full user flows           | Slow   | Multiple screens      |
 
 ## Widget Tests
 
@@ -352,13 +352,13 @@ flutter test --update-goldens
 
 ## Testing Checklist
 
-| Test Type | What to Test |
-|-----------|--------------|
-| Widget tests | UI rendering, user interactions, state changes |
-| Bloc tests | Event → state transitions, async operations |
-| Unit tests | Validators, formatters, utilities, models |
-| Integration tests | Critical user flows, navigation |
+| Test Type         | What to Test                                   |
+| ----------------- | ---------------------------------------------- |
+| Widget tests      | UI rendering, user interactions, state changes |
+| Bloc tests        | Event → state transitions, async operations    |
+| Unit tests        | Validators, formatters, utilities, models      |
+| Integration tests | Critical user flows, navigation                |
 
 ---
 
-*Flutter and flutter_test are trademarks of Google LLC.*
+_Flutter and flutter_test are trademarks of Google LLC._

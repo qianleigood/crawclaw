@@ -1,14 +1,9 @@
-import { formatCliCommand } from "../../cli/command-format.js";
-
 export function formatElevatedUnavailableMessage(params: {
-  runtimeSandboxed: boolean;
   failures: Array<{ gate: string; key: string }>;
   sessionKey?: string;
 }): string {
   const lines: string[] = [];
-  lines.push(
-    `elevated is not available right now (runtime=${params.runtimeSandboxed ? "sandboxed" : "direct"}).`,
-  );
+  lines.push("elevated is not available right now (runtime=direct).");
   if (params.failures.length > 0) {
     lines.push(`Failing gates: ${params.failures.map((f) => `${f.gate} (${f.key})`).join(", ")}`);
   } else {
@@ -21,10 +16,5 @@ export function formatElevatedUnavailableMessage(params: {
   lines.push("- tools.elevated.allowFrom.<provider>");
   lines.push("- agents.list[].tools.elevated.enabled");
   lines.push("- agents.list[].tools.elevated.allowFrom.<provider>");
-  if (params.sessionKey) {
-    lines.push(
-      `See: ${formatCliCommand(`crawclaw sandbox explain --session ${params.sessionKey}`)}`,
-    );
-  }
   return lines.join("\n");
 }

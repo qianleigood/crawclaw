@@ -1,6 +1,21 @@
 import path from "node:path";
 import { normalizeWindowsPathForComparison } from "../infra/path-guards.js";
-import { resolveSandboxInputPath } from "./sandbox-paths.js";
+
+function expandPath(filePath: string): string {
+  if (filePath === "~") {
+    return process.env.HOME ?? filePath;
+  }
+  if (filePath.startsWith("~/")) {
+    const home = process.env.HOME;
+    return home ? path.join(home, filePath.slice(2)) : filePath;
+  }
+  return filePath;
+}
+
+export function resolvePathFromInput(filePath: string, cwd: string): string {
+  const expanded = expandPath(filePath);
+  return path.normalize(path.isAbsolute(expanded) ? expanded : path.resolve(cwd, expanded));
+}
 
 type RelativePathOptions = {
   allowRoot?: boolean;
@@ -51,10 +66,7 @@ function toRelativePathUnderRoot(params: {
   candidate: string;
   options?: RelativePathOptions;
 }): string {
-  const resolvedInput = resolveSandboxInputPath(
-    params.candidate,
-    params.options?.cwd ?? params.root,
-  );
+  const resolvedInput = resolvePathFromInput(params.candidate, params.options?.cwd ?? params.root);
 
   if (process.platform === "win32") {
     const rootResolved = path.win32.resolve(params.root);
@@ -113,22 +125,4 @@ export function toRelativeWorkspacePath(
     options,
     boundaryLabel: "workspace root",
   });
-}
-
-export function toRelativeSandboxPath(
-  root: string,
-  candidate: string,
-  options?: Pick<RelativePathOptions, "allowRoot" | "cwd">,
-): string {
-  return toRelativeBoundaryPath({
-    root,
-    candidate,
-    options,
-    boundaryLabel: "sandbox root",
-    includeRootInError: true,
-  });
-}
-
-export function resolvePathFromInput(filePath: string, cwd: string): string {
-  return path.normalize(resolveSandboxInputPath(filePath, cwd));
 }

@@ -22,7 +22,7 @@ if (mode !== "lint" && mode !== "format") {
 
 const lintExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs"]);
 const formatExts = new Set([".ts", ".tsx", ".js", ".jsx", ".mjs", ".cjs", ".json", ".md", ".mdx"]);
-const ignoredPrefixes = ["apps/crawclaw-admin/"];
+const ignoredPrefixes = [];
 
 const shouldSelect = (filePath) => {
   if (ignoredPrefixes.some((prefix) => filePath.startsWith(prefix))) {

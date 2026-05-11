@@ -54,7 +54,9 @@ function findStringByKey(
   return undefined;
 }
 
-export function getN8nExecutionId(remote: N8nExecutionRecord | null | undefined): string | undefined {
+export function getN8nExecutionId(
+  remote: N8nExecutionRecord | null | undefined,
+): string | undefined {
   const candidate = remote?.executionId ?? remote?.id;
   return typeof candidate === "string" && candidate.trim() ? candidate.trim() : undefined;
 }
@@ -62,14 +64,17 @@ export function getN8nExecutionId(remote: N8nExecutionRecord | null | undefined)
 export function getN8nExecutionStatus(
   remote: N8nExecutionRecord | null | undefined,
 ): string | undefined {
-  return typeof remote?.status === "string" && remote.status.trim() ? remote.status.trim() : undefined;
+  return typeof remote?.status === "string" && remote.status.trim()
+    ? remote.status.trim()
+    : undefined;
 }
 
 export function extractN8nResumeUrl(
   remote: N8nExecutionRecord | null | undefined,
   n8nBaseUrl?: string,
 ): string | undefined {
-  const explicit = findStringByKey(remote?.data, "resumeUrl") ?? findStringByKey(remote, "resumeUrl");
+  const explicit =
+    findStringByKey(remote?.data, "resumeUrl") ?? findStringByKey(remote, "resumeUrl");
   if (explicit) {
     return explicit;
   }
@@ -166,10 +171,7 @@ export function buildWorkflowExecutionView(params: {
   const status = remote ? mapN8nExecutionStatus(remote) : (local?.status ?? "queued");
   const isTerminal = status === "succeeded" || status === "failed" || status === "cancelled";
   const endedAt =
-    local?.endedAt ??
-    (isTerminal
-      ? parseTimestamp(remote?.stoppedAt) ?? Date.now()
-      : undefined);
+    local?.endedAt ?? (isTerminal ? (parseTimestamp(remote?.stoppedAt) ?? Date.now()) : undefined);
 
   return {
     executionId: local?.executionId ?? remoteExecutionId ?? "unknown",
@@ -180,10 +182,12 @@ export function buildWorkflowExecutionView(params: {
     ...(resolvedN8nExecutionId ? { n8nExecutionId: resolvedN8nExecutionId } : {}),
     status,
     ...(local?.currentStepId ? { currentStepId: local.currentStepId } : {}),
-    ...(inferExecutor(local, remote, status) ? { currentExecutor: inferExecutor(local, remote, status) } : {}),
+    ...(inferExecutor(local, remote, status)
+      ? { currentExecutor: inferExecutor(local, remote, status) }
+      : {}),
     ...(getN8nExecutionStatus(remote) ? { remoteStatus: getN8nExecutionStatus(remote) } : {}),
     ...(typeof remote?.finished === "boolean" ? { remoteFinished: remote.finished } : {}),
-    ...(local?.startedAt ?? parseTimestamp(remote?.startedAt)
+    ...((local?.startedAt ?? parseTimestamp(remote?.startedAt))
       ? { startedAt: local?.startedAt ?? parseTimestamp(remote?.startedAt) }
       : {}),
     ...(local?.updatedAt ? { updatedAt: local.updatedAt } : { updatedAt: Date.now() }),

@@ -20,15 +20,15 @@ GET /contacts/user/{user_id}
 
 **路径参数：**
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
+| 参数      | 类型   | 说明                          |
+| --------- | ------ | ----------------------------- |
 | `user_id` | string | 用户 ID（open_id 或 user_id） |
 
 **查询参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `user_id_type` | string | 否 | ID 类型：`open_id`(默认)/`user_id`/`union_id` |
+| 参数           | 类型   | 必填 | 说明                                          |
+| -------------- | ------ | ---- | --------------------------------------------- |
+| `user_id_type` | string | 否   | ID 类型：`open_id`(默认)/`user_id`/`union_id` |
 
 **请求示例：**
 
@@ -46,7 +46,7 @@ curl "http://127.0.0.1:8002/contacts/user/ou_xxx"
   "email": "zhangsan@example.com",
   "mobile": "+86 138xxxx0000",
   "department_ids": ["od-xxx"],
-  "status": {"is_activated": true, "is_frozen": false}
+  "status": { "is_activated": true, "is_frozen": false }
 }
 ```
 
@@ -60,10 +60,10 @@ POST /contacts/users/search
 
 **请求参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `query` | string | ✅ | 搜索关键词（姓名） |
-| `page_size` | int | 否 | 每页数量，默认 20 |
+| 参数        | 类型   | 必填 | 说明               |
+| ----------- | ------ | ---- | ------------------ |
+| `query`     | string | ✅   | 搜索关键词（姓名） |
+| `page_size` | int    | 否   | 每页数量，默认 20  |
 
 **请求示例：**
 
@@ -85,8 +85,8 @@ GET /contacts/department/{department_id}
 
 **路径参数：**
 
-| 参数 | 类型 | 说明 |
-|------|------|------|
+| 参数            | 类型   | 说明                                           |
+| --------------- | ------ | ---------------------------------------------- |
 | `department_id` | string | 部门 ID（open_department_id 或 department_id） |
 
 **请求示例：**
@@ -118,10 +118,10 @@ POST /contacts/departments/search
 
 **请求参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `query` | string | ✅ | 搜索关键词（部门名称） |
-| `page_size` | int | 否 | 每页数量，默认 20 |
+| 参数        | 类型   | 必填 | 说明                   |
+| ----------- | ------ | ---- | ---------------------- |
+| `query`     | string | ✅   | 搜索关键词（部门名称） |
+| `page_size` | int    | 否   | 每页数量，默认 20      |
 
 **请求示例：**
 
@@ -141,10 +141,10 @@ GET /contacts/department/{department_id}/users
 
 **查询参数：**
 
-| 参数 | 类型 | 必填 | 说明 |
-|------|------|------|------|
-| `page_size` | int | 否 | 每页数量，默认 50 |
-| `page_token` | string | 否 | 分页标记 |
+| 参数         | 类型   | 必填 | 说明              |
+| ------------ | ------ | ---- | ----------------- |
+| `page_size`  | int    | 否   | 每页数量，默认 50 |
+| `page_token` | string | 否   | 分页标记          |
 
 **请求示例：**
 
@@ -157,8 +157,8 @@ curl "http://127.0.0.1:8002/contacts/department/od-xxx/users"
 ```json
 {
   "items": [
-    {"user_id": "ou_xxx1", "name": "张三", "email": "zhangsan@example.com"},
-    {"user_id": "ou_xxx2", "name": "李四", "email": "lisi@example.com"}
+    { "user_id": "ou_xxx1", "name": "张三", "email": "zhangsan@example.com" },
+    { "user_id": "ou_xxx2", "name": "李四", "email": "lisi@example.com" }
   ],
   "has_more": false
 }
@@ -179,10 +179,10 @@ curl "http://127.0.0.1:8002/contacts/department/od-xxx/users"
 
 ## 飞书 API 参考
 
-| 本地端点 | 飞书 API |
-|----------|----------|
-| `GET /contacts/user/{user_id}` | `GET /open-apis/contact/v3/users/:user_id` |
-| `POST /contacts/users/search` | `POST /open-apis/contact/v3/users/search` |
-| `GET /contacts/department/{dept_id}` | `GET /open-apis/contact/v3/departments/:department_id` |
-| `POST /contacts/departments/search` | `POST /open-apis/contact/v3/departments/search` |
-| `GET /contacts/department/{dept_id}/users` | `GET /open-apis/contact/v3/users/find_by_department` |
+| 本地端点                                   | 飞书 API                                               |
+| ------------------------------------------ | ------------------------------------------------------ |
+| `GET /contacts/user/{user_id}`             | `GET /open-apis/contact/v3/users/:user_id`             |
+| `POST /contacts/users/search`              | `POST /open-apis/contact/v3/users/search`              |
+| `GET /contacts/department/{dept_id}`       | `GET /open-apis/contact/v3/departments/:department_id` |
+| `POST /contacts/departments/search`        | `POST /open-apis/contact/v3/departments/search`        |
+| `GET /contacts/department/{dept_id}/users` | `GET /open-apis/contact/v3/users/find_by_department`   |

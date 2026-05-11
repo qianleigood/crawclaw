@@ -7,19 +7,19 @@
 
 ## Current Project
 
-- **Name:** 
+- **Name:**
 - **Type:** SPA / SSR / Static
 - **Framework:** Next.js / Vite / Remix
 
 ## Stack Decisions
 
-| Layer | Choice | Notes |
-|-------|--------|-------|
-| Styling | | |
-| Server state | | |
-| Client state | | |
-| Forms | | |
-| Testing | | |
+| Layer        | Choice | Notes |
+| ------------ | ------ | ----- |
+| Styling      |        |       |
+| Server state |        |       |
+| Client state |        |       |
+| Forms        |        |       |
+| Testing      |        |       |
 
 ## Architecture Notes
 
@@ -34,8 +34,8 @@
 <!-- Document project-specific issues and solutions -->
 
 | Issue | Solution | Date |
-|-------|----------|------|
-| | | |
+| ----- | -------- | ---- |
+|       |          |      |
 
 ## Performance Notes
 

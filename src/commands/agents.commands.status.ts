@@ -1,4 +1,8 @@
-import { buildAgentOpsSummary, type AgentOpsSummary, type AgentOpsSummaryRow } from "../agents/runtime/agent-ops-summary.js";
+import {
+  buildAgentOpsSummary,
+  type AgentOpsSummary,
+  type AgentOpsSummaryRow,
+} from "../agents/runtime/agent-ops-summary.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
 import { shortenHomePath } from "../utils.js";
@@ -14,7 +18,10 @@ function formatCountList(values: Array<{ key: string; count: number }>): string[
 
 function formatAgentStatusRow(row: AgentOpsSummaryRow): string[] {
   const defaultTag = row.isDefault ? " (default)" : "";
-  const header = row.name && row.name !== row.id ? `${row.id}${defaultTag} (${row.name})` : `${row.id}${defaultTag}`;
+  const header =
+    row.name && row.name !== row.id
+      ? `${row.id}${defaultTag} (${row.name})`
+      : `${row.id}${defaultTag}`;
   const lines = [`- ${header}`];
   if (row.workspaceDir) {
     lines.push(`  Workspace: ${shortenHomePath(row.workspaceDir)}`);

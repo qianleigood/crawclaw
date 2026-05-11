@@ -29,10 +29,9 @@ function makeAgentExecConfig(home: string) {
           id: "main",
           tools: {
             exec: {
-              host: "node" as const,
+              host: "gateway" as const,
               security: "allowlist" as const,
               ask: "always" as const,
-              node: "worker-alpha",
             },
           },
         },
@@ -73,10 +72,9 @@ describe("directive behavior exec agent defaults", () => {
       expect(runEmbeddedPiAgentMock).toHaveBeenCalledOnce();
       const call = runEmbeddedPiAgentMock.mock.calls[0]?.[0];
       expect(call?.execOverrides).toEqual({
-        host: "node",
+        host: "gateway",
         security: "allowlist",
         ask: "always",
-        node: "worker-alpha",
       });
     });
   });
@@ -116,7 +114,6 @@ describe("directive behavior exec agent defaults", () => {
         host: "auto",
         security: "allowlist",
         ask: "always",
-        node: "worker-alpha",
       });
     });
   });
@@ -154,7 +151,6 @@ describe("directive behavior exec agent defaults", () => {
         host: "auto",
         security: "allowlist",
         ask: "always",
-        node: "worker-alpha",
       });
     });
   });

@@ -5,6 +5,7 @@ Use this reference when troubleshooting builds, applying M3 quality rules, or pl
 ## Build troubleshooting
 
 Common areas:
+
 - dependency conflicts
 - Gradle cache issues
 - JVM memory / OOM during build
@@ -22,6 +23,7 @@ Common areas:
 ## Testing coverage
 
 Think by layer:
+
 - unit tests
 - integration / instrumentation tests
 - UI / Compose tests

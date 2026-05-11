@@ -11,19 +11,9 @@ const ensureTaskRegistryReadyMock = vi.hoisted(() => vi.fn());
 const startTaskRegistryMaintenanceMock = vi.hoisted(() => vi.fn());
 const outputRootHelpMock = vi.hoisted(() => vi.fn());
 const buildProgramMock = vi.hoisted(() => vi.fn());
-const maybeRunCliInContainerMock = vi.hoisted(() =>
-  vi.fn<
-    (argv: string[]) => { handled: true; exitCode: number } | { handled: false; argv: string[] }
-  >((argv: string[]) => ({ handled: false, argv })),
-);
 
 vi.mock("./route.js", () => ({
   tryRouteCli: tryRouteCliMock,
-}));
-
-vi.mock("./container-target.js", () => ({
-  maybeRunCliInContainer: maybeRunCliInContainerMock,
-  parseCliContainerArgs: (argv: string[]) => ({ ok: true, container: null, argv }),
 }));
 
 vi.mock("./dotenv.js", () => ({
@@ -71,7 +61,6 @@ describe("runCli exit behavior", () => {
 
     await runCli(["node", "crawclaw", "status"]);
 
-    expect(maybeRunCliInContainerMock).toHaveBeenCalledWith(["node", "crawclaw", "status"]);
     expect(tryRouteCliMock).toHaveBeenCalledWith(["node", "crawclaw", "status"]);
     expect(ensureTaskRegistryReadyMock).not.toHaveBeenCalled();
     expect(startTaskRegistryMaintenanceMock).not.toHaveBeenCalled();
@@ -86,37 +75,10 @@ describe("runCli exit behavior", () => {
 
     await runCli(["node", "crawclaw", "--help"]);
 
-    expect(maybeRunCliInContainerMock).toHaveBeenCalledWith(["node", "crawclaw", "--help"]);
     expect(tryRouteCliMock).not.toHaveBeenCalled();
     expect(outputRootHelpMock).toHaveBeenCalledTimes(1);
     expect(buildProgramMock).not.toHaveBeenCalled();
     expect(exitSpy).not.toHaveBeenCalled();
     exitSpy.mockRestore();
-  });
-
-  it("returns after a handled container-target invocation", async () => {
-    maybeRunCliInContainerMock.mockReturnValueOnce({ handled: true, exitCode: 0 });
-
-    await runCli(["node", "crawclaw", "--container", "demo", "status"]);
-
-    expect(maybeRunCliInContainerMock).toHaveBeenCalledWith([
-      "node",
-      "crawclaw",
-      "--container",
-      "demo",
-      "status",
-    ]);
-    expect(loadDotEnvMock).not.toHaveBeenCalled();
-    expect(tryRouteCliMock).not.toHaveBeenCalled();
-  });
-
-  it("propagates a handled container-target exit code", async () => {
-    const exitCode = process.exitCode;
-    maybeRunCliInContainerMock.mockReturnValueOnce({ handled: true, exitCode: 7 });
-
-    await runCli(["node", "crawclaw", "--container", "demo", "status"]);
-
-    expect(process.exitCode).toBe(7);
-    process.exitCode = exitCode;
   });
 });

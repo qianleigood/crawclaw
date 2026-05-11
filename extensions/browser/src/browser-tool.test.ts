@@ -27,27 +27,6 @@ const browserConfigMocks = vi.hoisted(() => ({
 }));
 vi.mock("./browser/config.js", () => browserConfigMocks);
 
-const nodesUtilsMocks = vi.hoisted(() => ({
-  listNodes: vi.fn(async (..._args: unknown[]): Promise<Array<Record<string, unknown>>> => []),
-}));
-vi.mock("../../../src/agents/tools/nodes-utils.js", async () => {
-  const actual = await vi.importActual<typeof import("../../../src/agents/tools/nodes-utils.js")>(
-    "../../../src/agents/tools/nodes-utils.js",
-  );
-  return {
-    ...actual,
-    listNodes: nodesUtilsMocks.listNodes,
-  };
-});
-
-const gatewayMocks = vi.hoisted(() => ({
-  callGatewayTool: vi.fn(async () => ({
-    ok: true,
-    payload: { result: { ok: true, running: true } },
-  })),
-}));
-vi.mock("../../../src/agents/tools/gateway.js", () => gatewayMocks);
-
 const configMocks = vi.hoisted(() => ({
   loadConfig: vi.fn(() => ({ browser: {} })),
 }));
@@ -99,15 +78,12 @@ describe("browser tool", () => {
       profiles: {},
       defaultProfile: "crawclaw",
     });
-    nodesUtilsMocks.listNodes.mockResolvedValue([]);
     toolCommonMocks.imageResultFromFile.mockResolvedValue({
       content: [{ type: "image", data: "x", mimeType: "image/png" }],
       details: { ok: true },
     });
     browserToolTesting.setDepsForTest({
       loadConfig: configMocks.loadConfig as never,
-      listNodes: nodesUtilsMocks.listNodes as never,
-      callGatewayTool: gatewayMocks.callGatewayTool as never,
       imageResultFromFile: toolCommonMocks.imageResultFromFile as never,
     });
     pinchTabClientTesting.setDepsForTest({ fetchImpl: vi.fn() as never });
@@ -150,67 +126,6 @@ describe("browser tool", () => {
     expect(result?.content?.[0]).toMatchObject({
       type: "text",
       text: expect.stringContaining("<<<EXTERNAL_UNTRUSTED_CONTENT"),
-    });
-  });
-
-  it("requires sandbox PinchTab URL for sandbox route", async () => {
-    const tool = createBrowserTool({
-      sandboxBridgeUrl: "http://127.0.0.1:9999",
-      sandboxCdpUrl: "http://127.0.0.1:9222",
-    });
-
-    await expect(
-      tool.execute?.("call-1", {
-        action: "open",
-        url: "https://example.com",
-      }),
-    ).rejects.toThrow("Sandbox PinchTab URL is unavailable.");
-  });
-
-  it("uses PinchTab for sandbox route when sandbox PinchTab URL is provided", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "inst_sbx_1", status: "starting" }), { status: 200 }),
-      )
-      .mockResolvedValueOnce(
-        new Response(JSON.stringify({ id: "tab_sbx_1", url: "https://example.com" }), {
-          status: 200,
-        }),
-      );
-    pinchTabClientTesting.setDepsForTest({ fetchImpl: fetchMock as never });
-    configMocks.loadConfig.mockReturnValue({
-      browser: {
-        provider: "pinchtab",
-        pinchtab: { baseUrl: "http://127.0.0.1:9867" },
-      },
-    });
-
-    const tool = createBrowserTool({
-      sandboxBridgeUrl: "http://127.0.0.1:9999",
-      sandboxCdpUrl: "http://127.0.0.1:9222",
-      sandboxPinchTabUrl: "http://127.0.0.1:19867",
-    });
-    const result = await tool.execute?.("call-1", {
-      action: "open",
-      url: "https://example.com",
-    });
-
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      1,
-      "http://127.0.0.1:19867/instances/launch",
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
-      "http://127.0.0.1:19867/instances/inst_sbx_1/tabs/open",
-      expect.objectContaining({ method: "POST" }),
-    );
-    expect(fetchMock).toHaveBeenCalledTimes(2);
-    expect(result?.details).toMatchObject({
-      ok: true,
-      instanceId: "inst_sbx_1",
-      tabId: "tab_sbx_1",
     });
   });
 
@@ -534,27 +449,11 @@ describe("browser tool", () => {
     expect(result?.details).toMatchObject({ ok: true });
   });
 
-  it("routes to node proxy when target=node", async () => {
-    nodesUtilsMocks.listNodes.mockResolvedValue([
-      {
-        nodeId: "node-1",
-        displayName: "Browser Node",
-        connected: true,
-        caps: ["browser"],
-        commands: ["browser.proxy"],
-      },
-    ]);
-
+  it("rejects node proxy routing", async () => {
     const tool = createBrowserTool();
-    await tool.execute?.("call-1", { action: "status", target: "node" });
 
-    expect(gatewayMocks.callGatewayTool).toHaveBeenCalledWith(
-      "node.invoke",
-      { timeoutMs: 25000 },
-      expect.objectContaining({
-        nodeId: "node-1",
-        command: "browser.proxy",
-      }),
+    await expect(tool.execute?.("call-1", { action: "status", target: "node" })).rejects.toThrow(
+      "Node browser proxy is no longer supported",
     );
   });
 });

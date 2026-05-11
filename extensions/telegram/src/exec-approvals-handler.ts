@@ -110,8 +110,7 @@ export class TelegramExecApprovalHandler {
                 command: resolveExecApprovalCommandDisplay((request as ExecApprovalRequest).request)
                   .commandText,
                 cwd: (request as ExecApprovalRequest).request.cwd ?? undefined,
-                host: (request as ExecApprovalRequest).request.host === "node" ? "node" : "gateway",
-                nodeId: (request as ExecApprovalRequest).request.nodeId ?? undefined,
+                host: "gateway",
                 allowedDecisions: resolveExecApprovalRequestAllowedDecisions(
                   (request as ExecApprovalRequest).request,
                 ),

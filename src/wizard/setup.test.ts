@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import { DEFAULT_BOOTSTRAP_FILENAME } from "../agents/workspace.js";
 import { setActiveCliLocale } from "../cli/i18n/text.js";
 import type { PluginCompatibilityNotice } from "../plugins/status.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -47,28 +46,6 @@ const finalizeSetupWizard = vi.hoisted(() =>
     if (!options.nextConfig?.tools?.web?.search?.provider) {
       await options.prompter.note("Web search was skipped.", "Web search");
     }
-
-    if (options.opts.skipUi) {
-      return { launchedTui: false };
-    }
-
-    const hatch = await options.prompter.select({
-      message: "How do you want to hatch your bot?",
-      options: [],
-    });
-    if (hatch !== "tui") {
-      return { launchedTui: false };
-    }
-
-    let message: string | undefined;
-    try {
-      await fs.stat(path.join(options.workspaceDir, DEFAULT_BOOTSTRAP_FILENAME));
-      message = "Wake up, my friend!";
-    } catch {
-      message = undefined;
-    }
-
-    await runTui({ deliver: false, message });
     return { launchedTui: true };
   }),
 );
@@ -106,7 +83,6 @@ const readConfigFileSnapshot = vi.hoisted(() =>
 );
 const ensureSystemdUserLingerInteractive = vi.hoisted(() => vi.fn(async () => {}));
 const isSystemdUserServiceAvailable = vi.hoisted(() => vi.fn(async () => true));
-const runTui = vi.hoisted(() => vi.fn(async (_options: unknown) => {}));
 const setupWizardShellCompletion = vi.hoisted(() => vi.fn(async () => {}));
 const probeGatewayReachable = vi.hoisted(() => vi.fn(async () => ({ ok: true })));
 const buildPluginCompatibilityNotices = vi.hoisted(() =>
@@ -214,10 +190,6 @@ vi.mock("../config/logging.js", () => ({
   logConfigUpdated,
 }));
 
-vi.mock("../tui/tui.js", () => ({
-  runTui,
-}));
-
 vi.mock("./setup.gateway-config.js", () => ({
   configureGatewayForSetup,
 }));
@@ -250,8 +222,6 @@ function createRuntime(opts?: { throwsOnExit?: boolean }): RuntimeEnv {
 
 describe("runSetupWizard", () => {
   let suiteRoot = "";
-  let suiteCase = 0;
-
   beforeAll(async () => {
     suiteRoot = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-onboard-suite-"));
   });
@@ -259,14 +229,7 @@ describe("runSetupWizard", () => {
   afterAll(async () => {
     await fs.rm(suiteRoot, { recursive: true, force: true });
     suiteRoot = "";
-    suiteCase = 0;
   });
-
-  async function makeCaseDir(prefix: string): Promise<string> {
-    const dir = path.join(suiteRoot, `${prefix}${++suiteCase}`);
-    await fs.mkdir(dir, { recursive: true });
-    return dir;
-  }
 
   it("localizes the interactive security warning when zh-CN is active", async () => {
     const previousLang = process.env.CRAWCLAW_LANG;
@@ -386,62 +349,6 @@ describe("runSetupWizard", () => {
     expect(setupChannels).not.toHaveBeenCalled();
     expect(setupSkills).not.toHaveBeenCalled();
     expect(healthCommand).not.toHaveBeenCalled();
-    expect(runTui).not.toHaveBeenCalled();
-  });
-
-  async function runTuiHatchTest(params: {
-    writeBootstrapFile: boolean;
-    expectedMessage: string | undefined;
-  }) {
-    runTui.mockClear();
-
-    const workspaceDir = await makeCaseDir("workspace-");
-    if (params.writeBootstrapFile) {
-      await fs.writeFile(path.join(workspaceDir, DEFAULT_BOOTSTRAP_FILENAME), "{}");
-    }
-
-    const select = vi.fn(async (opts: WizardSelectParams<unknown>) => {
-      if (opts.message === "How do you want to hatch your bot?") {
-        return "tui";
-      }
-      return "quickstart";
-    }) as unknown as WizardPrompter["select"];
-
-    const prompter = buildWizardPrompter({ select });
-    const runtime = createRuntime({ throwsOnExit: true });
-
-    await runSetupWizard(
-      {
-        acceptRisk: true,
-        flow: "quickstart",
-        mode: "local",
-        workspace: workspaceDir,
-        authChoice: "skip",
-        outputPreset: "balanced",
-        skipChannels: true,
-        skipSkills: true,
-        skipSearch: true,
-        skipHealth: true,
-        installDaemon: false,
-      },
-      runtime,
-      prompter,
-    );
-
-    expect(runTui).toHaveBeenCalledWith(
-      expect.objectContaining({
-        deliver: false,
-        message: params.expectedMessage,
-      }),
-    );
-  }
-
-  it("launches TUI without auto-delivery when hatching", async () => {
-    await runTuiHatchTest({ writeBootstrapFile: true, expectedMessage: "Wake up, my friend!" });
-  });
-
-  it("offers TUI hatch even without BOOTSTRAP.md", async () => {
-    await runTuiHatchTest({ writeBootstrapFile: false, expectedMessage: undefined });
   });
 
   it("shows the web search hint at the end of setup", async () => {

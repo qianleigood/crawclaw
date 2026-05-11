@@ -37,7 +37,6 @@ function makeParams(
         workspaceDir: "/tmp/workspace",
         bootstrapMaxChars: options?.omitBootstrapLimits ? undefined : 20_000,
         bootstrapTotalMaxChars: options?.omitBootstrapLimits ? undefined : 150_000,
-        sandbox: { mode: "off", sandboxed: false },
         systemPrompt: {
           chars: 1_000,
           projectContextChars: 500,

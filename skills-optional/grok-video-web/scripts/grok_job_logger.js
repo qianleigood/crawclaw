@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const REDACT_PATTERNS = [/(^|[_.-])(cookie|password|passwd|secret|token|authorization|auth|session)([_.-]|$)/i];
+const REDACT_PATTERNS = [
+  /(^|[_.-])(cookie|password|passwd|secret|token|authorization|auth|session)([_.-]|$)/i,
+];
 
 function nowIso() {
   return new Date().toISOString();
@@ -15,28 +17,32 @@ function ensureDir(dirPath) {
 }
 
 function sanitizeForLog(value, trail = []) {
-  if (value == null) {return value;}
-  if (typeof value === 'string') {
-    const keyPath = trail.join('.');
+  if (value == null) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const keyPath = trail.join(".");
     if (REDACT_PATTERNS.some((pattern) => pattern.test(keyPath))) {
-      return '[REDACTED]';
+      return "[REDACTED]";
     }
     if (value.length > 2000) {
       return `${value.slice(0, 1997)}...`;
     }
     return value;
   }
-  if (typeof value === 'number' || typeof value === 'boolean') {
+  if (typeof value === "number" || typeof value === "boolean") {
     return value;
   }
   if (Array.isArray(value)) {
-    return value.slice(0, 50).map((item, index) => sanitizeForLog(item, trail.concat(String(index))));
+    return value
+      .slice(0, 50)
+      .map((item, index) => sanitizeForLog(item, trail.concat(String(index))));
   }
-  if (typeof value === 'object') {
+  if (typeof value === "object") {
     const out = {};
     for (const [key, item] of Object.entries(value)) {
       out[key] = REDACT_PATTERNS.some((pattern) => pattern.test(key))
-        ? '[REDACTED]'
+        ? "[REDACTED]"
         : sanitizeForLog(item, trail.concat(key));
     }
     return out;
@@ -46,46 +52,47 @@ function sanitizeForLog(value, trail = []) {
 
 function summarizeFields(fields = {}) {
   const ordered = [
-    ['message', fields.message],
-    ['status', fields.status],
-    ['phase', fields.phase],
-    ['jobId', fields.jobId],
-    ['profile', fields.profile],
-    ['currentUrl', fields.currentUrl],
-    ['url', fields.url],
-    ['resultUrl', fields.resultUrl],
-    ['reasonCode', fields.reasonCode],
-    ['method', fields.method],
-    ['path', fields.path],
-    ['rawPath', fields.rawPath],
-    ['exportPath', fields.exportPath],
+    ["message", fields.message],
+    ["status", fields.status],
+    ["phase", fields.phase],
+    ["jobId", fields.jobId],
+    ["profile", fields.profile],
+    ["currentUrl", fields.currentUrl],
+    ["url", fields.url],
+    ["resultUrl", fields.resultUrl],
+    ["reasonCode", fields.reasonCode],
+    ["method", fields.method],
+    ["path", fields.path],
+    ["rawPath", fields.rawPath],
+    ["exportPath", fields.exportPath],
   ];
   return ordered
-    .filter(([, value]) => value != null && value !== '')
+    .filter(([, value]) => value != null && value !== "")
     .map(([key, value]) => `${key}=${String(value)}`)
-    .join(' ');
+    .join(" ");
 }
 
 function defaultEventsPath(stateDir) {
-  return path.join(stateDir, 'events.jsonl');
+  return path.join(stateDir, "events.jsonl");
 }
 
 function writeEvent(eventsPath, entry) {
   ensureDir(path.dirname(eventsPath));
-  fs.appendFileSync(eventsPath, `${JSON.stringify(entry)}\n`, 'utf8');
+  fs.appendFileSync(eventsPath, `${JSON.stringify(entry)}\n`, "utf8");
 }
 
 function createJobLogger(options = {}) {
   const context = {
-    script: options.script || '',
-    stateDir: options.stateDir ? path.resolve(options.stateDir) : '',
-    jobDir: options.jobDir ? path.resolve(options.jobDir) : '',
-    jobId: options.jobId || '',
-    profile: options.profile || '',
+    script: options.script || "",
+    stateDir: options.stateDir ? path.resolve(options.stateDir) : "",
+    jobDir: options.jobDir ? path.resolve(options.jobDir) : "",
+    jobId: options.jobId || "",
+    profile: options.profile || "",
   };
-  let eventsPath = options.eventsPath || (context.stateDir ? defaultEventsPath(context.stateDir) : '');
+  let eventsPath =
+    options.eventsPath || (context.stateDir ? defaultEventsPath(context.stateDir) : "");
   const consoleEnabled = options.console !== false;
-  const minLevel = String(options.minLevel || 'info').toLowerCase();
+  const minLevel = String(options.minLevel || "info").toLowerCase();
   const levelOrder = { debug: 10, info: 20, warn: 30, error: 40 };
 
   function shouldPrint(level) {
@@ -108,16 +115,16 @@ function createJobLogger(options = {}) {
       ts: nowIso(),
       level,
       event,
-      script: context.script || '',
+      script: context.script || "",
       ...data,
     };
     if (eventsPath) {
       writeEvent(eventsPath, entry);
     }
     if (consoleEnabled && shouldPrint(level)) {
-      const prefix = `[${entry.ts}] [${level.toUpperCase()}]${context.script ? ` [${context.script}]` : ''}`;
+      const prefix = `[${entry.ts}] [${level.toUpperCase()}]${context.script ? ` [${context.script}]` : ""}`;
       const suffix = summarizeFields(data);
-      process.stderr.write(`${prefix} ${event}${suffix ? ` ${suffix}` : ''}\n`);
+      process.stderr.write(`${prefix} ${event}${suffix ? ` ${suffix}` : ""}\n`);
     }
     return entry;
   }
@@ -150,16 +157,16 @@ function createJobLogger(options = {}) {
     },
     log: emit,
     debug(event, fields) {
-      return emit('debug', event, fields);
+      return emit("debug", event, fields);
     },
     info(event, fields) {
-      return emit('info', event, fields);
+      return emit("info", event, fields);
     },
     warn(event, fields) {
-      return emit('warn', event, fields);
+      return emit("warn", event, fields);
     },
     error(event, fields) {
-      return emit('error', event, fields);
+      return emit("error", event, fields);
     },
   };
 }
@@ -176,10 +183,12 @@ if (require.main === module) {
   const opts = {};
   for (let i = 0; i < argv.length; i += 1) {
     const token = argv[i];
-    if (!token.startsWith('--')) {continue;}
+    if (!token.startsWith("--")) {
+      continue;
+    }
     const key = token.slice(2);
     const next = argv[i + 1];
-    if (next == null || next.startsWith('--')) {
+    if (next == null || next.startsWith("--")) {
       opts[key] = true;
     } else {
       opts[key] = next;
@@ -187,11 +196,15 @@ if (require.main === module) {
     }
   }
   const logger = createJobLogger({
-    script: opts.script || 'grok_job_logger',
-    stateDir: opts['state-dir'],
-    jobDir: opts['job-dir'],
-    jobId: opts['job-id'],
+    script: opts.script || "grok_job_logger",
+    stateDir: opts["state-dir"],
+    jobDir: opts["job-dir"],
+    jobId: opts["job-id"],
     profile: opts.profile,
   });
-  logger.log(opts.level || 'info', opts.event || 'log', opts.message ? { message: opts.message } : {});
+  logger.log(
+    opts.level || "info",
+    opts.event || "log",
+    opts.message ? { message: opts.message } : {},
+  );
 }

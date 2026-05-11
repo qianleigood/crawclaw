@@ -32,9 +32,7 @@ function normalizeOnboardingScopes(
 ): Array<"text-inference"> | undefined {
   const normalized = Array.from(
     new Set(
-      (values ?? []).filter(
-        (value): value is "text-inference" => value === "text-inference",
-      ),
+      (values ?? []).filter((value): value is "text-inference" => value === "text-inference"),
     ),
   );
   return normalized.length > 0 ? normalized : undefined;

@@ -140,7 +140,7 @@ describeUnix("inspectPortUsage", () => {
       }
       if (command === "ss") {
         return {
-          stdout: `LISTEN 0 511 127.0.0.1:${port} 0.0.0.0:* users:(("node",pid=${process.pid},fd=23))`,
+          stdout: `LISTEN 0 511 127.0.0.1:${port} 0.0.0.0:* users:(("crawclaw",pid=${process.pid},fd=23))`,
           stderr: "",
           code: 0,
         };
@@ -148,7 +148,7 @@ describeUnix("inspectPortUsage", () => {
       if (command === "ps") {
         if (argv.includes("command=")) {
           return {
-            stdout: "node /tmp/crawclaw/dist/index.js gateway --port 18789\n",
+            stdout: "/tmp/crawclaw/dist/native/crawclaw gateway --port 18789\n",
             stderr: "",
             code: 0,
           };

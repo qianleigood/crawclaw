@@ -103,7 +103,6 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
       "gateway.tls",
       "gateway.http",
       "gateway.push",
-      "gateway.nodes",
       "gateway.tools",
       "gateway.webchat",
       "gateway",
@@ -172,7 +171,7 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
   },
   {
     id: "gateway-browser-runtime",
-    prefixes: ["browser", "nodeHost"],
+    prefixes: ["browser"],
     effect: "reconfigure",
     actions: ["reload-browser-runtime"],
   },

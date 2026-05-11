@@ -755,10 +755,10 @@ function resolveDirectSendContext(params: {
 }
 
 function toPushMetadata(params: {
-  kind: "push.test" | "node.wake";
+  kind: "push.test" | "device.wake";
   nodeId: string;
   reason?: string;
-}): { kind: "push.test" | "node.wake"; nodeId: string; ts: number; reason?: string } {
+}): { kind: "push.test" | "device.wake"; nodeId: string; ts: number; reason?: string } {
   return {
     kind: params.kind,
     nodeId: params.nodeId,
@@ -887,8 +887,8 @@ function createBackgroundPayload(params: { nodeId: string; wakeReason?: string }
       "content-available": 1,
     },
     crawclaw: toPushMetadata({
-      kind: "node.wake",
-      reason: params.wakeReason ?? "node.invoke",
+      kind: "device.wake",
+      reason: params.wakeReason ?? "device.wake",
       nodeId: params.nodeId,
     }),
   };

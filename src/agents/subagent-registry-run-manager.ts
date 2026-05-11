@@ -10,7 +10,6 @@ import { type DeliveryContext, normalizeDeliveryContext } from "../utils/deliver
 import { ensureRuntimePluginsLoaded } from "./runtime-plugins.js";
 import { upsertAgentTaskRuntimeMetadata } from "./runtime/agent-metadata-store.js";
 import { markAgentRunCancelled, registerAgentRuntimeRun } from "./runtime/agent-progress.js";
-import { resolveSandboxRuntimeStatus } from "./sandbox/runtime-status.js";
 import type { SubagentRunOutcome } from "./subagent-announce.js";
 import {
   SUBAGENT_ENDED_OUTCOME_KILLED,
@@ -98,10 +97,6 @@ export function createSubagentRunManager(params: {
     const taskRuntime = resolveSubagentTaskRuntime(registerParams.taskRuntime);
     try {
       const cfg = params.loadConfig();
-      const runtimeStatus = resolveSandboxRuntimeStatus({
-        cfg,
-        sessionKey: registerParams.childSessionKey,
-      });
       await upsertAgentTaskRuntimeMetadata({
         taskId,
         runtime: taskRuntime,
@@ -118,7 +113,6 @@ export function createSubagentRunManager(params: {
           mode: "background",
           spawnSource: registerParams.spawnSource?.trim() || "sessions_spawn",
           model: registerParams.model,
-          sandboxed: runtimeStatus.sandboxed,
           workspaceDir: registerParams.workspaceDir,
           requesterSessionKey: registerParams.requesterSessionKey,
         },

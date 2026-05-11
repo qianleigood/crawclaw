@@ -414,8 +414,6 @@ export async function processGatewayAllowlist(
           execCommand: enforcedCommand,
           workdir: params.workdir,
           env: params.env,
-          sandbox: undefined,
-          containerWorkdir: null,
           usePty: params.pty,
           warnings: params.warnings,
           maxOutput: params.maxOutput,

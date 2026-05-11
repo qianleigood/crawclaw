@@ -59,9 +59,7 @@ export function resolveBlueBubblesAccount(params: {
   };
 }
 
-export function listEnabledBlueBubblesAccounts(
-  cfg: CrawClawConfig,
-): ResolvedBlueBubblesAccount[] {
+export function listEnabledBlueBubblesAccounts(cfg: CrawClawConfig): ResolvedBlueBubblesAccount[] {
   return listBlueBubblesAccountIds(cfg)
     .map((accountId) => resolveBlueBubblesAccount({ cfg, accountId }))
     .filter((account) => account.enabled);

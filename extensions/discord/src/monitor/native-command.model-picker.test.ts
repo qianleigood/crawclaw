@@ -1,4 +1,3 @@
-import { ChannelType } from "discord-api-types/v10";
 import * as commandRegistryModule from "crawclaw/plugin-sdk/command-auth";
 import type { ChatCommandDefinition, CommandArgsParsing } from "crawclaw/plugin-sdk/command-auth";
 import type { ModelsProviderData } from "crawclaw/plugin-sdk/command-auth";
@@ -6,6 +5,7 @@ import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import * as dispatcherModule from "crawclaw/plugin-sdk/reply-runtime";
 import * as globalsModule from "crawclaw/plugin-sdk/runtime-env";
 import * as commandTextModule from "crawclaw/plugin-sdk/text-runtime";
+import { ChannelType } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as modelPickerPreferencesModule from "./model-picker-preferences.js";
 import * as modelPickerModule from "./model-picker.js";

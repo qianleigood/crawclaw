@@ -843,16 +843,7 @@ describe("spawnAcpDirect", () => {
     expect(result.error).toContain("spawnAcpSessions=true");
   });
 
-  it("forbids ACP spawn from sandboxed requester sessions", async () => {
-    replaceSpawnConfig({
-      ...hoisted.state.cfg,
-      agents: {
-        defaults: {
-          sandbox: { mode: "all" },
-        },
-      },
-    });
-
+  it("forbids ACP spawn from child requester sessions", async () => {
     const result = await spawnAcpDirect(
       {
         task: "hello",
@@ -864,25 +855,7 @@ describe("spawnAcpDirect", () => {
     );
 
     expect(result.status).toBe("forbidden");
-    expect(result.error).toContain("Sandboxed sessions cannot spawn ACP sessions");
-    expect(hoisted.callGatewayMock).not.toHaveBeenCalled();
-    expect(hoisted.initializeSessionMock).not.toHaveBeenCalled();
-  });
-
-  it('forbids sandbox="require" for runtime=acp', async () => {
-    const result = await spawnAcpDirect(
-      {
-        task: "hello",
-        agentId: "codex",
-        sandbox: "require",
-      },
-      {
-        agentSessionKey: "agent:main:main",
-      },
-    );
-
-    expect(result.status).toBe("forbidden");
-    expect(result.error).toContain('sandbox="require"');
+    expect(result.error).toContain("Child sessions cannot spawn ACP sessions");
     expect(hoisted.callGatewayMock).not.toHaveBeenCalled();
     expect(hoisted.initializeSessionMock).not.toHaveBeenCalled();
   });

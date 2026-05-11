@@ -14,7 +14,7 @@ import { Image } from "expo-image";
   contentFit="cover"
   transition={300}
   placeholder={blurhash}
-/>
+/>;
 ```
 
 ## Lists
@@ -24,7 +24,9 @@ import { FlashList } from "@shopify/flash-list";
 import { memo } from "react";
 
 const Item = memo(({ title }: { title: string }) => (
-  <View style={styles.item}><Text>{title}</Text></View>
+  <View style={styles.item}>
+    <Text>{title}</Text>
+  </View>
 ));
 
 <FlashList
@@ -32,7 +34,7 @@ const Item = memo(({ title }: { title: string }) => (
   renderItem={({ item }) => <Item title={item.title} />}
   keyExtractor={(item) => item.id}
   estimatedItemSize={80}
-/>
+/>;
 ```
 
 ## Safe Areas
@@ -41,13 +43,11 @@ const Item = memo(({ title }: { title: string }) => (
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 // With ScrollView
-<ScrollView contentInsetAdjustmentBehavior="automatic">
-  {/* content */}
-</ScrollView>
+<ScrollView contentInsetAdjustmentBehavior="automatic">{/* content */}</ScrollView>;
 
 // Manual insets
 const insets = useSafeAreaInsets();
-<View style={{ paddingBottom: insets.bottom }} />
+<View style={{ paddingBottom: insets.bottom }} />;
 ```
 
 ## Native Controls (iOS)
@@ -72,22 +72,24 @@ import SegmentedControl from "@react-native-segmented-control/segmented-control"
 ```tsx
 // app/modal.tsx
 import { Stack } from "expo-router";
-<Stack.Screen options={{
-  presentation: "formSheet",
-  sheetAllowedDetents: [0.5, 1.0],
-  sheetGrabberVisible: true,
-}} />
+<Stack.Screen
+  options={{
+    presentation: "formSheet",
+    sheetAllowedDetents: [0.5, 1.0],
+    sheetGrabberVisible: true,
+  }}
+/>;
 ```
 
 ## Visual Effects
 
 ```tsx
 import { BlurView } from "expo-blur";
-<BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />
+<BlurView intensity={80} tint="light" style={StyleSheet.absoluteFill} />;
 
 // Liquid glass (iOS 26+, New Architecture only)
 import { GlassEffect } from "expo-glass-effect";
-<GlassEffect style={{ borderRadius: 16, padding: 20 }} />
+<GlassEffect style={{ borderRadius: 16, padding: 20 }} />;
 ```
 
 ## Search
@@ -108,11 +110,11 @@ useEffect(() => {
 
 ## Storage
 
-| Need | Solution |
-|------|----------|
-| Structured data | `expo-sqlite` |
+| Need             | Solution                                    |
+| ---------------- | ------------------------------------------- |
+| Structured data  | `expo-sqlite`                               |
 | Simple key-value | `@react-native-async-storage/async-storage` |
-| Sensitive data | `expo-secure-store` |
+| Sensitive data   | `expo-secure-store`                         |
 
 ## Media
 

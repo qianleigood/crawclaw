@@ -11,7 +11,7 @@ export type DeviceBootstrapProfileInput = {
 };
 
 export const PAIRING_SETUP_BOOTSTRAP_PROFILE: DeviceBootstrapProfile = {
-  roles: ["node", "operator"],
+  roles: ["operator"],
   scopes: ["operator.read", "operator.talk.secrets", "operator.write"],
 };
 

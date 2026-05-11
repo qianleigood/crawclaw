@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 const {
   appendGeneratedVideoUrl,
   appendWorkflowCheckpoint,
@@ -26,57 +26,60 @@ const {
   writeJson,
   writeWorkflowResultUrl,
   WORKSPACE_ROOT,
-} = require('./grok_video_lib');
-const {
-  launchPersistent,
-  resolveProfileDir,
-} = require('./grok_video_common');
+} = require("./grok_video_lib");
+const { launchPersistent, resolveProfileDir } = require("./grok_video_common");
 
 function usage() {
-  console.log(`Usage: grok_video_redo.js [options]\n\nRun or continue a redo-video derivative flow from an existing Grok result page. This runner can now attempt the real Redo UI click, capture the derived result URL, and persist lineage/handoff state on the same conventions as submit/extend.\n\nOptions:\n  --job-id <id>                Existing browser job id under runtime/browser-jobs/grok-video-web/\n  --job-dir <path>             Explicit job directory\n  --result-url <url>           Source Grok result URL (/imagine/post/<id>)\n  --new-result-url <url>       Record the new derived result URL after redo submit happens\n  --profile <name>             Browser profile name. Default: from job manifest/request, else grok-web\n  --submit-timeout-sec <n>     Wait this long for derived result URL capture after click. Default: 45\n  --manual-handoff-wait-sec <n>Keep the same page/profile open while watching for a derived URL. Default: 0\n  --detect-only                Probe redo entry only; do not click redo or final submit\n  --no-submit-click            Do not auto-click any final Make video / submit candidate after redo entry opens\n  --headful                    Launch visible browser instead of headless\n  --help                       Show this help\n`);
+  console.log(
+    `Usage: grok_video_redo.js [options]\n\nRun or continue a redo-video derivative flow from an existing Grok result page. This runner can now attempt the real Redo UI click, capture the derived result URL, and persist lineage/handoff state on the same conventions as submit/extend.\n\nOptions:\n  --job-id <id>                Existing browser job id under runtime/browser-jobs/grok-video-web/\n  --job-dir <path>             Explicit job directory\n  --result-url <url>           Source Grok result URL (/imagine/post/<id>)\n  --new-result-url <url>       Record the new derived result URL after redo submit happens\n  --profile <name>             Browser profile name. Default: from job manifest/request, else grok-web\n  --submit-timeout-sec <n>     Wait this long for derived result URL capture after click. Default: 45\n  --manual-handoff-wait-sec <n>Keep the same page/profile open while watching for a derived URL. Default: 0\n  --detect-only                Probe redo entry only; do not click redo or final submit\n  --no-submit-click            Do not auto-click any final Make video / submit candidate after redo entry opens\n  --headful                    Launch visible browser instead of headless\n  --help                       Show this help\n`,
+  );
 }
 
 function timestampTag() {
-  return new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 14).toLowerCase();
+  return new Date()
+    .toISOString()
+    .replace(/[-:TZ.]/g, "")
+    .slice(0, 14)
+    .toLowerCase();
 }
 
 function buildRedoJobId(resultUrl) {
-  const postId = sanitizeFileName(extractPostIdFromUrl(resultUrl) || 'result');
+  const postId = sanitizeFileName(extractPostIdFromUrl(resultUrl) || "result");
   return `redo-${postId}-${timestampTag()}`;
 }
 
-function bootstrapStandaloneJob(resultUrl, profileHint = '') {
+function bootstrapStandaloneJob(resultUrl, profileHint = "") {
   const jobId = buildRedoJobId(resultUrl);
-  const jobDir = path.join(WORKSPACE_ROOT, 'runtime', 'browser-jobs', 'grok-video-web', jobId);
-  const stateDir = path.join(jobDir, 'state');
-  const downloadsDir = path.join(jobDir, 'downloads');
-  const exportsDir = path.join(jobDir, 'exports');
-  const uploadsDir = path.join(jobDir, 'uploads');
+  const jobDir = path.join(WORKSPACE_ROOT, "runtime", "browser-jobs", "grok-video-web", jobId);
+  const stateDir = path.join(jobDir, "state");
+  const downloadsDir = path.join(jobDir, "downloads");
+  const exportsDir = path.join(jobDir, "exports");
+  const uploadsDir = path.join(jobDir, "uploads");
   ensureDir(stateDir);
   ensureDir(downloadsDir);
   ensureDir(exportsDir);
   ensureDir(uploadsDir);
 
-  const profile = String(profileHint || 'grok-web').trim() || 'grok-web';
-  const requestPath = path.join(stateDir, 'request.json');
-  const manifestPath = path.join(stateDir, 'job.json');
+  const profile = String(profileHint || "grok-web").trim() || "grok-web";
+  const requestPath = path.join(stateDir, "request.json");
+  const manifestPath = path.join(stateDir, "job.json");
 
   if (!fs.existsSync(requestPath)) {
     writeJson(requestPath, {
-      skill: 'grok-video-web',
-      action: 'redo_video',
+      skill: "grok-video-web",
+      action: "redo_video",
       jobId,
       profile,
       sourceResultUrl: resultUrl,
-      prompt: '',
+      prompt: "",
       references: [],
     });
   }
 
   if (!fs.existsSync(manifestPath)) {
     writeJson(manifestPath, {
-      skill: 'grok-video-web',
-      action: 'redo_video',
+      skill: "grok-video-web",
+      action: "redo_video",
       jobId,
       jobDir,
       stateDir,
@@ -92,10 +95,10 @@ function bootstrapStandaloneJob(resultUrl, profileHint = '') {
     });
   }
 
-  return resolveJob({ 'job-dir': jobDir });
+  return resolveJob({ "job-dir": jobDir });
 }
 
-function resolveSourceResultUrl(job, explicitUrl = '') {
+function resolveSourceResultUrl(job, explicitUrl = "") {
   const candidates = [
     explicitUrl,
     job.request?.sourceResultUrl,
@@ -104,18 +107,18 @@ function resolveSourceResultUrl(job, explicitUrl = '') {
     job.manifest?.redo?.sourceResultUrl,
   ];
   for (const value of candidates) {
-    if (typeof value === 'string' && /\/imagine\/post\//i.test(value)) {
+    if (typeof value === "string" && /\/imagine\/post\//i.test(value)) {
       return value.trim();
     }
   }
-  return '';
+  return "";
 }
 
 function buildBasePayload(job, profile, sourceResultUrl, checkedAt) {
   return {
     ok: true,
-    action: 'redo',
-    actionType: 'redo_video',
+    action: "redo",
+    actionType: "redo_video",
     jobId: job.jobId,
     jobDir: job.jobDir,
     profile,
@@ -128,161 +131,249 @@ function buildBasePayload(job, profile, sourceResultUrl, checkedAt) {
 }
 
 function textTokens(values) {
-  return Array.from(new Set((values || []).map((value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase()).filter(Boolean)));
+  return Array.from(
+    new Set(
+      (values || [])
+        .map((value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase(),
+        )
+        .filter(Boolean),
+    ),
+  );
 }
 
 async function markVisibleClickableByText(page, texts, attrName, { exactOnly = false } = {}) {
   const desired = textTokens(texts);
-  if (!desired.length) {return { found: false, selector: '', label: '', score: 0 };}
-  return page.evaluate(({ desired, attrName, exactOnly }) => {
-    const visible = (node) => {
-      if (!(node instanceof Element)) {return false;}
-      const style = window.getComputedStyle(node);
-      const rect = node.getBoundingClientRect();
-      return style && style.visibility !== 'hidden' && style.display !== 'none' && rect.width > 0 && rect.height > 0;
-    };
-    const norm = (value) => String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    document.querySelectorAll(`[${attrName}]`).forEach((node) => node.removeAttribute(attrName));
-    const nodes = Array.from(document.querySelectorAll('button, a, [role="button"], [role="menuitem"], input[type="button"], input[type="submit"]'));
-    const scored = [];
-    for (const node of nodes) {
-      if (!visible(node)) {continue;}
-      const label = norm(node.getAttribute('aria-label') || node.getAttribute('title') || node.innerText || node.textContent || node.value || '');
-      if (!label) {continue;}
-      let score = 0;
-      for (const token of desired) {
-        if (label === token) {score = Math.max(score, 100 + token.length);}
-        else if (!exactOnly && label.includes(token)) {score = Math.max(score, 50 + token.length);}
-      }
-      if (!score) {continue;}
-      if ((node.getAttribute('role') || '').toLowerCase() === 'menuitem') {score += 4;}
-      if (/redo|重新生成|重做/.test(label)) {score += 8;}
-      if (/make video|生成视频/.test(label)) {score += 5;}
-      if (node.hasAttribute('disabled') || node.getAttribute('aria-disabled') === 'true') {score -= 1000;}
-      scored.push({ node, label, score });
-    }
-    scored.sort((a, b) => b.score - a.score);
-    const top = scored[0];
-    if (!top) {return { found: false, selector: '', label: '', score: 0 };}
-    top.node.setAttribute(attrName, '1');
-    return { found: true, selector: `[${attrName}="1"]`, label: top.label, score: top.score };
-  }, { desired, attrName, exactOnly }).catch(() => ({ found: false, selector: '', label: '', score: 0 }));
+  if (!desired.length) {
+    return { found: false, selector: "", label: "", score: 0 };
+  }
+  return page
+    .evaluate(
+      ({ desired, attrName, exactOnly }) => {
+        const visible = (node) => {
+          if (!(node instanceof Element)) {
+            return false;
+          }
+          const style = window.getComputedStyle(node);
+          const rect = node.getBoundingClientRect();
+          return (
+            style &&
+            style.visibility !== "hidden" &&
+            style.display !== "none" &&
+            rect.width > 0 &&
+            rect.height > 0
+          );
+        };
+        const norm = (value) =>
+          String(value || "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .toLowerCase();
+        document
+          .querySelectorAll(`[${attrName}]`)
+          .forEach((node) => node.removeAttribute(attrName));
+        const nodes = Array.from(
+          document.querySelectorAll(
+            'button, a, [role="button"], [role="menuitem"], input[type="button"], input[type="submit"]',
+          ),
+        );
+        const scored = [];
+        for (const node of nodes) {
+          if (!visible(node)) {
+            continue;
+          }
+          const label = norm(
+            node.getAttribute("aria-label") ||
+              node.getAttribute("title") ||
+              node.innerText ||
+              node.textContent ||
+              node.value ||
+              "",
+          );
+          if (!label) {
+            continue;
+          }
+          let score = 0;
+          for (const token of desired) {
+            if (label === token) {
+              score = Math.max(score, 100 + token.length);
+            } else if (!exactOnly && label.includes(token)) {
+              score = Math.max(score, 50 + token.length);
+            }
+          }
+          if (!score) {
+            continue;
+          }
+          if ((node.getAttribute("role") || "").toLowerCase() === "menuitem") {
+            score += 4;
+          }
+          if (/redo|重新生成|重做/.test(label)) {
+            score += 8;
+          }
+          if (/make video|生成视频/.test(label)) {
+            score += 5;
+          }
+          if (node.hasAttribute("disabled") || node.getAttribute("aria-disabled") === "true") {
+            score -= 1000;
+          }
+          scored.push({ node, label, score });
+        }
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored[0];
+        if (!top) {
+          return { found: false, selector: "", label: "", score: 0 };
+        }
+        top.node.setAttribute(attrName, "1");
+        return { found: true, selector: `[${attrName}="1"]`, label: top.label, score: top.score };
+      },
+      { desired, attrName, exactOnly },
+    )
+    .catch(() => ({ found: false, selector: "", label: "", score: 0 }));
 }
 
 async function detectRedoEntry(page) {
-  const direct = await markVisibleClickableByText(page, [
-    'redo video',
-    'redo',
-    '重做视频',
-    '重新生成视频',
-    '重新生成',
-  ], 'data-crawclaw-redo-entry');
+  const direct = await markVisibleClickableByText(
+    page,
+    ["redo video", "redo", "重做视频", "重新生成视频", "重新生成"],
+    "data-crawclaw-redo-entry",
+  );
   if (direct.found) {
     return {
       found: true,
       selector: direct.selector,
       label: direct.label,
       score: direct.score,
-      source: 'direct_clickable',
+      source: "direct_clickable",
     };
   }
 
-  const settings = await markVisibleClickableByText(page, ['settings', '设置', 'more options', '更多'], 'data-crawclaw-redo-menu-trigger');
+  const settings = await markVisibleClickableByText(
+    page,
+    ["settings", "设置", "more options", "更多"],
+    "data-crawclaw-redo-menu-trigger",
+  );
   if (settings.found) {
     await page.click(settings.selector, { delay: 30 }).catch(() => {});
     await sleep(500);
-    const fromMenu = await markVisibleClickableByText(page, [
-      'redo video',
-      'redo',
-      '重做视频',
-      '重新生成视频',
-      '重新生成',
-    ], 'data-crawclaw-redo-entry');
+    const fromMenu = await markVisibleClickableByText(
+      page,
+      ["redo video", "redo", "重做视频", "重新生成视频", "重新生成"],
+      "data-crawclaw-redo-entry",
+    );
     if (fromMenu.found) {
       return {
         found: true,
         selector: fromMenu.selector,
         label: fromMenu.label,
         score: fromMenu.score,
-        source: 'menu_clickable',
+        source: "menu_clickable",
       };
     }
-    await page.keyboard.press('Escape').catch(() => {});
+    await page.keyboard.press("Escape").catch(() => {});
     await sleep(150);
   }
 
-  return { found: false, selector: '', label: '', score: 0, source: '' };
+  return { found: false, selector: "", label: "", score: 0, source: "" };
 }
 
 async function detectRedoFinalSubmit(page) {
-  const candidate = await markVisibleClickableByText(page, [
-    'make video',
-    'generate video',
-    'submit',
-    '生成视频',
-    '制作视频',
-  ], 'data-crawclaw-redo-final-submit');
+  const candidate = await markVisibleClickableByText(
+    page,
+    ["make video", "generate video", "submit", "生成视频", "制作视频"],
+    "data-crawclaw-redo-final-submit",
+  );
   return {
     found: Boolean(candidate.found),
-    selector: candidate.selector || '',
-    label: candidate.label || '',
+    selector: candidate.selector || "",
+    label: candidate.label || "",
     score: candidate.score || 0,
   };
 }
 
 async function scanResultUrls(page) {
-  const urls = await page.evaluate(() => {
-    const found = new Set();
-    const push = (value) => {
-      if (!value || typeof value !== 'string') {return;}
-      const text = value.trim();
-      if (!text) {return;}
-      if (/https?:\/\/grok\.com\/imagine\/post\//i.test(text)) {found.add(text);}
-    };
-    push(window.location.href);
-    document.querySelectorAll('a[href], [data-href], [data-url], video, source, meta').forEach((node) => {
-      push(node.href);
-      push(node.src);
-      push(node.currentSrc);
-      push(node.content);
-      push(node.dataset?.href);
-      push(node.dataset?.url);
-    });
-    document.querySelectorAll('script:not([src])').forEach((node) => {
-      const text = node.textContent || '';
-      const matches = text.match(/https?:\/\/grok\.com\/imagine\/post\/[^\s"'<>]+/gi) || [];
-      matches.forEach(push);
-    });
-    return Array.from(found);
-  }).catch(() => []);
+  const urls = await page
+    .evaluate(() => {
+      const found = new Set();
+      const push = (value) => {
+        if (!value || typeof value !== "string") {
+          return;
+        }
+        const text = value.trim();
+        if (!text) {
+          return;
+        }
+        if (/https?:\/\/grok\.com\/imagine\/post\//i.test(text)) {
+          found.add(text);
+        }
+      };
+      push(window.location.href);
+      document
+        .querySelectorAll("a[href], [data-href], [data-url], video, source, meta")
+        .forEach((node) => {
+          push(node.href);
+          push(node.src);
+          push(node.currentSrc);
+          push(node.content);
+          push(node.dataset?.href);
+          push(node.dataset?.url);
+        });
+      document.querySelectorAll("script:not([src])").forEach((node) => {
+        const text = node.textContent || "";
+        const matches = text.match(/https?:\/\/grok\.com\/imagine\/post\/[^\s"'<>]+/gi) || [];
+        matches.forEach(push);
+      });
+      return Array.from(found);
+    })
+    .catch(() => []);
 
-  return Array.from(new Set((urls || [])
-    .map((item) => String(item || '').trim().replace(/[\\]+$/g, ''))
-    .filter((item) => /https?:\/\/grok\.com\/imagine\/post\//i.test(item))));
+  return Array.from(
+    new Set(
+      (urls || [])
+        .map((item) =>
+          String(item || "")
+            .trim()
+            .replace(/[\\]+$/g, ""),
+        )
+        .filter((item) => /https?:\/\/grok\.com\/imagine\/post\//i.test(item)),
+    ),
+  );
 }
 
 function pickDerivedResultUrl(sourceResultUrl, candidates = []) {
-  const cleanSourceUrl = String(sourceResultUrl || '').trim().replace(/[\\]+$/g, '');
+  const cleanSourceUrl = String(sourceResultUrl || "")
+    .trim()
+    .replace(/[\\]+$/g, "");
   const sourcePostId = extractPostIdFromUrl(cleanSourceUrl);
   for (const candidateRaw of candidates) {
-    const candidate = String(candidateRaw || '').trim().replace(/[\\]+$/g, '');
+    const candidate = String(candidateRaw || "")
+      .trim()
+      .replace(/[\\]+$/g, "");
     const postId = extractPostIdFromUrl(candidate);
-    if (!postId) {continue;}
-    if (sourcePostId && postId === sourcePostId) {continue;}
-    if (candidate === cleanSourceUrl) {continue;}
+    if (!postId) {
+      continue;
+    }
+    if (sourcePostId && postId === sourcePostId) {
+      continue;
+    }
+    if (candidate === cleanSourceUrl) {
+      continue;
+    }
     return candidate;
   }
-  return '';
+  return "";
 }
 
 async function waitForDerivedResultUrlCapture(page, sourceResultUrl, timeoutMs, logger) {
   const deadline = Date.now() + timeoutMs;
-  let lastUrl = String(page.url() || '');
+  let lastUrl = String(page.url() || "");
   while (Date.now() <= deadline) {
-    const currentUrl = String(page.url() || '');
+    const currentUrl = String(page.url() || "");
     if (currentUrl !== lastUrl) {
-      logger.info('redo.url_changed', {
-        phase: 'redo_capture',
+      logger.info("redo.url_changed", {
+        phase: "redo_capture",
         fromUrl: lastUrl,
         currentUrl,
       });
@@ -290,25 +381,23 @@ async function waitForDerivedResultUrlCapture(page, sourceResultUrl, timeoutMs, 
     }
     const candidates = await scanResultUrls(page);
     const derivedUrl = pickDerivedResultUrl(sourceResultUrl, [currentUrl, ...candidates]);
-    if (derivedUrl) {return derivedUrl;}
+    if (derivedUrl) {
+      return derivedUrl;
+    }
     await sleep(1000);
   }
-  return '';
+  return "";
 }
 
-function persistDerivedResult(job, {
-  actionType,
-  checkedAt,
-  profile,
-  sourceResultUrl,
-  newResultUrl,
-  note,
-}) {
+function persistDerivedResult(
+  job,
+  { actionType, checkedAt, profile, sourceResultUrl, newResultUrl, note },
+) {
   const lineage = recordLineage(job, {
     actionType,
     sourceResultUrl,
     newResultUrl,
-    status: 'submitted',
+    status: "submitted",
     checkedAt,
     note,
     lastObservedUrl: newResultUrl,
@@ -316,13 +405,13 @@ function persistDerivedResult(job, {
   const currentLineage = lineage.current || {};
   const payload = {
     ...buildBasePayload(job, profile, sourceResultUrl, checkedAt),
-    mode: 'ui_submit',
-    status: 'submitted',
+    mode: "ui_submit",
+    status: "submitted",
     newPostId: currentLineage.newPostId || extractPostIdFromUrl(newResultUrl),
     newResultUrl,
     handoff: {
       required: false,
-      note: 'Redo derived result URL recorded. Downstream wait/download can continue on the new post.',
+      note: "Redo derived result URL recorded. Downstream wait/download can continue on the new post.",
       resumeCommandHint: `node skills/grok-video-web/scripts/grok_video_wait.js --job-id ${job.jobId} --result-url ${JSON.stringify(newResultUrl)}`,
       downstreamSubmitHint: `node skills/grok-video-web/scripts/grok_video_download.js --job-id ${job.jobId} --result-url ${JSON.stringify(newResultUrl)}`,
     },
@@ -333,9 +422,9 @@ function persistDerivedResult(job, {
   writeWorkflowResultUrl(job, newResultUrl);
   clearWorkflowBlockReason(job);
   updateWorkflowStatus(job, {
-    status: 'queued',
+    status: "queued",
     blocked: false,
-    phase: 'redo_result_recorded',
+    phase: "redo_result_recorded",
     currentUrl: newResultUrl,
     resultUrl: newResultUrl,
     actionType,
@@ -346,9 +435,9 @@ function persistDerivedResult(job, {
     lineage: currentLineage,
   });
   appendWorkflowCheckpoint(job, {
-    kind: 'redo_result_recorded',
-    step: 'redo',
-    status: 'queued',
+    kind: "redo_result_recorded",
+    step: "redo",
+    status: "queued",
     url: newResultUrl,
     resultUrl: newResultUrl,
     note,
@@ -362,7 +451,7 @@ function persistDerivedResult(job, {
     postId: currentLineage.newPostId || extractPostIdFromUrl(newResultUrl),
     redo: {
       checkedAt,
-      status: 'submitted',
+      status: "submitted",
       sourcePostId: currentLineage.sourcePostId || extractPostIdFromUrl(sourceResultUrl),
       sourceResultUrl,
       newPostId: currentLineage.newPostId || extractPostIdFromUrl(newResultUrl),
@@ -373,7 +462,7 @@ function persistDerivedResult(job, {
   appendGeneratedVideoUrl(job, {
     ts: checkedAt,
     actionType,
-    status: 'submitted',
+    status: "submitted",
     url: newResultUrl,
     postId: currentLineage.newPostId || extractPostIdFromUrl(newResultUrl),
     sourcePostId: currentLineage.sourcePostId || extractPostIdFromUrl(sourceResultUrl),
@@ -385,24 +474,27 @@ function persistDerivedResult(job, {
   return payload;
 }
 
-function persistRedoHandoff(job, {
-  actionType,
-  checkedAt,
-  profile,
-  sourceResultUrl,
-  redoEntry,
-  finalSubmit,
-  detectOnly,
-  noSubmitClick,
-  manualHandoffWaitMs,
-  headless,
-  currentUrl,
-  note,
-}) {
+function persistRedoHandoff(
+  job,
+  {
+    actionType,
+    checkedAt,
+    profile,
+    sourceResultUrl,
+    redoEntry,
+    finalSubmit,
+    detectOnly,
+    noSubmitClick,
+    manualHandoffWaitMs,
+    headless,
+    currentUrl,
+    note,
+  },
+) {
   const lineage = recordLineage(job, {
     actionType,
     sourceResultUrl,
-    status: 'ready_for_manual_handoff',
+    status: "ready_for_manual_handoff",
     checkedAt,
     note,
     lastObservedUrl: currentUrl || sourceResultUrl,
@@ -410,10 +502,10 @@ function persistRedoHandoff(job, {
   const currentLineage = lineage.current || {};
   const payload = {
     ...buildBasePayload(job, profile, sourceResultUrl, checkedAt),
-    mode: 'manual_handoff',
-    status: 'ready_for_manual_handoff',
-    newPostId: '',
-    newResultUrl: '',
+    mode: "manual_handoff",
+    status: "ready_for_manual_handoff",
+    newPostId: "",
+    newResultUrl: "",
     redoEntry,
     finalSubmit,
     handoff: {
@@ -423,16 +515,16 @@ function persistRedoHandoff(job, {
       note,
       instructions: [
         detectOnly
-          ? '这次只做 redo 入口探测，没有执行点击。'
-          : '请在同一 grok-web profile 的源 result 页继续完成 redo。',
+          ? "这次只做 redo 入口探测，没有执行点击。"
+          : "请在同一 grok-web profile 的源 result 页继续完成 redo。",
         noSubmitClick
-          ? '脚本未自动点击 final submit；如页面已打开 redo 面板，请人工点击 Make video / 生成视频。'
-          : '如果 redo 已打开但没自动拿到 derived URL，请人工确认并点击最终 Make video / 生成视频。',
+          ? "脚本未自动点击 final submit；如页面已打开 redo 面板，请人工点击 Make video / 生成视频。"
+          : "如果 redo 已打开但没自动拿到 derived URL，请人工确认并点击最终 Make video / 生成视频。",
         manualHandoffWaitMs > 0
-          ? (headless
-            ? '当前是 headless watching；若要人工接管窗口，请改用 --headful --manual-handoff-wait-sec。'
-            : '当前窗口可继续人工接管；保持同页，脚本会继续观察 derived URL。')
-          : '如需同页持续观察 derived URL，可重跑并加 --headful --manual-handoff-wait-sec 900。',
+          ? headless
+            ? "当前是 headless watching；若要人工接管窗口，请改用 --headful --manual-handoff-wait-sec。"
+            : "当前窗口可继续人工接管；保持同页，脚本会继续观察 derived URL。"
+          : "如需同页持续观察 derived URL，可重跑并加 --headful --manual-handoff-wait-sec 900。",
       ],
       resumeCommandHint: `node skills/grok-video-web/scripts/grok_video_redo.js --job-id ${job.jobId} --result-url ${JSON.stringify(sourceResultUrl)} --headful --manual-handoff-wait-sec 900`,
       persistDerivedHint: `node skills/grok-video-web/scripts/grok_video_redo.js --job-id ${job.jobId} --result-url ${JSON.stringify(sourceResultUrl)} --new-result-url <derived-result-url>`,
@@ -443,22 +535,22 @@ function persistRedoHandoff(job, {
 
   writeJson(job.files.redoStatePath, payload);
   updateWorkflowStatus(job, {
-    status: 'running',
+    status: "running",
     blocked: false,
-    phase: 'redo_handoff_ready',
+    phase: "redo_handoff_ready",
     currentUrl: currentUrl || sourceResultUrl,
     resultUrl: sourceResultUrl,
     actionType,
     sourcePostId: currentLineage.sourcePostId || extractPostIdFromUrl(sourceResultUrl),
     sourceResultUrl,
-    newPostId: '',
-    newResultUrl: '',
+    newPostId: "",
+    newResultUrl: "",
     lineage: currentLineage,
   });
   appendWorkflowCheckpoint(job, {
-    kind: 'redo_handoff_ready',
-    step: 'redo',
-    status: 'running',
+    kind: "redo_handoff_ready",
+    step: "redo",
+    status: "running",
     url: currentUrl || sourceResultUrl,
     resultUrl: sourceResultUrl,
     note,
@@ -473,8 +565,8 @@ function persistRedoHandoff(job, {
       status: payload.status,
       sourcePostId: currentLineage.sourcePostId || extractPostIdFromUrl(sourceResultUrl),
       sourceResultUrl,
-      newPostId: '',
-      newResultUrl: '',
+      newPostId: "",
+      newResultUrl: "",
     },
     lineage: currentLineage,
   });
@@ -488,35 +580,35 @@ async function main() {
     return;
   }
 
-  if (!args['job-id'] && !args['job-dir'] && !args['result-url']) {
-    throw new Error('missing --job-id/--job-dir/--result-url');
+  if (!args["job-id"] && !args["job-dir"] && !args["result-url"]) {
+    throw new Error("missing --job-id/--job-dir/--result-url");
   }
 
   let job;
-  if (args['job-id'] || args['job-dir']) {
+  if (args["job-id"] || args["job-dir"]) {
     job = resolveJob(args);
   } else {
-    job = bootstrapStandaloneJob(args['result-url'], args.profile);
+    job = bootstrapStandaloneJob(args["result-url"], args.profile);
   }
 
   const profile = args.profile || job.profile;
-  const sourceResultUrl = resolveSourceResultUrl(job, args['result-url']);
+  const sourceResultUrl = resolveSourceResultUrl(job, args["result-url"]);
   if (!sourceResultUrl) {
-    throw new Error('missing source result URL for redo flow');
+    throw new Error("missing source result URL for redo flow");
   }
 
-  const logger = createLogger(job, { script: 'grok_video_redo' });
+  const logger = createLogger(job, { script: "grok_video_redo" });
   const checkedAt = nowIso();
-  const actionType = resolveActionType(job, 'redo_video');
-  const newResultUrl = String(args['new-result-url'] || '').trim();
-  const submitTimeoutMs = parseNumber(args['submit-timeout-sec'], 45) * 1000;
-  const manualHandoffWaitMs = parseNumber(args['manual-handoff-wait-sec'], 0) * 1000;
+  const actionType = resolveActionType(job, "redo_video");
+  const newResultUrl = String(args["new-result-url"] || "").trim();
+  const submitTimeoutMs = parseNumber(args["submit-timeout-sec"], 45) * 1000;
+  const manualHandoffWaitMs = parseNumber(args["manual-handoff-wait-sec"], 0) * 1000;
   const headless = !args.headful;
-  const detectOnly = Boolean(args['detect-only']);
-  const noSubmitClick = Boolean(args['no-submit-click']);
+  const detectOnly = Boolean(args["detect-only"]);
+  const noSubmitClick = Boolean(args["no-submit-click"]);
 
-  logger.info('redo.start', {
-    phase: newResultUrl ? 'redo_result_record' : 'redo_prepare',
+  logger.info("redo.start", {
+    phase: newResultUrl ? "redo_result_record" : "redo_prepare",
     sourceResultUrl,
     newResultUrl,
     profile,
@@ -534,11 +626,11 @@ async function main() {
       profile,
       sourceResultUrl,
       newResultUrl,
-      note: 'Redo flow recorded a new derived result URL.',
+      note: "Redo flow recorded a new derived result URL.",
     });
-    logger.info('redo.finished', {
+    logger.info("redo.finished", {
       status: payload.status,
-      phase: 'redo_result_recorded',
+      phase: "redo_result_recorded",
       sourceResultUrl,
       resultUrl: newResultUrl,
       path: job.files.redoStatePath,
@@ -548,21 +640,21 @@ async function main() {
   }
 
   updateWorkflowStatus(job, {
-    status: 'running',
+    status: "running",
     blocked: false,
-    phase: 'redo_prepare',
+    phase: "redo_prepare",
     currentUrl: sourceResultUrl,
     resultUrl: sourceResultUrl,
     actionType,
   });
   clearWorkflowBlockReason(job);
   appendWorkflowCheckpoint(job, {
-    kind: 'redo_started',
-    step: 'redo',
-    status: 'running',
+    kind: "redo_started",
+    step: "redo",
+    status: "running",
     url: sourceResultUrl,
     resultUrl: sourceResultUrl,
-    note: 'Starting redo flow from source result page.',
+    note: "Starting redo flow from source result page.",
     actionType,
   });
   updateManifest(job, {
@@ -583,8 +675,8 @@ async function main() {
     context = launched.context;
     const page = launched.page;
 
-    logger.info('redo.browser_launched', {
-      phase: 'redo_prepare',
+    logger.info("redo.browser_launched", {
+      phase: "redo_prepare",
       profile,
       path: launched.profileDir,
       currentUrl: sourceResultUrl,
@@ -596,12 +688,12 @@ async function main() {
       page,
       job,
       logger,
-      action: 'redo',
+      action: "redo",
     });
     if (!loginGate.ok) {
       const payload = {
         ok: false,
-        action: 'redo',
+        action: "redo",
         actionType,
         jobId: job.jobId,
         jobDir: job.jobDir,
@@ -610,7 +702,7 @@ async function main() {
         sourceResultUrl,
         status: loginGate.status,
         blocker: {
-          type: 'account_login_gate',
+          type: "account_login_gate",
           reasonCode: loginGate.blockerReasonCode,
           safeEntryUrl: loginGate.safeEntryUrl,
           currentUrl: loginGate.currentUrl,
@@ -624,14 +716,14 @@ async function main() {
       updateWorkflowStatus(job, {
         status: loginGate.status,
         blocked: true,
-        phase: 'redo_login_gate_blocked',
+        phase: "redo_login_gate_blocked",
         currentUrl: loginGate.currentUrl,
         resultUrl: sourceResultUrl,
         actionType,
       });
       appendWorkflowCheckpoint(job, {
-        kind: 'redo_login_gate_blocked',
-        step: 'redo',
+        kind: "redo_login_gate_blocked",
+        step: "redo",
         status: loginGate.status,
         url: loginGate.currentUrl,
         resultUrl: sourceResultUrl,
@@ -641,7 +733,7 @@ async function main() {
       setWorkflowBlockReason(job, {
         status: loginGate.status,
         reasonCode: loginGate.blockerReasonCode,
-        summary: 'Safe-entry login gate blocked redo flow.',
+        summary: "Safe-entry login gate blocked redo flow.",
         currentUrl: loginGate.currentUrl,
         matchedSignals: loginGate.signals.cloudflare || loginGate.signals.loggedOut || [],
       });
@@ -670,12 +762,12 @@ async function main() {
         headless,
         currentUrl: page.url(),
         note: redoEntry.found
-          ? 'Redo entry detected. Detect-only mode stopped before clicking.'
-          : 'Redo entry not confidently detected; leaving an honest handoff.',
+          ? "Redo entry detected. Detect-only mode stopped before clicking."
+          : "Redo entry not confidently detected; leaving an honest handoff.",
       });
-      logger.info('redo.handoff_ready', {
+      logger.info("redo.handoff_ready", {
         status: payload.status,
-        phase: 'redo_handoff_ready',
+        phase: "redo_handoff_ready",
         sourceResultUrl,
         currentUrl: page.url(),
         redoEntry,
@@ -689,8 +781,8 @@ async function main() {
     await page.click(redoEntry.selector, { delay: 30 }).catch((error) => {
       throw new Error(`redo entry click failed: ${error.message}`);
     });
-    logger.info('redo.entry_clicked', {
-      phase: 'redo_entry_clicked',
+    logger.info("redo.entry_clicked", {
+      phase: "redo_entry_clicked",
       currentUrl: page.url(),
       sourceResultUrl,
       redoEntry,
@@ -704,8 +796,8 @@ async function main() {
         throw new Error(`redo final submit click failed: ${error.message}`);
       });
       finalSubmitClicked = true;
-      logger.info('redo.final_submit_clicked', {
-        phase: 'redo_submit_clicked',
+      logger.info("redo.final_submit_clicked", {
+        phase: "redo_submit_clicked",
         currentUrl: page.url(),
         sourceResultUrl,
         finalSubmit,
@@ -715,7 +807,12 @@ async function main() {
       finalSubmit = finalSubmitBefore;
     }
 
-    const derivedResultUrl = await waitForDerivedResultUrlCapture(page, sourceResultUrl, submitTimeoutMs, logger);
+    const derivedResultUrl = await waitForDerivedResultUrlCapture(
+      page,
+      sourceResultUrl,
+      submitTimeoutMs,
+      logger,
+    );
     if (derivedResultUrl) {
       const payload = persistDerivedResult(job, {
         actionType,
@@ -724,15 +821,15 @@ async function main() {
         sourceResultUrl,
         newResultUrl: derivedResultUrl,
         note: finalSubmitClicked
-          ? 'Redo UI submit clicked and derived result URL captured.'
-          : 'Redo UI clicked and derived result URL captured.',
+          ? "Redo UI submit clicked and derived result URL captured."
+          : "Redo UI clicked and derived result URL captured.",
       });
       payload.redoEntry = redoEntry;
       payload.finalSubmit = { ...finalSubmit, clicked: finalSubmitClicked };
       writeJson(job.files.redoStatePath, payload);
-      logger.info('redo.finished', {
+      logger.info("redo.finished", {
         status: payload.status,
-        phase: 'redo_result_recorded',
+        phase: "redo_result_recorded",
         sourceResultUrl,
         resultUrl: derivedResultUrl,
         redoEntry,
@@ -744,7 +841,12 @@ async function main() {
     }
 
     if (manualHandoffWaitMs > 0) {
-      const manualDerivedResultUrl = await waitForDerivedResultUrlCapture(page, sourceResultUrl, manualHandoffWaitMs, logger);
+      const manualDerivedResultUrl = await waitForDerivedResultUrlCapture(
+        page,
+        sourceResultUrl,
+        manualHandoffWaitMs,
+        logger,
+      );
       if (manualDerivedResultUrl) {
         const payload = persistDerivedResult(job, {
           actionType,
@@ -752,14 +854,14 @@ async function main() {
           profile,
           sourceResultUrl,
           newResultUrl: manualDerivedResultUrl,
-          note: 'Redo manual handoff captured derived result URL.',
+          note: "Redo manual handoff captured derived result URL.",
         });
         payload.redoEntry = redoEntry;
         payload.finalSubmit = { ...finalSubmit, clicked: finalSubmitClicked };
         writeJson(job.files.redoStatePath, payload);
-        logger.info('redo.finished', {
+        logger.info("redo.finished", {
           status: payload.status,
-          phase: 'redo_result_recorded',
+          phase: "redo_result_recorded",
           sourceResultUrl,
           resultUrl: manualDerivedResultUrl,
           redoEntry,
@@ -784,12 +886,12 @@ async function main() {
       headless,
       currentUrl: page.url(),
       note: finalSubmitClicked
-        ? 'Redo entry/final submit clicked, but no derived result URL was captured within the watch window.'
-        : 'Redo entry clicked, but no derived result URL was captured; leaving an honest handoff.',
+        ? "Redo entry/final submit clicked, but no derived result URL was captured within the watch window."
+        : "Redo entry clicked, but no derived result URL was captured; leaving an honest handoff.",
     });
-    logger.info('redo.handoff_ready', {
+    logger.info("redo.handoff_ready", {
       status: handoffPayload.status,
-      phase: 'redo_handoff_ready',
+      phase: "redo_handoff_ready",
       sourceResultUrl,
       currentUrl: page.url(),
       redoEntry,
@@ -808,27 +910,33 @@ main().catch((error) => {
   try {
     const args = parseArgs(process.argv.slice(2));
     let job;
-    if (args['job-id'] || args['job-dir']) {
+    if (args["job-id"] || args["job-dir"]) {
       job = resolveJob(args);
-    } else if (args['result-url']) {
-      job = bootstrapStandaloneJob(args['result-url'], args.profile);
+    } else if (args["result-url"]) {
+      job = bootstrapStandaloneJob(args["result-url"], args.profile);
     }
     if (job) {
-      const logger = createLogger(job, { script: 'grok_video_redo' });
-      updateWorkflowStatus(job, { status: 'failed', blocked: true, phase: 'redo_failed' });
-      appendWorkflowCheckpoint(job, { kind: 'redo_failed', step: 'redo', status: 'failed', note: error.message, actionType: 'redo_video' });
+      const logger = createLogger(job, { script: "grok_video_redo" });
+      updateWorkflowStatus(job, { status: "failed", blocked: true, phase: "redo_failed" });
+      appendWorkflowCheckpoint(job, {
+        kind: "redo_failed",
+        step: "redo",
+        status: "failed",
+        note: error.message,
+        actionType: "redo_video",
+      });
       writeJson(job.files.redoStatePath, {
         ok: false,
-        action: 'redo',
-        actionType: 'redo_video',
-        status: 'failed',
+        action: "redo",
+        actionType: "redo_video",
+        status: "failed",
         message: error.message,
         checkedAt: nowIso(),
         stateFile: job.files.redoStatePath,
       });
-      logger.error('redo.failed', {
-        status: 'failed',
-        phase: 'redo_failed',
+      logger.error("redo.failed", {
+        status: "failed",
+        phase: "redo_failed",
         message: error.message,
         path: job.files.redoStatePath,
       });

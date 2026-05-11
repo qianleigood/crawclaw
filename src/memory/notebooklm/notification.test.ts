@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { emitNotebookLmNotification, resetNotebookLmNotificationsForTests } from "./notification.ts";
+import {
+  emitNotebookLmNotification,
+  resetNotebookLmNotificationsForTests,
+} from "./notification.ts";
 
 describe("emitNotebookLmNotification", () => {
   beforeEach(() => {
@@ -47,8 +50,12 @@ describe("emitNotebookLmNotification", () => {
       recommendedAction: "crawclaw memory status" as const,
     };
 
-    expect(emitNotebookLmNotification({ state: degraded, logger, scope: { source: "heartbeat" } })).toBe(true);
-    expect(emitNotebookLmNotification({ state: ready, logger, scope: { source: "heartbeat" } })).toBe(true);
+    expect(
+      emitNotebookLmNotification({ state: degraded, logger, scope: { source: "heartbeat" } }),
+    ).toBe(true);
+    expect(
+      emitNotebookLmNotification({ state: ready, logger, scope: { source: "heartbeat" } }),
+    ).toBe(true);
     expect(logger.info).toHaveBeenCalledTimes(1);
     expect(logger.info).toHaveBeenCalledWith(expect.stringContaining("NotebookLM 已恢复"));
   });

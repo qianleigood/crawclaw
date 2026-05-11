@@ -45,7 +45,7 @@ import type { TypingController } from "./typing.js";
 import { appendUntrustedContext } from "./untrusted-context.js";
 
 type AgentDefaults = NonNullable<CrawClawConfig["agents"]>["defaults"];
-type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
+type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask">;
 
 let piEmbeddedRuntimePromise: Promise<typeof import("../../agents/pi-embedded.runtime.js")> | null =
   null;

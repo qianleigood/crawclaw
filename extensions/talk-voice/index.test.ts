@@ -249,7 +249,7 @@ describe("talk-voice plugin", () => {
     expect(result.text).toContain("voice-a");
   });
 
-  it("rejects /voice set from webchat channel with no scopes (TUI/internal)", async () => {
+  it("rejects /voice set from webchat channel with no scopes", async () => {
     const { runtime, run } = createElevenlabsVoiceSetHarness();
     const result = await run();
 

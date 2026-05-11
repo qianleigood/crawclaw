@@ -1,7 +1,6 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { getFinishedSession, getSession } from "../../agents/bash-process-registry.js";
 import { createExecTool } from "../../agents/bash-tools.js";
-import { resolveSandboxRuntimeStatus } from "../../agents/sandbox.js";
 import { isCommandFlagEnabled } from "../../config/commands.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { logVerbose } from "../../globals.js";
@@ -203,13 +202,8 @@ export async function handleBashChatCommand(params: {
     });
 
   if (!params.elevated.enabled || !params.elevated.allowed) {
-    const runtimeSandboxed = resolveSandboxRuntimeStatus({
-      cfg: params.cfg,
-      sessionKey: params.ctx.SessionKey,
-    }).sandboxed;
     return {
       text: formatElevatedUnavailableMessage({
-        runtimeSandboxed,
         failures: params.elevated.failures,
         sessionKey: params.ctx.SessionKey,
       }),

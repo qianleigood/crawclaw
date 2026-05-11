@@ -84,13 +84,13 @@ describe("web search runtime", () => {
   it("executes searches through the active plugin registry", async () => {
     resolveRuntimeWebSearchProvidersMock.mockReturnValue([
       createProvider({
-        pluginId: "custom-search",
-        id: "custom",
-        credentialPath: "tools.web.search.custom.apiKey",
+        pluginId: "open-websearch",
+        id: "open-websearch",
+        credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
         autoDetectOrder: 1,
-        getCredentialValue: () => "configured",
+        requiresCredential: false,
         createTool: () => ({
-          description: "custom",
+          description: "open-websearch",
           parameters: {},
           execute: async (args) => ({ ...args, ok: true }),
         }),
@@ -103,25 +103,25 @@ describe("web search runtime", () => {
         args: { query: "hello" },
       }),
     ).resolves.toEqual({
-      provider: "custom",
+      provider: "open-websearch",
       result: { query: "hello", ok: true },
     });
   });
 
-  it("auto-detects a provider from canonical plugin-owned credentials", async () => {
+  it("uses open-websearch from canonical plugin-owned config", async () => {
     const provider = createProvider({
-      pluginId: "custom-search",
-      id: "custom",
-      credentialPath: "plugins.entries.custom-search.config.webSearch.apiKey",
+      pluginId: "open-websearch",
+      id: "open-websearch",
+      credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
       autoDetectOrder: 1,
       getConfiguredCredentialValue: (config) => {
-        const pluginConfig = config?.plugins?.entries?.["custom-search"]?.config as
+        const pluginConfig = config?.plugins?.entries?.["open-websearch"]?.config as
           | TestPluginWebSearchConfig
           | undefined;
         return pluginConfig?.webSearch?.apiKey;
       },
       createTool: () => ({
-        description: "custom",
+        description: "open-websearch",
         parameters: {},
         execute: async (args) => ({ ...args, ok: true }),
       }),
@@ -132,11 +132,11 @@ describe("web search runtime", () => {
     const config: CrawClawConfig = {
       plugins: {
         entries: {
-          "custom-search": {
+          "open-websearch": {
             enabled: true,
             config: {
               webSearch: {
-                apiKey: "custom-config-key",
+                apiKey: "open-websearch-config-key",
               },
             },
           },
@@ -150,25 +150,25 @@ describe("web search runtime", () => {
         args: { query: "hello" },
       }),
     ).resolves.toEqual({
-      provider: "custom",
+      provider: "open-websearch",
       result: { query: "hello", ok: true },
     });
   });
 
-  it("treats non-env SecretRefs as configured credentials for provider auto-detect", async () => {
+  it("treats non-env SecretRefs as configured credentials for open-websearch", async () => {
     const provider = createProvider({
-      pluginId: "custom-search",
-      id: "custom",
-      credentialPath: "plugins.entries.custom-search.config.webSearch.apiKey",
+      pluginId: "open-websearch",
+      id: "open-websearch",
+      credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
       autoDetectOrder: 1,
       getConfiguredCredentialValue: (config) => {
-        const pluginConfig = config?.plugins?.entries?.["custom-search"]?.config as
+        const pluginConfig = config?.plugins?.entries?.["open-websearch"]?.config as
           | TestPluginWebSearchConfig
           | undefined;
         return pluginConfig?.webSearch?.apiKey;
       },
       createTool: () => ({
-        description: "custom",
+        description: "open-websearch",
         parameters: {},
         execute: async (args) => ({ ...args, ok: true }),
       }),
@@ -179,14 +179,14 @@ describe("web search runtime", () => {
     const config: CrawClawConfig = {
       plugins: {
         entries: {
-          "custom-search": {
+          "open-websearch": {
             enabled: true,
             config: {
               webSearch: {
                 apiKey: {
                   source: "file",
                   provider: "vault",
-                  id: "/providers/custom-search/apiKey",
+                  id: "/providers/open-websearch/apiKey",
                 },
               },
             },
@@ -201,20 +201,19 @@ describe("web search runtime", () => {
         args: { query: "hello" },
       }),
     ).resolves.toEqual({
-      provider: "custom",
+      provider: "open-websearch",
       result: { query: "hello", ok: true },
     });
   });
 
-  it("falls back to a keyless provider when no credentials are available", async () => {
+  it("falls back to open-websearch when no credentials are available", async () => {
     resolveRuntimeWebSearchProvidersMock.mockReturnValue([
       createProvider({
-        pluginId: "duckduckgo",
-        id: "duckduckgo",
+        pluginId: "open-websearch",
+        id: "open-websearch",
         credentialPath: "",
         autoDetectOrder: 100,
         requiresCredential: false,
-        getCredentialValue: () => "duckduckgo-no-key-needed",
       }),
     ]);
 
@@ -224,25 +223,25 @@ describe("web search runtime", () => {
         args: { query: "fallback" },
       }),
     ).resolves.toEqual({
-      provider: "duckduckgo",
-      result: { query: "fallback", provider: "duckduckgo" },
+      provider: "open-websearch",
+      result: { query: "fallback", provider: "open-websearch" },
     });
   });
 
-  it("prefers the active runtime-selected provider when callers omit runtime metadata", async () => {
+  it("ignores non-open-websearch runtime selections", async () => {
     resolveRuntimeWebSearchProvidersMock.mockReturnValue([
       createProvider({
-        pluginId: "alpha-search",
-        id: "alpha",
-        credentialPath: "tools.web.search.alpha.apiKey",
+        pluginId: "open-websearch",
+        id: "open-websearch",
+        credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
         autoDetectOrder: 1,
-        getCredentialValue: () => "alpha-configured",
+        requiresCredential: false,
         createTool: ({ runtimeMetadata }) => ({
-          description: "alpha",
+          description: "open-websearch",
           parameters: {},
           execute: async (args) => ({
             ...args,
-            provider: "alpha",
+            provider: "open-websearch",
             runtimeSelectedProvider: runtimeMetadata?.selectedProvider,
           }),
         }),
@@ -291,8 +290,8 @@ describe("web search runtime", () => {
         args: { query: "runtime" },
       }),
     ).resolves.toEqual({
-      provider: "beta",
-      result: { query: "runtime", provider: "beta", runtimeSelectedProvider: "beta" },
+      provider: "open-websearch",
+      result: { query: "runtime", provider: "open-websearch", runtimeSelectedProvider: "beta" },
     });
   });
 });

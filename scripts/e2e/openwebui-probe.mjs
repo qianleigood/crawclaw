@@ -68,7 +68,9 @@ const modelIds = models
 const targetModel =
   modelIds.find((id) => id === "crawclaw/default") ?? modelIds.find((id) => id === "crawclaw");
 if (!targetModel) {
-  throw new Error(`CrawClaw gateway model missing from Open WebUI model list: ${JSON.stringify(modelIds)}`);
+  throw new Error(
+    `CrawClaw gateway model missing from Open WebUI model list: ${JSON.stringify(modelIds)}`,
+  );
 }
 
 const chatRes = await fetch(`${baseUrl}/api/chat/completions`, {

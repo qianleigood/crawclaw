@@ -1,11 +1,11 @@
 import type { ButtonInteraction, ComponentData, StringSelectMenuInteraction } from "@buape/carbon";
-import { ChannelType } from "discord-api-types/v10";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { DiscordAccountConfig } from "crawclaw/plugin-sdk/config-runtime";
 import * as conversationRuntime from "crawclaw/plugin-sdk/conversation-runtime";
 import { buildAgentSessionKey } from "crawclaw/plugin-sdk/routing";
 import * as securityRuntime from "crawclaw/plugin-sdk/security-runtime";
 import { peekSystemEvents, resetSystemEventsForTest } from "crawclaw/plugin-sdk/testing";
+import { ChannelType } from "discord-api-types/v10";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { expectPairingReplyText } from "../../../../test/helpers/pairing-reply.js";
 import {

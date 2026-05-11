@@ -21,16 +21,6 @@ export const CLI_DEFAULT_OPERATOR_SCOPES: OperatorScope[] = [
   PAIRING_SCOPE,
 ];
 
-const NODE_ROLE_METHODS = new Set([
-  "node.invoke.result",
-  "node.event",
-  "node.pending.drain",
-  "node.canvas.capability.refresh",
-  "node.pending.pull",
-  "node.pending.ack",
-  "skills.bins",
-]);
-
 const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
   [APPROVALS_SCOPE]: [
     "exec.approval.request",
@@ -41,17 +31,12 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "plugin.approval.resolve",
   ],
   [PAIRING_SCOPE]: [
-    "node.pair.request",
-    "node.pair.list",
-    "node.pair.reject",
-    "node.pair.verify",
     "device.pair.list",
     "device.pair.approve",
     "device.pair.reject",
     "device.pair.remove",
     "device.token.rotate",
     "device.token.revoke",
-    "node.rename",
   ],
   [READ_SCOPE]: [
     "health",
@@ -107,8 +92,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "system-presence",
     "last-main-session-wake",
     "system.mainSessionWake.last",
-    "node.list",
-    "node.describe",
     "chat.history",
     "agent.observations.list",
     "agent.inspect",
@@ -145,8 +128,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "tts.convert",
     "tts.setProvider",
     "voicewake.set",
-    "node.invoke",
-    "node.pair.approve",
     "esp32.pairing.request.approve",
     "esp32.pairing.request.reject",
     "esp32.devices.command.send",
@@ -163,7 +144,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "memory.experience.sync.flush",
     "agentRuntime.cancel",
     "push.test",
-    "node.pending.enqueue",
     "workflow.enable",
     "workflow.disable",
     "workflow.archive",
@@ -260,10 +240,6 @@ export function isWriteMethod(method: string): boolean {
   return resolveScopedMethod(method) === WRITE_SCOPE;
 }
 
-export function isNodeRoleMethod(method: string): boolean {
-  return NODE_ROLE_METHODS.has(method);
-}
-
 export function isAdminOnlyMethod(method: string): boolean {
   return resolveScopedMethod(method) === ADMIN_SCOPE;
 }
@@ -302,8 +278,5 @@ export function authorizeOperatorScopesForMethod(
 }
 
 export function isGatewayMethodClassified(method: string): boolean {
-  if (isNodeRoleMethod(method)) {
-    return true;
-  }
   return resolveRequiredOperatorScopeForMethod(method) !== undefined;
 }

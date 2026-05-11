@@ -45,7 +45,6 @@ const TIME_FLAG_OPTIONS = new Set([
 const TIME_OPTIONS_WITH_VALUE = new Set(["-f", "--format", "-o", "--output"]);
 const BSD_SCRIPT_FLAG_OPTIONS = new Set(["-a", "-d", "-k", "-p", "-q", "-r"]);
 const BSD_SCRIPT_OPTIONS_WITH_VALUE = new Set(["-F", "-t"]);
-const SANDBOX_EXEC_OPTIONS_WITH_VALUE = new Set(["-f", "-p", "-d"]);
 const TIMEOUT_FLAG_OPTIONS = new Set(["--foreground", "--preserve-status", "-v", "--verbose"]);
 const TIMEOUT_OPTIONS_WITH_VALUE = new Set(["-k", "--kill-after", "-s", "--signal"]);
 const XCRUN_FLAG_OPTIONS = new Set([
@@ -282,17 +281,6 @@ function unwrapNohupInvocation(argv: string[]): string[] | null {
   });
 }
 
-function unwrapSandboxExecInvocation(argv: string[]): string[] | null {
-  return unwrapDashOptionInvocation(argv, {
-    onFlag: (flag, lower) => {
-      if (SANDBOX_EXEC_OPTIONS_WITH_VALUE.has(flag)) {
-        return lower !== flag || lower.includes("=") ? "continue" : "consume-next";
-      }
-      return "invalid";
-    },
-  });
-}
-
 function unwrapStdbufInvocation(argv: string[]): string[] | null {
   return unwrapDashOptionInvocation(argv, {
     onFlag: (flag, lower) => {
@@ -450,7 +438,6 @@ const DISPATCH_WRAPPER_SPECS: readonly DispatchWrapperSpec[] = [
   { name: "ionice" },
   { name: "nice", unwrap: unwrapNiceInvocation, transparentUsage: true },
   { name: "nohup", unwrap: unwrapNohupInvocation, transparentUsage: true },
-  { name: "sandbox-exec", unwrap: unwrapSandboxExecInvocation, transparentUsage: true },
   { name: "script", unwrap: unwrapScriptInvocation, transparentUsage: true },
   { name: "setsid" },
   { name: "stdbuf", unwrap: unwrapStdbufInvocation, transparentUsage: true },

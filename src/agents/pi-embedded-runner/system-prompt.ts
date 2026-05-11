@@ -6,7 +6,6 @@ import type { QueryContextSection } from "../query-context/types.js";
 import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
 import { buildAgentSystemPromptSections } from "../system-prompt.js";
 import { buildToolSummaryMap } from "../tool-summaries.js";
-import type { EmbeddedSandboxInfo } from "./types.js";
 import type { ReasoningLevel, ThinkLevel } from "./utils.js";
 
 export function buildEmbeddedSystemPrompt(params: {
@@ -46,7 +45,6 @@ export function buildEmbeddedSystemPrompt(params: {
     channelActions?: string[];
   };
   messageToolHints?: string[];
-  sandboxInfo?: EmbeddedSandboxInfo;
   tools: AgentTool[];
   modelAliasLines: string[];
   userTimezone: string;
@@ -74,7 +72,6 @@ export function buildEmbeddedSystemPrompt(params: {
     acpEnabled: params.acpEnabled,
     runtimeInfo: params.runtimeInfo,
     messageToolHints: params.messageToolHints,
-    sandboxInfo: params.sandboxInfo,
     toolNames: params.tools.map((tool) => tool.name),
     toolSummaries: buildToolSummaryMap(params.tools),
     modelAliasLines: params.modelAliasLines,
@@ -108,7 +105,6 @@ export function buildEmbeddedSystemPromptSections(
     acpEnabled: params.acpEnabled,
     runtimeInfo: params.runtimeInfo,
     messageToolHints: params.messageToolHints,
-    sandboxInfo: params.sandboxInfo,
     toolNames: params.tools.map((tool) => tool.name),
     toolSummaries: buildToolSummaryMap(params.tools),
     modelAliasLines: params.modelAliasLines,

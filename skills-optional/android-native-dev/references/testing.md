@@ -110,13 +110,13 @@ fun `repository calls api and caches`() = runTest {
 ```
 
 | MockK Function | Purpose                |
-|----------------|------------------------|
-| `mockk<T>()`  | Create mock instance   |
-| `every { }`   | Stub synchronous calls |
-| `coEvery { }` | Stub suspend functions |
-| `verify { }`  | Verify call happened   |
-| `coVerify { }` | Verify suspend call   |
-| `slot<T>()`   | Capture argument value |
+| -------------- | ---------------------- |
+| `mockk<T>()`   | Create mock instance   |
+| `every { }`    | Stub synchronous calls |
+| `coEvery { }`  | Stub suspend functions |
+| `verify { }`   | Verify call happened   |
+| `coVerify { }` | Verify suspend call    |
+| `slot<T>()`    | Capture argument value |
 
 ### Robolectric — When You Need Android Classes
 
@@ -211,8 +211,8 @@ class LoginScreenTest {
 }
 ```
 
-| Category   | Common Matchers / Actions                                                          |
-|------------|------------------------------------------------------------------------------------|
+| Category   | Common Matchers / Actions                                                         |
+| ---------- | --------------------------------------------------------------------------------- |
 | **Find**   | `withId(R.id.x)`, `withText("x")`, `withContentDescription("x")`, `withHint("x")` |
 | **Act**    | `click()`, `typeText("x")`, `clearText()`, `scrollTo()`, `swipeUp()`              |
 | **Assert** | `isDisplayed()`, `withText("x")`, `isEnabled()`, `isChecked()`, `doesNotExist()`  |
@@ -277,12 +277,12 @@ fun unregisterIdling() {
 
 UI Automator can interact with any visible UI — system dialogs, notifications, other apps. Use it when Espresso can't reach outside your app's process.
 
-| Use Case                     | Why UI Automator                       |
-|------------------------------|----------------------------------------|
-| Runtime permission dialogs   | System UI, outside app process         |
-| Notification actions         | System notification shade              |
-| Device settings interaction  | Settings app                           |
-| Multi-app workflows          | e.g., share to another app and return  |
+| Use Case                    | Why UI Automator                      |
+| --------------------------- | ------------------------------------- |
+| Runtime permission dialogs  | System UI, outside app process        |
+| Notification actions        | System notification shade             |
+| Device settings interaction | Settings app                          |
+| Multi-app workflows         | e.g., share to another app and return |
 
 ```kotlin
 @RunWith(AndroidJUnit4::class)
@@ -364,20 +364,20 @@ class GreetingScreenTest {
 ### Finders, Assertions & Actions
 
 | Category   | API                                          | Example                         |
-|------------|----------------------------------------------|---------------------------------|
-| **Find**   | `onNodeWithText("x")`                       | Matches visible text            |
-|            | `onNodeWithTag("x")`                        | Matches `Modifier.testTag("x")` |
-|            | `onNodeWithContentDescription("x")`         | Matches semantics label         |
-|            | `onAllNodesWithTag("x")`                    | Returns list of matches         |
+| ---------- | -------------------------------------------- | ------------------------------- |
+| **Find**   | `onNodeWithText("x")`                        | Matches visible text            |
+|            | `onNodeWithTag("x")`                         | Matches `Modifier.testTag("x")` |
+|            | `onNodeWithContentDescription("x")`          | Matches semantics label         |
+|            | `onAllNodesWithTag("x")`                     | Returns list of matches         |
 | **Assert** | `assertIsDisplayed()`                        | Node is visible                 |
-|            | `assertTextEquals("x")`                     | Exact text match                |
-|            | `assertIsEnabled()` / `assertIsNotEnabled()` | Enabled state                  |
-|            | `assertDoesNotExist()`                       | Node not in tree               |
-|            | `assertCountEquals(n)`                       | For `onAllNodes`               |
+|            | `assertTextEquals("x")`                      | Exact text match                |
+|            | `assertIsEnabled()` / `assertIsNotEnabled()` | Enabled state                   |
+|            | `assertDoesNotExist()`                       | Node not in tree                |
+|            | `assertCountEquals(n)`                       | For `onAllNodes`                |
 | **Act**    | `performClick()`                             | Tap                             |
-|            | `performTextInput("x")`                     | Type into text field            |
-|            | `performScrollTo()`                          | Scroll node into view          |
-|            | `performTouchInput { swipeUp() }`           | Gestures                        |
+|            | `performTextInput("x")`                      | Type into text field            |
+|            | `performScrollTo()`                          | Scroll node into view           |
+|            | `performTouchInput { swipeUp() }`            | Gestures                        |
 
 ### Using testTag for Reliable Selectors
 
@@ -521,7 +521,7 @@ android {
 ### System Image Sources
 
 | Source         | Description                                       | Best For                     |
-|----------------|---------------------------------------------------|------------------------------|
+| -------------- | ------------------------------------------------- | ---------------------------- |
 | `"aosp-atd"`   | Automated Test Device — minimal, no Play Services | Fast CI, pure logic tests    |
 | `"google-atd"` | ATD with Google APIs                              | Tests needing Maps, Firebase |
 | `"aosp"`       | Full AOSP image                                   | Standard emulator testing    |

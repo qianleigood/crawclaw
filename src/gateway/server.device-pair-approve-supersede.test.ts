@@ -13,8 +13,8 @@ describe("gateway device.pair.approve superseded request ids", () => {
     const first = await requestDevicePairing({
       deviceId: "supersede-device-1",
       publicKey: "supersede-public-key",
-      role: "node",
-      scopes: ["node.exec"],
+      role: "legacy",
+      scopes: ["legacy.exec"],
     });
     const second = await requestDevicePairing({
       deviceId: "supersede-device-1",
@@ -36,7 +36,7 @@ describe("gateway device.pair.approve superseded request ids", () => {
     expect(latestApprove?.status).toBe("approved");
 
     const paired = await getPairedDevice("supersede-device-1");
-    expect(paired?.roles).toEqual(expect.arrayContaining(["node", "operator"]));
+    expect(paired?.roles).toEqual(expect.arrayContaining(["legacy", "operator"]));
     expect(paired?.scopes).toEqual(expect.arrayContaining(["operator.admin"]));
   });
 });

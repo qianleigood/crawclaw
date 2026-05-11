@@ -198,13 +198,13 @@ OpenProse supports three state management approaches:
    ⚠️  PostgreSQL state requires a connection URL.
 
    To configure:
-   1. Set up a PostgreSQL database (Docker, local, or cloud)
+   1. Set up a PostgreSQL database (local or cloud)
    2. Add connection string to .prose/.env:
 
       echo "OPENPROSE_POSTGRES_URL=postgresql://user:pass@localhost:5432/prose" >> .prose/.env
 
-   Quick Docker setup:
-      docker run -d --name prose-pg -e POSTGRES_DB=prose -e POSTGRES_HOST_AUTH_METHOD=trust -p 5432:5432 postgres:16
+   Quick local setup:
+      createdb prose
       echo "OPENPROSE_POSTGRES_URL=postgresql://postgres@localhost:5432/prose" >> .prose/.env
 
    See state/postgres.md for detailed setup options.

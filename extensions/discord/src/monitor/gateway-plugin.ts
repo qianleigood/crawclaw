@@ -1,9 +1,9 @@
 import * as carbonGateway from "@buape/carbon/gateway";
-import type { APIGatewayBotInfo } from "discord-api-types/v10";
-import * as httpsProxyAgent from "https-proxy-agent";
 import type { DiscordAccountConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { danger } from "crawclaw/plugin-sdk/runtime-env";
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
+import type { APIGatewayBotInfo } from "discord-api-types/v10";
+import * as httpsProxyAgent from "https-proxy-agent";
 import * as undici from "undici";
 import * as ws from "ws";
 

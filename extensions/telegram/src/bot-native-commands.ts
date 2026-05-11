@@ -1,4 +1,3 @@
-import type { Bot, Context } from "grammy";
 import {
   buildCommandTextFromArgs,
   findCommandByNativeName,
@@ -32,6 +31,7 @@ import { resolveAgentRoute } from "crawclaw/plugin-sdk/routing";
 import { danger, logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { getChildLogger } from "crawclaw/plugin-sdk/runtime-env";
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
+import type { Bot, Context } from "grammy";
 import { resolveTelegramAccount } from "./accounts.js";
 import { withTelegramApiErrorLogging } from "./api-logging.js";
 import { isSenderAllowed, normalizeDmAllowFromWithStore } from "./bot-access.js";

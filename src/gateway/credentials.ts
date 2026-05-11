@@ -14,7 +14,7 @@ export {
   readGatewayTokenEnv,
   trimCredentialToUndefined,
   trimToUndefined,
-  } from "./credential-planner.js";
+} from "./credential-planner.js";
 
 export type ExplicitGatewayAuth = {
   token?: string;

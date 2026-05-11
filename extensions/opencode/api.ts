@@ -1,15 +1,15 @@
-import { OPENCODE_ZEN_DEFAULT_MODEL_REF } from "./onboard.js";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/provider-onboard";
+import { OPENCODE_ZEN_DEFAULT_MODEL_REF } from "./onboard.js";
 export {
   applyOpencodeZenConfig,
   applyOpencodeZenProviderConfig,
   OPENCODE_ZEN_DEFAULT_MODEL_REF,
-  } from "./onboard.js";
+} from "./onboard.js";
 
 const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = new Set([
   "opencode/claude-opus-4-5",
   "opencode-zen/claude-opus-4-5",
-  ]);
+]);
 
 export const OPENCODE_ZEN_DEFAULT_MODEL = OPENCODE_ZEN_DEFAULT_MODEL_REF;
 
@@ -27,9 +27,7 @@ function resolveCurrentPrimaryModel(model: unknown): string | undefined {
   return undefined;
 }
 
-export function applyOpencodeZenModelDefault(
-  cfg: CrawClawConfig,
-  ): {
+export function applyOpencodeZenModelDefault(cfg: CrawClawConfig): {
   next: CrawClawConfig;
   changed: boolean;
 } {
@@ -39,9 +37,7 @@ export function applyOpencodeZenModelDefault(
       ? OPENCODE_ZEN_DEFAULT_MODEL
       : current;
   if (normalizedCurrent === OPENCODE_ZEN_DEFAULT_MODEL) {
-    return { next: cfg,
-  changed: false,
-};
+    return { next: cfg, changed: false };
   }
   return {
     next: {

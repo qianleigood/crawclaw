@@ -21,7 +21,6 @@ export type WebFetchConfig = NonNullable<CrawClawConfig["tools"]>["web"] extends
 
 export type ResolveWebFetchDefinitionParams = {
   config?: CrawClawConfig;
-  sandboxed?: boolean;
   runtimeWebFetch?: RuntimeWebFetchMetadata;
   providerId?: string;
   preferRuntimeProviders?: boolean;
@@ -35,10 +34,7 @@ export function resolveWebFetchConfig(cfg?: CrawClawConfig): WebFetchConfig {
   return fetch as WebFetchConfig;
 }
 
-export function resolveWebFetchEnabled(params: {
-  fetch?: WebFetchConfig;
-  sandboxed?: boolean;
-}): boolean {
+export function resolveWebFetchEnabled(params: { fetch?: WebFetchConfig }): boolean {
   if (typeof params.fetch?.enabled === "boolean") {
     return params.fetch.enabled;
   }
@@ -134,7 +130,7 @@ export function resolveWebFetchDefinition(
 ): { provider: PluginWebFetchProviderEntry; definition: WebFetchProviderToolDefinition } | null {
   const fetch = resolveWebFetchConfig(options?.config);
   const runtimeWebFetch = options?.runtimeWebFetch ?? getActiveRuntimeWebToolsMetadata()?.fetch;
-  if (!resolveWebFetchEnabled({ fetch, sandboxed: options?.sandboxed })) {
+  if (!resolveWebFetchEnabled({ fetch })) {
     return null;
   }
 

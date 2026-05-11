@@ -92,8 +92,7 @@ describe("legacy config detection", () => {
         tools: { allow: ["sessions.list"], deny: ["danger"] },
         elevated: { enabled: true, allowFrom: { discord: ["user:1"] } },
         bash: { timeoutSec: 12 },
-        sandbox: { tools: { allow: ["browser.open"] } },
-        subagents: { tools: { deny: ["sandbox"] } },
+        subagents: { tools: { deny: ["danger"] } },
       },
     });
     expect(res.changes).toEqual([]);

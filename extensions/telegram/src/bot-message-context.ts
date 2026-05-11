@@ -39,7 +39,7 @@ import {
 export type {
   BuildTelegramMessageContextParams,
   TelegramMediaRef,
-  } from "./bot-message-context.types.js";
+} from "./bot-message-context.types.js";
 
 type TelegramMessageContextRuntime = typeof import("./bot-message-context.runtime.js");
 
@@ -55,7 +55,7 @@ type TelegramReactionApi = (
   chatId: BuildTelegramMessageContextParams["primaryCtx"]["message"]["chat"]["id"],
   messageId: number,
   reactions: Array<{ type: "emoji"; emoji: ReactionTypeEmoji["emoji"] }>,
-  ) => Promise<unknown>;
+) => Promise<unknown>;
 
 export type TelegramMessageContext = {
   ctxPayload: TelegramMessageContextPayload["ctxPayload"];

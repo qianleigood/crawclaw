@@ -36,7 +36,6 @@ export type SpawnAgentSessionParams = {
   thread?: boolean;
   mode?: "run" | "session";
   cleanup?: "delete" | "keep";
-  sandbox?: "inherit" | "require";
   streamTo?: "parent";
   extraSystemPrompt?: string;
   spawnSource?: string;
@@ -104,7 +103,6 @@ function resolveSubagentParams(params: SpawnAgentSessionParams): SpawnSubagentPa
     ...(params.thread === true ? { thread: true } : {}),
     ...(params.mode ? { mode: params.mode } : {}),
     ...(params.cleanup ? { cleanup: params.cleanup } : {}),
-    ...(params.sandbox ? { sandbox: params.sandbox } : {}),
     ...(params.extraSystemPrompt ? { extraSystemPrompt: params.extraSystemPrompt } : {}),
     ...(params.spawnSource ? { spawnSource: params.spawnSource } : {}),
     ...(params.durableMemoryScope ? { durableMemoryScope: params.durableMemoryScope } : {}),
@@ -124,7 +122,6 @@ function resolveAcpParams(params: SpawnAgentSessionParams): SpawnAcpParams {
     ...(params.cwd ? { cwd: params.cwd } : {}),
     ...(params.mode ? { mode: params.mode } : {}),
     ...(params.thread === true ? { thread: true } : {}),
-    ...(params.sandbox ? { sandbox: params.sandbox } : {}),
     ...(params.streamTo ? { streamTo: params.streamTo } : {}),
   };
 }

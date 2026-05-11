@@ -64,16 +64,3 @@ updates:
           - minor
           - patch
     open-pull-requests-limit: 5
-
-  # Docker base images
-  - package-ecosystem: docker
-    directory: /
-    schedule:
-      interval: weekly
-    cooldown:
-      default-days: 2
-    groups:
-      docker-images:
-        patterns:
-          - "*"
-    open-pull-requests-limit: 5

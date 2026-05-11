@@ -356,7 +356,7 @@ function resolveSharedServiceEnvironmentFields(
     configPath,
     tmpDir,
     // On Windows, Scheduled Tasks should inherit the current task PATH instead of
-    // freezing the install-time snapshot into gateway.cmd/node-host.cmd.
+    // freezing the install-time snapshot into gateway.cmd.
     minimalPath:
       platform === "win32"
         ? undefined

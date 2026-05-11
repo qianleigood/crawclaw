@@ -10,27 +10,19 @@ import type { BrowserActRequest } from "./browser/client-actions-core.js";
 import {
   type AnyAgentTool,
   DEFAULT_UPLOAD_DIR,
-  applyBrowserProxyPaths,
   imageResultFromFile,
   jsonResult,
-  listNodes,
   loadConfig,
-  persistBrowserProxyFiles,
   readStringParam,
   resolveBrowserConfig,
   resolveExistingPathsWithinRoot,
-  resolveNodeIdFromList,
-  selectDefaultNodeFromList,
 } from "./core-api.js";
-import { callGatewayTool } from "./core-api.js";
 import { tryExecutePinchTabHostAction } from "./pinchtab/pinchtab-executor.js";
 import { resolvePinchTabConnectionConfig } from "./pinchtab/pinchtab-managed-service.js";
 
 const browserToolDeps = {
   imageResultFromFile,
   loadConfig,
-  listNodes,
-  callGatewayTool,
 };
 
 export const __testing = {
@@ -38,14 +30,10 @@ export const __testing = {
     overrides: Partial<{
       imageResultFromFile: typeof imageResultFromFile;
       loadConfig: typeof loadConfig;
-      listNodes: typeof listNodes;
-      callGatewayTool: typeof callGatewayTool;
     }> | null,
   ) {
     browserToolDeps.imageResultFromFile = overrides?.imageResultFromFile ?? imageResultFromFile;
     browserToolDeps.loadConfig = overrides?.loadConfig ?? loadConfig;
-    browserToolDeps.listNodes = overrides?.listNodes ?? listNodes;
-    browserToolDeps.callGatewayTool = overrides?.callGatewayTool ?? callGatewayTool;
   },
 };
 
@@ -120,20 +108,6 @@ function readActRequestParam(params: Record<string, unknown>) {
   return request as BrowserActRequest;
 }
 
-type BrowserProxyFile = {
-  path: string;
-  base64: string;
-  mimeType?: string;
-};
-
-async function persistProxyFiles(files: BrowserProxyFile[] | undefined) {
-  return await persistBrowserProxyFiles(files);
-}
-
-function applyProxyPaths(result: unknown, mapping: Map<string, string>) {
-  applyBrowserProxyPaths(result, mapping);
-}
-
 function readConfiguredProfiles() {
   const cfg = browserToolDeps.loadConfig();
   const resolved = resolveBrowserConfig(
@@ -147,21 +121,8 @@ function readPinchTabConfig() {
   return resolvePinchTabConnectionConfig(browserToolDeps.loadConfig());
 }
 
-function resolvePinchTabRouteConfig(params: {
-  routeKind: "host" | "sandbox";
-  sandboxPinchTabUrl?: string;
-}) {
-  const cfg = readPinchTabConfig();
-  if (params.routeKind === "sandbox") {
-    const sandboxUrl = params.sandboxPinchTabUrl?.trim();
-    return {
-      enabled: cfg.enabled && !!sandboxUrl,
-      baseUrl: sandboxUrl ? sandboxUrl.replace(/\/$/, "") : cfg.baseUrl,
-      token: cfg.token,
-      managed: false,
-    };
-  }
-  return cfg;
+function resolvePinchTabRouteConfig(params: { routeKind: "host" }) {
+  return readPinchTabConfig();
 }
 
 async function normalizeExperimentalHostInput(
@@ -193,13 +154,9 @@ async function normalizeExperimentalHostInput(
 }
 
 export function createBrowserTool(opts?: {
-  sandboxBridgeUrl?: string;
-  sandboxCdpUrl?: string;
-  sandboxPinchTabUrl?: string;
   allowHostControl?: boolean;
   agentSessionKey?: string;
 }): AnyAgentTool {
-  const targetDefault = opts?.sandboxBridgeUrl ? "sandbox" : "host";
   const hostHint =
     opts?.allowHostControl === false ? "Host target blocked by policy." : "Host target allowed.";
   const tool: AnyAgentTool = {
@@ -209,10 +166,9 @@ export function createBrowserTool(opts?: {
       "Control the browser through CrawClaw's unified browser tool backed by PinchTab.",
       "Browser choice: omit profile by default for the isolated CrawClaw-managed browser (`crawclaw`).",
       'For the logged-in local browser, use profile="user". Use it only when existing logins or cookies matter.',
-      'When a node-hosted browser is available, the tool may auto-route to it. Pin a node with node=<id|name> or target="node".',
       'Prefer snapshot + act for UI automation. For stable refs across calls, use snapshot with refs="aria"; the default refs="role" are more human-readable but less stable.',
-      "Host and sandbox routes use PinchTab session/tab execution. Avoid relying on legacy targetId-only workflows for new automation.",
-      `target selects browser location (sandbox|host|node). Default: ${targetDefault}.`,
+      "Host routes use PinchTab session/tab execution. Avoid relying on legacy targetId-only workflows for new automation.",
+      "target selects browser location (host). Default: host.",
       hostHint,
     ].join(" "),
     parameters: BrowserToolSchema,
@@ -243,40 +199,21 @@ export function createBrowserTool(opts?: {
       const { profile, baseUrl, routeKind, proxyRequest } = await resolveBrowserToolRoute({
         profile: readStringParam(params, "profile") ?? undefined,
         requestedNode: readStringParam(params, "node") ?? undefined,
-        target:
-          (readStringParam(params, "target") as "sandbox" | "host" | "node" | undefined) ??
-          undefined,
-        sandboxBridgeUrl: opts?.sandboxBridgeUrl,
+        target: (readStringParam(params, "target") as "host" | "node" | undefined) ?? undefined,
         allowHostControl: opts?.allowHostControl,
         deps: {
           loadConfig: browserToolDeps.loadConfig as unknown as BrowserToolRouteDeps["loadConfig"],
           resolveBrowserConfig:
             resolveBrowserConfig as unknown as BrowserToolRouteDeps["resolveBrowserConfig"],
-          listNodes: browserToolDeps.listNodes as unknown as BrowserToolRouteDeps["listNodes"],
-          resolveNodeIdFromList:
-            resolveNodeIdFromList as unknown as BrowserToolRouteDeps["resolveNodeIdFromList"],
-          selectDefaultNodeFromList:
-            selectDefaultNodeFromList as unknown as BrowserToolRouteDeps["selectDefaultNodeFromList"],
-          callGatewayTool:
-            browserToolDeps.callGatewayTool as unknown as BrowserToolRouteDeps["callGatewayTool"],
-          persistBrowserProxyFiles:
-            persistProxyFiles as unknown as BrowserToolRouteDeps["persistBrowserProxyFiles"],
-          applyBrowserProxyPaths:
-            applyProxyPaths as unknown as BrowserToolRouteDeps["applyBrowserProxyPaths"],
         },
       });
 
-      if (!proxyRequest && (routeKind === "host" || routeKind === "sandbox")) {
+      if (!proxyRequest && routeKind === "host") {
         const pinchTab = resolvePinchTabRouteConfig({
           routeKind,
-          sandboxPinchTabUrl: opts?.sandboxPinchTabUrl,
         });
         if (!pinchTab.enabled) {
-          throw new Error(
-            routeKind === "sandbox"
-              ? "Sandbox PinchTab URL is unavailable."
-              : "PinchTab browser runtime is disabled.",
-          );
+          throw new Error("PinchTab browser runtime is disabled.");
         }
         if (action === "profiles") {
           return jsonResult({ profiles: readConfiguredProfiles() });

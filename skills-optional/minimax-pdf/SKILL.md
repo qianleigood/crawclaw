@@ -21,31 +21,39 @@ Use this skill for PDF-first deliverables where visual identity and print-readin
 ## Core workflow
 
 ### 1. Decide the route
+
 - **CREATE**: generate a new PDF from scratch
 - **FILL**: inspect and fill an existing PDF form
 - **REFORMAT**: parse an existing source document and rebuild it into a polished PDF
 
 ### 2. Read the design layer when needed
+
 For CREATE and REFORMAT work, read `design/design.md` before choosing the visual direction.
 
 ### 3. Execute the matching script path
+
 - CREATE -> design / cover / body / merge pipeline
 - FILL -> inspect fields, then write values
 - REFORMAT -> parse source, then feed into CREATE pipeline
 
 ### 4. Check environment before handoff
+
 Verify the supporting Python / Node / Playwright stack before promising output.
 
 ## Reference routing
 
 ### Route selection and design
+
 Read `references/routes-and-design.md` when you need:
+
 - CREATE vs FILL vs REFORMAT selection
 - PDF-first positioning
 - visual design decision guidance
 
 ### CLI and environment
+
 Read `references/cli-and-environment.md` when you need:
+
 - concrete command paths
 - dependency verification
 - CREATE / FILL / REFORMAT script entrypoints

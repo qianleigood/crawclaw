@@ -45,12 +45,12 @@ with open("output.mp3", "wb") as f:
 
 ## Model selection
 
-| Model | Best for |
-|-------|----------|
-| `speech-2.8-hd` | Highest quality, auto emotion (recommended) |
-| `speech-2.8-turbo` | Fast, good quality |
-| `speech-2.6-hd` | Manual emotion control needed |
-| `speech-2.6-turbo` | Fast + manual emotion |
+| Model              | Best for                                    |
+| ------------------ | ------------------------------------------- |
+| `speech-2.8-hd`    | Highest quality, auto emotion (recommended) |
+| `speech-2.8-turbo` | Fast, good quality                          |
+| `speech-2.6-hd`    | Manual emotion control needed               |
+| `speech-2.6-turbo` | Fast + manual emotion                       |
 
 ## Voice selection
 
@@ -58,18 +58,18 @@ See [minimax-voice-catalog.md](minimax-voice-catalog.md) for the full list.
 
 Common voices:
 
-| Voice ID | Gender | Style |
-|----------|--------|-------|
-| `male-qn-qingse` | Male | Young, gentle |
-| `male-qn-jingying` | Male | Elite, authoritative |
-| `male-qn-badao` | Male | Dominant, powerful |
-| `female-shaonv` | Female | Young, bright |
-| `female-yujie` | Female | Mature, elegant |
-| `female-chengshu` | Female | Sophisticated |
-| `presenter_male` | Male | News presenter |
-| `presenter_female` | Female | News presenter |
-| `audiobook_male_1` | Male | Audiobook narrator |
-| `audiobook_female_1` | Female | Audiobook narrator |
+| Voice ID             | Gender | Style                |
+| -------------------- | ------ | -------------------- |
+| `male-qn-qingse`     | Male   | Young, gentle        |
+| `male-qn-jingying`   | Male   | Elite, authoritative |
+| `male-qn-badao`      | Male   | Dominant, powerful   |
+| `female-shaonv`      | Female | Young, bright        |
+| `female-yujie`       | Female | Mature, elegant      |
+| `female-chengshu`    | Female | Sophisticated        |
+| `presenter_male`     | Male   | News presenter       |
+| `presenter_female`   | Female | News presenter       |
+| `audiobook_male_1`   | Male   | Audiobook narrator   |
+| `audiobook_female_1` | Female | Audiobook narrator   |
 
 ## Best practices
 

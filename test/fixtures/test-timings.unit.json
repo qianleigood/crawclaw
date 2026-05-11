@@ -99,10 +99,6 @@
       "durationMs": 729.758056640625,
       "testCount": 1
     },
-    "src/tui/gateway-chat.test.ts": {
-      "durationMs": 698.404296875,
-      "testCount": 14
-    },
     "src/infra/provider-usage.auth.normalizes-keys.test.ts": {
       "durationMs": 636.830078125,
       "testCount": 19
@@ -138,10 +134,6 @@
     "src/config/config.nix-integration-u3-u5-u9.test.ts": {
       "durationMs": 451.165771484375,
       "testCount": 19
-    },
-    "src/node-host/invoke-system-run-plan.test.ts": {
-      "durationMs": 437.455810546875,
-      "testCount": 41
     },
     "src/cron/isolated-agent.delivers-response-has-heartbeat-ok-but-includes.test.ts": {
       "durationMs": 406.56201171875,
@@ -302,10 +294,6 @@
     "src/config/sessions/store.pruning.integration.test.ts": {
       "durationMs": 204.234130859375,
       "testCount": 10
-    },
-    "src/node-host/invoke-system-run.test.ts": {
-      "durationMs": 197.60498046875,
-      "testCount": 39
     },
     "src/plugins/sdk-alias.test.ts": {
       "durationMs": 193.329345703125,
@@ -803,10 +791,6 @@
       "durationMs": 49.58642578125,
       "testCount": 1
     },
-    "src/cli/nodes-camera.test.ts": {
-      "durationMs": 48.5517578125,
-      "testCount": 17
-    },
     "src/infra/secret-file.test.ts": {
       "durationMs": 47.966796875,
       "testCount": 11
@@ -931,10 +915,6 @@
       "durationMs": 38.9951171875,
       "testCount": 66
     },
-    "src/tui/tui-formatters.test.ts": {
-      "durationMs": 38.393798828125,
-      "testCount": 26
-    },
     "src/channels/plugins/actions/actions.test.ts": {
       "durationMs": 38.15234375,
       "testCount": 25
@@ -963,16 +943,8 @@
       "durationMs": 37.029541015625,
       "testCount": 10
     },
-    "src/tui/theme/theme.test.ts": {
-      "durationMs": 36.656982421875,
-      "testCount": 25
-    },
     "src/plugins/bundled-plugin-naming.test.ts": {
       "durationMs": 36.5302734375,
-      "testCount": 4
-    },
-    "src/infra/node-pairing.test.ts": {
-      "durationMs": 35.856689453125,
       "testCount": 4
     },
     "src/infra/outbound/target-normalization.test.ts": {
@@ -993,10 +965,6 @@
     },
     "src/plugins/bundled-web-search.test.ts": {
       "durationMs": 34.859130859375,
-      "testCount": 4
-    },
-    "src/node-host/invoke-browser.test.ts": {
-      "durationMs": 34.781982421875,
       "testCount": 4
     },
     "src/plugins/marketplace.test.ts": {

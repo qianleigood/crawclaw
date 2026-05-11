@@ -821,7 +821,6 @@ export function inspectAgentRuntime(params: {
   const guard = finalRunId
     ? resolveAgentGuardContext({
         runId: finalRunId,
-        sandboxed: capabilitySnapshot?.sandboxed,
       })
     : undefined;
 

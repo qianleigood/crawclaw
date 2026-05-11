@@ -4,7 +4,6 @@ import {
   resolveGatewaySystemdServiceName,
   resolveGatewayWindowsTaskName,
 } from "../daemon/constants.js";
-import { resolveDaemonContainerContext } from "../daemon/container-context.js";
 import { formatRuntimeStatus } from "../daemon/runtime-format.js";
 import { buildPlatformRuntimeLogHints } from "../daemon/runtime-hints.js";
 import type { GatewayServiceRuntime } from "../daemon/service-runtime.js";
@@ -36,7 +35,6 @@ export function buildGatewayRuntimeHints(
   }
   const platform = options.platform ?? process.platform;
   const env = options.env ?? process.env;
-  const container = Boolean(resolveDaemonContainerContext(env));
   const fileLog = (() => {
     try {
       return getResolvedLoggerSettings().file;
@@ -48,7 +46,7 @@ export function buildGatewayRuntimeHints(
     hints.push(
       ...renderSystemdUnavailableHints({
         kind: classifySystemdUnavailableDetail(runtime.detail),
-        container,
+        container: false,
       }),
     );
     if (fileLog) {

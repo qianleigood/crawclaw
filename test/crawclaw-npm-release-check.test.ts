@@ -345,7 +345,9 @@ describe("collectReleasePackageMetadataErrors", () => {
         description: "Multi-channel AI gateway with extensible messaging integrations",
         license: "MIT",
         repository: { url: "git+https://github.com/qianleigood/crawclaw.git" },
-        bin: { crawclaw: "crawclaw.mjs" },
+        bin: { crawclaw: "dist/native/crawclaw" },
+        exports: {},
+        files: ["dist/"],
         peerDependencies: { "node-llama-cpp": "3.18.1" },
         peerDependenciesMeta: { "node-llama-cpp": { optional: true } },
       }),
@@ -359,9 +361,29 @@ describe("collectReleasePackageMetadataErrors", () => {
         description: "Multi-channel AI gateway with extensible messaging integrations",
         license: "MIT",
         repository: { url: "git+https://github.com/qianleigood/crawclaw.git" },
-        bin: { crawclaw: "crawclaw.mjs" },
+        bin: { crawclaw: "dist/native/crawclaw" },
         peerDependencies: { "node-llama-cpp": "3.18.1" },
       }),
     ).toContain('package.json peerDependenciesMeta["node-llama-cpp"].optional must be true.');
+  });
+
+  it("rejects legacy JS CLI launcher package metadata", () => {
+    expect(
+      collectReleasePackageMetadataErrors({
+        name: "crawclaw",
+        description: "Multi-channel AI gateway with extensible messaging integrations",
+        license: "MIT",
+        repository: { url: "git+https://github.com/qianleigood/crawclaw.git" },
+        bin: { crawclaw: "crawclaw.mjs" },
+        exports: { "./cli-entry": "./crawclaw.mjs" },
+        files: ["crawclaw.mjs", "dist/"],
+        peerDependencies: { "node-llama-cpp": "3.18.1" },
+        peerDependenciesMeta: { "node-llama-cpp": { optional: true } },
+      }),
+    ).toEqual([
+      'package.json bin.crawclaw must be "dist/native/crawclaw"; found "crawclaw.mjs".',
+      'package.json exports must not expose legacy "./cli-entry".',
+      'package.json files must not include legacy "crawclaw.mjs".',
+    ]);
   });
 });

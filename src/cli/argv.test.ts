@@ -175,8 +175,6 @@ describe("argv helpers", () => {
           "crawclaw",
           "--profile",
           "work",
-          "--container",
-          "demo",
           "--lang",
           "zh-CN",
           "--no-color",

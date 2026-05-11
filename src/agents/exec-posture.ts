@@ -15,14 +15,12 @@ export type ExecPosture = {
   effectiveHost: ExecHost;
   security: ExecSecurity;
   ask: ExecAsk;
-  node?: string;
 };
 
 export function resolveExecPosture(params: {
   cfg: CrawClawConfig;
   sessionEntry?: SessionEntry;
   agentId?: string;
-  sandboxAvailable: boolean;
 }): ExecPosture {
   const globalExec = params.cfg.tools?.exec;
   const agentExec = params.agentId
@@ -36,7 +34,6 @@ export function resolveExecPosture(params: {
   const resolved = resolveExecTarget({
     configuredTarget: host,
     elevatedRequested: false,
-    sandboxAvailable: params.sandboxAvailable,
   });
   const approvalDefaults = loadExecApprovals().defaults;
   const security =
@@ -44,7 +41,7 @@ export function resolveExecPosture(params: {
     (agentExec?.security as ExecSecurity | undefined) ??
     (globalExec?.security as ExecSecurity | undefined) ??
     approvalDefaults?.security ??
-    (resolved.effectiveHost === "sandbox" ? "deny" : "full");
+    "full";
   const ask =
     (params.sessionEntry?.execAsk as ExecAsk | undefined) ??
     (agentExec?.ask as ExecAsk | undefined) ??
@@ -56,13 +53,12 @@ export function resolveExecPosture(params: {
     effectiveHost: resolved.effectiveHost,
     security,
     ask,
-    node: params.sessionEntry?.execNode ?? agentExec?.node ?? globalExec?.node,
   };
 }
 
 export function describeExecRiskDiagnostic(posture: ExecPosture): string | undefined {
-  if (posture.effectiveHost === "sandbox" || posture.security !== "full" || posture.ask !== "off") {
+  if (posture.security !== "full" || posture.ask !== "off") {
     return undefined;
   }
-  return `Exec can run on ${posture.effectiveHost} without approval prompts. Prefer tools.exec.security="allowlist" with tools.exec.ask="on-miss" or "always", or enable sandboxing.`;
+  return `Exec can run on ${posture.effectiveHost} without approval prompts. Prefer tools.exec.security="allowlist" with tools.exec.ask="on-miss" or "always".`;
 }

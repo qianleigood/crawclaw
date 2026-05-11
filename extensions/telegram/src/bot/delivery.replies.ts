@@ -1,4 +1,3 @@
-import { type Bot, GrammyError, InputFile } from "grammy";
 import type { ReplyToMode } from "crawclaw/plugin-sdk/config-runtime";
 import type { MarkdownTableMode } from "crawclaw/plugin-sdk/config-runtime";
 import { fireAndForgetHook } from "crawclaw/plugin-sdk/hook-runtime";
@@ -18,6 +17,7 @@ import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
 import { danger, logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { formatErrorMessage } from "crawclaw/plugin-sdk/ssrf-runtime";
 import { loadWebMedia } from "crawclaw/plugin-sdk/web-media";
+import { type Bot, GrammyError, InputFile } from "grammy";
 import type { TelegramInlineButtons } from "../button-types.js";
 import { splitTelegramCaption } from "../caption.js";
 import {

@@ -207,28 +207,4 @@ describe("formatCliCommand", () => {
       "pnpm crawclaw --profile work doctor",
     );
   });
-
-  it("inserts --container when a container hint is set", () => {
-    expect(
-      formatCliCommand("crawclaw gateway status --deep", { CRAWCLAW_CONTAINER_HINT: "demo" }),
-    ).toBe("crawclaw --container demo gateway status --deep");
-  });
-
-  it("preserves both --container and --profile hints", () => {
-    expect(
-      formatCliCommand("crawclaw doctor", {
-        CRAWCLAW_CONTAINER_HINT: "demo",
-        CRAWCLAW_PROFILE: "work",
-      }),
-    ).toBe("crawclaw --container demo doctor");
-  });
-
-  it("does not prepend --container for update commands", () => {
-    expect(formatCliCommand("crawclaw update", { CRAWCLAW_CONTAINER_HINT: "demo" })).toBe(
-      "crawclaw update",
-    );
-    expect(
-      formatCliCommand("pnpm crawclaw update --channel beta", { CRAWCLAW_CONTAINER_HINT: "demo" }),
-    ).toBe("pnpm crawclaw update --channel beta");
-  });
 });

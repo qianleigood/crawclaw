@@ -9,14 +9,14 @@ import { requestJsonlSocket } from "./jsonl-socket.js";
 export * from "./exec-approvals-analysis.js";
 export * from "./exec-approvals-allowlist.js";
 
-export type ExecHost = "sandbox" | "gateway" | "node";
+export type ExecHost = "gateway";
 export type ExecTarget = "auto" | ExecHost;
 export type ExecSecurity = "deny" | "allowlist" | "full";
 export type ExecAsk = "off" | "on-miss" | "always";
 
 export function normalizeExecHost(value?: string | null): ExecHost | null {
   const normalized = value?.trim().toLowerCase();
-  if (normalized === "sandbox" || normalized === "gateway" || normalized === "node") {
+  if (normalized === "gateway") {
     return normalized;
   }
   return null;
@@ -84,7 +84,6 @@ export type ExecApprovalRequestPayload = {
   systemRunBinding?: SystemRunApprovalBinding | null;
   systemRunPlan?: SystemRunApprovalPlan | null;
   cwd?: string | null;
-  nodeId?: string | null;
   host?: string | null;
   security?: string | null;
   ask?: string | null;

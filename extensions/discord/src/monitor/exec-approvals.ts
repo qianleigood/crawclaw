@@ -9,7 +9,6 @@ import {
   type MessagePayloadObject,
   type TopLevelComponents,
 } from "@buape/carbon";
-import { ButtonStyle, Routes } from "discord-api-types/v10";
 import type { CrawClawConfig as CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { DiscordExecApprovalConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
@@ -29,6 +28,7 @@ import type {
 } from "crawclaw/plugin-sdk/infra-runtime";
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime-env";
 import { logDebug, logError } from "crawclaw/plugin-sdk/text-runtime";
+import { ButtonStyle, Routes } from "discord-api-types/v10";
 import {
   createDiscordNativeApprovalAdapter,
   createDiscordApprovalCapability,

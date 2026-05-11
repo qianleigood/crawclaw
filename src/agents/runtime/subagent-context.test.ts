@@ -17,7 +17,6 @@ describe("subagent-context", () => {
       agentGroupChannel: " group-channel ",
       agentGroupSpace: " group-space ",
       requesterAgentIdOverride: " child-agent ",
-      sandboxed: true,
       workspaceDir: " /workspace/project ",
     });
 
@@ -31,7 +30,6 @@ describe("subagent-context", () => {
       agentGroupChannel: "group-channel",
       agentGroupSpace: "group-space",
       requesterAgentIdOverride: "child-agent",
-      sandboxed: true,
       workspaceDir: "/workspace/project",
       requesterOrigin: {
         channel: "discord",
@@ -53,7 +51,6 @@ describe("subagent-context", () => {
       agentGroupChannel: "group-channel",
       agentGroupSpace: "group-space",
       requesterAgentIdOverride: "child-agent",
-      sandboxed: true,
       workspaceDir: "/workspace/project",
     });
 
@@ -64,7 +61,6 @@ describe("subagent-context", () => {
       agentTo: "channel:123",
       agentThreadId: 456,
       agentGroupId: "group-1",
-      sandboxed: true,
     });
     expect(toSubagentSpawnContext(normalized)).toEqual({
       agentSessionKey: "agent:main:main",

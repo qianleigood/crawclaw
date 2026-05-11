@@ -6,6 +6,11 @@
       "title": "Exec",
       "detailKeys": ["command"]
     },
+    "bash": {
+      "emoji": "🛠️",
+      "title": "Bash",
+      "detailKeys": ["command"]
+    },
     "tool_call": {
       "emoji": "🧰",
       "title": "Tool Call",
@@ -76,11 +81,6 @@
       "emoji": "📄",
       "title": "Web Fetch",
       "detailKeys": ["url", "detail", "output", "maxChars"]
-    },
-    "code_execution": {
-      "emoji": "🧮",
-      "title": "Code Execution",
-      "detailKeys": ["task"]
     },
     "message": {
       "emoji": "✉️",

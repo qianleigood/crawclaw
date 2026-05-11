@@ -5,6 +5,7 @@ Use this reference when Gemini has already generated an image and the job needs 
 ## Save order
 
 Use this order:
+
 1. Try Gemini's visible download or export action.
 2. If Gemini opens the image in a new tab or modal, capture the highest-quality version available there.
 3. If the page only exposes a rendered blob image and the visible download control does not produce a file, export the loaded image from the page itself.
@@ -20,6 +21,7 @@ Always check the target path or download directory after the action.
 
 When Gemini renders a blob image in-page, prefer page-side export over screenshot.
 Typical pattern:
+
 1. Locate the generated `img`.
 2. Draw it into a temporary in-page canvas.
 3. Call `canvas.toDataURL('image/png')`.
@@ -30,6 +32,7 @@ Use screenshot fallback only when blob export or direct download is unavailable.
 ## Reporting
 
 Always report:
+
 - what was generated or edited
 - the actual saved local path or paths
 - whether the file was also sent back through chat

@@ -64,13 +64,13 @@ screen.getByPlaceholderText("Enter email");
 
 // Text content
 screen.getByText("Welcome back");
-screen.getByText(/welcome/i);   // Regex — case insensitive
+screen.getByText(/welcome/i); // Regex — case insensitive
 
 // Test IDs (last resort)
 screen.getByTestId("user-avatar");
 
 // Async queries
-await screen.findByText("Loaded content");       // Waits for element to appear
+await screen.findByText("Loaded content"); // Waits for element to appear
 await screen.findAllByRole("listitem");
 
 // Non-existence
@@ -324,19 +324,19 @@ appId: com.example.myapp
 
 ## Testing Checklist
 
-| Layer | What to Test |
-|-------|-------------|
-| Unit | Business logic, stores, utility functions, hooks |
-| Component | Renders correctly, user interactions, loading/error states |
-| Integration | Component + store/query working together |
-| E2E | Critical user flows (login, checkout, core feature) |
+| Layer       | What to Test                                               |
+| ----------- | ---------------------------------------------------------- |
+| Unit        | Business logic, stores, utility functions, hooks           |
+| Component   | Renders correctly, user interactions, loading/error states |
+| Integration | Component + store/query working together                   |
+| E2E         | Critical user flows (login, checkout, core feature)        |
 
 ## Common Mistakes
 
-| Wrong | Right |
-|-------|-------|
-| `getByTestId` everywhere | Use accessible queries (`getByRole`, `getByLabelText`) |
-| Testing implementation details | Test behavior the user sees |
-| No `waitFor` on async operations | `waitFor` or `findBy*` for async |
-| Real network calls in tests | Mock `fetch` or use MSW |
-| Testing every line | Focus on behavior, not coverage %  |
+| Wrong                            | Right                                                  |
+| -------------------------------- | ------------------------------------------------------ |
+| `getByTestId` everywhere         | Use accessible queries (`getByRole`, `getByLabelText`) |
+| Testing implementation details   | Test behavior the user sees                            |
+| No `waitFor` on async operations | `waitFor` or `findBy*` for async                       |
+| Real network calls in tests      | Mock `fetch` or use MSW                                |
+| Testing every line               | Focus on behavior, not coverage %                      |

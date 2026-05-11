@@ -540,27 +540,27 @@ class SearchRepository extends BaseRepository {
 
 ## Common Patterns
 
-| Pattern | Usage |
-|---------|-------|
-| Singleton client | Single Dio instance across app |
-| Interceptor chain | Auth → Retry → Cache → Logging |
-| Repository layer | Abstract API from business logic |
-| Error mapping | Convert DioException to app exceptions |
-| Cancel tokens | Debounce/cancel previous requests |
-| Cache invalidation | Clear cache on mutations |
+| Pattern            | Usage                                  |
+| ------------------ | -------------------------------------- |
+| Singleton client   | Single Dio instance across app         |
+| Interceptor chain  | Auth → Retry → Cache → Logging         |
+| Repository layer   | Abstract API from business logic       |
+| Error mapping      | Convert DioException to app exceptions |
+| Cancel tokens      | Debounce/cancel previous requests      |
+| Cache invalidation | Clear cache on mutations               |
 
 ## Networking Checklist
 
-| Item | Implementation |
-|------|----------------|
-| Base configuration | Timeouts, headers, base URL |
-| Auth handling | Token injection, refresh on 401 |
-| Error handling | Typed exceptions, user messages |
-| Retry logic | Exponential backoff for transient errors |
-| Request logging | Debug interceptor |
-| Caching | Memory/disk cache for GET requests |
-| Cancellation | Cancel tokens for search/debounce |
+| Item               | Implementation                           |
+| ------------------ | ---------------------------------------- |
+| Base configuration | Timeouts, headers, base URL              |
+| Auth handling      | Token injection, refresh on 401          |
+| Error handling     | Typed exceptions, user messages          |
+| Retry logic        | Exponential backoff for transient errors |
+| Request logging    | Debug interceptor                        |
+| Caching            | Memory/disk cache for GET requests       |
+| Cancellation       | Cancel tokens for search/debounce        |
 
 ---
 
-*Dio is an open-source package by the Flutter China community.*
+_Dio is an open-source package by the Flutter China community._

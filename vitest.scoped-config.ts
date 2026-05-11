@@ -30,8 +30,7 @@ function relativizeScopedPatterns(values: string[], dir?: string): string[] {
 export function resolveVitestIsolation(
   env: Record<string, string | undefined> = process.env,
 ): boolean {
-  const forceIsolation =
-    env.CRAWCLAW_TEST_ISOLATE === "1" || env.CRAWCLAW_TEST_ISOLATE === "true";
+  const forceIsolation = env.CRAWCLAW_TEST_ISOLATE === "1" || env.CRAWCLAW_TEST_ISOLATE === "true";
   if (forceIsolation) {
     return true;
   }

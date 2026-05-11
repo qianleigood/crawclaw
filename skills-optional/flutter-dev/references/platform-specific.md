@@ -180,7 +180,7 @@ import UIKit
             name: "com.example.app/native",
             binaryMessenger: controller.binaryMessenger
         )
-        
+
         channel.setMethodCallHandler { (call, result) in
             switch call.method {
             case "getPlatformVersion":
@@ -199,7 +199,7 @@ import UIKit
                 result(FlutterMethodNotImplemented)
             }
         }
-        
+
         GeneratedPluginRegistrant.register(with: self)
         return super.application(application, didFinishLaunchingWithOptions: launchOptions)
     }
@@ -225,7 +225,7 @@ class MainActivity: FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
             .setMethodCallHandler { call, result ->
                 when (call.method) {
@@ -301,7 +301,7 @@ ios/Runner/Assets.xcassets/
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-    
+
     <application
         android:label="My App"
         android:icon="@mipmap/ic_launcher">
@@ -316,13 +316,13 @@ ios/Runner/Assets.xcassets/
 // android/app/build.gradle
 android {
     compileSdkVersion 34
-    
+
     defaultConfig {
         minSdkVersion 21
         targetSdkVersion 34
         multiDexEnabled true
     }
-    
+
     buildTypes {
         release {
             signingConfig signingConfigs.release
@@ -352,7 +352,7 @@ class StorageService {
   void save(String key, String value) {
     html.window.localStorage[key] = value;
   }
-  
+
   String? load(String key) {
     return html.window.localStorage[key];
   }
@@ -365,16 +365,16 @@ class StorageService {
 <!-- web/index.html -->
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My App</title>
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" type="image/png" href="favicon.png"/>
-</head>
-<body>
-  <script src="flutter_bootstrap.js" async></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>My App</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="icon" type="image/png" href="favicon.png" />
+  </head>
+  <body>
+    <script src="flutter_bootstrap.js" async></script>
+  </body>
 </html>
 ```
 
@@ -404,14 +404,14 @@ ThemeData get theme {
 
 ## Platform Reference
 
-| Feature | iOS | Android | Web |
-|---------|-----|---------|-----|
-| Navigation | Cupertino style | Material style | URL-based |
-| Haptics | UIFeedbackGenerator | Vibrator | Not available |
-| Storage | NSUserDefaults | SharedPreferences | localStorage |
-| Deep links | Universal Links | App Links | URL routing |
-| Notifications | APNs | FCM | Web Push |
+| Feature       | iOS                 | Android           | Web           |
+| ------------- | ------------------- | ----------------- | ------------- |
+| Navigation    | Cupertino style     | Material style    | URL-based     |
+| Haptics       | UIFeedbackGenerator | Vibrator          | Not available |
+| Storage       | NSUserDefaults      | SharedPreferences | localStorage  |
+| Deep links    | Universal Links     | App Links         | URL routing   |
+| Notifications | APNs                | FCM               | Web Push      |
 
 ---
 
-*Flutter, iOS, Android, and their respective logos are trademarks of Google LLC and Apple Inc.*
+_Flutter, iOS, Android, and their respective logos are trademarks of Google LLC and Apple Inc._

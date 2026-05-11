@@ -42,7 +42,6 @@ export type ExecApprovalPendingReplyParams = {
   command: string;
   cwd?: string;
   host: ExecHost;
-  nodeId?: string;
   sessionKey?: string | null;
   expiresAtMs?: number;
   nowMs?: number;
@@ -289,9 +288,6 @@ export function buildExecApprovalPendingReplyPayload(
   }
   const info: string[] = [];
   info.push(`Host: ${params.host}`);
-  if (params.nodeId) {
-    info.push(`Node: ${params.nodeId}`);
-  }
   if (params.cwd) {
     info.push(`CWD: ${params.cwd}`);
   }

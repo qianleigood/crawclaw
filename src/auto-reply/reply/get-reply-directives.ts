@@ -2,7 +2,6 @@ import { listAgentEntries } from "../../agents/agent-scope.js";
 import type { ExecToolDefaults } from "../../agents/bash-tools.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
 import type { ModelAliasIndex } from "../../agents/model-selection.js";
-import { resolveSandboxRuntimeStatus } from "../../agents/sandbox/runtime-status.js";
 import type { SkillCommandSpec } from "../../agents/skills.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
@@ -24,7 +23,7 @@ import { stripInlineStatus } from "./reply-inline.js";
 import type { TypingController } from "./typing.js";
 
 type AgentDefaults = NonNullable<CrawClawConfig["agents"]>["defaults"];
-type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask" | "node">;
+type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask">;
 type AgentEntry = NonNullable<NonNullable<CrawClawConfig["agents"]>["list"]>[number];
 
 let commandsRegistryPromise: Promise<typeof import("../commands-registry.runtime.js")> | null =
@@ -98,14 +97,10 @@ function resolveExecOverrides(params: {
     params.directives.execAsk ??
     (params.sessionEntry?.execAsk as ExecOverrides["ask"]) ??
     (params.agentEntry?.tools?.exec?.ask as ExecOverrides["ask"]);
-  const node =
-    params.directives.execNode ??
-    params.sessionEntry?.execNode ??
-    params.agentEntry?.tools?.exec?.node;
-  if (!host && !security && !ask && !node) {
+  if (!host && !security && !ask) {
     return undefined;
   }
-  return { host, security, ask, node };
+  return { host, security, ask };
 }
 
 export type ReplyDirectiveResult =
@@ -356,15 +351,10 @@ export async function resolveReplyDirectives(params: {
   const elevatedFailures = elevated.failures;
   if (directives.hasElevatedDirective && (!elevatedEnabled || !elevatedAllowed)) {
     typing.cleanup();
-    const runtimeSandboxed = resolveSandboxRuntimeStatus({
-      cfg,
-      sessionKey: ctx.SessionKey,
-    }).sandboxed;
     return {
       kind: "reply",
       reply: {
         text: formatElevatedUnavailableMessage({
-          runtimeSandboxed,
           failures: elevatedFailures,
           sessionKey: ctx.SessionKey,
         }),

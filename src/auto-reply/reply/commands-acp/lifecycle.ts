@@ -15,7 +15,6 @@ import {
   resolveAcpSessionCwd,
   resolveAcpThreadSessionDetailLines,
 } from "../../../acp/runtime/session-identifiers.js";
-import { resolveAcpSpawnRuntimePolicyError } from "../../../agents/acp-spawn.js";
 import {
   resolveThreadBindingIntroText,
   resolveThreadBindingThreadName,
@@ -462,13 +461,6 @@ export async function handleAcpSpawnAction(
   }
 
   const spawn = parsed.value;
-  const runtimePolicyError = resolveAcpSpawnRuntimePolicyError({
-    cfg: params.cfg,
-    requesterSessionKey: params.sessionKey,
-  });
-  if (runtimePolicyError) {
-    return stopWithText(`⚠️ ${runtimePolicyError}`);
-  }
   const agentPolicyError = resolveAcpAgentPolicyError(params.cfg, spawn.agentId);
   if (agentPolicyError) {
     return stopWithText(

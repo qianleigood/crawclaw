@@ -15,7 +15,6 @@ export function createGatewayCloseHandler(params: {
   cron: { stop: () => void };
   mainSessionWakeRunner: MainSessionWakeRunner;
   updateCheckStop?: (() => void) | null;
-  nodePresenceTimers: Map<string, ReturnType<typeof setInterval>>;
   broadcast: (event: string, payload: unknown, opts?: { dropIfSlow?: boolean }) => void;
   tickInterval: ReturnType<typeof setInterval>;
   healthInterval: ReturnType<typeof setInterval>;
@@ -65,10 +64,6 @@ export function createGatewayCloseHandler(params: {
       } catch {
         /* ignore */
       }
-      for (const timer of params.nodePresenceTimers.values()) {
-        clearInterval(timer);
-      }
-      params.nodePresenceTimers.clear();
       params.broadcast("shutdown", {
         reason,
         restartExpectedMs,

@@ -68,24 +68,18 @@ describe("runServiceRestart token drift", () => {
     stubEmptyGatewayEnv();
   });
 
-  it("prints the container restart hint when restart is requested for a not-loaded service", async () => {
+  it("prints start hints when restart is requested for a not-loaded service", async () => {
     service.isLoaded.mockResolvedValue(false);
-    vi.stubEnv("CRAWCLAW_CONTAINER_HINT", "crawclaw-demo-container");
 
     await runServiceRestart({
       serviceNoun: "Gateway",
       service,
-      renderStartHints: () => [
-        "Restart the container or the service that manages it for crawclaw-demo-container.",
-        "crawclaw gateway install",
-      ],
+      renderStartHints: () => ["crawclaw gateway install"],
       opts: { json: false },
     });
 
     expect(runtimeLogs).toContain("Gateway service not loaded.");
-    expect(runtimeLogs).toContain(
-      "Start with: Restart the container or the service that manages it for crawclaw-demo-container.",
-    );
+    expect(runtimeLogs).toContain("Start with: crawclaw gateway install");
   });
 
   it("emits drift warning when enabled", async () => {

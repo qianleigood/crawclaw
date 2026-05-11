@@ -58,7 +58,7 @@ function withLoopbackBrowserAuthImpl(
     // ignore config/auth lookup failures and continue without auth headers
   }
 
-  // Sandbox bridge servers can run with per-process ephemeral auth on dynamic ports.
+  // Bridge servers can run with per-process ephemeral auth on dynamic ports.
   // Fall back to the in-memory registry if config auth is not available.
   try {
     const parsed = new URL(url);
@@ -130,7 +130,7 @@ function resolveBrowserFetchOperatorHint(url: string): string {
   const isLocal = !isAbsoluteHttp(url);
   return isLocal
     ? "Restart the CrawClaw gateway from the app or local runtime."
-    : "If this is a sandboxed session, ensure the sandbox browser is running.";
+    : "Ensure the browser bridge is running and reachable.";
 }
 
 function normalizeErrorMessage(err: unknown): string {

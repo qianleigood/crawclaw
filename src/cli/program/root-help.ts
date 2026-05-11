@@ -27,8 +27,6 @@ type RootHelpConfigHints = {
 const ROOT_HELP_EN_TRANSLATIONS: CliTranslations = {
   "cli.option.version": "Output the version number",
   "cli.option.lang": "Prompt/help language (en or zh-CN)",
-  "cli.option.container":
-    "Run the CLI inside a running Podman/Docker container named <name> (default: env CRAWCLAW_CONTAINER)",
   "cli.option.dev":
     "Dev profile: isolate state under ~/.crawclaw-dev, default gateway port 19001, and shift derived ports (browser/canvas)",
   "cli.option.profile":

@@ -7,10 +7,7 @@ import {
   isChannelExecApprovalClientEnabledFromConfig,
   matchesApprovalRequestFilters,
 } from "crawclaw/plugin-sdk/approval-runtime";
-import type {
-  DiscordExecApprovalConfig,
-  CrawClawConfig,
-} from "crawclaw/plugin-sdk/config-runtime";
+import type { DiscordExecApprovalConfig, CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { ExecApprovalRequest, PluginApprovalRequest } from "crawclaw/plugin-sdk/infra-runtime";
 import { listDiscordAccountIds, resolveDiscordAccount } from "./accounts.js";
 import {

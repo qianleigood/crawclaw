@@ -44,7 +44,7 @@ export async function seedMainSessionStore(
   return sessionKey;
 }
 
-export async function withTempHeartbeatSandbox<T>(
+export async function withTempHeartbeatFixture<T>(
   fn: (ctx: {
     tmpDir: string;
     storePath: string;
@@ -79,7 +79,7 @@ export async function withTempHeartbeatSandbox<T>(
   }
 }
 
-export async function withTempTelegramHeartbeatSandbox<T>(
+export async function withTempTelegramHeartbeatFixture<T>(
   fn: (ctx: {
     tmpDir: string;
     storePath: string;
@@ -89,7 +89,7 @@ export async function withTempTelegramHeartbeatSandbox<T>(
     prefix?: string;
   },
 ): Promise<T> {
-  return withTempHeartbeatSandbox(fn, {
+  return withTempHeartbeatFixture(fn, {
     prefix: options?.prefix,
     unsetEnvVars: ["TELEGRAM_BOT_TOKEN"],
   });

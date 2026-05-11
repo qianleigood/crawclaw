@@ -9,11 +9,11 @@ import {
   type MessagePayloadObject,
   type TopLevelComponents,
 } from "@buape/carbon";
-import type { APISelectMenuOption } from "discord-api-types/v10";
-import { ButtonStyle } from "discord-api-types/v10";
 import { normalizeProviderId } from "crawclaw/plugin-sdk/agent-runtime";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import type { ModelsProviderData } from "crawclaw/plugin-sdk/models-provider-runtime";
+import type { APISelectMenuOption } from "discord-api-types/v10";
+import { ButtonStyle } from "discord-api-types/v10";
 
 export const DISCORD_MODEL_PICKER_CUSTOM_ID_KEY = "mdlpk";
 export const DISCORD_CUSTOM_ID_MAX_CHARS = 100;

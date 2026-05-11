@@ -85,13 +85,13 @@ import CoreLocationUI
 class StoreFinderVC: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         let locationBtn = CLLocationButton()
         locationBtn.icon = .arrowFilled
         locationBtn.label = .currentLocation
         locationBtn.cornerRadius = 20
         locationBtn.addTarget(self, action: #selector(findNearby), for: .touchUpInside)
-        
+
         view.addSubview(locationBtn)
         locationBtn.snp.makeConstraints { make in
             make.centerX.equalToSuperview()
@@ -108,13 +108,13 @@ import CoreLocation
 
 class LocationManager: NSObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
-    
+
     func requestLocation() {
         manager.delegate = self
         manager.desiredAccuracy = kCLLocationAccuracyBest
         manager.requestWhenInUseAuthorization()
     }
-    
+
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
         switch manager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
@@ -125,7 +125,7 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
             break
         }
     }
-    
+
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.last else { return }
         handleLocation(location)
@@ -139,12 +139,12 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
 @objc func shareContent() {
     let items: [Any] = [contentURL, contentImage].compactMap { $0 }
     let activityVC = UIActivityViewController(activityItems: items, applicationActivities: nil)
-    
+
     if let popover = activityVC.popoverPresentationController {
         popover.sourceView = shareButton
         popover.sourceRect = shareButton.bounds
     }
-    
+
     present(activityVC, animated: true)
 }
 ```
@@ -155,20 +155,20 @@ class LocationManager: NSObject, CLLocationManagerDelegate {
 class ShareItem: NSObject, UIActivityItemSource {
     let title: String
     let url: URL
-    
+
     init(title: String, url: URL) {
         self.title = title
         self.url = url
     }
-    
+
     func activityViewControllerPlaceholderItem(_ activityViewController: UIActivityViewController) -> Any {
         return url
     }
-    
+
     func activityViewController(_ activityViewController: UIActivityViewController, itemForActivityType activityType: UIActivity.ActivityType?) -> Any? {
         return url
     }
-    
+
     func activityViewController(_ activityViewController: UIActivityViewController, subjectForActivityType activityType: UIActivity.ActivityType?) -> String {
         return title
     }
@@ -192,7 +192,7 @@ activityVC.excludedActivityTypes = [
 class PlayerViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         NotificationCenter.default.addObserver(
             self, selector: #selector(onBackground),
             name: UIApplication.didEnterBackgroundNotification, object: nil
@@ -206,17 +206,17 @@ class PlayerViewController: UIViewController {
             name: UIApplication.willTerminateNotification, object: nil
         )
     }
-    
-    @objc private func onBackground() { 
+
+    @objc private func onBackground() {
         saveState()
         pausePlayback()
     }
-    
-    @objc private func onForeground() { 
+
+    @objc private func onForeground() {
         restoreState()
         resumePlayback()
     }
-    
+
     @objc private func onTerminate() {
         saveState()
     }
@@ -230,15 +230,15 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidBecomeActive(_ scene: UIScene) {
         // Resume tasks
     }
-    
+
     func sceneWillResignActive(_ scene: UIScene) {
         // Pause tasks
     }
-    
+
     func sceneDidEnterBackground(_ scene: UIScene) {
         // Save state
     }
-    
+
     func sceneWillEnterForeground(_ scene: UIScene) {
         // Prepare UI
     }
@@ -253,7 +253,7 @@ class ViewController: UIViewController {
         super.encodeRestorableState(with: coder)
         coder.encode(currentItemID, forKey: "currentItemID")
     }
-    
+
     override func decodeRestorableState(with coder: NSCoder) {
         super.decodeRestorableState(with: coder)
         if let itemID = coder.decodeObject(forKey: "currentItemID") as? String {
@@ -289,13 +289,13 @@ func onImpact() {
 
 ### Impact Styles
 
-| Style | Usage |
-|-------|-------|
-| `.light` | Subtle feedback, small UI changes |
-| `.medium` | Standard feedback, button presses |
-| `.heavy` | Strong feedback, significant actions |
-| `.soft` | Gentle feedback, background changes |
-| `.rigid` | Sharp feedback, collisions |
+| Style     | Usage                                |
+| --------- | ------------------------------------ |
+| `.light`  | Subtle feedback, small UI changes    |
+| `.medium` | Standard feedback, button presses    |
+| `.heavy`  | Strong feedback, significant actions |
+| `.soft`   | Gentle feedback, background changes  |
+| `.rigid`  | Sharp feedback, collisions           |
 
 ### Prepared Feedback
 
@@ -304,12 +304,12 @@ For time-critical haptics, prepare the generator in advance:
 ```swift
 class DraggableView: UIView {
     private let impactGenerator = UIImpactFeedbackGenerator(style: .medium)
-    
+
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         super.touchesBegan(touches, with: event)
         impactGenerator.prepare()
     }
-    
+
     func didSnapToPosition() {
         impactGenerator.impactOccurred()
     }
@@ -326,7 +326,7 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
     guard let components = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
         return false
     }
-    
+
     switch components.host {
     case "item":
         if let itemID = components.queryItems?.first(where: { $0.name == "id" })?.value {
@@ -336,7 +336,7 @@ func application(_ app: UIApplication, open url: URL, options: [UIApplication.Op
     default:
         break
     }
-    
+
     return false
 }
 ```
@@ -349,7 +349,7 @@ func application(_ application: UIApplication, continue userActivity: NSUserActi
           let url = userActivity.webpageURL else {
         return false
     }
-    
+
     return handleUniversalLink(url)
 }
 ```
@@ -371,7 +371,7 @@ func registerBackgroundTasks() {
 func scheduleAppRefresh() {
     let request = BGAppRefreshTaskRequest(identifier: "com.app.refresh")
     request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
-    
+
     do {
         try BGTaskScheduler.shared.submit(request)
     } catch {
@@ -381,21 +381,21 @@ func scheduleAppRefresh() {
 
 func handleAppRefresh(task: BGAppRefreshTask) {
     scheduleAppRefresh()
-    
+
     let operation = RefreshOperation()
-    
+
     task.expirationHandler = {
         operation.cancel()
     }
-    
+
     operation.completionBlock = {
         task.setTaskCompleted(success: !operation.isCancelled)
     }
-    
+
     OperationQueue.main.addOperation(operation)
 }
 ```
 
 ---
 
-*UIKit, Core Location, and Apple are trademarks of Apple Inc.*
+_UIKit, Core Location, and Apple are trademarks of Apple Inc._

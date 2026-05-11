@@ -40,13 +40,17 @@ pip3 install -r requirements.txt
 ## 何时读取参考文档
 
 ### CLI 示例
+
 读 `references/cli-recipes.md`，当你需要：
+
 - create / read / edit / template / batch 命令示例
 - 常见批量处理命令
 - 典型业务场景参考
 
 ### Python API
+
 读 `references/python-api.md`，当你需要：
+
 - 在 Python 中直接创建 / 读取 / 编辑文档
 - 模板占位符示例
 - 代码级集成方式
@@ -62,6 +66,7 @@ pip3 install -r requirements.txt
 ## 交付时说明
 
 完成后应告诉用户：
+
 - 生成或修改了哪些文件
 - 输出文件在哪里
 - 若涉及转换，哪些格式需要额外依赖

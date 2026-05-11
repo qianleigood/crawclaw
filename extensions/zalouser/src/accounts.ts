@@ -14,10 +14,7 @@ const {
 } = createAccountListHelpers("zalouser");
 export { listZalouserAccountIds, resolveDefaultZalouserAccountId };
 
-function mergeZalouserAccountConfig(
-  cfg: CrawClawConfig,
-  accountId: string,
-): ZalouserAccountConfig {
+function mergeZalouserAccountConfig(cfg: CrawClawConfig, accountId: string): ZalouserAccountConfig {
   const merged = resolveMergedAccountConfig<ZalouserAccountConfig>({
     channelConfig: cfg.channels?.zalouser as ZalouserAccountConfig | undefined,
     accounts: (cfg.channels?.zalouser as ZalouserConfig | undefined)?.accounts as

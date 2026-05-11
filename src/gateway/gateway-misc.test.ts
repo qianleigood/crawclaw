@@ -1,16 +1,7 @@
 import { beforeEach, describe, expect, it, test, vi } from "vitest";
 import { defaultVoiceWakeTriggers } from "../infra/voicewake.js";
-import {
-  DEFAULT_DANGEROUS_NODE_COMMANDS,
-  resolveNodeCommandAllowlist,
-} from "./node-command-policy.js";
-import type { RequestFrame } from "./protocol/index.js";
 import { createGatewayBroadcaster } from "./server-broadcast.js";
 import { createChatRunRegistry } from "./server-chat.js";
-import { handleNodeInvokeResult } from "./server-methods/nodes.handlers.invoke-result.js";
-import type { GatewayClient as GatewayMethodClient } from "./server-methods/types.js";
-import type { GatewayRequestContext, RespondFn } from "./server-methods/types.js";
-import { createNodeSubscriptionManager } from "./server-node-subscriptions.js";
 import { formatError, normalizeVoiceWakeTriggers } from "./server-utils.js";
 import type { GatewayWsClient } from "./server/ws-types.js";
 
@@ -54,7 +45,7 @@ beforeEach(async () => {
 });
 
 describe("GatewayClient", () => {
-  test("uses a large maxPayload for node snapshots", () => {
+  test("uses a large maxPayload for gateway snapshots", () => {
     const client = new GatewayClient({ url: "ws://127.0.0.1:1" });
     client.start();
     const last = wsMockState.last as { url: unknown; opts: unknown } | null;
@@ -135,180 +126,6 @@ describe("chat run registry", () => {
 
     expect(registry.remove("s1", "c2")?.clientRunId).toBe("c2");
     expect(registry.peek("s1")).toBeUndefined();
-  });
-});
-
-describe("late-arriving invoke results", () => {
-  test("returns success for unknown invoke ids for both success and error payloads", async () => {
-    const nodeId = "node-123";
-    const cases = [
-      {
-        id: "unknown-invoke-id-12345",
-        ok: true,
-        payloadJSON: JSON.stringify({ result: "late" }),
-      },
-      {
-        id: "another-unknown-invoke-id",
-        ok: false,
-        error: { code: "FAILED", message: "test error" },
-      },
-    ] as const;
-
-    for (const params of cases) {
-      const respond = vi.fn<RespondFn>();
-      const context = {
-        nodeRegistry: { handleInvokeResult: () => false },
-        logGateway: { debug: vi.fn() },
-      } as unknown as GatewayRequestContext;
-      const client = {
-        connect: { device: { id: nodeId } },
-      } as unknown as GatewayMethodClient;
-
-      await handleNodeInvokeResult({
-        req: { method: "node.invoke.result" } as unknown as RequestFrame,
-        params: { ...params, nodeId } as unknown as Record<string, unknown>,
-        client,
-        isWebchatConnect: () => false,
-        respond,
-        context,
-      });
-
-      const [ok, rawPayload, error] = respond.mock.lastCall ?? [];
-      const payload = rawPayload as { ok?: boolean; ignored?: boolean } | undefined;
-
-      // Late-arriving results return success instead of error to reduce log noise.
-      expect(ok).toBe(true);
-      expect(error).toBeUndefined();
-      expect(payload?.ok).toBe(true);
-      expect(payload?.ignored).toBe(true);
-    }
-  });
-});
-
-describe("node subscription manager", () => {
-  test("routes events to subscribed nodes", () => {
-    const manager = createNodeSubscriptionManager();
-    const sent: Array<{
-      nodeId: string;
-      event: string;
-      payloadJSON?: string | null;
-    }> = [];
-    const sendEvent = (evt: { nodeId: string; event: string; payloadJSON?: string | null }) =>
-      sent.push(evt);
-
-    manager.subscribe("node-a", "main");
-    manager.subscribe("node-b", "main");
-    manager.sendToSession("main", "chat", { ok: true }, sendEvent);
-
-    expect(sent).toHaveLength(2);
-    expect(sent.map((s) => s.nodeId).toSorted()).toEqual(["node-a", "node-b"]);
-    expect(sent[0].event).toBe("chat");
-  });
-
-  test("unsubscribeAll clears session mappings", () => {
-    const manager = createNodeSubscriptionManager();
-    const sent: string[] = [];
-    const sendEvent = (evt: { nodeId: string; event: string }) =>
-      sent.push(`${evt.nodeId}:${evt.event}`);
-
-    manager.subscribe("node-a", "main");
-    manager.subscribe("node-a", "secondary");
-    manager.unsubscribeAll("node-a");
-    manager.sendToSession("main", "tick", {}, sendEvent);
-    manager.sendToSession("secondary", "tick", {}, sendEvent);
-
-    expect(sent).toEqual([]);
-  });
-});
-
-describe("resolveNodeCommandAllowlist", () => {
-  it("includes iOS service commands by default", () => {
-    const allow = resolveNodeCommandAllowlist(
-      {},
-      {
-        platform: "ios 26.0",
-        deviceFamily: "iPhone",
-      },
-    );
-
-    expect(allow.has("device.info")).toBe(true);
-    expect(allow.has("device.status")).toBe(true);
-    expect(allow.has("system.notify")).toBe(true);
-    expect(allow.has("contacts.search")).toBe(true);
-    expect(allow.has("calendar.events")).toBe(true);
-    expect(allow.has("reminders.list")).toBe(true);
-    expect(allow.has("photos.latest")).toBe(true);
-    expect(allow.has("motion.activity")).toBe(true);
-
-    for (const cmd of DEFAULT_DANGEROUS_NODE_COMMANDS) {
-      expect(allow.has(cmd)).toBe(false);
-    }
-  });
-
-  it("includes Android notifications and device diagnostics commands by default", () => {
-    const allow = resolveNodeCommandAllowlist(
-      {},
-      {
-        platform: "android 16",
-        deviceFamily: "Android",
-      },
-    );
-
-    expect(allow.has("notifications.list")).toBe(true);
-    expect(allow.has("notifications.actions")).toBe(true);
-    expect(allow.has("device.permissions")).toBe(true);
-    expect(allow.has("device.health")).toBe(true);
-    expect(allow.has("callLog.search")).toBe(true);
-    expect(allow.has("system.notify")).toBe(true);
-    expect(allow.has("sms.search")).toBe(false);
-  });
-
-  it("treats sms.search as dangerous by default", () => {
-    expect(DEFAULT_DANGEROUS_NODE_COMMANDS).toContain("sms.search");
-  });
-
-  it("can explicitly allow dangerous commands via allowCommands", () => {
-    const allow = resolveNodeCommandAllowlist(
-      {
-        gateway: {
-          nodes: {
-            allowCommands: ["camera.snap", "screen.record"],
-          },
-        },
-      },
-      { platform: "ios", deviceFamily: "iPhone" },
-    );
-    expect(allow.has("camera.snap")).toBe(true);
-    expect(allow.has("screen.record")).toBe(true);
-    expect(allow.has("camera.clip")).toBe(false);
-  });
-
-  it("treats unknown/confusable metadata as fail-safe for system.run defaults", () => {
-    const allow = resolveNodeCommandAllowlist(
-      {},
-      {
-        platform: "iPhοne",
-        deviceFamily: "iPhοne",
-      },
-    );
-
-    expect(allow.has("system.run")).toBe(false);
-    expect(allow.has("system.which")).toBe(false);
-    expect(allow.has("system.notify")).toBe(true);
-  });
-
-  it("normalizes dotted-I platform values to iOS classification", () => {
-    const allow = resolveNodeCommandAllowlist(
-      {},
-      {
-        platform: "İOS",
-        deviceFamily: "iPhone",
-      },
-    );
-
-    expect(allow.has("system.run")).toBe(false);
-    expect(allow.has("system.which")).toBe(false);
-    expect(allow.has("device.info")).toBe(true);
   });
 });
 

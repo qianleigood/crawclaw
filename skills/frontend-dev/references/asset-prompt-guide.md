@@ -25,19 +25,19 @@
 
 ## Preset Shortcuts
 
-| Shortcut | Spec |
-|----------|------|
-| `hero` | 16:9 (1280x720) image, cinematic, text-safe space |
-| `thumb` | 1:1 (1024x1024) image, centered subject |
-| `icon` | 1:1 (1024x1024), flat style, clean background |
-| `avatar` | 1:1 (1024x1024), portrait, circular crop ready |
-| `banner` | 21:9 (1344x576), OG/social banner |
-| `portrait` | 2:3 (832x1248), vertical portrait |
-| `mobile` | 9:16 (720x1280), mobile fullscreen |
-| `bg-video` | 768P, 6s, `[Static shot]`, MiniMax Hailuo-2.3 |
-| `video` | 768P, 6s, MiniMax Hailuo-2.3, prompt auto-optimized |
-| `video-hd` | 1080P, 6s, MiniMax Hailuo-2.3 |
-| `bgm` | 30s background music, no vocals, loopable |
-| `sfx` | Short sound effect, < 3s |
-| `tts` | Text-to-speech, MiniMax HD, MP3 |
-| `narration` | Expressive narration voice, MiniMax |
+| Shortcut    | Spec                                                |
+| ----------- | --------------------------------------------------- |
+| `hero`      | 16:9 (1280x720) image, cinematic, text-safe space   |
+| `thumb`     | 1:1 (1024x1024) image, centered subject             |
+| `icon`      | 1:1 (1024x1024), flat style, clean background       |
+| `avatar`    | 1:1 (1024x1024), portrait, circular crop ready      |
+| `banner`    | 21:9 (1344x576), OG/social banner                   |
+| `portrait`  | 2:3 (832x1248), vertical portrait                   |
+| `mobile`    | 9:16 (720x1280), mobile fullscreen                  |
+| `bg-video`  | 768P, 6s, `[Static shot]`, MiniMax Hailuo-2.3       |
+| `video`     | 768P, 6s, MiniMax Hailuo-2.3, prompt auto-optimized |
+| `video-hd`  | 1080P, 6s, MiniMax Hailuo-2.3                       |
+| `bgm`       | 30s background music, no vocals, loopable           |
+| `sfx`       | Short sound effect, < 3s                            |
+| `tts`       | Text-to-speech, MiniMax HD, MP3                     |
+| `narration` | Expressive narration voice, MiniMax                 |

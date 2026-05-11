@@ -15,7 +15,6 @@ const TEST_SPECIAL_AGENT_DEFINITION: SpecialAgentDefinition = {
   toolPolicy: { allowlist: ["read"] },
   mode: "run",
   cleanup: "keep",
-  sandbox: "inherit",
   expectsCompletionMessage: false,
   defaultRunTimeoutSeconds: 90,
   defaultMaxTurns: 5,

@@ -2,7 +2,7 @@ import type { ModelProviderConfig } from "crawclaw/plugin-sdk/provider-model-sha
 export {
   ANTHROPIC_VERTEX_DEFAULT_MODEL_ID,
   buildAnthropicVertexProvider,
-  } from "./provider-catalog.js";
+} from "./provider-catalog.js";
 export {
   hasAnthropicVertexAvailableAuth,
   hasAnthropicVertexCredentials,
@@ -11,7 +11,7 @@ export {
   resolveAnthropicVertexProjectId,
   resolveAnthropicVertexRegion,
   resolveAnthropicVertexRegionFromBaseUrl,
-  } from "./region.js";
+} from "./region.js";
 import { buildAnthropicVertexProvider } from "./provider-catalog.js";
 import { hasAnthropicVertexAvailableAuth } from "./region.js";
 
@@ -19,19 +19,18 @@ export function mergeImplicitAnthropicVertexProvider(params: {
   existing: ModelProviderConfig | undefined;
   implicit: ModelProviderConfig;
 }): ModelProviderConfig {
-  const { existing,
-  implicit } = params;
+  const { existing, implicit } = params;
   if (!existing) {
     return implicit;
   }
   return {
     ...implicit,
-  ...existing,
-  models:
+    ...existing,
+    models:
       Array.isArray(existing.models) && existing.models.length > 0
         ? existing.models
         : implicit.models,
-};
+  };
 }
 
 export function resolveImplicitAnthropicVertexProvider(params?: {

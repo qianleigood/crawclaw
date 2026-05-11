@@ -1,8 +1,8 @@
-import { ChannelType } from "discord-api-types/v10";
 import type { NativeCommandSpec } from "crawclaw/plugin-sdk/command-auth";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { clearPluginCommands, registerPluginCommand } from "crawclaw/plugin-sdk/plugin-runtime";
 import { setDefaultChannelPluginRegistryForTests } from "crawclaw/plugin-sdk/testing";
+import { ChannelType } from "discord-api-types/v10";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   createMockCommandInteraction,

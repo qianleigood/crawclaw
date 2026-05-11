@@ -1615,7 +1615,7 @@ ensure_crawclaw_bin_link() {
     fi
     mkdir -p "$npm_bin"
     if [[ ! -x "${npm_bin}/crawclaw" ]]; then
-        ln -sf "$package_dir/dist/entry.js" "${npm_bin}/crawclaw"
+        ln -sf "$package_dir/dist/native/crawclaw" "${npm_bin}/crawclaw"
         ui_info "Created crawclaw bin link at ${npm_bin}/crawclaw"
     fi
     return 0
@@ -1954,10 +1954,10 @@ install_crawclaw_from_git() {
 
     ensure_user_local_bin_on_path
 
-    cat > "$HOME/.local/bin/crawclaw" <<EOF
+cat > "$HOME/.local/bin/crawclaw" <<EOF
 #!/usr/bin/env bash
 set -euo pipefail
-exec node "${repo_dir}/dist/entry.js" "\$@"
+exec "${repo_dir}/dist/native/crawclaw" "\$@"
 EOF
     chmod +x "$HOME/.local/bin/crawclaw"
     ui_success "CrawClaw wrapper installed to \$HOME/.local/bin/crawclaw"
@@ -2126,25 +2126,6 @@ run_bootstrap_onboarding_if_needed() {
     }
 }
 
-load_install_version_helpers() {
-    local source_path="${BASH_SOURCE[0]-}"
-    local script_dir=""
-    local helper_path=""
-    if [[ -z "$source_path" || ! -f "$source_path" ]]; then
-        return 0
-    fi
-    script_dir="$(cd "$(dirname "$source_path")" && pwd 2>/dev/null || true)"
-    helper_path="${script_dir}/docker/install-sh-common/version-parse.sh"
-    if [[ -n "$script_dir" && -r "$helper_path" ]]; then
-        # shellcheck source=docker/install-sh-common/version-parse.sh
-        source "$helper_path"
-    fi
-}
-
-load_install_version_helpers
-
-if ! declare -F extract_crawclaw_semver >/dev/null 2>&1; then
-# Inline fallback when version-parse.sh could not be sourced (for example, stdin install).
 extract_crawclaw_semver() {
     local raw="${1:-}"
     local parsed=""
@@ -2157,7 +2138,6 @@ extract_crawclaw_semver() {
     )"
     printf '%s' "${parsed#v}"
 }
-fi
 
 resolve_crawclaw_version() {
     local version=""

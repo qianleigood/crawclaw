@@ -1,22 +1,34 @@
 import { createHash } from "node:crypto";
 import { access, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import type { MediaAsset, MessageBlock, MessageMediaRef } from "../types/media.ts";
 import { newId } from "../util/ids.ts";
 import { resolveHome } from "../util/path.ts";
-import type { MediaAsset, MessageBlock, MessageMediaRef } from "../types/media.ts";
 
 function extensionForMime(mimeType: string): string {
-  if (mimeType === "image/png") {return "png";}
-  if (mimeType === "image/jpeg") {return "jpg";}
-  if (mimeType === "image/webp") {return "webp";}
-  if (mimeType === "image/svg+xml") {return "svg";}
-  if (mimeType === "application/pdf") {return "pdf";}
+  if (mimeType === "image/png") {
+    return "png";
+  }
+  if (mimeType === "image/jpeg") {
+    return "jpg";
+  }
+  if (mimeType === "image/webp") {
+    return "webp";
+  }
+  if (mimeType === "image/svg+xml") {
+    return "svg";
+  }
+  if (mimeType === "application/pdf") {
+    return "pdf";
+  }
   return "bin";
 }
 
 function parseDataUri(value: string): { mimeType: string; buffer: Buffer } | null {
   const match = /^data:([^;,]+)?(?:;base64)?,(.*)$/i.exec(value);
-  if (!match) {return null;}
+  if (!match) {
+    return null;
+  }
   const mimeType = match[1] || "application/octet-stream";
   const payload = match[2] || "";
   try {
@@ -83,7 +95,10 @@ export class MediaService {
     };
   }
 
-  private async materializeAsset(mediaId: string, block: Extract<MessageBlock, { type: "image" | "file" }>): Promise<MediaAsset> {
+  private async materializeAsset(
+    mediaId: string,
+    block: Extract<MessageBlock, { type: "image" | "file" }>,
+  ): Promise<MediaAsset> {
     const now = Date.now();
 
     if (block.type === "image" && block.url.startsWith("data:")) {
@@ -246,7 +261,8 @@ export class MediaService {
           updatedAt: now,
         };
       }
-      const mimeType = res.headers.get("content-type") || block.mimeType || "application/octet-stream";
+      const mimeType =
+        res.headers.get("content-type") || block.mimeType || "application/octet-stream";
       const sha256 = createHash("sha256").update(buffer).digest("hex");
       const ext = extensionForMime(mimeType);
       const localPath = path.join(this.cacheRoot, `${sha256}.${ext}`);

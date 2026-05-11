@@ -9,7 +9,7 @@ type DiscoveredBeacon = Awaited<
 >[number];
 
 const callGateway = vi.fn<(opts: unknown) => Promise<{ ok: true }>>(async () => ({ ok: true }));
-const startGatewayServer = vi.fn<
+const startRustGatewayServer = vi.fn<
   (port: number, opts?: unknown) => Promise<{ close: () => Promise<void> }>
 >(async () => ({
   close: vi.fn(async () => {}),
@@ -64,8 +64,8 @@ vi.mock(
   }),
 );
 
-vi.mock("../gateway/server.js", () => ({
-  startGatewayServer: (port: number, opts?: unknown) => startGatewayServer(port, opts),
+vi.mock("./gateway-cli/rust-server.js", () => ({
+  startRustGatewayServer: (port: number, opts?: unknown) => startRustGatewayServer(port, opts),
 }));
 
 vi.mock("../globals.js", () => ({
@@ -226,7 +226,7 @@ describe("gateway-cli coverage", () => {
     ]);
 
     // Start failure (generic)
-    startGatewayServer.mockRejectedValueOnce(new Error("nope"));
+    startRustGatewayServer.mockRejectedValueOnce(new Error("nope"));
     const beforeSigterm = new Set(process.listeners("SIGTERM"));
     const beforeSigint = new Set(process.listeners("SIGINT"));
     await expectGatewayExit([
@@ -266,14 +266,14 @@ describe("gateway-cli coverage", () => {
       },
       async () => {
         serviceIsLoaded.mockResolvedValue(true);
-        startGatewayServer.mockRejectedValueOnce(
+        startRustGatewayServer.mockRejectedValueOnce(
           new GatewayLockError("another gateway instance is already listening"),
         );
         await expect(
           runGatewayCommand(["gateway", "--token", "test-token", "--allow-unconfigured"]),
         ).rejects.toThrow("__exit__:0");
 
-        expect(startGatewayServer).toHaveBeenCalled();
+        expect(startRustGatewayServer).toHaveBeenCalled();
         expect(runtimeErrors.join("\n")).toContain("Gateway failed to start:");
         expect(runtimeErrors.join("\n")).toContain("gateway stop");
       },
@@ -284,7 +284,7 @@ describe("gateway-cli coverage", () => {
     runtimeLogs.length = 0;
     runtimeErrors.length = 0;
     serviceIsLoaded.mockResolvedValue(true);
-    startGatewayServer.mockRejectedValueOnce(
+    startRustGatewayServer.mockRejectedValueOnce(
       new GatewayLockError("failed to bind gateway socket on ws://127.0.0.1:18789: Error: boom"),
     );
 
@@ -297,7 +297,7 @@ describe("gateway-cli coverage", () => {
     runtimeLogs.length = 0;
     runtimeErrors.length = 0;
     serviceIsLoaded.mockResolvedValue(true);
-    startGatewayServer.mockRejectedValueOnce(
+    startRustGatewayServer.mockRejectedValueOnce(
       new GatewayLockError("failed to acquire gateway lock at /tmp/crawclaw/gateway.lock"),
     );
 
@@ -310,12 +310,12 @@ describe("gateway-cli coverage", () => {
     await withEnvOverride({ CRAWCLAW_GATEWAY_PORT: "19001" }, async () => {
       runtimeLogs.length = 0;
       runtimeErrors.length = 0;
-      startGatewayServer.mockClear();
+      startRustGatewayServer.mockClear();
 
-      startGatewayServer.mockRejectedValueOnce(new Error("nope"));
+      startRustGatewayServer.mockRejectedValueOnce(new Error("nope"));
       await expectGatewayExit(["gateway", "--token", "test-token", "--allow-unconfigured"]);
 
-      expect(startGatewayServer).toHaveBeenCalledWith(19001, expect.anything());
+      expect(startRustGatewayServer).toHaveBeenCalledWith(19001, expect.anything());
     });
   });
 });

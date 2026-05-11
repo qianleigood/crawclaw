@@ -111,17 +111,11 @@ function applyBlueBubblesSetupPatch(
   });
 }
 
-function resolveBlueBubblesServerUrl(
-  cfg: CrawClawConfig,
-  accountId: string,
-): string | undefined {
+function resolveBlueBubblesServerUrl(cfg: CrawClawConfig, accountId: string): string | undefined {
   return resolveBlueBubblesAccount({ cfg, accountId }).config.serverUrl?.trim() || undefined;
 }
 
-function resolveBlueBubblesWebhookPath(
-  cfg: CrawClawConfig,
-  accountId: string,
-): string | undefined {
+function resolveBlueBubblesWebhookPath(cfg: CrawClawConfig, accountId: string): string | undefined {
   return resolveBlueBubblesAccount({ cfg, accountId }).config.webhookPath?.trim() || undefined;
 }
 

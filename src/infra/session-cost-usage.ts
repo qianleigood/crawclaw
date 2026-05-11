@@ -58,7 +58,7 @@ export type {
   SessionToolUsage,
   SessionUsageTimePoint,
   SessionUsageTimeSeries,
-  } from "./session-cost-usage.types.js";
+} from "./session-cost-usage.types.js";
 
 const emptyTotals = (): CostUsageTotals => ({
   input: 0,
@@ -72,7 +72,7 @@ const emptyTotals = (): CostUsageTotals => ({
   cacheReadCost: 0,
   cacheWriteCost: 0,
   missingCostEntries: 0,
-  });
+});
 
 const toFiniteNumber = (value: unknown): number | undefined => {
   if (typeof value !== "number") {

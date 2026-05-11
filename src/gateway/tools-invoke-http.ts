@@ -234,8 +234,6 @@ export async function handleToolsInvokeHttpRequest(
     agentTo,
     agentThreadId,
     allowGatewaySubagentBinding: true,
-    // HTTP callers consume tool output directly; preserve raw media invoke payloads.
-    allowMediaInvokeCommands: true,
     config: cfg,
     workspaceDir,
     pluginToolAllowlist: collectExplicitAllowlist([

@@ -35,12 +35,6 @@ export { ensureGatewayStartupAuth } from "../gateway/startup-auth.js";
 export type { AnyAgentTool } from "../agents/tools/common.js";
 export { imageResultFromFile, jsonResult, readStringParam } from "../agents/tools/common.js";
 export { callGatewayTool } from "../agents/tools/gateway.js";
-export type { NodeListNode } from "../agents/tools/nodes-utils.js";
-export {
-  listNodes,
-  resolveNodeIdFromList,
-  selectDefaultNodeFromList,
-} from "../agents/tools/nodes-utils.js";
 export { danger, info } from "../globals.js";
 export { defaultRuntime } from "../runtime.js";
 export { wrapExternalContent } from "../security/external-content.js";
@@ -56,17 +50,8 @@ export { inheritOptionFromParent } from "../cli/command-options.js";
 export { addGatewayClientOptions, callGatewayFromCli } from "../cli/gateway-rpc.js";
 export type { GatewayRpcOpts } from "../cli/gateway-rpc.js";
 export { formatHelpExamples } from "../cli/help-format.js";
-export { withTimeout } from "../node-host/with-timeout.js";
-export {
-  isNodeCommandAllowed,
-  resolveNodeCommandAllowlist,
-} from "../gateway/node-command-policy.js";
-export type { NodeSession } from "../gateway/node-registry.js";
+export { withTimeout } from "../utils/with-timeout.js";
 export { ErrorCodes, errorShape } from "../gateway/protocol/index.js";
-export {
-  respondUnavailableOnNodeInvokeError,
-  safeParseJson,
-} from "../gateway/server-methods/nodes.helpers.js";
 export type { GatewayRequestHandlers } from "../gateway/server-methods/types.js";
 export type { CrawClawConfig } from "../config/config.js";
 export { extractErrorCode, formatErrorMessage } from "../infra/errors.js";

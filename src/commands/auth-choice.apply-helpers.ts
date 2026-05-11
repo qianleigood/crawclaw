@@ -4,7 +4,7 @@ import { applyDefaultModelChoice } from "./auth-choice.default-model.js";
 export type {
   SecretInputModePromptCopy,
   SecretRefSetupPromptCopy,
-  } from "../plugins/provider-auth-input.js";
+} from "../plugins/provider-auth-input.js";
 export {
   ensureApiKeyFromEnvOrPrompt,
   ensureApiKeyFromOptionEnvOrPrompt,
@@ -13,20 +13,20 @@ export {
   normalizeTokenProviderInput,
   promptSecretRefForSetup,
   resolveSecretInputModeForEnvSelection,
-  } from "../plugins/provider-auth-input.js";
+} from "../plugins/provider-auth-input.js";
 
 export function createAuthChoiceAgentModelNoter(
   params: ApplyAuthChoiceParams,
-  ): (model: string) => Promise<void> {
+): (model: string) => Promise<void> {
   return async (model: string) => {
     if (!params.agentId) {
       return;
     }
     await params.prompter.note(
       `Default model set to ${model} for agent "${params.agentId}".`,
-  "Model configured",
-  );
-};
+      "Model configured",
+    );
+  };
 }
 
 export interface ApplyAuthChoiceModelState {

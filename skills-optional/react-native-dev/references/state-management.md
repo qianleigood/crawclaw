@@ -4,13 +4,13 @@ Patterns for local, shared, and server state in React Native / Expo apps.
 
 ## Decision Guide
 
-| State Type | Solution |
-|------------|----------|
-| Local UI state (toggle, input) | `useState` / `useReducer` |
-| Shared app-wide state | Zustand or Jotai |
-| Server/async data | React Query (TanStack Query) |
-| Form state | React Hook Form (see forms.md) |
-| Auth / session | Zustand + `expo-secure-store` |
+| State Type                     | Solution                       |
+| ------------------------------ | ------------------------------ |
+| Local UI state (toggle, input) | `useState` / `useReducer`      |
+| Shared app-wide state          | Zustand or Jotai               |
+| Server/async data              | React Query (TanStack Query)   |
+| Form state                     | React Hook Form (see forms.md) |
+| Auth / session                 | Zustand + `expo-secure-store`  |
 
 **Avoid**: Redux for new projects (boilerplate), Context for high-frequency updates (re-render overhead).
 
@@ -26,8 +26,10 @@ type Action = { type: "increment" } | { type: "setStatus"; payload: State["statu
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
-    case "increment": return { ...state, count: state.count + 1 };
-    case "setStatus": return { ...state, status: action.payload };
+    case "increment":
+      return { ...state, count: state.count + 1 };
+    case "setStatus":
+      return { ...state, status: action.payload };
   }
 }
 
@@ -65,8 +67,8 @@ export const useSettingsStore = create<SettingsStore>()(
     {
       name: "settings-storage",
       storage: createJSONStorage(() => AsyncStorage),
-    }
-  )
+    },
+  ),
 );
 
 // Usage
@@ -86,12 +88,14 @@ interface CartStore {
 
 export const useCartStore = create<CartStore>()((set, get) => ({
   items: [],
-  add: (product) => set((s) => ({
-    items: [...s.items, { product, quantity: 1 }],
-  })),
-  remove: (id) => set((s) => ({
-    items: s.items.filter((i) => i.product.id !== id),
-  })),
+  add: (product) =>
+    set((s) => ({
+      items: [...s.items, { product, quantity: 1 }],
+    })),
+  remove: (id) =>
+    set((s) => ({
+      items: s.items.filter((i) => i.product.id !== id),
+    })),
   clear: () => set({ items: [] }),
   total: () => get().items.reduce((sum, i) => sum + i.product.price * i.quantity, 0),
 }));
@@ -123,14 +127,15 @@ export const isAdminAtom = atom((get) => get(userAtom)?.role === "admin");
 import { useAtom, useAtomValue, useSetAtom } from "jotai";
 
 function Header() {
-  const user = useAtomValue(userAtom);         // read-only
-  const setTheme = useSetAtom(themeAtom);      // write-only
+  const user = useAtomValue(userAtom); // read-only
+  const setTheme = useSetAtom(themeAtom); // write-only
   const [theme, setThemeRW] = useAtom(themeAtom); // read + write
   return <Text>{user?.name}</Text>;
 }
 ```
 
 **Zustand vs Jotai**:
+
 - **Zustand** — store-based, better for related state with actions (auth, cart)
 - **Jotai** — atom-based, better for independent values, fine-grained subscriptions, avoids re-renders
 
@@ -182,7 +187,7 @@ const logout = useAuthStore((s) => s.logout); // Actions are stable references
 // ✗ Wrong — passes callbacks that recreate on every render
 function Parent() {
   const [count, setCount] = useState(0);
-  return <Child onIncrement={() => setCount(c => c + 1)} />;
+  return <Child onIncrement={() => setCount((c) => c + 1)} />;
 }
 
 // ✓ Correct — dispatcher reference is stable
@@ -222,7 +227,10 @@ const theme = use(ThemeContext); // React 19+
 ```tsx
 // ✓ Always show fallback while async state loads
 function UserProfile({ userId }: { userId: string }) {
-  const { data, isLoading } = useQuery({ queryKey: ["user", userId], queryFn: () => fetchUser(userId) });
+  const { data, isLoading } = useQuery({
+    queryKey: ["user", userId],
+    queryFn: () => fetchUser(userId),
+  });
   if (isLoading) return <UserProfileSkeleton />;
   if (!data) return null;
   return <Profile user={data} />;

@@ -36,7 +36,7 @@ export function isGatewayCliClient(client?: GatewayClientInfoLike | null): boole
 
 export function isOperatorUiClient(client?: GatewayClientInfoLike | null): boolean {
   const clientId = normalizeGatewayClientName(client?.id);
-  return clientId === GATEWAY_CLIENT_NAMES.BROWSER_CLIENT || clientId === GATEWAY_CLIENT_NAMES.TUI;
+  return clientId === GATEWAY_CLIENT_NAMES.BROWSER_CLIENT;
 }
 
 export function isBrowserOperatorUiClient(client?: GatewayClientInfoLike | null): boolean {
@@ -131,7 +131,7 @@ export function isMarkdownCapableMessageChannel(raw?: string | null): boolean {
   if (!channel) {
     return false;
   }
-  if (channel === INTERNAL_MESSAGE_CHANNEL || channel === "tui") {
+  if (channel === INTERNAL_MESSAGE_CHANNEL) {
     return true;
   }
   const builtInChannel = normalizeChatChannelId(channel);

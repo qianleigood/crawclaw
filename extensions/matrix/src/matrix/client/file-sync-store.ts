@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import fs from "node:fs/promises";
+import { writeJsonFileAtomically } from "crawclaw/plugin-sdk/json-store";
 import {
   Category,
   MemoryStore,
@@ -9,7 +10,6 @@ import {
   type ISyncResponse,
   type IStoredClientOpts,
 } from "matrix-js-sdk/lib/matrix.js";
-import { writeJsonFileAtomically } from "crawclaw/plugin-sdk/json-store";
 import { createAsyncLock } from "../async-lock.js";
 import { LogService } from "../sdk/logger.js";
 

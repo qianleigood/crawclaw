@@ -30,18 +30,10 @@ type ResetCommandAction = "new";
 let sessionResetModelRuntimePromise: Promise<
   typeof import("./session-reset-model.runtime.js")
 > | null = null;
-let stageSandboxMediaRuntimePromise: Promise<
-  typeof import("./stage-sandbox-media.runtime.js")
-> | null = null;
 
 function loadSessionResetModelRuntime() {
   sessionResetModelRuntimePromise ??= import("./session-reset-model.runtime.js");
   return sessionResetModelRuntimePromise;
-}
-
-function loadStageSandboxMediaRuntime() {
-  stageSandboxMediaRuntimePromise ??= import("./stage-sandbox-media.runtime.js");
-  return stageSandboxMediaRuntimePromise;
 }
 
 let hookRunnerGlobalPromise: Promise<typeof import("../../plugins/hook-runner-global.js")> | null =
@@ -457,17 +449,6 @@ export async function getReplyFromConfig(
     if (hookResult?.handled) {
       return hookResult.reply ?? { text: SILENT_REPLY_TOKEN };
     }
-  }
-
-  if (sessionKey && hasInboundMedia(ctx)) {
-    const { stageSandboxMedia } = await loadStageSandboxMediaRuntime();
-    await stageSandboxMedia({
-      ctx,
-      sessionCtx,
-      cfg,
-      sessionKey,
-      workspaceDir,
-    });
   }
 
   return runPreparedReply({

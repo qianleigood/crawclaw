@@ -3,6 +3,7 @@
 这是 `xiaohongshuskills` 的 Node + Puppeteer-first 执行层骨架。
 
 当前目标：
+
 - 保留现有 Python 控制面（账号 / profile / 端口 / Chrome 生命周期）
 - 用 Puppeteer attach 已存在的 Chrome CDP 实例
 - 先落地低风险读链路：`check-login` / `search-feeds` / `get-feed-detail`

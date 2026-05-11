@@ -41,15 +41,15 @@ src/
 
 ## Recommended Stack
 
-| Layer | Tool | Why |
-|-------|------|-----|
-| Framework | Next.js 15 | SSR, App Router, Server Actions |
-| Styling | Tailwind CSS | Utility-first, fast |
-| Components | shadcn/ui | Accessible, customizable |
-| Server state | TanStack Query | Caching, sync, devtools |
-| Client state | Zustand | Simple, tiny, selectors |
-| Forms | React Hook Form + Zod | Validation, performance |
-| Testing | Vitest + Testing Library | Fast, user-centric |
+| Layer        | Tool                     | Why                             |
+| ------------ | ------------------------ | ------------------------------- |
+| Framework    | Next.js 15               | SSR, App Router, Server Actions |
+| Styling      | Tailwind CSS             | Utility-first, fast             |
+| Components   | shadcn/ui                | Accessible, customizable        |
+| Server state | TanStack Query           | Caching, sync, devtools         |
+| Client state | Zustand                  | Simple, tiny, selectors         |
+| Forms        | React Hook Form + Zod    | Validation, performance         |
+| Testing      | Vitest + Testing Library | Fast, user-centric              |
 
 ## TypeScript Config
 

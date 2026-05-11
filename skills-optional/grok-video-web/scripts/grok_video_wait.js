@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
 const {
   nowIso,
@@ -18,14 +18,13 @@ const {
   resolveResultUrlConsistencyMode,
   writeJson,
   createLogger,
-} = require('./grok_video_lib');
-const {
-  launchPersistent,
-  resolveProfileDir,
-} = require('./grok_video_common');
+} = require("./grok_video_lib");
+const { launchPersistent, resolveProfileDir } = require("./grok_video_common");
 
 function usage() {
-  console.log(`Usage: grok_video_wait.js --job-id <id> [options]\n\nWait for a submitted Grok video result page to reach completed/blocked state.\n\nOptions:\n  --job-id <id>            Browser job id under runtime/browser-jobs/grok-video-web/\n  --job-dir <path>         Explicit job directory (alternative to --job-id)\n  --result-url <url>       Explicit Grok result URL; otherwise infer from state/*.json\n  --profile <name>         Browser profile name. Default: from job manifest/request, else grok-web\n  --timeout-sec <n>        Max wait seconds. Default: 900\n  --interval-sec <n>       Poll interval seconds. Default: 8\n  --headful                Launch visible browser instead of headless\n  --no-refresh             Do not reload between polls\n  --help                   Show this help\n`);
+  console.log(
+    `Usage: grok_video_wait.js --job-id <id> [options]\n\nWait for a submitted Grok video result page to reach completed/blocked state.\n\nOptions:\n  --job-id <id>            Browser job id under runtime/browser-jobs/grok-video-web/\n  --job-dir <path>         Explicit job directory (alternative to --job-id)\n  --result-url <url>       Explicit Grok result URL; otherwise infer from state/*.json\n  --profile <name>         Browser profile name. Default: from job manifest/request, else grok-web\n  --timeout-sec <n>        Max wait seconds. Default: 900\n  --interval-sec <n>       Poll interval seconds. Default: 8\n  --headful                Launch visible browser instead of headless\n  --no-refresh             Do not reload between polls\n  --help                   Show this help\n`,
+  );
 }
 
 async function main() {
@@ -36,22 +35,25 @@ async function main() {
   }
 
   const job = resolveJob(args);
-  const logger = createLogger(job, { script: 'grok_video_wait' });
-  const timeoutMs = parseNumber(args['timeout-sec'], 900) * 1000;
-  const intervalMs = parseNumber(args['interval-sec'], 8) * 1000;
-  const resultUrl = resolveResultUrl(job, args['result-url']);
+  const logger = createLogger(job, { script: "grok_video_wait" });
+  const timeoutMs = parseNumber(args["timeout-sec"], 900) * 1000;
+  const intervalMs = parseNumber(args["interval-sec"], 8) * 1000;
+  const resultUrl = resolveResultUrl(job, args["result-url"]);
   if (!resultUrl) {
-    throw new Error('unable to resolve result URL from --result-url or job state');
+    throw new Error("unable to resolve result URL from --result-url or job state");
   }
 
   const profile = args.profile || job.profile;
   const headless = !args.headful;
-  const refresh = !args['no-refresh'];
-  const resultUrlConsistencyMode = resolveResultUrlConsistencyMode(job, args['result-url-mismatch-mode'] || '');
+  const refresh = !args["no-refresh"];
+  const resultUrlConsistencyMode = resolveResultUrlConsistencyMode(
+    job,
+    args["result-url-mismatch-mode"] || "",
+  );
 
   const startRecord = {
     startedAt: nowIso(),
-    action: 'wait',
+    action: "wait",
     jobId: job.jobId,
     jobDir: job.jobDir,
     profile,
@@ -60,8 +62,8 @@ async function main() {
     intervalMs,
     refresh,
   };
-  logger.info('wait.start', {
-    phase: 'waiting_for_completion',
+  logger.info("wait.start", {
+    phase: "waiting_for_completion",
     currentUrl: resultUrl,
     resultUrl,
     profile,
@@ -71,9 +73,22 @@ async function main() {
     resultUrlConsistencyMode,
   });
   writeJson(job.files.waitStatusPath, startRecord);
-  updateWorkflowStatus(job, { status: 'running', blocked: false, phase: 'waiting_for_completion', currentUrl: resultUrl, resultUrl });
+  updateWorkflowStatus(job, {
+    status: "running",
+    blocked: false,
+    phase: "waiting_for_completion",
+    currentUrl: resultUrl,
+    resultUrl,
+  });
   clearWorkflowBlockReason(job);
-  appendWorkflowCheckpoint(job, { kind: 'wait_started', step: 'wait_for_completion', status: 'running', url: resultUrl, resultUrl, note: 'Started waiting for result completion.' });
+  appendWorkflowCheckpoint(job, {
+    kind: "wait_started",
+    step: "wait_for_completion",
+    status: "running",
+    url: resultUrl,
+    resultUrl,
+    note: "Started waiting for result completion.",
+  });
   writeWorkflowResultUrl(job, resultUrl);
   updateManifest(job, {
     resultUrl,
@@ -88,8 +103,8 @@ async function main() {
       headless,
       timeout: 15000,
     });
-    logger.info('wait.browser_launched', {
-      phase: 'waiting_for_completion',
+    logger.info("wait.browser_launched", {
+      phase: "waiting_for_completion",
       profile,
       path: launched.profileDir,
       currentUrl: resultUrl,
@@ -102,19 +117,19 @@ async function main() {
       page: launched.page,
       job,
       logger,
-      action: 'wait',
+      action: "wait",
     });
     if (!loginGate.ok) {
       const payload = {
         ok: false,
-        action: 'wait',
+        action: "wait",
         jobId: job.jobId,
         jobDir: job.jobDir,
         profile,
         resultUrl,
         status: loginGate.status,
         blocker: {
-          type: 'account_login_gate',
+          type: "account_login_gate",
           reasonCode: loginGate.blockerReasonCode,
           safeEntryUrl: loginGate.safeEntryUrl,
           currentUrl: loginGate.currentUrl,
@@ -128,15 +143,15 @@ async function main() {
       updateWorkflowStatus(job, {
         status: loginGate.status,
         blocked: true,
-        phase: 'wait_login_gate_blocked',
+        phase: "wait_login_gate_blocked",
         currentUrl: loginGate.currentUrl,
         resultUrl,
         loginState: loginGate.state,
         blockerSignals: loginGate.signals.cloudflare || loginGate.signals.loggedOut || [],
       });
       appendWorkflowCheckpoint(job, {
-        kind: 'wait_login_gate_blocked',
-        step: 'wait_for_completion',
+        kind: "wait_login_gate_blocked",
+        step: "wait_for_completion",
         status: loginGate.status,
         url: loginGate.currentUrl,
         resultUrl,
@@ -145,13 +160,13 @@ async function main() {
       setWorkflowBlockReason(job, {
         status: loginGate.status,
         reasonCode: loginGate.blockerReasonCode,
-        summary: 'Safe-entry login gate blocked result-page navigation.',
+        summary: "Safe-entry login gate blocked result-page navigation.",
         currentUrl: loginGate.currentUrl,
         matchedSignals: loginGate.signals.cloudflare || loginGate.signals.loggedOut || [],
       });
-      logger.warn('wait.login_gate_blocked', {
+      logger.warn("wait.login_gate_blocked", {
         status: loginGate.status,
-        phase: 'wait_login_gate_blocked',
+        phase: "wait_login_gate_blocked",
         currentUrl: loginGate.currentUrl,
         resultUrl,
         safeEntryUrl: loginGate.safeEntryUrl,
@@ -174,8 +189,8 @@ async function main() {
     });
 
     const payload = {
-      ok: result.status === 'completed',
-      action: 'wait',
+      ok: result.status === "completed",
+      action: "wait",
       jobId: job.jobId,
       jobDir: job.jobDir,
       profile,
@@ -184,50 +199,82 @@ async function main() {
       completionSignals: result.completionSignals || [],
       blockerSignals: result.blockerSignals || [],
       progressSignals: result.progressSignals || [],
-      postId: result.postId || '',
-      expectedPostId: result.expectedPostId || '',
-      observedPostId: result.observedPostId || result.postId || '',
+      postId: result.postId || "",
+      expectedPostId: result.expectedPostId || "",
+      observedPostId: result.observedPostId || result.postId || "",
       observedUrl: result.observedUrl || result.url || resultUrl,
       resultUrlConsistency: result.resultUrlConsistency || null,
       checkedAt: result.checkedAt,
       waitStateFile: job.files.waitStatusPath,
     };
     updateWorkflowStatus(job, {
-      status: result.status === 'completed' ? 'completed' : result.status === 'blocked' ? 'blocked_human_verification' : 'generating',
-      blocked: result.status === 'blocked',
-      phase: result.status === 'completed' ? 'wait_completed' : result.status === 'blocked' ? 'wait_blocked' : 'wait_timeout',
+      status:
+        result.status === "completed"
+          ? "completed"
+          : result.status === "blocked"
+            ? "blocked_human_verification"
+            : "generating",
+      blocked: result.status === "blocked",
+      phase:
+        result.status === "completed"
+          ? "wait_completed"
+          : result.status === "blocked"
+            ? "wait_blocked"
+            : "wait_timeout",
       currentUrl: result.url || resultUrl,
       resultUrl,
       completionSignals: result.completionSignals || [],
       blockerSignals: result.blockerSignals || [],
       progressSignals: result.progressSignals || [],
-      postId: result.postId || '',
+      postId: result.postId || "",
     });
     appendWorkflowCheckpoint(job, {
-      kind: result.status === 'completed' ? 'wait_completed' : result.status === 'blocked' ? 'wait_blocked' : 'wait_timeout',
-      step: 'wait_for_completion',
-      status: result.status === 'completed' ? 'completed' : result.status === 'blocked' ? 'blocked_human_verification' : 'generating',
+      kind:
+        result.status === "completed"
+          ? "wait_completed"
+          : result.status === "blocked"
+            ? "wait_blocked"
+            : "wait_timeout",
+      step: "wait_for_completion",
+      status:
+        result.status === "completed"
+          ? "completed"
+          : result.status === "blocked"
+            ? "blocked_human_verification"
+            : "generating",
       url: result.url || resultUrl,
       resultUrl,
-      note: (result.completionSignals || result.blockerSignals || []).join(', '),
+      note: (result.completionSignals || result.blockerSignals || []).join(", "),
     });
-    logger[result.status === 'blocked' ? 'warn' : result.status === 'completed' ? 'info' : 'warn']('wait.finished', {
-      status: payload.status,
-      phase: result.status === 'completed' ? 'wait_completed' : result.status === 'blocked' ? 'wait_blocked' : 'wait_timeout',
-      currentUrl: result.url || resultUrl,
-      resultUrl,
-      completionSignals: payload.completionSignals,
-      blockerSignals: payload.blockerSignals,
-      postId: payload.postId,
-      expectedPostId: payload.expectedPostId,
-      observedPostId: payload.observedPostId,
-      observedUrl: payload.observedUrl,
-      resultUrlConsistency: payload.resultUrlConsistency,
-      path: job.files.waitStatusPath,
-    });
+    logger[result.status === "blocked" ? "warn" : result.status === "completed" ? "info" : "warn"](
+      "wait.finished",
+      {
+        status: payload.status,
+        phase:
+          result.status === "completed"
+            ? "wait_completed"
+            : result.status === "blocked"
+              ? "wait_blocked"
+              : "wait_timeout",
+        currentUrl: result.url || resultUrl,
+        resultUrl,
+        completionSignals: payload.completionSignals,
+        blockerSignals: payload.blockerSignals,
+        postId: payload.postId,
+        expectedPostId: payload.expectedPostId,
+        observedPostId: payload.observedPostId,
+        observedUrl: payload.observedUrl,
+        resultUrlConsistency: payload.resultUrlConsistency,
+        path: job.files.waitStatusPath,
+      },
+    );
     console.log(JSON.stringify(payload, null, 2));
-    if (result.timeout) {process.exitCode = 3;}
-    if (result.status === 'blocked') {process.exitCode = 4;}
+    if (result.timeout) {
+      process.exitCode = 3;
+    }
+    if (result.status === "blocked") {
+      process.exitCode = 4;
+    }
   } finally {
     if (context) {
       await context.close().catch(() => {});
@@ -239,14 +286,19 @@ main().catch((error) => {
   const args = parseArgs(process.argv.slice(2));
   try {
     const job = resolveJob(args);
-    const logger = createLogger(job, { script: 'grok_video_wait' });
-    updateWorkflowStatus(job, { status: 'failed', blocked: true, phase: 'wait_failed' });
-    appendWorkflowCheckpoint(job, { kind: 'wait_failed', step: 'wait_for_completion', status: 'failed', note: error.message });
-    logger.error('wait.failed', {
-      status: 'failed',
-      phase: 'wait_failed',
-      currentUrl: resolveResultUrl(job, args['result-url']) || '',
-      resultUrl: resolveResultUrl(job, args['result-url']) || '',
+    const logger = createLogger(job, { script: "grok_video_wait" });
+    updateWorkflowStatus(job, { status: "failed", blocked: true, phase: "wait_failed" });
+    appendWorkflowCheckpoint(job, {
+      kind: "wait_failed",
+      step: "wait_for_completion",
+      status: "failed",
+      note: error.message,
+    });
+    logger.error("wait.failed", {
+      status: "failed",
+      phase: "wait_failed",
+      currentUrl: resolveResultUrl(job, args["result-url"]) || "",
+      resultUrl: resolveResultUrl(job, args["result-url"]) || "",
       message: error.message,
       path: job.files.waitStatusPath,
     });

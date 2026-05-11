@@ -1,5 +1,4 @@
 import { findLegacyWebSearchConfigIssues } from "./legacy-web-search.js";
-import { findLegacyXSearchConfigIssues } from "./legacy-x-search.js";
 import { getRecord } from "./legacy.shared.js";
 import type { LegacyConfigIssue } from "./types.js";
 
@@ -191,7 +190,6 @@ export function findLegacyConfigIssues(raw: unknown, sourceRaw?: unknown): Legac
   }
 
   issues.push(...findLegacyWebSearchConfigIssues(root));
-  issues.push(...findLegacyXSearchConfigIssues(root));
   return issues;
 }
 

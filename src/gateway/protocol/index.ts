@@ -147,10 +147,6 @@ import {
   Esp32StatusGetParamsSchema,
   type ExecApprovalsGetParams,
   ExecApprovalsGetParamsSchema,
-  type ExecApprovalsNodeGetParams,
-  ExecApprovalsNodeGetParamsSchema,
-  type ExecApprovalsNodeSetParams,
-  ExecApprovalsNodeSetParamsSchema,
   type ExecApprovalsSetParams,
   ExecApprovalsSetParamsSchema,
   type ExecApprovalsSnapshot,
@@ -186,38 +182,6 @@ import {
   LogsTailResultSchema,
   type ModelsListParams,
   ModelsListParamsSchema,
-  type NodeDescribeParams,
-  NodeDescribeParamsSchema,
-  type NodeEventParams,
-  NodeEventParamsSchema,
-  type NodePendingDrainParams,
-  NodePendingDrainParamsSchema,
-  type NodePendingDrainResult,
-  NodePendingDrainResultSchema,
-  type NodePendingEnqueueParams,
-  NodePendingEnqueueParamsSchema,
-  type NodePendingEnqueueResult,
-  NodePendingEnqueueResultSchema,
-  type NodeInvokeParams,
-  NodeInvokeParamsSchema,
-  type NodeInvokeResultParams,
-  NodeInvokeResultParamsSchema,
-  type NodeListParams,
-  NodeListParamsSchema,
-  type NodePendingAckParams,
-  NodePendingAckParamsSchema,
-  type NodePairApproveParams,
-  NodePairApproveParamsSchema,
-  type NodePairListParams,
-  NodePairListParamsSchema,
-  type NodePairRejectParams,
-  NodePairRejectParamsSchema,
-  type NodePairRequestParams,
-  NodePairRequestParamsSchema,
-  type NodePairVerifyParams,
-  NodePairVerifyParamsSchema,
-  type NodeRenameParams,
-  NodeRenameParamsSchema,
   type PollParams,
   PollParamsSchema,
   PROTOCOL_VERSION,
@@ -343,36 +307,6 @@ export const validateAgentsFilesGetParams = ajv.compile<AgentsFilesGetParams>(
 );
 export const validateAgentsFilesSetParams = ajv.compile<AgentsFilesSetParams>(
   AgentsFilesSetParamsSchema,
-);
-export const validateNodePairRequestParams = ajv.compile<NodePairRequestParams>(
-  NodePairRequestParamsSchema,
-);
-export const validateNodePairListParams = ajv.compile<NodePairListParams>(NodePairListParamsSchema);
-export const validateNodePairApproveParams = ajv.compile<NodePairApproveParams>(
-  NodePairApproveParamsSchema,
-);
-export const validateNodePairRejectParams = ajv.compile<NodePairRejectParams>(
-  NodePairRejectParamsSchema,
-);
-export const validateNodePairVerifyParams = ajv.compile<NodePairVerifyParams>(
-  NodePairVerifyParamsSchema,
-);
-export const validateNodeRenameParams = ajv.compile<NodeRenameParams>(NodeRenameParamsSchema);
-export const validateNodeListParams = ajv.compile<NodeListParams>(NodeListParamsSchema);
-export const validateNodePendingAckParams = ajv.compile<NodePendingAckParams>(
-  NodePendingAckParamsSchema,
-);
-export const validateNodeDescribeParams = ajv.compile<NodeDescribeParams>(NodeDescribeParamsSchema);
-export const validateNodeInvokeParams = ajv.compile<NodeInvokeParams>(NodeInvokeParamsSchema);
-export const validateNodeInvokeResultParams = ajv.compile<NodeInvokeResultParams>(
-  NodeInvokeResultParamsSchema,
-);
-export const validateNodeEventParams = ajv.compile<NodeEventParams>(NodeEventParamsSchema);
-export const validateNodePendingDrainParams = ajv.compile<NodePendingDrainParams>(
-  NodePendingDrainParamsSchema,
-);
-export const validateNodePendingEnqueueParams = ajv.compile<NodePendingEnqueueParams>(
-  NodePendingEnqueueParamsSchema,
 );
 export const validatePushTestParams = ajv.compile<PushTestParams>(PushTestParamsSchema);
 export const validateSecretsResolveParams = ajv.compile<SecretsResolveParams>(
@@ -550,12 +484,6 @@ export const validatePluginsDisableParams = ajv.compile<PluginsDisableParams>(
 export const validatePluginsInstallParams = ajv.compile<PluginsInstallParams>(
   PluginsInstallParamsSchema,
 );
-export const validateExecApprovalsNodeGetParams = ajv.compile<ExecApprovalsNodeGetParams>(
-  ExecApprovalsNodeGetParamsSchema,
-);
-export const validateExecApprovalsNodeSetParams = ajv.compile<ExecApprovalsNodeSetParams>(
-  ExecApprovalsNodeSetParamsSchema,
-);
 export const validateLogsTailParams = ajv.compile<LogsTailParams>(LogsTailParamsSchema);
 export const validateChatHistoryParams = ajv.compile(ChatHistoryParamsSchema);
 export const validateChatSendParams = ajv.compile(ChatSendParamsSchema);
@@ -626,18 +554,6 @@ export {
   WakeParamsSchema,
   PushTestParamsSchema,
   PushTestResultSchema,
-  NodePairRequestParamsSchema,
-  NodePairListParamsSchema,
-  NodePairApproveParamsSchema,
-  NodePairRejectParamsSchema,
-  NodePairVerifyParamsSchema,
-  NodeListParamsSchema,
-  NodePendingAckParamsSchema,
-  NodeInvokeParamsSchema,
-  NodePendingDrainParamsSchema,
-  NodePendingDrainResultSchema,
-  NodePendingEnqueueParamsSchema,
-  NodePendingEnqueueResultSchema,
   SessionsListParamsSchema,
   SessionsPreviewParamsSchema,
   SessionsResolveParamsSchema,
@@ -748,9 +664,6 @@ export type {
   TickEvent,
   ShutdownEvent,
   WakeParams,
-  NodePairRequestParams,
-  NodePairListParams,
-  NodePairApproveParams,
   DevicePairListParams,
   DevicePairApproveParams,
   DevicePairRejectParams,
@@ -814,16 +727,6 @@ export type {
   SkillsBinsResult,
   SkillsInstallParams,
   SkillsUpdateParams,
-  NodePairRejectParams,
-  NodePairVerifyParams,
-  NodeListParams,
-  NodeInvokeParams,
-  NodeInvokeResultParams,
-  NodeEventParams,
-  NodePendingDrainParams,
-  NodePendingDrainResult,
-  NodePendingEnqueueParams,
-  NodePendingEnqueueResult,
   SessionsListParams,
   SessionsPreviewParams,
   SessionsResolveParams,

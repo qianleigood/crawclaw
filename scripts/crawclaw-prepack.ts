@@ -6,7 +6,10 @@ import { pathToFileURL } from "node:url";
 
 const skipPrepackPreparedEnv = "CRAWCLAW_PREPACK_PREPARED";
 const legacySkipPrepackPreparedEnv = "CRAWCLAW_PREPACK_PREPARED";
-const requiredPreparedPathGroups = [["dist/index.js", "dist/index.mjs"]];
+const requiredPreparedPathGroups = [
+  ["dist/index.js", "dist/index.mjs"],
+  ["dist/native/crawclaw", "dist/native/crawclaw.exe"],
+];
 
 type PreparedFileReader = {
   existsSync: typeof existsSync;

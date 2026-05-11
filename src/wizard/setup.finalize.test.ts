@@ -4,7 +4,6 @@ import type { CrawClawConfig } from "../config/config.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 
-const runTui = vi.hoisted(() => vi.fn(async () => {}));
 const probeGatewayReachable = vi.hoisted(() =>
   vi.fn<() => Promise<{ ok: boolean; detail?: string }>>(async () => ({ ok: true })),
 );
@@ -130,10 +129,6 @@ vi.mock("../terminal/restore.js", () => ({
   restoreTerminalState: vi.fn(),
 }));
 
-vi.mock("../tui/tui.js", () => ({
-  runTui,
-}));
-
 vi.mock("./setup.secret-input.js", () => ({
   resolveSetupSecretInputString,
 }));
@@ -229,7 +224,6 @@ function createAdvancedFinalizeArgs(params: AdvancedFinalizeArgs = {}) {
 
 describe("finalizeSetupWizard", () => {
   beforeEach(() => {
-    runTui.mockClear();
     probeGatewayReachable.mockClear();
     waitForGatewayReachable.mockReset();
     waitForGatewayReachable.mockResolvedValue({ ok: true });
@@ -258,18 +252,12 @@ describe("finalizeSetupWizard", () => {
     listConfiguredWebSearchProviders.mockReturnValue([]);
   });
 
-  it("resolves gateway password SecretRef for probe and TUI", async () => {
+  it("resolves gateway password SecretRef for gateway probe", async () => {
     const previous = process.env.CRAWCLAW_GATEWAY_PASSWORD;
     process.env.CRAWCLAW_GATEWAY_PASSWORD = "resolved-gateway-password"; // pragma: allowlist secret
     resolveSetupSecretInputString.mockResolvedValueOnce("resolved-gateway-password");
-    const select = vi.fn(async (params: { message: string }) => {
-      if (params.message === "How do you want to hatch your bot?") {
-        return "tui";
-      }
-      return "later";
-    });
     const prompter = buildWizardPrompter({
-      select: select as never,
+      select: vi.fn(async () => "later") as never,
       confirm: vi.fn(async () => false),
     });
     const runtime = createRuntime();
@@ -325,12 +313,6 @@ describe("finalizeSetupWizard", () => {
     }
 
     expect(probeGatewayReachable).toHaveBeenCalledWith(
-      expect.objectContaining({
-        url: "ws://127.0.0.1:18789",
-        password: "resolved-gateway-password", // pragma: allowlist secret
-      }),
-    );
-    expect(runTui).toHaveBeenCalledWith(
       expect.objectContaining({
         url: "ws://127.0.0.1:18789",
         password: "resolved-gateway-password", // pragma: allowlist secret

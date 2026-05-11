@@ -118,12 +118,6 @@ vi.mock("../agents/crawclaw-tools.js", () => {
       execute: async () => ({ ok: true, result: "apply_patch" }),
     },
     {
-      name: "nodes",
-      ownerOnly: true,
-      parameters: { type: "object", properties: {} },
-      execute: async () => ({ ok: true, result: "nodes" }),
-    },
-    {
       name: "owner_only_test",
       ownerOnly: true,
       parameters: { type: "object", properties: {} },
@@ -384,7 +378,6 @@ describe("POST /tools/invoke", () => {
     const body = await res.json();
     expect(body.ok).toBe(true);
     expect(body).toHaveProperty("result");
-    expect(lastCreateCrawClawToolsContext?.allowMediaInvokeCommands).toBe(true);
     expect(hookMocks.runBeforeToolCallHook).toHaveBeenCalledWith(
       expect.objectContaining({
         toolName: "agents_list",
@@ -815,7 +808,7 @@ describe("POST /tools/invoke", () => {
   });
 
   it("extends the HTTP deny list to high-risk execution and file tools", async () => {
-    setMainAllowedTools({ allow: ["exec", "apply_patch", "nodes"] });
+    setMainAllowedTools({ allow: ["exec", "apply_patch"] });
 
     const execRes = await invokeToolAuthed({
       tool: "exec",
@@ -825,20 +818,7 @@ describe("POST /tools/invoke", () => {
       tool: "apply_patch",
       sessionKey: "main",
     });
-    const nodesRes = await invokeToolAuthed({
-      tool: "nodes",
-      sessionKey: "main",
-    });
-    const nodesAdminRes = await invokeTool({
-      port: sharedPort,
-      headers: gatewayAdminHeaders(),
-      tool: "nodes",
-      sessionKey: "main",
-    });
-
     expect(execRes.status).toBe(404);
     expect(patchRes.status).toBe(404);
-    expect(nodesRes.status).toBe(404);
-    expect(nodesAdminRes.status).toBe(404);
   });
 });

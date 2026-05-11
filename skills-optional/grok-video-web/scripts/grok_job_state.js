@@ -1,10 +1,10 @@
 #!/usr/bin/env node
-'use strict';
+"use strict";
 
-const fs = require('fs');
-const path = require('path');
+const fs = require("fs");
+const path = require("path");
 
-const DEFAULT_STATUS = 'pending';
+const DEFAULT_STATUS = "pending";
 
 function timestamp() {
   return new Date().toISOString();
@@ -16,9 +16,9 @@ function ensureDir(dirPath) {
 
 function readJsonIfExists(filePath, fallback = null) {
   try {
-    return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
   } catch (error) {
-    if (error && error.code === 'ENOENT') {
+    if (error && error.code === "ENOENT") {
       return fallback;
     }
     throw error;
@@ -27,12 +27,12 @@ function readJsonIfExists(filePath, fallback = null) {
 
 function writeJson(filePath, value) {
   ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, 'utf8');
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`, "utf8");
 }
 
 function writeText(filePath, value) {
   ensureDir(path.dirname(filePath));
-  fs.writeFileSync(filePath, `${value ?? ''}\n`, 'utf8');
+  fs.writeFileSync(filePath, `${value ?? ""}\n`, "utf8");
 }
 
 function resolveStateDir(options = {}) {
@@ -41,7 +41,7 @@ function resolveStateDir(options = {}) {
     return path.resolve(stateDir);
   }
   if (jobDir) {
-    return path.resolve(jobDir, 'state');
+    return path.resolve(jobDir, "state");
   }
   if (manifestPath) {
     const manifest = readJsonIfExists(path.resolve(manifestPath));
@@ -50,20 +50,20 @@ function resolveStateDir(options = {}) {
     }
     return path.dirname(path.resolve(manifestPath));
   }
-  throw new Error('stateDir/jobDir/manifestPath is required');
+  throw new Error("stateDir/jobDir/manifestPath is required");
 }
 
 function statePaths(stateDir) {
   const resolved = path.resolve(stateDir);
   return {
     stateDir: resolved,
-    manifestPath: path.join(resolved, 'job.json'),
-    requestPath: path.join(resolved, 'request.json'),
-    statusPath: path.join(resolved, 'status.json'),
-    checkpointsPath: path.join(resolved, 'checkpoints.json'),
-    blockReasonPath: path.join(resolved, 'block-reason.json'),
-    resultUrlPath: path.join(resolved, 'result-url.txt'),
-    eventsPath: path.join(resolved, 'events.jsonl'),
+    manifestPath: path.join(resolved, "job.json"),
+    requestPath: path.join(resolved, "request.json"),
+    statusPath: path.join(resolved, "status.json"),
+    checkpointsPath: path.join(resolved, "checkpoints.json"),
+    blockReasonPath: path.join(resolved, "block-reason.json"),
+    resultUrlPath: path.join(resolved, "result-url.txt"),
+    eventsPath: path.join(resolved, "events.jsonl"),
   };
 }
 
@@ -91,7 +91,7 @@ function ensureStateFiles(stateDir) {
   }
 
   if (!fs.existsSync(paths.resultUrlPath)) {
-    writeText(paths.resultUrlPath, '');
+    writeText(paths.resultUrlPath, "");
   }
 
   return paths;
@@ -104,9 +104,15 @@ function loadJobContext(stateDir) {
     manifest: readJsonIfExists(paths.manifestPath, {}),
     request: readJsonIfExists(paths.requestPath, {}),
     status: readJsonIfExists(paths.statusPath, {}),
-    checkpoints: readJsonIfExists(paths.checkpointsPath, { version: 1, current: null, history: [] }),
+    checkpoints: readJsonIfExists(paths.checkpointsPath, {
+      version: 1,
+      current: null,
+      history: [],
+    }),
     blockReason: readJsonIfExists(paths.blockReasonPath, null),
-    resultUrl: fs.existsSync(paths.resultUrlPath) ? fs.readFileSync(paths.resultUrlPath, 'utf8').trim() : '',
+    resultUrl: fs.existsSync(paths.resultUrlPath)
+      ? fs.readFileSync(paths.resultUrlPath, "utf8").trim()
+      : "",
   };
 }
 
@@ -171,8 +177,8 @@ function setBlockReason(stateDir, blockReason) {
 
 function writeResultUrl(stateDir, url) {
   const paths = ensureStateFiles(stateDir);
-  writeText(paths.resultUrlPath, url || '');
-  return url || '';
+  writeText(paths.resultUrlPath, url || "");
+  return url || "";
 }
 
 function clearBlockReason(stateDir) {

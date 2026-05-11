@@ -4,7 +4,6 @@ import type { SpawnedToolContext } from "../spawned-context.js";
 import { jsonResult, readStringParam } from "./common.js";
 
 export type SessionsSpawnRuntime = "subagent" | "acp";
-export type SessionsSpawnSandboxMode = "inherit" | "require";
 export type SessionsSpawnCleanupMode = "delete" | "keep";
 export type SessionsSpawnStreamTarget = "parent";
 
@@ -21,7 +20,6 @@ type SessionsSpawnToolParams = {
   thread: boolean;
   mode?: "run" | "session";
   cleanup: SessionsSpawnCleanupMode;
-  sandbox: SessionsSpawnSandboxMode;
   streamTo?: SessionsSpawnStreamTarget;
   attachments?: Array<{
     name: string;
@@ -53,7 +51,6 @@ export function parseSessionsSpawnToolParams(
   const mode = params.mode === "run" || params.mode === "session" ? params.mode : undefined;
   const cleanup: SessionsSpawnCleanupMode =
     params.cleanup === "keep" || params.cleanup === "delete" ? params.cleanup : "keep";
-  const sandbox: SessionsSpawnSandboxMode = params.sandbox === "require" ? "require" : "inherit";
   const streamTo: SessionsSpawnStreamTarget | undefined =
     params.streamTo === "parent" ? "parent" : undefined;
   const timeoutSecondsCandidate =
@@ -88,7 +85,6 @@ export function parseSessionsSpawnToolParams(
     thread,
     ...(mode ? { mode } : {}),
     cleanup,
-    sandbox,
     ...(streamTo ? { streamTo } : {}),
     ...(attachments ? { attachments } : {}),
     ...(attachMountPath ? { attachMountPath } : {}),
@@ -141,7 +137,6 @@ export function buildSessionsSpawnRequest(
     ...(parsed.thread ? { thread: true } : {}),
     ...(parsed.mode ? { mode: parsed.mode } : {}),
     cleanup: parsed.cleanup,
-    sandbox: parsed.sandbox,
     ...(parsed.streamTo ? { streamTo: parsed.streamTo } : {}),
     ...(parsed.attachments ? { attachments: parsed.attachments } : {}),
     ...(parsed.attachMountPath ? { attachMountPath: parsed.attachMountPath } : {}),
@@ -156,7 +151,6 @@ export function buildSessionsSpawnContext(
         agentAccountId?: string;
         agentTo?: string;
         agentThreadId?: string | number;
-        sandboxed?: boolean;
         requesterAgentIdOverride?: string;
       } & SpawnedToolContext)
     | undefined,
@@ -171,7 +165,6 @@ export function buildSessionsSpawnContext(
     agentGroupChannel: opts?.agentGroupChannel,
     agentGroupSpace: opts?.agentGroupSpace,
     requesterAgentIdOverride: opts?.requesterAgentIdOverride,
-    sandboxed: opts?.sandboxed,
     workspaceDir: opts?.workspaceDir,
   };
 }

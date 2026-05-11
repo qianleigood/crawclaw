@@ -16,12 +16,20 @@ vi.mock("../api.js", async (importOriginal) => {
   };
 });
 
+import type { CrawClawPluginApi } from "../api.js";
 import { createLlmTaskTool } from "./llm-task-tool.js";
 
-const runEmbeddedPiAgent = vi.fn(async () => ({
-  meta: { startedAt: Date.now() },
-  payloads: [{ text: "{}" }],
-}));
+type EmbeddedRunParams = Parameters<CrawClawPluginApi["runtime"]["agent"]["runEmbeddedPiAgent"]>[0];
+type EmbeddedRunResult = Awaited<
+  ReturnType<CrawClawPluginApi["runtime"]["agent"]["runEmbeddedPiAgent"]>
+>;
+
+const runEmbeddedPiAgent = vi.fn(
+  async (_params: EmbeddedRunParams): Promise<EmbeddedRunResult> => ({
+    meta: { durationMs: 0 },
+    payloads: [{ text: "{}" }],
+  }),
+);
 
 type FakeApiOverrides = {
   config?: Record<string, unknown>;
@@ -143,7 +151,7 @@ function configureNativeMock() {
   );
 }
 
-function fakeApi(overrides: FakeApiOverrides = {}) {
+function fakeApi(overrides: FakeApiOverrides = {}): CrawClawPluginApi {
   return {
     id: "llm-task",
     name: "llm-task",
@@ -161,12 +169,12 @@ function fakeApi(overrides: FakeApiOverrides = {}) {
     logger: { debug() {}, info() {}, warn() {}, error() {} },
     registerTool() {},
     ...overrides,
-  };
+  } as unknown as CrawClawPluginApi;
 }
 
 function mockEmbeddedRunJson(payload: unknown) {
   runEmbeddedPiAgent.mockResolvedValueOnce({
-    meta: {},
+    meta: { durationMs: 0 },
     payloads: [{ text: JSON.stringify(payload) }],
   });
 }
@@ -185,7 +193,7 @@ describe("llm-task tool (json-only)", () => {
 
   it("returns parsed json from the native completion path", async () => {
     runEmbeddedPiAgent.mockResolvedValueOnce({
-      meta: {},
+      meta: { durationMs: 0 },
       payloads: [{ text: JSON.stringify({ foo: "bar" }) }],
     });
     const tool = createLlmTaskTool(fakeApi());
@@ -201,7 +209,7 @@ describe("llm-task tool (json-only)", () => {
 
   it("strips fenced json", async () => {
     runEmbeddedPiAgent.mockResolvedValueOnce({
-      meta: {},
+      meta: { durationMs: 0 },
       payloads: [{ text: '```json\n{"ok":true}\n```' }],
     });
     const tool = createLlmTaskTool(fakeApi());
@@ -211,7 +219,7 @@ describe("llm-task tool (json-only)", () => {
 
   it("validates schema", async () => {
     runEmbeddedPiAgent.mockResolvedValueOnce({
-      meta: {},
+      meta: { durationMs: 0 },
       payloads: [{ text: JSON.stringify({ foo: "bar" }) }],
     });
     const tool = createLlmTaskTool(fakeApi());
@@ -227,7 +235,7 @@ describe("llm-task tool (json-only)", () => {
 
   it("throws on invalid json", async () => {
     runEmbeddedPiAgent.mockResolvedValueOnce({
-      meta: {},
+      meta: { durationMs: 0 },
       payloads: [{ text: "not-json" }],
     });
     const tool = createLlmTaskTool(fakeApi());
@@ -236,7 +244,7 @@ describe("llm-task tool (json-only)", () => {
 
   it("throws on schema mismatch", async () => {
     runEmbeddedPiAgent.mockResolvedValueOnce({
-      meta: {},
+      meta: { durationMs: 0 },
       payloads: [{ text: JSON.stringify({ foo: 1 }) }],
     });
     const tool = createLlmTaskTool(fakeApi());

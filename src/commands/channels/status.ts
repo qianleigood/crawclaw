@@ -364,7 +364,7 @@ export async function channelsStatusCommand(
             status: "error",
             message: feishuCli.error,
           }
-        : feishuCli?.status ?? null;
+        : (feishuCli?.status ?? null);
     runtime.log(
       formatGatewayChannelsStatusLines(payload, {
         feishuCliStatus,

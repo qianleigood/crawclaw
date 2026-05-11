@@ -28,14 +28,6 @@ const pathResolutionEnvKeys = [
   "CRAWCLAW_STATE_DIR",
   "CRAWCLAW_BUNDLED_PLUGINS_DIR",
 ] as const;
-const execDockerRawUnavailable: NonNullable<SecurityAuditOptions["execDockerRawFn"]> = async () => {
-  return {
-    stdout: Buffer.alloc(0),
-    stderr: Buffer.from("docker unavailable"),
-    code: 1,
-  };
-};
-
 function stubChannelPlugin(params: {
   id: "discord" | "slack" | "synology-chat" | "telegram" | "zalouser";
   label: string;
@@ -322,7 +314,6 @@ async function runInstallMetadataAudit(
     includeChannelSecurity: false,
     stateDir,
     configPath: path.join(stateDir, "crawclaw.json"),
-    execDockerRawFn: execDockerRawUnavailable,
   });
 }
 
@@ -344,18 +335,6 @@ describe("security audit", () => {
     const dir = path.join(fixtureRoot, `case-${caseId++}-${label}`);
     await fs.mkdir(dir, { recursive: true });
     return dir;
-  };
-
-  const createFilesystemAuditFixture = async (label: string) => {
-    const tmp = await makeTmpDir(label);
-    const stateDir = path.join(tmp, "state");
-    await fs.mkdir(stateDir, { recursive: true, mode: 0o700 });
-    const configPath = path.join(stateDir, "crawclaw.json");
-    await fs.writeFile(configPath, "{}\n", "utf-8");
-    if (!isWindows) {
-      await fs.chmod(configPath, 0o600);
-    }
-    return { tmp, stateDir, configPath };
   };
 
   const withChannelSecurityStateDir = async (fn: (tmp: string) => Promise<void>) => {
@@ -386,7 +365,6 @@ describe("security audit", () => {
       includeChannelSecurity: false,
       stateDir: sharedExtensionsStateDir,
       configPath: path.join(sharedExtensionsStateDir, "crawclaw.json"),
-      execDockerRawFn: execDockerRawUnavailable,
     });
   };
 
@@ -673,66 +651,6 @@ description: test skill
       },
       () => ({ env: {} }),
     );
-  });
-
-  it("warns when sandbox exec host is selected while sandbox mode is off", async () => {
-    const cases: Array<{
-      name: string;
-      cfg: CrawClawConfig;
-      checkId:
-        | "tools.exec.host_sandbox_no_sandbox_defaults"
-        | "tools.exec.host_sandbox_no_sandbox_agents";
-    }> = [
-      {
-        name: "defaults host is sandbox",
-        cfg: {
-          tools: {
-            exec: {
-              host: "sandbox",
-            },
-          },
-          agents: {
-            defaults: {
-              sandbox: {
-                mode: "off",
-              },
-            },
-          },
-        },
-        checkId: "tools.exec.host_sandbox_no_sandbox_defaults",
-      },
-      {
-        name: "agent override host is sandbox",
-        cfg: {
-          tools: {
-            exec: {
-              host: "gateway",
-            },
-          },
-          agents: {
-            defaults: {
-              sandbox: {
-                mode: "off",
-              },
-            },
-            list: [
-              {
-                id: "ops",
-                tools: {
-                  exec: {
-                    host: "sandbox",
-                  },
-                },
-              },
-            ],
-          },
-        },
-        checkId: "tools.exec.host_sandbox_no_sandbox_agents",
-      },
-    ];
-    await runConfigAuditCases(cases, (res, testCase) => {
-      expect(hasFinding(res, testCase.checkId, "warn"), testCase.name).toBe(true);
-    });
   });
 
   it("warns for interpreter safeBins only when explicit profiles are missing", async () => {
@@ -1119,181 +1037,11 @@ description: test skill
             platform: "win32",
             env: windowsAuditEnv,
             execIcacls: testCase.execIcacls,
-            execDockerRawFn: execDockerRawUnavailable,
           });
         },
         assert: testCase.assert,
       })),
     );
-  });
-
-  it("evaluates sandbox browser findings", async () => {
-    const cases = [
-      {
-        name: "warns when sandbox browser containers have missing or stale hash labels",
-        run: async () => {
-          const { stateDir, configPath } =
-            await createFilesystemAuditFixture("browser-hash-labels");
-          return runSecurityAudit({
-            config: {},
-            includeFilesystem: true,
-            includeChannelSecurity: false,
-            stateDir,
-            configPath,
-            execDockerRawFn: (async (args: string[]) => {
-              if (args[0] === "ps") {
-                return {
-                  stdout: Buffer.from(
-                    "crawclaw-sbx-browser-old\ncrawclaw-sbx-browser-missing-hash\n",
-                  ),
-                  stderr: Buffer.alloc(0),
-                  code: 0,
-                };
-              }
-              if (args[0] === "inspect" && args.at(-1) === "crawclaw-sbx-browser-old") {
-                return {
-                  stdout: Buffer.from("abc123\tepoch-v0\n"),
-                  stderr: Buffer.alloc(0),
-                  code: 0,
-                };
-              }
-              if (args[0] === "inspect" && args.at(-1) === "crawclaw-sbx-browser-missing-hash") {
-                return {
-                  stdout: Buffer.from("<no value>\t<no value>\n"),
-                  stderr: Buffer.alloc(0),
-                  code: 0,
-                };
-              }
-              return {
-                stdout: Buffer.alloc(0),
-                stderr: Buffer.from("not found"),
-                code: 1,
-              };
-            }) as NonNullable<SecurityAuditOptions["execDockerRawFn"]>,
-          });
-        },
-        assert: (res: SecurityAuditReport) => {
-          expect(hasFinding(res, "sandbox.browser_container.hash_label_missing", "warn")).toBe(
-            true,
-          );
-          expect(hasFinding(res, "sandbox.browser_container.hash_epoch_stale", "warn")).toBe(true);
-          const staleEpoch = res.findings.find(
-            (f) => f.checkId === "sandbox.browser_container.hash_epoch_stale",
-          );
-          expect(staleEpoch?.detail).toContain("crawclaw-sbx-browser-old");
-        },
-      },
-      {
-        name: "skips sandbox browser hash label checks when docker inspect is unavailable",
-        run: async () => {
-          const { stateDir, configPath } = await createFilesystemAuditFixture(
-            "browser-hash-labels-skip",
-          );
-          return runSecurityAudit({
-            config: {},
-            includeFilesystem: true,
-            includeChannelSecurity: false,
-            stateDir,
-            configPath,
-            execDockerRawFn: (async () => {
-              throw new Error("spawn docker ENOENT");
-            }) as NonNullable<SecurityAuditOptions["execDockerRawFn"]>,
-          });
-        },
-        assert: (res: SecurityAuditReport) => {
-          expect(hasFinding(res, "sandbox.browser_container.hash_label_missing")).toBe(false);
-          expect(hasFinding(res, "sandbox.browser_container.hash_epoch_stale")).toBe(false);
-        },
-      },
-      {
-        name: "flags sandbox browser containers with non-loopback published ports",
-        run: async () => {
-          const { stateDir, configPath } = await createFilesystemAuditFixture(
-            "browser-non-loopback-publish",
-          );
-          return runSecurityAudit({
-            config: {},
-            includeFilesystem: true,
-            includeChannelSecurity: false,
-            stateDir,
-            configPath,
-            execDockerRawFn: (async (args: string[]) => {
-              if (args[0] === "ps") {
-                return {
-                  stdout: Buffer.from("crawclaw-sbx-browser-exposed\n"),
-                  stderr: Buffer.alloc(0),
-                  code: 0,
-                };
-              }
-              if (args[0] === "inspect" && args.at(-1) === "crawclaw-sbx-browser-exposed") {
-                return {
-                  stdout: Buffer.from("hash123\t2026-02-21-novnc-auth-default\n"),
-                  stderr: Buffer.alloc(0),
-                  code: 0,
-                };
-              }
-              if (args[0] === "port" && args.at(-1) === "crawclaw-sbx-browser-exposed") {
-                return {
-                  stdout: Buffer.from("6080/tcp -> 0.0.0.0:49101\n9222/tcp -> 127.0.0.1:49100\n"),
-                  stderr: Buffer.alloc(0),
-                  code: 0,
-                };
-              }
-              return {
-                stdout: Buffer.alloc(0),
-                stderr: Buffer.from("not found"),
-                code: 1,
-              };
-            }) as NonNullable<SecurityAuditOptions["execDockerRawFn"]>,
-          });
-        },
-        assert: (res: SecurityAuditReport) => {
-          expect(
-            hasFinding(res, "sandbox.browser_container.non_loopback_publish", "critical"),
-          ).toBe(true);
-        },
-      },
-      {
-        name: "warns when bridge network omits cdpSourceRange",
-        run: async () =>
-          audit({
-            agents: {
-              defaults: {
-                sandbox: {
-                  mode: "all",
-                  browser: { enabled: true, network: "bridge" },
-                },
-              },
-            },
-          }),
-        assert: (res: SecurityAuditReport) => {
-          const finding = res.findings.find(
-            (f) => f.checkId === "sandbox.browser_cdp_bridge_unrestricted",
-          );
-          expect(finding?.severity).toBe("warn");
-          expect(finding?.detail).toContain("agents.defaults.sandbox.browser");
-        },
-      },
-      {
-        name: "does not warn for dedicated default browser network",
-        run: async () =>
-          audit({
-            agents: {
-              defaults: {
-                sandbox: {
-                  mode: "all",
-                  browser: { enabled: true },
-                },
-              },
-            },
-          }),
-        assert: (res: SecurityAuditReport) => {
-          expect(hasFinding(res, "sandbox.browser_cdp_bridge_unrestricted")).toBe(false);
-        },
-      },
-    ] as const;
-
-    await runAuditCases(cases);
   });
 
   it("uses symlink target permissions for config checks", async () => {
@@ -1318,7 +1066,6 @@ description: test skill
       includeChannelSecurity: false,
       stateDir,
       configPath,
-      execDockerRawFn: execDockerRawUnavailable,
     });
 
     expect(res.findings).toEqual(
@@ -1399,7 +1146,6 @@ description: test skill
               includeChannelSecurity: false,
               stateDir: fixture.stateDir,
               configPath,
-              execDockerRawFn: execDockerRawUnavailable,
             });
 
             return { fixture, res };
@@ -1417,7 +1163,7 @@ description: test skill
     );
   });
 
-  it("scores small-model risk by tool/sandbox exposure", async () => {
+  it("scores small-model risk by web/browser exposure", async () => {
     const cases: Array<{
       name: string;
       cfg: CrawClawConfig;
@@ -1435,16 +1181,14 @@ description: test skill
         detailIncludes: ["mistral-8b", "web_search", "web_fetch", "browser"],
       },
       {
-        name: "small model with sandbox all and web/browser disabled",
+        name: "small model with web/browser disabled",
         cfg: {
-          agents: {
-            defaults: { model: { primary: "ollama/mistral-8b" }, sandbox: { mode: "all" } },
-          },
+          agents: { defaults: { model: { primary: "ollama/mistral-8b" } } },
           tools: { web: { search: { enabled: false }, fetch: { enabled: false } } },
           browser: { enabled: false },
         },
         expectedSeverity: "info",
-        detailIncludes: ["mistral-8b", "sandbox=all"],
+        detailIncludes: ["mistral-8b", "web=[off]"],
       },
     ];
     await runConfigAuditCases(cases, (res, testCase) => {
@@ -1454,213 +1198,6 @@ description: test skill
         detail: finding?.detail,
         name: testCase.name,
         includes: testCase.detailIncludes,
-      });
-    });
-  });
-
-  it("evaluates sandbox docker config findings", async () => {
-    const cases = [
-      {
-        name: "mode off with docker config only",
-        cfg: {
-          agents: {
-            defaults: {
-              sandbox: {
-                mode: "off",
-                docker: { image: "ghcr.io/example/sandbox:latest" },
-              },
-            },
-          },
-        } as CrawClawConfig,
-        expectedFindings: [{ checkId: "sandbox.docker_config_mode_off" }],
-      },
-      {
-        name: "agent enables sandbox mode",
-        cfg: {
-          agents: {
-            defaults: {
-              sandbox: {
-                mode: "off",
-                docker: { image: "ghcr.io/example/sandbox:latest" },
-              },
-            },
-            list: [{ id: "ops", sandbox: { mode: "all" } }],
-          },
-        } as CrawClawConfig,
-        expectedFindings: [],
-        expectedAbsent: ["sandbox.docker_config_mode_off"],
-      },
-      {
-        name: "dangerous binds, host network, seccomp, and apparmor",
-        cfg: {
-          agents: {
-            defaults: {
-              sandbox: {
-                mode: "all",
-                docker: {
-                  binds: ["/etc/passwd:/mnt/passwd:ro", "/run:/run"],
-                  network: "host",
-                  seccompProfile: "unconfined",
-                  apparmorProfile: "unconfined",
-                },
-              },
-            },
-          },
-        } as CrawClawConfig,
-        expectedFindings: [
-          { checkId: "sandbox.dangerous_bind_mount", severity: "critical" },
-          { checkId: "sandbox.dangerous_network_mode", severity: "critical" },
-          { checkId: "sandbox.dangerous_seccomp_profile", severity: "critical" },
-          { checkId: "sandbox.dangerous_apparmor_profile", severity: "critical" },
-        ],
-      },
-      {
-        name: "container namespace join network mode",
-        cfg: {
-          agents: {
-            defaults: {
-              sandbox: {
-                mode: "all",
-                docker: {
-                  network: "container:peer",
-                },
-              },
-            },
-          },
-        } as CrawClawConfig,
-        expectedFindings: [
-          {
-            checkId: "sandbox.dangerous_network_mode",
-            severity: "critical",
-            title: "Dangerous network mode in sandbox config",
-          },
-        ],
-      },
-    ] as const;
-
-    await runConfigAuditCases(cases, (res, testCase) => {
-      if (testCase.expectedFindings.length > 0) {
-        expect(res.findings, testCase.name).toEqual(
-          expect.arrayContaining(
-            testCase.expectedFindings.map((finding) => expect.objectContaining(finding)),
-          ),
-        );
-      }
-      expectFindingSet({
-        res,
-        name: testCase.name,
-        expectedAbsent: "expectedAbsent" in testCase ? testCase.expectedAbsent : [],
-      });
-    });
-  });
-
-  it("evaluates ineffective gateway.nodes.denyCommands entries", async () => {
-    const cases = [
-      {
-        name: "flags ineffective gateway.nodes.denyCommands entries",
-        cfg: {
-          gateway: {
-            nodes: {
-              denyCommands: ["system.*", "system.runx"],
-            },
-          },
-        } satisfies CrawClawConfig,
-        detailIncludes: ["system.*", "system.runx", "did you mean", "system.run"],
-      },
-      {
-        name: "suggests prefix-matching commands for unknown denyCommands entries",
-        cfg: {
-          gateway: {
-            nodes: {
-              denyCommands: ["system.run.prep"],
-            },
-          },
-        } satisfies CrawClawConfig,
-        detailIncludes: ["system.run.prep", "did you mean", "system.run.prepare"],
-      },
-      {
-        name: "keeps unknown denyCommands entries without suggestions when no close command exists",
-        cfg: {
-          gateway: {
-            nodes: {
-              denyCommands: ["zzzzzzzzzzzzzz"],
-            },
-          },
-        } satisfies CrawClawConfig,
-        detailIncludes: ["zzzzzzzzzzzzzz"],
-        detailExcludes: ["did you mean"],
-      },
-    ] as const;
-
-    await runConfigAuditCases(cases, (res, testCase) => {
-      const finding = res.findings.find(
-        (f) => f.checkId === "gateway.nodes.deny_commands_ineffective",
-      );
-      expect(finding?.severity, testCase.name).toBe("warn");
-      expectDetailText({
-        detail: finding?.detail,
-        name: testCase.name,
-        includes: testCase.detailIncludes,
-        excludes: "detailExcludes" in testCase ? testCase.detailExcludes : [],
-      });
-    });
-  });
-
-  it("evaluates dangerous gateway.nodes.allowCommands findings", async () => {
-    const cases = [
-      {
-        name: "loopback gateway",
-        cfg: {
-          gateway: {
-            bind: "loopback",
-            nodes: { allowCommands: ["camera.snap", "screen.record"] },
-          },
-        } as CrawClawConfig,
-        expectedSeverity: "warn" as const,
-      },
-      {
-        name: "lan-exposed gateway",
-        cfg: {
-          gateway: {
-            bind: "lan",
-            nodes: { allowCommands: ["camera.snap", "screen.record"] },
-          },
-        } as CrawClawConfig,
-        expectedSeverity: "critical" as const,
-      },
-      {
-        name: "denied again suppresses dangerous allowCommands finding",
-        cfg: {
-          gateway: {
-            nodes: {
-              allowCommands: ["camera.snap", "screen.record"],
-              denyCommands: ["camera.snap", "screen.record"],
-            },
-          },
-        } as CrawClawConfig,
-        expectedAbsent: true,
-      },
-    ] as const;
-
-    await runConfigAuditCases(cases, (res, testCase) => {
-      if ("expectedAbsent" in testCase && testCase.expectedAbsent) {
-        expectNoFinding(res, "gateway.nodes.allow_commands_dangerous");
-        return;
-      }
-      const expectedSeverity =
-        "expectedSeverity" in testCase ? testCase.expectedSeverity : undefined;
-      if (!expectedSeverity) {
-        return;
-      }
-
-      const finding = res.findings.find(
-        (f) => f.checkId === "gateway.nodes.allow_commands_dangerous",
-      );
-      expect(finding?.severity, testCase.name).toBe(expectedSeverity);
-      expectDetailText({
-        detail: finding?.detail,
-        name: testCase.name,
-        includes: ["camera.snap", "screen.record"],
       });
     });
   });
@@ -3338,7 +2875,6 @@ description: test skill
         ? { ...process.env, USERNAME: "Tester", USERDOMAIN: "DESKTOP-TEST" }
         : undefined,
       execIcacls,
-      execDockerRawFn: execDockerRawUnavailable,
     });
 
     const expectedCheckId = isWindows
@@ -3607,7 +3143,6 @@ description: test skill
             includeChannelSecurity: false,
             deep: false,
             stateDir: sharedCodeSafetyStateDir,
-            execDockerRawFn: execDockerRawUnavailable,
           }),
         assert: (result: SecurityAuditReport) => {
           expect(result.findings.some((f) => f.checkId === "plugins.code_safety")).toBe(false);
@@ -3749,28 +3284,6 @@ description: test skill
         },
       },
       {
-        name: "does not flag runtime/filesystem exposure for open groups when sandbox mode is all",
-        cfg: {
-          channels: { whatsapp: { groupPolicy: "open" } },
-          tools: {
-            elevated: { enabled: false },
-            profile: "coding",
-          },
-          agents: {
-            defaults: {
-              sandbox: { mode: "all" },
-            },
-          },
-        } satisfies CrawClawConfig,
-        assert: (res: SecurityAuditReport) => {
-          expect(
-            res.findings.some(
-              (f) => f.checkId === "security.exposure.open_groups_with_runtime_or_fs",
-            ),
-          ).toBe(false);
-        },
-      },
-      {
         name: "does not flag runtime/filesystem exposure for open groups when runtime is denied and fs is workspace-only",
         cfg: {
           channels: { whatsapp: { groupPolicy: "open" } },
@@ -3815,7 +3328,7 @@ description: test skill
             'channels.discord.groupPolicy="allowlist" with configured group targets',
           );
           expect(finding?.detail).toContain("personal-assistant");
-          expect(finding?.remediation).toContain('agents.defaults.sandbox.mode="all"');
+          expect(finding?.remediation).toContain("split trust boundaries");
         },
       },
       {

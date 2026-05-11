@@ -152,7 +152,9 @@ describe("version resolution", () => {
       process.env.CRAWCLAW_VERSION = "2026.3.25";
       process.env.CRAWCLAW_SERVICE_VERSION = "2026.3.25-service";
       process.env.npm_package_version = "2026.3.25-package";
-      expect(resolveCompatibilityHostVersion()).toBe(resolveUsableRuntimeVersion(VERSION) ?? "2026.3.25");
+      expect(resolveCompatibilityHostVersion()).toBe(
+        resolveUsableRuntimeVersion(VERSION) ?? "2026.3.25",
+      );
     } finally {
       process.env.CRAWCLAW_VERSION = previous;
       process.env.CRAWCLAW_SERVICE_VERSION = previousService;

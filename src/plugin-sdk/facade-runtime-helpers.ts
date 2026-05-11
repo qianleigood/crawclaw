@@ -10,7 +10,10 @@ import {
 
 const PUBLIC_SURFACE_SOURCE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"] as const;
 
-export const ALWAYS_ALLOWED_RUNTIME_DIR_NAMES = new Set(["media-understanding-core", "speech-core"]);
+export const ALWAYS_ALLOWED_RUNTIME_DIR_NAMES = new Set([
+  "media-understanding-core",
+  "speech-core",
+]);
 
 export function resolveSourceFirstPublicSurfacePath(params: {
   bundledPluginsDir?: string;
@@ -70,7 +73,8 @@ export function resolveFacadeModuleLocation(params: {
   return {
     modulePath,
     boundaryRoot:
-      params.bundledPluginsDir && modulePath.startsWith(path.resolve(params.bundledPluginsDir) + path.sep)
+      params.bundledPluginsDir &&
+      modulePath.startsWith(path.resolve(params.bundledPluginsDir) + path.sep)
         ? path.resolve(params.bundledPluginsDir)
         : params.packageRoot,
   };
@@ -118,7 +122,10 @@ function createLazyFacadeValueLoader<T>(load: () => T): () => T {
   };
 }
 
-function createLazyFacadeProxyValue<T extends object>(params: { load: () => T; target: object }): T {
+function createLazyFacadeProxyValue<T extends object>(params: {
+  load: () => T;
+  target: object;
+}): T {
   const resolve = createLazyFacadeValueLoader(params.load);
   return new Proxy(params.target, {
     defineProperty(_target, property, descriptor) {

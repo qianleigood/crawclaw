@@ -16,7 +16,9 @@ export interface FrontmatterParseResult {
 
 function parseInlineArray(value: string): FrontmatterValue[] {
   const inner = value.trim().replace(/^\[/, "").replace(/\]$/, "").trim();
-  if (!inner) {return [];}
+  if (!inner) {
+    return [];
+  }
   return inner
     .split(",")
     .map((item) => parseScalar(item.trim()))
@@ -25,16 +27,33 @@ function parseInlineArray(value: string): FrontmatterValue[] {
 
 function parseScalar(value: string): FrontmatterValue | undefined {
   const trimmed = value.trim();
-  if (!trimmed) {return "";}
-  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+  if (!trimmed) {
+    return "";
+  }
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
     return trimmed.slice(1, -1);
   }
-  if (trimmed === "true") {return true;}
-  if (trimmed === "false") {return false;}
-  if (trimmed === "null") {return null;}
-  if (trimmed === "[]") {return [];}
-  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {return parseInlineArray(trimmed);}
-  if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {return Number(trimmed);}
+  if (trimmed === "true") {
+    return true;
+  }
+  if (trimmed === "false") {
+    return false;
+  }
+  if (trimmed === "null") {
+    return null;
+  }
+  if (trimmed === "[]") {
+    return [];
+  }
+  if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+    return parseInlineArray(trimmed);
+  }
+  if (/^-?\d+(?:\.\d+)?$/.test(trimmed)) {
+    return Number(trimmed);
+  }
   return trimmed;
 }
 
@@ -44,10 +63,14 @@ function parseBlock(lines: string[]): FrontmatterMap {
   for (let i = 0; i < lines.length; i += 1) {
     const rawLine = lines[i] ?? "";
     const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {continue;}
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
 
     const match = /^([A-Za-z0-9_-]+):(?:\s*(.*))?$/.exec(rawLine);
-    if (!match) {continue;}
+    if (!match) {
+      continue;
+    }
 
     const [, key, rawValue = ""] = match;
     const value = rawValue.trim();
@@ -65,7 +88,9 @@ function parseBlock(lines: string[]): FrontmatterMap {
         cursor += 1;
         continue;
       }
-      if (!/^\s+-\s+/.test(candidate)) {break;}
+      if (!/^\s+-\s+/.test(candidate)) {
+        break;
+      }
       list.push(parseScalar(trimmed.replace(/^-\s+/, "")) ?? trimmed.replace(/^-\s+/, ""));
       cursor += 1;
     }

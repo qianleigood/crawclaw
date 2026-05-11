@@ -15,7 +15,6 @@ import { resolveDefaultModelForAgent } from "../model-selection.js";
 import { resolveOwnerDisplaySetting } from "../owner-display.js";
 import type { EmbeddedContextFile } from "../pi-embedded-helpers.js";
 import { detectImageReferences, loadImageFromRef } from "../pi-embedded-runner/run/images.js";
-import type { SandboxFsBridge } from "../sandbox/fs-bridge.js";
 import { detectRuntimeShell } from "../shell-utils.js";
 import { buildSystemPromptParams } from "../system-prompt-params.js";
 import { buildAgentSystemPrompt } from "../system-prompt.js";
@@ -186,7 +185,6 @@ export async function loadPromptRefImages(params: {
   workspaceDir: string;
   maxBytes?: number;
   workspaceOnly?: boolean;
-  sandbox?: { root: string; bridge: SandboxFsBridge };
 }): Promise<ImageContent[]> {
   const refs = detectImageReferences(params.prompt);
   if (refs.length === 0) {
@@ -205,7 +203,6 @@ export async function loadPromptRefImages(params: {
     const image = await loadImageFromRef(ref, params.workspaceDir, {
       maxBytes,
       workspaceOnly: params.workspaceOnly,
-      sandbox: params.sandbox,
     });
     if (image) {
       images.push(image);

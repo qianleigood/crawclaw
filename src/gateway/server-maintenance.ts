@@ -21,7 +21,6 @@ export function startGatewayMaintenanceTimers(params: {
       stateVersion?: { presence?: number; health?: number };
     },
   ) => void;
-  nodeSendToAllSubscribed: (event: string, payload: unknown) => void;
   getPresenceVersion: () => number;
   getHealthVersion: () => number;
   refreshGatewayHealthSnapshot: (opts?: { probe?: boolean }) => Promise<HealthSummary>;
@@ -38,7 +37,6 @@ export function startGatewayMaintenanceTimers(params: {
     sessionKey?: string,
   ) => ChatRunEntry | undefined;
   agentRunSeq: Map<string, number>;
-  nodeSendToSession: (sessionKey: string, event: string, payload: unknown) => void;
   mediaCleanupTtlMs?: number;
 }): {
   tickInterval: ReturnType<typeof setInterval>;
@@ -53,14 +51,12 @@ export function startGatewayMaintenanceTimers(params: {
         health: params.getHealthVersion(),
       },
     });
-    params.nodeSendToAllSubscribed("health", snap);
   });
 
   // periodic keepalive
   const tickInterval = setInterval(() => {
     const payload = { ts: Date.now() };
     params.broadcast("tick", payload, { dropIfSlow: true });
-    params.nodeSendToAllSubscribed("tick", payload);
   }, TICK_INTERVAL_MS);
 
   // periodic health refresh to keep cached snapshot warm
@@ -117,7 +113,6 @@ export function startGatewayMaintenanceTimers(params: {
           removeChatRun: params.removeChatRun,
           agentRunSeq: params.agentRunSeq,
           broadcast: params.broadcast,
-          nodeSendToSession: params.nodeSendToSession,
         },
         { runId, sessionKey: entry.sessionKey, stopReason: "timeout" },
       );

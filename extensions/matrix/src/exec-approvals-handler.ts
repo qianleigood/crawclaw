@@ -71,8 +71,7 @@ function buildPendingApprovalText(params: { request: ApprovalRequest; nowMs: num
     command: resolveExecApprovalCommandDisplay((params.request as ExecApprovalRequest).request)
       .commandText,
     cwd: (params.request as ExecApprovalRequest).request.cwd ?? undefined,
-    host: (params.request as ExecApprovalRequest).request.host === "node" ? "node" : "gateway",
-    nodeId: (params.request as ExecApprovalRequest).request.nodeId ?? undefined,
+    host: "gateway",
     sessionKey: params.request.request.sessionKey ?? undefined,
     expiresAtMs: params.request.expiresAtMs,
     nowMs: params.nowMs,

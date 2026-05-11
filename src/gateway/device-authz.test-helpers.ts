@@ -36,7 +36,7 @@ export function loadDeviceIdentity(name: string): {
 
 export async function pairDeviceIdentity(params: {
   name: string;
-  role: "node" | "operator";
+  role: "operator";
   scopes: string[];
   clientId?: string;
   clientMode?: string;

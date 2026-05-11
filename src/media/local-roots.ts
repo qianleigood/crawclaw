@@ -31,7 +31,6 @@ export function buildMediaLocalRoots(
       preferredTmpDir,
       path.join(resolvedStateDir, "media"),
       path.join(resolvedStateDir, "workspace"),
-      path.join(resolvedStateDir, "sandboxes"),
       // Keep inbound media readable across state-dir/config-dir splits without
       // widening roots beyond the managed media cache.
       path.join(resolvedConfigDir, "media"),

@@ -13,7 +13,6 @@ import {
   loadImageToolInputs,
   normalizeImageToolInput,
   pickMaxBytes,
-  type ImageSandboxConfig,
 } from "./image-tool-runtime.js";
 import {
   coerceImageAssistantText,
@@ -225,7 +224,6 @@ export function createImageTool(options?: {
   config?: CrawClawConfig;
   agentDir?: string;
   workspaceDir?: string;
-  sandbox?: ImageSandboxConfig;
   fsPolicy?: ToolFsPolicy;
   /** If true, the model has native vision capability and images in the prompt are auto-injected */
   modelHasVision?: boolean;
@@ -280,7 +278,6 @@ export function createImageTool(options?: {
         imageInputs: normalized.imageInputs,
         workspaceDir: options?.workspaceDir,
         maxBytes,
-        sandbox: options?.sandbox,
         fsPolicy: options?.fsPolicy,
       });
       if (!loadResult.ok) {

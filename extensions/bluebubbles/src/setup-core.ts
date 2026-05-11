@@ -15,10 +15,7 @@ const setBlueBubblesTopLevelDmPolicy = createTopLevelChannelDmPolicySetter({
   channel,
 });
 
-export function setBlueBubblesDmPolicy(
-  cfg: CrawClawConfig,
-  dmPolicy: DmPolicy,
-): CrawClawConfig {
+export function setBlueBubblesDmPolicy(cfg: CrawClawConfig, dmPolicy: DmPolicy): CrawClawConfig {
   return setBlueBubblesTopLevelDmPolicy(cfg, dmPolicy);
 }
 

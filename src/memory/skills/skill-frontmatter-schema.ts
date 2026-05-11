@@ -32,10 +32,20 @@ export const SKILL_LAYERS = [
   "sources",
 ] as const satisfies UnifiedRecallLayer[];
 
-export type SkillFrontmatterDeclaration = Partial<Pick<
-  SkillMetadata,
-  "name" | "description" | "family" | "intents" | "layers" | "tags" | "workspaceScope" | "priority" | "disableModelInvocation"
->>;
+export type SkillFrontmatterDeclaration = Partial<
+  Pick<
+    SkillMetadata,
+    | "name"
+    | "description"
+    | "family"
+    | "intents"
+    | "layers"
+    | "tags"
+    | "workspaceScope"
+    | "priority"
+    | "disableModelInvocation"
+  >
+>;
 
 type SkillFrontmatterNamespace = {
   crawclaw?: Record<string, unknown>;
@@ -56,7 +66,10 @@ function normalizeStringArray(value: unknown): string[] {
   if (typeof value !== "string") return [];
   const trimmed = value.trim();
   if (!trimmed) return [];
-  return trimmed.split(",").map((item) => item.trim()).filter(Boolean);
+  return trimmed
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function normalizeEnumArray<T extends readonly string[]>(value: unknown, allowed: T): T[number][] {
@@ -91,21 +104,23 @@ function resolveRoutingNamespace(record: Record<string, unknown>): Record<string
   return record;
 }
 
-export function validateSkillFrontmatter(record: Record<string, unknown> & SkillFrontmatterNamespace): SkillFrontmatterValidation {
+export function validateSkillFrontmatter(
+  record: Record<string, unknown> & SkillFrontmatterNamespace,
+): SkillFrontmatterValidation {
   const warnings: string[] = [];
   const errors: string[] = [];
   const name = normalizeString(record.name);
   const description = normalizeString(record.description);
   const routing = resolveRoutingNamespace(record);
-  const usingLegacyFlatFields = !record.crawclaw && (
-    "family" in record
-    || "intents" in record
-    || "layers" in record
-    || "tags" in record
-    || "workspaceScope" in record
-    || "priority" in record
-    || "disableModelInvocation" in record
-  );
+  const usingLegacyFlatFields =
+    !record.crawclaw &&
+    ("family" in record ||
+      "intents" in record ||
+      "layers" in record ||
+      "tags" in record ||
+      "workspaceScope" in record ||
+      "priority" in record ||
+      "disableModelInvocation" in record);
   const family = normalizeString(routing.family) as UnifiedSkillFamily;
   const intents = normalizeEnumArray(routing.intents, SKILL_INTENTS);
   const layers = normalizeEnumArray(routing.layers, SKILL_LAYERS);

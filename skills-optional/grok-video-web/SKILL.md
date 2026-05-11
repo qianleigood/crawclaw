@@ -1,7 +1,19 @@
 ---
 name: grok-video-web
 description: Automate Grok web video workflows through the real grok.com UI. Use when generation, extend, redo, waiting, download, or result-page actions must happen through the website with persistent browser login state.
-metadata: { "crawclaw": { "workflow": { "portability": "crawclaw_agent", "allowedTools": ["browser"], "requiresApproval": true, "notes": "Runs through a real logged-in browser session and should stay on the CrawClaw agent side." } } }
+metadata:
+  {
+    "crawclaw":
+      {
+        "workflow":
+          {
+            "portability": "crawclaw_agent",
+            "allowedTools": ["browser"],
+            "requiresApproval": true,
+            "notes": "Runs through a real logged-in browser session and should stay on the CrawClaw agent side.",
+          },
+      },
+  }
 ---
 
 # Grok Video Web

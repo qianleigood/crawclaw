@@ -29,9 +29,8 @@ export const REVIEW_SPAWN_SOURCES = [
 
 export const REVIEW_TOOL_ALLOWLIST = [
   "read",
-  "exec",
+  "bash",
   "process",
-  "code_execution",
   "web_search",
   "web_fetch",
   "image",
@@ -50,7 +49,6 @@ export const REVIEW_SPEC_AGENT_DEFINITION: SpecialAgentDefinition = {
   toolPolicy: createRuntimeDenyToolPolicy(REVIEW_TOOL_ALLOWLIST),
   mode: "run",
   cleanup: "keep",
-  sandbox: "inherit",
   expectsCompletionMessage: false,
   defaultRunTimeoutSeconds: 300,
 };
@@ -64,7 +62,6 @@ export const REVIEW_QUALITY_AGENT_DEFINITION: SpecialAgentDefinition = {
   toolPolicy: createRuntimeDenyToolPolicy(REVIEW_TOOL_ALLOWLIST),
   mode: "run",
   cleanup: "keep",
-  sandbox: "inherit",
   expectsCompletionMessage: false,
   defaultRunTimeoutSeconds: 300,
 };

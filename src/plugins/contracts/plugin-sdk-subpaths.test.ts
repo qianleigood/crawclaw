@@ -162,11 +162,7 @@ describe("plugin-sdk subpath exports", () => {
       "isSecretRef",
       "optionalStringEnum",
     ]);
-    expectSourceOmits("core", [
-      "runPassiveAccountLifecycle",
-      "createLoggerBackedRuntime",
-      "registerSandboxBackend",
-    ]);
+    expectSourceOmits("core", ["runPassiveAccountLifecycle", "createLoggerBackedRuntime"]);
     expectSourceContract("routing", {
       mentions: [
         "buildAgentSessionKey",
@@ -544,8 +540,6 @@ describe("plugin-sdk subpath exports", () => {
     expectSourceOmitsSnippet("agent-runtime", "../../extensions/");
     expectSourceOmitsSnippet("xai-model-id", "./xai.js");
     expectSourceOmitsSnippet("xai-model-id", "../../extensions/");
-    expectSourceMentions("sandbox", ["registerSandboxBackend", "runPluginCommandWithTimeout"]);
-
     expectSourceMentions("secret-input", [
       "buildSecretInputSchema",
       "buildOptionalSecretInputSchema",

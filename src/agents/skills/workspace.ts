@@ -3,11 +3,11 @@ import os from "node:os";
 import path from "node:path";
 import { formatSkillsForPrompt, type Skill } from "@mariozechner/pi-coding-agent";
 import type { CrawClawConfig } from "../../config/config.js";
+import { resolveBoundaryPath } from "../../infra/boundary-path.js";
 import { isPathInside } from "../../infra/path-guards.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { loadEnabledClaudeBundleCommands } from "../../plugins/bundle-commands.js";
 import { CONFIG_DIR, resolveUserPath } from "../../utils.js";
-import { resolveSandboxPath } from "../sandbox-paths.js";
 import { resolveBundledSkillsDir } from "./bundled-dir.js";
 import { shouldIncludeSkill } from "./config.js";
 import { normalizeSkillFilter } from "./filter.js";
@@ -722,21 +722,23 @@ function resolveUniqueSyncedSkillDirName(base: string, used: Set<string>): strin
   return fallback;
 }
 
-function resolveSyncedSkillDestinationPath(params: {
+async function resolveSyncedSkillDestinationPath(params: {
   targetSkillsDir: string;
   entry: SkillEntry;
   usedDirNames: Set<string>;
-}): string | null {
+}): Promise<string | null> {
   const sourceDirName = path.basename(params.entry.skill.baseDir).trim();
   if (!sourceDirName || sourceDirName === "." || sourceDirName === "..") {
     return null;
   }
   const uniqueDirName = resolveUniqueSyncedSkillDirName(sourceDirName, params.usedDirNames);
-  return resolveSandboxPath({
-    filePath: uniqueDirName,
-    cwd: params.targetSkillsDir,
-    root: params.targetSkillsDir,
-  }).resolved;
+  const resolved = await resolveBoundaryPath({
+    absolutePath: path.join(params.targetSkillsDir, uniqueDirName),
+    rootPath: params.targetSkillsDir,
+    boundaryLabel: "target skills directory",
+    intent: "create",
+  });
+  return resolved.absolutePath;
 }
 
 export async function syncSkillsToWorkspace(params: {
@@ -768,7 +770,7 @@ export async function syncSkillsToWorkspace(params: {
     for (const entry of entries) {
       let dest: string | null = null;
       try {
-        dest = resolveSyncedSkillDestinationPath({
+        dest = await resolveSyncedSkillDestinationPath({
           targetSkillsDir,
           entry,
           usedDirNames,
@@ -791,7 +793,7 @@ export async function syncSkillsToWorkspace(params: {
         });
       } catch (error) {
         const message = error instanceof Error ? error.message : JSON.stringify(error);
-        skillsLogger.warn(`Failed to copy ${entry.skill.name} to sandbox: ${message}`);
+        skillsLogger.warn(`Failed to copy ${entry.skill.name} to workspace: ${message}`);
       }
     }
   });

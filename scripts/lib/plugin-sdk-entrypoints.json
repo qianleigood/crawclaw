@@ -1,7 +1,6 @@
 [
   "core",
   "provider-setup",
-  "sandbox",
   "self-hosted-provider-setup",
   "routing",
   "runtime",

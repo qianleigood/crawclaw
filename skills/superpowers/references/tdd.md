@@ -9,6 +9,7 @@ NO PRODUCTION CODE WITHOUT A FAILING TEST FIRST
 ```
 
 Wrote code before the test? Delete it. Start over. No exceptions.
+
 - Don't keep it as "reference"
 - Don't "adapt" it while writing tests
 - Delete means delete
@@ -20,6 +21,7 @@ Wrote code before the test? Delete it. Start over. No exceptions.
 Write one minimal test showing what should happen.
 
 **Good:**
+
 ```python
 def test_retries_failed_operations_three_times():
     attempts = 0
@@ -37,6 +39,7 @@ def test_retries_failed_operations_three_times():
 **Bad:** vague name, tests mocks not real code, multiple behaviours in one test.
 
 Requirements:
+
 - One behaviour per test
 - Clear descriptive name
 - Real code (no mocks unless unavoidable)
@@ -46,6 +49,7 @@ Requirements:
 **MANDATORY. Never skip.**
 
 Run the test. Confirm:
+
 - Test fails (not errors)
 - Failure is expected ("function not defined", assertion error)
 - Fails because feature is missing, not because of typos
@@ -57,6 +61,7 @@ If test passes immediately → you're testing existing behaviour, fix the test.
 Write the simplest code to make the test pass. No more. No extras.
 
 Don't:
+
 - Add options not tested
 - Refactor other code
 - "Improve" beyond what the test requires
@@ -66,6 +71,7 @@ Don't:
 **MANDATORY.**
 
 Run full test suite. Confirm:
+
 - Target test passes
 - All other tests still pass
 - No new warnings or errors
@@ -75,6 +81,7 @@ If tests fail → fix code, not the test.
 ### REFACTOR — Clean Up
 
 After green only:
+
 - Remove duplication
 - Improve names
 - Extract helpers
@@ -83,15 +90,16 @@ Keep tests green throughout. Never add behaviour here.
 
 ## Good Test Qualities
 
-| Quality | Good | Bad |
-|---------|------|-----|
-| Minimal | One thing | "and" in name? Split it |
-| Clear | Describes behaviour | `test1`, `test_works` |
+| Quality      | Good                     | Bad                       |
+| ------------ | ------------------------ | ------------------------- |
+| Minimal      | One thing                | "and" in name? Split it   |
+| Clear        | Describes behaviour      | `test1`, `test_works`     |
 | Shows intent | Demonstrates desired API | Hides what code should do |
 
 ## Why TDD Order Matters
 
 Tests written after code pass immediately — this proves nothing:
+
 - Might test wrong thing
 - Might test implementation, not behaviour
 - You never saw it catch the bug

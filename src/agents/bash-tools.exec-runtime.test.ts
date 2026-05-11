@@ -15,6 +15,7 @@ let buildExecExitOutcome: typeof import("./bash-tools.exec-runtime.js").buildExe
 let detectCursorKeyMode: typeof import("./bash-tools.exec-runtime.js").detectCursorKeyMode;
 let emitExecSystemEvent: typeof import("./bash-tools.exec-runtime.js").emitExecSystemEvent;
 let formatExecFailureReason: typeof import("./bash-tools.exec-runtime.js").formatExecFailureReason;
+let normalizeExecTarget: typeof import("./bash-tools.exec-runtime.js").normalizeExecTarget;
 let resolveExecTarget: typeof import("./bash-tools.exec-runtime.js").resolveExecTarget;
 
 beforeAll(async () => {
@@ -23,6 +24,7 @@ beforeAll(async () => {
     detectCursorKeyMode,
     emitExecSystemEvent,
     formatExecFailureReason,
+    normalizeExecTarget,
     resolveExecTarget,
   } = await import("./bash-tools.exec-runtime.js"));
 });
@@ -56,27 +58,11 @@ describe("detectCursorKeyMode", () => {
 });
 
 describe("resolveExecTarget", () => {
-  it("keeps implicit auto on sandbox when a sandbox runtime is available", () => {
+  it("keeps implicit auto on gateway", () => {
     expect(
       resolveExecTarget({
         configuredTarget: "auto",
         elevatedRequested: false,
-        sandboxAvailable: true,
-      }),
-    ).toMatchObject({
-      configuredTarget: "auto",
-      requestedTarget: null,
-      selectedTarget: "auto",
-      effectiveHost: "sandbox",
-    });
-  });
-
-  it("keeps implicit auto on gateway when no sandbox runtime is available", () => {
-    expect(
-      resolveExecTarget({
-        configuredTarget: "auto",
-        elevatedRequested: false,
-        sandboxAvailable: false,
       }),
     ).toMatchObject({
       configuredTarget: "auto",
@@ -90,20 +76,8 @@ describe("resolveExecTarget", () => {
     expect(() =>
       resolveExecTarget({
         configuredTarget: "auto",
-        requestedTarget: "node",
-        elevatedRequested: false,
-        sandboxAvailable: false,
-      }),
-    ).toThrow("exec host not allowed");
-  });
-
-  it("also rejects gateway override when configured host is auto", () => {
-    expect(() =>
-      resolveExecTarget({
-        configuredTarget: "auto",
         requestedTarget: "gateway",
         elevatedRequested: false,
-        sandboxAvailable: true,
       }),
     ).toThrow("exec host not allowed");
   });
@@ -114,13 +88,12 @@ describe("resolveExecTarget", () => {
         configuredTarget: "auto",
         requestedTarget: "auto",
         elevatedRequested: false,
-        sandboxAvailable: true,
       }),
     ).toMatchObject({
       configuredTarget: "auto",
       requestedTarget: "auto",
       selectedTarget: "auto",
-      effectiveHost: "sandbox",
+      effectiveHost: "gateway",
     });
   });
 
@@ -130,38 +103,28 @@ describe("resolveExecTarget", () => {
         configuredTarget: "gateway",
         requestedTarget: "auto",
         elevatedRequested: false,
-        sandboxAvailable: true,
       }),
     ).toThrow("exec host not allowed");
   });
 
-  it("allows exact node matches", () => {
-    expect(
-      resolveExecTarget({
-        configuredTarget: "node",
-        requestedTarget: "node",
-        elevatedRequested: false,
-        sandboxAvailable: true,
-      }),
-    ).toMatchObject({
-      configuredTarget: "node",
-      requestedTarget: "node",
-      selectedTarget: "node",
-      effectiveHost: "node",
-    });
+  it("does not parse sandbox as an exec target", () => {
+    expect(normalizeExecTarget("sandbox")).toBeNull();
+  });
+
+  it("does not parse node as an exec target", () => {
+    expect(normalizeExecTarget("node")).toBeNull();
   });
 
   it("still forces elevated requests onto the gateway host", () => {
     expect(
       resolveExecTarget({
         configuredTarget: "auto",
-        requestedTarget: "sandbox",
+        requestedTarget: "gateway",
         elevatedRequested: true,
-        sandboxAvailable: true,
       }),
     ).toMatchObject({
       configuredTarget: "auto",
-      requestedTarget: "sandbox",
+      requestedTarget: "gateway",
       selectedTarget: "gateway",
       effectiveHost: "gateway",
     });

@@ -92,7 +92,6 @@ function createFetchTool(fetchOverrides: Record<string, unknown> = {}) {
         },
       },
     },
-    sandboxed: false,
   });
 }
 

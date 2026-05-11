@@ -1,10 +1,10 @@
 import fs from "node:fs/promises";
 import path from "node:path";
+import { exportContextArchiveSnapshot } from "../agents/context-archive/export.js";
+import { resolveSharedContextArchiveService } from "../agents/context-archive/runtime.js";
+import { loadConfig } from "../config/config.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime, writeRuntimeJson } from "../runtime.js";
-import { loadConfig } from "../config/config.js";
-import { resolveSharedContextArchiveService } from "../agents/context-archive/runtime.js";
-import { exportContextArchiveSnapshot } from "../agents/context-archive/export.js";
 
 export type AgentExportContextOptions = {
   runId?: string;
@@ -23,9 +23,9 @@ function normalizeOptionalString(value: string | null | undefined): string | und
 function hasLookupTarget(opts: AgentExportContextOptions): boolean {
   return Boolean(
     normalizeOptionalString(opts.runId) ||
-      normalizeOptionalString(opts.taskId) ||
-      normalizeOptionalString(opts.sessionId) ||
-      normalizeOptionalString(opts.agentId),
+    normalizeOptionalString(opts.taskId) ||
+    normalizeOptionalString(opts.sessionId) ||
+    normalizeOptionalString(opts.agentId),
   );
 }
 
@@ -47,7 +47,9 @@ export async function agentExportContextCommand(
   const snapshot = await exportContextArchiveSnapshot({
     archive,
     ...(normalizeOptionalString(opts.runId) ? { runId: normalizeOptionalString(opts.runId) } : {}),
-    ...(normalizeOptionalString(opts.taskId) ? { taskId: normalizeOptionalString(opts.taskId) } : {}),
+    ...(normalizeOptionalString(opts.taskId)
+      ? { taskId: normalizeOptionalString(opts.taskId) }
+      : {}),
     ...(normalizeOptionalString(opts.sessionId)
       ? { sessionId: normalizeOptionalString(opts.sessionId) }
       : {}),

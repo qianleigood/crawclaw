@@ -1,6 +1,6 @@
 import { serializePayload } from "@buape/carbon";
-import { ComponentType } from "discord-api-types/v10";
 import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import { ComponentType } from "discord-api-types/v10";
 import { describe, expect, it, vi } from "vitest";
 import {
   DISCORD_CUSTOM_ID_MAX_CHARS,

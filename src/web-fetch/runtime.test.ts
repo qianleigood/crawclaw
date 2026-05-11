@@ -263,7 +263,7 @@ describe("web fetch runtime", () => {
     expect(resolved?.provider.id).toBe("scrapling");
   });
 
-  it("keeps sandboxed web fetch on bundled providers even when runtime providers are preferred", () => {
+  it("keeps child web fetch on bundled providers even when runtime providers are preferred", () => {
     const bundled = createProvider({
       pluginId: "scrapling-fetch",
       id: "scrapling",
@@ -283,14 +283,13 @@ describe("web fetch runtime", () => {
 
     const resolved = resolveWebFetchDefinition({
       config: {},
-      sandboxed: true,
       preferRuntimeProviders: true,
     });
 
     expect(resolved?.provider.id).toBe("scrapling");
   });
 
-  it("keeps non-sandboxed web fetch on bundled providers even when runtime providers are preferred", () => {
+  it("keeps non-child web fetch on bundled providers even when runtime providers are preferred", () => {
     const bundled = createProvider({
       pluginId: "scrapling-fetch",
       id: "scrapling",
@@ -310,7 +309,6 @@ describe("web fetch runtime", () => {
 
     const resolved = resolveWebFetchDefinition({
       config: {},
-      sandboxed: false,
       preferRuntimeProviders: true,
     });
 

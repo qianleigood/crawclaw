@@ -13,15 +13,14 @@ export {
   createAgentToAgentPolicy,
   createSessionVisibilityGuard,
   resolveEffectiveSessionToolsVisibility,
-  resolveSandboxSessionToolsVisibility,
-  resolveSandboxedSessionToolContext,
+  resolveSessionToolAccessContext,
   resolveSessionToolsVisibility,
 } from "./sessions-access.js";
 import {
   createAgentToAgentPolicy,
   createSessionVisibilityGuard,
   resolveEffectiveSessionToolsVisibility,
-  resolveSandboxedSessionToolContext,
+  resolveSessionToolAccessContext,
 } from "./sessions-access.js";
 export type { SessionReferenceResolution } from "./sessions-resolution.js";
 export {
@@ -125,23 +124,20 @@ function normalizeKey(value?: string) {
 
 export function resolveSessionToolContext(opts?: {
   agentSessionKey?: string;
-  sandboxed?: boolean;
   config?: CrawClawConfig;
 }) {
   const cfg = opts?.config ?? loadConfig();
   return {
     cfg,
-    ...resolveSandboxedSessionToolContext({
+    ...resolveSessionToolAccessContext({
       cfg,
       agentSessionKey: opts?.agentSessionKey,
-      sandboxed: opts?.sandboxed,
     }),
   };
 }
 
 export function resolveRequesterAgentContext(opts?: {
   agentSessionKey?: string;
-  sandboxed?: boolean;
   config?: CrawClawConfig;
   requesterAgentIdOverride?: string;
 }) {
@@ -207,12 +203,11 @@ export async function resolveAccessibleSessionReference(params: {
   return visibleSession;
 }
 
-export function resolveSessionAccessPolicies(params: { cfg: CrawClawConfig; sandboxed?: boolean }) {
+export function resolveSessionAccessPolicies(params: { cfg: CrawClawConfig }) {
   return {
     a2aPolicy: createAgentToAgentPolicy(params.cfg),
     visibility: resolveEffectiveSessionToolsVisibility({
       cfg: params.cfg,
-      sandboxed: params.sandboxed === true,
     }),
   };
 }

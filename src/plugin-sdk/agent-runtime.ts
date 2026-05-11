@@ -14,7 +14,6 @@ export * from "../agents/simple-completion-runtime.js";
 export * from "../agents/pi-embedded-block-chunker.js";
 export * from "../agents/pi-embedded-utils.js";
 export * from "../agents/provider-id.js";
-export * from "../agents/sandbox-paths.js";
 export * from "../agents/schema/typebox.js";
 export * from "../agents/tools/common.js";
 export * from "../agents/tools/web-guarded-fetch.js";

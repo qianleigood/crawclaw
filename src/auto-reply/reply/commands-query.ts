@@ -62,7 +62,6 @@ function isQueryCommandToken(token: string): boolean {
     token === "runtimes" ||
     token === "health" ||
     token === "channels" ||
-    token === "nodes" ||
     token === "devices" ||
     token === "memory"
   );
@@ -243,34 +242,6 @@ async function callGatewayRead(method: string, params?: unknown): Promise<unknow
   });
 }
 
-async function buildNodesReply(cfg?: CrawClawConfig): Promise<Reply> {
-  const payload = await callGatewayRead("node.list", {});
-  const nodes = isRecord(payload) && Array.isArray(payload.nodes) ? payload.nodes : [];
-  const lines = [
-    `🖥️ ${tr(cfg, "Nodes", "节点")}`,
-    tr(cfg, `${nodes.length} known`, `${nodes.length} 个已知节点`),
-  ];
-  for (const node of nodes.slice(0, 20)) {
-    if (!isRecord(node)) {
-      continue;
-    }
-    const id = typeof node.nodeId === "string" ? node.nodeId : "unknown";
-    const name = typeof node.displayName === "string" ? ` · ${node.displayName}` : "";
-    const connected =
-      node.connected === true ? tr(cfg, "connected", "在线") : tr(cfg, "offline", "离线");
-    lines.push(`- ${id}${name} · ${connected}`);
-  }
-  lines.push(
-    "",
-    tr(
-      cfg,
-      "Tip: /nodes lists headless node hosts; /devices lists paired chat/mobile devices.",
-      "提示：/nodes 列出无头节点主机；/devices 列出已配对聊天/移动设备。",
-    ),
-  );
-  return { text: lines.join("\n") };
-}
-
 async function buildDevicesReply(cfg?: CrawClawConfig): Promise<Reply> {
   const pairing = await listDevicePairing();
   const lines = [
@@ -296,11 +267,7 @@ async function buildDevicesReply(cfg?: CrawClawConfig): Promise<Reply> {
   }
   lines.push(
     "",
-    tr(
-      cfg,
-      "Tip: /devices covers chat/mobile pairing; /nodes covers gateway node hosts.",
-      "提示：/devices 负责聊天/移动设备配对；/nodes 负责网关节点主机。",
-    ),
+    tr(cfg, "Tip: /devices covers chat/mobile pairing.", "提示：/devices 负责聊天/移动设备配对。"),
   );
   return { text: lines.join("\n") };
 }
@@ -380,8 +347,6 @@ export const handleQueryCommand: CommandHandler = async (params, allowTextComman
           ? buildHealthReply(summary, params.cfg)
           : buildChannelsReply(summary, params.cfg);
       });
-    case "nodes":
-      return await buildSafeGatewayReply(params.cfg, token, () => buildNodesReply(params.cfg));
     case "devices":
       return await buildSafeGatewayReply(params.cfg, token, () => buildDevicesReply(params.cfg));
     case "memory":

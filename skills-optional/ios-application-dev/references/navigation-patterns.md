@@ -10,28 +10,28 @@ For apps with 3-5 main sections:
 class AppTabBarController: UITabBarController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         let homeNav = UINavigationController(rootViewController: HomeVC())
         homeNav.tabBarItem = UITabBarItem(
             title: "Home",
             image: UIImage(systemName: "house"),
             selectedImage: UIImage(systemName: "house.fill")
         )
-        
+
         let searchNav = UINavigationController(rootViewController: SearchVC())
         searchNav.tabBarItem = UITabBarItem(
             title: "Search",
             image: UIImage(systemName: "magnifyingglass"),
             tag: 1
         )
-        
+
         let profileNav = UINavigationController(rootViewController: ProfileVC())
         profileNav.tabBarItem = UITabBarItem(
             title: "Profile",
             image: UIImage(systemName: "person"),
             selectedImage: UIImage(systemName: "person.fill")
         )
-        
+
         viewControllers = [homeNav, searchNav, profileNav]
     }
 }
@@ -39,12 +39,12 @@ class AppTabBarController: UITabBarController {
 
 ### Tab Bar Best Practices
 
-| Principle | Description |
-|-----------|-------------|
-| Limit count | Maximum 5 tabs, use More for additional |
-| Always visible | Tab bar stays visible at all navigation levels |
-| State preservation | Preserve navigation state when switching tabs |
-| Icon choice | Use SF Symbols, provide selected/unselected states |
+| Principle          | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| Limit count        | Maximum 5 tabs, use More for additional            |
+| Always visible     | Tab bar stays visible at all navigation levels     |
+| State preservation | Preserve navigation state when switching tabs      |
+| Icon choice        | Use SF Symbols, provide selected/unselected states |
 
 ## Navigation Controller
 
@@ -58,7 +58,7 @@ class ListViewController: UIViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.largeTitleDisplayMode = .always
     }
-    
+
     func pushDetail(_ item: Item) {
         let detail = DetailViewController(item: item)
         detail.navigationItem.largeTitleDisplayMode = .never
@@ -73,10 +73,10 @@ class ListViewController: UIViewController {
 class CustomNavigationController: UINavigationController {
     override func viewDidLoad() {
         super.viewDidLoad()
-        
+
         let appearance = UINavigationBarAppearance()
         appearance.configureWithDefaultBackground()
-        
+
         navigationBar.standardAppearance = appearance
         navigationBar.scrollEdgeAppearance = appearance
         navigationBar.compactAppearance = appearance
@@ -89,14 +89,14 @@ class CustomNavigationController: UINavigationController {
 ```swift
 override func viewDidLoad() {
     super.viewDidLoad()
-    
+
     navigationItem.rightBarButtonItem = UIBarButtonItem(
         image: UIImage(systemName: "plus"),
         style: .plain,
         target: self,
         action: #selector(addItem)
     )
-    
+
     navigationItem.rightBarButtonItems = [
         UIBarButtonItem(systemItem: .add, primaryAction: UIAction { _ in }),
         UIBarButtonItem(systemItem: .edit, primaryAction: UIAction { _ in })
@@ -112,20 +112,20 @@ override func viewDidLoad() {
 func presentEditor() {
     let editorVC = EditorViewController()
     let nav = UINavigationController(rootViewController: editorVC)
-    
+
     editorVC.navigationItem.leftBarButtonItem = UIBarButtonItem(
         systemItem: .cancel, target: self, action: #selector(dismissEditor)
     )
     editorVC.navigationItem.rightBarButtonItem = UIBarButtonItem(
         systemItem: .done, target: self, action: #selector(saveAndDismiss)
     )
-    
+
     if let sheet = nav.sheetPresentationController {
         sheet.detents = [.medium(), .large()]
         sheet.prefersGrabberVisible = true
         sheet.prefersScrollingExpandsWhenScrolledToEdge = false
     }
-    
+
     present(nav, animated: true)
 }
 ```
@@ -154,13 +154,13 @@ func presentFullScreen() {
 
 ## Presentation Styles
 
-| Style | Usage |
-|-------|-------|
-| `.automatic` | System default (usually sheet) |
-| `.pageSheet` | Card-style, parent view visible |
-| `.fullScreen` | Full screen cover |
+| Style             | Usage                                   |
+| ----------------- | --------------------------------------- |
+| `.automatic`      | System default (usually sheet)          |
+| `.pageSheet`      | Card-style, parent view visible         |
+| `.fullScreen`     | Full screen cover                       |
 | `.overFullScreen` | Full screen with transparent background |
-| `.popover` | iPad popover |
+| `.popover`        | iPad popover                            |
 
 ## Navigation Best Practices
 
@@ -172,4 +172,4 @@ func presentFullScreen() {
 
 ---
 
-*UIKit, SF Symbols, and Apple are trademarks of Apple Inc.*
+_UIKit, SF Symbols, and Apple are trademarks of Apple Inc._

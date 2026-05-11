@@ -59,7 +59,7 @@ type CliOptions = {
 const DEFAULT_RUNS = 5;
 const DEFAULT_WARMUP = 1;
 const DEFAULT_TIMEOUT_MS = 30_000;
-const DEFAULT_ENTRY = "crawclaw.mjs";
+const DEFAULT_ENTRY = "dist/native/crawclaw";
 const MAX_RSS_MARKER = "__CRAWCLAW_MAX_RSS_KB__=";
 
 const COMMAND_CASES: readonly CommandCase[] = [
@@ -280,6 +280,10 @@ function buildCpuOrHeapFlags(options: { cpuProfDir?: string; heapProfDir?: strin
   return flags;
 }
 
+function isNodeEntry(entry: string): boolean {
+  return /\.(?:cjs|js|mjs|ts|tsx)$/u.test(entry);
+}
+
 function runCase(params: {
   entry: string;
   commandCase: CommandCase;
@@ -293,18 +297,22 @@ function runCase(params: {
   const samples: Sample[] = [];
   const totalRuns = params.warmup + params.runs;
   for (let i = 0; i < totalRuns; i += 1) {
-    const nodeArgs = [
-      "--import",
-      params.rssHookPath,
-      ...buildCpuOrHeapFlags({
-        cpuProfDir: params.cpuProfDir,
-        heapProfDir: params.heapProfDir,
-      }),
-      params.entry,
-      ...params.commandCase.args,
-    ];
+    const nodeEntry = isNodeEntry(params.entry);
+    const cmd = nodeEntry ? process.execPath : params.entry;
+    const args = nodeEntry
+      ? [
+          "--import",
+          params.rssHookPath,
+          ...buildCpuOrHeapFlags({
+            cpuProfDir: params.cpuProfDir,
+            heapProfDir: params.heapProfDir,
+          }),
+          params.entry,
+          ...params.commandCase.args,
+        ]
+      : params.commandCase.args;
     const started = process.hrtime.bigint();
-    const proc = spawnSync(process.execPath, nodeArgs, {
+    const proc = spawnSync(cmd, args, {
       cwd: process.cwd(),
       env: {
         ...process.env,
@@ -321,7 +329,7 @@ function runCase(params: {
     }
     samples.push({
       ms,
-      maxRssMb: parseMaxRssMb(proc.stderr ?? ""),
+      maxRssMb: nodeEntry ? parseMaxRssMb(proc.stderr ?? "") : null,
       exitCode: proc.status,
       signal: proc.signal,
     });
@@ -433,7 +441,7 @@ Usage:
 Options:
   --preset <startup|real|all>  Command preset to run (default: startup)
   --case <id>                  Specific case id to run; repeatable
-  --entry <path>               Primary entry file (default: crawclaw.mjs)
+  --entry <path>               Primary entry file (default: dist/native/crawclaw)
   --entry-secondary <path>     Secondary entry file for avg delta comparison
   --runs <n>                   Measured runs per case (default: ${DEFAULT_RUNS})
   --warmup <n>                 Warmup runs per case (default: ${DEFAULT_WARMUP})

@@ -15,7 +15,7 @@ export {
   WhatsAppConfigSchema,
   type ChannelPlugin,
   type CrawClawConfig,
-  } from "crawclaw/plugin-sdk/whatsapp-core";
+} from "crawclaw/plugin-sdk/whatsapp-core";
 
 export {
   createWhatsAppOutboundBase,
@@ -28,13 +28,13 @@ export {
   type DmPolicy,
   type GroupPolicy,
   type WhatsAppAccountConfig,
-  } from "crawclaw/plugin-sdk/whatsapp-shared";
+} from "crawclaw/plugin-sdk/whatsapp-shared";
 import { loadWebMedia } from "crawclaw/plugin-sdk/web-media";
 export {
   isWhatsAppGroupJid,
   isWhatsAppUserTarget,
   normalizeWhatsAppTarget,
-  } from "./normalize-target.js";
+} from "./normalize-target.js";
 export { resolveWhatsAppOutboundTarget } from "./resolve-outbound-target.js";
 export { resolveWhatsAppReactionLevel } from "./reaction-level.js";
 type MonitorWebChannel = typeof import("./channel.runtime.js").monitorWebChannel;
@@ -60,7 +60,7 @@ export async function loadOutboundMediaFromUrl(
     mediaAccess?: {
       localRoots?: readonly string[];
       readFile?: (filePath: string) => Promise<Buffer>;
-};
+    };
     mediaLocalRoots?: readonly string[];
     mediaReadFile?: (filePath: string) => Promise<Buffer>;
   } = {},

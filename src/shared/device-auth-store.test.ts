@@ -86,10 +86,10 @@ describe("device-auth-store", () => {
       version: 1,
       deviceId: "device-1",
       tokens: {
-        node: {
-          token: "node-token",
-          role: "node",
-          scopes: ["node.invoke"],
+        legacy: {
+          token: "legacy-token",
+          role: "legacy",
+          scopes: ["custom.invoke"],
           updatedAtMs: 10,
         },
       },
@@ -114,10 +114,10 @@ describe("device-auth-store", () => {
       version: 1,
       deviceId: "device-1",
       tokens: {
-        node: {
-          token: "node-token",
-          role: "node",
-          scopes: ["node.invoke"],
+        legacy: {
+          token: "legacy-token",
+          role: "legacy",
+          scopes: ["custom.invoke"],
           updatedAtMs: 10,
         },
         operator: entry,
@@ -142,17 +142,17 @@ describe("device-auth-store", () => {
     storeDeviceAuthTokenInStore({
       adapter,
       deviceId: "device-1",
-      role: "node",
-      token: "node-token",
+      role: "legacy",
+      token: "legacy-token",
     });
 
     expect(readStore()).toEqual({
       version: 1,
       deviceId: "device-1",
       tokens: {
-        node: {
-          token: "node-token",
-          role: "node",
+        legacy: {
+          token: "legacy-token",
+          role: "legacy",
           scopes: [],
           updatedAtMs: expect.any(Number),
         },
@@ -242,9 +242,9 @@ describe("device-auth-store", () => {
           scopes: ["operator.read"],
           updatedAtMs: 1,
         },
-        node: {
-          token: "node-token",
-          role: "node",
+        legacy: {
+          token: "legacy-token",
+          role: "legacy",
           scopes: [],
           updatedAtMs: 2,
         },
@@ -262,9 +262,9 @@ describe("device-auth-store", () => {
       version: 1,
       deviceId: "device-1",
       tokens: {
-        node: {
-          token: "node-token",
-          role: "node",
+        legacy: {
+          token: "legacy-token",
+          role: "legacy",
           scopes: [],
           updatedAtMs: 2,
         },

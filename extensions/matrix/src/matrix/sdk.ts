@@ -1,4 +1,6 @@
 import { EventEmitter } from "node:events";
+import { KeyedAsyncQueue } from "crawclaw/plugin-sdk/core";
+import type { PinnedDispatcherPolicy } from "crawclaw/plugin-sdk/infra-runtime";
 import {
   ClientEvent,
   MatrixEventEvent,
@@ -8,8 +10,6 @@ import {
   type MatrixEvent,
 } from "matrix-js-sdk/lib/matrix.js";
 import { VerificationMethod } from "matrix-js-sdk/lib/types.js";
-import { KeyedAsyncQueue } from "crawclaw/plugin-sdk/core";
-import type { PinnedDispatcherPolicy } from "crawclaw/plugin-sdk/infra-runtime";
 import type { SsrFPolicy } from "../runtime-api.js";
 import { resolveMatrixRoomKeyBackupReadinessError } from "./backup-health.js";
 import { FileBackedMatrixSyncStore } from "./client/file-sync-store.js";
@@ -37,15 +37,12 @@ import type {
 } from "./sdk/types.js";
 import type { MatrixVerificationSummary } from "./sdk/verification-manager.js";
 
-export {
-ConsoleLogger,
-LogService,
-};
+export { ConsoleLogger, LogService };
 export type {
   DimensionalFileInfo,
-FileWithThumbnailInfo,
-TimedFileInfo,
-VideoFileInfo,
+  FileWithThumbnailInfo,
+  TimedFileInfo,
+  VideoFileInfo,
 } from "./sdk/types.js";
 export type {
   EncryptedFile,

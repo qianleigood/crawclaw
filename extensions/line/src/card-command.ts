@@ -1,8 +1,4 @@
-import type {
-  LineChannelData,
-  CrawClawPluginApi,
-  ReplyPayload,
-} from "../api.js";
+import type { LineChannelData, CrawClawPluginApi, ReplyPayload } from "../api.js";
 import {
   createActionCard,
   createImageCard,

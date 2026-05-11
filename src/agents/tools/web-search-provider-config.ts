@@ -144,15 +144,9 @@ export function setProviderWebSearchPluginConfigValue(
   webSearch[key] = value;
 }
 
-export function resolveSearchEnabled(params: {
-  search?: WebSearchConfig;
-  sandboxed?: boolean;
-}): boolean {
+export function resolveSearchEnabled(params: { search?: WebSearchConfig }): boolean {
   if (typeof params.search?.enabled === "boolean") {
     return params.search.enabled;
-  }
-  if (params.sandboxed) {
-    return true;
   }
   return true;
 }

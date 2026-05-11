@@ -40,10 +40,7 @@ const EMPTY_PLUGIN_MANIFEST_REGISTRY: PluginManifestRegistry = {
 };
 
 const ENV_CATALOG_PATHS = ["CRAWCLAW_PLUGIN_CATALOG_PATHS", "CRAWCLAW_MPM_CATALOG_PATHS"];
-const TOOL_CONFIG_SECTIONS = [
-  { section: "xSearch", toolName: "x_search" },
-  { section: "codeExecution", toolName: "code_execution" },
-] as const;
+const TOOL_CONFIG_SECTIONS: readonly { section: string; toolName: string }[] = [];
 
 function normalizeStringList(values: readonly string[] | undefined): string[] {
   return (values ?? [])
@@ -248,10 +245,6 @@ function hasPluginOwnedWebFetchConfig(cfg: CrawClawConfig, pluginId: string): bo
 
 function hasPluginOwnedToolConfig(cfg: CrawClawConfig, pluginId: string): boolean {
   const pluginConfig = cfg.plugins?.entries?.[pluginId]?.config;
-  const web = cfg.tools?.web as Record<string, unknown> | undefined;
-  if (pluginId === "xai" && isRecord(web?.x_search)) {
-    return true;
-  }
   return (
     isRecord(pluginConfig) &&
     TOOL_CONFIG_SECTIONS.some(({ section }) => isRecord(pluginConfig[section]))
@@ -503,10 +496,6 @@ function configMayNeedPluginAutoEnable(cfg: CrawClawConfig, env: NodeJS.ProcessE
     return true;
   }
   if (collectModelRefs(cfg).length > 0) {
-    return true;
-  }
-  const web = cfg.tools?.web as Record<string, unknown> | undefined;
-  if (isRecord(web?.x_search)) {
     return true;
   }
   if (

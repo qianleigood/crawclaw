@@ -215,11 +215,11 @@ def create_order(request):
 
 ## 4. Authentication (HIGH)
 
-| Method | When | Frontend |
-|--------|------|----------|
+| Method  | When                               | Frontend                |
+| ------- | ---------------------------------- | ----------------------- |
 | Session | Same-domain, SSR, Django templates | Django templates / htmx |
-| JWT | Different domain, SPA, mobile | React, Vue, mobile apps |
-| OAuth2 | Third-party login, API consumers | Any |
+| JWT     | Different domain, SPA, mobile      | React, Vue, mobile apps |
+| OAuth2  | Third-party login, API consumers   | Any                     |
 
 ### JWT Config (djangorestframework-simplejwt)
 
@@ -433,18 +433,18 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 ## Anti-Patterns
 
-| # | ❌ Don't | ✅ Do Instead |
-|---|---------|--------------|
-| 1 | Business logic in views | Service layer (`services.py`) |
-| 2 | One giant app | App-per-domain |
-| 3 | Default User model | Custom User before first migrate |
-| 4 | No `select_related` | Always eager-load related objects |
-| 5 | Django fixtures for tests | `factory_boy` factories |
-| 6 | `settings.py` single file | Split: base + dev + prod |
-| 7 | `runserver` in production | Gunicorn + Nginx |
-| 8 | SQLite in production | PostgreSQL |
-| 9 | `ModelSerializer` for writes | Explicit input serializer |
-| 10 | Raw SQL in views | ORM querysets + `selectors.py` |
+| #   | ❌ Don't                     | ✅ Do Instead                     |
+| --- | ---------------------------- | --------------------------------- |
+| 1   | Business logic in views      | Service layer (`services.py`)     |
+| 2   | One giant app                | App-per-domain                    |
+| 3   | Default User model           | Custom User before first migrate  |
+| 4   | No `select_related`          | Always eager-load related objects |
+| 5   | Django fixtures for tests    | `factory_boy` factories           |
+| 6   | `settings.py` single file    | Split: base + dev + prod          |
+| 7   | `runserver` in production    | Gunicorn + Nginx                  |
+| 8   | SQLite in production         | PostgreSQL                        |
+| 9   | `ModelSerializer` for writes | Explicit input serializer         |
+| 10  | Raw SQL in views             | ORM querysets + `selectors.py`    |
 
 ---
 
@@ -457,6 +457,7 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 ### Issue 2: "Serializer is too slow on large querysets"
 
 **Fix:** Missing `select_related` / `prefetch_related` → N+1 queries.
+
 ```python
 queryset = Order.objects.select_related('user').prefetch_related('items')
 ```

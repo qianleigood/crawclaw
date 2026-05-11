@@ -45,7 +45,6 @@ export function configureProgramHelp(program: Command, ctx: ProgramContext) {
     .description("")
     .version(ctx.programVersion, "-V, --version", ctx.t("cli.option.version"))
     .option("--lang <locale>", ctx.t("cli.option.lang"))
-    .option("--container <name>", ctx.t("cli.option.container"))
     .option("--dev", ctx.t("cli.option.dev"))
     .option("--profile <name>", ctx.t("cli.option.profile"))
     .option(

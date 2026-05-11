@@ -41,48 +41,67 @@ function unique<T>(items: T[]): T[] {
   return [...new Set(items)];
 }
 
-function computeKeywordOverlap(classification: UnifiedQueryClassification, skill: SkillMetadata): number {
+function computeKeywordOverlap(
+  classification: UnifiedQueryClassification,
+  skill: SkillMetadata,
+): number {
   const skillTerms = new Set([
     ...tokenize(skill.name),
     ...tokenize(skill.description),
     ...(skill.tags ?? []).flatMap((tag) => tokenize(tag)),
   ]);
-  const queryTerms = unique([
-    ...classification.keywords,
-    ...classification.entityHints,
-  ].flatMap((token) => tokenize(token)));
+  const queryTerms = unique(
+    [...classification.keywords, ...classification.entityHints].flatMap((token) => tokenize(token)),
+  );
   if (!queryTerms.length || !skillTerms.size) return 0;
   const overlap = queryTerms.filter((token) => skillTerms.has(token)).length;
   return clamp01(overlap / Math.max(1, Math.min(4, queryTerms.length)));
 }
 
-function computeLayerMatch(classification: UnifiedQueryClassification, skill: SkillMetadata): number {
+function computeLayerMatch(
+  classification: UnifiedQueryClassification,
+  skill: SkillMetadata,
+): number {
   const skillLayers = new Set(skill.layers ?? []);
   if (!skillLayers.size) return 0;
   const overlap = classification.targetLayers.filter((layer) => skillLayers.has(layer)).length;
   return clamp01(overlap / Math.max(1, classification.targetLayers.length));
 }
 
-function computeIntentMatch(classification: UnifiedQueryClassification, skill: SkillMetadata): number {
+function computeIntentMatch(
+  classification: UnifiedQueryClassification,
+  skill: SkillMetadata,
+): number {
   const intents = skill.intents ?? [];
   if (intents.includes(classification.intent)) return 1;
   if (classification.secondaryIntents.some((intent) => intents.includes(intent))) return 0.65;
   return intents.includes("broad") ? 0.25 : 0;
 }
 
-function computeRuntimeRelevance(classification: UnifiedQueryClassification, skill: SkillMetadata): number {
-  const runtimeLike = classification.intent === "runtime"
-    || classification.intent === "history"
-    || classification.secondaryIntents.includes("runtime")
-    || classification.temporalHints.includes("recent");
+function computeRuntimeRelevance(
+  classification: UnifiedQueryClassification,
+  skill: SkillMetadata,
+): number {
+  const runtimeLike =
+    classification.intent === "runtime" ||
+    classification.intent === "history" ||
+    classification.secondaryIntents.includes("runtime") ||
+    classification.temporalHints.includes("recent");
   if (!runtimeLike) return 0;
   return skill.family === "incident" ? 1 : 0.15;
 }
 
-function computeEntityOverlap(classification: UnifiedQueryClassification, skill: SkillMetadata): number {
+function computeEntityOverlap(
+  classification: UnifiedQueryClassification,
+  skill: SkillMetadata,
+): number {
   if (!classification.entityHints.length) return 0;
-  const haystack = normalizeText(`${skill.name} ${skill.description} ${(skill.tags ?? []).join(" ")}`);
-  const hits = classification.entityHints.filter((hint) => haystack.includes(normalizeText(hint))).length;
+  const haystack = normalizeText(
+    `${skill.name} ${skill.description} ${(skill.tags ?? []).join(" ")}`,
+  );
+  const hits = classification.entityHints.filter((hint) =>
+    haystack.includes(normalizeText(hint)),
+  ).length;
   return clamp01(hits / Math.max(1, Math.min(3, classification.entityHints.length)));
 }
 
@@ -98,13 +117,14 @@ function computeSkillScore(params: {
   const entityOverlap = computeEntityOverlap(params.classification, params.skill);
   const runtimeRelevance = computeRuntimeRelevance(params.classification, params.skill);
   const priority = clamp01(params.skill.priority ?? 0.5);
-  const score = (intentMatch * 0.35)
-    + (familyMatch * 0.20)
-    + (keywordOverlap * 0.15)
-    + (layerMatch * 0.10)
-    + (entityOverlap * 0.10)
-    + (runtimeRelevance * 0.05)
-    + (priority * 0.05);
+  const score =
+    intentMatch * 0.35 +
+    familyMatch * 0.2 +
+    keywordOverlap * 0.15 +
+    layerMatch * 0.1 +
+    entityOverlap * 0.1 +
+    runtimeRelevance * 0.05 +
+    priority * 0.05;
   const reasons = [
     intentMatch > 0.5 ? "intent" : "",
     familyMatch > 0.5 ? "family" : "",
@@ -124,7 +144,8 @@ export function selectRelevantSkills(params: {
   skillIndex: SkillIndex;
   limit?: number;
 }): SkillRoutingResult {
-  const family = params.classification.skillFamily ?? inferSkillFamily(params.classification.intent);
+  const family =
+    params.classification.skillFamily ?? inferSkillFamily(params.classification.intent);
   const limit = Math.max(1, Math.min(params.limit ?? 5, 8));
   const ranked = params.skillIndex.skills
     .map((skill) => {
@@ -140,8 +161,11 @@ export function selectRelevantSkills(params: {
       };
     })
     .filter((entry) => entry.score >= 0.4)
-    .sort((left, right) =>
-      right.score - left.score || (right.skill.priority ?? 0) - (left.skill.priority ?? 0) || left.skill.name.localeCompare(right.skill.name),
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        (right.skill.priority ?? 0) - (left.skill.priority ?? 0) ||
+        left.skill.name.localeCompare(right.skill.name),
     )
     .slice(0, limit);
 

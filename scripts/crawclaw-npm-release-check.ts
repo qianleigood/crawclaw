@@ -17,6 +17,8 @@ type PackageJson = {
   license?: string;
   repository?: { url?: string } | string;
   bin?: Record<string, string>;
+  exports?: Record<string, unknown>;
+  files?: string[];
   peerDependencies?: Record<string, string>;
   peerDependenciesMeta?: Record<string, { optional?: boolean }>;
 };
@@ -180,10 +182,16 @@ export function collectReleasePackageMetadataErrors(pkg: PackageJson): string[] 
       }.`,
     );
   }
-  if (pkg.bin?.crawclaw !== "crawclaw.mjs") {
+  if (pkg.bin?.crawclaw !== "dist/native/crawclaw") {
     errors.push(
-      `package.json bin.crawclaw must be "crawclaw.mjs"; found "${pkg.bin?.crawclaw ?? ""}".`,
+      `package.json bin.crawclaw must be "dist/native/crawclaw"; found "${pkg.bin?.crawclaw ?? ""}".`,
     );
+  }
+  if (Object.prototype.hasOwnProperty.call(pkg.exports ?? {}, "./cli-entry")) {
+    errors.push('package.json exports must not expose legacy "./cli-entry".');
+  }
+  if (pkg.files?.includes("crawclaw.mjs")) {
+    errors.push('package.json files must not include legacy "crawclaw.mjs".');
   }
   if (pkg.peerDependencies?.["node-llama-cpp"] !== "3.18.1") {
     errors.push(

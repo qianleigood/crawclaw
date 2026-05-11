@@ -5,7 +5,6 @@ import {
   ensureConfigReady,
   installBaseProgramMocks,
   installSmokeProgramMocks,
-  runTui,
   runtime,
   setupCommand,
   setupWizardCommand,
@@ -38,7 +37,6 @@ describe("cli program (smoke)", () => {
   beforeEach(() => {
     program = createProgram();
     vi.clearAllMocks();
-    runTui.mockResolvedValue(undefined);
     ensureConfigReady.mockResolvedValue(undefined);
   });
 
@@ -47,17 +45,6 @@ describe("cli program (smoke)", () => {
     expect(names).toContain("message");
     expect(names).toContain("status");
     expect(names).toContain("memory");
-  });
-
-  it("runs tui with explicit timeout override", async () => {
-    await runProgram(["tui", "--timeout-ms", "45000"]);
-    expect(runTui).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: 45000 }));
-  });
-
-  it("warns and ignores invalid tui timeout override", async () => {
-    await runProgram(["tui", "--timeout-ms", "nope"]);
-    expect(runtime.error).toHaveBeenCalledWith('warning: invalid --timeout-ms "nope"; ignoring');
-    expect(runTui).toHaveBeenCalledWith(expect.objectContaining({ timeoutMs: undefined }));
   });
 
   it("runs setup wizard when wizard flags are present", async () => {

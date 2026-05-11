@@ -106,7 +106,7 @@ async function createSafeBinsExecTool(params: {
   const cfg: CrawClawConfig = {
     tools: {
       exec: {
-        host: "gateway",
+        host: "auto",
         security: "allowlist",
         ask: "off",
         safeBins: params.safeBins,
@@ -121,9 +121,9 @@ async function createSafeBinsExecTool(params: {
     workspaceDir: tmpDir,
     agentDir: path.join(tmpDir, "agent"),
   });
-  const execTool = tools.find((tool) => tool.name === "exec");
+  const execTool = tools.find((tool) => tool.name === "bash");
   if (!execTool) {
-    throw new Error("exec tool missing from coding tools");
+    throw new Error("bash tool missing from coding tools");
   }
   return { tmpDir, execTool: execTool as ExecTool };
 }

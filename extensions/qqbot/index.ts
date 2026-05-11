@@ -1,7 +1,4 @@
-import type {
-  ChannelPlugin,
-  CrawClawPluginApi,
-} from "crawclaw/plugin-sdk/core";
+import type { ChannelPlugin, CrawClawPluginApi } from "crawclaw/plugin-sdk/core";
 import { defineChannelPluginEntry } from "crawclaw/plugin-sdk/core";
 import { qqbotPlugin } from "./src/channel.js";
 import { resolveQQBotAccount } from "./src/config.js";

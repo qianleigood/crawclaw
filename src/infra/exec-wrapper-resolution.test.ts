@@ -63,7 +63,6 @@ describe("wrapper classification", () => {
   test.each([
     { token: "sudo", dispatch: true, shell: false },
     { token: "caffeinate", dispatch: true, shell: false },
-    { token: "sandbox-exec", dispatch: true, shell: false },
     { token: "script", dispatch: true, shell: false },
     { token: "time", dispatch: true, shell: false },
     { token: "timeout.exe", dispatch: true, shell: false },
@@ -171,22 +170,6 @@ describe("unwrapKnownDispatchWrapperInvocation", () => {
       expected: { kind: "unwrapped", wrapper: "timeout", argv: ["bash", "-lc", "echo hi"] },
     },
     {
-      argv: ["sandbox-exec", "-p", "(allow default)", "bash", "-lc", "echo hi"],
-      expected: {
-        kind: "unwrapped",
-        wrapper: "sandbox-exec",
-        argv: ["bash", "-lc", "echo hi"],
-      },
-    },
-    {
-      argv: ["sandbox-exec", "-D", "PROFILE", "bash", "-lc", "echo hi"],
-      expected: {
-        kind: "unwrapped",
-        wrapper: "sandbox-exec",
-        argv: ["bash", "-lc", "echo hi"],
-      },
-    },
-    {
       argv: ["xcrun", "bash", "-lc", "echo hi"],
       expected:
         process.platform === "darwin"
@@ -268,16 +251,6 @@ describe("resolveDispatchWrapperTrustPlan", () => {
     {
       argv: ["nohup", "--", "bash", "-lc", "echo hi"],
       wrapper: "nohup",
-      effectiveArgv: ["bash", "-lc", "echo hi"],
-    },
-    {
-      argv: ["sandbox-exec", "-p", "(allow default)", "bash", "-lc", "echo hi"],
-      wrapper: "sandbox-exec",
-      effectiveArgv: ["bash", "-lc", "echo hi"],
-    },
-    {
-      argv: ["sandbox-exec", "-D", "PROFILE", "bash", "-lc", "echo hi"],
-      wrapper: "sandbox-exec",
       effectiveArgv: ["bash", "-lc", "echo hi"],
     },
     {

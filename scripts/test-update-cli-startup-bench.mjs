@@ -11,7 +11,7 @@ if (process.argv.slice(2).includes("--help")) {
       "",
       "Options:",
       "  --out <path>          Output path (default: test/fixtures/cli-startup-bench.json)",
-      "  --entry <path>        CLI entry to benchmark (default: crawclaw.mjs)",
+      "  --entry <path>        CLI entry to benchmark (default: dist/native/crawclaw)",
       "  --preset <name>       startup | real | all (default: all)",
       "  --runs <n>            Measured runs per case (default: 5)",
       "  --warmup <n>          Warmup runs per case (default: 1)",
@@ -29,7 +29,7 @@ const opts = parseFlagArgs(
   process.argv.slice(2),
   {
     out: cliStartupBenchManifestPath,
-    entry: "crawclaw.mjs",
+    entry: "dist/native/crawclaw",
     preset: "all",
     runs: 5,
     warmup: 1,

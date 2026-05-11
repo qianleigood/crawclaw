@@ -25,7 +25,6 @@ type GatewayCaller = typeof callGateway;
 
 export function createSessionsListTool(opts?: {
   agentSessionKey?: string;
-  sandboxed?: boolean;
   config?: CrawClawConfig;
   callGateway?: GatewayCaller;
 }): AnyAgentTool {
@@ -40,11 +39,9 @@ export function createSessionsListTool(opts?: {
         resolveSessionToolContext({
           config: opts?.config ?? loadConfig(),
           agentSessionKey: opts?.agentSessionKey,
-          sandboxed: opts?.sandboxed,
         });
       const { a2aPolicy, visibility } = resolveSessionAccessPolicies({
         cfg,
-        sandboxed: opts?.sandboxed,
       });
 
       const kindsRaw = readStringArrayParam(params, "kinds")?.map((value) =>

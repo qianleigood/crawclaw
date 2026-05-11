@@ -262,10 +262,9 @@ function readExecApprovalPendingDetails(result: unknown): {
   approvalSlug: string;
   expiresAtMs?: number;
   allowedDecisions?: readonly ExecApprovalDecision[];
-  host: "gateway" | "node";
+  host: "gateway";
   command: string;
   cwd?: string;
-  nodeId?: string;
   warningText?: string;
 } | null {
   if (!result || typeof result !== "object") {
@@ -282,7 +281,7 @@ function readExecApprovalPendingDetails(result: unknown): {
   const approvalId = typeof details.approvalId === "string" ? details.approvalId.trim() : "";
   const approvalSlug = typeof details.approvalSlug === "string" ? details.approvalSlug.trim() : "";
   const command = typeof details.command === "string" ? details.command : "";
-  const host = details.host === "node" ? "node" : details.host === "gateway" ? "gateway" : null;
+  const host = details.host === "gateway" ? "gateway" : null;
   if (!approvalId || !approvalSlug || !command || !host) {
     return null;
   }
@@ -299,7 +298,6 @@ function readExecApprovalPendingDetails(result: unknown): {
     host,
     command,
     cwd: typeof details.cwd === "string" ? details.cwd : undefined,
-    nodeId: typeof details.nodeId === "string" ? details.nodeId : undefined,
     warningText: typeof details.warningText === "string" ? details.warningText : undefined,
   };
 }
@@ -379,7 +377,6 @@ async function emitToolResultOutput(params: {
           command: approvalPending.command,
           cwd: approvalPending.cwd,
           host: approvalPending.host,
-          nodeId: approvalPending.nodeId,
           expiresAtMs: approvalPending.expiresAtMs,
           warningText: approvalPending.warningText,
         }),

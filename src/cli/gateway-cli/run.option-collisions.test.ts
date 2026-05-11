@@ -3,7 +3,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { withTempSecretFiles } from "../../test-utils/secret-file-fixture.js";
 import { createCliRuntimeCapture } from "../test-runtime-capture.js";
 
-const startGatewayServer = vi.fn(async (_port: number, _opts?: unknown) => ({
+const startRustGatewayServer = vi.fn(async (_port: number, _opts?: unknown) => ({
   close: vi.fn(async () => {}),
 }));
 const setGatewayWsLogStyle = vi.fn((_style: string) => undefined);
@@ -60,8 +60,8 @@ vi.mock("../../gateway/auth.js", () => ({
   },
 }));
 
-vi.mock("../../gateway/server.js", () => ({
-  startGatewayServer: (port: number, opts?: unknown) => startGatewayServer(port, opts),
+vi.mock("./rust-server.js", () => ({
+  startRustGatewayServer: (port: number, opts?: unknown) => startRustGatewayServer(port, opts),
 }));
 
 vi.mock("../../gateway/ws-logging.js", () => ({
@@ -131,7 +131,7 @@ describe("gateway run option collisions", () => {
     resetRuntimeCapture();
     configState.cfg = {};
     configState.snapshot = { exists: false };
-    startGatewayServer.mockClear();
+    startRustGatewayServer.mockClear();
     setGatewayWsLogStyle.mockClear();
     setVerbose.mockClear();
     setConsoleSubsystemFilter.mockClear();
@@ -146,7 +146,7 @@ describe("gateway run option collisions", () => {
   }
 
   function expectAuthOverrideMode(mode: string) {
-    expect(startGatewayServer).toHaveBeenCalledWith(
+    expect(startRustGatewayServer).toHaveBeenCalledWith(
       18789,
       expect.objectContaining({
         auth: expect.objectContaining({
@@ -174,7 +174,7 @@ describe("gateway run option collisions", () => {
       expect.objectContaining({ host: "127.0.0.1" }),
     );
     expect(setGatewayWsLogStyle).toHaveBeenCalledWith("full");
-    expect(startGatewayServer).toHaveBeenCalledWith(
+    expect(startRustGatewayServer).toHaveBeenCalledWith(
       18789,
       expect.objectContaining({
         auth: expect.objectContaining({
@@ -196,7 +196,7 @@ describe("gateway run option collisions", () => {
   it("starts gateway when token mode has no configured token (startup bootstrap path)", async () => {
     await runGatewayCli(["gateway", "run", "--allow-unconfigured"]);
 
-    expect(startGatewayServer).toHaveBeenCalledWith(
+    expect(startRustGatewayServer).toHaveBeenCalledWith(
       18789,
       expect.objectContaining({
         bind: "loopback",
@@ -226,7 +226,7 @@ describe("gateway run option collisions", () => {
     expect(runtimeErrors).toContain(
       "Gateway start blocked: set gateway.mode=local (current: unset) or pass --allow-unconfigured.",
     );
-    expect(startGatewayServer).not.toHaveBeenCalled();
+    expect(startRustGatewayServer).not.toHaveBeenCalled();
   });
 
   it.each(["none", "trusted-proxy"] as const)("accepts --auth %s override", async (mode) => {
@@ -263,7 +263,7 @@ describe("gateway run option collisions", () => {
 
     await runGatewayCli(["gateway", "run", "--allow-unconfigured"]);
 
-    expect(startGatewayServer).toHaveBeenCalledWith(
+    expect(startRustGatewayServer).toHaveBeenCalledWith(
       18789,
       expect.objectContaining({
         bind: "loopback",
@@ -288,7 +288,7 @@ describe("gateway run option collisions", () => {
       },
     );
 
-    expect(startGatewayServer).toHaveBeenCalledWith(
+    expect(startRustGatewayServer).toHaveBeenCalledWith(
       18789,
       expect.objectContaining({
         auth: expect.objectContaining({

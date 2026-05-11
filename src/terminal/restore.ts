@@ -33,8 +33,7 @@ export function restoreTerminalState(
   reason?: string,
   options: RestoreTerminalStateOptions = {},
 ): void {
-  // Docker TTY note: resuming stdin can keep a container process alive even
-  // after the wizard is "done" (stdin_open: true), making installers appear hung.
+  // Resuming stdin can keep a foreground supervisor process alive after the wizard is done.
   const resumeStdin = options.resumeStdinIfPaused ?? options.resumeStdin ?? false;
   try {
     clearActiveProgressLine();

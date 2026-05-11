@@ -44,8 +44,7 @@ function formatDebugArg(value: unknown): string {
 const debugAccounts = (...args: unknown[]) => {
   if (
     isTruthyEnvValue(
-      process.env.CRAWCLAW_DEBUG_TELEGRAM_ACCOUNTS ??
-        process.env.CRAWCLAW_DEBUG_TELEGRAM_ACCOUNTS,
+      process.env.CRAWCLAW_DEBUG_TELEGRAM_ACCOUNTS ?? process.env.CRAWCLAW_DEBUG_TELEGRAM_ACCOUNTS,
     )
   ) {
     const parts = args.map((arg) => formatDebugArg(arg));

@@ -10,8 +10,6 @@
       "targetId",
       "ref",
       "element",
-      "node",
-      "nodeId",
       "id",
       "requestId",
       "to",
@@ -104,11 +102,11 @@
       "emoji": "🖼️",
       "title": "Canvas",
       "actions": {
-        "present": { "label": "present", "detailKeys": ["target", "node", "nodeId"] },
-        "hide": { "label": "hide", "detailKeys": ["node", "nodeId"] },
-        "navigate": { "label": "navigate", "detailKeys": ["url", "node", "nodeId"] },
-        "eval": { "label": "eval", "detailKeys": ["javaScript", "node", "nodeId"] },
-        "snapshot": { "label": "snapshot", "detailKeys": ["format", "node", "nodeId"] }
+        "present": { "label": "present", "detailKeys": ["target"] },
+        "hide": { "label": "hide" },
+        "navigate": { "label": "navigate", "detailKeys": ["url"] },
+        "eval": { "label": "eval", "detailKeys": ["javaScript"] },
+        "snapshot": { "label": "snapshot", "detailKeys": ["format"] }
       }
     },
     "cron": {

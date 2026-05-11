@@ -5,7 +5,6 @@ import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../memory/special-agent-
 import { listDeliverableMessageChannels } from "../utils/message-channel.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
-import type { EmbeddedSandboxInfo } from "./pi-embedded-runner/types.js";
 import { renderQueryContextSections } from "./query-context/render.js";
 import type { QueryContextSection } from "./query-context/types.js";
 import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
@@ -165,10 +164,14 @@ function buildMessagingSection(params: {
   return [
     "## Messaging",
     "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
-    "- Cross-session messaging → use sessions_send(sessionKey, message)",
-    "- Sub-agent orchestration → use subagents(action=list|steer|kill)",
+    params.availableTools.has("sessions_send")
+      ? "- Cross-session messaging → use sessions_send(sessionKey, message)"
+      : "",
+    params.availableTools.has("subagents")
+      ? "- Sub-agent control → use subagents(action=list|steer|kill)"
+      : "",
     `- Runtime-generated completion events may ask for a user update. Rewrite those in your normal assistant voice and send the update (do not forward raw internal metadata or default to ${SILENT_REPLY_TOKEN}).`,
-    "- Never use exec/curl for provider messaging; CrawClaw handles all routing internally.",
+    "- Never use bash/curl for provider messaging; CrawClaw handles all routing internally.",
     params.availableTools.has("message")
       ? [
           "",
@@ -215,7 +218,7 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
     "Community: https://discord.com/invite/clawd",
     "Find new skills: https://clawhub.ai",
     "For CrawClaw behavior, commands, config, or architecture: consult local docs first.",
-    "When diagnosing issues, run `crawclaw status` yourself when possible; only ask the user if you lack access (e.g., sandboxed).",
+    "When diagnosing issues, run `crawclaw status` yourself when possible; only ask the user if you lack access.",
     "",
   ];
 }
@@ -228,9 +231,9 @@ function buildExecApprovalPromptGuidance(params: { runtimeChannel?: string }) {
     runtimeChannel === "telegram" ||
     runtimeChannel === "webchat"
   ) {
-    return "When exec returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear and do not also send plain chat /approve instructions. Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.";
+    return "When bash returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear and do not also send plain chat /approve instructions. Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.";
   }
-  return "When exec returns approval-pending, include the concrete /approve command from tool output as plain chat text for the user, and do not ask for a different or rotated code.";
+  return "When bash returns approval-pending, include the concrete /approve command from tool output as plain chat text for the user, and do not ask for a different or rotated code.";
 }
 
 function createPromptSection(
@@ -296,7 +299,6 @@ export function buildAgentSystemPromptSections(params: {
     repoRoot?: string;
   };
   messageToolHints?: string[];
-  sandboxInfo?: EmbeddedSandboxInfo;
   /** Reaction guidance for the agent (for Telegram minimal/extensive modes). */
   reactionGuidance?: {
     level: "minimal" | "extensive";
@@ -304,8 +306,7 @@ export function buildAgentSystemPromptSections(params: {
   };
 }): QueryContextSection[] {
   const acpEnabled = params.acpEnabled !== false;
-  const sandboxedRuntime = params.sandboxInfo?.enabled === true;
-  const acpSpawnRuntimeEnabled = acpEnabled && !sandboxedRuntime;
+  const acpSpawnRuntimeEnabled = acpEnabled;
   const coreToolSummaries: Record<string, string> = {
     read: "Read file contents",
     write: "Create or overwrite files",
@@ -314,8 +315,8 @@ export function buildAgentSystemPromptSections(params: {
     grep: "Search file contents for patterns",
     find: "Find files by glob pattern",
     ls: "List directory contents",
-    exec: "Run shell commands (pty available for TTY-required CLIs)",
-    process: "Manage background exec sessions",
+    bash: "Run shell commands (pty available for TTY-required CLIs)",
+    process: "Manage background bash sessions",
     web_search: "Search the web",
     web_fetch: "Fetch and extract readable content from a URL",
     // Channel docking: add login tools here when a channel needs interactive linking.
@@ -323,18 +324,14 @@ export function buildAgentSystemPromptSections(params: {
     canvas: "Present/eval/snapshot the Canvas",
     cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
     message: "Send messages and channel actions",
-    gateway: "Restart, apply config, or run updates on the running CrawClaw process",
-    sessions_list: "List other sessions (incl. sub-agents) with filters/last",
-    sessions_history: "Fetch history for another session/sub-agent",
-    sessions_send: "Send a message to another session/sub-agent",
     sessions_spawn: acpSpawnRuntimeEnabled
       ? 'Spawn an isolated sub-agent or ACP coding session (runtime="acp" requires `agentId` unless `acp.defaultAgent` is configured; ACP harness ids follow acp.allowedAgents)'
       : "Spawn an isolated sub-agent session",
-    subagents: "List, steer, or kill sub-agent runs for this requester session",
+    sessions_yield: "End this turn and wait for spawned sub-agent results",
     session_status:
       "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
-    image: "Analyze an image with the configured image model",
     discover_skills: "Search available skills for the current task",
+    write_experience_note: "Write reusable experience notes",
   };
 
   const toolOrder = [
@@ -346,22 +343,20 @@ export function buildAgentSystemPromptSections(params: {
     "grep",
     "find",
     "ls",
-    "exec",
+    "bash",
     "process",
-    "code_execution",
     "web_search",
     "web_fetch",
-    "browser",
-    "canvas",
-    "cron",
-    "message",
-    "gateway",
-    "sessions_list",
-    "sessions_history",
-    "sessions_send",
-    "subagents",
+    "sessions_spawn",
+    "sessions_yield",
     "session_status",
+    "browser",
+    "message",
+    "cron",
     "image",
+    "pdf",
+    "tts",
+    "write_experience_note",
   ];
 
   const rawToolNames = (params.toolNames ?? []).map((tool) => tool.trim());
@@ -404,12 +399,11 @@ export function buildAgentSystemPromptSections(params: {
     toolLines.push(summary ? `- ${name}: ${summary}` : `- ${name}`);
   }
 
-  const hasGateway = availableTools.has("gateway");
   const readToolName = resolveToolName("read");
   const discoverSkillsToolName = availableTools.has("discover_skills")
     ? resolveToolName("discover_skills")
     : undefined;
-  const execToolName = resolveToolName("exec");
+  const execToolName = resolveToolName("bash");
   const processToolName = resolveToolName("process");
   const extraSystemPrompt = params.extraSystemPrompt?.trim();
   const ownerDisplay = params.ownerDisplay === "hash" ? "hash" : "raw";
@@ -444,19 +438,10 @@ export function buildAgentSystemPromptSections(params: {
   const messageChannelOptions = listDeliverableMessageChannels().join("|");
   const promptMode = params.promptMode ?? "full";
   const isMinimal = promptMode === "minimal" || promptMode === "none";
-  const sandboxContainerWorkspace = params.sandboxInfo?.containerWorkspaceDir?.trim();
   const sanitizedWorkspaceDir = sanitizeForPromptLiteral(params.workspaceDir);
-  const sanitizedSandboxContainerWorkspace = sandboxContainerWorkspace
-    ? sanitizeForPromptLiteral(sandboxContainerWorkspace)
-    : "";
-  const displayWorkspaceDir =
-    params.sandboxInfo?.enabled && sanitizedSandboxContainerWorkspace
-      ? sanitizedSandboxContainerWorkspace
-      : sanitizedWorkspaceDir;
+  const displayWorkspaceDir = sanitizedWorkspaceDir;
   const workspaceGuidance =
-    params.sandboxInfo?.enabled && sanitizedSandboxContainerWorkspace
-      ? `For read/write/edit/apply_patch, file paths resolve against host workspace: ${sanitizedWorkspaceDir}. For bash/exec commands, use sandbox container paths under ${sanitizedSandboxContainerWorkspace} (or relative paths from that workdir), not host paths. Prefer relative paths so both sandboxed exec and file tools work consistently.`
-      : "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.";
+    "Treat this directory as the single global workspace for file operations unless explicitly instructed otherwise.";
   const safetySection = [
     "## Safety",
     "You have no independent goals: do not pursue self-preservation, replication, resource acquisition, or power-seeking; avoid long-term plans beyond the user's request.",
@@ -517,14 +502,10 @@ export function buildAgentSystemPromptSections(params: {
             "- ls: list directory contents",
             "- apply_patch: apply multi-file patches",
             `- ${execToolName}: run shell commands (supports background via yieldMs/background)`,
-            `- ${processToolName}: manage background exec sessions`,
+            `- ${processToolName}: manage background bash sessions`,
             "- browser: control CrawClaw's dedicated browser",
-            "- canvas: present/eval/snapshot the Canvas",
-            "- cron: manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
-            "- sessions_list: list sessions",
-            "- sessions_history: fetch session history",
-            "- sessions_send: send to another session",
-            "- subagents: list/steer/kill sub-agent runs",
+            "- sessions_spawn: spawn an isolated sub-agent session",
+            "- sessions_yield: end this turn to receive sub-agent results",
             '- session_status: show usage/time/model state and answer "what model are we using?"',
           ].join("\n"),
       "TOOLS.md does not control tool availability; it is user guidance for how to use external tools.",
@@ -534,11 +515,11 @@ export function buildAgentSystemPromptSections(params: {
         ? [
             'For requests like "do this in codex/claude code/cursor/gemini" or similar ACP harnesses, treat it as ACP harness intent and call `sessions_spawn` with `runtime: "acp"`.',
             'On Discord, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`) unless the user asks otherwise.',
-            "Set `agentId` explicitly unless `acp.defaultAgent` is configured, and do not route ACP harness requests through `subagents` or local PTY exec flows.",
+            "Set `agentId` explicitly unless `acp.defaultAgent` is configured, and do not route ACP harness requests through local PTY bash flows.",
             'For ACP harness thread spawns, do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path.',
           ]
         : []),
-      "Do not poll `subagents list` / `sessions_list` in a loop; only check status on-demand (for intervention, debugging, or when explicitly asked).",
+      "Do not poll session status in a loop; only check status on-demand (for intervention, debugging, or when explicitly asked).",
     ]),
     createPromptSection("tool_call_style", [
       "## Tool Call Style",
@@ -550,7 +531,7 @@ export function buildAgentSystemPromptSections(params: {
       buildExecApprovalPromptGuidance({
         runtimeChannel: params.runtimeInfo?.channel,
       }),
-      "Never execute /approve through exec or any other shell/tool path; /approve is a user-facing approval command, not a shell command.",
+      "Never execute /approve through bash or any other shell/tool path; /approve is a user-facing approval command, not a shell command.",
       "Treat allow-once as single-command only: if another elevated command needs approval, request a fresh /approve and do not claim prior approval covered it.",
       "When approvals are required, preserve and show the full command/script exactly as provided (including chained operators like &&, ||, |, ;, or multiline shells) so the user can approve what will actually run.",
     ]),
@@ -567,19 +548,6 @@ export function buildAgentSystemPromptSections(params: {
     ]),
     createPromptSection("skills", skillsSection),
     createPromptSection("memory", memorySection),
-    createPromptSection(
-      "self_update",
-      hasGateway && !isMinimal
-        ? [
-            "## CrawClaw Self-Update",
-            "Get Updates (self-update) is ONLY allowed when the user explicitly asks for it.",
-            "Do not run config.apply or update.run unless the user explicitly requests an update or config change; if it's not explicit, ask first.",
-            "Use config.schema.lookup with a specific dot path to inspect only the relevant config subtree before making config changes or answering config-field questions; avoid guessing field names/types.",
-            "Actions: config.schema.lookup, config.get, config.apply (validate + write full config, then restart), config.patch (partial update, merges with existing), update.run (update deps or git, then restart).",
-            "After restart, CrawClaw pings the last active session automatically.",
-          ]
-        : [],
-    ),
     createPromptSection(
       "model_aliases",
       params.modelAliasLines && params.modelAliasLines.length > 0 && !isMinimal
@@ -602,54 +570,6 @@ export function buildAgentSystemPromptSections(params: {
       ...workspaceNotes,
     ]),
     createPromptSection("docs", docsSection),
-    createPromptSection(
-      "sandbox",
-      params.sandboxInfo?.enabled
-        ? [
-            "## Sandbox",
-            "You are running in a sandboxed runtime (tools execute in Docker).",
-            "Some tools may be unavailable due to sandbox policy.",
-            "Sub-agents stay sandboxed (no elevated/host access). Need outside-sandbox read/write? Don't spawn; ask first.",
-            hasSessionsSpawn && acpEnabled
-              ? 'ACP harness spawns are blocked from sandboxed sessions (`sessions_spawn` with `runtime: "acp"`). Use `runtime: "subagent"` instead.'
-              : "",
-            params.sandboxInfo.containerWorkspaceDir
-              ? `Sandbox container workdir: ${sanitizeForPromptLiteral(params.sandboxInfo.containerWorkspaceDir)}`
-              : "",
-            params.sandboxInfo.workspaceDir
-              ? `Sandbox host mount source (file tools bridge only; not valid inside sandbox exec): ${sanitizeForPromptLiteral(params.sandboxInfo.workspaceDir)}`
-              : "",
-            params.sandboxInfo.workspaceAccess
-              ? `Agent workspace access: ${params.sandboxInfo.workspaceAccess}${
-                  params.sandboxInfo.agentWorkspaceMount
-                    ? ` (mounted at ${sanitizeForPromptLiteral(params.sandboxInfo.agentWorkspaceMount)})`
-                    : ""
-                }`
-              : "",
-            params.sandboxInfo.browserBridgeUrl ? "Sandbox browser: enabled." : "",
-            params.sandboxInfo.browserNoVncUrl
-              ? `Sandbox browser observer (noVNC): ${sanitizeForPromptLiteral(params.sandboxInfo.browserNoVncUrl)}`
-              : "",
-            params.sandboxInfo.hostBrowserAllowed === true
-              ? "Host browser control: allowed."
-              : params.sandboxInfo.hostBrowserAllowed === false
-                ? "Host browser control: blocked."
-                : "",
-            params.sandboxInfo.elevated?.allowed
-              ? "Elevated exec is available for this session."
-              : "",
-            params.sandboxInfo.elevated?.allowed
-              ? "User can toggle with /elevated on|off|ask|full."
-              : "",
-            params.sandboxInfo.elevated?.allowed
-              ? "You may also send /elevated on|off|ask|full when needed."
-              : "",
-            params.sandboxInfo.elevated?.allowed
-              ? `Current elevated level: ${params.sandboxInfo.elevated.defaultLevel} (ask runs exec on host with approvals; full auto-approves).`
-              : "",
-          ]
-        : [],
-    ),
     createPromptSection("authorized_senders", buildUserIdentitySection(ownerLine, isMinimal)),
     createPromptSection(
       "time",

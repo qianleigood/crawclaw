@@ -472,7 +472,7 @@ describe("feishu_doc image fetch hardening", () => {
     expect(result.details.file_name).toBe("test-local.txt");
 
     // localRoots is not passed — loadWebMedia uses default roots (tmp, media,
-    // workspace, sandboxes) plus workspace-profile auto-discovery.
+    // workspace and runtime roots plus workspace-profile auto-discovery.
     expect(loadWebMediaMock).toHaveBeenCalledWith(
       expect.stringContaining("test-local.txt"),
       expect.objectContaining({ optimizeImages: false }),

@@ -61,7 +61,6 @@ describe("web_fetch provider fallback normalization", () => {
           },
         },
       } as CrawClawConfig,
-      sandboxed: false,
     });
 
     const result = await tool?.execute?.("call-provider-fallback", {
@@ -114,7 +113,6 @@ describe("web_fetch provider fallback normalization", () => {
 
     const tool = createWebFetchTool({
       config: {} as CrawClawConfig,
-      sandboxed: false,
     });
 
     const result = await tool?.execute?.("call-provider-fallback", {
@@ -149,7 +147,6 @@ describe("web_fetch provider fallback normalization", () => {
 
     const tool = createWebFetchTool({
       config: {} as CrawClawConfig,
-      sandboxed: false,
     });
 
     await tool?.execute?.("call-provider-detail", {
@@ -202,7 +199,6 @@ describe("web_fetch provider fallback normalization", () => {
 
     const tool = createWebFetchTool({
       config: {} as CrawClawConfig,
-      sandboxed: false,
     });
 
     await tool?.execute?.("call-provider-session-a", {
@@ -253,7 +249,6 @@ describe("web_fetch provider fallback normalization", () => {
 
     const tool = createWebFetchTool({
       config: {} as CrawClawConfig,
-      sandboxed: false,
     });
 
     const result = await tool?.execute?.("call-provider-primary", {

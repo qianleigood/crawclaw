@@ -273,7 +273,6 @@ function mapTaskDetail(task: TaskRecord) {
       executionMode: definition?.executionMode ?? null,
       transcriptPolicy: definition?.transcriptPolicy ?? null,
       cleanup: definition?.cleanup ?? null,
-      sandbox: definition?.sandbox ?? null,
       defaultRunTimeoutSeconds:
         typeof definition?.defaultRunTimeoutSeconds === "number"
           ? definition.defaultRunTimeoutSeconds

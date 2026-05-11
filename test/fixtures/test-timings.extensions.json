@@ -231,10 +231,6 @@
       "durationMs": 102.6015625,
       "testCount": 30
     },
-    "extensions/openshell/src/openshell-core.test.ts": {
-      "durationMs": 95.810546875,
-      "testCount": 14
-    },
     "extensions/twitch/src/twitch-client.test.ts": {
       "durationMs": 88.92333984375,
       "testCount": 30
@@ -462,10 +458,6 @@
     "extensions/thread-ownership/index.test.ts": {
       "durationMs": 14.474609375,
       "testCount": 9
-    },
-    "extensions/openshell/src/mirror.test.ts": {
-      "durationMs": 14.3525390625,
-      "testCount": 3
     },
     "extensions/msteams/src/graph.test.ts": {
       "durationMs": 14.23095703125,

@@ -12,7 +12,7 @@ describe("createResolvedRouteCompleteFn", () => {
   it("reads text from the OpenAI responses API output_text field", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify({ output_text: "{\"notes\":[],\"reason\":\"ok\"}" }),
+      text: async () => JSON.stringify({ output_text: '{"notes":[],"reason":"ok"}' }),
     });
     global.fetch = fetchMock as typeof fetch;
     const complete = createResolvedRouteCompleteFn("gpt-5.4", async () => ({
@@ -24,7 +24,7 @@ describe("createResolvedRouteCompleteFn", () => {
 
     const result = await complete("system", "user");
 
-    expect(result).toBe("{\"notes\":[],\"reason\":\"ok\"}");
+    expect(result).toBe('{"notes":[],"reason":"ok"}');
     expect(fetchMock).toHaveBeenCalledWith(
       "https://example.com/v1/responses",
       expect.objectContaining({
@@ -36,7 +36,7 @@ describe("createResolvedRouteCompleteFn", () => {
   it("honors explicit null auth headers when the caller needs to suppress Authorization", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify({ choices: [{ message: { content: "{\"notes\":[]}" } }] }),
+      text: async () => JSON.stringify({ choices: [{ message: { content: '{"notes":[]}' } }] }),
     });
     global.fetch = fetchMock as typeof fetch;
     const complete = createResolvedRouteCompleteFn("gpt-5.4", async () => ({
@@ -60,7 +60,7 @@ describe("createResolvedRouteCompleteFn", () => {
   it("uses /v1/messages for anthropic-compatible routes", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      text: async () => JSON.stringify({ content: [{ text: "{\"notes\":[],\"reason\":\"ok\"}" }] }),
+      text: async () => JSON.stringify({ content: [{ text: '{"notes":[],"reason":"ok"}' }] }),
     });
     global.fetch = fetchMock as typeof fetch;
     const complete = createResolvedRouteCompleteFn("claude", async () => ({
