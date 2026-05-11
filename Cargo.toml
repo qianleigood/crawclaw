@@ -1,4 +1,17 @@
 [workspace]
-members = ["crates/crawclaw-native-plugins"]
+members = [
+  "apps/crawclaw-desktop/src-tauri",
+  "crates/crawclaw-cli",
+  "crates/crawclaw-core",
+  "crates/crawclaw-gateway",
+  "crates/crawclaw-native-plugins",
+  "crates/crawclaw-plugin-host",
+  "crates/crawclaw-providers",
+  "crates/crawclaw-runtime",
+]
 resolver = "2"
 
+[workspace.package]
+edition = "2021"
+license = "MIT"
+version = "2026.5.3"

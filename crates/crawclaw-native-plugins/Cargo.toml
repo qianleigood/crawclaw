@@ -21,4 +21,3 @@ tempfile = "3"
 [[bin]]
 name = "crawclaw-native-plugins"
 path = "src/main.rs"
-

@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "CrawClaw Desktop",
+  "version": "../package.json",
+  "identifier": "ai.crawclaw.desktop",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "CrawClaw Desktop",
+        "label": "main",
+        "width": 1440,
+        "height": 960,
+        "minWidth": 1120,
+        "minHeight": 700,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["dmg", "app", "nsis", "appimage"],
+    "icon": ["icons/icon.png"],
+    "resources": {
+      "../.runtime/crawclaw": "runtime/crawclaw"
+    }
+  }
+}

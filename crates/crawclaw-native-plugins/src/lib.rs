@@ -6,5 +6,6 @@ pub mod lobster;
 pub mod open_prose;
 pub mod openshell;
 pub mod qwen3_tts;
+pub mod web;
 
 pub use error::{NativeError, NativeResult};

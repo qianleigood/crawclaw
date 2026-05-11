@@ -7,7 +7,12 @@ use crawclaw_native_plugins::lobster::parse_lobster_envelope;
 use crawclaw_native_plugins::open_prose::describe_open_prose;
 use crawclaw_native_plugins::openshell::{build_remote_command, shell_escape};
 use crawclaw_native_plugins::qwen3_tts::build_synthesis_payload;
+use crawclaw_native_plugins::web::{
+    build_open_websearch_search_url, decode_html_entities, open_websearch_runtime_bin_candidates,
+    parse_open_websearch_response_text, run_scrapling_fetch, strip_html,
+};
 use serde_json::json;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 #[test]
 fn llm_task_prepare_resolves_defaults_and_builds_json_only_prompt() {
@@ -225,4 +230,149 @@ fn comfyui_collects_animated_image_outputs_as_video_artifacts() {
     assert_eq!(artifacts.len(), 1);
     assert_eq!(artifacts[0].kind, "video");
     assert_eq!(artifacts[0].filename, "clip.webp");
+}
+
+#[test]
+fn web_native_builds_search_urls_and_decodes_content() {
+    let open_websearch =
+        build_open_websearch_search_url("http://127.0.0.1:3210/base/").expect("open-websearch url");
+    assert_eq!(open_websearch.as_str(), "http://127.0.0.1:3210/base/search");
+    assert_eq!(decode_html_entities("A &amp; B &#x2F; C"), "A & B / C");
+    assert_eq!(strip_html("<p>Hello <b>Rust</b></p>"), "Hello Rust");
+}
+
+#[test]
+fn web_native_parses_open_websearch_json_results() {
+    let results = parse_open_websearch_response_text(
+        r#"{
+          "data": {
+            "results": [
+              {
+                "title": "Open Result",
+                "url": "https://example.com/open",
+                "description": "Description",
+                "engine": "bing",
+                "source": "open-websearch"
+              }
+            ]
+          }
+        }"#,
+        5,
+    )
+    .expect("open-websearch results");
+
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].title, "Open Result");
+    assert_eq!(results[0].snippet, "Description");
+    assert_eq!(results[0].engine.as_deref(), Some("bing"));
+    assert_eq!(results[0].source.as_deref(), Some("open-websearch"));
+}
+
+#[test]
+fn web_native_resolves_open_websearch_runtime_from_workspace() {
+    let workspace = tempfile::tempdir().expect("workspace");
+    let candidates = open_websearch_runtime_bin_candidates(
+        Some(workspace.path()),
+        Some(workspace.path().join("state").as_path()),
+        22,
+    );
+
+    assert_eq!(
+        candidates[0],
+        workspace
+            .path()
+            .join("runtimes/open-websearch/node_modules/.bin/open-websearch")
+    );
+    assert!(candidates.iter().any(|candidate| candidate
+        .ends_with("state/runtimes/node-22/open-websearch/node_modules/.bin/open-websearch")));
+}
+
+#[tokio::test]
+async fn web_native_dynamic_scrapling_fetch_uses_sidecar_payload() {
+    let sidecar_base_url = spawn_scrapling_sidecar().await;
+    let result = run_scrapling_fetch(json!({
+        "params": {
+            "url": format!("{sidecar_base_url}/page"),
+            "render": "dynamic",
+            "output": "html"
+        },
+        "pluginConfig": {
+            "service": {
+                "enabled": false,
+                "baseUrl": sidecar_base_url,
+                "fetchPath": "/fetch"
+            }
+        }
+    }))
+    .await
+    .expect("dynamic fetch should use sidecar");
+
+    assert_eq!(result["status"], "ok");
+    assert_eq!(result["fetcher"], "scrapling:dynamicfetcher");
+    assert_eq!(result["rendered"], true);
+    assert_eq!(result["usedFallback"], false);
+    assert!(result.get("warning").is_none() || result["warning"].is_null());
+    assert!(result["html"]
+        .as_str()
+        .expect("wrapped html")
+        .contains("Dynamic Browser HTML"));
+}
+
+async fn spawn_scrapling_sidecar() -> String {
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .expect("bind scrapling sidecar");
+    let addr = listener.local_addr().expect("scrapling sidecar addr");
+    tokio::spawn(async move {
+        for _ in 0..1 {
+            let (mut stream, _) = listener.accept().await.expect("accept scrapling request");
+            let mut bytes = Vec::new();
+            let mut buffer = [0; 4096];
+            loop {
+                let count = stream
+                    .read(&mut buffer)
+                    .await
+                    .expect("read scrapling request");
+                if count == 0 {
+                    break;
+                }
+                bytes.extend_from_slice(&buffer[..count]);
+                if let Some(header_end) = bytes.windows(4).position(|window| window == b"\r\n\r\n")
+                {
+                    let headers = String::from_utf8_lossy(&bytes[..header_end]);
+                    let content_length = headers
+                        .lines()
+                        .find_map(|line| {
+                            let (name, value) = line.split_once(':')?;
+                            if name.eq_ignore_ascii_case("content-length") {
+                                value.trim().parse::<usize>().ok()
+                            } else {
+                                None
+                            }
+                        })
+                        .unwrap_or(0);
+                    if bytes.len() >= header_end + 4 + content_length {
+                        break;
+                    }
+                }
+            }
+            let request = String::from_utf8_lossy(&bytes);
+            let body = if request.starts_with("POST /fetch ") {
+                assert!(request.contains(r#""render":"dynamic""#));
+                r#"{"status":"ok","provider":"scrapling","fetcher":"scrapling:dynamicfetcher","url":"https://example.com/dynamic","finalUrl":"https://example.com/dynamic","statusCode":200,"contentType":"text/html","title":"Dynamic","html":"<html><body>Dynamic Browser HTML</body></html>","content":"Dynamic Browser Content","text":"Dynamic Browser Text","rendered":true,"usedFallback":false,"blockedDetected":false,"truncated":false,"length":20,"rawLength":20,"wrappedLength":20,"fetchedAt":"2026-05-10T00:00:00Z","tookMs":12}"#
+            } else {
+                r#"<html><body>Static fallback should not win</body></html>"#
+            };
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+                body.len(),
+                body
+            );
+            stream
+                .write_all(response.as_bytes())
+                .await
+                .expect("write scrapling response");
+        }
+    });
+    format!("http://{addr}")
 }

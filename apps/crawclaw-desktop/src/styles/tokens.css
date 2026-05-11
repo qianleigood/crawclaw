@@ -1,0 +1,47 @@
+:root {
+  color: #1d1d1f;
+  background: #f5f5f7;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+
+  --desktop-bg: #f5f5f7;
+  --content-bg: #ffffff;
+  --sidebar-bg: rgba(244, 244, 246, 0.88);
+  --surface: rgba(255, 255, 255, 0.82);
+  --surface-strong: rgba(255, 255, 255, 0.96);
+  --surface-hover: rgba(0, 0, 0, 0.045);
+  --surface-active: rgba(0, 0, 0, 0.07);
+  --border: rgba(60, 60, 67, 0.16);
+  --border-soft: rgba(60, 60, 67, 0.1);
+  --text-primary: #1d1d1f;
+  --text-secondary: rgba(60, 60, 67, 0.72);
+  --text-tertiary: rgba(60, 60, 67, 0.48);
+  --accent: #0a84ff;
+  --success: #248a3d;
+  --danger: #d70015;
+  --shadow-soft: 0 18px 54px rgba(0, 0, 0, 0.08);
+  --radius-xs: 7px;
+  --radius-sm: 10px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --control-height: 32px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+button {
+  cursor: default;
+}

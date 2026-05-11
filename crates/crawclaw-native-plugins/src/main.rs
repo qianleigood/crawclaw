@@ -8,6 +8,7 @@ use crawclaw_native_plugins::lobster::execute_lobster;
 use crawclaw_native_plugins::open_prose::describe_open_prose;
 use crawclaw_native_plugins::openshell::handle_openshell;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
+use crawclaw_native_plugins::web::{run_open_websearch_search, run_scrapling_fetch};
 use crawclaw_native_plugins::{NativeError, NativeResult};
 use serde_json::{json, Value};
 
@@ -41,6 +42,8 @@ async fn dispatch(cli: &Cli, input: Value) -> NativeResult<Value> {
         ("comfyui", operation) => handle_comfyui(operation, input).await,
         ("qwen3-tts", "build-synthesis-payload") => build_synthesis_payload(&input),
         ("qwen3-tts", "synthesize") => synthesize_qwen3_tts(input).await,
+        ("open-websearch", "search") => run_open_websearch_search(input).await,
+        ("scrapling-fetch", "fetch") => run_scrapling_fetch(input).await,
         (plugin, operation) => Err(NativeError::InvalidInput(format!(
             "Unsupported native plugin operation: {plugin} {operation}"
         ))),
