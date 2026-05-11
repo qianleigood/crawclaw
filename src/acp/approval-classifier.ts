@@ -14,7 +14,12 @@ const EXEC_CAPABLE_TOOL_IDS = new Set([
   "process",
   "code_execution",
 ]);
-const CONTROL_PLANE_TOOL_IDS = new Set(["sessions_spawn", "sessions_send", "session_status"]);
+const CONTROL_PLANE_TOOL_IDS = new Set([
+  "gateway",
+  "sessions_spawn",
+  "sessions_send",
+  "session_status",
+]);
 
 export type AcpApprovalClass =
   | "readonly_scoped"
