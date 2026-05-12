@@ -13,9 +13,17 @@ describe("TS Gateway server runtime guardrail", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("blocks production imports unless explicitly allowed", () => {
+  it("keeps legacy TS Gateway handlers isolated to tests and the disabled runtime", () => {
+    const offenders = findProductionGatewayHandlerImports(path.join(repoRoot, "src"));
+
+    expect(offenders).toEqual([]);
+  });
+
+  it("blocks production imports of the legacy TS Gateway entrypoint", () => {
     const script = `
       delete process.env.VITEST;
+      delete process.env.VITEST_POOL_ID;
+      delete process.env.NODE_ENV;
       delete process.env.CRAWCLAW_ALLOW_TS_GATEWAY;
       await import("./src/gateway/server.ts").then(
         () => {
@@ -41,6 +49,98 @@ describe("TS Gateway server runtime guardrail", () => {
           ...process.env,
           CRAWCLAW_ALLOW_TS_GATEWAY: undefined,
           VITEST: undefined,
+          VITEST_POOL_ID: undefined,
+          NODE_ENV: undefined,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
+  });
+
+  it("blocks direct imports of the legacy TS Gateway implementation and handlers", () => {
+    const script = `
+      delete process.env.VITEST;
+      delete process.env.VITEST_POOL_ID;
+      delete process.env.NODE_ENV;
+      delete process.env.CRAWCLAW_ALLOW_TS_GATEWAY;
+      const blocked = [
+        "./src/gateway/server.impl.ts",
+        "./src/gateway/legacy-ts-gateway-handlers.ts",
+      ];
+      for (const specifier of blocked) {
+        await import(specifier).then(
+          () => {
+            console.error("unexpected TS Gateway import success: " + specifier);
+            process.exit(1);
+          },
+          (error) => {
+            const message = String(error?.message ?? error);
+            if (!message.includes("TypeScript Gateway server runtime is disabled")) {
+              console.error(specifier + ": " + message);
+              process.exit(1);
+            }
+          },
+        );
+      }
+    `;
+
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "--input-type=module", "-e", script],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          CRAWCLAW_ALLOW_TS_GATEWAY: undefined,
+          VITEST: undefined,
+          VITEST_POOL_ID: undefined,
+          NODE_ENV: undefined,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
+  });
+
+  it("does not allow the legacy TS Gateway runtime outside tests", () => {
+    const script = `
+      delete process.env.VITEST;
+      delete process.env.VITEST_POOL_ID;
+      delete process.env.NODE_ENV;
+      process.env.CRAWCLAW_ALLOW_TS_GATEWAY = "1";
+      await import("./src/gateway/server.ts").then(
+        () => {
+          console.error("unexpected TS Gateway import success");
+          process.exit(1);
+        },
+        (error) => {
+          const message = String(error?.message ?? error);
+          if (!message.includes("TypeScript Gateway server runtime is disabled")) {
+            console.error(message);
+            process.exit(1);
+          }
+        },
+      );
+    `;
+
+    const result = spawnSync(
+      process.execPath,
+      ["--import", "tsx", "--input-type=module", "-e", script],
+      {
+        cwd: repoRoot,
+        env: {
+          ...process.env,
+          CRAWCLAW_ALLOW_TS_GATEWAY: "1",
+          VITEST: undefined,
+          VITEST_POOL_ID: undefined,
+          NODE_ENV: undefined,
         },
         encoding: "utf8",
       },
@@ -101,11 +201,57 @@ function isTestOrGatewayRuntimeFile(relative: string): boolean {
   );
 }
 
+function findProductionGatewayHandlerImports(root: string): string[] {
+  const offenders: string[] = [];
+  for (const file of listTypeScriptFiles(root)) {
+    const relative = path.relative(repoRoot, file);
+    if (isTestOrLegacyGatewayHandlerFile(relative)) {
+      continue;
+    }
+    const source = fs.readFileSync(file, "utf8");
+    for (const specifier of valueImportedModuleSpecifiers(source)) {
+      if (
+        resolveTypeScriptImport(file, specifier) ===
+        path.join(repoRoot, "src/gateway/legacy-ts-gateway-handlers.ts")
+      ) {
+        offenders.push(relative);
+      }
+    }
+  }
+  return offenders.toSorted();
+}
+
+function isTestOrLegacyGatewayHandlerFile(relative: string): boolean {
+  if (
+    relative.endsWith(".test.ts") ||
+    relative.endsWith(".suite.ts") ||
+    relative.endsWith(".d.ts")
+  ) {
+    return true;
+  }
+  return (
+    relative === "src/gateway/server.impl.ts" ||
+    relative === "src/gateway/legacy-ts-gateway-handlers.ts"
+  );
+}
+
 function importedModuleSpecifiers(source: string): string[] {
   return Array.from(
     source.matchAll(/(?:from\s+|import\(\s*)["']([^"']+)["']/g),
     (match) => match[1] ?? "",
   ).filter(Boolean);
+}
+
+function valueImportedModuleSpecifiers(source: string): string[] {
+  const staticImports = Array.from(
+    source.matchAll(/import\s+(?!type\b)(?:[^"']*?\s+from\s+)?["']([^"']+)["']/g),
+    (match) => match[1] ?? "",
+  );
+  const dynamicImports = Array.from(
+    source.matchAll(/import\(\s*["']([^"']+)["']\s*\)/g),
+    (match) => match[1] ?? "",
+  );
+  return [...staticImports, ...dynamicImports].filter(Boolean);
 }
 
 function resolveTypeScriptImport(fromFile: string, specifier: string): string | null {

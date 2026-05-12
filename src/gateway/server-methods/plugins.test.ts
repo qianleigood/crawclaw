@@ -15,7 +15,7 @@ vi.mock("../../plugins/rust-lifecycle.js", () => ({
   setPluginEnabledWithRustLifecycle: mocks.setPluginEnabledWithRustLifecycle,
 }));
 
-import { coreGatewayHandlers } from "../server-methods.js";
+import { coreGatewayHandlers } from "../legacy-ts-gateway-handlers.js";
 
 describe("gateway plugins.list", () => {
   beforeEach(() => {

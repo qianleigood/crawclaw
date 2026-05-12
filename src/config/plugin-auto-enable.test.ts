@@ -542,7 +542,7 @@ describe("applyPluginAutoEnable", () => {
     expect(result.changes).toContain("xai web search configured, enabled automatically.");
   });
 
-  it("auto-enables xai when the plugin-owned x_search tool is configured", () => {
+  it("does not auto-enable xai for removed plugin-owned x_search config", () => {
     const result = applyPluginAutoEnable({
       config: {
         plugins: {
@@ -560,11 +560,11 @@ describe("applyPluginAutoEnable", () => {
       env: {},
     });
 
-    expect(result.config.plugins?.entries?.xai?.enabled).toBe(true);
-    expect(result.changes).toContain("xai tool configured, enabled automatically.");
+    expect(result.config.plugins?.entries?.xai?.enabled).toBeUndefined();
+    expect(result.changes).not.toContain("xai tool configured, enabled automatically.");
   });
 
-  it("auto-enables xai when the plugin-owned codeExecution config is configured", () => {
+  it("does not auto-enable xai for removed plugin-owned codeExecution config", () => {
     const result = applyPluginAutoEnable({
       config: {
         plugins: {
@@ -583,8 +583,8 @@ describe("applyPluginAutoEnable", () => {
       env: {},
     });
 
-    expect(result.config.plugins?.entries?.xai?.enabled).toBe(true);
-    expect(result.changes).toContain("xai tool configured, enabled automatically.");
+    expect(result.config.plugins?.entries?.xai?.enabled).toBeUndefined();
+    expect(result.changes).not.toContain("xai tool configured, enabled automatically.");
   });
 
   it("auto-enables minimax when minimax-portal profiles exist", () => {

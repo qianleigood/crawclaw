@@ -22,7 +22,7 @@ import {
   validateSkillsStatusParams,
   validateSkillsUpdateParams,
 } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 
 function collectSkillBins(entries: SkillEntry[]): string[] {
   const bins = new Set<string>();

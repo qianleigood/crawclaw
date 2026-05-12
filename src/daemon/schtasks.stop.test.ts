@@ -155,8 +155,7 @@ describe("Scheduled Task stop/restart cleanup", () => {
       inspectPortUsage
         .mockResolvedValueOnce(
           busyPortUsage(6262, {
-            commandLine:
-              '"C:\\Program Files\\nodejs\\node.exe" "C:\\Users\\steipete\\AppData\\Roaming\\npm\\node_modules\\crawclaw\\dist\\index.js" gateway --port 18789',
+            commandLine: '"C:\\Program Files\\CrawClaw\\crawclaw-gateway.exe" --port 18789',
           }),
         )
         .mockResolvedValueOnce(freePortUsage());

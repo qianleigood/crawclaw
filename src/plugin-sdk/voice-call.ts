@@ -8,7 +8,7 @@ export {
   TtsModeSchema,
   TtsProviderSchema,
 } from "../config/zod-schema.core.js";
-export type { GatewayRequestHandlerOptions } from "../gateway/server-methods/types.js";
+export type { GatewayRequestHandlerOptions } from "../gateway/request-types.js";
 export {
   isRequestBodyLimitError,
   readRequestBodyWithLimit,

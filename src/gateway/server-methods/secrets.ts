@@ -6,7 +6,7 @@ import {
   validateSecretsResolveParams,
   validateSecretsResolveResult,
 } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 
 function invalidSecretsResolveField(
   errors: ErrorObject[] | null | undefined,

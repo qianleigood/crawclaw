@@ -2,10 +2,7 @@ import path from "node:path";
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
 import type { OperatorScope } from "../gateway/method-scopes.js";
-import type {
-  GatewayRequestHandler,
-  GatewayRequestHandlers,
-} from "../gateway/server-methods/types.js";
+import type { GatewayRequestHandler, GatewayRequestHandlers } from "../gateway/request-types.js";
 import { registerInternalHook } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import { resolveUserPath } from "../utils.js";

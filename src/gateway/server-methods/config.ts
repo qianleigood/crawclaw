@@ -50,9 +50,9 @@ import {
   validateConfigSchemaParams,
   validateConfigSetParams,
 } from "../protocol/index.js";
+import type { GatewayRequestHandlers, RespondFn } from "../request-types.js";
 import { resolveBaseHashParam } from "./base-hash.js";
 import { parseRestartRequestParams } from "./restart-request.js";
-import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 import { assertValidParams } from "./validation.js";
 
 const MAX_CONFIG_ISSUES_IN_ERROR_MESSAGE = 3;

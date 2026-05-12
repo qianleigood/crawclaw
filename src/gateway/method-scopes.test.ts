@@ -1,13 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
+import { coreGatewayHandlers } from "./legacy-ts-gateway-handlers.js";
 import {
   authorizeOperatorScopesForMethod,
   isGatewayMethodClassified,
   resolveLeastPrivilegeOperatorScopesForMethod,
 } from "./method-scopes.js";
 import { listGatewayMethods } from "./server-methods-list.js";
-import { coreGatewayHandlers } from "./server-methods.js";
 
 afterEach(() => {
   setActivePluginRegistry(createEmptyPluginRegistry());

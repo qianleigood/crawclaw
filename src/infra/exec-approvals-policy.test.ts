@@ -25,7 +25,7 @@ import {
 describe("exec approvals policy helpers", () => {
   it.each([
     { raw: " gateway ", expected: "gateway" },
-    { raw: "NODE", expected: "node" },
+    { raw: "NODE", expected: null },
     { raw: "", expected: null },
     { raw: "ssh", expected: null },
   ])("normalizes exec host value %j", ({ raw, expected }) => {
@@ -35,7 +35,7 @@ describe("exec approvals policy helpers", () => {
   it.each([
     { raw: " auto ", expected: "auto" },
     { raw: " gateway ", expected: "gateway" },
-    { raw: "NODE", expected: "node" },
+    { raw: "NODE", expected: null },
     { raw: "", expected: null },
     { raw: "ssh", expected: null },
   ])("normalizes exec target value %j", ({ raw, expected }) => {

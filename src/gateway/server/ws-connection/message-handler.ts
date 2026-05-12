@@ -56,6 +56,7 @@ import {
   validateConnectParams,
   validateRequestFrame,
 } from "../../protocol/index.js";
+import type { GatewayRequestContext, GatewayRequestHandlers } from "../../request-types.js";
 import { parseGatewayRole } from "../../role-policy.js";
 import {
   MAX_BUFFERED_BYTES,
@@ -63,8 +64,7 @@ import {
   MAX_PREAUTH_PAYLOAD_BYTES,
   TICK_INTERVAL_MS,
 } from "../../server-constants.js";
-import { handleGatewayRequest } from "../../server-methods.js";
-import type { GatewayRequestContext, GatewayRequestHandlers } from "../../server-methods/types.js";
+import type { GatewayRequestDispatcher } from "../../server-request-dispatcher.js";
 import { formatError } from "../../server-utils.js";
 import { formatForLog, logWs } from "../../ws-log.js";
 import { truncateCloseReason } from "../close-reason.js";
@@ -148,6 +148,7 @@ export function attachGatewayWsMessageHandler(params: {
   events: string[];
   extraHandlers: GatewayRequestHandlers;
   buildRequestContext: () => GatewayRequestContext;
+  handleGatewayRequest: GatewayRequestDispatcher;
   send: (obj: unknown) => void;
   close: (code?: number, reason?: string) => void;
   isClosed: () => boolean;
@@ -180,6 +181,7 @@ export function attachGatewayWsMessageHandler(params: {
     events,
     extraHandlers,
     buildRequestContext,
+    handleGatewayRequest,
     send,
     close,
     isClosed,

@@ -33,7 +33,7 @@ import {
   validateEsp32PairingStartParams,
   validateEsp32StatusGetParams,
 } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 import { assertValidParams } from "./validation.js";
 
 function isEsp32PendingRequest(request: {

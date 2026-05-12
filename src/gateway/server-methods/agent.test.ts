@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { findTaskByRunId, resetTaskRegistryForTests } from "../../tasks/task-registry.js";
 import { withTempDir } from "../../test-helpers/temp-dir.js";
+import type { GatewayRequestContext } from "../request-types.js";
 import { agentHandlers } from "./agent.js";
 import { expectSubagentFollowupReactivation } from "./subagent-followup.test-helpers.js";
-import type { GatewayRequestContext } from "./types.js";
 
 const ORIGINAL_STATE_DIR = process.env.CRAWCLAW_STATE_DIR;
 

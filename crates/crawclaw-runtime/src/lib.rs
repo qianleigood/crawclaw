@@ -1974,11 +1974,26 @@ impl ProviderResolver {
                 "Desktop agent provider config is missing provider.".to_string(),
             ));
         }
+        let provider = config.provider.trim().to_string();
+        let descriptor = crawclaw_providers::bundled_provider_descriptors()
+            .into_iter()
+            .find(|entry| entry.provider == provider);
+        if descriptor
+            .as_ref()
+            .map(|entry| entry.transport.is_none())
+            .unwrap_or(false)
+        {
+            return Err(AgentRuntimeError::UnsupportedProvider(format!(
+                "Desktop agent provider {provider} does not expose a Rust-native chat transport."
+            )));
+        }
+        let default_model = crawclaw_providers::bundled_provider_default_model_for(&provider)
+            .map(|entry| entry.model.to_string());
         Ok(NativeProviderConfig {
-            provider: config.provider.trim().to_string(),
+            provider,
             base_url: optional_config_value(config.base_url.as_deref()),
             api_key: resolve_secret_input_string(runtime_root, config.api_key.as_ref(), "apiKey")?,
-            model: optional_config_value(config.model.as_deref()),
+            model: optional_config_value(config.model.as_deref()).or(default_model),
             api: optional_config_value(config.api.as_deref()),
             api_version: optional_config_value(config.api_version.as_deref()),
         })
@@ -2783,6 +2798,47 @@ mod tests {
     }
 
     #[test]
+    fn desktop_agent_provider_config_uses_rust_default_model_catalog() {
+        let runtime_root = unique_test_runtime_root("desktop-agent-provider-default-model");
+        let config = DesktopAgentProviderConfig {
+            runtime: DesktopAgentRuntimeMode::NativeProvider,
+            provider: "openai".to_string(),
+            base_url: None,
+            api_key: Some(json!("secret")),
+            model: None,
+            api: None,
+            api_version: None,
+        };
+
+        let native_config = ProviderResolver::resolve_desktop_config(&config, &runtime_root)
+            .expect("native provider config");
+
+        assert_eq!(native_config.provider, "openai");
+        assert_eq!(native_config.model.as_deref(), Some("gpt-5.4"));
+    }
+
+    #[test]
+    fn desktop_agent_provider_config_rejects_non_chat_provider_descriptors() {
+        let runtime_root = unique_test_runtime_root("desktop-agent-provider-non-chat");
+        let config = DesktopAgentProviderConfig {
+            runtime: DesktopAgentRuntimeMode::NativeProvider,
+            provider: "fal".to_string(),
+            base_url: None,
+            api_key: Some(json!("secret")),
+            model: None,
+            api: None,
+            api_version: None,
+        };
+
+        let error = ProviderResolver::resolve_desktop_config(&config, &runtime_root)
+            .expect_err("non-chat provider should be rejected");
+
+        assert!(error
+            .message()
+            .contains("does not expose a Rust-native chat transport"));
+    }
+
+    #[test]
     fn desktop_agent_provider_config_resolves_file_secret_ref_api_key() {
         let runtime_root = unique_test_runtime_root("desktop-agent-provider-secret-ref");
         let secret_path = runtime_root.join("secrets").join("provider-api-key");
@@ -2850,19 +2906,20 @@ mod tests {
             request_tx
                 .send(String::from_utf8_lossy(&request).to_string())
                 .expect("send captured request");
-            let body = serde_json::to_string(&json!({
+            let chunk = serde_json::to_string(&json!({
                 "choices": [
                     {
-                        "message": {
+                        "delta": {
                             "content": reply
                         }
                     }
                 ]
             }))
-            .expect("response body");
+            .expect("response chunk");
+            let body = format!("data: {chunk}\n\ndata: [DONE]\n\n");
             write!(
                 stream,
-                "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 body.len(),
                 body
             )

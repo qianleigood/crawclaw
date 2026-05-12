@@ -23,7 +23,7 @@ import {
   validateDeviceTokenRevokeParams,
   validateDeviceTokenRotateParams,
 } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 
 const DEVICE_TOKEN_ROTATION_DENIED_MESSAGE = "device token rotation denied";
 

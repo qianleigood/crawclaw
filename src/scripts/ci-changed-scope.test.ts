@@ -102,7 +102,7 @@ describe("detectChangedScope", () => {
       runNode: true,
       runWindows: true,
       runSkillsPython: true,
-      runChangedSmoke: false,
+      runChangedSmoke: true,
     });
   });
 
@@ -164,10 +164,10 @@ describe("detectChangedScope", () => {
       runSkillsPython: false,
       runChangedSmoke: true,
     });
-    expect(detectChangedScope([".github/workflows/install-smoke.yml"])).toEqual({
+    expect(detectChangedScope([".github/workflows/ci.yml"])).toEqual({
       runNode: true,
-      runWindows: false,
-      runSkillsPython: false,
+      runWindows: true,
+      runSkillsPython: true,
       runChangedSmoke: true,
     });
   });

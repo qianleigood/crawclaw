@@ -9,8 +9,8 @@ import {
   validateWizardStartParams,
   validateWizardStatusParams,
 } from "../protocol/index.js";
+import type { GatewayRequestContext, GatewayRequestHandlers, RespondFn } from "../request-types.js";
 import { formatForLog } from "../ws-log.js";
-import type { GatewayRequestContext, GatewayRequestHandlers, RespondFn } from "./types.js";
 import { assertValidParams } from "./validation.js";
 
 function readWizardStatus(session: WizardSession) {

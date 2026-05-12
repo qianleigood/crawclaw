@@ -5,8 +5,8 @@ import { clearPluginDiscoveryCache } from "../plugins/discovery.js";
 import { clearPluginLoaderCache } from "../plugins/loader.js";
 import { clearPluginManifestRegistryCache } from "../plugins/manifest-registry.js";
 import { resetPluginRuntimeStateForTest } from "../plugins/runtime.js";
+import { coreGatewayHandlers } from "./legacy-ts-gateway-handlers.js";
 import { listGatewayMethods } from "./server-methods-list.js";
-import { coreGatewayHandlers } from "./server-methods.js";
 import { loadGatewayStartupPlugins } from "./server-plugin-bootstrap.js";
 
 function resetPluginState() {

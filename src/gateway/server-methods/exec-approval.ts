@@ -19,8 +19,8 @@ import {
   validateExecApprovalRequestParams,
   validateExecApprovalResolveParams,
 } from "../protocol/index.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 import { loadSessionEntry } from "../session-utils.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 const APPROVAL_NOT_FOUND_DETAILS = {
   reason: ErrorCodes.APPROVAL_NOT_FOUND,

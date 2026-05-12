@@ -10,6 +10,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "common.progress.checkingGatewayHealth": "检查网关健康状态…",
   "common.progress.fetchingUsageSnapshot": "获取用量快照…",
   "common.progress.runningSecurityAudit": "运行安全审计…",
+  "cli.option.json": "输出 JSON",
   "config.updated": "已更新 {path}{suffix}",
   "table.header.active": "活跃",
   "table.header.age": "时长",

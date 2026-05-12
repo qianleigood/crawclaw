@@ -1,3 +1,4 @@
+import "./ts-gateway-runtime-guard.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
@@ -85,6 +86,7 @@ import {
   type GatewayUpdateAvailableEventPayload,
 } from "./events.js";
 import { ExecApprovalManager } from "./exec-approval-manager.js";
+import { coreGatewayHandlers, handleGatewayRequest } from "./legacy-ts-gateway-handlers.js";
 import { startGatewayModelPricingRefresh } from "./model-pricing-cache.js";
 import { createChannelManager } from "./server-channels.js";
 import {
@@ -101,7 +103,6 @@ import {
   startGatewayMediaCleanupTimer,
 } from "./server-maintenance.js";
 import { GATEWAY_EVENTS, listGatewayMethods } from "./server-methods-list.js";
-import { coreGatewayHandlers } from "./server-methods.js";
 import { createExecApprovalHandlers } from "./server-methods/exec-approval.js";
 import { createPluginApprovalHandlers } from "./server-methods/plugin-approval.js";
 import { createSecretsHandlers } from "./server-methods/secrets.js";
@@ -110,7 +111,10 @@ import {
   loadGatewayStartupPlugins,
   reloadDeferredGatewayPlugins,
 } from "./server-plugin-bootstrap.js";
-import { setFallbackGatewayContextResolver } from "./server-plugins.js";
+import {
+  setFallbackGatewayContextResolver,
+  setGatewayRequestDispatcher,
+} from "./server-plugins.js";
 import { createGatewayReloadHandlers } from "./server-reload-handlers.js";
 import { resolveGatewayRuntimeConfig } from "./server-runtime-config.js";
 import {
@@ -569,6 +573,7 @@ export async function startGatewayServer(
         env: process.env,
       });
   const baseMethods = listGatewayMethods();
+  setGatewayRequestDispatcher(handleGatewayRequest);
   const emptyPluginRegistry = createEmptyPluginRegistry();
   let pluginRegistry = emptyPluginRegistry;
   let baseGatewayMethods = baseMethods;
@@ -1122,7 +1127,7 @@ export async function startGatewayServer(
       }
     };
 
-    const gatewayRequestContext: import("./server-methods/types.js").GatewayRequestContext = {
+    const gatewayRequestContext: import("./request-types.js").GatewayRequestContext = {
       deps,
       cron,
       cronStorePath,
@@ -1219,6 +1224,7 @@ export async function startGatewayServer(
       extraHandlers: extraGatewayHandlers,
       broadcast,
       context: gatewayRequestContext,
+      handleGatewayRequest,
     });
     logGatewayStartup({
       cfg: cfgAtStart,

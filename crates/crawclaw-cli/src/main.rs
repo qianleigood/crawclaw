@@ -111,6 +111,8 @@ fn status(args: Vec<String>) {
             "providers": crawclaw_providers::native_provider_ids(),
             "providerTransports": crawclaw_providers::native_provider_transports(),
             "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
+            "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+            "defaultModels": crawclaw_providers::bundled_provider_default_models(),
             "channels": crawclaw_plugin_host::native_channel_ids(),
         }));
         return;
@@ -1105,6 +1107,8 @@ fn desktop_runtime(args: Vec<String>) {
             "providers": crawclaw_providers::native_provider_ids(),
             "providerTransports": crawclaw_providers::native_provider_transports(),
             "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
+            "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+            "defaultModels": crawclaw_providers::bundled_provider_default_models(),
             "channels": crawclaw_plugin_host::native_channel_ids(),
             "jsPluginRuntime": "pi-quickjs"
         }));
@@ -1156,6 +1160,8 @@ fn stage_runtime(output: PathBuf) {
             "providers": crawclaw_providers::native_provider_ids(),
             "transports": crawclaw_providers::native_provider_transports(),
             "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
+            "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+            "defaultModels": crawclaw_providers::bundled_provider_default_models(),
         }))
         .expect("provider manifest json"),
     )
@@ -1476,10 +1482,24 @@ mod tests {
         let runtime_manifest: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(dir.join("runtimes/manifest.json")).unwrap())
                 .unwrap();
+        let provider_manifest: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(dir.join("providers/manifest.json")).unwrap())
+                .unwrap();
         let plugin_manifest: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(dir.join("plugins/manifest.json")).unwrap())
                 .unwrap();
         assert_eq!(runtime_manifest["jsPluginRuntime"], "pi-quickjs");
+        assert!(provider_manifest["providerDescriptors"]
+            .as_array()
+            .expect("provider descriptors")
+            .iter()
+            .any(|provider| provider["provider"] == "openai"
+                && provider["transport"] == "openai-responses"));
+        assert!(provider_manifest["defaultModels"]
+            .as_array()
+            .expect("default models")
+            .iter()
+            .any(|model| model["provider"] == "openai" && model["model"] == "gpt-5.4"));
         assert_eq!(plugin_manifest["jsPluginRuntime"], "pi-quickjs");
         assert!(!dir.join("compat/js-plugin-runner.mjs").exists());
 

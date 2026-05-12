@@ -74,7 +74,7 @@ describe("pairing setup code", () => {
     expect(issueDeviceBootstrapTokenMock).toHaveBeenCalledWith(
       expect.objectContaining({
         profile: {
-          roles: ["node", "operator"],
+          roles: ["operator"],
           scopes: ["operator.read", "operator.talk.secrets", "operator.write"],
         },
       }),

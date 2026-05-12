@@ -3,7 +3,7 @@ import { loadConfig } from "../../config/config.js";
 import { cancelTaskById, getTaskById, listTaskRecords } from "../../tasks/runtime-internal.js";
 import type { TaskRecord } from "../../tasks/task-registry.types.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 
 type AgentRuntimeCategory = "memory" | "review" | "subagents" | "acp" | "cron" | "cli";
 type AgentRuntimeStatusFilter =

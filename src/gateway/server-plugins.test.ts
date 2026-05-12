@@ -3,7 +3,7 @@ import type { PluginRegistry } from "../plugins/registry.js";
 import type { PluginRuntimeGatewayRequestScope } from "../plugins/runtime/gateway-request-scope.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
 import type { PluginDiagnostic } from "../plugins/types.js";
-import type { GatewayRequestContext, GatewayRequestOptions } from "./server-methods/types.js";
+import type { GatewayRequestContext, GatewayRequestOptions } from "./request-types.js";
 
 const loadCrawClawPlugins = vi.hoisted(() => vi.fn());
 const resolveGatewayStartupPluginIds = vi.hoisted(() => vi.fn(() => ["discord", "telegram"]));
@@ -40,7 +40,7 @@ vi.mock("../channels/plugins/binding-registry.js", async (importOriginal) => {
   };
 });
 
-vi.mock("./server-methods.js", () => ({
+vi.mock("./legacy-ts-gateway-handlers.js", () => ({
   handleGatewayRequest,
 }));
 
@@ -198,6 +198,7 @@ beforeEach(() => {
   primeConfiguredBindingRegistry.mockClear().mockReturnValue({ bindingCount: 0, channelCount: 0 });
   handleGatewayRequest.mockReset();
   runtimeModule.clearGatewaySubagentRuntime();
+  serverPluginsModule.setGatewayRequestDispatcher(handleGatewayRequest);
   handleGatewayRequest.mockImplementation(async (opts: HandleGatewayRequestOptions) => {
     switch (opts.req.method) {
       case "agent":
@@ -220,6 +221,7 @@ beforeEach(() => {
 
 afterEach(() => {
   runtimeModule.clearGatewaySubagentRuntime();
+  serverPluginsModule.setGatewayRequestDispatcher(undefined);
 });
 
 describe("loadGatewayPlugins", () => {

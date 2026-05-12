@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { GatewayRequestHandlerOptions } from "../request-types.js";
 import { configHandlers, resolveConfigOpenCommand } from "./config.js";
-import type { GatewayRequestHandlerOptions } from "./types.js";
 
 vi.mock("node:child_process", () => ({
   execFile: vi.fn(),

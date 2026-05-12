@@ -10,8 +10,8 @@ import {
   formatValidationErrors,
   validateToolsEffectiveParams,
 } from "../protocol/index.js";
+import type { GatewayRequestHandlers, RespondFn } from "../request-types.js";
 import { loadSessionEntry, resolveSessionModelRef } from "../session-utils.js";
-import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
 function resolveRequestedAgentIdOrRespondError(params: {
   rawAgentId: unknown;

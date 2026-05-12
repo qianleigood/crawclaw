@@ -5,7 +5,7 @@ import { createJiti } from "jiti";
 import { isChannelConfigured } from "../config/channel-configured.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
-import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
+import type { GatewayRequestHandler } from "../gateway/request-types.js";
 import { openBoundaryFileSync } from "../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveUserPath } from "../utils.js";

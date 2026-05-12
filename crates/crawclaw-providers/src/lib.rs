@@ -63,6 +63,29 @@ pub struct BundledProviderPluginCapabilities {
     pub media_understanding: bool,
 }
 
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderDescriptor {
+    pub plugin_id: String,
+    pub provider: String,
+    pub kind: String,
+    pub transport: Option<String>,
+    pub default_model: Option<String>,
+    pub auth_env_vars: Vec<String>,
+    pub auth_choices: Value,
+    pub capabilities: BundledProviderPluginCapabilities,
+    pub transport_capabilities: Option<ProviderTransportCapabilities>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderDefaultModel {
+    pub provider: &'static str,
+    pub model: &'static str,
+    pub name: &'static str,
+    pub reasoning: bool,
+}
+
 pub const BUNDLED_PROVIDER_PLUGINS: &[BundledProviderPlugin] = &[
     BundledProviderPlugin {
         plugin_id: "amazon-bedrock",
@@ -763,6 +786,261 @@ pub const NATIVE_PROVIDER_TRANSPORTS: &[ProviderTransport] = &[
     },
 ];
 
+pub const BUNDLED_PROVIDER_DEFAULT_MODELS: &[BundledProviderDefaultModel] = &[
+    BundledProviderDefaultModel {
+        provider: "amazon-bedrock",
+        model: "anthropic.claude-sonnet-4-5-20250929-v1:0",
+        name: "Claude Sonnet 4.5 on Bedrock",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "anthropic",
+        model: "sonnet-4.6",
+        name: "Claude Sonnet 4.6",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "anthropic-vertex",
+        model: "claude-sonnet-4-6",
+        name: "Claude Sonnet 4.6 on Vertex",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "byteplus",
+        model: "doubao-seed-1-6",
+        name: "Doubao Seed 1.6",
+        reasoning: false,
+    },
+    BundledProviderDefaultModel {
+        provider: "byteplus-plan",
+        model: "doubao-seed-1-6-thinking",
+        name: "Doubao Seed 1.6 Thinking",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "chutes",
+        model: "deepseek-ai/DeepSeek-V3.2",
+        name: "DeepSeek V3.2",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "cloudflare-ai-gateway",
+        model: "sonnet-4.6",
+        name: "Claude Sonnet 4.6 through Cloudflare AI Gateway",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "copilot-proxy",
+        model: "gpt-5.4",
+        name: "GPT-5.4 through Copilot Proxy",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "deepseek",
+        model: "deepseek-chat",
+        name: "DeepSeek Chat",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "github-copilot",
+        model: "gpt-5.4",
+        name: "GPT-5.4 through GitHub Copilot",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "google",
+        model: "gemini-3-pro-preview",
+        name: "Gemini 3 Pro Preview",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "google-gemini-cli",
+        model: "gemini-3-pro-preview",
+        name: "Gemini 3 Pro Preview through Gemini CLI",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "huggingface",
+        model: "Qwen/Qwen3-Coder-480B-A35B-Instruct",
+        name: "Qwen3 Coder 480B A35B Instruct",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "kilocode",
+        model: "kilocode/code",
+        name: "Kilo Code",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "kimi",
+        model: "kimi-code",
+        name: "Kimi Code",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "kimi-coding",
+        model: "kimi-code",
+        name: "Kimi Code",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "litellm",
+        model: "gpt-5.4",
+        name: "GPT-5.4 through LiteLLM",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "microsoft-foundry",
+        model: "gpt-5.4",
+        name: "GPT-5.4 on Microsoft Foundry",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "minimax",
+        model: "MiniMax-M2.7",
+        name: "MiniMax M2.7",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "minimax-portal",
+        model: "MiniMax-M2.7",
+        name: "MiniMax M2.7 Portal",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "mistral",
+        model: "mistral-large-latest",
+        name: "Mistral Large",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "modelstudio",
+        model: "qwen3-coder-plus",
+        name: "Qwen3 Coder Plus",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "moonshot",
+        model: "kimi-k2-0905-preview",
+        name: "Kimi K2",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "nvidia",
+        model: "nvidia/llama-3.3-nemotron-super-49b-v1",
+        name: "Llama 3.3 Nemotron Super",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "ollama",
+        model: "llama3.3:latest",
+        name: "Llama 3.3 local",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "openai",
+        model: "gpt-5.4",
+        name: "GPT-5.4",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "openai-codex",
+        model: "gpt-5.4",
+        name: "GPT-5.4 Codex",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "opencode",
+        model: "opencode/zen",
+        name: "OpenCode Zen",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "opencode-go",
+        model: "opencode/zen",
+        name: "OpenCode Zen Go",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "openrouter",
+        model: "openai/gpt-5.4",
+        name: "GPT-5.4 through OpenRouter",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "qianfan",
+        model: "ernie-4.5-turbo-128k",
+        name: "ERNIE 4.5 Turbo",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "sglang",
+        model: "local",
+        name: "SGLang local",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "synthetic",
+        model: "synthetic/mock",
+        name: "Synthetic mock",
+        reasoning: false,
+    },
+    BundledProviderDefaultModel {
+        provider: "together",
+        model: "meta-llama/Llama-3.3-70B-Instruct-Turbo",
+        name: "Llama 3.3 70B Instruct Turbo",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "venice",
+        model: "venice-uncensored",
+        name: "Venice Uncensored",
+        reasoning: false,
+    },
+    BundledProviderDefaultModel {
+        provider: "vercel-ai-gateway",
+        model: "anthropic/claude-sonnet-4.6",
+        name: "Claude Sonnet 4.6 through Vercel AI Gateway",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "vllm",
+        model: "local",
+        name: "vLLM local",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "volcengine",
+        model: "doubao-seed-1-6",
+        name: "Doubao Seed 1.6 on Volcengine",
+        reasoning: false,
+    },
+    BundledProviderDefaultModel {
+        provider: "volcengine-plan",
+        model: "doubao-seed-1-6-thinking",
+        name: "Doubao Seed 1.6 Thinking on Volcengine",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "xai",
+        model: "grok-4.20",
+        name: "Grok 4.20",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "xiaomi",
+        model: "xmi-large",
+        name: "Xiaomi MiLM Large",
+        reasoning: true,
+    },
+    BundledProviderDefaultModel {
+        provider: "zai",
+        model: "glm-4.6",
+        name: "GLM 4.6",
+        reasoning: true,
+    },
+];
+
 pub fn native_provider_transports() -> Vec<ProviderTransport> {
     NATIVE_PROVIDER_TRANSPORTS.to_vec()
 }
@@ -785,6 +1063,13 @@ pub fn bundled_provider_plugin_metadata() -> Vec<BundledProviderPluginMetadata> 
         .collect()
 }
 
+pub fn bundled_provider_descriptors() -> Vec<BundledProviderDescriptor> {
+    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+        .iter()
+        .flat_map(|(plugin_id, raw)| parse_bundled_provider_descriptors(plugin_id, raw))
+        .collect()
+}
+
 pub fn bundled_provider_ids() -> Vec<&'static str> {
     BUNDLED_PROVIDER_PLUGINS
         .iter()
@@ -801,6 +1086,17 @@ pub fn bundled_provider_auth_env_vars_for(provider: &str) -> Option<&'static [&'
         .iter()
         .find(|entry| entry.provider == provider)
         .map(|entry| entry.env_vars)
+}
+
+pub fn bundled_provider_default_model_for(provider: &str) -> Option<BundledProviderDefaultModel> {
+    BUNDLED_PROVIDER_DEFAULT_MODELS
+        .iter()
+        .copied()
+        .find(|entry| entry.provider == provider)
+}
+
+pub fn bundled_provider_default_models() -> Vec<BundledProviderDefaultModel> {
+    BUNDLED_PROVIDER_DEFAULT_MODELS.to_vec()
 }
 
 fn parse_bundled_provider_plugin_metadata(
@@ -859,6 +1155,49 @@ fn parse_bundled_provider_plugin_metadata(
             cli_backend,
             media_understanding,
         },
+    }
+}
+
+fn parse_bundled_provider_descriptors(
+    plugin_id: &str,
+    raw: &str,
+) -> Vec<BundledProviderDescriptor> {
+    let metadata = parse_bundled_provider_plugin_metadata(plugin_id, raw);
+    metadata
+        .providers
+        .iter()
+        .map(|provider| {
+            let transport = NATIVE_PROVIDER_TRANSPORTS
+                .iter()
+                .find(|entry| entry.id == provider);
+            let default_model = bundled_provider_default_model_for(provider);
+            let auth_env_vars = bundled_provider_auth_env_vars_for(provider)
+                .unwrap_or_default()
+                .iter()
+                .map(|value| (*value).to_string())
+                .collect::<Vec<_>>();
+            BundledProviderDescriptor {
+                plugin_id: metadata.plugin_id.clone(),
+                provider: provider.clone(),
+                kind: bundled_provider_kind(plugin_id, transport.is_some()),
+                transport: transport.map(|entry| entry.transport.to_string()),
+                default_model: default_model.map(|entry| entry.model.to_string()),
+                auth_env_vars,
+                auth_choices: metadata.auth_choices.clone(),
+                capabilities: metadata.capabilities,
+                transport_capabilities: transport.map(|entry| entry.capabilities),
+            }
+        })
+        .collect()
+}
+
+fn bundled_provider_kind(plugin_id: &str, has_chat_transport: bool) -> String {
+    if has_chat_transport {
+        "chat".to_string()
+    } else if plugin_id == "fal" {
+        "image-generation".to_string()
+    } else {
+        "non-chat".to_string()
     }
 }
 
@@ -1106,6 +1445,14 @@ pub async fn send_native_provider_conversation_with_options(
         )));
     }
 
+    if options.stream {
+        let body = response
+            .text()
+            .await
+            .map_err(|error| ProviderTransportError::InvalidResponse(error.to_string()))?;
+        return parse_native_provider_stream_response(request.response_format, &body);
+    }
+
     let body = response
         .json::<Value>()
         .await
@@ -1270,6 +1617,27 @@ pub fn parse_native_provider_stream_delta(
             .map(ToOwned::to_owned),
     };
     Ok(text.filter(|text| !text.trim().is_empty()))
+}
+
+pub fn parse_native_provider_stream_response(
+    format: NativeProviderResponseFormat,
+    body: &str,
+) -> Result<String, ProviderTransportError> {
+    let mut text = String::new();
+    for line in body.lines().map(str::trim).filter(|line| !line.is_empty()) {
+        if line.starts_with(':') || line.starts_with("event:") || line.starts_with("id:") {
+            continue;
+        }
+        if let Some(delta) = parse_native_provider_stream_delta(format, line)? {
+            text.push_str(&delta);
+        }
+    }
+    if text.trim().is_empty() {
+        return Err(ProviderTransportError::InvalidResponse(
+            "provider stream did not include assistant content".to_string(),
+        ));
+    }
+    Ok(text)
 }
 
 fn openai_compatible_chat_completions_url(base_url: &str) -> String {
@@ -2110,6 +2478,56 @@ mod tests {
     }
 
     #[test]
+    fn bundled_provider_descriptors_are_rust_authoritative() {
+        let descriptors = bundled_provider_descriptors();
+        let descriptor_ids = descriptors
+            .iter()
+            .map(|entry| entry.provider.as_str())
+            .collect::<BTreeSet<_>>();
+        let expected_ids = bundled_provider_ids().into_iter().collect::<BTreeSet<_>>();
+
+        assert_eq!(descriptor_ids, expected_ids);
+
+        let openai = descriptors
+            .iter()
+            .find(|entry| entry.provider == "openai")
+            .expect("openai descriptor");
+        assert_eq!(openai.plugin_id, "openai");
+        assert_eq!(openai.kind, "chat");
+        assert_eq!(openai.transport.as_deref(), Some("openai-responses"));
+        assert_eq!(openai.default_model.as_deref(), Some("gpt-5.4"));
+        assert!(openai
+            .auth_env_vars
+            .iter()
+            .any(|entry| entry == "OPENAI_API_KEY"));
+        assert!(openai
+            .auth_choices
+            .as_array()
+            .expect("auth choices")
+            .iter()
+            .any(|choice| choice["choiceId"] == "openai-api-key"));
+        assert!(openai.transport_capabilities.is_some());
+
+        let fal = descriptors
+            .iter()
+            .find(|entry| entry.provider == "fal")
+            .expect("fal descriptor");
+        assert_eq!(fal.kind, "image-generation");
+        assert_eq!(fal.transport, None);
+        assert_eq!(fal.default_model, None);
+        assert!(fal.capabilities.non_chat);
+        assert!(fal.capabilities.image_generation);
+        assert!(fal.transport_capabilities.is_none());
+
+        let missing_default_models = descriptors
+            .iter()
+            .filter(|entry| entry.capabilities.chat && entry.default_model.is_none())
+            .map(|entry| entry.provider.as_str())
+            .collect::<Vec<_>>();
+        assert_eq!(missing_default_models, Vec::<&str>::new());
+    }
+
+    #[test]
     fn native_chat_transports_cover_all_chat_provider_plugins() {
         let native = native_provider_ids().into_iter().collect::<BTreeSet<_>>();
         let missing = bundled_provider_ids()
@@ -2308,6 +2726,57 @@ mod tests {
         assert!(request.contains("authorization: Bearer test-key"));
         assert!(request.contains(r#""model":"model-a""#));
         assert!(request.contains("hello provider"));
+    }
+
+    #[tokio::test]
+    async fn streams_openai_compatible_tool_multimodal_request_to_mocked_provider() {
+        let (base_url, request_rx) = serve_once(
+            "data: {\"choices\":[{\"delta\":{\"content\":\"streamed \"}}]}\n\n\
+             data: {\"choices\":[{\"delta\":{\"content\":\"reply\"}}]}\n\n\
+             data: [DONE]\n\n",
+        );
+        let tool = NativeProviderTool {
+            name: "lookup_weather".to_string(),
+            description: Some("Look up weather".to_string()),
+            input_schema: json!({
+                "type": "object",
+                "properties": {
+                    "city": { "type": "string" }
+                },
+                "required": ["city"]
+            }),
+        };
+
+        let reply = send_native_provider_conversation_with_options(
+            &NativeProviderConfig {
+                provider: "openai-compatible".to_string(),
+                base_url: Some(base_url),
+                api_key: Some("test-key".to_string()),
+                model: Some("model-a".to_string()),
+                api: None,
+                api_version: None,
+            },
+            &[NativeProviderMessage::user_blocks(vec![
+                NativeProviderContentBlock::text("describe this image"),
+                NativeProviderContentBlock::image_base64("image/png", "iVBORw0KGgo="),
+            ])],
+            &NativeProviderRequestOptions {
+                stream: true,
+                tools: vec![tool],
+            },
+        )
+        .await
+        .expect("streamed provider reply");
+
+        assert_eq!(reply, "streamed reply");
+        let request = request_rx.recv().expect("captured request");
+        assert!(request.starts_with("POST /v1/chat/completions HTTP/1.1"));
+        assert!(request.contains("authorization: Bearer test-key"));
+        assert!(request.contains(r#""model":"model-a""#));
+        assert!(request.contains(r#""stream":true"#));
+        assert!(request.contains("lookup_weather"));
+        assert!(request.contains("describe this image"));
+        assert!(request.contains("data:image/png;base64,iVBORw0KGgo="));
     }
 
     #[test]

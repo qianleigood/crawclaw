@@ -23,8 +23,8 @@ import {
   validatePollParams,
   validateSendParams,
 } from "../protocol/index.js";
+import type { GatewayRequestContext, GatewayRequestHandlers } from "../request-types.js";
 import { formatForLog } from "../ws-log.js";
-import type { GatewayRequestContext, GatewayRequestHandlers } from "./types.js";
 
 type InflightResult = {
   ok: boolean;

@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { GatewayRequestContext, GatewayRequestHandlerOptions, RespondFn } from "./types.js";
+import type {
+  GatewayRequestContext,
+  GatewayRequestHandlerOptions,
+  RespondFn,
+} from "../request-types.js";
 
 const hoisted = vi.hoisted(() => ({
   loadConfigMock: vi.fn(),

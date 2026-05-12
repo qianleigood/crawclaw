@@ -13,8 +13,8 @@ import {
   validateTalkModeParams,
   validateTalkSpeakParams,
 } from "../protocol/index.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 import { formatForLog } from "../ws-log.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 const ADMIN_SCOPE = "operator.admin";
 const TALK_SECRETS_SCOPE = "operator.talk.secrets";

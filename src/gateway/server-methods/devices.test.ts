@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GatewayRequestHandlerOptions } from "../request-types.js";
 import { deviceHandlers } from "./devices.js";
-import type { GatewayRequestHandlerOptions } from "./types.js";
 
 const {
   getPairedDeviceMock,

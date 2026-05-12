@@ -1399,41 +1399,32 @@ fn tool_description(tool_id: &str) -> &'static str {
 }
 
 fn models_list() -> Value {
+    let provider_descriptors = crawclaw_providers::bundled_provider_descriptors();
     json!({
-        "models": crawclaw_providers::default_model_options()
+        "models": crawclaw_providers::bundled_provider_default_models()
             .into_iter()
             .map(|model| {
+                let descriptor = provider_descriptors
+                    .iter()
+                    .find(|descriptor| descriptor.provider == model.provider);
                 json!({
-                    "id": model.clone(),
-                    "name": model.clone(),
-                    "provider": model_provider(&model),
-                    "reasoning": model_has_reasoning(&model)
+                    "id": model.model,
+                    "name": model.name,
+                    "provider": model.provider,
+                    "reasoning": model.reasoning,
+                    "source": "rust-native",
+                    "transport": descriptor.and_then(|entry| entry.transport.clone()),
+                    "pluginId": descriptor.map(|entry| entry.plugin_id.clone())
                 })
             })
-            .collect::<Vec<_>>()
+            .collect::<Vec<_>>(),
+        "providerDescriptors": provider_descriptors
     })
 }
 
-fn model_provider(model: &str) -> &'static str {
-    if model.starts_with("gpt-") {
-        "openai"
-    } else if model.starts_with("sonnet-") {
-        "anthropic"
-    } else if model.starts_with("ollama/") {
-        "ollama"
-    } else {
-        "openai-compatible"
-    }
-}
-
-fn model_has_reasoning(model: &str) -> bool {
-    model.starts_with("gpt-") || model.starts_with("sonnet-")
-}
-
 fn agents_list(state: &GatewayState) -> Value {
-    let default_model = crawclaw_providers::default_model_options()
-        .into_iter()
-        .next()
+    let default_model = crawclaw_providers::bundled_provider_default_model_for("openai")
+        .map(|entry| entry.model.to_string())
         .unwrap_or_else(|| "gpt-5.4".to_string());
     json!({
         "defaultId": "main",
@@ -8674,6 +8665,8 @@ fn runtime_status_value(state: &GatewayState) -> Value {
         "runtimeRoot": state.runtime_root.to_string_lossy(),
         "jsPluginRuntime": "pi-quickjs",
         "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
+        "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+        "defaultModels": crawclaw_providers::bundled_provider_default_models(),
         "gatewayMethods": gateway_methods(),
         "coreTools": crawclaw_runtime::pi_agent_rust_tool_names()
     })
@@ -9588,7 +9581,10 @@ fn now_timestamp_string() -> String {
 mod tests {
     use super::*;
     use std::collections::BTreeSet;
-    use std::sync::{Mutex, OnceLock};
+    use std::io::Read;
+    use std::sync::{mpsc, Mutex, OnceLock};
+    use std::thread;
+    use std::time::Duration;
 
     fn env_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -10667,6 +10663,116 @@ mod tests {
         assert!(missing
             .expect_err("missing runtime task should fail")
             .contains("Task not found: missing-runtime-task"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_chat_send_uses_native_provider_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-chat-native-provider");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"hello from rust provider"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+        let session_key = "agent:main:main";
+        let sessions_dir = runtime_root.join("sessions");
+        std::fs::create_dir_all(&sessions_dir).expect("sessions dir");
+        std::fs::write(
+            sessions_dir.join(format!("{session_key}.jsonl")),
+            [
+                r#"{"role":"user","content":"previous user"}"#,
+                r#"{"role":"assistant","content":"previous assistant"}"#,
+            ]
+            .join("\n"),
+        )
+        .expect("seed transcript");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let result = handle_gateway_method(
+            &state,
+            "chat.send",
+            json!({
+                "sessionKey": session_key,
+                "message": "hello gateway",
+                "idempotencyKey": "native-provider-run"
+            }),
+        )
+        .await
+        .expect("chat send");
+
+        assert_eq!(result["status"], "completed");
+        assert_eq!(result["message"]["content"], "hello from rust provider");
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured native provider request");
+        assert!(request.starts_with("POST /v1/chat/completions HTTP/1.1"));
+        assert!(request.contains("authorization: Bearer test-key"));
+        assert!(request.contains(r#""model":"test-model""#));
+        assert!(request.contains("previous user"));
+        assert!(request.contains("previous assistant"));
+        assert!(request.contains("hello gateway"));
+
+        let transcript = std::fs::read_to_string(sessions_dir.join(format!("{session_key}.jsonl")))
+            .expect("updated transcript");
+        assert!(transcript.contains("hello gateway"));
+        assert!(transcript.contains("hello from rust provider"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_models_list_uses_provider_descriptors() {
+        let runtime_root = unique_test_runtime_root("gateway-model-descriptors");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let models = handle_gateway_method(&state, "models.list", json!({}))
+            .await
+            .expect("models list");
+        assert!(models["models"]
+            .as_array()
+            .expect("models")
+            .iter()
+            .any(|model| model["id"] == "gpt-5.4"
+                && model["provider"] == "openai"
+                && model["source"] == "rust-native"));
+        assert!(models["models"]
+            .as_array()
+            .expect("models")
+            .iter()
+            .any(|model| model["provider"] == "anthropic"
+                && model["transport"] == "anthropic-messages"));
+        assert!(models["providerDescriptors"]
+            .as_array()
+            .expect("provider descriptors")
+            .iter()
+            .any(|provider| provider["provider"] == "openai"
+                && provider["transport"] == "openai-responses"));
+        assert!(models["providerDescriptors"]
+            .as_array()
+            .expect("provider descriptors")
+            .iter()
+            .any(|provider| provider["provider"] == "fal"
+                && provider["kind"] == "image-generation"
+                && provider["transport"].is_null()));
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -12257,5 +12363,30 @@ mod tests {
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
+    }
+
+    fn serve_openai_compatible_once(
+        response_body: &'static str,
+    ) -> (String, mpsc::Receiver<String>) {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind mock provider");
+        let addr = listener.local_addr().expect("mock provider addr");
+        let (request_tx, request_rx) = mpsc::channel();
+        thread::spawn(move || {
+            let (mut stream, _) = listener.accept().expect("accept provider request");
+            let mut buffer = [0; 8192];
+            let count = stream.read(&mut buffer).expect("read provider request");
+            request_tx
+                .send(String::from_utf8_lossy(&buffer[..count]).to_string())
+                .expect("send captured request");
+            let response = format!(
+                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+                response_body.len(),
+                response_body
+            );
+            stream
+                .write_all(response.as_bytes())
+                .expect("write provider response");
+        });
+        (format!("http://{addr}"), request_rx)
     }
 }

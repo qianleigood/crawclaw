@@ -48,7 +48,7 @@ import { buildManualSessionSummaryRefreshContext } from "../../memory/session-su
 import { inferSessionSummaryProfile } from "../../memory/session-summary/template.ts";
 import { prepareSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 
 function describeUnknownError(error: unknown): string {
   if (error instanceof Error && error.message.trim()) {

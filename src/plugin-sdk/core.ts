@@ -50,7 +50,7 @@ export type { CrawClawToolSchema } from "./plugin-entry.js";
 export type { CrawClawPluginToolContext, CrawClawPluginToolFactory } from "../plugins/types.js";
 export type { CrawClawConfig } from "../config/config.js";
 export { isSecretRef } from "../config/types.secrets.js";
-export type { GatewayRequestHandlerOptions } from "../gateway/server-methods/types.js";
+export type { GatewayRequestHandlerOptions } from "../gateway/request-types.js";
 export type {
   ChannelOutboundSessionRoute,
   ChannelMessagingAdapter,

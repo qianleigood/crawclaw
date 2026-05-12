@@ -13,8 +13,8 @@ import {
   validateExecApprovalsGetParams,
   validateExecApprovalsSetParams,
 } from "../protocol/index.js";
+import type { GatewayRequestHandlers, RespondFn } from "../request-types.js";
 import { resolveBaseHashParam } from "./base-hash.js";
-import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 import { assertValidParams } from "./validation.js";
 
 function requireApprovalsBaseHash(

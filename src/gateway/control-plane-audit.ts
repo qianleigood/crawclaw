@@ -1,4 +1,4 @@
-import type { GatewayClient } from "./server-methods/types.js";
+import type { GatewayClient } from "./request-types.js";
 
 export type ControlPlaneActor = {
   actor: string;

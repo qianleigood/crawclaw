@@ -6,7 +6,7 @@ import { withPluginRuntimeGatewayRequestScope } from "../../plugins/runtime/gate
 import { WRITE_SCOPE } from "../method-scopes.js";
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES } from "../protocol/client-info.js";
 import { PROTOCOL_VERSION } from "../protocol/index.js";
-import type { GatewayRequestOptions } from "../server-methods/types.js";
+import type { GatewayRequestOptions } from "../request-types.js";
 import {
   resolvePluginRoutePathContext,
   type PluginRoutePathContext,

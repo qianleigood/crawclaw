@@ -18,8 +18,8 @@ import {
   textToSpeech,
 } from "../../tts/tts.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 import { formatForLog } from "../ws-log.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 export const ttsHandlers: GatewayRequestHandlers = {
   "tts.status": async ({ respond }) => {

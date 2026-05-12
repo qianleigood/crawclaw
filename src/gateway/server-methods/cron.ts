@@ -19,7 +19,7 @@ import {
   validateCronUpdateParams,
   validateWakeParams,
 } from "../protocol/index.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 
 export const cronHandlers: GatewayRequestHandlers = {
   wake: ({ params, respond, context }) => {

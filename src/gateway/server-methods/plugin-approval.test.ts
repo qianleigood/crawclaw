@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { onAgentEvent, resetAgentEventsForTest } from "../../infra/agent-events.js";
 import type { PluginApprovalRequestPayload } from "../../infra/plugin-approvals.js";
 import { ExecApprovalManager } from "../exec-approval-manager.js";
+import type { GatewayRequestHandlerOptions } from "../request-types.js";
 import { createPluginApprovalHandlers } from "./plugin-approval.js";
-import type { GatewayRequestHandlerOptions } from "./types.js";
 
 function createManager() {
   return new ExecApprovalManager<PluginApprovalRequestPayload>();

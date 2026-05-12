@@ -1,5 +1,6 @@
 import type { createSubsystemLogger } from "../logging/subsystem.js";
-import type { GatewayRequestContext, GatewayRequestHandlers } from "./server-methods/types.js";
+import type { GatewayRequestContext, GatewayRequestHandlers } from "./request-types.js";
+import type { GatewayRequestDispatcher } from "./server-request-dispatcher.js";
 import {
   attachGatewayWsConnectionHandler,
   type GatewayWsSharedHandlerParams,
@@ -19,6 +20,7 @@ type GatewayWsRuntimeParams = GatewayWsSharedHandlerParams & {
     },
   ) => void;
   context: GatewayRequestContext;
+  handleGatewayRequest: GatewayRequestDispatcher;
 };
 
 export function attachGatewayWsHandlers(params: GatewayWsRuntimeParams) {
@@ -40,5 +42,6 @@ export function attachGatewayWsHandlers(params: GatewayWsRuntimeParams) {
     extraHandlers: params.extraHandlers,
     broadcast: params.broadcast,
     buildRequestContext: () => params.context,
+    handleGatewayRequest: params.handleGatewayRequest,
   });
 }

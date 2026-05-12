@@ -1,8 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
-import type {
-  GatewayRequestContext,
-  GatewayRequestOptions,
-} from "../../gateway/server-methods/types.js";
+import type { GatewayRequestContext, GatewayRequestOptions } from "../../gateway/request-types.js";
 import { resolveGlobalSingleton } from "../../shared/global-singleton.js";
 
 export type PluginRuntimeGatewayRequestScope = {

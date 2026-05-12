@@ -497,7 +497,8 @@ async function resolveAutoEntries(params: {
     if (localAudio) {
       return [localAudio];
     }
-    return [];
+    const keys = await resolveKeyEntry(params);
+    return keys ? [keys] : [];
   }
   if (params.capability === "image") {
     const imageModelEntries = resolveImageModelFromAgentDefaults(params.cfg);

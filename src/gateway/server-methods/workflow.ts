@@ -33,7 +33,7 @@ import {
   resolveWorkflowControlContext,
 } from "../../workflows/control-runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
-import type { GatewayRequestHandlers, RespondFn } from "./types.js";
+import type { GatewayRequestHandlers, RespondFn } from "../request-types.js";
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value);

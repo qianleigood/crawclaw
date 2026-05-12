@@ -394,6 +394,15 @@ describe("applyMediaUnderstanding", () => {
       ChatType: "direct",
     };
     const cfg: CrawClawConfig = {
+      models: {
+        providers: {
+          groq: {
+            apiKey: "test-groq-key",
+            baseUrl: "https://api.groq.com/openai/v1",
+            models: [],
+          },
+        },
+      },
       tools: {
         media: {
           audio: {

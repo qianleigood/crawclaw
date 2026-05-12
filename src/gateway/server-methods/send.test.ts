@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
-import type { GatewayRequestContext } from "./types.js";
+import type { GatewayRequestContext } from "../request-types.js";
 
 type ResolveOutboundTarget = typeof import("../../infra/outbound/targets.js").resolveOutboundTarget;
 

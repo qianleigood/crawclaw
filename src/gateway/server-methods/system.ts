@@ -7,8 +7,8 @@ import { getLastMainSessionWakeEvent } from "../../infra/main-session-wake-event
 import { enqueueSystemEvent, isSystemEventContextChanged } from "../../infra/system-events.js";
 import { listSystemPresence, updateSystemPresence } from "../../infra/system-presence.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 import { broadcastPresenceSnapshot } from "../server/presence-events.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 export const systemHandlers: GatewayRequestHandlers = {
   "gateway.identity.get": ({ respond }) => {

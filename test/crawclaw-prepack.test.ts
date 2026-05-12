@@ -20,12 +20,15 @@ describe("shouldSkipPrepack", () => {
 
 describe("collectPreparedPrepackErrors", () => {
   it("accepts prepared release artifacts", () => {
-    expect(collectPreparedPrepackErrors(["dist/index.mjs"], [])).toEqual([]);
+    expect(collectPreparedPrepackErrors(["dist/index.mjs", "dist/native/crawclaw"], [])).toEqual(
+      [],
+    );
   });
 
   it("reports missing build artifacts", () => {
     expect(collectPreparedPrepackErrors([], [])).toEqual([
       "missing required prepared artifact: dist/index.js or dist/index.mjs",
+      "missing required prepared artifact: dist/native/crawclaw or dist/native/crawclaw.exe",
     ]);
   });
 });

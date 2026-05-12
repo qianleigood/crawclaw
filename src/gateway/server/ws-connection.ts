@@ -8,7 +8,8 @@ import type { AuthRateLimiter } from "../auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "../auth.js";
 import { getPreauthHandshakeTimeoutMsFromEnv } from "../handshake-timeouts.js";
 import { isLoopbackAddress } from "../net.js";
-import type { GatewayRequestContext, GatewayRequestHandlers } from "../server-methods/types.js";
+import type { GatewayRequestContext, GatewayRequestHandlers } from "../request-types.js";
+import type { GatewayRequestDispatcher } from "../server-request-dispatcher.js";
 import { formatError } from "../server-utils.js";
 import { logWs } from "../ws-log.js";
 import { getHealthVersion, incrementPresenceVersion } from "./health-state.js";
@@ -87,6 +88,7 @@ export type AttachGatewayWsConnectionHandlerParams = GatewayWsSharedHandlerParam
     },
   ) => void;
   buildRequestContext: () => GatewayRequestContext;
+  handleGatewayRequest: GatewayRequestDispatcher;
 };
 
 export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnectionHandlerParams) {
@@ -108,6 +110,7 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
     extraHandlers,
     broadcast,
     buildRequestContext,
+    handleGatewayRequest,
   } = params;
   const originCheckMetrics: WsOriginCheckMetrics = { hostHeaderFallbackAccepted: 0 };
 
@@ -297,6 +300,7 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
       events,
       extraHandlers,
       buildRequestContext,
+      handleGatewayRequest,
       send,
       close,
       isClosed: () => closed,

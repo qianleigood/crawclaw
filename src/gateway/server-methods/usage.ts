@@ -38,12 +38,12 @@ import {
   formatValidationErrors,
   validateSessionsUsageParams,
 } from "../protocol/index.js";
+import type { GatewayRequestHandlers, RespondFn } from "../request-types.js";
 import {
   listAgentsForGateway,
   loadCombinedSessionStoreForGateway,
   loadSessionEntry,
 } from "../session-utils.js";
-import type { GatewayRequestHandlers, RespondFn } from "./types.js";
 
 const COST_USAGE_CACHE_TTL_MS = 30_000;
 const DAY_MS = 24 * 60 * 60 * 1000;

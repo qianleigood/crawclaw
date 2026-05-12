@@ -36,6 +36,8 @@ type BuildServicePathOptions = MinimalServicePathOptions & {
 type SharedServiceEnvironmentFields = {
   stateDir: string | undefined;
   configPath: string | undefined;
+  desktopRuntimeRoot: string | undefined;
+  pluginRuntimesDir: string | undefined;
   tmpDir: string;
   minimalPath: string | undefined;
   proxyEnv: Record<string, string | undefined>;
@@ -323,6 +325,8 @@ function buildCommonServiceEnvironment(
     NODE_USE_SYSTEM_CA: sharedEnv.nodeUseSystemCa,
     CRAWCLAW_STATE_DIR: sharedEnv.stateDir,
     CRAWCLAW_CONFIG_PATH: sharedEnv.configPath,
+    CRAWCLAW_DESKTOP_RUNTIME_ROOT: sharedEnv.desktopRuntimeRoot,
+    CRAWCLAW_PLUGIN_RUNTIMES_DIR: sharedEnv.pluginRuntimesDir,
     ELECTRON_RUN_AS_NODE: env.ELECTRON_RUN_AS_NODE === "1" ? "1" : undefined,
   };
   if (sharedEnv.minimalPath) {
@@ -339,6 +343,8 @@ function resolveSharedServiceEnvironmentFields(
 ): SharedServiceEnvironmentFields {
   const stateDir = env.CRAWCLAW_STATE_DIR;
   const configPath = env.CRAWCLAW_CONFIG_PATH;
+  const desktopRuntimeRoot = env.CRAWCLAW_DESKTOP_RUNTIME_ROOT?.trim() || undefined;
+  const pluginRuntimesDir = env.CRAWCLAW_PLUGIN_RUNTIMES_DIR?.trim() || undefined;
   // Keep a usable temp directory for supervised services even when the host env omits TMPDIR.
   const tmpDir = env.TMPDIR?.trim() || os.tmpdir();
   const proxyEnv = readServiceProxyEnvironment(env);
@@ -354,6 +360,8 @@ function resolveSharedServiceEnvironmentFields(
   return {
     stateDir,
     configPath,
+    desktopRuntimeRoot,
+    pluginRuntimesDir,
     tmpDir,
     // On Windows, Scheduled Tasks should inherit the current task PATH instead of
     // freezing the install-time snapshot into gateway.cmd.

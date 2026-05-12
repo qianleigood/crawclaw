@@ -33,7 +33,7 @@ import type {
 } from "../config/types.js";
 import type { ModelCompatConfig } from "../config/types.models.js";
 import type { OperatorScope } from "../gateway/method-scopes.js";
-import type { GatewayRequestHandler } from "../gateway/server-methods/types.js";
+import type { GatewayRequestHandler } from "../gateway/request-types.js";
 import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { ObservationContext } from "../infra/observation/types.js";

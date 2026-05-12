@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { GatewayRequestHandlerOptions } from "./types.js";
+import type { GatewayRequestHandlerOptions } from "../request-types.js";
 
 const mocks = vi.hoisted(() => ({
   loadConfig: vi.fn(),

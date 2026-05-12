@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { GatewayRequestContext, RespondFn } from "../request-types.js";
 import { expectSubagentFollowupReactivation } from "./subagent-followup.test-helpers.js";
-import type { GatewayRequestContext, RespondFn } from "./types.js";
 
 const loadSessionEntryMock = vi.fn();
 const readSessionMessagesMock = vi.fn();

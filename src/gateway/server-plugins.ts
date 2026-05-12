@@ -14,12 +14,12 @@ import { ADMIN_SCOPE, WRITE_SCOPE } from "./method-scopes.js";
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES } from "./protocol/client-info.js";
 import type { ErrorShape } from "./protocol/index.js";
 import { PROTOCOL_VERSION } from "./protocol/index.js";
-import { handleGatewayRequest } from "./server-methods.js";
 import type {
   GatewayRequestContext,
   GatewayRequestHandler,
   GatewayRequestOptions,
-} from "./server-methods/types.js";
+} from "./request-types.js";
+import type { GatewayRequestDispatcher } from "./server-request-dispatcher.js";
 
 // ── Fallback gateway context for non-WS paths (Telegram, WhatsApp, etc.) ──
 // The WS path sets a per-request scope via AsyncLocalStorage, but channel
@@ -41,6 +41,32 @@ const getFallbackGatewayContextState = () =>
     context: undefined,
     resolveContext: undefined,
   }));
+
+const GATEWAY_REQUEST_DISPATCHER_STATE_KEY: unique symbol = Symbol.for(
+  "crawclaw.gatewayRequestDispatcherState",
+);
+
+type GatewayRequestDispatcherState = {
+  dispatcher: GatewayRequestDispatcher | undefined;
+};
+
+const getGatewayRequestDispatcherState = () =>
+  resolveGlobalSingleton<GatewayRequestDispatcherState>(
+    GATEWAY_REQUEST_DISPATCHER_STATE_KEY,
+    () => ({
+      dispatcher: undefined,
+    }),
+  );
+
+export function setGatewayRequestDispatcher(
+  dispatcher: GatewayRequestDispatcher | undefined,
+): void {
+  getGatewayRequestDispatcherState().dispatcher = dispatcher;
+}
+
+function getGatewayRequestDispatcher(): GatewayRequestDispatcher | undefined {
+  return getGatewayRequestDispatcherState().dispatcher;
+}
 
 export function setFallbackGatewayContext(ctx: GatewayRequestContext): void {
   const fallbackGatewayContextState = getFallbackGatewayContextState();
@@ -262,9 +288,15 @@ async function dispatchGatewayMethod<T>(
       `Plugin subagent dispatch requires a gateway request scope (method: ${method}). No scope set and no fallback context available.`,
     );
   }
+  const dispatcher = getGatewayRequestDispatcher();
+  if (!dispatcher) {
+    throw new Error(
+      `Plugin subagent dispatch requires a gateway request dispatcher (method: ${method}).`,
+    );
+  }
 
   let result: { ok: boolean; payload?: unknown; error?: ErrorShape } | undefined;
-  await handleGatewayRequest({
+  await dispatcher({
     req: {
       type: "req",
       id: `plugin-subagent-${randomUUID()}`,

@@ -19,7 +19,7 @@ import {
   type ToolsCatalogResult,
   validateToolsCatalogParams,
 } from "../protocol/index.js";
-import type { GatewayRequestHandlers, RespondFn } from "./types.js";
+import type { GatewayRequestHandlers, RespondFn } from "../request-types.js";
 
 type ToolCatalogEntry = {
   id: string;

@@ -52,7 +52,7 @@ export type { GatewayRpcOpts } from "../cli/gateway-rpc.js";
 export { formatHelpExamples } from "../cli/help-format.js";
 export { withTimeout } from "../utils/with-timeout.js";
 export { ErrorCodes, errorShape } from "../gateway/protocol/index.js";
-export type { GatewayRequestHandlers } from "../gateway/server-methods/types.js";
+export type { GatewayRequestHandlers } from "../gateway/request-types.js";
 export type { CrawClawConfig } from "../config/config.js";
 export { extractErrorCode, formatErrorMessage } from "../infra/errors.js";
 export {

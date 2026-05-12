@@ -4,7 +4,7 @@ import {
   type DoctorMemoryHealthSummary,
 } from "../../commands/doctor-memory-health.js";
 import { loadConfig } from "../../config/config.js";
-import type { GatewayRequestHandlers } from "./types.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 
 export type DoctorMemoryStatusPayload = {
   agentId: string;

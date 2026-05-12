@@ -20,6 +20,8 @@ type ResolveCatalogHookProviderPluginIds =
   typeof import("./providers.js").resolveCatalogHookProviderPluginIds;
 type ResolveOwningPluginIdsForProvider =
   typeof import("./providers.js").resolveOwningPluginIdsForProvider;
+type ResolveBundledProviderCompatPluginIds =
+  typeof import("./providers.js").resolveBundledProviderCompatPluginIds;
 
 const resolvePluginProvidersMock = vi.fn<ResolvePluginProviders>((_) => [] as ProviderPlugin[]);
 const resolveCatalogHookProviderPluginIdsMock = vi.fn<ResolveCatalogHookProviderPluginIds>(
@@ -27,6 +29,9 @@ const resolveCatalogHookProviderPluginIdsMock = vi.fn<ResolveCatalogHookProvider
 );
 const resolveOwningPluginIdsForProviderMock = vi.fn<ResolveOwningPluginIdsForProvider>(
   (_) => undefined as string[] | undefined,
+);
+const resolveBundledProviderCompatPluginIdsMock = vi.fn<ResolveBundledProviderCompatPluginIds>(
+  (_) => [],
 );
 
 let augmentModelCatalogWithProviderPlugins: typeof import("./provider-runtime.js").augmentModelCatalogWithProviderPlugins;
@@ -237,6 +242,8 @@ describe("provider-runtime", () => {
   beforeAll(async () => {
     vi.resetModules();
     vi.doMock("./providers.js", () => ({
+      resolveBundledProviderCompatPluginIds: (params: unknown) =>
+        resolveBundledProviderCompatPluginIdsMock(params as never),
       resolveCatalogHookProviderPluginIds: (params: unknown) =>
         resolveCatalogHookProviderPluginIdsMock(params as never),
       resolveOwningPluginIdsForProvider: (params: unknown) =>
@@ -295,6 +302,10 @@ describe("provider-runtime", () => {
     resolveCatalogHookProviderPluginIdsMock.mockReturnValue([]);
     resolveOwningPluginIdsForProviderMock.mockReset();
     resolveOwningPluginIdsForProviderMock.mockReturnValue(undefined);
+    resolveBundledProviderCompatPluginIdsMock.mockReset();
+    resolveBundledProviderCompatPluginIdsMock.mockImplementation((params) =>
+      (params.onlyPluginIds ?? []).filter((pluginId) => pluginId === "openai"),
+    );
   });
 
   it("matches providers by alias for runtime hook lookup", () => {
@@ -319,6 +330,56 @@ describe("provider-runtime", () => {
     expectProviderRuntimePluginLoad({
       provider: "anthropic",
     });
+  });
+
+  it("does not resolve bundled provider hooks in production mode", () => {
+    resolveOwningPluginIdsForProviderMock.mockReturnValue(["openai"]);
+    resolvePluginProvidersMock.mockReturnValue([
+      {
+        id: "openai",
+        label: "OpenAI",
+        auth: [],
+      },
+    ]);
+
+    expect(
+      resolveProviderRuntimePlugin({
+        provider: "openai",
+        env: {},
+      }),
+    ).toBeUndefined();
+    expect(resolvePluginProvidersMock).not.toHaveBeenCalled();
+  });
+
+  it("keeps bundled provider hooks available for explicit compatibility", () => {
+    const env = {
+      CRAWCLAW_TS_BUNDLED_PROVIDER_RUNTIME_COMPAT: "1",
+    } as NodeJS.ProcessEnv;
+    resolveOwningPluginIdsForProviderMock.mockReturnValue(["openai"]);
+    resolvePluginProvidersMock.mockReturnValue([
+      {
+        id: "openai",
+        label: "OpenAI",
+        auth: [],
+      },
+    ]);
+
+    expect(
+      resolveProviderRuntimePlugin({
+        provider: "openai",
+        env,
+      }),
+    ).toMatchObject({
+      id: "openai",
+    });
+    expect(resolvePluginProvidersMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        env,
+        onlyPluginIds: ["openai"],
+        bundledProviderAllowlistCompat: true,
+        bundledProviderVitestCompat: true,
+      }),
+    );
   });
 
   it("can normalize model ids through provider aliases without changing ownership", () => {

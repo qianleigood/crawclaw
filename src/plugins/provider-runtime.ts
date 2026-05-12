@@ -3,6 +3,7 @@ import { normalizeProviderId } from "../agents/provider-id.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderConfig } from "../config/types.js";
 import {
+  resolveBundledProviderCompatPluginIds,
   resolveCatalogHookProviderPluginIds,
   resolveOwningPluginIdsForProvider,
 } from "./providers.js";
@@ -66,6 +67,49 @@ let cachedHookProvidersByConfig = new WeakMap<
   WeakMap<NodeJS.ProcessEnv, Map<string, ProviderPlugin[]>>
 >();
 
+const BUNDLED_PROVIDER_TS_RUNTIME_COMPAT_ENV = "CRAWCLAW_TS_BUNDLED_PROVIDER_RUNTIME_COMPAT";
+
+function allowBundledProviderTsRuntimeCompat(env?: NodeJS.ProcessEnv): boolean {
+  const effectiveEnv = env ?? process.env;
+  return (
+    effectiveEnv[BUNDLED_PROVIDER_TS_RUNTIME_COMPAT_ENV] === "1" || Boolean(effectiveEnv.VITEST)
+  );
+}
+
+function resolveBundledProviderRuntimePluginIds(params: {
+  config?: CrawClawConfig;
+  workspaceDir?: string;
+  env?: NodeJS.ProcessEnv;
+  onlyPluginIds?: string[];
+}): Set<string> {
+  return new Set(
+    resolveBundledProviderCompatPluginIds({
+      config: params.config,
+      workspaceDir: params.workspaceDir,
+      env: params.env,
+      onlyPluginIds: params.onlyPluginIds,
+    }),
+  );
+}
+
+function filterBundledProviderRuntimePluginIds(params: {
+  config?: CrawClawConfig;
+  workspaceDir?: string;
+  env?: NodeJS.ProcessEnv;
+  pluginIds: string[];
+}): string[] {
+  if (allowBundledProviderTsRuntimeCompat(params.env)) {
+    return params.pluginIds;
+  }
+  const bundledPluginIds = resolveBundledProviderRuntimePluginIds({
+    config: params.config,
+    workspaceDir: params.workspaceDir,
+    env: params.env,
+    onlyPluginIds: params.pluginIds,
+  });
+  return params.pluginIds.filter((pluginId) => !bundledPluginIds.has(pluginId));
+}
+
 function resolveHookProviderCacheBucket(params: {
   config?: CrawClawConfig;
   env: NodeJS.ProcessEnv;
@@ -102,7 +146,14 @@ function buildHookProviderCacheKey(params: {
     workspaceDir: params.workspaceDir,
     env: params.env,
   });
-  return `${roots.workspace ?? ""}::${roots.global}::${roots.stock ?? ""}::${JSON.stringify(params.config ?? null)}::${JSON.stringify(params.onlyPluginIds ?? [])}`;
+  return [
+    roots.workspace ?? "",
+    roots.global,
+    roots.stock ?? "",
+    allowBundledProviderTsRuntimeCompat(params.env),
+    JSON.stringify(params.config ?? null),
+    JSON.stringify(params.onlyPluginIds ?? []),
+  ].join("::");
 }
 
 export function clearProviderRuntimeHookCache(): void {
@@ -141,16 +192,31 @@ function resolveProviderPluginsForHooks(params: {
   if (cached) {
     return cached;
   }
+  const allowBundledCompat = allowBundledProviderTsRuntimeCompat(env);
   const resolved = resolvePluginProviders({
     ...params,
     env,
     activate: false,
     cache: false,
-    bundledProviderAllowlistCompat: true,
-    bundledProviderVitestCompat: true,
+    bundledProviderAllowlistCompat: allowBundledCompat,
+    bundledProviderVitestCompat: allowBundledCompat,
   });
-  cacheBucket.set(cacheKey, resolved);
-  return resolved;
+  const filtered = allowBundledCompat
+    ? resolved
+    : resolved.filter((provider) => {
+        const pluginId = provider.pluginId;
+        if (!pluginId) {
+          return true;
+        }
+        return !resolveBundledProviderRuntimePluginIds({
+          config: params.config,
+          workspaceDir: params.workspaceDir,
+          env,
+          onlyPluginIds: [pluginId],
+        }).has(pluginId);
+      });
+  cacheBucket.set(cacheKey, filtered);
+  return filtered;
 }
 
 function resolveProviderPluginsForCatalogHooks(params: {
@@ -163,12 +229,18 @@ function resolveProviderPluginsForCatalogHooks(params: {
     workspaceDir: params.workspaceDir,
     env: params.env,
   });
-  if (onlyPluginIds.length === 0) {
+  const filteredPluginIds = filterBundledProviderRuntimePluginIds({
+    config: params.config,
+    workspaceDir: params.workspaceDir,
+    env: params.env,
+    pluginIds: onlyPluginIds,
+  });
+  if (filteredPluginIds.length === 0) {
     return [];
   }
   return resolveProviderPluginsForHooks({
     ...params,
-    onlyPluginIds,
+    onlyPluginIds: filteredPluginIds,
   });
 }
 
@@ -187,9 +259,18 @@ export function resolveProviderRuntimePlugin(params: {
   if (!owningPluginIds || owningPluginIds.length === 0) {
     return undefined;
   }
+  const runtimePluginIds = filterBundledProviderRuntimePluginIds({
+    config: params.config,
+    workspaceDir: params.workspaceDir,
+    env: params.env,
+    pluginIds: owningPluginIds,
+  });
+  if (runtimePluginIds.length === 0) {
+    return undefined;
+  }
   return resolveProviderPluginsForHooks({
     ...params,
-    onlyPluginIds: owningPluginIds,
+    onlyPluginIds: runtimePluginIds,
   }).find((plugin) => matchesProviderId(plugin, params.provider));
 }
 

@@ -1,9 +1,9 @@
 import { getStatusSummary } from "../../commands/status.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 import { HEALTH_REFRESH_INTERVAL_MS } from "../server-constants.js";
 import { formatError } from "../server-utils.js";
 import { formatForLog } from "../ws-log.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 const ADMIN_SCOPE = "operator.admin";
 

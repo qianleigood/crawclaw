@@ -57,6 +57,13 @@ const AUDIO_CAPABILITY_CFG = {
       },
     },
   },
+  tools: {
+    media: {
+      audio: {
+        models: [{ provider: "openai" }],
+      },
+    },
+  },
 } as unknown as CrawClawConfig;
 
 async function runAudioCapabilityWithTranscriber(params: {

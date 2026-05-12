@@ -10,6 +10,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "common.progress.checkingGatewayHealth": "Checking gateway health…",
   "common.progress.fetchingUsageSnapshot": "Fetching usage snapshot…",
   "common.progress.runningSecurityAudit": "Running security audit…",
+  "cli.option.json": "Output JSON",
   "config.updated": "Updated {path}{suffix}",
   "table.header.active": "Active",
   "table.header.age": "Age",

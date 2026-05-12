@@ -62,6 +62,7 @@ import {
   validateAgentParams,
   validateAgentWaitParams,
 } from "../protocol/index.js";
+import type { GatewayRequestHandlerOptions, GatewayRequestHandlers } from "../request-types.js";
 import { performGatewaySessionReset } from "../session-reset-service.js";
 import { reactivateCompletedSubagentSession } from "../session-subagent-reactivation.js";
 import {
@@ -82,7 +83,6 @@ import {
   waitForTerminalGatewayDedupe,
 } from "./agent-wait-dedupe.js";
 import { normalizeRpcAttachmentsToChatAttachments } from "./attachment-normalize.js";
-import type { GatewayRequestHandlerOptions, GatewayRequestHandlers } from "./types.js";
 
 const NEW_COMMAND_RE = /^\/new(?:\s+([\s\S]*))?$/i;
 

@@ -436,6 +436,7 @@ export function registerExecApprovalsCli(program: Command) {
     .command("get")
     .description(t("command.approvals.get.description"))
     .option("--gateway", t("command.approvals.option.gateway"), false)
+    .option("--json", t("cli.option.json"), false)
     .action(async (opts: ExecApprovalsCliOpts) => {
       try {
         const { snapshot, source } = await loadSnapshotTarget(opts);

@@ -5,8 +5,8 @@ import { canonicalizeBase64 } from "../../media/base64.js";
 import { getSpeechProvider } from "../../tts/provider-registry.js";
 import { getResolvedSpeechProviderConfig, resolveTtsConfig } from "../../tts/tts.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
+import type { GatewayRequestHandlers } from "../request-types.js";
 import { formatForLog } from "../ws-log.js";
-import type { GatewayRequestHandlers } from "./types.js";
 
 const QWEN3_TTS_PROVIDER_ID = "qwen3-tts";
 const MAX_REFERENCE_AUDIO_BYTES = 20 * 1024 * 1024;
