@@ -164,6 +164,10 @@ function assertRuntimeTree(paths, label = "embedded") {
     path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
     `${label} managed plugin runtime manifest`,
   );
+  assertNoDefaultJsPluginRuntime(
+    path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
+    `${label} managed runtime manifest`,
+  );
   assertFile(
     path.join(paths.runtimeRoot, "channels", "manifest.json"),
     `${label} Rust channel manifest`,
@@ -172,6 +176,14 @@ function assertRuntimeTree(paths, label = "embedded") {
   assertProviderTransportManifest(
     path.join(paths.runtimeRoot, "providers", "manifest.json"),
     label,
+  );
+  assertFile(
+    path.join(paths.runtimeRoot, "plugins", "manifest.json"),
+    `${label} Rust plugin manifest`,
+  );
+  assertNoDefaultJsPluginRuntime(
+    path.join(paths.runtimeRoot, "plugins", "manifest.json"),
+    `${label} Rust plugin manifest`,
   );
   assertNoDisallowedNodeRuntimeSurface(paths.runtimeRoot);
 }
@@ -326,6 +338,18 @@ function assertNoDisallowedNodeRuntimeSurface(runtimeRoot) {
       throw new Error(`Disallowed Node runtime package surface remains: ${filePath}`);
     }
     throw new Error(`Disallowed Node runtime entrypoint remains: ${filePath}`);
+  }
+}
+
+function assertNoDefaultJsPluginRuntime(manifestPath, label) {
+  const manifest = readJson(manifestPath);
+  if (manifest.jsPluginRuntime && manifest.jsPluginRuntime !== "none") {
+    throw new Error(
+      `${label} must not advertise a default JS plugin runtime: ${manifestPath}`,
+    );
+  }
+  if (JSON.stringify(manifest).includes("pi-quickjs")) {
+    throw new Error(`${label} must not stage Pi QuickJS fallback metadata: ${manifestPath}`);
   }
 }
 

@@ -8663,7 +8663,7 @@ fn runtime_status_value(state: &GatewayState) -> Value {
         "authMode": auth_mode(state),
         "stateDir": state.state_dir.to_string_lossy(),
         "runtimeRoot": state.runtime_root.to_string_lossy(),
-        "jsPluginRuntime": "pi-quickjs",
+        "jsPluginRuntime": "none",
         "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
         "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
         "defaultModels": crawclaw_providers::bundled_provider_default_models(),
@@ -9153,7 +9153,7 @@ fn desktop_state_value(state: &GatewayState) -> Value {
         "sessions": sessions,
         "runtime": {
             "implementation": "rust-native",
-            "jsPluginRuntime": "pi-quickjs"
+            "jsPluginRuntime": "none"
         }
     })
 }
@@ -10030,7 +10030,7 @@ mod tests {
         let status = runtime_status_value(&state);
 
         assert_eq!(status["implementation"], "rust-native");
-        assert_eq!(status["jsPluginRuntime"], "pi-quickjs");
+        assert_eq!(status["jsPluginRuntime"], "none");
         assert!(status["gatewayMethods"]
             .as_array()
             .expect("gateway methods")

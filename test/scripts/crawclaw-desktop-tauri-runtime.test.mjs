@@ -31,9 +31,10 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           fs.mkdirSync(path.join(paths.runtimeRoot, "runtimes"), { recursive: true });
           fs.mkdirSync(path.join(paths.runtimeRoot, "channels"), { recursive: true });
           fs.mkdirSync(path.join(paths.runtimeRoot, "providers"), { recursive: true });
+          fs.mkdirSync(path.join(paths.runtimeRoot, "plugins"), { recursive: true });
           fs.writeFileSync(
             path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
-            "{}\n",
+            runtimeManifestJson(),
             "utf8",
           );
           fs.writeFileSync(
@@ -44,6 +45,11 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           fs.writeFileSync(
             path.join(paths.runtimeRoot, "providers", "manifest.json"),
             providerManifestJson(),
+            "utf8",
+          );
+          fs.writeFileSync(
+            path.join(paths.runtimeRoot, "plugins", "manifest.json"),
+            pluginManifestJson(),
             "utf8",
           );
         }
@@ -118,6 +124,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
       ["manifest", /embedded managed plugin runtime manifest/],
       ["channels", /embedded Rust channel manifest/],
       ["providers", /embedded Rust provider transport manifest/],
+      ["plugins", /embedded Rust plugin manifest/],
     ];
 
     for (const [omit, expectedMessage] of cases) {
@@ -186,6 +193,23 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           },
         }),
       /Disallowed Node runtime entrypoint remains/,
+    );
+  });
+
+  void it("release check rejects default JS plugin runtime metadata", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-js-fallback-"));
+    writeReleaseFixture(rootDir, { jsPluginRuntime: "pi-quickjs" });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /must not advertise a default JS plugin runtime/,
     );
   });
 
@@ -269,6 +293,7 @@ function writeReleaseFixture(rootDir, options = {}) {
   fs.mkdirSync(path.join(paths.runtimeRoot, "runtimes"), { recursive: true });
   fs.mkdirSync(path.join(paths.runtimeRoot, "channels"), { recursive: true });
   fs.mkdirSync(path.join(paths.runtimeRoot, "providers"), { recursive: true });
+  fs.mkdirSync(path.join(paths.runtimeRoot, "plugins"), { recursive: true });
   const scripts = options.legacyElectron
     ? { "admin:desktop:build": "npm --prefix apps/crawclaw-admin-desktop run build" }
     : {};
@@ -304,7 +329,11 @@ function writeReleaseFixture(rootDir, options = {}) {
     fs.writeFileSync(paths.runtimeBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
   }
   if (options.omit !== "manifest") {
-    fs.writeFileSync(path.join(paths.runtimeRoot, "runtimes", "manifest.json"), "{}\n", "utf8");
+    fs.writeFileSync(
+      path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
+      runtimeManifestJson(options),
+      "utf8",
+    );
   }
   if (options.omit !== "channels") {
     fs.writeFileSync(
@@ -317,6 +346,13 @@ function writeReleaseFixture(rootDir, options = {}) {
     fs.writeFileSync(
       path.join(paths.runtimeRoot, "providers", "manifest.json"),
       providerManifestJson(),
+      "utf8",
+    );
+  }
+  if (options.omit !== "plugins") {
+    fs.writeFileSync(
+      path.join(paths.runtimeRoot, "plugins", "manifest.json"),
+      pluginManifestJson(options),
       "utf8",
     );
   }
@@ -357,12 +393,17 @@ function writeReleaseFixture(rootDir, options = {}) {
     fs.mkdirSync(path.join(packagedRoot, "runtimes"), { recursive: true });
     fs.mkdirSync(path.join(packagedRoot, "channels"), { recursive: true });
     fs.mkdirSync(path.join(packagedRoot, "providers"), { recursive: true });
+    fs.mkdirSync(path.join(packagedRoot, "plugins"), { recursive: true });
     fs.writeFileSync(
       path.join(packagedRoot, "bin", process.platform === "win32" ? "crawclaw.exe" : "crawclaw"),
       "#!/bin/sh\nexit 0\n",
       "utf8",
     );
-    fs.writeFileSync(path.join(packagedRoot, "runtimes", "manifest.json"), "{}\n", "utf8");
+    fs.writeFileSync(
+      path.join(packagedRoot, "runtimes", "manifest.json"),
+      runtimeManifestJson(options),
+      "utf8",
+    );
     fs.writeFileSync(
       path.join(packagedRoot, "channels", "manifest.json"),
       channelManifestJson(),
@@ -375,6 +416,11 @@ function writeReleaseFixture(rootDir, options = {}) {
         "utf8",
       );
     }
+    fs.writeFileSync(
+      path.join(packagedRoot, "plugins", "manifest.json"),
+      pluginManifestJson(options),
+      "utf8",
+    );
     if (options.packagedNodeRuntimeEntrypoint) {
       fs.writeFileSync(path.join(packagedRoot, "crawclaw.mjs"), "export {};\n", "utf8");
     }
@@ -389,6 +435,20 @@ function writeReleaseFixture(rootDir, options = {}) {
       }
     }
   }
+}
+
+function runtimeManifestJson(options = {}) {
+  return `${JSON.stringify({
+    runtime: "rust-native",
+    jsPluginRuntime: options.jsPluginRuntime ?? "none",
+  })}\n`;
+}
+
+function pluginManifestJson(options = {}) {
+  return `${JSON.stringify({
+    readModel: true,
+    jsPluginRuntime: options.jsPluginRuntime ?? "none",
+  })}\n`;
 }
 
 function packagedMacRuntimeRoot(rootDir) {

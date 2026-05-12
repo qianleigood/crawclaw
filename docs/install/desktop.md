@@ -17,7 +17,7 @@ CrawClaw Desktop lives under `apps/crawclaw-desktop` and uses:
 - React and Vite for the desktop workbench UI.
 - A Rust Gateway bound to `127.0.0.1` for local HTTP and SSE.
 - A Rust runtime binary under `runtime/crawclaw/bin/crawclaw`.
-- JS plugin execution through Pi QuickJS extensions managed by the Rust plugin host.
+- Rust-native plugin execution for bundled/default desktop tools.
 - Rust-native Agent and session control for desktop chat, `sessions_*`, and sub-agents.
 - Local speech output through the bundled `qwen3-tts` native path.
 
@@ -60,6 +60,11 @@ The packaged app uses this embedded Rust runtime for local Gateway status checks
 Agent/session state, sub-agent routing, local plugin execution, and desktop
 runtime resources. End users do not need a globally installed `crawclaw` binary
 or a preconfigured shell `PATH` for the desktop flow.
+
+Bundled/default desktop plugins must use Rust-native entries. Third-party local
+JS plugins can still opt in to the explicit compatibility fallback with
+`allowJsPluginFallback=true`; the packaged desktop runtime does not advertise or
+stage a default JS plugin runner.
 
 Desktop speech is intentionally local-first. The desktop package exposes the
 native `qwen3-tts` path for text-to-speech; cloud speech plugins are not part of

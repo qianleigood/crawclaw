@@ -1110,7 +1110,7 @@ fn desktop_runtime(args: Vec<String>) {
             "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
             "defaultModels": crawclaw_providers::bundled_provider_default_models(),
             "channels": crawclaw_plugin_host::native_channel_ids(),
-            "jsPluginRuntime": "pi-quickjs"
+            "jsPluginRuntime": "none"
         }));
         return;
     }
@@ -1140,7 +1140,7 @@ fn stage_runtime(output: PathBuf) {
         runtimes_dir.join("manifest.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "runtime": "rust-native",
-            "jsPluginRuntime": "pi-quickjs",
+            "jsPluginRuntime": "none",
         }))
         .expect("runtime manifest json"),
     )
@@ -1170,7 +1170,7 @@ fn stage_runtime(output: PathBuf) {
         plugins_dir.join("manifest.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "readModel": true,
-            "jsPluginRuntime": "pi-quickjs",
+            "jsPluginRuntime": "none",
             "nativeChannels": crawclaw_plugin_host::native_channel_ids(),
         }))
         .expect("plugin manifest json"),
@@ -1474,7 +1474,7 @@ mod tests {
     }
 
     #[test]
-    fn runtime_stage_records_pi_quickjs_plugin_runtime() {
+    fn runtime_stage_records_no_default_js_plugin_runtime() {
         let dir = unique_temp_dir("runtime-stage");
 
         stage_runtime(dir.clone());
@@ -1488,7 +1488,7 @@ mod tests {
         let plugin_manifest: serde_json::Value =
             serde_json::from_str(&fs::read_to_string(dir.join("plugins/manifest.json")).unwrap())
                 .unwrap();
-        assert_eq!(runtime_manifest["jsPluginRuntime"], "pi-quickjs");
+        assert_eq!(runtime_manifest["jsPluginRuntime"], "none");
         assert!(provider_manifest["providerDescriptors"]
             .as_array()
             .expect("provider descriptors")
@@ -1500,7 +1500,7 @@ mod tests {
             .expect("default models")
             .iter()
             .any(|model| model["provider"] == "openai" && model["model"] == "gpt-5.4"));
-        assert_eq!(plugin_manifest["jsPluginRuntime"], "pi-quickjs");
+        assert_eq!(plugin_manifest["jsPluginRuntime"], "none");
         assert!(!dir.join("compat/js-plugin-runner.mjs").exists());
 
         let _ = fs::remove_dir_all(dir);

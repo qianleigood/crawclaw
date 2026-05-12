@@ -135,7 +135,7 @@ pub fn phase_three_capability() -> PluginHostCapability {
     PluginHostCapability {
         manifest_read_model: true,
         rust_or_wasm_entry_required: true,
-        pi_quickjs_extensions: true,
+        pi_quickjs_extensions: false,
     }
 }
 
@@ -873,12 +873,12 @@ mod tests {
     }
 
     #[test]
-    fn plugin_host_capability_exposes_pi_quickjs_extensions() {
+    fn plugin_host_capability_requires_native_plugin_entries_by_default() {
         let capability = phase_three_capability();
 
         assert!(capability.manifest_read_model);
         assert!(capability.rust_or_wasm_entry_required);
-        assert!(capability.pi_quickjs_extensions);
+        assert!(!capability.pi_quickjs_extensions);
     }
 
     #[test]

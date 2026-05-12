@@ -14,7 +14,7 @@ pub mod special_agents;
 
 use core_tools::build_pi_agent_rust_tool_registry;
 
-use crawclaw_core::{RuntimeCompatMode, RuntimeCompatStatus, RuntimeStatusValue};
+use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
 use crawclaw_providers::{
     send_native_provider_conversation, send_native_provider_conversation_with_options,
     NativeProviderConfig, NativeProviderContentBlock, NativeProviderMessage,
@@ -121,14 +121,8 @@ fn required_runtime_files(layout: &RuntimeLayout) -> Vec<&Path> {
 }
 
 fn compat_status(status: &RuntimeStatusValue) -> RuntimeCompatStatus {
-    if *status == RuntimeStatusValue::Ready {
-        RuntimeCompatStatus {
-            mode: RuntimeCompatMode::PiQuickJs,
-            detail: "Pi QuickJS extension runtime is managed by the Rust plugin host.".to_string(),
-        }
-    } else {
-        RuntimeCompatStatus::default()
-    }
+    let _ = status;
+    RuntimeCompatStatus::default()
 }
 
 fn path_to_string(path: &Path) -> String {
@@ -2073,6 +2067,36 @@ mod tests {
     use std::pin::Pin;
     use std::sync::mpsc;
     use std::thread;
+
+    #[test]
+    fn runtime_layout_reports_no_default_js_compat() {
+        let runtime_root = unique_test_runtime_root("runtime-no-js-compat");
+        let layout = RuntimeLayout {
+            binary_path: runtime_root.join("bin").join(runtime_binary_name()),
+            channel_manifest_path: runtime_root.join("channels").join("manifest.json"),
+            manifest_path: runtime_root.join("runtimes").join("manifest.json"),
+            runtime_root: runtime_root.clone(),
+        };
+        fs::create_dir_all(layout.binary_path.parent().expect("binary parent")).unwrap();
+        fs::create_dir_all(
+            layout
+                .channel_manifest_path
+                .parent()
+                .expect("channels parent"),
+        )
+        .unwrap();
+        fs::create_dir_all(layout.manifest_path.parent().expect("manifest parent")).unwrap();
+        fs::write(&layout.binary_path, "").unwrap();
+        fs::write(&layout.channel_manifest_path, "{}").unwrap();
+        fs::write(&layout.manifest_path, r#"{"runtime":"rust-native"}"#).unwrap();
+
+        let status = inspect_runtime_layout(&layout);
+
+        assert_eq!(status.status, RuntimeStatusValue::Ready);
+        assert_eq!(status.compat, RuntimeCompatStatus::default());
+
+        let _ = fs::remove_dir_all(runtime_root);
+    }
 
     #[test]
     fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {

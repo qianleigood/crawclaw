@@ -22,7 +22,7 @@ export interface RuntimeStatus {
   runtimeRoot: string
   binaryPath?: string
   compat?: {
-    mode: 'none' | 'pi-quickjs'
+    mode: 'none'
     detail: string
   }
   nodePath: string
