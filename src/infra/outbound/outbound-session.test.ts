@@ -1,11 +1,19 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
+import { resolveRustOutboundFallbackSessionRoute } from "./message-policy-runtime.js";
 import { resolveOutboundSessionRoute } from "./outbound-session.js";
 import { setMinimalOutboundSessionPluginRegistryForTests } from "./outbound-session.test-helpers.js";
+
+vi.mock("./message-policy-runtime.js", () => ({
+  resolveRustOutboundFallbackSessionRoute: vi.fn(),
+}));
+
+const resolveRustFallback = vi.mocked(resolveRustOutboundFallbackSessionRoute);
 
 describe("resolveOutboundSessionRoute", () => {
   beforeEach(() => {
     setMinimalOutboundSessionPluginRegistryForTests();
+    resolveRustFallback.mockReset();
   });
 
   const baseConfig = {} as CrawClawConfig;
@@ -392,5 +400,36 @@ describe("resolveOutboundSessionRoute", () => {
         target: "123",
       }),
     ).rejects.toThrow(/Ambiguous Discord recipient/);
+  });
+
+  it("uses Rust fallback routing when a channel has no plugin resolver", async () => {
+    resolveRustFallback.mockResolvedValue({
+      sessionKey: "agent:main:generic:direct:u123",
+      baseSessionKey: "agent:main:generic:direct:u123",
+      peer: { kind: "direct", id: "u123" },
+      chatType: "direct",
+      from: "generic:u123",
+      to: "user:u123",
+    });
+
+    const route = await resolveOutboundSessionRoute({
+      cfg: perChannelPeerSessionCfg,
+      channel: "generic",
+      agentId: "main",
+      target: " user:u123 ",
+      resolvedTarget: {
+        kind: "user",
+        to: "user:u123",
+        source: "directory",
+      },
+    });
+
+    expect(route?.sessionKey).toBe("agent:main:generic:direct:u123");
+    expect(resolveRustFallback).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "generic",
+        target: "user:u123",
+      }),
+    );
   });
 });

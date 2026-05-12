@@ -111,13 +111,12 @@ async fn run_worker() {
             }
         };
         let root = request.runtime_root.unwrap_or_else(runtime_root);
-        let response = match crawclaw_runtime::execute_rust_core_tool(
-            &root,
-            &request.tool,
-            request.input,
-        )
-        .await
-        {
+        let result = if request.tool == "message_policy" {
+            crawclaw_runtime::execute_message_policy_operation(request.input)
+        } else {
+            crawclaw_runtime::execute_rust_core_tool(&root, &request.tool, request.input).await
+        };
+        let response = match result {
             Ok(result) => json!({ "id": request.id, "ok": true, "result": result }),
             Err(message) => {
                 json!({ "id": request.id, "ok": false, "code": "TOOL_FAILED", "message": message })

@@ -48,12 +48,12 @@ import {
   prepareOutboundMirrorRoute,
   resolveAndApplyOutboundThreadId,
 } from "./message-action-threading.js";
+import { enforceRustCrossContextPolicy } from "./message-policy-runtime.js";
 import type { MessagePollResult, MessageSendResult } from "./message.js";
 import {
   applyCrossContextDecoration,
   buildCrossContextDecoration,
   type CrossContextDecoration,
-  enforceCrossContextPolicy,
   shouldApplyCrossContextMarker,
 } from "./outbound-policy.js";
 import { executePollAction, executeSendAction } from "./outbound-send-service.js";
@@ -805,7 +805,7 @@ export async function runMessageAction(
     accountId,
   });
 
-  enforceCrossContextPolicy({
+  await enforceRustCrossContextPolicy({
     channel,
     action,
     args: params,

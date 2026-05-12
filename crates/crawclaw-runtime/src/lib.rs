@@ -10,9 +10,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 mod core_tools;
 pub mod cron;
 pub mod memory;
+mod message_policy;
 pub mod special_agents;
 
 use core_tools::build_pi_agent_rust_tool_registry;
+pub use message_policy::execute_message_policy_operation;
 
 use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
 use crawclaw_providers::{

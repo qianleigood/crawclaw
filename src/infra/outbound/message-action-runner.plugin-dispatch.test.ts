@@ -670,6 +670,9 @@ describe("runMessageAction plugin dispatch", () => {
         listAccountIds: () => ["default"],
         resolveAccount: () => ({}),
       },
+      messaging: {
+        resolveOutboundSessionRoute: async () => null,
+      },
       actions: {
         describeMessageTool: () => ({ actions: ["send"] }),
         handleAction,
