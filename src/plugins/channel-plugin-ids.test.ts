@@ -50,6 +50,31 @@ function createManifestRegistryFixture() {
         enabledByDefault: true,
         providers: [],
         cliBackends: [],
+        contracts: {
+          tools: ["browser"],
+        },
+      },
+      {
+        id: "comfyui",
+        channels: [],
+        origin: "bundled",
+        enabledByDefault: true,
+        providers: [],
+        cliBackends: [],
+        contracts: {
+          tools: ["comfyui_workflow"],
+        },
+      },
+      {
+        id: "turix-cua",
+        channels: [],
+        origin: "bundled",
+        enabledByDefault: true,
+        providers: [],
+        cliBackends: [],
+        contracts: {
+          tools: ["turix_desktop_run"],
+        },
       },
       {
         id: "demo-provider-plugin",
@@ -204,33 +229,26 @@ describe("resolveGatewayStartupPluginIds", () => {
         enabledPluginIds: ["voice-call"],
         modelId: "demo-cli/demo-model",
       }),
-      ["demo-channel", "browser", "voice-call", "open-websearch", "scrapling-fetch"],
+      ["demo-channel", "voice-call", "open-websearch", "scrapling-fetch"],
     ],
     [
-      "keeps bundled startup sidecars with enabledByDefault at idle startup",
+      "keeps non-tool bundled startup sidecars with enabledByDefault at idle startup",
       {} as CrawClawConfig,
-      ["demo-channel", "browser", "open-websearch", "scrapling-fetch"],
+      ["demo-channel", "open-websearch", "scrapling-fetch"],
     ],
     [
       "keeps provider plugins out of idle startup when only provider config references them",
       createStartupConfig({
         providerIds: ["demo-provider"],
       }),
-      ["demo-channel", "browser", "open-websearch", "scrapling-fetch"],
+      ["demo-channel", "open-websearch", "scrapling-fetch"],
     ],
     [
       "includes explicitly enabled non-channel sidecars in startup scope",
       createStartupConfig({
         enabledPluginIds: ["demo-global-sidecar", "voice-call"],
       }),
-      [
-        "demo-channel",
-        "browser",
-        "voice-call",
-        "open-websearch",
-        "scrapling-fetch",
-        "demo-global-sidecar",
-      ],
+      ["demo-channel", "voice-call", "open-websearch", "scrapling-fetch", "demo-global-sidecar"],
     ],
     [
       "keeps default-enabled startup sidecars when a restrictive allowlist permits them",
@@ -238,21 +256,28 @@ describe("resolveGatewayStartupPluginIds", () => {
         allowPluginIds: ["browser", "open-websearch"],
         noConfiguredChannels: true,
       }),
-      ["browser", "open-websearch"],
+      ["open-websearch"],
     ],
     [
       "includes explicitly enabled bundled web-fetch runtime plugins",
       createStartupConfig({
         enabledPluginIds: ["scrapling-fetch"],
       }),
-      ["demo-channel", "browser", "open-websearch", "scrapling-fetch"],
+      ["demo-channel", "open-websearch", "scrapling-fetch"],
+    ],
+    [
+      "keeps bundled tool contract plugins out of startup scope even when explicitly enabled",
+      createStartupConfig({
+        enabledPluginIds: ["browser", "comfyui", "turix-cua"],
+      }),
+      ["demo-channel", "open-websearch", "scrapling-fetch"],
     ],
     [
       "includes every configured channel plugin and excludes other channels",
       createStartupConfig({
         channelIds: ["demo-channel", "demo-other-channel"],
       }),
-      ["demo-channel", "demo-other-channel", "browser", "open-websearch", "scrapling-fetch"],
+      ["demo-channel", "demo-other-channel", "open-websearch", "scrapling-fetch"],
     ],
   ] as const)("%s", (_name, config, expected) => {
     expectStartupPluginIdsCase({ config, expected });

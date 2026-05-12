@@ -3,6 +3,9 @@
   "enabledByDefault": true,
   "name": "ComfyUI",
   "description": "Build, validate, run, and download local ComfyUI workflows.",
+  "contracts": {
+    "tools": ["comfyui_workflow"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

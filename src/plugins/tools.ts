@@ -2,7 +2,11 @@ import { normalizeToolName } from "../agents/tool-policy.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { applyTestPluginDefaults, normalizePluginsConfig } from "./config-state.js";
+import {
+  applyTestPluginDefaults,
+  hasExplicitPluginConfig,
+  normalizePluginsConfig,
+} from "./config-state.js";
 import { resolveRuntimePluginRegistry, type PluginLoadOptions } from "./loader.js";
 import { createPluginLoaderLogger } from "./logger.js";
 import {
@@ -87,6 +91,10 @@ export function resolvePluginTools(params: {
   if (!normalized.enabled) {
     return [];
   }
+  const allowlist = normalizeAllowlist(params.toolAllowlist);
+  if (allowlist.size === 0 && !hasExplicitPluginConfig(baseConfig.plugins)) {
+    return [];
+  }
 
   const runtimeOptions = params.allowGatewaySubagentBinding
     ? { allowGatewaySubagentBinding: true as const }
@@ -111,7 +119,6 @@ export function resolvePluginTools(params: {
   const tools: AnyAgentTool[] = [];
   const existing = params.existingToolNames ?? new Set<string>();
   const existingNormalized = new Set(Array.from(existing, (tool) => normalizeToolName(tool)));
-  const allowlist = normalizeAllowlist(params.toolAllowlist);
   const blockedPlugins = new Set<string>();
 
   for (const entry of registry.tools) {

@@ -1,6 +1,9 @@
 {
   "id": "browser",
   "enabledByDefault": true,
+  "contracts": {
+    "tools": ["browser"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

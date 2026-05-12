@@ -19,6 +19,7 @@ function hasRuntimeContractSurface(plugin: PluginManifestRecord): boolean {
     plugin.contracts?.mediaUnderstandingProviders?.length ||
     plugin.contracts?.webFetchProviders?.length ||
     plugin.contracts?.webSearchProviders?.length ||
+    plugin.contracts?.tools?.length ||
     hasKind(plugin.kind, "memory"),
   );
 }

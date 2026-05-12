@@ -47,6 +47,13 @@ function createContext() {
   };
 }
 
+function createDefaultContext() {
+  return {
+    config: {},
+    workspaceDir: "/tmp",
+  };
+}
+
 function createResolveToolsParams(params?: {
   toolAllowlist?: readonly string[];
   existingToolNames?: Set<string>;
@@ -221,6 +228,19 @@ describe("resolvePluginTools optional tools", () => {
     const tools = resolveOptionalDemoTools();
 
     expect(tools).toHaveLength(0);
+  });
+
+  it("does not load default plugin tools without an allowlist or explicit plugin config", () => {
+    setOptionalDemoRegistry();
+
+    const tools = resolvePluginTools({
+      context: createDefaultContext() as never,
+      env: {},
+    });
+
+    expect(tools).toHaveLength(0);
+    expect(resolveRuntimePluginRegistryMock).not.toHaveBeenCalled();
+    expect(loadCrawClawPluginsMock).not.toHaveBeenCalled();
   });
 
   it.each([
