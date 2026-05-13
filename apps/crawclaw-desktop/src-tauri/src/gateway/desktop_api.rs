@@ -2070,7 +2070,7 @@ fn agent_channels_from_input(input: &Value) -> Result<Vec<AgentChannelBinding>, 
     for channel in &mut channels {
         if !is_desktop_or_native_channel_id(&channel.id) {
             return Err(format!(
-                "Unsupported desktop channel id '{}'; retained native channels are ddingtalk, feishu, esp32, qqbot, and weixin.",
+                "Unsupported desktop channel id '{}'; channel must be declared in the Rust native channel catalog.",
                 channel.id
             ));
         }

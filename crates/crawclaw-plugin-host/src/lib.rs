@@ -53,18 +53,46 @@ const QQBOT_FIELDS: &[NativeChannelConfigField] = &[
 
 const NATIVE_CHANNELS: &[NativeChannelDefinition] = &[
     NativeChannelDefinition {
+        id: "desktop",
+        label: "Desktop",
+        description: "Rust-native local desktop delivery channel.",
+        icon: "monitor",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "bluebubbles",
+        label: "BlueBubbles",
+        description: "Rust-native BlueBubbles channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "telegram",
+        label: "Telegram",
+        description: "Rust-native Telegram channel control-plane and capability surface.",
+        icon: "send",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "whatsapp",
+        label: "WhatsApp",
+        description: "Rust-native WhatsApp channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "discord",
+        label: "Discord",
+        description: "Rust-native Discord channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
         id: "ddingtalk",
         label: "钉钉",
         description: "Rust-native DingTalk channel control-plane and configuration surface.",
         icon: "messageCircle",
         fields: DDINGTALK_FIELDS,
-    },
-    NativeChannelDefinition {
-        id: "feishu",
-        label: "飞书",
-        description: "Rust-native Feishu/Lark channel control-plane and configuration surface.",
-        icon: "messageCircle",
-        fields: FEISHU_FIELDS,
     },
     NativeChannelDefinition {
         id: "esp32",
@@ -74,6 +102,48 @@ const NATIVE_CHANNELS: &[NativeChannelDefinition] = &[
         fields: ESP32_FIELDS,
     },
     NativeChannelDefinition {
+        id: "feishu",
+        label: "飞书",
+        description: "Rust-native Feishu/Lark channel control-plane and configuration surface.",
+        icon: "messageCircle",
+        fields: FEISHU_FIELDS,
+    },
+    NativeChannelDefinition {
+        id: "irc",
+        label: "IRC",
+        description: "Rust-native IRC channel control-plane and capability surface.",
+        icon: "hash",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "googlechat",
+        label: "Google Chat",
+        description: "Rust-native Google Chat channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "slack",
+        label: "Slack",
+        description: "Rust-native Slack channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "nextcloud-talk",
+        label: "Nextcloud Talk",
+        description: "Rust-native Nextcloud Talk channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "nostr",
+        label: "Nostr",
+        description: "Rust-native Nostr channel control-plane and capability surface.",
+        icon: "radio",
+        fields: &[],
+    },
+    NativeChannelDefinition {
         id: "qqbot",
         label: "QQ Bot",
         description: "Rust-native QQ Bot channel control-plane and configuration surface.",
@@ -81,9 +151,86 @@ const NATIVE_CHANNELS: &[NativeChannelDefinition] = &[
         fields: QQBOT_FIELDS,
     },
     NativeChannelDefinition {
+        id: "signal",
+        label: "Signal",
+        description: "Rust-native Signal channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "imessage",
+        label: "iMessage",
+        description: "Rust-native iMessage channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "line",
+        label: "LINE",
+        description: "Rust-native LINE channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "matrix",
+        label: "Matrix",
+        description: "Rust-native Matrix channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "mattermost",
+        label: "Mattermost",
+        description: "Rust-native Mattermost channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "synology-chat",
+        label: "Synology Chat",
+        description: "Rust-native Synology Chat channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "tlon",
+        label: "Tlon",
+        description: "Rust-native Tlon channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "twitch",
+        label: "Twitch",
+        description: "Rust-native Twitch channel control-plane and capability surface.",
+        icon: "radio",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "msteams",
+        label: "Microsoft Teams",
+        description: "Rust-native Microsoft Teams channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
         id: "weixin",
         label: "微信",
         description: "Rust-native Weixin QR-login channel control-plane and configuration surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "zalo",
+        label: "Zalo",
+        description: "Rust-native Zalo channel control-plane and capability surface.",
+        icon: "messageCircle",
+        fields: &[],
+    },
+    NativeChannelDefinition {
+        id: "zalouser",
+        label: "Zalo User",
+        description: "Rust-native Zalo User channel control-plane and capability surface.",
         icon: "messageCircle",
         fields: &[],
     },
@@ -834,13 +981,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn native_channel_catalog_keeps_only_retained_channels() {
+    fn native_channel_catalog_covers_bundled_native_channels() {
         assert_eq!(
             native_channel_ids(),
-            vec!["ddingtalk", "feishu", "esp32", "qqbot", "weixin"]
+            vec![
+                "desktop",
+                "bluebubbles",
+                "telegram",
+                "whatsapp",
+                "discord",
+                "ddingtalk",
+                "esp32",
+                "feishu",
+                "irc",
+                "googlechat",
+                "slack",
+                "nextcloud-talk",
+                "nostr",
+                "qqbot",
+                "signal",
+                "imessage",
+                "line",
+                "matrix",
+                "mattermost",
+                "synology-chat",
+                "tlon",
+                "twitch",
+                "msteams",
+                "weixin",
+                "zalo",
+                "zalouser"
+            ]
         );
         assert!(!is_native_channel_id("dingtalk"));
-        assert!(!is_native_channel_id("discord"));
+        assert!(is_native_channel_id("discord"));
+        assert!(is_native_channel_id("telegram"));
     }
 
     #[test]
