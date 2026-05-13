@@ -1,6 +1,5 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import { shouldAllowBundledTsChannelRuntime } from "../../channels/plugins/bundled-runtime-policy.js";
-import { dispatchChannelMessageAction } from "../../channels/plugins/message-action-dispatch.js";
 import type { ChannelId, ChannelThreadingToolContext } from "../../channels/plugins/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { appendAssistantMessageToSessionTranscript } from "../../config/sessions.js";
@@ -10,6 +9,7 @@ import { listBundledPluginMetadata } from "../../plugins/bundled-plugin-metadata
 import type { GatewayClientMode, GatewayClientName } from "../../utils/message-channel.js";
 import { throwIfAborted } from "./abort.js";
 import type { OutboundSendDeps } from "./deliver.js";
+import { runTsChannelMessageActionCompat } from "./message-action-compat-loader.js";
 import { buildRustChannelOutboundRequest } from "./message-policy-runtime.js";
 import type { MessagePollResult, MessageSendResult } from "./message.js";
 import { sendMessage, sendPoll } from "./message.js";
@@ -119,7 +119,7 @@ async function tryHandleWithPluginAction(params: {
     mediaAccess: params.ctx.mediaAccess,
     mediaReadFile: params.ctx.mediaReadFile,
   });
-  const handled = await dispatchChannelMessageAction({
+  const handled = await runTsChannelMessageActionCompat({
     channel: params.ctx.channel,
     action: params.action,
     cfg: params.ctx.cfg,

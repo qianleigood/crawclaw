@@ -7,7 +7,6 @@ import {
 } from "../../agents/tools/common.js";
 import { parseReplyDirectives } from "../../auto-reply/reply/reply-directives.js";
 import { getChannelPlugin } from "../../channels/plugins/index.js";
-import { dispatchChannelMessageAction } from "../../channels/plugins/message-action-dispatch.js";
 import type {
   ChannelId,
   ChannelMessageActionName,
@@ -35,6 +34,7 @@ import {
   resolveMessageChannelSelection,
 } from "./channel-selection.js";
 import type { OutboundSendDeps } from "./deliver.js";
+import { runTsChannelMessageActionCompat } from "./message-action-compat-loader.js";
 import { normalizeMessageActionInput } from "./message-action-normalization.js";
 import {
   collectActionMediaSourceHints,
@@ -750,7 +750,7 @@ async function handlePluginAction(ctx: ResolvedActionContext): Promise<MessageAc
     throw new Error(`Channel ${channel} is unavailable for message actions (plugin not loaded).`);
   }
 
-  const handled = await dispatchChannelMessageAction({
+  const handled = await runTsChannelMessageActionCompat({
     channel,
     action,
     cfg,

@@ -56,8 +56,8 @@ const mocks = {
   appendAssistantMessageToSessionTranscript: appendAssistantMessageToSessionTranscriptMock,
 };
 
-vi.mock("../../channels/plugins/message-action-dispatch.js", () => ({
-  dispatchChannelMessageAction: mocks.dispatchChannelMessageAction,
+vi.mock("./message-action-compat-loader.js", () => ({
+  runTsChannelMessageActionCompat: mocks.dispatchChannelMessageAction,
 }));
 
 vi.mock("./message-policy-runtime.js", () => ({

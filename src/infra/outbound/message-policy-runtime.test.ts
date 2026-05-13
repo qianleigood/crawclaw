@@ -172,4 +172,20 @@ describe("message policy runtime adapter", () => {
     expect(source).toContain("./message-policy-runtime.js");
     expect(source).not.toMatch(/\benforceCrossContextPolicy\b/);
   });
+
+  it("keeps outbound production files off the static TS channel action dispatcher", () => {
+    const runnerSource = fs.readFileSync(
+      new URL("./message-action-runner.ts", import.meta.url),
+      "utf8",
+    );
+    const serviceSource = fs.readFileSync(
+      new URL("./outbound-send-service.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(runnerSource).toContain("./message-action-compat-loader.js");
+    expect(serviceSource).toContain("./message-action-compat-loader.js");
+    expect(runnerSource).not.toContain("message-action-dispatch");
+    expect(serviceSource).not.toContain("message-action-dispatch");
+  });
 });
