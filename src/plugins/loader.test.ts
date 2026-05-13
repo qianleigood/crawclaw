@@ -1053,7 +1053,7 @@ describe("loadCrawClawPlugins", () => {
     },
   );
 
-  it("keeps bundled channel TS runtime disabled outside explicit compatibility", () => {
+  it("keeps bundled channel TS runtime disabled outside tests", () => {
     const bundledDir = makeTempDir();
     writePlugin({
       id: "telegram",
@@ -1084,7 +1084,6 @@ describe("loadCrawClawPlugins", () => {
         ...process.env,
         NODE_ENV: "production",
         VITEST: undefined,
-        CRAWCLAW_ENABLE_TS_BUNDLED_CHANNEL_RUNTIME: undefined,
       },
       config: {
         channels: {

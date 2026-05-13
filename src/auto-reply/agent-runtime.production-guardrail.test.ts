@@ -31,4 +31,11 @@ describe("agent/channel Rust runtime production guardrails", () => {
     expect(source).not.toContain("createJiti");
     expect(source).toContain("loadBundledTsChannelModule");
   });
+
+  it("keeps bundled channel compatibility Jiti loading out of the static import graph", () => {
+    const source = readSource("src/channels/plugins/bundled-compat-loader.ts");
+
+    expect(source).not.toMatch(/from\s+["']jiti["']/);
+    expect(source).toContain('require("jiti")');
+  });
 });
