@@ -1,6 +1,5 @@
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
-import { createJiti } from "jiti";
 import { openBoundaryFileSync } from "../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
@@ -10,6 +9,7 @@ import {
 import { createCapturedPluginRegistration } from "./captured-registration.js";
 import { discoverCrawClawPlugins } from "./discovery.js";
 import { resolvePluginModuleExport } from "./entry-contract.js";
+import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
@@ -136,7 +136,7 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
   const env = params.env ?? process.env;
   const pluginIds = new Set(params.pluginIds);
   const registry = createEmptyPluginRegistry();
-  const jitiLoaders = new Map<string, ReturnType<typeof createJiti>>();
+  const jitiLoaders = new Map<string, JitiLoader>();
 
   const getJiti = (modulePath: string) => {
     const tryNative =
@@ -159,7 +159,7 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
     if (cached) {
       return cached;
     }
-    const loader = createJiti(import.meta.url, {
+    const loader = createCrawClawJiti(import.meta.url, {
       ...buildPluginLoaderJitiOptions(aliasMap),
       tryNative,
     });

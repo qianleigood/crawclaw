@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createJiti } from "jiti";
+import { createCrawClawJiti, type JitiLoader } from "../jiti-loader.js";
 import {
   buildPluginLoaderAliasMap,
   buildPluginLoaderJitiOptions,
@@ -9,7 +9,7 @@ import {
 } from "../sdk-alias.js";
 
 const RUNTIME_MODULE_EXTENSIONS = [".js", ".ts", ".mjs", ".mts", ".cjs", ".cts"] as const;
-const jitiLoaders = new Map<string, ReturnType<typeof createJiti>>();
+const jitiLoaders = new Map<string, JitiLoader>();
 
 function resolveSiblingRuntimeModulePath(moduleUrl: string, relativeBase: string): string {
   const baseDir = path.dirname(fileURLToPath(moduleUrl));
@@ -39,7 +39,7 @@ function getJiti(modulePath: string, moduleUrl: string) {
   if (cached) {
     return cached;
   }
-  const loader = createJiti(moduleUrl, {
+  const loader = createCrawClawJiti(moduleUrl, {
     ...buildPluginLoaderJitiOptions(aliasMap),
     tryNative,
   });

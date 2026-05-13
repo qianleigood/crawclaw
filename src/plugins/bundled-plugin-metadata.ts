@@ -1,9 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createJiti } from "jiti";
 import { buildChannelConfigSchema } from "../channels/plugins/config-schema.js";
 import { resolveBundledPluginsDir } from "./bundled-dir.js";
+import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
 import {
   getPackageManifestMetadata,
   loadPluginManifest,
@@ -71,7 +71,7 @@ type ChannelConfigSurface = {
 };
 
 const bundledPluginMetadataCache = new Map<string, readonly BundledPluginMetadata[]>();
-const jitiLoaders = new Map<string, ReturnType<typeof createJiti>>();
+const jitiLoaders = new Map<string, JitiLoader>();
 
 export function clearBundledPluginMetadataCache(): void {
   bundledPluginMetadataCache.clear();
@@ -257,7 +257,7 @@ function getJiti(modulePath: string) {
   if (cached) {
     return cached;
   }
-  const loader = createJiti(import.meta.url, {
+  const loader = createCrawClawJiti(import.meta.url, {
     ...buildPluginLoaderJitiOptions(aliasMap),
     tryNative,
   });

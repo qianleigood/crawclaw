@@ -1,4 +1,4 @@
-import { createJiti } from "jiti";
+import type { JitiLoader } from "../jiti-loader.js";
 import type { MatrixRuntimeBoundaryModule } from "./runtime-matrix-surface.js";
 import {
   loadPluginBoundaryModuleWithJiti,
@@ -16,7 +16,7 @@ type MatrixPluginRecord = {
 let cachedModulePath: string | null = null;
 let cachedModule: MatrixRuntimeBoundaryModule | null = null;
 
-const jitiLoaders = new Map<boolean, ReturnType<typeof createJiti>>();
+const jitiLoaders = new Map<boolean, JitiLoader>();
 
 function resolveMatrixPluginRecord(): MatrixPluginRecord | null {
   return resolvePluginRuntimeRecord(MATRIX_PLUGIN_ID) as MatrixPluginRecord | null;

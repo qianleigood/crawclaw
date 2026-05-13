@@ -1,4 +1,3 @@
-import { createJiti } from "jiti";
 type WhatsAppHeavyRuntimeModule = typeof import("@crawclaw/whatsapp/runtime-api.js");
 type WhatsAppLightRuntimeModule = typeof import("@crawclaw/whatsapp/light-runtime-api.js");
 import { resolveWhatsAppHeartbeatRecipients } from "../../channels/plugins/whatsapp-heartbeat.js";
@@ -8,6 +7,7 @@ import {
   loadWebMediaRaw as loadWebMediaRawImpl,
   optimizeImageToJpeg as optimizeImageToJpegImpl,
 } from "../../media/web-media.js";
+import type { JitiLoader } from "../jiti-loader.js";
 import {
   loadPluginBoundaryModuleWithJiti,
   resolvePluginRuntimeModulePath,
@@ -27,7 +27,7 @@ let cachedHeavyModule: WhatsAppHeavyRuntimeModule | null = null;
 let cachedLightModulePath: string | null = null;
 let cachedLightModule: WhatsAppLightRuntimeModule | null = null;
 
-const jitiLoaders = new Map<boolean, ReturnType<typeof createJiti>>();
+const jitiLoaders = new Map<boolean, JitiLoader>();
 
 function resolveWhatsAppPluginRecord(): WhatsAppPluginRecord {
   return resolvePluginRuntimeRecord(WHATSAPP_PLUGIN_ID, () => {

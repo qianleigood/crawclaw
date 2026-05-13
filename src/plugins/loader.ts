@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { createJiti } from "jiti";
 import {
   BUNDLED_TS_CHANNEL_RUNTIME_DISABLED_REASON,
   shouldAllowBundledTsChannelRuntime,
@@ -29,6 +28,7 @@ import { discoverCrawClawPlugins } from "./discovery.js";
 import { resolvePluginModuleExport, resolveSetupChannelRegistration } from "./entry-contract.js";
 import { initializeGlobalHookRunner } from "./hook-runner-global.js";
 import { clearPluginInteractiveHandlers } from "./interactive.js";
+import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { isPathInside, safeStatSync } from "./path-safety.js";
 import { createPluginRegistry, type PluginRecord, type PluginRegistry } from "./registry.js";
@@ -139,7 +139,7 @@ export function clearPluginLoaderCache(): void {
 const defaultLogger = () => createSubsystemLogger("plugins");
 
 function createPluginJitiLoader(options: Pick<PluginLoadOptions, "pluginSdkResolution">) {
-  const jitiLoaders = new Map<string, ReturnType<typeof createJiti>>();
+  const jitiLoaders = new Map<string, JitiLoader>();
   return (modulePath: string) => {
     const tryNative = shouldPreferNativeJiti(modulePath);
     const aliasMap = buildPluginLoaderAliasMap(
@@ -156,7 +156,7 @@ function createPluginJitiLoader(options: Pick<PluginLoadOptions, "pluginSdkResol
     if (cached) {
       return cached;
     }
-    const loader = createJiti(import.meta.url, {
+    const loader = createCrawClawJiti(import.meta.url, {
       ...buildPluginLoaderJitiOptions(aliasMap),
       // Source .ts runtime shims import sibling ".js" specifiers that only exist
       // after build. Disable native loading for source entries so Jiti rewrites

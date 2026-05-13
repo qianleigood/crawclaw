@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createJiti } from "jiti";
 import { loadConfig } from "../../config/config.js";
+import { createCrawClawJiti, type JitiLoader } from "../jiti-loader.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
 import {
   buildPluginLoaderJitiOptions,
@@ -71,17 +71,14 @@ export function resolvePluginRuntimeModulePath(
   return null;
 }
 
-export function getPluginBoundaryJiti(
-  modulePath: string,
-  loaders: Map<boolean, ReturnType<typeof createJiti>>,
-) {
+export function getPluginBoundaryJiti(modulePath: string, loaders: Map<boolean, JitiLoader>) {
   const tryNative = shouldPreferNativeJiti(modulePath);
   const cached = loaders.get(tryNative);
   if (cached) {
     return cached;
   }
   const aliasMap = resolvePluginSdkScopedAliasMap({ modulePath });
-  const loader = createJiti(import.meta.url, {
+  const loader = createCrawClawJiti(import.meta.url, {
     ...buildPluginLoaderJitiOptions(aliasMap),
     tryNative,
   });
@@ -91,7 +88,7 @@ export function getPluginBoundaryJiti(
 
 export function loadPluginBoundaryModuleWithJiti<TModule>(
   modulePath: string,
-  loaders: Map<boolean, ReturnType<typeof createJiti>>,
+  loaders: Map<boolean, JitiLoader>,
 ): TModule {
   return getPluginBoundaryJiti(modulePath, loaders)(modulePath) as TModule;
 }

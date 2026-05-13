@@ -1,12 +1,12 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createJiti } from "jiti";
 import {
   BUNDLED_MEDIA_UNDERSTANDING_PLUGIN_IDS,
   BUNDLED_SPEECH_PLUGIN_IDS,
 } from "../bundled-capability-metadata.js";
 import { loadBundledCapabilityRuntimeRegistry } from "../bundled-capability-runtime.js";
+import { createCrawClawJiti } from "../jiti-loader.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
 import { buildPluginLoaderAliasMap, buildPluginLoaderJitiOptions } from "../sdk-alias.js";
 import type { MediaUnderstandingProviderPlugin, SpeechProviderPlugin } from "../types.js";
@@ -83,7 +83,7 @@ function resolveTestApiModuleRecords(pluginIds: readonly string[]) {
 }
 
 function createVitestCapabilityLoader(modulePath: string) {
-  return createJiti(import.meta.url, {
+  return createCrawClawJiti(import.meta.url, {
     ...buildPluginLoaderJitiOptions(buildVitestCapabilityAliasMap(modulePath)),
     tryNative: false,
   });

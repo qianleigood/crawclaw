@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createJiti } from "jiti";
 import { resolveBundledPluginPublicSurfacePath } from "../plugins/bundled-plugin-metadata.js";
+import { createCrawClawJiti, type JitiLoader } from "../plugins/jiti-loader.js";
 import {
   buildPluginLoaderAliasMap,
   buildPluginLoaderJitiOptions,
@@ -84,8 +84,8 @@ export function getOrCreateFacadeJitiLoader(params: {
   modulePath: string;
   processArgv1: string | undefined;
   importMetaUrl: string;
-  cache: Map<string, ReturnType<typeof createJiti>>;
-}): ReturnType<typeof createJiti> {
+  cache: Map<string, JitiLoader>;
+}): JitiLoader {
   const tryNative =
     shouldPreferNativeJiti(params.modulePath) ||
     params.modulePath.includes(`${path.sep}dist${path.sep}`);
@@ -102,7 +102,7 @@ export function getOrCreateFacadeJitiLoader(params: {
   if (cached) {
     return cached;
   }
-  const loader = createJiti(params.importMetaUrl, {
+  const loader = createCrawClawJiti(params.importMetaUrl, {
     ...buildPluginLoaderJitiOptions(aliasMap),
     tryNative,
   });

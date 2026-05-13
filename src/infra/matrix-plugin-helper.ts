@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { createJiti } from "jiti";
 import type { CrawClawConfig } from "../config/config.js";
+import { createCrawClawJiti, type JitiLoader } from "../plugins/jiti-loader.js";
 import {
   loadPluginManifestRegistry,
   type PluginManifestRecord,
@@ -96,7 +96,7 @@ export function isMatrixLegacyCryptoInspectorAvailable(params: {
   return resolveMatrixLegacyCryptoInspectorPath(params).status === "ok";
 }
 
-let jitiLoader: ReturnType<typeof createJiti> | null = null;
+let jitiLoader: JitiLoader | null = null;
 const inspectorCache = new Map<string, Promise<MatrixLegacyCryptoInspector>>();
 
 function getJiti() {
@@ -104,7 +104,7 @@ function getJiti() {
     return jitiLoader;
   }
 
-  jitiLoader = createJiti(import.meta.url, {
+  jitiLoader = createCrawClawJiti(import.meta.url, {
     interopDefault: false,
     tryNative: false,
     extensions: [".ts", ".tsx", ".mts", ".cts", ".mtsx", ".ctsx", ".js", ".mjs", ".cjs", ".json"],
