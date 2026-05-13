@@ -13,7 +13,6 @@ import {
   resolveHeartbeatPrompt as resolveMainSessionWakePromptText,
   stripHeartbeatToken,
 } from "../auto-reply/heartbeat.js";
-import { getReplyFromConfig } from "../auto-reply/reply.js";
 import { HEARTBEAT_TOKEN } from "../auto-reply/tokens.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
 import { getChannelPlugin } from "../channels/plugins/index.js";
@@ -52,6 +51,7 @@ import {
 } from "./main-session-wake-events-filter.js";
 import { emitMainSessionWakeEvent, resolveIndicatorType } from "./main-session-wake-events.js";
 import { resolveMainSessionWakeReasonKind } from "./main-session-wake-reason.js";
+import { runMainSessionWakeReply } from "./main-session-wake-reply-runtime.js";
 import {
   resolveMainSessionWakeSummaryForAgent,
   type MainSessionWakeSummary,
@@ -621,6 +621,7 @@ export async function runMainSessionWakeOnce(opts: {
           ? "system-event"
           : "heartbeat",
     SessionKey: runSessionKey,
+    CommandAuthorized: false,
     ForceSenderIsOwnerFalse: hasExecCompletion,
   };
   if (!visibility.showAlerts && !visibility.showOk && !visibility.useIndicator) {
@@ -692,7 +693,7 @@ export async function runMainSessionWakeOnce(opts: {
           bootstrapContextMode,
         }
       : { isHeartbeat: true, suppressToolErrorWarnings, bootstrapContextMode };
-    const replyResult = await getReplyFromConfig(ctx, replyOpts, cfg);
+    const replyResult = await runMainSessionWakeReply(ctx, replyOpts, cfg);
     const replyPayload = resolveHeartbeatReplyPayload(replyResult);
     const includeReasoning = heartbeat?.includeReasoning === true;
     const reasoningPayloads = includeReasoning

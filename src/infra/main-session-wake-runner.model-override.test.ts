@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveAgentMainSessionKey, resolveMainSessionKey } from "../config/sessions.js";
+import * as wakeReplyRuntime from "./main-session-wake-reply-runtime.js";
 import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import {
   seedSessionStore,
@@ -64,7 +64,7 @@ describe("runMainSessionWakeOnce – heartbeat model override", () => {
       contextKey: "test:wake",
     });
 
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     replySpy.mockResolvedValue({ text: "HEARTBEAT_OK" });
 
     await runMainSessionWakeOnce({

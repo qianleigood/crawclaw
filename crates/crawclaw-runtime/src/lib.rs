@@ -1556,7 +1556,10 @@ impl AgentRuntime {
         let agent_id = request.agent_id;
         let session_key = request.session_key;
         let user_text = request.inbound.body;
-        let result = self.send_message(session_key.clone(), user_text).await?;
+        let model = request.model;
+        let result = self
+            .send_message_with_model(session_key.clone(), user_text, Some(&model))
+            .await?;
         let assistant_text = result.assistant_text;
         let events = vec![
             AgentRunEvent::RunStarted {
@@ -1595,12 +1598,23 @@ impl AgentRuntime {
         thread_id: String,
         user_text: String,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
+        self.send_message_with_model(thread_id, user_text, None)
+            .await
+    }
+
+    async fn send_message_with_model(
+        &self,
+        thread_id: String,
+        user_text: String,
+        model_selection: Option<&AgentModelSelection>,
+    ) -> Result<AgentSendResult, AgentRuntimeError> {
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
         let assistant_text = match config.runtime_mode() {
             DesktopAgentRuntimeMode::PiAgentRust => {
-                let provider_config =
+                let mut provider_config =
                     ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+                apply_agent_model_selection(&mut provider_config, model_selection)?;
                 self.pi_agent_backend
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
@@ -1612,8 +1626,9 @@ impl AgentRuntime {
                     .await?
             }
             DesktopAgentRuntimeMode::NativeProvider => {
-                let provider_config =
+                let mut provider_config =
                     ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+                apply_agent_model_selection(&mut provider_config, model_selection)?;
                 self.native_provider_backend
                     .send_message(AgentRuntimeRequest {
                         runtime_root: &self.runtime_root,
@@ -1692,6 +1707,45 @@ impl AgentRuntime {
             .map_err(|error| AgentRuntimeError::TranscriptFailed(error.to_string()))?;
         Ok(())
     }
+}
+
+fn is_configured_model_marker(value: &str) -> bool {
+    let trimmed = value.trim();
+    trimmed.is_empty() || trimmed == "configured"
+}
+
+fn apply_agent_model_selection(
+    config: &mut NativeProviderConfig,
+    model_selection: Option<&AgentModelSelection>,
+) -> Result<(), AgentRuntimeError> {
+    let Some(selection) = model_selection else {
+        return Ok(());
+    };
+    if !is_configured_model_marker(&selection.provider) {
+        let provider = selection.provider.trim();
+        ensure_native_chat_provider(provider)?;
+        config.provider = provider.to_string();
+    }
+    if !is_configured_model_marker(&selection.model) {
+        config.model = Some(selection.model.trim().to_string());
+    }
+    Ok(())
+}
+
+fn ensure_native_chat_provider(provider: &str) -> Result<(), AgentRuntimeError> {
+    let descriptor = crawclaw_providers::bundled_provider_descriptors()
+        .into_iter()
+        .find(|entry| entry.provider == provider);
+    if descriptor
+        .as_ref()
+        .map(|entry| entry.transport.is_none())
+        .unwrap_or(false)
+    {
+        return Err(AgentRuntimeError::UnsupportedProvider(format!(
+            "Desktop agent provider {provider} does not expose a Rust-native chat transport."
+        )));
+    }
+    Ok(())
 }
 
 fn map_provider_error(error: ProviderTransportError) -> AgentRuntimeError {
@@ -2048,18 +2102,7 @@ impl ProviderResolver {
             ));
         }
         let provider = config.provider.trim().to_string();
-        let descriptor = crawclaw_providers::bundled_provider_descriptors()
-            .into_iter()
-            .find(|entry| entry.provider == provider);
-        if descriptor
-            .as_ref()
-            .map(|entry| entry.transport.is_none())
-            .unwrap_or(false)
-        {
-            return Err(AgentRuntimeError::UnsupportedProvider(format!(
-                "Desktop agent provider {provider} does not expose a Rust-native chat transport."
-            )));
-        }
+        ensure_native_chat_provider(&provider)?;
         let default_model = crawclaw_providers::bundled_provider_default_model_for(&provider)
             .map(|entry| entry.model.to_string());
         Ok(NativeProviderConfig {
@@ -2821,6 +2864,60 @@ mod tests {
                 .expect("transcript");
         assert!(transcript.contains(r#""content":"hello event loop""#));
         assert!(transcript.contains(r#""content":"hello from run_turn""#));
+    }
+
+    #[tokio::test]
+    async fn agent_runtime_run_turn_applies_request_model_selection() {
+        let runtime_root = unique_test_runtime_root("agent-run-turn-model-selection");
+        let config_dir = runtime_root.join("config");
+        fs::create_dir_all(&config_dir).expect("config dir");
+        fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "provider": "configured-provider",
+                "model": "configured-model",
+                "apiKey": "test-key"
+            }))
+            .expect("config json"),
+        )
+        .expect("write config");
+
+        let runtime = AgentRuntime::with_pi_agent_backend(
+            runtime_root,
+            Arc::new(FakeAgentRuntimeBackend {
+                reply: "selected model reply".to_string(),
+            }),
+        );
+        let result = runtime
+            .run_turn(AgentRunRequest {
+                run_id: "run-model".to_string(),
+                agent_id: "main".to_string(),
+                session_key: "thread-model".to_string(),
+                inbound: ChannelInboundEnvelope {
+                    channel: "gateway".to_string(),
+                    account_id: None,
+                    from: "user".to_string(),
+                    to: "agent:main".to_string(),
+                    chat_type: ChannelChatType::Direct,
+                    body: "hello selected model".to_string(),
+                    raw_body: Some("hello selected model".to_string()),
+                    message_id: None,
+                    thread_id: Some("thread-model".to_string()),
+                    media_urls: Vec::new(),
+                    metadata: BTreeMap::new(),
+                },
+                model: AgentModelSelection {
+                    provider: "test-provider".to_string(),
+                    model: "test-model".to_string(),
+                    reasoning_level: None,
+                },
+                enabled_tools: Vec::new(),
+                options: BTreeMap::new(),
+            })
+            .await
+            .expect("run turn");
+
+        assert_eq!(result.assistant_text, "selected model reply");
     }
 
     #[tokio::test]

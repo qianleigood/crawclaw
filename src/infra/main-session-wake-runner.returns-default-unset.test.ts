@@ -4,7 +4,6 @@ import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { whatsappOutbound } from "../../test/channel-outbounds.js";
 import { HEARTBEAT_PROMPT } from "../auto-reply/heartbeat.js";
-import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   resolveAgentIdFromSessionKey,
@@ -16,6 +15,7 @@ import { getActivePluginRegistry, setActivePluginRegistry } from "../plugins/run
 import { buildAgentPeerSessionKey } from "../routing/session-key.js";
 import { createOutboundTestPlugin, createTestRegistry } from "../test-utils/channel-plugins.js";
 import { typedCases } from "../test-utils/typed-cases.js";
+import * as wakeReplyRuntime from "./main-session-wake-reply-runtime.js";
 import {
   type MainSessionWakeDeps,
   resolveMainSessionWakePrompt,
@@ -28,12 +28,6 @@ import {
 } from "./outbound/targets.js";
 import { telegramMessagingForTest } from "./outbound/targets.test-helpers.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
-
-const getReplyFromConfigMock = vi.hoisted(() => vi.fn());
-
-vi.mock("../auto-reply/reply.js", () => ({
-  getReplyFromConfig: getReplyFromConfigMock,
-}));
 
 vi.mock("../agents/subagent-registry.js", () => ({
   countPendingDescendantRuns: () => 0,
@@ -458,7 +452,7 @@ describe("runMainSessionWakeOnce", () => {
   it("uses the last non-empty payload for delivery", async () => {
     const tmpDir = await createCaseDir("hb-last-payload");
     const storePath = path.join(tmpDir, "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     try {
       const cfg: CrawClawConfig = {
         agents: {
@@ -519,7 +513,7 @@ describe("runMainSessionWakeOnce", () => {
   it("uses per-agent delivery overrides and session keys for event-driven wakes", async () => {
     const tmpDir = await createCaseDir("hb-agent-overrides");
     const storePath = path.join(tmpDir, "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     try {
       const cfg: CrawClawConfig = {
         agents: {
@@ -598,7 +592,7 @@ describe("runMainSessionWakeOnce", () => {
   it("reuses non-default agent sessionFile from templated stores", async () => {
     const tmpDir = await createCaseDir("hb-templated-store");
     const storeTemplate = path.join(tmpDir, "agents", "{agentId}", "sessions", "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     const agentId = "ops";
     try {
       const cfg: CrawClawConfig = {
@@ -710,7 +704,7 @@ describe("runMainSessionWakeOnce", () => {
   ])(
     "resolves configured and forced session key overrides: $name",
     async ({ name, caseDir, peerKind, peerId, message, applyOverride, runOptions }) => {
-      const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+      const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
       try {
         const tmpDir = await createCaseDir(caseDir);
         const storePath = path.join(tmpDir, "sessions.json");
@@ -795,7 +789,7 @@ describe("runMainSessionWakeOnce", () => {
   it("suppresses duplicate wake payloads within 24h", async () => {
     const tmpDir = await createCaseDir("hb-dup-suppress");
     const storePath = path.join(tmpDir, "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     try {
       const cfg: CrawClawConfig = {
         agents: {
@@ -870,7 +864,7 @@ describe("runMainSessionWakeOnce", () => {
   )(
     "handles reasoning payload delivery variants: $name",
     async ({ name, caseDir, replies, expectedTexts }) => {
-      const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+      const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
       try {
         const tmpDir = await createCaseDir(caseDir);
         const storePath = path.join(tmpDir, "sessions.json");
@@ -939,7 +933,7 @@ describe("runMainSessionWakeOnce", () => {
   it("loads the default agent session from templated stores", async () => {
     const tmpDir = await createCaseDir("crawclaw-hb");
     const storeTemplate = path.join(tmpDir, "agents", "{agentId}", "sessions.json");
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     try {
       const cfg: CrawClawConfig = {
         agents: {
@@ -1059,7 +1053,7 @@ describe("runMainSessionWakeOnce", () => {
       });
     }
 
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     replySpy.mockResolvedValue({ text: params.replyText ?? "Checked logs and PRs" });
     const sendWhatsApp = vi
       .fn<
@@ -1219,7 +1213,7 @@ describe("runMainSessionWakeOnce", () => {
       contextKey: "cron:rotate-logs",
     });
 
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     replySpy.mockResolvedValue({ text: "Handled internally" });
     const sendWhatsApp = vi
       .fn<
@@ -1274,7 +1268,7 @@ describe("runMainSessionWakeOnce", () => {
       contextKey: "exec:backup",
     });
 
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
     replySpy.mockResolvedValue({ text: "Handled internally" });
     const sendWhatsApp = vi
       .fn<

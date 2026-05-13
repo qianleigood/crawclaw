@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
+import { resolveModelRefFromString } from "../../agents/model-selection.js";
 import { runCrawClawRuntimeTool } from "../../agents/runtime-tools/native.js";
 import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import type { CrawClawConfig } from "../../config/config.js";
@@ -10,6 +11,8 @@ import { resolveDefaultModel } from "./directive-handling.defaults.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
 
 type RustChatType = "direct" | "group" | "channel" | "thread";
+
+type RustAgentReplyOptions = Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
 
 type RustReplyPayload = {
   text?: unknown;
@@ -136,12 +139,27 @@ function buildAgentRunRequest(params: {
   ctx: FinalizedMsgContext;
   cfg: CrawClawConfig;
   runId: string;
+  replyOptions?: RustAgentReplyOptions;
 }) {
   const { ctx, cfg, runId } = params;
   const sessionKey = resolveSessionKey(ctx);
   const agentId = resolveSessionAgentId({ sessionKey, config: cfg });
   const resolvedSessionKey = sessionKey ?? `agent:${agentId}:main`;
-  const { defaultProvider, defaultModel } = resolveDefaultModel({ cfg, agentId });
+  const { defaultProvider, defaultModel, aliasIndex } = resolveDefaultModel({ cfg, agentId });
+  let provider = defaultProvider;
+  let model = defaultModel;
+  const heartbeatModelOverride = trimString(params.replyOptions?.heartbeatModelOverride);
+  if (params.replyOptions?.isHeartbeat === true && heartbeatModelOverride) {
+    const heartbeatRef = resolveModelRefFromString({
+      raw: heartbeatModelOverride,
+      defaultProvider,
+      aliasIndex,
+    });
+    if (heartbeatRef) {
+      provider = heartbeatRef.ref.provider;
+      model = heartbeatRef.ref.model;
+    }
+  }
   const channel = normalizeMessageChannel(ctx.Surface ?? ctx.Provider) ?? "gateway";
   const messageId =
     trimString(ctx.MessageSidFull) ??
@@ -179,12 +197,16 @@ function buildAgentRunRequest(params: {
       }),
     },
     model: {
-      provider: defaultProvider,
-      model: defaultModel,
+      provider,
+      model,
     },
     enabledTools: [],
     options: compactMetadata({
-      heartbeat: params.ctx.CommandSource === "native" ? undefined : false,
+      heartbeat: params.replyOptions?.isHeartbeat === true ? true : undefined,
+      heartbeatModelOverride,
+      bootstrapContextMode: params.replyOptions?.bootstrapContextMode,
+      suppressToolErrorWarnings:
+        params.replyOptions?.suppressToolErrorWarnings === true ? true : undefined,
     }),
   };
 }
@@ -266,10 +288,15 @@ export async function dispatchInboundWithRustAgent(params: {
   ctx: FinalizedMsgContext;
   cfg: CrawClawConfig;
   dispatcher: ReplyDispatcher;
-  replyOptions?: Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
+  replyOptions?: RustAgentReplyOptions;
 }): Promise<RustAgentDispatchResult> {
   const runId = trimString(params.replyOptions?.runId) ?? randomUUID();
-  const request = buildAgentRunRequest({ ctx: params.ctx, cfg: params.cfg, runId });
+  const request = buildAgentRunRequest({
+    ctx: params.ctx,
+    cfg: params.cfg,
+    runId,
+    replyOptions: params.replyOptions,
+  });
   params.replyOptions?.onAgentRunStart?.(runId);
   params.replyOptions?.onModelSelected?.({
     provider: request.model.provider,

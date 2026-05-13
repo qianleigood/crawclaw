@@ -2,10 +2,10 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { runMainSessionOnce } from "./main-session-runner.js";
+import * as wakeReplyRuntime from "./main-session-wake-reply-runtime.js";
 import { enqueueSystemEvent, resetSystemEventsForTest } from "./system-events.js";
 
 beforeEach(() => {
@@ -44,7 +44,7 @@ describe("main-session wake runner", () => {
       }),
     );
     enqueueSystemEvent("Background task completed: report is ready.", { sessionKey });
-    const replySpy = vi.spyOn(replyModule, "getReplyFromConfig").mockResolvedValue({
+    const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply").mockResolvedValue({
       text: "Report is ready.",
     });
 

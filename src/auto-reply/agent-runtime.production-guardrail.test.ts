@@ -38,4 +38,11 @@ describe("agent/channel Rust runtime production guardrails", () => {
     expect(source).not.toMatch(/from\s+["']jiti["']/);
     expect(source).toContain('require("jiti")');
   });
+
+  it("keeps main-session wake replies on the Rust agent runtime", () => {
+    const source = readSource("src/infra/main-session-wake-runner.ts");
+
+    expect(source).toContain("runMainSessionWakeReply");
+    expect(source).not.toContain("getReplyFromConfig");
+  });
 });

@@ -1,8 +1,8 @@
 import fs from "node:fs/promises";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
+import * as wakeReplyRuntime from "./main-session-wake-reply-runtime.js";
 import { runMainSessionWakeOnce } from "./main-session-wake-runner.js";
 import {
   seedMainSessionStore,
@@ -28,7 +28,7 @@ describe("Ghost reminder bug (issue #13317)", () => {
       chatId: "155462274",
     });
     const getReplySpy = vi
-      .spyOn(replyModule, "getReplyFromConfig")
+      .spyOn(wakeReplyRuntime, "runMainSessionWakeReply")
       .mockResolvedValue({ text: replyText });
     return { sendTelegram, getReplySpy };
   };

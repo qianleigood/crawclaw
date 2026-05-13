@@ -2,11 +2,11 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { vi } from "vitest";
-import * as replyModule from "../auto-reply/reply.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveMainSessionKey } from "../config/sessions.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import { createTestRegistry } from "../test-utils/channel-plugins.js";
+import * as wakeReplyRuntime from "./main-session-wake-reply-runtime.js";
 import { heartbeatRunnerTelegramPlugin } from "./main-session-wake-runner.test-channel-plugins.js";
 
 export type HeartbeatSessionSeed = {
@@ -58,7 +58,7 @@ export async function withTempHeartbeatFixture<T>(
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), options?.prefix ?? "crawclaw-hb-"));
   await fs.writeFile(path.join(tmpDir, "HEARTBEAT.md"), "- Check status\n", "utf-8");
   const storePath = path.join(tmpDir, "sessions.json");
-  const replySpy = vi.spyOn(replyModule, "getReplyFromConfig");
+  const replySpy = vi.spyOn(wakeReplyRuntime, "runMainSessionWakeReply");
   const previousEnv = new Map<string, string | undefined>();
   for (const envName of options?.unsetEnvVars ?? []) {
     previousEnv.set(envName, process.env[envName]);
