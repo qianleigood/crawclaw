@@ -418,6 +418,20 @@ pub async fn execute_rust_core_tool(
     Ok(tool_output_to_value(&output))
 }
 
+pub async fn execute_agent_run_turn_operation(
+    runtime_root: &Path,
+    input: Value,
+) -> Result<Value, String> {
+    let request = serde_json::from_value::<AgentRunRequest>(input)
+        .map_err(|error| format!("invalid agent_run_turn request: {error}"))?;
+    let result = AgentRuntime::new(runtime_root.to_path_buf())
+        .run_turn(request)
+        .await
+        .map_err(|error| format!("{}: {}", error.code(), error.message()))?;
+    serde_json::to_value(result)
+        .map_err(|error| format!("failed to serialize agent_run_turn result: {error}"))
+}
+
 fn tool_output_to_value(output: &pi::sdk::ToolOutput) -> Value {
     let mut text_blocks = Vec::new();
     let content = output
@@ -462,7 +476,8 @@ pub struct AgentSendResult {
     pub assistant_text: String,
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase")]
 pub struct AgentRunResult {
     pub run_id: String,
     pub session_key: String,

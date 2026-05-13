@@ -113,6 +113,8 @@ async fn run_worker() {
         let root = request.runtime_root.unwrap_or_else(runtime_root);
         let result = if request.tool == "message_policy" {
             crawclaw_runtime::execute_message_policy_operation(request.input)
+        } else if request.tool == "agent_run_turn" {
+            crawclaw_runtime::execute_agent_run_turn_operation(&root, request.input).await
         } else {
             crawclaw_runtime::execute_rust_core_tool(&root, &request.tool, request.input).await
         };

@@ -1,5 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { finalizeInboundContextWithRust } from "./inbound-policy-runtime.js";
+import { dispatchInboundWithRustAgent } from "./reply/agent-run-runtime.js";
 import type { DispatchFromConfigResult } from "./reply/dispatch-from-config.js";
 import { dispatchReplyFromConfig } from "./reply/dispatch-from-config.js";
 import {
@@ -13,6 +14,12 @@ import type { FinalizedMsgContext, MsgContext } from "./templating.js";
 import type { GetReplyOptions } from "./types.js";
 
 export type DispatchInboundResult = DispatchFromConfigResult;
+
+function shouldUseTsAgentLoopCompatibility(params: {
+  replyResolver?: typeof import("./reply.js").getReplyFromConfig;
+}): boolean {
+  return Boolean(params.replyResolver);
+}
 
 export async function withReplyDispatcher<T>(params: {
   dispatcher: ReplyDispatcher;
@@ -42,14 +49,23 @@ export async function dispatchInboundMessage(params: {
   const finalized = await finalizeInboundContextWithRust(params.ctx);
   return await withReplyDispatcher({
     dispatcher: params.dispatcher,
-    run: () =>
-      dispatchReplyFromConfig({
+    run: () => {
+      if (shouldUseTsAgentLoopCompatibility({ replyResolver: params.replyResolver })) {
+        return dispatchReplyFromConfig({
+          ctx: finalized,
+          cfg: params.cfg,
+          dispatcher: params.dispatcher,
+          replyOptions: params.replyOptions,
+          replyResolver: params.replyResolver,
+        });
+      }
+      return dispatchInboundWithRustAgent({
         ctx: finalized,
         cfg: params.cfg,
         dispatcher: params.dispatcher,
         replyOptions: params.replyOptions,
-        replyResolver: params.replyResolver,
-      }),
+      });
+    },
   });
 }
 

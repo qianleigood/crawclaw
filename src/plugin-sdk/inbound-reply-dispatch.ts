@@ -1,9 +1,6 @@
 import { withReplyDispatcher } from "../auto-reply/dispatch.js";
-import {
-  dispatchReplyFromConfig,
-  type DispatchFromConfigResult,
-} from "../auto-reply/reply/dispatch-from-config.js";
-import type { ReplyDispatcher } from "../auto-reply/reply/reply-dispatcher.js";
+import { dispatchInboundWithRustAgent } from "../auto-reply/reply/agent-run-runtime.js";
+import type { ReplyDispatcher, ReplyDispatchKind } from "../auto-reply/reply/reply-dispatcher.js";
 import type { FinalizedMsgContext } from "../auto-reply/templating.js";
 import type { GetReplyOptions } from "../auto-reply/types.js";
 import type { CrawClawConfig } from "../config/config.js";
@@ -19,8 +16,12 @@ type DispatchReplyWithBufferedBlockDispatcherFn =
   typeof import("../auto-reply/reply/provider-dispatcher.js").dispatchReplyWithBufferedBlockDispatcher;
 
 type ReplyDispatchFromConfigOptions = Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
+type DispatchFromConfigResult = {
+  queuedFinal: boolean;
+  counts: Record<ReplyDispatchKind, number>;
+};
 
-/** Run `dispatchReplyFromConfig` with a dispatcher that always gets its settled callback. */
+/** Run the inbound reply path with a dispatcher that always gets its settled callback. */
 export async function dispatchReplyFromConfigWithSettledDispatcher(params: {
   cfg: CrawClawConfig;
   ctxPayload: FinalizedMsgContext;
@@ -33,12 +34,11 @@ export async function dispatchReplyFromConfigWithSettledDispatcher(params: {
     dispatcher: params.dispatcher,
     onSettled: params.onSettled,
     run: () =>
-      dispatchReplyFromConfig({
+      dispatchInboundWithRustAgent({
         ctx: params.ctxPayload,
         cfg: params.cfg,
         dispatcher: params.dispatcher,
         replyOptions: params.replyOptions,
-        configOverride: params.configOverride,
       }),
   });
 }

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 
 const mocks = vi.hoisted(() => ({
@@ -9,10 +9,15 @@ const mocks = vi.hoisted(() => ({
     BodyForCommands: typeof ctx.BodyForCommands === "string" ? ctx.BodyForCommands : ctx.Body,
     CommandAuthorized: ctx.CommandAuthorized === true,
   })),
+  runCrawClawRuntimeTool: vi.fn(),
 }));
 
 vi.mock("./inbound-policy-runtime.js", () => ({
   finalizeInboundContextWithRust: mocks.finalizeInboundContextWithRust,
+}));
+
+vi.mock("../agents/runtime-tools/native.js", () => ({
+  runCrawClawRuntimeTool: mocks.runCrawClawRuntimeTool,
 }));
 
 import {
@@ -22,6 +27,25 @@ import {
 } from "./dispatch.js";
 import type { ReplyDispatcher } from "./reply/reply-dispatcher.js";
 import { buildTestCtx } from "./reply/test-ctx.js";
+
+function rustRunResult(text = "rust ok") {
+  return {
+    runId: "run-rust",
+    sessionKey: "agent:main:main",
+    assistantText: text,
+    events: [
+      {
+        type: "replyPayload",
+        runId: "run-rust",
+        payload: { text },
+      },
+      {
+        type: "runCompleted",
+        runId: "run-rust",
+      },
+    ],
+  };
+}
 
 function createDispatcher(record: string[]): ReplyDispatcher {
   return {
@@ -38,6 +62,32 @@ function createDispatcher(record: string[]): ReplyDispatcher {
     },
   };
 }
+
+beforeEach(() => {
+  mocks.finalizeInboundContextWithRust.mockClear();
+  mocks.runCrawClawRuntimeTool.mockReset();
+  mocks.runCrawClawRuntimeTool.mockImplementation(async (tool: string, input: unknown) => {
+    if (tool === "agent_run_turn") {
+      return rustRunResult();
+    }
+    const operation =
+      input && typeof input === "object" && "operation" in input ? (input.operation as string) : "";
+    if (tool === "message_policy" && operation === "outbound.resolveReplyRoutingDecision") {
+      return {
+        isInternalWebchatTurn: false,
+        shouldRouteToOriginating: false,
+        shouldSuppressTyping: false,
+      };
+    }
+    if (tool === "message_policy" && operation === "outbound.resolveTypingPolicy") {
+      return {
+        typingPolicy: "user_message",
+        suppressTyping: false,
+      };
+    }
+    throw new Error(`unexpected runtime tool ${tool}`);
+  });
+});
 
 describe("withReplyDispatcher", () => {
   it("always marks complete and waits for idle after success", async () => {
@@ -107,7 +157,61 @@ describe("withReplyDispatcher", () => {
       replyResolver: async () => ({ text: "ok" }),
     });
 
+    expect(
+      mocks.runCrawClawRuntimeTool.mock.calls.some(([tool]) => tool === "agent_run_turn"),
+    ).toBe(false);
     expect(order).toEqual(["sendFinalReply", "markComplete", "waitForIdle"]);
+  });
+
+  it("routes the default inbound agent loop through Rust agent.runTurn", async () => {
+    const order: string[] = [];
+    const dispatcher = {
+      sendToolResult: () => true,
+      sendBlockReply: () => true,
+      sendFinalReply: (payload) => {
+        order.push(`sendFinalReply:${payload.text ?? ""}`);
+        return true;
+      },
+      getQueuedCounts: () => ({ tool: 0, block: 0, final: 1 }),
+      getFailedCounts: () => ({ tool: 0, block: 0, final: 0 }),
+      markComplete: () => {
+        order.push("markComplete");
+      },
+      waitForIdle: async () => {
+        order.push("waitForIdle");
+      },
+    } satisfies ReplyDispatcher;
+
+    const onAgentRunStart = vi.fn();
+    await dispatchInboundMessage({
+      ctx: buildTestCtx({
+        Body: "hello",
+        MessageSid: "msg-1",
+        SessionKey: "agent:main:whatsapp:direct:+1000",
+      }),
+      cfg: {} as CrawClawConfig,
+      dispatcher,
+      replyOptions: {
+        runId: "run-test",
+        onAgentRunStart,
+      },
+    });
+
+    expect(onAgentRunStart).toHaveBeenCalledWith("run-test");
+    expect(mocks.runCrawClawRuntimeTool).toHaveBeenCalledWith(
+      "agent_run_turn",
+      expect.objectContaining({
+        runId: "run-test",
+        sessionKey: "agent:main:whatsapp:direct:+1000",
+        inbound: expect.objectContaining({
+          body: "hello",
+          channel: "whatsapp",
+          messageId: "msg-1",
+        }),
+      }),
+      expect.objectContaining({ timeoutMs: expect.any(Number) }),
+    );
+    expect(order).toEqual(["sendFinalReply:rust ok", "markComplete", "waitForIdle"]);
   });
 
   it("dispatchInboundMessageWithBufferedDispatcher cleans up typing after a resolver starts it", async () => {
