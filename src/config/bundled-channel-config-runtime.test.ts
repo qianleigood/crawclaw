@@ -1,4 +1,9 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const thisDir = path.dirname(fileURLToPath(import.meta.url));
 
 describe("bundled channel config runtime", () => {
   beforeEach(() => {
@@ -31,5 +36,11 @@ describe("bundled channel config runtime", () => {
 
     expect(configSchemaMap.has("msteams")).toBe(true);
     expect(configSchemaMap.has("whatsapp")).toBe(true);
+  });
+
+  it("does not statically import the bundled TS channel loader", () => {
+    const source = fs.readFileSync(path.join(thisDir, "bundled-channel-config-runtime.ts"), "utf8");
+
+    expect(source).not.toMatch(/from\s+["']\.\.\/channels\/plugins\/bundled\.js["']/);
   });
 });

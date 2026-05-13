@@ -1,4 +1,3 @@
-import { listChannelPlugins } from "../channels/plugins/index.js";
 import { GATEWAY_EVENT_UPDATE_AVAILABLE } from "./events.js";
 
 const BASE_METHODS = [
@@ -7,6 +6,7 @@ const BASE_METHODS = [
   "doctor.memory.status",
   "logs.tail",
   "channels.status",
+  "channels.capabilities",
   "channels.setup.surface",
   "channels.logout",
   "status",
@@ -138,8 +138,18 @@ const BASE_METHODS = [
   "channels.account.logout",
   "channels.login.start",
   "channels.login.wait",
+  "channel.outbound.send",
+  "channel.outbound.poll",
+  "channel.outbound.action",
+  "channel.inbound.handle",
+  "channel.directory.lookup",
+  "channel.lifecycle.status",
+  "channel.lifecycle.start",
+  "channel.lifecycle.stop",
+  "channel.lifecycle.restart",
   "system-event",
   "send",
+  "poll",
   "workflow.list",
   "workflow.get",
   "workflow.n8n.get",
@@ -161,6 +171,9 @@ const BASE_METHODS = [
   "agent.observations.list",
   "agent.wait",
   "workflow.agent.run",
+  "agent.runTurn",
+  "agent.streamEvents",
+  "agent.cancel",
   // WebChat WebSocket-native chat methods
   "chat.history",
   "chat.abort",
@@ -168,8 +181,7 @@ const BASE_METHODS = [
 ];
 
 export function listGatewayMethods(): string[] {
-  const channelMethods = listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []);
-  return Array.from(new Set([...BASE_METHODS, ...channelMethods]));
+  return Array.from(new Set(BASE_METHODS));
 }
 
 export const GATEWAY_EVENTS = [

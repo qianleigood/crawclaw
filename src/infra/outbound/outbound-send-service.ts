@@ -1,13 +1,16 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
+import { shouldAllowBundledTsChannelRuntime } from "../../channels/plugins/bundled-runtime-policy.js";
 import { dispatchChannelMessageAction } from "../../channels/plugins/message-action-dispatch.js";
 import type { ChannelId, ChannelThreadingToolContext } from "../../channels/plugins/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { appendAssistantMessageToSessionTranscript } from "../../config/sessions.js";
 import type { OutboundMediaAccess, OutboundMediaReadFile } from "../../media/load-options.js";
 import { resolveAgentScopedOutboundMediaAccess } from "../../media/read-capability.js";
+import { listBundledPluginMetadata } from "../../plugins/bundled-plugin-metadata.js";
 import type { GatewayClientMode, GatewayClientName } from "../../utils/message-channel.js";
 import { throwIfAborted } from "./abort.js";
 import type { OutboundSendDeps } from "./deliver.js";
+import { buildRustChannelOutboundRequest } from "./message-policy-runtime.js";
 import type { MessagePollResult, MessageSendResult } from "./message.js";
 import { sendMessage, sendPoll } from "./message.js";
 import type { OutboundMirror } from "./mirror.js";
@@ -54,6 +57,29 @@ type PluginHandledResult = {
   toolResult: AgentToolResult<unknown>;
 };
 
+let cachedBundledChannelIds: Set<string> | null = null;
+
+function listBundledChannelIds(): Set<string> {
+  if (cachedBundledChannelIds) {
+    return cachedBundledChannelIds;
+  }
+  const ids = new Set<string>();
+  for (const entry of listBundledPluginMetadata({
+    includeChannelConfigs: false,
+    includeSyntheticChannelConfigs: false,
+  })) {
+    for (const channel of entry.manifest.channels ?? []) {
+      ids.add(channel);
+    }
+  }
+  cachedBundledChannelIds = ids;
+  return ids;
+}
+
+export function shouldUseNativeGatewayOutbound(channel: ChannelId): boolean {
+  return !shouldAllowBundledTsChannelRuntime() && listBundledChannelIds().has(channel);
+}
+
 function collectActionMediaSources(params: Record<string, unknown>): string[] {
   const sources: string[] = [];
   for (const key of ["media", "mediaUrl", "path", "filePath", "fileUrl"] as const) {
@@ -71,6 +97,9 @@ async function tryHandleWithPluginAction(params: {
   onHandled?: () => Promise<void> | void;
 }): Promise<PluginHandledResult | null> {
   if (params.ctx.dryRun) {
+    return null;
+  }
+  if (shouldUseNativeGatewayOutbound(params.ctx.channel)) {
     return null;
   }
   const mediaAccess = resolveAgentScopedOutboundMediaAccess({
@@ -137,6 +166,7 @@ export async function executeSendAction(params: {
   sendResult?: MessageSendResult;
 }> {
   throwIfAborted(params.ctx.abortSignal);
+  const nativeGateway = shouldUseNativeGatewayOutbound(params.ctx.channel);
   const pluginHandled = await tryHandleWithPluginAction({
     ctx: params.ctx,
     action: "send",
@@ -163,10 +193,25 @@ export async function executeSendAction(params: {
   }
 
   throwIfAborted(params.ctx.abortSignal);
+  const outboundRequest = await buildRustChannelOutboundRequest({
+    requestId: params.ctx.mirror?.idempotencyKey ?? `send:${Date.now()}`,
+    channel: params.ctx.channel,
+    accountId: params.ctx.accountId ?? undefined,
+    action: "send",
+    to: params.to,
+    text: params.message,
+    mediaUrls: params.mediaUrls ?? (params.mediaUrl ? [params.mediaUrl] : []),
+    replyToId: params.replyToId,
+    threadId: params.threadId == null ? undefined : String(params.threadId),
+    params: params.ctx.params,
+  });
+  const outboundMediaUrls = outboundRequest.mediaUrls?.length
+    ? outboundRequest.mediaUrls
+    : undefined;
   const result: MessageSendResult = await sendMessage({
     cfg: params.ctx.cfg,
-    to: params.to,
-    content: params.message,
+    to: outboundRequest.to,
+    content: outboundRequest.text ?? "",
     agentId: params.ctx.agentId,
     requesterSessionKey: params.ctx.sessionKey,
     requesterAccountId: params.ctx.requesterAccountId ?? params.ctx.accountId ?? undefined,
@@ -174,16 +219,17 @@ export async function executeSendAction(params: {
     requesterSenderName: params.ctx.requesterSenderName,
     requesterSenderUsername: params.ctx.requesterSenderUsername,
     requesterSenderE164: params.ctx.requesterSenderE164,
-    mediaUrl: params.mediaUrl || undefined,
-    mediaUrls: params.mediaUrls,
-    channel: params.ctx.channel || undefined,
-    accountId: params.ctx.accountId ?? undefined,
-    replyToId: params.replyToId,
-    threadId: params.threadId,
+    mediaUrl: (outboundMediaUrls?.[0] ?? params.mediaUrl) || undefined,
+    mediaUrls: outboundMediaUrls,
+    channel: outboundRequest.channel || undefined,
+    accountId: outboundRequest.accountId ?? params.ctx.accountId ?? undefined,
+    replyToId: outboundRequest.replyToId,
+    threadId: outboundRequest.threadId,
     gifPlayback: params.gifPlayback,
     forceDocument: params.forceDocument,
     dryRun: params.ctx.dryRun,
     bestEffort: params.bestEffort ?? undefined,
+    nativeGateway,
     deps: params.ctx.deps,
     gateway: params.ctx.gateway,
     mirror: params.ctx.mirror,
@@ -216,6 +262,7 @@ export async function executePollAction(params: {
   toolResult?: AgentToolResult<unknown>;
   pollResult?: MessagePollResult;
 }> {
+  const nativeGateway = shouldUseNativeGatewayOutbound(params.ctx.channel);
   const pluginHandled = await tryHandleWithPluginAction({
     ctx: params.ctx,
     action: "poll",
@@ -225,20 +272,39 @@ export async function executePollAction(params: {
   }
 
   const corePoll = params.resolveCorePoll();
+  const outboundRequest = await buildRustChannelOutboundRequest({
+    requestId: `poll:${Date.now()}`,
+    channel: params.ctx.channel,
+    accountId: params.ctx.accountId ?? undefined,
+    action: "poll",
+    to: corePoll.to,
+    text: corePoll.question,
+    mediaUrls: [],
+    threadId: corePoll.threadId,
+    params: {
+      question: corePoll.question,
+      options: corePoll.options,
+      maxSelections: corePoll.maxSelections,
+      durationSeconds: corePoll.durationSeconds,
+      durationHours: corePoll.durationHours,
+      isAnonymous: corePoll.isAnonymous,
+    },
+  });
   const result: MessagePollResult = await sendPoll({
     cfg: params.ctx.cfg,
-    to: corePoll.to,
-    question: corePoll.question,
+    to: outboundRequest.to,
+    question: outboundRequest.text ?? corePoll.question,
     options: corePoll.options,
     maxSelections: corePoll.maxSelections,
     durationSeconds: corePoll.durationSeconds ?? undefined,
     durationHours: corePoll.durationHours ?? undefined,
-    channel: params.ctx.channel,
-    accountId: params.ctx.accountId ?? undefined,
-    threadId: corePoll.threadId ?? undefined,
+    channel: outboundRequest.channel,
+    accountId: outboundRequest.accountId ?? params.ctx.accountId ?? undefined,
+    threadId: outboundRequest.threadId ?? corePoll.threadId ?? undefined,
     silent: params.ctx.silent ?? undefined,
     isAnonymous: corePoll.isAnonymous ?? undefined,
     dryRun: params.ctx.dryRun,
+    nativeGateway,
     gateway: params.ctx.gateway,
   });
 

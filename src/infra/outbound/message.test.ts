@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   resolveOutboundTarget: vi.fn(),
   deliverOutboundPayloads: vi.fn(),
   resolveRuntimePluginRegistry: vi.fn(),
+  callGatewayLeastPrivilege: vi.fn(),
 }));
 
 vi.mock("../../channels/plugins/index.js", () => ({
@@ -36,6 +37,11 @@ vi.mock("../../plugins/loader.js", () => ({
   resolveRuntimePluginRegistry: mocks.resolveRuntimePluginRegistry,
 }));
 
+vi.mock("../../gateway/call.js", () => ({
+  callGatewayLeastPrivilege: mocks.callGatewayLeastPrivilege,
+  randomIdempotencyKey: () => "random-id",
+}));
+
 vi.mock("./targets.js", () => ({
   resolveOutboundTarget: mocks.resolveOutboundTarget,
 }));
@@ -48,11 +54,12 @@ import { setActivePluginRegistry } from "../../plugins/runtime.js";
 import { createTestRegistry } from "../../test-utils/channel-plugins.js";
 
 let sendMessage: typeof import("./message.js").sendMessage;
+let sendPoll: typeof import("./message.js").sendPoll;
 let resetOutboundChannelResolutionStateForTest: typeof import("./channel-resolution.js").resetOutboundChannelResolutionStateForTest;
 
 describe("sendMessage", () => {
   beforeAll(async () => {
-    ({ sendMessage } = await import("./message.js"));
+    ({ sendMessage, sendPoll } = await import("./message.js"));
     ({ resetOutboundChannelResolutionStateForTest } = await import("./channel-resolution.js"));
   });
 
@@ -63,12 +70,14 @@ describe("sendMessage", () => {
     mocks.resolveOutboundTarget.mockClear();
     mocks.deliverOutboundPayloads.mockClear();
     mocks.resolveRuntimePluginRegistry.mockClear();
+    mocks.callGatewayLeastPrivilege.mockReset();
 
     mocks.getChannelPlugin.mockReturnValue({
       outbound: { deliveryMode: "direct" },
     });
     mocks.resolveOutboundTarget.mockImplementation(({ to }: { to: string }) => ({ ok: true, to }));
     mocks.deliverOutboundPayloads.mockResolvedValue([{ channel: "mattermost", messageId: "m1" }]);
+    mocks.callGatewayLeastPrivilege.mockResolvedValue({ messageId: "native-1" });
   });
 
   it("passes explicit agentId to outbound delivery for scoped media roots", async () => {
@@ -212,5 +221,78 @@ describe("sendMessage", () => {
     });
 
     expect(mocks.resolveRuntimePluginRegistry).toHaveBeenCalledTimes(1);
+  });
+
+  it("routes native gateway sends without resolving a TS channel plugin", async () => {
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+
+    const result = await sendMessage({
+      cfg: {},
+      nativeGateway: true,
+      channel: "telegram",
+      accountId: "work",
+      to: "123456",
+      content: "hi",
+      idempotencyKey: "idem-native-send",
+    });
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(mocks.deliverOutboundPayloads).not.toHaveBeenCalled();
+    expect(mocks.callGatewayLeastPrivilege).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "channel.outbound.send",
+        params: expect.objectContaining({
+          channel: "telegram",
+          accountId: "work",
+          to: "123456",
+          message: "hi",
+          idempotencyKey: "idem-native-send",
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      channel: "telegram",
+      to: "123456",
+      via: "gateway",
+      result: { messageId: "native-1" },
+    });
+  });
+
+  it("routes native gateway polls without resolving a TS channel plugin", async () => {
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+    mocks.callGatewayLeastPrivilege.mockResolvedValue({ messageId: "poll-1", pollId: "poll-1" });
+
+    const result = await sendPoll({
+      cfg: {},
+      nativeGateway: true,
+      channel: "telegram",
+      accountId: "work",
+      to: "123456",
+      question: "Lunch?",
+      options: ["Pizza", "Sushi"],
+      maxSelections: 1,
+      idempotencyKey: "idem-native-poll",
+    });
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(mocks.callGatewayLeastPrivilege).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "channel.outbound.poll",
+        params: expect.objectContaining({
+          channel: "telegram",
+          accountId: "work",
+          to: "123456",
+          question: "Lunch?",
+          options: ["Pizza", "Sushi"],
+          idempotencyKey: "idem-native-poll",
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      channel: "telegram",
+      to: "123456",
+      via: "gateway",
+      result: { messageId: "poll-1", pollId: "poll-1" },
+    });
   });
 });

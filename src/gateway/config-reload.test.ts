@@ -153,6 +153,15 @@ describe("buildGatewayReloadPlan", () => {
     expect(plan.restartChannels).toEqual(expected);
   });
 
+  it("uses bundled channel metadata for restart owners without the active TS channel registry", () => {
+    setActivePluginRegistry(emptyRegistry);
+
+    const plan = buildGatewayReloadPlan(["channels.telegram.botToken"]);
+
+    expect(plan.restartGateway).toBe(false);
+    expect(plan.restartChannels).toEqual(new Set(["telegram"]));
+  });
+
   it("restarts heartbeat when model-related config changes", () => {
     const plan = buildGatewayReloadPlan([
       "models.providers.openai.models",

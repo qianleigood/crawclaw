@@ -1596,6 +1596,9 @@ async fn invoke_plugin_tool_operation(
 }
 
 fn plugin_manifest_allows_js_fallback(runtime_root: &std::path::Path, plugin_id: &str) -> bool {
+    if is_rust_native_plugin_id(plugin_id) {
+        return false;
+    }
     if std::env::var("CRAWCLAW_DESKTOP_ALLOW_JS_PLUGIN_FALLBACK").as_deref() == Ok("1") {
         return true;
     }
@@ -1618,6 +1621,13 @@ fn plugin_manifest_allows_js_fallback(runtime_root: &std::path::Path, plugin_id:
             .and_then(|compat| compat.get("jsPluginFallback"))
             .and_then(Value::as_bool)
             .unwrap_or(false)
+}
+
+fn is_rust_native_plugin_id(plugin_id: &str) -> bool {
+    matches!(
+        plugin_id,
+        "comfyui" | "open-websearch" | "scrapling-fetch" | "qwen3-tts"
+    )
 }
 
 async fn invoke_rust_native_plugin_tool(

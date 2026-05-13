@@ -14,6 +14,7 @@ import type {
   ChannelThreadingToolContext,
 } from "../../channels/plugins/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
+import { callGatewayLeastPrivilege, randomIdempotencyKey } from "../../gateway/call.js";
 import { hasInteractiveReplyBlocks, hasReplyPayloadContent } from "../../interactive/payload.js";
 import type { OutboundMediaAccess } from "../../media/load-options.js";
 import { getAgentScopedMediaLocalRoots } from "../../media/local-roots.js";
@@ -22,7 +23,11 @@ import { hasPollCreationParams } from "../../poll-params.js";
 import { resolvePollMaxSelections } from "../../polls.js";
 import { buildChannelAccountBindings } from "../../routing/bindings.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
-import { type GatewayClientMode, type GatewayClientName } from "../../utils/message-channel.js";
+import {
+  normalizeMessageChannel,
+  type GatewayClientMode,
+  type GatewayClientName,
+} from "../../utils/message-channel.js";
 import { throwIfAborted } from "./abort.js";
 import { resolveOutboundChannelPlugin } from "./channel-resolution.js";
 import {
@@ -56,7 +61,11 @@ import {
   type CrossContextDecoration,
   shouldApplyCrossContextMarker,
 } from "./outbound-policy.js";
-import { executePollAction, executeSendAction } from "./outbound-send-service.js";
+import {
+  executePollAction,
+  executeSendAction,
+  shouldUseNativeGatewayOutbound,
+} from "./outbound-send-service.js";
 import { ensureOutboundSessionEntry, resolveOutboundSessionRoute } from "./outbound-session.js";
 import { resolveChannelTarget, type ResolvedMessagingTarget } from "./target-resolver.js";
 import { extractToolPayload } from "./tool-payload.js";
@@ -134,7 +143,7 @@ export type MessageActionRunResult =
       kind: "action";
       channel: ChannelId;
       action: Exclude<ChannelMessageActionName, "send" | "poll">;
-      handledBy: "plugin" | "dry-run";
+      handledBy: "plugin" | "core" | "dry-run";
       payload: unknown;
       toolResult?: AgentToolResult<unknown>;
       dryRun: boolean;
@@ -167,6 +176,13 @@ function applyCrossContextMessageDecoration({
     params.components = applied.componentsBuilder;
   }
   return applied.message;
+}
+
+function resolveTsAutoThreadId(channel: ChannelId) {
+  if (shouldUseNativeGatewayOutbound(channel)) {
+    return undefined;
+  }
+  return getChannelPlugin(channel)?.threading?.resolveAutoThreadId;
 }
 
 async function maybeApplyCrossContextMarker(params: {
@@ -206,9 +222,13 @@ async function resolveChannel(
   params: Record<string, unknown>,
   toolContext?: { currentChannelProvider?: string },
 ) {
+  const explicitChannel = normalizeMessageChannel(readStringParam(params, "channel"));
+  if (explicitChannel && shouldUseNativeGatewayOutbound(explicitChannel)) {
+    return explicitChannel;
+  }
   const selection = await resolveMessageChannelSelection({
     cfg,
-    channel: readStringParam(params, "channel"),
+    channel: explicitChannel,
     fallbackChannel: toolContext?.currentChannelProvider,
   });
   if (selection.source === "tool-context-fallback") {
@@ -287,6 +307,39 @@ function resolveGateway(input: RunMessageActionParams): MessageActionRunnerGatew
     clientDisplayName: input.gateway.clientDisplayName,
     mode: input.gateway.mode,
   };
+}
+
+async function callNativeGatewayChannelAction(params: {
+  gateway?: MessageActionRunnerGateway;
+  channel: ChannelId;
+  accountId?: string | null;
+  action: Exclude<ChannelMessageActionName, "send" | "poll" | "broadcast">;
+  args: Record<string, unknown>;
+}) {
+  const to =
+    readStringParam(params.args, "to") ??
+    readStringParam(params.args, "channelId") ??
+    readStringParam(params.args, "chatId") ??
+    readStringParam(params.args, "messageId") ??
+    params.channel;
+  return await callGatewayLeastPrivilege({
+    url: params.gateway?.url,
+    token: params.gateway?.token,
+    timeoutMs: params.gateway?.timeoutMs,
+    clientName: params.gateway?.clientName,
+    clientDisplayName: params.gateway?.clientDisplayName,
+    mode: params.gateway?.mode,
+    method: "channel.outbound.action",
+    params: {
+      ...params.args,
+      channel: params.channel,
+      accountId: params.accountId ?? undefined,
+      action: params.action,
+      to,
+      payload: params.args.payload ?? params.args,
+      idempotencyKey: readStringParam(params.args, "idempotencyKey") ?? randomIdempotencyKey(),
+    },
+  });
 }
 
 async function handleBroadcastAction(
@@ -498,7 +551,7 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
     agentId,
     dryRun,
     resolvedTarget,
-    resolveAutoThreadId: getChannelPlugin(channel)?.threading?.resolveAutoThreadId,
+    resolveAutoThreadId: resolveTsAutoThreadId(channel),
     resolveOutboundSessionRoute,
     ensureOutboundSessionEntry,
   });
@@ -573,7 +626,7 @@ async function handlePollAction(ctx: ResolvedActionContext): Promise<MessageActi
     to,
     accountId,
     toolContext: input.toolContext,
-    resolveAutoThreadId: getChannelPlugin(channel)?.threading?.resolveAutoThreadId,
+    resolveAutoThreadId: resolveTsAutoThreadId(channel),
   });
 
   const base = typeof params.message === "string" ? params.message : "";
@@ -671,6 +724,24 @@ async function handlePluginAction(ctx: ResolvedActionContext): Promise<MessageAc
       handledBy: "dry-run",
       payload: { ok: true, dryRun: true, channel, action },
       dryRun: true,
+    };
+  }
+
+  if (shouldUseNativeGatewayOutbound(channel)) {
+    const payload = await callNativeGatewayChannelAction({
+      gateway,
+      channel,
+      accountId,
+      action,
+      args: params,
+    });
+    return {
+      kind: "action",
+      channel,
+      action,
+      handledBy: "core",
+      payload,
+      dryRun,
     };
   }
 

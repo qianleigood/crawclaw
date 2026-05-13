@@ -7,6 +7,7 @@ import { normalizePollInput } from "../../polls.js";
 import {
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
+  normalizeMessageChannel,
   type GatewayClientMode,
   type GatewayClientName,
 } from "../../utils/message-channel.js";
@@ -65,6 +66,7 @@ type MessageSendParams = {
   mirror?: OutboundMirror;
   abortSignal?: AbortSignal;
   silent?: boolean;
+  nativeGateway?: boolean;
 };
 
 export type MessageSendResult = {
@@ -93,6 +95,7 @@ type MessagePollParams = {
   cfg?: CrawClawConfig;
   gateway?: MessageGatewayOptions;
   idempotencyKey?: string;
+  nativeGateway?: boolean;
 };
 
 export type MessagePollResult = {
@@ -181,6 +184,14 @@ function resolveGatewayOptions(opts?: MessageGatewayOptions) {
   };
 }
 
+function resolveExplicitNativeGatewayChannel(channel?: string): string {
+  const normalized = normalizeMessageChannel(channel);
+  if (!normalized) {
+    throw new Error("Channel is required for native gateway delivery.");
+  }
+  return normalized;
+}
+
 async function callMessageGateway<T>(params: {
   gateway?: MessageGatewayOptions;
   method: string;
@@ -201,9 +212,9 @@ async function callMessageGateway<T>(params: {
 
 export async function sendMessage(params: MessageSendParams): Promise<MessageSendResult> {
   const cfg = params.cfg ?? loadConfig();
-  const channel = await resolveRequiredChannel({ cfg, channel: params.channel });
-  const plugin = resolveRequiredPlugin(channel, cfg);
-  const deliveryMode = plugin.outbound?.deliveryMode ?? "direct";
+  const channel = params.nativeGateway
+    ? resolveExplicitNativeGatewayChannel(params.channel)
+    : await resolveRequiredChannel({ cfg, channel: params.channel });
   const normalizedPayloads = normalizeReplyPayloadsForDelivery([
     {
       text: params.content,
@@ -219,6 +230,48 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
     (payload) => resolveSendableOutboundReplyParts(payload).mediaUrls,
   );
   const primaryMediaUrl = mirrorMediaUrls[0] ?? params.mediaUrl ?? null;
+
+  if (params.nativeGateway) {
+    if (params.dryRun) {
+      return {
+        channel,
+        to: params.to,
+        via: "gateway",
+        mediaUrl: primaryMediaUrl,
+        mediaUrls: mirrorMediaUrls.length ? mirrorMediaUrls : undefined,
+        dryRun: true,
+      };
+    }
+    const result = await callMessageGateway<{ messageId: string } & Record<string, unknown>>({
+      gateway: params.gateway,
+      method: "channel.outbound.send",
+      params: {
+        to: params.to,
+        message: params.content,
+        mediaUrl: params.mediaUrl,
+        mediaUrls: mirrorMediaUrls.length ? mirrorMediaUrls : params.mediaUrls,
+        gifPlayback: params.gifPlayback,
+        accountId: params.accountId,
+        agentId: params.agentId,
+        channel,
+        replyToId: params.replyToId,
+        threadId: params.threadId,
+        sessionKey: params.mirror?.sessionKey,
+        idempotencyKey: params.idempotencyKey ?? randomIdempotencyKey(),
+      },
+    });
+    return {
+      channel,
+      to: params.to,
+      via: "gateway",
+      mediaUrl: primaryMediaUrl,
+      mediaUrls: mirrorMediaUrls.length ? mirrorMediaUrls : undefined,
+      result,
+    };
+  }
+
+  const plugin = resolveRequiredPlugin(channel, cfg);
+  const deliveryMode = plugin.outbound?.deliveryMode ?? "direct";
 
   if (params.dryRun) {
     return {
@@ -319,7 +372,9 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
 
 export async function sendPoll(params: MessagePollParams): Promise<MessagePollResult> {
   const cfg = params.cfg ?? loadConfig();
-  const channel = await resolveRequiredChannel({ cfg, channel: params.channel });
+  const channel = params.nativeGateway
+    ? resolveExplicitNativeGatewayChannel(params.channel)
+    : await resolveRequiredChannel({ cfg, channel: params.channel });
 
   const pollInput: PollInput = {
     question: params.question,
@@ -328,6 +383,48 @@ export async function sendPoll(params: MessagePollParams): Promise<MessagePollRe
     durationSeconds: params.durationSeconds,
     durationHours: params.durationHours,
   };
+  if (params.nativeGateway) {
+    const normalized = normalizePollInput(pollInput);
+    if (params.dryRun) {
+      return buildMessagePollResult({
+        channel,
+        to: params.to,
+        normalized,
+        dryRun: true,
+      });
+    }
+    const result = await callMessageGateway<{
+      messageId: string;
+      toJid?: string;
+      channelId?: string;
+      conversationId?: string;
+      pollId?: string;
+    }>({
+      gateway: params.gateway,
+      method: "channel.outbound.poll",
+      params: {
+        to: params.to,
+        question: normalized.question,
+        options: normalized.options,
+        maxSelections: normalized.maxSelections,
+        durationSeconds: normalized.durationSeconds,
+        durationHours: normalized.durationHours,
+        threadId: params.threadId,
+        silent: params.silent,
+        isAnonymous: params.isAnonymous,
+        channel,
+        accountId: params.accountId,
+        idempotencyKey: params.idempotencyKey ?? randomIdempotencyKey(),
+      },
+    });
+    return buildMessagePollResult({
+      channel,
+      to: params.to,
+      normalized,
+      result,
+    });
+  }
+
   const plugin = resolveRequiredPlugin(channel, cfg);
   const outbound = plugin?.outbound;
   if (!outbound?.sendPoll) {

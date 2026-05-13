@@ -139,6 +139,23 @@ vi.mock("./route-reply.js", async (importOriginal) => {
   };
 });
 
+vi.mock("./routing-policy-runtime.js", async () => {
+  const { resolveReplyRoutingDecision } = await import("./routing-policy.js");
+  return {
+    resolveReplyRoutingDecisionWithRust: async (
+      params: Parameters<typeof resolveReplyRoutingDecision>[0],
+    ) => resolveReplyRoutingDecision(params),
+  };
+});
+
+vi.mock("../../channels/typing-policy-runtime.js", async () => {
+  const { resolveRunTypingPolicy } = await import("../../channels/typing-policy.js");
+  return {
+    resolveRunTypingPolicyWithRust: async (params: Parameters<typeof resolveRunTypingPolicy>[0]) =>
+      resolveRunTypingPolicy(params),
+  };
+});
+
 vi.mock("./abort.runtime.js", () => ({
   tryFastAbortFromMessage: mocks.tryFastAbortFromMessage,
   formatAbortReplyText: (stoppedSubagents?: number) => {

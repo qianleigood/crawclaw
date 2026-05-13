@@ -41,10 +41,18 @@ use axum::{Json, Router};
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
 use base64::Engine as _;
 use crawclaw_runtime::{
+    channel_contract_version,
     cron::{CronService, CronServiceOptions},
+    dispatch_native_channel_outbound, find_native_channel_descriptor,
+    is_local_native_delivery_channel, list_native_channel_descriptors,
+    lookup_native_channel_directory,
     memory::RustMemoryRuntime,
+    resolve_native_channel_lifecycle_update,
     special_agents::{special_agent_definitions, SpecialAgentRunRequest, SpecialAgentRunner},
-    AgentRuntime, DesktopSessionStore,
+    AgentModelSelection, AgentRunEvent, AgentRunRequest, AgentRunResult, AgentRuntime,
+    ChannelCapabilityDescriptor, ChannelChatType, ChannelDirectoryLookupRequest,
+    ChannelInboundEnvelope, ChannelOutboundAction, ChannelOutboundRequest, DesktopSessionStore,
+    NativeChannelDispatchContext, NativeChannelLifecycleInput,
 };
 use futures_util::{stream, Sink, SinkExt, StreamExt};
 use ring::signature::KeyPair;
@@ -112,6 +120,7 @@ struct GatewayState {
     approvals: Arc<std::sync::Mutex<BTreeMap<String, ApprovalRecord>>>,
     wizard_sessions: Arc<std::sync::Mutex<BTreeMap<String, WizardSessionRecord>>>,
     last_main_session_wake: Arc<std::sync::Mutex<Option<Value>>>,
+    agent_run_events: Arc<std::sync::Mutex<BTreeMap<String, Vec<Value>>>>,
 }
 
 #[derive(Clone, Debug)]
@@ -260,6 +269,7 @@ impl GatewayState {
             approvals: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             wizard_sessions: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             last_main_session_wake: Arc::new(std::sync::Mutex::new(None)),
+            agent_run_events: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
         }
     }
 }
@@ -664,6 +674,7 @@ async fn handle_gateway_method(
         "plugin.approval.waitDecision" => approval_wait_decision(state, params),
         "plugin.approval.resolve" => approval_resolve(state, params, "plugin.approval"),
         "channels.status" => channels_status(state),
+        "channels.capabilities" => channels_capabilities(params),
         "channels.setup.surface" => channels_setup_surface(state, params),
         "channels.config.get" => channels_config_get(state, params),
         "channels.config.schema" => Ok(channels_config_schema()),
@@ -698,6 +709,16 @@ async fn handle_gateway_method(
         "system-presence" => system_presence(state),
         "system-event" => system_event(state, params),
         "send" => channel_send(state, params),
+        "channel.outbound.send" => channel_send(state, params),
+        "poll" => channel_poll(state, params),
+        "channel.outbound.poll" => channel_poll(state, params),
+        "channel.outbound.action" => channel_outbound_action(state, params),
+        "channel.inbound.handle" => channel_inbound_handle(state, params).await,
+        "channel.directory.lookup" => channel_directory_lookup(params),
+        "channel.lifecycle.status" => channel_lifecycle_status(state),
+        "channel.lifecycle.start" | "channel.lifecycle.stop" | "channel.lifecycle.restart" => {
+            channel_lifecycle_action(state, method, params)
+        }
         "device.pair.list" => device_pair_list(state),
         "device.pair.approve" => device_pair_approve(state, params),
         "device.pair.reject" => device_pair_reject(state, params),
@@ -725,6 +746,9 @@ async fn handle_gateway_method(
             workflow_execution_action(state, method, params)
         }
         "workflow.agent.run" => workflow_agent_run(state, params),
+        "agent.runTurn" => agent_run_turn(state, params).await,
+        "agent.streamEvents" => agent_stream_events(state, params),
+        "agent.cancel" => chat_abort(params),
         "chat.history" => chat_history(state, params),
         "chat.inject" => chat_inject(state, params),
         "chat.abort" => chat_abort(params),
@@ -5072,10 +5096,7 @@ fn copy_plugin_directory_contents(
 fn channels_status(state: &GatewayState) -> Result<Value, String> {
     let config = read_config_value(&config_path(state))?;
     let runtime_state = read_channel_runtime_state(state)?;
-    let mut channel_ids = configured_channel_ids(&config);
-    channel_ids.extend(channel_runtime_channel_ids(&runtime_state));
-    channel_ids.sort();
-    channel_ids.dedup();
+    let channel_ids = native_channel_catalog_ids(&config, &runtime_state);
     let mut labels = Map::new();
     let mut detail_labels = Map::new();
     let mut channels = Map::new();
@@ -5084,7 +5105,10 @@ fn channels_status(state: &GatewayState) -> Result<Value, String> {
     let mut controls = Map::new();
 
     for channel_id in &channel_ids {
-        let label = channel_label(channel_id);
+        let descriptor = find_native_channel_descriptor(channel_id);
+        let label = descriptor
+            .map(|descriptor| descriptor.label.clone())
+            .unwrap_or_else(|| channel_label(channel_id));
         labels.insert(channel_id.clone(), Value::String(label.clone()));
         detail_labels.insert(
             channel_id.clone(),
@@ -5130,14 +5154,17 @@ fn channels_status(state: &GatewayState) -> Result<Value, String> {
             });
         channels.insert(
             channel_id.clone(),
-            json!({
+            with_native_channel_descriptor(
+                json!({
                 "enabled": enabled,
                 "configured": configured,
                 "running": running,
                 "connected": connected,
                 "healthState": health_state,
-                "implementation": "rust-native"
-            }),
+                "implementation": if descriptor.is_some() { "rust-native" } else { "external" }
+                }),
+                descriptor,
+            ),
         );
         accounts.insert(
             channel_id.clone(),
@@ -5153,7 +5180,8 @@ fn channels_status(state: &GatewayState) -> Result<Value, String> {
         );
         controls.insert(
             channel_id.clone(),
-            json!({
+            with_native_channel_descriptor(
+                json!({
                 "loginMode": if is_local_delivery_channel(channel_id) { "native" } else if configured { "transport" } else { "none" },
                 "actions": if is_local_delivery_channel(channel_id) || linked { json!(["verify", "reconnect", "logout"]) } else { json!([]) },
                 "canReconnect": is_local_delivery_channel(channel_id) || linked,
@@ -5162,7 +5190,9 @@ fn channels_status(state: &GatewayState) -> Result<Value, String> {
                 "canEdit": true,
                 "canSetup": true,
                 "multiAccount": false
-            }),
+                }),
+                descriptor,
+            ),
         );
     }
 
@@ -5176,6 +5206,68 @@ fn channels_status(state: &GatewayState) -> Result<Value, String> {
         "channelAccounts": accounts,
         "channelDefaultAccountId": defaults
     }))
+}
+
+fn channels_capabilities(params: Value) -> Result<Value, String> {
+    let requested = string_param(&params, &["channel"]).map(|value| value.trim().to_lowercase());
+    let descriptors = list_native_channel_descriptors()
+        .iter()
+        .filter(|descriptor| {
+            requested
+                .as_deref()
+                .is_none_or(|channel| channel == "all" || descriptor.channel == channel)
+        })
+        .map(|descriptor| serde_json::to_value(descriptor).unwrap_or(Value::Null))
+        .collect::<Vec<_>>();
+    if requested
+        .as_deref()
+        .is_some_and(|channel| channel != "all" && descriptors.is_empty())
+    {
+        return Err(format!(
+            "unknown native channel: {}",
+            requested.unwrap_or_default()
+        ));
+    }
+    Ok(json!({
+        "version": channel_contract_version(),
+        "channels": descriptors
+    }))
+}
+
+fn native_channel_catalog_ids(config: &Value, runtime_state: &Value) -> Vec<String> {
+    let mut ids = list_native_channel_descriptors()
+        .iter()
+        .map(|descriptor| descriptor.channel.clone())
+        .collect::<Vec<_>>();
+    let mut extras = configured_channel_ids(config);
+    extras.extend(channel_runtime_channel_ids(runtime_state));
+    extras.sort();
+    extras.dedup();
+    for id in extras {
+        if !ids.contains(&id) {
+            ids.push(id);
+        }
+    }
+    ids
+}
+
+fn with_native_channel_descriptor(
+    mut value: Value,
+    descriptor: Option<&ChannelCapabilityDescriptor>,
+) -> Value {
+    let Some(descriptor) = descriptor else {
+        return value;
+    };
+    let object = ensure_json_object(&mut value);
+    object.insert(
+        "nativeAdapterId".to_string(),
+        Value::String(descriptor.rust_adapter_id.clone()),
+    );
+    object.insert(
+        "capabilities".to_string(),
+        serde_json::to_value(descriptor).unwrap_or(Value::Null),
+    );
+    value
 }
 
 fn configured_channel_ids(config: &Value) -> Vec<String> {
@@ -5251,7 +5343,7 @@ fn channel_is_enabled(config: &Value, channel: &str) -> bool {
 }
 
 fn is_local_delivery_channel(channel: &str) -> bool {
-    channel == "desktop"
+    is_local_native_delivery_channel(channel)
 }
 
 fn upsert_channel_runtime_account(
@@ -5328,7 +5420,10 @@ fn channels_setup_surface(state: &GatewayState, params: Value) -> Result<Value, 
     let configured = get_json_path(&config, &format!("channels.{channel}"))
         .and_then(Value::as_object)
         .is_some_and(|object| !object.is_empty());
-    let label = channel_label(&channel);
+    let descriptor = find_native_channel_descriptor(&channel);
+    let label = descriptor
+        .map(|descriptor| descriptor.label.clone())
+        .unwrap_or_else(|| channel_label(&channel));
     Ok(json!({
         "channel": channel,
         "label": label,
@@ -5342,7 +5437,9 @@ fn channels_setup_surface(state: &GatewayState, params: Value) -> Result<Value, 
         "canEdit": true,
         "multiAccount": false,
         "loginMode": "none",
-        "commands": []
+        "commands": [],
+        "nativeAdapterId": descriptor.map(|descriptor| descriptor.rust_adapter_id.clone()),
+        "capabilities": descriptor.and_then(|descriptor| serde_json::to_value(descriptor).ok())
     }))
 }
 
@@ -5430,87 +5527,38 @@ fn channel_action(state: &GatewayState, method: &str, params: Value) -> Result<V
     let config = read_config_value(&config_path(state))?;
     let configured = channel_is_configured(&config, &channel);
     let enabled = channel_is_enabled(&config, &channel);
-    let can_run_native = is_local_delivery_channel(&channel);
-
-    let entry = if method.ends_with(".logout") || method == "channels.logout" {
-        upsert_channel_runtime_account(
-            state,
-            &channel,
-            &account_id,
-            ChannelRuntimeUpdate {
-                enabled,
-                configured,
-                linked: false,
-                running: false,
-                connected: false,
-                health_state: "logged_out",
-                last_action: method,
-            },
-        )?
-    } else if method.ends_with(".verify") {
-        let runtime_state = read_channel_runtime_state(state)?;
-        let current = channel_runtime_account(&runtime_state, &channel, &account_id);
-        let connected = current
-            .and_then(|account| account.get("connected"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        let linked = current
-            .and_then(|account| account.get("linked"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false);
-        upsert_channel_runtime_account(
-            state,
-            &channel,
-            &account_id,
-            ChannelRuntimeUpdate {
-                enabled,
-                configured,
-                linked,
-                running: connected,
-                connected,
-                health_state: if connected {
-                    "connected"
-                } else {
-                    "needs_login"
-                },
-                last_action: method,
-            },
-        )?
-    } else if can_run_native {
-        upsert_channel_runtime_account(
-            state,
-            &channel,
-            &account_id,
-            ChannelRuntimeUpdate {
-                enabled,
-                configured,
-                linked: true,
-                running: true,
-                connected: true,
-                health_state: "connected",
-                last_action: method,
-            },
-        )?
-    } else {
-        upsert_channel_runtime_account(
-            state,
-            &channel,
-            &account_id,
-            ChannelRuntimeUpdate {
-                enabled,
-                configured,
-                linked: false,
-                running: false,
-                connected: false,
-                health_state: if configured {
-                    "needs_channel_transport"
-                } else {
-                    "unconfigured"
-                },
-                last_action: method,
-            },
-        )?
-    };
+    let runtime_state = read_channel_runtime_state(state)?;
+    let current = channel_runtime_account(&runtime_state, &channel, &account_id);
+    let current_connected = current
+        .and_then(|account| account.get("connected"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let current_linked = current
+        .and_then(|account| account.get("linked"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let lifecycle = resolve_native_channel_lifecycle_update(NativeChannelLifecycleInput {
+        channel: channel.clone(),
+        method: method.to_string(),
+        enabled,
+        configured,
+        current_linked,
+        current_connected,
+    });
+    let entry = upsert_channel_runtime_account(
+        state,
+        &channel,
+        &account_id,
+        ChannelRuntimeUpdate {
+            enabled: lifecycle.enabled,
+            configured: lifecycle.configured,
+            linked: lifecycle.linked,
+            running: lifecycle.running,
+            connected: lifecycle.connected,
+            health_state: lifecycle.health_state.as_str(),
+            last_action: method,
+        },
+    )?;
     let connected = entry
         .get("connected")
         .and_then(Value::as_bool)
@@ -5533,6 +5581,36 @@ fn channel_action(state: &GatewayState, method: &str, params: Value) -> Result<V
     }))
 }
 
+fn channel_lifecycle_status(state: &GatewayState) -> Result<Value, String> {
+    Ok(json!({
+        "ok": true,
+        "implementation": "rust-native",
+        "snapshot": channels_status(state)?
+    }))
+}
+
+fn channel_lifecycle_action(
+    state: &GatewayState,
+    method: &str,
+    params: Value,
+) -> Result<Value, String> {
+    let legacy_method = match method {
+        "channel.lifecycle.start" => "channels.account.login.start",
+        "channel.lifecycle.stop" => "channels.logout",
+        "channel.lifecycle.restart" => "channels.account.reconnect",
+        _ => method,
+    };
+    channel_action(state, legacy_method, params)
+}
+
+fn channel_directory_lookup(params: Value) -> Result<Value, String> {
+    let request = serde_json::from_value::<ChannelDirectoryLookupRequest>(params)
+        .map_err(|error| format!("invalid channel.directory.lookup request: {error}"))?;
+    let result = lookup_native_channel_directory(request)?;
+    serde_json::to_value(result)
+        .map_err(|error| format!("failed to serialize channel directory lookup: {error}"))
+}
+
 fn channel_send(state: &GatewayState, params: Value) -> Result<Value, String> {
     let channel = safe_config_component_id(
         &string_param(&params, &["channel"]).unwrap_or_else(|| "desktop".to_string()),
@@ -5540,48 +5618,216 @@ fn channel_send(state: &GatewayState, params: Value) -> Result<Value, String> {
     )?;
     let account_id = string_param(&params, &["accountId"]).unwrap_or_else(|| "default".to_string());
     let to = required_param(&params, &["to", "target", "recipient"])?;
-    let text = required_param(&params, &["text", "message", "body"])?;
+    let text = string_param(&params, &["text", "message", "body"]);
+    let media_urls = media_urls_param(&params);
+    if text.is_none() && media_urls.is_empty() {
+        return Err("text or media is required".to_string());
+    }
+    let thread_id = string_param(&params, &["threadId"]);
+    let reply_to_id = string_param(&params, &["replyToId", "replyTo", "messageId"]);
+    let now = now_millis();
+    let request_id = string_param(&params, &["idempotencyKey", "runId", "requestId"])
+        .unwrap_or_else(|| format!("rust-send-{now}"));
+    let mut request_params = BTreeMap::new();
+    if let Some(value) = bool_param(&params, &["gifPlayback"]) {
+        request_params.insert("gifPlayback".to_string(), Value::Bool(value));
+    }
+    for field in ["agentId", "sessionKey"] {
+        if let Some(value) = string_param(&params, &[field]) {
+            request_params.insert(field.to_string(), Value::String(value));
+        }
+    }
     let runtime_state = read_channel_runtime_state(state)?;
     let account_runtime = channel_runtime_account(&runtime_state, &channel, &account_id);
     let connected = account_runtime
         .and_then(|account| account.get("connected"))
         .and_then(Value::as_bool)
         .unwrap_or(false);
-    let local_delivery = is_local_delivery_channel(&channel);
-    let now = now_millis();
-    let message_id = format!("rust-send-{now}");
-    let (sent, delivery_status, error_code, delivered_at_ms) = if local_delivery && connected {
-        (true, "delivered", Value::Null, json!(now))
-    } else if local_delivery {
-        (
-            false,
-            "blocked",
-            Value::String("needs_channel_login".to_string()),
-            Value::Null,
-        )
-    } else {
-        (
-            false,
-            "blocked",
-            Value::String("needs_channel_transport".to_string()),
-            Value::Null,
-        )
+    let request = ChannelOutboundRequest {
+        request_id: request_id.clone(),
+        channel,
+        account_id: Some(account_id),
+        action: ChannelOutboundAction::Send,
+        to,
+        text,
+        media_urls,
+        reply_to_id,
+        thread_id,
+        params: request_params,
     };
-    let entry = json!({
-        "ok": sent,
-        "messageId": message_id,
-        "channel": channel,
-        "accountId": account_id,
-        "to": to,
-        "text": text,
-        "sent": sent,
-        "deliveryStatus": delivery_status,
-        "status": delivery_status,
-        "errorCode": error_code,
-        "queuedAtMs": if sent { Value::Null } else { json!(now) },
-        "deliveredAtMs": delivered_at_ms,
-        "implementation": "rust-native"
-    });
+    let mut entry = serde_json::to_value(dispatch_native_channel_outbound(
+        &request,
+        NativeChannelDispatchContext {
+            connected,
+            now_ms: now,
+        },
+    ))
+    .map_err(|error| format!("failed to serialize channel delivery record: {error}"))?;
+    if let Some(object) = entry.as_object_mut() {
+        object.insert("runId".to_string(), Value::String(request_id));
+    }
+    let sent = entry.get("sent").and_then(Value::as_bool).unwrap_or(false);
+    let delivery_file = if sent {
+        state.runtime_root.join("channels").join("deliveries.jsonl")
+    } else {
+        state.runtime_root.join("channels").join("outbox.jsonl")
+    };
+    append_jsonl(&delivery_file, &entry)?;
+    emit(state, "channel.send", entry.clone());
+    Ok(entry)
+}
+
+fn channel_poll(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let channel = safe_config_component_id(
+        &string_param(&params, &["channel"]).unwrap_or_else(|| "desktop".to_string()),
+        "channel",
+    )?;
+    let account_id = string_param(&params, &["accountId"]).unwrap_or_else(|| "default".to_string());
+    let to = required_param(&params, &["to", "target", "recipient"])?;
+    let question = required_param(&params, &["question"])?;
+    let options = string_array_param(&params, "options")
+        .ok_or_else(|| "poll options require at least two values".to_string())?;
+    if options.len() < 2 {
+        return Err("poll options require at least two values".to_string());
+    }
+
+    let max_selections = positive_integer_param(&params, "maxSelections")?.unwrap_or(1);
+    if max_selections > options.len() as u64 {
+        return Err("maxSelections cannot exceed option count".to_string());
+    }
+    let duration_seconds = positive_integer_param(&params, "durationSeconds")?;
+    let duration_hours = positive_integer_param(&params, "durationHours")?;
+    if duration_seconds.is_some() && duration_hours.is_some() {
+        return Err("durationSeconds and durationHours are mutually exclusive".to_string());
+    }
+    let silent = bool_param(&params, &["silent"]);
+    let is_anonymous = bool_param(&params, &["isAnonymous"]);
+    let thread_id = string_param(&params, &["threadId"]);
+
+    let now = now_millis();
+    let run_id = string_param(&params, &["idempotencyKey", "runId", "requestId"])
+        .unwrap_or_else(|| format!("rust-poll-{now}"));
+    let mut poll = Map::new();
+    poll.insert("question".to_string(), Value::String(question.clone()));
+    poll.insert("options".to_string(), json!(options));
+    poll.insert("maxSelections".to_string(), json!(max_selections));
+    if let Some(value) = duration_seconds {
+        poll.insert("durationSeconds".to_string(), json!(value));
+    }
+    if let Some(value) = duration_hours {
+        poll.insert("durationHours".to_string(), json!(value));
+    }
+
+    let mut request_params = BTreeMap::new();
+    request_params.insert("poll".to_string(), Value::Object(poll.clone()));
+    if let Some(value) = silent {
+        request_params.insert("silent".to_string(), Value::Bool(value));
+    }
+    if let Some(value) = is_anonymous {
+        request_params.insert("isAnonymous".to_string(), Value::Bool(value));
+    }
+
+    let runtime_state = read_channel_runtime_state(state)?;
+    let account_runtime = channel_runtime_account(&runtime_state, &channel, &account_id);
+    let connected = account_runtime
+        .and_then(|account| account.get("connected"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let request = ChannelOutboundRequest {
+        request_id: run_id.clone(),
+        channel,
+        account_id: Some(account_id),
+        action: ChannelOutboundAction::Poll,
+        to,
+        text: Some(question),
+        media_urls: Vec::new(),
+        reply_to_id: None,
+        thread_id,
+        params: request_params,
+    };
+    let mut entry = serde_json::to_value(dispatch_native_channel_outbound(
+        &request,
+        NativeChannelDispatchContext {
+            connected,
+            now_ms: now,
+        },
+    ))
+    .map_err(|error| format!("failed to serialize channel poll delivery record: {error}"))?;
+    if let Some(object) = entry.as_object_mut() {
+        object.insert("runId".to_string(), Value::String(run_id));
+        object.insert("poll".to_string(), Value::Object(poll));
+        if object.get("sent").and_then(Value::as_bool).unwrap_or(false) {
+            if let Some(message_id) = object.get("messageId").cloned() {
+                object.insert("pollId".to_string(), message_id);
+            }
+        }
+    }
+    let sent = entry.get("sent").and_then(Value::as_bool).unwrap_or(false);
+    let delivery_file = if sent {
+        state.runtime_root.join("channels").join("deliveries.jsonl")
+    } else {
+        state.runtime_root.join("channels").join("outbox.jsonl")
+    };
+    append_jsonl(&delivery_file, &entry)?;
+    emit(state, "channel.send", entry.clone());
+    Ok(entry)
+}
+
+fn channel_outbound_action(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let channel = safe_config_component_id(
+        &string_param(&params, &["channel"]).unwrap_or_else(|| "desktop".to_string()),
+        "channel",
+    )?;
+    let account_id = string_param(&params, &["accountId"]).unwrap_or_else(|| "default".to_string());
+    let action_name = required_param(&params, &["action"])?;
+    let action = serde_json::from_value::<ChannelOutboundAction>(Value::String(action_name))
+        .map_err(|error| format!("invalid channel outbound action: {error}"))?;
+    let to = required_param(&params, &["to", "target", "recipient"])?;
+    let text = string_param(&params, &["text", "message", "body"]);
+    let media_urls = media_urls_param(&params);
+    if text.is_none() && media_urls.is_empty() && params.get("payload").is_none() {
+        return Err("text, media, or payload is required".to_string());
+    }
+    let thread_id = string_param(&params, &["threadId"]);
+    let reply_to_id = string_param(&params, &["replyToId", "replyTo", "messageId"]);
+    let now = now_millis();
+    let request_id = string_param(&params, &["idempotencyKey", "runId", "requestId"])
+        .unwrap_or_else(|| format!("rust-action-{now}"));
+    let mut request_params = object_param(&params, "params");
+    if let Some(payload) = params.get("payload").cloned() {
+        request_params.insert("payload".to_string(), payload);
+    }
+
+    let runtime_state = read_channel_runtime_state(state)?;
+    let account_runtime = channel_runtime_account(&runtime_state, &channel, &account_id);
+    let connected = account_runtime
+        .and_then(|account| account.get("connected"))
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let request = ChannelOutboundRequest {
+        request_id: request_id.clone(),
+        channel,
+        account_id: Some(account_id),
+        action,
+        to,
+        text,
+        media_urls,
+        reply_to_id,
+        thread_id,
+        params: request_params,
+    };
+    let mut entry = serde_json::to_value(dispatch_native_channel_outbound(
+        &request,
+        NativeChannelDispatchContext {
+            connected,
+            now_ms: now,
+        },
+    ))
+    .map_err(|error| format!("failed to serialize channel action delivery record: {error}"))?;
+    if let Some(object) = entry.as_object_mut() {
+        object.insert("runId".to_string(), Value::String(request_id));
+    }
+    let sent = entry.get("sent").and_then(Value::as_bool).unwrap_or(false);
     let delivery_file = if sent {
         state.runtime_root.join("channels").join("deliveries.jsonl")
     } else {
@@ -6274,16 +6520,208 @@ fn chat_abort(params: Value) -> Result<Value, String> {
     }))
 }
 
+async fn execute_agent_run_turn(
+    state: &GatewayState,
+    params: &Value,
+    default_run_prefix: &str,
+) -> Result<AgentRunResult, String> {
+    let session_key = normalize_session_key(&required_param(params, &["sessionKey", "key"])?)?;
+    let run_id = string_param(params, &["idempotencyKey", "runId"])
+        .unwrap_or_else(|| format!("{default_run_prefix}-{}", now_millis()));
+    let request = build_agent_run_request(params, run_id, session_key)?;
+    let result = state
+        .agent_runtime
+        .run_turn(request)
+        .await
+        .map_err(|error| error.message().to_string())?;
+    record_agent_run_events(state, &result)?;
+    Ok(result)
+}
+
+fn build_agent_run_request(
+    params: &Value,
+    run_id: String,
+    session_key: String,
+) -> Result<AgentRunRequest, String> {
+    let agent_id = string_param(params, &["agentId"]).unwrap_or_else(|| "main".to_string());
+    let inbound = if let Some(value) = params.get("inbound") {
+        let mut inbound = serde_json::from_value::<ChannelInboundEnvelope>(value.clone())
+            .map_err(|error| format!("invalid agent inbound envelope: {error}"))?;
+        if inbound.thread_id.is_none() {
+            inbound.thread_id = Some(session_key.clone());
+        }
+        inbound
+    } else {
+        let message = required_param(params, &["message", "text"])?;
+        ChannelInboundEnvelope {
+            channel: string_param(params, &["channel"]).unwrap_or_else(|| "gateway".to_string()),
+            account_id: string_param(params, &["accountId"]),
+            from: string_param(params, &["from"]).unwrap_or_else(|| "user".to_string()),
+            to: string_param(params, &["to"]).unwrap_or_else(|| "agent:main".to_string()),
+            chat_type: ChannelChatType::Direct,
+            body: message.clone(),
+            raw_body: Some(message),
+            message_id: string_param(params, &["messageId"]),
+            thread_id: Some(session_key.clone()),
+            media_urls: Vec::new(),
+            metadata: BTreeMap::new(),
+        }
+    };
+
+    Ok(AgentRunRequest {
+        run_id,
+        agent_id,
+        session_key,
+        inbound,
+        model: AgentModelSelection {
+            provider: agent_model_param(params, "provider")
+                .unwrap_or_else(|| "configured".to_string()),
+            model: agent_model_param(params, "model").unwrap_or_else(|| "configured".to_string()),
+            reasoning_level: string_param(params, &["reasoningLevel"]),
+        },
+        enabled_tools: Vec::new(),
+        options: BTreeMap::new(),
+    })
+}
+
+fn agent_model_param(params: &Value, field: &str) -> Option<String> {
+    let top_level = if field == "model" {
+        string_param(params, &["modelId"]).or_else(|| {
+            params
+                .get("model")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+    } else {
+        string_param(params, &[field])
+    };
+    top_level
+        .or_else(|| {
+            params
+                .get("model")
+                .and_then(Value::as_object)
+                .and_then(|model| model.get(field))
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn agent_run_events_value(events: &[AgentRunEvent]) -> Result<Value, String> {
+    serde_json::to_value(events)
+        .map_err(|error| format!("failed to serialize agent run events: {error}"))
+}
+
+fn record_agent_run_events(state: &GatewayState, result: &AgentRunResult) -> Result<(), String> {
+    let events = result
+        .events
+        .iter()
+        .map(serde_json::to_value)
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|error| format!("failed to serialize agent run events: {error}"))?;
+    let mut runs = state
+        .agent_run_events
+        .lock()
+        .map_err(|_| "agent run event store lock poisoned".to_string())?;
+    runs.insert(result.run_id.clone(), events);
+    Ok(())
+}
+
+async fn agent_run_turn(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let result = execute_agent_run_turn(state, &params, "rust-agent-run").await?;
+    let events = agent_run_events_value(&result.events)?;
+    Ok(json!({
+        "ok": true,
+        "status": "completed",
+        "runId": result.run_id,
+        "sessionKey": result.session_key,
+        "assistantText": result.assistant_text,
+        "events": events
+    }))
+}
+
+async fn channel_inbound_handle(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let inbound_value = params
+        .get("inbound")
+        .cloned()
+        .ok_or_else(|| "channel.inbound.handle requires inbound envelope".to_string())?;
+    let mut inbound = serde_json::from_value::<ChannelInboundEnvelope>(inbound_value)
+        .map_err(|error| format!("invalid channel inbound envelope: {error}"))?;
+    let session_key = resolve_inbound_session_key(&params, &inbound)?;
+    if inbound.thread_id.is_none() {
+        inbound.thread_id = Some(session_key.clone());
+    }
+    let run_id = string_param(&params, &["idempotencyKey", "runId"])
+        .unwrap_or_else(|| format!("rust-inbound-{}", now_millis()));
+    let request = AgentRunRequest {
+        run_id,
+        agent_id: string_param(&params, &["agentId"]).unwrap_or_else(|| "main".to_string()),
+        session_key,
+        inbound,
+        model: AgentModelSelection {
+            provider: agent_model_param(&params, "provider")
+                .unwrap_or_else(|| "configured".to_string()),
+            model: agent_model_param(&params, "model").unwrap_or_else(|| "configured".to_string()),
+            reasoning_level: string_param(&params, &["reasoningLevel"]),
+        },
+        enabled_tools: Vec::new(),
+        options: BTreeMap::new(),
+    };
+    let result = state
+        .agent_runtime
+        .run_turn(request)
+        .await
+        .map_err(|error| error.message().to_string())?;
+    record_agent_run_events(state, &result)?;
+    let events = agent_run_events_value(&result.events)?;
+    Ok(json!({
+        "ok": true,
+        "status": "completed",
+        "runId": result.run_id,
+        "sessionKey": result.session_key,
+        "assistantText": result.assistant_text,
+        "events": events
+    }))
+}
+
+fn resolve_inbound_session_key(
+    params: &Value,
+    inbound: &ChannelInboundEnvelope,
+) -> Result<String, String> {
+    if let Some(session_key) = string_param(params, &["sessionKey", "key"]) {
+        return normalize_session_key(&session_key);
+    }
+    if let Some(thread_id) = inbound.thread_id.as_deref() {
+        return normalize_session_key(thread_id);
+    }
+    Err("channel.inbound.handle requires sessionKey or inbound.threadId".to_string())
+}
+
+fn agent_stream_events(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let run_id = required_param(&params, &["runId", "id"])?;
+    let runs = state
+        .agent_run_events
+        .lock()
+        .map_err(|_| "agent run event store lock poisoned".to_string())?;
+    let events = runs
+        .get(&run_id)
+        .cloned()
+        .ok_or_else(|| format!("agent run events not found: {run_id}"))?;
+    Ok(json!({
+        "ok": true,
+        "runId": run_id,
+        "events": events
+    }))
+}
+
 async fn chat_send(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let session_key = normalize_session_key(&required_param(&params, &["sessionKey", "key"])?)?;
-    let message = required_param(&params, &["message", "text"])?;
     let run_id = string_param(&params, &["idempotencyKey", "runId"])
         .unwrap_or_else(|| format!("rust-chat-{}", now_millis()));
-    let result = match state
-        .agent_runtime
-        .send_message(session_key.clone(), message)
-        .await
-    {
+    let session_key = normalize_session_key(&required_param(&params, &["sessionKey", "key"])?)?;
+    let mut run_params = params;
+    ensure_json_object(&mut run_params).insert("runId".to_string(), Value::String(run_id.clone()));
+    let result = match execute_agent_run_turn(state, &run_params, "rust-chat").await {
         Ok(result) => result,
         Err(error) => {
             let payload = json!({
@@ -6291,14 +6729,22 @@ async fn chat_send(state: &GatewayState, params: Value) -> Result<Value, String>
             "sessionKey": session_key,
             "seq": 0,
                     "state": "error",
-                    "errorMessage": error.message()
+                    "errorMessage": error
                 });
             emit(state, "chat", payload);
-            return Err(error.message().to_string());
+            return Err(error);
         }
     };
-    let assistant_text = result.assistant_text;
-    let thread_id = result.thread_id;
+    let assistant_text = result
+        .events
+        .iter()
+        .find_map(|event| match event {
+            AgentRunEvent::ReplyPayload { payload, .. } => payload.text.clone(),
+            _ => None,
+        })
+        .unwrap_or_else(|| result.assistant_text.clone());
+    let thread_id = result.session_key;
+    let events = agent_run_events_value(&result.events)?;
     let payload = json!({
         "runId": run_id.clone(),
         "sessionKey": thread_id.clone(),
@@ -6316,7 +6762,8 @@ async fn chat_send(state: &GatewayState, params: Value) -> Result<Value, String>
         "status": "completed",
         "runId": run_id,
         "sessionKey": thread_id,
-        "message": payload.get("message").cloned().unwrap_or(Value::Null)
+        "message": payload.get("message").cloned().unwrap_or(Value::Null),
+        "events": events
     }))
 }
 
@@ -8731,6 +9178,7 @@ fn gateway_methods() -> Vec<&'static str> {
         "plugin.approval.waitDecision",
         "plugin.approval.resolve",
         "channels.status",
+        "channels.capabilities",
         "channels.setup.surface",
         "channels.config.get",
         "channels.config.schema",
@@ -8765,6 +9213,16 @@ fn gateway_methods() -> Vec<&'static str> {
         "system-presence",
         "system-event",
         "send",
+        "channel.outbound.send",
+        "poll",
+        "channel.outbound.poll",
+        "channel.outbound.action",
+        "channel.inbound.handle",
+        "channel.directory.lookup",
+        "channel.lifecycle.status",
+        "channel.lifecycle.start",
+        "channel.lifecycle.stop",
+        "channel.lifecycle.restart",
         "device.pair.list",
         "device.pair.approve",
         "device.pair.reject",
@@ -8797,6 +9255,9 @@ fn gateway_methods() -> Vec<&'static str> {
         "workflow.cancel",
         "workflow.resume",
         "workflow.agent.run",
+        "agent.runTurn",
+        "agent.streamEvents",
+        "agent.cancel",
         "chat.history",
         "chat.send",
         "chat.abort",
@@ -9514,6 +9975,30 @@ fn string_array_param(input: &Value, key: &str) -> Option<Vec<String>> {
     }
 }
 
+fn media_urls_param(input: &Value) -> Vec<String> {
+    let mut out = Vec::new();
+    if let Some(value) = string_param(input, &["mediaUrl"]) {
+        out.push(value);
+    }
+    if let Some(values) = string_array_param(input, "mediaUrls") {
+        out.extend(values);
+    }
+    out
+}
+
+fn object_param(input: &Value, key: &str) -> BTreeMap<String, Value> {
+    input
+        .get(key)
+        .and_then(Value::as_object)
+        .map(|object| {
+            object
+                .iter()
+                .map(|(field, value)| (field.clone(), value.clone()))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn system_presence_key(entry: &Map<String, Value>) -> String {
     for field in ["deviceId", "instanceId", "host", "ip"] {
         if let Some(value) = entry.get(field).and_then(Value::as_str) {
@@ -9560,6 +10045,22 @@ fn bool_param(input: &Value, keys: &[&str]) -> Option<bool> {
             })
         })
     })
+}
+
+fn positive_integer_param(input: &Value, key: &str) -> Result<Option<u64>, String> {
+    let Some(value) = input.get(key) else {
+        return Ok(None);
+    };
+    if value.is_null() {
+        return Ok(None);
+    }
+    let Some(number) = value.as_u64() else {
+        return Err(format!("{key} must be a positive integer"));
+    };
+    if number == 0 {
+        return Err(format!("{key} must be at least 1"));
+    }
+    Ok(Some(number))
 }
 
 fn required_param(input: &Value, keys: &[&str]) -> Result<String, String> {
@@ -10718,6 +11219,13 @@ mod tests {
 
         assert_eq!(result["status"], "completed");
         assert_eq!(result["message"]["content"], "hello from rust provider");
+        assert_eq!(result["events"][0]["type"], "runStarted");
+        assert_eq!(result["events"][1]["type"], "replyPayload");
+        assert_eq!(
+            result["events"][1]["payload"]["text"],
+            "hello from rust provider"
+        );
+        assert_eq!(result["events"][3]["type"], "runCompleted");
         let request = request_rx
             .recv_timeout(Duration::from_secs(2))
             .expect("captured native provider request");
@@ -10732,6 +11240,183 @@ mod tests {
             .expect("updated transcript");
         assert!(transcript.contains("hello gateway"));
         assert!(transcript.contains("hello from rust provider"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_agent_run_turn_returns_native_event_contract() {
+        let runtime_root = unique_test_runtime_root("gateway-agent-run-turn");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"hello from agent run turn"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let result = handle_gateway_method(
+            &state,
+            "agent.runTurn",
+            json!({
+                "runId": "agent-run-turn-1",
+                "agentId": "main",
+                "sessionKey": "agent:main:turn",
+                "inbound": {
+                    "channel": "gateway",
+                    "accountId": "local",
+                    "from": "user",
+                    "to": "agent:main",
+                    "chatType": "direct",
+                    "body": "hello run turn",
+                    "rawBody": "hello run turn",
+                    "messageId": "in-1",
+                    "threadId": "agent:main:turn"
+                }
+            }),
+        )
+        .await
+        .expect("agent run turn");
+
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["runId"], "agent-run-turn-1");
+        assert_eq!(result["sessionKey"], "agent:main:turn");
+        assert_eq!(result["assistantText"], "hello from agent run turn");
+        assert_eq!(result["events"][0]["type"], "runStarted");
+        assert_eq!(result["events"][1]["type"], "replyPayload");
+        assert_eq!(
+            result["events"][1]["payload"]["text"],
+            "hello from agent run turn"
+        );
+        assert_eq!(result["events"][3]["type"], "runCompleted");
+
+        let streamed = handle_gateway_method(
+            &state,
+            "agent.streamEvents",
+            json!({ "runId": "agent-run-turn-1" }),
+        )
+        .await
+        .expect("stream agent events");
+        assert_eq!(streamed["ok"], true);
+        assert_eq!(streamed["runId"], "agent-run-turn-1");
+        assert_eq!(streamed["events"], result["events"]);
+
+        let cancelled = handle_gateway_method(
+            &state,
+            "agent.cancel",
+            json!({ "sessionKey": "agent:main:turn", "runId": "agent-run-turn-1" }),
+        )
+        .await
+        .expect("cancel completed agent run");
+        assert_eq!(cancelled["ok"], true);
+        assert_eq!(cancelled["aborted"], false);
+        assert_eq!(cancelled["runIds"], json!(["agent-run-turn-1"]));
+
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured native provider request");
+        assert!(request.contains("hello run turn"));
+
+        let transcript =
+            std::fs::read_to_string(runtime_root.join("sessions").join("agent:main:turn.jsonl"))
+                .expect("updated transcript");
+        assert!(transcript.contains("hello run turn"));
+        assert!(transcript.contains("hello from agent run turn"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_channel_inbound_handle_runs_native_agent_turn() {
+        let runtime_root = unique_test_runtime_root("gateway-channel-inbound-handle");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"hello from inbound handler"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let result = handle_gateway_method(
+            &state,
+            "channel.inbound.handle",
+            json!({
+                "runId": "inbound-run-1",
+                "agentId": "main",
+                "inbound": {
+                    "channel": "telegram",
+                    "accountId": "default",
+                    "from": "telegram:123",
+                    "to": "agent:main",
+                    "chatType": "direct",
+                    "body": "hello inbound",
+                    "rawBody": "hello inbound",
+                    "messageId": "tg-1",
+                    "threadId": "agent:main:telegram:123"
+                }
+            }),
+        )
+        .await
+        .expect("channel inbound handle");
+
+        assert_eq!(result["ok"], true);
+        assert_eq!(result["runId"], "inbound-run-1");
+        assert_eq!(result["sessionKey"], "agent:main:telegram:123");
+        assert_eq!(result["assistantText"], "hello from inbound handler");
+        assert_eq!(result["events"][0]["type"], "runStarted");
+        assert_eq!(result["events"][1]["type"], "replyPayload");
+        assert_eq!(result["events"][3]["type"], "runCompleted");
+
+        let streamed = handle_gateway_method(
+            &state,
+            "agent.streamEvents",
+            json!({ "runId": "inbound-run-1" }),
+        )
+        .await
+        .expect("stream inbound events");
+        assert_eq!(streamed["events"], result["events"]);
+
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured native provider request");
+        assert!(request.contains("hello inbound"));
+
+        let transcript = std::fs::read_to_string(
+            runtime_root
+                .join("sessions")
+                .join("agent:main:telegram:123.jsonl"),
+        )
+        .expect("updated transcript");
+        assert!(transcript.contains("hello inbound"));
+        assert!(transcript.contains("hello from inbound handler"));
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -12297,6 +12982,126 @@ mod tests {
         assert_eq!(local_send["deliveryStatus"], "delivered");
         assert!(local_send["deliveredAtMs"].is_number());
 
+        let contract_send = handle_gateway_method(
+            &state,
+            "channel.outbound.send",
+            json!({
+                "channel": "desktop",
+                "accountId": "local",
+                "to": "agent:main",
+                "message": "hello contract",
+                "mediaUrl": "https://example.test/a.png",
+                "mediaUrls": ["https://example.test/b.png"],
+                "threadId": "thread-1",
+                "replyToId": "message-1",
+                "gifPlayback": true,
+                "idempotencyKey": "send-contract-1"
+            }),
+        )
+        .await
+        .expect("desktop contract send");
+        assert_eq!(contract_send["runId"], "send-contract-1");
+        assert_eq!(contract_send["sent"], true);
+        assert_eq!(contract_send["deliveryStatus"], "delivered");
+        assert_eq!(contract_send["threadId"], "thread-1");
+        assert_eq!(contract_send["replyToId"], "message-1");
+        assert_eq!(contract_send["mediaUrls"][0], "https://example.test/a.png");
+        assert_eq!(contract_send["mediaUrls"][1], "https://example.test/b.png");
+        assert_eq!(contract_send["params"]["gifPlayback"], true);
+
+        let local_poll = handle_gateway_method(
+            &state,
+            "poll",
+            json!({
+                "channel": "desktop",
+                "accountId": "local",
+                "to": "agent:main",
+                "question": "Lunch?",
+                "options": ["Pizza", "Sushi"],
+                "maxSelections": 1,
+                "durationSeconds": 60,
+                "idempotencyKey": "poll-local-1"
+            }),
+        )
+        .await
+        .expect("desktop poll");
+        assert_eq!(local_poll["runId"], "poll-local-1");
+        assert_eq!(local_poll["sent"], true);
+        assert_eq!(local_poll["deliveryStatus"], "delivered");
+        assert_eq!(local_poll["poll"]["question"], "Lunch?");
+        assert_eq!(local_poll["poll"]["options"][0], "Pizza");
+
+        let contract_poll = handle_gateway_method(
+            &state,
+            "channel.outbound.poll",
+            json!({
+                "channel": "desktop",
+                "accountId": "local",
+                "to": "agent:main",
+                "question": "Dinner?",
+                "options": ["Noodles", "Rice"]
+            }),
+        )
+        .await
+        .expect("desktop contract poll");
+        assert_eq!(contract_poll["sent"], true);
+        assert_eq!(contract_poll["deliveryStatus"], "delivered");
+
+        let action_delivery = handle_gateway_method(
+            &state,
+            "channel.outbound.action",
+            json!({
+                "channel": "desktop",
+                "accountId": "local",
+                "action": "threadReply",
+                "to": "agent:main",
+                "message": "thread reply",
+                "threadId": "thread-2",
+                "params": { "effect": "confetti" },
+                "idempotencyKey": "action-local-1"
+            }),
+        )
+        .await
+        .expect("desktop outbound action");
+        assert_eq!(action_delivery["runId"], "action-local-1");
+        assert_eq!(action_delivery["action"], "threadReply");
+        assert_eq!(action_delivery["threadId"], "thread-2");
+        assert_eq!(action_delivery["params"]["effect"], "confetti");
+        assert_eq!(action_delivery["sent"], true);
+
+        let lifecycle_status = handle_gateway_method(
+            &state,
+            "channel.lifecycle.status",
+            json!({ "channel": "desktop" }),
+        )
+        .await
+        .expect("channel lifecycle status");
+        assert_eq!(lifecycle_status["ok"], true);
+        assert_eq!(
+            lifecycle_status["snapshot"]["channels"]["desktop"]["connected"],
+            true
+        );
+
+        let lifecycle_stop = handle_gateway_method(
+            &state,
+            "channel.lifecycle.stop",
+            json!({ "channel": "desktop", "accountId": "local" }),
+        )
+        .await
+        .expect("channel lifecycle stop");
+        assert_eq!(lifecycle_stop["connected"], false);
+        assert_eq!(lifecycle_stop["healthState"], "logged_out");
+
+        let lifecycle_restart = handle_gateway_method(
+            &state,
+            "channel.lifecycle.restart",
+            json!({ "channel": "desktop", "accountId": "local" }),
+        )
+        .await
+        .expect("channel lifecycle restart");
+        assert_eq!(lifecycle_restart["connected"], true);
+        assert_eq!(lifecycle_restart["healthState"], "connected");
+
         let blocked_external = handle_gateway_method(
             &state,
             "send",
@@ -12312,6 +13117,39 @@ mod tests {
         assert_eq!(blocked_external["deliveryStatus"], "blocked");
         assert_eq!(blocked_external["errorCode"], "needs_channel_transport");
 
+        let blocked_poll = handle_gateway_method(
+            &state,
+            "channel.outbound.poll",
+            json!({
+                "channel": "telegram",
+                "to": "chat:123",
+                "question": "Lunch?",
+                "options": ["Pizza", "Sushi"]
+            }),
+        )
+        .await
+        .expect("telegram poll");
+        assert_eq!(blocked_poll["sent"], false);
+        assert_eq!(blocked_poll["deliveryStatus"], "blocked");
+        assert_eq!(blocked_poll["errorCode"], "needs_channel_transport");
+
+        let blocked_action = handle_gateway_method(
+            &state,
+            "channel.outbound.action",
+            json!({
+                "channel": "slack",
+                "action": "threadReply",
+                "to": "channel:C123",
+                "text": "blocked action",
+                "threadId": "thread-3"
+            }),
+        )
+        .await
+        .expect("slack outbound action");
+        assert_eq!(blocked_action["sent"], false);
+        assert_eq!(blocked_action["deliveryStatus"], "blocked");
+        assert_eq!(blocked_action["errorCode"], "needs_channel_transport");
+
         let status = handle_gateway_method(&state, "channels.status", json!({}))
             .await
             .expect("channels status");
@@ -12321,6 +13159,80 @@ mod tests {
             status["channelAccounts"]["desktop"][0]["healthState"],
             "connected"
         );
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_channels_status_uses_native_channel_catalog() {
+        let runtime_root = unique_test_runtime_root("gateway-native-channel-catalog");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let status = handle_gateway_method(&state, "channels.status", json!({}))
+            .await
+            .expect("channels status");
+
+        assert_eq!(status["channelOrder"][0], "desktop");
+        let channel_order = status["channelOrder"]
+            .as_array()
+            .expect("channelOrder array");
+        assert!(channel_order.iter().any(|channel| channel == "telegram"));
+        assert!(channel_order.iter().any(|channel| channel == "bluebubbles"));
+        assert_eq!(
+            status["channels"]["telegram"]["nativeAdapterId"],
+            "telegram-native"
+        );
+        assert_eq!(
+            status["channels"]["telegram"]["capabilities"]["outbound"]["poll"],
+            true
+        );
+        assert_eq!(
+            status["channelControls"]["desktop"]["nativeAdapterId"],
+            "desktop-native"
+        );
+        assert_eq!(status["channels"]["matrix"]["configured"], false);
+
+        let setup = handle_gateway_method(
+            &state,
+            "channels.setup.surface",
+            json!({ "channel": "slack" }),
+        )
+        .await
+        .expect("slack setup");
+        assert_eq!(setup["label"], "Slack");
+        assert_eq!(setup["nativeAdapterId"], "slack-native");
+        assert_eq!(setup["capabilities"]["outbound"]["threadReply"], true);
+
+        let capabilities = handle_gateway_method(
+            &state,
+            "channels.capabilities",
+            json!({ "channel": "slack" }),
+        )
+        .await
+        .expect("slack capabilities");
+        assert_eq!(capabilities["version"], channel_contract_version());
+        assert_eq!(capabilities["channels"][0]["channel"], "slack");
+        assert_eq!(capabilities["channels"][0]["outbound"]["threadReply"], true);
+
+        let directory = handle_gateway_method(
+            &state,
+            "channel.directory.lookup",
+            json!({
+                "channel": "telegram",
+                "accountId": "default",
+                "query": "@Alice",
+                "kind": "user"
+            }),
+        )
+        .await
+        .expect("channel directory lookup");
+        assert_eq!(directory["ok"], true);
+        assert_eq!(directory["channel"], "telegram");
+        assert_eq!(directory["descriptor"]["rustAdapterId"], "telegram-native");
+        assert_eq!(directory["targets"][0]["normalized"], "user:alice");
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }

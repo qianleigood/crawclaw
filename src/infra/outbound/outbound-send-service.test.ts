@@ -3,8 +3,13 @@ import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../../utils/message-
 
 const getDefaultMediaLocalRootsMock = vi.hoisted(() => vi.fn(() => []));
 const dispatchChannelMessageActionMock = vi.hoisted(() => vi.fn());
+const buildRustChannelOutboundRequestMock = vi.hoisted(() => vi.fn());
 const sendMessageMock = vi.hoisted(() => vi.fn());
 const sendPollMock = vi.hoisted(() => vi.fn());
+const shouldAllowBundledTsChannelRuntimeMock = vi.hoisted(() => vi.fn(() => true));
+const listBundledPluginMetadataMock = vi.hoisted(() =>
+  vi.fn<() => Array<{ manifest: { channels: string[] } }>>(() => []),
+);
 const getAgentScopedMediaLocalRootsForSourcesMock = vi.hoisted(() =>
   vi.fn<(params: { cfg: unknown; agentId?: string; mediaSources?: readonly string[] }) => string[]>(
     () => ["/tmp/agent-roots"],
@@ -40,8 +45,11 @@ const appendAssistantMessageToSessionTranscriptMock = vi.hoisted(() =>
 const mocks = {
   getDefaultMediaLocalRoots: getDefaultMediaLocalRootsMock,
   dispatchChannelMessageAction: dispatchChannelMessageActionMock,
+  buildRustChannelOutboundRequest: buildRustChannelOutboundRequestMock,
   sendMessage: sendMessageMock,
   sendPoll: sendPollMock,
+  shouldAllowBundledTsChannelRuntime: shouldAllowBundledTsChannelRuntimeMock,
+  listBundledPluginMetadata: listBundledPluginMetadataMock,
   getAgentScopedMediaLocalRootsForSources: getAgentScopedMediaLocalRootsForSourcesMock,
   createAgentScopedHostMediaReadFile: createAgentScopedHostMediaReadFileMock,
   resolveAgentScopedOutboundMediaAccess: resolveAgentScopedOutboundMediaAccessMock,
@@ -52,9 +60,21 @@ vi.mock("../../channels/plugins/message-action-dispatch.js", () => ({
   dispatchChannelMessageAction: mocks.dispatchChannelMessageAction,
 }));
 
+vi.mock("./message-policy-runtime.js", () => ({
+  buildRustChannelOutboundRequest: mocks.buildRustChannelOutboundRequest,
+}));
+
 vi.mock("./message.js", () => ({
   sendMessage: mocks.sendMessage,
   sendPoll: mocks.sendPoll,
+}));
+
+vi.mock("../../channels/plugins/bundled-runtime-policy.js", () => ({
+  shouldAllowBundledTsChannelRuntime: mocks.shouldAllowBundledTsChannelRuntime,
+}));
+
+vi.mock("../../plugins/bundled-plugin-metadata.js", () => ({
+  listBundledPluginMetadata: mocks.listBundledPluginMetadata,
 }));
 
 vi.mock("../../media/read-capability.js", () => ({
@@ -138,8 +158,14 @@ describe("executeSendAction", () => {
     vi.resetModules();
     ({ executePollAction, executeSendAction } = await import("./outbound-send-service.js"));
     mocks.dispatchChannelMessageAction.mockClear();
+    mocks.buildRustChannelOutboundRequest.mockReset();
+    mocks.buildRustChannelOutboundRequest.mockImplementation(async (request) => request);
     mocks.sendMessage.mockClear();
     mocks.sendPoll.mockClear();
+    mocks.shouldAllowBundledTsChannelRuntime.mockReset();
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(true);
+    mocks.listBundledPluginMetadata.mockReset();
+    mocks.listBundledPluginMetadata.mockReturnValue([]);
     mocks.getDefaultMediaLocalRoots.mockClear();
     mocks.getAgentScopedMediaLocalRootsForSources.mockClear();
     mocks.createAgentScopedHostMediaReadFile.mockClear();
@@ -171,6 +197,114 @@ describe("executeSendAction", () => {
     expect(mocks.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         agentId: "work",
+        channel: "demo-outbound",
+        to: "channel:123",
+        content: "hello",
+      }),
+    );
+  });
+
+  it("uses the Rust outbound request envelope before core send delivery", async () => {
+    mocks.dispatchChannelMessageAction.mockResolvedValue(null);
+    mocks.buildRustChannelOutboundRequest.mockResolvedValue({
+      requestId: "out-1",
+      channel: "demo-outbound",
+      accountId: "default",
+      action: "send",
+      to: "channel:normalized",
+      text: "hello from rust",
+      mediaUrls: ["file:///tmp/a.png"],
+      replyToId: "reply-1",
+      threadId: "thread-1",
+      params: {},
+    });
+    mocks.sendMessage.mockResolvedValue({
+      channel: "demo-outbound",
+      to: "channel:normalized",
+      via: "direct",
+      mediaUrl: null,
+    });
+
+    await executeSendAction({
+      ctx: {
+        cfg: {},
+        channel: "demo-outbound",
+        accountId: "default",
+        params: {},
+        dryRun: false,
+      },
+      to: "channel:123",
+      message: "hello",
+      mediaUrls: ["file:///tmp/a.png"],
+      replyToId: "reply-1",
+      threadId: "thread-1",
+    });
+
+    expect(mocks.buildRustChannelOutboundRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "demo-outbound",
+        accountId: "default",
+        action: "send",
+        to: "channel:123",
+        text: "hello",
+        mediaUrls: ["file:///tmp/a.png"],
+        replyToId: "reply-1",
+        threadId: "thread-1",
+      }),
+    );
+    expect(mocks.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "demo-outbound",
+        accountId: "default",
+        to: "channel:normalized",
+        content: "hello from rust",
+        mediaUrls: ["file:///tmp/a.png"],
+        replyToId: "reply-1",
+        threadId: "thread-1",
+      }),
+    );
+  });
+
+  it("bypasses bundled TS message action dispatch when native channel runtime is authoritative", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["demo-outbound"],
+        },
+      },
+    ]);
+    mocks.dispatchChannelMessageAction.mockResolvedValue(pluginActionResult("msg-plugin"));
+    mocks.sendMessage.mockResolvedValue({
+      channel: "demo-outbound",
+      to: "channel:123",
+      via: "gateway",
+      mediaUrl: null,
+    });
+
+    await executeSendAction({
+      ctx: {
+        cfg: {},
+        channel: "demo-outbound",
+        params: { to: "channel:123", message: "hello" },
+        dryRun: false,
+      },
+      to: "channel:123",
+      message: "hello",
+    });
+
+    expect(mocks.dispatchChannelMessageAction).not.toHaveBeenCalled();
+    expect(mocks.buildRustChannelOutboundRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "demo-outbound",
+        action: "send",
+        to: "channel:123",
+        text: "hello",
+      }),
+    );
+    expect(mocks.sendMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nativeGateway: true,
         channel: "demo-outbound",
         to: "channel:123",
         content: "hello",
@@ -356,10 +490,21 @@ describe("executeSendAction", () => {
 
   it("forwards poll args to sendPoll on core outbound path", async () => {
     mocks.dispatchChannelMessageAction.mockResolvedValue(null);
+    mocks.buildRustChannelOutboundRequest.mockResolvedValue({
+      requestId: "poll:1",
+      channel: "demo-outbound",
+      accountId: "acc-1",
+      action: "poll",
+      to: "channel:normalized",
+      text: "Lunch from rust?",
+      mediaUrls: [],
+      threadId: "thread-from-rust",
+      params: {},
+    });
     mocks.sendPoll.mockResolvedValue({
       channel: "demo-outbound",
-      to: "channel:123",
-      question: "Lunch?",
+      to: "channel:normalized",
+      question: "Lunch from rust?",
       options: ["Pizza", "Sushi"],
       maxSelections: 1,
       durationSeconds: null,
@@ -386,17 +531,81 @@ describe("executeSendAction", () => {
       }),
     });
 
+    expect(mocks.buildRustChannelOutboundRequest).toHaveBeenCalledWith(
+      expect.objectContaining({
+        channel: "demo-outbound",
+        accountId: "acc-1",
+        action: "poll",
+        to: "channel:123",
+        text: "Lunch?",
+        threadId: "thread-1",
+        params: expect.objectContaining({
+          question: "Lunch?",
+          options: ["Pizza", "Sushi"],
+          maxSelections: 1,
+          durationSeconds: 300,
+          isAnonymous: true,
+        }),
+      }),
+    );
     expect(mocks.sendPoll).toHaveBeenCalledWith(
       expect.objectContaining({
         channel: "demo-outbound",
         accountId: "acc-1",
+        to: "channel:normalized",
+        question: "Lunch from rust?",
+        options: ["Pizza", "Sushi"],
+        maxSelections: 1,
+        durationSeconds: 300,
+        threadId: "thread-from-rust",
+        isAnonymous: true,
+      }),
+    );
+  });
+
+  it("bypasses bundled TS poll dispatch when native channel runtime is authoritative", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["demo-outbound"],
+        },
+      },
+    ]);
+    mocks.dispatchChannelMessageAction.mockResolvedValue(pluginActionResult("poll-plugin"));
+    mocks.sendPoll.mockResolvedValue({
+      channel: "demo-outbound",
+      to: "channel:123",
+      question: "Lunch?",
+      options: ["Pizza", "Sushi"],
+      maxSelections: 1,
+      durationSeconds: null,
+      durationHours: null,
+      via: "gateway",
+    });
+
+    await executePollAction({
+      ctx: {
+        cfg: {},
+        channel: "demo-outbound",
+        params: {},
+        dryRun: false,
+      },
+      resolveCorePoll: () => ({
         to: "channel:123",
         question: "Lunch?",
         options: ["Pizza", "Sushi"],
         maxSelections: 1,
-        durationSeconds: 300,
-        threadId: "thread-1",
-        isAnonymous: true,
+      }),
+    });
+
+    expect(mocks.dispatchChannelMessageAction).not.toHaveBeenCalled();
+    expect(mocks.sendPoll).toHaveBeenCalledWith(
+      expect.objectContaining({
+        nativeGateway: true,
+        channel: "demo-outbound",
+        to: "channel:123",
+        question: "Lunch?",
       }),
     );
   });

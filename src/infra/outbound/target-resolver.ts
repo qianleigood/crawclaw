@@ -12,11 +12,16 @@ import {
   buildTargetResolverSignature,
   normalizeChannelTargetInput,
   normalizeTargetForProvider,
+  shouldUseNativeChannelTargetRuntime,
 } from "./target-normalization.js";
 
 export type TargetResolveKind = ChannelDirectoryEntryKind | "channel";
 
 export type ResolveAmbiguousMode = "error" | "best" | "first";
+
+function getTargetResolverPlugin(channel: ChannelId) {
+  return shouldUseNativeChannelTargetRuntime(channel) ? undefined : getChannelPlugin(channel);
+}
 
 export type ResolvedMessagingTarget = {
   to: string;
@@ -68,7 +73,7 @@ async function maybeResolvePluginTarget(
   if (!raw) {
     return undefined;
   }
-  const plugin = getChannelPlugin(params.channel);
+  const plugin = getTargetResolverPlugin(params.channel);
   const resolver = plugin?.messaging?.targetResolver;
   if (!resolver?.resolveTarget) {
     return undefined;
@@ -133,7 +138,7 @@ export function formatTargetDisplay(params: {
   display?: string;
   kind?: ChannelDirectoryEntryKind;
 }): string {
-  const plugin = getChannelPlugin(params.channel);
+  const plugin = getTargetResolverPlugin(params.channel);
   if (plugin?.messaging?.formatTargetDisplay) {
     return plugin.messaging.formatTargetDisplay({
       target: params.target,
@@ -195,7 +200,9 @@ function detectTargetKind(
   if (!trimmed) {
     return "group";
   }
-  const inferredChatType = getChannelPlugin(channel)?.messaging?.inferTargetChatType?.({ to: raw });
+  const inferredChatType = getTargetResolverPlugin(channel)?.messaging?.inferTargetChatType?.({
+    to: raw,
+  });
   if (inferredChatType === "direct") {
     return "user";
   }
@@ -263,7 +270,7 @@ async function listDirectoryEntries(params: {
   query?: string;
   source: "cache" | "live";
 }): Promise<ChannelDirectoryEntry[]> {
-  const plugin = getChannelPlugin(params.channel);
+  const plugin = getTargetResolverPlugin(params.channel);
   const directory = plugin?.directory;
   if (!directory) {
     return [];
@@ -390,7 +397,7 @@ export async function resolveMessagingTarget(params: {
   if (!raw) {
     return { ok: false, error: new Error("Target is required") };
   }
-  const plugin = getChannelPlugin(params.channel);
+  const plugin = getTargetResolverPlugin(params.channel);
   const providerLabel = plugin?.meta?.label ?? params.channel;
   const hint = plugin?.messaging?.targetResolver?.hint;
   const kind = detectTargetKind(params.channel, raw, params.preferredKind);

@@ -1,5 +1,5 @@
-import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
-import { getActivePluginRegistry } from "../plugins/runtime.js";
+import type { ChannelId } from "../channels/plugins/types.js";
+import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
 
 export type GatewayReconfigureOwnerId =
   | "gateway-file-noop"
@@ -199,38 +199,49 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
 ];
 
 let cachedOwners: GatewayReconfigureOwner[] | null = null;
-let cachedRegistry: ReturnType<typeof getActivePluginRegistry> | null = null;
 
 function matchesPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}.`);
 }
 
 function listChannelReloadOwners(): GatewayReconfigureOwner[] {
-  return listChannelPlugins().flatMap((plugin) => [
-    ...(plugin.reload?.configPrefixes ?? []).map(
-      (prefix): GatewayReconfigureOwner => ({
+  const owners: GatewayReconfigureOwner[] = [];
+  for (const entry of listBundledPluginMetadata({
+    includeChannelConfigs: false,
+    includeSyntheticChannelConfigs: false,
+  })) {
+    for (const channelId of entry.manifest.channels ?? []) {
+      if (!channelId) {
+        continue;
+      }
+      if (channelId === "whatsapp") {
+        owners.push(
+          {
+            id: "gateway-channel-runtime",
+            prefixes: ["web"],
+            effect: "reconfigure",
+            actions: ["restart-channel:whatsapp"],
+          },
+          {
+            id: "gateway-channel-runtime",
+            prefixes: ["channels.whatsapp"],
+            effect: "noop",
+          },
+        );
+        continue;
+      }
+      owners.push({
         id: "gateway-channel-runtime",
-        prefixes: [prefix],
+        prefixes: [`channels.${channelId}`],
         effect: "reconfigure",
-        actions: [`restart-channel:${plugin.id}`],
-      }),
-    ),
-    ...(plugin.reload?.noopPrefixes ?? []).map(
-      (prefix): GatewayReconfigureOwner => ({
-        id: "gateway-channel-runtime",
-        prefixes: [prefix],
-        effect: "noop",
-      }),
-    ),
-  ]);
+        actions: [`restart-channel:${channelId as ChannelId}`],
+      });
+    }
+  }
+  return owners;
 }
 
 export function listGatewayReconfigureOwners(): GatewayReconfigureOwner[] {
-  const registry = getActivePluginRegistry();
-  if (registry !== cachedRegistry) {
-    cachedOwners = null;
-    cachedRegistry = registry;
-  }
   if (cachedOwners) {
     return cachedOwners;
   }

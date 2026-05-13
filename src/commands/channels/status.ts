@@ -25,6 +25,7 @@ import {
 } from "../feishu-cli-status.js";
 import {
   type ChatChannel,
+  formatAccountLabel,
   formatChannelAccountLabel,
   requireValidConfigSnapshot,
 } from "./shared.js";
@@ -87,14 +88,17 @@ function buildChannelAccountLine(
   provider: ChatChannel,
   account: Record<string, unknown>,
   bits: string[],
+  channelLabelOverride?: string,
 ): string {
   const accountId = typeof account.accountId === "string" ? account.accountId : "default";
   const name = typeof account.name === "string" ? account.name.trim() : "";
-  const labelText = formatChannelAccountLabel({
-    channel: provider,
-    accountId,
-    name: name || undefined,
-  });
+  const labelText = channelLabelOverride
+    ? `${channelLabelOverride} ${formatAccountLabel({ accountId, name: name || undefined })}`
+    : formatChannelAccountLabel({
+        channel: provider,
+        accountId,
+        name: name || undefined,
+      });
   return `- ${labelText}: ${bits.join(", ")}`;
 }
 
@@ -123,7 +127,8 @@ export function formatGatewayChannelsStatusLines(
 ): string[] {
   const lines: string[] = [];
   lines.push(theme.success("Gateway reachable."));
-  const accountLines = (provider: ChatChannel, accounts: Array<Record<string, unknown>>) =>
+  const channelLabels = payload.channelLabels as Record<string, unknown> | undefined;
+  const accountLines = (provider: string, accounts: Array<Record<string, unknown>>) =>
     accounts.map((account) => {
       const bits: string[] = [];
       appendEnabledConfiguredLinkedBits(bits, account);
@@ -216,23 +221,27 @@ export function formatGatewayChannelsStatusLines(
       if (typeof account.lastError === "string" && account.lastError) {
         bits.push(`error:${account.lastError}`);
       }
-      return buildChannelAccountLine(provider, account, bits);
+      const label =
+        typeof channelLabels?.[provider] === "string" ? channelLabels[provider] : undefined;
+      return buildChannelAccountLine(provider as ChatChannel, account, bits, label);
     });
 
-  const plugins = listChannelPlugins();
   const accountsByChannel = payload.channelAccounts as Record<string, unknown> | undefined;
   const accountPayloads: Partial<Record<string, Array<Record<string, unknown>>>> = {};
-  for (const plugin of plugins) {
-    const raw = accountsByChannel?.[plugin.id];
+  const channelOrder = Array.isArray(payload.channelOrder)
+    ? payload.channelOrder.filter((channel): channel is string => typeof channel === "string")
+    : Object.keys(accountsByChannel ?? {}).toSorted();
+  for (const channel of channelOrder) {
+    const raw = accountsByChannel?.[channel];
     if (Array.isArray(raw)) {
-      accountPayloads[plugin.id] = raw as Array<Record<string, unknown>>;
+      accountPayloads[channel] = raw as Array<Record<string, unknown>>;
     }
   }
 
-  for (const plugin of plugins) {
-    const accounts = accountPayloads[plugin.id];
+  for (const channel of channelOrder) {
+    const accounts = accountPayloads[channel];
     if (accounts && accounts.length > 0) {
-      lines.push(...accountLines(plugin.id, accounts));
+      lines.push(...accountLines(channel, accounts));
     }
   }
 

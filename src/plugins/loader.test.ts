@@ -1053,6 +1053,58 @@ describe("loadCrawClawPlugins", () => {
     },
   );
 
+  it("keeps bundled channel TS runtime disabled outside explicit compatibility", () => {
+    const bundledDir = makeTempDir();
+    writePlugin({
+      id: "telegram",
+      body: BUNDLED_TELEGRAM_PLUGIN_BODY,
+      dir: bundledDir,
+      filename: "telegram.cjs",
+    });
+    fs.writeFileSync(
+      path.join(bundledDir, "crawclaw.plugin.json"),
+      JSON.stringify(
+        {
+          id: "telegram",
+          channels: ["telegram"],
+          configSchema: EMPTY_PLUGIN_SCHEMA,
+        },
+        null,
+        2,
+      ),
+      "utf-8",
+    );
+    process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
+    resetPluginRuntimeStateForTest();
+
+    const registry = loadCrawClawPlugins({
+      cache: false,
+      workspaceDir: bundledDir,
+      env: {
+        ...process.env,
+        NODE_ENV: "production",
+        VITEST: undefined,
+        CRAWCLAW_ENABLE_TS_BUNDLED_CHANNEL_RUNTIME: undefined,
+      },
+      config: {
+        channels: {
+          telegram: {
+            enabled: true,
+          },
+        },
+        plugins: {
+          enabled: true,
+        },
+      },
+    });
+
+    const telegram = registry.plugins.find((entry) => entry.id === "telegram");
+    expect(telegram?.status).toBe("disabled");
+    expect(telegram?.error).toContain("native channel runtime");
+    expect(registry.channels.some((entry) => entry.plugin.id === "telegram")).toBe(false);
+    expect(listImportedRuntimePluginIds()).not.toContain("telegram");
+  });
+
   it("marks auto-enabled bundled channels as activated but not explicitly enabled", () => {
     setupBundledTelegramPlugin();
     const rawConfig = {

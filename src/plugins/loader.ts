@@ -2,6 +2,10 @@ import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { createJiti } from "jiti";
+import {
+  BUNDLED_TS_CHANNEL_RUNTIME_DISABLED_REASON,
+  shouldAllowBundledTsChannelRuntime,
+} from "../channels/plugins/bundled-runtime-policy.js";
 import { isChannelConfigured } from "../config/channel-configured.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
@@ -1156,6 +1160,20 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       record.status = "disabled";
       record.error = enableState.reason;
       markPluginActivationDisabled(record, enableState.reason);
+    }
+
+    if (
+      candidate.origin === "bundled" &&
+      manifestRecord.channels.length > 0 &&
+      !shouldAllowBundledTsChannelRuntime(env)
+    ) {
+      record.enabled = false;
+      record.status = "disabled";
+      record.error = BUNDLED_TS_CHANNEL_RUNTIME_DISABLED_REASON;
+      markPluginActivationDisabled(record, record.error);
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
+      continue;
     }
 
     if (record.format === "bundle") {

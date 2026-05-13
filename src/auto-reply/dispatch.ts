@@ -1,5 +1,5 @@
-import { finalizeInboundContext } from "../channels/inbound-context.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { finalizeInboundContextWithRust } from "./inbound-policy-runtime.js";
 import type { DispatchFromConfigResult } from "./reply/dispatch-from-config.js";
 import { dispatchReplyFromConfig } from "./reply/dispatch-from-config.js";
 import {
@@ -39,7 +39,7 @@ export async function dispatchInboundMessage(params: {
   replyOptions?: Omit<GetReplyOptions, "onToolResult" | "onBlockReply">;
   replyResolver?: typeof import("./reply.js").getReplyFromConfig;
 }): Promise<DispatchInboundResult> {
-  const finalized = finalizeInboundContext(params.ctx);
+  const finalized = await finalizeInboundContextWithRust(params.ctx);
   return await withReplyDispatcher({
     dispatcher: params.dispatcher,
     run: () =>

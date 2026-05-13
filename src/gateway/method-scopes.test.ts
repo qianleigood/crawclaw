@@ -1,3 +1,6 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterEach, describe, expect, it } from "vitest";
 import { createEmptyPluginRegistry } from "../plugins/registry-empty.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
@@ -8,6 +11,8 @@ import {
   resolveLeastPrivilegeOperatorScopesForMethod,
 } from "./method-scopes.js";
 import { listGatewayMethods } from "./server-methods-list.js";
+
+const gatewayDir = path.dirname(fileURLToPath(import.meta.url));
 
 afterEach(() => {
   setActivePluginRegistry(createEmptyPluginRegistry());
@@ -31,10 +36,13 @@ describe("method scope resolution", () => {
     ["memory.durable.index.get", ["operator.read"]],
     ["memory.dream.status", ["operator.read"]],
     ["memory.sessionSummary.status", ["operator.read"]],
+    ["channels.capabilities", ["operator.read"]],
     ["channels.setup.surface", ["operator.read"]],
     ["channels.config.get", ["operator.read"]],
     ["channels.config.schema", ["operator.read"]],
     ["channels.account.verify", ["operator.read"]],
+    ["channel.directory.lookup", ["operator.read"]],
+    ["channel.lifecycle.status", ["operator.read"]],
     ["sessions.create", ["operator.write"]],
     ["sessions.send", ["operator.write"]],
     ["sessions.abort", ["operator.write"]],
@@ -43,8 +51,15 @@ describe("method scope resolution", () => {
     ["memory.dream.run", ["operator.write"]],
     ["memory.sessionSummary.refresh", ["operator.write"]],
     ["workflow.agent.run", ["operator.write"]],
+    ["agent.runTurn", ["operator.write"]],
+    ["agent.streamEvents", ["operator.read"]],
+    ["agent.cancel", ["operator.write"]],
     ["sessions.messages.subscribe", ["operator.read"]],
     ["sessions.messages.unsubscribe", ["operator.read"]],
+    ["channel.outbound.send", ["operator.write"]],
+    ["channel.outbound.poll", ["operator.write"]],
+    ["channel.outbound.action", ["operator.write"]],
+    ["channel.inbound.handle", ["operator.write"]],
     ["poll", ["operator.write"]],
     ["config.patch", ["operator.admin"]],
     ["channels.account.login.start", ["operator.admin"]],
@@ -53,6 +68,9 @@ describe("method scope resolution", () => {
     ["channels.config.patch", ["operator.admin"]],
     ["channels.config.apply", ["operator.admin"]],
     ["channels.account.logout", ["operator.admin"]],
+    ["channel.lifecycle.start", ["operator.admin"]],
+    ["channel.lifecycle.stop", ["operator.admin"]],
+    ["channel.lifecycle.restart", ["operator.admin"]],
     ["memory.refresh", ["operator.admin"]],
     ["memory.login", ["operator.admin"]],
     ["wizard.start", ["operator.admin"]],
@@ -152,9 +170,34 @@ describe("plugin approval method registration", () => {
       "operator.read",
     ]);
   });
+
+  it("classifies agent.runTurn as a write method", () => {
+    expect(listGatewayMethods()).toContain("agent.runTurn");
+    expect(listGatewayMethods()).toContain("agent.streamEvents");
+    expect(listGatewayMethods()).toContain("agent.cancel");
+    expect(isGatewayMethodClassified("agent.runTurn")).toBe(true);
+    expect(isGatewayMethodClassified("agent.streamEvents")).toBe(true);
+    expect(isGatewayMethodClassified("agent.cancel")).toBe(true);
+    expect(resolveLeastPrivilegeOperatorScopesForMethod("agent.runTurn")).toEqual([
+      "operator.write",
+    ]);
+    expect(resolveLeastPrivilegeOperatorScopesForMethod("agent.streamEvents")).toEqual([
+      "operator.read",
+    ]);
+    expect(resolveLeastPrivilegeOperatorScopesForMethod("agent.cancel")).toEqual([
+      "operator.write",
+    ]);
+  });
 });
 
 describe("core gateway method classification", () => {
+  it("keeps the core method list independent from the TS channel plugin registry", () => {
+    const source = fs.readFileSync(path.join(gatewayDir, "server-methods-list.ts"), "utf8");
+
+    expect(source).not.toMatch(/channels\/plugins\/index\.js/);
+    expect(source).not.toMatch(/listChannelPlugins/);
+  });
+
   it("classifies every exposed core gateway handler method", () => {
     const unclassified = Object.keys(coreGatewayHandlers).filter(
       (method) => !isGatewayMethodClassified(method),

@@ -16,6 +16,18 @@ pub mod special_agents;
 use core_tools::build_pi_agent_rust_tool_registry;
 pub use message_policy::execute_message_policy_operation;
 
+pub use crawclaw_channels::{
+    canonical_agent_run_event_types, channel_contract_version, dispatch_native_channel_outbound,
+    find_native_channel_descriptor, is_local_native_delivery_channel,
+    list_native_channel_descriptors, lookup_native_channel_directory,
+    resolve_native_channel_lifecycle_update, AgentModelSelection, AgentRunEvent, AgentRunRequest,
+    ChannelCapabilityDescriptor, ChannelDeliveryResult, ChannelDirectoryLookupRequest,
+    ChannelDirectoryLookupResult, ChannelInboundCapability, ChannelInboundEnvelope,
+    ChannelLifecycleCapability, ChannelOutboundAction, ChannelOutboundCapability,
+    ChannelOutboundRequest, ChatType as ChannelChatType, MessagingTarget, MessagingTargetKind,
+    NativeChannelDeliveryRecord, NativeChannelDispatchContext, NativeChannelLifecycleInput,
+    NativeChannelLifecycleUpdate, ReplyPayload, TranscriptRole,
+};
 use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
 use crawclaw_providers::{
     send_native_provider_conversation, send_native_provider_conversation_with_options,
@@ -448,6 +460,14 @@ pub struct AgentSendResult {
     pub thread_id: String,
     pub user_text: String,
     pub assistant_text: String,
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct AgentRunResult {
+    pub run_id: String,
+    pub session_key: String,
+    pub assistant_text: String,
+    pub events: Vec<AgentRunEvent>,
 }
 
 #[derive(Clone)]
@@ -1511,6 +1531,48 @@ impl AgentRuntime {
             pi_agent_backend,
             native_provider_backend: Arc::new(NativeProviderRuntimeBackend),
         }
+    }
+
+    pub async fn run_turn(
+        &self,
+        request: AgentRunRequest,
+    ) -> Result<AgentRunResult, AgentRuntimeError> {
+        let run_id = request.run_id;
+        let agent_id = request.agent_id;
+        let session_key = request.session_key;
+        let user_text = request.inbound.body;
+        let result = self.send_message(session_key.clone(), user_text).await?;
+        let assistant_text = result.assistant_text;
+        let events = vec![
+            AgentRunEvent::RunStarted {
+                run_id: run_id.clone(),
+                agent_id,
+                session_key: session_key.clone(),
+            },
+            AgentRunEvent::ReplyPayload {
+                run_id: run_id.clone(),
+                payload: ReplyPayload {
+                    text: Some(assistant_text.clone()),
+                    media_urls: Vec::new(),
+                    metadata: BTreeMap::new(),
+                },
+            },
+            AgentRunEvent::TranscriptAppended {
+                run_id: run_id.clone(),
+                session_key: session_key.clone(),
+                role: TranscriptRole::Assistant,
+                message_id: format!("{run_id}:assistant"),
+            },
+            AgentRunEvent::RunCompleted {
+                run_id: run_id.clone(),
+            },
+        ];
+        Ok(AgentRunResult {
+            run_id,
+            session_key: result.thread_id,
+            assistant_text,
+            events,
+        })
     }
 
     pub async fn send_message(
@@ -2653,6 +2715,97 @@ mod tests {
             .expect("transcript");
         assert!(transcript.contains(r#""content":"hello direct""#));
         assert!(transcript.contains(r#""content":"hello from pi_agent_rust""#));
+    }
+
+    #[tokio::test]
+    async fn agent_runtime_run_turn_emits_rust_event_contract() {
+        let runtime_root = unique_test_runtime_root("agent-run-turn-events");
+        let config_dir = runtime_root.join("config");
+        fs::create_dir_all(&config_dir).expect("config dir");
+        fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "provider": "test-provider",
+                "model": "test-model",
+                "apiKey": "test-key"
+            }))
+            .expect("config json"),
+        )
+        .expect("write config");
+
+        let runtime = AgentRuntime::with_pi_agent_backend(
+            runtime_root.clone(),
+            Arc::new(FakeAgentRuntimeBackend {
+                reply: "hello from run_turn".to_string(),
+            }),
+        );
+        let result = runtime
+            .run_turn(AgentRunRequest {
+                run_id: "run-1".to_string(),
+                agent_id: "main".to_string(),
+                session_key: "thread-events".to_string(),
+                inbound: ChannelInboundEnvelope {
+                    channel: "gateway".to_string(),
+                    account_id: Some("local".to_string()),
+                    from: "user".to_string(),
+                    to: "agent:main".to_string(),
+                    chat_type: ChannelChatType::Direct,
+                    body: "hello event loop".to_string(),
+                    raw_body: Some("hello event loop".to_string()),
+                    message_id: Some("in-1".to_string()),
+                    thread_id: Some("thread-events".to_string()),
+                    media_urls: Vec::new(),
+                    metadata: BTreeMap::new(),
+                },
+                model: AgentModelSelection {
+                    provider: "test-provider".to_string(),
+                    model: "test-model".to_string(),
+                    reasoning_level: None,
+                },
+                enabled_tools: Vec::new(),
+                options: BTreeMap::new(),
+            })
+            .await
+            .expect("run turn");
+
+        assert_eq!(result.run_id, "run-1");
+        assert_eq!(result.session_key, "thread-events");
+        assert_eq!(result.assistant_text, "hello from run_turn");
+        assert_eq!(
+            serde_json::to_value(&result.events).expect("events json"),
+            json!([
+                {
+                    "type": "runStarted",
+                    "runId": "run-1",
+                    "agentId": "main",
+                    "sessionKey": "thread-events"
+                },
+                {
+                    "type": "replyPayload",
+                    "runId": "run-1",
+                    "payload": {
+                        "text": "hello from run_turn"
+                    }
+                },
+                {
+                    "type": "transcriptAppended",
+                    "runId": "run-1",
+                    "sessionKey": "thread-events",
+                    "role": "assistant",
+                    "messageId": "run-1:assistant"
+                },
+                {
+                    "type": "runCompleted",
+                    "runId": "run-1"
+                }
+            ])
+        );
+
+        let transcript =
+            fs::read_to_string(runtime_root.join("sessions").join("thread-events.jsonl"))
+                .expect("transcript");
+        assert!(transcript.contains(r#""content":"hello event loop""#));
+        assert!(transcript.contains(r#""content":"hello from run_turn""#));
     }
 
     #[tokio::test]

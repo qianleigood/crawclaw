@@ -15,6 +15,8 @@ const mocks = vi.hoisted(() => ({
   resolveTarget: vi.fn(),
   getChannelPlugin: vi.fn(),
   getActivePluginChannelRegistryVersion: vi.fn(() => 1),
+  shouldAllowBundledTsChannelRuntime: vi.fn(() => true),
+  listBundledPluginMetadata: vi.fn<() => Array<{ manifest: { channels?: string[] } }>>(() => []),
 }));
 
 vi.mock("../../channels/plugins/index.js", () => ({
@@ -24,6 +26,14 @@ vi.mock("../../channels/plugins/index.js", () => ({
 
 vi.mock("../../plugins/runtime.js", () => ({
   getActivePluginChannelRegistryVersion: () => mocks.getActivePluginChannelRegistryVersion(),
+}));
+
+vi.mock("../../channels/plugins/bundled-runtime-policy.js", () => ({
+  shouldAllowBundledTsChannelRuntime: () => mocks.shouldAllowBundledTsChannelRuntime(),
+}));
+
+vi.mock("../../plugins/bundled-plugin-metadata.js", () => ({
+  listBundledPluginMetadata: () => mocks.listBundledPluginMetadata(),
 }));
 
 beforeAll(async () => {
@@ -40,6 +50,10 @@ beforeEach(() => {
   mocks.getChannelPlugin.mockReset();
   mocks.getActivePluginChannelRegistryVersion.mockReset();
   mocks.getActivePluginChannelRegistryVersion.mockReturnValue(1);
+  mocks.shouldAllowBundledTsChannelRuntime.mockReset();
+  mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(true);
+  mocks.listBundledPluginMetadata.mockReset();
+  mocks.listBundledPluginMetadata.mockReturnValue([]);
   resetDirectoryCache();
 });
 
@@ -221,5 +235,38 @@ describe("resolveMessagingTarget (directory fallback)", () => {
     });
 
     expect(formatTargetDisplay({ channel: "telegram", target: "telegram:12345" })).toBe("12345");
+  });
+
+  it("does not resolve native bundled targets through TS channel plugins", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["telegram"],
+        },
+      },
+    ]);
+    mocks.getChannelPlugin.mockReturnValue({
+      messaging: {
+        targetResolver: {
+          looksLikeId: () => true,
+          resolveTarget: mocks.resolveTarget,
+        },
+      },
+    });
+
+    const result = await expectOkResolution({
+      cfg,
+      channel: "telegram",
+      input: "@alice",
+    });
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(mocks.resolveTarget).not.toHaveBeenCalled();
+    expect(result.target).toMatchObject({
+      to: "@alice",
+      kind: "user",
+      source: "normalized",
+    });
   });
 });

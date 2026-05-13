@@ -1,4 +1,4 @@
-import { listChannelPlugins } from "../../channels/plugins/index.js";
+import { getChannelPlugin } from "../../channels/plugins/index.js";
 import {
   ErrorCodes,
   errorShape,
@@ -9,17 +9,9 @@ import {
 import type { GatewayRequestHandlers, RespondFn } from "../request-types.js";
 import { formatForLog } from "../ws-log.js";
 
-const WEB_LOGIN_METHODS = new Set([
-  "web.login.start",
-  "web.login.wait",
-  "channels.login.start",
-  "channels.login.wait",
-]);
+const LEGACY_WEB_LOGIN_PROVIDER_ID = "whatsapp";
 
-const resolveWebLoginProvider = () =>
-  listChannelPlugins().find((plugin) =>
-    (plugin.gatewayMethods ?? []).some((method) => WEB_LOGIN_METHODS.has(method)),
-  ) ?? null;
+const resolveWebLoginProvider = () => getChannelPlugin(LEGACY_WEB_LOGIN_PROVIDER_ID) ?? null;
 
 function resolveAccountId(params: unknown): string | undefined {
   return typeof (params as { accountId?: unknown }).accountId === "string"

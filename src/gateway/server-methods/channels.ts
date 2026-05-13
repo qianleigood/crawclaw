@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { shouldAllowBundledTsChannelRuntime } from "../../channels/plugins/bundled-runtime-policy.js";
 import {
   buildChannelUiCatalog,
   listChannelPluginCatalogEntries,
@@ -22,6 +23,7 @@ import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
 import { getChannelActivity } from "../../infra/channel-activity.js";
 import { resolveCrawClawPackageRootSync } from "../../infra/crawclaw-root.js";
 import { listRecentDiagnosticChannelStreamingDecisions } from "../../logging/diagnostic-session-state.js";
+import { listBundledPluginMetadata } from "../../plugins/bundled-plugin-metadata.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
 import {
@@ -46,6 +48,27 @@ type ChannelLogoutPayload = {
   cleared: boolean;
   [key: string]: unknown;
 };
+
+function listBundledChannelIds(): Set<string> {
+  const ids = new Set<string>();
+  for (const entry of listBundledPluginMetadata({
+    includeChannelConfigs: false,
+    includeSyntheticChannelConfigs: false,
+  })) {
+    for (const channelId of entry.manifest.channels ?? []) {
+      ids.add(channelId);
+    }
+  }
+  return ids;
+}
+
+function shouldUseNativeChannelRuntime(channelId: ChannelId): boolean {
+  return !shouldAllowBundledTsChannelRuntime() && listBundledChannelIds().has(channelId);
+}
+
+function shouldIncludeTsChannelPluginInStatus(plugin: ChannelPlugin): boolean {
+  return !shouldUseNativeChannelRuntime(plugin.id);
+}
 
 export async function logoutChannelAccount(params: {
   channelId: ChannelId;
@@ -91,6 +114,20 @@ function resolveRequestedChannelId(params: unknown): ChannelId | null {
 function resolveRequestedAccountId(params: unknown): string | undefined {
   const rawAccountId = (params as { accountId?: unknown }).accountId;
   return typeof rawAccountId === "string" && rawAccountId.trim() ? rawAccountId.trim() : undefined;
+}
+
+function resolveNativeChannelAccountTarget(params: unknown): {
+  channelId: ChannelId;
+  accountId: string;
+} | null {
+  const channelId = resolveRequestedChannelId(params);
+  if (!channelId || !shouldUseNativeChannelRuntime(channelId)) {
+    return null;
+  }
+  return {
+    channelId,
+    accountId: resolveRequestedAccountId(params) ?? DEFAULT_ACCOUNT_ID,
+  };
 }
 
 function loadChannelsConfig(): CrawClawConfig {
@@ -217,6 +254,64 @@ function resolveRuntimeAccountSnapshot(params: {
   );
 }
 
+function resolveNativeRuntimeAccountSnapshot(params: {
+  context: GatewayRequestContext;
+  channelId: ChannelId;
+  accountId: string;
+}): ChannelAccountSnapshot {
+  const runtime = params.context.getRuntimeSnapshot();
+  const account =
+    runtime.channelAccounts[params.channelId]?.[params.accountId] ??
+    (params.accountId === DEFAULT_ACCOUNT_ID ? runtime.channels[params.channelId] : undefined);
+  return {
+    accountId: params.accountId,
+    ...account,
+  };
+}
+
+async function logoutNativeChannelAccount(params: {
+  channelId: ChannelId;
+  accountId: string;
+  context: GatewayRequestContext;
+}): Promise<ChannelLogoutPayload> {
+  await params.context.stopChannel(params.channelId, params.accountId);
+  params.context.markChannelLoggedOut(params.channelId, true, params.accountId);
+  return {
+    channel: params.channelId,
+    accountId: params.accountId,
+    cleared: true,
+    loggedOut: true,
+    implementation: "rust-native",
+  };
+}
+
+async function startNativeChannelAccount(params: {
+  channelId: ChannelId;
+  accountId: string;
+  context: GatewayRequestContext;
+}) {
+  await params.context.startChannel(params.channelId, params.accountId);
+  const startedAt = Date.now();
+  const snapshot = resolveNativeRuntimeAccountSnapshot({
+    context: params.context,
+    channelId: params.channelId,
+    accountId: params.accountId,
+  });
+  snapshot.lastStartAt ??= startedAt;
+  const connected = snapshot.connected ?? false;
+  return {
+    channel: params.channelId,
+    accountId: params.accountId,
+    startedAt,
+    connected,
+    linked: snapshot.linked ?? connected,
+    running: snapshot.running ?? connected,
+    healthState: snapshot.healthState ?? (connected ? "connected" : "needs_channel_transport"),
+    implementation: "rust-native",
+    snapshot,
+  } as const;
+}
+
 function asJsonRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
@@ -231,6 +326,40 @@ function supportsChannelMultiAccount(plugin: ChannelPlugin, cfg: CrawClawConfig)
   const schema = asJsonRecord(plugin.configSchema?.schema);
   const properties = asJsonRecord(schema?.properties);
   return Boolean(properties?.accounts || properties?.defaultAccount);
+}
+
+function buildNativeChannelsSetupSurface(params: { channelId: ChannelId; cfg: CrawClawConfig }) {
+  const entry = resolveSupportedChannelCatalog().find(
+    (candidate) => candidate.id === params.channelId,
+  );
+  const label = entry?.meta.label ?? params.channelId;
+  const detailLabel = entry?.meta.detailLabel ?? entry?.meta.selectionLabel ?? `${label} channel`;
+  const docsPath = entry?.meta.docsPath ?? `/channels/${params.channelId}`;
+  const channels = asJsonRecord((params.cfg as { channels?: unknown }).channels);
+  const channelConfig = asJsonRecord(channels?.[params.channelId]);
+  const configured = channelConfig ? Object.keys(channelConfig).length > 0 : false;
+
+  return {
+    channel: params.channelId,
+    label,
+    detailLabel,
+    docsPath,
+    configured,
+    mode: "config",
+    selectionHint: configured ? "configured" : "open channel settings",
+    statusLines: [`${label}: ${configured ? "configured" : "ready to configure"}`],
+    accountIds: [DEFAULT_ACCOUNT_ID],
+    defaultAccountId: DEFAULT_ACCOUNT_ID,
+    canSetup: true,
+    canEdit: true,
+    multiAccount: false,
+    loginMode: "none",
+    commands: [
+      formatCliCommand("crawclaw channels status --probe"),
+      formatCliCommand(`crawclaw channels add --channel ${params.channelId}`),
+    ],
+    implementation: "rust-native",
+  } as const;
 }
 
 async function buildChannelsSetupSurface(params: {
@@ -335,7 +464,7 @@ export const channelsHandlers: GatewayRequestHandlers = {
       env: process.env,
     }).config;
     const runtime = context.getRuntimeSnapshot();
-    const plugins = listChannelPlugins();
+    const plugins = listChannelPlugins().filter(shouldIncludeTsChannelPluginInStatus);
     const pluginMap = new Map<ChannelId, ChannelPlugin>(
       plugins.map((plugin) => [plugin.id, plugin]),
     );
@@ -549,6 +678,18 @@ export const channelsHandlers: GatewayRequestHandlers = {
       return;
     }
     const cfg = loadChannelsConfig();
+    const nativeChannelId = resolveRequestedChannelId(params);
+    if (nativeChannelId && shouldUseNativeChannelRuntime(nativeChannelId)) {
+      respond(
+        true,
+        buildNativeChannelsSetupSurface({
+          channelId: nativeChannelId,
+          cfg,
+        }),
+        undefined,
+      );
+      return;
+    }
     const target = resolveChannelAccountTarget(params, cfg);
     if ("error" in target) {
       respond(
@@ -585,6 +726,19 @@ export const channelsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
+      const nativeTarget = resolveNativeChannelAccountTarget(params);
+      if (nativeTarget) {
+        respond(
+          true,
+          await startNativeChannelAccount({
+            channelId: nativeTarget.channelId,
+            accountId: nativeTarget.accountId,
+            context,
+          }),
+          undefined,
+        );
+        return;
+      }
       const cfg = loadChannelsConfig();
       const target = resolveChannelAccountTarget(params, cfg);
       if ("error" in target) {
@@ -639,6 +793,19 @@ export const channelsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
+      const nativeTarget = resolveNativeChannelAccountTarget(params);
+      if (nativeTarget) {
+        respond(
+          true,
+          await startNativeChannelAccount({
+            channelId: nativeTarget.channelId,
+            accountId: nativeTarget.accountId,
+            context,
+          }),
+          undefined,
+        );
+        return;
+      }
       const cfg = loadChannelsConfig();
       const target = resolveChannelAccountTarget(params, cfg);
       if ("error" in target) {
@@ -693,6 +860,30 @@ export const channelsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
+      const nativeTarget = resolveNativeChannelAccountTarget(params);
+      if (nativeTarget) {
+        await context.stopChannel(nativeTarget.channelId, nativeTarget.accountId);
+        await context.startChannel(nativeTarget.channelId, nativeTarget.accountId);
+        const restartedAt = Date.now();
+        const snapshot = resolveNativeRuntimeAccountSnapshot({
+          context,
+          channelId: nativeTarget.channelId,
+          accountId: nativeTarget.accountId,
+        });
+        snapshot.lastStartAt ??= restartedAt;
+        respond(
+          true,
+          {
+            channel: nativeTarget.channelId,
+            accountId: nativeTarget.accountId,
+            restartedAt,
+            implementation: "rust-native",
+            snapshot,
+          },
+          undefined,
+        );
+        return;
+      }
       const cfg = loadChannelsConfig();
       const target = resolveChannelAccountTarget(params, cfg);
       if ("error" in target) {
@@ -757,6 +948,28 @@ export const channelsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
+      const nativeTarget = resolveNativeChannelAccountTarget(params);
+      if (nativeTarget) {
+        const verifiedAt = Date.now();
+        const snapshot = resolveNativeRuntimeAccountSnapshot({
+          context,
+          channelId: nativeTarget.channelId,
+          accountId: nativeTarget.accountId,
+        });
+        snapshot.lastProbeAt = verifiedAt;
+        respond(
+          true,
+          {
+            channel: nativeTarget.channelId,
+            accountId: nativeTarget.accountId,
+            verifiedAt,
+            implementation: "rust-native",
+            snapshot,
+          },
+          undefined,
+        );
+        return;
+      }
       const cfg = loadChannelsConfig();
       const target = resolveChannelAccountTarget(params, cfg);
       if ("error" in target) {
@@ -852,6 +1065,19 @@ export const channelsHandlers: GatewayRequestHandlers = {
       return;
     }
     try {
+      const nativeTarget = resolveNativeChannelAccountTarget(params);
+      if (nativeTarget) {
+        respond(
+          true,
+          await logoutNativeChannelAccount({
+            channelId: nativeTarget.channelId,
+            accountId: nativeTarget.accountId,
+            context,
+          }),
+          undefined,
+        );
+        return;
+      }
       const target = resolveChannelAccountTarget(params, snapshot.runtimeConfig);
       if ("error" in target) {
         const message = target.error ?? "invalid channel";
@@ -901,6 +1127,33 @@ export const channelsHandlers: GatewayRequestHandlers = {
         undefined,
         errorShape(ErrorCodes.INVALID_REQUEST, "invalid channels.logout channel"),
       );
+      return;
+    }
+    if (shouldUseNativeChannelRuntime(channelId)) {
+      const accountIdRaw = (params as { accountId?: unknown }).accountId;
+      const accountId =
+        typeof accountIdRaw === "string" && accountIdRaw.trim()
+          ? accountIdRaw.trim()
+          : DEFAULT_ACCOUNT_ID;
+      const snapshot = await readConfigFileSnapshot();
+      if (!snapshot.valid) {
+        respond(
+          false,
+          undefined,
+          errorShape(ErrorCodes.INVALID_REQUEST, "config invalid; fix it before logging out"),
+        );
+        return;
+      }
+      try {
+        const payload = await logoutNativeChannelAccount({
+          channelId,
+          accountId,
+          context,
+        });
+        respond(true, payload, undefined);
+      } catch (err) {
+        respond(false, undefined, errorShape(ErrorCodes.UNAVAILABLE, formatForLog(err)));
+      }
       return;
     }
     const plugin = getChannelPlugin(channelId);

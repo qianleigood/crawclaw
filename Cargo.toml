@@ -2,6 +2,7 @@
 members = [
   "apps/crawclaw-desktop/src-tauri",
   "crates/crawclaw-cli",
+  "crates/crawclaw-channels",
   "crates/crawclaw-core",
   "crates/crawclaw-gateway",
   "crates/crawclaw-native-plugins",

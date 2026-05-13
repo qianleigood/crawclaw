@@ -15,6 +15,7 @@ import {
   replaceConfigFile,
   type CrawClawConfig,
 } from "../../config/config.js";
+import { callGateway } from "../../gateway/call.js";
 import { danger } from "../../globals.js";
 import { defaultRuntime, type RuntimeEnv, writeRuntimeJson } from "../../runtime.js";
 import { theme } from "../../terminal/theme.js";
@@ -40,6 +41,37 @@ type ChannelCapabilitiesReport = {
   actions?: string[];
   probe?: unknown;
   diagnostics?: ChannelCapabilitiesDiagnostics;
+};
+
+type NativeChannelCapabilityDescriptor = {
+  channel: string;
+  label: string;
+  rustAdapterId?: string;
+  chatTypes?: string[];
+  actions?: string[];
+  inbound?: {
+    webhook?: boolean;
+    polling?: boolean;
+    mediaDownload?: boolean;
+  };
+  outbound?: {
+    text?: boolean;
+    media?: boolean;
+    poll?: boolean;
+    threadReply?: boolean;
+  };
+  lifecycle?: {
+    setup?: boolean;
+    status?: boolean;
+    start?: boolean;
+    stop?: boolean;
+    restart?: boolean;
+  };
+};
+
+type NativeChannelCapabilitiesPayload = {
+  version?: string;
+  channels?: NativeChannelCapabilityDescriptor[];
 };
 
 function normalizeTimeout(raw: unknown, fallback = 10_000) {
@@ -92,6 +124,76 @@ function formatSupport(capabilities?: ChannelCapabilities) {
     bits.push("blockStreaming");
   }
   return bits.length ? bits.join(" ") : "none";
+}
+
+function formatNativeSupport(capabilities: NativeChannelCapabilityDescriptor) {
+  const bits: string[] = [];
+  if (capabilities.chatTypes?.length) {
+    bits.push(`chatTypes=${capabilities.chatTypes.join(",")}`);
+  }
+  if (capabilities.outbound?.poll) {
+    bits.push("polls");
+  }
+  if (capabilities.outbound?.threadReply) {
+    bits.push("threads");
+  }
+  if (capabilities.outbound?.media || capabilities.inbound?.mediaDownload) {
+    bits.push("media");
+  }
+  if (capabilities.inbound?.webhook) {
+    bits.push("webhook");
+  }
+  if (capabilities.inbound?.polling) {
+    bits.push("polling");
+  }
+  return bits.length ? bits.join(" ") : "none";
+}
+
+function formatNativeLifecycle(capabilities: NativeChannelCapabilityDescriptor) {
+  const lifecycle = capabilities.lifecycle;
+  if (!lifecycle) {
+    return "";
+  }
+  return Object.entries(lifecycle)
+    .filter(([, enabled]) => enabled)
+    .map(([key]) => key)
+    .join(", ");
+}
+
+async function resolveGatewayNativeCapabilities(params: {
+  rawChannel: string;
+  timeoutMs: number;
+}): Promise<NativeChannelCapabilitiesPayload | null> {
+  try {
+    return await callGateway<NativeChannelCapabilitiesPayload>({
+      method: "channels.capabilities",
+      params:
+        params.rawChannel && params.rawChannel !== "all" ? { channel: params.rawChannel } : {},
+      timeoutMs: params.timeoutMs,
+    });
+  } catch {
+    return null;
+  }
+}
+
+function formatNativeCapabilityLines(payload: NativeChannelCapabilitiesPayload): string[] {
+  const lines: string[] = [];
+  for (const descriptor of payload.channels ?? []) {
+    lines.push(theme.heading(descriptor.label || descriptor.channel));
+    lines.push(`Support: ${formatNativeSupport(descriptor)}`);
+    if (descriptor.actions?.length) {
+      lines.push(`Actions: ${descriptor.actions.join(", ")}`);
+    }
+    if (descriptor.rustAdapterId) {
+      lines.push(`Runtime: ${descriptor.rustAdapterId}`);
+    }
+    const lifecycle = formatNativeLifecycle(descriptor);
+    if (lifecycle) {
+      lines.push(`Lifecycle: ${lifecycle}`);
+    }
+    lines.push("");
+  }
+  return lines;
 }
 
 function formatGenericProbeLines(probe: unknown): ChannelCapabilitiesDisplayLine[] {
@@ -228,6 +330,18 @@ export async function channelsCapabilitiesCommand(
     runtime.error(danger("--target requires a specific --channel."));
     runtime.exit(1);
     return;
+  }
+
+  if (!opts.account && !rawTarget) {
+    const nativePayload = await resolveGatewayNativeCapabilities({ rawChannel, timeoutMs });
+    if (nativePayload?.channels?.length) {
+      if (opts.json) {
+        writeRuntimeJson(runtime, nativePayload);
+        return;
+      }
+      runtime.log(formatNativeCapabilityLines(nativePayload).join("\n").trimEnd());
+      return;
+    }
   }
 
   const plugins = listChannelPlugins();

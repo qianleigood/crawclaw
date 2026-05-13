@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { runCrawClawRuntimeTool } from "../../agents/runtime-tools/native.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import {
+  buildRustChannelOutboundRequest,
   enforceRustCrossContextPolicy,
   resolveRustOutboundFallbackSessionRoute,
 } from "./message-policy-runtime.js";
@@ -113,6 +114,53 @@ describe("message policy runtime adapter", () => {
       "message_policy",
       expect.objectContaining({
         operation: "outbound.resolveFallbackSessionRoute",
+      }),
+      expect.any(Object),
+    );
+  });
+
+  it("builds outbound delivery request envelopes through Rust", async () => {
+    runRuntimeTool.mockResolvedValue({
+      request: {
+        requestId: "out-1",
+        channel: "slack",
+        accountId: "default",
+        action: "send",
+        to: "channel:C123",
+        text: "hello",
+        mediaUrls: ["file:///tmp/a.png"],
+        replyToId: "reply-1",
+        threadId: "thread-1",
+        params: { silent: true },
+      },
+    });
+
+    const request = await buildRustChannelOutboundRequest({
+      requestId: "out-1",
+      channel: "slack",
+      accountId: "default",
+      action: "send",
+      to: "channel:C123",
+      text: "hello",
+      mediaUrls: ["file:///tmp/a.png"],
+      replyToId: "reply-1",
+      threadId: "thread-1",
+      params: { silent: true },
+    });
+
+    expect(request).toEqual(
+      expect.objectContaining({
+        requestId: "out-1",
+        channel: "slack",
+        action: "send",
+        to: "channel:C123",
+        text: "hello",
+      }),
+    );
+    expect(runRuntimeTool).toHaveBeenCalledWith(
+      "message_policy",
+      expect.objectContaining({
+        operation: "outbound.buildDeliveryRequest",
       }),
       expect.any(Object),
     );

@@ -1228,6 +1228,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "crawclaw-channels"
+version = "2026.5.3"
+dependencies = [
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "crawclaw-cli"
 version = "2026.5.3"
 dependencies = [
@@ -1333,6 +1341,7 @@ dependencies = [
  "async-trait",
  "chrono",
  "chrono-tz",
+ "crawclaw-channels",
  "crawclaw-core",
  "crawclaw-native-plugins",
  "crawclaw-providers",

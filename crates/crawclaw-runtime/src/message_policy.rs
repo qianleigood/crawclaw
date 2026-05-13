@@ -1,4 +1,4 @@
-use serde_json::{json, Value};
+use serde_json::{json, Map, Value};
 
 const DEFAULT_AGENT_ID: &str = "main";
 const DEFAULT_MAIN_KEY: &str = "main";
@@ -19,7 +19,10 @@ pub fn execute_message_policy_operation(input: Value) -> Result<Value, String> {
         })),
         "session.resolveThreadSessionKeys" => resolve_thread_session_keys(&payload),
         "outbound.enforceCrossContextPolicy" => enforce_cross_context_policy(&payload),
+        "outbound.buildDeliveryRequest" => build_delivery_request(&payload),
         "outbound.resolveFallbackSessionRoute" => resolve_fallback_session_route(&payload),
+        "outbound.resolveReplyRoutingDecision" => resolve_reply_routing_decision(&payload),
+        "outbound.resolveTypingPolicy" => resolve_typing_policy(&payload),
         "command.resolveControlCommandGate" => resolve_control_command_gate(&payload),
         "command.resolveDualTextControlCommandGate" => {
             resolve_dual_text_control_command_gate(&payload)
@@ -43,6 +46,18 @@ fn value_string(value: Option<&Value>) -> Option<String> {
 
 fn normalize_token(value: Option<&Value>) -> String {
     value_string(value).unwrap_or_default().to_lowercase()
+}
+
+fn value_string_array(value: Option<&Value>) -> Vec<String> {
+    value
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(|value| value_string(Some(value)))
+                .collect()
+        })
+        .unwrap_or_default()
 }
 
 fn normalize_agent_id(value: Option<&str>) -> String {
@@ -453,6 +468,144 @@ fn resolve_fallback_session_route(payload: &Value) -> Result<Value, String> {
     }))
 }
 
+fn build_delivery_request(payload: &Value) -> Result<Value, String> {
+    let request_id = value_string(payload.get("requestId"))
+        .ok_or_else(|| "requestId is required".to_string())?;
+    let channel = normalize_token(payload.get("channel"));
+    if channel.is_empty() {
+        return Err("channel is required".to_string());
+    }
+    let action =
+        value_string(payload.get("action")).ok_or_else(|| "action is required".to_string())?;
+    let to = value_string(payload.get("to")).ok_or_else(|| "to is required".to_string())?;
+    let text = value_string(payload.get("text"));
+    let media_urls = value_string_array(payload.get("mediaUrls"));
+    if action == "send" && text.as_deref().unwrap_or_default().is_empty() && media_urls.is_empty() {
+        return Err("send delivery request requires text or media".to_string());
+    }
+
+    let mut request = Map::new();
+    request.insert("requestId".to_string(), Value::String(request_id));
+    request.insert("channel".to_string(), Value::String(channel));
+    if let Some(account_id) = value_string(payload.get("accountId")) {
+        request.insert("accountId".to_string(), Value::String(account_id));
+    }
+    request.insert("action".to_string(), Value::String(action));
+    request.insert("to".to_string(), Value::String(to));
+    if let Some(text) = text {
+        request.insert("text".to_string(), Value::String(text));
+    }
+    request.insert("mediaUrls".to_string(), json!(media_urls));
+    if let Some(reply_to_id) = value_string(payload.get("replyToId")) {
+        request.insert("replyToId".to_string(), Value::String(reply_to_id));
+    }
+    if let Some(thread_id) = value_string(payload.get("threadId")) {
+        request.insert("threadId".to_string(), Value::String(thread_id));
+    }
+    request.insert(
+        "params".to_string(),
+        payload
+            .get("params")
+            .filter(|value| value.is_object())
+            .cloned()
+            .unwrap_or_else(|| json!({})),
+    );
+
+    Ok(json!({ "request": Value::Object(request) }))
+}
+
+const INTERNAL_MESSAGE_CHANNEL: &str = "webchat";
+
+fn normalize_message_channel(value: Option<&Value>) -> Option<String> {
+    value_string(value).map(|value| value.to_lowercase())
+}
+
+fn resolve_reply_routing_decision(payload: &Value) -> Result<Value, String> {
+    let originating_channel = normalize_message_channel(payload.get("originatingChannel"));
+    let provider_channel = normalize_message_channel(payload.get("provider"));
+    let surface_channel = normalize_message_channel(payload.get("surface"));
+    let current_surface = provider_channel.or_else(|| surface_channel.clone());
+    let explicit_deliver_route = payload
+        .get("explicitDeliverRoute")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let suppress_direct_user_delivery = payload
+        .get("suppressDirectUserDelivery")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let originating_routable = payload
+        .get("originatingRoutable")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let originating_to = value_string(payload.get("originatingTo"));
+
+    let is_internal_webchat_turn = current_surface.as_deref() == Some(INTERNAL_MESSAGE_CHANNEL)
+        && (surface_channel.as_deref() == Some(INTERNAL_MESSAGE_CHANNEL)
+            || surface_channel.is_none())
+        && !explicit_deliver_route;
+    let should_route_to_originating = !suppress_direct_user_delivery
+        && !is_internal_webchat_turn
+        && originating_routable
+        && originating_to
+            .as_deref()
+            .is_some_and(|value| !value.is_empty())
+        && originating_channel != current_surface;
+    let should_suppress_typing = suppress_direct_user_delivery
+        || should_route_to_originating
+        || originating_channel.as_deref() == Some(INTERNAL_MESSAGE_CHANNEL);
+
+    Ok(json!({
+        "originatingChannel": originating_channel,
+        "currentSurface": current_surface,
+        "isInternalWebchatTurn": is_internal_webchat_turn,
+        "shouldRouteToOriginating": should_route_to_originating,
+        "shouldSuppressTyping": should_suppress_typing
+    }))
+}
+
+fn normalize_typing_policy(value: Option<&Value>) -> Option<String> {
+    let value = value_string(value)?.to_lowercase();
+    match value.as_str() {
+        "auto" | "user_message" | "system_event" | "internal_webchat" | "heartbeat" => Some(value),
+        _ => None,
+    }
+}
+
+fn resolve_typing_policy(payload: &Value) -> Result<Value, String> {
+    let is_heartbeat = payload
+        .get("isHeartbeat")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let system_event = payload
+        .get("systemEvent")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let originating_channel = normalize_message_channel(payload.get("originatingChannel"));
+    let requested_policy = normalize_typing_policy(payload.get("requestedPolicy"));
+    let typing_policy = if is_heartbeat {
+        "heartbeat".to_string()
+    } else if originating_channel.as_deref() == Some(INTERNAL_MESSAGE_CHANNEL) {
+        "internal_webchat".to_string()
+    } else if system_event {
+        "system_event".to_string()
+    } else {
+        requested_policy.unwrap_or_else(|| "auto".to_string())
+    };
+    let suppress_typing = payload
+        .get("suppressTyping")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+        || matches!(
+            typing_policy.as_str(),
+            "heartbeat" | "system_event" | "internal_webchat"
+        );
+
+    Ok(json!({
+        "typingPolicy": typing_policy,
+        "suppressTyping": suppress_typing
+    }))
+}
+
 fn resolve_command_authorized(payload: &Value) -> bool {
     let use_access_groups = payload
         .get("useAccessGroups")
@@ -561,40 +714,281 @@ fn sanitize_inbound_text(text: &str) -> String {
         .replace("[Internal]", "(Internal)")
 }
 
+fn normalize_chat_type(value: Option<&Value>) -> Option<String> {
+    let value = value?.as_str()?.trim().to_lowercase();
+    match value.as_str() {
+        "direct" | "dm" => Some("direct".to_string()),
+        "group" => Some("group".to_string()),
+        "channel" => Some("channel".to_string()),
+        _ => None,
+    }
+}
+
+fn normalize_inbound_text_field(value: Option<&Value>) -> Option<String> {
+    value.and_then(Value::as_str).map(sanitize_inbound_text)
+}
+
+fn normalized_inbound_text_or_empty(value: Option<&Value>) -> String {
+    normalize_inbound_text_field(value).unwrap_or_default()
+}
+
+fn text_field(map: &serde_json::Map<String, Value>, key: &str) -> Option<String> {
+    map.get(key)
+        .and_then(Value::as_str)
+        .map(ToString::to_string)
+}
+
+fn resolve_conversation_id(from: Option<&str>) -> Option<String> {
+    let trimmed = from?.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let candidate = trimmed
+        .split(':')
+        .filter(|part| !part.is_empty())
+        .next_back()
+        .unwrap_or(trimmed);
+    if candidate.is_empty() {
+        None
+    } else {
+        Some(candidate.to_string())
+    }
+}
+
+fn should_append_conversation_id(id: &str) -> bool {
+    id.chars().all(|ch| ch.is_ascii_digit()) || id.contains("@g.us")
+}
+
+fn resolve_conversation_label(map: &serde_json::Map<String, Value>) -> Option<String> {
+    if let Some(explicit) =
+        text_field(map, "ConversationLabel").map(|value| value.trim().to_string())
+    {
+        if !explicit.is_empty() {
+            return Some(explicit);
+        }
+    }
+    if let Some(thread_label) = text_field(map, "ThreadLabel").map(|value| value.trim().to_string())
+    {
+        if !thread_label.is_empty() {
+            return Some(thread_label);
+        }
+    }
+    let chat_type = normalize_chat_type(map.get("ChatType"));
+    if chat_type.as_deref() == Some("direct") {
+        return text_field(map, "SenderName")
+            .map(|value| value.trim().to_string())
+            .filter(|value| !value.is_empty())
+            .or_else(|| {
+                text_field(map, "From")
+                    .map(|value| value.trim().to_string())
+                    .filter(|value| !value.is_empty())
+            });
+    }
+    let base = ["GroupChannel", "GroupSubject", "GroupSpace", "From"]
+        .into_iter()
+        .find_map(|key| {
+            text_field(map, key)
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+        })?;
+    let Some(id) = resolve_conversation_id(text_field(map, "From").as_deref()) else {
+        return Some(base);
+    };
+    if !should_append_conversation_id(&id)
+        || base == id
+        || base.contains(&id)
+        || base.to_lowercase().contains(" id:")
+        || base.starts_with('#')
+        || base.starts_with('@')
+    {
+        return Some(base);
+    }
+    Some(format!("{base} id:{id}"))
+}
+
+fn normalize_media_type(value: Option<&Value>) -> Option<String> {
+    value
+        .and_then(Value::as_str)
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+fn array_len(value: Option<&Value>) -> usize {
+    value.and_then(Value::as_array).map_or(0, Vec::len)
+}
+
+fn has_non_empty_string(value: Option<&Value>) -> bool {
+    value
+        .and_then(Value::as_str)
+        .is_some_and(|value| !value.trim().is_empty())
+}
+
+fn count_inbound_media_entries(map: &serde_json::Map<String, Value>) -> usize {
+    let path_count = array_len(map.get("MediaPaths"));
+    let url_count = array_len(map.get("MediaUrls"));
+    let single = usize::from(
+        has_non_empty_string(map.get("MediaPath")) || has_non_empty_string(map.get("MediaUrl")),
+    );
+    path_count.max(url_count).max(single)
+}
+
+fn normalized_media_types(value: Option<&Value>) -> Option<Vec<Option<String>>> {
+    let values = value?.as_array()?;
+    if values.is_empty() {
+        return None;
+    }
+    Some(
+        values
+            .iter()
+            .map(|entry| normalize_media_type(Some(entry)))
+            .collect(),
+    )
+}
+
 fn finalize_inbound_context(payload: &Value) -> Result<Value, String> {
-    let mut ctx = payload.get("ctx").cloned().unwrap_or_else(|| json!({}));
+    let mut ctx = payload
+        .get("ctx")
+        .cloned()
+        .unwrap_or_else(|| payload.clone());
+    let opts = payload.get("opts").unwrap_or(&Value::Null);
     let Some(map) = ctx.as_object_mut() else {
         return Err("inbound.finalizeContext ctx must be an object".to_string());
     };
+
+    let body = normalized_inbound_text_or_empty(map.get("Body"));
+    map.insert("Body".to_string(), Value::String(body.clone()));
     for key in [
-        "Body",
         "RawBody",
         "CommandBody",
         "Transcript",
         "ThreadStarterBody",
         "ThreadHistoryBody",
     ] {
-        if let Some(value) = map.get(key).and_then(Value::as_str) {
-            map.insert(key.to_string(), Value::String(sanitize_inbound_text(value)));
+        match normalize_inbound_text_field(map.get(key)) {
+            Some(value) => {
+                map.insert(key.to_string(), Value::String(value));
+            }
+            None => {
+                map.remove(key);
+            }
         }
     }
-    if !map.contains_key("Body") {
-        map.insert("Body".to_string(), Value::String(String::new()));
+    if let Some(entries) = map.get("UntrustedContext").and_then(Value::as_array) {
+        let normalized = entries
+            .iter()
+            .filter_map(|entry| normalize_inbound_text_field(Some(entry)))
+            .filter(|entry| !entry.is_empty())
+            .map(Value::String)
+            .collect::<Vec<_>>();
+        map.insert("UntrustedContext".to_string(), Value::Array(normalized));
     }
-    let body = map
-        .get("Body")
-        .and_then(Value::as_str)
-        .unwrap_or_default()
-        .to_string();
-    if !map.contains_key("BodyForAgent") {
-        map.insert("BodyForAgent".to_string(), Value::String(body.clone()));
+
+    let chat_type = normalize_chat_type(map.get("ChatType"));
+    let force_chat_type = opts
+        .get("forceChatType")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    if let Some(chat_type) = chat_type {
+        if force_chat_type
+            || map.get("ChatType").and_then(Value::as_str) != Some(chat_type.as_str())
+        {
+            map.insert("ChatType".to_string(), Value::String(chat_type));
+        }
     }
-    if !map.contains_key("BodyForCommands") {
-        map.insert("BodyForCommands".to_string(), Value::String(body));
+
+    let force_body_for_agent = opts
+        .get("forceBodyForAgent")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let body_for_agent_source = if force_body_for_agent {
+        Some(body.clone())
+    } else {
+        text_field(map, "BodyForAgent")
+            .or_else(|| text_field(map, "CommandBody"))
+            .or_else(|| text_field(map, "RawBody"))
+            .or_else(|| Some(body.clone()))
+    };
+    map.insert(
+        "BodyForAgent".to_string(),
+        Value::String(sanitize_inbound_text(
+            body_for_agent_source.as_deref().unwrap_or_default(),
+        )),
+    );
+
+    let force_body_for_commands = opts
+        .get("forceBodyForCommands")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let body_for_commands_source = if force_body_for_commands {
+        text_field(map, "CommandBody")
+            .or_else(|| text_field(map, "RawBody"))
+            .or_else(|| Some(body.clone()))
+    } else {
+        text_field(map, "BodyForCommands")
+            .or_else(|| text_field(map, "CommandBody"))
+            .or_else(|| text_field(map, "RawBody"))
+            .or_else(|| Some(body.clone()))
+    };
+    map.insert(
+        "BodyForCommands".to_string(),
+        Value::String(sanitize_inbound_text(
+            body_for_commands_source.as_deref().unwrap_or_default(),
+        )),
+    );
+
+    let force_conversation_label = opts
+        .get("forceConversationLabel")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let explicit_label = text_field(map, "ConversationLabel")
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty());
+    if force_conversation_label || explicit_label.is_none() {
+        if let Some(label) = resolve_conversation_label(map) {
+            map.insert("ConversationLabel".to_string(), Value::String(label));
+        }
+    } else if let Some(label) = explicit_label {
+        map.insert("ConversationLabel".to_string(), Value::String(label));
     }
+
     if map.get("CommandAuthorized").and_then(Value::as_bool) != Some(true) {
         map.insert("CommandAuthorized".to_string(), Value::Bool(false));
     }
+
+    let media_count = count_inbound_media_entries(map);
+    if media_count > 0 {
+        const DEFAULT_MEDIA_TYPE: &str = "application/octet-stream";
+        let media_type = normalize_media_type(map.get("MediaType"));
+        let mut final_types =
+            if let Some(mut values) = normalized_media_types(map.get("MediaTypes")) {
+                while values.len() < media_count {
+                    values.push(None);
+                }
+                values
+                    .into_iter()
+                    .take(media_count)
+                    .map(|value| value.unwrap_or_else(|| DEFAULT_MEDIA_TYPE.to_string()))
+                    .collect::<Vec<_>>()
+            } else if let Some(media_type) = media_type.clone() {
+                let mut values = vec![media_type];
+                while values.len() < media_count {
+                    values.push(DEFAULT_MEDIA_TYPE.to_string());
+                }
+                values
+            } else {
+                vec![DEFAULT_MEDIA_TYPE.to_string(); media_count]
+            };
+        if final_types.is_empty() {
+            final_types.push(DEFAULT_MEDIA_TYPE.to_string());
+        }
+        let final_media_type = media_type.unwrap_or_else(|| final_types[0].clone());
+        map.insert("MediaType".to_string(), Value::String(final_media_type));
+        map.insert(
+            "MediaTypes".to_string(),
+            Value::Array(final_types.into_iter().map(Value::String).collect()),
+        );
+    }
+
     Ok(json!({ "ctx": ctx }))
 }
 
@@ -674,6 +1068,107 @@ mod tests {
     }
 
     #[test]
+    fn message_policy_builds_channel_outbound_requests() {
+        let result = execute_message_policy_operation(json!({
+            "operation": "outbound.buildDeliveryRequest",
+            "payload": {
+                "requestId": "out-1",
+                "channel": "slack",
+                "accountId": "default",
+                "action": "send",
+                "to": "channel:C123",
+                "text": "hello",
+                "mediaUrls": ["file:///tmp/a.png"],
+                "replyToId": "reply-1",
+                "threadId": "thread-1",
+                "params": { "silent": true }
+            }
+        }))
+        .expect("delivery request");
+
+        assert_eq!(
+            result.pointer("/request/requestId").and_then(Value::as_str),
+            Some("out-1")
+        );
+        assert_eq!(
+            result.pointer("/request/channel").and_then(Value::as_str),
+            Some("slack")
+        );
+        assert_eq!(
+            result.pointer("/request/action").and_then(Value::as_str),
+            Some("send")
+        );
+        assert_eq!(
+            result
+                .pointer("/request/mediaUrls/0")
+                .and_then(Value::as_str),
+            Some("file:///tmp/a.png")
+        );
+    }
+
+    #[test]
+    fn message_policy_resolves_reply_routing_decision() {
+        let result = execute_message_policy_operation(json!({
+            "operation": "outbound.resolveReplyRoutingDecision",
+            "payload": {
+                "provider": "slack",
+                "surface": "slack",
+                "originatingChannel": "telegram",
+                "originatingTo": "telegram:123",
+                "originatingRoutable": true
+            }
+        }))
+        .expect("routing decision");
+        assert_eq!(result["originatingChannel"], "telegram");
+        assert_eq!(result["currentSurface"], "slack");
+        assert_eq!(result["shouldRouteToOriginating"], true);
+        assert_eq!(result["shouldSuppressTyping"], true);
+    }
+
+    #[test]
+    fn message_policy_keeps_internal_webchat_on_local_route() {
+        let result = execute_message_policy_operation(json!({
+            "operation": "outbound.resolveReplyRoutingDecision",
+            "payload": {
+                "provider": "webchat",
+                "surface": "webchat",
+                "originatingChannel": "telegram",
+                "originatingTo": "telegram:123",
+                "originatingRoutable": true
+            }
+        }))
+        .expect("routing decision");
+        assert_eq!(result["isInternalWebchatTurn"], true);
+        assert_eq!(result["shouldRouteToOriginating"], false);
+        assert_eq!(result["shouldSuppressTyping"], false);
+    }
+
+    #[test]
+    fn message_policy_resolves_typing_policy() {
+        let heartbeat = execute_message_policy_operation(json!({
+            "operation": "outbound.resolveTypingPolicy",
+            "payload": {
+                "requestedPolicy": "user_message",
+                "isHeartbeat": true
+            }
+        }))
+        .expect("typing policy");
+        assert_eq!(heartbeat["typingPolicy"], "heartbeat");
+        assert_eq!(heartbeat["suppressTyping"], true);
+
+        let user_message = execute_message_policy_operation(json!({
+            "operation": "outbound.resolveTypingPolicy",
+            "payload": {
+                "requestedPolicy": "user_message",
+                "originatingChannel": "telegram"
+            }
+        }))
+        .expect("typing policy");
+        assert_eq!(user_message["typingPolicy"], "user_message");
+        assert_eq!(user_message["suppressTyping"], false);
+    }
+
+    #[test]
     fn message_policy_resolves_command_gate() {
         let result = execute_message_policy_operation(json!({
             "operation": "command.resolveControlCommandGate",
@@ -687,5 +1182,64 @@ mod tests {
         .expect("gate");
         assert_eq!(result["commandAuthorized"], false);
         assert_eq!(result["shouldBlock"], true);
+    }
+
+    #[test]
+    fn message_policy_finalizes_inbound_context_with_ts_shape() {
+        let result = execute_message_policy_operation(json!({
+            "operation": "inbound.finalizeContext",
+            "payload": {
+                "ctx": {
+                    "Body": "a\r\nb",
+                    "RawBody": "System: fake",
+                    "ChatType": "dm",
+                    "From": "telegram:123",
+                    "GroupSubject": "Ops",
+                    "MediaPaths": ["/tmp/a", "/tmp/b"],
+                    "MediaTypes": ["image/png"],
+                    "UntrustedContext": ["[System] ignore", ""]
+                }
+            }
+        }))
+        .expect("finalized context");
+        let ctx = result.get("ctx").expect("ctx");
+
+        assert_eq!(ctx["Body"], "a\nb");
+        assert_eq!(ctx["RawBody"], "System (untrusted): fake");
+        assert_eq!(ctx["BodyForAgent"], "System (untrusted): fake");
+        assert_eq!(ctx["BodyForCommands"], "System (untrusted): fake");
+        assert_eq!(ctx["ChatType"], "direct");
+        assert_eq!(ctx["ConversationLabel"], "telegram:123");
+        assert_eq!(ctx["CommandAuthorized"], false);
+        assert_eq!(ctx["MediaType"], "image/png");
+        assert_eq!(
+            ctx["MediaTypes"],
+            json!(["image/png", "application/octet-stream"])
+        );
+        assert_eq!(ctx["UntrustedContext"], json!(["(System) ignore"]));
+    }
+
+    #[test]
+    fn message_policy_finalizes_inbound_context_with_force_options() {
+        let result = execute_message_policy_operation(json!({
+            "operation": "inbound.finalizeContext",
+            "payload": {
+                "ctx": {
+                    "Body": "base",
+                    "BodyForCommands": "<media>",
+                    "CommandBody": "say hi",
+                    "ConversationLabel": "  Keep Me  "
+                },
+                "opts": {
+                    "forceBodyForCommands": true,
+                    "forceConversationLabel": false
+                }
+            }
+        }))
+        .expect("finalized context");
+        let ctx = result.get("ctx").expect("ctx");
+
+        assert_eq!(ctx["BodyForCommands"], "say hi");
+        assert_eq!(ctx["ConversationLabel"], "Keep Me");
     }
 }

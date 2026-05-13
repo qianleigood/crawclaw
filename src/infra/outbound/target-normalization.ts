@@ -1,5 +1,7 @@
+import { shouldAllowBundledTsChannelRuntime } from "../../channels/plugins/bundled-runtime-policy.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
+import { listBundledPluginMetadata } from "../../plugins/bundled-plugin-metadata.js";
 import { getActivePluginChannelRegistryVersion } from "../../plugins/runtime.js";
 
 export function normalizeChannelTargetInput(raw: string): string {
@@ -22,13 +24,32 @@ export const __testing = {
   resetTargetNormalizerCacheForTests,
 } as const;
 
+export function shouldUseNativeChannelTargetRuntime(channelId: ChannelId): boolean {
+  if (shouldAllowBundledTsChannelRuntime()) {
+    return false;
+  }
+  for (const entry of listBundledPluginMetadata({
+    includeChannelConfigs: false,
+    includeSyntheticChannelConfigs: false,
+  })) {
+    if (entry.manifest.channels?.includes(channelId)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getTargetNormalizerPlugin(channelId: ChannelId) {
+  return shouldUseNativeChannelTargetRuntime(channelId) ? undefined : getChannelPlugin(channelId);
+}
+
 function resolveTargetNormalizer(channelId: ChannelId): TargetNormalizer {
   const version = getActivePluginChannelRegistryVersion();
   const cached = targetNormalizerCacheByChannelId.get(channelId);
   if (cached?.version === version) {
     return cached.normalizer;
   }
-  const plugin = getChannelPlugin(channelId);
+  const plugin = getTargetNormalizerPlugin(channelId);
   const normalizer = plugin?.messaging?.normalizeTarget;
   targetNormalizerCacheByChannelId.set(channelId, {
     version,
@@ -52,7 +73,7 @@ export function normalizeTargetForProvider(provider: string, raw?: string): stri
 }
 
 export function buildTargetResolverSignature(channel: ChannelId): string {
-  const plugin = getChannelPlugin(channel);
+  const plugin = getTargetNormalizerPlugin(channel);
   const resolver = plugin?.messaging?.targetResolver;
   const hint = resolver?.hint ?? "";
   const looksLike = resolver?.looksLikeId;

@@ -14,6 +14,7 @@ import {
   buildPluginLoaderJitiOptions,
   shouldPreferNativeJiti,
 } from "../../plugins/sdk-alias.js";
+import { shouldAllowBundledTsChannelRuntime } from "./bundled-runtime-policy.js";
 import type { ChannelId, ChannelPlugin } from "./types.js";
 
 type GeneratedBundledChannelEntry = {
@@ -71,6 +72,10 @@ function loadBundledModule(modulePath: string, rootDir: string): unknown {
 }
 
 function loadGeneratedBundledChannelEntries(): readonly GeneratedBundledChannelEntry[] {
+  if (!shouldAllowBundledTsChannelRuntime()) {
+    return [];
+  }
+
   const discovery = discoverCrawClawPlugins({ cache: false });
   const manifestRegistry = loadPluginManifestRegistry({
     cache: false,

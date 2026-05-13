@@ -1,10 +1,32 @@
 import type { Server as HttpServer } from "node:http";
 import type { WebSocketServer } from "ws";
-import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
+import type { ChannelId } from "../channels/plugins/types.js";
 import { stopGmailWatcher } from "../hooks/gmail-watcher.js";
 import type { MainSessionWakeRunner } from "../infra/main-session-wake-runner.js";
 import { drainSharedDurableExtractionWorkers } from "../memory/durable/worker-manager.ts";
+import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
 import type { PluginServicesHandle } from "../plugins/services.js";
+
+let cachedShutdownChannelIds: ChannelId[] | null = null;
+
+function listShutdownChannelIds(): ChannelId[] {
+  if (cachedShutdownChannelIds) {
+    return cachedShutdownChannelIds;
+  }
+  const ids = new Set<ChannelId>();
+  for (const entry of listBundledPluginMetadata({
+    includeChannelConfigs: false,
+    includeSyntheticChannelConfigs: false,
+  })) {
+    for (const channelId of entry.manifest.channels ?? []) {
+      if (channelId) {
+        ids.add(channelId as ChannelId);
+      }
+    }
+  }
+  cachedShutdownChannelIds = [...ids];
+  return cachedShutdownChannelIds;
+}
 
 export function createGatewayCloseHandler(params: {
   bonjourStop: (() => Promise<void>) | null;
@@ -49,8 +71,8 @@ export function createGatewayCloseHandler(params: {
       if (params.tailscaleCleanup) {
         await params.tailscaleCleanup();
       }
-      for (const plugin of listChannelPlugins()) {
-        await params.stopChannel(plugin.id);
+      for (const channelId of listShutdownChannelIds()) {
+        await params.stopChannel(channelId);
       }
       if (params.pluginServices) {
         await params.pluginServices.stop().catch(() => {});

@@ -30,6 +30,19 @@ type MessagePolicyOptions = {
   timeoutMs?: number;
 };
 
+export type RustChannelOutboundRequest = {
+  requestId: string;
+  channel: ChannelId;
+  accountId?: string;
+  action: string;
+  to: string;
+  text?: string;
+  mediaUrls?: string[];
+  replyToId?: string;
+  threadId?: string;
+  params?: Record<string, unknown>;
+};
+
 async function runMessagePolicyOperation<T>(
   operation: string,
   payload: unknown,
@@ -43,6 +56,16 @@ async function runMessagePolicyOperation<T>(
       timeoutMs: options.timeoutMs ?? MESSAGE_POLICY_TIMEOUT_MS,
     },
   );
+}
+
+export async function buildRustChannelOutboundRequest(
+  request: RustChannelOutboundRequest,
+): Promise<RustChannelOutboundRequest> {
+  const result = await runMessagePolicyOperation<{ request: RustChannelOutboundRequest }>(
+    "outbound.buildDeliveryRequest",
+    request,
+  );
+  return result.request;
 }
 
 function contextGuardTarget(

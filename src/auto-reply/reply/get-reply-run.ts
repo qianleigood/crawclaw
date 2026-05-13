@@ -3,7 +3,7 @@ import { resolveSessionAuthProfileOverride } from "../../agents/auth-profiles/se
 import type { ExecToolDefaults } from "../../agents/bash-tools.js";
 import { resolveFastModeState } from "../../agents/fast-mode.js";
 import { resolveTypingMode } from "../../channels/typing-mode.js";
-import { resolveRunTypingPolicy } from "../../channels/typing-policy.js";
+import { resolveRunTypingPolicyWithRust } from "../../channels/typing-policy-runtime.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { resolveGroupSessionKey } from "../../config/sessions/group.js";
 import {
@@ -263,7 +263,7 @@ export async function runPreparedReply(
   const isGroupChat = sessionCtx.ChatType === "group";
   const wasMentioned = ctx.WasMentioned === true;
   const isHeartbeat = opts?.isHeartbeat === true;
-  const { typingPolicy, suppressTyping } = resolveRunTypingPolicy({
+  const { typingPolicy, suppressTyping } = await resolveRunTypingPolicyWithRust({
     requestedPolicy: opts?.typingPolicy,
     suppressTyping: opts?.suppressTyping === true,
     isHeartbeat,

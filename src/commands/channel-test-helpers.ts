@@ -1,5 +1,5 @@
-import { listBundledChannelPlugins } from "../channels/plugins/bundled.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
+import { resolveChannelPluginModuleEntry } from "../plugins/entry-contract.js";
 import { setActivePluginRegistry } from "../plugins/runtime.js";
 import type { PluginRuntime } from "../plugins/runtime/index.js";
 import { loadBundledPluginPublicSurfaceSync } from "../test-utils/bundled-plugin-public-surface.js";
@@ -8,43 +8,70 @@ import { getChannelSetupWizardAdapter } from "./channel-setup/registry.js";
 import type { ChannelSetupWizardAdapter } from "./channel-setup/types.js";
 import type { ChannelChoice } from "./onboard-types.js";
 
-const { googlechatPlugin } = loadBundledPluginPublicSurfaceSync<{
-  googlechatPlugin: ChannelPlugin;
-}>({
-  pluginId: "googlechat",
-  artifactBasename: "index.js",
-});
-const { matrixPlugin, setMatrixRuntime } = loadBundledPluginPublicSurfaceSync<{
-  matrixPlugin: ChannelPlugin;
-  setMatrixRuntime: (runtime: PluginRuntime) => void;
-}>({
-  pluginId: "matrix",
-  artifactBasename: "index.js",
-});
-const { msteamsPlugin } = loadBundledPluginPublicSurfaceSync<{
-  msteamsPlugin: ChannelPlugin;
-}>({
-  pluginId: "msteams",
-  artifactBasename: "index.js",
-});
-const { nostrPlugin } = loadBundledPluginPublicSurfaceSync<{
-  nostrPlugin: ChannelPlugin;
-}>({
-  pluginId: "nostr",
-  artifactBasename: "index.js",
-});
-const { tlonPlugin } = loadBundledPluginPublicSurfaceSync<{
-  tlonPlugin: ChannelPlugin;
-}>({
-  pluginId: "tlon",
-  artifactBasename: "index.js",
-});
-const { whatsappPlugin } = loadBundledPluginPublicSurfaceSync<{
-  whatsappPlugin: ChannelPlugin;
-}>({
-  pluginId: "whatsapp",
-  artifactBasename: "index.js",
-});
+const BUNDLED_CHANNEL_PLUGIN_IDS = [
+  "bluebubbles",
+  "ddingtalk",
+  "discord",
+  "esp32",
+  "feishu",
+  "googlechat",
+  "imessage",
+  "irc",
+  "line",
+  "matrix",
+  "mattermost",
+  "msteams",
+  "nextcloud-talk",
+  "nostr",
+  "qqbot",
+  "signal",
+  "slack",
+  "synology-chat",
+  "telegram",
+  "tlon",
+  "twitch",
+  "weixin",
+  "whatsapp",
+  "zalo",
+  "zalouser",
+] as const;
+
+type BundledChannelEntryForTests = {
+  plugin: ChannelPlugin;
+  setRuntime?: (runtime: PluginRuntime) => void;
+};
+
+let bundledChannelEntriesForTests: readonly BundledChannelEntryForTests[] | null = null;
+
+function loadBundledChannelEntryForTests(pluginId: string): BundledChannelEntryForTests {
+  const surface = loadBundledPluginPublicSurfaceSync<Record<string, unknown>>({
+    pluginId,
+    artifactBasename: "index.js",
+  });
+  const entry = resolveChannelPluginModuleEntry(surface);
+  if (!entry.channelPlugin) {
+    throw new Error(`missing bundled test channel plugin: ${pluginId}`);
+  }
+  return {
+    plugin: entry.channelPlugin,
+    ...(entry.setChannelRuntime ? { setRuntime: entry.setChannelRuntime } : {}),
+  };
+}
+
+function getBundledChannelEntriesForTests(): readonly BundledChannelEntryForTests[] {
+  bundledChannelEntriesForTests ??= BUNDLED_CHANNEL_PLUGIN_IDS.map((pluginId) =>
+    loadBundledChannelEntryForTests(pluginId),
+  );
+  return bundledChannelEntriesForTests;
+}
+
+function requireBundledChannelEntryForTests(pluginId: string): BundledChannelEntryForTests {
+  const entry = getBundledChannelEntriesForTests().find((item) => item.plugin.id === pluginId);
+  if (!entry) {
+    throw new Error(`missing bundled test channel plugin: ${pluginId}`);
+  }
+  return entry;
+}
 
 type ChannelSetupWizardAdapterPatch = Partial<
   Pick<
@@ -66,20 +93,16 @@ type PatchedSetupAdapterFields = {
 };
 
 export function setDefaultChannelPluginRegistryForTests(): void {
-  setMatrixRuntime({
+  const matrixRuntime = requireBundledChannelEntryForTests("matrix").setRuntime;
+  if (!matrixRuntime) {
+    throw new Error("missing matrix runtime setter");
+  }
+  matrixRuntime({
     state: {
       resolveStateDir: (_env, homeDir) => (homeDir ?? (() => "/tmp"))(),
     },
-  } as Parameters<typeof setMatrixRuntime>[0]);
-  const channels = [
-    ...listBundledChannelPlugins(),
-    matrixPlugin,
-    msteamsPlugin,
-    nostrPlugin,
-    tlonPlugin,
-    googlechatPlugin,
-    whatsappPlugin,
-  ].map((plugin) => ({
+  } as Parameters<NonNullable<BundledChannelEntryForTests["setRuntime"]>>[0]);
+  const channels = getBundledChannelEntriesForTests().map(({ plugin }) => ({
     pluginId: plugin.id,
     plugin,
     source: "test" as const,

@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { IncomingMessage } from "node:http";
 import { listAgentIds, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { listChannelPlugins } from "../channels/plugins/index.js";
 import type { ChannelId } from "../channels/plugins/types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { readJsonBodyWithLimit, requestBodyErrorToText } from "../infra/http-body.js";
+import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import type { HookExternalContentSource } from "../security/external-content.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
@@ -220,7 +220,26 @@ export type HookAgentDispatchPayload = Omit<HookAgentPayload, "sessionKey"> & {
   externalContentSource?: HookExternalContentSource;
 };
 
-const listHookChannelValues = () => ["last", ...listChannelPlugins().map((plugin) => plugin.id)];
+let cachedHookChannelValues: string[] | null = null;
+
+const listHookChannelValues = () => {
+  if (cachedHookChannelValues) {
+    return cachedHookChannelValues;
+  }
+  const ids = new Set<string>();
+  for (const entry of listBundledPluginMetadata({
+    includeChannelConfigs: false,
+    includeSyntheticChannelConfigs: false,
+  })) {
+    for (const channelId of entry.manifest.channels ?? []) {
+      if (channelId) {
+        ids.add(channelId);
+      }
+    }
+  }
+  cachedHookChannelValues = ["last", ...ids];
+  return cachedHookChannelValues;
+};
 
 export type HookMessageChannel = ChannelId | "last";
 

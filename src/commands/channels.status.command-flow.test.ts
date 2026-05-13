@@ -20,6 +20,7 @@ vi.mock("../cli/command-secret-gateway.js", () => ({
 
 vi.mock("./shared.js", () => ({
   requireValidConfigSnapshot: (runtime: unknown) => requireValidConfigSnapshot(runtime),
+  formatAccountLabel: ({ accountId }: { accountId: string }) => accountId,
   formatChannelAccountLabel: ({
     channel,
     accountId,
@@ -173,10 +174,25 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
   });
 
   it("includes Feishu CLI user status when the gateway exposes it", async () => {
+    listChannelPlugins.mockReturnValue([]);
     callGateway.mockImplementation(async (opts: { method: string }) => {
       if (opts.method === "channels.status") {
         return {
+          channelOrder: ["desktop", "discord"],
+          channelLabels: {
+            desktop: "Desktop",
+            discord: "Discord",
+          },
           channelAccounts: {
+            desktop: [
+              {
+                accountId: "local",
+                enabled: true,
+                configured: false,
+                linked: true,
+                running: true,
+              },
+            ],
             discord: [
               {
                 accountId: "default",
@@ -206,6 +222,8 @@ describe("channelsStatusCommand SecretRef fallback flow", () => {
     expect(errors).toEqual([]);
     const joined = logs.join("\n");
     expect(joined).toContain("Gateway reachable.");
+    expect(joined).toContain("Desktop local");
+    expect(joined).toContain("Discord default");
     expect(joined).toContain("Feishu user identity");
     expect(joined).toContain("lark-cli 1.0.7");
   });

@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 crawclaw-core = { path = "../crawclaw-core" }
+crawclaw-channels = { path = "../crawclaw-channels" }
 crawclaw-native-plugins = { path = "../crawclaw-native-plugins" }
 crawclaw-providers = { path = "../crawclaw-providers" }
 async-trait = "0.1"

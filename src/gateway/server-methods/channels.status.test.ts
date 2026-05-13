@@ -6,6 +6,8 @@ const mocks = vi.hoisted(() => ({
   readConfigFileSnapshot: vi.fn(),
   applyPluginAutoEnable: vi.fn(),
   listChannelPlugins: vi.fn(),
+  shouldAllowBundledTsChannelRuntime: vi.fn(() => true),
+  listBundledPluginMetadata: vi.fn<() => Array<{ manifest: { channels?: string[] } }>>(() => []),
   listChannelPluginCatalogEntries: vi.fn(),
   getChannelPlugin: vi.fn(),
   buildChannelUiCatalog: vi.fn(),
@@ -34,6 +36,14 @@ vi.mock("../../channels/plugins/index.js", () => ({
   listChannelPlugins: mocks.listChannelPlugins,
   getChannelPlugin: mocks.getChannelPlugin,
   normalizeChannelId: (value: string) => value,
+}));
+
+vi.mock("../../channels/plugins/bundled-runtime-policy.js", () => ({
+  shouldAllowBundledTsChannelRuntime: mocks.shouldAllowBundledTsChannelRuntime,
+}));
+
+vi.mock("../../plugins/bundled-plugin-metadata.js", () => ({
+  listBundledPluginMetadata: mocks.listBundledPluginMetadata,
 }));
 
 vi.mock("../../channels/plugins/catalog.js", () => ({
@@ -143,6 +153,10 @@ describe("channelsHandlers channels.status", () => {
     });
     mocks.listRecentDiagnosticChannelStreamingDecisions.mockReturnValue([]);
     mocks.resolveChannelSetupWizardAdapterForPlugin.mockReturnValue(undefined);
+    mocks.shouldAllowBundledTsChannelRuntime.mockReset();
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(true);
+    mocks.listBundledPluginMetadata.mockReset();
+    mocks.listBundledPluginMetadata.mockReturnValue([]);
     mocks.listChannelPlugins.mockReturnValue([
       {
         id: "whatsapp",
@@ -291,6 +305,74 @@ describe("channelsHandlers channels.status", () => {
     );
   });
 
+  it("omits bundled TS channel plugins from status when native channel runtime is authoritative", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["telegram"],
+        },
+      },
+    ]);
+    mocks.buildChannelUiCatalog.mockReset();
+    mocks.buildChannelUiCatalog.mockImplementation(
+      (plugins: Array<{ id: string; meta?: unknown }>) => ({
+        order: plugins.map((plugin) => plugin.id),
+        labels: Object.fromEntries(plugins.map((plugin) => [plugin.id, plugin.id])),
+        detailLabels: Object.fromEntries(plugins.map((plugin) => [plugin.id, plugin.id])),
+        systemImages: {},
+        entries: plugins.map((plugin) => ({
+          id: plugin.id,
+          label: plugin.id,
+          detailLabel: plugin.id,
+        })),
+      }),
+    );
+    mocks.listChannelPlugins.mockReturnValue([
+      {
+        id: "telegram",
+        meta: { id: "telegram", label: "Telegram" },
+        config: {
+          listAccountIds: () => ["default"],
+          resolveAccount: () => ({}),
+          isEnabled: () => true,
+        },
+      },
+      {
+        id: "externalchat",
+        meta: { id: "externalchat", label: "External Chat" },
+        config: {
+          listAccountIds: () => ["default"],
+          resolveAccount: () => ({}),
+          isEnabled: () => true,
+        },
+      },
+    ]);
+    const respond = vi.fn();
+
+    await channelsHandlers["channels.status"](createOptions({ probe: false }, { respond }));
+
+    expect(mocks.buildChannelAccountSnapshot).toHaveBeenCalledTimes(1);
+    expect(mocks.buildChannelAccountSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({
+        plugin: expect.objectContaining({ id: "externalchat" }),
+      }),
+    );
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channelOrder: ["externalchat"],
+        channels: {
+          externalchat: expect.any(Object),
+        },
+        channelAccounts: {
+          externalchat: [expect.objectContaining({ accountId: "default" })],
+        },
+      }),
+      undefined,
+    );
+  });
+
   it("starts QR login for a selected channel account", async () => {
     const loginWithQrStart = vi.fn(async () => ({
       message: "scan now",
@@ -343,6 +425,69 @@ describe("channelsHandlers channels.status", () => {
         message: "scan now",
         qrDataUrl: "data:image/png;base64,abc",
       },
+      undefined,
+    );
+  });
+
+  it("starts native bundled channel accounts without resolving TS channel plugins", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["desktop"],
+        },
+      },
+    ]);
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+    const startChannel = vi.fn(async () => undefined);
+    const respond = vi.fn();
+
+    await channelsHandlers["channels.account.login.start"]({
+      ...createOptions(
+        {
+          channel: "desktop",
+          accountId: "local",
+        },
+        {
+          req: {
+            type: "req",
+            id: "req-native-login",
+            method: "channels.account.login.start",
+            params: {
+              channel: "desktop",
+              accountId: "local",
+            },
+          },
+          respond,
+          context: {
+            getRuntimeSnapshot: () => ({
+              channels: {},
+              channelAccounts: {
+                desktop: {
+                  local: {
+                    accountId: "local",
+                    configured: true,
+                    connected: true,
+                  },
+                },
+              },
+            }),
+            startChannel,
+          } as unknown as GatewayRequestHandlerOptions["context"],
+        },
+      ),
+    } as GatewayRequestHandlerOptions);
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(startChannel).toHaveBeenCalledWith("desktop", "local");
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channel: "desktop",
+        accountId: "local",
+        connected: true,
+        implementation: "rust-native",
+      }),
       undefined,
     );
   });
@@ -473,6 +618,318 @@ describe("channelsHandlers channels.status", () => {
           accountId: "default",
           running: true,
         }),
+      }),
+      undefined,
+    );
+  });
+
+  it("restarts native bundled channel accounts without resolving TS channel plugins", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["telegram"],
+        },
+      },
+    ]);
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+    const stopChannel = vi.fn(async () => undefined);
+    const startChannel = vi.fn(async () => undefined);
+    const respond = vi.fn();
+
+    await channelsHandlers["channels.account.reconnect"]({
+      ...createOptions(
+        {
+          channel: "telegram",
+          accountId: "default",
+        },
+        {
+          req: {
+            type: "req",
+            id: "req-native-reconnect",
+            method: "channels.account.reconnect",
+            params: {
+              channel: "telegram",
+              accountId: "default",
+            },
+          },
+          respond,
+          context: {
+            getRuntimeSnapshot: () => ({
+              channels: {},
+              channelAccounts: {
+                telegram: {
+                  default: {
+                    accountId: "default",
+                    configured: true,
+                    connected: false,
+                  },
+                },
+              },
+            }),
+            stopChannel,
+            startChannel,
+          } as unknown as GatewayRequestHandlerOptions["context"],
+        },
+      ),
+    } as GatewayRequestHandlerOptions);
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(stopChannel).toHaveBeenCalledWith("telegram", "default");
+    expect(startChannel).toHaveBeenCalledWith("telegram", "default");
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channel: "telegram",
+        accountId: "default",
+        snapshot: expect.objectContaining({
+          accountId: "default",
+          configured: true,
+        }),
+      }),
+      undefined,
+    );
+  });
+
+  it("builds native bundled channel setup surface without resolving TS channel plugins", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["telegram"],
+        },
+      },
+    ]);
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+    mocks.listChannelPluginCatalogEntries.mockReturnValue([
+      {
+        id: "telegram",
+        meta: {
+          id: "telegram",
+          label: "Telegram",
+          selectionLabel: "Telegram",
+          detailLabel: "Telegram bot",
+          docsPath: "/channels/telegram",
+        },
+        install: { npmSpec: "@crawclaw/telegram" },
+      },
+    ]);
+    mocks.loadConfig.mockReturnValue({
+      channels: {
+        telegram: {
+          token: "test-token",
+        },
+      },
+    });
+    const respond = vi.fn();
+
+    await channelsHandlers["channels.setup.surface"]({
+      ...createOptions(
+        { channel: "telegram" },
+        {
+          req: {
+            type: "req",
+            id: "req-native-setup",
+            method: "channels.setup.surface",
+            params: { channel: "telegram" },
+          },
+          respond,
+        },
+      ),
+    } as GatewayRequestHandlerOptions);
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channel: "telegram",
+        label: "Telegram",
+        detailLabel: "Telegram bot",
+        docsPath: "/channels/telegram",
+        configured: true,
+        mode: "config",
+        implementation: "rust-native",
+      }),
+      undefined,
+    );
+  });
+
+  it("verifies native bundled channel accounts without resolving TS channel plugins", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["telegram"],
+        },
+      },
+    ]);
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+    const respond = vi.fn();
+
+    await channelsHandlers["channels.account.verify"]({
+      ...createOptions(
+        {
+          channel: "telegram",
+          accountId: "default",
+        },
+        {
+          req: {
+            type: "req",
+            id: "req-native-verify",
+            method: "channels.account.verify",
+            params: {
+              channel: "telegram",
+              accountId: "default",
+            },
+          },
+          respond,
+          context: {
+            getRuntimeSnapshot: () => ({
+              channels: {},
+              channelAccounts: {
+                telegram: {
+                  default: {
+                    accountId: "default",
+                    configured: true,
+                    connected: true,
+                  },
+                },
+              },
+            }),
+          } as unknown as GatewayRequestHandlerOptions["context"],
+        },
+      ),
+    } as GatewayRequestHandlerOptions);
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channel: "telegram",
+        accountId: "default",
+        implementation: "rust-native",
+        snapshot: expect.objectContaining({
+          accountId: "default",
+          connected: true,
+        }),
+      }),
+      undefined,
+    );
+  });
+
+  it("logs out native bundled channel accounts without resolving TS channel plugins", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["telegram"],
+        },
+      },
+    ]);
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+    const stopChannel = vi.fn(async () => undefined);
+    const markChannelLoggedOut = vi.fn();
+    const respond = vi.fn();
+
+    await channelsHandlers["channels.account.logout"]({
+      ...createOptions(
+        {
+          channel: "telegram",
+          accountId: "default",
+        },
+        {
+          req: {
+            type: "req",
+            id: "req-native-logout",
+            method: "channels.account.logout",
+            params: {
+              channel: "telegram",
+              accountId: "default",
+            },
+          },
+          respond,
+          context: {
+            getRuntimeSnapshot: () => ({
+              channels: {},
+              channelAccounts: {},
+            }),
+            stopChannel,
+            markChannelLoggedOut,
+          } as unknown as GatewayRequestHandlerOptions["context"],
+        },
+      ),
+    } as GatewayRequestHandlerOptions);
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(stopChannel).toHaveBeenCalledWith("telegram", "default");
+    expect(markChannelLoggedOut).toHaveBeenCalledWith("telegram", true, "default");
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channel: "telegram",
+        accountId: "default",
+        cleared: true,
+        loggedOut: true,
+        implementation: "rust-native",
+      }),
+      undefined,
+    );
+  });
+
+  it("logs out native bundled channels without resolving TS channel plugins", async () => {
+    mocks.shouldAllowBundledTsChannelRuntime.mockReturnValue(false);
+    mocks.listBundledPluginMetadata.mockReturnValue([
+      {
+        manifest: {
+          channels: ["telegram"],
+        },
+      },
+    ]);
+    mocks.getChannelPlugin.mockReturnValue(undefined);
+    const stopChannel = vi.fn(async () => undefined);
+    const markChannelLoggedOut = vi.fn();
+    const respond = vi.fn();
+
+    await channelsHandlers["channels.logout"]({
+      ...createOptions(
+        {
+          channel: "telegram",
+          accountId: "default",
+        },
+        {
+          req: {
+            type: "req",
+            id: "req-native-channel-logout",
+            method: "channels.logout",
+            params: {
+              channel: "telegram",
+              accountId: "default",
+            },
+          },
+          respond,
+          context: {
+            getRuntimeSnapshot: () => ({
+              channels: {},
+              channelAccounts: {},
+            }),
+            stopChannel,
+            markChannelLoggedOut,
+          } as unknown as GatewayRequestHandlerOptions["context"],
+        },
+      ),
+    } as GatewayRequestHandlerOptions);
+
+    expect(mocks.getChannelPlugin).not.toHaveBeenCalled();
+    expect(stopChannel).toHaveBeenCalledWith("telegram", "default");
+    expect(markChannelLoggedOut).toHaveBeenCalledWith("telegram", true, "default");
+    expect(respond).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({
+        channel: "telegram",
+        accountId: "default",
+        cleared: true,
+        loggedOut: true,
+        implementation: "rust-native",
       }),
       undefined,
     );

@@ -10,6 +10,7 @@ const logs: string[] = [];
 const errors: string[] = [];
 const resolveDefaultAccountId = () => DEFAULT_ACCOUNT_ID;
 const mocks = vi.hoisted(() => ({
+  callGateway: vi.fn(),
   readConfigFileSnapshot: vi.fn(),
   replaceConfigFile: vi.fn(),
   resolveInstallableChannelPlugin: vi.fn(),
@@ -25,6 +26,10 @@ vi.mock("./shared.js", () => ({
 vi.mock("../../channels/plugins/index.js", () => ({
   listChannelPlugins: vi.fn(),
   getChannelPlugin: vi.fn(),
+}));
+
+vi.mock("../../gateway/call.js", () => ({
+  callGateway: mocks.callGateway,
 }));
 
 vi.mock("../../config/config.js", async (importOriginal) => {
@@ -103,6 +108,42 @@ describe("channelsCapabilitiesCommand", () => {
       cfg: { channels: {} },
       configChanged: false,
     });
+    mocks.callGateway.mockRejectedValue(new Error("gateway unavailable"));
+  });
+
+  it("prints native Rust channel capabilities from the Gateway when available", async () => {
+    mocks.callGateway.mockResolvedValue({
+      version: "crawclaw-channel-contract/v1",
+      channels: [
+        {
+          channel: "slack",
+          label: "Slack",
+          rustAdapterId: "slack-native",
+          chatTypes: ["direct", "channel"],
+          actions: ["send", "poll"],
+          inbound: { webhook: true, mediaDownload: true },
+          outbound: { text: true, poll: true, threadReply: true, media: true },
+          lifecycle: { setup: true, status: true },
+        },
+      ],
+    });
+    vi.mocked(listChannelPlugins).mockReturnValue([]);
+    vi.mocked(getChannelPlugin).mockReturnValue(undefined);
+
+    await channelsCapabilitiesCommand({ channel: "slack" }, runtime);
+
+    expect(mocks.callGateway).toHaveBeenCalledWith(
+      expect.objectContaining({
+        method: "channels.capabilities",
+        params: { channel: "slack" },
+      }),
+    );
+    const output = logs.join("\n");
+    expect(output).toContain("Slack");
+    expect(output).toContain("Runtime: slack-native");
+    expect(output).toContain("polls");
+    expect(output).toContain("Lifecycle: setup, status");
+    expect(mocks.resolveInstallableChannelPlugin).not.toHaveBeenCalled();
   });
 
   it("prints Slack bot + user scopes when user token is configured", async () => {

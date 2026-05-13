@@ -7,7 +7,7 @@ import {
 } from "../../bindings/records.js";
 import { shouldSkipDuplicateInbound } from "../../channels/inbound-dedupe.js";
 import { shouldSuppressLocalExecApprovalPrompt } from "../../channels/plugins/exec-approval-local.js";
-import { resolveRunTypingPolicy } from "../../channels/typing-policy.js";
+import { resolveRunTypingPolicyWithRust } from "../../channels/typing-policy-runtime.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { parseSessionThreadInfo } from "../../config/sessions/delivery-info.js";
 import { resolveStorePath } from "../../config/sessions/paths.js";
@@ -51,7 +51,7 @@ import {
   type ReplyPayload,
 } from "../types.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
-import { resolveReplyRoutingDecision } from "./routing-policy.js";
+import { resolveReplyRoutingDecisionWithRust } from "./routing-policy-runtime.js";
 
 let routeReplyRuntimePromise: Promise<typeof import("./route-reply.runtime.js")> | null = null;
 let getReplyFromConfigRuntimePromise: Promise<
@@ -260,7 +260,7 @@ export async function dispatchReplyFromConfig(params: {
   const suppressAcpChildUserDelivery = isParentOwnedBackgroundAcpSession(sessionStoreEntry.entry);
   const routeReplyRuntime = await loadRouteReplyRuntime();
   const { originatingChannel, currentSurface, shouldRouteToOriginating, shouldSuppressTyping } =
-    resolveReplyRoutingDecision({
+    await resolveReplyRoutingDecisionWithRust({
       provider: ctx.Provider,
       surface: ctx.Surface,
       explicitDeliverRoute: ctx.ExplicitDeliverRoute,
@@ -662,7 +662,7 @@ export async function dispatchReplyFromConfig(params: {
       }
       return { ...payload, text: undefined };
     };
-    const typing = resolveRunTypingPolicy({
+    const typing = await resolveRunTypingPolicyWithRust({
       requestedPolicy: params.replyOptions?.typingPolicy,
       suppressTyping: params.replyOptions?.suppressTyping === true || shouldSuppressTyping,
       originatingChannel,

@@ -3,7 +3,7 @@ import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent
 import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
 import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
-import { type ChannelId, listChannelPlugins } from "../channels/plugins/index.js";
+import type { ChannelId } from "../channels/plugins/types.js";
 import { formatCliCommand } from "../cli/command-format.js";
 import { createDefaultDeps } from "../cli/deps.js";
 import { isRestartEnabled } from "../config/commands.js";
@@ -43,6 +43,7 @@ import { enqueueSystemEvent } from "../infra/system-events.js";
 import { scheduleGatewayUpdateCheck } from "../infra/update-startup.js";
 import { startDiagnosticHeartbeat, stopDiagnosticHeartbeat } from "../logging/diagnostic.js";
 import { createSubsystemLogger, runtimeForLogger } from "../logging/subsystem.js";
+import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
 import { resolveBundledPluginInstallCommandHint } from "../plugins/bundled-sources.js";
 import {
   resolveConfiguredDeferredChannelPluginIds,
@@ -174,11 +175,32 @@ const logTailscale = log.child("tailscale");
 const logChannels = log.child("channels");
 
 let cachedChannelRuntime: ReturnType<typeof createPluginRuntime>["channel"] | null = null;
+let cachedGatewayChannelIds: ChannelId[] | null = null;
 
 function getChannelRuntime() {
   cachedChannelRuntime ??= createPluginRuntime().channel;
   return cachedChannelRuntime;
 }
+
+function listGatewayChannelIds(): ChannelId[] {
+  if (cachedGatewayChannelIds) {
+    return cachedGatewayChannelIds;
+  }
+  const ids = new Set<ChannelId>();
+  for (const entry of listBundledPluginMetadata({
+    includeChannelConfigs: false,
+    includeSyntheticChannelConfigs: false,
+  })) {
+    for (const channelId of entry.manifest.channels ?? []) {
+      if (channelId) {
+        ids.add(channelId as ChannelId);
+      }
+    }
+  }
+  cachedGatewayChannelIds = [...ids];
+  return cachedGatewayChannelIds;
+}
+
 const logHealth = log.child("health");
 const logCron = log.child("cron");
 const logReload = log.child("reload");
@@ -593,13 +615,12 @@ export async function startGatewayServer(
     setActivePluginRegistry(emptyPluginRegistry);
   }
   const channelLogs = Object.fromEntries(
-    listChannelPlugins().map((plugin) => [plugin.id, logChannels.child(plugin.id)]),
+    listGatewayChannelIds().map((channelId) => [channelId, logChannels.child(channelId)]),
   ) as Record<ChannelId, ReturnType<typeof createSubsystemLogger>>;
   const channelRuntimeEnvs = Object.fromEntries(
     Object.entries(channelLogs).map(([id, logger]) => [id, runtimeForLogger(logger)]),
   ) as unknown as Record<ChannelId, RuntimeEnv>;
-  const channelMethods = listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []);
-  const gatewayMethods = Array.from(new Set([...baseGatewayMethods, ...channelMethods]));
+  const gatewayMethods = Array.from(new Set(baseGatewayMethods));
   let pluginServices: PluginServicesHandle | null = null;
   let activePort = port;
   let runtimeConfig = await resolveGatewayRuntimeConfig({
@@ -1118,11 +1139,11 @@ export async function startGatewayServer(
       gatewayMethods.splice(0, gatewayMethods.length, ...nextMethods);
     };
     const ensureChannelRuntimeSurfaces = () => {
-      for (const plugin of listChannelPlugins()) {
-        if (!channelLogs[plugin.id]) {
-          const logger = logChannels.child(plugin.id);
-          channelLogs[plugin.id] = logger;
-          channelRuntimeEnvs[plugin.id] = runtimeForLogger(logger);
+      for (const channelId of listGatewayChannelIds()) {
+        if (!channelLogs[channelId]) {
+          const logger = logChannels.child(channelId);
+          channelLogs[channelId] = logger;
+          channelRuntimeEnvs[channelId] = runtimeForLogger(logger);
         }
       }
     };
@@ -1583,14 +1604,7 @@ export async function startGatewayServer(
                 }
                 ensureChannelRuntimeSurfaces();
                 baseGatewayMethods = nextLoaded.gatewayMethods;
-                replaceGatewayMethods(
-                  Array.from(
-                    new Set([
-                      ...baseGatewayMethods,
-                      ...listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []),
-                    ]),
-                  ),
-                );
+                replaceGatewayMethods(Array.from(new Set(baseGatewayMethods)));
                 return;
               }
               let nextServices: PluginServicesHandle | null = null;
@@ -1618,14 +1632,7 @@ export async function startGatewayServer(
                 }
                 ensureChannelRuntimeSurfaces();
                 replacePluginGatewayHandlers(pluginRegistry.gatewayHandlers);
-                replaceGatewayMethods(
-                  Array.from(
-                    new Set([
-                      ...baseGatewayMethods,
-                      ...listChannelPlugins().flatMap((plugin) => plugin.gatewayMethods ?? []),
-                    ]),
-                  ),
-                );
+                replaceGatewayMethods(Array.from(new Set(baseGatewayMethods)));
                 pluginServices = nextServices;
                 log.info(`plugins reconfigured (${pluginRegistry.plugins.length} plugins)`);
               } catch (err) {

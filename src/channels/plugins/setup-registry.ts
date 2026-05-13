@@ -3,7 +3,6 @@ import {
   requireActivePluginRegistry,
 } from "../../plugins/runtime.js";
 import { CHAT_CHANNEL_ORDER, type ChatChannelId } from "../registry.js";
-import { listBundledChannelSetupPlugins } from "./bundled.js";
 import type { ChannelId, ChannelPlugin } from "./types.js";
 
 type CachedChannelSetupPlugins = {
@@ -56,9 +55,7 @@ function resolveCachedChannelSetupPlugins(): CachedChannelSetupPlugins {
   }
 
   const registryPlugins = (registry.channelSetups ?? []).map((entry) => entry.plugin);
-  const sorted = sortChannelSetupPlugins(
-    registryPlugins.length > 0 ? registryPlugins : listBundledChannelSetupPlugins(),
-  );
+  const sorted = sortChannelSetupPlugins(registryPlugins);
   const byId = new Map<string, ChannelPlugin>();
   for (const plugin of sorted) {
     byId.set(plugin.id, plugin);

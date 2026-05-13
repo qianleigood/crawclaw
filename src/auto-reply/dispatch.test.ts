@@ -1,5 +1,20 @@
 import { describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
+
+const mocks = vi.hoisted(() => ({
+  finalizeInboundContextWithRust: vi.fn(async (ctx: Record<string, unknown>) => ({
+    ...ctx,
+    Body: typeof ctx.Body === "string" ? ctx.Body : "",
+    BodyForAgent: typeof ctx.BodyForAgent === "string" ? ctx.BodyForAgent : ctx.Body,
+    BodyForCommands: typeof ctx.BodyForCommands === "string" ? ctx.BodyForCommands : ctx.Body,
+    CommandAuthorized: ctx.CommandAuthorized === true,
+  })),
+}));
+
+vi.mock("./inbound-policy-runtime.js", () => ({
+  finalizeInboundContextWithRust: mocks.finalizeInboundContextWithRust,
+}));
+
 import {
   dispatchInboundMessage,
   dispatchInboundMessageWithBufferedDispatcher,

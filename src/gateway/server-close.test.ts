@@ -43,4 +43,39 @@ describe("createGatewayCloseHandler", () => {
 
     expect(lifecycleUnsub).toHaveBeenCalledTimes(1);
   });
+
+  it("stops bundled channels without the active TS channel registry", async () => {
+    const stopChannel = vi.fn(async () => undefined);
+    const close = createGatewayCloseHandler({
+      bonjourStop: null,
+      tailscaleCleanup: null,
+      stopChannel,
+      pluginServices: null,
+      cron: { stop: vi.fn() },
+      mainSessionWakeRunner: { stop: vi.fn() } as never,
+      updateCheckStop: null,
+      broadcast: vi.fn(),
+      tickInterval: setInterval(() => undefined, 60_000),
+      healthInterval: setInterval(() => undefined, 60_000),
+      dedupeCleanup: setInterval(() => undefined, 60_000),
+      mediaCleanup: null,
+      agentUnsub: null,
+      mainSessionWakeUnsub: null,
+      transcriptUnsub: null,
+      lifecycleUnsub: null,
+      chatRunState: { clear: vi.fn() },
+      clients: new Set(),
+      configReloader: { stop: vi.fn(async () => undefined) },
+      wss: { close: (cb: () => void) => cb() } as never,
+      httpServer: {
+        close: (cb: (err?: Error | null) => void) => cb(null),
+        closeIdleConnections: vi.fn(),
+      } as never,
+    });
+
+    await close({ reason: "test shutdown" });
+
+    expect(stopChannel).toHaveBeenCalledWith("telegram");
+    expect(stopChannel).toHaveBeenCalledWith("whatsapp");
+  });
 });
