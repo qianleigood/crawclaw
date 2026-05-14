@@ -18,7 +18,16 @@ export type DispatchInboundResult = DispatchFromConfigResult;
 function shouldUseTsAgentLoopCompatibility(params: {
   replyResolver?: typeof import("./reply.js").getReplyFromConfig;
 }): boolean {
-  return Boolean(params.replyResolver);
+  if (!params.replyResolver) {
+    return false;
+  }
+  return isTestRuntimeForTsAgentLoopCompatibility();
+}
+
+function isTestRuntimeForTsAgentLoopCompatibility(
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): boolean {
+  return env.NODE_ENV === "test" || env.VITEST === "true";
 }
 
 export async function withReplyDispatcher<T>(params: {

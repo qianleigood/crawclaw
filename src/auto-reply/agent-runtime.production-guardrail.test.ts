@@ -14,6 +14,9 @@ describe("agent/channel Rust runtime production guardrails", () => {
     const source = readSource("src/auto-reply/dispatch.ts");
 
     expect(source).toContain("dispatchInboundWithRustAgent");
+    expect(source).toContain('env.NODE_ENV === "test"');
+    expect(source).toContain('env.VITEST === "true"');
+    expect(source).not.toContain("return Boolean(params.replyResolver);");
     expect(source).not.toContain("CRAWCLAW_ENABLE_TS_AGENT_LOOP");
   });
 

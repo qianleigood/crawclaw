@@ -131,7 +131,7 @@ describe("withReplyDispatcher", () => {
     expect(order).toEqual(["run", "markComplete", "waitForIdle", "onSettled"]);
   });
 
-  it("dispatchInboundMessage owns dispatcher lifecycle", async () => {
+  it("dispatchInboundMessage owns dispatcher lifecycle for test-only reply resolver compatibility", async () => {
     const order: string[] = [];
     const dispatcher = {
       sendToolResult: () => true,
@@ -161,6 +161,57 @@ describe("withReplyDispatcher", () => {
       mocks.runCrawClawRuntimeTool.mock.calls.some(([tool]) => tool === "agent_run_turn"),
     ).toBe(false);
     expect(order).toEqual(["sendFinalReply", "markComplete", "waitForIdle"]);
+  });
+
+  it("keeps production inbound dispatch on Rust agent.runTurn even when a reply resolver is passed", async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalVitest = process.env.VITEST;
+    process.env.NODE_ENV = "production";
+    delete process.env.VITEST;
+    try {
+      const order: string[] = [];
+      const dispatcher = {
+        sendToolResult: () => true,
+        sendBlockReply: () => true,
+        sendFinalReply: (payload) => {
+          order.push(`sendFinalReply:${payload.text ?? ""}`);
+          return true;
+        },
+        getQueuedCounts: () => ({ tool: 0, block: 0, final: 1 }),
+        getFailedCounts: () => ({ tool: 0, block: 0, final: 0 }),
+        markComplete: () => {
+          order.push("markComplete");
+        },
+        waitForIdle: async () => {
+          order.push("waitForIdle");
+        },
+      } satisfies ReplyDispatcher;
+      const replyResolver = vi.fn(async () => ({ text: "ts fallback" }));
+
+      await dispatchInboundMessage({
+        ctx: buildTestCtx({ Body: "production hello" }),
+        cfg: {} as CrawClawConfig,
+        dispatcher,
+        replyResolver,
+      });
+
+      expect(replyResolver).not.toHaveBeenCalled();
+      expect(
+        mocks.runCrawClawRuntimeTool.mock.calls.some(([tool]) => tool === "agent_run_turn"),
+      ).toBe(true);
+      expect(order).toEqual(["sendFinalReply:rust ok", "markComplete", "waitForIdle"]);
+    } finally {
+      if (originalNodeEnv === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = originalNodeEnv;
+      }
+      if (originalVitest === undefined) {
+        delete process.env.VITEST;
+      } else {
+        process.env.VITEST = originalVitest;
+      }
+    }
   });
 
   it("routes the default inbound agent loop through Rust agent.runTurn", async () => {
