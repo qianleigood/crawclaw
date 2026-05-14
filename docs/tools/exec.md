@@ -122,8 +122,8 @@ Use the two controls for different jobs:
 - allowlist: explicit trust for executable paths.
 
 Do not treat `safeBins` as a generic allowlist, and do not add interpreter/runtime binaries (for example `python3`, `node`, `ruby`, `bash`). If you need those, use explicit allowlist entries and keep approval prompts enabled.
-`crawclaw security audit` warns when interpreter/runtime `safeBins` entries are missing explicit profiles, and `crawclaw doctor --fix` can scaffold missing custom `safeBinProfiles` entries.
-`crawclaw security audit` and `crawclaw doctor` also warn when you explicitly add broad-behavior bins such as `jq` back into `safeBins`.
+CrawClaw Desktop or the local Gateway API warns when interpreter/runtime `safeBins` entries are missing explicit profiles, and CrawClaw Desktop or the local Gateway API can scaffold missing custom `safeBinProfiles` entries.
+CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API also warn when you explicitly add broad-behavior bins such as `jq` back into `safeBins`.
 If you explicitly allowlist interpreters, enable `tools.exec.strictInlineEval` so inline code-eval forms still require a fresh approval.
 
 For full policy details and examples, see [Exec approvals](/tools/exec-approvals#safe-bins-stdin-only) and [Safe bins versus allowlist](/tools/exec-approvals#safe-bins-versus-allowlist).

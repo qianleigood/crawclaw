@@ -8,29 +8,29 @@ title: "Hooks"
 
 # Hooks
 
-Hooks are small scripts that run when something happens inside the Gateway. They are automatically discovered from directories and can be inspected with `crawclaw hooks`.
+Hooks are small scripts that run when something happens inside the Gateway. They are automatically discovered from directories and can be inspected with CrawClaw Desktop or the local Gateway API.
 
 There are two kinds of hooks in CrawClaw:
 
 - **Internal hooks** (this page): run inside the Gateway when agent events fire, like `/new`, `/stop`, or lifecycle events.
 - **Webhooks**: external HTTP endpoints that let other systems trigger work in CrawClaw. See [Webhooks](/automation/cron-jobs#webhooks).
 
-Hooks can also be bundled inside plugins. `crawclaw hooks list` shows both standalone hooks and plugin-managed hooks.
+Hooks can also be bundled inside plugins. CrawClaw Desktop or the local Gateway API shows both standalone hooks and plugin-managed hooks.
 
 ## Quick start
 
 ```bash
 # List available hooks
-crawclaw hooks list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Enable a hook
-crawclaw hooks enable command-logger
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Check hook status
-crawclaw hooks check
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Get detailed information
-crawclaw hooks info command-logger
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Event types
@@ -143,7 +143,7 @@ Workspace hooks can add new hook names but cannot override bundled, managed, or 
 Hook packs are npm packages that export hooks via `crawclaw.hooks` in `package.json`. Install with:
 
 ```bash
-crawclaw plugins install <path-or-spec>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Npm specs are registry-only (package name + optional exact version or dist-tag). Git/URL/file specs and semver ranges are rejected.
@@ -173,7 +173,7 @@ agent startup. Configure it with `hooks.internal.entries.bootstrap-extra-files`.
 Enable any bundled hook:
 
 ```bash
-crawclaw hooks enable <hook-name>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### bootstrap-extra-files config
@@ -251,21 +251,21 @@ Extra hook directories:
 The legacy `hooks.internal.handlers` array config format is still supported for backwards compatibility, but new hooks should use the discovery-based system.
 </Note>
 
-## CLI reference
+## Gateway API reference
 
 ```bash
 # List all hooks (add --eligible, --verbose, or --json)
-crawclaw hooks list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Show detailed info about a hook
-crawclaw hooks info <hook-name>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Show eligibility summary
-crawclaw hooks check
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Enable/disable
-crawclaw hooks enable <hook-name>
-crawclaw hooks disable <hook-name>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Best practices
@@ -285,26 +285,26 @@ ls -la ~/.crawclaw/hooks/my-hook/
 # Should show: HOOK.md, handler.ts
 
 # List all discovered hooks
-crawclaw hooks list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Hook not eligible
 
 ```bash
-crawclaw hooks info my-hook
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Check for missing binaries (PATH), environment variables, config values, or OS compatibility.
 
 ### Hook not executing
 
-1. Verify the hook is enabled: `crawclaw hooks list`
+1. Verify the hook is enabled: CrawClaw Desktop or the local Gateway API
 2. Restart your gateway process so hooks reload.
 3. Check gateway logs: `./scripts/clawlog.sh | grep hook`
 
 ## Related
 
-- [CLI Reference: hooks](/cli/hooks)
+- [Gateway API Reference: hooks](/automation/hooks)
 - [Webhooks](/automation/cron-jobs#webhooks)
 - [Plugin Architecture](/plugins/architecture#provider-runtime-hooks) — full plugin hook reference
 - [Configuration](/gateway/configuration-reference#hooks)

@@ -89,14 +89,14 @@ describe("install-plugin-runtimes", () => {
   it("forces nested npm installs into local prefix mode", async () => {
     const script = await loadRuntimeInstallScript();
 
-    expect(script.createLocalPrefixNpmInstallArgs("C:\\runtime", "pinchtab@0.9.1")).toEqual([
+    expect(script.createLocalPrefixNpmInstallArgs("C:\\runtime", "agent-browser@0.27.0")).toEqual([
       "install",
       "--global=false",
       "--prefix",
       "C:\\runtime",
       "--no-save",
       "--package-lock=false",
-      "pinchtab@0.9.1",
+      "agent-browser@0.27.0",
     ]);
 
     expect(
@@ -206,13 +206,17 @@ describe("install-plugin-runtimes", () => {
     const script = await loadRuntimeInstallScript();
 
     expect(
-      script.resolveRuntimeSpawn("C:\\Program Files\\PinchTab\\pinchtab.cmd", ["--version"], {
-        comSpec: "C:\\Windows\\System32\\cmd.exe",
-        platform: "win32",
-      }),
+      script.resolveRuntimeSpawn(
+        "C:\\Program Files\\AgentBrowser\\agent-browser.cmd",
+        ["--version"],
+        {
+          comSpec: "C:\\Windows\\System32\\cmd.exe",
+          platform: "win32",
+        },
+      ),
     ).toEqual({
       command: "C:\\Windows\\System32\\cmd.exe",
-      args: ["/d", "/s", "/c", '"C:\\Program Files\\PinchTab\\pinchtab.cmd" --version'],
+      args: ["/d", "/s", "/c", '"C:\\Program Files\\AgentBrowser\\agent-browser.cmd" --version'],
       shell: false,
       windowsVerbatimArguments: true,
     });
@@ -241,7 +245,7 @@ describe("install-plugin-runtimes", () => {
 
     const result = script.installRuntimeOrUnavailable(
       "browser",
-      () => ({ state: "healthy", version: "pinchtab 0.9.1" }),
+      () => ({ state: "healthy", version: "agent-browser 0.27.0" }),
       {},
       {
         log: (message) => messages.push(message),
@@ -249,7 +253,7 @@ describe("install-plugin-runtimes", () => {
       },
     );
 
-    expect(result).toMatchObject({ state: "healthy", version: "pinchtab 0.9.1" });
+    expect(result).toMatchObject({ state: "healthy", version: "agent-browser 0.27.0" });
     expect(messages[0]).toBe("[postinstall] installing plugin runtime: browser");
     expect(messages[1]).toMatch(/^\[postinstall\] plugin runtime ready: browser \(\d+ms\)$/);
     expect(warnings).toEqual([]);
@@ -288,7 +292,7 @@ describe("install-plugin-runtimes", () => {
       {
         id: "browser",
         installTime: true,
-        npmPackage: "pinchtab@0.9.1",
+        npmPackage: "agent-browser@0.27.0",
       },
       {
         id: "core-skills",

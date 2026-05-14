@@ -19,7 +19,7 @@ If the file is missing, CrawClaw uses safe defaults. Common reasons to add a con
 See the [full reference](/gateway/configuration-reference) for every available field.
 
 <Tip>
-**New to configuration?** Start with `crawclaw onboard` for interactive setup, or check out the [Configuration Examples](/gateway/configuration-examples) guide for complete copy-paste configs.
+**New to configuration?** Start with CrawClaw Desktop or the local Gateway API for interactive setup, or check out the [Configuration Examples](/gateway/configuration-examples) guide for complete copy-paste configs.
 </Tip>
 
 ## Minimal config
@@ -37,15 +37,15 @@ See the [full reference](/gateway/configuration-reference) for every available f
 <Tabs>
   <Tab title="Interactive wizard">
     ```bash
-    crawclaw onboard       # full onboarding flow
-    crawclaw configure     # config wizard
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
   </Tab>
   <Tab title="CLI (one-liners)">
     ```bash
-    crawclaw config get agents.defaults.workspace
-    crawclaw config set cron.enabled true
-    crawclaw config unset plugins.entries.brave.config.webSearch.apiKey
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
   </Tab>
   <Tab title="Direct edit">
@@ -62,9 +62,9 @@ CrawClaw only accepts configurations that fully match the schema. Unknown keys, 
 When validation fails:
 
 - The Gateway does not boot
-- Only diagnostic commands work (`crawclaw doctor`, `crawclaw logs`, `crawclaw health`, `crawclaw status`)
-- Run `crawclaw doctor` to see exact issues
-- Run `crawclaw doctor --fix` (or `--yes`) to apply repairs
+- Only diagnostic commands work (CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API)
+- Run CrawClaw Desktop or the local Gateway API to see exact issues
+- Run CrawClaw Desktop or the local Gateway API (or `--yes`) to apply repairs
 
 ## Common tasks
 
@@ -122,7 +122,7 @@ When validation fails:
     - `agents.defaults.models` defines the model catalog and acts as the allowlist for `/model`.
     - Model refs use `provider/model` format (e.g. `anthropic/claude-opus-4-6`).
     - `agents.defaults.imageMaxDimensionPx` controls transcript/tool image downscaling (default `1200`); lower values usually reduce vision-token usage on screenshot-heavy runs.
-    - See [Models CLI](/concepts/models) for switching models in chat and [Model Failover](/concepts/model-failover) for auth rotation and fallback behavior.
+    - See [Models](/concepts/models) for switching models in chat and [Model Failover](/concepts/model-failover) for auth rotation and fallback behavior.
     - For custom/self-hosted providers, see [Custom providers](/gateway/configuration-reference#custom-providers-and-base-urls) in the reference.
 
   </Accordion>
@@ -274,7 +274,7 @@ When validation fails:
 
     - `sessionRetention`: prune completed isolated run sessions from `sessions.json` (default `24h`; set `false` to disable).
     - `runLog`: prune `cron/runs/<jobId>.jsonl` by size and retained lines.
-    - See [Cron jobs](/automation/cron-jobs) for feature overview and CLI examples.
+    - See [Cron jobs](/automation/cron-jobs) for feature overview and Gateway API examples.
 
   </Accordion>
 
@@ -407,7 +407,7 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
     Validates + writes the full config. The running Gateway applies changed settings through the live reconfigure pipeline.
 
     <Warning>
-    `config.apply` replaces the **entire config**. Use `config.patch` for partial updates, or `crawclaw config set` for single keys.
+    `config.apply` replaces the **entire config**. Use `config.patch` for partial updates, or CrawClaw Desktop or the local Gateway API for single keys.
     </Warning>
 
     Params:
@@ -421,8 +421,8 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
     If `gateway.reload.mode="restart"` is set, restart requests are coalesced while one is already pending/in-flight, and a 30-second cooldown applies between restart cycles.
 
     ```bash
-    crawclaw gateway call config.get --params '{}'  # capture payload.hash
-    crawclaw gateway call config.apply --params '{
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
       "raw": "{ agents: { defaults: { workspace: \"~/.crawclaw/workspace\" } } }",
       "baseHash": "<hash>",
       "sessionKey": "agent:main:whatsapp:direct:+15555550123"
@@ -447,7 +447,7 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
     Reconfigure behavior matches `config.apply`: settings are applied online by default; explicit restart mode keeps the same coalescing and cooldown behavior.
 
     ```bash
-    crawclaw gateway call config.patch --params '{
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
       "raw": "{ channels: { telegram: { groups: { \"*\": { requireMention: false } } } } }",
       "baseHash": "<hash>"
     }'

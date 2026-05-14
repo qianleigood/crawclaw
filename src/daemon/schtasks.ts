@@ -400,9 +400,7 @@ function collectGatewayListenerPids(
           (listener) =>
             typeof listener.pid === "number" &&
             listener.commandLine &&
-            isGatewayArgv(parseCmdScriptCommandLine(listener.commandLine), {
-              allowGatewayBinary: true,
-            }),
+            isGatewayArgv(parseCmdScriptCommandLine(listener.commandLine)),
         )
         .map((listener) => listener.pid as number),
     ),

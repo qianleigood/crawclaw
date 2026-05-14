@@ -1,4 +1,4 @@
-import { shouldAllowBundledTsChannelRuntime } from "../channels/plugins/bundled-runtime-policy.js";
+import { CHANNEL_IDS } from "../channels/ids.js";
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import type {
   ChannelAccountSnapshot,
@@ -10,7 +10,6 @@ import { type BackoffPolicy, computeBackoff, sleepWithAbort } from "../infra/bac
 import { formatErrorMessage } from "../infra/errors.js";
 import { resetDirectoryCache } from "../infra/outbound/target-resolver.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
-import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
 import { getActivePluginRegistry } from "../plugins/runtime.js";
 import type { PluginRuntime } from "../plugins/runtime/types.js";
 import { resolveAccountEntry, resolveNormalizedAccountEntry } from "../routing/account-lookup.js";
@@ -29,27 +28,8 @@ const CHANNEL_RESTART_POLICY: BackoffPolicy = {
 };
 const MAX_RESTART_ATTEMPTS = 10;
 
-let cachedBundledChannelIds: Set<string> | null = null;
-
-function listBundledChannelIds(): Set<string> {
-  if (cachedBundledChannelIds) {
-    return cachedBundledChannelIds;
-  }
-  const ids = new Set<string>();
-  for (const entry of listBundledPluginMetadata({
-    includeChannelConfigs: false,
-    includeSyntheticChannelConfigs: false,
-  })) {
-    for (const channelId of entry.manifest.channels ?? []) {
-      ids.add(channelId);
-    }
-  }
-  cachedBundledChannelIds = ids;
-  return ids;
-}
-
 function shouldUseNativeChannelRuntime(channelId: ChannelId): boolean {
-  return !shouldAllowBundledTsChannelRuntime() && listBundledChannelIds().has(channelId);
+  return (CHANNEL_IDS as readonly string[]).includes(channelId);
 }
 
 function listManagedChannelPlugins(): ChannelPlugin[] {
@@ -148,8 +128,8 @@ type ChannelManagerOptions = {
    * plugins to access advanced Plugin SDK features (AI dispatch, routing,
    * text processing, etc.).
    *
-   * Built-in channels (slack, discord, telegram) typically don't use this
-   * because they can directly import internal modules from the monorepo.
+   * Native bundled channels typically do not need this because production
+   * dispatch runs through the Rust channel substrate.
    *
    * This field is optional - omitting it maintains backward compatibility
    * with existing channels.

@@ -156,7 +156,7 @@ API key auth, and dynamic model resolution.
     ```
 
     That is a working provider. Users can now
-    `crawclaw onboard --acme-ai-api-key <key>` and select
+    CrawClaw Desktop or the local Gateway API and select
     `acme-ai/acme-large` as their model.
 
     For bundled providers that only register one text provider with API-key

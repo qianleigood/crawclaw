@@ -24,16 +24,6 @@ export const createOllamaEmbeddingProvider: FacadeModule["createOllamaEmbeddingP
   loadFacadeModule()["createOllamaEmbeddingProvider"](
     ...args,
   )) as FacadeModule["createOllamaEmbeddingProvider"];
-export const createConfiguredOllamaCompatNumCtxWrapper: FacadeModule["createConfiguredOllamaCompatNumCtxWrapper"] =
-  ((...args) =>
-    loadFacadeModule()["createConfiguredOllamaCompatNumCtxWrapper"](
-      ...args,
-    )) as FacadeModule["createConfiguredOllamaCompatNumCtxWrapper"];
-export const createConfiguredOllamaCompatStreamWrapper: FacadeModule["createConfiguredOllamaCompatStreamWrapper"] =
-  ((...args) =>
-    loadFacadeModule()["createConfiguredOllamaCompatStreamWrapper"](
-      ...args,
-    )) as FacadeModule["createConfiguredOllamaCompatStreamWrapper"];
 export const createConfiguredOllamaStreamFn: FacadeModule["createConfiguredOllamaStreamFn"] = ((
   ...args
 ) =>

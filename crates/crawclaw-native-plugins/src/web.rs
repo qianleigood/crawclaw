@@ -80,6 +80,40 @@ pub async fn run_open_websearch_search(input: Value) -> NativeResult<Value> {
     Ok(open_websearch_payload(&query, results, started))
 }
 
+pub async fn start_open_websearch_service(input: Value) -> NativeResult<Value> {
+    let params = tool_params(&input);
+    let base_url = read_string(params, "baseUrl")
+        .or_else(|| nested_string(&input, &["pluginConfig", "webSearch", "baseUrl"]))
+        .unwrap_or_else(|| {
+            let host = nested_string(&input, &["pluginConfig", "webSearch", "host"])
+                .unwrap_or_else(|| OPEN_WEBSEARCH_DEFAULT_HOST.to_string());
+            let port = nested_u64(&input, &["pluginConfig", "webSearch", "port"])
+                .unwrap_or(OPEN_WEBSEARCH_DEFAULT_PORT);
+            format!("http://{host}:{port}")
+        });
+    validate_open_websearch_base_url(&base_url)?;
+    let auto_install = read_bool(params, "autoInstall")
+        .or_else(|| nested_bool(&input, &["pluginConfig", "webSearch", "autoInstall"]))
+        .unwrap_or(true);
+    let startup_timeout_ms = read_u64(params, "startupTimeoutMs")
+        .or_else(|| nested_u64(&input, &["pluginConfig", "webSearch", "startupTimeoutMs"]))
+        .unwrap_or(OPEN_WEBSEARCH_DEFAULT_STARTUP_TIMEOUT_MS);
+    ensure_open_websearch_daemon(&input, &base_url, startup_timeout_ms, auto_install).await?;
+    Ok(json!({
+        "status": "running",
+        "provider": "open-websearch",
+        "baseUrl": base_url
+    }))
+}
+
+pub fn stop_open_websearch_service() -> Value {
+    json!({
+        "status": "not-supported",
+        "provider": "open-websearch",
+        "message": "Open-WebSearch is launched as a detached native sidecar in this runtime."
+    })
+}
+
 pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
     let params = tool_params(&input);
     let url = read_required_string(params, "url")?;
@@ -176,6 +210,43 @@ pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
             "maxChars": max_chars
         }
     }))
+}
+
+pub async fn start_scrapling_fetch_service(input: Value) -> NativeResult<Value> {
+    let base_url = nested_string(&input, &["pluginConfig", "webFetch", "baseUrl"])
+        .or_else(|| nested_string(&input, &["pluginConfig", "service", "baseUrl"]))
+        .unwrap_or_else(|| SCRAPLING_DEFAULT_BASE_URL.to_string());
+    let fetch_path = nested_string(&input, &["pluginConfig", "service", "fetchPath"])
+        .unwrap_or_else(|| SCRAPLING_DEFAULT_FETCH_PATH.to_string());
+    let healthcheck_path = nested_string(&input, &["pluginConfig", "service", "healthcheckPath"])
+        .unwrap_or_else(|| SCRAPLING_DEFAULT_HEALTHCHECK_PATH.to_string());
+    let bootstrap = nested_bool(&input, &["pluginConfig", "service", "bootstrap"]).unwrap_or(true);
+    let startup_timeout_ms = nested_u64(&input, &["pluginConfig", "service", "startupTimeoutMs"])
+        .unwrap_or(SCRAPLING_DEFAULT_STARTUP_TIMEOUT_MS);
+    ensure_scrapling_sidecar(
+        &input,
+        &base_url,
+        &healthcheck_path,
+        &fetch_path,
+        startup_timeout_ms,
+        bootstrap,
+    )
+    .await?;
+    Ok(json!({
+        "status": "running",
+        "provider": "scrapling",
+        "baseUrl": base_url,
+        "fetchPath": fetch_path,
+        "healthcheckPath": healthcheck_path
+    }))
+}
+
+pub fn stop_scrapling_fetch_service() -> Value {
+    json!({
+        "status": "not-supported",
+        "provider": "scrapling",
+        "message": "Scrapling fetch is launched as a detached native sidecar in this runtime."
+    })
 }
 
 async fn run_scrapling_sidecar_fetch(

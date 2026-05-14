@@ -58,13 +58,13 @@ For how skills are loaded and prioritized, see [Skills](/tools/skills).
     /new
 
     # Or restart the gateway
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Verify the skill loaded:
 
     ```bash
-    crawclaw skills list
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Step>
@@ -73,7 +73,7 @@ For how skills are loaded and prioritized, see [Skills](/tools/skills).
     Send a message that should trigger the skill:
 
     ```bash
-    crawclaw agent --message "give me a greeting"
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Or just chat with the agent and ask for a greeting.
@@ -97,7 +97,7 @@ The YAML frontmatter supports these fields:
 
 - **Be concise** — instruct the model on _what_ to do, not how to be an AI
 - **Safety first** — if your skill uses `exec`, ensure prompts don't allow arbitrary command injection from untrusted input
-- **Test locally** — use `crawclaw agent --message "..."` to test before sharing
+- **Test locally** — use CrawClaw Desktop or the local Gateway API to test before sharing
 - **Use ClawHub** — browse and contribute skills at [ClawHub](https://clawhub.com)
 
 ## Where skills live

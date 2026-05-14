@@ -3,6 +3,11 @@
   "enabledByDefault": true,
   "name": "ComfyUI",
   "description": "Build, validate, run, and download local ComfyUI workflows.",
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "contracts": {
     "tools": ["comfyui_workflow"]
   },

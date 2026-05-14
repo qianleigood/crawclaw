@@ -32,7 +32,7 @@ The Windows matrix uses three support states:
 | ----------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | Installer                           | `supported`  | `install.ps1` installs Node 24 by default, accepts Node 25 as an experimental runtime, checks Git/PATH prerequisites, and installs CrawClaw. |
 | CLI                                 | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                                            |
-| Gateway foreground                  | `supported`  | `crawclaw gateway run` starts the Gateway directly on the Windows host.                                                                      |
+| Gateway foreground                  | `supported`  | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Windows host.                                                   |
 | Gateway service                     | `supported`  | Per-user login service: Scheduled Task when allowed, Startup-folder fallback when task creation is denied.                                   |
 | `exec` and `system.run` tools       | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.                                 |
 | Browser automation                  | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                                              |
@@ -59,9 +59,9 @@ For a dry run or beta install:
 Verify the install:
 
 ```powershell
-crawclaw --version
-crawclaw doctor --non-interactive
-crawclaw plugins list --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If PowerShell cannot find `crawclaw` in a new terminal, see
@@ -72,14 +72,14 @@ If PowerShell cannot find `crawclaw` in a new terminal, see
 Run the Gateway in the foreground:
 
 ```powershell
-crawclaw gateway run
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Install managed startup:
 
 ```powershell
-crawclaw gateway install
-crawclaw gateway status --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If Scheduled Task creation is denied, CrawClaw falls back to a per-user
@@ -88,10 +88,10 @@ per-user login service, not a machine service that runs before any user logs in.
 Scheduled Tasks remain preferred because they provide better supervisor status
 and restart visibility.
 
-For CLI-only setups, skip health-gated onboarding:
+For Gateway API-only setups, skip health-gated onboarding:
 
 ```powershell
-crawclaw onboard --non-interactive --skip-health
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Compatibility gate
@@ -121,13 +121,13 @@ Native Windows can be described as first-class when all of these are true:
 
 - `install.ps1` can install or update CrawClaw without manual Node or Git setup
   on a clean supported Windows 11 machine.
-- `crawclaw --version` works in a fresh PowerShell session without manually
+- the packaged desktop version check works in a fresh PowerShell session without manually
   repairing PATH.
-- `crawclaw doctor --non-interactive` has no blocking errors.
-- `crawclaw onboard --non-interactive --install-daemon` completes for a local
+- CrawClaw Desktop or the local Gateway API has no blocking errors.
+- CrawClaw Desktop or the local Gateway API completes for a local
   Gateway setup.
-- `crawclaw gateway status --deep --require-rpc` reports a reachable Gateway.
-- `crawclaw agent --local --agent main --message "Reply OK only." --json`
+- CrawClaw Desktop or the local Gateway API reports a reachable Gateway.
+- CrawClaw Desktop or the local Gateway API
   completes a first local turn.
 - Browser runtime checks either pass or return a clear, actionable repair
   instruction.
@@ -158,19 +158,19 @@ Native Windows can be described as first-class when all of these are true:
 ## Gateway service install (CLI)
 
 ```
-crawclaw onboard --install-daemon
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Or:
 
 ```
-crawclaw gateway install
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Or:
 
 ```
-crawclaw configure
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Select **Gateway service** when prompted.
@@ -178,7 +178,7 @@ Select **Gateway service** when prompted.
 Repair/migrate:
 
 ```
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Related pages

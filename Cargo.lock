@@ -1236,19 +1236,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crawclaw-cli"
-version = "2026.5.3"
-dependencies = [
- "crawclaw-gateway",
- "crawclaw-native-plugins",
- "crawclaw-plugin-host",
- "crawclaw-providers",
- "crawclaw-runtime",
- "serde_json",
- "tokio",
-]
-
-[[package]]
 name = "crawclaw-core"
 version = "2026.5.3"
 dependencies = [
@@ -1286,6 +1273,8 @@ dependencies = [
  "axum",
  "base64 0.22.1",
  "chrono",
+ "crawclaw-native-plugins",
+ "crawclaw-plugin-sdk",
  "crawclaw-providers",
  "crawclaw-runtime",
  "futures-util",
@@ -1301,8 +1290,10 @@ dependencies = [
 name = "crawclaw-native-plugins"
 version = "0.1.0"
 dependencies = [
+ "base64 0.22.1",
  "chrono",
  "clap",
+ "crawclaw-plugin-sdk",
  "jsonschema",
  "reqwest 0.12.28",
  "serde",
@@ -1317,10 +1308,17 @@ dependencies = [
 name = "crawclaw-plugin-host"
 version = "2026.5.3"
 dependencies = [
- "pi_agent_rust",
  "serde",
  "serde_json",
  "tokio",
+]
+
+[[package]]
+name = "crawclaw-plugin-sdk"
+version = "2026.5.3"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -1344,6 +1342,8 @@ dependencies = [
  "crawclaw-channels",
  "crawclaw-core",
  "crawclaw-native-plugins",
+ "crawclaw-plugin-host",
+ "crawclaw-plugin-sdk",
  "crawclaw-providers",
  "croner",
  "futures",

@@ -17,10 +17,10 @@ endpoint and API key. It is OpenAI-compatible, so most OpenAI SDKs work by switc
 2. Sign in or create an account
 3. Navigate to API Keys and generate a new key
 
-## CLI setup
+## Desktop setup
 
 ```bash
-crawclaw onboard --kilocode-api-key <key>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Or set the environment variable:

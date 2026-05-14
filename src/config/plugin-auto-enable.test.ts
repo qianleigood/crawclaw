@@ -157,45 +157,6 @@ describe("applyPluginAutoEnable", () => {
     expect(Object.getPrototypeOf(result.autoEnabledReasons)).toBeNull();
   });
 
-  it("auto-enables browser when browser config exists under a restrictive plugins.allow", () => {
-    const result = applyPluginAutoEnable({
-      config: {
-        browser: {
-          defaultProfile: "crawclaw",
-        },
-        plugins: {
-          allow: ["telegram"],
-        },
-      },
-      env: {},
-    });
-
-    expect(result.config.plugins?.allow).toEqual(["telegram", "browser"]);
-    expect(result.config.plugins?.entries?.browser?.enabled).toBe(true);
-    expect(result.autoEnabledReasons).toEqual({
-      browser: ["browser configured"],
-    });
-    expect(result.changes).toContain("browser configured, enabled automatically.");
-  });
-
-  it("auto-enables browser when tools.alsoAllow references browser", () => {
-    const result = applyPluginAutoEnable({
-      config: {
-        tools: {
-          alsoAllow: ["browser"],
-        },
-        plugins: {
-          allow: ["telegram"],
-        },
-      },
-      env: {},
-    });
-
-    expect(result.config.plugins?.allow).toEqual(["telegram", "browser"]);
-    expect(result.config.plugins?.entries?.browser?.enabled).toBe(true);
-    expect(result.changes).toContain("browser tool referenced, enabled automatically.");
-  });
-
   it("keeps restrictive plugins.allow unchanged when browser is not referenced", () => {
     const result = applyPluginAutoEnable({
       config: {

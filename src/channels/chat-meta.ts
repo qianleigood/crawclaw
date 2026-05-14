@@ -124,7 +124,15 @@ export function listChatChannelAliases(): string[] {
 }
 
 export function getChatChannelMeta(id: ChatChannelId): ChatChannelMeta {
-  return CHAT_CHANNEL_META[id];
+  return (
+    CHAT_CHANNEL_META[id] ?? {
+      id,
+      label: id,
+      selectionLabel: id,
+      docsPath: `/channels/${id}`,
+      blurb: "",
+    }
+  );
 }
 
 export function normalizeChatChannelId(raw?: string | null): ChatChannelId | null {

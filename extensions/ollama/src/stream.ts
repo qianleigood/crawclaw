@@ -9,21 +9,10 @@ import type {
   Usage,
 } from "@mariozechner/pi-ai";
 import { createAssistantMessageEventStream, streamSimple } from "@mariozechner/pi-ai";
-import type {
-  CrawClawConfig,
-  ProviderRuntimeModel,
-  ProviderWrapStreamFnContext,
-} from "crawclaw/plugin-sdk/plugin-entry";
+import type { CrawClawConfig } from "crawclaw/plugin-sdk/plugin-entry";
 import { isNonSecretApiKeyMarker } from "crawclaw/plugin-sdk/provider-auth";
-import {
-  DEFAULT_CONTEXT_TOKENS,
-  normalizeProviderId,
-} from "crawclaw/plugin-sdk/provider-model-shared";
-import {
-  createMoonshotThinkingWrapper,
-  resolveMoonshotThinkingType,
-  streamWithPayloadPatch,
-} from "crawclaw/plugin-sdk/provider-stream";
+import { normalizeProviderId } from "crawclaw/plugin-sdk/provider-model-shared";
+import { streamWithPayloadPatch } from "crawclaw/plugin-sdk/provider-stream";
 import { createSubsystemLogger } from "crawclaw/plugin-sdk/runtime";
 import { OLLAMA_DEFAULT_BASE_URL } from "./defaults.js";
 
@@ -140,73 +129,6 @@ export function wrapOllamaCompatNumCtx(baseFn: StreamFn | undefined, numCtx: num
       (payloadRecord.options as Record<string, unknown>).num_ctx = numCtx;
     });
 }
-
-function createOllamaThinkingOffWrapper(baseFn: StreamFn | undefined): StreamFn {
-  const streamFn = baseFn ?? streamSimple;
-  return (model, context, options) => {
-    if (model.api !== "ollama") {
-      return streamFn(model, context, options);
-    }
-    return streamWithPayloadPatch(streamFn, model, context, options, (payloadRecord) => {
-      payloadRecord.think = false;
-    });
-  };
-}
-
-function resolveOllamaCompatNumCtx(model: ProviderRuntimeModel): number {
-  return Math.max(1, Math.floor(model.contextWindow ?? model.maxTokens ?? DEFAULT_CONTEXT_TOKENS));
-}
-
-function isOllamaCloudKimiModelRef(modelId: string): boolean {
-  const normalizedModelId = modelId.trim().toLowerCase();
-  return normalizedModelId.startsWith("kimi-k") && normalizedModelId.includes(":cloud");
-}
-
-export function createConfiguredOllamaCompatStreamWrapper(
-  ctx: ProviderWrapStreamFnContext,
-): StreamFn | undefined {
-  let streamFn = ctx.streamFn;
-  const model = ctx.model;
-  let injectNumCtx = false;
-
-  if (model) {
-    const providerId =
-      typeof model.provider === "string" && model.provider.trim().length > 0
-        ? model.provider
-        : ctx.provider;
-    if (
-      shouldInjectOllamaCompatNumCtx({
-        model,
-        config: ctx.config,
-        providerId,
-      })
-    ) {
-      injectNumCtx = true;
-    }
-  }
-
-  if (injectNumCtx && model) {
-    streamFn = wrapOllamaCompatNumCtx(streamFn, resolveOllamaCompatNumCtx(model));
-  }
-
-  if (ctx.thinkingLevel === "off") {
-    streamFn = createOllamaThinkingOffWrapper(streamFn);
-  }
-
-  if (normalizeProviderId(ctx.provider) === "ollama" && isOllamaCloudKimiModelRef(ctx.modelId)) {
-    const thinkingType = resolveMoonshotThinkingType({
-      configuredThinking: ctx.extraParams?.thinking,
-      thinkingLevel: ctx.thinkingLevel,
-    });
-    streamFn = createMoonshotThinkingWrapper(streamFn, thinkingType);
-  }
-
-  return streamFn;
-}
-
-// Backward-compatible alias for existing imports/tests while the broader
-// Ollama compat wrapper now owns more than num_ctx injection.
-export const createConfiguredOllamaCompatNumCtxWrapper = createConfiguredOllamaCompatStreamWrapper;
 
 export function buildOllamaChatRequest(params: {
   modelId: string;

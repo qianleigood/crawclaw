@@ -1,6 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { StreamFn } from "@mariozechner/pi-agent-core";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
 import type { Command } from "commander";
@@ -18,13 +17,8 @@ import type {
   AgentInteractiveApprovalBlocker,
 } from "../agents/runtime/agent-guard-context.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
-import type { ThinkLevel } from "../auto-reply/thinking.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
-import type {
-  ChannelId,
-  ChannelPlugin,
-  ChannelStructuredComponents,
-} from "../channels/plugins/types.js";
+import type { ChannelId, ChannelPlugin } from "../channels/plugins/types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type {
   CliBackendConfig,
@@ -529,23 +523,6 @@ export type ProviderAuthDoctorHintContext = {
   profileId?: string;
 };
 
-/**
- * Provider-owned extra-param normalization before CrawClaw builds its generic
- * stream option wrapper.
- *
- * Use this to set provider defaults or rewrite provider-specific config keys
- * into the merged `extraParams` object. Return the full next extraParams object.
- */
-export type ProviderPrepareExtraParamsContext = {
-  config?: CrawClawConfig;
-  agentDir?: string;
-  workspaceDir?: string;
-  provider: string;
-  modelId: string;
-  extraParams?: Record<string, unknown>;
-  thinkingLevel?: ThinkLevel;
-};
-
 export type ProviderReplaySanitizeMode = "full" | "images-only";
 
 export type ProviderReplayToolCallIdMode = "strict" | "strict9";
@@ -631,34 +608,6 @@ export type ProviderNormalizeToolSchemasContext = ProviderReplayPolicyContext & 
  * as text tags instead of native structured reasoning fields.
  */
 export type ProviderReasoningOutputModeContext = ProviderReplayPolicyContext;
-
-/**
- * Provider-owned transport creation.
- *
- * Use this when the provider needs to replace pi-ai's default transport with a
- * custom StreamFn (for example a native API transport that cannot be expressed
- * as a wrapper around `streamSimple`).
- */
-export type ProviderCreateStreamFnContext = {
-  config?: CrawClawConfig;
-  agentDir?: string;
-  workspaceDir?: string;
-  provider: string;
-  modelId: string;
-  model: ProviderRuntimeModel;
-};
-
-/**
- * Provider-owned stream wrapper hook after CrawClaw applies its generic
- * transport-independent wrappers.
- *
- * Use this for provider-specific payload/header/model mutations that still run
- * through the normal `pi-ai` stream path.
- */
-export type ProviderWrapStreamFnContext = ProviderPrepareExtraParamsContext & {
-  model?: ProviderRuntimeModel;
-  streamFn?: StreamFn;
-};
 
 /**
  * Generic embedding provider shape returned by provider plugins.
@@ -1068,32 +1017,6 @@ export type ProviderPlugin = {
     ctx: ProviderReasoningOutputModeContext,
   ) => ProviderReasoningOutputMode | null | undefined;
   /**
-   * Provider-owned extra-param normalization before generic stream option
-   * wrapping.
-   *
-   * Typical uses: set provider-default `transport`, map provider-specific
-   * config aliases, or inject extra request metadata sourced from
-   * `agents.defaults.models.<provider>/<model>.params`.
-   */
-  prepareExtraParams?: (
-    ctx: ProviderPrepareExtraParamsContext,
-  ) => Record<string, unknown> | null | undefined;
-  /**
-   * Provider-owned transport factory.
-   *
-   * Use this when the provider needs a fully custom StreamFn instead of a
-   * wrapper around the normal `streamSimple` path.
-   */
-  createStreamFn?: (ctx: ProviderCreateStreamFnContext) => StreamFn | null | undefined;
-  /**
-   * Provider-owned stream wrapper applied after generic CrawClaw wrappers.
-   *
-   * Typical uses: provider attribution headers, request-body rewrites, or
-   * provider-specific compat payload patches that do not justify a separate
-   * transport implementation.
-   */
-  wrapStreamFn?: (ctx: ProviderWrapStreamFnContext) => StreamFn | null | undefined;
-  /**
    * Provider-owned embedding provider factory.
    *
    * Use this when memory embedding behavior belongs with the provider plugin
@@ -1474,11 +1397,11 @@ export type CrawClawPluginGatewayMethod = {
  * Context passed to plugin command handlers.
  */
 export type PluginCommandContext = {
-  /** The sender's identifier (e.g., Telegram user ID) */
+  /** The sender's identifier. */
   senderId?: string;
-  /** The channel/surface (e.g., "telegram", "discord") */
+  /** The channel/surface. */
   channel: string;
-  /** Provider channel id (e.g., "telegram") */
+  /** Provider channel id. */
   channelId?: ChannelId;
   /** Whether the sender is on the allowlist */
   isAuthorizedSender: boolean;
@@ -1587,16 +1510,9 @@ export type CrawClawPluginCommandDefinition = {
   /**
    * Optional native-command aliases for slash/menu surfaces.
    * `default` applies to all native providers unless a provider-specific
-   * override exists (for example `{ default: "talkvoice", discord: "voice2" }`).
+   * override exists.
    */
   nativeNames?: Partial<Record<string, string>> & { default?: string };
-  /**
-   * Optional Telegram-native progress placeholder text.
-   * When set, Telegram native/plugin command delivery sends this text
-   * immediately, then edits that same message in place if the final reply
-   * is a simple text-only payload.
-   */
-  telegramNativeProgressMessage?: string;
   /** Description shown in /help and command menus */
   description: string;
   /** Whether this command accepts arguments */
@@ -1606,170 +1522,6 @@ export type CrawClawPluginCommandDefinition = {
   /** The handler function */
   handler: PluginCommandHandler;
 };
-
-export type PluginInteractiveChannel = "telegram" | "discord" | "slack";
-
-export type PluginInteractiveButtons = Array<
-  Array<{ text: string; callback_data: string; style?: "danger" | "success" | "primary" }>
->;
-
-export type PluginInteractiveTelegramHandlerResult = {
-  handled?: boolean;
-} | void;
-
-export type PluginInteractiveTelegramHandlerContext = {
-  channel: "telegram";
-  accountId: string;
-  callbackId: string;
-  conversationId: string;
-  parentConversationId?: string;
-  senderId?: string;
-  senderUsername?: string;
-  threadId?: number;
-  isGroup: boolean;
-  isForum: boolean;
-  auth: {
-    isAuthorizedSender: boolean;
-  };
-  callback: {
-    data: string;
-    namespace: string;
-    payload: string;
-    messageId: number;
-    chatId: string;
-    messageText?: string;
-  };
-  respond: {
-    reply: (params: { text: string; buttons?: PluginInteractiveButtons }) => Promise<void>;
-    editMessage: (params: { text: string; buttons?: PluginInteractiveButtons }) => Promise<void>;
-    editButtons: (params: { buttons: PluginInteractiveButtons }) => Promise<void>;
-    clearButtons: () => Promise<void>;
-    deleteMessage: () => Promise<void>;
-  };
-  requestConversationBinding: (
-    params?: PluginConversationBindingRequestParams,
-  ) => Promise<PluginConversationBindingRequestResult>;
-  detachConversationBinding: () => Promise<{ removed: boolean }>;
-  getCurrentConversationBinding: () => Promise<PluginConversationBinding | null>;
-};
-
-export type PluginInteractiveDiscordHandlerResult = {
-  handled?: boolean;
-} | void;
-
-export type PluginInteractiveDiscordHandlerContext = {
-  channel: "discord";
-  accountId: string;
-  interactionId: string;
-  conversationId: string;
-  parentConversationId?: string;
-  guildId?: string;
-  senderId?: string;
-  senderUsername?: string;
-  auth: {
-    isAuthorizedSender: boolean;
-  };
-  interaction: {
-    kind: "button" | "select" | "modal";
-    data: string;
-    namespace: string;
-    payload: string;
-    messageId?: string;
-    values?: string[];
-    fields?: Array<{ id: string; name: string; values: string[] }>;
-  };
-  respond: {
-    acknowledge: () => Promise<void>;
-    reply: (params: { text: string; ephemeral?: boolean }) => Promise<void>;
-    followUp: (params: { text: string; ephemeral?: boolean }) => Promise<void>;
-    editMessage: (params: {
-      text?: string;
-      components?: ChannelStructuredComponents;
-    }) => Promise<void>;
-    clearComponents: (params?: { text?: string }) => Promise<void>;
-  };
-  requestConversationBinding: (
-    params?: PluginConversationBindingRequestParams,
-  ) => Promise<PluginConversationBindingRequestResult>;
-  detachConversationBinding: () => Promise<{ removed: boolean }>;
-  getCurrentConversationBinding: () => Promise<PluginConversationBinding | null>;
-};
-
-export type PluginInteractiveSlackHandlerResult = {
-  handled?: boolean;
-} | void;
-
-export type PluginInteractiveSlackHandlerContext = {
-  channel: "slack";
-  accountId: string;
-  interactionId: string;
-  conversationId: string;
-  parentConversationId?: string;
-  senderId?: string;
-  senderUsername?: string;
-  threadId?: string;
-  auth: {
-    isAuthorizedSender: boolean;
-  };
-  interaction: {
-    kind: "button" | "select";
-    data: string;
-    namespace: string;
-    payload: string;
-    actionId: string;
-    blockId?: string;
-    messageTs?: string;
-    threadTs?: string;
-    value?: string;
-    selectedValues?: string[];
-    selectedLabels?: string[];
-    triggerId?: string;
-    responseUrl?: string;
-  };
-  respond: {
-    acknowledge: () => Promise<void>;
-    reply: (params: { text: string; responseType?: "ephemeral" | "in_channel" }) => Promise<void>;
-    followUp: (params: {
-      text: string;
-      responseType?: "ephemeral" | "in_channel";
-    }) => Promise<void>;
-    editMessage: (params: { text?: string; blocks?: unknown[] }) => Promise<void>;
-  };
-  requestConversationBinding: (
-    params?: PluginConversationBindingRequestParams,
-  ) => Promise<PluginConversationBindingRequestResult>;
-  detachConversationBinding: () => Promise<{ removed: boolean }>;
-  getCurrentConversationBinding: () => Promise<PluginConversationBinding | null>;
-};
-
-export type PluginInteractiveTelegramHandlerRegistration = {
-  channel: "telegram";
-  namespace: string;
-  handler: (
-    ctx: PluginInteractiveTelegramHandlerContext,
-  ) => Promise<PluginInteractiveTelegramHandlerResult> | PluginInteractiveTelegramHandlerResult;
-};
-
-export type PluginInteractiveDiscordHandlerRegistration = {
-  channel: "discord";
-  namespace: string;
-  handler: (
-    ctx: PluginInteractiveDiscordHandlerContext,
-  ) => Promise<PluginInteractiveDiscordHandlerResult> | PluginInteractiveDiscordHandlerResult;
-};
-
-export type PluginInteractiveSlackHandlerRegistration = {
-  channel: "slack";
-  namespace: string;
-  handler: (
-    ctx: PluginInteractiveSlackHandlerContext,
-  ) => Promise<PluginInteractiveSlackHandlerResult> | PluginInteractiveSlackHandlerResult;
-};
-
-export type PluginInteractiveHandlerRegistration =
-  | PluginInteractiveTelegramHandlerRegistration
-  | PluginInteractiveDiscordHandlerRegistration
-  | PluginInteractiveSlackHandlerRegistration;
 
 export type CrawClawPluginHttpRouteAuth = "gateway" | "plugin";
 export type CrawClawPluginHttpRouteMatch = "exact" | "prefix";
@@ -1939,7 +1691,6 @@ export type CrawClawPluginApi = {
   registerWebFetchProvider: (provider: WebFetchProviderPlugin) => void;
   /** Register a web search provider (web search capability). */
   registerWebSearchProvider: (provider: WebSearchProviderPlugin) => void;
-  registerInteractiveHandler: (registration: PluginInteractiveHandlerRegistration) => void;
   onConversationBindingResolved: (
     handler: (event: PluginConversationBindingResolvedEvent) => void | Promise<void>,
   ) => void;
@@ -1960,7 +1711,7 @@ export type CrawClawPluginApi = {
 
 export type PluginOrigin = "bundled" | "global" | "workspace" | "config";
 
-export type PluginFormat = "crawclaw" | "bundle";
+export type PluginFormat = "crawclaw" | "bundle" | "native";
 
 export type PluginBundleFormat = "codex" | "claude" | "cursor";
 
@@ -2070,7 +1821,7 @@ export type PluginHookAgentContext = {
   messageProvider?: string;
   /** What initiated this agent run: "user", "heartbeat", "cron", or "memory". */
   trigger?: string;
-  /** Channel identifier (e.g. "telegram", "discord", "whatsapp"). */
+  /** Channel identifier. */
   channelId?: string;
 };
 
@@ -2316,7 +2067,7 @@ export type PluginHookBeforeDispatchEvent = {
   content: string;
   /** Body text prepared for agent (after command parsing). */
   body?: string;
-  /** Channel identifier (e.g. "telegram", "discord"). */
+  /** Channel identifier. */
   channel?: string;
   /** Session key for this message. */
   sessionKey?: string;

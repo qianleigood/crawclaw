@@ -2,7 +2,6 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import type { CrawClawConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { normalizeEnv } from "../infra/env.js";
 import { formatUncaughtError } from "../infra/errors.js";
@@ -79,26 +78,11 @@ export function shouldUseRootHelpFastPath(argv: string[]): boolean {
   return isRootHelpInvocation(argv);
 }
 
-export function resolveMissingBrowserCommandMessage(config?: CrawClawConfig): string | null {
-  const allow =
-    Array.isArray(config?.plugins?.allow) && config.plugins.allow.length > 0
-      ? config.plugins.allow
-          .filter((entry): entry is string => typeof entry === "string")
-          .map((entry) => entry.trim().toLowerCase())
-      : [];
-  if (allow.length > 0 && !allow.includes("browser")) {
-    return (
-      'The `crawclaw browser` command is unavailable because `plugins.allow` excludes "browser". ' +
-      'Add "browser" to `plugins.allow` if you want the bundled browser CLI and tool.'
-    );
-  }
-  if (config?.plugins?.entries?.browser?.enabled === false) {
-    return (
-      "The `crawclaw browser` command is unavailable because `plugins.entries.browser.enabled=false`. " +
-      "Re-enable that entry if you want the bundled browser CLI and tool."
-    );
-  }
-  return null;
+export function resolveMissingBrowserCommandMessage(): string {
+  return (
+    "The `crawclaw browser` command has been removed. " +
+    'Use the agent `browser` tool or call the Gateway Tools Invoke API with `tool: "browser"`.'
+  );
 }
 
 function shouldLoadCliDotEnv(env: NodeJS.ProcessEnv = process.env): boolean {
@@ -195,10 +179,7 @@ export async function runCli(argv: string[] = process.argv) {
           primary === "browser" &&
           !program.commands.some((command) => command.name() === "browser")
         ) {
-          const browserCommandMessage = resolveMissingBrowserCommandMessage(config);
-          if (browserCommandMessage) {
-            throw new Error(browserCommandMessage);
-          }
+          throw new Error(resolveMissingBrowserCommandMessage());
         }
       }
     }

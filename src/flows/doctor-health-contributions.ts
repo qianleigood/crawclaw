@@ -489,8 +489,8 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
       run: runGatewayServicesHealth,
     }),
     createDoctorHealthContribution({
-      id: "doctor:startup-matrix",
-      label: "Startup matrix",
+      id: "doctor:startup-checks",
+      label: "Startup checks",
       run: runStartupMatrixHealth,
     }),
     createDoctorHealthContribution({

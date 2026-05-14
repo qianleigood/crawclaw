@@ -540,7 +540,7 @@ describe("CronService", () => {
       wakeNowHeartbeatBusyRetryDelayMs: 2,
     });
 
-    const sessionKey = "agent:main:discord:channel:ops";
+    const sessionKey = "agent:main:qqbot:channel:ops";
     const job = await addWakeModeNowMainSystemEventJob(cron, {
       name: "wakeMode now fallback",
       sessionKey,
@@ -624,7 +624,7 @@ describe("CronService", () => {
     const runIsolatedAgentJob = vi.fn(async () => ({
       status: "error" as const,
       summary: "last output",
-      error: "Channel is required when multiple channels are configured: telegram, discord",
+      error: "Channel is required when multiple channels are configured: feishu, qqbot",
       errorKind: "delivery-target" as const,
     }));
     const { store, cron, enqueueSystemEvent, requestMainSessionWake, events } =

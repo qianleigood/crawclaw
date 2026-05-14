@@ -1,10 +1,8 @@
 import type { Model } from "@mariozechner/pi-ai";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import type { CrawClawConfig } from "../config/config.js";
 
 const createAnthropicVertexStreamFnForModel = vi.fn();
 const ensureCustomApiRegistered = vi.fn();
-const resolveProviderStreamFn = vi.fn();
 
 vi.mock("./anthropic-vertex-stream.js", () => ({
   createAnthropicVertexStreamFnForModel,
@@ -12,10 +10,6 @@ vi.mock("./anthropic-vertex-stream.js", () => ({
 
 vi.mock("./custom-api-registry.js", () => ({
   ensureCustomApiRegistered,
-}));
-
-vi.mock("../plugins/provider-runtime.js", () => ({
-  resolveProviderStreamFn,
 }));
 
 let prepareModelForSimpleCompletion: typeof import("./simple-completion-transport.js").prepareModelForSimpleCompletion;
@@ -28,12 +22,10 @@ describe("prepareModelForSimpleCompletion", () => {
   beforeEach(() => {
     createAnthropicVertexStreamFnForModel.mockReset();
     ensureCustomApiRegistered.mockReset();
-    resolveProviderStreamFn.mockReset();
     createAnthropicVertexStreamFnForModel.mockReturnValue("vertex-stream");
-    resolveProviderStreamFn.mockReturnValue("ollama-stream");
   });
 
-  it("registers the configured Ollama transport and keeps the original api", () => {
+  it("keeps Ollama on the native registered api without TS stream registration", () => {
     const model: Model<"ollama"> = {
       id: "llama3",
       name: "Llama 3",
@@ -47,34 +39,12 @@ describe("prepareModelForSimpleCompletion", () => {
       maxTokens: 4096,
       headers: {},
     };
-    const cfg: CrawClawConfig = {
-      models: {
-        providers: {
-          ollama: {
-            baseUrl: "http://remote-ollama:11434",
-            models: [],
-          },
-        },
-      },
-    };
 
     const result = prepareModelForSimpleCompletion({
       model,
-      cfg,
     });
 
-    expect(resolveProviderStreamFn).toHaveBeenCalledWith(
-      expect.objectContaining({
-        provider: "ollama",
-        config: cfg,
-        context: expect.objectContaining({
-          provider: "ollama",
-          modelId: "llama3",
-          model,
-        }),
-      }),
-    );
-    expect(ensureCustomApiRegistered).toHaveBeenCalledWith("ollama", "ollama-stream");
+    expect(ensureCustomApiRegistered).not.toHaveBeenCalled();
     expect(result).toBe(model);
   });
 
@@ -91,8 +61,6 @@ describe("prepareModelForSimpleCompletion", () => {
       contextWindow: 200000,
       maxTokens: 8192,
     };
-
-    resolveProviderStreamFn.mockReturnValueOnce(undefined);
 
     const result = prepareModelForSimpleCompletion({ model });
 

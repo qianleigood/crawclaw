@@ -16,7 +16,7 @@ fn resolves_embedded_runtime_layout_from_resource_dir() {
     );
     assert_eq!(
         layout.binary_path,
-        PathBuf::from("/app/Contents/Resources/runtime/crawclaw/bin/crawclaw"),
+        PathBuf::from("/app/Contents/Resources/runtime/crawclaw/bin/crawclaw-runtime"),
     );
     assert_eq!(
         layout.manifest_path,
@@ -32,7 +32,7 @@ fn resolves_embedded_runtime_layout_from_resource_dir() {
 fn runtime_gateway_help_command_uses_embedded_rust_binary() {
     let layout = RuntimeLayout {
         runtime_root: PathBuf::from("/runtime/crawclaw"),
-        binary_path: PathBuf::from("/runtime/crawclaw/bin/crawclaw"),
+        binary_path: PathBuf::from("/runtime/crawclaw/bin/crawclaw-runtime"),
         channel_manifest_path: PathBuf::from("/runtime/crawclaw/channels/manifest.json"),
         manifest_path: PathBuf::from("/runtime/crawclaw/runtimes/manifest.json"),
     };
@@ -41,12 +41,9 @@ fn runtime_gateway_help_command_uses_embedded_rust_binary() {
 
     assert_eq!(
         command.program,
-        PathBuf::from("/runtime/crawclaw/bin/crawclaw")
+        PathBuf::from("/runtime/crawclaw/bin/crawclaw-gateway")
     );
-    assert_eq!(
-        command.args,
-        vec!["gateway".to_string(), "--help".to_string()]
-    );
+    assert_eq!(command.args, vec!["--help".to_string()]);
     assert_eq!(command.cwd, PathBuf::from("/runtime/crawclaw"));
 }
 

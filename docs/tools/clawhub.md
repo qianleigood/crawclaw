@@ -23,22 +23,22 @@ Site: [clawhub.ai](https://clawhub.ai)
 Skills:
 
 ```bash
-crawclaw skills search "calendar"
-crawclaw skills install <skill-slug>
-crawclaw skills update --all
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Plugins:
 
 ```bash
-crawclaw plugins install clawhub:<package>
-crawclaw plugins update --all
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Bare npm-safe plugin specs are also tried against ClawHub before npm:
 
 ```bash
-crawclaw plugins install crawclaw-codex-app-server
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Native `crawclaw` commands install into your active workspace and persist source
@@ -77,9 +77,9 @@ If you want to add new capabilities to your CrawClaw agent, ClawHub is the easie
 ## Quick start (non-technical)
 
 1. Search for something you need:
-   - `crawclaw skills search "calendar"`
+   - CrawClaw Desktop or the local Gateway API
 2. Install a skill:
-   - `crawclaw skills install <skill-slug>`
+   - CrawClaw Desktop or the local Gateway API
 3. Start a new CrawClaw session so it picks up the new skill.
 4. If you want to publish or manage registry auth, install the separate
    `clawhub` CLI too.
@@ -98,8 +98,8 @@ pnpm add -g clawhub
 
 ## How it fits into CrawClaw
 
-Native `crawclaw skills install` installs into the active workspace `skills/`
-directory. `crawclaw plugins install clawhub:...` records a normal managed
+Native CrawClaw Desktop or the local Gateway API installs into the active workspace `skills/`
+directory. CrawClaw Desktop or the local Gateway API records a normal managed
 plugin install plus ClawHub source metadata for updates.
 
 The separate `clawhub` CLI also installs skills into `./skills` under your
@@ -156,7 +156,7 @@ Reporting and moderation:
 Interested in becoming a moderator? Ask in the CrawClaw Discord and contact a
 moderator or maintainer.
 
-## CLI commands and parameters
+## Desktop and Gateway API actions and parameters
 
 Global options (apply to all commands):
 

@@ -1,4 +1,3 @@
-import { mapAllowFromEntries } from "crawclaw/plugin-sdk/channel-config-helpers";
 import { normalizeChatType, type ChatType } from "../../channels/chat-type.js";
 import {
   comparableChannelTargetsShareRoute,
@@ -30,6 +29,10 @@ import {
   resolveOutboundChannelPlugin,
 } from "./channel-resolution.js";
 import { missingTargetError } from "./target-errors.js";
+
+function mapAllowFromEntries(allowFrom: Array<string | number> | null | undefined): string[] {
+  return (allowFrom ?? []).map((entry) => String(entry));
+}
 
 export type OutboundChannel = DeliverableMessageChannel | "none";
 

@@ -861,8 +861,6 @@ export function buildHelpMessage(cfg?: CrawClawConfig): string {
   return lines.join("\n");
 }
 
-const COMMANDS_PER_PAGE = 8;
-
 export type CommandsMessageOptions = {
   page?: number;
   surface?: string;
@@ -1090,45 +1088,21 @@ export function buildCommandsMessagePaginated(
   skillCommands?: SkillCommandSpec[],
   options?: CommandsMessageOptions,
 ): CommandsMessageResult {
-  const page = Math.max(1, options?.page ?? 1);
-  const surface = options?.surface?.toLowerCase();
-  const isTelegram = surface === "telegram";
-
   const commands = cfg
     ? listChatCommandsForConfig(cfg, { skillCommands })
     : listChatCommands({ skillCommands });
   const pluginCommands = listPluginCommands();
   const items = buildCommandItems(commands, pluginCommands, cfg);
 
-  if (!isTelegram) {
-    const lines = [translateSlashCommandText("ℹ️ Slash commands", cfg), ""];
-    lines.push(formatCommandList(items));
-    lines.push("", translateSlashCommandText("More: /tools for available capabilities", cfg));
-    return {
-      text: lines.join("\n").trim(),
-      totalPages: 1,
-      currentPage: 1,
-      hasNext: false,
-      hasPrev: false,
-    };
-  }
-
-  const totalCommands = items.length;
-  const totalPages = Math.max(1, Math.ceil(totalCommands / COMMANDS_PER_PAGE));
-  const currentPage = Math.min(page, totalPages);
-  const startIndex = (currentPage - 1) * COMMANDS_PER_PAGE;
-  const endIndex = startIndex + COMMANDS_PER_PAGE;
-  const pageItems = items.slice(startIndex, endIndex);
-
-  const title = cfg?.cli?.language === "zh-CN" ? "ℹ️ 命令" : "ℹ️ Commands";
-  const lines = [`${title} (${currentPage}/${totalPages})`, ""];
-  lines.push(formatCommandList(pageItems));
+  const lines = [translateSlashCommandText("ℹ️ Slash commands", cfg), ""];
+  lines.push(formatCommandList(items));
+  lines.push("", translateSlashCommandText("More: /tools for available capabilities", cfg));
 
   return {
     text: lines.join("\n").trim(),
-    totalPages,
-    currentPage,
-    hasNext: currentPage < totalPages,
-    hasPrev: currentPage > 1,
+    totalPages: 1,
+    currentPage: Math.max(1, options?.page ?? 1),
+    hasNext: false,
+    hasPrev: false,
   };
 }

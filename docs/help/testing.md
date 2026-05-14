@@ -66,7 +66,6 @@ Think of the suites as “increasing realism” (and increasing flakiness/cost):
   - Shared unit, extension, channel, and gateway runs all stay on Vitest `forks`.
   - The wrapper keeps measured fork-isolated exceptions and heavy singleton lanes explicit in `test/fixtures/test-parallel.behavior.json`.
   - The wrapper peels the heaviest measured files into dedicated lanes instead of relying on a growing hand-maintained exclusion list.
-  - CLI startup benchmarking now has distinct saved outputs: `pnpm test:startup:bench:smoke` writes the targeted smoke artifact at `.artifacts/cli-startup-bench-smoke.json`, `pnpm test:startup:bench:save` writes the full-suite artifact at `.artifacts/cli-startup-bench-all.json` with `runs=5` and `warmup=1`, and `pnpm test:startup:bench:update` refreshes the checked-in fixture at `test/fixtures/cli-startup-bench.json` with `runs=5` and `warmup=1`.
   - For surface-only local runs, unit, extension, and channel shared lanes can overlap their isolated hotspots instead of waiting behind one serial prefix.
   - For multi-surface local runs, the wrapper keeps the shared surface phases ordered, but batches inside the same shared phase now fan out together, deferred isolated work can overlap the next shared phase, and spare `unit-fast` headroom now starts that deferred work earlier instead of leaving those slots idle.
   - Refresh the timing snapshots with `pnpm test:perf:update-timings` and `pnpm test:perf:update-timings:extensions` after major suite shape changes.
@@ -219,14 +218,14 @@ Live tests are split into two layers so we can isolate failures:
 Tip: to see what you can test on your machine (and the exact `provider/model` ids), run:
 
 ```bash
-crawclaw models list
-crawclaw models list --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Live: Anthropic setup-token smoke
 
 - Test: `src/agents/anthropic.setup-token.live.test.ts`
-- Goal: verify Claude Code CLI setup-token (or a pasted setup-token profile) can complete an Anthropic prompt.
+- Goal: verify Claude Code Desktop setup-token (or a pasted setup-token profile) can complete an Anthropic prompt.
 - Enable:
   - `pnpm test:live` (or `CRAWCLAW_LIVE_TEST=1` if invoking Vitest directly)
   - `CRAWCLAW_LIVE_SETUP_TOKEN=1`
@@ -239,14 +238,14 @@ crawclaw models list --json
 Setup example:
 
 ```bash
-crawclaw models auth paste-token --provider anthropic --profile-id anthropic:setup-token-test
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 CRAWCLAW_LIVE_SETUP_TOKEN=1 CRAWCLAW_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-token-test pnpm test:live src/agents/anthropic.setup-token.live.test.ts
 ```
 
-## Live: CLI backend smoke (Claude Code CLI or other local CLIs)
+## Live: local process backend smoke (Claude Code CLI or other local CLIs)
 
 - Test: `src/gateway/gateway-cli-backend.live.test.ts`
-- Goal: validate the Gateway + agent pipeline using a local CLI backend, without touching your default config.
+- Goal: validate the Gateway + agent pipeline using a local local process backend, without touching your default config.
 - Enable:
   - `pnpm test:live` (or `CRAWCLAW_LIVE_TEST=1` if invoking Vitest directly)
   - `CRAWCLAW_LIVE_CLI_BACKEND=1`
@@ -375,7 +374,7 @@ Include at least one image-capable model in `CRAWCLAW_LIVE_GATEWAY_MODELS` (Clau
 
 If you have keys enabled, we also support testing via:
 
-- OpenRouter: `openrouter/...` (hundreds of models; use `crawclaw models scan` to find tool+image capable candidates)
+- OpenRouter: `openrouter/...` (hundreds of models; use CrawClaw Desktop or the local Gateway API to find tool+image capable candidates)
 - OpenCode: `opencode/...` for Zen and `opencode-go/...` for Go (auth via `OPENCODE_API_KEY` / `OPENCODE_ZEN_API_KEY`)
 
 More providers you can include in the live matrix (if you have creds/config):
@@ -390,7 +389,7 @@ Tip: don’t try to hardcode “all models” in docs. The authoritative list is
 Live tests discover credentials the same way the CLI does. Practical implications:
 
 - If the CLI works, live tests should find the same keys.
-- If a live test says “no creds”, debug the same way you’d debug `crawclaw models list` / model selection.
+- If a live test says “no creds”, debug the same way you’d debug CrawClaw Desktop or the local Gateway API / model selection.
 
 - Profile store: `~/.crawclaw/credentials/` (preferred; what “profile keys” means in the tests)
 - Config: `~/.crawclaw/crawclaw.json` (or `CRAWCLAW_CONFIG_PATH`)
@@ -418,11 +417,6 @@ If you want to rely on env keys (e.g. exported in your `~/.profile`), run local 
   - `CRAWCLAW_LIVE_IMAGE_GENERATION_CASES="google:flash-generate,google:pro-edit"`
 - Optional auth behavior:
   - `CRAWCLAW_LIVE_REQUIRE_PROFILE_KEYS=1` to force profile-store auth and ignore env-only overrides
-
-Manual ACP plain-language thread smoke (not CI):
-
-- `bun scripts/dev/discord-acp-plain-language-smoke.ts --channel <discord-channel-id> ...`
-- Keep this script for regression/debug workflows. It may be needed again for ACP thread routing validation, so do not delete it.
 
 Useful env vars:
 

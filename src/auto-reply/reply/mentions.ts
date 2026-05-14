@@ -118,15 +118,8 @@ function resolveMentionPatterns(cfg: CrawClawConfig | undefined, agentId?: strin
   return derived.length > 0 ? derived : [];
 }
 
-function resolveFallbackProviderMentionStripRegexes(providerId?: string | null): RegExp[] {
-  switch (providerId?.trim().toLowerCase()) {
-    case "discord":
-      return [/<@!?\d+>/gi];
-    case "slack":
-      return [/<@[^>\s]+>/gi];
-    default:
-      return [];
-  }
+function resolveFallbackProviderMentionStripRegexes(_providerId?: string | null): RegExp[] {
+  return [];
 }
 
 export function buildMentionRegexes(cfg: CrawClawConfig | undefined, agentId?: string): RegExp[] {

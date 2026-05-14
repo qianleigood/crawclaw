@@ -15,7 +15,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 1. **Quick status (first check)**
 
    ```bash
-   crawclaw status
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    Fast local summary: OS + update, gateway/service reachability, agents/sessions, provider config + runtime issues (when gateway is reachable).
@@ -23,7 +23,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 2. **Pasteable report (safe to share)**
 
    ```bash
-   crawclaw status --all
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    Read-only diagnosis with log tail (tokens redacted).
@@ -31,7 +31,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 3. **Daemon + port state**
 
    ```bash
-   crawclaw gateway status
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    Shows supervisor runtime vs RPC reachability, the probe target URL, and which config the service likely used.
@@ -39,7 +39,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 4. **Deep probes**
 
    ```bash
-   crawclaw status --deep
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    Runs gateway health checks + provider probes (requires a reachable gateway). See [Health](/gateway/health).
@@ -47,7 +47,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 5. **Tail the latest log**
 
    ```bash
-   crawclaw logs --follow
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    If RPC is down, fall back to:
@@ -61,7 +61,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 6. **Run the doctor (repairs)**
 
    ```bash
-   crawclaw doctor
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    Repairs/migrates config/state + runs health checks. See [Doctor](/gateway/doctor).
@@ -69,8 +69,8 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 7. **Gateway snapshot**
 
    ```bash
-   crawclaw health --json
-   crawclaw health --verbose   # shows the target URL + config path on errors
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    Asks the running gateway for a full snapshot (WS-only). See [Health](/gateway/health).
@@ -108,19 +108,19 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Start with these commands (share outputs when asking for help):
 
     ```bash
-    crawclaw status
-    crawclaw models status
-    crawclaw doctor
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     What they do:
 
-    - `crawclaw status`: quick snapshot of gateway/agent health + basic config.
-    - `crawclaw models status`: checks provider auth + model availability.
-    - `crawclaw doctor`: validates and repairs common config/state issues.
+    - CrawClaw Desktop or the local Gateway API: quick snapshot of gateway/agent health + basic config.
+    - CrawClaw Desktop or the local Gateway API: checks provider auth + model availability.
+    - CrawClaw Desktop or the local Gateway API: validates and repairs common config/state issues.
 
-    Other useful CLI checks: `crawclaw status --all`, `crawclaw logs --follow`,
-    `crawclaw gateway status`, `crawclaw health --verbose`.
+    Other useful CLI checks: CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API,
+    CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API.
 
     Quick debug loop: [First 60 seconds if something is broken](#first-60-seconds-if-something-is-broken).
     Install docs: [Install](/install), [Installer flags](/install/installer), [Updating](/install/updating).
@@ -132,7 +132,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     ```bash
     curl -fsSL https://crawclaw.ai/install.sh | bash
-    crawclaw onboard --install-daemon
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     The wizard can also build UI assets automatically. After onboarding, you typically run the Gateway on port **18789**.
@@ -144,10 +144,10 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     cd crawclaw
     pnpm install
     pnpm build
-    crawclaw onboard
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    If you don't have a global install yet, run it via `pnpm crawclaw onboard`.
+    If you don't have a global install yet, run it via `pnpm CrawClaw Desktop or the local Gateway API.
 
   </Accordion>
 
@@ -160,12 +160,12 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
     - Open a supported gateway client against `http://127.0.0.1:18789/`.
     - If it asks for auth, use the token from `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`).
-    - Retrieve it from the gateway host: `crawclaw config get gateway.auth.token` (or generate one: `crawclaw doctor --generate-gateway-token`).
+    - Retrieve it from the gateway host: CrawClaw Desktop or the local Gateway API (or generate one: CrawClaw Desktop or the local Gateway API).
 
     **Not on localhost:**
 
-    - **Tailscale Serve** (recommended): keep bind loopback, run `crawclaw gateway --tailscale serve`, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy browser client/WebSocket auth (no token, assumes trusted gateway host); HTTP APIs still require token/password.
-    - **Tailnet bind**: run `crawclaw gateway --bind tailnet --token "<token>"`, then connect a client to `http://<tailscale-ip>:18789/`.
+    - **Tailscale Serve** (recommended): keep bind loopback, run CrawClaw Desktop or the local Gateway API, open `https://<magicdns>/`. If `gateway.auth.allowTailscale` is `true`, identity headers satisfy browser client/WebSocket auth (no token, assumes trusted gateway host); HTTP APIs still require token/password.
+    - **Tailnet bind**: run CrawClaw Desktop or the local Gateway API, then connect a client to `http://<tailscale-ip>:18789/`.
     - **SSH tunnel**: `ssh -N -L 18789:127.0.0.1:18789 user@host` then connect a client to `http://127.0.0.1:18789/`.
 
     See [Remote access](/gateway/remote) for bind modes and auth details.
@@ -226,21 +226,21 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     1. Restart the Gateway:
 
     ```bash
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     2. Check status + auth:
 
     ```bash
-    crawclaw status
-    crawclaw models status
-    crawclaw logs --follow
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     3. If it still hangs, run:
 
     ```bash
-    crawclaw doctor
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     If the Gateway is remote, ensure the tunnel/Tailscale connection is up and that the UI
@@ -256,7 +256,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     1. Install CrawClaw on the new machine.
     2. Copy `$CRAWCLAW_STATE_DIR` (default: `~/.crawclaw`) from the old machine.
     3. Copy your workspace (default: `~/.crawclaw/workspace`).
-    4. Run `crawclaw doctor` and restart the Gateway service.
+    4. Run CrawClaw Desktop or the local Gateway API and restart the Gateway service.
 
     That preserves config, auth profiles, WhatsApp creds, sessions, and memory. If you're in
     remote mode, remember the gateway host owns the session store and workspace.
@@ -336,7 +336,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     1. **Dev channel (git checkout):**
 
     ```bash
-    crawclaw update --channel dev
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     This switches to the `main` branch and updates from source.
@@ -358,7 +358,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     pnpm build
     ```
 
-    Docs: [Update](/cli/update), [Development channels](/install/development-channels),
+    Docs: [Update](/install/updating), [Development channels](/install/development-channels),
     [Install](/install).
 
   </Accordion>
@@ -450,7 +450,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Then restart the Gateway and retry your command:
 
     ```powershell
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     If you still reproduce this on latest CrawClaw, track/report it in:
@@ -510,26 +510,26 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Use the CLI:
 
     ```bash
-    crawclaw update
-    crawclaw update status
-    crawclaw update --channel stable|beta|dev
-    crawclaw update --tag <dist-tag|version>
-    crawclaw update --no-restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     If you must automate from an agent:
 
     ```bash
-    crawclaw update --yes --no-restart
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Docs: [Update](/cli/update), [Updating](/install/updating).
+    Docs: [Update](/install/updating), [Updating](/install/updating).
 
   </Accordion>
 
   <Accordion title="What does onboarding actually do?">
-    `crawclaw onboard` is the recommended setup path. In **local mode** it walks you through:
+    CrawClaw Desktop or the local Gateway API is the recommended setup path. In **local mode** it walks you through:
 
     - **Model/auth setup** (provider OAuth/setup-token flows and API keys supported, plus local model options such as LM Studio)
     - **Workspace** location + bootstrap files
@@ -568,7 +568,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   </Accordion>
 
   <Accordion title="How does Anthropic setup-token auth work?">
-    `claude setup-token` generates a **token string** via the Claude Code CLI (it is not available in the web console). You can run it on **any machine**. Choose **Anthropic token (paste setup-token)** in onboarding or paste it with `crawclaw models auth paste-token --provider anthropic`. The token is stored as an auth profile for the **anthropic** provider and used like an API key (no auto-refresh). More detail: [OAuth](/concepts/oauth).
+    `claude setup-token` generates a **token string** via the Claude Code CLI (it is not available in the web console). You can run it on **any machine**. Choose **Anthropic token (paste setup-token)** in onboarding or paste it with CrawClaw Desktop or the local Gateway API. The token is stored as an auth profile for the **anthropic** provider and used like an API key (no auto-refresh). More detail: [OAuth](/concepts/oauth).
   </Accordion>
 
   <Accordion title="Where do I find an Anthropic setup-token?">
@@ -578,7 +578,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     claude setup-token
     ```
 
-    Copy the token it prints, then choose **Anthropic token (paste setup-token)** in onboarding. If you want to run it on the gateway host, use `crawclaw models auth setup-token --provider anthropic`. If you ran `claude setup-token` elsewhere, paste it on the gateway host with `crawclaw models auth paste-token --provider anthropic`. See [Anthropic](/providers/anthropic).
+    Copy the token it prints, then choose **Anthropic token (paste setup-token)** in onboarding. If you want to run it on the gateway host, use CrawClaw Desktop or the local Gateway API. If you ran `claude setup-token` elsewhere, paste it on the gateway host with CrawClaw Desktop or the local Gateway API. See [Anthropic](/providers/anthropic).
 
   </Accordion>
 
@@ -586,7 +586,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Yes. You can either:
 
     - use a **setup-token**
-    - reuse a local **Claude CLI** login on the gateway host with `crawclaw models auth login --provider anthropic --method cli --set-default`
+    - reuse a local **Claude CLI** login on the gateway host with CrawClaw Desktop or the local Gateway API
 
     Setup-token is still supported. Claude CLI migration is simpler when the gateway host already runs Claude Code. See [Anthropic](/providers/anthropic) and [OAuth](/concepts/oauth).
 
@@ -611,7 +611,7 @@ for usage/billing and raise limits as needed.
     with Extra Usage enabled).
 
     Tip: set a **fallback model** so CrawClaw can keep replying while a provider is rate-limited.
-    See [Models](/cli/models), [OAuth](/concepts/oauth), and
+    See [Models](/concepts/models), [OAuth](/concepts/oauth), and
     [/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context](/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context).
 
   </Accordion>
@@ -621,7 +621,7 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="How does Codex auth work?">
-    CrawClaw supports **OpenAI Code (Codex)** via OAuth (ChatGPT sign-in). Onboarding can run the OAuth flow and will set the default model to `openai-codex/gpt-5.4` when appropriate. See [Model providers](/concepts/model-providers) and [Onboarding (CLI)](/start/wizard).
+    CrawClaw supports **OpenAI Code (Codex)** via OAuth (ChatGPT sign-in). Onboarding can run the OAuth flow and will set the default model to `openai-codex/gpt-5.4` when appropriate. See [Model providers](/concepts/model-providers) and [Desktop onboarding](/start/wizard).
   </Accordion>
 
   <Accordion title="Do you support OpenAI subscription auth (Codex OAuth)?">
@@ -629,7 +629,7 @@ for usage/billing and raise limits as needed.
     OpenAI explicitly allows subscription OAuth usage in external tools/workflows
     like CrawClaw. Onboarding can run the OAuth flow for you.
 
-    See [OAuth](/concepts/oauth), [Model providers](/concepts/model-providers), and [Onboarding (CLI)](/start/wizard).
+    See [OAuth](/concepts/oauth), [Model providers](/concepts/model-providers), and [Desktop onboarding](/start/wizard).
 
   </Accordion>
 
@@ -638,8 +638,8 @@ for usage/billing and raise limits as needed.
 
     Steps:
 
-    1. Enable the plugin: `crawclaw plugins enable google`
-    2. Login: `crawclaw models auth login --provider google-gemini-cli --set-default`
+    1. Enable the plugin: CrawClaw Desktop or the local Gateway API
+    2. Login: CrawClaw Desktop or the local Gateway API
 
     This stores OAuth tokens in auth profiles on the gateway host. Details: [Model providers](/concepts/model-providers).
 
@@ -692,7 +692,7 @@ for usage/billing and raise limits as needed.
 
     Safer (no third-party bot):
 
-    - DM your bot, then run `crawclaw logs --follow` and read `from.id`.
+    - DM your bot, then run CrawClaw Desktop or the local Gateway API and read `from.id`.
 
     Official Bot API:
 
@@ -732,7 +732,7 @@ for usage/billing and raise limits as needed.
   <Accordion title="Difference between the hackable git install and npm install">
     - **Hackable (git) install:** full source checkout, editable, best for contributors.
       You run builds locally and can patch code/docs.
-    - **npm install:** global CLI install, no repo, best for "just run it."
+    - **npm install:** global command install, no repo, best for "just run it."
       Updates come from npm dist-tags.
 
     Docs: [Getting started](/start/getting-started), [Updating](/install/updating).
@@ -751,16 +751,18 @@ for usage/billing and raise limits as needed.
     cd crawclaw
     pnpm install
     pnpm build
-    crawclaw doctor
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     From git to npm:
 
     ```bash
-    npm install -g crawclaw@latest
-    crawclaw doctor
-    crawclaw gateway restart
+
+# Install CrawClaw Desktop from GitHub Releases.
+
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Doctor detects a gateway service entrypoint mismatch and offers to rewrite the service config to match the current install (use `--repair` in automation).
@@ -979,8 +981,8 @@ for usage/billing and raise limits as needed.
     Debug:
 
     ```bash
-    crawclaw cron run <jobId> --force
-    crawclaw cron runs --id <jobId> --limit 50
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Docs: [Cron jobs](/automation/cron-jobs), [Automation & Tasks](/automation).
@@ -988,13 +990,13 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="How do I install skills on Linux?">
-    Use native `crawclaw skills` commands or drop skills into your workspace. The macOS Skills UI isn't available on Linux.
+    Use native CrawClaw Desktop or the local Gateway API commands or drop skills into your workspace. The macOS Skills UI isn't available on Linux.
     Browse skills at [https://clawhub.com](https://clawhub.com).
 
     ```bash
-    crawclaw skills search "calendar"
-    crawclaw skills install <skill-slug>
-    crawclaw skills update --all
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Install the separate `clawhub` CLI only if you want to publish or sync your own skills.
@@ -1066,8 +1068,8 @@ for usage/billing and raise limits as needed.
     Install skills:
 
     ```bash
-    crawclaw skills install <skill-slug>
-    crawclaw skills update --all
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Native installs land in the active workspace `skills/` directory. For shared skills across agents, place them in `~/.crawclaw/skills/<name>/SKILL.md`. Some skills expect binaries installed via Homebrew; on Linux that means Linuxbrew (see the Homebrew Linux FAQ entry above). See [Skills](/tools/skills) and [ClawHub](/tools/clawhub).
@@ -1193,7 +1195,7 @@ for usage/billing and raise limits as needed.
     | `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/`                | Conversation history & state (per agent)                           |
     | `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/sessions.json`   | Session metadata (per agent)                                       |
 
-    Legacy single-agent path: `~/.crawclaw/agent/*` (migrated by `crawclaw doctor`).
+    Legacy single-agent path: `~/.crawclaw/agent/*` (migrated by CrawClaw Desktop or the local Gateway API).
 
     Your **workspace** (AGENTS.md, memory files, skills, etc.) is separate and configured via `agents.defaults.workspace` (default: `~/.crawclaw/workspace`).
 
@@ -1311,7 +1313,7 @@ for usage/billing and raise limits as needed.
   <Accordion title="Why do I need a token on localhost now?">
     CrawClaw enforces token auth by default, including loopback. If no token is configured, gateway startup auto-generates one and saves it to `gateway.auth.token`, so **local WS clients must authenticate**. This blocks other local processes from calling the Gateway.
 
-    If you **really** want open loopback, set `gateway.auth.mode: "none"` explicitly in your config. Doctor can generate a token for you any time: `crawclaw doctor --generate-gateway-token`.
+    If you **really** want open loopback, set `gateway.auth.mode: "none"` explicitly in your config. Doctor can generate a token for you any time: CrawClaw Desktop or the local Gateway API.
 
   </Accordion>
 
@@ -1347,7 +1349,7 @@ for usage/billing and raise limits as needed.
   <Accordion title="How do I enable web search (and web fetch)?">
     `web_fetch` works without an API key. `web_search` requires a key for your
     selected provider (Brave, Gemini, Grok, Kimi, or Perplexity).
-    **Recommended:** run `crawclaw configure --section web` and choose a provider.
+    **Recommended:** run CrawClaw Desktop or the local Gateway API and choose a provider.
     Environment alternatives:
 
     - Brave: `BRAVE_API_KEY`
@@ -1404,16 +1406,16 @@ for usage/billing and raise limits as needed.
     Recover:
 
     - Restore from backup (git or a copied `~/.crawclaw/crawclaw.json`).
-    - If you have no backup, re-run `crawclaw doctor` and reconfigure channels/models.
+    - If you have no backup, re-run CrawClaw Desktop or the local Gateway API and reconfigure channels/models.
     - If this was unexpected, file a bug and include your last known config or any backup.
     - A local coding agent can often reconstruct a working config from logs or history.
 
     Avoid it:
 
-    - Use `crawclaw config set` for small changes.
-    - Use `crawclaw configure` for interactive edits.
+    - Use CrawClaw Desktop or the local Gateway API for small changes.
+    - Use CrawClaw Desktop or the local Gateway API for interactive edits.
 
-    Docs: [Config](/cli/config), [Configure](/cli/configure), [Doctor](/gateway/doctor).
+    Docs: [Config](/gateway/configuration), [Configure](/gateway/configuration), [Doctor](/gateway/doctor).
 
   </Accordion>
 
@@ -1464,9 +1466,9 @@ for usage/billing and raise limits as needed.
   <Accordion title="Tailscale is connected but I get no replies. What now?">
     Check the basics:
 
-    - Gateway is running: `crawclaw gateway status`
-    - Gateway health: `crawclaw status`
-    - Channel health: `crawclaw channels status`
+    - Gateway is running: CrawClaw Desktop or the local Gateway API
+    - Gateway health: CrawClaw Desktop or the local Gateway API
+    - Channel health: CrawClaw Desktop or the local Gateway API
 
     Then verify auth and routing:
 
@@ -1486,20 +1488,20 @@ for usage/billing and raise limits as needed.
     Have Bot A send a message to Bot B, then let Bot B reply as usual.
 
     **CLI bridge (generic):** run a script that calls the other Gateway with
-    `crawclaw agent --message ... --deliver`, targeting a chat where the other bot
+    CrawClaw Desktop or the local Gateway API, targeting a chat where the other bot
     listens. If one bot is on a remote VPS, point your CLI at that remote Gateway
     via SSH/Tailscale (see [Remote access](/gateway/remote)).
 
     Example pattern (run from a machine that can reach the target Gateway):
 
     ```bash
-    crawclaw agent --message "Hello from local bot" --deliver --channel telegram --reply-to <chat-id>
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Tip: add a guardrail so the two bots do not loop endlessly (mention-only, channel
     allowlists, or a "do not reply to bot messages" rule).
 
-    Docs: [Remote access](/gateway/remote), [Agent CLI](/cli/agent), [Agent send](/tools/agent-send).
+    Docs: [Remote access](/gateway/remote), [Agent CLI](/tools/agent-send), [Agent send](/tools/agent-send).
 
   </Accordion>
 
@@ -1557,7 +1559,7 @@ for usage/billing and raise limits as needed.
     If you want browser-facing access without SSH, use Tailscale Serve on the VPS:
 
     ```bash
-    crawclaw gateway --tailscale serve
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     This keeps the gateway bound to loopback and exposes HTTPS via Tailscale. See [Tailscale](/gateway/tailscale).
@@ -1575,8 +1577,8 @@ for usage/billing and raise limits as needed.
     3. **Approve the device** on the gateway:
 
        ```bash
-       crawclaw devices list
-       crawclaw devices approve <requestId>
+       # Use CrawClaw Desktop or the local Gateway API for this operation.
+       # Use CrawClaw Desktop or the local Gateway API for this operation.
        ```
 
     Docs: [Gateway protocol](/gateway/protocol), [Discovery](/gateway/discovery), [Remote gateway](/gateway/remote).
@@ -1634,7 +1636,7 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title='I set COPILOT_GITHUB_TOKEN, but models status shows "Shell env: off." Why?'>
-    `crawclaw models status` reports whether **shell env import** is enabled. "Shell env: off"
+    CrawClaw Desktop or the local Gateway API reports whether **shell env import** is enabled. "Shell env: off"
     does **not** mean your env vars are missing - it just means CrawClaw won't load
     your login shell automatically.
 
@@ -1653,7 +1655,7 @@ for usage/billing and raise limits as needed.
     Then restart the gateway and recheck:
 
     ```bash
-    crawclaw models status
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Copilot tokens are read from `COPILOT_GITHUB_TOKEN` (also `GH_TOKEN` / `GITHUB_TOKEN`).
@@ -1694,7 +1696,7 @@ for usage/billing and raise limits as needed.
     envision is one bot you talk to, with different sessions for parallel work. That
     bot can also spawn sub-agents when needed.
 
-    Docs: [Multi-agent routing](/concepts/multi-agent), [Sub-agents](/tools/subagents), [Agents CLI](/cli/agents).
+    Docs: [Multi-agent routing](/concepts/multi-agent), [Sub-agents](/tools/subagents), [Multi-agent Gateway API](/concepts/multi-agent).
 
   </Accordion>
 
@@ -1716,26 +1718,26 @@ for usage/billing and raise limits as needed.
     Use the reset command:
 
     ```bash
-    crawclaw reset
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Non-interactive full reset:
 
     ```bash
-    crawclaw reset --scope full --yes --non-interactive
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Then re-run setup:
 
     ```bash
-    crawclaw onboard --install-daemon
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Notes:
 
-    - Onboarding also offers **Reset** if it sees an existing config. See [Onboarding (CLI)](/start/wizard).
+    - Onboarding also offers **Reset** if it sees an existing config. See [Desktop onboarding](/start/wizard).
     - If you used profiles (`--profile` / `CRAWCLAW_PROFILE`), reset each state dir (defaults are `~/.crawclaw-<profile>`).
-    - Dev reset: `crawclaw gateway --dev --reset` (dev-only; wipes dev config + credentials + sessions + workspace).
+    - Dev reset: CrawClaw Desktop or the local Gateway API (dev-only; wipes dev config + credentials + sessions + workspace).
 
   </Accordion>
 
@@ -1780,8 +1782,8 @@ for usage/billing and raise limits as needed.
     older Gateway process is running or whether a cron job, hook, or plugin is
     sending them.
 
-    Use `crawclaw system main-session-wake last --json` for the latest main-session wake
-    diagnostic event, then inspect `crawclaw cron list` and `crawclaw cron runs`
+    Use CrawClaw Desktop or the local Gateway API for the latest main-session wake
+    diagnostic event, then inspect CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API
     for scheduled jobs.
 
     Docs: [Heartbeat](/gateway/heartbeat), [Cron jobs](/automation/cron-jobs).
@@ -1811,7 +1813,7 @@ for usage/billing and raise limits as needed.
     Option 1 (fastest): tail logs and send a test message in the group:
 
     ```bash
-    crawclaw logs --follow --json
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Look for `chatId` (or `from`) ending in `@g.us`, like:
@@ -1820,10 +1822,10 @@ for usage/billing and raise limits as needed.
     Option 2 (if already configured/allowlisted): list groups from config:
 
     ```bash
-    crawclaw directory groups list --channel whatsapp
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Docs: [WhatsApp](/channels/whatsapp), [Directory](/cli/directory), [Logs](/cli/logs).
+    Docs: [WhatsApp](/channels/whatsapp), [Directory](/channels/pairing), [Logs](/gateway/logging).
 
   </Accordion>
 
@@ -1852,7 +1854,7 @@ for usage/billing and raise limits as needed.
 
     - Keep one **active** workspace per agent (`agents.defaults.workspace`).
     - Prune old sessions (delete JSONL or store entries) if disk grows.
-    - Use `crawclaw doctor` to spot stray workspaces and profile mismatches.
+    - Use CrawClaw Desktop or the local Gateway API to spot stray workspaces and profile mismatches.
 
   </Accordion>
 
@@ -1917,14 +1919,14 @@ for usage/billing and raise limits as needed.
     Safe options:
 
     - `/model` in chat (quick, per-session)
-    - `crawclaw models set ...` (updates just model config)
-    - `crawclaw configure --section model` (interactive)
+    - CrawClaw Desktop or the local Gateway API (updates just model config)
+    - CrawClaw Desktop or the local Gateway API (interactive)
     - edit `agents.defaults.model` in `~/.crawclaw/crawclaw.json`
 
     Avoid `config.apply` with a partial object unless you intend to replace the whole config.
-    If you did overwrite config, restore from backup or re-run `crawclaw doctor` to repair.
+    If you did overwrite config, restore from backup or re-run CrawClaw Desktop or the local Gateway API to repair.
 
-    Docs: [Models](/concepts/models), [Configure](/cli/configure), [Config](/cli/config), [Doctor](/gateway/doctor).
+    Docs: [Models](/concepts/models), [Configure](/gateway/configuration), [Config](/gateway/configuration), [Doctor](/gateway/doctor).
 
   </Accordion>
 
@@ -1936,14 +1938,14 @@ for usage/billing and raise limits as needed.
     1. Install Ollama from `https://ollama.com/download`
     2. Pull a local model such as `ollama pull glm-4.7-flash`
     3. If you want Ollama Cloud too, run `ollama signin`
-    4. Run `crawclaw onboard` and choose `Ollama`
+    4. Run CrawClaw Desktop or the local Gateway API and choose `Ollama`
     5. Pick `Local` or `Cloud + Local`
 
     Notes:
 
     - `Cloud + Local` gives you Ollama Cloud models plus your local Ollama models
     - cloud models such as `kimi-k2.5:cloud` do not need a local pull
-    - for manual switching, use `crawclaw models list` and `crawclaw models set ollama/<model>`
+    - for manual switching, use CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API
 
     Security note: smaller or heavily quantized models are more vulnerable to prompt
     injection. We strongly recommend **large models** for any bot that can use tools.
@@ -1956,7 +1958,7 @@ for usage/billing and raise limits as needed.
 
   <Accordion title="What do CrawClaw, Flawd, and Krill use for models?">
     - These deployments can differ and may change over time; there is no fixed provider recommendation.
-    - Check the current runtime setting on each gateway with `crawclaw models status`.
+    - Check the current runtime setting on each gateway with CrawClaw Desktop or the local Gateway API.
     - For security-sensitive/tool-enabled agents, use the strongest latest-generation model available.
   </Accordion>
 
@@ -2044,7 +2046,7 @@ for usage/billing and raise limits as needed.
     4. Run:
 
        ```bash
-       crawclaw models list
+       # Use CrawClaw Desktop or the local Gateway API for this operation.
        ```
 
        and pick from the list (or `/model list` in chat).
@@ -2169,7 +2171,7 @@ for usage/billing and raise limits as needed.
 
     Fix options:
 
-    - Run `crawclaw agents add <id>` and configure auth during the wizard.
+    - Run CrawClaw Desktop or the local Gateway API and configure auth during the wizard.
     - Or copy `auth-profiles.json` from the main agent's `agentDir` into the new agent's `agentDir`.
 
     Do **not** reuse `agentDir` across agents; it causes auth/session collisions.
@@ -2197,13 +2199,13 @@ for usage/billing and raise limits as needed.
 
     - **Confirm where auth profiles live** (new vs legacy paths)
       - Current: `~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`
-      - Legacy: `~/.crawclaw/agent/*` (migrated by `crawclaw doctor`)
+      - Legacy: `~/.crawclaw/agent/*` (migrated by CrawClaw Desktop or the local Gateway API)
     - **Confirm your env var is loaded by the Gateway**
       - If you set `ANTHROPIC_API_KEY` in your shell but run the Gateway via systemd/launchd, it may not inherit it. Put it in `~/.crawclaw/.env` or enable `env.shellEnv`.
     - **Make sure you're editing the correct agent**
       - Multi-agent setups mean there can be multiple `auth-profiles.json` files.
     - **Sanity-check model/auth status**
-      - Use `crawclaw models status` to see configured models and whether providers are authenticated.
+      - Use CrawClaw Desktop or the local Gateway API to see configured models and whether providers are authenticated.
 
     **Fix checklist for "No credentials found for profile anthropic"**
 
@@ -2211,14 +2213,14 @@ for usage/billing and raise limits as needed.
     can't find it in its auth store.
 
     - **Use a setup-token**
-      - Run `claude setup-token`, then paste it with `crawclaw models auth setup-token --provider anthropic`.
-      - If the token was created on another machine, use `crawclaw models auth paste-token --provider anthropic`.
+      - Run `claude setup-token`, then paste it with CrawClaw Desktop or the local Gateway API.
+      - If the token was created on another machine, use CrawClaw Desktop or the local Gateway API.
     - **If you want to use an API key instead**
       - Put `ANTHROPIC_API_KEY` in `~/.crawclaw/.env` on the **gateway host**.
       - Clear any pinned order that forces a missing profile:
 
         ```bash
-        crawclaw models auth order clear --provider anthropic
+        # Use CrawClaw Desktop or the local Gateway API for this operation.
         ```
 
     - **Confirm you're running commands on the gateway host**
@@ -2267,28 +2269,28 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
   <Accordion title="Can I control which auth profile is tried first?">
     Yes. Config supports optional metadata for profiles and an ordering per provider (`auth.order.<provider>`). This does **not** store secrets; it maps IDs to provider/mode and sets rotation order.
 
-    CrawClaw may temporarily skip a profile if it's in a short **cooldown** (rate limits/timeouts/auth failures) or a longer **disabled** state (billing/insufficient credits). To inspect this, run `crawclaw models status --json` and check `auth.unusableProfiles`. Tuning: `auth.cooldowns.billingBackoffHours*`.
+    CrawClaw may temporarily skip a profile if it's in a short **cooldown** (rate limits/timeouts/auth failures) or a longer **disabled** state (billing/insufficient credits). To inspect this, run CrawClaw Desktop or the local Gateway API and check `auth.unusableProfiles`. Tuning: `auth.cooldowns.billingBackoffHours*`.
 
     You can also set a **per-agent** order override (stored in that agent's `auth-profiles.json`) via the CLI:
 
     ```bash
     # Defaults to the configured default agent (omit --agent)
-    crawclaw models auth order get --provider anthropic
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Lock rotation to a single profile (only try this one)
-    crawclaw models auth order set --provider anthropic anthropic:default
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Or set an explicit order (fallback within provider)
-    crawclaw models auth order set --provider anthropic anthropic:work anthropic:default
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Clear override (fall back to config auth.order / round-robin)
-    crawclaw models auth order clear --provider anthropic
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     To target a specific agent:
 
     ```bash
-    crawclaw models auth order set --provider anthropic --agent main anthropic:default
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Accordion>
@@ -2318,10 +2320,10 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
   </Accordion>
 
-  <Accordion title='Why does crawclaw gateway status say "Runtime: running" but "RPC probe: failed"?'>
-    Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The RPC probe is the CLI actually connecting to the gateway WebSocket and calling `status`.
+<Accordion title='Why does CrawClaw Desktop or the local Gateway API
+Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The RPC probe is the CLI actually connecting to the gateway WebSocket and calling `status`.
 
-    Use `crawclaw gateway status` and trust these lines:
+    Use CrawClaw Desktop or the local Gateway API and trust these lines:
 
     - `Probe target:` (the URL the probe actually used)
     - `Listening:` (what's actually bound on the port)
@@ -2329,13 +2331,13 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
   </Accordion>
 
-  <Accordion title='Why does crawclaw gateway status show "Config (cli)" and "Config (service)" different?'>
+  <Accordion title='Why does CrawClaw Desktop or the local Gateway API)" and "Config (service)" different?'>
     You're editing one config file while the service is running another (often a `--profile` / `CRAWCLAW_STATE_DIR` mismatch).
 
     Fix:
 
     ```bash
-    crawclaw gateway install --force
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Run that from the same `--profile` / environment you want the service to use.
@@ -2345,7 +2347,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
   <Accordion title='What does "another gateway instance is already listening" mean?'>
     CrawClaw enforces a runtime lock by binding the WebSocket listener immediately on startup (default `ws://127.0.0.1:18789`). If the bind fails with `EADDRINUSE`, it throws `GatewayLockError` indicating another instance is already listening.
 
-    Fix: stop the other instance, free the port, or run with `crawclaw gateway --port <port>`.
+    Fix: stop the other instance, free the port, or run with CrawClaw Desktop or the local Gateway API.
 
   </Accordion>
 
@@ -2367,7 +2369,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     Notes:
 
-    - `crawclaw gateway` only starts when `gateway.mode` is `local` (or you pass the override flag).
+    - CrawClaw Desktop or the local Gateway API only starts when `gateway.mode` is `local` (or you pass the override flag).
     - Local clients that supervise the Gateway may watch the config file and switch modes live when these values change.
 
   </Accordion>
@@ -2382,15 +2384,15 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     Fix:
 
-    - Fastest local check: `crawclaw gateway status`.
-    - If you don't have a token yet: `crawclaw doctor --generate-gateway-token`.
+    - Fastest local check: CrawClaw Desktop or the local Gateway API.
+    - If you don't have a token yet: CrawClaw Desktop or the local Gateway API.
     - If remote, tunnel first: `ssh -N -L 18789:127.0.0.1:18789 user@host` then open `http://127.0.0.1:18789/`.
     - Set `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`) on the gateway host.
     - Configure the same token in the client you are using.
     - If mismatch persists after the one retry, rotate/re-approve the paired device token:
-      - `crawclaw devices list`
-      - `crawclaw devices rotate --device <id> --role operator`
-    - Still stuck? Run `crawclaw status --all` and follow [Troubleshooting](/gateway/troubleshooting).
+      - CrawClaw Desktop or the local Gateway API
+      - CrawClaw Desktop or the local Gateway API
+    - Still stuck? Run CrawClaw Desktop or the local Gateway API and follow [Troubleshooting](/gateway/troubleshooting).
 
   </Accordion>
 
@@ -2418,9 +2420,9 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     Quick setup (recommended):
 
-    - Use `crawclaw --profile <name> ...` per instance (auto-creates `~/.crawclaw-<name>`).
+    - Use CrawClaw Desktop or the local Gateway API per instance (auto-creates `~/.crawclaw-<name>`).
     - Set a unique `gateway.port` in each profile config (or pass `--port` for manual runs).
-    - Install a per-profile service: `crawclaw --profile <name> gateway install`.
+    - Install a per-profile service: CrawClaw Desktop or the local Gateway API.
 
     Profiles also suffix service names (`ai.crawclaw.<profile>`; legacy `com.crawclaw.*`, `crawclaw-gateway-<profile>.service`, `CrawClaw Gateway (<profile>)`).
     Full guide: [Multiple gateways](/gateway/multiple-gateways).
@@ -2469,7 +2471,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     Fastest log tail:
 
     ```bash
-    crawclaw logs --follow
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Service/supervisor logs (when the gateway runs via launchd/systemd):
@@ -2486,11 +2488,11 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     Use the gateway helpers:
 
     ```bash
-    crawclaw gateway status
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    If you run the gateway manually, `crawclaw gateway --force` can reclaim the port. See [Gateway](/gateway).
+    If you run the gateway manually, CrawClaw Desktop or the local Gateway API can reclaim the port. See [Gateway](/gateway).
 
   </Accordion>
 
@@ -2498,14 +2500,14 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     The supported Windows path is native Windows. Open PowerShell and run:
 
     ```powershell
-    crawclaw gateway status
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     If you run it manually (no service), use:
 
     ```powershell
-    crawclaw gateway run
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Docs: [Windows](/platforms/windows), [Gateway service runbook](/gateway).
@@ -2516,10 +2518,10 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     Start with a quick health sweep:
 
     ```bash
-    crawclaw status
-    crawclaw models status
-    crawclaw channels status
-    crawclaw logs --follow
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Common causes:
@@ -2538,15 +2540,15 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
   <Accordion title='"Disconnected from gateway: no reason" - what now?'>
     This usually means the UI lost the WebSocket connection. Check:
 
-    1. Is the Gateway running? `crawclaw gateway status`
-    2. Is the Gateway healthy? `crawclaw status`
+    1. Is the Gateway running? CrawClaw Desktop or the local Gateway API
+    2. Is the Gateway healthy? CrawClaw Desktop or the local Gateway API
     3. Does the client have the right token?
     4. If remote, is the tunnel/Tailscale link up?
 
     Then tail logs:
 
     ```bash
-    crawclaw logs --follow
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Docs: [Remote access](/gateway/remote), [Troubleshooting](/gateway/troubleshooting).
@@ -2557,8 +2559,8 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     Start with logs and channel status:
 
     ```bash
-    crawclaw channels status
-    crawclaw channels logs --channel telegram
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Then match the error:
@@ -2576,12 +2578,12 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     First confirm the Gateway is reachable and the agent can run:
 
     ```bash
-    crawclaw status
-    crawclaw models status
-    crawclaw logs --follow
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Use `crawclaw gateway status` to see the current state. If you expect replies in a chat
+    Use CrawClaw Desktop or the local Gateway API to see the current state. If you expect replies in a chat
     channel, make sure delivery is enabled (`/deliver on`).
 
     Docs: [Slash commands](/tools/slash-commands).
@@ -2592,8 +2594,8 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     If you installed the service:
 
     ```bash
-    crawclaw gateway stop
-    crawclaw gateway start
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     This stops/starts the **supervised service** (launchd on macOS, systemd on Linux).
@@ -2602,18 +2604,16 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     If you're running in the foreground, stop with Ctrl-C, then:
 
     ```bash
-    crawclaw gateway run
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Docs: [Gateway service runbook](/gateway).
 
   </Accordion>
 
-  <Accordion title="ELI5: crawclaw gateway restart vs crawclaw gateway">
-    - `crawclaw gateway restart`: restarts the **background service** (launchd/systemd).
-    - `crawclaw gateway`: runs the gateway **in the foreground** for this terminal session.
+<Accordion title="ELI5: CrawClaw Desktop or the local Gateway API - CrawClaw Desktop or the local Gateway API: restarts the **background service** (launchd/systemd). - CrawClaw Desktop or the local Gateway API: runs the gateway **in the foreground** for this terminal session.
 
-    If you installed the service, use the gateway commands. Use `crawclaw gateway` when
+    If you installed the service, use the gateway commands. Use CrawClaw Desktop or the local Gateway API when
     you want a one-off, foreground run.
 
   </Accordion>
@@ -2632,7 +2632,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     CLI sending:
 
     ```bash
-    crawclaw message send --target +15555550123 --message "Here you go" --media /path/to/file.png
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Also check:
@@ -2654,11 +2654,11 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     - Default behavior on DM-capable channels is **pairing**:
       - Unknown senders receive a pairing code; the bot does not process their message.
-      - Approve with: `crawclaw pairing approve --channel <channel> [--account <id>] <code>`
-      - Pending requests are capped at **3 per channel**; check `crawclaw pairing list --channel <channel> [--account <id>]` if a code didn't arrive.
+      - Approve with: CrawClaw Desktop or the local Gateway API
+      - Pending requests are capped at **3 per channel**; check CrawClaw Desktop or the local Gateway API if a code didn't arrive.
     - Opening DMs publicly requires explicit opt-in (`dmPolicy: "open"` and allowlist `"*"`).
 
-    Run `crawclaw doctor` to surface risky DM policies.
+    Run CrawClaw Desktop or the local Gateway API to surface risky DM policies.
 
   </Accordion>
 
@@ -2715,7 +2715,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     Check pending requests:
 
     ```bash
-    crawclaw pairing list telegram
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     If you want immediate access, allowlist your sender id or set `dmPolicy: "open"`
@@ -2729,13 +2729,13 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     Approve pairing with:
 
     ```bash
-    crawclaw pairing approve whatsapp <code>
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     List pending requests:
 
     ```bash
-    crawclaw pairing list whatsapp
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Wizard phone number prompt: it's used to set your **allowlist/owner** so your own DMs are permitted. It's not used for auto-sending. If you run on your personal WhatsApp number, use that number and enable `channels.whatsapp.selfChatMode`.
@@ -2777,7 +2777,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     stop agent
     stop the agent
     stop crawclaw
-    crawclaw stop
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     stop don't do anything
     stop do not do anything
     stop doing anything

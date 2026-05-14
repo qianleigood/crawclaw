@@ -2,7 +2,7 @@
 summary: "Sign in to GitHub Copilot from CrawClaw using the device flow"
 read_when:
   - You want to use GitHub Copilot as a model provider
-  - You need the `crawclaw models auth login-github-copilot` flow
+  - You need the CrawClaw Desktop or the local Gateway API flow
 title: "GitHub Copilot"
 ---
 
@@ -33,10 +33,10 @@ Use GitHub Copilot as a model provider (`github-copilot`). The login command run
 the GitHub device flow, saves an auth profile, and updates your config to use that
 profile.
 
-## CLI setup
+## Desktop setup
 
 ```bash
-crawclaw models auth login-github-copilot
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 You'll be prompted to visit a URL and enter a one-time code. Keep the terminal
@@ -45,14 +45,14 @@ open until it completes.
 ### Optional flags
 
 ```bash
-crawclaw models auth login-github-copilot --profile-id github-copilot:work
-crawclaw models auth login-github-copilot --yes
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Set a default model
 
 ```bash
-crawclaw models set github-copilot/gpt-4o
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Config snippet

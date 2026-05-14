@@ -22,7 +22,7 @@ For Anthropic models, use your Anthropic API key.
 1. Set the provider API key and Gateway details:
 
 ```bash
-crawclaw onboard --auth-choice cloudflare-ai-gateway-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 2. Set a default model:
@@ -40,12 +40,7 @@ crawclaw onboard --auth-choice cloudflare-ai-gateway-api-key
 ## Non-interactive example
 
 ```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice cloudflare-ai-gateway-api-key \
-  --cloudflare-ai-gateway-account-id "your-account-id" \
-  --cloudflare-ai-gateway-gateway-id "your-gateway-id" \
-  --cloudflare-ai-gateway-api-key "$CLOUDFLARE_AI_GATEWAY_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Authenticated gateways

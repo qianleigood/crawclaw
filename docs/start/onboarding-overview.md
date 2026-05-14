@@ -1,7 +1,7 @@
 ---
-summary: "Overview of CrawClaw onboarding options and flows"
+summary: "Overview of CrawClaw Desktop onboarding and Gateway API setup"
 read_when:
-  - Choosing an onboarding path
+  - Choosing the supported setup path
   - Setting up a new environment
 title: "Onboarding Overview"
 sidebarTitle: "Onboarding Overview"
@@ -9,54 +9,40 @@ sidebarTitle: "Onboarding Overview"
 
 # Onboarding Overview
 
-CrawClaw uses CLI onboarding to configure auth, the Gateway, and optional
-channels across supported hosts.
+CrawClaw onboarding now starts in **CrawClaw Desktop** on Apple platforms. The
+desktop app owns model auth, workspace defaults, Gateway lifecycle, plugins,
+channels, diagnostics, and local runtime state.
+
+Automation and headless integrations should use the local Gateway API instead
+of a public `crawclaw` command.
 
 ## Which path should I use?
 
-|                | CLI onboarding                  |
-| -------------- | ------------------------------- |
-| **Platforms**  | macOS, Linux, native Windows    |
-| **Interface**  | Terminal wizard                 |
-| **Best for**   | Servers, headless, full control |
-| **Automation** | `--non-interactive` for scripts |
-| **Command**    | `crawclaw onboard`              |
-
-Most users should start with **CLI onboarding**. It works everywhere and gives
-you the most control.
+| Path             | Best for                                          |
+| ---------------- | ------------------------------------------------- |
+| CrawClaw Desktop | Normal setup, settings, model auth, plugins, logs |
+| Gateway API      | Local automation and integration control planes   |
+| Config files     | Reviewable advanced changes under `~/.crawclaw`   |
 
 ## What onboarding configures
 
-Regardless of which path you choose, onboarding sets up:
+Desktop setup configures:
 
-1. **Model provider and auth** — API key, OAuth, or setup token for your chosen provider
-2. **Workspace** — directory for agent files, bootstrap templates, and memory
-3. **Gateway** — port, bind address, auth mode
-4. **Channels** (optional) — WhatsApp, Telegram, Discord, and more
-5. **Output and presentation** — default reply visibility and streaming preset
-6. **Memory / Experience** (optional) — experience capture with a local sync queue and optional NotebookLM recall/sync enablement
-7. **Daemon** (optional) — background service so the Gateway starts automatically
+1. **Model provider and auth** — API key, OAuth, or setup token for your chosen provider.
+2. **Workspace** — directory for agent files, bootstrap templates, and memory.
+3. **Gateway** — loopback bind, auth mode, local runtime state, and health.
+4. **Channels** — supported message channels exposed by the desktop Gateway.
+5. **Plugins and tools** — bundled Rust-native plugins plus declared Node plugin runtimes.
+6. **Memory and experience** — local capture, recall, and maintenance settings.
 
-## CLI onboarding
+## Automation
 
-Run in any terminal:
+Use the Gateway API for scripted setup, config patching, status, health,
+session, and plugin operations. Desktop and automation share the same local
+Gateway control plane so behavior stays consistent.
 
-```bash
-crawclaw onboard
-```
+Related docs:
 
-Add `--install-daemon` to also install the background service in one step.
-
-Full reference: [Onboarding (CLI)](/start/wizard)
-CLI command docs: [`crawclaw onboard`](/cli/onboard)
-
-## Custom or unlisted providers
-
-If your provider is not listed in onboarding, choose **Custom Provider** and
-enter:
-
-- API compatibility mode (OpenAI-compatible, Anthropic-compatible, or auto-detect)
-- Base URL and API key
-- Model ID and optional alias
-
-Multiple custom endpoints can coexist — each gets its own endpoint ID.
+- [Desktop install](/install/desktop)
+- [Gateway protocol](/gateway/protocol)
+- [Gateway troubleshooting](/gateway/troubleshooting)

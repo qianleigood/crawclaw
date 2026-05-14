@@ -30,11 +30,11 @@ Use this page for day-1 startup and day-2 operations of the Gateway service.
   <Step title="Start the Gateway">
 
 ```bash
-crawclaw gateway --port 18789
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # debug/trace mirrored to stdio
-crawclaw gateway --port 18789 --verbose
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # force-kill listener on selected port, then start
-crawclaw gateway --force
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
   </Step>
@@ -42,9 +42,9 @@ crawclaw gateway --force
   <Step title="Verify service health">
 
 ```bash
-crawclaw gateway status
-crawclaw status
-crawclaw logs --follow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Healthy baseline: `Runtime: running` and `RPC probe: ok`.
@@ -54,7 +54,7 @@ Healthy baseline: `Runtime: running` and `RPC probe: ok`.
   <Step title="Validate channel readiness">
 
 ```bash
-crawclaw channels status --probe
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
   </Step>
@@ -117,15 +117,15 @@ All of these run on the main Gateway port and use the same trusted operator auth
 ## Operator command set
 
 ```bash
-crawclaw gateway status
-crawclaw gateway status --deep
-crawclaw gateway status --json
-crawclaw gateway install
-crawclaw gateway restart
-crawclaw gateway stop
-crawclaw secrets reload
-crawclaw logs --follow
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Remote access
@@ -153,22 +153,22 @@ Use supervised runs for production-like reliability.
   <Tab title="macOS (launchd)">
 
 ```bash
-crawclaw gateway install
-crawclaw gateway status
-crawclaw gateway restart
-crawclaw gateway stop
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-LaunchAgent labels are `ai.crawclaw.gateway` (default) or `ai.crawclaw.<profile>` (named profile). `crawclaw doctor` audits and repairs service config drift.
+LaunchAgent labels are `ai.crawclaw.gateway` (default) or `ai.crawclaw.<profile>` (named profile). CrawClaw Desktop or the local Gateway API audits and repairs service config drift.
 
   </Tab>
 
   <Tab title="Linux (systemd user)">
 
 ```bash
-crawclaw gateway install
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 systemctl --user enable --now crawclaw-gateway[-<profile>].service
-crawclaw gateway status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 For persistence after logout, enable lingering:
@@ -206,8 +206,8 @@ Checklist per instance:
 Example:
 
 ```bash
-CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json CRAWCLAW_STATE_DIR=~/.crawclaw-a crawclaw gateway --port 19001
-CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b crawclaw gateway --port 19002
+CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json CRAWCLAW_STATE_DIR=~/.crawclaw-a CrawClaw Desktop or the local Gateway API
+CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b CrawClaw Desktop or the local Gateway API
 ```
 
 See: [Multiple gateways](/gateway/multiple-gateways).
@@ -215,9 +215,9 @@ See: [Multiple gateways](/gateway/multiple-gateways).
 ### Dev profile quick path
 
 ```bash
-crawclaw --dev setup
-crawclaw --dev gateway --allow-unconfigured
-crawclaw --dev status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Defaults include isolated state/config and base gateway port `19001`.
@@ -246,9 +246,9 @@ See full protocol docs: [Gateway Protocol](/gateway/protocol).
 ### Readiness
 
 ```bash
-crawclaw gateway status
-crawclaw channels status --probe
-crawclaw health
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Gap recovery

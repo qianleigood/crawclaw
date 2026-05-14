@@ -178,62 +178,16 @@ function stripChannelPrefix(value: string | undefined, channelId: string): strin
 }
 
 function deriveParentConversationId(
-  canonical: CanonicalInboundMessageHookContext,
+  _canonical: CanonicalInboundMessageHookContext,
 ): string | undefined {
-  if (canonical.channelId !== "telegram") {
-    return undefined;
-  }
-  if (typeof canonical.threadId !== "number" && typeof canonical.threadId !== "string") {
-    return undefined;
-  }
-  return stripChannelPrefix(
-    canonical.to ?? canonical.originatingTo ?? canonical.conversationId,
-    "telegram",
-  );
+  return undefined;
 }
 
 function deriveConversationId(canonical: CanonicalInboundMessageHookContext): string | undefined {
-  if (canonical.channelId === "discord") {
-    const rawTarget = canonical.to ?? canonical.originatingTo ?? canonical.conversationId;
-    const rawSender = canonical.from;
-    const senderUserId = rawSender?.startsWith("discord:user:")
-      ? rawSender.slice("discord:user:".length)
-      : rawSender?.startsWith("discord:")
-        ? rawSender.slice("discord:".length)
-        : undefined;
-    if (!canonical.isGroup && senderUserId) {
-      return `user:${senderUserId}`;
-    }
-    if (!rawTarget) {
-      return undefined;
-    }
-    if (rawTarget.startsWith("discord:channel:")) {
-      return `channel:${rawTarget.slice("discord:channel:".length)}`;
-    }
-    if (rawTarget.startsWith("discord:user:")) {
-      return `user:${rawTarget.slice("discord:user:".length)}`;
-    }
-    if (rawTarget.startsWith("discord:")) {
-      return `user:${rawTarget.slice("discord:".length)}`;
-    }
-    if (rawTarget.startsWith("channel:") || rawTarget.startsWith("user:")) {
-      return rawTarget;
-    }
-  }
-  const baseConversationId = stripChannelPrefix(
+  return stripChannelPrefix(
     canonical.to ?? canonical.originatingTo ?? canonical.conversationId,
     canonical.channelId,
   );
-  if (canonical.channelId === "telegram" && baseConversationId) {
-    const threadId =
-      typeof canonical.threadId === "number" || typeof canonical.threadId === "string"
-        ? String(canonical.threadId).trim()
-        : "";
-    if (threadId) {
-      return `${baseConversationId}:topic:${threadId}`;
-    }
-  }
-  return baseConversationId;
 }
 
 export function toPluginInboundClaimContext(

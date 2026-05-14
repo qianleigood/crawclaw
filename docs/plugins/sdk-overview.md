@@ -42,31 +42,17 @@ subpaths is in `scripts/lib/plugin-sdk-entrypoints.json`.
 | Subpath                   | Key exports                                                                                                                            |
 | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugin-sdk/plugin-entry` | `definePluginEntry`                                                                                                                    |
-| `plugin-sdk/core`         | `defineChannelPluginEntry`, `createChatChannelPlugin`, `createChannelPluginBase`, `defineSetupPluginEntry`, `buildChannelConfigSchema` |
+| `plugin-sdk/core`         | Generic plugin entry types and shared plugin helpers                                                                                    |
+
+TypeScript channel SDK subpaths have been removed. Channel plugins should use the Rust-native
+channel plugin contract.
 
 <AccordionGroup>
-  <Accordion title="Channel subpaths">
-    | Subpath | Key exports |
-    | --- | --- |
-    | `plugin-sdk/channel-setup` | `createOptionalChannelSetupSurface` |
-    | `plugin-sdk/channel-pairing` | `createChannelPairingController` |
-    | `plugin-sdk/channel-reply-pipeline` | `createChannelReplyPipeline` |
-    | `plugin-sdk/channel-config-helpers` | `createHybridChannelConfigAdapter` |
-    | `plugin-sdk/channel-config-schema` | Channel config schema types |
-    | `plugin-sdk/channel-policy` | `resolveChannelGroupRequireMention` |
-    | `plugin-sdk/channel-lifecycle` | `createAccountStatusSink` |
-    | `plugin-sdk/channel-inbound` | Debounce, mention matching, envelope helpers |
-    | `plugin-sdk/channel-send-result` | Reply result types |
-    | `plugin-sdk/channel-actions` | `createMessageToolButtonsSchema`, `createMessageToolCardSchema` |
-    | `plugin-sdk/channel-targets` | Target parsing/matching helpers |
-    | `plugin-sdk/channel-contract` | Channel contract types |
-    | `plugin-sdk/channel-feedback` | Feedback/reaction wiring |
-  </Accordion>
 
   <Accordion title="Provider subpaths">
     | Subpath | Key exports |
     | --- | --- |
-    | `plugin-sdk/cli-backend` | CLI backend defaults + watchdog constants |
+    | `plugin-sdk/local-process-backend` | local process backend defaults + watchdog constants |
     | `plugin-sdk/provider-auth` | `createProviderApiKeyAuthMethod`, `ensureApiKeyFromOptionEnvOrPrompt`, `upsertAuthProfile` |
     | `plugin-sdk/provider-model-shared` | `normalizeModelCompat` |
     | `plugin-sdk/provider-catalog-shared` | `findCatalogTemplate`, `buildSingleProviderApiKeyCatalog` |
@@ -123,7 +109,7 @@ methods:
 | Method                                        | What it registers              |
 | --------------------------------------------- | ------------------------------ |
 | `api.registerProvider(...)`                   | Text inference (LLM)           |
-| `api.registerCliBackend(...)`                 | Local CLI inference backend    |
+| `api.registerCliBackend(...)`                 | Local Local process backend    |
 | `api.registerChannel(...)`                    | Messaging channel              |
 | `api.registerSpeechProvider(...)`             | Text-to-speech / STT synthesis |
 | `api.registerMediaUnderstandingProvider(...)` | Image/audio/video analysis     |
@@ -138,14 +124,13 @@ methods:
 
 ### Infrastructure
 
-| Method                                         | What it registers     |
-| ---------------------------------------------- | --------------------- |
-| `api.registerHook(events, handler, opts?)`     | Event hook            |
-| `api.registerHttpRoute(params)`                | Gateway HTTP endpoint |
-| `api.registerGatewayMethod(name, handler)`     | Gateway RPC method    |
-| `api.registerCli(registrar, opts?)`            | CLI subcommand        |
-| `api.registerService(service)`                 | Background service    |
-| `api.registerInteractiveHandler(registration)` | Interactive handler   |
+| Method                                     | What it registers     |
+| ------------------------------------------ | --------------------- |
+| `api.registerHook(events, handler, opts?)` | Event hook            |
+| `api.registerHttpRoute(params)`            | Gateway HTTP endpoint |
+| `api.registerGatewayMethod(name, handler)` | Gateway RPC method    |
+| `api.registerCli(registrar, opts?)`        | CLI subcommand        |
+| `api.registerService(service)`             | Background service    |
 
 ### CLI registration metadata
 
@@ -184,10 +169,10 @@ Use `commands` by itself only when you do not need lazy root CLI registration.
 That eager compatibility path remains supported, but it does not install
 descriptor-backed placeholders for parse-time lazy loading.
 
-### CLI backend registration
+### local process backend registration
 
 `api.registerCliBackend(...)` lets a plugin own the default config for a local
-AI CLI backend such as `claude-cli` or `codex-cli`.
+AI local process backend such as `claude-cli` or `codex-cli`.
 
 - The backend `id` becomes the provider prefix in model refs like `claude-cli/opus`.
 - The backend `config` uses the same shape as `agents.defaults.cliBackends.<id>`.

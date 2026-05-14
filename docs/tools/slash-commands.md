@@ -113,7 +113,7 @@ Action and session commands:
 - `/mcp show|get|set|unset` (manage CrawClaw MCP server config, owner-only; requires `commands.mcp: true`)
 - `/plugins list|show|get|install|enable|disable` (inspect discovered plugins, install new ones, and toggle enablement; owner-only for writes; requires `commands.plugins: true`)
   - `/plugin` is an alias for `/plugins`.
-  - `/plugin install <spec>` accepts the same plugin specs as `crawclaw plugins install`: local path/archive, npm package, or `clawhub:<pkg>`.
+  - `/plugin install <spec>` accepts the same plugin specs as CrawClaw Desktop or the local Gateway API: local path/archive, npm package, or `clawhub:<pkg>`.
   - Enable/disable writes still reply with a restart hint. On a watched foreground gateway, CrawClaw may perform that restart automatically right after the write.
 - `/debug show|set|unset|reset` (runtime overrides, owner-only; requires `commands.debug: true`)
 - `/usage off|tokens|full|cost` (per-response usage footer or local cost summary)
@@ -152,7 +152,7 @@ Notes:
   - With an argument, the remainder becomes review focus, for example: `/review check plugin SDK boundary coverage`.
   - Review sessions are read-only by policy: they are restricted to validation tools and cannot recursively start another review run.
   - `/review` is the only user-facing review entry. The internal `review_task` tool flow is not exposed as a public slash command.
-- For full provider usage breakdown, use `crawclaw status --usage`.
+- For full provider usage breakdown, use CrawClaw Desktop or the local Gateway API.
 - `/allowlist add|remove` requires `commands.config=true` and honors channel `configWrites`.
 - In multi-account channels, config-targeted `/allowlist --account <id>` and `/config set channels.<provider>.accounts.<id>...` also honor the target account's `configWrites`.
 - `/usage` controls the per-response usage footer; `/usage cost` prints a local cost summary from CrawClaw session logs.

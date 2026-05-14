@@ -5,8 +5,6 @@
   "description": "CrawClaw local ComfyUI workflow builder plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

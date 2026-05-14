@@ -461,10 +461,6 @@ function shouldRequireOAuthDir(cfg: CrawClawConfig, env: NodeJS.ProcessEnv): boo
   if (!isRecord(channels)) {
     return false;
   }
-  // WhatsApp auth always uses the credentials tree.
-  if (isRecord(channels.whatsapp)) {
-    return true;
-  }
   // Pairing allowlists are persisted under credentials/<channel>-allowFrom.json.
   for (const [channelId, channelCfg] of Object.entries(channels)) {
     if (channelId === "defaults" || channelId === "modelByChannel") {

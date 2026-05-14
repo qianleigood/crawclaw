@@ -33,7 +33,7 @@ export SGLANG_API_KEY="sglang-local"
 3. Run onboarding and choose `SGLang`, or set a model directly:
 
 ```bash
-crawclaw onboard
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ```json5

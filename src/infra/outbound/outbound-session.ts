@@ -5,6 +5,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { recordSessionMetaFromInbound, resolveStorePath } from "../../config/sessions.js";
 import type { RoutePeer } from "../../routing/resolve-route.js";
 import { resolveRustOutboundFallbackSessionRoute } from "./message-policy-runtime.js";
+import { shouldUseNativeGatewayOutbound } from "./outbound-transport-policy.js";
 import type { ResolvedMessagingTarget } from "./target-resolver.js";
 
 export type OutboundSessionRoute = {
@@ -40,6 +41,9 @@ export async function resolveOutboundSessionRoute(
     return null;
   }
   const nextParams = { ...params, target };
+  if (await shouldUseNativeGatewayOutbound(params.channel)) {
+    return await resolveRustOutboundFallbackSessionRoute(nextParams);
+  }
   const resolver = resolveOutboundChannelPlugin(params.channel)?.messaging
     ?.resolveOutboundSessionRoute;
   if (resolver) {

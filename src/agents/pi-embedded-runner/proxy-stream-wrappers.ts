@@ -105,6 +105,26 @@ export function createOpenRouterSystemCacheWrapper(baseStreamFn: StreamFn | unde
   };
 }
 
+export function createOpenRouterRoutingWrapper(
+  baseStreamFn: StreamFn | undefined,
+  providerRouting: Record<string, unknown>,
+): StreamFn {
+  const underlying =
+    baseStreamFn ??
+    ((model) => {
+      throw new Error(`OpenRouter routing wrapper requires an underlying streamFn for ${model.id}.`);
+    });
+  return (model, context, options) =>
+    underlying(
+      {
+        ...model,
+        compat: { ...model.compat, openRouterRouting: providerRouting },
+      } as typeof model,
+      context,
+      options,
+    );
+}
+
 export function createOpenRouterWrapper(
   baseStreamFn: StreamFn | undefined,
   thinkingLevel?: ThinkLevel,

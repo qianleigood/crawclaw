@@ -126,7 +126,7 @@ describe("isHeartbeatOnlyResponse", () => {
   });
 
   it("returns true when multiple payloads include narration followed by HEARTBEAT_OK", () => {
-    // Agent narrates its work then signals nothing needs attention.
+    // Agent narrates its work then weixins nothing needs attention.
     expect(
       isHeartbeatOnlyResponse(
         [

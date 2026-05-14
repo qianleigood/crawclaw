@@ -58,7 +58,7 @@ export VENICE_API_KEY="vapi_xxxxxxxxxxxx"
 **Option B: Interactive Setup (Recommended)**
 
 ```bash
-crawclaw onboard --auth-choice venice-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 This will:
@@ -71,15 +71,13 @@ This will:
 **Option C: Non-interactive**
 
 ```bash
-crawclaw onboard --non-interactive \
-  --auth-choice venice-api-key \
-  --venice-api-key "vapi_xxxxxxxxxxxx"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### 3. Verify Setup
 
 ```bash
-crawclaw agent --model venice/kimi-k2-5 --message "Hello, are you working?"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Model Selection
@@ -94,19 +92,19 @@ After setup, CrawClaw shows all available Venice models. Pick based on your need
 Change your default model anytime:
 
 ```bash
-crawclaw models set venice/kimi-k2-5
-crawclaw models set venice/claude-opus-4-6
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 List all available models:
 
 ```bash
-crawclaw models list | grep venice
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-## Configure via `crawclaw configure`
+## Configure via CrawClaw Desktop or the local Gateway API
 
-1. Run `crawclaw configure`
+1. Run CrawClaw Desktop or the local Gateway API
 2. Select **Model/auth**
 3. Choose **Venice AI**
 
@@ -210,19 +208,19 @@ Venice uses a credit-based system. Check [venice.ai/pricing](https://venice.ai/p
 
 ```bash
 # Use the default private model
-crawclaw agent --model venice/kimi-k2-5 --message "Quick health check"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Use Claude Opus via Venice (anonymized)
-crawclaw agent --model venice/claude-opus-4-6 --message "Summarize this task"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Use uncensored model
-crawclaw agent --model venice/venice-uncensored --message "Draft options"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Use vision model with image
-crawclaw agent --model venice/qwen3-vl-235b-a22b --message "Review attached image"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Use coding model
-crawclaw agent --model venice/qwen3-coder-480b-a35b-instruct --message "Refactor this function"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Troubleshooting
@@ -231,14 +229,14 @@ crawclaw agent --model venice/qwen3-coder-480b-a35b-instruct --message "Refactor
 
 ```bash
 echo $VENICE_API_KEY
-crawclaw models list | grep venice
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Ensure the key starts with `vapi_`.
 
 ### Model not available
 
-The Venice model catalog updates dynamically. Run `crawclaw models list` to see currently available models. Some models may be temporarily offline.
+The Venice model catalog updates dynamically. Run CrawClaw Desktop or the local Gateway API to see currently available models. Some models may be temporarily offline.
 
 ### Connection issues
 

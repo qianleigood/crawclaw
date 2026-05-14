@@ -441,7 +441,16 @@ function setMergedSchemaCache(key: string, value: ConfigSchemaResponse): void {
 }
 
 function getBundledChannelSchemaMetadata(): ChannelUiMetadata[] {
-  return GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA.map((entry) => {
+  type BundledChannelConfigMetadata = {
+    channelId: string;
+    label?: string;
+    description?: string;
+    schema: JsonSchemaNode;
+    uiHints?: ChannelUiMetadata["configUiHints"];
+  };
+  const metadata =
+    GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA as readonly BundledChannelConfigMetadata[];
+  return metadata.map((entry) => {
     const metadata: ChannelUiMetadata = {
       id: entry.channelId,
       ...(entry.label ? { label: entry.label } : {}),
@@ -449,7 +458,7 @@ function getBundledChannelSchemaMetadata(): ChannelUiMetadata[] {
       configSchema: entry.schema,
     };
     if ("uiHints" in entry) {
-      metadata.configUiHints = entry.uiHints as ChannelUiMetadata["configUiHints"];
+      metadata.configUiHints = entry.uiHints;
     }
     return metadata;
   });

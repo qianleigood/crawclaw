@@ -1,7 +1,7 @@
 ---
 summary: "Contract for `secrets apply` plans: target validation, path matching, and `auth-profiles.json` target scope"
 read_when:
-  - Generating or reviewing `crawclaw secrets apply` plans
+  - Generating or reviewing CrawClaw Desktop or the local Gateway API plans
   - Debugging `Invalid plan target path` errors
   - Understanding target type and path validation behavior
 title: "Secrets Apply Plan Contract"
@@ -9,13 +9,13 @@ title: "Secrets Apply Plan Contract"
 
 # Secrets apply plan contract
 
-This page defines the strict contract enforced by `crawclaw secrets apply`.
+This page defines the strict contract enforced by CrawClaw Desktop or the local Gateway API.
 
 If a target does not match these rules, apply fails before mutating configuration.
 
 ## Plan file shape
 
-`crawclaw secrets apply --from <plan.json>` expects a `targets` array of plan targets:
+CrawClaw Desktop or the local Gateway API expects a `targets` array of plan targets:
 
 ```json5
 {
@@ -96,21 +96,21 @@ No writes are committed for an invalid plan.
 
 ```bash
 # Validate plan without writes
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json --dry-run
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Then apply for real
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # For exec-containing plans, opt in explicitly in both modes
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json --dry-run --allow-exec
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json --allow-exec
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-If apply fails with an invalid target path message, regenerate the plan with `crawclaw secrets configure` or fix the target path to a supported shape above.
+If apply fails with an invalid target path message, regenerate the plan with CrawClaw Desktop or the local Gateway API or fix the target path to a supported shape above.
 
 ## Related docs
 
 - [Secrets Management](/gateway/secrets)
-- [CLI `secrets`](/cli/secrets)
+- [CLI `secrets`](/gateway/secrets)
 - [SecretRef Credential Surface](/reference/secretref-credential-surface)
 - [Configuration Reference](/gateway/configuration-reference)

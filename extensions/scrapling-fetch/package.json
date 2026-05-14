@@ -5,8 +5,6 @@
   "description": "CrawClaw Scrapling web fetch plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

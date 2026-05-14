@@ -1,11 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveDmGroupAccessWithLists } from "../security/dm-policy-shared.js";
-export {
-  createPreCryptoDirectDmAuthorizer,
-  resolveInboundDirectDmAccessWithRuntime,
-  type DirectDmCommandAuthorizationRuntime,
-  type ResolvedInboundDirectDmAccess,
-} from "./direct-dm.js";
 
 export {
   hasControlCommand,
@@ -71,7 +65,6 @@ export {
   resolveSkillCommandInvocation,
 } from "../auto-reply/skill-commands.js";
 export type { SkillCommandSpec } from "../agents/skills.js";
-export { buildCommandsPaginationKeyboard } from "../channels/telegram-pagination.js";
 export {
   buildModelsProviderData,
   formatModelsAvailableHeader,

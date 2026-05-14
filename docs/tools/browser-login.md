@@ -10,7 +10,7 @@ title: "Browser Login"
 
 ## Manual login (recommended)
 
-When a site requires login, **sign in manually** in the **host** browser profile (the crawclaw browser).
+When a site requires login, **sign in manually** in the **host** browser profile (the CrawClaw Desktop or the local Gateway API).
 
 Do **not** give the model your credentials. Automated logins often trigger anti‑bot defenses and can lock the account.
 

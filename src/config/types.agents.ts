@@ -31,7 +31,7 @@ export type AgentBindingMatch = {
   peer?: { kind: ChatType; id: string };
   guildId?: string;
   teamId?: string;
-  /** Discord role IDs used for role-based routing. */
+  /** Channel role IDs used for role-based routing. */
   roles?: string[];
 };
 

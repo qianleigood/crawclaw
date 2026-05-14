@@ -28,7 +28,7 @@ title: "Gateway Lock"
 
 ## Operational notes
 
-- If the port is occupied by _another_ process, the error is the same; free the port or choose another with `crawclaw gateway --port <port>`.
+- If the port is occupied by _another_ process, the error is the same; free the port or choose another with CrawClaw Desktop or the local Gateway API.
 - Local launchers may maintain their own lightweight PID guard before spawning the gateway; the runtime lock is enforced by the WebSocket bind.
 
 ## Related

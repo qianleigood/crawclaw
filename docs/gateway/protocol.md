@@ -53,7 +53,7 @@ Client → Gateway:
     "permissions": {},
     "auth": { "token": "…" },
     "locale": "en-US",
-    "userAgent": "crawclaw-cli/1.2.3",
+    "userAgent": "crawclaw-desktop/2026.5.3",
     "device": {
       "id": "device_fingerprint",
       "publicKey": "…",

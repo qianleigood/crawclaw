@@ -1,3 +1,5 @@
+use std::process::{Command, Stdio};
+
 use crawclaw_native_plugins::comfyui::{
     collect_output_artifacts, compile_graph_ir_to_prompt, resolve_comfyui_config, ComfyGraphIr,
     ComfyGraphIrEdge, ComfyGraphIrNode, ComfyGraphIrOutput,
@@ -7,12 +9,172 @@ use crawclaw_native_plugins::lobster::parse_lobster_envelope;
 use crawclaw_native_plugins::open_prose::describe_open_prose;
 use crawclaw_native_plugins::openshell::{build_remote_command, shell_escape};
 use crawclaw_native_plugins::qwen3_tts::build_synthesis_payload;
+use crawclaw_native_plugins::registry::{
+    builtin_native_plugin_descriptors, builtin_native_tool_descriptors,
+    dispatch_builtin_native_plugin_operation, find_builtin_native_plugin_descriptor,
+    native_speech_provider_descriptors, native_web_fetch_provider_descriptors,
+    native_web_search_provider_descriptors,
+};
 use crawclaw_native_plugins::web::{
     build_open_websearch_search_url, decode_html_entities, open_websearch_runtime_bin_candidates,
     parse_open_websearch_response_text, run_scrapling_fetch, strip_html,
 };
 use serde_json::json;
+use std::io::Write;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+#[test]
+fn native_plugin_descriptors_cover_target_plugins() {
+    let descriptors = builtin_native_plugin_descriptors();
+    let ids = descriptors
+        .iter()
+        .map(|descriptor| descriptor.plugin_id.as_str())
+        .collect::<Vec<_>>();
+    for expected in [
+        "browser",
+        "lobster",
+        "comfyui",
+        "open-websearch",
+        "scrapling-fetch",
+        "llm-task",
+        "qwen3-tts",
+    ] {
+        assert!(ids.contains(&expected), "missing descriptor for {expected}");
+    }
+
+    let browser = find_builtin_native_plugin_descriptor("browser").expect("browser descriptor");
+    assert!(browser
+        .tools
+        .iter()
+        .any(|tool| tool.name == "browser" && tool.default_enabled));
+    assert!(browser
+        .services
+        .iter()
+        .any(|service| service.id == "browser-agent-browser-runtime"));
+
+    let comfyui = find_builtin_native_plugin_descriptor("comfyui").expect("comfyui descriptor");
+    assert!(comfyui
+        .tools
+        .iter()
+        .any(|tool| tool.name == "comfyui_workflow" && tool.approval.is_some()));
+    assert!(comfyui
+        .gateway_methods
+        .iter()
+        .any(|method| method.method == "comfyui.workflow.run"));
+
+    let llm_task = find_builtin_native_plugin_descriptor("llm-task").expect("llm-task descriptor");
+    assert!(!llm_task.host_callbacks.is_empty());
+}
+
+#[test]
+fn native_capability_views_expose_provider_like_descriptors() {
+    assert!(native_web_search_provider_descriptors()
+        .iter()
+        .any(|provider| provider.id == "open-websearch"));
+    assert!(native_web_fetch_provider_descriptors()
+        .iter()
+        .any(|provider| provider.id == "scrapling"));
+    assert!(native_speech_provider_descriptors()
+        .iter()
+        .any(|provider| provider.id == "qwen3-tts"));
+    assert!(builtin_native_tool_descriptors()
+        .iter()
+        .any(|(_, tool)| tool.name == "lobster"));
+    assert!(builtin_native_tool_descriptors()
+        .iter()
+        .any(|(_, tool)| tool.name == "browser"));
+}
+
+#[tokio::test]
+async fn native_dispatch_uses_registry_and_reports_unknown_operations() {
+    let described = dispatch_builtin_native_plugin_operation("open-prose", "describe", json!({}))
+        .await
+        .expect("open-prose describe");
+    assert_eq!(described["id"], "open-prose");
+
+    let error = dispatch_builtin_native_plugin_operation("missing", "noop", json!({}))
+        .await
+        .expect_err("unknown operation should fail");
+    assert_eq!(error.code(), "invalid_input");
+}
+
+#[tokio::test]
+async fn browser_native_dispatch_reports_missing_managed_runtime() {
+    let error = dispatch_builtin_native_plugin_operation(
+        "browser",
+        "tool",
+        json!({
+            "action": "status",
+            "pluginConfig": {
+                "binPath": "/tmp/crawclaw-missing-agent-browser-for-test"
+            }
+        }),
+    )
+    .await
+    .expect_err("missing browser runtime should fail");
+
+    assert_eq!(error.code(), "runtime_error");
+    assert!(error
+        .to_string()
+        .contains("agent-browser runtime is not installed"));
+}
+
+#[test]
+fn native_jsonrpc_sidecar_describes_and_invokes() {
+    let mut child = Command::new(env!("CARGO_BIN_EXE_crawclaw-native-plugins"))
+        .arg("--jsonrpc")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .expect("spawn native jsonrpc sidecar");
+
+    {
+        let stdin = child.stdin.as_mut().expect("sidecar stdin");
+        writeln!(
+            stdin,
+            "{}",
+            json!({
+                "jsonrpc": "2.0",
+                "id": "describe",
+                "method": "plugin.describe",
+                "params": { "pluginId": "open-prose" }
+            })
+        )
+        .expect("write describe request");
+        writeln!(
+            stdin,
+            "{}",
+            json!({
+                "jsonrpc": "2.0",
+                "id": "invoke",
+                "method": "plugin.invoke",
+                "params": {
+                    "target": { "pluginId": "open-prose", "operation": "describe" },
+                    "input": {}
+                }
+            })
+        )
+        .expect("write invoke request");
+    }
+    drop(child.stdin.take());
+
+    let output = child.wait_with_output().expect("sidecar output");
+    assert!(output.status.success());
+    let stdout = String::from_utf8(output.stdout).expect("utf8 sidecar stdout");
+    let lines = stdout.lines().collect::<Vec<_>>();
+    assert_eq!(lines.len(), 2);
+
+    let describe = serde_json::from_str::<serde_json::Value>(lines[0]).expect("describe response");
+    assert_eq!(describe["jsonrpc"], "2.0");
+    assert_eq!(
+        describe["result"]["descriptors"][0]["pluginId"],
+        "open-prose"
+    );
+
+    let invoke = serde_json::from_str::<serde_json::Value>(lines[1]).expect("invoke response");
+    assert_eq!(invoke["jsonrpc"], "2.0");
+    assert_eq!(invoke["result"]["output"]["id"], "open-prose");
+}
 
 #[test]
 fn llm_task_prepare_resolves_defaults_and_builds_json_only_prompt() {
@@ -150,6 +312,28 @@ fn qwen3_tts_agent_profile_overrides_default_profile() {
     assert_eq!(payload["refText"], "owner reference transcript");
     assert_eq!(payload["language"], "zh");
     assert_eq!(payload["runtime"], "qwen-tts");
+}
+
+#[tokio::test]
+async fn qwen3_tts_service_start_returns_external_without_autostart() {
+    let result = dispatch_builtin_native_plugin_operation(
+        "qwen3-tts",
+        "service-start",
+        json!({
+            "providerConfig": {
+                "runtime": "qwen-tts",
+                "baseUrl": "https://tts.example.test",
+                "autoStart": false
+            }
+        }),
+    )
+    .await
+    .expect("service start");
+
+    assert_eq!(result["status"], "external");
+    assert_eq!(result["provider"], "qwen3-tts");
+    assert_eq!(result["runtime"], "qwen-tts");
+    assert_eq!(result["baseUrl"], "https://tts.example.test");
 }
 
 #[test]

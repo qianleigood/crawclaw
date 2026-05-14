@@ -16,56 +16,7 @@ const DEFAULT_DOCTOR_CHANNEL_CAPABILITIES: DoctorChannelCapabilities = {
   warnOnEmptyGroupSenderAllowlist: true,
 };
 
-const DOCTOR_CHANNEL_CAPABILITIES: Record<string, DoctorChannelCapabilities> = {
-  discord: {
-    dmAllowFromMode: "topOrNested",
-    groupModel: "route",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: false,
-  },
-  googlechat: {
-    dmAllowFromMode: "nestedOnly",
-    groupModel: "route",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: false,
-  },
-  imessage: {
-    dmAllowFromMode: "topOnly",
-    groupModel: "sender",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: true,
-  },
-  irc: {
-    dmAllowFromMode: "topOnly",
-    groupModel: "sender",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: true,
-  },
-  matrix: {
-    dmAllowFromMode: "nestedOnly",
-    groupModel: "sender",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: true,
-  },
-  msteams: {
-    dmAllowFromMode: "topOnly",
-    groupModel: "hybrid",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: true,
-  },
-  slack: {
-    dmAllowFromMode: "topOrNested",
-    groupModel: "route",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: false,
-  },
-  zalouser: {
-    dmAllowFromMode: "topOnly",
-    groupModel: "hybrid",
-    groupAllowFromFallbackToAllowFrom: false,
-    warnOnEmptyGroupSenderAllowlist: false,
-  },
-};
+const DOCTOR_CHANNEL_CAPABILITIES: Record<string, DoctorChannelCapabilities> = {};
 
 export function getDoctorChannelCapabilities(channelName?: string): DoctorChannelCapabilities {
   if (!channelName) {

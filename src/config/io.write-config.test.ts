@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createConfigIO } from "./io.js";
-import type { CrawClawConfig } from "./types.js";
 
 // Mock the plugin manifest registry so we can register a fake channel whose
 // AJV JSON Schema carries a `default` value.  This lets the #56772 regression
@@ -195,32 +194,6 @@ describe("config io write", () => {
     },
   );
 
-  it('shows actionable guidance for dmPolicy="open" without wildcard allowFrom', async () => {
-    await withSuiteHome(async (home) => {
-      const io = createConfigIO({
-        env: {} as NodeJS.ProcessEnv,
-        homedir: () => home,
-        logger: silentLogger,
-      });
-
-      const invalidConfig: CrawClawConfig = {
-        channels: {
-          telegram: {
-            dmPolicy: "open",
-            allowFrom: [],
-          },
-        },
-      } satisfies CrawClawConfig;
-
-      await expect(io.writeConfigFile(invalidConfig)).rejects.toThrow(
-        "crawclaw config set channels.telegram.allowFrom '[\"*\"]'",
-      );
-      await expect(io.writeConfigFile(invalidConfig)).rejects.toThrow(
-        'crawclaw config set channels.telegram.dmPolicy "pairing"',
-      );
-    });
-  });
-
   it("honors explicit unset paths when schema defaults would otherwise reappear", async () => {
     await withSuiteHome(async (home) => {
       const { configPath, io, snapshot } = await writeConfigAndCreateIo({
@@ -371,23 +344,23 @@ describe("config io write", () => {
   });
 
   it("does not leak channel plugin AJV defaults into persisted config (issue #56772)", async () => {
-    // Regression test for #56772. Mock the BlueBubbles channel metadata so
+    // Regression test for #56772. Mock retained channel metadata so
     // read-time AJV validation injects the same default that triggered the
     // write-back leak.
     mockLoadPluginManifestRegistry.mockReturnValue({
       diagnostics: [],
       plugins: [
         {
-          id: "bluebubbles",
+          id: "feishu",
           origin: "bundled",
-          channels: ["bluebubbles"],
+          channels: ["feishu"],
           channelCatalogMeta: {
-            id: "bluebubbles",
-            label: "BlueBubbles",
-            blurb: "BlueBubbles channel",
+            id: "feishu",
+            label: "Feishu",
+            blurb: "Feishu channel",
           },
           channelConfigs: {
-            bluebubbles: {
+            feishu: {
               schema: {
                 type: "object",
                 properties: {
@@ -414,7 +387,7 @@ describe("config io write", () => {
         initialConfig: {
           gateway: { port: 18789 },
           channels: {
-            bluebubbles: {
+            feishu: {
               serverUrl: "http://localhost:1234",
             },
           },
@@ -447,61 +420,15 @@ describe("config io write", () => {
       // The critical assertion: the AJV-injected BlueBubbles default must not
       // appear in the persisted config.
       const channels = persisted.channels as Record<string, Record<string, unknown>> | undefined;
-      expect(channels?.bluebubbles).toBeDefined();
-      expect(channels?.bluebubbles).not.toHaveProperty("enrichGroupParticipantsFromContacts");
-      expect(channels?.bluebubbles?.serverUrl).toBe("http://localhost:1234");
+      expect(channels?.feishu).toBeDefined();
+      expect(channels?.feishu).not.toHaveProperty("enrichGroupParticipantsFromContacts");
+      expect(channels?.feishu?.serverUrl).toBe("http://localhost:1234");
     });
 
     // Restore the default empty-plugins mock for subsequent tests.
     mockLoadPluginManifestRegistry.mockReturnValue({
       diagnostics: [],
       plugins: [],
-    });
-  });
-
-  it("does not reintroduce Slack/Discord legacy dm.policy defaults when writing", async () => {
-    await withSuiteHome(async (home) => {
-      const { configPath, io, snapshot } = await writeConfigAndCreateIo({
-        home,
-        initialConfig: {
-          channels: {
-            discord: {
-              dmPolicy: "pairing",
-              dm: { enabled: true, policy: "pairing" },
-            },
-            slack: {
-              dmPolicy: "pairing",
-              dm: { enabled: true, policy: "pairing" },
-            },
-          },
-          gateway: { port: 18789 },
-        },
-      });
-
-      const next = structuredClone(snapshot.runtimeConfig);
-      // Simulate doctor removing legacy keys while keeping dm enabled.
-      if (next.channels?.discord?.dm && typeof next.channels.discord.dm === "object") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test helper
-        delete (next.channels.discord.dm as any).policy;
-      }
-      if (next.channels?.slack?.dm && typeof next.channels.slack.dm === "object") {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test helper
-        delete (next.channels.slack.dm as any).policy;
-      }
-
-      await io.writeConfigFile(next);
-
-      const persisted = JSON.parse(await fs.readFile(configPath, "utf-8")) as {
-        channels?: {
-          discord?: { dm?: Record<string, unknown>; dmPolicy?: unknown };
-          slack?: { dm?: Record<string, unknown>; dmPolicy?: unknown };
-        };
-      };
-
-      expect(persisted.channels?.discord?.dmPolicy).toBe("pairing");
-      expect(persisted.channels?.discord?.dm).toEqual({ enabled: true });
-      expect(persisted.channels?.slack?.dmPolicy).toBe("pairing");
-      expect(persisted.channels?.slack?.dm).toEqual({ enabled: true });
     });
   });
 

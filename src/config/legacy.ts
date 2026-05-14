@@ -29,16 +29,6 @@ function hasLegacyThreadBindingTtl(value: unknown): boolean {
   return Boolean(threadBindings && hasOwnKey(threadBindings, "ttlHours"));
 }
 
-function hasLegacyThreadBindingTtlInAccounts(value: unknown): boolean {
-  const accounts = getRecord(value);
-  if (!accounts) {
-    return false;
-  }
-  return Object.values(accounts).some((entry) =>
-    hasLegacyThreadBindingTtl(getRecord(entry)?.threadBindings),
-  );
-}
-
 const LEGACY_TTS_PROVIDER_KEYS = ["openai", "elevenlabs", "microsoft", "edge"] as const;
 const LEGACY_TTS_PLUGIN_IDS = new Set(["voice-call"]);
 
@@ -48,18 +38,6 @@ function hasLegacyTtsProviderKeys(value: unknown): boolean {
     return false;
   }
   return LEGACY_TTS_PROVIDER_KEYS.some((key) => hasOwnKey(tts, key));
-}
-
-function hasLegacyDiscordAccountTtsProviderKeys(value: unknown): boolean {
-  const accounts = getRecord(value);
-  if (!accounts) {
-    return false;
-  }
-  return Object.values(accounts).some((entry) => {
-    const account = getRecord(entry);
-    const voice = getRecord(account?.voice);
-    return hasLegacyTtsProviderKeys(voice?.tts);
-  });
 }
 
 function hasLegacyPluginEntryTtsProviderKeys(value: unknown): boolean {
@@ -112,23 +90,6 @@ const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
     match: (value) => hasLegacyThreadBindingTtl(value),
   },
   {
-    path: ["channels", "discord", "threadBindings"],
-    message:
-      "channels.discord.threadBindings.ttlHours was removed; use channels.discord.threadBindings.idleHours instead.",
-    match: (value) => hasLegacyThreadBindingTtl(value),
-  },
-  {
-    path: ["channels", "discord", "accounts"],
-    message:
-      "channels.discord.accounts.<id>.threadBindings.ttlHours was removed; use channels.discord.accounts.<id>.threadBindings.idleHours instead.",
-    match: (value) => hasLegacyThreadBindingTtlInAccounts(value),
-  },
-  {
-    path: ["channels", "telegram", "groupMentionsOnly"],
-    message:
-      'channels.telegram.groupMentionsOnly was removed; use channels.telegram.groups."*".requireMention instead.',
-  },
-  {
     path: ["gateway", "bind"],
     message:
       "gateway.bind host aliases are no longer supported; use bind modes (auto/loopback/lan/tailnet/custom) instead.",
@@ -145,18 +106,6 @@ const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
     message:
       "messages.tts.<provider> keys (openai/elevenlabs/microsoft/edge) were removed; use messages.tts.providers.<provider> instead.",
     match: (value) => hasLegacyTtsProviderKeys(value),
-  },
-  {
-    path: ["channels", "discord", "voice", "tts"],
-    message:
-      "channels.discord.voice.tts.<provider> keys (openai/elevenlabs/microsoft/edge) were removed; use channels.discord.voice.tts.providers.<provider> instead.",
-    match: (value) => hasLegacyTtsProviderKeys(value),
-  },
-  {
-    path: ["channels", "discord", "accounts"],
-    message:
-      "channels.discord.accounts.<id>.voice.tts.<provider> keys (openai/elevenlabs/microsoft/edge) were removed; use channels.discord.accounts.<id>.voice.tts.providers.<provider> instead.",
-    match: (value) => hasLegacyDiscordAccountTtsProviderKeys(value),
   },
   {
     path: ["plugins", "entries"],

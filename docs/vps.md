@@ -53,7 +53,7 @@ Security model details: [Security](/gateway/security).
 
 ## Startup tuning for small VMs and ARM hosts
 
-If CLI commands feel slow on low-power VMs (or ARM hosts), enable Node's module compile cache:
+If Desktop and Gateway API actions feel slow on low-power VMs (or ARM hosts), enable Node's module compile cache:
 
 ```bash
 grep -q 'NODE_COMPILE_CACHE=/var/tmp/crawclaw-compile-cache' ~/.bashrc || cat >> ~/.bashrc <<'EOF'

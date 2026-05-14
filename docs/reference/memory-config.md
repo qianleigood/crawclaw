@@ -50,9 +50,8 @@ and prompt-budget limits.
 The built-in CLI defaults target the unified
 [`notebooklm-mcp-cli`](https://github.com/jacob-bd/notebooklm-mcp-cli) package.
 CrawClaw installs it as a managed runtime during postinstall and
-`crawclaw runtimes install`. Leave `memory.notebooklm.cli.command` empty to use
-that managed `nlm` first, then PATH `nlm` as a fallback. Run `crawclaw memory
-login` or `nlm login`, then set a notebook id for the read and write paths you
+CrawClaw Desktop or the local Gateway API. Leave `memory.notebooklm.cli.command` empty to use
+that managed `nlm` first, then PATH `nlm` as a fallback. Run CrawClaw Desktop or the local Gateway API or `nlm login`, then set a notebook id for the read and write paths you
 want CrawClaw to use.
 
 | Key                                           | Type      | Description                     |

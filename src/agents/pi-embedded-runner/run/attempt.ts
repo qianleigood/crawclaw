@@ -92,7 +92,6 @@ import { createPreparedEmbeddedPiSettingsManager } from "../../pi-project-settin
 import { applyPiAutoCompactionGuard } from "../../pi-settings.js";
 import { toClientToolDefinitions } from "../../pi-tool-definition-adapter.js";
 import { createCrawClawCodingTools, resolveToolLoopDetectionConfig } from "../../pi-tools.js";
-import { registerProviderStreamForModel } from "../../provider-stream.js";
 import {
   compileQueryContextBudget,
   estimateQueryContextToolSchemaTokens,
@@ -474,30 +473,12 @@ function replaceSetContents(target: Set<string>, nextValues: Set<string>): void 
 
 export function resolveEmbeddedAgentStreamFn(params: {
   currentStreamFn: StreamFn | undefined;
-  providerStreamFn?: StreamFn;
   shouldUseWebSocketTransport: boolean;
   wsApiKey?: string;
   sessionId: string;
   signal?: AbortSignal;
   model: EmbeddedRunAttemptParams["model"];
-  authStorage?: { getApiKey(provider: string): Promise<string | undefined> };
 }): StreamFn {
-  if (params.providerStreamFn) {
-    const inner = params.providerStreamFn;
-    // The default pi-coding-agent streamFn injects apiKey from authStorage
-    // into options via modelRegistry.getApiKeyAndHeaders(). Provider-supplied
-    // stream functions bypass that default, so we replicate the injection here
-    // so the resolved credential reaches the provider's HTTP layer.
-    if (params.authStorage) {
-      const { authStorage, model } = params;
-      return async (m, context, options) => {
-        const apiKey = await authStorage.getApiKey(model.provider);
-        return inner(m, context, { ...options, apiKey: apiKey ?? options?.apiKey });
-      };
-    }
-    return inner;
-  }
-
   const currentStreamFn = params.currentStreamFn ?? streamSimple;
   if (params.shouldUseWebSocketTransport) {
     return params.wsApiKey
@@ -1457,12 +1438,6 @@ export async function runEmbeddedAttempt(
         });
 
         const defaultSessionStreamFn = activeSession.agent.streamFn;
-        const providerStreamFn = registerProviderStreamForModel({
-          model: params.model,
-          cfg: params.config,
-          agentDir,
-          workspaceDir: effectiveWorkspace,
-        });
         const shouldUseWebSocketTransport = shouldUseOpenAIWebSocketTransport({
           provider: params.provider,
           modelApi: params.model.api,
@@ -1477,13 +1452,11 @@ export async function runEmbeddedAttempt(
         }
         activeSession.agent.streamFn = resolveEmbeddedAgentStreamFn({
           currentStreamFn: defaultSessionStreamFn,
-          providerStreamFn,
           shouldUseWebSocketTransport,
           wsApiKey,
           sessionId: params.sessionId,
           signal: runAbortController.signal,
           model: params.model,
-          authStorage: params.authStorage,
         });
 
         const { effectiveExtraParams } = applyExtraParamsToAgent(

@@ -124,11 +124,12 @@ Those belong in your plugin code and `package.json`.
 | --------------------- | -------- | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `id`                  | Yes      | `string`                   | Canonical plugin id. This is the id used in `plugins.entries.<id>`.                                                          |
 | `configSchema`        | Yes      | `object`                   | Inline JSON Schema for this plugin's config.                                                                                 |
+| `native`              | No       | `object`                   | Native sidecar discovery metadata. Capability authority still comes from the Rust native descriptor.                         |
 | `enabledByDefault`    | No       | `true`                     | Marks a bundled plugin as enabled by default. Omit it, or set any non-`true` value, to leave the plugin disabled by default. |
 | `kind`                | No       | `"memory"`                 | Declares the exclusive memory plugin kind used by `plugins.slots.memory`.                                                    |
 | `channels`            | No       | `string[]`                 | Channel ids owned by this plugin. Used for discovery and config validation.                                                  |
 | `providers`           | No       | `string[]`                 | Provider ids owned by this plugin.                                                                                           |
-| `cliBackends`         | No       | `string[]`                 | CLI inference backend ids owned by this plugin. Used for startup auto-activation from explicit config refs.                  |
+| `cliBackends`         | No       | `string[]`                 | Local process backend ids owned by this plugin. Used for startup auto-activation from explicit config refs.                  |
 | `providerAuthEnvVars` | No       | `Record<string, string[]>` | Cheap provider-auth env metadata that CrawClaw can inspect without loading plugin code.                                      |
 | `providerAuthChoices` | No       | `object[]`                 | Cheap auth-choice metadata for onboarding pickers, preferred-provider resolution, and simple CLI flag wiring.                |
 | `contracts`           | No       | `object`                   | Static bundled capability snapshot for speech, media-understanding, web search, and tool ownership.                          |
@@ -213,9 +214,48 @@ Each list is optional:
 | `tools`                       | `string[]` | Agent tool names this plugin owns for bundled contract checks. |
 
 Legacy top-level `speechProviders` and `mediaUnderstandingProviders` are
-deprecated. Use `crawclaw doctor --fix` to move them under `contracts`; normal
+deprecated. Use CrawClaw Desktop or the local Gateway API to move them under `contracts`; normal
 manifest loading no longer treats top-level legacy fields as capability
 ownership.
+
+## Native sidecar discovery
+
+Native plugins use the manifest only to discover the native process. The native
+descriptor returned by the Rust SDK is the authority for tools, services,
+gateway methods, providers, and host callbacks.
+
+```json
+{
+  "id": "acme-native",
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "acme-native-plugin"
+  },
+  "contracts": {
+    "tools": ["acme_tool"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {}
+  }
+}
+```
+
+`native` supports these fields:
+
+| Field           | Required | Type       | What it means                                           |
+| --------------- | -------- | ---------- | ------------------------------------------------------- |
+| `protocol`      | Yes      | `string`   | Must be `crawclaw-native-plugin-jsonrpc`.               |
+| `schemaVersion` | Yes      | `1`        | Descriptor schema version understood by this host.      |
+| `bin`           | No       | `string`   | Binary name resolved from the native runtime directory. |
+| `command`       | No       | `string[]` | Explicit command argv for third-party sidecars.         |
+
+Set either `bin` or `command`. For native-only plugins, keep
+`package.json` `crawclaw.extensions` empty so CrawClaw does not load a TS
+entrypoint. Keep `contracts` as a cheap static snapshot for compatibility
+checks; do not treat it as the runtime capability authority.
 
 ## Manifest versus package.json
 

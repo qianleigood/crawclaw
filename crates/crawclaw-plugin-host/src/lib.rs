@@ -1,9 +1,10 @@
 use std::collections::BTreeSet;
 use std::fs;
+use std::hash::{DefaultHasher, Hash, Hasher};
 use std::path::Path;
 use std::path::PathBuf;
-use std::sync::Arc;
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::process::Command;
+use std::time::UNIX_EPOCH;
 
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -53,53 +54,11 @@ const QQBOT_FIELDS: &[NativeChannelConfigField] = &[
 
 const NATIVE_CHANNELS: &[NativeChannelDefinition] = &[
     NativeChannelDefinition {
-        id: "desktop",
-        label: "Desktop",
-        description: "Rust-native local desktop delivery channel.",
-        icon: "monitor",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "bluebubbles",
-        label: "BlueBubbles",
-        description: "Rust-native BlueBubbles channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "telegram",
-        label: "Telegram",
-        description: "Rust-native Telegram channel control-plane and capability surface.",
-        icon: "send",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "whatsapp",
-        label: "WhatsApp",
-        description: "Rust-native WhatsApp channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "discord",
-        label: "Discord",
-        description: "Rust-native Discord channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
         id: "ddingtalk",
         label: "钉钉",
         description: "Rust-native DingTalk channel control-plane and configuration surface.",
         icon: "messageCircle",
         fields: DDINGTALK_FIELDS,
-    },
-    NativeChannelDefinition {
-        id: "esp32",
-        label: "ESP32",
-        description: "Rust-native ESP32 desktop assistant channel configuration surface.",
-        icon: "audioLines",
-        fields: ESP32_FIELDS,
     },
     NativeChannelDefinition {
         id: "feishu",
@@ -109,39 +68,11 @@ const NATIVE_CHANNELS: &[NativeChannelDefinition] = &[
         fields: FEISHU_FIELDS,
     },
     NativeChannelDefinition {
-        id: "irc",
-        label: "IRC",
-        description: "Rust-native IRC channel control-plane and capability surface.",
-        icon: "hash",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "googlechat",
-        label: "Google Chat",
-        description: "Rust-native Google Chat channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "slack",
-        label: "Slack",
-        description: "Rust-native Slack channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "nextcloud-talk",
-        label: "Nextcloud Talk",
-        description: "Rust-native Nextcloud Talk channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "nostr",
-        label: "Nostr",
-        description: "Rust-native Nostr channel control-plane and capability surface.",
-        icon: "radio",
-        fields: &[],
+        id: "esp32",
+        label: "ESP32",
+        description: "Rust-native ESP32-S3-BOX-3 device channel control-plane and pairing surface.",
+        icon: "cpu",
+        fields: ESP32_FIELDS,
     },
     NativeChannelDefinition {
         id: "qqbot",
@@ -151,86 +82,9 @@ const NATIVE_CHANNELS: &[NativeChannelDefinition] = &[
         fields: QQBOT_FIELDS,
     },
     NativeChannelDefinition {
-        id: "signal",
-        label: "Signal",
-        description: "Rust-native Signal channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "imessage",
-        label: "iMessage",
-        description: "Rust-native iMessage channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "line",
-        label: "LINE",
-        description: "Rust-native LINE channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "matrix",
-        label: "Matrix",
-        description: "Rust-native Matrix channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "mattermost",
-        label: "Mattermost",
-        description: "Rust-native Mattermost channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "synology-chat",
-        label: "Synology Chat",
-        description: "Rust-native Synology Chat channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "tlon",
-        label: "Tlon",
-        description: "Rust-native Tlon channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "twitch",
-        label: "Twitch",
-        description: "Rust-native Twitch channel control-plane and capability surface.",
-        icon: "radio",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "msteams",
-        label: "Microsoft Teams",
-        description: "Rust-native Microsoft Teams channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
         id: "weixin",
         label: "微信",
         description: "Rust-native Weixin QR-login channel control-plane and configuration surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "zalo",
-        label: "Zalo",
-        description: "Rust-native Zalo channel control-plane and capability surface.",
-        icon: "messageCircle",
-        fields: &[],
-    },
-    NativeChannelDefinition {
-        id: "zalouser",
-        label: "Zalo User",
-        description: "Rust-native Zalo User channel control-plane and capability surface.",
         icon: "messageCircle",
         fields: &[],
     },
@@ -275,67 +129,461 @@ pub fn is_desktop_or_native_channel_id(id: &str) -> bool {
 pub struct PluginHostCapability {
     pub manifest_read_model: bool,
     pub rust_or_wasm_entry_required: bool,
-    pub pi_quickjs_extensions: bool,
 }
 
 pub fn phase_three_capability() -> PluginHostCapability {
     PluginHostCapability {
         manifest_read_model: true,
         rust_or_wasm_entry_required: true,
-        pi_quickjs_extensions: false,
     }
 }
 
-pub async fn invoke_js_plugin_tool(
+pub async fn invoke_node_plugin_tool(
     runtime_root: &Path,
     plugin_id: &str,
     tool_id: &str,
     input: serde_json::Value,
 ) -> Result<serde_json::Value, PluginHostError> {
-    if plugin_id.trim().is_empty() || tool_id.trim().is_empty() {
-        return Err(PluginHostError::Invalid(
-            "JS plugin invocation requires pluginId and toolId.".to_string(),
-        ));
-    }
-    let manifest_path = resolve_plugin_manifest_path(runtime_root, plugin_id);
-    let manifest = load_js_plugin_manifest(&manifest_path)?;
-    let entrypoint = resolve_js_plugin_entrypoint(&manifest_path, &manifest).ok_or_else(|| {
-        PluginHostError::Invalid(format!(
-            "JS plugin entrypoint is missing for {plugin_id}: {}",
-            manifest_path.display()
-        ))
-    })?;
-    let adapter_path =
-        write_pi_quickjs_plugin_adapter(plugin_id, &manifest, &manifest_path, &entrypoint)?;
-
-    let manager = pi::extensions::ExtensionManager::new();
-    manager.set_cwd(path_string(runtime_root));
-    let tools = Arc::new(pi::sdk::ToolRegistry::new(&[], runtime_root, None));
-    let js_runtime = pi::extensions::JsExtensionRuntimeHandle::start(
-        pi::extensions_js::PiJsRuntimeConfig {
-            cwd: path_string(runtime_root),
-            disk_cache_dir: Some(runtime_root.join(".cache").join("pijs-modules")),
-            ..Default::default()
-        },
-        Arc::clone(&tools),
-        manager.clone(),
-    )
-    .await
-    .map_err(|error| pi_quickjs_error("failed to start runtime", error))?;
-    manager.set_js_runtime(js_runtime.clone());
-
-    let result = invoke_pi_quickjs_tool(
-        &manager,
-        &js_runtime,
+    invoke_node_plugin_tool_with_options(
         runtime_root,
         plugin_id,
         tool_id,
         input,
-        &adapter_path,
+        NodePluginInvocationOptions::default(),
     )
-    .await;
-    let _ = js_runtime.shutdown(Duration::from_secs(5)).await;
-    result
+    .await
+}
+
+#[derive(Clone, Debug)]
+struct NodePluginInvocationOptions {
+    node_bin: Option<PathBuf>,
+    required_node_major: Option<u32>,
+}
+
+impl Default for NodePluginInvocationOptions {
+    fn default() -> Self {
+        Self {
+            node_bin: None,
+            required_node_major: Some(24),
+        }
+    }
+}
+
+async fn invoke_node_plugin_tool_with_options(
+    runtime_root: &Path,
+    plugin_id: &str,
+    tool_id: &str,
+    input: serde_json::Value,
+    options: NodePluginInvocationOptions,
+) -> Result<serde_json::Value, PluginHostError> {
+    if plugin_id.trim().is_empty() || tool_id.trim().is_empty() {
+        return Err(PluginHostError::Invalid(
+            "Node plugin invocation requires pluginId and toolId.".to_string(),
+        ));
+    }
+    let node_bin = resolve_node_plugin_binary(runtime_root, options.node_bin)?;
+    if let Some(major) = options.required_node_major {
+        assert_node_major(&node_bin, major)?;
+    }
+
+    let manifest_path = resolve_plugin_manifest_path(runtime_root, plugin_id);
+    let manifest = load_node_plugin_manifest(&manifest_path)?;
+    if !manifest_declares_node_runtime(&manifest) {
+        return Err(PluginHostError::Invalid(format!(
+            "Node plugin {plugin_id} must declare runtime.kind=\"node\"."
+        )));
+    }
+    let source_entrypoint =
+        resolve_node_plugin_entrypoint(&manifest_path, &manifest).ok_or_else(|| {
+            PluginHostError::Invalid(format!(
+                "Node plugin entrypoint is missing for {plugin_id}: {}",
+                manifest_path.display()
+            ))
+        })?;
+    let plugin_root = manifest_path.parent().ok_or_else(|| {
+        PluginHostError::Invalid(format!(
+            "Node plugin manifest has no parent directory: {}",
+            manifest_path.display()
+        ))
+    })?;
+    let language = node_plugin_language(&manifest, &source_entrypoint);
+    let prepared_entrypoint = prepare_node_plugin_entrypoint(
+        runtime_root,
+        plugin_id,
+        plugin_root,
+        &source_entrypoint,
+        language,
+        &node_bin,
+    )?;
+    let runner_path = write_node_plugin_runner(runtime_root, plugin_id)?;
+    run_node_plugin_tool(
+        &node_bin,
+        &runner_path,
+        &prepared_entrypoint,
+        plugin_root,
+        plugin_id,
+        tool_id,
+        input,
+    )
+}
+
+fn resolve_node_plugin_binary(
+    runtime_root: &Path,
+    explicit: Option<PathBuf>,
+) -> Result<PathBuf, PluginHostError> {
+    if let Some(path) = explicit {
+        return Ok(path);
+    }
+    if let Some(path) = std::env::var_os("CRAWCLAW_DESKTOP_NODE24_BIN") {
+        return Ok(PathBuf::from(path));
+    }
+    let binary = if cfg!(windows) { "node.exe" } else { "node" };
+    let candidate = runtime_root
+        .join("runtimes")
+        .join("node-v24")
+        .join("bin")
+        .join(binary);
+    if candidate.exists() {
+        return Ok(candidate);
+    }
+    Err(PluginHostError::Invalid(format!(
+        "Bundled Node 24 runtime not found. Set CRAWCLAW_DESKTOP_NODE24_BIN or stage {}.",
+        candidate.display()
+    )))
+}
+
+fn assert_node_major(node_bin: &Path, required_major: u32) -> Result<(), PluginHostError> {
+    let output = Command::new(node_bin)
+        .arg("--version")
+        .output()
+        .map_err(|error| {
+            PluginHostError::Io(format!(
+                "Failed to run Node runtime {}: {error}",
+                node_bin.display()
+            ))
+        })?;
+    if !output.status.success() {
+        return Err(PluginHostError::Invalid(format!(
+            "Node runtime {} failed --version: {}",
+            node_bin.display(),
+            String::from_utf8_lossy(&output.stderr).trim()
+        )));
+    }
+    let version = String::from_utf8_lossy(&output.stdout);
+    let major = version
+        .trim()
+        .strip_prefix('v')
+        .and_then(|value| value.split('.').next())
+        .and_then(|value| value.parse::<u32>().ok());
+    if major == Some(required_major) {
+        return Ok(());
+    }
+    Err(PluginHostError::Invalid(format!(
+        "Bundled Node runtime must be Node {required_major}.x, got {}.",
+        version.trim()
+    )))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum NodePluginLanguage {
+    JavaScript,
+    TypeScript,
+}
+
+fn manifest_declares_node_runtime(manifest: &Value) -> bool {
+    manifest
+        .get("runtime")
+        .and_then(Value::as_object)
+        .and_then(|runtime| runtime.get("kind"))
+        .and_then(Value::as_str)
+        .map(|kind| kind == "node")
+        .unwrap_or(false)
+}
+
+fn node_plugin_language(manifest: &Value, entrypoint: &Path) -> NodePluginLanguage {
+    let language = manifest
+        .get("runtime")
+        .and_then(Value::as_object)
+        .and_then(|runtime| runtime.get("language"))
+        .and_then(Value::as_str)
+        .unwrap_or_default();
+    if language == "ts" || entrypoint.extension().and_then(|ext| ext.to_str()) == Some("ts") {
+        NodePluginLanguage::TypeScript
+    } else {
+        NodePluginLanguage::JavaScript
+    }
+}
+
+fn prepare_node_plugin_entrypoint(
+    runtime_root: &Path,
+    plugin_id: &str,
+    plugin_root: &Path,
+    source_entrypoint: &Path,
+    language: NodePluginLanguage,
+    node_bin: &Path,
+) -> Result<PathBuf, PluginHostError> {
+    if language == NodePluginLanguage::JavaScript {
+        return Ok(source_entrypoint.to_path_buf());
+    }
+    let relative_entry = source_entrypoint.strip_prefix(plugin_root).map_err(|_| {
+        PluginHostError::Invalid(format!(
+            "Node plugin entrypoint must stay inside plugin root: {}",
+            source_entrypoint.display()
+        ))
+    })?;
+    let cache_dir = runtime_root
+        .join(".cache")
+        .join("node-plugins")
+        .join(sanitize_path_component(plugin_id));
+    fs::create_dir_all(&cache_dir).map_err(|error| {
+        PluginHostError::Io(format!(
+            "Failed to create Node plugin cache {}: {error}",
+            cache_dir.display()
+        ))
+    })?;
+    let output = cache_dir.join(format!(
+        "{}.mjs",
+        node_entrypoint_cache_key(source_entrypoint)
+    ));
+    let source_mtime = fs::metadata(source_entrypoint)
+        .and_then(|metadata| metadata.modified())
+        .ok();
+    let output_mtime = fs::metadata(&output)
+        .and_then(|metadata| metadata.modified())
+        .ok();
+    if output.exists() && source_mtime <= output_mtime {
+        return Ok(output);
+    }
+    compile_type_script_entrypoint(node_bin, source_entrypoint, &output).map_err(|error| {
+        PluginHostError::Invalid(format!(
+            "Failed to compile TypeScript plugin entrypoint {}: {error}",
+            relative_entry.display()
+        ))
+    })?;
+    Ok(output)
+}
+
+fn node_entrypoint_cache_key(entrypoint: &Path) -> String {
+    let mut hasher = DefaultHasher::new();
+    entrypoint.to_string_lossy().hash(&mut hasher);
+    if let Ok(metadata) = fs::metadata(entrypoint) {
+        metadata.len().hash(&mut hasher);
+        if let Ok(modified) = metadata.modified() {
+            if let Ok(duration) = modified.duration_since(UNIX_EPOCH) {
+                duration.as_nanos().hash(&mut hasher);
+            }
+        }
+    }
+    format!("{:016x}", hasher.finish())
+}
+
+fn compile_type_script_entrypoint(
+    node_bin: &Path,
+    source: &Path,
+    output: &Path,
+) -> Result<(), String> {
+    let source_json = serde_json::to_string(&source.to_string_lossy())
+        .map_err(|error| format!("failed to serialize TypeScript source path: {error}"))?;
+    let output_json = serde_json::to_string(&output.to_string_lossy())
+        .map_err(|error| format!("failed to serialize TypeScript output path: {error}"))?;
+    let script = format!(
+        r#"
+import {{ mkdirSync, readFileSync, writeFileSync }} from "node:fs";
+import {{ dirname }} from "node:path";
+import {{ stripTypeScriptTypes }} from "node:module";
+const source = {source_json};
+const output = {output_json};
+mkdirSync(dirname(output), {{ recursive: true }});
+const stripped = stripTypeScriptTypes(readFileSync(source, "utf8"), {{ mode: "strip" }});
+writeFileSync(output, stripped);
+"#
+    );
+    let result = Command::new(node_bin)
+        .arg("--input-type=module")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .map_err(|error| format!("failed to run Node compiler: {error}"))?;
+    if result.status.success() {
+        return Ok(());
+    }
+    Err(String::from_utf8_lossy(&result.stderr).trim().to_string())
+}
+
+fn write_node_plugin_runner(
+    runtime_root: &Path,
+    plugin_id: &str,
+) -> Result<PathBuf, PluginHostError> {
+    let cache_dir = runtime_root
+        .join(".cache")
+        .join("node-plugins")
+        .join(sanitize_path_component(plugin_id));
+    fs::create_dir_all(&cache_dir).map_err(|error| {
+        PluginHostError::Io(format!(
+            "Failed to create Node plugin runner cache {}: {error}",
+            cache_dir.display()
+        ))
+    })?;
+    let runner_path = cache_dir.join("runner.mjs");
+    fs::write(&runner_path, NODE_PLUGIN_RUNNER).map_err(|error| {
+        PluginHostError::Io(format!(
+            "Failed to write Node plugin runner {}: {error}",
+            runner_path.display()
+        ))
+    })?;
+    Ok(runner_path)
+}
+
+const NODE_PLUGIN_RESULT_PREFIX: &str = "__CRAWCLAW_NODE_PLUGIN_RESULT__";
+
+const NODE_PLUGIN_RUNNER: &str = r#"
+import { pathToFileURL } from "node:url";
+
+const [entrypoint, pluginRoot, pluginId, toolId, inputJson] = process.argv.slice(2);
+const resultPrefix = "__CRAWCLAW_NODE_PLUGIN_RESULT__";
+
+function unsupported(name) {
+  return () => {
+    throw new Error(`${name} is not supported by the Node plugin runtime v1`);
+  };
+}
+
+async function main() {
+  const input = inputJson ? JSON.parse(inputJson) : {};
+  const tools = new Map();
+  const api = {
+    id: pluginId,
+    name: pluginId,
+    description: "",
+    source: "node",
+    registrationMode: "full",
+    config: {},
+    pluginConfig: {},
+    runtime: { version: "node", kind: "node" },
+    logger: console,
+    registerTool(toolOrFactory, opts = {}) {
+      const context = {
+        pluginConfig: {},
+        sandboxed: false,
+        workspaceDir: pluginRoot,
+      };
+      const registered = typeof toolOrFactory === "function"
+        ? toolOrFactory(context)
+        : toolOrFactory;
+      const toolsToRegister = Array.isArray(registered) ? registered : [registered];
+      for (const tool of toolsToRegister) {
+        if (!tool) {
+          continue;
+        }
+        const names = [
+          ...(Array.isArray(opts.names) ? opts.names : []),
+          opts.name,
+          tool.name,
+        ].filter((value) => typeof value === "string" && value.trim().length > 0);
+        for (const name of names) {
+          tools.set(name, tool);
+        }
+      }
+    },
+    registerHook: unsupported("registerHook"),
+    registerHttpRoute: unsupported("registerHttpRoute"),
+    registerChannel: unsupported("registerChannel"),
+    registerGatewayMethod: unsupported("registerGatewayMethod"),
+    registerCli: unsupported("registerCli"),
+    registerService: unsupported("registerService"),
+    registerCliBackend: unsupported("registerCliBackend"),
+    registerProvider: unsupported("registerProvider"),
+    registerProviderAuth: unsupported("registerProviderAuth"),
+    registerSpeechProvider: unsupported("registerSpeechProvider"),
+    registerMediaUnderstandingProvider: unsupported("registerMediaUnderstandingProvider"),
+    registerWebFetchProvider: unsupported("registerWebFetchProvider"),
+    registerWebSearchProvider: unsupported("registerWebSearchProvider"),
+    registerCommand: unsupported("registerCommand"),
+    onConversationBindingResolved: unsupported("onConversationBindingResolved"),
+    on: unsupported("on"),
+    resolvePath(value) {
+      return value;
+    },
+  };
+
+  const module = await import(pathToFileURL(entrypoint).href);
+  const entry = module.default ?? module;
+  if (entry && typeof entry.register === "function") {
+    await entry.register(api);
+  } else if (typeof entry === "function") {
+    await entry(api);
+  } else {
+    throw new Error(`Unsupported CrawClaw plugin entry export for ${pluginId}`);
+  }
+  const tool = tools.get(toolId);
+  if (!tool || typeof tool.execute !== "function") {
+    throw new Error(`Tool not registered: ${pluginId}/${toolId}`);
+  }
+  const value = await tool.execute(`desktop-node-${pluginId}-${toolId}`, input, undefined, undefined, {
+    cwd: pluginRoot,
+    pluginId,
+  });
+  console.log(`${resultPrefix}${JSON.stringify({ ok: true, result: value ?? null })}`);
+}
+
+main().catch((error) => {
+  console.log(`${resultPrefix}${JSON.stringify({
+    ok: false,
+    message: error && error.stack ? error.stack : String(error),
+  })}`);
+  process.exitCode = 1;
+});
+"#;
+
+fn run_node_plugin_tool(
+    node_bin: &Path,
+    runner_path: &Path,
+    entrypoint: &Path,
+    plugin_root: &Path,
+    plugin_id: &str,
+    tool_id: &str,
+    input: Value,
+) -> Result<Value, PluginHostError> {
+    let output = Command::new(node_bin)
+        .arg(runner_path)
+        .arg(entrypoint)
+        .arg(plugin_root)
+        .arg(plugin_id)
+        .arg(tool_id)
+        .arg(input.to_string())
+        .current_dir(plugin_root)
+        .output()
+        .map_err(|error| {
+            PluginHostError::Io(format!(
+                "Failed to run Node plugin runtime {}: {error}",
+                node_bin.display()
+            ))
+        })?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let result_line = stdout
+        .lines()
+        .rev()
+        .find_map(|line| line.strip_prefix(NODE_PLUGIN_RESULT_PREFIX));
+    let Some(raw_result) = result_line else {
+        return Err(PluginHostError::Invalid(format!(
+            "Node plugin {plugin_id}/{tool_id} did not return a result. stderr: {}",
+            String::from_utf8_lossy(&output.stderr).trim()
+        )));
+    };
+    let envelope: Value = serde_json::from_str(raw_result).map_err(|error| {
+        PluginHostError::Invalid(format!("Invalid Node plugin result envelope: {error}"))
+    })?;
+    if envelope.get("ok").and_then(Value::as_bool) == Some(true) && output.status.success() {
+        return Ok(envelope.get("result").cloned().unwrap_or(Value::Null));
+    }
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    let message = envelope
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or_else(|| stderr.trim());
+    Err(PluginHostError::Invalid(format!(
+        "Node plugin {plugin_id}/{tool_id} failed: {message}"
+    )))
 }
 
 fn resolve_plugin_manifest_path(runtime_root: &Path, plugin_id: &str) -> PathBuf {
@@ -349,69 +597,25 @@ fn resolve_plugin_manifest_path(runtime_root: &Path, plugin_id: &str) -> PathBuf
     runtime_root.join("plugins").join("manifest.json")
 }
 
-fn path_string(path: &Path) -> String {
-    path.to_string_lossy().to_string()
-}
-
-async fn invoke_pi_quickjs_tool(
-    manager: &pi::extensions::ExtensionManager,
-    js_runtime: &pi::extensions::JsExtensionRuntimeHandle,
-    runtime_root: &Path,
-    plugin_id: &str,
-    tool_id: &str,
-    input: Value,
-    adapter_path: &Path,
-) -> Result<Value, PluginHostError> {
-    let spec = pi::extensions::JsExtensionLoadSpec::from_entry_path(adapter_path)
-        .map_err(|error| pi_quickjs_error("failed to resolve plugin adapter", error))?;
-    manager
-        .load_js_extensions(vec![spec])
-        .await
-        .map_err(|error| pi_quickjs_error("failed to load plugin", error))?;
-    let registered_tools = js_runtime
-        .get_registered_tools()
-        .await
-        .map_err(|error| pi_quickjs_error("failed to list plugin tools", error))?;
-    if !registered_tools.iter().any(|tool| tool.name == tool_id) {
-        return Err(PluginHostError::Invalid(format!(
-            "Tool not registered: {plugin_id}/{tool_id}"
-        )));
-    }
-    js_runtime
-        .execute_tool(
-            tool_id.to_string(),
-            format!("desktop-pi-quickjs-{plugin_id}-{tool_id}"),
-            input,
-            Arc::new(json!({
-                "cwd": path_string(runtime_root),
-                "pluginId": plugin_id,
-                "pluginConfig": {}
-            })),
-            60_000,
-        )
-        .await
-        .map_err(|error| pi_quickjs_error("failed to invoke plugin tool", error))
-}
-
-fn load_js_plugin_manifest(manifest_path: &Path) -> Result<Value, PluginHostError> {
+fn load_node_plugin_manifest(manifest_path: &Path) -> Result<Value, PluginHostError> {
     match fs::read_to_string(manifest_path) {
         Ok(raw) => serde_json::from_str(&raw).map_err(|error| {
             PluginHostError::Invalid(format!(
-                "Invalid JS plugin manifest {}: {error}",
+                "Invalid Node plugin manifest {}: {error}",
                 manifest_path.display()
             ))
         }),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(json!({})),
         Err(error) => Err(PluginHostError::Io(format!(
-            "Failed to read JS plugin manifest {}: {error}",
+            "Failed to read Node plugin manifest {}: {error}",
             manifest_path.display()
         ))),
     }
 }
 
-fn resolve_js_plugin_entrypoint(manifest_path: &Path, manifest: &Value) -> Option<PathBuf> {
+fn resolve_node_plugin_entrypoint(manifest_path: &Path, manifest: &Value) -> Option<PathBuf> {
     let root = manifest_path.parent()?;
-    for candidate in js_plugin_entrypoint_candidates(manifest) {
+    for candidate in node_plugin_entrypoint_candidates(manifest) {
         let entrypoint = root.join(candidate);
         if entrypoint.exists() {
             return Some(entrypoint);
@@ -420,7 +624,7 @@ fn resolve_js_plugin_entrypoint(manifest_path: &Path, manifest: &Value) -> Optio
     None
 }
 
-fn js_plugin_entrypoint_candidates(manifest: &Value) -> Vec<String> {
+fn node_plugin_entrypoint_candidates(manifest: &Value) -> Vec<String> {
     let mut candidates = Vec::new();
     for key in ["entrypoint", "entry", "main", "module"] {
         if let Some(value) = manifest.get(key).and_then(Value::as_str) {
@@ -448,92 +652,6 @@ fn push_non_empty_candidate(candidates: &mut Vec<String>, value: &str) {
     }
 }
 
-fn write_pi_quickjs_plugin_adapter(
-    plugin_id: &str,
-    manifest: &Value,
-    manifest_path: &Path,
-    entrypoint: &Path,
-) -> Result<PathBuf, PluginHostError> {
-    let plugin_root = manifest_path.parent().ok_or_else(|| {
-        PluginHostError::Invalid(format!(
-            "JS plugin manifest has no parent directory: {}",
-            manifest_path.display()
-        ))
-    })?;
-    let relative_entry = entrypoint.strip_prefix(plugin_root).map_err(|_| {
-        PluginHostError::Invalid(format!(
-            "JS plugin entrypoint must stay inside plugin root: {}",
-            entrypoint.display()
-        ))
-    })?;
-    let relative_entry_specifier = format!(
-        "./{}",
-        relative_entry
-            .to_string_lossy()
-            .replace(std::path::MAIN_SEPARATOR, "/")
-    );
-    let plugin_adapter_path = plugin_root.join(".crawclaw-pi-quickjs-adapter.mjs");
-    let plugin_adapter =
-        render_pi_quickjs_plugin_adapter(plugin_id, manifest, &relative_entry_specifier)?;
-    if fs::write(&plugin_adapter_path, plugin_adapter).is_ok() {
-        return Ok(plugin_adapter_path);
-    }
-
-    let adapter_dir = std::env::temp_dir()
-        .join("crawclaw-pi-quickjs-adapters")
-        .join(sanitize_path_component(plugin_id));
-    fs::create_dir_all(&adapter_dir).map_err(|error| {
-        PluginHostError::Io(format!(
-            "Failed to create Pi QuickJS plugin adapter directory {}: {error}",
-            adapter_dir.display()
-        ))
-    })?;
-    let plugin_link = adapter_dir.join("plugin");
-    let _ = fs::remove_file(&plugin_link);
-    let _ = fs::remove_dir(&plugin_link);
-    symlink_plugin_root(plugin_root, &plugin_link)?;
-
-    let stamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos())
-        .unwrap_or_default();
-    let adapter_path = adapter_dir.join(format!("{}-{stamp}.mjs", std::process::id()));
-    let entry_specifier = format!(
-        "./plugin/{}",
-        relative_entry
-            .to_string_lossy()
-            .replace(std::path::MAIN_SEPARATOR, "/")
-    );
-    let adapter = render_pi_quickjs_plugin_adapter(plugin_id, manifest, &entry_specifier)?;
-    fs::write(&adapter_path, adapter).map_err(|error| {
-        PluginHostError::Io(format!(
-            "Failed to write Pi QuickJS plugin adapter {}: {error}",
-            adapter_path.display()
-        ))
-    })?;
-    Ok(adapter_path)
-}
-
-#[cfg(unix)]
-fn symlink_plugin_root(plugin_root: &Path, plugin_link: &Path) -> Result<(), PluginHostError> {
-    std::os::unix::fs::symlink(plugin_root, plugin_link).map_err(|error| {
-        PluginHostError::Io(format!(
-            "Failed to link Pi QuickJS plugin root {}: {error}",
-            plugin_root.display()
-        ))
-    })
-}
-
-#[cfg(windows)]
-fn symlink_plugin_root(plugin_root: &Path, plugin_link: &Path) -> Result<(), PluginHostError> {
-    std::os::windows::fs::symlink_dir(plugin_root, plugin_link).map_err(|error| {
-        PluginHostError::Io(format!(
-            "Failed to link Pi QuickJS plugin root {}: {error}",
-            plugin_root.display()
-        ))
-    })
-}
-
 fn sanitize_path_component(value: &str) -> String {
     value
         .chars()
@@ -545,115 +663,6 @@ fn sanitize_path_component(value: &str) -> String {
             }
         })
         .collect()
-}
-
-fn render_pi_quickjs_plugin_adapter(
-    plugin_id: &str,
-    manifest: &Value,
-    entry_specifier: &str,
-) -> Result<String, PluginHostError> {
-    let plugin_id_json = serde_json::to_string(plugin_id).map_err(|error| {
-        PluginHostError::Invalid(format!("Failed to serialize plugin id: {error}"))
-    })?;
-    let manifest_json = serde_json::to_string(manifest).map_err(|error| {
-        PluginHostError::Invalid(format!("Failed to serialize plugin manifest: {error}"))
-    })?;
-    let entry_specifier_json = serde_json::to_string(entry_specifier).map_err(|error| {
-        PluginHostError::Invalid(format!("Failed to serialize plugin entrypoint: {error}"))
-    })?;
-    Ok(format!(
-        r#"
-const pluginId = {plugin_id_json};
-const manifest = {manifest_json};
-const entrySpecifier = {entry_specifier_json};
-
-function noop() {{}}
-
-function installCrawClawApi(pi, pluginConfig) {{
-  const logger = {{ debug: noop, info: noop, warn: noop, error: noop }};
-  const originalRegisterTool = pi.registerTool.bind(pi);
-  let registeredTool = false;
-  pi.id = pluginId;
-  pi.name = manifest.name || pluginId;
-  pi.description = manifest.description || "";
-  pi.source = "pi-quickjs";
-  pi.registrationMode = "full";
-  pi.config = {{}};
-  pi.pluginConfig = pluginConfig;
-  pi.logger = logger;
-  pi.runtime = {{ version: "pi-quickjs" }};
-  pi.registerTool = function registerCrawClawTool(toolOrFactory, opts = {{}}) {{
-      registeredTool = true;
-      const context = {{
-        pluginConfig,
-        sandboxed: false,
-        workspaceDir: ".",
-      }};
-      const registered = typeof toolOrFactory === "function"
-        ? toolOrFactory(context)
-        : toolOrFactory;
-      const tools = Array.isArray(registered) ? registered : [registered];
-      for (const tool of tools) {{
-        if (!tool) {{
-          continue;
-        }}
-        const names = [
-          ...(Array.isArray(opts.names) ? opts.names : []),
-          opts.name,
-          tool.name,
-        ].filter((value) => typeof value === "string" && value.trim().length > 0);
-        for (const name of names) {{
-          originalRegisterTool({{
-            name,
-            label: tool.label || tool.name || name,
-            description: tool.description || "",
-            parameters: tool.parameters || tool.inputSchema || {{ type: "object", properties: {{}} }},
-            execute: async (callId, input, onUpdate, abort, ctx) => {{
-              if (!tool.execute) {{
-                throw new Error(`Tool has no execute handler: ${{name}}`);
-              }}
-              const result = await tool.execute(callId, input || {{}}, onUpdate, abort, ctx);
-              return result === undefined ? null : result;
-            }},
-          }});
-        }}
-      }}
-  }};
-  pi.registerHook = pi.registerHook || noop;
-  pi.registerHttpRoute = pi.registerHttpRoute || noop;
-  pi.registerChannel = pi.registerChannel || noop;
-  pi.registerGatewayMethod = pi.registerGatewayMethod || noop;
-  pi.registerCli = pi.registerCli || noop;
-  pi.registerProvider = pi.registerProvider || noop;
-  pi.registerProviderAuth = pi.registerProviderAuth || noop;
-  pi.registerService = pi.registerService || noop;
-  pi.registerWebSearchProvider = pi.registerWebSearchProvider || noop;
-  pi.hasRegisteredCrawClawTool = () => registeredTool;
-  return pi;
-}}
-
-export default async function init(pi) {{
-  const crawclawApi = installCrawClawApi(pi, {{}});
-  const module = await import(entrySpecifier);
-  const entry = module.default ?? module;
-  if (crawclawApi.hasRegisteredCrawClawTool()) {{
-    return;
-  }}
-  if (entry && typeof entry.register === "function") {{
-    const register = entry.register;
-    await register(crawclawApi);
-  }} else if (typeof entry === "function") {{
-    await entry(crawclawApi);
-  }} else {{
-    throw new Error(`Unsupported CrawClaw plugin entry export for ${{pluginId}}`);
-  }}
-}}
-"#
-    ))
-}
-
-fn pi_quickjs_error(context: &str, error: impl std::fmt::Display) -> PluginHostError {
-    PluginHostError::Invalid(format!("Pi QuickJS plugin {context}: {error}"))
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -984,38 +993,11 @@ mod tests {
     fn native_channel_catalog_covers_bundled_native_channels() {
         assert_eq!(
             native_channel_ids(),
-            vec![
-                "desktop",
-                "bluebubbles",
-                "telegram",
-                "whatsapp",
-                "discord",
-                "ddingtalk",
-                "esp32",
-                "feishu",
-                "irc",
-                "googlechat",
-                "slack",
-                "nextcloud-talk",
-                "nostr",
-                "qqbot",
-                "signal",
-                "imessage",
-                "line",
-                "matrix",
-                "mattermost",
-                "synology-chat",
-                "tlon",
-                "twitch",
-                "msteams",
-                "weixin",
-                "zalo",
-                "zalouser"
-            ]
+            vec!["ddingtalk", "feishu", "esp32", "qqbot", "weixin"]
         );
         assert!(!is_native_channel_id("dingtalk"));
-        assert!(is_native_channel_id("discord"));
-        assert!(is_native_channel_id("telegram"));
+        assert!(!is_native_channel_id("discord"));
+        assert!(!is_native_channel_id("telegram"));
     }
 
     #[test]
@@ -1045,6 +1027,18 @@ mod tests {
         let weixin = native_channel("weixin").expect("weixin channel");
         assert_eq!(weixin.label, "微信");
         assert!(weixin.fields.is_empty());
+
+        let esp32 = native_channel("esp32").expect("esp32 channel");
+        assert_eq!(esp32.label, "ESP32");
+        assert_eq!(esp32.icon, "cpu");
+        assert_eq!(
+            esp32
+                .fields
+                .iter()
+                .map(|field| field.id)
+                .collect::<Vec<_>>(),
+            vec!["brokerMode", "bindHost", "port"]
+        );
     }
 
     #[test]
@@ -1053,7 +1047,6 @@ mod tests {
 
         assert!(capability.manifest_read_model);
         assert!(capability.rust_or_wasm_entry_required);
-        assert!(!capability.pi_quickjs_extensions);
     }
 
     #[test]
@@ -1088,93 +1081,148 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn js_plugin_invocation_uses_pi_quickjs_runtime() {
-        let runtime_root = unique_runtime_root("pi-quickjs-plugin");
-        write_test_js_plugin(&runtime_root);
-
-        let result = invoke_js_plugin_tool(
+    async fn node_plugin_invocation_rejects_legacy_js_fallback_manifest() {
+        let runtime_root = unique_runtime_root("node-plugin-missing-runtime");
+        write_test_node_plugin(
             &runtime_root,
-            "test-js",
+            serde_json::json!({
+                "id": "test-node",
+                "entrypoint": "index.mjs",
+                "allowJsPluginFallback": true,
+                "compat": { "jsPluginFallback": true }
+            }),
+            "index.mjs",
+            NODE_PLUGIN_ENTRY_JS,
+        );
+
+        let error = invoke_node_plugin_tool_with_options(
+            &runtime_root,
+            "test-node",
             "echo",
             serde_json::json!({ "message": "hi" }),
+            NodePluginInvocationOptions {
+                node_bin: Some(current_node_binary()),
+                required_node_major: None,
+            },
+        )
+        .await
+        .expect_err("node runtime should be explicit");
+
+        assert!(error.to_string().contains("runtime.kind=\"node\""));
+    }
+
+    #[tokio::test]
+    async fn node_plugin_invocation_runs_registered_js_tool() {
+        let runtime_root = unique_runtime_root("node-plugin-js");
+        write_test_node_plugin(
+            &runtime_root,
+            serde_json::json!({
+                "id": "test-node",
+                "runtime": {
+                    "kind": "node",
+                    "language": "js",
+                    "entrypoint": "index.mjs"
+                }
+            }),
+            "index.mjs",
+            NODE_PLUGIN_ENTRY_JS,
+        );
+
+        let result = invoke_node_plugin_tool_with_options(
+            &runtime_root,
+            "test-node",
+            "echo",
+            serde_json::json!({ "message": "hi" }),
+            NodePluginInvocationOptions {
+                node_bin: Some(current_node_binary()),
+                required_node_major: None,
+            },
         )
         .await
         .expect("tool result");
 
-        assert_eq!(result["output"], "pi-quickjs:pi-quickjs:hi");
-        assert!(!runtime_root
-            .join("compat")
-            .join("js-plugin-runner.mjs")
+        assert_eq!(result["output"], "node:node:hi");
+    }
+
+    #[tokio::test]
+    async fn node_plugin_invocation_compiles_ts_to_cached_mjs() {
+        let runtime_root = unique_runtime_root("node-plugin-ts");
+        write_test_node_plugin(
+            &runtime_root,
+            serde_json::json!({
+                "id": "test-node",
+                "runtime": {
+                    "kind": "node",
+                    "language": "ts",
+                    "entrypoint": "index.ts"
+                }
+            }),
+            "index.ts",
+            r#"
+export default function register(api: any) {
+  api.registerTool({
+    name: "echo",
+    async execute(_callId: string, input: { message: string }) {
+      return { output: `${api.source}:${api.runtime.version}:${input.message as string}` };
+    }
+  });
+}
+"#,
+        );
+
+        let result = invoke_node_plugin_tool_with_options(
+            &runtime_root,
+            "test-node",
+            "echo",
+            serde_json::json!({ "message": "hi" }),
+            NodePluginInvocationOptions {
+                node_bin: Some(current_node_binary()),
+                required_node_major: None,
+            },
+        )
+        .await
+        .expect("tool result");
+
+        assert_eq!(result["output"], "node:node:hi");
+        assert!(runtime_root
+            .join(".cache")
+            .join("node-plugins")
+            .join("test-node")
             .exists());
     }
 
-    #[cfg(unix)]
-    #[tokio::test]
-    async fn js_plugin_invocation_uses_temp_adapter_when_plugin_root_is_read_only() {
-        use std::os::unix::fs::PermissionsExt;
-
-        let runtime_root = unique_runtime_root("pi-quickjs-read-only-plugin");
-        let plugin_dir = write_test_js_plugin(&runtime_root);
-        let mut permissions = fs::metadata(&plugin_dir)
-            .expect("plugin metadata")
-            .permissions();
-        permissions.set_mode(0o555);
-        fs::set_permissions(&plugin_dir, permissions).expect("read-only plugin dir");
-
-        let result = invoke_js_plugin_tool(
-            &runtime_root,
-            "test-js",
-            "echo",
-            serde_json::json!({ "message": "hi" }),
-        )
-        .await
-        .expect("tool result");
-
-        let mut permissions = fs::metadata(&plugin_dir)
-            .expect("plugin metadata")
-            .permissions();
-        permissions.set_mode(0o755);
-        fs::set_permissions(&plugin_dir, permissions).expect("restore plugin dir");
-        assert_eq!(result["output"], "pi-quickjs:pi-quickjs:hi");
-        assert!(!plugin_dir.join(".crawclaw-pi-quickjs-adapter.mjs").exists());
+    const NODE_PLUGIN_ENTRY_JS: &str = r#"
+export default function register(api) {
+  api.registerTool({
+    name: "echo",
+    async execute(_callId, input) {
+      return { output: `${api.source}:${api.runtime.version}:${input.message}` };
     }
+  });
+}
+"#;
 
-    fn write_test_js_plugin(runtime_root: &Path) -> PathBuf {
-        let plugin_dir = runtime_root.join("plugins").join("test-js");
+    fn write_test_node_plugin(
+        runtime_root: &Path,
+        manifest: serde_json::Value,
+        entrypoint: &str,
+        entry: &str,
+    ) -> PathBuf {
+        let plugin_dir = runtime_root.join("plugins").join("test-node");
         fs::create_dir_all(&plugin_dir).expect("plugin dir");
         fs::write(
             plugin_dir.join("crawclaw.plugin.json"),
-            serde_json::to_vec_pretty(&serde_json::json!({
-                "id": "test-js",
-                "entrypoint": "index.mjs"
-            }))
-            .expect("manifest json"),
+            serde_json::to_vec_pretty(&manifest).expect("manifest json"),
         )
         .expect("plugin manifest");
-        fs::write(
-            plugin_dir.join("index.mjs"),
-            r#"
-            export default {
-              async register(api) {
-                api.registerTool({
-                  name: "echo",
-                  description: "Echo a test message",
-                  parameters: {
-                    type: "object",
-                    properties: { message: { type: "string" } }
-                  },
-                  execute: async (_callId, input) => {
-                    return {
-                      output: `${api.source}:${api.runtime.version}:${input.message}`
-                    };
-                  }
-                });
-              }
-            };
-            "#,
-        )
-        .expect("plugin entry");
+        fs::write(plugin_dir.join(entrypoint), entry).expect("plugin entry");
         plugin_dir
+    }
+
+    fn current_node_binary() -> PathBuf {
+        std::env::var_os("NODE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("node"))
     }
 
     fn unique_runtime_root(name: &str) -> PathBuf {

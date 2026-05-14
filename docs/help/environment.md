@@ -62,7 +62,7 @@ CrawClaw also injects context markers into spawned child processes:
 
 - `CRAWCLAW_SHELL=exec` (legacy: `CRAWCLAW_SHELL=exec`): set for commands run through the `exec` tool.
 - `CRAWCLAW_SHELL=acp` (legacy: `CRAWCLAW_SHELL=acp`): set for ACP runtime backend process spawns (for example `acpx`).
-- `CRAWCLAW_SHELL=acp-client` (legacy: `CRAWCLAW_SHELL=acp-client`): set for `crawclaw acp client` when it spawns the ACP bridge process.
+- `CRAWCLAW_SHELL=acp-client` (legacy: `CRAWCLAW_SHELL=acp-client`): set for CrawClaw Desktop or the local Gateway API when it spawns the ACP bridge process.
 
 These are runtime markers (not required user config). They can be used in shell/profile logic
 to apply context-specific rules.
@@ -139,8 +139,8 @@ DigiCert Global Root G2, etc.). This causes `web_fetch` to fail with `"fetch fai
 
 On Linux, CrawClaw automatically detects nvm and applies the fix in the actual startup environment:
 
-- `crawclaw gateway install` writes `NODE_EXTRA_CA_CERTS` into the systemd service environment
-- the `crawclaw` CLI entrypoint re-execs itself with `NODE_EXTRA_CA_CERTS` set before Node startup
+- CrawClaw Desktop or the local Gateway API writes `NODE_EXTRA_CA_CERTS` into the systemd service environment
+- CrawClaw Desktop and Gateway API clients inherit trusted CA settings from their host runtime environment
 
 **Manual fix (for older versions or direct `node ...` launches):**
 
@@ -148,7 +148,7 @@ Export the variable before starting CrawClaw:
 
 ```bash
 export NODE_EXTRA_CA_CERTS=/etc/ssl/certs/ca-certificates.crt
-crawclaw gateway run
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Do not rely on writing only to `~/.crawclaw/.env` for this variable; Node reads

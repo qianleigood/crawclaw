@@ -30,7 +30,7 @@ export type ResolveAgentRouteInput = {
   parentPeer?: RoutePeer | null;
   guildId?: string | null;
   teamId?: string | null;
-  /** Discord member role IDs — used for role-based agent routing. */
+  /** Channel member role IDs, when the provider exposes role-based routing metadata. */
   memberRoleIds?: string[];
 };
 

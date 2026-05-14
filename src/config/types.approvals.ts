@@ -3,7 +3,7 @@ export type NativeExecApprovalEnableMode = boolean | "auto";
 export type ExecApprovalForwardingMode = "session" | "targets" | "both";
 
 export type ExecApprovalForwardTarget = {
-  /** Channel id (e.g. "discord", "slack", or plugin channel id). */
+  /** Channel id (e.g. "feishu", "weixin", or plugin channel id). */
   channel: string;
   /** Destination id (channel id, user id, etc. depending on channel). */
   to: string;

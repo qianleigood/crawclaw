@@ -190,8 +190,8 @@ export function resolveN8nRuntimeDir(env: NodeJS.ProcessEnv = process.env): stri
 
 export function resolveBrowserRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
   return process.platform === "win32"
-    ? path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "pinchtab.cmd")
-    : path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "pinchtab");
+    ? path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "agent-browser.cmd")
+    : path.join(resolveBrowserRuntimeDir(env), "node_modules", ".bin", "agent-browser");
 }
 
 export function resolveN8nRuntimeBin(env: NodeJS.ProcessEnv = process.env): string {
@@ -364,7 +364,7 @@ export function formatPluginRuntimeDoctorLines(env: NodeJS.ProcessEnv = process.
       const detail =
         typeof entry.pythonVersion === "string"
           ? `python ${entry.pythonVersion}`
-          : typeof entry.package === "string" && entry.package.startsWith("pinchtab@")
+          : typeof entry.package === "string" && entry.package.startsWith("agent-browser@")
             ? entry.package
             : typeof entry.reason === "string"
               ? entry.reason

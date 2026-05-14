@@ -7,19 +7,13 @@ import { normalizeGroupActivation } from "../group-activation.js";
 import type { TemplateContext } from "../templating.js";
 import { extractExplicitGroupId } from "./group-id.js";
 
-const WHATSAPP_GROUP_INTRO_HINT =
-  "WhatsApp IDs: SenderId is the participant JID (group participant id).";
-
 const CHANNEL_LABELS: Partial<Record<ChannelId, string>> = {
-  bluebubbles: "BlueBubbles",
-  discord: "Discord",
-  imessage: "iMessage",
-  line: "LINE",
-  signal: "Signal",
-  slack: "Slack",
-  telegram: "Telegram",
+  ddingtalk: "DingTalk",
+  esp32: "ESP32",
+  feishu: "Feishu",
+  qqbot: "QQ Bot",
   webchat: "WebChat",
-  whatsapp: "WhatsApp",
+  weixin: "Weixin",
 };
 
 let groupsRuntimePromise: Promise<typeof import("./groups.runtime.js")> | null = null;
@@ -62,7 +56,7 @@ async function resolveRuntimeChannelId(raw?: string | null): Promise<ChannelId |
   }
 }
 
-async function resolveBuiltInRequireMentionFromConfig(params: {
+async function resolveBuiltInRequireMentionFromConfig(_params: {
   cfg: CrawClawConfig;
   channel: ChannelId;
   groupChannel?: string;
@@ -70,15 +64,7 @@ async function resolveBuiltInRequireMentionFromConfig(params: {
   groupSpace?: string;
   accountId?: string | null;
 }): Promise<boolean | undefined> {
-  const runtime = await loadGroupsRuntime();
-  switch (params.channel) {
-    case "discord":
-      return runtime.resolveDiscordGroupRequireMention(params);
-    case "slack":
-      return runtime.resolveSlackGroupRequireMention(params);
-    default:
-      return undefined;
-  }
+  return undefined;
 }
 
 export async function resolveGroupRequireMention(params: {
@@ -178,12 +164,10 @@ export function buildGroupIntro(params: {
 }): string {
   const activation =
     normalizeGroupActivation(params.sessionEntry?.groupActivation) ?? params.defaultActivation;
-  const providerId = resolveLooseChannelId(params.sessionCtx.Provider?.trim());
   const activationLine =
     activation === "always"
       ? "Activation: always-on (you receive every group message)."
       : "Activation: trigger-only (you are invoked only when explicitly mentioned; recent context may be included).";
-  const providerIdsLine = providerId === "whatsapp" ? WHATSAPP_GROUP_INTRO_HINT : undefined;
   const silenceLine =
     activation === "always"
       ? `If no response is needed, reply with exactly "${params.silentToken}" (and nothing else) so CrawClaw stays silent. Do not add any other words, punctuation, tags, markdown/code blocks, or explanations.`
@@ -196,7 +180,7 @@ export function buildGroupIntro(params: {
     "Be a good group participant: mostly lurk and follow the conversation; reply only when directly addressed or you can add clear value. Emoji reactions are welcome when available.";
   const styleLine =
     "Write like a human. Avoid Markdown tables. Don't type literal \\n sequences; use real line breaks sparingly.";
-  return [activationLine, providerIdsLine, silenceLine, cautionLine, lurkLine, styleLine]
+  return [activationLine, silenceLine, cautionLine, lurkLine, styleLine]
     .filter(Boolean)
     .join(" ")
     .concat(" Address the specific sender noted in the message context.");

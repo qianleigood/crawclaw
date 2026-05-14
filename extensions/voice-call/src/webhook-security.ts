@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { safeEqualSecret } from "crawclaw/plugin-sdk/browser-support";
+import { safeEqualSecret } from "crawclaw/plugin-sdk/security-runtime";
 import { getHeader } from "./http-headers.js";
 import type { WebhookContext } from "./types.js";
 

@@ -12,55 +12,27 @@ function makeCtx(overrides: Partial<MsgContext>): MsgContext {
 }
 
 describe("normalizeExplicitSessionKey", () => {
-  it("dispatches discord keys through the provider normalizer", () => {
+  it("lowercases retained provider keys", () => {
     expect(
       normalizeExplicitSessionKey(
-        "agent:fina:discord:channel:123456",
+        "Agent:Fina:Feishu:Group:OC_123",
         makeCtx({
-          Surface: "discord",
-          ChatType: "direct",
-          From: "discord:123456",
-          SenderId: "123456",
+          Surface: "feishu",
+          From: "feishu:group:OC_123",
         }),
       ),
-    ).toBe("agent:fina:discord:direct:123456");
+    ).toBe("agent:fina:feishu:group:oc_123");
   });
 
-  it("infers the provider from From when explicit provider fields are absent", () => {
+  it("passes through unknown providers after normalization", () => {
     expect(
       normalizeExplicitSessionKey(
-        "discord:dm:123456",
+        "Agent:Fina:Custom:DM:ABC",
         makeCtx({
-          ChatType: "direct",
-          From: "discord:123456",
-          SenderId: "123456",
+          Surface: "custom",
+          From: "custom:U123",
         }),
       ),
-    ).toBe("discord:direct:123456");
-  });
-
-  it("uses Provider when Surface is absent", () => {
-    expect(
-      normalizeExplicitSessionKey(
-        "agent:fina:discord:dm:123456",
-        makeCtx({
-          Provider: "Discord",
-          ChatType: "direct",
-          SenderId: "123456",
-        }),
-      ),
-    ).toBe("agent:fina:discord:direct:123456");
-  });
-
-  it("lowercases and passes through unknown providers unchanged", () => {
-    expect(
-      normalizeExplicitSessionKey(
-        "Agent:Fina:Slack:DM:ABC",
-        makeCtx({
-          Surface: "slack",
-          From: "slack:U123",
-        }),
-      ),
-    ).toBe("agent:fina:slack:dm:abc");
+    ).toBe("agent:fina:custom:dm:abc");
   });
 });

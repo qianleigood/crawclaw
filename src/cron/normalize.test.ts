@@ -139,10 +139,10 @@ describe("normalizeCronJobCreate", () => {
       schedule: { kind: "cron", expr: "* * * * *" },
       sessionTarget: "main",
       wakeMode: "now",
-      sessionKey: "  agent:main:discord:channel:ops  ",
+      sessionKey: "  agent:main:qqbot:channel:ops  ",
       payload: { kind: "systemEvent", text: "hi" },
     }) as unknown as Record<string, unknown>;
-    expect(normalized.sessionKey).toBe("agent:main:discord:channel:ops");
+    expect(normalized.sessionKey).toBe("agent:main:qqbot:channel:ops");
 
     const cleared = normalizeCronJobCreate({
       name: "session-key-clear",
@@ -177,14 +177,14 @@ describe("normalizeCronJobCreate", () => {
         message: "hi",
       },
       deliver: false,
-      channel: "Telegram",
+      channel: "Feishu",
       to: "-1001234567890",
       threadId: " 99 ",
     }) as unknown as Record<string, unknown>;
 
     expect(normalized.delivery).toEqual({ mode: "announce" });
     expect(withLegacyTopLevel.deliver).toBe(false);
-    expect(withLegacyTopLevel.channel).toBe("Telegram");
+    expect(withLegacyTopLevel.channel).toBe("Feishu");
     expect(withLegacyTopLevel.to).toBe("-1001234567890");
     expect(withLegacyTopLevel.threadId).toBe(" 99 ");
     expect(withLegacyTopLevel.delivery).toBeUndefined();
@@ -196,13 +196,13 @@ describe("normalizeCronJobCreate", () => {
       name: "delivery channel casing",
       delivery: {
         mode: "announce",
-        channel: "Telegram",
+        channel: "Feishu",
         to: "7200373102",
       },
     });
 
     const delivery = normalized.delivery as Record<string, unknown>;
-    expectAnnounceDeliveryTarget(delivery, { channel: "telegram", to: "7200373102" });
+    expectAnnounceDeliveryTarget(delivery, { channel: "feishu", to: "7200373102" });
   });
 
   it("coerces ISO schedule.at to normalized ISO (UTC)", () => {
@@ -266,13 +266,13 @@ describe("normalizeCronJobCreate", () => {
       name: "delivery",
       delivery: {
         mode: " ANNOUNCE ",
-        channel: " TeLeGrAm ",
+        channel: " FeiShu ",
         to: " 7200373102 ",
       },
     });
 
     const delivery = normalized.delivery as Record<string, unknown>;
-    expectAnnounceDeliveryTarget(delivery, { channel: "telegram", to: "7200373102" });
+    expectAnnounceDeliveryTarget(delivery, { channel: "feishu", to: "7200373102" });
   });
 
   it("normalizes delivery accountId and strips blanks", () => {
@@ -280,7 +280,7 @@ describe("normalizeCronJobCreate", () => {
       name: "delivery account",
       delivery: {
         mode: "announce",
-        channel: "telegram",
+        channel: "feishu",
         to: "-1003816714067",
         accountId: " coordinator ",
       },
@@ -295,7 +295,7 @@ describe("normalizeCronJobCreate", () => {
       name: "delivery thread string",
       delivery: {
         mode: "announce",
-        channel: "telegram",
+        channel: "feishu",
         to: "-1003816714067",
         threadId: " 1008013 ",
       },
@@ -307,7 +307,7 @@ describe("normalizeCronJobCreate", () => {
       name: "delivery thread number",
       delivery: {
         mode: "announce",
-        channel: "telegram",
+        channel: "feishu",
         to: "-1003816714067",
         threadId: 1008013,
       },
@@ -321,7 +321,7 @@ describe("normalizeCronJobCreate", () => {
       name: "empty account",
       delivery: {
         mode: "announce",
-        channel: "telegram",
+        channel: "feishu",
         accountId: "   ",
       },
     });
@@ -358,14 +358,14 @@ describe("normalizeCronJobCreate", () => {
       wakeMode: "now",
       payload: { kind: "agentTurn", message: "hello" },
       delivery: {
-        channel: "telegram",
+        channel: "feishu",
         to: "123",
       },
     }) as unknown as Record<string, unknown>;
 
     const delivery = normalized.delivery as Record<string, unknown>;
     expect(delivery.mode).toBeUndefined();
-    expect(delivery.channel).toBe("telegram");
+    expect(delivery.channel).toBe("feishu");
     expect(delivery.to).toBe("123");
     expect(validateCronAddParams(normalized)).toBe(false);
   });
@@ -583,10 +583,10 @@ describe("normalizeCronJobCreate", () => {
         sessionTarget: "current",
         payload: { kind: "agentTurn", message: "hello" },
       },
-      { sessionContext: { sessionKey: "agent:main:discord:group:ops" } },
+      { sessionContext: { sessionKey: "agent:main:qqbot:group:ops" } },
     ) as unknown as Record<string, unknown>;
 
-    expect(normalized.sessionTarget).toBe("session:agent:main:discord:group:ops");
+    expect(normalized.sessionTarget).toBe("session:agent:main:qqbot:group:ops");
   });
 
   it("falls back current sessionTarget to isolated without context", () => {
@@ -759,7 +759,7 @@ describe("normalizeCronJobPatch", () => {
   it("does not infer agentTurn kind for delivery-only legacy hints", () => {
     const normalized = normalizeCronJobPatch({
       payload: {
-        channel: "telegram",
+        channel: "feishu",
         to: "+15550001111",
       },
     }) as unknown as Record<string, unknown>;
@@ -767,7 +767,7 @@ describe("normalizeCronJobPatch", () => {
     const payload = normalized.payload as Record<string, unknown>;
     expect(payload.kind).toBeUndefined();
     expectPayloadDeliveryHintsPreserved(payload, {
-      channel: "telegram",
+      channel: "feishu",
       to: "+15550001111",
     });
     expect(validateCronUpdateParams({ id: "job-1", patch: normalized })).toBe(false);
@@ -775,9 +775,9 @@ describe("normalizeCronJobPatch", () => {
 
   it("preserves null sessionKey patches and trims string values", () => {
     const trimmed = normalizeCronJobPatch({
-      sessionKey: "  agent:main:telegram:group:-100123  ",
+      sessionKey: "  agent:main:feishu:group:-100123  ",
     }) as unknown as Record<string, unknown>;
-    expect(trimmed.sessionKey).toBe("agent:main:telegram:group:-100123");
+    expect(trimmed.sessionKey).toBe("agent:main:feishu:group:-100123");
 
     const cleared = normalizeCronJobPatch({
       sessionKey: null,

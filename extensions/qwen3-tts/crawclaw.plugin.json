@@ -1,6 +1,11 @@
 {
   "id": "qwen3-tts",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "contracts": {
     "speechProviders": ["qwen3-tts"]
   },

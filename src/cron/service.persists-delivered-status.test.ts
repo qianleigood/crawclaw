@@ -173,7 +173,7 @@ describe("CronService persists delivered status", () => {
     const updated = await runIsolatedJobAndReadState({
       job: {
         ...buildIsolatedAgentTurnJob("delivery-unknown"),
-        delivery: { mode: "announce", channel: "telegram", to: "123" },
+        delivery: { mode: "announce", channel: "feishu", to: "123" },
       },
     });
     expectSuccessfulCronRun(updated);

@@ -59,7 +59,7 @@ describe("plugin-runtimes", () => {
         "browser",
         "node_modules",
         ".bin",
-        "pinchtab",
+        "agent-browser",
       ),
     );
     expect(resolveN8nRuntimeBin(env)).toContain(
@@ -137,7 +137,7 @@ describe("plugin-runtimes", () => {
     writePluginRuntimeManifest(
       {
         plugins: {
-          browser: { state: "healthy", version: "1.2.3", package: "pinchtab@0.9.1" },
+          browser: { state: "healthy", version: "1.2.3", package: "agent-browser@0.27.0" },
           "open-websearch": { state: "healthy", version: "2.1.5" },
           "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.4" },
         },
@@ -153,13 +153,13 @@ describe("plugin-runtimes", () => {
       },
       runtimeRoot: resolvePluginRuntimesRoot(env),
       plugins: {
-        browser: { state: "healthy", version: "1.2.3", package: "pinchtab@0.9.1" },
+        browser: { state: "healthy", version: "1.2.3", package: "agent-browser@0.27.0" },
         "open-websearch": { state: "healthy", version: "2.1.5" },
         "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.4" },
       },
     });
     expect(formatPluginRuntimeDoctorLines(env)).toEqual([
-      "browser: healthy (pinchtab@0.9.1)",
+      "browser: healthy (agent-browser@0.27.0)",
       "open-websearch: healthy (version 2.1.5)",
       "scrapling-fetch: healthy (python 3.14.4)",
     ]);
@@ -181,7 +181,7 @@ describe("plugin-runtimes", () => {
         },
         runtimeRoot: path.join(env.CRAWCLAW_STATE_DIR!, "runtimes", "node-24"),
         plugins: {
-          browser: { state: "healthy", package: "pinchtab@0.9.1" },
+          browser: { state: "healthy", package: "agent-browser@0.27.0" },
         },
       },
       env,

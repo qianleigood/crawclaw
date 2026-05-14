@@ -24,10 +24,10 @@ endpoint and API key. It is OpenAI-compatible, so most OpenAI SDKs work by switc
 3. Generate an API key (format: `bce-v3/ALTAK-...`)
 4. Copy the API key for use with CrawClaw
 
-## CLI setup
+## Desktop setup
 
 ```bash
-crawclaw onboard --auth-choice qianfan-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Related Documentation

@@ -408,8 +408,8 @@ Command paths can opt into supported SecretRef resolution via gateway snapshot R
 
 There are two broad behaviors:
 
-- Strict command paths (for example `crawclaw memory` remote-memory paths and `crawclaw qr --remote`) read from the active snapshot and fail fast when a required SecretRef is unavailable.
-- Read-only command paths (for example `crawclaw status`, `crawclaw status --all`, `crawclaw channels status`, `crawclaw channels resolve`, `crawclaw security audit`, and read-only doctor/config repair flows) also prefer the active snapshot, but degrade instead of aborting when a targeted SecretRef is unavailable in that command path.
+- Strict command paths (for example CrawClaw Desktop or the local Gateway API remote-memory paths and CrawClaw Desktop or the local Gateway API) read from the active snapshot and fail fast when a required SecretRef is unavailable.
+- Read-only command paths (for example CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and read-only doctor/config repair flows) also prefer the active snapshot, but degrade instead of aborting when a targeted SecretRef is unavailable in that command path.
 
 Read-only behavior:
 
@@ -420,7 +420,7 @@ Read-only behavior:
 
 Other notes:
 
-- Snapshot refresh after backend secret rotation is handled by `crawclaw secrets reload`.
+- Snapshot refresh after backend secret rotation is handled by CrawClaw Desktop or the local Gateway API.
 - Gateway RPC method used by these command paths: `secrets.resolve`.
 
 ## Audit and configure workflow
@@ -428,9 +428,9 @@ Other notes:
 Default operator flow:
 
 ```bash
-crawclaw secrets audit --check
-crawclaw secrets configure
-crawclaw secrets audit --check
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### `secrets audit`
@@ -446,7 +446,7 @@ Findings include:
 Exec note:
 
 - By default, audit skips exec SecretRef resolvability checks to avoid command side effects.
-- Use `crawclaw secrets audit --allow-exec` to execute exec providers during audit.
+- Use CrawClaw Desktop or the local Gateway API to execute exec providers during audit.
 
 Header residue note:
 
@@ -470,9 +470,9 @@ Exec note:
 
 Helpful modes:
 
-- `crawclaw secrets configure --providers-only`
-- `crawclaw secrets configure --skip-provider-setup`
-- `crawclaw secrets configure --agent <id>`
+- CrawClaw Desktop or the local Gateway API
+- CrawClaw Desktop or the local Gateway API
+- CrawClaw Desktop or the local Gateway API
 
 `configure` apply defaults:
 
@@ -485,10 +485,10 @@ Helpful modes:
 Apply a saved plan:
 
 ```bash
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json --allow-exec
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json --dry-run
-crawclaw secrets apply --from /tmp/crawclaw-secrets-plan.json --dry-run --allow-exec
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Exec note:
@@ -524,7 +524,7 @@ Some SecretInput unions are easier to configure in raw editor mode than in form 
 
 ## Related docs
 
-- CLI commands: [secrets](/cli/secrets)
+- Desktop and Gateway API actions: [secrets](/gateway/secrets)
 - Plan contract details: [Secrets Apply Plan Contract](/gateway/secrets-plan-contract)
 - Credential surface: [SecretRef Credential Surface](/reference/secretref-credential-surface)
 - Auth setup: [Authentication](/gateway/authentication)

@@ -1,8 +1,8 @@
-import type { CliBackendPlugin } from "crawclaw/plugin-sdk/cli-backend";
+import type { CliBackendPlugin } from "crawclaw/plugin-sdk/local-process-backend";
 import {
   CLI_FRESH_WATCHDOG_DEFAULTS,
   CLI_RESUME_WATCHDOG_DEFAULTS,
-} from "crawclaw/plugin-sdk/cli-backend";
+} from "crawclaw/plugin-sdk/local-process-backend";
 
 export function buildOpenAICodexCliBackend(): CliBackendPlugin {
   return {

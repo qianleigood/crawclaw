@@ -1,97 +1,56 @@
 ---
-summary: "Get CrawClaw installed and run your first chat in minutes."
+summary: "Install CrawClaw Desktop and start your local Gateway."
 read_when:
   - First time setup from zero
-  - You want the fastest path to a working chat
+  - You want the fastest path to a working desktop chat
 title: "Getting Started"
 ---
 
 # Getting Started
 
-Install CrawClaw, run onboarding, and chat with your AI assistant — all in
-about 5 minutes. By the end you will have a running Gateway, configured auth,
-and a working chat session.
+Install CrawClaw Desktop and finish setup in the desktop UI. By the end you will
+have a local Rust Gateway, configured model auth, and a working desktop chat
+session.
 
 ## What you need
 
-- **Node.js** — Node 24.x (stable) or Node 25.x (experimental)
-- **An API key** from a model provider (Anthropic, OpenAI, Google, etc.) — onboarding will prompt you
-
-<Tip>
-Check your Node version with `node --version`.
-**Windows users:** use the native PowerShell installer. See [Windows](/platforms/windows).
-Need to install Node? See [Node setup](/install/node).
-</Tip>
+- **macOS** for the supported Apple-platform desktop app
+- **A model provider account or API key** from Anthropic, OpenAI, Google, or another supported provider
 
 ## Quick setup
 
 <Steps>
-  <Step title="Install CrawClaw">
-    <Tabs>
-      <Tab title="macOS / Linux">
-        ```bash
-        curl -fsSL https://crawclaw.ai/install.sh | bash
-        ```
-        <img
-  src="/assets/install-script.svg"
-  alt="Install Script Process"
-  className="rounded-lg"
-/>
-      </Tab>
-      <Tab title="Windows (PowerShell)">
-        ```powershell
-        iwr -useb https://crawclaw.ai/install.ps1 | iex
-        ```
-      </Tab>
-    </Tabs>
-
-    <Note>
-    Other install methods (Nix, npm): [Install](/install).
-    </Note>
-
+  <Step title="Install CrawClaw Desktop">
+    Download the latest desktop asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
   </Step>
-  <Step title="Run onboarding">
-    ```bash
-    crawclaw onboard --install-daemon
-    ```
-
-    The wizard walks you through choosing a model provider, setting an API key,
-    and configuring the Gateway. It takes about 2 minutes.
-
-    See [Onboarding (CLI)](/start/wizard) for the full reference.
-
+  <Step title="Open the desktop app">
+    CrawClaw Desktop prepares `~/.crawclaw`, stages the embedded Rust runtime,
+    starts the local Gateway, and opens the setup UI.
   </Step>
-  <Step title="Verify the Gateway is running">
-    ```bash
-    crawclaw gateway status
-    ```
-
-    You should see the Gateway listening on port 18789.
-
+  <Step title="Configure models and plugins">
+    Use desktop Settings for model providers, plugin enablement, local runtime
+    status, logs, and diagnostics.
   </Step>
   <Step title="Send your first message">
-    Use a connected channel or the desktop client.
-
-    The fastest channel to set up is
-    [Telegram](/channels/telegram) (just a bot token). See [Channels](/channels)
-    for all options.
-
+    Use the Agent page in CrawClaw Desktop. Automation clients can connect
+    through the local Gateway API.
   </Step>
 </Steps>
 
 ## What to do next
 
 <Columns>
+  <Card title="Desktop install" href="/install/desktop" icon="monitor">
+    What the app bundles, starts, and stores locally.
+  </Card>
   <Card title="Connect a channel" href="/channels" icon="message-square">
-    WhatsApp, Telegram, Discord, iMessage, and more.
+    Weixin, Feishu, QQ Bot, DingTalk, and ESP32.
   </Card>
   <Card title="Pairing and safety" href="/channels/pairing" icon="shield">
     Control who can message your agent.
   </Card>
-  <Card title="Configure the Gateway" href="/gateway/configuration" icon="settings">
-  </Card>
-  <Card title="Browse tools" href="/tools" icon="wrench">
-    Browser, exec, web search, skills, and plugins.
+  <Card title="Gateway API" href="/gateway/protocol" icon="waypoints">
+    Local control-plane protocol for automation and integrations.
   </Card>
 </Columns>
 
@@ -101,8 +60,6 @@ Need to install Node? See [Node setup](/install/node).
 - `CRAWCLAW_HOME` — home directory for internal path resolution
 - `CRAWCLAW_STATE_DIR` — override the state directory
 - `CRAWCLAW_CONFIG_PATH` — override the config file path
-
-Legacy `CRAWCLAW_*` aliases are still accepted while older installs migrate.
 
 Full reference: [Environment variables](/help/environment).
 </Accordion>

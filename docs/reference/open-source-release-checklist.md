@@ -37,7 +37,7 @@ Use this checklist before making the repository public or announcing a major ope
 - Verify workspace installs do not rely on private or SSH-only transitive dependencies.
 - Run `pnpm build`.
 - Run the required fast/unit/integration/E2E lanes for the release.
-- Verify the package can be installed globally and `crawclaw --version` works.
+- Verify the package can be installed globally and the packaged desktop version check works.
 
 ## Docs And Onboarding
 

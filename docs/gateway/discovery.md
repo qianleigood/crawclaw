@@ -14,7 +14,7 @@ CrawClaw has two distinct problems that look similar on the surface:
 1. **Operator remote control**: a Gateway client controlling a gateway running elsewhere.
 2. **Client pairing**: trusted clients finding a gateway and pairing securely.
 
-The design goal is to keep all network discovery/advertising in the **Gateway** (`crawclaw gateway`) and keep clients as consumers.
+The design goal is to keep all network discovery/advertising in the **Gateway** (CrawClaw Desktop or the local Gateway API) and keep clients as consumers.
 
 ## Terms
 

@@ -56,8 +56,8 @@ export function isOnboardOutputPreset(value: unknown): value is OnboardOutputPre
   return typeof value === "string" && OUTPUT_PRESENTATION_PRESETS.has(value as OnboardOutputPreset);
 }
 
-const CHANNELS_WITH_STREAMING = ["telegram", "discord", "slack"] as const;
-const CHANNELS_WITH_REPLY_TO_MODE = ["telegram", "discord", "slack", "googlechat"] as const;
+const CHANNELS_WITH_STREAMING = ["ddingtalk", "feishu", "qqbot", "weixin"] as const;
+const CHANNELS_WITH_REPLY_TO_MODE = ["ddingtalk", "feishu", "qqbot", "weixin"] as const;
 
 type WritableChannelConfig = Record<string, unknown>;
 

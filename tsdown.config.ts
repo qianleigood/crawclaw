@@ -112,9 +112,6 @@ function buildBundledHookEntries(): Record<string, string> {
 }
 
 const bundledHookEntries = buildBundledHookEntries();
-const bundledPluginRoot = (pluginId: string) => ["extensions", pluginId].join("/");
-const bundledPluginFile = (pluginId: string, relativePath: string) =>
-  `${bundledPluginRoot(pluginId)}/${relativePath}`;
 
 function buildCoreDistEntries(): Record<string, string> {
   return {
@@ -125,10 +122,7 @@ function buildCoreDistEntries(): Record<string, string> {
     "agents/pi-model-discovery-runtime": "src/agents/pi-model-discovery-runtime.ts",
     "commands/status.summary.runtime": "src/commands/status.summary.runtime.ts",
     "plugins/provider-runtime.runtime": "src/plugins/provider-runtime.runtime.ts",
-    "plugins/runtime/runtime-line.contract": "src/plugins/runtime/runtime-line.contract.ts",
     "infra/warning-filter": "src/infra/warning-filter.ts",
-    "telegram/audit": bundledPluginFile("telegram", "src/audit.ts"),
-    "telegram/token": bundledPluginFile("telegram", "src/token.ts"),
     "plugins/build-smoke-entry": "src/plugins/build-smoke-entry.ts",
     "plugins/runtime/index": "src/plugins/runtime/index.ts",
     "llm-slug-generator": "src/hooks/llm-slug-generator.ts",
@@ -160,8 +154,6 @@ export default defineConfig([
     deps: {
       neverBundle: [
         "@lancedb/lancedb",
-        "@matrix-org/matrix-sdk-crypto-nodejs",
-        "matrix-js-sdk",
         ...bundledPluginRuntimeDependencies,
       ],
     },

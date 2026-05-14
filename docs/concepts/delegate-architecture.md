@@ -135,7 +135,7 @@ With hardening in place, proceed to grant the delegate its identity and permissi
 Use the multi-agent wizard to create an isolated agent for the delegate:
 
 ```bash
-crawclaw agents add delegate
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 This creates:

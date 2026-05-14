@@ -2,17 +2,16 @@ import { describe, expect, it } from "vitest";
 import { loadBundledCapabilityRuntimeRegistry } from "./bundled-capability-runtime.js";
 
 describe("loadBundledCapabilityRuntimeRegistry", () => {
-  it("loads the bundled browser plugin without a capability loader error", () => {
+  it("uses native manifests for migrated bundled native plugins", () => {
     const registry = loadBundledCapabilityRuntimeRegistry({
-      pluginIds: ["browser"],
+      pluginIds: ["lobster"],
       pluginSdkResolution: "src",
     });
 
-    const browser = registry.plugins.find((plugin) => plugin.id === "browser");
-    expect(browser?.status).toBe("loaded");
-    expect(browser?.error).toBeUndefined();
-    expect(registry.diagnostics.filter((diagnostic) => diagnostic.pluginId === "browser")).toEqual(
-      [],
-    );
+    const lobster = registry.plugins.find((plugin) => plugin.id === "lobster");
+    expect(lobster?.status).toBe("loaded");
+    expect(lobster?.source).toMatch(/crawclaw\.plugin\.json$/);
+    expect(lobster?.toolNames).toEqual(["lobster"]);
+    expect(registry.tools).toEqual([]);
   });
 });

@@ -480,9 +480,6 @@ function configMayNeedPluginAutoEnable(cfg: CrawClawConfig, env: NodeJS.ProcessE
   if (hasPotentialConfiguredChannels(cfg, env)) {
     return true;
   }
-  if (resolveBrowserAutoEnableReason(cfg)) {
-    return true;
-  }
   if (cfg.acp?.enabled === true || cfg.acp?.dispatch?.enabled === true) {
     return true;
   }
@@ -508,59 +505,6 @@ function configMayNeedPluginAutoEnable(cfg: CrawClawConfig, env: NodeJS.ProcessE
   return false;
 }
 
-function listContainsBrowser(value: unknown): boolean {
-  return (
-    Array.isArray(value) &&
-    value.some((entry) => typeof entry === "string" && entry.trim().toLowerCase() === "browser")
-  );
-}
-
-function toolPolicyReferencesBrowser(value: unknown): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-  return listContainsBrowser(value.allow) || listContainsBrowser(value.alsoAllow);
-}
-
-function hasBrowserToolReference(cfg: CrawClawConfig): boolean {
-  if (toolPolicyReferencesBrowser(cfg.tools)) {
-    return true;
-  }
-
-  const agentList = cfg.agents?.list;
-  if (!Array.isArray(agentList)) {
-    return false;
-  }
-
-  return agentList.some((entry) => isRecord(entry) && toolPolicyReferencesBrowser(entry.tools));
-}
-
-function hasExplicitBrowserPluginEntry(cfg: CrawClawConfig): boolean {
-  return Boolean(
-    cfg.plugins?.entries && Object.prototype.hasOwnProperty.call(cfg.plugins.entries, "browser"),
-  );
-}
-
-function resolveBrowserAutoEnableReason(cfg: CrawClawConfig): string | null {
-  if (cfg.browser?.enabled === false || cfg.plugins?.entries?.browser?.enabled === false) {
-    return null;
-  }
-
-  if (Object.prototype.hasOwnProperty.call(cfg, "browser")) {
-    return "browser configured";
-  }
-
-  if (hasExplicitBrowserPluginEntry(cfg)) {
-    return "browser plugin configured";
-  }
-
-  if (hasBrowserToolReference(cfg)) {
-    return "browser tool referenced";
-  }
-
-  return null;
-}
-
 function resolveConfiguredPlugins(
   cfg: CrawClawConfig,
   env: NodeJS.ProcessEnv,
@@ -574,11 +518,6 @@ function resolveConfiguredPlugins(
     if (isChannelConfigured(cfg, channelId, env)) {
       changes.push({ pluginId, reason: `${channelId} configured` });
     }
-  }
-
-  const browserReason = resolveBrowserAutoEnableReason(cfg);
-  if (browserReason) {
-    changes.push({ pluginId: "browser", reason: browserReason });
   }
 
   for (const [providerId, pluginId] of Object.entries(

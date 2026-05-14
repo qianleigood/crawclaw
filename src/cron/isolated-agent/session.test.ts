@@ -166,12 +166,12 @@ describe("resolveCronSession", () => {
           sessionId: "reused-session-id-789",
           updatedAt: NOW_MS - 1000,
           systemSent: true,
-          lastChannel: "slack" as never,
+          lastChannel: "ddingtalk" as never,
           lastTo: "channel:C0XXXXXXXXX",
           lastAccountId: "acct-123",
           lastThreadId: "1737500000.123456",
           deliveryContext: {
-            channel: "slack",
+            channel: "ddingtalk",
             to: "channel:C0XXXXXXXXX",
             threadId: "1737500000.123456",
           },
@@ -199,11 +199,11 @@ describe("resolveCronSession", () => {
         entry: {
           sessionId: "old-session-id",
           updatedAt: NOW_MS - 86_400_000,
-          lastChannel: "slack" as never,
+          lastChannel: "ddingtalk" as never,
           lastTo: "channel:C0XXXXXXXXX",
           lastThreadId: "1737500000.999999",
           deliveryContext: {
-            channel: "slack",
+            channel: "ddingtalk",
             to: "channel:C0XXXXXXXXX",
             threadId: "1737500000.999999",
           },
@@ -225,11 +225,11 @@ describe("resolveCronSession", () => {
           sessionId: "reused-session-id-101",
           updatedAt: NOW_MS - 1000,
           systemSent: true,
-          lastChannel: "slack" as never,
+          lastChannel: "ddingtalk" as never,
           lastTo: "channel:C0XXXXXXXXX",
           lastThreadId: "1737500000.123456",
           deliveryContext: {
-            channel: "slack",
+            channel: "ddingtalk",
             to: "channel:C0XXXXXXXXX",
             threadId: "1737500000.123456",
           },
@@ -238,11 +238,11 @@ describe("resolveCronSession", () => {
       });
 
       expect(result.isNewSession).toBe(false);
-      expect(result.sessionEntry.lastChannel).toBe("slack");
+      expect(result.sessionEntry.lastChannel).toBe("ddingtalk");
       expect(result.sessionEntry.lastTo).toBe("channel:C0XXXXXXXXX");
       expect(result.sessionEntry.lastThreadId).toBe("1737500000.123456");
       expect(result.sessionEntry.deliveryContext).toEqual({
-        channel: "slack",
+        channel: "ddingtalk",
         to: "channel:C0XXXXXXXXX",
         threadId: "1737500000.123456",
       });

@@ -8,28 +8,10 @@ import {
 } from "./commands.js";
 
 describe("resolveNativeSkillsEnabled", () => {
-  it("uses provider defaults for auto", () => {
+  it("disables auto by default after TypeScript channel plugins were removed", () => {
     expect(
       resolveNativeSkillsEnabled({
-        providerId: "discord",
-        globalSetting: "auto",
-      }),
-    ).toBe(true);
-    expect(
-      resolveNativeSkillsEnabled({
-        providerId: "telegram",
-        globalSetting: "auto",
-      }),
-    ).toBe(true);
-    expect(
-      resolveNativeSkillsEnabled({
-        providerId: "slack",
-        globalSetting: "auto",
-      }),
-    ).toBe(false);
-    expect(
-      resolveNativeSkillsEnabled({
-        providerId: "whatsapp",
+        providerId: "custom-channel",
         globalSetting: "auto",
       }),
     ).toBe(false);
@@ -38,14 +20,14 @@ describe("resolveNativeSkillsEnabled", () => {
   it("honors explicit provider settings", () => {
     expect(
       resolveNativeSkillsEnabled({
-        providerId: "slack",
+        providerId: "custom-channel",
         providerSetting: true,
         globalSetting: "auto",
       }),
     ).toBe(true);
     expect(
       resolveNativeSkillsEnabled({
-        providerId: "discord",
+        providerId: "custom-channel",
         providerSetting: false,
         globalSetting: true,
       }),
@@ -54,29 +36,23 @@ describe("resolveNativeSkillsEnabled", () => {
 });
 
 describe("resolveNativeCommandsEnabled", () => {
-  it("follows the same provider default heuristic", () => {
-    expect(resolveNativeCommandsEnabled({ providerId: "discord", globalSetting: "auto" })).toBe(
-      true,
-    );
-    expect(resolveNativeCommandsEnabled({ providerId: "telegram", globalSetting: "auto" })).toBe(
-      true,
-    );
-    expect(resolveNativeCommandsEnabled({ providerId: "slack", globalSetting: "auto" })).toBe(
-      false,
-    );
+  it("follows the same disabled auto default", () => {
+    expect(
+      resolveNativeCommandsEnabled({ providerId: "custom-channel", globalSetting: "auto" }),
+    ).toBe(false);
   });
 
   it("honors explicit provider/global booleans", () => {
     expect(
       resolveNativeCommandsEnabled({
-        providerId: "slack",
+        providerId: "custom-channel",
         providerSetting: true,
         globalSetting: false,
       }),
     ).toBe(true);
     expect(
       resolveNativeCommandsEnabled({
-        providerId: "discord",
+        providerId: "custom-channel",
         globalSetting: false,
       }),
     ).toBe(false);

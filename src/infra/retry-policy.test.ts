@@ -1,17 +1,17 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createTelegramRetryRunner } from "./retry-policy.js";
+import { createMessageRetryRunner } from "./retry-policy.js";
 
 const ZERO_DELAY_RETRY = { attempts: 3, minDelayMs: 0, maxDelayMs: 0, jitter: 0 };
 
 async function runRetryCase(params: {
-  runnerOptions: Parameters<typeof createTelegramRetryRunner>[0];
+  runnerOptions: Parameters<typeof createMessageRetryRunner>[0];
   fnSteps: Array<{ type: "reject" | "resolve"; value: unknown }>;
   expectedCalls: number;
   expectedValue?: unknown;
   expectedError?: string;
 }): Promise<void> {
   vi.useFakeTimers();
-  const runner = createTelegramRetryRunner(params.runnerOptions);
+  const runner = createMessageRetryRunner(params.runnerOptions);
   const fn = vi.fn();
   const allRejects =
     params.fnSteps.length > 0 && params.fnSteps.every((step) => step.type === "reject");
@@ -39,7 +39,7 @@ async function runRetryCase(params: {
   expect(fn).toHaveBeenCalledTimes(params.expectedCalls);
 }
 
-describe("createTelegramRetryRunner", () => {
+describe("createMessageRetryRunner", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
@@ -118,14 +118,14 @@ describe("createTelegramRetryRunner", () => {
         expectedError: "permission denied",
       },
       {
-        name: "retries grammY HttpError wrapping network error via .cause traversal",
+        name: "retries wrapped network errors via .cause traversal",
         runnerOptions: {
           retry: { ...ZERO_DELAY_RETRY, attempts: 2 },
         },
         fnSteps: [
           {
             type: "reject" as const,
-            value: Object.assign(new Error("Network request for 'sendMessage' failed!"), {
+            value: Object.assign(new Error("Network request failed"), {
               cause: new Error("ECONNRESET"),
             }),
           },
@@ -163,7 +163,7 @@ describe("createTelegramRetryRunner", () => {
   it("honors nested retry_after hints before retrying", async () => {
     vi.useFakeTimers();
 
-    const runner = createTelegramRetryRunner({
+    const runner = createMessageRetryRunner({
       retry: { attempts: 2, minDelayMs: 0, maxDelayMs: 1_000, jitter: 0 },
     });
     const fn = vi

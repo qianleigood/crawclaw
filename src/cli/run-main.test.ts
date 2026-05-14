@@ -139,37 +139,9 @@ describe("shouldUseRootHelpFastPath", () => {
 });
 
 describe("resolveMissingBrowserCommandMessage", () => {
-  it("explains plugins.allow misses for the browser command", () => {
-    expect(
-      resolveMissingBrowserCommandMessage({
-        plugins: {
-          allow: ["telegram"],
-        },
-      }),
-    ).toContain('`plugins.allow` excludes "browser"');
-  });
-
-  it("explains explicit bundled browser disablement", () => {
-    expect(
-      resolveMissingBrowserCommandMessage({
-        plugins: {
-          entries: {
-            browser: {
-              enabled: false,
-            },
-          },
-        },
-      }),
-    ).toContain("plugins.entries.browser.enabled=false");
-  });
-
-  it("returns null when browser is already allowed", () => {
-    expect(
-      resolveMissingBrowserCommandMessage({
-        plugins: {
-          allow: ["browser"],
-        },
-      }),
-    ).toBeNull();
+  it("points legacy browser CLI users to the native browser tool", () => {
+    expect(resolveMissingBrowserCommandMessage()).toContain(
+      'Gateway Tools Invoke API with `tool: "browser"`',
+    );
   });
 });

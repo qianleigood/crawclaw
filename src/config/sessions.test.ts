@@ -125,14 +125,14 @@ describe("sessions", () => {
     {
       name: "keeps group chats distinct",
       scope: "per-sender" as const,
-      ctx: { From: "12345-678@g.us" },
-      expected: "whatsapp:group:12345-678@g.us",
+      ctx: { From: "feishu:group:oc_123" },
+      expected: "feishu:group:oc_123",
     },
     {
       name: "prefixes group keys with provider when available",
       scope: "per-sender" as const,
-      ctx: { From: "12345-678@g.us", ChatType: "group", Provider: "whatsapp" },
-      expected: "whatsapp:group:12345-678@g.us",
+      ctx: { From: "oc_123", ChatType: "group", Provider: "feishu" },
+      expected: "feishu:group:oc_123",
     },
   ] as const;
 
@@ -200,9 +200,9 @@ describe("sessions", () => {
     {
       name: "leaves groups untouched even with main key",
       scope: "per-sender" as const,
-      ctx: { From: "12345-678@g.us" },
+      ctx: { From: "feishu:group:oc_123" },
       mainKey: "main",
-      expected: "agent:main:whatsapp:group:12345-678@g.us",
+      expected: "agent:main:feishu:group:oc_123",
     },
   ] as const;
 

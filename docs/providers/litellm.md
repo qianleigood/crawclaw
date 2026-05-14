@@ -23,7 +23,7 @@ read_when:
 ### Via onboarding
 
 ```bash
-crawclaw onboard --auth-choice litellm-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Manual setup

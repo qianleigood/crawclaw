@@ -1,6 +1,9 @@
-import { mapAllowFromEntries } from "crawclaw/plugin-sdk/channel-config-helpers";
 import type { RuntimeEnv } from "../../runtime.js";
 import { summarizeStringEntries } from "../../shared/string-sample.js";
+
+function mapAllowFromEntries(allowFrom: Array<string | number> | null | undefined): string[] {
+  return (allowFrom ?? []).map((entry) => String(entry));
+}
 
 export type AllowlistUserResolutionLike = {
   input: string;

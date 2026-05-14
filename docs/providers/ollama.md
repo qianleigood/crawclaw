@@ -21,7 +21,7 @@ Ollama is a local LLM runtime that makes it easy to run open-source models on yo
 The fastest way to set up Ollama is through onboarding:
 
 ```bash
-crawclaw onboard
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Select **Ollama** from the provider list. Onboarding will:
@@ -35,19 +35,13 @@ Select **Ollama** from the provider list. Onboarding will:
 Non-interactive mode is also supported:
 
 ```bash
-crawclaw onboard --non-interactive \
-  --auth-choice ollama \
-  --accept-risk
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Optionally specify a custom base URL or model:
 
 ```bash
-crawclaw onboard --non-interactive \
-  --auth-choice ollama \
-  --custom-base-url "http://ollama-host:11434" \
-  --custom-model-id "qwen3.5:27b" \
-  --accept-risk
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Manual setup
@@ -73,7 +67,7 @@ ollama signin
 4. Run onboarding and choose `Ollama`:
 
 ```bash
-crawclaw onboard
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 - `Local`: local models only
@@ -92,14 +86,14 @@ CrawClaw currently suggests:
 export OLLAMA_API_KEY="ollama-local"
 
 # Or configure in your config file
-crawclaw config set models.providers.ollama.apiKey "ollama-local"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 6. Inspect or switch models:
 
 ```bash
-crawclaw models list
-crawclaw models set ollama/glm-4.7-flash
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 7. Or set the default in config:
@@ -130,7 +124,7 @@ To see what models are available:
 
 ```bash
 ollama list
-crawclaw models list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 To add a new model, simply pull it with Ollama:
@@ -237,7 +231,7 @@ You can also sign in directly at [ollama.com/signin](https://ollama.com/signin).
 
 ## Skill semantic discovery embeddings
 
-Ollama can also provide the embedding model used by skill semantic discovery. This is separate from the main chat model configured above. During `crawclaw onboard`, the **Skills** step can enable `skills.discovery.semantic` with provider `ollama`, then choose an embedding model.
+Ollama can also provide the embedding model used by skill semantic discovery. This is separate from the main chat model configured above. During CrawClaw Desktop or the local Gateway API, the **Skills** step can enable `skills.discovery.semantic` with provider `ollama`, then choose an embedding model.
 
 Recommended embedding models:
 

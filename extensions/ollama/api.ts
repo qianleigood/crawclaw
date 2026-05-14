@@ -24,7 +24,6 @@ export {
 } from "./src/setup.js";
 export {
   buildOllamaChatRequest,
-  createConfiguredOllamaCompatStreamWrapper,
   isOllamaCompatProvider,
   resolveOllamaCompatNumCtxEnabled,
   shouldInjectOllamaCompatNumCtx,

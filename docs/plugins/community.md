@@ -14,7 +14,7 @@ by the community, published on [ClawHub](/tools/clawhub) or npm, and
 installable with a single command.
 
 ```bash
-crawclaw plugins install <package-name>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 CrawClaw checks ClawHub first and falls back to npm automatically.
@@ -31,21 +31,7 @@ commands for resume, planning, review, model selection, compaction, and more.
 - **repo:** [github.com/pwrdrvr/crawclaw-codex-app-server](https://github.com/pwrdrvr/crawclaw-codex-app-server)
 
 ```bash
-crawclaw plugins install crawclaw-codex-app-server
-```
-
-### DingTalk
-
-DingTalk is now bundled as a primary China channel. CrawClaw keeps the original
-community package identity and plugin id (`@largezhou/ddingtalk`, `ddingtalk`)
-for compatibility.
-
-- **npm:** `@largezhou/ddingtalk`
-- **repo:** [github.com/largezhou/openclaw-dingtalk](https://github.com/largezhou/openclaw-dingtalk)
-- **docs:** [DingTalk](/channels/ddingtalk)
-
-```bash
-crawclaw channels add
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Lossless Claw (LCM)
@@ -58,7 +44,7 @@ while reducing token usage.
 - **repo:** [github.com/Martian-Engineering/lossless-claw](https://github.com/Martian-Engineering/lossless-claw)
 
 ```bash
-crawclaw plugins install @martian-engineering/lossless-claw
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Opik
@@ -70,7 +56,7 @@ cost, tokens, errors, and more.
 - **repo:** [github.com/comet-ml/opik-crawclaw](https://github.com/comet-ml/opik-crawclaw)
 
 ```bash
-crawclaw plugins install @opik/opik-crawclaw
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### QQbot
@@ -83,7 +69,7 @@ and files.
 - **repo:** [github.com/tencent-connect/crawclaw-qqbot](https://github.com/tencent-connect/crawclaw-qqbot)
 
 ```bash
-crawclaw plugins install @tencent-connect/crawclaw-qqbot
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### wecom
@@ -97,7 +83,7 @@ formatting, built-in access control, and document/meeting/messaging skills.
 - **repo:** [github.com/WecomTeam/wecom-crawclaw-plugin](https://github.com/WecomTeam/wecom-crawclaw-plugin)
 
 ```bash
-crawclaw plugins install @wecom/wecom-crawclaw-plugin
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Submit your plugin
@@ -106,7 +92,7 @@ We welcome community plugins that are useful, documented, and safe to operate.
 
 <Steps>
   <Step title="Publish to ClawHub or npm">
-    Your plugin must be installable via `crawclaw plugins install \<package-name\>`.
+    Your plugin must be installable via CrawClaw Desktop or the local Gateway API.
     Publish to [ClawHub](/tools/clawhub) (preferred) or npm.
     See [Building Plugins](/plugins/building-plugins) for the full guide.
 
@@ -132,12 +118,12 @@ We welcome community plugins that are useful, documented, and safe to operate.
 
 ## Quality bar
 
-| Requirement                 | Why                                           |
-| --------------------------- | --------------------------------------------- |
-| Published on ClawHub or npm | Users need `crawclaw plugins install` to work |
-| Public GitHub repo          | Source review, issue tracking, transparency   |
-| Setup and usage docs        | Users need to know how to configure it        |
-| Active maintenance          | Recent updates or responsive issue handling   |
+| Requirement                 | Why                                                          |
+| --------------------------- | ------------------------------------------------------------ |
+| Published on ClawHub or npm | Users need CrawClaw Desktop or the local Gateway API to work |
+| Public GitHub repo          | Source review, issue tracking, transparency                  |
+| Setup and usage docs        | Users need to know how to configure it                       |
+| Active maintenance          | Recent updates or responsive issue handling                  |
 
 Low-effort wrappers, unclear ownership, or unmaintained packages may be declined.
 

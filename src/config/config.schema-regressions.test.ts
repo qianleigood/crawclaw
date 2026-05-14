@@ -2,27 +2,6 @@ import { describe, expect, it } from "vitest";
 import { validateConfigObject } from "./config.js";
 
 describe("config schema regressions", () => {
-  it("accepts nested telegram groupPolicy overrides", () => {
-    const res = validateConfigObject({
-      channels: {
-        telegram: {
-          groups: {
-            "-1001234567890": {
-              groupPolicy: "open",
-              topics: {
-                "42": {
-                  groupPolicy: "disabled",
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
-  });
-
   it("rejects removed memorySearch config", () => {
     const res = validateConfigObject({
       agents: {
@@ -67,75 +46,6 @@ describe("config schema regressions", () => {
     });
 
     expect(res.ok).toBe(false);
-  });
-
-  it("accepts safe iMessage remoteHost", () => {
-    const res = validateConfigObject({
-      channels: {
-        imessage: {
-          remoteHost: "bot@gateway-host",
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
-  });
-
-  it("accepts channels.whatsapp.enabled", () => {
-    const res = validateConfigObject({
-      channels: {
-        whatsapp: {
-          enabled: true,
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
-  });
-
-  it("accepts BlueBubbles enrichGroupParticipantsFromContacts at channel and account scope", () => {
-    const res = validateConfigObject({
-      channels: {
-        bluebubbles: {
-          enrichGroupParticipantsFromContacts: true,
-          accounts: {
-            work: {
-              enrichGroupParticipantsFromContacts: false,
-            },
-          },
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
-  });
-
-  it("rejects unsafe iMessage remoteHost", () => {
-    const res = validateConfigObject({
-      channels: {
-        imessage: {
-          remoteHost: "bot@gateway-host -oProxyCommand=whoami",
-        },
-      },
-    });
-
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues[0]?.path).toBe("channels.imessage.remoteHost");
-    }
-  });
-
-  it("accepts iMessage attachment root patterns", () => {
-    const res = validateConfigObject({
-      channels: {
-        imessage: {
-          attachmentRoots: ["/Users/*/Library/Messages/Attachments"],
-          remoteAttachmentRoots: ["/Volumes/relay/attachments"],
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
   });
 
   it("accepts string values for agents defaults model inputs", () => {
@@ -185,21 +95,6 @@ describe("config schema regressions", () => {
     }
   });
 
-  it("rejects relative iMessage attachment roots", () => {
-    const res = validateConfigObject({
-      channels: {
-        imessage: {
-          attachmentRoots: ["./attachments"],
-        },
-      },
-    });
-
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues[0]?.path).toBe("channels.imessage.attachmentRoots.0");
-    }
-  });
-
   it("accepts browser.extraArgs for proxy and custom flags", () => {
     const res = validateConfigObject({
       browser: {
@@ -210,13 +105,10 @@ describe("config schema regressions", () => {
     expect(res.ok).toBe(true);
   });
 
-  it("accepts browser.pinchtab connection overrides", () => {
+  it("accepts agent-browser as the browser provider", () => {
     const res = validateConfigObject({
       browser: {
-        pinchtab: {
-          baseUrl: "http://127.0.0.1:9867",
-          token: "secret",
-        },
+        provider: "agent-browser",
       },
     });
 
@@ -231,33 +123,6 @@ describe("config schema regressions", () => {
     });
 
     expect(res.ok).toBe(false);
-  });
-
-  it("accepts signal accountUuid for loop protection", () => {
-    const res = validateConfigObject({
-      channels: {
-        signal: {
-          accountUuid: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
-  });
-
-  it("accepts telegram actions editMessage and createForumTopic", () => {
-    const res = validateConfigObject({
-      channels: {
-        telegram: {
-          actions: {
-            editMessage: true,
-            createForumTopic: false,
-          },
-        },
-      },
-    });
-
-    expect(res.ok).toBe(true);
   });
 
   it("accepts discovery.wideArea.domain for unicast DNS-SD", () => {

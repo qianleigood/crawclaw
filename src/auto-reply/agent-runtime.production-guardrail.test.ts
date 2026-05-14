@@ -42,21 +42,6 @@ describe("agent/channel Rust runtime production guardrails", () => {
     expect(source).not.toContain("dispatchReplyFromConfig({");
   });
 
-  it("keeps the bundled channel registry free of static Jiti loading", () => {
-    const source = readSource("src/channels/plugins/bundled.ts");
-
-    expect(source).not.toContain("createJiti");
-    expect(source).toContain("loadBundledTsChannelModule");
-  });
-
-  it("keeps bundled channel compatibility Jiti loading out of the static import graph", () => {
-    const source = readSource("src/channels/plugins/bundled-compat-loader.ts");
-
-    expect(source).not.toMatch(/from\s+["']jiti["']/);
-    expect(source).toContain("assertBundledTsChannelRuntimeAllowed");
-    expect(source).toContain('require("jiti")');
-  });
-
   it("keeps main-session wake replies on the Rust agent runtime", () => {
     const source = readSource("src/infra/main-session-wake-runner.ts");
 

@@ -16,7 +16,7 @@ CrawClaw Desktop lives under `apps/crawclaw-desktop` and uses:
 - Tauri v2 for the desktop shell and local process boundary.
 - React and Vite for the desktop workbench UI.
 - A Rust Gateway bound to `127.0.0.1` for local HTTP and SSE.
-- A Rust runtime binary under `runtime/crawclaw/bin/crawclaw`.
+- Rust runtime binaries under `runtime/crawclaw/bin/`.
 - Rust-native plugin execution for bundled/default desktop tools.
 - Rust-native Agent and session control for desktop chat, `sessions_*`, and sub-agents.
 - Local speech output through the bundled `qwen3-tts` native path.
@@ -29,7 +29,8 @@ matching mutation routes on the local Rust Gateway. Desktop session APIs such as
 start the legacy TypeScript Gateway. The old Admin Desktop package is retired;
 new desktop work should target the Tauri app.
 
-The CLI, headless, and server flows remain supported for advanced and server deployments. They are no longer the primary desktop user flow.
+CrawClaw Desktop is the supported Apple-platform user entrypoint. Automation and
+integrations use the local Gateway API instead of a public shell command.
 
 ## Trust model
 
@@ -50,7 +51,9 @@ The backend runs in desktop mode with these constraints:
 Desktop packages include the production CrawClaw runtime under the app resources directory:
 
 ```text
-runtime/crawclaw/bin/crawclaw
+runtime/crawclaw/bin/crawclaw-runtime
+runtime/crawclaw/bin/crawclaw-gateway
+runtime/crawclaw/bin/crawclaw-native-plugins
 runtime/crawclaw/runtimes/manifest.json
 runtime/crawclaw/providers/manifest.json
 runtime/crawclaw/plugins/manifest.json
@@ -61,10 +64,10 @@ Agent/session state, sub-agent routing, local plugin execution, and desktop
 runtime resources. End users do not need a globally installed `crawclaw` binary
 or a preconfigured shell `PATH` for the desktop flow.
 
-Bundled/default desktop plugins must use Rust-native entries. Third-party local
-JS plugins can still opt in to the explicit compatibility fallback with
-`allowJsPluginFallback=true`; the packaged desktop runtime does not advertise or
-stage a default JS plugin runner.
+Bundled/default desktop plugins use Rust-native entries first. Third-party local
+JS/TS plugins must explicitly declare `runtime.kind="node"` and run through the
+bundled Node 24 plugin runtime; the desktop product path no longer stages a
+QuickJS compatibility fallback.
 
 Desktop speech is intentionally local-first. The desktop package exposes the
 native `qwen3-tts` path for text-to-speech; cloud speech plugins are not part of
@@ -100,7 +103,7 @@ Tauri shell and its local Gateway process.
 
 ## State locations
 
-Runtime state is shared with the CLI under:
+Runtime state is stored under:
 
 ```text
 ~/.crawclaw
@@ -125,11 +128,12 @@ CrawClaw Desktop connects to the local Gateway using:
 ws://127.0.0.1:18789
 ```
 
-Remote Gateway, VPS, and headless server deployments are managed through the CLI and server install documentation instead of the desktop UI.
+Remote Gateway, VPS, and headless server deployments use the Gateway API and
+server/runtime documentation instead of the desktop UI.
 
 ## Updates
 
-Desktop builds update as a single desktop package: the app, embedded Rust runtime, and UI are delivered together. The desktop UI does not call the CLI npm self-update path.
+Desktop builds update as a single desktop package: the app, embedded Rust runtime, and UI are delivered together.
 
 When a desktop update is available, install the platform asset from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases).
 
@@ -156,4 +160,4 @@ For release validation:
 pnpm desktop:tauri:release-check
 ```
 
-See [Updating](/install/updating) for the CLI and server update flow. Desktop app updates are handled through GitHub Releases.
+Desktop app updates are handled through GitHub Releases.

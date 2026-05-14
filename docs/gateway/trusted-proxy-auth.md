@@ -278,7 +278,7 @@ Before enabling trusted-proxy auth, verify:
 
 ## Security Audit
 
-`crawclaw security audit` will flag trusted-proxy auth with a **critical** severity finding. This is intentional — it's a reminder that you're delegating security to your proxy setup.
+CrawClaw Desktop or the local Gateway API will flag trusted-proxy auth with a **critical** severity finding. This is intentional — it's a reminder that you're delegating security to your proxy setup.
 
 The audit checks for:
 
@@ -332,7 +332,7 @@ If you're moving from token auth to trusted-proxy:
 3. Update CrawClaw config with trusted-proxy auth
 4. Restart the Gateway
 5. Test WebSocket connections from a browser-facing client
-6. Run `crawclaw security audit` and review findings
+6. Run CrawClaw Desktop or the local Gateway API and review findings
 
 ## Related
 

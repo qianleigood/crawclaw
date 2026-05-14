@@ -1,7 +1,7 @@
 ---
 read_when:
   - 更改渠道路由或收件箱行为
-summary: 每个渠道（WhatsApp、Telegram、Discord、Slack）的路由规则及共享上下文
+summary: 支持渠道的路由规则及共享上下文
 title: 渠道路由
 x-i18n:
   generated_at: "2026-02-01T20:22:21Z"
@@ -18,7 +18,7 @@ CrawClaw 将回复**路由回消息来源的渠道**。模型不会选择渠道�
 
 ## 关键术语
 
-- **渠道**：`whatsapp`、`telegram`、`discord`、`slack`、`signal`、`imessage`。
+- **渠道**：Rust-native 渠道 ID。
 - **AccountId**：每个渠道的账户实例（在支持的情况下）。
 - **AgentId**：隔离的工作区 + 会话存储（"大脑"）。
 - **SessionKey**：用于存储上下文和控制并发的桶键。
@@ -36,44 +36,23 @@ CrawClaw 将回复**路由回消息来源的渠道**。模型不会选择渠道�
 
 线程：
 
-- Slack/Discord 线程会在基础键后追加 `:thread:<threadId>`。
-- Telegram 论坛主题在群组键中嵌入 `:topic:<topicId>`。
+- 渠道线程会在基础键后追加 `:thread:<threadId>`（在渠道支持时）。
 
 示例：
 
-- `agent:main:telegram:group:-1001234567890:topic:42`
-- `agent:main:discord:channel:123456:thread:987654`
+- `agent:main:<channel>:group:<id>`
 
 ## 路由规则（如何选择智能体）
 
 路由为每条入站消息选择**一个智能体**：
 
 1. **精确对端匹配**（`bindings` 中的 `peer.kind` + `peer.id`）。
-2. **Guild 匹配**（Discord）通过 `guildId`。
-3. **Team 匹配**（Slack）通过 `teamId`。
-4. **账户匹配**（渠道上的 `accountId`）。
-5. **渠道匹配**（该渠道上的任意账户）。
-6. **默认智能体**（`agents.list[].default`，否则取列表第一项，兜底为 `main`）。
+2. **父对端匹配**（线程继承）。
+3. **账户匹配**（渠道上的 `accountId`）。
+4. **渠道匹配**（该渠道上的任意账户）。
+5. **默认智能体**（`agents.list[].default`，否则取列表第一项，兜底为 `main`）。
 
 匹配到的智能体决定使用哪个工作区和会话存储。
-
-## 广播组（运行多个智能体）
-
-广播组允许你为同一对端运行**多个智能体**，**在 CrawClaw 正常回复时**触发（例如：在 WhatsApp 群组中，经过提及/激活门控之后）。
-
-配置：
-
-```json5
-{
-  broadcast: {
-    strategy: "parallel",
-    "120363403215116621@g.us": ["alfred", "baerbel"],
-    "+15555550123": ["support", "logger"],
-  },
-}
-```
-
-参见：[广播组](/channels/broadcast-groups)。
 
 ## 配置概览
 
@@ -88,8 +67,7 @@ CrawClaw 将回复**路由回消息来源的渠道**。模型不会选择渠道�
     list: [{ id: "support", name: "Support", workspace: "~/.crawclaw/workspace-support" }],
   },
   bindings: [
-    { match: { channel: "slack", teamId: "T123" }, agentId: "support" },
-    { match: { channel: "telegram", peer: { kind: "group", id: "-100123" } }, agentId: "support" },
+    { match: { channel: "internal", peer: { kind: "group", id: "group-123" } }, agentId: "support" },
   ],
 }
 ```

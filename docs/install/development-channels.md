@@ -27,9 +27,9 @@ installs.
 ## Switching channels
 
 ```bash
-crawclaw update --channel stable
-crawclaw update --channel beta
-crawclaw update --channel dev
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 `--channel` persists your choice in config (`update.channel`) and aligns the
@@ -39,7 +39,7 @@ install method:
 - **`stable`/`beta`** (git installs): checks out the latest matching git tag.
 - **`dev`**: ensures a git checkout (default `~/crawclaw`, override with
   `CRAWCLAW_GIT_DIR`), switches to `main`, rebases on upstream, builds, and
-  installs the global CLI from that checkout.
+  installs desktop and Gateway development assets from that checkout.
 
 Tip: if you want stable + dev in parallel, keep two clones and point your
 gateway at the stable one.
@@ -51,35 +51,35 @@ update **without** changing your persisted channel:
 
 ```bash
 # Install a specific version
-crawclaw update --tag 2026.4.1-beta.1
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Install from the beta dist-tag (one-off, does not persist)
-crawclaw update --tag beta
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Install from GitHub main branch (npm tarball)
-crawclaw update --tag main
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Install a specific npm package spec
-crawclaw update --tag crawclaw@2026.4.1-beta.1
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Notes:
 
 - `--tag` applies to **package (npm) installs only**. Git installs ignore it.
-- The tag is not persisted. Your next `crawclaw update` uses your configured
+- The tag is not persisted. Your next CrawClaw Desktop or the local Gateway API uses your configured
   channel as usual.
 - Downgrade protection: if the target version is older than your current version,
   CrawClaw prompts for confirmation (skip with `--yes`).
 
 ## Dry run
 
-Preview what `crawclaw update` would do without making changes:
+Preview what CrawClaw Desktop or the local Gateway API would do without making changes:
 
 ```bash
-crawclaw update --dry-run
-crawclaw update --channel beta --dry-run
-crawclaw update --tag 2026.4.1-beta.1 --dry-run
-crawclaw update --dry-run --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 The dry run shows the effective channel, target version, planned actions, and
@@ -87,7 +87,7 @@ whether a downgrade confirmation would be required.
 
 ## Plugins and channels
 
-When you switch channels with `crawclaw update`, CrawClaw also syncs plugin
+When you switch channels with CrawClaw Desktop or the local Gateway API, CrawClaw also syncs plugin
 sources:
 
 - `dev` prefers bundled plugins from the git checkout.
@@ -97,7 +97,7 @@ sources:
 ## Checking current status
 
 ```bash
-crawclaw update status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Shows the active channel, install kind (git or package), current version, and

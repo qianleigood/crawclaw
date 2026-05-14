@@ -34,16 +34,6 @@ export function fileExists(p: string): boolean {
   }
 }
 
-export function isLegacyWhatsAppAuthFile(name: string): boolean {
-  if (name === "creds.json" || name === "creds.json.bak") {
-    return true;
-  }
-  if (!name.endsWith(".json")) {
-    return false;
-  }
-  return /^(app-state-sync|session|sender-key|pre-key)-/.test(name);
-}
-
 export function readSessionStoreJson5(storePath: string): {
   store: Record<string, SessionEntryLike>;
   ok: boolean;

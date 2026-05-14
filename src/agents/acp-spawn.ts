@@ -323,43 +323,6 @@ function resolveConversationIdForThreadBinding(params: {
   threadId?: string | number;
   groupId?: string;
 }): string | undefined {
-  const channel = params.channel?.trim().toLowerCase();
-  const normalizedThreadId =
-    params.threadId != null ? String(params.threadId).trim() || undefined : undefined;
-  if (channel === "telegram") {
-    const rawChatId = (params.groupId ?? params.to ?? "").trim();
-    let chatId = rawChatId;
-    while (true) {
-      const next = (() => {
-        if (/^(telegram|tg):/i.test(chatId)) {
-          return chatId.replace(/^(telegram|tg):/i, "").trim();
-        }
-        if (/^(group|channel):/i.test(chatId)) {
-          return chatId.replace(/^(group|channel):/i, "").trim();
-        }
-        return chatId;
-      })();
-      if (next === chatId) {
-        break;
-      }
-      chatId = next;
-    }
-    const topicMatch = /^(.*?):topic:(\d+)$/i.exec(chatId);
-    if (topicMatch?.[1] && /^-?\d+$/.test(topicMatch[1].trim())) {
-      const topicId = normalizedThreadId ?? topicMatch[2];
-      return `${topicMatch[1].trim()}:topic:${topicId}`;
-    }
-    const shorthandTopicMatch = /^(.*?):(\d+)$/i.exec(chatId);
-    if (shorthandTopicMatch?.[1] && /^-?\d+$/.test(shorthandTopicMatch[1].trim())) {
-      const topicId = normalizedThreadId ?? shorthandTopicMatch[2];
-      return `${shorthandTopicMatch[1].trim()}:topic:${topicId}`;
-    }
-    if (/^-?\d+$/.test(chatId)) {
-      return normalizedThreadId ? `${chatId}:topic:${normalizedThreadId}` : chatId;
-    }
-    return undefined;
-  }
-
   const genericConversationId = resolveConversationIdFromTargets({
     threadId: params.threadId,
     targets: [params.to],
@@ -367,17 +330,6 @@ function resolveConversationIdForThreadBinding(params: {
   if (genericConversationId) {
     return genericConversationId;
   }
-  const target = params.to?.trim() || "";
-  if (channel === "line") {
-    const prefixed = target.match(/^line:(?:(?:user|group|room):)?([UCR][a-f0-9]{32})$/i)?.[1];
-    if (prefixed) {
-      return prefixed;
-    }
-    if (/^[UCR][a-f0-9]{32}$/i.test(target)) {
-      return target;
-    }
-  }
-
   return undefined;
 }
 

@@ -154,20 +154,6 @@ function normalizeConversation(params: PluginBindingConversation): PluginBinding
 
 function toConversationRef(params: PluginBindingConversation): ConversationRef {
   const normalized = normalizeConversation(params);
-  if (normalized.channel === "telegram") {
-    const threadId =
-      typeof normalized.threadId === "number" || typeof normalized.threadId === "string"
-        ? String(normalized.threadId).trim()
-        : "";
-    if (threadId) {
-      const parent = normalized.parentConversationId?.trim() || normalized.conversationId;
-      return {
-        channel: "telegram",
-        accountId: normalized.accountId,
-        conversationId: `${parent}:topic:${threadId}`,
-      };
-    }
-  }
   return {
     channel: normalized.channel,
     accountId: normalized.accountId,

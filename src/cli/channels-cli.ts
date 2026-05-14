@@ -18,35 +18,7 @@ const optionNamesAdd = [
   "token",
   "privateKey",
   "tokenFile",
-  "botToken",
-  "appToken",
-  "signalNumber",
-  "cliPath",
-  "dbPath",
-  "service",
-  "region",
-  "authDir",
-  "httpUrl",
-  "httpHost",
-  "httpPort",
-  "webhookPath",
-  "webhookUrl",
-  "audienceType",
-  "audience",
   "useEnv",
-  "homeserver",
-  "userId",
-  "accessToken",
-  "password",
-  "deviceName",
-  "initialSyncLimit",
-  "ship",
-  "url",
-  "relayUrls",
-  "code",
-  "groupChannels",
-  "dmAllowlist",
-  "autoDiscoverChannels",
 ] as const;
 
 const optionNamesRemove = ["channel", "account", "delete"] as const;
@@ -74,11 +46,8 @@ export function registerChannelsCli(program: Command) {
         `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
           ["crawclaw channels list", t("command.channels.examples.list")],
           ["crawclaw channels status --probe", t("command.channels.examples.status")],
-          [
-            "crawclaw channels add --channel telegram --token <token>",
-            t("command.channels.examples.add"),
-          ],
-          ["crawclaw channels login --channel whatsapp", t("command.channels.examples.login")],
+          ["crawclaw channels add --channel feishu --token <token>", t("command.channels.examples.add")],
+          ["crawclaw channels login --channel weixin", t("command.channels.examples.login")],
         ])}\n\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink(
           "/cli/channels",
           "docs.crawclaw.ai/cli/channels",
@@ -178,35 +147,6 @@ export function registerChannelsCli(program: Command) {
     .option("--token <token>", t("command.channels.add.option.token"))
     .option("--private-key <key>", t("command.channels.add.option.privateKey"))
     .option("--token-file <path>", t("command.channels.add.option.tokenFile"))
-    .option("--bot-token <token>", t("command.channels.add.option.botToken"))
-    .option("--app-token <token>", t("command.channels.add.option.appToken"))
-    .option("--signal-number <e164>", t("command.channels.add.option.signalNumber"))
-    .option("--cli-path <path>", t("command.channels.add.option.cliPath"))
-    .option("--db-path <path>", t("command.channels.add.option.dbPath"))
-    .option("--service <service>", t("command.channels.add.option.service"))
-    .option("--region <region>", t("command.channels.add.option.region"))
-    .option("--auth-dir <path>", t("command.channels.add.option.authDir"))
-    .option("--http-url <url>", t("command.channels.add.option.httpUrl"))
-    .option("--http-host <host>", t("command.channels.add.option.httpHost"))
-    .option("--http-port <port>", t("command.channels.add.option.httpPort"))
-    .option("--webhook-path <path>", t("command.channels.add.option.webhookPath"))
-    .option("--webhook-url <url>", t("command.channels.add.option.webhookUrl"))
-    .option("--audience-type <type>", t("command.channels.add.option.audienceType"))
-    .option("--audience <value>", t("command.channels.add.option.audience"))
-    .option("--homeserver <url>", t("command.channels.add.option.homeserver"))
-    .option("--user-id <id>", t("command.channels.add.option.userId"))
-    .option("--access-token <token>", t("command.channels.add.option.accessToken"))
-    .option("--password <password>", t("command.channels.add.option.password"))
-    .option("--device-name <name>", t("command.channels.add.option.deviceName"))
-    .option("--initial-sync-limit <n>", t("command.channels.add.option.initialSyncLimit"))
-    .option("--ship <ship>", t("command.channels.add.option.ship"))
-    .option("--url <url>", t("command.channels.add.option.url"))
-    .option("--relay-urls <list>", t("command.channels.add.option.relayUrls"))
-    .option("--code <code>", t("command.channels.add.option.code"))
-    .option("--group-channels <list>", t("command.channels.add.option.groupChannels"))
-    .option("--dm-allowlist <list>", t("command.channels.add.option.dmAllowlist"))
-    .option("--auto-discover-channels", t("command.channels.add.option.autoDiscoverChannels"))
-    .option("--no-auto-discover-channels", t("command.channels.add.option.noAutoDiscoverChannels"))
     .option("--use-env", t("command.channels.add.option.useEnv"), false)
     .action(async (opts, command) => {
       await runChannelsCommand(async () => {

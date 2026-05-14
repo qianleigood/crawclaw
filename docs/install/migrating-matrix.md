@@ -22,14 +22,14 @@ You do not need to rename config keys or reinstall the plugin under a new name.
 
 ## What the migration does automatically
 
-When the gateway starts, and when you run [`crawclaw doctor --fix`](/gateway/doctor), CrawClaw tries to repair old Matrix state automatically.
+When the gateway starts, and when you run [CrawClaw Desktop or the local Gateway API](/gateway/doctor), CrawClaw tries to repair old Matrix state automatically.
 Before any actionable Matrix migration step mutates on-disk state, CrawClaw creates or reuses a focused recovery snapshot.
 
-When you use `crawclaw update`, the exact trigger depends on how CrawClaw is installed:
+When you use CrawClaw Desktop or the local Gateway API, the exact trigger depends on how CrawClaw is installed:
 
-- source installs run `crawclaw doctor --fix` during the update flow, then restart the gateway by default
+- source installs run CrawClaw Desktop or the local Gateway API during the update flow, then restart the gateway by default
 - package-manager installs update the package, run a non-interactive doctor pass, then rely on the default gateway restart so startup can finish Matrix migration
-- if you use `crawclaw update --no-restart`, startup-backed Matrix migration is deferred until you later run `crawclaw doctor --fix` and restart the gateway
+- if you use CrawClaw Desktop or the local Gateway API, startup-backed Matrix migration is deferred until you later run CrawClaw Desktop or the local Gateway API and restart the gateway
 
 Automatic migration covers:
 
@@ -71,18 +71,18 @@ CrawClaw cannot automatically recover:
 
 Current warning scope:
 
-- custom Matrix plugin path installs are surfaced by both gateway startup and `crawclaw doctor`
+- custom Matrix plugin path installs are surfaced by both gateway startup and CrawClaw Desktop or the local Gateway API
 
 If your old installation had local-only encrypted history that was never backed up, some older encrypted messages may remain unreadable after the upgrade.
 
 ## Recommended upgrade flow
 
 1. Update CrawClaw and the Matrix plugin normally.
-   Prefer plain `crawclaw update` without `--no-restart` so startup can finish the Matrix migration immediately.
+   Prefer plain CrawClaw Desktop or the local Gateway API without `--no-restart` so startup can finish the Matrix migration immediately.
 2. Run:
 
    ```bash
-   crawclaw doctor --fix
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
    If Matrix has actionable migration work, doctor will create or reuse the pre-migration snapshot first and print the archive path.
@@ -91,40 +91,40 @@ If your old installation had local-only encrypted history that was never backed 
 4. Check current verification and backup state:
 
    ```bash
-   crawclaw matrix verify status
-   crawclaw matrix verify backup status
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
 5. If CrawClaw tells you a recovery key is needed, run:
 
    ```bash
-   crawclaw matrix verify backup restore --recovery-key "<your-recovery-key>"
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
 6. If this device is still unverified, run:
 
    ```bash
-   crawclaw matrix verify device "<your-recovery-key>"
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
 7. If you are intentionally abandoning unrecoverable old history and want a fresh backup baseline for future messages, run:
 
    ```bash
-   crawclaw matrix verify backup reset --yes
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
 8. If no server-side key backup exists yet, create one for future recoveries:
 
    ```bash
-   crawclaw matrix verify bootstrap
+   # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
 ## How encrypted migration works
 
 Encrypted migration is a two-stage process:
 
-1. Startup or `crawclaw doctor --fix` creates or reuses the pre-migration snapshot if encrypted migration is actionable.
-2. Startup or `crawclaw doctor --fix` inspects the old Matrix crypto store through the active Matrix plugin install.
+1. Startup or CrawClaw Desktop or the local Gateway API creates or reuses the pre-migration snapshot if encrypted migration is actionable.
+2. Startup or CrawClaw Desktop or the local Gateway API inspects the old Matrix crypto store through the active Matrix plugin install.
 3. If a backup decryption key is found, CrawClaw writes it into the new recovery-key flow and marks room-key restore as pending.
 4. On the next Matrix startup, CrawClaw restores backed-up room keys into the new crypto store automatically.
 
@@ -152,17 +152,17 @@ If the old store reports room keys that were never backed up, CrawClaw warns ins
 `Legacy Matrix state detected at ... but channels.matrix is not configured yet.`
 
 - Meaning: old Matrix state exists, but CrawClaw cannot map it to a current Matrix account because Matrix is not configured.
-- What to do: configure `channels.matrix`, then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: configure `channels.matrix`, then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `Legacy Matrix state detected at ... but the new account-scoped target could not be resolved yet (need homeserver, userId, and access token for channels.matrix...).`
 
 - Meaning: CrawClaw found old state, but it still cannot determine the exact current account/device root.
-- What to do: start the gateway once with a working Matrix login, or rerun `crawclaw doctor --fix` after cached credentials exist.
+- What to do: start the gateway once with a working Matrix login, or rerun CrawClaw Desktop or the local Gateway API after cached credentials exist.
 
 `Legacy Matrix state detected at ... but multiple Matrix accounts are configured and channels.matrix.defaultAccount is not set.`
 
 - Meaning: CrawClaw found one shared flat Matrix store, but it refuses to guess which named Matrix account should receive it.
-- What to do: set `channels.matrix.defaultAccount` to the intended account, then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: set `channels.matrix.defaultAccount` to the intended account, then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `Matrix legacy sync store not migrated because the target already exists (...)`
 
@@ -172,44 +172,44 @@ If the old store reports room keys that were never backed up, CrawClaw warns ins
 `Failed migrating Matrix legacy sync store (...)` or `Failed migrating Matrix legacy crypto store (...)`
 
 - Meaning: CrawClaw tried to move old Matrix state but the filesystem operation failed.
-- What to do: inspect filesystem permissions and disk state, then rerun `crawclaw doctor --fix`.
+- What to do: inspect filesystem permissions and disk state, then rerun CrawClaw Desktop or the local Gateway API.
 
 `Legacy Matrix encrypted state detected at ... but channels.matrix is not configured yet.`
 
 - Meaning: CrawClaw found an old encrypted Matrix store, but there is no current Matrix config to attach it to.
-- What to do: configure `channels.matrix`, then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: configure `channels.matrix`, then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `Legacy Matrix encrypted state detected at ... but the account-scoped target could not be resolved yet (need homeserver, userId, and access token for channels.matrix...).`
 
 - Meaning: the encrypted store exists, but CrawClaw cannot safely decide which current account/device it belongs to.
-- What to do: start the gateway once with a working Matrix login, or rerun `crawclaw doctor --fix` after cached credentials are available.
+- What to do: start the gateway once with a working Matrix login, or rerun CrawClaw Desktop or the local Gateway API after cached credentials are available.
 
 `Legacy Matrix encrypted state detected at ... but multiple Matrix accounts are configured and channels.matrix.defaultAccount is not set.`
 
 - Meaning: CrawClaw found one shared flat legacy crypto store, but it refuses to guess which named Matrix account should receive it.
-- What to do: set `channels.matrix.defaultAccount` to the intended account, then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: set `channels.matrix.defaultAccount` to the intended account, then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `Matrix migration warnings are present, but no on-disk Matrix mutation is actionable yet. No pre-migration snapshot was needed.`
 
 - Meaning: CrawClaw detected old Matrix state, but the migration is still blocked on missing identity or credential data.
-- What to do: finish Matrix login or config setup, then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: finish Matrix login or config setup, then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `Legacy Matrix encrypted state was detected, but the Matrix plugin helper is unavailable. Install or repair @crawclaw/matrix so CrawClaw can inspect the old rust crypto store before upgrading.`
 
 - Meaning: CrawClaw found old encrypted Matrix state, but it could not load the helper entrypoint from the Matrix plugin that normally inspects that store.
-- What to do: reinstall or repair the Matrix plugin (`crawclaw plugins install @crawclaw/matrix`, or `crawclaw plugins install ./path/to/local/matrix-plugin` for a repo checkout), then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: reinstall or repair the Matrix plugin (CrawClaw Desktop or the local Gateway API, or CrawClaw Desktop or the local Gateway API for a repo checkout), then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `Matrix plugin helper path is unsafe: ... Reinstall @crawclaw/matrix and try again.`
 
 - Meaning: CrawClaw found a helper file path that escapes the plugin root or fails plugin boundary checks, so it refused to import it.
-- What to do: reinstall the Matrix plugin from a trusted path, then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: reinstall the Matrix plugin from a trusted path, then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `- Failed creating a Matrix migration snapshot before repair: ...`
 
-`- Skipping Matrix migration changes for now. Resolve the snapshot failure, then rerun "crawclaw doctor --fix".`
+`- Skipping Matrix migration changes for now. Resolve the snapshot failure, then rerun "CrawClaw Desktop or the local Gateway API.`
 
 - Meaning: CrawClaw refused to mutate Matrix state because it could not create the recovery snapshot first.
-- What to do: resolve the backup error, then rerun `crawclaw doctor --fix` or restart the gateway.
+- What to do: resolve the backup error, then rerun CrawClaw Desktop or the local Gateway API or restart the gateway.
 
 `Failed migrating legacy Matrix client storage: ...`
 
@@ -219,7 +219,7 @@ If the old store reports room keys that were never backed up, CrawClaw warns ins
 `Matrix is installed from a custom path: ...`
 
 - Meaning: Matrix is pinned to a path install, so mainline updates do not automatically replace it with the repo's standard Matrix package.
-- What to do: reinstall with `crawclaw plugins install @crawclaw/matrix` when you want to return to the default Matrix plugin.
+- What to do: reinstall with CrawClaw Desktop or the local Gateway API when you want to return to the default Matrix plugin.
 
 ### Encrypted-state recovery messages
 
@@ -233,15 +233,15 @@ If the old store reports room keys that were never backed up, CrawClaw warns ins
 - Meaning: some old room keys existed only in the old local store and had never been uploaded to Matrix backup.
 - What to do: expect some old encrypted history to remain unavailable unless you can recover those keys manually from another verified client.
 
-`Legacy Matrix encrypted state for account "..." has backed-up room keys, but no local backup decryption key was found. Ask the operator to run "crawclaw matrix verify backup restore --recovery-key <key>" after upgrade if they have the recovery key.`
+`Legacy Matrix encrypted state for account "..." has backed-up room keys, but no local backup decryption key was found. Ask the operator to restore the Matrix backup through CrawClaw Desktop or the Gateway API after upgrade if they have the recovery key.`
 
 - Meaning: backup exists, but CrawClaw could not recover the recovery key automatically.
-- What to do: run `crawclaw matrix verify backup restore --recovery-key "<your-recovery-key>"`.
+- What to do: run the Matrix verification action in CrawClaw Desktop or the Gateway API.
 
 `Failed inspecting legacy Matrix encrypted state for account "..." (...): ...`
 
 - Meaning: CrawClaw found the old encrypted store, but it could not inspect it safely enough to prepare recovery.
-- What to do: rerun `crawclaw doctor --fix`. If it repeats, keep the old state directory intact and recover using another verified Matrix client plus `crawclaw matrix verify backup restore --recovery-key "<your-recovery-key>"`.
+- What to do: rerun CrawClaw Desktop or the local Gateway API. If it repeats, keep the old state directory intact and recover using another verified Matrix client plus the Matrix verification action in CrawClaw Desktop or the Gateway API.
 
 `Legacy Matrix backup key was found for account "...", but .../recovery-key.json already contains a different recovery key. Leaving the existing file unchanged.`
 
@@ -256,31 +256,31 @@ If the old store reports room keys that were never backed up, CrawClaw warns ins
 `matrix: failed restoring room keys from legacy encrypted-state backup: ...`
 
 - Meaning: the new plugin attempted restore but Matrix returned an error.
-- What to do: run `crawclaw matrix verify backup status`, then retry with `crawclaw matrix verify backup restore --recovery-key "<your-recovery-key>"` if needed.
+- What to do: run the Matrix verification action in CrawClaw Desktop or the Gateway API, then retry with the Matrix verification action in CrawClaw Desktop or the Gateway API if needed.
 
 ### Manual recovery messages
 
-`Backup key is not loaded on this device. Run 'crawclaw matrix verify backup restore' to load it and restore old room keys.`
+`Backup key is not loaded on this device. Use CrawClaw Desktop or the Gateway API to load it and restore old room keys.`
 
 - Meaning: CrawClaw knows you should have a backup key, but it is not active on this device.
-- What to do: run `crawclaw matrix verify backup restore`, or pass `--recovery-key` if needed.
+- What to do: run the Matrix verification action in CrawClaw Desktop or the Gateway API, or pass `--recovery-key` if needed.
 
-`Store a recovery key with 'crawclaw matrix verify device <key>', then run 'crawclaw matrix verify backup restore'.`
+`Store a recovery key through CrawClaw Desktop or the Gateway API, then restore the backup.`
 
 - Meaning: this device does not currently have the recovery key stored.
 - What to do: verify the device with your recovery key first, then restore the backup.
 
-`Backup key mismatch on this device. Re-run 'crawclaw matrix verify device <key>' with the matching recovery key.`
+`Backup key mismatch on this device. Re-run Matrix device verification with the matching recovery key.`
 
 - Meaning: the stored key does not match the active Matrix backup.
-- What to do: rerun `crawclaw matrix verify device "<your-recovery-key>"` with the correct key.
+- What to do: rerun the Matrix verification action in CrawClaw Desktop or the Gateway API with the correct key.
 
-If you accept losing unrecoverable old encrypted history, you can instead reset the current backup baseline with `crawclaw matrix verify backup reset --yes`.
+If you accept losing unrecoverable old encrypted history, you can instead reset the current backup baseline with the Matrix verification action in CrawClaw Desktop or the Gateway API.
 
-`Backup trust chain is not verified on this device. Re-run 'crawclaw matrix verify device <key>'.`
+`Backup trust chain is not verified on this device. Re-run Matrix device verification.`
 
 - Meaning: the backup exists, but this device does not trust the cross-signing chain strongly enough yet.
-- What to do: rerun `crawclaw matrix verify device "<your-recovery-key>"`.
+- What to do: rerun the Matrix verification action in CrawClaw Desktop or the Gateway API.
 
 `Matrix recovery key is required`
 
@@ -300,28 +300,28 @@ If you accept losing unrecoverable old encrypted history, you can instead reset 
 `Matrix key backup is not active on this device after loading from secret storage.`
 
 - Meaning: secret storage did not produce an active backup session on this device.
-- What to do: verify the device first, then recheck with `crawclaw matrix verify backup status`.
+- What to do: verify the device first, then recheck with the Matrix verification action in CrawClaw Desktop or the Gateway API.
 
-`Matrix crypto backend cannot load backup keys from secret storage. Verify this device with 'crawclaw matrix verify device <key>' first.`
+`Matrix crypto backend cannot load backup keys from secret storage. Verify this device through CrawClaw Desktop or the Gateway API first.`
 
 - Meaning: this device cannot restore from secret storage until device verification is complete.
-- What to do: run `crawclaw matrix verify device "<your-recovery-key>"` first.
+- What to do: run the Matrix verification action in CrawClaw Desktop or the Gateway API first.
 
 ### Custom plugin install messages
 
 `Matrix is installed from a custom path that no longer exists: ...`
 
 - Meaning: your plugin install record points at a local path that is gone.
-- What to do: reinstall with `crawclaw plugins install @crawclaw/matrix`, or if you are running from a repo checkout, `crawclaw plugins install ./path/to/local/matrix-plugin`.
+- What to do: reinstall with CrawClaw Desktop or the local Gateway API, or if you are running from a repo checkout, CrawClaw Desktop or the local Gateway API.
 
 ## If encrypted history still does not come back
 
 Run these checks in order:
 
 ```bash
-crawclaw matrix verify status --verbose
-crawclaw matrix verify backup status --verbose
-crawclaw matrix verify backup restore --recovery-key "<your-recovery-key>" --verbose
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If the backup restores successfully but some old rooms are still missing history, those missing keys were probably never backed up by the previous plugin.
@@ -331,9 +331,9 @@ If the backup restores successfully but some old rooms are still missing history
 If you accept losing unrecoverable old encrypted history and only want a clean backup baseline going forward, run these commands in order:
 
 ```bash
-crawclaw matrix verify backup reset --yes
-crawclaw matrix verify backup status --verbose
-crawclaw matrix verify status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If the device is still unverified after that, finish verification from your Matrix client by comparing the SAS emoji or decimal codes and confirming that they match.

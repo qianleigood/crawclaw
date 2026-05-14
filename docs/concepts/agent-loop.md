@@ -93,10 +93,10 @@ the state that the loop, guard, and completion systems already persist.
 
 Operational surfaces built on this snapshot today:
 
-- `crawclaw agent inspect`
-- `crawclaw agents status`
-- `crawclaw agents harness report`
-- `crawclaw agents harness promote-check`
+- CrawClaw Desktop or the local Gateway API
+- CrawClaw Desktop or the local Gateway API
+- CrawClaw Desktop or the local Gateway API
+- CrawClaw Desktop or the local Gateway API
 - gateway RPC `agent.inspect`
 
 `agent inspect` now also reconstructs a compact lifecycle timeline from archived

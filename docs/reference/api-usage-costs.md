@@ -26,7 +26,7 @@ CrawClaw features that can generate provider usage or paid API calls.
 
 **CLI usage windows (provider quotas)**
 
-- `crawclaw status --usage` and `crawclaw channels list` show provider **usage windows**
+- CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API show provider **usage windows**
   (quota snapshots, not per-message costs).
 
 See [Token use & costs](/reference/token-use) for details and examples.
@@ -100,10 +100,10 @@ See [Web tools](/tools/web).
 Some status commands call **provider usage endpoints** to display quota windows or auth health.
 These are typically low-volume calls but still hit provider APIs:
 
-- `crawclaw status --usage`
-- `crawclaw models status --json`
+- CrawClaw Desktop or the local Gateway API
+- CrawClaw Desktop or the local Gateway API
 
-See [Models CLI](/cli/models).
+See [Models](/concepts/models).
 
 ### 7) Compaction safeguard summarization
 
@@ -114,10 +114,10 @@ See [Session management + compaction](/reference/session-management-compaction).
 
 ### 8) Model scan / probe
 
-`crawclaw models scan` can probe OpenRouter models and uses `OPENROUTER_API_KEY` when
+CrawClaw Desktop or the local Gateway API can probe OpenRouter models and uses `OPENROUTER_API_KEY` when
 probing is enabled.
 
-See [Models CLI](/cli/models).
+See [Models](/concepts/models).
 
 ### 9) Talk (speech)
 

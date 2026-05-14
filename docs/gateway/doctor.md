@@ -8,41 +8,41 @@ title: "Doctor"
 
 # Doctor
 
-`crawclaw doctor` is the repair + migration tool for CrawClaw. It fixes stale
+CrawClaw Desktop or the local Gateway API is the repair + migration tool for CrawClaw. It fixes stale
 config/state, checks health, and provides actionable repair steps.
 
 ## Quick start
 
 ```bash
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Headless / automation
 
 ```bash
-crawclaw doctor --yes
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ```bash
-crawclaw doctor --repair
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Apply recommended repairs without prompting (repairs + restarts where safe).
 
 ```bash
-crawclaw doctor --repair --force
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Apply aggressive repairs too (overwrites custom supervisor configs).
 
 ```bash
-crawclaw doctor --non-interactive
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Legacy state migrations run automatically when detected.
 
 ```bash
-crawclaw doctor --deep
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Scan system services for extra gateway installs (launchd/systemd/schtasks).
@@ -101,7 +101,7 @@ schema.
 ### 2) Legacy config key migrations
 
 When the config contains deprecated keys, other commands refuse to run and ask
-you to run `crawclaw doctor`.
+you to run CrawClaw Desktop or the local Gateway API.
 
 Doctor will:
 
@@ -111,7 +111,7 @@ Doctor will:
 
 The Gateway also auto-runs doctor migrations on startup when it detects a
 legacy config format, so stale configs are repaired without manual intervention.
-Cron job store migrations are handled by `crawclaw doctor --fix`.
+Cron job store migrations are handled by CrawClaw Desktop or the local Gateway API.
 
 Current migrations:
 
@@ -151,7 +151,7 @@ can remove the override and restore per-model API routing + costs.
 ### 2c) Browser migration cleanup
 
 If your browser config still points at removed browser relay settings, doctor
-normalizes it to the current PinchTab/CDP browser model:
+normalizes it to the current Rust native `agent-browser` model:
 
 - `browser.relayBindHost` is removed
 
@@ -181,7 +181,7 @@ These migrations are best-effort and idempotent; doctor will emit warnings when
 it leaves any legacy folders behind as backups. The Gateway/CLI also auto-migrates
 the legacy sessions + agent dir on startup so history/auth/models land in the
 per-agent path without a manual doctor run. WhatsApp auth is intentionally only
-migrated via `crawclaw doctor`.
+migrated via CrawClaw Desktop or the local Gateway API.
 
 ### 3a) Legacy plugin manifest migrations
 
@@ -276,7 +276,7 @@ that can be detected without mutating the runtime.
 Doctor verifies that bundled plugin runtime dependencies (for example the
 Discord plugin runtime packages) are present in the CrawClaw install root.
 If any are missing, doctor reports the packages and installs them in
-`crawclaw doctor --fix` / `crawclaw doctor --repair` mode.
+CrawClaw Desktop or the local Gateway API / CrawClaw Desktop or the local Gateway API mode.
 
 ### 8) Gateway service migrations and cleanup hints
 
@@ -292,7 +292,7 @@ When a Matrix channel account has a pending or actionable legacy state migration
 doctor (in `--fix` / `--repair` mode) creates a pre-migration snapshot and then
 runs the best-effort migration steps: legacy Matrix state migration and legacy
 encrypted-state preparation. Both steps are non-fatal; errors are logged and
-startup continues. In read-only mode (`crawclaw doctor` without `--fix`) this check
+startup continues. In read-only mode (CrawClaw Desktop or the local Gateway API without `--fix`) this check
 is skipped entirely.
 
 ### 9) Security warnings
@@ -335,14 +335,14 @@ Doctor checks whether tab completion is installed for the current shell
 (zsh, bash, fish, or PowerShell):
 
 - If the shell profile uses a slow dynamic completion pattern
-  (`source <(crawclaw completion ...)`), doctor upgrades it to the faster
+  (`source <(CrawClaw Desktop or the local Gateway API...)`), doctor upgrades it to the faster
   cached file variant.
 - If completion is configured in the profile but the cache file is missing,
   doctor regenerates the cache automatically.
 - If no completion is configured at all, doctor prompts to install it
   (interactive mode only; skipped with `--non-interactive`).
 
-Run `crawclaw completion --write-state` to regenerate the cache manually.
+Run CrawClaw Desktop or the local Gateway API to regenerate the cache manually.
 
 ### 12) Gateway auth checks (local token)
 
@@ -350,13 +350,13 @@ Doctor checks local gateway token auth readiness.
 
 - If token mode needs a token and no token source exists, doctor offers to generate one.
 - If `gateway.auth.token` is SecretRef-managed but unavailable, doctor warns and does not overwrite it with plaintext.
-- `crawclaw doctor --generate-gateway-token` forces generation only when no token SecretRef is configured.
+- CrawClaw Desktop or the local Gateway API forces generation only when no token SecretRef is configured.
 
 ### 12b) Read-only SecretRef-aware repairs
 
 Some repair flows need to inspect configured credentials without weakening runtime fail-fast behavior.
 
-- `crawclaw doctor --fix` now uses the same read-only SecretRef summary model as status-family commands for targeted config repairs.
+- CrawClaw Desktop or the local Gateway API now uses the same read-only SecretRef summary model as status-family commands for targeted config repairs.
 - Example: Telegram `allowFrom` / `groupAllowFrom` `@username` repair tries to use configured bot credentials when available.
 - If the Telegram bot token is configured via SecretRef but unavailable in the current command path, doctor reports that the credential is configured-but-unavailable and skips auto-resolution instead of crashing or misreporting the token as missing.
 
@@ -379,15 +379,15 @@ rewrite the service file/task to the current defaults.
 
 Notes:
 
-- `crawclaw doctor` prompts before rewriting supervisor config.
-- `crawclaw doctor --yes` accepts the default repair prompts.
-- `crawclaw doctor --repair` applies recommended fixes without prompts.
-- `crawclaw doctor --repair --force` overwrites custom supervisor configs.
+- CrawClaw Desktop or the local Gateway API prompts before rewriting supervisor config.
+- CrawClaw Desktop or the local Gateway API accepts the default repair prompts.
+- CrawClaw Desktop or the local Gateway API applies recommended fixes without prompts.
+- CrawClaw Desktop or the local Gateway API overwrites custom supervisor configs.
 - If token auth requires a token and `gateway.auth.token` is SecretRef-managed, doctor service install/repair validates the SecretRef but does not persist resolved plaintext token values into supervisor service environment metadata.
 - If token auth requires a token and the configured token SecretRef is unresolved, doctor blocks the install/repair path with actionable guidance.
 - If both `gateway.auth.token` and `gateway.auth.password` are configured and `gateway.auth.mode` is unset, doctor blocks install/repair until mode is set explicitly.
 - For Linux user-systemd units, doctor token drift checks now include both `Environment=` and `EnvironmentFile=` sources when comparing service auth metadata.
-- You can always force a full rewrite via `crawclaw gateway install --force`.
+- You can always force a full rewrite via CrawClaw Desktop or the local Gateway API.
 
 ### 16) Gateway runtime + port diagnostics
 

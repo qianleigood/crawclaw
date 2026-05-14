@@ -107,7 +107,7 @@ export default defineChannelPluginEntry({
   during setup-only loading. It may return a promise, which makes it the right
   place to lazily import heavy runtime-only registration code from a dedicated
   `full.runtime.ts` or `full.runtime.js` boundary.
-- For plugin-owned root CLI commands, prefer `api.registerCli(..., { descriptors: [...] })`
+- For plugin-owned root Desktop and Gateway API actions, prefer `api.registerCli(..., { descriptors: [...] })`
   when you want the command to stay lazy-loaded without disappearing from the
   root CLI parse tree. For channel plugins, prefer registering those descriptors
   from `registerCliMetadata(...)` and keep `registerFull(...)` focused on runtime-only work.
@@ -179,7 +179,7 @@ CrawClaw classifies loaded plugins by their registration behavior:
 | **hook-only**         | Only hooks, no capabilities                        |
 | **non-capability**    | Tools/commands/services but no capabilities        |
 
-Use `crawclaw plugins inspect <id>` to see a plugin's shape.
+Use CrawClaw Desktop or the local Gateway API to see a plugin's shape.
 
 ## Related
 

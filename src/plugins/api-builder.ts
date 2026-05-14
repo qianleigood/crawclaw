@@ -31,7 +31,6 @@ export type BuildPluginApiParams = {
       | "registerMediaUnderstandingProvider"
       | "registerWebFetchProvider"
       | "registerWebSearchProvider"
-      | "registerInteractiveHandler"
       | "onConversationBindingResolved"
       | "registerCommand"
       | "on"
@@ -53,7 +52,6 @@ const noopRegisterMediaUnderstandingProvider: CrawClawPluginApi["registerMediaUn
   () => {};
 const noopRegisterWebFetchProvider: CrawClawPluginApi["registerWebFetchProvider"] = () => {};
 const noopRegisterWebSearchProvider: CrawClawPluginApi["registerWebSearchProvider"] = () => {};
-const noopRegisterInteractiveHandler: CrawClawPluginApi["registerInteractiveHandler"] = () => {};
 const noopOnConversationBindingResolved: CrawClawPluginApi["onConversationBindingResolved"] =
   () => {};
 const noopRegisterCommand: CrawClawPluginApi["registerCommand"] = () => {};
@@ -87,8 +85,6 @@ export function buildPluginApi(params: BuildPluginApiParams): CrawClawPluginApi 
       handlers.registerMediaUnderstandingProvider ?? noopRegisterMediaUnderstandingProvider,
     registerWebFetchProvider: handlers.registerWebFetchProvider ?? noopRegisterWebFetchProvider,
     registerWebSearchProvider: handlers.registerWebSearchProvider ?? noopRegisterWebSearchProvider,
-    registerInteractiveHandler:
-      handlers.registerInteractiveHandler ?? noopRegisterInteractiveHandler,
     onConversationBindingResolved:
       handlers.onConversationBindingResolved ?? noopOnConversationBindingResolved,
     registerCommand: handlers.registerCommand ?? noopRegisterCommand,

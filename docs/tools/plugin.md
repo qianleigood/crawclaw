@@ -19,25 +19,25 @@ with CrawClaw), others are **external** (published on npm by the community).
 <Steps>
   <Step title="See what is loaded">
     ```bash
-    crawclaw plugins list
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
   </Step>
 
   <Step title="Install a plugin">
     ```bash
     # From npm
-    crawclaw plugins install @crawclaw/voice-call
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # From a local directory or archive
-    crawclaw plugins install ./my-plugin
-    crawclaw plugins install ./my-plugin.tgz
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Step>
 
   <Step title="Restart the Gateway">
     ```bash
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Then configure under `plugins.entries.\<id\>.config` in your config file.
@@ -65,7 +65,7 @@ CrawClaw recognizes two plugin formats:
 | **Native** | `crawclaw.plugin.json` + runtime module; executes in-process       | Official plugins, community npm packages               |
 | **Bundle** | Codex/Claude/Cursor-compatible layout; mapped to CrawClaw features | `.codex-plugin/`, `.claude-plugin/`, `.cursor-plugin/` |
 
-Both show up under `crawclaw plugins list`. See [Plugin Bundles](/plugins/bundles) for bundle details.
+Both show up under CrawClaw Desktop or the local Gateway API. See [Plugin Bundles](/plugins/bundles) for bundle details.
 
 If you are writing a native plugin, start with [Building Plugins](/plugins/building-plugins)
 and the [Plugin SDK Overview](/plugins/sdk-overview).
@@ -74,14 +74,9 @@ and the [Plugin SDK Overview](/plugins/sdk-overview).
 
 ### Installable (npm)
 
-| Plugin          | Package                | Docs                                 |
-| --------------- | ---------------------- | ------------------------------------ |
-| Matrix          | `@crawclaw/matrix`     | [Matrix](/channels/matrix)           |
-| Microsoft Teams | `@crawclaw/msteams`    | [Microsoft Teams](/channels/msteams) |
-| Nostr           | `@crawclaw/nostr`      | [Nostr](/channels/nostr)             |
-| Voice Call      | `@crawclaw/voice-call` | [Voice Call](/plugins/voice-call)    |
-| Zalo            | `@crawclaw/zalo`       | [Zalo](/channels/zalo)               |
-| Zalo Personal   | `@crawclaw/zalouser`   | [Zalo Personal](/plugins/zalouser)   |
+| Plugin     | Package                | Docs                              |
+| ---------- | ---------------------- | --------------------------------- |
+| Voice Call | `@crawclaw/voice-call` | [Voice Call](/plugins/voice-call) |
 
 ### Core (shipped with CrawClaw)
 
@@ -190,25 +185,25 @@ Some categories are exclusive (only one active at a time):
 | -------- | -------------------------------------- | ------- |
 | `memory` | Exclusive memory-plugin selection path | `none`  |
 
-## CLI reference
+## Gateway API reference
 
 ```bash
-crawclaw plugins list                    # compact inventory
-crawclaw plugins inspect <id>            # deep detail
-crawclaw plugins inspect <id> --json     # machine-readable
-crawclaw plugins status                  # operational summary
-crawclaw plugins doctor                  # diagnostics
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
-crawclaw plugins install <package>        # install (ClawHub first, then npm)
-crawclaw plugins install clawhub:<pkg>   # install from ClawHub only
-crawclaw plugins install <path>          # install from local path
-crawclaw plugins install -l <path>       # link (no copy) for dev
-crawclaw plugins install <spec> --dangerously-force-unsafe-install
-crawclaw plugins update <id>             # update one plugin
-crawclaw plugins update --all            # update all
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
-crawclaw plugins enable <id>
-crawclaw plugins disable <id>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 `--dangerously-force-unsafe-install` is a break-glass override for false
@@ -218,10 +213,10 @@ continue past built-in `critical` findings, but it still does not bypass plugin
 
 This CLI flag applies to plugin installs only. Gateway-backed skill dependency
 installs use the matching `dangerouslyForceUnsafeInstall` request override
-instead, while `crawclaw skills install` remains the separate ClawHub skill
+instead, while CrawClaw Desktop or the local Gateway API remains the separate ClawHub skill
 download/install flow.
 
-See [`crawclaw plugins` CLI reference](/cli/plugins) for full details.
+See [CrawClaw Desktop or the local Gateway API Gateway API reference](/tools/plugin) for full details.
 
 ## Plugin API overview
 
@@ -247,18 +242,18 @@ export default definePluginEntry({
 
 Common registration methods:
 
-| Method                               | What it registers    |
-| ------------------------------------ | -------------------- |
-| `registerProvider`                   | Model provider (LLM) |
-| `registerChannel`                    | Chat channel         |
-| `registerTool`                       | Agent tool           |
-| `registerHook` / `on(...)`           | Lifecycle hooks      |
-| `registerSpeechProvider`             | Text-to-speech / STT |
-| `registerMediaUnderstandingProvider` | Image/audio analysis |
-| `registerWebSearchProvider`          | Web search           |
-| `registerHttpRoute`                  | HTTP endpoint        |
-| `registerCommand` / `registerCli`    | CLI commands         |
-| `registerService`                    | Background service   |
+| Method                               | What it registers               |
+| ------------------------------------ | ------------------------------- |
+| `registerProvider`                   | Model provider (LLM)            |
+| `registerChannel`                    | Chat channel                    |
+| `registerTool`                       | Agent tool                      |
+| `registerHook` / `on(...)`           | Lifecycle hooks                 |
+| `registerSpeechProvider`             | Text-to-speech / STT            |
+| `registerMediaUnderstandingProvider` | Image/audio analysis            |
+| `registerWebSearchProvider`          | Web search                      |
+| `registerHttpRoute`                  | HTTP endpoint                   |
+| `registerCommand` / `registerCli`    | Desktop and Gateway API actions |
+| `registerService`                    | Background service              |
 
 Hook guard behavior for typed lifecycle hooks:
 

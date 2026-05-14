@@ -111,14 +111,6 @@ export function validatePluginCommandDefinition(
       return `Native command alias "${label}" invalid: ${aliasError}`;
     }
   }
-  if ("telegramNativeProgressMessage" in command) {
-    if (typeof command.telegramNativeProgressMessage !== "string") {
-      return "telegramNativeProgressMessage must be a string";
-    }
-    if (!command.telegramNativeProgressMessage.trim()) {
-      return "telegramNativeProgressMessage cannot be empty";
-    }
-  }
   return null;
 }
 
@@ -134,8 +126,6 @@ export function listPluginInvocationKeys(command: CrawClawPluginCommandDefinitio
 
   push(command.name);
   push(command.nativeNames?.default);
-  push(command.nativeNames?.telegram);
-  push(command.nativeNames?.discord);
 
   return [...keys];
 }

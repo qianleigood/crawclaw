@@ -17,7 +17,6 @@ import {
   validateApiKeyInput,
 } from "crawclaw/plugin-sdk/provider-auth-api-key";
 import { normalizeModelCompat } from "crawclaw/plugin-sdk/provider-model-shared";
-import { createZaiToolStreamWrapper } from "crawclaw/plugin-sdk/provider-stream";
 import { fetchZaiUsage, resolveLegacyPiAgentAccessToken } from "crawclaw/plugin-sdk/provider-usage";
 import { detectZaiEndpoint, type ZaiEndpointId } from "./detect.js";
 import { zaiMediaUnderstandingProvider } from "./media-understanding-provider.js";
@@ -264,17 +263,6 @@ export default definePluginEntry({
         }),
       ],
       resolveDynamicModel: (ctx) => resolveGlm5ForwardCompatModel(ctx),
-      prepareExtraParams: (ctx) => {
-        if (ctx.extraParams?.tool_stream !== undefined) {
-          return ctx.extraParams;
-        }
-        return {
-          ...ctx.extraParams,
-          tool_stream: true,
-        };
-      },
-      wrapStreamFn: (ctx) =>
-        createZaiToolStreamWrapper(ctx.streamFn, ctx.extraParams?.tool_stream !== false),
       isBinaryThinking: () => true,
       isModernModelRef: ({ modelId }) => {
         const lower = modelId.trim().toLowerCase();

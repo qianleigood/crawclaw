@@ -20,8 +20,8 @@ describe("parsePluginReleaseSelection", () => {
 
   it("dedupes and sorts comma or whitespace separated package names", () => {
     expect(
-      parsePluginReleaseSelection(" @crawclaw/zalo, @crawclaw/feishu  @crawclaw/zalo "),
-    ).toEqual(["@crawclaw/feishu", "@crawclaw/zalo"]);
+      parsePluginReleaseSelection(" @crawclaw/demo-beta, @crawclaw/demo-alpha  @crawclaw/demo-beta "),
+    ).toEqual(["@crawclaw/demo-alpha", "@crawclaw/demo-beta"]);
   });
 });
 
@@ -75,10 +75,10 @@ describe("collectPublishablePluginPackageErrors", () => {
   it("accepts a valid publishable plugin package candidate", () => {
     expect(
       collectPublishablePluginPackageErrors({
-        extensionId: "zalo",
-        packageDir: bundledPluginRoot("zalo"),
-        packageJson: {
-          name: "@crawclaw/zalo",
+      extensionId: "demo-alpha",
+      packageDir: bundledPluginRoot("demo-alpha"),
+      packageJson: {
+          name: "@crawclaw/demo-alpha",
           version: "2026.3.15",
           crawclaw: {
             extensions: ["./index.ts"],
@@ -120,17 +120,17 @@ describe("collectPublishablePluginPackageErrors", () => {
 describe("resolveSelectedPublishablePluginPackages", () => {
   const publishablePlugins: PublishablePluginPackage[] = [
     {
-      extensionId: "feishu",
-      packageDir: bundledPluginRoot("feishu"),
-      packageName: "@crawclaw/feishu",
+      extensionId: "demo-alpha",
+      packageDir: bundledPluginRoot("demo-alpha"),
+      packageName: "@crawclaw/demo-alpha",
       version: "2026.3.15",
       channel: "stable",
       publishTag: "latest",
     },
     {
-      extensionId: "zalo",
-      packageDir: bundledPluginRoot("zalo"),
-      packageName: "@crawclaw/zalo",
+      extensionId: "demo-beta",
+      packageDir: bundledPluginRoot("demo-beta"),
+      packageName: "@crawclaw/demo-beta",
       version: "2026.3.15-beta.1",
       channel: "beta",
       publishTag: "beta",
@@ -150,7 +150,7 @@ describe("resolveSelectedPublishablePluginPackages", () => {
     expect(
       resolveSelectedPublishablePluginPackages({
         plugins: publishablePlugins,
-        selection: ["@crawclaw/zalo"],
+        selection: ["@crawclaw/demo-beta"],
       }),
     ).toEqual([publishablePlugins[1]]);
   });
@@ -169,29 +169,29 @@ describe("collectChangedExtensionIdsFromPaths", () => {
   it("extracts unique extension ids from changed extension paths", () => {
     expect(
       collectChangedExtensionIdsFromPaths([
-        bundledPluginFile("zalo", "index.ts"),
-        bundledPluginFile("zalo", "package.json"),
-        bundledPluginFile("feishu", "src/client.ts"),
+        bundledPluginFile("demo-beta", "index.ts"),
+        bundledPluginFile("demo-beta", "package.json"),
+        bundledPluginFile("demo-alpha", "src/client.ts"),
         "docs/reference/RELEASING.md",
       ]),
-    ).toEqual(["feishu", "zalo"]);
+    ).toEqual(["demo-alpha", "demo-beta"]);
   });
 });
 
 describe("resolveChangedPublishablePluginPackages", () => {
   const publishablePlugins: PublishablePluginPackage[] = [
     {
-      extensionId: "feishu",
-      packageDir: bundledPluginRoot("feishu"),
-      packageName: "@crawclaw/feishu",
+      extensionId: "demo-alpha",
+      packageDir: bundledPluginRoot("demo-alpha"),
+      packageName: "@crawclaw/demo-alpha",
       version: "2026.3.15",
       channel: "stable",
       publishTag: "latest",
     },
     {
-      extensionId: "zalo",
-      packageDir: bundledPluginRoot("zalo"),
-      packageName: "@crawclaw/zalo",
+      extensionId: "demo-beta",
+      packageDir: bundledPluginRoot("demo-beta"),
+      packageName: "@crawclaw/demo-beta",
       version: "2026.3.15-beta.1",
       channel: "beta",
       publishTag: "beta",
@@ -202,7 +202,7 @@ describe("resolveChangedPublishablePluginPackages", () => {
     expect(
       resolveChangedPublishablePluginPackages({
         plugins: publishablePlugins,
-        changedExtensionIds: ["zalo"],
+        changedExtensionIds: ["demo-beta"],
       }),
     ).toEqual([publishablePlugins[1]]);
   });

@@ -17,7 +17,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 
 - [Index](/)
 - [Getting Started](/start/getting-started)
-- [Onboarding (CLI)](/start/wizard)
+- [Desktop onboarding](/start/getting-started)
 - [Setup](/start/setup)
 - [Help](/help)
 - [Docs directory](/start/docs-directory)
@@ -57,8 +57,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Discovery + transports](/gateway/discovery)
 - [Bonjour](/gateway/bonjour)
 - [Channel routing](/channels/channel-routing)
-- [Groups](/channels/groups)
-- [Group messages](/channels/group-messages)
 - [Model failover](/concepts/model-failover)
 - [OAuth](/concepts/oauth)
 
@@ -66,16 +64,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 
 - [Chat channels hub](/channels)
 - [Model providers hub](/providers/models)
-- [WhatsApp](/channels/whatsapp)
-- [Telegram](/channels/telegram)
-- [Slack](/channels/slack)
-- [Discord](/channels/discord)
-- [Mattermost](/channels/mattermost) (plugin)
-- [Signal](/channels/signal)
-- [BlueBubbles (iMessage)](/channels/bluebubbles)
-- [DingTalk](/channels/ddingtalk)
-- [iMessage (legacy)](/channels/imessage)
-- [Location parsing](/channels/location)
 - [Webhooks](/automation/cron-jobs#webhooks)
 - [Gmail Pub/Sub](/automation/cron-jobs#gmail-pubsub-integration)
 
@@ -101,7 +89,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 
 - [Tools surface](/tools)
 - [OpenProse](/prose)
-- [CLI reference](/cli)
 - [Exec tool](/tools/exec)
 - [PDF tool](/tools/pdf)
 - [Elevated mode](/tools/elevated)
@@ -110,10 +97,9 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Thinking + verbose](/tools/thinking)
 - [Models](/concepts/models)
 - [Sub-agents](/tools/subagents)
-- [Agent send CLI](/tools/agent-send)
+- [Agent send](/tools/agent-send)
 - [Browser control](/tools/browser)
 - [Browser (Linux troubleshooting)](/tools/browser-linux-troubleshooting)
-- [Polls](/cli/message)
 
 ## Platforms
 
@@ -131,7 +117,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Community plugins](/plugins/community)
 - [Capability cookbook](/tools/capability-cookbook)
 - [Voice call plugin](/plugins/voice-call)
-- [Zalo user plugin](/plugins/zalouser)
 
 ## Workspace + templates
 

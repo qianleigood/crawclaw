@@ -17,20 +17,14 @@ export {
 } from "../channels/plugins/setup-helpers.js";
 
 export {
-  createAccountScopedAllowFromSection,
-  createAccountScopedGroupAccessSection,
   createTopLevelChannelDmPolicy,
-  createLegacyCompatChannelDmPolicy,
   createStandardChannelSetupStatus,
   mergeAllowFromEntries,
   parseSetupEntriesAllowingWildcard,
   parseMentionOrPrefixedId,
-  patchChannelConfigForAccount,
-  promptLegacyChannelAllowFromForAccount,
   promptParsedAllowFromForAccount,
   resolveEntriesWithOptionalToken,
   resolveSetupAccountId,
-  setAccountAllowFromForChannel,
   setSetupChannelEnabled,
 } from "../channels/plugins/setup-wizard-helpers.js";
 

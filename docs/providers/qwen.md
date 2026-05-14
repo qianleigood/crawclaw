@@ -24,10 +24,10 @@ Qwen models (Qwen 3.5 Plus, GLM-4.7, Kimi K2.5, and more).
 
 ```bash
 # Global endpoint
-crawclaw onboard --auth-choice modelstudio-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # China endpoint
-crawclaw onboard --auth-choice modelstudio-api-key-cn
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 See [Model Studio](/providers/qwen_modelstudio) for full setup details.

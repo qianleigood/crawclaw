@@ -25,8 +25,3 @@ export * from "../media-understanding/image-runtime.ts";
 export * from "../media-understanding/runner.js";
 export { normalizeMediaProviderId } from "../media-understanding/provider-registry.js";
 export * from "../polls.js";
-export {
-  createDirectTextMediaOutbound,
-  createScopedChannelMediaMaxBytesResolver,
-  resolveScopedChannelMediaMaxBytes,
-} from "../channels/plugins/outbound/direct-text-media.js";

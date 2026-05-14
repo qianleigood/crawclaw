@@ -13,45 +13,28 @@ void describe("crawclaw tauri desktop runtime staging", () => {
   void it("stages the embedded CrawClaw runtime under the Tauri app", () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-stage-"));
     const paths = resolveCrawClawDesktopTauriRuntimeStagePaths(rootDir);
+    const node24Root = writeSourceNode24Runtime(rootDir);
     fs.mkdirSync(paths.runtimeRoot, { recursive: true });
     fs.writeFileSync(path.join(paths.runtimeRoot, "stale.txt"), "stale\n", "utf8");
 
     const calls = [];
     stageCrawClawDesktopTauriRuntime({
       rootDir,
-      env: { PATH: "/usr/bin" },
+      env: { PATH: "/usr/bin", CRAWCLAW_DESKTOP_NODE24_ROOT: node24Root },
       runCommand({ cwd, command, args, env }) {
         calls.push({ cwd, command, args, env });
         if (command === "cargo" && args.includes("build")) {
           const targetDir = path.join(rootDir, "target", "release");
           fs.mkdirSync(targetDir, { recursive: true });
           fs.writeFileSync(paths.sourceRuntimeBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
+          fs.writeFileSync(paths.sourceGatewayBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
+          fs.writeFileSync(paths.sourceNativePluginsBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
         }
-        if (command === paths.sourceRuntimeBinaryPath && args[0] === "runtime") {
-          fs.mkdirSync(path.join(paths.runtimeRoot, "runtimes"), { recursive: true });
-          fs.mkdirSync(path.join(paths.runtimeRoot, "channels"), { recursive: true });
-          fs.mkdirSync(path.join(paths.runtimeRoot, "providers"), { recursive: true });
-          fs.mkdirSync(path.join(paths.runtimeRoot, "plugins"), { recursive: true });
-          fs.writeFileSync(
-            path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
-            runtimeManifestJson(),
-            "utf8",
-          );
-          fs.writeFileSync(
-            path.join(paths.runtimeRoot, "channels", "manifest.json"),
-            channelManifestJson(),
-            "utf8",
-          );
-          fs.writeFileSync(
-            path.join(paths.runtimeRoot, "providers", "manifest.json"),
-            providerManifestJson(),
-            "utf8",
-          );
-          fs.writeFileSync(
-            path.join(paths.runtimeRoot, "plugins", "manifest.json"),
-            pluginManifestJson(),
-            "utf8",
-          );
+        if (command === paths.sourceRuntimeBinaryPath && args[0] === "stage") {
+          writeRuntimeManifests(paths.runtimeRoot);
+        }
+        if (command === paths.nodeBinaryPath && args.includes("agent-browser@0.27.0")) {
+          writeEmbeddedBrowserRuntime(paths.runtimeRoot);
         }
         return { status: 0, signal: null, stdout: "", stderr: "" };
       },
@@ -63,12 +46,35 @@ void describe("crawclaw tauri desktop runtime staging", () => {
         {
           cwd: rootDir,
           command: "cargo",
-          args: ["build", "-p", "crawclaw-cli", "--release"],
+          args: [
+            "build",
+            "-p",
+            "crawclaw-runtime",
+            "-p",
+            "crawclaw-gateway",
+            "-p",
+            "crawclaw-native-plugins",
+            "--release",
+          ],
         },
         {
           cwd: rootDir,
           command: paths.sourceRuntimeBinaryPath,
-          args: ["runtime", "stage", "--output", paths.runtimeRoot],
+          args: ["stage", "--output", paths.runtimeRoot],
+        },
+        {
+          cwd: paths.runtimeRoot,
+          command: paths.nodeBinaryPath,
+          args: [
+            path.join(paths.nodeRuntimeRoot, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+            "install",
+            "--global=false",
+            "--prefix",
+            path.join(paths.runtimeRoot, "runtimes", "browser"),
+            "--no-save",
+            "--package-lock=false",
+            "agent-browser@0.27.0",
+          ],
         },
       ],
     );
@@ -77,9 +83,29 @@ void describe("crawclaw tauri desktop runtime staging", () => {
       calls.at(-1).env.CRAWCLAW_PLUGIN_RUNTIMES_DIR,
       path.join(paths.runtimeRoot, "runtimes"),
     );
+    assert.equal(calls.at(-1).env.CRAWCLAW_DESKTOP_NODE24_BIN, paths.nodeBinaryPath);
+    assert.ok(calls.at(-1).env.PATH.startsWith(path.dirname(paths.nodeBinaryPath)));
     assert.equal(calls.at(-1).env.CRAWCLAW_RUNTIME_INSTALL_PROFILE, undefined);
     assert.equal(fs.existsSync(path.join(paths.runtimeRoot, "stale.txt")), false);
     assert.equal(fs.existsSync(paths.runtimeBinaryPath), true);
+    assert.equal(fs.existsSync(paths.gatewayBinaryPath), true);
+    assert.equal(fs.existsSync(paths.nativePluginsBinaryPath), true);
+    assert.equal(fs.existsSync(path.join(paths.runtimeRoot, "bin", "crawclaw")), false);
+    assert.equal(fs.existsSync(paths.nodeBinaryPath), true);
+    assert.equal(fs.existsSync(paths.npmBinaryPath), true);
+    assert.equal(
+      fs.existsSync(
+        path.join(
+          paths.runtimeRoot,
+          "runtimes",
+          "browser",
+          "node_modules",
+          ".bin",
+          "agent-browser",
+        ),
+      ),
+      true,
+    );
   });
 
   void it("release check requires the Tauri app and embedded runtime", () => {
@@ -112,10 +138,13 @@ void describe("crawclaw tauri desktop runtime staging", () => {
     });
 
     const argv = calls.map((call) => call.args.join(" "));
-    assert.ok(argv.some((args) => args.includes("gateway --help")));
-    assert.ok(argv.some((args) => args.includes("desktop-runtime status --json")));
-    assert.ok(argv.some((args) => args.includes("channels list --json")));
+    assert.ok(argv.some((args) => args.includes("status --json")));
+    assert.ok(argv.some((args) => args.includes("--help")));
+    assert.ok(calls.some((call) => String(call.command).includes("crawclaw-gateway")));
+    assert.ok(calls.some((call) => String(call.command).includes("crawclaw-runtime")));
+    assert.ok(calls.every((call) => !String(call.command).endsWith("/crawclaw")));
     assert.ok(argv.every((args) => !args.includes("desktop-api snapshot --json")));
+    assert.ok(argv.every((args) => !args.includes("desktop-runtime status --json")));
   });
 
   void it("release check rejects missing runtime release inputs", () => {
@@ -143,6 +172,23 @@ void describe("crawclaw tauri desktop runtime staging", () => {
         expectedMessage,
       );
     }
+  });
+
+  void it("release check rejects missing embedded agent-browser runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-browser-runtime-"));
+    writeReleaseFixture(rootDir, { omitBrowserRuntime: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /embedded agent-browser CLI/,
+    );
   });
 
   void it("release check rejects legacy Electron desktop package and scripts", () => {
@@ -196,7 +242,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
     );
   });
 
-  void it("release check rejects default JS plugin runtime metadata", () => {
+  void it("release check rejects QuickJS plugin runtime metadata", () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-js-fallback-"));
     writeReleaseFixture(rootDir, { jsPluginRuntime: "pi-quickjs" });
 
@@ -209,7 +255,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
             return { status: 0, signal: null, stdout: "", stderr: "" };
           },
         }),
-      /must not advertise a default JS plugin runtime/,
+      /must advertise the bundled Node plugin runtime/,
     );
   });
 
@@ -327,6 +373,8 @@ function writeReleaseFixture(rootDir, options = {}) {
   );
   if (options.omit !== "binary") {
     fs.writeFileSync(paths.runtimeBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
+    fs.writeFileSync(paths.gatewayBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
+    fs.writeFileSync(paths.nativePluginsBinaryPath, "#!/bin/sh\nexit 0\n", "utf8");
   }
   if (options.omit !== "manifest") {
     fs.writeFileSync(
@@ -355,6 +403,10 @@ function writeReleaseFixture(rootDir, options = {}) {
       pluginManifestJson(options),
       "utf8",
     );
+  }
+  writeNode24Runtime(paths.nodeRuntimeRoot);
+  if (!options.omitBrowserRuntime) {
+    writeEmbeddedBrowserRuntime(paths.runtimeRoot);
   }
   if (options.legacyElectron) {
     fs.mkdirSync(path.join(rootDir, "apps", "crawclaw-admin-desktop"), { recursive: true });
@@ -395,7 +447,17 @@ function writeReleaseFixture(rootDir, options = {}) {
     fs.mkdirSync(path.join(packagedRoot, "providers"), { recursive: true });
     fs.mkdirSync(path.join(packagedRoot, "plugins"), { recursive: true });
     fs.writeFileSync(
-      path.join(packagedRoot, "bin", process.platform === "win32" ? "crawclaw.exe" : "crawclaw"),
+      path.join(packagedRoot, "bin", runtimeBinaryName()),
+      "#!/bin/sh\nexit 0\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(packagedRoot, "bin", gatewayBinaryName()),
+      "#!/bin/sh\nexit 0\n",
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(packagedRoot, "bin", nativePluginsBinaryName()),
       "#!/bin/sh\nexit 0\n",
       "utf8",
     );
@@ -421,6 +483,10 @@ function writeReleaseFixture(rootDir, options = {}) {
       pluginManifestJson(options),
       "utf8",
     );
+    writeNode24Runtime(path.join(packagedRoot, "runtimes", "node-v24"));
+    if (!options.omitBrowserRuntime) {
+      writeEmbeddedBrowserRuntime(packagedRoot);
+    }
     if (options.packagedNodeRuntimeEntrypoint) {
       fs.writeFileSync(path.join(packagedRoot, "crawclaw.mjs"), "export {};\n", "utf8");
     }
@@ -428,7 +494,15 @@ function writeReleaseFixture(rootDir, options = {}) {
   if (process.platform !== "win32") {
     for (const executablePath of [
       paths.runtimeBinaryPath,
-      path.join(packagedMacRuntimeRoot(rootDir), "bin", "crawclaw"),
+      paths.gatewayBinaryPath,
+      paths.nativePluginsBinaryPath,
+      paths.nodeBinaryPath,
+      paths.npmBinaryPath,
+      path.join(packagedMacRuntimeRoot(rootDir), "bin", runtimeBinaryName()),
+      path.join(packagedMacRuntimeRoot(rootDir), "bin", gatewayBinaryName()),
+      path.join(packagedMacRuntimeRoot(rootDir), "bin", nativePluginsBinaryName()),
+      path.join(packagedMacRuntimeRoot(rootDir), "runtimes", "node-v24", "bin", "node"),
+      path.join(packagedMacRuntimeRoot(rootDir), "runtimes", "node-v24", "bin", "npm"),
     ]) {
       if (fs.existsSync(executablePath)) {
         fs.chmodSync(executablePath, 0o755);
@@ -437,18 +511,103 @@ function writeReleaseFixture(rootDir, options = {}) {
   }
 }
 
+function writeRuntimeManifests(runtimeRoot, options = {}) {
+  fs.mkdirSync(path.join(runtimeRoot, "runtimes"), { recursive: true });
+  fs.mkdirSync(path.join(runtimeRoot, "channels"), { recursive: true });
+  fs.mkdirSync(path.join(runtimeRoot, "providers"), { recursive: true });
+  fs.mkdirSync(path.join(runtimeRoot, "plugins"), { recursive: true });
+  fs.writeFileSync(
+    path.join(runtimeRoot, "runtimes", "manifest.json"),
+    runtimeManifestJson(options),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(runtimeRoot, "channels", "manifest.json"),
+    channelManifestJson(),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(runtimeRoot, "providers", "manifest.json"),
+    providerManifestJson(),
+    "utf8",
+  );
+  fs.writeFileSync(
+    path.join(runtimeRoot, "plugins", "manifest.json"),
+    pluginManifestJson(options),
+    "utf8",
+  );
+}
+
+function writeEmbeddedBrowserRuntime(runtimeRoot) {
+  const browserRuntimeRoot = path.join(runtimeRoot, "runtimes", "browser");
+  const binDir = path.join(browserRuntimeRoot, "node_modules", ".bin");
+  const packageDir = path.join(browserRuntimeRoot, "node_modules", "agent-browser");
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.mkdirSync(packageDir, { recursive: true });
+  const binPath = path.join(
+    binDir,
+    process.platform === "win32" ? "agent-browser.cmd" : "agent-browser",
+  );
+  fs.writeFileSync(binPath, "#!/bin/sh\nprintf 'agent-browser 0.27.0\\n'\n", "utf8");
+  fs.writeFileSync(
+    path.join(packageDir, "package.json"),
+    '{"name":"agent-browser","version":"0.27.0"}\n',
+    "utf8",
+  );
+  if (process.platform !== "win32") {
+    fs.chmodSync(binPath, 0o755);
+  }
+}
+
 function runtimeManifestJson(options = {}) {
   return `${JSON.stringify({
     runtime: "rust-native",
-    jsPluginRuntime: options.jsPluginRuntime ?? "none",
+    jsPluginRuntime: options.jsPluginRuntime ?? "node",
+    node: { major: 24, distribution: "bundled" },
   })}\n`;
+}
+
+function runtimeBinaryName() {
+  return process.platform === "win32" ? "crawclaw-runtime.exe" : "crawclaw-runtime";
+}
+
+function gatewayBinaryName() {
+  return process.platform === "win32" ? "crawclaw-gateway.exe" : "crawclaw-gateway";
+}
+
+function nativePluginsBinaryName() {
+  return process.platform === "win32" ? "crawclaw-native-plugins.exe" : "crawclaw-native-plugins";
 }
 
 function pluginManifestJson(options = {}) {
   return `${JSON.stringify({
     readModel: true,
-    jsPluginRuntime: options.jsPluginRuntime ?? "none",
+    jsPluginRuntime: options.jsPluginRuntime ?? "node",
+    node: { major: 24, distribution: "bundled", permissions: "full" },
   })}\n`;
+}
+
+function writeSourceNode24Runtime(rootDir) {
+  const nodeRoot = path.join(rootDir, "fixtures", "node-v24");
+  writeNode24Runtime(nodeRoot);
+  return nodeRoot;
+}
+
+function writeNode24Runtime(nodeRoot) {
+  const binDir = path.join(nodeRoot, "bin");
+  fs.mkdirSync(binDir, { recursive: true });
+  fs.writeFileSync(path.join(binDir, "node"), "#!/bin/sh\nprintf 'v24.0.0\\n'\n", "utf8");
+  fs.writeFileSync(path.join(binDir, "npm"), "#!/bin/sh\nprintf '11.0.0\\n'\n", "utf8");
+  fs.mkdirSync(path.join(nodeRoot, "lib", "node_modules", "npm", "bin"), { recursive: true });
+  fs.writeFileSync(
+    path.join(nodeRoot, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+    "require('../lib/cli.js')(process)\n",
+    "utf8",
+  );
+  if (process.platform !== "win32") {
+    fs.chmodSync(path.join(binDir, "node"), 0o755);
+    fs.chmodSync(path.join(binDir, "npm"), 0o755);
+  }
 }
 
 function packagedMacRuntimeRoot(rootDir) {

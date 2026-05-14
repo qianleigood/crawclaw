@@ -59,10 +59,26 @@ type PublishablePluginPackageCandidate = {
   extensionId: string;
   packageDir: string;
   packageJson: PluginPackageJson;
+  hasNativeManifest?: boolean;
 };
 
 function readPluginPackageJson(path: string): PluginPackageJson {
   return JSON.parse(readFileSync(path, "utf8")) as PluginPackageJson;
+}
+
+function readPluginManifestHasNative(packageDir: string): boolean {
+  try {
+    const manifest = JSON.parse(readFileSync(join(packageDir, "crawclaw.plugin.json"), "utf8")) as {
+      native?: { protocol?: unknown; schemaVersion?: unknown; bin?: unknown; command?: unknown };
+    };
+    return (
+      manifest.native?.protocol === "crawclaw-native-plugin-jsonrpc" &&
+      manifest.native.schemaVersion === 1 &&
+      (typeof manifest.native.bin === "string" || Array.isArray(manifest.native.command))
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function parsePluginReleaseSelection(value: string | undefined): string[] {
@@ -174,7 +190,7 @@ export function collectPublishablePluginPackageErrors(
       `package.json version must match YYYY.M.D, YYYY.M.D-N, or YYYY.M.D-beta.N; found "${packageVersion}".`,
     );
   }
-  if (!Array.isArray(extensions) || extensions.length === 0) {
+  if ((!Array.isArray(extensions) || extensions.length === 0) && !candidate.hasNativeManifest) {
     errors.push("crawclaw.extensions must contain at least one entry.");
   }
   if (extensions.some((entry) => typeof entry !== "string" || !entry.trim())) {
@@ -214,6 +230,7 @@ export function collectPublishablePluginPackages(
       extensionId: dir.name,
       packageDir,
       packageJson,
+      hasNativeManifest: readPluginManifestHasNative(absolutePackageDir),
     } satisfies PublishablePluginPackageCandidate;
     const errors = collectPublishablePluginPackageErrors(candidate);
     if (errors.length > 0) {

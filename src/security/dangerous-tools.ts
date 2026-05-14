@@ -29,6 +29,4 @@ export const DEFAULT_GATEWAY_HTTP_TOOL_DENY = [
   "cron",
   // Gateway control plane — prevents gateway reconfiguration via HTTP
   "gateway",
-  // Interactive setup — requires terminal QR scan, hangs on HTTP
-  "whatsapp_login",
 ] as const;

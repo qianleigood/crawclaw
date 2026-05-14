@@ -225,6 +225,10 @@ impl<'de> Deserialize<'de> for ChannelOutboundAction {
 pub struct ChannelCapabilityDescriptor {
     pub channel: String,
     pub label: String,
+    #[serde(default = "default_control_plane_runtime_kind")]
+    pub runtime_kind: String,
+    #[serde(default = "default_channel_adapter_runtime_kind")]
+    pub adapter_runtime_kind: String,
     pub rust_adapter_id: String,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub chat_types: Vec<ChatType>,
@@ -236,6 +240,14 @@ pub struct ChannelCapabilityDescriptor {
     pub outbound: ChannelOutboundCapability,
     #[serde(default)]
     pub lifecycle: ChannelLifecycleCapability,
+}
+
+fn default_control_plane_runtime_kind() -> String {
+    "rust".to_string()
+}
+
+fn default_channel_adapter_runtime_kind() -> String {
+    "rust".to_string()
 }
 
 #[derive(Clone, Debug, Default, Serialize, Deserialize, PartialEq, Eq)]
@@ -608,6 +620,8 @@ macro_rules! channel_descriptor {
         ChannelCapabilityDescriptor {
             channel: $channel.to_string(),
             label: $label.to_string(),
+            runtime_kind: default_control_plane_runtime_kind(),
+            adapter_runtime_kind: default_channel_adapter_runtime_kind(),
             rust_adapter_id: concat!($channel, "-native").to_string(),
             chat_types: vec![$($chat_type),*],
             actions: vec![$($action),*],
@@ -640,66 +654,12 @@ static NATIVE_CHANNEL_DESCRIPTORS: std::sync::LazyLock<Vec<ChannelCapabilityDesc
 
         vec![
             channel_descriptor!(
-                "desktop",
-                "Desktop",
-                chat_types: [Direct],
-                actions: [Send, Reply],
-                inbound: { webhook: false, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "bluebubbles",
-                "BlueBubbles",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: true, polling: true, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "telegram",
-                "Telegram",
-                chat_types: [Direct, Group, Thread],
-                actions: [Send, Poll, Reply, SendAttachment],
-                inbound: { webhook: true, polling: true, media_download: true },
-                outbound: { text: true, media: true, poll: true, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "whatsapp",
-                "WhatsApp",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "discord",
-                "Discord",
-                chat_types: [Direct, Group, Channel, Thread],
-                actions: [Send, Poll, Reply, SendAttachment, ThreadCreate, ThreadReply],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: true, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
                 "ddingtalk",
                 "DingTalk",
                 chat_types: [Direct, Group],
                 actions: [Send, Reply, SendAttachment],
                 inbound: { webhook: true, polling: false, media_download: true },
                 outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "esp32",
-                "ESP32",
-                chat_types: [Direct],
-                actions: [Send, Reply],
-                inbound: { webhook: false, polling: true, media_download: true },
-                outbound: { text: true, media: false, poll: false, thread_reply: false },
                 lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
             ),
             channel_descriptor!(
@@ -712,48 +672,12 @@ static NATIVE_CHANNEL_DESCRIPTORS: std::sync::LazyLock<Vec<ChannelCapabilityDesc
                 lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
             ),
             channel_descriptor!(
-                "irc",
-                "IRC",
-                chat_types: [Direct, Channel],
-                actions: [Send, Reply],
-                inbound: { webhook: false, polling: true, media_download: false },
-                outbound: { text: true, media: false, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "googlechat",
-                "Google Chat",
-                chat_types: [Direct, Group, Thread],
-                actions: [Send, Reply],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "slack",
-                "Slack",
-                chat_types: [Direct, Channel, Thread],
-                actions: [Send, Poll, Reply, SendAttachment, ThreadReply],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: true, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "nextcloud-talk",
-                "Nextcloud Talk",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "nostr",
-                "Nostr",
+                "esp32",
+                "ESP32",
                 chat_types: [Direct],
-                actions: [Send, Reply],
-                inbound: { webhook: false, polling: true, media_download: false },
-                outbound: { text: true, media: false, poll: false, thread_reply: false },
+                actions: [Send, SendAttachment],
+                inbound: { webhook: false, polling: true, media_download: true },
+                outbound: { text: true, media: true, poll: false, thread_reply: false },
                 lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
             ),
             channel_descriptor!(
@@ -766,107 +690,8 @@ static NATIVE_CHANNEL_DESCRIPTORS: std::sync::LazyLock<Vec<ChannelCapabilityDesc
                 lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
             ),
             channel_descriptor!(
-                "signal",
-                "Signal",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: false, polling: true, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "imessage",
-                "iMessage",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: false, polling: true, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "line",
-                "LINE",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "matrix",
-                "Matrix",
-                chat_types: [Direct, Group, Channel, Thread],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: false, polling: true, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "mattermost",
-                "Mattermost",
-                chat_types: [Direct, Channel, Thread],
-                actions: [Send, Poll, Reply, SendAttachment, ThreadReply],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: true, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "synology-chat",
-                "Synology Chat",
-                chat_types: [Direct],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "tlon",
-                "Tlon",
-                chat_types: [Direct, Group, Thread],
-                actions: [Send, Reply, SendAttachment, ThreadReply],
-                inbound: { webhook: false, polling: true, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "twitch",
-                "Twitch",
-                chat_types: [Channel],
-                actions: [Send, Reply],
-                inbound: { webhook: false, polling: true, media_download: false },
-                outbound: { text: true, media: false, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "msteams",
-                "Microsoft Teams",
-                chat_types: [Direct, Channel, Thread],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: true },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
                 "weixin",
                 "Weixin",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: false, polling: true, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "zalo",
-                "Zalo",
-                chat_types: [Direct, Group],
-                actions: [Send, Reply, SendAttachment],
-                inbound: { webhook: true, polling: false, media_download: true },
-                outbound: { text: true, media: true, poll: false, thread_reply: false },
-                lifecycle: { setup: true, status: true, start: true, stop: true, restart: true }
-            ),
-            channel_descriptor!(
-                "zalouser",
-                "Zalo User",
                 chat_types: [Direct, Group],
                 actions: [Send, Reply, SendAttachment],
                 inbound: { webhook: false, polling: true, media_download: true },

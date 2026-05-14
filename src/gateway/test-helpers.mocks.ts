@@ -26,10 +26,6 @@ const { buildOpenAISpeechProvider } = loadBundledPluginTestApiSync<{
   buildOpenAISpeechProvider: () => SpeechProviderPlugin;
 }>("openai");
 
-function buildBundledPluginModuleId(pluginId: string, artifactBasename: string): string {
-  return ["..", "..", "extensions", pluginId, artifactBasename].join("/");
-}
-
 type StubChannelOptions = {
   id: ChannelPlugin["id"];
   label: string;
@@ -95,67 +91,33 @@ const createStubPluginRegistry = (): PluginRegistry => ({
   typedHooks: [],
   channels: [
     {
-      pluginId: "whatsapp",
+      pluginId: "ddingtalk",
       source: "test",
-      plugin: createStubChannelPlugin({ id: "whatsapp", label: "WhatsApp" }),
+      plugin: createStubChannelPlugin({ id: "ddingtalk", label: "DingTalk" }),
     },
     {
-      pluginId: "telegram",
+      pluginId: "esp32",
       source: "test",
       plugin: createStubChannelPlugin({
-        id: "telegram",
-        label: "Telegram",
+        id: "esp32",
+        label: "ESP32",
         summary: { tokenSource: "none", lastProbeAt: null },
       }),
     },
     {
-      pluginId: "discord",
+      pluginId: "feishu",
       source: "test",
-      plugin: createStubChannelPlugin({ id: "discord", label: "Discord" }),
+      plugin: createStubChannelPlugin({ id: "feishu", label: "Feishu" }),
     },
     {
-      pluginId: "slack",
+      pluginId: "qqbot",
       source: "test",
-      plugin: createStubChannelPlugin({ id: "slack", label: "Slack" }),
+      plugin: createStubChannelPlugin({ id: "qqbot", label: "QQ Bot" }),
     },
     {
-      pluginId: "signal",
+      pluginId: "weixin",
       source: "test",
-      plugin: createStubChannelPlugin({
-        id: "signal",
-        label: "Signal",
-        summary: { lastProbeAt: null },
-      }),
-    },
-    {
-      pluginId: "imessage",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "imessage", label: "iMessage" }),
-    },
-    {
-      pluginId: "msteams",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "msteams", label: "Microsoft Teams" }),
-    },
-    {
-      pluginId: "matrix",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "matrix", label: "Matrix" }),
-    },
-    {
-      pluginId: "zalo",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "zalo", label: "Zalo" }),
-    },
-    {
-      pluginId: "zalouser",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "zalouser", label: "Zalo Personal" }),
-    },
-    {
-      pluginId: "bluebubbles",
-      source: "test",
-      plugin: createStubChannelPlugin({ id: "bluebubbles", label: "BlueBubbles" }),
+      plugin: createStubChannelPlugin({ id: "weixin", label: "Weixin" }),
     },
   ],
   channelSetups: [],
@@ -218,7 +180,6 @@ const hoisted = vi.hoisted(() => {
       };
       testTailscaleWhois: { value: TailscaleWhoisIdentity | null };
       getReplyFromConfig: ReturnType<typeof vi.fn<GetReplyFromConfigFn>>;
-      sendWhatsAppMock: ReturnType<typeof vi.fn>;
       testState: {
         agentConfig: Record<string, unknown> | undefined;
         agentsConfig: Record<string, unknown> | undefined;
@@ -265,7 +226,6 @@ const hoisted = vi.hoisted(() => {
     },
     testTailscaleWhois: { value: null as TailscaleWhoisIdentity | null },
     getReplyFromConfig: vi.fn<GetReplyFromConfigFn>().mockResolvedValue(undefined),
-    sendWhatsAppMock: vi.fn().mockResolvedValue({ messageId: "msg-1", toJid: "jid-1" }),
     testState: {
       agentConfig: undefined as Record<string, unknown> | undefined,
       agentsConfig: undefined as Record<string, unknown> | undefined,
@@ -323,8 +283,6 @@ export const getReplyFromConfig: Mock<GetReplyFromConfigFn> = hoisted.getReplyFr
 export const mockGetReplyFromConfigOnce = (impl: GetReplyFromConfigFn) => {
   getReplyFromConfig.mockImplementationOnce(impl);
 };
-export const sendWhatsAppMock = hoisted.sendWhatsAppMock;
-
 export const testState = hoisted.testState;
 
 export const testIsNixMode = hoisted.testIsNixMode;
@@ -576,12 +534,12 @@ vi.mock("../config/config.js", async () => {
     const mergedChannels = { ...fileChannels, ...overrideChannels };
     if (testState.allowFrom !== undefined) {
       const existing =
-        mergedChannels.whatsapp &&
-        typeof mergedChannels.whatsapp === "object" &&
-        !Array.isArray(mergedChannels.whatsapp)
-          ? (mergedChannels.whatsapp as Record<string, unknown>)
+        mergedChannels.weixin &&
+        typeof mergedChannels.weixin === "object" &&
+        !Array.isArray(mergedChannels.weixin)
+          ? (mergedChannels.weixin as Record<string, unknown>)
           : {};
-      mergedChannels.whatsapp = {
+      mergedChannels.weixin = {
         ...existing,
         allowFrom: testState.allowFrom,
       };
@@ -738,22 +696,6 @@ vi.mock("../commands/health.js", () => ({
 vi.mock("../commands/status.js", () => ({
   getStatusSummary: vi.fn().mockResolvedValue({ ok: true }),
 }));
-vi.mock(buildBundledPluginModuleId("whatsapp", "runtime-api.js"), () => ({
-  sendMessageWhatsApp: (...args: unknown[]) =>
-    (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
-  sendPollWhatsApp: (...args: unknown[]) =>
-    (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
-}));
-vi.mock("../channels/web/index.js", async () => {
-  const actual = await vi.importActual<typeof import("../channels/web/index.js")>(
-    "../channels/web/index.js",
-  );
-  return {
-    ...actual,
-    sendMessageWhatsApp: (...args: unknown[]) =>
-      (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
-  };
-});
 vi.mock("../commands/agent.js", () => ({
   agentCommand,
   agentCommandFromIngress: agentCommand,
@@ -790,11 +732,7 @@ vi.mock("../cli/deps.js", async () => {
   const base = actual.createDefaultDeps();
   return {
     ...actual,
-    createDefaultDeps: () => ({
-      ...base,
-      sendMessageWhatsApp: (...args: unknown[]) =>
-        (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
-    }),
+    createDefaultDeps: () => base,
   };
 });
 
@@ -806,15 +744,6 @@ vi.mock("../plugins/loader.js", async () => {
     loadCrawClawPlugins: () => pluginRegistryState.registry,
   };
 });
-vi.mock("../plugins/runtime/runtime-whatsapp-boundary.js", () => ({
-  sendMessageWhatsApp: (...args: unknown[]) =>
-    (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
-}));
-vi.mock("/src/plugins/runtime/runtime-whatsapp-boundary.js", () => ({
-  sendMessageWhatsApp: (...args: unknown[]) =>
-    (hoisted.sendWhatsAppMock as (...args: unknown[]) => unknown)(...args),
-}));
-
 process.env.CRAWCLAW_SKIP_CHANNELS = "1";
 process.env.CRAWCLAW_SKIP_CRON = "1";
 process.env.CRAWCLAW_SKIP_CHANNELS = "1";

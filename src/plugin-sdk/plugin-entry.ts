@@ -12,7 +12,6 @@ import type {
   CrawClawPluginServiceContext,
   CrawClawPluginToolContext,
   CrawClawPluginToolFactory,
-  PluginInteractiveTelegramHandlerContext,
   PluginLogger,
   ProviderAugmentModelCatalogContext,
   ProviderAuthContext,
@@ -37,7 +36,6 @@ import type {
   ProviderNormalizeModelIdContext,
   ProviderNormalizeResolvedModelContext,
   ProviderPrepareDynamicModelContext,
-  ProviderPrepareExtraParamsContext,
   ProviderPrepareRuntimeAuthContext,
   ProviderPreparedRuntimeAuth,
   ProviderReasoningOutputMode,
@@ -51,7 +49,6 @@ import type {
   ProviderRuntimeModel,
   ProviderThinkingPolicyContext,
   ProviderValidateReplayTurnsContext,
-  ProviderWrapStreamFnContext,
   SpeechProviderPlugin,
   PluginCommandContext,
 } from "../plugins/types.js";
@@ -86,7 +83,6 @@ export type {
   ProviderReasoningOutputMode,
   ProviderReasoningOutputModeContext,
   ProviderResolvedUsageAuth,
-  ProviderPrepareExtraParamsContext,
   ProviderPrepareDynamicModelContext,
   ProviderPrepareRuntimeAuthContext,
   ProviderSanitizeReplayHistoryContext,
@@ -97,7 +93,6 @@ export type {
   SpeechProviderPlugin,
   ProviderThinkingPolicyContext,
   ProviderValidateReplayTurnsContext,
-  ProviderWrapStreamFnContext,
   CrawClawPluginService,
   CrawClawPluginServiceContext,
   ProviderAuthContext,
@@ -108,7 +103,6 @@ export type {
   CrawClawPluginCommandDefinition,
   CrawClawPluginDefinition,
   PluginLogger,
-  PluginInteractiveTelegramHandlerContext,
 };
 export type { CrawClawConfig } from "../config/config.js";
 

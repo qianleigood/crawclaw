@@ -45,6 +45,7 @@ export type PluginManifestRecord = {
   name?: string;
   description?: string;
   version?: string;
+  native?: PluginManifest["native"];
   enabledByDefault?: boolean;
   autoEnableWhenConfiguredProviders?: string[];
   format?: PluginFormat;
@@ -232,6 +233,7 @@ function buildRecord(params: {
     description:
       normalizeManifestLabel(params.manifest.description) ?? params.candidate.packageDescription,
     version: normalizeManifestLabel(params.manifest.version) ?? params.candidate.packageVersion,
+    native: params.manifest.native,
     enabledByDefault: params.manifest.enabledByDefault === true ? true : undefined,
     autoEnableWhenConfiguredProviders: params.manifest.autoEnableWhenConfiguredProviders,
     format: params.candidate.format ?? "crawclaw",

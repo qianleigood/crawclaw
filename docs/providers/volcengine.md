@@ -21,7 +21,7 @@ workloads.
 1. Set the API key:
 
 ```bash
-crawclaw onboard --auth-choice volcengine-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 2. Set a default model:
@@ -39,10 +39,7 @@ crawclaw onboard --auth-choice volcengine-api-key
 ## Non-interactive example
 
 ```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice volcengine-api-key \
-  --volcengine-api-key "$VOLCANO_ENGINE_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Providers and endpoints

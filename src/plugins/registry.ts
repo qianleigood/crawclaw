@@ -11,7 +11,6 @@ import { registerPluginCommand, validatePluginCommandDefinition } from "./comman
 import type { PluginActivationSource } from "./config-state.js";
 import { normalizePluginHttpPath } from "./http-path.js";
 import { findOverlappingPluginHttpRoute } from "./http-route-overlap.js";
-import { registerPluginInteractiveHandler } from "./interactive.js";
 import { normalizeRegisteredProvider } from "./provider-validation.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
 import { withPluginRuntimePluginIdScope } from "./runtime/gateway-request-scope.js";
@@ -954,20 +953,6 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
                 registerGatewayMethod(record, method, handler, opts),
               registerService: (service) => registerService(record, service),
               registerCliBackend: (backend) => registerCliBackend(record, backend),
-              registerInteractiveHandler: (registration) => {
-                const result = registerPluginInteractiveHandler(record.id, registration, {
-                  pluginName: record.name,
-                  pluginRoot: record.rootDir,
-                });
-                if (!result.ok) {
-                  pushDiagnostic({
-                    level: "warn",
-                    pluginId: record.id,
-                    source: record.source,
-                    message: result.error ?? "interactive handler registration failed",
-                  });
-                }
-              },
               onConversationBindingResolved: (handler) =>
                 registerConversationBindingResolvedHandler(record, handler),
               registerCommand: (command) => registerCommand(record, command),

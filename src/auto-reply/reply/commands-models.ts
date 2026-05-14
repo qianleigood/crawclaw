@@ -8,17 +8,6 @@ import {
   resolveDefaultModelForAgent,
   resolveModelRefFromString,
 } from "../../agents/model-selection.js";
-import {
-  buildTelegramModelsListReply,
-  buildTelegramModelsProviderPickerReply,
-} from "../../channels/telegram-command-replies.js";
-import {
-  buildModelsKeyboard,
-  buildProviderKeyboard,
-  calculateTotalPages,
-  getModelsPageSize,
-  type ProviderInfo,
-} from "../../channels/telegram-model-picker.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { ReplyPayload } from "../types.js";
@@ -253,24 +242,9 @@ export async function resolveModelsCommandReply(params: {
     params.cfg,
     params.agentId,
   );
-  const isTelegram = params.surface === "telegram";
 
   // Provider list (no provider specified)
   if (!provider) {
-    if (isTelegram && providers.length > 0) {
-      const providerInfos: ProviderInfo[] = providers.map((p) => ({
-        id: p,
-        count: byProvider.get(p)?.size ?? 0,
-      }));
-      const pickerReply = buildTelegramModelsProviderPickerReply({
-        providers: providerInfos,
-        buildProviderKeyboard,
-      });
-      if (pickerReply) {
-        return pickerReply;
-      }
-    }
-
     const lines: string[] = [
       "Providers:",
       ...providers.map((p) =>
@@ -314,31 +288,6 @@ export async function resolveModelsCommandReply(params: {
     return { text: lines.join("\n") };
   }
 
-  if (isTelegram) {
-    const telegramPageSize = getModelsPageSize();
-    const totalPages = calculateTotalPages(total, telegramPageSize);
-    const safePage = Math.max(1, Math.min(page, totalPages));
-
-    const buttons = buildModelsKeyboard({
-      provider,
-      models,
-      currentModel: params.currentModel,
-      currentPage: safePage,
-      totalPages,
-      pageSize: telegramPageSize,
-      modelNames,
-    });
-
-    const text = formatModelsAvailableHeader({
-      provider,
-      total,
-      cfg: params.cfg,
-      agentDir: params.agentDir,
-      sessionEntry: params.sessionEntry,
-    });
-    return buildTelegramModelsListReply({ text, buttons });
-  }
-
   const effectivePageSize = all ? total : pageSize;
   const pageCount = effectivePageSize > 0 ? Math.ceil(total / effectivePageSize) : 1;
   const safePage = all ? 1 : Math.max(1, Math.min(page, pageCount));
@@ -361,7 +310,8 @@ export async function resolveModelsCommandReply(params: {
 
   const lines: string[] = [header];
   for (const id of pageModels) {
-    lines.push(`- ${provider}/${id}`);
+    const displayName = modelNames.get(`${provider}/${id}`);
+    lines.push(displayName ? `- ${provider}/${id} (${displayName})` : `- ${provider}/${id}`);
   }
 
   lines.push("", "Switch: /model <provider/model>");

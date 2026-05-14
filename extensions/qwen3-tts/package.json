@@ -5,8 +5,6 @@
   "description": "CrawClaw Qwen3-TTS speech provider",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

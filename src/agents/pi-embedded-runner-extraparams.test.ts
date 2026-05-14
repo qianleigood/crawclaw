@@ -1,21 +1,6 @@
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 import type { Context, Model, SimpleStreamOptions } from "@mariozechner/pi-ai";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  createAnthropicBetaHeadersWrapper,
-  createAnthropicFastModeWrapper,
-  createAnthropicServiceTierWrapper,
-  resolveAnthropicBetas,
-  resolveAnthropicFastMode,
-  resolveAnthropicServiceTier,
-} from "../../extensions/anthropic/api.js";
-import { createConfiguredOllamaCompatNumCtxWrapper } from "../plugin-sdk/ollama.js";
-import { __testing as extraParamsTesting } from "./pi-embedded-runner/extra-params.js";
-import {
-  createOpenRouterSystemCacheWrapper,
-  createOpenRouterWrapper,
-  isProxyReasoningUnsupported,
-} from "./pi-embedded-runner/proxy-stream-wrappers.js";
 import type { ProviderCapabilities } from "./provider-capabilities.js";
 import { __testing as providerCapabilitiesTesting } from "./provider-capabilities.js";
 
@@ -39,37 +24,6 @@ const resolveProviderCapabilitiesWithPluginMock = vi.fn(
   },
 );
 
-const XAI_FAST_MODEL_IDS = new Map<string, string>([
-  ["grok-3", "grok-3-fast"],
-  ["grok-3-mini", "grok-3-mini-fast"],
-  ["grok-4", "grok-4-fast"],
-  ["grok-4-0709", "grok-4-fast"],
-]);
-
-function createTestXaiFastModeWrapper(
-  baseStreamFn: StreamFn | undefined,
-  fastMode: boolean,
-): StreamFn {
-  return (model, context, options) => {
-    if (!fastMode || model.api !== "openai-completions" || model.provider !== "xai") {
-      return (
-        baseStreamFn ??
-        (() => {
-          throw new Error("missing stream function");
-        })
-      )(model, context, options);
-    }
-
-    const fastModelId = XAI_FAST_MODEL_IDS.get(model.id.trim());
-    return (
-      baseStreamFn ??
-      (() => {
-        throw new Error("missing stream function");
-      })
-    )(fastModelId ? { ...model, id: fastModelId } : model, context, options);
-  };
-}
-
 import {
   applyExtraParamsToAgent,
   resolveAgentTransportOverride,
@@ -79,78 +33,6 @@ import {
 import { log } from "./pi-embedded-runner/logger.js";
 
 beforeEach(() => {
-  extraParamsTesting.setProviderRuntimeDepsForTest({
-    prepareProviderExtraParams: (params) => {
-      if (params.provider !== "openai-codex") {
-        return undefined;
-      }
-      const transport = params.context.extraParams?.transport;
-      if (transport === "auto" || transport === "sse" || transport === "websocket") {
-        return params.context.extraParams;
-      }
-      return {
-        ...params.context.extraParams,
-        transport: "auto",
-      };
-    },
-    wrapProviderStreamFn: (params) => {
-      if (params.provider === "ollama") {
-        return createConfiguredOllamaCompatNumCtxWrapper(params.context);
-      }
-      if (params.provider === "xai") {
-        return createTestXaiFastModeWrapper(
-          params.context.streamFn,
-          params.context.extraParams?.fastMode === true,
-        );
-      }
-      if (params.provider === "anthropic") {
-        let streamFn = params.context.streamFn;
-        const anthropicBetas = resolveAnthropicBetas(
-          params.context.extraParams,
-          params.context.modelId,
-        );
-        if (anthropicBetas?.length) {
-          streamFn = createAnthropicBetaHeadersWrapper(streamFn, anthropicBetas);
-        }
-        const serviceTier = resolveAnthropicServiceTier(params.context.extraParams);
-        if (serviceTier) {
-          streamFn = createAnthropicServiceTierWrapper(streamFn, serviceTier);
-        }
-        const fastMode = resolveAnthropicFastMode(params.context.extraParams);
-        if (fastMode !== undefined) {
-          streamFn = createAnthropicFastModeWrapper(streamFn, fastMode);
-        }
-        return streamFn;
-      }
-      if (params.provider !== "openrouter") {
-        return params.context.streamFn;
-      }
-
-      const providerRouting =
-        params.context.extraParams?.provider != null &&
-        typeof params.context.extraParams.provider === "object"
-          ? (params.context.extraParams.provider as Record<string, unknown>)
-          : undefined;
-      let streamFn = params.context.streamFn;
-      if (providerRouting) {
-        const underlying = streamFn;
-        streamFn = (model, context, options) =>
-          (underlying as StreamFn)(
-            {
-              ...model,
-              compat: { ...model.compat, openRouterRouting: providerRouting },
-            },
-            context,
-            options,
-          );
-      }
-
-      const skipReasoningInjection =
-        params.context.modelId === "auto" || isProxyReasoningUnsupported(params.context.modelId);
-      const thinkingLevel = skipReasoningInjection ? undefined : params.context.thinkingLevel;
-      return createOpenRouterSystemCacheWrapper(createOpenRouterWrapper(streamFn, thinkingLevel));
-    },
-  });
   providerCapabilitiesTesting.setResolveProviderCapabilitiesWithPluginForTest(
     resolveProviderCapabilitiesWithPluginMock,
   );
@@ -158,7 +40,6 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  extraParamsTesting.resetProviderRuntimeDepsForTest();
   providerCapabilitiesTesting.resetDepsForTests();
 });
 
@@ -1967,6 +1848,24 @@ describe("applyExtraParamsToAgent", () => {
 
     expect(calls).toHaveLength(1);
     expect(calls[0]?.cacheRetention).toBeUndefined();
+  });
+
+  it("disables provider-side caching for non-Anthropic Bedrock models in core", () => {
+    const { calls, agent } = createOptionsCaptureAgent();
+
+    applyExtraParamsToAgent(agent, undefined, "amazon-bedrock", "amazon.nova-micro-v1:0");
+
+    const model = {
+      api: "openai-completions",
+      provider: "amazon-bedrock",
+      id: "amazon.nova-micro-v1:0",
+    } as Model<"openai-completions">;
+    const context: Context = { messages: [] };
+
+    void agent.streamFn?.(model, context, {});
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.cacheRetention).toBe("none");
   });
 
   it("passes through explicit cacheRetention for Anthropic Bedrock models", () => {

@@ -5,13 +5,6 @@ import { expect, it } from "vitest";
 // Narrow public testing surface for plugin authors.
 // Keep this list additive and limited to helpers we are willing to support.
 
-export { removeAckReactionAfterReply, shouldAckReaction } from "../channels/ack-reactions.js";
-export {
-  createSlackOutboundPayloadHarness,
-  expectChannelInboundContextContract,
-  primeChannelOutboundSendMock,
-} from "../channels/plugins/contracts/suites.js";
-export { buildDispatchInboundCaptureMock } from "../channels/plugins/contracts/inbound-testkit.js";
 export {
   createCliRuntimeCapture,
   firstWrittenJsonArg,
@@ -20,8 +13,6 @@ export {
   spyRuntimeLogs,
 } from "../cli/test-runtime-capture.js";
 export type { CliMockOutputRuntime, CliRuntimeCapture } from "../cli/test-runtime-capture.js";
-export { setDefaultChannelPluginRegistryForTests } from "../commands/channel-test-helpers.js";
-export type { ChannelAccountSnapshot, ChannelGatewayContext } from "../channels/plugins/types.js";
 export type { CrawClawConfig } from "../config/config.js";
 export { callGateway } from "../gateway/call.js";
 export { createEmptyPluginRegistry } from "../plugins/registry.js";
@@ -50,10 +41,6 @@ export { buildCommandTestParams } from "../auto-reply/reply/commands-spawn.test-
 export { peekSystemEvents, resetSystemEventsForTest } from "../infra/system-events.js";
 export { jsonResponse, requestBodyText, requestUrl } from "../test-helpers/http.js";
 export { mockPinnedHostnameResolution } from "../test-helpers/ssrf.js";
-export {
-  createWhatsAppPollFixture,
-  expectWhatsAppPollSent,
-} from "../test-helpers/whatsapp-outbound.js";
 export { sanitizeTerminalText } from "../terminal/safe-text.js";
 export { withStateDirEnv } from "../test-helpers/state-dir-env.js";
 
@@ -83,7 +70,7 @@ type ResolveTargetFn = (params: {
   allowFrom: string[];
 }) => ResolveTargetResult;
 
-/** Install a shared test matrix for target-resolution error handling. */
+/** Install shared target-resolution error handling cases. */
 export function installCommonResolveTargetErrorCases(params: {
   resolveTarget: ResolveTargetFn;
   implicitAllowFrom: string[];

@@ -140,4 +140,4 @@ local CrawClaw docs directory (either `docs/` in the repo workspace or the bundl
 package docs) and also notes the public mirror, source repo, community Discord, and
 ClawHub ([https://clawhub.com](https://clawhub.com)) for skills discovery. The prompt instructs the model to consult local docs first
 for CrawClaw behavior, commands, configuration, or architecture, and to run
-`crawclaw status` itself when possible (asking the user only when it lacks access).
+CrawClaw Desktop or the local Gateway API itself when possible (asking the user only when it lacks access).

@@ -22,7 +22,7 @@ type PersistedCurrentConversationBindingsFile = {
 
 const CURRENT_BINDINGS_FILE_VERSION = 1;
 const CURRENT_BINDINGS_ID_PREFIX = "generic:";
-const FALLBACK_CURRENT_CONVERSATION_BINDING_CHANNELS = new Set(["slack"]);
+const FALLBACK_CURRENT_CONVERSATION_BINDING_CHANNELS = new Set<string>();
 
 let bindingsLoaded = false;
 let persistPromise: Promise<void> = Promise.resolve();

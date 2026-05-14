@@ -15,19 +15,13 @@ Cron is the Gateway's built-in scheduler. It persists jobs, wakes the agent at t
 
 ```bash
 # Add a one-shot reminder
-crawclaw cron add \
-  --name "Reminder" \
-  --at "2026-02-01T16:00:00Z" \
-  --session main \
-  --system-event "Reminder: check the cron docs draft" \
-  --wake now \
-  --delete-after-run
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Check your jobs
-crawclaw cron list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # See run history
-crawclaw cron runs --id <job-id>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## How cron works
@@ -77,45 +71,24 @@ Recurring top-of-hour expressions are automatically staggered by up to 5 minutes
 
 Use `--announce --channel telegram --to "-1001234567890"` for channel delivery. For Telegram forum topics, use `-1001234567890:topic:123`. Slack/Discord/Mattermost targets should use explicit prefixes (`channel:<id>`, `user:<id>`).
 
-## CLI examples
+## Gateway API examples
 
 One-shot reminder (main session):
 
 ```bash
-crawclaw cron add \
-  --name "Calendar check" \
-  --at "20m" \
-  --session main \
-  --system-event "Next main-session wake: check calendar." \
-  --wake now
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Recurring isolated job with delivery:
 
 ```bash
-crawclaw cron add \
-  --name "Morning brief" \
-  --cron "0 7 * * *" \
-  --tz "America/Los_Angeles" \
-  --session isolated \
-  --message "Summarize overnight updates." \
-  --announce \
-  --channel slack \
-  --to "channel:C1234567890"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Isolated job with model and thinking override:
 
 ```bash
-crawclaw cron add \
-  --name "Deep analysis" \
-  --cron "0 6 * * 1" \
-  --tz "America/Los_Angeles" \
-  --session isolated \
-  --message "Weekly deep analysis of project progress." \
-  --model "opus" \
-  --thinking high \
-  --announce
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Webhooks
@@ -190,7 +163,7 @@ Wire Gmail inbox triggers to CrawClaw via Google PubSub.
 ### Wizard setup (recommended)
 
 ```bash
-crawclaw webhooks gmail setup --account crawclaw@gmail.com
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 This writes `hooks.gmail` config, enables the Gmail preset, and uses Tailscale Funnel for the push endpoint.
@@ -244,26 +217,26 @@ gog gmail watch start \
 
 ```bash
 # List all jobs
-crawclaw cron list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Edit a job
-crawclaw cron edit <jobId> --message "Updated prompt" --model "opus"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Force run a job now
-crawclaw cron run <jobId>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Run only if due
-crawclaw cron run <jobId> --due
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # View run history
-crawclaw cron runs --id <jobId> --limit 50
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Delete a job
-crawclaw cron remove <jobId>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Agent selection (multi-agent setups)
-crawclaw cron add --name "Ops sweep" --cron "0 6 * * *" --session isolated --message "Check ops queue" --agent ops
-crawclaw cron edit <jobId> --clear-agent
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Configuration
@@ -302,14 +275,14 @@ Disable cron: `cron.enabled: false` or `CRAWCLAW_SKIP_CRON=1`.
 ### Command ladder
 
 ```bash
-crawclaw status
-crawclaw gateway status
-crawclaw cron status
-crawclaw cron list
-crawclaw cron runs --id <jobId> --limit 20
-crawclaw system main-session-wake last
-crawclaw logs --follow
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Cron not firing

@@ -53,7 +53,7 @@ export type MessageReceivedHookContext = {
   content: string;
   /** Unix timestamp when the message was received */
   timestamp?: number;
-  /** Channel identifier (e.g., "telegram", "whatsapp") */
+  /** Channel identifier (for example "feishu" or "weixin") */
   channelId: string;
   /** Provider account ID for multi-account setups */
   accountId?: string;
@@ -80,7 +80,7 @@ export type MessageSentHookContext = {
   success: boolean;
   /** Error message if sending failed */
   error?: string;
-  /** Channel identifier (e.g., "telegram", "whatsapp") */
+  /** Channel identifier (for example "feishu" or "weixin") */
   channelId: string;
   /** Provider account ID for multi-account setups */
   accountId?: string;
@@ -111,7 +111,7 @@ type MessageEnrichedBodyHookContext = {
   bodyForAgent?: string;
   /** Unix timestamp when the message was received */
   timestamp?: number;
-  /** Channel identifier (e.g., "telegram", "whatsapp") */
+  /** Channel identifier (for example "feishu" or "weixin") */
   channelId: string;
   /** Conversation/chat ID */
   conversationId?: string;

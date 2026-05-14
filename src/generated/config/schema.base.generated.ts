@@ -390,19 +390,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
           },
           provider: {
             type: "string",
-            const: "pinchtab",
-          },
-          pinchtab: {
-            type: "object",
-            properties: {
-              baseUrl: {
-                type: "string",
-              },
-              token: {
-                type: "string",
-              },
-            },
-            additionalProperties: false,
+            const: "agent-browser",
           },
           evaluateEnabled: {
             type: "boolean",
@@ -5116,329 +5104,41 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               },
               byChannel: {
                 type: "object",
-                properties: {
-                  whatsapp: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  telegram: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  discord: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  irc: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  slack: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  mattermost: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  signal: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  imessage: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  msteams: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
-                  webchat: {
-                    anyOf: [
-                      {
-                        type: "string",
-                        const: "steer",
-                      },
-                      {
-                        type: "string",
-                        const: "followup",
-                      },
-                      {
-                        type: "string",
-                        const: "collect",
-                      },
-                      {
-                        type: "string",
-                        const: "steer-backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "steer+backlog",
-                      },
-                      {
-                        type: "string",
-                        const: "queue",
-                      },
-                      {
-                        type: "string",
-                        const: "interrupt",
-                      },
-                    ],
-                  },
+                propertyNames: {
+                  type: "string",
                 },
-                additionalProperties: false,
+                additionalProperties: {
+                  anyOf: [
+                    {
+                      type: "string",
+                      const: "steer",
+                    },
+                    {
+                      type: "string",
+                      const: "followup",
+                    },
+                    {
+                      type: "string",
+                      const: "collect",
+                    },
+                    {
+                      type: "string",
+                      const: "steer-backlog",
+                    },
+                    {
+                      type: "string",
+                      const: "steer+backlog",
+                    },
+                    {
+                      type: "string",
+                      const: "queue",
+                    },
+                    {
+                      type: "string",
+                      const: "interrupt",
+                    },
+                  ],
+                },
               },
               debounceMs: {
                 type: "integer",
@@ -7089,9 +6789,10 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
         additionalProperties: false,
       },
       channels: {
+        type: "object",
         properties: {},
-        required: [],
         additionalProperties: true,
+        required: [],
       },
       discovery: {
         type: "object",
@@ -9180,7 +8881,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "diagnostics.flags": {
       label: "Diagnostics Flags",
-      help: 'Enable targeted diagnostics logs by flag (e.g. ["telegram.http"]). Supports wildcards like "telegram.*" or "*".',
+      help: 'Enable targeted diagnostics logs by flag (e.g. ["feishu.http"]). Supports wildcards like "feishu.*" or "*".',
       tags: ["observability"],
     },
     "diagnostics.stuckSessionWarnMs": {
@@ -9557,24 +9258,8 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "browser.provider": {
       label: "Browser Provider",
-      help: 'Browser runtime provider. Currently "pinchtab" selects the bundled PinchTab-backed automation path.',
+      help: "Browser runtime provider. CrawClaw ships the agent-browser-backed automation path.",
       tags: ["advanced"],
-    },
-    "browser.pinchtab": {
-      label: "Browser PinchTab Server",
-      help: "PinchTab HTTP server settings for browser automation. Leave unset to use the managed local PinchTab runtime.",
-      tags: ["advanced"],
-    },
-    "browser.pinchtab.baseUrl": {
-      label: "Browser PinchTab Base URL",
-      help: "External PinchTab HTTP API base URL. Set only when an independently managed PinchTab server should handle browser automation.",
-      tags: ["advanced", "url-secret"],
-    },
-    "browser.pinchtab.token": {
-      label: "Browser PinchTab Token",
-      help: "Bearer token used when connecting to the configured PinchTab HTTP API. Treat it as a gateway-adjacent automation secret.",
-      tags: ["security", "auth"],
-      sensitive: true,
     },
     "browser.cdpUrl": {
       label: "Browser CDP URL",
@@ -10038,7 +9723,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "approvals.exec.sessionFilter": {
       label: "Approval Session Filter",
-      help: 'Optional session-key filters matched as substring or regex-style patterns, for example `["discord:", "^agent:ops:"]`. Use narrow patterns so only intended approval contexts are forwarded to shared destinations.',
+      help: 'Optional session-key filters matched as substring or regex-style patterns, for example `["feishu:", "^agent:ops:"]`. Use narrow patterns so only intended approval contexts are forwarded to shared destinations.',
       tags: ["storage"],
     },
     "approvals.exec.targets": {
@@ -10048,7 +9733,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "approvals.exec.targets[].channel": {
       label: "Approval Target Channel",
-      help: "Channel/provider ID used for forwarded approval delivery, such as discord, slack, or a plugin channel id. Use valid channel IDs only so approvals do not silently fail due to unknown routes.",
+      help: "Channel/provider ID used for forwarded approval delivery, such as feishu, weixin, or a plugin channel id. Use valid channel IDs only so approvals do not silently fail due to unknown routes.",
       tags: ["advanced"],
     },
     "approvals.exec.targets[].to": {
@@ -10088,7 +9773,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "approvals.plugin.sessionFilter": {
       label: "Plugin Approval Session Filter",
-      help: 'Optional session-key filters matched as substring or regex-style patterns, for example `["discord:", "^agent:ops:"]`. Use narrow patterns so only intended approval contexts are forwarded.',
+      help: 'Optional session-key filters matched as substring or regex-style patterns, for example `["feishu:", "^agent:ops:"]`. Use narrow patterns so only intended approval contexts are forwarded.',
       tags: ["storage"],
     },
     "approvals.plugin.targets": {
@@ -10098,7 +9783,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "approvals.plugin.targets[].channel": {
       label: "Plugin Approval Target Channel",
-      help: "Channel/provider ID used for forwarded plugin approval delivery, such as discord, slack, or a plugin channel id.",
+      help: "Channel/provider ID used for forwarded plugin approval delivery, such as feishu, weixin, or a plugin channel id.",
       tags: ["advanced"],
     },
     "approvals.plugin.targets[].to": {
@@ -10399,7 +10084,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "bindings[].match.channel": {
       label: "Binding Channel",
-      help: "Channel/provider identifier this binding applies to, such as `telegram`, `discord`, or a plugin channel ID. Use the configured channel key exactly so binding evaluation works reliably.",
+      help: "Channel/provider identifier this binding applies to, such as `feishu`, `weixin`, or a plugin channel ID. Use the configured channel key exactly so binding evaluation works reliably.",
       tags: ["advanced"],
     },
     "bindings[].match.accountId": {
@@ -11240,7 +10925,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "commands.ownerAllowFrom": {
       label: "Command Owners",
-      help: "Explicit owner allowlist for owner-only tools/commands. Use channel-native IDs (optionally prefixed like \"whatsapp:+15551234567\"). '*' is ignored.",
+      help: "Explicit owner allowlist for owner-only tools/commands. Use channel-native IDs (optionally prefixed like \"feishu:user:123\"). '*' is ignored.",
       tags: ["access"],
     },
     "commands.ownerDisplay": {
@@ -11331,7 +11016,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "session.identityLinks": {
       label: "Session Identity Links",
-      help: "Maps canonical identities to provider-prefixed peer IDs so equivalent users resolve to one DM thread (example: telegram:123456). Use this when the same human appears across multiple channels or accounts.",
+      help: "Maps canonical identities to provider-prefixed peer IDs so equivalent users resolve to one DM thread (example: feishu:user:123456). Use this when the same human appears across multiple channels or accounts.",
       tags: ["storage"],
     },
     "session.resetTriggers": {
@@ -11426,7 +11111,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "session.sendPolicy.rules": {
       label: "Session Send Policy Rules",
-      help: 'Ordered allow/deny rules evaluated before the default action, for example `{ action: "deny", match: { channel: "discord" } }`. Put most specific rules first so broad rules do not shadow exceptions.',
+      help: 'Ordered allow/deny rules evaluated before the default action, for example `{ action: "deny", match: { channel: "feishu" } }`. Put most specific rules first so broad rules do not shadow exceptions.',
       tags: ["access", "storage"],
     },
     "session.sendPolicy.rules[].action": {
@@ -11441,7 +11126,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "session.sendPolicy.rules[].match.channel": {
       label: "Session Send Rule Channel",
-      help: "Matches rule application to a specific channel/provider id (for example discord, telegram, slack). Use this when one channel should permit or deny delivery independently of others.",
+      help: "Matches rule application to a specific channel/provider id (for example feishu, qqbot, weixin). Use this when one channel should permit or deny delivery independently of others.",
       tags: ["access", "storage"],
     },
     "session.sendPolicy.rules[].match.chatType": {
@@ -11719,7 +11404,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "hooks.mappings[].channel": {
       label: "Hook Mapping Delivery Channel",
-      help: 'Delivery channel override for mapping outputs (for example "last", "telegram", "discord", "slack", "signal", "imessage", or "msteams"). Keep channel overrides explicit to avoid accidental cross-channel sends.',
+      help: 'Delivery channel override for mapping outputs (for example "last", "feishu", "weixin", "qqbot", "ddingtalk", or "esp32"). Keep channel overrides explicit to avoid accidental cross-channel sends.',
       tags: ["advanced"],
     },
     "hooks.mappings[].to": {
@@ -12040,7 +11725,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "messages.queue.byChannel": {
       label: "Queue Mode by Channel",
-      help: "Per-channel queue mode overrides keyed by provider id (for example telegram, discord, slack). Use this when one channel’s traffic pattern needs different queue behavior than global defaults.",
+      help: "Per-channel queue mode overrides keyed by provider id (for example feishu, weixin, qqbot). Use this when one channel’s traffic pattern needs different queue behavior than global defaults.",
       tags: ["advanced"],
     },
     "messages.queue.debounceMs": {

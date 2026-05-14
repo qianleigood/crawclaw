@@ -11,10 +11,16 @@ mod core_tools;
 pub mod cron;
 pub mod memory;
 mod message_policy;
+mod native_plugin_registry;
 pub mod special_agents;
 
 use core_tools::build_pi_agent_rust_tool_registry;
 pub use message_policy::execute_message_policy_operation;
+pub use native_plugin_registry::{
+    dispatch_native_service_lifecycle, invoke_native_plugin_operation, load_native_plugin_registry,
+    with_native_runtime_context, NativePluginRegistry, NativePluginRegistryDiagnostic,
+    NativePluginRuntime, NativeSidecarCommand, NativeToolRegistration,
+};
 
 pub use crawclaw_channels::{
     canonical_agent_run_event_types, channel_contract_version, dispatch_native_channel_outbound,
@@ -29,11 +35,11 @@ pub use crawclaw_channels::{
     NativeChannelLifecycleUpdate, ReplyPayload, TranscriptRole,
 };
 use crawclaw_core::{RuntimeCompatStatus, RuntimeStatusValue};
+use crawclaw_plugin_sdk::{NativeInvocationTarget, NativePluginDescriptor};
 use crawclaw_providers::{
-    send_native_provider_conversation, send_native_provider_conversation_with_options,
-    NativeProviderConfig, NativeProviderContentBlock, NativeProviderMessage,
-    NativeProviderMessageRole, NativeProviderRequestOptions, NativeProviderTool,
-    ProviderTransportError,
+    send_native_provider_conversation_with_options, NativeProviderConfig,
+    NativeProviderContentBlock, NativeProviderMessage, NativeProviderMessageRole,
+    NativeProviderRequestOptions, NativeProviderTool, ProviderTransportError,
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -65,9 +71,37 @@ pub struct NativeRuntimeStatus {
 
 pub fn runtime_binary_name() -> &'static str {
     if cfg!(windows) {
-        "crawclaw.exe"
+        "crawclaw-runtime.exe"
     } else {
-        "crawclaw"
+        "crawclaw-runtime"
+    }
+}
+
+pub fn gateway_binary_name() -> &'static str {
+    if cfg!(windows) {
+        "crawclaw-gateway.exe"
+    } else {
+        "crawclaw-gateway"
+    }
+}
+
+pub fn native_plugins_binary_name() -> &'static str {
+    if cfg!(windows) {
+        "crawclaw-native-plugins.exe"
+    } else {
+        "crawclaw-native-plugins"
+    }
+}
+
+impl RuntimeLayout {
+    pub fn gateway_binary_path(&self) -> PathBuf {
+        self.runtime_root.join("bin").join(gateway_binary_name())
+    }
+
+    pub fn native_plugins_binary_path(&self) -> PathBuf {
+        self.runtime_root
+            .join("bin")
+            .join(native_plugins_binary_name())
     }
 }
 
@@ -84,19 +118,15 @@ pub fn resolve_runtime_layout(resource_dir: PathBuf) -> RuntimeLayout {
 pub fn build_desktop_runtime_status_command(layout: &RuntimeLayout) -> RuntimeCommand {
     RuntimeCommand {
         program: layout.binary_path.clone(),
-        args: vec![
-            "desktop-runtime".to_string(),
-            "status".to_string(),
-            "--json".to_string(),
-        ],
+        args: vec!["status".to_string(), "--json".to_string()],
         cwd: layout.runtime_root.clone(),
     }
 }
 
 pub fn build_gateway_help_command(layout: &RuntimeLayout) -> RuntimeCommand {
     RuntimeCommand {
-        program: layout.binary_path.clone(),
-        args: vec!["gateway".to_string(), "--help".to_string()],
+        program: layout.gateway_binary_path(),
+        args: vec!["--help".to_string()],
         cwd: layout.runtime_root.clone(),
     }
 }
@@ -105,14 +135,22 @@ pub fn inspect_runtime_layout(layout: &RuntimeLayout) -> NativeRuntimeStatus {
     let missing = required_runtime_files(layout)
         .into_iter()
         .find(|path| !path.exists());
+    let executable_error = missing
+        .is_none()
+        .then(|| first_non_executable_runtime_binary(layout))
+        .flatten();
     let status = if missing.is_some() {
         RuntimeStatusValue::Missing
+    } else if executable_error.is_some() {
+        RuntimeStatusValue::Error
     } else {
         RuntimeStatusValue::Ready
     };
     let detail = match missing {
         Some(path) => format!("Missing embedded runtime file: {}", path.display()),
-        None => "Embedded Rust runtime is available.".to_string(),
+        None => {
+            executable_error.unwrap_or_else(|| "Embedded Rust runtime is available.".to_string())
+        }
     };
     let compat = compat_status(&status);
 
@@ -125,13 +163,102 @@ pub fn inspect_runtime_layout(layout: &RuntimeLayout) -> NativeRuntimeStatus {
     }
 }
 
-fn required_runtime_files(layout: &RuntimeLayout) -> Vec<&Path> {
+pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
+    let runtimes_dir = output.join("runtimes");
+    let channels_dir = output.join("channels");
+    let providers_dir = output.join("providers");
+    let plugins_dir = output.join("plugins");
+    for dir in [&runtimes_dir, &channels_dir, &providers_dir, &plugins_dir] {
+        fs::create_dir_all(dir).map_err(|error| {
+            format!(
+                "failed to create runtime directory {}: {error}",
+                dir.display()
+            )
+        })?;
+    }
+    write_json_file(
+        &runtimes_dir.join("manifest.json"),
+        &json!({
+            "runtime": "rust-native",
+            "jsPluginRuntime": "node",
+            "node": {
+                "major": 24,
+                "distribution": "bundled"
+            },
+        }),
+    )?;
+    write_json_file(
+        &channels_dir.join("manifest.json"),
+        &json!({
+            "implementation": "rust-native",
+            "channels": crawclaw_plugin_host::native_channels(),
+        }),
+    )?;
+    write_json_file(
+        &providers_dir.join("manifest.json"),
+        &json!({
+            "providers": crawclaw_providers::native_provider_ids(),
+            "transports": crawclaw_providers::native_provider_transports(),
+            "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
+            "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+            "defaultModels": crawclaw_providers::bundled_provider_default_models(),
+        }),
+    )?;
+    write_json_file(
+        &plugins_dir.join("manifest.json"),
+        &json!({
+            "readModel": true,
+            "jsPluginRuntime": "node",
+            "node": {
+                "major": 24,
+                "distribution": "bundled",
+                "permissions": "full"
+            },
+            "nativeChannels": crawclaw_plugin_host::native_channel_ids(),
+        }),
+    )?;
+    Ok(())
+}
+
+fn write_json_file(path: &Path, value: &Value) -> Result<(), String> {
+    let raw = serde_json::to_vec_pretty(value)
+        .map_err(|error| format!("failed to serialize {}: {error}", path.display()))?;
+    fs::write(path, raw).map_err(|error| format!("failed to write {}: {error}", path.display()))
+}
+
+fn required_runtime_files(layout: &RuntimeLayout) -> Vec<PathBuf> {
     vec![
-        layout.runtime_root.as_path(),
-        layout.binary_path.as_path(),
-        layout.channel_manifest_path.as_path(),
-        layout.manifest_path.as_path(),
+        layout.runtime_root.clone(),
+        layout.binary_path.clone(),
+        layout.gateway_binary_path(),
+        layout.native_plugins_binary_path(),
+        layout.channel_manifest_path.clone(),
+        layout.manifest_path.clone(),
     ]
+}
+
+#[cfg(unix)]
+fn first_non_executable_runtime_binary(layout: &RuntimeLayout) -> Option<String> {
+    use std::os::unix::fs::PermissionsExt;
+    for path in [
+        layout.binary_path.as_path(),
+        layout.gateway_binary_path().as_path(),
+        layout.native_plugins_binary_path().as_path(),
+    ] {
+        let metadata = fs::metadata(path).ok()?;
+        if metadata.permissions().mode() & 0o111 == 0 {
+            return Some(format!(
+                "Embedded Rust runtime binary is not executable: {}",
+                path.display()
+            ));
+        }
+    }
+    None
+}
+
+#[cfg(not(unix))]
+fn first_non_executable_runtime_binary(_layout: &RuntimeLayout) -> Option<String> {
+    None
 }
 
 fn compat_status(status: &RuntimeStatusValue) -> RuntimeCompatStatus {
@@ -156,6 +283,7 @@ pub struct AgentRuntimeRequest<'a> {
     pub user_text: &'a str,
     pub history: Vec<AgentRuntimeMessage>,
     pub provider_config: NativeProviderConfig,
+    pub reasoning_level: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -390,11 +518,65 @@ pub fn rust_core_tool_definitions() -> &'static [RustCoreToolDefinition] {
     RUST_CORE_TOOL_DEFINITIONS
 }
 
-pub fn pi_agent_rust_tool_names() -> Vec<&'static str> {
-    RUST_CORE_TOOL_DEFINITIONS
+pub fn native_plugin_descriptors() -> Vec<crawclaw_plugin_sdk::NativePluginDescriptor> {
+    crawclaw_native_plugins::registry::builtin_native_plugin_descriptors()
+}
+
+pub fn native_plugin_tool_descriptors() -> Vec<(String, crawclaw_plugin_sdk::NativeToolDescriptor)>
+{
+    crawclaw_native_plugins::registry::builtin_native_tool_descriptors()
+}
+
+pub fn native_plugin_registry(runtime_root: &Path) -> NativePluginRegistry {
+    load_native_plugin_registry(runtime_root)
+}
+
+pub fn native_plugin_descriptors_for_runtime_root(
+    runtime_root: &Path,
+) -> Vec<crawclaw_plugin_sdk::NativePluginDescriptor> {
+    native_plugin_registry(runtime_root).descriptors()
+}
+
+pub fn native_plugin_tool_descriptors_for_runtime_root(
+    runtime_root: &Path,
+) -> Vec<(String, crawclaw_plugin_sdk::NativeToolDescriptor)> {
+    native_plugin_registry(runtime_root).tool_descriptors()
+}
+
+pub fn pi_agent_rust_tool_names() -> Vec<String> {
+    let mut names = RUST_CORE_TOOL_DEFINITIONS
         .iter()
         .map(|definition| definition.id)
-        .collect()
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let native_names = native_plugin_tool_descriptors()
+        .into_iter()
+        .map(|(_, descriptor)| descriptor.name)
+        .collect::<Vec<_>>();
+    let insert_at = names
+        .iter()
+        .position(|name| name == "grep")
+        .unwrap_or(names.len());
+    names.splice(insert_at..insert_at, native_names);
+    names
+}
+
+pub fn pi_agent_rust_tool_names_for_runtime_root(runtime_root: &Path) -> Vec<String> {
+    let mut names = RUST_CORE_TOOL_DEFINITIONS
+        .iter()
+        .map(|definition| definition.id)
+        .map(ToString::to_string)
+        .collect::<Vec<_>>();
+    let native_names = native_plugin_tool_descriptors_for_runtime_root(runtime_root)
+        .into_iter()
+        .map(|(_, descriptor)| descriptor.name)
+        .collect::<Vec<_>>();
+    let insert_at = names
+        .iter()
+        .position(|name| name == "grep")
+        .unwrap_or(names.len());
+    names.splice(insert_at..insert_at, native_names);
+    names
 }
 
 #[doc(hidden)]
@@ -416,6 +598,140 @@ pub async fn execute_rust_core_tool(
         .await
         .map_err(|error| error.to_string())?;
     Ok(tool_output_to_value(&output))
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NativePluginInvokeWorkerRequest {
+    plugin_id: String,
+    operation: String,
+    #[serde(default)]
+    input: Value,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct NativePluginServiceWorkerRequest {
+    plugin_id: String,
+    service_id: String,
+    #[serde(default = "default_true")]
+    start: bool,
+    #[serde(default)]
+    input: Value,
+}
+
+fn default_true() -> bool {
+    true
+}
+
+fn native_target_matches(
+    target: &NativeInvocationTarget,
+    plugin_id: &str,
+    operation: &str,
+) -> bool {
+    target.plugin_id == plugin_id && target.operation == operation
+}
+
+fn native_descriptor_declares_invocation(
+    descriptor: &NativePluginDescriptor,
+    plugin_id: &str,
+    operation: &str,
+) -> bool {
+    descriptor
+        .tools
+        .iter()
+        .any(|entry| native_target_matches(&entry.invocation, plugin_id, operation))
+        || descriptor
+            .gateway_methods
+            .iter()
+            .any(|entry| native_target_matches(&entry.invocation, plugin_id, operation))
+        || descriptor
+            .web_search_providers
+            .iter()
+            .any(|entry| native_target_matches(&entry.invocation, plugin_id, operation))
+        || descriptor
+            .web_fetch_providers
+            .iter()
+            .any(|entry| native_target_matches(&entry.invocation, plugin_id, operation))
+        || descriptor
+            .speech_providers
+            .iter()
+            .any(|entry| native_target_matches(&entry.synthesize, plugin_id, operation))
+        || descriptor
+            .media_understanding_providers
+            .iter()
+            .any(|entry| native_target_matches(&entry.invocation, plugin_id, operation))
+        || descriptor.services.iter().any(|entry| {
+            native_target_matches(&entry.start, plugin_id, operation)
+                || native_target_matches(&entry.stop, plugin_id, operation)
+        })
+}
+
+pub async fn execute_native_plugin_invoke_operation(
+    runtime_root: &Path,
+    input: Value,
+) -> Result<Value, String> {
+    let request = serde_json::from_value::<NativePluginInvokeWorkerRequest>(input)
+        .map_err(|error| format!("invalid native_plugin_invoke request: {error}"))?;
+    let registry = load_native_plugin_registry(runtime_root);
+    let entry = registry
+        .entries
+        .into_iter()
+        .find(|entry| entry.descriptor.plugin_id == request.plugin_id)
+        .ok_or_else(|| format!("unknown native plugin: {}", request.plugin_id))?;
+    if !native_descriptor_declares_invocation(
+        &entry.descriptor,
+        &request.plugin_id,
+        &request.operation,
+    ) {
+        return Err(format!(
+            "native plugin operation is not declared by descriptor: {}/{}",
+            request.plugin_id, request.operation
+        ));
+    }
+    let runtime = entry.runtime;
+    let input = if matches!(&runtime, NativePluginRuntime::Builtin) {
+        with_native_runtime_context(runtime_root, request.input)
+    } else {
+        request.input
+    };
+    invoke_native_plugin_operation(
+        runtime,
+        NativeInvocationTarget {
+            plugin_id: request.plugin_id,
+            operation: request.operation,
+        },
+        input,
+    )
+    .await
+}
+
+pub async fn execute_native_plugin_service_lifecycle_operation(
+    runtime_root: &Path,
+    input: Value,
+) -> Result<Value, String> {
+    let request = serde_json::from_value::<NativePluginServiceWorkerRequest>(input)
+        .map_err(|error| format!("invalid native_plugin_service request: {error}"))?;
+    let registry = load_native_plugin_registry(runtime_root);
+    let is_builtin = registry
+        .entries
+        .iter()
+        .find(|entry| entry.descriptor.plugin_id == request.plugin_id)
+        .map(|entry| matches!(&entry.runtime, NativePluginRuntime::Builtin))
+        .unwrap_or(false);
+    let input = if is_builtin {
+        with_native_runtime_context(runtime_root, request.input)
+    } else {
+        request.input
+    };
+    dispatch_native_service_lifecycle(
+        registry,
+        &request.plugin_id,
+        &request.service_id,
+        request.start,
+        input,
+    )
+    .await
 }
 
 pub async fn execute_agent_run_turn_operation(
@@ -442,7 +758,16 @@ fn tool_output_to_value(output: &pi::sdk::ToolOutput) -> Value {
                 text_blocks.push(text.text.clone());
                 json!({ "type": "text", "text": text.text })
             }
-            _ => json!({ "type": "unsupported" }),
+            pi::sdk::ContentBlock::Image(image) => json!({
+                "type": "image",
+                "data": image.data,
+                "mimeType": image.mime_type
+            }),
+            _ => {
+                let text = "unsupported tool content block".to_string();
+                text_blocks.push(text.clone());
+                json!({ "type": "text", "text": text })
+            }
         })
         .collect::<Vec<_>>();
     json!({
@@ -1622,6 +1947,8 @@ impl AgentRuntime {
                         user_text: &user_text,
                         history: history.clone(),
                         provider_config,
+                        reasoning_level: model_selection
+                            .and_then(|model| model.reasoning_level.clone()),
                     })
                     .await?
             }
@@ -1636,6 +1963,8 @@ impl AgentRuntime {
                         user_text: &user_text,
                         history: history.clone(),
                         provider_config,
+                        reasoning_level: model_selection
+                            .and_then(|model| model.reasoning_level.clone()),
                     })
                     .await?
             }
@@ -1769,9 +2098,16 @@ impl AgentRuntimeBackend for NativeProviderRuntimeBackend {
     ) -> Pin<Box<dyn Future<Output = Result<String, AgentRuntimeError>> + Send + 'a>> {
         Box::pin(async move {
             let messages = agent_history_with_user(&request.history, request.user_text);
-            send_native_provider_conversation(&request.provider_config, &messages)
-                .await
-                .map_err(map_provider_error)
+            send_native_provider_conversation_with_options(
+                &request.provider_config,
+                &messages,
+                &NativeProviderRequestOptions {
+                    reasoning_level: request.reasoning_level.clone(),
+                    ..NativeProviderRequestOptions::default()
+                },
+            )
+            .await
+            .map_err(map_provider_error)
         })
     }
 }
@@ -1784,6 +2120,7 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
         Box::pin(async move {
             let provider = Arc::new(CrawClawPiProvider {
                 config: request.provider_config.clone(),
+                reasoning_level: request.reasoning_level.clone(),
             });
             let tools = build_pi_agent_rust_tool_registry(request.runtime_root);
             let agent_config = pi::sdk::AgentConfig {
@@ -1819,6 +2156,7 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
 #[derive(Clone)]
 struct CrawClawPiProvider {
     config: NativeProviderConfig,
+    reasoning_level: Option<String>,
 }
 
 #[async_trait::async_trait]
@@ -1851,6 +2189,7 @@ impl pi::sdk::Provider for CrawClawPiProvider {
         }
         let options = NativeProviderRequestOptions {
             stream: true,
+            reasoning_level: self.reasoning_level.clone(),
             tools: context
                 .tools
                 .iter()
@@ -2209,6 +2548,23 @@ mod tests {
         .unwrap();
         fs::create_dir_all(layout.manifest_path.parent().expect("manifest parent")).unwrap();
         fs::write(&layout.binary_path, "").unwrap();
+        fs::write(layout.gateway_binary_path(), "").unwrap();
+        fs::write(layout.native_plugins_binary_path(), "").unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            let gateway_path = layout.gateway_binary_path();
+            let native_plugins_path = layout.native_plugins_binary_path();
+            for path in [
+                layout.binary_path.as_path(),
+                gateway_path.as_path(),
+                native_plugins_path.as_path(),
+            ] {
+                let mut permissions = fs::metadata(path).unwrap().permissions();
+                permissions.set_mode(0o755);
+                fs::set_permissions(path, permissions).unwrap();
+            }
+        }
         fs::write(&layout.channel_manifest_path, "{}").unwrap();
         fs::write(&layout.manifest_path, r#"{"runtime":"rust-native"}"#).unwrap();
 
@@ -2226,74 +2582,100 @@ mod tests {
         let registry = build_pi_agent_rust_tool_registry(&runtime_root);
         let tool_names: Vec<&str> = registry.tools().iter().map(|tool| tool.name()).collect();
 
-        assert_eq!(
-            tool_names,
-            vec![
-                "read",
-                "write",
-                "edit",
-                "apply_patch",
-                "bash",
-                "process",
-                "session_status",
-                "sessions_list",
-                "sessions_history",
-                "sessions_send",
-                "sessions_spawn",
-                "sessions_yield",
-                "subagents",
-                "cron",
-                "review_task",
-                "memory_manifest_read",
-                "memory_note_read",
-                "memory_note_write",
-                "memory_note_edit",
-                "memory_note_delete",
-                "write_experience_note",
-                "session_summary_file_read",
-                "session_summary_file_edit",
-                "web_search",
-                "web_fetch",
-                "grep",
-                "find",
-                "ls"
-            ]
-        );
+        let expected_tool_names = vec![
+            "read",
+            "write",
+            "edit",
+            "apply_patch",
+            "bash",
+            "process",
+            "session_status",
+            "sessions_list",
+            "sessions_history",
+            "sessions_send",
+            "sessions_spawn",
+            "sessions_yield",
+            "subagents",
+            "cron",
+            "review_task",
+            "memory_manifest_read",
+            "memory_note_read",
+            "memory_note_write",
+            "memory_note_edit",
+            "memory_note_delete",
+            "write_experience_note",
+            "session_summary_file_read",
+            "session_summary_file_edit",
+            "web_search",
+            "web_fetch",
+            "browser",
+            "lobster",
+            "comfyui_workflow",
+            "llm-task",
+            "grep",
+            "find",
+            "ls",
+        ];
+        assert_eq!(tool_names, expected_tool_names);
         assert!(registry.get("bash").is_some());
         assert!(registry.get("exec").is_none());
         assert_eq!(
             pi_agent_rust_tool_names(),
-            vec![
-                "read",
-                "write",
-                "edit",
-                "apply_patch",
-                "bash",
-                "process",
-                "session_status",
-                "sessions_list",
-                "sessions_history",
-                "sessions_send",
-                "sessions_spawn",
-                "sessions_yield",
-                "subagents",
-                "cron",
-                "review_task",
-                "memory_manifest_read",
-                "memory_note_read",
-                "memory_note_write",
-                "memory_note_edit",
-                "memory_note_delete",
-                "write_experience_note",
-                "session_summary_file_read",
-                "session_summary_file_edit",
-                "web_search",
-                "web_fetch",
-                "grep",
-                "find",
-                "ls"
-            ]
+            expected_tool_names
+                .into_iter()
+                .map(ToString::to_string)
+                .collect::<Vec<_>>()
         );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn pi_agent_rust_tool_registry_executes_installed_native_sidecar_tool() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let runtime_root = unique_test_runtime_root("pi-agent-rust-sidecar-tool");
+        let plugin_dir = runtime_root.join("plugins").join("acme-native");
+        fs::create_dir_all(&plugin_dir).expect("plugin dir");
+        let sidecar = plugin_dir.join("sidecar.sh");
+        fs::write(
+            &sidecar,
+            r#"#!/bin/sh
+read line
+case "$line" in
+  *plugin.invoke*)
+    printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"output":{"ok":true}}}'
+    ;;
+  *)
+    printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schemaVersion":1,"pluginId":"acme-native","name":"Acme Native","tools":[{"name":"acme_tool","label":"Acme Tool","description":"Runs native work.","parameters":{"type":"object"},"invocation":{"pluginId":"acme-native","operation":"run"},"readOnly":true}]}]}}'
+    ;;
+esac
+"#,
+        )
+        .expect("sidecar");
+        let mut permissions = fs::metadata(&sidecar).expect("metadata").permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&sidecar, permissions).expect("permissions");
+        fs::write(
+            plugin_dir.join("crawclaw.plugin.json"),
+            serde_json::to_vec_pretty(&json!({
+                "id": "acme-native",
+                "native": {
+                    "protocol": "crawclaw-native-plugin-jsonrpc",
+                    "schemaVersion": 1,
+                    "bin": "sidecar.sh"
+                }
+            }))
+            .expect("manifest json"),
+        )
+        .expect("manifest");
+
+        let output = execute_rust_core_tool(&runtime_root, "acme_tool", json!({ "value": 1 }))
+            .await
+            .expect("sidecar tool output");
+
+        assert_eq!(output["details"], json!({ "ok": true }));
+
+        let _ = fs::remove_dir_all(runtime_root);
     }
 
     #[test]
@@ -2330,6 +2712,10 @@ mod tests {
                 "session_summary_file_edit",
                 "web_search",
                 "web_fetch",
+                "browser",
+                "lobster",
+                "comfyui_workflow",
+                "llm-task",
                 "grep",
                 "find",
                 "ls"
@@ -2406,15 +2792,24 @@ mod tests {
             assert!(definition(tool_name).default_enabled);
             assert!(definition(tool_name).read_only);
         }
-        assert!(pi_agent_rust_tool_names().contains(&"apply_patch"));
-        assert!(pi_agent_rust_tool_names().contains(&"process"));
-        assert!(pi_agent_rust_tool_names().contains(&"sessions_spawn"));
-        assert!(pi_agent_rust_tool_names().contains(&"cron"));
-        assert!(pi_agent_rust_tool_names().contains(&"review_task"));
-        assert!(pi_agent_rust_tool_names().contains(&"memory_note_write"));
-        assert!(pi_agent_rust_tool_names().contains(&"write_experience_note"));
-        assert!(pi_agent_rust_tool_names().contains(&"web_search"));
-        assert!(pi_agent_rust_tool_names().contains(&"web_fetch"));
+        let tool_names = pi_agent_rust_tool_names();
+        for expected in [
+            "apply_patch",
+            "process",
+            "sessions_spawn",
+            "cron",
+            "review_task",
+            "memory_note_write",
+            "write_experience_note",
+            "web_search",
+            "web_fetch",
+            "browser",
+            "lobster",
+            "comfyui_workflow",
+            "llm-task",
+        ] {
+            assert!(tool_names.contains(&expected.to_string()));
+        }
     }
 
     #[test]
@@ -2979,6 +3374,7 @@ mod tests {
                 api: None,
                 api_version: None,
             },
+            reasoning_level: None,
         };
         let context = pi::sdk::ProviderContext::owned(
             None,
@@ -3015,6 +3411,57 @@ mod tests {
         assert!(request.contains(r#""stream":true"#));
         assert!(request.contains("lookup_weather"));
         assert!(request.contains("iVBORw0KGgo="));
+    }
+
+    #[tokio::test]
+    async fn native_llm_task_tool_runs_host_agent_without_ts_wrapper() {
+        let runtime_root = unique_test_runtime_root("native-llm-task-tool");
+        let config_dir = runtime_root.join("config");
+        fs::create_dir_all(&config_dir).expect("config dir");
+        let (provider_base_url, request_rx) = start_openai_compatible_provider(r#"{"ok":true}"#);
+        fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("config json"),
+        )
+        .expect("write config");
+
+        let registry = build_pi_agent_rust_tool_registry(&runtime_root);
+        let tool = registry
+            .tools()
+            .iter()
+            .find(|tool| tool.name() == "llm-task")
+            .expect("llm-task tool");
+        let output = tool
+            .execute(
+                "llm-task-call",
+                json!({
+                    "prompt": "return ok",
+                    "schema": {
+                        "type": "object",
+                        "properties": { "ok": { "type": "boolean" } },
+                        "required": ["ok"]
+                    }
+                }),
+                None,
+            )
+            .await
+            .expect("llm-task execute");
+
+        assert_eq!(
+            output.details.as_ref().expect("details")["json"],
+            json!({ "ok": true })
+        );
+        let request = request_rx.recv().expect("captured provider request");
+        assert!(request.contains("Return ONLY a valid JSON value."));
+        assert!(!request.contains("\"tools\""));
+
+        let _ = fs::remove_dir_all(runtime_root);
     }
 
     #[tokio::test]
@@ -3194,23 +3641,43 @@ mod tests {
         thread::spawn(move || {
             let (mut stream, _) = listener.accept().expect("provider request");
             let request = read_http_request(&mut stream);
+            let request_text = String::from_utf8_lossy(&request).to_string();
             request_tx
-                .send(String::from_utf8_lossy(&request).to_string())
+                .send(request_text.clone())
                 .expect("send captured request");
-            let chunk = serde_json::to_string(&json!({
-                "choices": [
-                    {
-                        "delta": {
-                            "content": reply
+            let (content_type, body) = if request_text.contains(r#""stream":true"#) {
+                let chunk = serde_json::to_string(&json!({
+                    "choices": [
+                        {
+                            "delta": {
+                                "content": reply
+                            }
                         }
-                    }
-                ]
-            }))
-            .expect("response chunk");
-            let body = format!("data: {chunk}\n\ndata: [DONE]\n\n");
+                    ]
+                }))
+                .expect("response chunk");
+                (
+                    "text/event-stream",
+                    format!("data: {chunk}\n\ndata: [DONE]\n\n"),
+                )
+            } else {
+                (
+                    "application/json",
+                    serde_json::to_string(&json!({
+                        "choices": [
+                            {
+                                "message": {
+                                    "content": reply
+                                }
+                            }
+                        ]
+                    }))
+                    .expect("response body"),
+                )
+            };
             write!(
                 stream,
-                "HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+                "HTTP/1.1 200 OK\r\nContent-Type: {content_type}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
                 body.len(),
                 body
             )

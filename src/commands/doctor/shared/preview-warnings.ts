@@ -1,15 +1,6 @@
 import type { CrawClawConfig } from "../../../config/config.js";
 import { sanitizeForLog } from "../../../terminal/ansi.js";
 import {
-  collectDiscordNumericIdWarnings,
-  scanDiscordNumericIdEntries,
-} from "../providers/discord.js";
-import {
-  collectTelegramAllowFromUsernameWarnings,
-  collectTelegramEmptyAllowlistExtraWarnings,
-  scanTelegramAllowFromUsernameEntries,
-} from "../providers/telegram.js";
-import {
   collectBundledPluginLoadPathWarnings,
   scanBundledPluginLoadPathMigrations,
 } from "./bundled-plugin-load-paths.js";
@@ -52,26 +43,6 @@ export function collectDoctorPreviewWarnings(params: {
     );
   }
 
-  const telegramHits = scanTelegramAllowFromUsernameEntries(params.cfg);
-  if (telegramHits.length > 0) {
-    warnings.push(
-      collectTelegramAllowFromUsernameWarnings({
-        hits: telegramHits,
-        doctorFixCommand: params.doctorFixCommand,
-      }).join("\n"),
-    );
-  }
-
-  const discordHits = scanDiscordNumericIdEntries(params.cfg);
-  if (discordHits.length > 0) {
-    warnings.push(
-      collectDiscordNumericIdWarnings({
-        hits: discordHits,
-        doctorFixCommand: params.doctorFixCommand,
-      }).join("\n"),
-    );
-  }
-
   const allowFromScan = maybeRepairOpenPolicyAllowFrom(params.cfg);
   if (allowFromScan.changes.length > 0) {
     warnings.push(
@@ -105,7 +76,6 @@ export function collectDoctorPreviewWarnings(params: {
 
   const emptyAllowlistWarnings = scanEmptyAllowlistPolicyWarnings(params.cfg, {
     doctorFixCommand: params.doctorFixCommand,
-    extraWarningsForAccount: collectTelegramEmptyAllowlistExtraWarnings,
   }).filter((warning) => !isWarningBlockedByChannelPlugin(warning, channelPluginBlockerHits));
   if (emptyAllowlistWarnings.length > 0) {
     warnings.push(emptyAllowlistWarnings.map((line) => sanitizeForLog(line)).join("\n"));

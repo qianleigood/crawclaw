@@ -13,7 +13,7 @@ model as `provider/model`.
 
 ## Quick start (two steps)
 
-1. Authenticate with the provider (usually via `crawclaw onboard`).
+1. Authenticate with the provider (usually via CrawClaw Desktop or the local Gateway API).
 2. Set the default model:
 
 ```json5

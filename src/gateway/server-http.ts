@@ -10,7 +10,6 @@ import type { TlsOptions } from "node:tls";
 import type { WebSocketServer } from "ws";
 import { loadConfig } from "../config/config.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
-import { handleSlackHttpRequest } from "../plugin-sdk/slack.js";
 import { resolveHookExternalContentSource as resolveHookExternalContentSourceFromSession } from "../security/external-content.js";
 import { safeEqualSecret } from "../security/secret-equal.js";
 import {
@@ -118,64 +117,6 @@ const GATEWAY_PROBE_STATUS_BY_PATH = new Map<string, "live" | "ready">([
   ["/ready", "ready"],
   ["/readyz", "ready"],
 ]);
-const MATTERMOST_SLASH_CALLBACK_PATH = "/api/channels/mattermost/command";
-
-function resolveMattermostSlashCallbackPaths(
-  configSnapshot: ReturnType<typeof loadConfig>,
-): Set<string> {
-  const callbackPaths = new Set<string>([MATTERMOST_SLASH_CALLBACK_PATH]);
-  const isMattermostCommandCallbackPath = (path: string): boolean =>
-    path === MATTERMOST_SLASH_CALLBACK_PATH || path.startsWith("/api/channels/mattermost/");
-
-  const normalizeCallbackPath = (value: unknown): string => {
-    const trimmed = typeof value === "string" ? value.trim() : "";
-    if (!trimmed) {
-      return MATTERMOST_SLASH_CALLBACK_PATH;
-    }
-    return trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  };
-
-  const tryAddCallbackUrlPath = (rawUrl: unknown) => {
-    if (typeof rawUrl !== "string") {
-      return;
-    }
-    const trimmed = rawUrl.trim();
-    if (!trimmed) {
-      return;
-    }
-    try {
-      const pathname = new URL(trimmed).pathname;
-      if (pathname && isMattermostCommandCallbackPath(pathname)) {
-        callbackPaths.add(pathname);
-      }
-    } catch {
-      // Ignore invalid callback URLs in config and keep default path behavior.
-    }
-  };
-
-  const mmRaw = configSnapshot.channels?.mattermost as Record<string, unknown> | undefined;
-  const addMmCommands = (raw: unknown) => {
-    if (raw == null || typeof raw !== "object") {
-      return;
-    }
-    const commands = raw as Record<string, unknown>;
-    const callbackPath = normalizeCallbackPath(commands.callbackPath);
-    if (isMattermostCommandCallbackPath(callbackPath)) {
-      callbackPaths.add(callbackPath);
-    }
-    tryAddCallbackUrlPath(commands.callbackUrl);
-  };
-
-  addMmCommands(mmRaw?.commands);
-  const accountsRaw = (mmRaw?.accounts ?? {}) as Record<string, unknown>;
-  for (const accountId of Object.keys(accountsRaw)) {
-    const accountCfg = accountsRaw[accountId] as Record<string, unknown> | undefined;
-    addMmCommands(accountCfg?.commands);
-  }
-
-  return callbackPaths;
-}
-
 function shouldEnforceDefaultPluginGatewayAuth(pathContext: PluginRoutePathContext): boolean {
   return (
     pathContext.malformedEncoding ||
@@ -282,7 +223,7 @@ export async function runGatewayHttpRequestStages(
       // Log and skip the failing stage so subsequent stages (browser-client,
       // gateway-probes, etc.) remain reachable.  A common trigger is a
       // bundled-plugin facade that fails to load because an optional
-      // dependency is missing (e.g. @slack/bolt after the lazy-facade
+      // dependency is missing after a lazy-facade
       // refactor).
       console.error(`[gateway-http] stage "${stage.name}" threw — skipping:`, err);
     }
@@ -294,7 +235,6 @@ function buildPluginRequestStages(params: {
   req: IncomingMessage;
   res: ServerResponse;
   requestPath: string;
-  mattermostSlashCallbackPaths: ReadonlySet<string>;
   pluginPathContext: PluginRoutePathContext | null;
   handlePluginRequest?: PluginHttpRequestHandler;
   shouldEnforcePluginGatewayAuth?: (pathContext: PluginRoutePathContext) => boolean;
@@ -311,9 +251,6 @@ function buildPluginRequestStages(params: {
     {
       name: "plugin-auth",
       run: async () => {
-        if (params.mattermostSlashCallbackPaths.has(params.requestPath)) {
-          return false;
-        }
         const pathContext =
           params.pluginPathContext ?? resolvePluginRoutePathContext(params.requestPath);
         if (
@@ -795,7 +732,6 @@ export function createGatewayHttpServer(opts: {
       const trustedProxies = configSnapshot.gateway?.trustedProxies ?? [];
       const allowRealIpFallback = configSnapshot.gateway?.allowRealIpFallback === true;
       const requestPath = new URL(req.url ?? "/", "http://localhost").pathname;
-      const mattermostSlashCallbackPaths = resolveMattermostSlashCallbackPaths(configSnapshot);
       const pluginPathContext = handlePluginRequest
         ? resolvePluginRoutePathContext(requestPath)
         : null;
@@ -856,10 +792,6 @@ export function createGatewayHttpServer(opts: {
               rateLimiter: runtimeSurface.rateLimiter,
             }),
         },
-        {
-          name: "slack",
-          run: () => handleSlackHttpRequest(req, res),
-        },
       ];
       if (runtimeSurface.openResponsesEnabled) {
         requestStages.push({
@@ -895,7 +827,6 @@ export function createGatewayHttpServer(opts: {
           req,
           res,
           requestPath,
-          mattermostSlashCallbackPaths,
           pluginPathContext,
           handlePluginRequest,
           shouldEnforcePluginGatewayAuth,

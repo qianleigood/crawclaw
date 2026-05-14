@@ -26,17 +26,17 @@ CrawClaw security guidance assumes a **personal assistant** deployment: one trus
 
 This page explains hardening **within that model**. It does not claim hostile multi-tenant isolation on one shared gateway.
 
-## Quick check: `crawclaw security audit`
+## Quick check: CrawClaw Desktop or the local Gateway API
 
 See also: [Formal Verification (Security Models)](/security/formal-verification)
 
 Run this regularly (especially after changing config or exposing network surfaces):
 
 ```bash
-crawclaw security audit
-crawclaw security audit --deep
-crawclaw security audit --fix
-crawclaw security audit --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 It flags common footguns (Gateway auth exposure, browser control exposure, elevated allowlists, filesystem permissions, permissive exec approvals, and open-channel tool exposure).
@@ -275,11 +275,11 @@ For break-glass scenarios only, `gateway.browserClients.dangerouslyDisableDevice
 disables device identity checks entirely. This is a severe security downgrade;
 keep it off unless you are actively debugging and can revert quickly.
 
-`crawclaw security audit` warns when this setting is enabled.
+CrawClaw Desktop or the local Gateway API warns when this setting is enabled.
 
 ## Insecure or dangerous flags summary
 
-`crawclaw security audit` includes `config.insecure_or_dangerous_flags` when
+CrawClaw Desktop or the local Gateway API includes `config.insecure_or_dangerous_flags` when
 known insecure/dangerous debug switches are enabled. That check currently
 aggregates:
 
@@ -440,13 +440,13 @@ Plugins run **in-process** with the Gateway. Treat them as trusted code:
 - Prefer explicit `plugins.allow` allowlists.
 - Review plugin config before enabling.
 - Restart the Gateway after plugin changes.
-- If you install plugins (`crawclaw plugins install <package>`), treat it like running untrusted code:
+- If you install plugins (CrawClaw Desktop or the local Gateway API), treat it like running untrusted code:
   - The install path is the per-plugin directory under the active plugin install root.
   - CrawClaw runs a built-in dangerous-code scan before install. `critical` findings block by default.
   - CrawClaw uses `npm pack` and then runs `npm install --omit=dev` in that directory (npm lifecycle scripts can execute code during install).
   - Prefer pinned, exact versions (`@scope/pkg@1.2.3`), and inspect the unpacked code on disk before enabling.
   - `--dangerously-force-unsafe-install` is break-glass only for built-in scan false positives. It does not bypass plugin `before_install` hook policy blocks and does not bypass scan failures.
-  - Gateway-backed skill dependency installs follow the same dangerous/suspicious split: built-in `critical` findings block unless the caller explicitly sets `dangerouslyForceUnsafeInstall`, while suspicious findings still warn only. `crawclaw skills install` remains the separate ClawHub skill download/install flow.
+  - Gateway-backed skill dependency installs follow the same dangerous/suspicious split: built-in `critical` findings block unless the caller explicitly sets `dangerouslyForceUnsafeInstall`, while suspicious findings still warn only. CrawClaw Desktop or the local Gateway API remains the separate ClawHub skill download/install flow.
 
 Details: [Plugins](/tools/plugin)
 
@@ -462,8 +462,8 @@ All current DM-capable channels support a DM policy (`dmPolicy` or `*.dm.policy`
 Approve via CLI:
 
 ```bash
-crawclaw pairing list <channel>
-crawclaw pairing approve <channel> <code>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Details + files on disk: [Pairing](/channels/pairing)
@@ -487,7 +487,7 @@ This is a messaging-context boundary, not a host-admin boundary. If users are mu
 Treat the snippet above as **secure DM mode**:
 
 - Default: `session.dmScope: "main"` (all DMs share one session for continuity).
-- Local CLI onboarding default: writes `session.dmScope: "per-channel-peer"` when unset (keeps existing explicit values).
+- Desktop onboarding default: writes `session.dmScope: "per-channel-peer"` when unset (keeps existing explicit values).
 - Secure DM mode: `session.dmScope: "per-channel-peer"` (each channel+sender pair gets an isolated DM context).
 - Cross-channel peer isolation: `session.dmScope: "per-peer"` (each sender gets one session across all channels of the same type).
 
@@ -602,7 +602,7 @@ Keep config + state private on the gateway host:
 - `~/.crawclaw/crawclaw.json`: `600` (user read/write only)
 - `~/.crawclaw`: `700` (user only)
 
-`crawclaw doctor` can warn and offer to tighten these permissions.
+CrawClaw Desktop or the local Gateway API can warn and offer to tighten these permissions.
 
 ### 0.4) Network exposure (bind + port + firewall)
 
@@ -696,7 +696,7 @@ Set a token so **all** WS clients must authenticate:
 }
 ```
 
-Doctor can generate one for you: `crawclaw doctor --generate-gateway-token`.
+Doctor can generate one for you: CrawClaw Desktop or the local Gateway API.
 
 Note: `gateway.remote.token` / `.password` are client credential sources. They
 do **not** protect local WS access by themselves.
@@ -807,7 +807,7 @@ Recommendations:
 
 - Keep tool summary redaction on (`logging.redactSensitive: "tools"`; default).
 - Add custom patterns for your environment via `logging.redactPatterns` (tokens, hostnames, internal URLs).
-- When sharing diagnostics, prefer `crawclaw status --all` (pasteable, secrets redacted) over raw logs.
+- When sharing diagnostics, prefer CrawClaw Desktop or the local Gateway API (pasteable, secrets redacted) over raw logs.
 - Prune old session transcripts and log files if you don’t need long retention.
 
 Details: [Logging](/gateway/logging)
@@ -1048,7 +1048,7 @@ If your AI does something bad:
 
 ### Contain
 
-1. **Stop it:** stop any local supervisor that manages the Gateway, or terminate your `crawclaw gateway` process.
+1. **Stop it:** stop any local supervisor that manages the Gateway, or terminate your CrawClaw Desktop or the local Gateway API process.
 2. **Close exposure:** set `gateway.bind: "loopback"` (or disable Tailscale Funnel/Serve) until you understand what happened.
 3. **Freeze access:** switch risky DMs/groups to `dmPolicy: "disabled"` / require mentions, and remove `"*"` allow-all entries if you had them.
 
@@ -1063,7 +1063,7 @@ If your AI does something bad:
 1. Check Gateway logs: `/tmp/crawclaw/crawclaw-YYYY-MM-DD.log` (or `logging.file`).
 2. Review the relevant transcript(s): `~/.crawclaw/agents/<agentId>/sessions/*.jsonl`.
 3. Review recent config changes (anything that could have widened access: `gateway.bind`, `gateway.auth`, dm/group policies, `tools.elevated`, plugin changes).
-4. Re-run `crawclaw security audit --deep` and confirm critical findings are resolved.
+4. Re-run CrawClaw Desktop or the local Gateway API and confirm critical findings are resolved.
 
 ### Collect for a report
 

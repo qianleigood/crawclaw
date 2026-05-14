@@ -256,9 +256,9 @@ CrawClaw can:
 - write structured experience notes directly through `write_experience_note`
 - run a background Experience Agent after top-level turns to extract reusable
   experience without blocking the main task
-- manage login, refresh, and provider status via `crawclaw memory`
-- flush local pending experience notes with `crawclaw memory sync`
-- summarize nightly memory prompt diagnostics via `crawclaw memory prompt-journal-summary`
+- manage login, refresh, and provider status via CrawClaw Desktop or the local Gateway API
+- flush local pending experience notes with CrawClaw Desktop or the local Gateway API
+- summarize nightly memory prompt diagnostics via CrawClaw Desktop or the local Gateway API
 
 Experience extraction and recall are deliberately split:
 
@@ -271,7 +271,7 @@ Experience extraction and recall are deliberately split:
   browse, inspect source files, write durable memory, or spawn agents
 - successful writes go directly to NotebookLM when the provider is ready
 - if NotebookLM is not ready, writes stay in the local pending outbox until
-  login, heartbeat, startup, or `crawclaw memory sync` flushes them
+  login, heartbeat, startup, or CrawClaw Desktop or the local Gateway API flushes them
 - the next prompt assembly synchronously recalls the most relevant experience
   from NotebookLM only
 
@@ -311,7 +311,7 @@ so the experience is available to later NotebookLM queries; a custom
 `memory.notebooklm.write.command` is only needed for nonstandard write helpers.
 If NotebookLM writeback fails, CrawClaw stores the
 structured note in the local pending outbox and retries it later through
-heartbeat, startup, or `crawclaw memory sync`. After a pending item syncs
+heartbeat, startup, or CrawClaw Desktop or the local Gateway API. After a pending item syncs
 successfully, the local payload is removed. Experience notes should capture
 reusable context, trigger, action, result, lesson, applicability boundaries, and
 supporting evidence rather than temporary task state. The write schema only
@@ -400,16 +400,16 @@ This keeps short-term continuity on one source of truth:
 ## CLI
 
 ```bash
-crawclaw memory status   # Check NotebookLM provider status
-crawclaw memory login    # Rebuild the NotebookLM profile
-crawclaw memory refresh  # Refresh NotebookLM auth from cookie fallback
-crawclaw memory sync     # Flush pending experience notes to NotebookLM
-crawclaw memory dream status --json
-crawclaw memory dream history --json
-crawclaw memory dream run --agent main --force
-crawclaw memory dream run --scope-key main --dry-run --session-limit 6 --signal-limit 6
-crawclaw memory prompt-journal-summary --json --days 1
-crawclaw agent export-context --task-id <task-id> --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Further reading

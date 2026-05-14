@@ -26,13 +26,13 @@ Current Kimi K2 model IDs:
 [//]: # "moonshot-kimi-k2-ids:end"
 
 ```bash
-crawclaw onboard --auth-choice moonshot-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Kimi Coding:
 
 ```bash
-crawclaw onboard --auth-choice kimi-code-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Note: Moonshot and Kimi Coding are separate providers. Keys are not interchangeable, endpoints differ, and model refs differ (Moonshot uses `moonshot/...`, Kimi Coding uses `kimi-coding/...`).

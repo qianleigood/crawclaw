@@ -227,119 +227,23 @@ configure plugins via:
 
 Your plugin receives this config as `api.pluginConfig` during registration.
 
-For channel-specific config, use the channel config section instead:
-
-```json5
-{
-  channels: {
-    "my-channel": {
-      token: "bot-token",
-      allowFrom: ["user1", "user2"],
-    },
-  },
-}
-```
-
-### Building channel config schemas
-
-Use `buildChannelConfigSchema` from `crawclaw/plugin-sdk/core` to convert a
-Zod schema into the `ChannelConfigSchema` wrapper that CrawClaw validates:
-
-```typescript
-import { z } from "zod";
-import { buildChannelConfigSchema } from "crawclaw/plugin-sdk/core";
-
-const accountSchema = z.object({
-  token: z.string().optional(),
-  allowFrom: z.array(z.string()).optional(),
-  accounts: z.object({}).catchall(z.any()).optional(),
-  defaultAccount: z.string().optional(),
-});
-
-const configSchema = buildChannelConfigSchema(accountSchema);
-```
-
-## Setup wizards
-
-Channel plugins can provide interactive setup wizards for `crawclaw onboard`.
-The wizard is a `ChannelSetupWizard` object on the `ChannelPlugin`:
-
-```typescript
-import type { ChannelSetupWizard } from "crawclaw/plugin-sdk/channel-setup";
-
-const setupWizard: ChannelSetupWizard = {
-  channel: "my-channel",
-  status: {
-    configuredLabel: "Connected",
-    unconfiguredLabel: "Not configured",
-    resolveConfigured: ({ cfg }) => Boolean((cfg.channels as any)?.["my-channel"]?.token),
-  },
-  credentials: [
-    {
-      inputKey: "token",
-      providerHint: "my-channel",
-      credentialLabel: "Bot token",
-      preferredEnvVar: "MY_CHANNEL_BOT_TOKEN",
-      envPrompt: "Use MY_CHANNEL_BOT_TOKEN from environment?",
-      keepPrompt: "Keep current token?",
-      inputPrompt: "Enter your bot token:",
-      inspect: ({ cfg, accountId }) => {
-        const token = (cfg.channels as any)?.["my-channel"]?.token;
-        return {
-          accountConfigured: Boolean(token),
-          hasConfiguredValue: Boolean(token),
-        };
-      },
-    },
-  ],
-};
-```
-
-The `ChannelSetupWizard` type supports `credentials`, `textInputs`,
-`dmPolicy`, `allowFrom`, `groupAccess`, `prepare`, `finalize`, and more.
-See bundled plugin packages (for example the Discord plugin `src/channel.setup.ts`) for
-full examples.
-
-For DM allowlist prompts that only need the standard
-`note -> prompt -> parse -> merge -> patch` flow, prefer the shared setup
-helpers from `crawclaw/plugin-sdk/setup`: `createPromptParsedAllowFromForAccount(...)`,
-`createTopLevelChannelParsedAllowFromPrompt(...)`, and
-`createNestedChannelParsedAllowFromPrompt(...)`.
-
-For channel setup status blocks that only vary by labels, scores, and optional
-extra lines, prefer `createStandardChannelSetupStatus(...)` from
-`crawclaw/plugin-sdk/setup` instead of hand-rolling the same `status` object in
-each plugin.
-
-For optional setup surfaces that should only appear in certain contexts, use
-`createOptionalChannelSetupSurface` from `crawclaw/plugin-sdk/channel-setup`:
-
-```typescript
-import { createOptionalChannelSetupSurface } from "crawclaw/plugin-sdk/channel-setup";
-
-const setupSurface = createOptionalChannelSetupSurface({
-  channel: "my-channel",
-  label: "My Channel",
-  npmSpec: "@myorg/crawclaw-my-channel",
-  docsPath: "/channels/my-channel",
-});
-// Returns { setupAdapter, setupWizard }
-```
+Channel-specific TypeScript setup helpers have been removed. Future channel
+plugins should use the Rust-native channel plugin contract.
 
 ## Publishing and installing
 
 **External plugins:** publish to [ClawHub](/tools/clawhub) or npm, then install:
 
 ```bash
-crawclaw plugins install @myorg/crawclaw-my-plugin
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 CrawClaw tries ClawHub first and falls back to npm automatically. You can also
 force a specific source:
 
 ```bash
-crawclaw plugins install clawhub:@myorg/crawclaw-my-plugin   # ClawHub only
-crawclaw plugins install npm:@myorg/crawclaw-my-plugin       # npm only
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 **In-repo plugins:** place under the bundled plugin workspace tree and they are automatically
@@ -348,12 +252,12 @@ discovered during build.
 **Users can browse and install:**
 
 ```bash
-crawclaw plugins search <query>
-crawclaw plugins install <package-name>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 <Info>
-  For npm-sourced installs, `crawclaw plugins install` runs
+  For npm-sourced installs, CrawClaw Desktop or the local Gateway API runs
   `npm install --ignore-scripts` (no lifecycle scripts). Keep plugin dependency
   trees pure JS/TS and avoid packages that require `postinstall` builds.
 </Info>

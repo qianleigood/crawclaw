@@ -26,19 +26,19 @@ Profiles auto-scope `CRAWCLAW_STATE_DIR` + `CRAWCLAW_CONFIG_PATH` and suffix ser
 
 ```bash
 # main
-crawclaw --profile main setup
-crawclaw --profile main gateway --port 18789
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # rescue
-crawclaw --profile rescue setup
-crawclaw --profile rescue gateway --port 19001
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Per-profile services:
 
 ```bash
-crawclaw --profile main gateway install
-crawclaw --profile rescue gateway install
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Rescue-bot guide
@@ -59,11 +59,11 @@ Port spacing: leave at least 20 ports between base ports so the derived browser/
 ```bash
 # Main bot (existing or fresh, without --profile param)
 # Runs on port 18789 + Chrome CDC/Canvas/... Ports
-crawclaw onboard
-crawclaw gateway install
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Rescue bot (isolated profile + ports)
-crawclaw --profile rescue onboard
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # Notes:
 # - workspace name will be postfixed with -rescue per default
 # - Port should be at least 18789 + 20 Ports,
@@ -71,7 +71,7 @@ crawclaw --profile rescue onboard
 # - rest of the onboarding is the same as normal
 
 # To install the service (if not happened automatically during setup)
-crawclaw --profile rescue gateway install
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Port mapping (derived)
@@ -95,17 +95,17 @@ If you override any of these in config or env, you must keep them unique per ins
 ```bash
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/main.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-main \
-crawclaw gateway --port 18789
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/rescue.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-rescue \
-crawclaw gateway --port 19001
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Quick checks
 
 ```bash
-crawclaw --profile main status
-crawclaw --profile rescue status
-crawclaw --profile rescue gateway status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```

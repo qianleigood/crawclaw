@@ -61,9 +61,7 @@ function getTextAliasMap(): Map<string, TextAliasSpec> {
   }
   const map = new Map<string, TextAliasSpec>();
   for (const command of commands) {
-    // Canonicalize to the *primary* text alias, not `/${key}`. Some command keys are
-    // internal identifiers (e.g. `dock:telegram`) while the public text command is
-    // the alias (e.g. `/dock-telegram`).
+    // Canonicalize to the *primary* text alias, not `/${key}`.
     const canonical = command.textAliases[0]?.trim() || `/${command.key}`;
     const acceptsArgs = Boolean(command.acceptsArgs);
     for (const alias of command.textAliases) {
@@ -139,16 +137,7 @@ export function listChatCommandsForConfig(
   return [...base, ...buildSkillCommandDefinitions(params.skillCommands)];
 }
 
-const NATIVE_NAME_OVERRIDES: Record<string, Record<string, string>> = {
-  discord: {
-    tts: "voice",
-  },
-  slack: {
-    // Slack reserves /status — registering it returns "invalid name"
-    // and invalidates the entire slash_commands manifest array.
-    status: "agentstatus",
-  },
-};
+const NATIVE_NAME_OVERRIDES: Record<string, Record<string, string>> = {};
 
 function resolveNativeName(command: ChatCommandDefinition, provider?: string): string | undefined {
   if (!command.nativeName) {

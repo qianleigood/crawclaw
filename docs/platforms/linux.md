@@ -15,10 +15,10 @@ Linux support is focused on CLI, Gateway, and plugins.
 ## Beginner quick path (VPS)
 
 1. Install Node 24.x (stable) or Node 25.x (experimental)
-2. `npm i -g crawclaw@latest`
-3. `crawclaw onboard --install-daemon`
+2. `install CrawClaw Desktop from GitHub Releases`
+3. CrawClaw Desktop or the local Gateway API
 4. From your laptop: `ssh -N -L 18789:127.0.0.1:18789 <user>@<host>`
-5. Run `crawclaw gateway status` locally, or connect a supported Gateway client through the SSH tunnel
+5. Run CrawClaw Desktop or the local Gateway API locally, or connect a supported Gateway client through the SSH tunnel
 
 Full Linux server guide: [Linux Server](/vps). Step-by-step VPS example: [exe.dev](/install/exe-dev)
 
@@ -38,19 +38,19 @@ Full Linux server guide: [Linux Server](/vps). Step-by-step VPS example: [exe.de
 Use one of these:
 
 ```
-crawclaw onboard --install-daemon
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Or:
 
 ```
-crawclaw gateway install
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Or:
 
 ```
-crawclaw configure
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Select **Gateway service** when prompted.
@@ -58,7 +58,7 @@ Select **Gateway service** when prompted.
 Repair/migrate:
 
 ```
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## System control (systemd user unit)
@@ -78,7 +78,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/local/bin/crawclaw gateway --port 18789
+ExecStart=/usr/local/bin/CrawClaw Desktop or the local Gateway API
 Restart=always
 RestartSec=5
 

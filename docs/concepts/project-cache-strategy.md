@@ -114,14 +114,6 @@ These caches are domain-owned. File caches commonly use `mtimeMs + size` fingerp
 
 ## Extension Caches
 
-Examples:
-
-- `extensions/slack/src/sent-thread-cache.ts`
-- `extensions/msteams/src/sent-message-cache.ts`
-- `extensions/telegram/src/sent-message-cache.ts`
-- `extensions/telegram/src/sticker-cache.ts`
-- `extensions/qqbot/src/utils/upload-cache.ts`
-
 Extension caches should include the channel account, conversation, recipient, provider, or file scope needed to avoid cross-account reuse. Long-lived or persistent extension caches also need a bounded size, TTL, or explicit cleanup path.
 
 Account ID alone is not enough when credentials or account config can change the result. In those cases, include a non-secret credential fingerprint or a narrow config signature in the cache key.

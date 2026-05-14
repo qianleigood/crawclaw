@@ -33,6 +33,7 @@ async fn main() {
 
     match args.remove(0).as_str() {
         "status" => status(&args),
+        "stage" => stage(args),
         "tool" => run_tool(args).await,
         command => {
             eprintln!("unsupported crawclaw-runtime command: {command}");
@@ -55,6 +56,18 @@ fn status(args: &[String]) {
         return;
     }
     println!("CrawClaw Rust runtime: ready");
+}
+
+fn stage(args: Vec<String>) {
+    if args.len() != 2 || args[0] != "--output" {
+        eprintln!("usage: crawclaw-runtime stage --output <dir>");
+        std::process::exit(2);
+    }
+    if let Err(error) = crawclaw_runtime::stage_desktop_runtime_manifests(&PathBuf::from(&args[1]))
+    {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
 }
 
 async fn run_tool(args: Vec<String>) {
@@ -115,6 +128,20 @@ async fn run_worker() {
             crawclaw_runtime::execute_message_policy_operation(request.input)
         } else if request.tool == "agent_run_turn" {
             crawclaw_runtime::execute_agent_run_turn_operation(&root, request.input).await
+        } else if request.tool == "native_plugin_invoke" {
+            crawclaw_runtime::execute_native_plugin_invoke_operation(&root, request.input).await
+        } else if request.tool == "native_plugin_service_start" {
+            let mut input = request.input;
+            if let Value::Object(object) = &mut input {
+                object.insert("start".to_string(), json!(true));
+            }
+            crawclaw_runtime::execute_native_plugin_service_lifecycle_operation(&root, input).await
+        } else if request.tool == "native_plugin_service_stop" {
+            let mut input = request.input;
+            if let Value::Object(object) = &mut input {
+                object.insert("start".to_string(), json!(false));
+            }
+            crawclaw_runtime::execute_native_plugin_service_lifecycle_operation(&root, input).await
         } else {
             crawclaw_runtime::execute_rust_core_tool(&root, &request.tool, request.input).await
         };
@@ -146,5 +173,7 @@ fn runtime_root() -> PathBuf {
 }
 
 fn print_help() {
-    println!("Usage: crawclaw-runtime --worker | status [--json] | tool <name> [json-input]");
+    println!(
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | tool <name> [json-input]"
+    );
 }

@@ -130,7 +130,7 @@ The hackable install gives you direct access to logs and code — useful for deb
 ## 7) Run Onboarding
 
 ```bash
-crawclaw onboard --install-daemon
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Follow the wizard:
@@ -144,7 +144,7 @@ Follow the wizard:
 
 ```bash
 # Check status
-crawclaw status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Check service
 sudo systemctl status crawclaw

@@ -224,7 +224,9 @@ describe("collectMissingPackPaths", () => {
   it("requires the shipped channel catalog and optional bundled metadata", () => {
     const missing = collectMissingPackPaths([
       "dist/index.js",
-      "dist/native/crawclaw",
+      "dist/native/crawclaw-runtime",
+      "dist/native/crawclaw-gateway",
+      "dist/native/crawclaw-native-plugins",
       "dist/plugin-sdk/core.js",
       "dist/plugin-sdk/core.d.ts",
       "dist/build-info.json",
@@ -257,7 +259,9 @@ describe("collectMissingPackPaths", () => {
     expect(
       collectMissingPackPaths([
         "dist/index.js",
-        "dist/native/crawclaw",
+        "dist/native/crawclaw-runtime",
+        "dist/native/crawclaw-gateway",
+        "dist/native/crawclaw-native-plugins",
         "dist/extensions/acpx/mcp-proxy.mjs",
         bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
         ...requiredBundledPluginPackPaths,

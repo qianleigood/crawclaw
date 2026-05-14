@@ -91,7 +91,7 @@ function asTrimmedString(value: unknown): string {
 }
 
 function resolveCommandLabel(channel: string): string {
-  return channel === "discord" ? "/talkvoice" : "/voice";
+  return channel === "feishu" ? "/talkvoice" : "/voice";
 }
 
 function asProviderBaseUrl(value: unknown): string | undefined {
@@ -119,7 +119,7 @@ export default definePluginEntry({
     api.registerCommand({
       name: "voice",
       nativeNames: {
-        discord: "talkvoice",
+        feishu: "talkvoice",
       },
       description: "List/set Talk provider voices (affects iOS Talk playback).",
       acceptsArgs: true,

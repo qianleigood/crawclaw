@@ -14,7 +14,7 @@ function makeJob(overrides: Partial<CronJob> = {}): CronJob {
     sessionTarget: "isolated",
     wakeMode: "now",
     payload: { kind: "agentTurn", message: "hello" },
-    delivery: { mode: "announce", channel: "telegram", to: "-1001234567890" },
+    delivery: { mode: "announce", channel: "feishu", to: "-1001234567890" },
     state: {},
     ...overrides,
   };
@@ -29,7 +29,7 @@ describe("applyJobPatch delivery merge", () => {
 
     expect(job.delivery).toEqual({
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "-1001234567890",
       threadId: "99",
     });

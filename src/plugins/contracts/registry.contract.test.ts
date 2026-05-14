@@ -121,6 +121,19 @@ describe("plugin contract registry", () => {
     },
   );
 
+  it("hydrates native bundled web provider metadata from manifests", () => {
+    expect(
+      resolveWebFetchProviderContractEntriesForPluginId("scrapling-fetch").map(
+        (entry) => entry.provider.id,
+      ),
+    ).toContain("scrapling");
+    expect(
+      resolveWebSearchProviderContractEntriesForPluginId("open-websearch").map(
+        (entry) => entry.provider.id,
+      ),
+    ).toContain("open-websearch");
+  });
+
   it("covers every bundled web search plugin from the shared resolver", () => {
     const bundledWebSearchPluginIds = resolveBundledWebSearchPluginIds({});
 

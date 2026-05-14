@@ -16,7 +16,7 @@ const DEFAULT_VISIBILITY: ResolvedMainSessionWakeVisibility = {
 
 /**
  * Resolve heartbeat visibility settings for a channel.
- * Supports both deliverable channels (telegram, signal, etc.) and webchat.
+ * Supports deliverable channels and webchat.
  * For webchat, uses channels.defaults.heartbeat since webchat doesn't have per-channel config.
  */
 export function resolveMainSessionWakeVisibility(params: {

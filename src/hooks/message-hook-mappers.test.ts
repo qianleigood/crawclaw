@@ -17,18 +17,18 @@ import {
 
 function makeInboundCtx(overrides: Partial<FinalizedMsgContext> = {}): FinalizedMsgContext {
   return {
-    From: "telegram:user:123",
-    To: "telegram:chat:456",
+    From: "feishu:user:123",
+    To: "feishu:chat:456",
     Body: "body",
     BodyForAgent: "body-for-agent",
     BodyForCommands: "commands-body",
     RawBody: "raw-body",
     Transcript: "hello transcript",
     Timestamp: 1710000000,
-    Provider: "telegram",
-    Surface: "telegram",
-    OriginatingChannel: "telegram",
-    OriginatingTo: "telegram:chat:456",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
+    OriginatingTo: "feishu:chat:456",
     AccountId: "acc-1",
     MessageSid: "msg-1",
     SenderId: "sender-1",
@@ -50,11 +50,11 @@ describe("message hook mappers", () => {
     const canonical = deriveInboundMessageHookContext(makeInboundCtx());
 
     expect(canonical.content).toBe("commands-body");
-    expect(canonical.channelId).toBe("telegram");
-    expect(canonical.conversationId).toBe("telegram:chat:456");
+    expect(canonical.channelId).toBe("feishu");
+    expect(canonical.conversationId).toBe("feishu:chat:456");
     expect(canonical.messageId).toBe("msg-1");
     expect(canonical.isGroup).toBe(true);
-    expect(canonical.groupId).toBe("telegram:chat:456");
+    expect(canonical.groupId).toBe("feishu:chat:456");
     expect(canonical.guildId).toBe("guild-1");
   });
 
@@ -98,12 +98,12 @@ describe("message hook mappers", () => {
     const canonical = deriveInboundMessageHookContext(makeInboundCtx());
 
     expect(toPluginMessageContext(canonical)).toEqual({
-      channelId: "telegram",
+      channelId: "feishu",
       accountId: "acc-1",
-      conversationId: "telegram:chat:456",
+      conversationId: "feishu:chat:456",
     });
     expect(toPluginMessageReceivedEvent(canonical)).toEqual({
-      from: "telegram:user:123",
+      from: "feishu:user:123",
       content: "commands-body",
       timestamp: 1710000000,
       metadata: expect.objectContaining({
@@ -113,12 +113,12 @@ describe("message hook mappers", () => {
       }),
     });
     expect(toInternalMessageReceivedContext(canonical)).toEqual({
-      from: "telegram:user:123",
+      from: "feishu:user:123",
       content: "commands-body",
       timestamp: 1710000000,
-      channelId: "telegram",
+      channelId: "feishu",
       accountId: "acc-1",
-      conversationId: "telegram:chat:456",
+      conversationId: "feishu:chat:456",
       messageId: "msg-1",
       metadata: expect.objectContaining({
         senderUsername: "userone",
@@ -127,47 +127,47 @@ describe("message hook mappers", () => {
     });
   });
 
-  it("normalizes Discord channel targets for inbound claim contexts", () => {
+  it("maps retained channel targets for inbound claim contexts", () => {
     const canonical = deriveInboundMessageHookContext(
       makeInboundCtx({
-        Provider: "discord",
-        Surface: "discord",
-        OriginatingChannel: "discord",
-        To: "channel:123456789012345678",
-        OriginatingTo: "channel:123456789012345678",
+        Provider: "feishu",
+        Surface: "feishu",
+        OriginatingChannel: "feishu",
+        To: "oc_123456",
+        OriginatingTo: "oc_123456",
         GroupChannel: "general",
         GroupSubject: "guild",
       }),
     );
 
     expect(toPluginInboundClaimContext(canonical)).toEqual({
-      channelId: "discord",
+      channelId: "feishu",
       accountId: "acc-1",
-      conversationId: "channel:123456789012345678",
+      conversationId: "oc_123456",
       parentConversationId: undefined,
       senderId: "sender-1",
       messageId: "msg-1",
     });
   });
 
-  it("normalizes Discord DM targets for inbound claim contexts", () => {
+  it("maps retained direct targets for inbound claim contexts", () => {
     const canonical = deriveInboundMessageHookContext(
       makeInboundCtx({
-        Provider: "discord",
-        Surface: "discord",
-        OriginatingChannel: "discord",
-        From: "discord:1177378744822943744",
-        To: "channel:1480574946919846079",
-        OriginatingTo: "channel:1480574946919846079",
+        Provider: "feishu",
+        Surface: "feishu",
+        OriginatingChannel: "feishu",
+        From: "feishu:user_1",
+        To: "ou_2",
+        OriginatingTo: "ou_2",
         GroupChannel: undefined,
         GroupSubject: undefined,
       }),
     );
 
     expect(toPluginInboundClaimContext(canonical)).toEqual({
-      channelId: "discord",
+      channelId: "feishu",
       accountId: "acc-1",
-      conversationId: "user:1177378744822943744",
+      conversationId: "ou_2",
       parentConversationId: undefined,
       senderId: "sender-1",
       messageId: "msg-1",
@@ -185,7 +185,7 @@ describe("message hook mappers", () => {
     const preprocessed = toInternalMessagePreprocessedContext(canonical, cfg);
     expect(preprocessed.transcript).toBeUndefined();
     expect(preprocessed.isGroup).toBe(true);
-    expect(preprocessed.groupId).toBe("telegram:chat:456");
+    expect(preprocessed.groupId).toBe("feishu:chat:456");
     expect(preprocessed.cfg).toBe(cfg);
   });
 

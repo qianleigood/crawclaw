@@ -57,7 +57,7 @@ If you do nothing, CrawClaw runs a single agent:
 Use the agent wizard to add a new isolated agent:
 
 ```bash
-crawclaw agents add work
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Then add `bindings` (or let the wizard do it) to route inbound messages.
@@ -65,7 +65,7 @@ Then add `bindings` (or let the wizard do it) to route inbound messages.
 Verify with:
 
 ```bash
-crawclaw agents list --bindings
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Quick start
@@ -76,8 +76,8 @@ crawclaw agents list --bindings
 Use the wizard or create workspaces manually:
 
 ```bash
-crawclaw agents add coding
-crawclaw agents add social
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Each agent gets its own workspace with `SOUL.md`, `AGENTS.md`, and optional `USER.md`, plus a dedicated `agentDir` and session store under `~/.crawclaw/agents/<agentId>`.
@@ -93,7 +93,7 @@ Create one account per agent on your preferred channels:
 - WhatsApp: link each phone number per account.
 
 ```bash
-crawclaw channels login --channel whatsapp --account work
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 See channel guides: [Discord](/channels/discord), [Telegram](/channels/telegram), [WhatsApp](/channels/whatsapp).
@@ -109,9 +109,9 @@ Add agents under `agents.list`, channel accounts under `channels.<channel>.accou
   <Step title="Restart and verify">
 
 ```bash
-crawclaw gateway restart
-crawclaw agents list --bindings
-crawclaw channels status --probe
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
   </Step>
@@ -314,8 +314,8 @@ Notes:
 Link each account before starting the gateway:
 
 ```bash
-crawclaw channels login --channel whatsapp --account personal
-crawclaw channels login --channel whatsapp --account biz
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 `~/.crawclaw/crawclaw.json` (JSON5):

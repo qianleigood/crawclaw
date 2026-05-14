@@ -18,7 +18,6 @@ import type {
   ProviderCacheTtlEligibilityContext,
   ProviderCreateEmbeddingProviderContext,
   ProviderResolveSyntheticAuthContext,
-  ProviderCreateStreamFnContext,
   ProviderDefaultThinkingPolicyContext,
   ProviderFetchUsageSnapshotContext,
   ProviderNormalizeToolSchemasContext,
@@ -31,7 +30,6 @@ import type {
   ProviderNormalizeResolvedModelContext,
   ProviderNormalizeTransportContext,
   ProviderModernModelPolicyContext,
-  ProviderPrepareExtraParamsContext,
   ProviderPrepareDynamicModelContext,
   ProviderPrepareRuntimeAuthContext,
   ProviderResolveConfigApiKeyContext,
@@ -42,7 +40,6 @@ import type {
   ProviderRuntimeModel,
   ProviderThinkingPolicyContext,
   ProviderValidateReplayTurnsContext,
-  ProviderWrapStreamFnContext,
 } from "./types.js";
 
 function matchesProviderId(provider: ProviderPlugin, providerId: string): boolean {
@@ -67,15 +64,6 @@ let cachedHookProvidersByConfig = new WeakMap<
   WeakMap<NodeJS.ProcessEnv, Map<string, ProviderPlugin[]>>
 >();
 
-const BUNDLED_PROVIDER_TS_RUNTIME_COMPAT_ENV = "CRAWCLAW_TS_BUNDLED_PROVIDER_RUNTIME_COMPAT";
-
-function allowBundledProviderTsRuntimeCompat(env?: NodeJS.ProcessEnv): boolean {
-  const effectiveEnv = env ?? process.env;
-  return (
-    effectiveEnv[BUNDLED_PROVIDER_TS_RUNTIME_COMPAT_ENV] === "1" || Boolean(effectiveEnv.VITEST)
-  );
-}
-
 function resolveBundledProviderRuntimePluginIds(params: {
   config?: CrawClawConfig;
   workspaceDir?: string;
@@ -98,9 +86,6 @@ function filterBundledProviderRuntimePluginIds(params: {
   env?: NodeJS.ProcessEnv;
   pluginIds: string[];
 }): string[] {
-  if (allowBundledProviderTsRuntimeCompat(params.env)) {
-    return params.pluginIds;
-  }
   const bundledPluginIds = resolveBundledProviderRuntimePluginIds({
     config: params.config,
     workspaceDir: params.workspaceDir,
@@ -150,7 +135,6 @@ function buildHookProviderCacheKey(params: {
     roots.workspace ?? "",
     roots.global,
     roots.stock ?? "",
-    allowBundledProviderTsRuntimeCompat(params.env),
     JSON.stringify(params.config ?? null),
     JSON.stringify(params.onlyPluginIds ?? []),
   ].join("::");
@@ -192,29 +176,24 @@ function resolveProviderPluginsForHooks(params: {
   if (cached) {
     return cached;
   }
-  const allowBundledCompat = allowBundledProviderTsRuntimeCompat(env);
   const resolved = resolvePluginProviders({
     ...params,
     env,
     activate: false,
     cache: false,
-    bundledProviderAllowlistCompat: allowBundledCompat,
-    bundledProviderVitestCompat: allowBundledCompat,
   });
-  const filtered = allowBundledCompat
-    ? resolved
-    : resolved.filter((provider) => {
-        const pluginId = provider.pluginId;
-        if (!pluginId) {
-          return true;
-        }
-        return !resolveBundledProviderRuntimePluginIds({
-          config: params.config,
-          workspaceDir: params.workspaceDir,
-          env,
-          onlyPluginIds: [pluginId],
-        }).has(pluginId);
-      });
+  const filtered = resolved.filter((provider) => {
+    const pluginId = provider.pluginId;
+    if (!pluginId) {
+      return true;
+    }
+    return !resolveBundledProviderRuntimePluginIds({
+      config: params.config,
+      workspaceDir: params.workspaceDir,
+      env,
+      onlyPluginIds: [pluginId],
+    }).has(pluginId);
+  });
   cacheBucket.set(cacheKey, filtered);
   return filtered;
 }
@@ -572,36 +551,6 @@ export function resolveProviderReasoningOutputModeWithPlugin(params: {
 }): ProviderReasoningOutputMode | undefined {
   const mode = resolveProviderHookPlugin(params)?.resolveReasoningOutputMode?.(params.context);
   return mode === "native" || mode === "tagged" ? mode : undefined;
-}
-
-export function prepareProviderExtraParams(params: {
-  provider: string;
-  config?: CrawClawConfig;
-  workspaceDir?: string;
-  env?: NodeJS.ProcessEnv;
-  context: ProviderPrepareExtraParamsContext;
-}) {
-  return resolveProviderRuntimePlugin(params)?.prepareExtraParams?.(params.context) ?? undefined;
-}
-
-export function resolveProviderStreamFn(params: {
-  provider: string;
-  config?: CrawClawConfig;
-  workspaceDir?: string;
-  env?: NodeJS.ProcessEnv;
-  context: ProviderCreateStreamFnContext;
-}) {
-  return resolveProviderRuntimePlugin(params)?.createStreamFn?.(params.context) ?? undefined;
-}
-
-export function wrapProviderStreamFn(params: {
-  provider: string;
-  config?: CrawClawConfig;
-  workspaceDir?: string;
-  env?: NodeJS.ProcessEnv;
-  context: ProviderWrapStreamFnContext;
-}) {
-  return resolveProviderRuntimePlugin(params)?.wrapStreamFn?.(params.context) ?? undefined;
 }
 
 export async function createProviderEmbeddingProvider(params: {

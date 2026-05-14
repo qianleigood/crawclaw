@@ -20,8 +20,6 @@ pub struct RuntimeCompatStatus {
 #[serde(rename_all = "kebab-case")]
 pub enum RuntimeCompatMode {
     None,
-    #[serde(rename = "pi-quickjs")]
-    PiQuickJs,
 }
 
 impl Default for RuntimeCompatStatus {

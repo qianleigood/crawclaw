@@ -316,9 +316,9 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
-async fn gateway_invokes_js_plugin_tool_through_rust_plugin_host() {
+async fn gateway_invokes_node_plugin_tool_through_rust_plugin_host() {
     let runtime_layout = create_runtime_fixture(
-        "desktop-pi-quickjs-plugin",
+        "desktop-node-plugin",
         r#"#!/bin/sh
 case "$*" in
   *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
@@ -328,14 +328,18 @@ esac
 "#,
     );
     write_plugin_manifest(&runtime_layout);
+    stage_test_node_runtime(&runtime_layout);
     let plugin_dir = runtime_layout.runtime_root.join("plugins").join("test-js");
     fs::create_dir_all(&plugin_dir).expect("plugin dir");
     fs::write(
         plugin_dir.join("crawclaw.plugin.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "id": "test-js",
-            "entrypoint": "index.mjs",
-            "allowJsPluginFallback": true
+            "runtime": {
+                "kind": "node",
+                "language": "js",
+                "entrypoint": "index.mjs"
+            }
         }))
         .expect("plugin manifest json"),
     )
@@ -388,15 +392,15 @@ esac
     assert!(result_items.iter().any(|item| {
         item.as_str()
             .unwrap_or_default()
-            .contains(r#"test-js/echo: {"output":"pi-quickjs:pi-quickjs:hi"}"#)
+            .contains(r#"test-js/echo: {"output":"node:node:hi"}"#)
     }));
 }
 
 #[cfg(unix)]
 #[tokio::test]
-async fn gateway_blocks_desktop_js_plugin_fallback_without_manifest_opt_in() {
+async fn gateway_blocks_legacy_js_plugin_fallback_without_node_runtime() {
     let runtime_layout = create_runtime_fixture(
-        "desktop-pi-quickjs-plugin-denied",
+        "desktop-legacy-js-fallback-denied",
         r#"#!/bin/sh
 case "$*" in
   *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
@@ -406,13 +410,15 @@ esac
 "#,
     );
     write_plugin_manifest(&runtime_layout);
+    stage_test_node_runtime(&runtime_layout);
     let plugin_dir = runtime_layout.runtime_root.join("plugins").join("test-js");
     fs::create_dir_all(&plugin_dir).expect("plugin dir");
     fs::write(
         plugin_dir.join("crawclaw.plugin.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "id": "test-js",
-            "entrypoint": "index.mjs"
+            "entrypoint": "index.mjs",
+            "allowJsPluginFallback": true
         }))
         .expect("plugin manifest json"),
     )
@@ -457,14 +463,18 @@ esac
 "#,
     );
     write_plugin_manifest(&runtime_layout);
+    stage_test_node_runtime(&runtime_layout);
     let plugin_dir = runtime_layout.runtime_root.join("plugins").join("comfyui");
     fs::create_dir_all(&plugin_dir).expect("plugin dir");
     fs::write(
         plugin_dir.join("crawclaw.plugin.json"),
         serde_json::to_vec_pretty(&serde_json::json!({
             "id": "comfyui",
-            "entrypoint": "index.mjs",
-            "allowJsPluginFallback": true
+            "runtime": {
+                "kind": "node",
+                "language": "js",
+                "entrypoint": "index.mjs"
+            }
         }))
         .expect("plugin manifest json"),
     )
@@ -2175,7 +2185,7 @@ fn write_plugin_manifest(layout: &RuntimeLayout) {
 fn missing_runtime_layout() -> RuntimeLayout {
     RuntimeLayout {
         runtime_root: "/runtime/crawclaw".into(),
-        binary_path: "/runtime/crawclaw/bin/crawclaw".into(),
+        binary_path: "/runtime/crawclaw/bin/crawclaw-runtime".into(),
         channel_manifest_path: "/runtime/crawclaw/channels/manifest.json".into(),
         manifest_path: "/runtime/crawclaw/runtimes/manifest.json".into(),
     }
@@ -2197,24 +2207,69 @@ fn create_runtime_fixture(name: &str, runtime_script: &str) -> RuntimeLayout {
     fs::write(&layout.manifest_path, "{}\n").expect("manifest");
     fs::write(&layout.channel_manifest_path, "{}\n").expect("channel manifest");
     fs::write(&layout.binary_path, runtime_script).expect("runtime script");
+    fs::write(layout.gateway_binary_path(), "#!/bin/sh\nexit 0\n").expect("gateway binary");
+    fs::write(layout.native_plugins_binary_path(), "#!/bin/sh\nexit 0\n")
+        .expect("native plugins binary");
 
     use std::os::unix::fs::PermissionsExt;
-    let mut permissions = fs::metadata(&layout.binary_path)
-        .expect("runtime metadata")
-        .permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&layout.binary_path, permissions).expect("runtime chmod");
+    for executable_path in [
+        layout.binary_path.clone(),
+        layout.gateway_binary_path(),
+        layout.native_plugins_binary_path(),
+    ] {
+        let mut permissions = fs::metadata(&executable_path)
+            .expect("runtime metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&executable_path, permissions).expect("runtime chmod");
+    }
 
     layout
+}
+
+#[cfg(unix)]
+fn stage_test_node_runtime(layout: &RuntimeLayout) {
+    let node_dir = layout
+        .runtime_root
+        .join("runtimes")
+        .join("node-v24")
+        .join("bin");
+    fs::create_dir_all(&node_dir).expect("node runtime bin dir");
+    let node_bin = node_dir.join("node");
+    fs::write(
+        &node_bin,
+        r#"#!/bin/sh
+if [ "$1" = "--version" ]; then
+  echo "v24.0.0"
+  exit 0
+fi
+exec node "$@"
+"#,
+    )
+    .expect("node runtime shim");
+    fs::write(
+        node_dir.join("npm"),
+        r#"#!/bin/sh
+echo "11.0.0"
+"#,
+    )
+    .expect("npm runtime shim");
+
+    use std::os::unix::fs::PermissionsExt;
+    let mut node_permissions = fs::metadata(&node_bin)
+        .expect("node runtime metadata")
+        .permissions();
+    node_permissions.set_mode(0o755);
+    fs::set_permissions(&node_bin, node_permissions).expect("node runtime chmod");
 }
 
 #[cfg(unix)]
 fn runtime_layout(runtime_root: PathBuf) -> RuntimeLayout {
     RuntimeLayout {
         binary_path: runtime_root.join("bin").join(if cfg!(windows) {
-            "crawclaw.exe"
+            "crawclaw-runtime.exe"
         } else {
-            "crawclaw"
+            "crawclaw-runtime"
         }),
         channel_manifest_path: runtime_root.join("channels").join("manifest.json"),
         manifest_path: runtime_root.join("runtimes").join("manifest.json"),

@@ -21,27 +21,25 @@ CrawClaw ships a bundled `chutes` provider plugin with OAuth and API key auth.
 Use OAuth when you want browser sign-in:
 
 ```bash
-crawclaw onboard --auth-choice chutes
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Use an API key when you want a simple headless setup:
 
 ```bash
-crawclaw onboard --auth-choice chutes-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 For non-interactive setup:
 
 ```bash
-crawclaw onboard --non-interactive \
-  --auth-choice chutes-api-key \
-  --chutes-api-key "$CHUTES_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Then set a default model if onboarding did not already do it:
 
 ```bash
-crawclaw models set chutes/zai-org/GLM-4.7-TEE
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## API key setup
@@ -55,7 +53,7 @@ export CHUTES_API_KEY="chutes_..."
 Or store it with onboarding:
 
 ```bash
-crawclaw onboard --auth-choice chutes-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If the Gateway runs as a daemon, make sure the key is available to that process,
@@ -107,14 +105,14 @@ You can also use any catalog model directly as `chutes/<model-id>`.
 ## Verify
 
 ```bash
-crawclaw models status
-crawclaw models list | grep chutes
-crawclaw agent --model chutes/zai-org/GLM-4.7-TEE --message "Hello"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Troubleshooting
 
-- `missing auth` or `unauthorized`: rerun `crawclaw onboard --auth-choice chutes` or set `CHUTES_API_KEY`.
+- `missing auth` or `unauthorized`: rerun CrawClaw Desktop or the local Gateway API or set `CHUTES_API_KEY`.
 - OAuth callback does not complete: verify the OAuth app redirect URI matches
   `CHUTES_OAUTH_REDIRECT_URI`.
 - Daemon cannot see the key: put `CHUTES_API_KEY` in the Gateway environment,

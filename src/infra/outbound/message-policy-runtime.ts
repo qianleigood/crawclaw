@@ -43,6 +43,20 @@ export type RustChannelOutboundRequest = {
   params?: Record<string, unknown>;
 };
 
+export type RustOutboundTransportPolicy = {
+  channel?: ChannelId;
+  isBundledChannel?: boolean;
+  allowTsChannelRuntime?: boolean;
+  runtime: "rustNative" | "tsPluginCompat";
+  useNativeGateway: boolean;
+};
+
+export type RustOutboundTransportPolicyRequest = {
+  channel: ChannelId;
+  bundledChannels: string[];
+  allowTsChannelRuntime: boolean;
+};
+
 async function runMessagePolicyOperation<T>(
   operation: string,
   payload: unknown,
@@ -66,6 +80,15 @@ export async function buildRustChannelOutboundRequest(
     request,
   );
   return result.request;
+}
+
+export async function resolveRustOutboundTransportPolicy(
+  request: RustOutboundTransportPolicyRequest,
+): Promise<RustOutboundTransportPolicy> {
+  return await runMessagePolicyOperation<RustOutboundTransportPolicy>(
+    "outbound.resolveTransportPolicy",
+    request,
+  );
 }
 
 function contextGuardTarget(

@@ -22,7 +22,7 @@ Gemini Grounding.
 1. Set the API key:
 
 ```bash
-crawclaw onboard --auth-choice google-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 2. Set a default model:
@@ -40,10 +40,7 @@ crawclaw onboard --auth-choice google-api-key
 ## Non-interactive example
 
 ```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice google-api-key \
-  --gemini-api-key "$GEMINI_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## OAuth (Gemini CLI)

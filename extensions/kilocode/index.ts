@@ -1,8 +1,4 @@
 import { defineSingleProviderPluginEntry } from "crawclaw/plugin-sdk/provider-entry";
-import {
-  createKilocodeWrapper,
-  isProxyReasoningUnsupported,
-} from "crawclaw/plugin-sdk/provider-stream";
 import { applyKilocodeConfig, KILOCODE_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildKilocodeProviderWithDiscovery } from "./provider-catalog.js";
 
@@ -34,13 +30,6 @@ export default defineSingleProviderPluginEntry({
     capabilities: {
       geminiThoughtSignatureSanitization: true,
       geminiThoughtSignatureModelHints: ["gemini"],
-    },
-    wrapStreamFn: (ctx) => {
-      const thinkingLevel =
-        ctx.modelId === "kilo/auto" || isProxyReasoningUnsupported(ctx.modelId)
-          ? undefined
-          : ctx.thinkingLevel;
-      return createKilocodeWrapper(ctx.streamFn, thinkingLevel);
     },
     isCacheTtlEligible: (ctx) => ctx.modelId.startsWith("anthropic/"),
   },

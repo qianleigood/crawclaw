@@ -29,7 +29,7 @@ Gateway clients can tail this file via the gateway (`logs.tail`).
 CLI can do the same:
 
 ```bash
-crawclaw logs --follow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 **Verbose vs. log levels**
@@ -73,7 +73,7 @@ The gateway prints WebSocket protocol logs in two modes:
 
 ### WS log style
 
-`crawclaw gateway` supports a per-gateway style switch:
+CrawClaw Desktop or the local Gateway API supports a per-gateway style switch:
 
 - `--ws-log auto` (default): normal mode is optimized; verbose mode uses compact output
 - `--ws-log compact`: compact output (paired request/response) when verbose
@@ -84,13 +84,13 @@ Examples:
 
 ```bash
 # optimized (only errors/slow)
-crawclaw gateway
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # show all WS traffic (paired)
-crawclaw gateway --verbose --ws-log compact
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # show all WS traffic (full meta)
-crawclaw gateway --verbose --ws-log full
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Console formatting (subsystem logging)

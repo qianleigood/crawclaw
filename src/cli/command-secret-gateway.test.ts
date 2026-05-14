@@ -98,11 +98,11 @@ describe("resolveCommandSecretRefsViaGateway", () => {
   it("skips gateway resolution when all configured target refs are inactive", async () => {
     const config = {
       channels: {
-        telegram: {
+        feishu: {
           accounts: {
             disabled: {
               enabled: false,
-              botToken: { source: "env", provider: "default", id: "TELEGRAM_BOT_TOKEN" },
+              appSecret: { source: "env", provider: "default", id: "FEISHU_APP_SECRET" },
             },
           },
         },
@@ -112,13 +112,13 @@ describe("resolveCommandSecretRefsViaGateway", () => {
     const result = await resolveCommandSecretRefsViaGateway({
       config,
       commandName: "status",
-      targetIds: new Set(["channels.telegram.accounts.*.botToken"]),
+      targetIds: new Set(["channels.feishu.accounts.*.appSecret"]),
     });
 
     expect(callGateway).not.toHaveBeenCalled();
     expect(result.resolvedConfig).toEqual(config);
     expect(result.diagnostics).toEqual([
-      "channels.telegram.accounts.disabled.botToken: Telegram account is disabled or tokenFile is configured.",
+      "channels.feishu.accounts.disabled.appSecret: Feishu account is disabled.",
     ]);
   });
 
@@ -161,8 +161,8 @@ describe("resolveCommandSecretRefsViaGateway", () => {
     callGateway.mockResolvedValueOnce({
       assignments: [
         {
-          path: "channels.discord.accounts.ops.token",
-          pathSegments: ["channels", "discord", "accounts", "ops", "token"],
+          path: "channels.feishu.accounts.ops.appSecret",
+          pathSegments: ["channels", "feishu", "accounts", "ops", "appSecret"],
           value: "ops-token",
         },
       ],
@@ -172,26 +172,26 @@ describe("resolveCommandSecretRefsViaGateway", () => {
     const result = await resolveCommandSecretRefsViaGateway({
       config: {
         channels: {
-          discord: {
+          feishu: {
             accounts: {
               ops: {
-                token: { source: "env", provider: "default", id: "DISCORD_OPS_TOKEN" },
+                appSecret: { source: "env", provider: "default", id: "FEISHU_OPS_SECRET" },
               },
               chat: {
-                token: { source: "env", provider: "default", id: "DISCORD_CHAT_TOKEN" },
+                appSecret: { source: "env", provider: "default", id: "FEISHU_CHAT_SECRET" },
               },
             },
           },
         },
       } as CrawClawConfig,
       commandName: "message",
-      targetIds: new Set(["channels.discord.accounts.*.token"]),
-      allowedPaths: new Set(["channels.discord.accounts.ops.token"]),
+      targetIds: new Set(["channels.feishu.accounts.*.appSecret"]),
+      allowedPaths: new Set(["channels.feishu.accounts.ops.appSecret"]),
     });
 
-    expect(result.resolvedConfig.channels?.discord?.accounts?.ops?.token).toBe("ops-token");
+    expect(result.resolvedConfig.channels?.feishu?.accounts?.ops?.appSecret).toBe("ops-token");
     expect(result.targetStatesByPath).toEqual({
-      "channels.discord.accounts.ops.token": "resolved_gateway",
+      "channels.feishu.accounts.ops.appSecret": "resolved_gateway",
     });
     expect(result.hadUnresolvedTargets).toBe(false);
   });
@@ -458,16 +458,16 @@ describe("resolveCommandSecretRefsViaGateway", () => {
   it("allows unresolved array-index refs when gateway marks concrete paths inactive", async () => {
     callGateway.mockResolvedValueOnce({
       assignments: [],
-      diagnostics: ["telegram account token inactive"],
-      inactiveRefPaths: ["channels.telegram.accounts.main.botToken"],
+      diagnostics: ["feishu account secret inactive"],
+      inactiveRefPaths: ["channels.feishu.accounts.main.appSecret"],
     });
 
     const config = {
       channels: {
-        telegram: {
+        feishu: {
           accounts: {
             main: {
-              botToken: { source: "env", provider: "default", id: "MISSING_TELEGRAM_BOT_TOKEN" },
+              appSecret: { source: "env", provider: "default", id: "MISSING_FEISHU_APP_SECRET" },
             },
           },
         },
@@ -477,15 +477,15 @@ describe("resolveCommandSecretRefsViaGateway", () => {
     const result = await resolveCommandSecretRefsViaGateway({
       config,
       commandName: "status",
-      targetIds: new Set(["channels.telegram.accounts.*.botToken"]),
+      targetIds: new Set(["channels.feishu.accounts.*.appSecret"]),
     });
 
-    expect(result.resolvedConfig.channels?.telegram?.accounts?.main?.botToken).toEqual({
+    expect(result.resolvedConfig.channels?.feishu?.accounts?.main?.appSecret).toEqual({
       source: "env",
       provider: "default",
-      id: "MISSING_TELEGRAM_BOT_TOKEN",
+      id: "MISSING_FEISHU_APP_SECRET",
     });
-    expect(result.diagnostics).toEqual(["telegram account token inactive"]);
+    expect(result.diagnostics).toEqual(["feishu account secret inactive"]);
   });
 
   it("degrades unresolved refs in read-only status mode instead of throwing", async () => {

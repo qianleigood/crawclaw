@@ -21,6 +21,7 @@ import {
 import type { OutboundMirror } from "./mirror.js";
 import { normalizeReplyPayloadsForDelivery } from "./payloads.js";
 import { buildOutboundSessionContext } from "./session-context.js";
+import { shouldUseNativeGatewayOutbound } from "./outbound-transport-policy.js";
 import { resolveOutboundTarget } from "./targets.js";
 
 export type MessageGatewayOptions = {
@@ -212,9 +213,19 @@ async function callMessageGateway<T>(params: {
 
 export async function sendMessage(params: MessageSendParams): Promise<MessageSendResult> {
   const cfg = params.cfg ?? loadConfig();
-  const channel = params.nativeGateway
-    ? resolveExplicitNativeGatewayChannel(params.channel)
-    : await resolveRequiredChannel({ cfg, channel: params.channel });
+  const explicitChannel = normalizeMessageChannel(params.channel);
+  const explicitNativeGateway = explicitChannel
+    ? params.nativeGateway || (await shouldUseNativeGatewayOutbound(explicitChannel))
+    : false;
+  const channel = explicitNativeGateway
+    ? resolveExplicitNativeGatewayChannel(explicitChannel)
+    : params.nativeGateway
+      ? resolveExplicitNativeGatewayChannel(params.channel)
+      : await resolveRequiredChannel({ cfg, channel: params.channel });
+  const nativeGateway =
+    explicitNativeGateway ||
+    params.nativeGateway === true ||
+    (await shouldUseNativeGatewayOutbound(channel));
   const normalizedPayloads = normalizeReplyPayloadsForDelivery([
     {
       text: params.content,
@@ -231,7 +242,7 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
   );
   const primaryMediaUrl = mirrorMediaUrls[0] ?? params.mediaUrl ?? null;
 
-  if (params.nativeGateway) {
+  if (nativeGateway) {
     if (params.dryRun) {
       return {
         channel,
@@ -372,9 +383,19 @@ export async function sendMessage(params: MessageSendParams): Promise<MessageSen
 
 export async function sendPoll(params: MessagePollParams): Promise<MessagePollResult> {
   const cfg = params.cfg ?? loadConfig();
-  const channel = params.nativeGateway
-    ? resolveExplicitNativeGatewayChannel(params.channel)
-    : await resolveRequiredChannel({ cfg, channel: params.channel });
+  const explicitChannel = normalizeMessageChannel(params.channel);
+  const explicitNativeGateway = explicitChannel
+    ? params.nativeGateway || (await shouldUseNativeGatewayOutbound(explicitChannel))
+    : false;
+  const channel = explicitNativeGateway
+    ? resolveExplicitNativeGatewayChannel(explicitChannel)
+    : params.nativeGateway
+      ? resolveExplicitNativeGatewayChannel(params.channel)
+      : await resolveRequiredChannel({ cfg, channel: params.channel });
+  const nativeGateway =
+    explicitNativeGateway ||
+    params.nativeGateway === true ||
+    (await shouldUseNativeGatewayOutbound(channel));
 
   const pollInput: PollInput = {
     question: params.question,
@@ -383,7 +404,7 @@ export async function sendPoll(params: MessagePollParams): Promise<MessagePollRe
     durationSeconds: params.durationSeconds,
     durationHours: params.durationHours,
   };
-  if (params.nativeGateway) {
+  if (nativeGateway) {
     const normalized = normalizePollInput(pollInput);
     if (params.dryRun) {
       return buildMessagePollResult({

@@ -353,44 +353,10 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
     ' (or "per-account-channel-peer" for multi-account channels) to isolate sessions.',
   "Docs: channels/pairing": "Docs: channels/pairing",
   "Docs:": "Docs:",
-  "Telegram: simplest way to get started — register a bot with @BotFather and get going.":
-    "Telegram: simplest way to get started — register a bot with @BotFather and get going.",
-  "WhatsApp: works with your own number; recommend a separate phone + eSIM.":
-    "WhatsApp: works with your own number; recommend a separate phone + eSIM.",
-  "Discord: very well supported right now.": "Discord: very well supported right now.",
-  "IRC: classic IRC networks with DM/channel routing and pairing controls.":
-    "IRC: classic IRC networks with DM/channel routing and pairing controls.",
-  "Google Chat: Google Workspace Chat app with HTTP webhook.":
-    "Google Chat: Google Workspace Chat app with HTTP webhook.",
-  "Slack: supported (Socket Mode).": "Slack: supported (Socket Mode).",
-  'Signal: signal-cli linked device; more setup (David Reagans: "Hop on Discord.").':
-    'Signal: signal-cli linked device; more setup (David Reagans: "Hop on Discord.").',
-  "iMessage: this is still a work in progress.": "iMessage: this is still a work in progress.",
-  "LINE: LINE Messaging API webhook bot.": "LINE: LINE Messaging API webhook bot.",
   "Feishu: 飞书/Lark enterprise messaging.": "Feishu: 飞书/Lark enterprise messaging.",
   "QQ Bot: Connect to QQ via official QQ Bot API": "QQ Bot: Connect to QQ via official QQ Bot API",
-  "Microsoft Teams: Teams SDK; enterprise support.":
-    "Microsoft Teams: Teams SDK; enterprise support.",
-  "Mattermost: self-hosted Slack-style chat; install the plugin to enable.":
-    "Mattermost: self-hosted Slack-style chat; install the plugin to enable.",
-  "Nextcloud Talk: Self-hosted chat via Nextcloud Talk webhook bots.":
-    "Nextcloud Talk: Self-hosted chat via Nextcloud Talk webhook bots.",
-  "Matrix: open protocol; configure a homeserver + access token.":
-    "Matrix: open protocol; configure a homeserver + access token.",
-  "BlueBubbles: iMessage via the BlueBubbles mac app + REST API.":
-    "BlueBubbles: iMessage via the BlueBubbles mac app + REST API.",
-  "Zalo: Vietnam-focused messaging platform with Bot API.":
-    "Zalo: Vietnam-focused messaging platform with Bot API.",
-  "Zalo Personal: Zalo personal account via QR code login.":
-    "Zalo Personal: Zalo personal account via QR code login.",
-  "Synology Chat: Connect your Synology NAS Chat to CrawClaw":
-    "Synology Chat: Connect your Synology NAS Chat to CrawClaw",
-  "Tlon: Decentralized messaging on Urbit": "Tlon: Decentralized messaging on Urbit",
-  "Nostr: Decentralized DMs via Nostr relays (NIP-04)":
-    "Nostr: Decentralized DMs via Nostr relays (NIP-04)",
   "DingTalk: DingTalk enterprise robot with Stream mode for Chinese market.":
     "DingTalk: DingTalk enterprise robot with Stream mode for Chinese market.",
-  "Twitch: Twitch chat integration": "Twitch: Twitch chat integration",
   "Configure DM access policies now? (default: pairing)":
     "Configure DM access policies now? (default: pairing)",
   "No auth methods available for that provider.": "No auth methods available for that provider.",
@@ -404,8 +370,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "needs host + nick": "needs host + nick",
   "needs tokens": "needs tokens",
   "needs setup": "needs setup",
-  "missing (signal-cli)": "missing (signal-cli)",
-  "missing (imsg)": "missing (imsg)",
   "needs token + secret": "needs token + secret",
   "needs token + url": "needs token + url",
   "needs app credentials": "needs app credentials",
@@ -456,10 +420,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "Disable (keeps config)": "Disable (keeps config)",
   "Delete config": "Delete config",
   "Skip (leave as-is)": "Skip (leave as-is)",
-  "Telegram already configured. What do you want to do?":
-    "Telegram already configured. What do you want to do?",
-  "Microsoft Teams already configured. What do you want to do?":
-    "Microsoft Teams already configured. What do you want to do?",
   "Default: pairing (unknown DMs get a pairing code).":
     "Default: pairing (unknown DMs get a pairing code).",
   "Pairing (recommended)": "Pairing (recommended)",
@@ -752,7 +712,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.help.docsLabel": "Docs:",
   "cli.help.example.modelsHelp": "Show detailed help for the models command.",
   "cli.help.example.channelsLoginVerbose":
-    "Link personal WhatsApp Web and show QR + connection logs.",
+    "Link a configured channel and show QR + connection logs when supported.",
   "cli.help.example.messageSendJson": "Send via your web session and print JSON result.",
   "cli.help.example.gatewayPort": "Run the WebSocket Gateway locally.",
   "cli.help.example.devGateway":
@@ -761,8 +721,8 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
     "Kill anything bound to the default gateway port, then start it.",
   "cli.help.example.gatewayEllipsis": "Gateway control via WebSocket.",
   "cli.help.example.agentDeliver":
-    "Talk directly to the agent using the Gateway; optionally send the WhatsApp reply.",
-  "cli.help.example.telegramSend": "Send via your Telegram bot.",
+    "Talk directly to the agent using the Gateway; optionally deliver the reply.",
+  "cli.help.example.channelSend": "Send via a configured channel.",
   "command.setup.description": "Initialize local config and agent workspace",
   "command.setup.option.workspace":
     "Agent workspace directory (default: ~/.crawclaw/workspace; stored as agents.defaults.workspace)",
@@ -925,8 +885,8 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.message.fullDescription": "Send, read, and manage messages",
   "command.message.example.sendText": "Send a text message to a target.",
   "command.message.example.sendMedia": "Send a message with attached media.",
-  "command.message.example.discordPoll": "Create a Discord poll.",
-  "command.message.example.react": "React to a Discord message.",
+  "command.message.example.poll": "Create a channel poll.",
+  "command.message.example.react": "React to a channel message.",
   "command.message.option.channel": "Channel: {channels}",
   "command.message.option.account": "Channel account id (accountId)",
   "command.message.option.json": "Output result as JSON",
@@ -937,7 +897,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.message.option.targets":
     "Channel targets (repeat or pass multiple). Examples: +15555550123, chat:123, channel:123",
   "command.message.option.guildId": "Guild id",
-  "command.message.option.guildIdDiscord": "Guild id (Discord)",
+  "command.message.option.guildIdDiscord": "Guild id",
   "command.message.option.userId": "User id",
   "command.message.option.roleId": "Role id",
   "command.message.option.roleIdRepeat": "Role id (repeat)",
@@ -953,15 +913,14 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.message.option.mediaPathOrUrl":
     "Attach media (image/audio/video/document). Accepts local paths or URLs.",
   "command.message.option.replyTo": "Reply-to message id",
-  "command.message.option.telegramThreadId": "Thread id (Telegram forum thread)",
+  "command.message.option.threadId": "Thread id",
   "command.message.option.moderationReason": "Moderation reason",
   "command.message.send.description": "Send a message",
   "command.message.send.option.message": "Message body (required unless --media is set)",
   "command.message.send.option.interactive":
     "Shared interactive payload as JSON (buttons/selects rendered natively by supported channels)",
-  "command.message.send.option.buttons":
-    "Telegram inline keyboard buttons as JSON (array of button rows)",
-  "command.message.send.option.components": "Discord components payload as JSON",
+  "command.message.send.option.buttons": "Inline keyboard buttons as JSON (array of button rows)",
+  "command.message.send.option.components": "Components payload as JSON",
   "command.message.send.option.card": "Adaptive Card JSON object (when supported by the channel)",
   "command.message.send.option.gifPlayback": "Treat video media as GIF playback (WhatsApp only).",
   "command.message.send.option.forceDocument":
@@ -1629,39 +1588,10 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.channels.add.description": "Add or update a channel account",
   "command.channels.add.option.account": "Account id (default when omitted)",
   "command.channels.add.option.name": "Display name for this account",
-  "command.channels.add.option.token": "Bot token (Telegram/Discord)",
-  "command.channels.add.option.privateKey": "Nostr private key (nsec... or hex)",
-  "command.channels.add.option.tokenFile": "Bot token file (Telegram)",
-  "command.channels.add.option.botToken": "Slack bot token (xoxb-...)",
-  "command.channels.add.option.appToken": "Slack app token (xapp-...)",
-  "command.channels.add.option.signalNumber": "Signal account number (E.164)",
-  "command.channels.add.option.cliPath": "CLI path (signal-cli or imsg)",
-  "command.channels.add.option.dbPath": "iMessage database path",
-  "command.channels.add.option.service": "iMessage service (imessage|sms|auto)",
-  "command.channels.add.option.region": "iMessage region (for SMS)",
-  "command.channels.add.option.authDir": "WhatsApp auth directory override",
-  "command.channels.add.option.httpUrl": "Signal HTTP daemon base URL",
-  "command.channels.add.option.httpHost": "Signal HTTP host",
-  "command.channels.add.option.httpPort": "Signal HTTP port",
-  "command.channels.add.option.webhookPath": "Webhook path (Google Chat/BlueBubbles)",
-  "command.channels.add.option.webhookUrl": "Google Chat webhook URL",
-  "command.channels.add.option.audienceType": "Google Chat audience type (app-url|project-number)",
-  "command.channels.add.option.audience": "Google Chat audience value (app URL or project number)",
-  "command.channels.add.option.homeserver": "Matrix homeserver URL",
-  "command.channels.add.option.userId": "Matrix user ID",
-  "command.channels.add.option.accessToken": "Matrix access token",
-  "command.channels.add.option.password": "Matrix password",
-  "command.channels.add.option.deviceName": "Matrix device name",
-  "command.channels.add.option.initialSyncLimit": "Matrix initial sync limit",
-  "command.channels.add.option.ship": "Tlon ship name (~sampel-palnet)",
-  "command.channels.add.option.url": "Tlon ship URL",
-  "command.channels.add.option.relayUrls": "Nostr relay URLs (comma-separated)",
-  "command.channels.add.option.code": "Tlon login code",
-  "command.channels.add.option.groupChannels": "Tlon group channels (comma-separated)",
-  "command.channels.add.option.dmAllowlist": "Tlon DM allowlist (comma-separated ships)",
-  "command.channels.add.option.autoDiscoverChannels": "Tlon auto-discover group channels",
-  "command.channels.add.option.noAutoDiscoverChannels": "Disable Tlon auto-discovery",
-  "command.channels.add.option.useEnv": "Use env token (default account only)",
+  "command.channels.add.option.token": "Channel credential token or AppID",
+  "command.channels.add.option.privateKey": "Channel credential secret",
+  "command.channels.add.option.tokenFile": "Channel credential file",
+  "command.channels.add.option.useEnv": "Use supported channel environment variables",
   "command.channels.remove.description": "Disable or delete a channel account",
   "command.channels.remove.option.delete": "Delete config entries (no prompt)",
   "command.channels.login.description": "Link a channel account (if supported)",
@@ -2083,7 +2013,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.142": "Session locks",
   "cli.visible.143": "Shared plugin runtimes",
   "cli.visible.144": "Shell completion",
-  "cli.visible.145": "Startup matrix",
+  "cli.visible.145": "Startup checks",
   "cli.visible.146": "State integrity",
   "cli.visible.147": "Workspace status",
   "cli.visible.148": "Workspace suggestions",
@@ -2110,21 +2040,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "completion.install.updating": "Updating completion in {path}...",
   "completion.install.installed": "Completion installed. Restart your shell or run: source {path}",
   "completion.install.failed": "Failed to install completion: {error}",
-  "matrix.cli.savedAccount": "Saved matrix account: {accountId}",
-  "matrix.cli.configPath": "Config path: {path}",
-  "matrix.cli.credentialsSource": "Credentials source: {source}",
-  "matrix.cli.recoveryKeyCreatedAt": "Recovery key created at",
-  "matrix.cli.backupVersion": "Backup version: {version}",
-  "matrix.cli.verificationBootstrapWarning": "Matrix verification bootstrap warning: {error}",
-  "matrix.cli.deviceHealthWarning": "Matrix device health warning: {error}",
-  "matrix.cli.profileSyncWarning": "Profile sync warning: {error}",
-  "matrix.cli.profileSync": "Profile sync: name {nameState}, avatar {avatarState}",
-  "matrix.cli.updated": "updated",
-  "matrix.cli.unchanged": "unchanged",
-  "matrix.cli.avatarConverted": "Avatar converted and saved as: {url}",
-  "matrix.cli.bindHint": "Bind this account to an agent: {command}",
-  "matrix.cli.accountSetupFailed": "Account setup failed",
-  "matrix.cli.profileUpdateFailed": "Profile update failed",
   "status.next.needShare": "Need to share?",
   "status.next.needDebugLive": "Need to debug live?",
   "status.next.needNodeService": "Need node service?",

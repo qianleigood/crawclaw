@@ -15,7 +15,7 @@ Looking for chat channel docs (WhatsApp/Telegram/Discord/Slack/Mattermost (plugi
 
 ## Quick start
 
-1. Authenticate with the provider (usually via `crawclaw onboard`).
+1. Authenticate with the provider (usually via CrawClaw Desktop or the local Gateway API).
 2. Set the default model:
 
 ```json5

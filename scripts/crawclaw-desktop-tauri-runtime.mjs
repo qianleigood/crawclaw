@@ -3,9 +3,14 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  AGENT_BROWSER_VERSION,
+  createLocalPrefixNpmInstallArgs,
+} from "./install-plugin-runtimes.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const rootDir = path.resolve(path.dirname(__filename), "..");
+const NODE_PLUGIN_RUNTIME_MAJOR = 24;
 const REQUIRED_PROVIDER_TRANSPORT_IDS = [
   "amazon-bedrock",
   "anthropic",
@@ -56,11 +61,48 @@ const REQUIRED_PROVIDER_TRANSPORT_IDS = [
 
 export function resolveCrawClawDesktopTauriRuntimeStagePaths(checkRootDir = process.cwd()) {
   const runtimeRoot = path.join(checkRootDir, "apps", "crawclaw-desktop", ".runtime", "crawclaw");
-  const binaryName = runtimeBinaryName(process.platform);
   return {
     runtimeRoot,
-    runtimeBinaryPath: path.join(runtimeRoot, "bin", binaryName),
-    sourceRuntimeBinaryPath: path.join(checkRootDir, "target", "release", binaryName),
+    runtimeBinaryPath: path.join(runtimeRoot, "bin", runtimeBinaryName(process.platform)),
+    gatewayBinaryPath: path.join(runtimeRoot, "bin", gatewayBinaryName(process.platform)),
+    nativePluginsBinaryPath: path.join(
+      runtimeRoot,
+      "bin",
+      nativePluginsBinaryName(process.platform),
+    ),
+    nodeRuntimeRoot: path.join(runtimeRoot, "runtimes", `node-v${NODE_PLUGIN_RUNTIME_MAJOR}`),
+    nodeBinaryPath: path.join(
+      runtimeRoot,
+      "runtimes",
+      `node-v${NODE_PLUGIN_RUNTIME_MAJOR}`,
+      "bin",
+      process.platform === "win32" ? "node.exe" : "node",
+    ),
+    npmBinaryPath: path.join(
+      runtimeRoot,
+      "runtimes",
+      `node-v${NODE_PLUGIN_RUNTIME_MAJOR}`,
+      "bin",
+      process.platform === "win32" ? "npm.cmd" : "npm",
+    ),
+    sourceRuntimeBinaryPath: path.join(
+      checkRootDir,
+      "target",
+      "release",
+      runtimeBinaryName(process.platform),
+    ),
+    sourceGatewayBinaryPath: path.join(
+      checkRootDir,
+      "target",
+      "release",
+      gatewayBinaryName(process.platform),
+    ),
+    sourceNativePluginsBinaryPath: path.join(
+      checkRootDir,
+      "target",
+      "release",
+      nativePluginsBinaryName(process.platform),
+    ),
   };
 }
 
@@ -86,6 +128,23 @@ export function resolveCrawClawDesktopTauriPackagedRuntimePaths(
   return {
     runtimeRoot,
     runtimeBinaryPath: path.join(runtimeRoot, "bin", runtimeBinaryName(platform)),
+    gatewayBinaryPath: path.join(runtimeRoot, "bin", gatewayBinaryName(platform)),
+    nativePluginsBinaryPath: path.join(runtimeRoot, "bin", nativePluginsBinaryName(platform)),
+    nodeRuntimeRoot: path.join(runtimeRoot, "runtimes", `node-v${NODE_PLUGIN_RUNTIME_MAJOR}`),
+    nodeBinaryPath: path.join(
+      runtimeRoot,
+      "runtimes",
+      `node-v${NODE_PLUGIN_RUNTIME_MAJOR}`,
+      "bin",
+      platform === "win32" ? "node.exe" : "node",
+    ),
+    npmBinaryPath: path.join(
+      runtimeRoot,
+      "runtimes",
+      `node-v${NODE_PLUGIN_RUNTIME_MAJOR}`,
+      "bin",
+      platform === "win32" ? "npm.cmd" : "npm",
+    ),
   };
 }
 
@@ -101,22 +160,38 @@ export function stageCrawClawDesktopTauriRuntime(params = {}) {
   runChecked(runCommand, {
     cwd: checkRootDir,
     command: cargoCommand(),
-    args: ["build", "-p", "crawclaw-cli", "--release"],
+    args: [
+      "build",
+      "-p",
+      "crawclaw-runtime",
+      "-p",
+      "crawclaw-gateway",
+      "-p",
+      "crawclaw-native-plugins",
+      "--release",
+    ],
     env: buildEnv,
   });
   runChecked(runCommand, {
     cwd: checkRootDir,
     command: paths.sourceRuntimeBinaryPath,
-    args: ["runtime", "stage", "--output", paths.runtimeRoot],
+    args: ["stage", "--output", paths.runtimeRoot],
     env: buildEnv,
   });
 
   fs.mkdirSync(path.dirname(paths.runtimeBinaryPath), { recursive: true });
-  fs.copyFileSync(paths.sourceRuntimeBinaryPath, paths.runtimeBinaryPath);
-
-  if (process.platform !== "win32") {
-    fs.chmodSync(paths.runtimeBinaryPath, 0o755);
+  for (const [source, dest] of [
+    [paths.sourceRuntimeBinaryPath, paths.runtimeBinaryPath],
+    [paths.sourceGatewayBinaryPath, paths.gatewayBinaryPath],
+    [paths.sourceNativePluginsBinaryPath, paths.nativePluginsBinaryPath],
+  ]) {
+    fs.copyFileSync(source, dest);
+    if (process.platform !== "win32") {
+      fs.chmodSync(dest, 0o755);
+    }
   }
+  stageNodePluginRuntime(paths, buildEnv);
+  stageEmbeddedBrowserRuntime(paths, buildEnv, runCommand);
   assertRuntimeTree(paths);
   return paths;
 }
@@ -160,6 +235,9 @@ export function assertCrawClawDesktopTauriReleaseInputs(params = {}) {
 
 function assertRuntimeTree(paths, label = "embedded") {
   assertExecutableFile(paths.runtimeBinaryPath, `${label} Rust runtime binary`);
+  assertExecutableFile(paths.gatewayBinaryPath, `${label} Rust gateway binary`);
+  assertExecutableFile(paths.nativePluginsBinaryPath, `${label} native plugin binary`);
+  assertNoPublicCliBinary(paths.runtimeRoot, label);
   assertFile(
     path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
     `${label} managed plugin runtime manifest`,
@@ -185,7 +263,146 @@ function assertRuntimeTree(paths, label = "embedded") {
     path.join(paths.runtimeRoot, "plugins", "manifest.json"),
     `${label} Rust plugin manifest`,
   );
+  assertNodePluginRuntime(paths, label);
+  assertEmbeddedBrowserRuntime(paths, label);
   assertNoDisallowedNodeRuntimeSurface(paths.runtimeRoot);
+}
+
+function stageNodePluginRuntime(paths, env) {
+  const sourceRoot = resolveNode24RuntimeRoot(env);
+  fs.rmSync(paths.nodeRuntimeRoot, { recursive: true, force: true });
+  fs.mkdirSync(path.dirname(paths.nodeRuntimeRoot), { recursive: true });
+  fs.cpSync(sourceRoot, paths.nodeRuntimeRoot, {
+    recursive: true,
+    dereference: true,
+    filter: (source) => !source.split(path.sep).includes(".git"),
+  });
+  assertNodeMajor(paths.nodeBinaryPath, NODE_PLUGIN_RUNTIME_MAJOR);
+  assertExecutableFile(paths.nodeBinaryPath, "embedded Node 24 plugin runtime binary");
+  assertExecutableFile(paths.npmBinaryPath, "embedded npm binary");
+}
+
+function resolveNode24RuntimeRoot(env) {
+  const explicitRoot = env.CRAWCLAW_DESKTOP_NODE24_ROOT?.trim();
+  if (explicitRoot) {
+    const root = path.resolve(explicitRoot);
+    assertNodeMajor(path.join(root, "bin", process.platform === "win32" ? "node.exe" : "node"));
+    return root;
+  }
+  const explicitBin = env.CRAWCLAW_DESKTOP_NODE24_BIN?.trim();
+  const nodeBin =
+    explicitBin || findExecutableOnPath(process.platform === "win32" ? "node.exe" : "node");
+  if (!nodeBin) {
+    throw new Error("Node 24 runtime not found. Set CRAWCLAW_DESKTOP_NODE24_ROOT.");
+  }
+  assertNodeMajor(nodeBin, NODE_PLUGIN_RUNTIME_MAJOR);
+  const root = path.resolve(path.dirname(nodeBin), "..");
+  const npmBin = path.join(root, "bin", process.platform === "win32" ? "npm.cmd" : "npm");
+  if (!fs.existsSync(npmBin)) {
+    throw new Error(`Node 24 runtime root is missing npm: ${npmBin}`);
+  }
+  return root;
+}
+
+function findExecutableOnPath(name) {
+  for (const entry of (process.env.PATH || "").split(path.delimiter)) {
+    if (!entry) {
+      continue;
+    }
+    const candidate = path.join(entry, name);
+    if (fs.existsSync(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function assertNodeMajor(nodeBin, major = NODE_PLUGIN_RUNTIME_MAJOR) {
+  assertExecutableFile(nodeBin, `Node ${major} plugin runtime binary`);
+  const result = spawnSync(nodeBin, ["--version"], { encoding: "utf-8" });
+  if (result.status !== 0) {
+    throw new Error(`Failed to run ${nodeBin} --version: ${result.stderr || result.stdout}`);
+  }
+  const actual = (result.stdout || "").trim();
+  if (!actual.startsWith(`v${major}.`)) {
+    throw new Error(`Node plugin runtime must be Node ${major}.x, got ${actual}`);
+  }
+}
+
+function assertNodePluginRuntime(paths, label) {
+  assertNodePluginRuntimeManifest(
+    path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
+    `${label} managed runtime manifest`,
+  );
+  assertNodePluginRuntimeManifest(
+    path.join(paths.runtimeRoot, "plugins", "manifest.json"),
+    `${label} plugin manifest`,
+  );
+  assertNodeMajor(paths.nodeBinaryPath, NODE_PLUGIN_RUNTIME_MAJOR);
+  assertExecutableFile(paths.npmBinaryPath, `${label} npm binary`);
+}
+
+function browserRuntimeDir(paths) {
+  return path.join(paths.runtimeRoot, "runtimes", "browser");
+}
+
+function browserRuntimeBinPath(paths) {
+  return process.platform === "win32"
+    ? path.join(browserRuntimeDir(paths), "node_modules", ".bin", "agent-browser.cmd")
+    : path.join(browserRuntimeDir(paths), "node_modules", ".bin", "agent-browser");
+}
+
+function stageEmbeddedBrowserRuntime(paths, env, runCommand) {
+  const runtimeDir = browserRuntimeDir(paths);
+  fs.rmSync(runtimeDir, { recursive: true, force: true });
+  fs.mkdirSync(runtimeDir, { recursive: true });
+  const nodeBinDir = path.dirname(paths.nodeBinaryPath);
+  const npmCli = npmCliScriptPath(paths);
+  runChecked(runCommand, {
+    cwd: paths.runtimeRoot,
+    command: paths.nodeBinaryPath,
+    args: [
+      npmCli,
+      ...createLocalPrefixNpmInstallArgs(runtimeDir, `agent-browser@${AGENT_BROWSER_VERSION}`),
+    ],
+    env: {
+      ...env,
+      CRAWCLAW_DESKTOP_NODE24_BIN: paths.nodeBinaryPath,
+      PATH: [nodeBinDir, env.PATH].filter(Boolean).join(path.delimiter),
+    },
+  });
+  assertEmbeddedBrowserRuntime(paths, "embedded");
+}
+
+function npmCliScriptPath(paths) {
+  const candidates = [
+    path.join(paths.nodeRuntimeRoot, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+    path.join(paths.nodeRuntimeRoot, "node_modules", "npm", "bin", "npm-cli.js"),
+  ];
+  const candidate = candidates.find((entry) => fs.existsSync(entry));
+  if (!candidate) {
+    throw new Error(`Node 24 runtime root is missing npm cli script: ${candidates.join(" or ")}`);
+  }
+  return candidate;
+}
+
+function assertEmbeddedBrowserRuntime(paths, label) {
+  assertExecutableFile(browserRuntimeBinPath(paths), `${label} agent-browser CLI`);
+  const packageJsonPath = path.join(
+    browserRuntimeDir(paths),
+    "node_modules",
+    "agent-browser",
+    "package.json",
+  );
+  const packageJson = readJson(packageJsonPath);
+  assertEqual(packageJson.name, "agent-browser", `${label} agent-browser package name`);
+  assertEqual(packageJson.version, AGENT_BROWSER_VERSION, `${label} agent-browser package version`);
+}
+
+function assertNodePluginRuntimeManifest(manifestPath, label) {
+  const manifest = readJson(manifestPath);
+  assertEqual(manifest.jsPluginRuntime, "node", `${label} JS plugin runtime`);
+  assertEqual(manifest.node?.major, NODE_PLUGIN_RUNTIME_MAJOR, `${label} Node runtime major`);
 }
 
 function assertPackagedRuntimeTree(checkRootDir, params) {
@@ -249,28 +466,47 @@ function assertProviderTransportManifest(manifestPath, label) {
 
 function assertRuntimeSmoke(paths, spawnSyncImpl) {
   assertNoLegacyDesktopSurface(paths.runtimeRoot);
-  assertRuntimeSmokeCommand(paths, spawnSyncImpl, ["gateway", "--help"], "Gateway help");
   assertRuntimeSmokeCommand(
+    paths.runtimeBinaryPath,
     paths,
     spawnSyncImpl,
-    ["desktop-runtime", "status", "--json"],
-    "desktop runtime status",
+    ["status", "--json"],
+    "runtime status",
   );
   assertRuntimeSmokeCommand(
+    paths.gatewayBinaryPath,
     paths,
     spawnSyncImpl,
-    ["channels", "list", "--json"],
-    "native channel list",
+    ["--help"],
+    "Gateway help",
+  );
+  assertRuntimeSmokeCommand(
+    paths.nativePluginsBinaryPath,
+    paths,
+    spawnSyncImpl,
+    ["--help"],
+    "native plugin help",
+  );
+  assertRuntimeSmokeCommand(
+    browserRuntimeBinPath(paths),
+    paths,
+    spawnSyncImpl,
+    ["--version"],
+    "agent-browser CLI",
   );
 }
 
-function assertRuntimeSmokeCommand(paths, spawnSyncImpl, args, label) {
-  const result = spawnSyncImpl(paths.runtimeBinaryPath, args, {
+function assertRuntimeSmokeCommand(command, paths, spawnSyncImpl, args, label) {
+  const result = spawnSyncImpl(command, args, {
     cwd: paths.runtimeRoot,
     env: {
       ...process.env,
       CRAWCLAW_STATE_DIR: paths.runtimeRoot,
+      CRAWCLAW_DESKTOP_NODE24_BIN: paths.nodeBinaryPath,
       CRAWCLAW_PLUGIN_RUNTIMES_DIR: path.join(paths.runtimeRoot, "runtimes"),
+      PATH: [path.dirname(paths.nodeBinaryPath), process.env.PATH]
+        .filter(Boolean)
+        .join(path.delimiter),
     },
     encoding: "utf-8",
     timeout: 30_000,
@@ -330,6 +566,12 @@ function assertNoLegacyDesktopSurface(runtimeRoot) {
 
 function assertNoDisallowedNodeRuntimeSurface(runtimeRoot) {
   for (const filePath of walkFiles(runtimeRoot)) {
+    if (filePath.split(path.sep).includes(`node-v${NODE_PLUGIN_RUNTIME_MAJOR}`)) {
+      continue;
+    }
+    if (isEmbeddedBrowserRuntimeFile(runtimeRoot, filePath)) {
+      continue;
+    }
     if (!filePath.endsWith(".mjs")) {
       const basename = path.basename(filePath);
       if (basename !== "package.json" && !filePath.split(path.sep).includes("node_modules")) {
@@ -341,12 +583,27 @@ function assertNoDisallowedNodeRuntimeSurface(runtimeRoot) {
   }
 }
 
+function isEmbeddedBrowserRuntimeFile(runtimeRoot, filePath) {
+  const browserRuntimeRoot = path.join(runtimeRoot, "runtimes", "browser");
+  const relative = path.relative(browserRuntimeRoot, filePath);
+  return Boolean(relative) && !relative.startsWith("..") && !path.isAbsolute(relative);
+}
+
+function assertNoPublicCliBinary(runtimeRoot, label) {
+  const cliPath = path.join(
+    runtimeRoot,
+    "bin",
+    process.platform === "win32" ? "crawclaw.exe" : "crawclaw",
+  );
+  if (fs.existsSync(cliPath)) {
+    throw new Error(`${label} must not embed the public crawclaw CLI binary: ${cliPath}`);
+  }
+}
+
 function assertNoDefaultJsPluginRuntime(manifestPath, label) {
   const manifest = readJson(manifestPath);
-  if (manifest.jsPluginRuntime && manifest.jsPluginRuntime !== "none") {
-    throw new Error(
-      `${label} must not advertise a default JS plugin runtime: ${manifestPath}`,
-    );
+  if (manifest.jsPluginRuntime && manifest.jsPluginRuntime !== "node") {
+    throw new Error(`${label} must advertise the bundled Node plugin runtime: ${manifestPath}`);
   }
   if (JSON.stringify(manifest).includes("pi-quickjs")) {
     throw new Error(`${label} must not stage Pi QuickJS fallback metadata: ${manifestPath}`);
@@ -454,7 +711,15 @@ function cargoCommand() {
 }
 
 function runtimeBinaryName(platform) {
-  return platform === "win32" ? "crawclaw.exe" : "crawclaw";
+  return platform === "win32" ? "crawclaw-runtime.exe" : "crawclaw-runtime";
+}
+
+function gatewayBinaryName(platform) {
+  return platform === "win32" ? "crawclaw-gateway.exe" : "crawclaw-gateway";
+}
+
+function nativePluginsBinaryName(platform) {
+  return platform === "win32" ? "crawclaw-native-plugins.exe" : "crawclaw-native-plugins";
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === __filename) {

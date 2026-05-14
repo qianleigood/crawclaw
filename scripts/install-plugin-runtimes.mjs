@@ -19,7 +19,7 @@ import { resolveNpmRunner } from "./npm-runner.mjs";
 const WINDOWS_UNSAFE_CMD_CHARS_RE = /[&|<>%\r\n]/;
 const DISABLE_RUNTIME_POSTINSTALL_ENV = "CRAWCLAW_DISABLE_RUNTIME_POSTINSTALL";
 const OPEN_WEBSEARCH_VERSION = "2.1.5";
-const PINCHTAB_VERSION = "0.9.1";
+export const AGENT_BROWSER_VERSION = "0.27.0";
 const N8N_VERSION = "2.18.5";
 const N8N_ZH_CN_EDITOR_UI_SOURCE = "other-blowsnow/n8n-i18n-chinese";
 const CORE_SKILLS_MINIMUM_PYTHON_VERSION = "3.10";
@@ -822,8 +822,8 @@ function installN8nRuntime(env = process.env) {
 
 function resolveBrowserRuntimeBin(runtimeDir) {
   return process.platform === "win32"
-    ? path.join(runtimeDir, "node_modules", ".bin", "pinchtab.cmd")
-    : path.join(runtimeDir, "node_modules", ".bin", "pinchtab");
+    ? path.join(runtimeDir, "node_modules", ".bin", "agent-browser.cmd")
+    : path.join(runtimeDir, "node_modules", ".bin", "agent-browser");
 }
 
 function installBrowserRuntime(env = process.env) {
@@ -832,7 +832,7 @@ function installBrowserRuntime(env = process.env) {
   const nestedEnv = createNestedNpmInstallEnv(env);
   const npmRunner = resolveNpmRunner({
     env: nestedEnv,
-    npmArgs: createLocalPrefixNpmInstallArgs(runtimeDir, `pinchtab@${PINCHTAB_VERSION}`),
+    npmArgs: createLocalPrefixNpmInstallArgs(runtimeDir, `agent-browser@${AGENT_BROWSER_VERSION}`),
   });
   runNpmInstallWithRetry(npmRunner.command, npmRunner.args, {
     env: npmRunner.env ?? nestedEnv,
@@ -841,13 +841,14 @@ function installBrowserRuntime(env = process.env) {
   });
   const binPath = resolveBrowserRuntimeBin(runtimeDir);
   if (!existsSync(binPath)) {
-    throw new Error(`pinchtab binary missing after install: ${binPath}`);
+    throw new Error(`agent-browser binary missing after install: ${binPath}`);
   }
-  const version = runOrThrow(binPath, ["--version"], { env }).stdout.trim() || PINCHTAB_VERSION;
+  const version =
+    runOrThrow(binPath, ["--version"], { env }).stdout.trim() || AGENT_BROWSER_VERSION;
   return {
     state: "healthy",
     version,
-    package: `pinchtab@${PINCHTAB_VERSION}`,
+    package: `agent-browser@${AGENT_BROWSER_VERSION}`,
     installDir: runtimeDir,
     binPath,
     installedAt: new Date().toISOString(),
@@ -922,7 +923,7 @@ export function listManagedPluginRuntimeInstallPlan(params = {}) {
     {
       id: "browser",
       installTime: true,
-      npmPackage: `pinchtab@${PINCHTAB_VERSION}`,
+      npmPackage: `agent-browser@${AGENT_BROWSER_VERSION}`,
     },
     {
       id: "core-skills",

@@ -2,6 +2,14 @@
   "id": "lobster",
   "name": "Lobster",
   "description": "Typed workflow tool with resumable approvals.",
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
+  "contracts": {
+    "tools": ["lobster"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

@@ -178,8 +178,8 @@ function applyCrossContextMessageDecoration({
   return applied.message;
 }
 
-function resolveTsAutoThreadId(channel: ChannelId) {
-  if (shouldUseNativeGatewayOutbound(channel)) {
+async function resolveTsAutoThreadId(channel: ChannelId) {
+  if (await shouldUseNativeGatewayOutbound(channel)) {
     return undefined;
   }
   return getChannelPlugin(channel)?.threading?.resolveAutoThreadId;
@@ -223,7 +223,7 @@ async function resolveChannel(
   toolContext?: { currentChannelProvider?: string },
 ) {
   const explicitChannel = normalizeMessageChannel(readStringParam(params, "channel"));
-  if (explicitChannel && shouldUseNativeGatewayOutbound(explicitChannel)) {
+  if (explicitChannel && (await shouldUseNativeGatewayOutbound(explicitChannel))) {
     return explicitChannel;
   }
   const selection = await resolveMessageChannelSelection({
@@ -417,7 +417,7 @@ async function handleBroadcastAction(
   }
   return {
     kind: "broadcast",
-    channel: targetChannels[0] ?? "discord",
+    channel: targetChannels[0] ?? "unknown",
     action: "broadcast",
     handledBy: input.dryRun ? "dry-run" : "core",
     payload: { results },
@@ -551,7 +551,7 @@ async function handleSendAction(ctx: ResolvedActionContext): Promise<MessageActi
     agentId,
     dryRun,
     resolvedTarget,
-    resolveAutoThreadId: resolveTsAutoThreadId(channel),
+    resolveAutoThreadId: await resolveTsAutoThreadId(channel),
     resolveOutboundSessionRoute,
     ensureOutboundSessionEntry,
   });
@@ -626,7 +626,7 @@ async function handlePollAction(ctx: ResolvedActionContext): Promise<MessageActi
     to,
     accountId,
     toolContext: input.toolContext,
-    resolveAutoThreadId: resolveTsAutoThreadId(channel),
+    resolveAutoThreadId: await resolveTsAutoThreadId(channel),
   });
 
   const base = typeof params.message === "string" ? params.message : "";
@@ -727,7 +727,7 @@ async function handlePluginAction(ctx: ResolvedActionContext): Promise<MessageAc
     };
   }
 
-  if (shouldUseNativeGatewayOutbound(channel)) {
+  if (await shouldUseNativeGatewayOutbound(channel)) {
     const payload = await callNativeGatewayChannelAction({
       gateway,
       channel,

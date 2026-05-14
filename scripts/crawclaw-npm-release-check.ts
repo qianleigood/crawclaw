@@ -182,10 +182,8 @@ export function collectReleasePackageMetadataErrors(pkg: PackageJson): string[] 
       }.`,
     );
   }
-  if (pkg.bin?.crawclaw !== "dist/native/crawclaw") {
-    errors.push(
-      `package.json bin.crawclaw must be "dist/native/crawclaw"; found "${pkg.bin?.crawclaw ?? ""}".`,
-    );
+  if (Object.prototype.hasOwnProperty.call(pkg.bin ?? {}, "crawclaw")) {
+    errors.push("package.json must not expose public crawclaw CLI bin.");
   }
   if (Object.prototype.hasOwnProperty.call(pkg.exports ?? {}, "./cli-entry")) {
     errors.push('package.json exports must not expose legacy "./cli-entry".');

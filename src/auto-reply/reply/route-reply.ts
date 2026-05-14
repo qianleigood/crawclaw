@@ -34,7 +34,7 @@ function loadDeliverRuntime() {
 export type RouteReplyParams = {
   /** The reply payload to send. */
   payload: ReplyPayload;
-  /** The originating channel type (telegram, slack, etc). */
+  /** The originating channel type. */
   channel: OriginatingChannelType;
   /** The destination chat/channel/user ID. */
   to: string;
@@ -42,7 +42,7 @@ export type RouteReplyParams = {
   sessionKey?: string;
   /** Provider account id (multi-account). */
   accountId?: string;
-  /** Thread id for replies (Telegram topic id or Matrix thread event id). */
+  /** Thread id for replies. */
   threadId?: string | number;
   /** Config for provider-specific settings. */
   cfg: CrawClawConfig;
@@ -163,12 +163,8 @@ export async function routeReply(params: RouteReplyParams): Promise<RouteReplyRe
     }) ?? null;
   const resolvedReplyToId =
     replyTransport?.replyToId ??
-    replyToId ??
-    ((channelId === "slack" || channelId === "mattermost") && threadId != null && threadId !== ""
-      ? String(threadId)
-      : undefined);
-  const resolvedThreadId =
-    replyTransport?.threadId ?? (channelId === "slack" ? null : (threadId ?? null));
+    replyToId;
+  const resolvedThreadId = replyTransport?.threadId ?? (threadId ?? null);
 
   try {
     // Provider docking: this is an execution boundary (we're about to send).

@@ -28,15 +28,8 @@ export type BrowserSsrFPolicyConfig = {
 };
 export type BrowserConfig = {
   enabled?: boolean;
-  /** Browser runtime provider. Defaults to PinchTab. */
-  provider?: "pinchtab";
-  /** PinchTab server configuration. */
-  pinchtab?: {
-    /** PinchTab HTTP API base URL. Default: http://127.0.0.1:9867 */
-    baseUrl?: string;
-    /** Optional auth token forwarded as bearer and bridge headers. */
-    token?: string;
-  };
+  /** Browser runtime provider. Defaults to agent-browser. */
+  provider?: "agent-browser";
   /** If false, disable browser act:evaluate (arbitrary JS). Default: true */
   evaluateEnabled?: boolean;
   /** Base URL of the CDP endpoint (for remote browsers). Default: loopback CDP on the derived port. */

@@ -31,7 +31,7 @@ describe("cron service store seam coverage", () => {
               sessionTarget: "isolated",
               wakeMode: "now",
               payload: { kind: "agentTurn", message: "ping" },
-              delivery: { mode: "announce", channel: "telegram", to: "123" },
+              delivery: { mode: "announce", channel: "feishu", to: "123" },
               state: {},
             },
           ],
@@ -63,7 +63,7 @@ describe("cron service store seam coverage", () => {
     }
     expect(job?.delivery).toMatchObject({
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
     });
     expect(job?.state.nextRunAtMs).toBe(now);
@@ -78,7 +78,7 @@ describe("cron service store seam coverage", () => {
     });
     expect(persistedJob?.delivery).toMatchObject({
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
     });
 

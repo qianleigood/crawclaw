@@ -24,32 +24,6 @@ async function makeRootWithEmptyCfg() {
   return { root, cfg };
 }
 
-function writeLegacyTelegramAllowFromStore(oauthDir: string) {
-  fs.writeFileSync(
-    path.join(oauthDir, "telegram-allowFrom.json"),
-    JSON.stringify(
-      {
-        version: 1,
-        allowFrom: ["123456"],
-      },
-      null,
-      2,
-    ) + "\n",
-    "utf-8",
-  );
-}
-
-async function runTelegramAllowFromMigration(params: { root: string; cfg: CrawClawConfig }) {
-  const oauthDir = ensureCredentialsDir(params.root);
-  writeLegacyTelegramAllowFromStore(oauthDir);
-  const detected = await detectLegacyStateMigrations({
-    cfg: params.cfg,
-    env: { CRAWCLAW_STATE_DIR: params.root } as NodeJS.ProcessEnv,
-  });
-  const result = await runLegacyStateMigrations({ detected, now: () => 123 });
-  return { oauthDir, detected, result };
-}
-
 afterEach(async () => {
   resetAutoMigrateLegacyStateForTest();
   if (!tempRoot) {
@@ -135,12 +109,6 @@ function writeLegacyAgentFiles(root: string, files: Record<string, string>) {
   return legacyAgentDir;
 }
 
-function ensureCredentialsDir(root: string) {
-  const oauthDir = path.join(root, "credentials");
-  fs.mkdirSync(oauthDir, { recursive: true });
-  return oauthDir;
-}
-
 describe("doctor legacy state migrations", () => {
   it("migrates legacy sessions into agents/<id>/sessions", async () => {
     const root = await makeTempRoot();
@@ -150,8 +118,8 @@ describe("doctor legacy state migrations", () => {
       sessions: {
         "+1555": { sessionId: "a", updatedAt: 10 },
         "+1666": { sessionId: "b", updatedAt: 20 },
-        "slack:channel:C123": { sessionId: "c", updatedAt: 30 },
-        "group:abc": { sessionId: "d", updatedAt: 40 },
+        "feishu:channel:C123": { sessionId: "c", updatedAt: 30 },
+        "weixin:group:abc": { sessionId: "d", updatedAt: 40 },
         "subagent:xyz": { sessionId: "e", updatedAt: 50 },
       },
       transcripts: {
@@ -183,8 +151,8 @@ describe("doctor legacy state migrations", () => {
     expect(store["agent:main:+1666"]?.sessionId).toBe("b");
     expect(store["+1555"]).toBeUndefined();
     expect(store["+1666"]).toBeUndefined();
-    expect(store["agent:main:slack:channel:c123"]?.sessionId).toBe("c");
-    expect(store["agent:main:unknown:group:abc"]?.sessionId).toBe("d");
+    expect(store["agent:main:feishu:channel:c123"]?.sessionId).toBe("c");
+    expect(store["agent:main:weixin:group:abc"]?.sessionId).toBe("d");
     expect(store["agent:main:subagent:xyz"]?.sessionId).toBe("e");
   });
 
@@ -243,107 +211,6 @@ describe("doctor legacy state migrations", () => {
     expect(fs.existsSync(path.join(targetDir, "a.jsonl"))).toBe(true);
     expect(fs.existsSync(path.join(legacySessionsDir, "a.jsonl"))).toBe(false);
     expect(fs.existsSync(path.join(targetDir, "sessions.json"))).toBe(true);
-  });
-
-  it("migrates legacy WhatsApp auth files without touching oauth.json", async () => {
-    const { root, cfg } = await makeRootWithEmptyCfg();
-    const oauthDir = ensureCredentialsDir(root);
-    fs.writeFileSync(path.join(oauthDir, "oauth.json"), "{}", "utf-8");
-    fs.writeFileSync(path.join(oauthDir, "creds.json"), "{}", "utf-8");
-    fs.writeFileSync(path.join(oauthDir, "session-abc.json"), "{}", "utf-8");
-
-    await detectAndRunMigrations({ root, cfg, now: () => 123 });
-
-    const target = path.join(oauthDir, "whatsapp", "default");
-    expect(fs.existsSync(path.join(target, "creds.json"))).toBe(true);
-    expect(fs.existsSync(path.join(target, "session-abc.json"))).toBe(true);
-    expect(fs.existsSync(path.join(oauthDir, "oauth.json"))).toBe(true);
-    expect(fs.existsSync(path.join(oauthDir, "creds.json"))).toBe(false);
-  });
-
-  it("migrates legacy Telegram pairing allowFrom store to account-scoped default file", async () => {
-    const { root, cfg } = await makeRootWithEmptyCfg();
-    const { oauthDir, detected, result } = await runTelegramAllowFromMigration({ root, cfg });
-    expect(detected.pairingAllowFrom.hasLegacyTelegram).toBe(true);
-    expect(
-      detected.pairingAllowFrom.copyPlans.map((plan) => path.basename(plan.targetPath)),
-    ).toEqual(["telegram-default-allowFrom.json"]);
-    expect(result.warnings).toEqual([]);
-
-    const target = path.join(oauthDir, "telegram-default-allowFrom.json");
-    expect(fs.existsSync(target)).toBe(true);
-    expect(JSON.parse(fs.readFileSync(target, "utf-8"))).toEqual({
-      version: 1,
-      allowFrom: ["123456"],
-    });
-  });
-
-  it("does not fan out legacy Telegram pairing allowFrom store to configured named accounts", async () => {
-    const root = await makeTempRoot();
-    const cfg: CrawClawConfig = {
-      channels: {
-        telegram: {
-          defaultAccount: "bot2",
-          accounts: {
-            bot1: {},
-            bot2: {},
-          },
-        },
-      },
-    };
-    const { oauthDir, detected, result } = await runTelegramAllowFromMigration({ root, cfg });
-    expect(detected.pairingAllowFrom.hasLegacyTelegram).toBe(true);
-    expect(
-      detected.pairingAllowFrom.copyPlans.map((plan) => path.basename(plan.targetPath)),
-    ).toEqual(["telegram-bot2-allowFrom.json"]);
-    expect(result.warnings).toEqual([]);
-
-    const bot1Target = path.join(oauthDir, "telegram-bot1-allowFrom.json");
-    const bot2Target = path.join(oauthDir, "telegram-bot2-allowFrom.json");
-    const defaultTarget = path.join(oauthDir, "telegram-default-allowFrom.json");
-    expect(fs.existsSync(bot1Target)).toBe(false);
-    expect(fs.existsSync(bot2Target)).toBe(true);
-    expect(fs.existsSync(defaultTarget)).toBe(false);
-    expect(JSON.parse(fs.readFileSync(bot2Target, "utf-8"))).toEqual({
-      version: 1,
-      allowFrom: ["123456"],
-    });
-  });
-
-  it("migrates legacy Telegram pairing allowFrom store to the default agent bound account", async () => {
-    const root = await makeTempRoot();
-    const cfg: CrawClawConfig = {
-      agents: {
-        list: [{ id: "ops", default: true }],
-      },
-      bindings: [{ agentId: "ops", match: { channel: "telegram", accountId: "alerts" } }],
-      channels: {
-        telegram: {
-          accounts: {
-            alerts: {},
-            backup: {},
-          },
-        },
-      },
-    };
-
-    const { oauthDir, detected, result } = await runTelegramAllowFromMigration({ root, cfg });
-    expect(detected.pairingAllowFrom.hasLegacyTelegram).toBe(true);
-    expect(
-      detected.pairingAllowFrom.copyPlans.map((plan) => path.basename(plan.targetPath)),
-    ).toEqual(["telegram-alerts-allowFrom.json"]);
-    expect(result.warnings).toEqual([]);
-
-    const alertsTarget = path.join(oauthDir, "telegram-alerts-allowFrom.json");
-    const backupTarget = path.join(oauthDir, "telegram-backup-allowFrom.json");
-    const defaultTarget = path.join(oauthDir, "telegram-default-allowFrom.json");
-    expect(fs.existsSync(alertsTarget)).toBe(true);
-    expect(fs.existsSync(backupTarget)).toBe(false);
-    expect(fs.existsSync(defaultTarget)).toBe(false);
-    expect(JSON.parse(fs.readFileSync(alertsTarget, "utf-8"))).toEqual({
-      version: 1,
-      allowFrom: ["123456"],
-    });
   });
 
   it("no-ops when nothing detected", async () => {
@@ -443,7 +310,7 @@ describe("doctor legacy state migrations", () => {
     const cfg: CrawClawConfig = {};
     const targetDir = path.join(root, "agents", "main", "sessions");
     writeJson5(path.join(targetDir, "sessions.json"), {
-      "agent:main:slack:channel:C123": { sessionId: "legacy", updatedAt: 10 },
+      "agent:main:feishu:channel:C123": { sessionId: "legacy", updatedAt: 10 },
     });
 
     const store = await runAndReadSessionsStore({
@@ -452,8 +319,8 @@ describe("doctor legacy state migrations", () => {
       targetDir,
       now: () => 123,
     });
-    expect(store["agent:main:slack:channel:c123"]?.sessionId).toBe("legacy");
-    expect(store["agent:main:slack:channel:C123"]).toBeUndefined();
+    expect(store["agent:main:feishu:channel:c123"]?.sessionId).toBe("legacy");
+    expect(store["agent:main:feishu:channel:C123"]).toBeUndefined();
   });
 
   it("auto-migrates when only target sessions contain legacy keys", async () => {

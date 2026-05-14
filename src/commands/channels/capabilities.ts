@@ -46,6 +46,8 @@ type ChannelCapabilitiesReport = {
 type NativeChannelCapabilityDescriptor = {
   channel: string;
   label: string;
+  runtimeKind?: string;
+  adapterRuntimeKind?: string;
   rustAdapterId?: string;
   chatTypes?: string[];
   actions?: string[];
@@ -185,7 +187,10 @@ function formatNativeCapabilityLines(payload: NativeChannelCapabilitiesPayload):
       lines.push(`Actions: ${descriptor.actions.join(", ")}`);
     }
     if (descriptor.rustAdapterId) {
-      lines.push(`Runtime: ${descriptor.rustAdapterId}`);
+      const runtimes = [...new Set([descriptor.runtimeKind, descriptor.adapterRuntimeKind])]
+        .filter((runtime): runtime is string => Boolean(runtime))
+        .join(" + ");
+      lines.push(`Runtime: ${runtimes ? `${runtimes} ` : ""}(${descriptor.rustAdapterId})`);
     }
     const lifecycle = formatNativeLifecycle(descriptor);
     if (lifecycle) {

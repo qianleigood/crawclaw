@@ -1,5 +1,5 @@
 ---
-summary: "Background task tracking for ACP runs, subagents, isolated cron jobs, and CLI operations"
+summary: "Background task tracking for ACP runs, subagents, isolated cron jobs, and Gateway API operations"
 read_when:
   - Inspecting background work in progress or recently completed
   - Debugging delivery failures for detached agent runs
@@ -28,43 +28,43 @@ CLI agent commands do.
 ## TL;DR
 
 - Tasks are **records**, not schedulers - cron, hooks, and system events decide _when_ work runs, tasks track _what happened_.
-- ACP, subagents, all cron jobs, and CLI operations create tasks. Normal main-session wakes do not.
+- ACP, subagents, all cron jobs, and Gateway API operations create tasks. Normal main-session wakes do not.
 - Each task moves through `queued → running → terminal` (succeeded, failed, timed_out, cancelled, or lost).
 - Completion notifications are delivered directly to a channel or queued for the next main-session wake.
-- `crawclaw tasks list` shows all tasks; `crawclaw tasks audit` surfaces issues.
+- CrawClaw Desktop shows all tasks; the Gateway API exposes task listing, audit, and mutation operations.
 - Terminal records are kept for 7 days, then automatically pruned.
 
 ## Quick start
 
 ```bash
 # List all tasks (newest first)
-crawclaw tasks list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Filter by runtime or status
-crawclaw tasks list --runtime acp
-crawclaw tasks list --status running
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Show details for a specific task (by ID, run ID, or session key)
-crawclaw tasks show <lookup>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Cancel a running task (kills the child session)
-crawclaw tasks cancel <lookup>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Change notification policy for a task
-crawclaw tasks notify <lookup> state_changes
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Run a health audit
-crawclaw tasks audit
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## What creates a task
 
-| Source                 | Runtime type | When a task record is created                          | Default notify policy |
-| ---------------------- | ------------ | ------------------------------------------------------ | --------------------- |
-| ACP background runs    | `acp`        | Spawning a child ACP session                           | `done_only`           |
-| Subagent orchestration | `subagent`   | Spawning a subagent via `sessions_spawn`               | `done_only`           |
-| Cron jobs (all types)  | `cron`       | Every cron execution (main-session and isolated)       | `silent`              |
-| CLI operations         | `cli`        | `crawclaw agent` commands that run through the gateway | `silent`              |
+| Source                 | Runtime type | When a task record is created                       | Default notify policy |
+| ---------------------- | ------------ | --------------------------------------------------- | --------------------- |
+| ACP background runs    | `acp`        | Spawning a child ACP session                        | `done_only`           |
+| Subagent orchestration | `subagent`   | Spawning a subagent via `sessions_spawn`            | `done_only`           |
+| Cron jobs (all types)  | `cron`       | Every cron execution (main-session and isolated)    | `silent`              |
+| Gateway API operations | `api`        | Desktop or API actions that run through the Gateway | `silent`              |
 
 Main-session cron tasks use `silent` notify policy by default — they create records for tracking but do not generate notifications. Isolated cron tasks also default to `silent` but are more visible because they run in their own session.
 
@@ -95,7 +95,7 @@ stateDiagram-v2
 | `succeeded` | Completed successfully                                                     |
 | `failed`    | Completed with an error                                                    |
 | `timed_out` | Exceeded the configured timeout                                            |
-| `cancelled` | Stopped by the operator via `crawclaw tasks cancel`                        |
+| `cancelled` | Stopped by the operator through Desktop or the Gateway API                 |
 | `lost`      | Backing child session disappeared (detected after a 5-minute grace period) |
 
 Transitions happen automatically — when the associated agent run ends, the task status updates to match.
@@ -126,15 +126,15 @@ Control how much you hear about each task:
 Change the policy while a task is running:
 
 ```bash
-crawclaw tasks notify <lookup> state_changes
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-## CLI reference
+## Gateway API reference
 
 ### `tasks list`
 
 ```bash
-crawclaw tasks list [--runtime <acp|subagent|cron|cli>] [--status <status>] [--json]
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Output columns: Task ID, Kind, Status, Delivery, Run ID, Child Session, Summary.
@@ -142,7 +142,7 @@ Output columns: Task ID, Kind, Status, Delivery, Run ID, Child Session, Summary.
 ### `tasks show`
 
 ```bash
-crawclaw tasks show <lookup>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 The lookup token accepts a task ID, run ID, or session key. Shows the full record including timing, delivery state, error, and terminal summary.
@@ -150,7 +150,7 @@ The lookup token accepts a task ID, run ID, or session key. Shows the full recor
 ### `tasks cancel`
 
 ```bash
-crawclaw tasks cancel <lookup>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 For ACP and subagent tasks, this kills the child session. Status transitions to `cancelled` and a delivery notification is sent.
@@ -158,16 +158,16 @@ For ACP and subagent tasks, this kills the child session. Status transitions to 
 ### `tasks notify`
 
 ```bash
-crawclaw tasks notify <lookup> <done_only|state_changes|silent>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### `tasks audit`
 
 ```bash
-crawclaw tasks audit [--json]
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-Surfaces operational issues. Findings also appear in `crawclaw status` when issues are detected.
+Surfaces operational issues. Findings also appear in CrawClaw Desktop or the local Gateway API when issues are detected.
 
 | Finding                   | Severity | Trigger                                               |
 | ------------------------- | -------- | ----------------------------------------------------- |
@@ -186,11 +186,11 @@ active and recently completed tasks with runtime, status, timing, and progress o
 When the current session has no visible linked tasks, `/tasks` falls back to agent-local task counts
 so you still get an overview without leaking other-session details.
 
-For the full operator ledger, use the CLI: `crawclaw tasks list`.
+For the full operator ledger, use CrawClaw Desktop or the Gateway API.
 
 ## Status integration (task pressure)
 
-`crawclaw status` includes an at-a-glance task summary:
+CrawClaw Desktop or the local Gateway API includes an at-a-glance task summary:
 
 ```
 Tasks: 3 queued · 2 running · 1 issues
@@ -232,7 +232,7 @@ A sweeper runs every **60 seconds** and handles three things:
 
 ### Tasks and Task Flow
 
-[Task Flow](/automation/taskflow) is the flow orchestration layer above background tasks. A single flow may coordinate multiple tasks over its lifetime using managed or mirrored sync modes. Use `crawclaw tasks` to inspect individual task records and `crawclaw tasks flow` to inspect the orchestrating flow.
+[Task Flow](/automation/taskflow) is the flow orchestration layer above background tasks. A single flow may coordinate multiple tasks over its lifetime using managed or mirrored sync modes. Use Desktop or the Gateway API to inspect individual task records and orchestrating flows.
 
 See [Task Flow](/automation/taskflow) for details.
 
@@ -263,4 +263,4 @@ A task's `runId` links to the agent run doing the work. Agent lifecycle events (
 - [Task Flow](/automation/taskflow) — flow orchestration above tasks
 - [Scheduled Tasks](/automation/cron-jobs) — scheduling background work
 - [Heartbeat](/gateway/heartbeat) — heartbeat migration notes
-- [CLI: Tasks](/cli/index#tasks) — CLI command reference
+- [Gateway tasks](/gateway/protocol#tasks) — API reference

@@ -12,12 +12,6 @@ function formatConversationBindingText(params: {
   channel: string;
   conversationId: string;
 }): string {
-  if (params.channel === "discord" || params.channel === "matrix") {
-    return `thread:${params.conversationId}`;
-  }
-  if (params.channel === "telegram") {
-    return `conversation:${params.conversationId}`;
-  }
   return `binding:${params.conversationId}`;
 }
 
@@ -94,9 +88,7 @@ export function handleSubagentsAgentsAction(ctx: SubagentsCommandContext): Comma
             channel,
             conversationId: binding.conversation.conversationId,
           })
-        : channel === "discord" || channel === "telegram" || channel === "matrix"
-          ? "unbound"
-          : "bindings available on discord/telegram";
+        : "unbound";
       const resolvedIndex = indexByChildSessionKey.get(entry.childSessionKey);
       const prefix = resolvedIndex ? `${resolvedIndex}.` : "-";
       lines.push(`${prefix} ${formatRunLabel(entry)} (${bindingText})`);

@@ -11,16 +11,12 @@ export type ChannelSetupPlugin = Pick<
 
 export type SetupChannelsOptions = {
   allowDisable?: boolean;
-  allowSignalInstall?: boolean;
   onSelection?: (selection: ChannelId[]) => void;
   onPostWriteHook?: (hook: ChannelOnboardingPostWriteHook) => void;
   accountIds?: Partial<Record<ChannelId, string>>;
   onAccountId?: (channel: ChannelId, accountId: string) => void;
   onResolvedPlugin?: (channel: ChannelId, plugin: ChannelSetupPlugin) => void;
   promptAccountIds?: boolean;
-  whatsappAccountId?: string;
-  promptWhatsAppAccountId?: boolean;
-  onWhatsAppAccountId?: (accountId: string) => void;
   forceAllowFromChannels?: ChannelId[];
   skipStatusNote?: boolean;
   skipDmPolicyPrompt?: boolean;

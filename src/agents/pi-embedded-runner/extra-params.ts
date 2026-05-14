@@ -4,10 +4,6 @@ import { streamSimple } from "@mariozechner/pi-ai";
 import type { SettingsManager } from "@mariozechner/pi-coding-agent";
 import type { ThinkLevel } from "../../auto-reply/thinking.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import {
-  prepareProviderExtraParams as prepareProviderExtraParamsRuntime,
-  wrapProviderStreamFn as wrapProviderStreamFnRuntime,
-} from "../../plugins/provider-runtime.js";
 import type { ProviderRuntimeModel } from "../../plugins/types.js";
 import { resolveCacheRetention } from "./anthropic-cache-retention.js";
 import { createAnthropicToolPayloadCompatibilityWrapper } from "./anthropic-family-tool-payload-compat.js";
@@ -38,31 +34,6 @@ import {
   resolveOpenAITextVerbosity,
 } from "./openai-stream-wrappers.js";
 import { streamWithPayloadPatch } from "./stream-payload-utils.js";
-
-const defaultProviderRuntimeDeps = {
-  prepareProviderExtraParams: prepareProviderExtraParamsRuntime,
-  wrapProviderStreamFn: wrapProviderStreamFnRuntime,
-};
-
-const providerRuntimeDeps = {
-  ...defaultProviderRuntimeDeps,
-};
-
-export const __testing = {
-  setProviderRuntimeDepsForTest(
-    deps: Partial<typeof defaultProviderRuntimeDeps> | undefined,
-  ): void {
-    providerRuntimeDeps.prepareProviderExtraParams =
-      deps?.prepareProviderExtraParams ?? defaultProviderRuntimeDeps.prepareProviderExtraParams;
-    providerRuntimeDeps.wrapProviderStreamFn =
-      deps?.wrapProviderStreamFn ?? defaultProviderRuntimeDeps.wrapProviderStreamFn;
-  },
-  resetProviderRuntimeDepsForTest(): void {
-    providerRuntimeDeps.prepareProviderExtraParams =
-      defaultProviderRuntimeDeps.prepareProviderExtraParams;
-    providerRuntimeDeps.wrapProviderStreamFn = defaultProviderRuntimeDeps.wrapProviderStreamFn;
-  },
-};
 
 /**
  * Resolve provider-specific extra params from model config.
@@ -214,19 +185,7 @@ export function resolvePreparedExtraParams(params: {
     ...sanitizeExtraParamsRecord(resolvedExtraParams),
     ...override,
   };
-  return (
-    providerRuntimeDeps.prepareProviderExtraParams({
-      provider: params.provider,
-      config: params.cfg,
-      context: {
-        config: params.cfg,
-        provider: params.provider,
-        modelId: params.modelId,
-        extraParams: merged,
-        thinkingLevel: params.thinkingLevel,
-      },
-    }) ?? merged
-  );
+  return merged;
 }
 
 function sanitizeExtraParamsRecord(
@@ -462,16 +421,8 @@ function applyPrePluginStreamWrappers(ctx: ApplyExtraParamsContext): void {
   });
 }
 
-function applyPostPluginStreamWrappers(
-  ctx: ApplyExtraParamsContext & { providerWrapperHandled: boolean },
-): void {
-  if (
-    !ctx.providerWrapperHandled &&
-    shouldApplyMoonshotPayloadCompat({ provider: ctx.provider, modelId: ctx.modelId })
-  ) {
-    // Preserve the legacy Moonshot compatibility path when no plugin wrapper
-    // actually handled the stream function. This mainly covers tests and
-    // disabled plugins for the native Moonshot provider.
+function applyPostPluginStreamWrappers(ctx: ApplyExtraParamsContext): void {
+  if (shouldApplyMoonshotPayloadCompat({ provider: ctx.provider, modelId: ctx.modelId })) {
     const thinkingType = resolveMoonshotThinkingType({
       configuredThinking: ctx.effectiveExtraParams?.thinking,
       thinkingLevel: ctx.thinkingLevel,
@@ -640,26 +591,8 @@ export function applyExtraParamsToAgent(
   };
 
   applyPrePluginStreamWrappers(wrapperContext);
-  const providerStreamBase = agent.streamFn;
-  const pluginWrappedStreamFn = providerRuntimeDeps.wrapProviderStreamFn({
-    provider,
-    config: cfg,
-    context: {
-      config: cfg,
-      provider,
-      modelId,
-      extraParams: effectiveExtraParams,
-      thinkingLevel,
-      model,
-      streamFn: providerStreamBase,
-    },
-  });
-  agent.streamFn = pluginWrappedStreamFn ?? providerStreamBase;
-  const providerWrapperHandled =
-    pluginWrappedStreamFn !== undefined && pluginWrappedStreamFn !== providerStreamBase;
   applyPostPluginStreamWrappers({
     ...wrapperContext,
-    providerWrapperHandled,
   });
 
   return { effectiveExtraParams };

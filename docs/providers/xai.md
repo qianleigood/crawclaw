@@ -16,7 +16,7 @@ CrawClaw ships a bundled `xai` provider plugin for Grok models.
 2. Set `XAI_API_KEY`, or run:
 
 ```bash
-crawclaw onboard --auth-choice xai-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 3. Pick a model such as:

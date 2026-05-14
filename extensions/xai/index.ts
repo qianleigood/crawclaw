@@ -3,7 +3,6 @@ import {
   resolveNonEnvSecretRefApiKeyMarker,
 } from "crawclaw/plugin-sdk/provider-auth";
 import { defineSingleProviderPluginEntry } from "crawclaw/plugin-sdk/provider-entry";
-import { createToolStreamWrapper } from "crawclaw/plugin-sdk/provider-stream";
 import { resolveProviderWebSearchPluginConfig } from "crawclaw/plugin-sdk/provider-web-search";
 import { normalizeSecretInputString } from "crawclaw/plugin-sdk/secret-input";
 import {
@@ -16,11 +15,6 @@ import {
 import { applyXaiConfig, XAI_DEFAULT_MODEL_REF } from "./onboard.js";
 import { buildXaiProvider } from "./provider-catalog.js";
 import { isModernXaiModel, resolveXaiForwardCompatModel } from "./provider-models.js";
-import {
-  createXaiFastModeWrapper,
-  createXaiToolCallArgumentDecodingWrapper,
-  createXaiToolPayloadCompatibilityWrapper,
-} from "./stream.js";
 
 const PROVIDER_ID = "xai";
 
@@ -101,23 +95,6 @@ export default defineSingleProviderPluginEntry({
     ],
     catalog: {
       buildProvider: buildXaiProvider,
-    },
-    prepareExtraParams: (ctx) => {
-      if (ctx.extraParams?.tool_stream !== undefined) {
-        return ctx.extraParams;
-      }
-      return {
-        ...ctx.extraParams,
-        tool_stream: true,
-      };
-    },
-    wrapStreamFn: (ctx) => {
-      let streamFn = createXaiToolPayloadCompatibilityWrapper(ctx.streamFn);
-      if (typeof ctx.extraParams?.fastMode === "boolean") {
-        streamFn = createXaiFastModeWrapper(streamFn, ctx.extraParams.fastMode);
-      }
-      streamFn = createXaiToolCallArgumentDecodingWrapper(streamFn);
-      return createToolStreamWrapper(streamFn, ctx.extraParams?.tool_stream !== false);
     },
     // Provider-specific fallback auth stays owned by the xAI plugin so core
     // auth/discovery code can consume it generically without parsing xAI's

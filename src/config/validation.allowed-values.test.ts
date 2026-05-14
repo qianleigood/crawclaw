@@ -19,44 +19,30 @@ describe("config validation allowed-values metadata", () => {
 
   it("keeps native enum messages while attaching allowed values metadata", () => {
     const result = validateConfigObjectRaw({
-      channels: { signal: { dmPolicy: "maybe" } },
+      commands: { ownerDisplay: "maybe" },
     });
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      const issue = result.issues.find((entry) => entry.path === "channels.signal.dmPolicy");
+      const issue = result.issues.find((entry) => entry.path === "commands.ownerDisplay");
       expect(issue).toBeDefined();
       expect(issue?.message).toContain("expected one of");
       expect(issue?.message).not.toContain("(allowed:");
-      expect(issue?.allowedValues).toEqual(["pairing", "allowlist", "open", "disabled"]);
+      expect(issue?.allowedValues).toEqual(["raw", "hash"]);
       expect(issue?.allowedValuesHiddenCount).toBe(0);
     }
   });
 
   it("includes boolean variants for boolean-or-enum unions", () => {
     const result = validateConfigObjectRaw({
-      channels: {
-        telegram: {
-          botToken: "x",
-          allowFrom: ["*"],
-          dmPolicy: "allowlist",
-          streaming: "maybe",
-        },
-      },
+      commands: { native: "maybe" },
     });
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      const issue = result.issues.find((entry) => entry.path === "channels.telegram.streaming");
+      const issue = result.issues.find((entry) => entry.path === "commands.native");
       expect(issue).toBeDefined();
-      expect(issue?.allowedValues).toEqual([
-        "true",
-        "false",
-        "off",
-        "partial",
-        "block",
-        "progress",
-      ]);
+      expect(issue?.allowedValues).toEqual(["true", "false", "auto"]);
     }
   });
 

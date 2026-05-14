@@ -52,4 +52,27 @@ describe("plugin manifest canonical naming", () => {
     expect(canonical?.extensions).toEqual(["./dist/index.js"]);
     expect(getPackageManifestMetadata({} as PackageManifest)).toBeUndefined();
   });
+
+  it("normalizes native sidecar discovery metadata", () => {
+    const dir = makeTempDir();
+    writeManifest(dir, "crawclaw.plugin.json", {
+      id: "native-demo",
+      native: {
+        protocol: "crawclaw-native-plugin-jsonrpc",
+        schemaVersion: 1,
+        bin: " native-demo ",
+      },
+      configSchema: { type: "object" },
+    });
+
+    const result = loadPluginManifest(dir, false);
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.manifest.native).toEqual({
+        protocol: "crawclaw-native-plugin-jsonrpc",
+        schemaVersion: 1,
+        bin: "native-demo",
+      });
+    }
+  });
 });

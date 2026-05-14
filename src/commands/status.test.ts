@@ -196,10 +196,6 @@ const mocks = vi.hoisted(() => ({
   }),
   resolveMainSessionKey: vi.fn().mockReturnValue("agent:main:main"),
   resolveStorePath: vi.fn().mockReturnValue("/tmp/sessions.json"),
-  webAuthExists: vi.fn().mockResolvedValue(true),
-  getWebAuthAgeMs: vi.fn().mockReturnValue(5000),
-  readWebSelfId: vi.fn().mockReturnValue({ e164: "+1999" }),
-  logWebSelfId: vi.fn(),
   probeGateway: vi.fn().mockResolvedValue({
     ...createDefaultProbeGatewayResult(),
   }),
@@ -335,12 +331,6 @@ vi.mock("../channels/plugins/index.js", () => ({
         }),
       },
     ] as unknown,
-}));
-vi.mock("../plugins/runtime/runtime-whatsapp-boundary.js", () => ({
-  webAuthExists: mocks.webAuthExists,
-  getWebAuthAgeMs: mocks.getWebAuthAgeMs,
-  readWebSelfId: mocks.readWebSelfId,
-  logWebSelfId: mocks.logWebSelfId,
 }));
 vi.mock("../gateway/probe.js", () => ({
   probeGateway: mocks.probeGateway,

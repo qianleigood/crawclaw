@@ -8,6 +8,8 @@ license.workspace = true
 crawclaw-core = { path = "../crawclaw-core" }
 crawclaw-channels = { path = "../crawclaw-channels" }
 crawclaw-native-plugins = { path = "../crawclaw-native-plugins" }
+crawclaw-plugin-host = { path = "../crawclaw-plugin-host" }
+crawclaw-plugin-sdk = { path = "../crawclaw-plugin-sdk" }
 crawclaw-providers = { path = "../crawclaw-providers" }
 async-trait = "0.1"
 asupersync = "0.3.1"

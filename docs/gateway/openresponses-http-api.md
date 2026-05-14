@@ -16,7 +16,7 @@ This endpoint is **disabled by default**. Enable it in config first.
 - Same port as the Gateway (WS + HTTP multiplex): `http://<gateway-host>:<port>/v1/responses`
 
 Under the hood, requests are executed as a normal Gateway agent run (same codepath as
-`crawclaw agent`), so routing/permissions/config match your Gateway.
+CrawClaw Desktop or the local Gateway API), so routing/permissions/config match your Gateway.
 
 ## Authentication, security, and routing
 

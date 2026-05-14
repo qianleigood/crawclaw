@@ -22,12 +22,12 @@ bundled `xiaomi` provider with that key.
 - API: `openai-completions`
 - Authorization: `Bearer $XIAOMI_API_KEY`
 
-## CLI setup
+## Desktop setup
 
 ```bash
-crawclaw onboard --auth-choice xiaomi-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # or non-interactive
-crawclaw onboard --auth-choice xiaomi-api-key --xiaomi-api-key "$XIAOMI_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Config snippet

@@ -144,7 +144,7 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 
 - Outbound commands default to account `default` if present; otherwise the first configured account id (sorted).
 - Optional `channels.whatsapp.defaultAccount` overrides that fallback default account selection when it matches a configured account id.
-- Legacy single-account Baileys auth dir is migrated by `crawclaw doctor` into `whatsapp/default`.
+- Legacy single-account Baileys auth dir is migrated by CrawClaw Desktop or the local Gateway API into `whatsapp/default`.
 - Per-account overrides: `channels.whatsapp.accounts.<id>.sendReadReceipts`, `channels.whatsapp.accounts.<id>.dmPolicy`, `channels.whatsapp.accounts.<id>.allowFrom`.
 
 </Accordion>
@@ -205,7 +205,7 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 
 - Bot token: `channels.telegram.botToken` or `channels.telegram.tokenFile` (regular file only; symlinks rejected), with `TELEGRAM_BOT_TOKEN` as fallback for the default account.
 - Optional `channels.telegram.defaultAccount` overrides default account selection when it matches a configured account id.
-- In multi-account setups (2+ account ids), set an explicit default (`channels.telegram.defaultAccount` or `channels.telegram.accounts.default`) to avoid fallback routing; `crawclaw doctor` warns when this is missing or invalid.
+- In multi-account setups (2+ account ids), set an explicit default (`channels.telegram.defaultAccount` or `channels.telegram.accounts.default`) to avoid fallback routing; CrawClaw Desktop or the local Gateway API warns when this is missing or invalid.
 - `configWrites: false` blocks Telegram-initiated config writes (supergroup ID migrations, `/config set|unset`).
 - Top-level `bindings[]` entries with `type: "acp"` configure persistent ACP bindings for forum topics (use canonical `chatId:topic:topicId` in `match.peer.id`). Field semantics are shared in [ACP Agents](/tools/acp-agents#channel-specific-settings).
 - Telegram stream previews use `sendMessage` + `editMessageText` (works in direct and group chats).
@@ -441,7 +441,7 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 
 ### Mattermost
 
-Mattermost ships as a plugin: `crawclaw plugins install @crawclaw/mattermost`.
+Mattermost ships as a plugin: CrawClaw Desktop or the local Gateway API.
 
 ```json5
 {
@@ -685,9 +685,9 @@ Run multiple accounts per channel (each with its own `accountId`):
 - Env tokens only apply to the **default** account.
 - Base channel settings apply to all accounts unless overridden per account.
 - Use `bindings[].match.accountId` to route each account to a different agent.
-- If you add a non-default account via `crawclaw channels add` (or channel onboarding) while still on a single-account top-level channel config, CrawClaw moves account-scoped top-level single-account values into `channels.<channel>.accounts.default` first so the original account keeps working.
+- If you add a non-default account via CrawClaw Desktop or the local Gateway API (or channel onboarding) while still on a single-account top-level channel config, CrawClaw moves account-scoped top-level single-account values into `channels.<channel>.accounts.default` first so the original account keeps working.
 - Existing channel-only bindings (no `accountId`) keep matching the default account; account-scoped bindings remain optional.
-- `crawclaw doctor --fix` also repairs mixed shapes by moving account-scoped top-level single-account values into `accounts.default` when named accounts exist but `default` is missing.
+- CrawClaw Desktop or the local Gateway API also repairs mixed shapes by moving account-scoped top-level single-account values into `accounts.default` when named accounts exist but `default` is missing.
 
 ### Other extension channels
 
@@ -977,7 +977,7 @@ Anthropic Claude 4.6 models default to `adaptive` thinking when no explicit thin
 
 ### `agents.defaults.cliBackends`
 
-Optional CLI backends for text-only fallback runs (no tool calls). Useful as a backup when API providers fail.
+Optional Local process backends for text-only fallback runs (no tool calls). Useful as a backup when API providers fail.
 
 ```json5
 {
@@ -1005,7 +1005,7 @@ Optional CLI backends for text-only fallback runs (no tool calls). Useful as a b
 }
 ```
 
-- CLI backends are text-first; tools are always disabled.
+- Local process backends are text-first; tools are always disabled.
 - Sessions supported when `sessionArg` is set.
 - Image pass-through supported when `imageArg` accepts file paths.
 
@@ -2000,7 +2000,7 @@ Use `cerebras/zai-glm-4.7` for Cerebras; `zai/glm-4.7` for Z.AI direct.
 }
 ```
 
-Set `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`). Use `opencode/...` refs for the Zen catalog or `opencode-go/...` refs for the Go catalog. Shortcut: `crawclaw onboard --auth-choice opencode-zen` or `crawclaw onboard --auth-choice opencode-go`.
+Set `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`). Use `opencode/...` refs for the Zen catalog or `opencode-go/...` refs for the Go catalog. Shortcut: CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API.
 
 </Accordion>
 
@@ -2017,7 +2017,7 @@ Set `OPENCODE_API_KEY` (or `OPENCODE_ZEN_API_KEY`). Use `opencode/...` refs for 
 }
 ```
 
-Set `ZAI_API_KEY`. `z.ai/*` and `z-ai/*` are accepted aliases. Shortcut: `crawclaw onboard --auth-choice zai-api-key`.
+Set `ZAI_API_KEY`. `z.ai/*` and `z-ai/*` are accepted aliases. Shortcut: CrawClaw Desktop or the local Gateway API.
 
 - General endpoint: `https://api.z.ai/api/paas/v4`
 - Coding endpoint (default): `https://api.z.ai/api/coding/paas/v4`
@@ -2060,7 +2060,7 @@ Set `ZAI_API_KEY`. `z.ai/*` and `z-ai/*` are accepted aliases. Shortcut: `crawcl
 }
 ```
 
-For the China endpoint: `baseUrl: "https://api.moonshot.cn/v1"` or `crawclaw onboard --auth-choice moonshot-api-key-cn`.
+For the China endpoint: `baseUrl: "https://api.moonshot.cn/v1"` or CrawClaw Desktop or the local Gateway API.
 
 </Accordion>
 
@@ -2078,7 +2078,7 @@ For the China endpoint: `baseUrl: "https://api.moonshot.cn/v1"` or `crawclaw onb
 }
 ```
 
-Anthropic-compatible, built-in provider. Shortcut: `crawclaw onboard --auth-choice kimi-code-api-key`.
+Anthropic-compatible, built-in provider. Shortcut: CrawClaw Desktop or the local Gateway API.
 
 </Accordion>
 
@@ -2117,7 +2117,7 @@ Anthropic-compatible, built-in provider. Shortcut: `crawclaw onboard --auth-choi
 }
 ```
 
-Base URL should omit `/v1` (Anthropic client appends it). Shortcut: `crawclaw onboard --auth-choice synthetic-api-key`.
+Base URL should omit `/v1` (Anthropic client appends it). Shortcut: CrawClaw Desktop or the local Gateway API.
 
 </Accordion>
 
@@ -2157,7 +2157,7 @@ Base URL should omit `/v1` (Anthropic client appends it). Shortcut: `crawclaw on
 }
 ```
 
-Set `MINIMAX_API_KEY`. Shortcut: `crawclaw onboard --auth-choice minimax-api`.
+Set `MINIMAX_API_KEY`. Shortcut: CrawClaw Desktop or the local Gateway API.
 The model catalog now defaults to M2.7 only.
 
 </Accordion>
@@ -2236,9 +2236,9 @@ See [Local Models](/gateway/local-models). TL;DR: run a large local model via LM
 - `plugins.entries.<id>.subagent.allowedModels`: optional allowlist of canonical `provider/model` targets for trusted subagent overrides. Use `"*"` only when you intentionally want to allow any model.
 - `plugins.entries.<id>.config`: plugin-defined config object (validated by native CrawClaw plugin schema when available).
 - Enabled Claude bundle plugins can also contribute embedded Pi defaults from `settings.json`; CrawClaw applies those as sanitized agent settings, not as raw CrawClaw config patches.
-- `plugins.installs`: CLI-managed install metadata used by `crawclaw plugins update`.
+- `plugins.installs`: CLI-managed install metadata used by CrawClaw Desktop or the local Gateway API.
   - Includes `source`, `spec`, `sourcePath`, `installPath`, `version`, `resolvedName`, `resolvedVersion`, `resolvedSpec`, `integrity`, `shasum`, `resolvedAt`, `installedAt`.
-  - Treat `plugins.installs.*` as managed state; prefer CLI commands over manual edits.
+  - Treat `plugins.installs.*` as managed state; prefer Desktop and Gateway API actions over manual edits.
 
 See [Plugins](/tools/plugin).
 
@@ -2275,9 +2275,8 @@ See [Plugins](/tools/plugin).
 - `ssrfPolicy.allowPrivateNetwork` remains supported as a legacy alias.
 - In strict mode, use `ssrfPolicy.hostnameAllowlist` and `ssrfPolicy.allowedHostnames` for explicit exceptions.
 - Control service: loopback only (port derived from `gateway.port`, default `18791`).
-- The bundled browser server standardizes on the PinchTab backend. New
-  browser-server setup should use managed profiles and PinchTab runtime
-  configuration.
+- The bundled browser tool is registered by the Rust native plugin registry and
+  uses the managed `agent-browser` runtime.
 
 ---
 
@@ -2387,7 +2386,7 @@ Run multiple gateways on one host with unique ports and state dirs:
 ```bash
 CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json \
 CRAWCLAW_STATE_DIR=~/.crawclaw-a \
-crawclaw gateway --port 19001
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Convenience flags: `--dev` (uses `~/.crawclaw-dev` + port `19001`), `--profile <name>` (uses `~/.crawclaw-<name>`).
@@ -2557,7 +2556,7 @@ Auth: `Authorization: Bearer <token>` or `x-crawclaw-token: <token>`.
 
 Writes a unicast DNS-SD zone under `~/.crawclaw/dns/`. For cross-network discovery, pair with a DNS server (CoreDNS recommended) + Tailscale split DNS.
 
-Setup: `crawclaw dns setup --apply`.
+Setup: CrawClaw Desktop or the local Gateway API.
 
 ---
 
@@ -2911,7 +2910,7 @@ See `agents.list` identity fields under [Agent defaults](#agent-defaults).
 
 ## Bridge (legacy, removed)
 
-Current builds no longer include the TCP bridge. `bridge.*` keys are no longer part of the config schema (validation fails until removed; `crawclaw doctor --fix` can strip unknown keys).
+Current builds no longer include the TCP bridge. `bridge.*` keys are no longer part of the config schema (validation fails until removed; CrawClaw Desktop or the local Gateway API can strip unknown keys).
 
 <Accordion title="Legacy bridge config (historical reference)">
 

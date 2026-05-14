@@ -1,6 +1,11 @@
 {
   "id": "scrapling-fetch",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "uiHints": {
     "webFetch.apiKey": {
       "label": "Scrapling Fetch API Key",

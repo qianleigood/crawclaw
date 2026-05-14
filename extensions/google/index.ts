@@ -7,7 +7,6 @@ import {
 } from "crawclaw/plugin-sdk/plugin-entry";
 import { createProviderApiKeyAuthMethod } from "crawclaw/plugin-sdk/provider-auth-api-key";
 import type { ProviderPlugin } from "crawclaw/plugin-sdk/provider-model-shared";
-import { createGoogleThinkingPayloadWrapper } from "crawclaw/plugin-sdk/provider-stream";
 import {
   GOOGLE_GEMINI_DEFAULT_MODEL,
   applyGoogleGeminiModelDefault,
@@ -203,7 +202,6 @@ export default definePluginEntry({
           templateProviderId: GOOGLE_GEMINI_CLI_PROVIDER_ID,
           ctx,
         }),
-      wrapStreamFn: (ctx) => createGoogleThinkingPayloadWrapper(ctx.streamFn, ctx.thinkingLevel),
       isModernModelRef: ({ modelId }) => isModernGoogleModel(modelId),
     });
     api.registerCliBackend(buildGoogleGeminiCliBackend());

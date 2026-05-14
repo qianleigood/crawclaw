@@ -49,9 +49,9 @@ Honcho registers tools that the agent can use during conversation:
 Install the plugin and run setup:
 
 ```bash
-crawclaw plugins install @honcho-ai/crawclaw-honcho
-crawclaw honcho setup
-crawclaw gateway --force
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 The setup command prompts for your API credentials, writes the config, and
@@ -89,7 +89,7 @@ For self-hosted instances, point `baseUrl` to your local server (for example
 ## Migrating existing memory
 
 If you have existing workspace memory files (`USER.md`, `MEMORY.md`,
-`IDENTITY.md`, `memory/`, `canvas/`), `crawclaw honcho setup` detects and
+`IDENTITY.md`, `memory/`, `canvas/`), the Honcho setup action in CrawClaw Desktop or the Gateway API detects and
 offers to migrate them.
 
 <Info>
@@ -122,13 +122,13 @@ Honcho and the builtin memory system can work together: builtin memory keeps
 local project guidance available while Honcho adds cross-session memory through
 the plugin service.
 
-## CLI commands
+## Desktop and Gateway API actions
 
 ```bash
-crawclaw honcho setup                        # Configure API key and migrate files
-crawclaw honcho status                       # Check connection status
-crawclaw honcho ask <question>               # Query Honcho about the user
-crawclaw honcho search <query> [-k N] [-d D] # Semantic search over memory
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Further reading

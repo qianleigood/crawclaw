@@ -18,7 +18,7 @@ uses `agents.defaults.workspace`; other top-level agents can override that with
 their own workspace settings. A run uses its resolved agent workspace as the
 primary working directory (`cwd`) for tools and context.
 
-Recommended: use `crawclaw setup` to create `~/.crawclaw/crawclaw.json` if missing and initialize the workspace files.
+Recommended: use CrawClaw Desktop or the local Gateway API to create `~/.crawclaw/crawclaw.json` if missing and initialize the workspace files.
 
 Full workspace layout + backup guide: [Agent workspace](/concepts/agent-workspace)
 
@@ -38,7 +38,7 @@ part of the default runtime injection path.
 
 Blank files are skipped. Large files are trimmed and truncated with a marker so prompts stay lean (read the file for full content).
 
-If the active bootstrap file is missing, CrawClaw injects a single “missing file” marker line (and `crawclaw setup` will create a safe default template).
+If the active bootstrap file is missing, CrawClaw injects a single “missing file” marker line (and CrawClaw Desktop or the local Gateway API will create a safe default template).
 
 `BOOTSTRAP.md` is only created for a **brand new workspace** (no other bootstrap files present). If you delete it after completing the ritual, it should not be recreated on later restarts.
 
@@ -85,7 +85,7 @@ session side effects.
 - Resume logic can fall back to agent runtime metadata when a plain session
   lookup is not enough.
 - Inspection and ops tooling read the same persisted runtime/task metadata
-  through `crawclaw agent inspect`, `crawclaw agents status`, and the gateway
+  through CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and the gateway
   `agent.inspect` RPC.
 
 ## Context Archive

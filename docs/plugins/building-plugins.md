@@ -15,7 +15,7 @@ image generation, web search, agent tools, or any combination.
 
 You do not need to add your plugin to the CrawClaw repository. Publish to
 [ClawHub](/tools/clawhub) or npm and users install with
-`crawclaw plugins install <package-name>`. CrawClaw tries ClawHub first and
+CrawClaw Desktop or the local Gateway API. CrawClaw tries ClawHub first and
 falls back to npm automatically.
 
 ## Prerequisites
@@ -121,7 +121,7 @@ and provider plugins have dedicated guides linked above.
     ```bash
     clawhub package publish your-org/your-plugin --dry-run
     clawhub package publish your-org/your-plugin
-    crawclaw plugins install clawhub:@myorg/crawclaw-my-plugin
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     CrawClaw also checks ClawHub before npm for bare package specs like
@@ -143,7 +143,7 @@ A single plugin can register any number of capabilities via the `api` object:
 | Capability            | Registration method                           | Detailed guide                                                                  |
 | --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------- |
 | Text inference (LLM)  | `api.registerProvider(...)`                   | [Provider Plugins](/plugins/sdk-provider-plugins)                               |
-| CLI inference backend | `api.registerCliBackend(...)`                 | [CLI Backends](/gateway/cli-backends)                                           |
+| Local process backend | `api.registerCliBackend(...)`                 | [Local Process Backends](/gateway/local-process-backends)                       |
 | Channel / messaging   | `api.registerChannel(...)`                    | [Channel Plugins](/plugins/sdk-channel-plugins)                                 |
 | Speech (TTS/STT)      | `api.registerSpeechProvider(...)`             | [Provider Plugins](/plugins/sdk-provider-plugins#step-5-add-extra-capabilities) |
 | Media understanding   | `api.registerMediaUnderstandingProvider(...)` | [Provider Plugins](/plugins/sdk-provider-plugins#step-5-add-extra-capabilities) |
@@ -152,7 +152,6 @@ A single plugin can register any number of capabilities via the `api` object:
 | Custom commands       | `api.registerCommand(...)`                    | [Entry Points](/plugins/sdk-entrypoints)                                        |
 | Event hooks           | `api.registerHook(...)`                       | [Entry Points](/plugins/sdk-entrypoints)                                        |
 | HTTP routes           | `api.registerHttpRoute(...)`                  | [Internals](/plugins/architecture#gateway-http-routes)                          |
-| CLI subcommands       | `api.registerCli(...)`                        | [Entry Points](/plugins/sdk-entrypoints)                                        |
 
 For the full registration API, see [SDK Overview](/plugins/sdk-overview#registration-api).
 

@@ -21,7 +21,7 @@ When you copy the **state directory** (`~/.crawclaw/` by default) and your **wor
 - **Workspace files** -- `MEMORY.md`, `USER.md`, skills, and prompts
 
 <Tip>
-Run `crawclaw status` on the old machine to confirm your state directory path.
+Run CrawClaw Desktop or the local Gateway API on the old machine to confirm your state directory path.
 Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_DIR`.
 </Tip>
 
@@ -32,7 +32,7 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
     On the **old** machine, stop the gateway so files are not changing mid-copy, then archive:
 
     ```bash
-    crawclaw gateway stop
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     cd ~
     tar -czf crawclaw-state.tgz .crawclaw
     ```
@@ -62,9 +62,9 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
     On the new machine, run [Doctor](/gateway/doctor) to apply config migrations and repair services:
 
     ```bash
-    crawclaw doctor
-    crawclaw gateway restart
-    crawclaw status
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Step>
@@ -76,7 +76,7 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
   <Accordion title="Profile or state-dir mismatch">
     If the old gateway used `--profile` or `CRAWCLAW_STATE_DIR` and the new one does not,
     channels will appear logged out and sessions will be empty.
-    Launch the gateway with the **same** profile or state-dir you migrated, then rerun `crawclaw doctor`.
+    Launch the gateway with the **same** profile or state-dir you migrated, then rerun CrawClaw Desktop or the local Gateway API.
   </Accordion>
 
   <Accordion title="Copying only crawclaw.json">
@@ -104,7 +104,7 @@ Custom profiles use `~/.crawclaw-<profile>/` or a path set via `CRAWCLAW_STATE_D
 
 On the new machine, confirm:
 
-- [ ] `crawclaw status` shows the gateway running
+- [ ] CrawClaw Desktop or the local Gateway API shows the gateway running
 - [ ] Channels are still connected (no re-pairing needed)
 - [ ] The dashboard opens and shows existing sessions
 - [ ] Workspace files (memory, configs) are present

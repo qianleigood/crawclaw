@@ -228,7 +228,7 @@ export type AgentDefaultsConfig = {
     target?: "last" | "none" | ChannelId;
     /** Direct/DM delivery policy. Default: "allow". */
     directPolicy?: "allow" | "block";
-    /** Optional delivery override (E.164 for WhatsApp, chat id for Telegram). Supports :topic:NNN suffix for Telegram topics. */
+    /** Optional delivery override for the selected channel target. */
     to?: string;
     /** Optional account id for multi-account channels. */
     accountId?: string;

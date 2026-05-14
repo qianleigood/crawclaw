@@ -25,23 +25,7 @@ export function resolveCommandSurfaceChannel(params: CommandSurfaceParams): stri
   return (channel ?? "").trim().toLowerCase();
 }
 
-export function isDiscordSurface(params: CommandSurfaceParams): boolean {
-  return resolveCommandSurfaceChannel(params) === "discord";
-}
-
-export function isTelegramSurface(params: CommandSurfaceParams): boolean {
-  return resolveCommandSurfaceChannel(params) === "telegram";
-}
-
-export function isMatrixSurface(params: CommandSurfaceParams): boolean {
-  return resolveCommandSurfaceChannel(params) === "matrix";
-}
-
 export function resolveChannelAccountId(params: ChannelAccountParams): string {
   const accountId = typeof params.ctx.AccountId === "string" ? params.ctx.AccountId.trim() : "";
   return accountId || "default";
-}
-
-export function resolveDiscordAccountId(params: ChannelAccountParams): string {
-  return resolveChannelAccountId(params);
 }

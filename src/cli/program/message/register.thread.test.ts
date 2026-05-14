@@ -22,7 +22,7 @@ describe("registerMessageThreadCommands", () => {
     runMessageAction.mockClear();
   });
 
-  it("routes Telegram thread create to topic-create with Telegram params", async () => {
+  it("routes retained channel thread create through thread-create params", async () => {
     const message = new Command().exitOverride();
     registerMessageThreadCommands(message, createHelpers(runMessageAction));
 
@@ -31,42 +31,9 @@ describe("registerMessageThreadCommands", () => {
         "thread",
         "create",
         "--channel",
-        " Telegram ",
+        " feishu ",
         "-t",
-        "-1001234567890",
-        "--thread-name",
-        "Build Updates",
-        "-m",
-        "hello",
-      ],
-      { from: "user" },
-    );
-
-    expect(runMessageAction).toHaveBeenCalledWith(
-      "topic-create",
-      expect.objectContaining({
-        channel: " Telegram ",
-        target: "-1001234567890",
-        name: "Build Updates",
-        message: "hello",
-      }),
-    );
-    const telegramCall = runMessageAction.mock.calls.at(0);
-    expect(telegramCall?.[1]).not.toHaveProperty("threadName");
-  });
-
-  it("keeps non-Telegram thread create on thread-create params", async () => {
-    const message = new Command().exitOverride();
-    registerMessageThreadCommands(message, createHelpers(runMessageAction));
-
-    await message.parseAsync(
-      [
-        "thread",
-        "create",
-        "--channel",
-        "discord",
-        "-t",
-        "channel:123",
+        "chat:oc_123",
         "--thread-name",
         "Build Updates",
         "-m",
@@ -78,13 +45,46 @@ describe("registerMessageThreadCommands", () => {
     expect(runMessageAction).toHaveBeenCalledWith(
       "thread-create",
       expect.objectContaining({
-        channel: "discord",
-        target: "channel:123",
+        channel: " feishu ",
+        target: "chat:oc_123",
         threadName: "Build Updates",
         message: "hello",
       }),
     );
-    const discordCall = runMessageAction.mock.calls.at(0);
-    expect(discordCall?.[1]).not.toHaveProperty("name");
+    const feishuCall = runMessageAction.mock.calls.at(0);
+    expect(feishuCall?.[1]).not.toHaveProperty("name");
+  });
+
+  it("keeps generic retained thread create on thread-create params", async () => {
+    const message = new Command().exitOverride();
+    registerMessageThreadCommands(message, createHelpers(runMessageAction));
+
+    await message.parseAsync(
+      [
+        "thread",
+        "create",
+        "--channel",
+        "ddingtalk",
+        "-t",
+        "chat:123",
+        "--thread-name",
+        "Build Updates",
+        "-m",
+        "hello",
+      ],
+      { from: "user" },
+    );
+
+    expect(runMessageAction).toHaveBeenCalledWith(
+        "thread-create",
+      expect.objectContaining({
+        channel: "ddingtalk",
+        target: "chat:123",
+        threadName: "Build Updates",
+        message: "hello",
+      }),
+    );
+    const dingTalkCall = runMessageAction.mock.calls.at(0);
+    expect(dingTalkCall?.[1]).not.toHaveProperty("name");
   });
 });

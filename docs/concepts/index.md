@@ -8,7 +8,7 @@ title: Concepts Index
 
 # Concepts Index
 
-`concepts/` explains CrawClaw's system model. It is not the install guide and not the CLI reference.
+`concepts/` explains CrawClaw's system model. It is not the install guide and not the API reference.
 
 Use these groups instead of jumping through filenames at random.
 

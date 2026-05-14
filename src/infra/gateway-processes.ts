@@ -137,7 +137,7 @@ export function readGatewayProcessArgsSync(pid: number): string[] | null {
 
 export function signalVerifiedGatewayPidSync(pid: number, signal: "SIGTERM" | "SIGUSR1"): void {
   const args = readGatewayProcessArgsSync(pid);
-  if (!args || !isGatewayArgv(args, { allowGatewayBinary: true })) {
+  if (!args || !isGatewayArgv(args)) {
     throw new Error(`refusing to signal non-gateway process pid ${pid}`);
   }
   process.kill(pid, signal);
@@ -153,7 +153,7 @@ export function findVerifiedGatewayListenerPidsOnPortSync(port: number): number[
     .filter((pid): pid is number => Number.isFinite(pid) && pid > 0 && pid !== process.pid)
     .filter((pid) => {
       const args = readGatewayProcessArgsSync(pid);
-      return args != null && isGatewayArgv(args, { allowGatewayBinary: true });
+      return args != null && isGatewayArgv(args);
     });
 }
 

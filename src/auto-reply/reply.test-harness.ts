@@ -144,12 +144,6 @@ vi.mock("../skill-commands.runtime.js", () => ({
   listSkillCommandsForWorkspace: () => [],
 }));
 
-vi.mock("../plugins/runtime/runtime-whatsapp-boundary.js", () => ({
-  webAuthExists: (...args: unknown[]) => getInstalledReplyRuntimeMocks().webAuthExists(...args),
-  getWebAuthAgeMs: (...args: unknown[]) => getInstalledReplyRuntimeMocks().getWebAuthAgeMs(...args),
-  readWebSelfId: (...args: unknown[]) => getInstalledReplyRuntimeMocks().readWebSelfId(...args),
-}));
-
 export function createReplyRuntimeMocks(): ReplyRuntimeMocks {
   return {
     runEmbeddedPiAgent: vi.fn(),

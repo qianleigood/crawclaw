@@ -1,226 +1,35 @@
-import { resolveEffectiveMessagesConfig, resolveHumanDelayConfig } from "../../agents/identity.js";
-import {
-  chunkByNewline,
-  chunkMarkdownText,
-  chunkMarkdownTextWithMode,
-  chunkText,
-  chunkTextWithMode,
-  resolveChunkMode,
-  resolveTextChunkLimit,
-} from "../../auto-reply/chunk.js";
-import {
-  hasControlCommand,
-  isControlCommandMessage,
-  shouldComputeCommandAuthorized,
-} from "../../auto-reply/command-detection.js";
-import { shouldHandleTextCommands } from "../../auto-reply/commands-registry.js";
-import { withReplyDispatcher } from "../../auto-reply/dispatch.js";
-import {
-  formatAgentEnvelope,
-  formatInboundEnvelope,
-  resolveEnvelopeFormatOptions,
-} from "../../auto-reply/envelope.js";
-import {
-  createInboundDebouncer,
-  resolveInboundDebounceMs,
-} from "../../auto-reply/inbound-debounce.js";
-import { dispatchReplyFromConfig } from "../../auto-reply/reply/dispatch-from-config.js";
-import {
-  buildMentionRegexes,
-  matchesMentionPatterns,
-  matchesMentionWithExplicit,
-} from "../../auto-reply/reply/mentions.js";
-import { dispatchReplyWithBufferedBlockDispatcher } from "../../auto-reply/reply/provider-dispatcher.js";
-import { createReplyDispatcherWithTyping } from "../../auto-reply/reply/reply-dispatcher.js";
-import { removeAckReactionAfterReply, shouldAckReaction } from "../../channels/ack-reactions.js";
-import { resolveCommandAuthorizedFromAuthorizers } from "../../channels/command-gating.js";
-import { finalizeInboundContext } from "../../channels/inbound-context.js";
-import {
-  setChannelConversationBindingIdleTimeoutBySessionKey,
-  setChannelConversationBindingMaxAgeBySessionKey,
-} from "../../channels/plugins/conversation-bindings.js";
-import { loadChannelOutboundAdapter } from "../../channels/plugins/outbound/load.js";
-import { recordInboundSession } from "../../channels/session.js";
-import {
-  resolveChannelGroupPolicy,
-  resolveChannelGroupRequireMention,
-} from "../../config/group-policy.js";
-import { resolveMarkdownTableMode } from "../../config/markdown-tables.js";
-import {
-  readSessionUpdatedAt,
-  recordSessionMetaFromInbound,
-  resolveStorePath,
-  updateLastRoute,
-} from "../../config/sessions.js";
-import { getChannelActivity, recordChannelActivity } from "../../infra/channel-activity.js";
-import { convertMarkdownTables } from "../../markdown/tables.js";
-import { fetchRemoteMedia } from "../../media/fetch.js";
-import { saveMediaBuffer } from "../../media/store.js";
-import { buildPairingReply } from "../../pairing/pairing-messages.js";
-import {
-  readChannelAllowFromStore,
-  upsertChannelPairingRequest,
-} from "../../pairing/pairing-store.js";
-import {
-  setThreadBindingIdleTimeoutBySessionKey,
-  setThreadBindingMaxAgeBySessionKey,
-} from "../../plugin-sdk/discord-thread-bindings.js";
-import { buildAgentSessionKey, resolveAgentRoute } from "../../routing/resolve-route.js";
-import { defineCachedValue } from "./runtime-cache.js";
-import { createRuntimeDiscord } from "./runtime-discord.js";
-import { createRuntimeLine } from "./runtime-line.js";
-import { createRuntimeMatrix } from "./runtime-matrix.js";
-import { createRuntimeSignal } from "./runtime-signal.js";
-import { createRuntimeSlack } from "./runtime-slack.js";
 import type { PluginRuntime } from "./types.js";
 
+const CHANNEL_RUNTIME_REMOVED_REASON =
+  "TypeScript channel runtime has been removed; implement channels as Rust-native plugins.";
+
+function unavailable(): never {
+  throw new Error(CHANNEL_RUNTIME_REMOVED_REASON);
+}
+
 export function createRuntimeChannel(): PluginRuntime["channel"] {
-  const channelRuntime = {
-    text: {
-      chunkByNewline,
-      chunkMarkdownText,
-      chunkMarkdownTextWithMode,
-      chunkText,
-      chunkTextWithMode,
-      resolveChunkMode,
-      resolveTextChunkLimit,
-      hasControlCommand,
-      resolveMarkdownTableMode,
-      convertMarkdownTables,
-    },
-    reply: {
-      dispatchReplyWithBufferedBlockDispatcher,
-      createReplyDispatcherWithTyping,
-      resolveEffectiveMessagesConfig,
-      resolveHumanDelayConfig,
-      dispatchReplyFromConfig,
-      withReplyDispatcher,
-      finalizeInboundContext,
-      formatAgentEnvelope,
-      formatInboundEnvelope,
-      resolveEnvelopeFormatOptions,
-    },
-    routing: {
-      buildAgentSessionKey,
-      resolveAgentRoute,
-    },
+  return {
+    text: {},
+    reply: {},
+    routing: {},
     pairing: {
-      buildPairingReply,
-      readAllowFromStore: ({ channel, accountId, env }) =>
-        readChannelAllowFromStore(channel, env, accountId),
-      upsertPairingRequest: ({ channel, id, accountId, meta, env, pairingAdapter }) =>
-        upsertChannelPairingRequest({
-          channel,
-          id,
-          accountId,
-          meta,
-          env,
-          pairingAdapter,
-        }),
+      readAllowFromStore: unavailable,
+      upsertPairingRequest: unavailable,
     },
-    media: {
-      fetchRemoteMedia,
-      saveMediaBuffer,
-    },
-    activity: {
-      record: recordChannelActivity,
-      get: getChannelActivity,
-    },
-    session: {
-      resolveStorePath,
-      readSessionUpdatedAt,
-      recordSessionMetaFromInbound,
-      recordInboundSession,
-      updateLastRoute,
-    },
-    mentions: {
-      buildMentionRegexes,
-      matchesMentionPatterns,
-      matchesMentionWithExplicit,
-    },
-    reactions: {
-      shouldAckReaction,
-      removeAckReactionAfterReply,
-    },
-    groups: {
-      resolveGroupPolicy: resolveChannelGroupPolicy,
-      resolveRequireMention: resolveChannelGroupRequireMention,
-    },
-    debounce: {
-      createInboundDebouncer,
-      resolveInboundDebounceMs,
-    },
-    commands: {
-      resolveCommandAuthorizedFromAuthorizers,
-      isControlCommandMessage,
-      shouldComputeCommandAuthorized,
-      shouldHandleTextCommands,
-    },
+    media: {},
+    activity: {},
+    session: {},
+    mentions: {},
+    reactions: {},
+    groups: {},
+    debounce: {},
+    commands: {},
     outbound: {
-      loadAdapter: loadChannelOutboundAdapter,
+      loadAdapter: unavailable,
     },
     threadBindings: {
-      setIdleTimeoutBySessionKey: ({ channelId, targetSessionKey, accountId, idleTimeoutMs }) => {
-        switch (channelId) {
-          case "discord":
-            return setThreadBindingIdleTimeoutBySessionKey({
-              targetSessionKey,
-              accountId,
-              idleTimeoutMs,
-            });
-          case "matrix":
-            return setChannelConversationBindingIdleTimeoutBySessionKey({
-              channelId,
-              targetSessionKey,
-              accountId: accountId ?? "",
-              idleTimeoutMs,
-            });
-          case "telegram":
-            return setChannelConversationBindingIdleTimeoutBySessionKey({
-              channelId,
-              targetSessionKey,
-              accountId,
-              idleTimeoutMs,
-            });
-          default:
-            return [];
-        }
-      },
-      setMaxAgeBySessionKey: ({ channelId, targetSessionKey, accountId, maxAgeMs }) => {
-        switch (channelId) {
-          case "discord":
-            return setThreadBindingMaxAgeBySessionKey({
-              targetSessionKey,
-              accountId,
-              maxAgeMs,
-            });
-          case "matrix":
-            return setChannelConversationBindingMaxAgeBySessionKey({
-              channelId,
-              targetSessionKey,
-              accountId: accountId ?? "",
-              maxAgeMs,
-            });
-          case "telegram":
-            return setChannelConversationBindingMaxAgeBySessionKey({
-              channelId,
-              targetSessionKey,
-              accountId,
-              maxAgeMs,
-            });
-          default:
-            return [];
-        }
-      },
+      setIdleTimeoutBySessionKey: unavailable,
+      setMaxAgeBySessionKey: unavailable,
     },
-  } satisfies Omit<PluginRuntime["channel"], "discord" | "slack" | "matrix" | "signal" | "line"> &
-    Partial<Pick<PluginRuntime["channel"], "discord" | "slack" | "matrix" | "signal" | "line">>;
-
-  defineCachedValue(channelRuntime, "discord", createRuntimeDiscord);
-  defineCachedValue(channelRuntime, "slack", createRuntimeSlack);
-  defineCachedValue(channelRuntime, "matrix", createRuntimeMatrix);
-  defineCachedValue(channelRuntime, "signal", createRuntimeSignal);
-  defineCachedValue(channelRuntime, "line", createRuntimeLine);
-
-  return channelRuntime as PluginRuntime["channel"];
+  } as unknown as PluginRuntime["channel"];
 }

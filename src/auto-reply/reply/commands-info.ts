@@ -1,13 +1,11 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { resolveEffectiveToolInventory } from "../../agents/tools-effective-inventory.js";
 import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
-import { buildTelegramCommandsListReply } from "../../channels/telegram-command-replies.js";
 import { logVerbose } from "../../globals.js";
 import { translateSlashCommandText } from "../commands-i18n.js";
 import { listSkillCommandsForAgents } from "../skill-commands.js";
 import {
   buildCommandsMessage,
-  buildCommandsMessagePaginated,
   buildHelpMessage,
   buildToolsMessage,
 } from "../status.js";
@@ -57,22 +55,6 @@ export const handleCommandsListCommand: CommandHandler = async (params, allowTex
       agentIds: params.agentId ? [params.agentId] : undefined,
     });
   const surface = params.ctx.Surface;
-
-  if (surface === "telegram") {
-    const result = buildCommandsMessagePaginated(params.cfg, skillCommands, {
-      page: 1,
-      surface,
-    });
-    return {
-      shouldContinue: false,
-      reply: buildTelegramCommandsListReply({
-        text: result.text,
-        currentPage: result.currentPage,
-        totalPages: result.totalPages,
-        agentId: params.agentId,
-      }),
-    };
-  }
 
   return {
     shouldContinue: false,

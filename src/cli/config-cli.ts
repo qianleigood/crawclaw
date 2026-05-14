@@ -80,7 +80,7 @@ const CONFIG_SET_EXAMPLE_VALUE = formatCliCommand(
   "crawclaw config set gateway.port 19001 --strict-json",
 );
 const CONFIG_SET_EXAMPLE_REF = formatCliCommand(
-  "crawclaw config set channels.discord.token --ref-provider default --ref-source env --ref-id DISCORD_BOT_TOKEN",
+  "crawclaw config set channels.feishu.appSecret --ref-provider default --ref-source env --ref-id FEISHU_APP_SECRET",
 );
 const CONFIG_SET_EXAMPLE_PROVIDER = formatCliCommand(
   "crawclaw config set secrets.providers.vault --provider-source file --provider-path /etc/crawclaw/secrets.json --provider-mode json",

@@ -1,18 +1,7 @@
-// Keep built-in channel IDs in a leaf module so shared config code can
-// reference them without importing channel registry helpers that may pull in
-// plugin runtime state.
-export const CHAT_CHANNEL_ORDER = [
-  "telegram",
-  "whatsapp",
-  "discord",
-  "irc",
-  "googlechat",
-  "slack",
-  "signal",
-  "imessage",
-  "line",
-] as const;
+// Bundled TypeScript channel implementations were removed. Rust-native channel
+// plugins can repopulate this catalog through the native registry.
+export type ChatChannelId = string & { readonly __chatChannelIdBrand?: never };
 
-export type ChatChannelId = (typeof CHAT_CHANNEL_ORDER)[number];
+export const CHAT_CHANNEL_ORDER: readonly ChatChannelId[] = [];
 
-export const CHANNEL_IDS = [...CHAT_CHANNEL_ORDER] as const;
+export const CHANNEL_IDS: readonly ChatChannelId[] = [...CHAT_CHANNEL_ORDER];

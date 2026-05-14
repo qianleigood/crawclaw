@@ -23,7 +23,6 @@ function makePlan(overrides: Partial<GatewayReloadPlan> = {}): GatewayReloadPlan
     restartUpdateCheck: false,
     restartMediaCleanup: false,
     reloadPluginRuntime: false,
-    reloadBrowserRuntime: false,
     restartChannels: new Set(),
     noopPaths: [],
     unmatchedPaths: [],
@@ -58,7 +57,6 @@ function createHarness() {
     restartUpdateCheck: vi.fn((_cfg: CrawClawConfig) => {}),
     restartMediaCleanup: vi.fn((_cfg: CrawClawConfig) => {}),
     reloadPluginRuntime: vi.fn(async (_cfg: CrawClawConfig) => {}),
-    reloadBrowserRuntime: vi.fn(async (_cfg: CrawClawConfig) => {}),
     reconfigureChannel: vi.fn(
       async (_name: string, _cfg: CrawClawConfig, _changedPaths: string[]) => {},
     ),
@@ -99,7 +97,6 @@ describe("createGatewayReloadHandlers", () => {
         restartUpdateCheck: true,
         restartMediaCleanup: true,
         reloadPluginRuntime: true,
-        reloadBrowserRuntime: true,
       }),
       nextConfig,
     );
@@ -112,7 +109,6 @@ describe("createGatewayReloadHandlers", () => {
     expect(callbacks.restartUpdateCheck).toHaveBeenCalledWith(nextConfig);
     expect(callbacks.restartMediaCleanup).toHaveBeenCalledWith(nextConfig);
     expect(callbacks.reloadPluginRuntime).toHaveBeenCalledWith(nextConfig);
-    expect(callbacks.reloadBrowserRuntime).toHaveBeenCalledWith(nextConfig);
   });
 
   it("routes channel reloads through the optional channel reconfigure hook", async () => {

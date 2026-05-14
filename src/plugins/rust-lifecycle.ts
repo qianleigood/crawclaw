@@ -19,35 +19,36 @@ function repoRoot(): string {
   return path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 }
 
-function resolveRustCliInvocation(
+function resolveRustGatewayInvocation(
   root: string,
   env: NodeJS.ProcessEnv,
 ): {
   command: string;
   args: string[];
 } {
-  const envBinary = env.CRAWCLAW_RUST_CLI_BIN?.trim();
+  const envBinary = env.CRAWCLAW_RUST_GATEWAY_BIN?.trim();
   if (envBinary) {
-    return { command: envBinary, args: [] };
+    return { command: envBinary, args: ["call"] };
   }
-  const binaryName = process.platform === "win32" ? "crawclaw.exe" : "crawclaw";
+  const binaryName = process.platform === "win32" ? "crawclaw-gateway.exe" : "crawclaw-gateway";
   for (const candidate of [
     path.join(root, "dist", "native", binaryName),
     path.join(root, "target", "debug", binaryName),
     path.join(root, "target", "release", binaryName),
   ]) {
     if (fsSync.existsSync(candidate)) {
-      return { command: candidate, args: [] };
+      return { command: candidate, args: ["call"] };
     }
   }
   return {
     command: env.CARGO?.trim() || "cargo",
-    args: ["run", "--quiet", "-p", "crawclaw-cli", "--"],
+    args: ["run", "--quiet", "-p", "crawclaw-gateway", "--", "call"],
   };
 }
 
 async function runRustLifecycleJson(
-  args: string[],
+  method: string,
+  params: Record<string, unknown>,
   options: RustLifecycleRunOptions = {},
 ): Promise<RustLifecycleResult> {
   const root = repoRoot();
@@ -64,14 +65,18 @@ async function runRustLifecycleJson(
     ...options.env,
     ...(configPath ? { CRAWCLAW_CONFIG_PATH: configPath } : {}),
   };
-  const invocation = resolveRustCliInvocation(root, env);
+  const invocation = resolveRustGatewayInvocation(root, env);
   const result = await new Promise<{ code: number | null; stdout: string; stderr: string }>(
     (resolve) => {
-      const child = spawn(invocation.command, [...invocation.args, ...args, "--json"], {
-        cwd: root,
-        env,
-        stdio: ["ignore", "pipe", "pipe"],
-      });
+      const child = spawn(
+        invocation.command,
+        [...invocation.args, "--method", method, "--params-json", JSON.stringify(params)],
+        {
+          cwd: root,
+          env,
+          stdio: ["ignore", "pipe", "pipe"],
+        },
+      );
       let stdout = "";
       let stderr = "";
       child.stdout.setEncoding("utf8");
@@ -119,20 +124,23 @@ export async function installPluginWithRustLifecycle(params: {
   pin?: boolean;
   dangerouslyForceUnsafeInstall?: boolean;
 }): Promise<RustLifecycleResult> {
-  const args = ["plugins", "install", params.raw];
+  const payload: Record<string, unknown> = {};
   if (params.marketplace) {
-    args.push("--marketplace", params.marketplace);
+    payload.marketplaceSource = params.marketplace;
+    payload.marketplacePlugin = params.raw;
+  } else {
+    payload.raw = params.raw;
   }
   if (params.link) {
-    args.push("--link");
+    payload.link = true;
   }
   if (params.pin) {
-    args.push("--pin");
+    payload.pin = true;
   }
   if (params.dangerouslyForceUnsafeInstall) {
-    args.push("--dangerously-force-unsafe-install");
+    payload.dangerouslyForceUnsafeInstall = true;
   }
-  return await runRustLifecycleJson(args, { config: params.config });
+  return await runRustLifecycleJson("plugins.install", payload, { config: params.config });
 }
 
 export async function updatePluginsWithRustLifecycle(params: {
@@ -142,20 +150,20 @@ export async function updatePluginsWithRustLifecycle(params: {
   force?: boolean;
   config?: CrawClawConfig;
 }): Promise<RustLifecycleResult> {
-  const args = ["plugins", "update"];
+  const payload: Record<string, unknown> = {};
   if (params.id) {
-    args.push(params.id);
+    payload.id = params.id;
   }
   if (params.all) {
-    args.push("--all");
+    payload.all = true;
   }
   if (params.dryRun) {
-    args.push("--dry-run");
+    payload.dryRun = true;
   }
   if (params.force) {
-    args.push("--force");
+    payload.force = true;
   }
-  return await runRustLifecycleJson(args, { config: params.config });
+  return await runRustLifecycleJson("plugins.update", payload, { config: params.config });
 }
 
 export async function setPluginEnabledWithRustLifecycle(params: {
@@ -163,7 +171,9 @@ export async function setPluginEnabledWithRustLifecycle(params: {
   enabled: boolean;
   config?: CrawClawConfig;
 }): Promise<RustLifecycleResult> {
-  return await runRustLifecycleJson(["plugins", params.enabled ? "enable" : "disable", params.id], {
-    config: params.config,
-  });
+  return await runRustLifecycleJson(
+    params.enabled ? "plugins.enable" : "plugins.disable",
+    { id: params.id },
+    { config: params.config },
+  );
 }

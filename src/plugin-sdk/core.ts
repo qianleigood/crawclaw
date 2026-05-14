@@ -8,7 +8,6 @@ export type {
   CrawClawPluginService,
   CrawClawPluginServiceContext,
   PluginCommandContext,
-  PluginInteractiveTelegramHandlerContext,
   PluginLogger,
   ProviderAuthContext,
   ProviderAuthDoctorHintContext,
@@ -29,7 +28,6 @@ export type {
   ProviderNormalizeResolvedModelContext,
   ProviderNormalizeToolSchemasContext,
   ProviderPrepareDynamicModelContext,
-  ProviderPrepareExtraParamsContext,
   ProviderPrepareRuntimeAuthContext,
   ProviderPreparedRuntimeAuth,
   ProviderReasoningOutputMode,
@@ -43,7 +41,6 @@ export type {
   ProviderRuntimeModel,
   ProviderThinkingPolicyContext,
   ProviderValidateReplayTurnsContext,
-  ProviderWrapStreamFnContext,
   SpeechProviderPlugin,
 } from "./plugin-entry.js";
 export type { CrawClawToolSchema } from "./plugin-entry.js";

@@ -9,7 +9,7 @@ import {
   resolveIsNixMode,
   resolveStateDir,
 } from "./config.js";
-import { withTempHome, withTempHomeConfig } from "./test-helpers.js";
+import { withTempHome } from "./test-helpers.js";
 
 vi.unmock("../version.js");
 
@@ -23,16 +23,6 @@ function loadConfigForHome(home: string) {
     env: envWith({ CRAWCLAW_HOME: home }),
     homedir: () => home,
   }).loadConfig();
-}
-
-async function withLoadedConfigForHome(
-  config: unknown,
-  run: (cfg: ReturnType<typeof loadConfigForHome>) => Promise<void> | void,
-) {
-  await withTempHomeConfig(config, async ({ home }) => {
-    const cfg = loadConfigForHome(home);
-    await run(cfg);
-  });
 }
 
 describe("Nix integration (U3, U5, U9)", () => {
@@ -170,10 +160,10 @@ describe("Nix integration (U3, U5, U9)", () => {
                 ],
               },
               channels: {
-                whatsapp: {
+                weixin: {
                   accounts: {
                     personal: {
-                      authDir: "~/.crawclaw/credentials/wa-personal",
+                      authDir: "~/.crawclaw/credentials/weixin-personal",
                     },
                   },
                 },
@@ -193,8 +183,8 @@ describe("Nix integration (U3, U5, U9)", () => {
         expect(cfg.agents?.list?.[0]?.agentDir).toBe(
           path.join(home, ".crawclaw", "agents", "main"),
         );
-        expect(cfg.channels?.whatsapp?.accounts?.personal?.authDir).toBe(
-          path.join(home, ".crawclaw", "credentials", "wa-personal"),
+        expect(cfg.channels?.weixin?.accounts?.personal?.authDir).toBe(
+          path.join(home, ".crawclaw", "credentials", "weixin-personal"),
         );
       });
     });
@@ -226,46 +216,4 @@ describe("Nix integration (U3, U5, U9)", () => {
     });
   });
 
-  describe("U9: telegram.tokenFile schema validation", () => {
-    it("accepts config with only botToken", async () => {
-      await withLoadedConfigForHome(
-        {
-          channels: { telegram: { botToken: "123:ABC" } },
-        },
-        async (cfg) => {
-          expect(cfg.channels?.telegram?.botToken).toBe("123:ABC");
-          expect(cfg.channels?.telegram?.tokenFile).toBeUndefined();
-        },
-      );
-    });
-
-    it("accepts config with only tokenFile", async () => {
-      await withLoadedConfigForHome(
-        {
-          channels: { telegram: { tokenFile: "/run/agenix/telegram-token" } },
-        },
-        async (cfg) => {
-          expect(cfg.channels?.telegram?.tokenFile).toBe("/run/agenix/telegram-token");
-          expect(cfg.channels?.telegram?.botToken).toBeUndefined();
-        },
-      );
-    });
-
-    it("accepts config with both botToken and tokenFile", async () => {
-      await withLoadedConfigForHome(
-        {
-          channels: {
-            telegram: {
-              botToken: "fallback:token",
-              tokenFile: "/run/agenix/telegram-token",
-            },
-          },
-        },
-        async (cfg) => {
-          expect(cfg.channels?.telegram?.botToken).toBe("fallback:token");
-          expect(cfg.channels?.telegram?.tokenFile).toBe("/run/agenix/telegram-token");
-        },
-      );
-    });
-  });
 });

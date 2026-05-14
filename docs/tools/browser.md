@@ -1,5 +1,5 @@
 ---
-summary: "Integrated browser automation tool backed by PinchTab"
+summary: "Integrated browser automation tool backed by the Rust native agent-browser runtime"
 read_when:
   - Adding agent-controlled browser automation
   - Debugging why CrawClaw is interfering with your own Chrome
@@ -9,15 +9,16 @@ title: "Browser (CrawClaw-managed)"
 
 # Browser (crawclaw-managed)
 
-CrawClaw can run a browser session that the agent controls through **PinchTab**.
-It stays isolated from your personal browser by default.
+CrawClaw can run a browser session that the agent controls through the Rust native
+`browser` tool backed by the managed `agent-browser` CLI. It stays isolated
+from your personal browser by default.
 
 Beginner view:
 
 - Think of it as a **separate, agent-only browser**.
 - The `crawclaw` profile does **not** touch your personal browser profile.
 - The agent can **open tabs, read pages, click, and type** in a safe lane.
-- New browser server behavior is standardized on the PinchTab backend.
+- Browser execution is owned by the Rust native plugin registry.
 
 ## What you get
 
@@ -53,48 +54,35 @@ Gateway.
 If the agent says the browser tool is unavailable, jump to
 [Missing browser tool](/tools/browser#missing-browser-tool).
 
-## Plugin control
+## Native tool control
 
-The default `browser` tool is now a bundled plugin that ships enabled by
-default. That means you can disable or replace it without removing the rest of
-CrawClaw's plugin system:
+The default `browser` tool is now registered by the bundled Rust native plugin
+registry. Keep `browser.enabled=true` and `browser.provider=agent-browser` (or
+leave provider unset) to use the managed runtime:
 
 ```json5
 {
-  plugins: {
-    entries: {
-      browser: {
-        enabled: false,
-      },
-    },
+  browser: {
+    enabled: true,
+    provider: "agent-browser",
   },
 }
 ```
 
-Disable the bundled plugin before installing another plugin that provides the
-same `browser` tool name. The default browser experience needs both:
-
-- `plugins.entries.browser.enabled` not disabled
-- `browser.enabled=true`
-
-If you turn off only the plugin, the bundled browser tool disappears together.
-Your `browser.*` config stays intact for a replacement plugin to reuse.
-
-Local onboarding keeps the `coding` tool profile for new configs. The bundled
+Local onboarding keeps the `coding` tool profile for new configs. The native
 `browser` tool is part of that profile, so it is available to the default
-`main` agent when the browser plugin is enabled. Onboarding no longer adds
-`browser` through `agents.list[].tools.alsoAllow`; if you later switch the
-profile to `minimal` or `messaging`, `browser` is hidden unless you explicitly
-allow it.
+`main` agent when browser config is enabled.
 
-## PinchTab execution engine
+## agent-browser execution engine
 
-CrawClaw now runs the `browser` tool through PinchTab across all routes.
+CrawClaw now runs the `browser` tool through Rust native dispatch. The handler
+spawns the managed `agent-browser` CLI with JSON output and maps the response
+back into CrawClaw tool content.
 
 Current scope:
 
-- `host` route talks to the local PinchTab server.
-- `node` route uses the node-side PinchTab proxy path.
+- `host` is the supported local execution target.
+- `node` browser proxy routes are no longer supported.
 - Legacy `targetId`-only workflows are intentionally no longer adapted.
 
 Current action coverage:
@@ -113,54 +101,26 @@ Current action coverage:
 - `dialog`
 - `act` common subset (`click`, `dblclick`, `type`, `press`, `hover`, `drag`, `select`, `wait`, `evaluate`, `resize`, `close`)
 
-Browser config changes still require a Gateway restart so the bundled plugin
-can re-register with the new settings.
+Browser config changes are read by the native runtime at invocation time.
 
 ## Missing browser tool
 
-If the agent reports that the browser tool is missing, the most common cause is
-a restrictive `plugins.allow` list that does not include `browser`.
-
-Example broken config:
-
-```json5
-{
-  plugins: {
-    allow: ["telegram"],
-  },
-}
-```
-
-Fix it by adding `browser` to the plugin allowlist:
-
-```json5
-{
-  plugins: {
-    allow: ["telegram", "browser"],
-  },
-}
-```
-
-Important notes:
-
-- `browser.enabled=true` is not enough by itself when `plugins.allow` is set.
-- `plugins.entries.browser.enabled=true` is also not enough by itself when `plugins.allow` is set.
-- `tools.alsoAllow: ["browser"]` does **not** load the bundled browser plugin. It only adjusts tool policy after the plugin is already loaded.
-- If you do not need a restrictive plugin allowlist, removing `plugins.allow` also restores the default bundled browser behavior.
+If the agent reports that the browser tool is missing, check
+`tools.catalog`/`tools.effective` first. In current builds the tool should
+appear under `native-plugin` with `pluginId: "browser"`.
 
 Typical symptoms:
 
 - The agent reports the browser tool as unavailable or missing.
 
-If an old example shows `crawclaw browser`, use the current `browser` tool
+If an old example shows CrawClaw Desktop or the local Gateway API, use the current `browser` tool
 instead. The standalone browser CLI is no longer registered in current CrawClaw
 builds.
 
 ## Profiles
 
-- `crawclaw`: managed, isolated browser backed by PinchTab.
-- additional named profiles: logical browser routes/config labels that still
-  resolve through the PinchTab-backed browser server.
+- `crawclaw`: managed, isolated browser backed by `agent-browser`.
+- additional named profiles: logical browser labels passed to `agent-browser`.
 
 For agent browser tool calls:
 
@@ -197,151 +157,51 @@ Browser settings live in `~/.crawclaw/crawclaw.json`.
 
 Notes:
 
-- The browser control service binds to loopback on a port derived from
-  `gateway.port` (default: `18791`, which is gateway + 2).
-- If you override the Gateway port (`gateway.port` or `CRAWCLAW_GATEWAY_PORT`),
-  the derived browser ports shift to stay in the same “family”.
 - Browser navigation/open-tab is SSRF-guarded before navigation and best-effort re-checked on final `http(s)` URL after navigation.
 - `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork` defaults to `true` (trusted-network model). Set it to `false` for strict public-only browsing.
 - `browser.ssrfPolicy.allowPrivateNetwork` remains supported as a legacy alias for compatibility.
 - `color` + per-profile `color` tint the browser UI so you can see which profile is active.
 - Default profile is `crawclaw`.
-- The bundled browser server is PinchTab-only. Profile creation and runtime
-  control use managed `crawclaw` profiles.
+- The native runtime uses the managed `agent-browser` CLI under
+  `~/.crawclaw/runtimes/browser`.
 
-## Local vs remote control
+## Runtime model
 
-- **Local control (default):** the Gateway starts the loopback control service and can launch a local browser.
-- **Remote CDP:** set `browser.profiles.<name>.cdpUrl` (or `browser.cdpUrl`) to
-  attach to a remote Chromium-based browser. In this case, CrawClaw will not launch a local browser.
-
-Remote CDP URLs can include auth:
-
-- Query tokens (e.g., `https://provider.example?token=<token>`)
-- HTTP Basic auth (e.g., `https://user:pass@provider.example`)
-
-CrawClaw preserves the auth when calling `/json/*` endpoints and when connecting
-to the CDP WebSocket. Prefer environment variables or secrets managers for
-tokens instead of committing them to config files.
-
-## Browserless (hosted remote CDP)
-
-[Browserless](https://browserless.io) is a hosted Chromium service that exposes
-CDP connection URLs over HTTPS and WebSocket. CrawClaw can use either form, but
-for a remote browser profile the simplest option is the direct WebSocket URL
-from Browserless' connection docs.
-
-Example:
-
-```json5
-{
-  browser: {
-    enabled: true,
-    defaultProfile: "browserless",
-    remoteCdpTimeoutMs: 2000,
-    remoteCdpHandshakeTimeoutMs: 4000,
-    profiles: {
-      browserless: {
-        cdpUrl: "wss://production-sfo.browserless.io?token=<BROWSERLESS_API_KEY>",
-        color: "#00AA00",
-      },
-    },
-  },
-}
-```
-
-Notes:
-
-- Replace `<BROWSERLESS_API_KEY>` with your real Browserless token.
-- Choose the region endpoint that matches your Browserless account (see their docs).
-- If Browserless gives you an HTTPS base URL, you can either convert it to
-  `wss://` for a direct CDP connection or keep the HTTPS URL and let CrawClaw
-  discover `/json/version`.
-
-## Direct WebSocket CDP providers
-
-Some hosted browser services expose a **direct WebSocket** endpoint rather than
-the standard HTTP-based CDP discovery (`/json/version`). CrawClaw supports both:
-
-- **HTTP(S) endpoints** — CrawClaw calls `/json/version` to discover the
-  WebSocket debugger URL, then connects.
-- **WebSocket endpoints** (`ws://` / `wss://`) — CrawClaw connects directly,
-  skipping `/json/version`. Use this for services like
-  [Browserless](https://browserless.io),
-  [Browserbase](https://www.browserbase.com), or any provider that hands you a
-  WebSocket URL.
-
-### Browserbase
-
-[Browserbase](https://www.browserbase.com) is a cloud platform for running
-headless browsers with built-in CAPTCHA solving, stealth mode, and residential
-proxies.
-
-```json5
-{
-  browser: {
-    enabled: true,
-    defaultProfile: "browserbase",
-    remoteCdpTimeoutMs: 3000,
-    remoteCdpHandshakeTimeoutMs: 5000,
-    profiles: {
-      browserbase: {
-        cdpUrl: "wss://connect.browserbase.com?apiKey=<BROWSERBASE_API_KEY>",
-        color: "#F97316",
-      },
-    },
-  },
-}
-```
-
-Notes:
-
-- [Sign up](https://www.browserbase.com/sign-up) and copy your **API Key**
-  from the [Overview dashboard](https://www.browserbase.com/overview).
-- Replace `<BROWSERBASE_API_KEY>` with your real Browserbase API key.
-- Browserbase auto-creates a browser session on WebSocket connect, so no
-  manual session creation step is needed.
-- The free tier allows one concurrent session and one browser hour per month.
-  See [pricing](https://www.browserbase.com/pricing) for paid plan limits.
-- See the [Browserbase docs](https://docs.browserbase.com) for full API
-  reference, SDK guides, and integration examples.
+- **Local control (default):** the Rust native handler launches the managed
+  `agent-browser` CLI on demand.
+- **Profiles:** `profile` selects the browser profile passed to `agent-browser`;
+  `user` maps to the default user browser profile.
+- **Runtime install:** run CrawClaw Desktop or the local Gateway API if the managed
+  `agent-browser` binary is missing.
 
 ## Security
 
 Key ideas:
 
-- Browser control is loopback-only by default; access flows through the Gateway’s auth.
-- If browser control is enabled and no auth is configured, CrawClaw auto-generates `gateway.auth.token` on startup and persists it to config.
-- Keep the Gateway and any remote CDP endpoints on a private network (Tailscale); avoid public exposure.
-- Treat remote CDP URLs/tokens as secrets; prefer env vars or a secrets manager.
-
-Remote CDP tips:
-
-- Prefer encrypted endpoints (HTTPS or WSS) and short-lived tokens where possible.
-- Avoid embedding long-lived tokens directly in config files.
+- Browser output is treated as untrusted page content.
+- Snapshot output is wrapped with an external-content boundary before it reaches
+  the agent.
+- Keep any configured browser executable or profile paths local and trusted.
 
 ## Profiles (multi-browser)
 
 CrawClaw supports multiple named profiles (routing configs). Profiles can be:
 
-- **crawclaw-managed**: a dedicated managed browser profile routed through PinchTab
-- **remote**: attach to a remote Chromium browser through CDP
+- **crawclaw-managed**: a dedicated managed browser profile routed through `agent-browser`
+- **user**: the default user browser profile when explicitly requested
 
 Defaults:
 
 - The `crawclaw` profile is auto-created if missing.
-- Local CDP ports allocate from **18800–18899** by default.
 - Deleting a profile moves its local data directory to Trash.
 
-All control endpoints accept `?profile=<name>`; the agent tool uses the
-`profile` argument.
+The agent tool uses the `profile` argument.
 
 Notes:
 
 - This path is higher-risk than the isolated `crawclaw` profile because it can
   act inside your signed-in browser session.
-- For a browser running on another host or namespace, use remote CDP or a node
-  host instead of treating it as a local managed profile.
+- Remote CDP and node proxy routes are not part of the native browser runtime.
 
 ## Isolation guarantees
 
@@ -367,50 +227,16 @@ Platforms:
 - Linux: looks for `google-chrome`, `brave`, `microsoft-edge`, `chromium`, etc.
 - Windows: checks common install locations.
 
-## Control API (optional)
-
-For local integrations only, the Gateway exposes a small loopback HTTP API:
-
-- Status/start/stop: `GET /`, `POST /start`, `POST /stop`
-- Tabs: `GET /tabs`, `POST /tabs/open`, `POST /tabs/focus`, `DELETE /tabs/:targetId`
-- Snapshot/screenshot: `GET /snapshot`, `POST /screenshot`
-- Actions: `POST /navigate`, `POST /act`
-- Hooks: `POST /hooks/file-chooser`, `POST /hooks/dialog`
-- Downloads: `POST /download`, `POST /wait/download`
-- Debugging: `GET /console`, `POST /pdf`
-- Debugging: `GET /errors`, `GET /requests`, `POST /trace/start`, `POST /trace/stop`, `POST /highlight`
-- Network: `POST /response/body`
-- State: `GET /cookies`, `POST /cookies/set`, `POST /cookies/clear`
-- State: `GET /storage/:kind`, `POST /storage/:kind/set`, `POST /storage/:kind/clear`
-- Settings: `POST /set/offline`, `POST /set/headers`, `POST /set/credentials`, `POST /set/geolocation`, `POST /set/media`, `POST /set/timezone`, `POST /set/locale`, `POST /set/device`
-
-All endpoints accept `?profile=<name>`.
-
-If gateway auth is configured, browser HTTP routes require auth too:
-
-- `Authorization: Bearer <gateway token>`
-- `x-crawclaw-password: <gateway password>` or HTTP Basic auth with that password
-
-### Unified backend note
-
-The bundled browser server now uses a single PinchTab backend.
-
-Practical guidance:
-
-- Prefer the default managed `crawclaw` profile.
-- If a browser server endpoint returns `501`, that usually means the capability
-  has not been exposed on the unified PinchTab backend yet.
-
 ## How it works (internal)
 
 High-level flow:
 
-- The bundled browser plugin routes calls through **PinchTab** on `host`,
-- The browser control server now uses the same PinchTab backend for browser
-  lifecycle and tab management endpoints such as status/start/stop/reset and
-  tab list/open/focus/close, so tool and HTTP entrypoints share the same runtime
-  for these operations.
-- PinchTab is the single execution backend for the bundled browser server and
+- The Rust native plugin registry declares the `browser` tool and
+  `browser-agent-browser-runtime` service.
+- The native browser handler maps CrawClaw tool arguments to `agent-browser`
+  CLI arguments and requests JSON output.
+- Snapshot output is wrapped as external untrusted content.
+- Screenshot output is returned as image content, not just a filesystem path.
 
 This design keeps the agent on a stable, deterministic interface while letting
 you keep browser automation on one control plane.
@@ -468,7 +294,7 @@ State and network:
 - Network requests: `{ "action": "network", "pattern": "api" }`
 - Downloads: `{ "action": "download", "filename": "report.pdf" }`
 
-Migration note: old `crawclaw browser ...` examples have no current standalone
+Migration note: old CrawClaw Desktop or the local Gateway API examples have no current standalone
 CLI equivalent. Use the `browser` tool from an agent session or call it through
 the Gateway [Tools Invoke API](/gateway/tools-invoke-http-api).
 
@@ -590,13 +416,14 @@ These are useful for “make the site behave like X” workflows:
 
 ## Security & privacy
 
-- The crawclaw browser profile may contain logged-in sessions; treat it as sensitive.
+- The CrawClaw Desktop or the local Gateway API.
 - `browser` tool evaluate actions and `wait` calls with `fn`
   execute arbitrary JavaScript in the page context. Prompt injection can steer
   this. Disable it with `browser.evaluateEnabled=false` if you do not need it.
 - For logins and anti-bot notes (X/Twitter, etc.), see [Browser login + X/Twitter posting](/tools/browser-login).
 - Keep the Gateway private (loopback or tailnet-only).
-- Remote CDP endpoints are powerful; tunnel and protect them.
+- Browser automation can operate inside signed-in sessions; keep managed
+  profiles private.
 
 Strict-mode example (block private/internal destinations by default):
 
@@ -629,7 +456,7 @@ How it maps:
 - `browser act` uses the snapshot `ref` IDs to click/type/drag/select.
 - `browser screenshot` captures pixels (full page or element).
 - `browser` accepts:
-  - `profile` to choose a named browser profile (crawclaw, chrome, or remote CDP).
+  - `profile` to choose a named browser profile (`crawclaw`, `user`, or another configured profile).
   - `target` (`host`) to select the Gateway host browser.
 
 This keeps the agent deterministic and avoids brittle selectors.

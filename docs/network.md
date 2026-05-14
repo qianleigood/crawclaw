@@ -14,7 +14,7 @@ devices across localhost, LAN, and tailnet.
 
 ## Core model
 
-Most operations flow through the Gateway (`crawclaw gateway`), a single long-running process that owns channel connections and the WebSocket control plane.
+Most operations flow through the Gateway (CrawClaw Desktop or the local Gateway API), a single long-running process that owns channel connections and the WebSocket control plane.
 
 - **Loopback first**: the Gateway WS defaults to `ws://127.0.0.1:18789`. Tokens are required for non-loopback binds.
 - **One Gateway per host** is recommended. For isolation, run multiple gateways with isolated profiles and ports ([Multiple Gateways](/gateway/multiple-gateways)).
@@ -30,8 +30,8 @@ Key references:
 ## Pairing + identity
 
 - [Pairing overview](/channels/pairing)
-- [Devices CLI (pairing + token rotation)](/cli/devices)
-- [Pairing CLI (DM approvals)](/cli/pairing)
+- [Device pairing (pairing + token rotation)](/network)
+- [Pairing (DM approvals)](/channels/pairing)
 
 Local trust:
 

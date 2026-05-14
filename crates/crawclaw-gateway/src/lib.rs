@@ -629,9 +629,9 @@ async fn handle_gateway_method(
         "config.schema.lookup" => config_schema_lookup(params),
         "secrets.reload" => secrets_reload(state),
         "secrets.resolve" => secrets_resolve(state, params),
-        "tools.catalog" => Ok(tools_catalog(params)),
-        "tools.effective" => Ok(tools_effective(params)),
-        "models.list" => Ok(models_list()),
+        "tools.catalog" => Ok(tools_catalog(state, params)),
+        "tools.effective" => Ok(tools_effective(state, params)),
+        "models.list" => Ok(models_list(state)),
         "agents.list" => Ok(agents_list(state)),
         "logs.tail" => Ok(logs_tail()),
         "usage.status" => Ok(usage_status(state)),
@@ -1302,45 +1302,73 @@ fn resolve_secret_value(
     }
 }
 
-fn tools_catalog(params: Value) -> Value {
+fn tools_catalog(state: &GatewayState, params: Value) -> Value {
     let agent_id = string_param(&params, &["agentId"]).unwrap_or_else(|| "main".to_string());
+    let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     json!({
         "agentId": agent_id,
         "profiles": tool_profiles(),
-        "groups": [{
-            "id": "core",
-            "label": "Core tools",
-            "source": "core",
-            "tools": crawclaw_runtime::rust_core_tool_definitions()
-                .iter()
-                .map(tool_catalog_entry)
-                .collect::<Vec<_>>()
-        }]
+        "groups": [
+            {
+                "id": "core",
+                "label": "Core tools",
+                "source": "core",
+                "tools": crawclaw_runtime::rust_core_tool_definitions()
+                    .iter()
+                    .map(tool_catalog_entry)
+                    .collect::<Vec<_>>()
+            },
+            {
+                "id": "native-plugins",
+                "label": "Native plugin tools",
+                "source": "native-plugin",
+                "tools": native_registry
+                    .tool_descriptors()
+                    .into_iter()
+                    .map(native_tool_catalog_entry)
+                    .collect::<Vec<_>>()
+            }
+        ],
+        "nativePluginRegistryDiagnostics": native_registry.diagnostics
     })
 }
 
-fn tools_effective(params: Value) -> Value {
+fn tools_effective(state: &GatewayState, params: Value) -> Value {
     let agent_id = string_param(&params, &["agentId"]).unwrap_or_else(|| "main".to_string());
     let profile = if params.get("sessionKey").is_some() {
         "coding"
     } else {
         "full"
     };
+    let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     json!({
         "agentId": agent_id,
         "profile": profile,
-        "groups": [{
-            "id": "core",
-            "label": "Core tools",
-            "source": "core",
-            "tools": crawclaw_runtime::rust_core_tool_definitions()
-                .iter()
-                .filter(|definition| definition.default_enabled)
-                .map(tool_effective_entry)
-                .collect::<Vec<_>>()
-        }],
+        "groups": [
+            {
+                "id": "core",
+                "label": "Core tools",
+                "source": "core",
+                "tools": crawclaw_runtime::rust_core_tool_definitions()
+                    .iter()
+                    .filter(|definition| definition.default_enabled)
+                    .map(tool_effective_entry)
+                    .collect::<Vec<_>>()
+            },
+            {
+                "id": "native-plugins",
+                "label": "Native plugin tools",
+                "source": "native-plugin",
+                "tools": native_registry
+                    .tool_descriptors()
+                    .into_iter()
+                    .filter(|(_, descriptor)| descriptor.default_enabled)
+                    .map(native_tool_effective_entry)
+                    .collect::<Vec<_>>()
+            }
+        ],
         "unavailableTools": [],
-        "diagnostics": []
+        "diagnostics": native_registry.diagnostics
     })
 }
 
@@ -1372,6 +1400,35 @@ fn tool_effective_entry(definition: &crawclaw_runtime::RustCoreToolDefinition) -
         "description": description,
         "rawDescription": description,
         "source": "core"
+    })
+}
+
+fn native_tool_catalog_entry(
+    (plugin_id, descriptor): (String, crawclaw_plugin_sdk::NativeToolDescriptor),
+) -> Value {
+    json!({
+        "id": descriptor.name,
+        "label": descriptor.label,
+        "description": descriptor.description,
+        "source": "native-plugin",
+        "pluginId": plugin_id,
+        "optional": !descriptor.default_enabled,
+        "defaultProfiles": descriptor.default_profiles,
+        "approval": descriptor.approval,
+        "readOnly": descriptor.read_only
+    })
+}
+
+fn native_tool_effective_entry(
+    (plugin_id, descriptor): (String, crawclaw_plugin_sdk::NativeToolDescriptor),
+) -> Value {
+    json!({
+        "id": descriptor.name,
+        "label": descriptor.label,
+        "description": descriptor.description,
+        "rawDescription": descriptor.description,
+        "source": "native-plugin",
+        "pluginId": plugin_id
     })
 }
 
@@ -1422,8 +1479,9 @@ fn tool_description(tool_id: &str) -> &'static str {
     }
 }
 
-fn models_list() -> Value {
+fn models_list(state: &GatewayState) -> Value {
     let provider_descriptors = crawclaw_providers::bundled_provider_descriptors();
+    let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     json!({
         "models": crawclaw_providers::bundled_provider_default_models()
             .into_iter()
@@ -1442,7 +1500,12 @@ fn models_list() -> Value {
                 })
             })
             .collect::<Vec<_>>(),
-        "providerDescriptors": provider_descriptors
+        "providerDescriptors": provider_descriptors,
+        "nativePluginDescriptors": native_registry.descriptors(),
+        "nativeWebSearchProviders": native_registry.web_search_provider_descriptors(),
+        "nativeWebFetchProviders": native_registry.web_fetch_provider_descriptors(),
+        "nativeSpeechProviders": native_registry.speech_provider_descriptors(),
+        "nativePluginRegistryDiagnostics": native_registry.diagnostics
     })
 }
 
@@ -3373,6 +3436,8 @@ fn approval_wait_response(record: &ApprovalRecord) -> Value {
 
 fn plugins_list(state: &GatewayState) -> Result<Value, String> {
     let config = read_config_value(&config_path(state))?;
+    let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
+    let native_descriptors = native_registry.descriptors();
     let entry_ids = get_json_path(&config, "plugins.entries")
         .and_then(Value::as_object)
         .map(|entries| entries.keys().cloned().collect::<Vec<_>>())
@@ -3384,19 +3449,28 @@ fn plugins_list(state: &GatewayState) -> Result<Value, String> {
     let plugin_ids = entry_ids
         .into_iter()
         .chain(install_ids)
+        .chain(
+            native_descriptors
+                .iter()
+                .map(|descriptor| descriptor.plugin_id.clone()),
+        )
         .collect::<BTreeSet<_>>();
     let plugins = plugin_ids
         .into_iter()
         .map(|id| {
             let entry = get_json_path(&config, &format!("plugins.entries.{id}"));
             let install = get_json_path(&config, &format!("plugins.installs.{id}"));
-            plugin_list_entry(state, &id, entry, install)
+            let native_descriptor = native_descriptors
+                .iter()
+                .find(|descriptor| descriptor.plugin_id == id)
+                .and_then(|descriptor| serde_json::to_value(descriptor).ok());
+            plugin_list_entry(state, &id, entry, install, native_descriptor)
         })
         .collect::<Vec<_>>();
     Ok(json!({
         "workspaceDir": state.runtime_root.join("plugins").to_string_lossy(),
         "plugins": plugins,
-        "diagnostics": []
+        "diagnostics": native_registry.diagnostics
     }))
 }
 
@@ -3405,6 +3479,7 @@ fn plugin_list_entry(
     id: &str,
     entry: Option<&Value>,
     install: Option<&Value>,
+    native_descriptor: Option<Value>,
 ) -> Value {
     let install_path = install
         .and_then(|record| record.get("installPath").and_then(Value::as_str))
@@ -3419,6 +3494,11 @@ fn plugin_list_entry(
     let name = manifest
         .as_ref()
         .and_then(|manifest| manifest.get("name").and_then(Value::as_str))
+        .or_else(|| {
+            native_descriptor
+                .as_ref()
+                .and_then(|descriptor| descriptor.get("name").and_then(Value::as_str))
+        })
         .unwrap_or(id);
     let version = manifest
         .as_ref()
@@ -3427,10 +3507,16 @@ fn plugin_list_entry(
             install
                 .and_then(|record| record.get("version").and_then(Value::as_str))
                 .map(ToOwned::to_owned)
+        })
+        .or_else(|| {
+            native_descriptor
+                .as_ref()
+                .and_then(|descriptor| descriptor.get("version").and_then(Value::as_str))
+                .map(ToOwned::to_owned)
         });
     let enabled = entry
         .and_then(|entry| entry.get("enabled").and_then(Value::as_bool))
-        .unwrap_or(false);
+        .unwrap_or(native_descriptor.is_some());
     let config = entry
         .and_then(|entry| entry.get("config").cloned())
         .unwrap_or(Value::Null);
@@ -3450,6 +3536,8 @@ fn plugin_list_entry(
                 } else {
                     "missing"
                 }
+            } else if native_descriptor.is_some() {
+                "available"
             } else {
                 "configured"
             }
@@ -3458,11 +3546,28 @@ fn plugin_list_entry(
     );
     snapshot.insert(
         "origin".to_string(),
-        Value::String(if install.is_some() { "local" } else { "config" }.to_string()),
+        Value::String(
+            if install.is_some() {
+                "local"
+            } else if native_descriptor.is_some() {
+                "bundled-native"
+            } else {
+                "config"
+            }
+            .to_string(),
+        ),
     );
     snapshot.insert(
         "source".to_string(),
-        Value::String(source_path.unwrap_or("config").to_string()),
+        Value::String(
+            source_path
+                .unwrap_or(if native_descriptor.is_some() {
+                    "rust-native"
+                } else {
+                    "config"
+                })
+                .to_string(),
+        ),
     );
     if let Some(version) = version {
         snapshot.insert("version".to_string(), Value::String(version));
@@ -3492,6 +3597,13 @@ fn plugin_list_entry(
             "manifestPath".to_string(),
             Value::String(manifest_path.to_string_lossy().to_string()),
         );
+    }
+    if let Some(native_descriptor) = native_descriptor {
+        snapshot.insert(
+            "implementation".to_string(),
+            Value::String("rust-native".to_string()),
+        );
+        snapshot.insert("nativeDescriptor".to_string(), native_descriptor);
     }
     Value::Object(snapshot)
 }
@@ -5655,6 +5767,9 @@ fn channel_send(state: &GatewayState, params: Value) -> Result<Value, String> {
         thread_id,
         params: request_params,
     };
+    if request.channel == ESP32_DEVICE_ROLE {
+        return queue_esp32_channel_send(state, &request, now);
+    }
     let mut entry = serde_json::to_value(dispatch_native_channel_outbound(
         &request,
         NativeChannelDispatchContext {
@@ -8875,6 +8990,86 @@ fn esp32_device_command_send(state: &GatewayState, params: Value) -> Result<Valu
     Ok(entry)
 }
 
+fn queue_esp32_channel_send(
+    state: &GatewayState,
+    request: &ChannelOutboundRequest,
+    now: u128,
+) -> Result<Value, String> {
+    let command_id = format!("rust-esp32-command-{now}");
+    let mut command_params = Map::new();
+    if let Some(text) = &request.text {
+        command_params.insert("text".to_string(), Value::String(text.clone()));
+    }
+    if !request.media_urls.is_empty() {
+        command_params.insert(
+            "mediaUrls".to_string(),
+            Value::Array(
+                request
+                    .media_urls
+                    .iter()
+                    .map(|url| Value::String(url.clone()))
+                    .collect(),
+            ),
+        );
+    }
+    if let Some(reply_to_id) = &request.reply_to_id {
+        command_params.insert("replyToId".to_string(), Value::String(reply_to_id.clone()));
+    }
+    if let Some(thread_id) = &request.thread_id {
+        command_params.insert("threadId".to_string(), Value::String(thread_id.clone()));
+    }
+    for (key, value) in &request.params {
+        command_params.insert(key.clone(), value.clone());
+    }
+
+    let command_entry = json!({
+        "ok": true,
+        "status": "queued",
+        "commandId": command_id,
+        "requestId": request.request_id.clone(),
+        "deviceId": request.to.clone(),
+        "command": "display.reply",
+        "params": Value::Object(command_params.clone()),
+        "queuedAtMs": now,
+        "implementation": "rust-native"
+    });
+    append_jsonl(
+        &state.runtime_root.join("esp32").join("commands.jsonl"),
+        &command_entry,
+    )?;
+
+    let entry = json!({
+        "ok": true,
+        "requestId": request.request_id.clone(),
+        "runId": request.request_id.clone(),
+        "action": "send",
+        "messageId": format!("rust-esp32-send-{now}"),
+        "channel": request.channel.clone(),
+        "accountId": request.account_id.as_deref().unwrap_or("default"),
+        "to": request.to.clone(),
+        "text": request.text.clone(),
+        "mediaUrls": request.media_urls.clone(),
+        "replyToId": request.reply_to_id.clone(),
+        "threadId": request.thread_id.clone(),
+        "params": Value::Object(command_params),
+        "sent": false,
+        "deliveryStatus": "queued",
+        "status": "queued",
+        "errorCode": Value::Null,
+        "commandId": command_entry["commandId"].clone(),
+        "queuedAtMs": now,
+        "deliveredAtMs": Value::Null,
+        "implementation": "rust-native"
+    });
+    append_jsonl(
+        &state.runtime_root.join("channels").join("outbox.jsonl"),
+        &entry,
+    )?;
+    emit(state, "esp32.command", command_entry);
+    emit(state, "channel.send", entry.clone());
+    Ok(entry)
+}
+
 fn sessions_list(state: &GatewayState) -> Result<Value, String> {
     let sessions = state
         .session_store
@@ -9103,6 +9298,7 @@ async fn run_agent(state: &GatewayState, params: Value) -> Result<Value, String>
 }
 
 fn runtime_status_value(state: &GatewayState) -> Value {
+    let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     json!({
         "ok": true,
         "runtime": "ready",
@@ -9113,9 +9309,14 @@ fn runtime_status_value(state: &GatewayState) -> Value {
         "jsPluginRuntime": "none",
         "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
         "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+        "nativePluginDescriptors": native_registry.descriptors(),
+        "nativeWebSearchProviders": native_registry.web_search_provider_descriptors(),
+        "nativeWebFetchProviders": native_registry.web_fetch_provider_descriptors(),
+        "nativeSpeechProviders": native_registry.speech_provider_descriptors(),
+        "nativePluginRegistryDiagnostics": native_registry.diagnostics,
         "defaultModels": crawclaw_providers::bundled_provider_default_models(),
         "gatewayMethods": gateway_methods(),
-        "coreTools": crawclaw_runtime::pi_agent_rust_tool_names()
+        "coreTools": crawclaw_runtime::pi_agent_rust_tool_names_for_runtime_root(&state.runtime_root)
     })
 }
 
@@ -10562,6 +10763,53 @@ mod tests {
             .expect("core tools")
             .iter()
             .any(|tool| tool == "review_task"));
+        assert!(status["coreTools"]
+            .as_array()
+            .expect("core tools")
+            .iter()
+            .any(|tool| tool == "browser"));
+        assert!(status["coreTools"]
+            .as_array()
+            .expect("core tools")
+            .iter()
+            .any(|tool| tool == "comfyui_workflow"));
+        assert!(status["nativePluginDescriptors"]
+            .as_array()
+            .expect("native plugin descriptors")
+            .iter()
+            .any(|plugin| plugin["pluginId"] == "browser"));
+        assert!(status["nativePluginDescriptors"]
+            .as_array()
+            .expect("native plugin descriptors")
+            .iter()
+            .any(|plugin| plugin["pluginId"] == "lobster"));
+        assert!(status["nativeWebSearchProviders"]
+            .as_array()
+            .expect("native web search providers")
+            .iter()
+            .any(|provider| provider["id"] == "open-websearch"));
+        let tools = tools_catalog(&state, json!({}));
+        assert!(tools["groups"]
+            .as_array()
+            .expect("tool groups")
+            .iter()
+            .any(|group| group["id"] == "native-plugins"
+                && group["tools"]
+                    .as_array()
+                    .expect("native tools")
+                    .iter()
+                    .any(|tool| tool["id"] == "browser" && tool["pluginId"] == "browser")));
+        assert!(tools["groups"]
+            .as_array()
+            .expect("tool groups")
+            .iter()
+            .any(|group| group["id"] == "native-plugins"
+                && group["tools"]
+                    .as_array()
+                    .expect("native tools")
+                    .iter()
+                    .any(|tool| tool["id"] == "comfyui_workflow"
+                        && tool["approval"]["condition"]["equals"] == "run")));
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -10579,8 +10827,8 @@ mod tests {
         write_json_file(
             &source_root.join("crawclaw.plugin.json"),
             &json!({
-                "id": "quickjs-demo",
-                "name": "QuickJS Demo",
+                "id": "node-demo",
+                "name": "Node Demo",
                 "version": "1.0.0",
                 "main": "index.mjs"
             }),
@@ -10597,26 +10845,25 @@ mod tests {
         .await
         .expect("install local plugin");
         assert_eq!(installed["ok"], true);
-        assert_eq!(installed["pluginId"], "quickjs-demo");
+        assert_eq!(installed["pluginId"], "node-demo");
         assert_eq!(installed["installSource"], "path");
         assert_eq!(installed["requiresRestart"], true);
-        let installed_root = runtime_root.join("plugins/quickjs-demo");
+        let installed_root = runtime_root.join("plugins/node-demo");
         assert!(installed_root.join("crawclaw.plugin.json").exists());
         assert!(installed_root.join("index.mjs").exists());
 
         let config = read_config_value(&config_path(&state)).expect("read config");
         assert_eq!(
-            get_json_path(&config, "plugins.entries.quickjs-demo.enabled"),
+            get_json_path(&config, "plugins.entries.node-demo.enabled"),
             Some(&Value::Bool(true))
         );
-        assert!(get_json_path(&config, "plugins.entries.quickjs-demo.source").is_none());
+        assert!(get_json_path(&config, "plugins.entries.node-demo.source").is_none());
         assert_eq!(
-            get_json_path(&config, "plugins.installs.quickjs-demo.source").and_then(Value::as_str),
+            get_json_path(&config, "plugins.installs.node-demo.source").and_then(Value::as_str),
             Some("path")
         );
         assert_eq!(
-            get_json_path(&config, "plugins.installs.quickjs-demo.sourcePath")
-                .and_then(Value::as_str),
+            get_json_path(&config, "plugins.installs.node-demo.sourcePath").and_then(Value::as_str),
             Some(source_root.to_string_lossy().as_ref())
         );
         let listed = handle_gateway_method(&state, "plugins.list", json!({}))
@@ -10626,9 +10873,9 @@ mod tests {
             .as_array()
             .expect("plugins")
             .iter()
-            .find(|plugin| plugin["id"] == "quickjs-demo")
+            .find(|plugin| plugin["id"] == "node-demo")
             .expect("installed plugin in list");
-        assert_eq!(listed_plugin["name"], "QuickJS Demo");
+        assert_eq!(listed_plugin["name"], "Node Demo");
         assert_eq!(listed_plugin["version"], "1.0.0");
         assert_eq!(listed_plugin["status"], "installed");
         assert_eq!(listed_plugin["origin"], "local");
@@ -10648,17 +10895,16 @@ mod tests {
         write_json_file(
             &source_root.join("crawclaw.plugin.json"),
             &json!({
-                "id": "quickjs-demo",
-                "name": "QuickJS Demo",
+                "id": "node-demo",
+                "name": "Node Demo",
                 "version": "1.1.0",
                 "main": "index.mjs"
             }),
         )
         .expect("update source manifest");
-        let updated =
-            handle_gateway_method(&state, "plugins.update", json!({ "id": "quickjs-demo" }))
-                .await
-                .expect("update local plugin");
+        let updated = handle_gateway_method(&state, "plugins.update", json!({ "id": "node-demo" }))
+            .await
+            .expect("update local plugin");
         assert_eq!(updated["ok"], true);
         assert_eq!(updated["changed"], true);
         assert_eq!(updated["requiresRestart"], true);
@@ -10670,18 +10916,130 @@ mod tests {
         assert_eq!(installed_manifest["version"], "1.1.0");
 
         let uninstalled =
-            handle_gateway_method(&state, "plugins.uninstall", json!({ "id": "quickjs-demo" }))
+            handle_gateway_method(&state, "plugins.uninstall", json!({ "id": "node-demo" }))
                 .await
                 .expect("uninstall local plugin");
         assert_eq!(uninstalled["ok"], true);
-        assert_eq!(uninstalled["pluginId"], "quickjs-demo");
+        assert_eq!(uninstalled["pluginId"], "node-demo");
         assert!(!installed_root.exists());
         let config = read_config_value(&config_path(&state)).expect("read config");
-        assert!(get_json_path(&config, "plugins.entries.quickjs-demo").is_none());
-        assert!(get_json_path(&config, "plugins.installs.quickjs-demo").is_none());
+        assert!(get_json_path(&config, "plugins.entries.node-demo").is_none());
+        assert!(get_json_path(&config, "plugins.installs.node-demo").is_none());
 
         let _ = std::fs::remove_dir_all(runtime_root);
         let _ = std::fs::remove_dir_all(source_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_plugins_list_includes_native_descriptors() {
+        let runtime_root = unique_test_runtime_root("gateway-native-plugin-list");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let listed = handle_gateway_method(&state, "plugins.list", json!({}))
+            .await
+            .expect("plugins list");
+        let browser = listed["plugins"]
+            .as_array()
+            .expect("plugins")
+            .iter()
+            .find(|plugin| plugin["id"] == "browser")
+            .expect("browser native plugin");
+        assert_eq!(browser["status"], "available");
+        assert_eq!(browser["origin"], "bundled-native");
+        assert_eq!(browser["source"], "rust-native");
+        assert_eq!(browser["implementation"], "rust-native");
+        assert_eq!(browser["nativeDescriptor"]["pluginId"], "browser");
+
+        let lobster = listed["plugins"]
+            .as_array()
+            .expect("plugins")
+            .iter()
+            .find(|plugin| plugin["id"] == "lobster")
+            .expect("lobster native plugin");
+        assert_eq!(lobster["status"], "available");
+        assert_eq!(lobster["origin"], "bundled-native");
+        assert_eq!(lobster["source"], "rust-native");
+        assert_eq!(lobster["implementation"], "rust-native");
+        assert_eq!(lobster["nativeDescriptor"]["pluginId"], "lobster");
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn rust_gateway_catalogs_merge_installed_native_sidecar_descriptors() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let runtime_root = unique_test_runtime_root("gateway-native-sidecar-registry");
+        let plugin_dir = runtime_root.join("plugins").join("acme-native");
+        std::fs::create_dir_all(&plugin_dir).expect("plugin dir");
+        let sidecar = plugin_dir.join("sidecar.sh");
+        std::fs::write(
+            &sidecar,
+            r#"#!/bin/sh
+read line
+printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schemaVersion":1,"pluginId":"acme-native","name":"Acme Native","tools":[{"name":"acme_tool","label":"Acme Tool","description":"Runs native work.","parameters":{"type":"object"},"invocation":{"pluginId":"acme-native","operation":"run"},"readOnly":true}],"webSearchProviders":[{"id":"acme-search","label":"Acme Search","invocation":{"pluginId":"acme-native","operation":"search"}}]}]}}'
+"#,
+        )
+        .expect("sidecar");
+        let mut permissions = std::fs::metadata(&sidecar).expect("metadata").permissions();
+        permissions.set_mode(0o755);
+        std::fs::set_permissions(&sidecar, permissions).expect("permissions");
+        write_json_file(
+            &plugin_dir.join("crawclaw.plugin.json"),
+            &json!({
+                "id": "acme-native",
+                "native": {
+                    "protocol": "crawclaw-native-plugin-jsonrpc",
+                    "schemaVersion": 1,
+                    "bin": "sidecar.sh"
+                }
+            }),
+        )
+        .expect("manifest");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let listed = handle_gateway_method(&state, "plugins.list", json!({}))
+            .await
+            .expect("plugins list");
+        assert!(listed["plugins"]
+            .as_array()
+            .expect("plugins")
+            .iter()
+            .any(
+                |plugin| plugin["id"] == "acme-native" && plugin["implementation"] == "rust-native"
+            ));
+
+        let tools = handle_gateway_method(&state, "tools.catalog", json!({}))
+            .await
+            .expect("tools catalog");
+        assert!(tools["groups"]
+            .as_array()
+            .expect("groups")
+            .iter()
+            .any(|group| group["id"] == "native-plugins"
+                && group["tools"]
+                    .as_array()
+                    .expect("native tools")
+                    .iter()
+                    .any(|tool| tool["id"] == "acme_tool" && tool["pluginId"] == "acme-native")));
+
+        let models = handle_gateway_method(&state, "models.list", json!({}))
+            .await
+            .expect("models list");
+        assert!(models["nativeWebSearchProviders"]
+            .as_array()
+            .expect("native web search providers")
+            .iter()
+            .any(|provider| provider["id"] == "acme-search"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
     }
 
     #[tokio::test]
@@ -11372,15 +11730,15 @@ mod tests {
                 "runId": "inbound-run-1",
                 "agentId": "main",
                 "inbound": {
-                    "channel": "telegram",
+                    "channel": "feishu",
                     "accountId": "default",
-                    "from": "telegram:123",
+                    "from": "feishu:123",
                     "to": "agent:main",
                     "chatType": "direct",
                     "body": "hello inbound",
                     "rawBody": "hello inbound",
-                    "messageId": "tg-1",
-                    "threadId": "agent:main:telegram:123"
+                    "messageId": "fs-1",
+                    "threadId": "agent:main:feishu:123"
                 }
             }),
         )
@@ -11389,7 +11747,7 @@ mod tests {
 
         assert_eq!(result["ok"], true);
         assert_eq!(result["runId"], "inbound-run-1");
-        assert_eq!(result["sessionKey"], "agent:main:telegram:123");
+        assert_eq!(result["sessionKey"], "agent:main:feishu:123");
         assert_eq!(result["assistantText"], "hello from inbound handler");
         assert_eq!(result["events"][0]["type"], "runStarted");
         assert_eq!(result["events"][1]["type"], "replyPayload");
@@ -11412,7 +11770,7 @@ mod tests {
         let transcript = std::fs::read_to_string(
             runtime_root
                 .join("sessions")
-                .join("agent:main:telegram:123.jsonl"),
+                .join("agent:main:feishu:123.jsonl"),
         )
         .expect("updated transcript");
         assert!(transcript.contains("hello inbound"));
@@ -11458,6 +11816,16 @@ mod tests {
             .any(|provider| provider["provider"] == "fal"
                 && provider["kind"] == "image-generation"
                 && provider["transport"].is_null()));
+        assert!(models["nativeWebFetchProviders"]
+            .as_array()
+            .expect("native web fetch providers")
+            .iter()
+            .any(|provider| provider["id"] == "scrapling"));
+        assert!(models["nativeSpeechProviders"]
+            .as_array()
+            .expect("native speech providers")
+            .iter()
+            .any(|provider| provider["id"] == "qwen3-tts"));
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -13009,6 +13377,29 @@ mod tests {
         assert_eq!(contract_send["mediaUrls"][1], "https://example.test/b.png");
         assert_eq!(contract_send["params"]["gifPlayback"], true);
 
+        let esp32_send = handle_gateway_method(
+            &state,
+            "channel.outbound.send",
+            json!({
+                "channel": "esp32",
+                "to": "esp32-1",
+                "text": "short device reply",
+                "idempotencyKey": "esp32-send-1"
+            }),
+        )
+        .await
+        .expect("esp32 contract send");
+        assert_eq!(esp32_send["runId"], "esp32-send-1");
+        assert_eq!(esp32_send["channel"], "esp32");
+        assert_eq!(esp32_send["deliveryStatus"], "queued");
+        assert_eq!(esp32_send["sent"], false);
+        assert_eq!(esp32_send["params"]["text"], "short device reply");
+        assert_eq!(esp32_send["implementation"], "rust-native");
+        let esp32_commands = std::fs::read_to_string(runtime_root.join("esp32/commands.jsonl"))
+            .expect("esp32 commands");
+        assert!(esp32_commands.contains("\"command\":\"display.reply\""));
+        assert!(esp32_commands.contains("\"deviceId\":\"esp32-1\""));
+
         let local_poll = handle_gateway_method(
             &state,
             "poll",
@@ -13121,14 +13512,14 @@ mod tests {
             &state,
             "channel.outbound.poll",
             json!({
-                "channel": "telegram",
+                "channel": "qqbot",
                 "to": "chat:123",
                 "question": "Lunch?",
                 "options": ["Pizza", "Sushi"]
             }),
         )
         .await
-        .expect("telegram poll");
+        .expect("qqbot poll");
         assert_eq!(blocked_poll["sent"], false);
         assert_eq!(blocked_poll["deliveryStatus"], "blocked");
         assert_eq!(blocked_poll["errorCode"], "needs_channel_transport");
@@ -13137,7 +13528,7 @@ mod tests {
             &state,
             "channel.outbound.action",
             json!({
-                "channel": "slack",
+                "channel": "feishu",
                 "action": "threadReply",
                 "to": "channel:C123",
                 "text": "blocked action",
@@ -13145,7 +13536,7 @@ mod tests {
             }),
         )
         .await
-        .expect("slack outbound action");
+        .expect("feishu outbound action");
         assert_eq!(blocked_action["sent"], false);
         assert_eq!(blocked_action["deliveryStatus"], "blocked");
         assert_eq!(blocked_action["errorCode"], "needs_channel_transport");
@@ -13175,53 +13566,49 @@ mod tests {
             .await
             .expect("channels status");
 
-        assert_eq!(status["channelOrder"][0], "desktop");
+        assert_eq!(status["channelOrder"][0], "ddingtalk");
         let channel_order = status["channelOrder"]
             .as_array()
             .expect("channelOrder array");
-        assert!(channel_order.iter().any(|channel| channel == "telegram"));
-        assert!(channel_order.iter().any(|channel| channel == "bluebubbles"));
+        assert!(channel_order.iter().any(|channel| channel == "feishu"));
+        assert!(channel_order.iter().any(|channel| channel == "esp32"));
         assert_eq!(
-            status["channels"]["telegram"]["nativeAdapterId"],
-            "telegram-native"
+            status["channels"]["feishu"]["nativeAdapterId"],
+            "feishu-native"
         );
         assert_eq!(
-            status["channels"]["telegram"]["capabilities"]["outbound"]["poll"],
-            true
+            status["channels"]["feishu"]["capabilities"]["outbound"]["poll"],
+            false
         );
-        assert_eq!(
-            status["channelControls"]["desktop"]["nativeAdapterId"],
-            "desktop-native"
-        );
-        assert_eq!(status["channels"]["matrix"]["configured"], false);
+        assert_eq!(status["channels"]["esp32"]["configured"], false);
 
         let setup = handle_gateway_method(
             &state,
             "channels.setup.surface",
-            json!({ "channel": "slack" }),
+            json!({ "channel": "feishu" }),
         )
         .await
-        .expect("slack setup");
-        assert_eq!(setup["label"], "Slack");
-        assert_eq!(setup["nativeAdapterId"], "slack-native");
+        .expect("feishu setup");
+        assert_eq!(setup["label"], "Feishu");
+        assert_eq!(setup["nativeAdapterId"], "feishu-native");
         assert_eq!(setup["capabilities"]["outbound"]["threadReply"], true);
 
         let capabilities = handle_gateway_method(
             &state,
             "channels.capabilities",
-            json!({ "channel": "slack" }),
+            json!({ "channel": "feishu" }),
         )
         .await
-        .expect("slack capabilities");
+        .expect("feishu capabilities");
         assert_eq!(capabilities["version"], channel_contract_version());
-        assert_eq!(capabilities["channels"][0]["channel"], "slack");
+        assert_eq!(capabilities["channels"][0]["channel"], "feishu");
         assert_eq!(capabilities["channels"][0]["outbound"]["threadReply"], true);
 
         let directory = handle_gateway_method(
             &state,
             "channel.directory.lookup",
             json!({
-                "channel": "telegram",
+                "channel": "feishu",
                 "accountId": "default",
                 "query": "@Alice",
                 "kind": "user"
@@ -13230,8 +13617,8 @@ mod tests {
         .await
         .expect("channel directory lookup");
         assert_eq!(directory["ok"], true);
-        assert_eq!(directory["channel"], "telegram");
-        assert_eq!(directory["descriptor"]["rustAdapterId"], "telegram-native");
+        assert_eq!(directory["channel"], "feishu");
+        assert_eq!(directory["descriptor"]["rustAdapterId"], "feishu-native");
         assert_eq!(directory["targets"][0]["normalized"], "user:alice");
 
         let _ = std::fs::remove_dir_all(runtime_root);

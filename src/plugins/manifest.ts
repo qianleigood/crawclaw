@@ -20,6 +20,7 @@ export type PluginManifestChannelConfig = {
 export type PluginManifest = {
   id: string;
   configSchema: Record<string, unknown>;
+  native?: PluginManifestNativeDiscovery;
   enabledByDefault?: boolean;
   /** Legacy plugin ids that should normalize to this plugin id. */
   legacyPluginIds?: string[];
@@ -48,6 +49,13 @@ export type PluginManifest = {
    */
   contracts?: PluginManifestContracts;
   channelConfigs?: Record<string, PluginManifestChannelConfig>;
+};
+
+export type PluginManifestNativeDiscovery = {
+  protocol: "crawclaw-native-plugin-jsonrpc";
+  schemaVersion: 1;
+  bin?: string;
+  command?: string[];
 };
 
 export type PluginManifestContracts = {
@@ -137,6 +145,23 @@ function normalizeManifestContracts(value: unknown): PluginManifestContracts | u
   } satisfies PluginManifestContracts;
 
   return Object.keys(contracts).length > 0 ? contracts : undefined;
+}
+
+function normalizeNativeDiscovery(value: unknown): PluginManifestNativeDiscovery | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+  if (value.protocol !== "crawclaw-native-plugin-jsonrpc" || value.schemaVersion !== 1) {
+    return undefined;
+  }
+  const bin = typeof value.bin === "string" && value.bin.trim() ? value.bin.trim() : undefined;
+  const command = normalizeStringList(value.command);
+  return {
+    protocol: "crawclaw-native-plugin-jsonrpc",
+    schemaVersion: 1,
+    ...(bin ? { bin } : {}),
+    ...(command.length > 0 ? { command } : {}),
+  };
 }
 
 function normalizeProviderAuthChoices(
@@ -312,6 +337,7 @@ export function loadPluginManifest(
   const name = typeof raw.name === "string" ? raw.name.trim() : undefined;
   const description = typeof raw.description === "string" ? raw.description.trim() : undefined;
   const version = typeof raw.version === "string" ? raw.version.trim() : undefined;
+  const native = normalizeNativeDiscovery(raw.native);
   const channels = normalizeStringList(raw.channels);
   const providers = normalizeStringList(raw.providers);
   const cliBackends = normalizeStringList(raw.cliBackends);
@@ -331,6 +357,7 @@ export function loadPluginManifest(
     manifest: {
       id,
       configSchema,
+      native,
       ...(enabledByDefault ? { enabledByDefault } : {}),
       ...(legacyPluginIds.length > 0 ? { legacyPluginIds } : {}),
       ...(autoEnableWhenConfiguredProviders.length > 0

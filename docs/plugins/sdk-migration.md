@@ -98,10 +98,9 @@ is a small, self-contained module with a clear purpose and documented contract.
     } from "crawclaw/plugin-sdk/compat";
 
     // After (modern focused imports)
-    import { createChannelReplyPipeline } from "crawclaw/plugin-sdk/channel-reply-pipeline";
     import { createPluginRuntimeStore } from "crawclaw/plugin-sdk/runtime-store";
     import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
-    ```
+```
 
     For host-side helpers, use the injected plugin runtime instead of importing
     directly:
@@ -143,17 +142,8 @@ is a small, self-contained module with a clear purpose and documented contract.
   | Import path | Purpose | Key exports |
   | --- | --- | --- |
   | `plugin-sdk/plugin-entry` | Canonical plugin entry helper | `definePluginEntry` |
-  | `plugin-sdk/core` | Channel entry definitions, channel builders, base types | `defineChannelPluginEntry`, `createChatChannelPlugin` |
-  | `plugin-sdk/channel-setup` | Setup wizard adapters | `createOptionalChannelSetupSurface` |
-  | `plugin-sdk/channel-pairing` | DM pairing primitives | `createChannelPairingController` |
-  | `plugin-sdk/channel-reply-pipeline` | Reply prefix + typing wiring | `createChannelReplyPipeline` |
-  | `plugin-sdk/channel-config-helpers` | Config adapter factories | `createHybridChannelConfigAdapter` |
-  | `plugin-sdk/channel-config-schema` | Config schema builders | Channel config schema types |
-  | `plugin-sdk/channel-policy` | Group/DM policy resolution | `resolveChannelGroupRequireMention` |
-  | `plugin-sdk/channel-lifecycle` | Account status tracking | `createAccountStatusSink` |
-  | `plugin-sdk/channel-id` | Channel id normalization | `normalizeChannelId`, `ChannelId` |
+  | `plugin-sdk/core` | Generic plugin entry types and shared plugin helpers | Plugin base types |
   | `plugin-sdk/infra-runtime` | Shared infra/runtime helpers | `enqueueSystemEvent`, `recordChannelActivity`, `waitForTransportReady` |
-  | `plugin-sdk/channel-send-result` | Send result types | Reply result types |
   | `plugin-sdk/runtime-store` | Persistent plugin storage | `createPluginRuntimeStore` |
   | `plugin-sdk/approval-runtime` | Approval prompt helpers | Exec/plugin approval payload, approval capability/profile helpers, native approval routing/runtime helpers |
   | `plugin-sdk/collection-runtime` | Bounded cache helpers | `pruneMapToMaxSize` |

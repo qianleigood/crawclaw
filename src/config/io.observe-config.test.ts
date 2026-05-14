@@ -48,7 +48,7 @@ describe("config io observe", () => {
           auth: { mode: "token", token: "secret-token" },
         },
         channels: {
-          discord: {
+          feishu: {
             enabled: true,
             dmPolicy: "pairing",
           },
@@ -109,10 +109,9 @@ describe("config io observe", () => {
         update: { channel: "beta" },
         gateway: { mode: "local" },
         channels: {
-          telegram: {
+          feishu: {
             enabled: true,
             dmPolicy: "pairing",
-            groupPolicy: "allowlist",
           },
         },
       });
@@ -146,10 +145,9 @@ describe("config io observe", () => {
         update: { channel: "beta" },
         gateway: { mode: "local" },
         channels: {
-          telegram: {
+          feishu: {
             enabled: true,
             dmPolicy: "pairing",
-            groupPolicy: "allowlist",
           },
         },
       });

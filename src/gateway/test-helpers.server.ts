@@ -39,7 +39,6 @@ import {
   getReplyFromConfig,
   piSdkMock,
   resetTestPluginRegistry,
-  sendWhatsAppMock,
   sessionStoreSaveDelayMs,
   setTestConfigRoot,
   testIsNixMode,
@@ -297,8 +296,6 @@ async function resetGatewayTestState(options: { uniqueConfigRoot: boolean }) {
   agentCommand.mockResolvedValue(undefined);
   getReplyFromConfig.mockReset();
   getReplyFromConfig.mockResolvedValue(undefined);
-  sendWhatsAppMock.mockReset();
-  sendWhatsAppMock.mockResolvedValue({ messageId: "msg-1", toJid: "jid-1" });
   embeddedRunMock.activeIds.clear();
   embeddedRunMock.abortCalls = [];
   embeddedRunMock.waitCalls = [];

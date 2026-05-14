@@ -90,11 +90,11 @@ Note: loopback (`http://127.0.0.1:18789`) will **not** work in this mode.
 
 Prefer `CRAWCLAW_GATEWAY_PASSWORD` over committing a password to disk.
 
-## CLI examples
+## Gateway API examples
 
 ```bash
-crawclaw gateway --tailscale serve
-crawclaw gateway --tailscale funnel --auth password
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Notes

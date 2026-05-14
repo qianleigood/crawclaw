@@ -20,6 +20,7 @@ pub fn execute_message_policy_operation(input: Value) -> Result<Value, String> {
         "session.resolveThreadSessionKeys" => resolve_thread_session_keys(&payload),
         "outbound.enforceCrossContextPolicy" => enforce_cross_context_policy(&payload),
         "outbound.buildDeliveryRequest" => build_delivery_request(&payload),
+        "outbound.resolveTransportPolicy" => resolve_transport_policy(&payload),
         "outbound.resolveFallbackSessionRoute" => resolve_fallback_session_route(&payload),
         "outbound.resolveReplyRoutingDecision" => resolve_reply_routing_decision(&payload),
         "outbound.resolveTypingPolicy" => resolve_typing_policy(&payload),
@@ -512,6 +513,29 @@ fn build_delivery_request(payload: &Value) -> Result<Value, String> {
     );
 
     Ok(json!({ "request": Value::Object(request) }))
+}
+
+fn resolve_transport_policy(payload: &Value) -> Result<Value, String> {
+    let channel = normalize_token(payload.get("channel"));
+    if channel.is_empty() {
+        return Err("channel is required".to_string());
+    }
+    let allow_ts_channel_runtime = payload
+        .get("allowTsChannelRuntime")
+        .and_then(Value::as_bool)
+        .unwrap_or(false);
+    let bundled = value_string_array(payload.get("bundledChannels"))
+        .into_iter()
+        .map(|value| value.to_lowercase())
+        .any(|value| value == channel);
+    let use_native_gateway = bundled && !allow_ts_channel_runtime;
+    Ok(json!({
+        "channel": channel,
+        "isBundledChannel": bundled,
+        "allowTsChannelRuntime": allow_ts_channel_runtime,
+        "runtime": if use_native_gateway { "rustNative" } else { "tsPluginCompat" },
+        "useNativeGateway": use_native_gateway
+    }))
 }
 
 const INTERNAL_MESSAGE_CHANNEL: &str = "webchat";
@@ -1104,6 +1128,33 @@ mod tests {
                 .and_then(Value::as_str),
             Some("file:///tmp/a.png")
         );
+    }
+
+    #[test]
+    fn message_policy_resolves_outbound_transport_policy() {
+        let native = execute_message_policy_operation(json!({
+            "operation": "outbound.resolveTransportPolicy",
+            "payload": {
+                "channel": "Feishu",
+                "bundledChannels": ["feishu", "weixin"],
+                "allowTsChannelRuntime": false
+            }
+        }))
+        .expect("transport policy");
+        assert_eq!(native["useNativeGateway"], true);
+        assert_eq!(native["runtime"], "rustNative");
+
+        let compat = execute_message_policy_operation(json!({
+            "operation": "outbound.resolveTransportPolicy",
+            "payload": {
+                "channel": "third-party",
+                "bundledChannels": ["feishu", "weixin"],
+                "allowTsChannelRuntime": false
+            }
+        }))
+        .expect("transport policy");
+        assert_eq!(compat["useNativeGateway"], false);
+        assert_eq!(compat["runtime"], "tsPluginCompat");
     }
 
     #[test]

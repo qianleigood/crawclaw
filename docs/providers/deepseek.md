@@ -19,7 +19,7 @@ read_when:
 Set the API key (recommended: store it for the Gateway):
 
 ```bash
-crawclaw onboard --auth-choice deepseek-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 This will prompt for your API key and set `deepseek/deepseek-chat` as the default model.
@@ -27,12 +27,7 @@ This will prompt for your API key and set `deepseek/deepseek-chat` as the defaul
 ## Non-interactive example
 
 ```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice deepseek-api-key \
-  --deepseek-api-key "$DEEPSEEK_API_KEY" \
-  --skip-health \
-  --accept-risk
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Environment note

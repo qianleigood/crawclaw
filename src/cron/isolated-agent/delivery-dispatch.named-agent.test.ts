@@ -13,8 +13,8 @@ describe("matchesMessagingToolDeliveryTarget", () => {
   it("matches when channel and to agree", () => {
     expect(
       matchesMessagingToolDeliveryTarget(
-        { provider: "telegram", to: "123456" },
-        { channel: "telegram", to: "123456" },
+        { provider: "feishu", to: "123456" },
+        { channel: "feishu", to: "123456" },
       ),
     ).toBe(true);
   });
@@ -22,8 +22,8 @@ describe("matchesMessagingToolDeliveryTarget", () => {
   it("rejects when channel differs", () => {
     expect(
       matchesMessagingToolDeliveryTarget(
-        { provider: "whatsapp", to: "123456" },
-        { channel: "telegram", to: "123456" },
+        { provider: "weixin", to: "123456" },
+        { channel: "feishu", to: "123456" },
       ),
     ).toBe(false);
   });
@@ -31,8 +31,8 @@ describe("matchesMessagingToolDeliveryTarget", () => {
   it("rejects when to is missing from delivery", () => {
     expect(
       matchesMessagingToolDeliveryTarget(
-        { provider: "telegram", to: "123456" },
-        { channel: "telegram", to: undefined },
+        { provider: "feishu", to: "123456" },
+        { channel: "feishu", to: undefined },
       ),
     ).toBe(false);
   });
@@ -40,7 +40,7 @@ describe("matchesMessagingToolDeliveryTarget", () => {
   it("rejects when channel is missing from delivery", () => {
     expect(
       matchesMessagingToolDeliveryTarget(
-        { provider: "telegram", to: "123456" },
+        { provider: "feishu", to: "123456" },
         { channel: undefined, to: "123456" },
       ),
     ).toBe(false);
@@ -49,8 +49,8 @@ describe("matchesMessagingToolDeliveryTarget", () => {
   it("strips :topic:NNN suffix from target.to before comparing", () => {
     expect(
       matchesMessagingToolDeliveryTarget(
-        { provider: "telegram", to: "-1003597428309:topic:462" },
-        { channel: "telegram", to: "-1003597428309" },
+        { provider: "feishu", to: "-1003597428309:topic:462" },
+        { channel: "feishu", to: "-1003597428309" },
       ),
     ).toBe(true);
   });
@@ -59,7 +59,7 @@ describe("matchesMessagingToolDeliveryTarget", () => {
     expect(
       matchesMessagingToolDeliveryTarget(
         { provider: "message", to: "123456" },
-        { channel: "telegram", to: "123456" },
+        { channel: "feishu", to: "123456" },
       ),
     ).toBe(true);
   });
@@ -67,8 +67,8 @@ describe("matchesMessagingToolDeliveryTarget", () => {
   it("rejects when accountIds differ", () => {
     expect(
       matchesMessagingToolDeliveryTarget(
-        { provider: "telegram", to: "123456", accountId: "bot-a" },
-        { channel: "telegram", to: "123456", accountId: "bot-b" },
+        { provider: "feishu", to: "123456", accountId: "bot-a" },
+        { channel: "feishu", to: "123456", accountId: "bot-b" },
       ),
     ).toBe(false);
   });

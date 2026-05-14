@@ -17,7 +17,7 @@ Synthetic exposes Anthropic-compatible endpoints. CrawClaw registers it as the
 2. Run onboarding:
 
 ```bash
-crawclaw onboard --auth-choice synthetic-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 The default model is set to:

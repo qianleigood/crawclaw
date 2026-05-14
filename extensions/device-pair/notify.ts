@@ -157,54 +157,6 @@ function notifySubscriberKey(subscriber: {
   return [subscriber.to, subscriber.accountId ?? "", subscriber.messageThreadId ?? ""].join("|");
 }
 
-type NotifyTarget = {
-  to: string;
-  accountId?: string;
-  messageThreadId?: string | number;
-};
-
-function resolveNotifyTarget(ctx: {
-  senderId?: string;
-  from?: string;
-  to?: string;
-  accountId?: string;
-  messageThreadId?: string | number;
-}): NotifyTarget | null {
-  const to = ctx.senderId?.trim() || ctx.from?.trim() || ctx.to?.trim() || "";
-  if (!to) {
-    return null;
-  }
-  return {
-    to,
-    ...(ctx.accountId ? { accountId: ctx.accountId } : {}),
-    ...(ctx.messageThreadId != null ? { messageThreadId: ctx.messageThreadId } : {}),
-  };
-}
-
-function upsertNotifySubscriber(
-  subscribers: NotifySubscription[],
-  target: NotifyTarget,
-  mode: NotifySubscription["mode"],
-): boolean {
-  const key = notifySubscriberKey(target);
-  const index = subscribers.findIndex((entry) => notifySubscriberKey(entry) === key);
-  const next: NotifySubscription = {
-    ...target,
-    mode,
-    addedAtMs: Date.now(),
-  };
-  if (index === -1) {
-    subscribers.push(next);
-    return true;
-  }
-  const existing = subscribers[index];
-  if (existing?.mode === mode) {
-    return false;
-  }
-  subscribers[index] = next;
-  return true;
-}
-
 function buildPairingRequestNotificationText(request: PendingPairingRequest): string {
   const label = request.displayName?.trim() || request.deviceId;
   const platform = request.platform?.trim();
@@ -254,34 +206,8 @@ async function notifySubscriber(params: {
   subscriber: NotifySubscription;
   text: string;
 }): Promise<boolean> {
-  const adapter = await params.api.runtime.channel.outbound.loadAdapter("telegram");
-  const send = adapter?.sendText;
-  if (!send) {
-    params.api.logger.warn(
-      "device-pair: telegram outbound adapter unavailable for pairing notifications",
-    );
-    return false;
-  }
-
-  try {
-    await send({
-      cfg: params.api.config,
-      to: params.subscriber.to,
-      text: params.text,
-      ...(params.subscriber.accountId ? { accountId: params.subscriber.accountId } : {}),
-      ...(params.subscriber.messageThreadId != null
-        ? { threadId: params.subscriber.messageThreadId }
-        : {}),
-    });
-    return true;
-  } catch (err) {
-    params.api.logger.warn(
-      `device-pair: failed to send pairing notification to ${params.subscriber.to}: ${String(
-        (err as Error)?.message ?? err,
-      )}`,
-    );
-    return false;
-  }
+  void params;
+  return false;
 }
 
 async function notifyPendingPairingRequests(params: {
@@ -358,26 +284,7 @@ export async function armPairNotifyOnce(params: {
     messageThreadId?: string | number;
   };
 }): Promise<boolean> {
-  if (params.ctx.channel !== "telegram") {
-    return false;
-  }
-  const target = resolveNotifyTarget(params.ctx);
-  if (!target) {
-    return false;
-  }
-
-  const stateDir = params.api.runtime.state.resolveStateDir();
-  const statePath = resolveNotifyStatePath(stateDir);
-  const state = await readNotifyState(statePath);
-  let changed = false;
-
-  if (upsertNotifySubscriber(state.subscribers, target, "once")) {
-    changed = true;
-  }
-
-  if (changed) {
-    await writeNotifyState(statePath, state);
-  }
+  void params;
   return true;
 }
 
@@ -393,72 +300,9 @@ export async function handleNotifyCommand(params: {
   };
   action: string;
 }): Promise<{ text: string }> {
-  if (params.ctx.channel !== "telegram") {
-    return { text: "Pairing notifications are currently supported only on Telegram." };
-  }
+  void params;
 
-  const target = resolveNotifyTarget(params.ctx);
-  if (!target) {
-    return { text: "Could not resolve Telegram target for this chat." };
-  }
-
-  const stateDir = params.api.runtime.state.resolveStateDir();
-  const statePath = resolveNotifyStatePath(stateDir);
-  const state = await readNotifyState(statePath);
-  const targetKey = notifySubscriberKey(target);
-  const current = state.subscribers.find((entry) => notifySubscriberKey(entry) === targetKey);
-
-  if (params.action === "on" || params.action === "enable") {
-    if (upsertNotifySubscriber(state.subscribers, target, "persistent")) {
-      await writeNotifyState(statePath, state);
-    }
-    return {
-      text:
-        "✅ Pair request notifications enabled for this Telegram chat.\n" +
-        "I will ping here when a new device pairing request arrives.",
-    };
-  }
-
-  if (params.action === "off" || params.action === "disable") {
-    const currentIndex = state.subscribers.findIndex(
-      (entry) => notifySubscriberKey(entry) === targetKey,
-    );
-    if (currentIndex !== -1) {
-      state.subscribers.splice(currentIndex, 1);
-      await writeNotifyState(statePath, state);
-    }
-    return { text: "✅ Pair request notifications disabled for this Telegram chat." };
-  }
-
-  if (params.action === "once" || params.action === "arm") {
-    await armPairNotifyOnce({
-      api: params.api,
-      ctx: params.ctx,
-    });
-    return {
-      text:
-        "✅ One-shot pairing notification armed for this Telegram chat.\n" +
-        "I will notify on the next new pairing request, then auto-disable.",
-    };
-  }
-
-  if (params.action === "status" || params.action === "") {
-    const pending = await listDevicePairing();
-    const enabled = Boolean(current);
-    const mode = current?.mode ?? "off";
-    return {
-      text: [
-        `Pair request notifications: ${enabled ? "enabled" : "disabled"} for this chat.`,
-        `Mode: ${mode}`,
-        `Subscribers: ${state.subscribers.length}`,
-        `Pending requests: ${pending.pending.length}`,
-        "",
-        "Use /pair notify on|off|once",
-      ].join("\n"),
-    };
-  }
-
-  return { text: "Usage: /pair notify on|off|once|status" };
+  return { text: "Pairing notifications are unavailable until Rust-native channels are added." };
 }
 
 export function registerPairingNotifierService(api: CrawClawPluginApi): void {

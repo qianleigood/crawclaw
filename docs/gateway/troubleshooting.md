@@ -16,18 +16,18 @@ Start at [/help/troubleshooting](/help/troubleshooting) if you want the fast tri
 Run these first, in this order:
 
 ```bash
-crawclaw status
-crawclaw gateway status
-crawclaw logs --follow
-crawclaw doctor
-crawclaw channels status --probe
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Expected healthy signals:
 
-- `crawclaw gateway status` shows `Runtime: running` and `RPC probe: ok`.
-- `crawclaw doctor` reports no blocking config/service issues.
-- `crawclaw channels status --probe` shows connected/ready channels.
+- CrawClaw Desktop or the local Gateway API shows `Runtime: running` and `RPC probe: ok`.
+- CrawClaw Desktop or the local Gateway API reports no blocking config/service issues.
+- CrawClaw Desktop or the local Gateway API shows connected/ready channels.
 
 ## Anthropic 429 extra usage required for long context
 
@@ -35,9 +35,9 @@ Use this when logs/errors include:
 `HTTP 429: rate_limit_error: Extra usage is required for long context requests`.
 
 ```bash
-crawclaw logs --follow
-crawclaw models status
-crawclaw config get agents.defaults.models
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Look for:
@@ -63,11 +63,11 @@ Related:
 If channels are up but nothing answers, check routing and policy before reconnecting anything.
 
 ```bash
-crawclaw status
-crawclaw channels status --probe
-crawclaw pairing list --channel <channel> [--account <id>]
-crawclaw config get channels
-crawclaw logs --follow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Look for:
@@ -93,11 +93,11 @@ Related:
 When a browser-facing client will not connect, validate URL, auth mode, and secure context assumptions.
 
 ```bash
-crawclaw gateway status
-crawclaw status
-crawclaw logs --follow
-crawclaw doctor
-crawclaw gateway status --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Look for:
@@ -121,19 +121,19 @@ Common signatures:
 
 Use `error.details.code` from the failed `connect` response to pick the next action:
 
-| Detail code                  | Meaning                                                  | Recommended action                                                                                                                                                   |
-| ---------------------------- | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_TOKEN_MISSING`         | Client did not send a required shared token.             | Set the client token to match `crawclaw config get gateway.auth.token` and retry.                                                                                    |
-| `AUTH_TOKEN_MISMATCH`        | Shared token did not match gateway auth token.           | If `canRetryWithDeviceToken=true`, allow one trusted retry. If still failing, run the [token drift recovery checklist](/cli/devices#token-drift-recovery-checklist). |
-| `AUTH_DEVICE_TOKEN_MISMATCH` | Cached per-device token is stale or revoked.             | Rotate/re-approve device token using [devices CLI](/cli/devices), then reconnect.                                                                                    |
-| `PAIRING_REQUIRED`           | Device identity is known but not approved for this role. | Approve pending request: `crawclaw devices list` then `crawclaw devices approve <requestId>`.                                                                        |
+| Detail code                  | Meaning                                                  | Recommended action                                                                                                                                               |
+| ---------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AUTH_TOKEN_MISSING`         | Client did not send a required shared token.             | Set the client token to match CrawClaw Desktop or the local Gateway API and retry.                                                                               |
+| `AUTH_TOKEN_MISMATCH`        | Shared token did not match gateway auth token.           | If `canRetryWithDeviceToken=true`, allow one trusted retry. If still failing, run the [token drift recovery checklist](/network#token-drift-recovery-checklist). |
+| `AUTH_DEVICE_TOKEN_MISMATCH` | Cached per-device token is stale or revoked.             | Rotate/re-approve device token using [devices CLI](/network), then reconnect.                                                                                    |
+| `PAIRING_REQUIRED`           | Device identity is known but not approved for this role. | Approve pending request: CrawClaw Desktop or the local Gateway API then CrawClaw Desktop or the local Gateway API.                                               |
 
 Device auth v2 migration check:
 
 ```bash
-crawclaw --version
-crawclaw doctor
-crawclaw gateway status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If logs show nonce/signature errors, update the connecting client and verify it:
@@ -147,18 +147,18 @@ Related:
 - [/gateway/configuration](/gateway/configuration) (gateway auth modes)
 - [/gateway/trusted-proxy-auth](/gateway/trusted-proxy-auth)
 - [/gateway/remote](/gateway/remote)
-- [/cli/devices](/cli/devices)
+- [Device pairing](/network)
 
 ## Gateway service not running
 
 Use this when service is installed but process does not stay up.
 
 ```bash
-crawclaw gateway status
-crawclaw status
-crawclaw logs --follow
-crawclaw doctor
-crawclaw gateway status --deep
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Look for:
@@ -169,7 +169,7 @@ Look for:
 
 Common signatures:
 
-- `Gateway start blocked: set gateway.mode=local` → local gateway mode is not enabled. Fix: set `gateway.mode="local"` in your config (or run `crawclaw configure`).
+- `Gateway start blocked: set gateway.mode=local` → local gateway mode is not enabled. Fix: set `gateway.mode="local"` in your config (or run CrawClaw Desktop or the local Gateway API).
 - `refusing to bind gateway ... without auth` → non-loopback bind without token/password.
 - `another gateway instance is already listening` / `EADDRINUSE` → port conflict.
 
@@ -184,11 +184,11 @@ Related:
 If channel state is connected but message flow is dead, focus on policy, permissions, and channel specific delivery rules.
 
 ```bash
-crawclaw channels status --probe
-crawclaw pairing list --channel <channel> [--account <id>]
-crawclaw status --deep
-crawclaw logs --follow
-crawclaw config get channels
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Look for:
@@ -216,11 +216,11 @@ If cron or a queued main-session wake did not run or did not deliver, verify
 scheduler state first, then delivery target.
 
 ```bash
-crawclaw cron status
-crawclaw cron list
-crawclaw cron runs --id <jobId> --limit 20
-crawclaw system main-session-wake last
-crawclaw logs --follow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Look for:
@@ -247,8 +247,8 @@ Related:
 Use this when browser tool actions fail even though the gateway itself is healthy.
 
 ```bash
-crawclaw logs --follow
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 From the current agent or Gateway `/tools/invoke` path, check the browser tool
@@ -264,17 +264,15 @@ directly:
 
 Look for:
 
-- Whether `plugins.allow` is set and includes `browser`.
+- Whether `tools.catalog` lists `browser` under `native-plugin`.
 - Valid browser executable path.
-- CDP profile reachability.
-- PinchTab runtime health for managed profiles.
+- Managed `agent-browser` runtime health.
 
 Common signatures:
 
-- Agent reports browser tool missing / unavailable while `browser.enabled=true` → `plugins.allow` excludes `browser`, so the plugin never loaded.
-- `Failed to start Chrome CDP on port` → browser process failed to launch.
+- Agent reports browser tool missing / unavailable → native tool catalog is not exposing `browser`.
+- `agent-browser runtime is not installed` → run CrawClaw Desktop or the local Gateway API.
 - `browser.executablePath not found` → configured path is invalid.
-- `Remote CDP for profile "<name>" is not reachable` → configured remote CDP endpoint is unreachable.
 
 Related:
 
@@ -288,10 +286,10 @@ Most post-upgrade breakage is config drift or stricter defaults now being enforc
 ### 1) Auth and URL override behavior changed
 
 ```bash
-crawclaw gateway status
-crawclaw config get gateway.mode
-crawclaw config get gateway.remote.url
-crawclaw config get gateway.auth.mode
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 What to check:
@@ -307,10 +305,10 @@ Common signatures:
 ### 2) Bind and auth guardrails are stricter
 
 ```bash
-crawclaw config get gateway.bind
-crawclaw config get gateway.auth.token
-crawclaw gateway status
-crawclaw logs --follow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 What to check:
@@ -326,10 +324,10 @@ Common signatures:
 ### 3) Pairing and device identity state changed
 
 ```bash
-crawclaw devices list
-crawclaw pairing list --channel <channel> [--account <id>]
-crawclaw logs --follow
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 What to check:
@@ -345,8 +343,8 @@ Common signatures:
 If the service config and runtime still disagree after checks, reinstall service metadata from the same profile/state directory:
 
 ```bash
-crawclaw gateway install --force
-crawclaw gateway restart
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Related:

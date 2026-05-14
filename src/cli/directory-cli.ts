@@ -75,17 +75,17 @@ export function registerDirectoryCli(program: Command) {
       "after",
       () =>
         `\n${theme.heading(t("cli.help.examplesHeading"))}\n${formatHelpExamples([
-          ["crawclaw directory self --channel slack", t("command.directory.example.self")],
+          ["crawclaw directory self --channel feishu", t("command.directory.example.self")],
           [
-            'crawclaw directory peers list --channel slack --query "alice"',
+            'crawclaw directory peers list --channel feishu --query "alice"',
             t("command.directory.example.peers"),
           ],
           [
-            "crawclaw directory groups list --channel discord",
+            "crawclaw directory groups list --channel feishu",
             t("command.directory.example.groups"),
           ],
           [
-            "crawclaw directory groups members --channel discord --group-id <id>",
+            "crawclaw directory groups members --channel feishu --group-id <id>",
             t("command.directory.example.members"),
           ],
         ])}\n\n${theme.muted(t("cli.help.docsLabel"))} ${formatDocsLink(

@@ -2,20 +2,9 @@ import type { Command } from "commander";
 import type { MessageCliHelpers } from "./helpers.js";
 
 function resolveThreadCreateRequest(opts: Record<string, unknown>) {
-  const channel = typeof opts.channel === "string" ? opts.channel.trim().toLowerCase() : "";
-  if (channel !== "telegram") {
-    return {
-      action: "thread-create" as const,
-      params: opts,
-    };
-  }
-  const { threadName, ...rest } = opts;
   return {
-    action: "topic-create" as const,
-    params: {
-      ...rest,
-      name: typeof threadName === "string" ? threadName : undefined,
-    },
+    action: "thread-create" as const,
+    params: opts,
   };
 }
 

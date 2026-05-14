@@ -38,7 +38,3 @@ title: Reference Docs
 - [SecretRef credential surface](/reference/secretref-credential-surface)
 - [Skills audit](/reference/skills-audit)
 - [Default AGENTS](/reference/AGENTS.default)
-
-## Design Notes
-
-- [Browser redesign Pinchtab plan](/reference/browser-redesign-pinchtab-plan)

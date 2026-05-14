@@ -87,11 +87,11 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
     Use token auth with Tailscale Serve for secure remote access.
 
     ```bash
-    crawclaw config set gateway.bind loopback
-    crawclaw config set gateway.auth.mode token
-    crawclaw doctor --generate-gateway-token
-    crawclaw config set gateway.tailscale.mode serve
-    crawclaw config set gateway.trustedProxies '["127.0.0.1"]'
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     systemctl --user restart crawclaw-gateway
     ```
@@ -114,7 +114,7 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
 
   <Step title="Verify">
     ```bash
-    crawclaw --version
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     systemctl --user status crawclaw-gateway
     tailscale serve status
     curl http://localhost:18789
@@ -147,7 +147,7 @@ Then connect a supported gateway client to `http://localhost:18789`.
 
 **Tailscale will not connect** -- Run `sudo tailscale up --ssh --hostname=crawclaw --reset` to re-authenticate.
 
-**Gateway will not start** -- Run `crawclaw doctor --non-interactive` and check logs with `journalctl --user -u crawclaw-gateway -n 50`.
+**Gateway will not start** -- Run CrawClaw Desktop or the local Gateway API and check logs with `journalctl --user -u crawclaw-gateway -n 50`.
 
 **ARM binary issues** -- Most npm packages work on ARM64. For native binaries, look for `linux-arm64` or `aarch64` releases. Verify architecture with `uname -m`.
 

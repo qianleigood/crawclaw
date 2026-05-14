@@ -185,13 +185,6 @@ export async function scheduleRestartSentinelWake(params: { deps: CliDeps }) {
     sessionThreadId ??
     (origin?.threadId != null ? String(origin.threadId) : undefined);
 
-  // Slack uses replyToId (thread_ts) for threading, not threadId.
-  // The reply path does this mapping but deliverOutboundPayloads does not,
-  // so we must convert here to ensure post-restart notifications land in
-  // the originating Slack thread. See #17716.
-  const isSlack = channel === "slack";
-  const replyToId = isSlack && threadId != null && threadId !== "" ? threadId : undefined;
-  const resolvedThreadId = isSlack ? undefined : threadId;
   const outboundSession = buildOutboundSessionContext({
     cfg,
     sessionKey,
@@ -206,8 +199,7 @@ export async function scheduleRestartSentinelWake(params: { deps: CliDeps }) {
     channel,
     to: resolved.to,
     accountId: origin?.accountId,
-    replyToId,
-    threadId: resolvedThreadId,
+    threadId,
     session: outboundSession,
   });
 }

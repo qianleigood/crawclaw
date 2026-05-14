@@ -18,12 +18,12 @@ provider id `opencode-go` so upstream per-model routing stays correct.
 - `opencode-go/glm-5`
 - `opencode-go/minimax-m2.5`
 
-## CLI setup
+## Desktop setup
 
 ```bash
-crawclaw onboard --auth-choice opencode-go
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # or non-interactive
-crawclaw onboard --opencode-go-api-key "$OPENCODE_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Config snippet

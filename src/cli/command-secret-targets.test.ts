@@ -15,7 +15,7 @@ describe("command secret target ids", () => {
 
   it("includes gateway auth and channel targets for security audit", () => {
     const ids = getSecurityAuditCommandSecretTargetIds();
-    expect(ids.has("channels.discord.token")).toBe(true);
+    expect(ids.has("channels.feishu.appSecret")).toBe(true);
     expect(ids.has("gateway.auth.token")).toBe(true);
     expect(ids.has("gateway.auth.password")).toBe(true);
     expect(ids.has("gateway.remote.token")).toBe(true);
@@ -25,11 +25,11 @@ describe("command secret target ids", () => {
   it("scopes channel targets to the requested channel", () => {
     const scoped = getScopedChannelsCommandSecretTargets({
       config: {} as never,
-      channel: "discord",
+      channel: "feishu",
     });
 
     expect(scoped.targetIds.size).toBeGreaterThan(0);
-    expect([...scoped.targetIds].every((id) => id.startsWith("channels.discord."))).toBe(true);
+    expect([...scoped.targetIds].every((id) => id.startsWith("channels.feishu."))).toBe(true);
     expect([...scoped.targetIds].some((id) => id.startsWith("channels.telegram."))).toBe(false);
   });
 
@@ -37,61 +37,55 @@ describe("command secret target ids", () => {
     const scoped = getScopedChannelsCommandSecretTargets({
       config: {
         channels: {
-          discord: {
+          feishu: {
             defaultAccount: "ops",
             accounts: {
               ops: {
-                token: { source: "env", provider: "default", id: "DISCORD_OPS" },
+                appSecret: { source: "env", provider: "default", id: "FEISHU_OPS" },
               },
             },
           },
         },
       } as never,
-      channel: "discord",
+      channel: "feishu",
     });
 
     expect(scoped.allowedPaths).toBeUndefined();
     expect(scoped.targetIds.size).toBeGreaterThan(0);
-    expect([...scoped.targetIds].every((id) => id.startsWith("channels.discord."))).toBe(true);
+    expect([...scoped.targetIds].every((id) => id.startsWith("channels.feishu."))).toBe(true);
   });
 
   it("scopes allowed paths to channel globals + selected account", () => {
     const scoped = getScopedChannelsCommandSecretTargets({
       config: {
         channels: {
-          discord: {
-            token: { source: "env", provider: "default", id: "DISCORD_DEFAULT" },
+          feishu: {
+            appSecret: { source: "env", provider: "default", id: "FEISHU_DEFAULT" },
             accounts: {
               ops: {
-                token: { source: "env", provider: "default", id: "DISCORD_OPS" },
+                appSecret: { source: "env", provider: "default", id: "FEISHU_OPS" },
               },
               chat: {
-                token: { source: "env", provider: "default", id: "DISCORD_CHAT" },
+                appSecret: { source: "env", provider: "default", id: "FEISHU_CHAT" },
               },
             },
           },
         },
       } as never,
-      channel: "discord",
+      channel: "feishu",
       accountId: "ops",
     });
 
     expect(scoped.allowedPaths).toBeDefined();
-    expect(scoped.allowedPaths?.has("channels.discord.token")).toBe(true);
-    expect(scoped.allowedPaths?.has("channels.discord.accounts.ops.token")).toBe(true);
-    expect(scoped.allowedPaths?.has("channels.discord.accounts.chat.token")).toBe(false);
+    expect(scoped.allowedPaths?.has("channels.feishu.appSecret")).toBe(true);
+    expect(scoped.allowedPaths?.has("channels.feishu.accounts.ops.appSecret")).toBe(true);
+    expect(scoped.allowedPaths?.has("channels.feishu.accounts.chat.appSecret")).toBe(false);
   });
 
   it("keeps account-scoped allowedPaths as an empty set when scoped target paths are absent", () => {
     const scoped = getScopedChannelsCommandSecretTargets({
       config: {
-        channels: {
-          discord: {
-            accounts: {
-              ops: { enabled: true },
-            },
-          },
-        },
+        channels: {},
       } as never,
       channel: "custom-plugin-channel-without-secret-targets",
       accountId: "ops",

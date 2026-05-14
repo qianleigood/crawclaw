@@ -7,7 +7,7 @@ const FEEDBACK_RE =
 const PROJECT_RE =
   /(project|roadmap|milestone|merge freeze|release|deadline|stakeholder|项目|里程碑|冻结|发布日期|目标|范围)/i;
 const REFERENCE_RE =
-  /(reference|dashboard|linear|slack|notion|grafana|docs|wiki|链接|入口|文档|看板)/i;
+  /(reference|dashboard|linear|notion|grafana|docs|wiki|链接|入口|文档|看板)/i;
 
 export type MemoryRecallBucket = "durable" | "experience";
 

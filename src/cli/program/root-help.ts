@@ -54,7 +54,7 @@ const ROOT_HELP_EN_TRANSLATIONS: CliTranslations = {
   "cli.help.example.gatewayEllipsis": "Gateway control via WebSocket.",
   "cli.help.example.agentDeliver":
     "Talk directly to the agent using the Gateway; optionally send the WhatsApp reply.",
-  "cli.help.example.telegramSend": "Send via your Telegram bot.",
+  "cli.help.example.channelSend": "Send via a configured channel.",
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {

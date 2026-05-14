@@ -25,7 +25,7 @@ JS-heavy sites or authenticated pages, use the [Web Browser](/tools/browser).
   </Step>
   <Step title="Optional configuration">
     ```bash
-    crawclaw configure --section web
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
   </Step>
   <Step title="Use it">

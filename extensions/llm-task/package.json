@@ -5,8 +5,6 @@
   "description": "CrawClaw JSON-only LLM task plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

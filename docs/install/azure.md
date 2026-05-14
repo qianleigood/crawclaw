@@ -269,7 +269,7 @@ This guide sets up an Azure Linux VM with the Azure CLI, applies Network Securit
     After onboarding completes:
 
     ```bash
-    crawclaw gateway status
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Most enterprise Azure teams already have GitHub Copilot licenses. If that is your case, we recommend choosing the GitHub Copilot provider in the CrawClaw onboarding wizard. See [GitHub Copilot provider](/providers/github-copilot).

@@ -85,7 +85,7 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
 
   <Step title="Run onboarding">
     ```bash
-    crawclaw onboard --install-daemon
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Follow the wizard. API keys are recommended over OAuth for headless devices. Telegram is the easiest channel to start with.
@@ -94,7 +94,7 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
 
   <Step title="Verify">
     ```bash
-    crawclaw status
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     sudo systemctl status crawclaw
     journalctl -u crawclaw -f
     ```
@@ -140,7 +140,7 @@ sudo systemctl disable bluetooth
 
 **Slow performance** -- Use a USB SSD instead of an SD card. Check for CPU throttling with `vcgencmd get_throttled` (should return `0x0`).
 
-**Service will not start** -- Check logs with `journalctl -u crawclaw --no-pager -n 100` and run `crawclaw doctor --non-interactive`.
+**Service will not start** -- Check logs with `journalctl -u crawclaw --no-pager -n 100` and run CrawClaw Desktop or the local Gateway API.
 
 **ARM binary issues** -- If a skill fails with "exec format error", check whether the binary has an ARM64 build. Verify architecture with `uname -m` (should show `aarch64`).
 

@@ -191,7 +191,7 @@ function resolveExtensionDirectory(targetArg, cwd = process.cwd()) {
     }
 
     throw new Error(
-      `Unknown extension target "${targetArg}". Use a plugin name like "slack" or a path inside the bundled plugin workspace tree.`,
+      `Unknown extension target "${targetArg}". Use a plugin name like "feishu" or a path inside the bundled plugin workspace tree.`,
     );
   }
 

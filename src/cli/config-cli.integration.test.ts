@@ -48,7 +48,7 @@ function createExecDryRunBatch(params: { markerPath: string }) {
       },
     },
     {
-      path: "channels.discord.token",
+      path: "channels.feishu.appSecret",
       ref: {
         source: "exec",
         provider: "runner",
@@ -117,7 +117,7 @@ describe("config cli integration", () => {
     const envSnapshot = captureEnv([
       "CRAWCLAW_CONFIG_PATH",
       "CRAWCLAW_TEST_FAST",
-      "DISCORD_BOT_TOKEN",
+      "FEISHU_APP_SECRET",
     ]);
     try {
       fs.writeFileSync(
@@ -140,11 +140,11 @@ describe("config cli integration", () => {
               provider: { source: "env" },
             },
             {
-              path: "channels.discord.token",
+              path: "channels.feishu.appSecret",
               ref: {
                 source: "env",
                 provider: "default",
-                id: "DISCORD_BOT_TOKEN",
+                id: "FEISHU_APP_SECRET",
               },
             },
           ],
@@ -156,7 +156,7 @@ describe("config cli integration", () => {
 
       process.env.CRAWCLAW_TEST_FAST = "1";
       process.env.CRAWCLAW_CONFIG_PATH = configPath;
-      process.env.DISCORD_BOT_TOKEN = "test-token";
+      process.env.FEISHU_APP_SECRET = "test-token";
       clearConfigCache();
       clearRuntimeConfigSnapshot();
 
@@ -186,10 +186,10 @@ describe("config cli integration", () => {
       expect(afterWrite.secrets?.providers?.default).toEqual({
         source: "env",
       });
-      expect(afterWrite.channels?.discord?.token).toEqual({
+      expect(afterWrite.channels?.feishu?.appSecret).toEqual({
         source: "env",
         provider: "default",
-        id: "DISCORD_BOT_TOKEN",
+        id: "FEISHU_APP_SECRET",
       });
     } finally {
       envSnapshot.restore();
@@ -235,7 +235,7 @@ describe("config cli integration", () => {
       const before = fs.readFileSync(configPath, "utf8");
       await expect(
         runConfigSet({
-          path: "channels.discord.token",
+          path: "channels.feishu.appSecret",
           cliOptions: {
             refProvider: "default",
             refSource: "env",

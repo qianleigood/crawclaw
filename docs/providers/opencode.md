@@ -17,20 +17,20 @@ Both catalogs use the same OpenCode API key. CrawClaw keeps the runtime provider
 split so upstream per-model routing stays correct, but onboarding and docs treat them
 as one OpenCode setup.
 
-## CLI setup
+## Desktop setup
 
 ### Zen catalog
 
 ```bash
-crawclaw onboard --auth-choice opencode-zen
-crawclaw onboard --opencode-zen-api-key "$OPENCODE_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Go catalog
 
 ```bash
-crawclaw onboard --auth-choice opencode-go
-crawclaw onboard --opencode-go-api-key "$OPENCODE_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Config snippet

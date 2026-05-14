@@ -50,11 +50,11 @@ describe("isCronRunSessionKey", () => {
   });
 
   it("does not match regular session keys", () => {
-    expect(isCronRunSessionKey("agent:main:telegram:dm:123")).toBe(false);
+    expect(isCronRunSessionKey("agent:main:feishu:dm:123")).toBe(false);
   });
 
   it("does not match non-canonical cron-like keys", () => {
-    expect(isCronRunSessionKey("agent:main:slack:cron:job:run:uuid")).toBe(false);
+    expect(isCronRunSessionKey("agent:main:ddingtalk:cron:job:run:uuid")).toBe(false);
     expect(isCronRunSessionKey("cron:job:run:uuid")).toBe(false);
   });
 });
@@ -85,7 +85,7 @@ describe("sweepCronRunSessions", () => {
         sessionId: "recent-run",
         updatedAt: now - 1 * 3_600_000, // 1h ago — not expired
       },
-      "agent:main:telegram:dm:123": {
+      "agent:main:feishu:dm:123": {
         sessionId: "regular-session",
         updatedAt: now - 100 * 3_600_000, // old but not a cron run
       },
@@ -106,7 +106,7 @@ describe("sweepCronRunSessions", () => {
     expect(updated["agent:main:cron:job1"]).toBeDefined();
     expect(updated["agent:main:cron:job1:run:old-run"]).toBeUndefined();
     expect(updated["agent:main:cron:job1:run:recent-run"]).toBeDefined();
-    expect(updated["agent:main:telegram:dm:123"]).toBeDefined();
+    expect(updated["agent:main:feishu:dm:123"]).toBeDefined();
   });
 
   it("archives transcript files for pruned run sessions that are no longer referenced", async () => {

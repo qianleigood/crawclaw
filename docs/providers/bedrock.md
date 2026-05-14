@@ -150,8 +150,8 @@ aws ec2 associate-iam-instance-profile \
   --iam-instance-profile Name=EC2-Bedrock-Access
 
 # 3. On the EC2 instance, enable discovery
-crawclaw config set models.bedrockDiscovery.enabled true
-crawclaw config set models.bedrockDiscovery.region us-east-1
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # 4. Set the workaround env vars
 echo 'export AWS_PROFILE=default' >> ~/.bashrc
@@ -159,7 +159,7 @@ echo 'export AWS_REGION=us-east-1' >> ~/.bashrc
 source ~/.bashrc
 
 # 5. Verify models are discovered
-crawclaw models list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Notes

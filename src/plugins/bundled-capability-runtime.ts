@@ -12,6 +12,11 @@ import { resolvePluginModuleExport } from "./entry-contract.js";
 import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
+import { nativeBundledSpeechProvidersForPlugin } from "./native-bundled-speech-providers.js";
+import {
+  nativeBundledWebFetchProvidersForPlugin,
+  nativeBundledWebSearchProvidersForPlugin,
+} from "./native-bundled-web-providers.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
 import type { PluginRecord, PluginRegistry } from "./registry.js";
 import {
@@ -128,6 +133,14 @@ function recordCapabilityLoadError(
   log.error(`[plugins] ${record.id} failed to load from ${record.source}: ${message}`);
 }
 
+function pushUnique(target: string[], values: readonly string[] | undefined): void {
+  for (const value of values ?? []) {
+    if (!target.includes(value)) {
+      target.push(value);
+    }
+  }
+}
+
 export function loadBundledCapabilityRuntimeRegistry(params: {
   pluginIds: readonly string[];
   env?: PluginLoadOptions["env"];
@@ -204,6 +217,71 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
       rootDir: candidate.rootDir,
       workspaceDir: candidate.workspaceDir,
     });
+
+    if (manifest.native || manifest.format === "native") {
+      const nativeSpeechProviders = nativeBundledSpeechProvidersForPlugin(record.id, {
+        rootDir: record.rootDir,
+      });
+      const nativeWebFetchProviders = nativeBundledWebFetchProvidersForPlugin(record.id);
+      const nativeWebSearchProviders = isApiKeylessBundledWebSearchPluginId(record.id)
+        ? nativeBundledWebSearchProvidersForPlugin(record.id)
+        : [];
+      pushUnique(record.providerIds, manifest.providers);
+      pushUnique(record.speechProviderIds, manifest.contracts?.speechProviders);
+      pushUnique(
+        record.speechProviderIds,
+        nativeSpeechProviders.map((provider) => provider.id),
+      );
+      pushUnique(
+        record.mediaUnderstandingProviderIds,
+        manifest.contracts?.mediaUnderstandingProviders,
+      );
+      pushUnique(record.webFetchProviderIds, manifest.contracts?.webFetchProviders);
+      pushUnique(
+        record.webFetchProviderIds,
+        nativeWebFetchProviders.map((provider) => provider.id),
+      );
+      pushUnique(
+        record.webSearchProviderIds,
+        isApiKeylessBundledWebSearchPluginId(record.id)
+          ? manifest.contracts?.webSearchProviders
+          : undefined,
+      );
+      pushUnique(
+        record.webSearchProviderIds,
+        nativeWebSearchProviders.map((provider) => provider.id),
+      );
+      pushUnique(record.toolNames, manifest.contracts?.tools);
+      registry.speechProviders.push(
+        ...nativeSpeechProviders.map((provider) => ({
+          pluginId: record.id,
+          pluginName: record.name,
+          provider,
+          source: record.source,
+          rootDir: record.rootDir,
+        })),
+      );
+      registry.webFetchProviders.push(
+        ...nativeWebFetchProviders.map(({ pluginId: _pluginId, ...provider }) => ({
+          pluginId: record.id,
+          pluginName: record.name,
+          provider,
+          source: record.source,
+          rootDir: record.rootDir,
+        })),
+      );
+      registry.webSearchProviders.push(
+        ...nativeWebSearchProviders.map(({ pluginId: _pluginId, ...provider }) => ({
+          pluginId: record.id,
+          pluginName: record.name,
+          provider,
+          source: record.source,
+          rootDir: record.rootDir,
+        })),
+      );
+      registry.plugins.push(record);
+      continue;
+    }
 
     const opened = openBoundaryFileSync({
       absolutePath: candidate.source,

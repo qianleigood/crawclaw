@@ -17,14 +17,14 @@ In CrawClaw you can authenticate with an API key or a **setup-token**.
 **Best for:** standard API access and usage-based billing.
 Create your API key in the Anthropic Console.
 
-### CLI setup
+### Desktop setup
 
 ```bash
-crawclaw onboard
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # choose: Anthropic API key
 
 # or non-interactive
-crawclaw onboard --anthropic-api-key "$ANTHROPIC_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Claude CLI config snippet
@@ -195,7 +195,7 @@ OAuth betas.
 and signed in with a Claude subscription.
 
 This path uses the local `claude` binary for model inference instead of calling
-the Anthropic API directly. CrawClaw treats it as a **CLI backend provider**
+the Anthropic API directly. CrawClaw treats it as a **local process backend provider**
 with model refs like:
 
 - `claude-cli/claude-sonnet-4-6`
@@ -268,7 +268,7 @@ If you currently use `anthropic/...` with a setup-token or API key and want to
 switch the same gateway host to Claude CLI:
 
 ```bash
-crawclaw models auth login --provider anthropic --method cli --set-default
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
@@ -293,11 +293,11 @@ you need to.
 ### Important limits
 
 - This is **not** the Anthropic API provider. It is the local CLI runtime.
-- Tools are disabled on the CrawClaw side for CLI backend runs.
+- Tools are disabled on the CrawClaw side for local process backend runs.
 - Text in, text out. No CrawClaw streaming handoff.
 - Best fit for a personal gateway host, not shared multi-user billing setups.
 
-More details: [/gateway/cli-backends](/gateway/cli-backends)
+More details: [/gateway/local-process-backends](/gateway/local-process-backends)
 
 ## Option C: Claude setup-token
 
@@ -314,20 +314,20 @@ claude setup-token
 Paste the token into CrawClaw (wizard: **Anthropic token (paste setup-token)**), or run it on the gateway host:
 
 ```bash
-crawclaw models auth setup-token --provider anthropic
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If you generated the token on a different machine, paste it:
 
 ```bash
-crawclaw models auth paste-token --provider anthropic
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-### CLI setup (setup-token)
+### Desktop setup (setup-token)
 
 ```bash
 # Paste a setup-token during setup
-crawclaw onboard --auth-choice setup-token
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Config snippet (setup-token)
@@ -340,7 +340,7 @@ crawclaw onboard --auth-choice setup-token
 
 ## Notes
 
-- Generate the setup-token with `claude setup-token` and paste it, or run `crawclaw models auth setup-token` on the gateway host.
+- Generate the setup-token with `claude setup-token` and paste it, or run CrawClaw Desktop or the local Gateway API on the gateway host.
 - If you see “OAuth token refresh failed …” on a Claude subscription, re-auth with a setup-token. See [/gateway/troubleshooting](/gateway/troubleshooting).
 - Auth details + reuse rules are in [/concepts/oauth](/concepts/oauth).
 
@@ -351,22 +351,22 @@ crawclaw onboard --auth-choice setup-token
 - Claude subscription auth can expire or be revoked. Re-run `claude setup-token`
   and paste it into the **gateway host**.
 - If the Claude CLI login lives on a different machine, use
-  `crawclaw models auth paste-token --provider anthropic` on the gateway host.
+  CrawClaw Desktop or the local Gateway API on the gateway host.
 
 **No API key found for provider "anthropic"**
 
 - Auth is **per agent**. New agents don’t inherit the main agent’s keys.
 - Re-run onboarding for that agent, or paste a setup-token / API key on the
-  gateway host, then verify with `crawclaw models status`.
+  gateway host, then verify with CrawClaw Desktop or the local Gateway API.
 
 **No credentials found for profile `anthropic:default`**
 
-- Run `crawclaw models status` to see which auth profile is active.
+- Run CrawClaw Desktop or the local Gateway API to see which auth profile is active.
 - Re-run onboarding, or paste a setup-token / API key for that profile.
 
 **No available auth profile (all in cooldown/unavailable)**
 
-- Check `crawclaw models status --json` for `auth.unusableProfiles`.
+- Check CrawClaw Desktop or the local Gateway API for `auth.unusableProfiles`.
 - Add another Anthropic profile or wait for cooldown.
 
 More: [/gateway/troubleshooting](/gateway/troubleshooting) and [/help/faq](/help/faq).

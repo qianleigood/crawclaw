@@ -63,8 +63,8 @@ function setBundledManifestIdsByRoot(manifestIds: Record<string, string>) {
 function setBundledLookupFixture() {
   setBundledDiscoveryCandidates([
     createBundledCandidate({
-      rootDir: appBundledPluginRoot("feishu"),
-      packageName: "@crawclaw/feishu",
+      rootDir: appBundledPluginRoot("acpx"),
+      packageName: "@crawclaw/acpx",
     }),
     createBundledCandidate({
       rootDir: appBundledPluginRoot("diffs"),
@@ -72,7 +72,7 @@ function setBundledLookupFixture() {
     }),
   ]);
   setBundledManifestIdsByRoot({
-    [appBundledPluginRoot("feishu")]: "feishu",
+    [appBundledPluginRoot("acpx")]: "acpx",
     [appBundledPluginRoot("diffs")]: "diffs",
   });
 }
@@ -130,34 +130,34 @@ describe("bundled plugin sources", () => {
     setBundledDiscoveryCandidates([
       createBundledCandidate({
         origin: "global",
-        rootDir: "/global/feishu",
-        packageName: "@crawclaw/feishu",
+        rootDir: "/global/acpx",
+        packageName: "@crawclaw/acpx",
       }),
       createBundledCandidate({
-        rootDir: appBundledPluginRoot("feishu"),
-        packageName: "@crawclaw/feishu",
+        rootDir: appBundledPluginRoot("acpx"),
+        packageName: "@crawclaw/acpx",
       }),
       createBundledCandidate({
-        rootDir: appBundledPluginRoot("feishu-dup"),
-        packageName: "@crawclaw/feishu",
+        rootDir: appBundledPluginRoot("acpx-dup"),
+        packageName: "@crawclaw/acpx",
       }),
       createBundledCandidate({
-        rootDir: appBundledPluginRoot("msteams"),
-        packageName: "@crawclaw/msteams",
+        rootDir: appBundledPluginRoot("device-pair"),
+        packageName: "@crawclaw/device-pair",
       }),
     ]);
     setBundledManifestIdsByRoot({
-      [appBundledPluginRoot("feishu")]: "feishu",
-      [appBundledPluginRoot("msteams")]: "msteams",
+      [appBundledPluginRoot("acpx")]: "acpx",
+      [appBundledPluginRoot("device-pair")]: "device-pair",
     });
 
     const map = resolveBundledPluginSources({});
 
-    expect(Array.from(map.keys())).toEqual(["feishu", "msteams"]);
-    expect(map.get("feishu")).toEqual(
+    expect(Array.from(map.keys())).toEqual(["acpx", "device-pair"]);
+    expect(map.get("acpx")).toEqual(
       createResolvedBundledSource({
-        pluginId: "feishu",
-        localPath: appBundledPluginRoot("feishu"),
+        pluginId: "acpx",
+        localPath: appBundledPluginRoot("acpx"),
       }),
     );
   });
@@ -165,8 +165,8 @@ describe("bundled plugin sources", () => {
   it.each([
     [
       "finds bundled source by npm spec",
-      { kind: "npmSpec", value: "@crawclaw/feishu" } as const,
-      { pluginId: "feishu", localPath: appBundledPluginRoot("feishu") },
+      { kind: "npmSpec", value: "@crawclaw/acpx" } as const,
+      { pluginId: "acpx", localPath: appBundledPluginRoot("acpx") },
     ],
     [
       "returns undefined for missing npm spec",
@@ -197,7 +197,7 @@ describe("bundled plugin sources", () => {
       env,
     });
     findBundledPluginSource({
-      lookup: { kind: "pluginId", value: "feishu" },
+      lookup: { kind: "pluginId", value: "acpx" },
       workspaceDir: "/workspace",
       env,
     });
@@ -215,10 +215,10 @@ describe("bundled plugin sources", () => {
   it("reuses a pre-resolved bundled map for repeated lookups", () => {
     const bundled = new Map([
       [
-        "feishu",
+        "acpx",
         createResolvedBundledSource({
-          pluginId: "feishu",
-          localPath: appBundledPluginRoot("feishu"),
+          pluginId: "acpx",
+          localPath: appBundledPluginRoot("acpx"),
         }),
       ],
     ]);
@@ -226,19 +226,19 @@ describe("bundled plugin sources", () => {
     expect(
       findBundledPluginSourceInMap({
         bundled,
-        lookup: { kind: "pluginId", value: "feishu" },
+        lookup: { kind: "pluginId", value: "acpx" },
       }),
     ).toEqual(
       createResolvedBundledSource({
-        pluginId: "feishu",
-        localPath: appBundledPluginRoot("feishu"),
+        pluginId: "acpx",
+        localPath: appBundledPluginRoot("acpx"),
       }),
     );
     expect(
       findBundledPluginSourceInMap({
         bundled,
-        lookup: { kind: "npmSpec", value: "@crawclaw/feishu" },
+        lookup: { kind: "npmSpec", value: "@crawclaw/acpx" },
       })?.pluginId,
-    ).toBe("feishu");
+    ).toBe("acpx");
   });
 });

@@ -29,19 +29,19 @@ flowchart TD
     Q5 -->|Yes| SO[Standing Orders]
 ```
 
-| Use case                                | Recommended            | Why                                              |
-| --------------------------------------- | ---------------------- | ------------------------------------------------ |
-| Send daily report at 9 AM sharp         | Scheduled Tasks (Cron) | Exact timing, isolated execution                 |
-| Remind me in 20 minutes                 | Scheduled Tasks (Cron) | One-shot with precise timing (`--at`)            |
-| Run weekly deep analysis                | Scheduled Tasks (Cron) | Standalone task, can use different model         |
-| Check inbox every 30 min                | Scheduled Tasks (Cron) | Use a main-session cron job for shared context   |
-| Monitor calendar for upcoming events    | Scheduled Tasks (Cron) | Explicit schedule, visible run records           |
-| Inspect status of a subagent or ACP run | Background Tasks       | Tasks ledger tracks all detached work            |
-| Audit what ran and when                 | Background Tasks       | `crawclaw tasks list` and `crawclaw tasks audit` |
-| Multi-step research then summarize      | Task Flow              | Durable orchestration with revision tracking     |
-| Run a script on session reset           | Hooks                  | Event-driven, fires on lifecycle events          |
-| Execute code on every tool call         | Hooks                  | Hooks can filter by event type                   |
-| Always check compliance before replying | Standing Orders        | Injected into every session automatically        |
+| Use case                                | Recommended            | Why                                            |
+| --------------------------------------- | ---------------------- | ---------------------------------------------- |
+| Send daily report at 9 AM sharp         | Scheduled Tasks (Cron) | Exact timing, isolated execution               |
+| Remind me in 20 minutes                 | Scheduled Tasks (Cron) | One-shot with precise timing (`--at`)          |
+| Run weekly deep analysis                | Scheduled Tasks (Cron) | Standalone task, can use different model       |
+| Check inbox every 30 min                | Scheduled Tasks (Cron) | Use a main-session cron job for shared context |
+| Monitor calendar for upcoming events    | Scheduled Tasks (Cron) | Explicit schedule, visible run records         |
+| Inspect status of a subagent or ACP run | Background Tasks       | Tasks ledger tracks all detached work          |
+| Audit what ran and when                 | Background Tasks       | Desktop task ledger or Gateway API             |
+| Multi-step research then summarize      | Task Flow              | Durable orchestration with revision tracking   |
+| Run a script on session reset           | Hooks                  | Event-driven, fires on lifecycle events        |
+| Execute code on every tool call         | Hooks                  | Hooks can filter by event type                 |
+| Always check compliance before replying | Standing Orders        | Injected into every session automatically      |
 
 ### Scheduled Tasks and main-session wakes
 
@@ -67,13 +67,13 @@ See [Scheduled Tasks](/automation/cron-jobs).
 
 ### Tasks
 
-The background task ledger tracks all detached work: ACP runs, subagent spawns, isolated cron executions, and CLI operations. Tasks are records, not schedulers. Use `crawclaw tasks list` and `crawclaw tasks audit` to inspect them.
+The background task ledger tracks all detached work: ACP runs, subagent spawns, isolated cron executions, and Gateway API operations. Tasks are records, not schedulers. Use CrawClaw Desktop or the Gateway API to inspect them.
 
 See [Background Tasks](/automation/tasks).
 
 ### Task Flow
 
-Task Flow is the flow orchestration substrate above background tasks. It manages durable multi-step flows with managed and mirrored sync modes, revision tracking, and `crawclaw tasks flow list|show|cancel` for inspection.
+Task Flow is the flow orchestration substrate above background tasks. It manages durable multi-step flows with managed and mirrored sync modes, revision tracking, and Gateway API task-flow inspection.
 
 See [Task Flow](/automation/taskflow).
 
@@ -85,15 +85,14 @@ See [Standing Orders](/automation/standing-orders).
 
 ### Hooks
 
-Hooks are event-driven scripts triggered by agent lifecycle events (`/new`, `/stop`), session compaction, gateway startup, message flow, and tool calls. Hooks are automatically discovered from directories and can be managed with `crawclaw hooks`.
+Hooks are event-driven scripts triggered by agent lifecycle events (`/new`, `/stop`), session compaction, gateway startup, message flow, and tool calls. Hooks are automatically discovered from directories and can be managed with CrawClaw Desktop or the local Gateway API.
 
 See [Hooks](/automation/hooks).
 
 ### Main-session wakes
 
 Main-session wakes are event-driven turns requested by cron, hooks, background
-task completion, restart recovery, node notifications, or `crawclaw system
-event`. They preserve main-session context without relying on the legacy
+task completion, restart recovery, node notifications, or CrawClaw Desktop or the local Gateway API. They preserve main-session context without relying on the legacy
 periodic heartbeat cadence.
 
 See [Heartbeat](/gateway/heartbeat) for legacy compatibility notes.

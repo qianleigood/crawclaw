@@ -32,12 +32,12 @@ runtime is still owned by the ACP backend.
   workspace.
 - The harness's internal transcript, memory model, and tool state are backend
   concerns, not part of CrawClaw's built-in memory runtime.
-- `crawclaw agent inspect`, `crawclaw agent export-context`, and
-  `crawclaw agents status` show the CrawClaw-side wrapper/task/archive state,
+- CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and
+  CrawClaw Desktop or the local Gateway API show the CrawClaw-side wrapper/task/archive state,
   not the harness's private internal buffers.
 
 If you want Codex or Claude Code to connect as an external MCP client directly
-to existing CrawClaw channel conversations, use [`crawclaw mcp serve`](/cli/mcp)
+to existing CrawClaw channel conversations, use [CrawClaw Desktop or the local Gateway API](/gateway/protocol)
 instead of ACP.
 
 ## Fast operator flow
@@ -634,14 +634,14 @@ See [Configuration Reference](/gateway/configuration-reference).
 Install and enable plugin:
 
 ```bash
-crawclaw plugins install acpx
-crawclaw config set plugins.entries.acpx.enabled true
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Local workspace install during development:
 
 ```bash
-crawclaw plugins install ./path/to/local/acpx-plugin
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Then verify backend health:
@@ -691,10 +691,10 @@ See [Plugins](/tools/plugin).
 
 ### Automatic dependency install
 
-When you install CrawClaw globally with `npm install -g crawclaw`, the acpx
+When CrawClaw Desktop bundles ACP support, the acpx
 runtime dependencies (platform-specific binaries) are installed automatically
 via a postinstall hook. If the automatic install fails, the gateway still starts
-normally and reports the missing dependency through `crawclaw acp doctor`.
+normally and reports the missing dependency through CrawClaw Desktop or the local Gateway API.
 
 ### Plugin tools MCP bridge
 
@@ -705,7 +705,7 @@ If you want ACP agents such as Codex or Claude Code to call installed
 CrawClaw plugin tools such as memory recall/store, enable the dedicated bridge:
 
 ```bash
-crawclaw config set plugins.entries.acpx.config.pluginToolsMcpBridge true
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 What this does:
@@ -757,8 +757,8 @@ Controls what happens when a permission prompt would be shown but no interactive
 Set via plugin config:
 
 ```bash
-crawclaw config set plugins.entries.acpx.config.permissionMode approve-all
-crawclaw config set plugins.entries.acpx.config.nonInteractivePermissions fail
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Restart the gateway after changing these values.

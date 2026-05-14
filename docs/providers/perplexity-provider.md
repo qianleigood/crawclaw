@@ -25,13 +25,13 @@ model-visible `web_search` tool now uses [Open-WebSearch](/tools/open-websearch)
 1. Set the API key:
 
 ```bash
-crawclaw configure --section web
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Or set it directly:
 
 ```bash
-crawclaw config set plugins.entries.perplexity.config.webSearch.apiKey "pplx-xxxxxxxxxxxx"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 2. The agent will automatically use Perplexity for web searches when configured.

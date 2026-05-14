@@ -1,11 +1,9 @@
 import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import { shouldAllowBundledTsChannelRuntime } from "../../channels/plugins/bundled-runtime-policy.js";
 import type { ChannelId, ChannelThreadingToolContext } from "../../channels/plugins/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { appendAssistantMessageToSessionTranscript } from "../../config/sessions.js";
 import type { OutboundMediaAccess, OutboundMediaReadFile } from "../../media/load-options.js";
 import { resolveAgentScopedOutboundMediaAccess } from "../../media/read-capability.js";
-import { listBundledPluginMetadata } from "../../plugins/bundled-plugin-metadata.js";
 import type { GatewayClientMode, GatewayClientName } from "../../utils/message-channel.js";
 import { throwIfAborted } from "./abort.js";
 import type { OutboundSendDeps } from "./deliver.js";
@@ -14,7 +12,10 @@ import { buildRustChannelOutboundRequest } from "./message-policy-runtime.js";
 import type { MessagePollResult, MessageSendResult } from "./message.js";
 import { sendMessage, sendPoll } from "./message.js";
 import type { OutboundMirror } from "./mirror.js";
+import { shouldUseNativeGatewayOutbound } from "./outbound-transport-policy.js";
 import { extractToolPayload } from "./tool-payload.js";
+
+export { shouldUseNativeGatewayOutbound } from "./outbound-transport-policy.js";
 
 export type OutboundGatewayContext = {
   url?: string;
@@ -57,29 +58,6 @@ type PluginHandledResult = {
   toolResult: AgentToolResult<unknown>;
 };
 
-let cachedBundledChannelIds: Set<string> | null = null;
-
-function listBundledChannelIds(): Set<string> {
-  if (cachedBundledChannelIds) {
-    return cachedBundledChannelIds;
-  }
-  const ids = new Set<string>();
-  for (const entry of listBundledPluginMetadata({
-    includeChannelConfigs: false,
-    includeSyntheticChannelConfigs: false,
-  })) {
-    for (const channel of entry.manifest.channels ?? []) {
-      ids.add(channel);
-    }
-  }
-  cachedBundledChannelIds = ids;
-  return ids;
-}
-
-export function shouldUseNativeGatewayOutbound(channel: ChannelId): boolean {
-  return !shouldAllowBundledTsChannelRuntime() && listBundledChannelIds().has(channel);
-}
-
 function collectActionMediaSources(params: Record<string, unknown>): string[] {
   const sources: string[] = [];
   for (const key of ["media", "mediaUrl", "path", "filePath", "fileUrl"] as const) {
@@ -99,7 +77,7 @@ async function tryHandleWithPluginAction(params: {
   if (params.ctx.dryRun) {
     return null;
   }
-  if (shouldUseNativeGatewayOutbound(params.ctx.channel)) {
+  if (await shouldUseNativeGatewayOutbound(params.ctx.channel)) {
     return null;
   }
   const mediaAccess = resolveAgentScopedOutboundMediaAccess({
@@ -166,7 +144,7 @@ export async function executeSendAction(params: {
   sendResult?: MessageSendResult;
 }> {
   throwIfAborted(params.ctx.abortSignal);
-  const nativeGateway = shouldUseNativeGatewayOutbound(params.ctx.channel);
+  const nativeGateway = await shouldUseNativeGatewayOutbound(params.ctx.channel);
   const pluginHandled = await tryHandleWithPluginAction({
     ctx: params.ctx,
     action: "send",
@@ -262,7 +240,7 @@ export async function executePollAction(params: {
   toolResult?: AgentToolResult<unknown>;
   pollResult?: MessagePollResult;
 }> {
-  const nativeGateway = shouldUseNativeGatewayOutbound(params.ctx.channel);
+  const nativeGateway = await shouldUseNativeGatewayOutbound(params.ctx.channel);
   const pluginHandled = await tryHandleWithPluginAction({
     ctx: params.ctx,
     action: "poll",

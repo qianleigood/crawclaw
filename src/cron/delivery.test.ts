@@ -23,12 +23,12 @@ describe("resolveCronDeliveryPlan", () => {
   it("defaults to announce when delivery object has no mode", () => {
     const plan = resolveCronDeliveryPlan(
       makeJob({
-        delivery: { channel: "telegram", to: "123", mode: undefined as never },
+        delivery: { channel: "feishu", to: "123", mode: undefined as never },
       }),
     );
     expect(plan.mode).toBe("announce");
     expect(plan.requested).toBe(true);
-    expect(plan.channel).toBe("telegram");
+    expect(plan.channel).toBe("feishu");
     expect(plan.to).toBe("123");
   });
 
@@ -47,13 +47,13 @@ describe("resolveCronDeliveryPlan", () => {
   it("resolves mode=none with requested=false and no channel (#21808)", () => {
     const plan = resolveCronDeliveryPlan(
       makeJob({
-        delivery: { mode: "none", to: "telegram:123" },
+        delivery: { mode: "none", to: "feishu:123" },
       }),
     );
     expect(plan.mode).toBe("none");
     expect(plan.requested).toBe(false);
     expect(plan.channel).toBeUndefined();
-    expect(plan.to).toBe("telegram:123");
+    expect(plan.to).toBe("feishu:123");
   });
 
   it("resolves webhook mode without channel routing", () => {
@@ -73,7 +73,7 @@ describe("resolveCronDeliveryPlan", () => {
       makeJob({
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "123",
           accountId: " bot-a ",
         },
@@ -81,7 +81,7 @@ describe("resolveCronDeliveryPlan", () => {
     );
     expect(plan.mode).toBe("announce");
     expect(plan.requested).toBe(true);
-    expect(plan.channel).toBe("telegram");
+    expect(plan.channel).toBe("feishu");
     expect(plan.to).toBe("123");
     expect(plan.accountId).toBe("bot-a");
   });
@@ -91,7 +91,7 @@ describe("resolveCronDeliveryPlan", () => {
       makeJob({
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "-1001234567890",
           threadId: "99",
         },
@@ -99,7 +99,7 @@ describe("resolveCronDeliveryPlan", () => {
     );
     expect(plan.mode).toBe("announce");
     expect(plan.requested).toBe(true);
-    expect(plan.channel).toBe("telegram");
+    expect(plan.channel).toBe("feishu");
     expect(plan.to).toBe("-1001234567890");
     expect(plan.threadId).toBe("99");
   });
@@ -111,13 +111,13 @@ describe("resolveFailureDestination", () => {
       makeJob({
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "111",
-          failureDestination: { channel: "signal", mode: "announce" },
+          failureDestination: { channel: "weixin", mode: "announce" },
         },
       }),
       {
-        channel: "telegram",
+        channel: "feishu",
         to: "222",
         mode: "announce",
         accountId: "global-account",
@@ -125,7 +125,7 @@ describe("resolveFailureDestination", () => {
     );
     expect(plan).toEqual({
       mode: "announce",
-      channel: "signal",
+      channel: "weixin",
       to: "222",
       accountId: "global-account",
     });
@@ -136,7 +136,7 @@ describe("resolveFailureDestination", () => {
       makeJob({
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "111",
           failureDestination: { mode: "webhook" },
         },
@@ -151,12 +151,12 @@ describe("resolveFailureDestination", () => {
       makeJob({
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "111",
           accountId: "bot-a",
           failureDestination: {
             mode: "announce",
-            channel: "telegram",
+            channel: "feishu",
             to: "111",
             accountId: "bot-a",
           },
@@ -191,7 +191,7 @@ describe("resolveFailureDestination", () => {
       makeJob({
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "111",
           failureDestination: {
             mode: "webhook",
@@ -199,7 +199,7 @@ describe("resolveFailureDestination", () => {
         },
       }),
       {
-        channel: "signal",
+        channel: "weixin",
         to: "group-abc",
         mode: "announce",
       },
@@ -212,7 +212,7 @@ describe("resolveFailureDestination", () => {
       makeJob({
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "111",
           failureDestination: {
             mode: "announce",
@@ -223,7 +223,7 @@ describe("resolveFailureDestination", () => {
         },
       }),
       {
-        channel: "signal",
+        channel: "weixin",
         to: "group-abc",
         accountId: "global-account",
         mode: "announce",

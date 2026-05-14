@@ -2,7 +2,7 @@
 summary: "Task Flow flow orchestration layer above background tasks"
 read_when:
   - You want to understand how Task Flow relates to background tasks
-  - You encounter Task Flow or crawclaw tasks flow in release notes or docs
+  - You encounter Task Flow in release notes or docs
   - You want to inspect or manage durable flow state
 title: "Task Flow"
 ---
@@ -39,7 +39,7 @@ Flow: weekly-report
 
 ### Mirrored mode
 
-Task Flow observes externally created tasks and keeps flow state in sync without taking ownership of task creation. This is useful when tasks originate from cron jobs, CLI commands, or other sources and you want a unified view of their progress as a flow.
+Task Flow observes externally created tasks and keeps flow state in sync without taking ownership of task creation. This is useful when tasks originate from cron jobs, Desktop and Gateway API actions, or other sources and you want a unified view of their progress as a flow.
 
 Example: three independent cron jobs that together form a "morning ops" routine. A mirrored flow tracks their collective progress without controlling when or how they run.
 
@@ -49,34 +49,34 @@ Each flow persists its own state and tracks revisions so progress survives gatew
 
 ## Cancel behavior
 
-`crawclaw tasks flow cancel` sets a sticky cancel intent on the flow. Active tasks within the flow are cancelled, and no new steps are started. The cancel intent persists across restarts, so a cancelled flow stays cancelled even if the gateway restarts before all child tasks have terminated.
+A Gateway API task-flow cancel sets a sticky cancel intent on the flow. Active tasks within the flow are cancelled, and no new steps are started. The cancel intent persists across restarts, so a cancelled flow stays cancelled even if the gateway restarts before all child tasks have terminated.
 
-## CLI commands
+## Desktop and Gateway API actions
 
 ```bash
 # List active and recent flows
-crawclaw tasks flow list
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Show details for a specific flow
-crawclaw tasks flow show <lookup>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Cancel a running flow and its active tasks
-crawclaw tasks flow cancel <lookup>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-| Command                           | Description                                   |
-| --------------------------------- | --------------------------------------------- |
-| `crawclaw tasks flow list`        | Shows tracked flows with status and sync mode |
-| `crawclaw tasks flow show <id>`   | Inspect one flow by flow id or lookup key     |
-| `crawclaw tasks flow cancel <id>` | Cancel a running flow and its active tasks    |
+| Command     | Description                                   |
+| ----------- | --------------------------------------------- |
+| List flows  | Shows tracked flows with status and sync mode |
+| Show flow   | Inspect one flow by flow id or lookup key     |
+| Cancel flow | Cancel a running flow and its active tasks    |
 
 ## How flows relate to tasks
 
-Flows coordinate tasks, not replace them. A single flow may drive multiple background tasks over its lifetime. Use `crawclaw tasks` to inspect individual task records and `crawclaw tasks flow` to inspect the orchestrating flow.
+Flows coordinate tasks, not replace them. A single flow may drive multiple background tasks over its lifetime. Use Desktop or the Gateway API to inspect individual task records and orchestrating flows.
 
 ## Related
 
 - [Background Tasks](/automation/tasks) — the detached work ledger that flows coordinate
-- [CLI: tasks](/cli/index#tasks) — CLI command reference for `crawclaw tasks flow`
+- [Gateway tasks](/gateway/protocol#tasks) — API reference for task flow automation
 - [Automation Overview](/automation) — all automation mechanisms at a glance
 - [Cron Jobs](/automation/cron-jobs) — scheduled jobs that may feed into flows

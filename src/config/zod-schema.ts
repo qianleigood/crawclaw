@@ -387,14 +387,7 @@ export const CrawClawSchema = z
     browser: z
       .object({
         enabled: z.boolean().optional(),
-        provider: z.literal("pinchtab").optional(),
-        pinchtab: z
-          .object({
-            baseUrl: z.string().optional(),
-            token: z.string().optional().register(sensitive),
-          })
-          .strict()
-          .optional(),
+        provider: z.literal("agent-browser").optional(),
         evaluateEnabled: z.boolean().optional(),
         cdpUrl: z.string().optional(),
         remoteCdpTimeoutMs: z.number().int().nonnegative().optional(),

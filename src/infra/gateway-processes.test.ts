@@ -65,18 +65,12 @@ describe("gateway-processes", () => {
 
   it("reads linux process args from /proc and parses cmdlines", () => {
     setPlatform("linux");
-    const rawCmdline = ["/app/dist/native/crawclaw", "gateway", "--port", "18789", ""].join("\0");
+    const rawCmdline = ["/app/dist/native/crawclaw-gateway", "--port", "18789", ""].join("\0");
     readFileSyncMock.mockReturnValue(rawCmdline);
-    parseProcCmdlineMock.mockReturnValue([
-      "/app/dist/native/crawclaw",
-      "gateway",
-      "--port",
-      "18789",
-    ]);
+    parseProcCmdlineMock.mockReturnValue(["/app/dist/native/crawclaw-gateway", "--port", "18789"]);
 
     expect(readGatewayProcessArgsSync(4242)).toEqual([
-      "/app/dist/native/crawclaw",
-      "gateway",
+      "/app/dist/native/crawclaw-gateway",
       "--port",
       "18789",
     ]);
@@ -90,7 +84,7 @@ describe("gateway-processes", () => {
       .mockReturnValueOnce({
         error: null,
         status: 0,
-        stdout: "/app/dist/native/crawclaw gateway --port 18789\n",
+        stdout: "/app/dist/native/crawclaw-gateway --port 18789\n",
       })
       .mockReturnValueOnce({
         error: null,
@@ -99,8 +93,7 @@ describe("gateway-processes", () => {
       });
 
     expect(readGatewayProcessArgsSync(123)).toEqual([
-      "/app/dist/native/crawclaw",
-      "gateway",
+      "/app/dist/native/crawclaw-gateway",
       "--port",
       "18789",
     ]);

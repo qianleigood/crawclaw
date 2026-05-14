@@ -21,7 +21,7 @@ title: "Hugging Face (Inference)"
 2. Run onboarding and choose **Hugging Face** in the provider dropdown, then enter your API key when prompted:
 
 ```bash
-crawclaw onboard --auth-choice huggingface-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 3. In the **Default Hugging Face model** dropdown, pick the model you want (the list is loaded from the Inference API when you have a valid token; otherwise a built-in list is shown). Your choice is saved as the default model.
@@ -40,10 +40,7 @@ crawclaw onboard --auth-choice huggingface-api-key
 ## Non-interactive example
 
 ```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice huggingface-api-key \
-  --huggingface-api-key "$HF_TOKEN"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 This will set `huggingface/deepseek-ai/DeepSeek-R1` as the default model.

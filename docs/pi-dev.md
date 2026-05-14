@@ -53,8 +53,8 @@ Recommended flow:
 - Run the gateway in dev mode:
   - `pnpm gateway:dev`
 - Trigger the agent directly:
-  - `pnpm crawclaw agent --message "Hello" --thinking low`
-- Use the desktop client or `pnpm crawclaw agent --message "Hello" --thinking low` for interactive debugging.
+  - `pnpm CrawClaw Desktop or the local Gateway API
+- Use the desktop client or `pnpm CrawClaw Desktop or the local Gateway API.
 
 For tool call behavior, prompt for a `read` or `exec` action so you can see tool streaming and payload handling.
 

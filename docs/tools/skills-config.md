@@ -71,7 +71,7 @@ Per-skill fields:
   `skills.load.extraDirs`.
 - Changes to skills are picked up on the next agent turn when the watcher is enabled.
 - Bundled core skill helper dependencies are installed through postinstall /
-  `crawclaw runtimes install` under `~/.crawclaw/runtimes/core-skills/venv`.
+  CrawClaw Desktop or the local Gateway API under `~/.crawclaw/runtimes/core-skills/venv`.
   Per-skill installer metadata is for optional external tools, not for core
   skill Python package bootstrapping.
 

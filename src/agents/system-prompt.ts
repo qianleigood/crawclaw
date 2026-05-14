@@ -215,7 +215,6 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
     `CrawClaw docs: ${docsPath}`,
     "Mirror: https://docs.crawclaw.ai",
     "Source: https://github.com/qianleigood/crawclaw",
-    "Community: https://discord.com/invite/clawd",
     "Find new skills: https://clawhub.ai",
     "For CrawClaw behavior, commands, config, or architecture: consult local docs first.",
     "When diagnosing issues, run `crawclaw status` yourself when possible; only ask the user if you lack access.",
@@ -225,13 +224,8 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
 
 function buildExecApprovalPromptGuidance(params: { runtimeChannel?: string }) {
   const runtimeChannel = params.runtimeChannel?.trim().toLowerCase();
-  if (
-    runtimeChannel === "discord" ||
-    runtimeChannel === "slack" ||
-    runtimeChannel === "telegram" ||
-    runtimeChannel === "webchat"
-  ) {
-    return "When bash returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear and do not also send plain chat /approve instructions. Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.";
+  if (runtimeChannel === "webchat") {
+    return "When bash returns approval-pending on WebChat, rely on the native approval card/buttons when they appear and do not also send plain chat /approve instructions. Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.";
   }
   return "When bash returns approval-pending, include the concrete /approve command from tool output as plain chat text for the user, and do not ask for a different or rotated code.";
 }

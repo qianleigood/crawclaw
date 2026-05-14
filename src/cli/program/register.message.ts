@@ -5,7 +5,6 @@ import { formatHelpExamples } from "../help-format.js";
 import type { ProgramContext } from "./context.js";
 import { createMessageCliHelpers } from "./message/helpers.js";
 import { registerMessageBroadcastCommand } from "./message/register.broadcast.js";
-import { registerMessageDiscordAdminCommands } from "./message/register.discord-admin.js";
 import {
   registerMessageEmojiCommands,
   registerMessageStickerCommands,
@@ -40,11 +39,11 @@ ${formatHelpExamples([
     ctx.t("command.message.example.sendMedia"),
   ],
   [
-    'crawclaw message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi',
-    ctx.t("command.message.example.discordPoll"),
+    'crawclaw message poll --channel feishu --target chat:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi',
+    ctx.t("command.message.example.poll"),
   ],
   [
-    'crawclaw message react --channel discord --target 123 --message-id 456 --emoji "✅"',
+    'crawclaw message react --channel feishu --target chat:123 --message-id 456 --emoji "✅"',
     ctx.t("command.message.example.react"),
   ],
 ])}
@@ -67,5 +66,4 @@ ${theme.muted(ctx.t("cli.help.docsLabel"))} ${formatDocsLink("/cli/message", "do
   registerMessageThreadCommands(message, helpers);
   registerMessageEmojiCommands(message, helpers);
   registerMessageStickerCommands(message, helpers);
-  registerMessageDiscordAdminCommands(message, helpers);
 }

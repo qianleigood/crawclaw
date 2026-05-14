@@ -35,7 +35,6 @@ export type GatewayReconfigureAction =
   | "restart-update-check"
   | "restart-media-cleanup"
   | "reload-plugin-runtime"
-  | "reload-browser-runtime"
   | `restart-channel:${ChannelId}`;
 
 export type GatewayReconfigureOwner = {
@@ -171,8 +170,7 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
   {
     id: "gateway-browser-runtime",
     prefixes: ["browser"],
-    effect: "reconfigure",
-    actions: ["reload-browser-runtime"],
+    effect: "noop",
   },
   {
     id: "gateway-long-tail-config",
@@ -212,22 +210,6 @@ function listChannelReloadOwners(): GatewayReconfigureOwner[] {
   })) {
     for (const channelId of entry.manifest.channels ?? []) {
       if (!channelId) {
-        continue;
-      }
-      if (channelId === "whatsapp") {
-        owners.push(
-          {
-            id: "gateway-channel-runtime",
-            prefixes: ["web"],
-            effect: "reconfigure",
-            actions: ["restart-channel:whatsapp"],
-          },
-          {
-            id: "gateway-channel-runtime",
-            prefixes: ["channels.whatsapp"],
-            effect: "noop",
-          },
-        );
         continue;
       }
       owners.push({

@@ -36,7 +36,7 @@ export type SecretsPlanTarget = {
    */
   providerId?: string;
   /**
-   * For googlechat account-scoped targets.
+   * For account-scoped targets.
    */
   accountId?: string;
   /**

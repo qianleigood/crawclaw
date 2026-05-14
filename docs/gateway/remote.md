@@ -73,8 +73,8 @@ ssh -N -L 18789:127.0.0.1:18789 user@host
 
 With the tunnel up:
 
-- `crawclaw health` and `crawclaw status --deep` now reach the remote gateway via `ws://127.0.0.1:18789`.
-- `crawclaw gateway {status,health,send,agent,call}` can also target the forwarded URL via `--url` when needed.
+- CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API now reach the remote gateway via `ws://127.0.0.1:18789`.
+- CrawClaw Desktop or the local Gateway API can also target the forwarded URL via `--url` when needed.
 
 Note: replace `18789` with your configured `gateway.port` (or `--port`/`CRAWCLAW_GATEWAY_PORT`).
 Note: when you pass `--url`, the CLI does not fall back to config or environment credentials.
@@ -82,7 +82,7 @@ Include `--token` or `--password` explicitly. Missing explicit credentials is an
 
 ## CLI remote defaults
 
-You can persist a remote target so CLI commands use it by default:
+You can persist a remote target so Desktop and Gateway API actions use it by default:
 
 ```json5
 {
@@ -175,7 +175,7 @@ ssh-copy-id -i ~/.ssh/id_rsa <REMOTE_USER>@<REMOTE_IP>
 Store the token in config so it persists across restarts:
 
 ```bash
-crawclaw config set gateway.remote.token "<your-token>"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 #### Step 4: create the LaunchAgent

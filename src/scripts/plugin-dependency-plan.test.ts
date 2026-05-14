@@ -105,7 +105,7 @@ async function createFixtureRepo(): Promise<string> {
     path.join(repoRoot, "scripts", "install-plugin-runtimes.mjs"),
     [
       'const OPEN_WEBSEARCH_VERSION = "2.1.5";',
-      'const PINCHTAB_VERSION = "0.9.1";',
+      'const AGENT_BROWSER_VERSION = "0.27.0";',
       'const WINDOWS_SCRAPLING_RUNTIME_PACKAGES = ["msvc-runtime==14.44.35112"];',
       '"No supported Python interpreter found for scrapling-fetch; requires Python >= 3.10.";',
       "env.CRAWCLAW_RUNTIME_PYTHON;",
@@ -126,6 +126,14 @@ async function createFixtureRepo(): Promise<string> {
   await fs.writeFile(
     path.join(repoRoot, "extensions", "scrapling-fetch", "runtime", "requirements.lock.txt"),
     "Scrapling==0.4.6\ncurl-cffi==0.13.0\n",
+    "utf8",
+  );
+  await fs.mkdir(path.join(repoRoot, "extensions", "qwen3-tts", "runtime"), {
+    recursive: true,
+  });
+  await fs.writeFile(
+    path.join(repoRoot, "extensions", "qwen3-tts", "runtime", "requirements.python.lock.txt"),
+    "qwen-tts==0.1.1\n",
     "utf8",
   );
   return repoRoot;
@@ -195,7 +203,7 @@ describe("plugin dependency plan", () => {
       expect.objectContaining({
         id: "browser",
         installTime: true,
-        npmPackage: "pinchtab@0.9.1",
+        npmPackage: "agent-browser@0.27.0",
         source: "scripts/install-plugin-runtimes.mjs",
       }),
       expect.objectContaining({

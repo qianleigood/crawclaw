@@ -46,13 +46,13 @@ If you link your personal WhatsApp to CrawClaw, every message to you becomes “
 1. Pair WhatsApp Web (shows QR; scan with the assistant phone):
 
 ```bash
-crawclaw channels login
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 2. Start the Gateway (leave it running):
 
 ```bash
-crawclaw gateway --port 18789
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 3. Put a minimal config in `~/.crawclaw/crawclaw.json`:
@@ -87,7 +87,7 @@ Default runtime bootstrap injection is intentionally narrow:
 Tip: treat this folder like CrawClaw’s “memory” and make it a git repo (ideally private) so your `AGENTS.md` + memory files are backed up. If git is installed, brand-new workspaces are auto-initialized.
 
 ```bash
-crawclaw setup
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Full workspace layout + backup guide: [Agent workspace](/concepts/agent-workspace)
@@ -200,10 +200,10 @@ That means generated images/files outside the workspace can now send when your f
 ## Operations checklist
 
 ```bash
-crawclaw status          # local status (creds, sessions, queued events)
-crawclaw status --all    # full diagnosis (read-only, pasteable)
-crawclaw status --deep   # adds gateway health probes (Telegram + Discord)
-crawclaw health --json   # gateway health snapshot (WS)
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Logs live under `/tmp/crawclaw/` (default: `crawclaw-YYYY-MM-DD.log`).

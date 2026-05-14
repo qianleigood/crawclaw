@@ -15,7 +15,7 @@ describe("config validation fail-closed behavior", () => {
         agents: { list: [{ id: "main" }] },
         nope: true,
         channels: {
-          whatsapp: {
+          feishu: {
             dmPolicy: "allowlist",
             allowFrom: ["+1234567890"],
           },
@@ -42,7 +42,7 @@ describe("config validation fail-closed behavior", () => {
       {
         agents: { list: [{ id: "main" }] },
         channels: {
-          whatsapp: {
+          feishu: {
             dmPolicy: "allowlist",
             allowFrom: ["+1234567890"],
           },
@@ -50,8 +50,8 @@ describe("config validation fail-closed behavior", () => {
       },
       async () => {
         const cfg = loadConfig();
-        expect(cfg.channels?.whatsapp?.dmPolicy).toBe("allowlist");
-        expect(cfg.channels?.whatsapp?.allowFrom).toEqual(["+1234567890"]);
+        expect(cfg.channels?.feishu?.dmPolicy).toBe("allowlist");
+        expect(cfg.channels?.feishu?.allowFrom).toEqual(["+1234567890"]);
       },
     );
   });

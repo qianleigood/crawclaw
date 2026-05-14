@@ -42,7 +42,7 @@ You can override this in `~/.crawclaw/crawclaw.json`:
 Use the CLI to tail the gateway log file via RPC:
 
 ```bash
-crawclaw logs --follow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Output modes:
@@ -63,7 +63,7 @@ In JSON mode, the CLI emits `type`-tagged objects:
 If the Gateway is unreachable, the CLI prints a short hint to run:
 
 ```bash
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Channel-only logs
@@ -71,7 +71,7 @@ crawclaw doctor
 To filter channel activity (WhatsApp/Telegram/etc), use:
 
 ```bash
-crawclaw channels logs --channel whatsapp
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Log formats
@@ -113,7 +113,7 @@ All logging configuration lives under `logging` in `~/.crawclaw/crawclaw.json`.
 - `logging.level`: **file logs** (JSONL) level.
 - `logging.consoleLevel`: **console** verbosity level.
 
-You can override both via the **`CRAWCLAW_LOG_LEVEL`** environment variable (e.g. `CRAWCLAW_LOG_LEVEL=debug`). The env var takes precedence over the config file, so you can raise verbosity for a single run without editing `crawclaw.json`. You can also pass the global CLI option **`--log-level <level>`** (for example, `crawclaw --log-level debug gateway run`), which overrides the environment variable for that command.
+You can override both via the **`CRAWCLAW_LOG_LEVEL`** environment variable (e.g. `CRAWCLAW_LOG_LEVEL=debug`). The env var takes precedence over the config file, so you can raise verbosity for a single desktop or Gateway process without editing `crawclaw.json`.
 
 `--verbose` only affects console output; it does not change file log levels.
 
@@ -288,7 +288,7 @@ works with any OpenTelemetry collector/backend that accepts OTLP/HTTP.
 
 Notes:
 
-- You can also enable the plugin with `crawclaw plugins enable diagnostics-otel`.
+- You can also enable the plugin with CrawClaw Desktop or the local Gateway API.
 - `protocol` currently supports `http/protobuf` only. `grpc` is ignored.
 - Metrics include token usage, cost, context size, run duration, and message-flow
   counters/histograms (webhooks, queueing, session state, queue depth/wait).
@@ -409,7 +409,7 @@ Metric attributes intentionally omit those high-cardinality ids.
 
 ## Troubleshooting tips
 
-- **Gateway not reachable?** Run `crawclaw doctor` first.
+- **Gateway not reachable?** Run CrawClaw Desktop or the local Gateway API first.
 - **Logs empty?** Check that the Gateway is running and writing to the file path
   in `logging.file`.
 - **Need more detail?** Set `logging.level` to `debug` or `trace` and retry.

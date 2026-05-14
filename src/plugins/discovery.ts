@@ -5,6 +5,7 @@ import { resolveUserPath } from "../utils.js";
 import { detectBundleManifestFormat, loadBundleManifest } from "./bundle-manifest.js";
 import {
   DEFAULT_PLUGIN_ENTRY_CANDIDATES,
+  PLUGIN_MANIFEST_FILENAME,
   getPackageManifestMetadata,
   loadPluginManifest,
   type PluginManifest,
@@ -548,6 +549,40 @@ function resolvePackageEntrySource(params: {
   return safeSource;
 }
 
+function addNativeManifestCandidate(params: {
+  rootDir: string;
+  origin: PluginOrigin;
+  ownershipUid?: number | null;
+  workspaceDir?: string;
+  candidates: PluginCandidate[];
+  diagnostics: PluginDiagnostic[];
+  seen: Set<string>;
+  rejectHardlinks: boolean;
+  manifest?: PackageManifest | null;
+  setupSource?: string | null;
+}): boolean {
+  const manifest = loadPluginManifest(params.rootDir, params.rejectHardlinks);
+  if (!manifest.ok || !manifest.manifest.native) {
+    return false;
+  }
+  addCandidate({
+    candidates: params.candidates,
+    diagnostics: params.diagnostics,
+    seen: params.seen,
+    idHint: manifest.manifest.id,
+    source: path.join(params.rootDir, PLUGIN_MANIFEST_FILENAME),
+    ...(params.setupSource ? { setupSource: params.setupSource } : {}),
+    rootDir: params.rootDir,
+    origin: params.origin,
+    format: "native",
+    ownershipUid: params.ownershipUid,
+    workspaceDir: params.workspaceDir,
+    manifest: params.manifest,
+    packageDir: params.rootDir,
+  });
+  return true;
+}
+
 function discoverInDirectory(params: {
   dir: string;
   origin: PluginOrigin;
@@ -653,6 +688,35 @@ function discoverInDirectory(params: {
       continue;
     }
     if (extensionResolution.status === "empty") {
+      addNativeManifestCandidate({
+        rootDir: fullPath,
+        origin: params.origin,
+        ownershipUid: params.ownershipUid,
+        workspaceDir: params.workspaceDir,
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        seen: params.seen,
+        rejectHardlinks,
+        manifest,
+        setupSource,
+      });
+      continue;
+    }
+
+    if (
+      addNativeManifestCandidate({
+        rootDir: fullPath,
+        origin: params.origin,
+        ownershipUid: params.ownershipUid,
+        workspaceDir: params.workspaceDir,
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        seen: params.seen,
+        rejectHardlinks,
+        manifest,
+        setupSource,
+      })
+    ) {
       continue;
     }
 
@@ -788,6 +852,35 @@ function discoverFromPath(params: {
       return;
     }
     if (extensionResolution.status === "empty") {
+      addNativeManifestCandidate({
+        rootDir: resolved,
+        origin: params.origin,
+        ownershipUid: params.ownershipUid,
+        workspaceDir: params.workspaceDir,
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        seen: params.seen,
+        rejectHardlinks,
+        manifest,
+        setupSource,
+      });
+      return;
+    }
+
+    if (
+      addNativeManifestCandidate({
+        rootDir: resolved,
+        origin: params.origin,
+        ownershipUid: params.ownershipUid,
+        workspaceDir: params.workspaceDir,
+        candidates: params.candidates,
+        diagnostics: params.diagnostics,
+        seen: params.seen,
+        rejectHardlinks,
+        manifest,
+        setupSource,
+      })
+    ) {
       return;
     }
 

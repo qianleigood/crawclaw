@@ -1,4 +1,3 @@
-import type { StreamFn } from "@mariozechner/pi-agent-core";
 import {
   definePluginEntry,
   type ProviderResolveDynamicModelContext,
@@ -9,9 +8,6 @@ import { DEFAULT_CONTEXT_TOKENS } from "crawclaw/plugin-sdk/provider-model-share
 import {
   getOpenRouterModelCapabilities,
   loadOpenRouterModelCapabilities,
-  createOpenRouterSystemCacheWrapper,
-  createOpenRouterWrapper,
-  isProxyReasoningUnsupported,
 } from "crawclaw/plugin-sdk/provider-stream";
 import { openrouterMediaUnderstandingProvider } from "./media-understanding-provider.js";
 import { applyOpenrouterConfig, OPENROUTER_DEFAULT_MODEL_REF } from "./onboard.js";
@@ -43,31 +39,6 @@ function buildDynamicOpenRouterModel(
     contextWindow: capabilities?.contextWindow ?? DEFAULT_CONTEXT_TOKENS,
     maxTokens: capabilities?.maxTokens ?? OPENROUTER_DEFAULT_MAX_TOKENS,
   };
-}
-
-function injectOpenRouterRouting(
-  baseStreamFn: StreamFn | undefined,
-  providerRouting?: Record<string, unknown>,
-): StreamFn | undefined {
-  if (!providerRouting) {
-    return baseStreamFn;
-  }
-  return (model, context, options) =>
-    (
-      baseStreamFn ??
-      ((nextModel, nextContext, nextOptions) => {
-        throw new Error(
-          `OpenRouter routing wrapper requires an underlying streamFn for ${String(nextModel.id)}.`,
-        );
-      })
-    )(
-      {
-        ...model,
-        compat: { ...model.compat, openRouterRouting: providerRouting },
-      } as typeof model,
-      context,
-      options,
-    );
 }
 
 function isOpenRouterCacheTtlModel(modelId: string): boolean {
@@ -131,22 +102,6 @@ export default definePluginEntry({
         geminiThoughtSignatureModelHints: ["gemini"],
       },
       isModernModelRef: () => true,
-      wrapStreamFn: (ctx) => {
-        let streamFn = ctx.streamFn;
-        const providerRouting =
-          ctx.extraParams?.provider != null && typeof ctx.extraParams.provider === "object"
-            ? (ctx.extraParams.provider as Record<string, unknown>)
-            : undefined;
-        if (providerRouting) {
-          streamFn = injectOpenRouterRouting(streamFn, providerRouting);
-        }
-        const skipReasoningInjection =
-          ctx.modelId === "auto" || isProxyReasoningUnsupported(ctx.modelId);
-        const openRouterThinkingLevel = skipReasoningInjection ? undefined : ctx.thinkingLevel;
-        streamFn = createOpenRouterWrapper(streamFn, openRouterThinkingLevel);
-        streamFn = createOpenRouterSystemCacheWrapper(streamFn);
-        return streamFn;
-      },
       isCacheTtlEligible: (ctx) => isOpenRouterCacheTtlModel(ctx.modelId),
     });
     api.registerMediaUnderstandingProvider(openrouterMediaUnderstandingProvider);

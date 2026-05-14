@@ -1389,6 +1389,7 @@ pub enum NativeProviderResponseFormat {
 pub struct NativeProviderRequestOptions {
     pub stream: bool,
     pub tools: Vec<NativeProviderTool>,
+    pub reasoning_level: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -1663,6 +1664,7 @@ fn openai_responses_request(
         "input": openai_responses_input(messages),
     });
     apply_openai_responses_options(&mut body, options);
+    apply_openai_responses_provider_policy(config, &mut body);
     Ok(NativeProviderRequest {
         url: join_url_path(&base_url, "responses"),
         headers: vec![auth_pair(
@@ -1673,6 +1675,17 @@ fn openai_responses_request(
         body,
         response_format: NativeProviderResponseFormat::OpenAiResponses,
     })
+}
+
+fn apply_openai_responses_provider_policy(config: &NativeProviderConfig, body: &mut Value) {
+    if config.provider == "xai" {
+        body["tool_stream"] = Value::Bool(true);
+        if let Some(object) = body.as_object_mut() {
+            object.remove("reasoning");
+            object.remove("reasoningEffort");
+            object.remove("reasoning_effort");
+        }
+    }
 }
 
 fn azure_openai_request(
@@ -1855,16 +1868,93 @@ fn chat_completions_request(
         "stream": options.stream,
     });
     apply_chat_completions_options(&mut body, options);
+    let mut headers = vec![auth_pair(
+        auth_header,
+        auth_prefix,
+        required(&config.api_key, "apiKey")?,
+    )];
+    apply_openai_compatible_provider_policy(config, &mut body, &mut headers, options);
     Ok(NativeProviderRequest {
         url,
-        headers: vec![auth_pair(
-            auth_header,
-            auth_prefix,
-            required(&config.api_key, "apiKey")?,
-        )],
+        headers,
         body,
         response_format: NativeProviderResponseFormat::ChatCompletions,
     })
+}
+
+fn apply_openai_compatible_provider_policy(
+    config: &NativeProviderConfig,
+    body: &mut Value,
+    headers: &mut Vec<(String, String)>,
+    options: &NativeProviderRequestOptions,
+) {
+    match config.provider.as_str() {
+        "kilocode" => {
+            let feature =
+                std::env::var("KILOCODE_FEATURE").unwrap_or_else(|_| "crawclaw".to_string());
+            upsert_header(headers, "X-KILOCODE-FEATURE", feature);
+            if config
+                .model
+                .as_deref()
+                .map(|model| model != "kilo/auto" && !is_proxy_reasoning_unsupported(model))
+                .unwrap_or(false)
+            {
+                if let Some(level) = options.reasoning_level.as_deref() {
+                    body["reasoning"] = json!({ "effort": map_reasoning_level(level) });
+                    if let Some(object) = body.as_object_mut() {
+                        object.remove("reasoning_effort");
+                    }
+                }
+            }
+        }
+        "openrouter" => {
+            upsert_header(headers, "HTTP-Referer", "https://docs.crawclaw.ai");
+            upsert_header(headers, "X-OpenRouter-Title", "CrawClaw");
+            upsert_header(headers, "X-OpenRouter-Categories", "cli-agent");
+            if config
+                .model
+                .as_deref()
+                .map(|model| !is_proxy_reasoning_unsupported(model))
+                .unwrap_or(false)
+            {
+                if let Some(level) = options.reasoning_level.as_deref() {
+                    body["reasoning"] = json!({ "effort": map_reasoning_level(level) });
+                    if let Some(object) = body.as_object_mut() {
+                        object.remove("reasoning_effort");
+                    }
+                }
+            }
+        }
+        "zai" => {
+            body["tool_stream"] = Value::Bool(true);
+        }
+        _ => {}
+    }
+}
+
+fn upsert_header(headers: &mut Vec<(String, String)>, name: &str, value: impl Into<String>) {
+    let value = value.into();
+    if let Some((_, existing)) = headers
+        .iter_mut()
+        .find(|(existing, _)| existing.eq_ignore_ascii_case(name))
+    {
+        *existing = value;
+    } else {
+        headers.push((name.to_string(), value));
+    }
+}
+
+fn is_proxy_reasoning_unsupported(model_id: &str) -> bool {
+    model_id.to_lowercase().starts_with("x-ai/")
+}
+
+fn map_reasoning_level(level: &str) -> &str {
+    match level {
+        "off" => "none",
+        "adaptive" => "medium",
+        "minimal" | "low" | "medium" | "high" | "xhigh" => level,
+        _ => "medium",
+    }
 }
 
 fn resolve_base_url(
@@ -2581,6 +2671,7 @@ mod tests {
                 &NativeProviderRequestOptions {
                     stream: true,
                     tools: vec![tool.clone()],
+                    reasoning_level: None,
                 },
             )
             .unwrap_or_else(|error| panic!("{provider} request should build: {error}"));
@@ -2628,6 +2719,77 @@ mod tests {
                 "{provider} should include the user message"
             );
         }
+    }
+
+    #[test]
+    fn applies_native_openai_compatible_provider_policies() {
+        let base_config = |provider: &str, model: &str| NativeProviderConfig {
+            provider: provider.to_string(),
+            base_url: Some(format!("https://example.test/{provider}")),
+            api_key: Some("secret".to_string()),
+            model: Some(model.to_string()),
+            api: None,
+            api_version: None,
+        };
+
+        let zai = build_native_provider_conversation_request_with_options(
+            &base_config("zai", "glm-5"),
+            &[NativeProviderMessage::user("hello")],
+            &NativeProviderRequestOptions::default(),
+        )
+        .expect("zai request");
+        assert_eq!(zai.body["tool_stream"], Value::Bool(true));
+
+        let kilocode = build_native_provider_conversation_request_with_options(
+            &base_config("kilocode", "anthropic/claude-sonnet-4"),
+            &[NativeProviderMessage::user("hello")],
+            &NativeProviderRequestOptions {
+                reasoning_level: Some("high".to_string()),
+                ..NativeProviderRequestOptions::default()
+            },
+        )
+        .expect("kilocode request");
+        assert!(kilocode
+            .headers
+            .iter()
+            .any(|(name, value)| name == "X-KILOCODE-FEATURE" && value == "crawclaw"));
+        assert_eq!(kilocode.body["reasoning"], json!({ "effort": "high" }));
+
+        let openrouter = build_native_provider_conversation_request_with_options(
+            &base_config("openrouter", "anthropic/claude-opus-4-6"),
+            &[NativeProviderMessage::user("hello")],
+            &NativeProviderRequestOptions {
+                reasoning_level: Some("low".to_string()),
+                ..NativeProviderRequestOptions::default()
+            },
+        )
+        .expect("openrouter request");
+        assert!(openrouter
+            .headers
+            .iter()
+            .any(|(name, value)| name == "X-OpenRouter-Title" && value == "CrawClaw"));
+        assert_eq!(openrouter.body["reasoning"], json!({ "effort": "low" }));
+    }
+
+    #[test]
+    fn applies_native_xai_responses_policy() {
+        let request = build_native_provider_conversation_request_with_options(
+            &NativeProviderConfig {
+                provider: "xai".to_string(),
+                base_url: Some("https://api.x.ai/v1".to_string()),
+                api_key: Some("secret".to_string()),
+                model: Some("grok-4.20-beta-latest-reasoning".to_string()),
+                api: None,
+                api_version: None,
+            },
+            &[NativeProviderMessage::user("hello")],
+            &NativeProviderRequestOptions::default(),
+        )
+        .expect("xai request");
+
+        assert_eq!(request.body["tool_stream"], Value::Bool(true));
+        assert!(request.body.get("reasoning").is_none());
+        assert!(request.body.get("reasoning_effort").is_none());
     }
 
     #[test]
@@ -2763,6 +2925,7 @@ mod tests {
             &NativeProviderRequestOptions {
                 stream: true,
                 tools: vec![tool],
+                reasoning_level: None,
             },
         )
         .await

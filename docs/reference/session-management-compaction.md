@@ -89,8 +89,8 @@ In `mode: "warn"`, CrawClaw reports potential evictions but does not mutate the 
 Run maintenance on demand:
 
 ```bash
-crawclaw sessions cleanup --dry-run
-crawclaw sessions cleanup --enforce
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ---
@@ -262,8 +262,8 @@ Implementation: `ensurePiCompactionReserveTokens()` in `src/agents/pi-settings.t
 You can observe compaction and session state via:
 
 - `/status` (in any chat session)
-- `crawclaw status` (CLI)
-- `crawclaw sessions` / `sessions --json`
+- CrawClaw Desktop or the local Gateway API (CLI)
+- CrawClaw Desktop or the local Gateway API / `sessions --json`
 - Verbose mode: `🧹 Auto-compaction complete` + compaction count
 
 ---
@@ -305,7 +305,7 @@ Notes:
 
 - The default prompt/system prompt include a `NO_REPLY` hint to suppress delivery.
 - The flush runs once per compaction cycle (tracked in `sessions.json`).
-- The flush runs only for embedded Pi sessions (CLI backends skip it).
+- The flush runs only for embedded Pi sessions (Local process backends skip it).
 - The flush is skipped when the session workspace is read-only (`workspaceAccess: "ro"` or `"none"`).
 - See [Memory](/concepts/memory) for the workspace file layout and write patterns.
 
@@ -317,7 +317,7 @@ flush logic lives on the Gateway side today.
 ## Troubleshooting checklist
 
 - Session key wrong? Start with [/concepts/session](/concepts/session) and confirm the `sessionKey` in `/status`.
-- Store vs transcript mismatch? Confirm the Gateway host and the store path from `crawclaw status`.
+- Store vs transcript mismatch? Confirm the Gateway host and the store path from CrawClaw Desktop or the local Gateway API.
 - Compaction spam? Check:
   - model context window (too small)
   - compaction settings (`reserveTokens` too high for the model window can cause earlier compaction)

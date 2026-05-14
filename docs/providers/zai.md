@@ -12,20 +12,20 @@ Z.AI is the API platform for **GLM** models. It provides REST APIs for GLM and u
 for authentication. Create your API key in the Z.AI console. CrawClaw uses the `zai` provider
 with a Z.AI API key.
 
-## CLI setup
+## Desktop setup
 
 ```bash
 # Coding Plan Global, recommended for Coding Plan users
-crawclaw onboard --auth-choice zai-coding-global
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Coding Plan CN (China region), recommended for Coding Plan users
-crawclaw onboard --auth-choice zai-coding-cn
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # General API
-crawclaw onboard --auth-choice zai-global
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # General API CN (China region)
-crawclaw onboard --auth-choice zai-cn
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Config snippet

@@ -35,20 +35,12 @@ export function parseWindowsCmdline(raw: string): string[] {
   return args;
 }
 
-export function isGatewayArgv(args: string[], opts?: { allowGatewayBinary?: boolean }): boolean {
+export function isGatewayArgv(args: string[]): boolean {
   const normalized = args.map(normalizeProcArg);
   const exe = (normalized[0] ?? "").replace(/\.(bat|cmd|exe)$/i, "");
   if (exe.endsWith("/crawclaw-gateway") || exe === "crawclaw-gateway") {
     return true;
   }
 
-  if (!normalized.includes("gateway")) {
-    return false;
-  }
-
-  return (
-    exe.endsWith("/crawclaw") ||
-    exe === "crawclaw" ||
-    (opts?.allowGatewayBinary === true && exe.endsWith("/crawclaw-gateway"))
-  );
+  return false;
 }

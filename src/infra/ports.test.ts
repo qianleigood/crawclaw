@@ -89,7 +89,7 @@ describe("ports helpers", () => {
     };
 
     await handlePortError(
-      new PortInUseError(18789, "node dist/index.js crawclaw gateway"),
+      new PortInUseError(18789, "/tmp/crawclaw/dist/native/crawclaw-gateway"),
       18789,
       "gateway start",
       runtime,
@@ -148,7 +148,7 @@ describeUnix("inspectPortUsage", () => {
       if (command === "ps") {
         if (argv.includes("command=")) {
           return {
-            stdout: "/tmp/crawclaw/dist/native/crawclaw gateway --port 18789\n",
+            stdout: "/tmp/crawclaw/dist/native/crawclaw-gateway --port 18789\n",
             stderr: "",
             code: 0,
           };

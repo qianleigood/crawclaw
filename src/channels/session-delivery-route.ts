@@ -91,7 +91,7 @@ export function resolveLastChannelRaw(params: {
   const originatingChannel = normalizeMessageChannel(params.originatingChannelRaw);
   // WebChat should own reply routing for direct-session client turns, but only when
   // the session has no established external delivery route. If the session was
-  // created via an external channel (e.g. Telegram, iMessage), webchat/client
+  // created via an external channel (for example Feishu or Weixin), webchat/client
   // access must not overwrite the persisted route — doing so causes subagent
   // completion events to be delivered to the client instead of the original
   // channel. See: https://github.com/qianleigood/crawclaw/issues/47745

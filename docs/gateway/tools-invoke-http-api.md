@@ -100,7 +100,6 @@ Gateway HTTP also applies a hard deny list by default (even if session policy al
 - `sessions_send` — cross-session message injection
 - `cron` — persistent automation control plane
 - `gateway` — gateway control plane; prevents reconfiguration via HTTP
-- `whatsapp_login` — interactive setup requiring terminal QR scan; hangs on HTTP
 
 You can customize this deny list via `gateway.tools`:
 

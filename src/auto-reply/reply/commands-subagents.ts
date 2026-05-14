@@ -1,7 +1,6 @@
 import { listControlledSubagentRuns } from "../../agents/subagent-control.js";
 import { logVerbose } from "../../globals.js";
 import { handleSubagentsAgentsAction } from "./commands-subagents/action-agents.js";
-import { handleSubagentsFocusAction } from "./commands-subagents/action-focus.js";
 import { handleSubagentsHelpAction } from "./commands-subagents/action-help.js";
 import { handleSubagentsInfoAction } from "./commands-subagents/action-info.js";
 import { handleSubagentsKillAction } from "./commands-subagents/action-kill.js";
@@ -9,7 +8,6 @@ import { handleSubagentsListAction } from "./commands-subagents/action-list.js";
 import { handleSubagentsLogAction } from "./commands-subagents/action-log.js";
 import { handleSubagentsSendAction } from "./commands-subagents/action-send.js";
 import { handleSubagentsSpawnAction } from "./commands-subagents/action-spawn.js";
-import { handleSubagentsUnfocusAction } from "./commands-subagents/action-unfocus.js";
 import {
   type SubagentsCommandContext,
   extractMessageText,
@@ -70,10 +68,6 @@ export const handleSubagentsCommand: CommandHandler = async (params, allowTextCo
       return handleSubagentsHelpAction();
     case "agents":
       return handleSubagentsAgentsAction(ctx);
-    case "focus":
-      return await handleSubagentsFocusAction(ctx);
-    case "unfocus":
-      return await handleSubagentsUnfocusAction(ctx);
     case "list":
       return handleSubagentsListAction(ctx);
     case "kill":

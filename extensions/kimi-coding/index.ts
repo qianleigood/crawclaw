@@ -2,7 +2,6 @@ import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
 import { createProviderApiKeyAuthMethod } from "crawclaw/plugin-sdk/provider-auth-api-key";
 import { applyKimiCodeConfig, KIMI_CODING_MODEL_REF } from "./onboard.js";
 import { buildKimiCodingProvider } from "./provider-catalog.js";
-import { createKimiToolCallMarkupWrapper } from "./stream.js";
 
 const PLUGIN_ID = "kimi";
 const PROVIDER_ID = "kimi";
@@ -86,7 +85,6 @@ export default definePluginEntry({
         openAiPayloadNormalizationMode: "moonshot-thinking",
         preserveAnthropicThinkingSignatures: false,
       },
-      wrapStreamFn: (ctx) => createKimiToolCallMarkupWrapper(ctx.streamFn),
     });
   },
 });

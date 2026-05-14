@@ -216,7 +216,7 @@ read_when:
 - `workflow.unarchive`
 - `workflow.delete`
 
-当前还没有独立 `crawclaw workflow ...` CLI 子命令实现；这部分仍属于后续增强项。
+当前还没有独立 Gateway workflow API CLI 子命令实现；这部分仍属于后续增强项。
 
 ## CrawClaw 内部组件
 

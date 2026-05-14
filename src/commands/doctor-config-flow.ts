@@ -9,10 +9,6 @@ import { normalizeCompatibilityConfigValues } from "./doctor-legacy-config.js";
 import type { DoctorOptions } from "./doctor-prompter.js";
 import { emitDoctorNotes } from "./doctor/emit-notes.js";
 import { finalizeDoctorConfigFlow } from "./doctor/finalize-config-flow.js";
-import {
-  cleanStaleMatrixPluginConfig,
-  runMatrixDoctorSequence,
-} from "./doctor/providers/matrix.js";
 import { runDoctorRepairSequence } from "./doctor/repair-sequencing.js";
 import {
   applyLegacyCompatibilityStep,
@@ -76,28 +72,6 @@ export async function loadAndMaybeMigrateDoctorConfig(params: {
       mutation: autoEnable,
       shouldRepair,
       fixHint: `Run "${doctorFixCommand}" to apply these changes.`,
-    }));
-  }
-
-  const matrixSequence = await runMatrixDoctorSequence({
-    cfg: candidate,
-    env: process.env,
-    shouldRepair,
-  });
-  emitDoctorNotes({
-    note,
-    changeNotes: matrixSequence.changeNotes,
-    warningNotes: matrixSequence.warningNotes,
-  });
-
-  const staleMatrixCleanup = await cleanStaleMatrixPluginConfig(candidate);
-  if (staleMatrixCleanup.changes.length > 0) {
-    note(staleMatrixCleanup.changes.join("\n"), "Doctor changes");
-    ({ cfg, candidate, pendingChanges, fixHints } = applyDoctorConfigMutation({
-      state: { cfg, candidate, pendingChanges, fixHints },
-      mutation: staleMatrixCleanup,
-      shouldRepair,
-      fixHint: `Run "${doctorFixCommand}" to remove stale Matrix plugin references.`,
     }));
   }
 

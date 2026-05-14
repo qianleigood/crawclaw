@@ -17,7 +17,6 @@ const mocks = vi.hoisted(() => ({
   registerMessageThreadCommandsMock: vi.fn(),
   registerMessageEmojiCommandsMock: vi.fn(),
   registerMessageStickerCommandsMock: vi.fn(),
-  registerMessageDiscordAdminCommandsMock: vi.fn(),
 }));
 
 const createMessageCliHelpersMock = mocks.createMessageCliHelpersMock;
@@ -32,7 +31,6 @@ const registerMessageSearchCommandMock = mocks.registerMessageSearchCommandMock;
 const registerMessageThreadCommandsMock = mocks.registerMessageThreadCommandsMock;
 const registerMessageEmojiCommandsMock = mocks.registerMessageEmojiCommandsMock;
 const registerMessageStickerCommandsMock = mocks.registerMessageStickerCommandsMock;
-const registerMessageDiscordAdminCommandsMock = mocks.registerMessageDiscordAdminCommandsMock;
 
 vi.mock("./message/helpers.js", () => ({
   createMessageCliHelpers: mocks.createMessageCliHelpersMock,
@@ -76,10 +74,6 @@ vi.mock("./message/register.emoji-sticker.js", () => ({
   registerMessageStickerCommands: mocks.registerMessageStickerCommandsMock,
 }));
 
-vi.mock("./message/register.discord-admin.js", () => ({
-  registerMessageDiscordAdminCommands: mocks.registerMessageDiscordAdminCommandsMock,
-}));
-
 describe("registerMessageCommands", () => {
   const ctx: ProgramContext = {
     programVersion: "9.9.9-test",
@@ -115,7 +109,6 @@ describe("registerMessageCommands", () => {
       registerMessageThreadCommandsMock,
       registerMessageEmojiCommandsMock,
       registerMessageStickerCommandsMock,
-      registerMessageDiscordAdminCommandsMock,
     ];
     for (const registrar of expectedRegistrars) {
       expect(registrar).toHaveBeenCalledWith(message, { helper: true });

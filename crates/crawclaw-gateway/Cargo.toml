@@ -8,6 +8,8 @@ license.workspace = true
 axum = { version = "0.8", features = ["ws"] }
 base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
+crawclaw-native-plugins = { path = "../crawclaw-native-plugins" }
+crawclaw-plugin-sdk = { path = "../crawclaw-plugin-sdk" }
 crawclaw-providers = { path = "../crawclaw-providers" }
 crawclaw-runtime = { path = "../crawclaw-runtime" }
 futures-util = "0.3"

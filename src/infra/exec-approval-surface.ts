@@ -18,10 +18,16 @@ export type ExecApprovalInitiatingSurfaceState =
 
 function labelForChannel(channel?: string): string {
   switch (channel) {
-    case "discord":
-      return "Discord";
-    case "telegram":
-      return "Telegram";
+    case "ddingtalk":
+      return "DingTalk";
+    case "esp32":
+      return "ESP32";
+    case "feishu":
+      return "Feishu";
+    case "qqbot":
+      return "QQ Bot";
+    case "weixin":
+      return "Weixin";
     case INTERNAL_MESSAGE_CHANNEL:
       return "Gateway client";
     default:

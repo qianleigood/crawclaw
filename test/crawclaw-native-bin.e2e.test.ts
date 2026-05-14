@@ -12,11 +12,11 @@ function readPackageJson(): PackageJson {
   return JSON.parse(fs.readFileSync(path.join(process.cwd(), "package.json"), "utf8"));
 }
 
-describe("crawclaw native CLI package entry", () => {
-  it("publishes the Rust binary directly without a JS launcher contract", () => {
+describe("crawclaw npm package entry", () => {
+  it("does not publish a public CLI entry", () => {
     const pkg = readPackageJson();
 
-    expect(pkg.bin).toEqual({ crawclaw: "dist/native/crawclaw" });
+    expect(pkg.bin?.crawclaw).toBeUndefined();
     expect(pkg.exports).not.toHaveProperty("./cli-entry");
     expect(pkg.files ?? []).not.toContain("crawclaw.mjs");
   });

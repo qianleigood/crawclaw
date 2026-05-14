@@ -17,18 +17,9 @@ async fn runtime_supervisor_reports_missing_layout_without_running_node() {
     assert!(status.detail.contains("Missing embedded runtime file"));
 }
 
-#[cfg(unix)]
 #[tokio::test]
-async fn runtime_supervisor_reports_native_runtime_ready_without_node_bridge() {
-    let layout = create_runtime_fixture(
-        "success",
-        r#"#!/bin/sh
-case "$*" in
-  *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
-  *) echo "unexpected args: $*" >&2; exit 9 ;;
-esac
-"#,
-    );
+async fn runtime_supervisor_reports_native_runtime_ready_without_cli_probe() {
+    let layout = create_runtime_fixture("success");
 
     let supervisor = RuntimeSupervisor::probe(layout.clone()).await;
     let status = supervisor.status();
@@ -39,35 +30,21 @@ esac
     assert_eq!(status.entrypoint_path, "");
 }
 
-#[cfg(unix)]
 #[tokio::test]
-async fn runtime_supervisor_reports_native_runtime_failure_as_runtime_error() {
-    let layout = create_runtime_fixture(
-        "failure",
-        r#"#!/bin/sh
-echo "runtime status exploded" >&2
-exit 7
-"#,
-    );
+async fn runtime_supervisor_reports_missing_gateway_binary_without_cli_probe() {
+    let layout = create_runtime_fixture_without_gateway("missing-gateway");
 
     let supervisor = RuntimeSupervisor::probe(layout).await;
     let status = supervisor.status();
 
-    assert_eq!(status.status, RuntimeStatusValue::Error);
-    assert!(status.detail.contains("desktop-runtime status failed"));
-    assert!(status.detail.contains("runtime status exploded"));
+    assert_eq!(status.status, RuntimeStatusValue::Missing);
+    assert!(status.detail.contains("crawclaw-gateway"));
 }
 
 #[cfg(unix)]
 #[tokio::test]
 async fn runtime_supervisor_reports_non_executable_runtime_binary_as_runtime_error() {
-    let layout = create_runtime_fixture_without_chmod(
-        "not-executable",
-        r#"#!/bin/sh
-echo "should not run"
-exit 0
-"#,
-    );
+    let layout = create_runtime_fixture_without_chmod("not-executable");
 
     let supervisor = RuntimeSupervisor::probe(layout).await;
     let status = supervisor.status();
@@ -75,25 +52,31 @@ exit 0
     assert_eq!(status.status, RuntimeStatusValue::Error);
     assert!(status
         .detail
-        .contains("Failed to execute embedded Rust runtime"));
+        .contains("Embedded Rust runtime binary is not executable"));
 }
 
 #[cfg(unix)]
-fn create_runtime_fixture(name: &str, runtime_script: &str) -> RuntimeLayout {
-    let layout = create_runtime_fixture_without_chmod(name, runtime_script);
+fn create_runtime_fixture(name: &str) -> RuntimeLayout {
+    let layout = create_runtime_fixture_without_chmod(name);
 
     use std::os::unix::fs::PermissionsExt;
-    let mut permissions = fs::metadata(&layout.binary_path)
-        .expect("runtime metadata")
-        .permissions();
-    permissions.set_mode(0o755);
-    fs::set_permissions(&layout.binary_path, permissions).expect("runtime chmod");
+    for executable_path in [
+        layout.binary_path.clone(),
+        layout.gateway_binary_path(),
+        layout.native_plugins_binary_path(),
+    ] {
+        let mut permissions = fs::metadata(&executable_path)
+            .expect("runtime metadata")
+            .permissions();
+        permissions.set_mode(0o755);
+        fs::set_permissions(&executable_path, permissions).expect("runtime chmod");
+    }
 
     layout
 }
 
 #[cfg(unix)]
-fn create_runtime_fixture_without_chmod(name: &str, runtime_script: &str) -> RuntimeLayout {
+fn create_runtime_fixture_without_chmod(name: &str) -> RuntimeLayout {
     let layout = runtime_layout(temp_runtime_root(name));
     fs::create_dir_all(layout.binary_path.parent().expect("binary parent")).expect("bin dir");
     fs::create_dir_all(layout.manifest_path.parent().expect("manifest parent"))
@@ -107,17 +90,40 @@ fn create_runtime_fixture_without_chmod(name: &str, runtime_script: &str) -> Run
     .expect("channel manifest dir");
     fs::write(&layout.manifest_path, "{}\n").expect("manifest");
     fs::write(&layout.channel_manifest_path, "{}\n").expect("channel manifest");
-    fs::write(&layout.binary_path, runtime_script).expect("runtime script");
+    fs::write(&layout.binary_path, "#!/bin/sh\nexit 0\n").expect("runtime binary");
+    fs::write(layout.gateway_binary_path(), "#!/bin/sh\nexit 0\n").expect("gateway binary");
+    fs::write(layout.native_plugins_binary_path(), "#!/bin/sh\nexit 0\n")
+        .expect("native plugins binary");
 
+    layout
+}
+
+fn create_runtime_fixture_without_gateway(name: &str) -> RuntimeLayout {
+    let layout = runtime_layout(temp_runtime_root(name));
+    fs::create_dir_all(layout.binary_path.parent().expect("binary parent")).expect("bin dir");
+    fs::create_dir_all(layout.manifest_path.parent().expect("manifest parent"))
+        .expect("manifest dir");
+    fs::create_dir_all(
+        layout
+            .channel_manifest_path
+            .parent()
+            .expect("channel manifest parent"),
+    )
+    .expect("channel manifest dir");
+    fs::write(&layout.manifest_path, "{}\n").expect("manifest");
+    fs::write(&layout.channel_manifest_path, "{}\n").expect("channel manifest");
+    fs::write(&layout.binary_path, "#!/bin/sh\nexit 0\n").expect("runtime binary");
+    fs::write(layout.native_plugins_binary_path(), "#!/bin/sh\nexit 0\n")
+        .expect("native plugins binary");
     layout
 }
 
 fn runtime_layout(runtime_root: PathBuf) -> RuntimeLayout {
     RuntimeLayout {
         binary_path: runtime_root.join("bin").join(if cfg!(windows) {
-            "crawclaw.exe"
+            "crawclaw-runtime.exe"
         } else {
-            "crawclaw"
+            "crawclaw-runtime"
         }),
         channel_manifest_path: runtime_root.join("channels").join("manifest.json"),
         manifest_path: runtime_root.join("runtimes").join("manifest.json"),

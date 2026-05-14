@@ -1,11 +1,8 @@
-import { buildChannelConfigSchema } from "../channels/plugins/config-schema.js";
 import type {
   ChannelConfigRuntimeSchema,
   ChannelConfigSchema,
 } from "../channels/plugins/types.plugin.js";
 import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
-import { MSTeamsConfigSchema } from "./zod-schema.providers-core.js";
-import { WhatsAppConfigSchema } from "./zod-schema.providers-whatsapp.js";
 
 type BundledChannelRuntimeMap = ReadonlyMap<string, ChannelConfigRuntimeSchema>;
 type BundledChannelConfigSchemaMap = ReadonlyMap<string, ChannelConfigSchema>;
@@ -14,10 +11,7 @@ type BundledChannelMaps = {
   configSchemaMap: Map<string, ChannelConfigSchema>;
 };
 
-const staticBundledChannelSchemas = new Map<string, ChannelConfigSchema>([
-  ["msteams", buildChannelConfigSchema(MSTeamsConfigSchema)],
-  ["whatsapp", buildChannelConfigSchema(WhatsAppConfigSchema)],
-]);
+const staticBundledChannelSchemas = new Map<string, ChannelConfigSchema>();
 let cachedBundledChannelMaps: BundledChannelMaps | undefined;
 
 function buildBundledChannelMaps(): BundledChannelMaps {

@@ -10,21 +10,7 @@ import {
 
 const IGNORED_CHANNEL_CONFIG_KEYS = new Set(["defaults", "modelByChannel"]);
 
-const CHANNEL_ENV_PREFIXES = [
-  ["BLUEBUBBLES_", "bluebubbles"],
-  ["DISCORD_", "discord"],
-  ["GOOGLECHAT_", "googlechat"],
-  ["IRC_", "irc"],
-  ["LINE_", "line"],
-  ["MATRIX_", "matrix"],
-  ["MSTEAMS_", "msteams"],
-  ["SIGNAL_", "signal"],
-  ["SLACK_", "slack"],
-  ["TELEGRAM_", "telegram"],
-  ["WHATSAPP_", "whatsapp"],
-  ["ZALOUSER_", "zalouser"],
-  ["ZALO_", "zalo"],
-] as const;
+const CHANNEL_ENV_PREFIXES: readonly (readonly [string, string])[] = [];
 
 function hasNonEmptyString(value: unknown): boolean {
   return typeof value === "string" && value.trim().length > 0;
@@ -67,9 +53,6 @@ export function listPotentialConfiguredChannelIds(
         configuredChannelIds.add(channelId);
       }
     }
-    if (key === "TELEGRAM_BOT_TOKEN") {
-      configuredChannelIds.add("telegram");
-    }
   }
 
   for (const channelId of listBundledChannelIdsWithConfiguredState()) {
@@ -90,10 +73,7 @@ function hasEnvConfiguredChannel(cfg: CrawClawConfig, env: NodeJS.ProcessEnv): b
     if (!hasNonEmptyString(value)) {
       continue;
     }
-    if (
-      CHANNEL_ENV_PREFIXES.some(([prefix]) => key.startsWith(prefix)) ||
-      key === "TELEGRAM_BOT_TOKEN"
-    ) {
+    if (CHANNEL_ENV_PREFIXES.some(([prefix]) => key.startsWith(prefix))) {
       return true;
     }
   }

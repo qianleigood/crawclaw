@@ -1597,27 +1597,6 @@ fix_npm_permissions() {
 }
 
 ensure_crawclaw_bin_link() {
-    local npm_root=""
-    npm_root="$(npm root -g 2>/dev/null || true)"
-    local package_dir=""
-    if [[ -n "$npm_root" && -d "$npm_root/crawclaw" ]]; then
-        package_dir="$npm_root/crawclaw"
-    elif [[ -n "$npm_root" && -d "$npm_root/crawclaw" ]]; then
-        package_dir="$npm_root/crawclaw"
-    fi
-    if [[ -z "$package_dir" ]]; then
-        return 1
-    fi
-    local npm_bin=""
-    npm_bin="$(npm_global_bin_dir || true)"
-    if [[ -z "$npm_bin" ]]; then
-        return 1
-    fi
-    mkdir -p "$npm_bin"
-    if [[ ! -x "${npm_bin}/crawclaw" ]]; then
-        ln -sf "$package_dir/dist/native/crawclaw" "${npm_bin}/crawclaw"
-        ui_info "Created crawclaw bin link at ${npm_bin}/crawclaw"
-    fi
     return 0
 }
 
@@ -1953,14 +1932,7 @@ install_crawclaw_from_git() {
     run_quiet_step "Building CrawClaw" run_pnpm -C "$repo_dir" build
 
     ensure_user_local_bin_on_path
-
-cat > "$HOME/.local/bin/crawclaw" <<EOF
-#!/usr/bin/env bash
-set -euo pipefail
-exec "${repo_dir}/dist/native/crawclaw" "\$@"
-EOF
-    chmod +x "$HOME/.local/bin/crawclaw"
-    ui_success "CrawClaw wrapper installed to \$HOME/.local/bin/crawclaw"
+    ui_info "Public crawclaw CLI wrapper is no longer installed; use CrawClaw Desktop or Gateway API."
     ui_info "This checkout uses pnpm — run pnpm install (or corepack pnpm install) for deps"
 }
 

@@ -39,8 +39,10 @@ describe("parseWindowsCmdline", () => {
 });
 
 describe("isGatewayArgv", () => {
-  it("requires a gateway token", () => {
+  it("requires the internal gateway binary", () => {
     expect(isGatewayArgv(["node", "dist/index.js", "--port", "18789"])).toBe(false);
+    expect(isGatewayArgv(["C:\\bin\\crawclaw.cmd", "gateway"])).toBe(false);
+    expect(isGatewayArgv(["/app/dist/native/crawclaw", "gateway"])).toBe(false);
   });
 
   it("does not treat old TS entrypoints as Gateway runtimes", () => {
@@ -51,9 +53,7 @@ describe("isGatewayArgv", () => {
     expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/index.ts", "gateway"])).toBe(false);
   });
 
-  it("matches the crawclaw executable and the Rust gateway binary", () => {
-    expect(isGatewayArgv(["C:\\bin\\crawclaw.cmd", "gateway"])).toBe(true);
-    expect(isGatewayArgv(["/app/dist/native/crawclaw", "gateway"])).toBe(true);
+  it("matches the Rust gateway binary", () => {
     expect(isGatewayArgv(["/usr/local/bin/crawclaw-gateway", "--bind", "127.0.0.1"])).toBe(true);
     expect(isGatewayArgv(["C:\\bin\\crawclaw-gateway.EXE", "--port", "18789"])).toBe(true);
   });

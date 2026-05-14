@@ -223,7 +223,7 @@ describe("windows packed install smoke helpers", () => {
     expect(() =>
       script.validateRuntimeManifest({
         plugins: {
-          browser: { state: "healthy", binPath: "C:\\Temp\\pinchtab.cmd" },
+          browser: { state: "healthy", binPath: "C:\\Temp\\agent-browser.cmd" },
           "open-websearch": { state: "healthy", binPath: "C:\\Temp\\open-websearch.cmd" },
           "scrapling-fetch": { state: "healthy", pythonVersion: "3.14.0" },
           "notebooklm-mcp-cli": {

@@ -1,5 +1,8 @@
-import { requireOpenAllowFrom } from "crawclaw/plugin-sdk/channel-config-primitives";
 import type { z } from "crawclaw/plugin-sdk/zod";
+
+function hasOpenAllowFrom(allowFrom: Array<string | number> | undefined): boolean {
+  return (allowFrom ?? []).some((entry) => String(entry).trim() === "*");
+}
 
 export function requireChannelOpenAllowFrom(params: {
   channel: string;
@@ -7,10 +10,11 @@ export function requireChannelOpenAllowFrom(params: {
   allowFrom?: Array<string | number>;
   ctx: z.RefinementCtx;
 }) {
-  requireOpenAllowFrom({
-    policy: params.policy,
-    allowFrom: params.allowFrom,
-    ctx: params.ctx,
+  if (params.policy !== "open" || hasOpenAllowFrom(params.allowFrom)) {
+    return;
+  }
+  params.ctx.addIssue({
+    code: "custom",
     path: ["allowFrom"],
     message: `channels.${params.channel}.dmPolicy="open" requires channels.${params.channel}.allowFrom to include "*"`,
   });

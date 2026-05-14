@@ -292,7 +292,7 @@ describe("subagent announce seam flow", () => {
       messages: {
         queue: {
           byChannel: {
-            discord: "steer",
+            feishu: "steer",
           },
         },
       },
@@ -301,7 +301,7 @@ describe("subagent announce seam flow", () => {
       "agent:main:main": {
         sessionId: "session-origin-provider-steer",
         updatedAt: Date.now(),
-        origin: { provider: "discord" },
+        origin: { provider: "feishu" },
       },
     }));
     isEmbeddedPiRunActiveMock.mockReturnValue(true);

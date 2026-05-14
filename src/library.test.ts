@@ -10,7 +10,6 @@ const lazyRuntimeSpecifiers = [
   "./cli/prompt.js",
   "./infra/binaries.js",
   "./process/exec.js",
-  "./plugins/runtime/runtime-whatsapp-boundary.js",
 ] as const;
 
 function readLibraryModuleImports() {

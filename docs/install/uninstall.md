@@ -11,21 +11,21 @@ title: "Uninstall"
 Two paths:
 
 - **Easy path** if `crawclaw` is still installed.
-- **Manual service removal** if the CLI is gone but the service is still running.
+- **Manual service removal** if the desktop app is gone but the service is still running.
 
-## Easy path (CLI still installed)
+## Easy path
 
 Recommended: use the built-in uninstaller:
 
 ```bash
-crawclaw uninstall
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Non-interactive (automation / npx):
 
 ```bash
-crawclaw uninstall --all --yes --non-interactive
-npx -y crawclaw uninstall --all --yes --non-interactive
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+npx -y CrawClaw Desktop or the local Gateway API
 ```
 
 Manual steps (same result):
@@ -33,13 +33,13 @@ Manual steps (same result):
 1. Stop the gateway service:
 
 ```bash
-crawclaw gateway stop
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 2. Uninstall the gateway service (launchd/systemd/schtasks):
 
 ```bash
-crawclaw gateway uninstall
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 3. Delete state + config:
@@ -110,12 +110,12 @@ If you used a profile, delete the matching task name and `~\.crawclaw-<profile>\
 
 ### Normal install (install.sh / npm / pnpm / bun)
 
-If you used `https://crawclaw.ai/install.sh` or `install.ps1`, the CLI was installed with `npm install -g crawclaw@latest`.
+If you used `https://crawclaw.ai/install.sh` or `install.ps1`, the CLI was installed with `install CrawClaw Desktop from GitHub Releases`.
 Remove it with `npm rm -g crawclaw` (or `pnpm remove -g` / `bun remove -g` if you installed that way).
 
 ### Source checkout (git clone)
 
-If you run from a repo checkout (`git clone` + `crawclaw ...` / `bun run crawclaw ...`):
+If you run from a repo checkout (`git clone` + CrawClaw Desktop or Gateway API / Gateway API calls):
 
 1. Uninstall the gateway service **before** deleting the repo (use the easy path above or manual service removal).
 2. Delete the repo directory.

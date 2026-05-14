@@ -231,16 +231,10 @@ describe("plugin sdk alias helpers", () => {
     );
     expect(srcAliases["crawclaw/plugin-sdk"]).toBeUndefined();
     expect(srcAliases["crawclaw/extension-api"]).toBeUndefined();
-    expect(srcAliases["crawclaw/plugin-sdk/channel-id"]).toBe(
-      fixture.entries["channel-id"].srcFile,
-    );
     expect(srcAliases["crawclaw/plugin-sdk/core"]).toBe(fixture.entries.core.srcFile);
 
     const distAliases = withEnv({ NODE_ENV: undefined }, () =>
       buildPluginLoaderAliasMap(distPluginEntry),
-    );
-    expect(distAliases["crawclaw/plugin-sdk/channel-id"]).toBe(
-      fixture.entries["channel-id"].distFile,
     );
     expect(distAliases["crawclaw/plugin-sdk/core"]).toBe(fixture.entries.core.distFile);
   });
@@ -253,7 +247,7 @@ describe("plugin sdk alias helpers", () => {
         buildPluginLoaderAliasMap(externalPluginEntry, path.join(fixture.root, "crawclaw.mjs")),
       ),
     );
-    expect(viaArgv["crawclaw/plugin-sdk/channel-id"]).toBe(fixture.entries["channel-id"].srcFile);
+    expect(viaArgv["crawclaw/plugin-sdk/core"]).toBe(fixture.entries.core.srcFile);
 
     const loaderModuleUrl = pathToFileURL(path.join(fixture.root, "crawclaw.mjs")).href;
     const viaModuleUrl = withCwd(externalPluginRoot, () =>
@@ -261,9 +255,7 @@ describe("plugin sdk alias helpers", () => {
         buildPluginLoaderAliasMap(externalPluginEntry, "", loaderModuleUrl),
       ),
     );
-    expect(viaModuleUrl["crawclaw/plugin-sdk/channel-id"]).toBe(
-      fixture.entries["channel-id"].srcFile,
-    );
+    expect(viaModuleUrl["crawclaw/plugin-sdk/core"]).toBe(fixture.entries.core.srcFile);
   });
 
   it("configures the plugin loader jiti boundary to prefer native dist modules", () => {

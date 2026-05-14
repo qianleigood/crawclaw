@@ -23,20 +23,20 @@ and third-party models hosted on the platform. Two billing plans are supported:
 
 ```bash
 # China endpoint
-crawclaw onboard --auth-choice modelstudio-standard-api-key-cn
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Global/Intl endpoint
-crawclaw onboard --auth-choice modelstudio-standard-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Coding Plan (subscription)
 
 ```bash
 # China endpoint
-crawclaw onboard --auth-choice modelstudio-api-key-cn
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Global/Intl endpoint
-crawclaw onboard --auth-choice modelstudio-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 After onboarding, set a default model:

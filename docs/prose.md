@@ -24,12 +24,12 @@ Official site: [https://www.prose.md](https://www.prose.md)
 Bundled plugins are disabled by default. Enable OpenProse:
 
 ```bash
-crawclaw plugins enable open-prose
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Restart the Gateway after enabling the plugin.
 
-Dev/local checkout: `crawclaw plugins install ./path/to/local/open-prose-plugin`
+Dev/local checkout: CrawClaw Desktop or the local Gateway API
 
 Related docs: [Plugins](/tools/plugin), [Plugin manifest](/plugins/manifest), [Skills](/tools/skills).
 

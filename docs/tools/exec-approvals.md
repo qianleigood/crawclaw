@@ -14,7 +14,7 @@ Effective policy is the **stricter** of `tools.exec.*` and approvals defaults; i
 Host exec also uses the local approvals state on that machine. A host-local
 `ask: "always"` in `~/.crawclaw/exec-approvals.json` keeps prompting even if
 session or config defaults request `ask: "on-miss"`.
-Use `crawclaw approvals get` or `crawclaw approvals get --gateway` to inspect the requested
+Use CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API to inspect the requested
 policy, host policy sources, and the effective result.
 
 If no approval UI is available, any request that requires a prompt is
@@ -101,16 +101,16 @@ or `deny`.
 Persistent gateway-host "never prompt" setup:
 
 ```bash
-crawclaw config set tools.exec.host gateway
-crawclaw config set tools.exec.security full
-crawclaw config set tools.exec.ask off
-crawclaw gateway restart
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Then set the host approvals file to match:
 
 ```bash
-crawclaw approvals set --stdin <<'EOF'
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 {
   version: 1,
   defaults: {
@@ -289,9 +289,9 @@ Configuration location:
 - `safeBins` comes from config (`tools.exec.safeBins` or per-agent `agents.list[].tools.exec.safeBins`).
 - `safeBinTrustedDirs` comes from config (`tools.exec.safeBinTrustedDirs` or per-agent `agents.list[].tools.exec.safeBinTrustedDirs`).
 - `safeBinProfiles` comes from config (`tools.exec.safeBinProfiles` or per-agent `agents.list[].tools.exec.safeBinProfiles`). Per-agent profile keys override global keys.
-- allowlist entries live in host-local `~/.crawclaw/exec-approvals.json` under `agents.<id>.allowlist` (or via approval-capable clients / `crawclaw approvals allowlist ...`).
-- `crawclaw security audit` warns with `tools.exec.safe_bins_interpreter_unprofiled` when interpreter/runtime bins appear in `safeBins` without explicit profiles.
-- `crawclaw doctor --fix` can scaffold missing custom `safeBinProfiles.<bin>` entries as `{}` (review and tighten afterward). Interpreter/runtime bins are not auto-scaffolded.
+- allowlist entries live in host-local `~/.crawclaw/exec-approvals.json` under `agents.<id>.allowlist` (or via approval-capable clients / CrawClaw Desktop or the local Gateway API).
+- CrawClaw Desktop or the local Gateway API warns with `tools.exec.safe_bins_interpreter_unprofiled` when interpreter/runtime bins appear in `safeBins` without explicit profiles.
+- CrawClaw Desktop or the local Gateway API can scaffold missing custom `safeBinProfiles.<bin>` entries as `{}` (review and tighten afterward). Interpreter/runtime bins are not auto-scaffolded.
 
 Custom profile example:
 
@@ -323,7 +323,7 @@ Approval-capable clients can edit defaults, per-agent overrides, and allowlists.
 Pick a scope (Defaults or an agent), tweak the policy, and add/remove allowlist
 patterns.
 
-CLI: `crawclaw approvals` supports local and Gateway editing (see [Approvals CLI](/cli/approvals)).
+CLI: CrawClaw Desktop or the local Gateway API supports local and Gateway editing (see [Approvals](/tools/exec-approvals)).
 
 ## Approval flow
 

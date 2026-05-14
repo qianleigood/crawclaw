@@ -30,8 +30,8 @@ Options:
 
 Examples:
   pnpm test:extensions:memory
-  pnpm test:extensions:memory -- --extension discord
-  pnpm test:extensions:memory -- --extension discord --extension telegram --skip-combined
+  pnpm test:extensions:memory -- --extension feishu
+  pnpm test:extensions:memory -- --extension feishu --extension esp32 --skip-combined
 `);
 }
 

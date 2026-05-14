@@ -32,7 +32,7 @@ describe("config set input parsing", () => {
   it("parses valid --batch-json payloads", () => {
     const parsed = parseBatchSource({
       batchJson:
-        '[{"path":"gateway.auth.mode","value":"token"},{"path":"channels.discord.token","ref":{"source":"env","provider":"default","id":"DISCORD_BOT_TOKEN"}},{"path":"secrets.providers.default","provider":{"source":"env"}}]',
+        '[{"path":"gateway.auth.mode","value":"token"},{"path":"channels.feishu.appSecret","ref":{"source":"env","provider":"default","id":"FEISHU_APP_SECRET"}},{"path":"secrets.providers.default","provider":{"source":"env"}}]',
     });
     expect(parsed).toEqual([
       {
@@ -40,11 +40,11 @@ describe("config set input parsing", () => {
         value: "token",
       },
       {
-        path: "channels.discord.token",
+        path: "channels.feishu.appSecret",
         ref: {
           source: "env",
           provider: "default",
-          id: "DISCORD_BOT_TOKEN",
+          id: "FEISHU_APP_SECRET",
         },
       },
       {

@@ -78,6 +78,16 @@ describe("bundled plugin metadata", () => {
     );
   });
 
+  it("captures native-only bundled plugins without TS entrypoints", () => {
+    const lobster = listBundledPluginMetadata().find((entry) => entry.dirName === "lobster");
+    expect(lobster?.source).toEqual({
+      source: "./crawclaw.plugin.json",
+      built: "crawclaw.plugin.json",
+    });
+    expect(lobster?.publicSurfaceArtifacts).toBeUndefined();
+    expect(lobster?.manifest.contracts?.tools).toEqual(["lobster"]);
+  });
+
   it("loads tlon channel config metadata from the lightweight schema surface", () => {
     const tlon = listBundledPluginMetadata().find((entry) => entry.dirName === "tlon");
     expect(tlon?.manifest.channelConfigs?.tlon).toEqual(

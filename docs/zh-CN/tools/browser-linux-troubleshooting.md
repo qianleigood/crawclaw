@@ -1,142 +1,62 @@
 ---
-read_when: Browser control fails on Linux, especially with snap Chromium
-summary: 修复 Linux 上 CrawClaw 浏览器控制的 Chrome/Brave/Edge/Chromium CDP 启动问题
+summary: 修复 Linux 上 CrawClaw agent-browser 启动问题
+read_when: 浏览器自动化在 Linux 上失败，特别是 snap Chromium 环境
 title: 浏览器故障排除
 x-i18n:
-  generated_at: "2026-02-03T07:55:07Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: bac2301022511a0bf8ebe1309606cc03e8a979ff74866c894f89d280ca3e514e
+  generated_at: "2026-05-14T00:00:00Z"
   source_path: tools/browser-linux-troubleshooting.md
-  workflow: 15
 ---
 
 # 浏览器故障排除（Linux）
 
-## 问题："Failed to start Chrome CDP on port 18800"
+Rust native `browser` 工具会启动托管的 `agent-browser` CLI。Linux 上最常见
+的问题是托管运行时缺失，或 Chromium 类浏览器在当前主机环境中无法启动。
 
-CrawClaw 的浏览器控制服务器无法启动 Chrome/Brave/Edge/Chromium，出现以下错误：
+## 缺少 agent-browser 运行时
 
-```
-{"error":"Error: Failed to start Chrome CDP on port 18800 for profile \"crawclaw\"."}
-```
+如果工具提示 `agent-browser` 缺失，请重新安装托管运行时：
 
-### 根本原因
-
-在 Ubuntu（和许多 Linux 发行版）上，默认的 Chromium 安装是 **snap 包**。Snap 的 AppArmor 限制会干扰 CrawClaw 启动和监控浏览器进程的方式。
-
-`apt install chromium` 命令安装的是一个重定向到 snap 的存根包：
-
-```
-Note, selecting 'chromium-browser' instead of 'chromium'
-chromium-browser is already the newest version (2:1snap1-0ubuntu2).
+```bash
+crawclaw runtimes install
 ```
 
-这不是真正的浏览器——它只是一个包装器。
+然后检查运行时状态：
 
-### 解决方案 1：安装 Google Chrome（推荐）
+```bash
+crawclaw runtimes doctor
+```
 
-安装官方 Google Chrome `.deb` 包，它不受 snap 沙箱限制：
+## 浏览器可执行文件无法启动
+
+Ubuntu 等发行版中的 Chromium 可能是 snap wrapper。若自动化启动失败，建议
+安装 Google Chrome 或其它非 snap 的 Chromium 浏览器，并在配置中指定路径：
 
 ```bash
 wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
 sudo dpkg -i google-chrome-stable_current_amd64.deb
-sudo apt --fix-broken install -y  # if there are dependency errors
+sudo apt --fix-broken install -y
 ```
-
-然后更新你的 CrawClaw 配置（`~/.crawclaw/crawclaw.json`）：
 
 ```json
 {
   "browser": {
     "enabled": true,
+    "provider": "agent-browser",
     "executablePath": "/usr/bin/google-chrome-stable",
-    "headless": true,
-    "noSandbox": true
+    "noSandbox": true,
+    "extraArgs": ["--disable-gpu"]
   }
 }
 ```
 
-### 解决方案 2：使用 Snap Chromium 的仅附加模式
+## 通过工具验证
 
-如果你必须使用 snap Chromium，配置 CrawClaw 附加到手动启动的浏览器：
-
-1. 更新配置：
+通过智能体会话或 Gateway Tools Invoke API 调用：
 
 ```json
-{
-  "browser": {
-    "enabled": true,
-    "headless": true,
-    "noSandbox": true
-  }
-}
+{ "action": "status", "profile": "crawclaw" }
 ```
 
-2. 手动启动 Chromium：
-
-```bash
-chromium-browser --headless --no-sandbox --disable-gpu \
-  --remote-debugging-port=18800 \
-  --user-data-dir=$HOME/.crawclaw/browser/crawclaw/user-data \
-  about:blank &
+```json
+{ "action": "open", "profile": "crawclaw", "url": "https://example.com" }
 ```
-
-3. 可选创建 systemd 用户服务以自动启动 Chrome：
-
-```ini
-# ~/.config/systemd/user/crawclaw-browser.service
-[Unit]
-Description=CrawClaw Browser (Chrome CDP)
-After=network.target
-
-[Service]
-ExecStart=/snap/bin/chromium --headless --no-sandbox --disable-gpu --remote-debugging-port=18800 --user-data-dir=%h/.crawclaw/browser/crawclaw/user-data about:blank
-Restart=on-failure
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-```
-
-启用：`systemctl --user enable --now crawclaw-browser.service`
-
-### 验证浏览器是否工作
-
-检查状态：
-
-```bash
-curl -s http://127.0.0.1:18791/ | jq '{running, pid, chosenBrowser}'
-```
-
-测试浏览：
-
-```bash
-curl -s -X POST http://127.0.0.1:18791/start
-curl -s http://127.0.0.1:18791/tabs
-```
-
-### 配置参考
-
-| 选项                        | 描述                                                          | 默认值                                           |
-| --------------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
-| `browser.enabled`           | 启用浏览器控制                                                | `true`                                           |
-| `browser.executablePath`    | Chromium 系浏览器二进制文件路径（Chrome/Brave/Edge/Chromium） | 自动检测（当默认浏览器是 Chromium 系时优先使用） |
-| `browser.headless`          | 无 GUI 运行                                                   | `false`                                          |
-| `browser.noSandbox`         | 添加 `--no-sandbox` 标志（某些 Linux 设置需要）               | `false`                                          |
-| `browser.cdpPortRangeStart` | 托管本地浏览器配置文件的起始端口                              | 从 `gateway.port` 派生                           |
-
-### 问题：`curl` 能访问 remote CDP，但 CrawClaw 仍然无法使用
-
-你正在使用 remote CDP 配置文件。端点能响应，但 CrawClaw 仍无法完成浏览器操作。
-
-修复选项：
-
-1. **使用托管浏览器：** `crawclaw browser start --browser-profile crawclaw`
-   （或设置 `browser.defaultProfile: "crawclaw"`）。
-2. **使用 remote CDP：** 确认 `browser.profiles.<name>.cdpUrl` 对 CrawClaw 所在主机/命名空间仍然可达。
-
-注意事项：
-
-- `chrome` 配置文件在可能时使用你的**系统默认 Chromium 浏览器**。
-- 本地 `crawclaw` 配置文件自动分配 `cdpPort`/`cdpUrl`；仅为远程 CDP 设置这些。

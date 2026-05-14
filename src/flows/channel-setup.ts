@@ -153,9 +153,6 @@ export async function setupChannels(
       void loadScopedChannelPlugin(channel, entry.pluginId);
     }
   };
-  if (options?.whatsappAccountId?.trim()) {
-    accountOverrides.whatsapp = options.whatsappAccountId.trim();
-  }
   preloadConfiguredExternalPlugins();
 
   const {

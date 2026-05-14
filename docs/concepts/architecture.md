@@ -102,7 +102,7 @@ Details: [Gateway protocol](/gateway/protocol), [Pairing](/channels/pairing),
 
 ## Operations snapshot
 
-- Start: `crawclaw gateway` (foreground, logs to stdout).
+- Start: CrawClaw Desktop or the local Gateway API (foreground, logs to stdout).
 - Health: `health` over WS (also included in `hello-ok`).
 - Supervision: launchd/systemd for auto‑restart.
 

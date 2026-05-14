@@ -151,17 +151,17 @@ function buildToolRichSystemPrompt(params: {
     userTimeFormat,
     acpEnabled: true,
     skillsPrompt: params.skillsPrompt,
-    reactionGuidance: { level: "extensive", channel: "Telegram" },
+    reactionGuidance: { level: "extensive", channel: "Feishu" },
     contextFiles: params.contextFiles,
   });
 }
 
 function createDirectScenario(workspaceDir: string): PromptScenario {
   const baseCtx: TemplateContext = {
-    Provider: "slack",
-    Surface: "slack",
-    OriginatingChannel: "slack",
-    OriginatingTo: "D123",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
+    OriginatingTo: "oc_123",
     AccountId: "A1",
     ChatType: "direct",
     SenderId: "U1",
@@ -270,10 +270,10 @@ function createDirectScenario(workspaceDir: string): PromptScenario {
 
 function createGroupScenario(workspaceDir: string): PromptScenario {
   const baseCtx: TemplateContext = {
-    Provider: "slack",
-    Surface: "slack",
-    OriginatingChannel: "slack",
-    OriginatingTo: "C123",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
+    OriginatingTo: "oc_group_123",
     AccountId: "A1",
     ChatType: "group",
     GroupSubject: "ops",
@@ -581,10 +581,10 @@ async function createMaintenanceScenario(workspaceDir: string): Promise<PromptSc
   const postCompactionSystemPrompt = buildSystemPrompt({
     workspaceDir,
     extraSystemPrompt: buildInboundMetaSystemPrompt({
-      Provider: "slack",
-      Surface: "slack",
-      OriginatingChannel: "slack",
-      OriginatingTo: "D123",
+      Provider: "feishu",
+      Surface: "feishu",
+      OriginatingChannel: "feishu",
+      OriginatingTo: "oc_123",
       AccountId: "A1",
       ChatType: "direct",
     }),

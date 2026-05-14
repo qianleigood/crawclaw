@@ -38,11 +38,9 @@ x-i18n:
 ### 批准发送者
 
 ```bash
-crawclaw pairing list telegram
-crawclaw pairing approve telegram <CODE>
+crawclaw pairing list <channel>
+crawclaw pairing approve <channel> <CODE>
 ```
-
-支持的渠道：`telegram`、`whatsapp`、`signal`、`imessage`、`discord`、`slack`。
 
 ### 状态存储位置
 
@@ -82,10 +80,3 @@ crawclaw devices reject <requestId>
 
 - 安全模型 + 提示注入：[安全](/gateway/security)
 - 安全更新（运行 doctor）：[更新](/install/updating)
-- 渠道配置：
-  - Telegram：[Telegram](/channels/telegram)
-  - WhatsApp：[WhatsApp](/channels/whatsapp)
-  - Signal：[Signal](/channels/signal)
-  - iMessage：[iMessage](/channels/imessage)
-  - Discord：[Discord](/channels/discord)
-  - Slack：[Slack](/channels/slack)

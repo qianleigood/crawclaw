@@ -10,20 +10,20 @@ title: "Updating"
 
 Keep CrawClaw up to date.
 
-## Recommended: `crawclaw update`
+## Recommended: CrawClaw Desktop or the local Gateway API
 
-The fastest way to update. It detects your install type (npm or git), fetches the latest version, runs `crawclaw doctor`, and restarts the gateway.
+The fastest way to update. It detects your install type (npm or git), fetches the latest version, runs CrawClaw Desktop or the local Gateway API, and restarts the gateway.
 
 ```bash
-crawclaw update
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 To switch channels or target a specific version:
 
 ```bash
-crawclaw update --channel beta
-crawclaw update --tag main
-crawclaw update --dry-run   # preview without applying
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 See [Development channels](/install/development-channels) for channel semantics.
@@ -39,11 +39,11 @@ Add `--no-onboard` to skip onboarding. For source installs, pass `--install-meth
 ## Alternative: manual npm or pnpm
 
 ```bash
-npm i -g crawclaw@latest
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 ```bash
-pnpm add -g crawclaw@latest
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 ## Auto-updater
@@ -68,7 +68,7 @@ The auto-updater is off by default. Enable it in `~/.crawclaw/crawclaw.json`:
 | -------- | ------------------------------------------------------------------------------------------------------------- |
 | `stable` | Waits `stableDelayHours`, then applies with deterministic jitter across `stableJitterHours` (spread rollout). |
 | `beta`   | Checks every `betaCheckIntervalHours` (default: hourly) and applies immediately.                              |
-| `dev`    | No automatic apply. Use `crawclaw update` manually.                                                           |
+| `dev`    | No automatic apply. Use CrawClaw Desktop or the local Gateway API manually.                                   |
 
 The gateway also logs an update hint on startup (disable with `update.checkOnStart: false`).
 
@@ -79,7 +79,7 @@ The gateway also logs an update hint on startup (disable with `update.checkOnSta
 ### Run doctor
 
 ```bash
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Migrates config, audits DM policies, and checks gateway health. Details: [Doctor](/gateway/doctor)
@@ -87,13 +87,13 @@ Migrates config, audits DM policies, and checks gateway health. Details: [Doctor
 ### Restart the gateway
 
 ```bash
-crawclaw gateway restart
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Verify
 
 ```bash
-crawclaw health
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 </Steps>
@@ -103,9 +103,9 @@ crawclaw health
 ### Pin a version (npm)
 
 ```bash
-npm i -g crawclaw@<version>
-crawclaw doctor
-crawclaw gateway restart
+Install the matching CrawClaw Desktop release asset
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Tip: `npm view crawclaw version` shows the current published version.
@@ -116,14 +116,14 @@ Tip: `npm view crawclaw version` shows the current published version.
 git fetch origin
 git checkout "$(git rev-list -n 1 --before=\"2026-01-01\" origin/main)"
 pnpm install && pnpm build
-crawclaw gateway restart
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 To return to latest: `git checkout main && git pull`.
 
 ## If you are stuck
 
-- Run `crawclaw doctor` again and read the output carefully.
+- Run CrawClaw Desktop or the local Gateway API again and read the output carefully.
 - Check: [Troubleshooting](/gateway/troubleshooting)
 - Ask in Discord: [https://discord.gg/clawd](https://discord.gg/clawd)
 

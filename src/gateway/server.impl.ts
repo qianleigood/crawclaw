@@ -34,17 +34,12 @@ import {
   type MainSessionWakeRunner,
 } from "../infra/main-session-wake-runner.js";
 import { ensureCrawClawCliOnPath } from "../infra/path-env.js";
-import {
-  detectPluginInstallPathIssue,
-  formatPluginInstallPathIssue,
-} from "../infra/plugin-install-path-warnings.js";
 import { setGatewaySigusr1RestartPolicy, setPreRestartDeferralCheck } from "../infra/restart.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { scheduleGatewayUpdateCheck } from "../infra/update-startup.js";
 import { startDiagnosticHeartbeat, stopDiagnosticHeartbeat } from "../logging/diagnostic.js";
 import { createSubsystemLogger, runtimeForLogger } from "../logging/subsystem.js";
 import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
-import { resolveBundledPluginInstallCommandHint } from "../plugins/bundled-sources.js";
 import {
   resolveConfiguredDeferredChannelPluginIds,
   resolveGatewayStartupPluginIds,
@@ -553,26 +548,6 @@ export async function startGatewayServer(
     env: process.env,
     log,
   });
-  const matrixInstallPathIssue = await detectPluginInstallPathIssue({
-    pluginId: "matrix",
-    install: cfgAtStart.plugins?.installs?.matrix,
-  });
-  if (matrixInstallPathIssue) {
-    const lines = formatPluginInstallPathIssue({
-      issue: matrixInstallPathIssue,
-      pluginLabel: "Matrix",
-      defaultInstallCommand: "crawclaw plugins install @crawclaw/matrix",
-      repoInstallCommand: resolveBundledPluginInstallCommandHint({
-        pluginId: "matrix",
-        workspaceDir: process.cwd(),
-      }),
-      formatCommand: formatCliCommand,
-    });
-    log.warn(
-      `gateway: matrix install path warning:\n${lines.map((entry) => `- ${entry}`).join("\n")}`,
-    );
-  }
-
   initSubagentRegistry();
   const gatewayPluginConfigAtStart = applyPluginAutoEnable({
     config: cfgAtStart,
@@ -1644,10 +1619,6 @@ export async function startGatewayServer(
                 }
                 throw err;
               }
-            },
-            reloadBrowserRuntime: () => {
-              // Browser runtime config is read lazily by browser call sites.
-              // Keeping an owner here prevents browser settings from falling back to restart.
             },
           });
 

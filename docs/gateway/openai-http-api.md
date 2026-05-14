@@ -20,7 +20,7 @@ When the Gateway’s OpenAI-compatible HTTP surface is enabled, it also serves:
 - `GET /v1/models/{id}`
 - `POST /v1/responses`
 
-Under the hood, requests are executed as a normal Gateway agent run (same codepath as `crawclaw agent`), so routing/permissions/config match your Gateway.
+Under the hood, requests are executed as a normal Gateway agent run (same codepath as CrawClaw Desktop or the local Gateway API), so routing/permissions/config match your Gateway.
 
 ## Authentication
 

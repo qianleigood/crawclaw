@@ -23,7 +23,6 @@ export type GatewayReloadPlan = {
   restartUpdateCheck: boolean;
   restartMediaCleanup: boolean;
   reloadPluginRuntime: boolean;
-  reloadBrowserRuntime: boolean;
   restartChannels: Set<ChannelKind>;
   noopPaths: string[];
   unmatchedPaths: string[];
@@ -50,7 +49,6 @@ export function buildGatewayReloadPlan(changedPaths: string[]): GatewayReloadPla
     restartUpdateCheck: reconfigurePlan.actions.has("restart-update-check"),
     restartMediaCleanup: reconfigurePlan.actions.has("restart-media-cleanup"),
     reloadPluginRuntime: reconfigurePlan.actions.has("reload-plugin-runtime"),
-    reloadBrowserRuntime: reconfigurePlan.actions.has("reload-browser-runtime"),
     restartChannels: reconfigurePlan.restartChannels,
     noopPaths: reconfigurePlan.noopPaths,
     unmatchedPaths: reconfigurePlan.unmatchedPaths,

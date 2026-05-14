@@ -69,7 +69,7 @@ ${formatHelpExamples([
     t("command.agent.example.deliver"),
   ],
   [
-    'crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel slack --reply-to "#reports"',
+    'crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel feishu --reply-to "chat:reports"',
     t("command.agent.example.replyOverride"),
   ],
 ])}

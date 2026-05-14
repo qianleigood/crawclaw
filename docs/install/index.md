@@ -11,7 +11,7 @@ title: "Install"
 
 ## Recommended: CrawClaw Desktop
 
-For a local desktop client, install CrawClaw Desktop from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases). It bundles the CrawClaw runtime, initializes local Gateway configuration under `~/.crawclaw`, and manages the local Gateway service without requiring a global CLI install.
+For a local desktop client, install CrawClaw Desktop from [GitHub Releases](https://github.com/qianleigood/crawclaw/releases). It bundles the CrawClaw runtime, initializes local Gateway configuration under `~/.crawclaw`, and manages the local Gateway service without requiring a global command install.
 
 See [Desktop](/install/desktop).
 
@@ -64,15 +64,15 @@ If you already manage Node yourself:
 <Tabs>
   <Tab title="npm">
     ```bash
-    npm install -g crawclaw@latest
-    crawclaw onboard --install-daemon
+# Install CrawClaw Desktop from GitHub Releases.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
   </Tab>
   <Tab title="pnpm">
     ```bash
-    pnpm add -g crawclaw@latest
+# Install CrawClaw Desktop from GitHub Releases.
     pnpm approve-builds -g
-    crawclaw onboard --install-daemon
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     <Note>
@@ -86,7 +86,7 @@ If you already manage Node yourself:
   If `sharp` fails due to a globally installed libvips:
 
 ```bash
-SHARP_IGNORE_GLOBAL_LIBVIPS=1 npm install -g crawclaw@latest
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 </Accordion>
@@ -100,10 +100,10 @@ git clone https://github.com/qianleigood/crawclaw.git
 cd crawclaw
 pnpm install && pnpm build
 pnpm link --global
-crawclaw onboard --install-daemon
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-Or skip the link and use `pnpm crawclaw ...` from inside the repo. See [Setup](/start/setup) for full development workflows.
+Or skip the link and use CrawClaw Desktop dev mode from inside the repo. See [Setup](/start/setup) for full development workflows.
 
 ### Install from GitHub main
 
@@ -121,16 +121,16 @@ npm install -g github:crawclaw/crawclaw#main
     Automated fleet provisioning.
   </Card>
   <Card title="Bun" href="/install/bun" icon="zap">
-    CLI-only usage via the Bun runtime.
+    Gateway API usage via the Bun runtime.
   </Card>
 </CardGroup>
 
 ## Verify the install
 
 ```bash
-crawclaw --version      # confirm the CLI is available
-crawclaw doctor         # check for config issues
-crawclaw gateway status # verify the Gateway is running
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Hosting and deployment

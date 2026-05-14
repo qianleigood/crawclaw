@@ -105,13 +105,13 @@ export type SessionConfig = {
   scope?: SessionScope;
   /** DM session scoping (default: "main"). */
   dmScope?: DmScope;
-  /** Map platform-prefixed identities (e.g. "telegram:123") to canonical DM peers. */
+  /** Map platform-prefixed identities (e.g. "feishu:123") to canonical DM peers. */
   identityLinks?: Record<string, string[]>;
   resetTriggers?: string[];
   idleMinutes?: number;
   reset?: SessionResetConfig;
   resetByType?: SessionResetByTypeConfig;
-  /** Channel-specific reset overrides (e.g. { discord: { mode: "idle", idleMinutes: 10080 } }). */
+  /** Channel-specific reset overrides (e.g. { feishu: { mode: "idle", idleMinutes: 10080 } }). */
   resetByChannel?: Record<string, SessionResetConfig>;
   store?: string;
   typingIntervalSeconds?: number;
@@ -200,7 +200,7 @@ export type DiagnosticsCacheTraceConfig = {
 
 export type DiagnosticsConfig = {
   enabled?: boolean;
-  /** Optional ad-hoc diagnostics flags (e.g. "telegram.http"). */
+  /** Optional ad-hoc diagnostics flags (e.g. "feishu.http"). */
   flags?: string[];
   /** Threshold in ms before a processing session logs "stuck session" diagnostics. */
   stuckSessionWarnMs?: number;
@@ -217,7 +217,7 @@ export type WebReconnectConfig = {
 };
 
 export type WebConfig = {
-  /** If false, do not start the WhatsApp web provider. Default: true. */
+  /** If false, do not start the legacy web channel provider. Default: true. */
   enabled?: boolean;
   heartbeatSeconds?: number;
   reconnect?: WebReconnectConfig;

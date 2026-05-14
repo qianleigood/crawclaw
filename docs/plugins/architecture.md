@@ -30,7 +30,7 @@ native CrawClaw plugin registers against one or more capability types:
 | Capability            | Registration method                           | Example plugins           |
 | --------------------- | --------------------------------------------- | ------------------------- |
 | Text inference        | `api.registerProvider(...)`                   | `openai`, `anthropic`     |
-| CLI inference backend | `api.registerCliBackend(...)`                 | `openai`, `anthropic`     |
+| Local process backend | `api.registerCliBackend(...)`                 | `openai`, `anthropic`     |
 | Speech                | `api.registerSpeechProvider(...)`             | `elevenlabs`, `microsoft` |
 | Media understanding   | `api.registerMediaUnderstandingProvider(...)` | `openai`, `google`        |
 | Web search            | `api.registerWebSearchProvider(...)`          | `google`                  |
@@ -78,8 +78,8 @@ registration behavior (not just static metadata):
 - **non-capability** -- registers tools, commands, services, or routes but no
   capabilities
 
-Use `crawclaw plugins inspect <id>` to see a plugin's shape and capability
-breakdown. See [CLI reference](/cli/plugins#inspect) for details.
+Use CrawClaw Desktop or the local Gateway API to see a plugin's shape and capability
+breakdown. See [Gateway API reference](/tools/plugin#inspect) for details.
 
 ### Typed runtime hooks
 
@@ -94,7 +94,7 @@ For current plugin development, use the typed runtime hooks:
 
 ### Compatibility signals
 
-When you run `crawclaw doctor` or `crawclaw plugins inspect <id>`, you may see
+When you run CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API, you may see
 one of these labels:
 
 | Signal                     | Meaning                                                      |
@@ -104,7 +104,7 @@ one of these labels:
 | **hard error**             | Config is invalid or plugin failed to load                   |
 
 `hook-only` is advisory only. These signals also appear in
-`crawclaw status --all` and `crawclaw plugins doctor`.
+CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API.
 
 ## Architecture overview
 
@@ -123,7 +123,7 @@ CrawClaw's plugin system has four layers:
    registry records without importing runtime code.
 4. **Surface consumption**
    The rest of CrawClaw reads the registry to expose tools, channels, provider
-   setup, hooks, HTTP routes, CLI commands, and services.
+   setup, hooks, HTTP routes, Desktop and Gateway API actions, and services.
 
 For plugin CLI specifically, root command discovery is split in two phases:
 
@@ -947,22 +947,10 @@ authoring plugins:
 
 - `crawclaw/plugin-sdk/plugin-entry` for plugin registration primitives.
 - `crawclaw/plugin-sdk/core` for the generic shared plugin-facing contract.
-- Stable channel primitives such as `crawclaw/plugin-sdk/channel-setup`,
-  `crawclaw/plugin-sdk/channel-pairing`,
-  `crawclaw/plugin-sdk/channel-contract`,
-  `crawclaw/plugin-sdk/channel-feedback`,
-  `crawclaw/plugin-sdk/channel-inbound`,
-  `crawclaw/plugin-sdk/channel-lifecycle`,
-  `crawclaw/plugin-sdk/channel-reply-pipeline`,
-  `crawclaw/plugin-sdk/command-auth`,
+- Stable primitives such as `crawclaw/plugin-sdk/command-auth`,
   `crawclaw/plugin-sdk/secret-input`, and
-  `crawclaw/plugin-sdk/webhook-ingress` for shared setup/auth/reply/webhook
-  wiring. `channel-inbound` is the shared home for debounce, mention matching,
-  envelope formatting, and inbound envelope context helpers.
-- Domain subpaths such as `crawclaw/plugin-sdk/channel-config-helpers`,
-  `crawclaw/plugin-sdk/allow-from`,
-  `crawclaw/plugin-sdk/channel-config-schema`,
-  `crawclaw/plugin-sdk/channel-policy`,
+  `crawclaw/plugin-sdk/webhook-ingress` for shared auth/webhook wiring.
+- Domain subpaths such as `crawclaw/plugin-sdk/allow-from`,
   `crawclaw/plugin-sdk/approval-runtime`,
   `crawclaw/plugin-sdk/config-runtime`,
   `crawclaw/plugin-sdk/infra-runtime`,
@@ -970,17 +958,15 @@ authoring plugins:
   `crawclaw/plugin-sdk/lazy-runtime`,
   `crawclaw/plugin-sdk/reply-history`,
   `crawclaw/plugin-sdk/routing`,
-  `crawclaw/plugin-sdk/status-helpers`,
-  `crawclaw/plugin-sdk/runtime-store`, and
-  `crawclaw/plugin-sdk/directory-runtime` for shared runtime/config helpers.
+  `crawclaw/plugin-sdk/status-helpers`, and
+  `crawclaw/plugin-sdk/runtime-store` for shared runtime/config helpers.
 - Approval-specific channel seams should prefer one `approvalCapability`
   contract on the plugin. Core then reads approval auth, delivery, render, and
   native-routing behavior through that one capability instead of mixing
   approval behavior into unrelated plugin fields.
-- The legacy channel runtime barrel has been removed. Import the narrower
-  primitives directly, such as `crawclaw/plugin-sdk/channel-id`,
-  `crawclaw/plugin-sdk/infra-runtime`, or
-  `crawclaw/plugin-sdk/directory-runtime`.
+- The legacy channel runtime barrel and TypeScript channel SDK helpers have
+  been removed. Channel plugins should use the Rust-native channel plugin
+  contract.
 - Bundled extension internals remain private. External plugins should use only
   `crawclaw/plugin-sdk/*` subpaths. CrawClaw core/test code may use the repo
   public entry points under a plugin package root such as `index.js`, `api.js`,
@@ -999,21 +985,14 @@ authoring plugins:
 Compatibility note:
 
 - Avoid the root `crawclaw/plugin-sdk` barrel for new code.
-- Prefer the narrow stable primitives first. The newer setup/pairing/reply/
-  feedback/contract/inbound/threading/command/secret-input/webhook/infra/
-  allowlist/status/message-tool subpaths are the intended contract for new
-  bundled and external plugin work.
-  Target parsing/matching belongs on `crawclaw/plugin-sdk/channel-targets`.
-  Message action gates and reaction message-id helpers belong on
-  `crawclaw/plugin-sdk/channel-actions`.
+- Prefer the narrow stable primitives first. TypeScript channel-specific setup,
+  pairing, reply, inbound, target parsing, and message-action helper subpaths
+  are no longer part of the public SDK.
 - Bundled extension-specific helper barrels are not stable by default. If a
   helper is only needed by a bundled extension, keep it behind the extension's
   local `api.js` or `runtime-api.js` seam instead of promoting it into
   `crawclaw/plugin-sdk/<extension>`.
-- New shared helper seams should be generic, not channel-branded. Shared target
-  parsing belongs on `crawclaw/plugin-sdk/channel-targets`; channel-specific
-  internals stay behind the owning plugin's local `api.js` or `runtime-api.js`
-  seam.
+- New shared helper seams should be generic, not channel-branded.
 - Capability-specific subpaths such as `media-understanding` and `speech` exist because bundled/native plugins use
   them today. Their presence does not by itself mean every exported helper is a
   long-term frozen external contract.
@@ -1022,12 +1001,6 @@ Compatibility note:
 
 Plugins should own channel-specific `describeMessageTool(...)` schema
 contributions. Keep provider-specific fields in the plugin, not in shared core.
-
-For shared portable schema fragments, reuse the generic helpers exported through
-`crawclaw/plugin-sdk/channel-actions`:
-
-- `createMessageToolButtonsSchema()` for button-grid style payloads
-- `createMessageToolCardSchema()` for structured card payloads
 
 If a schema shape only makes sense for one provider, define it in that plugin's
 own source instead of promoting it into the shared SDK.
@@ -1061,8 +1034,7 @@ Recommended split:
 ## Config-backed directories
 
 Plugins that derive directory entries from config should keep that logic in the
-plugin and reuse the shared helpers from
-`crawclaw/plugin-sdk/directory-runtime`.
+plugin or the Rust-native channel adapter.
 
 Use this when a channel needs config-backed peers/groups such as:
 
@@ -1119,8 +1091,8 @@ Why:
 
 - `resolveAccount(...)` is the runtime path. It is allowed to assume credentials
   are fully materialized and can fail fast when required secrets are missing.
-- Read-only command paths such as `crawclaw status`, `crawclaw status --all`,
-  `crawclaw channels status`, `crawclaw channels resolve`, and doctor/config
+- Read-only command paths such as CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API,
+  CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and doctor/config
   repair flows should not need to materialize runtime credentials just to
   describe configuration.
 
@@ -1166,7 +1138,7 @@ Security guardrail: every `crawclaw.extensions` entry must stay inside the plugi
 directory after symlink resolution. Entries that escape the package directory are
 rejected.
 
-Security note: `crawclaw plugins install` installs plugin dependencies with
+Security note: CrawClaw Desktop or the local Gateway API installs plugin dependencies with
 `npm install --omit=dev --ignore-scripts` (no lifecycle scripts, no dev dependencies at runtime). Keep plugin dependency
 trees "pure JS/TS" and avoid packages that require `postinstall` builds.
 

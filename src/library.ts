@@ -14,27 +14,22 @@ import {
   handlePortError,
   PortInUseError,
 } from "./infra/ports.js";
-import type { monitorWebChannel as monitorWebChannelRuntime } from "./plugins/runtime/runtime-whatsapp-boundary.js";
 import type {
   runCommandWithTimeout as runCommandWithTimeoutRuntime,
   runExec as runExecRuntime,
 } from "./process/exec.js";
-import { assertWebChannel, normalizeE164, toWhatsappJid } from "./utils.js";
+import { assertWebChannel, normalizeE164 } from "./utils.js";
 
 type GetReplyFromConfig = typeof getReplyFromConfigRuntime;
 type PromptYesNo = typeof promptYesNoRuntime;
 type EnsureBinary = typeof ensureBinaryRuntime;
 type RunExec = typeof runExecRuntime;
 type RunCommandWithTimeout = typeof runCommandWithTimeoutRuntime;
-type MonitorWebChannel = typeof monitorWebChannelRuntime;
 
 let replyRuntimePromise: Promise<typeof import("./auto-reply/reply.runtime.js")> | null = null;
 let promptRuntimePromise: Promise<typeof import("./cli/prompt.js")> | null = null;
 let binariesRuntimePromise: Promise<typeof import("./infra/binaries.js")> | null = null;
 let execRuntimePromise: Promise<typeof import("./process/exec.js")> | null = null;
-let whatsappRuntimePromise: Promise<
-  typeof import("./plugins/runtime/runtime-whatsapp-boundary.js")
-> | null = null;
 
 function loadReplyRuntime() {
   replyRuntimePromise ??= import("./auto-reply/reply.runtime.js");
@@ -56,11 +51,6 @@ function loadExecRuntime() {
   return execRuntimePromise;
 }
 
-function loadWhatsAppRuntime() {
-  whatsappRuntimePromise ??= import("./plugins/runtime/runtime-whatsapp-boundary.js");
-  return whatsappRuntimePromise;
-}
-
 export const getReplyFromConfig: GetReplyFromConfig = async (...args) =>
   (await loadReplyRuntime()).getReplyFromConfig(...args);
 export const promptYesNo: PromptYesNo = async (...args) =>
@@ -70,8 +60,6 @@ export const ensureBinary: EnsureBinary = async (...args) =>
 export const runExec: RunExec = async (...args) => (await loadExecRuntime()).runExec(...args);
 export const runCommandWithTimeout: RunCommandWithTimeout = async (...args) =>
   (await loadExecRuntime()).runCommandWithTimeout(...args);
-export const monitorWebChannel: MonitorWebChannel = async (...args) =>
-  (await loadWhatsAppRuntime()).monitorWebChannel(...args);
 
 export {
   assertWebChannel,
@@ -88,6 +76,5 @@ export {
   resolveSessionKey,
   resolveStorePath,
   saveSessionStore,
-  toWhatsappJid,
   waitForever,
 };

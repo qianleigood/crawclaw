@@ -113,15 +113,15 @@ Use token auth as the default. It’s predictable and avoids needing any insecur
 
 ```bash
 # Keep the Gateway private on the VM
-crawclaw config set gateway.bind loopback
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Require auth for the Gateway and browser clients
-crawclaw config set gateway.auth.mode token
-crawclaw doctor --generate-gateway-token
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Expose over Tailscale Serve (HTTPS + tailnet access)
-crawclaw config set gateway.tailscale.mode serve
-crawclaw config set gateway.trustedProxies '["127.0.0.1"]'
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 systemctl --user restart crawclaw-gateway
 ```
@@ -132,7 +132,7 @@ systemctl --user restart crawclaw-gateway
 
 ```bash
 # Check version
-crawclaw --version
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Check daemon status
 systemctl --user status crawclaw-gateway
@@ -180,7 +180,7 @@ No SSH tunnel needed. Tailscale provides:
 
 With the VCN locked down (only UDP 41641 open) and the Gateway bound to loopback, you get strong defense-in-depth: public traffic is blocked at the network edge, and admin access happens over your tailnet.
 
-This setup often removes the _need_ for extra host-based firewall rules purely to stop Internet-wide SSH brute force — but you should still keep the OS updated, run `crawclaw security audit`, and verify you aren’t accidentally listening on public interfaces.
+This setup often removes the _need_ for extra host-based firewall rules purely to stop Internet-wide SSH brute force — but you should still keep the OS updated, run CrawClaw Desktop or the local Gateway API, and verify you aren’t accidentally listening on public interfaces.
 
 ### Already protected
 
@@ -196,7 +196,7 @@ This setup often removes the _need_ for extra host-based firewall rules purely t
 ### Still Recommended
 
 - **Credential permissions:** `chmod 700 ~/.crawclaw`
-- **Security audit:** `crawclaw security audit`
+- **Security audit:** CrawClaw Desktop or the local Gateway API
 - **System updates:** `sudo apt update && sudo apt upgrade` regularly
 - **Monitor Tailscale:** Review devices in [Tailscale admin console](https://login.tailscale.com/admin)
 
@@ -251,8 +251,8 @@ sudo tailscale up --ssh --hostname=crawclaw --reset
 ### Gateway will not start
 
 ```bash
-crawclaw gateway status
-crawclaw doctor --non-interactive
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 journalctl --user -u crawclaw-gateway -n 50
 ```
 

@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { shouldAllowBundledTsChannelRuntime } from "../../channels/plugins/bundled-runtime-policy.js";
+import { CHANNEL_IDS } from "../../channels/ids.js";
 import {
   buildChannelUiCatalog,
   listChannelPluginCatalogEntries,
@@ -23,7 +23,6 @@ import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
 import { getChannelActivity } from "../../infra/channel-activity.js";
 import { resolveCrawClawPackageRootSync } from "../../infra/crawclaw-root.js";
 import { listRecentDiagnosticChannelStreamingDecisions } from "../../logging/diagnostic-session-state.js";
-import { listBundledPluginMetadata } from "../../plugins/bundled-plugin-metadata.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
 import {
@@ -49,21 +48,8 @@ type ChannelLogoutPayload = {
   [key: string]: unknown;
 };
 
-function listBundledChannelIds(): Set<string> {
-  const ids = new Set<string>();
-  for (const entry of listBundledPluginMetadata({
-    includeChannelConfigs: false,
-    includeSyntheticChannelConfigs: false,
-  })) {
-    for (const channelId of entry.manifest.channels ?? []) {
-      ids.add(channelId);
-    }
-  }
-  return ids;
-}
-
 function shouldUseNativeChannelRuntime(channelId: ChannelId): boolean {
-  return !shouldAllowBundledTsChannelRuntime() && listBundledChannelIds().has(channelId);
+  return (CHANNEL_IDS as readonly string[]).includes(channelId);
 }
 
 function shouldIncludeTsChannelPluginInStatus(plugin: ChannelPlugin): boolean {

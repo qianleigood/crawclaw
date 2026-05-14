@@ -23,7 +23,7 @@ Quick mental model:
 - Install plugin
 - Restart Gateway
 - Configure under `plugins.entries.voice-call.config`
-- Use `crawclaw voicecall ...` or the `voice_call` tool
+- Use CrawClaw Desktop or the local Gateway API or the `voice_call` tool
 
 ## Where it runs (local vs remote)
 
@@ -36,7 +36,7 @@ If you use a remote Gateway, install/configure the plugin on the **machine runni
 ### Option A: install from npm (recommended)
 
 ```bash
-crawclaw plugins install @crawclaw/voice-call
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Restart the Gateway afterwards.
@@ -45,7 +45,7 @@ Restart the Gateway afterwards.
 
 ```bash
 PLUGIN_SRC=./path/to/local/voice-call-plugin
-crawclaw plugins install "$PLUGIN_SRC"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 cd "$PLUGIN_SRC" && pnpm install
 ```
 
@@ -358,15 +358,15 @@ When a Twilio media stream disconnects, Voice Call waits `2000ms` before auto-en
 ## CLI
 
 ```bash
-crawclaw voicecall call --to "+15555550123" --message "Hello from CrawClaw"
-crawclaw voicecall start --to "+15555550123"   # alias for call
-crawclaw voicecall continue --call-id <id> --message "Any questions?"
-crawclaw voicecall speak --call-id <id> --message "One moment"
-crawclaw voicecall end --call-id <id>
-crawclaw voicecall status --call-id <id>
-crawclaw voicecall tail
-crawclaw voicecall latency                     # summarize turn latency from logs
-crawclaw voicecall expose --mode funnel
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 `latency` reads `calls.jsonl` from the default voice-call storage path. Use

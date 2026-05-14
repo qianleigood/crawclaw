@@ -33,7 +33,7 @@ or VM and keep sensitive paths out of that environment.
 }
 ```
 
-`crawclaw onboard`, `crawclaw configure`, or `crawclaw setup` will create the
+CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, or CrawClaw Desktop or the local Gateway API will create the
 workspace and seed the bootstrap files if they are missing.
 aliases that resolve outside the source workspace are ignored.
 
@@ -55,7 +55,7 @@ extra folders, archive or move them to Trash (for example `trash ~/crawclaw`).
 If you intentionally keep multiple workspaces, make sure
 `agents.defaults.workspace` points to the active one.
 
-`crawclaw doctor` warns when it detects extra workspace directories.
+CrawClaw Desktop or the local Gateway API warns when it detects extra workspace directories.
 
 ## Workspace file map (what each file means)
 
@@ -117,7 +117,7 @@ See [Memory](/concepts/memory) for the workflow and automatic memory flush.
 If the active bootstrap file for the run is missing, CrawClaw injects a
 "missing file" marker and continues. Large bootstrap files are truncated when
 injected; adjust limits with `agents.defaults.bootstrapMaxChars` (default: 20000) and `agents.defaults.bootstrapTotalMaxChars` (default: 150000).
-`crawclaw setup` can recreate missing defaults without overwriting existing
+CrawClaw Desktop or the local Gateway API can recreate missing defaults without overwriting existing
 files.
 
 ## What is NOT in the workspace
@@ -221,7 +221,7 @@ Suggested `.gitignore` starter:
 
 1. Clone the repo to the desired path (default `~/.crawclaw/workspace`).
 2. Set `agents.defaults.workspace` to that path in `~/.crawclaw/crawclaw.json`.
-3. Run `crawclaw setup --workspace <path>` to seed any missing files.
+3. Run CrawClaw Desktop or the local Gateway API to seed any missing files.
 4. If you need sessions, copy `~/.crawclaw/agents/<agentId>/sessions/` from the
    old machine separately.
 

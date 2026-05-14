@@ -11,12 +11,12 @@ title: "Mistral"
 CrawClaw supports Mistral for both text/image model routing (`mistral/...`) and
 audio transcription via Voxtral in media understanding.
 
-## CLI setup
+## Desktop setup
 
 ```bash
-crawclaw onboard --auth-choice mistral-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # or non-interactive
-crawclaw onboard --mistral-api-key "$MISTRAL_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Config snippet (LLM provider)

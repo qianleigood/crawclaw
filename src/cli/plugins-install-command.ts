@@ -1,7 +1,6 @@
 import fs from "node:fs";
-import { cleanStaleMatrixPluginConfig } from "../commands/doctor/providers/matrix.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { loadConfig, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
+import { loadConfig, writeConfigFile } from "../config/config.js";
 import { installHooksFromNpmSpec, installHooksFromPath } from "../hooks/install.js";
 import { resolveArchiveKind } from "../infra/archive.js";
 import { extractErrorCode, formatErrorMessage } from "../infra/errors.js";
@@ -14,7 +13,6 @@ import { shortenHomePath } from "../utils.js";
 import { looksLikeLocalInstallSpec } from "./install-spec.js";
 import { resolvePinnedNpmInstallRecordForCli } from "./npm-resolution.js";
 import {
-  resolvePluginInstallInvalidConfigPolicy,
   resolvePluginInstallRequestContext,
   type PluginInstallRequestContext,
 } from "./plugin-install-config-policy.js";
@@ -130,15 +128,6 @@ async function tryInstallHookPackFromNpmSpec(params: {
   return { ok: true };
 }
 
-function isAllowedMatrixRecoveryIssue(issue: { path?: string; message?: string }): boolean {
-  return (
-    (issue.path === "channels.matrix" && issue.message === "unknown channel id: matrix") ||
-    (issue.path === "plugins.load.paths" &&
-      typeof issue.message === "string" &&
-      issue.message.includes("plugin path not found"))
-  );
-}
-
 function buildInvalidPluginInstallConfigError(message: string): Error {
   const error = new Error(message);
   (error as { code?: string }).code = "INVALID_CONFIG";
@@ -148,30 +137,10 @@ function buildInvalidPluginInstallConfigError(message: string): Error {
 async function loadConfigFromSnapshotForInstall(
   request: PluginInstallRequestContext,
 ): Promise<CrawClawConfig> {
-  if (resolvePluginInstallInvalidConfigPolicy(request) !== "recover-matrix-only") {
-    throw buildInvalidPluginInstallConfigError(
-      "Config invalid; run `crawclaw doctor --fix` before installing plugins.",
-    );
-  }
-  const snapshot = await readConfigFileSnapshot();
-  const parsed = (snapshot.parsed ?? {}) as Record<string, unknown>;
-  if (!snapshot.exists || Object.keys(parsed).length === 0) {
-    throw buildInvalidPluginInstallConfigError(
-      "Config file could not be parsed; run `crawclaw doctor` to repair it.",
-    );
-  }
-  if (
-    snapshot.legacyIssues.length > 0 ||
-    snapshot.issues.length === 0 ||
-    snapshot.issues.some((issue) => !isAllowedMatrixRecoveryIssue(issue))
-  ) {
-    throw buildInvalidPluginInstallConfigError(
-      "Config invalid outside the Matrix upgrade recovery path; run `crawclaw doctor --fix` before reinstalling Matrix.",
-    );
-  }
-  const snapshotConfig = snapshot.config ?? snapshot.runtimeConfig;
-  const cleaned = await cleanStaleMatrixPluginConfig(snapshotConfig);
-  return cleaned.config;
+  void request;
+  throw buildInvalidPluginInstallConfigError(
+    "Config invalid; run `crawclaw doctor --fix` before installing plugins.",
+  );
 }
 
 export async function loadConfigForInstall(

@@ -5,15 +5,26 @@ import { runCronIsolatedAgentTurn } from "./isolated-agent.js";
 import { makeCfg, makeJob } from "./isolated-agent.test-harness.js";
 
 export function createCliDeps(overrides: Partial<CliDeps> = {}): CliDeps {
+  const sendMessageFeishu = vi.fn().mockResolvedValue({ messageId: "feishu-1", chatId: "123" });
+  const sendMessageWeixin = vi
+    .fn()
+    .mockResolvedValue({ messageId: "weixin-1", conversationId: "123" });
+  const sendMessageQQ = vi.fn().mockResolvedValue({ messageId: "qq-1", channelId: "123" });
+  const sendMessageDingTalk = vi
+    .fn()
+    .mockResolvedValue({ messageId: "ddingtalk-1", channel: "C1" });
+  const sendMessageESP32 = vi.fn().mockResolvedValue({ messageId: "esp32-1", chatId: "123" });
   return {
-    sendMessageSlack: vi.fn().mockResolvedValue({ messageTs: "slack-1", channel: "C1" }),
-    sendMessageWhatsApp: vi
-      .fn()
-      .mockResolvedValue({ messageId: "wa-1", toJid: "123@s.whatsapp.net" }),
-    sendMessageTelegram: vi.fn().mockResolvedValue({ messageId: "tg-1", chatId: "123" }),
-    sendMessageDiscord: vi.fn().mockResolvedValue({ messageId: "discord-1", channelId: "123" }),
-    sendMessageSignal: vi.fn().mockResolvedValue({ messageId: "signal-1", conversationId: "123" }),
-    sendMessageIMessage: vi.fn().mockResolvedValue({ messageId: "imessage-1", chatId: "123" }),
+    feishu: sendMessageFeishu,
+    weixin: sendMessageWeixin,
+    qqbot: sendMessageQQ,
+    ddingtalk: sendMessageDingTalk,
+    esp32: sendMessageESP32,
+    sendMessageFeishu,
+    sendMessageWeixin,
+    sendMessageQQ,
+    sendMessageDingTalk,
+    sendMessageESP32,
     ...overrides,
   };
 }
@@ -32,12 +43,12 @@ export function mockAgentPayloads(
   });
 }
 
-export function expectDirectTelegramDelivery(
+export function expectDirectFeishuDelivery(
   deps: CliDeps,
   params: { chatId: string; text: string; messageThreadId?: number },
 ) {
-  expect(deps.sendMessageTelegram).toHaveBeenCalledTimes(1);
-  expect(deps.sendMessageTelegram).toHaveBeenCalledWith(
+  expect(deps.sendMessageFeishu).toHaveBeenCalledTimes(1);
+  expect(deps.sendMessageFeishu).toHaveBeenCalledWith(
     params.chatId,
     params.text,
     expect.objectContaining(
@@ -46,7 +57,7 @@ export function expectDirectTelegramDelivery(
   );
 }
 
-export async function runTelegramAnnounceTurn(params: {
+export async function runFeishuAnnounceTurn(params: {
   home: string;
   storePath: string;
   deps: CliDeps;
@@ -60,7 +71,7 @@ export async function runTelegramAnnounceTurn(params: {
 }): Promise<Awaited<ReturnType<typeof runCronIsolatedAgentTurn>>> {
   return runCronIsolatedAgentTurn({
     cfg: makeCfg(params.home, params.storePath, {
-      channels: { telegram: { botToken: "t-1" } },
+      channels: { feishu: { enabled: true } },
     }),
     deps: params.deps,
     job: {

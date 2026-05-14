@@ -49,7 +49,7 @@ describe("applyJobPatch", () => {
   it("clears delivery when switching to main session", () => {
     const job = createIsolatedAgentTurnJob("job-1", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
     });
 
@@ -73,14 +73,14 @@ describe("applyJobPatch", () => {
   it("applies explicit delivery patches", () => {
     const job = createIsolatedAgentTurnJob("job-2", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
     });
 
     const patch: CronJobPatch = {
       delivery: {
         mode: "none",
-        channel: "signal",
+        channel: "weixin",
         to: "555",
         bestEffort: true,
       },
@@ -93,7 +93,7 @@ describe("applyJobPatch", () => {
     }
     expect(job.delivery).toEqual({
       mode: "none",
-      channel: "signal",
+      channel: "weixin",
       to: "555",
       bestEffort: true,
     });
@@ -104,7 +104,7 @@ describe("applyJobPatch", () => {
       "job-custom-session",
       {
         mode: "announce",
-        channel: "telegram",
+        channel: "feishu",
         to: "123",
       },
       { sessionTarget: "session:project-alpha" },
@@ -116,7 +116,7 @@ describe("applyJobPatch", () => {
 
     expect(job.delivery).toEqual({
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "555",
       bestEffort: undefined,
     });
@@ -125,7 +125,7 @@ describe("applyJobPatch", () => {
   it("merges delivery.accountId from patch and preserves existing", () => {
     const job = createIsolatedAgentTurnJob("job-acct", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "-100123",
     });
 
@@ -147,7 +147,7 @@ describe("applyJobPatch", () => {
   it("persists agentTurn payload.lightContext updates when editing existing jobs", () => {
     const job = createIsolatedAgentTurnJob("job-light-context", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
     });
     job.payload = {
       kind: "agentTurn",
@@ -172,7 +172,7 @@ describe("applyJobPatch", () => {
   it("persists agentTurn payload.fallbacks updates when editing existing jobs", () => {
     const job = createIsolatedAgentTurnJob("job-fallbacks", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
     });
     job.payload = {
       kind: "agentTurn",
@@ -197,7 +197,7 @@ describe("applyJobPatch", () => {
   it("persists agentTurn payload.toolsAllow updates when editing existing jobs", () => {
     const job = createIsolatedAgentTurnJob("job-tools", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
     });
     job.payload = {
       kind: "agentTurn",
@@ -222,7 +222,7 @@ describe("applyJobPatch", () => {
   it("clears agentTurn payload.toolsAllow when patch requests null", () => {
     const job = createIsolatedAgentTurnJob("job-tools-clear", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
     });
     job.payload = {
       kind: "agentTurn",
@@ -247,7 +247,7 @@ describe("applyJobPatch", () => {
   it("applies payload.lightContext when replacing payload kind via patch", () => {
     const job = createIsolatedAgentTurnJob("job-light-context-switch", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
     });
     job.payload = { kind: "systemEvent", text: "ping" };
 
@@ -269,7 +269,7 @@ describe("applyJobPatch", () => {
   it("carries payload.fallbacks when replacing payload kind via patch", () => {
     const job = createIsolatedAgentTurnJob("job-fallbacks-switch", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
     });
     job.payload = { kind: "systemEvent", text: "ping" };
 
@@ -291,7 +291,7 @@ describe("applyJobPatch", () => {
   it("carries payload.toolsAllow when replacing payload kind via patch", () => {
     const job = createIsolatedAgentTurnJob("job-tools-switch", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
     });
     job.payload = { kind: "systemEvent", text: "ping" };
 
@@ -347,11 +347,11 @@ describe("applyJobPatch", () => {
   it("rejects failureDestination on main jobs without webhook delivery mode", () => {
     const job = createMainSystemEventJob("job-main-failure-dest", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
       failureDestination: {
         mode: "announce",
-        channel: "telegram",
+        channel: "feishu",
         to: "999",
       },
     });
@@ -366,7 +366,7 @@ describe("applyJobPatch", () => {
       "cron failure destination webhook requires delivery.failureDestination.to to be a valid http(s) URL";
     const job = createIsolatedAgentTurnJob("job-failure-webhook-target", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
       failureDestination: {
         mode: "webhook",
@@ -378,7 +378,7 @@ describe("applyJobPatch", () => {
 
     job.delivery = {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
       failureDestination: {
         mode: "webhook",
@@ -389,30 +389,14 @@ describe("applyJobPatch", () => {
     expect(job.delivery?.failureDestination?.to).toBe("https://example.invalid/failure");
   });
 
-  it("rejects Telegram delivery with invalid target (chatId/topicId format)", () => {
-    const job = createIsolatedAgentTurnJob("job-telegram-invalid", {
-      mode: "announce",
-      channel: "telegram",
-      to: "-10012345/6789",
-    });
-
-    expect(() => applyJobPatch(job, { enabled: true })).toThrow(
-      'Invalid Telegram delivery target "-10012345/6789". Use colon (:) as delimiter for topics, not slash. Valid formats: -1001234567890, -1001234567890:123, -1001234567890:topic:123, @username, https://t.me/username',
-    );
-  });
-
   it.each([
-    { name: "t.me URL", to: "https://t.me/mychannel" },
-    { name: "t.me URL (no https)", to: "t.me/mychannel" },
-    { name: "valid target (plain chat id)", to: "-1001234567890" },
-    { name: "valid target (colon delimiter)", to: "-1001234567890:123" },
-    { name: "valid target (topic marker)", to: "-1001234567890:topic:456" },
-    { name: "@username", to: "@mybot" },
+    { name: "plain target", to: "ou_user_1" },
+    { name: "group target", to: "oc_group_1" },
     { name: "without target", to: undefined },
-  ] as const)("accepts Telegram delivery with $name", ({ to }) => {
-    const job = createIsolatedAgentTurnJob("job-telegram-valid", {
+  ] as const)("accepts Feishu delivery with $name", ({ to }) => {
+    const job = createIsolatedAgentTurnJob("job-feishu-valid", {
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       ...(to ? { to } : {}),
     });
 
@@ -483,11 +467,11 @@ describe("createJob rejects sessionTarget main for non-default agents", () => {
         ...mainJobInput("main"),
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "123",
           failureDestination: {
             mode: "announce",
-            channel: "signal",
+            channel: "weixin",
             to: "+15550001111",
           },
         },

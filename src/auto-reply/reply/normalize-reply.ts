@@ -1,6 +1,4 @@
 import { sanitizeUserFacingText } from "../../agents/pi-embedded-helpers.js";
-import { hasLineDirectives, parseLineDirectives } from "../../channels/line-directives.js";
-import { compileSlackInteractiveReplies } from "../../channels/slack-directives.js";
 import { hasReplyPayloadContent } from "../../interactive/payload.js";
 import { stripHeartbeatToken } from "../heartbeat.js";
 import {
@@ -34,7 +32,6 @@ export function normalizeReplyPayload(
   payload: ReplyPayload,
   opts: NormalizeReplyOptions = {},
 ): ReplyPayload | null {
-  const applyChannelTransforms = opts.applyChannelTransforms ?? true;
   const hasContent = (text: string | undefined) =>
     hasReplyPayloadContent(
       {
@@ -96,12 +93,7 @@ export function normalizeReplyPayload(
     return null;
   }
 
-  // Parse LINE-specific directives from text (quick_replies, location, confirm, buttons)
   let enrichedPayload: ReplyPayload = { ...payload, text };
-  if (applyChannelTransforms && text && hasLineDirectives(text)) {
-    enrichedPayload = parseLineDirectives(enrichedPayload);
-    text = enrichedPayload.text;
-  }
 
   // Resolve template variables in responsePrefix if context is provided
   const effectivePrefix = opts.responsePrefixContext
@@ -118,9 +110,6 @@ export function normalizeReplyPayload(
   }
 
   enrichedPayload = { ...enrichedPayload, text };
-  if (applyChannelTransforms && opts.enableSlackInteractiveReplies && text) {
-    enrichedPayload = compileSlackInteractiveReplies(enrichedPayload);
-  }
 
   return enrichedPayload;
 }

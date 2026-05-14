@@ -6,6 +6,7 @@ import {
   buildRustChannelOutboundRequest,
   enforceRustCrossContextPolicy,
   resolveRustOutboundFallbackSessionRoute,
+  resolveRustOutboundTransportPolicy,
 } from "./message-policy-runtime.js";
 
 vi.mock("../../agents/runtime-tools/native.js", () => ({
@@ -163,6 +164,38 @@ describe("message policy runtime adapter", () => {
         operation: "outbound.buildDeliveryRequest",
       }),
       expect.any(Object),
+    );
+  });
+
+  it("resolves outbound transport policy through Rust", async () => {
+    runRuntimeTool.mockResolvedValue({
+      runtime: "rustNative",
+      useNativeGateway: true,
+    });
+
+    const policy = await resolveRustOutboundTransportPolicy({
+      channel: "feishu",
+      bundledChannels: ["feishu", "weixin"],
+      allowTsChannelRuntime: false,
+    });
+
+    expect(policy).toEqual({
+      runtime: "rustNative",
+      useNativeGateway: true,
+    });
+    expect(runRuntimeTool).toHaveBeenCalledWith(
+      "message_policy",
+      {
+        operation: "outbound.resolveTransportPolicy",
+        payload: {
+          channel: "feishu",
+          bundledChannels: ["feishu", "weixin"],
+          allowTsChannelRuntime: false,
+        },
+      },
+      expect.objectContaining({
+        timeoutMs: 30_000,
+      }),
     );
   });
 

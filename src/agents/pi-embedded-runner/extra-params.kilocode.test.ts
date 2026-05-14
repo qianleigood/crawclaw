@@ -2,7 +2,7 @@ import type { StreamFn } from "@mariozechner/pi-agent-core";
 import type { Context, Model, SimpleStreamOptions } from "@mariozechner/pi-ai";
 import { afterEach, describe, expect, it } from "vitest";
 import { captureEnv } from "../../test-utils/env.js";
-import { createKilocodeWrapper, isProxyReasoningUnsupported } from "./proxy-stream-wrappers.js";
+import { applyExtraParamsToAgent } from "./extra-params.js";
 
 type ExtraParamsCapture<TPayload extends Record<string, unknown>> = {
   headers?: Record<string, string>;
@@ -20,13 +20,12 @@ function applyAndCapture(params: {
     options?.onPayload?.(captured.payload, model);
     return {} as ReturnType<StreamFn>;
   };
-  const streamFn =
-    params.provider === "kilocode"
-      ? createKilocodeWrapper(baseStreamFn, params.modelId === "kilo/auto" ? undefined : "high")
-      : baseStreamFn;
+  const agent = { streamFn: baseStreamFn };
+
+  applyExtraParamsToAgent(agent, undefined, params.provider, params.modelId, undefined, "high");
 
   const context: Context = { messages: [] };
-  void streamFn(
+  void agent.streamFn?.(
     {
       api: "openai-completions",
       provider: params.provider,
@@ -53,13 +52,19 @@ function applyAndCaptureReasoning(params: {
     options?.onPayload?.(captured.payload, model);
     return {} as ReturnType<StreamFn>;
   };
-  const thinkingLevel =
-    params.modelId === "kilo/auto" || isProxyReasoningUnsupported(params.modelId)
-      ? undefined
-      : (params.thinkingLevel ?? "high");
-  const streamFn = createKilocodeWrapper(baseStreamFn, thinkingLevel);
+  const agent = { streamFn: baseStreamFn };
+
+  applyExtraParamsToAgent(
+    agent,
+    undefined,
+    "kilocode",
+    params.modelId,
+    undefined,
+    params.thinkingLevel ?? "high",
+  );
+
   const context: Context = { messages: [] };
-  void streamFn(
+  void agent.streamFn?.(
     {
       api: "openai-completions",
       provider: "kilocode",

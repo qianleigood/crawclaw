@@ -4,7 +4,6 @@ import { type SessionEntry, updateSessionStore } from "../config/sessions.js";
 import { ensureSessionTranscriptHeader } from "../config/sessions/transcript.js";
 import { logVerbose } from "../globals.js";
 import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
-import { createPluginRuntime } from "../plugins/runtime/index.js";
 import { isSubagentSessionKey, normalizeAgentId } from "../routing/session-key.js";
 import { emitBeforeResetPluginHook } from "../sessions/runtime/before-reset-hook.js";
 import { archiveSessionTranscriptsForMutation } from "../sessions/runtime/reset-artifacts.js";
@@ -19,26 +18,12 @@ import {
   resolveGatewaySessionStoreTarget,
 } from "./session-utils.js";
 
-let cachedChannelRuntime: ReturnType<typeof createPluginRuntime>["channel"] | undefined;
-
-function getChannelRuntime() {
-  cachedChannelRuntime ??= createPluginRuntime().channel;
-  return cachedChannelRuntime;
-}
-
 export async function emitSessionUnboundLifecycleEvent(params: {
   targetSessionKey: string;
   reason: "session-reset" | "session-delete";
   emitHooks?: boolean;
 }) {
   const targetKind = isSubagentSessionKey(params.targetSessionKey) ? "subagent" : "acp";
-  const channelRuntime = getChannelRuntime();
-  channelRuntime.discord.threadBindings.unbindBySessionKey({
-    targetSessionKey: params.targetSessionKey,
-    targetKind,
-    reason: params.reason,
-    sendFarewell: true,
-  });
 
   if (params.emitHooks === false) {
     return;

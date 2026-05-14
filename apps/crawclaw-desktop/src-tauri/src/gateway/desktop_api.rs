@@ -22,7 +22,7 @@ use crawclaw_native_plugins::comfyui::handle_comfyui;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
 use crawclaw_native_plugins::web::{run_open_websearch_search, run_scrapling_fetch};
 use crawclaw_plugin_host::{
-    add_custom_plugin_skill, invoke_js_plugin_tool, is_desktop_or_native_channel_id,
+    add_custom_plugin_skill, invoke_node_plugin_tool, is_desktop_or_native_channel_id,
     load_plugin_manifest, native_channel, toggle_plugin_skill_open, toggle_plugin_tool_open,
     NativeChannelDefinition, PluginHostError, PluginHostSkill, PluginHostTool,
 };
@@ -1538,46 +1538,46 @@ async fn invoke_plugin_tool_operation(
         thread_id: thread_id.clone(),
         tool_id: tool_id.clone(),
     });
-    let result = match invoke_rust_native_plugin_tool(state, &plugin_id, &tool_id, &tool_input)
-        .await
-    {
-        Some(Ok(result)) => result,
-        Some(Err(error)) => {
-            let _ = state.events.send(DesktopEvent::ToolResult {
-                thread_id,
-                tool_id,
-                ok: false,
-            });
-            return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
-        }
-        None => {
-            if !plugin_manifest_allows_js_fallback(&state.runtime_root, &plugin_id) {
+    let result =
+        match invoke_rust_native_plugin_tool(state, &plugin_id, &tool_id, &tool_input).await {
+            Some(Ok(result)) => result,
+            Some(Err(error)) => {
                 let _ = state.events.send(DesktopEvent::ToolResult {
                     thread_id,
-                    tool_id: tool_id.clone(),
+                    tool_id,
                     ok: false,
                 });
-                return Err(plugin_host_status(
-                    state,
-                    PluginHostError::Invalid(format!(
-                        "No Rust native tool is registered for {plugin_id}/{tool_id}; packaged desktop JS plugin fallback requires allowJsPluginFallback=true in the plugin manifest."
-                    )),
-                ));
+                return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
             }
-            match invoke_js_plugin_tool(&state.runtime_root, &plugin_id, &tool_id, tool_input).await
-            {
-                Ok(result) => result,
-                Err(error) => {
+            None => {
+                if is_rust_native_plugin_id(&plugin_id) {
                     let _ = state.events.send(DesktopEvent::ToolResult {
-                        thread_id,
-                        tool_id,
+                        thread_id: thread_id.clone(),
+                        tool_id: tool_id.clone(),
                         ok: false,
                     });
-                    return Err(plugin_host_status(state, error));
+                    return Err(plugin_host_status(
+                        state,
+                        PluginHostError::Invalid(format!(
+                            "Rust-native plugin \"{plugin_id}\" does not expose tool \"{tool_id}\""
+                        )),
+                    ));
+                }
+                match invoke_node_plugin_tool(&state.runtime_root, &plugin_id, &tool_id, tool_input)
+                    .await
+                {
+                    Ok(result) => result,
+                    Err(error) => {
+                        let _ = state.events.send(DesktopEvent::ToolResult {
+                            thread_id,
+                            tool_id,
+                            ok: false,
+                        });
+                        return Err(plugin_host_status(state, error));
+                    }
                 }
             }
-        }
-    };
+        };
     let result_text = plugin_tool_result_text(&result);
     {
         let mut desktop_state = state.desktop_state.write().await;
@@ -1593,34 +1593,6 @@ async fn invoke_plugin_tool_operation(
         ok: true,
     });
     emit_state_changed(state).await
-}
-
-fn plugin_manifest_allows_js_fallback(runtime_root: &std::path::Path, plugin_id: &str) -> bool {
-    if is_rust_native_plugin_id(plugin_id) {
-        return false;
-    }
-    if std::env::var("CRAWCLAW_DESKTOP_ALLOW_JS_PLUGIN_FALLBACK").as_deref() == Ok("1") {
-        return true;
-    }
-    let manifest_path = runtime_root
-        .join("plugins")
-        .join(plugin_id)
-        .join("crawclaw.plugin.json");
-    let Ok(raw) = std::fs::read_to_string(manifest_path) else {
-        return false;
-    };
-    let Ok(manifest) = serde_json::from_str::<Value>(&raw) else {
-        return false;
-    };
-    manifest
-        .get("allowJsPluginFallback")
-        .and_then(Value::as_bool)
-        .unwrap_or(false)
-        || manifest
-            .get("compat")
-            .and_then(|compat| compat.get("jsPluginFallback"))
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
 }
 
 fn is_rust_native_plugin_id(plugin_id: &str) -> bool {

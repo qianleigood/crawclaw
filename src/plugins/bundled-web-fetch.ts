@@ -3,6 +3,7 @@ import { BUNDLED_WEB_FETCH_PLUGIN_IDS } from "./bundled-web-fetch-ids.js";
 import { resolveBundledWebFetchPluginId as resolveBundledWebFetchPluginIdFromMap } from "./bundled-web-fetch-provider-ids.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
+import { nativeBundledWebFetchProvidersForPlugin } from "./native-bundled-web-providers.js";
 import type { PluginWebFetchProviderEntry } from "./types.js";
 
 type BundledWebFetchProviderEntry = PluginWebFetchProviderEntry & { pluginId: string };
@@ -11,13 +12,24 @@ let bundledWebFetchProvidersCache: BundledWebFetchProviderEntry[] | null = null;
 
 function loadBundledWebFetchProviders(): BundledWebFetchProviderEntry[] {
   if (!bundledWebFetchProvidersCache) {
-    bundledWebFetchProvidersCache = loadBundledCapabilityRuntimeRegistry({
-      pluginIds: BUNDLED_WEB_FETCH_PLUGIN_IDS,
-      pluginSdkResolution: "dist",
-    }).webFetchProviders.map((entry) => ({
-      pluginId: entry.pluginId,
-      ...entry.provider,
-    }));
+    const nativeProviders = BUNDLED_WEB_FETCH_PLUGIN_IDS.flatMap((pluginId) =>
+      nativeBundledWebFetchProvidersForPlugin(pluginId),
+    );
+    const nativePluginIds = new Set(nativeProviders.map((entry) => entry.pluginId));
+    const fallbackPluginIds = BUNDLED_WEB_FETCH_PLUGIN_IDS.filter(
+      (pluginId) => !nativePluginIds.has(pluginId),
+    );
+    const fallbackProviders =
+      fallbackPluginIds.length === 0
+        ? []
+        : loadBundledCapabilityRuntimeRegistry({
+            pluginIds: fallbackPluginIds,
+            pluginSdkResolution: "dist",
+          }).webFetchProviders.map((entry) => ({
+            pluginId: entry.pluginId,
+            ...entry.provider,
+          }));
+    bundledWebFetchProvidersCache = [...nativeProviders, ...fallbackProviders];
   }
   return bundledWebFetchProvidersCache;
 }

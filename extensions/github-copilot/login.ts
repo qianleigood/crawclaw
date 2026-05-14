@@ -1,5 +1,4 @@
 import { intro, note, outro, spinner } from "@clack/prompts";
-import { stylePromptTitle } from "crawclaw/plugin-sdk/cli-runtime";
 import { logConfigUpdated, updateConfig } from "crawclaw/plugin-sdk/config-runtime";
 import {
   applyAuthProfileConfig,
@@ -7,6 +6,7 @@ import {
   upsertAuthProfile,
 } from "crawclaw/plugin-sdk/provider-auth";
 import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime";
+import { stylePromptTitle } from "crawclaw/plugin-sdk/terminal-runtime";
 
 const CLIENT_ID = "Iv1.b507a08c87ecfe98";
 const DEVICE_CODE_URL = "https://github.com/login/device/code";

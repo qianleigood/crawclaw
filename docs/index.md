@@ -1,5 +1,5 @@
 ---
-summary: "CrawClaw is a multi-channel gateway for AI agents that runs on any OS."
+summary: "CrawClaw is a desktop-first local gateway for AI agents."
 read_when:
   - Introducing CrawClaw to newcomers
 title: "CrawClaw"
@@ -22,111 +22,74 @@ title: "CrawClaw"
     />
 </p>
 
-> _"EXFOLIATE! EXFOLIATE!"_ — A space lobster, probably
-
 <p align="center">
-  <strong>Any OS gateway for AI agents across WhatsApp, Telegram, Discord, iMessage, and more.</strong><br />
-  Send a message, get an agent response from your pocket. Plugins add Mattermost and more.
+  <strong>Desktop-first local Gateway for AI agents across chat channels, tools, plugins, and automation.</strong><br />
+  Configure and operate CrawClaw from the desktop app; automate through the local Gateway API.
 </p>
 
 <Columns>
   <Card title="Get Started" href="/start/getting-started" icon="rocket">
-    Install CrawClaw and bring up the Gateway in minutes.
+    Install CrawClaw Desktop and bring up the local Gateway.
   </Card>
-  <Card title="Run Onboarding" href="/start/wizard" icon="sparkles">
-    Guided setup with `crawclaw onboard` and pairing flows.
+  <Card title="Desktop" href="/install/desktop" icon="monitor">
+    Learn what the desktop app bundles, starts, and stores.
   </Card>
 </Columns>
 
 ## What is CrawClaw?
 
-CrawClaw is a **self-hosted gateway** that connects your favorite chat apps — WhatsApp, Telegram, Discord, iMessage, and more — to AI coding agents like Pi. You run a single Gateway process on your own machine (or a server), and it becomes the bridge between your messaging apps and an always-available AI assistant.
+CrawClaw is a **local-first desktop Gateway** that connects chat channels, tools,
+model providers, sessions, memory, and plugins to AI agents. On Apple platforms,
+CrawClaw is a desktop application, not a user CLI. The Gateway API remains the
+local control-plane boundary for automation and integrations.
 
-**Who is it for?** Developers and power users who want a personal AI assistant they can message from anywhere — without giving up control of their data or relying on a hosted service.
+**Who is it for?** Developers and power users who want a personal AI assistant
+running on their own machine without giving up control of data or runtime state.
 
 **What makes it different?**
 
-- **Self-hosted**: runs on your hardware, your rules
-- **Multi-channel**: one Gateway serves WhatsApp, Telegram, Discord, and more simultaneously
-- **Agent-native**: built for coding agents with tool use, sessions, memory, and multi-agent routing
+- **Desktop-first**: one app owns setup, status, logs, plugins, models, and Agent chat
+- **Local Gateway API**: automation clients integrate through explicit JSON methods
+- **Multi-channel**: one Gateway can serve supported channels and paired devices
+- **Agent-native**: built for tool use, sessions, memory, and multi-agent routing
 - **Open source**: MIT licensed, community-driven
-
-**What do you need?** Node 24.x, an API key from your chosen provider, and 5 minutes. For best quality and security, use the strongest latest-generation model available.
 
 ## How it works
 
 ```mermaid
 flowchart LR
-  A["Chat apps + plugins"] --> B["Gateway"]
-  B --> C["Pi agent"]
-  B --> D["CLI"]
-  B --> E["Web clients"]
-  B --> F["Node integrations"]
+  A["CrawClaw Desktop"] --> B["Local Gateway API"]
+  C["Chat apps + plugins"] --> B
+  D["Automation clients"] --> B
+  B --> E["Agent runtime"]
+  E --> F["Tools, models, memory"]
 ```
 
-The Gateway is the single source of truth for sessions, routing, and channel connections.
+The Gateway is the single source of truth for sessions, routing, local runtime
+state, and authenticated control-plane operations.
 
 ## Key capabilities
 
 <Columns>
-  <Card title="Multi-channel gateway" icon="network">
-    WhatsApp, Telegram, Discord, and iMessage with a single Gateway process.
+  <Card title="Desktop workbench" icon="monitor">
+    Configure models, plugins, status, logs, diagnostics, and Agent sessions.
   </Card>
-  <Card title="Plugin channels" icon="plug">
-    Add Mattermost and more with extension packages.
+  <Card title="Gateway API" icon="waypoints">
+    Use local JSON methods for automation and integrations.
   </Card>
   <Card title="Multi-agent routing" icon="route">
     Isolated sessions per agent, workspace, or sender.
   </Card>
-  <Card title="Media support" icon="image">
-    Send and receive images, audio, and documents.
+  <Card title="Plugin ecosystem" icon="plug">
+    Extend CrawClaw with native plugins, tools, channels, and providers.
   </Card>
 </Columns>
-
-## Quick start
-
-<Steps>
-  <Step title="Install CrawClaw">
-    ```bash
-    npm install -g crawclaw@latest
-    ```
-  </Step>
-  <Step title="Onboard and install the service">
-    ```bash
-    crawclaw onboard --install-daemon
-    ```
-  </Step>
-  <Step title="Chat">
-    Connect a channel ([Telegram](/channels/telegram) is fastest) and chat from your phone, or use the desktop client locally.
-  </Step>
-</Steps>
 
 Need the full install and dev setup? See [Getting Started](/start/getting-started).
 
 <p align="center">
-  <img src="/whatsapp-crawclaw.jpg" alt="CrawClaw" width="420" />
+  <img src="/assets/pixel-crab.svg" alt="CrawClaw" width="220" />
 </p>
-
-## Configuration (optional)
-
-Config lives at `~/.crawclaw/crawclaw.json`.
-
-- If you **do nothing**, CrawClaw uses the bundled Pi binary in RPC mode with per-sender sessions.
-- If you want to lock it down, start with `channels.whatsapp.allowFrom` and (for groups) mention rules.
-
-Example:
-
-```json5
-{
-  channels: {
-    whatsapp: {
-      allowFrom: ["+15555550123"],
-      groups: { "*": { requireMention: true } },
-    },
-  },
-  messages: { groupChat: { mentionPatterns: ["@crawclaw"] } },
-}
-```
 
 ## Start here
 
@@ -137,8 +100,8 @@ Example:
   <Card title="Concepts index" href="/concepts" icon="blocks">
     System model, runtime, memory, models, and messaging concepts.
   </Card>
-  <Card title="Gateway runbook" href="/gateway" icon="waypoints">
-    Runtime operations, health checks, remote access, and gateway behavior.
+  <Card title="Gateway protocol" href="/gateway/protocol" icon="waypoints">
+    Local API contract for desktop and automation clients.
   </Card>
   <Card title="Reference docs" href="/reference" icon="file-text">
     Stable reference material for testing, release, RPC, and migration.
@@ -149,33 +112,10 @@ Example:
   <Card title="Remote access" href="/gateway/remote" icon="globe">
     SSH and tailnet access patterns.
   </Card>
-  <Card title="Channels" href="/channels/telegram" icon="message-square">
-    Channel-specific setup for WhatsApp, Telegram, Discord, and more.
+  <Card title="Channels" href="/channels" icon="message-square">
+    Channel-specific setup for supported chat surfaces.
   </Card>
   <Card title="Help" href="/help" icon="life-buoy">
     Common fixes and troubleshooting entry point.
-  </Card>
-</Columns>
-
-## Learn more
-
-<Columns>
-  <Card title="Full feature list" href="/concepts/features" icon="list">
-    Complete channel, routing, and media capabilities.
-  </Card>
-  <Card title="Multi-agent routing" href="/concepts/multi-agent" icon="route">
-    Workspace isolation and per-agent sessions.
-  </Card>
-  <Card title="Security" href="/gateway/security" icon="shield">
-    Tokens, allowlists, and safety controls.
-  </Card>
-  <Card title="Troubleshooting" href="/gateway/troubleshooting" icon="wrench">
-    Gateway diagnostics and common errors.
-  </Card>
-  <Card title="Debug and maintainer docs" href="/debug" icon="search-code">
-    Deep implementation notes, investigations, and maintainer entry points.
-  </Card>
-  <Card title="About and credits" href="/reference/credits" icon="info">
-    Project origins, contributors, and license.
   </Card>
 </Columns>

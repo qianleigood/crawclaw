@@ -1,6 +1,5 @@
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "crawclaw/plugin-sdk/agent-runtime";
 import type { PluginRuntime } from "crawclaw/plugin-sdk/testing";
-import { removeAckReactionAfterReply, shouldAckReaction } from "crawclaw/plugin-sdk/testing";
 import { vi } from "vitest";
 
 type DeepPartial<T> = {
@@ -32,6 +31,9 @@ function mergeDeep<T>(base: T, overrides: DeepPartial<T>): T {
   }
   return result as T;
 }
+
+const shouldAckReaction = () => false;
+const removeAckReactionAfterReply = () => false;
 
 export function createPluginRuntimeMock(overrides: DeepPartial<PluginRuntime> = {}): PluginRuntime {
   const base: PluginRuntime = {
@@ -296,12 +298,7 @@ export function createPluginRuntimeMock(overrides: DeepPartial<PluginRuntime> = 
         setMaxAgeBySessionKey:
           vi.fn() as unknown as PluginRuntime["channel"]["threadBindings"]["setMaxAgeBySessionKey"],
       },
-      discord: {} as PluginRuntime["channel"]["discord"],
       activity: {} as PluginRuntime["channel"]["activity"],
-      line: {} as PluginRuntime["channel"]["line"],
-      slack: {} as PluginRuntime["channel"]["slack"],
-      matrix: {} as PluginRuntime["channel"]["matrix"],
-      signal: {} as PluginRuntime["channel"]["signal"],
     },
     events: {
       onAgentEvent: vi.fn(() => () => {}) as unknown as PluginRuntime["events"]["onAgentEvent"],

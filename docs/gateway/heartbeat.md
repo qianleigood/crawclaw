@@ -15,7 +15,7 @@ optionally deliver alerts to a chat target.
 
 That periodic agent poll is no longer configured by default. Do not use legacy
 heartbeat config for new automation. Use [Scheduled Tasks](/automation/cron-jobs)
-for time-based checks and [system events](/cli/system) for event-driven
+for time-based checks and Gateway API system events for event-driven
 main-session wakes.
 
 ## What changed
@@ -29,7 +29,7 @@ main-session wakes.
   files can stay in a workspace as normal notes, but new automation should live
   in cron jobs, hooks, or standing orders.
 - `HEARTBEAT_OK` should not be used as an automation contract for new flows.
-- `crawclaw system main-session-wake last` inspects the most recent
+- `system.mainSessionWake.last` inspects the most recent
   main-session wake diagnostic event.
 
 ## Use these instead
@@ -37,7 +37,7 @@ main-session wakes.
 | Need                                                | Use                                            |
 | --------------------------------------------------- | ---------------------------------------------- |
 | Run a check every N minutes or at a wall-clock time | [Scheduled Tasks](/automation/cron-jobs)       |
-| Run in the main session after a system event        | [`crawclaw system event`](/cli/system)         |
+| Run in the main session after a system event        | Gateway API `system-event`                     |
 | React to lifecycle, hooks, or external events       | [Hooks](/automation/hooks)                     |
 | Keep always-on instructions in context              | [Standing Orders](/automation/standing-orders) |
 | Track detached work and completion state            | [Background Tasks](/automation/tasks)          |
@@ -51,7 +51,7 @@ task record.
 The remaining diagnostic names use `main-session-wake`, not legacy heartbeat
 module names.
 
-- `crawclaw system main-session-wake last` reads the last diagnostic event. It
+- `system.mainSessionWake.last` reads the last diagnostic event. It
   does not enable scheduling.
 - `last-main-session-wake` and `system.mainSessionWake.last` RPC methods are
   read-only diagnostics.
@@ -76,15 +76,13 @@ for compatibility.
 1. Remove `agents.defaults.heartbeat.every`, per-agent heartbeat cadence
    settings, and `activeHours` from configs.
 2. Move scheduled checks to [Scheduled Tasks](/automation/cron-jobs).
-3. Move event-driven follow-ups to [`crawclaw system event`](/cli/system) or
-   hooks.
+3. Move event-driven follow-ups to Gateway API `system-event` or hooks.
 4. Keep channel keepalive settings such as `web.heartbeatSeconds` unchanged.
-5. Use `crawclaw system main-session-wake last --json` only for diagnostics.
+5. Use `system.mainSessionWake.last` only for diagnostics.
 
 ## Related
 
 - [Automation & Tasks](/automation)
 - [Scheduled Tasks](/automation/cron-jobs)
 - [Background Tasks](/automation/tasks)
-- [System CLI](/cli/system)
 - [WhatsApp](/channels/whatsapp)

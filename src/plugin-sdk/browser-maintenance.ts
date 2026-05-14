@@ -2,38 +2,24 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import type { PluginSdkFacadeTypeMap } from "../generated/plugin-sdk-facade-type-map.generated.js";
 import { runCommandWithTimeout } from "../process/exec.js";
-import { tryLoadActivatedBundledPluginPublicSurfaceModuleSync } from "./facade-runtime.js";
 
-type BrowserRuntimeModule = PluginSdkFacadeTypeMap["browser-runtime"]["module"];
+export type BrowserSessionCleanupParams = {
+  sessionKeys: Array<string | undefined>;
+  onWarn?: (message: string) => void;
+};
 
 function createTrashCollisionSuffix(): string {
   return randomBytes(6).toString("hex");
 }
 
-export const closeTrackedBrowserTabsForSessions: BrowserRuntimeModule["closeTrackedBrowserTabsForSessions"] =
-  (async (...args) => {
-    const [params] = args;
-    if (!params || params.sessionKeys.length === 0) {
-      return 0;
-    }
-    // Session reset always attempts browser cleanup, even when browser is disabled.
-    // Keep that path a no-op unless the browser runtime is actually active.
-    const closeTrackedTabs = tryLoadActivatedBundledPluginPublicSurfaceModuleSync<
-      Pick<BrowserRuntimeModule, "closeTrackedBrowserTabsForSessions">
-    >({
-      dirName: "browser",
-      artifactBasename: "runtime-api.js",
-    })?.closeTrackedBrowserTabsForSessions;
-    if (typeof closeTrackedTabs !== "function") {
-      return 0;
-    }
-    return await closeTrackedTabs(...args);
-  }) as BrowserRuntimeModule["closeTrackedBrowserTabsForSessions"];
+export async function closeTrackedBrowserTabsForSessions(
+  _params: BrowserSessionCleanupParams,
+): Promise<number> {
+  return 0;
+}
 
-export const movePathToTrash: BrowserRuntimeModule["movePathToTrash"] = (async (...args) => {
-  const [targetPath] = args;
+export async function movePathToTrash(targetPath: string): Promise<string> {
   try {
     const result = await runCommandWithTimeout(["trash", targetPath], { timeoutMs: 10_000 });
     if (result.code !== 0) {
@@ -60,4 +46,4 @@ export const movePathToTrash: BrowserRuntimeModule["movePathToTrash"] = (async (
     await fs.rename(targetPath, destination);
     return destination;
   }
-}) as BrowserRuntimeModule["movePathToTrash"];
+}

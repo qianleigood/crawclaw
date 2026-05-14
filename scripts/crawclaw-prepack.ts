@@ -8,7 +8,9 @@ const skipPrepackPreparedEnv = "CRAWCLAW_PREPACK_PREPARED";
 const legacySkipPrepackPreparedEnv = "CRAWCLAW_PREPACK_PREPARED";
 const requiredPreparedPathGroups = [
   ["dist/index.js", "dist/index.mjs"],
-  ["dist/native/crawclaw", "dist/native/crawclaw.exe"],
+  ["dist/native/crawclaw-runtime", "dist/native/crawclaw-runtime.exe"],
+  ["dist/native/crawclaw-gateway", "dist/native/crawclaw-gateway.exe"],
+  ["dist/native/crawclaw-native-plugins", "dist/native/crawclaw-native-plugins.exe"],
 ];
 
 type PreparedFileReader = {

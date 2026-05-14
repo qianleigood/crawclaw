@@ -38,7 +38,7 @@ export type RunEmbeddedPiAgentParams = {
   trigger?: EmbeddedRunTrigger;
   /** Relative workspace path that memory-triggered writes are allowed to append to. */
   memoryFlushWritePath?: string;
-  /** Delivery target (e.g. telegram:group:123:topic:456) for topic/thread routing. */
+  /** Delivery target for topic/thread routing. */
   messageTo?: string;
   /** Thread/topic identifier for routing replies to the originating thread. */
   messageThreadId?: string | number;
@@ -56,13 +56,13 @@ export type RunEmbeddedPiAgentParams = {
   senderE164?: string | null;
   /** Whether the sender is an owner (required for owner-only tools). */
   senderIsOwner?: boolean;
-  /** Current channel ID for auto-threading (Slack). */
+  /** Current channel ID for auto-threading. */
   currentChannelId?: string;
-  /** Current thread timestamp for auto-threading (Slack). */
+  /** Current thread timestamp for auto-threading. */
   currentThreadTs?: string;
-  /** Current inbound message id for action fallbacks (e.g. Telegram react). */
+  /** Current inbound message id for action fallbacks. */
   currentMessageId?: string | number;
-  /** Reply-to mode for Slack auto-threading. */
+  /** Reply-to mode for auto-threading. */
   replyToMode?: "off" | "first" | "all";
   /** Mutable ref to track if a reply was sent (for "first" mode). */
   hasRepliedRef?: { value: boolean };

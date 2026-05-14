@@ -1,11 +1,11 @@
 ---
-summary: "Routing rules per channel (WhatsApp, Telegram, Discord, Slack) and shared context"
+summary: "Routing rules for supported channels and shared context"
 read_when:
   - Changing channel routing or inbox behavior
 title: "Channel Routing"
 ---
 
-# Channels & routing
+# Channels and routing
 
 CrawClaw routes replies **back to the channel where a message came from**. The
 model does not choose a channel; routing is deterministic and controlled by the
@@ -13,7 +13,7 @@ host configuration.
 
 ## Key terms
 
-- **Channel**: `telegram`, `whatsapp`, `discord`, `irc`, `googlechat`, `slack`, `signal`, `imessage`, `line`, plus extension channels. Internal session channels are not configurable outbound channels.
+- **Channel**: the Rust-native channel id. Internal session channels are not configurable outbound channels.
 - **AccountId**: per‑channel account instance (when supported).
 - Optional channel default account: `channels.<channel>.defaultAccount` chooses
   which account is used when an outbound path does not specify `accountId`.
@@ -32,15 +32,9 @@ Groups and channels remain isolated per channel:
 - Groups: `agent:<agentId>:<channel>:group:<id>`
 - Channels/rooms: `agent:<agentId>:<channel>:channel:<id>`
 
-Threads:
+Example:
 
-- Slack/Discord threads append `:thread:<threadId>` to the base key.
-- Telegram forum topics embed `:topic:<topicId>` in the group key.
-
-Examples:
-
-- `agent:main:telegram:group:-1001234567890:topic:42`
-- `agent:main:discord:channel:123456:thread:987654`
+- `agent:main:<channel>:group:<id>`
 
 ## Main DM route pinning
 
@@ -61,34 +55,14 @@ Routing picks **one agent** for each inbound message:
 
 1. **Exact peer match** (`bindings` with `peer.kind` + `peer.id`).
 2. **Parent peer match** (thread inheritance).
-3. **Guild + roles match** (Discord) via `guildId` + `roles`.
-4. **Guild match** (Discord) via `guildId`.
-5. **Team match** (Slack) via `teamId`.
-6. **Account match** (`accountId` on the channel).
-7. **Channel match** (any account on that channel, `accountId: "*"`).
-8. **Default agent** (`agents.list[].default`, else first list entry, fallback to `main`).
+3. **Account match** (`accountId` on the channel).
+4. **Channel match** (any account on that channel, `accountId: "*"`).
+5. **Default agent** (`agents.list[].default`, else first list entry, fallback to `main`).
 
-When a binding includes multiple match fields (`peer`, `guildId`, `teamId`, `roles`), **all provided fields must match** for that binding to apply.
+When a binding includes multiple match fields, all provided fields must match
+for that binding to apply.
 
 The matched agent determines which workspace and session store are used.
-
-## Broadcast groups (run multiple agents)
-
-Broadcast groups let you run **multiple agents** for the same peer **when CrawClaw would normally reply** (for example: in WhatsApp groups, after mention/activation gating).
-
-Config:
-
-```json5
-{
-  broadcast: {
-    strategy: "parallel",
-    "120363403215116621@g.us": ["alfred", "baerbel"],
-    "+15555550123": ["support", "logger"],
-  },
-}
-```
-
-See: [Broadcast Groups](/channels/broadcast-groups).
 
 ## Config overview
 
@@ -103,8 +77,10 @@ Example:
     list: [{ id: "support", name: "Support", workspace: "~/.crawclaw/workspace-support" }],
   },
   bindings: [
-    { match: { channel: "slack", teamId: "T123" }, agentId: "support" },
-    { match: { channel: "telegram", peer: { kind: "group", id: "-100123" } }, agentId: "support" },
+    {
+      match: { channel: "internal", peer: { kind: "group", id: "group-123" } },
+      agentId: "support",
+    },
   ],
 }
 ```

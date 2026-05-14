@@ -68,13 +68,13 @@ type ActionTargetAliasSpec = {
 };
 
 const ACTION_TARGET_ALIASES: Partial<Record<ChannelMessageActionName, ActionTargetAliasSpec>> = {
-  read: { aliases: ["messageId"], channels: ["feishu"] },
+  read: { aliases: ["messageId"] },
   unsend: { aliases: ["messageId"] },
   edit: { aliases: ["messageId"] },
-  pin: { aliases: ["messageId"], channels: ["feishu"] },
-  unpin: { aliases: ["messageId"], channels: ["feishu"] },
-  "list-pins": { aliases: ["chatId"], channels: ["feishu"] },
-  "channel-info": { aliases: ["chatId"], channels: ["feishu"] },
+  pin: { aliases: ["messageId"] },
+  unpin: { aliases: ["messageId"] },
+  "list-pins": { aliases: ["chatId"] },
+  "channel-info": { aliases: ["chatId"] },
   react: { aliases: ["chatGuid", "chatIdentifier", "chatId"] },
   renameGroup: { aliases: ["chatGuid", "chatIdentifier", "chatId"] },
   setGroupIcon: { aliases: ["chatGuid", "chatIdentifier", "chatId"] },

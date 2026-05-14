@@ -29,36 +29,36 @@ The macOS matrix uses two support states:
 
 ## Native capability matrix
 
-| Surface                             | Status      | macOS boundary                                                                                                  |
-| ----------------------------------- | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| npm installer                       | `supported` | `npm install -g crawclaw@latest` installs the CLI package and runs install-time runtime setup.                  |
-| CLI                                 | `supported` | Commands run under Node 24.x (stable) or Node 25.x (experimental) with macOS path, shell, and process handling. |
-| Gateway foreground                  | `supported` | `crawclaw gateway run` starts the Gateway directly on the Mac.                                                  |
-| Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                                        |
-| Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                                 |
-| Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                 |
-| iMessage and Apple-local messaging  | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.               |
-| Camera, microphone, and screen APIs | `external`  | Permission-sensitive APIs depend on macOS TCC prompts, signing, and a separate local runtime.                   |
+| Surface                             | Status      | macOS boundary                                                                                                    |
+| ----------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------- |
+| npm installer                       | `supported` | `install CrawClaw Desktop from GitHub Releases` installs the desktop package and runs install-time runtime setup. |
+| CLI                                 | `supported` | Commands run under Node 24.x (stable) or Node 25.x (experimental) with macOS path, shell, and process handling.   |
+| Gateway foreground                  | `supported` | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Mac.                                 |
+| Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                                          |
+| Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                                   |
+| Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                   |
+| iMessage and Apple-local messaging  | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.                 |
+| Camera, microphone, and screen APIs | `external`  | Permission-sensitive APIs depend on macOS TCC prompts, signing, and a separate local runtime.                     |
 
 ## Install
 
 Install from npm:
 
 ```bash
-npm install -g crawclaw@latest
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 Verify the install:
 
 ```bash
-crawclaw --version
-crawclaw plugins list --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 For guided setup:
 
 ```bash
-crawclaw onboard --install-daemon
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Gateway references
@@ -66,14 +66,14 @@ crawclaw onboard --install-daemon
 Run the Gateway in the foreground:
 
 ```bash
-crawclaw gateway run
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Install managed startup:
 
 ```bash
-crawclaw gateway install
-crawclaw gateway status --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 macOS managed startup uses a per-user LaunchAgent. It is not a system daemon

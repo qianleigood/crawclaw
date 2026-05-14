@@ -1,7 +1,6 @@
-import { shouldAllowBundledTsChannelRuntime } from "../../channels/plugins/bundled-runtime-policy.js";
+import { CHANNEL_IDS } from "../../channels/ids.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import type { ChannelId } from "../../channels/plugins/types.js";
-import { listBundledPluginMetadata } from "../../plugins/bundled-plugin-metadata.js";
 import { getActivePluginChannelRegistryVersion } from "../../plugins/runtime.js";
 
 export function normalizeChannelTargetInput(raw: string): string {
@@ -25,18 +24,7 @@ export const __testing = {
 } as const;
 
 export function shouldUseNativeChannelTargetRuntime(channelId: ChannelId): boolean {
-  if (shouldAllowBundledTsChannelRuntime()) {
-    return false;
-  }
-  for (const entry of listBundledPluginMetadata({
-    includeChannelConfigs: false,
-    includeSyntheticChannelConfigs: false,
-  })) {
-    if (entry.manifest.channels?.includes(channelId)) {
-      return true;
-    }
-  }
-  return false;
+  return (CHANNEL_IDS as readonly string[]).includes(channelId);
 }
 
 function getTargetNormalizerPlugin(channelId: ChannelId) {

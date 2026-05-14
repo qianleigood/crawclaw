@@ -23,7 +23,6 @@ export function createTestPluginApi(api: TestPluginApiInput): CrawClawPluginApi 
     registerMediaUnderstandingProvider() {},
     registerWebFetchProvider() {},
     registerWebSearchProvider() {},
-    registerInteractiveHandler() {},
     onConversationBindingResolved() {},
     registerCommand() {},
     resolvePath(input: string) {

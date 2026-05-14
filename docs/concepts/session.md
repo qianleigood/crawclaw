@@ -54,7 +54,7 @@ If the same person contacts you from multiple channels, use
 `session.identityLinks` to link their identities so they share one session.
 </Tip>
 
-Verify your setup with `crawclaw security audit`.
+Verify your setup with CrawClaw Desktop or the local Gateway API.
 
 ## Session lifecycle
 
@@ -95,12 +95,12 @@ to `"enforce"` for automatic cleanup:
 }
 ```
 
-Preview with `crawclaw sessions cleanup --dry-run`.
+Preview with CrawClaw Desktop or the local Gateway API.
 
 ## Inspecting sessions
 
-- `crawclaw status` -- session store path and recent activity.
-- `crawclaw sessions --json` -- all sessions (filter with `--active <minutes>`).
+- CrawClaw Desktop or the local Gateway API -- session store path and recent activity.
+- CrawClaw Desktop or the local Gateway API -- all sessions (filter with `--active <minutes>`).
 - `/status` in chat -- context usage, model, and toggles.
 - `/context list` -- what is in the system prompt.
 

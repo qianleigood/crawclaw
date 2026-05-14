@@ -20,10 +20,7 @@ import type {
   MediaUnderstandingModelConfig,
 } from "../config/types.tools.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";
-import {
-  mergeInboundPathRoots,
-  resolveIMessageAttachmentRoots,
-} from "../media/inbound-path-policy.js";
+import { mergeInboundPathRoots } from "../media/inbound-path-policy.js";
 import { getDefaultMediaLocalRoots } from "../media/local-roots.js";
 import { resolveOpenAiWhisperRuntimePython } from "../plugins/plugin-runtimes.js";
 import { runExec } from "../process/exec.js";
@@ -90,13 +87,8 @@ export function resolveMediaAttachmentLocalRoots(params: {
   cfg: CrawClawConfig;
   ctx: MsgContext;
 }): readonly string[] {
-  return mergeInboundPathRoots(
-    getDefaultMediaLocalRoots(),
-    resolveIMessageAttachmentRoots({
-      cfg: params.cfg,
-      accountId: params.ctx.AccountId,
-    }),
-  );
+  void params;
+  return mergeInboundPathRoots(getDefaultMediaLocalRoots());
 }
 
 export function createMediaAttachmentCache(

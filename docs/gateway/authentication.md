@@ -30,11 +30,11 @@ For Anthropic specifically, API key auth is the safe path and is recommended
 over subscription setup-token auth.
 
 1. Create an API key in your provider console.
-2. Put it on the **gateway host** (the machine running `crawclaw gateway`).
+2. Put it on the **gateway host** (the machine running CrawClaw Desktop or the local Gateway API).
 
 ```bash
 export <PROVIDER>_API_KEY="..."
-crawclaw models status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 3. If the Gateway runs under systemd/launchd, prefer putting the key in
@@ -49,12 +49,12 @@ EOF
 Then restart the daemon (or restart your Gateway process) and re-check:
 
 ```bash
-crawclaw models status
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If you’d rather not manage env vars yourself, onboarding can store
-API keys for daemon use: `crawclaw onboard`.
+API keys for daemon use: CrawClaw Desktop or the local Gateway API.
 
 See [Help](/help) for details on env inheritance (`env.shellEnv`,
 `~/.crawclaw/.env`, systemd/launchd).
@@ -71,13 +71,13 @@ claude setup-token
 Then paste it into CrawClaw:
 
 ```bash
-crawclaw models auth setup-token --provider anthropic
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If the token was created on another machine, paste it manually:
 
 ```bash
-crawclaw models auth paste-token --provider anthropic
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If you see an Anthropic error like:
@@ -97,8 +97,8 @@ the policy risk is acceptable, and verify Anthropic's current terms yourself.
 Manual token entry (any provider; writes `auth-profiles.json` + updates config):
 
 ```bash
-crawclaw models auth paste-token --provider anthropic
-crawclaw models auth paste-token --provider openrouter
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Auth profile refs are also supported for static credentials:
@@ -110,7 +110,7 @@ Auth profile refs are also supported for static credentials:
 Automation-friendly check (exit `1` when expired/missing, `2` when expiring):
 
 ```bash
-crawclaw models status --check
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Optional ops scripts (systemd/Termux) are documented here:
@@ -121,11 +121,11 @@ Optional ops scripts (systemd/Termux) are documented here:
 ## Anthropic: Claude CLI migration
 
 If Claude CLI is already installed and signed in on the gateway host, you can
-switch an existing Anthropic setup over to the CLI backend instead of pasting a
+switch an existing Anthropic setup over to the local process backend instead of pasting a
 setup-token:
 
 ```bash
-crawclaw models auth login --provider anthropic --method cli --set-default
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 This keeps your existing Anthropic auth profiles for rollback, but changes the
@@ -137,8 +137,8 @@ Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
 ## Checking model auth status
 
 ```bash
-crawclaw models status
-crawclaw doctor
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## API key rotation behavior (gateway)
@@ -171,9 +171,9 @@ Use `/model` (or `/model list`) for a compact picker; use `/model status` for th
 Set an explicit auth profile order override for an agent (stored in that agent’s `auth-profiles.json`):
 
 ```bash
-crawclaw models auth order get --provider anthropic
-crawclaw models auth order set --provider anthropic anthropic:default
-crawclaw models auth order clear --provider anthropic
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Use `--agent <id>` to target a specific agent; omit it to use the configured default agent.
@@ -186,12 +186,12 @@ If the Anthropic token profile is missing, run `claude setup-token` on the
 **gateway host**, then re-check:
 
 ```bash
-crawclaw models status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Token expiring/expired
 
-Run `crawclaw models status` to confirm which profile is expiring. If the profile
+Run CrawClaw Desktop or the local Gateway API to confirm which profile is expiring. If the profile
 is missing, rerun `claude setup-token` and paste the token again.
 
 ## Requirements

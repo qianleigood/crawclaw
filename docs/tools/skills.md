@@ -57,7 +57,7 @@ tool surface those skills teach.
 ## ClawHub (install + sync)
 
 ClawHub is the public skills registry for CrawClaw. Browse at
-[https://clawhub.com](https://clawhub.com). Use native `crawclaw skills`
+[https://clawhub.com](https://clawhub.com). Use native CrawClaw Desktop or the local Gateway API
 commands to discover/install/update skills, or the separate `clawhub` CLI when
 you need publish/sync workflows.
 Full guide: [ClawHub](/tools/clawhub).
@@ -65,13 +65,13 @@ Full guide: [ClawHub](/tools/clawhub).
 Common flows:
 
 - Install a skill into your workspace:
-  - `crawclaw skills install <skill-slug>`
+  - CrawClaw Desktop or the local Gateway API
 - Update all installed skills:
-  - `crawclaw skills update --all`
+  - CrawClaw Desktop or the local Gateway API
 - Sync (scan + publish updates):
   - `clawhub sync --all`
 
-Native `crawclaw skills install` installs into the active workspace `skills/`
+Native CrawClaw Desktop or the local Gateway API installs into the active workspace `skills/`
 directory. The separate `clawhub` CLI also installs into `./skills` under your
 current working directory (or falls back to the configured CrawClaw workspace).
 CrawClaw picks that up as `<workspace>/skills` on the next session.
@@ -81,7 +81,7 @@ CrawClaw picks that up as `<workspace>/skills` on the next session.
 - Treat third-party skills as **untrusted code**. Read them before enabling.
 - Workspace and extra-dir skill discovery only accepts skill roots and `SKILL.md` files whose resolved realpath stays inside the configured root.
 - Gateway-backed skill dependency installs (`skills.install`, onboarding, and the Skills settings UI) run the built-in dangerous-code scanner before executing installer metadata. `critical` findings block by default unless the caller explicitly sets the dangerous override; suspicious findings still warn only.
-- `crawclaw skills install <slug>` is different: it downloads a ClawHub skill folder into the workspace and does not use the installer-metadata path above.
+- CrawClaw Desktop or the local Gateway API is different: it downloads a ClawHub skill folder into the workspace and does not use the installer-metadata path above.
 - `skills.entries.*.env` and `skills.entries.*.apiKey` inject secrets into the **host** process
 - For a broader threat model and checklists, see [Security](/gateway/security).
 
@@ -260,8 +260,8 @@ Rules for bundled core skills:
 - Let `scripts/install-plugin-runtimes.mjs` create or repair the runtime.
 - Do not run `pip install` or similar package installation from a skill script
   on first use.
-- If a runtime is missing, report `crawclaw runtimes install` /
-  `crawclaw runtimes repair`.
+- If a runtime is missing, report CrawClaw Desktop or the local Gateway API /
+  CrawClaw Desktop or the local Gateway API.
 
 Platform-specific bundled skill runtimes should declare platform metadata and
 install-time policy together. For example, `openai-whisper` declares
@@ -276,7 +276,7 @@ Skills can also refresh mid-session when the skills watcher is enabled or when a
 
 ## Semantic skill discovery
 
-CrawClaw can use embeddings before lexical fallback and reranking when looking up skills for a task. Interactive `crawclaw onboard` can configure this in the **Skills** step with local Ollama embeddings. This does **not** change the main chat model.
+CrawClaw can use embeddings before lexical fallback and reranking when looking up skills for a task. Interactive CrawClaw Desktop or the local Gateway API can configure this in the **Skills** step with local Ollama embeddings. This does **not** change the main chat model.
 
 The vector text for each skill is intentionally aligned with the trigger
 surface: skill name, trigger description, and the skill file or directory

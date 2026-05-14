@@ -83,7 +83,7 @@ Recommended for most interactive installs on macOS/Linux.
     - `git` method: clone/update repo, install deps with pnpm, build, then install wrapper at `~/.local/bin/crawclaw`
   </Step>
   <Step title="Post-install tasks">
-    - Runs `crawclaw doctor --non-interactive` on upgrades and git installs (best effort)
+    - Runs CrawClaw Desktop or the local Gateway API on upgrades and git installs (best effort)
     - Attempts onboarding when appropriate (TTY available, onboarding not disabled, and bootstrap/config checks pass)
     - Defaults `SHARP_IGNORE_GLOBAL_LIBVIPS=1`
   </Step>
@@ -206,7 +206,7 @@ Designed for environments where you want everything under a local prefix (defaul
   </Tab>
   <Tab title="Custom prefix + version">
     ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://crawclaw.ai/install-cli.sh | bash -s -- --prefix /opt/crawclaw --version latest
+    curl -fsSL --proto '=https' --tlsv1.2 https://crawclaw.ai/install-cli.sh | bash -s -- --prefix /opt/the packaged desktop version check latest
     ```
   </Tab>
   <Tab title="Automation JSON output">
@@ -230,7 +230,7 @@ Designed for environments where you want everything under a local prefix (defaul
 | `--version <ver>`      | CrawClaw version or dist-tag (default: `latest`)                                |
 | `--node-version <ver>` | Node version (default: `22.22.0`)                                               |
 | `--json`               | Emit NDJSON events                                                              |
-| `--onboard`            | Run `crawclaw onboard` after install                                            |
+| `--onboard`            | Run CrawClaw Desktop or the local Gateway API after install                     |
 | `--no-onboard`         | Skip onboarding (default)                                                       |
 | `--set-npm-prefix`     | On Linux, force npm prefix to `~/.npm-global` if current prefix is not writable |
 | `--help`               | Show usage (`-h`)                                                               |
@@ -277,7 +277,7 @@ The local-prefix installer still accepts legacy `CRAWCLAW_*` variable names whil
     - `git` method: clone/update repo, install/build with pnpm, and install wrapper at `%USERPROFILE%\.local\bin\crawclaw.cmd`
   </Step>
   <Step title="Post-install tasks">
-    Adds needed bin directory to user PATH when possible, prepares bundled plugin runtimes during postinstall, runs `crawclaw doctor --non-interactive` best effort, and prints the native Windows validation commands.
+    Adds needed bin directory to user PATH when possible, prepares bundled plugin runtimes during postinstall, runs CrawClaw Desktop or the local Gateway API best effort, and prints the native Windows validation commands.
   </Step>
 </Steps>
 
@@ -293,9 +293,9 @@ The closed-loop validation path for Windows is:
 
 ```powershell
 iwr -useb https://crawclaw.ai/install.ps1 | iex
-crawclaw doctor --non-interactive
-crawclaw onboard --non-interactive --mode local --install-daemon --skip-skills --accept-risk
-crawclaw gateway status --deep --require-rpc
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 That path validates the installer, runtime preparation, local Gateway setup,

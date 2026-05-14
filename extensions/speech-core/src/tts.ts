@@ -9,7 +9,6 @@ import {
   unlinkSync,
 } from "node:fs";
 import path from "node:path";
-import { normalizeChannelId, type ChannelId } from "crawclaw/plugin-sdk/channel-id";
 import type {
   CrawClawConfig,
   TtsAutoMode,
@@ -19,7 +18,6 @@ import type {
   TtsProvider,
 } from "crawclaw/plugin-sdk/config-runtime";
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
-import type { ReplyPayload } from "crawclaw/plugin-sdk/reply-runtime";
 import { redactSensitiveText } from "crawclaw/plugin-sdk/runtime-env";
 import { isVerbose, logVerbose } from "crawclaw/plugin-sdk/runtime-env";
 import { resolvePreferredCrawClawTmpDir } from "crawclaw/plugin-sdk/temp-path";
@@ -42,6 +40,14 @@ import {
 import { resolveTtsTargetForChannel } from "./tts-target.js";
 
 export type { TtsDirectiveOverrides, TtsDirectiveParseResult };
+
+type ReplyPayload = {
+  text?: string;
+  mediaUrl?: string;
+  audioAsVoice?: boolean;
+  isCompactionNotice?: boolean;
+  [key: string]: unknown;
+};
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_TTS_MAX_LENGTH = 1500;
@@ -525,8 +531,9 @@ export function setLastTtsAttempt(entry: TtsStatusEntry | undefined): void {
   lastTtsAttempt = entry;
 }
 
-function resolveChannelId(channel: string | undefined): ChannelId | null {
-  return channel ? normalizeChannelId(channel) : null;
+function resolveChannelId(channel: string | undefined): string | null {
+  const normalized = channel?.trim().toLowerCase();
+  return normalized || null;
 }
 
 export function resolveTtsProviderOrder(primary: TtsProvider, cfg?: CrawClawConfig): TtsProvider[] {

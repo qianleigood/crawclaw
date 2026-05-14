@@ -1,10 +1,6 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import {
-  BUNDLED_TS_CHANNEL_RUNTIME_DISABLED_REASON,
-  shouldAllowBundledTsChannelRuntime,
-} from "../channels/plugins/bundled-runtime-policy.js";
 import { isChannelConfigured } from "../config/channel-configured.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
@@ -27,9 +23,8 @@ import {
 import { discoverCrawClawPlugins } from "./discovery.js";
 import { resolvePluginModuleExport, resolveSetupChannelRegistration } from "./entry-contract.js";
 import { initializeGlobalHookRunner } from "./hook-runner-global.js";
-import { clearPluginInteractiveHandlers } from "./interactive.js";
 import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
-import { loadPluginManifestRegistry } from "./manifest-registry.js";
+import { loadPluginManifestRegistry, type PluginManifestRecord } from "./manifest-registry.js";
 import { isPathInside, safeStatSync } from "./path-safety.js";
 import { createPluginRegistry, type PluginRecord, type PluginRegistry } from "./registry.js";
 import { resolvePluginCacheInputs } from "./roots.js";
@@ -137,6 +132,8 @@ export function clearPluginLoaderCache(): void {
 }
 
 const defaultLogger = () => createSubsystemLogger("plugins");
+const TYPESCRIPT_CHANNEL_RUNTIME_REMOVED_REASON =
+  "TypeScript channel plugin runtime has been removed; implement channels as Rust-native adapters";
 
 function createPluginJitiLoader(options: Pick<PluginLoadOptions, "pluginSdkResolution">) {
   const jitiLoaders = new Map<string, JitiLoader>();
@@ -533,6 +530,29 @@ function createPluginRecord(params: {
   };
 }
 
+function pushUnique(target: string[], values: readonly string[] | undefined): void {
+  for (const value of values ?? []) {
+    if (!target.includes(value)) {
+      target.push(value);
+    }
+  }
+}
+
+function applyNativeManifestContracts(
+  record: PluginRecord,
+  manifestRecord: PluginManifestRecord,
+): void {
+  pushUnique(record.providerIds, manifestRecord.providers);
+  pushUnique(record.speechProviderIds, manifestRecord.contracts?.speechProviders);
+  pushUnique(
+    record.mediaUnderstandingProviderIds,
+    manifestRecord.contracts?.mediaUnderstandingProviders,
+  );
+  pushUnique(record.webFetchProviderIds, manifestRecord.contracts?.webFetchProviders);
+  pushUnique(record.webSearchProviderIds, manifestRecord.contracts?.webSearchProviders);
+  pushUnique(record.toolNames, manifestRecord.contracts?.tools);
+}
+
 function markPluginActivationDisabled(record: PluginRecord, reason?: string): void {
   record.activated = false;
   record.activationSource = "disabled";
@@ -898,7 +918,6 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
   // Skip for non-activating (snapshot) loads to avoid wiping commands from other plugins.
   if (shouldActivate) {
     clearPluginCommands();
-    clearPluginInteractiveHandlers();
   }
 
   // Lazy: avoid creating the Jiti loader when all plugins are disabled (common in unit tests).
@@ -1162,14 +1181,10 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       markPluginActivationDisabled(record, enableState.reason);
     }
 
-    if (
-      candidate.origin === "bundled" &&
-      manifestRecord.channels.length > 0 &&
-      !shouldAllowBundledTsChannelRuntime(env)
-    ) {
+    if (manifestRecord.channels.length > 0) {
       record.enabled = false;
       record.status = "disabled";
-      record.error = BUNDLED_TS_CHANNEL_RUNTIME_DISABLED_REASON;
+      record.error = TYPESCRIPT_CHANNEL_RUNTIME_REMOVED_REASON;
       markPluginActivationDisabled(record, record.error);
       registry.plugins.push(record);
       seenIds.set(pluginId, candidate.origin);
@@ -1298,6 +1313,13 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     if (!validatedConfig.ok) {
       logger.error(`[plugins] ${record.id} invalid config: ${validatedConfig.errors?.join(", ")}`);
       pushPluginLoadError(`invalid config: ${validatedConfig.errors?.join(", ")}`);
+      continue;
+    }
+
+    if (record.format === "native") {
+      applyNativeManifestContracts(record, manifestRecord);
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
       continue;
     }
 
@@ -1684,6 +1706,13 @@ export async function loadCrawClawPluginCliRegistry(
     if (!validatedConfig.ok) {
       logger.error(`[plugins] ${record.id} invalid config: ${validatedConfig.errors?.join(", ")}`);
       pushPluginLoadError(`invalid config: ${validatedConfig.errors?.join(", ")}`);
+      continue;
+    }
+
+    if (record.format === "native") {
+      applyNativeManifestContracts(record, manifestRecord);
+      registry.plugins.push(record);
+      seenIds.set(pluginId, candidate.origin);
       continue;
     }
 

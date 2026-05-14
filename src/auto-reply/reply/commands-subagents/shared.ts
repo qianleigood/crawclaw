@@ -12,25 +12,17 @@ import {
   stripToolMessages,
 } from "../../../agents/tools/sessions-helpers.js";
 import {
-  isDiscordSurface,
-  isMatrixSurface,
-  isTelegramSurface,
-  resolveCommandSurfaceChannel,
-  resolveDiscordAccountId,
   resolveChannelAccountId,
+  resolveCommandSurfaceChannel,
 } from "../../../channels/command-surface-context.js";
-import { parseExplicitTargetForChannel } from "../../../channels/plugins/target-parsing.js";
-import { resolveTelegramConversationId } from "../../../channels/telegram-context.js";
 import type {
   SessionEntry,
   loadSessionStore as loadSessionStoreFn,
   resolveStorePath as resolveStorePathFn,
 } from "../../../config/sessions.js";
-import { callGateway } from "../../../gateway/call.js";
 import { formatTimeAgo } from "../../../infra/format-time/format-relative.ts";
 import { parseAgentSessionKey } from "../../../routing/session-key.js";
 import { isSubagentSessionKey } from "../../../routing/session-key.js";
-import { looksLikeSessionId } from "../../../sessions/session-id.js";
 import { extractTextFromChatContent } from "../../../shared/chat-content.js";
 import {
   formatDurationCompact,
@@ -46,22 +38,12 @@ import {
 } from "../subagents-utils.js";
 
 export { extractAssistantText, stripToolMessages };
-export {
-  isDiscordSurface,
-  isMatrixSurface,
-  isTelegramSurface,
-  resolveCommandSurfaceChannel,
-  resolveDiscordAccountId,
-  resolveChannelAccountId,
-  resolveTelegramConversationId,
-};
+export { resolveChannelAccountId, resolveCommandSurfaceChannel };
 
 export const COMMAND = "/subagents";
 export const COMMAND_KILL = "/kill";
 export const COMMAND_STEER = "/steer";
 export const COMMAND_TELL = "/tell";
-export const COMMAND_FOCUS = "/focus";
-export const COMMAND_UNFOCUS = "/unfocus";
 export const COMMAND_AGENTS = "/agents";
 export const ACTIONS = new Set([
   "list",
@@ -71,8 +53,6 @@ export const ACTIONS = new Set([
   "steer",
   "info",
   "spawn",
-  "focus",
-  "unfocus",
   "agents",
   "help",
 ]);
@@ -177,8 +157,6 @@ export type SubagentsAction =
   | "steer"
   | "info"
   | "spawn"
-  | "focus"
-  | "unfocus"
   | "agents"
   | "help";
 
@@ -284,13 +262,9 @@ export function resolveHandledPrefix(normalized: string): string | null {
         ? COMMAND_STEER
         : normalized.startsWith(COMMAND_TELL)
           ? COMMAND_TELL
-          : normalized.startsWith(COMMAND_FOCUS)
-            ? COMMAND_FOCUS
-            : normalized.startsWith(COMMAND_UNFOCUS)
-              ? COMMAND_UNFOCUS
-              : normalized.startsWith(COMMAND_AGENTS)
-                ? COMMAND_AGENTS
-                : null;
+          : normalized.startsWith(COMMAND_AGENTS)
+            ? COMMAND_AGENTS
+            : null;
 }
 
 export function resolveSubagentsAction(params: {
@@ -309,92 +283,10 @@ export function resolveSubagentsAction(params: {
   if (params.handledPrefix === COMMAND_KILL) {
     return "kill";
   }
-  if (params.handledPrefix === COMMAND_FOCUS) {
-    return "focus";
-  }
-  if (params.handledPrefix === COMMAND_UNFOCUS) {
-    return "unfocus";
-  }
   if (params.handledPrefix === COMMAND_AGENTS) {
     return "agents";
   }
   return "steer";
-}
-
-export type FocusTargetResolution = {
-  targetKind: "subagent" | "acp";
-  targetSessionKey: string;
-  agentId: string;
-  label?: string;
-};
-
-export function resolveDiscordChannelIdForFocus(
-  params: SubagentsCommandParams,
-): string | undefined {
-  const toCandidates = [
-    typeof params.ctx.OriginatingTo === "string" ? params.ctx.OriginatingTo.trim() : "",
-    typeof params.command.to === "string" ? params.command.to.trim() : "",
-    typeof params.ctx.To === "string" ? params.ctx.To.trim() : "",
-  ].filter(Boolean);
-  for (const candidate of toCandidates) {
-    const target = parseExplicitTargetForChannel("discord", candidate);
-    if (target?.chatType === "channel" && target.to) {
-      return target.to;
-    }
-  }
-  return undefined;
-}
-
-export async function resolveFocusTargetSession(params: {
-  runs: SubagentRunRecord[];
-  token: string;
-}): Promise<FocusTargetResolution | null> {
-  const subagentMatch = resolveSubagentTarget(params.runs, params.token);
-  if (subagentMatch.entry) {
-    const key = subagentMatch.entry.childSessionKey;
-    const parsed = parseAgentSessionKey(key);
-    return {
-      targetKind: "subagent",
-      targetSessionKey: key,
-      agentId: parsed?.agentId ?? "main",
-      label: formatRunLabel(subagentMatch.entry),
-    };
-  }
-
-  const token = params.token.trim();
-  if (!token) {
-    return null;
-  }
-
-  const attempts: Array<Record<string, string>> = [];
-  attempts.push({ key: token });
-  if (looksLikeSessionId(token)) {
-    attempts.push({ sessionId: token });
-  }
-  attempts.push({ label: token });
-
-  for (const attempt of attempts) {
-    try {
-      const resolved = await callGateway<{ key?: string }>({
-        method: "sessions.resolve",
-        params: attempt,
-      });
-      const key = typeof resolved?.key === "string" ? resolved.key.trim() : "";
-      if (!key) {
-        continue;
-      }
-      const parsed = parseAgentSessionKey(key);
-      return {
-        targetKind: key.includes(":subagent:") ? "subagent" : "acp",
-        targetSessionKey: key,
-        agentId: parsed?.agentId ?? "main",
-        label: token,
-      };
-    } catch {
-      // Try the next resolution strategy.
-    }
-  }
-  return null;
 }
 
 export function buildSubagentsHelp() {
@@ -408,8 +300,6 @@ export function buildSubagentsHelp() {
     "- /subagents send <id|#> <message>",
     "- /subagents steer <id|#> <message>",
     "- /subagents spawn <agentId> <task> [--model <model>] [--thinking <level>]",
-    "- /focus <subagent-label|session-key|session-id|session-label>",
-    "- /unfocus",
     "- /agents",
     "- /session idle <duration|off>",
     "- /session max-age <duration|off>",

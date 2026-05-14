@@ -2,6 +2,14 @@
   "id": "llm-task",
   "name": "LLM Task",
   "description": "Generic JSON-only LLM tool for structured tasks callable from workflows.",
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
+  "contracts": {
+    "tools": ["llm-task"]
+  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

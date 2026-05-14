@@ -79,10 +79,8 @@ export type ChannelSetupInput = {
   tokenFile?: string;
   botToken?: string;
   appToken?: string;
-  signalNumber?: string;
   cliPath?: string;
   dbPath?: string;
-  service?: "imessage" | "sms" | "auto";
   region?: string;
   authDir?: string;
   httpUrl?: string;
@@ -395,7 +393,7 @@ export type ChannelThreadingContext = {
   ReplyToIdFull?: string;
   ThreadLabel?: string;
   MessageThreadId?: string | number;
-  /** Platform-native channel/conversation id (e.g. Slack DM channel "D…" id). */
+  /** Platform-native channel/conversation id. */
   NativeChannelId?: string;
 };
 
@@ -420,7 +418,7 @@ export type ChannelMessagingAdapter = {
   /**
    * Canonical plugin-owned session conversation grammar.
    * Use this when the provider encodes thread or scoped-conversation semantics
-   * inside `rawId` (for example Telegram topics or Feishu sender scopes).
+   * inside `rawId` (for example Feishu sender scopes or QQ group targets).
    * Return `baseConversationId` and `parentConversationCandidates` here when
    * you can so parsing and inheritance stay in one place.
    * `parentConversationCandidates`, when present, should be ordered from the

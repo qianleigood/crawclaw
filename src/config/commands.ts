@@ -1,5 +1,4 @@
 import type { ChannelId } from "../channels/plugins/types.js";
-import { normalizeChannelId } from "../channels/registry.js";
 import { isPlainObject } from "../infra/plain-object.js";
 import type { CommandsConfig, NativeCommandsSetting } from "./types.js";
 
@@ -7,17 +6,7 @@ export type CommandFlagKey = {
   [K in keyof CommandsConfig]-?: Exclude<CommandsConfig[K], undefined> extends boolean ? K : never;
 }[keyof CommandsConfig];
 
-function resolveAutoDefault(providerId?: ChannelId): boolean {
-  const id = normalizeChannelId(providerId);
-  if (!id) {
-    return false;
-  }
-  if (id === "discord" || id === "telegram") {
-    return true;
-  }
-  if (id === "slack") {
-    return false;
-  }
+function resolveAutoDefault(_providerId?: ChannelId): boolean {
   return false;
 }
 

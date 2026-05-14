@@ -11,41 +11,20 @@ export type PluginSdkDocMetadata = {
 };
 
 export const pluginSdkDocMetadata = {
-  "channel-id": {
-    category: "channel",
-  },
   core: {
     category: "core",
   },
   "plugin-entry": {
     category: "core",
   },
-  "channel-actions": {
-    category: "channel",
-  },
-  "channel-config-schema": {
-    category: "channel",
-  },
-  "channel-contract": {
-    category: "channel",
-  },
-  "channel-pairing": {
-    category: "channel",
-  },
-  "channel-reply-pipeline": {
-    category: "channel",
-  },
-  "channel-setup": {
-    category: "channel",
-  },
   "command-auth": {
-    category: "channel",
+    category: "utilities",
   },
   "secret-input": {
-    category: "channel",
+    category: "utilities",
   },
   "webhook-ingress": {
-    category: "channel",
+    category: "utilities",
   },
   "provider-onboard": {
     category: "provider",
@@ -57,6 +36,9 @@ export const pluginSdkDocMetadata = {
     category: "utilities",
   },
   "reply-payload": {
+    category: "utilities",
+  },
+  setup: {
     category: "utilities",
   },
   testing: {

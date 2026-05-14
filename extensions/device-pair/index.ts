@@ -18,7 +18,6 @@ import {
   type CrawClawPluginApi,
 } from "./api.js";
 import {
-  armPairNotifyOnce,
   formatPendingRequests,
   handleNotifyCommand,
   registerPairingNotifierService,
@@ -72,63 +71,6 @@ type QrCommandContext = {
   to?: string;
   accountId?: string;
   messageThreadId?: string | number;
-};
-
-type QrChannelSender = {
-  createOpts: (params: {
-    ctx: QrCommandContext;
-    qrFilePath: string;
-    mediaLocalRoots: string[];
-    accountId?: string;
-  }) => Record<string, unknown>;
-};
-
-const QR_CHANNEL_SENDERS: Record<string, QrChannelSender> = {
-  telegram: {
-    createOpts: ({ ctx, qrFilePath, mediaLocalRoots, accountId }) => ({
-      mediaUrl: qrFilePath,
-      mediaLocalRoots,
-      ...(ctx.messageThreadId != null ? { threadId: ctx.messageThreadId } : {}),
-      ...(accountId ? { accountId } : {}),
-    }),
-  },
-  discord: {
-    createOpts: ({ qrFilePath, mediaLocalRoots, accountId }) => ({
-      mediaUrl: qrFilePath,
-      mediaLocalRoots,
-      ...(accountId ? { accountId } : {}),
-    }),
-  },
-  slack: {
-    createOpts: ({ ctx, qrFilePath, mediaLocalRoots, accountId }) => ({
-      mediaUrl: qrFilePath,
-      mediaLocalRoots,
-      ...(ctx.messageThreadId != null ? { threadId: String(ctx.messageThreadId) } : {}),
-      ...(accountId ? { accountId } : {}),
-    }),
-  },
-  signal: {
-    createOpts: ({ qrFilePath, mediaLocalRoots, accountId }) => ({
-      mediaUrl: qrFilePath,
-      mediaLocalRoots,
-      ...(accountId ? { accountId } : {}),
-    }),
-  },
-  imessage: {
-    createOpts: ({ qrFilePath, mediaLocalRoots, accountId }) => ({
-      mediaUrl: qrFilePath,
-      mediaLocalRoots,
-      ...(accountId ? { accountId } : {}),
-    }),
-  },
-  whatsapp: {
-    createOpts: ({ qrFilePath, mediaLocalRoots, accountId }) => ({
-      verbose: false,
-      mediaUrl: qrFilePath,
-      mediaLocalRoots,
-      ...(accountId ? { accountId } : {}),
-    }),
-  },
 };
 
 function normalizeUrl(raw: string, schemeFallback: "ws" | "wss"): string | null {
@@ -418,19 +360,6 @@ function formatSetupReply(payload: SetupPayload, authLabel: string): string {
   ].join("\n");
 }
 
-function formatSetupInstructions(expiresAtMs: number): string {
-  return [
-    "Pairing setup code generated.",
-    "",
-    ...buildPairingFlowLines("Paste the setup code from my next message and tap Connect"),
-    "",
-    ...buildSecurityNoticeLines({
-      kind: "setup code",
-      expiresAtMs,
-    }),
-  ].join("\n");
-}
-
 function buildQrInfoLines(params: {
   payload: SetupPayload;
   authLabel: string;
@@ -473,18 +402,11 @@ function formatQrInfoMarkdown(params: {
 }
 
 function canSendQrPngToChannel(channel: string): boolean {
-  return channel in QR_CHANNEL_SENDERS;
+  void channel;
+  return false;
 }
 
 function resolveQrReplyTarget(ctx: QrCommandContext): string {
-  if (ctx.channel === "discord") {
-    const senderId = ctx.senderId?.trim() ?? "";
-    if (senderId) {
-      return senderId.startsWith("user:") || senderId.startsWith("channel:")
-        ? senderId
-        : `user:${senderId}`;
-    }
-  }
   return ctx.senderId?.trim() || ctx.from?.trim() || ctx.to?.trim() || "";
 }
 
@@ -506,29 +428,8 @@ async function sendQrPngToSupportedChannel(params: {
   caption: string;
   qrFilePath: string;
 }): Promise<boolean> {
-  const mediaLocalRoots = [path.dirname(params.qrFilePath)];
-  const accountId = params.ctx.accountId?.trim() || undefined;
-  const sender = QR_CHANNEL_SENDERS[params.ctx.channel];
-  if (!sender) {
-    return false;
-  }
-  const adapter = await params.api.runtime.channel.outbound.loadAdapter(params.ctx.channel);
-  const send = adapter?.sendMedia;
-  if (!send) {
-    return false;
-  }
-  await send({
-    cfg: params.api.config,
-    to: params.target,
-    text: params.caption,
-    ...sender.createOpts({
-      ctx: params.ctx,
-      qrFilePath: params.qrFilePath,
-      mediaLocalRoots,
-      accountId,
-    }),
-  });
-  return true;
+  void params;
+  return false;
 }
 
 export default definePluginEntry({
@@ -650,18 +551,6 @@ export default definePluginEntry({
           const target = resolveQrReplyTarget(ctx);
           let autoNotifyArmed = false;
 
-          if (channel === "telegram" && target) {
-            try {
-              autoNotifyArmed = await armPairNotifyOnce({ api, ctx });
-            } catch (err) {
-              api.logger.warn?.(
-                `device-pair: failed to arm one-shot pairing notify (${String(
-                  (err as Error)?.message ?? err,
-                )})`,
-              );
-            }
-          }
-
           let payload = await issueSetupPayload(urlResult.url);
           let setupCode = encodeSetupCode(payload);
 
@@ -752,49 +641,7 @@ export default definePluginEntry({
               formatSetupReply(payload, authLabel),
           };
         }
-        const channel = ctx.channel;
-        const target = ctx.senderId?.trim() || ctx.from?.trim() || ctx.to?.trim() || "";
         const payload = await issueSetupPayload(urlResult.url);
-
-        if (channel === "telegram" && target) {
-          try {
-            const runtimeKeys = Object.keys(api.runtime ?? {});
-            const channelKeys = Object.keys(api.runtime?.channel ?? {});
-            api.logger.debug?.(
-              `device-pair: runtime keys=${runtimeKeys.join(",") || "none"} channel keys=${
-                channelKeys.join(",") || "none"
-              }`,
-            );
-            const adapter = await api.runtime.channel.outbound.loadAdapter("telegram");
-            const send = adapter?.sendText;
-            if (!send) {
-              throw new Error(
-                `telegram runtime unavailable (runtime keys: ${runtimeKeys.join(",")}; channel keys: ${channelKeys.join(
-                  ",",
-                )})`,
-              );
-            }
-            await send({
-              cfg: api.config,
-              to: target,
-              text: formatSetupInstructions(payload.expiresAtMs),
-              ...(ctx.messageThreadId != null ? { threadId: ctx.messageThreadId } : {}),
-              ...(ctx.accountId ? { accountId: ctx.accountId } : {}),
-            });
-            api.logger.info?.(
-              `device-pair: telegram split send ok target=${target} account=${ctx.accountId ?? "none"} thread=${
-                ctx.messageThreadId ?? "none"
-              }`,
-            );
-            return { text: encodeSetupCode(payload) };
-          } catch (err) {
-            api.logger.warn?.(
-              `device-pair: telegram split send failed, falling back to single message (${String(
-                (err as Error)?.message ?? err,
-              )})`,
-            );
-          }
-        }
         return {
           text: formatSetupReply(payload, authLabel),
         };

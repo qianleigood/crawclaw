@@ -27,11 +27,11 @@ describe("gateway plugins.list", () => {
       workspaceDir: "/tmp/workspace",
       plugins: [
         {
-          id: "browser",
-          name: "@crawclaw/browser-plugin",
+          id: "quickjs-demo",
+          name: "QuickJS Demo",
           status: "loaded",
           origin: "bundled",
-          source: "/tmp/browser/index.ts",
+          source: "/tmp/quickjs-demo/index.ts",
           enabled: true,
           toolNames: [],
           hookNames: [],
@@ -78,8 +78,8 @@ describe("gateway plugins.list", () => {
         workspaceDir: "/tmp/workspace",
         plugins: [
           expect.objectContaining({
-            id: "browser",
-            name: "@crawclaw/browser-plugin",
+            id: "quickjs-demo",
+            name: "QuickJS Demo",
             status: "loaded",
             configSchema: true,
           }),

@@ -18,7 +18,7 @@ export function registerMessageSendCommand(message: Command, helpers: MessageCli
         .option("--components <json>", t("command.message.send.option.components"))
         .option("--card <json>", t("command.message.send.option.card"))
         .option("--reply-to <id>", t("command.message.option.replyTo"))
-        .option("--thread-id <id>", t("command.message.option.telegramThreadId"))
+        .option("--thread-id <id>", t("command.message.option.threadId"))
         .option("--gif-playback", t("command.message.send.option.gifPlayback"), false)
         .option("--force-document", t("command.message.send.option.forceDocument"), false)
         .option("--silent", t("command.message.send.option.silent"), false),

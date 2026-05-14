@@ -15,24 +15,24 @@ If you only have 2 minutes, use this page as a triage front door.
 Run this exact ladder in order:
 
 ```bash
-crawclaw status
-crawclaw status --all
-crawclaw gateway probe
-crawclaw gateway status
-crawclaw doctor
-crawclaw channels status --probe
-crawclaw logs --follow
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Good output in one line:
 
-- `crawclaw status` → shows configured channels and no obvious auth errors.
-- `crawclaw status --all` → full report is present and shareable.
-- `crawclaw gateway probe` → expected gateway target is reachable (`Reachable: yes`). `RPC: limited - missing scope: operator.read` is degraded diagnostics, not a connect failure.
-- `crawclaw gateway status` → `Runtime: running` and `RPC probe: ok`.
-- `crawclaw doctor` → no blocking config/service errors.
-- `crawclaw channels status --probe` → channels report `connected` or `ready`.
-- `crawclaw logs --follow` → steady activity, no repeating fatal errors.
+- CrawClaw Desktop or the local Gateway API → shows configured channels and no obvious auth errors.
+- CrawClaw Desktop or the local Gateway API → full report is present and shareable.
+- CrawClaw Desktop or the local Gateway API → expected gateway target is reachable (`Reachable: yes`). `RPC: limited - missing scope: operator.read` is degraded diagnostics, not a connect failure.
+- CrawClaw Desktop or the local Gateway API → `Runtime: running` and `RPC probe: ok`.
+- CrawClaw Desktop or the local Gateway API → no blocking config/service errors.
+- CrawClaw Desktop or the local Gateway API → channels report `connected` or `ready`.
+- CrawClaw Desktop or the local Gateway API → steady activity, no repeating fatal errors.
 
 ## Anthropic long context 429
 
@@ -49,7 +49,7 @@ Fix in the plugin package:
 
 1. Add `crawclaw.extensions` to `package.json`.
 2. Point entries at built runtime files (usually `./dist/index.js`).
-3. Republish the plugin and run `crawclaw plugins install <package>` again.
+3. Republish the plugin and run CrawClaw Desktop or the local Gateway API again.
 
 Example:
 
@@ -90,11 +90,11 @@ flowchart TD
 <AccordionGroup>
   <Accordion title="No replies">
     ```bash
-    crawclaw status
-    crawclaw gateway status
-    crawclaw channels status --probe
-    crawclaw pairing list --channel <channel> [--account <id>]
-    crawclaw logs --follow
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Good output looks like:
@@ -120,11 +120,11 @@ flowchart TD
 
   <Accordion title="Browser client will not connect">
     ```bash
-    crawclaw status
-    crawclaw gateway status
-    crawclaw logs --follow
-    crawclaw doctor
-    crawclaw channels status --probe
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Good output looks like:
@@ -149,11 +149,11 @@ flowchart TD
 
   <Accordion title="Gateway will not start or service installed but not running">
     ```bash
-    crawclaw status
-    crawclaw gateway status
-    crawclaw logs --follow
-    crawclaw doctor
-    crawclaw channels status --probe
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Good output looks like:
@@ -178,11 +178,11 @@ flowchart TD
 
   <Accordion title="Channel connects but messages do not flow">
     ```bash
-    crawclaw status
-    crawclaw gateway status
-    crawclaw logs --follow
-    crawclaw doctor
-    crawclaw channels status --probe
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Good output looks like:
@@ -206,19 +206,19 @@ flowchart TD
 
   <Accordion title="Cron or main-session wake did not fire or deliver">
     ```bash
-    crawclaw status
-    crawclaw gateway status
-    crawclaw cron status
-    crawclaw cron list
-    crawclaw cron runs --id <jobId> --limit 20
-    crawclaw logs --follow
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Good output looks like:
 
     - `cron.status` shows enabled with a next wake.
     - `cron runs` shows recent `ok` entries.
-    - Queued main-session wake events are visible through `crawclaw system main-session-wake last --json`.
+    - Queued main-session wake events are visible through CrawClaw Desktop or the local Gateway API.
 
     Common log signatures:
 
@@ -236,10 +236,10 @@ flowchart TD
 
   <Accordion title="Exec suddenly asks for approval">
     ```bash
-    crawclaw config get tools.exec.host
-    crawclaw config get tools.exec.security
-    crawclaw config get tools.exec.ask
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     What changed:
@@ -253,10 +253,10 @@ flowchart TD
     Restore current default no-approval behavior:
 
     ```bash
-    crawclaw config set tools.exec.host gateway
-    crawclaw config set tools.exec.security full
-    crawclaw config set tools.exec.ask off
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Safer alternatives:
@@ -279,10 +279,10 @@ flowchart TD
 
   <Accordion title="Browser tool fails">
     ```bash
-    crawclaw status
-    crawclaw gateway status
-    crawclaw logs --follow
-    crawclaw doctor
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     From the current agent or Gateway `/tools/invoke` path, run the `browser` tool

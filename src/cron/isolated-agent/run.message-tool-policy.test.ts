@@ -50,7 +50,7 @@ describe("runCronIsolatedAgentTurn message tool policy", () => {
     resetRunCronIsolatedAgentTurnHarness();
     resolveDeliveryTargetMock.mockResolvedValue({
       ok: true,
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
       accountId: undefined,
       error: undefined,
@@ -72,7 +72,7 @@ describe("runCronIsolatedAgentTurn message tool policy", () => {
     await expectMessageToolDisabledForPlan({
       requested: true,
       mode: "announce",
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
     });
   });

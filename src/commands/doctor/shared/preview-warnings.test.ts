@@ -106,20 +106,20 @@ describe("doctor preview warnings", () => {
 
   it("includes bundled plugin load path migration warnings", () => {
     const packageRoot = path.resolve("app-node-modules", "crawclaw");
-    const legacyPath = path.join(packageRoot, "extensions", "feishu");
-    const bundledPath = path.join(packageRoot, "dist", "extensions", "feishu");
+    const legacyPath = path.join(packageRoot, "extensions", "acpx");
+    const bundledPath = path.join(packageRoot, "dist", "extensions", "acpx");
     vi.spyOn(manifestRegistry, "loadPluginManifestRegistry").mockReturnValue({
-      plugins: [manifest("feishu")],
+      plugins: [manifest("acpx")],
       diagnostics: [],
     });
     vi.spyOn(bundledSources, "resolveBundledPluginSources").mockReturnValue(
       new Map([
         [
-          "feishu",
+          "acpx",
           {
-            pluginId: "feishu",
+            pluginId: "acpx",
             localPath: bundledPath,
-            npmSpec: "@crawclaw/feishu",
+            npmSpec: "@crawclaw/acpx",
           },
         ],
       ]),

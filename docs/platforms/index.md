@@ -32,16 +32,16 @@ Linux, macOS, and Windows are supported Gateway host targets today.
 - Install guide: [Getting Started](/start/getting-started)
 - Gateway runbook: [Gateway](/gateway)
 - Gateway configuration: [Configuration](/gateway/configuration)
-- Service status: `crawclaw gateway status`
+- Service status: CrawClaw Desktop or the local Gateway API
 
 ## Gateway service install (CLI)
 
 Use one of these (all supported):
 
-- Wizard (recommended): `crawclaw onboard --install-daemon`
-- Direct: `crawclaw gateway install`
-- Configure flow: `crawclaw configure` → select **Gateway service**
-- Repair/migrate: `crawclaw doctor` (offers to install or fix the service)
+- Wizard (recommended): CrawClaw Desktop or the local Gateway API
+- Direct: CrawClaw Desktop or the local Gateway API
+- Configure flow: CrawClaw Desktop or the local Gateway API → select **Gateway service**
+- Repair/migrate: CrawClaw Desktop or the local Gateway API (offers to install or fix the service)
 
 The service target depends on OS:
 

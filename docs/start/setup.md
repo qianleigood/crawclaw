@@ -10,14 +10,14 @@ title: "Setup"
 
 <Note>
 If you are setting up for the first time, start with [Getting Started](/start/getting-started).
-For onboarding details, see [Onboarding (CLI)](/start/wizard).
+For onboarding details, see [Getting Started](/start/getting-started).
 </Note>
 
 ## TL;DR
 
 - **Tailoring lives outside the repo:** `~/.crawclaw/workspace` (workspace) + `~/.crawclaw/crawclaw.json` (config).
-- **Stable workflow:** install the runtime and run the Gateway directly.
-- **Bleeding edge workflow:** run the Gateway yourself via `pnpm gateway:watch`.
+- **Stable workflow:** install CrawClaw Desktop and use the desktop settings UI.
+- **Bleeding edge workflow:** run the desktop app from source.
 
 ## Prereqs (from source)
 
@@ -31,43 +31,23 @@ If you want “100% tailored to me” _and_ easy updates, keep your customizatio
 - **Config:** `~/.crawclaw/crawclaw.json` (JSON/JSON5-ish)
 - **Workspace:** `~/.crawclaw/workspace` (skills, prompts, memories; make it a private git repo)
 
-Bootstrap once:
-
-```bash
-crawclaw setup
-```
-
-From inside this repo, use the local CLI entry:
-
-```bash
-crawclaw setup
-```
-
-If you don’t have a global install yet, run it via `pnpm crawclaw setup`.
+Bootstrap from CrawClaw Desktop. The app writes missing local defaults and keeps
+state in `~/.crawclaw`.
 
 ## Run the Gateway from this repo
 
-After `pnpm build`, you can run the packaged CLI directly:
+After `pnpm desktop:tauri:stage-runtime`, the desktop app uses the packaged
+internal Gateway binary:
 
 ```bash
-./dist/native/crawclaw gateway --port 18789
+./dist/native/crawclaw-gateway --port 18789
 ```
 
 ## Stable workflow
 
-1. Install the runtime and start the Gateway locally.
-2. Complete onboarding/configuration from the CLI.
-3. Link surfaces (example: WhatsApp):
-
-```bash
-crawclaw channels login
-```
-
-4. Sanity check:
-
-```bash
-crawclaw health
-```
+1. Install CrawClaw Desktop.
+2. Complete onboarding/configuration from the desktop settings UI.
+3. Use the desktop status and diagnostics panes for local health checks.
 
 ## Bleeding edge workflow (Gateway in a terminal)
 
@@ -77,19 +57,15 @@ Goal: work on the TypeScript Gateway and get hot reload.
 
 ```bash
 pnpm install
-pnpm gateway:watch
+pnpm desktop:tauri:stage-runtime
+pnpm desktop:tauri:dev
 ```
 
-`gateway:watch` runs the gateway in watch mode and reloads on relevant source,
-config, and bundled-plugin metadata changes.
+The desktop dev shell starts the local Rust Gateway through the Tauri host.
 
 ### 2) Verify
 
-- Via CLI:
-
-```bash
-crawclaw health
-```
+- Via the desktop status pane or Gateway API health route.
 
 ### Common footguns
 
@@ -118,7 +94,7 @@ Use this when debugging auth or deciding what to back up:
 ## Updating (without wrecking your setup)
 
 - Keep `~/.crawclaw/workspace` and `~/.crawclaw/` as “your stuff”; don’t put personal prompts/config into the `crawclaw` repo.
-- Updating source: `git pull` + `pnpm install` (when lockfile changed) + keep using `pnpm gateway:watch`.
+- Updating source: `git pull` + `pnpm install` (when lockfile changed) + use `pnpm desktop:tauri:dev`.
 
 ## Linux (systemd user service)
 
@@ -135,7 +111,7 @@ user service (no lingering needed). See [Gateway runbook](/gateway) for the syst
 
 ## Related docs
 
-- [Gateway runbook](/gateway) (flags, supervision, ports)
+- [Gateway runbook](/gateway) (supervision, ports)
 - [Gateway configuration](/gateway/configuration) (config schema + examples)
 - [Discord](/channels/discord) and [Telegram](/channels/telegram) (reply tags + replyToMode settings)
 - [CrawClaw assistant setup](/start/crawclaw)

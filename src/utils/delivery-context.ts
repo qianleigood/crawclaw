@@ -72,20 +72,6 @@ export function formatConversationTarget(params: {
   if (!channel || !conversationId) {
     return undefined;
   }
-  if (channel === "matrix") {
-    const parentConversationId =
-      typeof params.parentConversationId === "number" &&
-      Number.isFinite(params.parentConversationId)
-        ? String(Math.trunc(params.parentConversationId))
-        : typeof params.parentConversationId === "string"
-          ? params.parentConversationId.trim()
-          : undefined;
-    const roomId =
-      parentConversationId && parentConversationId !== conversationId
-        ? parentConversationId
-        : conversationId;
-    return `room:${roomId}`;
-  }
   return `channel:${conversationId}`;
 }
 
@@ -95,31 +81,6 @@ export function resolveConversationDeliveryTarget(params: {
   parentConversationId?: string | number;
 }): { to?: string; threadId?: string } {
   const to = formatConversationTarget(params);
-  const channel =
-    typeof params.channel === "string"
-      ? (normalizeMessageChannel(params.channel) ?? params.channel.trim())
-      : undefined;
-  const conversationId =
-    typeof params.conversationId === "number" && Number.isFinite(params.conversationId)
-      ? String(Math.trunc(params.conversationId))
-      : typeof params.conversationId === "string"
-        ? params.conversationId.trim()
-        : undefined;
-  const parentConversationId =
-    typeof params.parentConversationId === "number" && Number.isFinite(params.parentConversationId)
-      ? String(Math.trunc(params.parentConversationId))
-      : typeof params.parentConversationId === "string"
-        ? params.parentConversationId.trim()
-        : undefined;
-  if (
-    channel === "matrix" &&
-    to &&
-    conversationId &&
-    parentConversationId &&
-    parentConversationId !== conversationId
-  ) {
-    return { to, threadId: conversationId };
-  }
   return { to };
 }
 

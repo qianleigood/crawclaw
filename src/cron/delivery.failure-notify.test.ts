@@ -42,7 +42,7 @@ describe("sendFailureNotificationAnnounce", () => {
     vi.clearAllMocks();
     mocks.resolveDeliveryTarget.mockResolvedValue({
       ok: true,
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
       accountId: "bot-a",
       threadId: 42,
@@ -64,12 +64,12 @@ describe("sendFailureNotificationAnnounce", () => {
       cfg,
       "main",
       "job-1",
-      { channel: "telegram", to: "123", accountId: "bot-a" },
+      { channel: "feishu", to: "123", accountId: "bot-a" },
       "Cron failed",
     );
 
     expect(mocks.resolveDeliveryTarget).toHaveBeenCalledWith(cfg, "main", {
-      channel: "telegram",
+      channel: "feishu",
       to: "123",
       accountId: "bot-a",
     });
@@ -81,7 +81,7 @@ describe("sendFailureNotificationAnnounce", () => {
     expect(mocks.deliverOutboundPayloads).toHaveBeenCalledWith(
       expect.objectContaining({
         cfg,
-        channel: "telegram",
+        channel: "feishu",
         to: "123",
         accountId: "bot-a",
         threadId: 42,
@@ -106,7 +106,7 @@ describe("sendFailureNotificationAnnounce", () => {
       {} as never,
       "main",
       "job-1",
-      { channel: "telegram", to: "123" },
+      { channel: "feishu", to: "123" },
       "Cron failed",
     );
 
@@ -126,7 +126,7 @@ describe("sendFailureNotificationAnnounce", () => {
         {} as never,
         "main",
         "job-1",
-        { channel: "telegram", to: "123" },
+        { channel: "feishu", to: "123" },
         "Cron failed",
       ),
     ).resolves.toBeUndefined();
@@ -134,7 +134,7 @@ describe("sendFailureNotificationAnnounce", () => {
     expect(mocks.warn).toHaveBeenCalledWith(
       expect.objectContaining({
         err: "send failed",
-        channel: "telegram",
+        channel: "feishu",
         to: "123",
       }),
       "cron: failure destination announce failed",

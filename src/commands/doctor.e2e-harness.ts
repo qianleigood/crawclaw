@@ -15,10 +15,6 @@ let originalStateDir: string | undefined;
 let originalUpdateInProgress: string | undefined;
 let tempStateDir: string | undefined;
 
-function buildBundledPluginModuleId(pluginId: string, artifactBasename: string): string {
-  return ["..", "..", "extensions", pluginId, artifactBasename].join("/");
-}
-
 function setStdinTty(value: boolean | undefined) {
   try {
     Object.defineProperty(process.stdin, "isTTY", {
@@ -73,7 +69,7 @@ export const runGatewayUpdate = vi
   .mockResolvedValue(createGatewayUpdateResult()) as unknown as MockFn;
 export const migrateLegacyConfig = vi.fn((raw: unknown) => ({
   config: raw as Record<string, unknown>,
-  changes: ["Moved routing.allowFrom → channels.whatsapp.allowFrom."],
+  changes: ["Moved routing.allowFrom → channels.weixin.allowFrom."],
 })) as unknown as MockFn;
 
 export const runExec = vi.fn().mockResolvedValue({
@@ -149,15 +145,6 @@ function createLegacyStateMigrationDetectionResult(params?: {
       legacyDir: "/tmp/state/agent",
       targetDir: "/tmp/state/agents/main/agent",
       hasLegacy: false,
-    },
-    whatsappAuth: {
-      legacyDir: "/tmp/oauth",
-      targetDir: "/tmp/oauth/whatsapp/default",
-      hasLegacy: false,
-    },
-    pairingAllowFrom: {
-      hasLegacyTelegram: false,
-      copyPlans: [],
     },
     preview: params?.preview ?? [],
   };
@@ -315,10 +302,6 @@ vi.mock("../pairing/pairing-store.js", () => ({
   upsertChannelPairingRequest: vi.fn().mockResolvedValue({ code: "000000", created: false }),
 }));
 
-vi.mock(buildBundledPluginModuleId("telegram", "api.js"), () => ({
-  resolveTelegramToken: vi.fn(() => ({ token: "", source: "none" })),
-}));
-
 vi.mock("../runtime.js", () => ({
   defaultRuntime: {
     log: () => {},
@@ -434,7 +417,7 @@ beforeEach(() => {
   ensureAuthProfileStore.mockReset().mockReturnValue({ version: 1, profiles: {} });
   migrateLegacyConfig.mockReset().mockImplementation((raw: unknown) => ({
     config: raw as Record<string, unknown>,
-    changes: ["Moved routing.allowFrom → channels.whatsapp.allowFrom."],
+    changes: ["Moved routing.allowFrom → channels.weixin.allowFrom."],
   }));
   findLegacyGatewayServices.mockReset().mockResolvedValue([]);
   uninstallLegacyGatewayServices.mockReset().mockResolvedValue([]);

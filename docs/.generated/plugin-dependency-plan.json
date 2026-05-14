@@ -120,40 +120,6 @@
     },
     {
       "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "bluebubbles"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/bluebubbles",
-      "enabledByDefault": false,
-      "id": "bluebubbles",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/bluebubbles",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/bluebubbles/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/bluebubbles/package.json",
-      "packageName": "@crawclaw/bluebubbles",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
         "support"
       ],
       "channelIds": [],
@@ -173,32 +139,6 @@
       "optionalDependencies": {},
       "packageJsonPath": "extensions/brave/package.json",
       "packageName": "@crawclaw/brave-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/browser",
-      "enabledByDefault": true,
-      "id": "browser",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/browser/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/browser/package.json",
-      "packageName": "@crawclaw/browser-plugin",
       "peerDependencies": {},
       "private": true,
       "providerIds": [],
@@ -291,19 +231,19 @@
     },
     {
       "capabilities": [
-        "support"
+        "contract"
       ],
       "channelIds": [],
-      "contractKeys": [],
+      "contractKeys": [
+        "tools"
+      ],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/comfyui",
       "enabledByDefault": true,
       "id": "comfyui",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/comfyui/crawclaw.plugin.json",
@@ -342,46 +282,6 @@
         "copilot-proxy"
       ],
       "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "ddingtalk"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "dingtalk-stream": "^2.1.4",
-        "zod": "^4.0.0"
-      },
-      "devDependencies": {
-        "@types/node": "^22.0.0",
-        "crawclaw": "workspace:*",
-        "dotenv": "^17.3.1",
-        "tsx": "^4.6.0",
-        "typescript": "^5.3.0"
-      },
-      "dir": "extensions/ddingtalk",
-      "enabledByDefault": false,
-      "id": "ddingtalk",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "npmSpec": "@largezhou/ddingtalk",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/ddingtalk/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/ddingtalk/package.json",
-      "packageName": "@largezhou/ddingtalk",
-      "peerDependencies": {
-        "crawclaw": ">=2026.3.22"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2.0.1"
     },
     {
       "capabilities": [
@@ -529,46 +429,6 @@
     },
     {
       "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "discord"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@buape/carbon": "0.0.0-beta-20260327000044",
-        "@discordjs/voice": "^0.19.2",
-        "discord-api-types": "^0.38.43",
-        "https-proxy-agent": "^8.0.0",
-        "opusscript": "^0.0.8"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/discord",
-      "enabledByDefault": false,
-      "id": "discord",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/discord",
-        "stageRuntimeDependencies": true
-      },
-      "manifestPath": "extensions/discord/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/discord/package.json",
-      "packageName": "@crawclaw/discord",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
         "support"
       ],
       "channelIds": [],
@@ -616,43 +476,6 @@
       "private": true,
       "providerIds": [],
       "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "esp32"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49",
-        "aedes": "^1.0.2",
-        "zod": "^4.3.6"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/esp32",
-      "enabledByDefault": false,
-      "id": "esp32",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "npmSpec": "@crawclaw/esp32",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/esp32/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/esp32/package.json",
-      "packageName": "@crawclaw/esp32",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.5.3"
     },
     {
       "capabilities": [
@@ -707,46 +530,6 @@
         "fal"
       ],
       "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel",
-        "skill"
-      ],
-      "channelIds": [
-        "feishu"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@larksuiteoapi/node-sdk": "^1.60.0",
-        "@sinclair/typebox": "0.34.49",
-        "https-proxy-agent": "^8.0.0",
-        "qrcode-terminal": "^0.12.0"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/feishu",
-      "enabledByDefault": false,
-      "id": "feishu",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/feishu",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/feishu/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/feishu/package.json",
-      "packageName": "@crawclaw/feishu",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
     },
     {
       "capabilities": [
@@ -836,43 +619,6 @@
     },
     {
       "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "googlechat"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "google-auth-library": "^10.6.2",
-        "zod": "^4.3.6"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/googlechat",
-      "enabledByDefault": false,
-      "id": "googlechat",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/googlechat",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/googlechat/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/googlechat/package.json",
-      "packageName": "@crawclaw/googlechat",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
         "contract"
       ],
       "channelIds": [],
@@ -926,64 +672,6 @@
         "huggingface"
       ],
       "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "imessage"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/imessage",
-      "enabledByDefault": false,
-      "id": "imessage",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/imessage/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/imessage/package.json",
-      "packageName": "@crawclaw/imessage",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "irc"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/irc",
-      "enabledByDefault": false,
-      "id": "irc",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/irc/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/irc/package.json",
-      "packageName": "@crawclaw/irc",
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
     },
     {
       "capabilities": [
@@ -1044,42 +732,6 @@
     },
     {
       "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "line"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@line/bot-sdk": "^11.0.0"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/line",
-      "enabledByDefault": false,
-      "id": "line",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/line",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/line/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/line/package.json",
-      "packageName": "@crawclaw/line",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "channelIds": [],
@@ -1108,19 +760,19 @@
     },
     {
       "capabilities": [
-        "support"
+        "contract"
       ],
       "channelIds": [],
-      "contractKeys": [],
+      "contractKeys": [
+        "tools"
+      ],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/llm-task",
       "enabledByDefault": false,
       "id": "llm-task",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/llm-task/crawclaw.plugin.json",
@@ -1134,19 +786,19 @@
     },
     {
       "capabilities": [
-        "support"
+        "contract"
       ],
       "channelIds": [],
-      "contractKeys": [],
+      "contractKeys": [
+        "tools"
+      ],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/lobster",
       "enabledByDefault": false,
       "id": "lobster",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/lobster/crawclaw.plugin.json",
@@ -1154,86 +806,6 @@
       "packageJsonPath": "extensions/lobster/package.json",
       "packageName": "@crawclaw/lobster",
       "peerDependencies": {},
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "matrix"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0",
-        "@matrix-org/matrix-sdk-crypto-wasm": "18.1.0",
-        "@sinclair/typebox": "0.34.49",
-        "fake-indexeddb": "^6.2.5",
-        "jiti": "^2.6.1",
-        "markdown-it": "14.1.1",
-        "matrix-js-sdk": "41.3.0",
-        "music-metadata": "^11.12.3"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/matrix",
-      "enabledByDefault": false,
-      "id": "matrix",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/matrix",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/matrix/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/matrix/package.json",
-      "packageName": "@crawclaw/matrix",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "mattermost"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49",
-        "ws": "^8.20.0"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/mattermost",
-      "enabledByDefault": false,
-      "id": "mattermost",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/mattermost",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/mattermost/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/mattermost/package.json",
-      "packageName": "@crawclaw/mattermost",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
       "private": false,
       "providerIds": [],
       "version": "2026.4.1-beta.1"
@@ -1416,121 +988,6 @@
     },
     {
       "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "msteams"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@azure/identity": "^4.13.1",
-        "@microsoft/teams.api": "2.0.8",
-        "@microsoft/teams.apps": "2.0.8",
-        "@sinclair/typebox": "0.34.49",
-        "express": "^5.2.1",
-        "jsonwebtoken": "^9.0.3",
-        "jwks-rsa": "^4.0.1"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/msteams",
-      "enabledByDefault": false,
-      "id": "msteams",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/msteams",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/msteams/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/msteams/package.json",
-      "packageName": "@crawclaw/msteams",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "nextcloud-talk"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "zod": "^4.3.6"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/nextcloud-talk",
-      "enabledByDefault": false,
-      "id": "nextcloud-talk",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/nextcloud-talk",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/nextcloud-talk/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/nextcloud-talk/package.json",
-      "packageName": "@crawclaw/nextcloud-talk",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "nostr"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "nostr-tools": "^2.23.3",
-        "zod": "^4.3.6"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/nostr",
-      "enabledByDefault": false,
-      "id": "nostr",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/nostr",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/nostr/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/nostr/package.json",
-      "packageName": "@crawclaw/nostr",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "channelIds": [],
@@ -1625,9 +1082,7 @@
       "enabledByDefault": true,
       "id": "open-websearch",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/open-websearch/crawclaw.plugin.json",
@@ -1787,27 +1242,6 @@
     },
     {
       "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/phone-control",
-      "enabledByDefault": true,
-      "id": "phone-control",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/phone-control/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": []
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "channelIds": [],
@@ -1836,47 +1270,6 @@
     },
     {
       "capabilities": [
-        "channel",
-        "skill"
-      ],
-      "channelIds": [
-        "qqbot"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "mpg123-decoder": "^1.0.3",
-        "silk-wasm": "^3.7.1",
-        "ws": "^8.20.0",
-        "zod": "^4.3.6"
-      },
-      "devDependencies": {
-        "@types/ws": "^8.18.1",
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/qqbot",
-      "enabledByDefault": false,
-      "id": "qqbot",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/qqbot",
-        "stageRuntimeDependencies": true
-      },
-      "manifestPath": "extensions/qqbot/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/qqbot/package.json",
-      "packageName": "@crawclaw/qqbot",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
         "contract"
       ],
       "channelIds": [],
@@ -1889,9 +1282,7 @@
       "enabledByDefault": true,
       "id": "qwen3-tts",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/qwen3-tts/crawclaw.plugin.json",
@@ -1917,9 +1308,7 @@
       "enabledByDefault": true,
       "id": "scrapling-fetch",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/scrapling-fetch/crawclaw.plugin.json",
@@ -1987,101 +1376,6 @@
     },
     {
       "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "signal"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/signal",
-      "enabledByDefault": false,
-      "id": "signal",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/signal/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/signal/package.json",
-      "packageName": "@crawclaw/signal",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "slack"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49",
-        "@slack/bolt": "^4.7.0",
-        "@slack/web-api": "^7.15.1",
-        "https-proxy-agent": "^9.0.0"
-      },
-      "devDependencies": {},
-      "dir": "extensions/slack",
-      "enabledByDefault": false,
-      "id": "slack",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "stageRuntimeDependencies": true
-      },
-      "manifestPath": "extensions/slack/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/slack/package.json",
-      "packageName": "@crawclaw/slack",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "synology-chat"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "zod": "^4.3.6"
-      },
-      "devDependencies": {},
-      "dir": "extensions/synology-chat",
-      "enabledByDefault": false,
-      "id": "synology-chat",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/synology-chat",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/synology-chat/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/synology-chat/package.json",
-      "packageName": "@crawclaw/synology-chat",
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "channelIds": [],
@@ -2128,102 +1422,6 @@
       "peerDependencies": {},
       "private": false,
       "providerIds": []
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "telegram"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@grammyjs/runner": "^2.0.3",
-        "@grammyjs/transformer-throttler": "^1.2.1",
-        "@sinclair/typebox": "0.34.49",
-        "grammy": "^1.42.0",
-        "undici": "8.1.0"
-      },
-      "devDependencies": {},
-      "dir": "extensions/telegram",
-      "enabledByDefault": false,
-      "id": "telegram",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "stageRuntimeDependencies": true
-      },
-      "manifestPath": "extensions/telegram/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/telegram/package.json",
-      "packageName": "@crawclaw/telegram",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/thread-ownership",
-      "enabledByDefault": false,
-      "id": "thread-ownership",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/thread-ownership/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": []
-    },
-    {
-      "capabilities": [
-        "channel",
-        "skill"
-      ],
-      "channelIds": [
-        "tlon"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@aws-sdk/client-s3": "3.1032.0",
-        "@aws-sdk/s3-request-presigner": "3.1032.0",
-        "@tloncorp/tlon-skill": "0.3.5",
-        "@urbit/aura": "^3.0.0"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/tlon",
-      "enabledByDefault": false,
-      "id": "tlon",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/tlon",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/tlon/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/tlon/package.json",
-      "packageName": "@crawclaw/tlon",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
     },
     {
       "capabilities": [
@@ -2282,38 +1480,6 @@
       "private": true,
       "providerIds": [],
       "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "twitch"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@twurple/api": "^8.1.3",
-        "@twurple/auth": "^8.1.3",
-        "@twurple/chat": "^8.1.3"
-      },
-      "devDependencies": {},
-      "dir": "extensions/twitch",
-      "enabledByDefault": false,
-      "id": "twitch",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/twitch/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/twitch/package.json",
-      "packageName": "@crawclaw/twitch",
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
     },
     {
       "capabilities": [
@@ -2464,83 +1630,6 @@
     },
     {
       "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "weixin"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "qrcode-terminal": "0.12.0",
-        "zod": "4.3.6"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/weixin",
-      "enabledByDefault": false,
-      "id": "weixin",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/weixin",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/weixin/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/weixin/package.json",
-      "packageName": "@crawclaw/weixin",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.26"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "whatsapp"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49",
-        "@whiskeysockets/baileys": "7.0.0-rc.9",
-        "jimp": "^1.6.1",
-        "qrcode-terminal": "^0.12.0",
-        "undici": "8.1.0"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/whatsapp",
-      "enabledByDefault": false,
-      "id": "whatsapp",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/whatsapp",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/whatsapp/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/whatsapp/package.json",
-      "packageName": "@crawclaw/whatsapp",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "channelIds": [],
@@ -2625,79 +1714,6 @@
         "zai"
       ],
       "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "zalo"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "undici": "8.1.0"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/zalo",
-      "enabledByDefault": false,
-      "id": "zalo",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/zalo",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/zalo/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/zalo/package.json",
-      "packageName": "@crawclaw/zalo",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.20"
-    },
-    {
-      "capabilities": [
-        "channel"
-      ],
-      "channelIds": [
-        "zalouser"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49",
-        "zca-js": "2.1.2"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/zalouser",
-      "enabledByDefault": false,
-      "id": "zalouser",
-      "install": {
-        "entryPoints": [
-          "./index.ts",
-          "./setup-entry.ts"
-        ],
-        "npmSpec": "@crawclaw/zalouser",
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/zalouser/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/zalouser/package.json",
-      "packageName": "@crawclaw/zalouser",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
     }
   ],
   "generatedBy": "scripts/generate-plugin-dependency-plan.mjs",
@@ -2705,7 +1721,7 @@
     {
       "id": "browser",
       "installTime": true,
-      "npmPackage": "pinchtab@0.9.1",
+      "npmPackage": "agent-browser@0.27.0",
       "source": "scripts/install-plugin-runtimes.mjs"
     },
     {
@@ -2874,14 +1890,11 @@
       "@anthropic-ai/vertex-sdk": "^0.14.4",
       "@aws-sdk/client-bedrock": "3.1020.0",
       "@clack/prompts": "^1.1.0",
-      "@discordjs/voice": "^0.19.2",
       "@homebridge/ciao": "^1.3.6",
-      "@line/bot-sdk": "^10.6.0",
       "@lydell/node-pty": "1.2.0-beta.3",
       "@mariozechner/pi-agent-core": "0.70.0",
       "@mariozechner/pi-ai": "0.70.0",
       "@mariozechner/pi-coding-agent": "0.70.0",
-      "@matrix-org/matrix-sdk-crypto-wasm": "18.1.0",
       "@modelcontextprotocol/sdk": "1.29.0",
       "@mozilla/readability": "^0.6.0",
       "@photostructure/sqlite": "^1.0.0",
@@ -2906,7 +1919,6 @@
       "linkedom": "^0.18.12",
       "long": "^5.3.2",
       "markdown-it": "^14.1.1",
-      "matrix-js-sdk": "41.3.0",
       "node-edge-tts": "^1.2.10",
       "osc-progress": "^0.3.0",
       "pdfjs-dist": "^5.6.205",
@@ -2924,7 +1936,6 @@
       "zod": "^4.3.6"
     },
     "devDependencies": {
-      "@grammyjs/types": "^3.25.0",
       "@lit-labs/signals": "^0.2.0",
       "@lit/context": "^1.1.6",
       "@types/express": "^5.0.6",
@@ -2942,7 +1953,6 @@
       "oxlint": "^1.58.0",
       "oxlint-tsgolint": "^0.18.1",
       "semver": "7.7.4",
-      "signal-utils": "0.21.1",
       "tsdown": "0.21.7",
       "tsx": "^4.21.0",
       "typescript": "^6.0.2",
@@ -2951,9 +1961,7 @@
     "engines": {
       "node": ">=24.0.0 <26"
     },
-    "optionalDependencies": {
-      "@matrix-org/matrix-sdk-crypto-nodejs": "^0.4.0"
-    },
+    "optionalDependencies": {},
     "packageManager": "pnpm@10.32.1",
     "peerDependencies": {
       "@napi-rs/canvas": "^0.1.89",
@@ -2961,7 +1969,6 @@
     },
     "pnpm": {
       "ignoredBuiltDependencies": [
-        "@discordjs/opus",
         "koffi"
       ],
       "overrides": {
@@ -2975,7 +1982,6 @@
         "follow-redirects": "1.16.0",
         "form-data": "2.5.4",
         "hono": "4.12.14",
-        "libsignal": "git+https://github.com/whiskeysockets/libsignal-node.git",
         "minimatch": "10.2.4",
         "node-domexception": "npm:@nolyfill/domexception@^1.0.28",
         "path-to-regexp": "8.4.0",
@@ -2989,11 +1995,8 @@
       },
       "packageJsonOnlyBuiltDependencies": [
         "@lydell/node-pty",
-        "@matrix-org/matrix-sdk-crypto-nodejs",
         "@napi-rs/canvas",
         "@photostructure/sqlite",
-        "@tloncorp/api",
-        "@whiskeysockets/baileys",
         "authenticate-pam",
         "esbuild",
         "node-llama-cpp",
@@ -3001,16 +2004,12 @@
         "sharp"
       ],
       "workspaceIgnoredBuiltDependencies": [
-        "@discordjs/opus",
         "koffi"
       ],
       "workspaceMinimumReleaseAge": 2880,
       "workspaceOnlyBuiltDependencies": [
         "@lydell/node-pty",
-        "@matrix-org/matrix-sdk-crypto-nodejs",
         "@napi-rs/canvas",
-        "@tloncorp/api",
-        "@whiskeysockets/baileys",
         "authenticate-pam",
         "esbuild",
         "node-llama-cpp",
@@ -3026,151 +2025,26 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "bundledPluginCount": 89,
+    "bundledPluginCount": 61,
     "capabilityCounts": {
-      "channel": 25,
       "cli": 1,
       "cli-backend": 3,
-      "contract": 15,
+      "contract": 18,
       "provider": 37,
-      "skill": 7,
-      "support": 17
+      "skill": 4,
+      "support": 11
     },
-    "disabledByDefaultCount": 43,
-    "enabledByDefaultCount": 46,
-    "pluginRuntimeDependencyVersionSplits": [
-      {
-        "name": "https-proxy-agent",
-        "sources": [
-          {
-            "pluginId": "discord",
-            "section": "dependencies",
-            "version": "^8.0.0"
-          },
-          {
-            "pluginId": "feishu",
-            "section": "dependencies",
-            "version": "^8.0.0"
-          },
-          {
-            "pluginId": "slack",
-            "section": "dependencies",
-            "version": "^9.0.0"
-          }
-        ],
-        "versions": [
-          "^8.0.0",
-          "^9.0.0"
-        ]
-      },
-      {
-        "name": "qrcode-terminal",
-        "sources": [
-          {
-            "pluginId": "feishu",
-            "section": "dependencies",
-            "version": "^0.12.0"
-          },
-          {
-            "pluginId": "whatsapp",
-            "section": "dependencies",
-            "version": "^0.12.0"
-          },
-          {
-            "pluginId": "weixin",
-            "section": "dependencies",
-            "version": "0.12.0"
-          }
-        ],
-        "versions": [
-          "^0.12.0",
-          "0.12.0"
-        ]
-      },
-      {
-        "name": "zod",
-        "sources": [
-          {
-            "pluginId": "ddingtalk",
-            "section": "dependencies",
-            "version": "^4.0.0"
-          },
-          {
-            "pluginId": "esp32",
-            "section": "dependencies",
-            "version": "^4.3.6"
-          },
-          {
-            "pluginId": "googlechat",
-            "section": "dependencies",
-            "version": "^4.3.6"
-          },
-          {
-            "pluginId": "nextcloud-talk",
-            "section": "dependencies",
-            "version": "^4.3.6"
-          },
-          {
-            "pluginId": "nostr",
-            "section": "dependencies",
-            "version": "^4.3.6"
-          },
-          {
-            "pluginId": "qqbot",
-            "section": "dependencies",
-            "version": "^4.3.6"
-          },
-          {
-            "pluginId": "synology-chat",
-            "section": "dependencies",
-            "version": "^4.3.6"
-          },
-          {
-            "pluginId": "weixin",
-            "section": "dependencies",
-            "version": "4.3.6"
-          }
-        ],
-        "versions": [
-          "^4.0.0",
-          "^4.3.6",
-          "4.3.6"
-        ]
-      }
-    ],
-    "releasedNpmSpecPluginIds": [
-      "bluebubbles",
-      "ddingtalk",
-      "discord",
-      "esp32",
-      "feishu",
-      "googlechat",
-      "line",
-      "matrix",
-      "mattermost",
-      "msteams",
-      "nextcloud-talk",
-      "nostr",
-      "qqbot",
-      "synology-chat",
-      "tlon",
-      "weixin",
-      "whatsapp",
-      "zalo",
-      "zalouser"
-    ],
+    "disabledByDefaultCount": 17,
+    "enabledByDefaultCount": 44,
+    "pluginRuntimeDependencyVersionSplits": [],
+    "releasedNpmSpecPluginIds": [],
     "rootDependencyCounts": {
-      "dependencies": 52,
-      "devDependencies": 23,
-      "optionalDependencies": 1,
+      "dependencies": 48,
+      "devDependencies": 21,
+      "optionalDependencies": 0,
       "peerDependencies": 2
     },
-    "stagedRuntimeDependencyPluginIds": [
-      "discord",
-      "qqbot",
-      "slack",
-      "telegram"
-    ],
-    "uniquePluginRuntimeDependencyCount": 64
+    "stagedRuntimeDependencyPluginIds": [],
+    "uniquePluginRuntimeDependencyCount": 20
   }
 }

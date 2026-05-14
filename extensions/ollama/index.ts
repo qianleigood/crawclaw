@@ -18,10 +18,6 @@ import {
   createOllamaEmbeddingProvider,
 } from "./src/embedding-provider.js";
 import { resolveOllamaApiBase } from "./src/provider-models.js";
-import {
-  createConfiguredOllamaCompatStreamWrapper,
-  createConfiguredOllamaStreamFn,
-} from "./src/stream.js";
 
 const PROVIDER_ID = "ollama";
 const DEFAULT_API_KEY = "ollama-local";
@@ -142,15 +138,6 @@ export default definePluginEntry({
           return;
         }
         await ensureOllamaModelPulled({ config, model, prompter });
-      },
-      createStreamFn: ({ config, model }) => {
-        return createConfiguredOllamaStreamFn({
-          model,
-          providerBaseUrl: config?.models?.providers?.ollama?.baseUrl,
-        });
-      },
-      wrapStreamFn: (ctx) => {
-        return createConfiguredOllamaCompatStreamWrapper(ctx);
       },
       createEmbeddingProvider: async ({ config, model, providerApiKey, remote }) => {
         const { provider, client } = await createOllamaEmbeddingProvider({

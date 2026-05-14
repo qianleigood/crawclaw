@@ -42,8 +42,12 @@ type JsonSchemaLike = Record<string, unknown>;
 
 const CUSTOM_EXPECTED_ONE_OF_RE = /expected one of ((?:"[^"]+"(?:\|"?[^"]+"?)*)+)/i;
 const SECRETREF_POLICY_DOC_URL = "https://docs.crawclaw.ai/reference/secretref-credential-surface";
+type BundledChannelConfigMetadata = {
+  channelId: string;
+  schema: unknown;
+};
 const bundledChannelSchemaById = new Map<string, unknown>(
-  GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA.map(
+  (GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA as readonly BundledChannelConfigMetadata[]).map(
     (entry) => [entry.channelId, entry.schema] as const,
   ),
 );

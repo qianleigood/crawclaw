@@ -77,7 +77,7 @@ available to that process (for example, in `~/.crawclaw/.env` or via
 
 ## Available models
 
-Groq's model catalog changes frequently. Run `crawclaw models list | grep groq`
+Groq's model catalog changes frequently. Run CrawClaw Desktop or the local Gateway API
 to see currently available models, or check
 [console.groq.com/docs/models](https://console.groq.com/docs/models).
 

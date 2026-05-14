@@ -14,16 +14,6 @@ function hasLegacyThreadBindingTtl(value: unknown): boolean {
   return Boolean(threadBindings && hasOwnKey(threadBindings, "ttlHours"));
 }
 
-function hasLegacyThreadBindingTtlInAccounts(value: unknown): boolean {
-  const accounts = getRecord(value);
-  if (!accounts) {
-    return false;
-  }
-  return Object.values(accounts).some((entry) =>
-    hasLegacyThreadBindingTtl(getRecord(entry)?.threadBindings),
-  );
-}
-
 function migrateThreadBindingsTtlHoursForPath(params: {
   owner: Record<string, unknown>;
   pathPrefix: string;
@@ -60,25 +50,12 @@ const THREAD_BINDING_RULES: LegacyConfigRule[] = [
       "session.threadBindings.ttlHours was renamed to session.threadBindings.idleHours (auto-migrated on load).",
     match: (value) => hasLegacyThreadBindingTtl(value),
   },
-  {
-    path: ["channels", "discord", "threadBindings"],
-    message:
-      "channels.discord.threadBindings.ttlHours was renamed to channels.discord.threadBindings.idleHours (auto-migrated on load).",
-    match: (value) => hasLegacyThreadBindingTtl(value),
-  },
-  {
-    path: ["channels", "discord", "accounts"],
-    message:
-      "channels.discord.accounts.<id>.threadBindings.ttlHours was renamed to channels.discord.accounts.<id>.threadBindings.idleHours (auto-migrated on load).",
-    match: (value) => hasLegacyThreadBindingTtlInAccounts(value),
-  },
 ];
 
 export const LEGACY_CONFIG_MIGRATIONS_CHANNELS: LegacyConfigMigrationSpec[] = [
   defineLegacyConfigMigration({
     id: "thread-bindings.ttlHours->idleHours",
-    describe:
-      "Move legacy threadBindings.ttlHours keys to threadBindings.idleHours (session + channels.discord)",
+    describe: "Move legacy session.threadBindings.ttlHours to session.threadBindings.idleHours",
     legacyRules: THREAD_BINDING_RULES,
     apply: (raw, changes) => {
       const session = getRecord(raw.session);
@@ -91,37 +68,6 @@ export const LEGACY_CONFIG_MIGRATIONS_CHANNELS: LegacyConfigMigrationSpec[] = [
         raw.session = session;
       }
 
-      const channels = getRecord(raw.channels);
-      const discord = getRecord(channels?.discord);
-      if (!channels || !discord) {
-        return;
-      }
-
-      migrateThreadBindingsTtlHoursForPath({
-        owner: discord,
-        pathPrefix: "channels.discord",
-        changes,
-      });
-
-      const accounts = getRecord(discord.accounts);
-      if (accounts) {
-        for (const [accountId, accountRaw] of Object.entries(accounts)) {
-          const account = getRecord(accountRaw);
-          if (!account) {
-            continue;
-          }
-          migrateThreadBindingsTtlHoursForPath({
-            owner: account,
-            pathPrefix: `channels.discord.accounts.${accountId}`,
-            changes,
-          });
-          accounts[accountId] = account;
-        }
-        discord.accounts = accounts;
-      }
-
-      channels.discord = discord;
-      raw.channels = channels;
     },
   }),
 ];

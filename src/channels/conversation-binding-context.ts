@@ -136,16 +136,12 @@ export function resolveConversationBindingContext(
     fallbackTo: params.fallbackTo ?? undefined,
   });
   if (resolvedByProvider?.conversationId) {
-    const resolvedParentConversationId =
-      channel === "telegram" && !threadId && !resolvedByProvider.parentConversationId
-        ? resolvedByProvider.conversationId
-        : resolvedByProvider.parentConversationId;
     return {
       channel,
       accountId,
       conversationId: resolvedByProvider.conversationId,
-      ...(resolvedParentConversationId
-        ? { parentConversationId: resolvedParentConversationId }
+      ...(resolvedByProvider.parentConversationId
+        ? { parentConversationId: resolvedByProvider.parentConversationId }
         : {}),
       ...(threadId ? { threadId } : {}),
     };
@@ -200,17 +196,11 @@ export function resolveConversationBindingContext(
   if (!conversationId) {
     return null;
   }
-  const normalizedParentConversationId =
-    channel === "telegram" && !threadId && !parentConversationId
-      ? conversationId
-      : parentConversationId;
   return {
     channel,
     accountId,
     conversationId,
-    ...(normalizedParentConversationId
-      ? { parentConversationId: normalizedParentConversationId }
-      : {}),
+    ...(parentConversationId ? { parentConversationId } : {}),
     ...(threadId ? { threadId } : {}),
   };
 }

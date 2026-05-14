@@ -51,7 +51,7 @@ describe("slash query commands", () => {
       manifestPath: "/tmp/manifest.json",
       manifest: {
         plugins: {
-          browser: { state: "healthy", package: "pinchtab@1.0.0" },
+          browser: { state: "healthy", package: "agent-browser@0.27.0" },
           "open-websearch": { state: "missing", reason: "not installed" },
         },
       },

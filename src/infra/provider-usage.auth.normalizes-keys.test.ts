@@ -151,7 +151,6 @@ const providerRuntimeMocks = vi.hoisted(() => ({
     resolveProviderDefaultThinkingLevel: vi.fn(() => undefined),
     resolveProviderModernModelRef: vi.fn(() => undefined),
     resolveProviderRuntimePlugin: vi.fn(() => undefined),
-    resolveProviderStreamFn: vi.fn(() => undefined),
     resolveProviderSyntheticAuthWithPlugin: vi.fn(() => undefined),
     resolveProviderUsageSnapshotWithPlugin: vi.fn(async () => undefined),
     resolveProviderXHighThinking: vi.fn(() => undefined),

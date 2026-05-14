@@ -34,7 +34,7 @@ Examples:
 For fast iteration, run the gateway under the file watcher:
 
 ```bash
-pnpm gateway:watch
+# Use CrawClaw Desktop dev mode or run the embedded Gateway API target.
 ```
 
 This maps to:
@@ -49,7 +49,7 @@ extension `package.json` and `crawclaw.plugin.json` metadata, `tsconfig.json`,
 gateway without forcing a `tsdown` rebuild; source and config changes still
 rebuild `dist` first.
 
-Add any gateway CLI flags after `gateway:watch` and they will be passed through on
+Add any gateway CLI flags after `desktop Gateway dev mode` and they will be passed through on
 each restart.
 
 ## Dev profile + dev gateway (--dev)
@@ -66,10 +66,10 @@ Recommended flow (dev profile + dev bootstrap):
 
 ```bash
 pnpm gateway:dev
-CRAWCLAW_PROFILE=dev crawclaw gateway status
+CRAWCLAW_PROFILE=dev CrawClaw Desktop or the local Gateway API
 ```
 
-If you don’t have a global install yet, run the CLI via `pnpm crawclaw ...`.
+If you don’t have a global install yet, run the CLI via CrawClaw Desktop dev mode.
 
 What this does:
 
@@ -98,7 +98,7 @@ Note: `--dev` is a **global** profile flag and gets eaten by some runners.
 If you need to spell it out, use the env var form:
 
 ```bash
-CRAWCLAW_PROFILE=dev crawclaw gateway --dev --reset
+CRAWCLAW_PROFILE=dev CrawClaw Desktop or the local Gateway API
 ```
 
 `--reset` wipes config, credentials, sessions, and the dev workspace (using
@@ -107,7 +107,7 @@ CRAWCLAW_PROFILE=dev crawclaw gateway --dev --reset
 Tip: if a non‑dev gateway is already running (launchd/systemd), stop it first:
 
 ```bash
-crawclaw gateway stop
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Raw stream logging (CrawClaw)
@@ -119,13 +119,13 @@ This is the best way to see whether reasoning is arriving as plain text deltas
 Enable it via CLI:
 
 ```bash
-pnpm gateway:watch --raw-stream
+# Use CrawClaw Desktop dev mode or run the embedded Gateway API target.
 ```
 
 Optional path override:
 
 ```bash
-pnpm gateway:watch --raw-stream --raw-stream-path ~/.crawclaw/logs/raw-stream.jsonl
+# Use CrawClaw Desktop dev mode or run the embedded Gateway API target.
 ```
 
 Equivalent env vars:

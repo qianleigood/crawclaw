@@ -66,7 +66,6 @@ export function createGatewayReloadHandlers(params: {
   restartUpdateCheck?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
   restartMediaCleanup?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
   reloadPluginRuntime?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
-  reloadBrowserRuntime?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
 }) {
   const applyHotReload = async (
     plan: GatewayReloadPlan,
@@ -81,9 +80,6 @@ export function createGatewayReloadHandlers(params: {
     }
     if (plan.reloadPluginRuntime) {
       await params.reloadPluginRuntime?.(nextConfig);
-    }
-    if (plan.reloadBrowserRuntime) {
-      await params.reloadBrowserRuntime?.(nextConfig);
     }
 
     if (plan.reloadHooks) {

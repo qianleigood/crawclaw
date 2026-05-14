@@ -1,5 +1,4 @@
 import { resolveQueueSettings } from "../auto-reply/reply/queue.js";
-import { parseExplicitTargetForChannel } from "../channels/plugins/target-parsing.js";
 import { loadConfig } from "../config/config.js";
 import {
   loadSessionStore,
@@ -93,17 +92,6 @@ function summarizeDeliveryError(error: unknown): string {
   }
 }
 
-function parseTelegramAnnounceTarget(to: string): {
-  chatId: string;
-  chatType: "direct" | "group" | "unknown";
-} {
-  const parsed = parseExplicitTargetForChannel("telegram", to);
-  const chatId = parsed?.to?.trim() ?? to.trim();
-  const chatType =
-    parsed?.chatType === "direct" || parsed?.chatType === "group" ? parsed.chatType : "unknown";
-  return { chatId, chatType };
-}
-
 function shouldStripThreadFromAnnounceEntry(
   normalizedRequester?: DeliveryContext,
   normalizedEntry?: DeliveryContext,
@@ -116,27 +104,8 @@ function shouldStripThreadFromAnnounceEntry(
     return false;
   }
   const requesterChannel = normalizedRequester.channel?.trim().toLowerCase();
-  if (requesterChannel && requesterChannel !== "telegram") {
-    return true;
-  }
-  if (!requesterChannel && !normalizedRequester.to.startsWith("telegram:")) {
-    return true;
-  }
-  try {
-    const requesterTarget = parseTelegramAnnounceTarget(normalizedRequester.to);
-    if (requesterTarget.chatType !== "group") {
-      return true;
-    }
-    const entryTarget = normalizedEntry.to
-      ? parseTelegramAnnounceTarget(normalizedEntry.to)
-      : undefined;
-    if (entryTarget && entryTarget.chatId !== requesterTarget.chatId) {
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
+  const entryChannel = normalizedEntry?.channel?.trim().toLowerCase();
+  return Boolean(requesterChannel && entryChannel && requesterChannel !== entryChannel);
 }
 
 const TRANSIENT_ANNOUNCE_DELIVERY_ERROR_PATTERNS: readonly RegExp[] = [

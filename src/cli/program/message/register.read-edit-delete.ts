@@ -31,7 +31,7 @@ export function registerMessageReadEditDeleteCommands(
           .requiredOption("-m, --message <text>", t("command.message.option.messageBody")),
       ),
     )
-    .option("--thread-id <id>", t("command.message.option.telegramThreadId"))
+    .option("--thread-id <id>", t("command.message.option.threadId"))
     .action(async (opts) => {
       await helpers.runMessageAction("edit", opts);
     });

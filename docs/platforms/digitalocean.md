@@ -73,13 +73,13 @@ apt install -y nodejs
 curl -fsSL https://crawclaw.ai/install.sh | bash
 
 # Verify
-crawclaw --version
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## 4) Run Onboarding
 
 ```bash
-crawclaw onboard --install-daemon
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 The wizard will walk you through:
@@ -93,7 +93,7 @@ The wizard will walk you through:
 
 ```bash
 # Check status
-crawclaw status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Check service
 systemctl --user status crawclaw-gateway.service
@@ -123,8 +123,8 @@ curl -fsSL https://tailscale.com/install.sh | sh
 tailscale up
 
 # Configure Gateway to use Tailscale Serve
-crawclaw config set gateway.tailscale.mode serve
-crawclaw gateway restart
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Open: `https://<magicdns>/`
@@ -137,8 +137,8 @@ Notes:
 **Option C: Tailnet bind (no Serve)**
 
 ```bash
-crawclaw config set gateway.bind tailnet
-crawclaw gateway restart
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Open: `http://<tailscale-ip>:18789` (token required).
@@ -148,14 +148,14 @@ Open: `http://<tailscale-ip>:18789` (token required).
 ### Telegram
 
 ```bash
-crawclaw pairing list telegram
-crawclaw pairing approve telegram <CODE>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### WhatsApp
 
 ```bash
-crawclaw channels login whatsapp
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # Scan QR code
 ```
 
@@ -233,8 +233,8 @@ For the full setup guide, see [Oracle Cloud](/platforms/oracle). For signup tips
 ### Gateway will not start
 
 ```bash
-crawclaw gateway status
-crawclaw doctor --non-interactive
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 journalctl -u crawclaw --no-pager -n 50
 ```
 

@@ -22,7 +22,7 @@ CrawClaw also supports **provider plugins** that ship their own OAuth or API‑k
 flows. Run them via:
 
 ```bash
-crawclaw models auth login --provider <id>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## The token sink (why it exists)
@@ -65,28 +65,28 @@ Decide for yourself whether to use subscription auth, and verify Anthropic's cur
 Run `claude setup-token` on any machine, then paste it into CrawClaw:
 
 ```bash
-crawclaw models auth setup-token --provider anthropic
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If you generated the token elsewhere, paste it manually:
 
 ```bash
-crawclaw models auth paste-token --provider anthropic
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Verify:
 
 ```bash
-crawclaw models status
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Anthropic Claude CLI migration
 
 If Claude CLI is already installed and signed in on the gateway host, you can
-switch Anthropic model selection over to the local CLI backend:
+switch Anthropic model selection over to the local local process backend:
 
 ```bash
-crawclaw models auth login --provider anthropic --method cli --set-default
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
@@ -111,12 +111,12 @@ Setup-token path:
 Claude CLI path:
 
 1. sign in with `claude auth login` on the gateway host
-2. run `crawclaw models auth login --provider anthropic --method cli --set-default`
+2. run CrawClaw Desktop or the local Gateway API
 3. store no new auth profile; switch model selection to `claude-cli/...`
 
 Wizard path:
 
-- `crawclaw onboard` → auth choice `setup-token` (Anthropic)
+- CrawClaw Desktop or the local Gateway API → auth choice `setup-token` (Anthropic)
 
 ### OpenAI Codex (ChatGPT OAuth)
 
@@ -131,7 +131,7 @@ Flow shape (PKCE):
 5. exchange at `https://auth.openai.com/oauth/token`
 6. extract `accountId` from the access token and store `{ access, refresh, expires, accountId }`
 
-Wizard path is `crawclaw onboard` → auth choice `openai-codex`.
+Wizard path is CrawClaw Desktop or the local Gateway API → auth choice `openai-codex`.
 
 ## Refresh + expiry
 
@@ -153,8 +153,8 @@ Two patterns:
 If you want “personal” and “work” to never interact, use isolated agents (separate sessions + credentials + workspace):
 
 ```bash
-crawclaw agents add work
-crawclaw agents add personal
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Then configure auth per-agent (wizard) and route chats to the right agent.
@@ -174,7 +174,7 @@ Example (session override):
 
 How to see what profile IDs exist:
 
-- `crawclaw channels list --json` (shows `auth[]`)
+- CrawClaw Desktop or the local Gateway API (shows `auth[]`)
 
 Related docs:
 

@@ -145,14 +145,7 @@ Current extension-scoped set:
 - `extensions/acpx/skills/acp-router`
 - `extensions/diffs/skills/diffs`
 - `extensions/feishu-cli/skills/feishu-user-toolkit`
-- `extensions/feishu/skills/feishu-doc`
-- `extensions/feishu/skills/feishu-drive`
-- `extensions/feishu/skills/feishu-perm`
-- `extensions/feishu/skills/feishu-wiki`
 - `extensions/open-prose/skills/prose`
-- `extensions/qqbot/skills/qqbot-channel`
-- `extensions/qqbot/skills/qqbot-media`
-- `extensions/qqbot/skills/qqbot-remind`
 
 Rules of thumb:
 

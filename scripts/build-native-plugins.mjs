@@ -8,7 +8,6 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 const NATIVE_BINARIES = [
-  { packageName: "crawclaw-cli", binaryName: "crawclaw" },
   { packageName: "crawclaw-native-plugins", binaryName: "crawclaw-native-plugins" },
   { packageName: "crawclaw-runtime", binaryName: "crawclaw-runtime" },
   { packageName: "crawclaw-gateway", binaryName: "crawclaw-gateway" },

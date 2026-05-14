@@ -416,7 +416,6 @@ const CHANNELS_AGENTS_TARGET_KEYS = [
   "agents.list[].tools.alsoAllow",
   "agents.list[].tools.byProvider",
   "agents.list[].tools.profile",
-  "channels.mattermost",
 ] as const;
 
 const FINAL_BACKLOG_TARGET_KEYS = [
@@ -557,7 +556,7 @@ describe("config help copy quality", () => {
     const rules = FIELD_HELP["session.sendPolicy.rules"];
     expect(rules.includes("{ action:")).toBe(true);
     expect(rules.includes('"deny"')).toBe(true);
-    expect(rules.includes('"discord"')).toBe(true);
+    expect(rules.includes('"feishu"')).toBe(true);
 
     const keyPrefix = FIELD_HELP["session.sendPolicy.rules[].match.keyPrefix"];
     expect(/normalized/i.test(keyPrefix)).toBe(true);
@@ -600,7 +599,7 @@ describe("config help copy quality", () => {
   it("documents approvals filters and target semantics", () => {
     const sessionFilter = FIELD_HELP["approvals.exec.sessionFilter"];
     expect(/substring|regex/i.test(sessionFilter)).toBe(true);
-    expect(sessionFilter.includes("discord:")).toBe(true);
+    expect(sessionFilter.includes("feishu:")).toBe(true);
     expect(sessionFilter.includes("^agent:ops:")).toBe(true);
 
     const agentFilter = FIELD_HELP["approvals.exec.agentFilter"];

@@ -82,7 +82,7 @@ Or tail while reproducing:
 tail -f /tmp/crawclaw/crawclaw-$(date +%F).log | rg "telegram http error"
 ```
 
-For remote gateways, you can also use `crawclaw logs --follow` (see [/cli/logs](/cli/logs)).
+For remote gateways, you can also use CrawClaw Desktop or the local Gateway API (see [Gateway logging](/gateway/logging)).
 
 ## Notes
 

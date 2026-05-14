@@ -1,7 +1,6 @@
 import { isMessagingToolDuplicate } from "../../agents/pi-embedded-helpers.js";
 import type { MessagingToolSend } from "../../agents/pi-embedded-runner.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
-import { parseExplicitTargetForChannel } from "../../channels/plugins/target-parsing.js";
 import { normalizeTargetForProvider } from "../../infra/outbound/target-normalization.js";
 import { normalizeOptionalAccountId } from "../../routing/account-id.js";
 import type { ReplyPayload } from "../types.js";
@@ -78,43 +77,6 @@ function normalizeProviderForComparison(value?: string): string | undefined {
   return PROVIDER_ALIAS_MAP[lowered] ?? lowered;
 }
 
-function normalizeThreadIdForComparison(value?: string): string | undefined {
-  const trimmed = value?.trim();
-  if (!trimmed) {
-    return undefined;
-  }
-  if (/^-?\d+$/.test(trimmed)) {
-    return String(Number.parseInt(trimmed, 10));
-  }
-  return trimmed.toLowerCase();
-}
-
-function parseTelegramSuppressionTarget(raw: string): { to: string; threadId?: string } | null {
-  let target = raw.trim();
-  while (true) {
-    const next = target
-      .replace(/^(telegram|tg):/i, "")
-      .replace(/^group:/i, "")
-      .trim();
-    if (next === target) {
-      break;
-    }
-    target = next;
-  }
-  if (!target) {
-    return null;
-  }
-  const topicMatch = /^(.+?):topic:(\d+)$/i.exec(target);
-  if (topicMatch?.[1] && topicMatch[2]) {
-    return { to: topicMatch[1], threadId: normalizeThreadIdForComparison(topicMatch[2]) };
-  }
-  const suffixMatch = /^(.+):(\d+)$/.exec(target);
-  if (suffixMatch?.[1] && suffixMatch[2]) {
-    return { to: suffixMatch[1], threadId: normalizeThreadIdForComparison(suffixMatch[2]) };
-  }
-  return { to: target };
-}
-
 function resolveTargetProviderForComparison(params: {
   currentProvider: string;
   targetProvider?: string;
@@ -143,37 +105,7 @@ function targetsMatchForSuppression(params: {
       targetThreadId: params.targetThreadId,
     });
   }
-
-  if (params.provider !== "telegram") {
-    return params.targetKey === params.originTarget;
-  }
-
-  const origin =
-    parseExplicitTargetForChannel("telegram", params.originTarget) ??
-    parseTelegramSuppressionTarget(params.originTarget);
-  const target =
-    parseExplicitTargetForChannel("telegram", params.targetKey) ??
-    parseTelegramSuppressionTarget(params.targetKey);
-  if (!origin || !target) {
-    return params.targetKey === params.originTarget;
-  }
-  const explicitTargetThreadId = normalizeThreadIdForComparison(params.targetThreadId);
-  const targetThreadId =
-    explicitTargetThreadId ?? (target.threadId != null ? String(target.threadId) : undefined);
-  const originThreadId = origin.threadId != null ? String(origin.threadId) : undefined;
-  if (origin.to.trim().toLowerCase() !== target.to.trim().toLowerCase()) {
-    return false;
-  }
-  if (originThreadId && targetThreadId != null) {
-    return originThreadId === targetThreadId;
-  }
-  if (originThreadId && targetThreadId == null) {
-    return false;
-  }
-  if (!originThreadId && targetThreadId != null) {
-    return false;
-  }
-  return true;
+  return params.targetKey === params.originTarget;
 }
 
 export function shouldSuppressMessagingToolReplies(params: {

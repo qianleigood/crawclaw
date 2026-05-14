@@ -32,16 +32,9 @@ Pairing codes:
 ### Approve a sender
 
 ```bash
-crawclaw pairing list telegram
-crawclaw pairing approve telegram <CODE>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
-
-Primary QuickStart channels: `ddingtalk`, `feishu`, `qqbot`, `weixin`.
-
-Advanced setup can still use optional and legacy channels: `bluebubbles`,
-`discord`, `googlechat`, `imessage`, `irc`, `line`, `matrix`, `mattermost`,
-`msteams`, `nextcloud-talk`, `nostr`, `signal`, `slack`,
-`synology-chat`, `telegram`, `twitch`, `weixin`, `whatsapp`, `zalo`, `zalouser`.
 
 ### Where the state lives
 
@@ -67,9 +60,9 @@ request that must be approved before the client can use authenticated device API
 ### Approve a device
 
 ```bash
-crawclaw devices list
-crawclaw devices approve <requestId>
-crawclaw devices reject <requestId>
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 If the same device retries with different auth details (for example different
@@ -87,8 +80,3 @@ Stored under `~/.crawclaw/devices/`:
 
 - Security model + prompt injection: [Security](/gateway/security)
 - Updating safely (run doctor): [Updating](/install/updating)
-- Channel configs:
-  - DingTalk: [DingTalk](/channels/ddingtalk)
-  - Feishu: [Feishu](/channels/feishu)
-  - QQ Bot: [QQ Bot](/channels/qqbot)
-  - Optional channel index: [Channels](/channels)

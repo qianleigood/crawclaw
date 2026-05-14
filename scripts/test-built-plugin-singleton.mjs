@@ -117,7 +117,7 @@ fs.writeFileSync(
     "      name: 'pair',",
     "      description: 'Pair a device',",
     "      acceptsArgs: true,",
-    "      nativeNames: { telegram: 'pair', discord: 'pair' },",
+    "      nativeNames: { feishu: 'pair', weixin: 'pair' },",
     "      async handler({ args }) {",
     "        return { text: `paired:${args ?? ''}` };",
     "      },",
@@ -164,7 +164,7 @@ const record = registry.plugins.find((entry) => entry.id === pluginId);
 assert.ok(record, "smoke plugin missing from registry");
 assert.equal(record.status, "loaded", record.error ?? "smoke plugin failed to load");
 
-assert.deepEqual(getPluginCommandSpecs("telegram"), [
+assert.deepEqual(getPluginCommandSpecs("feishu"), [
   { name: "pair", description: "Pair a device", acceptsArgs: true },
 ]);
 

@@ -8,7 +8,7 @@ title: "Agent Send"
 
 # Agent Send
 
-`crawclaw agent` runs a single agent turn from the command line without needing
+CrawClaw Desktop or the local Gateway API runs a single agent turn from the command line without needing
 an inbound chat message. Use it for scripted workflows, testing, and
 programmatic delivery.
 
@@ -17,7 +17,7 @@ programmatic delivery.
 <Steps>
   <Step title="Run a simple agent turn">
     ```bash
-    crawclaw agent --message "What is the weather today?"
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     This sends the message through the Gateway and prints the reply.
@@ -27,13 +27,13 @@ programmatic delivery.
   <Step title="Target a specific agent or session">
     ```bash
     # Target a specific agent
-    crawclaw agent --agent ops --message "Summarize logs"
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Target a phone number (derives session key)
-    crawclaw agent --to +15555550123 --message "Status update"
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Reuse an existing session
-    crawclaw agent --session-id abc123 --message "Continue the task"
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Step>
@@ -41,11 +41,10 @@ programmatic delivery.
   <Step title="Deliver the reply to a channel">
     ```bash
     # Deliver to WhatsApp (default channel)
-    crawclaw agent --to +15555550123 --message "Report ready" --deliver
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Deliver to Slack
-    crawclaw agent --agent ops --message "Generate report" \
-      --deliver --reply-channel slack --reply-to "#reports"
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Step>
@@ -84,17 +83,17 @@ programmatic delivery.
 
 ```bash
 # Simple turn with JSON output
-crawclaw agent --to +15555550123 --message "Trace logs" --verbose on --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Turn with thinking level
-crawclaw agent --session-id 1234 --message "Summarize inbox" --thinking medium
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Deliver to a different channel than the session
-crawclaw agent --agent ops --message "Alert" --deliver --reply-channel telegram --reply-to "@admin"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Related
 
-- [Agent CLI reference](/cli/agent)
+- [Agent Gateway API](/tools/agent-send)
 - [Sub-agents](/tools/subagents) — background sub-agent spawning
 - [Sessions](/concepts/session) — how session keys work

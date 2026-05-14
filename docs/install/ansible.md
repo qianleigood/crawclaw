@@ -67,7 +67,7 @@ The Ansible playbook installs and configures:
   <Step title="Connect messaging providers">
     Log in to WhatsApp, Telegram, Discord, or Signal:
     ```bash
-    crawclaw channels login
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
   </Step>
   <Step title="Verify the installation">
@@ -95,7 +95,7 @@ sudo systemctl restart crawclaw
 
 # Provider login (run as crawclaw user)
 sudo -i -u crawclaw
-crawclaw channels login
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Security Architecture
@@ -181,7 +181,7 @@ This is idempotent and safe to run multiple times.
     # Test manual start
     sudo -i -u crawclaw
     cd ~/crawclaw
-    crawclaw gateway run
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Accordion>
@@ -189,7 +189,7 @@ This is idempotent and safe to run multiple times.
     Make sure you are running as the `crawclaw` user:
     ```bash
     sudo -i -u crawclaw
-    crawclaw channels login
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
   </Accordion>
 </AccordionGroup>

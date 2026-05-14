@@ -34,8 +34,8 @@ const EXAMPLES = [
     "cli.help.example.agentDeliver",
   ],
   [
-    'crawclaw message send --channel telegram --target @mychat --message "Hi"',
-    "cli.help.example.telegramSend",
+    'crawclaw message send --channel feishu --target @mychat --message "Hi"',
+    "cli.help.example.channelSend",
   ],
 ] as const;
 

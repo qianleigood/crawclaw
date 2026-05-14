@@ -17,12 +17,12 @@ OpenAI explicitly supports subscription OAuth usage in external tools/workflows 
 **Best for:** direct API access and usage-based billing.
 Get your API key from the OpenAI dashboard.
 
-### CLI setup
+### Desktop setup
 
 ```bash
-crawclaw onboard --auth-choice openai-api-key
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 # or non-interactive
-crawclaw onboard --openai-api-key "$OPENAI_API_KEY"
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Config snippet
@@ -48,14 +48,14 @@ requests currently reject it. Spark is treated as Codex-only in CrawClaw.
 **Best for:** using ChatGPT/Codex subscription access instead of an API key.
 Codex cloud requires ChatGPT sign-in, while the Codex CLI supports ChatGPT or API key sign-in.
 
-### CLI setup (Codex OAuth)
+### Desktop setup (Codex OAuth)
 
 ```bash
 # Run Codex OAuth in the wizard
-crawclaw onboard --auth-choice openai-codex
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Or run OAuth directly
-crawclaw models auth login --provider openai-codex
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ### Config snippet (Codex subscription)

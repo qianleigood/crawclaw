@@ -44,7 +44,8 @@ function isManifestlessBundledRuntimeSupportPackage(params) {
 
 function collectPluginSourceEntries(packageJson) {
   const manifestMetadata = getPackageManifestMetadata(packageJson);
-  let packageEntries = Array.isArray(manifestMetadata?.extensions)
+  const hasExplicitExtensions = Array.isArray(manifestMetadata?.extensions);
+  let packageEntries = hasExplicitExtensions
     ? manifestMetadata.extensions.filter(
         (entry) => typeof entry === "string" && entry.trim().length > 0,
       )
@@ -57,7 +58,10 @@ function collectPluginSourceEntries(packageJson) {
   if (setupEntry) {
     packageEntries = Array.from(new Set([...packageEntries, setupEntry]));
   }
-  return packageEntries.length > 0 ? packageEntries : ["./index.ts"];
+  if (packageEntries.length > 0) {
+    return packageEntries;
+  }
+  return hasExplicitExtensions ? [] : ["./index.ts"];
 }
 
 function shouldStageBundledPluginRuntimeDependencies(packageJson) {

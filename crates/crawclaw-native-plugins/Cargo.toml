@@ -5,8 +5,10 @@ edition = "2021"
 publish = false
 
 [dependencies]
+base64 = "0.22"
 chrono = { version = "0.4", default-features = false, features = ["clock", "std"] }
 clap = { version = "4", features = ["derive"] }
+crawclaw-plugin-sdk = { path = "../crawclaw-plugin-sdk" }
 jsonschema = "0.33"
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }

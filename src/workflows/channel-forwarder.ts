@@ -11,10 +11,6 @@ import { deliverOutboundPayloads } from "../infra/outbound/deliver.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { normalizeMessageChannel } from "../utils/message-channel.js";
 import { buildWorkflowChannelControlCommands } from "./channel-controls.js";
-import {
-  buildWorkflowDiscordResumeCallbackData,
-  ensureWorkflowInteractiveHandlersRegistered,
-} from "./interactive.js";
 import type { WorkflowExecutionRecord, WorkflowExecutionVisibilityMode } from "./types.js";
 import { buildWorkflowActionVisibilityProjection } from "./visibility.js";
 
@@ -127,17 +123,6 @@ function buildWorkflowChannelPayload(params: {
   ].filter(Boolean);
   const footer = footerParts.join(" · ");
   const commands = buildWorkflowChannelControlCommands(params.record.executionId);
-  const resumeCallbackData =
-    channel === "discord" && params.action.status === "waiting"
-      ? buildWorkflowDiscordResumeCallbackData({
-          executionId: params.record.executionId,
-          workspaceDir: params.record.originWorkspaceDir,
-          agentDir: params.record.originAgentDir,
-        })
-      : undefined;
-  if (resumeCallbackData) {
-    ensureWorkflowInteractiveHandlersRegistered();
-  }
   return buildWorkflowReplyPayload({
     channel,
     title,
@@ -163,7 +148,6 @@ function buildWorkflowChannelPayload(params: {
     refreshCommand: commands?.refreshCommand,
     cancelCommand: commands?.cancelCommand,
     resumeCommand: commands?.resumeCommand,
-    resumeCallbackData,
   });
 }
 

@@ -1,130 +1,60 @@
 ---
-summary: "CLI onboarding: guided setup for gateway, workspace, channels, and skills"
+summary: "Desktop onboarding: setup for Gateway, workspace, channels, models, and skills"
 read_when:
-  - Running or configuring CLI onboarding
+  - Running or configuring desktop onboarding
   - Setting up a new machine
-title: "Onboarding (CLI)"
-sidebarTitle: "Onboarding: CLI"
+title: "Desktop Onboarding"
+sidebarTitle: "Desktop Onboarding"
 ---
 
-# Onboarding (CLI)
+# Desktop Onboarding
 
-CLI onboarding is the **recommended** way to set up CrawClaw on macOS,
-Linux, or native Windows.
-It configures a local Gateway or a remote Gateway connection, plus channels, skills,
-and workspace defaults in one guided flow.
+CrawClaw Desktop is the supported Apple-platform setup surface. Use the app to
+configure auth, local Gateway state, workspace defaults, channels, plugins,
+skills, logs, and diagnostics.
 
-```bash
-crawclaw onboard
-```
-
-<Info>
-Fastest first chat: connect a channel or open the desktop client.
-</Info>
-
-To reconfigure later:
-
-```bash
-crawclaw configure
-crawclaw agents add <name>
-```
-
-<Note>
-`--json` does not imply non-interactive mode. For scripts, use `--non-interactive`.
-</Note>
-
-<Tip>
-CLI onboarding includes a web search step where you can pick a provider
-(Perplexity, Brave, Gemini, Grok, or Kimi) and paste your API key so the agent
-can use `web_search`. You can also configure this later with
-`crawclaw configure --section web`. Docs: [Web tools](/tools/web).
-</Tip>
+The public `crawclaw` command is retired. Automation should call the local
+Gateway API directly.
 
 ## QuickStart vs Advanced
 
-Onboarding starts with **QuickStart** (defaults) vs **Advanced** (full control).
+Onboarding starts with **QuickStart** for safe local defaults and **Advanced**
+for explicit control.
 
 <Tabs>
-  <Tab title="QuickStart (defaults)">
-    - Local gateway (loopback)
-    - Workspace default (or existing workspace)
-    - Gateway port **18789**
-    - Gateway auth **Token** (auto‑generated, even on loopback)
-    - Tool policy default for new local setups: `tools.profile: "coding"` (existing explicit profile is preserved)
-    - DM isolation default: local onboarding writes `session.dmScope: "per-channel-peer"` when unset. Details: [CLI Setup Reference](/start/wizard-cli-reference#outputs-and-internals)
-    - Tailscale exposure **Off**
-    - Telegram + WhatsApp DMs default to **allowlist** (you'll be prompted for your phone number)
+  <Tab title="QuickStart">
+    - Local Gateway on loopback
+    - Desktop-managed random port
+    - Desktop-managed token auth
+    - Workspace under `~/.crawclaw`
+    - Bundled Rust runtime and native plugins
   </Tab>
-  <Tab title="Advanced (full control)">
-    - Exposes every step (mode, workspace, gateway, channels, daemon, skills).
+  <Tab title="Advanced">
+    - Explicit workspace, model, channel, plugin, and memory settings
+    - Gateway API automation for repeatable setup
+    - Direct config review before applying sensitive changes
   </Tab>
 </Tabs>
 
 ## What onboarding configures
 
-**Local mode (default)** walks you through these steps:
+1. **Model/Auth** — choose a supported provider/auth flow and default model.
+2. **Workspace** — choose where agent files and bootstrap state live.
+3. **Gateway** — start and monitor the embedded Rust Gateway.
+4. **Channels** — connect supported messaging surfaces.
+5. **Output and presentation** — set reply visibility and streaming defaults.
+6. **Memory / Experience** — enable local capture, recall, and maintenance flows.
+7. **Skills and plugins** — enable bundled skills and desktop-supported plugins.
+8. **Health check** — verify the local Gateway and runtime are ready.
 
-1. **Model/Auth** — choose any supported provider/auth flow (API key, OAuth, or setup-token), including Custom Provider
-   (OpenAI-compatible, Anthropic-compatible, or Unknown auto-detect). Pick a default model.
-   Security note: if this agent will run tools or process webhook/hooks content, prefer the strongest latest-generation model available and keep tool policy strict. Weaker/older tiers are easier to prompt-inject.
-   For non-interactive runs, `--secret-input-mode ref` stores env-backed refs in auth profiles instead of plaintext API key values.
-   In non-interactive `ref` mode, the provider env var must be set; passing inline key flags without that env var fails fast.
-   In interactive runs, choosing secret reference mode lets you point at either an environment variable or a configured provider ref (`file` or `exec`), with a fast preflight validation before saving.
-2. **Workspace** — Location for agent files (default `~/.crawclaw/workspace`). Seeds bootstrap files.
-3. **Gateway** — Port, bind address, auth mode, Tailscale exposure.
-   In interactive token mode, choose default plaintext token storage or opt into SecretRef.
-   Non-interactive token SecretRef path: `--gateway-token-ref-env <ENV_VAR>`.
-4. **Channels** — WhatsApp, Telegram, Discord, Google Chat, Mattermost, Signal, BlueBubbles, or iMessage.
-5. **Output and presentation** — picks a default reply preset (`quiet`, `balanced`, `operator`) for streaming and process visibility.
-6. **Memory / Experience** — asks whether to enable experience capture and the
-   local sync queue. Prompt-facing experience recall is NotebookLM-only; when
-   NotebookLM is not ready, captured experience stays pending locally until
-   login, heartbeat, startup, or `crawclaw memory sync` flushes it. If NotebookLM
-   recall and sync are enabled, onboarding asks for the CLI command and notebook
-   id before checking whether `crawclaw memory login` should run near the end.
-7. **Daemon** — Installs a LaunchAgent (macOS), systemd user unit (Linux), or Scheduled Task with Startup-folder fallback (native Windows).
-   If token auth requires a token and `gateway.auth.token` is SecretRef-managed, daemon install validates it but does not persist the resolved token into supervisor service environment metadata.
-   If token auth requires a token and the configured token SecretRef is unresolved, daemon install is blocked with actionable guidance.
-   If both `gateway.auth.token` and `gateway.auth.password` are configured and `gateway.auth.mode` is unset, daemon install is blocked until mode is set explicitly.
-8. **Health check** — Starts the Gateway and verifies it's running.
-9. **Skills** — Checks bundled skills, offers one install step for missing core skill dependencies, and can configure local Ollama embeddings for semantic skill discovery. Ollama here is only for skill embeddings, not the main chat model.
+## Reconfigure later
 
-<Note>
-Re-running onboarding does **not** wipe anything unless you explicitly choose **Reset** (or pass `--reset`).
-CLI `--reset` defaults to config, credentials, and sessions; use `--reset-scope full` to include workspace.
-If the config is invalid or contains legacy keys, onboarding asks you to run `crawclaw doctor` first.
-</Note>
-
-**Remote mode** only configures the local client to connect to a Gateway elsewhere.
-It does **not** install or change anything on the remote host.
-
-## Add another agent
-
-Use `crawclaw agents add <name>` to create a separate agent with its own workspace,
-sessions, and auth profiles. Running without `--workspace` launches onboarding.
-
-What it sets:
-
-- `agents.list[].name`
-- `agents.list[].workspace`
-- `agents.list[].agentDir`
-
-Notes:
-
-- Default workspaces follow `~/.crawclaw/workspace-<agentId>`.
-- Add `bindings` to route inbound messages (onboarding can do this).
-- Non-interactive flags: `--model`, `--agent-dir`, `--bind`, `--non-interactive`.
-
-## Full reference
-
-For detailed step-by-step breakdowns and config outputs, see
-[CLI Setup Reference](/start/wizard-cli-reference).
-For non-interactive examples, see [CLI Automation](/start/wizard-cli-automation).
-For the deeper technical reference, including RPC details, see
-[Onboarding Reference](/reference/wizard).
+Use CrawClaw Desktop settings for normal changes. Use the Gateway API for
+automation, config patching, status, health, sessions, and plugin operations.
 
 ## Related docs
 
-- CLI command reference: [`crawclaw onboard`](/cli/onboard)
-- Onboarding overview: [Onboarding Overview](/start/onboarding-overview)
-- Agent first-run ritual: [Agent Bootstrapping](/start/bootstrapping)
+- [Onboarding overview](/start/onboarding-overview)
+- [Desktop install](/install/desktop)
+- [Gateway protocol](/gateway/protocol)
+- [Gateway troubleshooting](/gateway/troubleshooting)

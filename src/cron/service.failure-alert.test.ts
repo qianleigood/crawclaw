@@ -84,7 +84,7 @@ describe("CronService failure alerts", () => {
       sessionTarget: "isolated",
       wakeMode: "now",
       payload: { kind: "agentTurn", message: "run report" },
-      delivery: { mode: "announce", channel: "telegram", to: "19098680" },
+      delivery: { mode: "announce", channel: "feishu", to: "19098680" },
     });
 
     await cron.run(job.id, "force");
@@ -95,7 +95,7 @@ describe("CronService failure alerts", () => {
     expect(sendCronFailureAlert).toHaveBeenLastCalledWith(
       expect.objectContaining({
         job: expect.objectContaining({ id: job.id }),
-        channel: "telegram",
+        channel: "feishu",
         to: "19098680",
         text: expect.stringContaining('Cron job "daily report" failed 2 times'),
       }),
@@ -146,7 +146,7 @@ describe("CronService failure alerts", () => {
       payload: { kind: "agentTurn", message: "run report" },
       failureAlert: {
         after: 1,
-        channel: "telegram",
+        channel: "feishu",
         to: "12345",
         cooldownMs: 1,
       },
@@ -156,7 +156,7 @@ describe("CronService failure alerts", () => {
     expect(sendCronFailureAlert).toHaveBeenCalledTimes(1);
     expect(sendCronFailureAlert).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        channel: "telegram",
+        channel: "feishu",
         to: "12345",
       }),
     );
@@ -234,7 +234,7 @@ describe("CronService failure alerts", () => {
       sessionTarget: "isolated",
       wakeMode: "now",
       payload: { kind: "agentTurn", message: "run report" },
-      delivery: { mode: "announce", channel: "telegram", to: "19098680" },
+      delivery: { mode: "announce", channel: "feishu", to: "19098680" },
     });
     const bestEffortJob = await cron.add({
       name: "best effort alert job",
@@ -245,7 +245,7 @@ describe("CronService failure alerts", () => {
       payload: { kind: "agentTurn", message: "run report" },
       delivery: {
         mode: "announce",
-        channel: "telegram",
+        channel: "feishu",
         to: "19098680",
         bestEffort: true,
       },

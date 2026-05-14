@@ -33,22 +33,22 @@ and use it immediately.
   <Step title="Install from a directory, archive, or marketplace">
     ```bash
     # Local directory
-    crawclaw plugins install ./my-bundle
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Archive
-    crawclaw plugins install ./my-bundle.tgz
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
 
     # Claude marketplace
-    crawclaw plugins marketplace list <marketplace-name>
-    crawclaw plugins install <plugin-name>@<marketplace-name>
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Step>
 
   <Step title="Verify detection">
     ```bash
-    crawclaw plugins list
-    crawclaw plugins inspect <id>
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Bundles show as `Format: bundle` with a subtype of `codex`, `claude`, or `cursor`.
@@ -57,7 +57,7 @@ and use it immediately.
 
   <Step title="Restart and use">
     ```bash
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Mapped features (skills, hooks, MCP tools) are available in the next session.
@@ -251,7 +251,7 @@ bundles as trusted content for the features they do expose.
 
 <AccordionGroup>
   <Accordion title="Bundle is detected but capabilities do not run">
-    Run `crawclaw plugins inspect <id>`. If a capability is listed but marked as
+    Run CrawClaw Desktop or the local Gateway API. If a capability is listed but marked as
     not wired, that is a product limit — not a broken install.
   </Accordion>
 

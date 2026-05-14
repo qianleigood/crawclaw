@@ -61,10 +61,6 @@ export function collectEmptyAllowlistPolicyWarningsForAccount(
     return warnings;
   }
 
-  if (params.channelName === "telegram") {
-    return warnings;
-  }
-
   const rawGroupAllowFrom =
     (params.account.groupAllowFrom as DoctorAllowFromList | undefined) ??
     (params.parent?.groupAllowFrom as DoctorAllowFromList | undefined);

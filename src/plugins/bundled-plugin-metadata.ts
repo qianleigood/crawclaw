@@ -7,6 +7,7 @@ import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
 import {
   getPackageManifestMetadata,
   loadPluginManifest,
+  PLUGIN_MANIFEST_FILENAME,
   type CrawClawPackageManifest,
   type PackageManifest,
   type PluginManifest,
@@ -382,11 +383,12 @@ function collectBundledPluginMetadataForPackageRoot(
     const packageJson = readPackageManifest(pluginDir);
     const packageManifest = getPackageManifestMetadata(packageJson);
     const extensions = normalizeStringList(packageManifest?.extensions);
-    if (extensions.length === 0) {
+    const nativeOnly = extensions.length === 0 && Boolean(manifestResult.manifest.native);
+    if (extensions.length === 0 && !nativeOnly) {
       continue;
     }
-    const sourceEntry = trimString(extensions[0]);
-    const builtEntry = rewriteEntryToBuiltPath(sourceEntry);
+    const sourceEntry = nativeOnly ? `./${PLUGIN_MANIFEST_FILENAME}` : trimString(extensions[0]);
+    const builtEntry = nativeOnly ? PLUGIN_MANIFEST_FILENAME : rewriteEntryToBuiltPath(sourceEntry);
     if (!sourceEntry || !builtEntry) {
       continue;
     }
@@ -399,11 +401,13 @@ function collectBundledPluginMetadataForPackageRoot(
             built: rewriteEntryToBuiltPath(setupSourcePath)!,
           }
         : undefined;
-    const publicSurfaceArtifacts = collectTopLevelPublicSurfaceArtifacts({
-      pluginDir,
-      sourceEntry,
-      ...(setupSourcePath ? { setupEntry: setupSourcePath } : {}),
-    });
+    const publicSurfaceArtifacts = nativeOnly
+      ? undefined
+      : collectTopLevelPublicSurfaceArtifacts({
+          pluginDir,
+          sourceEntry,
+          ...(setupSourcePath ? { setupEntry: setupSourcePath } : {}),
+        });
     const runtimeSidecarArtifacts = collectRuntimeSidecarArtifacts(publicSurfaceArtifacts);
     const channelConfigs =
       includeChannelConfigs && includeSyntheticChannelConfigs

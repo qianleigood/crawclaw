@@ -1,5 +1,5 @@
 ---
-summary: "Full reference for CLI onboarding: every step, flag, and config field"
+summary: "Full reference for desktop onboarding: every step and config field"
 read_when:
   - Looking up a specific onboarding step or flag
   - Automating onboarding with non-interactive mode
@@ -10,8 +10,8 @@ sidebarTitle: "Onboarding Reference"
 
 # Onboarding Reference
 
-This is the full reference for `crawclaw onboard`.
-For a high-level overview, see [Onboarding (CLI)](/start/wizard).
+This is the full reference for CrawClaw Desktop or the local Gateway API.
+For a high-level overview, see [Desktop onboarding](/start/wizard).
 
 ## Flow details (local mode)
 
@@ -23,7 +23,7 @@ For a high-level overview, see [Onboarding (CLI)](/start/wizard).
     - CLI `--reset` defaults to `config+creds+sessions`; use `--reset-scope full`
       to also remove workspace.
     - If the config is invalid or contains legacy keys, the wizard stops and asks
-      you to run `crawclaw doctor` before continuing.
+      you to run CrawClaw Desktop or the local Gateway API before continuing.
     - Reset uses `trash` (never `rm`) and offers scopes:
       - Config only
       - Config + credentials + sessions
@@ -86,21 +86,15 @@ For a high-level overview, see [Onboarding (CLI)](/start/wizard).
     - Non‑loopback binds still require auth.
   </Step>
   <Step title="Channels">
-    - [WhatsApp](/channels/whatsapp): optional QR login.
-    - [Telegram](/channels/telegram): bot token.
-    - [Discord](/channels/discord): bot token.
-    - [Google Chat](/channels/googlechat): service account JSON + webhook audience.
-    - [Mattermost](/channels/mattermost) (plugin): bot token + base URL.
-    - [Signal](/channels/signal): optional `signal-cli` install + account config.
-    - [BlueBubbles](/channels/bluebubbles): **recommended for iMessage**; server URL + password + webhook.
-    - [iMessage](/channels/imessage): legacy `imsg` CLI path + DB access.
-    - DM security: default is pairing. First DM sends a code; approve via `crawclaw pairing approve <channel> <code>` or use allowlists.
+    - Bundled TypeScript channel plugins have been removed.
+    - Rust-native channel plugins will be documented as they are reintroduced.
+    - DM security: default is pairing. First DM sends a code; approve via CrawClaw Desktop or the local Gateway API or use allowlists.
   </Step>
   <Step title="Web search">
     - Pick a provider: Perplexity, Brave, Gemini, Grok, or Kimi (or skip).
     - Paste your API key (QuickStart auto-detects keys from env vars or existing config).
     - Skip with `--skip-search`.
-    - Configure later: `crawclaw configure --section web`.
+    - Configure later: CrawClaw Desktop or the local Gateway API.
   </Step>
   <Step title="Daemon install">
     - macOS: LaunchAgent
@@ -109,14 +103,14 @@ For a high-level overview, see [Onboarding (CLI)](/start/wizard).
       - Onboarding attempts to enable lingering via `loginctl enable-linger <user>` so the Gateway stays up after logout.
       - May prompt for sudo (writes `/var/lib/systemd/linger`); it tries without sudo first.
     - Native Windows: Scheduled Task with per-user Startup-folder fallback.
-    - **Runtime selection:** Node (recommended; required for WhatsApp/Telegram). Bun is **not recommended**.
+    - **Runtime selection:** bundled channel paths use the Rust native runtime. Bun is **not recommended** for production installs.
     - If token auth requires a token and `gateway.auth.token` is SecretRef-managed, daemon install validates it but does not persist resolved plaintext token values into supervisor service environment metadata.
     - If token auth requires a token and the configured token SecretRef is unresolved, daemon install is blocked with actionable guidance.
     - If both `gateway.auth.token` and `gateway.auth.password` are configured and `gateway.auth.mode` is unset, daemon install is blocked until mode is set explicitly.
   </Step>
   <Step title="Health check">
-    - Starts the Gateway (if needed) and runs `crawclaw health`.
-    - Tip: `crawclaw status --deep` adds gateway health probes to status output (requires a reachable gateway).
+    - Starts the Gateway (if needed) and runs CrawClaw Desktop or the local Gateway API.
+    - Tip: CrawClaw Desktop or the local Gateway API adds gateway health probes to status output (requires a reachable gateway).
   </Step>
   <Step title="Skills (recommended)">
     - Reads the available skills and checks requirements.
@@ -137,15 +131,7 @@ If no GUI is detected, onboarding prints SSH port-forward instructions for remot
 Use `--non-interactive` to automate or script onboarding:
 
 ```bash
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice apiKey \
-  --anthropic-api-key "$ANTHROPIC_API_KEY" \
-  --gateway-port 18789 \
-  --gateway-bind loopback \
-  --install-daemon \
-  --daemon-runtime node \
-  --skip-skills
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 Add `--json` for a machine‑readable summary.
@@ -154,11 +140,7 @@ Gateway token SecretRef in non-interactive mode:
 
 ```bash
 export CRAWCLAW_GATEWAY_TOKEN="your-token"
-crawclaw onboard --non-interactive \
-  --mode local \
-  --auth-choice skip \
-  --gateway-auth token \
-  --gateway-token-ref-env CRAWCLAW_GATEWAY_TOKEN
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 `--gateway-token` and `--gateway-token-ref-env` are mutually exclusive.
@@ -173,32 +155,13 @@ Use this reference page for flag semantics and step ordering.
 ### Add agent (non-interactive)
 
 ```bash
-crawclaw agents add work \
-  --workspace ~/.crawclaw/workspace-work \
-  --model openai/gpt-5.2 \
-  --bind whatsapp:biz \
-  --non-interactive \
-  --json
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Gateway wizard RPC
 
 The Gateway exposes the onboarding flow over RPC (`wizard.start`, `wizard.next`, `wizard.cancel`, `wizard.status`).
 Gateway clients can render steps without re‑implementing onboarding logic.
-
-## Signal setup (signal-cli)
-
-Onboarding can install `signal-cli` from GitHub releases:
-
-- Downloads the appropriate release asset.
-- Stores it under `~/.crawclaw/tools/signal-cli/<version>/`.
-- Writes `channels.signal.cliPath` to your config.
-
-Notes:
-
-- JVM builds require **Java 21**.
-- Native builds are used when available.
-- Native Windows uses the Windows-native `signal-cli` asset when available.
 
 ## What the wizard writes
 
@@ -209,8 +172,8 @@ Typical fields in `~/.crawclaw/crawclaw.json`:
 - `tools.profile` (local onboarding defaults to `"coding"` when unset; existing explicit values are preserved)
 - `gateway.*` (mode, bind, auth, tailscale)
 - `session.dmScope` (behavior details: [CLI Setup Reference](/start/wizard-cli-reference#outputs-and-internals))
-- `channels.telegram.botToken`, `channels.discord.token`, `channels.matrix.*`, `channels.signal.*`, `channels.imessage.*`
-- Channel allowlists (Slack/Discord/Matrix/Microsoft Teams) when you opt in during the prompts (names resolve to IDs when possible).
+- `channels.ddingtalk.*`, `channels.esp32.*`, `channels.feishu.*`, `channels.qqbot.*`, `channels.weixin.*`
+- Channel allowlists when you opt in during the prompts (names resolve to IDs when possible).
 - `skills.install.nodeManager`
 - `wizard.lastRunAt`
 - `wizard.lastRunVersion`
@@ -218,9 +181,8 @@ Typical fields in `~/.crawclaw/crawclaw.json`:
 - `wizard.lastRunCommand`
 - `wizard.lastRunMode`
 
-`crawclaw agents add` writes `agents.list[]` and optional `bindings`.
+CrawClaw Desktop or the local Gateway API writes `agents.list[]` and optional `bindings`.
 
-WhatsApp credentials go under `~/.crawclaw/credentials/whatsapp/<accountId>/`.
 Sessions are stored under `~/.crawclaw/agents/<agentId>/sessions/`.
 
 Some channels are delivered as plugins. When you pick one during setup, onboarding
@@ -228,7 +190,7 @@ will prompt to install it (npm or a local path) before it can be configured.
 
 ## Related docs
 
-- Onboarding overview: [Onboarding (CLI)](/start/wizard)
+- Onboarding overview: [Desktop onboarding](/start/wizard)
 - Config reference: [Gateway configuration](/gateway/configuration)
-- Providers: [WhatsApp](/channels/whatsapp), [Telegram](/channels/telegram), [Discord](/channels/discord), [Google Chat](/channels/googlechat), [Signal](/channels/signal), [BlueBubbles](/channels/bluebubbles) (iMessage), [iMessage](/channels/imessage) (legacy)
+- Channels: [Chat channels](/channels)
 - Skills: [Skills](/tools/skills), [Skills config](/tools/skills-config)

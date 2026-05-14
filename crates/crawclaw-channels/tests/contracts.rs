@@ -13,10 +13,10 @@ use std::collections::BTreeMap;
 
 fn example_inbound() -> ChannelInboundEnvelope {
     ChannelInboundEnvelope {
-        channel: "telegram".to_string(),
+        channel: "feishu".to_string(),
         account_id: Some("default".to_string()),
-        from: "telegram:123".to_string(),
-        to: "telegram:456".to_string(),
+        from: "feishu:123".to_string(),
+        to: "feishu:456".to_string(),
         chat_type: ChatType::Direct,
         body: "hello".to_string(),
         raw_body: Some("hello".to_string()),
@@ -32,7 +32,7 @@ fn agent_run_request_uses_camel_case_wire_shape() {
     let request = AgentRunRequest {
         run_id: "run-1".to_string(),
         agent_id: "main".to_string(),
-        session_key: "agent:main:telegram:direct:123".to_string(),
+        session_key: "agent:main:feishu:direct:123".to_string(),
         inbound: example_inbound(),
         model: AgentModelSelection {
             provider: "openai".to_string(),
@@ -47,7 +47,7 @@ fn agent_run_request_uses_camel_case_wire_shape() {
 
     assert_eq!(value["runId"], "run-1");
     assert_eq!(value["agentId"], "main");
-    assert_eq!(value["sessionKey"], "agent:main:telegram:direct:123");
+    assert_eq!(value["sessionKey"], "agent:main:feishu:direct:123");
     assert_eq!(value["inbound"]["accountId"], "default");
     assert_eq!(value["inbound"]["chatType"], "direct");
     assert_eq!(value["model"]["reasoningLevel"], "medium");
@@ -75,10 +75,10 @@ fn agent_run_events_cover_required_stream_types() {
         run_id: "run-1".to_string(),
         request: ChannelOutboundRequest {
             request_id: "out-1".to_string(),
-            channel: "telegram".to_string(),
+            channel: "feishu".to_string(),
             account_id: Some("default".to_string()),
             action: ChannelOutboundAction::Send,
-            to: "telegram:123".to_string(),
+            to: "feishu:123".to_string(),
             text: Some("hi".to_string()),
             media_urls: Vec::new(),
             reply_to_id: None,
@@ -109,7 +109,7 @@ fn agent_run_event_round_trips_reply_and_transcript_shapes() {
     };
     let transcript = AgentRunEvent::TranscriptAppended {
         run_id: "run-1".to_string(),
-        session_key: "agent:main:telegram:direct:123".to_string(),
+        session_key: "agent:main:feishu:direct:123".to_string(),
         role: TranscriptRole::Assistant,
         message_id: "msg-1".to_string(),
     };
@@ -130,7 +130,7 @@ fn agent_run_event_round_trips_reply_and_transcript_shapes() {
         json!({
             "type": "transcriptAppended",
             "runId": "run-1",
-            "sessionKey": "agent:main:telegram:direct:123",
+            "sessionKey": "agent:main:feishu:direct:123",
             "role": "assistant",
             "messageId": "msg-1"
         })
@@ -140,11 +140,13 @@ fn agent_run_event_round_trips_reply_and_transcript_shapes() {
 #[test]
 fn channel_capability_descriptor_declares_native_adapter_contract() {
     let descriptor = ChannelCapabilityDescriptor {
-        channel: "telegram".to_string(),
-        label: "Telegram".to_string(),
-        rust_adapter_id: "telegram-native".to_string(),
-        chat_types: vec![ChatType::Direct, ChatType::Group, ChatType::Thread],
-        actions: vec![ChannelOutboundAction::Send, ChannelOutboundAction::Poll],
+        channel: "feishu".to_string(),
+        label: "Feishu".to_string(),
+        runtime_kind: "rust".to_string(),
+        adapter_runtime_kind: "rust".to_string(),
+        rust_adapter_id: "feishu-native".to_string(),
+        chat_types: vec![ChatType::Direct, ChatType::Channel, ChatType::Thread],
+        actions: vec![ChannelOutboundAction::Send, ChannelOutboundAction::Reply],
         inbound: ChannelInboundCapability {
             webhook: true,
             polling: true,
@@ -168,10 +170,12 @@ fn channel_capability_descriptor_declares_native_adapter_contract() {
     let value = serde_json::to_value(descriptor).expect("serialize descriptor");
 
     assert_eq!(channel_contract_version(), "2026-05-agent-channel-rust-v1");
-    assert_eq!(value["channel"], "telegram");
-    assert_eq!(value["rustAdapterId"], "telegram-native");
-    assert_eq!(value["chatTypes"], json!(["direct", "group", "thread"]));
-    assert_eq!(value["actions"], json!(["send", "poll"]));
+    assert_eq!(value["channel"], "feishu");
+    assert_eq!(value["runtimeKind"], "rust");
+    assert_eq!(value["adapterRuntimeKind"], "rust");
+    assert_eq!(value["rustAdapterId"], "feishu-native");
+    assert_eq!(value["chatTypes"], json!(["direct", "channel", "thread"]));
+    assert_eq!(value["actions"], json!(["send", "reply"]));
     assert_eq!(value["inbound"]["mediaDownload"], true);
     assert_eq!(value["outbound"]["threadReply"], true);
     assert_eq!(value["lifecycle"]["restart"], true);
@@ -184,7 +188,7 @@ fn event_deserialization_rejects_unknown_required_shapes() {
         "runId": "run-1",
         "request": {
             "requestId": "out-1",
-            "channel": "telegram",
+            "channel": "feishu",
             "action": "send",
             "text": "missing to"
         }
@@ -209,35 +213,9 @@ fn native_channel_catalog_declares_bundled_channel_capabilities() {
         .iter()
         .map(|descriptor| descriptor.channel.as_str())
         .collect::<Vec<_>>();
-    let expected_repo_owned_channel_plugins = [
-        "bluebubbles",
-        "ddingtalk",
-        "discord",
-        "esp32",
-        "feishu",
-        "googlechat",
-        "imessage",
-        "irc",
-        "line",
-        "matrix",
-        "mattermost",
-        "msteams",
-        "nextcloud-talk",
-        "nostr",
-        "qqbot",
-        "signal",
-        "slack",
-        "synology-chat",
-        "telegram",
-        "tlon",
-        "twitch",
-        "weixin",
-        "whatsapp",
-        "zalo",
-        "zalouser",
-    ];
+    let expected_repo_owned_channel_plugins = ["ddingtalk", "feishu", "esp32", "qqbot", "weixin"];
 
-    assert_eq!(ids.first(), Some(&"desktop"));
+    assert_eq!(ids, expected_repo_owned_channel_plugins);
     for channel in expected_repo_owned_channel_plugins {
         assert!(
             ids.contains(&channel),
@@ -249,15 +227,28 @@ fn native_channel_catalog_declares_bundled_channel_capabilities() {
         ids.iter().collect::<std::collections::BTreeSet<_>>().len()
     );
 
-    let telegram = find_native_channel_descriptor("TELEGRAM").expect("telegram descriptor");
-    assert_eq!(telegram.rust_adapter_id, "telegram-native");
-    assert!(telegram.inbound.webhook);
-    assert!(telegram.outbound.poll);
-    assert!(telegram.lifecycle.status);
+    let feishu = find_native_channel_descriptor("FEISHU").expect("feishu descriptor");
+    assert_eq!(feishu.rust_adapter_id, "feishu-native");
+    assert!(feishu.inbound.webhook);
+    assert!(feishu.outbound.thread_reply);
+    assert!(feishu.lifecycle.status);
 
-    let desktop = find_native_channel_descriptor("desktop").expect("desktop descriptor");
-    assert!(desktop.outbound.text);
-    assert!(!desktop.inbound.webhook);
+    let esp32 = find_native_channel_descriptor("esp32").expect("esp32 descriptor");
+    assert_eq!(esp32.rust_adapter_id, "esp32-native");
+    assert_eq!(esp32.label, "ESP32");
+    assert_eq!(esp32.chat_types, vec![ChatType::Direct]);
+    assert_eq!(
+        esp32.actions,
+        vec![
+            ChannelOutboundAction::Send,
+            ChannelOutboundAction::SendAttachment
+        ]
+    );
+    assert!(esp32.inbound.polling);
+    assert!(esp32.outbound.media);
+    assert!(esp32.lifecycle.status);
+
+    assert!(find_native_channel_descriptor("telegram").is_none());
 }
 
 fn example_outbound_request(channel: &str) -> ChannelOutboundRequest {
@@ -351,7 +342,7 @@ fn native_channel_dispatcher_blocks_desktop_until_login() {
 #[test]
 fn native_channel_dispatcher_blocks_external_channels_without_native_transport() {
     let record = dispatch_native_channel_outbound(
-        &example_outbound_request("slack"),
+        &example_outbound_request("custom-channel"),
         NativeChannelDispatchContext {
             connected: true,
             now_ms: 789,
@@ -360,7 +351,7 @@ fn native_channel_dispatcher_blocks_external_channels_without_native_transport()
 
     assert!(!record.ok);
     assert!(!record.sent);
-    assert_eq!(record.channel, "slack");
+    assert_eq!(record.channel, "custom-channel");
     assert_eq!(
         record.error_code,
         Some("needs_channel_transport".to_string())
@@ -408,7 +399,7 @@ fn native_channel_lifecycle_policy_verifies_existing_state_without_login() {
 #[test]
 fn native_channel_lifecycle_policy_blocks_external_channel_transport() {
     let update = resolve_native_channel_lifecycle_update(NativeChannelLifecycleInput {
-        channel: "slack".to_string(),
+        channel: "custom-channel".to_string(),
         method: "channels.account.login.start".to_string(),
         enabled: true,
         configured: true,
@@ -438,7 +429,7 @@ fn native_channel_lifecycle_policy_handles_logout_and_unconfigured_channels() {
     assert_eq!(logout.health_state, "logged_out");
 
     let unconfigured = resolve_native_channel_lifecycle_update(NativeChannelLifecycleInput {
-        channel: "slack".to_string(),
+        channel: "custom-channel".to_string(),
         method: "channels.account.login.start".to_string(),
         enabled: false,
         configured: false,
@@ -451,7 +442,7 @@ fn native_channel_lifecycle_policy_handles_logout_and_unconfigured_channels() {
 #[test]
 fn native_channel_directory_lookup_normalizes_targets() {
     let result = lookup_native_channel_directory(ChannelDirectoryLookupRequest {
-        channel: " Telegram ".to_string(),
+        channel: " Feishu ".to_string(),
         account_id: Some("default".to_string()),
         query: Some(" @Alice ".to_string()),
         kind: Some(MessagingTargetKind::User),
@@ -459,10 +450,10 @@ fn native_channel_directory_lookup_normalizes_targets() {
     })
     .expect("directory lookup");
 
-    assert_eq!(result.channel, "telegram");
+    assert_eq!(result.channel, "feishu");
     assert_eq!(result.account_id, Some("default".to_string()));
     assert_eq!(result.query, Some("@Alice".to_string()));
-    assert_eq!(result.descriptor.rust_adapter_id, "telegram-native");
+    assert_eq!(result.descriptor.rust_adapter_id, "feishu-native");
     assert_eq!(result.targets.len(), 1);
     assert_eq!(result.targets[0].kind, MessagingTargetKind::User);
     assert_eq!(result.targets[0].id, "Alice");
@@ -473,24 +464,26 @@ fn native_channel_directory_lookup_normalizes_targets() {
         serde_json::to_value(result).expect("directory json"),
         json!({
             "ok": true,
-            "channel": "telegram",
+            "channel": "feishu",
             "accountId": "default",
             "query": "@Alice",
             "descriptor": {
-                "channel": "telegram",
-                "label": "Telegram",
-                "rustAdapterId": "telegram-native",
-                "chatTypes": ["direct", "group", "thread"],
-                "actions": ["send", "poll", "reply", "sendAttachment"],
+                "channel": "feishu",
+                "label": "Feishu",
+                "runtimeKind": "rust",
+                "adapterRuntimeKind": "rust",
+                "rustAdapterId": "feishu-native",
+                "chatTypes": ["direct", "channel", "thread"],
+                "actions": ["send", "reply", "sendAttachment", "threadReply"],
                 "inbound": {
                     "webhook": true,
-                    "polling": true,
+                    "polling": false,
                     "mediaDownload": true
                 },
                 "outbound": {
                     "text": true,
                     "media": true,
-                    "poll": true,
+                    "poll": false,
                     "threadReply": true
                 },
                 "lifecycle": {
@@ -515,7 +508,7 @@ fn native_channel_directory_lookup_normalizes_targets() {
 #[test]
 fn native_channel_directory_lookup_respects_explicit_channel_target_prefix() {
     let result = lookup_native_channel_directory(ChannelDirectoryLookupRequest {
-        channel: "slack".to_string(),
+        channel: "qqbot".to_string(),
         account_id: None,
         query: Some("channel:Ops".to_string()),
         kind: Some(MessagingTargetKind::User),

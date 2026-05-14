@@ -86,15 +86,7 @@ Agent: Reads standing orders → executes steps → reports results
 The cron job prompt should reference the standing order rather than duplicating it:
 
 ```bash
-crawclaw cron add \
-  --name daily-inbox-triage \
-  --cron "0 8 * * 1-5" \
-  --tz America/New_York \
-  --timeout-seconds 300 \
-  --announce \
-  --channel bluebubbles \
-  --to "+1XXXXXXXXXX" \
-  --message "Execute daily inbox triage per standing orders. Check mail for new alerts. Parse, categorize, and persist each item. Report summary to owner. Escalate unknowns."
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Examples

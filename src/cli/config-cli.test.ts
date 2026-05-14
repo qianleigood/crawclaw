@@ -150,10 +150,10 @@ describe("config cli", () => {
           channels: {
             type: "object",
             properties: {
-              telegram: {
+              feishu: {
                 type: "object",
                 properties: {
-                  token: { type: "string" },
+                  appSecret: { type: "string" },
                 },
               },
             },
@@ -457,10 +457,10 @@ describe("config cli", () => {
       expect(payload.properties?.channels).toEqual({
         type: "object",
         properties: {
-          telegram: {
+          feishu: {
             type: "object",
             properties: {
-              token: { type: "string" },
+              appSecret: { type: "string" },
             },
           },
         },
@@ -484,7 +484,7 @@ describe("config cli", () => {
             channels: {
               type: "object",
               properties: {
-                telegram: {
+                feishu: {
                   type: "object",
                 },
               },
@@ -584,10 +584,9 @@ describe("config cli", () => {
       expect(helpText).toContain("--dry-run");
       expect(helpText).toContain("--allow-exec");
       expect(helpText).toContain("crawclaw config set gateway.port 19001 --strict-json");
-      expect(helpText).toContain(
-        "crawclaw config set channels.discord.token --ref-provider default --ref-source",
-      );
-      expect(helpText).toContain("--ref-id DISCORD_BOT_TOKEN");
+      expect(helpText).toContain("crawclaw config set channels.feishu.appSecret");
+      expect(helpText).toContain("--ref-provider default");
+      expect(helpText).toContain("--ref-id FEISHU_APP_SECRET");
       expect(helpText).toContain(
         "crawclaw config set --batch-file ./config-set.batch.json --dry-run",
       );
@@ -604,21 +603,21 @@ describe("config cli", () => {
       await runConfigCommand([
         "config",
         "set",
-        "channels.discord.token",
+        "channels.feishu.appSecret",
         "--ref-provider",
         "default",
         "--ref-source",
         "env",
         "--ref-id",
-        "DISCORD_BOT_TOKEN",
+        "FEISHU_APP_SECRET",
       ]);
 
       expect(mockWriteConfigFile).toHaveBeenCalledTimes(1);
       const written = mockWriteConfigFile.mock.calls[0]?.[0];
-      expect(written.channels?.discord?.token).toEqual({
+      expect(written.channels?.feishu?.appSecret).toEqual({
         source: "env",
         provider: "default",
-        id: "DISCORD_BOT_TOKEN",
+        id: "FEISHU_APP_SECRET",
       });
     });
 
@@ -713,13 +712,13 @@ describe("config cli", () => {
       await runConfigCommand([
         "config",
         "set",
-        "channels.discord.token",
+        "channels.feishu.appSecret",
         "--ref-provider",
         "default",
         "--ref-source",
         "env",
         "--ref-id",
-        "DISCORD_BOT_TOKEN",
+        "FEISHU_APP_SECRET",
         "--dry-run",
       ]);
 
@@ -729,7 +728,7 @@ describe("config cli", () => {
         {
           source: "env",
           provider: "default",
-          id: "DISCORD_BOT_TOKEN",
+          id: "FEISHU_APP_SECRET",
         },
         expect.objectContaining({
           env: expect.any(Object),
@@ -882,7 +881,7 @@ describe("config cli", () => {
         "config",
         "set",
         "--batch-json",
-        '[{"path":"channels.discord.token","ref":{"source":"env","provider":"default","id":"DISCORD_BOT_TOKEN"}},{"path":"secrets.providers.default","provider":{"source":"env"}}]',
+        '[{"path":"channels.feishu.appSecret","ref":{"source":"env","provider":"default","id":"FEISHU_APP_SECRET"}},{"path":"secrets.providers.default","provider":{"source":"env"}}]',
         "--dry-run",
       ]);
 
@@ -908,7 +907,7 @@ describe("config cli", () => {
       await runConfigCommand([
         "config",
         "set",
-        "channels.discord.token",
+        "channels.feishu.appSecret",
         "--ref-provider",
         "runner",
         "--ref-source",
@@ -945,7 +944,7 @@ describe("config cli", () => {
       await runConfigCommand([
         "config",
         "set",
-        "channels.discord.token",
+        "channels.feishu.appSecret",
         "--ref-provider",
         "runner",
         "--ref-source",
@@ -1000,7 +999,7 @@ describe("config cli", () => {
         runConfigCommand([
           "config",
           "set",
-          "channels.discord.token",
+          "channels.feishu.appSecret",
           "--ref-provider",
           "runner",
           "--ref-source",
@@ -1034,7 +1033,7 @@ describe("config cli", () => {
         runConfigCommand([
           "config",
           "set",
-          "channels.discord.token",
+          "channels.feishu.appSecret",
           "--ref-provider",
           "runner",
           "--ref-source",
@@ -1053,51 +1052,18 @@ describe("config cli", () => {
       );
     });
 
-    it("writes sibling SecretRef paths when target uses sibling-ref shape", async () => {
-      const resolved: CrawClawConfig = {
-        gateway: { port: 18789 },
-        channels: {
-          googlechat: {
-            enabled: true,
-          } as never,
-        } as never,
-      };
-      setSnapshot(resolved, resolved);
-
-      await runConfigCommand([
-        "config",
-        "set",
-        "channels.googlechat.serviceAccount",
-        "--ref-provider",
-        "vaultfile",
-        "--ref-source",
-        "file",
-        "--ref-id",
-        "/providers/googlechat/serviceAccount",
-      ]);
-
-      expect(mockWriteConfigFile).toHaveBeenCalledTimes(1);
-      const written = mockWriteConfigFile.mock.calls[0]?.[0];
-      expect(written.channels?.googlechat?.serviceAccountRef).toEqual({
-        source: "file",
-        provider: "vaultfile",
-        id: "/providers/googlechat/serviceAccount",
-      });
-      expect(written.channels?.googlechat?.serviceAccount).toBeUndefined();
-    });
-
     it("rejects mixing ref-builder and provider-builder flags", async () => {
       await expect(
         runConfigCommand([
           "config",
           "set",
-          "channels.discord.token",
+          "channels.feishu.appSecret",
           "--ref-provider",
           "default",
           "--ref-source",
           "env",
           "--ref-id",
-          "DISCORD_BOT_TOKEN",
+          "FEISHU_APP_SECRET",
           "--provider-source",
           "env",
         ]),
@@ -1120,7 +1086,7 @@ describe("config cli", () => {
           "--ref-source",
           "env",
           "--ref-id",
-          "DISCORD_BOT_TOKEN",
+          "FEISHU_APP_SECRET",
         ]),
       ).rejects.toThrow("__exit__:1");
 
@@ -1176,7 +1142,7 @@ describe("config cli", () => {
           "config",
           "set",
           "--batch-json",
-          '[{"path":"channels.discord.token","value":"x","ref":{"source":"env","provider":"default","id":"DISCORD_BOT_TOKEN"}}]',
+          '[{"path":"channels.feishu.appSecret","value":"x","ref":{"source":"env","provider":"default","id":"FEISHU_APP_SECRET"}}]',
         ]),
       ).rejects.toThrow("__exit__:1");
 
@@ -1201,13 +1167,13 @@ describe("config cli", () => {
         runConfigCommand([
           "config",
           "set",
-          "channels.discord.token",
+          "channels.feishu.appSecret",
           "--ref-provider",
           "default",
           "--ref-source",
           "env",
           "--ref-id",
-          "DISCORD_BOT_TOKEN",
+          "FEISHU_APP_SECRET",
           "--dry-run",
         ]),
       ).rejects.toThrow("__exit__:1");
@@ -1231,13 +1197,13 @@ describe("config cli", () => {
       await runConfigCommand([
         "config",
         "set",
-        "channels.discord.token",
+        "channels.feishu.appSecret",
         "--ref-provider",
         "default",
         "--ref-source",
         "env",
         "--ref-id",
-        "DISCORD_BOT_TOKEN",
+        "FEISHU_APP_SECRET",
         "--dry-run",
         "--json",
       ]);
@@ -1280,7 +1246,7 @@ describe("config cli", () => {
       await runConfigCommand([
         "config",
         "set",
-        "channels.discord.token",
+        "channels.feishu.appSecret",
         "--ref-provider",
         "runner",
         "--ref-source",
@@ -1322,13 +1288,13 @@ describe("config cli", () => {
         runConfigCommand([
           "config",
           "set",
-          "channels.discord.token",
+          "channels.feishu.appSecret",
           "--ref-provider",
           "default",
           "--ref-source",
           "env",
           "--ref-id",
-          "DISCORD_BOT_TOKEN",
+          "FEISHU_APP_SECRET",
           "--dry-run",
           "--json",
         ]),
@@ -1343,7 +1309,7 @@ describe("config cli", () => {
       expect(payload.ok).toBe(false);
       expect(payload.errors?.some((entry) => entry.kind === "resolvability")).toBe(true);
       expect(
-        payload.errors?.some((entry) => entry.ref?.includes("default:DISCORD_BOT_TOKEN")),
+        payload.errors?.some((entry) => entry.ref?.includes("default:FEISHU_APP_SECRET")),
       ).toBe(true);
     });
 
@@ -1363,7 +1329,7 @@ describe("config cli", () => {
           "config",
           "set",
           "--batch-json",
-          '[{"path":"channels.discord.token","ref":{"source":"exec","provider":"default","id":"DISCORD_BOT_TOKEN"}},{"path":"channels.telegram.botToken","ref":{"source":"exec","provider":"default","id":"TELEGRAM_BOT_TOKEN"}}]',
+          '[{"path":"channels.feishu.appSecret","ref":{"source":"exec","provider":"default","id":"FEISHU_APP_SECRET"}},{"path":"channels.feishu.accounts.main.appSecret","ref":{"source":"exec","provider":"default","id":"FEISHU_MAIN_APP_SECRET"}}]',
           "--dry-run",
           "--json",
         ]),
@@ -1380,10 +1346,10 @@ describe("config cli", () => {
         payload.errors?.filter((entry) => entry.kind === "resolvability") ?? [];
       expect(resolvabilityErrors).toHaveLength(2);
       expect(
-        resolvabilityErrors.some((entry) => entry.ref === "exec:default:DISCORD_BOT_TOKEN"),
+        resolvabilityErrors.some((entry) => entry.ref === "exec:default:FEISHU_APP_SECRET"),
       ).toBe(true);
       expect(
-        resolvabilityErrors.some((entry) => entry.ref === "exec:default:TELEGRAM_BOT_TOKEN"),
+        resolvabilityErrors.some((entry) => entry.ref === "exec:default:FEISHU_MAIN_APP_SECRET"),
       ).toBe(true);
     });
 
@@ -1404,7 +1370,7 @@ describe("config cli", () => {
           "config",
           "set",
           "--batch-json",
-          '[{"path":"gateway.port","value":"not-a-number"},{"path":"channels.discord.token","ref":{"source":"env","provider":"default","id":"DISCORD_BOT_TOKEN"}}]',
+          '[{"path":"gateway.port","value":"not-a-number"},{"path":"channels.feishu.appSecret","ref":{"source":"env","provider":"default","id":"FEISHU_APP_SECRET"}}]',
           "--dry-run",
           "--json",
         ]),
@@ -1420,7 +1386,7 @@ describe("config cli", () => {
       expect(payload.errors?.some((entry) => entry.kind === "schema")).toBe(true);
       expect(payload.errors?.some((entry) => entry.kind === "resolvability")).toBe(true);
       expect(
-        payload.errors?.some((entry) => entry.ref?.includes("default:DISCORD_BOT_TOKEN")),
+        payload.errors?.some((entry) => entry.ref?.includes("default:FEISHU_APP_SECRET")),
       ).toBe(true);
     });
 

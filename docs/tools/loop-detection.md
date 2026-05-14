@@ -116,5 +116,5 @@ normal tool access.
   policy runs, which is the preferred way to validate loop-tuning changes
   before enabling stricter blocking behavior.
 - The current operator path is:
-  - `crawclaw agents harness report`
-  - `crawclaw agents harness promote-check --baseline ... --candidate ...`
+  - CrawClaw Desktop or the local Gateway API
+  - CrawClaw Desktop or the local Gateway API

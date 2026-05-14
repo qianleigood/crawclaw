@@ -1,8 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { normalizeAccountId } from "../routing/session-key.js";
 
-export const DISCORD_THREAD_BINDING_CHANNEL = "discord";
-export const MATRIX_THREAD_BINDING_CHANNEL = "matrix";
 const DEFAULT_THREAD_BINDING_IDLE_HOURS = 24;
 const DEFAULT_THREAD_BINDING_MAX_AGE_HOURS = 0;
 
@@ -28,20 +26,14 @@ export type ThreadBindingSpawnPolicy = {
   spawnEnabled: boolean;
 };
 
-function normalizeChannelId(value: string | undefined | null): string {
-  return (value ?? "").trim().toLowerCase();
-}
-
 export function supportsAutomaticThreadBindingSpawn(channel: string): boolean {
-  const normalized = normalizeChannelId(channel);
-  return (
-    normalized === DISCORD_THREAD_BINDING_CHANNEL || normalized === MATRIX_THREAD_BINDING_CHANNEL
-  );
+  void channel;
+  return false;
 }
 
 export function requiresNativeThreadContextForThreadHere(channel: string): boolean {
-  const normalized = normalizeChannelId(channel);
-  return normalized !== "telegram" && normalized !== "feishu" && normalized !== "line";
+  void channel;
+  return true;
 }
 
 export function resolveThreadBindingPlacementForCurrentContext(params: {
@@ -59,6 +51,10 @@ function normalizeBoolean(value: unknown): boolean | undefined {
     return undefined;
   }
   return value;
+}
+
+function normalizeChannelId(raw: string): string {
+  return raw.trim().toLowerCase();
 }
 
 function normalizeThreadBindingHours(raw: unknown): number | undefined {
@@ -252,12 +248,6 @@ export function formatThreadBindingDisabledError(params: {
   accountId: string;
   kind: ThreadBindingSpawnKind;
 }): string {
-  if (params.channel === DISCORD_THREAD_BINDING_CHANNEL) {
-    return "Discord thread bindings are disabled (set channels.discord.threadBindings.enabled=true to override for this account, or session.threadBindings.enabled=true globally).";
-  }
-  if (params.channel === MATRIX_THREAD_BINDING_CHANNEL) {
-    return "Matrix thread bindings are disabled (set channels.matrix.threadBindings.enabled=true to override for this account, or session.threadBindings.enabled=true globally).";
-  }
   return `Thread bindings are disabled for ${params.channel} (set session.threadBindings.enabled=true to enable).`;
 }
 
@@ -266,17 +256,5 @@ export function formatThreadBindingSpawnDisabledError(params: {
   accountId: string;
   kind: ThreadBindingSpawnKind;
 }): string {
-  if (params.channel === DISCORD_THREAD_BINDING_CHANNEL && params.kind === "acp") {
-    return "Discord thread-bound ACP spawns are disabled for this account (set channels.discord.threadBindings.spawnAcpSessions=true to enable).";
-  }
-  if (params.channel === DISCORD_THREAD_BINDING_CHANNEL && params.kind === "subagent") {
-    return "Discord thread-bound subagent spawns are disabled for this account (set channels.discord.threadBindings.spawnSubagentSessions=true to enable).";
-  }
-  if (params.channel === MATRIX_THREAD_BINDING_CHANNEL && params.kind === "acp") {
-    return "Matrix thread-bound ACP spawns are disabled for this account (set channels.matrix.threadBindings.spawnAcpSessions=true to enable).";
-  }
-  if (params.channel === MATRIX_THREAD_BINDING_CHANNEL && params.kind === "subagent") {
-    return "Matrix thread-bound subagent spawns are disabled for this account (set channels.matrix.threadBindings.spawnSubagentSessions=true to enable).";
-  }
   return `Thread-bound ${params.kind} spawns are disabled for ${params.channel}.`;
 }

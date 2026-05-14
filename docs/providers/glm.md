@@ -11,20 +11,20 @@ title: "GLM Models"
 GLM is a **model family** (not a company) available through the Z.AI platform. In CrawClaw, GLM
 models are accessed via the `zai` provider and model IDs like `zai/glm-5`.
 
-## CLI setup
+## Desktop setup
 
 ```bash
 # Coding Plan Global, recommended for Coding Plan users
-crawclaw onboard --auth-choice zai-coding-global
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # Coding Plan CN (China region), recommended for Coding Plan users
-crawclaw onboard --auth-choice zai-coding-cn
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # General API
-crawclaw onboard --auth-choice zai-global
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 
 # General API CN (China region)
-crawclaw onboard --auth-choice zai-cn
+# Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
 ## Config snippet

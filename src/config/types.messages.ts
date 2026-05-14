@@ -119,7 +119,7 @@ export type CommandOwnerDisplay = "raw" | "hash";
 
 /**
  * Per-provider allowlist for command authorization.
- * Keys are channel IDs (e.g., "discord", "whatsapp") or "*" for global default.
+ * Keys are channel IDs (e.g., "feishu", "weixin") or "*" for global default.
  * Values are arrays of sender IDs allowed to use commands on that channel.
  */
 export type CommandAllowFrom = Record<string, Array<string | number>>;
@@ -157,7 +157,7 @@ export type CommandsConfig = {
    * Per-provider allowlist restricting who can use slash commands.
    * If set, overrides the channel's allowFrom for command authorization.
    * Use "*" key for global default, provider-specific keys override the global.
-   * Example: { "*": ["user1"], discord: ["user:123"] }
+   * Example: { "*": ["user1"], feishu: ["user:123"] }
    */
   allowFrom?: CommandAllowFrom;
 };

@@ -46,7 +46,7 @@ owns semantic relevance and ordering for experience recall; CrawClaw preserves
 provider order and only applies deterministic guardrails before prompt assembly.
 The default NotebookLM
 CLI path uses CrawClaw's managed `notebooklm-mcp-cli` runtime when it is
-installed; run `crawclaw runtimes install` or `crawclaw runtimes repair` if
+installed; run CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API if
 `nlm` is missing.
 
 ## Operational notes
@@ -55,7 +55,7 @@ installed; run `crawclaw runtimes install` or `crawclaw runtimes repair` if
   assembly.
 - Experience extraction runs after eligible completed turns.
 - Experience recall reads NotebookLM only; local pending entries sync after
-  login, heartbeat, startup, or `crawclaw memory sync`.
+  login, heartbeat, startup, or CrawClaw Desktop or the local Gateway API.
 - Session summaries are maintained separately from durable memory and are used
   as compaction continuity.
 - Context Archive is off by default unless enabled under `memory.contextArchive`.

@@ -47,14 +47,14 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
 
     # Install CrawClaw
     curl -fsSL https://crawclaw.ai/install.sh | bash
-    crawclaw --version
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
   </Step>
 
   <Step title="Run onboarding">
     ```bash
-    crawclaw onboard --install-daemon
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     The wizard walks you through model auth, channel setup, gateway token generation, and daemon installation (systemd).
@@ -73,7 +73,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
 
   <Step title="Verify the gateway">
     ```bash
-    crawclaw status
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     systemctl --user status crawclaw-gateway.service
     journalctl --user -u crawclaw-gateway.service -f
     ```
@@ -96,8 +96,8 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     ```bash
     curl -fsSL https://tailscale.com/install.sh | sh
     tailscale up
-    crawclaw config set gateway.tailscale.mode serve
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Then connect a supported gateway client to `https://<magicdns>/` from any device on your tailnet.
@@ -105,8 +105,8 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     **Option C: Tailnet bind (no Serve)**
 
     ```bash
-    crawclaw config set gateway.bind tailnet
-    crawclaw gateway restart
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
     Then connect a supported gateway client to `http://<tailscale-ip>:18789` (token required).
@@ -116,7 +116,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
 
 ## Troubleshooting
 
-**Gateway will not start** -- Run `crawclaw doctor --non-interactive` and check logs with `journalctl --user -u crawclaw-gateway.service -n 50`.
+**Gateway will not start** -- Run CrawClaw Desktop or the local Gateway API and check logs with `journalctl --user -u crawclaw-gateway.service -n 50`.
 
 **Port already in use** -- Run `lsof -i :18789` to find the process, then stop it.
 

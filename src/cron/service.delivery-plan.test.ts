@@ -89,7 +89,7 @@ describe("CronService delivery plan consistency", () => {
       const job = await addIsolatedAgentTurnJob(cron, {
         name: "partial-delivery",
         wakeMode: "now",
-        delivery: { channel: "telegram", to: "123" } as DeliveryOverride,
+        delivery: { channel: "feishu", to: "123" } as DeliveryOverride,
       });
 
       const result = await cron.run(job.id, "force");
@@ -112,7 +112,7 @@ describe("CronService delivery plan consistency", () => {
         const job = await addIsolatedAgentTurnJob(cron, {
           name: "announce-delivered",
           wakeMode: "now",
-          delivery: { channel: "telegram", to: "123" } as DeliveryOverride,
+          delivery: { channel: "feishu", to: "123" } as DeliveryOverride,
         });
 
         const result = await cron.run(job.id, "force");

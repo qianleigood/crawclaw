@@ -11,10 +11,6 @@ import {
   executeWorkflowControlAction,
   resolveWorkflowControlContext,
 } from "../../workflows/control-runtime.js";
-import {
-  buildWorkflowDiscordResumeCallbackData,
-  ensureWorkflowInteractiveHandlersRegistered,
-} from "../../workflows/interactive.js";
 import type { WorkflowExecutionView } from "../../workflows/types.js";
 import { buildWorkflowExecutionVisibilityProjection } from "../../workflows/visibility.js";
 import type { CommandHandler } from "./commands-types.js";
@@ -110,18 +106,6 @@ function buildWorkflowReplyChannelData(params: {
 }): Record<string, unknown> | undefined {
   const surface = normalizeOptionalString(params.surface)?.toLowerCase();
   const commands = buildWorkflowChannelControlCommands(params.execution.executionId);
-  const resumeCallbackData =
-    surface === "discord" &&
-    (params.execution.status === "waiting_input" || params.execution.status === "waiting_external")
-      ? buildWorkflowDiscordResumeCallbackData({
-          executionId: params.execution.executionId,
-          workspaceDir: params.workspaceDir,
-          agentDir: params.agentDir,
-        })
-      : undefined;
-  if (resumeCallbackData) {
-    ensureWorkflowInteractiveHandlersRegistered();
-  }
   return buildWorkflowControlChannelData({
     channel: surface,
     workflow: {
@@ -131,7 +115,6 @@ function buildWorkflowReplyChannelData(params: {
     refreshCommand: commands?.refreshCommand,
     cancelCommand: commands?.cancelCommand,
     resumeCommand: commands?.resumeCommand,
-    resumeCallbackData,
   });
 }
 

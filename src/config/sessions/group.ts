@@ -57,13 +57,11 @@ export function resolveGroupSessionKey(ctx: MsgContext): GroupKeyResolution | nu
   const normalizedChatType =
     chatType === "channel" ? "channel" : chatType === "group" ? "group" : undefined;
 
-  const isWhatsAppGroupId = from.toLowerCase().endsWith("@g.us");
   const looksLikeGroup =
     normalizedChatType === "group" ||
     normalizedChatType === "channel" ||
     from.includes(":group:") ||
-    from.includes(":channel:") ||
-    isWhatsAppGroupId;
+    from.includes(":channel:");
   if (!looksLikeGroup) {
     return null;
   }
@@ -74,9 +72,7 @@ export function resolveGroupSessionKey(ctx: MsgContext): GroupKeyResolution | nu
   const head = parts[0]?.trim().toLowerCase() ?? "";
   const headIsSurface = head ? getGroupSurfaces().has(head) : false;
 
-  const provider = headIsSurface
-    ? head
-    : (providerHint ?? (isWhatsAppGroupId ? "whatsapp" : undefined));
+  const provider = headIsSurface ? head : providerHint;
   if (!provider) {
     return null;
   }

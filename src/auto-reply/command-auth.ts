@@ -330,13 +330,8 @@ function resolveSenderCandidates(params: {
     }
     candidates.push(trimmed);
   };
-  if (params.providerId === "whatsapp") {
-    pushCandidate(params.senderE164);
-    pushCandidate(params.senderId);
-  } else {
-    pushCandidate(params.senderId);
-    pushCandidate(params.senderE164);
-  }
+  pushCandidate(params.senderId);
+  pushCandidate(params.senderE164);
   if (
     candidates.length === 0 &&
     shouldUseFromAsSenderFallback({ from: params.from, chatType: params.chatType })
@@ -452,11 +447,11 @@ function resolveFallbackDefaultAccountConfig(
   return definedAccounts.length === 1 ? definedAccounts[0] : undefined;
 }
 
-function resolveFallbackCommandOptions(providerId?: ChannelId): {
+function resolveFallbackCommandOptions(_providerId?: ChannelId): {
   enforceOwnerForCommands: boolean;
 } {
   return {
-    enforceOwnerForCommands: providerId === "whatsapp",
+    enforceOwnerForCommands: false,
   };
 }
 
