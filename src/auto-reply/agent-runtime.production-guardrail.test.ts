@@ -53,6 +53,7 @@ describe("agent/channel Rust runtime production guardrails", () => {
     const source = readSource("src/channels/plugins/bundled-compat-loader.ts");
 
     expect(source).not.toMatch(/from\s+["']jiti["']/);
+    expect(source).toContain("assertBundledTsChannelRuntimeAllowed");
     expect(source).toContain('require("jiti")');
   });
 

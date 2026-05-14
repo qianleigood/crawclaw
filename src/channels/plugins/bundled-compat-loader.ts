@@ -6,6 +6,7 @@ import {
   buildPluginLoaderJitiOptions,
   shouldPreferNativeJiti,
 } from "../../plugins/sdk-alias.js";
+import { assertBundledTsChannelRuntimeAllowed } from "./bundled-runtime-policy.js";
 
 type CreateJiti = typeof import("jiti").createJiti;
 type JitiLoader = ReturnType<CreateJiti>;
@@ -46,6 +47,7 @@ function createCompatModuleLoader() {
 const loadCompatModule = createCompatModuleLoader();
 
 export function loadBundledTsChannelModule(modulePath: string, rootDir: string): unknown {
+  assertBundledTsChannelRuntimeAllowed("loadBundledTsChannelModule");
   const opened = openBoundaryFileSync({
     absolutePath: modulePath,
     rootPath: rootDir,
