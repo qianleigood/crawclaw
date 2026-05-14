@@ -10,6 +10,7 @@ import {
   type ReplyDispatcherOptions,
   type ReplyDispatcherWithTypingOptions,
 } from "./reply/reply-dispatcher.js";
+import { isTsAgentLoopCompatibilityAllowed } from "./reply/ts-agent-loop-compatibility.js";
 import type { FinalizedMsgContext, MsgContext } from "./templating.js";
 import type { GetReplyOptions } from "./types.js";
 
@@ -21,13 +22,7 @@ function shouldUseTsAgentLoopCompatibility(params: {
   if (!params.replyResolver) {
     return false;
   }
-  return isTestRuntimeForTsAgentLoopCompatibility();
-}
-
-function isTestRuntimeForTsAgentLoopCompatibility(
-  env: Readonly<Record<string, string | undefined>> = process.env,
-): boolean {
-  return env.NODE_ENV === "test" || env.VITEST === "true";
+  return isTsAgentLoopCompatibilityAllowed();
 }
 
 export async function withReplyDispatcher<T>(params: {

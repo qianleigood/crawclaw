@@ -52,6 +52,7 @@ import {
 } from "../types.js";
 import type { ReplyDispatcher, ReplyDispatchKind } from "./reply-dispatcher.js";
 import { resolveReplyRoutingDecisionWithRust } from "./routing-policy-runtime.js";
+import { assertTsAgentLoopCompatibilityAllowed } from "./ts-agent-loop-compatibility.js";
 
 let routeReplyRuntimePromise: Promise<typeof import("./route-reply.runtime.js")> | null = null;
 let getReplyFromConfigRuntimePromise: Promise<
@@ -162,6 +163,7 @@ export async function dispatchReplyFromConfig(params: {
   /** Optional config override passed to getReplyFromConfig (e.g. per-sender timezone). */
   configOverride?: CrawClawConfig;
 }): Promise<DispatchFromConfigResult> {
+  assertTsAgentLoopCompatibilityAllowed("dispatchReplyFromConfig");
   const { ctx, cfg, dispatcher } = params;
   const agentId = ctx.SessionKey
     ? resolveSessionAgentId({ sessionKey: ctx.SessionKey, config: cfg })

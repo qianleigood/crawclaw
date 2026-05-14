@@ -12,12 +12,26 @@ function readSource(repoRelativePath: string): string {
 describe("agent/channel Rust runtime production guardrails", () => {
   it("keeps the default inbound dispatch path on Rust agent.runTurn", () => {
     const source = readSource("src/auto-reply/dispatch.ts");
+    const policy = readSource("src/auto-reply/reply/ts-agent-loop-compatibility.ts");
 
     expect(source).toContain("dispatchInboundWithRustAgent");
-    expect(source).toContain('env.NODE_ENV === "test"');
-    expect(source).toContain('env.VITEST === "true"');
+    expect(source).toContain("isTsAgentLoopCompatibilityAllowed");
+    expect(policy).toContain('env.NODE_ENV === "test"');
+    expect(policy).toContain('env.VITEST === "true"');
     expect(source).not.toContain("return Boolean(params.replyResolver);");
     expect(source).not.toContain("CRAWCLAW_ENABLE_TS_AGENT_LOOP");
+  });
+
+  it("keeps TS reply runtime facades test-only", () => {
+    const guardedSources = [
+      "src/auto-reply/reply/get-reply.ts",
+      "src/auto-reply/reply/get-reply-run.ts",
+      "src/auto-reply/reply/dispatch-from-config.ts",
+    ];
+
+    for (const file of guardedSources) {
+      expect(readSource(file)).toContain("assertTsAgentLoopCompatibilityAllowed");
+    }
   });
 
   it("keeps plugin-sdk inbound dispatch off the TS reply loop", () => {

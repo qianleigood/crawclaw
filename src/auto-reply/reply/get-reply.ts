@@ -23,6 +23,7 @@ import { handleInlineActions } from "./get-reply-inline-actions.js";
 import { runPreparedReply } from "./get-reply-run.js";
 import { emitPreAgentMessageHooks } from "./message-preprocess-hooks.js";
 import { initSessionState } from "./session.js";
+import { assertTsAgentLoopCompatibilityAllowed } from "./ts-agent-loop-compatibility.js";
 import { createTypingController } from "./typing.js";
 
 type ResetCommandAction = "new";
@@ -126,6 +127,7 @@ export async function getReplyFromConfig(
   opts?: GetReplyOptions,
   configOverride?: CrawClawConfig,
 ): Promise<ReplyPayload | ReplyPayload[] | undefined> {
+  assertTsAgentLoopCompatibilityAllowed("getReplyFromConfig");
   const isFastTestEnv = process.env.CRAWCLAW_TEST_FAST === "1";
   const cfg =
     configOverride == null

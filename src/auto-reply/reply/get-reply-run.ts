@@ -41,6 +41,7 @@ import { resolveQueueSettings } from "./queue/settings.js";
 import type { RouteReplyParams } from "./route-reply.js";
 import { buildBareSessionResetPrompt } from "./session-reset-prompt.js";
 import { drainFormattedSystemEvents } from "./session-system-events.js";
+import { assertTsAgentLoopCompatibilityAllowed } from "./ts-agent-loop-compatibility.js";
 import type { TypingController } from "./typing.js";
 import { appendUntrustedContext } from "./untrusted-context.js";
 
@@ -211,6 +212,7 @@ type RunPreparedReplyParams = {
 export async function runPreparedReply(
   params: RunPreparedReplyParams,
 ): Promise<ReplyPayload | ReplyPayload[] | undefined> {
+  assertTsAgentLoopCompatibilityAllowed("runPreparedReply");
   const {
     ctx,
     sessionCtx,
