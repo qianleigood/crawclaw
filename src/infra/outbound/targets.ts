@@ -5,11 +5,11 @@ import {
   resolveComparableTargetForChannel,
 } from "../../channels/plugins/target-parsing.js";
 import type { ChannelOutboundTargetMode } from "../../channels/plugins/types.js";
-import { formatCliCommand } from "../../cli/command-format.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { AgentDefaultsConfig } from "../../config/types.agent-defaults.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
+import { formatCliCommand } from "../../terminal/command-format.js";
 import {
   deliveryContextFromSession,
   mergeDeliveryContext,
@@ -239,7 +239,7 @@ export function resolveOutboundTarget(params: {
     return {
       ok: false,
       error: new Error(
-        `Delivering to WebChat is not supported via \`${formatCliCommand("crawclaw agent")}\`; use WhatsApp/Telegram or run with --deliver=false.`,
+        `Delivering to WebChat is not supported via \`${formatCliCommand("crawclaw agent")}\`; use a native channel adapter or run with --deliver=false.`,
       ),
     };
   }
@@ -343,7 +343,7 @@ export function resolveHeartbeatDeliveryTarget(params: {
     // Only pass threadId from an explicit turn source (e.g., restart sentinel's
     // delivery context). Do NOT fall back to session-stored threadId here —
     // heartbeat mode intentionally drops inherited thread IDs to avoid replying
-    // in stale threads (e.g., Slack thread_ts). The sentinel's delivery context
+    // in stale threads. The sentinel's delivery context
     // carries the correct topic/thread ID when present.
     turnSourceThreadId: params.turnSource?.threadId,
   });

@@ -3,31 +3,31 @@ import { createHookRunnerWithRegistry } from "./hooks.test-helpers.js";
 
 const inboundClaimEvent = {
   content: "who are you",
-  channel: "discord",
+  channel: "qqbot",
   accountId: "default",
   conversationId: "channel:1",
   isGroup: true,
 };
 
 const inboundClaimCtx = {
-  channelId: "discord",
+  channelId: "qqbot",
   accountId: "default",
   conversationId: "channel:1",
 };
 
-function createInboundClaimTelegramEvent() {
+function createInboundClaimFeishuEvent() {
   return {
     content: "who are you",
-    channel: "telegram",
+    channel: "feishu",
     accountId: "default",
     conversationId: "123:topic:77",
     isGroup: true,
   };
 }
 
-function createInboundClaimTelegramCtx() {
+function createInboundClaimFeishuCtx() {
   return {
-    channelId: "telegram",
+    channelId: "feishu",
     accountId: "default",
     conversationId: "123:topic:77",
   };
@@ -43,8 +43,8 @@ describe("inbound_claim hook runner", () => {
     ]);
 
     const result = await runner.runInboundClaim(
-      createInboundClaimTelegramEvent(),
-      createInboundClaimTelegramCtx(),
+      createInboundClaimFeishuEvent(),
+      createInboundClaimFeishuCtx(),
     );
 
     expect(result).toEqual({ handled: true });
@@ -69,13 +69,13 @@ describe("inbound_claim hook runner", () => {
 
     const result = await runner.runInboundClaim(
       {
-        ...createInboundClaimTelegramEvent(),
+        ...createInboundClaimFeishuEvent(),
         content: "hi",
         conversationId: "123",
         isGroup: false,
       },
       {
-        ...createInboundClaimTelegramCtx(),
+        ...createInboundClaimFeishuCtx(),
         conversationId: "123",
       },
     );

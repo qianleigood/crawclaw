@@ -32,39 +32,39 @@ x-i18n:
 ## 将结果用于 `message send`
 
 ```bash
-crawclaw directory peers list --channel slack --query "U0"
-crawclaw message send --channel slack --target user:U012ABCDEF --message "hello"
+crawclaw directory peers list --channel ddingtalk --query "U0"
+crawclaw message send --channel ddingtalk --target user:U012ABCDEF --message "hello"
 ```
 
 ## ID 格式（按渠道）
 
-- WhatsApp：`+15551234567`（私聊），`1234567890-1234567890@g.us`（群组）
-- Telegram：`@username` 或数字聊天 ID；群组为数字 ID
-- Slack：`user:U…` 和 `channel:C…`
-- Discord：`user:<id>` 和 `channel:<id>`
+- Weixin：`+15551234567`（私聊），`1234567890-1234567890@g.us`（群组）
+- Feishu：`@username` 或数字聊天 ID；群组为数字 ID
+- DingTalk：`user:U…` 和 `channel:C…`
+- QQBot：`user:<id>` 和 `channel:<id>`
 - Matrix（插件）：`user:@user:server`、`room:!roomId:server` 或 `#alias:server`
-- Microsoft Teams（插件）：`user:<id>` 和 `conversation:<id>`
-- Zalo（插件）：用户 ID（Bot API）
-- Zalo Personal / `zalouser`（插件）：来自 `zca` 的会话 ID（私聊/群组）（`me`、`friend list`、`group list`）
+- QQBot（插件）：`user:<id>` 和 `conversation:<id>`
+- Feishu（插件）：用户 ID（Bot API）
+- Feishu Personal / `feishu`（插件）：来自 `zca` 的会话 ID（私聊/群组）（`me`、`friend list`、`group list`）
 
 ## Self（"我"）
 
 ```bash
-crawclaw directory self --channel zalouser
+crawclaw directory self --channel feishu
 ```
 
 ## Peers（联系人/用户）
 
 ```bash
-crawclaw directory peers list --channel zalouser
-crawclaw directory peers list --channel zalouser --query "name"
-crawclaw directory peers list --channel zalouser --limit 50
+crawclaw directory peers list --channel feishu
+crawclaw directory peers list --channel feishu --query "name"
+crawclaw directory peers list --channel feishu --limit 50
 ```
 
 ## 群组
 
 ```bash
-crawclaw directory groups list --channel zalouser
-crawclaw directory groups list --channel zalouser --query "work"
-crawclaw directory groups members --channel zalouser --group-id <id>
+crawclaw directory groups list --channel feishu
+crawclaw directory groups list --channel feishu --query "work"
+crawclaw directory groups members --channel feishu --group-id <id>
 ```

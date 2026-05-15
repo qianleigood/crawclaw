@@ -344,7 +344,6 @@ Current coverage includes:
 - `src/memory/dreaming/agent-runner.test.ts`
 - `src/agents/pi-embedded-runner/run/attempt.*.test.ts`
 - `src/agents/special/runtime/*.test.ts`
-- `src/commands/agent.inspect.test.ts`
 
 At the time of writing, this suite passes as:
 
@@ -355,7 +354,7 @@ This suite is the quickest way to answer:
 
 - is the memory architecture still wired correctly?
 - are the memory agents still runnable through the current substrate?
-- does inspect still expose the runtime/memory state to CLI and Browser client?
+- does inspect still expose the runtime/memory state through Gateway API and the Browser client?
 
 It is still not a substitute for full e2e or long-running soak coverage. It is
 the primary targeted regression belt for the current run-loop, memory, special

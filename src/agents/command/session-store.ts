@@ -10,9 +10,10 @@ import { setCliSessionBinding, setCliSessionId } from "../cli-session.js";
 import { resolveContextTokensForModel } from "../context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
 import { isCliProvider } from "../model-selection.js";
+import type { NativeAgentRunResult } from "../runtime-tools/agent-turn-client.js";
 import { deriveSessionTotalTokens, hasNonzeroUsage } from "../usage.js";
 
-type RunResult = Awaited<ReturnType<(typeof import("../pi-embedded.js"))["runEmbeddedPiAgent"]>>;
+type RunResult = NativeAgentRunResult;
 
 function resolveNonNegativeNumber(value: number | undefined): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;

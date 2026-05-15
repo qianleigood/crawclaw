@@ -10,7 +10,7 @@ import {
   assertModelSelection,
   installDirectiveBehaviorE2EHooks,
   MAIN_SESSION_KEY,
-  makeWhatsAppDirectiveConfig,
+  makeWeixinDirectiveConfig,
   replyText,
   sessionStorePath,
   withTempHome,
@@ -31,7 +31,7 @@ function makeModelDefinition(id: string, name: string): ModelDefinitionConfig {
 }
 
 function makeModelSwitchConfig(home: string) {
-  return makeWhatsAppDirectiveConfig(home, {
+  return makeWeixinDirectiveConfig(home, {
     model: { primary: "openai/gpt-4.1-mini" },
     models: {
       "openai/gpt-4.1-mini": {},
@@ -304,14 +304,14 @@ describe("directive behavior", () => {
           Body: "/elevated on",
           From: "+1222",
           To: "+1222",
-          Provider: "whatsapp",
+          Provider: "weixin",
           CommandAuthorized: true,
         },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           { model: { primary: "openai/gpt-4.1-mini" } },
-          { tools: { elevated: { allowFrom: { whatsapp: ["*"] } } } },
+          { tools: { elevated: { allowFrom: { weixin: ["*"] } } } },
         ),
       );
 
@@ -325,11 +325,11 @@ describe("directive behavior", () => {
           Body: "/reasoning stream",
           From: "+1222",
           To: "+1222",
-          Provider: "whatsapp",
+          Provider: "weixin",
           CommandAuthorized: true,
         },
         {},
-        makeWhatsAppDirectiveConfig(home, { model: { primary: "openai/gpt-4.1-mini" } }),
+        makeWeixinDirectiveConfig(home, { model: { primary: "openai/gpt-4.1-mini" } }),
       );
 
       events = drainSystemEvents(MAIN_SESSION_KEY);

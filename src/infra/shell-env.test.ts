@@ -144,7 +144,7 @@ describe("shell env fallback", () => {
     const res = runShellEnvFallback({
       enabled: true,
       env,
-      expectedKeys: ["OPENAI_API_KEY", "DISCORD_BOT_TOKEN"],
+      expectedKeys: ["OPENAI_API_KEY", "QQBOT_BOT_TOKEN"],
       exec,
     });
 
@@ -156,47 +156,45 @@ describe("shell env fallback", () => {
 
   it("imports expected keys without overriding existing env", () => {
     const env: NodeJS.ProcessEnv = {};
-    const exec = vi.fn(() => Buffer.from("OPENAI_API_KEY=from-shell\0DISCORD_BOT_TOKEN=discord\0"));
+    const exec = vi.fn(() => Buffer.from("OPENAI_API_KEY=from-shell\0QQBOT_BOT_TOKEN=qqbot\0"));
 
     const res1 = runShellEnvFallback({
       enabled: true,
       env,
-      expectedKeys: ["OPENAI_API_KEY", "DISCORD_BOT_TOKEN"],
+      expectedKeys: ["OPENAI_API_KEY", "QQBOT_BOT_TOKEN"],
       exec,
     });
 
     expect(res1.ok).toBe(true);
     expect(env.OPENAI_API_KEY).toBe("from-shell");
-    expect(env.DISCORD_BOT_TOKEN).toBe("discord");
+    expect(env.QQBOT_BOT_TOKEN).toBe("qqbot");
     expect(exec).toHaveBeenCalledTimes(1);
 
     env.OPENAI_API_KEY = "from-parent";
-    const exec2 = vi.fn(() =>
-      Buffer.from("OPENAI_API_KEY=from-shell\0DISCORD_BOT_TOKEN=discord2\0"),
-    );
+    const exec2 = vi.fn(() => Buffer.from("OPENAI_API_KEY=from-shell\0QQBOT_BOT_TOKEN=qqbot2\0"));
     const res2 = runShellEnvFallback({
       enabled: true,
       env,
-      expectedKeys: ["OPENAI_API_KEY", "DISCORD_BOT_TOKEN"],
+      expectedKeys: ["OPENAI_API_KEY", "QQBOT_BOT_TOKEN"],
       exec: exec2,
     });
 
     expect(res2.ok).toBe(true);
     expect(env.OPENAI_API_KEY).toBe("from-parent");
-    expect(env.DISCORD_BOT_TOKEN).toBe("discord");
+    expect(env.QQBOT_BOT_TOKEN).toBe("qqbot");
     expect(exec2).not.toHaveBeenCalled();
   });
 
   it("tracks last applied keys across success, skip, and failure paths", () => {
     const successEnv: NodeJS.ProcessEnv = {};
     const successExec = vi.fn(() =>
-      Buffer.from("OPENAI_API_KEY=from-shell\0DISCORD_BOT_TOKEN=\0EXTRA=ignored\0"),
+      Buffer.from("OPENAI_API_KEY=from-shell\0QQBOT_BOT_TOKEN=\0EXTRA=ignored\0"),
     );
     expect(
       loadShellEnvFallback({
         enabled: true,
         env: successEnv,
-        expectedKeys: ["OPENAI_API_KEY", "DISCORD_BOT_TOKEN"],
+        expectedKeys: ["OPENAI_API_KEY", "QQBOT_BOT_TOKEN"],
         exec: successExec as unknown as Parameters<typeof loadShellEnvFallback>[0]["exec"],
       }),
     ).toEqual({

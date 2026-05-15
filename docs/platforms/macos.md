@@ -37,7 +37,7 @@ The macOS matrix uses two support states:
 | Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                                          |
 | Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                                   |
 | Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                   |
-| iMessage and Apple-local messaging  | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.                 |
+| Weixin and Apple-local messaging    | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.                 |
 | Camera, microphone, and screen APIs | `external`  | Permission-sensitive APIs depend on macOS TCC prompts, signing, and a separate local runtime.                     |
 
 ## Install
@@ -84,7 +84,7 @@ that runs before any user logs in.
 The repo keeps a focused macOS npm install smoke in CI:
 
 ```bash
-node scripts/ci/macos-packed-install-smoke.mjs
+pnpm desktop:tauri:release-check
 ```
 
 This gate packs the current checkout, installs it into a temporary global npm
@@ -95,8 +95,8 @@ Gateway on a temporary loopback port.
 Full VM validation remains separate:
 
 ```bash
-pnpm test:parallels:macos
-pnpm test:parallels:npm-update
+pnpm desktop:tauri:release-check
+pnpm desktop:tauri:release-check
 ```
 
 ## Current boundaries

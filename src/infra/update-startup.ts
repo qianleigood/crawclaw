@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatCliCommand } from "../cli/command-format.js";
 import type { loadConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { runCommandWithTimeout } from "../process/exec.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import { VERSION } from "../version.js";
 import { resolveCrawClawPackageRoot } from "./crawclaw-root.js";
 import { writeJsonAtomic } from "./json-files.js";

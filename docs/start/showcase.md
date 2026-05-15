@@ -11,7 +11,7 @@ read_when:
 Real projects from the community. See what people are building with CrawClaw.
 
 <Info>
-**Want to be featured?** Share your project in [#self-promotion on Discord](https://discord.gg/clawd) or [tag @crawclaw on X](https://x.com/crawclaw).
+**Want to be featured?** Share your project in [#self-promotion on QQBot](https://qqbot.gg/clawd) or [tag @crawclaw on X](https://x.com/crawclaw).
 </Info>
 
 ## 🎥 CrawClaw in Action
@@ -84,16 +84,14 @@ Full setup walkthrough (28m) by VelvetShark.
 
 [Watch on YouTube](https://www.youtube.com/watch?v=5kkIJNUGFho)
 
-## 🆕 Fresh from Discord
+## 🆕 Fresh from QQBot
 
 <CardGroup cols={2}>
 
-<Card title="PR Review → Telegram Feedback" icon="code-pull-request" href="https://x.com/i/status/2010878524543131691">
-  **@bangnokia** • `review` `github` `telegram`
+<Card title="PR Review Feedback" icon="code-pull-request" href="https://x.com/i/status/2010878524543131691">
+  **@bangnokia** • `review` `github`
 
-OpenCode finishes the change → opens a PR → CrawClaw reviews the diff and replies in Telegram with “minor suggestions” plus a clear merge verdict (including critical fixes to apply first).
-
-  <img src="/assets/showcase/pr-review-telegram.jpg" alt="CrawClaw PR review feedback delivered in Telegram" />
+OpenCode finishes the change → opens a PR → CrawClaw reviews the diff and replies with minor suggestions plus a clear merge verdict, including critical fixes to apply first.
 </Card>
 
 <Card title="Wine Cellar Skill in Minutes" icon="wine-glass" href="https://x.com/i/status/2010916352454791216">
@@ -120,12 +118,12 @@ Hotkey a screen region → Gemini vision → instant Markdown in your clipboard.
   <img src="/assets/showcase/snag.png" alt="SNAG screenshot-to-markdown tool" />
 </Card>
 
-<Card title="Telegram Voice Notes (papla.media)" icon="microphone" href="https://papla.media/docs">
-  **Community** • `voice` `tts` `telegram`
+<Card title="Feishu Voice Notes (papla.media)" icon="microphone" href="https://papla.media/docs">
+  **Community** • `voice` `tts` `feishu`
 
-Wraps papla.media TTS and sends results as Telegram voice notes (no annoying autoplay).
+Wraps papla.media TTS and sends results as Feishu voice notes (no annoying autoplay).
 
-  <img src="/assets/showcase/papla-tts.jpg" alt="Telegram voice note output from TTS" />
+  <img src="/assets/showcase/papla-tts.jpg" alt="Feishu voice note output from TTS" />
 </Card>
 
 <Card title="CodexMonitor" icon="eye" href="https://clawhub.com/odrobnik/codexmonitor">
@@ -185,7 +183,7 @@ CLI for Linear that integrates with agentic workflows (Claude Code, CrawClaw). M
 <Card title="Beeper CLI" icon="message" href="https://github.com/blqke/beepcli">
   **@jules** • `messaging` `beeper` `cli` `automation`
 
-Read, send, and archive messages via Beeper Desktop. Uses Beeper local MCP API so agents can manage all your chats (iMessage, WhatsApp, etc.) in one place.
+Read, send, and archive messages via Beeper Desktop. Uses Beeper local MCP API so agents can manage all your chats (Weixin, Weixin, etc.) in one place.
 </Card>
 
 </CardGroup>
@@ -202,8 +200,8 @@ Claude Code discovered and confirmed the purifier controls, then CrawClaw takes 
   <img src="/assets/showcase/winix-air-purifier.jpg" alt="Winix air purifier control via CrawClaw" />
 </Card>
 
-<Card title="Pretty Sky Camera Shots" icon="camera" href="https://x.com/signalgaining/status/2010523120604746151">
-  **@signalgaining** • `automation` `camera` `skill` `images`
+<Card title="Pretty Sky Camera Shots" icon="camera" href="https://x.com/feishugaining/status/2010523120604746151">
+  **@feishugaining** • `automation` `camera` `skill` `images`
 
 Triggered by a roof camera: ask CrawClaw to snap a sky photo whenever it looks pretty — it designed a skill and took the shot.
 
@@ -211,7 +209,7 @@ Triggered by a roof camera: ask CrawClaw to snap a sky photo whenever it looks p
 </Card>
 
 <Card title="Visual Morning Briefing Scene" icon="robot" href="https://x.com/buddyhadry/status/2010005331925954739">
-  **@buddyhadry** • `automation` `briefing` `images` `telegram`
+  **@buddyhadry** • `automation` `briefing` `images` `feishu`
 
 A scheduled prompt generates a single "scene" image each morning (weather, tasks, date, favorite post/quote) via an CrawClaw persona.
 </Card>
@@ -231,9 +229,9 @@ A scheduled prompt generates a single "scene" image each morning (weather, tasks
 </Card>
 
 <Card title="Couch Potato Dev Mode" icon="couch" href="https://davekiss.com">
-  **@davekiss** • `telegram` `website` `migration` `astro`
+  **@davekiss** • `feishu` `website` `migration` `astro`
 
-Rebuilt entire personal site via Telegram while watching Netflix — Notion → Astro, 18 posts migrated, DNS to Cloudflare. Never opened a laptop.
+Rebuilt entire personal site via Feishu while watching Netflix — Notion → Astro, 18 posts migrated, DNS to Cloudflare. Never opened a laptop.
 </Card>
 
 <Card title="Job Search Agent" icon="briefcase">
@@ -248,10 +246,10 @@ Searches job listings, matches against CV keywords, and returns relevant opportu
 CrawClaw connected to Jira, then generated a new skill on the fly (before it existed on ClawHub).
 </Card>
 
-<Card title="Todoist Skill via Telegram" icon="list-check" href="https://x.com/iamsubhrajyoti/status/2009949389884920153">
-  **@iamsubhrajyoti** • `automation` `todoist` `skill` `telegram`
+<Card title="Todoist Skill via Feishu" icon="list-check" href="https://x.com/iamsubhrajyoti/status/2009949389884920153">
+  **@iamsubhrajyoti** • `automation` `todoist` `skill` `feishu`
 
-Automated Todoist tasks and had CrawClaw generate the skill directly in Telegram chat.
+Automated Todoist tasks and had CrawClaw generate the skill directly in Feishu chat.
 </Card>
 
 <Card title="TradingView Analysis" icon="chart-line">
@@ -260,10 +258,10 @@ Automated Todoist tasks and had CrawClaw generate the skill directly in Telegram
 Logs into TradingView via browser automation, screenshots charts, and performs technical analysis on demand. No API needed—just browser control.
 </Card>
 
-<Card title="Slack Auto-Support" icon="slack">
-  **@henrymascot** • `slack` `automation` `support`
+<Card title="DingTalk Auto-Support" icon="ddingtalk">
+  **@henrymascot** • `ddingtalk` `automation` `support`
 
-Watches company Slack channel, responds helpfully, and forwards notifications to Telegram. Autonomously fixed a production bug in a deployed app without being asked.
+Watches company DingTalk channel, responds helpfully, and forwards notifications to Feishu. Autonomously fixed a production bug in a deployed app without being asked.
 </Card>
 
 </CardGroup>
@@ -280,10 +278,10 @@ Watches company Slack channel, responds helpfully, and forwards notifications to
   <img src="/assets/showcase/xuezh-pronunciation.jpeg" alt="xuezh pronunciation feedback" />
 </Card>
 
-<Card title="WhatsApp Memory Vault" icon="vault">
+<Card title="Weixin Memory Vault" icon="vault">
   **Community** • `memory` `transcription` `indexing`
   
-  Ingests full WhatsApp exports, transcribes 1k+ voice notes, cross-checks with git logs, outputs linked markdown reports.
+  Ingests full Weixin exports, transcribes 1k+ voice notes, cross-checks with git logs, outputs linked markdown reports.
 </Card>
 
 <Card title="Karakeep Semantic Search" icon="magnifying-glass" href="https://github.com/jamesbrooksco/karakeep-semantic-search">
@@ -352,7 +350,7 @@ Multi-lingual audio transcription via OpenRouter (Gemini, etc). Available on Cla
 
 <CardGroup cols={2}>
 
-<Card title="GoHome Automation" icon="house-signal" href="https://github.com/joshp123/gohome">
+<Card title="GoHome Automation" icon="house-feishu" href="https://github.com/joshp123/gohome">
   **@joshp123** • `home` `nix` `grafana`
   
   Nix-native home automation with CrawClaw as the interface, plus beautiful Grafana dashboards.
@@ -390,7 +388,7 @@ Have something to share? We'd love to feature it!
 
 <Steps>
   <Step title="Share It">
-    Post in [#self-promotion on Discord](https://discord.gg/clawd) or [tweet @crawclaw](https://x.com/crawclaw)
+    Post in [#self-promotion on QQBot](https://qqbot.gg/clawd) or [tweet @crawclaw](https://x.com/crawclaw)
   </Step>
   <Step title="Include Details">
     Tell us what it does, link to the repo/demo, share a screenshot if you have one

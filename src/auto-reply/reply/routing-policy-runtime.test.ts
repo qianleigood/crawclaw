@@ -16,19 +16,19 @@ describe("resolveReplyRoutingDecisionWithRust", () => {
 
   it("uses the Rust message policy worker operation", async () => {
     runRuntimeTool.mockResolvedValue({
-      originatingChannel: "telegram",
-      currentSurface: "slack",
+      originatingChannel: "feishu",
+      currentSurface: "ddingtalk",
       isInternalWebchatTurn: false,
       shouldRouteToOriginating: true,
       shouldSuppressTyping: true,
     });
 
     const decision = await resolveReplyRoutingDecisionWithRust({
-      provider: "Slack",
-      surface: "slack",
-      originatingChannel: "Telegram",
-      originatingTo: "telegram:123",
-      isRoutableChannel: (channel) => channel === "telegram",
+      provider: "DingTalk",
+      surface: "ddingtalk",
+      originatingChannel: "Feishu",
+      originatingTo: "feishu:123",
+      isRoutableChannel: (channel) => channel === "feishu",
     });
 
     expect(decision.shouldRouteToOriginating).toBe(true);
@@ -37,11 +37,11 @@ describe("resolveReplyRoutingDecisionWithRust", () => {
       {
         operation: "outbound.resolveReplyRoutingDecision",
         payload: {
-          provider: "slack",
-          surface: "slack",
+          provider: "ddingtalk",
+          surface: "ddingtalk",
           explicitDeliverRoute: undefined,
-          originatingChannel: "telegram",
-          originatingTo: "telegram:123",
+          originatingChannel: "feishu",
+          originatingTo: "feishu:123",
           suppressDirectUserDelivery: undefined,
           originatingRoutable: true,
         },

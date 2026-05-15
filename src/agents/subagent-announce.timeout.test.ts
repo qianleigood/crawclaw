@@ -95,16 +95,6 @@ vi.mock("../config/sessions.js", async (importOriginal) => {
   };
 });
 vi.mock("./subagent-depth.js", createSubagentDepthModuleMock);
-vi.mock("./pi-embedded.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./pi-embedded.js")>();
-  return {
-    ...actual,
-    isEmbeddedPiRunActive: (sessionId: string) => isEmbeddedPiRunActiveMock(sessionId),
-    queueEmbeddedPiMessage: (_sessionId: string, _text: string) => false,
-    waitForEmbeddedPiRunEnd: (sessionId: string, timeoutMs?: number) =>
-      waitForEmbeddedPiRunEndMock(sessionId, timeoutMs),
-  };
-});
 vi.mock("./subagent-registry.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./subagent-registry.js")>();
   return {
@@ -194,7 +184,7 @@ function setupParentSessionFallback(parentSessionKey: string): void {
   shouldIgnorePostCompletion = false;
   fallbackRequesterResolution = {
     requesterSessionKey: "agent:main:main",
-    requesterOrigin: { channel: "discord", to: "chan-main", accountId: "acct-main" },
+    requesterOrigin: { channel: "qqbot", to: "chan-main", accountId: "acct-main" },
   };
 }
 
@@ -244,7 +234,7 @@ describe("subagent announce timeout config", () => {
     setConfiguredAnnounceTimeout(90_000);
     await runAnnounceFlowForTest("run-config-timeout-send", {
       requesterOrigin: {
-        channel: "discord",
+        channel: "qqbot",
         to: "12345",
       },
       expectsCompletionMessage: true,
@@ -268,7 +258,7 @@ describe("subagent announce timeout config", () => {
 
       const announcePromise = runAnnounceFlowForTest("run-completion-timeout-retry", {
         requesterOrigin: {
-          channel: "telegram",
+          channel: "feishu",
           to: "12345",
         },
         expectsCompletionMessage: true,
@@ -303,7 +293,7 @@ describe("subagent announce timeout config", () => {
     const didAnnounce = await runAnnounceFlowForTest("run-announce-type", {
       announceType: "cron job",
       expectsCompletionMessage: true,
-      requesterOrigin: { channel: "discord", to: "channel:cron" },
+      requesterOrigin: { channel: "qqbot", to: "channel:cron" },
     });
 
     expect(didAnnounce).toBe(true);
@@ -321,7 +311,7 @@ describe("subagent announce timeout config", () => {
     await runAnnounceFlowForTest("run-cron-internal", {
       requesterSessionKey: cronSessionKey,
       requesterDisplayKey: cronSessionKey,
-      requesterOrigin: { channel: "discord", to: "channel:cron-results", accountId: "acct-1" },
+      requesterOrigin: { channel: "qqbot", to: "channel:cron-results", accountId: "acct-1" },
     });
 
     const directAgentCall = findFinalDirectAgentCall();
@@ -361,7 +351,7 @@ describe("subagent announce timeout config", () => {
     const directAgentCall = findFinalDirectAgentCall();
     expect(directAgentCall?.params?.sessionKey).toBe("agent:main:main");
     expect(directAgentCall?.params?.deliver).toBe(true);
-    expect(directAgentCall?.params?.channel).toBe("discord");
+    expect(directAgentCall?.params?.channel).toBe("qqbot");
     expect(directAgentCall?.params?.to).toBe("chan-main");
     expect(directAgentCall?.params?.accountId).toBe("acct-main");
   });

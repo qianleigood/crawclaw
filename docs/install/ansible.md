@@ -37,7 +37,7 @@ The [crawclaw-ansible](https://github.com/qianleigood/crawclaw-ansible) repo is 
 One-command install:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw-ansible/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/qianleigood/crawclaw-ansible/main/CrawClaw Desktop installer | bash
 ```
 
 ## What Gets Installed
@@ -65,7 +65,7 @@ The Ansible playbook installs and configures:
     The post-install script guides you through configuring CrawClaw settings.
   </Step>
   <Step title="Connect messaging providers">
-    Log in to WhatsApp, Telegram, Discord, or Signal:
+    Log in to Weixin, Feishu, community chat, or native channel:
     ```bash
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```

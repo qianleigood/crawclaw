@@ -68,7 +68,7 @@ describe("restoreRedactedValues", () => {
   it("handles deeply nested sentinel restoration", () => {
     const incoming = {
       channels: {
-        slack: {
+        ddingtalk: {
           accounts: {
             ws1: { botToken: REDACTED_SENTINEL },
             ws2: { botToken: "user-typed-new-token-value" },
@@ -78,7 +78,7 @@ describe("restoreRedactedValues", () => {
     };
     const original = {
       channels: {
-        slack: {
+        ddingtalk: {
           accounts: {
             ws1: { botToken: "original-ws1-token-value" },
             ws2: { botToken: "original-ws2-token-value" },
@@ -87,8 +87,8 @@ describe("restoreRedactedValues", () => {
       },
     };
     const result = restoreRedactedValues(incoming, original) as typeof incoming;
-    expect(result.channels.slack.accounts.ws1.botToken).toBe("original-ws1-token-value");
-    expect(result.channels.slack.accounts.ws2.botToken).toBe("user-typed-new-token-value");
+    expect(result.channels.ddingtalk.accounts.ws1.botToken).toBe("original-ws1-token-value");
+    expect(result.channels.ddingtalk.accounts.ws2.botToken).toBe("user-typed-new-token-value");
   });
 
   it("handles missing original gracefully", () => {
@@ -140,9 +140,9 @@ describe("restoreRedactedValues", () => {
     const originalConfig = {
       gateway: { auth: { token: "gateway-auth-secret-token-value" }, port: 18789 },
       channels: {
-        slack: { botToken: "fake-slack-token-placeholder-value" },
-        telegram: {
-          botToken: "fake-telegram-token-placeholder-value",
+        ddingtalk: { botToken: "fake-ddingtalk-token-placeholder-value" },
+        feishu: {
+          botToken: "fake-feishu-token-placeholder-value",
           webhookSecret: "fake-tg-secret-placeholder-value",
         },
       },
@@ -204,11 +204,11 @@ describe("restoreRedactedValues", () => {
 
   it("restores array items using wildcard uiHints", () => {
     const hints: ConfigUiHints = {
-      "channels.slack.accounts[].botToken": { sensitive: true },
+      "channels.ddingtalk.accounts[].botToken": { sensitive: true },
     };
     const incoming = {
       channels: {
-        slack: {
+        ddingtalk: {
           accounts: [
             { botToken: REDACTED_SENTINEL },
             { botToken: "user-provided-new-token-value" },
@@ -218,7 +218,7 @@ describe("restoreRedactedValues", () => {
     };
     const original = {
       channels: {
-        slack: {
+        ddingtalk: {
           accounts: [
             { botToken: "original-token-first-account" },
             { botToken: "original-token-second-account" },
@@ -227,17 +227,17 @@ describe("restoreRedactedValues", () => {
       },
     };
     const result = restoreRedactedValues(incoming, original, hints) as typeof incoming;
-    expect(result.channels.slack.accounts[0].botToken).toBe("original-token-first-account");
-    expect(result.channels.slack.accounts[1].botToken).toBe("user-provided-new-token-value");
+    expect(result.channels.ddingtalk.accounts[0].botToken).toBe("original-token-first-account");
+    expect(result.channels.ddingtalk.accounts[1].botToken).toBe("user-provided-new-token-value");
   });
 
   it("restores redacted SecretRef ids for channels token paths", () => {
     const hints: ConfigUiHints = {
-      "channels.discord.token": { sensitive: true },
+      "channels.qqbot.token": { sensitive: true },
     };
     const incoming = {
       channels: {
-        discord: {
+        qqbot: {
           token: {
             source: "env",
             provider: "default",
@@ -248,20 +248,20 @@ describe("restoreRedactedValues", () => {
     };
     const original = {
       channels: {
-        discord: {
+        qqbot: {
           token: {
             source: "env",
             provider: "default",
-            id: "DISCORD_BOT_TOKEN",
+            id: "QQBOT_BOT_TOKEN",
           },
         },
       },
     };
     const result = restoreRedactedValues(incoming, original, hints);
-    expect(result.channels.discord.token).toEqual({
+    expect(result.channels.qqbot.token).toEqual({
       source: "env",
       provider: "default",
-      id: "DISCORD_BOT_TOKEN",
+      id: "QQBOT_BOT_TOKEN",
     });
   });
 

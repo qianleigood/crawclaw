@@ -132,26 +132,26 @@ describe("stageBundledPluginRuntime", () => {
 
   it("stages root runtime sidecars that bundled plugin boundaries resolve directly", () => {
     const repoRoot = makeRepoRoot("crawclaw-stage-bundled-runtime-sidecars-");
-    createDistPluginDir(repoRoot, "whatsapp");
+    createDistPluginDir(repoRoot, "weixin");
     setupRepoFiles(repoRoot, {
-      [bundledDistPluginFile("whatsapp", "index.js")]: "export default {};\n",
-      [bundledDistPluginFile("whatsapp", "light-runtime-api.js")]: "export const light = true;\n",
-      [bundledDistPluginFile("whatsapp", "runtime-api.js")]: "export const heavy = true;\n",
+      [bundledDistPluginFile("weixin", "index.js")]: "export default {};\n",
+      [bundledDistPluginFile("weixin", "light-runtime-api.js")]: "export const light = true;\n",
+      [bundledDistPluginFile("weixin", "runtime-api.js")]: "export const heavy = true;\n",
     });
 
     stageBundledPluginRuntime({ repoRoot });
 
     expectRuntimePluginWrapperContains({
       repoRoot,
-      pluginId: "whatsapp",
+      pluginId: "weixin",
       relativePath: "light-runtime-api.js",
-      expectedImport: distRuntimeImportPath("whatsapp", "light-runtime-api.js"),
+      expectedImport: distRuntimeImportPath("weixin", "light-runtime-api.js"),
     });
     expectRuntimePluginWrapperContains({
       repoRoot,
-      pluginId: "whatsapp",
+      pluginId: "weixin",
       relativePath: "runtime-api.js",
-      expectedImport: distRuntimeImportPath("whatsapp", "runtime-api.js"),
+      expectedImport: distRuntimeImportPath("weixin", "runtime-api.js"),
     });
   });
 
@@ -173,7 +173,7 @@ describe("stageBundledPluginRuntime", () => {
         "  registry.clear();",
         "}",
         "export function getPluginCommandSpecs(provider) {",
-        "  if (provider && provider !== 'telegram' && provider !== 'discord') return [];",
+        "  if (provider && provider !== 'feishu' && provider !== 'qqbot') return [];",
         "  return Array.from(registry.values()).map((command) => ({",
         "    name: command.nativeNames?.[provider] ?? command.nativeNames?.default ?? command.name,",
         "    description: command.description,",
@@ -203,7 +203,7 @@ describe("stageBundledPluginRuntime", () => {
         "    name: 'pair',",
         "    description: 'Pair a device',",
         "    acceptsArgs: true,",
-        "    nativeNames: { telegram: 'pair', discord: 'pair' },",
+        "    nativeNames: { feishu: 'pair', qqbot: 'pair' },",
         "    handler: async ({ args }) => ({ text: `paired:${args ?? ''}` }),",
         "  });",
         "}",
@@ -244,10 +244,10 @@ describe("stageBundledPluginRuntime", () => {
     commandsModule.clearPluginCommands();
     runtimeModule.registerDemoCommand();
 
-    expect(commandsModule.getPluginCommandSpecs("telegram")).toEqual([
+    expect(commandsModule.getPluginCommandSpecs("feishu")).toEqual([
       { name: "pair", description: "Pair a device", acceptsArgs: true },
     ]);
-    expect(commandsModule.getPluginCommandSpecs("discord")).toEqual([
+    expect(commandsModule.getPluginCommandSpecs("qqbot")).toEqual([
       { name: "pair", description: "Pair a device", acceptsArgs: true },
     ]);
 

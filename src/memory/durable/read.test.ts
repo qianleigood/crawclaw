@@ -19,7 +19,7 @@ describe("durable memory recall", () => {
         "agents",
         "main",
         "channels",
-        "discord",
+        "qqbot",
         "users",
         "user-42",
       );
@@ -57,7 +57,7 @@ describe("durable memory recall", () => {
       const manifest = await scanDurableMemoryManifest({
         scope: {
           agentId: "main",
-          channel: "discord",
+          channel: "qqbot",
           userId: "user-42",
           scopeKey: "main",
           rootDir: scopeDir,
@@ -80,7 +80,7 @@ describe("durable memory recall", () => {
         "agents",
         "main",
         "channels",
-        "discord",
+        "qqbot",
         "users",
         "user-42",
       );
@@ -126,7 +126,7 @@ describe("durable memory recall", () => {
       const manifest = await scanDurableMemoryManifest({
         scope: {
           agentId: "main",
-          channel: "discord",
+          channel: "qqbot",
           userId: "user-42",
           scopeKey: "main",
           rootDir: scopeDir,
@@ -155,7 +155,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,
@@ -234,7 +234,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,
@@ -282,7 +282,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,
@@ -341,7 +341,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,
@@ -406,7 +406,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,
@@ -472,7 +472,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,
@@ -536,7 +536,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,
@@ -597,7 +597,7 @@ describe("durable memory recall", () => {
     try {
       const scope = {
         agentId: "main",
-        channel: "discord",
+        channel: "qqbot",
         userId: "user-42",
         scopeKey: "main",
         rootDir: scopeDir,

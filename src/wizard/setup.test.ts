@@ -3,27 +3,16 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
-import { setActiveCliLocale } from "../cli/i18n/text.js";
 import type { PluginCompatibilityNotice } from "../plugins/status.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { setActiveCliLocale } from "../terminal/i18n/text.js";
 import type { WizardPrompter, WizardSelectParams } from "./prompts.js";
 import { runSetupWizard } from "./setup.js";
-
-type ResolveProviderPluginChoice =
-  typeof import("../plugins/provider-auth-choice.runtime.js").resolveProviderPluginChoice;
-type ResolvePluginProvidersRuntime =
-  typeof import("../plugins/provider-auth-choice.runtime.js").resolvePluginProviders;
 
 const ensureAuthProfileStore = vi.hoisted(() => vi.fn(() => ({ profiles: {} })));
 const promptAuthChoiceGrouped = vi.hoisted(() => vi.fn(async () => "skip"));
 const applyAuthChoice = vi.hoisted(() => vi.fn(async (args) => ({ config: args.config })));
 const resolvePreferredProviderForAuthChoice = vi.hoisted(() => vi.fn(async () => "demo-provider"));
-const resolveProviderPluginChoice = vi.hoisted(() =>
-  vi.fn<ResolveProviderPluginChoice>(() => null),
-);
-const resolvePluginProvidersRuntime = vi.hoisted(() =>
-  vi.fn<ResolvePluginProvidersRuntime>(() => []),
-);
 const warnIfModelConfigLooksOff = vi.hoisted(() => vi.fn(async () => {}));
 const applyPrimaryModel = vi.hoisted(() => vi.fn((cfg) => cfg));
 const promptDefaultModel = vi.hoisted(() => vi.fn(async () => ({ config: null, model: null })));
@@ -83,7 +72,6 @@ const readConfigFileSnapshot = vi.hoisted(() =>
 );
 const ensureSystemdUserLingerInteractive = vi.hoisted(() => vi.fn(async () => {}));
 const isSystemdUserServiceAvailable = vi.hoisted(() => vi.fn(async () => true));
-const setupWizardShellCompletion = vi.hoisted(() => vi.fn(async () => {}));
 const probeGatewayReachable = vi.hoisted(() => vi.fn(async () => ({ ok: true })));
 const buildPluginCompatibilityNotices = vi.hoisted(() =>
   vi.fn((): PluginCompatibilityNotice[] => []),
@@ -96,11 +84,11 @@ function getWizardNoteCalls(note: WizardPrompter["note"]) {
   return (note as unknown as { mock: { calls: unknown[][] } }).mock.calls;
 }
 
-vi.mock("../commands/onboard-channels.js", () => ({
+vi.mock("../control/onboard-channels.js", () => ({
   setupChannels,
 }));
 
-vi.mock("../commands/onboard-skills.js", () => ({
+vi.mock("../control/onboard-skills.js", () => ({
   setupSkills,
 }));
 
@@ -108,35 +96,30 @@ vi.mock("../agents/auth-profiles.js", () => ({
   ensureAuthProfileStore,
 }));
 
-vi.mock("../commands/auth-choice-prompt.js", () => ({
+vi.mock("../control/auth-choice-prompt.js", () => ({
   promptAuthChoiceGrouped,
 }));
 
-vi.mock("../commands/auth-choice.js", () => ({
+vi.mock("../control/auth-choice.js", () => ({
   applyAuthChoice,
   resolvePreferredProviderForAuthChoice,
   warnIfModelConfigLooksOff,
 }));
 
-vi.mock("../plugins/provider-auth-choice.runtime.js", () => ({
-  resolveProviderPluginChoice,
-  resolvePluginProviders: resolvePluginProvidersRuntime,
-}));
-
-vi.mock("../commands/model-picker.js", () => ({
+vi.mock("../control/model-picker.js", () => ({
   applyPrimaryModel,
   promptDefaultModel,
 }));
 
-vi.mock("../commands/onboard-custom.js", () => ({
+vi.mock("../control/onboard-custom.js", () => ({
   promptCustomApiConfig,
 }));
 
-vi.mock("../commands/health.js", () => ({
+vi.mock("../control/health.js", () => ({
   healthCommand,
 }));
 
-vi.mock("../commands/onboard-hooks.js", () => ({
+vi.mock("../control/onboard-hooks.js", () => ({
   setupInternalHooks,
 }));
 
@@ -147,7 +130,7 @@ vi.mock("../config/config.js", () => ({
   writeConfigFile,
 }));
 
-vi.mock("../commands/onboard-helpers.js", () => ({
+vi.mock("../control/onboard-helpers.js", () => ({
   DEFAULT_WORKSPACE: "/tmp/crawclaw-workspace",
   applyWizardMetadata: (cfg: unknown) => cfg,
   summarizeExistingConfig: () => "summary",
@@ -169,7 +152,7 @@ vi.mock("../commands/onboard-helpers.js", () => ({
   })),
 }));
 
-vi.mock("../commands/systemd-linger.js", () => ({
+vi.mock("../control/systemd-linger.js", () => ({
   ensureSystemdUserLingerInteractive,
 }));
 
@@ -196,10 +179,6 @@ vi.mock("./setup.gateway-config.js", () => ({
 
 vi.mock("./setup.finalize.js", () => ({
   finalizeSetupWizard,
-}));
-
-vi.mock("./setup.completion.js", () => ({
-  setupWizardShellCompletion,
 }));
 
 function createRuntime(opts?: { throwsOnExit?: boolean }): RuntimeEnv {
@@ -389,35 +368,8 @@ describe("runSetupWizard", () => {
     }
   });
 
-  it("prompts for a model during explicit interactive Ollama setup", async () => {
+  it("does not load TS provider setup policy for explicit auth choices", async () => {
     promptDefaultModel.mockClear();
-    resolveProviderPluginChoice.mockReturnValue({
-      provider: {
-        id: "ollama",
-        label: "Ollama",
-        auth: [],
-        wizard: {
-          setup: {
-            modelSelection: {
-              promptWhenAuthChoiceProvided: true,
-              allowKeepCurrent: false,
-            },
-          },
-        },
-      },
-      method: {
-        id: "local",
-        label: "Ollama",
-        kind: "custom",
-        run: vi.fn(async () => ({ profiles: [] })),
-      },
-      wizard: {
-        modelSelection: {
-          promptWhenAuthChoiceProvided: true,
-          allowKeepCurrent: false,
-        },
-      },
-    });
     const prompter = buildWizardPrompter({});
     const runtime = createRuntime();
 
@@ -437,11 +389,7 @@ describe("runSetupWizard", () => {
       prompter,
     );
 
-    expect(promptDefaultModel).toHaveBeenCalledWith(
-      expect.objectContaining({
-        allowKeep: false,
-      }),
-    );
+    expect(promptDefaultModel).not.toHaveBeenCalled();
   });
 
   it("shows plugin compatibility notices for an existing valid config", async () => {

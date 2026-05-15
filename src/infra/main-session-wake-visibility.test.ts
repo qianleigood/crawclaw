@@ -17,10 +17,10 @@ describe("resolveMainSessionWakeVisibility", () => {
     } as CrawClawConfig;
   }
 
-  function createTelegramAccountHeartbeatConfig(): CrawClawConfig {
+  function createFeishuAccountHeartbeatConfig(): CrawClawConfig {
     return {
       channels: {
-        telegram: {
+        feishu: {
           heartbeat: {
             showOk: true,
           },
@@ -38,7 +38,7 @@ describe("resolveMainSessionWakeVisibility", () => {
 
   it("returns default values when no config is provided", () => {
     const cfg = {} as CrawClawConfig;
-    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "feishu" });
 
     expect(result).toEqual({
       showOk: false,
@@ -54,7 +54,7 @@ describe("resolveMainSessionWakeVisibility", () => {
       useIndicator: false,
     });
 
-    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "feishu" });
 
     expect(result).toEqual({
       showOk: true,
@@ -73,7 +73,7 @@ describe("resolveMainSessionWakeVisibility", () => {
             useIndicator: true,
           },
         },
-        telegram: {
+        feishu: {
           heartbeat: {
             showOk: true,
           },
@@ -81,7 +81,7 @@ describe("resolveMainSessionWakeVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "feishu" });
 
     expect(result).toEqual({
       showOk: true,
@@ -100,7 +100,7 @@ describe("resolveMainSessionWakeVisibility", () => {
             useIndicator: true,
           },
         },
-        telegram: {
+        feishu: {
           heartbeat: {
             showOk: false,
             showAlerts: false,
@@ -119,7 +119,7 @@ describe("resolveMainSessionWakeVisibility", () => {
 
     const result = resolveMainSessionWakeVisibility({
       cfg,
-      channel: "telegram",
+      channel: "feishu",
       accountId: "primary",
     });
 
@@ -138,7 +138,7 @@ describe("resolveMainSessionWakeVisibility", () => {
             showOk: false,
           },
         },
-        telegram: {
+        feishu: {
           heartbeat: {
             showAlerts: false,
           },
@@ -151,7 +151,7 @@ describe("resolveMainSessionWakeVisibility", () => {
 
     const result = resolveMainSessionWakeVisibility({
       cfg,
-      channel: "telegram",
+      channel: "feishu",
       accountId: "primary",
     });
 
@@ -163,27 +163,27 @@ describe("resolveMainSessionWakeVisibility", () => {
   });
 
   it("handles missing accountId gracefully", () => {
-    const cfg = createTelegramAccountHeartbeatConfig();
-    const result = resolveMainSessionWakeVisibility({ cfg, channel: "telegram" });
+    const cfg = createFeishuAccountHeartbeatConfig();
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "feishu" });
 
     expect(result.showOk).toBe(true);
   });
 
   it("handles non-existent account gracefully", () => {
-    const cfg = createTelegramAccountHeartbeatConfig();
+    const cfg = createFeishuAccountHeartbeatConfig();
     const result = resolveMainSessionWakeVisibility({
       cfg,
-      channel: "telegram",
+      channel: "feishu",
       accountId: "nonexistent",
     });
 
     expect(result.showOk).toBe(true);
   });
 
-  it("works with whatsapp channel", () => {
+  it("works with weixin channel", () => {
     const cfg = {
       channels: {
-        whatsapp: {
+        weixin: {
           heartbeat: {
             showOk: true,
             showAlerts: false,
@@ -192,7 +192,7 @@ describe("resolveMainSessionWakeVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveMainSessionWakeVisibility({ cfg, channel: "whatsapp" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "weixin" });
 
     expect(result).toEqual({
       showOk: true,
@@ -201,10 +201,10 @@ describe("resolveMainSessionWakeVisibility", () => {
     });
   });
 
-  it("works with discord channel", () => {
+  it("works with qqbot channel", () => {
     const cfg = {
       channels: {
-        discord: {
+        qqbot: {
           heartbeat: {
             useIndicator: false,
           },
@@ -212,7 +212,7 @@ describe("resolveMainSessionWakeVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveMainSessionWakeVisibility({ cfg, channel: "discord" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "qqbot" });
 
     expect(result).toEqual({
       showOk: false,
@@ -221,10 +221,10 @@ describe("resolveMainSessionWakeVisibility", () => {
     });
   });
 
-  it("works with slack channel", () => {
+  it("works with ddingtalk channel", () => {
     const cfg = {
       channels: {
-        slack: {
+        ddingtalk: {
           heartbeat: {
             showOk: true,
             showAlerts: true,
@@ -234,7 +234,7 @@ describe("resolveMainSessionWakeVisibility", () => {
       },
     } as CrawClawConfig;
 
-    const result = resolveMainSessionWakeVisibility({ cfg, channel: "slack" });
+    const result = resolveMainSessionWakeVisibility({ cfg, channel: "ddingtalk" });
 
     expect(result).toEqual({
       showOk: true,

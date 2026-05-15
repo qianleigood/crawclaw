@@ -1,5 +1,5 @@
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
-import type { MessagingToolSend } from "../../agents/pi-embedded-runner.js";
+import type { MessagingToolSend } from "../../agents/pi-embedded-messaging.js";
 import type { ReplyToMode } from "../../config/types.js";
 import { logVerbose } from "../../globals.js";
 import { stripHeartbeatToken } from "../heartbeat.js";

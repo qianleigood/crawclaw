@@ -128,6 +128,18 @@ async fn run_worker() {
             crawclaw_runtime::execute_message_policy_operation(request.input)
         } else if request.tool == "agent_run_turn" {
             crawclaw_runtime::execute_agent_run_turn_operation(&root, request.input).await
+        } else if request.tool.starts_with("memory.")
+            || request.tool.starts_with("memory_")
+            || request.tool == "memory"
+        {
+            crawclaw_runtime::execute_memory_runtime_operation(&root, &request.tool, request.input)
+        } else if request.tool == "wake"
+            || request.tool.starts_with("cron.")
+            || request.tool.starts_with("cron_")
+            || request.tool == "cron"
+        {
+            crawclaw_runtime::execute_cron_runtime_operation(&root, &request.tool, request.input)
+                .await
         } else if request.tool == "native_plugin_invoke" {
             crawclaw_runtime::execute_native_plugin_invoke_operation(&root, request.input).await
         } else if request.tool == "native_plugin_service_start" {

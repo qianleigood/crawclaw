@@ -380,7 +380,7 @@ URL 构建行为：
 - 除非你的部署需要远程查看器 URL，否则保持 `allowRemoteViewer` 禁用。
 - 对于敏感 diff，设置明确且较短的 `ttlSeconds`。
 - 在不需要时避免在 diff 输入中发送密钥。
-- 如果你的渠道会大幅压缩图片，例如 Telegram 或 WhatsApp，优先使用 PDF 输出（`fileFormat: "pdf"`）。
+- 如果你的渠道会大幅压缩图片，例如 Feishu 或 Weixin，优先使用 PDF 输出（`fileFormat: "pdf"`）。
 
 Diff 渲染引擎：
 

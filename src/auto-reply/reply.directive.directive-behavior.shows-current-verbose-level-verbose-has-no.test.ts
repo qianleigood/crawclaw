@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { loadSessionStore } from "../config/sessions.js";
 import {
-  AUTHORIZED_WHATSAPP_COMMAND,
+  AUTHORIZED_WEIXIN_COMMAND,
   assertElevatedOffStatusReply,
   installDirectiveBehaviorE2EHooks,
   makeElevatedDirectiveConfig,
   makeRestrictedElevatedDisabledConfig,
-  makeWhatsAppDirectiveConfig,
+  makeWeixinDirectiveConfig,
   replyText,
   sessionStorePath,
   withTempHome,
@@ -31,7 +31,7 @@ async function runCommand(
   const res = await getReplyFromConfig(
     { ...COMMAND_MESSAGE_BASE, Body: body },
     {},
-    makeWhatsAppDirectiveConfig(
+    makeWeixinDirectiveConfig(
       home,
       {
         model: "anthropic/claude-opus-4-5",
@@ -45,7 +45,7 @@ async function runCommand(
 
 async function runElevatedCommand(home: string, body: string) {
   return getReplyFromConfig(
-    { ...AUTHORIZED_WHATSAPP_COMMAND, Body: body },
+    { ...AUTHORIZED_WEIXIN_COMMAND, Body: body },
     {},
     makeElevatedDirectiveConfig(home),
   );
@@ -56,7 +56,7 @@ async function runQueueDirective(home: string, body: string) {
 }
 
 function makeWorkElevatedAllowlistConfig(home: string) {
-  const base = makeWhatsAppDirectiveConfig(
+  const base = makeWeixinDirectiveConfig(
     home,
     {
       model: "anthropic/claude-opus-4-5",
@@ -64,10 +64,10 @@ function makeWorkElevatedAllowlistConfig(home: string) {
     {
       tools: {
         elevated: {
-          allowFrom: { whatsapp: ["+1222", "+1333"] },
+          allowFrom: { weixin: ["+1222", "+1333"] },
         },
       },
-      channels: { whatsapp: { allowFrom: ["+1222", "+1333"] } },
+      channels: { weixin: { allowFrom: ["+1222", "+1333"] } },
     },
   );
   return {
@@ -79,7 +79,7 @@ function makeWorkElevatedAllowlistConfig(home: string) {
           id: "work",
           tools: {
             elevated: {
-              allowFrom: { whatsapp: ["+1333"] },
+              allowFrom: { weixin: ["+1333"] },
             },
           },
         },
@@ -93,7 +93,7 @@ function makeAllowlistedElevatedConfig(
   defaults: Record<string, unknown> = {},
   extra: Record<string, unknown> = {},
 ) {
-  return makeWhatsAppDirectiveConfig(
+  return makeWeixinDirectiveConfig(
     home,
     {
       model: "anthropic/claude-opus-4-5",
@@ -102,10 +102,10 @@ function makeAllowlistedElevatedConfig(
     {
       tools: {
         elevated: {
-          allowFrom: { whatsapp: ["+1222"] },
+          allowFrom: { weixin: ["+1222"] },
         },
       },
-      channels: { whatsapp: { allowFrom: ["+1222"] } },
+      channels: { weixin: { allowFrom: ["+1222"] } },
       ...extra,
     },
   );
@@ -116,7 +116,7 @@ function makeCommandMessage(body: string, from = "+1222") {
     Body: body,
     From: from,
     To: from,
-    Provider: "whatsapp",
+    Provider: "weixin",
     SenderE164: from,
     CommandAuthorized: true,
   } as const;
@@ -254,7 +254,7 @@ describe("directive behavior", () => {
           Body: "/elevated on",
           From: "+1222",
           To: "+1222",
-          Provider: "whatsapp",
+          Provider: "weixin",
           SenderE164: "+1222",
           SessionKey: "agent:restricted:main",
           CommandAuthorized: true,
@@ -270,7 +270,7 @@ describe("directive behavior", () => {
           Body: "/status",
           From: "+1222",
           To: "+1222",
-          Provider: "whatsapp",
+          Provider: "weixin",
           SenderE164: "+1222",
           SessionKey: "agent:restricted:main",
           CommandAuthorized: true,
@@ -295,7 +295,7 @@ describe("directive behavior", () => {
       );
 
       const deniedText = replyText(deniedRes);
-      expect(deniedText).toContain("agents.list[].tools.elevated.allowFrom.whatsapp");
+      expect(deniedText).toContain("agents.list[].tools.elevated.allowFrom.weixin");
 
       const allowedRes = await getReplyFromConfig(
         {
@@ -399,7 +399,7 @@ describe("directive behavior", () => {
           Body: "hello there /elevated off",
           From: "+1222",
           To: "+1222",
-          Provider: "whatsapp",
+          Provider: "weixin",
           SenderE164: "+1222",
         },
         {},

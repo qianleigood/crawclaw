@@ -104,7 +104,7 @@ export type MsgContext = {
   MediaPaths?: string[];
   MediaUrls?: string[];
   MediaTypes?: string[];
-  /** Telegram sticker metadata (emoji, set name, file IDs, cached description). */
+  /** native sticker metadata (emoji, set name, file IDs, cached description). */
   Sticker?: StickerContextMetadata;
   /** True when current-turn sticker media is present in MediaPaths (false for cached-description path). */
   StickerMediaIncluded?: boolean;
@@ -158,11 +158,11 @@ export type MsgContext = {
   GatewayClientScopes?: string[];
   /** Trusted system override for contexts that must never inherit owner semantics. */
   ForceSenderIsOwnerFalse?: boolean;
-  /** Thread identifier (Telegram topic id or Matrix thread event id). */
+  /** Channel thread identifier. */
   MessageThreadId?: string | number;
-  /** Platform-native channel/conversation id (e.g. Slack DM channel "D…" id). */
+  /** Platform-native channel/conversation id (e.g. channel DM "D…" id). */
   NativeChannelId?: string;
-  /** Telegram forum supergroup marker. */
+  /** channel forum marker. */
   IsForum?: boolean;
   /** Warning: DM has topics enabled but this message is not in a topic. */
   TopicRequiredButMissing?: boolean;
@@ -184,7 +184,7 @@ export type MsgContext = {
   ExplicitDeliverRoute?: boolean;
   /**
    * Provider-specific parent conversation id for threaded contexts.
-   * For Discord threads, this is the parent channel id.
+   * For threaded channels, this is the parent channel id.
    */
   ThreadParentId?: string;
   /**

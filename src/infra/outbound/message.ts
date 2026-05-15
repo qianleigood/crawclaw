@@ -19,9 +19,9 @@ import {
   type OutboundSendDeps,
 } from "./deliver.js";
 import type { OutboundMirror } from "./mirror.js";
+import { shouldUseNativeGatewayOutbound } from "./outbound-transport-policy.js";
 import { normalizeReplyPayloadsForDelivery } from "./payloads.js";
 import { buildOutboundSessionContext } from "./session-context.js";
-import { shouldUseNativeGatewayOutbound } from "./outbound-transport-policy.js";
 import { resolveOutboundTarget } from "./targets.js";
 
 export type MessageGatewayOptions = {

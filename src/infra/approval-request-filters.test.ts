@@ -10,10 +10,10 @@ describe("approval request filters", () => {
       matchesApprovalRequestFilters({
         request: {
           agentId: "ops-agent",
-          sessionKey: "agent:ops-agent:slack:direct:U1:tail",
+          sessionKey: "agent:ops-agent:ddingtalk:direct:U1:tail",
         },
         agentFilter: ["ops-agent"],
-        sessionFilter: ["slack:direct:", "tail$"],
+        sessionFilter: ["ddingtalk:direct:", "tail$"],
       }),
     ).toBe(true);
   });
@@ -22,7 +22,7 @@ describe("approval request filters", () => {
     expect(
       matchesApprovalRequestFilters({
         request: {
-          sessionKey: "agent:ops-agent:telegram:group:-1001",
+          sessionKey: "agent:ops-agent:feishu:group:-1001",
         },
         agentFilter: ["ops-agent"],
         fallbackAgentIdFromSessionKey: true,
@@ -31,7 +31,7 @@ describe("approval request filters", () => {
     expect(
       matchesApprovalRequestFilters({
         request: {
-          sessionKey: "agent:ops-agent:telegram:group:-1001",
+          sessionKey: "agent:ops-agent:feishu:group:-1001",
         },
         agentFilter: ["ops-agent"],
       }),

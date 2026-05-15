@@ -12,7 +12,7 @@ type ModelSelectionContext = Parameters<NonNullable<GetReplyOptions["onModelSele
 export type ReplyPrefixContextBundle = {
   prefixContext: ResponsePrefixContext;
   responsePrefix?: string;
-  enableSlackInteractiveReplies?: boolean;
+  enableChannelInteractiveReplies?: boolean;
   responsePrefixContextProvider: () => ResponsePrefixContext;
   onModelSelected: (ctx: ModelSelectionContext) => void;
 };
@@ -20,7 +20,7 @@ export type ReplyPrefixContextBundle = {
 export type ReplyPrefixOptions = Pick<
   ReplyPrefixContextBundle,
   | "responsePrefix"
-  | "enableSlackInteractiveReplies"
+  | "enableChannelInteractiveReplies"
   | "responsePrefixContextProvider"
   | "onModelSelected"
 >;
@@ -50,7 +50,7 @@ export function createReplyPrefixContext(params: {
       channel: params.channel,
       accountId: params.accountId,
     }).responsePrefix,
-    enableSlackInteractiveReplies: params.channel
+    enableChannelInteractiveReplies: params.channel
       ? (getChannelPlugin(params.channel)?.messaging?.enableInteractiveReplies?.({
           cfg,
           accountId: params.accountId,
@@ -69,13 +69,13 @@ export function createReplyPrefixOptions(params: {
 }): ReplyPrefixOptions {
   const {
     responsePrefix,
-    enableSlackInteractiveReplies,
+    enableChannelInteractiveReplies,
     responsePrefixContextProvider,
     onModelSelected,
   } = createReplyPrefixContext(params);
   return {
     responsePrefix,
-    enableSlackInteractiveReplies,
+    enableChannelInteractiveReplies,
     responsePrefixContextProvider,
     onModelSelected,
   };

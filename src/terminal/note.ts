@@ -1,6 +1,6 @@
 import { note as clackNote } from "@clack/prompts";
-import { translateActiveCliText } from "../cli/i18n/text.js";
 import { visibleWidth } from "./ansi.js";
+import { translateActiveCliText } from "./i18n/text.js";
 import { stylePromptTitle } from "./prompt-style.js";
 
 const URL_PREFIX_RE = /^(https?:\/\/|file:\/\/)/i;

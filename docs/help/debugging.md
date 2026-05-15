@@ -69,7 +69,7 @@ pnpm gateway:dev
 CRAWCLAW_PROFILE=dev CrawClaw Desktop or the local Gateway API
 ```
 
-If you don’t have a global install yet, run the CLI via CrawClaw Desktop dev mode.
+Desktop users do not need a global `crawclaw` command. Use CrawClaw Desktop dev mode for local debugging.
 
 What this does:
 
@@ -116,16 +116,12 @@ CrawClaw can log the **raw assistant stream** before any filtering/formatting.
 This is the best way to see whether reasoning is arriving as plain text deltas
 (or as separate thinking blocks).
 
-Enable it via CLI:
-
-```bash
-# Use CrawClaw Desktop dev mode or run the embedded Gateway API target.
-```
+Enable it from CrawClaw Desktop dev settings or by setting the environment variable before starting the embedded Gateway.
 
 Optional path override:
 
 ```bash
-# Use CrawClaw Desktop dev mode or run the embedded Gateway API target.
+CRAWCLAW_RAW_STREAM_PATH=~/.crawclaw/logs/raw-stream.jsonl
 ```
 
 Equivalent env vars:

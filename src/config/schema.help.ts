@@ -46,13 +46,13 @@ export const FIELD_HELP: Record<string, string> = {
     'Sensitive redaction mode: "off" disables built-in masking, while "tools" redacts sensitive tool/config payload fields. Keep "tools" in shared logs unless you have isolated secure log sinks.',
   "logging.redactPatterns":
     "Additional custom redact regex patterns applied to log output before emission/storage. Use this to mask org-specific tokens and identifiers not covered by built-in redaction rules.",
-  cli: "CLI presentation controls for local command output behavior such as banner and tagline style. Use this section to keep startup output aligned with operator preference without changing runtime behavior.",
+  cli: "Terminal presentation controls for retained local diagnostic flows, such as banner and tagline style. Use this section to keep local output aligned with operator preference without changing runtime behavior.",
   "cli.language":
-    "Human-facing CLI prompt/help language. Keeps command names, flags, config keys, and JSON output in English while translating prompts and help text for operators.",
+    "Human-facing terminal prompt/help language. Keeps command names, flags, config keys, and JSON output in English while translating prompts and help text for operators.",
   "cli.banner":
-    "CLI startup banner controls for title/version line and tagline style behavior. Keep banner enabled for fast version/context checks, then tune tagline mode to your preferred noise level.",
+    "Terminal startup banner controls for title/version line and tagline style behavior. Keep banner enabled for fast version/context checks, then tune tagline mode to your preferred noise level.",
   "cli.banner.taglineMode":
-    'Controls tagline style in the CLI startup banner: "random" (default) picks from the rotating tagline pool, "default" always shows the neutral default tagline, and "off" hides tagline text while keeping the banner version line.',
+    'Controls tagline style in the terminal startup banner: "random" (default) picks from the rotating tagline pool, "default" always shows the neutral default tagline, and "off" hides tagline text while keeping the banner version line.',
   update:
     "Update-channel and startup-check behavior for keeping CrawClaw runtime versions current. Use conservative channels in production and more experimental channels only in controlled environments.",
   "update.channel": 'Update channel for git + npm installs ("stable", "beta", or "dev").',
@@ -242,7 +242,7 @@ export const FIELD_HELP: Record<string, string> = {
   "browser.enabled":
     "Enables browser capability wiring in the gateway so browser tools and CDP-driven workflows can run. Disable when browser automation is not needed to reduce surface area and startup work.",
   "browser.provider":
-    'Browser runtime provider. CrawClaw ships the agent-browser-backed automation path.',
+    "Browser runtime provider. CrawClaw ships the agent-browser-backed automation path.",
   "browser.cdpUrl":
     "Remote CDP URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep access restricted to trusted network paths.",
   "browser.color":
@@ -286,7 +286,7 @@ export const FIELD_HELP: Record<string, string> = {
   "browser.remoteCdpHandshakeTimeoutMs":
     "Timeout in milliseconds for post-connect CDP handshake readiness checks against remote browser targets. Raise this for slow-start remote browsers and lower to fail fast in automation loops.",
   "discovery.mdns.mode":
-    'mDNS broadcast mode ("minimal" default, "full" includes cliPath/sshPort, "off" disables mDNS).',
+    'mDNS broadcast mode ("minimal" default, "full" includes sshPort, "off" disables mDNS).',
   discovery:
     "Service discovery settings for local mDNS advertisement and optional wide-area presence signaling. Keep discovery scoped to expected networks to avoid leaking service metadata.",
   "discovery.wideArea":
@@ -412,7 +412,7 @@ export const FIELD_HELP: Record<string, string> = {
   "bindings[].match.peer.id":
     "Conversation identifier used with peer matching, such as a chat ID, channel ID, or group ID from the provider. Keep this exact to avoid silent non-matches.",
   "bindings[].match.guildId":
-    "Optional Discord-style guild/server ID constraint for binding evaluation in multi-server deployments. Use this when the same peer identifiers can appear across different guilds.",
+    "Optional channel-style guild/server ID constraint for binding evaluation in multi-server deployments. Use this when the same peer identifiers can appear across different guilds.",
   "bindings[].match.teamId":
     "Optional team/workspace ID constraint used by providers that scope chats under teams. Add this when you need bindings isolated to one workspace context.",
   "bindings[].match.roles":
@@ -944,7 +944,7 @@ export const FIELD_HELP: Record<string, string> = {
   commands:
     "Controls chat command surfaces, owner gating, and elevated command access behavior across providers. Keep defaults unless you need stricter operator controls or broader command availability.",
   "commands.native":
-    "Registers native slash/menu commands with channels that support command registration (Discord, Slack, Telegram). Keep enabled for discoverability unless you intentionally run text-only command workflows.",
+    "Registers native slash/menu commands with channels that support command registration. Keep enabled for discoverability unless you intentionally run text-only command workflows.",
   "commands.nativeSkills":
     "Registers native skill commands so users can invoke skills directly from provider command menus where supported. Keep aligned with your skill policy so exposed commands match what operators expect.",
   "commands.text":
@@ -1281,9 +1281,9 @@ export const FIELD_HELP: Record<string, string> = {
   "messages.statusReactions":
     "Lifecycle status reactions that update the emoji on the trigger message as the agent progresses (queued → thinking → tool → done/error).",
   "messages.statusReactions.enabled":
-    "Enable lifecycle status reactions for Telegram. When enabled, the ack reaction becomes the initial 'queued' state and progresses through thinking, tool, done/error automatically. Default: false.",
+    "Enable lifecycle status reactions for channels that support them. When enabled, the ack reaction becomes the initial 'queued' state and progresses through thinking, tool, done/error automatically. Default: false.",
   "messages.statusReactions.emojis":
-    "Override default status reaction emojis. Keys: thinking, compacting, tool, coding, web, done, error, stallSoft, stallHard. Must be valid Telegram reaction emojis.",
+    "Override default status reaction emojis. Keys: thinking, compacting, tool, coding, web, done, error, stallSoft, stallHard. Must be valid channel reaction emojis.",
   "messages.statusReactions.timing":
     "Override default timing. Keys: debounceMs (700), stallSoftMs (25000), stallHardMs (60000), doneHoldMs (1500), errorHoldMs (2500).",
   "messages.inbound.debounceMs":

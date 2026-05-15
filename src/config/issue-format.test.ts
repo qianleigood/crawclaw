@@ -27,12 +27,12 @@ describe("config issue format", () => {
       formatConfigIssueLines(
         [
           { path: "", message: "first" },
-          { path: "channels.signal.dmPolicy", message: "second" },
+          { path: "channels.feishu.dmPolicy", message: "second" },
         ],
         "×",
         { normalizeRoot: true },
       ),
-    ).toEqual(["× <root>: first", "× channels.signal.dmPolicy: second"]);
+    ).toEqual(["× <root>: first", "× channels.feishu.dmPolicy: second"]);
   });
 
   it("sanitizes control characters and ANSI sequences in formatted lines", () => {

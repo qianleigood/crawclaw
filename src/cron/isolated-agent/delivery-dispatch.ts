@@ -1,7 +1,6 @@
 import { countActiveDescendantRuns } from "../../agents/subagent-registry.js";
 import { SILENT_REPLY_TOKEN } from "../../auto-reply/tokens.js";
 import type { ReplyPayload } from "../../auto-reply/types.js";
-import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { resolveAgentMainSessionKey, resolveMainSessionKey } from "../../config/sessions.js";
 import { callGateway } from "../../gateway/call.js";
@@ -14,6 +13,7 @@ import { resolveAgentOutboundIdentity } from "../../infra/outbound/identity.js";
 import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { logWarn, logError } from "../../logger.js";
+import { createOutboundSendDeps, type CliDeps } from "../../terminal/outbound-send-deps.js";
 import type { CronJob, CronRunTelemetry } from "../types.js";
 import type { DeliveryTargetResolution } from "./delivery-target.js";
 import { pickSummaryFromOutput } from "./helpers.js";

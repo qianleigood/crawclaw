@@ -1,15 +1,17 @@
 ---
 title: "Node.js"
-summary: "Install and configure Node.js for CrawClaw — version requirements, install options, and PATH troubleshooting"
+summary: "Node.js requirements for CrawClaw repository development and bundled Node plugin runtime work"
 read_when:
-  - "You need to install Node.js before installing CrawClaw"
-  - "You installed CrawClaw but `crawclaw` is command not found"
-  - "npm install -g fails with permissions or PATH issues"
+  - "You are working from a CrawClaw source checkout"
+  - "You are developing a Node-based plugin runtime"
+  - "You need to run repository tests or build scripts"
 ---
 
 # Node.js
 
-CrawClaw requires **Node 24.x** or **Node 25.x**. Node 24 is the stable runtime for installs, CI, release workflows, and local development. Node 25 is available as an experimental path and may require reinstalling native or managed runtime artifacts when you switch majors. The [installer script](/install#alternative-install-methods) will detect and install Node automatically — this page is for when you want to set up Node yourself and make sure everything is wired up correctly (versions, PATH, global installs).
+Desktop users do not need a global `crawclaw` command or a manually configured Node install. CrawClaw Desktop bundles the runtime it needs.
+
+Repository development still uses **Node 24.x or newer** for TypeScript tooling, tests, docs checks, and Node-based plugin runtime work. Node 24 is the stable baseline.
 
 ## Check your version
 
@@ -17,128 +19,34 @@ CrawClaw requires **Node 24.x** or **Node 25.x**. Node 24 is the stable runtime 
 node -v
 ```
 
-If this prints `v24.x.x`, you're on the stable runtime. If it prints `v25.x.x`, you're on the experimental runtime. If it prints `v23.x.x`, `v26.x.x`, or anything older, switch to Node 24 before continuing. If Node isn't installed or the version is unsupported, pick an install method below.
+Use Node 24+ before running repository commands such as `pnpm install`, `pnpm build`, or desktop staging scripts.
 
-## Install Node
+## Install Node for development
 
 <Tabs>
   <Tab title="macOS">
-    **Homebrew** (recommended):
-
     ```bash
     brew install node
     ```
-
-    Or download the macOS installer from [nodejs.org](https://nodejs.org/).
-
   </Tab>
   <Tab title="Linux">
-    **Ubuntu / Debian:**
-
     ```bash
     curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
     sudo apt-get install -y nodejs
     ```
-
-    **Fedora / RHEL:**
-
-    ```bash
-    sudo dnf install nodejs
-    ```
-
-    Or use a version manager (see below).
-
   </Tab>
   <Tab title="Windows">
-    **winget** (recommended):
-
     ```powershell
     winget install OpenJS.NodeJS.LTS
     ```
-
-    **Chocolatey:**
-
-    ```powershell
-    choco install nodejs-lts
-    ```
-
-    Or download the Windows installer from [nodejs.org](https://nodejs.org/).
-
   </Tab>
 </Tabs>
 
-<Accordion title="Using a version manager (nvm, fnm, mise, asdf)">
-  Version managers let you switch between Node versions easily. Popular options:
+## Package manager
 
-- [**fnm**](https://github.com/Schniz/fnm) — fast, cross-platform
-- [**nvm**](https://github.com/nvm-sh/nvm) — widely used on macOS/Linux
-- [**mise**](https://mise.jdx.dev/) — polyglot (Node, Python, Ruby, etc.)
-
-Example with fnm:
+Use pnpm from the repository root:
 
 ```bash
-fnm install 24
-fnm use 24
+corepack enable
+pnpm install
 ```
-
-  <Warning>
-  Make sure your version manager is initialized in your shell startup file (`~/.zshrc` or `~/.bashrc`). If it isn't, `crawclaw` may not be found in new terminal sessions because the PATH won't include Node's bin directory.
-  </Warning>
-</Accordion>
-
-## Troubleshooting
-
-### `crawclaw: command not found`
-
-This almost always means npm's global bin directory isn't on your PATH.
-
-<Steps>
-  <Step title="Find your global npm prefix">
-    ```bash
-    npm prefix -g
-    ```
-  </Step>
-  <Step title="Check if it's on your PATH">
-    ```bash
-    echo "$PATH"
-    ```
-
-    Look for `<npm-prefix>/bin` (macOS/Linux) or `<npm-prefix>` (Windows) in the output.
-
-  </Step>
-  <Step title="Add it to your shell startup file">
-    <Tabs>
-      <Tab title="macOS / Linux">
-        Add to `~/.zshrc` or `~/.bashrc`:
-
-        ```bash
-        export PATH="$(npm prefix -g)/bin:$PATH"
-        ```
-
-        Then open a new terminal (or run `rehash` in zsh / `hash -r` in bash).
-      </Tab>
-      <Tab title="Windows">
-        Add the output of `npm prefix -g` to your system PATH via Settings → System → Environment Variables.
-      </Tab>
-    </Tabs>
-
-  </Step>
-</Steps>
-
-### Permission errors on `npm install -g` (Linux)
-
-If you see `EACCES` errors, switch npm's global prefix to a user-writable directory:
-
-```bash
-mkdir -p "$HOME/.npm-global"
-npm config set prefix "$HOME/.npm-global"
-export PATH="$HOME/.npm-global/bin:$PATH"
-```
-
-Add the `export PATH=...` line to your `~/.bashrc` or `~/.zshrc` to make it permanent.
-
-## Related
-
-- [Install Overview](/install) — all installation methods
-- [Updating](/install/updating) — keeping CrawClaw up to date
-- [Getting Started](/start/getting-started) — first steps after install

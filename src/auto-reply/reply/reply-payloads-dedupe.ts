@@ -1,5 +1,5 @@
 import { isMessagingToolDuplicate } from "../../agents/pi-embedded-helpers.js";
-import type { MessagingToolSend } from "../../agents/pi-embedded-runner.js";
+import type { MessagingToolSend } from "../../agents/pi-embedded-messaging.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { normalizeTargetForProvider } from "../../infra/outbound/target-normalization.js";
 import { normalizeOptionalAccountId } from "../../routing/account-id.js";

@@ -24,7 +24,6 @@ import {
 } from "../shared/subagents-format.js";
 import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
 import { AGENT_LANE_SUBAGENT } from "./lanes.js";
-import { abortEmbeddedPiRun } from "./pi-embedded.js";
 import { resolveStoredSubagentCapabilities } from "./subagent-capabilities.js";
 import {
   clearSubagentRunSteerRestart,
@@ -416,7 +415,6 @@ async function killSubagentRun(params: {
     cache: params.cache,
   });
   const sessionId = resolved.entry?.sessionId;
-  const aborted = sessionId ? abortEmbeddedPiRun(sessionId) : false;
   const cleared = clearSessionQueues([childSessionKey, sessionId]);
   if (cleared.followupCleared > 0 || cleared.laneCleared > 0) {
     logVerbose(
@@ -447,7 +445,7 @@ async function killSubagentRun(params: {
     childSessionKey,
     reason: "killed",
   });
-  const killed = marked > 0 || aborted || cleared.followupCleared > 0 || cleared.laneCleared > 0;
+  const killed = marked > 0 || cleared.followupCleared > 0 || cleared.laneCleared > 0;
   return { killed, sessionId };
 }
 
@@ -777,9 +775,6 @@ export async function steerControlledSubagentRun(params: {
       ? targetSession.entry.sessionId.trim()
       : undefined;
 
-  if (sessionId) {
-    abortEmbeddedPiRun(sessionId);
-  }
   const cleared = clearSessionQueues([params.entry.childSessionKey, sessionId]);
   if (cleared.followupCleared > 0 || cleared.laneCleared > 0) {
     logVerbose(

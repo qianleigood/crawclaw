@@ -786,7 +786,7 @@ export function subscribeEmbeddedPiSession(params: SubscribeEmbeddedPiSessionPar
     getMessagingToolSentTargets: () => messagingToolSentTargets.slice(),
     getSuccessfulCronAdds: () => state.successfulCronAdds,
     // Returns true if any messaging tool successfully sent a message.
-    // Used to suppress agent's confirmation text (e.g., "Respondi no Telegram!")
+    // Used to suppress agent's confirmation text.
     // which is generated AFTER the tool sends the actual answer.
     didSendViaMessagingTool: () => messagingToolSentTexts.length > 0,
     didSendDeterministicApprovalPrompt: () => state.deterministicApprovalPromptSent,

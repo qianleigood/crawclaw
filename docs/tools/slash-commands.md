@@ -42,7 +42,7 @@ They run immediately, are stripped before the model sees the message, and the re
     restart: true, // default; set false to disable manual restart
     allowFrom: {
       "*": ["user1"],
-      discord: ["user:123"],
+      qqbot: ["user:123"],
     },
     useAccessGroups: true,
   },
@@ -50,14 +50,14 @@ They run immediately, are stripped before the model sees the message, and the re
 ```
 
 - `commands.text` (default `true`) enables parsing `/...` in chat messages.
-  - On surfaces without native commands (WhatsApp/Signal/iMessage/Google Chat/Microsoft Teams), text commands still work even if you set this to `false`.
+  - On surfaces without native commands (Weixin/Signal/Weixin/Feishu/QQBot), text commands still work even if you set this to `false`.
 - `commands.native` (default `"auto"`) registers native commands.
-  - Auto: on for Discord/Telegram; off for Slack (until you add slash commands); ignored for providers without native support.
-  - Set `channels.discord.commands.native`, `channels.telegram.commands.native`, or `channels.slack.commands.native` to override per provider (bool or `"auto"`).
-  - `false` clears previously registered commands on Discord/Telegram at startup. Slack commands are managed in the Slack app and are not removed automatically.
+  - Auto: on for QQBot/Feishu; off for DingTalk (until you add slash commands); ignored for providers without native support.
+  - Set `channels.qqbot.commands.native`, `channels.feishu.commands.native`, or `channels.ddingtalk.commands.native` to override per provider (bool or `"auto"`).
+  - `false` clears previously registered commands on QQBot/Feishu at startup. DingTalk commands are managed in the DingTalk app and are not removed automatically.
 - `commands.nativeSkills` (default `"auto"`) registers **skill** commands natively when supported.
-  - Auto: on for Discord/Telegram; off for Slack (Slack requires creating a slash command per skill).
-  - Set `channels.discord.commands.nativeSkills`, `channels.telegram.commands.nativeSkills`, or `channels.slack.commands.nativeSkills` to override per provider (bool or `"auto"`).
+  - Auto: on for QQBot/Feishu; off for DingTalk (DingTalk requires creating a slash command per skill).
+  - Set `channels.qqbot.commands.nativeSkills`, `channels.feishu.commands.nativeSkills`, or `channels.ddingtalk.commands.nativeSkills` to override per provider (bool or `"auto"`).
 - `commands.bash` (default `false`) enables `! <cmd>` to run host shell commands (`/bash <cmd>` is an alias; requires `tools.elevated` allowlists).
 - `commands.bashForegroundMs` (default `2000`) controls how long bash waits before switching to background mode (`0` backgrounds immediately).
 - `commands.config` (default `false`) enables `/config` (reads/writes `crawclaw.json`).
@@ -104,8 +104,8 @@ Action and session commands:
 - `/subagents list|kill|log|info|send|steer|spawn` (inspect, control, or spawn sub-agent runs for the current session)
 - `/acp spawn|cancel|steer|close|status|set-mode|set|cwd|permissions|timeout|model|reset-options|doctor|install|sessions` (inspect and control ACP runtime sessions)
 - `/agents` (list thread-bound agents for this session)
-- `/focus <target>` (Discord: bind this thread, or a new thread, to a session/subagent target)
-- `/unfocus` (Discord: remove the current thread binding)
+- `/focus <target>` (QQBot: bind this thread, or a new thread, to a session/subagent target)
+- `/unfocus` (QQBot: remove the current thread binding)
 - `/kill <id|#|all>` (immediately abort one or all running sub-agents for this session; no confirmation message)
 - `/steer <id|#> <message>` (steer a running sub-agent immediately: in-run when possible, otherwise abort current work and restart on the steer message)
 - `/tell <id|#> <message>` (alias for `/steer`)
@@ -118,19 +118,19 @@ Action and session commands:
 - `/debug show|set|unset|reset` (runtime overrides, owner-only; requires `commands.debug: true`)
 - `/usage off|tokens|full|cost` (per-response usage footer or local cost summary)
 - `/tts off|always|inbound|tagged|status|provider|limit|summary|audio` (control TTS; see [/tts](/tools/tts))
-  - Discord: native command is `/voice` (Discord reserves `/tts`); text `/tts` still works.
+  - QQBot: native command is `/voice` (QQBot reserves `/tts`); text `/tts` still works.
 - `/stop`
 - `/restart`
-- `/dock-telegram` (alias: `/dock_telegram`) (switch replies to Telegram)
-- `/dock-discord` (alias: `/dock_discord`) (switch replies to Discord)
-- `/dock-slack` (alias: `/dock_slack`) (switch replies to Slack)
+- `/dock-feishu` (alias: `/dock_feishu`) (switch replies to Feishu)
+- `/dock-qqbot` (alias: `/dock_qqbot`) (switch replies to QQBot)
+- `/dock-ddingtalk` (alias: `/dock_ddingtalk`) (switch replies to DingTalk)
 - `/activation mention|always` (groups only)
 - `/send on|off|inherit` (owner-only)
 - `/new [model]` (optional model hint; remainder is passed through)
 - `/think <off|minimal|low|medium|high|xhigh>` (dynamic choices by model/provider; aliases: `/thinking`, `/t`)
 - `/fast status|on|off` (omitting the arg shows the current effective fast-mode state)
 - `/verbose on|full|off` (alias: `/v`)
-- `/reasoning on|off|stream` (alias: `/reason`; when on, sends a separate message prefixed `Reasoning:`; `stream` = Telegram draft only)
+- `/reasoning on|off|stream` (alias: `/reason`; when on, sends a separate message prefixed `Reasoning:`; `stream` = Feishu draft only)
 - `/elevated on|off|ask|full` (alias: `/elev`; `full` skips exec approvals)
 - `/model <name>` (alias: `/models`; or `/<alias>` from `agents.defaults.models.*.alias`)
 - `/queue <mode>` (plus options like `debounce:2s cap:25 drop:summarize`; send `/queue` to see current settings)
@@ -157,8 +157,8 @@ Notes:
 - In multi-account channels, config-targeted `/allowlist --account <id>` and `/config set channels.<provider>.accounts.<id>...` also honor the target account's `configWrites`.
 - `/usage` controls the per-response usage footer; `/usage cost` prints a local cost summary from CrawClaw session logs.
 - `/restart` is enabled by default; set `commands.restart: false` to disable it.
-- Discord-only native command: `/vc join|leave|status` controls voice channels (requires `channels.discord.voice` and native commands; not available as text).
-- Discord thread-binding commands (`/focus`, `/unfocus`, `/agents`, `/session idle`, `/session max-age`) require effective thread bindings to be enabled (`session.threadBindings.enabled` and/or `channels.discord.threadBindings.enabled`).
+- QQBot-only native command: `/vc join|leave|status` controls voice channels (requires `channels.qqbot.voice` and native commands; not available as text).
+- QQBot thread-binding commands (`/focus`, `/unfocus`, `/agents`, `/session idle`, `/session max-age`) require effective thread bindings to be enabled (`session.threadBindings.enabled` and/or `channels.qqbot.threadBindings.enabled`).
 - ACP command reference and runtime behavior: [ACP Agents](/tools/acp-agents).
 - `/verbose` is meant for debugging and extra visibility; keep it **off** in normal use.
 - `/fast on|off` persists a session override. Use the Sessions UI `inherit` option to clear it and fall back to config defaults.
@@ -177,7 +177,7 @@ Notes:
   - By default, skill commands are forwarded to the model as a normal request.
   - Skills may optionally declare `command-dispatch: tool` to route the command directly to a tool (deterministic, no model).
   - Example: `/prose` (OpenProse plugin) — see [OpenProse](/prose).
-- **Native command arguments:** Discord uses autocomplete for dynamic options (and button menus when you omit required args). Telegram and Slack show a button menu when a command supports choices and you omit the arg.
+- **Native command arguments:** QQBot uses autocomplete for dynamic options (and button menus when you omit required args). Feishu and DingTalk show a button menu when a command supports choices and you omit the arg.
 - **Localized command chrome:** command names and argument values stay in English, but command descriptions, argument hints, choice labels, help text, usage prompts, and native-command menus follow `cli.language` (for example `zh-CN`).
 
 ## `/tools`
@@ -247,7 +247,7 @@ Examples:
 Notes:
 
 - `/model` and `/model list` show a compact, numbered picker (model family + available providers).
-- On Discord, `/model` and `/models` open an interactive picker with provider and model dropdowns plus a Submit step.
+- On QQBot, `/model` and `/models` open an interactive picker with provider and model dropdowns plus a Submit step.
 - `/model <#>` selects from that picker (and prefers the current provider when possible).
 - `/model status` shows the detailed view, including configured provider endpoint (`baseUrl`) and API mode (`api`) when available.
 
@@ -260,7 +260,7 @@ Examples:
 ```
 /debug show
 /debug set messages.responsePrefix="[crawclaw]"
-/debug set channels.whatsapp.allowFrom=["+1555","+4477"]
+/debug set channels.weixin.allowFrom=["+1555","+4477"]
 /debug unset messages.responsePrefix
 /debug reset
 ```
@@ -331,12 +331,12 @@ Notes:
 
 - **Text commands** run in the normal chat session (DMs share `main`, groups have their own session).
 - **Native commands** use isolated sessions:
-  - Discord: `agent:<agentId>:discord:slash:<userId>`
-  - Slack: `agent:<agentId>:slack:slash:<userId>` (prefix configurable via `channels.slack.slashCommand.sessionPrefix`)
-  - Telegram: `telegram:slash:<userId>` (targets the chat session via `CommandTargetSessionKey`)
+  - QQBot: `agent:<agentId>:qqbot:slash:<userId>`
+  - DingTalk: `agent:<agentId>:ddingtalk:slash:<userId>` (prefix configurable via `channels.ddingtalk.slashCommand.sessionPrefix`)
+  - Feishu: `feishu:slash:<userId>` (targets the chat session via `CommandTargetSessionKey`)
 - **`/stop`** targets the active chat session so it can abort the current run.
-- **Slack:** `channels.slack.slashCommand` is still supported for a single `/crawclaw`-style command. If you enable `commands.native`, you must create one Slack slash command per built-in command (same names as `/help`). Command argument menus for Slack are delivered as ephemeral Block Kit buttons.
-  - Slack native exception: register `/agentstatus` (not `/status`) because Slack reserves `/status`. Text `/status` still works in Slack messages.
+- **DingTalk:** `channels.ddingtalk.slashCommand` is still supported for a single `/crawclaw`-style command. If you enable `commands.native`, you must create one DingTalk slash command per built-in command (same names as `/help`). Command argument menus for DingTalk are delivered as ephemeral Block Kit buttons.
+  - DingTalk native exception: register `/agentstatus` (not `/status`) because DingTalk reserves `/status`. Text `/status` still works in DingTalk messages.
 
 ## BTW side questions
 

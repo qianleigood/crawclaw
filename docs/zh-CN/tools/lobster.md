@@ -79,7 +79,7 @@ AI 触发工作流；Lobster 执行步骤。审批关卡使副作用显式且可
 
 ```bash
 gog.gmail.search --query 'newer_than:1d' \
-  | crawclaw.invoke --tool message --action send --each --item-key message --args-json '{"provider":"telegram","to":"..."}'
+  | crawclaw.invoke --tool message --action send --each --item-key message --args-json '{"provider":"feishu","to":"..."}'
 ```
 
 ## 纯 JSON 的 LLM 步骤（llm-task）

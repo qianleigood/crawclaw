@@ -1,6 +1,6 @@
 ---
 read_when:
-  - 你想添加/删除渠道账户（WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost（插件）/Signal/iMessage）
+  - 你想添加/删除渠道账户（Weixin/Feishu/QQBot/Feishu/DingTalk/Feishu（插件）/Feishu/Weixin）
   - 你想检查渠道状态或跟踪渠道日志
 summary: "`crawclaw channels` 的 CLI 参考（账户、状态、登录/登出、日志）"
 title: channels
@@ -28,25 +28,25 @@ x-i18n:
 crawclaw channels list
 crawclaw channels status
 crawclaw channels capabilities
-crawclaw channels capabilities --channel discord --target channel:123
-crawclaw channels resolve --channel slack "#general" "@jane"
+crawclaw channels capabilities --channel qqbot --target channel:123
+crawclaw channels resolve --channel ddingtalk "#general" "@jane"
 crawclaw channels logs --channel all
 ```
 
 ## 添加/删除账户
 
 ```bash
-crawclaw channels add --channel telegram --token <bot-token>
-crawclaw channels remove --channel telegram --delete
+crawclaw channels add --channel feishu --token <bot-token>
+crawclaw channels remove --channel feishu --delete
 ```
 
-提示：`crawclaw channels add --help` 显示每个渠道的标志（token、app token、signal-cli 路径等）。
+提示：`crawclaw channels add --help` 显示每个渠道的标志（token、app token、feishu-cli 路径等）。
 
 ## 登录/登出（交互式）
 
 ```bash
-crawclaw channels login --channel whatsapp
-crawclaw channels logout --channel whatsapp
+crawclaw channels login --channel weixin
+crawclaw channels logout --channel weixin
 ```
 
 ## 故障排除
@@ -61,22 +61,22 @@ crawclaw channels logout --channel whatsapp
 
 ```bash
 crawclaw channels capabilities
-crawclaw channels capabilities --channel discord --target channel:123
+crawclaw channels capabilities --channel qqbot --target channel:123
 ```
 
 说明：
 
 - `--channel` 是可选的；省略它可列出所有渠道（包括扩展）。
-- `--target` 接受 `channel:<id>` 或原始数字频道 id，仅适用于 Discord。
-- 探测是特定于提供商的：Discord intents + 可选的频道权限；Slack bot + user scopes；Telegram bot 标志 + webhook；Signal daemon 版本；MS Teams app token + Graph roles/scopes（在已知处标注）。没有探测功能的渠道报告 `Probe: unavailable`。
+- `--target` 接受 `channel:<id>` 或原始数字频道 id，仅适用于 QQBot。
+- 探测是特定于提供商的：QQBot intents + 可选的频道权限；DingTalk bot + user scopes；Feishu bot 标志 + webhook；Feishu daemon 版本；MS Teams app token + Graph roles/scopes（在已知处标注）。没有探测功能的渠道报告 `Probe: unavailable`。
 
 ## 解析名称为 ID
 
 使用提供商目录将渠道/用户名称解析为 ID：
 
 ```bash
-crawclaw channels resolve --channel slack "#general" "@jane"
-crawclaw channels resolve --channel discord "My Server/#support" "@someone"
+crawclaw channels resolve --channel ddingtalk "#general" "@jane"
+crawclaw channels resolve --channel qqbot "My Server/#support" "@someone"
 crawclaw channels resolve --channel matrix "Project Room"
 ```
 

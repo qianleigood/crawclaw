@@ -1,19 +1,8 @@
-import { defineSingleProviderPluginEntry } from "crawclaw/plugin-sdk/provider-entry";
-import { buildNvidiaProvider } from "./provider-catalog.js";
+import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
 
-const PROVIDER_ID = "nvidia";
-
-export default defineSingleProviderPluginEntry({
-  id: PROVIDER_ID,
+export default definePluginEntry({
+  id: "nvidia",
   name: "NVIDIA Provider",
-  description: "Bundled NVIDIA provider plugin",
-  provider: {
-    label: "NVIDIA",
-    docsPath: "/providers/nvidia",
-    envVars: ["NVIDIA_API_KEY"],
-    auth: [],
-    catalog: {
-      buildProvider: buildNvidiaProvider,
-    },
-  },
+  description: "Bundled NVIDIA provider metadata plugin",
+  register() {},
 });

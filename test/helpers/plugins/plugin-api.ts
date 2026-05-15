@@ -11,14 +11,10 @@ export function createTestPluginApi(api: TestPluginApiInput): CrawClawPluginApi 
     registrationMode: "full",
     logger: { info() {}, warn() {}, error() {}, debug() {} },
     registerTool() {},
-    registerHook() {},
     registerHttpRoute() {},
-    registerChannel() {},
     registerGatewayMethod() {},
-    registerCli() {},
     registerService() {},
     registerCliBackend() {},
-    registerProvider() {},
     registerSpeechProvider() {},
     registerMediaUnderstandingProvider() {},
     registerWebFetchProvider() {},
@@ -28,7 +24,6 @@ export function createTestPluginApi(api: TestPluginApiInput): CrawClawPluginApi 
     resolvePath(input: string) {
       return input;
     },
-    on() {},
     ...api,
   };
 }

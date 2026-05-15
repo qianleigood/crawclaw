@@ -74,7 +74,7 @@ vi.mock("../../runtime.js", () => ({
 
 vi.mock("../../utils/message-channel.js", () => ({
   isMarkdownCapableMessageChannel: () => true,
-  resolveMessageChannel: () => "whatsapp",
+  resolveMessageChannel: () => "weixin",
   isInternalMessageChannel: (value: unknown) => state.isInternalMessageChannelMock(value),
 }));
 
@@ -147,7 +147,7 @@ function createFollowupRun(): FollowupRun {
       agentDir: "/tmp/agent",
       sessionId: "session",
       sessionKey: "main",
-      messageProvider: "whatsapp",
+      messageProvider: "weixin",
       sessionFile: "/tmp/session.jsonl",
       workspaceDir: "/tmp",
       config: {},
@@ -199,7 +199,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun: createFollowupRun(),
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {
@@ -244,7 +244,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun: createFollowupRun(),
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: { onBlockReply },
@@ -286,7 +286,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun: createFollowupRun(),
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {
@@ -339,7 +339,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun,
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: { onBlockReply },
@@ -393,7 +393,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun: createFollowupRun(),
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {},
@@ -430,7 +430,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun: createFollowupRun(),
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {},
@@ -470,7 +470,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun: createFollowupRun(),
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {},
@@ -577,7 +577,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun,
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {},
@@ -632,7 +632,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun,
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {},
@@ -717,7 +717,7 @@ describe("runAgentTurnWithFallback", () => {
       commandBody: "hello",
       followupRun,
       sessionCtx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         MessageSid: "msg",
       } as unknown as TemplateContext,
       opts: {},

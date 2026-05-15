@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const abortExecutorMocks = vi.hoisted(() => ({
-  abortEmbeddedPiRun: vi.fn(),
   persistAbortTargetEntry: vi.fn(),
   setAbortMemory: vi.fn(),
   clearSessionQueues: vi.fn(),
@@ -24,10 +23,6 @@ vi.mock("../../acp/control-plane/manager.js", () => ({
   }),
 }));
 
-vi.mock("../../agents/pi-embedded.js", () => ({
-  abortEmbeddedPiRun: abortExecutorMocks.abortEmbeddedPiRun,
-}));
-
 vi.mock("../../auto-reply/reply/commands-session-store.js", () => ({
   persistAbortTargetEntry: abortExecutorMocks.persistAbortTargetEntry,
 }));
@@ -44,47 +39,45 @@ const { executeAbortTarget } = await import("./abort-executor.js");
 
 describe("executeAbortTarget", () => {
   beforeEach(() => {
-    abortExecutorMocks.abortEmbeddedPiRun.mockReset().mockReturnValue(true);
     abortExecutorMocks.persistAbortTargetEntry.mockReset().mockResolvedValue(true);
     abortExecutorMocks.setAbortMemory.mockReset();
     abortExecutorMocks.clearSessionQueues.mockReset().mockReturnValue({
       followupCleared: 1,
       laneCleared: 0,
-      keys: ["agent:main:telegram:direct:123"],
+      keys: ["agent:main:feishu:direct:123"],
     });
     abortExecutorMocks.resolveSession.mockReset().mockReturnValue({ kind: "none" });
     abortExecutorMocks.cancelSession.mockReset().mockResolvedValue(undefined);
   });
 
-  it("clears queues, aborts embedded runs, and persists the abort target entry", async () => {
+  it("clears queues and persists the abort target entry", async () => {
     const result = await executeAbortTarget({
       entry: { sessionId: "session-1", updatedAt: Date.now() } as never,
-      key: "agent:main:telegram:direct:123",
+      key: "agent:main:feishu:direct:123",
       legacyKeys: ["legacy:key"],
       sessionId: "session-1",
       sessionStore: {} as never,
       storePath: "/tmp/sessions.json",
       abortCutoff: { messageSid: "55", timestamp: 1234567890000 },
-      queueKeys: ["agent:main:telegram:direct:123", "session-1"],
+      queueKeys: ["agent:main:feishu:direct:123", "session-1"],
     });
 
     expect(result).toMatchObject({
-      aborted: true,
+      aborted: false,
       persisted: true,
       cleared: {
         followupCleared: 1,
         laneCleared: 0,
-        keys: ["agent:main:telegram:direct:123"],
+        keys: ["agent:main:feishu:direct:123"],
       },
     });
     expect(abortExecutorMocks.clearSessionQueues).toHaveBeenCalledWith([
-      "agent:main:telegram:direct:123",
+      "agent:main:feishu:direct:123",
       "session-1",
     ]);
-    expect(abortExecutorMocks.abortEmbeddedPiRun).toHaveBeenCalledWith("session-1");
     expect(abortExecutorMocks.persistAbortTargetEntry).toHaveBeenCalledWith(
       expect.objectContaining({
-        key: "agent:main:telegram:direct:123",
+        key: "agent:main:feishu:direct:123",
         legacyKeys: ["legacy:key"],
         abortCutoff: { messageSid: "55", timestamp: 1234567890000 },
       }),
@@ -137,7 +130,7 @@ describe("executeAbortTarget", () => {
     expect(result.cleared).toEqual({
       followupCleared: 1,
       laneCleared: 0,
-      keys: ["agent:main:telegram:direct:123"],
+      keys: ["agent:main:feishu:direct:123"],
     });
     expect(abortExecutorMocks.clearSessionQueues).toHaveBeenCalledWith(["acp:bound-session"]);
   });
@@ -146,7 +139,7 @@ describe("executeAbortTarget", () => {
     abortExecutorMocks.persistAbortTargetEntry.mockResolvedValue(false);
 
     const result = await executeAbortTarget({
-      abortKey: "telegram:123",
+      abortKey: "feishu:123",
       queueKeys: [],
     });
 
@@ -154,6 +147,6 @@ describe("executeAbortTarget", () => {
       aborted: false,
       persisted: false,
     });
-    expect(abortExecutorMocks.setAbortMemory).toHaveBeenCalledWith("telegram:123", true);
+    expect(abortExecutorMocks.setAbortMemory).toHaveBeenCalledWith("feishu:123", true);
   });
 });

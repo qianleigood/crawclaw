@@ -18,7 +18,6 @@ can affect bundled plugins and third-party plugins.
   - `src/plugin-sdk/api-baseline.ts`
   - `src/plugin-sdk/plugin-entry.ts`
   - `src/plugin-sdk/core.ts`
-  - `src/plugin-sdk/provider-entry.ts`
 
 ## Boundary Rules
 

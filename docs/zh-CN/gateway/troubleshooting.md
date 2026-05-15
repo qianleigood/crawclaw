@@ -181,7 +181,7 @@ Gateway 网关服务使用**最小 PATH** 运行以避免 shell/管理器的干�
 所以缺少的工具通常意味着你的 shell 初始化没有导出它们（或设置
 `tools.exec.pathPrepend`）。参见 [/tools/exec](/tools/exec)。
 
-WhatsApp + Telegram 渠道需要 **Node**；不支持 Bun。如果你的
+Weixin + Feishu 渠道需要 **Node**；不支持 Bun。如果你的
 服务是用 Bun 或版本管理的 Node 路径安装的，运行 `crawclaw doctor`
 迁移到系统 Node 安装。
 
@@ -320,7 +320,7 @@ crawclaw status
 ```bash
 # 消息必须匹配 mentionPatterns 或显式提及；默认值在渠道 groups/guilds 中。
 # 多智能体：`agents.list[].groupChat.mentionPatterns` 覆盖全局模式。
-grep -n "agents\\|groupChat\\|mentionPatterns\\|channels\\.whatsapp\\.groups\\|channels\\.telegram\\.groups\\|channels\\.imessage\\.groups\\|channels\\.discord\\.guilds" \
+grep -n "agents\\|groupChat\\|mentionPatterns\\|channels\\.weixin\\.groups\\|channels\\.feishu\\.groups\\|channels\\.weixin\\.groups\\|channels\\.qqbot\\.guilds" \
   "${CRAWCLAW_CONFIG_PATH:-$HOME/.crawclaw/crawclaw.json}"
 ```
 
@@ -354,7 +354,7 @@ crawclaw logs --follow | grep "pairing request"
 
 ### 图片 + 提及不工作
 
-已知问题：当你发送只有提及的图片（没有其他文字）时，WhatsApp 有时不包含提及元数据。
+已知问题：当你发送只有提及的图片（没有其他文字）时，Weixin 有时不包含提及元数据。
 
 **变通方法：** 在提及时添加一些文字：
 
@@ -399,12 +399,12 @@ ls -la ~/.crawclaw/agents/<agentId>/sessions/
 
 或使用 `process` 工具在后台运行长命令。
 
-### WhatsApp 断开连接
+### Weixin 断开连接
 
 ```bash
 # 检查本地状态（凭证、会话、排队事件）
 crawclaw status
-# 探测运行中的 Gateway 网关 + 渠道（WA 连接 + Telegram + Discord API）
+# 探测运行中的 Gateway 网关 + 渠道（WA 连接 + Feishu + QQBot API）
 crawclaw status --deep
 
 # 查看最近的连接事件
@@ -486,14 +486,14 @@ crawclaw doctor --fix
 - `/tmp/crawclaw/…` 中的 **Gateway 网关日志**以获取确切的提供商错误。
 - **模型状态**：使用 `/model status`（聊天）或 `crawclaw models status`（CLI）。
 
-### 我在我的个人 WhatsApp 号码上运行 — 为什么自聊天很奇怪？
+### 我在我的个人 Weixin 号码上运行 — 为什么自聊天很奇怪？
 
 启用自聊天模式并将你自己的号码加入白名单：
 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       selfChatMode: true,
       dmPolicy: "allowlist",
       allowFrom: ["+15555550123"],
@@ -502,9 +502,9 @@ crawclaw doctor --fix
 }
 ```
 
-参见 [WhatsApp 设置](/channels/whatsapp)。
+参见 [Weixin 设置](/channels/index)。
 
-### WhatsApp 将我登出。如何重新认证？
+### Weixin 将我登出。如何重新认证？
 
 再次运行登录命令并扫描二维码：
 
@@ -516,7 +516,7 @@ crawclaw channels login
 
 1. `git pull origin main && pnpm install`
 2. `crawclaw doctor`
-3. 检查 GitHub issues 或 Discord
+3. 检查 GitHub issues 或 QQBot
 4. 临时变通方法：检出较旧的提交
 
 ### npm install 失败（allow-build-scripts / 缺少 tar 或 yargs）。现在怎么办？
@@ -562,13 +562,13 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
   crawclaw gateway restart
   ```
 
-### Telegram 分块流式传输没有在工具调用之间分割文本。为什么？
+### Feishu 分块流式传输没有在工具调用之间分割文本。为什么？
 
 分块流式传输只发送**已完成的文本块**。你看到单条消息的常见原因：
 
 - `agents.defaults.blockStreamingDefault` 仍然是 `"off"`。
-- `channels.telegram.blockStreaming` 设置为 `false`。
-- `channels.telegram.streaming` 是 `partial`、`progress` 或 `block` **且草稿流式传输处于活动状态**
+- `channels.feishu.blockStreaming` 设置为 `false`。
+- `channels.feishu.streaming` 是 `partial`、`progress` 或 `block` **且草稿流式传输处于活动状态**
   （私聊 + 话题）。在这种情况下，草稿流式传输会禁用分块流式传输。
 - 你的 `minChars` / coalesce 设置太高，所以块被合并了。
 - 模型发出一个大的文本块（没有中间回复刷新点）。
@@ -576,27 +576,27 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
 修复清单：
 
 1. 将分块流式传输设置放在 `agents.defaults` 下，而不是根目录。
-2. 如果你想要真正的多消息分块回复，设置 `channels.telegram.streaming: "off"`。
+2. 如果你想要真正的多消息分块回复，设置 `channels.feishu.streaming: "off"`。
 3. 调试时使用较小的 chunk/coalesce 阈值。
 
 参见 [流式传输](/concepts/streaming)。
 
-### 即使设置了 `requireMention: false`，Discord 也不在我的服务器中回复。为什么？
+### 即使设置了 `requireMention: false`，QQBot 也不在我的服务器中回复。为什么？
 
 `requireMention` 只控制渠道通过白名单**之后**的提及门控。
-默认情况下 `channels.discord.groupPolicy` 是 **allowlist**，所以必须显式启用 guild。
-如果你设置了 `channels.discord.guilds.<guildId>.channels`，只允许列出的频道；省略它以允许 guild 中的所有频道。
+默认情况下 `channels.qqbot.groupPolicy` 是 **allowlist**，所以必须显式启用 guild。
+如果你设置了 `channels.qqbot.guilds.<guildId>.channels`，只允许列出的频道；省略它以允许 guild 中的所有频道。
 
 修复清单：
 
-1. 设置 `channels.discord.groupPolicy: "open"` **或**添加 guild 白名单条目（并可选添加频道白名单）。
-2. 在 `channels.discord.guilds.<guildId>.channels` 中使用**数字频道 ID**。
-3. 将 `requireMention: false` 放在 `channels.discord.guilds` **下面**（全局或每个频道）。
-   顶级 `channels.discord.requireMention` 不是支持的键。
+1. 设置 `channels.qqbot.groupPolicy: "open"` **或**添加 guild 白名单条目（并可选添加频道白名单）。
+2. 在 `channels.qqbot.guilds.<guildId>.channels` 中使用**数字频道 ID**。
+3. 将 `requireMention: false` 放在 `channels.qqbot.guilds` **下面**（全局或每个频道）。
+   顶级 `channels.qqbot.requireMention` 不是支持的键。
 4. 确保机器人有 **Message Content Intent** 和频道权限。
 5. 运行 `crawclaw channels status --probe` 获取审计提示。
 
-文档：[Discord](/channels/discord)、[渠道故障排除](/channels/troubleshooting)。
+文档：[QQBot](/channels/index)、[渠道故障排除](/channels/troubleshooting)。
 
 ### Cloud Code Assist API 错误：invalid tool schema（400）。现在怎么办？
 
@@ -722,11 +722,11 @@ crawclaw gateway stop
 # crawclaw gateway uninstall
 
 trash "${CRAWCLAW_STATE_DIR:-$HOME/.crawclaw}"
-crawclaw channels login         # 重新配对 WhatsApp
+crawclaw channels login         # 重新配对 Weixin
 crawclaw gateway restart           # 或：crawclaw gateway
 ```
 
-⚠️ 这会丢失所有会话并需要重新配对 WhatsApp。
+⚠️ 这会丢失所有会话并需要重新配对 Weixin。
 
 ## 获取帮助
 

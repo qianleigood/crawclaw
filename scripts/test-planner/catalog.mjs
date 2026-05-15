@@ -8,8 +8,8 @@ import {
 } from "../lib/bundled-plugin-paths.mjs";
 import { dedupeFilesPreserveOrder, loadTestRunnerBehavior } from "../test-runner-manifest.mjs";
 
-const baseConfigPrefixes = ["src/agents/", "src/auto-reply/", "src/commands/", "test/", "ui/"];
-const contractTestPrefixes = ["src/channels/plugins/contracts/", "src/plugins/contracts/"];
+const baseConfigPrefixes = ["src/agents/", "src/auto-reply/", "src/control/", "test/", "ui/"];
+const contractTestPrefixes = ["src/plugins/contracts/"];
 
 export const normalizeRepoPath = (value) => value.split(path.sep).join("/");
 

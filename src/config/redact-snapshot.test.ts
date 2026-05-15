@@ -41,14 +41,14 @@ describe("redactConfigSnapshot", () => {
         },
       },
       channels: {
-        telegram: {
+        qqbot: {
           botToken: "123456:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdef",
-          webhookSecret: "telegram-webhook-secret-value-1234",
+          webhookSecret: "qqbot-webhook-secret-value-1234",
         },
-        slack: {
-          botToken: "fake-slack-bot-token-placeholder-value",
-          signingSecret: "slack-signing-secret-value-1234",
-          token: "secret-slack-token-value-here",
+        ddingtalk: {
+          botToken: "fake-ddingtalk-bot-token-placeholder-value",
+          signingSecret: "ddingtalk-signing-secret-value-1234",
+          token: "secret-ddingtalk-token-value-here",
         },
         feishu: {
           appSecret: "feishu-app-secret-value-here-1234",
@@ -67,11 +67,11 @@ describe("redactConfigSnapshot", () => {
 
     expect(cfg.gateway.auth.token).toBe(REDACTED_SENTINEL);
     expect(cfg.gateway.auth.password).toBe(REDACTED_SENTINEL);
-    expect(cfg.channels.telegram.botToken).toBe(REDACTED_SENTINEL);
-    expect(cfg.channels.telegram.webhookSecret).toBe(REDACTED_SENTINEL);
-    expect(cfg.channels.slack.botToken).toBe(REDACTED_SENTINEL);
-    expect(cfg.channels.slack.signingSecret).toBe(REDACTED_SENTINEL);
-    expect(cfg.channels.slack.token).toBe(REDACTED_SENTINEL);
+    expect(cfg.channels.qqbot.botToken).toBe(REDACTED_SENTINEL);
+    expect(cfg.channels.qqbot.webhookSecret).toBe(REDACTED_SENTINEL);
+    expect(cfg.channels.ddingtalk.botToken).toBe(REDACTED_SENTINEL);
+    expect(cfg.channels.ddingtalk.signingSecret).toBe(REDACTED_SENTINEL);
+    expect(cfg.channels.ddingtalk.token).toBe(REDACTED_SENTINEL);
     expect(cfg.channels.feishu.appSecret).toBe(REDACTED_SENTINEL);
     expect(cfg.channels.feishu.encryptKey).toBe(REDACTED_SENTINEL);
     expect(cfg.models.providers.openai.apiKey).toBe(REDACTED_SENTINEL);
@@ -79,10 +79,10 @@ describe("redactConfigSnapshot", () => {
     expect(cfg.shortSecret.token).toBe(REDACTED_SENTINEL);
   });
 
-  it("redacts googlechat serviceAccount object payloads", () => {
+  it("redacts feishu serviceAccount object payloads", () => {
     const snapshot = makeSnapshot({
       channels: {
-        googlechat: {
+        feishu: {
           serviceAccount: {
             type: "service_account",
             client_email: "bot@example.iam.gserviceaccount.com",
@@ -94,7 +94,7 @@ describe("redactConfigSnapshot", () => {
 
     const result = redactConfigSnapshot(snapshot);
     const channels = result.runtimeConfig.channels as Record<string, Record<string, unknown>>;
-    expect(channels.googlechat.serviceAccount).toBe(REDACTED_SENTINEL);
+    expect(channels.feishu.serviceAccount).toBe(REDACTED_SENTINEL);
   });
 
   it("redacts object-valued apiKey refs in model providers", () => {
@@ -286,8 +286,8 @@ describe("redactConfigSnapshot", () => {
   it("does not redact passwordFile path fields", () => {
     const snapshot = makeSnapshot({
       channels: {
-        irc: {
-          passwordFile: "/etc/crawclaw/irc-password.txt",
+        feishu: {
+          passwordFile: "/etc/crawclaw/feishu-password.txt",
           nickserv: {
             passwordFile: "/etc/crawclaw/nickserv-password.txt",
             password: "super-secret-nickserv-password",
@@ -298,10 +298,10 @@ describe("redactConfigSnapshot", () => {
 
     const result = redactConfigSnapshot(snapshot);
     const channels = result.runtimeConfig.channels as Record<string, Record<string, unknown>>;
-    const irc = channels.irc;
-    const nickserv = irc.nickserv as Record<string, unknown>;
+    const feishu = channels.feishu;
+    const nickserv = feishu.nickserv as Record<string, unknown>;
 
-    expect(irc.passwordFile).toBe("/etc/crawclaw/irc-password.txt");
+    expect(feishu.passwordFile).toBe("/etc/crawclaw/feishu-password.txt");
     expect(nickserv.passwordFile).toBe("/etc/crawclaw/nickserv-password.txt");
     expect(nickserv.password).toBe(REDACTED_SENTINEL);
   });
@@ -404,13 +404,13 @@ describe("redactConfigSnapshot", () => {
 
   it("redacts parsed and resolved objects", () => {
     const snapshot = makeSnapshot({
-      channels: { discord: { token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.GaBcDe.FgH" } },
+      channels: { qqbot: { token: "MTIzNDU2Nzg5MDEyMzQ1Njc4.GaBcDe.FgH" } },
       gateway: { auth: { token: "supersecrettoken123456" } },
     });
     const result = redactConfigSnapshot(snapshot);
     const parsed = result.parsed as Record<string, Record<string, Record<string, string>>>;
     const resolved = result.resolved as Record<string, Record<string, Record<string, string>>>;
-    expect(parsed.channels.discord.token).toBe(REDACTED_SENTINEL);
+    expect(parsed.channels.qqbot.token).toBe(REDACTED_SENTINEL);
     expect(resolved.gateway.auth.token).toBe(REDACTED_SENTINEL);
   });
 
@@ -460,7 +460,7 @@ describe("redactConfigSnapshot", () => {
   it("handles deeply nested tokens in accounts", () => {
     const snapshot = makeSnapshot({
       channels: {
-        slack: {
+        ddingtalk: {
           accounts: {
             workspace1: { botToken: "fake-workspace1-token-abcdefghij" },
             workspace2: { appToken: "fake-workspace2-token-abcdefghij" },
@@ -473,8 +473,8 @@ describe("redactConfigSnapshot", () => {
       string,
       Record<string, Record<string, Record<string, string>>>
     >;
-    expect(channels.slack.accounts.workspace1.botToken).toBe(REDACTED_SENTINEL);
-    expect(channels.slack.accounts.workspace2.appToken).toBe(REDACTED_SENTINEL);
+    expect(channels.ddingtalk.accounts.workspace1.botToken).toBe(REDACTED_SENTINEL);
+    expect(channels.ddingtalk.accounts.workspace2.appToken).toBe(REDACTED_SENTINEL);
   });
 
   it("redacts env vars that look like secrets", () => {
@@ -518,11 +518,11 @@ describe("redactConfigSnapshot", () => {
     {
       name: "still redacts singular token field",
       snapshot: makeSnapshot({
-        channels: { slack: { token: "secret-slack-token-value-here" } },
+        channels: { ddingtalk: { token: "secret-ddingtalk-token-value-here" } },
       }),
       assert: (config: Record<string, unknown>) => {
         const channels = config.channels as Record<string, Record<string, string>>;
-        expect(channels.slack.token).toBe(REDACTED_SENTINEL);
+        expect(channels.ddingtalk.token).toBe(REDACTED_SENTINEL);
       },
     },
   ] as const)("respects token-name redaction boundaries: $name", ({ snapshot, assert }) => {
@@ -863,7 +863,7 @@ describe("redactConfigSnapshot", () => {
     };
     const snapshot = makeSnapshot({
       channels: {
-        nostr: {
+        feishu: {
           privateKey: "nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5",
           relays: ["wss://relay.example.com"],
         },
@@ -872,11 +872,11 @@ describe("redactConfigSnapshot", () => {
 
     const result = redactConfigSnapshot(snapshot, hints);
     const channels = result.runtimeConfig.channels as Record<string, Record<string, unknown>>;
-    expect(channels.nostr.privateKey).toBe(REDACTED_SENTINEL);
-    expect(channels.nostr.relays).toEqual(["wss://relay.example.com"]);
+    expect(channels.feishu.privateKey).toBe(REDACTED_SENTINEL);
+    expect(channels.feishu.relays).toEqual(["wss://relay.example.com"]);
 
     const restored = restoreRedactedValues(result.runtimeConfig, snapshot.runtimeConfig, hints);
-    expect(restored.channels.nostr.privateKey).toBe(
+    expect(restored.channels.feishu.privateKey).toBe(
       "nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5",
     );
   });
@@ -974,11 +974,11 @@ describe("redactConfigSnapshot", () => {
 
   it("uses wildcard hints for array items", () => {
     const hints: ConfigUiHints = {
-      "channels.slack.accounts[].botToken": { sensitive: true },
+      "channels.ddingtalk.accounts[].botToken": { sensitive: true },
     };
     const snapshot = makeSnapshot({
       channels: {
-        slack: {
+        ddingtalk: {
           accounts: [
             { botToken: "first-account-token-value-here" },
             { botToken: "second-account-token-value-here" },
@@ -991,7 +991,7 @@ describe("redactConfigSnapshot", () => {
       string,
       Record<string, Array<Record<string, string>>>
     >;
-    expect(channels.slack.accounts[0].botToken).toBe(REDACTED_SENTINEL);
-    expect(channels.slack.accounts[1].botToken).toBe(REDACTED_SENTINEL);
+    expect(channels.ddingtalk.accounts[0].botToken).toBe(REDACTED_SENTINEL);
+    expect(channels.ddingtalk.accounts[1].botToken).toBe(REDACTED_SENTINEL);
   });
 });

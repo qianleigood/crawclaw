@@ -32,7 +32,7 @@ const APPROVE_USAGE_TEXT =
 function parseApproveCommand(raw: string): ParsedApproveCommand | null {
   const trimmed = raw.trim();
   if (FOREIGN_COMMAND_MENTION_REGEX.test(trimmed)) {
-    return { ok: false, error: "❌ This /approve command targets a different Telegram bot." };
+    return { ok: false, error: "❌ This /approve command targets a different bot." };
   }
   const commandMatch = trimmed.match(COMMAND_REGEX);
   if (!commandMatch) {

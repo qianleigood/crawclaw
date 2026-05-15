@@ -91,8 +91,8 @@ git commit -m "Add Clawd workspace"
 
 ## What CrawClaw Does
 
-- Runs WhatsApp gateway + Pi coding agent so the assistant can read/write chats, fetch context, and run skills via the host Mac.
-- The local node/runtime host manages permissions (screen recording, notifications, microphone) and exposes the `crawclaw` CLI.
+- Runs Weixin gateway + Pi coding agent so the assistant can read/write chats, fetch context, and run skills via the host Mac.
+- The local node/runtime host manages permissions (screen recording, notifications, microphone) and exposes Gateway API controls.
 - Direct chats collapse into the agent's `main` session by default; groups stay isolated as `agent:<agentId>:<channel>:group:<id>` (rooms/channels: `agent:<agentId>:<channel>:channel:<id>`); background tasks can queue main-session wake events when they finish.
 
 ## Core Skills (enable in Settings → Skills)
@@ -102,9 +102,6 @@ git commit -m "Add Clawd workspace"
 - **camsnap** — Capture frames, clips, or motion alerts from RTSP/ONVIF security cams.
 - **oracle** — OpenAI-ready agent CLI with session replay and browser control.
 - **eightctl** — Control your sleep, from the terminal.
-- **imsg** — Send, read, stream iMessage & SMS.
-- **wacli** — WhatsApp CLI: sync, search, send.
-- **discord** — Discord actions: react, stickers, polls. Use `user:<id>` or `channel:<id>` targets (bare numeric ids are ambiguous).
 - **gog** — Google Suite CLI: Gmail, Calendar, Drive, Contacts.
 - **spotify-player** — Terminal Spotify client to search/queue/control playback.
 - **sag** — ElevenLabs speech with mac-style say UX; streams to speakers by default.
@@ -117,7 +114,7 @@ git commit -m "Add Clawd workspace"
 
 ## Usage Notes
 
-- Prefer the `crawclaw` CLI for scripting; mac app handles permissions.
+- Prefer the local Gateway API for scripting; the mac app handles permissions.
 - Run installs from the Skills tab; it hides the button if a binary is already present.
 - Use cron jobs and hooks for reminders, inbox monitoring, and camera capture automations.
 - Canvas UI runs full-screen with native overlays. Avoid placing critical controls in the top-left/top-right/bottom edges; add explicit gutters in the layout and don’t rely on safe-area insets.

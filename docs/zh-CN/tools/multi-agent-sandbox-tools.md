@@ -77,7 +77,7 @@ x-i18n:
     {
       "agentId": "family",
       "match": {
-        "provider": "whatsapp",
+        "provider": "weixin",
         "accountId": "*",
         "peer": {
           "kind": "group",
@@ -117,7 +117,7 @@ x-i18n:
         },
         "tools": {
           "allow": ["read", "write", "apply_patch", "exec"],
-          "deny": ["browser", "gateway", "discord"]
+          "deny": ["browser", "gateway", "qqbot"]
         }
       }
     ]
@@ -136,7 +136,7 @@ x-i18n:
     "list": [
       {
         "id": "support",
-        "tools": { "profile": "messaging", "allow": ["slack"] }
+        "tools": { "profile": "messaging", "allow": ["ddingtalk"] }
       }
     ]
   }
@@ -146,7 +146,7 @@ x-i18n:
 **结果：**
 
 - 默认智能体获得编码工具
-- `support` 智能体仅用于消息（+ Slack 工具）
+- `support` 智能体仅用于消息（+ DingTalk 工具）
 
 ---
 

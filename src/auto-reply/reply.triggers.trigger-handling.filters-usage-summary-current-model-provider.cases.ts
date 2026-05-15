@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   getProviderUsageMocks,
-  getRunEmbeddedPiAgentMock,
+  getRunEmbeddedPiAgentMock as getRustAutoReplyMock,
   makeCfg,
   requireSessionStorePath,
   withTempHome,
@@ -52,7 +52,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
   describe("usage and status command handling", () => {
     it("shows status without invoking the agent", async () => {
       await withTempHome(async (home) => {
-        const runEmbeddedPiAgentMock = getRunEmbeddedPiAgentMock();
+        const rustAutoReplyMock = getRustAutoReplyMock();
         const getReplyFromConfig = getReplyFromConfigNow(params.getReplyFromConfig);
         seedUsageSummary();
 
@@ -61,7 +61,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
             Body: "/status",
             From: "+1000",
             To: "+2000",
-            Provider: "whatsapp",
+            Provider: "weixin",
             SenderE164: "+1000",
             CommandAuthorized: true,
           },
@@ -72,13 +72,13 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
         const text = Array.isArray(res) ? res[0]?.text : res?.text;
         expect(text).toContain("Model:");
         expect(text).toContain("CrawClaw");
-        expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+        expect(rustAutoReplyMock).not.toHaveBeenCalled();
       });
     });
 
     it("cycles usage footer modes and persists the final selection", async () => {
       await withTempHome(async (home) => {
-        const runEmbeddedPiAgentMock = getRunEmbeddedPiAgentMock();
+        const rustAutoReplyMock = getRustAutoReplyMock();
         const getReplyFromConfig = getReplyFromConfigNow(params.getReplyFromConfig);
         const cfg = makeCfg(home);
         cfg.session = { ...cfg.session, store: join(home, "usage-cycle.sessions.json") };
@@ -89,7 +89,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
             Body: "/usage on",
             From: "+1000",
             To: "+2000",
-            Provider: "whatsapp",
+            Provider: "weixin",
             SenderE164: "+1000",
             CommandAuthorized: true,
           },
@@ -105,7 +105,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
             Body: "/usage",
             From: "+1000",
             To: "+2000",
-            Provider: "whatsapp",
+            Provider: "weixin",
             SenderE164: "+1000",
             CommandAuthorized: true,
           },
@@ -119,7 +119,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
             Body: "/usage",
             From: "+1000",
             To: "+2000",
-            Provider: "whatsapp",
+            Provider: "weixin",
             SenderE164: "+1000",
             CommandAuthorized: true,
           },
@@ -133,7 +133,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
             Body: "/usage",
             From: "+1000",
             To: "+2000",
-            Provider: "whatsapp",
+            Provider: "weixin",
             SenderE164: "+1000",
             CommandAuthorized: true,
           },
@@ -148,7 +148,7 @@ export function registerTriggerHandlingUsageSummaryCases(params: {
         expect(pickFirstStoreEntry<{ responseUsage?: string }>(finalStore)?.responseUsage).toBe(
           "tokens",
         );
-        expect(runEmbeddedPiAgentMock).not.toHaveBeenCalled();
+        expect(rustAutoReplyMock).not.toHaveBeenCalled();
       });
     });
   });

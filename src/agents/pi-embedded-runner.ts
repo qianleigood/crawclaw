@@ -1,5 +1,4 @@
 export type { MessagingToolSend } from "./pi-embedded-messaging.js";
-export { compactEmbeddedPiSession } from "./pi-embedded-runner/compact.js";
 export {
   applyExtraParamsToAgent,
   resolveAgentTransportOverride,
@@ -10,14 +9,6 @@ export {
 export { applyGoogleTurnOrderingFix } from "./pi-embedded-runner/google.js";
 export { getHistoryLimitFromSessionKey, limitHistoryTurns } from "./pi-embedded-runner/history.js";
 export { resolveEmbeddedSessionLane } from "./pi-embedded-runner/lanes.js";
-export { runEmbeddedPiAgent } from "./pi-embedded-runner/run.js";
-export {
-  abortEmbeddedPiRun,
-  isEmbeddedPiRunActive,
-  isEmbeddedPiRunStreaming,
-  queueEmbeddedPiMessage,
-  waitForEmbeddedPiRunEnd,
-} from "./pi-embedded-runner/runs.js";
 export { createSystemPromptOverride } from "./pi-embedded-runner/system-prompt.js";
 export { splitSdkTools } from "./pi-embedded-runner/tool-split.js";
 export type {

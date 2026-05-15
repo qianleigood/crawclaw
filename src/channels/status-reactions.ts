@@ -10,7 +10,7 @@
 export type StatusReactionAdapter = {
   /** Set/replace the current reaction emoji. */
   setReaction: (emoji: string) => Promise<void>;
-  /** Remove a specific reaction emoji (optional — needed for Discord-style platforms). */
+  /** Remove a specific reaction emoji (optional — needed for channel-style platforms). */
   removeReaction?: (emoji: string) => Promise<void>;
 };
 
@@ -355,7 +355,7 @@ export function createStatusReactionController(params: {
 
     await enqueue(async () => {
       if (adapter.removeReaction) {
-        // Remove all known emojis (Discord-style)
+        // Remove all known emojis (channel-style)
         const emojisToRemove = Array.from(knownEmojis);
         for (const emoji of emojisToRemove) {
           try {
@@ -368,7 +368,7 @@ export function createStatusReactionController(params: {
         }
       } else {
         // For platforms without removeReaction, set empty or just skip
-        // (Telegram handles this atomically on the next setReaction)
+        // (native adapters may handle this atomically on the next setReaction)
       }
       currentEmoji = "";
       pendingEmoji = "";

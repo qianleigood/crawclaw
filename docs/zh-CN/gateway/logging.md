@@ -104,11 +104,11 @@ crawclaw gateway --verbose --ws-log full
 - 每行都有**子系统前缀**（例如 `[gateway]`、`[canvas]`、`[tailscale]`）
 - **子系统颜色**（每个子系统稳定）加上级别着色
 - **当输出是 TTY 或环境看起来像富终端时着色**（`TERM`/`COLORTERM`/`TERM_PROGRAM`），遵守 `NO_COLOR`
-- **缩短的子系统前缀**：删除前导 `gateway/` + `channels/`，保留最后 2 个段（例如 `whatsapp/outbound`）
+- **缩短的子系统前缀**：删除前导 `gateway/` + `channels/`，保留最后 2 个段（例如 `weixin/outbound`）
 - **按子系统的子日志记录器**（自动前缀 + 结构化字段 `{ subsystem }`）
 - **`logRaw()`** 用于 QR/UX 输出（无前缀，无格式化）
 - **控制台样式**（例如 `pretty | compact | json`）
 - **控制台日志级别**与文件日志级别分开（当 `logging.level` 设置为 `debug`/`trace` 时，文件保留完整详情）
-- **WhatsApp 消息正文**以 `debug` 级别记录（使用 `--verbose` 查看它们）
+- **Weixin 消息正文**以 `debug` 级别记录（使用 `--verbose` 查看它们）
 
 这保持现有文件日志稳定，同时使交互式输出易于扫描。

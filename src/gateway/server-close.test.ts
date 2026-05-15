@@ -75,7 +75,7 @@ describe("createGatewayCloseHandler", () => {
 
     await close({ reason: "test shutdown" });
 
-    expect(stopChannel).toHaveBeenCalledWith("telegram");
-    expect(stopChannel).toHaveBeenCalledWith("whatsapp");
+    expect(stopChannel).toHaveBeenCalledWith("feishu");
+    expect(stopChannel).toHaveBeenCalledWith("weixin");
   });
 });

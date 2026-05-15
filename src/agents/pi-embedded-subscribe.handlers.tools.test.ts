@@ -421,7 +421,7 @@ describe("handleToolExecutionEnd exec approval prompts", () => {
           details: {
             status: "approval-unavailable",
             reason: "initiating-platform-disabled",
-            channelLabel: "Discord",
+            channelLabel: "QQBot",
           },
         },
       } as never,
@@ -429,7 +429,7 @@ describe("handleToolExecutionEnd exec approval prompts", () => {
 
     expect(onToolResult).toHaveBeenCalledWith(
       expect.objectContaining({
-        text: expect.stringContaining("chat exec approvals are not enabled on Discord"),
+        text: expect.stringContaining("chat exec approvals are not enabled on QQBot"),
       }),
     );
     expect(onToolResult).toHaveBeenCalledWith(
@@ -471,7 +471,7 @@ describe("handleToolExecutionEnd exec approval prompts", () => {
           details: {
             status: "approval-unavailable",
             reason: "initiating-platform-disabled",
-            channelLabel: "Telegram",
+            channelLabel: "Feishu",
             sentApproverDms: true,
           },
         },

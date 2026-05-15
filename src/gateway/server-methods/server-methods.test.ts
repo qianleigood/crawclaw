@@ -22,7 +22,7 @@ import { sanitizeChatSendMessageInput } from "./chat.js";
 import { createExecApprovalHandlers } from "./exec-approval.js";
 import { logsHandlers } from "./logs.js";
 
-vi.mock("../../commands/status.js", () => ({
+vi.mock("../../control/status.js", () => ({
   getStatusSummary: vi.fn().mockResolvedValue({ ok: true }),
 }));
 
@@ -218,7 +218,7 @@ describe("injectTimestamp", () => {
   });
 
   it("does NOT double-stamp messages with channel envelope timestamps", () => {
-    const enveloped = "[Discord user1 2026-01-28 20:30 EST] hello there";
+    const enveloped = "[QQBot user1 2026-01-28 20:30 EST] hello there";
     const result = injectTimestamp(enveloped, { timezone: "America/New_York" });
 
     expect(result).toBe(enveloped);
@@ -1052,7 +1052,7 @@ describe("exec approval handlers", () => {
         context,
         params: {
           timeoutMs: 60_000,
-          turnSourceChannel: "whatsapp",
+          turnSourceChannel: "weixin",
           turnSourceTo: "+15555550123",
           turnSourceAccountId: "work",
           turnSourceThreadId: "1739201675.123",
@@ -1063,7 +1063,7 @@ describe("exec approval handlers", () => {
       expect(forwarder.handleRequested).toHaveBeenCalledWith(
         expect.objectContaining({
           request: expect.objectContaining({
-            turnSourceChannel: "whatsapp",
+            turnSourceChannel: "weixin",
             turnSourceTo: "+15555550123",
             turnSourceAccountId: "work",
             turnSourceThreadId: "1739201675.123",
@@ -1115,7 +1115,7 @@ describe("exec approval handlers", () => {
           timeoutMs: 60_000,
           id: "approval-chat-route",
           host: "gateway",
-          turnSourceChannel: "slack",
+          turnSourceChannel: "ddingtalk",
           turnSourceTo: "D123",
         },
       });
@@ -1174,11 +1174,11 @@ describe("exec approval handlers", () => {
 });
 
 describe("gateway healthHandlers.status scope handling", () => {
-  let statusModule: typeof import("../../commands/status.js");
+  let statusModule: typeof import("../../control/status.js");
   let healthHandlers: typeof import("./health.js").healthHandlers;
 
   beforeAll(async () => {
-    statusModule = await import("../../commands/status.js");
+    statusModule = await import("../../control/status.js");
     ({ healthHandlers } = await import("./health.js"));
   });
 

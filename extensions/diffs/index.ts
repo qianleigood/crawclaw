@@ -11,7 +11,6 @@ import {
   resolveDiffsPluginViewerBaseUrl,
 } from "./src/config.js";
 import { createDiffsHttpHandler } from "./src/http.js";
-import { DIFFS_AGENT_GUIDANCE } from "./src/prompt-guidance.js";
 import { DiffArtifactStore } from "./src/store.js";
 import { createDiffsTool } from "./src/tool.js";
 
@@ -47,10 +46,5 @@ export default definePluginEntry({
         allowRealIpFallback: api.config.gateway?.allowRealIpFallback === true,
       }),
     });
-    api.on("before_prompt_build", async () => ({
-      queryContextPatch: {
-        prependSystemContextSections: [{ content: DIFFS_AGENT_GUIDANCE }],
-      },
-    }));
   },
 });

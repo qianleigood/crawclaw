@@ -33,17 +33,17 @@ async function loadFreshGetReplyModuleForTest() {
 
 function buildNativeResetContext(): MsgContext {
   return {
-    Provider: "telegram",
-    Surface: "telegram",
+    Provider: "feishu",
+    Surface: "feishu",
     ChatType: "direct",
     Body: "/new",
     RawBody: "/new",
     CommandBody: "/new",
     CommandSource: "native",
     CommandAuthorized: true,
-    SessionKey: "telegram:slash:123",
-    CommandTargetSessionKey: "agent:main:telegram:direct:123",
-    From: "telegram:123",
+    SessionKey: "feishu:slash:123",
+    CommandTargetSessionKey: "agent:main:feishu:direct:123",
+    From: "feishu:123",
     To: "slash:123",
   };
 }
@@ -54,17 +54,17 @@ function createContinueDirectivesResult(resetHookTriggered: boolean) {
     result: {
       commandSource: "/new",
       command: {
-        surface: "telegram",
-        channel: "telegram",
-        channelId: "telegram",
+        surface: "feishu",
+        channel: "feishu",
+        channelId: "feishu",
         ownerList: [],
         senderIsOwner: true,
         isAuthorizedSender: true,
         senderId: "123",
-        abortKey: "telegram:slash:123",
+        abortKey: "feishu:slash:123",
         rawBodyNormalized: "/new",
         commandBodyNormalized: "/new",
-        from: "telegram:123",
+        from: "feishu:123",
         to: "slash:123",
         resetHookTriggered,
       },
@@ -111,7 +111,7 @@ describe("getReplyFromConfig reset-hook fallback", () => {
       sessionEntry: {},
       previousSessionEntry: {},
       sessionStore: {},
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       sessionId: "session-1",
       isNewSession: true,
       resetTriggered: true,
@@ -137,7 +137,7 @@ describe("getReplyFromConfig reset-hook fallback", () => {
     expect(mocks.emitResetCommandHooks).toHaveBeenCalledWith(
       expect.objectContaining({
         action: "new",
-        sessionKey: "agent:main:telegram:direct:123",
+        sessionKey: "agent:main:feishu:direct:123",
       }),
     );
   });

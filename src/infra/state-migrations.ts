@@ -586,14 +586,8 @@ export async function runLegacyStateMigrations(params: {
   const sessions = await migrateLegacySessions(detected, now);
   const agentDir = await migrateLegacyAgentDir(detected, now);
   return {
-    changes: [
-      ...sessions.changes,
-      ...agentDir.changes,
-    ],
-    warnings: [
-      ...sessions.warnings,
-      ...agentDir.warnings,
-    ],
+    changes: [...sessions.changes, ...agentDir.changes],
+    warnings: [...sessions.warnings, ...agentDir.warnings],
   };
 }
 

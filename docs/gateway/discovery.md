@@ -65,7 +65,6 @@ Troubleshooting and beacon details: [Bonjour](/gateway/bonjour).
   - `gatewayPort=18789` (Gateway WS + HTTP)
   - `gatewayTls=1` (only when TLS is enabled)
   - `gatewayTlsSha256=<sha256>` (only when TLS is enabled and fingerprint is available)
-  - `cliPath=<path>` (optional; absolute path to a runnable `crawclaw` entrypoint or binary)
   - `tailnetDns=<magicdns>` (optional hint; auto-detected when Tailscale is available)
 
 Security notes:
@@ -81,7 +80,6 @@ Disable/override:
 - `gateway.bind` in `~/.crawclaw/crawclaw.json` controls the Gateway bind mode.
 - `CRAWCLAW_SSH_PORT` overrides the SSH port advertised in TXT (defaults to 22).
 - `CRAWCLAW_TAILNET_DNS` publishes a `tailnetDns` hint (MagicDNS).
-- `CRAWCLAW_CLI_PATH` overrides the advertised CLI path.
 
 ### 2) Tailnet (cross-network)
 

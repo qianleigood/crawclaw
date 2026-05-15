@@ -1,9 +1,10 @@
 /**
- * Voice call response generator - uses the embedded Pi agent for tool support.
+ * Voice call response generator - uses the Rust agent runtime for tool support.
  * Routes voice responses through the same agent infrastructure as messaging.
  */
 
 import crypto from "node:crypto";
+import { callGateway } from "crawclaw/plugin-sdk/gateway-runtime";
 import type { SessionEntry } from "../api.js";
 import type { VoiceCallConfig } from "./config.js";
 import type { CoreAgentDeps, CoreConfig } from "./core-bridge.js";
@@ -190,7 +191,6 @@ export async function generateVoiceResponse(
 
   // Resolve paths
   const storePath = agentRuntime.session.resolveStorePath(cfg.session?.store, { agentId });
-  const agentDir = agentRuntime.resolveAgentDir(cfg, agentId);
   const workspaceDir = agentRuntime.resolveAgentWorkspaceDir(cfg, agentId);
 
   // Ensure workspace exists
@@ -211,9 +211,6 @@ export async function generateVoiceResponse(
   }
 
   const sessionId = sessionEntry.sessionId;
-  const sessionFile = agentRuntime.session.resolveSessionFilePath(sessionId, sessionEntry, {
-    agentId,
-  });
 
   // Resolve model from config
   const modelRef =
@@ -249,24 +246,27 @@ export async function generateVoiceResponse(
   const runId = `voice:${callId}:${Date.now()}`;
 
   try {
-    const result = await agentRuntime.runEmbeddedPiAgent({
-      sessionId,
-      sessionKey,
-      messageProvider: "voice",
-      sessionFile,
-      workspaceDir,
-      config: cfg,
-      prompt: userMessage,
-      provider,
-      model,
-      thinkLevel,
-      verboseLevel: "off",
+    const result = (await callGateway({
+      method: "agent.runTurn",
+      params: {
+        sessionId,
+        sessionKey,
+        agentId,
+        trigger: "voice",
+        channel: "voice",
+        messageProvider: "voice",
+        message: userMessage,
+        prompt: userMessage,
+        provider,
+        model,
+        thinkLevel,
+        reasoningLevel: thinkLevel,
+        extraSystemPrompt,
+        runId,
+      },
       timeoutMs,
-      runId,
-      lane: "voice",
-      extraSystemPrompt,
-      agentDir,
-    });
+      expectFinal: true,
+    })) as { payloads?: VoiceResponsePayload[]; meta?: { aborted?: boolean } };
 
     const text = extractSpokenTextFromPayloads((result.payloads ?? []) as VoiceResponsePayload[]);
 

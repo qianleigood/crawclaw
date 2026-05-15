@@ -1,6 +1,4 @@
-import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js";
 import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
-import type { CliDeps } from "../cli/deps.js";
 import { resolveAgentMaxConcurrent, resolveSubagentMaxConcurrent } from "../config/agent-limits.js";
 import { isRestartEnabled } from "../config/commands.js";
 import type { loadConfig } from "../config/config.js";
@@ -17,6 +15,7 @@ import {
 import { setCommandLaneConcurrency, getTotalQueueSize } from "../process/command-queue.js";
 import { CommandLane } from "../process/lanes.js";
 import { getInspectableTaskRegistrySummary } from "../tasks/task-registry.maintenance.js";
+import type { CliDeps } from "../terminal/deps.js";
 import type { ChannelHealthMonitor } from "./channel-health-monitor.js";
 import type { ChannelKind } from "./config-reload-plan.js";
 import type { GatewayReloadPlan } from "./config-reload.js";
@@ -206,7 +205,7 @@ export function createGatewayReloadHandlers(params: {
     const getActiveCounts = () => {
       const queueSize = getTotalQueueSize();
       const pendingReplies = getTotalPendingReplies();
-      const embeddedRuns = getActiveEmbeddedRunCount();
+      const embeddedRuns = 0;
       const activeTasks = getInspectableTaskRegistrySummary().active;
       return {
         queueSize,

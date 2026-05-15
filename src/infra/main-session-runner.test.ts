@@ -37,8 +37,8 @@ describe("main-session wake runner", () => {
         [sessionKey]: {
           sessionId: "sid",
           updatedAt: Date.now(),
-          lastChannel: "telegram",
-          lastProvider: "telegram",
+          lastChannel: "feishu",
+          lastProvider: "feishu",
           lastTo: "15551234567",
         },
       }),

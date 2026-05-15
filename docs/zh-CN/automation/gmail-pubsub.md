@@ -65,7 +65,7 @@ x-i18n:
 }
 ```
 
-如果你想使用固定渠道，请设置 `channel` + `to`。否则 `channel: "last"` 会使用上次的投递路由（默认回退到 WhatsApp）。
+如果你想使用固定渠道，请设置 `channel` + `to`。否则 `channel: "last"` 会使用上次的投递路由（默认回退到 Weixin）。
 
 要为 Gmail 运行强制使用更便宜的模型，请在映射中设置 `model`（`provider/model` 或别名）。如果你强制启用了 `agents.defaults.models`，请将其包含在内。
 

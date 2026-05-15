@@ -24,7 +24,7 @@ The following are already landed:
 - guard architecture phase one and two
 - completion evidence and completion guard
 - loop policy, replay, report, and promotion gate
-- inspect, status, gateway inspection RPC, and CLI support
+- inspect, status, and gateway inspection RPC support
 - `/review` as the public two-stage review entrypoint
 - Context Archive foundation
 - Action Feed foundation

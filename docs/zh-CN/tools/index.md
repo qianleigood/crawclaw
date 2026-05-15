@@ -71,13 +71,13 @@ CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体�
 - `messaging`：`group:messaging`、`sessions_list`、`sessions_history`、`sessions_send`、`session_status`
 - `full`：无限制（与未设置相同）
 
-示例（默认仅消息，同时允许 Slack + Discord 工具）：
+示例（默认仅消息，同时允许 DingTalk + QQBot 工具）：
 
 ```json5
 {
   tools: {
     profile: "messaging",
-    allow: ["slack", "discord"],
+    allow: ["ddingtalk", "qqbot"],
   },
 }
 ```
@@ -102,7 +102,7 @@ CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体�
     list: [
       {
         id: "support",
-        tools: { profile: "messaging", allow: ["slack"] },
+        tools: { profile: "messaging", allow: ["ddingtalk"] },
       },
     ],
   },
@@ -415,12 +415,12 @@ CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体�
 
 ### `message`
 
-跨 Discord/Google Chat/Slack/Telegram/WhatsApp/Signal/iMessage/MS Teams 发送消息和渠道操作。
+跨 QQBot/Feishu/DingTalk/Feishu/Weixin/Feishu/Weixin/MS Teams 发送消息和渠道操作。
 
 核心操作：
 
 - `send`（文本 + 可选媒体；MS Teams 还支持用于 Adaptive Cards 的 `card`）
-- `poll`（WhatsApp/Discord/MS Teams 投票）
+- `poll`（Weixin/QQBot/MS Teams 投票）
 - `react` / `reactions` / `read` / `edit` / `delete`
 - `pin` / `unpin` / `list-pins`
 - `permissions`
@@ -437,8 +437,8 @@ CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体�
 
 注意：
 
-- `send` 通过 Gateway 网关路由 WhatsApp；其他渠道直接发送。
-- `poll` 对 WhatsApp 和 MS Teams 使用 Gateway 网关；Discord 投票直接发送。
+- `send` 通过 Gateway 网关路由 Weixin；其他渠道直接发送。
+- `poll` 对 Weixin 和 MS Teams 使用 Gateway 网关；QQBot 投票直接发送。
 - 当消息工具调用绑定到活动聊天会话时，发送被限制到该会话的目标以避免跨上下文泄露。
 
 ### `cron`

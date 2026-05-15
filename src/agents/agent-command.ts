@@ -6,7 +6,6 @@ import {
   supportsXHighThinking,
   type VerboseLevel,
 } from "../auto-reply/thinking.js";
-import { type CliDeps, createDefaultDeps } from "../cli/deps.js";
 import { resolveAgentIdFromSessionKey, type SessionEntry } from "../config/sessions.js";
 import { resolveSessionTranscriptFile } from "../config/sessions/transcript.js";
 import {
@@ -21,6 +20,7 @@ import { applyVerboseOverride } from "../sessions/level-overrides.js";
 import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
 import { resolveSendPolicy } from "../sessions/send-policy.js";
 import { sanitizeForLog } from "../terminal/ansi.js";
+import { type CliDeps, createDefaultDeps } from "../terminal/deps.js";
 import { resolveMessageChannel } from "../utils/message-channel.js";
 import { resolveEffectiveModelFallbacks } from "./agent-scope.js";
 import { ensureAuthProfileStore } from "./auth-profiles.js";
@@ -536,8 +536,10 @@ async function agentCommandInternal(
       fallbackModel = fallbackResult.model;
       if (!lifecycleEnded) {
         const stopReason = result.meta.stopReason;
-        if (stopReason && stopReason !== "end_turn") {
-          console.error(`[agent] run ${runId} ended with stopReason=${stopReason}`);
+        const stopReasonText =
+          typeof stopReason === "string" ? stopReason : JSON.stringify(stopReason);
+        if (stopReasonText && stopReasonText !== "end_turn") {
+          console.error(`[agent] run ${runId} ended with stopReason=${stopReasonText}`);
         }
         emitAgentEvent({
           runId,

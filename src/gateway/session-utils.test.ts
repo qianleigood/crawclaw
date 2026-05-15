@@ -99,13 +99,13 @@ describe("gateway session utils", () => {
   });
 
   test("parseGroupKey handles group keys", () => {
-    expect(parseGroupKey("discord:group:dev")).toEqual({
-      channel: "discord",
+    expect(parseGroupKey("qqbot:group:dev")).toEqual({
+      channel: "qqbot",
       kind: "group",
       id: "dev",
     });
-    expect(parseGroupKey("agent:ops:discord:group:dev")).toEqual({
-      channel: "discord",
+    expect(parseGroupKey("agent:ops:qqbot:group:dev")).toEqual({
+      channel: "qqbot",
       kind: "group",
       id: "dev",
     });
@@ -115,7 +115,7 @@ describe("gateway session utils", () => {
   test("classifySessionKey respects chat type + prefixes", () => {
     expect(classifySessionKey("global")).toBe("global");
     expect(classifySessionKey("unknown")).toBe("unknown");
-    expect(classifySessionKey("discord:group:dev")).toBe("group");
+    expect(classifySessionKey("qqbot:group:dev")).toBe("group");
     expect(classifySessionKey("main")).toBe("direct");
     const entry = { chatType: "group" } as SessionEntry;
     expect(classifySessionKey("main", entry)).toBe("group");
@@ -139,8 +139,8 @@ describe("gateway session utils", () => {
       session: { mainKey: "main" },
       agents: { list: [{ id: "ops", default: true }] },
     } as CrawClawConfig;
-    expect(resolveSessionStoreKey({ cfg, sessionKey: "discord:group:123" })).toBe(
-      "agent:ops:discord:group:123",
+    expect(resolveSessionStoreKey({ cfg, sessionKey: "qqbot:group:123" })).toBe(
+      "agent:ops:qqbot:group:123",
     );
     expect(resolveSessionStoreKey({ cfg, sessionKey: "agent:alpha:main" })).toBe(
       "agent:alpha:main",
@@ -153,8 +153,8 @@ describe("gateway session utils", () => {
       agents: { list: [{ id: "ops" }, { id: "review" }] },
     } as CrawClawConfig;
     expect(resolveSessionStoreKey({ cfg, sessionKey: "main" })).toBe("agent:ops:main");
-    expect(resolveSessionStoreKey({ cfg, sessionKey: "discord:group:123" })).toBe(
-      "agent:ops:discord:group:123",
+    expect(resolveSessionStoreKey({ cfg, sessionKey: "qqbot:group:123" })).toBe(
+      "agent:ops:qqbot:group:123",
     );
   });
 
@@ -938,10 +938,10 @@ describe("listSessionsFromStore search", () => {
       displayName: "Personal Chat",
       subject: "Family Reunion Planning",
     } as SessionEntry,
-    "agent:main:discord:group:dev-team": {
-      sessionId: "sess-discord-1",
+    "agent:main:qqbot:group:dev-team": {
+      sessionId: "sess-qqbot-1",
       updatedAt: Date.now() - 2000,
-      label: "discord",
+      label: "qqbot",
       subject: "Dev Team Discussion",
     } as SessionEntry,
   });
@@ -1092,9 +1092,9 @@ describe("listSessionsFromStore search", () => {
     const cases = [
       { search: "WORK PROJECT", expectedKey: "agent:main:work-project" },
       { search: "reunion", expectedKey: "agent:main:personal-chat" },
-      { search: "discord", expectedKey: "agent:main:discord:group:dev-team" },
+      { search: "qqbot", expectedKey: "agent:main:qqbot:group:dev-team" },
       { search: "sess-personal", expectedKey: "agent:main:personal-chat" },
-      { search: "dev-team", expectedKey: "agent:main:discord:group:dev-team" },
+      { search: "dev-team", expectedKey: "agent:main:qqbot:group:dev-team" },
       { search: "alpha", expectedKey: "agent:main:work-project" },
       { search: "  personal  ", expectedKey: "agent:main:personal-chat" },
       { search: "nonexistent-term", expectedKey: undefined },

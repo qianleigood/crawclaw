@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { formatCliCommand } from "../cli/command-format.js";
 import { resolveStateDir } from "../config/paths.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 
 export type RestartSentinelLog = {
   stdoutTail?: string | null;
@@ -38,7 +38,7 @@ export type RestartSentinelPayload = {
     to?: string;
     accountId?: string;
   };
-  /** Thread ID for reply threading (e.g., Slack thread_ts). */
+  /** Thread ID for reply threading (e.g., channel thread id). */
   threadId?: string;
   message?: string | null;
   doctorHint?: string | null;

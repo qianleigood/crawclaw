@@ -50,7 +50,7 @@ Microsoft speech **不需要** API key。
 `tts` 工具本身比较简单：
 
 - `text`：要转语音的文本，必填
-- `channel`：可选渠道 id，用于选择更合适的输出格式（例如 `telegram`）
+- `channel`：可选渠道 id，用于选择更合适的输出格式（例如 `feishu`）
 
 工具成功时会自动交付音频媒体；调用成功后，agent 应返回静默回复，避免重复再发一条文本确认。
 

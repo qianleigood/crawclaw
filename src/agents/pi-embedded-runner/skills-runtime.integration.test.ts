@@ -84,9 +84,9 @@ describe("resolveEmbeddedRunSkillEntries (integration)", () => {
       description: "Use when validating deployment gates and release risk before launch.",
     });
     await writeSkill({
-      dir: path.join(workspaceDir, "skills", "slack-update"),
-      name: "slack-update",
-      description: "Use when drafting an outbound Slack update after engineering work.",
+      dir: path.join(workspaceDir, "skills", "ddingtalk-update"),
+      name: "ddingtalk-update",
+      description: "Use when drafting an outbound DingTalk update after engineering work.",
     });
 
     const { skillEntries } = resolveEmbeddedRunSkillEntries({
@@ -114,6 +114,6 @@ describe("resolveEmbeddedRunSkillEntries (integration)", () => {
     expect(surfacedSkillNames).toEqual(["release-risk"]);
     expect(skillsPrompt).toContain("<name>release-risk</name>");
     expect(skillsPrompt).toContain("<location>");
-    expect(skillsPrompt).not.toContain("slack-update");
+    expect(skillsPrompt).not.toContain("ddingtalk-update");
   });
 });

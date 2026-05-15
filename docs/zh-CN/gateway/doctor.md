@@ -70,7 +70,7 @@ cat ~/.crawclaw/crawclaw.json
 - Skills 状态摘要（符合条件/缺失/被阻止）。
 - 遗留值的配置规范化。
 - OpenCode Zen 提供商覆盖警告（`models.providers.opencode`）。
-- 遗留磁盘状态迁移（会话/智能体目录/WhatsApp 认证）。
+- 遗留磁盘状态迁移（会话/智能体目录/Weixin 认证）。
 - 状态完整性和权限检查（会话、记录、状态目录）。
 - 本地运行时的配置文件权限检查（chmod 600）。
 - 模型认证健康：检查 OAuth 过期，可刷新即将过期的 token，并报告认证配置文件冷却/禁用状态。
@@ -112,8 +112,8 @@ Gateway 网关在检测到遗留配置格式时也会在启动时自动运行 do
 
 当前迁移：
 
-- `routing.allowFrom` → `channels.whatsapp.allowFrom`
-- `routing.groupChat.requireMention` → `channels.whatsapp/telegram/imessage.groups."*".requireMention`
+- `routing.allowFrom` → `channels.weixin.allowFrom`
+- `routing.groupChat.requireMention` → `channels.weixin/feishu/weixin.groups."*".requireMention`
 - `routing.groupChat.historyLimit` → `messages.groupChat.historyLimit`
 - `routing.groupChat.mentionPatterns` → `messages.groupChat.mentionPatterns`
 - `routing.queue` → `messages.queue`
@@ -139,11 +139,11 @@ Doctor 可以将旧的磁盘布局迁移到当前结构：
   - 从 `~/.crawclaw/sessions/` 到 `~/.crawclaw/agents/<agentId>/sessions/`
 - 智能体目录：
   - 从 `~/.crawclaw/agent/` 到 `~/.crawclaw/agents/<agentId>/agent/`
-- WhatsApp 认证状态（Baileys）：
+- Weixin 认证状态（Baileys）：
   - 从遗留的 `~/.crawclaw/credentials/*.json`（除 `oauth.json` 外）
-  - 到 `~/.crawclaw/credentials/whatsapp/<accountId>/...`（默认账户 id：`default`）
+  - 到 `~/.crawclaw/credentials/weixin/<accountId>/...`（默认账户 id：`default`）
 
-这些迁移是尽力而为且幂等的；当 doctor 将任何遗留文件夹作为备份保留时会发出警告。Gateway 网关/CLI 也会在启动时自动迁移遗留会话 + 智能体目录，因此历史/认证/模型会落在每智能体路径中，无需手动运行 doctor。WhatsApp 认证有意仅通过 `crawclaw doctor` 迁移。
+这些迁移是尽力而为且幂等的；当 doctor 将任何遗留文件夹作为备份保留时会发出警告。Gateway 网关/CLI 也会在启动时自动迁移遗留会话 + 智能体目录，因此历史/认证/模型会落在每智能体路径中，无需手动运行 doctor。Weixin 认证有意仅通过 `crawclaw doctor` 迁移。
 
 ### 4）状态完整性检查（会话持久化、路由和安全）
 
@@ -225,7 +225,7 @@ Doctor 检查服务运行时（PID、上次退出状态），并在服务已安�
 
 ### 17）Gateway 网关运行时最佳实践
 
-当 Gateway 网关服务在 Bun 或版本管理器管理的 Node 路径（`nvm`、`fnm`、`volta`、`asdf` 等）上运行时，Doctor 会发出警告。WhatsApp + Telegram 渠道需要 Node，版本管理器路径在升级后可能会中断，因为服务不会加载你的 shell init。Doctor 会在可用时提供迁移到系统 Node 安装的选项（Homebrew/apt/choco）。
+当 Gateway 网关服务在 Bun 或版本管理器管理的 Node 路径（`nvm`、`fnm`、`volta`、`asdf` 等）上运行时，Doctor 会发出警告。Weixin + Feishu 渠道需要 Node，版本管理器路径在升级后可能会中断，因为服务不会加载你的 shell init。Doctor 会在可用时提供迁移到系统 Node 安装的选项（Homebrew/apt/choco）。
 
 ### 18）配置写入 + 向导元数据
 

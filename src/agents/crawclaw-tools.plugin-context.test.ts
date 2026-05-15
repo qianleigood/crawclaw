@@ -46,14 +46,14 @@ describe("createCrawClawTools plugin context", () => {
   it("forwards ephemeral sessionId to plugin tool context", () => {
     createCrawClawTools({
       config: {} as never,
-      agentSessionKey: "agent:main:telegram:direct:12345",
+      agentSessionKey: "agent:main:feishu:direct:12345",
       sessionId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     });
 
     expect(resolvePluginToolsMock).toHaveBeenCalledWith(
       expect.objectContaining({
         context: expect.objectContaining({
-          sessionKey: "agent:main:telegram:direct:12345",
+          sessionKey: "agent:main:feishu:direct:12345",
           sessionId: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
         }),
       }),
@@ -153,7 +153,7 @@ describe("createCrawClawTools plugin context", () => {
   it("forwards ambient deliveryContext to plugin tool context", () => {
     createCrawClawTools({
       config: {} as never,
-      agentChannel: "slack",
+      agentChannel: "ddingtalk",
       agentTo: "channel:C123",
       agentAccountId: "work",
       agentThreadId: "1710000000.000100",
@@ -163,7 +163,7 @@ describe("createCrawClawTools plugin context", () => {
       expect.objectContaining({
         context: expect.objectContaining({
           deliveryContext: {
-            channel: "slack",
+            channel: "ddingtalk",
             to: "channel:C123",
             accountId: "work",
             threadId: "1710000000.000100",

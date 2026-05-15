@@ -250,7 +250,7 @@ title: 项目基线冻结
 - `pnpm test` 主链中的既有红项
   - `status.gather/status`
   - `channels-misc`
-  - `telegram-model-picker`
+  - `feishu-model-picker`
   - `command-secret-resolution.coverage`
   - `gateway-chat`
   - `utils`
@@ -261,7 +261,7 @@ title: 项目基线冻结
   - `agent-runner.runreplyagent`
   - `workflow.n8n`
   - `models.list`
-  - `whatsapp connection/logging`
+  - `weixin connection/logging`
   - `wired-hooks-after-tool-call`
 - Docker smoke 主链
   - `scripts/e2e/onboard-docker.sh`

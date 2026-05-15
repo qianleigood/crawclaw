@@ -2,7 +2,6 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import type { AgentMessage } from "@mariozechner/pi-agent-core";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { ModelRegistry } from "@mariozechner/pi-coding-agent";
-import type { Command } from "commander";
 import type {
   ApiKeyCredential,
   AuthProfileCredential,
@@ -18,7 +17,7 @@ import type {
 } from "../agents/runtime/agent-guard-context.js";
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { ReplyPayload } from "../auto-reply/types.js";
-import type { ChannelId, ChannelPlugin } from "../channels/plugins/types.js";
+import type { ChannelId } from "../channels/plugins/types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type {
   CliBackendConfig,
@@ -28,7 +27,6 @@ import type {
 import type { ModelCompatConfig } from "../config/types.models.js";
 import type { OperatorScope } from "../gateway/method-scopes.js";
 import type { GatewayRequestHandler } from "../gateway/request-types.js";
-import type { InternalHookHandler } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { ObservationContext } from "../infra/observation/types.js";
 import type { ProviderUsageSnapshot } from "../infra/provider-usage.types.js";
@@ -1539,33 +1537,6 @@ export type CrawClawPluginHttpRouteParams = {
   replaceExisting?: boolean;
 };
 
-export type CrawClawPluginCliContext = {
-  program: Command;
-  config: CrawClawConfig;
-  workspaceDir?: string;
-  logger: PluginLogger;
-  locale?: "en" | "zh-CN";
-  t?: (key: string, params?: Record<string, string | number>) => string;
-};
-
-export type CrawClawPluginCliRegistrar = (ctx: CrawClawPluginCliContext) => void | Promise<void>;
-
-/**
- * Top-level CLI metadata for plugin-owned commands.
- *
- * Descriptors are the parse-time contract for lazy plugin CLI registration.
- * If you want CrawClaw to keep a plugin command lazy-loaded while still
- * advertising it at the root CLI level, provide descriptors that cover every
- * top-level command root registered by that plugin CLI surface.
- */
-export type CrawClawPluginCliCommandDescriptor = {
-  name: string;
-  description: string;
-  /** Root-help label used when the CLI locale is zh-CN. */
-  descriptionZhCN?: string;
-  hasSubcommands: boolean;
-};
-
 /** Context passed to long-lived plugin services. */
 export type CrawClawPluginServiceContext = {
   config: CrawClawConfig;
@@ -1605,10 +1576,6 @@ export type CliBackendPlugin = {
   normalizeConfig?: (config: CliBackendConfig) => CliBackendConfig;
 };
 
-export type CrawClawPluginChannelRegistration = {
-  plugin: ChannelPlugin;
-};
-
 /** Module-level plugin definition loaded from a native plugin entry file. */
 export type CrawClawPluginDefinition = {
   id?: string;
@@ -1625,7 +1592,7 @@ export type CrawClawPluginModule =
   | CrawClawPluginDefinition
   | ((api: CrawClawPluginApi) => void | Promise<void>);
 
-export type PluginRegistrationMode = "full" | "setup-only" | "setup-runtime" | "cli-metadata";
+export type PluginRegistrationMode = "full" | "setup-only" | "setup-runtime";
 
 /** Main registration API injected into native plugin entry files. */
 export type CrawClawPluginApi = {
@@ -1638,51 +1605,22 @@ export type CrawClawPluginApi = {
   registrationMode: PluginRegistrationMode;
   config: CrawClawConfig;
   pluginConfig?: Record<string, unknown>;
-  /**
-   * In-process runtime helpers for trusted native plugins.
-   *
-   * This surface is broader than hooks. Prefer hooks for third-party
-   * automation/integration unless you need native registry integration.
-   */
+  /** In-process runtime helpers for trusted native plugins. */
   runtime: PluginRuntime;
   logger: PluginLogger;
   registerTool: (
     tool: AnyAgentTool | CrawClawPluginToolFactory,
     opts?: CrawClawPluginToolOptions,
   ) => void;
-  registerHook: (
-    events: string | string[],
-    handler: InternalHookHandler,
-    opts?: CrawClawPluginHookOptions,
-  ) => void;
   registerHttpRoute: (params: CrawClawPluginHttpRouteParams) => void;
-  /** Register a native messaging channel plugin (channel capability). */
-  registerChannel: (registration: CrawClawPluginChannelRegistration | ChannelPlugin) => void;
   registerGatewayMethod: (
     method: string,
     handler: GatewayRequestHandler,
     opts?: { scope?: OperatorScope },
   ) => void;
-  registerCli: (
-    registrar: CrawClawPluginCliRegistrar,
-    opts?: {
-      /** Explicit top-level command roots owned by this registrar. */
-      commands?: string[];
-      /**
-       * Parse-time command descriptors for lazy root CLI registration.
-       *
-       * When descriptors cover every top-level command root, CrawClaw can keep
-       * the plugin registrar lazy in the normal root CLI path. Command-only
-       * registrations stay on the eager compatibility path.
-       */
-      descriptors?: CrawClawPluginCliCommandDescriptor[];
-    },
-  ) => void;
   registerService: (service: CrawClawPluginService) => void;
-  /** Register a text-only CLI backend used by the local CLI runner. */
+  /** Register a text-only local process backend used by the provider runner. */
   registerCliBackend: (backend: CliBackendPlugin) => void;
-  /** Register a native model/provider plugin (text inference capability). */
-  registerProvider: (provider: ProviderPlugin) => void;
   /** Register a speech synthesis provider (speech capability). */
   registerSpeechProvider: (provider: SpeechProviderPlugin) => void;
   /** Register a media understanding provider (media understanding capability). */
@@ -1701,12 +1639,6 @@ export type CrawClawPluginApi = {
    */
   registerCommand: (command: CrawClawPluginCommandDefinition) => void;
   resolvePath: (input: string) => string;
-  /** Register a lifecycle hook handler */
-  on: <K extends PluginHookName>(
-    hookName: K,
-    handler: PluginHookHandlerMap[K],
-    opts?: { priority?: number },
-  ) => void;
 };
 
 export type PluginOrigin = "bundled" | "global" | "workspace" | "config";

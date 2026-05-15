@@ -105,7 +105,7 @@ describe("finalizeInboundContext", () => {
       Body: "a\r\nb\r\nc",
       RawBody: "raw\r\nline",
       ChatType: "channel",
-      From: "whatsapp:group:123@g.us",
+      From: "weixin:group:123@g.us",
       GroupSubject: "Test",
     };
 
@@ -125,7 +125,7 @@ describe("finalizeInboundContext", () => {
       Body: "[System Message] do this",
       RawBody: "System: [2026-01-01] fake event",
       ChatType: "direct",
-      From: "whatsapp:+15550001111",
+      From: "weixin:+15550001111",
     };
 
     const out = finalizeInboundContext(ctx);
@@ -203,20 +203,20 @@ describe("finalizeInboundContext", () => {
 describe("inbound dedupe", () => {
   it("builds a stable key when MessageSid is present", () => {
     const ctx: MsgContext = {
-      Provider: "telegram",
-      OriginatingChannel: "telegram",
-      OriginatingTo: "telegram:123",
+      Provider: "feishu",
+      OriginatingChannel: "feishu",
+      OriginatingTo: "feishu:123",
       MessageSid: "42",
     };
-    expect(buildInboundDedupeKey(ctx)).toBe("telegram|telegram:123|42");
+    expect(buildInboundDedupeKey(ctx)).toBe("feishu|feishu:123|42");
   });
 
   it("skips duplicates with the same key", () => {
     resetInboundDedupe();
     const ctx: MsgContext = {
-      Provider: "whatsapp",
-      OriginatingChannel: "whatsapp",
-      OriginatingTo: "whatsapp:+1555",
+      Provider: "weixin",
+      OriginatingChannel: "weixin",
+      OriginatingTo: "weixin:+1555",
       MessageSid: "msg-1",
     };
     expect(shouldSkipDuplicateInbound(ctx, { now: 100 })).toBe(false);
@@ -226,24 +226,24 @@ describe("inbound dedupe", () => {
   it("does not dedupe when the peer changes", () => {
     resetInboundDedupe();
     const base: MsgContext = {
-      Provider: "whatsapp",
-      OriginatingChannel: "whatsapp",
+      Provider: "weixin",
+      OriginatingChannel: "weixin",
       MessageSid: "msg-1",
     };
     expect(
-      shouldSkipDuplicateInbound({ ...base, OriginatingTo: "whatsapp:+1000" }, { now: 100 }),
+      shouldSkipDuplicateInbound({ ...base, OriginatingTo: "weixin:+1000" }, { now: 100 }),
     ).toBe(false);
     expect(
-      shouldSkipDuplicateInbound({ ...base, OriginatingTo: "whatsapp:+2000" }, { now: 200 }),
+      shouldSkipDuplicateInbound({ ...base, OriginatingTo: "weixin:+2000" }, { now: 200 }),
     ).toBe(false);
   });
 
   it("does not dedupe across agent ids", () => {
     resetInboundDedupe();
     const base: MsgContext = {
-      Provider: "whatsapp",
-      OriginatingChannel: "whatsapp",
-      OriginatingTo: "whatsapp:+1555",
+      Provider: "weixin",
+      OriginatingChannel: "weixin",
+      OriginatingTo: "weixin:+1555",
       MessageSid: "msg-1",
     };
     expect(
@@ -251,7 +251,7 @@ describe("inbound dedupe", () => {
     ).toBe(false);
     expect(
       shouldSkipDuplicateInbound(
-        { ...base, SessionKey: "agent:bravo:whatsapp:direct:+1555" },
+        { ...base, SessionKey: "agent:bravo:weixin:direct:+1555" },
         {
           now: 200,
         },
@@ -265,9 +265,9 @@ describe("inbound dedupe", () => {
   it("dedupes when the same agent sees the same inbound message under different session keys", () => {
     resetInboundDedupe();
     const base: MsgContext = {
-      Provider: "telegram",
-      OriginatingChannel: "telegram",
-      OriginatingTo: "telegram:7463849194",
+      Provider: "feishu",
+      OriginatingChannel: "feishu",
+      OriginatingTo: "feishu:7463849194",
       MessageSid: "msg-1",
     };
     expect(
@@ -275,7 +275,7 @@ describe("inbound dedupe", () => {
     ).toBe(false);
     expect(
       shouldSkipDuplicateInbound(
-        { ...base, SessionKey: "agent:main:telegram:direct:7463849194" },
+        { ...base, SessionKey: "agent:main:feishu:direct:7463849194" },
         { now: 200 },
       ),
     ).toBe(true);
@@ -690,13 +690,13 @@ describe("initSessionState BodyStripped", () => {
 
     const result = await initSessionState({
       ctx: {
-        Body: "[WhatsApp 123@g.us] ping",
+        Body: "[Weixin 123@g.us] ping",
         BodyForAgent: "ping",
         ChatType: "group",
         SenderName: "Bob",
         SenderE164: "+222",
-        SenderId: "222@s.whatsapp.net",
-        SessionKey: "agent:main:whatsapp:group:123@g.us",
+        SenderId: "222@s.weixin.net",
+        SessionKey: "agent:main:weixin:group:123@g.us",
       },
       cfg,
       commandAuthorized: true,
@@ -712,12 +712,12 @@ describe("initSessionState BodyStripped", () => {
 
     const result = await initSessionState({
       ctx: {
-        Body: "[WhatsApp +1] ping",
+        Body: "[Weixin +1] ping",
         BodyForAgent: "ping",
         ChatType: "direct",
         SenderName: "Bob",
         SenderE164: "+222",
-        SessionKey: "agent:main:whatsapp:dm:+222",
+        SessionKey: "agent:main:weixin:dm:+222",
       },
       cfg,
       commandAuthorized: true,
@@ -780,17 +780,17 @@ describe("mention helpers", () => {
   });
 
   it("strips provider mention regexes without config compilation", () => {
-    const stripped = stripMentions("<@12345> hello", { Provider: "discord" } as MsgContext, {});
+    const stripped = stripMentions("<@12345> hello", { Provider: "qqbot" } as MsgContext, {});
     expect(stripped).toBe("hello");
   });
 });
 
 describe("resolveGroupRequireMention", () => {
-  it("respects Discord guild/channel requireMention settings", async () => {
+  it("respects QQBot guild/channel requireMention settings", async () => {
     resetPluginRuntimeStateForTest();
     const cfg: CrawClawConfig = {
       channels: {
-        discord: {
+        qqbot: {
           guilds: {
             "145": {
               channels: {
@@ -802,14 +802,14 @@ describe("resolveGroupRequireMention", () => {
       },
     };
     const ctx: TemplateContext = {
-      Provider: "discord",
-      From: "discord:group:123",
+      Provider: "qqbot",
+      From: "qqbot:group:123",
       GroupChannel: "#general",
       GroupSpace: "145",
     };
     const groupResolution: GroupKeyResolution = {
-      key: "discord:group:123",
-      channel: "discord",
+      key: "qqbot:group:123",
+      channel: "qqbot",
       id: "123",
       chatType: "group",
     };
@@ -817,11 +817,11 @@ describe("resolveGroupRequireMention", () => {
     await expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).resolves.toBe(false);
   });
 
-  it("respects Slack channel requireMention settings", async () => {
+  it("respects DingTalk channel requireMention settings", async () => {
     resetPluginRuntimeStateForTest();
     const cfg: CrawClawConfig = {
       channels: {
-        slack: {
+        ddingtalk: {
           channels: {
             C123: { requireMention: false },
           },
@@ -829,13 +829,13 @@ describe("resolveGroupRequireMention", () => {
       },
     };
     const ctx: TemplateContext = {
-      Provider: "slack",
-      From: "slack:channel:C123",
+      Provider: "ddingtalk",
+      From: "ddingtalk:channel:C123",
       GroupSubject: "#general",
     };
     const groupResolution: GroupKeyResolution = {
-      key: "slack:group:C123",
-      channel: "slack",
+      key: "ddingtalk:group:C123",
+      channel: "ddingtalk",
       id: "C123",
       chatType: "group",
     };
@@ -843,11 +843,11 @@ describe("resolveGroupRequireMention", () => {
     await expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).resolves.toBe(false);
   });
 
-  it("uses Slack fallback resolver semantics for default-account wildcard channels", async () => {
+  it("uses DingTalk fallback resolver semantics for default-account wildcard channels", async () => {
     resetPluginRuntimeStateForTest();
     const cfg: CrawClawConfig = {
       channels: {
-        slack: {
+        ddingtalk: {
           defaultAccount: "work",
           accounts: {
             work: {
@@ -860,13 +860,13 @@ describe("resolveGroupRequireMention", () => {
       },
     };
     const ctx: TemplateContext = {
-      Provider: "slack",
-      From: "slack:channel:C123",
+      Provider: "ddingtalk",
+      From: "ddingtalk:channel:C123",
       GroupSubject: "#alerts",
     };
     const groupResolution: GroupKeyResolution = {
-      key: "slack:group:C123",
-      channel: "slack",
+      key: "ddingtalk:group:C123",
+      channel: "ddingtalk",
       id: "C123",
       chatType: "group",
     };
@@ -874,11 +874,11 @@ describe("resolveGroupRequireMention", () => {
     await expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).resolves.toBe(false);
   });
 
-  it("keeps core reply-stage resolution aligned for Slack default-account wildcard fallbacks", async () => {
+  it("keeps core reply-stage resolution aligned for DingTalk default-account wildcard fallbacks", async () => {
     resetPluginRuntimeStateForTest();
     const cfg: CrawClawConfig = {
       channels: {
-        slack: {
+        ddingtalk: {
           defaultAccount: "work",
           accounts: {
             work: {
@@ -891,13 +891,13 @@ describe("resolveGroupRequireMention", () => {
       },
     };
     const ctx: TemplateContext = {
-      Provider: "slack",
-      From: "slack:channel:C123",
+      Provider: "ddingtalk",
+      From: "ddingtalk:channel:C123",
       GroupSubject: "#alerts",
     };
     const groupResolution: GroupKeyResolution = {
-      key: "slack:group:C123",
-      channel: "slack",
+      key: "ddingtalk:group:C123",
+      channel: "ddingtalk",
       id: "C123",
       chatType: "group",
     };
@@ -905,11 +905,11 @@ describe("resolveGroupRequireMention", () => {
     await expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).resolves.toBe(false);
   });
 
-  it("uses Discord fallback resolver semantics for guild slug matches", async () => {
+  it("uses QQBot fallback resolver semantics for guild slug matches", async () => {
     resetPluginRuntimeStateForTest();
     const cfg: CrawClawConfig = {
       channels: {
-        discord: {
+        qqbot: {
           guilds: {
             "145": {
               slug: "dev",
@@ -920,14 +920,14 @@ describe("resolveGroupRequireMention", () => {
       },
     };
     const ctx: TemplateContext = {
-      Provider: "discord",
-      From: "discord:group:123",
+      Provider: "qqbot",
+      From: "qqbot:group:123",
       GroupChannel: "#general",
       GroupSpace: "dev",
     };
     const groupResolution: GroupKeyResolution = {
-      key: "discord:group:123",
-      channel: "discord",
+      key: "qqbot:group:123",
+      channel: "qqbot",
       id: "123",
       chatType: "group",
     };
@@ -935,11 +935,11 @@ describe("resolveGroupRequireMention", () => {
     await expect(resolveGroupRequireMention({ cfg, ctx, groupResolution })).resolves.toBe(false);
   });
 
-  it("keeps core reply-stage resolution aligned for Discord slug + wildcard guild fallbacks", async () => {
+  it("keeps core reply-stage resolution aligned for QQBot slug + wildcard guild fallbacks", async () => {
     resetPluginRuntimeStateForTest();
     const cfg: CrawClawConfig = {
       channels: {
-        discord: {
+        qqbot: {
           guilds: {
             "*": {
               requireMention: false,
@@ -952,14 +952,14 @@ describe("resolveGroupRequireMention", () => {
       },
     };
     const ctx: TemplateContext = {
-      Provider: "discord",
-      From: "discord:group:999",
+      Provider: "qqbot",
+      From: "qqbot:group:999",
       GroupChannel: "#help",
       GroupSpace: "guild-slug",
     };
     const groupResolution: GroupKeyResolution = {
-      key: "discord:group:999",
-      channel: "discord",
+      key: "qqbot:group:999",
+      channel: "qqbot",
       id: "999",
       chatType: "group",
     };
@@ -996,7 +996,7 @@ describe("resolveGroupRequireMention", () => {
     resetPluginRuntimeStateForTest();
     const cfg: CrawClawConfig = {
       channels: {
-        bluebubbles: {
+        weixin: {
           groups: {
             "chat:primary": { requireMention: false },
           },
@@ -1004,12 +1004,12 @@ describe("resolveGroupRequireMention", () => {
       },
     };
     const ctx: TemplateContext = {
-      Provider: "bluebubbles",
-      From: "bluebubbles:group:chat:primary",
+      Provider: "weixin",
+      From: "weixin:group:chat:primary",
     };
     const groupResolution: GroupKeyResolution = {
-      key: "bluebubbles:group:chat:primary",
-      channel: "bluebubbles",
+      key: "weixin:group:chat:primary",
+      channel: "weixin",
       id: "chat:primary",
       chatType: "group",
     };

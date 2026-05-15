@@ -9,13 +9,11 @@ import {
   normalizeProviderId,
   resolveConfiguredModelRef,
 } from "../agents/model-selection.js";
-import { formatTokenK } from "../commands/models/shared.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
+import { formatTokenK } from "../control/models/shared.js";
 import { applyPrimaryModel } from "../plugins/provider-model-primary.js";
-import type { ProviderPlugin } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";
-import { createLazyRuntimeSurface } from "../shared/lazy-runtime.js";
 import type { WizardPrompter, WizardSelectOption } from "../wizard/prompts.js";
 
 export { applyPrimaryModel } from "../plugins/provider-model-primary.js";
@@ -32,7 +30,6 @@ export type PromptDefaultModelParams = {
   prompter: WizardPrompter;
   allowKeep?: boolean;
   includeManual?: boolean;
-  includeProviderPluginSetups?: boolean;
   ignoreAllowlist?: boolean;
   preferredProvider?: string;
   agentDir?: string;
@@ -44,15 +41,6 @@ export type PromptDefaultModelParams = {
 
 export type PromptDefaultModelResult = { model?: string; config?: CrawClawConfig };
 export type PromptModelAllowlistResult = { models?: string[] };
-
-async function loadModelPickerRuntime() {
-  return import("../commands/model-picker.runtime.js");
-}
-
-const loadResolvedModelPickerRuntime = createLazyRuntimeSurface(
-  loadModelPickerRuntime,
-  ({ modelPickerRuntime }) => modelPickerRuntime,
-);
 
 function hasAuthForProvider(
   provider: string,
@@ -240,122 +228,12 @@ async function maybeFilterModelsByProvider(params: {
   return next;
 }
 
-async function resolveProviderPluginSetupOptions(params: {
-  cfg: CrawClawConfig;
-  workspaceDir?: string;
-  env?: NodeJS.ProcessEnv;
-}): Promise<WizardSelectOption[]> {
-  const runtime = await loadResolvedModelPickerRuntime();
-  const providerModelPickerOptions =
-    "resolveProviderModelPickerContributions" in runtime &&
-    typeof runtime.resolveProviderModelPickerContributions === "function"
-      ? runtime
-          .resolveProviderModelPickerContributions({
-            config: params.cfg,
-            workspaceDir: params.workspaceDir,
-            env: params.env,
-          })
-          .map((contribution) => contribution.option)
-      : runtime.resolveProviderModelPickerEntries({
-          config: params.cfg,
-          workspaceDir: params.workspaceDir,
-          env: params.env,
-        });
-  return providerModelPickerOptions.map((entry) => ({
-    value: entry.value,
-    label: entry.label,
-    ...(entry.hint ? { hint: entry.hint } : {}),
-  }));
-}
-
-async function maybeHandleProviderPluginSelection(params: {
-  selection: string;
-  cfg: CrawClawConfig;
-  prompter: WizardPrompter;
-  agentDir?: string;
-  workspaceDir?: string;
-  env?: NodeJS.ProcessEnv;
-  runtime?: RuntimeEnv;
-}): Promise<PromptDefaultModelResult | null> {
-  let pluginResolution: string | null = null;
-  let pluginProviders: ProviderPlugin[] = [];
-  if (params.selection.startsWith("provider-plugin:")) {
-    pluginResolution = params.selection;
-  } else if (!params.selection.includes("/")) {
-    const { resolvePluginProviders } = await loadResolvedModelPickerRuntime();
-    pluginProviders = resolvePluginProviders({
-      config: params.cfg,
-      workspaceDir: params.workspaceDir,
-      env: params.env,
-      bundledProviderAllowlistCompat: true,
-      bundledProviderVitestCompat: true,
-    });
-    pluginResolution = pluginProviders.some(
-      (provider) => normalizeProviderId(provider.id) === normalizeProviderId(params.selection),
-    )
-      ? params.selection
-      : null;
-  }
-  if (!pluginResolution) {
-    return null;
-  }
-  if (!params.agentDir || !params.runtime) {
-    await params.prompter.note(
-      "Provider setup requires agent and runtime context.",
-      "Provider setup unavailable",
-    );
-    return {};
-  }
-  const {
-    resolvePluginProviders,
-    resolveProviderPluginChoice,
-    runProviderModelSelectedHook,
-    runProviderPluginAuthMethod,
-  } = await loadResolvedModelPickerRuntime();
-  if (pluginProviders.length === 0) {
-    pluginProviders = resolvePluginProviders({
-      config: params.cfg,
-      workspaceDir: params.workspaceDir,
-      env: params.env,
-      bundledProviderAllowlistCompat: true,
-      bundledProviderVitestCompat: true,
-    });
-  }
-  const resolved = resolveProviderPluginChoice({
-    providers: pluginProviders,
-    choice: pluginResolution,
-  });
-  if (!resolved) {
-    return {};
-  }
-  const applied = await runProviderPluginAuthMethod({
-    config: params.cfg,
-    runtime: params.runtime,
-    prompter: params.prompter,
-    method: resolved.method,
-    agentDir: params.agentDir,
-    workspaceDir: params.workspaceDir,
-  });
-  if (applied.defaultModel) {
-    await runProviderModelSelectedHook({
-      config: applied.config,
-      model: applied.defaultModel,
-      prompter: params.prompter,
-      agentDir: params.agentDir,
-      workspaceDir: params.workspaceDir,
-      env: params.env,
-    });
-  }
-  return { model: applied.defaultModel, config: applied.config };
-}
-
 export async function promptDefaultModel(
   params: PromptDefaultModelParams,
 ): Promise<PromptDefaultModelResult> {
   const cfg = params.config;
   const allowKeep = params.allowKeep ?? true;
   const includeManual = params.includeManual ?? true;
-  const includeProviderPluginSetups = params.includeProviderPluginSetups ?? false;
   const ignoreAllowlist = params.ignoreAllowlist ?? false;
   const preferredProvider = params.preferredProvider?.trim()
     ? normalizeProviderId(params.preferredProvider)
@@ -424,16 +302,6 @@ export async function promptDefaultModel(
   if (includeManual) {
     options.push({ value: MANUAL_VALUE, label: "Enter model manually" });
   }
-  if (includeProviderPluginSetups && params.agentDir) {
-    options.push(
-      ...(await resolveProviderPluginSetupOptions({
-        cfg,
-        workspaceDir: params.workspaceDir,
-        env: params.env,
-      })),
-    );
-  }
-
   const seen = new Set<string>();
   for (const entry of filteredModels) {
     addModelSelectOption({ entry, options, seen, aliasIndex, hasAuth });
@@ -475,29 +343,7 @@ export async function promptDefaultModel(
     });
   }
 
-  const providerPluginResult = await maybeHandleProviderPluginSelection({
-    selection,
-    cfg,
-    prompter: params.prompter,
-    agentDir: params.agentDir,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-    runtime: params.runtime,
-  });
-  if (providerPluginResult) {
-    return providerPluginResult;
-  }
-
   const model = selection;
-  const { runProviderModelSelectedHook } = await loadResolvedModelPickerRuntime();
-  await runProviderModelSelectedHook({
-    config: cfg,
-    model,
-    prompter: params.prompter,
-    agentDir: params.agentDir,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-  });
   return { model };
 }
 

@@ -54,7 +54,7 @@ describe("resolveConversationIdFromTargets", () => {
       expected: "alice",
     },
     {
-      name: "extracts ids from Discord channel mentions",
+      name: "extracts ids from QQBot channel mentions",
       targets: ["<#1475250310120214812>"],
       expected: "1475250310120214812",
     },

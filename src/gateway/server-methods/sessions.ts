@@ -3,11 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import { CURRENT_SESSION_VERSION } from "@mariozechner/pi-coding-agent";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
-import {
-  abortEmbeddedPiRun,
-  isEmbeddedPiRunActive,
-  waitForEmbeddedPiRunEnd,
-} from "../../agents/pi-embedded-runner/runs.js";
 import { clearSessionQueues } from "../../auto-reply/reply/queue/cleanup.js";
 import { loadConfig } from "../../config/config.js";
 import {
@@ -315,10 +310,7 @@ async function interruptSessionRunIfActive(params: {
     requestedKey: params.requestedKey,
     canonicalKey: params.canonicalKey,
   });
-  const hasEmbeddedRun =
-    typeof params.sessionId === "string" && params.sessionId
-      ? isEmbeddedPiRunActive(params.sessionId)
-      : false;
+  const hasEmbeddedRun = false;
 
   if (!hasTrackedRun && !hasEmbeddedRun) {
     return { interrupted: false };
@@ -356,24 +348,7 @@ async function interruptSessionRunIfActive(params: {
     }
   }
 
-  if (hasEmbeddedRun && params.sessionId) {
-    abortEmbeddedPiRun(params.sessionId);
-  }
-
   clearSessionQueues([params.requestedKey, params.canonicalKey, params.sessionId]);
-
-  if (hasEmbeddedRun && params.sessionId) {
-    const ended = await waitForEmbeddedPiRunEnd(params.sessionId, 15_000);
-    if (!ended) {
-      return {
-        interrupted: true,
-        error: errorShape(
-          ErrorCodes.UNAVAILABLE,
-          `Session ${params.requestedKey} is still active; try again in a moment.`,
-        ),
-      };
-    }
-  }
 
   return { interrupted: true };
 }

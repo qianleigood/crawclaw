@@ -32,8 +32,8 @@ x-i18n:
 > _"去壳！去壳！"_ — 大概是一只太空龙虾说的
 
 <p align="center">
-  <strong>适用于任何操作系统的 AI 智能体 Gateway 网关，支持 WhatsApp、Telegram、Discord、iMessage 等。</strong><br />
-  发送消息，随时随地获取智能体响应。通过插件可添加 Mattermost 等更多渠道。
+  <strong>适用于任何操作系统的 AI 智能体 Gateway 网关，支持 Weixin、Feishu、QQBot、Weixin 等。</strong><br />
+  发送消息，随时随地获取智能体响应。通过插件可添加 Feishu 等更多渠道。
 </p>
 
 <Columns>
@@ -68,10 +68,10 @@ Gateway 网关是会话、路由和渠道连接的唯一事实来源。
 
 <Columns>
   <Card title="多渠道 Gateway 网关" icon="network">
-    通过单个 Gateway 网关进程连接 WhatsApp、Telegram、Discord 和 iMessage。
+    通过单个 Gateway 网关进程连接 Weixin、Feishu、QQBot 和 Weixin。
   </Card>
   <Card title="插件渠道" icon="plug">
-    通过扩展包添加 Mattermost 等更多渠道。
+    通过扩展包添加 Feishu 等更多渠道。
   </Card>
   <Card title="多智能体路由" icon="route">
     按智能体、工作区或发送者隔离会话。
@@ -117,23 +117,19 @@ Gateway 网关启动后，可通过本地终端或远程访问方式使用它。
 - 本地终端：`crawclaw tui`
 - 远程访问：[远程访问](/gateway/remote) 和 [Tailscale](/gateway/tailscale)
 
-<p align="center">
-  <img src="/whatsapp-crawclaw.jpg" alt="CrawClaw" width="420" />
-</p>
-
 ## 配置（可选）
 
 配置文件位于 `~/.crawclaw/crawclaw.json`。
 
 - 如果你**不做任何修改**，CrawClaw 将使用内置的 Pi 二进制文件以 RPC 模式运行，并按发送者创建独立会话。
-- 如果你想要限制访问，可以从 `channels.whatsapp.allowFrom` 和（针对群组的）提及规则开始配置。
+- 如果你想要限制访问，可以从 `channels.weixin.allowFrom` 和（针对群组的）提及规则开始配置。
 
 示例：
 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: { "*": { requireMention: true } },
     },
@@ -163,8 +159,8 @@ Gateway 网关启动后，可通过本地终端或远程访问方式使用它。
   <Card title="远程访问" href="/gateway/remote" icon="globe">
     SSH 和 tailnet 访问模式。
   </Card>
-  <Card title="渠道" href="/channels/telegram" icon="message-square">
-    WhatsApp、Telegram、Discord 等渠道的具体设置。
+  <Card title="渠道" href="/channels/index" icon="message-square">
+    Weixin、Feishu、QQBot 等渠道的具体设置。
   </Card>
   <Card title="节点" href="/nodes" icon="smartphone">
     macOS 节点模式与无头节点的配对、Canvas 和远程命令。

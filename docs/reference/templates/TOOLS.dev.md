@@ -15,7 +15,7 @@ It does not define which tools exist; CrawClaw provides built-in tools internall
 
 ### imsg
 
-- Send an iMessage/SMS: describe who/what, confirm before sending.
+- Send an Weixin/SMS: describe who/what, confirm before sending.
 - Prefer short messages; avoid sending secrets.
 
 ### sag

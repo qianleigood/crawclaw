@@ -8,7 +8,6 @@ import type { GatewayRequestHandler } from "../gateway/request-types.js";
 import { openBoundaryFileSync } from "../infra/boundary-file-read.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveUserPath } from "../utils.js";
-import { buildPluginApi } from "./api-builder.js";
 import { inspectBundleMcpRuntimeSupport } from "./bundle-mcp.js";
 import { clearPluginCommands } from "./command-registry-state.js";
 import {
@@ -21,7 +20,7 @@ import {
   type PluginActivationState,
 } from "./config-state.js";
 import { discoverCrawClawPlugins } from "./discovery.js";
-import { resolvePluginModuleExport, resolveSetupChannelRegistration } from "./entry-contract.js";
+import { resolvePluginModuleExport } from "./entry-contract.js";
 import { initializeGlobalHookRunner } from "./hook-runner-global.js";
 import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
 import { loadPluginManifestRegistry, type PluginManifestRecord } from "./manifest-registry.js";
@@ -519,7 +518,6 @@ function createPluginRecord(params: {
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     gatewayMethods: [],
-    cliCommands: [],
     services: [],
     commands: [],
     httpRoutes: 0,
@@ -1370,31 +1368,6 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
       continue;
     }
 
-    if (
-      (registrationMode === "setup-only" || registrationMode === "setup-runtime") &&
-      manifestRecord.setupSource
-    ) {
-      const setupRegistration = resolveSetupChannelRegistration(mod);
-      if (setupRegistration.plugin) {
-        if (setupRegistration.plugin.id && setupRegistration.plugin.id !== record.id) {
-          pushPluginLoadError(
-            `plugin id mismatch (config uses "${record.id}", setup export uses "${setupRegistration.plugin.id}")`,
-          );
-          continue;
-        }
-        const api = createApi(record, {
-          config: cfg,
-          pluginConfig: {},
-          hookPolicy: entry?.hooks,
-          registrationMode,
-        });
-        api.registerChannel(setupRegistration.plugin);
-        registry.plugins.push(record);
-        seenIds.set(pluginId, candidate.origin);
-        continue;
-      }
-    }
-
     const resolved = resolvePluginModuleExport(mod);
     const definition = resolved.definition;
     const register = resolved.register;
@@ -1460,7 +1433,6 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     const api = createApi(record, {
       config: cfg,
       pluginConfig: validatedConfig.value,
-      hookPolicy: entry?.hooks,
       registrationMode,
     });
 
@@ -1512,334 +1484,6 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
   return registry;
 }
 
-export async function loadCrawClawPluginCliRegistry(
-  options: PluginLoadOptions = {},
-): Promise<PluginRegistry> {
-  const {
-    env,
-    cfg,
-    normalized,
-    activationSourceConfig,
-    activationSourceNormalized,
-    autoEnabledReasons,
-    onlyPluginIds,
-    cacheKey,
-  } = resolvePluginLoadCacheContext({
-    ...options,
-    activate: false,
-    cache: false,
-  });
-  const logger = options.logger ?? defaultLogger();
-  const onlyPluginIdSet = onlyPluginIds ? new Set(onlyPluginIds) : null;
-  const getJiti = createPluginJitiLoader(options);
-  const { registry, registerCli } = createPluginRegistry({
-    logger,
-    runtime: {} as PluginRuntime,
-    coreGatewayHandlers: options.coreGatewayHandlers as Record<string, GatewayRequestHandler>,
-    activateGlobalSideEffects: false,
-  });
-
-  const discovery = discoverCrawClawPlugins({
-    workspaceDir: options.workspaceDir,
-    extraPaths: normalized.loadPaths,
-    cache: false,
-    env,
-  });
-  const manifestRegistry = loadPluginManifestRegistry({
-    config: cfg,
-    workspaceDir: options.workspaceDir,
-    cache: false,
-    env,
-    candidates: discovery.candidates,
-    diagnostics: discovery.diagnostics,
-  });
-  pushDiagnostics(registry.diagnostics, manifestRegistry.diagnostics);
-  warnWhenAllowlistIsOpen({
-    logger,
-    pluginsEnabled: normalized.enabled,
-    allow: normalized.allow,
-    warningCacheKey: `${cacheKey}::cli-metadata`,
-    discoverablePlugins: manifestRegistry.plugins
-      .filter((plugin) => !onlyPluginIdSet || onlyPluginIdSet.has(plugin.id))
-      .map((plugin) => ({
-        id: plugin.id,
-        source: plugin.source,
-        origin: plugin.origin,
-      })),
-  });
-  const provenance = buildProvenanceIndex({
-    config: cfg,
-    normalizedLoadPaths: normalized.loadPaths,
-    env,
-  });
-  const manifestByRoot = new Map(
-    manifestRegistry.plugins.map((record) => [record.rootDir, record]),
-  );
-  const orderedCandidates = [...discovery.candidates].toSorted((left, right) => {
-    return compareDuplicateCandidateOrder({
-      left,
-      right,
-      manifestByRoot,
-      provenance,
-      env,
-    });
-  });
-
-  const seenIds = new Map<string, PluginRecord["origin"]>();
-  const memorySlot = normalized.slots.memory;
-  let selectedMemoryPluginId: string | null = null;
-
-  for (const candidate of orderedCandidates) {
-    const manifestRecord = manifestByRoot.get(candidate.rootDir);
-    if (!manifestRecord) {
-      continue;
-    }
-    const pluginId = manifestRecord.id;
-    if (
-      !matchesScopedPluginRequest({
-        onlyPluginIdSet,
-        pluginId,
-      })
-    ) {
-      continue;
-    }
-    const activationState = resolveEffectivePluginActivationState({
-      id: pluginId,
-      origin: candidate.origin,
-      config: normalized,
-      rootConfig: cfg,
-      enabledByDefault: manifestRecord.enabledByDefault,
-      sourceConfig: activationSourceNormalized,
-      sourceRootConfig: activationSourceConfig,
-      autoEnabledReason: formatAutoEnabledActivationReason(autoEnabledReasons[pluginId]),
-    });
-    const existingOrigin = seenIds.get(pluginId);
-    if (existingOrigin) {
-      const record = createPluginRecord({
-        id: pluginId,
-        name: manifestRecord.name ?? pluginId,
-        description: manifestRecord.description,
-        version: manifestRecord.version,
-        format: manifestRecord.format,
-        bundleFormat: manifestRecord.bundleFormat,
-        bundleCapabilities: manifestRecord.bundleCapabilities,
-        source: candidate.source,
-        rootDir: candidate.rootDir,
-        origin: candidate.origin,
-        workspaceDir: candidate.workspaceDir,
-        enabled: false,
-        activationState,
-        configSchema: Boolean(manifestRecord.configSchema),
-      });
-      record.status = "disabled";
-      record.error = `overridden by ${existingOrigin} plugin`;
-      markPluginActivationDisabled(record, record.error);
-      registry.plugins.push(record);
-      continue;
-    }
-
-    const enableState = resolveEffectiveEnableState({
-      id: pluginId,
-      origin: candidate.origin,
-      config: normalized,
-      rootConfig: cfg,
-      enabledByDefault: manifestRecord.enabledByDefault,
-    });
-    const entry = normalized.entries[pluginId];
-    const record = createPluginRecord({
-      id: pluginId,
-      name: manifestRecord.name ?? pluginId,
-      description: manifestRecord.description,
-      version: manifestRecord.version,
-      format: manifestRecord.format,
-      bundleFormat: manifestRecord.bundleFormat,
-      bundleCapabilities: manifestRecord.bundleCapabilities,
-      source: candidate.source,
-      rootDir: candidate.rootDir,
-      origin: candidate.origin,
-      workspaceDir: candidate.workspaceDir,
-      enabled: enableState.enabled,
-      activationState,
-      configSchema: Boolean(manifestRecord.configSchema),
-    });
-    record.kind = manifestRecord.kind;
-    record.configUiHints = manifestRecord.configUiHints;
-    record.configJsonSchema = manifestRecord.configSchema;
-    const pushPluginLoadError = (message: string) => {
-      record.status = "error";
-      record.error = message;
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-      registry.diagnostics.push({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: record.error,
-      });
-    };
-
-    if (!enableState.enabled) {
-      record.status = "disabled";
-      record.error = enableState.reason;
-      markPluginActivationDisabled(record, enableState.reason);
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-      continue;
-    }
-
-    if (record.format === "bundle") {
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-      continue;
-    }
-
-    if (!manifestRecord.configSchema) {
-      pushPluginLoadError("missing config schema");
-      continue;
-    }
-
-    const validatedConfig = validatePluginConfig({
-      schema: manifestRecord.configSchema,
-      cacheKey: manifestRecord.schemaCacheKey,
-      value: entry?.config,
-    });
-    if (!validatedConfig.ok) {
-      logger.error(`[plugins] ${record.id} invalid config: ${validatedConfig.errors?.join(", ")}`);
-      pushPluginLoadError(`invalid config: ${validatedConfig.errors?.join(", ")}`);
-      continue;
-    }
-
-    if (record.format === "native") {
-      applyNativeManifestContracts(record, manifestRecord);
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-      continue;
-    }
-
-    const pluginRoot = safeRealpathOrResolve(candidate.rootDir);
-    const opened = openBoundaryFileSync({
-      absolutePath: candidate.source,
-      rootPath: pluginRoot,
-      boundaryLabel: "plugin root",
-      rejectHardlinks: candidate.origin !== "bundled",
-      skipLexicalRootCheck: true,
-    });
-    if (!opened.ok) {
-      pushPluginLoadError("plugin entry path escapes plugin root or fails alias checks");
-      continue;
-    }
-    const safeSource = opened.path;
-    fs.closeSync(opened.fd);
-
-    let mod: CrawClawPluginModule | null = null;
-    try {
-      mod = getJiti(safeSource)(safeSource) as CrawClawPluginModule;
-    } catch (err) {
-      recordPluginError({
-        logger,
-        registry,
-        record,
-        seenIds,
-        pluginId,
-        origin: candidate.origin,
-        error: err,
-        logPrefix: `[plugins] ${record.id} failed to load from ${record.source}: `,
-        diagnosticMessagePrefix: "failed to load plugin: ",
-      });
-      continue;
-    }
-
-    const resolved = resolvePluginModuleExport(mod);
-    const definition = resolved.definition;
-    const register = resolved.register;
-
-    if (definition?.id && definition.id !== record.id) {
-      pushPluginLoadError(
-        `plugin id mismatch (config uses "${record.id}", export uses "${definition.id}")`,
-      );
-      continue;
-    }
-
-    record.name = definition?.name ?? record.name;
-    record.description = definition?.description ?? record.description;
-    record.version = definition?.version ?? record.version;
-    const manifestKind = record.kind;
-    const exportKind = definition?.kind;
-    if (manifestKind && exportKind && !kindsEqual(manifestKind, exportKind)) {
-      registry.diagnostics.push({
-        level: "warn",
-        pluginId: record.id,
-        source: record.source,
-        message: `plugin kind mismatch (manifest uses "${String(manifestKind)}", export uses "${String(exportKind)}")`,
-      });
-    }
-    record.kind = definition?.kind ?? record.kind;
-
-    const memoryDecision = resolveMemorySlotDecision({
-      id: record.id,
-      kind: record.kind,
-      slot: memorySlot,
-      selectedId: selectedMemoryPluginId,
-    });
-    if (!memoryDecision.enabled) {
-      record.enabled = false;
-      record.status = "disabled";
-      record.error = memoryDecision.reason;
-      markPluginActivationDisabled(record, memoryDecision.reason);
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-      continue;
-    }
-    if (memoryDecision.selected && hasKind(record.kind, "memory")) {
-      selectedMemoryPluginId = record.id;
-      record.memorySlotSelected = true;
-    }
-
-    if (typeof register !== "function") {
-      logger.error(`[plugins] ${record.id} missing register/activate export`);
-      pushPluginLoadError("plugin export missing register/activate");
-      continue;
-    }
-
-    const api = buildPluginApi({
-      id: record.id,
-      name: record.name,
-      version: record.version,
-      description: record.description,
-      source: record.source,
-      rootDir: record.rootDir,
-      registrationMode: "cli-metadata",
-      config: cfg,
-      pluginConfig: validatedConfig.value,
-      runtime: {} as PluginRuntime,
-      logger,
-      resolvePath: (input) => resolveUserPath(input),
-      handlers: {
-        registerCli: (registrar, opts) => registerCli(record, registrar, opts),
-      },
-    });
-
-    try {
-      await register(api);
-      registry.plugins.push(record);
-      seenIds.set(pluginId, candidate.origin);
-    } catch (err) {
-      recordPluginError({
-        logger,
-        registry,
-        record,
-        seenIds,
-        pluginId,
-        origin: candidate.origin,
-        error: err,
-        logPrefix: `[plugins] ${record.id} failed during register from ${record.source}: `,
-        diagnosticMessagePrefix: "plugin failed during register: ",
-      });
-    }
-  }
-
-  return registry;
-}
 function safeRealpathOrResolve(value: string): string {
   try {
     return fs.realpathSync(value);

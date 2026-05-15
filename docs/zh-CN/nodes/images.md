@@ -14,7 +14,7 @@ x-i18n:
 
 # 图像与媒体支持 — 2025-12-05
 
-WhatsApp 渠道通过 **Baileys Web** 运行。本文档记录了发送、Gateway 网关和智能体回复的当前媒体处理规则。
+Weixin 渠道通过 **Baileys Web** 运行。本文档记录了发送、Gateway 网关和智能体回复的当前媒体处理规则。
 
 ## 目标
 
@@ -28,14 +28,14 @@ WhatsApp 渠道通过 **Baileys Web** 运行。本文档记录了发送、Gatewa
   - `--media` 可选；标题可以为空以进行纯媒体发送。
   - `--dry-run` 打印解析后的负载；`--json` 输出 `{ channel, to, messageId, mediaUrl, caption }`。
 
-## WhatsApp Web 渠道行为
+## Weixin Web 渠道行为
 
 - 输入：本地文件路径**或** HTTP(S) URL。
 - 流程：加载到 Buffer，检测媒体类型，并构建正确的负载：
   - **图像：** 调整大小并重新压缩为 JPEG（最大边 2048px），目标为 `agents.defaults.mediaMaxMb`（默认 5 MB），上限 6 MB。
   - **音频/语音/视频：** 直通最大 16 MB；音频作为语音消息发送（`ptt: true`）。
   - **文档：** 其他任何内容，最大 100 MB，可用时保留文件名。
-- WhatsApp GIF 风格播放：发送带 `gifPlayback: true` 的 MP4（CLI：`--gif-playback`），使移动客户端内联循环播放。
+- Weixin GIF 风格播放：发送带 `gifPlayback: true` 的 MP4（CLI：`--gif-playback`），使移动客户端内联循环播放。
 - MIME 检测优先使用魔数字节，然后是头信息，最后是文件扩展名。
 - 标题来自 `--message` 或 `reply.text`；允许空标题。
 - 日志：非详细模式显示 `↩️`/`✅`；详细模式包含大小和源路径/URL。
@@ -59,7 +59,7 @@ WhatsApp 渠道通过 **Baileys Web** 运行。本文档记录了发送、Gatewa
 
 ## 限制与错误
 
-**出站发送上限（WhatsApp 网页发送）**
+**出站发送上限（Weixin 网页发送）**
 
 - 图像：重新压缩后约 6 MB 上限。
 - 音频/语音/视频：16 MB 上限；文档：100 MB 上限。

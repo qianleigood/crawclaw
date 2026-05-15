@@ -1,4 +1,4 @@
-import { translateActiveCliText } from "../cli/i18n/text.js";
+import { translateActiveCliText } from "./i18n/text.js";
 import { isRich, theme } from "./theme.js";
 
 export const stylePromptMessage = (message: string): string => {

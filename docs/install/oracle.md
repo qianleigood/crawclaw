@@ -65,7 +65,7 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
 
   <Step title="Install Tailscale">
     ```bash
-    curl -fsSL https://tailscale.com/install.sh | sh
+    curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
     sudo tailscale up --ssh --hostname=crawclaw
     ```
 
@@ -75,7 +75,7 @@ Run a persistent CrawClaw Gateway on Oracle Cloud's **Always Free** ARM tier (up
 
   <Step title="Install CrawClaw">
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash
+    # Install CrawClaw Desktop from GitHub Releases.
     source ~/.bashrc
     ```
 
@@ -153,6 +153,6 @@ Then connect a supported gateway client to `http://localhost:18789`.
 
 ## Next steps
 
-- [Channels](/channels) -- connect Telegram, WhatsApp, Discord, and more
+- [Channels](/channels) -- connect Feishu, Weixin, community chat, and more
 - [Gateway configuration](/gateway/configuration) -- all config options
 - [Updating](/install/updating) -- keep CrawClaw up to date

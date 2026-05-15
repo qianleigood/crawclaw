@@ -22,12 +22,6 @@ import {
 import { withObservationContext } from "../../../infra/observation/scope.js";
 import { MAX_IMAGE_BYTES } from "../../../media/constants.js";
 import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../../../memory/special-agent-toollists.js";
-import {
-  isOllamaCompatProvider,
-  resolveOllamaCompatNumCtxEnabled,
-  shouldInjectOllamaCompatNumCtx,
-  wrapOllamaCompatNumCtx,
-} from "../../../plugin-sdk/ollama.js";
 import { getGlobalHookRunner } from "../../../plugins/hook-runner-global.js";
 import {
   coerceModelCompatConfig,
@@ -233,12 +227,6 @@ export {
   queueSessionsYieldInterruptMessage,
   stripSessionsYieldArtifacts,
 } from "./attempt.sessions-yield.js";
-export {
-  isOllamaCompatProvider,
-  resolveOllamaCompatNumCtxEnabled,
-  shouldInjectOllamaCompatNumCtx,
-  wrapOllamaCompatNumCtx,
-} from "../../../plugin-sdk/ollama.js";
 export {
   decodeHtmlEntitiesInObject,
   wrapStreamFnRepairMalformedToolCallArguments,

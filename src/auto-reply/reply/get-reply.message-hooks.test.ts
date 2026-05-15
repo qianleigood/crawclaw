@@ -54,18 +54,18 @@ async function loadFreshGetReplyModuleForTest() {
 
 function buildCtx(overrides: Partial<MsgContext> = {}): MsgContext {
   return {
-    Provider: "telegram",
-    Surface: "telegram",
-    OriginatingChannel: "telegram",
-    OriginatingTo: "telegram:-100123",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
+    OriginatingTo: "feishu:-100123",
     ChatType: "group",
     Body: "<media:audio>",
     BodyForAgent: "<media:audio>",
     RawBody: "<media:audio>",
     CommandBody: "<media:audio>",
-    SessionKey: "agent:main:telegram:-100123",
-    From: "telegram:user:42",
-    To: "telegram:-100123",
+    SessionKey: "agent:main:feishu:-100123",
+    From: "feishu:user:42",
+    To: "feishu:-100123",
     GroupChannel: "ops",
     Timestamp: 1710000000000,
     MediaPath: "/tmp/voice.ogg",
@@ -110,7 +110,7 @@ describe("getReplyFromConfig message hooks", () => {
       sessionEntry: {},
       previousSessionEntry: {},
       sessionStore: {},
-      sessionKey: "agent:main:telegram:-100123",
+      sessionKey: "agent:main:feishu:-100123",
       sessionId: "session-1",
       isNewSession: false,
       resetTriggered: false,
@@ -135,22 +135,22 @@ describe("getReplyFromConfig message hooks", () => {
       1,
       "message",
       "transcribed",
-      "agent:main:telegram:-100123",
+      "agent:main:feishu:-100123",
       expect.objectContaining({
         transcript: "voice transcript",
-        channelId: "telegram",
-        conversationId: "telegram:-100123",
+        channelId: "feishu",
+        conversationId: "feishu:-100123",
       }),
     );
     expect(mocks.createInternalHookEvent).toHaveBeenNthCalledWith(
       2,
       "message",
       "preprocessed",
-      "agent:main:telegram:-100123",
+      "agent:main:feishu:-100123",
       expect.objectContaining({
         transcript: "voice transcript",
         isGroup: true,
-        groupId: "telegram:-100123",
+        groupId: "feishu:-100123",
       }),
     );
     expect(mocks.triggerInternalHook).toHaveBeenCalledTimes(2);
@@ -170,7 +170,7 @@ describe("getReplyFromConfig message hooks", () => {
     expect(mocks.createInternalHookEvent).toHaveBeenCalledWith(
       "message",
       "preprocessed",
-      "agent:main:telegram:-100123",
+      "agent:main:feishu:-100123",
       expect.any(Object),
     );
   });

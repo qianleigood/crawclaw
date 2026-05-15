@@ -2,16 +2,6 @@ import type { Api, Model } from "@mariozechner/pi-ai";
 import type { AuthStorage, ModelRegistry } from "@mariozechner/pi-coding-agent";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { ModelDefinitionConfig } from "../../config/types.js";
-import {
-  applyProviderResolvedModelCompatWithPlugins,
-  applyProviderResolvedTransportWithPlugin,
-  buildProviderUnknownModelHintWithPlugin,
-  clearProviderRuntimeHookCache,
-  normalizeProviderTransportWithPlugin,
-  prepareProviderDynamicModel,
-  runProviderDynamicModel,
-  normalizeProviderResolvedModelWithPlugin,
-} from "../../plugins/provider-runtime.js";
 import { resolveCrawClawAgentDir } from "../agent-paths.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
 import { buildModelAliasLines } from "../model-alias-lines.js";
@@ -39,56 +29,16 @@ type InlineProviderConfig = {
   authHeader?: boolean;
 };
 
-type ProviderRuntimeHooks = {
-  applyProviderResolvedModelCompatWithPlugins?: (
-    params: Parameters<typeof applyProviderResolvedModelCompatWithPlugins>[0],
-  ) => unknown;
-  applyProviderResolvedTransportWithPlugin?: (
-    params: Parameters<typeof applyProviderResolvedTransportWithPlugin>[0],
-  ) => unknown;
-  buildProviderUnknownModelHintWithPlugin: (
-    params: Parameters<typeof buildProviderUnknownModelHintWithPlugin>[0],
-  ) => string | undefined;
-  prepareProviderDynamicModel: (
-    params: Parameters<typeof prepareProviderDynamicModel>[0],
-  ) => Promise<void>;
-  runProviderDynamicModel: (params: Parameters<typeof runProviderDynamicModel>[0]) => unknown;
-  normalizeProviderResolvedModelWithPlugin: (
-    params: Parameters<typeof normalizeProviderResolvedModelWithPlugin>[0],
-  ) => unknown;
-  normalizeProviderTransportWithPlugin: (
-    params: Parameters<typeof normalizeProviderTransportWithPlugin>[0],
-  ) => unknown;
-};
+type ProviderRuntimeHooks = Record<string, unknown>;
 
-const DEFAULT_PROVIDER_RUNTIME_HOOKS: ProviderRuntimeHooks = {
-  applyProviderResolvedModelCompatWithPlugins,
-  applyProviderResolvedTransportWithPlugin,
-  buildProviderUnknownModelHintWithPlugin,
-  prepareProviderDynamicModel,
-  runProviderDynamicModel,
-  normalizeProviderResolvedModelWithPlugin,
-  normalizeProviderTransportWithPlugin,
-};
-
-const STATIC_PROVIDER_RUNTIME_HOOKS: ProviderRuntimeHooks = {
-  applyProviderResolvedModelCompatWithPlugins: () => undefined,
-  applyProviderResolvedTransportWithPlugin: () => undefined,
-  buildProviderUnknownModelHintWithPlugin: () => undefined,
-  prepareProviderDynamicModel: async () => {},
-  runProviderDynamicModel: () => undefined,
-  normalizeProviderResolvedModelWithPlugin: () => undefined,
-  normalizeProviderTransportWithPlugin: () => undefined,
-};
+const STATIC_PROVIDER_RUNTIME_HOOKS: ProviderRuntimeHooks = {};
 
 function resolveRuntimeHooks(params?: {
   runtimeHooks?: ProviderRuntimeHooks;
   skipProviderRuntimeHooks?: boolean;
 }): ProviderRuntimeHooks {
-  if (params?.skipProviderRuntimeHooks) {
-    return STATIC_PROVIDER_RUNTIME_HOOKS;
-  }
-  return params?.runtimeHooks ?? DEFAULT_PROVIDER_RUNTIME_HOOKS;
+  void params;
+  return STATIC_PROVIDER_RUNTIME_HOOKS;
 }
 
 function normalizeResolvedTransportApi(api: unknown): ModelDefinitionConfig["api"] | undefined {
@@ -128,36 +78,6 @@ function sanitizeModelHeaders(
   return Object.keys(next).length > 0 ? next : undefined;
 }
 
-function applyResolvedTransportFallback(params: {
-  provider: string;
-  cfg?: CrawClawConfig;
-  runtimeHooks: ProviderRuntimeHooks;
-  model: Model<Api>;
-}): Model<Api> | undefined {
-  const normalized = params.runtimeHooks.normalizeProviderTransportWithPlugin({
-    provider: params.provider,
-    config: params.cfg,
-    context: {
-      provider: params.provider,
-      api: params.model.api,
-      baseUrl: params.model.baseUrl,
-    },
-  }) as { api?: Api | null; baseUrl?: string } | undefined;
-  if (!normalized) {
-    return undefined;
-  }
-  const nextApi = normalizeResolvedTransportApi(normalized.api) ?? params.model.api;
-  const nextBaseUrl = normalized.baseUrl ?? params.model.baseUrl;
-  if (nextApi === params.model.api && nextBaseUrl === params.model.baseUrl) {
-    return undefined;
-  }
-  return {
-    ...params.model,
-    api: nextApi,
-    baseUrl: nextBaseUrl,
-  };
-}
-
 function normalizeResolvedModel(params: {
   provider: string;
   model: Model<Api>;
@@ -165,6 +85,9 @@ function normalizeResolvedModel(params: {
   agentDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
 }): Model<Api> {
+  void params.cfg;
+  void params.agentDir;
+  void params.runtimeHooks;
   const normalizedInputModel =
     Array.isArray(params.model.input) && params.model.input.length > 0
       ? params.model
@@ -172,52 +95,9 @@ function normalizeResolvedModel(params: {
           ...params.model,
           input: ["text"],
         } as Model<Api>);
-  const runtimeHooks = params.runtimeHooks ?? DEFAULT_PROVIDER_RUNTIME_HOOKS;
-  const pluginNormalized = runtimeHooks.normalizeProviderResolvedModelWithPlugin({
-    provider: params.provider,
-    config: params.cfg,
-    context: {
-      config: params.cfg,
-      agentDir: params.agentDir,
-      provider: params.provider,
-      modelId: normalizedInputModel.id,
-      model: normalizedInputModel,
-    },
-  }) as Model<Api> | undefined;
-  const compatNormalized = runtimeHooks.applyProviderResolvedModelCompatWithPlugins?.({
-    provider: params.provider,
-    config: params.cfg,
-    context: {
-      config: params.cfg,
-      agentDir: params.agentDir,
-      provider: params.provider,
-      modelId: normalizedInputModel.id,
-      model: (pluginNormalized ?? normalizedInputModel) as never,
-    },
-  }) as Model<Api> | undefined;
-  const transportNormalized = runtimeHooks.applyProviderResolvedTransportWithPlugin?.({
-    provider: params.provider,
-    config: params.cfg,
-    context: {
-      config: params.cfg,
-      agentDir: params.agentDir,
-      provider: params.provider,
-      modelId: normalizedInputModel.id,
-      model: (compatNormalized ?? pluginNormalized ?? normalizedInputModel) as never,
-    },
-  }) as Model<Api> | undefined;
-  const fallbackTransportNormalized =
-    transportNormalized ??
-    applyResolvedTransportFallback({
-      provider: params.provider,
-      cfg: params.cfg,
-      runtimeHooks,
-      model: compatNormalized ?? pluginNormalized ?? normalizedInputModel,
-    });
   return normalizeResolvedProviderModel({
     provider: params.provider,
-    model:
-      fallbackTransportNormalized ?? compatNormalized ?? pluginNormalized ?? normalizedInputModel,
+    model: normalizedInputModel,
   });
 }
 
@@ -231,20 +111,13 @@ function resolveProviderTransport(params: {
   api?: Api;
   baseUrl?: string;
 } {
-  const runtimeHooks = params.runtimeHooks ?? DEFAULT_PROVIDER_RUNTIME_HOOKS;
-  const normalized = runtimeHooks.normalizeProviderTransportWithPlugin({
-    provider: params.provider,
-    config: params.cfg,
-    context: {
-      provider: params.provider,
-      api: params.api,
-      baseUrl: params.baseUrl,
-    },
-  }) as { api?: Api | null; baseUrl?: string } | undefined;
+  void params.provider;
+  void params.cfg;
+  void params.runtimeHooks;
 
   return {
-    api: normalizeResolvedTransportApi(normalized?.api ?? params.api),
-    baseUrl: normalized?.baseUrl ?? params.baseUrl,
+    api: normalizeResolvedTransportApi(params.api),
+    baseUrl: params.baseUrl,
   };
 }
 
@@ -480,39 +353,8 @@ function resolvePluginDynamicModelWithRegistry(params: {
   agentDir?: string;
   runtimeHooks?: ProviderRuntimeHooks;
 }): Model<Api> | undefined {
-  const { provider, modelId, modelRegistry, cfg, agentDir } = params;
-  const runtimeHooks = params.runtimeHooks ?? DEFAULT_PROVIDER_RUNTIME_HOOKS;
-  const providerConfig = resolveConfiguredProviderConfig(cfg, provider);
-  const pluginDynamicModel = runtimeHooks.runProviderDynamicModel({
-    provider,
-    config: cfg,
-    context: {
-      config: cfg,
-      agentDir,
-      provider,
-      modelId,
-      modelRegistry,
-      providerConfig,
-    },
-  }) as Model<Api> | undefined;
-  if (!pluginDynamicModel) {
-    return undefined;
-  }
-  const overriddenDynamicModel = applyConfiguredProviderOverrides({
-    provider,
-    discoveredModel: pluginDynamicModel,
-    providerConfig,
-    modelId,
-    cfg,
-    runtimeHooks,
-  });
-  return normalizeResolvedModel({
-    provider,
-    cfg,
-    agentDir,
-    model: overriddenDynamicModel,
-    runtimeHooks,
-  });
+  void params;
+  return undefined;
 }
 
 function resolveConfiguredFallbackModel(params: {
@@ -691,23 +533,8 @@ export async function resolveModelAsync(
       modelRegistry,
     };
   }
-  const providerConfig = resolveConfiguredProviderConfig(cfg, provider);
   const resolveDynamicAttempt = async (attemptOptions?: { clearHookCache?: boolean }) => {
-    if (attemptOptions?.clearHookCache) {
-      clearProviderRuntimeHookCache();
-    }
-    await runtimeHooks.prepareProviderDynamicModel({
-      provider,
-      config: cfg,
-      context: {
-        config: cfg,
-        agentDir: resolvedAgentDir,
-        provider,
-        modelId,
-        modelRegistry,
-        providerConfig,
-      },
-    });
+    void attemptOptions;
     return resolveModelWithRegistry({
       provider,
       modelId,
@@ -720,9 +547,8 @@ export async function resolveModelAsync(
   let model =
     explicitModel?.kind === "resolved" ? explicitModel.model : await resolveDynamicAttempt();
   if (!model && !explicitModel && options?.retryTransientProviderRuntimeMiss) {
-    // Startup can race the first provider-runtime snapshot load on a fresh
-    // gateway boot. Retry once with a cleared hook cache before surfacing a
-    // user-visible "Unknown model" that disappears on the next message.
+    // Keep the historical single retry for callers that can see a transient
+    // model registry miss during startup.
     model = await resolveDynamicAttempt({ clearHookCache: true });
   }
   if (model) {
@@ -767,18 +593,8 @@ function buildUnknownModelError(params: {
     return suppressed;
   }
   const base = `Unknown model: ${params.provider}/${params.modelId}`;
-  const runtimeHooks = params.runtimeHooks ?? DEFAULT_PROVIDER_RUNTIME_HOOKS;
-  const hint = runtimeHooks.buildProviderUnknownModelHintWithPlugin({
-    provider: params.provider,
-    config: params.cfg,
-    env: process.env,
-    context: {
-      config: params.cfg,
-      agentDir: params.agentDir,
-      env: process.env,
-      provider: params.provider,
-      modelId: params.modelId,
-    },
-  });
-  return hint ? `${base}. ${hint}` : base;
+  void params.cfg;
+  void params.agentDir;
+  void params.runtimeHooks;
+  return base;
 }

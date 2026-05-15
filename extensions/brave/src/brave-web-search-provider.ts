@@ -3,7 +3,6 @@ import {
   buildSearchCacheKey,
   DEFAULT_SEARCH_COUNT,
   MAX_SEARCH_COUNT,
-  formatCliCommand,
   mergeScopedSearchConfig,
   normalizeFreshness,
   parseIsoDateRange,
@@ -434,7 +433,8 @@ function createBraveSchema() {
 function missingBraveKeyPayload() {
   return {
     error: "missing_brave_api_key",
-    message: `web_search (brave) needs a Brave Search API key. Run \`${formatCliCommand("crawclaw configure --section web")}\` to store it, or set BRAVE_API_KEY in the Gateway environment.`,
+    message:
+      "web_search (brave) needs a Brave Search API key. Store it in Desktop Settings → Tools, or set BRAVE_API_KEY in the Gateway environment.",
     docs: "https://docs.crawclaw.ai/tools/web",
   };
 }

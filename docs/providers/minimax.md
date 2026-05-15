@@ -41,9 +41,9 @@ See the MiniMax plugin package README in the CrawClaw repo for details.
 
 **Best for:** hosted MiniMax with Anthropic-compatible API.
 
-Configure via CLI:
+Configure in CrawClaw Desktop or through the local Gateway API:
 
-- Run CrawClaw Desktop or the local Gateway API
+- Open model/auth settings
 - Select **Model/auth**
 - Choose a **MiniMax** auth option
 

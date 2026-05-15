@@ -26,7 +26,7 @@ x-i18n:
 - 模型和身份验证设置（OpenAI Code 订阅 OAuth、Anthropic API 密钥或 setup token，以及 MiniMax、GLM、Ollama、Moonshot 和 AI Gateway 选项）
 - 工作区位置和 bootstrap 文件
 - Gateway 网关设置（端口、绑定、身份验证、tailscale）
-- 渠道和提供商（Telegram、WhatsApp、Discord、Google Chat、Mattermost 插件、Signal）
+- 渠道和提供商（Feishu、Weixin、QQBot、Feishu、Feishu 插件、Feishu）
 - 输出与展示预设（`quiet`、`balanced`、`operator`）
 - Memory / Knowledge：NotebookLM knowledge recall 启用开关
 - 守护进程安装（LaunchAgent 或 systemd 用户单元）
@@ -71,14 +71,14 @@ x-i18n:
     - 非 loopback 绑定仍然需要身份验证。
   </Step>
   <Step title="渠道">
-    - [WhatsApp](/channels/whatsapp)：可选 QR 登录
-    - [Telegram](/channels/telegram)：bot 令牌
-    - [Discord](/channels/discord)：bot 令牌
-    - [Google Chat](/channels/googlechat)：服务账号 JSON + webhook audience
-    - [Mattermost](/channels/mattermost) 插件：bot 令牌 + 基础 URL
-    - [Signal](/channels/signal)：可选 `signal-cli` 安装 + 账户配置
-    - [BlueBubbles](/channels/bluebubbles)：推荐用于 iMessage；服务器 URL + 密码 + webhook
-    - [iMessage](/channels/imessage)：旧版 `imsg` CLI 路径 + 数据库访问
+    - [Weixin](/channels/index)：可选 QR 登录
+    - [Feishu](/channels/index)：bot 令牌
+    - [QQBot](/channels/index)：bot 令牌
+    - [Feishu](/channels/index)：服务账号 JSON + webhook audience
+    - [Feishu](/channels/index) 插件：bot 令牌 + 基础 URL
+    - [Feishu](/channels/index)：可选 `feishu-cli` 安装 + 账户配置
+    - [Weixin](/channels/index)：推荐用于 Weixin；服务器 URL + 密码 + webhook
+    - [Weixin](/channels/index)：旧版 `imsg` CLI 路径 + 数据库访问
     - 私信安全：默认是配对。首次私信会发送一个代码；通过
       `crawclaw pairing approve <channel> <code>` 批准，或使用 allowlist。
   </Step>
@@ -98,7 +98,7 @@ x-i18n:
     - Windows：每用户启动模式
       - 向导会尝试执行 `loginctl enable-linger <user>`，使网关在注销后仍保持运行。
       - 可能会提示输入 sudo（写入 `/var/lib/systemd/linger`）；会先尝试不使用 sudo。
-    - 运行时选择：Node（推荐；WhatsApp 和 Telegram 必需）。不建议使用 Bun。
+    - 运行时选择：Node（推荐；Weixin 和 Feishu 必需）。不建议使用 Bun。
   </Step>
   <Step title="健康检查">
     - 启动 Gateway 网关（如有需要），并运行 `crawclaw health`。
@@ -277,8 +277,8 @@ x-i18n:
 - `tools.profile`（本地新手引导在未设置时默认设为 `"coding"`；现有显式值会保留）
 - `gateway.*`（模式、绑定、身份验证、tailscale）
 - `session.dmScope`（本地新手引导在未设置时默认设为 `per-channel-peer`；现有显式值会保留）
-- `channels.telegram.botToken`、`channels.discord.token`、`channels.signal.*`、`channels.imessage.*`
-- 当你在提示中选择加入时的渠道 allowlist（Slack、Discord、Matrix、Microsoft Teams）（如果可能，名称会解析为 ID）
+- `channels.feishu.botToken`、`channels.qqbot.token`、`channels.feishu.*`、`channels.weixin.*`
+- 当你在提示中选择加入时的渠道 allowlist（DingTalk、QQBot、Matrix、QQBot）（如果可能，名称会解析为 ID）
 - `skills.install.nodeManager`
 - `wizard.lastRunAt`
 - `wizard.lastRunVersion`
@@ -288,7 +288,7 @@ x-i18n:
 
 `crawclaw agents add` 会写入 `agents.list[]` 和可选的 `bindings`。
 
-WhatsApp 凭证位于 `~/.crawclaw/credentials/whatsapp/<accountId>/`。
+Weixin 凭证位于 `~/.crawclaw/credentials/weixin/<accountId>/`。
 会话存储在 `~/.crawclaw/agents/<agentId>/sessions/` 下。
 
 <Note>
@@ -305,11 +305,11 @@ Gateway 网关向导 RPC：
 
 客户端可以在不重新实现新手引导逻辑的情况下渲染步骤。
 
-Signal 设置行为：
+Feishu 设置行为：
 
 - 下载适当的发布资源
-- 将其存储在 `~/.crawclaw/tools/signal-cli/<version>/`
-- 在配置中写入 `channels.signal.cliPath`
+- 将其存储在 `~/.crawclaw/tools/feishu-cli/<version>/`
+- 在配置中写入 `channels.feishu.cliPath`
 - JVM 构建需要 Java 21
 - 在可用时使用原生构建
 - Windows 使用可用的原生构建。

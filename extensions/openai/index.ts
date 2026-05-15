@@ -4,17 +4,13 @@ import {
   openaiCodexMediaUnderstandingProvider,
   openaiMediaUnderstandingProvider,
 } from "./media-understanding-provider.js";
-import { buildOpenAICodexProviderPlugin } from "./openai-codex-provider.js";
-import { buildOpenAIProvider } from "./openai-provider.js";
 
 export default definePluginEntry({
   id: "openai",
   name: "OpenAI Provider",
-  description: "Bundled OpenAI provider plugins",
+  description: "Bundled OpenAI non-LLM provider capabilities",
   register(api) {
     api.registerCliBackend(buildOpenAICodexCliBackend());
-    api.registerProvider(buildOpenAIProvider());
-    api.registerProvider(buildOpenAICodexProviderPlugin());
     api.registerMediaUnderstandingProvider(openaiMediaUnderstandingProvider);
     api.registerMediaUnderstandingProvider(openaiCodexMediaUnderstandingProvider);
   },

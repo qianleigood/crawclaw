@@ -1,7 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { coerceSecretRef, resolveSecretInputRef } from "../config/types.secrets.js";
 import { resolveProviderWebSearchPluginConfig } from "../plugin-sdk/provider-web-search.js";
-import { resolveProviderSyntheticAuthWithPlugin } from "../plugins/provider-runtime.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import { listProfilesForProvider } from "./auth-profiles/profiles.js";
 import { ensureAuthProfileStore } from "./auth-profiles/store.js";
@@ -421,19 +420,7 @@ function resolveConfigBackedProviderAuth(params: { provider: string; config?: Cr
       source: "config";
     }
   | undefined {
-  // Providers own any provider-specific fallback auth logic via
-  // resolveSyntheticAuth(...). Discovery/bootstrap callers may consume
-  // non-secret markers from source config, but must never persist plaintext.
-  const synthetic =
-    resolveProviderSyntheticAuthWithPlugin({
-      provider: params.provider,
-      config: params.config,
-      context: {
-        config: params.config,
-        provider: params.provider,
-        providerConfig: params.config?.models?.providers?.[params.provider],
-      },
-    }) ?? resolveXaiConfigFallbackAuth(params);
+  const synthetic = resolveXaiConfigFallbackAuth(params);
   const apiKey = synthetic?.apiKey?.trim();
   if (!apiKey) {
     return undefined;

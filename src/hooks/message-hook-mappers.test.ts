@@ -191,39 +191,39 @@ describe("message hook mappers", () => {
 
   it("maps sent context consistently for plugin/internal hooks", () => {
     const canonical = buildCanonicalSentMessageHookContext({
-      to: "telegram:chat:456",
+      to: "feishu:chat:456",
       content: "reply",
       success: false,
       error: "network error",
-      channelId: "telegram",
+      channelId: "feishu",
       accountId: "acc-1",
       messageId: "out-1",
       isGroup: true,
-      groupId: "telegram:chat:456",
+      groupId: "feishu:chat:456",
     });
 
     expect(toPluginMessageContext(canonical)).toEqual({
-      channelId: "telegram",
+      channelId: "feishu",
       accountId: "acc-1",
-      conversationId: "telegram:chat:456",
+      conversationId: "feishu:chat:456",
     });
     expect(toPluginMessageSentEvent(canonical)).toEqual({
-      to: "telegram:chat:456",
+      to: "feishu:chat:456",
       content: "reply",
       success: false,
       error: "network error",
     });
     expect(toInternalMessageSentContext(canonical)).toEqual({
-      to: "telegram:chat:456",
+      to: "feishu:chat:456",
       content: "reply",
       success: false,
       error: "network error",
-      channelId: "telegram",
+      channelId: "feishu",
       accountId: "acc-1",
-      conversationId: "telegram:chat:456",
+      conversationId: "feishu:chat:456",
       messageId: "out-1",
       isGroup: true,
-      groupId: "telegram:chat:456",
+      groupId: "feishu:chat:456",
     });
   });
 });

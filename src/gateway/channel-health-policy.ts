@@ -109,11 +109,7 @@ export function evaluateChannelHealth(
   // Skip stale-socket check for channels explicitly operating in webhook mode.
   // In these cases, there is no persistent outgoing socket that can go half-dead,
   // so the lack of incoming events does not necessarily indicate a connection failure.
-  if (
-    snapshot.mode !== "webhook" &&
-    snapshot.connected === true &&
-    snapshot.lastEventAt != null
-  ) {
+  if (snapshot.mode !== "webhook" && snapshot.connected === true && snapshot.lastEventAt != null) {
     if (lastStartAt != null && snapshot.lastEventAt < lastStartAt) {
       const lifecycleEventGap = Math.max(0, policy.now - lastStartAt);
       if (lifecycleEventGap <= policy.staleEventThresholdMs) {

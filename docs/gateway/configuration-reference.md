@@ -49,13 +49,13 @@ Use `channels.modelByChannel` to pin specific channel IDs to a model. Values acc
 {
   channels: {
     modelByChannel: {
-      discord: {
+      qqbot: {
         "123456789012345678": "anthropic/claude-opus-4-6",
       },
-      slack: {
+      ddingtalk: {
         C1234567890: "openai/gpt-4.1",
       },
-      telegram: {
+      feishu: {
         "-1001234567890": "openai/gpt-4.1-mini",
         "-1001234567890:topic:99": "anthropic/claude-sonnet-4-6",
       },
@@ -89,14 +89,14 @@ behavior across providers:
 - `channels.defaults.heartbeat.showAlerts`: include degraded/error statuses in legacy heartbeat output.
 - `channels.defaults.heartbeat.useIndicator`: render compact indicator-style legacy heartbeat output.
 
-### WhatsApp
+### Weixin
 
-WhatsApp runs through the gateway's web channel (Baileys Web). It starts automatically when a linked session exists.
+Weixin runs through the gateway's web channel (Baileys Web). It starts automatically when a linked session exists.
 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "pairing", // pairing | allowlist | open | disabled
       allowFrom: ["+15555550123", "+447700900123"],
       textChunkLimit: 4000,
@@ -124,17 +124,17 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 }
 ```
 
-<Accordion title="Multi-account WhatsApp">
+<Accordion title="Multi-account Weixin">
 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       accounts: {
         default: {},
         personal: {},
         biz: {
-          // authDir: "~/.crawclaw/credentials/whatsapp/biz",
+          // authDir: "~/.crawclaw/credentials/weixin/biz",
         },
       },
     },
@@ -143,18 +143,18 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 ```
 
 - Outbound commands default to account `default` if present; otherwise the first configured account id (sorted).
-- Optional `channels.whatsapp.defaultAccount` overrides that fallback default account selection when it matches a configured account id.
-- Legacy single-account Baileys auth dir is migrated by CrawClaw Desktop or the local Gateway API into `whatsapp/default`.
-- Per-account overrides: `channels.whatsapp.accounts.<id>.sendReadReceipts`, `channels.whatsapp.accounts.<id>.dmPolicy`, `channels.whatsapp.accounts.<id>.allowFrom`.
+- Optional `channels.weixin.defaultAccount` overrides that fallback default account selection when it matches a configured account id.
+- Legacy single-account Baileys auth dir is migrated by CrawClaw Desktop or the local Gateway API into `weixin/default`.
+- Per-account overrides: `channels.weixin.accounts.<id>.sendReadReceipts`, `channels.weixin.accounts.<id>.dmPolicy`, `channels.weixin.accounts.<id>.allowFrom`.
 
 </Accordion>
 
-### Telegram
+### Feishu
 
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       enabled: true,
       botToken: "your-bot-token",
       dmPolicy: "pairing",
@@ -195,28 +195,28 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
         dnsResultOrder: "ipv4first",
       },
       proxy: "socks5://localhost:9050",
-      webhookUrl: "https://example.com/telegram-webhook",
+      webhookUrl: "https://example.com/feishu-webhook",
       webhookSecret: "secret",
-      webhookPath: "/telegram-webhook",
+      webhookPath: "/feishu-webhook",
     },
   },
 }
 ```
 
-- Bot token: `channels.telegram.botToken` or `channels.telegram.tokenFile` (regular file only; symlinks rejected), with `TELEGRAM_BOT_TOKEN` as fallback for the default account.
-- Optional `channels.telegram.defaultAccount` overrides default account selection when it matches a configured account id.
-- In multi-account setups (2+ account ids), set an explicit default (`channels.telegram.defaultAccount` or `channels.telegram.accounts.default`) to avoid fallback routing; CrawClaw Desktop or the local Gateway API warns when this is missing or invalid.
-- `configWrites: false` blocks Telegram-initiated config writes (supergroup ID migrations, `/config set|unset`).
+- Bot token: `channels.feishu.botToken` or `channels.feishu.tokenFile` (regular file only; symlinks rejected), with `TELEGRAM_BOT_TOKEN` as fallback for the default account.
+- Optional `channels.feishu.defaultAccount` overrides default account selection when it matches a configured account id.
+- In multi-account setups (2+ account ids), set an explicit default (`channels.feishu.defaultAccount` or `channels.feishu.accounts.default`) to avoid fallback routing; CrawClaw Desktop or the local Gateway API warns when this is missing or invalid.
+- `configWrites: false` blocks Feishu-initiated config writes (supergroup ID migrations, `/config set|unset`).
 - Top-level `bindings[]` entries with `type: "acp"` configure persistent ACP bindings for forum topics (use canonical `chatId:topic:topicId` in `match.peer.id`). Field semantics are shared in [ACP Agents](/tools/acp-agents#channel-specific-settings).
-- Telegram stream previews use `sendMessage` + `editMessageText` (works in direct and group chats).
+- Feishu stream previews use `sendMessage` + `editMessageText` (works in direct and group chats).
 - Retry policy: see [Retry policy](/concepts/retry).
 
-### Discord
+### QQBot
 
 ```json5
 {
   channels: {
-    discord: {
+    qqbot: {
       enabled: true,
       token: "your-bot-token",
       mediaMaxMb: 8,
@@ -264,7 +264,7 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
       historyLimit: 20,
       textChunkLimit: 2000,
       chunkMode: "length", // length | newline
-      streaming: "off", // off | partial | block | progress (progress maps to partial on Discord)
+      streaming: "off", // off | partial | block | progress (progress maps to partial on QQBot)
       maxLinesPerMessage: 17,
       ui: {
         components: {
@@ -303,41 +303,41 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 }
 ```
 
-- Token: `channels.discord.token`, with `DISCORD_BOT_TOKEN` as fallback for the default account.
-- Direct outbound calls that provide an explicit Discord `token` use that token for the call; account retry/policy settings still come from the selected account in the active runtime snapshot.
-- Optional `channels.discord.defaultAccount` overrides default account selection when it matches a configured account id.
+- Token: `channels.qqbot.token`, with `DISCORD_BOT_TOKEN` as fallback for the default account.
+- Direct outbound calls that provide an explicit QQBot `token` use that token for the call; account retry/policy settings still come from the selected account in the active runtime snapshot.
+- Optional `channels.qqbot.defaultAccount` overrides default account selection when it matches a configured account id.
 - Use `user:<id>` (DM) or `channel:<id>` (guild channel) for delivery targets; bare numeric IDs are rejected.
 - Guild slugs are lowercase with spaces replaced by `-`; channel keys use the slugged name (no `#`). Prefer guild IDs.
 - Bot-authored messages are ignored by default. `allowBots: true` enables them; use `allowBots: "mentions"` to only accept bot messages that mention the bot (own messages still filtered).
-- `channels.discord.guilds.<id>.ignoreOtherMentions` (and channel overrides) drops messages that mention another user or role but not the bot (excluding @everyone/@here).
+- `channels.qqbot.guilds.<id>.ignoreOtherMentions` (and channel overrides) drops messages that mention another user or role but not the bot (excluding @everyone/@here).
 - `maxLinesPerMessage` (default 17) splits tall messages even when under 2000 chars.
-- `channels.discord.threadBindings` controls Discord thread-bound routing:
-  - `enabled`: Discord override for thread-bound session features (`/focus`, `/unfocus`, `/agents`, `/session idle`, `/session max-age`, and bound delivery/routing)
-  - `idleHours`: Discord override for inactivity auto-unfocus in hours (`0` disables)
-  - `maxAgeHours`: Discord override for hard max age in hours (`0` disables)
+- `channels.qqbot.threadBindings` controls QQBot thread-bound routing:
+  - `enabled`: QQBot override for thread-bound session features (`/focus`, `/unfocus`, `/agents`, `/session idle`, `/session max-age`, and bound delivery/routing)
+  - `idleHours`: QQBot override for inactivity auto-unfocus in hours (`0` disables)
+  - `maxAgeHours`: QQBot override for hard max age in hours (`0` disables)
   - `spawnSubagentSessions`: opt-in switch for `sessions_spawn({ thread: true })` auto thread creation/binding
 - Top-level `bindings[]` entries with `type: "acp"` configure persistent ACP bindings for channels and threads (use channel/thread id in `match.peer.id`). Field semantics are shared in [ACP Agents](/tools/acp-agents#channel-specific-settings).
-- `channels.discord.ui.components.accentColor` sets the accent color for Discord components v2 containers.
-- `channels.discord.voice` enables Discord voice channel conversations and optional auto-join + TTS overrides.
-- `channels.discord.voice.daveEncryption` and `channels.discord.voice.decryptionFailureTolerance` pass through to `@discordjs/voice` DAVE options (`true` and `24` by default).
+- `channels.qqbot.ui.components.accentColor` sets the accent color for QQBot components v2 containers.
+- `channels.qqbot.voice` enables QQBot voice channel conversations and optional auto-join + TTS overrides.
+- `channels.qqbot.voice.daveEncryption` and `channels.qqbot.voice.decryptionFailureTolerance` pass through to `@qqbotjs/voice` DAVE options (`true` and `24` by default).
 - CrawClaw additionally attempts voice receive recovery by leaving/rejoining a voice session after repeated decrypt failures.
-- `channels.discord.streaming` is the canonical preview stream mode key.
-- `channels.discord.autoPresence` maps runtime availability to bot presence (healthy => online, degraded => idle, exhausted => dnd) and allows optional status text overrides.
-- `channels.discord.dangerouslyAllowNameMatching` re-enables mutable name/tag matching (break-glass compatibility mode).
+- `channels.qqbot.streaming` is the canonical preview stream mode key.
+- `channels.qqbot.autoPresence` maps runtime availability to bot presence (healthy => online, degraded => idle, exhausted => dnd) and allows optional status text overrides.
+- `channels.qqbot.dangerouslyAllowNameMatching` re-enables mutable name/tag matching (break-glass compatibility mode).
 
 **Reaction notification modes:** `off` (none), `own` (bot's messages, default), `all` (all messages), `allowlist` (from `guilds.<id>.users` on all messages).
 
-### Google Chat
+### Feishu
 
 ```json5
 {
   channels: {
-    googlechat: {
+    feishu: {
       enabled: true,
       serviceAccountFile: "/path/to/service-account.json",
       audienceType: "app-url", // app-url | project-number
-      audience: "https://gateway.example.com/googlechat",
-      webhookPath: "/googlechat",
+      audience: "https://gateway.example.com/feishu",
+      webhookPath: "/feishu",
       botUser: "users/1234567890",
       dm: {
         enabled: true,
@@ -360,14 +360,14 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 - Service account SecretRef is also supported (`serviceAccountRef`).
 - Env fallbacks: `GOOGLE_CHAT_SERVICE_ACCOUNT` or `GOOGLE_CHAT_SERVICE_ACCOUNT_FILE`.
 - Use `spaces/<spaceId>` or `users/<userId>` for delivery targets.
-- `channels.googlechat.dangerouslyAllowNameMatching` re-enables mutable email principal matching (break-glass compatibility mode).
+- `channels.feishu.dangerouslyAllowNameMatching` re-enables mutable email principal matching (break-glass compatibility mode).
 
-### Slack
+### DingTalk
 
 ```json5
 {
   channels: {
-    slack: {
+    ddingtalk: {
       enabled: true,
       botToken: "xoxb-...",
       appToken: "xapp-...",
@@ -404,14 +404,14 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
       slashCommand: {
         enabled: true,
         name: "crawclaw",
-        sessionPrefix: "slack:slash",
+        sessionPrefix: "ddingtalk:slash",
         ephemeral: true,
       },
       typingReaction: "hourglass_flowing_sand",
       textChunkLimit: 4000,
       chunkMode: "length",
       streaming: "partial", // off | partial | block | progress (preview mode)
-      nativeStreaming: true, // use Slack native streaming API when streaming=partial
+      nativeStreaming: true, // use DingTalk native streaming API when streaming=partial
       mediaMaxMb: 20,
     },
   },
@@ -420,16 +420,16 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 
 - **Socket mode** requires both `botToken` and `appToken` (`SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN` for default account env fallback).
 - **HTTP mode** requires `botToken` plus `signingSecret` (at root or per-account).
-- `configWrites: false` blocks Slack-initiated config writes.
-- Optional `channels.slack.defaultAccount` overrides default account selection when it matches a configured account id.
-- `channels.slack.streaming` is the canonical preview stream mode key. `channels.slack.nativeStreaming` separately controls Slack's native streaming API path.
+- `configWrites: false` blocks DingTalk-initiated config writes.
+- Optional `channels.ddingtalk.defaultAccount` overrides default account selection when it matches a configured account id.
+- `channels.ddingtalk.streaming` is the canonical preview stream mode key. `channels.ddingtalk.nativeStreaming` separately controls DingTalk's native streaming API path.
 - Use `user:<id>` (DM) or `channel:<id>` for delivery targets.
 
 **Reaction notification modes:** `off`, `own` (default), `all`, `allowlist` (from `reactionAllowlist`).
 
 **Thread session isolation:** `thread.historyScope` is per-thread (default) or shared across channel. `thread.inheritParent` copies parent channel transcript to new threads.
 
-- `typingReaction` adds a temporary reaction to the inbound Slack message while a reply is running, then removes it on completion. Use a Slack emoji shortcode such as `"hourglass_flowing_sand"`.
+- `typingReaction` adds a temporary reaction to the inbound DingTalk message while a reply is running, then removes it on completion. Use a DingTalk emoji shortcode such as `"hourglass_flowing_sand"`.
 
 | Action group | Default | Notes                  |
 | ------------ | ------- | ---------------------- |
@@ -439,14 +439,14 @@ WhatsApp runs through the gateway's web channel (Baileys Web). It starts automat
 | memberInfo   | enabled | Member info            |
 | emojiList    | enabled | Custom emoji list      |
 
-### Mattermost
+### Feishu
 
-Mattermost ships as a plugin: CrawClaw Desktop or the local Gateway API.
+Feishu is configured through the Rust-native channel catalog.
 
 ```json5
 {
   channels: {
-    mattermost: {
+    feishu: {
       enabled: true,
       botToken: "mm-token",
       baseUrl: "https://chat.example.com",
@@ -456,9 +456,9 @@ Mattermost ships as a plugin: CrawClaw Desktop or the local Gateway API.
       commands: {
         native: true, // opt-in
         nativeSkills: true,
-        callbackPath: "/api/channels/mattermost/command",
+        callbackPath: "/api/channels/index/command",
         // Optional explicit URL for reverse-proxy/public deployments
-        callbackUrl: "https://gateway.example.com/api/channels/mattermost/command",
+        callbackUrl: "https://gateway.example.com/api/channels/index/command",
       },
       textChunkLimit: 4000,
       chunkMode: "length",
@@ -469,194 +469,70 @@ Mattermost ships as a plugin: CrawClaw Desktop or the local Gateway API.
 
 Chat modes: `oncall` (respond on @-mention, default), `onmessage` (every message), `onchar` (messages starting with trigger prefix).
 
-When Mattermost native commands are enabled:
+When Feishu native commands are enabled:
 
-- `commands.callbackPath` must be a path (for example `/api/channels/mattermost/command`), not a full URL.
-- `commands.callbackUrl` must resolve to the CrawClaw gateway endpoint and be reachable from the Mattermost server.
-- For private/tailnet/internal callback hosts, Mattermost may require
+- `commands.callbackPath` must be a path (for example `/api/channels/index/command`), not a full URL.
+- `commands.callbackUrl` must resolve to the CrawClaw gateway endpoint and be reachable from the Feishu server.
+- For private/tailnet/internal callback hosts, Feishu may require
   `ServiceSettings.AllowedUntrustedInternalConnections` to include the callback host/domain.
   Use host/domain values, not full URLs.
-- `channels.mattermost.configWrites`: allow or deny Mattermost-initiated config writes.
-- `channels.mattermost.requireMention`: require `@mention` before replying in channels.
-- Optional `channels.mattermost.defaultAccount` overrides default account selection when it matches a configured account id.
+- `channels.feishu.configWrites`: allow or deny Feishu-initiated config writes.
+- `channels.feishu.requireMention`: require `@mention` before replying in channels.
+- Optional `channels.feishu.defaultAccount` overrides default account selection when it matches a configured account id.
 
-### Signal
+### Weixin
 
-```json5
-{
-  channels: {
-    signal: {
-      enabled: true,
-      account: "+15555550123", // optional account binding
-      dmPolicy: "pairing",
-      allowFrom: ["+15551234567", "uuid:123e4567-e89b-12d3-a456-426614174000"],
-      configWrites: true,
-      reactionNotifications: "own", // off | own | all | allowlist
-      reactionAllowlist: ["+15551234567", "uuid:123e4567-e89b-12d3-a456-426614174000"],
-      historyLimit: 50,
-    },
-  },
-}
-```
-
-**Reaction notification modes:** `off`, `own` (default), `all`, `allowlist` (from `reactionAllowlist`).
-
-- `channels.signal.account`: pin channel startup to a specific Signal account identity.
-- `channels.signal.configWrites`: allow or deny Signal-initiated config writes.
-- Optional `channels.signal.defaultAccount` overrides default account selection when it matches a configured account id.
-
-### BlueBubbles
-
-BlueBubbles is the recommended iMessage path (plugin-backed, configured under `channels.bluebubbles`).
+Weixin is the recommended Weixin path (plugin-backed, configured under `channels.weixin`).
 
 ```json5
 {
   channels: {
-    bluebubbles: {
+    weixin: {
       enabled: true,
       dmPolicy: "pairing",
       // serverUrl, password, webhookPath, group controls, and advanced actions:
-      // see /channels/bluebubbles
+      // see /channels/index
     },
   },
 }
 ```
 
-- Core key paths covered here: `channels.bluebubbles`, `channels.bluebubbles.dmPolicy`.
-- Optional `channels.bluebubbles.defaultAccount` overrides default account selection when it matches a configured account id.
-- Top-level `bindings[]` entries with `type: "acp"` can bind BlueBubbles conversations to persistent ACP sessions. Use a BlueBubbles handle or target string (`chat_id:*`, `chat_guid:*`, `chat_identifier:*`) in `match.peer.id`. Shared field semantics: [ACP Agents](/tools/acp-agents#channel-specific-settings).
-- Full BlueBubbles channel configuration is documented in [BlueBubbles](/channels/bluebubbles).
+- Core key paths covered here: `channels.weixin`, `channels.weixin.dmPolicy`.
+- Optional `channels.weixin.defaultAccount` overrides default account selection when it matches a configured account id.
+- Top-level `bindings[]` entries with `type: "acp"` can bind Weixin conversations to persistent ACP sessions. Use a Weixin handle or target string (`chat_id:*`, `chat_guid:*`, `chat_identifier:*`) in `match.peer.id`. Shared field semantics: [ACP Agents](/tools/acp-agents#channel-specific-settings).
+- Full Weixin channel configuration is documented in [Weixin](/channels/index).
 
-### iMessage
+### Native channel catalog
 
-CrawClaw spawns `imsg rpc` (JSON-RPC over stdio). No daemon or port required.
+Repo-owned TypeScript channel plugins have been removed. Channel control-plane
+configuration is now owned by the Rust Gateway/native channel catalog. The
+repo-owned channel keys are:
 
-```json5
-{
-  channels: {
-    imessage: {
-      enabled: true,
-      cliPath: "imsg",
-      dbPath: "~/Library/Messages/chat.db",
-      remoteHost: "user@gateway-host",
-      dmPolicy: "pairing",
-      allowFrom: ["+15555550123", "user@example.com", "chat_id:123"],
-      historyLimit: 50,
-      includeAttachments: false,
-      attachmentRoots: ["/Users/*/Library/Messages/Attachments"],
-      remoteAttachmentRoots: ["/Users/*/Library/Messages/Attachments"],
-      mediaMaxMb: 16,
-      service: "auto",
-      region: "US",
-    },
-  },
-}
-```
+- `channels.ddingtalk`
+- `channels.esp32`
+- `channels.feishu`
+- `channels.qqbot`
+- `channels.weixin`
 
-- Optional `channels.imessage.defaultAccount` overrides default account selection when it matches a configured account id.
+### QQBot
 
-- Requires Full Disk Access to the Messages DB.
-- Prefer `chat_id:<id>` targets. Use `imsg chats --limit 20` to list chats.
-- `cliPath` can point to an SSH wrapper; set `remoteHost` (`host` or `user@host`) for SCP attachment fetching.
-- `attachmentRoots` and `remoteAttachmentRoots` restrict inbound attachment paths (default: `/Users/*/Library/Messages/Attachments`).
-- SCP uses strict host-key checking, so ensure the relay host key already exists in `~/.ssh/known_hosts`.
-- `channels.imessage.configWrites`: allow or deny iMessage-initiated config writes.
-- Top-level `bindings[]` entries with `type: "acp"` can bind iMessage conversations to persistent ACP sessions. Use a normalized handle or explicit chat target (`chat_id:*`, `chat_guid:*`, `chat_identifier:*`) in `match.peer.id`. Shared field semantics: [ACP Agents](/tools/acp-agents#channel-specific-settings).
-
-<Accordion title="iMessage SSH wrapper example">
-
-```bash
-#!/usr/bin/env bash
-exec ssh -T gateway-host imsg "$@"
-```
-
-</Accordion>
-
-### Matrix
-
-Matrix is extension-backed and configured under `channels.matrix`.
+QQBot is Rust-native and configured under `channels.qqbot`.
 
 ```json5
 {
   channels: {
-    matrix: {
-      enabled: true,
-      homeserver: "https://matrix.example.org",
-      accessToken: "syt_bot_xxx",
-      proxy: "http://127.0.0.1:7890",
-      encryption: true,
-      initialSyncLimit: 20,
-      defaultAccount: "ops",
-      accounts: {
-        ops: {
-          name: "Ops",
-          userId: "@ops:example.org",
-          accessToken: "syt_ops_xxx",
-        },
-        alerts: {
-          userId: "@alerts:example.org",
-          password: "secret",
-          proxy: "http://127.0.0.1:7891",
-        },
-      },
-    },
-  },
-}
-```
-
-- Token auth uses `accessToken`; password auth uses `userId` + `password`.
-- `channels.matrix.proxy` routes Matrix HTTP traffic through an explicit HTTP(S) proxy. Named accounts can override it with `channels.matrix.accounts.<id>.proxy`.
-- `channels.matrix.allowPrivateNetwork` allows private/internal homeservers. `proxy` and `allowPrivateNetwork` are independent controls.
-- `channels.matrix.defaultAccount` selects the preferred account in multi-account setups.
-- Matrix status probes and live directory lookups use the same proxy policy as runtime traffic.
-- Full Matrix configuration, targeting rules, and setup examples are documented in [Matrix](/channels/matrix).
-
-### Microsoft Teams
-
-Microsoft Teams is extension-backed and configured under `channels.msteams`.
-
-```json5
-{
-  channels: {
-    msteams: {
+    qqbot: {
       enabled: true,
       configWrites: true,
       // appId, appPassword, tenantId, webhook, team/channel policies:
-      // see /channels/msteams
+      // see /channels/index
     },
   },
 }
 ```
 
-- Core key paths covered here: `channels.msteams`, `channels.msteams.configWrites`.
-- Full Teams config (credentials, webhook, DM/group policy, per-team/per-channel overrides) is documented in [Microsoft Teams](/channels/msteams).
-
-### IRC
-
-IRC is extension-backed and configured under `channels.irc`.
-
-```json5
-{
-  channels: {
-    irc: {
-      enabled: true,
-      dmPolicy: "pairing",
-      configWrites: true,
-      nickserv: {
-        enabled: true,
-        service: "NickServ",
-        password: "${IRC_NICKSERV_PASSWORD}",
-        register: false,
-        registerEmail: "bot@example.com",
-      },
-    },
-  },
-}
-```
-
-- Core key paths covered here: `channels.irc`, `channels.irc.dmPolicy`, `channels.irc.configWrites`, `channels.irc.nickserv.*`.
-- Optional `channels.irc.defaultAccount` overrides default account selection when it matches a configured account id.
-- Full IRC channel configuration (host/port/TLS/channels/allowlists/mention gating) is documented in [IRC](/channels/irc).
+- Core key paths covered here: `channels.qqbot`, `channels.qqbot.configWrites`.
+- Full QQBot config (credentials, webhook, DM/group policy, per-team/per-channel overrides) is documented in [Channels](/channels/index).
 
 ### Multi-account (all channels)
 
@@ -665,7 +541,7 @@ Run multiple accounts per channel (each with its own `accountId`):
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       accounts: {
         default: {
           name: "Primary bot",
@@ -689,18 +565,13 @@ Run multiple accounts per channel (each with its own `accountId`):
 - Existing channel-only bindings (no `accountId`) keep matching the default account; account-scoped bindings remain optional.
 - CrawClaw Desktop or the local Gateway API also repairs mixed shapes by moving account-scoped top-level single-account values into `accounts.default` when named accounts exist but `default` is missing.
 
-### Other extension channels
-
-Many extension channels are configured as `channels.<id>` and documented in their dedicated channel pages (for example Feishu, Matrix, LINE, Nostr, Zalo, Nextcloud Talk, Synology Chat, and Twitch).
-See the full channel index: [Channels](/channels).
-
 ### Group chat mention gating
 
-Group messages default to **require mention** (metadata mention or safe regex patterns). Applies to WhatsApp, Telegram, Discord, Google Chat, and iMessage group chats.
+Group messages default to **require mention** (metadata mention or safe regex patterns). Applies to Weixin, Feishu, QQBot, Feishu, and Weixin group chats.
 
 **Mention types:**
 
-- **Metadata mentions**: Native platform @-mentions. Ignored in WhatsApp self-chat mode.
+- **Metadata mentions**: Native platform @-mentions. Ignored in Weixin self-chat mode.
 - **Text patterns**: Safe regex patterns in `agents.list[].groupChat.mentionPatterns`. Invalid patterns and unsafe nested repetition are ignored.
 - Mention gating is enforced only when detection is possible (native mentions or at least one pattern).
 
@@ -722,7 +593,7 @@ Group messages default to **require mention** (metadata mention or safe regex pa
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       dmHistoryLimit: 30,
       dms: {
         "123456789": { historyLimit: 50 },
@@ -734,7 +605,7 @@ Group messages default to **require mention** (metadata mention or safe regex pa
 
 Resolution: per-DM override → provider default → no limit (all retained).
 
-Supported: `telegram`, `whatsapp`, `discord`, `slack`, `signal`, `imessage`, `msteams`.
+Supported: `feishu`, `weixin`, `qqbot`, `ddingtalk`, `signal`, `weixin`, `qqbot`.
 
 #### Self-chat mode
 
@@ -743,7 +614,7 @@ Include your own number in `allowFrom` to enable self-chat mode (ignores native 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: { "*": { requireMention: true } },
     },
@@ -773,7 +644,7 @@ Include your own number in `allowFrom` to enable self-chat mode (ignores native 
     restart: true, // allow /restart + gateway restart tool (default; set false to disable manual restart)
     allowFrom: {
       "*": ["user1"],
-      discord: ["user:123"],
+      qqbot: ["user:123"],
     },
     useAccessGroups: true,
   },
@@ -783,9 +654,9 @@ Include your own number in `allowFrom` to enable self-chat mode (ignores native 
 <Accordion title="Command details">
 
 - Text commands must be **standalone** messages with leading `/`.
-- `native: "auto"` turns on native commands for Discord/Telegram, leaves Slack off.
-- Override per channel: `channels.discord.commands.native` (bool or `"auto"`). `false` clears previously registered commands.
-- `channels.telegram.customCommands` adds extra Telegram bot menu entries.
+- `native: "auto"` turns on native commands for QQBot/Feishu, leaves DingTalk off.
+- Override per channel: `channels.qqbot.commands.native` (bool or `"auto"`). `false` clears previously registered commands.
+- `channels.feishu.customCommands` adds extra Feishu bot menu entries.
 - `bash: true` enables `! <cmd>` for host shell. Requires `tools.elevated.enabled` and sender in `tools.elevated.allowFrom.<channel>`.
 - `config: true` enables `/config` (reads/writes `crawclaw.json`). For gateway `chat.send` clients, persistent `/config set|unset` writes also require `operator.admin`; read-only `/config show` stays available to normal write-scoped operator clients.
 - `channels.<provider>.configWrites` gates config mutations per channel (default: true).
@@ -1130,8 +1001,8 @@ See [Session Pruning](/concepts/session-pruning) for behavior details.
 }
 ```
 
-- Non-Telegram channels require explicit `*.blockStreaming: true` to enable block replies.
-- Channel overrides: `channels.<channel>.blockStreamingCoalesce` (and per-account variants). Signal/Slack/Discord/Google Chat default `minChars: 1500`.
+- Non-Feishu channels require explicit `*.blockStreaming: true` to enable block replies.
+- Channel overrides: `channels.<channel>.blockStreamingCoalesce` (and per-account variants). Signal/DingTalk/QQBot/Feishu default `minChars: 1500`.
 - `humanDelay`: randomized pause between block replies. `natural` = 800–2500ms. Per-agent override: `agents.list[].humanDelay`.
 
 See [Streaming](/concepts/streaming) for behavior + chunking details.
@@ -1228,8 +1099,8 @@ Run multiple isolated agents inside one Gateway. See [Multi-Agent](/concepts/mul
     ],
   },
   bindings: [
-    { agentId: "home", match: { channel: "whatsapp", accountId: "personal" } },
-    { agentId: "work", match: { channel: "whatsapp", accountId: "biz" } },
+    { agentId: "home", match: { channel: "weixin", accountId: "personal" } },
+    { agentId: "work", match: { channel: "weixin", accountId: "biz" } },
   ],
 }
 ```
@@ -1317,10 +1188,10 @@ For `type: "acp"` entries, CrawClaw resolves by exact conversation identity (`ma
             "sessions_send",
             "sessions_spawn",
             "session_status",
-            "whatsapp",
-            "telegram",
-            "slack",
-            "discord",
+            "weixin",
+            "feishu",
+            "ddingtalk",
+            "qqbot",
             "gateway",
           ],
           deny: [
@@ -1357,7 +1228,7 @@ See [Subagents](/tools/subagents) for precedence details.
     scope: "per-sender",
     dmScope: "main", // main | per-peer | per-channel-peer | per-account-channel-peer
     identityLinks: {
-      alice: ["telegram:123456789", "discord:987654321012345678"],
+      alice: ["feishu:123456789", "qqbot:987654321012345678"],
     },
     reset: {
       mode: "daily", // daily | idle
@@ -1389,7 +1260,7 @@ See [Subagents](/tools/subagents) for precedence details.
     mainKey: "main", // legacy (runtime always uses "main")
     agentToAgent: { maxPingPongTurns: 5 },
     sendPolicy: {
-      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      rules: [{ action: "deny", match: { channel: "qqbot", chatType: "group" } }],
       default: "allow",
     },
   },
@@ -1424,7 +1295,7 @@ See [Subagents](/tools/subagents) for precedence details.
   - `maxDiskBytes`: optional sessions-directory disk budget. In `warn` mode it logs warnings; in `enforce` mode it removes oldest artifacts/sessions first.
   - `highWaterBytes`: optional target after budget cleanup. Defaults to `80%` of `maxDiskBytes`.
 - **`threadBindings`**: global defaults for thread-bound session features.
-  - `enabled`: master default switch (providers can override; Discord uses `channels.discord.threadBindings.enabled`)
+  - `enabled`: master default switch (providers can override; QQBot uses `channels.qqbot.threadBindings.enabled`)
   - `idleHours`: default inactivity auto-unfocus in hours (`0` disables; providers can override)
   - `maxAgeHours`: default hard max age in hours (`0` disables; providers can override)
 
@@ -1447,15 +1318,15 @@ See [Subagents](/tools/subagents) for precedence details.
       cap: 20,
       drop: "summarize", // old | new | summarize
       byChannel: {
-        whatsapp: "collect",
-        telegram: "collect",
+        weixin: "collect",
+        feishu: "collect",
       },
     },
     inbound: {
       debounceMs: 2000, // 0 disables
       byChannel: {
-        whatsapp: 5000,
-        slack: 1500,
+        weixin: 5000,
+        ddingtalk: 1500,
       },
     },
   },
@@ -1486,7 +1357,7 @@ Variables are case-insensitive. `{think}` is an alias for `{thinkingLevel}`.
 - Per-channel overrides: `channels.<channel>.ackReaction`, `channels.<channel>.accounts.<id>.ackReaction`.
 - Resolution order: account → channel → `messages.ackReaction` → identity fallback.
 - Scope: `group-mentions` (default), `group-all`, `direct`, `all`.
-- `removeAckAfterReply`: removes ack after reply (Slack/Discord/Telegram/Google Chat only).
+- `removeAckAfterReply`: removes ack after reply (DingTalk/QQBot/Feishu/Feishu only).
 
 ### Inbound debounce
 
@@ -1651,8 +1522,8 @@ Controls elevated (host) exec access:
     elevated: {
       enabled: true,
       allowFrom: {
-        whatsapp: ["+15555550123"],
-        discord: ["1234567890123", "987654321098765432"],
+        weixin: ["+15555550123"],
+        qqbot: ["1234567890123", "987654321098765432"],
       },
     },
   },
@@ -2540,8 +2411,8 @@ Auth: `Authorization: Bearer <token>` or `x-crawclaw-token: <token>`.
 }
 ```
 
-- `minimal` (default): omit `cliPath` + `sshPort` from TXT records.
-- `full`: include `cliPath` + `sshPort`.
+- `minimal` (default): omit `sshPort` from TXT records.
+- `full`: include `sshPort`.
 - Hostname defaults to `crawclaw`. Override with `CRAWCLAW_MDNS_HOSTNAME`.
 
 ### Wide-area (DNS-SD)
@@ -2749,7 +2620,7 @@ Notes:
 {
   diagnostics: {
     enabled: true,
-    flags: ["telegram.*"],
+    flags: ["feishu.*"],
     stuckSessionWarnMs: 30000,
 
     otel: {
@@ -2776,7 +2647,7 @@ Notes:
 ```
 
 - `enabled`: master toggle for instrumentation output (default: `true`).
-- `flags`: array of flag strings enabling targeted log output (supports wildcards like `"telegram.*"` or `"*"`).
+- `flags`: array of flag strings enabling targeted log output (supports wildcards like `"feishu.*"` or `"*"`).
 - `stuckSessionWarnMs`: age threshold in ms for emitting stuck-session warnings while a session remains in processing state.
 - `otel.enabled`: enables the OpenTelemetry export pipeline (default: `false`).
 - `otel.endpoint`: collector URL for OTel export.
@@ -2864,7 +2735,7 @@ Notes:
 
 ---
 
-## CLI
+## Terminal
 
 ```json5
 {
@@ -2876,7 +2747,7 @@ Notes:
 }
 ```
 
-- `cli.banner.taglineMode` controls banner tagline style:
+- `cli.banner.taglineMode` controls retained terminal banner tagline style:
   - `"random"` (default): rotating funny/seasonal taglines.
   - `"default"`: fixed neutral tagline (`All your chats, one CrawClaw.`).
   - `"off"`: no tagline text (banner title/version still shown).
@@ -2886,7 +2757,7 @@ Notes:
 
 ## Wizard
 
-Metadata written by CLI guided setup flows (`onboard`, `configure`, `doctor`):
+Metadata written by guided setup and diagnostic flows:
 
 ```json5
 {
@@ -3006,28 +2877,28 @@ See [Cron Jobs](/automation/cron-jobs). Isolated cron executions are tracked as 
 
 Template placeholders expanded in `tools.media.models[].args`:
 
-| Variable           | Description                                       |
-| ------------------ | ------------------------------------------------- |
-| `{{Body}}`         | Full inbound message body                         |
-| `{{RawBody}}`      | Raw body (no history/sender wrappers)             |
-| `{{BodyStripped}}` | Body with group mentions stripped                 |
-| `{{From}}`         | Sender identifier                                 |
-| `{{To}}`           | Destination identifier                            |
-| `{{MessageSid}}`   | Channel message id                                |
-| `{{SessionId}}`    | Current session UUID                              |
-| `{{IsNewSession}}` | `"true"` when new session created                 |
-| `{{MediaUrl}}`     | Inbound media pseudo-URL                          |
-| `{{MediaPath}}`    | Local media path                                  |
-| `{{MediaType}}`    | Media type (image/audio/document/…)               |
-| `{{Transcript}}`   | Audio transcript                                  |
-| `{{Prompt}}`       | Resolved media prompt for CLI entries             |
-| `{{MaxChars}}`     | Resolved max output chars for CLI entries         |
-| `{{ChatType}}`     | `"direct"` or `"group"`                           |
-| `{{GroupSubject}}` | Group subject (best effort)                       |
-| `{{GroupMembers}}` | Group members preview (best effort)               |
-| `{{SenderName}}`   | Sender display name (best effort)                 |
-| `{{SenderE164}}`   | Sender phone number (best effort)                 |
-| `{{Provider}}`     | Provider hint (whatsapp, telegram, discord, etc.) |
+| Variable           | Description                                 |
+| ------------------ | ------------------------------------------- |
+| `{{Body}}`         | Full inbound message body                   |
+| `{{RawBody}}`      | Raw body (no history/sender wrappers)       |
+| `{{BodyStripped}}` | Body with group mentions stripped           |
+| `{{From}}`         | Sender identifier                           |
+| `{{To}}`           | Destination identifier                      |
+| `{{MessageSid}}`   | Channel message id                          |
+| `{{SessionId}}`    | Current session UUID                        |
+| `{{IsNewSession}}` | `"true"` when new session created           |
+| `{{MediaUrl}}`     | Inbound media pseudo-URL                    |
+| `{{MediaPath}}`    | Local media path                            |
+| `{{MediaType}}`    | Media type (image/audio/document/…)         |
+| `{{Transcript}}`   | Audio transcript                            |
+| `{{Prompt}}`       | Resolved media prompt for CLI entries       |
+| `{{MaxChars}}`     | Resolved max output chars for CLI entries   |
+| `{{ChatType}}`     | `"direct"` or `"group"`                     |
+| `{{GroupSubject}}` | Group subject (best effort)                 |
+| `{{GroupMembers}}` | Group members preview (best effort)         |
+| `{{SenderName}}`   | Sender display name (best effort)           |
+| `{{SenderE164}}`   | Sender phone number (best effort)           |
+| `{{Provider}}`     | Provider hint (weixin, feishu, qqbot, etc.) |
 
 ---
 

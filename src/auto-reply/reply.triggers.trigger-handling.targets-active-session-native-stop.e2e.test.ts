@@ -122,13 +122,13 @@ function mockSuccessfulCompaction() {
   });
 }
 
-function makeUnauthorizedWhatsAppCfg(home: string) {
+function makeUnauthorizedWeixinCfg(home: string) {
   const baseCfg = makeCfg(home);
   return {
     ...baseCfg,
     channels: {
       ...baseCfg.channels,
-      whatsapp: {
+      weixin: {
         allowFrom: ["+1000"],
       },
     },
@@ -141,13 +141,13 @@ async function expectResetBlockedForNonOwner(params: { home: string }): Promise<
   runEmbeddedPiAgentMock.mockClear();
   const cfg = makeCfg(home);
   cfg.channels ??= {};
-  cfg.channels.whatsapp = {
-    ...cfg.channels.whatsapp,
+  cfg.channels.weixin = {
+    ...cfg.channels.weixin,
     allowFrom: ["+1999"],
   };
   cfg.commands = {
     ...cfg.commands,
-    ownerAllowFrom: ["whatsapp:+1999"],
+    ownerAllowFrom: ["weixin:+1999"],
   };
   cfg.session = {
     ...cfg.session,
@@ -172,13 +172,13 @@ function mockEmbeddedOk() {
 }
 
 async function runInlineUnauthorizedCommand(params: { home: string; command: "/status" }) {
-  const cfg = makeUnauthorizedWhatsAppCfg(params.home);
+  const cfg = makeUnauthorizedWeixinCfg(params.home);
   const res = await getReplyFromConfig(
     {
       Body: `please ${params.command} now`,
       From: "+2001",
       To: "+2000",
-      Provider: "whatsapp",
+      Provider: "weixin",
       SenderE164: "+2001",
     },
     {},
@@ -374,7 +374,7 @@ describe("trigger handling", () => {
           Body: "/compact",
           From: "+1004",
           To: "+2000",
-          SessionKey: "agent:worker1:telegram:12345",
+          SessionKey: "agent:worker1:feishu:12345",
           CommandAuthorized: true,
         },
         {},
@@ -399,7 +399,7 @@ describe("trigger handling", () => {
       if (!storePath) {
         throw new Error("missing session store path");
       }
-      const targetSessionKey = "agent:main:telegram:group:123";
+      const targetSessionKey = "agent:main:feishu:group:123";
       const targetSessionId = "session-target";
       await fs.writeFile(
         storePath,
@@ -418,7 +418,7 @@ describe("trigger handling", () => {
           agentDir: join(home, "agent"),
           sessionId: targetSessionId,
           sessionKey: targetSessionKey,
-          messageProvider: "telegram",
+          messageProvider: "feishu",
           agentAccountId: "acct",
           sessionFile: join(home, "session.jsonl"),
           workspaceDir: join(home, "workspace"),
@@ -440,12 +440,12 @@ describe("trigger handling", () => {
       const res = await getReplyFromConfig(
         {
           Body: "/stop",
-          From: "telegram:111",
-          To: "telegram:111",
+          From: "feishu:111",
+          To: "feishu:111",
           ChatType: "direct",
-          Provider: "telegram",
-          Surface: "telegram",
-          SessionKey: "telegram:slash:111",
+          Provider: "feishu",
+          Surface: "feishu",
+          SessionKey: "feishu:slash:111",
           CommandSource: "native",
           CommandTargetSessionKey: targetSessionKey,
           CommandAuthorized: true,
@@ -473,7 +473,7 @@ describe("trigger handling", () => {
       if (!storePath) {
         throw new Error("missing session store path");
       }
-      const slashSessionKey = "telegram:slash:111";
+      const slashSessionKey = "feishu:slash:111";
       const targetSessionKey = MAIN_SESSION_KEY;
 
       await fs.writeFile(
@@ -489,11 +489,11 @@ describe("trigger handling", () => {
       const res = await getReplyFromConfig(
         {
           Body: "/model openai/gpt-4.1-mini",
-          From: "telegram:111",
-          To: "telegram:111",
+          From: "feishu:111",
+          To: "feishu:111",
           ChatType: "direct",
-          Provider: "telegram",
-          Surface: "telegram",
+          Provider: "feishu",
+          Surface: "feishu",
           SessionKey: slashSessionKey,
           CommandSource: "native",
           CommandTargetSessionKey: targetSessionKey,
@@ -523,11 +523,11 @@ describe("trigger handling", () => {
       await getReplyFromConfig(
         {
           Body: "hi",
-          From: "telegram:111",
-          To: "telegram:111",
+          From: "feishu:111",
+          To: "feishu:111",
           ChatType: "direct",
-          Provider: "telegram",
-          Surface: "telegram",
+          Provider: "feishu",
+          Surface: "feishu",
         },
         {},
         cfg,

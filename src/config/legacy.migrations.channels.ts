@@ -67,7 +67,6 @@ export const LEGACY_CONFIG_MIGRATIONS_CHANNELS: LegacyConfigMigrationSpec[] = [
         });
         raw.session = session;
       }
-
     },
   }),
 ];

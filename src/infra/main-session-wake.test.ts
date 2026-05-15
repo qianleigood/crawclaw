@@ -262,7 +262,7 @@ describe("main-session-wake", () => {
     requestMainSessionWakeNow({
       reason: "cron:job-1",
       agentId: "ops",
-      sessionKey: "agent:ops:discord:channel:alerts",
+      sessionKey: "agent:ops:qqbot:channel:alerts",
       coalesceMs: 0,
     });
 
@@ -271,7 +271,7 @@ describe("main-session-wake", () => {
     expect(handler.mock.calls[0]?.[0]).toEqual({
       reason: "cron:job-1",
       agentId: "ops",
-      sessionKey: "agent:ops:discord:channel:alerts",
+      sessionKey: "agent:ops:qqbot:channel:alerts",
     });
 
     await vi.advanceTimersByTimeAsync(1000);
@@ -279,7 +279,7 @@ describe("main-session-wake", () => {
     expect(handler.mock.calls[1]?.[0]).toEqual({
       reason: "cron:job-1",
       agentId: "ops",
-      sessionKey: "agent:ops:discord:channel:alerts",
+      sessionKey: "agent:ops:qqbot:channel:alerts",
     });
   });
 
@@ -291,13 +291,13 @@ describe("main-session-wake", () => {
     requestMainSessionWakeNow({
       reason: "cron:job-a",
       agentId: "ops",
-      sessionKey: "agent:ops:discord:channel:alerts",
+      sessionKey: "agent:ops:qqbot:channel:alerts",
       coalesceMs: 100,
     });
     requestMainSessionWakeNow({
       reason: "cron:job-b",
       agentId: "main",
-      sessionKey: "agent:main:telegram:group:-1001",
+      sessionKey: "agent:main:feishu:group:-1001",
       coalesceMs: 100,
     });
 
@@ -309,12 +309,12 @@ describe("main-session-wake", () => {
         {
           reason: "cron:job-a",
           agentId: "ops",
-          sessionKey: "agent:ops:discord:channel:alerts",
+          sessionKey: "agent:ops:qqbot:channel:alerts",
         },
         {
           reason: "cron:job-b",
           agentId: "main",
-          sessionKey: "agent:main:telegram:group:-1001",
+          sessionKey: "agent:main:feishu:group:-1001",
         },
       ]),
     );

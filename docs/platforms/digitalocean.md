@@ -70,7 +70,7 @@ curl -fsSL https://deb.nodesource.com/setup_24.x | bash -
 apt install -y nodejs
 
 # Install CrawClaw
-curl -fsSL https://crawclaw.ai/install.sh | bash
+# Install CrawClaw Desktop from GitHub Releases.
 
 # Verify
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -85,7 +85,7 @@ curl -fsSL https://crawclaw.ai/install.sh | bash
 The wizard will walk you through:
 
 - Model auth (API keys or OAuth)
-- Channel setup (Telegram, WhatsApp, Discord, etc.)
+- Channel setup (Feishu, Weixin, community chat, etc.)
 - Gateway token (auto-generated)
 - Daemon installation (systemd)
 
@@ -119,7 +119,7 @@ ssh -L 18789:localhost:18789 root@YOUR_DROPLET_IP
 
 ```bash
 # On the droplet
-curl -fsSL https://tailscale.com/install.sh | sh
+curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
 tailscale up
 
 # Configure Gateway to use Tailscale Serve
@@ -145,14 +145,14 @@ Open: `http://<tailscale-ip>:18789` (token required).
 
 ## 7) Connect Your Channels
 
-### Telegram
+### Feishu
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-### WhatsApp
+### Weixin
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.

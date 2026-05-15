@@ -88,7 +88,7 @@ src/agents/
 ├── pi-embedded-helpers/           # 辅助模块
 ├── pi-embedded-utils.ts           # 格式化工具
 ├── pi-tools.ts                    # createCrawClawCodingTools()
-├── pi-tools.abort.ts              # 工具的 AbortSignal 包装
+├── pi-tools.abort.ts              # 工具的 AbortFeishu 包装
 ├── pi-tools.policy.ts             # 工具白名单/黑名单策略
 ├── pi-tools.read.ts               # 读取工具自定义
 ├── pi-tools.schema.ts             # 工具 schema 规范化
@@ -138,10 +138,10 @@ src/agents/
 
 渠道特定的消息操作运行时现在位于插件所有的扩展目录中，而不是 `src/agents/tools` 下，例如：
 
-- Discord 插件操作运行时文件
-- Slack 插件操作运行时文件
-- Telegram 插件操作运行时文件
-- WhatsApp 插件操作运行时文件
+- QQBot 插件操作运行时文件
+- DingTalk 插件操作运行时文件
+- Feishu 插件操作运行时文件
+- Weixin 插件操作运行时文件
 
 ## 核心集成流程
 
@@ -154,7 +154,7 @@ import { runEmbeddedPiAgent } from "./agents/pi-embedded-runner.js";
 
 const result = await runEmbeddedPiAgent({
   sessionId: "user-123",
-  sessionKey: "main:whatsapp:+1234567890",
+  sessionKey: "main:weixin:+1234567890",
   sessionFile: "/path/to/session.jsonl",
   workspaceDir: "/path/to/workspace",
   config: crawclawConfig,
@@ -252,10 +252,10 @@ SDK 处理完整的智能体循环：发送到 LLM、执行工具调用、流式
 1. **基础工具**：pi 的 `createCodingTools` / `createReadTool` 输出（读取、bash、编辑、写入）
 2. **自定义替换**：CrawClaw 用 `exec`/`process` 替换 bash，为沙箱自定义读取/编辑/写入
 3. **CrawClaw 工具**：消息、浏览器、画布、会话、计时器、网关等
-4. **渠道工具**：Discord/Telegram/Slack/WhatsApp 特定的操作工具
+4. **渠道工具**：QQBot/Feishu/DingTalk/Weixin 特定的操作工具
 5. **策略过滤**：工具按配置文件、提供商、智能体、群组、沙箱策略过滤
 6. **Schema 规范化**：为 Gemini/OpenAI 特性清理 schema
-7. **AbortSignal 包装**：工具被包装以尊重中止信号
+7. **AbortFeishu 包装**：工具被包装以尊重中止信号
 
 ### 工具定义适配器
 
@@ -268,9 +268,9 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
     label: tool.label ?? name,
     description: tool.description ?? "",
     parameters: tool.parameters,
-    execute: async (toolCallId, params, onUpdate, _ctx, signal) => {
+    execute: async (toolCallId, params, onUpdate, _ctx, feishu) => {
       // pi-coding-agent 签名与 pi-agent-core 不同
-      return await tool.execute(toolCallId, params, signal, onUpdate);
+      return await tool.execute(toolCallId, params, feishu, onUpdate);
     },
   }));
 }

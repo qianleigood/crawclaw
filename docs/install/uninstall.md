@@ -1,5 +1,5 @@
 ---
-summary: "Uninstall CrawClaw completely (CLI, service, state, workspace)"
+summary: "Uninstall CrawClaw completely (desktop app, service, state, workspace)"
 read_when:
   - You want to remove CrawClaw from a machine
   - The gateway service is still running after uninstall
@@ -10,7 +10,7 @@ title: "Uninstall"
 
 Two paths:
 
-- **Easy path** if `crawclaw` is still installed.
+- **Easy path** from CrawClaw Desktop.
 - **Manual service removal** if the desktop app is gone but the service is still running.
 
 ## Easy path
@@ -56,20 +56,14 @@ If you set `CRAWCLAW_CONFIG_PATH` to a custom location outside the state dir, de
 rm -rf ~/.crawclaw/workspace
 ```
 
-5. Remove the CLI install (pick the one you used):
-
-```bash
-npm rm -g crawclaw
-pnpm remove -g crawclaw
-bun remove -g crawclaw
-```
+5. Remove any old global `crawclaw` package only if you installed one before the desktop-first packaging model.
 
 Notes:
 
 - If you used profiles (`--profile` / `CRAWCLAW_PROFILE`), repeat step 3 for each state dir (defaults are `~/.crawclaw-<profile>`).
 - In remote mode, the state dir lives on the **gateway host**, so run steps 1-4 there too.
 
-## Manual service removal (CLI not installed)
+## Manual service removal
 
 Use this if the gateway service keeps running but `crawclaw` is missing.
 
@@ -108,9 +102,9 @@ If you used a profile, delete the matching task name and `~\.crawclaw-<profile>\
 
 ## Normal install vs source checkout
 
-### Normal install (install.sh / npm / pnpm / bun)
+### Normal install (CrawClaw Desktop installer / npm / pnpm / bun)
 
-If you used `https://crawclaw.ai/install.sh` or `install.ps1`, the CLI was installed with `install CrawClaw Desktop from GitHub Releases`.
+If you used `https://crawclaw.ai/CrawClaw Desktop installer` or `CrawClaw Desktop installer`, the CLI was installed with `install CrawClaw Desktop from GitHub Releases`.
 Remove it with `npm rm -g crawclaw` (or `pnpm remove -g` / `bun remove -g` if you installed that way).
 
 ### Source checkout (git clone)

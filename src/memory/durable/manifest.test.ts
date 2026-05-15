@@ -39,7 +39,7 @@ describe("durable memory manifest", () => {
       const manifest = await scanDurableMemoryManifest({
         scope: {
           agentId: "main",
-          channel: "discord",
+          channel: "qqbot",
           userId: "user-42",
           scopeKey: "main",
           rootDir: scopeDir,

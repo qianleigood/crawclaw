@@ -46,7 +46,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     apt install -y nodejs
 
     # Install CrawClaw
-    curl -fsSL https://crawclaw.ai/install.sh | bash
+    # Install CrawClaw Desktop from GitHub Releases.
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
@@ -94,7 +94,7 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
     **Option B: Tailscale Serve**
 
     ```bash
-    curl -fsSL https://tailscale.com/install.sh | sh
+    curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
     tailscale up
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -124,6 +124,6 @@ Run a persistent CrawClaw Gateway on a DigitalOcean Droplet.
 
 ## Next steps
 
-- [Channels](/channels) -- connect Telegram, WhatsApp, Discord, and more
+- [Channels](/channels) -- connect Feishu, Weixin, community chat, and more
 - [Gateway configuration](/gateway/configuration) -- all config options
 - [Updating](/install/updating) -- keep CrawClaw up to date

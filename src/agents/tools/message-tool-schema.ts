@@ -116,20 +116,17 @@ function buildSendSchema(options: { includeInteractive: boolean }) {
     threadId: Type.Optional(Type.String()),
     asVoice: Type.Optional(Type.Boolean()),
     silent: Type.Optional(Type.Boolean()),
-    quoteText: Type.Optional(
-      Type.String({ description: "Quote text for Telegram reply_parameters" }),
-    ),
+    quoteText: Type.Optional(Type.String({ description: "Quote text for native replies" })),
     bestEffort: Type.Optional(Type.Boolean()),
     gifPlayback: Type.Optional(Type.Boolean()),
     forceDocument: Type.Optional(
       Type.Boolean({
-        description: "Send image/GIF as document to avoid Telegram compression (Telegram only).",
+        description: "Send image/GIF as document when supported.",
       }),
     ),
     asDocument: Type.Optional(
       Type.Boolean({
-        description:
-          "Send image/GIF as document to avoid Telegram compression. Alias for forceDocument (Telegram only).",
+        description: "Send image/GIF as document. Alias for forceDocument.",
       }),
     ),
     interactive: Type.Optional(interactiveMessageSchema),
@@ -316,8 +313,7 @@ function buildPresenceSchema() {
     ),
     activityUrl: Type.Optional(
       Type.String({
-        description:
-          "Streaming URL (Twitch or YouTube). Only used with streaming type; may not render for bots.",
+        description: "Streaming URL. Only used with streaming type; may not render for bots.",
       }),
     ),
     activityState: Type.Optional(

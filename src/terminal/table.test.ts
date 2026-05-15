@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { setActiveCliLocale } from "../cli/i18n/index.js";
 import { visibleWidth } from "./ansi.js";
+import { setActiveCliLocale } from "./i18n/index.js";
 import { wrapNoteMessage } from "./note.js";
 import { renderTable } from "./table.js";
 

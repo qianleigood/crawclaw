@@ -1,4 +1,4 @@
-import { getStatusSummary } from "../../commands/status.js";
+import { getStatusSummary } from "../../control/status.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
 import type { GatewayRequestHandlers } from "../request-types.js";
 import { HEALTH_REFRESH_INTERVAL_MS } from "../server-constants.js";

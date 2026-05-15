@@ -79,10 +79,10 @@ The desktop dev shell starts the local Rust Gateway through the Tauri host.
 
 Use this when debugging auth or deciding what to back up:
 
-- **WhatsApp**: `~/.crawclaw/credentials/whatsapp/<accountId>/creds.json`
-- **Telegram bot token**: config/env or `channels.telegram.tokenFile` (regular file only; symlinks rejected)
-- **Discord bot token**: config/env or SecretRef (env/file/exec providers)
-- **Slack tokens**: config/env (`channels.slack.*`)
+- **Weixin**: `~/.crawclaw/credentials/weixin/<accountId>/creds.json`
+- **Feishu bot token**: config/env or `channels.feishu.tokenFile` (regular file only; symlinks rejected)
+- **QQBot bot token**: config/env or SecretRef (env/file/exec providers)
+- **DingTalk tokens**: config/env (`channels.ddingtalk.*`)
 - **Pairing allowlists**:
   - `~/.crawclaw/credentials/<channel>-allowFrom.json` (default account)
   - `~/.crawclaw/credentials/<channel>-<accountId>-allowFrom.json` (non-default accounts)
@@ -113,5 +113,5 @@ user service (no lingering needed). See [Gateway runbook](/gateway) for the syst
 
 - [Gateway runbook](/gateway) (supervision, ports)
 - [Gateway configuration](/gateway/configuration) (config schema + examples)
-- [Discord](/channels/discord) and [Telegram](/channels/telegram) (reply tags + replyToMode settings)
+- [QQBot](/channels/index) and [Feishu](/channels/index) (reply tags + replyToMode settings)
 - [CrawClaw assistant setup](/start/crawclaw)

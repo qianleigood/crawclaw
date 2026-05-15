@@ -106,13 +106,9 @@ vi.mock("../../agents/auth-profiles/session-override.js", async (importOriginal)
   };
 });
 
-vi.mock("../../agents/pi-embedded.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../agents/pi-embedded.js")>();
-  return {
-    ...actual,
-    runEmbeddedPiAgent: runEmbeddedPiAgentMock,
-  };
-});
+vi.mock("../../agents/rust-agent-runtime.js", () => ({
+  runRustAgentCommand: runEmbeddedPiAgentMock,
+}));
 
 vi.mock("../../agents/context.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../agents/context.js")>();
@@ -193,8 +189,8 @@ vi.mock("../../auto-reply/thinking.js", async (importOriginal) => {
   };
 });
 
-vi.mock("../../cli/outbound-send-deps.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../../cli/outbound-send-deps.js")>();
+vi.mock("../../terminal/outbound-send-deps.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../terminal/outbound-send-deps.js")>();
   return {
     ...actual,
     createOutboundSendDeps: vi.fn().mockReturnValue({}),
@@ -399,7 +395,7 @@ export function resetRunCronIsolatedAgentTurnHarness(): void {
   resolveCronDeliveryPlanMock.mockReturnValue({ requested: false, mode: "none" });
   resolveDeliveryTargetMock.mockReset();
   resolveDeliveryTargetMock.mockResolvedValue({
-    channel: "discord",
+    channel: "qqbot",
     to: undefined,
     accountId: undefined,
     error: undefined,

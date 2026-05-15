@@ -14,10 +14,10 @@ describe("migrateLegacyConfig", () => {
     expect(res).toEqual({ config: null, changes: [] });
   });
 
-  it("does not rewrite removed channels.telegram.groupMentionsOnly config", () => {
+  it("does not rewrite removed channels.feishu.groupMentionsOnly config", () => {
     const res = migrateLegacyConfig({
       channels: {
-        telegram: {
+        feishu: {
           groupMentionsOnly: true,
         },
       },
@@ -69,7 +69,7 @@ describe("migrateLegacyConfig", () => {
   it("does not rewrite removed top-level heartbeat config", () => {
     const res = migrateLegacyConfig({
       heartbeat: {
-        target: "telegram",
+        target: "feishu",
       },
     });
 

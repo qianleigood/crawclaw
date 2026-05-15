@@ -23,7 +23,7 @@ Secrets are resolved into an in-memory runtime snapshot.
 - SecretRef policy violations (for example OAuth-mode auth profiles combined with SecretRef input) fail activation before runtime swap.
 - Runtime requests read from the active in-memory snapshot only.
 - After the first successful config activation/load, runtime code paths keep reading that active in-memory snapshot until a successful reload swaps it.
-- Outbound delivery paths also read from that active snapshot (for example Discord reply/thread delivery and Telegram action sends); they do not re-resolve SecretRefs on each send.
+- Outbound delivery paths also read from that active snapshot (for example community chat reply/thread delivery and Feishu action sends); they do not re-resolve SecretRefs on each send.
 
 This keeps secret-provider outages off hot request paths.
 
@@ -358,12 +358,12 @@ Runtime-minted or rotating credentials and OAuth refresh material are intentiona
 - If both plaintext and ref are present, ref takes precedence on supported precedence paths.
 - The redaction sentinel `__CRAWCLAW_REDACTED__` is reserved for internal config redaction/restore and is rejected as literal submitted config data.
 
-Warning and audit signals:
+Warning and audit native channels:
 
 - `SECRETS_REF_OVERRIDES_PLAINTEXT` (runtime warning)
 - `REF_SHADOWED` (audit finding when `auth-profiles.json` credentials take precedence over `crawclaw.json` refs)
 
-Google Chat compatibility behavior:
+native chat compatibility behavior:
 
 - `serviceAccountRef` takes precedence over plaintext `serviceAccount`.
 - Plaintext value is ignored when sibling ref is set.
@@ -386,7 +386,7 @@ Activation contract:
 - Write-RPC preflight failure rejects the submitted config and keeps both disk config and active runtime snapshot unchanged.
 - Providing an explicit per-call channel token to an outbound helper/tool call does not trigger SecretRef activation; activation points remain startup, reload, and explicit `secrets.reload`.
 
-## Degraded and recovered signals
+## Degraded and recovered native channels
 
 When reload-time activation fails after a healthy state, CrawClaw enters degraded secrets state.
 

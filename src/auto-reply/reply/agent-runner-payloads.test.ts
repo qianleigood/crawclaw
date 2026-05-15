@@ -117,10 +117,10 @@ describe("buildReplyPayloads media filter integration", () => {
     const { replyPayloads } = await buildReplyPayloads({
       ...baseParams,
       payloads: [{ text: "hello world!" }],
-      messageProvider: "telegram",
-      originatingTo: "telegram:123",
+      messageProvider: "feishu",
+      originatingTo: "feishu:123",
       messagingToolSentTexts: ["hello world!"],
-      messagingToolSentTargets: [{ tool: "discord", provider: "discord", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "qqbot", provider: "qqbot", to: "channel:C1" }],
     });
 
     expect(replyPayloads).toHaveLength(1);
@@ -131,10 +131,10 @@ describe("buildReplyPayloads media filter integration", () => {
     const { replyPayloads } = await buildReplyPayloads({
       ...baseParams,
       payloads: [{ text: "photo", mediaUrl: "file:///tmp/photo.jpg" }],
-      messageProvider: "telegram",
-      originatingTo: "telegram:123",
+      messageProvider: "feishu",
+      originatingTo: "feishu:123",
       messagingToolSentMediaUrls: ["file:///tmp/photo.jpg"],
-      messagingToolSentTargets: [{ tool: "slack", provider: "slack", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "ddingtalk", provider: "ddingtalk", to: "channel:C1" }],
     });
 
     expect(replyPayloads).toHaveLength(1);
@@ -146,10 +146,10 @@ describe("buildReplyPayloads media filter integration", () => {
       ...baseParams,
       payloads: [{ text: "hello world!" }],
       messageProvider: "heartbeat",
-      originatingChannel: "telegram",
+      originatingChannel: "feishu",
       originatingTo: "268300329",
       messagingToolSentTexts: ["different message"],
-      messagingToolSentTargets: [{ tool: "telegram", provider: "telegram", to: "268300329" }],
+      messagingToolSentTargets: [{ tool: "feishu", provider: "feishu", to: "268300329" }],
     });
 
     expect(replyPayloads).toHaveLength(0);
@@ -222,14 +222,14 @@ describe("buildReplyPayloads media filter integration", () => {
       ...baseParams,
       payloads: [{ text: "hello world!" }],
       messageProvider: "heartbeat",
-      originatingChannel: "telegram",
+      originatingChannel: "feishu",
       originatingTo: "268300329",
       accountId: "personal",
       messagingToolSentTexts: ["different message"],
       messagingToolSentTargets: [
         {
-          tool: "telegram",
-          provider: "telegram",
+          tool: "feishu",
+          provider: "feishu",
           to: "268300329",
           accountId: "work",
         },

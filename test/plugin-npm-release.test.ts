@@ -20,7 +20,9 @@ describe("parsePluginReleaseSelection", () => {
 
   it("dedupes and sorts comma or whitespace separated package names", () => {
     expect(
-      parsePluginReleaseSelection(" @crawclaw/demo-beta, @crawclaw/demo-alpha  @crawclaw/demo-beta "),
+      parsePluginReleaseSelection(
+        " @crawclaw/demo-beta, @crawclaw/demo-alpha  @crawclaw/demo-beta ",
+      ),
     ).toEqual(["@crawclaw/demo-alpha", "@crawclaw/demo-beta"]);
   });
 });
@@ -57,7 +59,7 @@ describe("parsePluginReleaseArgs", () => {
         "--selection-mode",
         "all-publishable",
         "--plugins",
-        "@crawclaw/zalo",
+        "@crawclaw/feishu",
       ]),
     ).toThrowError("`--selection-mode all-publishable` must not be combined with `--plugins`.");
   });
@@ -75,9 +77,9 @@ describe("collectPublishablePluginPackageErrors", () => {
   it("accepts a valid publishable plugin package candidate", () => {
     expect(
       collectPublishablePluginPackageErrors({
-      extensionId: "demo-alpha",
-      packageDir: bundledPluginRoot("demo-alpha"),
-      packageJson: {
+        extensionId: "demo-alpha",
+        packageDir: bundledPluginRoot("demo-alpha"),
+        packageJson: {
           name: "@crawclaw/demo-alpha",
           version: "2026.3.15",
           crawclaw: {

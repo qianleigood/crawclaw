@@ -685,7 +685,7 @@ describe("gateway server sessions", () => {
           verboseLevel: "on",
           responseUsage: "full",
           fastMode: true,
-          lastChannel: "telegram",
+          lastChannel: "feishu",
           lastTo: "-100123",
           lastAccountId: "acct-1",
           lastThreadId: 42,
@@ -725,7 +725,7 @@ describe("gateway server sessions", () => {
         verboseLevel: "on",
         responseUsage: "full",
         fastMode: true,
-        lastChannel: "telegram",
+        lastChannel: "feishu",
         lastTo: "-100123",
         lastAccountId: "acct-1",
         lastThreadId: 42,
@@ -871,12 +871,12 @@ describe("gateway server sessions", () => {
           outputTokens: 20,
           thinkingLevel: "low",
           verboseLevel: "on",
-          lastChannel: "whatsapp",
+          lastChannel: "weixin",
           lastTo: "+1555",
           lastAccountId: "work",
           lastThreadId: "1737500000.123456",
         },
-        "discord:group:dev": {
+        "qqbot:group:dev": {
           sessionId: "sess-group",
           updatedAt: stale,
           totalTokens: 50,
@@ -915,7 +915,7 @@ describe("gateway server sessions", () => {
       sessionId: "sess-group",
     });
     expect(resolvedBySessionId.ok).toBe(true);
-    expect(resolvedBySessionId.payload?.key).toBe("agent:main:discord:group:dev");
+    expect(resolvedBySessionId.payload?.key).toBe("agent:main:qqbot:group:dev");
 
     const list1 = await rpcReq<{
       path: string;
@@ -942,7 +942,7 @@ describe("gateway server sessions", () => {
     expect(main?.verboseLevel).toBe("on");
     expect(main?.lastAccountId).toBe("work");
     expect(main?.deliveryContext).toEqual({
-      channel: "whatsapp",
+      channel: "weixin",
       to: "+1555",
       accountId: "work",
       threadId: "1737500000.123456",
@@ -996,7 +996,7 @@ describe("gateway server sessions", () => {
     expect(labelPatched.payload?.entry.label).toBe("Briefing");
 
     const labelPatchedDuplicate = await rpcReq(ws, "sessions.patch", {
-      key: "agent:main:discord:group:dev",
+      key: "agent:main:qqbot:group:dev",
       label: "Briefing",
     });
     expect(labelPatchedDuplicate.ok).toBe(false);
@@ -1138,7 +1138,7 @@ describe("gateway server sessions", () => {
     expect(filesAfterCompact.some((f) => f.startsWith("sess-main.jsonl.bak."))).toBe(true);
 
     const deleted = await rpcReq<{ ok: true; deleted: boolean }>(ws, "sessions.delete", {
-      key: "agent:main:discord:group:dev",
+      key: "agent:main:qqbot:group:dev",
     });
     expect(deleted.ok).toBe(true);
     expect(deleted.payload?.deleted).toBe(true);
@@ -1147,7 +1147,7 @@ describe("gateway server sessions", () => {
     }>(ws, "sessions.list", {});
     expect(listAfterDelete.ok).toBe(true);
     expect(
-      listAfterDelete.payload?.sessions.some((s) => s.key === "agent:main:discord:group:dev"),
+      listAfterDelete.payload?.sessions.some((s) => s.key === "agent:main:qqbot:group:dev"),
     ).toBe(false);
     const filesAfterDelete = await fs.readdir(dir);
     expect(filesAfterDelete.some((f) => f.startsWith("sess-group.jsonl.deleted."))).toBe(true);
@@ -1273,7 +1273,7 @@ describe("gateway server sessions", () => {
           sessionFile: customSessionFile,
           updatedAt: Date.now(),
           chatType: "group",
-          channel: "discord",
+          channel: "qqbot",
           groupId: "group-1",
           subject: "Ops Thread",
           groupChannel: "dev",
@@ -1316,8 +1316,8 @@ describe("gateway server sessions", () => {
           },
           claudeCliSessionId: "cli-session-123",
           deliveryContext: {
-            channel: "discord",
-            to: "discord:child",
+            channel: "qqbot",
+            to: "qqbot:child",
             accountId: "acct-1",
             threadId: "thread-1",
           },
@@ -1388,7 +1388,7 @@ describe("gateway server sessions", () => {
     expect(reset.ok).toBe(true);
     expect(reset.payload?.entry.sessionFile).toBe(customSessionFile);
     expect(reset.payload?.entry.chatType).toBe("group");
-    expect(reset.payload?.entry.channel).toBe("discord");
+    expect(reset.payload?.entry.channel).toBe("qqbot");
     expect(reset.payload?.entry.groupId).toBe("group-1");
     expect(reset.payload?.entry.subject).toBe("Ops Thread");
     expect(reset.payload?.entry.groupChannel).toBe("dev");
@@ -1431,8 +1431,8 @@ describe("gateway server sessions", () => {
     });
     expect(reset.payload?.entry.claudeCliSessionId).toBe("cli-session-123");
     expect(reset.payload?.entry.deliveryContext).toEqual({
-      channel: "discord",
-      to: "discord:child",
+      channel: "qqbot",
+      to: "qqbot:child",
       accountId: "acct-1",
       threadId: "thread-1",
     });
@@ -1496,7 +1496,7 @@ describe("gateway server sessions", () => {
     >;
     expect(store["agent:main:subagent:child"]?.sessionFile).toBe(customSessionFile);
     expect(store["agent:main:subagent:child"]?.chatType).toBe("group");
-    expect(store["agent:main:subagent:child"]?.channel).toBe("discord");
+    expect(store["agent:main:subagent:child"]?.channel).toBe("qqbot");
     expect(store["agent:main:subagent:child"]?.groupId).toBe("group-1");
     expect(store["agent:main:subagent:child"]?.subject).toBe("Ops Thread");
     expect(store["agent:main:subagent:child"]?.groupChannel).toBe("dev");
@@ -1539,8 +1539,8 @@ describe("gateway server sessions", () => {
     });
     expect(store["agent:main:subagent:child"]?.claudeCliSessionId).toBe("cli-session-123");
     expect(store["agent:main:subagent:child"]?.deliveryContext).toEqual({
-      channel: "discord",
-      to: "discord:child",
+      channel: "qqbot",
+      to: "qqbot:child",
       accountId: "acct-1",
       threadId: "thread-1",
     });
@@ -1776,7 +1776,7 @@ describe("gateway server sessions", () => {
     await writeSessionStore({
       entries: {
         main: { sessionId: "sess-main", updatedAt: Date.now() },
-        "discord:group:dev": {
+        "qqbot:group:dev": {
           sessionId: "sess-active",
           updatedAt: Date.now(),
         },
@@ -1792,20 +1792,20 @@ describe("gateway server sessions", () => {
     expect(mainDelete.ok).toBe(false);
 
     const deleted = await rpcReq<{ ok: true; deleted: boolean }>(ws, "sessions.delete", {
-      key: "discord:group:dev",
+      key: "qqbot:group:dev",
     });
     expect(deleted.ok).toBe(true);
     expect(deleted.payload?.deleted).toBe(true);
     expectActiveRunCleanup(
-      "agent:main:discord:group:dev",
-      ["discord:group:dev", "agent:main:discord:group:dev", "sess-active"],
+      "agent:main:qqbot:group:dev",
+      ["qqbot:group:dev", "agent:main:qqbot:group:dev", "sess-active"],
       "sess-active",
     );
     expect(browserSessionTabMocks.closeTrackedBrowserTabsForSessions).toHaveBeenCalledTimes(1);
     expect(browserSessionTabMocks.closeTrackedBrowserTabsForSessions).toHaveBeenCalledWith({
       sessionKeys: expect.arrayContaining([
-        "discord:group:dev",
-        "agent:main:discord:group:dev",
+        "qqbot:group:dev",
+        "agent:main:qqbot:group:dev",
         "sess-active",
       ]),
       onWarn: expect.any(Function),
@@ -1813,19 +1813,19 @@ describe("gateway server sessions", () => {
     expect(subagentLifecycleHookMocks.runSubagentEnded).toHaveBeenCalledTimes(1);
     expect(subagentLifecycleHookMocks.runSubagentEnded).toHaveBeenCalledWith(
       {
-        targetSessionKey: "agent:main:discord:group:dev",
+        targetSessionKey: "agent:main:qqbot:group:dev",
         targetKind: "acp",
         reason: "session-delete",
         sendFarewell: true,
         outcome: "deleted",
       },
       {
-        childSessionKey: "agent:main:discord:group:dev",
+        childSessionKey: "agent:main:qqbot:group:dev",
       },
     );
     expect(threadBindingMocks.unbindThreadBindingsBySessionKey).toHaveBeenCalledTimes(1);
     expect(threadBindingMocks.unbindThreadBindingsBySessionKey).toHaveBeenCalledWith({
-      targetSessionKey: "agent:main:discord:group:dev",
+      targetSessionKey: "agent:main:qqbot:group:dev",
       targetKind: "acp",
       reason: "session-delete",
       sendFarewell: true,
@@ -1842,7 +1842,7 @@ describe("gateway server sessions", () => {
     await writeSessionStore({
       entries: {
         main: { sessionId: "sess-main", updatedAt: Date.now() },
-        "discord:group:dev": {
+        "qqbot:group:dev": {
           sessionId: "sess-acp",
           updatedAt: Date.now(),
           acp: {
@@ -1858,7 +1858,7 @@ describe("gateway server sessions", () => {
     });
     const { ws } = await openClient();
     const deleted = await rpcReq<{ ok: true; deleted: boolean }>(ws, "sessions.delete", {
-      key: "discord:group:dev",
+      key: "qqbot:group:dev",
     });
     expect(deleted.ok).toBe(true);
     expect(deleted.payload?.deleted).toBe(true);
@@ -1867,12 +1867,12 @@ describe("gateway server sessions", () => {
       cfg: expect.any(Object),
       requireAcpSession: false,
       reason: "session-delete",
-      sessionKey: "agent:main:discord:group:dev",
+      sessionKey: "agent:main:qqbot:group:dev",
     });
     expect(acpManagerMocks.cancelSession).toHaveBeenCalledWith({
       cfg: expect.any(Object),
       reason: "session-delete",
-      sessionKey: "agent:main:discord:group:dev",
+      sessionKey: "agent:main:qqbot:group:dev",
     });
 
     ws.close();
@@ -2481,7 +2481,7 @@ describe("gateway server sessions", () => {
 
     await writeSessionStore({
       entries: {
-        "discord:group:dev": {
+        "qqbot:group:dev": {
           sessionId: "sess-active",
           updatedAt: Date.now(),
         },
@@ -2494,14 +2494,14 @@ describe("gateway server sessions", () => {
     const { ws } = await openClient();
 
     const deleted = await rpcReq(ws, "sessions.delete", {
-      key: "discord:group:dev",
+      key: "qqbot:group:dev",
     });
     expect(deleted.ok).toBe(false);
     expect(deleted.error?.code).toBe("UNAVAILABLE");
     expect(deleted.error?.message ?? "").toMatch(/still active/i);
     expectActiveRunCleanup(
-      "agent:main:discord:group:dev",
-      ["discord:group:dev", "agent:main:discord:group:dev", "sess-active"],
+      "agent:main:qqbot:group:dev",
+      ["qqbot:group:dev", "agent:main:qqbot:group:dev", "sess-active"],
       "sess-active",
     );
     expect(browserSessionTabMocks.closeTrackedBrowserTabsForSessions).not.toHaveBeenCalled();
@@ -2510,7 +2510,7 @@ describe("gateway server sessions", () => {
       string,
       { sessionId?: string }
     >;
-    expect(store["agent:main:discord:group:dev"]?.sessionId).toBe("sess-active");
+    expect(store["agent:main:qqbot:group:dev"]?.sessionId).toBe("sess-active");
     const filesAfterDeleteAttempt = await fs.readdir(dir);
     expect(filesAfterDeleteAttempt.some((f) => f.startsWith("sess-active.jsonl.deleted."))).toBe(
       false,
@@ -2528,7 +2528,7 @@ describe("gateway server sessions", () => {
           sessionId: "sess-main",
           updatedAt: Date.now(),
         },
-        "discord:group:dev": {
+        "qqbot:group:dev": {
           sessionId: "sess-group",
           updatedAt: Date.now(),
         },
@@ -2551,14 +2551,14 @@ describe("gateway server sessions", () => {
     });
 
     const patched = await rpcReq(ws, "sessions.patch", {
-      key: "agent:main:discord:group:dev",
+      key: "agent:main:qqbot:group:dev",
       label: "should-fail",
     });
     expect(patched.ok).toBe(false);
     expect(patched.error?.message ?? "").toMatch(/webchat clients cannot patch sessions/i);
 
     const deleted = await rpcReq(ws, "sessions.delete", {
-      key: "agent:main:discord:group:dev",
+      key: "agent:main:qqbot:group:dev",
     });
     expect(deleted.ok).toBe(false);
     expect(deleted.error?.message ?? "").toMatch(/webchat clients cannot delete sessions/i);
@@ -2779,7 +2779,7 @@ describe("gateway server sessions", () => {
           sessionId: "sess-main",
           updatedAt: Date.now(),
         },
-        "discord:group:dev": {
+        "qqbot:group:dev": {
           sessionId: "sess-group",
           updatedAt: Date.now(),
         },
@@ -2802,7 +2802,7 @@ describe("gateway server sessions", () => {
     });
 
     const deleted = await rpcReq<{ ok: true; deleted: boolean }>(ws, "sessions.delete", {
-      key: "agent:main:discord:group:dev",
+      key: "agent:main:qqbot:group:dev",
     });
     expect(deleted.ok).toBe(true);
     expect(deleted.payload?.deleted).toBe(true);
@@ -2811,7 +2811,7 @@ describe("gateway server sessions", () => {
       string,
       { sessionId?: string }
     >;
-    expect(store["agent:main:discord:group:dev"]).toBeUndefined();
+    expect(store["agent:main:qqbot:group:dev"]).toBeUndefined();
 
     ws.close();
   });

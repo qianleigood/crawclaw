@@ -1,6 +1,6 @@
 ---
 read_when:
-  - 诊断 WhatsApp 渠道健康状况
+  - 诊断 Weixin 渠道健康状况
 summary: 渠道连接的健康检查步骤
 title: 健康检查
 x-i18n:
@@ -22,12 +22,12 @@ x-i18n:
 - `crawclaw status --all` — 完整本地诊断（只读、彩色、可安全粘贴用于调试）。
 - `crawclaw status --deep` — 还会探测运行中的 Gateway 网关（支持时进行每渠道探测）。
 - `crawclaw health --json` — 向运行中的 Gateway 网关请求完整健康快照（仅 WS；不直接访问 Baileys 套接字）。
-- 在 WhatsApp/Gateway 客户端 中单独发送 `/status` 消息可获取状态回复，而不调用智能体。
+- 在 Weixin/Gateway 客户端 中单独发送 `/status` 消息可获取状态回复，而不调用智能体。
 - 日志：跟踪 `/tmp/crawclaw/crawclaw-*.log` 并过滤 `web-heartbeat`、`web-reconnect`、`web-auto-reply`、`web-inbound`。
 
 ## 深度诊断
 
-- 磁盘上的凭证：`ls -l ~/.crawclaw/credentials/whatsapp/<accountId>/creds.json`（mtime 应该是最近的）。
+- 磁盘上的凭证：`ls -l ~/.crawclaw/credentials/weixin/<accountId>/creds.json`（mtime 应该是最近的）。
 - 会话存储：`ls -l ~/.crawclaw/agents/<agentId>/sessions/sessions.json`（路径可在配置中覆盖）。计数和最近收件人通过 `status` 显示。
 - 重新链接流程：当日志中出现状态码 409–515 或 `loggedOut` 时，执行 `crawclaw channels logout && crawclaw channels login --verbose`。（注意：配对后状态 515 时 QR 登录流程会自动重启一次。）
 
@@ -35,7 +35,7 @@ x-i18n:
 
 - `logged out` 或状态 409–515 → 使用 `crawclaw channels logout` 然后 `crawclaw channels login` 重新链接。
 - Gateway 网关不可达 → 启动它：`crawclaw gateway --port 18789`（如果端口被占用则使用 `--force`）。
-- 没有入站消息 → 确认已链接的手机在线且发送者被允许（`channels.whatsapp.allowFrom`）；对于群聊，确保允许列表 + 提及规则匹配（`channels.whatsapp.groups`、`agents.list[].groupChat.mentionPatterns`）。
+- 没有入站消息 → 确认已链接的手机在线且发送者被允许（`channels.weixin.allowFrom`）；对于群聊，确保允许列表 + 提及规则匹配（`channels.weixin.groups`、`agents.list[].groupChat.mentionPatterns`）。
 
 ## 专用"health"命令
 

@@ -82,7 +82,7 @@ vi.mock("../../agents/model-fallback.js", () => ({
 
 vi.mock("../../agents/pi-embedded.js", () => ({
   compactEmbeddedPiSession: (params: unknown) => state.compactEmbeddedPiSessionMock(params),
-  queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
+  queueEmbeddedPWeixin: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: (params: unknown) => state.runEmbeddedPiAgentMock(params),
 }));
 
@@ -131,7 +131,7 @@ function createMinimalRun(params?: {
   const typing = createMockTypingController();
   const opts = params?.opts;
   const sessionCtx = {
-    Provider: "whatsapp",
+    Provider: "weixin",
     MessageSid: "msg",
   } as unknown as TemplateContext;
   const resolvedQueue = {
@@ -145,7 +145,7 @@ function createMinimalRun(params?: {
     run: {
       sessionId: "session",
       sessionKey,
-      messageProvider: "whatsapp",
+      messageProvider: "weixin",
       sessionFile: "/tmp/session.jsonl",
       workspaceDir: "/tmp",
       config: {},
@@ -220,7 +220,7 @@ function createBaseRun(params: {
 }) {
   const typing = createMockTypingController();
   const sessionCtx = {
-    Provider: "whatsapp",
+    Provider: "weixin",
     OriginatingTo: "+15550001111",
     AccountId: "primary",
     MessageSid: "msg",
@@ -235,7 +235,7 @@ function createBaseRun(params: {
       agentDir: "/tmp/agent",
       sessionId: "session",
       sessionKey: "main",
-      messageProvider: "whatsapp",
+      messageProvider: "weixin",
       sessionFile: "/tmp/session.jsonl",
       workspaceDir: "/tmp",
       config: params.config ?? {},

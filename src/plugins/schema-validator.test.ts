@@ -278,7 +278,7 @@ describe("schema validator", () => {
           },
           required: ["apiRoot"],
         },
-        value: { apiRoot: "https://api.telegram.org" },
+        value: { apiRoot: "https://api.feishu.org" },
       },
       ok: true,
     },

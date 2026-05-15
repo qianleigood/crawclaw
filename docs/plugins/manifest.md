@@ -327,9 +327,9 @@ See [Configuration reference](/gateway/configuration) for the full `plugins.*` s
   runtime just to inspect env names.
 - `providerAuthChoices` is the cheap metadata path for auth-choice pickers,
   `--auth-choice` resolution, preferred-provider mapping, and simple onboarding
-  CLI flag registration before provider runtime loads. For runtime wizard
-  metadata that requires provider code, see
-  [Provider runtime hooks](/plugins/architecture#provider-runtime-hooks).
+  CLI flag registration without loading plugin runtime. Model provider runtime
+  hooks have been removed; provider config and catalog metadata are owned by the
+  Rust provider registry.
 - Exclusive plugin kinds are selected through `plugins.slots.*`.
   - `kind: "memory"` is the only supported exclusive plugin kind.
   - Legacy `kind: "context-engine"` manifests are rejected by the loader.

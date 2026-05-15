@@ -116,10 +116,10 @@ Plugin discovery 和 manifest cache 使用短 TTL 窗口来折叠启动期间的
 
 示例：
 
-- `extensions/slack/src/sent-thread-cache.ts`
-- `extensions/msteams/src/sent-message-cache.ts`
-- `extensions/telegram/src/sent-message-cache.ts`
-- `extensions/telegram/src/sticker-cache.ts`
+- `extensions/ddingtalk/src/sent-thread-cache.ts`
+- `extensions/qqbot/src/sent-message-cache.ts`
+- `extensions/feishu/src/sent-message-cache.ts`
+- `extensions/feishu/src/sticker-cache.ts`
 
 Extension cache 应该把 channel account、conversation、recipient、provider 或 file scope 纳入 identity，避免跨账号复用。长生命周期或持久化的 extension cache 还需要 size bound、TTL 或显式 cleanup path。
 

@@ -1,16 +1,11 @@
 import path from "node:path";
 import { type Api, type Model } from "@mariozechner/pi-ai";
-import { formatCliCommand } from "../cli/command-format.js";
-import { getRuntimeConfigSnapshot, type CrawClawConfig } from "../config/config.js";
+import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import {
-  buildProviderMissingAuthMessageWithPlugin,
-  resolveProviderSyntheticAuthWithPlugin,
-} from "../plugins/provider-runtime.js";
-import { resolveOwningPluginIdsForProvider } from "../plugins/providers.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import {
   type AuthProfileStore,
@@ -25,7 +20,6 @@ import {
   CUSTOM_LOCAL_AUTH_MARKER,
   isKnownEnvApiKeyMarker,
   isNonSecretApiKeyMarker,
-  NON_ENV_SECRETREF_MARKER,
   OLLAMA_LOCAL_AUTH_MARKER,
 } from "./model-auth-markers.js";
 import {
@@ -159,10 +153,6 @@ function isCustomLocalProviderConfig(providerConfig: ModelProviderConfig): boole
   );
 }
 
-function isManagedSecretRefApiKeyMarker(apiKey: string | undefined): boolean {
-  return apiKey?.trim() === NON_ENV_SECRETREF_MARKER;
-}
-
 type SyntheticProviderAuthResolution = {
   auth?: ResolvedProviderAuth;
   blockedOnManagedSecretRef?: boolean;
@@ -172,42 +162,8 @@ function resolveProviderSyntheticRuntimeAuth(params: {
   cfg: CrawClawConfig | undefined;
   provider: string;
 }): SyntheticProviderAuthResolution {
-  const resolveFromConfig = (
-    config: CrawClawConfig | undefined,
-  ): ResolvedProviderAuth | undefined => {
-    const providerConfig = resolveProviderConfig(config, params.provider);
-    return resolveProviderSyntheticAuthWithPlugin({
-      provider: params.provider,
-      config,
-      context: {
-        config,
-        provider: params.provider,
-        providerConfig,
-      },
-    });
-  };
-
-  const directAuth = resolveFromConfig(params.cfg);
-  if (!directAuth) {
-    return {};
-  }
-  if (!isManagedSecretRefApiKeyMarker(directAuth.apiKey)) {
-    return { auth: directAuth };
-  }
-
-  const runtimeConfig = getRuntimeConfigSnapshot();
-  if (!runtimeConfig || runtimeConfig === params.cfg) {
-    return { blockedOnManagedSecretRef: true };
-  }
-
-  const runtimeAuth = resolveFromConfig(runtimeConfig);
-  const runtimeApiKey = runtimeAuth?.apiKey;
-  if (!runtimeAuth || !runtimeApiKey || isNonSecretApiKeyMarker(runtimeApiKey)) {
-    return { blockedOnManagedSecretRef: true };
-  }
-  return {
-    auth: runtimeAuth,
-  };
+  void params;
+  return {};
 }
 
 function resolveSyntheticLocalProviderAuth(params: {
@@ -441,32 +397,6 @@ export async function resolveApiKeyForProvider(params: {
   const normalized = normalizeProviderId(provider);
   if (authOverride === undefined && normalized === "amazon-bedrock") {
     return resolveAwsSdkAuthInfo();
-  }
-
-  const providerConfig = resolveProviderConfig(cfg, provider);
-  const hasInlineConfiguredModels =
-    Array.isArray(providerConfig?.models) && providerConfig.models.length > 0;
-  const owningPluginIds = !hasInlineConfiguredModels
-    ? resolveOwningPluginIdsForProvider({
-        provider,
-        config: cfg,
-      })
-    : undefined;
-  if (owningPluginIds?.length) {
-    const pluginMissingAuthMessage = buildProviderMissingAuthMessageWithPlugin({
-      provider,
-      config: cfg,
-      context: {
-        config: cfg,
-        agentDir: params.agentDir,
-        env: process.env,
-        provider,
-        listProfileIds: (providerId) => listProfilesForProvider(store, providerId),
-      },
-    });
-    if (pluginMissingAuthMessage) {
-      throw new Error(pluginMissingAuthMessage);
-    }
   }
 
   const authStorePath = resolveAuthStorePathForDisplay(params.agentDir);

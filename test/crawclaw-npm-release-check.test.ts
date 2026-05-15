@@ -381,7 +381,7 @@ describe("collectReleasePackageMetadataErrors", () => {
     ).toEqual([
       "package.json must not expose public crawclaw CLI bin.",
       'package.json exports must not expose legacy "./cli-entry".',
-      'package.json files must not include legacy "crawclaw.mjs".',
+      "package.json files must not include the legacy Node entry file.",
     ]);
   });
 });

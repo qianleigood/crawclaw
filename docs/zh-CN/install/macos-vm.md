@@ -1,10 +1,10 @@
 ---
 read_when:
   - 你希望 CrawClaw 与你的主 macOS 环境隔离
-  - 你希望在沙箱中集成 iMessage（BlueBubbles）
+  - 你希望在沙箱中集成 Weixin（Weixin）
   - 你希望拥有一个可重置且可克隆的 macOS 环境
   - 你希望比较本地与托管 macOS VM 选项
-summary: 在沙箱化的 macOS VM（本地或托管）中运行 CrawClaw，适用于你需要隔离或 iMessage 的场景
+summary: 在沙箱化的 macOS VM（本地或托管）中运行 CrawClaw，适用于你需要隔离或 Weixin 的场景
 title: macOS VM
 x-i18n:
   generated_at: "2026-03-16T06:23:59Z"
@@ -23,7 +23,7 @@ x-i18n:
 - **专用硬件**（Mac mini 或 Linux 主机）：如果你希望完全控制，并为浏览器自动化获得一个**住宅 IP**。许多网站会屏蔽数据中心 IP，因此本地浏览通常效果更好。
 - **混合方案：** 将 Gateway 网关放在便宜的 VPS 上，当你需要浏览器/UI 自动化时，再将你的 Mac 作为一个 **node** 连接进来。参见 [Nodes](/nodes) 和 [Gateway remote](/gateway/remote)。
 
-当你明确需要 macOS 独有能力（iMessage/BlueBubbles），或希望与你的日常 Mac 严格隔离时，再使用 macOS VM。
+当你明确需要 macOS 独有能力（Weixin/Weixin），或希望与你的日常 Mac 严格隔离时，再使用 macOS VM。
 
 ## macOS VM 选项
 
@@ -34,7 +34,7 @@ x-i18n:
 这样你将获得：
 
 - 完全隔离的 macOS 环境（你的宿主机保持干净）
-- 通过 BlueBubbles 获得 iMessage 支持（在 Linux/Windows 上无法实现）
+- 通过 Weixin 获得 Weixin 支持（在 Linux/Windows 上无法实现）
 - 通过克隆 VM 实现即时重置
 - 无需额外硬件或云成本
 
@@ -108,7 +108,7 @@ lume create crawclaw --os macos --ipsw latest
 在 VNC 窗口中：
 
 1. 选择语言和地区
-2. 跳过 Apple ID（或者如果你之后想使用 iMessage，也可以登录）
+2. 跳过 Apple ID（或者如果你之后想使用 Weixin，也可以登录）
 3. 创建一个用户账号（记住用户名和密码）
 4. 跳过所有可选功能
 
@@ -165,18 +165,18 @@ nano ~/.crawclaw/crawclaw.json
 ```json
 {
   "channels": {
-    "whatsapp": {
+    "weixin": {
       "dmPolicy": "allowlist",
       "allowFrom": ["+15551234567"]
     },
-    "telegram": {
+    "feishu": {
       "botToken": "YOUR_BOT_TOKEN"
     }
   }
 }
 ```
 
-然后登录 WhatsApp（扫描 QR 码）：
+然后登录 Weixin（扫描 QR 码）：
 
 ```bash
 crawclaw channels login
@@ -203,34 +203,34 @@ ssh youruser@192.168.64.X "crawclaw status"
 
 ---
 
-## 加分项：iMessage 集成
+## 加分项：Weixin 集成
 
-这是在 macOS 上运行的杀手级特性。使用 [BlueBubbles](https://bluebubbles.app) 将 iMessage 添加到 CrawClaw。
+这是在 macOS 上运行的杀手级特性。使用 [Weixin](https://weixin.app) 将 Weixin 添加到 CrawClaw。
 
 在 VM 内：
 
-1. 从 bluebubbles.app 下载 BlueBubbles
+1. 从 weixin.app 下载 Weixin
 2. 使用你的 Apple ID 登录
 3. 启用 Web API 并设置一个密码
-4. 将 BlueBubbles webhook 指向你的 gateway（示例：`https://your-gateway-host:3000/bluebubbles-webhook?password=<password>`）
+4. 将 Weixin webhook 指向你的 gateway（示例：`https://your-gateway-host:3000/weixin-webhook?password=<password>`）
 
 添加到你的 CrawClaw 配置中：
 
 ```json
 {
   "channels": {
-    "bluebubbles": {
+    "weixin": {
       "serverUrl": "http://localhost:1234",
       "password": "your-api-password",
-      "webhookPath": "/bluebubbles-webhook"
+      "webhookPath": "/weixin-webhook"
     }
   }
 }
 ```
 
-重启 Gateway 网关。现在你的智能体就可以发送和接收 iMessage 了。
+重启 Gateway 网关。现在你的智能体就可以发送和接收 Weixin 了。
 
-完整设置细节： [BlueBubbles channel](/channels/bluebubbles)
+完整设置细节： [Weixin channel](/channels/index)
 
 ---
 
@@ -267,12 +267,12 @@ lume run crawclaw --no-display
 
 ## 故障排除
 
-| 问题                    | 解决方案                                                          |
-| ----------------------- | ----------------------------------------------------------------- |
-| 无法通过 SSH 连接到 VM  | 检查 VM 的“系统设置”中是否已启用“远程登录”                        |
-| 未显示 VM IP            | 等待 VM 完全启动后，再次运行 `lume get crawclaw`                  |
-| 找不到 `lume` 命令      | 将 `~/.local/bin` 添加到你的 PATH                                 |
-| 无法扫描 WhatsApp QR 码 | 运行 `crawclaw channels login` 时，确保你登录的是 VM 而不是宿主机 |
+| 问题                   | 解决方案                                                          |
+| ---------------------- | ----------------------------------------------------------------- |
+| 无法通过 SSH 连接到 VM | 检查 VM 的“系统设置”中是否已启用“远程登录”                        |
+| 未显示 VM IP           | 等待 VM 完全启动后，再次运行 `lume get crawclaw`                  |
+| 找不到 `lume` 命令     | 将 `~/.local/bin` 添加到你的 PATH                                 |
+| 无法扫描 Weixin QR 码  | 运行 `crawclaw channels login` 时，确保你登录的是 VM 而不是宿主机 |
 
 ---
 
@@ -281,7 +281,7 @@ lume run crawclaw --no-display
 - [VPS hosting](/vps)
 - [Nodes](/nodes)
 - [Gateway remote](/gateway/remote)
-- [BlueBubbles channel](/channels/bluebubbles)
+- [Weixin channel](/channels/index)
 - [Lume Quickstart](https://cua.ai/docs/lume/guide/getting-started/quickstart)
 - [Lume CLI Reference](https://cua.ai/docs/lume/reference/cli-reference)
 - [Unattended VM Setup](https://cua.ai/docs/lume/guide/fundamentals/unattended-setup)（高级）

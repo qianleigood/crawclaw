@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { hasPollCreationParams, resolveTelegramPollVisibility } from "./poll-params.js";
+import { hasPollCreationParams, resolvePollVisibility } from "./poll-params.js";
 
 describe("poll params", () => {
   it("does not treat explicit false booleans as poll creation params", () => {
@@ -60,11 +60,11 @@ describe("poll params", () => {
     expect(hasPollCreationParams({ poll_public: "true" })).toBe(true);
   });
 
-  it("resolves telegram poll visibility flags", () => {
-    expect(resolveTelegramPollVisibility({ pollAnonymous: true })).toBe(true);
-    expect(resolveTelegramPollVisibility({ pollPublic: true })).toBe(false);
-    expect(resolveTelegramPollVisibility({})).toBeUndefined();
-    expect(() => resolveTelegramPollVisibility({ pollAnonymous: true, pollPublic: true })).toThrow(
+  it("resolves poll visibility flags", () => {
+    expect(resolvePollVisibility({ pollAnonymous: true })).toBe(true);
+    expect(resolvePollVisibility({ pollPublic: true })).toBe(false);
+    expect(resolvePollVisibility({})).toBeUndefined();
+    expect(() => resolvePollVisibility({ pollAnonymous: true, pollPublic: true })).toThrow(
       /mutually exclusive/i,
     );
   });

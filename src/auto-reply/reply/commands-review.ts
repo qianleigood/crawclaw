@@ -1,10 +1,6 @@
 import { isReviewSpawnSource } from "../../agents/review-agent.js";
-import { createReviewTaskTool } from "../../agents/tools/review-task-tool.js";
+import { createRustSpecialAgentTool } from "../../agents/runtime-tools/core-tools.js";
 import { logVerbose } from "../../globals.js";
-import {
-  INTERNAL_MESSAGE_CHANNEL,
-  resolveGatewayMessageChannel,
-} from "../../utils/message-channel.js";
 import type { CommandHandler, CommandHandlerResult } from "./commands-types.js";
 
 const REVIEW_COMMAND_REGEX = /^\/review(?:\s+([\s\S]+))?$/i;
@@ -105,24 +101,16 @@ export const handleReviewCommand: CommandHandler = async (params, allowTextComma
   }
 
   const focus = match[1]?.trim();
-  const tool = createReviewTaskTool({
-    agentSessionKey: params.sessionKey,
-    agentChannel: resolveGatewayMessageChannel(params.command.channel) ?? INTERNAL_MESSAGE_CHANNEL,
-    agentAccountId: params.ctx.AccountId,
-    agentTo: params.command.to ?? params.ctx.To,
-    agentThreadId: params.ctx.MessageThreadId,
-    agentGroupId: params.sessionEntry?.groupId ?? null,
-    agentGroupChannel:
-      params.sessionEntry?.groupChannel ?? params.ctx.GroupChannel ?? params.ctx.GroupSubject,
-    agentGroupSpace: params.sessionEntry?.space ?? params.ctx.GroupSpace,
-    requesterAgentIdOverride: params.agentId,
-    workspaceDir: params.workspaceDir,
+  const tool = createRustSpecialAgentTool("review_task", {
+    sessionKey: params.sessionKey,
   });
 
   try {
+    const task = focus
+      ? `${DEFAULT_REVIEW_TASK}\n\nReview focus:\n- ${focus}`
+      : DEFAULT_REVIEW_TASK;
     const result = await tool.execute("command:/review", {
-      task: DEFAULT_REVIEW_TASK,
-      ...(focus ? { reviewFocus: [focus] } : {}),
+      task,
     });
     return formatReviewReply((result.details ?? {}) as ReviewTaskToolDetails);
   } catch (error) {

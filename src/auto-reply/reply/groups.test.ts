@@ -22,18 +22,18 @@ describe("group runtime loading", () => {
         sessionCtx: {
           ChatType: "group",
           GroupSubject: "Ops",
-          Provider: "whatsapp",
+          Provider: "weixin",
         },
       }),
-    ).toContain('You are in the WhatsApp group chat "Ops".');
+    ).toContain('You are in the Weixin group chat "Ops".');
     expect(
       groups.buildGroupIntro({
         cfg: {} as CrawClawConfig,
-        sessionCtx: { Provider: "whatsapp" },
+        sessionCtx: { Provider: "weixin" },
         defaultActivation: "mention",
         silentToken: "NO_REPLY",
       }),
-    ).toContain("WhatsApp IDs:");
+    ).toContain("Weixin IDs:");
     expect(groupsRuntimeLoads).not.toHaveBeenCalled();
     vi.doUnmock("./groups.runtime.js");
   });
@@ -50,7 +50,7 @@ describe("group runtime loading", () => {
       groups.resolveGroupRequireMention({
         cfg: {
           channels: {
-            slack: {
+            ddingtalk: {
               channels: {
                 C123: { requireMention: false },
               },
@@ -58,13 +58,13 @@ describe("group runtime loading", () => {
           },
         },
         ctx: {
-          Provider: "slack",
-          From: "slack:channel:C123",
+          Provider: "ddingtalk",
+          From: "ddingtalk:channel:C123",
           GroupSubject: "#general",
         },
         groupResolution: {
-          key: "slack:group:C123",
-          channel: "slack",
+          key: "ddingtalk:group:C123",
+          channel: "ddingtalk",
           id: "C123",
           chatType: "group",
         },

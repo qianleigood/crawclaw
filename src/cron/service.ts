@@ -1,60 +1,115 @@
-import * as ops from "./service/ops.js";
-import { type CronServiceDeps, createCronServiceState } from "./service/state.js";
+import { runCrawClawRuntimeTool } from "../agents/runtime-tools/native.js";
+import type { CronServiceDeps } from "./service/state.js";
 import type { CronJob, CronJobCreate, CronJobPatch } from "./types.js";
 
 export type { CronEvent, CronServiceDeps } from "./service/state.js";
 
+export type CronListPageOptions = {
+  includeDisabled?: boolean;
+  limit?: number;
+  offset?: number;
+  query?: string;
+  enabled?: "all" | "enabled" | "disabled";
+  sortBy?: "nextRunAtMs" | "updatedAtMs" | "name";
+  sortDir?: "asc" | "desc";
+};
+
+type CronListPage = {
+  jobs: CronJob[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+  nextOffset?: number;
+};
+
+type CronStatus = {
+  enabled: boolean;
+  storePath: string;
+  jobs: number;
+  nextWakeAtMs?: number | null;
+};
+
+type CronRemoveResult = {
+  ok: boolean;
+  removed: boolean;
+};
+
+type CronRunResult = {
+  ok?: boolean;
+  ran?: boolean;
+  enqueued?: boolean;
+  runId?: string;
+  reason?: string;
+};
+
+const DEFAULT_CRON_TIMEOUT_MS = 60_000;
+
 export class CronService {
-  private readonly state;
+  private readonly storePath: string;
+
   constructor(deps: CronServiceDeps) {
-    this.state = createCronServiceState(deps);
+    this.storePath = deps.storePath;
   }
 
   async start() {
-    await ops.start(this.state);
+    await this.call<CronStatus>("cron.start");
   }
 
   stop() {
-    ops.stop(this.state);
+    void this.call<CronStatus>("cron.stop");
   }
 
   async status() {
-    return await ops.status(this.state);
+    return await this.call<CronStatus>("cron.status");
   }
 
   async list(opts?: { includeDisabled?: boolean }) {
-    return await ops.list(this.state, opts);
+    const page = await this.listPage(opts);
+    return page.jobs;
   }
 
-  async listPage(opts?: ops.CronListPageOptions) {
-    return await ops.listPage(this.state, opts);
+  async listPage(opts?: CronListPageOptions) {
+    return await this.call<CronListPage>("cron.list", opts);
   }
 
   async add(input: CronJobCreate) {
-    return await ops.add(this.state, input);
+    return await this.call<CronJob>("cron.add", input);
   }
 
   async update(id: string, patch: CronJobPatch) {
-    return await ops.update(this.state, id, patch);
+    return await this.call<CronJob>("cron.update", { id, patch });
   }
 
   async remove(id: string) {
-    return await ops.remove(this.state, id);
+    return await this.call<CronRemoveResult>("cron.remove", { id });
   }
 
   async run(id: string, mode?: "due" | "force") {
-    return await ops.run(this.state, id, mode);
+    return await this.call<CronRunResult>("cron.run", { id, mode });
   }
 
   async enqueueRun(id: string, mode?: "due" | "force") {
-    return await ops.enqueueRun(this.state, id, mode);
+    return await this.run(id, mode);
   }
 
-  getJob(id: string): CronJob | undefined {
-    return this.state.store?.jobs.find((job) => job.id === id);
+  getJob(_id: string): CronJob | undefined {
+    return undefined;
   }
 
   wake(opts: { mode: "now"; text: string }) {
-    return ops.wakeNow(this.state, opts);
+    void this.call("wake", opts);
+    return { status: "ok", mode: opts.mode };
+  }
+
+  private async call<T>(method: string, input?: Record<string, unknown>): Promise<T> {
+    return await runCrawClawRuntimeTool<T>(
+      method,
+      {
+        ...input,
+        storePath: this.storePath,
+      },
+      { timeoutMs: DEFAULT_CRON_TIMEOUT_MS },
+    );
   }
 }

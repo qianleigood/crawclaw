@@ -1,10 +1,10 @@
-use std::collections::HashSet;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
@@ -15,7 +15,10 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Map, Value};
 use sha2::{Digest, Sha256};
 
-use crate::{AgentRuntime, DesktopSessionStore};
+use crate::{
+    AgentModelSelection, AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
+    DesktopSessionStore,
+};
 
 const STORE_VERSION: u8 = 1;
 const MAX_TIMER_DELAY_MS: u64 = 60_000;
@@ -63,10 +66,18 @@ struct CronServiceInner {
     store_lock: Mutex<()>,
     running_jobs: Mutex<HashSet<String>>,
     scheduler_started: AtomicBool,
+    scheduler_stop_requested: AtomicBool,
     webhook_token: Option<String>,
     run_log_max_bytes: u64,
     run_log_keep_lines: usize,
     on_event: Option<CronEventSink>,
+}
+
+#[derive(Clone, Debug)]
+struct CronExecutionResult {
+    summary: String,
+    session_id: Option<String>,
+    session_key: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -292,6 +303,7 @@ impl CronService {
                 store_lock: Mutex::new(()),
                 running_jobs: Mutex::new(HashSet::new()),
                 scheduler_started: AtomicBool::new(false),
+                scheduler_stop_requested: AtomicBool::new(false),
                 webhook_token: active_config.webhook_token,
                 run_log_max_bytes: active_config.run_log_max_bytes,
                 run_log_keep_lines: active_config.run_log_keep_lines,
@@ -319,6 +331,9 @@ impl CronService {
         if self.inner.scheduler_started.swap(true, Ordering::SeqCst) {
             return;
         }
+        self.inner
+            .scheduler_stop_requested
+            .store(false, Ordering::SeqCst);
         let Ok(handle) = tokio::runtime::Handle::try_current() else {
             self.inner.scheduler_started.store(false, Ordering::SeqCst);
             return;
@@ -327,11 +342,24 @@ impl CronService {
         handle.spawn(async move {
             service.run_due_jobs().await;
             loop {
+                if service.inner.scheduler_stop_requested.load(Ordering::SeqCst) {
+                    break;
+                }
                 let delay = service.next_timer_delay();
                 tokio::time::sleep(Duration::from_millis(delay)).await;
+                if service.inner.scheduler_stop_requested.load(Ordering::SeqCst) {
+                    break;
+                }
                 service.run_due_jobs().await;
             }
+            service.inner.scheduler_started.store(false, Ordering::SeqCst);
         });
+    }
+
+    pub fn stop_scheduler(&self) {
+        self.inner
+            .scheduler_stop_requested
+            .store(true, Ordering::SeqCst);
     }
 
     pub async fn handle_action(&self, input: Value) -> Result<Value, String> {
@@ -377,6 +405,14 @@ impl CronService {
                 let mut input = object_or_empty(params);
                 input.insert("action".to_string(), Value::String("wake".to_string()));
                 self.handle_action(Value::Object(input)).await
+            }
+            "cron.start" => {
+                self.start_scheduler();
+                self.gateway_status()
+            }
+            "cron.stop" => {
+                self.stop_scheduler();
+                self.gateway_status()
             }
             "cron.status" => self.gateway_status(),
             "cron.list" => self.gateway_list(params),
@@ -705,11 +741,13 @@ impl CronService {
             "runId": run_id,
             "ts": started_at
         }));
-        let result = self.execute_job_core(&job).await;
+        let result = self.execute_job_core(&job, &run_id).await;
         let ended_at = now_millis();
         self.clear_running(&job.id);
         let delivery_status = match &result {
-            Ok(summary) => self.deliver_webhook_if_requested(&job, summary).await,
+            Ok(execution) => self
+                .deliver_webhook_if_requested(&job, &execution.summary)
+                .await,
             Err(_) => resolve_delivery_status(&job, false),
         };
 
@@ -722,7 +760,7 @@ impl CronService {
             state.last_duration_ms = Some(ended_at.saturating_sub(started_at));
             stored.updated_at_ms = Some(ended_at);
             match &result {
-                Ok(summary) => {
+                Ok(execution) => {
                     state.last_run_status = Some("ok".to_string());
                     state.last_status = Some("ok".to_string());
                     state.last_error = None;
@@ -736,7 +774,7 @@ impl CronService {
                         stored.enabled = false;
                     }
                     next_run_at_ms = state.next_run_at_ms;
-                    self.deliver_webhook_if_requested(stored, summary).await;
+                    self.deliver_webhook_if_requested(stored, &execution.summary).await;
                 }
                 Err(error) => {
                     state.last_run_status = Some("error".to_string());
@@ -773,13 +811,20 @@ impl CronService {
             job_id: job.id.clone(),
             action: "finished".to_string(),
             status: Some(status.to_string()),
-            summary: result.as_ref().ok().cloned(),
+            summary: result.as_ref().ok().map(|execution| execution.summary.clone()),
             error: result.as_ref().err().cloned(),
             delivered: None,
             delivery_status: Some(delivery_status),
             delivery_error: None,
-            session_id: None,
-            session_key: job.session_key.clone(),
+            session_id: result
+                .as_ref()
+                .ok()
+                .and_then(|execution| execution.session_id.clone()),
+            session_key: result
+                .as_ref()
+                .ok()
+                .and_then(|execution| execution.session_key.clone())
+                .or_else(|| job.session_key.clone()),
             run_at_ms: Some(started_at),
             duration_ms: Some(ended_at.saturating_sub(started_at)),
             next_run_at_ms,
@@ -798,6 +843,8 @@ impl CronService {
             "status": status,
             "summary": entry.summary,
             "error": entry.error,
+            "sessionId": entry.session_id,
+            "sessionKey": entry.session_key,
             "deliveryStatus": entry.delivery_status,
             "nextRunAtMs": next_run_at_ms,
             "ts": ended_at
@@ -809,29 +856,71 @@ impl CronService {
             "jobId": job.id,
             "summary": entry.summary,
             "error": entry.error,
+            "sessionId": entry.session_id,
+            "sessionKey": entry.session_key,
             "nextRunAtMs": next_run_at_ms
         }))
     }
 
-    async fn execute_job_core(&self, job: &CronJob) -> Result<String, String> {
+    async fn execute_job_core(
+        &self,
+        job: &CronJob,
+        run_id: &str,
+    ) -> Result<CronExecutionResult, String> {
         match (&job.session_target[..], &job.payload) {
             ("main", CronPayload::SystemEvent { text }) => {
                 let session_key = job.session_key.as_deref().unwrap_or("main");
                 DesktopSessionStore::new(self.inner.runtime_root.clone())
                     .append_message(session_key, "system", text, Some("cron"))
                     .map_err(|error| format!("{error:?}"))?;
-                Ok(format!("Queued system event for session {session_key}."))
+                Ok(CronExecutionResult {
+                    summary: format!("Queued system event for session {session_key}."),
+                    session_id: Some(session_key.to_string()),
+                    session_key: Some(session_key.to_string()),
+                })
             }
-            (_, CronPayload::AgentTurn { message, .. }) => {
+            (_, CronPayload::AgentTurn { message, model, thinking, tools_allow, .. }) => {
                 let session_key = resolve_agent_session_key(job);
+                let (provider, model_id) = resolve_cron_agent_model(model.as_deref());
                 let result = AgentRuntime::new(self.inner.runtime_root.clone())
-                    .send_message(session_key.clone(), message.clone())
+                    .run_turn(AgentRunRequest {
+                        run_id: run_id.to_string(),
+                        agent_id: job.agent_id.clone().unwrap_or_else(|| "main".to_string()),
+                        session_key: session_key.clone(),
+                        inbound: ChannelInboundEnvelope {
+                            channel: "cron".to_string(),
+                            account_id: Some("local".to_string()),
+                            from: "cron".to_string(),
+                            to: format!(
+                                "agent:{}",
+                                job.agent_id.as_deref().unwrap_or("main")
+                            ),
+                            chat_type: ChannelChatType::Direct,
+                            body: message.clone(),
+                            raw_body: Some(message.clone()),
+                            message_id: Some(format!("{run_id}:input")),
+                            thread_id: Some(session_key.clone()),
+                            media_urls: Vec::new(),
+                            metadata: BTreeMap::new(),
+                        },
+                        model: AgentModelSelection {
+                            provider,
+                            model: model_id,
+                            reasoning_level: thinking.clone(),
+                        },
+                        enabled_tools: tools_allow.clone().unwrap_or_default(),
+                        options: BTreeMap::new(),
+                    })
                     .await
                     .map_err(|error| error.message().to_string())?;
-                Ok(format!(
-                    "Agent turn completed for session {}: {}",
-                    result.thread_id, result.assistant_text
-                ))
+                Ok(CronExecutionResult {
+                    summary: format!(
+                        "Agent turn completed for session {}: {}",
+                        result.session_key, result.assistant_text
+                    ),
+                    session_id: Some(result.session_key.clone()),
+                    session_key: Some(session_key),
+                })
             }
             (target, CronPayload::SystemEvent { .. }) => Err(format!(
                 "cron target {target} requires payload.kind=\"agentTurn\""
@@ -1053,6 +1142,92 @@ impl pi::sdk::Tool for CronTool {
             is_error: false,
         })
     }
+}
+
+static WORKER_CRON_SERVICE: OnceLock<Mutex<Option<WorkerCronService>>> = OnceLock::new();
+
+struct WorkerCronService {
+    runtime_root: PathBuf,
+    store_path: Option<PathBuf>,
+    service: CronService,
+}
+
+pub async fn execute_cron_runtime_operation(
+    runtime_root: &Path,
+    operation: &str,
+    input: Value,
+) -> Result<Value, String> {
+    let method = normalize_cron_runtime_operation(operation)?;
+    let start_scheduler = method == "cron.start";
+    let service = worker_cron_service(runtime_root, cron_store_path_from_input(&input), start_scheduler)?;
+    if method == "cron.start" {
+        service.start_scheduler();
+        return service.handle_method("cron.status", input).await;
+    }
+    if method == "cron.stop" {
+        service.stop_scheduler();
+        return service.handle_method("cron.status", input).await;
+    }
+    service.handle_method(&method, input).await
+}
+
+fn worker_cron_service(
+    runtime_root: &Path,
+    store_path: Option<PathBuf>,
+    start_scheduler: bool,
+) -> Result<CronService, String> {
+    let root = runtime_root.to_path_buf();
+    let cell = WORKER_CRON_SERVICE.get_or_init(|| Mutex::new(None));
+    let mut guard = cell
+        .lock()
+        .map_err(|_| "cron worker service lock poisoned".to_string())?;
+    if let Some(existing) = guard.as_ref() {
+        if existing.runtime_root == root && existing.store_path == store_path {
+            if start_scheduler {
+                existing.service.start_scheduler();
+            }
+            return Ok(existing.service.clone());
+        }
+    }
+    let service = CronService::new(CronServiceOptions {
+        runtime_root: root.clone(),
+        store_path: store_path.clone(),
+        start_scheduler,
+        ..CronServiceOptions::default()
+    })?;
+    *guard = Some(WorkerCronService {
+        runtime_root: root,
+        store_path,
+        service: service.clone(),
+    });
+    Ok(service)
+}
+
+fn normalize_cron_runtime_operation(operation: &str) -> Result<String, String> {
+    let normalized = match operation {
+        "wake" => "wake",
+        "cron" => "cron.status",
+        "cron.start" | "cron_start" => "cron.start",
+        "cron.stop" | "cron_stop" => "cron.stop",
+        "cron.status" | "cron_status" => "cron.status",
+        "cron.list" | "cron_list" => "cron.list",
+        "cron.add" | "cron_add" => "cron.add",
+        "cron.update" | "cron_update" => "cron.update",
+        "cron.remove" | "cron_remove" => "cron.remove",
+        "cron.run" | "cron_run" => "cron.run",
+        "cron.runs" | "cron_runs" => "cron.runs",
+        other => return Err(format!("unsupported cron runtime operation: {other}")),
+    };
+    Ok(normalized.to_string())
+}
+
+fn cron_store_path_from_input(input: &Value) -> Option<PathBuf> {
+    input
+        .get("storePath")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from)
 }
 
 fn load_store_unlocked(path: &Path) -> Result<CronStoreFile, String> {
@@ -1591,6 +1766,20 @@ fn resolve_agent_session_key(job: &CronJob) -> String {
         }
     }
     format!("cron:{}", job.id)
+}
+
+fn resolve_cron_agent_model(model: Option<&str>) -> (String, String) {
+    let Some(model_ref) = model.map(str::trim).filter(|value| !value.is_empty()) else {
+        return ("configured".to_string(), "configured".to_string());
+    };
+    if let Some((provider, model_id)) = model_ref.split_once('/') {
+        let provider = provider.trim();
+        let model_id = model_id.trim();
+        if !provider.is_empty() && !model_id.is_empty() {
+            return (provider.to_string(), model_id.to_string());
+        }
+    }
+    ("configured".to_string(), model_ref.to_string())
 }
 
 fn runtime_only_change(previous_raw: Option<&str>, next_store: &CronStoreFile) -> bool {

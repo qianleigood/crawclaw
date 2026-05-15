@@ -135,12 +135,12 @@ describe("config env vars", () => {
 
   it("reads key-value pairs from the state-dir .env file", async () => {
     await withTempHome(async (_home) => {
-      await writeStateDirDotEnv("BRAVE_API_KEY=BSA-test-key\nDISCORD_BOT_TOKEN=discord-tok\n", {
+      await writeStateDirDotEnv("BRAVE_API_KEY=BSA-test-key\nQQBOT_BOT_TOKEN=qqbot-tok\n", {
         env: process.env,
       });
       const vars = readStateDirDotEnvVars(process.env);
       expect(vars.BRAVE_API_KEY).toBe("BSA-test-key");
-      expect(vars.DISCORD_BOT_TOKEN).toBe("discord-tok");
+      expect(vars.QQBOT_BOT_TOKEN).toBe("qqbot-tok");
     });
   });
 

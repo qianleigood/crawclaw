@@ -73,6 +73,7 @@ pub struct BundledProviderDescriptor {
     pub default_model: Option<String>,
     pub auth_env_vars: Vec<String>,
     pub auth_choices: Value,
+    pub auth_methods: Vec<BundledProviderAuthChoice>,
     pub capabilities: BundledProviderPluginCapabilities,
     pub transport_capabilities: Option<ProviderTransportCapabilities>,
 }
@@ -84,6 +85,73 @@ pub struct BundledProviderDefaultModel {
     pub model: &'static str,
     pub name: &'static str,
     pub reasoning: bool,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderAuthChoice {
+    pub plugin_id: String,
+    pub provider: String,
+    pub method: String,
+    pub choice_id: String,
+    pub deprecated_choice_ids: Vec<String>,
+    pub choice_label: String,
+    pub choice_hint: Option<String>,
+    pub group_id: String,
+    pub group_label: String,
+    pub group_hint: Option<String>,
+    pub option_key: Option<String>,
+    pub cli_flag: Option<String>,
+    pub cli_option: Option<String>,
+    pub cli_description: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderSetupOption {
+    pub plugin_id: String,
+    pub provider: String,
+    pub method: String,
+    pub value: String,
+    pub label: String,
+    pub hint: Option<String>,
+    pub group_id: String,
+    pub group_label: String,
+    pub group_hint: Option<String>,
+    pub onboarding_scopes: Vec<String>,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderModelPickerEntry {
+    pub provider: &'static str,
+    pub method: &'static str,
+    pub value: &'static str,
+    pub label: &'static str,
+    pub hint: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledProviderUsageDescriptor {
+    pub provider: &'static str,
+    pub display_name: &'static str,
+    pub auth_provider: &'static str,
+    pub aliases: &'static [&'static str],
+    pub extra_env_keys: &'static [&'static str],
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct BundledWebProviderBoundary {
+    pub surface: &'static str,
+    pub plugin_id: &'static str,
+    pub provider: &'static str,
+    pub label: &'static str,
+    pub product_boundary: &'static str,
+    pub execution_runtime: &'static str,
+    pub runtime_major: Option<u16>,
+    pub sidecar: Option<&'static str>,
 }
 
 pub const BUNDLED_PROVIDER_PLUGINS: &[BundledProviderPlugin] = &[
@@ -1041,6 +1109,105 @@ pub const BUNDLED_PROVIDER_DEFAULT_MODELS: &[BundledProviderDefaultModel] = &[
     },
 ];
 
+pub const BUNDLED_PROVIDER_MODEL_PICKERS: &[BundledProviderModelPickerEntry] = &[
+    BundledProviderModelPickerEntry {
+        provider: "ollama",
+        method: "local",
+        value: "provider-plugin:ollama:local",
+        label: "Ollama (custom)",
+        hint: "Detect models from a local or remote Ollama instance",
+    },
+    BundledProviderModelPickerEntry {
+        provider: "sglang",
+        method: "custom",
+        value: "provider-plugin:sglang:custom",
+        label: "SGLang (custom)",
+        hint: "Enter SGLang URL + API key + model",
+    },
+    BundledProviderModelPickerEntry {
+        provider: "vllm",
+        method: "custom",
+        value: "provider-plugin:vllm:custom",
+        label: "vLLM (custom)",
+        hint: "Enter vLLM URL + API key + model",
+    },
+];
+
+pub const BUNDLED_PROVIDER_USAGE_DESCRIPTORS: &[BundledProviderUsageDescriptor] = &[
+    BundledProviderUsageDescriptor {
+        provider: "anthropic",
+        display_name: "Claude",
+        auth_provider: "anthropic",
+        aliases: &["anthropic", "claude"],
+        extra_env_keys: &[],
+    },
+    BundledProviderUsageDescriptor {
+        provider: "github-copilot",
+        display_name: "Copilot",
+        auth_provider: "github-copilot",
+        aliases: &["github-copilot"],
+        extra_env_keys: &["GITHUB_COPILOT_TOKEN", "GH_COPILOT_TOKEN"],
+    },
+    BundledProviderUsageDescriptor {
+        provider: "google-gemini-cli",
+        display_name: "Gemini",
+        auth_provider: "google",
+        aliases: &["google-gemini-cli", "gemini", "google-gemini", "google"],
+        extra_env_keys: &[],
+    },
+    BundledProviderUsageDescriptor {
+        provider: "minimax",
+        display_name: "MiniMax",
+        auth_provider: "minimax",
+        aliases: &["minimax"],
+        extra_env_keys: &["MINIMAX_CODE_PLAN_KEY"],
+    },
+    BundledProviderUsageDescriptor {
+        provider: "openai-codex",
+        display_name: "Codex",
+        auth_provider: "openai",
+        aliases: &["openai-codex", "openai"],
+        extra_env_keys: &["OPENAI_CODEX_TOKEN"],
+    },
+    BundledProviderUsageDescriptor {
+        provider: "xiaomi",
+        display_name: "Xiaomi",
+        auth_provider: "xiaomi",
+        aliases: &["xiaomi"],
+        extra_env_keys: &[],
+    },
+    BundledProviderUsageDescriptor {
+        provider: "zai",
+        display_name: "z.ai",
+        auth_provider: "zai",
+        aliases: &["zai", "z-ai"],
+        extra_env_keys: &[],
+    },
+];
+
+pub const BUNDLED_WEB_PROVIDER_BOUNDARIES: &[BundledWebProviderBoundary] = &[
+    BundledWebProviderBoundary {
+        surface: "web-search",
+        plugin_id: "open-websearch",
+        provider: "open-websearch",
+        label: "Open-WebSearch",
+        product_boundary: "rust-native-plugin",
+        execution_runtime: "node-ts-js",
+        runtime_major: Some(24),
+        sidecar: Some("open-websearch"),
+    },
+    BundledWebProviderBoundary {
+        surface: "web-fetch",
+        plugin_id: "scrapling-fetch",
+        provider: "scrapling",
+        label: "Scrapling",
+        product_boundary: "rust-native-plugin",
+        execution_runtime: "rust-static-fetch+python-http-sidecar",
+        runtime_major: None,
+        sidecar: Some("scrapling"),
+    },
+];
+
 pub fn native_provider_transports() -> Vec<ProviderTransport> {
     NATIVE_PROVIDER_TRANSPORTS.to_vec()
 }
@@ -1061,6 +1228,43 @@ pub fn bundled_provider_plugin_metadata() -> Vec<BundledProviderPluginMetadata> 
         .iter()
         .map(|(plugin_id, raw)| parse_bundled_provider_plugin_metadata(plugin_id, raw))
         .collect()
+}
+
+pub fn bundled_provider_auth_choices() -> Vec<BundledProviderAuthChoice> {
+    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+        .iter()
+        .flat_map(|(plugin_id, raw)| parse_bundled_provider_auth_choices(plugin_id, raw))
+        .collect()
+}
+
+pub fn bundled_provider_setup_options() -> Vec<BundledProviderSetupOption> {
+    bundled_provider_auth_choices()
+        .into_iter()
+        .map(|choice| BundledProviderSetupOption {
+            plugin_id: choice.plugin_id,
+            provider: choice.provider,
+            method: choice.method,
+            value: choice.choice_id,
+            label: choice.choice_label,
+            hint: choice.choice_hint,
+            group_id: choice.group_id,
+            group_label: choice.group_label,
+            group_hint: choice.group_hint,
+            onboarding_scopes: Vec::new(),
+        })
+        .collect()
+}
+
+pub fn bundled_provider_model_picker_entries() -> Vec<BundledProviderModelPickerEntry> {
+    BUNDLED_PROVIDER_MODEL_PICKERS.to_vec()
+}
+
+pub fn bundled_provider_usage_descriptors() -> Vec<BundledProviderUsageDescriptor> {
+    BUNDLED_PROVIDER_USAGE_DESCRIPTORS.to_vec()
+}
+
+pub fn bundled_web_provider_boundaries() -> Vec<BundledWebProviderBoundary> {
+    BUNDLED_WEB_PROVIDER_BOUNDARIES.to_vec()
 }
 
 pub fn bundled_provider_descriptors() -> Vec<BundledProviderDescriptor> {
@@ -1097,6 +1301,233 @@ pub fn bundled_provider_default_model_for(provider: &str) -> Option<BundledProvi
 
 pub fn bundled_provider_default_models() -> Vec<BundledProviderDefaultModel> {
     BUNDLED_PROVIDER_DEFAULT_MODELS.to_vec()
+}
+
+pub fn provider_config_schema() -> Value {
+    json!({
+        "version": "rust-provider-config-v1",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "models": {
+                    "type": "object",
+                    "properties": {
+                        "mode": {
+                            "type": "string",
+                            "enum": ["merge", "replace"]
+                        },
+                        "providers": {
+                            "type": "object",
+                            "additionalProperties": provider_config_schema_provider_entry()
+                        }
+                    }
+                }
+            }
+        },
+        "uiHints": provider_config_ui_hints()
+    })
+}
+
+pub fn provider_config_schema_lookup(path: &str) -> Value {
+    let children = match path.trim() {
+        "" => vec![config_lookup_child("models", "models", "Model Providers")],
+        "models" => vec![
+            config_lookup_child("mode", "models.mode", "Model Catalog Mode"),
+            config_lookup_child("providers", "models.providers", "Model Providers"),
+        ],
+        "models.providers" => vec![config_lookup_child("*", "models.providers.*", "Provider Entry")],
+        "models.providers.*" => vec![
+            config_lookup_child("baseUrl", "models.providers.*.baseUrl", "Model Provider Base URL"),
+            config_lookup_child("apiKey", "models.providers.*.apiKey", "Model Provider API Key"),
+            config_lookup_child("auth", "models.providers.*.auth", "Model Provider Auth Mode"),
+            config_lookup_child("api", "models.providers.*.api", "Model Provider API Adapter"),
+            config_lookup_child(
+                "injectNumCtxForOpenAICompat",
+                "models.providers.*.injectNumCtxForOpenAICompat",
+                "Model Provider Inject num_ctx (OpenAI Compat)",
+            ),
+            config_lookup_child("headers", "models.providers.*.headers", "Model Provider Headers"),
+            config_lookup_child("authHeader", "models.providers.*.authHeader", "Model Provider Authorization Header"),
+            config_lookup_child("models", "models.providers.*.models", "Model Provider Model List"),
+        ],
+        "models.providers.*.headers" => {
+            vec![config_lookup_child("*", "models.providers.*.headers.*", "Model Provider Header")]
+        }
+        _ => Vec::new(),
+    };
+    json!({ "path": path, "children": children })
+}
+
+fn provider_config_schema_provider_entry() -> Value {
+    json!({
+        "type": "object",
+        "properties": {
+            "baseUrl": { "type": "string" },
+            "apiKey": secret_input_schema(),
+            "auth": {
+                "type": "string",
+                "enum": ["api-key", "aws-sdk", "oauth", "token"]
+            },
+            "api": {
+                "type": "string",
+                "enum": [
+                    "openai-completions",
+                    "openai-responses",
+                    "openai-codex-responses",
+                    "anthropic-messages",
+                    "google-generative-ai",
+                    "github-copilot",
+                    "bedrock-converse-stream",
+                    "ollama",
+                    "azure-openai-responses"
+                ]
+            },
+            "injectNumCtxForOpenAICompat": { "type": "boolean" },
+            "headers": {
+                "type": "object",
+                "additionalProperties": secret_input_schema()
+            },
+            "authHeader": { "type": "boolean" },
+            "models": {
+                "type": "array",
+                "items": model_definition_schema()
+            }
+        }
+    })
+}
+
+fn model_definition_schema() -> Value {
+    json!({
+        "type": "object",
+        "required": ["id", "name", "reasoning", "input", "cost", "contextWindow", "maxTokens"],
+        "properties": {
+            "id": { "type": "string" },
+            "name": { "type": "string" },
+            "api": {
+                "type": "string",
+                "enum": [
+                    "openai-completions",
+                    "openai-responses",
+                    "openai-codex-responses",
+                    "anthropic-messages",
+                    "google-generative-ai",
+                    "github-copilot",
+                    "bedrock-converse-stream",
+                    "ollama",
+                    "azure-openai-responses"
+                ]
+            },
+            "reasoning": { "type": "boolean" },
+            "input": {
+                "type": "array",
+                "items": { "type": "string", "enum": ["text", "image"] }
+            },
+            "cost": {
+                "type": "object",
+                "required": ["input", "output", "cacheRead", "cacheWrite"],
+                "properties": {
+                    "input": { "type": "number" },
+                    "output": { "type": "number" },
+                    "cacheRead": { "type": "number" },
+                    "cacheWrite": { "type": "number" }
+                }
+            },
+            "contextWindow": { "type": "integer" },
+            "maxTokens": { "type": "integer" },
+            "headers": {
+                "type": "object",
+                "additionalProperties": { "type": "string" }
+            },
+            "compat": { "type": "object", "additionalProperties": true }
+        }
+    })
+}
+
+fn secret_input_schema() -> Value {
+    json!({
+        "oneOf": [
+            { "type": "string" },
+            {
+                "type": "object",
+                "required": ["source", "id"],
+                "properties": {
+                    "source": { "type": "string", "enum": ["env", "file", "exec"] },
+                    "id": { "type": "string" }
+                }
+            }
+        ]
+    })
+}
+
+fn provider_config_ui_hints() -> Value {
+    json!({
+        "models": {
+            "label": "Models",
+            "help": "Model catalog and provider connection settings.",
+            "tags": ["models"]
+        },
+        "models.mode": {
+            "label": "Model Catalog Mode",
+            "help": "Controls provider catalog behavior: merge keeps built-ins and overlays custom providers; replace uses only configured providers.",
+            "tags": ["models"]
+        },
+        "models.providers": {
+            "label": "Model Providers",
+            "help": "Provider map keyed by provider ID containing connection/auth settings and concrete model definitions.",
+            "tags": ["models"]
+        },
+        "models.providers.*.baseUrl": {
+            "label": "Model Provider Base URL",
+            "help": "Base URL for the provider endpoint used to serve model requests for that provider entry.",
+            "tags": ["models", "url-secret"]
+        },
+        "models.providers.*.apiKey": {
+            "label": "Model Provider API Key",
+            "help": "Provider credential used for API-key based authentication when the provider requires direct key auth.",
+            "tags": ["security", "auth", "models"],
+            "sensitive": true
+        },
+        "models.providers.*.auth": {
+            "label": "Model Provider Auth Mode",
+            "help": "Selects provider auth style: api-key, token, oauth, or aws-sdk.",
+            "tags": ["models"]
+        },
+        "models.providers.*.api": {
+            "label": "Model Provider API Adapter",
+            "help": "Provider API adapter selection controlling request/response compatibility handling for model calls.",
+            "tags": ["models"]
+        },
+        "models.providers.*.injectNumCtxForOpenAICompat": {
+            "label": "Model Provider Inject num_ctx (OpenAI Compat)",
+            "help": "Controls whether CrawClaw injects options.num_ctx for Ollama providers configured with the OpenAI-compatible adapter.",
+            "tags": ["models"]
+        },
+        "models.providers.*.headers": {
+            "label": "Model Provider Headers",
+            "help": "Static HTTP headers merged into provider requests for tenant routing, proxy auth, or custom gateway requirements.",
+            "tags": ["models"]
+        },
+        "models.providers.*.headers.*": {
+            "label": "Model Provider Header",
+            "help": "Header value for a model provider request.",
+            "tags": ["security", "auth", "models"],
+            "sensitive": true
+        },
+        "models.providers.*.authHeader": {
+            "label": "Model Provider Authorization Header",
+            "help": "Force credential transport in the Authorization header when required.",
+            "tags": ["models"]
+        },
+        "models.providers.*.models": {
+            "label": "Model Provider Model List",
+            "help": "Concrete model definitions exposed by this provider.",
+            "tags": ["models"]
+        }
+    })
+}
+
+fn config_lookup_child(key: &str, path: &str, label: &str) -> Value {
+    json!({ "key": key, "path": path, "label": label })
 }
 
 fn parse_bundled_provider_plugin_metadata(
@@ -1158,11 +1589,82 @@ fn parse_bundled_provider_plugin_metadata(
     }
 }
 
+fn parse_bundled_provider_auth_choices(
+    plugin_id: &str,
+    raw: &str,
+) -> Vec<BundledProviderAuthChoice> {
+    let manifest = serde_json::from_str::<Value>(raw).unwrap_or_else(|_| json!({}));
+    manifest
+        .get("providerAuthChoices")
+        .and_then(Value::as_array)
+        .map(|choices| {
+            choices
+                .iter()
+                .filter_map(|choice| parse_bundled_provider_auth_choice(plugin_id, choice))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn parse_bundled_provider_auth_choice(
+    plugin_id: &str,
+    choice: &Value,
+) -> Option<BundledProviderAuthChoice> {
+    let provider = string_field(choice, "provider")?;
+    let method = string_field(choice, "method")?;
+    let choice_id = string_field(choice, "choiceId")?;
+    let choice_label = string_field(choice, "choiceLabel")?;
+    let group_id = string_field(choice, "groupId").unwrap_or_else(|| provider.clone());
+    let group_label = string_field(choice, "groupLabel").unwrap_or_else(|| choice_label.clone());
+    Some(BundledProviderAuthChoice {
+        plugin_id: plugin_id.to_string(),
+        provider,
+        method,
+        choice_id,
+        deprecated_choice_ids: string_array_field(choice, "deprecatedChoiceIds"),
+        choice_label,
+        choice_hint: string_field(choice, "choiceHint"),
+        group_id,
+        group_label,
+        group_hint: string_field(choice, "groupHint"),
+        option_key: string_field(choice, "optionKey"),
+        cli_flag: string_field(choice, "cliFlag"),
+        cli_option: string_field(choice, "cliOption"),
+        cli_description: string_field(choice, "cliDescription"),
+    })
+}
+
+fn string_field(value: &Value, key: &str) -> Option<String> {
+    value
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|raw| !raw.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn string_array_field(value: &Value, key: &str) -> Vec<String> {
+    value
+        .get(key)
+        .and_then(Value::as_array)
+        .map(|values| {
+            values
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|raw| !raw.is_empty())
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
 fn parse_bundled_provider_descriptors(
     plugin_id: &str,
     raw: &str,
 ) -> Vec<BundledProviderDescriptor> {
     let metadata = parse_bundled_provider_plugin_metadata(plugin_id, raw);
+    let auth_methods = parse_bundled_provider_auth_choices(plugin_id, raw);
     metadata
         .providers
         .iter()
@@ -1184,6 +1686,11 @@ fn parse_bundled_provider_descriptors(
                 default_model: default_model.map(|entry| entry.model.to_string()),
                 auth_env_vars,
                 auth_choices: metadata.auth_choices.clone(),
+                auth_methods: auth_methods
+                    .iter()
+                    .filter(|choice| choice.provider == *provider)
+                    .cloned()
+                    .collect(),
                 capabilities: metadata.capabilities,
                 transport_capabilities: transport.map(|entry| entry.capabilities),
             }
@@ -2618,6 +3125,59 @@ mod tests {
     }
 
     #[test]
+    fn bundled_provider_product_surfaces_are_rust_authoritative() {
+        let auth_choices = bundled_provider_auth_choices();
+        assert!(auth_choices.iter().any(|choice| {
+            choice.plugin_id == "openai"
+                && choice.provider == "openai"
+                && choice.method == "api-key"
+                && choice.choice_id == "openai-api-key"
+                && choice.cli_flag.as_deref() == Some("--openai-api-key")
+        }));
+        assert!(auth_choices.iter().any(|choice| {
+            choice.plugin_id == "minimax"
+                && choice.provider == "minimax-portal"
+                && choice.method == "oauth"
+                && choice.choice_id == "minimax-global-oauth"
+        }));
+
+        let setup_options = bundled_provider_setup_options();
+        assert!(setup_options.iter().any(|choice| {
+            choice.provider == "github-copilot"
+                && choice.value == "github-copilot"
+                && choice.label == "GitHub Copilot"
+        }));
+
+        let model_pickers = bundled_provider_model_picker_entries();
+        assert!(model_pickers.iter().any(|entry| {
+            entry.provider == "ollama"
+                && entry.method == "local"
+                && entry.value == "provider-plugin:ollama:local"
+        }));
+
+        let usage_descriptors = bundled_provider_usage_descriptors();
+        assert!(usage_descriptors.iter().any(|entry| {
+            entry.provider == "openai-codex"
+                && entry.auth_provider == "openai"
+                && entry.extra_env_keys.contains(&"OPENAI_CODEX_TOKEN")
+        }));
+
+        let web_boundaries = bundled_web_provider_boundaries();
+        assert!(web_boundaries.iter().any(|entry| {
+            entry.surface == "web-search"
+                && entry.provider == "open-websearch"
+                && entry.product_boundary == "rust-native-plugin"
+                && entry.execution_runtime == "node-ts-js"
+                && entry.runtime_major == Some(24)
+        }));
+        assert!(web_boundaries.iter().any(|entry| {
+            entry.surface == "web-fetch"
+                && entry.provider == "scrapling"
+                && entry.product_boundary == "rust-native-plugin"
+        }));
+    }
+
+    #[test]
     fn native_chat_transports_cover_all_chat_provider_plugins() {
         let native = native_provider_ids().into_iter().collect::<BTreeSet<_>>();
         let missing = bundled_provider_ids()
@@ -2629,6 +3189,55 @@ mod tests {
 
         assert_eq!(missing, Vec::<&str>::new());
         assert!(!native.contains("fal"));
+    }
+
+    #[test]
+    fn rust_provider_config_schema_owns_model_provider_fields() {
+        let schema = provider_config_schema();
+        assert_eq!(schema["version"], "rust-provider-config-v1");
+        assert_eq!(schema["schema"]["type"], "object");
+        assert_eq!(
+            schema["schema"]["properties"]["models"]["properties"]["providers"]
+                ["additionalProperties"]["properties"]["baseUrl"]["type"],
+            "string"
+        );
+        assert_eq!(
+            schema["schema"]["properties"]["models"]["properties"]["providers"]
+                ["additionalProperties"]["properties"]["apiKey"]["oneOf"][0]["type"],
+            "string"
+        );
+        assert_eq!(
+            schema["schema"]["properties"]["models"]["properties"]["providers"]
+                ["additionalProperties"]["properties"]["models"]["items"]["required"],
+            json!(["id", "name", "reasoning", "input", "cost", "contextWindow", "maxTokens"])
+        );
+        assert_eq!(
+            schema["uiHints"]["models.providers.*.apiKey"]["sensitive"],
+            true
+        );
+        assert!(schema["uiHints"].get("plugins.entries.*.hooks").is_none());
+    }
+
+    #[test]
+    fn rust_provider_config_schema_lookup_lists_provider_children() {
+        let lookup = provider_config_schema_lookup("models.providers.*");
+        let paths = lookup["children"]
+            .as_array()
+            .expect("children")
+            .iter()
+            .filter_map(|child| child.get("path").and_then(Value::as_str))
+            .collect::<BTreeSet<_>>();
+        assert!(paths.contains("models.providers.*.baseUrl"));
+        assert!(paths.contains("models.providers.*.apiKey"));
+        assert!(paths.contains("models.providers.*.api"));
+        assert!(paths.contains("models.providers.*.models"));
+
+        let root = provider_config_schema_lookup("");
+        assert!(root["children"]
+            .as_array()
+            .expect("root children")
+            .iter()
+            .any(|child| child["path"] == "models"));
     }
 
     #[test]

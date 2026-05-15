@@ -16,8 +16,7 @@ reference for **what to import** and **what you can register**.
 <Tip>
   **Looking for a how-to guide?**
   - First plugin? Start with [Getting Started](/plugins/building-plugins)
-  - Channel plugin? See [Channel Plugins](/plugins/sdk-channel-plugins)
-  - Provider plugin? See [Provider Plugins](/plugins/sdk-provider-plugins)
+  - Model provider config? See [Provider Configuration](/plugins/sdk-provider-plugins)
 </Tip>
 
 ## Import convention
@@ -26,7 +25,6 @@ Always import from a specific subpath:
 
 ```typescript
 import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
-import { defineChannelPluginEntry } from "crawclaw/plugin-sdk/core";
 ```
 
 Each subpath is a small, self-contained module. This keeps startup fast and
@@ -39,26 +37,23 @@ subpaths is in `scripts/lib/plugin-sdk-entrypoints.json`.
 
 ### Plugin entry
 
-| Subpath                   | Key exports                                                                                                                            |
-| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| `plugin-sdk/plugin-entry` | `definePluginEntry`                                                                                                                    |
-| `plugin-sdk/core`         | Generic plugin entry types and shared plugin helpers                                                                                    |
+| Subpath                   | Key exports                                          |
+| ------------------------- | ---------------------------------------------------- |
+| `plugin-sdk/plugin-entry` | `definePluginEntry`                                  |
+| `plugin-sdk/core`         | Generic plugin entry types and shared plugin helpers |
 
 TypeScript channel SDK subpaths have been removed. Channel plugins should use the Rust-native
 channel plugin contract.
 
 <AccordionGroup>
 
-  <Accordion title="Provider subpaths">
+  <Accordion title="Provider and web capability subpaths">
     | Subpath | Key exports |
     | --- | --- |
     | `plugin-sdk/local-process-backend` | local process backend defaults + watchdog constants |
-    | `plugin-sdk/provider-auth` | `createProviderApiKeyAuthMethod`, `ensureApiKeyFromOptionEnvOrPrompt`, `upsertAuthProfile` |
-    | `plugin-sdk/provider-model-shared` | `normalizeModelCompat` |
-    | `plugin-sdk/provider-catalog-shared` | `findCatalogTemplate`, `buildSingleProviderApiKeyCatalog` |
     | `plugin-sdk/provider-usage` | `fetchClaudeUsage` and similar |
-    | `plugin-sdk/provider-stream` | Stream wrapper types |
-    | `plugin-sdk/provider-onboard` | Onboarding config patch helpers |
+    | `plugin-sdk/provider-web-fetch` | Web fetch provider helpers |
+    | `plugin-sdk/provider-web-search` | Web search provider helpers |
     | `plugin-sdk/global-singleton` | Process-local singleton/map/cache helpers |
   </Accordion>
 
@@ -108,9 +103,7 @@ methods:
 
 | Method                                        | What it registers              |
 | --------------------------------------------- | ------------------------------ |
-| `api.registerProvider(...)`                   | Text inference (LLM)           |
 | `api.registerCliBackend(...)`                 | Local Local process backend    |
-| `api.registerChannel(...)`                    | Messaging channel              |
 | `api.registerSpeechProvider(...)`             | Text-to-speech / STT synthesis |
 | `api.registerMediaUnderstandingProvider(...)` | Image/audio/video analysis     |
 | `api.registerWebSearchProvider(...)`          | Web search                     |
@@ -126,48 +119,15 @@ methods:
 
 | Method                                     | What it registers     |
 | ------------------------------------------ | --------------------- |
-| `api.registerHook(events, handler, opts?)` | Event hook            |
 | `api.registerHttpRoute(params)`            | Gateway HTTP endpoint |
 | `api.registerGatewayMethod(name, handler)` | Gateway RPC method    |
-| `api.registerCli(registrar, opts?)`        | CLI subcommand        |
 | `api.registerService(service)`             | Background service    |
 
-### CLI registration metadata
+### Desktop and Gateway actions
 
-`api.registerCli(registrar, opts?)` accepts two kinds of top-level metadata:
-
-- `commands`: explicit command roots owned by the registrar
-- `descriptors`: parse-time command descriptors used for root CLI help,
-  routing, and lazy plugin CLI registration
-
-If you want a plugin command to stay lazy-loaded in the normal root CLI path,
-provide `descriptors` that cover every top-level command root exposed by that
-registrar. Set `descriptionZhCN` when the plugin has a zh-CN root-help label;
-CrawClaw uses the English `description` for the default locale and swaps in
-`descriptionZhCN` when the root CLI runs with `--lang zh-CN`.
-
-```typescript
-api.registerCli(
-  async ({ program }) => {
-    const { registerMatrixCli } = await import("./src/cli.js");
-    registerMatrixCli({ program });
-  },
-  {
-    descriptors: [
-      {
-        name: "matrix",
-        description: "Manage Matrix accounts, verification, devices, and profile state",
-        descriptionZhCN: "管理 Matrix 账号、验证、设备和资料状态",
-        hasSubcommands: true,
-      },
-    ],
-  },
-);
-```
-
-Use `commands` by itself only when you do not need lazy root CLI registration.
-That eager compatibility path remains supported, but it does not install
-descriptor-backed placeholders for parse-time lazy loading.
+Plugin-owned user actions should be exposed through Desktop UI surfaces or
+Gateway methods. Use `api.registerGatewayMethod(name, handler, opts?)` for
+local automation and API control-plane operations.
 
 ### local process backend registration
 
@@ -194,38 +154,28 @@ exclusive plugin slot still supported is `kind: "memory"` via plugin manifests.
 or more embedding adapter ids (for example `openai`, `gemini`, or a custom
 plugin-defined id).
 
-### Events and lifecycle
+### Events
 
 | Method                                       | What it does                  |
 | -------------------------------------------- | ----------------------------- |
-| `api.on(hookName, handler, opts?)`           | Typed lifecycle hook          |
 | `api.onConversationBindingResolved(handler)` | Conversation binding callback |
-
-### Hook decision semantics
-
-- `before_tool_call`: returning `{ block: true }` is terminal. Once any handler sets it, lower-priority handlers are skipped.
-- `before_tool_call`: returning `{ block: false }` is treated as no decision (same as omitting `block`), not as an override.
-- `before_install`: returning `{ block: true }` is terminal. Once any handler sets it, lower-priority handlers are skipped.
-- `before_install`: returning `{ block: false }` is treated as no decision (same as omitting `block`), not as an override.
-- `message_sending`: returning `{ cancel: true }` is terminal. Once any handler sets it, lower-priority handlers are skipped.
-- `message_sending`: returning `{ cancel: false }` is treated as no decision (same as omitting `cancel`), not as an override.
 
 ### API object fields
 
-| Field                    | Type                      | Description                                                      |
-| ------------------------ | ------------------------- | ---------------------------------------------------------------- |
-| `api.id`                 | `string`                  | Plugin id                                                        |
-| `api.name`               | `string`                  | Display name                                                     |
-| `api.version`            | `string?`                 | Plugin version (optional)                                        |
-| `api.description`        | `string?`                 | Plugin description (optional)                                    |
-| `api.source`             | `string`                  | Plugin source path                                               |
-| `api.rootDir`            | `string?`                 | Plugin root directory (optional)                                 |
-| `api.config`             | `CrawClawConfig`          | Current config snapshot                                          |
-| `api.pluginConfig`       | `Record<string, unknown>` | Plugin-specific config from `plugins.entries.<id>.config`        |
-| `api.runtime`            | `PluginRuntime`           | [Runtime helpers](/plugins/sdk-runtime)                          |
-| `api.logger`             | `PluginLogger`            | Scoped logger (`debug`, `info`, `warn`, `error`)                 |
-| `api.registrationMode`   | `PluginRegistrationMode`  | `"full"`, `"setup-only"`, `"setup-runtime"`, or `"cli-metadata"` |
-| `api.resolvePath(input)` | `(string) => string`      | Resolve path relative to plugin root                             |
+| Field                    | Type                      | Description                                               |
+| ------------------------ | ------------------------- | --------------------------------------------------------- |
+| `api.id`                 | `string`                  | Plugin id                                                 |
+| `api.name`               | `string`                  | Display name                                              |
+| `api.version`            | `string?`                 | Plugin version (optional)                                 |
+| `api.description`        | `string?`                 | Plugin description (optional)                             |
+| `api.source`             | `string`                  | Plugin source path                                        |
+| `api.rootDir`            | `string?`                 | Plugin root directory (optional)                          |
+| `api.config`             | `CrawClawConfig`          | Current config snapshot                                   |
+| `api.pluginConfig`       | `Record<string, unknown>` | Plugin-specific config from `plugins.entries.<id>.config` |
+| `api.runtime`            | `PluginRuntime`           | [Runtime helpers](/plugins/sdk-runtime)                   |
+| `api.logger`             | `PluginLogger`            | Scoped logger (`debug`, `info`, `warn`, `error`)          |
+| `api.registrationMode`   | `PluginRegistrationMode`  | `"full"`, `"setup-only"`, or `"setup-runtime"`            |
+| `api.resolvePath(input)` | `(string) => string`      | Resolve path relative to plugin root                      |
 
 ## Internal module convention
 
@@ -248,13 +198,13 @@ my-plugin/
 <Warning>
   Extension production code should also avoid `crawclaw/plugin-sdk/<other-plugin>`
   imports. If a helper is truly shared, promote it to a neutral SDK subpath
-  such as `crawclaw/plugin-sdk/speech`, `.../provider-model-shared`, or another
-  capability-oriented surface instead of coupling two plugins together.
+  such as `crawclaw/plugin-sdk/speech` or another capability-oriented surface
+  instead of coupling two plugins together.
 </Warning>
 
 ## Related
 
-- [Entry Points](/plugins/sdk-entrypoints) — `definePluginEntry` and `defineChannelPluginEntry` options
+- [Entry Points](/plugins/sdk-entrypoints) — `definePluginEntry` options
 - [Runtime Helpers](/plugins/sdk-runtime) — full `api.runtime` namespace reference
 - [Setup and Config](/plugins/sdk-setup) — packaging, manifests, config schemas
 - [Testing](/plugins/sdk-testing) — test utilities and lint rules

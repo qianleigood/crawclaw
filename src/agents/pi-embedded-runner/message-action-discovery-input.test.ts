@@ -5,7 +5,7 @@ describe("buildEmbeddedMessageActionDiscoveryInput", () => {
   it("maps sender and routing scope into message-action discovery context", () => {
     expect(
       buildEmbeddedMessageActionDiscoveryInput({
-        channel: "telegram",
+        channel: "feishu",
         currentChannelId: "chat-1",
         currentThreadTs: "thread-9",
         currentMessageId: "msg-42",
@@ -17,7 +17,7 @@ describe("buildEmbeddedMessageActionDiscoveryInput", () => {
       }),
     ).toEqual({
       cfg: undefined,
-      channel: "telegram",
+      channel: "feishu",
       currentChannelId: "chat-1",
       currentThreadTs: "thread-9",
       currentMessageId: "msg-42",
@@ -32,7 +32,7 @@ describe("buildEmbeddedMessageActionDiscoveryInput", () => {
   it("normalizes nullable routing fields to undefined", () => {
     expect(
       buildEmbeddedMessageActionDiscoveryInput({
-        channel: "slack",
+        channel: "ddingtalk",
         currentChannelId: null,
         currentThreadTs: null,
         currentMessageId: null,
@@ -44,7 +44,7 @@ describe("buildEmbeddedMessageActionDiscoveryInput", () => {
       }),
     ).toEqual({
       cfg: undefined,
-      channel: "slack",
+      channel: "ddingtalk",
       currentChannelId: undefined,
       currentThreadTs: undefined,
       currentMessageId: undefined,

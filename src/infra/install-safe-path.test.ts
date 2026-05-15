@@ -13,8 +13,8 @@ import {
 
 describe("unscopedPackageName", () => {
   it.each([
-    { value: "@crawclaw/matrix", expected: "matrix" },
-    { value: " matrix ", expected: "matrix" },
+    { value: "@crawclaw/feishu", expected: "feishu" },
+    { value: " feishu ", expected: "feishu" },
     { value: "", expected: "" },
   ])("normalizes package names for %j", ({ value, expected }) => {
     expect(unscopedPackageName(value)).toBe(expected);
@@ -23,11 +23,11 @@ describe("unscopedPackageName", () => {
 
 describe("packageNameMatchesId", () => {
   it.each([
-    { packageName: "@crawclaw/matrix", id: "matrix", expected: true },
-    { packageName: "@crawclaw/matrix", id: "@crawclaw/matrix", expected: true },
-    { packageName: "@crawclaw/matrix", id: "signal", expected: false },
-    { packageName: " ", id: "matrix", expected: false },
-    { packageName: "@crawclaw/matrix", id: " ", expected: false },
+    { packageName: "@crawclaw/feishu", id: "feishu", expected: true },
+    { packageName: "@crawclaw/feishu", id: "@crawclaw/feishu", expected: true },
+    { packageName: "@crawclaw/feishu", id: "signal", expected: false },
+    { packageName: " ", id: "feishu", expected: false },
+    { packageName: "@crawclaw/feishu", id: " ", expected: false },
   ])("matches ids for %j", ({ packageName, id, expected }) => {
     expect(packageNameMatchesId(packageName, id)).toBe(expected);
   });
@@ -35,8 +35,8 @@ describe("packageNameMatchesId", () => {
 
 describe("safeDirName", () => {
   it.each([
-    { value: " matrix ", expected: "matrix" },
-    { value: "../matrix/plugin", expected: "..__matrix__plugin" },
+    { value: " feishu ", expected: "feishu" },
+    { value: "../feishu/plugin", expected: "..__feishu__plugin" },
     { value: "dir\\plugin", expected: "dir__plugin" },
   ])("normalizes install dir names for %j", ({ value, expected }) => {
     expect(safeDirName(value)).toBe(expected);
@@ -74,12 +74,12 @@ describe("resolveSafeInstallDir", () => {
     expect(
       resolveSafeInstallDir({
         baseDir: "/tmp/plugins",
-        id: "@crawclaw/matrix",
+        id: "@crawclaw/feishu",
         invalidNameMessage: "invalid plugin name",
       }),
     ).toEqual({
       ok: true,
-      path: path.join("/tmp/plugins", "@crawclaw__matrix"),
+      path: path.join("/tmp/plugins", "@crawclaw__feishu"),
     });
   });
 

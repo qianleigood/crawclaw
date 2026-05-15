@@ -11,7 +11,7 @@ title: "macOS VMs"
 - **Small Linux VPS** for an always-on Gateway and low cost. See [VPS hosting](/vps).
 - **Dedicated hardware** (Mac mini or Linux box) if you want full control and a **residential IP** for browser automation. Many sites block data center IPs, so local browsing often works better.
 
-Use a macOS VM when you specifically need macOS-only capabilities (iMessage/BlueBubbles) or want strict isolation from your daily Mac.
+Use a macOS VM when you specifically need macOS-only capabilities (Weixin/Weixin) or want strict isolation from your daily Mac.
 
 ## macOS VM options
 
@@ -20,7 +20,7 @@ Use a macOS VM when you specifically need macOS-only capabilities (iMessage/Blue
 This gives you:
 
 - Full macOS environment in isolation (your host stays clean)
-- iMessage support via BlueBubbles (impossible on Linux/Windows)
+- Weixin support via Weixin (impossible on Linux/Windows)
 - Instant reset by cloning VMs
 - No extra hardware or cloud costs
 
@@ -58,7 +58,7 @@ Once you have SSH access to a macOS VM, continue at step 6 below.
 ## 1) Install Lume
 
 ```bash
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/lume/scripts/install.sh)"
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/lume/scripts/CrawClaw Desktop installer)"
 ```
 
 If `~/.local/bin` isn't in your PATH:
@@ -94,7 +94,7 @@ Note: The download can take a while depending on your connection.
 In the VNC window:
 
 1. Select language and region
-2. Skip Apple ID (or sign in if you want iMessage later)
+2. Skip Apple ID (or sign in if you want Weixin later)
 3. Create a user account (remember the username and password)
 4. Skip all optional features
 
@@ -151,18 +151,18 @@ Add your channels:
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "allowlist",
       allowFrom: ["+15551234567"],
     },
-    telegram: {
+    feishu: {
       botToken: "YOUR_BOT_TOKEN",
     },
   },
 }
 ```
 
-Then login to WhatsApp (scan QR):
+Then login to Weixin (scan QR):
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -189,34 +189,34 @@ ssh youruser@192.168.64.X "CrawClaw Desktop or the local Gateway API
 
 ---
 
-## Bonus: iMessage integration
+## Bonus: Weixin integration
 
-This is the killer feature of running on macOS. Use [BlueBubbles](https://bluebubbles.app) to add iMessage to CrawClaw.
+This is the killer feature of running on macOS. Use [Weixin](https://weixin.app) to add Weixin to CrawClaw.
 
 Inside the VM:
 
-1. Download BlueBubbles from bluebubbles.app
+1. Download Weixin from weixin.app
 2. Sign in with your Apple ID
 3. Enable the Web API and set a password
-4. Point BlueBubbles webhooks at your gateway (example: `https://your-gateway-host:3000/bluebubbles-webhook?password=<password>`)
+4. Point Weixin webhooks at your gateway (example: `https://your-gateway-host:3000/weixin-webhook?password=<password>`)
 
 Add to your CrawClaw config:
 
 ```json5
 {
   channels: {
-    bluebubbles: {
+    weixin: {
       serverUrl: "http://localhost:1234",
       password: "your-api-password",
-      webhookPath: "/bluebubbles-webhook",
+      webhookPath: "/weixin-webhook",
     },
   },
 }
 ```
 
-Restart the gateway. Now your agent can send and receive iMessages.
+Restart the gateway. Now your agent can send and receive Weixins.
 
-Full setup details: [BlueBubbles channel](/channels/bluebubbles)
+Full setup details: [Weixin channel](/channels/index)
 
 ---
 
@@ -253,12 +253,12 @@ For true always-on, consider a dedicated Mac mini or a small VPS. See [VPS hosti
 
 ## Troubleshooting
 
-| Problem                  | Solution                                                                                           |
-| ------------------------ | -------------------------------------------------------------------------------------------------- |
-| Can't SSH into VM        | Check "Remote Login" is enabled in VM's System Settings                                            |
-| VM IP not showing        | Wait for VM to fully boot, run `lume get crawclaw` again                                           |
-| Lume command not found   | Add `~/.local/bin` to your PATH                                                                    |
-| WhatsApp QR not scanning | Ensure you're logged into the VM (not host) when running CrawClaw Desktop or the local Gateway API |
+| Problem                | Solution                                                                                           |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| Can't SSH into VM      | Check "Remote Login" is enabled in VM's System Settings                                            |
+| VM IP not showing      | Wait for VM to fully boot, run `lume get crawclaw` again                                           |
+| Lume command not found | Add `~/.local/bin` to your PATH                                                                    |
+| Weixin QR not scanning | Ensure you're logged into the VM (not host) when running CrawClaw Desktop or the local Gateway API |
 
 ---
 
@@ -266,7 +266,7 @@ For true always-on, consider a dedicated Mac mini or a small VPS. See [VPS hosti
 
 - [VPS hosting](/vps)
 - [Gateway remote](/gateway/remote)
-- [BlueBubbles channel](/channels/bluebubbles)
+- [Weixin channel](/channels/index)
 - [Lume Quickstart](https://cua.ai/docs/lume/guide/getting-started/quickstart)
 - [Lume CLI Reference](https://cua.ai/docs/lume/reference/cli-reference)
 - [Unattended VM Setup](https://cua.ai/docs/lume/guide/fundamentals/unattended-setup) (advanced)

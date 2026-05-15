@@ -35,5 +35,4 @@ describe("thread binding config keys", () => {
 
     expect(result).toEqual({ config: null, changes: [] });
   });
-
 });

@@ -64,10 +64,10 @@ Use this when you want a practical `/acp` runbook:
 
 Examples of natural requests:
 
-- "Bind this Discord channel to Codex."
+- "Bind this QQBot channel to Codex."
 - "Start a persistent Codex session in a thread here and keep it focused."
 - "Run this as a one-shot Claude Code ACP session and summarize the result."
-- "Bind this iMessage chat to Codex and keep follow-ups in the same workspace."
+- "Bind this Weixin chat to Codex and keep follow-ups in the same workspace."
 - "Use Gemini CLI for this task in a thread, then keep follow-ups in that same thread."
 
 What CrawClaw should do:
@@ -111,9 +111,9 @@ Behavior:
 
 What this means in practice:
 
-- `--bind here` keeps the same chat surface. On Discord, the current channel stays the current channel.
+- `--bind here` keeps the same chat surface. On QQBot, the current channel stays the current channel.
 - `--bind here` can still create a new ACP session if you are spawning fresh work. The bind attaches that session to the current conversation.
-- `--bind here` does not create a child Discord thread or Telegram topic by itself.
+- `--bind here` does not create a child QQBot thread or Feishu topic by itself.
 - The ACP runtime can still have its own working directory (`cwd`) or backend-managed workspace on disk. That runtime workspace is separate from the chat surface and does not imply a new messaging thread.
 - Even in `mode: "run"` / oneshot workflows, the ACP wrapper session still gets
   a persisted transcript and task trajectory so completion can be audited after
@@ -121,7 +121,7 @@ What this means in practice:
 
 Mental model:
 
-- chat surface: where people keep talking (`Discord channel`, `Telegram topic`, `iMessage chat`)
+- chat surface: where people keep talking (`QQBot channel`, `Feishu topic`, `Weixin chat`)
 - ACP session: the durable Codex/Claude/Gemini runtime state CrawClaw routes to
 - child thread/topic: an optional extra messaging surface created only by `--thread ...`
 - runtime workspace: the filesystem location where the harness runs (`cwd`, repo checkout, backend workspace)
@@ -142,7 +142,7 @@ Current-conversation binding support:
 Notes:
 
 - `--bind here` and `--thread ...` are mutually exclusive on `/acp spawn`.
-- On Discord, `--bind here` binds the current channel or thread in place. `spawnAcpSessions` is only required when CrawClaw needs to create a child thread for `--thread auto|here`.
+- On QQBot, `--bind here` binds the current channel or thread in place. `spawnAcpSessions` is only required when CrawClaw needs to create a child thread for `--thread auto|here`.
 - If the active channel does not expose current-conversation ACP bindings, CrawClaw returns a clear unsupported message.
 - `resume` and "new session" questions are ACP-session questions, not channel questions. You can reuse or replace runtime state without changing the current chat surface.
 
@@ -162,15 +162,15 @@ Required feature flags for thread-bound ACP:
 - `acp.enabled=true`
 - `acp.dispatch.enabled` is on by default (set `false` to pause ACP dispatch)
 - Channel-adapter ACP thread-spawn flag enabled (adapter-specific)
-  - Discord: `channels.discord.threadBindings.spawnAcpSessions=true`
-  - Telegram: `channels.telegram.threadBindings.spawnAcpSessions=true`
+  - QQBot: `channels.qqbot.threadBindings.spawnAcpSessions=true`
+  - Feishu: `channels.feishu.threadBindings.spawnAcpSessions=true`
 
 ### Thread supporting channels
 
 - Any channel adapter that exposes session/thread binding capability.
 - Current built-in support:
-  - Discord threads/channels
-  - Telegram topics (forum topics in groups/supergroups and DM topics)
+  - QQBot threads/channels
+  - Feishu topics (forum topics in groups/supergroups and DM topics)
 - Plugin channels can add support through the same binding interface.
 
 ## Channel specific settings
@@ -181,11 +181,11 @@ For non-ephemeral workflows, configure persistent ACP bindings in top-level `bin
 
 - `bindings[].type="acp"` marks a persistent ACP conversation binding.
 - `bindings[].match` identifies the target conversation:
-  - Discord channel or thread: `match.channel="discord"` + `match.peer.id="<channelOrThreadId>"`
-  - Telegram forum topic: `match.channel="telegram"` + `match.peer.id="<chatId>:topic:<topicId>"`
-  - BlueBubbles DM/group chat: `match.channel="bluebubbles"` + `match.peer.id="<handle|chat_id:*|chat_guid:*|chat_identifier:*>"`
+  - QQBot channel or thread: `match.channel="qqbot"` + `match.peer.id="<channelOrThreadId>"`
+  - Feishu forum topic: `match.channel="feishu"` + `match.peer.id="<chatId>:topic:<topicId>"`
+  - Weixin DM/group chat: `match.channel="weixin"` + `match.peer.id="<handle|chat_id:*|chat_guid:*|chat_identifier:*>"`
     Prefer `chat_id:*` or `chat_identifier:*` for stable group bindings.
-  - iMessage DM/group chat: `match.channel="imessage"` + `match.peer.id="<handle|chat_id:*|chat_guid:*|chat_identifier:*>"`
+  - Weixin DM/group chat: `match.channel="weixin"` + `match.peer.id="<handle|chat_id:*|chat_guid:*|chat_identifier:*>"`
     Prefer `chat_id:*` for stable group bindings.
 - `bindings[].agentId` is the owning CrawClaw agent id.
 - Optional ACP overrides live under `bindings[].acp`:
@@ -242,7 +242,7 @@ Example:
       type: "acp",
       agentId: "codex",
       match: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "default",
         peer: { kind: "channel", id: "222222222222222222" },
       },
@@ -252,7 +252,7 @@ Example:
       type: "acp",
       agentId: "claude",
       match: {
-        channel: "telegram",
+        channel: "feishu",
         accountId: "default",
         peer: { kind: "group", id: "-1001234567890:topic:42" },
       },
@@ -261,16 +261,16 @@ Example:
     {
       type: "route",
       agentId: "main",
-      match: { channel: "discord", accountId: "default" },
+      match: { channel: "qqbot", accountId: "default" },
     },
     {
       type: "route",
       agentId: "main",
-      match: { channel: "telegram", accountId: "default" },
+      match: { channel: "feishu", accountId: "default" },
     },
   ],
   channels: {
-    discord: {
+    qqbot: {
       guilds: {
         "111111111111111111": {
           channels: {
@@ -279,7 +279,7 @@ Example:
         },
       },
     },
-    telegram: {
+    feishu: {
       groups: {
         "-1001234567890": {
           topics: { "42": { requireMention: false } },
@@ -399,7 +399,7 @@ Notes:
 - Do not require `streamTo: "parent"` for the basic gate. That path depends on
   requester/session capabilities and is a separate integration check.
 - Treat thread-bound `mode: "session"` testing as a second, richer integration
-  pass from a real Discord thread or Telegram topic.
+  pass from a real QQBot thread or Feishu topic.
 
 Current limitations:
 
@@ -471,8 +471,8 @@ Notes:
 
 - On non-thread binding surfaces, default behavior is effectively `off`.
 - Thread-bound spawn requires channel policy support:
-  - Discord: `channels.discord.threadBindings.spawnAcpSessions=true`
-  - Telegram: `channels.telegram.threadBindings.spawnAcpSessions=true`
+  - QQBot: `channels.qqbot.threadBindings.spawnAcpSessions=true`
+  - Feishu: `channels.feishu.threadBindings.spawnAcpSessions=true`
 - Use `--bind here` when you want to pin the current conversation without creating a child thread.
 
 ## ACP controls
@@ -599,7 +599,7 @@ Core ACP baseline:
 }
 ```
 
-Thread binding config is channel-adapter specific. Example for Discord:
+Thread binding config is channel-adapter specific. Example for QQBot:
 
 ```json5
 {
@@ -611,7 +611,7 @@ Thread binding config is channel-adapter specific. Example for Discord:
     },
   },
   channels: {
-    discord: {
+    qqbot: {
       threadBindings: {
         enabled: true,
         spawnAcpSessions: true,
@@ -623,7 +623,7 @@ Thread binding config is channel-adapter specific. Example for Discord:
 
 If thread-bound ACP spawn does not work, verify the adapter feature flag first:
 
-- Discord: `channels.discord.threadBindings.spawnAcpSessions=true`
+- QQBot: `channels.qqbot.threadBindings.spawnAcpSessions=true`
 
 Current-conversation binds do not require child-thread creation. They require an active conversation context and a channel adapter that exposes ACP conversation bindings.
 

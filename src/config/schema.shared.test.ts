@@ -6,15 +6,15 @@ describe("schema.shared", () => {
     const match = findWildcardHintMatch({
       uiHints: {
         "channels.*.token": { label: "wildcard" },
-        "channels.telegram.token": { label: "telegram" },
+        "channels.feishu.token": { label: "feishu" },
       },
-      path: "channels.telegram.token",
+      path: "channels.feishu.token",
       splitPath: (value) => value.split("."),
     });
 
     expect(match).toEqual({
-      path: "channels.telegram.token",
-      hint: { label: "telegram" },
+      path: "channels.feishu.token",
+      hint: { label: "feishu" },
     });
   });
 

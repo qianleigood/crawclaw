@@ -57,7 +57,7 @@ describe("plugin-sdk/approval-renderers", () => {
         nowMs: 1_000,
         approvalSlug: "custom-slug",
         channelData: {
-          telegram: {
+          feishu: {
             quoteText: "quoted",
           },
         },
@@ -97,7 +97,7 @@ describe("plugin-sdk/approval-renderers", () => {
           sessionKey: undefined,
           state: "pending",
         },
-        telegram: {
+        feishu: {
           quoteText: "quoted",
         },
       },
@@ -125,11 +125,11 @@ describe("plugin-sdk/approval-renderers", () => {
         resolved: {
           id: "plugin-approval-123",
           decision: "allow-once",
-          resolvedBy: "discord:user:1",
+          resolvedBy: "qqbot:user:1",
           ts: 2_000,
         },
         channelData: {
-          discord: {
+          qqbot: {
             components: [{ type: "container" }],
           },
         },
@@ -142,7 +142,7 @@ describe("plugin-sdk/approval-renderers", () => {
           approvalSlug: "plugin-a",
           state: "resolved",
         },
-        discord: {
+        qqbot: {
           components: [{ type: "container" }],
         },
       },

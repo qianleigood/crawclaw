@@ -97,7 +97,7 @@ describe("config plugin validation", () => {
   let suiteHome = "";
   let badPluginDir = "";
   let enumPluginDir = "";
-  let bluebubblesPluginDir = "";
+  let weixinPluginDir = "";
   let googleOverridePluginDir = "";
   let voiceCallSchemaPluginDir = "";
   let bundlePluginDir = "";
@@ -136,7 +136,7 @@ describe("config plugin validation", () => {
     await mkdirSafe(suiteHome);
     badPluginDir = path.join(suiteHome, "bad-plugin");
     enumPluginDir = path.join(suiteHome, "enum-plugin");
-    bluebubblesPluginDir = path.join(suiteHome, "bluebubbles-plugin");
+    weixinPluginDir = path.join(suiteHome, "weixin-plugin");
     await writePluginFixture({
       dir: badPluginDir,
       id: "bad-plugin",
@@ -164,9 +164,9 @@ describe("config plugin validation", () => {
       },
     });
     await writePluginFixture({
-      dir: bluebubblesPluginDir,
-      id: "bluebubbles-plugin",
-      channels: ["bluebubbles"],
+      dir: weixinPluginDir,
+      id: "weixin-plugin",
+      channels: ["weixin"],
       schema: { type: "object" },
     });
     googleOverridePluginDir = path.join(suiteHome, "google");
@@ -217,7 +217,7 @@ describe("config plugin validation", () => {
         load: {
           paths: [
             badPluginDir,
-            bluebubblesPluginDir,
+            weixinPluginDir,
             bundlePluginDir,
             manifestlessClaudeBundleDir,
             voiceCallSchemaPluginDir,
@@ -308,7 +308,7 @@ describe("config plugin validation", () => {
   it("does not auto-allow config-loaded overrides of bundled web search plugin ids", async () => {
     const res = validateInSuite({
       plugins: {
-        allow: ["bluebubbles", "legacy-memory"],
+        allow: ["weixin", "legacy-memory"],
         load: {
           paths: [googleOverridePluginDir],
         },
@@ -534,19 +534,19 @@ describe("config plugin validation", () => {
       channels: {
         modelByChannel: {
           openai: {
-            whatsapp: "openai/gpt-5.2",
+            weixin: "openai/gpt-5.2",
           },
         },
       },
-      plugins: { enabled: false, entries: { discord: { enabled: true } } },
+      plugins: { enabled: false, entries: { qqbot: { enabled: true } } },
     });
     expect(res.ok).toBe(true);
   });
 
   it("accepts plugin heartbeat targets", async () => {
     const res = validateInSuite({
-      agents: { defaults: { heartbeat: { target: "bluebubbles" } }, list: [{ id: "pi" }] },
-      plugins: { enabled: false, load: { paths: [bluebubblesPluginDir] } },
+      agents: { defaults: { heartbeat: { target: "weixin" } }, list: [{ id: "pi" }] },
+      plugins: { enabled: false, load: { paths: [weixinPluginDir] } },
     });
     expect(res.ok).toBe(true);
   });

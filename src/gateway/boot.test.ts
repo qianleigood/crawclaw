@@ -6,7 +6,7 @@ import type { SessionScope } from "../config/sessions/types.js";
 
 const agentCommand = vi.fn();
 
-vi.mock("../commands/agent.js", () => ({
+vi.mock("../control/agent.js", () => ({
   agentCommand,
   agentCommandFromIngress: agentCommand,
 }));

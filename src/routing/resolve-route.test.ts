@@ -107,7 +107,7 @@ describe("resolveAgentRoute", () => {
     const cfg: CrawClawConfig = {};
     const route = resolveAgentRoute({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       accountId: null,
       peer: { kind: "direct", id: "+15551234567" },
     });
@@ -124,7 +124,7 @@ describe("resolveAgentRoute", () => {
     { dmScope: "per-peer" as const, expected: "agent:main:direct:+15551234567" },
     {
       dmScope: "per-channel-peer" as const,
-      expected: "agent:main:whatsapp:direct:+15551234567",
+      expected: "agent:main:weixin:direct:+15551234567",
     },
   ])("dmScope=%s controls direct-message session key isolation", ({ dmScope, expected }) => {
     const cfg: CrawClawConfig = {
@@ -132,7 +132,7 @@ describe("resolveAgentRoute", () => {
     };
     const route = expectDirectRouteSessionKey({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       peerId: "+15551234567",
       expected,
     });
@@ -150,7 +150,7 @@ describe("resolveAgentRoute", () => {
         mainSessionKey: "agent:main:main",
         lastRoutePolicy: "main" as const,
       },
-      sessionKey: "agent:main:discord:direct:user-1",
+      sessionKey: "agent:main:qqbot:direct:user-1",
       expected: "agent:main:main",
     },
     {
@@ -159,8 +159,8 @@ describe("resolveAgentRoute", () => {
         mainSessionKey: "agent:main:main",
         lastRoutePolicy: "session" as const,
       },
-      sessionKey: "agent:main:telegram:atlas:direct:123",
-      expected: "agent:main:telegram:atlas:direct:123",
+      sessionKey: "agent:main:feishu:atlas:direct:123",
+      expected: "agent:main:feishu:atlas:direct:123",
     },
   ] as const)("$name", ({ route, sessionKey, expected }) => {
     expectInboundLastRouteSessionKeyCase({ route, sessionKey, expected });
@@ -175,7 +175,7 @@ describe("resolveAgentRoute", () => {
     },
     {
       name: "keeps non-main session routes scoped to session",
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       mainSessionKey: "agent:main:main",
       expected: "session" as const,
     },
@@ -186,15 +186,15 @@ describe("resolveAgentRoute", () => {
   test.each([
     {
       dmScope: "per-peer" as const,
-      channel: "telegram" as const,
+      channel: "feishu" as const,
       peerId: "111111111",
       expected: "agent:main:direct:alice",
     },
     {
       dmScope: "per-channel-peer" as const,
-      channel: "discord" as const,
+      channel: "qqbot" as const,
       peerId: "222222222222222222",
-      expected: "agent:main:discord:direct:alice",
+      expected: "agent:main:qqbot:direct:alice",
     },
   ])(
     "identityLinks applies to direct-message scopes: $channel $dmScope",
@@ -203,7 +203,7 @@ describe("resolveAgentRoute", () => {
         session: {
           dmScope,
           identityLinks: {
-            alice: ["telegram:111111111", "discord:222222222222222222"],
+            alice: ["feishu:111111111", "qqbot:222222222222222222"],
           },
         },
       };
@@ -225,18 +225,18 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "a",
               match: {
-                channel: "whatsapp",
+                channel: "weixin",
                 accountId: "biz",
                 peer: { kind: "direct", id: "+1000" },
               },
             },
             {
               agentId: "b",
-              match: { channel: "whatsapp", accountId: "biz" },
+              match: { channel: "weixin", accountId: "biz" },
             },
           ],
         } satisfies CrawClawConfig,
-        channel: "whatsapp" as const,
+        channel: "weixin" as const,
         accountId: "biz",
         peer: { kind: "direct" as const, id: "+1000" },
       },
@@ -247,14 +247,14 @@ describe("resolveAgentRoute", () => {
       },
     },
     {
-      name: "discord channel peer binding wins over guild binding",
+      name: "qqbot channel peer binding wins over guild binding",
       routeParams: {
         cfg: {
           bindings: [
             {
               agentId: "chan",
               match: {
-                channel: "discord",
+                channel: "qqbot",
                 accountId: "default",
                 peer: { kind: "channel", id: "c1" },
               },
@@ -262,21 +262,21 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "guild",
               match: {
-                channel: "discord",
+                channel: "qqbot",
                 accountId: "default",
                 guildId: "g1",
               },
             },
           ],
         } satisfies CrawClawConfig,
-        channel: "discord" as const,
+        channel: "qqbot" as const,
         accountId: "default",
         guildId: "g1",
         peer: { kind: "channel" as const, id: "c1" },
       },
       expected: {
         agentId: "chan",
-        sessionKey: "agent:chan:discord:channel:c1",
+        sessionKey: "agent:chan:qqbot:channel:c1",
         matchedBy: "binding.peer",
       },
     },
@@ -288,18 +288,18 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "guild",
               match: {
-                channel: "discord",
+                channel: "qqbot",
                 accountId: "default",
                 guildId: "g1",
               },
             },
             {
               agentId: "acct",
-              match: { channel: "discord", accountId: "default" },
+              match: { channel: "qqbot", accountId: "default" },
             },
           ],
         } satisfies CrawClawConfig,
-        channel: "discord" as const,
+        channel: "qqbot" as const,
         accountId: "default",
         guildId: "g1",
         peer: { kind: "channel" as const, id: "c1" },
@@ -317,11 +317,11 @@ describe("resolveAgentRoute", () => {
     const cfg: CrawClawConfig = {};
     const route = resolveAgentRoute({
       cfg,
-      channel: "discord",
+      channel: "qqbot",
       accountId: "default",
       peer: { kind: "channel", id: 1468834856187203680n as unknown as string },
     });
-    expect(route.sessionKey).toBe("agent:main:discord:channel:1468834856187203680");
+    expect(route.sessionKey).toBe("agent:main:qqbot:channel:1468834856187203680");
   });
 
   test.each([
@@ -333,7 +333,7 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "olga",
               match: {
-                channel: "discord",
+                channel: "qqbot",
                 peer: { kind: "channel", id: "CHANNEL_A" },
                 guildId: "GUILD_1",
               },
@@ -341,13 +341,13 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "main",
               match: {
-                channel: "discord",
+                channel: "qqbot",
                 guildId: "GUILD_1",
               },
             },
           ],
         } satisfies CrawClawConfig,
-        channel: "discord" as const,
+        channel: "qqbot" as const,
         guildId: "GUILD_1",
         peer: { kind: "channel" as const, id: "CHANNEL_B" },
       },
@@ -364,7 +364,7 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "wrongguild",
               match: {
-                channel: "discord",
+                channel: "qqbot",
                 peer: { kind: "channel", id: "c1" },
                 guildId: "g1",
               },
@@ -372,13 +372,13 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "rightguild",
               match: {
-                channel: "discord",
+                channel: "qqbot",
                 guildId: "g2",
               },
             },
           ],
         } satisfies CrawClawConfig,
-        channel: "discord" as const,
+        channel: "qqbot" as const,
         guildId: "g2",
         peer: { kind: "channel" as const, id: "c1" },
       },
@@ -395,7 +395,7 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "roomonly",
               match: {
-                channel: "slack",
+                channel: "ddingtalk",
                 peer: { kind: "channel", id: "C_A" },
                 teamId: "T1",
               },
@@ -403,13 +403,13 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "teamwide",
               match: {
-                channel: "slack",
+                channel: "ddingtalk",
                 teamId: "T1",
               },
             },
           ],
         } satisfies CrawClawConfig,
-        channel: "slack" as const,
+        channel: "ddingtalk" as const,
         teamId: "T1",
         peer: { kind: "channel" as const, id: "C_B" },
       },
@@ -426,7 +426,7 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "wrongteam",
               match: {
-                channel: "slack",
+                channel: "ddingtalk",
                 peer: { kind: "channel", id: "C1" },
                 teamId: "T1",
               },
@@ -434,13 +434,13 @@ describe("resolveAgentRoute", () => {
             {
               agentId: "rightteam",
               match: {
-                channel: "slack",
+                channel: "ddingtalk",
                 teamId: "T2",
               },
             },
           ],
         } satisfies CrawClawConfig,
-        channel: "slack" as const,
+        channel: "ddingtalk" as const,
         teamId: "T2",
         peer: { kind: "channel" as const, id: "C1" },
       },
@@ -455,13 +455,13 @@ describe("resolveAgentRoute", () => {
 
   test("missing accountId in binding matches default account only", () => {
     const cfg: CrawClawConfig = {
-      bindings: [{ agentId: "defaultAcct", match: { channel: "whatsapp" } }],
+      bindings: [{ agentId: "defaultAcct", match: { channel: "weixin" } }],
     };
 
     expectResolvedRoute(
       resolveRoute({
         cfg,
-        channel: "whatsapp",
+        channel: "weixin",
         accountId: undefined,
         peer: { kind: "direct", id: "+1000" },
       }),
@@ -474,7 +474,7 @@ describe("resolveAgentRoute", () => {
     expectResolvedRoute(
       resolveRoute({
         cfg,
-        channel: "whatsapp",
+        channel: "weixin",
         accountId: "biz",
         peer: { kind: "direct", id: "+1000" },
       }),
@@ -492,11 +492,11 @@ describe("resolveAgentRoute", () => {
         bindings: [
           {
             agentId: "any",
-            match: { channel: "whatsapp", accountId: "*" },
+            match: { channel: "weixin", accountId: "*" },
           },
         ],
       } satisfies CrawClawConfig,
-      channel: "whatsapp" as const,
+      channel: "weixin" as const,
       accountId: "biz",
       peer: { kind: "direct" as const, id: "+1000" },
       expected: {
@@ -507,9 +507,9 @@ describe("resolveAgentRoute", () => {
     {
       name: "binding accountId matching is canonicalized",
       cfg: {
-        bindings: [{ agentId: "biz", match: { channel: "discord", accountId: "BIZ" } }],
+        bindings: [{ agentId: "biz", match: { channel: "qqbot", accountId: "BIZ" } }],
       } satisfies CrawClawConfig,
-      channel: "discord" as const,
+      channel: "qqbot" as const,
       accountId: " biz ",
       peer: { kind: "direct" as const, id: "u-1" },
       expected: {
@@ -525,7 +525,7 @@ describe("resolveAgentRoute", () => {
           list: [{ id: "home", default: true, workspace: "~/crawclaw-home" }],
         },
       } satisfies CrawClawConfig,
-      channel: "whatsapp" as const,
+      channel: "weixin" as const,
       accountId: "biz",
       peer: { kind: "direct" as const, id: "+1000" },
       expected: {
@@ -554,7 +554,7 @@ describe("resolve-route cache governance", () => {
         {
           agentId: "router",
           match: {
-            channel: "telegram",
+            channel: "feishu",
             peer: { kind: "direct", id: "user-1" },
           },
         },
@@ -574,7 +574,7 @@ describe("resolve-route cache governance", () => {
 
     resolveAgentRoute({
       cfg,
-      channel: "telegram",
+      channel: "feishu",
       accountId: "default",
       peer: { kind: "direct", id: "user-1" },
     });
@@ -614,7 +614,7 @@ describe("resolve-route cache governance", () => {
     };
     const input = {
       cfg,
-      channel: "telegram" as const,
+      channel: "feishu" as const,
       accountId: "default",
       peer: { kind: "direct" as const, id: "user-1" },
     };
@@ -623,7 +623,7 @@ describe("resolve-route cache governance", () => {
     cfg.bindings?.push({
       agentId: "special",
       match: {
-        channel: "telegram",
+        channel: "feishu",
         peer: { kind: "direct", id: "user-1" },
       },
     });
@@ -636,19 +636,19 @@ test.each([
   {
     name: "isolates DM sessions per account, channel and sender",
     accountId: "tasks",
-    expected: "agent:main:telegram:tasks:direct:7550356539",
+    expected: "agent:main:feishu:tasks:direct:7550356539",
   },
   {
     name: "uses default accountId when not provided",
     accountId: null,
-    expected: "agent:main:telegram:default:direct:7550356539",
+    expected: "agent:main:feishu:default:direct:7550356539",
   },
 ] as const)("dmScope=per-account-channel-peer $name", ({ accountId, expected }) => {
   const route = resolveAgentRoute({
     cfg: {
       session: { dmScope: "per-account-channel-peer" },
     },
-    channel: "telegram",
+    channel: "feishu",
     accountId,
     peer: { kind: "direct", id: "7550356539" },
   });
@@ -659,27 +659,27 @@ describe("parentPeer binding inheritance (thread support)", () => {
   const threadPeer = { kind: "channel" as const, id: "thread-456" };
   const defaultParentPeer = { kind: "channel" as const, id: "parent-channel-123" };
 
-  function makeDiscordPeerBinding(agentId: string, peerId: string) {
+  function makeQQBotPeerBinding(agentId: string, peerId: string) {
     return {
       agentId,
       match: {
-        channel: "discord" as const,
+        channel: "qqbot" as const,
         peer: { kind: "channel" as const, id: peerId },
       },
     };
   }
 
-  function makeDiscordGuildBinding(agentId: string, guildId: string) {
+  function makeQQBotGuildBinding(agentId: string, guildId: string) {
     return {
       agentId,
       match: {
-        channel: "discord" as const,
+        channel: "qqbot" as const,
         guildId,
       },
     };
   }
 
-  function resolveDiscordThreadRoute(params: {
+  function resolveQQBotThreadRoute(params: {
     cfg: CrawClawConfig;
     parentPeer?: { kind: "channel"; id: string } | null;
     guildId?: string;
@@ -687,21 +687,21 @@ describe("parentPeer binding inheritance (thread support)", () => {
     const parentPeer = "parentPeer" in params ? params.parentPeer : defaultParentPeer;
     return resolveAgentRoute({
       cfg: params.cfg,
-      channel: "discord",
+      channel: "qqbot",
       peer: threadPeer,
       parentPeer,
       guildId: params.guildId,
     });
   }
 
-  function expectDiscordThreadRoute(params: {
+  function expectQQBotThreadRoute(params: {
     cfg: CrawClawConfig;
     parentPeer?: { kind: "channel"; id: string } | null;
     guildId?: string;
     expectedAgentId: string;
     expectedMatchedBy: string;
   }) {
-    const route = resolveDiscordThreadRoute(params);
+    const route = resolveQQBotThreadRoute(params);
     expectResolvedRoute(route, {
       agentId: params.expectedAgentId,
       matchedBy: params.expectedMatchedBy,
@@ -709,9 +709,9 @@ describe("parentPeer binding inheritance (thread support)", () => {
   }
 
   test("thread inherits binding from parent channel when no direct match", () => {
-    expectDiscordThreadRoute({
+    expectQQBotThreadRoute({
       cfg: {
-        bindings: [makeDiscordPeerBinding("adecco", defaultParentPeer.id)],
+        bindings: [makeQQBotPeerBinding("adecco", defaultParentPeer.id)],
       },
       expectedAgentId: "adecco",
       expectedMatchedBy: "binding.peer.parent",
@@ -719,11 +719,11 @@ describe("parentPeer binding inheritance (thread support)", () => {
   });
 
   test("direct peer binding wins over parent peer binding", () => {
-    expectDiscordThreadRoute({
+    expectQQBotThreadRoute({
       cfg: {
         bindings: [
-          makeDiscordPeerBinding("thread-agent", threadPeer.id),
-          makeDiscordPeerBinding("parent-agent", defaultParentPeer.id),
+          makeQQBotPeerBinding("thread-agent", threadPeer.id),
+          makeQQBotPeerBinding("parent-agent", defaultParentPeer.id),
         ],
       },
       expectedAgentId: "thread-agent",
@@ -732,11 +732,11 @@ describe("parentPeer binding inheritance (thread support)", () => {
   });
 
   test("parent peer binding wins over guild binding", () => {
-    expectDiscordThreadRoute({
+    expectQQBotThreadRoute({
       cfg: {
         bindings: [
-          makeDiscordPeerBinding("parent-agent", defaultParentPeer.id),
-          makeDiscordGuildBinding("guild-agent", "guild-789"),
+          makeQQBotPeerBinding("parent-agent", defaultParentPeer.id),
+          makeQQBotGuildBinding("guild-agent", "guild-789"),
         ],
       },
       guildId: "guild-789",
@@ -750,8 +750,8 @@ describe("parentPeer binding inheritance (thread support)", () => {
       name: "falls back to guild binding when no parent peer match",
       cfg: {
         bindings: [
-          makeDiscordPeerBinding("other-parent-agent", "other-parent-999"),
-          makeDiscordGuildBinding("guild-agent", "guild-789"),
+          makeQQBotPeerBinding("other-parent-agent", "other-parent-999"),
+          makeQQBotGuildBinding("guild-agent", "guild-789"),
         ],
       } satisfies CrawClawConfig,
       guildId: "guild-789",
@@ -761,7 +761,7 @@ describe("parentPeer binding inheritance (thread support)", () => {
     {
       name: "parentPeer with empty id is ignored",
       cfg: {
-        bindings: [makeDiscordPeerBinding("parent-agent", defaultParentPeer.id)],
+        bindings: [makeQQBotPeerBinding("parent-agent", defaultParentPeer.id)],
       } satisfies CrawClawConfig,
       parentPeer: { kind: "channel" as const, id: "" },
       expectedAgentId: "main",
@@ -770,14 +770,14 @@ describe("parentPeer binding inheritance (thread support)", () => {
     {
       name: "null parentPeer is handled gracefully",
       cfg: {
-        bindings: [makeDiscordPeerBinding("parent-agent", defaultParentPeer.id)],
+        bindings: [makeQQBotPeerBinding("parent-agent", defaultParentPeer.id)],
       } satisfies CrawClawConfig,
       parentPeer: null,
       expectedAgentId: "main",
       expectedMatchedBy: "default",
     },
   ])("$name", (testCase) => {
-    expectDiscordThreadRoute(testCase);
+    expectQQBotThreadRoute(testCase);
   });
 });
 
@@ -800,13 +800,13 @@ describe("backward compatibility: peer.kind dm → direct", () => {
           {
             agentId: "alex",
             match: {
-              channel: "whatsapp",
+              channel: "weixin",
               peer: createCompatPeer(bindingPeerKind, "+15551234567"),
             },
           },
         ],
       },
-      channel: "whatsapp",
+      channel: "weixin",
       accountId: null,
       peer: createCompatPeer(runtimePeerKind, "+15551234567"),
     });
@@ -821,18 +821,18 @@ describe("backward compatibility: peer.kind group ↔ channel", () => {
   test.each([
     {
       name: "config group binding matches runtime channel scope",
-      agentId: "slack-group-agent",
+      agentId: "ddingtalk-group-agent",
       bindingPeerKind: "group" as const satisfies CompatRoutePeerKind,
       runtimePeerKind: "channel" as const satisfies CompatRoutePeerKind,
-      expectedAgentId: "slack-group-agent",
+      expectedAgentId: "ddingtalk-group-agent",
       expectedMatchedBy: "binding.peer",
     },
     {
       name: "config channel binding matches runtime group scope",
-      agentId: "slack-channel-agent",
+      agentId: "ddingtalk-channel-agent",
       bindingPeerKind: "channel" as const satisfies CompatRoutePeerKind,
       runtimePeerKind: "group" as const satisfies CompatRoutePeerKind,
-      expectedAgentId: "slack-channel-agent",
+      expectedAgentId: "ddingtalk-channel-agent",
       expectedMatchedBy: "binding.peer",
     },
     {
@@ -852,13 +852,13 @@ describe("backward compatibility: peer.kind group ↔ channel", () => {
             {
               agentId,
               match: {
-                channel: "slack",
+                channel: "ddingtalk",
                 peer: createCompatPeer(bindingPeerKind, "C123456"),
               },
             },
           ],
         },
-        channel: "slack",
+        channel: "ddingtalk",
         accountId: null,
         peer: createCompatPeer(runtimePeerKind, "C123456"),
       });
@@ -871,20 +871,20 @@ describe("backward compatibility: peer.kind group ↔ channel", () => {
 });
 
 describe("role-based agent routing", () => {
-  type DiscordBinding = NonNullable<CrawClawConfig["bindings"]>[number];
+  type QQBotBinding = NonNullable<CrawClawConfig["bindings"]>[number];
 
-  function makeDiscordRoleBinding(
+  function makeQQBotRoleBinding(
     agentId: string,
     params: {
       roles?: readonly string[];
       peerId?: string;
       includeGuildId?: boolean;
     } = {},
-  ): DiscordBinding {
+  ): QQBotBinding {
     return {
       agentId,
       match: {
-        channel: "discord",
+        channel: "qqbot",
         ...(params.includeGuildId === false ? {} : { guildId: "g1" }),
         ...(params.roles !== undefined ? { roles: [...params.roles] } : {}),
         ...(params.peerId ? { peer: { kind: "channel", id: params.peerId } } : {}),
@@ -892,8 +892,8 @@ describe("role-based agent routing", () => {
     };
   }
 
-  function expectDiscordRoleRoute(params: {
-    bindings: readonly DiscordBinding[];
+  function expectQQBotRoleRoute(params: {
+    bindings: readonly QQBotBinding[];
     memberRoleIds?: readonly string[];
     peerId?: string;
     parentPeerId?: string;
@@ -902,7 +902,7 @@ describe("role-based agent routing", () => {
   }) {
     const route = resolveRoute({
       cfg: { bindings: [...params.bindings] },
-      channel: "discord",
+      channel: "qqbot",
       guildId: "g1",
       ...(params.memberRoleIds ? { memberRoleIds: [...params.memberRoleIds] } : {}),
       peer: { kind: "channel", id: params.peerId ?? "c1" },
@@ -919,24 +919,21 @@ describe("role-based agent routing", () => {
   test.each([
     {
       name: "guild+roles binding matches when member has matching role",
-      bindings: [makeDiscordRoleBinding("opus", { roles: ["r1"] })],
+      bindings: [makeQQBotRoleBinding("opus", { roles: ["r1"] })],
       memberRoleIds: ["r1"],
       expectedAgentId: "opus",
       expectedMatchedBy: "binding.guild+roles",
     },
     {
       name: "guild+roles binding skipped when no matching role",
-      bindings: [makeDiscordRoleBinding("opus", { roles: ["r1"] })],
+      bindings: [makeQQBotRoleBinding("opus", { roles: ["r1"] })],
       memberRoleIds: ["r2"],
       expectedAgentId: "main",
       expectedMatchedBy: "default",
     },
     {
       name: "guild+roles is more specific than guild-only",
-      bindings: [
-        makeDiscordRoleBinding("opus", { roles: ["r1"] }),
-        makeDiscordRoleBinding("sonnet"),
-      ],
+      bindings: [makeQQBotRoleBinding("opus", { roles: ["r1"] }), makeQQBotRoleBinding("sonnet")],
       memberRoleIds: ["r1"],
       expectedAgentId: "opus",
       expectedMatchedBy: "binding.guild+roles",
@@ -944,8 +941,8 @@ describe("role-based agent routing", () => {
     {
       name: "peer binding still beats guild+roles",
       bindings: [
-        makeDiscordRoleBinding("peer-agent", { peerId: "c1", includeGuildId: false }),
-        makeDiscordRoleBinding("roles-agent", { roles: ["r1"] }),
+        makeQQBotRoleBinding("peer-agent", { peerId: "c1", includeGuildId: false }),
+        makeQQBotRoleBinding("roles-agent", { roles: ["r1"] }),
       ],
       memberRoleIds: ["r1"],
       expectedAgentId: "peer-agent",
@@ -954,11 +951,11 @@ describe("role-based agent routing", () => {
     {
       name: "parent peer binding still beats guild+roles",
       bindings: [
-        makeDiscordRoleBinding("parent-agent", {
+        makeQQBotRoleBinding("parent-agent", {
           peerId: "parent-1",
           includeGuildId: false,
         }),
-        makeDiscordRoleBinding("roles-agent", { roles: ["r1"] }),
+        makeQQBotRoleBinding("roles-agent", { roles: ["r1"] }),
       ],
       memberRoleIds: ["r1"],
       peerId: "thread-1",
@@ -968,15 +965,15 @@ describe("role-based agent routing", () => {
     },
     {
       name: "no memberRoleIds means guild+roles doesn't match",
-      bindings: [makeDiscordRoleBinding("opus", { roles: ["r1"] })],
+      bindings: [makeQQBotRoleBinding("opus", { roles: ["r1"] })],
       expectedAgentId: "main",
       expectedMatchedBy: "default",
     },
     {
       name: "first matching binding wins with multiple role bindings",
       bindings: [
-        makeDiscordRoleBinding("opus", { roles: ["r1"] }),
-        makeDiscordRoleBinding("sonnet", { roles: ["r2"] }),
+        makeQQBotRoleBinding("opus", { roles: ["r1"] }),
+        makeQQBotRoleBinding("sonnet", { roles: ["r2"] }),
       ],
       memberRoleIds: ["r1", "r2"],
       expectedAgentId: "opus",
@@ -984,14 +981,14 @@ describe("role-based agent routing", () => {
     },
     {
       name: "empty roles array treated as no role restriction",
-      bindings: [makeDiscordRoleBinding("opus", { roles: [] })],
+      bindings: [makeQQBotRoleBinding("opus", { roles: [] })],
       memberRoleIds: ["r1"],
       expectedAgentId: "opus",
       expectedMatchedBy: "binding.guild",
     },
     {
       name: "guild+roles binding does not match as guild-only when roles do not match",
-      bindings: [makeDiscordRoleBinding("opus", { roles: ["admin"] })],
+      bindings: [makeQQBotRoleBinding("opus", { roles: ["admin"] })],
       memberRoleIds: ["regular"],
       expectedAgentId: "main",
       expectedMatchedBy: "default",
@@ -999,8 +996,8 @@ describe("role-based agent routing", () => {
     {
       name: "peer+guild+roles binding does not act as guild+roles fallback when peer mismatches",
       bindings: [
-        makeDiscordRoleBinding("peer-roles", { peerId: "c-target", roles: ["r1"] }),
-        makeDiscordRoleBinding("guild-roles", { roles: ["r1"] }),
+        makeQQBotRoleBinding("peer-roles", { peerId: "c-target", roles: ["r1"] }),
+        makeQQBotRoleBinding("guild-roles", { roles: ["r1"] }),
       ],
       memberRoleIds: ["r1"],
       peerId: "c-other",
@@ -1008,7 +1005,7 @@ describe("role-based agent routing", () => {
       expectedMatchedBy: "binding.guild+roles",
     },
   ] as const)("$name", (testCase) => {
-    expectDiscordRoleRoute(testCase);
+    expectQQBotRoleRoute(testCase);
   });
 });
 
@@ -1020,7 +1017,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
         {
           agentId: "second-ana",
           match: {
-            channel: "telegram",
+            channel: "feishu",
             accountId: "second-ana",
             peer: { kind: "direct", id: "*" },
           },
@@ -1029,7 +1026,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
     };
     const route = resolveAgentRoute({
       cfg,
-      channel: "telegram",
+      channel: "feishu",
       accountId: "second-ana",
       peer: { kind: "direct", id: "12345678" },
     });
@@ -1045,7 +1042,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
         {
           agentId: "dm-only",
           match: {
-            channel: "telegram",
+            channel: "feishu",
             accountId: "bot1",
             peer: { kind: "direct", id: "*" },
           },
@@ -1054,7 +1051,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
     };
     const route = resolveAgentRoute({
       cfg,
-      channel: "telegram",
+      channel: "feishu",
       accountId: "bot1",
       peer: { kind: "group", id: "group-999" },
     });
@@ -1069,7 +1066,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
         {
           agentId: "wild",
           match: {
-            channel: "whatsapp",
+            channel: "weixin",
             accountId: "biz",
             peer: { kind: "direct", id: "*" },
           },
@@ -1077,7 +1074,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
         {
           agentId: "exact",
           match: {
-            channel: "whatsapp",
+            channel: "weixin",
             accountId: "biz",
             peer: { kind: "direct", id: "+1000" },
           },
@@ -1086,7 +1083,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
     };
     const route = resolveAgentRoute({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       accountId: "biz",
       peer: { kind: "direct", id: "+1000" },
     });
@@ -1101,7 +1098,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
         {
           agentId: "wild",
           match: {
-            channel: "whatsapp",
+            channel: "weixin",
             accountId: "biz",
             peer: { kind: "direct", id: "*" },
           },
@@ -1109,7 +1106,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
         {
           agentId: "exact",
           match: {
-            channel: "whatsapp",
+            channel: "weixin",
             accountId: "biz",
             peer: { kind: "direct", id: "+1000" },
           },
@@ -1118,7 +1115,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
     };
     const route = resolveAgentRoute({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       accountId: "biz",
       peer: { kind: "direct", id: "+9999" },
     });
@@ -1133,7 +1130,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
         {
           agentId: "grp",
           match: {
-            channel: "discord",
+            channel: "qqbot",
             accountId: "default",
             peer: { kind: "group", id: "*" },
           },
@@ -1142,7 +1139,7 @@ describe("wildcard peer bindings (peer.id=*)", () => {
     };
     const route = resolveAgentRoute({
       cfg,
-      channel: "discord",
+      channel: "qqbot",
       accountId: "default",
       peer: { kind: "group", id: "g-42" },
     });

@@ -16,7 +16,7 @@ x-i18n:
 # Linux
 
 Gateway 网关在 Linux 上得到完全支持。**Node 是推荐的运行时**。
-不建议将 Bun 用于 Gateway 网关（存在 WhatsApp/Telegram bug）。
+不建议将 Bun 用于 Gateway 网关（存在 Weixin/Feishu bug）。
 
 原生 Linux 节点主机已在规划中。如果你想帮助构建一个，欢迎贡献。
 

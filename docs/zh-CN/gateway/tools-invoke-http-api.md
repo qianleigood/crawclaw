@@ -67,7 +67,7 @@ CrawClaw 的 Gateway 网关暴露了一个简单的 HTTP 端点用于直接调�
 
 为帮助群组策略解析上下文，你可以选择设置：
 
-- `x-crawclaw-message-channel: <channel>`（示例：`slack`、`telegram`）
+- `x-crawclaw-message-channel: <channel>`（示例：`ddingtalk`、`feishu`）
 - `x-crawclaw-account-id: <accountId>`（当存在多个账户时）
 
 ## 响应

@@ -171,21 +171,16 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).not.toContain("allow-once|allow-always|deny");
   });
 
-  it("tells native approval channels not to duplicate plain chat /approve instructions", () => {
+  it("keeps manual /approve instructions for non-webchat native approval channels", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
-      runtimeInfo: { channel: "telegram" },
+      runtimeInfo: { channel: "feishu" },
     });
 
     expect(prompt).toContain(
-      "When bash returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear",
-    );
-    expect(prompt).toContain(
-      "Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.",
-    );
-    expect(prompt).not.toContain(
       "When bash returns approval-pending, include the concrete /approve command from tool output",
     );
+    expect(prompt).not.toContain("native approval card/buttons");
   });
 
   it("treats webchat as a native approval surface", () => {
@@ -195,7 +190,7 @@ describe("buildAgentSystemPrompt", () => {
     });
 
     expect(prompt).toContain(
-      "When bash returns approval-pending on Discord, Slack, Telegram, or WebChat, rely on the native approval card/buttons when they appear",
+      "When bash returns approval-pending on WebChat, rely on the native approval card/buttons when they appear",
     );
     expect(prompt).toContain(
       "Only include the concrete /approve command if the tool result says chat approvals are unavailable or only manual approval is possible.",
@@ -261,14 +256,14 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("<final>...</final>");
   });
 
-  it("includes a CLI quick reference section", () => {
+  it("describes the Desktop and Gateway control boundary", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
     });
 
-    expect(prompt).toContain("## CrawClaw CLI Quick Reference");
-    expect(prompt).toContain("crawclaw gateway restart");
-    expect(prompt).toContain("Do not invent commands");
+    expect(prompt).toContain("## CrawClaw Desktop and Gateway");
+    expect(prompt).toContain("CrawClaw user-facing controls live in the desktop app.");
+    expect(prompt).toContain("Do not ask users to run retired CrawClaw command-line subcommands.");
   });
 
   it("guides runtime completion events without exposing internal metadata", () => {
@@ -292,7 +287,7 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("Completion is push-based: it will auto-announce when done.");
     expect(prompt).toContain("Do not poll session status in a loop");
     expect(prompt).toContain(
-      "When a first-class tool exists for an action, use the tool directly instead of asking the user to run equivalent CLI or slash commands.",
+      "When a first-class tool exists for an action, use the tool directly instead of asking the user to run equivalent shell or slash commands.",
     );
   });
 
@@ -330,7 +325,7 @@ describe("buildAgentSystemPrompt", () => {
       'For requests like "do this in codex/claude code/cursor/gemini" or similar ACP harnesses, treat it as ACP harness intent',
     );
     expect(prompt).toContain(
-      'On Discord, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`)',
+      'On QQBot, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`)',
     );
     expect(prompt).toContain("do not route ACP harness requests through local PTY bash flows");
     expect(prompt).toContain(
@@ -369,7 +364,7 @@ describe("buildAgentSystemPrompt", () => {
     );
     expect(prompt).toContain("CrawClaw docs: /tmp/crawclaw/docs");
     expect(prompt).toContain(
-      "For CrawClaw behavior, commands, config, or architecture: consult local docs first.",
+      "For CrawClaw behavior, configuration, or architecture: consult local docs first.",
     );
   });
 
@@ -382,7 +377,7 @@ describe("buildAgentSystemPrompt", () => {
     expect(prompt).toContain("## Documentation");
     expect(prompt).toContain("CrawClaw docs: /tmp/crawclaw/docs");
     expect(prompt).toContain(
-      "For CrawClaw behavior, commands, config, or architecture: consult local docs first.",
+      "For CrawClaw behavior, configuration, or architecture: consult local docs first.",
     );
   });
 
@@ -593,7 +588,7 @@ describe("buildAgentSystemPrompt", () => {
       workspaceDir: "/tmp/crawclaw",
       toolNames: ["message"],
       runtimeInfo: {
-        channel: "telegram",
+        channel: "feishu",
         capabilities: ["inlineButtons"],
       },
     });
@@ -606,12 +601,12 @@ describe("buildAgentSystemPrompt", () => {
     const prompt = buildAgentSystemPrompt({
       workspaceDir: "/tmp/crawclaw",
       runtimeInfo: {
-        channel: "telegram",
+        channel: "feishu",
         capabilities: ["inlineButtons"],
       },
     });
 
-    expect(prompt).toContain("channel=telegram");
+    expect(prompt).toContain("channel=feishu");
     expect(prompt).toContain("capabilities=inlineButtons");
   });
 
@@ -654,7 +649,7 @@ describe("buildAgentSystemPrompt", () => {
         model: "anthropic/claude",
         defaultModel: "anthropic/claude-opus-4-5",
       },
-      "telegram",
+      "feishu",
       ["inlineButtons"],
       "low",
     );
@@ -666,7 +661,7 @@ describe("buildAgentSystemPrompt", () => {
     expect(line).toContain("node=v20");
     expect(line).toContain("model=anthropic/claude");
     expect(line).toContain("default_model=anthropic/claude-opus-4-5");
-    expect(line).toContain("channel=telegram");
+    expect(line).toContain("channel=feishu");
     expect(line).toContain("capabilities=inlineButtons");
     expect(line).toContain("thinking=low");
   });
@@ -676,12 +671,12 @@ describe("buildAgentSystemPrompt", () => {
       workspaceDir: "/tmp/crawclaw",
       reactionGuidance: {
         level: "minimal",
-        channel: "Telegram",
+        channel: "Feishu",
       },
     });
 
     expect(prompt).toContain("## Reactions");
-    expect(prompt).toContain("Reactions are enabled for Telegram in MINIMAL mode.");
+    expect(prompt).toContain("Reactions are enabled for Feishu in MINIMAL mode.");
   });
 });
 
@@ -702,8 +697,8 @@ describe("buildSubagentSystemPrompt", () => {
     expect(prompt).toContain('runtime: "acp"');
     expect(prompt).toContain("For ACP harness sessions (codex/claudecode/gemini)");
     expect(prompt).toContain("set `agentId` unless `acp.defaultAgent` is configured");
-    expect(prompt).toContain("Do not ask users to run slash commands or CLI");
-    expect(prompt).toContain("Do not use `bash` (`crawclaw ...`, `acpx ...`)");
+    expect(prompt).toContain("Do not ask users to run slash commands or shell commands");
+    expect(prompt).toContain("Do not use `bash` or ACPX wrappers to spawn ACP sessions.");
     expect(prompt).toContain("Use `subagents` only for CrawClaw subagents");
     expect(prompt).toContain("Subagent results auto-announce back to you");
     expect(prompt).toContain(

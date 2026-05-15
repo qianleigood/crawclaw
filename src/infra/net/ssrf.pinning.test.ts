@@ -63,11 +63,11 @@ describe("ssrf pinning", () => {
       { address: "198.18.0.153", family: 4 },
     ]) as unknown as LookupFn;
 
-    await expect(resolvePinnedHostname("api.telegram.org", lookup)).rejects.toThrow(
+    await expect(resolvePinnedHostname("api.feishu.org", lookup)).rejects.toThrow(
       /private|internal/i,
     );
 
-    const pinned = await resolvePinnedHostnameWithPolicy("api.telegram.org", {
+    const pinned = await resolvePinnedHostnameWithPolicy("api.feishu.org", {
       lookupFn: lookup,
       policy: { allowRfc2544BenchmarkRange: true },
     });

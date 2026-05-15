@@ -44,24 +44,24 @@ describe("system events (session routing)", () => {
   });
 
   it("does not leak session-scoped events into main", async () => {
-    enqueueSystemEvent("Discord reaction added: ✅", {
-      sessionKey: "discord:group:123",
-      contextKey: "discord:reaction:added:msg:user:✅",
+    enqueueSystemEvent("QQBot reaction added: ✅", {
+      sessionKey: "qqbot:group:123",
+      contextKey: "qqbot:reaction:added:msg:user:✅",
     });
 
     expect(peekSystemEvents(mainKey)).toEqual([]);
-    expect(peekSystemEvents("discord:group:123")).toEqual(["Discord reaction added: ✅"]);
+    expect(peekSystemEvents("qqbot:group:123")).toEqual(["QQBot reaction added: ✅"]);
 
     // Main session gets no events — undefined returned
     const main = await drainFormattedEvents(mainKey, { isMainSession: true });
     expect(main).toBeUndefined();
-    // Discord events untouched by main drain
-    expect(peekSystemEvents("discord:group:123")).toEqual(["Discord reaction added: ✅"]);
+    // QQBot events untouched by main drain
+    expect(peekSystemEvents("qqbot:group:123")).toEqual(["QQBot reaction added: ✅"]);
 
-    // Discord session gets its own events block
-    const discord = await drainFormattedEvents("discord:group:123");
-    expect(discord).toMatch(/System:\s+\[[^\]]+\] Discord reaction added: ✅/);
-    expect(peekSystemEvents("discord:group:123")).toEqual([]);
+    // QQBot session gets its own events block
+    const qqbot = await drainFormattedEvents("qqbot:group:123");
+    expect(qqbot).toMatch(/System:\s+\[[^\]]+\] QQBot reaction added: ✅/);
+    expect(peekSystemEvents("qqbot:group:123")).toEqual([]);
   });
 
   it("requires an explicit session key", () => {
@@ -114,7 +114,7 @@ describe("system events (session routing)", () => {
     enqueueSystemEvent("Restarted", {
       sessionKey: key,
       deliveryContext: {
-        channel: " telegram ",
+        channel: " feishu ",
         to: " -100123 ",
       },
     });
@@ -130,12 +130,12 @@ describe("system events (session routing)", () => {
     events[0].deliveryContext!.to = "mutated";
 
     expect(resolved).toEqual({
-      channel: "telegram",
+      channel: "feishu",
       to: "-100123",
       threadId: "42",
     });
     expect(resolveSystemEventDeliveryContext(peekSystemEventEntries(key))).toEqual({
-      channel: "telegram",
+      channel: "feishu",
       to: "-100123",
       threadId: "42",
     });

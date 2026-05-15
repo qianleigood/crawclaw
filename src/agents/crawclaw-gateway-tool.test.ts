@@ -148,7 +148,7 @@ describe("gateway tool", () => {
 
   it("passes config.apply through gateway call", async () => {
     const { callGatewayTool } = await import("./tools/gateway.js");
-    const sessionKey = "agent:main:whatsapp:dm:+15555550123";
+    const sessionKey = "agent:main:weixin:dm:+15555550123";
     const tool = requireGatewayTool(sessionKey);
 
     const raw =
@@ -168,10 +168,10 @@ describe("gateway tool", () => {
 
   it("passes config.patch through gateway call", async () => {
     const { callGatewayTool } = await import("./tools/gateway.js");
-    const sessionKey = "agent:main:whatsapp:dm:+15555550123";
+    const sessionKey = "agent:main:weixin:dm:+15555550123";
     const tool = requireGatewayTool(sessionKey);
 
-    const raw = '{\n  channels: { telegram: { groups: { "*": { requireMention: false } } } }\n}\n';
+    const raw = '{\n  channels: { feishu: { groups: { "*": { requireMention: false } } } }\n}\n';
     await tool.execute("call4", {
       action: "config.patch",
       raw,
@@ -273,7 +273,7 @@ describe("gateway tool", () => {
 
   it("passes update.run through gateway call", async () => {
     const { callGatewayTool } = await import("./tools/gateway.js");
-    const sessionKey = "agent:main:whatsapp:dm:+15555550123";
+    const sessionKey = "agent:main:weixin:dm:+15555550123";
     const tool = requireGatewayTool(sessionKey);
 
     await tool.execute("call3", {

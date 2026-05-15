@@ -5,7 +5,6 @@ import {
   type CrawClawPluginApi,
 } from "./api.js";
 import { createVoiceCallRuntime, type VoiceCallRuntime } from "./runtime-entry.js";
-import { registerVoiceCallCli } from "./src/cli.js";
 import {
   VoiceCallConfigSchema,
   resolveVoiceCallConfig,
@@ -523,28 +522,6 @@ export default definePluginEntry({
         }
       },
     });
-
-    api.registerCli(
-      ({ program, locale }) =>
-        registerVoiceCallCli({
-          program,
-          config,
-          ensureRuntime,
-          logger: api.logger,
-          locale,
-        }),
-      {
-        commands: ["voicecall"],
-        descriptors: [
-          {
-            name: "voicecall",
-            description: "Voice call utilities",
-            descriptionZhCN: "语音通话工具",
-            hasSubcommands: true,
-          },
-        ],
-      },
-    );
 
     api.registerService({
       id: "voicecall",

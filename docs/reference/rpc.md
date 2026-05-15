@@ -15,15 +15,13 @@ CrawClaw integrates external CLIs via JSON-RPC. Two patterns are used today.
 - `signal-cli` runs as a daemon with JSON-RPC over HTTP.
 - Event stream is SSE (`/api/v1/events`).
 - Health probe: `/api/v1/check`.
-- CrawClaw owns lifecycle when `channels.signal.autoStart=true`.
-
-See [Signal](/channels/signal) for setup and endpoints.
+- CrawClaw owns lifecycle for Rust-native channel adapters through the Gateway channel APIs.
 
 ## Pattern B: stdio child process (legacy: imsg)
 
-> **Note:** For new iMessage setups, use [BlueBubbles](/channels/bluebubbles) instead.
+> **Note:** For new Weixin setups, use [Weixin](/channels/index) instead.
 
-- CrawClaw spawns `imsg rpc` as a child process (legacy iMessage integration).
+- CrawClaw spawns `imsg rpc` as a child process (legacy Weixin integration).
 - JSON-RPC is line-delimited over stdin/stdout (one JSON object per line).
 - No TCP port, no daemon required.
 
@@ -34,7 +32,7 @@ Core methods used:
 - `send`
 - `chats.list` (probe/diagnostics)
 
-See [iMessage](/channels/imessage) for legacy setup and addressing (`chat_id` preferred).
+See [Weixin](/channels/index) for legacy setup and addressing (`chat_id` preferred).
 
 ## Adapter guidelines
 

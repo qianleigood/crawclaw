@@ -9,7 +9,7 @@ import type { RunCliAgentParams } from "./cli-runner/types.js";
 import { captureModelVisibleContext } from "./context-archive/turn-capture.js";
 import { FailoverError, resolveFailoverStatus } from "./failover-error.js";
 import { classifyFailoverReason, isFailoverErrorMessage } from "./pi-embedded-helpers.js";
-import type { EmbeddedPiRunResult } from "./pi-embedded-runner.js";
+import type { EmbeddedPiRunResult } from "./pi-embedded-runner/types.js";
 import {
   buildQueryContextProviderRequest,
   createQueryContextToolContext,

@@ -41,10 +41,7 @@ describe("inbound-path-policy", () => {
   it("normalizes and de-duplicates merged roots", () => {
     expect(
       mergeInboundPathRoots(
-        [
-          "/Users/*/Library/Messages/Attachments/",
-          "/Users/*/Library/Messages/Attachments",
-        ],
+        ["/Users/*/Library/Messages/Attachments/", "/Users/*/Library/Messages/Attachments"],
         ["/Volumes/relay/attachments"],
       ),
     ).toEqual(["/Users/*/Library/Messages/Attachments", "/Volumes/relay/attachments"]);

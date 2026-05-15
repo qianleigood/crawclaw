@@ -1385,13 +1385,6 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
           command: "pnpm test",
           shardCount: unitShardCount,
         }),
-        ...createShardMatrixEntries({
-          checkNamePrefix: "checks-node-channels",
-          runtime: "node",
-          task: "channels",
-          command: "pnpm test:channels",
-          shardCount: channelShardCount,
-        }),
         ...(isPush
           ? [
               {
@@ -1426,24 +1419,9 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
           task: "build",
           command: "pnpm build",
         },
-        {
-          check_name: "checks-windows-node-install-smoke",
-          runtime: "node",
-          task: "install-smoke",
-          command: "node scripts/ci/windows-packed-install-smoke.mjs --include-gateway",
-        },
       ]
     : [];
-  const macosNodeInclude = nodeEligible
-    ? [
-        {
-          check_name: "macos-node-install-smoke",
-          runtime: "node",
-          task: "install-smoke",
-          command: "node scripts/ci/macos-packed-install-smoke.mjs",
-        },
-      ]
-    : [];
+  const macosNodeInclude = [];
   const extensionFastInclude = extensionFastEligible
     ? scope.changedExtensionsMatrix.include.map((entry) => ({
         check_name: `extension-fast-${entry.extension}`,

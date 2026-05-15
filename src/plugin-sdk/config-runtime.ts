@@ -12,7 +12,7 @@ export {
 } from "../config/io.js";
 export { resolveOAuthDir, resolveStateDir, STATE_DIR } from "../config/paths.js";
 export { logConfigUpdated } from "../config/logging.js";
-export { updateConfig } from "../commands/models/shared.js";
+export { updateConfig } from "../control/models/shared.js";
 export { resolveChannelModelOverride } from "../channels/model-overrides.js";
 export {
   resolveChannelContextVisibilityMode,

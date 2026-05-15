@@ -16,15 +16,6 @@ describe("bundled plugin build entries", () => {
     });
   });
 
-  it("keeps the Matrix packaged runtime shim in bundled plugin build entries", () => {
-    const entries = listBundledPluginBuildEntries();
-
-    expect(entries).toMatchObject({
-      "extensions/matrix/plugin-entry.handlers.runtime":
-        "extensions/matrix/plugin-entry.handlers.runtime.ts",
-    });
-  });
-
   it("packs runtime core support packages without requiring plugin manifests", () => {
     const artifacts = listBundledPluginPackArtifacts();
 
@@ -34,11 +25,5 @@ describe("bundled plugin build entries", () => {
     );
     expect(artifacts).toContain("dist/extensions/speech-core/runtime-api.js");
     expect(artifacts).not.toContain("dist/extensions/speech-core/crawclaw.plugin.json");
-  });
-
-  it("packs the Matrix packaged runtime shim", () => {
-    const artifacts = listBundledPluginPackArtifacts();
-
-    expect(artifacts).toContain("dist/extensions/matrix/plugin-entry.handlers.runtime.js");
   });
 });

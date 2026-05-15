@@ -93,7 +93,7 @@ crawclaw onboard --install-daemon
 向导会带你完成以下设置：
 
 - 模型认证（API key 或 OAuth）
-- 渠道设置（Telegram、WhatsApp、Discord 等）
+- 渠道设置（Feishu、Weixin、QQBot 等）
 - Gateway 网关 token（自动生成）
 - 守护进程安装（systemd）
 
@@ -153,17 +153,17 @@ crawclaw gateway restart
 
 ## 7）连接你的渠道
 
-### Telegram
+### Feishu
 
 ```bash
-crawclaw pairing list telegram
-crawclaw pairing approve telegram <CODE>
+crawclaw pairing list feishu
+crawclaw pairing approve feishu <CODE>
 ```
 
-### WhatsApp
+### Weixin
 
 ```bash
-crawclaw channels login whatsapp
+crawclaw channels login weixin
 # 扫描 QR 码
 ```
 

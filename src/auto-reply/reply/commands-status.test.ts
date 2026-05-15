@@ -16,7 +16,7 @@ import { buildCommandTestParams } from "./commands.test-harness.js";
 
 const baseCfg = {
   commands: { text: true },
-  channels: { whatsapp: { allowFrom: ["*"] } },
+  channels: { weixin: { allowFrom: ["*"] } },
   session: { mainKey: "main", scope: "per-sender" },
 } as CrawClawConfig;
 

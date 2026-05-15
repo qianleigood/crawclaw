@@ -35,24 +35,24 @@ x-i18n:
 
 1. 访问 `https://<your-northflank-domain>/setup` 并输入你的 `SETUP_PASSWORD`。
 2. 选择模型/认证提供商并粘贴你的密钥。
-3. （可选）添加 Telegram/Discord/Slack 令牌。
+3. （可选）添加 Feishu/QQBot/DingTalk 令牌。
 4. 点击 **Run setup**。
 5. 在 `https://<your-northflank-domain>/crawclaw` 打开控制面板 UI。
 
-如果 Telegram 私信设置为配对模式，设置向导可以审批配对码。
+如果 Feishu 私信设置为配对模式，设置向导可以审批配对码。
 
 ## 获取聊天令牌
 
-### Telegram 机器人令牌
+### Feishu 机器人令牌
 
-1. 在 Telegram 中给 `@BotFather` 发消息
+1. 在 Feishu 中给 `@BotFather` 发消息
 2. 运行 `/newbot`
 3. 复制令牌（格式如 `123456789:AA...`）
 4. 将其粘贴到 `/setup` 中
 
-### Discord 机器人令牌
+### QQBot 机器人令牌
 
-1. 前往 https://discord.com/developers/applications
+1. 前往 https://qqbot.com/developers/applications
 2. **New Application** → 选择一个名称
 3. **Bot** → **Add Bot**
 4. 在 Bot → Privileged Gateway Intents 下**启用 MESSAGE CONTENT INTENT**（必需，否则机器人启动时会崩溃）

@@ -52,11 +52,11 @@ async function expectHealthzPluginShadow(params: {
   expect(params.handlePluginRequest).toHaveBeenCalledTimes(1);
 }
 
-function createMattermostCallbackConfig(callbackPath: string) {
+function createFeishuCallbackConfig(callbackPath: string) {
   return {
     gateway: { trustedProxies: [] },
     channels: {
-      mattermost: {
+      feishu: {
         commands: { callbackPath },
       },
     },
@@ -181,7 +181,7 @@ describe("gateway plugin HTTP auth boundary", () => {
         res.end(JSON.stringify({ ok: true, route: "channel-root" }));
         return true;
       }
-      if (pathname === "/api/channels/nostr/default/profile") {
+      if (pathname === "/api/channels/feishu/default/profile") {
         res.statusCode = 200;
         res.setHeader("Content-Type", "application/json; charset=utf-8");
         res.end(JSON.stringify({ ok: true, route: "channel" }));
@@ -207,7 +207,7 @@ describe("gateway plugin HTTP auth boundary", () => {
       },
       run: async (server) => {
         const unauthenticated = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
         });
         expectUnauthorizedResponse(unauthenticated);
         expect(handlePluginRequest).not.toHaveBeenCalled();
@@ -217,7 +217,7 @@ describe("gateway plugin HTTP auth boundary", () => {
         expect(handlePluginRequest).not.toHaveBeenCalled();
 
         const authenticated = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
           authorization: "Bearer test-token",
         });
         expect(authenticated.res.statusCode).toBe(200);
@@ -234,7 +234,7 @@ describe("gateway plugin HTTP auth boundary", () => {
   test("uses the latest runtime auth surface for new protected plugin HTTP requests", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
-      if (pathname !== "/api/channels/nostr/default/profile") {
+      if (pathname !== "/api/channels/feishu/default/profile") {
         return false;
       }
       res.statusCode = 200;
@@ -259,7 +259,7 @@ describe("gateway plugin HTTP auth boundary", () => {
       },
       run: async (server) => {
         const first = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
           authorization: "Bearer test-token",
         });
         expect(first.res.statusCode).toBe(200);
@@ -272,13 +272,13 @@ describe("gateway plugin HTTP auth boundary", () => {
         };
 
         const staleToken = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
           authorization: "Bearer test-token",
         });
         expectUnauthorizedResponse(staleToken);
 
         const nextToken = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
           authorization: "Bearer next-token",
         });
         expect(nextToken.res.statusCode).toBe(200);
@@ -286,24 +286,24 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("allows unauthenticated Mattermost slash callback routes while keeping other channel routes protected", async () => {
+  test("allows unauthenticated Feishu slash callback routes while keeping other channel routes protected", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
-      if (pathname === "/api/channels/mattermost/command") {
+      if (pathname === "/api/channels/feishu/command") {
         res.statusCode = 200;
         res.end("ok:mm-callback");
         return true;
       }
-      if (pathname === "/api/channels/nostr/default/profile") {
+      if (pathname === "/api/channels/feishu/default/profile") {
         res.statusCode = 200;
-        res.end("ok:nostr");
+        res.end("ok:feishu");
         return true;
       }
       return false;
     });
 
     await withTempConfig({
-      cfg: createMattermostCallbackConfig("/api/channels/mattermost/command"),
+      cfg: createFeishuCallbackConfig("/api/channels/feishu/command"),
       prefix: "crawclaw-plugin-http-auth-mm-callback-",
       run: async () => {
         const server = createTestGatewayServer({
@@ -312,14 +312,14 @@ describe("gateway plugin HTTP auth boundary", () => {
         });
 
         const slashCallback = await sendRequest(server, {
-          path: "/api/channels/mattermost/command",
+          path: "/api/channels/feishu/command",
           method: "POST",
         });
         expect(slashCallback.res.statusCode).toBe(200);
         expect(slashCallback.getBody()).toBe("ok:mm-callback");
 
         const otherChannelUnauthed = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
         });
         expect(otherChannelUnauthed.res.statusCode).toBe(401);
         expect(otherChannelUnauthed.getBody()).toContain("Unauthorized");
@@ -327,19 +327,19 @@ describe("gateway plugin HTTP auth boundary", () => {
     });
   });
 
-  test("does not bypass auth when mattermost callbackPath points to non-mattermost channel routes", async () => {
+  test("does not bypass auth when feishu callbackPath points to non-feishu channel routes", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
-      if (pathname === "/api/channels/nostr/default/profile") {
+      if (pathname === "/api/channels/feishu/default/profile") {
         res.statusCode = 200;
-        res.end("ok:nostr");
+        res.end("ok:feishu");
         return true;
       }
       return false;
     });
 
     await withTempConfig({
-      cfg: createMattermostCallbackConfig("/api/channels/nostr/default/profile"),
+      cfg: createFeishuCallbackConfig("/api/channels/feishu/default/profile"),
       prefix: "crawclaw-plugin-http-auth-mm-misconfig-",
       run: async () => {
         const server = createTestGatewayServer({
@@ -348,7 +348,7 @@ describe("gateway plugin HTTP auth boundary", () => {
         });
 
         const unauthenticated = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
           method: "POST",
         });
 
@@ -365,7 +365,7 @@ describe("gateway plugin HTTP auth boundary", () => {
       if (pathname === "/plugin/routed") {
         return respondJsonRoute(res, "routed");
       }
-      if (pathname === "/googlechat") {
+      if (pathname === "/feishu") {
         return respondJsonRoute(res, "wildcard-handler");
       }
       return false;
@@ -384,7 +384,7 @@ describe("gateway plugin HTTP auth boundary", () => {
         const unauthenticatedRouted = await sendRequest(server, { path: "/plugin/routed" });
         expectUnauthorizedResponse(unauthenticatedRouted);
 
-        const unauthenticatedWildcard = await sendRequest(server, { path: "/googlechat" });
+        const unauthenticatedWildcard = await sendRequest(server, { path: "/feishu" });
         expect(unauthenticatedWildcard.res.statusCode).toBe(200);
         expect(unauthenticatedWildcard.getBody()).toContain('"route":"wildcard-handler"');
 
@@ -401,10 +401,10 @@ describe("gateway plugin HTTP auth boundary", () => {
   test("uses /api/channels auth by default while keeping wildcard handlers ungated with no predicate", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
-      if (canonicalizePluginPath(pathname) === "/api/channels/nostr/default/profile") {
+      if (canonicalizePluginPath(pathname) === "/api/channels/feishu/default/profile") {
         return respondJsonRoute(res, "channel-default");
       }
-      if (pathname === "/googlechat") {
+      if (pathname === "/feishu") {
         return respondJsonRoute(res, "wildcard-default");
       }
       return false;
@@ -415,36 +415,36 @@ describe("gateway plugin HTTP auth boundary", () => {
       resolvedAuth: AUTH_TOKEN,
       overrides: { handlePluginRequest },
       run: async (server) => {
-        const unauthenticated = await sendRequest(server, { path: "/googlechat" });
+        const unauthenticated = await sendRequest(server, { path: "/feishu" });
         expect(unauthenticated.res.statusCode).toBe(200);
         expect(unauthenticated.getBody()).toContain('"route":"wildcard-default"');
 
         const unauthenticatedChannel = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
         });
         expectUnauthorizedResponse(unauthenticatedChannel);
 
         const unauthenticatedDeepEncodedChannel = await sendRequest(server, {
-          path: "/api%2525252fchannels%2525252fnostr%2525252fdefault%2525252fprofile",
+          path: "/api%2525252fchannels%2525252ffeishu%2525252fdefault%2525252fprofile",
         });
         expectUnauthorizedResponse(unauthenticatedDeepEncodedChannel);
 
         const authenticated = await sendRequest(server, {
-          path: "/googlechat",
+          path: "/feishu",
           authorization: "Bearer test-token",
         });
         expect(authenticated.res.statusCode).toBe(200);
         expect(authenticated.getBody()).toContain('"route":"wildcard-default"');
 
         const authenticatedChannel = await sendRequest(server, {
-          path: "/api/channels/nostr/default/profile",
+          path: "/api/channels/feishu/default/profile",
           authorization: "Bearer test-token",
         });
         expect(authenticatedChannel.res.statusCode).toBe(200);
         expect(authenticatedChannel.getBody()).toContain('"route":"channel-default"');
 
         const authenticatedDeepEncodedChannel = await sendRequest(server, {
-          path: "/api%2525252fchannels%2525252fnostr%2525252fdefault%2525252fprofile",
+          path: "/api%2525252fchannels%2525252ffeishu%2525252fdefault%2525252fprofile",
           authorization: "Bearer test-token",
         });
         expect(authenticatedDeepEncodedChannel.res.statusCode).toBe(200);
@@ -483,7 +483,7 @@ describe("gateway plugin HTTP auth boundary", () => {
   test("passes POST webhook routes through root-mounted HTTP handling to plugins", async () => {
     const handlePluginRequest = vi.fn(async (req: IncomingMessage, res: ServerResponse) => {
       const pathname = new URL(req.url ?? "/", "http://localhost").pathname;
-      if (req.method !== "POST" || pathname !== "/bluebubbles-webhook") {
+      if (req.method !== "POST" || pathname !== "/weixin-webhook") {
         return false;
       }
       res.statusCode = 200;
@@ -497,7 +497,7 @@ describe("gateway plugin HTTP auth boundary", () => {
       handlePluginRequest,
       run: async (server) => {
         const response = await sendRequest(server, {
-          path: "/bluebubbles-webhook",
+          path: "/weixin-webhook",
           method: "POST",
         });
 

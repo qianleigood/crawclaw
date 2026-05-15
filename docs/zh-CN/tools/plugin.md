@@ -128,13 +128,13 @@ Bundle hook 支持仅限于常规 CrawClaw hook 目录格式（在声明的 hook
 
 ## 可用插件（官方）
 
-- Microsoft Teams 自 `2026.1.15` 起仅以插件形式提供；如果你使用 Teams，请安装 `@crawclaw/msteams`。
+- QQBot 自 `2026.1.15` 起仅以插件形式提供；如果你使用 Teams，请安装 `@crawclaw/qqbot`。
 - [Voice Call](/plugins/voice-call) — `@crawclaw/voice-call`
-- [Zalo Personal](/plugins/zalouser) — `@crawclaw/zalouser`
-- [Matrix](/channels/matrix) — `@crawclaw/matrix`
-- [Nostr](/channels/nostr) — `@crawclaw/nostr`
-- [Zalo](/channels/zalo) — `@crawclaw/zalo`
-- [Microsoft Teams](/channels/msteams) — `@crawclaw/msteams`
+- [Feishu Personal](/plugins/feishu) — `@crawclaw/feishu`
+- [Feishu](/channels/index) — `@crawclaw/feishu`
+- [Feishu](/channels/index) — `@crawclaw/feishu`
+- [Feishu](/channels/index) — `@crawclaw/feishu`
+- [QQBot](/channels/index) — `@crawclaw/qqbot`
 - Anthropic provider 运行时 — 以 `anthropic` 形式捆绑（默认启用）
 - BytePlus provider catalog — 以 `byteplus` 形式捆绑（默认启用）
 - Cloudflare AI Gateway provider catalog — 以 `cloudflare-ai-gateway` 形式捆绑（默认启用）
@@ -188,7 +188,7 @@ Provider 插件现在有两层：
 
 - manifest 元数据：`providerAuthEnvVars`，用于在运行时加载前进行低成本的环境身份验证查找
 - 配置时 hooks：`catalog` / 旧版 `discovery`
-- 运行时 hooks：`resolveDynamicModel`、`prepareDynamicModel`、`normalizeResolvedModel`、`capabilities`、`prepareExtraParams`、`wrapStreamFn`、`formatApiKey`、`refreshOAuth`、`buildAuthDoctorHint`、`isCacheTtlEligible`、`buildMissingAuthMessage`、`suppressBuiltInModel`、`augmentModelCatalog`、`isBinaryThinking`、`supportsXHighThinking`、`resolveDefaultThinkingLevel`、`isModernModelRef`、`prepareRuntimeAuth`、`resolveUsageAuth`、`fetchUsageSnapshot`
+- 运行时 hooks：`resolveDynamicModel`、`prepareDynamicModel`、`normalizeResolvedModel`、`capabilities`、`formatApiKey`、`refreshOAuth`、`buildAuthDoctorHint`、`isCacheTtlEligible`、`buildMissingAuthMessage`、`suppressBuiltInModel`、`augmentModelCatalog`、`isBinaryThinking`、`supportsXHighThinking`、`resolveDefaultThinkingLevel`、`isModernModelRef`、`prepareRuntimeAuth`、`resolveUsageAuth`、`fetchUsageSnapshot`
 
 CrawClaw 仍然负责通用的智能体循环、故障切换、转录处理和工具策略。这些 hooks 是 provider 特定行为的接缝，而无需整个自定义推理传输层。
 
@@ -211,37 +211,33 @@ CrawClaw 仍然负责通用的智能体循环、故障切换、转录处理和�
    在嵌入式运行器使用已解析模型之前进行最终重写。
 6. `capabilities`
    由共享核心逻辑使用的 provider 自有转录/工具元数据。
-7. `prepareExtraParams`
-   在通用流选项包装器之前执行 provider 自有请求参数规范化。
-8. `wrapStreamFn`
-   在应用通用包装器之后执行 provider 自有流包装器。
-9. `formatApiKey`
+7. `formatApiKey`
    当存储的 auth profile 需要转换为运行时 `apiKey` 字符串时，使用 provider 自有身份验证配置器。
-10. `refreshOAuth`
-    对自定义刷新端点或刷新失败策略执行 provider 自有 OAuth 刷新覆盖。
-11. `buildAuthDoctorHint`
-    当 OAuth 刷新失败时，追加 provider 自有修复提示。
-12. `isCacheTtlEligible`
+8. `refreshOAuth`
+   对自定义刷新端点或刷新失败策略执行 provider 自有 OAuth 刷新覆盖。
+9. `buildAuthDoctorHint`
+   当 OAuth 刷新失败时，追加 provider 自有修复提示。
+10. `isCacheTtlEligible`
     为代理/backhaul provider 提供 provider 自有提示词缓存策略。
-13. `buildMissingAuthMessage`
+11. `buildMissingAuthMessage`
     用 provider 自有内容替换通用的缺失身份验证恢复消息。
-14. `suppressBuiltInModel`
+12. `suppressBuiltInModel`
     执行 provider 自有的过时上游模型抑制，并可返回面向用户的错误提示。
-15. `augmentModelCatalog`
+13. `augmentModelCatalog`
     在发现后附加 provider 自有的合成/最终目录行。
-16. `isBinaryThinking`
+14. `isBinaryThinking`
     为二元 thinking provider 提供 provider 自有的开/关推理切换。
-17. `supportsXHighThinking`
+15. `supportsXHighThinking`
     为选定模型提供 provider 自有的 `xhigh` 推理支持。
-18. `resolveDefaultThinkingLevel`
+16. `resolveDefaultThinkingLevel`
     为特定模型家族提供 provider 自有的默认 `/think` 级别。
-19. `isModernModelRef`
+17. `isModernModelRef`
     提供 provider 自有的现代模型匹配器，用于 live profile 过滤器和 smoke 选择。
-20. `prepareRuntimeAuth`
+18. `prepareRuntimeAuth`
     在推理前将已配置的凭据交换为实际的运行时令牌/密钥。
-21. `resolveUsageAuth`
+19. `resolveUsageAuth`
     为 `/usage` 及相关状态表面解析 usage/billing 凭据。
-22. `fetchUsageSnapshot`
+20. `fetchUsageSnapshot`
     在身份验证解析完成后，抓取并规范化 provider 特定的 usage/quota 快照。
 
 ### 应该使用哪个 hook
@@ -251,8 +247,6 @@ CrawClaw 仍然负责通用的智能体循环、故障切换、转录处理和�
 - `prepareDynamicModel`：在重试动态解析之前执行异步预热（例如刷新 provider 元数据缓存）
 - `normalizeResolvedModel`：在推理前重写已解析模型的传输/base URL/兼容性
 - `capabilities`：发布 provider 家族和转录/工具差异，而不在核心中硬编码 provider id
-- `prepareExtraParams`：在通用流包装之前设置 provider 默认值或规范化 provider 特定的每模型参数
-- `wrapStreamFn`：在仍使用常规 `pi-ai` 执行路径时，添加 provider 特定的 header/payload/model 兼容补丁
 - `formatApiKey`：将存储的 auth profile 转换为运行时 `apiKey` 字符串，而不在核心中硬编码 provider 令牌 blob
 - `refreshOAuth`：为不适配共享 `pi-ai` 刷新器的 provider 自主管理 OAuth 刷新
 - `buildAuthDoctorHint`：在刷新失败时追加 provider 自有的身份验证修复指导
@@ -275,8 +269,6 @@ CrawClaw 仍然负责通用的智能体循环、故障切换、转录处理和�
 - provider 在解析未知 id 前需要网络元数据：添加 `prepareDynamicModel`
 - provider 需要传输重写但仍使用核心传输：使用 `normalizeResolvedModel`
 - provider 需要转录/provider 家族差异：使用 `capabilities`
-- provider 需要默认请求参数或按 provider 清理参数：使用 `prepareExtraParams`
-- provider 需要请求 header/body/model 兼容包装而不使用自定义传输：使用 `wrapStreamFn`
 - provider 在 auth profile 中存储额外元数据并需要自定义运行时令牌格式：使用 `formatApiKey`
 - provider 需要自定义 OAuth 刷新端点或刷新失败策略：使用 `refreshOAuth`
 - provider 在刷新失败后需要 provider 自有身份验证修复指导：使用 `buildAuthDoctorHint`
@@ -354,12 +346,12 @@ api.registerProvider({
 - OpenAI 使用 `resolveDynamicModel`、`normalizeResolvedModel` 和 `capabilities`，以及 `buildMissingAuthMessage`、`suppressBuiltInModel`、`augmentModelCatalog`、`supportsXHighThinking` 和 `isModernModelRef`，因为它拥有 GPT-5.4 前向兼容、直接 OpenAI `openai-completions` -> `openai-responses` 规范化、支持 Codex 的身份验证提示、Spark 抑制、合成 OpenAI 列表行以及 GPT-5 thinking / live-model 策略。
 - OpenRouter 使用 `catalog` 以及 `resolveDynamicModel` 和 `prepareDynamicModel`，因为该 provider 是透传型的，可能会在 CrawClaw 静态目录更新之前暴露新的 model id。
 - GitHub Copilot 使用 `catalog`、`auth`、`resolveDynamicModel` 和 `capabilities`，以及 `prepareRuntimeAuth` 和 `fetchUsageSnapshot`，因为它需要 provider 自有设备登录、模型回退行为、Claude 转录差异、GitHub token -> Copilot token 交换，以及 provider 自有 usage 端点。
-- OpenAI Codex 使用 `catalog`、`resolveDynamicModel`、`normalizeResolvedModel`、`refreshOAuth` 和 `augmentModelCatalog`，以及 `prepareExtraParams`、`resolveUsageAuth` 和 `fetchUsageSnapshot`，因为它仍运行在核心 OpenAI 传输之上，但拥有自己的传输/base URL 规范化、OAuth 刷新后备策略、默认传输选择、合成 Codex 目录行以及 ChatGPT usage 端点集成。
+- OpenAI Codex 使用 `catalog`、`resolveDynamicModel`、`normalizeResolvedModel`、`refreshOAuth` 和 `augmentModelCatalog`，以及 `resolveUsageAuth` 和 `fetchUsageSnapshot`，因为它拥有传输/base URL 规范化、OAuth 刷新后备策略、默认传输选择、合成 Codex 目录行以及 ChatGPT usage 端点集成。
 - Google AI Studio 和 Gemini CLI OAuth 使用 `resolveDynamicModel` 和 `isModernModelRef`，因为它们拥有 Gemini 3.1 前向兼容后备和现代模型匹配；Gemini CLI OAuth 还使用 `formatApiKey`、`resolveUsageAuth` 和 `fetchUsageSnapshot` 来处理令牌格式化、令牌解析和 quota 端点接线。
-- OpenRouter 使用 `capabilities`、`wrapStreamFn` 和 `isCacheTtlEligible`，以便将 provider 特定的请求头、路由元数据、reasoning 补丁和提示词缓存策略从核心中移出。
-- Moonshot 使用 `catalog` 和 `wrapStreamFn`，因为它仍使用共享 OpenAI 传输，但需要 provider 自有 thinking 负载规范化。
-- Kilocode 使用 `catalog`、`capabilities`、`wrapStreamFn` 和 `isCacheTtlEligible`，因为它需要 provider 自有请求头、reasoning 负载规范化、Gemini 转录提示和 Anthropic cache-TTL 门控。
-- Z.AI 使用 `resolveDynamicModel`、`prepareExtraParams`、`wrapStreamFn`、`isCacheTtlEligible`、`isBinaryThinking`、`isModernModelRef`、`resolveUsageAuth` 和 `fetchUsageSnapshot`，因为它拥有 GLM-5 后备、`tool_stream` 默认值、二元 thinking UX、现代模型匹配，以及 usage 身份验证 + quota 抓取。
+- OpenRouter 使用 `capabilities` 和 `isCacheTtlEligible`；Rust provider transport 负责请求头、路由元数据和 reasoning payload 策略。
+- Moonshot 使用 `catalog`；Rust/native provider transport 负责请求 payload 规范化。
+- Kilocode 使用 `catalog`、`capabilities` 和 `isCacheTtlEligible`；Rust provider transport 负责请求头和 reasoning payload 规范化。
+- Z.AI 使用 `resolveDynamicModel`、`isCacheTtlEligible`、`isBinaryThinking`、`isModernModelRef`、`resolveUsageAuth` 和 `fetchUsageSnapshot`；Rust provider transport 负责 `tool_stream` 默认值。
 - Mistral、OpenCode Zen 和 OpenCode Go 仅使用 `capabilities`，以便将转录/工具差异移出核心。
 - 仅目录型的捆绑 provider，例如 `byteplus`、`cloudflare-ai-gateway`、`huggingface`、`kimi-coding`、`modelstudio`、`nvidia`、`qianfan`、`synthetic`、`together`、`venice`、`vercel-ai-gateway` 和 `volcengine`，仅使用 `catalog`。
 - Qwen portal 使用 `catalog`、`auth` 和 `refreshOAuth`。
@@ -474,30 +466,30 @@ api.registerHttpRoute({
 `crawclaw/plugin-sdk/compat` 已移除，请直接改用对应的聚焦子路径：
 
 - `crawclaw/plugin-sdk/core` 用于通用插件 API、provider 身份验证类型和共享辅助工具。
-- `crawclaw/plugin-sdk/telegram` 用于 Telegram 渠道插件。
-- `crawclaw/plugin-sdk/discord` 用于 Discord 渠道插件。
-- `crawclaw/plugin-sdk/slack` 用于 Slack 渠道插件。
-- `crawclaw/plugin-sdk/signal` 用于 Signal 渠道插件。
-- `crawclaw/plugin-sdk/imessage` 用于 iMessage 渠道插件。
-- `crawclaw/plugin-sdk/whatsapp` 用于 WhatsApp 渠道插件。
+- `crawclaw/plugin-sdk/feishu` 用于 Feishu 渠道插件。
+- `crawclaw/plugin-sdk/qqbot` 用于 QQBot 渠道插件。
+- `crawclaw/plugin-sdk/ddingtalk` 用于 DingTalk 渠道插件。
+- `crawclaw/plugin-sdk/feishu` 用于 Feishu 渠道插件。
+- `crawclaw/plugin-sdk/weixin` 用于 Weixin 渠道插件。
+- `crawclaw/plugin-sdk/weixin` 用于 Weixin 渠道插件。
 - `crawclaw/plugin-sdk/line` 用于 LINE 渠道插件。
-- `crawclaw/plugin-sdk/msteams` 用于捆绑的 Microsoft Teams 插件表面。
+- `crawclaw/plugin-sdk/qqbot` 用于捆绑的 QQBot 插件表面。
 - 也提供捆绑扩展专用子路径：
-  `crawclaw/plugin-sdk/acpx`、`crawclaw/plugin-sdk/bluebubbles`、
+  `crawclaw/plugin-sdk/acpx`、`crawclaw/plugin-sdk/weixin`、
   `crawclaw/plugin-sdk/copilot-proxy`、`crawclaw/plugin-sdk/device-pair`、
   `crawclaw/plugin-sdk/diagnostics-otel`、`crawclaw/plugin-sdk/diffs`、
-  `crawclaw/plugin-sdk/feishu`、`crawclaw/plugin-sdk/googlechat`、
-  `crawclaw/plugin-sdk/irc`、`crawclaw/plugin-sdk/llm-task`、
+  `crawclaw/plugin-sdk/feishu`、`crawclaw/plugin-sdk/feishu`、
+  `crawclaw/plugin-sdk/feishu`、`crawclaw/plugin-sdk/llm-task`、
   `crawclaw/plugin-sdk/lobster`、`crawclaw/plugin-sdk/matrix`、
-  `crawclaw/plugin-sdk/mattermost`、
+  `crawclaw/plugin-sdk/feishu`、
   `crawclaw/plugin-sdk/minimax-portal-auth`、
-  `crawclaw/plugin-sdk/nextcloud-talk`、`crawclaw/plugin-sdk/nostr`、
+  `crawclaw/plugin-sdk/feishu`、`crawclaw/plugin-sdk/feishu`、
   `crawclaw/plugin-sdk/open-prose`、`crawclaw/plugin-sdk/phone-control`、
-  `crawclaw/plugin-sdk/synology-chat`、
+  `crawclaw/plugin-sdk/feishu`、
   `crawclaw/plugin-sdk/talk-voice`、
-  `crawclaw/plugin-sdk/thread-ownership`、`crawclaw/plugin-sdk/tlon`、
-  `crawclaw/plugin-sdk/twitch`、`crawclaw/plugin-sdk/voice-call`、
-  `crawclaw/plugin-sdk/zalo` 和 `crawclaw/plugin-sdk/zalouser`。
+  `crawclaw/plugin-sdk/thread-ownership`、`crawclaw/plugin-sdk/feishu`、
+  `crawclaw/plugin-sdk/qqbot`、`crawclaw/plugin-sdk/voice-call`、
+  `crawclaw/plugin-sdk/feishu` 和 `crawclaw/plugin-sdk/feishu`。
 
 ## Provider 目录
 
@@ -705,22 +697,22 @@ Bundle 目录会从与原生插件相同的根目录中被发现。
 
 ```json
 {
-  "name": "@crawclaw/nextcloud-talk",
+  "name": "@crawclaw/feishu",
   "crawclaw": {
     "extensions": ["./index.ts"],
     "channel": {
-      "id": "nextcloud-talk",
-      "label": "Nextcloud Talk",
-      "selectionLabel": "Nextcloud Talk (self-hosted)",
-      "docsPath": "/channels/nextcloud-talk",
-      "docsLabel": "nextcloud-talk",
-      "blurb": "通过 Nextcloud Talk webhook bot 提供的自托管聊天。",
+      "id": "feishu",
+      "label": "Feishu",
+      "selectionLabel": "Feishu (self-hosted)",
+      "docsPath": "/channels/index",
+      "docsLabel": "feishu",
+      "blurb": "通过 Feishu webhook bot 提供的自托管聊天。",
       "order": 65,
       "aliases": ["nc-talk", "nc"]
     },
     "install": {
-      "npmSpec": "@crawclaw/nextcloud-talk",
-      "localPath": "extensions/nextcloud-talk",
+      "npmSpec": "@crawclaw/feishu",
+      "localPath": "extensions/feishu",
       "defaultChoice": "npm"
     }
   }
@@ -908,7 +900,6 @@ crawclaw plugins doctor
 - `registerTool`
 - `registerHook`
 - `on(...)` 用于类型化生命周期 hooks
-- `registerChannel`
 - `registerProvider`
 - `registerHttpRoute`
 - `registerCommand`
@@ -1238,7 +1229,7 @@ api.registerProvider({
 ### 注册一个消息渠道
 
 插件可以注册 **渠道插件**，其行为类似内置渠道
-（WhatsApp、Telegram 等）。渠道配置位于 `channels.<id>` 下，并由你的渠道插件代码进行验证。
+（Weixin、Feishu 等）。渠道配置位于 `channels.<id>` 下，并由你的渠道插件代码进行验证。
 
 ```ts
 const myChannel = {
@@ -1265,9 +1256,7 @@ const myChannel = {
   },
 };
 
-export default function (api) {
-  api.registerChannel({ plugin: myChannel });
-}
+export default function (api) {}
 ```
 
 说明：
@@ -1327,8 +1316,6 @@ export default function (api) {
 
 5. 在你的插件中注册该渠道
 
-- `api.registerChannel({ plugin })`
-
 最小配置示例：
 
 ```json5
@@ -1373,9 +1360,7 @@ const plugin = {
   },
 };
 
-export default function (api) {
-  api.registerChannel({ plugin });
-}
+export default function (api) {}
 ```
 
 加载插件（扩展目录或 `plugins.load.paths`），重启 gateway，
@@ -1439,7 +1424,7 @@ export default function (api) {
 命令选项：
 
 - `name`：命令名（不含前导 `/`）
-- `nativeNames`：可选的原生命令别名，用于 slash/menu 表面。对所有原生 provider 使用 `default`，或使用如 `discord` 这样的 provider 特定键
+- `nativeNames`：可选的原生命令别名，用于 slash/menu 表面。对所有原生 provider 使用 `default`，或使用如 `qqbot` 这样的 provider 特定键
 - `description`：在命令列表中显示的帮助文本
 - `acceptsArgs`：命令是否接受参数（默认：false）。如果为 false 且提供了参数，则命令不会匹配，消息会继续传递给其他处理器
 - `requireAuth`：是否要求发送者已授权（默认：true）

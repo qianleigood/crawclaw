@@ -282,14 +282,14 @@ describe("security/dm-policy-shared", () => {
   });
 
   const channels = [
-    "bluebubbles",
-    "imessage",
+    "weixin",
+    "weixin",
     "signal",
-    "telegram",
-    "whatsapp",
-    "msteams",
+    "feishu",
+    "weixin",
+    "qqbot",
     "matrix",
-    "zalo",
+    "feishu",
   ] as const;
 
   type ParityCase = {

@@ -30,7 +30,6 @@ import {
 } from "../utils/message-channel.js";
 import { buildAnnounceIdempotencyKey, resolveQueueAnnounceId } from "./announce-idempotency.js";
 import type { AgentInternalEvent } from "./internal-events.js";
-import { isEmbeddedPiRunActive, queueEmbeddedPiMessage } from "./pi-embedded.js";
 import {
   runSubagentAnnounceDispatch,
   type SubagentAnnounceDeliveryResult,
@@ -419,15 +418,7 @@ async function maybeQueueSubagentAnnounce(params: {
     channel: entry?.channel ?? entry?.lastChannel ?? entry?.origin?.provider,
     sessionEntry: entry,
   });
-  const isActive = isEmbeddedPiRunActive(sessionId);
-
-  const shouldSteer = queueSettings.mode === "steer" || queueSettings.mode === "steer-backlog";
-  if (shouldSteer) {
-    const steered = queueEmbeddedPiMessage(sessionId, params.steerMessage);
-    if (steered) {
-      return "steered";
-    }
-  }
+  const isActive = false;
 
   const shouldFollowup =
     queueSettings.mode === "followup" ||

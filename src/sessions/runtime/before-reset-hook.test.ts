@@ -70,7 +70,7 @@ describe("emitBeforeResetPluginHook", () => {
       }),
       reason: "reset",
       agentId: "main",
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       sessionId: "prev-session",
       workspaceDir: "/tmp/crawclaw-workspace",
     });
@@ -84,7 +84,7 @@ describe("emitBeforeResetPluginHook", () => {
       },
       {
         agentId: "main",
-        sessionKey: "agent:main:telegram:direct:123",
+        sessionKey: "agent:main:feishu:direct:123",
         sessionId: "prev-session",
         workspaceDir: "/tmp/crawclaw-workspace",
       },

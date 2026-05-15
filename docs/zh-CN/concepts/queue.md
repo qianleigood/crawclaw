@@ -41,7 +41,7 @@ x-i18n:
 - `queue`（旧版别名）：与 `steer` 相同。
 
 steer-backlog 意味着你可以在被引导的运行之后获得后续响应，因此流式传输界面可能看起来像重复。如果你希望每条入站消息只有一个响应，请优先使用 `collect`/`steer`。
-发送 `/queue collect` 作为独立命令（按会话）或设置 `messages.queue.byChannel.discord: "collect"`。
+发送 `/queue collect` 作为独立命令（按会话）或设置 `messages.queue.byChannel.qqbot: "collect"`。
 
 默认值（配置中未设置时）：
 
@@ -57,7 +57,7 @@ steer-backlog 意味着你可以在被引导的运行之后获得后续响应，
       debounceMs: 1000,
       cap: 20,
       drop: "summarize",
-      byChannel: { discord: "collect" },
+      byChannel: { qqbot: "collect" },
     },
   },
 }
@@ -82,7 +82,7 @@ summarize 保留被丢弃消息的简短要点列表，并将其作为合成的�
 
 ## 范围和保证
 
-- 适用于所有使用 Gateway 网关回复管道的入站渠道的自动回复智能体运行（WhatsApp 网页版、Telegram、Slack、Discord、Signal、iMessage、网页聊天等）。
+- 适用于所有使用 Gateway 网关回复管道的入站渠道的自动回复智能体运行（Weixin 网页版、Feishu、DingTalk、QQBot、Feishu、Weixin、网页聊天等）。
 - 默认通道（`main`）对入站回复和主会话唤醒是进程范围的；设置 `agents.defaults.maxConcurrent` 以允许多个会话并行。
 - 可能存在额外的通道（例如 `cron`、`subagent`），以便后台任务可以并行运行而不阻塞入站回复。这些分离运行会记录为[后台任务](/automation/tasks)。
 - 按会话通道保证一次只有一个智能体运行触及给定会话。

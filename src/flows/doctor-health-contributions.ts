@@ -7,48 +7,47 @@ import {
   resolveConfiguredModelRef,
   resolveHooksGmailModel,
 } from "../agents/model-selection.js";
-import { formatCliCommand } from "../cli/command-format.js";
-import {
-  maybeRemoveDeprecatedCliAuthProfiles,
-  maybeRepairLegacyOAuthProfileIds,
-  noteAuthProfileHealth,
-} from "../commands/doctor-auth.js";
-import { noteBootstrapFileSize } from "../commands/doctor-bootstrap-size.js";
-import { noteChromeMcpBrowserReadiness } from "../commands/doctor-browser.js";
-import { maybeRepairBundledPluginRuntimeDeps } from "../commands/doctor-bundled-plugin-runtime-deps.js";
-import { doctorShellCompletion } from "../commands/doctor-completion.js";
-import { maybeRepairLegacyCronStore } from "../commands/doctor-cron.js";
-import { maybeRepairGatewayDaemon } from "../commands/doctor-gateway-daemon-flow.js";
-import { checkGatewayHealth, probeGatewayMemoryStatus } from "../commands/doctor-gateway-health.js";
-import {
-  maybeRepairGatewayServiceConfig,
-  maybeScanExtraGatewayServices,
-} from "../commands/doctor-gateway-services.js";
-import { noteMemoryHealth, resolveDoctorMemoryHealth } from "../commands/doctor-memory-health.js";
-import {
-  noteMacLaunchAgentOverrides,
-  noteMacLaunchctlGatewayEnvOverrides,
-} from "../commands/doctor-platform-notes.js";
-import { maybeRepairLegacyPluginManifestContracts } from "../commands/doctor-plugin-manifests.js";
-import { maybeRepairSharedPluginRuntimes } from "../commands/doctor-plugin-runtimes.js";
-import type { DoctorOptions, DoctorPrompter } from "../commands/doctor-prompter.js";
-import { noteSecurityWarnings } from "../commands/doctor-security.js";
-import { noteSessionLockHealth } from "../commands/doctor-session-locks.js";
-import { noteStateIntegrity, noteWorkspaceBackupTip } from "../commands/doctor-state-integrity.js";
-import { noteWorkspaceStatus } from "../commands/doctor-workspace-status.js";
-import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "../commands/doctor-workspace.js";
-import { noteOpenAIOAuthTlsPrerequisites } from "../commands/oauth-tls-preflight.js";
-import { applyWizardMetadata, randomToken } from "../commands/onboard-helpers.js";
-import { ensureSystemdUserLingerInteractive } from "../commands/systemd-linger.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { CONFIG_PATH, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
+import {
+  maybeRemoveDeprecatedCliAuthProfiles,
+  maybeRepairLegacyOAuthProfileIds,
+  noteAuthProfileHealth,
+} from "../control/doctor-auth.js";
+import { noteBootstrapFileSize } from "../control/doctor-bootstrap-size.js";
+import { noteChromeMcpBrowserReadiness } from "../control/doctor-browser.js";
+import { maybeRepairBundledPluginRuntimeDeps } from "../control/doctor-bundled-plugin-runtime-deps.js";
+import { maybeRepairLegacyCronStore } from "../control/doctor-cron.js";
+import { maybeRepairGatewayDaemon } from "../control/doctor-gateway-daemon-flow.js";
+import { checkGatewayHealth, probeGatewayMemoryStatus } from "../control/doctor-gateway-health.js";
+import {
+  maybeRepairGatewayServiceConfig,
+  maybeScanExtraGatewayServices,
+} from "../control/doctor-gateway-services.js";
+import { noteMemoryHealth, resolveDoctorMemoryHealth } from "../control/doctor-memory-health.js";
+import {
+  noteMacLaunchAgentOverrides,
+  noteMacLaunchctlGatewayEnvOverrides,
+} from "../control/doctor-platform-notes.js";
+import { maybeRepairLegacyPluginManifestContracts } from "../control/doctor-plugin-manifests.js";
+import { maybeRepairSharedPluginRuntimes } from "../control/doctor-plugin-runtimes.js";
+import type { DoctorOptions, DoctorPrompter } from "../control/doctor-prompter.js";
+import { noteSecurityWarnings } from "../control/doctor-security.js";
+import { noteSessionLockHealth } from "../control/doctor-session-locks.js";
+import { noteStateIntegrity, noteWorkspaceBackupTip } from "../control/doctor-state-integrity.js";
+import { noteWorkspaceStatus } from "../control/doctor-workspace-status.js";
+import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "../control/doctor-workspace.js";
+import { noteOpenAIOAuthTlsPrerequisites } from "../control/oauth-tls-preflight.js";
+import { applyWizardMetadata, randomToken } from "../control/onboard-helpers.js";
+import { ensureSystemdUserLingerInteractive } from "../control/systemd-linger.js";
 import { resolveGatewayService } from "../daemon/service.js";
 import { hasAmbiguousGatewayAuthModeConfig } from "../gateway/auth-mode-policy.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { buildGatewayConnectionDetails } from "../gateway/call.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import { note } from "../terminal/note.js";
 import { shortenHomePath } from "../utils.js";
 import type { FlowContribution } from "./types.js";
@@ -254,7 +253,7 @@ async function runGatewayServicesHealth(ctx: DoctorHealthFlowContext): Promise<v
   await noteMacLaunchctlGatewayEnvOverrides(ctx.cfg);
 }
 
-async function runStartupMatrixHealth(ctx: DoctorHealthFlowContext): Promise<void> {
+async function runStartupChecksHealth(ctx: DoctorHealthFlowContext): Promise<void> {
   void ctx;
 }
 
@@ -350,12 +349,6 @@ async function runWorkspaceStatusHealth(ctx: DoctorHealthFlowContext): Promise<v
 
 async function runBootstrapSizeHealth(ctx: DoctorHealthFlowContext): Promise<void> {
   await noteBootstrapFileSize(ctx.cfg);
-}
-
-async function runShellCompletionHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  await doctorShellCompletion(ctx.runtime, ctx.prompter, {
-    nonInteractive: ctx.options.nonInteractive,
-  });
 }
 
 async function runGatewayHealthChecks(ctx: DoctorHealthFlowContext): Promise<void> {
@@ -491,7 +484,7 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
     createDoctorHealthContribution({
       id: "doctor:startup-checks",
       label: "Startup checks",
-      run: runStartupMatrixHealth,
+      run: runStartupChecksHealth,
     }),
     createDoctorHealthContribution({
       id: "doctor:security",
@@ -527,11 +520,6 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
       id: "doctor:bootstrap-size",
       label: "Bootstrap size",
       run: runBootstrapSizeHealth,
-    }),
-    createDoctorHealthContribution({
-      id: "doctor:shell-completion",
-      label: "Shell completion",
-      run: runShellCompletionHealth,
     }),
     createDoctorHealthContribution({
       id: "doctor:gateway-health",

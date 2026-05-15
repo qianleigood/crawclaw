@@ -1,28 +1,27 @@
-import { formatCliCommand } from "../cli/command-format.js";
+import type { CrawClawConfig } from "../config/config.js";
 import {
   buildGatewayInstallPlan,
   gatewayInstallErrorHint,
-} from "../commands/daemon-install-helpers.js";
+} from "../control/daemon-install-helpers.js";
 import {
   DEFAULT_GATEWAY_DAEMON_RUNTIME,
   GATEWAY_DAEMON_RUNTIME_OPTIONS,
-} from "../commands/daemon-runtime.js";
-import { resolveGatewayInstallToken } from "../commands/gateway-install-token.js";
-import { formatHealthCheckFailure } from "../commands/health-format.js";
-import { healthCommand } from "../commands/health.js";
+} from "../control/daemon-runtime.js";
+import { resolveGatewayInstallToken } from "../control/gateway-install-token.js";
+import { formatHealthCheckFailure } from "../control/health-format.js";
+import { healthCommand } from "../control/health.js";
 import {
   probeGatewayReachable,
   waitForGatewayReachable,
   resolveBrowserClientsLinks,
-} from "../commands/onboard-helpers.js";
-import type { OnboardOptions } from "../commands/onboard-types.js";
-import type { CrawClawConfig } from "../config/config.js";
+} from "../control/onboard-helpers.js";
+import type { OnboardOptions } from "../control/onboard-types.js";
 import { describeGatewayServiceRestart, resolveGatewayService } from "../daemon/service.js";
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import { listConfiguredWebSearchProviders } from "../web-search/runtime.js";
 import type { WizardPrompter } from "./prompts.js";
-import { setupWizardShellCompletion } from "./setup.completion.js";
 import { maybeHandleNotebookLmOnboarding } from "./setup.notebooklm.js";
 import { resolveSetupSecretInputString } from "./setup.secret-input.js";
 import type { GatewayWizardSettings, WizardFlow } from "./setup.types.js";
@@ -69,7 +68,7 @@ export async function finalizeSetupWizard(
   }
 
   if (process.platform === "linux" && systemdAvailable) {
-    const { ensureSystemdUserLingerInteractive } = await import("../commands/systemd-linger.js");
+    const { ensureSystemdUserLingerInteractive } = await import("../control/systemd-linger.js");
     await ensureSystemdUserLingerInteractive({
       runtime,
       prompter: {
@@ -344,8 +343,6 @@ export async function finalizeSetupWizard(
     "Security",
   );
 
-  await setupWizardShellCompletion({ flow, prompter });
-
   const { describeCodexNativeWebSearch } = await import("../agents/codex-native-web-search.js");
   const codexNativeSummary = describeCodexNativeWebSearch(nextConfig);
   const webSearchProvider = nextConfig.tools?.web?.search?.provider;
@@ -353,7 +350,7 @@ export async function finalizeSetupWizard(
   const configuredSearchProviders = listConfiguredWebSearchProviders({ config: nextConfig });
   if (webSearchProvider) {
     const { resolveExistingKey, hasExistingKey, hasKeyInEnv } =
-      await import("../commands/onboard-search.js");
+      await import("../control/onboard-search.js");
     const entry = configuredSearchProviders.find((e) => e.id === webSearchProvider);
     const label = entry?.label ?? webSearchProvider;
     const storedKey = entry ? resolveExistingKey(nextConfig, webSearchProvider) : undefined;
@@ -415,7 +412,7 @@ export async function finalizeSetupWizard(
   } else {
     // Legacy configs may have a working key (e.g. apiKey or BRAVE_API_KEY) without
     // an explicit provider. Runtime auto-detects these, so avoid saying "skipped".
-    const { hasExistingKey, hasKeyInEnv } = await import("../commands/onboard-search.js");
+    const { hasExistingKey, hasKeyInEnv } = await import("../control/onboard-search.js");
     const legacyDetected = configuredSearchProviders.find(
       (e) => hasExistingKey(nextConfig, e.id) || hasKeyInEnv(e),
     );

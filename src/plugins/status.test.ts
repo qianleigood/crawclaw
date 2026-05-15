@@ -138,12 +138,12 @@ function expectAutoEnabledStatusLoad(params: {
 }
 
 function createCompatChainFixture() {
-  const config = { plugins: { allow: ["telegram"] } };
+  const config = { plugins: { allow: ["feishu"] } };
   const pluginIds = ["anthropic", "openai"];
-  const compatConfig = { plugins: { allow: ["telegram", ...pluginIds] } };
+  const compatConfig = { plugins: { allow: ["feishu", ...pluginIds] } };
   const enabledConfig = {
     plugins: {
-      allow: ["telegram", ...pluginIds],
+      allow: ["feishu", ...pluginIds],
       entries: {
         anthropic: { enabled: true },
         openai: { enabled: true },
@@ -481,12 +481,12 @@ describe("plugin status reports", () => {
   it("normalizes bundled plugin versions to the core base release", () => {
     setSinglePluginLoadResult(
       createPluginRecord({
-        id: "whatsapp",
-        name: "WhatsApp",
+        id: "weixin",
+        name: "Weixin",
         description: "Bundled channel plugin",
         version: "2026.3.22",
         origin: "bundled",
-        channelIds: ["whatsapp"],
+        channelIds: ["weixin"],
       }),
     );
 

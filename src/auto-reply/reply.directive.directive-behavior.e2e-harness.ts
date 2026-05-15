@@ -72,7 +72,7 @@ export function sessionStorePath(home: string): string {
   return path.join(home, "sessions.json");
 }
 
-export function makeWhatsAppDirectiveConfig(
+export function makeWeixinDirectiveConfig(
   home: string,
   defaults: Record<string, unknown>,
   extra: Record<string, unknown> = {},
@@ -84,22 +84,22 @@ export function makeWhatsAppDirectiveConfig(
         ...defaults,
       },
     },
-    channels: { whatsapp: { allowFrom: ["*"] } },
+    channels: { weixin: { allowFrom: ["*"] } },
     session: { store: sessionStorePath(home) },
     ...extra,
   };
 }
 
-export const AUTHORIZED_WHATSAPP_COMMAND = {
+export const AUTHORIZED_WEIXIN_COMMAND = {
   From: "+1222",
   To: "+1222",
-  Provider: "whatsapp",
+  Provider: "weixin",
   SenderE164: "+1222",
   CommandAuthorized: true,
 } as const;
 
 export function makeElevatedDirectiveConfig(home: string) {
-  return makeWhatsAppDirectiveConfig(
+  return makeWeixinDirectiveConfig(
     home,
     {
       model: "anthropic/claude-opus-4-5",
@@ -108,10 +108,10 @@ export function makeElevatedDirectiveConfig(home: string) {
     {
       tools: {
         elevated: {
-          allowFrom: { whatsapp: ["+1222"] },
+          allowFrom: { weixin: ["+1222"] },
         },
       },
-      channels: { whatsapp: { allowFrom: ["+1222"] } },
+      channels: { weixin: { allowFrom: ["+1222"] } },
       session: { store: sessionStorePath(home) },
     },
   );
@@ -201,10 +201,10 @@ export function makeRestrictedElevatedDisabledConfig(home: string) {
     },
     tools: {
       elevated: {
-        allowFrom: { whatsapp: ["+1222"] },
+        allowFrom: { weixin: ["+1222"] },
       },
     },
-    channels: { whatsapp: { allowFrom: ["+1222"] } },
+    channels: { weixin: { allowFrom: ["+1222"] } },
     session: { store: path.join(home, "sessions.json") },
   } as const;
 }

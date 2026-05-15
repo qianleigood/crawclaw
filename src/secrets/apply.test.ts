@@ -608,65 +608,6 @@ describe("secrets apply", () => {
     );
   });
 
-  it("applies wildcard targets for channel account tokens", async () => {
-    await fs.writeFile(
-      fixture.configPath,
-      `${JSON.stringify(
-        {
-          channels: {
-            discord: {
-              accounts: {
-                main: {
-                  token: "discord-token-plaintext", // pragma: allowlist secret
-                },
-              },
-            },
-          },
-        },
-        null,
-        2,
-      )}\n`,
-      "utf8",
-    );
-
-    const plan: SecretsApplyPlan = {
-      version: 1,
-      protocolVersion: 1,
-      generatedAt: new Date().toISOString(),
-      generatedBy: "manual",
-      targets: [
-        {
-          type: "channels.discord.accounts.*.token",
-          path: "channels.discord.accounts.main.token",
-          pathSegments: ["channels", "discord", "accounts", "main", "token"],
-          ref: { source: "env", provider: "default", id: "DISCORD_ACCOUNT_TOKEN" },
-        },
-      ],
-      options: {
-        scrubEnv: false,
-        scrubAuthProfilesForProviderTargets: false,
-        scrubLegacyAuthJson: false,
-      },
-    };
-
-    fixture.env.DISCORD_ACCOUNT_TOKEN = "discord-token-live-env"; // pragma: allowlist secret
-    const result = await runSecretsApply({ plan, env: fixture.env, write: true });
-    expect(result.changed).toBe(true);
-
-    const nextConfig = JSON.parse(await fs.readFile(fixture.configPath, "utf8")) as {
-      channels?: {
-        discord?: {
-          accounts?: Record<string, { token?: unknown }>;
-        };
-      };
-    };
-    expect(nextConfig.channels?.discord?.accounts?.main?.token).toEqual({
-      source: "env",
-      provider: "default",
-      id: "DISCORD_ACCOUNT_TOKEN",
-    });
-  });
-
   it("rejects plan targets that do not match allowed secret-bearing paths", async () => {
     const plan: SecretsApplyPlan = {
       version: 1,

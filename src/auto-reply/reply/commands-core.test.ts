@@ -57,11 +57,11 @@ const { __resetCommandHandlersForTests, emitResetCommandHooks, handleCommands } 
 describe("emitResetCommandHooks", () => {
   async function runBeforeResetContext(sessionKey?: string) {
     const command = {
-      surface: "discord",
+      surface: "qqbot",
       senderId: "rai",
-      channel: "discord",
-      from: "discord:rai",
-      to: "discord:bot",
+      channel: "qqbot",
+      from: "qqbot:rai",
+      to: "qqbot:bot",
       resetHookTriggered: false,
     } as HandleCommandsParams["command"];
 
@@ -144,11 +144,11 @@ describe("emitResetCommandHooks", () => {
       })}\n`,
     );
     const command = {
-      surface: "telegram",
+      surface: "feishu",
       senderId: "vac",
-      channel: "telegram",
-      from: "telegram:vac",
-      to: "telegram:bot",
+      channel: "feishu",
+      from: "feishu:vac",
+      to: "feishu:bot",
       resetHookTriggered: false,
     } as HandleCommandsParams["command"];
 
@@ -157,7 +157,7 @@ describe("emitResetCommandHooks", () => {
       ctx: {} as HandleCommandsParams["ctx"],
       cfg: {} as HandleCommandsParams["cfg"],
       command,
-      sessionKey: "agent:main:telegram:group:-1003826723328:topic:8428",
+      sessionKey: "agent:main:feishu:group:-1003826723328:topic:8428",
       previousSessionEntry: {
         sessionId: "prev-session",
         sessionFile: "/tmp/prev-session.jsonl",
@@ -215,19 +215,19 @@ describe("handleCommands ACP reset-in-place", () => {
       rootCtx: rootCtx as HandleCommandsParams["rootCtx"],
       cfg: {
         commands: { text: true },
-        channels: { telegram: { allowFrom: ["*"] } },
+        channels: { feishu: { allowFrom: ["*"] } },
       } as HandleCommandsParams["cfg"],
       command: {
-        surface: "telegram",
-        channel: "telegram",
+        surface: "feishu",
+        channel: "feishu",
         ownerList: [],
         senderIsOwner: false,
         isAuthorizedSender: true,
         senderId: "123",
         rawBodyNormalized: commandBodyNormalized,
         commandBodyNormalized,
-        from: "telegram:123",
-        to: "telegram:bot",
+        from: "feishu:123",
+        to: "feishu:bot",
         resetHookTriggered: false,
         ...overrides.command,
       },
@@ -237,7 +237,7 @@ describe("handleCommands ACP reset-in-place", () => {
         allowed: true,
         failures: [],
       },
-      sessionKey: overrides.sessionKey ?? "agent:main:telegram:direct:123",
+      sessionKey: overrides.sessionKey ?? "agent:main:feishu:direct:123",
       sessionEntry: overrides.sessionEntry,
       previousSessionEntry: overrides.previousSessionEntry,
       sessionStore: overrides.sessionStore,

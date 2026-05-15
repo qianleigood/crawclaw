@@ -21,9 +21,9 @@ import type {
 } from "./request-types.js";
 import type { GatewayRequestDispatcher } from "./server-request-dispatcher.js";
 
-// ── Fallback gateway context for non-WS paths (Telegram, WhatsApp, etc.) ──
+// ── Fallback gateway context for non-WS native channel paths ──
 // The WS path sets a per-request scope via AsyncLocalStorage, but channel
-// adapters (Telegram polling, etc.) invoke the agent directly without going
+// adapters (native channel polling, etc.) invoke the agent directly without going
 // through handleGatewayRequest. We store the gateway context at startup so
 // dispatchGatewayMethod can use it as a fallback.
 

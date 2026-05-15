@@ -516,14 +516,14 @@ describe("DurableExtractionWorkerManager", () => {
     });
     await manager.submitTurn({
       sessionId: "session-agent-a",
-      sessionKey: "agent:main:discord:direct:user-a",
+      sessionKey: "agent:main:qqbot:direct:user-a",
       newMessages: [
         makeAgentUserMessage({ content: "同一个 agent 的第一个会话触发 durable memory。" }),
       ] as never,
       messageCursor: 1,
       runtimeContext: {
         agentId: "main",
-        messageChannel: "discord",
+        messageChannel: "qqbot",
         senderId: "user-a",
         parentForkContext: createParentForkContext(),
       },
@@ -540,14 +540,14 @@ describe("DurableExtractionWorkerManager", () => {
     });
     await manager.submitTurn({
       sessionId: "session-agent-b",
-      sessionKey: "agent:main:slack:direct:user-b",
+      sessionKey: "agent:main:ddingtalk:direct:user-b",
       newMessages: [
         makeAgentUserMessage({ content: "同一个 agent 的第二个会话触发 durable memory。" }),
       ] as never,
       messageCursor: 1,
       runtimeContext: {
         agentId: "main",
-        messageChannel: "slack",
+        messageChannel: "ddingtalk",
         senderId: "user-b",
         parentForkContext: createParentForkContext(),
       },
@@ -640,14 +640,14 @@ describe("DurableExtractionWorkerManager", () => {
     });
     await manager.submitTurn({
       sessionId: "session-agent-research",
-      sessionKey: "agent:research:slack:direct:user-b",
+      sessionKey: "agent:research:ddingtalk:direct:user-b",
       newMessages: [
         makeAgentUserMessage({ content: "research agent 触发 durable memory。" }),
       ] as never,
       messageCursor: 1,
       runtimeContext: {
         agentId: "research",
-        messageChannel: "slack",
+        messageChannel: "ddingtalk",
         senderId: "user-b",
         parentForkContext: createParentForkContext(),
       },

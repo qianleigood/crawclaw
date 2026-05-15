@@ -44,7 +44,7 @@ async function expectHeartbeatValidationError(legacyParsed: Record<string, unkno
 describe("gateway startup legacy migration fallback", () => {
   test("surfaces detailed validation errors when legacy entries have no migration output", async () => {
     await expectHeartbeatValidationError({
-      heartbeat: { model: "anthropic/claude-3-5-haiku-20241022", target: "telegram" },
+      heartbeat: { model: "anthropic/claude-3-5-haiku-20241022", target: "feishu" },
     });
   });
 

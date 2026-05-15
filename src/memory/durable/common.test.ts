@@ -24,7 +24,7 @@ describe("durable memory common helpers", () => {
   it("renders note frontmatter and body with durable metadata", () => {
     const scope = resolveDurableMemoryScope({
       agentId: "main",
-      channel: "discord",
+      channel: "qqbot",
       userId: "user-42",
     });
     const frontmatter = buildDurableMemoryFrontmatterLines({

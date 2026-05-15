@@ -1,16 +1,16 @@
 import { resolveChannelDefaultAccountId } from "../channels/plugins/helpers.js";
 import { getChannelSetupPlugin } from "../channels/plugins/setup-registry.js";
 import type { ChannelSetupPlugin } from "../channels/plugins/setup-wizard-types.js";
-import { formatCliCommand } from "../cli/command-format.js";
-import { translateActiveCliText } from "../cli/i18n/text.js";
+import type { CrawClawConfig } from "../config/config.js";
+import type { DmPolicy } from "../config/types.js";
 import type {
   ChannelSetupDmPolicy,
   ChannelSetupWizardAdapter,
-} from "../commands/channel-setup/types.js";
-import type { ChannelChoice } from "../commands/onboard-types.js";
-import type { CrawClawConfig } from "../config/config.js";
-import type { DmPolicy } from "../config/types.js";
+} from "../control/channel-setup/types.js";
+import type { ChannelChoice } from "../control/onboard-types.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
+import { formatCliCommand } from "../terminal/command-format.js";
+import { translateActiveCliText } from "../terminal/i18n/text.js";
 import { formatDocsLink } from "../terminal/links.js";
 import type { WizardPrompter, WizardSelectOption } from "../wizard/prompts.js";
 

@@ -1,6 +1,6 @@
 import path from "node:path";
-import { formatCliCommand } from "../cli/command-format.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import { note } from "../terminal/note.js";
 
 const TLS_CERT_ERROR_CODES = new Set([

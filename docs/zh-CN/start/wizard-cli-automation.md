@@ -198,7 +198,7 @@ crawclaw onboard --non-interactive \
 crawclaw agents add work \
   --workspace ~/.crawclaw/workspace-work \
   --model openai/gpt-5.2 \
-  --bind whatsapp:biz \
+  --bind weixin:biz \
   --non-interactive \
   --json
 ```

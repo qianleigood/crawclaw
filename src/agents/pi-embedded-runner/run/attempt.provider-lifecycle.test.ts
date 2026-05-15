@@ -67,7 +67,7 @@ describe("wrapStreamFnWithProviderLifecycle", () => {
       }),
       runId: "run-1",
       sessionId: "session-1",
-      sessionKey: "agent:main:discord:user-1",
+      sessionKey: "agent:main:qqbot:user-1",
       agentId: "main",
       sessionFile: "/tmp/session.jsonl",
       isTopLevel: true,

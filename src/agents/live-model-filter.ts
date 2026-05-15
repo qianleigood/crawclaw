@@ -1,4 +1,3 @@
-import { resolveProviderModernModelRef } from "../plugins/provider-runtime.js";
 import { normalizeProviderId } from "./provider-id.js";
 
 export type ModelRef = {
@@ -39,17 +38,7 @@ export function isModernModelRef(ref: ModelRef): boolean {
     return false;
   }
 
-  const pluginDecision = resolveProviderModernModelRef({
-    provider,
-    context: {
-      provider,
-      modelId: id,
-    },
-  });
-  if (typeof pluginDecision === "boolean") {
-    return pluginDecision;
-  }
-  return false;
+  return provider === "anthropic" && isHighSignalClaudeModelId(id);
 }
 
 export function isHighSignalLiveModelRef(ref: ModelRef): boolean {

@@ -121,8 +121,8 @@ describe("abort detection", () => {
         RawBody: "/stop",
         CommandAuthorized: true,
         SessionKey: params.sessionKey,
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
         From: params.from,
         To: params.to,
         ...(params.targetSessionKey ? { CommandTargetSessionKey: params.targetSessionKey } : {}),
@@ -147,7 +147,7 @@ describe("abort detection", () => {
         agentDir: path.join(params.root, "agent"),
         sessionId: params.sessionId,
         sessionKey: params.sessionKey,
-        messageProvider: "telegram",
+        messageProvider: "feishu",
         agentAccountId: "acct",
         sessionFile: path.join(params.root, "session.jsonl"),
         workspaceDir: path.join(params.root, "workspace"),
@@ -177,7 +177,6 @@ describe("abort detection", () => {
           resolveSession: acpManagerMocks.resolveSession,
           cancelSession: acpManagerMocks.cancelSession,
         }) as never) as never,
-      abortEmbeddedPiRun: () => true,
       getLatestSubagentRunByChildSessionKey:
         subagentRegistryMocks.getLatestSubagentRunByChildSessionKey,
       listSubagentRunsForController: subagentRegistryMocks.listSubagentRunsForRequester,
@@ -209,7 +208,7 @@ describe("abort detection", () => {
       Body: `[Context]\nJake: /stop\n[from: Jake]`,
       RawBody: "/stop",
       ChatType: "group",
-      SessionKey: "agent:main:whatsapp:group:g1",
+      SessionKey: "agent:main:weixin:group:g1",
     };
 
     const result = await initSessionState({
@@ -389,10 +388,10 @@ describe("abort detection", () => {
     expect(resolveSessionEntryForKey(undefined, "session-1")).toEqual({});
   });
 
-  it("resolves Telegram forum topic session when lookup key has different casing than store", () => {
+  it("resolves Feishu forum topic session when lookup key has different casing than store", () => {
     // Store normalizes keys to lowercase; caller may pass mixed-case. /stop in topic must find entry.
-    const storeKey = "agent:main:telegram:group:-1001234567890:topic:99";
-    const lookupKey = "Agent:Main:Telegram:Group:-1001234567890:Topic:99";
+    const storeKey = "agent:main:feishu:group:-1001234567890:topic:99";
+    const lookupKey = "Agent:Main:Feishu:Group:-1001234567890:Topic:99";
     const store = {
       [storeKey]: { sessionId: "pi-topic-99", updatedAt: 0 },
     } as Record<string, { sessionId: string; updatedAt: number }>;
@@ -408,16 +407,16 @@ describe("abort detection", () => {
 
     const result = await runStopCommand({
       cfg,
-      sessionKey: "telegram:123",
-      from: "telegram:123",
-      to: "telegram:123",
+      sessionKey: "feishu:123",
+      from: "feishu:123",
+      to: "feishu:123",
     });
 
     expect(result.handled).toBe(true);
   });
 
   it("fast-abort clears queued followups and session lane", async () => {
-    const sessionKey = "telegram:123";
+    const sessionKey = "feishu:123";
     const sessionId = "session-123";
     const { root, cfg } = await createAbortConfig({
       sessionIdsByKey: { [sessionKey]: sessionId },
@@ -428,8 +427,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:123",
-      to: "telegram:123",
+      from: "feishu:123",
+      to: "feishu:123",
     });
 
     expect(result.handled).toBe(true);
@@ -452,8 +451,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:123",
-      to: "telegram:123",
+      from: "feishu:123",
+      to: "feishu:123",
       targetSessionKey: sessionKey,
     });
 
@@ -482,8 +481,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:123",
-      to: "telegram:123",
+      from: "feishu:123",
+      to: "feishu:123",
       targetSessionKey: sessionKey,
     });
 
@@ -493,7 +492,7 @@ describe("abort detection", () => {
   });
 
   it("persists abort cutoff metadata on /stop when command and target session match", async () => {
-    const sessionKey = "telegram:123";
+    const sessionKey = "feishu:123";
     const sessionId = "session-123";
     const { storePath, cfg } = await createAbortConfig({
       sessionIdsByKey: { [sessionKey]: sessionId },
@@ -502,8 +501,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:123",
-      to: "telegram:123",
+      from: "feishu:123",
+      to: "feishu:123",
       messageSid: "55",
       timestamp: 1234567890000,
     });
@@ -521,8 +520,8 @@ describe("abort detection", () => {
   });
 
   it("does not persist cutoff metadata when native /stop targets a different session", async () => {
-    const slashSessionKey = "telegram:slash:123";
-    const targetSessionKey = "agent:main:telegram:group:123";
+    const slashSessionKey = "feishu:slash:123";
+    const targetSessionKey = "agent:main:feishu:group:123";
     const targetSessionId = "session-target";
     const { storePath, cfg } = await createAbortConfig({
       sessionIdsByKey: { [targetSessionKey]: targetSessionId },
@@ -531,8 +530,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey: slashSessionKey,
-      from: "telegram:123",
-      to: "telegram:123",
+      from: "feishu:123",
+      to: "feishu:123",
       targetSessionKey,
       messageSid: "999",
       timestamp: 1234567890000,
@@ -551,7 +550,7 @@ describe("abort detection", () => {
   });
 
   it("fast-abort stops active subagent runs for requester session", async () => {
-    const sessionKey = "telegram:parent";
+    const sessionKey = "feishu:parent";
     const childKey = "agent:main:subagent:child-1";
     const sessionId = "session-parent";
     const childSessionId = "session-child";
@@ -559,7 +558,7 @@ describe("abort detection", () => {
       runId: "run-1",
       childSessionKey: childKey,
       requesterSessionKey: sessionKey,
-      requesterDisplayKey: "telegram:parent",
+      requesterDisplayKey: "feishu:parent",
       task: "do work",
       cleanup: "keep",
       createdAt: Date.now(),
@@ -579,8 +578,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:parent",
-      to: "telegram:parent",
+      from: "feishu:parent",
+      to: "feishu:parent",
     });
 
     expect(result.stoppedSubagents).toBe(1);
@@ -588,7 +587,7 @@ describe("abort detection", () => {
   });
 
   it("cascade stop kills depth-2 children when stopping depth-1 agent", async () => {
-    const sessionKey = "telegram:parent";
+    const sessionKey = "feishu:parent";
     const depth1Key = "agent:main:subagent:child-1";
     const depth2Key = "agent:main:subagent:child-1:subagent:grandchild-1";
     const sessionId = "session-parent";
@@ -598,7 +597,7 @@ describe("abort detection", () => {
       runId: "run-1",
       childSessionKey: depth1Key,
       requesterSessionKey: sessionKey,
-      requesterDisplayKey: "telegram:parent",
+      requesterDisplayKey: "feishu:parent",
       task: "orchestrator",
       cleanup: "keep",
       createdAt: Date.now(),
@@ -642,8 +641,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:parent",
-      to: "telegram:parent",
+      from: "feishu:parent",
+      to: "feishu:parent",
     });
 
     // Should stop both depth-1 and depth-2 agents (cascade)
@@ -655,7 +654,7 @@ describe("abort detection", () => {
   it("cascade stop traverses ended depth-1 parents to stop active depth-2 children", async () => {
     subagentRegistryMocks.listSubagentRunsForRequester.mockClear();
     subagentRegistryMocks.markSubagentRunTerminated.mockClear();
-    const sessionKey = "telegram:parent";
+    const sessionKey = "feishu:parent";
     const depth1Key = "agent:main:subagent:child-ended";
     const depth2Key = "agent:main:subagent:child-ended:subagent:grandchild-active";
     const now = Date.now();
@@ -663,7 +662,7 @@ describe("abort detection", () => {
       runId: "run-1",
       childSessionKey: depth1Key,
       requesterSessionKey: sessionKey,
-      requesterDisplayKey: "telegram:parent",
+      requesterDisplayKey: "feishu:parent",
       task: "orchestrator",
       cleanup: "keep",
       createdAt: now - 1_000,
@@ -710,8 +709,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:parent",
-      to: "telegram:parent",
+      from: "feishu:parent",
+      to: "feishu:parent",
     });
 
     // Should skip killing the ended depth-1 run itself, but still kill depth-2.
@@ -725,7 +724,7 @@ describe("abort detection", () => {
   it("cascade stop still traverses an ended current parent when a stale older active row exists", async () => {
     subagentRegistryMocks.listSubagentRunsForRequester.mockClear();
     subagentRegistryMocks.markSubagentRunTerminated.mockClear();
-    const sessionKey = "telegram:parent";
+    const sessionKey = "feishu:parent";
     const depth1Key = "agent:main:subagent:child-ended-stale";
     const depth2Key = "agent:main:subagent:child-ended-stale:subagent:grandchild-active";
     const now = Date.now();
@@ -744,7 +743,7 @@ describe("abort detection", () => {
           runId: "run-stale-parent",
           childSessionKey: depth1Key,
           requesterSessionKey: sessionKey,
-          requesterDisplayKey: "telegram:parent",
+          requesterDisplayKey: "feishu:parent",
           task: "stale orchestrator",
           cleanup: "keep",
           createdAt: now - 2_000,
@@ -754,7 +753,7 @@ describe("abort detection", () => {
           runId: "run-current-parent",
           childSessionKey: depth1Key,
           requesterSessionKey: sessionKey,
-          requesterDisplayKey: "telegram:parent",
+          requesterDisplayKey: "feishu:parent",
           task: "current orchestrator",
           cleanup: "keep",
           createdAt: now - 1_000,
@@ -782,7 +781,7 @@ describe("abort detection", () => {
             runId: "run-current-parent",
             childSessionKey: depth1Key,
             requesterSessionKey: sessionKey,
-            requesterDisplayKey: "telegram:parent",
+            requesterDisplayKey: "feishu:parent",
             task: "current orchestrator",
             cleanup: "keep",
             createdAt: now - 1_000,
@@ -809,8 +808,8 @@ describe("abort detection", () => {
     const result = await runStopCommand({
       cfg,
       sessionKey,
-      from: "telegram:parent",
-      to: "telegram:parent",
+      from: "feishu:parent",
+      to: "feishu:parent",
     });
 
     expect(result.stoppedSubagents).toBe(1);

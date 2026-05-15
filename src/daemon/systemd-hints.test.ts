@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatCliCommand } from "../cli/command-format.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import { isSystemdUnavailableDetail, renderSystemdUnavailableHints } from "./systemd-hints.js";
 
 describe("isSystemdUnavailableDetail", () => {

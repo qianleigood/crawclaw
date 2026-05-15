@@ -91,7 +91,7 @@ body:
     attributes:
       label: Install method
       description: How CrawClaw was installed or launched.
-      placeholder: npm global / pnpm dev / mac app
+      placeholder: Desktop app / local dev build / Gateway API automation
   - type: input
     id: model
     attributes:

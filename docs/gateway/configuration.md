@@ -28,25 +28,18 @@ See the [full reference](/gateway/configuration-reference) for every available f
 // ~/.crawclaw/crawclaw.json
 {
   agents: { defaults: { workspace: "~/.crawclaw/workspace" } },
-  channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+  channels: { feishu: { allowFrom: ["user:ou_xxx"] } },
 }
 ```
 
 ## Editing config
 
 <Tabs>
-  <Tab title="Interactive wizard">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+  <Tab title="Desktop">
+    Open **CrawClaw Desktop → Settings** and use the relevant section for channels, models, plugins, Gateway, or runtime settings.
   </Tab>
-  <Tab title="CLI (one-liners)">
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+  <Tab title="Gateway API">
+    Automation should use the local Gateway API. Prefer typed JSON methods over shelling out to a command wrapper.
   </Tab>
   <Tab title="Direct edit">
     Edit `~/.crawclaw/crawclaw.json` directly. The Gateway watches the file and applies changes automatically (see [hot reload](#config-hot-reload)).
@@ -62,36 +55,26 @@ CrawClaw only accepts configurations that fully match the schema. Unknown keys, 
 When validation fails:
 
 - The Gateway does not boot
-- Only diagnostic commands work (CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API)
-- Run CrawClaw Desktop or the local Gateway API to see exact issues
-- Run CrawClaw Desktop or the local Gateway API (or `--yes`) to apply repairs
+- Use CrawClaw Desktop diagnostics or the local Gateway API to see exact issues
+- Apply repairs from Desktop settings or by writing the corrected JSON config
 
 ## Common tasks
 
 <AccordionGroup>
-  <Accordion title="Set up a channel (WhatsApp, Telegram, Discord, etc.)">
-    Each channel has its own config section under `channels.<provider>`. See the dedicated channel page for setup steps:
-
-    - [WhatsApp](/channels/whatsapp) — `channels.whatsapp`
-    - [Telegram](/channels/telegram) — `channels.telegram`
-    - [Discord](/channels/discord) — `channels.discord`
-    - [Slack](/channels/slack) — `channels.slack`
-    - [Signal](/channels/signal) — `channels.signal`
-    - [iMessage](/channels/imessage) — `channels.imessage`
-    - [Google Chat](/channels/googlechat) — `channels.googlechat`
-    - [Mattermost](/channels/mattermost) — `channels.mattermost`
-    - [Microsoft Teams](/channels/msteams) — `channels.msteams`
+  <Accordion title="Set up a channel">
+    Bundled TypeScript channel plugins have been removed. Repo-owned channels are
+    reintroduced as Rust-native adapters through the Gateway channel APIs. The
+    current native catalog is `ddingtalk`, `esp32`, `feishu`, `qqbot`, and `weixin`.
 
     All channels share the same DM policy pattern:
 
     ```json5
     {
       channels: {
-        telegram: {
+        feishu: {
           enabled: true,
-          botToken: "123:abc",
           dmPolicy: "pairing",   // pairing | allowlist | open | disabled
-          allowFrom: ["tg:123"], // only for allowlist/open
+          allowFrom: ["user:ou_xxx"], // only for allowlist/open
         },
       },
     }
@@ -157,14 +140,14 @@ When validation fails:
         ],
       },
       channels: {
-        whatsapp: {
+        weixin: {
           groups: { "*": { requireMention: true } },
         },
       },
     }
     ```
 
-    - **Metadata mentions**: native @-mentions (WhatsApp tap-to-mention, Telegram @bot, etc.)
+    - **Metadata mentions**: native @-mentions (Weixin tap-to-mention, Feishu @bot, etc.)
     - **Text patterns**: safe regex patterns in `mentionPatterns`
     - See [full reference](/gateway/configuration-reference#group-chat-mention-gating) for per-channel overrides and self-chat mode.
 
@@ -181,7 +164,7 @@ When validation fails:
         channelMaxRestartsPerHour: 10,
       },
       channels: {
-        telegram: {
+        feishu: {
           healthMonitor: { enabled: false },
           accounts: {
             alerts: {
@@ -222,7 +205,7 @@ When validation fails:
     ```
 
     - `dmScope`: `main` (shared) | `per-peer` | `per-channel-peer` | `per-account-channel-peer`
-    - `threadBindings`: global defaults for thread-bound session routing (Discord supports `/focus`, `/unfocus`, `/agents`, `/session idle`, and `/session max-age`).
+    - `threadBindings`: global defaults for thread-bound session routing (QQBot supports `/focus`, `/unfocus`, `/agents`, `/session idle`, and `/session max-age`).
     - See [Session Management](/concepts/session) for scoping, identity links, and send policy.
     - See [full reference](/gateway/configuration-reference#session) for all fields.
 
@@ -322,8 +305,8 @@ When validation fails:
         ],
       },
       bindings: [
-        { agentId: "home", match: { channel: "whatsapp", accountId: "personal" } },
-        { agentId: "work", match: { channel: "whatsapp", accountId: "biz" } },
+        { agentId: "home", match: { channel: "weixin", accountId: "personal" } },
+        { agentId: "work", match: { channel: "weixin", accountId: "biz" } },
       ],
     }
     ```
@@ -383,7 +366,7 @@ In `hybrid` mode, schema-owned config changes reconfigure the running Gateway in
 
 | Category            | Fields                                                                          | Runtime behavior                                            |
 | ------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Channels            | `channels.*`, `web` (WhatsApp) — all built-in and extension channels            | Reconfigure or restart only the affected channel runtime    |
+| Channels            | `channels.*`, `web` (Weixin) — all built-in and extension channels              | Reconfigure or restart only the affected channel runtime    |
 | Agent & models      | `agents`, `models`, `auth`                                                      | Update future runs, model/auth caches, and lane concurrency |
 | Automation          | `hooks`, `cron`                                                                 | Rebuild the affected watcher, hook loader, or cron service  |
 | Sessions & messages | `session`, `messages`                                                           | Read dynamically for future operations                      |
@@ -425,7 +408,7 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
     # Use CrawClaw Desktop or the local Gateway API for this operation.
       "raw": "{ agents: { defaults: { workspace: \"~/.crawclaw/workspace\" } } }",
       "baseHash": "<hash>",
-      "sessionKey": "agent:main:whatsapp:direct:+15555550123"
+      "sessionKey": "agent:main:weixin:direct:+15555550123"
     }'
     ```
 
@@ -448,7 +431,7 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
 
     ```bash
     # Use CrawClaw Desktop or the local Gateway API for this operation.
-      "raw": "{ channels: { telegram: { groups: { \"*\": { requireMention: false } } } } }",
+      "raw": "{ channels: { feishu: { groups: { \"*\": { requireMention: false } } } } }",
       "baseHash": "<hash>"
     }'
     ```
@@ -530,11 +513,11 @@ Rules:
     },
   },
   channels: {
-    googlechat: {
+    feishu: {
       serviceAccountRef: {
         source: "exec",
         provider: "vault",
-        id: "channels/googlechat/serviceAccount",
+        id: "channels/feishu/serviceAccount",
       },
     },
   },

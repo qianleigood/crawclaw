@@ -77,7 +77,7 @@ describe("agent-events sequencing", () => {
   test("omits sessionKey for runs hidden from Browser client", async () => {
     resetAgentRunContextForTest();
     registerAgentRunContext("run-hidden", {
-      sessionKey: "session-imessage",
+      sessionKey: "session-weixin",
       isBrowserClientsVisible: false,
     });
 
@@ -89,7 +89,7 @@ describe("agent-events sequencing", () => {
       runId: "run-hidden",
       stream: "assistant",
       data: { text: "hi" },
-      sessionKey: "session-imessage",
+      sessionKey: "session-weixin",
     });
     stop();
 

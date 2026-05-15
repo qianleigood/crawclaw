@@ -52,7 +52,7 @@ All skills-related configuration lives under `skills` in `~/.crawclaw/crawclaw.j
 - `install.preferBrew`: prefer brew installers when available (default: true).
 - `install.nodeManager`: node installer preference (`npm` | `pnpm` | `yarn` | `bun`, default: npm).
   This only affects **skill installs**; the Gateway runtime should still be Node
-  (Bun not recommended for WhatsApp/Telegram).
+  (Bun not recommended for Weixin/Feishu).
 - `entries.<skillKey>`: per-skill overrides.
 
 Per-skill fields:

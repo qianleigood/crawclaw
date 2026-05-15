@@ -8,7 +8,10 @@ import { appendCronStyleCurrentTimeLine } from "../../agents/current-time.js";
 import { resolveUserTimezone } from "../../agents/date-time.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
-import { compactEmbeddedPiSession, runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import {
+  compactNativeMemorySession,
+  runNativeAgentTurn,
+} from "../../agents/runtime-tools/agent-turn-client.js";
 import {
   derivePromptTokens,
   hasNonzeroUsage,
@@ -26,7 +29,7 @@ import {
 } from "../../config/sessions.js";
 import { readSessionMessages } from "../../gateway/session-utils.fs.js";
 import { logVerbose } from "../../globals.js";
-import { registerAgentRunContext } from "../../infra/agent-events.js";
+import { registerAgentRunContext, type AgentEventPayload } from "../../infra/agent-events.js";
 import type { TemplateContext } from "../templating.js";
 import type { VerboseLevel } from "../thinking.js";
 import type { GetReplyOptions } from "../types.js";
@@ -498,7 +501,7 @@ export async function runPreflightCompactionIfNeeded(params: {
     params.sessionKey ?? params.followupRun.run.sessionKey,
     { storePath: params.storePath },
   );
-  const result = await compactEmbeddedPiSession({
+  const result = await compactNativeMemorySession({
     sessionId: entry.sessionId,
     sessionKey: params.sessionKey,
     allowGatewaySubagentBinding: true,
@@ -769,7 +772,7 @@ export async function runMemoryFlushIfNeeded(params: {
           runId: flushRunId,
           allowTransientCooldownProbe: runOptions?.allowTransientCooldownProbe,
         });
-        const result = await runEmbeddedPiAgent({
+        const result = await runNativeAgentTurn({
           ...embeddedContext,
           ...senderContext,
           ...runBaseParams,
@@ -782,7 +785,7 @@ export async function runMemoryFlushIfNeeded(params: {
           bootstrapPromptWarningSignaturesSeen,
           bootstrapPromptWarningSignature:
             bootstrapPromptWarningSignaturesSeen[bootstrapPromptWarningSignaturesSeen.length - 1],
-          onAgentEvent: (evt) => {
+          onAgentEvent: (evt: AgentEventPayload) => {
             if (evt.stream === "compaction") {
               const phase = typeof evt.data.phase === "string" ? evt.data.phase : "";
               if (phase === "end") {

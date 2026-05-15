@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { parseByteSize } from "../cli/parse-bytes.js";
-import { parseDurationMs } from "../cli/parse-duration.js";
+import { parseByteSize } from "../terminal/parse-bytes.js";
+import { parseDurationMs } from "../terminal/parse-duration.js";
 import { ToolsSchema } from "./zod-schema.agent-runtime.js";
 import { AgentsSchema, BindingsSchema, BroadcastSchema } from "./zod-schema.agents.js";
 import { ApprovalsSchema } from "./zod-schema.approvals.js";

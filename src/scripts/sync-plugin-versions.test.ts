@@ -26,8 +26,8 @@ describe("syncPluginVersions", () => {
       name: "crawclaw",
       version: "2026.4.1",
     });
-    writeJson(path.join(rootDir, "extensions/bluebubbles/package.json"), {
-      name: "@crawclaw/bluebubbles",
+    writeJson(path.join(rootDir, "extensions/weixin/package.json"), {
+      name: "@crawclaw/weixin",
       version: "2026.3.30",
       devDependencies: {
         crawclaw: "workspace:*",
@@ -44,7 +44,7 @@ describe("syncPluginVersions", () => {
 
     const summary = syncPluginVersions(rootDir);
     const updatedPackage = JSON.parse(
-      fs.readFileSync(path.join(rootDir, "extensions/bluebubbles/package.json"), "utf8"),
+      fs.readFileSync(path.join(rootDir, "extensions/weixin/package.json"), "utf8"),
     ) as {
       version?: string;
       devDependencies?: Record<string, string>;
@@ -56,7 +56,7 @@ describe("syncPluginVersions", () => {
       };
     };
 
-    expect(summary.updated).toContain("@crawclaw/bluebubbles");
+    expect(summary.updated).toContain("@crawclaw/weixin");
     expect(updatedPackage.version).toBe("2026.4.1");
     expect(updatedPackage.devDependencies?.crawclaw).toBe("workspace:*");
     expect(updatedPackage.peerDependencies?.crawclaw).toBe(">=2026.4.1");

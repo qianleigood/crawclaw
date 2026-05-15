@@ -13,7 +13,7 @@ import {
 } from "../agents/agent-scope.js";
 import { DEFAULT_PROVIDER, DEFAULT_MODEL } from "../agents/defaults.js";
 import { parseModelRef } from "../agents/model-selection.js";
-import { runEmbeddedPiAgent } from "../agents/pi-embedded.js";
+import { runNativeAgentTurn } from "../agents/runtime-tools/agent-turn-client.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 
@@ -50,7 +50,7 @@ Reply with ONLY the slug, nothing else. Examples: "vendor-pitch", "api-design", 
     const provider = parsed?.provider ?? DEFAULT_PROVIDER;
     const model = parsed?.model ?? DEFAULT_MODEL;
 
-    const result = await runEmbeddedPiAgent({
+    const result = await runNativeAgentTurn({
       sessionId: `slug-generator-${Date.now()}`,
       sessionKey: "temp:slug-generator",
       agentId,

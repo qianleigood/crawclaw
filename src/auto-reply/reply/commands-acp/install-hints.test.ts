@@ -21,9 +21,9 @@ afterEach(() => {
 describe("ACP install hints", () => {
   it("prefers explicit runtime install command", () => {
     const cfg = withAcpConfig({
-      runtime: { installCommand: "pnpm crawclaw plugins install acpx" },
+      runtime: { installCommand: "uv tool install acpx" },
     });
-    expect(resolveAcpInstallCommandHint(cfg)).toBe("pnpm crawclaw plugins install acpx");
+    expect(resolveAcpInstallCommandHint(cfg)).toBe("uv tool install acpx");
   });
 
   it("uses local acpx extension path when present", () => {
@@ -34,7 +34,9 @@ describe("ACP install hints", () => {
 
     const cfg = withAcpConfig({ backend: "acpx" });
     const hint = resolveAcpInstallCommandHint(cfg);
-    expect(hint).toBe(`crawclaw plugins install ${path.join(tempRoot, "extensions", "acpx")}`);
+    expect(hint).toBe(
+      `Install local plugin from Desktop Settings → Plugins: ${path.join(tempRoot, "extensions", "acpx")}`,
+    );
   });
 
   it("falls back to scoped install hint for acpx when local extension is absent", () => {
@@ -43,7 +45,7 @@ describe("ACP install hints", () => {
     vi.spyOn(process, "cwd").mockReturnValue(tempRoot);
 
     const cfg = withAcpConfig({ backend: "acpx" });
-    expect(resolveAcpInstallCommandHint(cfg)).toBe("crawclaw plugins install acpx");
+    expect(resolveAcpInstallCommandHint(cfg)).toBe("Install acpx from Desktop Settings → Plugins.");
   });
 
   it("returns generic plugin hint for non-acpx backend", () => {

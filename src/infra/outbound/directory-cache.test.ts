@@ -7,21 +7,21 @@ describe("buildDirectoryCacheKey", () => {
   it.each([
     {
       input: {
-        channel: "slack",
+        channel: "ddingtalk",
         kind: "channel",
         source: "cache",
       },
-      expected: "slack:default:channel:cache:default",
+      expected: "ddingtalk:default:channel:cache:default",
     },
     {
       input: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "work",
         kind: "user",
         source: "live",
         signature: "v2",
       },
-      expected: "discord:work:user:live:v2",
+      expected: "qqbot:work:user:live:v2",
     },
   ] satisfies Array<{ input: DirectoryCacheKey; expected: string }>)(
     "includes account and signature fallbacks for %j",

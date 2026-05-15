@@ -163,7 +163,7 @@ function buildMessagingSection(params: {
   }
   return [
     "## Messaging",
-    "- Reply in current session → automatically routes to the source channel (Signal, Telegram, etc.)",
+    "- Reply in current session → automatically routes to the source channel (native channels)",
     params.availableTools.has("sessions_send")
       ? "- Cross-session messaging → use sessions_send(sessionKey, message)"
       : "",
@@ -216,8 +216,8 @@ function buildDocsSection(params: { docsPath?: string; isMinimal: boolean; readT
     "Mirror: https://docs.crawclaw.ai",
     "Source: https://github.com/qianleigood/crawclaw",
     "Find new skills: https://clawhub.ai",
-    "For CrawClaw behavior, commands, config, or architecture: consult local docs first.",
-    "When diagnosing issues, run `crawclaw status` yourself when possible; only ask the user if you lack access.",
+    "For CrawClaw behavior, configuration, or architecture: consult local docs first.",
+    "When diagnosing issues, inspect Desktop/Gateway API state yourself when possible; only ask the user if you lack access.",
     "",
   ];
 }
@@ -293,7 +293,7 @@ export function buildAgentSystemPromptSections(params: {
     repoRoot?: string;
   };
   messageToolHints?: string[];
-  /** Reaction guidance for the agent (for Telegram minimal/extensive modes). */
+  /** Reaction guidance for the agent (for channel minimal/extensive modes). */
   reactionGuidance?: {
     level: "minimal" | "extensive";
     channel: string;
@@ -508,7 +508,7 @@ export function buildAgentSystemPromptSections(params: {
       ...(acpHarnessSpawnAllowed
         ? [
             'For requests like "do this in codex/claude code/cursor/gemini" or similar ACP harnesses, treat it as ACP harness intent and call `sessions_spawn` with `runtime: "acp"`.',
-            'On Discord, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`) unless the user asks otherwise.',
+            'On threaded channels, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`) unless the user asks otherwise.',
             "Set `agentId` explicitly unless `acp.defaultAgent` is configured, and do not route ACP harness requests through local PTY bash flows.",
             'For ACP harness thread spawns, do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path.',
           ]
@@ -521,7 +521,7 @@ export function buildAgentSystemPromptSections(params: {
       "Narrate only when it helps: multi-step work, complex/challenging problems, sensitive actions (e.g., deletions), or when the user explicitly asks.",
       "Keep narration brief and value-dense; avoid repeating obvious steps.",
       "Use plain human language for narration unless in a technical context.",
-      "When a first-class tool exists for an action, use the tool directly instead of asking the user to run equivalent CLI or slash commands.",
+      "When a first-class tool exists for an action, use the tool directly instead of asking the user to run equivalent shell or slash commands.",
       buildExecApprovalPromptGuidance({
         runtimeChannel: params.runtimeInfo?.channel,
       }),
@@ -530,15 +530,11 @@ export function buildAgentSystemPromptSections(params: {
       "When approvals are required, preserve and show the full command/script exactly as provided (including chained operators like &&, ||, |, ;, or multiline shells) so the user can approve what will actually run.",
     ]),
     createPromptSection("safety", safetySection),
-    createPromptSection("cli", [
-      "## CrawClaw CLI Quick Reference",
-      "CrawClaw is controlled via subcommands. Do not invent commands.",
-      "To manage the Gateway daemon service (start/stop/restart):",
-      "- crawclaw gateway status",
-      "- crawclaw gateway start",
-      "- crawclaw gateway stop",
-      "- crawclaw gateway restart",
-      "If unsure, ask the user to run `crawclaw help` (or `crawclaw gateway --help`) and paste the output.",
+    createPromptSection("desktop_gateway", [
+      "## CrawClaw Desktop and Gateway",
+      "CrawClaw user-facing controls live in the desktop app.",
+      "Use Gateway API methods or first-class tools for automation and diagnostics.",
+      "Do not ask users to run retired CrawClaw command-line subcommands.",
     ]),
     createPromptSection("skills", skillsSection),
     createPromptSection("memory", memorySection),

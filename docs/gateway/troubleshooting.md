@@ -206,9 +206,9 @@ Common signatures:
 Related:
 
 - [/channels/troubleshooting](/channels/troubleshooting)
-- [/channels/whatsapp](/channels/whatsapp)
-- [/channels/telegram](/channels/telegram)
-- [/channels/discord](/channels/discord)
+- [/channels/index](/channels/index)
+- [/channels/index](/channels/index)
+- [/channels/index](/channels/index)
 
 ## Cron and main-session wake delivery
 

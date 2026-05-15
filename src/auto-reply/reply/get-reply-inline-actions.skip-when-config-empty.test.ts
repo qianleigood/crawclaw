@@ -55,18 +55,18 @@ const createHandleInlineActionsInput = (params: {
   overrides?: Partial<Omit<HandleInlineActionsInput, "ctx" | "sessionCtx" | "typing" | "command">>;
 }): HandleInlineActionsInput => {
   const baseCommand: HandleInlineActionsInput["command"] = {
-    surface: "whatsapp",
-    channel: "whatsapp",
-    channelId: "whatsapp",
+    surface: "weixin",
+    channel: "weixin",
+    channelId: "weixin",
     ownerList: [],
     senderIsOwner: false,
     isAuthorizedSender: false,
     senderId: undefined,
-    abortKey: "whatsapp:+999",
+    abortKey: "weixin:+999",
     rawBodyNormalized: params.cleanedBody,
     commandBodyNormalized: params.cleanedBody,
-    from: "whatsapp:+999",
-    to: "whatsapp:+999",
+    from: "weixin:+999",
+    to: "weixin:+999",
   };
   return {
     ctx: params.ctx,
@@ -126,24 +126,24 @@ describe("handleInlineActions", () => {
     buildStatusReplyMock.mockResolvedValue({ text: "status" });
     createCrawClawToolsMock.mockReturnValue([]);
     getChannelPluginMock.mockImplementation((channelId?: string) =>
-      channelId === "whatsapp" ? { commands: { skipWhenConfigEmpty: true } } : undefined,
+      channelId === "weixin" ? { commands: { skipWhenConfigEmpty: true } } : undefined,
     );
     await loadFreshInlineActionsModuleForTest();
   });
 
-  it("skips whatsapp replies when config is empty and From !== To", async () => {
+  it("skips weixin replies when config is empty and From !== To", async () => {
     const typing = createTypingController();
 
     const ctx = buildTestCtx({
-      From: "whatsapp:+999",
-      To: "whatsapp:+123",
+      From: "weixin:+999",
+      To: "weixin:+123",
       Body: "hi",
     });
     await expectInlineActionSkipped({
       ctx,
       typing,
       cleanedBody: "hi",
-      command: { to: "whatsapp:+123" },
+      command: { to: "weixin:+123" },
     });
   });
 
@@ -219,8 +219,8 @@ describe("handleInlineActions", () => {
     const ctx = buildTestCtx({
       Body: "<@123> /status",
       CommandBody: "<@123> /status",
-      Provider: "discord",
-      Surface: "discord",
+      Provider: "qqbot",
+      Surface: "qqbot",
       ChatType: "channel",
       WasMentioned: true,
     });
@@ -231,9 +231,9 @@ describe("handleInlineActions", () => {
         typing,
         cleanedBody: "<@123>",
         command: {
-          surface: "discord",
-          channel: "discord",
-          channelId: "discord",
+          surface: "qqbot",
+          channel: "qqbot",
+          channelId: "qqbot",
           isAuthorizedSender: true,
           rawBodyNormalized: "<@123> /status",
           commandBodyNormalized: "<@123> /status",

@@ -11,7 +11,7 @@ _A tale of lobsters, molting shells, and too many tokens._
 
 ## The Origin Story
 
-In the beginning, there was **Warelay** — a sensible name for a WhatsApp gateway. It did its job. It was fine.
+In the beginning, there was **Warelay** — a sensible name for a Weixin gateway. It did its job. It was fine.
 
 But then came a space lobster.
 
@@ -21,7 +21,7 @@ New shell, same lobster soul. Third time's the charm.
 
 ## The First Molt (January 27, 2026)
 
-At 5am, the community gathered in Discord. Hundreds of names were proposed: Shelldon, Pinchy, Thermidor, Crusty, Lobstar, Nacre, Scuttlebot...
+At 5am, the community gathered in community chat. Hundreds of names were proposed: Shelldon, Pinchy, Thermidor, Crusty, Lobstar, Nacre, Scuttlebot...
 
 In the end, **CrawClaw** won. Because molting is what lobsters do to grow. And growth was exactly what was happening.
 
@@ -121,7 +121,7 @@ In just 3 hours:
 - **ELU** created incredible logos including "THE CLAW IS THE LAW" western banner
 - **Whurley** (yes, THE William Hurley, quantum computing pioneer) made ASCII art
 - **Onur** handled GitHub, first to rock the affiliate badge
-- **Shadow** secured Discord vanity, nuked malware
+- **Shadow** secured community chat vanity, nuked malware
 - **The whole Claw Crew** pulled an all-nighter
 
 **The Scammer Speedrun:** Crypto grifters launched a $CRAWCLAW token on Pump.fun within MINUTES. They stole artwork that was created 20 minutes earlier. Business-verified accounts pushed scams. The audacity was almost impressive.

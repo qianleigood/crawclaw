@@ -321,6 +321,10 @@ export interface DesktopPreferences {
   selectedThinking: string
   permissionMode: string
   modelOptions: string[]
+  providerDescriptors: unknown[]
+  providerSetupOptions: unknown[]
+  providerModelPickerEntries: unknown[]
+  webProviderBoundaries: unknown[]
   thinkingOptions: string[]
   permissionModeOptions: string[]
 }
@@ -863,6 +867,10 @@ export function createDesktopUnavailableState(detail = '正在连接本机 Gatew
       selectedThinking: '高',
       permissionMode: '工作区模式',
       modelOptions: ['GPT-5.5', 'GPT-5.4', 'Sonnet 4.6'],
+      providerDescriptors: [],
+      providerSetupOptions: [],
+      providerModelPickerEntries: [],
+      webProviderBoundaries: [],
       thinkingOptions: ['高', '中', '低'],
       permissionModeOptions: ['工作区模式', '只读模式', '完全访问'],
     },
@@ -1064,6 +1072,10 @@ export function createDesktopFixtureState(): DesktopState {
       selectedThinking: '高',
       permissionMode: '工作区模式',
       modelOptions: ['GPT-5.5', 'GPT-5.4', 'Sonnet 4.6'],
+      providerDescriptors: [],
+      providerSetupOptions: [],
+      providerModelPickerEntries: [],
+      webProviderBoundaries: [],
       thinkingOptions: ['高', '中', '低'],
       permissionModeOptions: ['工作区模式', '只读模式', '完全访问'],
     },

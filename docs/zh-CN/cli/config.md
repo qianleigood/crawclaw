@@ -51,7 +51,7 @@ crawclaw config set agents.list[1].tools.exec.node "node-id-or-name"
 ```bash
 crawclaw config set cron.enabled true
 crawclaw config set gateway.port 19001 --json
-crawclaw config set channels.whatsapp.groups '["*"]' --json
+crawclaw config set channels.weixin.groups '["*"]' --json
 ```
 
 编辑后请重启 Gateway 网关。

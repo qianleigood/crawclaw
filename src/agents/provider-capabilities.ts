@@ -1,5 +1,4 @@
 import type { CrawClawConfig } from "../config/config.js";
-import { resolveProviderCapabilitiesWithPlugin as resolveProviderCapabilitiesWithPluginRuntime } from "../plugins/provider-runtime.js";
 import { normalizeProviderId } from "./provider-id.js";
 
 export type ProviderCapabilities = {
@@ -76,7 +75,15 @@ const PLUGIN_CAPABILITIES_FALLBACKS: Record<string, Partial<ProviderCapabilities
   },
 };
 
-const defaultResolveProviderCapabilitiesWithPlugin = resolveProviderCapabilitiesWithPluginRuntime;
+type ProviderCapabilitiesOverrideResolver = (params: {
+  provider: string;
+  config?: CrawClawConfig;
+  workspaceDir?: string;
+  env?: NodeJS.ProcessEnv;
+}) => Partial<ProviderCapabilities> | undefined;
+
+const defaultResolveProviderCapabilitiesWithPlugin: ProviderCapabilitiesOverrideResolver = () =>
+  undefined;
 const providerCapabilityDeps = {
   resolveProviderCapabilitiesWithPlugin: defaultResolveProviderCapabilitiesWithPlugin,
 };

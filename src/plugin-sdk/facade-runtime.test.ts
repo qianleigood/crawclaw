@@ -229,41 +229,22 @@ describe("plugin-sdk facade runtime", () => {
 
     expect(
       canLoadActivatedBundledPluginPublicSurface({
-        dirName: "discord",
+        dirName: "qqbot",
         artifactBasename: "runtime-api.js",
       }),
     ).toBe(false);
     expect(() =>
       loadActivatedBundledPluginPublicSurfaceModuleSync({
-        dirName: "discord",
+        dirName: "qqbot",
         artifactBasename: "runtime-api.js",
       }),
     ).toThrow(/Bundled plugin public surface access blocked/);
     expect(
       tryLoadActivatedBundledPluginPublicSurfaceModuleSync({
-        dirName: "discord",
+        dirName: "qqbot",
         artifactBasename: "runtime-api.js",
       }),
     ).toBeNull();
-  });
-
-  it("allows runtime-api facade loads when the bundled plugin is explicitly enabled", () => {
-    setRuntimeConfigSnapshot({
-      plugins: {
-        entries: {
-          discord: {
-            enabled: true,
-          },
-        },
-      },
-    });
-
-    expect(
-      canLoadActivatedBundledPluginPublicSurface({
-        dirName: "discord",
-        artifactBasename: "runtime-api.js",
-      }),
-    ).toBe(true);
   });
 
   it("keeps shared runtime-core facades available without plugin activation", () => {

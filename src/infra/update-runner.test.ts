@@ -11,7 +11,8 @@ import { runGatewayUpdate } from "./update-runner.js";
 
 type CommandResponse = { stdout?: string; stderr?: string; code?: number | null };
 type CommandResult = { stdout: string; stderr: string; code: number | null };
-const WHATSAPP_LIGHT_RUNTIME_API = bundledDistPluginFile("whatsapp", "light-runtime-api.js");
+const FIRST_RUNTIME_SIDECAR =
+  BUNDLED_RUNTIME_SIDECAR_PATHS[0] ?? bundledDistPluginFile("acpx", "runtime-api.js");
 
 function toCommandResult(response?: CommandResponse): CommandResult {
   return {
@@ -663,7 +664,7 @@ describe("runGatewayUpdate", () => {
     expect(result.status).toBe("error");
     expect(result.reason).toBe("global install verify");
     expect(result.steps.at(-1)?.stderrTail).toContain(
-      `missing bundled runtime sidecar ${WHATSAPP_LIGHT_RUNTIME_API}`,
+      `missing bundled runtime sidecar ${FIRST_RUNTIME_SIDECAR}`,
     );
   });
 
@@ -802,12 +803,11 @@ describe("runGatewayUpdate", () => {
     await setupGitCheckout({ packageManager: "pnpm@8.0.0" });
 
     const stableTag = "v1.0.1-1";
-    const sidecarPath = path.join(tempDir, WHATSAPP_LIGHT_RUNTIME_API);
+    const sidecarPath = path.join(tempDir, FIRST_RUNTIME_SIDECAR);
     const { runCommand, calls, doctorKey } = await createStableTagRunner({
       stableTag,
       onDoctor: async () => {
-        await fs.mkdir(path.dirname(sidecarPath), { recursive: true });
-        await fs.writeFile(sidecarPath, "export {};\n", "utf-8");
+        await writeBundledRuntimeSidecars(tempDir);
       },
     });
 

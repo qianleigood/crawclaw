@@ -12,7 +12,7 @@ title: "Streaming and Chunking"
 CrawClaw has two separate streaming layers:
 
 - **Block streaming (channels):** emit completed **blocks** as the assistant writes. These are normal channel messages (not token deltas).
-- **Preview streaming (Telegram/Discord/Slack):** update a temporary **preview message** while generating.
+- **Preview streaming (Feishu/QQBot/DingTalk):** update a temporary **preview message** while generating.
 
 There is **no true token-delta streaming** to channel messages today. Preview streaming is message-based (send + edits/appends).
 
@@ -43,9 +43,9 @@ Legend:
 - `agents.defaults.blockStreamingBreak`: `"text_end"` or `"message_end"`.
 - `agents.defaults.blockStreamingChunk`: `{ minChars, maxChars, breakPreference? }`.
 - `agents.defaults.blockStreamingCoalesce`: `{ minChars?, maxChars?, idleMs? }` (merge streamed blocks before send).
-- Channel hard cap: `*.textChunkLimit` (e.g., `channels.whatsapp.textChunkLimit`).
+- Channel hard cap: `*.textChunkLimit` (e.g., `channels.weixin.textChunkLimit`).
 - Channel chunk mode: `*.chunkMode` (`length` default, `newline` splits on blank lines (paragraph boundaries) before length chunking).
-- Discord soft cap: `channels.discord.maxLinesPerMessage` (default 17) splits tall replies to avoid UI clipping.
+- QQBot soft cap: `channels.qqbot.maxLinesPerMessage` (default 17) splits tall replies to avoid UI clipping.
 
 **Boundary semantics:**
 
@@ -78,7 +78,7 @@ progressive output.
 - Joiner is derived from `blockStreamingChunk.breakPreference`
   (`paragraph` → `\n\n`, `newline` → `\n`, `sentence` → space).
 - Channel overrides are available via `*.blockStreamingCoalesce` (including per-account configs).
-- Default coalesce `minChars` is bumped to 1500 for Signal/Slack/Discord unless overridden.
+- Default coalesce `minChars` is bumped to 1500 for Signal/DingTalk/QQBot unless overridden.
 
 ## Human-like pacing between blocks
 
@@ -94,7 +94,7 @@ more natural.
 
 This maps to:
 
-- **Stream chunks:** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"` (emit as you go). Non-Telegram channels also need `*.blockStreaming: true`.
+- **Stream chunks:** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"` (emit as you go). Non-Feishu channels also need `*.blockStreaming: true`.
 - **Stream everything at end:** `blockStreamingBreak: "message_end"` (flush once, possibly multiple chunks if very long).
 - **No block streaming:** `blockStreamingDefault: "off"` (only final reply).
 
@@ -120,31 +120,31 @@ Modes:
 
 | Channel  | `off` | `partial` | `block` | `progress`        |
 | -------- | ----- | --------- | ------- | ----------------- |
-| Telegram | ✅    | ✅        | ✅      | maps to `partial` |
-| Discord  | ✅    | ✅        | ✅      | maps to `partial` |
-| Slack    | ✅    | ✅        | ✅      | ✅                |
+| Feishu   | ✅    | ✅        | ✅      | maps to `partial` |
+| QQBot    | ✅    | ✅        | ✅      | maps to `partial` |
+| DingTalk | ✅    | ✅        | ✅      | ✅                |
 
-Slack-only:
+DingTalk-only:
 
-- `channels.slack.nativeStreaming` toggles Slack native streaming API calls when `streaming=partial` (default: `true`).
+- `channels.ddingtalk.nativeStreaming` toggles DingTalk native streaming API calls when `streaming=partial` (default: `true`).
 
 ### Runtime behavior
 
-Telegram:
+Feishu:
 
 - Uses `sendMessage` + `editMessageText` preview updates across DMs and group/topics.
-- Preview streaming is skipped when Telegram block streaming is explicitly enabled (to avoid double-streaming).
+- Preview streaming is skipped when Feishu block streaming is explicitly enabled (to avoid double-streaming).
 - `/reasoning stream` can write reasoning to preview.
 
-Discord:
+QQBot:
 
 - Uses send + edit preview messages.
 - `block` mode uses the built-in preview chunker.
-- Preview streaming is skipped when Discord block streaming is explicitly enabled.
+- Preview streaming is skipped when QQBot block streaming is explicitly enabled.
 
-Slack:
+DingTalk:
 
-- `partial` can use Slack native streaming (`chat.startStream`/`append`/`stop`) when available.
+- `partial` can use DingTalk native streaming (`chat.startStream`/`append`/`stop`) when available.
 - `block` uses append-style draft previews.
 - `progress` uses status preview text, then final answer.
 

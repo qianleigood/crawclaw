@@ -10,8 +10,8 @@ describe("buildEmbeddedCompactionRuntimeContext", () => {
     expect(
       buildEmbeddedCompactionRuntimeContext({
         sessionKey: "agent:main:thread:1",
-        messageChannel: "slack",
-        messageProvider: "slack",
+        messageChannel: "ddingtalk",
+        messageProvider: "ddingtalk",
         agentAccountId: "acct-1",
         currentChannelId: "C123",
         currentThreadTs: "thread-9",
@@ -31,8 +31,8 @@ describe("buildEmbeddedCompactionRuntimeContext", () => {
       }),
     ).toMatchObject({
       sessionKey: "agent:main:thread:1",
-      messageChannel: "slack",
-      messageProvider: "slack",
+      messageChannel: "ddingtalk",
+      messageProvider: "ddingtalk",
       agentAccountId: "acct-1",
       currentChannelId: "C123",
       currentThreadTs: "thread-9",

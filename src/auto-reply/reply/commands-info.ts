@@ -4,11 +4,7 @@ import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
 import { logVerbose } from "../../globals.js";
 import { translateSlashCommandText } from "../commands-i18n.js";
 import { listSkillCommandsForAgents } from "../skill-commands.js";
-import {
-  buildCommandsMessage,
-  buildHelpMessage,
-  buildToolsMessage,
-} from "../status.js";
+import { buildCommandsMessage, buildHelpMessage, buildToolsMessage } from "../status.js";
 import { buildThreadingToolContext } from "./agent-runner-utils.js";
 import { buildContextReply } from "./commands-context-report.js";
 import { buildExportSessionReply } from "./commands-export-session.js";

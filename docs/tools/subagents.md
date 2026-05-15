@@ -130,7 +130,7 @@ When thread bindings are enabled for a channel, a sub-agent can stay bound to a 
 
 ### Thread supporting channels
 
-- Discord (currently the only supported channel): supports persistent thread-bound subagent sessions (`sessions_spawn` with `thread: true`), manual thread controls (`/focus`, `/unfocus`, `/agents`, `/session idle`, `/session max-age`), and adapter keys `channels.discord.threadBindings.enabled`, `channels.discord.threadBindings.idleHours`, `channels.discord.threadBindings.maxAgeHours`, and `channels.discord.threadBindings.spawnSubagentSessions`.
+- QQBot (currently the only supported channel): supports persistent thread-bound subagent sessions (`sessions_spawn` with `thread: true`), manual thread controls (`/focus`, `/unfocus`, `/agents`, `/session idle`, `/session max-age`), and adapter keys `channels.qqbot.threadBindings.enabled`, `channels.qqbot.threadBindings.idleHours`, `channels.qqbot.threadBindings.maxAgeHours`, and `channels.qqbot.threadBindings.spawnSubagentSessions`.
 
 Quick flow:
 

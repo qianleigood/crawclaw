@@ -12,14 +12,14 @@ describe("normalizeSpawnedRunMetadata", () => {
       normalizeSpawnedRunMetadata({
         spawnedBy: "  agent:main:subagent:1 ",
         groupId: "  group-1 ",
-        groupChannel: "  slack ",
+        groupChannel: "  ddingtalk ",
         groupSpace: " ",
         workspaceDir: " /tmp/ws ",
       }),
     ).toEqual({
       spawnedBy: "agent:main:subagent:1",
       groupId: "group-1",
-      groupChannel: "slack",
+      groupChannel: "ddingtalk",
       workspaceDir: "/tmp/ws",
     });
   });
@@ -30,13 +30,13 @@ describe("mapToolContextToSpawnedRunMetadata", () => {
     expect(
       mapToolContextToSpawnedRunMetadata({
         agentGroupId: "g-1",
-        agentGroupChannel: "telegram",
+        agentGroupChannel: "feishu",
         agentGroupSpace: "topic:123",
         workspaceDir: "/tmp/ws",
       }),
     ).toEqual({
       groupId: "g-1",
-      groupChannel: "telegram",
+      groupChannel: "feishu",
       groupSpace: "topic:123",
       workspaceDir: "/tmp/ws",
     });

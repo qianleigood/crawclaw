@@ -4,11 +4,11 @@ import os from "node:os";
 import path from "node:path";
 import { type Api, completeSimple, type Model } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
+import { loadConfig } from "../config/config.js";
 import {
   ANTHROPIC_SETUP_TOKEN_PREFIX,
   validateAnthropicSetupToken,
-} from "../commands/auth-token.js";
-import { loadConfig } from "../config/config.js";
+} from "../plugin-sdk/provider-auth.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
 import {
   type AuthProfileCredential,

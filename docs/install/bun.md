@@ -9,7 +9,7 @@ title: "Bun (Experimental)"
 # Bun (Experimental)
 
 <Warning>
-Bun is **not recommended for gateway runtime** (known issues with WhatsApp and Telegram). Use Node for production.
+Bun is **not recommended for gateway runtime** (known issues with Weixin and Feishu). Use Node for production.
 </Warning>
 
 Bun is an optional local runtime for running TypeScript directly (`bun run ...`, `bun --watch ...`). The default package manager remains `pnpm`, which is fully supported and used by docs tooling. Bun cannot use `pnpm-lock.yaml` and will ignore it.

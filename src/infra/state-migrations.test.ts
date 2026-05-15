@@ -112,9 +112,7 @@ describe("state migrations", () => {
       ),
     ) as Record<string, { sessionId: string }>;
     expect(mergedStore["agent:worker-1:desk"]?.sessionId).toBe("legacy-direct");
-    expect(mergedStore["agent:worker-1:feishu:channel:room-1"]?.sessionId).toBe(
-      "channel-session",
-    );
+    expect(mergedStore["agent:worker-1:feishu:channel:room-1"]?.sessionId).toBe("channel-session");
 
     await expect(
       fs.readFile(path.join(stateDir, "agents", "worker-1", "sessions", "trace.jsonl"), "utf8"),

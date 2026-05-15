@@ -11,7 +11,7 @@ function makeEmbeddingProvider() {
       if (/risk|release/i.test(text)) {
         return [1, 0];
       }
-      if (/slack/i.test(text)) {
+      if (/ddingtalk/i.test(text)) {
         return [0, 1];
       }
       return [0.2, 0.2];
@@ -38,9 +38,9 @@ const skills = [
     location: path.join("skills", "release-risk", "SKILL.md"),
   },
   {
-    name: "slack-update",
-    description: "Use when drafting Slack status updates.",
-    location: path.join("skills", "slack-update", "SKILL.md"),
+    name: "ddingtalk-update",
+    description: "Use when drafting DingTalk status updates.",
+    location: path.join("skills", "ddingtalk-update", "SKILL.md"),
   },
 ];
 

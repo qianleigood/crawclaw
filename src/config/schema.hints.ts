@@ -24,7 +24,7 @@ export type { ConfigUiHint, ConfigUiHints } from "../shared/config-ui-hints-type
 const GROUP_LABELS: Record<string, string> = {
   wizard: "Wizard",
   update: "Update",
-  cli: "CLI",
+  cli: "Terminal",
   diagnostics: "Diagnostics",
   logging: "Logging",
   gateway: "Gateway",

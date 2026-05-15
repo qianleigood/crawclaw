@@ -12,10 +12,10 @@ export type {
 } from "../channels/plugins/config-writes.js";
 import type { ChannelConfigWithAccounts } from "../channels/plugins/config-writes.js";
 import type { ChannelConfigAdapter } from "../channels/plugins/types.adapters.js";
-import { formatCliCommand } from "../cli/command-format.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
 import { normalizeStringEntries } from "../shared/string-normalization.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import {
   clearTopLevelChannelConfigFields,
   createChannelConfigAdapterFromBase,

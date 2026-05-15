@@ -3,30 +3,25 @@ import {
   loadChannelTimingManifest,
   loadTestRunnerBehavior,
 } from "../scripts/test-runner-manifest.mjs";
-import { bundledPluginDirPrefix, bundledPluginFile } from "./helpers/bundled-plugin-paths.js";
 
 describe("loadTestRunnerBehavior", () => {
-  it("loads channel isolated entries from the behavior manifest", () => {
+  it("loads extension isolated entries from the behavior manifest", () => {
     const behavior = loadTestRunnerBehavior();
-    const files = behavior.channels.isolated.map((entry) => entry.file);
+    const files = behavior.extensions.isolated.map((entry) => entry.file);
 
-    expect(files).toContain(
-      bundledPluginFile("discord", "src/monitor/message-handler.preflight.acp-bindings.test.ts"),
-    );
+    expect(files).toContain("extensions/duckduckgo/src/ddg-search-provider.test.ts");
   });
 
-  it("loads channel isolated prefixes from the behavior manifest", () => {
+  it("does not keep bundled channel isolated prefixes after TS channel cleanup", () => {
     const behavior = loadTestRunnerBehavior();
 
-    expect(behavior.channels.isolatedPrefixes).toContain(
-      bundledPluginDirPrefix("discord", "src/monitor"),
-    );
+    expect(behavior.channels.isolatedPrefixes).toEqual([]);
   });
 
   it("loads channel timing metadata from the timing manifest", () => {
     const timings = loadChannelTimingManifest();
 
     expect(timings.config).toBe("vitest.channels.config.ts");
-    expect(Object.keys(timings.files).length).toBeGreaterThan(0);
+    expect(timings.files).toEqual({});
   });
 });

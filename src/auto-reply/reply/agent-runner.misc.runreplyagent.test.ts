@@ -28,16 +28,9 @@ vi.mock("../../agents/model-fallback.js", () => ({
     Array.isArray((err as { attempts?: unknown[] }).attempts),
 }));
 
-vi.mock("../../agents/pi-embedded.js", async () => {
-  const actual = await vi.importActual<typeof import("../../agents/pi-embedded.js")>(
-    "../../agents/pi-embedded.js",
-  );
-  return {
-    ...actual,
-    queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
-    runEmbeddedPiAgent: (params: unknown) => runEmbeddedPiAgentMock(params),
-  };
-});
+vi.mock("../../agents/rust-agent-runtime.js", () => ({
+  runRustAutoReply: (params: unknown) => runEmbeddedPiAgentMock(params),
+}));
 
 vi.mock("../../agents/cli-runner.js", async () => {
   const actual = await vi.importActual<typeof import("../../agents/cli-runner.js")>(
@@ -242,11 +235,11 @@ describe("runReplyAgent authProfileId fallback scoping", () => {
 
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "telegram",
+      Provider: "feishu",
       OriginatingTo: "chat",
       AccountId: "primary",
       MessageSid: "msg",
-      Surface: "telegram",
+      Surface: "feishu",
     } as unknown as TemplateContext;
 
     const resolvedQueue = { mode: "interrupt" } as unknown as QueueSettings;
@@ -259,7 +252,7 @@ describe("runReplyAgent authProfileId fallback scoping", () => {
         agentDir: "/tmp/agent",
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "telegram",
+        messageProvider: "feishu",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {},
@@ -363,7 +356,7 @@ describe("runReplyAgent auto-compaction token update", () => {
   }) {
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "whatsapp",
+      Provider: "weixin",
       OriginatingTo: "+15550001111",
       AccountId: "primary",
       MessageSid: "msg",
@@ -378,7 +371,7 @@ describe("runReplyAgent auto-compaction token update", () => {
         agentDir: "/tmp/agent",
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "whatsapp",
+        messageProvider: "weixin",
         sessionFile: params.sessionFile ?? "/tmp/session.jsonl",
         workspaceDir: params.workspaceDir ?? "/tmp",
         config: params.config ?? {},
@@ -865,7 +858,7 @@ describe("runReplyAgent block streaming", () => {
 
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "discord",
+      Provider: "qqbot",
       OriginatingTo: "channel:C1",
       AccountId: "primary",
       MessageSid: "msg",
@@ -878,7 +871,7 @@ describe("runReplyAgent block streaming", () => {
       run: {
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "discord",
+        messageProvider: "qqbot",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {
@@ -966,7 +959,7 @@ describe("runReplyAgent block streaming", () => {
 
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "discord",
+      Provider: "qqbot",
       OriginatingTo: "channel:C1",
       AccountId: "primary",
       MessageSid: "msg",
@@ -979,7 +972,7 @@ describe("runReplyAgent block streaming", () => {
       run: {
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "discord",
+        messageProvider: "qqbot",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {
@@ -1146,7 +1139,7 @@ describe("runReplyAgent claude-cli routing", () => {
 
 describe("runReplyAgent messaging tool suppression", () => {
   function createRun(
-    messageProvider = "slack",
+    messageProvider = "ddingtalk",
     opts: { storePath?: string; sessionKey?: string } = {},
   ) {
     const typing = createMockTypingController();
@@ -1211,11 +1204,11 @@ describe("runReplyAgent messaging tool suppression", () => {
     runEmbeddedPiAgentMock.mockResolvedValueOnce({
       payloads: [{ text: "hello world!" }],
       messagingToolSentTexts: ["different message"],
-      messagingToolSentTargets: [{ tool: "slack", provider: "slack", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "ddingtalk", provider: "ddingtalk", to: "channel:C1" }],
       meta: {},
     });
 
-    const result = await createRun("slack");
+    const result = await createRun("ddingtalk");
 
     expect(result).toBeUndefined();
   });
@@ -1224,11 +1217,11 @@ describe("runReplyAgent messaging tool suppression", () => {
     runEmbeddedPiAgentMock.mockResolvedValueOnce({
       payloads: [{ text: "hello world!" }],
       messagingToolSentTexts: ["different message"],
-      messagingToolSentTargets: [{ tool: "discord", provider: "discord", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "qqbot", provider: "qqbot", to: "channel:C1" }],
       meta: {},
     });
 
-    const result = await createRun("slack");
+    const result = await createRun("ddingtalk");
 
     expect(result).toMatchObject({ text: "hello world!" });
   });
@@ -1237,11 +1230,11 @@ describe("runReplyAgent messaging tool suppression", () => {
     runEmbeddedPiAgentMock.mockResolvedValueOnce({
       payloads: [{ text: "hello world!" }],
       messagingToolSentTexts: ["hello world!"],
-      messagingToolSentTargets: [{ tool: "discord", provider: "discord", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "qqbot", provider: "qqbot", to: "channel:C1" }],
       meta: {},
     });
 
-    const result = await createRun("slack");
+    const result = await createRun("ddingtalk");
 
     expect(result).toMatchObject({ text: "hello world!" });
   });
@@ -1252,8 +1245,8 @@ describe("runReplyAgent messaging tool suppression", () => {
       messagingToolSentTexts: ["different message"],
       messagingToolSentTargets: [
         {
-          tool: "slack",
-          provider: "slack",
+          tool: "ddingtalk",
+          provider: "ddingtalk",
           to: "channel:C1",
           accountId: "alt",
         },
@@ -1261,7 +1254,7 @@ describe("runReplyAgent messaging tool suppression", () => {
       meta: {},
     });
 
-    const result = await createRun("slack");
+    const result = await createRun("ddingtalk");
 
     expect(result).toMatchObject({ text: "hello world!" });
   });
@@ -1278,7 +1271,7 @@ describe("runReplyAgent messaging tool suppression", () => {
     runEmbeddedPiAgentMock.mockResolvedValueOnce({
       payloads: [{ text: "hello world!" }],
       messagingToolSentTexts: ["different message"],
-      messagingToolSentTargets: [{ tool: "slack", provider: "slack", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "ddingtalk", provider: "ddingtalk", to: "channel:C1" }],
       meta: {
         agentMeta: {
           usage: { input: 10, output: 5 },
@@ -1288,7 +1281,7 @@ describe("runReplyAgent messaging tool suppression", () => {
       },
     });
 
-    const result = await createRun("slack", { storePath, sessionKey });
+    const result = await createRun("ddingtalk", { storePath, sessionKey });
 
     expect(result).toBeUndefined();
     const store = loadSessionStore(storePath, { skipCache: true });
@@ -1311,7 +1304,7 @@ describe("runReplyAgent messaging tool suppression", () => {
     runEmbeddedPiAgentMock.mockResolvedValueOnce({
       payloads: [{ text: "hello world!" }],
       messagingToolSentTexts: ["different message"],
-      messagingToolSentTargets: [{ tool: "slack", provider: "slack", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "ddingtalk", provider: "ddingtalk", to: "channel:C1" }],
       meta: {
         agentMeta: {
           usage: { input: 10, output: 5 },
@@ -1322,7 +1315,7 @@ describe("runReplyAgent messaging tool suppression", () => {
       },
     });
 
-    const result = await createRun("slack", { storePath, sessionKey });
+    const result = await createRun("ddingtalk", { storePath, sessionKey });
 
     expect(result).toBeUndefined();
     const store = loadSessionStore(storePath, { skipCache: true });
@@ -1348,7 +1341,7 @@ describe("runReplyAgent messaging tool suppression", () => {
     runEmbeddedPiAgentMock.mockResolvedValueOnce({
       payloads: [{ text: "hello world!" }],
       messagingToolSentTexts: ["different message"],
-      messagingToolSentTargets: [{ tool: "slack", provider: "slack", to: "channel:C1" }],
+      messagingToolSentTargets: [{ tool: "ddingtalk", provider: "ddingtalk", to: "channel:C1" }],
       meta: {
         agentMeta: {
           promptTokens: 41_000,
@@ -1358,7 +1351,7 @@ describe("runReplyAgent messaging tool suppression", () => {
       },
     });
 
-    const result = await createRun("slack", { storePath, sessionKey });
+    const result = await createRun("ddingtalk", { storePath, sessionKey });
 
     expect(result).toBeUndefined();
     const store = loadSessionStore(storePath, { skipCache: true });
@@ -1373,11 +1366,11 @@ describe("runReplyAgent reminder commitment guard", () => {
   function createRun(params?: { sessionKey?: string; omitSessionKey?: boolean }) {
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "telegram",
+      Provider: "feishu",
       OriginatingTo: "chat",
       AccountId: "primary",
       MessageSid: "msg",
-      Surface: "telegram",
+      Surface: "feishu",
     } as unknown as TemplateContext;
     const resolvedQueue = { mode: "interrupt" } as unknown as QueueSettings;
     const followupRun = {
@@ -1387,7 +1380,7 @@ describe("runReplyAgent reminder commitment guard", () => {
       run: {
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "telegram",
+        messageProvider: "feishu",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {},
@@ -1588,10 +1581,11 @@ describe("runReplyAgent fallback reasoning tags", () => {
     sessionEntry?: SessionEntry;
     sessionKey?: string;
     agentCfgContextTokens?: number;
+    config?: Record<string, unknown>;
   }) {
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "whatsapp",
+      Provider: "weixin",
       OriginatingTo: "+15550001111",
       AccountId: "primary",
       MessageSid: "msg",
@@ -1607,10 +1601,10 @@ describe("runReplyAgent fallback reasoning tags", () => {
         agentDir: "/tmp/agent",
         sessionId: "session",
         sessionKey,
-        messageProvider: "whatsapp",
+        messageProvider: "weixin",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
-        config: {},
+        config: params?.config ?? {},
         provider: "anthropic",
         model: "claude",
         thinkLevel: "low",
@@ -1669,7 +1663,7 @@ describe("runReplyAgent fallback reasoning tags", () => {
     expect(call?.enforceFinalTag).toBe(true);
   });
 
-  it("does not run a memory flush turn when memory flush is disabled by default", async () => {
+  it("does not run a memory flush turn when memory flush is disabled in config", async () => {
     runEmbeddedPiAgentMock.mockImplementation(async (params: EmbeddedPiAgentParams) => {
       if (params.prompt?.includes("Pre-compaction memory flush.")) {
         return { payloads: [], meta: {} };
@@ -1691,6 +1685,7 @@ describe("runReplyAgent fallback reasoning tags", () => {
         compactionCount: 0,
       },
       agentCfgContextTokens: 4_096,
+      config: { agents: { defaults: { compaction: { memoryFlush: { enabled: false } } } } },
     });
 
     const flushCall = runEmbeddedPiAgentMock.mock.calls.find(([params]) =>
@@ -1707,7 +1702,7 @@ describe("runReplyAgent response usage footer", () => {
   function createRun(params: { responseUsage: "tokens" | "full"; sessionKey: string }) {
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "whatsapp",
+      Provider: "weixin",
       OriginatingTo: "+15550001111",
       AccountId: "primary",
       MessageSid: "msg",
@@ -1729,7 +1724,7 @@ describe("runReplyAgent response usage footer", () => {
         agentDir: "/tmp/agent",
         sessionId: "session",
         sessionKey: params.sessionKey,
-        messageProvider: "whatsapp",
+        messageProvider: "weixin",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {},
@@ -1783,7 +1778,7 @@ describe("runReplyAgent response usage footer", () => {
       },
     });
 
-    const sessionKey = "agent:main:whatsapp:dm:+1000";
+    const sessionKey = "agent:main:weixin:dm:+1000";
     const res = await createRun({ responseUsage: "full", sessionKey });
     const payload = Array.isArray(res) ? res[0] : res;
     expect(payload?.text ?? "").toContain("Usage:");
@@ -1802,7 +1797,7 @@ describe("runReplyAgent response usage footer", () => {
       },
     });
 
-    const sessionKey = "agent:main:whatsapp:dm:+1000";
+    const sessionKey = "agent:main:weixin:dm:+1000";
     const res = await createRun({ responseUsage: "tokens", sessionKey });
     const payload = Array.isArray(res) ? res[0] : res;
     expect(payload?.text ?? "").toContain("Usage:");
@@ -1826,7 +1821,7 @@ describe("runReplyAgent transient HTTP retry", () => {
 
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "telegram",
+      Provider: "feishu",
       MessageSid: "msg",
     } as unknown as TemplateContext;
     const resolvedQueue = { mode: "interrupt" } as unknown as QueueSettings;
@@ -1837,7 +1832,7 @@ describe("runReplyAgent transient HTTP retry", () => {
       run: {
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "telegram",
+        messageProvider: "feishu",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {},
@@ -1901,7 +1896,7 @@ describe("runReplyAgent billing error classification", () => {
 
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "telegram",
+      Provider: "feishu",
       MessageSid: "msg",
     } as unknown as TemplateContext;
     const resolvedQueue = { mode: "interrupt" } as unknown as QueueSettings;
@@ -1912,7 +1907,7 @@ describe("runReplyAgent billing error classification", () => {
       run: {
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "telegram",
+        messageProvider: "feishu",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {},
@@ -1961,7 +1956,7 @@ describe("runReplyAgent mid-turn rate-limit fallback", () => {
   function createRun() {
     const typing = createMockTypingController();
     const sessionCtx = {
-      Provider: "telegram",
+      Provider: "feishu",
       MessageSid: "msg",
     } as unknown as TemplateContext;
     const resolvedQueue = { mode: "interrupt" } as unknown as QueueSettings;
@@ -1972,7 +1967,7 @@ describe("runReplyAgent mid-turn rate-limit fallback", () => {
       run: {
         sessionId: "session",
         sessionKey: "main",
-        messageProvider: "telegram",
+        messageProvider: "feishu",
         sessionFile: "/tmp/session.jsonl",
         workspaceDir: "/tmp",
         config: {},

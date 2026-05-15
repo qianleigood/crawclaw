@@ -6,7 +6,6 @@ import {
   mergeDeliveryContext,
   normalizeDeliveryContext,
   normalizeSessionDeliveryFields,
-  resolveConversationDeliveryTarget,
 } from "./delivery-context.js";
 
 describe("delivery context helpers", () => {
@@ -85,33 +84,6 @@ describe("delivery context helpers", () => {
     expect(formatConversationTarget({ channel: "demo-channel", conversationId: "123" })).toBe(
       "channel:123",
     );
-  });
-
-  it("formats matrix conversation targets as rooms", () => {
-    expect(formatConversationTarget({ channel: "matrix", conversationId: "!room:example" })).toBe(
-      "room:!room:example",
-    );
-    expect(
-      formatConversationTarget({
-        channel: "matrix",
-        conversationId: "$thread",
-        parentConversationId: "!room:example",
-      }),
-    ).toBe("room:!room:example");
-    expect(formatConversationTarget({ channel: "matrix", conversationId: "  " })).toBeUndefined();
-  });
-
-  it("resolves delivery targets for Matrix child threads", () => {
-    expect(
-      resolveConversationDeliveryTarget({
-        channel: "matrix",
-        conversationId: "$thread",
-        parentConversationId: "!room:example",
-      }),
-    ).toEqual({
-      to: "room:!room:example",
-      threadId: "$thread",
-    });
   });
 
   it("derives delivery context from a session entry", () => {

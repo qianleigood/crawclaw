@@ -15,6 +15,7 @@ export type LoaderModuleResolveParams = {
 };
 
 type PluginSdkPackageJson = {
+  name?: string;
   exports?: Record<string, unknown>;
   bin?: string | Record<string, unknown>;
 };
@@ -63,11 +64,12 @@ function hasTrustedCrawClawRootIndicator(params: {
       /crawclaw/u.test(params.packageJson.bin.toLowerCase())) ||
     (typeof params.packageJson.bin === "object" &&
       params.packageJson.bin !== null &&
-      typeof params.packageJson.bin.crawclaw === "string");
+      typeof params.packageJson.bin["crawclaw"] === "string");
   const hasCrawClawEntrypoint =
     fs.existsSync(path.join(params.packageRoot, "crawclaw.mjs")) ||
     fs.existsSync(path.join(params.packageRoot, "crawclaw.js"));
-  return hasCliEntryExport || hasCrawClawBin || hasCrawClawEntrypoint;
+  const hasCrawClawPackageName = params.packageJson.name === "crawclaw";
+  return hasCliEntryExport || hasCrawClawBin || hasCrawClawEntrypoint || hasCrawClawPackageName;
 }
 
 function readPluginSdkSubpathsFromPackageRoot(packageRoot: string): string[] | null {

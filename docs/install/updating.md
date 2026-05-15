@@ -1,5 +1,5 @@
 ---
-summary: "Updating CrawClaw safely (global install or source), plus rollback strategy"
+summary: "Updating CrawClaw Desktop safely, plus rollback strategy"
 read_when:
   - Updating CrawClaw
   - Something breaks after an update
@@ -12,7 +12,7 @@ Keep CrawClaw up to date.
 
 ## Recommended: CrawClaw Desktop or the local Gateway API
 
-The fastest way to update. It detects your install type (npm or git), fetches the latest version, runs CrawClaw Desktop or the local Gateway API, and restarts the gateway.
+The fastest way to update is through CrawClaw Desktop. It fetches the latest application bundle and restarts the embedded Gateway when needed.
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -31,7 +31,7 @@ See [Development channels](/install/development-channels) for channel semantics.
 ## Alternative: re-run the installer
 
 ```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 Add `--no-onboard` to skip onboarding. For source installs, pass `--install-method git --no-onboard`.
@@ -125,7 +125,7 @@ To return to latest: `git checkout main && git pull`.
 
 - Run CrawClaw Desktop or the local Gateway API again and read the output carefully.
 - Check: [Troubleshooting](/gateway/troubleshooting)
-- Ask in Discord: [https://discord.gg/clawd](https://discord.gg/clawd)
+- Open a GitHub issue: [https://github.com/qianleigood/crawclaw/issues](https://github.com/qianleigood/crawclaw/issues)
 
 ## Related
 

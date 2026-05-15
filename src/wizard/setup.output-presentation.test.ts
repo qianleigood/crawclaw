@@ -43,13 +43,7 @@ describe("setup.output-presentation", () => {
             deliveryMode: "final_only",
           },
         },
-        channels: {
-          telegram: {},
-          discord: { replyToMode: "off" },
-          slack: {},
-          googlechat: {},
-          matrix: { enabled: true },
-        },
+        channels: {},
       },
       "balanced",
     );
@@ -58,22 +52,13 @@ describe("setup.output-presentation", () => {
     expect(config.agents?.defaults?.blockStreamingDefault).toBe("off");
     expect(config.acp?.stream?.visibilityMode).toBe("summary");
     expect(config.acp?.stream?.deliveryMode).toBe("live");
-    expect(config.channels?.telegram?.streaming).toBe("partial");
-    expect(config.channels?.telegram?.replyToMode).toBe("first");
-    expect(config.channels?.discord?.streaming).toBe("partial");
-    expect(config.channels?.discord?.replyToMode).toBe("first");
-    expect(config.channels?.slack?.streaming).toBe("partial");
-    expect(config.channels?.slack?.replyToMode).toBe("first");
-    expect(config.channels?.googlechat?.replyToMode).toBe("first");
-    expect(config.channels?.matrix).toEqual({ enabled: true });
+    expect(config.channels).toEqual({});
   });
 
   it("applies the operator preset for richer live output", () => {
     const config = applyOnboardOutputPresentationConfig(
       {
-        channels: {
-          telegram: {},
-        },
+        channels: {},
       },
       "operator",
     );
@@ -82,8 +67,7 @@ describe("setup.output-presentation", () => {
     expect(config.agents?.defaults?.blockStreamingDefault).toBe("on");
     expect(config.acp?.stream?.visibilityMode).toBe("full");
     expect(config.acp?.stream?.deliveryMode).toBe("live");
-    expect(config.channels?.telegram?.streaming).toBe("block");
-    expect(config.channels?.telegram?.replyToMode).toBe("all");
+    expect(config.channels).toEqual({});
   });
 
   it("rejects invalid output presets", () => {

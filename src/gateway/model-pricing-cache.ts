@@ -11,7 +11,6 @@ import type { CacheGovernanceDescriptor } from "../cache/governance-types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolvePluginWebSearchConfig } from "../config/legacy-web-search.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { normalizeProviderModelIdWithPlugin } from "../plugins/provider-runtime.js";
 import {
   clearGatewayModelPricingCacheState,
   getCachedGatewayModelPricing,
@@ -167,14 +166,6 @@ function canonicalizeOpenRouterLookupId(id: string): string {
       .replace(/^claude-(\d+)\.(\d+)-/u, "claude-$1-$2-")
       .replace(/^claude-([a-z]+)-(\d+)\.(\d+)$/u, "claude-$1-$2-$3");
   }
-  model =
-    normalizeProviderModelIdWithPlugin({
-      provider,
-      context: {
-        provider,
-        modelId: model,
-      },
-    }) ?? model;
   return `${provider}/${model}`;
 }
 

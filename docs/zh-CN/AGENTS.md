@@ -30,10 +30,10 @@ go run scripts/docs-i18n/main.go -mode doc -parallel 6 docs/**/*.md
 
 # 单文件
 
-go run scripts/docs-i18n/main.go -mode doc docs/channels/matrix.md
+go run scripts/docs-i18n/main.go -mode doc docs/channels/index.md
 
 # 小范围补丁（segment 模式，使用 TM；不支持并行）
-go run scripts/docs-i18n/main.go -mode segment docs/channels/matrix.md
+go run scripts/docs-i18n/main.go -mode segment docs/channels/index.md
 ```
 
 注意事项：

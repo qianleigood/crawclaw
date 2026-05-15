@@ -79,7 +79,7 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
 
   <Step title="Install CrawClaw">
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
   </Step>
 
@@ -88,7 +88,7 @@ Run a persistent, always-on CrawClaw Gateway on a Raspberry Pi. Since the Pi is 
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Follow the wizard. API keys are recommended over OAuth for headless devices. Telegram is the easiest channel to start with.
+    Follow the wizard. API keys are recommended over OAuth for headless devices. Feishu is the easiest channel to start with.
 
   </Step>
 
@@ -148,6 +148,6 @@ sudo systemctl disable bluetooth
 
 ## Next steps
 
-- [Channels](/channels) -- connect Telegram, WhatsApp, Discord, and more
+- [Channels](/channels) -- connect Feishu, Weixin, community chat, and more
 - [Gateway configuration](/gateway/configuration) -- all config options
 - [Updating](/install/updating) -- keep CrawClaw up to date

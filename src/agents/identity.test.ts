@@ -8,7 +8,7 @@ describe("resolveAckReaction", () => {
       messages: { ackReaction: "👀" },
       agents: { list: [{ id: "main", identity: { emoji: "✅" } }] },
       channels: {
-        slack: {
+        ddingtalk: {
           ackReaction: "eyes",
           accounts: {
             acct1: { ackReaction: " party_parrot " },
@@ -17,7 +17,7 @@ describe("resolveAckReaction", () => {
       },
     };
 
-    expect(resolveAckReaction(cfg, "main", { channel: "slack", accountId: "acct1" })).toBe(
+    expect(resolveAckReaction(cfg, "main", { channel: "ddingtalk", accountId: "acct1" })).toBe(
       "party_parrot",
     );
   });
@@ -27,7 +27,7 @@ describe("resolveAckReaction", () => {
       messages: { ackReaction: "👀" },
       agents: { list: [{ id: "main", identity: { emoji: "✅" } }] },
       channels: {
-        slack: {
+        ddingtalk: {
           ackReaction: "eyes",
           accounts: {
             acct1: { ackReaction: "party_parrot" },
@@ -36,7 +36,7 @@ describe("resolveAckReaction", () => {
       },
     };
 
-    expect(resolveAckReaction(cfg, "main", { channel: "slack", accountId: "missing" })).toBe(
+    expect(resolveAckReaction(cfg, "main", { channel: "ddingtalk", accountId: "missing" })).toBe(
       "eyes",
     );
   });
@@ -47,7 +47,7 @@ describe("resolveAckReaction", () => {
       agents: { list: [{ id: "main", identity: { emoji: "😺" } }] },
     };
 
-    expect(resolveAckReaction(cfg, "main", { channel: "discord" })).toBe("✅");
+    expect(resolveAckReaction(cfg, "main", { channel: "qqbot" })).toBe("✅");
   });
 
   it("falls back to the agent identity emoji when global config is unset", () => {
@@ -55,7 +55,7 @@ describe("resolveAckReaction", () => {
       agents: { list: [{ id: "main", identity: { emoji: "🔥" } }] },
     };
 
-    expect(resolveAckReaction(cfg, "main", { channel: "discord" })).toBe("🔥");
+    expect(resolveAckReaction(cfg, "main", { channel: "qqbot" })).toBe("🔥");
   });
 
   it("returns the default emoji when no config is present", () => {
@@ -68,12 +68,12 @@ describe("resolveAckReaction", () => {
     const cfg: CrawClawConfig = {
       messages: { ackReaction: "👀" },
       channels: {
-        telegram: {
+        feishu: {
           ackReaction: "",
         },
       },
     };
 
-    expect(resolveAckReaction(cfg, "main", { channel: "telegram" })).toBe("");
+    expect(resolveAckReaction(cfg, "main", { channel: "feishu" })).toBe("");
   });
 });

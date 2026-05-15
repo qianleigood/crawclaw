@@ -96,7 +96,6 @@ The Gateway advertises small non‑secret hints to make UI flows convenient:
 - `gatewayTlsSha256=<sha256>` (only when TLS is enabled and fingerprint is available)
 - `sshPort=<port>` (defaults to 22 when not overridden)
 - `transport=gateway`
-- `cliPath=<path>` (optional; absolute path to a runnable `crawclaw` entrypoint)
 - `tailnetDns=<magicdns>` (optional hint when Tailnet is available)
 
 Security notes:
@@ -168,7 +167,6 @@ sequences (e.g. spaces become `\032`).
 - `gateway.bind` in `~/.crawclaw/crawclaw.json` controls the Gateway bind mode.
 - `CRAWCLAW_SSH_PORT` overrides the SSH port advertised in TXT (legacy: `CRAWCLAW_SSH_PORT`).
 - `CRAWCLAW_TAILNET_DNS` publishes a MagicDNS hint in TXT (legacy: `CRAWCLAW_TAILNET_DNS`).
-- `CRAWCLAW_CLI_PATH` overrides the advertised CLI path (legacy: `CRAWCLAW_CLI_PATH`).
 
 ## Related docs
 

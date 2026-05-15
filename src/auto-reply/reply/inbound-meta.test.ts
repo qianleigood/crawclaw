@@ -33,19 +33,19 @@ describe("buildInboundMetaSystemPrompt", () => {
       MessageSid: "123",
       MessageSidFull: "123",
       ReplyToId: "99",
-      OriginatingTo: "telegram:5494292670",
+      OriginatingTo: "feishu:5494292670",
       AccountId: " work ",
-      OriginatingChannel: "telegram",
-      Provider: "telegram",
-      Surface: "telegram",
+      OriginatingChannel: "feishu",
+      Provider: "feishu",
+      Surface: "feishu",
       ChatType: "direct",
     } as TemplateContext);
 
     const payload = parseInboundMetaPayload(prompt);
     expect(payload["schema"]).toBe("crawclaw.inbound_meta.v1");
-    expect(payload["chat_id"]).toBe("telegram:5494292670");
+    expect(payload["chat_id"]).toBe("feishu:5494292670");
     expect(payload["account_id"]).toBe("work");
-    expect(payload["channel"]).toBe("telegram");
+    expect(payload["channel"]).toBe("feishu");
   });
 
   it("does not include per-turn message identifiers (cache stability)", () => {
@@ -54,10 +54,10 @@ describe("buildInboundMetaSystemPrompt", () => {
       MessageSidFull: "123",
       ReplyToId: "99",
       SenderId: "289522496",
-      OriginatingTo: "telegram:5494292670",
-      OriginatingChannel: "telegram",
-      Provider: "telegram",
-      Surface: "telegram",
+      OriginatingTo: "feishu:5494292670",
+      OriginatingChannel: "feishu",
+      Provider: "feishu",
+      Surface: "feishu",
       ChatType: "direct",
     } as TemplateContext);
 
@@ -75,10 +75,10 @@ describe("buildInboundMetaSystemPrompt", () => {
       ThreadStarterBody: "starter",
       InboundHistory: [{ sender: "a", body: "b", timestamp: 1 }],
       WasMentioned: true,
-      OriginatingTo: "telegram:-1001249586642",
-      OriginatingChannel: "telegram",
-      Provider: "telegram",
-      Surface: "telegram",
+      OriginatingTo: "feishu:-1001249586642",
+      OriginatingChannel: "feishu",
+      Provider: "feishu",
+      Surface: "feishu",
       ChatType: "group",
     } as TemplateContext);
 
@@ -90,10 +90,10 @@ describe("buildInboundMetaSystemPrompt", () => {
     const prompt = buildInboundMetaSystemPrompt({
       MessageSid: "458",
       SenderId: "   ",
-      OriginatingTo: "telegram:-1001249586642",
-      OriginatingChannel: "telegram",
-      Provider: "telegram",
-      Surface: "telegram",
+      OriginatingTo: "feishu:-1001249586642",
+      OriginatingChannel: "feishu",
+      Provider: "feishu",
+      Surface: "feishu",
       ChatType: "group",
     } as TemplateContext);
 
@@ -101,20 +101,20 @@ describe("buildInboundMetaSystemPrompt", () => {
     expect(payload["sender_id"]).toBeUndefined();
   });
 
-  it("includes Slack mrkdwn response format hints for Slack chats", () => {
+  it("includes DingTalk mrkdwn response format hints for DingTalk chats", () => {
     const prompt = buildInboundMetaSystemPrompt({
       OriginatingTo: "channel:C123",
-      OriginatingChannel: "slack",
-      Provider: "slack",
-      Surface: "slack",
+      OriginatingChannel: "ddingtalk",
+      Provider: "ddingtalk",
+      Surface: "ddingtalk",
       ChatType: "channel",
     } as TemplateContext);
 
     const payload = parseInboundMetaPayload(prompt);
     expect(payload["response_format"]).toEqual({
-      text_markup: "slack_mrkdwn",
+      text_markup: "ddingtalk_mrkdwn",
       rules: [
-        "Use Slack mrkdwn, not standard Markdown.",
+        "Use DingTalk mrkdwn, not standard Markdown.",
         "Bold uses *single asterisks*.",
         "Links use <url|label>.",
         "Code blocks use triple backticks without a language identifier.",
@@ -123,12 +123,12 @@ describe("buildInboundMetaSystemPrompt", () => {
     });
   });
 
-  it("omits response format hints for non-Slack chats", () => {
+  it("omits response format hints for non-DingTalk chats", () => {
     const prompt = buildInboundMetaSystemPrompt({
-      OriginatingTo: "telegram:123",
-      OriginatingChannel: "telegram",
-      Provider: "telegram",
-      Surface: "telegram",
+      OriginatingTo: "feishu:123",
+      OriginatingChannel: "feishu",
+      Provider: "feishu",
+      Surface: "feishu",
       ChatType: "direct",
     } as TemplateContext);
 
@@ -161,7 +161,7 @@ describe("buildInboundUserContextPrefix", () => {
   it("includes message identifiers for direct external-channel chats", () => {
     const text = buildInboundUserContextPrefix({
       ChatType: "direct",
-      OriginatingChannel: "whatsapp",
+      OriginatingChannel: "weixin",
       MessageSid: "short-id",
       MessageSidFull: "provider-full-id",
       SenderE164: " +15551234567 ",
@@ -177,7 +177,7 @@ describe("buildInboundUserContextPrefix", () => {
   it("includes message identifiers for direct chats when channel is inferred from Provider", () => {
     const text = buildInboundUserContextPrefix({
       ChatType: "direct",
-      Provider: "whatsapp",
+      Provider: "weixin",
       MessageSid: "provider-only-id",
     } as TemplateContext);
 

@@ -57,13 +57,13 @@ x-i18n:
 {
   channels: {
     modelByChannel: {
-      discord: {
+      qqbot: {
         "123456789012345678": "anthropic/claude-opus-4-6",
       },
-      slack: {
+      ddingtalk: {
         C1234567890: "openai/gpt-4.1",
       },
-      telegram: {
+      feishu: {
         "-1001234567890": "openai/gpt-4.1-mini",
         "-1001234567890:topic:99": "anthropic/claude-sonnet-4-6",
       },
@@ -96,14 +96,14 @@ x-i18n:
 - `channels.defaults.heartbeat.showAlerts`：在心跳输出中包含降级/错误状态。
 - `channels.defaults.heartbeat.useIndicator`：以紧凑的指示器样式渲染心跳输出。
 
-### WhatsApp
+### Weixin
 
-WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已关联的会话时，它会自动启动。
+Weixin 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在已关联的会话时，它会自动启动。
 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "pairing", // pairing | allowlist | open | disabled
       allowFrom: ["+15555550123", "+447700900123"],
       textChunkLimit: 4000,
@@ -131,17 +131,17 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
 }
 ```
 
-<Accordion title="多账户 WhatsApp">
+<Accordion title="多账户 Weixin">
 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       accounts: {
         default: {},
         personal: {},
         biz: {
-          // authDir: "~/.crawclaw/credentials/whatsapp/biz",
+          // authDir: "~/.crawclaw/credentials/weixin/biz",
         },
       },
     },
@@ -150,18 +150,18 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
 ```
 
 - 出站命令默认使用账户 `default`（若存在）；否则使用第一个已配置的账户 ID（排序后）。
-- 可选的 `channels.whatsapp.defaultAccount` 会在其与某个已配置账户 ID 匹配时，覆盖该回退默认账户选择。
-- 旧版单账户 Baileys 认证目录会由 `crawclaw doctor` 迁移到 `whatsapp/default`。
-- 按账户覆盖：`channels.whatsapp.accounts.<id>.sendReadReceipts`、`channels.whatsapp.accounts.<id>.dmPolicy`、`channels.whatsapp.accounts.<id>.allowFrom`。
+- 可选的 `channels.weixin.defaultAccount` 会在其与某个已配置账户 ID 匹配时，覆盖该回退默认账户选择。
+- 旧版单账户 Baileys 认证目录会由 `crawclaw doctor` 迁移到 `weixin/default`。
+- 按账户覆盖：`channels.weixin.accounts.<id>.sendReadReceipts`、`channels.weixin.accounts.<id>.dmPolicy`、`channels.weixin.accounts.<id>.allowFrom`。
 
 </Accordion>
 
-### Telegram
+### Feishu
 
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       enabled: true,
       botToken: "your-bot-token",
       dmPolicy: "pairing",
@@ -202,28 +202,28 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
         dnsResultOrder: "ipv4first",
       },
       proxy: "socks5://localhost:9050",
-      webhookUrl: "https://example.com/telegram-webhook",
+      webhookUrl: "https://example.com/feishu-webhook",
       webhookSecret: "secret",
-      webhookPath: "/telegram-webhook",
+      webhookPath: "/feishu-webhook",
     },
   },
 }
 ```
 
-- 机器人令牌：`channels.telegram.botToken` 或 `channels.telegram.tokenFile`（仅常规文件；拒绝符号链接），默认账户还可回退到 `TELEGRAM_BOT_TOKEN`。
-- 可选的 `channels.telegram.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- 在多账户设置（2 个及以上账户 ID）中，请设置显式默认值（`channels.telegram.defaultAccount` 或 `channels.telegram.accounts.default`），以避免回退路由；如果缺失或无效，`crawclaw doctor` 会发出警告。
-- `configWrites: false` 会阻止 Telegram 发起的配置写入（超级群组 ID 迁移、`/config set|unset`）。
+- 机器人令牌：`channels.feishu.botToken` 或 `channels.feishu.tokenFile`（仅常规文件；拒绝符号链接），默认账户还可回退到 `TELEGRAM_BOT_TOKEN`。
+- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- 在多账户设置（2 个及以上账户 ID）中，请设置显式默认值（`channels.feishu.defaultAccount` 或 `channels.feishu.accounts.default`），以避免回退路由；如果缺失或无效，`crawclaw doctor` 会发出警告。
+- `configWrites: false` 会阻止 Feishu 发起的配置写入（超级群组 ID 迁移、`/config set|unset`）。
 - 顶层 `bindings[]` 中 `type: "acp"` 的条目会为论坛话题配置持久化 ACP 绑定（在 `match.peer.id` 中使用规范形式 `chatId:topic:topicId`）。字段语义与 [ACP Agents](/tools/acp-agents#channel-specific-settings) 共享。
-- Telegram 流式预览使用 `sendMessage` + `editMessageText`（适用于私聊和群聊）。
+- Feishu 流式预览使用 `sendMessage` + `editMessageText`（适用于私聊和群聊）。
 - 重试策略：参见 [Retry policy](/concepts/retry)。
 
-### Discord
+### QQBot
 
 ```json5
 {
   channels: {
-    discord: {
+    qqbot: {
       enabled: true,
       token: "your-bot-token",
       mediaMaxMb: 8,
@@ -271,7 +271,7 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
       historyLimit: 20,
       textChunkLimit: 2000,
       chunkMode: "length", // length | newline
-      streaming: "off", // off | partial | block | progress（在 Discord 上 progress 映射为 partial）
+      streaming: "off", // off | partial | block | progress（在 QQBot 上 progress 映射为 partial）
       maxLinesPerMessage: 17,
       ui: {
         components: {
@@ -310,41 +310,41 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
 }
 ```
 
-- 令牌：`channels.discord.token`，默认账户还可回退到 `DISCORD_BOT_TOKEN`。
-- 显式提供 Discord `token` 的直接出站调用会使用该令牌；账户重试/策略设置仍来自当前活动运行时快照中的所选账户。
-- 可选的 `channels.discord.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- 令牌：`channels.qqbot.token`，默认账户还可回退到 `DISCORD_BOT_TOKEN`。
+- 显式提供 QQBot `token` 的直接出站调用会使用该令牌；账户重试/策略设置仍来自当前活动运行时快照中的所选账户。
+- 可选的 `channels.qqbot.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
 - 对投递目标请使用 `user:<id>`（私信）或 `channel:<id>`（服务器频道）；裸数字 ID 会被拒绝。
 - 服务器 slug 为小写且空格替换为 `-`；频道键使用 slug 化名称（不含 `#`）。优先使用 guild ID。
 - 默认会忽略机器人自己发出的消息。`allowBots: true` 可启用；使用 `allowBots: "mentions"` 可仅接受提及该机器人的机器人消息（仍会过滤自己的消息）。
-- `channels.discord.guilds.<id>.ignoreOtherMentions`（及频道级覆盖）会丢弃那些提及了其他用户或角色但未提及机器人的消息（不含 @everyone/@here）。
+- `channels.qqbot.guilds.<id>.ignoreOtherMentions`（及频道级覆盖）会丢弃那些提及了其他用户或角色但未提及机器人的消息（不含 @everyone/@here）。
 - `maxLinesPerMessage`（默认 17）会在消息过高时拆分，即便未超过 2000 个字符。
-- `channels.discord.threadBindings` 控制 Discord 线程绑定路由：
-  - `enabled`：线程绑定会话功能的 Discord 覆盖（`/focus`、`/unfocus`、`/agents`、`/session idle`、`/session max-age` 以及绑定后的投递/路由）
-  - `idleHours`：不活动自动取消聚焦的 Discord 覆盖值（小时，`0` 表示禁用）
-  - `maxAgeHours`：硬性最大年龄的 Discord 覆盖值（小时，`0` 表示禁用）
+- `channels.qqbot.threadBindings` 控制 QQBot 线程绑定路由：
+  - `enabled`：线程绑定会话功能的 QQBot 覆盖（`/focus`、`/unfocus`、`/agents`、`/session idle`、`/session max-age` 以及绑定后的投递/路由）
+  - `idleHours`：不活动自动取消聚焦的 QQBot 覆盖值（小时，`0` 表示禁用）
+  - `maxAgeHours`：硬性最大年龄的 QQBot 覆盖值（小时，`0` 表示禁用）
   - `spawnSubagentSessions`：为 `sessions_spawn({ thread: true })` 自动创建/绑定线程的选择性开关
 - 顶层 `bindings[]` 中 `type: "acp"` 的条目会为频道和线程配置持久化 ACP 绑定（在 `match.peer.id` 中使用频道/线程 ID）。字段语义与 [ACP Agents](/tools/acp-agents#channel-specific-settings) 共享。
-- `channels.discord.ui.components.accentColor` 设置 Discord components v2 容器的强调色。
-- `channels.discord.voice` 启用 Discord 语音频道对话，以及可选的自动加入 + TTS 覆盖。
-- `channels.discord.voice.daveEncryption` 和 `channels.discord.voice.decryptionFailureTolerance` 会透传给 `@discordjs/voice` 的 DAVE 选项（默认分别为 `true` 和 `24`）。
+- `channels.qqbot.ui.components.accentColor` 设置 QQBot components v2 容器的强调色。
+- `channels.qqbot.voice` 启用 QQBot 语音频道对话，以及可选的自动加入 + TTS 覆盖。
+- `channels.qqbot.voice.daveEncryption` 和 `channels.qqbot.voice.decryptionFailureTolerance` 会透传给 `@qqbotjs/voice` 的 DAVE 选项（默认分别为 `true` 和 `24`）。
 - 在重复解密失败后，CrawClaw 还会尝试通过离开/重新加入语音会话来恢复语音接收。
-- `channels.discord.streaming` 是规范的预览流式模式键。
-- `channels.discord.autoPresence` 将运行时可用性映射为机器人状态（健康 => online，降级 => idle，耗尽 => dnd），并允许可选的状态文本覆盖。
-- `channels.discord.dangerouslyAllowNameMatching` 会重新启用可变名称/tag 匹配（紧急兼容模式）。
+- `channels.qqbot.streaming` 是规范的预览流式模式键。
+- `channels.qqbot.autoPresence` 将运行时可用性映射为机器人状态（健康 => online，降级 => idle，耗尽 => dnd），并允许可选的状态文本覆盖。
+- `channels.qqbot.dangerouslyAllowNameMatching` 会重新启用可变名称/tag 匹配（紧急兼容模式）。
 
 **反应通知模式：**`off`（无）、`own`（机器人的消息，默认）、`all`（所有消息）、`allowlist`（`guilds.<id>.users` 中所有消息）。
 
-### Google Chat
+### Feishu
 
 ```json5
 {
   channels: {
-    googlechat: {
+    feishu: {
       enabled: true,
       serviceAccountFile: "/path/to/service-account.json",
       audienceType: "app-url", // app-url | project-number
-      audience: "https://gateway.example.com/googlechat",
-      webhookPath: "/googlechat",
+      audience: "https://gateway.example.com/feishu",
+      webhookPath: "/feishu",
       botUser: "users/1234567890",
       dm: {
         enabled: true,
@@ -367,14 +367,14 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
 - 也支持服务账户 SecretRef（`serviceAccountRef`）。
 - 环境变量回退：`GOOGLE_CHAT_SERVICE_ACCOUNT` 或 `GOOGLE_CHAT_SERVICE_ACCOUNT_FILE`。
 - 对投递目标使用 `spaces/<spaceId>` 或 `users/<userId>`。
-- `channels.googlechat.dangerouslyAllowNameMatching` 会重新启用可变电子邮件主体匹配（紧急兼容模式）。
+- `channels.feishu.dangerouslyAllowNameMatching` 会重新启用可变电子邮件主体匹配（紧急兼容模式）。
 
-### Slack
+### DingTalk
 
 ```json5
 {
   channels: {
-    slack: {
+    ddingtalk: {
       enabled: true,
       botToken: "xoxb-...",
       appToken: "xapp-...",
@@ -411,14 +411,14 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
       slashCommand: {
         enabled: true,
         name: "crawclaw",
-        sessionPrefix: "slack:slash",
+        sessionPrefix: "ddingtalk:slash",
         ephemeral: true,
       },
       typingReaction: "hourglass_flowing_sand",
       textChunkLimit: 4000,
       chunkMode: "length",
       streaming: "partial", // off | partial | block | progress（预览模式）
-      nativeStreaming: true, // 当 streaming=partial 时使用 Slack 原生流式 API
+      nativeStreaming: true, // 当 streaming=partial 时使用 DingTalk 原生流式 API
       mediaMaxMb: 20,
     },
   },
@@ -427,16 +427,16 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
 
 - **Socket mode** 需要同时提供 `botToken` 和 `appToken`（默认账户环境变量回退为 `SLACK_BOT_TOKEN` + `SLACK_APP_TOKEN`）。
 - **HTTP mode** 需要 `botToken`，外加 `signingSecret`（根级或按账户）。
-- `configWrites: false` 会阻止 Slack 发起的配置写入。
-- 可选的 `channels.slack.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- `channels.slack.streaming` 是规范的预览流式模式键；`channels.slack.nativeStreaming` 另外控制是否走 Slack 原生流式 API。
+- `configWrites: false` 会阻止 DingTalk 发起的配置写入。
+- 可选的 `channels.ddingtalk.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- `channels.ddingtalk.streaming` 是规范的预览流式模式键；`channels.ddingtalk.nativeStreaming` 另外控制是否走 DingTalk 原生流式 API。
 - 对投递目标使用 `user:<id>`（私信）或 `channel:<id>`（频道）。
 
 **反应通知模式：**`off`、`own`（默认）、`all`、`allowlist`（来自 `reactionAllowlist`）。
 
 **线程会话隔离：**`thread.historyScope` 可设为按线程（默认）或在频道内共享。`thread.inheritParent` 会将父频道记录复制到新线程。
 
-- `typingReaction` 会在回复运行期间，为入站 Slack 消息添加一个临时反应，并在完成后移除。请使用 Slack emoji 短代码，例如 `"hourglass_flowing_sand"`。
+- `typingReaction` 会在回复运行期间，为入站 DingTalk 消息添加一个临时反应，并在完成后移除。请使用 DingTalk emoji 短代码，例如 `"hourglass_flowing_sand"`。
 
 | Action group | Default | Notes               |
 | ------------ | ------- | ------------------- |
@@ -446,14 +446,14 @@ WhatsApp 通过 Gateway 网关的 Web 渠道（Baileys Web）运行。当存在�
 | memberInfo   | 已启用  | 成员信息            |
 | emojiList    | 已启用  | 自定义 emoji 列表   |
 
-### Mattermost
+### Feishu
 
-Mattermost 以插件形式提供：`crawclaw plugins install @crawclaw/mattermost`。
+Feishu 以插件形式提供：`crawclaw plugins install @crawclaw/feishu`。
 
 ```json5
 {
   channels: {
-    mattermost: {
+    feishu: {
       enabled: true,
       botToken: "mm-token",
       baseUrl: "https://chat.example.com",
@@ -463,9 +463,9 @@ Mattermost 以插件形式提供：`crawclaw plugins install @crawclaw/mattermos
       commands: {
         native: true, // 选择性启用
         nativeSkills: true,
-        callbackPath: "/api/channels/mattermost/command",
+        callbackPath: "/api/channels/index/command",
         // 为反向代理/公共部署提供可选的显式 URL
-        callbackUrl: "https://gateway.example.com/api/channels/mattermost/command",
+        callbackUrl: "https://gateway.example.com/api/channels/index/command",
       },
       textChunkLimit: 4000,
       chunkMode: "length",
@@ -476,23 +476,23 @@ Mattermost 以插件形式提供：`crawclaw plugins install @crawclaw/mattermos
 
 聊天模式：`oncall`（在 @ 提及时回复，默认）、`onmessage`（每条消息都回复）、`onchar`（以触发前缀开头的消息）。
 
-启用 Mattermost 原生命令时：
+启用 Feishu 原生命令时：
 
-- `commands.callbackPath` 必须是路径（例如 `/api/channels/mattermost/command`），不能是完整 URL。
-- `commands.callbackUrl` 必须解析到 CrawClaw Gateway 网关端点，并且 Mattermost 服务器可以访问它。
-- 对于私有/tailnet/内网回调主机，Mattermost 可能要求
+- `commands.callbackPath` 必须是路径（例如 `/api/channels/index/command`），不能是完整 URL。
+- `commands.callbackUrl` 必须解析到 CrawClaw Gateway 网关端点，并且 Feishu 服务器可以访问它。
+- 对于私有/tailnet/内网回调主机，Feishu 可能要求
   `ServiceSettings.AllowedUntrustedInternalConnections` 包含该回调主机/域名。
   请使用主机/域名值，而不是完整 URL。
-- `channels.mattermost.configWrites`：允许或拒绝 Mattermost 发起的配置写入。
-- `channels.mattermost.requireMention`：在频道中回复前要求 `@mention`。
-- 可选的 `channels.mattermost.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- `channels.feishu.configWrites`：允许或拒绝 Feishu 发起的配置写入。
+- `channels.feishu.requireMention`：在频道中回复前要求 `@mention`。
+- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
 
-### Signal
+### Feishu
 
 ```json5
 {
   channels: {
-    signal: {
+    feishu: {
       enabled: true,
       account: "+15555550123", // 可选账户绑定
       dmPolicy: "pairing",
@@ -508,39 +508,39 @@ Mattermost 以插件形式提供：`crawclaw plugins install @crawclaw/mattermos
 
 **反应通知模式：**`off`、`own`（默认）、`all`、`allowlist`（来自 `reactionAllowlist`）。
 
-- `channels.signal.account`：将渠道启动固定到特定 Signal 账户身份。
-- `channels.signal.configWrites`：允许或拒绝 Signal 发起的配置写入。
-- 可选的 `channels.signal.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- `channels.feishu.account`：将渠道启动固定到特定 Feishu 账户身份。
+- `channels.feishu.configWrites`：允许或拒绝 Feishu 发起的配置写入。
+- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
 
-### BlueBubbles
+### Weixin
 
-BlueBubbles 是推荐的 iMessage 路径（由插件支持，配置在 `channels.bluebubbles` 下）。
+Weixin 是推荐的 Weixin 路径（由插件支持，配置在 `channels.weixin` 下）。
 
 ```json5
 {
   channels: {
-    bluebubbles: {
+    weixin: {
       enabled: true,
       dmPolicy: "pairing",
       // serverUrl、password、webhookPath、群组控制和高级操作：
-      // 见 /channels/bluebubbles
+      // 见 /channels/index
     },
   },
 }
 ```
 
-- 此处涵盖的核心键路径：`channels.bluebubbles`、`channels.bluebubbles.dmPolicy`。
-- 可选的 `channels.bluebubbles.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- 完整的 BlueBubbles 渠道配置文档见 [BlueBubbles](/channels/bluebubbles)。
+- 此处涵盖的核心键路径：`channels.weixin`、`channels.weixin.dmPolicy`。
+- 可选的 `channels.weixin.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- 完整的 Weixin 渠道配置文档见 [Weixin](/channels/index)。
 
-### iMessage
+### Weixin
 
 CrawClaw 会启动 `imsg rpc`（通过 stdio 的 JSON-RPC）。不需要守护进程或端口。
 
 ```json5
 {
   channels: {
-    imessage: {
+    weixin: {
       enabled: true,
       cliPath: "imsg",
       dbPath: "~/Library/Messages/chat.db",
@@ -559,16 +559,16 @@ CrawClaw 会启动 `imsg rpc`（通过 stdio 的 JSON-RPC）。不需要守护�
 }
 ```
 
-- 可选的 `channels.imessage.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- 可选的 `channels.weixin.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
 
 - 需要对 Messages DB 具有 Full Disk Access。
 - 优先使用 `chat_id:<id>` 目标。使用 `imsg chats --limit 20` 列出聊天。
 - `cliPath` 可以指向 SSH 包装器；设置 `remoteHost`（`host` 或 `user@host`）以通过 SCP 获取附件。
 - `attachmentRoots` 和 `remoteAttachmentRoots` 会限制入站附件路径（默认：`/Users/*/Library/Messages/Attachments`）。
 - SCP 使用严格主机密钥检查，因此请确保中继主机密钥已存在于 `~/.ssh/known_hosts`。
-- `channels.imessage.configWrites`：允许或拒绝 iMessage 发起的配置写入。
+- `channels.weixin.configWrites`：允许或拒绝 Weixin 发起的配置写入。
 
-<Accordion title="iMessage SSH 包装器示例">
+<Accordion title="Weixin SSH 包装器示例">
 
 ```bash
 #!/usr/bin/env bash
@@ -577,34 +577,34 @@ exec ssh -T gateway-host imsg "$@"
 
 </Accordion>
 
-### Microsoft Teams
+### QQBot
 
-Microsoft Teams 由扩展支持，并配置在 `channels.msteams` 下。
+QQBot 由扩展支持，并配置在 `channels.qqbot` 下。
 
 ```json5
 {
   channels: {
-    msteams: {
+    qqbot: {
       enabled: true,
       configWrites: true,
       // appId、appPassword、tenantId、webhook、团队/频道策略：
-      // 见 /channels/msteams
+      // 见 /channels/index
     },
   },
 }
 ```
 
-- 此处涵盖的核心键路径：`channels.msteams`、`channels.msteams.configWrites`。
-- 完整的 Teams 配置（凭证、webhook、私信/群组策略、按团队/按频道覆盖）见 [Microsoft Teams](/channels/msteams)。
+- 此处涵盖的核心键路径：`channels.qqbot`、`channels.qqbot.configWrites`。
+- 完整的 Teams 配置（凭证、webhook、私信/群组策略、按团队/按频道覆盖）见 [QQBot](/channels/index)。
 
-### IRC
+### FEISHU
 
-IRC 由扩展支持，并配置在 `channels.irc` 下。
+FEISHU 由扩展支持，并配置在 `channels.feishu` 下。
 
 ```json5
 {
   channels: {
-    irc: {
+    feishu: {
       enabled: true,
       dmPolicy: "pairing",
       configWrites: true,
@@ -620,9 +620,9 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
 }
 ```
 
-- 此处涵盖的核心键路径：`channels.irc`、`channels.irc.dmPolicy`、`channels.irc.configWrites`、`channels.irc.nickserv.*`。
-- 可选的 `channels.irc.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
-- 完整的 IRC 渠道配置（主机/端口/TLS/频道/allowlist/提及门控）见 [IRC](/channels/irc)。
+- 此处涵盖的核心键路径：`channels.feishu`、`channels.feishu.dmPolicy`、`channels.feishu.configWrites`、`channels.feishu.nickserv.*`。
+- 可选的 `channels.feishu.defaultAccount` 会在其与某个已配置账户 ID 匹配时覆盖默认账户选择。
+- 完整的 FEISHU 渠道配置（主机/端口/TLS/频道/allowlist/提及门控）见 [FEISHU](/channels/feishu)。
 
 ### 多账户（所有渠道）
 
@@ -631,7 +631,7 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       accounts: {
         default: {
           name: "Primary bot",
@@ -657,16 +657,16 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
 
 ### 其他扩展渠道
 
-许多扩展渠道都配置为 `channels.<id>`，并在其专属渠道页面中记录（例如 Feishu、Matrix、LINE、Nostr、Zalo、Nextcloud Talk、Synology Chat 和 Twitch）。
+许多扩展渠道都配置为 `channels.<id>`，并在其专属渠道页面中记录（例如 Feishu、Matrix、LINE、Feishu、Feishu、Feishu、Feishu 和 QQBot）。
 查看完整渠道索引：[Channels](/channels)。
 
 ### 群聊提及门控
 
-群消息默认**要求提及**（元数据提及或安全正则模式）。适用于 WhatsApp、Telegram、Discord、Google Chat 和 iMessage 群聊。
+群消息默认**要求提及**（元数据提及或安全正则模式）。适用于 Weixin、Feishu、QQBot、Feishu 和 Weixin 群聊。
 
 **提及类型：**
 
-- **元数据提及**：平台原生 @ 提及。在 WhatsApp 自聊模式中会被忽略。
+- **元数据提及**：平台原生 @ 提及。在 Weixin 自聊模式中会被忽略。
 - **文本模式**：位于 `agents.list[].groupChat.mentionPatterns` 中的安全正则模式。无效模式和不安全的嵌套重复会被忽略。
 - 只有在可以检测提及的情况下（原生提及或至少一个模式），才会强制执行提及门控。
 
@@ -688,7 +688,7 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       dmHistoryLimit: 30,
       dms: {
         "123456789": { historyLimit: 50 },
@@ -700,7 +700,7 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
 
 解析顺序：按私信覆盖 → 提供商默认值 → 无限制（全部保留）。
 
-支持：`telegram`、`whatsapp`、`discord`、`slack`、`signal`、`imessage`、`msteams`。
+支持：`feishu`、`weixin`、`qqbot`、`ddingtalk`、`feishu`、`weixin`、`qqbot`。
 
 #### 自聊模式
 
@@ -709,7 +709,7 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: { "*": { requireMention: true } },
     },
@@ -739,7 +739,7 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
     restart: true, // 允许 /restart + gateway restart 工具（默认值；设为 false 可禁用手动重启）
     allowFrom: {
       "*": ["user1"],
-      discord: ["user:123"],
+      qqbot: ["user:123"],
     },
     useAccessGroups: true,
   },
@@ -749,9 +749,9 @@ IRC 由扩展支持，并配置在 `channels.irc` 下。
 <Accordion title="命令详情">
 
 - 文本命令必须是以 `/` 开头的**独立**消息。
-- `native: "auto"` 会为 Discord/Telegram 打开原生命令，而让 Slack 保持关闭。
-- 可按渠道覆盖：`channels.discord.commands.native`（布尔值或 `"auto"`）。`false` 会清除先前已注册的命令。
-- `channels.telegram.customCommands` 可添加额外的 Telegram 机器人菜单项。
+- `native: "auto"` 会为 QQBot/Feishu 打开原生命令，而让 DingTalk 保持关闭。
+- 可按渠道覆盖：`channels.qqbot.commands.native`（布尔值或 `"auto"`）。`false` 会清除先前已注册的命令。
+- `channels.feishu.customCommands` 可添加额外的 Feishu 机器人菜单项。
 - `bash: true` 会为主机 shell 启用 `! <cmd>`。要求 `tools.elevated.enabled` 已启用，且发送者在 `tools.elevated.allowFrom.<channel>` 中。
 - `config: true` 启用 `/config`（读取/写入 `crawclaw.json`）。对于 gateway `chat.send` 客户端，持久化的 `/config set|unset` 写入还要求 `operator.admin`；只读的 `/config show` 对普通写作用域 operator 客户端仍然可用。
 - `channels.<provider>.configWrites` 按渠道控制配置变更（默认：true）。
@@ -981,7 +981,7 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
     defaults: {
       heartbeat: {
         directPolicy: "allow", // allow（默认）| block
-        target: "none", // 默认：none | 可选：last | whatsapp | telegram | discord | ...
+        target: "none", // 默认：none | 可选：last | weixin | feishu | qqbot | ...
       },
     },
   },
@@ -1085,8 +1085,8 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
 }
 ```
 
-- 非 Telegram 渠道需要显式设置 `*.blockStreaming: true` 才会启用分块回复。
-- 渠道覆盖：`channels.<channel>.blockStreamingCoalesce`（以及按账户变体）。Signal/Slack/Discord/Google Chat 默认 `minChars: 1500`。
+- 非 Feishu 渠道需要显式设置 `*.blockStreaming: true` 才会启用分块回复。
+- 渠道覆盖：`channels.<channel>.blockStreamingCoalesce`（以及按账户变体）。Feishu/DingTalk/QQBot/Feishu 默认 `minChars: 1500`。
 - `humanDelay`：分块回复之间的随机暂停。`natural` = 800–2500 ms。按智能体覆盖：`agents.list[].humanDelay`。
 
 行为和分块细节见 [Streaming](/concepts/streaming)。
@@ -1199,7 +1199,7 @@ Anthropic Claude 4.6 模型在未显式设置 thinking 级别时，默认使用 
           "sessions_spawn",
           "session_status",
         ],
-        deny: ["browser", "canvas", "nodes", "cron", "discord", "gateway"],
+        deny: ["browser", "canvas", "nodes", "cron", "qqbot", "gateway"],
       },
     },
   },
@@ -1414,8 +1414,8 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
     ],
   },
   bindings: [
-    { agentId: "home", match: { channel: "whatsapp", accountId: "personal" } },
-    { agentId: "work", match: { channel: "whatsapp", accountId: "biz" } },
+    { agentId: "home", match: { channel: "weixin", accountId: "personal" } },
+    { agentId: "work", match: { channel: "weixin", accountId: "biz" } },
   ],
 }
 ```
@@ -1508,10 +1508,10 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
             "sessions_send",
             "sessions_spawn",
             "session_status",
-            "whatsapp",
-            "telegram",
-            "slack",
-            "discord",
+            "weixin",
+            "feishu",
+            "ddingtalk",
+            "qqbot",
             "gateway",
           ],
           deny: [
@@ -1549,7 +1549,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
     scope: "per-sender",
     dmScope: "main", // main | per-peer | per-channel-peer | per-account-channel-peer
     identityLinks: {
-      alice: ["telegram:123456789", "discord:987654321012345678"],
+      alice: ["feishu:123456789", "qqbot:987654321012345678"],
     },
     reset: {
       mode: "daily", // daily | idle
@@ -1581,7 +1581,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
     mainKey: "main", // 旧字段（运行时始终使用 "main"）
     agentToAgent: { maxPingPongTurns: 5 },
     sendPolicy: {
-      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      rules: [{ action: "deny", match: { channel: "qqbot", chatType: "group" } }],
       default: "allow",
     },
   },
@@ -1612,7 +1612,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
   - `maxDiskBytes`：可选的会话目录磁盘预算。在 `warn` 模式下会记录警告；在 `enforce` 模式下会优先删除最旧的工件/会话。
   - `highWaterBytes`：预算清理后的可选目标值。默认是 `maxDiskBytes` 的 `80%`。
 - **`threadBindings`**：线程绑定会话功能的全局默认值。
-  - `enabled`：主默认开关（提供商可覆盖；Discord 使用 `channels.discord.threadBindings.enabled`）
+  - `enabled`：主默认开关（提供商可覆盖；QQBot 使用 `channels.qqbot.threadBindings.enabled`）
   - `idleHours`：默认不活动自动取消聚焦时长（小时，`0` 表示禁用；提供商可覆盖）
   - `maxAgeHours`：默认硬性最大年龄（小时，`0` 表示禁用；提供商可覆盖）
 
@@ -1635,15 +1635,15 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
       cap: 20,
       drop: "summarize", // old | new | summarize
       byChannel: {
-        whatsapp: "collect",
-        telegram: "collect",
+        weixin: "collect",
+        feishu: "collect",
       },
     },
     inbound: {
       debounceMs: 2000, // 0 表示禁用
       byChannel: {
-        whatsapp: 5000,
-        slack: 1500,
+        weixin: 5000,
+        ddingtalk: 1500,
       },
     },
   },
@@ -1674,7 +1674,7 @@ scripts/sandbox-browser-setup.sh   # 可选的浏览器镜像
 - 按渠道覆盖：`channels.<channel>.ackReaction`、`channels.<channel>.accounts.<id>.ackReaction`。
 - 解析顺序：账户 → 渠道 → `messages.ackReaction` → identity 回退。
 - 作用域：`group-mentions`（默认）、`group-all`、`direct`、`all`。
-- `removeAckAfterReply`：回复后移除确认反应（仅 Slack/Discord/Telegram/Google Chat）。
+- `removeAckAfterReply`：回复后移除确认反应（仅 DingTalk/QQBot/Feishu/Feishu）。
 
 ### 入站防抖
 
@@ -1824,8 +1824,8 @@ Talk 模式的默认值（macOS；旧版移动端运行时曾有单独的兼容�
     elevated: {
       enabled: true,
       allowFrom: {
-        whatsapp: ["+15555550123"],
-        discord: ["1234567890123", "987654321098765432"],
+        weixin: ["+15555550123"],
+        qqbot: ["1234567890123", "987654321098765432"],
       },
     },
   },
@@ -2986,28 +2986,28 @@ Secret refs 是增量能力：明文值仍然可用。
 
 会在 `tools.media.models[].args` 中展开的模板占位符：
 
-| Variable           | Description                                  |
-| ------------------ | -------------------------------------------- |
-| `{{Body}}`         | 完整入站消息正文                             |
-| `{{RawBody}}`      | 原始正文（无历史/发送者包装）                |
-| `{{BodyStripped}}` | 去除群组提及后的正文                         |
-| `{{From}}`         | 发送者标识符                                 |
-| `{{To}}`           | 目标标识符                                   |
-| `{{MessageSid}}`   | 渠道消息 ID                                  |
-| `{{SessionId}}`    | 当前会话 UUID                                |
-| `{{IsNewSession}}` | 新建会话时为 `"true"`                        |
-| `{{MediaUrl}}`     | 入站媒体伪 URL                               |
-| `{{MediaPath}}`    | 本地媒体路径                                 |
-| `{{MediaType}}`    | 媒体类型（image/audio/document/…）           |
-| `{{Transcript}}`   | 音频转录                                     |
-| `{{Prompt}}`       | 为 CLI 条目解析后的媒体提示                  |
-| `{{MaxChars}}`     | 为 CLI 条目解析后的最大输出字符数            |
-| `{{ChatType}}`     | `"direct"` 或 `"group"`                      |
-| `{{GroupSubject}}` | 群组主题（尽力而为）                         |
-| `{{GroupMembers}}` | 群组成员预览（尽力而为）                     |
-| `{{SenderName}}`   | 发送者显示名（尽力而为）                     |
-| `{{SenderE164}}`   | 发送者电话号码（尽力而为）                   |
-| `{{Provider}}`     | 提供商提示（whatsapp、telegram、discord 等） |
+| Variable           | Description                            |
+| ------------------ | -------------------------------------- |
+| `{{Body}}`         | 完整入站消息正文                       |
+| `{{RawBody}}`      | 原始正文（无历史/发送者包装）          |
+| `{{BodyStripped}}` | 去除群组提及后的正文                   |
+| `{{From}}`         | 发送者标识符                           |
+| `{{To}}`           | 目标标识符                             |
+| `{{MessageSid}}`   | 渠道消息 ID                            |
+| `{{SessionId}}`    | 当前会话 UUID                          |
+| `{{IsNewSession}}` | 新建会话时为 `"true"`                  |
+| `{{MediaUrl}}`     | 入站媒体伪 URL                         |
+| `{{MediaPath}}`    | 本地媒体路径                           |
+| `{{MediaType}}`    | 媒体类型（image/audio/document/…）     |
+| `{{Transcript}}`   | 音频转录                               |
+| `{{Prompt}}`       | 为 CLI 条目解析后的媒体提示            |
+| `{{MaxChars}}`     | 为 CLI 条目解析后的最大输出字符数      |
+| `{{ChatType}}`     | `"direct"` 或 `"group"`                |
+| `{{GroupSubject}}` | 群组主题（尽力而为）                   |
+| `{{GroupMembers}}` | 群组成员预览（尽力而为）               |
+| `{{SenderName}}`   | 发送者显示名（尽力而为）               |
+| `{{SenderE164}}`   | 发送者电话号码（尽力而为）             |
+| `{{Provider}}`     | 提供商提示（weixin、feishu、qqbot 等） |
 
 ---
 

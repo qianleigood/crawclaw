@@ -3,8 +3,6 @@ import { stripEnvelope, stripMessageIdHints } from "./chat-envelope.js";
 
 describe("shared/chat-envelope", () => {
   it("strips recognized channel and timestamp envelope prefixes only", () => {
-    expect(stripEnvelope("[WhatsApp 2026-01-24 13:36] hello")).toBe("hello");
-    expect(stripEnvelope("[Google Chat room] hello")).toBe("hello");
     expect(stripEnvelope("[2026-01-24T13:36Z] hello")).toBe("hello");
     expect(stripEnvelope("[2026-01-24 13:36] hello")).toBe("hello");
     expect(stripEnvelope("[Custom Sender] hello")).toBe("[Custom Sender] hello");

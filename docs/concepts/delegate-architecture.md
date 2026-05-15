@@ -217,15 +217,15 @@ Route inbound messages to the delegate agent using [Multi-Agent Routing](/concep
     // Route a specific channel account to the delegate
     {
       agentId: "delegate",
-      match: { channel: "whatsapp", accountId: "org" },
+      match: { channel: "weixin", accountId: "org" },
     },
-    // Route a Discord guild to the delegate
+    // Route a QQBot guild to the delegate
     {
       agentId: "delegate",
-      match: { channel: "discord", guildId: "123456789012345678" },
+      match: { channel: "qqbot", guildId: "123456789012345678" },
     },
     // Everything else goes to the main personal agent
-    { agentId: "main", match: { channel: "whatsapp" } },
+    { agentId: "main", match: { channel: "weixin" } },
   ],
 }
 ```
@@ -268,8 +268,8 @@ A complete delegate configuration for an organizational assistant that handles e
       agentId: "org-assistant",
       match: { channel: "signal", peer: { kind: "group", id: "[group-id]" } },
     },
-    { agentId: "org-assistant", match: { channel: "whatsapp", accountId: "org" } },
-    { agentId: "main", match: { channel: "whatsapp" } },
+    { agentId: "org-assistant", match: { channel: "weixin", accountId: "org" } },
+    { agentId: "main", match: { channel: "weixin" } },
     { agentId: "main", match: { channel: "signal" } },
   ],
 }

@@ -34,9 +34,6 @@ function mockToolFactory(name: string) {
 vi.mock("./tools/canvas-tool.js", () => ({
   createCanvasTool: mockToolFactory("canvas_stub"),
 }));
-vi.mock("./tools/cron-tool.js", () => ({
-  createCronTool: mockToolFactory("cron_stub"),
-}));
 vi.mock("./tools/image-tool.js", () => ({
   createImageTool: mockToolFactory("image_stub"),
 }));
@@ -45,27 +42,6 @@ vi.mock("./tools/message-tool.js", () => ({
 }));
 vi.mock("./tools/pdf-tool.js", () => ({
   createPdfTool: mockToolFactory("pdf_stub"),
-}));
-vi.mock("./tools/session-status-tool.js", () => ({
-  createSessionStatusTool: mockToolFactory("session_status_stub"),
-}));
-vi.mock("./tools/sessions-history-tool.js", () => ({
-  createSessionsHistoryTool: mockToolFactory("sessions_history_stub"),
-}));
-vi.mock("./tools/sessions-list-tool.js", () => ({
-  createSessionsListTool: mockToolFactory("sessions_list_stub"),
-}));
-vi.mock("./tools/sessions-send-tool.js", () => ({
-  createSessionsSendTool: mockToolFactory("sessions_send_stub"),
-}));
-vi.mock("./tools/sessions-spawn-tool.js", () => ({
-  createSessionsSpawnTool: mockToolFactory("sessions_spawn_stub"),
-}));
-vi.mock("./tools/sessions-yield-tool.js", () => ({
-  createSessionsYieldTool: mockToolFactory("sessions_yield_stub"),
-}));
-vi.mock("./tools/subagents-tool.js", () => ({
-  createSubagentsTool: mockToolFactory("subagents_stub"),
 }));
 vi.mock("./tools/tts-tool.js", () => ({
   createTtsTool: mockToolFactory("tts_stub"),

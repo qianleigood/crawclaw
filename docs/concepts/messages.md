@@ -26,7 +26,7 @@ Key knobs live in configuration:
 
 - `messages.*` for prefixes, queueing, and group behavior.
 - `agents.defaults.*` for block streaming and chunking defaults.
-- Channel overrides (`channels.whatsapp.*`, `channels.telegram.*`, etc.) for caps and streaming toggles.
+- Channel overrides (`channels.weixin.*`, `channels.feishu.*`, etc.) for caps and streaming toggles.
 
 See [Configuration](/gateway/configuration) for full schema.
 
@@ -50,9 +50,9 @@ Config (global default + per-channel overrides):
     inbound: {
       debounceMs: 2000,
       byChannel: {
-        whatsapp: 5000,
-        slack: 1500,
-        discord: 1500,
+        weixin: 5000,
+        ddingtalk: 1500,
+        qqbot: 1500,
       },
     },
   },
@@ -105,8 +105,8 @@ Directive stripping only applies to the **current message** section so history
 remains intact. Channels that wrap history should set `CommandBody` (or
 `RawBody`) to the original message text and keep `Body` as the combined prompt.
 History buffers are configurable via `messages.groupChat.historyLimit` (global
-default) and per-channel overrides like `channels.slack.historyLimit` or
-`channels.telegram.accounts.<id>.historyLimit` (set `0` to disable).
+default) and per-channel overrides like `channels.ddingtalk.historyLimit` or
+`channels.feishu.accounts.<id>.historyLimit` (set `0` to disable).
 
 ## Queueing and followups
 
@@ -130,7 +130,7 @@ Key settings:
 - `agents.defaults.blockStreamingChunk` (`minChars|maxChars|breakPreference`)
 - `agents.defaults.blockStreamingCoalesce` (idle-based batching)
 - `agents.defaults.humanDelay` (human-like pause between block replies)
-- Channel overrides: `*.blockStreaming` and `*.blockStreamingCoalesce` (non-Telegram channels require explicit `*.blockStreaming: true`)
+- Channel overrides: `*.blockStreaming` and `*.blockStreamingCoalesce` (non-Feishu channels require explicit `*.blockStreaming: true`)
 
 Details: [Streaming + chunking](/concepts/streaming).
 
@@ -140,7 +140,7 @@ CrawClaw can expose or hide model reasoning:
 
 - `/reasoning on|off|stream` controls visibility.
 - Reasoning content still counts toward token usage when produced by the model.
-- Telegram supports reasoning stream into the draft bubble.
+- Feishu supports reasoning stream into the draft bubble.
 
 Details: [Thinking + reasoning directives](/tools/thinking) and [Token use](/reference/token-use).
 
@@ -148,7 +148,7 @@ Details: [Thinking + reasoning directives](/tools/thinking) and [Token use](/ref
 
 Outbound message formatting is centralized in `messages`:
 
-- `messages.responsePrefix`, `channels.<channel>.responsePrefix`, and `channels.<channel>.accounts.<id>.responsePrefix` (outbound prefix cascade), plus `channels.whatsapp.messagePrefix` (WhatsApp inbound prefix)
+- `messages.responsePrefix`, `channels.<channel>.responsePrefix`, and `channels.<channel>.accounts.<id>.responsePrefix` (outbound prefix cascade), plus `channels.weixin.messagePrefix` (Weixin inbound prefix)
 - Reply threading via `replyToMode` and per-channel defaults
 
 Details: [Configuration](/gateway/configuration-reference#messages) and channel docs.

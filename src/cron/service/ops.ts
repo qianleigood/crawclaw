@@ -630,7 +630,7 @@ async function finishPreparedManualRun(
           state: structuredClone(job.state),
         };
     const postRunRemoved = shouldDelete;
-    // Isolated Telegram send can persist target writeback directly to disk.
+    // Isolated channel send can persist target writeback directly to disk.
     // Reload before final persist so manual `cron run` keeps those changes.
     await ensureLoaded(state, { forceReload: true, skipRecompute: true });
     mergeManualRunSnapshotAfterReload({

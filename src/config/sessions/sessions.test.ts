@@ -295,11 +295,11 @@ describe("session store lock (Promise chain mutex)", () => {
   });
 
   it("preserves ACP metadata when replacing a session entry wholesale", async () => {
-    const key = "agent:codex:acp:binding:discord:default:feedface";
+    const key = "agent:codex:acp:binding:qqbot:default:feedface";
     const acp = {
       backend: "acpx",
       agent: "codex",
-      runtimeSessionName: "codex-discord",
+      runtimeSessionName: "codex-qqbot",
       mode: "persistent" as const,
       state: "idle" as const,
       lastActivityAt: 100,
@@ -328,7 +328,7 @@ describe("session store lock (Promise chain mutex)", () => {
   });
 
   it("allows explicit ACP metadata removal through the ACP session helper", async () => {
-    const key = "agent:codex:acp:binding:discord:default:deadbeef";
+    const key = "agent:codex:acp:binding:qqbot:default:deadbeef";
     const { storePath } = await makeTmpStore({
       [key]: {
         sessionId: "sess-acp-clear",
@@ -336,7 +336,7 @@ describe("session store lock (Promise chain mutex)", () => {
         acp: {
           backend: "acpx",
           agent: "codex",
-          runtimeSessionName: "codex-discord",
+          runtimeSessionName: "codex-qqbot",
           mode: "persistent",
           state: "idle",
           lastActivityAt: 100,
@@ -373,7 +373,7 @@ describe("appendAssistantMessageToSessionTranscript", () => {
         [sessionKey]: {
           sessionId,
           chatType: "direct",
-          channel: "discord",
+          channel: "qqbot",
         },
       }),
       "utf-8",
@@ -419,7 +419,7 @@ describe("appendAssistantMessageToSessionTranscript", () => {
       [sessionKey]: {
         sessionId,
         chatType: "direct",
-        channel: "discord",
+        channel: "qqbot",
       },
     };
     fs.writeFileSync(fixture.storePath(), JSON.stringify(store), "utf-8");
@@ -476,19 +476,19 @@ describe("appendAssistantMessageToSessionTranscript", () => {
   it("finds session entry using normalized (lowercased) key", async () => {
     const sessionId = "test-session-normalized";
     // Store key is lowercase (as written by updateSessionStore/normalizeStoreSessionKey)
-    const storeKey = "agent:main:bluebubbles:direct:+15551234567";
+    const storeKey = "agent:main:weixin:direct:+15551234567";
     const store = {
       [storeKey]: {
         sessionId,
         chatType: "direct",
-        channel: "bluebubbles",
+        channel: "weixin",
       },
     };
     fs.writeFileSync(fixture.storePath(), JSON.stringify(store), "utf-8");
 
     // Pass a mixed-case key — append should still find the entry via normalization
     const result = await appendAssistantMessageToSessionTranscript({
-      sessionKey: "agent:main:BlueBubbles:direct:+15551234567",
+      sessionKey: "agent:main:Weixin:direct:+15551234567",
       text: "Hello normalized!",
       storePath: fixture.storePath(),
     });
@@ -496,23 +496,23 @@ describe("appendAssistantMessageToSessionTranscript", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("finds Slack session entry using normalized (lowercased) key", async () => {
-    const sessionId = "test-slack-session";
-    // Slack session keys include channel type and target ID; store key is lowercase
-    const storeKey = "agent:main:slack:direct:u12345abc";
+  it("finds DingTalk session entry using normalized (lowercased) key", async () => {
+    const sessionId = "test-ddingtalk-session";
+    // DingTalk session keys include channel type and target ID; store key is lowercase
+    const storeKey = "agent:main:ddingtalk:direct:u12345abc";
     const store = {
       [storeKey]: {
         sessionId,
         chatType: "direct",
-        channel: "slack",
+        channel: "ddingtalk",
       },
     };
     fs.writeFileSync(fixture.storePath(), JSON.stringify(store), "utf-8");
 
-    // Pass a mixed-case key (as resolveSlackSession might produce) — normalization should match
+    // Pass a mixed-case key (as resolveDingTalkSession might produce) — normalization should match
     const result = await appendAssistantMessageToSessionTranscript({
-      sessionKey: "agent:main:slack:direct:U12345ABC",
-      text: "Hello Slack user!",
+      sessionKey: "agent:main:ddingtalk:direct:U12345ABC",
+      text: "Hello DingTalk user!",
       storePath: fixture.storePath(),
     });
 
@@ -564,7 +564,7 @@ describe("resolveAndPersistSessionFile", () => {
 
   it("persists fallback topic transcript paths for sessions without sessionFile", async () => {
     const sessionId = "topic-session-id";
-    const sessionKey = "agent:main:telegram:group:123:topic:456";
+    const sessionKey = "agent:main:feishu:group:123:topic:456";
     const store = {
       [sessionKey]: {
         sessionId,
@@ -596,7 +596,7 @@ describe("resolveAndPersistSessionFile", () => {
 
   it("creates and persists entry when session is not yet present", async () => {
     const sessionId = "new-session-id";
-    const sessionKey = "agent:main:telegram:group:123";
+    const sessionKey = "agent:main:feishu:group:123";
     fs.writeFileSync(fixture.storePath(), JSON.stringify({}), "utf-8");
     const sessionStore = loadSessionStore(fixture.storePath(), { skipCache: true });
     const fallbackSessionFile = resolveSessionTranscriptPathInDir(sessionId, fixture.sessionsDir());

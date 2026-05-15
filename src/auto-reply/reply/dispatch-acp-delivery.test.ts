@@ -31,8 +31,8 @@ function createCoordinator(onReplyStart?: (...args: unknown[]) => Promise<void>)
   return createAcpDispatchDeliveryCoordinator({
     cfg: createAcpTestConfig(),
     ctx: buildTestCtx({
-      Provider: "discord",
-      Surface: "discord",
+      Provider: "qqbot",
+      Surface: "qqbot",
       SessionKey: "agent:codex-acp:session-1",
     }),
     agentId: "codex-acp",
@@ -49,8 +49,8 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
     const coordinator = createAcpDispatchDeliveryCoordinator({
       cfg: createAcpTestConfig(),
       ctx: buildTestCtx({
-        Provider: "discord",
-        Surface: "discord",
+        Provider: "qqbot",
+        Surface: "qqbot",
         SessionKey: "agent:codex-acp:session-1",
       }),
       agentId: "codex-acp",
@@ -86,8 +86,8 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
     const coordinator = createAcpDispatchDeliveryCoordinator({
       cfg: createAcpTestConfig(),
       ctx: buildTestCtx({
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
         SessionKey: "agent:codex-acp:session-1",
       }),
       agentId: "codex-acp",
@@ -105,11 +105,11 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
     expect(coordinator.getRoutedCounts().block).toBe(0);
   });
 
-  it("prefers provider over surface when detecting direct telegram visibility", async () => {
+  it("prefers provider over surface when detecting direct feishu visibility", async () => {
     const coordinator = createAcpDispatchDeliveryCoordinator({
       cfg: createAcpTestConfig(),
       ctx: buildTestCtx({
-        Provider: "telegram",
+        Provider: "feishu",
         Surface: "webchat",
         SessionKey: "agent:codex-acp:session-1",
       }),
@@ -126,7 +126,7 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
     expect(coordinator.hasFailedVisibleTextDelivery()).toBe(false);
   });
 
-  it("does not treat non-telegram direct block text as visible", async () => {
+  it("does not treat non-feishu direct block text as visible", async () => {
     const coordinator = createCoordinator();
 
     await coordinator.deliver("block", { text: "hello" }, { skipTts: true });
@@ -138,7 +138,7 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
     expect(coordinator.getRoutedCounts().block).toBe(0);
   });
 
-  it("tracks failed visible telegram block delivery separately", async () => {
+  it("tracks failed visible feishu block delivery separately", async () => {
     const dispatcher: ReplyDispatcher = {
       sendToolResult: vi.fn(() => true),
       sendBlockReply: vi.fn(() => false),
@@ -151,8 +151,8 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
     const coordinator = createAcpDispatchDeliveryCoordinator({
       cfg: createAcpTestConfig(),
       ctx: buildTestCtx({
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
         SessionKey: "agent:codex-acp:session-1",
       }),
       agentId: "codex-acp",
@@ -203,8 +203,8 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
     const coordinator = createAcpDispatchDeliveryCoordinator({
       cfg: createAcpTestConfig(),
       ctx: buildTestCtx({
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
         SessionKey: "agent:codex-acp:session-1",
       }),
       agentId: "codex-acp",
@@ -212,8 +212,8 @@ describe("createAcpDispatchDeliveryCoordinator", () => {
       inboundAudio: false,
       suppressUserDelivery: true,
       shouldRouteToOriginating: true,
-      originatingChannel: "telegram",
-      originatingTo: "telegram:123",
+      originatingChannel: "feishu",
+      originatingTo: "feishu:123",
     });
 
     const blockDelivered = await coordinator.deliver("block", { text: "working on it" });

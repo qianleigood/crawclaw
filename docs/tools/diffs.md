@@ -421,7 +421,7 @@ Artifact not found:
 - Keep `allowRemoteViewer` disabled unless your deployment requires remote viewer URLs.
 - Set explicit short `ttlSeconds` for sensitive diffs.
 - Avoid sending secrets in diff input when not required.
-- If your channel compresses images aggressively (for example Telegram or WhatsApp), prefer PDF output (`fileFormat: "pdf"`).
+- If your channel compresses images aggressively (for example Feishu or Weixin), prefer PDF output (`fileFormat: "pdf"`).
 
 Diff rendering engine:
 

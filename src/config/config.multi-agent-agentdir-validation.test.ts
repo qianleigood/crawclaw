@@ -31,7 +31,7 @@ describe("multi-agent agentDir validation", () => {
             { id: "b", agentDir: "~/.crawclaw/agents/shared/agent" },
           ],
         },
-        bindings: [{ agentId: "a", match: { channel: "telegram" } }],
+        bindings: [{ agentId: "a", match: { channel: "feishu" } }],
       },
       async () => {
         const spy = vi.spyOn(console, "error").mockImplementation(() => {});

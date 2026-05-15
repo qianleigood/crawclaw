@@ -56,7 +56,7 @@ Compatibility aliases remain accepted for existing plans:
 
 - `models.providers.apiKey`
 - `skills.entries.apiKey`
-- `channels.googlechat.serviceAccount`
+- `channels.feishu.serviceAccount`
 
 ## Path validation rules
 

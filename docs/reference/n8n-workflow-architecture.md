@@ -660,9 +660,9 @@ step 级状态：
 - rollback
 - archive / delete
 
-### CLI
+### Gateway API
 
-CLI 仍未单独落地；当前 workflow 管理主要通过：
+当前 workflow 管理主要通过：
 
 - agent tools
 - gateway methods

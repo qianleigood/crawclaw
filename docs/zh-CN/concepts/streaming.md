@@ -24,9 +24,9 @@ x-i18n:
 CrawClaw 有两个独立的"流式传输"层：
 
 - **分块流式传输（渠道）：** 在助手写入时发出已完成的**块**。这些是普通的渠道消息（不是令牌增量）。
-- **类令牌流式传输（仅限 Telegram）：** 在生成时用部分文本更新**草稿气泡**；最终消息在结束时发送。
+- **类令牌流式传输（仅限 Feishu）：** 在生成时用部分文本更新**草稿气泡**；最终消息在结束时发送。
 
-目前**没有真正的令牌流式传输**到外部渠道消息。Telegram 草稿流式传输是唯一的部分流式传输界面。
+目前**没有真正的令牌流式传输**到外部渠道消息。Feishu 草稿流式传输是唯一的部分流式传输界面。
 
 ## 分块流式传输（渠道消息）
 
@@ -55,9 +55,9 @@ CrawClaw 有两个独立的"流式传输"层：
 - `agents.defaults.blockStreamingBreak`：`"text_end"` 或 `"message_end"`。
 - `agents.defaults.blockStreamingChunk`：`{ minChars, maxChars, breakPreference? }`。
 - `agents.defaults.blockStreamingCoalesce`：`{ minChars?, maxChars?, idleMs? }`（发送前合并流式块）。
-- 渠道硬上限：`*.textChunkLimit`（例如 `channels.whatsapp.textChunkLimit`）。
+- 渠道硬上限：`*.textChunkLimit`（例如 `channels.weixin.textChunkLimit`）。
 - 渠道分块模式：`*.chunkMode`（默认 `length`，`newline` 在长度分块之前按空行（段落边界）分割）。
-- Discord 软上限：`channels.discord.maxLinesPerMessage`（默认 17）分割高度较大的回复以避免 UI 裁剪。
+- QQBot 软上限：`channels.qqbot.maxLinesPerMessage`（默认 17）分割高度较大的回复以避免 UI 裁剪。
 
 **边界语义：**
 
@@ -86,7 +86,7 @@ CrawClaw 有两个独立的"流式传输"层：
 - `minChars` 防止微小片段发送，直到累积足够文本（最终刷新始终发送剩余文本）。
 - 连接符从 `blockStreamingChunk.breakPreference` 派生（`paragraph` → `\n\n`，`newline` → `\n`，`sentence` → 空格）。
 - 渠道覆盖通过 `*.blockStreamingCoalesce` 可用（包括每账户配置）。
-- 除非覆盖，Signal/Slack/Discord 的默认合并 `minChars` 提高到 1500。
+- 除非覆盖，Feishu/DingTalk/QQBot 的默认合并 `minChars` 提高到 1500。
 
 ## 块之间的类人节奏
 
@@ -100,32 +100,32 @@ CrawClaw 有两个独立的"流式传输"层：
 
 这映射到：
 
-- **流式传输块：** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"`（边生成边发出）。非 Telegram 渠道还需要 `*.blockStreaming: true`。
+- **流式传输块：** `blockStreamingDefault: "on"` + `blockStreamingBreak: "text_end"`（边生成边发出）。非 Feishu 渠道还需要 `*.blockStreaming: true`。
 - **最后流式传输全部内容：** `blockStreamingBreak: "message_end"`（刷新一次，如果很长可能有多个块）。
 - **无分块流式传输：** `blockStreamingDefault: "off"`（只有最终回复）。
 
-**渠道说明：** 对于非 Telegram 渠道，分块流式传输**默认关闭**，除非 `*.blockStreaming` 明确设置为 `true`。Telegram 可以在没有块回复的情况下流式传输草稿（`channels.telegram.streaming`）。
+**渠道说明：** 对于非 Feishu 渠道，分块流式传输**默认关闭**，除非 `*.blockStreaming` 明确设置为 `true`。Feishu 可以在没有块回复的情况下流式传输草稿（`channels.feishu.streaming`）。
 
 配置位置提醒：`blockStreaming*` 默认值位于 `agents.defaults` 下，而不是根配置。
 
-## Telegram 草稿流式传输（类令牌）
+## Feishu 草稿流式传输（类令牌）
 
-Telegram 是唯一支持草稿流式传输的渠道：
+Feishu 是唯一支持草稿流式传输的渠道：
 
 - 在**带主题的私聊**中使用 Bot API `sendMessageDraft`。
-- `channels.telegram.streaming: "partial" | "block" | "off" | "progress"`。
+- `channels.feishu.streaming: "partial" | "block" | "off" | "progress"`。
   - `partial`：用最新的流式文本更新草稿。
   - `block`：以分块方式更新草稿（相同的分块器规则）。
   - `off`：无草稿流式传输。
-- `progress`：为跨渠道语义一致性，在 Telegram 上按 `partial` 处理。
-- 草稿流式传输与分块流式传输分开；块回复默认关闭，仅在非 Telegram 渠道上通过 `*.blockStreaming: true` 启用。
+- `progress`：为跨渠道语义一致性，在 Feishu 上按 `partial` 处理。
+- 草稿流式传输与分块流式传输分开；块回复默认关闭，仅在非 Feishu 渠道上通过 `*.blockStreaming: true` 启用。
 - 最终回复仍然是普通消息。
-- `/reasoning stream` 将推理写入草稿气泡（仅限 Telegram）。
+- `/reasoning stream` 将推理写入草稿气泡（仅限 Feishu）。
 
 当草稿流式传输活跃时，CrawClaw 会为该回复禁用分块流式传输以避免双重流式传输。
 
 ```
-Telegram（私聊 + 主题）
+Feishu（私聊 + 主题）
   └─ sendMessageDraft（草稿气泡）
        ├─ streaming=partial/progress → 更新最新文本
        └─ streaming=block            → 分块器更新草稿
@@ -134,8 +134,8 @@ Telegram（私聊 + 主题）
 
 图例：
 
-- `sendMessageDraft`：Telegram 草稿气泡（不是真正的消息）。
-- `final reply`：普通 Telegram 消息发送。
+- `sendMessageDraft`：Feishu 草稿气泡（不是真正的消息）。
+- `final reply`：普通 Feishu 消息发送。
 
 ## 延伸阅读
 

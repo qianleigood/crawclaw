@@ -39,7 +39,7 @@ function buildTtsParams(commandBodyNormalized: string): Parameters<typeof handle
       commandBodyNormalized,
       isAuthorizedSender: true,
       senderId: "owner",
-      channel: "telegram",
+      channel: "feishu",
     },
   } as unknown as Parameters<typeof handleTtsCommands>[0];
 }

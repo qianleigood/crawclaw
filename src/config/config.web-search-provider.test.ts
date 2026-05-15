@@ -101,7 +101,7 @@ describe("web search provider config", () => {
   it("rejects removed legacy brave config before bundled web search allowlist compat", () => {
     const res = validateConfigObjectWithPlugins({
       plugins: {
-        allow: ["bluebubbles", "legacy-memory"],
+        allow: ["weixin", "legacy-memory"],
       },
       tools: {
         web: {

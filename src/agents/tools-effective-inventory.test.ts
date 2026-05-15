@@ -23,7 +23,7 @@ async function loadHarness(options?: {
     vi.fn(
       () =>
         options?.tools ?? [
-          { name: "exec", label: "Exec", description: "Run shell commands" },
+          { name: "bash", label: "Bash", description: "Run shell commands" },
           { name: "docs_lookup", label: "Docs Lookup", description: "Search docs" },
         ],
     );
@@ -60,12 +60,12 @@ describe("resolveEffectiveToolInventory", () => {
   it("groups core, plugin, and channel tools from the effective runtime set", async () => {
     const { resolveEffectiveToolInventory } = await loadHarness({
       tools: [
-        { name: "exec", label: "Exec", description: "Run shell commands" },
+        { name: "bash", label: "Bash", description: "Run shell commands" },
         { name: "docs_lookup", label: "Docs Lookup", description: "Search docs" },
         { name: "message_actions", label: "Message Actions", description: "Act on messages" },
       ],
       pluginMeta: { docs_lookup: { pluginId: "docs" } },
-      channelMeta: { message_actions: { channelId: "telegram" } },
+      channelMeta: { message_actions: { channelId: "feishu" } },
     });
 
     const result = resolveEffectiveToolInventory({ cfg: {} });
@@ -80,8 +80,8 @@ describe("resolveEffectiveToolInventory", () => {
           source: "core",
           tools: [
             {
-              id: "exec",
-              label: "Exec",
+              id: "bash",
+              label: "Bash",
               description: "Run shell commands",
               rawDescription: "Run shell commands",
               source: "core",
@@ -114,7 +114,7 @@ describe("resolveEffectiveToolInventory", () => {
               description: "Act on messages",
               rawDescription: "Act on messages",
               source: "channel",
-              channelId: "telegram",
+              channelId: "feishu",
             },
           ],
         },
@@ -217,7 +217,7 @@ describe("resolveEffectiveToolInventory", () => {
 
   it("includes the resolved tool profile", async () => {
     const { resolveEffectiveToolInventory } = await loadHarness({
-      tools: [{ name: "exec", label: "Exec", description: "Run shell commands" }],
+      tools: [{ name: "bash", label: "Bash", description: "Run shell commands" }],
       effectivePolicy: { profile: "minimal", providerProfile: "coding" },
     });
 
@@ -228,7 +228,7 @@ describe("resolveEffectiveToolInventory", () => {
 
   it("passes resolved model compat into effective tool creation", async () => {
     const createToolsMock = vi.fn(() => [
-      { name: "exec", label: "Exec", description: "Run shell commands" },
+      { name: "bash", label: "Bash", description: "Run shell commands" },
     ]);
     const { resolveEffectiveToolInventory } = await loadHarness({
       createToolsMock,
@@ -261,7 +261,7 @@ describe("resolveEffectiveToolInventory", () => {
     expect(result.unavailableTools).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: "exec",
+          id: "bash",
           source: "core",
           reason: "not included in tools.profile (minimal)",
         }),
@@ -274,7 +274,7 @@ describe("resolveEffectiveToolInventory", () => {
       "tools: tools.allow allowlist contains unknown entries (wat). These entries won't match any tool unless the plugin is enabled.";
     const createToolsMock = vi.fn((options?: { toolPolicyDiagnostics?: string[] }) => {
       options?.toolPolicyDiagnostics?.push(warning);
-      return [{ name: "exec", label: "Exec", description: "Run shell commands" }];
+      return [{ name: "bash", label: "Bash", description: "Run shell commands" }];
     });
     const { resolveEffectiveToolInventory } = await loadHarness({ createToolsMock });
 
@@ -287,7 +287,7 @@ describe("resolveEffectiveToolInventory", () => {
 
   it("surfaces risky no-approval host exec diagnostics", async () => {
     const { resolveEffectiveToolInventory } = await loadHarness({
-      tools: [{ name: "exec", label: "Exec", description: "Run shell commands" }],
+      tools: [{ name: "bash", label: "Bash", description: "Run shell commands" }],
     });
 
     const result = resolveEffectiveToolInventory({ cfg: {} });
@@ -304,7 +304,7 @@ describe("resolveEffectiveToolInventory", () => {
 
   it("does not warn when host exec uses approval prompts", async () => {
     const { resolveEffectiveToolInventory } = await loadHarness({
-      tools: [{ name: "exec", label: "Exec", description: "Run shell commands" }],
+      tools: [{ name: "bash", label: "Bash", description: "Run shell commands" }],
     });
 
     const result = resolveEffectiveToolInventory({
@@ -318,7 +318,7 @@ describe("resolveEffectiveToolInventory", () => {
 
   it("uses session exec overrides when diagnosing exec risk", async () => {
     const { resolveEffectiveToolInventory } = await loadHarness({
-      tools: [{ name: "exec", label: "Exec", description: "Run shell commands" }],
+      tools: [{ name: "bash", label: "Bash", description: "Run shell commands" }],
     });
 
     const result = resolveEffectiveToolInventory({

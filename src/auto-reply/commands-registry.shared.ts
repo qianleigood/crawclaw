@@ -468,9 +468,8 @@ export function buildBuiltinChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "focus",
       nativeName: "focus",
-      description:
-        "Bind this thread (Discord) or topic/conversation (Telegram) to a session target.",
-      descriptionZhCN: "将当前线程（Discord）或话题/会话（Telegram）绑定到会话目标。",
+      description: "Bind this thread or conversation to a session target.",
+      descriptionZhCN: "将当前线程或会话绑定到会话目标。",
       textAlias: "/focus",
       category: "management",
       args: [
@@ -486,8 +485,8 @@ export function buildBuiltinChatCommands(): ChatCommandDefinition[] {
     defineChatCommand({
       key: "unfocus",
       nativeName: "unfocus",
-      description: "Remove the current thread (Discord) or topic/conversation (Telegram) binding.",
-      descriptionZhCN: "移除当前线程（Discord）或话题/会话（Telegram）的绑定。",
+      description: "Remove the current thread or conversation binding.",
+      descriptionZhCN: "移除当前线程或会话绑定。",
       textAlias: "/unfocus",
       category: "management",
     }),

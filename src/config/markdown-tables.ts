@@ -56,6 +56,6 @@ export function resolveMarkdownTableMode(params: {
     | undefined;
   const resolved = resolveMarkdownModeFromSection(section, params.accountId) ?? defaultMode;
   // "block" stays schema-valid for the shared markdown seam, but this PR
-  // keeps runtime delivery on safe text rendering until Slack send support lands.
+  // keeps runtime delivery on safe text rendering until channel send support lands.
   return resolved === "block" ? "code" : resolved;
 }

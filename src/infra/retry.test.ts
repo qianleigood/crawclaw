@@ -142,7 +142,7 @@ describe("retryAsync", () => {
         attempts: 2,
         minDelayMs: 0,
         maxDelayMs: 0,
-        label: "telegram",
+        label: "feishu",
         onRetry,
       });
       await vi.runAllTimersAsync();
@@ -157,7 +157,7 @@ describe("retryAsync", () => {
         attempt: 1,
         maxAttempts: 2,
         err,
-        label: "telegram",
+        label: "feishu",
       }),
     );
   });

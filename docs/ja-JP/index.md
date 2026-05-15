@@ -32,8 +32,8 @@ x-i18n:
 > _「EXFOLIATE! EXFOLIATE!」_ — たぶん宇宙ロブスター
 
 <p align="center">
-  <strong>WhatsApp、Telegram、Discord、iMessageなどに対応した、あらゆるOS向けのAIエージェントgateway。</strong><br />
-  メッセージを送信すれば、ポケットからエージェントの応答を受け取れます。プラグインでMattermostなどを追加できます。
+  <strong>Weixin、Feishu、QQBot、Weixinなどに対応した、あらゆるOS向けのAIエージェントgateway。</strong><br />
+  メッセージを送信すれば、ポケットからエージェントの応答を受け取れます。プラグインでFeishuなどを追加できます。
 </p>
 
 <Columns>
@@ -68,10 +68,10 @@ Gatewayは、セッション、ルーティング、チャネル接続の信頼�
 
 <Columns>
   <Card title="マルチチャネルgateway" icon="network">
-    単一のGatewayプロセスでWhatsApp、Telegram、Discord、iMessageに対応。
+    単一のGatewayプロセスでWeixin、Feishu、QQBot、Weixinに対応。
   </Card>
   <Card title="プラグインチャネル" icon="plug">
-    拡張パッケージでMattermostなどを追加。
+    拡張パッケージでFeishuなどを追加。
   </Card>
   <Card title="マルチエージェントルーティング" icon="route">
     エージェント、ワークスペース、送信者ごとに分離されたセッション。
@@ -100,7 +100,7 @@ Gatewayは、セッション、ルーティング、チャネル接続の信頼�
     crawclaw onboard --install-daemon
     ```
   </Step>
-  <Step title="WhatsAppをペアリングしてGatewayを起動">
+  <Step title="WeixinをペアリングしてGatewayを起動">
     ```bash
     crawclaw channels login
     crawclaw gateway --port 18789
@@ -117,23 +117,19 @@ Gateway起動後は、ローカル端末またはリモートアクセス経路�
 - ローカル端末: `crawclaw agent --message "hello"`
 - リモートアクセス: [リモートアクセス](/gateway/remote) および [Tailscale](/gateway/tailscale)
 
-<p align="center">
-  <img src="/whatsapp-crawclaw.jpg" alt="CrawClaw" width="420" />
-</p>
-
 ## 設定（オプション）
 
 設定は`~/.crawclaw/crawclaw.json`にあります。
 
 - **何もしなければ**、CrawClawはバンドルされたPiバイナリをRPCモードで使用し、送信者ごとのセッションを作成します。
-- 制限を設けたい場合は、`channels.whatsapp.allowFrom`と（グループの場合）メンションルールから始めてください。
+- 制限を設けたい場合は、`channels.weixin.allowFrom`と（グループの場合）メンションルールから始めてください。
 
 例：
 
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: { "*": { requireMention: true } },
     },
@@ -154,8 +150,8 @@ Gateway起動後は、ローカル端末またはリモートアクセス経路�
   <Card title="リモートアクセス" href="/gateway/remote" icon="globe">
     SSHおよびtailnetアクセスパターン。
   </Card>
-  <Card title="チャネル" href="/channels/telegram" icon="message-square">
-    WhatsApp、Telegram、Discordなどのチャネル固有のセットアップ。
+  <Card title="チャネル" href="/channels/index" icon="message-square">
+    Weixin、Feishu、QQBotなどのチャネル固有のセットアップ。
   </Card>
   <Card title="ヘルプ" href="/help" icon="life-buoy">
     一般的な修正とトラブルシューティングのエントリーポイント。

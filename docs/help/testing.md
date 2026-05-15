@@ -286,7 +286,7 @@ CRAWCLAW_LIVE_CLI_BACKEND=1 \
   - `CRAWCLAW_LIVE_ACP_BIND=1`
 - Defaults:
   - ACP agent: `claude`
-  - Synthetic channel: Slack DM-style conversation context
+  - Synthetic channel: Feishu DM-style conversation context
   - ACP backend: `acpx`
 - Overrides:
   - `CRAWCLAW_LIVE_ACP_BIND_AGENT=claude`
@@ -386,9 +386,9 @@ Tip: don’t try to hardcode “all models” in docs. The authoritative list is
 
 ## Credentials (never commit)
 
-Live tests discover credentials the same way the CLI does. Practical implications:
+Live tests discover credentials the same way the local runtime does. Practical implications:
 
-- If the CLI works, live tests should find the same keys.
+- If CrawClaw Desktop or the local Gateway API works, live tests should find the same keys.
 - If a live test says “no creds”, debug the same way you’d debug CrawClaw Desktop or the local Gateway API / model selection.
 
 - Profile store: `~/.crawclaw/credentials/` (preferred; what “profile keys” means in the tests)
@@ -401,12 +401,6 @@ If you want to rely on env keys (e.g. exported in your `~/.profile`), run local 
 
 - Test: `src/media-understanding/providers/deepgram/audio.live.test.ts`
 - Enable: `DEEPGRAM_API_KEY=... DEEPGRAM_LIVE_TEST=1 pnpm test:live src/media-understanding/providers/deepgram/audio.live.test.ts`
-
-## BytePlus coding plan live
-
-- Test: `src/agents/byteplus.live.test.ts`
-- Enable: `BYTEPLUS_API_KEY=... BYTEPLUS_LIVE_TEST=1 pnpm test:live src/agents/byteplus.live.test.ts`
-- Optional model override: `BYTEPLUS_CODING_MODEL=ark-code-latest`
 
 - Current bundled providers covered:
   - `openai`
@@ -474,12 +468,12 @@ when you touch shared channel or provider surfaces.
 ### Commands
 
 - All contracts: `pnpm test:contracts`
-- Channel contracts only: `pnpm test:contracts:channels`
+- Channel contracts now live in the Rust-native channel crates.
 - Provider contracts only: `pnpm test:contracts:plugins`
 
 ### Channel contracts
 
-Located in `src/channels/plugins/contracts/*.contract.test.ts`:
+Former TS channel contract tests were removed with the TS channel runtime:
 
 - **plugin** - Basic plugin shape (id, name, capabilities)
 - **setup** - Setup wizard contract

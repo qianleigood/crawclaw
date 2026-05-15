@@ -155,7 +155,7 @@ describe("readSecretFileSync", () => {
           await symlink(target, link);
           return link;
         }),
-      label: "Telegram bot token",
+      label: "Feishu bot token",
       options: { rejectSymlink: true },
       helper: "try" as const,
       expected: () => undefined,
@@ -163,7 +163,7 @@ describe("readSecretFileSync", () => {
     {
       name: "returns undefined from the non-throwing helper for blank file paths",
       pathValue: async () => "   ",
-      label: "Telegram bot token",
+      label: "Feishu bot token",
       options: undefined,
       helper: "try" as const,
       expected: () => undefined,
@@ -171,7 +171,7 @@ describe("readSecretFileSync", () => {
     {
       name: "returns undefined from the non-throwing helper for missing path values",
       pathValue: async () => undefined,
-      label: "Telegram bot token",
+      label: "Feishu bot token",
       options: undefined,
       helper: "try" as const,
       expected: () => undefined,

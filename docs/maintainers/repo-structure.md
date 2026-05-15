@@ -34,7 +34,7 @@ Primary domains:
 - `src/workflows`: workflow registry, compilation, n8n bridge, execution sync
 - `src/cron`: scheduled execution and delivery
 - `src/channels`: routing and session-level messaging behavior
-- `src/cli`, `src/daemon`, `src/config`, `src/infra`, `src/shared`: support layers around the runtime
+- `src/terminal`, `src/daemon`, `src/config`, `src/infra`, `src/shared`: support layers around the runtime
 
 When people say “the product code”, they usually mean `src/`.
 

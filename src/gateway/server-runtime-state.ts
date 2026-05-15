@@ -1,6 +1,5 @@
 import type { Server as HttpServer } from "node:http";
 import { WebSocketServer } from "ws";
-import type { CliDeps } from "../cli/deps.js";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import type { PluginRegistry } from "../plugins/registry.js";
 import {
@@ -10,6 +9,7 @@ import {
   releasePinnedPluginHttpRouteRegistry,
   resolveActivePluginHttpRouteRegistry,
 } from "../plugins/runtime.js";
+import type { CliDeps } from "../terminal/deps.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "./auth.js";
 import type { ChatAbortControllerEntry } from "./chat-abort.js";

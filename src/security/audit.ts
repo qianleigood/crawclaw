@@ -2,7 +2,6 @@ import { isIP } from "node:net";
 import path from "node:path";
 import { hasPotentialConfiguredChannels } from "../channels/config-presence.js";
 import type { listChannelPlugins } from "../channels/plugins/index.js";
-import { formatCliCommand } from "../cli/command-format.js";
 import type { ConfigFileSnapshot, CrawClawConfig } from "../config/config.js";
 import { resolveConfigPath, resolveStateDir } from "../config/paths.js";
 import { hasConfiguredSecretInput } from "../config/types.secrets.js";
@@ -23,6 +22,7 @@ import {
   resolveProfile,
 } from "../plugin-sdk/browser-config.js";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import {
   formatPermissionDetail,
   formatPermissionRemediation,
@@ -554,7 +554,7 @@ function collectGatewayConfigFindings(
       severity: exposed ? "critical" : "warn",
       title: "mDNS full mode can leak host metadata",
       detail:
-        'discovery.mdns.mode="full" publishes cliPath/sshPort in local-network TXT records. ' +
+        'discovery.mdns.mode="full" publishes sshPort in local-network TXT records. ' +
         "This can reveal usernames, filesystem layout, and management ports.",
       remediation:
         'Prefer discovery.mdns.mode="minimal" (recommended) or "off", especially when gateway.bind is not loopback.',

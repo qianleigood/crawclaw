@@ -31,8 +31,8 @@ describe("exec approval reply helpers", () => {
   const unavailableReasonCases = [
     {
       reason: "initiating-platform-disabled" as const,
-      channelLabel: "Slack",
-      expected: "Exec approval is required, but chat exec approvals are not enabled on Slack.",
+      channelLabel: "Feishu",
+      expected: "Exec approval is required, but chat exec approvals are not enabled on Feishu.",
     },
     {
       reason: "initiating-platform-unsupported" as const,
@@ -77,7 +77,7 @@ describe("exec approval reply helpers", () => {
       buildExecApprovalUnavailableReplyPayload({
         reason: "no-approval-route",
       }).text,
-    ).toContain("native chat approval client such as Discord, Slack, or Telegram");
+    ).toContain("enable a native chat approval client");
   });
 
   it("preserves runtime guard warning text without duplicating the cause line", () => {
@@ -226,7 +226,7 @@ describe("exec approval reply helpers", () => {
       approvalId: "req-meta",
       approvalSlug: "slug-meta",
       agentId: "ops-agent",
-      sessionKey: "agent:ops-agent:matrix:channel:!room:example.org",
+      sessionKey: "agent:ops-agent:feishu:channel:!room:example.org",
       command: "echo ok",
       host: "gateway",
     });
@@ -238,7 +238,7 @@ describe("exec approval reply helpers", () => {
         approvalKind: "exec",
         agentId: "ops-agent",
         allowedDecisions: ["allow-once", "allow-always", "deny"],
-        sessionKey: "agent:ops-agent:matrix:channel:!room:example.org",
+        sessionKey: "agent:ops-agent:feishu:channel:!room:example.org",
       },
     });
   });

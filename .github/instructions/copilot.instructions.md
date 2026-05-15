@@ -9,7 +9,7 @@
 - **Package Manager**: pnpm (keep `pnpm-lock.yaml` in sync)
 - **Lint/Format**: Oxlint, Oxfmt (`pnpm check`)
 - **Tests**: Vitest with V8 coverage
-- **CLI Framework**: Commander + clack/prompts
+- **Terminal Utilities**: clack/prompts helpers for retained internal flows
 - **Build**: tsdown (outputs to `dist/`)
 
 ## Anti-Redundancy Rules
@@ -30,12 +30,13 @@
 
 - Tables: `src/terminal/table.ts` (`renderTable`)
 - Themes/colors: `src/terminal/theme.ts` (`theme.success`, `theme.muted`, etc.)
-- Progress: `src/cli/progress.ts` (spinners, progress bars)
+- Progress: `src/terminal/progress.ts` (spinners, progress bars)
 
-### CLI Patterns
+### Desktop/Gateway Patterns
 
-- CLI option wiring: `src/cli/`
-- Commands: `src/commands/`
+- Desktop UI/BFF: `apps/crawclaw-desktop/`
+- Gateway methods: `src/gateway/`
+- Retained shared flows/helpers: `src/control/`
 - Dependency injection via `createDefaultDeps`
 
 ## Import Conventions
@@ -55,7 +56,7 @@
 ## Stack & Commands
 
 - **Package manager**: pnpm (`pnpm install`)
-- **Dev**: `pnpm crawclaw ...` or `pnpm dev`
+- **Desktop dev**: `pnpm desktop:tauri:dev`
 - **Type-check**: `pnpm tsgo`
 - **Lint/format**: `pnpm check`
 - **Tests**: `pnpm test`

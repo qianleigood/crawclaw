@@ -65,9 +65,9 @@ describe("handleStopCommand", () => {
       ctx: {} as never,
       command: {
         commandBodyNormalized: "/stop",
-        abortKey: "telegram:user",
-        surface: "telegram",
-        senderId: "telegram:user",
+        abortKey: "feishu:user",
+        surface: "feishu",
+        senderId: "feishu:user",
       },
       sessionKey: "acp:bound-session",
       sessionEntry: { sessionId: "session-1", updatedAt: Date.now() },

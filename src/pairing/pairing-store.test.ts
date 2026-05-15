@@ -72,9 +72,9 @@ async function writeAllowFromFixture(params: {
   );
 }
 
-async function createTelegramPairingRequest(accountId: string, id = "12345") {
+async function createFeishuPairingRequest(accountId: string, id = "12345") {
   const created = await upsertChannelPairingRequest({
-    channel: "telegram",
+    channel: "feishu",
     accountId,
     id,
   });
@@ -82,7 +82,7 @@ async function createTelegramPairingRequest(accountId: string, id = "12345") {
   return created;
 }
 
-async function seedTelegramAllowFromFixtures(params: {
+async function seedFeishuAllowFromFixtures(params: {
   stateDir: string;
   scopedAccountId: string;
   scopedAllowFrom: string[];
@@ -90,12 +90,12 @@ async function seedTelegramAllowFromFixtures(params: {
 }) {
   await writeAllowFromFixture({
     stateDir: params.stateDir,
-    channel: "telegram",
+    channel: "feishu",
     allowFrom: params.legacyAllowFrom ?? ["1001"],
   });
   await writeAllowFromFixture({
     stateDir: params.stateDir,
-    channel: "telegram",
+    channel: "feishu",
     accountId: params.scopedAccountId,
     allowFrom: params.scopedAllowFrom,
   });
@@ -116,7 +116,7 @@ async function assertAllowFromCacheInvalidation(params: {
 
   await writeAllowFromFixture({
     stateDir: params.stateDir,
-    channel: "telegram",
+    channel: "feishu",
     accountId: "yy",
     allowFrom: ["10022"],
   });
@@ -126,8 +126,8 @@ async function assertAllowFromCacheInvalidation(params: {
 }
 
 async function expectAccountScopedEntryIsolated(entry: string, accountId = "yy") {
-  const accountScoped = await readChannelAllowFromStore("telegram", process.env, accountId);
-  const channelScoped = await readLegacyChannelAllowFromStore("telegram");
+  const accountScoped = await readChannelAllowFromStore("feishu", process.env, accountId);
+  const channelScoped = await readLegacyChannelAllowFromStore("feishu");
   expect(accountScoped).toContain(entry);
   expect(channelScoped).not.toContain(entry);
 }
@@ -141,7 +141,7 @@ async function withAllowFromCacheReadSpy(params: {
 }) {
   await writeAllowFromFixture({
     stateDir: params.stateDir,
-    channel: "telegram",
+    channel: "feishu",
     accountId: "yy",
     allowFrom: ["1001"],
   });
@@ -155,7 +155,7 @@ async function withAllowFromCacheReadSpy(params: {
 }
 
 async function seedDefaultAccountAllowFromFixture(stateDir: string) {
-  await seedTelegramAllowFromFixtures({
+  await seedFeishuAllowFromFixtures({
     stateDir,
     scopedAccountId: DEFAULT_ACCOUNT_ID,
     scopedAllowFrom: ["1002"],
@@ -198,8 +198,8 @@ async function expectAllowFromReadConsistencyCase(params: {
   accountId?: string;
   expected: readonly string[];
 }) {
-  const asyncScoped = await readChannelAllowFromStore("telegram", process.env, params.accountId);
-  const syncScoped = readChannelAllowFromStoreSync("telegram", process.env, params.accountId);
+  const asyncScoped = await readChannelAllowFromStore("feishu", process.env, params.accountId);
+  const syncScoped = readChannelAllowFromStoreSync("feishu", process.env, params.accountId);
   expect(asyncScoped).toEqual(params.expected);
   expect(syncScoped).toEqual(params.expected);
 }
@@ -210,12 +210,12 @@ async function expectPendingPairingRequestsIsolatedByAccount(params: {
   secondAccountId: string;
 }) {
   const first = await upsertChannelPairingRequest({
-    channel: "telegram",
+    channel: "feishu",
     accountId: params.firstAccountId,
     id: params.sharedId,
   });
   const second = await upsertChannelPairingRequest({
-    channel: "telegram",
+    channel: "feishu",
     accountId: params.secondAccountId,
     id: params.sharedId,
   });
@@ -224,13 +224,9 @@ async function expectPendingPairingRequestsIsolatedByAccount(params: {
   expect(second.created).toBe(true);
   expect(second.code).not.toBe(first.code);
 
-  const firstList = await listChannelPairingRequests(
-    "telegram",
-    process.env,
-    params.firstAccountId,
-  );
+  const firstList = await listChannelPairingRequests("feishu", process.env, params.firstAccountId);
   const secondList = await listChannelPairingRequests(
-    "telegram",
+    "feishu",
     process.env,
     params.secondAccountId,
   );
@@ -250,18 +246,18 @@ async function expectScopedAllowFromReadCase(params: {
 }) {
   await writeAllowFromFixture({
     stateDir: params.stateDir,
-    channel: "telegram",
+    channel: "feishu",
     allowFrom: params.legacyAllowFrom,
   });
   await writeAllowFromFixture({
     stateDir: params.stateDir,
-    channel: "telegram",
+    channel: "feishu",
     accountId: params.accountId,
     allowFrom: params.scopedAllowFrom,
   });
 
-  const scoped = readChannelAllowFromStoreSync("telegram", process.env, params.accountId);
-  const channelScoped = readLegacyChannelAllowFromStoreSync("telegram");
+  const scoped = readChannelAllowFromStoreSync("feishu", process.env, params.accountId);
+  const channelScoped = readLegacyChannelAllowFromStoreSync("feishu");
   expect(scoped).toEqual(params.expectedScoped);
   expect(channelScoped).toEqual(params.expectedLegacy);
 }
@@ -414,7 +410,7 @@ describe("pairing store", () => {
         initialValue: 0,
         run: async () => {
           const first = await upsertChannelPairingRequest({
-            channel: "telegram",
+            channel: "feishu",
             id: "123",
             accountId: DEFAULT_ACCOUNT_ID,
           });
@@ -425,7 +421,7 @@ describe("pairing store", () => {
             fallbackValue: 1,
             run: async () => {
               const second = await upsertChannelPairingRequest({
-                channel: "telegram",
+                channel: "feishu",
                 id: "456",
                 accountId: DEFAULT_ACCOUNT_ID,
               });
@@ -443,7 +439,7 @@ describe("pairing store", () => {
       run: async () => {
         await withTempStateDir(async () => {
           await addChannelAllowFromStoreEntry({
-            channel: "telegram",
+            channel: "feishu",
             accountId: "yy",
             entry: "12345",
           });
@@ -456,10 +452,10 @@ describe("pairing store", () => {
       name: "approves pairing codes into account-scoped allowFrom via pairing metadata",
       run: async () => {
         await withTempStateDir(async () => {
-          const created = await createTelegramPairingRequest("yy");
+          const created = await createFeishuPairingRequest("yy");
 
           const approved = await approveChannelPairingCode({
-            channel: "telegram",
+            channel: "feishu",
             code: created.code,
           });
           expect(approved?.id).toBe("12345");
@@ -472,22 +468,22 @@ describe("pairing store", () => {
       name: "filters approvals by account id and ignores blank approval codes",
       run: async () => {
         await withTempStateDir(async () => {
-          const created = await createTelegramPairingRequest("yy");
+          const created = await createFeishuPairingRequest("yy");
 
           const blank = await approveChannelPairingCode({
-            channel: "telegram",
+            channel: "feishu",
             code: "   ",
           });
           expect(blank).toBeNull();
 
           const mismatched = await approveChannelPairingCode({
-            channel: "telegram",
+            channel: "feishu",
             code: created.code,
             accountId: "zz",
           });
           expect(mismatched).toBeNull();
 
-          const pending = await listChannelPairingRequests("telegram");
+          const pending = await listChannelPairingRequests("feishu");
           expect(pending).toHaveLength(1);
           expect(pending[0]?.id).toBe("12345");
         });
@@ -498,13 +494,13 @@ describe("pairing store", () => {
       run: async () => {
         await withTempStateDir(async () => {
           await addChannelAllowFromStoreEntry({
-            channel: "telegram",
+            channel: "feishu",
             accountId: "yy",
             entry: "12345",
           });
 
           const removed = await removeChannelAllowFromStoreEntry({
-            channel: "telegram",
+            channel: "feishu",
             accountId: "yy",
             entry: "12345",
           });
@@ -512,7 +508,7 @@ describe("pairing store", () => {
           expect(removed.allowFrom).toEqual([]);
 
           const removedAgain = await removeChannelAllowFromStoreEntry({
-            channel: "telegram",
+            channel: "feishu",
             accountId: "yy",
             entry: "12345",
           });
@@ -542,7 +538,7 @@ describe("pairing store", () => {
     {
       name: "does not read legacy channel-scoped allowFrom for non-default account ids",
       setup: async (stateDir: string) => {
-        await seedTelegramAllowFromFixtures({
+        await seedFeishuAllowFromFixtures({
           stateDir,
           scopedAccountId: "yy",
           scopedAllowFrom: ["1003"],
@@ -555,7 +551,7 @@ describe("pairing store", () => {
     {
       name: "does not fall back to legacy allowFrom when scoped file exists but is empty",
       setup: async (stateDir: string) => {
-        await seedTelegramAllowFromFixtures({
+        await seedFeishuAllowFromFixtures({
           stateDir,
           scopedAccountId: "yy",
           scopedAllowFrom: [],
@@ -569,10 +565,10 @@ describe("pairing store", () => {
       setup: async (stateDir: string) => {
         await writeAllowFromFixture({
           stateDir,
-          channel: "telegram",
+          channel: "feishu",
           allowFrom: ["1001"],
         });
-        const malformedScopedPath = resolveAllowFromFilePath(stateDir, "telegram", "yy");
+        const malformedScopedPath = resolveAllowFromFilePath(stateDir, "feishu", "yy");
         await fs.mkdir(path.dirname(malformedScopedPath), { recursive: true });
         await fs.writeFile(malformedScopedPath, "{ this is not json\n", "utf8");
       },
@@ -624,7 +620,7 @@ describe("pairing store", () => {
         await withTempStateDir(async () => {
           for (const accountId of ["alpha", "beta", "gamma"]) {
             const created = await upsertChannelPairingRequest({
-              channel: "telegram",
+              channel: "feishu",
               accountId,
               id: `pending-${accountId}`,
             });
@@ -632,14 +628,14 @@ describe("pairing store", () => {
           }
 
           const delta = await upsertChannelPairingRequest({
-            channel: "telegram",
+            channel: "feishu",
             accountId: "delta",
             id: "pending-delta",
           });
           expect(delta.created).toBe(true);
 
-          const deltaList = await listChannelPairingRequests("telegram", process.env, "delta");
-          const allPending = await listChannelPairingRequests("telegram");
+          const deltaList = await listChannelPairingRequests("feishu", process.env, "delta");
+          const allPending = await listChannelPairingRequests("feishu");
           expect(deltaList.map((entry) => entry.id)).toEqual(["pending-delta"]);
           expect(allPending.map((entry) => entry.id)).toEqual([
             "pending-alpha",
@@ -658,12 +654,12 @@ describe("pairing store", () => {
     {
       label: "async",
       createReadSpy: () => vi.spyOn(fs, "readFile"),
-      readAllowFrom: () => readChannelAllowFromStore("telegram", process.env, "yy"),
+      readAllowFrom: () => readChannelAllowFromStore("feishu", process.env, "yy"),
     },
     {
       label: "sync",
       createReadSpy: () => vi.spyOn(fsSync, "readFileSync"),
-      readAllowFrom: async () => readChannelAllowFromStoreSync("telegram", process.env, "yy"),
+      readAllowFrom: async () => readChannelAllowFromStoreSync("feishu", process.env, "yy"),
     },
   ])("reuses cached $label allowFrom reads and invalidates on file updates", async (variant) => {
     await withTempStateDir(async (stateDir) => {

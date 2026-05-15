@@ -1,6 +1,6 @@
-import { getHealthSnapshot, type HealthSummary } from "../../commands/health.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
+import { getHealthSnapshot, type HealthSummary } from "../../control/health.js";
 import { callGateway } from "../../gateway/call.js";
 import { listDevicePairing, summarizeDeviceTokens } from "../../infra/device-pairing.js";
 import { formatErrorMessage } from "../../infra/errors.js";

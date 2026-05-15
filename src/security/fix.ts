@@ -241,14 +241,7 @@ function applyConfigFixes(params: { cfg: CrawClawConfig; env: NodeJS.ProcessEnv 
     changes.push('logging.redactSensitive=off -> "tools"');
   }
 
-  for (const channel of [
-    "ddingtalk",
-    "esp32",
-    "feishu",
-    "qqbot",
-    "weixin",
-    "wecom",
-  ]) {
+  for (const channel of ["ddingtalk", "esp32", "feishu", "qqbot", "weixin", "wecom"]) {
     setGroupPolicyAllowlist({ cfg: next, channel, changes, policyFlips });
   }
 

@@ -56,8 +56,7 @@ describe("pi-tools session-summary tool exposure", () => {
     expect(readResult).toMatchObject({
       details: {
         status: "ok",
-        sessionId: "session-parent",
-        agentId: "main",
+        scope: "main.session-parent",
       },
     });
 

@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import { CHANNEL_IDS } from "../channels/registry.js";
-import { GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA } from "../generated/config/bundled-channel-config-metadata.generated.js";
 import { GENERATED_BASE_CONFIG_SCHEMA } from "../generated/config/schema.base.generated.js";
 import type { ConfigUiHint, ConfigUiHints } from "./schema.hints.js";
 import { applySensitiveHints, applySensitiveUrlHints } from "./schema.hints.js";
@@ -15,6 +14,8 @@ import { applyDerivedTags } from "./schema.tags.js";
 export type { ConfigUiHint, ConfigUiHints } from "./schema.hints.js";
 
 export type ConfigSchema = Record<string, unknown>;
+
+const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [] as const;
 
 type JsonSchemaNode = Record<string, unknown>;
 

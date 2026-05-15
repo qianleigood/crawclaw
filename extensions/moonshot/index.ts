@@ -1,60 +1,8 @@
-import { defineSingleProviderPluginEntry } from "crawclaw/plugin-sdk/provider-entry";
-import { applyMoonshotNativeStreamingUsageCompat } from "./api.js";
-import { moonshotMediaUnderstandingProvider } from "./media-understanding-provider.js";
-import {
-  applyMoonshotConfig,
-  applyMoonshotConfigCn,
-  MOONSHOT_DEFAULT_MODEL_REF,
-} from "./onboard.js";
-import { buildMoonshotProvider } from "./provider-catalog.js";
+import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
 
-const PROVIDER_ID = "moonshot";
-
-export default defineSingleProviderPluginEntry({
-  id: PROVIDER_ID,
+export default definePluginEntry({
+  id: "moonshot",
   name: "Moonshot Provider",
-  description: "Bundled Moonshot provider plugin",
-  provider: {
-    label: "Moonshot",
-    docsPath: "/providers/moonshot",
-    auth: [
-      {
-        methodId: "api-key",
-        label: "Kimi API key (.ai)",
-        hint: "Kimi K2.5 + Kimi",
-        optionKey: "moonshotApiKey",
-        flagName: "--moonshot-api-key",
-        envVar: "MOONSHOT_API_KEY",
-        promptMessage: "Enter Moonshot API key",
-        defaultModel: MOONSHOT_DEFAULT_MODEL_REF,
-        applyConfig: (cfg) => applyMoonshotConfig(cfg),
-        wizard: {
-          groupLabel: "Moonshot AI (Kimi K2.5)",
-        },
-      },
-      {
-        methodId: "api-key-cn",
-        label: "Kimi API key (.cn)",
-        hint: "Kimi K2.5 + Kimi",
-        optionKey: "moonshotApiKey",
-        flagName: "--moonshot-api-key",
-        envVar: "MOONSHOT_API_KEY",
-        promptMessage: "Enter Moonshot API key (.cn)",
-        defaultModel: MOONSHOT_DEFAULT_MODEL_REF,
-        applyConfig: (cfg) => applyMoonshotConfigCn(cfg),
-        wizard: {
-          groupLabel: "Moonshot AI (Kimi K2.5)",
-        },
-      },
-    ],
-    catalog: {
-      buildProvider: buildMoonshotProvider,
-      allowExplicitBaseUrl: true,
-    },
-    applyNativeStreamingUsageCompat: ({ providerConfig }) =>
-      applyMoonshotNativeStreamingUsageCompat(providerConfig),
-  },
-  register(api) {
-    api.registerMediaUnderstandingProvider(moonshotMediaUnderstandingProvider);
-  },
+  description: "Bundled Moonshot provider metadata plugin",
+  register() {},
 });

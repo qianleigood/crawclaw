@@ -1,12 +1,5 @@
 const ENVELOPE_PREFIX = /^\[([^\]]+)\]\s*/;
-const ENVELOPE_CHANNELS = [
-  "WebChat",
-  "Weixin",
-  "Feishu",
-  "QQ Bot",
-  "DingTalk",
-  "ESP32",
-];
+const ENVELOPE_CHANNELS = ["WebChat", "Weixin", "Feishu", "QQ Bot", "DingTalk", "ESP32"];
 
 const MESSAGE_ID_LINE = /^\s*\[message_id:\s*[^\]]+\]\s*$/i;
 function looksLikeEnvelopeHeader(header: string): boolean {

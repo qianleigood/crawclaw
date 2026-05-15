@@ -8,7 +8,6 @@ const rootEntries = [
   "crawclaw.mjs!",
   "src/index.ts!",
   "src/entry.ts!",
-  "src/cli/daemon-cli.ts!",
   "src/infra/warning-filter.ts!",
   bundledPluginFile("telegram", "src/audit.ts", "!"),
   bundledPluginFile("telegram", "src/token.ts", "!"),

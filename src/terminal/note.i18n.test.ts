@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { setActiveCliLocale } from "../cli/i18n/index.js";
+import { setActiveCliLocale } from "./i18n/index.js";
 
 const mocks = vi.hoisted(() => ({
   note: vi.fn(),

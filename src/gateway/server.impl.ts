@@ -1,11 +1,8 @@
 import "./ts-gateway-runtime-guard.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { getActiveEmbeddedRunCount } from "../agents/pi-embedded-runner/runs.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
 import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
 import type { ChannelId } from "../channels/plugins/types.js";
-import { formatCliCommand } from "../cli/command-format.js";
-import { createDefaultDeps } from "../cli/deps.js";
 import { isRestartEnabled } from "../config/commands.js";
 import {
   type ConfigFileSnapshot,
@@ -73,6 +70,8 @@ import {
   getInspectableTaskRegistrySummary,
   startTaskRegistryMaintenance,
 } from "../tasks/task-registry.maintenance.js";
+import { formatCliCommand } from "../terminal/command-format.js";
+import { createDefaultDeps } from "../terminal/deps.js";
 import { runSetupWizard } from "../wizard/setup.js";
 import { createAuthRateLimiter, type AuthRateLimiter } from "./auth-rate-limit.js";
 import { startChannelHealthMonitor } from "./channel-health-monitor.js";
@@ -372,7 +371,7 @@ export type GatewayServerOptions = {
    * Test-only: override the setup wizard runner.
    */
   wizardRunner?: (
-    opts: import("../commands/onboard-types.js").OnboardOptions,
+    opts: import("../control/onboard-types.js").OnboardOptions,
     runtime: import("../runtime.js").RuntimeEnv,
     prompter: import("../wizard/prompts.js").WizardPrompter,
   ) => Promise<void>;
@@ -526,10 +525,7 @@ export async function startGatewayServer(
   setGatewaySigusr1RestartPolicy({ allowExternal: isRestartEnabled(cfgAtStart) });
   setPreRestartDeferralCheck(
     () =>
-      getTotalQueueSize() +
-      getTotalPendingReplies() +
-      getActiveEmbeddedRunCount() +
-      getInspectableTaskRegistrySummary().active,
+      getTotalQueueSize() + getTotalPendingReplies() + getInspectableTaskRegistrySummary().active,
   );
   // Unconditional startup migration: seed gateway.browserClients.allowedOrigins for existing
   // non-loopback installs that upgraded to v2026.2.26+ without required origins.
@@ -1198,7 +1194,7 @@ export async function startGatewayServer(
     };
 
     // Register a lazy fallback for plugin subagent dispatch in non-WS paths
-    // (Telegram polling, WhatsApp, etc.) so later runtime swaps can expose the
+    // (native channel adapters) so later runtime swaps can expose the
     // current gateway context without relying on a startup snapshot.
     setFallbackGatewayContextResolver(() => gatewayRequestContext);
 
@@ -1700,7 +1696,6 @@ export async function startGatewayServer(
       await runGlobalGatewayStopSafely({
         event: { reason: opts?.reason ?? "gateway stopping" },
         ctx: { port: activePort },
-        onError: (err) => log.warn(`gateway_stop hook failed: ${String(err)}`),
       });
       if (diagnosticsEnabled) {
         stopDiagnosticHeartbeat();

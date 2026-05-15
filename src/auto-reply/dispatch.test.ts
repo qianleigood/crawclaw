@@ -238,7 +238,7 @@ describe("withReplyDispatcher", () => {
       ctx: buildTestCtx({
         Body: "hello",
         MessageSid: "msg-1",
-        SessionKey: "agent:main:whatsapp:direct:+1000",
+        SessionKey: "agent:main:weixin:direct:+1000",
       }),
       cfg: {} as CrawClawConfig,
       dispatcher,
@@ -253,10 +253,10 @@ describe("withReplyDispatcher", () => {
       "agent_run_turn",
       expect.objectContaining({
         runId: "run-test",
-        sessionKey: "agent:main:whatsapp:direct:+1000",
+        sessionKey: "agent:main:weixin:direct:+1000",
         inbound: expect.objectContaining({
           body: "hello",
-          channel: "whatsapp",
+          channel: "weixin",
           messageId: "msg-1",
         }),
       }),

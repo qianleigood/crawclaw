@@ -256,9 +256,9 @@ This guide sets up an Azure Linux VM with the Azure CLI, applies Network Securit
 
   <Step title="Install CrawClaw (in the VM shell)">
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh -o /tmp/install.sh
-    bash /tmp/install.sh
-    rm -f /tmp/install.sh
+    # Install CrawClaw Desktop from GitHub Releases.
+    bash /tmp/CrawClaw Desktop installer
+    rm -f /tmp/CrawClaw Desktop installer
     ```
 
     The installer installs Node LTS and dependencies if not already present, installs CrawClaw, and launches the onboarding wizard. See [Install](/install) for details.

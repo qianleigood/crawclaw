@@ -10,7 +10,7 @@ const abortEmbeddedPiRunMock = vi.fn();
 const compactEmbeddedPiSessionMock = vi.fn();
 const isEmbeddedPiRunActiveMock = vi.fn(() => false);
 const isEmbeddedPiRunStreamingMock = vi.fn(() => false);
-const queueEmbeddedPiMessageMock = vi.fn(() => false);
+const queueEmbeddedPWeixinMock = vi.fn(() => false);
 const resolveEmbeddedSessionLaneMock = vi.fn();
 const waitForEmbeddedPiRunEndMock = vi.fn();
 const enqueueFollowupRunMock = vi.fn();
@@ -34,7 +34,7 @@ vi.mock("../../agents/pi-embedded.js", () => ({
   compactEmbeddedPiSession: compactEmbeddedPiSessionMock,
   isEmbeddedPiRunActive: isEmbeddedPiRunActiveMock,
   isEmbeddedPiRunStreaming: isEmbeddedPiRunStreamingMock,
-  queueEmbeddedPiMessage: queueEmbeddedPiMessageMock,
+  queueEmbeddedPWeixin: queueEmbeddedPWeixinMock,
   resolveEmbeddedSessionLane: resolveEmbeddedSessionLaneMock,
   runEmbeddedPiAgent: runEmbeddedPiAgentMock,
   waitForEmbeddedPiRunEnd: waitForEmbeddedPiRunEndMock,
@@ -59,8 +59,8 @@ describe("runReplyAgent media path normalization", () => {
     isEmbeddedPiRunActiveMock.mockReturnValue(false);
     isEmbeddedPiRunStreamingMock.mockReset();
     isEmbeddedPiRunStreamingMock.mockReturnValue(false);
-    queueEmbeddedPiMessageMock.mockReset();
-    queueEmbeddedPiMessageMock.mockReturnValue(false);
+    queueEmbeddedPWeixinMock.mockReset();
+    queueEmbeddedPWeixinMock.mockReturnValue(false);
     resolveEmbeddedSessionLaneMock.mockReset();
     waitForEmbeddedPiRunEndMock.mockReset();
     enqueueFollowupRunMock.mockReset();
@@ -108,7 +108,7 @@ describe("runReplyAgent media path normalization", () => {
         run: {
           agentId: "main",
           agentDir: "/tmp/agent",
-          messageProvider: "telegram",
+          messageProvider: "feishu",
           workspaceDir: "/tmp/workspace",
         },
       }) as unknown as FollowupRun,
@@ -120,8 +120,8 @@ describe("runReplyAgent media path normalization", () => {
       isStreaming: false,
       typing: createMockTypingController(),
       sessionCtx: {
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
         To: "chat-1",
         OriginatingTo: "chat-1",
         AccountId: "default",

@@ -1,7 +1,6 @@
 import path from "node:path";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { CHANNEL_IDS, normalizeChatChannelId } from "../channels/registry.js";
-import { GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA } from "../generated/config/bundled-channel-config-metadata.generated.js";
 import { withBundledPluginAllowlistCompat } from "../plugins/bundled-compat.js";
 import { listBundledWebSearchPluginIds } from "../plugins/bundled-web-search-ids.js";
 import {
@@ -42,6 +41,7 @@ type JsonSchemaLike = Record<string, unknown>;
 
 const CUSTOM_EXPECTED_ONE_OF_RE = /expected one of ((?:"[^"]+"(?:\|"?[^"]+"?)*)+)/i;
 const SECRETREF_POLICY_DOC_URL = "https://docs.crawclaw.ai/reference/secretref-credential-surface";
+const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [] as const;
 type BundledChannelConfigMetadata = {
   channelId: string;
   schema: unknown;

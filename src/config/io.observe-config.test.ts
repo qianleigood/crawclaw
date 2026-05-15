@@ -47,12 +47,6 @@ describe("config io observe", () => {
           mode: "local",
           auth: { mode: "token", token: "secret-token" },
         },
-        channels: {
-          feishu: {
-            enabled: true,
-            dmPolicy: "pairing",
-          },
-        },
       });
 
       const seeded = await io.readConfigFileSnapshot();
@@ -108,12 +102,6 @@ describe("config io observe", () => {
       await io.writeConfigFile({
         update: { channel: "beta" },
         gateway: { mode: "local" },
-        channels: {
-          feishu: {
-            enabled: true,
-            dmPolicy: "pairing",
-          },
-        },
       });
       await io.readConfigFileSnapshot();
       await fs.copyFile(configPath, `${configPath}.bak`);
@@ -144,12 +132,6 @@ describe("config io observe", () => {
       await io.writeConfigFile({
         update: { channel: "beta" },
         gateway: { mode: "local" },
-        channels: {
-          feishu: {
-            enabled: true,
-            dmPolicy: "pairing",
-          },
-        },
       });
       await fs.copyFile(configPath, `${configPath}.bak`);
 

@@ -1,5 +1,4 @@
 import type { CrawClawConfig } from "../config/config.js";
-import { resolveProviderReasoningOutputModeWithPlugin } from "../plugins/provider-runtime.js";
 import type { ProviderRuntimeModel } from "../plugins/types.js";
 
 /**
@@ -18,25 +17,6 @@ export function resolveReasoningOutputMode(params: {
   const provider = params.provider?.trim();
   if (!provider) {
     return "native";
-  }
-
-  const pluginMode = resolveProviderReasoningOutputModeWithPlugin({
-    provider,
-    config: params.config,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-    context: {
-      config: params.config,
-      workspaceDir: params.workspaceDir,
-      env: params.env,
-      provider,
-      modelId: params.modelId,
-      modelApi: params.modelApi,
-      model: params.model,
-    },
-  });
-  if (pluginMode) {
-    return pluginMode;
   }
 
   const normalized = provider.toLowerCase();

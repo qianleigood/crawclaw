@@ -75,21 +75,21 @@ describe("formatAgentEnvelope", () => {
   });
 
   it("handles missing optional fields", () => {
-    const body = formatAgentEnvelope({ channel: "Telegram", body: "hi" });
-    expect(body).toBe("[Telegram] hi");
+    const body = formatAgentEnvelope({ channel: "Feishu", body: "hi" });
+    expect(body).toBe("[Feishu] hi");
   });
 });
 
 describe("formatInboundEnvelope", () => {
   it("prefixes sender for non-direct chats", () => {
     const body = formatInboundEnvelope({
-      channel: "Discord",
+      channel: "QQBot",
       from: "Guild #general",
       body: "hi",
       chatType: "channel",
       senderLabel: "Alice",
     });
-    expect(body).toBe("[Discord Guild #general] Alice: hi");
+    expect(body).toBe("[QQBot Guild #general] Alice: hi");
   });
 
   it("uses sender fields when senderLabel is missing", () => {
@@ -105,20 +105,20 @@ describe("formatInboundEnvelope", () => {
 
   it("keeps direct messages unprefixed", () => {
     const body = formatInboundEnvelope({
-      channel: "iMessage",
+      channel: "Weixin",
       from: "+1555",
       body: "hello",
       chatType: "direct",
       senderLabel: "Alice",
     });
-    expect(body).toBe("[iMessage +1555] hello");
+    expect(body).toBe("[Weixin +1555] hello");
   });
 
   it("includes elapsed time when previousTimestamp is provided", () => {
     const now = Date.now();
     const twoMinutesAgo = now - 2 * 60 * 1000;
     const body = formatInboundEnvelope({
-      channel: "Telegram",
+      channel: "Feishu",
       from: "Alice",
       body: "follow-up message",
       timestamp: now,
@@ -133,7 +133,7 @@ describe("formatInboundEnvelope", () => {
   it("omits elapsed time when disabled", () => {
     const now = Date.now();
     const body = formatInboundEnvelope({
-      channel: "Telegram",
+      channel: "Feishu",
       from: "Alice",
       body: "follow-up message",
       timestamp: now,
@@ -141,30 +141,30 @@ describe("formatInboundEnvelope", () => {
       chatType: "direct",
       envelope: { includeElapsed: false, includeTimestamp: false },
     });
-    expect(body).toBe("[Telegram Alice] follow-up message");
+    expect(body).toBe("[Feishu Alice] follow-up message");
   });
 
   it("prefixes DM body with (self) when fromMe is true", () => {
     const body = formatInboundEnvelope({
-      channel: "WhatsApp",
+      channel: "Weixin",
       from: "+1555",
       body: "outbound msg",
       chatType: "direct",
       fromMe: true,
     });
-    expect(body).toBe("[WhatsApp +1555] (self): outbound msg");
+    expect(body).toBe("[Weixin +1555] (self): outbound msg");
   });
 
   it("does not prefix group messages with (self) when fromMe is true", () => {
     const body = formatInboundEnvelope({
-      channel: "WhatsApp",
+      channel: "Weixin",
       from: "Family Chat",
       body: "hello",
       chatType: "group",
       senderLabel: "Alice",
       fromMe: true,
     });
-    expect(body).toBe("[WhatsApp Family Chat] Alice: hello");
+    expect(body).toBe("[Weixin Family Chat] Alice: hello");
   });
 
   it("resolves envelope options from config", () => {

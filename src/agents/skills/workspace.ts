@@ -83,7 +83,7 @@ function filterSkillEntries(
 
 const SKILL_COMMAND_MAX_LENGTH = 32;
 const SKILL_COMMAND_FALLBACK = "skill";
-// Discord command descriptions must be ≤100 characters
+// native command descriptions must be ≤100 characters
 const SKILL_COMMAND_DESCRIPTION_MAX_LENGTH = 100;
 
 const DEFAULT_MAX_CANDIDATES_PER_ROOT = 300;

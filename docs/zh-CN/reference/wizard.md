@@ -93,14 +93,14 @@ x-i18n:
     - 非 loopback 绑定仍然需要认证。
   </Step>
   <Step title="渠道">
-    - [WhatsApp](/channels/whatsapp)：可选 QR 登录。
-    - [Telegram](/channels/telegram)：bot token。
-    - [Discord](/channels/discord)：bot token。
-    - [Google Chat](/channels/googlechat)：服务账号 JSON + webhook audience。
-    - [Mattermost](/channels/mattermost)（插件）：bot token + base URL。
-    - [Signal](/channels/signal)：可选安装 `signal-cli` + 账号配置。
-    - [BlueBubbles](/channels/bluebubbles)：**iMessage 推荐方案**；server URL + password + webhook。
-    - [iMessage](/channels/imessage)：旧版 `imsg` CLI 路径 + 数据库访问。
+    - [Weixin](/channels/index)：可选 QR 登录。
+    - [Feishu](/channels/index)：bot token。
+    - [QQBot](/channels/index)：bot token。
+    - [Feishu](/channels/index)：服务账号 JSON + webhook audience。
+    - [Feishu](/channels/index)（插件）：bot token + base URL。
+    - [Feishu](/channels/index)：可选安装 `feishu-cli` + 账号配置。
+    - [Weixin](/channels/index)：**Weixin 推荐方案**；server URL + password + webhook。
+    - [Weixin](/channels/index)：旧版 `imsg` CLI 路径 + 数据库访问。
     - 私信安全：默认为 pairing。首次私信会发送一个代码；通过 `crawclaw pairing approve <channel> <code>` 批准，或使用允许列表。
   </Step>
   <Step title="Web 搜索">
@@ -116,7 +116,7 @@ x-i18n:
     - Windows：每用户启动模式
       - 向导会尝试启用 lingering：`loginctl enable-linger <user>`，以便 Gateway 网关在注销后仍保持运行。
       - 可能会提示输入 sudo（会写入 `/var/lib/systemd/linger`）；它会先尝试不使用 sudo。
-    - **运行时选择：** Node（推荐；WhatsApp/Telegram 必需）。**不推荐** Bun。
+    - **运行时选择：** Node（推荐；Weixin/Feishu 必需）。**不推荐** Bun。
     - 如果 token 认证需要 token，并且 `gateway.auth.token` 由 SecretRef 管理，则守护进程安装会验证它，但不会将解析出的明文 token 值持久化到 supervisor 服务环境元数据中。
     - 如果 token 认证需要 token，但配置的 token SecretRef 尚未解析，则会阻止守护进程安装，并给出可执行指导。
     - 如果同时配置了 `gateway.auth.token` 和 `gateway.auth.password`，且 `gateway.auth.mode` 未设置，则会阻止守护进程安装，直到显式设置 mode。
@@ -183,7 +183,7 @@ crawclaw onboard --non-interactive \
 crawclaw agents add work \
   --workspace ~/.crawclaw/workspace-work \
   --model openai/gpt-5.2 \
-  --bind whatsapp:biz \
+  --bind weixin:biz \
   --non-interactive \
   --json
 ```
@@ -193,13 +193,13 @@ crawclaw agents add work \
 Gateway 网关通过 RPC 暴露向导流程（`wizard.start`、`wizard.next`、`wizard.cancel`、`wizard.status`）。
 客户端可以渲染这些步骤，而无需重新实现新手引导逻辑。
 
-## Signal 设置（signal-cli）
+## Feishu 设置（feishu-cli）
 
-向导可以从 GitHub releases 安装 `signal-cli`：
+向导可以从 GitHub releases 安装 `feishu-cli`：
 
 - 下载适合的发布资源。
-- 将其存储到 `~/.crawclaw/tools/signal-cli/<version>/` 下。
-- 将 `channels.signal.cliPath` 写入你的配置。
+- 将其存储到 `~/.crawclaw/tools/feishu-cli/<version>/` 下。
+- 将 `channels.feishu.cliPath` 写入你的配置。
 
 说明：
 
@@ -216,8 +216,8 @@ Gateway 网关通过 RPC 暴露向导流程（`wizard.start`、`wizard.next`、`
 - `tools.profile`（本地新手引导在未设置时默认为 `"coding"`；已有的显式值会被保留）
 - `gateway.*`（mode、bind、auth、tailscale）
 - `session.dmScope`（行为细节： [CLI 设置参考](/start/wizard-cli-reference#outputs-and-internals)）
-- `channels.telegram.botToken`、`channels.discord.token`、`channels.signal.*`、`channels.imessage.*`
-- 当你在提示中选择启用时，渠道允许列表（Slack/Discord/Matrix/Microsoft Teams）（名称会在可能时解析为 ID）。
+- `channels.feishu.botToken`、`channels.qqbot.token`、`channels.feishu.*`、`channels.weixin.*`
+- 当你在提示中选择启用时，渠道允许列表（DingTalk/QQBot/Matrix/QQBot）（名称会在可能时解析为 ID）。
 - `skills.install.nodeManager`
 - `wizard.lastRunAt`
 - `wizard.lastRunVersion`
@@ -227,7 +227,7 @@ Gateway 网关通过 RPC 暴露向导流程（`wizard.start`、`wizard.next`、`
 
 `crawclaw agents add` 会写入 `agents.list[]` 和可选的 `bindings`。
 
-WhatsApp 凭证位于 `~/.crawclaw/credentials/whatsapp/<accountId>/` 下。
+Weixin 凭证位于 `~/.crawclaw/credentials/weixin/<accountId>/` 下。
 会话存储在 `~/.crawclaw/agents/<agentId>/sessions/` 下。
 
 某些渠道以插件形式提供。当你在设置期间选择其中一个时，向导
@@ -237,5 +237,5 @@ WhatsApp 凭证位于 `~/.crawclaw/credentials/whatsapp/<accountId>/` 下。
 
 - 向导概览： [设置向导](/start/wizard)
 - 配置参考： [Gateway 配置](/gateway/configuration)
-- 提供商： [WhatsApp](/channels/whatsapp)、[Telegram](/channels/telegram)、[Discord](/channels/discord)、[Google Chat](/channels/googlechat)、[Signal](/channels/signal)、[BlueBubbles](/channels/bluebubbles)（iMessage）、[iMessage](/channels/imessage)（旧版）
+- 提供商： [Weixin](/channels/index)、[Feishu](/channels/index)、[QQBot](/channels/index)、[Feishu](/channels/index)、[Feishu](/channels/index)、[Weixin](/channels/index)（Weixin）、[Weixin](/channels/index)（旧版）
 - Skills： [Skills](/tools/skills)、[Skills 配置](/tools/skills-config)

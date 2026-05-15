@@ -110,8 +110,8 @@ function candidateBinDirs(opts: EnsureCrawClawPathOpts): { prepend: string[]; ap
 }
 
 /**
- * Best-effort PATH bootstrap so skills that require the `crawclaw` CLI can run
- * under launchd/minimal environments and packaged runtime layouts.
+ * Best-effort PATH bootstrap so bundled tools can run under launchd/minimal
+ * environments and packaged runtime layouts.
  */
 export function ensureCrawClawCliOnPath(opts: EnsureCrawClawPathOpts = {}) {
   if (isTruthyEnvValue(process.env.CRAWCLAW_PATH_BOOTSTRAPPED)) {

@@ -166,10 +166,10 @@ CLI：`crawclaw approvals` 支持 gateway 或 node 编辑（参见 [Approvals CL
       enabled: true,
       mode: "session", // "session" | "targets" | "both"
       agentFilter: ["main"],
-      sessionFilter: ["discord"], // substring or regex
+      sessionFilter: ["qqbot"], // substring or regex
       targets: [
-        { channel: "slack", to: "U12345678" },
-        { channel: "telegram", to: "123456789" },
+        { channel: "ddingtalk", to: "U12345678" },
+        { channel: "feishu", to: "123456789" },
       ],
     },
   },

@@ -41,7 +41,7 @@ describe("experience local outbox", () => {
   it("merges pending experience by agent scope even when channel and user differ", async () => {
     await useTempStateDir();
     const scopeA = buildScope({ agentId: "main", channel: "feishu", userId: "user-a" });
-    const scopeB = buildScope({ agentId: "main", channel: "slack", userId: "user-b" });
+    const scopeB = buildScope({ agentId: "main", channel: "ddingtalk", userId: "user-b" });
     expect(scopeA).not.toBeNull();
     expect(scopeB).not.toBeNull();
 

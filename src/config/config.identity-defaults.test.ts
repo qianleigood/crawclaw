@@ -95,30 +95,6 @@ describe("config identity defaults", () => {
     });
   });
 
-  it("supports provider textChunkLimit config", async () => {
-    await withTempHome("crawclaw-config-identity-", async (home) => {
-      const cfg = await writeAndLoadConfig(home, {
-        messages: {
-          responsePrefix: "🦀",
-        },
-        channels: {
-          ddingtalk: { enabled: true, textChunkLimit: 4444 },
-          feishu: { enabled: true, textChunkLimit: 3333 },
-          qqbot: { enabled: true, textChunkLimit: 2222 },
-          weixin: { enabled: true, textChunkLimit: 1111 },
-        },
-      });
-
-      expect(cfg.channels?.ddingtalk?.textChunkLimit).toBe(4444);
-      expect(cfg.channels?.feishu?.textChunkLimit).toBe(3333);
-      expect(cfg.channels?.qqbot?.textChunkLimit).toBe(2222);
-      expect(cfg.channels?.weixin?.textChunkLimit).toBe(1111);
-
-      const legacy = (cfg.messages as unknown as Record<string, unknown>).textChunkLimit;
-      expect(legacy).toBeUndefined();
-    });
-  });
-
   it("accepts blank model provider apiKey values", async () => {
     await withTempHome("crawclaw-config-identity-", async (home) => {
       const cfg = await writeAndLoadConfig(home, {

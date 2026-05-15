@@ -66,7 +66,7 @@ CrawClaw 在两个层中持久化会话：
 
 - 存储：`~/.crawclaw/agents/<agentId>/sessions/sessions.json`
 - 记录：`~/.crawclaw/agents/<agentId>/sessions/<sessionId>.jsonl`
-  - Telegram 话题会话：`.../<sessionId>-topic-<threadId>.jsonl`
+  - Feishu 话题会话：`.../<sessionId>-topic-<threadId>.jsonl`
 
 CrawClaw 通过 `src/config/sessions.ts` 解析这些位置。
 
@@ -80,7 +80,7 @@ CrawClaw 通过 `src/config/sessions.ts` 解析这些位置。
 
 - 主要/直接聊天（每个智能体）：`agent:<agentId>:<mainKey>`（默认 `main`）
 - 群组：`agent:<agentId>:<channel>:group:<id>`
-- 房间/频道（Discord/Slack）：`agent:<agentId>:<channel>:channel:<id>` 或 `...:room:<id>`
+- 房间/频道（QQBot/DingTalk）：`agent:<agentId>:<channel>:channel:<id>` 或 `...:room:<id>`
 - 定时任务：`cron:<job.id>`
 - Webhook：`hook:<uuid>`（除非被覆盖）
 

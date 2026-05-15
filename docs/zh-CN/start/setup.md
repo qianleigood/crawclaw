@@ -54,7 +54,7 @@ crawclaw setup
 
 1. 安装运行时并在本地启动 Gateway 网关。
 2. 通过 CLI 完成新手引导/配置。
-3. 链接表面（示例：WhatsApp）：
+3. 链接表面（示例：Weixin）：
 
 ```bash
 crawclaw channels login
@@ -99,10 +99,10 @@ crawclaw health
 
 在调试认证或决定备份什么时使用此映射：
 
-- **WhatsApp**：`~/.crawclaw/credentials/whatsapp/<accountId>/creds.json`
-- **Telegram bot token**：配置/环境变量或 `channels.telegram.tokenFile`
-- **Discord bot token**：配置/环境变量（尚不支持令牌文件）
-- **Slack tokens**：配置/环境变量（`channels.slack.*`）
+- **Weixin**：`~/.crawclaw/credentials/weixin/<accountId>/creds.json`
+- **Feishu bot token**：配置/环境变量或 `channels.feishu.tokenFile`
+- **QQBot bot token**：配置/环境变量（尚不支持令牌文件）
+- **DingTalk tokens**：配置/环境变量（`channels.ddingtalk.*`）
 - **配对允许列表**：`~/.crawclaw/credentials/<channel>-allowFrom.json`
 - **模型认证配置文件**：`~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`
 - **旧版 OAuth 导入**：`~/.crawclaw/credentials/oauth.json`
@@ -127,5 +127,5 @@ sudo loginctl enable-linger $USER
 
 - [Gateway 网关运行手册](/gateway)（标志、监督、端口）
 - [Gateway 网关配置](/gateway/configuration)（配置模式 + 示例）
-- [Discord](/channels/discord) 和 [Telegram](/channels/telegram)（回复标签 + replyToMode 设置）
+- [QQBot](/channels/index) 和 [Feishu](/channels/index)（回复标签 + replyToMode 设置）
 - [CrawClaw 助手设置](/start/crawclaw)

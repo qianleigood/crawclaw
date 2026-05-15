@@ -22,10 +22,3 @@ export {
   ensureOllamaModelPulled,
   promptAndConfigureOllama,
 } from "./src/setup.js";
-export {
-  buildOllamaChatRequest,
-  isOllamaCompatProvider,
-  resolveOllamaCompatNumCtxEnabled,
-  shouldInjectOllamaCompatNumCtx,
-  wrapOllamaCompatNumCtx,
-} from "./src/stream.js";

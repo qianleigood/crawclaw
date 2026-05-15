@@ -37,7 +37,7 @@ x-i18n:
 
 - `messages.*` 用于前缀、队列和群组行为。
 - `agents.defaults.*` 用于分块流式传输和分块默认值。
-- 渠道覆盖（`channels.whatsapp.*`、`channels.telegram.*` 等）用于上限和流式传输开关。
+- 渠道覆盖（`channels.weixin.*`、`channels.feishu.*` 等）用于上限和流式传输开关。
 
 完整 schema 参见[配置](/gateway/configuration)。
 
@@ -57,9 +57,9 @@ x-i18n:
     inbound: {
       debounceMs: 2000,
       byChannel: {
-        whatsapp: 5000,
-        slack: 1500,
-        discord: 1500,
+        weixin: 5000,
+        ddingtalk: 1500,
+        qqbot: 1500,
       },
     },
   },
@@ -100,7 +100,7 @@ CrawClaw 将**提示正文**与**命令正文**分开：
 
 历史缓冲区是**仅待处理的**：它们包含*未*触发运行的群组消息（例如，提及门控的消息），并**排除**已在会话记录中的消息。
 
-指令剥离仅适用于**当前消息**部分，因此历史记录保持完整。包装历史记录的渠道应将 `CommandBody`（或 `RawBody`）设置为原始消息文本，并将 `Body` 保留为组合提示。历史缓冲区可通过 `messages.groupChat.historyLimit`（全局默认）和单渠道覆盖（如 `channels.slack.historyLimit` 或 `channels.telegram.accounts.<id>.historyLimit`）进行配置（设置 `0` 表示禁用）。
+指令剥离仅适用于**当前消息**部分，因此历史记录保持完整。包装历史记录的渠道应将 `CommandBody`（或 `RawBody`）设置为原始消息文本，并将 `Body` 保留为组合提示。历史缓冲区可通过 `messages.groupChat.historyLimit`（全局默认）和单渠道覆盖（如 `channels.ddingtalk.historyLimit` 或 `channels.feishu.accounts.<id>.historyLimit`）进行配置（设置 `0` 表示禁用）。
 
 ## 队列和后续消息
 
@@ -122,7 +122,7 @@ CrawClaw 将**提示正文**与**命令正文**分开：
 - `agents.defaults.blockStreamingChunk`（`minChars|maxChars|breakPreference`）
 - `agents.defaults.blockStreamingCoalesce`（基于空闲的批处理）
 - `agents.defaults.humanDelay`（块回复之间的拟人化暂停）
-- 渠道覆盖：`*.blockStreaming` 和 `*.blockStreamingCoalesce`（非 Telegram 渠道需要显式设置 `*.blockStreaming: true`）
+- 渠道覆盖：`*.blockStreaming` 和 `*.blockStreamingCoalesce`（非 Feishu 渠道需要显式设置 `*.blockStreaming: true`）
 
 详情：[流式传输 + 分块](/concepts/streaming)。
 
@@ -132,7 +132,7 @@ CrawClaw 可以显示或隐藏模型推理：
 
 - `/reasoning on|off|stream` 控制可见性。
 - 当模型产生推理内容时，它仍计入 token 使用量。
-- Telegram 支持将推理流式传输到草稿气泡中。
+- Feishu 支持将推理流式传输到草稿气泡中。
 
 详情：[思考 + 推理指令](/tools/thinking)和 [Token 使用](/reference/token-use)。
 
@@ -140,7 +140,7 @@ CrawClaw 可以显示或隐藏模型推理：
 
 出站消息格式在 `messages` 中集中配置：
 
-- `messages.responsePrefix`（出站前缀）和 `channels.whatsapp.messagePrefix`（WhatsApp 入站前缀）
+- `messages.responsePrefix`（出站前缀）和 `channels.weixin.messagePrefix`（Weixin 入站前缀）
 - 通过 `replyToMode` 和单渠道默认值进行回复线程
 
 详情：[配置](/gateway/configuration#messages)和渠道文档。

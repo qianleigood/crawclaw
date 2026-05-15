@@ -43,7 +43,7 @@ All three legacy surfaces have now been removed.
 The old approach caused problems:
 
 - **Slow startup** — importing one helper loaded dozens of unrelated modules
-- **Circular dependencies** — broad re-exports made it easy to create import cycles
+- **Cnative chatular dependencies** — broad re-exports made it easy to create import cycles
 - **Unclear API surface** — no way to tell which exports were stable vs internal
 
 The modern plugin SDK fixes this: each import path (`crawclaw/plugin-sdk/\<subpath\>`)
@@ -100,7 +100,8 @@ is a small, self-contained module with a clear purpose and documented contract.
     // After (modern focused imports)
     import { createPluginRuntimeStore } from "crawclaw/plugin-sdk/runtime-store";
     import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
-```
+
+````
 
     For host-side helpers, use the injected plugin runtime instead of importing
     directly:
@@ -165,7 +166,7 @@ is a small, self-contained module with a clear purpose and documented contract.
 </Accordion>
 
 Use the narrowest import that matches the job. If you cannot find an export,
-check the source at `src/plugin-sdk/` or ask in Discord.
+check the source at `src/plugin-sdk/` or ask in community chat.
 
 ## Removal timeline
 
@@ -180,7 +181,7 @@ the focused subpaths before updating to this release.
 
 - [Getting Started](/plugins/building-plugins) — build your first plugin
 - [SDK Overview](/plugins/sdk-overview) — full subpath import reference
-- [Channel Plugins](/plugins/sdk-channel-plugins) — building channel plugins
-- [Provider Plugins](/plugins/sdk-provider-plugins) — building provider plugins
+- [Provider Configuration](/plugins/sdk-provider-plugins) — Rust-owned provider setup
 - [Plugin Internals](/plugins/architecture) — architecture deep dive
 - [Plugin Manifest](/plugins/manifest) — manifest schema reference
+````

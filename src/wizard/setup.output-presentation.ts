@@ -1,5 +1,5 @@
-import type { OnboardOutputPreset } from "../commands/onboard-types.js";
 import type { CrawClawConfig } from "../config/config.js";
+import type { OnboardOutputPreset } from "../control/onboard-types.js";
 import type { WizardPrompter, WizardSelectOption } from "./prompts.js";
 
 const OUTPUT_PRESENTATION_OPTIONS: Array<WizardSelectOption<OnboardOutputPreset>> = [

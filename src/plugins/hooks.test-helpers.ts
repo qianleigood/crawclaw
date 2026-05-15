@@ -40,7 +40,6 @@ export function createMockPluginRegistry(
     webSearchProviders: [],
     httpRoutes: [],
     gatewayHandlers: {},
-    cliRegistrars: [],
     services: [],
     commands: [],
     diagnostics: [],

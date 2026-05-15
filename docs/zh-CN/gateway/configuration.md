@@ -36,7 +36,7 @@ CrawClaw 会从 `~/.crawclaw/crawclaw.json` 读取可选的 <Tooltip tip="JSON5 
 // ~/.crawclaw/crawclaw.json
 {
   agents: { defaults: { workspace: "~/.crawclaw/workspace" } },
-  channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+  channels: { weixin: { allowFrom: ["+15555550123"] } },
 }
 ```
 
@@ -81,25 +81,25 @@ CrawClaw 只接受完全符合 schema 的配置。未知键、类型格式错误
 ## 常见任务
 
 <AccordionGroup>
-  <Accordion title="设置一个渠道（WhatsApp、Telegram、Discord 等）">
+  <Accordion title="设置一个渠道（Weixin、Feishu、QQBot 等）">
     每个渠道在 `channels.<provider>` 下都有各自的配置部分。设置步骤请参阅对应的渠道页面：
 
-    - [WhatsApp](/channels/whatsapp) — `channels.whatsapp`
-    - [Telegram](/channels/telegram) — `channels.telegram`
-    - [Discord](/channels/discord) — `channels.discord`
-    - [Slack](/channels/slack) — `channels.slack`
-    - [Signal](/channels/signal) — `channels.signal`
-    - [iMessage](/channels/imessage) — `channels.imessage`
-    - [Google Chat](/channels/googlechat) — `channels.googlechat`
-    - [Mattermost](/channels/mattermost) — `channels.mattermost`
-    - [MS Teams](/channels/msteams) — `channels.msteams`
+    - [Weixin](/channels/index) — `channels.weixin`
+    - [Feishu](/channels/index) — `channels.feishu`
+    - [QQBot](/channels/index) — `channels.qqbot`
+    - [DingTalk](/channels/index) — `channels.ddingtalk`
+    - [Feishu](/channels/index) — `channels.feishu`
+    - [Weixin](/channels/index) — `channels.weixin`
+    - [Feishu](/channels/index) — `channels.feishu`
+    - [Feishu](/channels/index) — `channels.feishu`
+    - [MS Teams](/channels/index) — `channels.qqbot`
 
     所有渠道都共享同一种私信策略模式：
 
     ```json5
     {
       channels: {
-        telegram: {
+        feishu: {
           enabled: true,
           botToken: "123:abc",
           dmPolicy: "pairing",   // pairing | allowlist | open | disabled
@@ -169,14 +169,14 @@ CrawClaw 只接受完全符合 schema 的配置。未知键、类型格式错误
         ],
       },
       channels: {
-        whatsapp: {
+        weixin: {
           groups: { "*": { requireMention: true } },
         },
       },
     }
     ```
 
-    - **元数据提及**：原生 @ 提及（WhatsApp 点按提及、Telegram @bot 等）
+    - **元数据提及**：原生 @ 提及（Weixin 点按提及、Feishu @bot 等）
     - **文本模式**：`mentionPatterns` 中的安全正则模式
     - 关于每个渠道的覆盖和自聊模式，请参阅 [完整参考](/gateway/configuration-reference#group-chat-mention-gating)。
 
@@ -193,7 +193,7 @@ CrawClaw 只接受完全符合 schema 的配置。未知键、类型格式错误
         channelMaxRestartsPerHour: 10,
       },
       channels: {
-        telegram: {
+        feishu: {
           healthMonitor: { enabled: false },
           accounts: {
             alerts: {
@@ -234,7 +234,7 @@ CrawClaw 只接受完全符合 schema 的配置。未知键、类型格式错误
     ```
 
     - `dmScope`：`main`（共享）| `per-peer` | `per-channel-peer` | `per-account-channel-peer`
-    - `threadBindings`：线程绑定会话路由的全局默认值（Discord 支持 `/focus`、`/unfocus`、`/agents`、`/session idle` 和 `/session max-age`）。
+    - `threadBindings`：线程绑定会话路由的全局默认值（QQBot 支持 `/focus`、`/unfocus`、`/agents`、`/session idle` 和 `/session max-age`）。
     - 关于作用域、身份链接和发送策略，请参阅 [Session Management](/concepts/session)。
     - 所有字段请参阅 [完整参考](/gateway/configuration-reference#session)。
 
@@ -400,8 +400,8 @@ CrawClaw 只接受完全符合 schema 的配置。未知键、类型格式错误
         ],
       },
       bindings: [
-        { agentId: "home", match: { channel: "whatsapp", accountId: "personal" } },
-        { agentId: "work", match: { channel: "whatsapp", accountId: "biz" } },
+        { agentId: "home", match: { channel: "weixin", accountId: "personal" } },
+        { agentId: "work", match: { channel: "weixin", accountId: "biz" } },
       ],
     }
     ```
@@ -461,7 +461,7 @@ Gateway 网关会监视 `~/.crawclaw/crawclaw.json` 并自动应用更改 ——
 
 | 类别               | 字段                                                  | 需要重启？ |
 | ------------------ | ----------------------------------------------------- | ---------- |
-| 渠道               | `channels.*`、`web`（WhatsApp）— 所有内置和扩展渠道   | 否         |
+| 渠道               | `channels.*`、`web`（Weixin）— 所有内置和扩展渠道     | 否         |
 | 智能体和模型       | `agent`、`agents`、`models`、`routing`                | 否         |
 | 自动化             | `hooks`、`cron`、`agent.heartbeat`                    | 否         |
 | 会话和消息         | `session`、`messages`                                 | 否         |
@@ -503,7 +503,7 @@ Gateway 网关会监视 `~/.crawclaw/crawclaw.json` 并自动应用更改 ——
     crawclaw gateway call config.apply --params '{
       "raw": "{ agents: { defaults: { workspace: \"~/.crawclaw/workspace\" } } }",
       "baseHash": "<hash>",
-      "sessionKey": "agent:main:whatsapp:direct:+15555550123"
+      "sessionKey": "agent:main:weixin:direct:+15555550123"
     }'
     ```
 
@@ -526,7 +526,7 @@ Gateway 网关会监视 `~/.crawclaw/crawclaw.json` 并自动应用更改 ——
 
     ```bash
     crawclaw gateway call config.patch --params '{
-      "raw": "{ channels: { telegram: { groups: { \"*\": { requireMention: false } } } } }",
+      "raw": "{ channels: { feishu: { groups: { \"*\": { requireMention: false } } } } }",
       "baseHash": "<hash>"
     }'
     ```
@@ -608,11 +608,11 @@ CrawClaw 会从父进程读取环境变量，另外还会读取：
     },
   },
   channels: {
-    googlechat: {
+    feishu: {
       serviceAccountRef: {
         source: "exec",
         provider: "vault",
-        id: "channels/googlechat/serviceAccount",
+        id: "channels/feishu/serviceAccount",
       },
     },
   },

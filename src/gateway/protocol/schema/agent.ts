@@ -99,7 +99,7 @@ export const SendParamsSchema = Type.Object(
     accountId: Type.Optional(Type.String()),
     /** Optional agent id for per-agent media root resolution on gateway sends. */
     agentId: Type.Optional(Type.String()),
-    /** Thread id (channel-specific meaning, e.g. Telegram forum topic id). */
+    /** Thread id (channel-specific meaning). */
     threadId: Type.Optional(Type.String()),
     /** Optional session key for mirroring delivered output back into the transcript. */
     sessionKey: Type.Optional(Type.String()),
@@ -119,9 +119,9 @@ export const PollParamsSchema = Type.Object(
     durationHours: Type.Optional(Type.Integer({ minimum: 1 })),
     /** Send silently (no notification) where supported. */
     silent: Type.Optional(Type.Boolean()),
-    /** Poll anonymity where supported (e.g. Telegram polls default to anonymous). */
+    /** Poll anonymity where supported. */
     isAnonymous: Type.Optional(Type.Boolean()),
-    /** Thread id (channel-specific meaning, e.g. Telegram forum topic id). */
+    /** Thread id (channel-specific meaning). */
     threadId: Type.Optional(Type.String()),
     channel: Type.Optional(Type.String()),
     accountId: Type.Optional(Type.String()),

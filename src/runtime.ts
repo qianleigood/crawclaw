@@ -1,4 +1,4 @@
-import { translateActiveCliText } from "./cli/i18n/text.js";
+import { translateActiveCliText } from "./terminal/i18n/text.js";
 import { clearActiveProgressLine } from "./terminal/progress-line.js";
 import { restoreTerminalState } from "./terminal/restore.js";
 

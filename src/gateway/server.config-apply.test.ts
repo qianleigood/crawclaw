@@ -79,11 +79,11 @@ describe("gateway config.apply", () => {
       expect(typeof current.payload?.hash).toBe("string");
       const nextConfig = structuredClone(current.payload?.config ?? {});
       const channels = (nextConfig.channels ??= {}) as Record<string, unknown>;
-      const telegram = (channels.telegram ??= {}) as Record<string, unknown>;
-      telegram.botToken = { source: "env", provider: "default", id: missingEnvVar };
-      const telegramAccounts = (telegram.accounts ??= {}) as Record<string, unknown>;
-      const defaultTelegramAccount = (telegramAccounts.default ??= {}) as Record<string, unknown>;
-      defaultTelegramAccount.enabled = true;
+      const feishu = (channels.feishu ??= {}) as Record<string, unknown>;
+      feishu.botToken = { source: "env", provider: "default", id: missingEnvVar };
+      const feishuAccounts = (feishu.accounts ??= {}) as Record<string, unknown>;
+      const defaultFeishuAccount = (feishuAccounts.default ??= {}) as Record<string, unknown>;
+      defaultFeishuAccount.enabled = true;
 
       const id = "req-secretref-apply";
       const res = await sendConfigApply(ws, id, JSON.stringify(nextConfig, null, 2));

@@ -54,7 +54,7 @@ describe("handleWorkflowCommand", () => {
     });
   });
 
-  it("builds telegram workflow status replies with inline buttons", async () => {
+  it("builds feishu workflow status replies with inline buttons", async () => {
     mocks.executeWorkflowControlAction.mockResolvedValue({
       execution: {
         executionId: "exec_1234abcd",
@@ -90,8 +90,8 @@ describe("handleWorkflowCommand", () => {
     });
 
     const params = buildCommandTestParams("/workflow status exec_1234abcd", baseCfg, {
-      Provider: "telegram",
-      Surface: "telegram",
+      Provider: "feishu",
+      Surface: "feishu",
     });
 
     const result = await handleWorkflowCommand(params, true);
@@ -106,7 +106,7 @@ describe("handleWorkflowCommand", () => {
     expect(result?.reply?.text).toContain("Current step: Review");
     expect(result?.reply?.text).toContain("Resume: /workflow resume exec_1234abcd <input>");
     expect(result?.reply?.channelData).toEqual({
-      telegram: {
+      feishu: {
         buttons: [
           [
             {
@@ -130,7 +130,7 @@ describe("handleWorkflowCommand", () => {
     });
   });
 
-  it("builds discord workflow cancel replies with native components", async () => {
+  it("builds qqbot workflow cancel replies with native components", async () => {
     mocks.executeWorkflowControlAction.mockResolvedValue({
       execution: {
         executionId: "exec_1234abcd",
@@ -153,15 +153,15 @@ describe("handleWorkflowCommand", () => {
     });
 
     const params = buildCommandTestParams("/workflow cancel exec_1234abcd", baseCfg, {
-      Provider: "discord",
-      Surface: "discord",
+      Provider: "qqbot",
+      Surface: "qqbot",
     });
 
     const result = await handleWorkflowCommand(params, true);
 
     expect(result?.reply?.text).toContain("Workflow cancelled: Publish Redbook Note");
     expect(result?.reply?.channelData).toEqual({
-      discord: {
+      qqbot: {
         components: {
           blocks: [
             {
@@ -180,7 +180,7 @@ describe("handleWorkflowCommand", () => {
     });
   });
 
-  it("adds a discord resume modal for waiting workflow status replies", async () => {
+  it("adds a qqbot resume modal for waiting workflow status replies", async () => {
     mocks.executeWorkflowControlAction.mockResolvedValue({
       execution: {
         executionId: "exec_1234abcd",
@@ -200,14 +200,14 @@ describe("handleWorkflowCommand", () => {
     });
 
     const params = buildCommandTestParams("/workflow status exec_1234abcd", baseCfg, {
-      Provider: "discord",
-      Surface: "discord",
+      Provider: "qqbot",
+      Surface: "qqbot",
     });
 
     const result = await handleWorkflowCommand(params, true);
 
     expect(result?.reply?.channelData).toEqual({
-      discord: {
+      qqbot: {
         components: expect.objectContaining({
           blocks: [
             {
@@ -257,8 +257,8 @@ describe("handleWorkflowCommand", () => {
     });
 
     const params = buildCommandTestParams("/workflow status exec_1234abcd", baseCfg, {
-      Provider: "telegram",
-      Surface: "telegram",
+      Provider: "feishu",
+      Surface: "feishu",
     });
 
     const result = await handleCommands(params);
@@ -266,7 +266,7 @@ describe("handleWorkflowCommand", () => {
     expect(result.shouldContinue).toBe(false);
     expect(result.reply?.text).toContain("Workflow waiting: Publish Redbook Note");
     expect(result.reply?.channelData).toEqual({
-      telegram: {
+      feishu: {
         buttons: [
           [
             {

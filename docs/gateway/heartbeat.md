@@ -63,7 +63,7 @@ module names.
 Do not delete or disable every feature named heartbeat. These mechanisms are not
 legacy agent heartbeat:
 
-- WhatsApp Web `web.heartbeatSeconds` keeps the Web channel connection observable.
+- Weixin Web `web.heartbeatSeconds` keeps the Web channel connection observable.
 - NotebookLM auth heartbeat checks authentication health.
 - WebSocket, gateway, and provider heartbeat or ping frames keep protocol
   connections alive.
@@ -85,4 +85,4 @@ for compatibility.
 - [Automation & Tasks](/automation)
 - [Scheduled Tasks](/automation/cron-jobs)
 - [Background Tasks](/automation/tasks)
-- [WhatsApp](/channels/whatsapp)
+- [Weixin](/channels/index)

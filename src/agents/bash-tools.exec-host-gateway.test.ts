@@ -174,12 +174,12 @@ describe("processGatewayAllowlist", () => {
       approvalRunningNoticeMs: 0,
       maxOutput: 1000,
       pendingMaxOutput: 1000,
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
     });
 
     expect(buildExecApprovalFollowupTargetMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        sessionKey: "agent:main:telegram:direct:123",
+        sessionKey: "agent:main:feishu:direct:123",
       }),
     );
   });

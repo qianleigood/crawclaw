@@ -50,19 +50,19 @@ function buildCommandParams(
     rootCtx: rootCtx as HandleCommandsParams["rootCtx"],
     cfg: {
       commands: { text: true },
-      channels: { telegram: { allowFrom: ["*"] } },
+      channels: { feishu: { allowFrom: ["*"] } },
     } as HandleCommandsParams["cfg"],
     command: {
-      surface: "telegram",
-      channel: "telegram",
+      surface: "feishu",
+      channel: "feishu",
       ownerList: [],
       senderIsOwner: false,
       isAuthorizedSender: true,
       senderId: "123",
       rawBodyNormalized: commandBodyNormalized,
       commandBodyNormalized,
-      from: "telegram:123",
-      to: "telegram:bot",
+      from: "feishu:123",
+      to: "feishu:bot",
       resetHookTriggered: false,
     },
     directives: {} as HandleCommandsParams["directives"],
@@ -71,7 +71,7 @@ function buildCommandParams(
       allowed: true,
       failures: [],
     },
-    sessionKey: overrides.sessionKey ?? "agent:main:telegram:direct:123",
+    sessionKey: overrides.sessionKey ?? "agent:main:feishu:direct:123",
     sessionEntry: overrides.sessionEntry,
     previousSessionEntry: overrides.previousSessionEntry,
     sessionStore: overrides.sessionStore,
@@ -123,7 +123,7 @@ describe("handleAcpResetInPlace", () => {
       },
     } as Record<string, NonNullable<HandleCommandsParams["sessionEntry"]>>;
     const params = buildCommandParams("/new continue", {
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       sessionStore,
     });
     const emitResetCommandHooks = vi.fn(async () => {});

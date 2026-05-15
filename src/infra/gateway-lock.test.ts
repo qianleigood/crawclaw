@@ -180,7 +180,7 @@ describe("gateway lock", () => {
     const pending = acquireForTest(env, {
       timeoutMs: 15,
       platform: "darwin",
-      readProcessCmdline: () => ["/usr/local/bin/crawclaw", "gateway", "run"],
+      readProcessCmdline: () => ["/usr/local/bin/crawclaw-gateway"],
     });
     await expect(pending).rejects.toBeInstanceOf(GatewayLockError);
 
@@ -277,7 +277,7 @@ describe("gateway lock", () => {
         staleMs: 10_000,
         platform: "darwin",
         port: 18789,
-        readProcessCmdline: () => ["/usr/local/bin/crawclaw", "gateway", "run"],
+        readProcessCmdline: () => ["/usr/local/bin/crawclaw-gateway"],
       });
       await expect(pending).rejects.toBeInstanceOf(GatewayLockError);
     } finally {
@@ -349,11 +349,7 @@ describe("gateway lock", () => {
       staleMs: 10_000,
       platform: "win32",
       port: 18789,
-      readProcessCmdline: () => [
-        "C:\\Users\\me\\AppData\\Roaming\\npm\\crawclaw.cmd",
-        "gateway",
-        "run",
-      ],
+      readProcessCmdline: () => ["C:\\Users\\me\\AppData\\Roaming\\npm\\crawclaw-gateway.exe"],
     });
     await expect(pending).rejects.toBeInstanceOf(GatewayLockError);
 
@@ -414,7 +410,7 @@ describe("gateway lock", () => {
       staleMs: 10_000,
       platform: "darwin",
       port: 18789,
-      readProcessCmdline: () => ["/usr/local/bin/crawclaw", "gateway", "run", "--port", "18789"],
+      readProcessCmdline: () => ["/usr/local/bin/crawclaw-gateway", "--port", "18789"],
     });
     await expect(pending).rejects.toBeInstanceOf(GatewayLockError);
 

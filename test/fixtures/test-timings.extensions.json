@@ -3,14 +3,6 @@
   "generatedAt": "2026-03-31T06:24:09.128Z",
   "defaultDurationMs": 1000,
   "files": {
-    "extensions/openai/provider-catalog.contract.test.ts": {
-      "durationMs": 13306,
-      "testCount": 3
-    },
-    "extensions/zai/plugin-registration.contract.test.ts": {
-      "durationMs": 10292,
-      "testCount": 2
-    },
     "extensions/acpx/src/runtime.test.ts": {
       "durationMs": 4928.570556640625,
       "testCount": 22
@@ -18,10 +10,6 @@
     "extensions/acpx/src/runtime-internals/process.test.ts": {
       "durationMs": 357.69775390625,
       "testCount": 16
-    },
-    "extensions/memory-lancedb/index.test.ts": {
-      "durationMs": 349.611328125,
-      "testCount": 18
     },
     "extensions/diffs/src/tool.test.ts": {
       "durationMs": 197.076171875,
@@ -55,29 +43,13 @@
       "durationMs": 54.70068359375,
       "testCount": 16
     },
-    "extensions/device-pair/index.test.ts": {
-      "durationMs": 50.2451171875,
-      "testCount": 15
-    },
     "extensions/voice-call/src/webhook.test.ts": {
       "durationMs": 49.31201171875,
-      "testCount": 17
-    },
-    "extensions/microsoft-foundry/index.test.ts": {
-      "durationMs": 41.1240234375,
-      "testCount": 22
-    },
-    "extensions/lobster/src/lobster-tool.test.ts": {
-      "durationMs": 31.674560546875,
       "testCount": 17
     },
     "extensions/voice-call/src/manager.notify.test.ts": {
       "durationMs": 27.918212890625,
       "testCount": 10
-    },
-    "extensions/openai/index.test.ts": {
-      "durationMs": 25.549072265625,
-      "testCount": 9
     },
     "extensions/voice-call/src/manager.closed-loop.test.ts": {
       "durationMs": 24.541748046875,
@@ -91,25 +63,9 @@
       "durationMs": 17.973876953125,
       "testCount": 6
     },
-    "extensions/llm-task/src/llm-task-tool.test.ts": {
-      "durationMs": 15.7490234375,
-      "testCount": 13
-    },
-    "extensions/thread-ownership/index.test.ts": {
-      "durationMs": 14.474609375,
-      "testCount": 9
-    },
     "extensions/voice-call/src/webhook.hangup-once.lifecycle.test.ts": {
       "durationMs": 11.766357421875,
       "testCount": 2
-    },
-    "extensions/github-copilot/models.test.ts": {
-      "durationMs": 10.251953125,
-      "testCount": 20
-    },
-    "extensions/phone-control/index.test.ts": {
-      "durationMs": 9.85791015625,
-      "testCount": 3
     },
     "extensions/voice-call/src/manager/timers.test.ts": {
       "durationMs": 9.802734375,

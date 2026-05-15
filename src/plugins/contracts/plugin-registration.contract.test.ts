@@ -5,18 +5,15 @@ type PluginRegistrationContractParams = Parameters<typeof describePluginRegistra
 const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   {
     pluginId: "anthropic",
-    providerIds: ["anthropic"],
     mediaUnderstandingProviderIds: ["anthropic"],
     cliBackendIds: ["claude-cli"],
     requireDescribeImages: true,
   },
   {
     pluginId: "fal",
-    providerIds: ["fal"],
   },
   {
     pluginId: "google",
-    providerIds: ["google", "google-gemini-cli"],
     mediaUnderstandingProviderIds: ["google"],
     cliBackendIds: ["google-gemini-cli"],
     requireDescribeImages: true,
@@ -27,7 +24,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   },
   {
     pluginId: "minimax",
-    providerIds: ["minimax", "minimax-portal"],
     mediaUnderstandingProviderIds: ["minimax", "minimax-portal"],
     requireDescribeImages: true,
   },
@@ -37,7 +33,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   },
   {
     pluginId: "moonshot",
-    providerIds: ["moonshot"],
     mediaUnderstandingProviderIds: ["moonshot"],
     requireDescribeImages: true,
     manifestAuthChoice: {
@@ -51,7 +46,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   },
   {
     pluginId: "openai",
-    providerIds: ["openai", "openai-codex"],
     mediaUnderstandingProviderIds: ["openai", "openai-codex"],
     cliBackendIds: ["codex-cli"],
     requireDescribeImages: true,
@@ -71,13 +65,11 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   },
   {
     pluginId: "openrouter",
-    providerIds: ["openrouter"],
     mediaUnderstandingProviderIds: ["openrouter"],
     requireDescribeImages: true,
   },
   {
     pluginId: "xai",
-    providerIds: ["xai"],
   },
   {
     pluginId: "zai",

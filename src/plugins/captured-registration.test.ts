@@ -13,30 +13,6 @@ describe("captured plugin registration", () => {
     const captured = capturePluginRegistration({
       register(api) {
         api.registerTool(capturedTool);
-        api.registerProvider({
-          id: "captured-provider",
-          label: "Captured Provider",
-          auth: [],
-        });
-        api.registerChannel({
-          plugin: {
-            id: "captured-channel",
-            meta: {
-              id: "captured-channel",
-              label: "Captured Channel",
-              selectionLabel: "Captured Channel",
-              docsPath: "/channels/captured-channel",
-              blurb: "captured channel",
-            },
-            capabilities: { chatTypes: ["direct"] },
-            config: {
-              listAccountIds: () => [],
-              resolveAccount: () => ({ accountId: "default" }),
-            },
-            outbound: { deliveryMode: "direct" },
-          },
-        });
-        api.registerHook("message_received", () => {});
         api.registerCommand({
           name: "captured-command",
           description: "Captured command",
@@ -46,6 +22,5 @@ describe("captured plugin registration", () => {
     });
 
     expect(captured.tools.map((tool) => tool.name)).toEqual(["captured-tool"]);
-    expect(captured.providers.map((provider) => provider.id)).toEqual(["captured-provider"]);
   });
 });

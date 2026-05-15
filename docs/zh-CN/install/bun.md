@@ -15,9 +15,9 @@ x-i18n:
 
 # Bun（实验性）
 
-目标：使用 **Bun** 运行此仓库（可选，不推荐用于 WhatsApp/Telegram），同时不偏离 pnpm 工作流。
+目标：使用 **Bun** 运行此仓库（可选，不推荐用于 Weixin/Feishu），同时不偏离 pnpm 工作流。
 
-⚠️ **不推荐用于 Gateway 网关运行时**（WhatsApp/Telegram 存在 bug）。生产环境请使用 Node。
+⚠️ **不推荐用于 Gateway 网关运行时**（Weixin/Feishu 存在 bug）。生产环境请使用 Node。
 
 ## 状态
 

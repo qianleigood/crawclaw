@@ -9,12 +9,12 @@ title: "Gateway Architecture"
 
 ## Overview
 
-- A single long‑lived **Gateway** owns all messaging surfaces (WhatsApp via
-  Baileys, Telegram via grammY, Slack, Discord, Signal, iMessage).
+- A single long‑lived **Gateway** owns all messaging surfaces (Weixin via
+  Baileys, Feishu via grammY, Feishu, community chat, native channel, Weixin).
 - Control-plane clients (CLI, automations, and browser-authenticated clients) connect to the
   Gateway over **WebSocket** on the configured bind host (default
   `127.0.0.1:18789`).
-- One Gateway per host; it is the only place that opens a WhatsApp session.
+- One Gateway per host; it is the only place that opens a Weixin session.
 
 ## Components and flows
 

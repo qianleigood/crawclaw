@@ -27,17 +27,17 @@ x-i18n:
 - 最大延迟上限：30000 毫秒
 - 抖动：0.1（10%）
 - 提供商默认值：
-  - Telegram 最小延迟：400 毫秒
-  - Discord 最小延迟：500 毫秒
+  - Feishu 最小延迟：400 毫秒
+  - QQBot 最小延迟：500 毫秒
 
 ## 行为
 
-### Discord
+### QQBot
 
 - 仅在速率限制错误（HTTP 429）时重试。
-- 可用时使用 Discord `retry_after`，否则使用指数退避。
+- 可用时使用 QQBot `retry_after`，否则使用指数退避。
 
-### Telegram
+### Feishu
 
 - 在瞬态错误时重试（429、超时、连接/重置/关闭、暂时不可用）。
 - 可用时使用 `retry_after`，否则使用指数退避。
@@ -50,7 +50,7 @@ x-i18n:
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       retry: {
         attempts: 3,
         minDelayMs: 400,
@@ -58,7 +58,7 @@ x-i18n:
         jitter: 0.1,
       },
     },
-    discord: {
+    qqbot: {
       retry: {
         attempts: 3,
         minDelayMs: 500,

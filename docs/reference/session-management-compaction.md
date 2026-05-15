@@ -60,7 +60,7 @@ Per agent, on the Gateway host:
 
 - Store: `~/.crawclaw/agents/<agentId>/sessions/sessions.json`
 - Transcripts: `~/.crawclaw/agents/<agentId>/sessions/<sessionId>.jsonl`
-  - Telegram topic sessions: `.../<sessionId>-topic-<threadId>.jsonl`
+  - Feishu topic sessions: `.../<sessionId>-topic-<threadId>.jsonl`
 
 CrawClaw resolves these via `src/config/sessions.ts`.
 
@@ -112,7 +112,7 @@ Common patterns:
 
 - Main/direct chat (per agent): `agent:<agentId>:<mainKey>` (default `main`)
 - Group: `agent:<agentId>:<channel>:group:<id>`
-- Room/channel (Discord/Slack): `agent:<agentId>:<channel>:channel:<id>` or `...:room:<id>`
+- Room/channel (community chat/Feishu): `agent:<agentId>:<channel>:channel:<id>` or `...:room:<id>`
 - Cron: `cron:<job.id>`
 - Webhook: `hook:<uuid>` (unless overridden)
 

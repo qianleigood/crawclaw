@@ -28,33 +28,33 @@ tool with the `react` action. Reaction behavior varies by channel.
 ## Channel behavior
 
 <AccordionGroup>
-  <Accordion title="Discord and Slack">
+  <Accordion title="QQBot and DingTalk">
     - Empty `emoji` removes all of the bot's reactions on the message.
     - `remove: true` removes just the specified emoji.
   </Accordion>
 
-  <Accordion title="Google Chat">
+  <Accordion title="Feishu">
     - Empty `emoji` removes the app's reactions on the message.
     - `remove: true` removes just the specified emoji.
   </Accordion>
 
-  <Accordion title="Telegram">
+  <Accordion title="Feishu">
     - Empty `emoji` removes the bot's reactions.
     - `remove: true` also removes reactions but still requires a non-empty `emoji` for tool validation.
   </Accordion>
 
-  <Accordion title="WhatsApp">
+  <Accordion title="Weixin">
     - Empty `emoji` removes the bot reaction.
     - `remove: true` maps to empty emoji internally (still requires `emoji` in the tool call).
   </Accordion>
 
-  <Accordion title="Zalo Personal (zalouser)">
+  <Accordion title="Feishu Personal (feishu)">
     - Requires non-empty `emoji`.
     - `remove: true` removes that specific emoji reaction.
   </Accordion>
 
   <Accordion title="Signal">
-    - Inbound reaction notifications are controlled by `channels.signal.reactionNotifications`: `"off"` disables them, `"own"` (default) emits events when users react to bot messages, and `"all"` emits events for all reactions.
+    - Inbound reaction notifications are controlled by the active Rust-native channel adapter when that adapter exposes reaction events.
   </Accordion>
 </AccordionGroup>
 
@@ -62,8 +62,8 @@ tool with the `react` action. Reaction behavior varies by channel.
 
 Per-channel `reactionLevel` config controls how broadly the agent uses reactions. Values are typically `off`, `ack`, `minimal`, or `extensive`.
 
-- [Telegram reactionLevel](/channels/telegram#reaction-notifications) — `channels.telegram.reactionLevel`
-- [WhatsApp reactionLevel](/channels/whatsapp#reaction-level) — `channels.whatsapp.reactionLevel`
+- [Feishu reactionLevel](/channels/index#reaction-notifications) — `channels.feishu.reactionLevel`
+- [Weixin reactionLevel](/channels/index#reaction-level) — `channels.weixin.reactionLevel`
 
 Set `reactionLevel` on individual channels to tune how actively the agent reacts to messages on each platform.
 

@@ -1,15 +1,6 @@
-import {
-  abortEmbeddedPiRun,
-  compactEmbeddedPiSession,
-  isEmbeddedPiRunActive,
-  waitForEmbeddedPiRunEnd,
-} from "../../agents/pi-embedded.js";
+import { compactNativeMemorySession } from "../../agents/runtime-tools/agent-turn-client.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import {
-  resolveFreshSessionTotalTokens,
-  resolveSessionFilePath,
-  resolveSessionFilePathOptions,
-} from "../../config/sessions.js";
+import { resolveFreshSessionTotalTokens } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { formatContextUsageShort, formatTokenCount } from "../status.js";
@@ -96,10 +87,6 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     };
   }
   const sessionId = params.sessionEntry.sessionId;
-  if (isEmbeddedPiRunActive(sessionId)) {
-    abortEmbeddedPiRun(sessionId);
-    await waitForEmbeddedPiRunEnd(sessionId, 15_000);
-  }
   const customInstructions = extractCompactInstructions({
     rawBody: params.ctx.CommandBody ?? params.ctx.RawBody ?? params.ctx.Body,
     ctx: params.ctx,
@@ -107,38 +94,11 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     agentId: params.agentId,
     isGroup: params.isGroup,
   });
-  const result = await compactEmbeddedPiSession({
+  const result = await compactNativeMemorySession({
     sessionId,
     sessionKey: params.sessionKey,
-    allowGatewaySubagentBinding: true,
-    messageChannel: params.command.channel,
-    groupId: params.sessionEntry.groupId,
-    groupChannel: params.sessionEntry.groupChannel,
-    groupSpace: params.sessionEntry.space,
-    spawnedBy: params.sessionEntry.spawnedBy,
-    sessionFile: resolveSessionFilePath(
-      sessionId,
-      params.sessionEntry,
-      resolveSessionFilePathOptions({
-        agentId: params.agentId,
-        storePath: params.storePath,
-      }),
-    ),
-    workspaceDir: params.workspaceDir,
-    agentDir: params.agentDir,
-    config: params.cfg,
-    provider: params.provider,
-    model: params.model,
-    thinkLevel: params.resolvedThinkLevel ?? (await params.resolveDefaultThinkingLevel()),
-    bashElevated: {
-      enabled: false,
-      allowed: false,
-      defaultLevel: "off",
-    },
     customInstructions,
-    trigger: "manual",
-    senderIsOwner: params.command.senderIsOwner,
-    ownerNumbers: params.command.ownerList.length > 0 ? params.command.ownerList : undefined,
+    force: true,
   });
 
   const compactLabel =

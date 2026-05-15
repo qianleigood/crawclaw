@@ -7,10 +7,6 @@ import {
 import { captureSubagentCompletionReply } from "../../subagent-announce-output.js";
 import { normalizeUsage, type NormalizedUsage } from "../../usage.js";
 import { resolveSpecialAgentCacheHints } from "./cache-plan.js";
-import {
-  defaultEmbeddedSpecialAgentRuntimeDeps,
-  runEmbeddedSpecialAgentToCompletion,
-} from "./embedded-run-once.js";
 import { resolveMaxTurns, resolveRunTimeoutSeconds } from "./shared.js";
 import type {
   SpecialAgentCompletionResult,
@@ -24,15 +20,13 @@ export type SpecialAgentRuntimeDeps = {
   captureSubagentCompletionReply: typeof captureSubagentCompletionReply;
   callGateway: typeof callGateway;
   onAgentEvent: typeof onAgentEvent;
-  runEmbeddedPiAgent: typeof defaultEmbeddedSpecialAgentRuntimeDeps.runEmbeddedPiAgent;
-};
+} & Record<string, unknown>;
 
 export const defaultSpecialAgentRuntimeDeps: SpecialAgentRuntimeDeps = {
   spawnAgentSessionDirect,
   captureSubagentCompletionReply,
   callGateway,
   onAgentEvent,
-  runEmbeddedPiAgent: defaultEmbeddedSpecialAgentRuntimeDeps.runEmbeddedPiAgent,
 };
 
 type AgentWaitResponse = {
@@ -43,6 +37,21 @@ type AgentWaitResponse = {
 
 type ChildHistoryResponse = {
   messages?: unknown[];
+};
+
+type RustSpecialAgentResponse = {
+  status?: string;
+  runId?: string;
+  childSessionKey?: string;
+  result?: {
+    status?: string;
+    assistantText?: string;
+    payloads?: Array<{ text?: string }>;
+    history?: unknown[];
+    usage?: unknown;
+  };
+  summary?: string;
+  error?: string;
 };
 
 function summarizeSpawnError(result: SpawnAgentSessionResult): string {
@@ -158,6 +167,70 @@ function deriveUsageFromHistory(messages: unknown[]): NormalizedUsage | undefine
   return usage;
 }
 
+function deriveRustSpecialReply(response: RustSpecialAgentResponse): string {
+  const result = response.result;
+  const payloadText = result?.payloads
+    ?.map((payload) => payload.text?.trim())
+    .filter((text): text is string => Boolean(text))
+    .join("\n")
+    .trim();
+  return payloadText || result?.assistantText?.trim() || response.summary?.trim() || "";
+}
+
+async function runRustEmbeddedSpecialAgentToCompletion(params: {
+  request: SpecialAgentSpawnRequest;
+  deps: SpecialAgentRuntimeDeps;
+}): Promise<SpecialAgentCompletionResult> {
+  const response = (await params.deps.callGateway({
+    method: "special_agents.run",
+    params: {
+      kind: params.request.definition.id,
+      spawnSource: params.request.definition.spawnSource,
+      task: params.request.task,
+      parentSessionKey: params.request.spawnContext?.parentSessionKey,
+      parentRunId: params.request.spawnContext?.parentRunId,
+      spawnContext: params.request.spawnContext,
+      spawnOverrides: params.request.spawnOverrides,
+    },
+    timeoutMs: resolveSpecialAgentWaitTimeoutMs({ request: params.request }),
+  })) as RustSpecialAgentResponse;
+
+  if (response.status && response.status !== "completed") {
+    return {
+      status: "wait_failed",
+      error: response.error ?? response.status,
+      ...(response.runId ? { runId: response.runId } : {}),
+      ...(response.childSessionKey ? { childSessionKey: response.childSessionKey } : {}),
+    };
+  }
+
+  const history = Array.isArray(response.result?.history) ? response.result.history : undefined;
+  if (history && params.request.hooks?.onHistory && response.runId && response.childSessionKey) {
+    await params.request.hooks.onHistory({
+      runId: response.runId,
+      childSessionKey: response.childSessionKey,
+      messages: history,
+    });
+  }
+  const usage = normalizeUsage(response.result?.usage);
+  if (usage && params.request.hooks?.onUsage && response.runId && response.childSessionKey) {
+    await params.request.hooks.onUsage({
+      runId: response.runId,
+      childSessionKey: response.childSessionKey,
+      usage,
+    });
+  }
+
+  return {
+    status: "completed",
+    runId: response.runId ?? "",
+    childSessionKey: response.childSessionKey ?? "",
+    reply: deriveRustSpecialReply(response),
+    ...(usage ? { usage } : {}),
+    ...(history ? { historyMessageCount: history.length } : {}),
+  };
+}
+
 async function maybeCaptureHistory(params: {
   deps: SpecialAgentRuntimeDeps;
   request: SpecialAgentSpawnRequest;
@@ -210,9 +283,7 @@ export async function runSpecialAgentToCompletion(
   }
 
   if ((request.definition.executionMode ?? "spawned_session") === "embedded_fork") {
-    return await runEmbeddedSpecialAgentToCompletion(request, {
-      runEmbeddedPiAgent: deps.runEmbeddedPiAgent,
-    });
+    return await runRustEmbeddedSpecialAgentToCompletion({ request, deps });
   }
   const spawnParams = await buildSpawnParams(request);
   const spawn = await deps.spawnAgentSessionDirect(spawnParams, request.spawnContext);

@@ -27,7 +27,7 @@ export type CronDelivery = {
   to?: string;
   /** Explicit thread/topic id for channels that support threaded delivery. */
   threadId?: string | number;
-  /** Explicit channel account id for multi-account setups (e.g. multiple Telegram bots). */
+  /** Explicit channel account id for multi-account setups (e.g. multiple channel accounts). */
   accountId?: string;
   bestEffort?: boolean;
   /** Separate destination for failure notifications. */

@@ -6,13 +6,8 @@ import { resolveAgentTimeoutMs } from "../../agents/timeout.js";
 import { ensureAgentWorkspace } from "../../agents/workspace.js";
 import { resolveSessionFilePath, resolveStorePath } from "../../config/sessions/paths.js";
 import { loadSessionStore, saveSessionStore } from "../../config/sessions/store.js";
-import { createLazyRuntimeMethod, createLazyRuntimeModule } from "../../shared/lazy-runtime.js";
 import { defineCachedValue } from "./runtime-cache.js";
 import type { PluginRuntime } from "./types.js";
-
-const loadEmbeddedPiRuntime = createLazyRuntimeModule(
-  () => import("./runtime-embedded-pi.runtime.js"),
-);
 
 export function createRuntimeAgent(): PluginRuntime["agent"] {
   const agentRuntime = {
@@ -26,12 +21,9 @@ export function createRuntimeAgent(): PluginRuntime["agent"] {
     resolveThinkingDefault,
     resolveAgentTimeoutMs,
     ensureAgentWorkspace,
-  } satisfies Omit<PluginRuntime["agent"], "runEmbeddedPiAgent" | "session"> &
-    Partial<Pick<PluginRuntime["agent"], "runEmbeddedPiAgent" | "session">>;
+  } satisfies Omit<PluginRuntime["agent"], "session"> &
+    Partial<Pick<PluginRuntime["agent"], "session">>;
 
-  defineCachedValue(agentRuntime, "runEmbeddedPiAgent", () =>
-    createLazyRuntimeMethod(loadEmbeddedPiRuntime, (runtime) => runtime.runEmbeddedPiAgent),
-  );
   defineCachedValue(agentRuntime, "session", () => ({
     resolveStorePath,
     loadSessionStore,

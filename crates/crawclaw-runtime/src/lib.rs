@@ -201,6 +201,10 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
             "transports": crawclaw_providers::native_provider_transports(),
             "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
             "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+            "providerAuthChoices": crawclaw_providers::bundled_provider_auth_choices(),
+            "providerSetupOptions": crawclaw_providers::bundled_provider_setup_options(),
+            "providerModelPickerEntries": crawclaw_providers::bundled_provider_model_picker_entries(),
+            "webProviderBoundaries": crawclaw_providers::bundled_web_provider_boundaries(),
             "defaultModels": crawclaw_providers::bundled_provider_default_models(),
         }),
     )?;
@@ -746,6 +750,22 @@ pub async fn execute_agent_run_turn_operation(
         .map_err(|error| format!("{}: {}", error.code(), error.message()))?;
     serde_json::to_value(result)
         .map_err(|error| format!("failed to serialize agent_run_turn result: {error}"))
+}
+
+pub fn execute_memory_runtime_operation(
+    runtime_root: &Path,
+    operation: &str,
+    input: Value,
+) -> Result<Value, String> {
+    memory::execute_memory_runtime_operation(runtime_root, operation, input)
+}
+
+pub async fn execute_cron_runtime_operation(
+    runtime_root: &Path,
+    operation: &str,
+    input: Value,
+) -> Result<Value, String> {
+    cron::execute_cron_runtime_operation(runtime_root, operation, input).await
 }
 
 fn tool_output_to_value(output: &pi::sdk::ToolOutput) -> Value {
@@ -1883,10 +1903,10 @@ impl AgentRuntime {
         let user_text = request.inbound.body;
         let model = request.model;
         let result = self
-            .send_message_with_model(session_key.clone(), user_text, Some(&model))
+            .send_message_with_model(session_key.clone(), user_text.clone(), Some(&model))
             .await?;
         let assistant_text = result.assistant_text;
-        let events = vec![
+        let mut events = vec![
             AgentRunEvent::RunStarted {
                 run_id: run_id.clone(),
                 agent_id,
@@ -1906,10 +1926,28 @@ impl AgentRuntime {
                 role: TranscriptRole::Assistant,
                 message_id: format!("{run_id}:assistant"),
             },
+        ];
+        match self.record_memory_after_turn(&result.thread_id, &session_key, &run_id, &user_text, &assistant_text) {
+            Ok(memory_result) => events.push(AgentRunEvent::ToolResult {
+                run_id: run_id.clone(),
+                call_id: format!("{run_id}:memory-after-turn"),
+                tool_name: "memory.afterTurn".to_string(),
+                result: memory_result,
+                is_error: None,
+            }),
+            Err(error) => events.push(AgentRunEvent::ToolResult {
+                run_id: run_id.clone(),
+                call_id: format!("{run_id}:memory-after-turn"),
+                tool_name: "memory.afterTurn".to_string(),
+                result: json!({ "error": error }),
+                is_error: Some(true),
+            }),
+        }
+        events.push(
             AgentRunEvent::RunCompleted {
                 run_id: run_id.clone(),
             },
-        ];
+        );
         Ok(AgentRunResult {
             run_id,
             session_key: result.thread_id,
@@ -2035,6 +2073,47 @@ impl AgentRuntime {
             .append_message(thread_id, "assistant", assistant_text, Some("agent"))
             .map_err(|error| AgentRuntimeError::TranscriptFailed(error.to_string()))?;
         Ok(())
+    }
+
+    fn record_memory_after_turn(
+        &self,
+        session_id: &str,
+        session_key: &str,
+        run_id: &str,
+        user_text: &str,
+        assistant_text: &str,
+    ) -> Result<Value, String> {
+        let db_path = self
+            .runtime_root
+            .join("memory")
+            .join("runtime.db")
+            .to_string_lossy()
+            .to_string();
+        let memory_config = crate::memory::MemoryRuntimeConfig::from_value(
+            &json!({
+                "runtimeStore": {
+                    "dbPath": db_path
+                }
+            }),
+            &self.runtime_root,
+        );
+        let runtime =
+            crate::memory::RustMemoryRuntime::with_config(self.runtime_root.clone(), memory_config);
+        let messages = vec![
+            json!({
+                "id": format!("{run_id}:user"),
+                "role": "user",
+                "content": user_text,
+                "source": "agent-runtime"
+            }),
+            json!({
+                "id": format!("{run_id}:assistant"),
+                "role": "assistant",
+                "content": assistant_text,
+                "source": "agent-runtime"
+            }),
+        ];
+        runtime.after_turn(session_id, Some(session_key), &messages, 0)
     }
 }
 
@@ -3248,6 +3327,21 @@ esac
                     "messageId": "run-1:assistant"
                 },
                 {
+                    "type": "toolResult",
+                    "runId": "run-1",
+                    "callId": "run-1:memory-after-turn",
+                    "toolName": "memory.afterTurn",
+                    "result": {
+                        "status": "ok",
+                        "ingest": {
+                            "ingestedCount": 2
+                        },
+                        "durableExtraction": true,
+                        "experienceExtraction": true,
+                        "sessionSummary": true
+                    }
+                },
+                {
                     "type": "runCompleted",
                     "runId": "run-1"
                 }
@@ -3259,6 +3353,12 @@ esac
                 .expect("transcript");
         assert!(transcript.contains(r#""content":"hello event loop""#));
         assert!(transcript.contains(r#""content":"hello from run_turn""#));
+        let memory_messages = crate::memory::RuntimeStore::new(
+            runtime_root.join("memory").join("runtime.db"),
+        )
+        .list_messages("thread-events", 10)
+        .expect("memory messages");
+        assert_eq!(memory_messages.len(), 2);
     }
 
     #[tokio::test]

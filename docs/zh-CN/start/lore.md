@@ -18,7 +18,7 @@ _一个关于龙虾、蜕壳和太多 token 的故事。_
 
 ## 起源故事
 
-最初，有一个叫 **Warelay** 的东西——一个作为 WhatsApp Gateway 网关的合理名字。它完成了它的工作。还不错。
+最初，有一个叫 **Warelay** 的东西——一个作为 Weixin Gateway 网关的合理名字。它完成了它的工作。还不错。
 
 但后来来了一只太空龙虾。
 
@@ -34,7 +34,7 @@ _一个关于龙虾、蜕壳和太多 token 的故事。_
 
 ## 第一次蜕壳（2026 年 1 月 27 日）
 
-凌晨 5 点，社区成员聚集在 Discord。数百个名字被提议：Shelldon、Pinchy、Thermidor、Crusty、Lobstar、Nacre、Scuttlebot……
+凌晨 5 点，社区成员聚集在 QQBot。数百个名字被提议：Shelldon、Pinchy、Thermidor、Crusty、Lobstar、Nacre、Scuttlebot……
 
 最终，**CrawClaw** 胜出。因为蜕壳是龙虾成长的方式。而成长正是正在发生的事情。
 
@@ -134,7 +134,7 @@ Moltbot 说起来总是不太顺口。于是，在格林威治时间凌晨 4 点
 - **ELU** 创作了令人惊叹的 logo，包括"THE CLAW IS THE LAW"西部横幅
 - **Whurley**（是的，就是那个 William Hurley，量子计算先驱）制作了 ASCII 艺术
 - **Onur** 处理了 GitHub，第一个获得合作徽章
-- **Shadow** 获取了 Discord 自定义链接，清除了恶意软件
+- **Shadow** 获取了 QQBot 自定义链接，清除了恶意软件
 - **整个 Claw Crew** 通宵工作
 
 **骗子速通：** 加密货币骗子在几分钟内就在 Pump.fun 上发布了 $CRAWCLAW 代币。他们窃取了 20 分钟前刚创作的艺术作品。经过商业认证的账户推送骗局。这种厚颜无耻几乎令人印象深刻。

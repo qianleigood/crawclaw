@@ -18,7 +18,7 @@ Examples below are aligned with the current config schema. For the exhaustive re
 ```json5
 {
   agent: { workspace: "~/.crawclaw/workspace" },
-  channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+  channels: { weixin: { allowFrom: ["+15555550123"] } },
 }
 ```
 
@@ -38,7 +38,7 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
     model: { primary: "anthropic/claude-sonnet-4-6" },
   },
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: { "*": { requireMention: true } },
     },
@@ -118,12 +118,12 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       cap: 20,
       drop: "summarize",
       byChannel: {
-        whatsapp: "collect",
-        telegram: "collect",
-        discord: "collect",
-        slack: "collect",
-        signal: "collect",
-        imessage: "collect",
+        weixin: "collect",
+        feishu: "collect",
+        qqbot: "collect",
+        ddingtalk: "collect",
+        native channel: "collect",
+        weixin: "collect",
       },
     },
   },
@@ -159,7 +159,7 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       idleMinutes: 60,
     },
     resetByChannel: {
-      discord: { mode: "idle", idleMinutes: 10080 },
+      qqbot: { mode: "idle", idleMinutes: 10080 },
     },
     resetTriggers: ["/new"],
     store: "~/.crawclaw/agents/default/sessions/sessions.json",
@@ -175,13 +175,13 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
     typingIntervalSeconds: 5,
     sendPolicy: {
       default: "allow",
-      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      rules: [{ action: "deny", match: { channel: "qqbot", chatType: "group" } }],
     },
   },
 
   // Channels
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "pairing",
       allowFrom: ["+15555550123"],
       groupPolicy: "allowlist",
@@ -189,7 +189,7 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       groups: { "*": { requireMention: true } },
     },
 
-    telegram: {
+    feishu: {
       enabled: true,
       botToken: "YOUR_TELEGRAM_BOT_TOKEN",
       allowFrom: ["123456789"],
@@ -198,7 +198,7 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       groups: { "*": { requireMention: true } },
     },
 
-    discord: {
+    qqbot: {
       enabled: true,
       token: "YOUR_DISCORD_BOT_TOKEN",
       dm: { enabled: true, allowFrom: ["123456789012345678"] },
@@ -214,7 +214,7 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       },
     },
 
-    slack: {
+    ddingtalk: {
       enabled: true,
       botToken: "xoxb-REPLACE_ME",
       appToken: "xapp-REPLACE_ME",
@@ -225,7 +225,7 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
       slashCommand: {
         enabled: true,
         name: "crawclaw",
-        sessionPrefix: "slack:slash",
+        sessionPrefix: "ddingtalk:slash",
         ephemeral: true,
       },
     },
@@ -304,12 +304,12 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
     elevated: {
       enabled: true,
       allowFrom: {
-        whatsapp: ["+15555550123"],
-        telegram: ["123456789"],
-        discord: ["123456789012345678"],
-        slack: ["U123"],
-        signal: ["+15555550123"],
-        imessage: ["user@example.com"],
+        weixin: ["+15555550123"],
+        feishu: ["123456789"],
+        qqbot: ["123456789012345678"],
+        ddingtalk: ["U123"],
+        native channel: ["+15555550123"],
+        weixin: ["user@example.com"],
       },
     },
   },
@@ -439,13 +439,13 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
 {
   agent: { workspace: "~/.crawclaw/workspace" },
   channels: {
-    whatsapp: { allowFrom: ["+15555550123"] },
-    telegram: {
+    weixin: { allowFrom: ["+15555550123"] },
+    feishu: {
       enabled: true,
       botToken: "YOUR_TOKEN",
       allowFrom: ["123456789"],
     },
-    discord: {
+    qqbot: {
       enabled: true,
       token: "YOUR_TOKEN",
       dm: { allowFrom: ["123456789012345678"] },
@@ -464,14 +464,14 @@ If more than one person can DM your bot (multiple entries in `allowFrom`, pairin
   session: { dmScope: "per-channel-peer" },
 
   channels: {
-    // Example: WhatsApp multi-user inbox
-    whatsapp: {
+    // Example: Weixin multi-user inbox
+    weixin: {
       dmPolicy: "allowlist",
       allowFrom: ["+15555550123", "+15555550124"],
     },
 
-    // Example: Discord multi-user inbox
-    discord: {
+    // Example: QQBot multi-user inbox
+    qqbot: {
       enabled: true,
       token: "YOUR_DISCORD_BOT_TOKEN",
       dm: { enabled: true, allowFrom: ["123456789012345678", "987654321098765432"] },
@@ -480,7 +480,7 @@ If more than one person can DM your bot (multiple entries in `allowFrom`, pairin
 }
 ```
 
-For Discord/Slack/Google Chat/Microsoft Teams/Mattermost/IRC, sender authorization is ID-first by default.
+For QQBot/DingTalk/Feishu/QQBot/Feishu/native chat, sender authorization is ID-first by default.
 Only enable direct mutable name/email/nick matching with each channel's `dangerouslyAllowNameMatching: true` if you explicitly accept that risk.
 
 ### OAuth with API key failover
@@ -571,7 +571,7 @@ terms before depending on subscription auth.
     elevated: { enabled: false },
   },
   channels: {
-    slack: {
+    ddingtalk: {
       enabled: true,
       botToken: "xoxb-...",
       channels: {
@@ -619,5 +619,5 @@ terms before depending on subscription auth.
 
 - If you set `dmPolicy: "open"`, the matching `allowFrom` list must include `"*"`.
 - Provider IDs differ (phone numbers, user IDs, channel IDs). Use the provider docs to confirm the format.
-- Optional sections to add later: `web`, `browser`, `ui`, `discovery`, `talk`, `signal`, `imessage`.
+- Optional sections to add later: `web`, `browser`, `ui`, `discovery`, `talk`, `native channel`, `weixin`.
 - See [Providers](/providers) and [Troubleshooting](/gateway/troubleshooting) for deeper setup notes.

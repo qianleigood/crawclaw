@@ -112,7 +112,9 @@ export function createOpenRouterRoutingWrapper(
   const underlying =
     baseStreamFn ??
     ((model) => {
-      throw new Error(`OpenRouter routing wrapper requires an underlying streamFn for ${model.id}.`);
+      throw new Error(
+        `OpenRouter routing wrapper requires an underlying streamFn for ${model.id}.`,
+      );
     });
   return (model, context, options) =>
     underlying(

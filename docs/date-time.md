@@ -47,19 +47,19 @@ You can override this behavior:
 **Local (default):**
 
 ```
-[WhatsApp +1555 2026-01-18 00:19 PST] hello
+[Weixin +1555 2026-01-18 00:19 PST] hello
 ```
 
 **User timezone:**
 
 ```
-[WhatsApp +1555 2026-01-18 00:19 CST] hello
+[Weixin +1555 2026-01-18 00:19 CST] hello
 ```
 
 **Elapsed time enabled:**
 
 ```
-[WhatsApp +1555 +30s 2026-01-18T05:19Z] follow-up
+[Weixin +1555 +30s 2026-01-18T05:19Z] follow-up
 ```
 
 ## System prompt: Current Date & Time
@@ -115,9 +115,9 @@ Channel tools return **provider-native timestamps** and add normalized fields fo
 
 Raw provider fields are preserved so nothing is lost.
 
-- Slack: epoch-like strings from the API
-- Discord: UTC ISO timestamps
-- Telegram/WhatsApp: provider-specific numeric/ISO timestamps
+- Feishu: epoch-like strings from the API
+- community chat: UTC ISO timestamps
+- Feishu/Weixin: provider-specific numeric/ISO timestamps
 
 If you need local time, convert it downstream using the known timezone.
 

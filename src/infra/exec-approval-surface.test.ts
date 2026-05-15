@@ -52,7 +52,7 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
       typeof value === "string" ? value.trim().toLowerCase() : undefined,
     );
     isDeliverableMessageChannelMock.mockImplementation(
-      (value?: string) => value === "slack" || value === "discord" || value === "telegram",
+      (value?: string) => value === "ddingtalk" || value === "qqbot" || value === "feishu",
     );
   });
 
@@ -77,15 +77,15 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
     expect(resolveExecApprovalInitiatingSurfaceState({ channel })).toEqual(expected);
   });
 
-  it("uses the provided cfg for telegram and discord client enablement", () => {
+  it("uses the provided cfg for feishu and qqbot client enablement", () => {
     getChannelPluginMock.mockImplementation((channel: string) =>
-      channel === "telegram"
+      channel === "feishu"
         ? {
             auth: {
               getActionAvailabilityState: () => ({ kind: "enabled" }),
             },
           }
-        : channel === "discord"
+        : channel === "qqbot"
           ? {
               auth: {
                 getActionAvailabilityState: () => ({ kind: "disabled" }),
@@ -97,25 +97,25 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
 
     expect(
       resolveExecApprovalInitiatingSurfaceState({
-        channel: "telegram",
+        channel: "feishu",
         accountId: "main",
         cfg: cfg as never,
       }),
     ).toEqual({
       kind: "enabled",
-      channel: "telegram",
-      channelLabel: "Telegram",
+      channel: "feishu",
+      channelLabel: "Feishu",
     });
     expect(
       resolveExecApprovalInitiatingSurfaceState({
-        channel: "discord",
+        channel: "qqbot",
         accountId: "main",
         cfg: cfg as never,
       }),
     ).toEqual({
       kind: "disabled",
-      channel: "discord",
-      channelLabel: "Discord",
+      channel: "qqbot",
+      channelLabel: "QQ Bot",
     });
 
     expect(loadConfigMock).not.toHaveBeenCalled();
@@ -130,21 +130,21 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
 
     expect(
       resolveExecApprovalInitiatingSurfaceState({
-        channel: "discord",
+        channel: "qqbot",
         accountId: "main",
         cfg: {} as never,
       }),
     ).toEqual({
       kind: "disabled",
-      channel: "discord",
-      channelLabel: "Discord",
+      channel: "qqbot",
+      channelLabel: "QQ Bot",
     });
   });
 
   it("loads config lazily when cfg is omitted and marks unsupported channels", () => {
     loadConfigMock.mockReturnValueOnce({ loaded: true });
     getChannelPluginMock.mockImplementation((channel: string) =>
-      channel === "telegram"
+      channel === "feishu"
         ? {
             auth: {
               getActionAvailabilityState: () => ({ kind: "disabled" }),
@@ -155,13 +155,13 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
 
     expect(
       resolveExecApprovalInitiatingSurfaceState({
-        channel: "telegram",
+        channel: "feishu",
         accountId: "main",
       }),
     ).toEqual({
       kind: "disabled",
-      channel: "telegram",
-      channelLabel: "Telegram",
+      channel: "feishu",
+      channelLabel: "Feishu",
     });
     expect(loadConfigMock).toHaveBeenCalledOnce();
 
@@ -173,10 +173,10 @@ describe("resolveExecApprovalInitiatingSurfaceState", () => {
   });
 
   it("treats deliverable chat channels without a custom adapter as enabled", () => {
-    expect(resolveExecApprovalInitiatingSurfaceState({ channel: "slack" })).toEqual({
+    expect(resolveExecApprovalInitiatingSurfaceState({ channel: "ddingtalk" })).toEqual({
       kind: "enabled",
-      channel: "slack",
-      channelLabel: "Slack",
+      channel: "ddingtalk",
+      channelLabel: "DingTalk",
     });
   });
 });
@@ -192,7 +192,7 @@ describe("hasConfiguredExecApprovalDmRoute", () => {
       typeof value === "string" ? value.trim().toLowerCase() : undefined,
     );
     isDeliverableMessageChannelMock.mockImplementation(
-      (value?: string) => value === "slack" || value === "discord" || value === "telegram",
+      (value?: string) => value === "ddingtalk" || value === "qqbot" || value === "feishu",
     );
   });
 

@@ -10,8 +10,8 @@ import {
   buildBackupArchiveRoot,
   type BackupAsset,
   resolveBackupPlanFromDisk,
-} from "../commands/backup-shared.js";
-import { isPathWithin } from "../commands/cleanup-utils.js";
+} from "../control/backup-shared.js";
+import { isPathWithin } from "../control/cleanup-utils.js";
 import { resolveHomeDir, resolveUserPath } from "../utils.js";
 import { resolveRuntimeServiceVersion } from "../version.js";
 

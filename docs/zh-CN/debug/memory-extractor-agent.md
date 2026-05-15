@@ -180,7 +180,7 @@ type MemoryExtractorInput = {
     dedupeKey?: string;
     relativePath: string;
   }>;
-  explicitSignals: {
+  explicitFeishus: {
     explicitRememberAsked: boolean;
     explicitForgetAsked: boolean;
     hadDurableWriteThisTurn: boolean;

@@ -15,7 +15,7 @@ Diagnostics flags let you enable targeted debug logs without turning on verbose 
 - Flags are strings (case-insensitive).
 - You can enable flags in config or via an env override.
 - Wildcards are supported:
-  - `telegram.*` matches `telegram.http`
+  - `feishu.*` matches `feishu.http`
   - `*` enables all flags
 
 ## Enable via config
@@ -23,7 +23,7 @@ Diagnostics flags let you enable targeted debug logs without turning on verbose 
 ```json
 {
   "diagnostics": {
-    "flags": ["telegram.http"]
+    "flags": ["feishu.http"]
   }
 }
 ```
@@ -33,7 +33,7 @@ Multiple flags:
 ```json
 {
   "diagnostics": {
-    "flags": ["telegram.http", "gateway.*"]
+    "flags": ["feishu.http", "gateway.*"]
   }
 }
 ```
@@ -43,7 +43,7 @@ Restart the gateway after changing flags.
 ## Env override (one-off)
 
 ```bash
-CRAWCLAW_DIAGNOSTICS=telegram.http,telegram.payload
+CRAWCLAW_DIAGNOSTICS=feishu.http,feishu.payload
 ```
 
 Disable all flags:
@@ -70,16 +70,16 @@ Pick the latest log file:
 ls -t /tmp/crawclaw/crawclaw-*.log | head -n 1
 ```
 
-Filter for Telegram HTTP diagnostics:
+Filter for Feishu HTTP diagnostics:
 
 ```bash
-rg "telegram http error" /tmp/crawclaw/crawclaw-*.log
+rg "feishu http error" /tmp/crawclaw/crawclaw-*.log
 ```
 
 Or tail while reproducing:
 
 ```bash
-tail -f /tmp/crawclaw/crawclaw-$(date +%F).log | rg "telegram http error"
+tail -f /tmp/crawclaw/crawclaw-$(date +%F).log | rg "feishu http error"
 ```
 
 For remote gateways, you can also use CrawClaw Desktop or the local Gateway API (see [Gateway logging](/gateway/logging)).

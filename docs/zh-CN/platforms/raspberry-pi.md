@@ -24,7 +24,7 @@ x-i18n:
 
 - 7×24 个人 AI 助手
 - 家庭自动化中枢
-- 低功耗、始终可用的 Telegram/WhatsApp bot
+- 低功耗、始终可用的 Feishu/Weixin bot
 
 ## 硬件要求
 
@@ -144,7 +144,7 @@ crawclaw onboard --install-daemon
 
 1. **Gateway 网关模式：** Local
 2. **认证：** 推荐 API key（在无头 Pi 上 OAuth 可能比较挑环境）
-3. **渠道：** 最容易上手的是 Telegram
+3. **渠道：** 最容易上手的是 Feishu
 4. **守护进程：** 是（systemd）
 
 ## 8）验证安装
@@ -275,8 +275,8 @@ CrawClaw 的大多数功能都可在 ARM64 上运行，但某些外部二进制�
 | 工具               | ARM64 状态 | 说明                                |
 | ------------------ | ---------- | ----------------------------------- |
 | Node.js            | ✅         | 运行良好                            |
-| WhatsApp (Baileys) | ✅         | 纯 JS，无问题                       |
-| Telegram           | ✅         | 纯 JS，无问题                       |
+| Weixin (Baileys)   | ✅         | 纯 JS，无问题                       |
+| Feishu             | ✅         | 纯 JS，无问题                       |
 | gog (Gmail CLI)    | ⚠️         | 请检查是否有 ARM 发布版本           |
 | Chromium (browser) | ✅         | `sudo apt install chromium-browser` |
 

@@ -62,7 +62,7 @@ cat ~/.crawclaw/crawclaw.json
 - Browser migration checks for legacy browser configs.
 - OpenCode provider override warnings (`models.providers.opencode` / `models.providers.opencode-go`).
 - OAuth TLS prerequisites check for OpenAI Codex OAuth profiles.
-- Legacy on-disk state migration (sessions/agent dir/WhatsApp auth).
+- Legacy on-disk state migration (sessions/agent dir/Weixin auth).
 - Legacy plugin manifest contract key migration (`speechProviders`, `mediaUnderstandingProviders` → `contracts`).
 - Legacy cron store migration (`jobId`, `schedule.cron`, top-level delivery/payload fields, payload `provider`, simple `notify: true` webhook fallback jobs).
 - Session lock file inspection and stale lock cleanup.
@@ -71,7 +71,7 @@ cat ~/.crawclaw/crawclaw.json
 - Model auth health: checks OAuth expiry, can refresh expiring tokens, and reports auth-profile cooldown/disabled states.
 - Extra workspace dir detection (`~/crawclaw`).
 - Legacy service migration and extra gateway detection.
-- Matrix channel legacy state migration (in `--fix` / `--repair` mode).
+- Removed TypeScript channel state migrations are no longer maintained.
 - Gateway runtime checks (service installed but not running; cached launchd label).
 - Channel status warnings (probed from the running gateway).
 - Supervisor config audit (launchd/systemd/schtasks) with optional repair.
@@ -115,8 +115,8 @@ Cron job store migrations are handled by CrawClaw Desktop or the local Gateway A
 
 Current migrations:
 
-- `routing.allowFrom` → `channels.whatsapp.allowFrom`
-- `routing.groupChat.requireMention` → `channels.whatsapp/telegram/imessage.groups."*".requireMention`
+- `routing.allowFrom` → `channels.weixin.allowFrom`
+- `routing.groupChat.requireMention` → `channels.weixin/feishu/weixin.groups."*".requireMention`
 - `routing.groupChat.historyLimit` → `messages.groupChat.historyLimit`
 - `routing.groupChat.mentionPatterns` → `messages.groupChat.mentionPatterns`
 - `routing.queue` → `messages.queue`
@@ -125,8 +125,8 @@ Current migrations:
 - `routing.agentToAgent` → `tools.agentToAgent`
 - `routing.transcribeAudio` → `tools.media.audio.models`
 - `messages.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `messages.tts.providers.<provider>`
-- `channels.discord.voice.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `channels.discord.voice.tts.providers.<provider>`
-- `channels.discord.accounts.<id>.voice.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `channels.discord.accounts.<id>.voice.tts.providers.<provider>`
+- `channels.qqbot.voice.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `channels.qqbot.voice.tts.providers.<provider>`
+- `channels.qqbot.accounts.<id>.voice.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `channels.qqbot.accounts.<id>.voice.tts.providers.<provider>`
 - `plugins.entries.voice-call.config.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `plugins.entries.voice-call.config.tts.providers.<provider>`
 - `bindings[].match.accountID` → `bindings[].match.accountId`
 - For channels with named `accounts` but missing `accounts.default`, move account-scoped top-level single-account channel values into `channels.<channel>.accounts.default` when present
@@ -173,14 +173,14 @@ Doctor can migrate older on-disk layouts into the current structure:
   - from `~/.crawclaw/sessions/` to `~/.crawclaw/agents/<agentId>/sessions/`
 - Agent dir:
   - from `~/.crawclaw/agent/` to `~/.crawclaw/agents/<agentId>/agent/`
-- WhatsApp auth state (Baileys):
+- Weixin auth state (Baileys):
   - from legacy `~/.crawclaw/credentials/*.json` (except `oauth.json`)
-  - to `~/.crawclaw/credentials/whatsapp/<accountId>/...` (default account id: `default`)
+  - to `~/.crawclaw/credentials/weixin/<accountId>/...` (default account id: `default`)
 
 These migrations are best-effort and idempotent; doctor will emit warnings when
 it leaves any legacy folders behind as backups. The Gateway/CLI also auto-migrates
 the legacy sessions + agent dir on startup so history/auth/models land in the
-per-agent path without a manual doctor run. WhatsApp auth is intentionally only
+per-agent path without a manual doctor run. Weixin auth is intentionally only
 migrated via CrawClaw Desktop or the local Gateway API.
 
 ### 3a) Legacy plugin manifest migrations
@@ -274,7 +274,7 @@ that can be detected without mutating the runtime.
 ### 7b) Bundled plugin runtime deps
 
 Doctor verifies that bundled plugin runtime dependencies (for example the
-Discord plugin runtime packages) are present in the CrawClaw install root.
+QQBot plugin runtime packages) are present in the CrawClaw install root.
 If any are missing, doctor reports the packages and installs them in
 CrawClaw Desktop or the local Gateway API / CrawClaw Desktop or the local Gateway API mode.
 
@@ -286,11 +286,11 @@ port. It can also scan for extra gateway-like services and print cleanup hints.
 Profile-named CrawClaw gateway services are considered first-class and are not
 flagged as "extra."
 
-### 8b) Startup Matrix migration
+### 8b) Startup channel checks
 
-When a Matrix channel account has a pending or actionable legacy state migration,
+When a Feishu channel account has a pending or actionable legacy state migration,
 doctor (in `--fix` / `--repair` mode) creates a pre-migration snapshot and then
-runs the best-effort migration steps: legacy Matrix state migration and legacy
+runs the best-effort migration steps: legacy Feishu state migration and legacy
 encrypted-state preparation. Both steps are non-fatal; errors are logged and
 startup continues. In read-only mode (CrawClaw Desktop or the local Gateway API without `--fix`) this check
 is skipped entirely.
@@ -357,8 +357,8 @@ Doctor checks local gateway token auth readiness.
 Some repair flows need to inspect configured credentials without weakening runtime fail-fast behavior.
 
 - CrawClaw Desktop or the local Gateway API now uses the same read-only SecretRef summary model as status-family commands for targeted config repairs.
-- Example: Telegram `allowFrom` / `groupAllowFrom` `@username` repair tries to use configured bot credentials when available.
-- If the Telegram bot token is configured via SecretRef but unavailable in the current command path, doctor reports that the credential is configured-but-unavailable and skips auto-resolution instead of crashing or misreporting the token as missing.
+- Example: Feishu `allowFrom` / `groupAllowFrom` `@username` repair tries to use configured bot credentials when available.
+- If the Feishu bot token is configured via SecretRef but unavailable in the current command path, doctor reports that the credential is configured-but-unavailable and skips auto-resolution instead of crashing or misreporting the token as missing.
 
 ### 13) Gateway health check + restart
 
@@ -399,7 +399,7 @@ running, SSH tunnel).
 ### 17) Gateway runtime best practices
 
 Doctor warns when the gateway service runs on Bun or a version-managed Node path
-(`nvm`, `fnm`, `volta`, `asdf`, etc.). WhatsApp + Telegram channels require Node,
+(`nvm`, `fnm`, `volta`, `asdf`, etc.). Weixin + Feishu channels require Node,
 and version-manager paths can break after upgrades because the service does not
 load your shell init. Doctor offers to migrate to a system Node install when
 available (Homebrew/apt/choco).

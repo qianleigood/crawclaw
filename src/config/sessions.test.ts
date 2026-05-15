@@ -107,7 +107,7 @@ describe("sessions", () => {
     {
       name: "returns normalized per-sender key",
       scope: "per-sender" as const,
-      ctx: { From: "whatsapp:+1555" },
+      ctx: { From: "weixin:+1555" },
       expected: "+1555",
     },
     {
@@ -125,14 +125,14 @@ describe("sessions", () => {
     {
       name: "keeps group chats distinct",
       scope: "per-sender" as const,
-      ctx: { From: "feishu:group:oc_123" },
-      expected: "feishu:group:oc_123",
+      ctx: { From: "webchat:group:oc_123" },
+      expected: "webchat:group:oc_123",
     },
     {
       name: "prefixes group keys with provider when available",
       scope: "per-sender" as const,
-      ctx: { From: "oc_123", ChatType: "group", Provider: "feishu" },
-      expected: "feishu:group:oc_123",
+      ctx: { From: "oc_123", ChatType: "group", Provider: "webchat" },
+      expected: "webchat:group:oc_123",
     },
   ] as const;
 
@@ -142,25 +142,25 @@ describe("sessions", () => {
     });
   }
 
-  it("builds discord display name with guild+channel slugs", () => {
+  it("builds group display name with space and channel slugs", () => {
     expect(
       buildGroupDisplayName({
-        provider: "discord",
+        provider: "webchat",
         groupChannel: "#general",
         space: "friends-of-crawclaw",
         id: "123",
-        key: "discord:group:123",
+        key: "webchat:group:123",
       }),
-    ).toBe("discord:friends-of-crawclaw#general");
+    ).toBe("webchat:friends-of-crawclaw#general");
   });
 
   const resolveSessionKeyCases = [
     {
       name: "keeps explicit provider when provided in group key",
       scope: "per-sender" as const,
-      ctx: { From: "discord:group:12345", ChatType: "group" },
+      ctx: { From: "webchat:group:12345", ChatType: "group" },
       mainKey: "main",
-      expected: "agent:main:discord:group:12345",
+      expected: "agent:main:webchat:group:12345",
     },
     {
       name: "collapses direct chats to main by default",
@@ -179,7 +179,7 @@ describe("sessions", () => {
     {
       name: "maps direct chats to main key when provided",
       scope: "per-sender" as const,
-      ctx: { From: "whatsapp:+1555" },
+      ctx: { From: "weixin:+1555" },
       mainKey: "main",
       expected: "agent:main:main",
     },
@@ -200,9 +200,9 @@ describe("sessions", () => {
     {
       name: "leaves groups untouched even with main key",
       scope: "per-sender" as const,
-      ctx: { From: "feishu:group:oc_123" },
+      ctx: { From: "webchat:group:oc_123" },
       mainKey: "main",
-      expected: "agent:main:feishu:group:oc_123",
+      expected: "agent:main:webchat:group:oc_123",
     },
   ] as const;
 
@@ -236,7 +236,7 @@ describe("sessions", () => {
       storePath,
       sessionKey: mainSessionKey,
       deliveryContext: {
-        channel: "telegram",
+        channel: "feishu",
         to: "  12345  ",
       },
     });
@@ -244,10 +244,10 @@ describe("sessions", () => {
     const store = loadSessionStore(storePath);
     expect(store[mainSessionKey]?.sessionId).toBe("sess-1");
     expect(store[mainSessionKey]?.updatedAt).toBeGreaterThanOrEqual(123);
-    expect(store[mainSessionKey]?.lastChannel).toBe("telegram");
+    expect(store[mainSessionKey]?.lastChannel).toBe("feishu");
     expect(store[mainSessionKey]?.lastTo).toBe("12345");
     expect(store[mainSessionKey]?.deliveryContext).toEqual({
-      channel: "telegram",
+      channel: "feishu",
       to: "12345",
     });
     expect(store[mainSessionKey]?.responseUsage).toBe("on");
@@ -268,22 +268,22 @@ describe("sessions", () => {
     await updateLastRoute({
       storePath,
       sessionKey: mainSessionKey,
-      channel: "whatsapp",
+      channel: "weixin",
       to: "111",
       accountId: "legacy",
       deliveryContext: {
-        channel: "telegram",
+        channel: "feishu",
         to: "222",
         accountId: "primary",
       },
     });
 
     const store = loadSessionStore(storePath);
-    expect(store[mainSessionKey]?.lastChannel).toBe("telegram");
+    expect(store[mainSessionKey]?.lastChannel).toBe("feishu");
     expect(store[mainSessionKey]?.lastTo).toBe("222");
     expect(store[mainSessionKey]?.lastAccountId).toBe("primary");
     expect(store[mainSessionKey]?.deliveryContext).toEqual({
-      channel: "telegram",
+      channel: "feishu",
       to: "222",
       accountId: "primary",
     });
@@ -296,11 +296,11 @@ describe("sessions", () => {
       entries: {
         [mainSessionKey]: buildMainSessionEntry({
           deliveryContext: {
-            channel: "telegram",
+            channel: "feishu",
             to: "222",
             threadId: "42",
           },
-          lastChannel: "telegram",
+          lastChannel: "feishu",
           lastTo: "222",
           lastThreadId: "42",
         }),
@@ -311,21 +311,21 @@ describe("sessions", () => {
       storePath,
       sessionKey: mainSessionKey,
       deliveryContext: {
-        channel: "telegram",
+        channel: "feishu",
         to: "222",
       },
     });
 
     const store = loadSessionStore(storePath);
     expect(store[mainSessionKey]?.deliveryContext).toEqual({
-      channel: "telegram",
+      channel: "feishu",
       to: "222",
     });
     expect(store[mainSessionKey]?.lastThreadId).toBeUndefined();
   });
 
   it("updateLastRoute records origin + group metadata when ctx is provided", async () => {
-    const sessionKey = "agent:main:whatsapp:group:123@g.us";
+    const sessionKey = "agent:main:weixin:group:123@g.us";
     const { storePath } = await createSessionStoreFixture({
       prefix: "updateLastRoute",
       entries: {},
@@ -335,11 +335,11 @@ describe("sessions", () => {
       storePath,
       sessionKey,
       deliveryContext: {
-        channel: "whatsapp",
+        channel: "weixin",
         to: "123@g.us",
       },
       ctx: {
-        Provider: "whatsapp",
+        Provider: "weixin",
         ChatType: "group",
         GroupSubject: "Family",
         From: "123@g.us",
@@ -348,10 +348,10 @@ describe("sessions", () => {
 
     const store = loadSessionStore(storePath);
     expect(store[sessionKey]?.subject).toBe("Family");
-    expect(store[sessionKey]?.channel).toBe("whatsapp");
+    expect(store[sessionKey]?.channel).toBe("weixin");
     expect(store[sessionKey]?.groupId).toBe("123@g.us");
     expect(store[sessionKey]?.origin?.label).toBe("Family id:123@g.us");
-    expect(store[sessionKey]?.origin?.provider).toBe("whatsapp");
+    expect(store[sessionKey]?.origin?.provider).toBe("weixin");
     expect(store[sessionKey]?.origin?.chatType).toBe("group");
   });
 
@@ -461,18 +461,18 @@ describe("sessions", () => {
       store["agent:main:main"] = {
         sessionId: "sess-normalized",
         updatedAt: Date.now(),
-        lastChannel: " WhatsApp ",
+        lastChannel: " Weixin ",
         lastTo: " +1555 ",
         lastAccountId: " acct-1 ",
       };
     });
 
     const store = loadSessionStore(storePath);
-    expect(store["agent:main:main"]?.lastChannel).toBe("whatsapp");
+    expect(store["agent:main:main"]?.lastChannel).toBe("weixin");
     expect(store["agent:main:main"]?.lastTo).toBe("+1555");
     expect(store["agent:main:main"]?.lastAccountId).toBe("acct-1");
     expect(store["agent:main:main"]?.deliveryContext).toEqual({
-      channel: "whatsapp",
+      channel: "weixin",
       to: "+1555",
       accountId: "acct-1",
     });
@@ -520,8 +520,8 @@ describe("sessions", () => {
           [mainSessionKey]: {
             sessionId: "sess-legacy",
             updatedAt: 123,
-            provider: "slack",
-            lastProvider: "telegram",
+            provider: "ddingtalk",
+            lastProvider: "feishu",
             lastTo: "user:U123",
           },
         },
@@ -533,9 +533,9 @@ describe("sessions", () => {
 
     const store = loadSessionStore(storePath) as unknown as Record<string, Record<string, unknown>>;
     const entry = store[mainSessionKey] ?? {};
-    expect(entry.channel).toBe("slack");
+    expect(entry.channel).toBe("ddingtalk");
     expect(entry.provider).toBeUndefined();
-    expect(entry.lastChannel).toBe("telegram");
+    expect(entry.lastChannel).toBe("feishu");
     expect(entry.lastProvider).toBeUndefined();
   });
 

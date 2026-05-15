@@ -16,7 +16,7 @@ x-i18n:
 来自社区的真实项目。看看大家正在用 CrawClaw 构建什么。
 
 <Info>
-**想要展示你的项目？** 在 [Discord 的 #showcase 频道](https://discord.gg/clawd) 分享或在 [X 上 @crawclaw](https://x.com/crawclaw)。
+**想要展示你的项目？** 在 [QQBot 的 #showcase 频道](https://qqbot.gg/clawd) 分享或在 [X 上 @crawclaw](https://x.com/crawclaw)。
 </Info>
 
 ## 🎥 CrawClaw 实战演示
@@ -89,16 +89,15 @@ VelvetShark 的完整设置演练（28 分钟）。
 
 [在 YouTube 上观看](https://www.youtube.com/watch?v=5kkIJNUGFho)
 
-## 🆕 Discord 最新分享
+## 🆕 QQBot 最新分享
 
 <CardGroup cols={2}>
 
-<Card title="PR 审查 → Telegram 反馈" icon="code-pull-request" href="https://x.com/i/status/2010878524543131691">
-  **@bangnokia** • `review` `github` `telegram`
+<Card title="PR 审查 → Feishu 反馈" icon="code-pull-request" href="https://x.com/i/status/2010878524543131691">
+  **@bangnokia** • `review` `github` `feishu`
 
-OpenCode 完成更改 → 打开 PR → CrawClaw 审查差异并在 Telegram 中回复"小建议"加上明确的合并决定（包括需要先应用的关键修复）。
+OpenCode 完成更改 → 打开 PR → CrawClaw 审查差异并在 Feishu 中回复"小建议"加上明确的合并决定（包括需要先应用的关键修复）。
 
-  <img src="/assets/showcase/pr-review-telegram.jpg" alt="CrawClaw PR review feedback delivered in Telegram" />
 </Card>
 
 <Card title="几分钟内创建酒窖 Skill" icon="wine-glass" href="https://x.com/i/status/2010916352454791216">
@@ -125,12 +124,12 @@ OpenCode 完成更改 → 打开 PR → CrawClaw 审查差异并在 Telegram 中
   <img src="/assets/showcase/snag.png" alt="SNAG screenshot-to-markdown tool" />
 </Card>
 
-<Card title="Telegram 语音备忘录 (papla.media)" icon="microphone" href="https://papla.media/docs">
-  **社区** • `voice` `tts` `telegram`
+<Card title="Feishu 语音备忘录 (papla.media)" icon="microphone" href="https://papla.media/docs">
+  **社区** • `voice` `tts` `feishu`
 
-封装 papla.media TTS 并将结果作为 Telegram 语音备忘录发送（无烦人的自动播放）。
+封装 papla.media TTS 并将结果作为 Feishu 语音备忘录发送（无烦人的自动播放）。
 
-  <img src="/assets/showcase/papla-tts.jpg" alt="Telegram voice note output from TTS" />
+  <img src="/assets/showcase/papla-tts.jpg" alt="Feishu voice note output from TTS" />
 </Card>
 
 <Card title="CodexMonitor" icon="eye" href="https://clawhub.com/odrobnik/codexmonitor">
@@ -191,7 +190,7 @@ Homebrew 安装的助手工具，用于列出/检查/监视本地 OpenAI Codex �
 <Card title="Beeper CLI" icon="message" href="https://github.com/blqke/beepcli">
   **@jules** • `messaging` `beeper` `cli` `automation`
 
-通过 Beeper Desktop 读取、发送和归档消息。使用 Beeper 本地 MCP API，让智能体可以在一个地方管理你的所有聊天（iMessage、WhatsApp 等）。
+通过 Beeper Desktop 读取、发送和归档消息。使用 Beeper 本地 MCP API，让智能体可以在一个地方管理你的所有聊天（Weixin、Weixin 等）。
 </Card>
 
 </CardGroup>
@@ -208,8 +207,8 @@ Claude Code 发现并确认了净化器控制，然后 CrawClaw 接管来管理�
   <img src="/assets/showcase/winix-air-purifier.jpg" alt="Winix air purifier control via CrawClaw" />
 </Card>
 
-<Card title="美丽天空相机拍摄" icon="camera" href="https://x.com/signalgaining/status/2010523120604746151">
-  **@signalgaining** • `automation` `camera` `skill` `images`
+<Card title="美丽天空相机拍摄" icon="camera" href="https://x.com/feishugaining/status/2010523120604746151">
+  **@feishugaining** • `automation` `camera` `skill` `images`
 
 由屋顶摄像头触发：让 CrawClaw 在天空看起来很美的时候拍一张照片——它设计了一个 skill 并拍摄了照片。
 
@@ -217,7 +216,7 @@ Claude Code 发现并确认了净化器控制，然后 CrawClaw 接管来管理�
 </Card>
 
 <Card title="可视化晨间简报场景" icon="robot" href="https://x.com/buddyhadry/status/2010005331925954739">
-  **@buddyhadry** • `automation` `briefing` `images` `telegram`
+  **@buddyhadry** • `automation` `briefing` `images` `feishu`
 
 定时提示每天早上通过 CrawClaw 角色生成一张"场景"图片（天气、任务、日期、喜欢的帖子/引言）。
 </Card>
@@ -237,9 +236,9 @@ Claude Code 发现并确认了净化器控制，然后 CrawClaw 接管来管理�
 </Card>
 
 <Card title="沙发土豆开发模式" icon="couch" href="https://davekiss.com">
-  **@davekiss** • `telegram` `website` `migration` `astro`
+  **@davekiss** • `feishu` `website` `migration` `astro`
 
-一边看 Netflix 一边通过 Telegram 重建整个个人网站——Notion → Astro，迁移了 18 篇文章，DNS 转到 Cloudflare。从未打开笔记本电脑。
+一边看 Netflix 一边通过 Feishu 重建整个个人网站——Notion → Astro，迁移了 18 篇文章，DNS 转到 Cloudflare。从未打开笔记本电脑。
 </Card>
 
 <Card title="求职智能体" icon="briefcase">
@@ -254,10 +253,10 @@ Claude Code 发现并确认了净化器控制，然后 CrawClaw 接管来管理�
 CrawClaw 连接到 Jira，然后即时生成一个新的 skill（在它出现在 ClawHub 之前）。
 </Card>
 
-<Card title="通过 Telegram 创建 Todoist Skill" icon="list-check" href="https://x.com/iamsubhrajyoti/status/2009949389884920153">
-  **@iamsubhrajyoti** • `automation` `todoist` `skill` `telegram`
+<Card title="通过 Feishu 创建 Todoist Skill" icon="list-check" href="https://x.com/iamsubhrajyoti/status/2009949389884920153">
+  **@iamsubhrajyoti** • `automation` `todoist` `skill` `feishu`
 
-自动化 Todoist 任务，并让 CrawClaw 直接在 Telegram 聊天中生成 skill。
+自动化 Todoist 任务，并让 CrawClaw 直接在 Feishu 聊天中生成 skill。
 </Card>
 
 <Card title="TradingView 分析" icon="chart-line">
@@ -266,10 +265,10 @@ CrawClaw 连接到 Jira，然后即时生成一个新的 skill（在它出现在
 通过浏览器自动化登录 TradingView，截取图表屏幕截图，并按需执行技术分析。无需 API——只需浏览器控制。
 </Card>
 
-<Card title="Slack 自动支持" icon="slack">
-  **@henrymascot** • `slack` `automation` `support`
+<Card title="DingTalk 自动支持" icon="ddingtalk">
+  **@henrymascot** • `ddingtalk` `automation` `support`
 
-监视公司 Slack 频道，提供有用的回复，并将通知转发到 Telegram。在没有被要求的情况下自主修复了已部署应用中的生产 bug。
+监视公司 DingTalk 频道，提供有用的回复，并将通知转发到 Feishu。在没有被要求的情况下自主修复了已部署应用中的生产 bug。
 </Card>
 
 </CardGroup>
@@ -286,10 +285,10 @@ CrawClaw 连接到 Jira，然后即时生成一个新的 skill（在它出现在
   <img src="/assets/showcase/xuezh-pronunciation.jpeg" alt="xuezh pronunciation feedback" />
 </Card>
 
-<Card title="WhatsApp 记忆库" icon="vault">
+<Card title="Weixin 记忆库" icon="vault">
   **社区** • `memory` `transcription` `indexing`
   
-  导入完整的 WhatsApp 导出，转录 1k+ 条语音备忘录，与 git 日志交叉检查，输出链接的 markdown 报告。
+  导入完整的 Weixin 导出，转录 1k+ 条语音备忘录，与 git 日志交叉检查，输出链接的 markdown 报告。
 </Card>
 
 <Card title="Karakeep 语义搜索" icon="magnifying-glass" href="https://github.com/jamesbrooksco/karakeep-semantic-search">
@@ -358,7 +357,7 @@ CrawClaw 连接到 Jira，然后即时生成一个新的 skill（在它出现在
 
 <CardGroup cols={2}>
 
-<Card title="GoHome 自动化" icon="house-signal" href="https://github.com/joshp123/gohome">
+<Card title="GoHome 自动化" icon="house-feishu" href="https://github.com/joshp123/gohome">
   **@joshp123** • `home` `nix` `grafana`
   
   Nix 原生家庭自动化，以 CrawClaw 作为界面，加上漂亮的 Grafana 仪表板。
@@ -396,7 +395,7 @@ CrawClaw 连接到 Jira，然后即时生成一个新的 skill（在它出现在
 
 <Steps>
   <Step title="分享它">
-    在 [Discord 的 #showcase 频道](https://discord.gg/clawd) 发布或在 [Twitter 上 @crawclaw](https://x.com/crawclaw)
+    在 [QQBot 的 #showcase 频道](https://qqbot.gg/clawd) 发布或在 [Twitter 上 @crawclaw](https://x.com/crawclaw)
   </Step>
   <Step title="包含详细信息">
     告诉我们它做什么，链接到仓库/演示，如果有的话分享截图

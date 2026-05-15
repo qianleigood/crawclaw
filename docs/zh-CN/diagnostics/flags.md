@@ -22,7 +22,7 @@ x-i18n:
 - 标志是字符串（不区分大小写）。
 - 你可以在配置中或通过环境变量覆盖来启用标志。
 - 支持通配符：
-  - `telegram.*` 匹配 `telegram.http`
+  - `feishu.*` 匹配 `feishu.http`
   - `*` 启用所有标志
 
 ## 通过配置启用
@@ -30,7 +30,7 @@ x-i18n:
 ```json
 {
   "diagnostics": {
-    "flags": ["telegram.http"]
+    "flags": ["feishu.http"]
   }
 }
 ```
@@ -40,7 +40,7 @@ x-i18n:
 ```json
 {
   "diagnostics": {
-    "flags": ["telegram.http", "gateway.*"]
+    "flags": ["feishu.http", "gateway.*"]
   }
 }
 ```
@@ -50,7 +50,7 @@ x-i18n:
 ## 环境变量覆盖（一次性）
 
 ```bash
-CRAWCLAW_DIAGNOSTICS=telegram.http,telegram.payload
+CRAWCLAW_DIAGNOSTICS=feishu.http,feishu.payload
 ```
 
 禁用所有标志：
@@ -77,16 +77,16 @@ CRAWCLAW_DIAGNOSTICS=0
 ls -t /tmp/crawclaw/crawclaw-*.log | head -n 1
 ```
 
-过滤 Telegram HTTP 诊断：
+过滤 Feishu HTTP 诊断：
 
 ```bash
-rg "telegram http error" /tmp/crawclaw/crawclaw-*.log
+rg "feishu http error" /tmp/crawclaw/crawclaw-*.log
 ```
 
 或在复现时使用 tail：
 
 ```bash
-tail -f /tmp/crawclaw/crawclaw-$(date +%F).log | rg "telegram http error"
+tail -f /tmp/crawclaw/crawclaw-$(date +%F).log | rg "feishu http error"
 ```
 
 对于远程 Gateway 网关，你也可以使用 `crawclaw logs --follow`（参见 [/cli/logs](/cli/logs)）。

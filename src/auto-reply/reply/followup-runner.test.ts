@@ -235,7 +235,7 @@ async function loadFreshFollowupRunnerModuleForTest() {
     compactEmbeddedPiSession: (params: unknown) => compactEmbeddedPiSessionMock(params),
     isEmbeddedPiRunActive: vi.fn(() => false),
     isEmbeddedPiRunStreaming: vi.fn(() => false),
-    queueEmbeddedPiMessage: vi.fn(async () => undefined),
+    queueEmbeddedPWeixin: vi.fn(async () => undefined),
     resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
     runEmbeddedPiAgent: (params: unknown) => runEmbeddedPiAgentMock(params),
     waitForEmbeddedPiRunEnd: vi.fn(async () => undefined),
@@ -261,12 +261,12 @@ async function loadFreshFollowupRunnerModuleForTest() {
 }
 
 const ROUTABLE_TEST_CHANNELS = new Set([
-  "telegram",
-  "slack",
-  "discord",
+  "feishu",
+  "ddingtalk",
+  "qqbot",
   "signal",
-  "imessage",
-  "whatsapp",
+  "weixin",
+  "weixin",
   "feishu",
 ]);
 
@@ -304,7 +304,7 @@ afterEach(async () => {
   debugFollowupTest(`active requests: ${JSON.stringify(requests ?? [])}`);
 });
 
-const baseQueuedRun = (messageProvider = "whatsapp"): FollowupRun =>
+const baseQueuedRun = (messageProvider = "weixin"): FollowupRun =>
   createMockFollowupRun({ run: { messageProvider } });
 
 function createQueuedRun(
@@ -790,9 +790,9 @@ describe("createFollowupRunner messaging tool dedupe", () => {
     const { onBlockReply } = await runMessagingCase({
       agentResult: {
         ...makeTextReplyDedupeResult(),
-        messagingToolSentTargets: [{ tool: "slack", provider: "slack", to: "channel:C1" }],
+        messagingToolSentTargets: [{ tool: "ddingtalk", provider: "ddingtalk", to: "channel:C1" }],
       },
-      queued: baseQueuedRun("slack"),
+      queued: baseQueuedRun("ddingtalk"),
     });
 
     expect(onBlockReply).not.toHaveBeenCalled();
@@ -802,11 +802,11 @@ describe("createFollowupRunner messaging tool dedupe", () => {
     const { onBlockReply } = await runMessagingCase({
       agentResult: {
         ...makeTextReplyDedupeResult(),
-        messagingToolSentTargets: [{ tool: "telegram", provider: "telegram", to: "268300329" }],
+        messagingToolSentTargets: [{ tool: "feishu", provider: "feishu", to: "268300329" }],
       },
       queued: {
         ...baseQueuedRun("heartbeat"),
-        originatingChannel: "telegram",
+        originatingChannel: "feishu",
         originatingTo: "268300329",
       } as FollowupRun,
     });
@@ -819,12 +819,12 @@ describe("createFollowupRunner messaging tool dedupe", () => {
       agentResult: {
         ...makeTextReplyDedupeResult(),
         messagingToolSentTargets: [
-          { tool: "telegram", provider: "telegram", to: "268300329", accountId: "work" },
+          { tool: "feishu", provider: "feishu", to: "268300329", accountId: "work" },
         ],
       },
       queued: {
         ...baseQueuedRun("heartbeat"),
-        originatingChannel: "telegram",
+        originatingChannel: "feishu",
         originatingTo: "268300329",
         originatingAccountId: "personal",
       } as FollowupRun,
@@ -832,7 +832,7 @@ describe("createFollowupRunner messaging tool dedupe", () => {
 
     expect(routeReplyMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        channel: "telegram",
+        channel: "feishu",
         to: "268300329",
         accountId: "personal",
       }),
@@ -876,7 +876,7 @@ describe("createFollowupRunner messaging tool dedupe", () => {
     const { onBlockReply } = await runMessagingCase({
       agentResult: {
         ...makeTextReplyDedupeResult(),
-        messagingToolSentTargets: [{ tool: "slack", provider: "slack", to: "channel:C1" }],
+        messagingToolSentTargets: [{ tool: "ddingtalk", provider: "ddingtalk", to: "channel:C1" }],
         meta: {
           agentMeta: {
             usage: { input: 1_000, output: 50 },
@@ -892,7 +892,7 @@ describe("createFollowupRunner messaging tool dedupe", () => {
         sessionKey,
         storePath,
       },
-      queued: baseQueuedRun("slack"),
+      queued: baseQueuedRun("ddingtalk"),
     });
 
     expect(onBlockReply).not.toHaveBeenCalled();
@@ -972,7 +972,7 @@ describe("createFollowupRunner messaging tool dedupe", () => {
       agentResult: { payloads: [{ text: "hello world!" }] },
       queued: {
         ...baseQueuedRun("webchat"),
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:C1",
       } as FollowupRun,
     });
@@ -1005,7 +1005,7 @@ describe("createFollowupRunner messaging tool dedupe", () => {
       agentResult: { payloads: [{ text: "hello world!" }] },
       queued: {
         ...baseQueuedRun("webchat"),
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:C1",
         originatingAccountId: "work",
         originatingThreadId: "1739142736.000100",
@@ -1014,7 +1014,7 @@ describe("createFollowupRunner messaging tool dedupe", () => {
 
     expect(routeReplyMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        channel: "discord",
+        channel: "qqbot",
         to: "channel:C1",
         accountId: "work",
         threadId: "1739142736.000100",

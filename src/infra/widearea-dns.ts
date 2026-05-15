@@ -101,7 +101,6 @@ export type WideAreaGatewayZoneOpts = {
   hostLabel?: string;
   tailnetDns?: string;
   sshPort?: number;
-  cliPath?: string;
 };
 
 function renderZone(opts: WideAreaGatewayZoneOpts & { serial: number }): string {
@@ -128,10 +127,6 @@ function renderZone(opts: WideAreaGatewayZoneOpts & { serial: number }): string 
   if (typeof opts.sshPort === "number" && opts.sshPort > 0) {
     txt.push(`sshPort=${opts.sshPort}`);
   }
-  if (opts.cliPath?.trim()) {
-    txt.push(`cliPath=${opts.cliPath.trim()}`);
-  }
-
   const records: string[] = [];
 
   records.push(`$ORIGIN ${domain}`);

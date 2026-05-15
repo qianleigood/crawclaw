@@ -10,15 +10,15 @@ import { sensitive } from "./zod-schema.sensitive.js";
 
 const { collectMatchingSchemaPaths, mapSensitivePaths } = __test__;
 const BUNDLED_CHANNEL_HINT_PREFIXES = [
-  "channels.bluebubbles",
-  "channels.discord",
-  "channels.imessage",
-  "channels.irc",
-  "channels.msteams",
-  "channels.signal",
-  "channels.slack",
-  "channels.telegram",
-  "channels.whatsapp",
+  "channels.weixin",
+  "channels.qqbot",
+  "channels.weixin",
+  "channels.feishu",
+  "channels.qqbot",
+  "channels.feishu",
+  "channels.ddingtalk",
+  "channels.feishu",
+  "channels.weixin",
 ] as const;
 
 describe("isSensitiveConfigPath", () => {
@@ -33,7 +33,7 @@ describe("isSensitiveConfigPath", () => {
       "tokenCount",
       "tokenLimit",
       "tokenBudget",
-      "channels.irc.nickserv.passwordFile",
+      "channels.feishu.nickserv.passwordFile",
     ];
     for (const path of whitelistedPaths) {
       expect(isSensitiveConfigPath(path)).toBe(false);
@@ -42,13 +42,13 @@ describe("isSensitiveConfigPath", () => {
   });
 
   it("keeps true sensitive keys redacted", () => {
-    expect(isSensitiveConfigPath("channels.slack.token")).toBe(true);
+    expect(isSensitiveConfigPath("channels.ddingtalk.token")).toBe(true);
     expect(isSensitiveConfigPath("models.providers.openai.apiKey")).toBe(true);
-    expect(isSensitiveConfigPath("channels.irc.nickserv.password")).toBe(true);
+    expect(isSensitiveConfigPath("channels.feishu.nickserv.password")).toBe(true);
     expect(isSensitiveConfigPath("channels.feishu.encryptKey")).toBe(true);
     expect(isSensitiveConfigPath("channels.feishu.accounts.default.encryptKey")).toBe(true);
-    expect(isSensitiveConfigPath("channels.nostr.privateKey")).toBe(true);
-    expect(isSensitiveConfigPath("channels.nostr.accounts.default.privateKey")).toBe(true);
+    expect(isSensitiveConfigPath("channels.feishu.privateKey")).toBe(true);
+    expect(isSensitiveConfigPath("channels.feishu.accounts.default.privateKey")).toBe(true);
   });
 });
 

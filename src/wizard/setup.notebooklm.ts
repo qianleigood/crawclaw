@@ -1,6 +1,5 @@
-import { formatCliCommand } from "../cli/command-format.js";
-import type { OnboardOptions } from "../commands/onboard-types.js";
 import type { CrawClawConfig } from "../config/config.js";
+import type { OnboardOptions } from "../control/onboard-types.js";
 import { formatErrorMessage } from "../infra/errors.js";
 import { normalizeNotebookLmConfig } from "../memory/config/notebooklm.js";
 import {
@@ -13,6 +12,7 @@ import {
   type NotebookLmProviderState,
 } from "../memory/notebooklm/provider-state.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import type { WizardPrompter } from "./prompts.js";
 
 export async function promptNotebookLmEnablement(params: {

@@ -1,9 +1,9 @@
 import os from "node:os";
 import path from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { CliDeps } from "../cli/deps.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { SsrFBlockedError } from "../infra/net/ssrf.js";
+import type { CliDeps } from "../terminal/deps.js";
 import { mergeMockedModule } from "../test-utils/vitest-module-mocks.js";
 
 const {
@@ -105,7 +105,7 @@ describe("buildGatewayCronService", () => {
         schedule: { kind: "at", at: new Date(1).toISOString() },
         sessionTarget: "main",
         wakeMode: "now",
-        sessionKey: "discord:channel:ops",
+        sessionKey: "qqbot:channel:ops",
         payload: { kind: "systemEvent", text: "hello" },
       });
       expect(job.wakeMode).toBe("now");
@@ -115,13 +115,13 @@ describe("buildGatewayCronService", () => {
       expect(enqueueSystemEventMock).toHaveBeenCalledWith(
         "hello",
         expect.objectContaining({
-          sessionKey: "agent:main:discord:channel:ops",
+          sessionKey: "agent:main:qqbot:channel:ops",
         }),
       );
       expect(runMainSessionOnceMock).toHaveBeenCalledWith(
         expect.objectContaining({
           reason: `cron:${job.id}`,
-          sessionKey: "agent:main:discord:channel:ops",
+          sessionKey: "agent:main:qqbot:channel:ops",
         }),
       );
       expect(requestMainSessionWakeNowMock).not.toHaveBeenCalled();

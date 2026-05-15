@@ -8575,10 +8575,10 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       tags: ["advanced"],
     },
     cli: {
-      label: "CLI",
-      group: "CLI",
+      label: "Terminal",
+      group: "Terminal",
       order: 26,
-      help: "CLI presentation controls for local command output behavior such as banner and tagline style. Use this section to keep startup output aligned with operator preference without changing runtime behavior.",
+      help: "Terminal presentation controls for retained local diagnostic flows, such as banner and tagline style. Use this section to keep local output aligned with operator preference without changing runtime behavior.",
       tags: ["advanced"],
     },
     diagnostics: {
@@ -8830,18 +8830,18 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       tags: ["privacy", "observability"],
     },
     "cli.language": {
-      label: "CLI Language",
-      help: "Human-facing CLI prompt/help language. Keeps command names, flags, config keys, and JSON output in English while translating prompts and help text for operators.",
+      label: "Terminal Language",
+      help: "Human-facing terminal prompt/help language. Keeps command names, flags, config keys, and JSON output in English while translating prompts and help text for operators.",
       tags: ["advanced"],
     },
     "cli.banner": {
-      label: "CLI Banner",
-      help: "CLI startup banner controls for title/version line and tagline style behavior. Keep banner enabled for fast version/context checks, then tune tagline mode to your preferred noise level.",
+      label: "Terminal Banner",
+      help: "Terminal startup banner controls for title/version line and tagline style behavior. Keep banner enabled for fast version/context checks, then tune tagline mode to your preferred noise level.",
       tags: ["advanced"],
     },
     "cli.banner.taglineMode": {
-      label: "CLI Banner Tagline Mode",
-      help: 'Controls tagline style in the CLI startup banner: "random" (default) picks from the rotating tagline pool, "default" always shows the neutral default tagline, and "off" hides tagline text while keeping the banner version line.',
+      label: "Terminal Banner Tagline Mode",
+      help: 'Controls tagline style in the terminal startup banner: "random" (default) picks from the rotating tagline pool, "default" always shows the neutral default tagline, and "off" hides tagline text while keeping the banner version line.',
       tags: ["advanced"],
     },
     "update.channel": {
@@ -10109,7 +10109,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "bindings[].match.guildId": {
       label: "Binding Guild ID",
-      help: "Optional Discord-style guild/server ID constraint for binding evaluation in multi-server deployments. Use this when the same peer identifiers can appear across different guilds.",
+      help: "Optional channel-style guild/server ID constraint for binding evaluation in multi-server deployments. Use this when the same peer identifiers can appear across different guilds.",
       tags: ["advanced"],
     },
     "bindings[].match.teamId": {
@@ -10870,7 +10870,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "commands.native": {
       label: "Native Commands",
-      help: "Registers native slash/menu commands with channels that support command registration (Discord, Slack, Telegram). Keep enabled for discoverability unless you intentionally run text-only command workflows.",
+      help: "Registers native slash/menu commands with channels that support command registration. Keep enabled for discoverability unless you intentionally run text-only command workflows.",
       tags: ["advanced"],
     },
     "commands.nativeSkills": {
@@ -11780,12 +11780,12 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "messages.statusReactions.enabled": {
       label: "Enable Status Reactions",
-      help: "Enable lifecycle status reactions for Telegram. When enabled, the ack reaction becomes the initial 'queued' state and progresses through thinking, tool, done/error automatically. Default: false.",
+      help: "Enable lifecycle status reactions for channels that support them. When enabled, the ack reaction becomes the initial 'queued' state and progresses through thinking, tool, done/error automatically. Default: false.",
       tags: ["advanced"],
     },
     "messages.statusReactions.emojis": {
       label: "Status Reaction Emojis",
-      help: "Override default status reaction emojis. Keys: thinking, compacting, tool, coding, web, done, error, stallSoft, stallHard. Must be valid Telegram reaction emojis.",
+      help: "Override default status reaction emojis. Keys: thinking, compacting, tool, coding, web, done, error, stallSoft, stallHard. Must be valid channel reaction emojis.",
       tags: ["advanced"],
     },
     "messages.statusReactions.timing": {
@@ -11924,7 +11924,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "discovery.mdns.mode": {
       label: "mDNS Discovery Mode",
-      help: 'mDNS broadcast mode ("minimal" default, "full" includes cliPath/sshPort, "off" disables mDNS).',
+      help: 'mDNS broadcast mode ("minimal" default, "full" includes sshPort, "off" disables mDNS).',
       tags: ["network"],
     },
     "plugins.enabled": {

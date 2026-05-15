@@ -18,9 +18,8 @@ export type GatewayBonjourAdvertiseOpts = {
   gatewayTlsFingerprintSha256?: string;
   canvasPort?: number;
   tailnetDns?: string;
-  cliPath?: string;
   /**
-   * Minimal mode - omit sensitive fields (cliPath, sshPort) from TXT records.
+   * Minimal mode - omit sensitive fields such as sshPort from TXT records.
    * Reduces information disclosure for better operational security.
    */
   minimal?: boolean;
@@ -203,12 +202,6 @@ export async function startGatewayBonjourAdvertiser(
     if (typeof opts.tailnetDns === "string" && opts.tailnetDns.trim()) {
       txtBase.tailnetDns = opts.tailnetDns.trim();
     }
-    // In minimal mode, omit cliPath to avoid exposing filesystem structure.
-    // This info can be obtained via the authenticated WebSocket if needed.
-    if (!opts.minimal && typeof opts.cliPath === "string" && opts.cliPath.trim()) {
-      txtBase.cliPath = opts.cliPath.trim();
-    }
-
     // Build TXT record for the gateway service.
     // In minimal mode, omit sshPort to avoid advertising SSH availability.
     const gatewayTxt: Record<string, string> = {

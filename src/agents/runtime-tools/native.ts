@@ -115,17 +115,29 @@ class CrawClawRuntimeWorker {
     return this.closed || this.child.killed;
   }
 
-  request<T>(tool: string, input: unknown, timeoutMs: number): Promise<T> {
+  request<T>(
+    tool: string,
+    input: unknown,
+    options: {
+      timeoutMs: number;
+      runtimeRoot?: string;
+    },
+  ): Promise<T> {
     if (this.isClosed || !this.child.stdin.writable) {
       throw new Error("crawclaw runtime worker is not running");
     }
     const id = `${Date.now()}-${++this.nextId}`;
-    const payload = `${JSON.stringify({ id, tool, input: input ?? {} })}\n`;
+    const payload = `${JSON.stringify({
+      id,
+      tool,
+      input: input ?? {},
+      ...(options.runtimeRoot ? { runtimeRoot: options.runtimeRoot } : {}),
+    })}\n`;
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
         reject(new Error(`crawclaw runtime worker timed out running ${tool}`));
-      }, timeoutMs);
+      }, options.timeoutMs);
       this.pending.set(id, {
         resolve: (result) => resolve(result as T),
         reject,
@@ -231,12 +243,12 @@ export async function runCrawClawRuntimeTool<T = unknown>(
   options?: {
     timeoutMs?: number;
     env?: NodeJS.ProcessEnv;
+    runtimeRoot?: string;
   },
 ): Promise<T> {
   const runtimeArgv = resolveCrawClawRuntimeArgv({ env: options?.env });
-  return getCrawClawRuntimeWorker(runtimeArgv, options?.env).request<T>(
-    tool,
-    input,
-    options?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
-  );
+  return getCrawClawRuntimeWorker(runtimeArgv, options?.env).request<T>(tool, input, {
+    timeoutMs: options?.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+    runtimeRoot: options?.runtimeRoot,
+  });
 }

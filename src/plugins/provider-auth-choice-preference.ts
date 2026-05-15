@@ -13,23 +13,6 @@ export async function resolvePreferredProviderForAuthChoice(params: {
     return manifestResolved.providerId;
   }
 
-  const { resolveProviderPluginChoice, resolvePluginProviders } =
-    await import("./provider-auth-choice.runtime.js");
-  const providers = resolvePluginProviders({
-    config: params.config,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-    bundledProviderAllowlistCompat: true,
-    bundledProviderVitestCompat: true,
-  });
-  const pluginResolved = resolveProviderPluginChoice({
-    providers,
-    choice,
-  });
-  if (pluginResolved) {
-    return pluginResolved.provider.id;
-  }
-
   if (choice === "custom-api-key") {
     return "custom";
   }

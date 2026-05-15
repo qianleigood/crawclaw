@@ -2,13 +2,13 @@
 summary: "Logging surfaces, file logs, WS log styles, and console formatting"
 read_when:
   - Changing logging output or formats
-  - Debugging CLI or gateway output
+  - Debugging desktop, Gateway, or automation output
 title: "Gateway Logging"
 ---
 
 # Logging
 
-For a user-facing overview (CLI + gateway clients + config), see [/logging](/logging).
+For a user-facing overview (Desktop + Gateway clients + config), see [/logging](/logging).
 
 CrawClaw has two log “surfaces”:
 
@@ -26,24 +26,20 @@ CrawClaw has two log “surfaces”:
 The file format is one JSON object per line.
 
 Gateway clients can tail this file via the gateway (`logs.tail`).
-CLI can do the same:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Desktop diagnostics use the same Gateway log stream.
 
 **Verbose vs. log levels**
 
 - **File logs** are controlled exclusively by `logging.level`.
-- `--verbose` only affects **console verbosity** (and WS log style); it does **not**
+- Per-run verbosity only affects **console verbosity** (and WS log style); it does **not**
   raise the file log level.
 - To capture verbose-only details in file logs, set `logging.level` to `debug` or
   `trace`.
 
 ## Console capture
 
-The CLI captures `console.log/info/warn/error/debug/trace` and writes them to file logs,
-while still printing to stdout/stderr.
+Gateway runtime captures `console.log/info/warn/error/debug/trace` and writes them to file logs,
+while still printing to its process stdout/stderr.
 
 You can tune console verbosity independently via:
 
@@ -103,11 +99,11 @@ Behavior:
 - **Subsystem prefixes** on every line (e.g. `[gateway]`, `[canvas]`, `[tailscale]`)
 - **Subsystem colors** (stable per subsystem) plus level coloring
 - **Color when output is a TTY or the environment looks like a rich terminal** (`TERM`/`COLORTERM`/`TERM_PROGRAM`), respects `NO_COLOR`
-- **Shortened subsystem prefixes**: drops leading `gateway/` + `channels/`, keeps last 2 segments (e.g. `whatsapp/outbound`)
+- **Shortened subsystem prefixes**: drops leading `gateway/` + `channels/`, keeps last 2 segments (e.g. `weixin/outbound`)
 - **Sub-loggers by subsystem** (auto prefix + structured field `{ subsystem }`)
 - **`logRaw()`** for QR/UX output (no prefix, no formatting)
 - **Console styles** (e.g. `pretty | compact | json`)
 - **Console log level** separate from file log level (file keeps full detail when `logging.level` is set to `debug`/`trace`)
-- **WhatsApp message bodies** are logged at `debug` (use `--verbose` to see them)
+- **Weixin message bodies** are logged at `debug` (use `--verbose` to see them)
 
 This keeps existing file logs stable while making interactive output scannable.

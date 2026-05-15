@@ -17,7 +17,6 @@ export function createEmptyPluginRegistry(): PluginRegistry {
     gatewayHandlers: {},
     gatewayMethodScopes: {},
     httpRoutes: [],
-    cliRegistrars: [],
     services: [],
     commands: [],
     conversationBindingResolvedHandlers: [],

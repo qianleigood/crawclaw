@@ -1,5 +1,4 @@
 import { resolveProviderEndpoint } from "crawclaw/plugin-sdk/provider-http";
-import type { ModelProviderConfig } from "crawclaw/plugin-sdk/provider-model-shared";
 import {
   applyAgentDefaultModelPrimary,
   type CrawClawConfig,
@@ -13,6 +12,11 @@ type GoogleApiCarrier = {
 
 type GoogleProviderConfigLike = GoogleApiCarrier & {
   models?: ReadonlyArray<GoogleApiCarrier | null | undefined> | null;
+};
+
+type ModelProviderConfig = GoogleProviderConfigLike & {
+  baseUrl?: string;
+  models?: ReadonlyArray<{ id: string } & Record<string, unknown>> | null;
 };
 
 export const DEFAULT_GOOGLE_API_BASE_URL = "https://generativelanguage.googleapis.com/v1beta";

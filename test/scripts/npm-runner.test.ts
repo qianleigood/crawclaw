@@ -94,13 +94,13 @@ describe("resolveNpmRunner", () => {
       execPath,
       env: {},
       existsSync: (candidate) => candidate === npmCmdPath,
-      npmArgs: ["install", "@slack/bolt@^4.6.0"],
+      npmArgs: ["install", "@ddingtalk/bolt@^4.6.0"],
       platform: "win32",
     });
 
     expect(runner).toEqual({
       command: "C:\\Windows\\System32\\cmd.exe",
-      args: ["/d", "/s", "/c", `${npmCmdPath} install @slack/bolt@^^4.6.0`],
+      args: ["/d", "/s", "/c", `${npmCmdPath} install @ddingtalk/bolt@^^4.6.0`],
       shell: false,
       windowsVerbatimArguments: true,
     });

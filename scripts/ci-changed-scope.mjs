@@ -6,13 +6,12 @@ import { appendFileSync } from "node:fs";
 const DOCS_PATH_RE = /^(docs\/|.*\.mdx?$)/;
 const SKILLS_PYTHON_SCOPE_RE = /^(skills\/|pyproject\.toml$)/;
 const CI_WORKFLOW_SCOPE_RE = /^\.github\/workflows\/ci\.yml$/;
-const WINDOWS_NATIVE_SMOKE_WORKFLOW_SCOPE_RE = /^\.github\/workflows\/windows-native-smoke\.yml$/;
 const NODE_SCOPE_RE =
   /^(src\/|test\/|extensions\/|packages\/|scripts\/|ui\/|\.github\/|crawclaw\.mjs$|crawclaw\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig.*\.json$|vitest.*\.ts$|tsdown\.config\.ts$|\.oxlintrc\.json$|\.oxfmtrc\.jsonc$)/;
 const WINDOWS_SCOPE_RE =
-  /^(src\/|test\/|extensions\/|packages\/|scripts\/|ui\/|crawclaw\.mjs$|crawclaw\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig.*\.json$|vitest.*\.ts$|tsdown\.config\.ts$|\.github\/workflows\/ci\.yml$|\.github\/workflows\/windows-native-smoke\.yml$|\.github\/actions\/setup-node-env\/action\.yml$|\.github\/actions\/setup-pnpm-store-cache\/action\.yml$)/;
+  /^(src\/|test\/|extensions\/|packages\/|scripts\/|ui\/|crawclaw\.mjs$|crawclaw\.mjs$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|tsconfig.*\.json$|vitest.*\.ts$|tsdown\.config\.ts$|\.github\/workflows\/ci\.yml$|\.github\/actions\/setup-node-env\/action\.yml$|\.github\/actions\/setup-pnpm-store-cache\/action\.yml$)/;
 const CHANGED_SMOKE_SCOPE_RE =
-  /^(\.npmrc$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|scripts\/install\.(sh|ps1)$|scripts\/postinstall-bundled-plugins\.mjs$|scripts\/install-plugin-runtimes\.mjs$|scripts\/ci\/windows-packed-install-smoke\.mjs$|scripts\/ci-changed-scope\.mjs$|scripts\/ci-write-manifest-outputs\.mjs$|scripts\/test-planner\/planner\.mjs$|extensions\/[^/]+\/package\.json$|\.github\/workflows\/ci\.yml$|\.github\/actions\/setup-node-env\/action\.yml$)/;
+  /^(\.npmrc$|package\.json$|pnpm-lock\.yaml$|pnpm-workspace\.yaml$|scripts\/postinstall-bundled-plugins\.mjs$|scripts\/install-plugin-runtimes\.mjs$|scripts\/ci-changed-scope\.mjs$|scripts\/ci-write-manifest-outputs\.mjs$|scripts\/test-planner\/planner\.mjs$|extensions\/[^/]+\/package\.json$|\.github\/workflows\/ci\.yml$|\.github\/actions\/setup-node-env\/action\.yml$)/;
 
 /**
  * @param {string[]} changedPaths
@@ -52,10 +51,6 @@ export function detectChangedScope(changedPaths) {
 
     if (CI_WORKFLOW_SCOPE_RE.test(path)) {
       runSkillsPython = true;
-    }
-
-    if (WINDOWS_NATIVE_SMOKE_WORKFLOW_SCOPE_RE.test(path)) {
-      runWindows = true;
     }
 
     if (NODE_SCOPE_RE.test(path)) {

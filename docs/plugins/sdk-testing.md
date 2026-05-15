@@ -15,7 +15,6 @@ plugins.
 
 <Tip>
   **Looking for test examples?** The how-to guides include worked test examples:
-  [Channel plugin tests](/plugins/sdk-channel-plugins#step-6-test) and
   [Provider plugin tests](/plugins/sdk-provider-plugins#step-6-test).
 </Tip>
 
@@ -82,42 +81,6 @@ describe("my-channel target resolution", () => {
 ```
 
 ## Testing patterns
-
-### Unit testing a channel plugin
-
-```typescript
-import { describe, it, expect, vi } from "vitest";
-
-describe("my-channel plugin", () => {
-  it("should resolve account from config", () => {
-    const cfg = {
-      channels: {
-        "my-channel": {
-          token: "test-token",
-          allowFrom: ["user1"],
-        },
-      },
-    };
-
-    const account = myPlugin.setup.resolveAccount(cfg, undefined);
-    expect(account.token).toBe("test-token");
-  });
-
-  it("should inspect account without materializing secrets", () => {
-    const cfg = {
-      channels: {
-        "my-channel": { token: "test-token" },
-      },
-    };
-
-    const inspection = myPlugin.setup.inspectAccount(cfg, undefined);
-    expect(inspection.configured).toBe(true);
-    expect(inspection.tokenStatus).toBe("available");
-    // No token value exposed
-    expect(inspection).not.toHaveProperty("token");
-  });
-});
-```
 
 ### Unit testing a provider plugin
 
@@ -258,6 +221,5 @@ CRAWCLAW_TEST_PROFILE=low CRAWCLAW_TEST_SERIAL_GATEWAY=1 pnpm test
 ## Related
 
 - [SDK Overview](/plugins/sdk-overview) -- import conventions
-- [SDK Channel Plugins](/plugins/sdk-channel-plugins) -- channel plugin interface
-- [SDK Provider Plugins](/plugins/sdk-provider-plugins) -- provider plugin hooks
+- [Provider Configuration](/plugins/sdk-provider-plugins) -- Rust-owned provider setup
 - [Building Plugins](/plugins/building-plugins) -- getting started guide

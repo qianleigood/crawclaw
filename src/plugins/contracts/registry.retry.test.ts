@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import type { ProviderPlugin, WebFetchProviderPlugin, WebSearchProviderPlugin } from "../types.js";
+import type { WebFetchProviderPlugin, WebSearchProviderPlugin } from "../types.js";
 
 type MockPluginRecord = {
   id: string;
@@ -13,14 +13,12 @@ type MockPluginRecord = {
 type MockRuntimeRegistry = {
   plugins: MockPluginRecord[];
   diagnostics: Array<{ pluginId?: string; message: string }>;
-  providers: Array<{ pluginId: string; provider: ProviderPlugin }>;
   webFetchProviders: Array<{ pluginId: string; provider: WebFetchProviderPlugin }>;
   webSearchProviders: Array<{ pluginId: string; provider: WebSearchProviderPlugin }>;
 };
 
 function createMockRuntimeRegistry(params: {
   plugin: MockPluginRecord;
-  providers?: Array<{ pluginId: string; provider: ProviderPlugin }>;
   webFetchProviders?: Array<{ pluginId: string; provider: WebFetchProviderPlugin }>;
   webSearchProviders?: Array<{ pluginId: string; provider: WebSearchProviderPlugin }>;
   diagnostics?: Array<{ pluginId?: string; message: string }>;
@@ -28,7 +26,6 @@ function createMockRuntimeRegistry(params: {
   return {
     plugins: [params.plugin],
     diagnostics: params.diagnostics ?? [],
-    providers: params.providers ?? [],
     webFetchProviders: params.webFetchProviders ?? [],
     webSearchProviders: params.webSearchProviders ?? [],
   };
@@ -40,57 +37,6 @@ afterEach(() => {
 });
 
 describe("plugin contract registry scoped retries", () => {
-  it("retries provider loads after a transient plugin-scoped runtime error", async () => {
-    const loadBundledCapabilityRuntimeRegistry = vi
-      .fn()
-      .mockReturnValueOnce(
-        createMockRuntimeRegistry({
-          plugin: {
-            id: "xai",
-            status: "error",
-            error: "transient xai load failure",
-            providerIds: [],
-            webFetchProviderIds: [],
-            webSearchProviderIds: [],
-          },
-          diagnostics: [{ pluginId: "xai", message: "transient xai load failure" }],
-        }),
-      )
-      .mockReturnValueOnce(
-        createMockRuntimeRegistry({
-          plugin: {
-            id: "xai",
-            status: "loaded",
-            providerIds: ["xai"],
-            webFetchProviderIds: [],
-            webSearchProviderIds: ["grok"],
-          },
-          providers: [
-            {
-              pluginId: "xai",
-              provider: {
-                id: "xai",
-                label: "xAI",
-                docsPath: "/providers/xai",
-                auth: [],
-              } as ProviderPlugin,
-            },
-          ],
-        }),
-      );
-
-    vi.doMock("../bundled-capability-runtime.js", () => ({
-      loadBundledCapabilityRuntimeRegistry,
-    }));
-
-    const { resolveProviderContractProvidersForPluginIds } = await import("./registry.js");
-
-    expect(
-      resolveProviderContractProvidersForPluginIds(["xai"]).map((provider) => provider.id),
-    ).toEqual(["xai"]);
-    expect(loadBundledCapabilityRuntimeRegistry).toHaveBeenCalledTimes(2);
-  });
-
   it("retries web search provider loads after a transient plugin-scoped runtime error", async () => {
     const loadBundledCapabilityRuntimeRegistry = vi
       .fn()
@@ -151,40 +97,6 @@ describe("plugin contract registry scoped retries", () => {
       resolveWebSearchProviderContractEntriesForPluginId("xai").map((entry) => entry.provider.id),
     ).toEqual(["grok"]);
     expect(loadBundledCapabilityRuntimeRegistry).toHaveBeenCalledTimes(2);
-  });
-
-  it("reuses the single registered provider contract for paired manifest alias ids", async () => {
-    const loadBundledCapabilityRuntimeRegistry = vi.fn().mockReturnValue(
-      createMockRuntimeRegistry({
-        plugin: {
-          id: "byteplus",
-          status: "loaded",
-          providerIds: ["byteplus"],
-          webFetchProviderIds: [],
-          webSearchProviderIds: [],
-        },
-        providers: [
-          {
-            pluginId: "byteplus",
-            provider: {
-              id: "byteplus",
-              label: "BytePlus",
-              docsPath: "/providers/byteplus",
-              auth: [],
-            } as ProviderPlugin,
-          },
-        ],
-      }),
-    );
-
-    vi.doMock("../bundled-capability-runtime.js", () => ({
-      loadBundledCapabilityRuntimeRegistry,
-    }));
-
-    const { requireProviderContractProvider } = await import("./registry.js");
-
-    expect(requireProviderContractProvider("byteplus-plan").id).toBe("byteplus");
-    expect(loadBundledCapabilityRuntimeRegistry).toHaveBeenCalledTimes(1);
   });
 
   it("retries web fetch provider loads after a transient plugin-scoped runtime error", async () => {

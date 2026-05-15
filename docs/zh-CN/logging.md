@@ -78,10 +78,10 @@ crawclaw doctor
 
 ### 仅渠道日志
 
-要过滤渠道活动（WhatsApp/Telegram 等），使用：
+要过滤渠道活动（Weixin/Feishu 等），使用：
 
 ```bash
-crawclaw channels logs --channel whatsapp
+crawclaw channels logs --channel weixin
 ```
 
 ## 日志格式
@@ -94,7 +94,7 @@ crawclaw channels logs --channel whatsapp
 
 控制台日志**感知 TTY**并格式化以提高可读性：
 
-- 子系统前缀（例如 `gateway/channels/whatsapp`）
+- 子系统前缀（例如 `gateway/channels/index`）
 - 级别着色（info/warn/error）
 - 可选的紧凑或 JSON 模式
 
@@ -199,12 +199,12 @@ crawclaw channels logs --channel whatsapp
 ### 诊断标志（定向日志）
 
 使用标志在不提高 `logging.level` 的情况下开启额外的定向调试日志。
-标志不区分大小写，支持通配符（例如 `telegram.*` 或 `*`）。
+标志不区分大小写，支持通配符（例如 `feishu.*` 或 `*`）。
 
 ```json
 {
   "diagnostics": {
-    "flags": ["telegram.http"]
+    "flags": ["feishu.http"]
   }
 }
 ```
@@ -212,7 +212,7 @@ crawclaw channels logs --channel whatsapp
 环境变量覆盖（一次性）：
 
 ```
-CRAWCLAW_DIAGNOSTICS=telegram.http,telegram.payload
+CRAWCLAW_DIAGNOSTICS=feishu.http,feishu.payload
 ```
 
 注意：

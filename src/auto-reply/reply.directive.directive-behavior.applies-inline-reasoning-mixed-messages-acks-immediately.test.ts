@@ -8,7 +8,7 @@ import {
   installDirectiveBehaviorE2EHooks,
   installFreshDirectiveBehaviorReplyMocks,
   makeEmbeddedTextResult,
-  makeWhatsAppDirectiveConfig,
+  makeWeixinDirectiveConfig,
   replyText,
   replyTexts,
   sessionStorePath,
@@ -43,7 +43,7 @@ async function runThinkingDirective(home: string, model: string) {
       CommandAuthorized: true,
     },
     {},
-    makeWhatsAppDirectiveConfig(home, { model }, { session: { store: sessionStorePath(home) } }),
+    makeWeixinDirectiveConfig(home, { model }, { session: { store: sessionStorePath(home) } }),
   );
   return replyTexts(res);
 }
@@ -52,7 +52,7 @@ async function runThinkDirectiveAndGetText(home: string): Promise<string | undef
   const res = await getReplyFromConfig(
     { Body: "/think", From: "+1222", To: "+1222", CommandAuthorized: true },
     {},
-    makeWhatsAppDirectiveConfig(home, {
+    makeWeixinDirectiveConfig(home, {
       model: "anthropic/claude-opus-4-5",
       thinkingDefault: "high",
     }),
@@ -71,7 +71,7 @@ async function runInlineReasoningMessage(params: {
       Body: params.body,
       From: "+1222",
       To: "+1222",
-      Provider: "whatsapp",
+      Provider: "weixin",
     },
     {
       onBlockReply: (payload) => {
@@ -80,7 +80,7 @@ async function runInlineReasoningMessage(params: {
         }
       },
     },
-    makeWhatsAppDirectiveConfig(
+    makeWeixinDirectiveConfig(
       params.home,
       { model: "anthropic/claude-opus-4-5" },
       {
@@ -91,7 +91,7 @@ async function runInlineReasoningMessage(params: {
 }
 
 function makeRunConfig(home: string, storePath: string) {
-  return makeWhatsAppDirectiveConfig(
+  return makeWeixinDirectiveConfig(
     home,
     { model: "anthropic/claude-opus-4-5" },
     { session: { store: storePath } },
@@ -199,14 +199,14 @@ describe("directive behavior", () => {
       const enabledRes = await getReplyFromConfig(
         { Body: "/verbose on", From: "+1222", To: "+1222", CommandAuthorized: true },
         {},
-        makeWhatsAppDirectiveConfig(home, { model: "anthropic/claude-opus-4-5" }),
+        makeWeixinDirectiveConfig(home, { model: "anthropic/claude-opus-4-5" }),
       );
       expect(replyText(enabledRes)).toMatch(/^⚙️ Verbose logging enabled\./);
 
       const disabledRes = await getReplyFromConfig(
         { Body: "/verbose off", From: "+1222", To: "+1222", CommandAuthorized: true },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           { model: "anthropic/claude-opus-4-5" },
           {
@@ -279,7 +279,7 @@ describe("directive behavior", () => {
           CommandAuthorized: true,
         },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           {
             model: "anthropic/claude-opus-4-5",
@@ -313,7 +313,7 @@ describe("directive behavior", () => {
           CommandAuthorized: true,
         },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           {
             model: "anthropic/claude-opus-4-5",
@@ -341,7 +341,7 @@ describe("directive behavior", () => {
           CommandAuthorized: true,
         },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           { model: "anthropic/claude-opus-4-5" },
           {
@@ -360,11 +360,11 @@ describe("directive behavior", () => {
           Body: "/queue",
           From: "+1222",
           To: "+1222",
-          Provider: "whatsapp",
+          Provider: "weixin",
           CommandAuthorized: true,
         },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           { model: "anthropic/claude-opus-4-5" },
           {

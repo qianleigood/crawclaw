@@ -48,7 +48,7 @@ x-i18n:
     restart: true, // 默认启用；设为 false 可禁用手动重启
     allowFrom: {
       "*": ["user1"],
-      discord: ["user:123"],
+      qqbot: ["user:123"],
     },
     useAccessGroups: true,
   },
@@ -56,14 +56,14 @@ x-i18n:
 ```
 
 - `commands.text`（默认 `true`）启用解析聊天消息中的 `/...`。
-  - 在没有原生命令的平台上（WhatsApp/Gateway 客户端/Signal/iMessage/Google Chat/MS Teams），即使你将此设置为 `false`，文本命令仍然有效。
+  - 在没有原生命令的平台上（Weixin/Gateway 客户端/Feishu/Weixin/Feishu/MS Teams），即使你将此设置为 `false`，文本命令仍然有效。
 - `commands.native`（默认 `"auto"`）注册原生命令。
-  - Auto：在 Discord/Telegram 上启用；在 Slack 上禁用（直到你添加斜杠命令）；在不支持原生命令的提供商上忽略。
-  - 设置 `channels.discord.commands.native`、`channels.telegram.commands.native` 或 `channels.slack.commands.native` 以按提供商覆盖（布尔值或 `"auto"`）。
-  - `false` 在启动时清除 Discord/Telegram 上之前注册的命令。Slack 命令在 Slack 应用中管理，不会自动删除。
+  - Auto：在 QQBot/Feishu 上启用；在 DingTalk 上禁用（直到你添加斜杠命令）；在不支持原生命令的提供商上忽略。
+  - 设置 `channels.qqbot.commands.native`、`channels.feishu.commands.native` 或 `channels.ddingtalk.commands.native` 以按提供商覆盖（布尔值或 `"auto"`）。
+  - `false` 在启动时清除 QQBot/Feishu 上之前注册的命令。DingTalk 命令在 DingTalk 应用中管理，不会自动删除。
 - `commands.nativeSkills`（默认 `"auto"`）在支持时原生注册 **Skill** 命令。
-  - Auto：在 Discord/Telegram 上启用；在 Slack 上禁用（Slack 需要为每个 Skill 创建一个斜杠命令）。
-  - 设置 `channels.discord.commands.nativeSkills`、`channels.telegram.commands.nativeSkills` 或 `channels.slack.commands.nativeSkills` 以按提供商覆盖（布尔值或 `"auto"`）。
+  - Auto：在 QQBot/Feishu 上启用；在 DingTalk 上禁用（DingTalk 需要为每个 Skill 创建一个斜杠命令）。
+  - 设置 `channels.qqbot.commands.nativeSkills`、`channels.feishu.commands.nativeSkills` 或 `channels.ddingtalk.commands.nativeSkills` 以按提供商覆盖（布尔值或 `"auto"`）。
 - `commands.bash`（默认 `false`）启用 `! <cmd>` 来运行主机 shell 命令（`/bash <cmd>` 是别名；需要 `tools.elevated` 白名单）。
 - `commands.bashForegroundMs`（默认 `2000`）控制 bash 切换到后台模式之前等待多长时间（`0` 立即后台运行）。
 - `commands.config`（默认 `false`）启用 `/config`（读写 `crawclaw.json`）。
@@ -106,19 +106,19 @@ x-i18n:
 - `/debug show|set|unset|reset`（运行时覆盖，仅所有者；需要 `commands.debug: true`）
 - `/usage off|tokens|full|cost`（每响应使用量页脚或本地成本摘要）
 - `/tts off|always|inbound|tagged|status|provider|limit|summary|audio`（控制 TTS；参见 [/tools/tts](/tools/tts)）
-  - Discord：原生命令是 `/voice`（Discord 保留了 `/tts`）；文本 `/tts` 仍然有效。
+  - QQBot：原生命令是 `/voice`（QQBot 保留了 `/tts`）；文本 `/tts` 仍然有效。
 - `/stop`
 - `/restart`
-- `/dock-telegram`（别名：`/dock_telegram`）（将回复切换到 Telegram）
-- `/dock-discord`（别名：`/dock_discord`）（将回复切换到 Discord）
-- `/dock-slack`（别名：`/dock_slack`）（将回复切换到 Slack）
+- `/dock-feishu`（别名：`/dock_feishu`）（将回复切换到 Feishu）
+- `/dock-qqbot`（别名：`/dock_qqbot`）（将回复切换到 QQBot）
+- `/dock-ddingtalk`（别名：`/dock_ddingtalk`）（将回复切换到 DingTalk）
 - `/activation mention|always`（仅限群组）
 - `/send on|off|inherit`（仅所有者）
 - `/new [model]`（可选模型提示；其余部分传递）
 - `/think <off|minimal|low|medium|high|xhigh>`（按模型/提供商动态选择；别名：`/thinking`、`/t`）
 - `/fast status|on|off`（省略参数时显示当前 fast-mode 状态）
 - `/verbose on|full|off`（别名：`/v`）
-- `/reasoning on|off|stream`（别名：`/reason`；启用时，发送带有 `Reasoning:` 前缀的单独消息；`stream` = 仅 Telegram 草稿）
+- `/reasoning on|off|stream`（别名：`/reason`；启用时，发送带有 `Reasoning:` 前缀的单独消息；`stream` = 仅 Feishu 草稿）
 - `/elevated on|off|ask|full`（别名：`/elev`；`full` 跳过 exec 审批）
 - `/exec host=<auto|sandbox|gateway|node> security=<deny|allowlist|full> ask=<off|on-miss|always> node=<id>`（发送 `/exec` 显示当前设置）
 - `/model <name>`（别名：`/models`；或 `agents.defaults.models.*.alias` 中的 `/<alias>`）
@@ -159,7 +159,7 @@ x-i18n:
   - 默认情况下，Skill 命令作为普通请求转发给模型。
   - Skills 可以选择声明 `command-dispatch: tool` 将命令直接路由到工具（确定性，无模型）。
   - 示例：`/prose`（OpenProse 插件）— 参见 [OpenProse](/prose)。
-- **原生命令参数：** Discord 使用自动完成进行动态选项（以及当你省略必需参数时的按钮菜单）。当命令支持选择且你省略参数时，Telegram 和 Slack 显示按钮菜单。
+- **原生命令参数：** QQBot 使用自动完成进行动态选项（以及当你省略必需参数时的按钮菜单）。当命令支持选择且你省略参数时，Feishu 和 DingTalk 显示按钮菜单。
 
 ## `/tools`
 
@@ -230,7 +230,7 @@ x-i18n:
 ```
 /debug show
 /debug set messages.responsePrefix="[crawclaw]"
-/debug set channels.whatsapp.allowFrom=["+1555","+4477"]
+/debug set channels.weixin.allowFrom=["+1555","+4477"]
 /debug unset messages.responsePrefix
 /debug reset
 ```
@@ -263,8 +263,8 @@ x-i18n:
 
 - **文本命令**在普通聊天会话中运行（私信共享 `main`，群组有自己的会话）。
 - **原生命令**使用隔离的会话：
-  - Discord：`agent:<agentId>:discord:slash:<userId>`
-  - Slack：`agent:<agentId>:slack:slash:<userId>`（前缀可通过 `channels.slack.slashCommand.sessionPrefix` 配置）
-  - Telegram：`telegram:slash:<userId>`（通过 `CommandTargetSessionKey` 定向到聊天会话）
+  - QQBot：`agent:<agentId>:qqbot:slash:<userId>`
+  - DingTalk：`agent:<agentId>:ddingtalk:slash:<userId>`（前缀可通过 `channels.ddingtalk.slashCommand.sessionPrefix` 配置）
+  - Feishu：`feishu:slash:<userId>`（通过 `CommandTargetSessionKey` 定向到聊天会话）
 - **`/stop`** 定向到活动聊天会话，因此可以中止当前运行。
-- **Slack：** `channels.slack.slashCommand` 仍然支持单个 `/crawclaw` 风格的命令。如果你启用 `commands.native`，你必须为每个内置命令创建一个 Slack 斜杠命令（与 `/help` 相同的名称）。Slack 的命令参数菜单以临时 Block Kit 按钮形式发送。
+- **DingTalk：** `channels.ddingtalk.slashCommand` 仍然支持单个 `/crawclaw` 风格的命令。如果你启用 `commands.native`，你必须为每个内置命令创建一个 DingTalk 斜杠命令（与 `/help` 相同的名称）。DingTalk 的命令参数菜单以临时 Block Kit 按钮形式发送。

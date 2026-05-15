@@ -20,10 +20,10 @@ vi.mock("../../plugins/tools.js", () => ({
   resolvePluginTools: vi.fn(() => [
     { name: "voice_call", label: "voice_call", description: "Plugin calling tool" },
     {
-      name: "matrix_room",
-      label: "matrix_room",
-      displaySummary: "Summarized Matrix room helper.",
-      description: "Matrix room helper\n\nACTIONS:\n- join\n- leave",
+      name: "feishu_room",
+      label: "feishu_room",
+      displaySummary: "Summarized Feishu room helper.",
+      description: "Feishu room helper\n\nACTIONS:\n- join\n- leave",
     },
   ]),
   getPluginToolMeta: vi.fn((tool: { name: string }) => pluginToolMetaState.get(tool.name)),
@@ -51,7 +51,7 @@ describe("tools.catalog handler", () => {
   beforeEach(() => {
     pluginToolMetaState.clear();
     pluginToolMetaState.set("voice_call", { pluginId: "voice-call", optional: true });
-    pluginToolMetaState.set("matrix_room", { pluginId: "matrix", optional: false });
+    pluginToolMetaState.set("feishu_room", { pluginId: "feishu", optional: false });
   });
 
   it("rejects invalid params", async () => {
@@ -141,11 +141,11 @@ describe("tools.catalog handler", () => {
           }>;
         }
       | undefined;
-    const matrixRoom = (payload?.groups ?? [])
+    const feishuRoom = (payload?.groups ?? [])
       .filter((group) => group.source === "plugin")
       .flatMap((group) => group.tools)
-      .find((tool) => tool.id === "matrix_room");
-    expect(matrixRoom?.description).toBe("Summarized Matrix room helper.");
+      .find((tool) => tool.id === "feishu_room");
+    expect(feishuRoom?.description).toBe("Summarized Feishu room helper.");
   });
 
   it("opts plugin tool catalog loads into gateway subagent binding", async () => {

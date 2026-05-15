@@ -39,19 +39,19 @@ afterEach(() => {
   Reflect.deleteProperty(globalThis as object, TEST_UNDICI_RUNTIME_DEPS_KEY);
 });
 
-function createPinnedTelegramHost(lookup: PinnedHostname["lookup"]): PinnedHostname {
+function createPinnedFeishuHost(lookup: PinnedHostname["lookup"]): PinnedHostname {
   return {
-    hostname: "api.telegram.org",
+    hostname: "api.feishu.org",
     addresses: ["149.154.167.221"],
     lookup,
   };
 }
 
 function createDispatcherWithPinnedOverride(lookup: PinnedHostname["lookup"]) {
-  createPinnedDispatcher(createPinnedTelegramHost(lookup), {
+  createPinnedDispatcher(createPinnedFeishuHost(lookup), {
     mode: "direct",
     pinnedHostname: {
-      hostname: "api.telegram.org",
+      hostname: "api.feishu.org",
       addresses: ["149.154.167.220"],
     },
   });
@@ -64,7 +64,7 @@ describe("createPinnedDispatcher", () => {
   it("uses pinned lookup without overriding global family policy", () => {
     const lookup = vi.fn() as unknown as PinnedHostname["lookup"];
     const pinned: PinnedHostname = {
-      hostname: "api.telegram.org",
+      hostname: "api.feishu.org",
       addresses: ["149.154.167.220"],
       lookup,
     };
@@ -87,7 +87,7 @@ describe("createPinnedDispatcher", () => {
     const lookup = vi.fn() as unknown as PinnedHostname["lookup"];
     const previousLookup = vi.fn();
     const pinned: PinnedHostname = {
-      hostname: "api.telegram.org",
+      hostname: "api.feishu.org",
       addresses: ["149.154.167.220"],
       lookup,
     };
@@ -116,7 +116,7 @@ describe("createPinnedDispatcher", () => {
 
     expect(lookup).toBeTypeOf("function");
     const callback = vi.fn();
-    lookup?.("api.telegram.org", callback);
+    lookup?.("api.feishu.org", callback);
 
     expect(callback).toHaveBeenCalledWith(null, "149.154.167.220", 4);
     expect(originalLookup).not.toHaveBeenCalled();
@@ -139,7 +139,7 @@ describe("createPinnedDispatcher", () => {
   it("rejects pinned override addresses that violate SSRF policy", () => {
     const originalLookup = vi.fn() as unknown as PinnedHostname["lookup"];
     const pinned: PinnedHostname = {
-      hostname: "api.telegram.org",
+      hostname: "api.feishu.org",
       addresses: ["149.154.167.221"],
       lookup: originalLookup,
     };
@@ -150,7 +150,7 @@ describe("createPinnedDispatcher", () => {
         {
           mode: "direct",
           pinnedHostname: {
-            hostname: "api.telegram.org",
+            hostname: "api.feishu.org",
             addresses: ["127.0.0.1"],
           },
         },
@@ -162,7 +162,7 @@ describe("createPinnedDispatcher", () => {
   it("keeps env proxy route while pinning the direct no-proxy path", () => {
     const lookup = vi.fn() as unknown as PinnedHostname["lookup"];
     const pinned: PinnedHostname = {
-      hostname: "api.telegram.org",
+      hostname: "api.feishu.org",
       addresses: ["149.154.167.220"],
       lookup,
     };
@@ -191,7 +191,7 @@ describe("createPinnedDispatcher", () => {
   it("keeps explicit proxy routing intact", () => {
     const lookup = vi.fn() as unknown as PinnedHostname["lookup"];
     const pinned: PinnedHostname = {
-      hostname: "api.telegram.org",
+      hostname: "api.feishu.org",
       addresses: ["149.154.167.220"],
       lookup,
     };

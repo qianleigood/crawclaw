@@ -18,14 +18,14 @@ import {
   ensureAgentWorkspace,
   isWorkspaceSetupCompleted,
 } from "../../agents/workspace.js";
+import { loadConfig, writeConfigFile } from "../../config/config.js";
+import { resolveSessionTranscriptsDirForAgent } from "../../config/sessions/paths.js";
 import {
   applyAgentConfig,
   findAgentEntryIndex,
   listAgentEntries,
   pruneAgentConfig,
-} from "../../commands/agents.config.js";
-import { loadConfig, writeConfigFile } from "../../config/config.js";
-import { resolveSessionTranscriptsDirForAgent } from "../../config/sessions/paths.js";
+} from "../../control/agents.config.js";
 import { sameFileIdentity } from "../../infra/file-identity.js";
 import {
   appendFileWithinRoot,

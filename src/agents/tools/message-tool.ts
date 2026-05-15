@@ -1,13 +1,13 @@
 import type { ChannelMessageActionName } from "../../channels/plugins/types.js";
-import { resolveCommandSecretRefsViaGateway } from "../../cli/command-secret-gateway.js";
-import { getScopedChannelsCommandSecretTargets } from "../../cli/command-secret-targets.js";
-import { resolveMessageSecretScope } from "../../cli/message-secret-scope.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { loadConfig } from "../../config/config.js";
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES } from "../../gateway/protocol/client-info.js";
 import { getToolResult, runMessageAction } from "../../infra/outbound/message-action-runner.js";
 import { normalizeAccountId } from "../../routing/session-key.js";
 import { stripReasoningTagsFromText } from "../../shared/text/reasoning-tags.js";
+import { resolveCommandSecretRefsViaGateway } from "../../terminal/command-secret-gateway.js";
+import { getScopedChannelsCommandSecretTargets } from "../../terminal/command-secret-targets.js";
+import { resolveMessageSecretScope } from "../../terminal/message-secret-scope.js";
 import { resolveSessionAgentId } from "../agent-scope.js";
 import type { AnyAgentTool } from "./common.js";
 import { jsonResult, readNumberParam, readStringParam } from "./common.js";

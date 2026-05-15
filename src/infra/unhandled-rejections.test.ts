@@ -100,14 +100,14 @@ describe("isTransientNetworkError", () => {
     expect(isTransientNetworkError(error)).toBe(true);
   });
 
-  it("returns true for Slack request errors that wrap network codes in .original", () => {
+  it("returns true for DingTalk request errors that wrap network codes in .original", () => {
     const error = Object.assign(new Error("A request error occurred: getaddrinfo EAI_AGAIN"), {
-      code: "slack_webapi_request_error",
+      code: "ddingtalk_webapi_request_error",
       original: {
         errno: -3001,
         code: "EAI_AGAIN",
         syscall: "getaddrinfo",
-        hostname: "slack.com",
+        hostname: "ddingtalk.com",
       },
     });
     expect(isTransientNetworkError(error)).toBe(true);
@@ -115,7 +115,7 @@ describe("isTransientNetworkError", () => {
 
   it("returns true for network codes nested in .data payloads", () => {
     const error = {
-      code: "slack_webapi_request_error",
+      code: "ddingtalk_webapi_request_error",
       message: "A request error occurred",
       data: {
         code: "EAI_AGAIN",
@@ -131,13 +131,13 @@ describe("isTransientNetworkError", () => {
   });
 
   it("returns true for wrapped fetch-failed messages from integration clients", () => {
-    const error = new Error("Failed to get gateway information from Discord: fetch failed");
+    const error = new Error("Failed to get gateway information from QQBot: fetch failed");
     expect(isTransientNetworkError(error)).toBe(true);
   });
 
-  it("returns true for wrapped Discord upstream-connect parse failures", () => {
+  it("returns true for wrapped QQBot upstream-connect parse failures", () => {
     const error = new Error(
-      `Failed to get gateway information from Discord: Unexpected token 'u', "upstream connect error or disconnect/reset before headers. reset reason: overflow" is not valid JSON`,
+      `Failed to get gateway information from QQBot: Unexpected token 'u', "upstream connect error or disconnect/reset before headers. reset reason: overflow" is not valid JSON`,
     );
     expect(isTransientNetworkError(error)).toBe(true);
   });
@@ -168,9 +168,9 @@ describe("isTransientNetworkError", () => {
     expect(isTransientNetworkError(error)).toBe(false);
   });
 
-  it("returns false for Slack request errors without network indicators", () => {
+  it("returns false for DingTalk request errors without network indicators", () => {
     const error = Object.assign(new Error("A request error occurred"), {
-      code: "slack_webapi_request_error",
+      code: "ddingtalk_webapi_request_error",
     });
     expect(isTransientNetworkError(error)).toBe(false);
   });

@@ -91,7 +91,7 @@ If you're unsure about the risk level, just describe the impact and we'll assess
 
 - **Security vulnerabilities:** See our [Trust page](https://trust.crawclaw.ai) for reporting instructions
 - **Threat model questions:** Open an issue on [crawclaw/trust](https://github.com/crawclaw/trust/issues)
-- **General chat:** Discord #security channel
+- **General chat:** community chat #security channel
 
 ## Recognition
 

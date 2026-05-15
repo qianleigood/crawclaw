@@ -37,7 +37,7 @@ function makeCfg(home: string) {
         workspace: path.join(home, "crawclaw"),
       },
     },
-    channels: { whatsapp: { allowFrom: ["*"] } },
+    channels: { weixin: { allowFrom: ["*"] } },
     session: { store: path.join(home, "sessions.json") },
   } as unknown as CrawClawConfig;
 }

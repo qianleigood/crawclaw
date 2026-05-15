@@ -21,7 +21,7 @@ const ONE_HOUR_MS = 60 * 60_000;
  * How long a connected channel can go without receiving any event before
  * the health monitor treats it as a "stale socket" and triggers a restart.
  * This catches the half-dead WebSocket scenario where the connection appears
- * alive (health checks pass) but Slack silently stops delivering events.
+ * alive (health checks pass) but channels silently stop delivering events.
  */
 export type ChannelHealthTimingPolicy = {
   monitorStartupGraceMs: number;

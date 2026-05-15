@@ -46,14 +46,14 @@ This threat model documents adversarial threats to the CrawClaw AI agent platfor
 
 ### 1.2 Scope
 
-| Component              | Included | Notes                                            |
-| ---------------------- | -------- | ------------------------------------------------ |
-| CrawClaw Agent Runtime | Yes      | Core agent execution, tool calls, sessions       |
-| Gateway                | Yes      | Authentication, routing, channel integration     |
-| Channel Integrations   | Yes      | WhatsApp, Telegram, Discord, Signal, Slack, etc. |
-| ClawHub Marketplace    | Yes      | Skill publishing, moderation, distribution       |
-| MCP Servers            | Yes      | External tool providers                          |
-| User Devices           | Partial  | Mobile apps, desktop clients                     |
+| Component              | Included | Notes                                         |
+| ---------------------- | -------- | --------------------------------------------- |
+| CrawClaw Agent Runtime | Yes      | Core agent execution, tool calls, sessions    |
+| Gateway                | Yes      | Authentication, routing, channel integration  |
+| Channel Integrations   | Yes      | Weixin, Feishu, QQBot, Signal, DingTalk, etc. |
+| ClawHub Marketplace    | Yes      | Skill publishing, moderation, distribution    |
+| MCP Servers            | Yes      | External tool providers                       |
+| User Devices           | Partial  | Mobile apps, desktop clients                  |
 
 ### 1.3 Out of Scope
 
@@ -69,7 +69,7 @@ Nothing is explicitly out of scope for this threat model.
 ┌─────────────────────────────────────────────────────────────────┐
 │                    UNTRUSTED ZONE                                │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
-│  │  WhatsApp   │  │  Telegram   │  │   Discord   │  ...         │
+│  │  Weixin   │  │  Feishu   │  │   QQBot   │  ...         │
 │  └──────┬──────┘  └──────┬──────┘  └──────┬──────┘              │
 │         │                │                │                      │
 └─────────┼────────────────┼────────────────┼──────────────────────┘
@@ -460,7 +460,7 @@ Current patterns in `moderation.ts`:
 /(malware|stealer|phish|phishing|keylogger)/i
 /(api[-_ ]?key|token|password|private key|secret)/i
 /(wallet|seed phrase|mnemonic|crypto)/i
-/(discord\.gg|webhook|hooks\.slack)/i
+/(qqbot\.gg|webhook|hooks\.ddingtalk)/i
 /(curl[^\n]+\|\s*(sh|bash))/i
 /(bit\.ly|tinyurl\.com|t\.co|goo\.gl|is\.gd)/i
 ```

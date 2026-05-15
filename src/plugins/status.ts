@@ -73,7 +73,6 @@ export type PluginInspectReport = {
     optional: boolean;
   }>;
   commands: string[];
-  cliCommands: string[];
   services: string[];
   gatewayMethods: string[];
   mcpServers: Array<{
@@ -161,8 +160,8 @@ function buildPluginReport(
   // report the same loaded/disabled status the gateway uses at runtime.  Without
   // this, bundled provider plugins are incorrectly shown as "disabled" when
   // `plugins.allow` is set because the allowlist check runs before the
-  // bundled-default-enable check.  Scoped to bundled providers only (not all
-  // bundled plugins) to match the runtime compat surface in providers.runtime.ts.
+  // bundled-default-enable check. Scoped to bundled providers only (not all
+  // bundled plugins) so status stays aligned with provider ownership metadata.
   const bundledProviderIds = resolveBundledProviderCompatPluginIds({
     config,
     workspaceDir,
@@ -234,7 +233,6 @@ function deriveInspectShape(params: {
   customHookCount: number;
   toolCount: number;
   commandCount: number;
-  cliCount: number;
   serviceCount: number;
   gatewayMethodCount: number;
   httpRouteCount: number;
@@ -249,7 +247,6 @@ function deriveInspectShape(params: {
     params.typedHookCount + params.customHookCount > 0 &&
     params.toolCount === 0 &&
     params.commandCount === 0 &&
-    params.cliCount === 0 &&
     params.serviceCount === 0 &&
     params.gatewayMethodCount === 0 &&
     params.httpRouteCount === 0;
@@ -311,7 +308,6 @@ export function buildPluginInspectReport(params: {
     customHookCount: customHooks.length,
     toolCount: tools.length,
     commandCount: plugin.commands.length,
-    cliCount: plugin.cliCommands.length,
     serviceCount: plugin.services.length,
     gatewayMethodCount: plugin.gatewayMethods.length,
     httpRouteCount: plugin.httpRoutes,
@@ -372,7 +368,6 @@ export function buildPluginInspectReport(params: {
     customHooks,
     tools,
     commands: [...plugin.commands],
-    cliCommands: [...plugin.cliCommands],
     services: [...plugin.services],
     gatewayMethods: [...plugin.gatewayMethods],
     mcpServers,

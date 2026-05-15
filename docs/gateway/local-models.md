@@ -59,7 +59,7 @@ Best current local stack. Load a large model in LM Studio (for example, a full-s
 - Replace `my-local-model` with the actual model ID shown in LM Studio.
 - Keep the model loaded; cold-load adds startup latency.
 - Adjust `contextWindow`/`maxTokens` if your LM Studio build differs.
-- For WhatsApp, stick to Responses API so only final text is sent.
+- For Weixin, stick to Responses API so only final text is sent.
 
 Keep hosted models configured even when running local; use `models.mode: "merge"` so fallbacks stay available.
 

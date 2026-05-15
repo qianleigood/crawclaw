@@ -43,7 +43,7 @@ function applyVitestCapabilityAliasOverrides(params: {
     ...params.aliasMap,
     // Capability contract loads only need a narrow SDK slice. Keep those
     // helpers on a tiny source graph so Vitest does not pull the dist chunk
-    // bundle that also drags Matrix/WhatsApp code into these tests.
+    // bundle that also drags channel code into these tests.
     "crawclaw/plugin-sdk/llm-task": fileURLToPath(
       new URL("./capability-runtime-vitest-shims/llm-task.ts", import.meta.url),
     ),
@@ -107,7 +107,6 @@ function createCapabilityPluginRecord(params: {
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     gatewayMethods: [],
-    cliCommands: [],
     services: [],
     commands: [],
     httpRoutes: 0,
@@ -323,7 +322,6 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
       const captured = createCapturedPluginRegistration();
       void register(captured.api);
       record.cliBackendIds.push(...captured.cliBackends.map((entry) => entry.id));
-      record.providerIds.push(...captured.providers.map((entry) => entry.id));
       record.speechProviderIds.push(...captured.speechProviders.map((entry) => entry.id));
       record.mediaUnderstandingProviderIds.push(
         ...captured.mediaUnderstandingProviders.map((entry) => entry.id),
@@ -340,15 +338,6 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
           pluginId: record.id,
           pluginName: record.name,
           backend,
-          source: record.source,
-          rootDir: record.rootDir,
-        })),
-      );
-      registry.providers.push(
-        ...captured.providers.map((provider) => ({
-          pluginId: record.id,
-          pluginName: record.name,
-          provider,
           source: record.source,
           rootDir: record.rootDir,
         })),

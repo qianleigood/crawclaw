@@ -114,8 +114,8 @@ async function runDispatch(params: {
   const targetSessionKey = params.sessionKeyOverride ?? sessionKey;
   return tryDispatchAcpReply({
     ctx: buildTestCtx({
-      Provider: "discord",
-      Surface: "discord",
+      Provider: "qqbot",
+      Surface: "qqbot",
       SessionKey: targetSessionKey,
       BodyForAgent: params.bodyForAgent,
       ...params.ctxOverrides,
@@ -126,7 +126,7 @@ async function runDispatch(params: {
     inboundAudio: false,
     shouldRouteToOriginating: params.shouldRouteToOriginating ?? false,
     ...(params.shouldRouteToOriginating
-      ? { originatingChannel: "telegram", originatingTo: "telegram:thread-1" }
+      ? { originatingChannel: "feishu", originatingTo: "feishu:thread-1" }
       : {}),
     shouldSendToolSummaries: true,
     bypassForCommand: false,
@@ -300,8 +300,8 @@ describe("tryDispatchAcpReply", () => {
     expect(result?.counts.block).toBe(1);
     expect(routeMocks.routeReply).toHaveBeenCalledWith(
       expect.objectContaining({
-        channel: "telegram",
-        to: "telegram:thread-1",
+        channel: "feishu",
+        to: "feishu:thread-1",
       }),
     );
     expect(dispatcher.sendBlockReply).not.toHaveBeenCalled();
@@ -417,7 +417,7 @@ describe("tryDispatchAcpReply", () => {
         bodyForAgent: "   ",
         cfg: createAcpTestConfig({
           channels: {
-            imessage: {
+            weixin: {
               attachmentRoots: [tempDir],
             },
           },
@@ -627,11 +627,11 @@ describe("tryDispatchAcpReply", () => {
     });
     bindingServiceMocks.unbind.mockResolvedValueOnce([
       {
-        bindingId: "discord:default:thread-1",
+        bindingId: "qqbot:default:thread-1",
         targetSessionKey: canonicalSessionKey,
         targetKind: "session",
         conversation: {
-          channel: "discord",
+          channel: "qqbot",
           accountId: "default",
           conversationId: "thread-1",
         },
@@ -704,11 +704,11 @@ describe("tryDispatchAcpReply", () => {
     );
     bindingServiceMocks.unbind.mockResolvedValueOnce([
       {
-        bindingId: "discord:default:thread-1",
+        bindingId: "qqbot:default:thread-1",
         targetSessionKey: canonicalSessionKey,
         targetKind: "session",
         conversation: {
-          channel: "discord",
+          channel: "qqbot",
           accountId: "default",
           conversationId: "thread-1",
         },
@@ -756,11 +756,11 @@ describe("tryDispatchAcpReply", () => {
       targetSessionKey === canonicalSessionKey
         ? [
             {
-              bindingId: "discord:default:thread-1",
+              bindingId: "qqbot:default:thread-1",
               targetSessionKey: canonicalSessionKey,
               targetKind: "session",
               conversation: {
-                channel: "discord",
+                channel: "qqbot",
                 accountId: "default",
                 conversationId: "thread-1",
               },
@@ -833,8 +833,8 @@ describe("tryDispatchAcpReply", () => {
       bodyForAgent: "reply",
       dispatcher,
       ctxOverrides: {
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
       },
     });
 
@@ -848,7 +848,7 @@ describe("tryDispatchAcpReply", () => {
     expect(dispatcher.sendFinalReply).not.toHaveBeenCalled();
   });
 
-  it("treats visible telegram ACP block delivery as a successful final response", async () => {
+  it("treats visible feishu ACP block delivery as a successful final response", async () => {
     setReadyAcpResolution();
     ttsMocks.resolveTtsConfig.mockReturnValue({ mode: "final" });
     queueTtsReplies({ text: "CODEX_OK" }, {} as ReturnType<typeof ttsMocks.maybeApplyTtsToPayload>);
@@ -859,8 +859,8 @@ describe("tryDispatchAcpReply", () => {
       bodyForAgent: "reply",
       dispatcher,
       ctxOverrides: {
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
       },
     });
 
@@ -871,7 +871,7 @@ describe("tryDispatchAcpReply", () => {
     expect(dispatcher.sendFinalReply).not.toHaveBeenCalled();
   });
 
-  it("preserves final fallback when direct block text is filtered by non-telegram channels", async () => {
+  it("preserves final fallback when direct block text is filtered by non-feishu channels", async () => {
     setReadyAcpResolution();
     ttsMocks.resolveTtsConfig.mockReturnValue({ mode: "final" });
     queueTtsReplies({ text: "CODEX_OK" }, {} as ReturnType<typeof ttsMocks.maybeApplyTtsToPayload>);
@@ -895,7 +895,7 @@ describe("tryDispatchAcpReply", () => {
     );
   });
 
-  it("falls back to final text when a later telegram ACP block delivery fails", async () => {
+  it("falls back to final text when a later feishu ACP block delivery fails", async () => {
     setReadyAcpResolution();
     ttsMocks.resolveTtsConfig.mockReturnValue({ mode: "final" });
     queueTtsReplies(
@@ -930,8 +930,8 @@ describe("tryDispatchAcpReply", () => {
       cfg,
       dispatcher,
       ctxOverrides: {
-        Provider: "telegram",
-        Surface: "telegram",
+        Provider: "feishu",
+        Surface: "feishu",
       },
     });
 

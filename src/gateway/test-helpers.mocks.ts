@@ -139,7 +139,6 @@ const createStubPluginRegistry = (): PluginRegistry => ({
   webSearchProviders: [],
   gatewayHandlers: {},
   httpRoutes: [],
-  cliRegistrars: [],
   services: [],
   commands: [],
   conversationBindingResolvedHandlers: [],
@@ -288,34 +287,6 @@ export const testState = hoisted.testState;
 export const testIsNixMode = hoisted.testIsNixMode;
 export const sessionStoreSaveDelayMs = hoisted.sessionStoreSaveDelayMs;
 export const embeddedRunMock = hoisted.embeddedRunMock;
-
-function createEmbeddedRunMockExports() {
-  return {
-    isEmbeddedPiRunActive: (sessionId: string) => embeddedRunMock.activeIds.has(sessionId),
-    abortEmbeddedPiRun: (sessionId: string) => {
-      embeddedRunMock.abortCalls.push(sessionId);
-      return embeddedRunMock.activeIds.has(sessionId);
-    },
-    waitForEmbeddedPiRunEnd: async (sessionId: string) => {
-      embeddedRunMock.waitCalls.push(sessionId);
-      return embeddedRunMock.waitResults.get(sessionId) ?? true;
-    },
-  };
-}
-
-async function importEmbeddedRunMockModule<TModule extends object>(
-  actualPath: string,
-  opts?: { includeActiveCount?: boolean },
-): Promise<TModule> {
-  const actual = await vi.importActual<TModule>(actualPath);
-  return {
-    ...actual,
-    ...createEmbeddedRunMockExports(),
-    ...(opts?.includeActiveCount
-      ? { getActiveEmbeddedRunCount: () => embeddedRunMock.activeIds.size }
-      : {}),
-  };
-}
 
 vi.mock("../agents/pi-model-discovery.js", async () => {
   const actual = await vi.importActual<typeof import("../agents/pi-model-discovery.js")>(
@@ -664,39 +635,13 @@ vi.mock("../config/config.js", async () => {
   };
 });
 
-vi.mock("../agents/pi-embedded.js", async () => {
-  return await importEmbeddedRunMockModule<typeof import("../agents/pi-embedded.js")>(
-    "../agents/pi-embedded.js",
-  );
-});
-
-vi.mock("/src/agents/pi-embedded.js", async () => {
-  return await importEmbeddedRunMockModule<typeof import("../agents/pi-embedded.js")>(
-    "../agents/pi-embedded.js",
-  );
-});
-
-vi.mock("../agents/pi-embedded-runner/runs.js", async () => {
-  return await importEmbeddedRunMockModule<typeof import("../agents/pi-embedded-runner/runs.js")>(
-    "../agents/pi-embedded-runner/runs.js",
-    { includeActiveCount: true },
-  );
-});
-
-vi.mock("/src/agents/pi-embedded-runner/runs.js", async () => {
-  return await importEmbeddedRunMockModule<typeof import("../agents/pi-embedded-runner/runs.js")>(
-    "../agents/pi-embedded-runner/runs.js",
-    { includeActiveCount: true },
-  );
-});
-
-vi.mock("../commands/health.js", () => ({
+vi.mock("../control/health.js", () => ({
   getHealthSnapshot: vi.fn().mockResolvedValue({ ok: true, stub: true }),
 }));
-vi.mock("../commands/status.js", () => ({
+vi.mock("../control/status.js", () => ({
   getStatusSummary: vi.fn().mockResolvedValue({ ok: true }),
 }));
-vi.mock("../commands/agent.js", () => ({
+vi.mock("../control/agent.js", () => ({
   agentCommand,
   agentCommandFromIngress: agentCommand,
 }));
@@ -727,8 +672,8 @@ vi.mock("/src/auto-reply/reply/get-reply-from-config.runtime.js", () => ({
   getReplyFromConfig: (...args: Parameters<GetReplyFromConfigFn>) =>
     hoisted.getReplyFromConfig(...args),
 }));
-vi.mock("../cli/deps.js", async () => {
-  const actual = await vi.importActual<typeof import("../cli/deps.js")>("../cli/deps.js");
+vi.mock("../terminal/deps.js", async () => {
+  const actual = await vi.importActual<typeof import("../terminal/deps.js")>("../terminal/deps.js");
   const base = actual.createDefaultDeps();
   return {
     ...actual,

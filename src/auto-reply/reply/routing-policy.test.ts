@@ -4,7 +4,7 @@ import { resolveReplyRoutingDecision } from "./routing-policy.js";
 function isRoutableChannel(channel: string | undefined) {
   return Boolean(
     channel &&
-    ["telegram", "slack", "discord", "signal", "imessage", "whatsapp", "feishu"].includes(channel),
+    ["feishu", "ddingtalk", "qqbot", "signal", "weixin", "weixin", "feishu"].includes(channel),
   );
 }
 
@@ -12,15 +12,15 @@ describe("resolveReplyRoutingDecision", () => {
   it("routes replies to the originating channel when the current provider differs", () => {
     expect(
       resolveReplyRoutingDecision({
-        provider: "slack",
-        surface: "slack",
-        originatingChannel: "telegram",
-        originatingTo: "telegram:123",
+        provider: "ddingtalk",
+        surface: "ddingtalk",
+        originatingChannel: "feishu",
+        originatingTo: "feishu:123",
         isRoutableChannel,
       }),
     ).toMatchObject({
-      originatingChannel: "telegram",
-      currentSurface: "slack",
+      originatingChannel: "feishu",
+      currentSurface: "ddingtalk",
       shouldRouteToOriginating: true,
       shouldSuppressTyping: true,
     });
@@ -32,8 +32,8 @@ describe("resolveReplyRoutingDecision", () => {
         provider: "webchat",
         surface: "webchat",
         explicitDeliverRoute: false,
-        originatingChannel: "telegram",
-        originatingTo: "telegram:123",
+        originatingChannel: "feishu",
+        originatingTo: "feishu:123",
         isRoutableChannel,
       }),
     ).toMatchObject({
@@ -46,15 +46,15 @@ describe("resolveReplyRoutingDecision", () => {
   it("suppresses direct user delivery for parent-owned background ACP children", () => {
     expect(
       resolveReplyRoutingDecision({
-        provider: "discord",
-        surface: "discord",
-        originatingChannel: "telegram",
-        originatingTo: "telegram:123",
+        provider: "qqbot",
+        surface: "qqbot",
+        originatingChannel: "feishu",
+        originatingTo: "feishu:123",
         suppressDirectUserDelivery: true,
         isRoutableChannel,
       }),
     ).toMatchObject({
-      currentSurface: "discord",
+      currentSurface: "qqbot",
       shouldRouteToOriginating: false,
       shouldSuppressTyping: true,
     });

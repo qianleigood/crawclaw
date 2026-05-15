@@ -82,7 +82,7 @@ sudo loginctl enable-linger ubuntu
 ## 4) Install Tailscale
 
 ```bash
-curl -fsSL https://tailscale.com/install.sh | sh
+curl -fsSL https://tailscale.com/CrawClaw Desktop installer | sh
 sudo tailscale up --ssh --hostname=crawclaw
 ```
 
@@ -99,7 +99,7 @@ tailscale status
 ## 5) Install CrawClaw
 
 ```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
+# Install CrawClaw Desktop from GitHub Releases.
 source ~/.bashrc
 ```
 

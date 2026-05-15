@@ -80,7 +80,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 <AccordionGroup>
   <Accordion title="I am stuck, fastest way to get unstuck">
     Use a local AI agent that can **see your machine**. That is far more effective than asking
-    in Discord, because most "I'm stuck" cases are **local config or environment issues** that
+    in QQBot, because most "I'm stuck" cases are **local config or environment issues** that
     remote helpers cannot inspect.
 
     - **Claude Code**: [https://www.anthropic.com/claude-code/](https://www.anthropic.com/claude-code/)
@@ -91,7 +91,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     the hackable (git) install:
 
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --install-method git
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     This installs CrawClaw **from a git checkout**, so the agent can read the code + docs and
@@ -119,8 +119,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - CrawClaw Desktop or the local Gateway API: checks provider auth + model availability.
     - CrawClaw Desktop or the local Gateway API: validates and repairs common config/state issues.
 
-    Other useful CLI checks: CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API,
-    CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API.
+    Other useful checks are available from CrawClaw Desktop diagnostics or the local Gateway API.
 
     Quick debug loop: [First 60 seconds if something is broken](#first-60-seconds-if-something-is-broken).
     Install docs: [Install](/install), [Installer flags](/install/installer), [Updating](/install/updating).
@@ -128,12 +127,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   </Accordion>
 
   <Accordion title="Recommended way to install and set up CrawClaw">
-    The repo recommends running from source and using onboarding:
-
-    ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Install CrawClaw Desktop from GitHub Releases, then complete setup in the desktop app.
 
     The wizard can also build UI assets automatically. After onboarding, you typically run the Gateway on port **18789**.
 
@@ -144,10 +138,9 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     cd crawclaw
     pnpm install
     pnpm build
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    If you don't have a global install yet, run it via `pnpm CrawClaw Desktop or the local Gateway API.
+    Desktop users do not need a global `crawclaw` command.
 
   </Accordion>
 
@@ -258,7 +251,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     3. Copy your workspace (default: `~/.crawclaw/workspace`).
     4. Run CrawClaw Desktop or the local Gateway API and restart the Gateway service.
 
-    That preserves config, auth profiles, WhatsApp creds, sessions, and memory. If you're in
+    That preserves config, auth profiles, Weixin creds, sessions, and memory. If you're in
     remote mode, remember the gateway host owns the session store and workspace.
 
     **Important:** if you only commit/push your workspace to GitHub, you're backing
@@ -316,15 +309,15 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     One-liners (macOS/Linux):
 
     ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://crawclaw.ai/install.sh | bash -s -- --beta
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     ```bash
-    curl -fsSL --proto '=https' --tlsv1.2 https://crawclaw.ai/install.sh | bash -s -- --install-method git
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     Windows installer (PowerShell):
-    [https://crawclaw.ai/install.ps1](https://crawclaw.ai/install.ps1)
+    [GitHub Releases](https://github.com/qianleigood/crawclaw/releases)
 
     More detail: [Development channels](/install/development-channels) and [Installer flags](/install/installer).
 
@@ -344,7 +337,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     2. **Hackable install (from the installer site):**
 
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --install-method git
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     That gives you a local repo you can edit, then update via git.
@@ -378,27 +371,27 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Re-run the installer with **verbose output**:
 
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --verbose
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     Beta install with verbose:
 
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --beta --verbose
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     For a hackable (git) install:
 
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --install-method git --verbose
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     Windows (PowerShell) equivalent:
 
     ```powershell
-    # install.ps1 has no dedicated -Verbose flag yet.
+    # CrawClaw Desktop installer has no dedicated -Verbose flag yet.
     Set-PSDebug -Trace 1
-    & ([scriptblock]::Create((iwr -useb https://crawclaw.ai/install.ps1))) -NoOnboard
+    # Install CrawClaw Desktop from GitHub Releases.
     Set-PSDebug -Trace 0
     ```
 
@@ -464,7 +457,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     your bot (or Claude/Codex) _from that folder_ so it can read the repo and answer precisely.
 
     ```bash
-    curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --install-method git
+    # Install CrawClaw Desktop from GitHub Releases.
     ```
 
     More detail: [Install](/install) and [Installer flags](/install/installer).
@@ -507,15 +500,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Gateway (which drops the active session), may need a clean git checkout, and
     can prompt for confirmation. Safer: run updates from a shell as the operator.
 
-    Use the CLI:
-
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Use CrawClaw Desktop update controls, or automate against the local Gateway API when a scripted update flow is explicitly required.
 
     If you must automate from an agent:
 
@@ -534,7 +519,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - **Model/auth setup** (provider OAuth/setup-token flows and API keys supported, plus local model options such as LM Studio)
     - **Workspace** location + bootstrap files
     - **Gateway settings** (bind/port/auth/tailscale)
-    - **Providers** (WhatsApp, Telegram, Discord, Mattermost (plugin), Signal, iMessage)
+    - **Providers** (Weixin, Feishu, QQBot, Feishu (plugin), Signal, Weixin)
     - **Daemon install** (LaunchAgent on macOS; systemd user unit on Linux; Scheduled Task or Startup-folder fallback on Windows)
     - **Health checks** and **skills** selection
 
@@ -657,36 +642,36 @@ for usage/billing and raise limits as needed.
     No. CrawClaw runs on macOS, Linux, or native Windows. A Mac mini is optional - some people
     buy one as an always-on host, but a small VPS, home server, or Raspberry Pi-class box works too.
 
-    You only need a Mac **for macOS-only tools**. For iMessage, use [BlueBubbles](/channels/bluebubbles) (recommended) - the BlueBubbles server runs on any Mac, and the Gateway can run on Linux or elsewhere. If you want other macOS-only tools, run the Gateway on a Mac.
+    You only need a Mac **for macOS-only tools**. For Weixin, use [Weixin](/channels/index) (recommended) - the Weixin server runs on any Mac, and the Gateway can run on Linux or elsewhere. If you want other macOS-only tools, run the Gateway on a Mac.
 
-    Docs: [BlueBubbles](/channels/bluebubbles), [Remote gateway](/gateway/remote).
+    Docs: [Weixin](/channels/index), [Remote gateway](/gateway/remote).
 
   </Accordion>
 
-  <Accordion title="Do I need a Mac mini for iMessage support?">
+  <Accordion title="Do I need a Mac mini for Weixin support?">
     You need **some macOS device** signed into Messages. It does **not** have to be a Mac mini -
-    any Mac works. **Use [BlueBubbles](/channels/bluebubbles)** (recommended) for iMessage - the BlueBubbles server runs on macOS, while the Gateway can run on Linux or elsewhere.
+    any Mac works. **Use [Weixin](/channels/index)** (recommended) for Weixin - the Weixin server runs on macOS, while the Gateway can run on Linux or elsewhere.
 
     Common setups:
 
-    - Run the Gateway on Linux/VPS, and run the BlueBubbles server on any Mac signed into Messages.
+    - Run the Gateway on Linux/VPS, and run the Weixin server on any Mac signed into Messages.
     - Run everything on the Mac if you want the simplest single-machine setup.
 
-    Docs: [BlueBubbles](/channels/bluebubbles), [Remote gateway](/gateway/remote).
+    Docs: [Weixin](/channels/index), [Remote gateway](/gateway/remote).
 
   </Accordion>
 
   <Accordion title="Can I use Bun?">
-    Bun is **not recommended**. We see runtime bugs, especially with WhatsApp and Telegram.
+    Bun is **not recommended**. We see runtime bugs, especially with Weixin and Feishu.
     Use **Node** for stable gateways.
 
     If you still want to experiment with Bun, do it on a non-production gateway
-    without WhatsApp/Telegram.
+    without Weixin/Feishu.
 
   </Accordion>
 
-  <Accordion title="Telegram: what goes in allowFrom?">
-    `channels.telegram.allowFrom` is **the human sender's Telegram user ID** (numeric). It is not the bot username.
+  <Accordion title="Feishu: what goes in allowFrom?">
+    `channels.feishu.allowFrom` is **the human sender's Feishu user ID** (numeric). It is not the bot username.
 
     Onboarding accepts `@username` input and resolves it to a numeric ID, but CrawClaw authorization uses numeric IDs only.
 
@@ -696,18 +681,18 @@ for usage/billing and raise limits as needed.
 
     Official Bot API:
 
-    - DM your bot, then call `https://api.telegram.org/bot<bot_token>/getUpdates` and read `message.from.id`.
+    - DM your bot, then call `https://api.feishu.org/bot<bot_token>/getUpdates` and read `message.from.id`.
 
     Third-party (less private):
 
     - DM `@userinfobot` or `@getidsbot`.
 
-    See [/channels/telegram](/channels/telegram#access-control-and-activation).
+    See [/channels/index](/channels/index#access-control-and-activation).
 
   </Accordion>
 
-  <Accordion title="Can multiple people use one WhatsApp number with different CrawClaw instances?">
-    Yes, via **multi-agent routing**. Bind each sender's WhatsApp **DM** (peer `kind: "direct"`, sender E.164 like `+15551234567`) to a different `agentId`, so each person gets their own workspace and session store. Replies still come from the **same WhatsApp account**, and DM access control (`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`) is global per WhatsApp account. See [Multi-Agent Routing](/concepts/multi-agent) and [WhatsApp](/channels/whatsapp).
+  <Accordion title="Can multiple people use one Weixin number with different CrawClaw instances?">
+    Yes, via **multi-agent routing**. Bind each sender's Weixin **DM** (peer `kind: "direct"`, sender E.164 like `+15551234567`) to a different `agentId`, so each person gets their own workspace and session store. Replies still come from the **same Weixin account**, and DM access control (`channels.weixin.dmPolicy` / `channels.weixin.allowFrom`) is global per Weixin account. See [Multi-Agent Routing](/concepts/multi-agent) and [Weixin](/channels/index).
   </Accordion>
 
   <Accordion title='Can I run a "fast chat" agent and an "Opus for coding" agent?'>
@@ -785,7 +770,7 @@ for usage/billing and raise limits as needed.
     - **Pros:** always-on, stable network, no laptop sleep issues, easier to keep running.
     - **Cons:** often run headless (use screenshots), remote file access only, you must SSH for updates.
 
-    **CrawClaw-specific note:** WhatsApp/Telegram/Slack/Mattermost (plugin)/Discord all work fine from a VPS. The only real trade-off is **headless browser** vs a visible window. See [Browser](/tools/browser).
+    **CrawClaw-specific note:** Weixin/Feishu/DingTalk/Feishu (plugin)/QQBot all work fine from a VPS. The only real trade-off is **headless browser** vs a visible window. See [Browser](/tools/browser).
 
     **Recommended default:** VPS if you had gateway disconnects before. Local is great when you're actively using the Mac and want local file access or UI automation with a visible browser.
 
@@ -833,7 +818,7 @@ for usage/billing and raise limits as needed.
 
 <AccordionGroup>
   <Accordion title="What is CrawClaw, in one paragraph?">
-    CrawClaw is a personal AI assistant you run on your own devices. It replies on the messaging surfaces you already use (WhatsApp, Telegram, Slack, Mattermost (plugin), Discord, Google Chat, Signal, iMessage). The **Gateway** is the always-on control plane; the assistant is the product.
+    CrawClaw is a personal AI assistant you run on your own devices. It replies on the messaging surfaces you already use (Weixin, Feishu, DingTalk, Feishu (plugin), QQBot, Feishu, Signal, Weixin). The **Gateway** is the always-on control plane; the assistant is the product.
   </Accordion>
 
   <Accordion title="Value proposition">
@@ -902,7 +887,7 @@ for usage/billing and raise limits as needed.
     Advantages:
 
     - **Persistent memory + workspace** across sessions
-    - **Multi-platform access** (WhatsApp, Telegram, Slack, Discord, desktop clients)
+    - **Multi-platform access** (Weixin, Feishu, DingTalk, QQBot, desktop clients)
     - **Tool orchestration** (browser, files, scheduling, hooks)
     - **Always-on Gateway** (run on a VPS, interact from anywhere)
 
@@ -947,8 +932,8 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="How do thread-bound subagent sessions work on Discord?">
-    Use thread bindings. You can bind a Discord thread to a subagent or session target so follow-up messages in that thread stay on that bound session.
+  <Accordion title="How do thread-bound subagent sessions work on QQBot?">
+    Use thread bindings. You can bind a QQBot thread to a subagent or session target so follow-up messages in that thread stay on that bound session.
 
     Basic flow:
 
@@ -961,10 +946,10 @@ for usage/billing and raise limits as needed.
     Required config:
 
     - Global defaults: `session.threadBindings.enabled`, `session.threadBindings.idleHours`, `session.threadBindings.maxAgeHours`.
-    - Discord overrides: `channels.discord.threadBindings.enabled`, `channels.discord.threadBindings.idleHours`, `channels.discord.threadBindings.maxAgeHours`.
-    - Auto-bind on spawn: set `channels.discord.threadBindings.spawnSubagentSessions: true`.
+    - QQBot overrides: `channels.qqbot.threadBindings.enabled`, `channels.qqbot.threadBindings.idleHours`, `channels.qqbot.threadBindings.maxAgeHours`.
+    - Auto-bind on spawn: set `channels.qqbot.threadBindings.spawnSubagentSessions: true`.
 
-    Docs: [Sub-agents](/tools/subagents), [Discord](/channels/discord), [Configuration Reference](/gateway/configuration-reference), [Slash commands](/tools/slash-commands).
+    Docs: [Sub-agents](/tools/subagents), [QQBot](/channels/index), [Configuration Reference](/gateway/configuration-reference), [Slash commands](/tools/slash-commands).
 
   </Accordion>
 
@@ -1171,7 +1156,7 @@ for usage/billing and raise limits as needed.
     - **Local by default:** sessions, memory files, config, and workspace live on the Gateway host
       (`~/.crawclaw` + your workspace directory).
     - **Remote by necessity:** messages you send to model providers (Anthropic/OpenAI/etc.) go to
-      their APIs, and chat platforms (WhatsApp/Telegram/Slack/etc.) store message data on their
+      their APIs, and chat platforms (Weixin/Feishu/DingTalk/etc.) store message data on their
       servers.
     - **You control the footprint:** using local models keeps prompts on your machine, but channel
       traffic still goes through the channel's servers.
@@ -1190,7 +1175,7 @@ for usage/billing and raise limits as needed.
     | `$CRAWCLAW_STATE_DIR/agents/<agentId>/agent/auth-profiles.json` | Auth profiles (OAuth, API keys, and optional `keyRef`/`tokenRef`)  |
     | `$CRAWCLAW_STATE_DIR/secrets.json`                              | Optional file-backed secret payload for `file` SecretRef providers |
     | `$CRAWCLAW_STATE_DIR/agents/<agentId>/agent/auth.json`          | Legacy compatibility file (static `api_key` entries scrubbed)      |
-    | `$CRAWCLAW_STATE_DIR/credentials/`                              | Provider state (e.g. `whatsapp/<accountId>/creds.json`)            |
+    | `$CRAWCLAW_STATE_DIR/credentials/`                              | Provider state (e.g. `weixin/<accountId>/creds.json`)            |
     | `$CRAWCLAW_STATE_DIR/agents/`                                   | Per-agent state (agentDir + sessions)                              |
     | `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/`                | Conversation history & state (per agent)                           |
     | `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/sessions.json`   | Session metadata (per agent)                                       |
@@ -1422,7 +1407,7 @@ for usage/billing and raise limits as needed.
   <Accordion title="How do I run a central Gateway with specialized workers across devices?">
     The common pattern is **one Gateway** (e.g. Raspberry Pi) plus **agents**:
 
-    - **Gateway (central):** owns channels (Signal/WhatsApp), routing, and sessions.
+    - **Gateway (central):** owns channels (Signal/Weixin), routing, and sessions.
     - **Agents (workers):** separate brains/workspaces for special roles (e.g. "Hetzner ops", "Personal data").
     - **Sub-agents:** spawn background work from a main agent when you want parallelism.
     - **Desktop client:** connect to the Gateway and switch agents/sessions.
@@ -1484,7 +1469,7 @@ for usage/billing and raise limits as needed.
     Yes. There is no built-in "bot-to-bot" bridge, but you can wire it up in a few
     reliable ways:
 
-    **Simplest:** use a normal chat channel both bots can access (Telegram/Slack/WhatsApp).
+    **Simplest:** use a normal chat channel both bots can access (Feishu/DingTalk/Weixin).
     Have Bot A send a message to Bot B, then let Bot B reply as usual.
 
     **CLI bridge (generic):** run a script that calls the other Gateway with
@@ -1530,7 +1515,7 @@ for usage/billing and raise limits as needed.
     ```json5
     {
       agents: { defaults: { workspace: "~/.crawclaw/workspace" } },
-      channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+      channels: { weixin: { allowFrom: ["+15555550123"] } },
     }
     ```
 
@@ -1790,7 +1775,7 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title='Do I need to add a "bot account" to a WhatsApp group?'>
+  <Accordion title='Do I need to add a "bot account" to a Weixin group?'>
     No. CrawClaw runs on **your own account**, so if you're in the group, CrawClaw can see it.
     By default, group replies are blocked until you allow senders (`groupPolicy: "allowlist"`).
 
@@ -1799,7 +1784,7 @@ for usage/billing and raise limits as needed.
     ```json5
     {
       channels: {
-        whatsapp: {
+        weixin: {
           groupPolicy: "allowlist",
           groupAllowFrom: ["+15551234567"],
         },
@@ -1809,7 +1794,7 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="How do I get the JID of a WhatsApp group?">
+  <Accordion title="How do I get the JID of a Weixin group?">
     Option 1 (fastest): tail logs and send a test message in the group:
 
     ```bash
@@ -1825,7 +1810,7 @@ for usage/billing and raise limits as needed.
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Docs: [WhatsApp](/channels/whatsapp), [Directory](/channels/pairing), [Logs](/gateway/logging).
+    Docs: [Weixin](/channels/index), [Directory](/channels/pairing), [Logs](/gateway/logging).
 
   </Accordion>
 
@@ -1833,14 +1818,14 @@ for usage/billing and raise limits as needed.
     Two common causes:
 
     - Mention gating is on (default). You must @mention the bot (or match `mentionPatterns`).
-    - You configured `channels.whatsapp.groups` without `"*"` and the group isn't allowlisted.
+    - You configured `channels.weixin.groups` without `"*"` and the group isn't allowlisted.
 
     See [Groups](/channels/groups) and [Group messages](/channels/group-messages).
 
   </Accordion>
 
   <Accordion title="Do groups/threads share context with DMs?">
-    Direct chats collapse to the main session by default. Groups/channels have their own session keys, and Telegram topics / Discord threads are separate sessions. See [Groups](/channels/groups) and [Group messages](/channels/group-messages).
+    Direct chats collapse to the main session by default. Groups/channels have their own session keys, and Feishu topics / QQBot threads are separate sessions. See [Groups](/channels/groups) and [Group messages](/channels/group-messages).
   </Accordion>
 
   <Accordion title="How many workspaces and agents can I create?">
@@ -1858,9 +1843,9 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="Can I run multiple bots or chats at the same time (Slack), and how should I set that up?">
+  <Accordion title="Can I run multiple bots or chats at the same time (DingTalk), and how should I set that up?">
     Yes. Use **Multi-Agent Routing** to run multiple isolated agents and route inbound messages by
-    channel/account/peer. Slack is supported as a channel and can be bound to specific agents.
+    channel/account/peer. DingTalk is supported as a channel and can be bound to specific agents.
 
     Browser access is powerful but not "do anything a human can" - anti-bot, CAPTCHAs, and MFA can
     still block automation. For the most reliable browser control, use a managed browser on the host,
@@ -1870,10 +1855,10 @@ for usage/billing and raise limits as needed.
 
     - Always-on Gateway host (VPS/Mac mini).
     - One agent per role (bindings).
-    - Slack channel(s) bound to those agents.
+    - DingTalk channel(s) bound to those agents.
     - Local browser on the Gateway host or remote CDP when needed.
 
-    Docs: [Multi-Agent Routing](/concepts/multi-agent), [Slack](/channels/slack),
+    Docs: [Multi-Agent Routing](/concepts/multi-agent), [DingTalk](/channels/index),
     [Browser](/tools/browser).
 
   </Accordion>
@@ -2271,27 +2256,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
 
     CrawClaw may temporarily skip a profile if it's in a short **cooldown** (rate limits/timeouts/auth failures) or a longer **disabled** state (billing/insufficient credits). To inspect this, run CrawClaw Desktop or the local Gateway API and check `auth.unusableProfiles`. Tuning: `auth.cooldowns.billingBackoffHours*`.
 
-    You can also set a **per-agent** order override (stored in that agent's `auth-profiles.json`) via the CLI:
-
-    ```bash
-    # Defaults to the configured default agent (omit --agent)
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-
-    # Lock rotation to a single profile (only try this one)
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-
-    # Or set an explicit order (fallback within provider)
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-
-    # Clear override (fall back to config auth.order / round-robin)
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
-
-    To target a specific agent:
-
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    You can also set a **per-agent** order override (stored in that agent's `auth-profiles.json`) from CrawClaw Desktop or the local Gateway API.
 
   </Accordion>
 
@@ -2555,7 +2520,7 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
 
   </Accordion>
 
-  <Accordion title="Telegram setMyCommands fails. What should I check?">
+  <Accordion title="Feishu setMyCommands fails. What should I check?">
     Start with logs and channel status:
 
     ```bash
@@ -2565,12 +2530,12 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
 
     Then match the error:
 
-    - `BOT_COMMANDS_TOO_MUCH`: the Telegram menu has too many entries. CrawClaw already trims to the Telegram limit and retries with fewer commands, but some menu entries still need to be dropped. Reduce plugin/skill/custom commands, or disable `channels.telegram.commands.native` if you do not need the menu.
-    - `TypeError: fetch failed`, `Network request for 'setMyCommands' failed!`, or similar network errors: if you are on a VPS or behind a proxy, confirm outbound HTTPS is allowed and DNS works for `api.telegram.org`.
+    - `BOT_COMMANDS_TOO_MUCH`: the Feishu menu has too many entries. CrawClaw already trims to the Feishu limit and retries with fewer commands, but some menu entries still need to be dropped. Reduce plugin/skill/custom commands, or disable `channels.feishu.commands.native` if you do not need the menu.
+    - `TypeError: fetch failed`, `Network request for 'setMyCommands' failed!`, or similar network errors: if you are on a VPS or behind a proxy, confirm outbound HTTPS is allowed and DNS works for `api.feishu.org`.
 
     If the Gateway is remote, make sure you are looking at logs on the Gateway host.
 
-    Docs: [Telegram](/channels/telegram), [Channel troubleshooting](/channels/troubleshooting).
+    Docs: [Feishu](/channels/index), [Channel troubleshooting](/channels/troubleshooting).
 
   </Accordion>
 
@@ -2629,11 +2594,7 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
   <Accordion title="My skill generated an image/PDF, but nothing was sent">
     Outbound attachments from the agent must include a `MEDIA:<path-or-url>` line (on its own line). See [CrawClaw assistant setup](/start/crawclaw) and [Agent send](/tools/agent-send).
 
-    CLI sending:
-
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
+    Send from a connected channel, CrawClaw Desktop, or the local Gateway API.
 
     Also check:
 
@@ -2708,7 +2669,7 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
     or when reading untrusted content. If you must use a smaller model, lock down
   </Accordion>
 
-  <Accordion title="I ran /start in Telegram but did not get a pairing code">
+  <Accordion title="I ran /start in Feishu but did not get a pairing code">
     Pairing codes are sent **only** when an unknown sender messages the bot and
     `dmPolicy: "pairing"` is enabled. `/start` by itself doesn't generate a code.
 
@@ -2723,8 +2684,8 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
 
   </Accordion>
 
-  <Accordion title="WhatsApp: will it message my contacts? How does pairing work?">
-    No. Default WhatsApp DM policy is **pairing**. Unknown senders only get a pairing code and their message is **not processed**. CrawClaw only replies to chats it receives or to explicit sends you trigger.
+  <Accordion title="Weixin: will it message my contacts? How does pairing work?">
+    No. Default Weixin DM policy is **pairing**. Unknown senders only get a pairing code and their message is **not processed**. CrawClaw only replies to chats it receives or to explicit sends you trigger.
 
     Approve pairing with:
 
@@ -2738,7 +2699,7 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Wizard phone number prompt: it's used to set your **allowlist/owner** so your own DMs are permitted. It's not used for auto-sending. If you run on your personal WhatsApp number, use that number and enable `channels.whatsapp.selfChatMode`.
+    Wizard phone number prompt: it's used to set your **allowlist/owner** so your own DMs are permitted. It's not used for auto-sending. If you run on your personal Weixin number, use that number and enable `channels.weixin.selfChatMode`.
 
   </Accordion>
 </AccordionGroup>
@@ -2804,9 +2765,9 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
 
   </Accordion>
 
-  <Accordion title='How do I send a Discord message from Telegram? ("Cross-context messaging denied")'>
+  <Accordion title='How do I send a QQBot message from Feishu? ("Cross-context messaging denied")'>
     CrawClaw blocks **cross-provider** messaging by default. If a tool call is bound
-    to Telegram, it won't send to Discord unless you explicitly allow it.
+    to Feishu, it won't send to QQBot unless you explicitly allow it.
 
     Enable cross-provider messaging for the agent:
 
@@ -2851,4 +2812,4 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
 
 ---
 
-Still stuck? Ask in [Discord](https://discord.com/invite/clawd) or open a [GitHub discussion](https://github.com/qianleigood/crawclaw/discussions).
+Still stuck? Ask in [QQBot](https://qqbot.com/invite/clawd) or open a [GitHub discussion](https://github.com/qianleigood/crawclaw/discussions).

@@ -8,10 +8,10 @@ import {
 describe("resolveEffectiveBlockStreamingConfig", () => {
   it("applies ACP-style overrides while preserving chunk/coalescer bounds", () => {
     const cfg = {} as CrawClawConfig;
-    const baseChunking = resolveBlockStreamingChunking(cfg, "discord");
+    const baseChunking = resolveBlockStreamingChunking(cfg, "qqbot");
     const resolved = resolveEffectiveBlockStreamingConfig({
       cfg,
-      provider: "discord",
+      provider: "qqbot",
       maxChunkChars: 64,
       coalesceIdleMs: 25,
     });
@@ -47,7 +47,7 @@ describe("resolveEffectiveBlockStreamingConfig", () => {
   it("honors newline chunkMode for plugin channels even before the plugin registry is loaded", () => {
     const cfg = {
       channels: {
-        bluebubbles: {
+        weixin: {
           chunkMode: "newline",
         },
       },
@@ -64,7 +64,7 @@ describe("resolveEffectiveBlockStreamingConfig", () => {
 
     const resolved = resolveEffectiveBlockStreamingConfig({
       cfg,
-      provider: "bluebubbles",
+      provider: "weixin",
     });
 
     expect(resolved.chunking.flushOnParagraph).toBe(true);
@@ -75,18 +75,18 @@ describe("resolveEffectiveBlockStreamingConfig", () => {
   it("allows ACP maxChunkChars overrides above base defaults up to provider text limits", () => {
     const cfg = {
       channels: {
-        discord: {
+        qqbot: {
           textChunkLimit: 4096,
         },
       },
     } as CrawClawConfig;
 
-    const baseChunking = resolveBlockStreamingChunking(cfg, "discord");
+    const baseChunking = resolveBlockStreamingChunking(cfg, "qqbot");
     expect(baseChunking.maxChars).toBeLessThan(1800);
 
     const resolved = resolveEffectiveBlockStreamingConfig({
       cfg,
-      provider: "discord",
+      provider: "qqbot",
       maxChunkChars: 1800,
     });
 

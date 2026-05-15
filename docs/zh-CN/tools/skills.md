@@ -164,7 +164,7 @@ metadata:
 - 如果列出了多个安装器，Gateway 网关会选择**单个**首选选项（可用时选择 brew，否则选择 node）。
 - 如果所有安装器都是 `download`，CrawClaw 会列出每个条目，以便你查看可用的构件。
 - 安装器规格可以包含 `os: ["darwin"|"linux"|"win32"]` 按平台过滤选项。
-- Node 安装遵循 `crawclaw.json` 中的 `skills.install.nodeManager`（默认：npm；选项：npm/pnpm/yarn/bun）。这仅影响 **Skills 安装**；Gateway 网关运行时应仍为 Node（不推荐 Bun 用于 WhatsApp/Telegram）。
+- Node 安装遵循 `crawclaw.json` 中的 `skills.install.nodeManager`（默认：npm；选项：npm/pnpm/yarn/bun）。这仅影响 **Skills 安装**；Gateway 网关运行时应仍为 Node（不推荐 Bun 用于 Weixin/Feishu）。
 - Go 安装：如果缺少 `go` 且 `brew` 可用，Gateway 网关会首先通过 Homebrew 安装 Go，并在可能时将 `GOBIN` 设置为 Homebrew 的 `bin`。
 - Download 安装：`url`（必填）、`archive`（`tar.gz` | `tar.bz2` | `zip`）、`extract`（默认：检测到归档时自动）、`stripComponents`、`targetDir`（默认：`~/.crawclaw/tools/<skillKey>`）。
 

@@ -4,7 +4,7 @@ read_when:
   - Building or debugging native CrawClaw plugins
   - Understanding the plugin capability model or ownership boundaries
   - Working on the plugin load pipeline or registry
-  - Implementing provider runtime hooks or channel plugins
+  - Implementing non-LLM provider capabilities
 title: "Plugin Internals"
 sidebarTitle: "Internals"
 ---
@@ -15,8 +15,7 @@ sidebarTitle: "Internals"
   This is the **deep architecture reference**. For practical guides, see:
   - [Install and use plugins](/tools/plugin) — user guide
   - [Getting Started](/plugins/building-plugins) — first plugin tutorial
-  - [Channel Plugins](/plugins/sdk-channel-plugins) — build a messaging channel
-  - [Provider Plugins](/plugins/sdk-provider-plugins) — build a model provider
+  - [Provider Configuration](/plugins/sdk-provider-plugins) — configure Rust-owned model providers
   - [SDK Overview](/plugins/sdk-overview) — import map and registration API
 </Info>
 
@@ -29,15 +28,13 @@ native CrawClaw plugin registers against one or more capability types:
 
 | Capability            | Registration method                           | Example plugins           |
 | --------------------- | --------------------------------------------- | ------------------------- |
-| Text inference        | `api.registerProvider(...)`                   | `openai`, `anthropic`     |
 | Local process backend | `api.registerCliBackend(...)`                 | `openai`, `anthropic`     |
 | Speech                | `api.registerSpeechProvider(...)`             | `elevenlabs`, `microsoft` |
 | Media understanding   | `api.registerMediaUnderstandingProvider(...)` | `openai`, `google`        |
 | Web search            | `api.registerWebSearchProvider(...)`          | `google`                  |
-| Channel / messaging   | `api.registerChannel(...)`                    | `msteams`, `matrix`       |
 
-A plugin that registers zero capabilities but provides hooks, tools, or
-services is a **legacy hook-only** plugin. That pattern is still fully supported.
+A plugin that registers zero capabilities but provides tools, commands, or
+services is a **non-capability** plugin.
 
 ### External compatibility stance
 
@@ -125,13 +122,8 @@ CrawClaw's plugin system has four layers:
    The rest of CrawClaw reads the registry to expose tools, channels, provider
    setup, hooks, HTTP routes, Desktop and Gateway API actions, and services.
 
-For plugin CLI specifically, root command discovery is split in two phases:
-
-- parse-time metadata comes from `registerCli(..., { descriptors: [...] })`
-- the real plugin CLI module can stay lazy and register on first invocation
-
-That keeps plugin-owned CLI code inside the plugin while still letting CrawClaw
-reserve root command names before parsing.
+Plugin-owned user actions should register Gateway methods and surface through
+the Desktop UI or local automation clients.
 
 The important design boundary:
 
@@ -142,65 +134,13 @@ The important design boundary:
 That split lets CrawClaw validate config, explain missing/disabled plugins, and
 build UI/schema hints before the full runtime is active.
 
-### Channel plugins and the shared message tool
+### Rust-native channel adapters
 
-Channel plugins do not need to register a separate send/edit/react tool for
-normal chat actions. CrawClaw keeps one shared `message` tool in core, and
-channel plugins own the channel-specific discovery and execution behind it.
-
-The current boundary is:
-
-- core owns the shared `message` tool host, prompt wiring, session/thread
-  bookkeeping, and execution dispatch
-- channel plugins own scoped action discovery, capability discovery, and any
-  channel-specific schema fragments
-- channel plugins own provider-specific session conversation grammar, such as
-  how conversation ids encode thread ids or inherit from parent conversations
-- channel plugins execute the final action through their action adapter
-
-For channel plugins, the SDK surface is
-`ChannelMessageActionAdapter.describeMessageTool(...)`. That unified discovery
-call lets a plugin return its visible actions, capabilities, and schema
-contributions together so those pieces do not drift apart.
-
-Core passes runtime scope into that discovery step. Important fields include:
-
-- `accountId`
-- `currentChannelId`
-- `currentThreadTs`
-- `currentMessageId`
-- `sessionKey`
-- `sessionId`
-- `agentId`
-- trusted inbound `requesterSenderId`
-
-That matters for context-sensitive plugins. A channel can hide or expose
-message actions based on the active account, current room/thread/message, or
-trusted requester identity without hardcoding channel-specific branches in the
-core `message` tool.
-
-This is why embedded-runner routing changes are still plugin work: the runner is
-responsible for forwarding the current chat/session identity into the plugin
-discovery boundary so the shared `message` tool exposes the right channel-owned
-surface for the current turn.
-
-For channel-owned execution helpers, bundled plugins should keep the execution
-runtime inside their own extension modules. Core no longer owns the Discord,
-Slack, Telegram, or WhatsApp message-action runtimes under `src/agents/tools`.
-We do not publish separate `plugin-sdk/*-action-runtime` subpaths, and bundled
-plugins should import their own local runtime code directly from their
-extension-owned modules.
-
-For polls specifically, there are two execution paths:
-
-- `outbound.sendPoll` is the shared baseline for channels that fit the common
-  poll model
-- `actions.handleAction("poll")` is the preferred path for channel-specific
-  poll semantics or extra poll parameters
-
-Core now defers shared poll parsing until after plugin poll dispatch declines
-the action, so plugin-owned poll handlers can accept channel-specific poll
-fields without being blocked by the generic poll parser first.
+TypeScript channel plugins are no longer a production contract. The shared
+message tool and channel control plane now route through Rust-native channel
+descriptors and adapter contracts. TypeScript plugins can still provide
+providers, tools, commands, hooks, services, speech, media, web fetch, and web
+search capabilities.
 
 See [Load pipeline](#load-pipeline) for the full startup sequence.
 
@@ -267,7 +207,7 @@ Use this mental model when deciding where code belongs:
   merge rules, delivery semantics, and typed contracts
 - **vendor plugin layer**: vendor-specific APIs, auth, model catalogs, speech
   synthesis, image generation, future video backends, usage endpoints
-- **channel/feature plugin layer**: Slack/Discord/voice-call/etc. integration
+- **channel/feature plugin layer**: DingTalk/QQBot/voice-call/etc. integration
   that consumes core capabilities and presents them on a surface
 
 For example, TTS follows this shape:
@@ -295,11 +235,6 @@ const plugin: CrawClawPluginDefinition = {
   id: "exampleai",
   name: "ExampleAI",
   register(api) {
-    api.registerProvider({
-      id: "exampleai",
-      // auth/model catalog/runtime hooks
-    });
-
     api.registerSpeechProvider({
       id: "exampleai",
       // vendor speech config — implement the SpeechProviderPlugin interface directly
@@ -585,7 +520,7 @@ Provider plugins now have two layers:
   runtime load, plus `providerAuthChoices` for cheap onboarding/auth-choice
   labels and CLI flag metadata before runtime load
 - config-time hooks: `catalog` / legacy `discovery`
-- runtime hooks: `resolveDynamicModel`, `prepareDynamicModel`, `normalizeResolvedModel`, `capabilities`, `prepareExtraParams`, `wrapStreamFn`, `formatApiKey`, `refreshOAuth`, `buildAuthDoctorHint`, `isCacheTtlEligible`, `buildMissingAuthMessage`, `suppressBuiltInModel`, `augmentModelCatalog`, `isBinaryThinking`, `supportsXHighThinking`, `resolveDefaultThinkingLevel`, `isModernModelRef`, `prepareRuntimeAuth`, `resolveUsageAuth`, `fetchUsageSnapshot`, `buildReplayPolicy`, `sanitizeReplayHistory`, `validateReplayTurns`
+- runtime hooks: `resolveDynamicModel`, `prepareDynamicModel`, `normalizeResolvedModel`, `capabilities`, `formatApiKey`, `refreshOAuth`, `buildAuthDoctorHint`, `isCacheTtlEligible`, `buildMissingAuthMessage`, `suppressBuiltInModel`, `augmentModelCatalog`, `isBinaryThinking`, `supportsXHighThinking`, `resolveDefaultThinkingLevel`, `isModernModelRef`, `prepareRuntimeAuth`, `resolveUsageAuth`, `fetchUsageSnapshot`, `buildReplayPolicy`, `sanitizeReplayHistory`, `validateReplayTurns`
 
 CrawClaw still owns the generic agent loop, failover, transcript handling, and
 tool policy. These hooks are the extension surface for provider-specific behavior without
@@ -604,91 +539,81 @@ client-id/client-secret setup vars.
 For model/provider plugins, CrawClaw calls hooks in this rough order.
 The "When to use" column is the quick decision guide.
 
-| #   | Hook                          | What it does                                                                             | When to use                                                                          |
-| --- | ----------------------------- | ---------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| 1   | `catalog`                     | Publish provider config into `models.providers` during `models.json` generation          | Provider owns a catalog or base URL defaults                                         |
-| --  | _(built-in model lookup)_     | CrawClaw tries the normal registry/catalog path first                                    | _(not a plugin hook)_                                                                |
-| 2   | `resolveDynamicModel`         | Sync fallback for provider-owned model ids not in the local registry yet                 | Provider accepts arbitrary upstream model ids                                        |
-| 3   | `prepareDynamicModel`         | Async warm-up, then `resolveDynamicModel` runs again                                     | Provider needs network metadata before resolving unknown ids                         |
-| 4   | `normalizeResolvedModel`      | Final rewrite before the embedded runner uses the resolved model                         | Provider needs transport rewrites but still uses a core transport                    |
-| 5   | `capabilities`                | Provider-owned transcript/tooling metadata used by shared core logic                     | Provider needs transcript/provider-family quirks                                     |
-| 6   | `prepareExtraParams`          | Request-param normalization before generic stream option wrappers                        | Provider needs default request params or per-provider param cleanup                  |
-| 7   | `wrapStreamFn`                | Stream wrapper after generic wrappers are applied                                        | Provider needs request headers/body/model compat wrappers without a custom transport |
-| 8   | `formatApiKey`                | Auth-profile formatter: stored profile becomes the runtime `apiKey` string               | Provider stores extra auth metadata and needs a custom runtime token shape           |
-| 9   | `refreshOAuth`                | OAuth refresh override for custom refresh endpoints or refresh-failure policy            | Provider does not fit the shared `pi-ai` refreshers                                  |
-| 10  | `buildAuthDoctorHint`         | Repair hint appended when OAuth refresh fails                                            | Provider needs provider-owned auth repair guidance after refresh failure             |
-| 11  | `isCacheTtlEligible`          | Prompt-cache policy for proxy/backhaul providers                                         | Provider needs proxy-specific cache TTL gating                                       |
-| 12  | `buildMissingAuthMessage`     | Replacement for the generic missing-auth recovery message                                | Provider needs a provider-specific missing-auth recovery hint                        |
-| 13  | `suppressBuiltInModel`        | Stale upstream model suppression plus optional user-facing error hint                    | Provider needs to hide stale upstream rows or replace them with a vendor hint        |
-| 14  | `augmentModelCatalog`         | Synthetic/final catalog rows appended after discovery                                    | Provider needs synthetic forward-compat rows in `models list` and pickers            |
-| 15  | `isBinaryThinking`            | On/off reasoning toggle for binary-thinking providers                                    | Provider exposes only binary thinking on/off                                         |
-| 16  | `supportsXHighThinking`       | `xhigh` reasoning support for selected models                                            | Provider wants `xhigh` on only a subset of models                                    |
-| 17  | `resolveDefaultThinkingLevel` | Default `/think` level for a specific model family                                       | Provider owns default `/think` policy for a model family                             |
-| 18  | `isModernModelRef`            | Modern-model matcher for live profile filters and smoke selection                        | Provider owns live/smoke preferred-model matching                                    |
-| 19  | `prepareRuntimeAuth`          | Exchange a configured credential into the actual runtime token/key just before inference | Provider needs a token exchange or short-lived request credential                    |
-| 20  | `resolveUsageAuth`            | Resolve usage/billing credentials for `/usage` and related status surfaces               | Provider needs custom usage/quota token parsing or a different usage credential      |
-| 21  | `fetchUsageSnapshot`          | Fetch and normalize provider-specific usage/quota snapshots after auth is resolved       | Provider needs a provider-specific usage endpoint or payload parser                  |
-| 22  | `buildReplayPolicy`           | Return a replay policy controlling transcript handling for the provider                  | Provider needs custom transcript policy (for example, thinking-block stripping)      |
-| 23  | `sanitizeReplayHistory`       | Rewrite replay history after generic transcript cleanup                                  | Provider needs provider-specific replay rewrites beyond shared compaction helpers    |
-| 24  | `validateReplayTurns`         | Final replay-turn validation or reshaping before the embedded runner                     | Provider transport needs stricter turn validation after generic sanitation           |
+| #   | Hook                          | What it does                                                                             | When to use                                                                       |
+| --- | ----------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| 1   | `catalog`                     | Publish provider config into `models.providers` during `models.json` generation          | Provider owns a catalog or base URL defaults                                      |
+| --  | _(built-in model lookup)_     | CrawClaw tries the normal registry/catalog path first                                    | _(not a plugin hook)_                                                             |
+| 2   | `resolveDynamicModel`         | Sync fallback for provider-owned model ids not in the local registry yet                 | Provider accepts arbitrary upstream model ids                                     |
+| 3   | `prepareDynamicModel`         | Async warm-up, then `resolveDynamicModel` runs again                                     | Provider needs network metadata before resolving unknown ids                      |
+| 4   | `normalizeResolvedModel`      | Final rewrite before the embedded runner uses the resolved model                         | Provider needs transport rewrites but still uses a core transport                 |
+| 5   | `capabilities`                | Provider-owned transcript/tooling metadata used by shared core logic                     | Provider needs transcript/provider-family quirks                                  |
+| 6   | `formatApiKey`                | Auth-profile formatter: stored profile becomes the runtime `apiKey` string               | Provider stores extra auth metadata and needs a custom runtime token shape        |
+| 7   | `refreshOAuth`                | OAuth refresh override for custom refresh endpoints or refresh-failure policy            | Provider does not fit the shared `pi-ai` refreshers                               |
+| 8   | `buildAuthDoctorHint`         | Repair hint appended when OAuth refresh fails                                            | Provider needs provider-owned auth repair guidance after refresh failure          |
+| 9   | `isCacheTtlEligible`          | Prompt-cache policy for proxy/backhaul providers                                         | Provider needs proxy-specific cache TTL gating                                    |
+| 10  | `buildMissingAuthMessage`     | Replacement for the generic missing-auth recovery message                                | Provider needs a provider-specific missing-auth recovery hint                     |
+| 11  | `suppressBuiltInModel`        | Stale upstream model suppression plus optional user-facing error hint                    | Provider needs to hide stale upstream rows or replace them with a vendor hint     |
+| 12  | `augmentModelCatalog`         | Synthetic/final catalog rows appended after discovery                                    | Provider needs synthetic forward-compat rows in `models list` and pickers         |
+| 13  | `isBinaryThinking`            | On/off reasoning toggle for binary-thinking providers                                    | Provider exposes only binary thinking on/off                                      |
+| 14  | `supportsXHighThinking`       | `xhigh` reasoning support for selected models                                            | Provider wants `xhigh` on only a subset of models                                 |
+| 15  | `resolveDefaultThinkingLevel` | Default `/think` level for a specific model family                                       | Provider owns default `/think` policy for a model family                          |
+| 16  | `isModernModelRef`            | Modern-model matcher for live profile filters and smoke selection                        | Provider owns live/smoke preferred-model matching                                 |
+| 17  | `prepareRuntimeAuth`          | Exchange a configured credential into the actual runtime token/key just before inference | Provider needs a token exchange or short-lived request credential                 |
+| 18  | `resolveUsageAuth`            | Resolve usage/billing credentials for `/usage` and related status surfaces               | Provider needs custom usage/quota token parsing or a different usage credential   |
+| 19  | `fetchUsageSnapshot`          | Fetch and normalize provider-specific usage/quota snapshots after auth is resolved       | Provider needs a provider-specific usage endpoint or payload parser               |
+| 20  | `buildReplayPolicy`           | Return a replay policy controlling transcript handling for the provider                  | Provider needs custom transcript policy (for example, thinking-block stripping)   |
+| 21  | `sanitizeReplayHistory`       | Rewrite replay history after generic transcript cleanup                                  | Provider needs provider-specific replay rewrites beyond shared compaction helpers |
+| 22  | `validateReplayTurns`         | Final replay-turn validation or reshaping before the embedded runner                     | Provider transport needs stricter turn validation after generic sanitation        |
 
 If the provider needs a fully custom wire protocol or custom request executor,
 that is a different class of extension. These hooks are for provider behavior
 that still runs on CrawClaw's normal inference loop.
 
-### Provider example
+### Provider configuration
 
-```ts
-api.registerProvider({
-  id: "example-proxy",
-  label: "Example Proxy",
-  auth: [],
-  catalog: {
-    order: "simple",
-    run: async (ctx) => {
-      const apiKey = ctx.resolveProviderApiKey("example-proxy").apiKey;
-      if (!apiKey) {
-        return null;
-      }
-      return {
-        provider: {
-          baseUrl: "https://proxy.example.com/v1",
-          apiKey,
-          api: "openai-completions",
-          models: [{ id: "auto", name: "Auto" }],
-        },
-      };
-    },
-  },
-  resolveDynamicModel: (ctx) => ({
-    id: ctx.modelId,
-    name: ctx.modelId,
-    provider: "example-proxy",
-    api: "openai-completions",
-    baseUrl: "https://proxy.example.com/v1",
-    reasoning: false,
-    input: ["text"],
-    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-    contextWindow: 128000,
-    maxTokens: 8192,
-  }),
-  prepareRuntimeAuth: async (ctx) => {
-    const exchanged = await exchangeToken(ctx.apiKey);
-    return {
-      apiKey: exchanged.token,
-      baseUrl: exchanged.baseUrl,
-      expiresAt: exchanged.expiresAt,
-    };
-  },
-  resolveUsageAuth: async (ctx) => {
-    const auth = await ctx.resolveOAuthToken();
-    return auth ? { token: auth.token } : null;
-  },
-  fetchUsageSnapshot: async (ctx) => {
-    return await fetchExampleProxyUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn);
-  },
+TypeScript plugins no longer register LLM providers. Built-in provider
+metadata and runtime behavior live in the Rust provider registry, and custom
+provider entries are configured under `models.providers`.
+return {
+provider: {
+baseUrl: "https://proxy.example.com/v1",
+apiKey,
+api: "openai-completions",
+models: [{ id: "auto", name: "Auto" }],
+},
+};
+},
+},
+resolveDynamicModel: (ctx) => ({
+id: ctx.modelId,
+name: ctx.modelId,
+provider: "example-proxy",
+api: "openai-completions",
+baseUrl: "https://proxy.example.com/v1",
+reasoning: false,
+input: ["text"],
+cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+contextWindow: 128000,
+maxTokens: 8192,
+}),
+prepareRuntimeAuth: async (ctx) => {
+const exchanged = await exchangeToken(ctx.apiKey);
+return {
+apiKey: exchanged.token,
+baseUrl: exchanged.baseUrl,
+expiresAt: exchanged.expiresAt,
+};
+},
+resolveUsageAuth: async (ctx) => {
+const auth = await ctx.resolveOAuthToken();
+return auth ? { token: auth.token } : null;
+},
+fetchUsageSnapshot: async (ctx) => {
+return await fetchExampleProxyUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn);
+},
 });
-```
+
+````
 
 ### Built-in examples
 
@@ -708,9 +633,8 @@ api.registerProvider({
 - OpenRouter uses `catalog` plus `resolveDynamicModel` and
   `prepareDynamicModel` because the provider is pass-through and may expose new
   model ids before CrawClaw's static catalog updates; it also uses
-  `capabilities`, `wrapStreamFn`, and `isCacheTtlEligible` to keep
-  provider-specific request headers, routing metadata, reasoning patches, and
-  prompt-cache policy out of core.
+  `capabilities` and `isCacheTtlEligible` while Rust provider transport owns
+  request headers, routing metadata, and reasoning payload policy.
 - GitHub Copilot uses `catalog`, `auth`, `resolveDynamicModel`, and
   `capabilities` plus `prepareRuntimeAuth` and `fetchUsageSnapshot` because it
   needs provider-owned device login, model fallback behavior, Claude transcript
@@ -718,26 +642,18 @@ api.registerProvider({
   endpoint.
 - OpenAI Codex uses `catalog`, `resolveDynamicModel`,
   `normalizeResolvedModel`, `refreshOAuth`, and `augmentModelCatalog` plus
-  `prepareExtraParams`, `resolveUsageAuth`, and `fetchUsageSnapshot` because it
-  still runs on core OpenAI transports but owns its transport/base URL
-  normalization, OAuth refresh fallback policy, default transport choice,
+  `resolveUsageAuth` and `fetchUsageSnapshot` because it owns transport/base
+  URL normalization, OAuth refresh fallback policy, default transport choice,
   synthetic Codex catalog rows, and ChatGPT usage endpoint integration.
 - Google AI Studio and Gemini CLI OAuth use `resolveDynamicModel` and
   `isModernModelRef` because they own Gemini 3.1 forward-compat fallback and
   modern-model matching; Gemini CLI OAuth also uses `formatApiKey`,
   `resolveUsageAuth`, and `fetchUsageSnapshot` for token formatting, token
   parsing, and quota endpoint wiring.
-- Moonshot uses `catalog` plus `wrapStreamFn` because it still uses the shared
-  OpenAI transport but needs provider-owned thinking payload normalization.
-- Kilocode uses `catalog`, `capabilities`, `wrapStreamFn`, and
-  `isCacheTtlEligible` because it needs provider-owned request headers,
-  reasoning payload normalization, Gemini transcript hints, and Anthropic
-  cache-TTL gating.
-- Z.AI uses `resolveDynamicModel`, `prepareExtraParams`, `wrapStreamFn`,
-  `isCacheTtlEligible`, `isBinaryThinking`, `isModernModelRef`,
-  `resolveUsageAuth`, and `fetchUsageSnapshot` because it owns GLM-5 fallback,
-  `tool_stream` defaults, binary thinking UX, modern-model matching, and both
-  usage auth + quota fetching.
+- Moonshot uses `catalog`; Rust/native provider transport owns request payload normalization.
+- Kilocode uses `catalog`, `capabilities`, and `isCacheTtlEligible`; Rust provider transport owns request headers and reasoning payload normalization.
+- Z.AI uses `resolveDynamicModel`, `isCacheTtlEligible`, `isBinaryThinking`,
+  `isModernModelRef`, `resolveUsageAuth`, and `fetchUsageSnapshot`; Rust provider transport owns `tool_stream` defaults.
 - Mistral, OpenCode Zen, and OpenCode Go use `capabilities` only to keep
   transcript/tooling quirks out of core.
 - Catalog-only bundled providers such as `byteplus`, `cloudflare-ai-gateway`,
@@ -767,7 +683,7 @@ const voices = await api.runtime.tts.listVoices({
   provider: "elevenlabs",
   cfg: api.config,
 });
-```
+````
 
 Notes:
 
@@ -958,7 +874,6 @@ authoring plugins:
   `crawclaw/plugin-sdk/lazy-runtime`,
   `crawclaw/plugin-sdk/reply-history`,
   `crawclaw/plugin-sdk/routing`,
-  `crawclaw/plugin-sdk/status-helpers`, and
   `crawclaw/plugin-sdk/runtime-store` for shared runtime/config helpers.
 - Approval-specific channel seams should prefer one `approvalCapability`
   contract on the plugin. Core then reads approval auth, delivery, render, and
@@ -1052,35 +967,15 @@ The shared helpers in `directory-runtime` only handle generic operations:
 Channel-specific account inspection and id normalization should stay in the
 plugin implementation.
 
-## Provider catalogs
+## Provider configuration
 
-Provider plugins can define model catalogs for inference with
-`registerProvider({ catalog: { run(...) { ... } } })`.
+TypeScript plugins no longer register LLM providers or model catalogs. Provider
+metadata, default models, config schema, auth choices, setup options, and native
+transport capabilities are owned by the Rust provider registry.
 
-`catalog.run(...)` returns the same shape CrawClaw writes into
-`models.providers`:
-
-- `{ provider }` for one provider entry
-- `{ providers }` for multiple provider entries
-
-Use `catalog` when the plugin owns provider-specific model ids, base URL
-defaults, or auth-gated model metadata.
-
-`catalog.order` controls when a plugin's catalog merges relative to CrawClaw's
-built-in implicit providers:
-
-- `simple`: plain API-key or env-driven providers
-- `profile`: providers that appear when auth profiles exist
-- `paired`: providers that synthesize multiple related provider entries
-- `late`: last pass, after other implicit providers
-
-Later providers win on key collision, so plugins can intentionally override a
-built-in provider entry with the same provider id.
-
-Compatibility:
-
-- `discovery` still works as a legacy alias
-- if both `catalog` and `discovery` are registered, CrawClaw uses `catalog`
+Custom provider entries remain config-backed under `models.providers`. Use that
+config path for OpenAI-compatible endpoints, local adapters, or provider entries
+that should be user-managed instead of shipped in the Rust catalog.
 
 ## Read-only channel inspection
 
@@ -1142,84 +1037,10 @@ Security note: CrawClaw Desktop or the local Gateway API installs plugin depende
 `npm install --omit=dev --ignore-scripts` (no lifecycle scripts, no dev dependencies at runtime). Keep plugin dependency
 trees "pure JS/TS" and avoid packages that require `postinstall` builds.
 
-Optional: `crawclaw.setupEntry` can point at a lightweight setup-only module.
-When CrawClaw needs setup surfaces for a disabled channel plugin, or
-when a channel plugin is enabled but still unconfigured, it loads `setupEntry`
-instead of the full plugin entry. This keeps startup and setup lighter
-when your main plugin entry also wires tools, hooks, or other runtime-only
-code.
-
-Optional: `crawclaw.startup.deferConfiguredChannelFullLoadUntilAfterListen`
-can opt a channel plugin into the same `setupEntry` path during the gateway's
-pre-listen startup phase, even when the channel is already configured.
-
-Use this only when `setupEntry` fully covers the startup surface that must exist
-before the gateway starts listening. In practice, that means the setup entry
-must register every channel-owned capability that startup depends on, such as:
-
-- channel registration itself
-- any HTTP routes that must be available before the gateway starts listening
-- any gateway methods, tools, or services that must exist during that same window
-
-If your full entry still owns any required startup capability, do not enable
-this flag. Keep the plugin on the default behavior and let CrawClaw load the
-full entry during startup.
-
-Example:
-
-```json
-{
-  "name": "@scope/my-channel",
-  "crawclaw": {
-    "extensions": ["./index.ts"],
-    "setupEntry": "./setup-entry.ts",
-    "startup": {
-      "deferConfiguredChannelFullLoadUntilAfterListen": true
-    }
-  }
-}
-```
-
-### Channel catalog metadata
-
-Channel plugins can advertise setup/discovery metadata via `crawclaw.channel` and
-install hints via `crawclaw.install`. This keeps the core catalog data-free.
-
-Example:
-
-```json
-{
-  "name": "@crawclaw/nextcloud-talk",
-  "crawclaw": {
-    "extensions": ["./index.ts"],
-    "channel": {
-      "id": "nextcloud-talk",
-      "label": "Nextcloud Talk",
-      "selectionLabel": "Nextcloud Talk (self-hosted)",
-      "docsPath": "/channels/nextcloud-talk",
-      "docsLabel": "nextcloud-talk",
-      "blurb": "Self-hosted chat via Nextcloud Talk webhook bots.",
-      "order": 65,
-      "aliases": ["nc-talk", "nc"]
-    },
-    "install": {
-      "npmSpec": "@crawclaw/nextcloud-talk",
-      "localPath": "<bundled-plugin-local-path>",
-      "defaultChoice": "npm"
-    }
-  }
-}
-```
-
-CrawClaw can also merge **external channel catalogs** (for example, an MPM
-registry export). Drop a JSON file at one of:
-
-- `~/.crawclaw/mpm/plugins.json`
-- `~/.crawclaw/mpm/catalog.json`
-- `~/.crawclaw/plugins/catalog.json`
-
-Or point `CRAWCLAW_PLUGIN_CATALOG_PATHS` (or `CRAWCLAW_MPM_CATALOG_PATHS`) at
-one or more JSON files (comma/semicolon/`PATH`-delimited). Each file should
+The legacy `crawclaw.setupEntry` channel path and
+`deferConfiguredChannelFullLoadUntilAfterListen` channel startup path were
+removed with the TypeScript channel runtime. Native channel setup/status
+surfaces are owned by Rust.
 contain `{ "entries": [ { "name": "@scope/pkg", "crawclaw": { "channel": {...}, "install": {...} } } ] }`. The parser also accepts `"packages"` or `"plugins"` as legacy aliases for the `"entries"` key.
 
 ## Memory plugins

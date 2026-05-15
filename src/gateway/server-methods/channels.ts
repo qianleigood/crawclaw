@@ -15,16 +15,16 @@ import {
 } from "../../channels/plugins/index.js";
 import { buildChannelAccountSnapshot } from "../../channels/plugins/status.js";
 import type { ChannelAccountSnapshot, ChannelPlugin } from "../../channels/plugins/types.js";
-import { formatCliCommand } from "../../cli/command-format.js";
-import { resolveChannelSetupWizardAdapterForPlugin } from "../../commands/channel-setup/registry.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { loadConfig, readConfigFileSnapshot } from "../../config/config.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
+import { resolveChannelSetupWizardAdapterForPlugin } from "../../control/channel-setup/registry.js";
 import { getChannelActivity } from "../../infra/channel-activity.js";
 import { resolveCrawClawPackageRootSync } from "../../infra/crawclaw-root.js";
 import { listRecentDiagnosticChannelStreamingDecisions } from "../../logging/diagnostic-session-state.js";
 import { DEFAULT_ACCOUNT_ID } from "../../routing/session-key.js";
 import { defaultRuntime } from "../../runtime.js";
+import { formatCliCommand } from "../../terminal/command-format.js";
 import {
   ErrorCodes,
   errorShape,

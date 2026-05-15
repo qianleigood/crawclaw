@@ -50,7 +50,7 @@ describe("buildStatusReply", () => {
         ],
       },
       channels: {
-        whatsapp: { allowFrom: ["*"] },
+        weixin: { allowFrom: ["*"] },
       },
     } as CrawClawConfig;
 
@@ -58,7 +58,7 @@ describe("buildStatusReply", () => {
       cfg,
       command: {
         isAuthorizedSender: true,
-        channel: "whatsapp",
+        channel: "weixin",
       } as never,
       sessionKey: "agent:kira:main",
       provider: "openai",

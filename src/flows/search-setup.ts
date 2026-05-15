@@ -1,4 +1,3 @@
-import type { SecretInputMode } from "../commands/onboard-types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   DEFAULT_SECRET_PROVIDER_ALIAS,
@@ -7,6 +6,7 @@ import {
   hasConfiguredSecretInput,
   normalizeSecretInputString,
 } from "../config/types.secrets.js";
+import type { SecretInputMode } from "../control/onboard-types.js";
 import {
   listBundledWebSearchProviders,
   resolveBundledWebSearchPluginId,

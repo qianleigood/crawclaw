@@ -20,7 +20,7 @@ describe("avatar policy", () => {
     expect(isAvatarImageDataUrl("data:text/plain,hello")).toBe(false);
     expect(isAvatarHttpUrl("https://example.com/avatar.png")).toBe(true);
     expect(isAvatarHttpUrl("ftp://example.com/avatar.png")).toBe(false);
-    expect(hasAvatarUriScheme("slack://avatar")).toBe(true);
+    expect(hasAvatarUriScheme("ddingtalk://avatar")).toBe(true);
     expect(isWindowsAbsolutePath("C:\\\\avatars\\\\crawclaw.png")).toBe(true);
   });
 
@@ -30,7 +30,7 @@ describe("avatar policy", () => {
     expect(isWorkspaceRelativeAvatarPath("https://example.com/avatar.png")).toBe(false);
     expect(isWorkspaceRelativeAvatarPath("data:image/png;base64,AAAA")).toBe(false);
     expect(isWorkspaceRelativeAvatarPath("~/avatar.png")).toBe(false);
-    expect(isWorkspaceRelativeAvatarPath("slack://avatar")).toBe(false);
+    expect(isWorkspaceRelativeAvatarPath("ddingtalk://avatar")).toBe(false);
     expect(isWorkspaceRelativeAvatarPath("")).toBe(false);
   });
 

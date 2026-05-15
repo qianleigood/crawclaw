@@ -474,7 +474,7 @@ describe("session.message websocket events", () => {
           sessionId: "sess-thread",
           sessionFile: transcriptPath,
           updatedAt: Date.now(),
-          lastChannel: "telegram",
+          lastChannel: "feishu",
           lastTo: "-100123",
           lastAccountId: "acct-1",
           lastThreadId: 42,
@@ -524,7 +524,7 @@ describe("session.message websocket events", () => {
         ]);
         expect(messageEvent.payload).toMatchObject({
           sessionKey: "agent:main:main",
-          lastChannel: "telegram",
+          lastChannel: "feishu",
           lastTo: "-100123",
           lastAccountId: "acct-1",
           lastThreadId: 42,
@@ -532,7 +532,7 @@ describe("session.message websocket events", () => {
         expect(changedEvent.payload).toMatchObject({
           sessionKey: "agent:main:main",
           phase: "message",
-          lastChannel: "telegram",
+          lastChannel: "feishu",
           lastTo: "-100123",
           lastAccountId: "acct-1",
           lastThreadId: 42,

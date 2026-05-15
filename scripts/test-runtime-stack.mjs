@@ -21,7 +21,6 @@ const runtimeStackTests = [
   "src/agents/special/runtime/observability.test.ts",
   "src/agents/special/runtime/cache-safe-params.test.ts",
   "src/agents/special/runtime/registry.test.ts",
-  "src/commands/agent.inspect.test.ts",
 ];
 
 const extraArgs = process.argv.slice(2);

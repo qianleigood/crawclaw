@@ -38,9 +38,9 @@ Windows 矩阵使用三种支持状态：
 | `exec` and `system.run` tools       | `supported` | 优先使用 PowerShell 7，并回退到 Windows PowerShell；命令 shim 必须避免不安全的 shell 回退。   |
 | Browser automation                  | `supported` | 在 Windows smoke 覆盖 Chrome/Edge/Brave 发现和浏览器运行时后支持。                            |
 | Docker sandbox                      | `supported` | 在 Windows drive-path、Docker Desktop bind 和 sandbox 安全门禁通过后支持。                    |
-| Telegram, Discord, Slack, Matrix    | `supported` | 通过内置或捆绑 channel/plugin 路径支持；在 provider 凭据允许时提供 smoke 覆盖。               |
+| Feishu, QQBot, DingTalk, Matrix     | `supported` | 通过内置或捆绑 channel/plugin 路径支持；在 provider 凭据允许时提供 smoke 覆盖。               |
 | Common provider plugins             | `supported` | 基于 Node 的 provider 通过捆绑插件运行时和安装期依赖设置加载。                                |
-| BlueBubbles and iMessage            | `bridged`   | 通过 Mac server 或 Apple host 桥接；Windows 运行 Gateway/client 侧，而不是 Apple 本地消息栈。 |
+| Weixin and Weixin                   | `bridged`   | 通过 Mac server 或 Apple host 桥接；Windows 运行 Gateway/client 侧，而不是 Apple 本地消息栈。 |
 | Apple skills and macOS-only tooling | `bridged`   | 通过 Mac 或 headless 节点桥接，由该主机持有 Apple 本地运行时和权限。                          |
 
 ## 安装

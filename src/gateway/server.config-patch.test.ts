@@ -77,11 +77,11 @@ describe("gateway config methods", () => {
 
     const nextConfig = structuredClone(current.payload?.config ?? {});
     const channels = (nextConfig.channels ??= {}) as Record<string, unknown>;
-    const telegram = (channels.telegram ??= {}) as Record<string, unknown>;
-    telegram.botToken = { source: "env", provider: "default", id: missingEnvVar };
-    const telegramAccounts = (telegram.accounts ??= {}) as Record<string, unknown>;
-    const defaultTelegramAccount = (telegramAccounts.default ??= {}) as Record<string, unknown>;
-    defaultTelegramAccount.enabled = true;
+    const feishu = (channels.feishu ??= {}) as Record<string, unknown>;
+    feishu.botToken = { source: "env", provider: "default", id: missingEnvVar };
+    const feishuAccounts = (feishu.accounts ??= {}) as Record<string, unknown>;
+    const defaultFeishuAccount = (feishuAccounts.default ??= {}) as Record<string, unknown>;
+    defaultFeishuAccount.enabled = true;
 
     const res = await rpcReq<{ ok?: boolean; error?: { message?: string } }>(
       requireWs(),
@@ -295,7 +295,7 @@ describe("gateway config methods", () => {
       {
         raw: JSON.stringify({
           channels: {
-            telegram: {
+            feishu: {
               botToken: {
                 source: "env",
                 provider: "default",
@@ -340,7 +340,7 @@ describe("gateway server sessions", () => {
           sessionId: "sess-home-main",
           updatedAt: Date.now(),
         },
-        "discord:group:dev": {
+        "qqbot:group:dev": {
           sessionId: "sess-home-group",
           updatedAt: Date.now() - 1000,
         },
@@ -366,7 +366,7 @@ describe("gateway server sessions", () => {
     });
     expect(homeSessions.ok).toBe(true);
     expect(homeSessions.payload?.sessions.map((s) => s.key).toSorted()).toEqual([
-      "agent:home:discord:group:dev",
+      "agent:home:qqbot:group:dev",
       "agent:home:main",
     ]);
 

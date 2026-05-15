@@ -104,7 +104,7 @@ Transitions happen automatically — when the associated agent run ends, the tas
 
 When a task reaches a terminal state, CrawClaw notifies you. There are two delivery paths:
 
-**Direct delivery** — if the task has a channel target (the `requesterOrigin`), the completion message goes straight to that channel (Telegram, Discord, Slack, etc.).
+**Direct delivery** — if the task has a channel target (the `requesterOrigin`), the completion message goes straight to that channel (Feishu, community chat, Feishu, etc.).
 
 **Session-queued delivery** — if direct delivery fails or no origin is set, the update is queued as a system event in the requester's session and surfaces on the next main-session wake.
 

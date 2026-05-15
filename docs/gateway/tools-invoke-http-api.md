@@ -118,7 +118,7 @@ You can customize this deny list via `gateway.tools`:
 
 To help group policies resolve context, you can optionally set:
 
-- `x-crawclaw-message-channel: <channel>` (example: `slack`, `telegram`)
+- `x-crawclaw-message-channel: <channel>` (example: `ddingtalk`, `feishu`)
 - `x-crawclaw-account-id: <accountId>` (when multiple accounts exist)
 
 ## Responses

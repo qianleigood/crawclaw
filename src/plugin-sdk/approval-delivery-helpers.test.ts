@@ -8,8 +8,8 @@ import {
 describe("createApproverRestrictedNativeApprovalAdapter", () => {
   it("uses approver-restricted authorization for exec and plugin commands", () => {
     const adapter = createApproverRestrictedNativeApprovalAdapter({
-      channel: "discord",
-      channelLabel: "Discord",
+      channel: "qqbot",
+      channelLabel: "QQBot",
       listAccountIds: () => ["work"],
       hasApprovers: ({ accountId }) => accountId === "work",
       isExecAuthorizedSender: ({ senderId }) => senderId === "exec-owner",
@@ -52,14 +52,14 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
       }),
     ).toEqual({
       authorized: false,
-      reason: "❌ You are not authorized to approve plugin requests on Discord.",
+      reason: "❌ You are not authorized to approve plugin requests on QQBot.",
     });
   });
 
   it("reports initiating-surface state and DM routing from configured approvers", () => {
     const adapter = createApproverRestrictedNativeApprovalAdapter({
-      channel: "telegram",
-      channelLabel: "Telegram",
+      channel: "feishu",
+      channelLabel: "Feishu",
       listAccountIds: () => ["dm-only", "channel-only", "disabled", "no-approvers"],
       hasApprovers: ({ accountId }) => accountId !== "no-approvers",
       isExecAuthorizedSender: () => true,
@@ -119,8 +119,8 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
 
   it("reports enabled when approvers exist even if native delivery is off (#59620)", () => {
     const adapter = createApproverRestrictedNativeApprovalAdapter({
-      channel: "telegram",
-      channelLabel: "Telegram",
+      channel: "feishu",
+      channelLabel: "Feishu",
       listAccountIds: () => ["default"],
       hasApprovers: () => true,
       isExecAuthorizedSender: () => true,
@@ -146,8 +146,8 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
       ({ accountId }: { accountId?: string | null }) => accountId === "topic-1",
     );
     const adapter = createApproverRestrictedNativeApprovalAdapter({
-      channel: "telegram",
-      channelLabel: "Telegram",
+      channel: "feishu",
+      channelLabel: "Feishu",
       listAccountIds: () => [],
       hasApprovers: () => true,
       isExecAuthorizedSender: () => true,
@@ -166,11 +166,11 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
       shouldSuppressForwardingFallback({
         cfg: {} as never,
         approvalKind: "exec",
-        target: { channel: "telegram", to: "target-1" },
+        target: { channel: "feishu", to: "target-1" },
         request: {
           request: {
             command: "pwd",
-            turnSourceChannel: "telegram",
+            turnSourceChannel: "feishu",
             turnSourceAccountId: " topic-1 ",
           },
         } as never,
@@ -181,11 +181,11 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
       shouldSuppressForwardingFallback({
         cfg: {} as never,
         approvalKind: "exec",
-        target: { channel: "telegram", to: "target-1" },
+        target: { channel: "feishu", to: "target-1" },
         request: {
           request: {
             command: "pwd",
-            turnSourceChannel: "slack",
+            turnSourceChannel: "ddingtalk",
             turnSourceAccountId: "topic-1",
           },
         } as never,
@@ -196,11 +196,11 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
       shouldSuppressForwardingFallback({
         cfg: {} as never,
         approvalKind: "exec",
-        target: { channel: "slack", to: "target-1" },
+        target: { channel: "ddingtalk", to: "target-1" },
         request: {
           request: {
             command: "pwd",
-            turnSourceChannel: "telegram",
+            turnSourceChannel: "feishu",
             turnSourceAccountId: "topic-1",
           },
         } as never,
@@ -216,11 +216,11 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
       shouldSuppressForwardingFallback({
         cfg: {} as never,
         approvalKind: "plugin",
-        target: { channel: "telegram", to: "target-1" },
+        target: { channel: "feishu", to: "target-1" },
         request: {
           request: {
             command: "pwd",
-            turnSourceChannel: "telegram",
+            turnSourceChannel: "feishu",
             turnSourceAccountId: "topic-1",
           },
         } as never,
@@ -232,8 +232,8 @@ describe("createApproverRestrictedNativeApprovalAdapter", () => {
 describe("createApproverRestrictedNativeApprovalCapability", () => {
   it("builds the canonical approval capability and preserves legacy split compatibility", () => {
     const capability = createApproverRestrictedNativeApprovalCapability({
-      channel: "matrix",
-      channelLabel: "Matrix",
+      channel: "feishu",
+      channelLabel: "Feishu",
       listAccountIds: () => ["work"],
       hasApprovers: () => true,
       isExecAuthorizedSender: ({ senderId }) => senderId === "@owner:example.com",
@@ -274,8 +274,8 @@ describe("createApproverRestrictedNativeApprovalCapability", () => {
 
     const split = splitChannelApprovalCapability(capability);
     const legacy = createApproverRestrictedNativeApprovalAdapter({
-      channel: "matrix",
-      channelLabel: "Matrix",
+      channel: "feishu",
+      channelLabel: "Feishu",
       listAccountIds: () => ["work"],
       hasApprovers: () => true,
       isExecAuthorizedSender: ({ senderId }) => senderId === "@owner:example.com",

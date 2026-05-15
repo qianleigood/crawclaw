@@ -12,7 +12,6 @@ import {
 } from "../../config/sessions/paths.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import { logVerbose } from "../../globals.js";
-import { clearCommandLane, getQueueSize } from "../../process/command-queue.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 import { isReasoningTagProvider } from "../../utils/provider-utils.js";
 import { hasControlCommand } from "../command-detection.js";
@@ -41,15 +40,12 @@ import { resolveQueueSettings } from "./queue/settings.js";
 import type { RouteReplyParams } from "./route-reply.js";
 import { buildBareSessionResetPrompt } from "./session-reset-prompt.js";
 import { drainFormattedSystemEvents } from "./session-system-events.js";
-import { assertTsAgentLoopCompatibilityAllowed } from "./ts-agent-loop-compatibility.js";
 import type { TypingController } from "./typing.js";
 import { appendUntrustedContext } from "./untrusted-context.js";
 
 type AgentDefaults = NonNullable<CrawClawConfig["agents"]>["defaults"];
 type ExecOverrides = Pick<ExecToolDefaults, "host" | "security" | "ask">;
 
-let piEmbeddedRuntimePromise: Promise<typeof import("../../agents/pi-embedded.runtime.js")> | null =
-  null;
 let agentRunnerRuntimePromise: Promise<typeof import("./agent-runner.runtime.js")> | null = null;
 let routeReplyRuntimePromise: Promise<typeof import("./route-reply.runtime.js")> | null = null;
 let sessionUpdatesRuntimePromise: Promise<typeof import("./session-updates.runtime.js")> | null =
@@ -57,11 +53,6 @@ let sessionUpdatesRuntimePromise: Promise<typeof import("./session-updates.runti
 let sessionStoreRuntimePromise: Promise<
   typeof import("../../config/sessions/store.runtime.js")
 > | null = null;
-
-function loadPiEmbeddedRuntime() {
-  piEmbeddedRuntimePromise ??= import("../../agents/pi-embedded.runtime.js");
-  return piEmbeddedRuntimePromise;
-}
 
 function loadAgentRunnerRuntime() {
   agentRunnerRuntimePromise ??= import("./agent-runner.runtime.js");
@@ -212,7 +203,6 @@ type RunPreparedReplyParams = {
 export async function runPreparedReply(
   params: RunPreparedReplyParams,
 ): Promise<ReplyPayload | ReplyPayload[] | undefined> {
-  assertTsAgentLoopCompatibilityAllowed("runPreparedReply");
   const {
     ctx,
     sessionCtx,
@@ -482,22 +472,9 @@ export async function runPreparedReply(
     inlineMode: perMessageQueueMode,
     inlineOptions: perMessageQueueOptions,
   });
-  const {
-    abortEmbeddedPiRun,
-    isEmbeddedPiRunActive,
-    isEmbeddedPiRunStreaming,
-    resolveEmbeddedSessionLane,
-  } = await loadPiEmbeddedRuntime();
-  const sessionLaneKey = resolveEmbeddedSessionLane(sessionKey ?? sessionIdFinal);
-  const laneSize = getQueueSize(sessionLaneKey);
-  if (resolvedQueue.mode === "interrupt" && laneSize > 0) {
-    const cleared = clearCommandLane(sessionLaneKey);
-    const aborted = abortEmbeddedPiRun(sessionIdFinal);
-    logVerbose(`Interrupting ${sessionLaneKey} (cleared ${cleared}, aborted=${aborted})`);
-  }
   const queueKey = sessionKey ?? sessionIdFinal;
-  const isActive = isEmbeddedPiRunActive(sessionIdFinal);
-  const isStreaming = isEmbeddedPiRunStreaming(sessionIdFinal);
+  const isActive = false;
+  const isStreaming = false;
   const shouldSteer = resolvedQueue.mode === "steer" || resolvedQueue.mode === "steer-backlog";
   const shouldFollowup =
     resolvedQueue.mode === "followup" ||
@@ -595,7 +572,7 @@ export async function runPreparedReply(
     shouldSteer,
     shouldFollowup,
     isActive,
-    isRunActive: () => isEmbeddedPiRunActive(sessionIdFinal),
+    isRunActive: () => false,
     isStreaming,
     opts,
     typing,

@@ -64,7 +64,7 @@ describe("diagnostic-events", () => {
     emitDiagnosticEvent({
       type: "message.queued",
       observation: testObservation(),
-      source: "telegram",
+      source: "feishu",
     });
 
     expect(seen).toEqual(["message.queued"]);
@@ -82,13 +82,13 @@ describe("diagnostic-events", () => {
     emitDiagnosticEvent({
       type: "webhook.received",
       observation: testObservation(),
-      channel: "telegram",
+      channel: "feishu",
     });
     stop();
     emitDiagnosticEvent({
       type: "webhook.processed",
       observation: testObservation(),
-      channel: "telegram",
+      channel: "feishu",
     });
 
     expect(seen).toEqual(["webhook.received"]);
@@ -97,7 +97,7 @@ describe("diagnostic-events", () => {
     emitDiagnosticEvent({
       type: "webhook.error",
       observation: testObservation(),
-      channel: "telegram",
+      channel: "feishu",
       error: "failed",
     });
     expect(seen).toEqual(["webhook.received"]);
@@ -111,7 +111,7 @@ describe("diagnostic-events", () => {
 
     emitDiagnosticEvent({
       type: "message.processed",
-      channel: "telegram",
+      channel: "feishu",
       outcome: "completed",
       observation: createObservationRoot({
         source: "diagnostic",

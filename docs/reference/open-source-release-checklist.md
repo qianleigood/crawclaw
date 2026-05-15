@@ -20,7 +20,6 @@ Use this checklist before making the repository public or announcing a major ope
 ## Naming And Branding
 
 - Confirm the project name is consistently `CrawClaw`.
-- Confirm the CLI is `crawclaw`.
 - Confirm public package names use the intended `crawclaw` / `@crawclaw/*` naming.
 - Confirm old `OpenClaw` / `openclaw` compatibility surfaces are either removed or explicitly documented.
 

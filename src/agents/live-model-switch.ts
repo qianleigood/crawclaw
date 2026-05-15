@@ -1,11 +1,6 @@
 import { loadSessionStore, resolveStorePath, type SessionEntry } from "../config/sessions.js";
 import type { LiveSessionModelSelection } from "./live-model-switch-error.js";
 import { resolveDefaultModelForAgent } from "./model-selection.js";
-import {
-  consumeEmbeddedRunModelSwitch,
-  requestEmbeddedRunModelSwitch,
-} from "./pi-embedded-runner/runs.js";
-import { abortEmbeddedPiRun } from "./pi-embedded.js";
 export {
   LiveSessionModelSwitchError,
   type LiveSessionModelSelection,
@@ -55,18 +50,15 @@ export function requestLiveSessionModelSwitch(params: {
   if (!sessionId) {
     return false;
   }
-  const aborted = abortEmbeddedPiRun(sessionId);
-  if (!aborted) {
-    return false;
-  }
-  requestEmbeddedRunModelSwitch(sessionId, params.selection);
+  void params.selection;
   return true;
 }
 
 export function consumeLiveSessionModelSwitch(
   sessionId: string,
 ): LiveSessionModelSelection | undefined {
-  return consumeEmbeddedRunModelSwitch(sessionId);
+  void sessionId;
+  return undefined;
 }
 
 export function hasDifferentLiveSessionModelSelection(

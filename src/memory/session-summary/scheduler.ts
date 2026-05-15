@@ -3,7 +3,6 @@ import type { SpecialAgentParentForkContext } from "../../agents/special/runtime
 import { isMemoryAutomationExcludedSessionKey } from "../../sessions/session-key-utils.ts";
 import { estimateTokenCount } from "../recall/token-estimate.ts";
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
-import type { SessionSummaryRunResult } from "./agent-runner.ts";
 import { persistSessionSummaryPromotionCandidates } from "./promotion.ts";
 import { isSessionSummaryEffectivelyEmpty } from "./sections.ts";
 import { readSessionSummaryFile } from "./store.ts";
@@ -17,6 +16,16 @@ import {
 } from "./template.ts";
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
+
+export type SessionSummaryRunResult = {
+  status: "written" | "skipped" | "no_change" | "failed";
+  summary?: string;
+  writtenCount: number;
+  updatedCount: number;
+  reason?: string;
+  childSessionKey?: string;
+  runId?: string;
+};
 
 export type SessionSummarySchedulerConfig = {
   enabled: boolean;

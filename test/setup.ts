@@ -50,8 +50,8 @@ import {
   resetSessionWriteLockStateForTest,
 } from "../src/agents/session-write-lock.js";
 import { installProcessWarningFilter } from "../src/infra/warning-filter.js";
-import type { PluginRegistry } from "../src/plugins/registry.js";
 import { createEmptyPluginRegistry } from "../src/plugins/registry-empty.js";
+import type { PluginRegistry } from "../src/plugins/registry.js";
 import {
   getActivePluginRegistry,
   releasePinnedPluginChannelRegistry,

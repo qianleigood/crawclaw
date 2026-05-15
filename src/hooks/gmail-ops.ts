@@ -1,5 +1,4 @@
 import { spawn } from "node:child_process";
-import { formatCliCommand } from "../cli/command-format.js";
 import {
   type CrawClawConfig,
   CONFIG_PATH,
@@ -11,6 +10,7 @@ import {
 } from "../config/config.js";
 import { runCommandWithTimeout } from "../process/exec.js";
 import { defaultRuntime } from "../runtime.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import { displayPath } from "../utils.js";
 import {
   ensureDependency,

@@ -39,7 +39,7 @@ CrawClaw 需要 Node 22 或更新版本。
     crawclaw onboard --install-daemon
     ```
   </Step>
-  <Step title="配对 WhatsApp">
+  <Step title="配对 Weixin">
     ```bash
     crawclaw channels login
     ```

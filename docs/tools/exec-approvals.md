@@ -387,10 +387,10 @@ Config:
       enabled: true,
       mode: "session", // "session" | "targets" | "both"
       agentFilter: ["main"],
-      sessionFilter: ["discord"], // substring or regex
+      sessionFilter: ["qqbot"], // substring or regex
       targets: [
-        { channel: "slack", to: "U12345678" },
-        { channel: "telegram", to: "123456789" },
+        { channel: "ddingtalk", to: "U12345678" },
+        { channel: "feishu", to: "123456789" },
       ],
     },
   },
@@ -420,8 +420,8 @@ independent config under `approvals.plugin`. Enabling or disabling one does not 
       mode: "targets",
       agentFilter: ["main"],
       targets: [
-        { channel: "slack", to: "U12345678" },
-        { channel: "telegram", to: "123456789" },
+        { channel: "ddingtalk", to: "U12345678" },
+        { channel: "feishu", to: "123456789" },
       ],
     },
   },
@@ -438,14 +438,14 @@ instructions.
 ### Same-chat approvals on any channel
 
 When an exec or plugin approval request originates from a deliverable chat surface, the same chat
-can now approve it with `/approve` by default. This applies to channels such as Slack, Matrix, and
-Microsoft Teams in addition to the existing terminal UI flow.
+can now approve it with `/approve` by default. This applies to channels such as DingTalk, Matrix, and
+QQBot in addition to the existing terminal UI flow.
 
 This shared text-command path uses the normal channel auth model for that conversation. If the
 originating chat can already send commands and receive replies, approval requests no longer need a
 separate native delivery adapter just to stay pending.
 
-Discord and Telegram also support same-chat `/approve`, but those channels still use their
+QQBot and Feishu also support same-chat `/approve`, but those channels still use their
 resolved approver list for authorization even when native approval delivery is disabled.
 
 ### Native approval delivery
@@ -472,35 +472,35 @@ it on when approvers resolve. Public origin-chat delivery stays explicit through
 
 FAQ: [Why are there two exec approval configs for chat approvals?](/help/faq#why-are-there-two-exec-approval-configs-for-chat-approvals)
 
-- Discord: `channels.discord.execApprovals.*`
-- Slack: `channels.slack.execApprovals.*`
-- Telegram: `channels.telegram.execApprovals.*`
+- QQBot: `channels.qqbot.execApprovals.*`
+- DingTalk: `channels.ddingtalk.execApprovals.*`
+- Feishu: `channels.feishu.execApprovals.*`
 
 These native approval clients add DM routing and optional channel fanout on top of the shared
 same-chat `/approve` flow and shared approval buttons.
 
 Shared behavior:
 
-- Slack, Matrix, Microsoft Teams, and similar deliverable chats use the normal channel auth model
+- DingTalk, Matrix, QQBot, and similar deliverable chats use the normal channel auth model
   for same-chat `/approve`
 - when a native approval client auto-enables, the default native delivery target is approver DMs
-- for Discord and Telegram, only resolved approvers can approve or deny
-- Discord and Telegram approvers can be explicit (`execApprovals.approvers`) or inferred from existing owner config (`allowFrom`, plus direct-message `defaultTo` where supported)
-- Slack approvers can be explicit (`execApprovals.approvers`) or inferred from `commands.ownerAllowFrom`
+- for QQBot and Feishu, only resolved approvers can approve or deny
+- QQBot and Feishu approvers can be explicit (`execApprovals.approvers`) or inferred from existing owner config (`allowFrom`, plus direct-message `defaultTo` where supported)
+- DingTalk approvers can be explicit (`execApprovals.approvers`) or inferred from `commands.ownerAllowFrom`
 - the requester does not need to be an approver
 - the originating chat can approve directly with `/approve` when that chat already supports commands and replies
 - when native `target` enables origin-chat delivery, approval prompts include the command text
 - pending exec approvals expire after 30 minutes by default
 - if no operator UI or configured approval client can accept the request, the prompt falls back to `askFallback`
 
-Telegram defaults to approver DMs (`target: "dm"`). You can switch to `channel` or `both` when you
-want approval prompts to appear in the originating Telegram chat/topic as well. For Telegram forum
+Feishu defaults to approver DMs (`target: "dm"`). You can switch to `channel` or `both` when you
+want approval prompts to appear in the originating Feishu chat/topic as well. For Feishu forum
 topics, CrawClaw preserves the topic for the approval prompt and the post-approval follow-up.
 
 See:
 
-- [Discord](/channels/discord)
-- [Telegram](/channels/telegram)
+- [QQBot](/channels/index)
+- [Feishu](/channels/index)
 
 ### macOS IPC flow
 

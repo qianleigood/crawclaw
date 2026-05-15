@@ -27,8 +27,8 @@ describe("durable memory file store", () => {
   it("upserts notes, regenerates MEMORY.md, and keeps scopes isolated", async () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
-    const scopeA = { agentId: "main", channel: "discord", userId: "user-42" } as const;
-    const scopeB = { agentId: "research", channel: "discord", userId: "user-42" } as const;
+    const scopeA = { agentId: "main", channel: "qqbot", userId: "user-42" } as const;
+    const scopeB = { agentId: "research", channel: "qqbot", userId: "user-42" } as const;
 
     const created = await upsertDurableMemoryNote({
       scope: scopeA,
@@ -92,7 +92,7 @@ describe("durable memory file store", () => {
   it("deletes notes by dedupe key and reports missing entries", async () => {
     const stateDir = await createStateDir();
     process.env.CRAWCLAW_STATE_DIR = stateDir;
-    const scope = { agentId: "main", channel: "discord", userId: "user-42" } as const;
+    const scope = { agentId: "main", channel: "qqbot", userId: "user-42" } as const;
 
     await upsertDurableMemoryNote({
       scope,

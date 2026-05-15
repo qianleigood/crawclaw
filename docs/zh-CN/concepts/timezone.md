@@ -52,24 +52,24 @@ CrawClaw 对时间戳进行标准化，使模型看到**单一的参考时间**�
 **本地时间（默认）：**
 
 ```
-[Signal Alice +1555 2026-01-18 00:19 PST] hello
+[Feishu Alice +1555 2026-01-18 00:19 PST] hello
 ```
 
 **固定时区：**
 
 ```
-[Signal Alice +1555 2026-01-18 06:19 GMT+1] hello
+[Feishu Alice +1555 2026-01-18 06:19 GMT+1] hello
 ```
 
 **已用时间：**
 
 ```
-[Signal Alice +1555 +2m 2026-01-18T05:19Z] follow-up
+[Feishu Alice +1555 +2m 2026-01-18T05:19Z] follow-up
 ```
 
 ## 工具负载（原始提供商数据 + 规范化字段）
 
-工具调用（`channels.discord.readMessages`、`channels.slack.readMessages` 等）返回**原始提供商时间戳**。我们还附加规范化字段以保持一致性：
+工具调用（`channels.qqbot.readMessages`、`channels.ddingtalk.readMessages` 等）返回**原始提供商时间戳**。我们还附加规范化字段以保持一致性：
 
 - `timestampMs`（UTC 纪元毫秒数）
 - `timestampUtc`（ISO 8601 UTC 字符串）

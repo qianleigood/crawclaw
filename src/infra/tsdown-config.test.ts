@@ -45,15 +45,10 @@ describe("tsdown config", () => {
         "agents/auth-profiles.runtime",
         "agents/pi-model-discovery-runtime",
         "index",
-        "commands/status.summary.runtime",
-        "plugins/provider-runtime.runtime",
-        "plugins/runtime/runtime-line.contract",
+        "control/status.summary.runtime",
         "plugins/runtime/index",
         "plugin-sdk/core",
         bundledEntry("openai"),
-        bundledEntry("matrix"),
-        bundledEntry("msteams"),
-        bundledEntry("whatsapp"),
         "bundled/boot-md/handler",
       ]),
     );
@@ -72,10 +67,10 @@ describe("tsdown config", () => {
     ).toBe(false);
   });
 
-  it("externalizes staged bundled plugin runtime dependencies", () => {
+  it("externalizes non-bundleable runtime dependencies", () => {
     const configs = asConfigArray(tsdownConfig);
     const unifiedGraph = configs.find((config) => entryKeys(config).includes("index"));
 
-    expect(unifiedGraph?.deps?.neverBundle).toEqual(expect.arrayContaining(["silk-wasm", "ws"]));
+    expect(unifiedGraph?.deps?.neverBundle).toEqual(expect.arrayContaining(["@lancedb/lancedb"]));
   });
 });

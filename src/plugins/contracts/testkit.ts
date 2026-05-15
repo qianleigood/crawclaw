@@ -4,11 +4,6 @@ import type { PluginRuntime } from "../runtime/types.js";
 import { createPluginRecord } from "../status.test-helpers.js";
 import type { CrawClawPluginApi } from "../types.js";
 
-export {
-  registerProviderPlugins as registerProviders,
-  requireRegisteredProvider as requireProvider,
-} from "../../test-utils/plugin-registration.js";
-
 export function uniqueSortedStrings(values: readonly string[]) {
   return [...new Set(values)].toSorted((left, right) => left.localeCompare(right));
 }

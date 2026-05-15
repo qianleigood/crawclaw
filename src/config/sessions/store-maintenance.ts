@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { parseByteSize } from "../../cli/parse-bytes.js";
-import { parseDurationMs } from "../../cli/parse-duration.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
+import { parseByteSize } from "../../terminal/parse-bytes.js";
+import { parseDurationMs } from "../../terminal/parse-duration.js";
 import { loadConfig } from "../config.js";
 import type { SessionMaintenanceConfig, SessionMaintenanceMode } from "../types.base.js";
 import type { SessionEntry } from "./types.js";

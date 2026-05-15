@@ -1,6 +1,5 @@
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-import type { CliDeps } from "../cli/deps.js";
-import { createOutboundSendDeps } from "../cli/outbound-send-deps.js";
+import { runNativeAgentTurn } from "../agents/runtime-tools/agent-turn-client.js";
 import { loadConfig } from "../config/config.js";
 import {
   canonicalizeMainSessionAlias,
@@ -9,7 +8,6 @@ import {
 } from "../config/sessions.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { resolveFailureDestination, sendFailureNotificationAnnounce } from "../cron/delivery.js";
-import { runCronIsolatedAgentTurn } from "../cron/isolated-agent.js";
 import { resolveDeliveryTarget } from "../cron/isolated-agent/delivery-target.js";
 import {
   appendCronRunLog,
@@ -28,6 +26,8 @@ import { enqueueSystemEvent } from "../infra/system-events.js";
 import { getChildLogger } from "../logging.js";
 import { normalizeAgentId, toAgentStoreSessionKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
+import type { CliDeps } from "../terminal/deps.js";
+import { createOutboundSendDeps } from "../terminal/outbound-send-deps.js";
 
 export type GatewayCronState = {
   cron: CronService;
@@ -280,7 +280,14 @@ export function buildGatewayCronService(params: {
       });
     },
     runIsolatedAgentJob: async ({ job, message, abortSignal }) => {
-      const { agentId, cfg: runtimeConfig } = resolveCronAgent(job.agentId);
+      if (abortSignal?.aborted) {
+        return {
+          status: "skipped",
+          error: "aborted",
+          summary: "Cron agent run aborted before start.",
+        };
+      }
+      const { agentId } = resolveCronAgent(job.agentId);
       let sessionKey = `cron:${job.id}`;
       if (job.sessionTarget.startsWith("session:")) {
         const customSessionId = job.sessionTarget.slice(8).trim();
@@ -288,16 +295,41 @@ export function buildGatewayCronService(params: {
           sessionKey = customSessionId;
         }
       }
-      return await runCronIsolatedAgentTurn({
-        cfg: runtimeConfig,
-        deps: params.deps,
-        job,
-        message,
-        abortSignal,
+      const payload = job.payload.kind === "agentTurn" ? job.payload : undefined;
+      const result = await runNativeAgentTurn({
+        runId: `cron:${job.id}:${Date.now()}`,
         agentId,
         sessionKey,
-        lane: "cron",
+        message,
+        model: payload?.model,
+        thinkLevel: payload?.thinking,
+        timeoutMs:
+          typeof payload?.timeoutSeconds === "number"
+            ? Math.max(1, payload.timeoutSeconds) * 1000
+            : undefined,
+        trigger: "cron",
+        channel: "cron",
       });
+      const outputText =
+        result.assistantText ??
+        result.payloads
+          ?.map((payload) => payload.text?.trim())
+          .filter((text): text is string => !!text)
+          .join("\n") ??
+        "";
+      const error = result.meta.error?.message;
+      return {
+        status: error ? "error" : "ok",
+        ...(error ? { error } : {}),
+        summary: outputText || error || "Rust agent turn completed.",
+        outputText,
+        sessionKey: result.sessionKey ?? sessionKey,
+        sessionId: result.sessionKey ?? sessionKey,
+        model: result.meta.agentMeta?.model,
+        provider: result.meta.agentMeta?.provider,
+        usage: result.meta.agentMeta?.usage,
+        delivered: result.didSendViaMessagingTool === true,
+      };
     },
     sendCronFailureAlert: async ({ job, text, channel, to, mode, accountId }) => {
       const { agentId, cfg: runtimeConfig } = resolveCronAgent(job.agentId);

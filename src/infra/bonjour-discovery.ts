@@ -14,7 +14,6 @@ export type GatewayBonjourBeacon = {
   sshPort?: number;
   gatewayTls?: boolean;
   gatewayTlsFingerprintSha256?: string;
-  cliPath?: string;
   role?: string;
   transport?: string;
   txt?: Record<string, string>;
@@ -273,9 +272,6 @@ function parseDnsSdResolve(stdout: string, instanceName: string): GatewayBonjour
   if (txt.tailnetDns) {
     beacon.tailnetDns = txt.tailnetDns;
   }
-  if (txt.cliPath) {
-    beacon.cliPath = txt.cliPath;
-  }
   beacon.gatewayPort = parseIntOrNull(txt.gatewayPort);
   beacon.sshPort = parseIntOrNull(txt.sshPort);
   if (txt.gatewayTls) {
@@ -454,7 +450,6 @@ async function discoverWideAreaViaTailnetDns(
       gatewayPort: parseIntOrNull(txtMap.gatewayPort),
       sshPort: parseIntOrNull(txtMap.sshPort),
       tailnetDns: txtMap.tailnetDns || undefined,
-      cliPath: txtMap.cliPath || undefined,
     };
     if (txtMap.gatewayTls) {
       const raw = txtMap.gatewayTls.trim().toLowerCase();
@@ -534,9 +529,6 @@ function parseAvahiBrowse(stdout: string): GatewayBonjourBeacon[] {
       }
       if (txt.tailnetDns) {
         current.tailnetDns = txt.tailnetDns;
-      }
-      if (txt.cliPath) {
-        current.cliPath = txt.cliPath;
       }
       current.gatewayPort = parseIntOrNull(txt.gatewayPort);
       current.sshPort = parseIntOrNull(txt.sshPort);

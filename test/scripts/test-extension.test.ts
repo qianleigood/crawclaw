@@ -5,7 +5,6 @@ import {
   detectChangedExtensionIds,
   listAvailableExtensionIds,
   listChangedExtensionIds,
-  partitionExtensionTestFiles,
   resolveExtensionTestPlan,
 } from "../../scripts/test-extension.mjs";
 import { bundledPluginFile, bundledPluginRoot } from "../helpers/bundled-plugin-paths.js";
@@ -38,30 +37,6 @@ function findExtensionWithoutTests() {
 }
 
 describe("scripts/test-extension.mjs", () => {
-  it("resolves channel-root extensions onto the channel vitest config", () => {
-    const plan = resolveExtensionTestPlan({ targetArg: "slack", cwd: process.cwd() });
-
-    expect(plan.extensionId).toBe("slack");
-    expect(plan.extensionDir).toBe(bundledPluginRoot("slack"));
-    expect(plan.config).toBe("vitest.channels.config.ts");
-    expect(plan.testFiles.some((file) => file.startsWith(`${bundledPluginRoot("slack")}/`))).toBe(
-      true,
-    );
-  });
-
-  it("splits channel monitor files into isolated runs", () => {
-    const plan = resolveExtensionTestPlan({ targetArg: "discord", cwd: process.cwd() });
-
-    expect(plan.config).toBe("vitest.channels.config.ts");
-    expect(plan.isolatedTestFiles).toContain(
-      bundledPluginFile("discord", "src/monitor/provider.test.ts"),
-    );
-    expect(plan.sharedTestFiles).toContain(bundledPluginFile("discord", "src/channel.test.ts"));
-    expect(plan.sharedTestFiles).not.toContain(
-      bundledPluginFile("discord", "src/monitor/provider.test.ts"),
-    );
-  });
-
   it("resolves provider extensions onto the extensions vitest config", () => {
     const plan = resolveExtensionTestPlan({ targetArg: "brave", cwd: process.cwd() });
 
@@ -72,53 +47,20 @@ describe("scripts/test-extension.mjs", () => {
     );
   });
 
-  it("applies exact isolated files for non-channel extensions", () => {
-    const { isolatedTestFiles, sharedTestFiles } = partitionExtensionTestFiles({
-      config: "vitest.extensions.config.ts",
-      testFiles: [
-        bundledPluginFile("matrix", "src/matrix/sdk.test.ts"),
-        bundledPluginFile("matrix", "index.test.ts"),
-      ],
-    });
-
-    expect(isolatedTestFiles).toEqual([bundledPluginFile("matrix", "src/matrix/sdk.test.ts")]);
-    expect(sharedTestFiles).toEqual([bundledPluginFile("matrix", "index.test.ts")]);
-  });
-
-  it("includes paired src roots when they contain tests", () => {
-    const plan = resolveExtensionTestPlan({ targetArg: "line", cwd: process.cwd() });
-
-    expect(plan.roots).toContain(bundledPluginRoot("line"));
-    expect(plan.config).toBe("vitest.extensions.config.ts");
-    expect(plan.testFiles.some((file) => file.startsWith(`${bundledPluginRoot("line")}/`))).toBe(
-      true,
-    );
-  });
-
-  it("infers the extension from the current working directory", () => {
-    const cwd = path.join(process.cwd(), "extensions", "slack");
-    const plan = readPlan([], cwd);
-
-    expect(plan.extensionId).toBe("slack");
-    expect(plan.extensionDir).toBe(bundledPluginRoot("slack"));
-  });
-
   it("maps changed paths back to extension ids", () => {
     const extensionIds = detectChangedExtensionIds([
-      bundledPluginFile("slack", "src/channel.ts"),
-      "src/line/message.test.ts",
       bundledPluginFile("brave", "package.json"),
       "src/not-a-plugin/file.ts",
     ]);
 
-    expect(extensionIds).toEqual(["brave", "line", "slack"]);
+    expect(extensionIds).toEqual(["brave"]);
   });
 
   it("lists available extension ids", () => {
     const extensionIds = listAvailableExtensionIds();
 
-    expect(extensionIds).toContain("slack");
     expect(extensionIds).toContain("brave");
+    expect(extensionIds).not.toContain("ddingtalk");
     expect(extensionIds).toEqual(
       [...extensionIds].toSorted((left, right) => left.localeCompare(right)),
     );

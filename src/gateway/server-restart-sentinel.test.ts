@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
     payload: {
       sessionKey: "agent:main:main",
       deliveryContext: {
-        channel: "whatsapp",
+        channel: "weixin",
         to: "+15550002",
         accountId: "acct-2",
       },
@@ -26,7 +26,7 @@ const mocks = vi.hoisted(() => ({
   })),
   normalizeChannelId: vi.fn((channel: string) => channel),
   resolveOutboundTarget: vi.fn(() => ({ ok: true as const, to: "+15550002" })),
-  deliverOutboundPayloads: vi.fn(async () => [{ channel: "whatsapp", messageId: "msg-1" }]),
+  deliverOutboundPayloads: vi.fn(async () => [{ channel: "weixin", messageId: "msg-1" }]),
   enqueueDelivery: vi.fn(async () => "queue-1"),
   ackDelivery: vi.fn(async () => {}),
   failDelivery: vi.fn(async () => {}),
@@ -112,14 +112,14 @@ describe("scheduleRestartSentinelWake", () => {
       payload: {
         sessionKey: "agent:main:main",
         deliveryContext: {
-          channel: "whatsapp",
+          channel: "weixin",
           to: "+15550002",
           accountId: "acct-2",
         },
       },
     });
     mocks.deliverOutboundPayloads.mockReset();
-    mocks.deliverOutboundPayloads.mockResolvedValue([{ channel: "whatsapp", messageId: "msg-1" }]);
+    mocks.deliverOutboundPayloads.mockResolvedValue([{ channel: "weixin", messageId: "msg-1" }]);
     mocks.enqueueDelivery.mockReset();
     mocks.enqueueDelivery.mockResolvedValue("queue-1");
     mocks.ackDelivery.mockClear();
@@ -136,7 +136,7 @@ describe("scheduleRestartSentinelWake", () => {
 
     expect(mocks.deliverOutboundPayloads).toHaveBeenCalledWith(
       expect.objectContaining({
-        channel: "whatsapp",
+        channel: "weixin",
         to: "+15550002",
         session: { key: "agent:main:main", agentId: "agent-from-key" },
         deps,
@@ -146,7 +146,7 @@ describe("scheduleRestartSentinelWake", () => {
     );
     expect(mocks.enqueueDelivery).toHaveBeenCalledWith(
       expect.objectContaining({
-        channel: "whatsapp",
+        channel: "weixin",
         to: "+15550002",
         payloads: [{ text: "restart message" }],
         bestEffort: false,
@@ -171,7 +171,7 @@ describe("scheduleRestartSentinelWake", () => {
     vi.useFakeTimers();
     mocks.deliverOutboundPayloads
       .mockRejectedValueOnce(new Error("transport not ready"))
-      .mockResolvedValueOnce([{ channel: "whatsapp", messageId: "msg-2" }]);
+      .mockResolvedValueOnce([{ channel: "weixin", messageId: "msg-2" }]);
 
     const wakePromise = scheduleRestartSentinelWake({ deps: {} as never });
     await vi.runAllTimersAsync();
@@ -198,7 +198,7 @@ describe("scheduleRestartSentinelWake", () => {
     expect(mocks.logWarn).toHaveBeenCalledWith(
       expect.stringContaining("retrying in 750ms"),
       expect.objectContaining({
-        channel: "whatsapp",
+        channel: "weixin",
         to: "+15550002",
         sessionKey: "agent:main:main",
         attempt: 1,
@@ -229,7 +229,7 @@ describe("scheduleRestartSentinelWake", () => {
       payload: {
         sessionKey: "agent:main:main",
         deliveryContext: {
-          channel: "whatsapp",
+          channel: "weixin",
           to: "+15550002",
           accountId: "acct-2",
           threadId: "stale-thread",

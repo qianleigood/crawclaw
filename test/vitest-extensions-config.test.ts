@@ -19,7 +19,7 @@ describe("extensions vitest include patterns", () => {
       bundledPluginFile("feishu", "index.test.ts"),
       42,
       "",
-      bundledPluginFile("msteams", "src/monitor.test.ts"),
+      bundledPluginFile("qqbot", "src/monitor.test.ts"),
     ]);
 
     expect(
@@ -28,7 +28,7 @@ describe("extensions vitest include patterns", () => {
       }),
     ).toEqual([
       bundledPluginFile("feishu", "index.test.ts"),
-      bundledPluginFile("msteams", "src/monitor.test.ts"),
+      bundledPluginFile("qqbot", "src/monitor.test.ts"),
     ]);
   });
 

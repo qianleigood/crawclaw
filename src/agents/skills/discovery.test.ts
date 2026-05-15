@@ -13,9 +13,9 @@ const availableSkills: SkillDiscoveryCandidate[] = [
     location: "/skills/ci-fix/SKILL.md",
   },
   {
-    name: "slack-update",
-    description: "Use when drafting an outbound Slack update after engineering work.",
-    location: "/skills/slack-update/SKILL.md",
+    name: "ddingtalk-update",
+    description: "Use when drafting an outbound DingTalk update after engineering work.",
+    location: "/skills/ddingtalk-update/SKILL.md",
   },
   {
     name: "release-risk",
@@ -27,7 +27,7 @@ const availableSkills: SkillDiscoveryCandidate[] = [
 describe("discoverSkillsForTask", () => {
   it("uses lexical recall for the current next action and excludes already visible skills", async () => {
     const result = await discoverSkillsForTask({
-      taskDescription: "draft a Slack update after fixing the failing checks",
+      taskDescription: "draft a DingTalk update after fixing the failing checks",
       availableSkills,
       excludeSkillNames: ["ci-fix"],
       limit: 2,
@@ -36,7 +36,7 @@ describe("discoverSkillsForTask", () => {
 
     expect(result.signal).toBe("next_action");
     expect(result.source).toBe("native");
-    expect(result.skills.map((skill) => skill.name)).toEqual(["slack-update"]);
+    expect(result.skills.map((skill) => skill.name)).toEqual(["ddingtalk-update"]);
   });
 
   it("lets an LLM reranker recover a semantic match from the recalled candidate pool", async () => {
@@ -122,7 +122,7 @@ describe("discoverSkillsForTask", () => {
   it("prefers semantic candidates and uses lexical matches to fill rerank recall", async () => {
     const seenNames: string[][] = [];
     await discoverSkillsForTask({
-      taskDescription: "deployment workflow slack",
+      taskDescription: "deployment workflow ddingtalk",
       availableSkills,
       limit: 2,
       recallLimit: 3,
@@ -139,7 +139,7 @@ describe("discoverSkillsForTask", () => {
       },
     });
 
-    expect(seenNames[0]).toEqual(["release-risk", "slack-update"]);
+    expect(seenNames[0]).toEqual(["release-risk", "ddingtalk-update"]);
   });
 
   it("passes a wider recall set to rerankers than the final surfaced limit", async () => {
@@ -220,6 +220,6 @@ describe("renderSkillDiscoveryReminder", () => {
     expect(reminder).toContain("Skills relevant to your task:");
     expect(reminder).toContain("- ci-fix: Use when debugging failing CI checks.");
     expect(reminder).toContain("read its SKILL.md");
-    expect(reminder).not.toContain("slack-update");
+    expect(reminder).not.toContain("ddingtalk-update");
   });
 });

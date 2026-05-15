@@ -6,7 +6,6 @@ import {
   mediaUnderstandingProviderContractRegistry,
   pluginRegistrationContractRegistry,
   providerContractLoadError,
-  providerContractPluginIds,
   resolveWebFetchProviderContractEntriesForPluginId,
   resolveWebSearchProviderContractEntriesForPluginId,
   speechProviderContractRegistry,
@@ -80,13 +79,6 @@ describe("plugin contract registry", () => {
       expectUniqueIds(speechProviderContractRegistry.map((entry) => entry.provider.id));
     },
   );
-
-  it("covers every bundled provider plugin discovered from manifests", () => {
-    expectRegistryPluginIds({
-      actualPluginIds: providerContractPluginIds,
-      predicate: (plugin) => plugin.origin === "bundled" && plugin.providers.length > 0,
-    });
-  });
 
   it("covers every bundled speech plugin discovered from manifests", () => {
     expectRegistryPluginIds({

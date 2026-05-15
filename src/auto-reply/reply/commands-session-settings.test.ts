@@ -15,9 +15,9 @@ const baseCfg = {
 
 function createOwnedCommandParams(commandBody: string) {
   return buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "telegram",
-    Surface: "telegram",
-    OriginatingChannel: "telegram",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     SenderId: "user-1",
     OwnerAllowFrom: ["user-1"],
   });

@@ -57,18 +57,18 @@ function makeManifestRegistry() {
         },
       },
       {
-        id: "telegram",
-        name: "Telegram",
-        description: "Telegram plugin",
+        id: "feishu",
+        name: "Feishu",
+        description: "Feishu plugin",
         origin: "bundled",
-        channels: ["telegram"],
+        channels: ["feishu"],
         channelCatalogMeta: {
-          id: "telegram",
-          label: "Telegram",
-          blurb: "Telegram channel",
+          id: "feishu",
+          label: "Feishu",
+          blurb: "Feishu channel",
         },
         channelConfigs: {
-          telegram: {
+          feishu: {
             schema: {
               type: "object",
               properties: {
@@ -80,18 +80,18 @@ function makeManifestRegistry() {
         },
       },
       {
-        id: "slack",
-        name: "Slack",
-        description: "Slack plugin",
+        id: "ddingtalk",
+        name: "DingTalk",
+        description: "DingTalk plugin",
         origin: "bundled",
-        channels: ["slack"],
+        channels: ["ddingtalk"],
         channelCatalogMeta: {
-          id: "slack",
-          label: "Slack",
-          blurb: "Slack channel",
+          id: "ddingtalk",
+          label: "DingTalk",
+          blurb: "DingTalk channel",
         },
         channelConfigs: {
-          slack: {
+          ddingtalk: {
             schema: {
               type: "object",
               properties: {
@@ -103,18 +103,18 @@ function makeManifestRegistry() {
         },
       },
       {
-        id: "matrix",
-        name: "Matrix",
-        description: "Matrix plugin",
+        id: "feishu",
+        name: "Feishu",
+        description: "Feishu plugin",
         origin: "workspace",
-        channels: ["matrix"],
+        channels: ["feishu"],
         channelCatalogMeta: {
-          id: "matrix",
-          label: "Matrix",
-          blurb: "Matrix channel",
+          id: "feishu",
+          label: "Feishu",
+          blurb: "Feishu channel",
         },
         channelConfigs: {
-          matrix: {
+          feishu: {
             schema: {
               type: "object",
               properties: {
@@ -169,8 +169,8 @@ describe("readBestEffortRuntimeConfigSchema", () => {
         cache: false,
       }),
     );
-    expect(channelProps?.telegram).toBeTruthy();
-    expect(channelProps?.matrix).toBeTruthy();
+    expect(channelProps?.feishu).toBeTruthy();
+    expect(channelProps?.feishu).toBeTruthy();
     expect(entryProps?.demo).toBeTruthy();
   });
 
@@ -185,8 +185,8 @@ describe("readBestEffortRuntimeConfigSchema", () => {
         cache: false,
       }),
     );
-    expect(channelProps?.telegram).toBeTruthy();
-    expect(channelProps?.slack).toBeTruthy();
+    expect(channelProps?.feishu).toBeTruthy();
+    expect(channelProps?.ddingtalk).toBeTruthy();
     expect(entryProps?.demo).toBeUndefined();
   });
 });
@@ -210,7 +210,7 @@ describe("loadGatewayRuntimeConfigSchema", () => {
         cache: false,
       }),
     );
-    expect(channelProps?.telegram).toBeTruthy();
-    expect(channelProps?.matrix).toBeTruthy();
+    expect(channelProps?.feishu).toBeTruthy();
+    expect(channelProps?.feishu).toBeTruthy();
   });
 });

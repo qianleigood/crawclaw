@@ -10,7 +10,7 @@ export type CompactionSafeguardRuntimeValue = {
   customInstructions?: string;
   /**
    * Model to use for compaction summarization.
-   * Passed through runtime because `ctx.model` is undefined in the compact.ts workflow
+   * Passed through runtime because `ctx.model` is undefined in the compaction workflow
    * (extensionRunner.initialize() is never called in that path).
    */
   model?: Model<Api>;

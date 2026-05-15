@@ -77,11 +77,11 @@ const baseCfg = {
   session: { mainKey: "main", scope: "per-sender" },
 } satisfies CrawClawConfig;
 
-function createDiscordCommandParams(commandBody: string) {
+function createQQBotCommandParams(commandBody: string) {
   const params = buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "discord",
-    Surface: "discord",
-    OriginatingChannel: "discord",
+    Provider: "qqbot",
+    Surface: "qqbot",
+    OriginatingChannel: "qqbot",
     OriginatingTo: "channel:parent-1",
     AccountId: "default",
     MessageThreadId: "thread-1",
@@ -90,11 +90,11 @@ function createDiscordCommandParams(commandBody: string) {
   return params;
 }
 
-function createTelegramTopicCommandParams(commandBody: string) {
+function createFeishuTopicCommandParams(commandBody: string) {
   const params = buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "telegram",
-    Surface: "telegram",
-    OriginatingChannel: "telegram",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "-100200300:topic:77",
     AccountId: "default",
     MessageThreadId: "77",
@@ -103,11 +103,11 @@ function createTelegramTopicCommandParams(commandBody: string) {
   return params;
 }
 
-function createMatrixThreadCommandParams(commandBody: string, cfg: CrawClawConfig = baseCfg) {
+function createFeishuThreadCommandParams(commandBody: string, cfg: CrawClawConfig = baseCfg) {
   const params = buildCommandTestParams(commandBody, cfg, {
-    Provider: "matrix",
-    Surface: "matrix",
-    OriginatingChannel: "matrix",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "room:!room:example.org",
     AccountId: "default",
     MessageThreadId: "$thread-1",
@@ -116,14 +116,14 @@ function createMatrixThreadCommandParams(commandBody: string, cfg: CrawClawConfi
   return params;
 }
 
-function createMatrixTriggerThreadCommandParams(
+function createFeishuTriggerThreadCommandParams(
   commandBody: string,
   cfg: CrawClawConfig = baseCfg,
 ) {
   const params = buildCommandTestParams(commandBody, cfg, {
-    Provider: "matrix",
-    Surface: "matrix",
-    OriginatingChannel: "matrix",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "room:!room:example.org",
     AccountId: "default",
     MessageThreadId: "$root",
@@ -132,11 +132,11 @@ function createMatrixTriggerThreadCommandParams(
   return params;
 }
 
-function createMatrixRoomCommandParams(commandBody: string, cfg: CrawClawConfig = baseCfg) {
+function createFeishuRoomCommandParams(commandBody: string, cfg: CrawClawConfig = baseCfg) {
   const params = buildCommandTestParams(commandBody, cfg, {
-    Provider: "matrix",
-    Surface: "matrix",
-    OriginatingChannel: "matrix",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "room:!room:example.org",
     AccountId: "default",
   });
@@ -152,7 +152,7 @@ function createSessionBindingRecord(
     targetSessionKey: "agent:codex-acp:session-1",
     targetKind: "session",
     conversation: {
-      channel: "discord",
+      channel: "qqbot",
       accountId: "default",
       conversationId: "thread-1",
       parentConversationId: "parent-1",
@@ -177,7 +177,7 @@ function createSessionBindingCapabilities() {
 }
 
 async function focusCodexAcp(
-  params = createDiscordCommandParams("/focus codex-acp"),
+  params = createQQBotCommandParams("/focus codex-acp"),
   options?: { existingBinding?: SessionBindingRecord | null },
 ) {
   hoisted.sessionBindingCapabilitiesMock.mockReturnValue(createSessionBindingCapabilities());
@@ -234,7 +234,7 @@ describe("/focus, /unfocus, /agents", () => {
     hoisted.sessionBindingBindMock.mockReset();
   });
 
-  it("/focus resolves ACP sessions and binds the current Discord thread", async () => {
+  it("/focus resolves ACP sessions and binds the current QQBot thread", async () => {
     const result = await focusCodexAcp();
 
     expect(result?.reply?.text).toContain("bound this thread");
@@ -245,7 +245,7 @@ describe("/focus, /unfocus, /agents", () => {
         targetKind: "session",
         targetSessionKey: "agent:codex-acp:session-1",
         conversation: expect.objectContaining({
-          channel: "discord",
+          channel: "qqbot",
           conversationId: "thread-1",
         }),
         metadata: expect.objectContaining({
@@ -256,26 +256,26 @@ describe("/focus, /unfocus, /agents", () => {
     );
   });
 
-  it("/focus binds Telegram topics as current conversations", async () => {
-    const result = await focusCodexAcp(createTelegramTopicCommandParams("/focus codex-acp"));
+  it("/focus binds Feishu topics as current conversations", async () => {
+    const result = await focusCodexAcp(createFeishuTopicCommandParams("/focus codex-acp"));
 
     expect(result?.reply?.text).toContain("bound this conversation");
     expect(hoisted.sessionBindingBindMock).toHaveBeenCalledWith(
       expect.objectContaining({
         placement: "current",
         conversation: expect.objectContaining({
-          channel: "telegram",
+          channel: "feishu",
           conversationId: "-100200300:topic:77",
         }),
       }),
     );
   });
 
-  it("/focus creates a Matrix thread from a top-level room when spawnSubagentSessions is enabled", async () => {
+  it("/focus creates a Feishu thread from a top-level room when spawnSubagentSessions is enabled", async () => {
     const cfg = {
       ...baseCfg,
       channels: {
-        matrix: {
+        feishu: {
           threadBindings: {
             enabled: true,
             spawnSubagentSessions: true,
@@ -284,29 +284,29 @@ describe("/focus, /unfocus, /agents", () => {
       },
     } satisfies CrawClawConfig;
 
-    const result = await focusCodexAcp(createMatrixRoomCommandParams("/focus codex-acp", cfg));
+    const result = await focusCodexAcp(createFeishuRoomCommandParams("/focus codex-acp", cfg));
 
     expect(result?.reply?.text).toContain("created thread thread-created and bound it");
     expect(hoisted.sessionBindingBindMock).toHaveBeenCalledWith(
       expect.objectContaining({
         placement: "child",
         conversation: expect.objectContaining({
-          channel: "matrix",
+          channel: "feishu",
           conversationId: "!room:example.org",
         }),
       }),
     );
   });
 
-  it("/focus treats the triggering Matrix always-thread turn as the current thread", async () => {
-    const result = await focusCodexAcp(createMatrixTriggerThreadCommandParams("/focus codex-acp"));
+  it("/focus treats the triggering Feishu always-thread turn as the current thread", async () => {
+    const result = await focusCodexAcp(createFeishuTriggerThreadCommandParams("/focus codex-acp"));
 
     expect(result?.reply?.text).toContain("bound this thread");
     expect(hoisted.sessionBindingBindMock).toHaveBeenCalledWith(
       expect.objectContaining({
         placement: "current",
         conversation: expect.objectContaining({
-          channel: "matrix",
+          channel: "feishu",
           conversationId: "$root",
           parentConversationId: "!room:example.org",
         }),
@@ -314,11 +314,11 @@ describe("/focus, /unfocus, /agents", () => {
     );
   });
 
-  it("/focus rejects Matrix top-level thread creation when spawnSubagentSessions is disabled", async () => {
+  it("/focus rejects Feishu top-level thread creation when spawnSubagentSessions is disabled", async () => {
     const cfg = {
       ...baseCfg,
       channels: {
-        matrix: {
+        feishu: {
           threadBindings: {
             enabled: true,
           },
@@ -326,7 +326,7 @@ describe("/focus, /unfocus, /agents", () => {
       },
     } satisfies CrawClawConfig;
 
-    const result = await focusCodexAcp(createMatrixRoomCommandParams("/focus codex-acp", cfg));
+    const result = await focusCodexAcp(createFeishuRoomCommandParams("/focus codex-acp", cfg));
 
     expect(result?.reply?.text).toContain("spawnSubagentSessions=true");
     expect(hoisted.sessionBindingBindMock).not.toHaveBeenCalled();
@@ -378,7 +378,7 @@ describe("/focus, /unfocus, /agents", () => {
   });
 
   it("/unfocus removes an active binding for the binding owner", async () => {
-    const params = createDiscordCommandParams("/unfocus");
+    const params = createQQBotCommandParams("/unfocus");
     hoisted.sessionBindingResolveByConversationMock.mockReturnValue(
       createSessionBindingRecord({
         bindingId: "default:thread-1",
@@ -395,13 +395,13 @@ describe("/focus, /unfocus, /agents", () => {
     });
   });
 
-  it("/unfocus removes an active Matrix thread binding for the binding owner", async () => {
-    const params = createMatrixThreadCommandParams("/unfocus");
+  it("/unfocus removes an active Feishu thread binding for the binding owner", async () => {
+    const params = createFeishuThreadCommandParams("/unfocus");
     hoisted.sessionBindingResolveByConversationMock.mockReturnValue(
       createSessionBindingRecord({
-        bindingId: "default:matrix-thread-1",
+        bindingId: "default:feishu-thread-1",
         conversation: {
-          channel: "matrix",
+          channel: "feishu",
           accountId: "default",
           conversationId: "$thread-1",
           parentConversationId: "!room:example.org",
@@ -414,13 +414,13 @@ describe("/focus, /unfocus, /agents", () => {
 
     expect(result?.reply?.text).toContain("Thread unfocused");
     expect(hoisted.sessionBindingResolveByConversationMock).toHaveBeenCalledWith({
-      channel: "matrix",
+      channel: "feishu",
       accountId: "default",
       conversationId: "$thread-1",
       parentConversationId: "!room:example.org",
     });
     expect(hoisted.sessionBindingUnbindMock).toHaveBeenCalledWith({
-      bindingId: "default:matrix-thread-1",
+      bindingId: "default:feishu-thread-1",
       reason: "manual",
     });
   });
@@ -456,7 +456,7 @@ describe("/focus, /unfocus, /agents", () => {
             targetSessionKey: sessionKey,
             targetKind: "subagent",
             conversation: {
-              channel: "discord",
+              channel: "qqbot",
               accountId: "default",
               conversationId: "thread-1",
             },
@@ -470,7 +470,7 @@ describe("/focus, /unfocus, /agents", () => {
             targetSessionKey: sessionKey,
             targetKind: "session",
             conversation: {
-              channel: "discord",
+              channel: "qqbot",
               accountId: "default",
               conversationId: "thread-2",
             },
@@ -482,7 +482,7 @@ describe("/focus, /unfocus, /agents", () => {
             targetSessionKey: sessionKey,
             targetKind: "session",
             conversation: {
-              channel: "telegram",
+              channel: "feishu",
               accountId: "default",
               conversationId: "12345",
             },
@@ -492,7 +492,7 @@ describe("/focus, /unfocus, /agents", () => {
       return [];
     });
 
-    const result = await handleSubagentsCommand(createDiscordCommandParams("/agents"), true);
+    const result = await handleSubagentsCommand(createQQBotCommandParams("/agents"), true);
     const text = result?.reply?.text ?? "";
 
     expect(text).toContain("agents:");
@@ -525,7 +525,7 @@ describe("/focus, /unfocus, /agents", () => {
           targetSessionKey: sessionKey,
           targetKind: "subagent",
           conversation: {
-            channel: "discord",
+            channel: "qqbot",
             accountId: "default",
             conversationId: "thread-persistent-1",
           },
@@ -533,7 +533,7 @@ describe("/focus, /unfocus, /agents", () => {
       ];
     });
 
-    const result = await handleSubagentsCommand(createDiscordCommandParams("/agents"), true);
+    const result = await handleSubagentsCommand(createQQBotCommandParams("/agents"), true);
     const text = result?.reply?.text ?? "";
 
     expect(text).toContain("persistent-1");
@@ -543,6 +543,6 @@ describe("/focus, /unfocus, /agents", () => {
   it("/focus rejects unsupported channels", async () => {
     const params = buildCommandTestParams("/focus codex-acp", baseCfg);
     const result = await handleSubagentsCommand(params, true);
-    expect(result?.reply?.text).toContain("only available on Discord, Matrix, and Telegram");
+    expect(result?.reply?.text).toContain("only available on QQBot, Feishu, and Feishu");
   });
 });

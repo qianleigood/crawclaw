@@ -1,6 +1,6 @@
-import { translateActiveCliText } from "../cli/i18n/text.js";
 import { displayString } from "../utils.js";
 import { splitGraphemes, visibleWidth } from "./ansi.js";
+import { translateActiveCliText } from "./i18n/text.js";
 
 type Align = "left" | "right" | "center";
 

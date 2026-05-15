@@ -44,8 +44,8 @@ describe("runtime tasks", () => {
       ownerKey: "agent:main:main",
       controllerId: "tests/runtime-tasks",
       requesterOrigin: {
-        channel: "telegram",
-        to: "telegram:123",
+        channel: "feishu",
+        to: "feishu:123",
       },
       goal: "Review inbox",
       currentStep: "triage",

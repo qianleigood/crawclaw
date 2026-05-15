@@ -219,12 +219,12 @@ describe("Rust Gateway bridge", () => {
         channel?: string;
         config?: { enabled?: boolean };
       }>("channels.config.patch", {
-        channel: "telegram",
+        channel: "feishu",
         raw: JSON.stringify({ enabled: true }),
       });
       expect(channelPatch).toMatchObject({
         ok: true,
-        channel: "telegram",
+        channel: "feishu",
         config: { enabled: true },
       });
 
@@ -232,8 +232,8 @@ describe("Rust Gateway bridge", () => {
         channelOrder?: string[];
         channelAccounts?: Record<string, Array<{ accountId?: string; configured?: boolean }>>;
       }>("channels.status", { probe: false });
-      expect(channels.channelOrder).toContain("telegram");
-      expect(channels.channelAccounts?.telegram?.[0]).toMatchObject({
+      expect(channels.channelOrder).toContain("feishu");
+      expect(channels.channelAccounts?.feishu?.[0]).toMatchObject({
         accountId: "default",
         configured: true,
       });
@@ -242,9 +242,9 @@ describe("Rust Gateway bridge", () => {
         channel?: string;
         configured?: boolean;
         mode?: string;
-      }>("channels.setup.surface", { channel: "telegram" });
+      }>("channels.setup.surface", { channel: "feishu" });
       expect(channelSurface).toMatchObject({
-        channel: "telegram",
+        channel: "feishu",
         configured: true,
         mode: "config",
       });

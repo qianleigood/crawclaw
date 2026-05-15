@@ -7,7 +7,7 @@ import {
   installDirectiveBehaviorE2EHooks,
   installFreshDirectiveBehaviorReplyMocks,
   makeEmbeddedTextResult,
-  makeWhatsAppDirectiveConfig,
+  makeWeixinDirectiveConfig,
   mockEmbeddedTextResult,
   replyText,
   replyTexts,
@@ -23,7 +23,7 @@ import { runModelDirectiveText } from "./reply.directive.directive-behavior.mode
 let getReplyFromConfig: typeof import("./reply.js").getReplyFromConfig;
 
 function makeDefaultModelConfig(home: string) {
-  return makeWhatsAppDirectiveConfig(home, {
+  return makeWeixinDirectiveConfig(home, {
     model: { primary: "anthropic/claude-opus-4-5" },
     models: {
       "anthropic/claude-opus-4-5": {},
@@ -43,7 +43,7 @@ async function runReplyToCurrentCase(home: string, text: string) {
       MessageSid: "msg-123",
     },
     {},
-    makeWhatsAppDirectiveConfig(home, { model: "anthropic/claude-opus-4-5" }),
+    makeWeixinDirectiveConfig(home, { model: "anthropic/claude-opus-4-5" }),
   );
 
   return Array.isArray(res) ? res[0] : res;
@@ -66,7 +66,7 @@ async function expectThinkStatusForReasoningModel(params: {
   const res = await getReplyFromConfig(
     { Body: "/think", From: "+1222", To: "+1222", CommandAuthorized: true },
     {},
-    makeWhatsAppDirectiveConfig(params.home, { model: "anthropic/claude-opus-4-5" }),
+    makeWeixinDirectiveConfig(params.home, { model: "anthropic/claude-opus-4-5" }),
   );
 
   const text = replyText(res);
@@ -102,7 +102,7 @@ async function runReasoningDefaultCase(params: {
       To: "+2000",
     },
     {},
-    makeWhatsAppDirectiveConfig(params.home, {
+    makeWeixinDirectiveConfig(params.home, {
       model: { primary: "anthropic/claude-opus-4-5" },
       ...(params.thinkingDefault ? { thinkingDefault: params.thinkingDefault } : {}),
     }),
@@ -260,7 +260,7 @@ describe("directive behavior", () => {
       await getReplyFromConfig(
         { Body: "/model openai/gpt-4.1-mini", From: "+1222", To: "+1222", CommandAuthorized: true },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           {
             model: { primary: "anthropic/claude-opus-4-5" },
@@ -310,7 +310,7 @@ describe("directive behavior", () => {
           To: "+2000",
         },
         {},
-        makeWhatsAppDirectiveConfig(home, { model: { primary: "anthropic/claude-opus-4-5" } }),
+        makeWeixinDirectiveConfig(home, { model: { primary: "anthropic/claude-opus-4-5" } }),
       );
 
       expect(replyTexts(inlineThinkRes)).toContain("done");
@@ -326,17 +326,17 @@ describe("directive behavior", () => {
           Body: "hello",
           From: "+1004",
           To: "+2000",
-          Provider: "whatsapp",
+          Provider: "weixin",
           SenderE164: "+1004",
         },
         {},
-        makeWhatsAppDirectiveConfig(
+        makeWeixinDirectiveConfig(
           home,
           { model: { primary: "anthropic/claude-opus-4-5" } },
           {
             tools: {
               elevated: {
-                allowFrom: { whatsapp: ["+1004"] },
+                allowFrom: { weixin: ["+1004"] },
               },
             },
           },
@@ -352,7 +352,7 @@ describe("directive behavior", () => {
       });
     });
   });
-  it("persists /reasoning off on discord even when model defaults reasoning on", async () => {
+  it("persists /reasoning off on qqbot even when model defaults reasoning on", async () => {
     await withTempHome(async (home) => {
       const storePath = sessionStorePath(home);
       mockEmbeddedTextResult("done");
@@ -365,14 +365,14 @@ describe("directive behavior", () => {
         },
       ]);
 
-      const config = makeWhatsAppDirectiveConfig(
+      const config = makeWeixinDirectiveConfig(
         home,
         {
           model: "openrouter/x-ai/grok-4.1-fast",
         },
         {
           channels: {
-            discord: { allowFrom: ["*"] },
+            qqbot: { allowFrom: ["*"] },
           },
           session: { store: storePath },
         },
@@ -381,10 +381,10 @@ describe("directive behavior", () => {
       const offRes = await getReplyFromConfig(
         {
           Body: "/reasoning off",
-          From: "discord:user:1004",
+          From: "qqbot:user:1004",
           To: "channel:general",
-          Provider: "discord",
-          Surface: "discord",
+          Provider: "qqbot",
+          Surface: "qqbot",
           CommandSource: "text",
           CommandAuthorized: true,
         },
@@ -400,10 +400,10 @@ describe("directive behavior", () => {
       await getReplyFromConfig(
         {
           Body: "hello",
-          From: "discord:user:1004",
+          From: "qqbot:user:1004",
           To: "channel:general",
-          Provider: "discord",
-          Surface: "discord",
+          Provider: "qqbot",
+          Surface: "qqbot",
           CommandSource: "text",
           CommandAuthorized: true,
         },
@@ -436,7 +436,7 @@ describe("directive behavior", () => {
           MessageSid: "msg-123",
         },
         {},
-        makeWhatsAppDirectiveConfig(home, { model: { primary: "anthropic/claude-opus-4-5" } }),
+        makeWeixinDirectiveConfig(home, { model: { primary: "anthropic/claude-opus-4-5" } }),
       );
 
       const payload = Array.isArray(res) ? res[0] : res;

@@ -61,9 +61,9 @@ CrawClaw assumes the host and config boundary are trusted:
 - Session identifiers (`sessionKey`, session IDs, labels) are routing selectors, not authorization tokens.
 - If several people can message one tool-enabled agent, each of them can steer that same permission set. Per-user session/memory isolation helps privacy, but does not convert a shared agent into per-user host authorization.
 
-### Shared Slack workspace: real risk
+### Shared DingTalk workspace: real risk
 
-If "everyone in Slack can message the bot," the core risk is delegated tool authority:
+If "everyone in DingTalk can message the bot," the core risk is delegated tool authority:
 
 - any allowed sender can induce tool calls (`exec`, browser, network/file tools) within the agent's policy;
 - prompt/content injection from one sender can cause actions that affect shared state, devices, or outputs;
@@ -111,7 +111,7 @@ These patterns are commonly reported and are usually closed as no-action unless 
 - Claims that assume hostile multi-tenant operation on one shared host/config.
 - Claims that classify normal operator read-path access (for example `sessions.list`/`sessions.preview`/`chat.history`) as IDOR in a shared-gateway setup.
 - Localhost-only deployment findings (for example HSTS on loopback-only gateway).
-- Discord inbound webhook signature findings for inbound paths that do not exist in this repo.
+- QQBot inbound webhook signature findings for inbound paths that do not exist in this repo.
 - "Missing per-user authorization" findings that treat `sessionKey` as an auth token.
 
 ## Researcher preflight checklist
@@ -147,7 +147,7 @@ Use this baseline first, then selectively re-enable tools per trusted agent:
     elevated: { enabled: false },
   },
   channels: {
-    whatsapp: { dmPolicy: "pairing", groups: { "*": { requireMention: true } } },
+    weixin: { dmPolicy: "pairing", groups: { "*": { requireMention: true } } },
   },
 }
 ```
@@ -199,10 +199,10 @@ If you run `--deep`, CrawClaw also attempts a best-effort live Gateway probe.
 
 Use this when auditing access or deciding what to back up:
 
-- **WhatsApp**: `~/.crawclaw/credentials/whatsapp/<accountId>/creds.json`
-- **Telegram bot token**: config/env or `channels.telegram.tokenFile` (regular file only; symlinks rejected)
-- **Discord bot token**: config/env or SecretRef (env/file/exec providers)
-- **Slack tokens**: config/env (`channels.slack.*`)
+- **Weixin**: `~/.crawclaw/credentials/weixin/<accountId>/creds.json`
+- **Feishu bot token**: config/env or `channels.feishu.tokenFile` (regular file only; symlinks rejected)
+- **QQBot bot token**: config/env or SecretRef (env/file/exec providers)
+- **DingTalk tokens**: config/env (`channels.ddingtalk.*`)
 - **Pairing allowlists**:
   - `~/.crawclaw/credentials/<channel>-allowFrom.json` (default account)
   - `~/.crawclaw/credentials/<channel>-<accountId>-allowFrom.json` (non-default accounts)
@@ -239,7 +239,7 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `gateway.browser_client.insecure_auth`                        | warn          | Insecure-auth compatibility toggle enabled                                           | `gateway.browserClients.allowInsecureAuth`                                                           | no       |
 | `gateway.browser_client.device_auth_disabled`                 | critical      | Disables device identity check                                                       | `gateway.browserClients.dangerouslyDisableDeviceAuth`                                                | no       |
 | `gateway.real_ip_fallback_enabled`                            | warn/critical | Trusting `X-Real-IP` fallback can enable source-IP spoofing via proxy misconfig      | `gateway.allowRealIpFallback`, `gateway.trustedProxies`                                              | no       |
-| `discovery.mdns_full_mode`                                    | warn/critical | mDNS full mode advertises `cliPath`/`sshPort` metadata on local network              | `discovery.mdns.mode`, `gateway.bind`                                                                | no       |
+| `discovery.mdns_full_mode`                                    | warn/critical | mDNS full mode advertises `sshPort` metadata on local network                        | `discovery.mdns.mode`, `gateway.bind`                                                                | no       |
 | `config.insecure_or_dangerous_flags`                          | warn          | Any insecure/dangerous debug flags enabled                                           | multiple keys (see finding detail)                                                                   | no       |
 | `hooks.token_reuse_gateway_token`                             | critical      | Hook ingress token also unlocks Gateway auth                                         | `hooks.token`, `gateway.auth.token`                                                                  | no       |
 | `hooks.token_too_short`                                       | warn          | Easier brute force on hook ingress                                                   | `hooks.token`                                                                                        | no       |
@@ -297,20 +297,20 @@ schema:
 - `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback`
 - `gateway.browserClients.dangerouslyDisableDeviceAuth`
 - `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork`
-- `channels.discord.dangerouslyAllowNameMatching`
-- `channels.discord.accounts.<accountId>.dangerouslyAllowNameMatching`
-- `channels.slack.dangerouslyAllowNameMatching`
-- `channels.slack.accounts.<accountId>.dangerouslyAllowNameMatching`
-- `channels.googlechat.dangerouslyAllowNameMatching`
-- `channels.googlechat.accounts.<accountId>.dangerouslyAllowNameMatching`
-- `channels.msteams.dangerouslyAllowNameMatching`
-- `channels.synology-chat.dangerouslyAllowNameMatching` (extension channel)
-- `channels.synology-chat.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
-- `channels.zalouser.dangerouslyAllowNameMatching` (extension channel)
-- `channels.irc.dangerouslyAllowNameMatching` (extension channel)
-- `channels.irc.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
-- `channels.mattermost.dangerouslyAllowNameMatching` (extension channel)
-- `channels.mattermost.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
+- `channels.qqbot.dangerouslyAllowNameMatching`
+- `channels.qqbot.accounts.<accountId>.dangerouslyAllowNameMatching`
+- `channels.ddingtalk.dangerouslyAllowNameMatching`
+- `channels.ddingtalk.accounts.<accountId>.dangerouslyAllowNameMatching`
+- `channels.feishu.dangerouslyAllowNameMatching`
+- `channels.feishu.accounts.<accountId>.dangerouslyAllowNameMatching`
+- `channels.qqbot.dangerouslyAllowNameMatching`
+- `channels.feishu.dangerouslyAllowNameMatching` (extension channel)
+- `channels.feishu.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
+- `channels.feishuuser.dangerouslyAllowNameMatching` (extension channel)
+- `channels.feishu.dangerouslyAllowNameMatching` (extension channel)
+- `channels.feishu.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
+- `channels.feishu.dangerouslyAllowNameMatching` (extension channel)
+- `channels.feishu.accounts.<accountId>.dangerouslyAllowNameMatching` (extension channel)
 
 ## Reverse Proxy Configuration
 
@@ -386,7 +386,7 @@ Your AI assistant can:
 - Execute arbitrary shell commands
 - Read/write files
 - Access network services
-- Send messages to anyone (if you give it WhatsApp access)
+- Send messages to anyone (if you give it Weixin access)
 
 People who message you can:
 
@@ -459,12 +459,7 @@ All current DM-capable channels support a DM policy (`dmPolicy` or `*.dm.policy`
 - `open`: allow anyone to DM (public). **Requires** the channel allowlist to include `"*"` (explicit opt-in).
 - `disabled`: ignore inbound DMs entirely.
 
-Approve via CLI:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Approve from CrawClaw Desktop or through the local Gateway API.
 
 Details + files on disk: [Pairing](/channels/pairing)
 
@@ -497,13 +492,13 @@ If you run multiple accounts on the same channel, use `per-account-channel-peer`
 
 CrawClaw has two separate “who can trigger me?” layers:
 
-- **DM allowlist** (`allowFrom` / `channels.discord.allowFrom` / `channels.slack.allowFrom`; legacy: `channels.discord.dm.allowFrom`, `channels.slack.dm.allowFrom`): who is allowed to talk to the bot in direct messages.
+- **DM allowlist** (`allowFrom` / `channels.qqbot.allowFrom` / `channels.ddingtalk.allowFrom`; legacy: `channels.qqbot.dm.allowFrom`, `channels.ddingtalk.dm.allowFrom`): who is allowed to talk to the bot in direct messages.
   - When `dmPolicy="pairing"`, approvals are written to the account-scoped pairing allowlist store under `~/.crawclaw/credentials/` (`<channel>-allowFrom.json` for default account, `<channel>-<accountId>-allowFrom.json` for non-default accounts), merged with config allowlists.
 - **Group allowlist** (channel-specific): which groups/channels/guilds the bot will accept messages from at all.
   - Common patterns:
-    - `channels.whatsapp.groups`, `channels.telegram.groups`, `channels.imessage.groups`: per-group defaults like `requireMention`; when set, it also acts as a group allowlist (include `"*"` to keep allow-all behavior).
-    - `groupPolicy="allowlist"` + `groupAllowFrom`: restrict who can trigger the bot _inside_ a group session (WhatsApp/Telegram/Signal/iMessage/Microsoft Teams).
-    - `channels.discord.guilds` / `channels.slack.channels`: per-surface allowlists + mention defaults.
+    - `channels.weixin.groups`, `channels.feishu.groups`, `channels.weixin.groups`: per-group defaults like `requireMention`; when set, it also acts as a group allowlist (include `"*"` to keep allow-all behavior).
+    - `groupPolicy="allowlist"` + `groupAllowFrom`: restrict who can trigger the bot _inside_ a group session (Weixin/Feishu/Signal/Weixin/QQBot).
+    - `channels.qqbot.guilds` / `channels.ddingtalk.channels`: per-surface allowlists + mention defaults.
   - Group checks run in this order: `groupPolicy`/group allowlists first, mention/reply activation second.
   - Replying to a bot message (implicit mention) does **not** bypass sender allowlists like `groupAllowFrom`.
   - **Security note:** treat `dmPolicy="open"` and `groupPolicy="open"` as last-resort settings. They should be barely used; prefer pairing + allowlists unless you fully trust every member of the room.
@@ -636,7 +631,6 @@ setups: SSH + your reverse proxy ports).
 
 The Gateway broadcasts its presence via mDNS (`_crawclaw-gw._tcp` on port 5353) for local device discovery. In full mode, this includes TXT records that may expose operational details:
 
-- `cliPath`: full filesystem path to the CLI binary (reveals username and install location)
 - `sshPort`: advertises SSH availability on the host
 - `displayName`, `lanHost`: hostname information
 
@@ -664,7 +658,7 @@ The Gateway broadcasts its presence via mDNS (`_crawclaw-gw._tcp` on port 5353) 
    }
    ```
 
-3. **Full mode** (opt-in): include `cliPath` + `sshPort` in TXT records:
+3. **Full mode** (opt-in): include `sshPort` in TXT records:
 
    ```json5
    {
@@ -676,7 +670,7 @@ The Gateway broadcasts its presence via mDNS (`_crawclaw-gw._tcp` on port 5353) 
 
 4. **Environment variable** (alternative): set `CRAWCLAW_DISABLE_BONJOUR=1` to disable mDNS without config changes.
 
-In minimal mode, the Gateway still broadcasts enough for device discovery (`role`, `gatewayPort`, `transport`) but omits `cliPath` and `sshPort`. Apps that need CLI path information can fetch it via the authenticated WebSocket connection instead.
+In minimal mode, the Gateway still broadcasts enough for device discovery (`role`, `gatewayPort`, `transport`) but omits `sshPort`.
 
 ### 0.5) Lock down the Gateway WebSocket (local auth)
 
@@ -783,7 +777,7 @@ Avoid:
 Assume anything under `~/.crawclaw/` (or `$CRAWCLAW_STATE_DIR/`) may contain secrets or private data:
 
 - `crawclaw.json`: config may include tokens (gateway, remote gateway), provider settings, and allowlists.
-- `credentials/**`: channel credentials (example: WhatsApp creds), pairing allowlists, legacy OAuth imports.
+- `credentials/**`: channel credentials (example: Weixin creds), pairing allowlists, legacy OAuth imports.
 - `agents/<agentId>/agent/auth-profiles.json`: API keys, token profiles, OAuth tokens, and optional `keyRef`/`tokenRef`.
 - `secrets.json` (optional): file-backed secret payload used by `file` SecretRef providers (`secrets.providers`).
 - `agents/<agentId>/agent/auth.json`: legacy compatibility file. Static `api_key` entries are scrubbed when discovered.
@@ -816,7 +810,7 @@ Details: [Logging](/gateway/logging)
 
 ```json5
 {
-  channels: { whatsapp: { dmPolicy: "pairing" } },
+  channels: { weixin: { dmPolicy: "pairing" } },
 }
 ```
 
@@ -825,7 +819,7 @@ Details: [Logging](/gateway/logging)
 ```json
 {
   "channels": {
-    "whatsapp": {
+    "weixin": {
       "groups": {
         "*": { "requireMention": true }
       }
@@ -844,7 +838,7 @@ Details: [Logging](/gateway/logging)
 
 In group chats, only respond when explicitly mentioned.
 
-### 3) Separate numbers (WhatsApp, Signal, Telegram)
+### 3) Separate numbers (Weixin, Signal, Feishu)
 
 For phone-number-based channels, consider running your AI on a separate phone number from your personal one:
 
@@ -872,7 +866,7 @@ One “safe default” config that keeps the Gateway private, requires DM pairin
     auth: { mode: "token", token: "your-long-random-token" },
   },
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "pairing",
       groups: { "*": { requireMention: true } },
     },
@@ -1004,10 +998,10 @@ Common use cases:
             "sessions_send",
             "sessions_spawn",
             "session_status",
-            "whatsapp",
-            "telegram",
-            "slack",
-            "discord",
+            "weixin",
+            "feishu",
+            "ddingtalk",
+            "qqbot",
           ],
           deny: [
             "read",
@@ -1056,7 +1050,7 @@ If your AI does something bad:
 
 1. Rotate Gateway auth (`gateway.auth.token` / `CRAWCLAW_GATEWAY_PASSWORD`) and restart.
 2. Rotate remote client secrets (`gateway.remote.token` / `.password`) on any machine that can call the Gateway.
-3. Rotate provider/API credentials (WhatsApp creds, Slack/Discord tokens, model/API keys in `auth-profiles.json`, and encrypted secrets payload values when used).
+3. Rotate provider/API credentials (Weixin creds, DingTalk/QQBot tokens, model/API keys in `auth-profiles.json`, and encrypted secrets payload values when used).
 
 ### Audit
 

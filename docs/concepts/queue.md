@@ -36,7 +36,7 @@ Inbound messages can steer the current run, wait for a followup turn, or do both
 Steer-backlog means you can get a followup response after the steered run, so
 streaming surfaces can look like duplicates. Prefer `collect`/`steer` if you want
 one response per inbound message.
-Send `/queue collect` as a standalone command (per-session) or set `messages.queue.byChannel.discord: "collect"`.
+Send `/queue collect` as a standalone command (per-session) or set `messages.queue.byChannel.feishu: "collect"`.
 
 Defaults (when unset in config):
 
@@ -52,7 +52,7 @@ Configure globally or per channel via `messages.queue`:
       debounceMs: 1000,
       cap: 20,
       drop: "summarize",
-      byChannel: { discord: "collect" },
+      byChannel: { feishu: "collect" },
     },
   },
 }
@@ -77,7 +77,7 @@ Defaults: `debounceMs: 1000`, `cap: 20`, `drop: summarize`.
 
 ## Scope and guarantees
 
-- Applies to auto-reply agent runs across all inbound channels that use the gateway reply pipeline (WhatsApp web, Telegram, Slack, Discord, Signal, iMessage, etc.).
+- Applies to auto-reply agent runs across all inbound channels that use the gateway reply pipeline (Weixin web, Feishu, Feishu, community chat, native channel, Weixin, etc.).
 - Default lane (`main`) is process-wide for inbound replies and main-session wakes; set `agents.defaults.maxConcurrent` to allow multiple sessions in parallel.
 - Additional lanes may exist (e.g. `cron`, `subagent`) so background jobs can run in parallel without blocking inbound replies. These detached runs are tracked as [background tasks](/automation/tasks).
 - Per-session lanes guarantee that only one agent run touches a given session at a time.

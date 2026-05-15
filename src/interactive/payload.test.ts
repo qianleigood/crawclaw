@@ -12,7 +12,7 @@ describe("hasReplyChannelData", () => {
     { value: undefined, expected: false },
     { value: {}, expected: false },
     { value: [], expected: false },
-    { value: { slack: { blocks: [] } }, expected: true },
+    { value: { ddingtalk: { blocks: [] } }, expected: true },
   ] as const)("accepts non-empty objects only: %j", ({ value, expected }) => {
     expect(hasReplyChannelData(value)).toBe(expected);
   });
@@ -56,7 +56,7 @@ describe("hasReplyPayloadContent", () => {
     expect(
       hasReplyPayloadContent({
         text: "   ",
-        channelData: { slack: { blocks: [] } },
+        channelData: { ddingtalk: { blocks: [] } },
       }),
     ).toBe(true);
   });

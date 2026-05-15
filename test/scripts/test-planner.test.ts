@@ -1,7 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { loadTestCatalog } from "../../scripts/test-planner/catalog.mjs";
 import {
   createExecutionArtifacts,
   createTempArtifactWriteStream,
@@ -13,31 +12,7 @@ import {
   buildExecutionPlan,
   explainExecutionTarget,
 } from "../../scripts/test-planner/planner.mjs";
-import {
-  loadChannelTimingManifest,
-  selectTimedHeavyFiles,
-} from "../../scripts/test-runner-manifest.mjs";
 import { bundledPluginFile } from "../helpers/bundled-plugin-paths.js";
-
-const resolveTimedHeavyChannelFixture = () => {
-  const catalog = loadTestCatalog();
-  const timings = loadChannelTimingManifest();
-  const candidates = catalog.allKnownTestFiles.filter(
-    (file) =>
-      catalog.channelTestPrefixes.some((prefix) => file.startsWith(prefix)) &&
-      !catalog.channelIsolatedFileSet.has(file),
-  );
-  const [file] = selectTimedHeavyFiles({
-    candidates,
-    limit: 1,
-    minDurationMs: 12_000,
-    timings,
-  });
-  if (!file) {
-    throw new Error("No timed-heavy channel fixture found");
-  }
-  return file;
-};
 
 describe("test planner", () => {
   it("builds a capability-aware plan for mid-memory local runs", () => {
@@ -144,37 +119,6 @@ describe("test planner", () => {
     artifacts.cleanupTempArtifacts();
   });
 
-  it("auto-isolates timed-heavy extension suites in CI", () => {
-    const env = {
-      CI: "true",
-      GITHUB_ACTIONS: "true",
-      RUNNER_OS: "Linux",
-      CRAWCLAW_TEST_HOST_CPU_COUNT: "4",
-      CRAWCLAW_TEST_HOST_MEMORY_GIB: "16",
-    };
-    const artifacts = createExecutionArtifacts(env);
-    const plan = buildExecutionPlan(
-      {
-        profile: null,
-        mode: "ci",
-        surfaces: ["extensions"],
-        passthroughArgs: [],
-      },
-      {
-        env,
-        platform: "linux",
-        writeTempJsonArtifact: artifacts.writeTempJsonArtifact,
-      },
-    );
-
-    const hotspotUnit = plan.selectedUnits.find((unit) => unit.id === "extensions-cli-isolated");
-
-    expect(hotspotUnit).toBeTruthy();
-    expect(hotspotUnit?.isolate).toBe(true);
-    expect(hotspotUnit?.reasons).toContain("extensions-timed-heavy");
-    artifacts.cleanupTempArtifacts();
-  });
-
   it("auto-isolates memory-heavy extension suites in CI", () => {
     const env = {
       CI: "true",
@@ -198,7 +142,7 @@ describe("test planner", () => {
       },
     );
 
-    const hotspotFile = bundledPluginFile("feishu", "src/bot.test.ts");
+    const hotspotFile = bundledPluginFile("acpx", "src/runtime.test.ts");
     const hotspotUnit = plan.selectedUnits.find((unit) => unit.args.includes(hotspotFile));
 
     expect(hotspotUnit).toBeTruthy();
@@ -207,7 +151,7 @@ describe("test planner", () => {
     artifacts.cleanupTempArtifacts();
   });
 
-  it("auto-isolates timed-heavy channel suites in CI", () => {
+  it("keeps channel CI plans empty when no TS channel suites remain", () => {
     const env = {
       CI: "true",
       GITHUB_ACTIONS: "true",
@@ -230,14 +174,7 @@ describe("test planner", () => {
       },
     );
 
-    const timedHeavyFile = resolveTimedHeavyChannelFixture();
-    const hotspotUnit = plan.selectedUnits.find(
-      (unit) => unit.id === `channels-${path.basename(timedHeavyFile, ".test.ts")}-isolated`,
-    );
-
-    expect(hotspotUnit).toBeTruthy();
-    expect(hotspotUnit?.isolate).toBe(true);
-    expect(hotspotUnit?.reasons).toContain("channels-timed-heavy");
+    expect(plan.selectedUnits).toEqual([]);
     artifacts.cleanupTempArtifacts();
   });
 
@@ -394,7 +331,7 @@ describe("test planner", () => {
     artifacts.cleanupTempArtifacts();
   });
 
-  it("splits mixed targeted file selections across surfaces", () => {
+  it("splits mixed targeted file selections across base and extension surfaces", () => {
     const artifacts = createExecutionArtifacts({});
     const plan = buildExecutionPlan(
       {
@@ -402,10 +339,7 @@ describe("test planner", () => {
         surfaces: [],
         passthroughArgs: [
           "src/auto-reply/reply/followup-runner.test.ts",
-          bundledPluginFile(
-            "discord",
-            "src/monitor/message-handler.preflight.acp-bindings.test.ts",
-          ),
+          bundledPluginFile("voice-call", "index.test.ts"),
         ],
       },
       {
@@ -419,7 +353,7 @@ describe("test planner", () => {
       plan.targetedUnits
         .map((unit) => unit.surface)
         .toSorted((left, right) => left.localeCompare(right)),
-    ).toEqual(["base", "channels"]);
+    ).toEqual(["base", "extensions"]);
     artifacts.cleanupTempArtifacts();
   });
 
@@ -463,7 +397,7 @@ describe("test planner", () => {
     const explanation = explainExecutionTarget(
       {
         mode: "local",
-        fileFilters: ["src/infra/outbound/channel-resolution.test.ts"],
+        fileFilters: ["src/plugins/manifest-registry.test.ts"],
       },
       {
         env: {
@@ -495,7 +429,7 @@ describe("test planner", () => {
     const relativeExplanation = explainExecutionTarget(
       {
         mode: "local",
-        fileFilters: ["src/infra/outbound/channel-resolution.test.ts"],
+        fileFilters: ["src/plugins/manifest-registry.test.ts"],
       },
       {
         env: {
@@ -506,7 +440,7 @@ describe("test planner", () => {
     const absoluteExplanation = explainExecutionTarget(
       {
         mode: "local",
-        fileFilters: [path.join(process.cwd(), "src/infra/outbound/channel-resolution.test.ts")],
+        fileFilters: [path.join(process.cwd(), "src/plugins/manifest-registry.test.ts")],
       },
       {
         env: {
@@ -520,46 +454,6 @@ describe("test planner", () => {
     expect(absoluteExplanation.pool).toBe(relativeExplanation.pool);
     expect(absoluteExplanation.isolate).toBe(relativeExplanation.isolate);
     expect(absoluteExplanation.reasons).toEqual(relativeExplanation.reasons);
-  });
-
-  it("explains timed-heavy extension suites as isolated", () => {
-    const explanation = explainExecutionTarget(
-      {
-        mode: "ci",
-        fileFilters: ["extensions/matrix/src/cli.test.ts"],
-      },
-      {
-        env: {
-          CI: "true",
-          GITHUB_ACTIONS: "true",
-        },
-      },
-    );
-
-    expect(explanation.surface).toBe("extensions");
-    expect(explanation.isolate).toBe(true);
-    expect(explanation.reasons).toContain("extensions-timed-heavy");
-  });
-
-  it("explains timed-heavy channel suites as isolated", () => {
-    const env = {
-      CI: "true",
-      GITHUB_ACTIONS: "true",
-    };
-    const timedHeavyFile = resolveTimedHeavyChannelFixture();
-    const explanation = explainExecutionTarget(
-      {
-        mode: "ci",
-        fileFilters: [timedHeavyFile],
-      },
-      {
-        env,
-      },
-    );
-
-    expect(explanation.surface).toBe("channels");
-    expect(explanation.isolate).toBe(true);
-    expect(explanation.reasons).toContain("channels-timed-heavy");
   });
 
   it("does not leak default-plan shard assignments into targeted units with the same id", () => {
@@ -687,7 +581,7 @@ describe("test planner", () => {
         runWindows: true,
         runSkillsPython: false,
         hasChangedExtensions: true,
-        changedExtensionsMatrix: { include: [{ extension: "discord" }] },
+        changedExtensionsMatrix: { include: [{ extension: "brave" }] },
       },
       {
         env: {},
@@ -696,33 +590,23 @@ describe("test planner", () => {
 
     expect(manifest.jobs.buildArtifacts.enabled).toBe(true);
     expect(manifest.shardCounts.unit).toBe(4);
-    expect(manifest.shardCounts.channels).toBe(4);
+    expect(manifest.shardCounts.channels).toBe(1);
     expect(manifest.shardCounts.extensionFast).toBeGreaterThanOrEqual(4);
     expect(manifest.shardCounts.extensionFast).toBeLessThanOrEqual(6);
     expect(manifest.shardCounts.windows).toBe(6);
-    expect(manifest.jobs.checks.matrix.include).toHaveLength(8);
-    expect(manifest.jobs.checksWindows.matrix.include).toHaveLength(8);
+    expect(manifest.jobs.checks.matrix.include).toHaveLength(manifest.shardCounts.unit);
+    expect(manifest.jobs.checksWindows.matrix.include).toHaveLength(7);
     expect(manifest.jobs.checksWindows.matrix.include.map((entry) => entry.check_name)).toEqual(
-      expect.arrayContaining(["checks-windows-node-build", "checks-windows-node-install-smoke"]),
+      expect.arrayContaining(["checks-windows-node-build"]),
     );
     expect(manifest.jobs.checksWindows.matrix.include.map((entry) => entry.task)).toEqual(
-      expect.arrayContaining(["build", "install-smoke"]),
+      expect.arrayContaining(["build"]),
     );
     expect(manifest.requiredCheckNames).toEqual(
-      expect.arrayContaining(["checks-windows-node-build", "checks-windows-node-install-smoke"]),
+      expect.arrayContaining(["checks-windows-node-build"]),
     );
-    expect(manifest.jobs.macosNode.enabled).toBe(true);
-    expect(manifest.jobs.macosNode.matrix.include).toEqual([
-      {
-        check_name: "macos-node-install-smoke",
-        runtime: "node",
-        task: "install-smoke",
-        command: "node scripts/ci/macos-packed-install-smoke.mjs",
-      },
-    ]);
-    expect(manifest.requiredCheckNames).toEqual(
-      expect.arrayContaining(["macos-node-install-smoke"]),
-    );
+    expect(manifest.jobs.macosNode.enabled).toBe(false);
+    expect(manifest.jobs.macosNode.matrix.include).toEqual([]);
     expect(manifest.jobs.checksFast.matrix.include).toHaveLength(
       manifest.shardCounts.extensionFast + 1,
     );
@@ -734,7 +618,7 @@ describe("test planner", () => {
         ),
     ).toBe(true);
     expect(manifest.jobs.extensionFast.matrix.include).toEqual([
-      { check_name: "extension-fast-discord", extension: "discord" },
+      { check_name: "extension-fast-brave", extension: "brave" },
     ]);
   });
 

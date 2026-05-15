@@ -124,10 +124,10 @@ src/agents/
 Channel-specific message action runtimes now live in the plugin-owned extension
 directories instead of under `src/agents/tools`, for example:
 
-- the Discord plugin action runtime files
-- the Slack plugin action runtime file
-- the Telegram plugin action runtime file
-- the WhatsApp plugin action runtime file
+- the QQBot plugin action runtime files
+- the DingTalk plugin action runtime file
+- the Feishu plugin action runtime file
+- the Weixin plugin action runtime file
 
 ## Core Integration Flow
 
@@ -140,7 +140,7 @@ import { runEmbeddedPiAgent } from "./agents/pi-embedded-runner.js";
 
 const result = await runEmbeddedPiAgent({
   sessionId: "user-123",
-  sessionKey: "main:whatsapp:+1234567890",
+  sessionKey: "main:weixin:+1234567890",
   sessionFile: "/path/to/session.jsonl",
   workspaceDir: "/path/to/workspace",
   config: crawclawConfig,
@@ -239,7 +239,7 @@ to re-inject image payloads.
 
 1. **Base Tools**: pi's `createCodingTools` / `createReadTool` output (read, bash, edit, write)
 2. **CrawClaw Tools**: messaging, browser, canvas, sessions, cron, gateway, etc.
-3. **Channel Tools**: Discord/Telegram/Slack/WhatsApp-specific action tools
+3. **Channel Tools**: QQBot/Feishu/DingTalk/Weixin-specific action tools
 4. **Schema Normalization**: Schemas cleaned for Gemini/OpenAI quirks
 5. **AbortSignal Wrapping**: Tools wrapped to respect abort signals
 

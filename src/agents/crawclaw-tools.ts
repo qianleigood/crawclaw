@@ -1,6 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { callGateway } from "../gateway/call.js";
-import { resolveDurableMemoryScope } from "../memory/durable/scope.js";
 import { resolvePluginTools } from "../plugins/tools.js";
 import {
   getActiveSecretsRuntimeSnapshot,
@@ -10,34 +9,16 @@ import { normalizeDeliveryContext } from "../utils/delivery-context.js";
 import type { GatewayMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentWorkspaceDir, resolveSessionAgentId } from "./agent-scope.js";
 import { applyPluginToolDeliveryDefaults } from "./plugin-tool-delivery-defaults.js";
-import { isReviewSpawnSource } from "./review-agent.js";
 import type { SpawnedToolContext } from "./spawned-context.js";
 import type { ToolFsPolicy } from "./tool-fs-policy.js";
 import type { AnyAgentTool } from "./tools/common.js";
-import { createCronTool } from "./tools/cron-tool.js";
 import { createImageTool } from "./tools/image-tool.js";
-import {
-  createMemoryManifestReadTool,
-  createMemoryNoteDeleteTool,
-  createMemoryNoteEditTool,
-  createMemoryNoteReadTool,
-  createMemoryNoteWriteTool,
-} from "./tools/memory-file-tools.js";
 import { createMessageTool } from "./tools/message-tool.js";
 import { createPdfTool } from "./tools/pdf-tool.js";
-import { createReviewTaskTool } from "./tools/review-task-tool.js";
-import { createSessionStatusTool } from "./tools/session-status-tool.js";
-import { createSessionsHistoryTool } from "./tools/sessions-history-tool.js";
-import { createSessionsListTool } from "./tools/sessions-list-tool.js";
-import { createSessionsSendTool } from "./tools/sessions-send-tool.js";
-import { createSessionsSpawnTool } from "./tools/sessions-spawn-tool.js";
-import { createSessionsYieldTool } from "./tools/sessions-yield-tool.js";
-import { createSubagentsTool } from "./tools/subagents-tool.js";
 import { createTtsTool } from "./tools/tts-tool.js";
 import { createWebFetchTool, createWebSearchTool } from "./tools/web-tools.js";
 import { createWorkflowTool } from "./tools/workflow-tool.js";
 import { createWorkflowizeTool } from "./tools/workflowize-tool.js";
-import { createExperienceWriteTool } from "./tools/write-experience-note-tool.js";
 import { resolveWorkspaceRoot } from "./workspace-dir.js";
 
 type CrawClawToolsDeps = {
@@ -105,6 +86,8 @@ export function createCrawClawTools(
     onYield?: (message: string) => Promise<void> | void;
     /** Allow plugin tools for this tool set to late-bind the gateway subagent. */
     allowGatewaySubagentBinding?: boolean;
+    /** Tool names registered by the caller before plugin tools are resolved. */
+    reservedToolNames?: ReadonlySet<string>;
   } & SpawnedToolContext,
 ): AnyAgentTool[] {
   const resolvedConfig = options?.config ?? openClawToolsDeps.config;
@@ -119,9 +102,6 @@ export function createCrawClawTools(
       ? undefined
       : resolveAgentWorkspaceDir(resolvedConfig, sessionAgentId);
   const workspaceDir = resolveWorkspaceRoot(options?.workspaceDir ?? inferredWorkspaceDir);
-  const spawnWorkspaceDir = resolveWorkspaceRoot(
-    options?.spawnWorkspaceDir ?? options?.workspaceDir ?? inferredWorkspaceDir,
-  );
   const deliveryContext = normalizeDeliveryContext({
     channel: options?.agentChannel,
     to: options?.agentTo,
@@ -155,60 +135,6 @@ export function createCrawClawTools(
     config: options?.config,
     runtimeWebFetch: runtimeWebTools?.fetch,
   });
-  const experienceWriteTool = createExperienceWriteTool({
-    config: resolvedConfig,
-    scope: resolveDurableMemoryScope({
-      sessionKey: options?.agentSessionKey,
-      agentId: sessionAgentId,
-      channel: options?.durableMemoryChannel ?? options?.agentChannel,
-      userId: options?.requesterSenderId ?? undefined,
-      fallbackToLocal: true,
-    }),
-  });
-  const memoryManifestReadTool = createMemoryManifestReadTool({
-    scope: options?.durableMemoryScope,
-    agentId: sessionAgentId,
-    channel: options?.durableMemoryChannel ?? options?.agentChannel,
-    requesterSenderId: options?.requesterSenderId ?? undefined,
-  });
-  const memoryNoteReadTool = createMemoryNoteReadTool({
-    scope: options?.durableMemoryScope,
-    agentId: sessionAgentId,
-    channel: options?.durableMemoryChannel ?? options?.agentChannel,
-    requesterSenderId: options?.requesterSenderId ?? undefined,
-  });
-  const memoryNoteWriteTool = createMemoryNoteWriteTool({
-    scope: options?.durableMemoryScope,
-    agentId: sessionAgentId,
-    channel: options?.durableMemoryChannel ?? options?.agentChannel,
-    requesterSenderId: options?.requesterSenderId ?? undefined,
-  });
-  const memoryNoteEditTool = createMemoryNoteEditTool({
-    scope: options?.durableMemoryScope,
-    agentId: sessionAgentId,
-    channel: options?.durableMemoryChannel ?? options?.agentChannel,
-    requesterSenderId: options?.requesterSenderId ?? undefined,
-  });
-  const memoryNoteDeleteTool = createMemoryNoteDeleteTool({
-    scope: options?.durableMemoryScope,
-    agentId: sessionAgentId,
-    channel: options?.durableMemoryChannel ?? options?.agentChannel,
-    requesterSenderId: options?.requesterSenderId ?? undefined,
-  });
-  const reviewTaskTool = isReviewSpawnSource(options?.specialAgentSpawnSource)
-    ? null
-    : createReviewTaskTool({
-        agentSessionKey: options?.agentSessionKey,
-        agentChannel: options?.agentChannel,
-        agentAccountId: options?.agentAccountId,
-        agentTo: options?.agentTo,
-        agentThreadId: options?.agentThreadId,
-        agentGroupId: options?.agentGroupId,
-        agentGroupChannel: options?.agentGroupChannel,
-        agentGroupSpace: options?.agentGroupSpace,
-        requesterAgentIdOverride: options?.requesterAgentIdOverride,
-        workspaceDir: spawnWorkspaceDir,
-      });
   const messageTool = options?.disableMessageTool
     ? null
     : createMessageTool({
@@ -226,59 +152,10 @@ export function createCrawClawTools(
         requesterSenderId: options?.requesterSenderId ?? undefined,
       });
   const tools: AnyAgentTool[] = [
-    createCronTool({
-      agentSessionKey: options?.agentSessionKey,
-    }),
     ...(messageTool ? [messageTool] : []),
     createTtsTool({
       agentChannel: options?.agentChannel,
       config: options?.config,
-    }),
-    ...(memoryManifestReadTool ? [memoryManifestReadTool] : []),
-    ...(memoryNoteReadTool ? [memoryNoteReadTool] : []),
-    ...(memoryNoteWriteTool ? [memoryNoteWriteTool] : []),
-    ...(memoryNoteEditTool ? [memoryNoteEditTool] : []),
-    ...(memoryNoteDeleteTool ? [memoryNoteDeleteTool] : []),
-    ...(experienceWriteTool ? [experienceWriteTool] : []),
-    ...(reviewTaskTool ? [reviewTaskTool] : []),
-    createSessionsListTool({
-      agentSessionKey: options?.agentSessionKey,
-      config: resolvedConfig,
-      callGateway: openClawToolsDeps.callGateway,
-    }),
-    createSessionsHistoryTool({
-      agentSessionKey: options?.agentSessionKey,
-      config: resolvedConfig,
-      callGateway: openClawToolsDeps.callGateway,
-    }),
-    createSessionsSendTool({
-      agentSessionKey: options?.agentSessionKey,
-      agentChannel: options?.agentChannel,
-      config: resolvedConfig,
-      callGateway: openClawToolsDeps.callGateway,
-    }),
-    createSessionsYieldTool({
-      sessionId: options?.sessionId,
-      onYield: options?.onYield,
-    }),
-    createSessionsSpawnTool({
-      agentSessionKey: options?.agentSessionKey,
-      agentChannel: options?.agentChannel,
-      agentAccountId: options?.agentAccountId,
-      agentTo: options?.agentTo,
-      agentThreadId: options?.agentThreadId,
-      agentGroupId: options?.agentGroupId,
-      agentGroupChannel: options?.agentGroupChannel,
-      agentGroupSpace: options?.agentGroupSpace,
-      requesterAgentIdOverride: options?.requesterAgentIdOverride,
-      workspaceDir: spawnWorkspaceDir,
-    }),
-    createSubagentsTool({
-      agentSessionKey: options?.agentSessionKey,
-    }),
-    createSessionStatusTool({
-      agentSessionKey: options?.agentSessionKey,
-      config: resolvedConfig,
     }),
     createWorkflowizeTool({
       workspaceDir,
@@ -317,7 +194,10 @@ export function createCrawClawTools(
       requesterSenderId: options?.requesterSenderId ?? undefined,
       senderIsOwner: options?.senderIsOwner ?? undefined,
     },
-    existingToolNames: new Set(tools.map((tool) => tool.name)),
+    existingToolNames: new Set([
+      ...(options?.reservedToolNames ? [...options.reservedToolNames] : []),
+      ...tools.map((tool) => tool.name),
+    ]),
     toolAllowlist: options?.pluginToolAllowlist,
     allowGatewaySubagentBinding: options?.allowGatewaySubagentBinding,
   });

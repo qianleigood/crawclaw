@@ -44,7 +44,7 @@ describe("model-pricing-cache", () => {
       },
       channels: {
         modelByChannel: {
-          slack: {
+          ddingtalk: {
             C123: "gpt",
           },
         },

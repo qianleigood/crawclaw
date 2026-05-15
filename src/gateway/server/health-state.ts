@@ -1,7 +1,7 @@
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
-import { getHealthSnapshot, type HealthSummary } from "../../commands/health.js";
 import { STATE_DIR, createConfigIO, loadConfig } from "../../config/config.js";
 import { resolveMainSessionKey } from "../../config/sessions.js";
+import { getHealthSnapshot, type HealthSummary } from "../../control/health.js";
 import { listSystemPresence } from "../../infra/system-presence.js";
 import { getUpdateAvailable } from "../../infra/update-startup.js";
 import { normalizeMainKey } from "../../routing/session-key.js";

@@ -1,4 +1,4 @@
-import { formatCliCommand } from "../cli/command-format.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 import {
   classifySystemdUnavailableDetail,
   type SystemdUnavailableKind,

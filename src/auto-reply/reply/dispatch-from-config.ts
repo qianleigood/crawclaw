@@ -254,8 +254,8 @@ export async function dispatchReplyFromConfig(params: {
 
   // Check if we should route replies to originating channel instead of dispatcher.
   // Only route when the originating channel is DIFFERENT from the current surface.
-  // This handles cross-provider routing (e.g., message from Telegram being processed
-  // by a shared session that's currently on Slack) while preserving normal dispatcher
+  // This handles cross-provider routing (e.g., message from a channel being processed
+  // by a shared session that's currently on another channel) while preserving normal dispatcher
   // flow when the provider handles its own messages.
   //
   // Debug: `pnpm test src/auto-reply/reply/dispatch-from-config.test.ts`
@@ -705,8 +705,8 @@ export async function dispatchReplyFromConfig(params: {
         onBlockReply: (payload: ReplyPayload, context?: BlockReplyContext) => {
           const run = async () => {
             // Suppress reasoning payloads — channels using this generic dispatch
-            // path (WhatsApp, web, etc.) do not have a dedicated reasoning lane.
-            // Telegram has its own dispatch path that handles reasoning splitting.
+            // path (non-streaming channels) do not have a dedicated reasoning lane.
+            // Native streaming channels have their own dispatch path that handles reasoning splitting.
             if (payload.isReasoning === true) {
               return;
             }

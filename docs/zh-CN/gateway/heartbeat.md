@@ -56,7 +56,7 @@ x-i18n:
 
 不要删除或禁用所有名为 heartbeat 的功能。以下机制不是旧版 agent heartbeat：
 
-- WhatsApp Web `web.heartbeatSeconds` 用来观察 Web 渠道连接状态。
+- Weixin Web `web.heartbeatSeconds` 用来观察 Web 渠道连接状态。
 - NotebookLM auth heartbeat 检查认证健康状态。
 - WebSocket、Gateway 和 provider heartbeat/ping 帧用于保持协议连接存活。
 
@@ -76,4 +76,4 @@ x-i18n:
 - [Scheduled Tasks](/automation/cron-jobs)
 - [Background Tasks](/automation/tasks)
 - [System CLI](/cli/system)
-- [WhatsApp](/channels/whatsapp)
+- [Weixin](/channels/index)

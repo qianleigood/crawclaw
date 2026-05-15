@@ -42,14 +42,14 @@ crawclaw agent --agent ops --message "Summarize logs"
 crawclaw agent --session-id 1234 --message "Summarize inbox" --thinking medium
 crawclaw agent --to +15555550123 --message "Trace logs" --verbose on --json
 crawclaw agent --to +15555550123 --message "Summon reply" --deliver
-crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel slack --reply-to "#reports"
+crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel ddingtalk --reply-to "#reports"
 ```
 
 ## 标志
 
 - `--local`：本地运行（需要你的 shell 中有模型提供商 API 密钥）
 - `--deliver`：将回复发送到所选渠道
-- `--channel`：投递渠道（`whatsapp|telegram|discord|googlechat|slack|signal|imessage`，默认：`whatsapp`）
+- `--channel`：投递渠道（`weixin|feishu|qqbot|feishu|ddingtalk|feishu|weixin`，默认：`weixin`）
 - `--reply-to`：投递目标覆盖
 - `--reply-channel`：投递渠道覆盖
 - `--reply-account`：投递账户 ID 覆盖

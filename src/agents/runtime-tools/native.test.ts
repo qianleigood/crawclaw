@@ -24,7 +24,8 @@ if (process.argv.includes("--worker")) {
       result: {
         pid: process.pid,
         tool: request.tool,
-        input: request.input
+        input: request.input,
+        runtimeRoot: request.runtimeRoot
       }
     }) + "\\n");
   });
@@ -68,5 +69,24 @@ describe("crawclaw runtime native adapter", () => {
     expect(second.pid).toBe(first.pid);
     const spawns = (await fs.readFile(spawnLog, "utf8")).trim().split("\n");
     expect(spawns).toHaveLength(1);
+  });
+
+  it("passes a per-request runtime root to the worker", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-runtime-native-root-"));
+    const runtime = await createFakeRuntime(dir);
+    const runtimeRoot = path.join(dir, "workspace");
+    const env = {
+      ...process.env,
+      CRAWCLAW_RUNTIME_BIN: runtime,
+      CRAWCLAW_RUNTIME_SPAWN_LOG: path.join(dir, "spawn.log"),
+    };
+
+    const result = await runCrawClawRuntimeTool<{ runtimeRoot?: string }>(
+      "read",
+      { path: "file.txt" },
+      { env, runtimeRoot },
+    );
+
+    expect(result.runtimeRoot).toBe(runtimeRoot);
   });
 });

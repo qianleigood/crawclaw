@@ -157,7 +157,7 @@ Tune the boundary via `agents.defaults.blockStreamingBreak` (`text_end` vs `mess
 Control soft block chunking with `agents.defaults.blockStreamingChunk` (defaults to
 800–1200 chars; prefers paragraph breaks, then newlines; sentences last).
 Coalesce streamed chunks with `agents.defaults.blockStreamingCoalesce` to reduce
-single-line spam (idle-based merging before send). Non-Telegram channels require
+single-line spam (idle-based merging before send). Non-Feishu channels require
 explicit `*.blockStreaming: true` to enable block replies.
 Verbose tool summaries are emitted at tool start (no debounce); browser clients
 streams tool output via agent events when available.
@@ -176,7 +176,7 @@ Model refs in config (for example `agents.defaults.model` and `agents.defaults.m
 At minimum, set:
 
 - `agents.defaults.workspace`
-- `channels.whatsapp.allowFrom` (strongly recommended)
+- `channels.weixin.allowFrom` (strongly recommended)
 
 ---
 

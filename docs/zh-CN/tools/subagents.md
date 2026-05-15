@@ -119,7 +119,7 @@ task-backed 子智能体运行现在还会持久化：
 
 当前内置支持：
 
-- Discord（线程绑定 + `/focus` / `/unfocus` / `/agents` / `/session idle` / `/session max-age`）
+- QQBot（线程绑定 + `/focus` / `/unfocus` / `/agents` / `/session idle` / `/session max-age`）
 
 ## 允许列表与保护
 
@@ -171,7 +171,7 @@ task-backed 子智能体运行现在还会持久化：
 - 通告步骤在子智能体会话中运行（不是请求者会话）。
 - 如果子智能体精确回复 `ANNOUNCE_SKIP`，则不发布任何内容。
 - 否则，通告回复通过后续的 `agent` 调用（`deliver=true`）发布到请求者的聊天渠道。
-- 通告回复在可用时保留线程/话题路由（Slack 线程、Telegram 话题、Matrix 线程）。
+- 通告回复在可用时保留线程/话题路由（DingTalk 线程、Feishu 话题、Matrix 线程）。
 - 通告消息被规范化为稳定模板：
   - `Status:` 从运行结果派生（`success`、`error`、`timeout` 或 `unknown`）。
   - `Result:` 通告步骤的摘要内容（如果缺失则为 `(not available)`）。

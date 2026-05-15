@@ -9,11 +9,11 @@ let buildCrossContextDecoration: typeof import("./outbound-policy.js").buildCros
 let enforceCrossContextPolicy: typeof import("./outbound-policy.js").enforceCrossContextPolicy;
 let shouldApplyCrossContextMarker: typeof import("./outbound-policy.js").shouldApplyCrossContextMarker;
 
-class TestDiscordUiContainer extends Container {}
+class TestQQBotUiContainer extends Container {}
 
 const mocks = vi.hoisted(() => ({
   getChannelMessageAdapter: vi.fn((channel: string) =>
-    channel === "discord"
+    channel === "qqbot"
       ? {
           supportsComponentsV2: true,
           buildCrossContextComponents: ({
@@ -30,7 +30,7 @@ const mocks = vi.hoisted(() => ({
               components.push(new Separator({ divider: true, spacing: "small" }));
             }
             components.push(new TextDisplay(`*From ${originLabel}*`));
-            return [new TestDiscordUiContainer(components)];
+            return [new TestQQBotUiContainer(components)];
           },
         }
       : { supportsComponentsV2: false },
@@ -40,7 +40,7 @@ const mocks = vi.hoisted(() => ({
     if (!trimmed) {
       return undefined;
     }
-    if (channel === "slack") {
+    if (channel === "ddingtalk") {
       return trimmed.replace(/^#/, "");
     }
     return trimmed;
@@ -66,18 +66,18 @@ vi.mock("./target-resolver.js", () => ({
   lookupDirectoryDisplay: mocks.lookupDirectoryDisplay,
 }));
 
-const slackConfig = {
+const ddingtalkConfig = {
   channels: {
-    slack: {
+    ddingtalk: {
       botToken: "xoxb-test",
       appToken: "xapp-test",
     },
   },
 } as CrawClawConfig;
 
-const discordConfig = {
+const qqbotConfig = {
   channels: {
-    discord: {},
+    qqbot: {},
   },
 } as CrawClawConfig;
 
@@ -125,53 +125,53 @@ describe("outbound policy helpers", () => {
   it.each([
     {
       cfg: {
-        ...slackConfig,
+        ...ddingtalkConfig,
         tools: {
           message: { crossContext: { allowAcrossProviders: true } },
         },
       } as CrawClawConfig,
-      channel: "telegram",
+      channel: "feishu",
       action: "send" as const,
-      to: "telegram:@ops",
+      to: "feishu:@ops",
       currentChannelId: "C12345678",
-      currentChannelProvider: "slack",
+      currentChannelProvider: "ddingtalk",
       expected: "allow" as const,
     },
     {
-      cfg: slackConfig,
-      channel: "telegram",
+      cfg: ddingtalkConfig,
+      channel: "feishu",
       action: "send" as const,
-      to: "telegram:@ops",
+      to: "feishu:@ops",
       currentChannelId: "C12345678",
-      currentChannelProvider: "slack",
-      expected: /target provider "telegram" while bound to "slack"/,
+      currentChannelProvider: "ddingtalk",
+      expected: /target provider "feishu" while bound to "ddingtalk"/,
     },
     {
       cfg: {
-        ...slackConfig,
+        ...ddingtalkConfig,
         tools: {
           message: { crossContext: { allowWithinProvider: false } },
         },
       } as CrawClawConfig,
-      channel: "slack",
+      channel: "ddingtalk",
       action: "send" as const,
       to: "C999",
       currentChannelId: "C123",
-      currentChannelProvider: "slack",
+      currentChannelProvider: "ddingtalk",
       expected: /target="C999" while bound to "C123"/,
     },
     {
       cfg: {
-        ...slackConfig,
+        ...ddingtalkConfig,
         tools: {
           message: { crossContext: { allowWithinProvider: false } },
         },
       } as CrawClawConfig,
-      channel: "slack",
+      channel: "ddingtalk",
       action: "upload-file" as const,
       to: "C999",
       currentChannelId: "C123",
-      currentChannelProvider: "slack",
+      currentChannelProvider: "ddingtalk",
       expected: /target="C999" while bound to "C123"/,
     },
   ])("enforces cross-context policy for %j", (params) => {
@@ -180,10 +180,10 @@ describe("outbound policy helpers", () => {
 
   it("uses components when available and preferred", async () => {
     const decoration = await buildCrossContextDecoration({
-      cfg: discordConfig,
-      channel: "discord",
+      cfg: qqbotConfig,
+      channel: "qqbot",
       target: "123",
-      toolContext: { currentChannelId: "C12345678", currentChannelProvider: "discord" },
+      toolContext: { currentChannelId: "C12345678", currentChannelProvider: "qqbot" },
     });
 
     expect(decoration).not.toBeNull();
@@ -202,12 +202,12 @@ describe("outbound policy helpers", () => {
   it("returns null when decoration is skipped and falls back to text markers", async () => {
     await expect(
       buildCrossContextDecoration({
-        cfg: discordConfig,
-        channel: "discord",
+        cfg: qqbotConfig,
+        channel: "qqbot",
         target: "123",
         toolContext: {
           currentChannelId: "C12345678",
-          currentChannelProvider: "discord",
+          currentChannelProvider: "qqbot",
           skipCrossContextDecoration: true,
         },
       }),

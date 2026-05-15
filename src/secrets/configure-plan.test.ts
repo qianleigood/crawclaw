@@ -14,17 +14,11 @@ describe("secrets configure plan helpers", () => {
       talk: {
         apiKey: "plain", // pragma: allowlist secret
       },
-      channels: {
-        telegram: {
-          botToken: "token", // pragma: allowlist secret
-        },
-      },
     } as CrawClawConfig;
 
     const candidates = buildConfigureCandidates(config);
     const paths = candidates.map((entry) => entry.path);
     expect(paths).toContain("talk.apiKey");
-    expect(paths).toContain("channels.telegram.botToken");
   });
 
   it("collects provider upserts and deletes", () => {

@@ -3,10 +3,10 @@ import { DEFAULT_TABLE_MODES, resolveMarkdownTableMode } from "./markdown-tables
 
 describe("DEFAULT_TABLE_MODES", () => {
   it("does not carry legacy channel-specific defaults", () => {
-    expect(DEFAULT_TABLE_MODES.get("mattermost")).toBeUndefined();
+    expect(DEFAULT_TABLE_MODES.get("feishu")).toBeUndefined();
     expect(DEFAULT_TABLE_MODES.get("signal")).toBeUndefined();
-    expect(DEFAULT_TABLE_MODES.get("whatsapp")).toBeUndefined();
-    expect(DEFAULT_TABLE_MODES.get("slack")).toBeUndefined();
+    expect(DEFAULT_TABLE_MODES.get("weixin")).toBeUndefined();
+    expect(DEFAULT_TABLE_MODES.get("ddingtalk")).toBeUndefined();
   });
 });
 

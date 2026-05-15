@@ -33,6 +33,7 @@ export {
   resolveSecretInputModeForEnvSelection,
 } from "../plugins/provider-auth-input.js";
 export {
+  ANTHROPIC_SETUP_TOKEN_PREFIX,
   buildTokenProfileId,
   validateAnthropicSetupToken,
 } from "../plugins/provider-auth-token.js";

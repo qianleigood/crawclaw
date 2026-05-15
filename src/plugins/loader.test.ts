@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
-import { clearInternalHooks, getRegisteredEventKeys } from "../hooks/internal-hooks.js";
 import { resetDiagnosticEventsForTest } from "../infra/diagnostic-events.js";
 import { withEnv } from "../test-utils/env.js";
 import { clearPluginCommands, getPluginCommandSpecs } from "./command-registry-state.js";
@@ -12,7 +11,6 @@ import { getGlobalHookRunner, resetGlobalHookRunner } from "./hook-runner-global
 import {
   __testing,
   clearPluginLoaderCache,
-  loadCrawClawPluginCliRegistry,
   loadCrawClawPlugins,
   resolveRuntimePluginRegistry,
 } from "./loader.js";
@@ -52,28 +50,16 @@ const fixtureRoot = mkdtempSafe(path.join(os.tmpdir(), "crawclaw-plugin-"));
 let tempDirIndex = 0;
 const prevBundledDir = process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR;
 const EMPTY_PLUGIN_SCHEMA = { type: "object", additionalProperties: false, properties: {} };
-let cachedBundledTelegramDir = "";
+let cachedBundledFeishuDir = "";
 let cachedBundledMemoryDir = "";
-const BUNDLED_TELEGRAM_PLUGIN_BODY = `module.exports = {
-  id: "telegram",
+const BUNDLED_FEISHU_PLUGIN_BODY = `module.exports = {
+  id: "feishu",
   register(api) {
-    api.registerChannel({
-      plugin: {
-        id: "telegram",
-        meta: {
-          id: "telegram",
-          label: "Telegram",
-          selectionLabel: "Telegram",
-          docsPath: "/channels/telegram",
-          blurb: "telegram channel",
-        },
-        capabilities: { chatTypes: ["direct"] },
-        config: {
-          listAccountIds: () => [],
-          resolveAccount: () => ({ accountId: "default" }),
-        },
-        outbound: { deliveryMode: "direct" },
-      },
+    api.registerTool({
+      name: "feishu_fixture",
+      description: "Fixture tool",
+      parameters: {},
+      execute: async () => ({ content: [], details: {} }),
     });
   },
 };`;
@@ -228,23 +214,17 @@ function loadBundledMemoryPluginRegistry(options?: {
   });
 }
 
-function setupBundledTelegramPlugin() {
-  if (!cachedBundledTelegramDir) {
-    cachedBundledTelegramDir = makeTempDir();
+function setupBundledFeishuPlugin() {
+  if (!cachedBundledFeishuDir) {
+    cachedBundledFeishuDir = makeTempDir();
     writePlugin({
-      id: "telegram",
-      body: BUNDLED_TELEGRAM_PLUGIN_BODY,
-      dir: cachedBundledTelegramDir,
-      filename: "telegram.cjs",
+      id: "feishu",
+      body: BUNDLED_FEISHU_PLUGIN_BODY,
+      dir: cachedBundledFeishuDir,
+      filename: "feishu.cjs",
     });
   }
-  process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR = cachedBundledTelegramDir;
-}
-
-function expectTelegramLoaded(registry: ReturnType<typeof loadCrawClawPlugins>) {
-  const telegram = registry.plugins.find((entry) => entry.id === "telegram");
-  expect(telegram?.status).toBe("loaded");
-  expect(registry.channels.some((entry) => entry.plugin.id === "telegram")).toBe(true);
+  process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR = cachedBundledFeishuDir;
 }
 
 function useNoBundledPlugins() {
@@ -582,114 +562,6 @@ function expectCacheMissThenHit(params: {
   expect(third).toBe(second);
 }
 
-function createSetupEntryChannelPluginFixture(params: {
-  id: string;
-  label: string;
-  packageName: string;
-  fullBlurb: string;
-  setupBlurb: string;
-  configured: boolean;
-  startupDeferConfiguredChannelFullLoadUntilAfterListen?: boolean;
-}) {
-  useNoBundledPlugins();
-  const pluginDir = makeTempDir();
-  const fullMarker = path.join(pluginDir, "full-loaded.txt");
-  const setupMarker = path.join(pluginDir, "setup-loaded.txt");
-  const listAccountIds = params.configured ? '["default"]' : "[]";
-  const resolveAccount = params.configured
-    ? '({ accountId: "default", token: "configured" })'
-    : '({ accountId: "default" })';
-
-  fs.writeFileSync(
-    path.join(pluginDir, "package.json"),
-    JSON.stringify(
-      {
-        name: params.packageName,
-        crawclaw: {
-          extensions: ["./index.cjs"],
-          setupEntry: "./setup-entry.cjs",
-          ...(params.startupDeferConfiguredChannelFullLoadUntilAfterListen
-            ? {
-                startup: {
-                  deferConfiguredChannelFullLoadUntilAfterListen: true,
-                },
-              }
-            : {}),
-        },
-      },
-      null,
-      2,
-    ),
-    "utf-8",
-  );
-  fs.writeFileSync(
-    path.join(pluginDir, "crawclaw.plugin.json"),
-    JSON.stringify(
-      {
-        id: params.id,
-        configSchema: EMPTY_PLUGIN_SCHEMA,
-        channels: [params.id],
-      },
-      null,
-      2,
-    ),
-    "utf-8",
-  );
-  fs.writeFileSync(
-    path.join(pluginDir, "index.cjs"),
-    `require("node:fs").writeFileSync(${JSON.stringify(fullMarker)}, "loaded", "utf-8");
-module.exports = {
-  id: ${JSON.stringify(params.id)},
-  register(api) {
-    api.registerChannel({
-      plugin: {
-        id: ${JSON.stringify(params.id)},
-        meta: {
-          id: ${JSON.stringify(params.id)},
-          label: ${JSON.stringify(params.label)},
-          selectionLabel: ${JSON.stringify(params.label)},
-          docsPath: ${JSON.stringify(`/channels/${params.id}`)},
-          blurb: ${JSON.stringify(params.fullBlurb)},
-        },
-        capabilities: { chatTypes: ["direct"] },
-        config: {
-          listAccountIds: () => ${listAccountIds},
-          resolveAccount: () => ${resolveAccount},
-        },
-        outbound: { deliveryMode: "direct" },
-      },
-    });
-  },
-};`,
-    "utf-8",
-  );
-  fs.writeFileSync(
-    path.join(pluginDir, "setup-entry.cjs"),
-    `require("node:fs").writeFileSync(${JSON.stringify(setupMarker)}, "loaded", "utf-8");
-module.exports = {
-  plugin: {
-    id: ${JSON.stringify(params.id)},
-    meta: {
-      id: ${JSON.stringify(params.id)},
-      label: ${JSON.stringify(params.label)},
-      selectionLabel: ${JSON.stringify(params.label)},
-      docsPath: ${JSON.stringify(`/channels/${params.id}`)},
-      blurb: ${JSON.stringify(params.setupBlurb)},
-    },
-    capabilities: { chatTypes: ["direct"] },
-    config: {
-      listAccountIds: () => ${listAccountIds},
-      resolveAccount: () => ${resolveAccount},
-    },
-    outbound: { deliveryMode: "direct" },
-  },
-};`,
-    "utf-8",
-  );
-
-  return { pluginDir, fullMarker, setupMarker };
-}
-
 function createEnvResolvedPluginFixture(pluginId: string) {
   useNoBundledPlugins();
   const crawclawHome = makeTempDir();
@@ -942,7 +814,7 @@ afterAll(() => {
   } catch {
     // ignore cleanup failures
   } finally {
-    cachedBundledTelegramDir = "";
+    cachedBundledFeishuDir = "";
     cachedBundledMemoryDir = "";
   }
 });
@@ -971,144 +843,11 @@ describe("loadCrawClawPlugins", () => {
     expect(bundled?.status).toBe("disabled");
   });
 
-  it.each([
-    {
-      name: "loads bundled telegram plugin when enabled",
-      config: {
-        plugins: {
-          allow: ["telegram"],
-          entries: {
-            telegram: { enabled: true },
-          },
-        },
-      } satisfies PluginLoadConfig,
-      assert: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-        expectTelegramLoaded(registry);
-      },
-    },
-    {
-      name: "loads bundled channel plugins when channels.<id>.enabled=true",
-      config: {
-        channels: {
-          telegram: {
-            enabled: true,
-          },
-        },
-        plugins: {
-          enabled: true,
-        },
-      } satisfies PluginLoadConfig,
-      assert: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-        expectTelegramLoaded(registry);
-      },
-    },
-    {
-      name: "blocks bundled channel plugins when channels.<id>.enabled=true but plugins.allow excludes them",
-      config: {
-        channels: {
-          telegram: {
-            enabled: true,
-          },
-        },
-        plugins: {
-          allow: ["browser"],
-        },
-      } satisfies PluginLoadConfig,
-      assert: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-        const telegram = registry.plugins.find((entry) => entry.id === "telegram");
-        expect(telegram?.status).toBe("disabled");
-        expect(telegram?.error).toBe("not in allowlist");
-      },
-    },
-    {
-      name: "still respects explicit disable via plugins.entries for bundled channels",
-      config: {
-        channels: {
-          telegram: {
-            enabled: true,
-          },
-        },
-        plugins: {
-          entries: {
-            telegram: { enabled: false },
-          },
-        },
-      } satisfies PluginLoadConfig,
-      assert: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-        const telegram = registry.plugins.find((entry) => entry.id === "telegram");
-        expect(telegram?.status).toBe("disabled");
-        expect(telegram?.error).toBe("disabled in config");
-      },
-    },
-  ] as const)(
-    "handles bundled telegram plugin enablement and override rules: $name",
-    ({ config, assert }) => {
-      setupBundledTelegramPlugin();
-      const registry = loadCrawClawPlugins({
-        cache: false,
-        workspaceDir: cachedBundledTelegramDir,
-        config,
-      });
-      assert(registry);
-    },
-  );
-
-  it("keeps bundled channel TS runtime disabled outside tests", () => {
-    const bundledDir = makeTempDir();
-    writePlugin({
-      id: "telegram",
-      body: BUNDLED_TELEGRAM_PLUGIN_BODY,
-      dir: bundledDir,
-      filename: "telegram.cjs",
-    });
-    fs.writeFileSync(
-      path.join(bundledDir, "crawclaw.plugin.json"),
-      JSON.stringify(
-        {
-          id: "telegram",
-          channels: ["telegram"],
-          configSchema: EMPTY_PLUGIN_SCHEMA,
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-    process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
-    resetPluginRuntimeStateForTest();
-
-    const registry = loadCrawClawPlugins({
-      cache: false,
-      workspaceDir: bundledDir,
-      env: {
-        ...process.env,
-        NODE_ENV: "production",
-        VITEST: undefined,
-      },
-      config: {
-        channels: {
-          telegram: {
-            enabled: true,
-          },
-        },
-        plugins: {
-          enabled: true,
-        },
-      },
-    });
-
-    const telegram = registry.plugins.find((entry) => entry.id === "telegram");
-    expect(telegram?.status).toBe("disabled");
-    expect(telegram?.error).toContain("native channel runtime");
-    expect(registry.channels.some((entry) => entry.plugin.id === "telegram")).toBe(false);
-    expect(listImportedRuntimePluginIds()).not.toContain("telegram");
-  });
-
   it("marks auto-enabled bundled channels as activated but not explicitly enabled", () => {
-    setupBundledTelegramPlugin();
+    setupBundledFeishuPlugin();
     const rawConfig = {
       channels: {
-        telegram: {
+        feishu: {
           botToken: "x",
         },
       },
@@ -1123,25 +862,25 @@ describe("loadCrawClawPlugins", () => {
 
     const registry = loadCrawClawPlugins({
       cache: false,
-      workspaceDir: cachedBundledTelegramDir,
+      workspaceDir: cachedBundledFeishuDir,
       config: autoEnabled.config,
       activationSourceConfig: rawConfig,
       autoEnabledReasons: autoEnabled.autoEnabledReasons,
     });
 
-    expect(registry.plugins.find((entry) => entry.id === "telegram")).toMatchObject({
+    expect(registry.plugins.find((entry) => entry.id === "feishu")).toMatchObject({
       explicitlyEnabled: false,
       activated: true,
       activationSource: "auto",
-      activationReason: "telegram configured",
+      activationReason: "feishu configured",
     });
   });
 
   it("preserves all auto-enable reasons in activation metadata", () => {
-    setupBundledTelegramPlugin();
+    setupBundledFeishuPlugin();
     const rawConfig = {
       channels: {
-        telegram: {
+        feishu: {
           botToken: "x",
         },
       },
@@ -1152,13 +891,13 @@ describe("loadCrawClawPlugins", () => {
 
     const registry = loadCrawClawPlugins({
       cache: false,
-      workspaceDir: cachedBundledTelegramDir,
+      workspaceDir: cachedBundledFeishuDir,
       config: {
         ...rawConfig,
         plugins: {
           enabled: true,
           entries: {
-            telegram: {
+            feishu: {
               enabled: true,
             },
           },
@@ -1166,15 +905,15 @@ describe("loadCrawClawPlugins", () => {
       },
       activationSourceConfig: rawConfig,
       autoEnabledReasons: {
-        telegram: ["telegram configured", "telegram selected for startup"],
+        feishu: ["feishu configured", "feishu selected for startup"],
       },
     });
 
-    expect(registry.plugins.find((entry) => entry.id === "telegram")).toMatchObject({
+    expect(registry.plugins.find((entry) => entry.id === "feishu")).toMatchObject({
       explicitlyEnabled: false,
       activated: true,
       activationSource: "auto",
-      activationReason: "telegram configured; telegram selected for startup",
+      activationReason: "feishu configured; feishu selected for startup",
     });
   });
 
@@ -1539,7 +1278,7 @@ module.exports = { id: "throws-after-import", register() {} };`,
 
     expect(scoped.plugins.find((entry) => entry.id === "command-plugin")?.status).toBe("loaded");
     expect(scoped.commands.map((entry) => entry.command.name)).toEqual(["pair"]);
-    expect(getPluginCommandSpecs("telegram")).toEqual([]);
+    expect(getPluginCommandSpecs("feishu")).toEqual([]);
 
     const active = loadCrawClawPlugins({
       cache: false,
@@ -1554,7 +1293,7 @@ module.exports = { id: "throws-after-import", register() {} };`,
     });
 
     expect(active.plugins.find((entry) => entry.id === "command-plugin")?.status).toBe("loaded");
-    expect(getPluginCommandSpecs("telegram")).toEqual([
+    expect(getPluginCommandSpecs("feishu")).toEqual([
       {
         name: "pair",
         description: "Pair device",
@@ -1565,43 +1304,7 @@ module.exports = { id: "throws-after-import", register() {} };`,
     clearPluginCommands();
   });
 
-  it("does not register internal hooks globally during non-activating loads", () => {
-    useNoBundledPlugins();
-    const plugin = writePlugin({
-      id: "internal-hook-snapshot",
-      filename: "internal-hook-snapshot.cjs",
-      body: `module.exports = {
-        id: "internal-hook-snapshot",
-        register(api) {
-          api.registerHook("gateway:startup", () => {}, { name: "snapshot-hook" });
-        },
-      };`,
-    });
-
-    clearInternalHooks();
-    const scoped = loadCrawClawPlugins({
-      cache: false,
-      activate: false,
-      workspaceDir: plugin.dir,
-      config: {
-        plugins: {
-          load: { paths: [plugin.file] },
-          allow: ["internal-hook-snapshot"],
-        },
-      },
-      onlyPluginIds: ["internal-hook-snapshot"],
-    });
-
-    expect(scoped.plugins.find((entry) => entry.id === "internal-hook-snapshot")?.status).toBe(
-      "loaded",
-    );
-    expect(scoped.hooks.map((entry) => entry.entry.hook.name)).toEqual(["snapshot-hook"]);
-    expect(getRegisteredEventKeys()).toEqual([]);
-
-    clearInternalHooks();
-  });
-
-  it("can scope bundled provider loads to deepseek without hanging", () => {
+  it("can scope bundled provider plugin metadata to deepseek without using TS provider hooks", () => {
     if (prevBundledDir === undefined) {
       delete process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR;
     } else {
@@ -1623,7 +1326,7 @@ module.exports = { id: "throws-after-import", register() {} };`,
 
     expect(scoped.plugins.map((entry) => entry.id)).toEqual(["deepseek"]);
     expect(scoped.plugins[0]?.status).toBe("loaded");
-    expect(scoped.providers.map((entry) => entry.provider.id)).toEqual(["deepseek"]);
+    expect(scoped.providers).toEqual([]);
   });
 
   it("throws when activate:false is used without cache:false", () => {
@@ -1635,7 +1338,7 @@ module.exports = { id: "throws-after-import", register() {} };`,
     );
   });
 
-  it("re-initializes global hook runner when serving registry from cache", () => {
+  it("does not initialize the removed typed hook runner when serving registry from cache", () => {
     process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR = "/nonexistent/bundled/plugins";
     const plugin = writePlugin({
       id: "cache-hook-runner",
@@ -1654,14 +1357,14 @@ module.exports = { id: "throws-after-import", register() {} };`,
     };
 
     const first = loadCrawClawPlugins(options);
-    expect(getGlobalHookRunner()).not.toBeNull();
+    expect(getGlobalHookRunner()).toBeNull();
 
     resetGlobalHookRunner();
     expect(getGlobalHookRunner()).toBeNull();
 
     const second = loadCrawClawPlugins(options);
     expect(second).toBe(first);
-    expect(getGlobalHookRunner()).not.toBeNull();
+    expect(getGlobalHookRunner()).toBeNull();
 
     resetGlobalHookRunner();
   });
@@ -2137,102 +1840,9 @@ module.exports = { id: "throws-after-import", register() {} };`,
     ).toBe(true);
   });
 
-  it("handles single-plugin channel, context engine, and cli validation", () => {
+  it("handles single-plugin cli validation", () => {
     useNoBundledPlugins();
     const scenarios = [
-      {
-        label: "registers channel plugins",
-        pluginId: "channel-demo",
-        body: `module.exports = { id: "channel-demo", register(api) {
-  api.registerChannel({
-    plugin: {
-      id: "demo",
-      meta: {
-        id: "demo",
-        label: "Demo",
-        selectionLabel: "Demo",
-        docsPath: "/channels/demo",
-        blurb: "demo channel"
-      },
-      capabilities: { chatTypes: ["direct"] },
-      config: {
-        listAccountIds: () => [],
-        resolveAccount: () => ({ accountId: "default" })
-      },
-      outbound: { deliveryMode: "direct" }
-    }
-  });
-} };`,
-        assert: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-          const channel = registry.channels.find((entry) => entry.plugin.id === "demo");
-          expect(channel).toBeDefined();
-        },
-      },
-      {
-        label: "rejects duplicate channel ids during plugin registration",
-        pluginId: "channel-dup",
-        body: `module.exports = { id: "channel-dup", register(api) {
-  api.registerChannel({
-    plugin: {
-      id: "demo",
-      meta: {
-        id: "demo",
-        label: "Demo Override",
-        selectionLabel: "Demo Override",
-        docsPath: "/channels/demo-override",
-        blurb: "override"
-      },
-      capabilities: { chatTypes: ["direct"] },
-      config: {
-        listAccountIds: () => [],
-        resolveAccount: () => ({ accountId: "default" })
-      },
-      outbound: { deliveryMode: "direct" }
-    }
-  });
-  api.registerChannel({
-    plugin: {
-      id: "demo",
-      meta: {
-        id: "demo",
-        label: "Demo Duplicate",
-        selectionLabel: "Demo Duplicate",
-        docsPath: "/channels/demo-duplicate",
-        blurb: "duplicate"
-      },
-      capabilities: { chatTypes: ["direct"] },
-      config: {
-        listAccountIds: () => [],
-        resolveAccount: () => ({ accountId: "default" })
-      },
-      outbound: { deliveryMode: "direct" }
-    }
-  });
-} };`,
-        assert: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-          expect(registry.channels.filter((entry) => entry.plugin.id === "demo")).toHaveLength(1);
-          expectRegistryErrorDiagnostic({
-            registry,
-            pluginId: "channel-dup",
-            message: "channel already registered: demo (channel-dup)",
-          });
-        },
-      },
-      {
-        label: "requires plugin CLI registrars to declare explicit command roots",
-        pluginId: "cli-missing-metadata",
-        body: `module.exports = { id: "cli-missing-metadata", register(api) {
-  api.registerCli(() => {});
-} };`,
-        assert: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-          expect(registry.cliRegistrars).toHaveLength(0);
-          expectRegistryErrorDiagnostic({
-            registry,
-            pluginId: "cli-missing-metadata",
-            message: "cli registration missing explicit commands metadata",
-          });
-        },
-      },
       {
         label: "requires cli backend ids",
         pluginId: "cli-backend-missing-id",
@@ -2292,18 +1902,6 @@ module.exports = { id: "throws-after-import", register() {} };`,
     useNoBundledPlugins();
     const scenarios = [
       {
-        label: "plugin-visible hook names",
-        ownerA: "hook-owner-a",
-        ownerB: "hook-owner-b",
-        buildBody: (ownerId: string) => `module.exports = { id: "${ownerId}", register(api) {
-  api.registerHook("gateway:startup", () => {}, { name: "shared-hook" });
-} };`,
-        selectCount: (registry: ReturnType<typeof loadCrawClawPlugins>) =>
-          registry.hooks.filter((entry) => entry.entry.hook.name === "shared-hook").length,
-        duplicateMessage: "hook already registered: shared-hook (hook-owner-a)",
-        assert: expectDuplicateRegistrationResult,
-      },
-      {
         label: "plugin service ids",
         ownerA: "service-owner-a",
         ownerB: "service-owner-b",
@@ -2313,21 +1911,6 @@ module.exports = { id: "throws-after-import", register() {} };`,
         selectCount: (registry: ReturnType<typeof loadCrawClawPlugins>) =>
           registry.services.filter((entry) => entry.service.id === "shared-service").length,
         duplicateMessage: "service already registered: shared-service (service-owner-a)",
-        assert: expectDuplicateRegistrationResult,
-      },
-      {
-        label: "plugin CLI command roots",
-        ownerA: "cli-owner-a",
-        ownerB: "cli-owner-b",
-        buildBody: (ownerId: string) => `module.exports = { id: "${ownerId}", register(api) {
-  api.registerCli(() => {}, { commands: ["shared-cli"] });
-} };`,
-        selectCount: (registry: ReturnType<typeof loadCrawClawPlugins>) =>
-          registry.cliRegistrars.length,
-        duplicateMessage: "cli command already registered: shared-cli (cli-owner-a)",
-        assertPrimaryOwner: (registry: ReturnType<typeof loadCrawClawPlugins>) => {
-          expect(registry.cliRegistrars[0]?.pluginId).toBe("cli-owner-a");
-        },
         assert: expectDuplicateRegistrationResult,
       },
       {
@@ -2615,711 +2198,29 @@ module.exports = { id: "throws-after-import", register() {} };`,
     expect(registry.plugins.map((entry) => entry.id)).toEqual(["target-plugin"]);
   });
 
-  it("only setup-loads a disabled channel plugin when the caller scopes to the selected plugin", () => {
-    useNoBundledPlugins();
-    const marker = path.join(makeTempDir(), "lazy-channel-imported.txt");
-    const plugin = writePlugin({
-      id: "lazy-channel-plugin",
-      filename: "lazy-channel.cjs",
-      body: `require("node:fs").writeFileSync(${JSON.stringify(marker)}, "loaded", "utf-8");
-module.exports = {
-  id: "lazy-channel-plugin",
-  register(api) {
-    api.registerChannel({
-      plugin: {
-        id: "lazy-channel",
-        meta: {
-          id: "lazy-channel",
-          label: "Lazy Channel",
-          selectionLabel: "Lazy Channel",
-          docsPath: "/channels/lazy-channel",
-          blurb: "lazy test channel",
-        },
-        capabilities: { chatTypes: ["direct"] },
-        config: {
-          listAccountIds: () => [],
-          resolveAccount: () => ({ accountId: "default" }),
-        },
-        outbound: { deliveryMode: "direct" },
-      },
-    });
-  },
-};`,
-    });
-    fs.writeFileSync(
-      path.join(plugin.dir, "crawclaw.plugin.json"),
-      JSON.stringify(
-        {
-          id: "lazy-channel-plugin",
-          configSchema: EMPTY_PLUGIN_SCHEMA,
-          channels: ["lazy-channel"],
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-    const config = {
-      plugins: {
-        load: { paths: [plugin.file] },
-        allow: ["lazy-channel-plugin"],
-        entries: {
-          "lazy-channel-plugin": { enabled: false },
-        },
-      },
-    };
-
-    const registry = loadCrawClawPlugins({
-      cache: false,
-      config,
-    });
-
-    expect(fs.existsSync(marker)).toBe(false);
-    expect(registry.channelSetups).toHaveLength(0);
-    expect(registry.plugins.find((entry) => entry.id === "lazy-channel-plugin")?.status).toBe(
-      "disabled",
-    );
-
-    const broadSetupRegistry = loadCrawClawPlugins({
-      cache: false,
-      config,
-      includeSetupOnlyChannelPlugins: true,
-    });
-
-    expect(fs.existsSync(marker)).toBe(false);
-    expect(broadSetupRegistry.channelSetups).toHaveLength(0);
-    expect(broadSetupRegistry.channels).toHaveLength(0);
-    expect(
-      broadSetupRegistry.plugins.find((entry) => entry.id === "lazy-channel-plugin")?.status,
-    ).toBe("disabled");
-
-    const scopedSetupRegistry = loadCrawClawPlugins({
-      cache: false,
-      config,
-      includeSetupOnlyChannelPlugins: true,
-      onlyPluginIds: ["lazy-channel-plugin"],
-    });
-
-    expect(fs.existsSync(marker)).toBe(true);
-    expect(scopedSetupRegistry.channelSetups).toHaveLength(1);
-    expect(scopedSetupRegistry.channels).toHaveLength(0);
-    expect(
-      scopedSetupRegistry.plugins.find((entry) => entry.id === "lazy-channel-plugin")?.status,
-    ).toBe("disabled");
-  });
-
-  it.each([
-    {
-      name: "uses package setupEntry for selected setup-only channel loads",
-      fixture: {
-        id: "setup-entry-test",
-        label: "Setup Entry Test",
-        packageName: "@crawclaw/setup-entry-test",
-        fullBlurb: "full entry should not run in setup-only mode",
-        setupBlurb: "setup entry",
-        configured: false,
-      },
-      load: ({ pluginDir }: { pluginDir: string }) =>
-        loadCrawClawPlugins({
-          cache: false,
-          config: {
-            plugins: {
-              load: { paths: [pluginDir] },
-              allow: ["setup-entry-test"],
-              entries: {
-                "setup-entry-test": { enabled: false },
-              },
-            },
-          },
-          includeSetupOnlyChannelPlugins: true,
-          onlyPluginIds: ["setup-entry-test"],
-        }),
-      expectFullLoaded: false,
-      expectSetupLoaded: true,
-      expectedChannels: 0,
-    },
-    {
-      name: "uses package setupEntry for enabled but unconfigured channel loads",
-      fixture: {
-        id: "setup-runtime-test",
-        label: "Setup Runtime Test",
-        packageName: "@crawclaw/setup-runtime-test",
-        fullBlurb: "full entry should not run while unconfigured",
-        setupBlurb: "setup runtime",
-        configured: false,
-      },
-      load: ({ pluginDir }: { pluginDir: string }) =>
-        loadCrawClawPlugins({
-          cache: false,
-          config: {
-            plugins: {
-              load: { paths: [pluginDir] },
-              allow: ["setup-runtime-test"],
-            },
-          },
-        }),
-      expectFullLoaded: false,
-      expectSetupLoaded: true,
-      expectedChannels: 1,
-    },
-    {
-      name: "can prefer setupEntry for configured channel loads during startup",
-      fixture: {
-        id: "setup-runtime-preferred-test",
-        label: "Setup Runtime Preferred Test",
-        packageName: "@crawclaw/setup-runtime-preferred-test",
-        fullBlurb: "full entry should be deferred while startup is still cold",
-        setupBlurb: "setup runtime preferred",
-        configured: true,
-        startupDeferConfiguredChannelFullLoadUntilAfterListen: true,
-      },
-      load: ({ pluginDir }: { pluginDir: string }) =>
-        loadCrawClawPlugins({
-          cache: false,
-          preferSetupRuntimeForChannelPlugins: true,
-          config: {
-            channels: {
-              "setup-runtime-preferred-test": {
-                enabled: true,
-                token: "configured",
-              },
-            },
-            plugins: {
-              load: { paths: [pluginDir] },
-              allow: ["setup-runtime-preferred-test"],
-            },
-          },
-        }),
-      expectFullLoaded: false,
-      expectSetupLoaded: true,
-      expectedChannels: 1,
-    },
-    {
-      name: "does not prefer setupEntry for configured channel loads without startup opt-in",
-      fixture: {
-        id: "setup-runtime-not-preferred-test",
-        label: "Setup Runtime Not Preferred Test",
-        packageName: "@crawclaw/setup-runtime-not-preferred-test",
-        fullBlurb: "full entry should still load without explicit startup opt-in",
-        setupBlurb: "setup runtime not preferred",
-        configured: true,
-      },
-      load: ({ pluginDir }: { pluginDir: string }) =>
-        loadCrawClawPlugins({
-          cache: false,
-          preferSetupRuntimeForChannelPlugins: true,
-          config: {
-            channels: {
-              "setup-runtime-not-preferred-test": {
-                enabled: true,
-                token: "configured",
-              },
-            },
-            plugins: {
-              load: { paths: [pluginDir] },
-              allow: ["setup-runtime-not-preferred-test"],
-            },
-          },
-        }),
-      expectFullLoaded: true,
-      expectSetupLoaded: false,
-      expectedChannels: 1,
-    },
-  ])("$name", ({ fixture, load, expectFullLoaded, expectSetupLoaded, expectedChannels }) => {
-    const built = createSetupEntryChannelPluginFixture(fixture);
-    const registry = load({ pluginDir: built.pluginDir });
-
-    expect(fs.existsSync(built.fullMarker)).toBe(expectFullLoaded);
-    expect(fs.existsSync(built.setupMarker)).toBe(expectSetupLoaded);
-    expect(registry.channelSetups).toHaveLength(1);
-    expect(registry.channels).toHaveLength(expectedChannels);
-  });
-
-  it("passes validated plugin config into non-activating CLI metadata loads", async () => {
+  it("does not expose typed lifecycle hooks on the plugin API", () => {
     useNoBundledPlugins();
     const plugin = writePlugin({
-      id: "config-cli",
-      filename: "config-cli.cjs",
-      body: `module.exports = {
-  id: "config-cli",
-  register(api) {
-    if (!api.pluginConfig || api.pluginConfig.token !== "ok") {
-      throw new Error("missing plugin config");
-    }
-    api.registerCli(() => {}, {
-      descriptors: [
-        {
-          name: "cfg",
-          description: "Config-backed CLI command",
-          hasSubcommands: true,
-        },
-      ],
-    });
-  },
-};`,
-    });
-    fs.writeFileSync(
-      path.join(plugin.dir, "crawclaw.plugin.json"),
-      JSON.stringify(
-        {
-          id: "config-cli",
-          configSchema: {
-            type: "object",
-            additionalProperties: false,
-            properties: {
-              token: { type: "string" },
-            },
-            required: ["token"],
-          },
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-
-    const registry = await loadCrawClawPluginCliRegistry({
-      config: {
-        plugins: {
-          load: { paths: [plugin.file] },
-          allow: ["config-cli"],
-          entries: {
-            "config-cli": {
-              config: {
-                token: "ok",
-              },
-            },
-          },
-        },
-      },
-    });
-
-    expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).toContain("cfg");
-    expect(registry.plugins.find((entry) => entry.id === "config-cli")?.status).toBe("loaded");
-  });
-
-  it("uses the real channel entry in cli-metadata mode for CLI metadata capture", async () => {
-    useNoBundledPlugins();
-    const pluginDir = makeTempDir();
-    const fullMarker = path.join(pluginDir, "full-loaded.txt");
-    const modeMarker = path.join(pluginDir, "registration-mode.txt");
-    const runtimeMarker = path.join(pluginDir, "runtime-set.txt");
-
-    fs.writeFileSync(
-      path.join(pluginDir, "package.json"),
-      JSON.stringify(
-        {
-          name: "@crawclaw/cli-metadata-channel",
-          crawclaw: { extensions: ["./index.cjs"], setupEntry: "./setup-entry.cjs" },
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-    fs.writeFileSync(
-      path.join(pluginDir, "crawclaw.plugin.json"),
-      JSON.stringify(
-        {
-          id: "cli-metadata-channel",
-          configSchema: EMPTY_PLUGIN_SCHEMA,
-          channels: ["cli-metadata-channel"],
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-    fs.writeFileSync(
-      path.join(pluginDir, "index.cjs"),
-      `const { defineChannelPluginEntry } = require("crawclaw/plugin-sdk/core");
-require("node:fs").writeFileSync(${JSON.stringify(fullMarker)}, "loaded", "utf-8");
-module.exports = {
-  ...defineChannelPluginEntry({
-    id: "cli-metadata-channel",
-    name: "CLI Metadata Channel",
-    description: "cli metadata channel",
-    setRuntime() {
-      require("node:fs").writeFileSync(${JSON.stringify(runtimeMarker)}, "loaded", "utf-8");
-    },
-    plugin: {
-      id: "cli-metadata-channel",
-      meta: {
-        id: "cli-metadata-channel",
-        label: "CLI Metadata Channel",
-        selectionLabel: "CLI Metadata Channel",
-        docsPath: "/channels/cli-metadata-channel",
-        blurb: "cli metadata channel",
-      },
-      capabilities: { chatTypes: ["direct"] },
-      config: {
-        listAccountIds: () => [],
-        resolveAccount: () => ({ accountId: "default" }),
-      },
-      outbound: { deliveryMode: "direct" },
-    },
-    registerCliMetadata(api) {
-      require("node:fs").writeFileSync(
-        ${JSON.stringify(modeMarker)},
-        String(api.registrationMode),
-        "utf-8",
-      );
-      api.registerCli(() => {}, {
-        descriptors: [
-          {
-            name: "cli-metadata-channel",
-            description: "Channel CLI metadata",
-            hasSubcommands: true,
-          },
-        ],
-      });
-    },
-    registerFull() {
-      throw new Error("full channel entry should not run during CLI metadata capture");
-    },
-  }),
-};`,
-      "utf-8",
-    );
-    fs.writeFileSync(
-      path.join(pluginDir, "setup-entry.cjs"),
-      `throw new Error("setup entry should not load during CLI metadata capture");`,
-      "utf-8",
-    );
-
-    const registry = await loadCrawClawPluginCliRegistry({
-      config: {
-        plugins: {
-          load: { paths: [pluginDir] },
-          allow: ["cli-metadata-channel"],
-        },
-      },
-    });
-
-    expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).toContain(
-      "cli-metadata-channel",
-    );
-    expect(fs.readFileSync(modeMarker, "utf-8")).toBe("cli-metadata");
-    expect(fs.existsSync(runtimeMarker)).toBe(false);
-    expect(fs.existsSync(fullMarker)).toBe(true);
-  });
-
-  it("collects channel CLI metadata during full plugin loads", () => {
-    useNoBundledPlugins();
-    const pluginDir = makeTempDir();
-    const modeMarker = path.join(pluginDir, "registration-mode.txt");
-    const fullMarker = path.join(pluginDir, "full-loaded.txt");
-
-    fs.writeFileSync(
-      path.join(pluginDir, "package.json"),
-      JSON.stringify(
-        {
-          name: "@crawclaw/full-cli-metadata-channel",
-          crawclaw: { extensions: ["./index.cjs"] },
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-    fs.writeFileSync(
-      path.join(pluginDir, "crawclaw.plugin.json"),
-      JSON.stringify(
-        {
-          id: "full-cli-metadata-channel",
-          configSchema: EMPTY_PLUGIN_SCHEMA,
-          channels: ["full-cli-metadata-channel"],
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-    fs.writeFileSync(
-      path.join(pluginDir, "index.cjs"),
-      `const { defineChannelPluginEntry } = require("crawclaw/plugin-sdk/core");
-module.exports = {
-  ...defineChannelPluginEntry({
-    id: "full-cli-metadata-channel",
-    name: "Full CLI Metadata Channel",
-    description: "full cli metadata channel",
-    plugin: {
-      id: "full-cli-metadata-channel",
-      meta: {
-        id: "full-cli-metadata-channel",
-        label: "Full CLI Metadata Channel",
-        selectionLabel: "Full CLI Metadata Channel",
-        docsPath: "/channels/full-cli-metadata-channel",
-        blurb: "full cli metadata channel",
-      },
-      capabilities: { chatTypes: ["direct"] },
-      config: {
-        listAccountIds: () => [],
-        resolveAccount: () => ({ accountId: "default" }),
-      },
-      outbound: { deliveryMode: "direct" },
-    },
-    registerCliMetadata(api) {
-      require("node:fs").writeFileSync(
-        ${JSON.stringify(modeMarker)},
-        String(api.registrationMode),
-        "utf-8",
-      );
-      api.registerCli(() => {}, {
-        descriptors: [
-          {
-            name: "full-cli-metadata-channel",
-            description: "Full-load channel CLI metadata",
-            hasSubcommands: true,
-          },
-        ],
-      });
-    },
-    registerFull() {
-      require("node:fs").writeFileSync(${JSON.stringify(fullMarker)}, "loaded", "utf-8");
-    },
-  }),
-};`,
-      "utf-8",
-    );
-
-    const registry = loadCrawClawPlugins({
-      cache: false,
-      config: {
-        plugins: {
-          load: { paths: [pluginDir] },
-          allow: ["full-cli-metadata-channel"],
-        },
-      },
-    });
-
-    expect(fs.readFileSync(modeMarker, "utf-8")).toBe("full");
-    expect(fs.existsSync(fullMarker)).toBe(true);
-    expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).toContain(
-      "full-cli-metadata-channel",
-    );
-  });
-
-  it("awaits async plugin registration when collecting CLI metadata", async () => {
-    useNoBundledPlugins();
-    const plugin = writePlugin({
-      id: "async-cli",
-      filename: "async-cli.cjs",
-      body: `module.exports = {
-  id: "async-cli",
-  async register(api) {
-    await Promise.resolve();
-    api.registerCli(() => {}, {
-      descriptors: [
-        {
-          name: "async-cli",
-          description: "Async CLI metadata",
-          hasSubcommands: true,
-        },
-      ],
-    });
-  },
-};`,
-    });
-
-    const registry = await loadCrawClawPluginCliRegistry({
-      config: {
-        plugins: {
-          load: { paths: [plugin.file] },
-          allow: ["async-cli"],
-        },
-      },
-    });
-
-    expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).toContain("async-cli");
-    expect(
-      registry.diagnostics.some((entry) => entry.message.includes("async registration is ignored")),
-    ).toBe(false);
-  });
-
-  it("applies memory slot gating to non-bundled CLI metadata loads", async () => {
-    useNoBundledPlugins();
-    const plugin = writePlugin({
-      id: "memory-external",
-      filename: "memory-external.cjs",
-      body: `module.exports = {
-  id: "memory-external",
-  kind: "memory",
-  register(api) {
-    api.registerCli(() => {}, {
-      descriptors: [
-        {
-          name: "memory-external",
-          description: "External memory CLI metadata",
-          hasSubcommands: true,
-        },
-      ],
-    });
-  },
-};`,
-    });
-    fs.writeFileSync(
-      path.join(plugin.dir, "crawclaw.plugin.json"),
-      JSON.stringify(
-        {
-          id: "memory-external",
-          kind: "memory",
-          configSchema: EMPTY_PLUGIN_SCHEMA,
-        },
-        null,
-        2,
-      ),
-      "utf-8",
-    );
-
-    const registry = await loadCrawClawPluginCliRegistry({
-      config: {
-        plugins: {
-          load: { paths: [plugin.file] },
-          allow: ["memory-external"],
-          slots: { memory: "memory-other" },
-        },
-      },
-    });
-
-    expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).not.toContain(
-      "memory-external",
-    );
-    const memory = registry.plugins.find((entry) => entry.id === "memory-external");
-    expect(memory?.status).toBe("disabled");
-    expect(memory?.error ?? "").toContain('memory slot set to "memory-other"');
-  });
-
-  it("re-evaluates memory slot gating after resolving exported plugin kind", async () => {
-    useNoBundledPlugins();
-    const plugin = writePlugin({
-      id: "memory-export-only",
-      filename: "memory-export-only.cjs",
-      body: `module.exports = {
-  id: "memory-export-only",
-  kind: "memory",
-  register(api) {
-    api.registerCli(() => {}, {
-      descriptors: [
-        {
-          name: "memory-export-only",
-          description: "Export-only memory CLI metadata",
-          hasSubcommands: true,
-        },
-      ],
-    });
-  },
-};`,
-    });
-
-    const registry = await loadCrawClawPluginCliRegistry({
-      config: {
-        plugins: {
-          load: { paths: [plugin.file] },
-          allow: ["memory-export-only"],
-          slots: { memory: "memory-other" },
-        },
-      },
-    });
-
-    expect(registry.cliRegistrars.flatMap((entry) => entry.commands)).not.toContain(
-      "memory-export-only",
-    );
-    const memory = registry.plugins.find((entry) => entry.id === "memory-export-only");
-    expect(memory?.status).toBe("disabled");
-    expect(memory?.error ?? "").toContain('memory slot set to "memory-other"');
-  });
-
-  it("blocks before_prompt_build when prompt injection is disabled", async () => {
-    useNoBundledPlugins();
-    const plugin = writePlugin({
-      id: "hook-policy",
-      filename: "hook-policy.cjs",
-      body: `module.exports = { id: "hook-policy", register(api) {
-  api.on("before_prompt_build", () => ({ queryContextPatch: { prependUserContextSections: [{ content: "prepend" }] } }));
-  api.on("before_model_resolve", () => ({ providerOverride: "demo-explicit-provider" }));
+      id: "hook-api-removed",
+      filename: "hook-api-removed.cjs",
+      body: `module.exports = { id: "hook-api-removed", register(api) {
+  if ("on" in api || "registerHook" in api) {
+    throw new Error("typed hook API should not be exposed");
+  }
 } };`,
     });
 
     const registry = loadRegistryFromSinglePlugin({
       plugin,
       pluginConfig: {
-        allow: ["hook-policy"],
-        entries: {
-          "hook-policy": {
-            hooks: {
-              allowPromptInjection: false,
-            },
-          },
-        },
+        allow: ["hook-api-removed"],
       },
     });
 
-    expect(registry.plugins.find((entry) => entry.id === "hook-policy")?.status).toBe("loaded");
-    expect(registry.typedHooks.map((entry) => entry.hookName)).toEqual(["before_model_resolve"]);
-    const blockedDiagnostics = registry.diagnostics.filter((diag) =>
-      diag.message.includes(
-        "blocked by plugins.entries.hook-policy.hooks.allowPromptInjection=false",
-      ),
+    expect(registry.plugins.find((entry) => entry.id === "hook-api-removed")?.status).toBe(
+      "loaded",
     );
-    expect(blockedDiagnostics).toHaveLength(1);
-  });
-
-  it("keeps prompt-injection typed hooks enabled by default", () => {
-    useNoBundledPlugins();
-    const plugin = writePlugin({
-      id: "hook-policy-default",
-      filename: "hook-policy-default.cjs",
-      body: `module.exports = { id: "hook-policy-default", register(api) {
-  api.on("before_prompt_build", () => ({ queryContextPatch: { prependUserContextSections: [{ content: "prepend" }] } }));
-} };`,
-    });
-
-    const registry = loadRegistryFromSinglePlugin({
-      plugin,
-      pluginConfig: {
-        allow: ["hook-policy-default"],
-      },
-    });
-
-    expect(registry.typedHooks.map((entry) => entry.hookName)).toEqual(["before_prompt_build"]);
-  });
-
-  it("ignores unknown typed hooks from plugins and keeps loading", () => {
-    useNoBundledPlugins();
-    const plugin = writePlugin({
-      id: "hook-unknown",
-      filename: "hook-unknown.cjs",
-      body: `module.exports = { id: "hook-unknown", register(api) {
-  api.on("totally_unknown_hook_name", () => ({ foo: "bar" }));
-  api.on(123, () => ({ foo: "baz" }));
-  api.on("before_model_resolve", () => ({ providerOverride: "demo-provider" }));
-} };`,
-    });
-
-    const registry = loadRegistryFromSinglePlugin({
-      plugin,
-      pluginConfig: {
-        allow: ["hook-unknown"],
-      },
-    });
-
-    expect(registry.plugins.find((entry) => entry.id === "hook-unknown")?.status).toBe("loaded");
-    expect(registry.typedHooks.map((entry) => entry.hookName)).toEqual(["before_model_resolve"]);
-    const unknownHookDiagnostics = registry.diagnostics.filter((diag) =>
-      diag.message.includes('unknown typed hook "'),
-    );
-    expect(unknownHookDiagnostics).toHaveLength(2);
-    expect(
-      unknownHookDiagnostics.some((diag) =>
-        diag.message.includes('unknown typed hook "totally_unknown_hook_name" ignored'),
-      ),
-    ).toBe(true);
-    expect(
-      unknownHookDiagnostics.some((diag) =>
-        diag.message.includes('unknown typed hook "123" ignored'),
-      ),
-    ).toBe(true);
+    expect(registry.typedHooks).toEqual([]);
   });
 
   it("enforces memory slot loading rules", () => {
@@ -4199,28 +3100,28 @@ describe("getCompatibleActivePluginRegistry", () => {
     const { cacheKey } = __testing.resolvePluginLoadCacheContext({
       config: {
         plugins: {
-          allow: ["telegram"],
+          allow: ["feishu"],
         },
       },
       activationSourceConfig: {
         plugins: {
-          allow: ["telegram"],
+          allow: ["feishu"],
         },
         channels: {
-          telegram: {
+          feishu: {
             enabled: true,
             botToken: "secret-token",
           },
         },
       },
       autoEnabledReasons: {
-        telegram: ["telegram configured"],
+        feishu: ["feishu configured"],
       },
     });
 
     expect(cacheKey).not.toContain("secret-token");
     expect(cacheKey).not.toContain("botToken");
-    expect(cacheKey).not.toContain("telegram configured");
+    expect(cacheKey).not.toContain("feishu configured");
   });
 
   it("falls back to the current active runtime when no compatibility-shaping inputs are supplied", () => {

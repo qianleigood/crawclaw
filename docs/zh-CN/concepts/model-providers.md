@@ -15,7 +15,7 @@ x-i18n:
 
 # 模型提供商
 
-本页介绍的是 **LLM/模型提供商**（而不是像 WhatsApp/Telegram 这样的聊天渠道）。
+本页介绍的是 **LLM/模型提供商**（而不是像 Weixin/Feishu 这样的聊天渠道）。
 有关模型选择规则，请参见 [/concepts/models](/concepts/models)。
 
 ## 快速规则
@@ -32,7 +32,7 @@ x-i18n:
   例如 Anthropic 以 API 密钥优先的新手引导。
 - 提供商插件还可以通过以下机制接管提供商运行时行为：
   `resolveDynamicModel`、`prepareDynamicModel`、`normalizeResolvedModel`、
-  `capabilities`、`prepareExtraParams`、`wrapStreamFn`、`formatApiKey`、
+  `capabilities`、`formatApiKey`、
   `refreshOAuth`、`buildAuthDoctorHint`、
   `isCacheTtlEligible`、`buildMissingAuthMessage`、
   `suppressBuiltInModel`、`augmentModelCatalog`、`isBinaryThinking`、
@@ -58,8 +58,6 @@ x-i18n:
   动态解析之前需要刷新元数据
 - `normalizeResolvedModel`：提供商需要重写传输或基础 URL
 - `capabilities`：提供商发布 transcript/工具/提供商家族的特殊行为
-- `prepareExtraParams`：提供商为每个模型请求参数提供默认值或进行标准化
-- `wrapStreamFn`：提供商应用请求头/请求体/模型兼容包装器
 - `formatApiKey`：提供商将存储的 auth profile 格式化为
   传输层预期的运行时 `apiKey` 字符串
 - `refreshOAuth`：当共享的 `pi-ai`

@@ -48,7 +48,9 @@ use crawclaw_runtime::{
     lookup_native_channel_directory,
     memory::RustMemoryRuntime,
     resolve_native_channel_lifecycle_update,
-    special_agents::{special_agent_definitions, SpecialAgentRunRequest, SpecialAgentRunner},
+    special_agents::{
+        find_special_agent, special_agent_definitions, SpecialAgentRunRequest, SpecialAgentRunner,
+    },
     AgentModelSelection, AgentRunEvent, AgentRunRequest, AgentRunResult, AgentRuntime,
     ChannelCapabilityDescriptor, ChannelChatType, ChannelDirectoryLookupRequest,
     ChannelInboundEnvelope, ChannelOutboundAction, ChannelOutboundRequest, DesktopSessionStore,
@@ -747,6 +749,12 @@ async fn handle_gateway_method(
         }
         "workflow.agent.run" => workflow_agent_run(state, params),
         "agent.runTurn" => agent_run_turn(state, params).await,
+        "agent.command.run" | "agent_command_run" => {
+            agent_runtime_surface_run(state, params, "rust-agent-command", "agent-command").await
+        }
+        "auto_reply.run" | "autoReply.run" | "auto_reply_run" => {
+            agent_runtime_surface_run(state, params, "rust-auto-reply", "auto-reply").await
+        }
         "agent.streamEvents" => agent_stream_events(state, params),
         "agent.cancel" => chat_abort(params),
         "chat.history" => chat_history(state, params),
@@ -775,12 +783,7 @@ async fn handle_gateway_method(
             "status": "ok",
             "agents": special_agent_definitions()
         })),
-        "special_agents.run" | "special_agents_run" => {
-            let request = serde_json::from_value::<SpecialAgentRunRequest>(params)
-                .map_err(|error| format!("invalid special_agents.run params: {error}"))?;
-            let response = SpecialAgentRunner::new(state.runtime_root.clone()).run(request)?;
-            Ok(json!(response))
-        }
+        "special_agents.run" | "special_agents_run" => special_agent_run(state, params).await,
         "review_task" => {
             let task = required_param(&params, &["task", "message"])?;
             let quality = string_param(&params, &["stage", "kind"])
@@ -933,6 +936,35 @@ async fn handle_gateway_method(
                 .unwrap_or(false);
             memory_runtime(state).compact(&session_id, force)
         }
+        "memory.afterTurn" | "memory_after_turn" => {
+            let session_id = required_param(&params, &["sessionId"])?;
+            let session_key = string_param(&params, &["sessionKey"]);
+            let messages = params
+                .get("messages")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let pre_prompt_message_count = params
+                .get("prePromptMessageCount")
+                .and_then(Value::as_u64)
+                .unwrap_or(0) as usize;
+            memory_runtime(state).after_turn(
+                &session_id,
+                session_key.as_deref(),
+                &messages,
+                pre_prompt_message_count,
+            )
+        }
+        "memory.prepareSubagentSpawn" | "memory_prepare_subagent_spawn" => {
+            let parent_session_key = required_param(&params, &["parentSessionKey"])?;
+            let child_session_key = required_param(&params, &["childSessionKey"])?;
+            memory_runtime(state).prepare_subagent_spawn(&parent_session_key, &child_session_key)
+        }
+        "memory.onSubagentEnded" | "memory_on_subagent_ended" => {
+            let child_session_key = required_param(&params, &["childSessionKey"])?;
+            let reason = string_param(&params, &["reason"]).unwrap_or_else(|| "completed".to_string());
+            memory_runtime(state).on_subagent_ended(&child_session_key, &reason)
+        }
         "sessions.list" | "sessions_list" => sessions_list(state),
         "sessions.create" => sessions_create(state, params),
         "sessions.preview" => sessions_preview(state, params),
@@ -1079,32 +1111,40 @@ fn config_patch(state: &GatewayState, params: Value) -> Result<Value, String> {
 }
 
 fn config_schema() -> Result<Value, String> {
-    Ok(json!({
-        "version": "rust-baseline-v1",
-        "schema": {
+    let mut payload = crawclaw_providers::provider_config_schema();
+    let properties = payload
+        .pointer_mut("/schema/properties")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| "provider config schema is missing schema.properties".to_string())?;
+    properties.insert(
+        "gateway".to_string(),
+        json!({
             "type": "object",
             "properties": {
-                "gateway": {
-                    "type": "object",
-                    "properties": {
-                        "port": { "type": "integer" },
-                        "bind": { "type": "string" }
-                    }
-                },
-                "tools": {
-                    "type": "object",
-                    "properties": {
-                        "deny": { "type": "array", "items": { "type": "string" } }
-                    }
-                }
+                "port": { "type": "integer" },
+                "bind": { "type": "string" }
             }
-        },
-        "uiHints": {
-            "gateway": { "label": "Gateway" },
-            "gateway.port": { "label": "Port" },
-            "tools": { "label": "Tools" }
-        }
-    }))
+        }),
+    );
+    properties.insert(
+        "tools".to_string(),
+        json!({
+            "type": "object",
+            "properties": {
+                "deny": { "type": "array", "items": { "type": "string" } }
+            }
+        }),
+    );
+
+    let ui_hints = payload
+        .get_mut("uiHints")
+        .and_then(Value::as_object_mut)
+        .ok_or_else(|| "provider config schema is missing uiHints".to_string())?;
+    ui_hints.insert("gateway".to_string(), json!({ "label": "Gateway" }));
+    ui_hints.insert("gateway.port".to_string(), json!({ "label": "Port" }));
+    ui_hints.insert("tools".to_string(), json!({ "label": "Tools" }));
+    ui_hints.insert("tools.deny".to_string(), json!({ "label": "Deny" }));
+    Ok(payload)
 }
 
 fn config_schema_lookup(params: Value) -> Result<Value, String> {
@@ -1113,13 +1153,16 @@ fn config_schema_lookup(params: Value) -> Result<Value, String> {
         "" => vec![
             json!({ "key": "gateway", "path": "gateway", "label": "Gateway" }),
             json!({ "key": "tools", "path": "tools", "label": "Tools" }),
+            json!({ "key": "models", "path": "models", "label": "Model Providers" }),
         ],
         "gateway" => vec![
             json!({ "key": "port", "path": "gateway.port", "label": "Port" }),
             json!({ "key": "bind", "path": "gateway.bind", "label": "Bind" }),
         ],
         "tools" => vec![json!({ "key": "deny", "path": "tools.deny", "label": "Deny" })],
-        _ => Vec::new(),
+        _ => {
+            return Ok(crawclaw_providers::provider_config_schema_lookup(&path));
+        }
     };
     Ok(json!({ "path": path, "children": children }))
 }
@@ -1501,6 +1544,10 @@ fn models_list(state: &GatewayState) -> Value {
             })
             .collect::<Vec<_>>(),
         "providerDescriptors": provider_descriptors,
+        "providerAuthChoices": crawclaw_providers::bundled_provider_auth_choices(),
+        "providerSetupOptions": crawclaw_providers::bundled_provider_setup_options(),
+        "providerModelPickerEntries": crawclaw_providers::bundled_provider_model_picker_entries(),
+        "webProviderBoundaries": crawclaw_providers::bundled_web_provider_boundaries(),
         "nativePluginDescriptors": native_registry.descriptors(),
         "nativeWebSearchProviders": native_registry.web_search_provider_descriptors(),
         "nativeWebFetchProviders": native_registry.web_fetch_provider_descriptors(),
@@ -1547,65 +1594,27 @@ fn usage_status(state: &GatewayState) -> Value {
 }
 
 fn usage_provider_snapshots(state: &GatewayState, config: &Value) -> Vec<Value> {
-    [
-        (
-            "anthropic",
-            "Claude",
-            "anthropic",
-            &["anthropic", "claude"][..],
-            &[][..],
-        ),
-        (
-            "github-copilot",
-            "Copilot",
-            "github-copilot",
-            &["github-copilot"][..],
-            &["GITHUB_COPILOT_TOKEN", "GH_COPILOT_TOKEN"][..],
-        ),
-        (
-            "google-gemini-cli",
-            "Gemini",
-            "google",
-            &["google-gemini-cli", "gemini", "google-gemini", "google"][..],
-            &[][..],
-        ),
-        (
-            "minimax",
-            "MiniMax",
-            "minimax",
-            &["minimax"][..],
-            &["MINIMAX_CODE_PLAN_KEY"][..],
-        ),
-        (
-            "openai-codex",
-            "Codex",
-            "openai",
-            &["openai-codex", "openai"][..],
-            &["OPENAI_CODEX_TOKEN"][..],
-        ),
-        ("xiaomi", "Xiaomi", "xiaomi", &["xiaomi"][..], &[][..]),
-        ("zai", "z.ai", "zai", &["zai", "z-ai"][..], &[][..]),
-    ]
-    .into_iter()
-    .filter(|(provider, _, auth_provider, aliases, extra_env_keys)| {
-        usage_provider_configured(
-            state,
-            config,
-            provider,
-            auth_provider,
-            aliases,
-            extra_env_keys,
-        )
-    })
-    .map(|(provider, display_name, _, _, _)| {
-        json!({
-            "provider": provider,
-            "displayName": display_name,
-            "windows": [],
-            "plan": "configured"
+    crawclaw_providers::bundled_provider_usage_descriptors()
+        .into_iter()
+        .filter(|descriptor| {
+            usage_provider_configured(
+                state,
+                config,
+                descriptor.provider,
+                descriptor.auth_provider,
+                descriptor.aliases,
+                descriptor.extra_env_keys,
+            )
         })
-    })
-    .collect()
+        .map(|descriptor| {
+            json!({
+                "provider": descriptor.provider,
+                "displayName": descriptor.display_name,
+                "windows": [],
+                "plan": "configured"
+            })
+        })
+        .collect()
 }
 
 fn usage_provider_configured(
@@ -6756,6 +6765,118 @@ async fn agent_run_turn(state: &GatewayState, params: Value) -> Result<Value, St
     }))
 }
 
+async fn agent_runtime_surface_run(
+    state: &GatewayState,
+    params: Value,
+    default_run_prefix: &str,
+    source: &str,
+) -> Result<Value, String> {
+    let trigger = string_param(&params, &["trigger"]).unwrap_or_else(|| "user".to_string());
+    let result = execute_agent_run_turn(state, &params, default_run_prefix).await?;
+    let events = agent_run_events_value(&result.events)?;
+    Ok(json!({
+        "ok": true,
+        "status": "completed",
+        "implementation": "rust-native",
+        "source": source,
+        "trigger": trigger,
+        "runId": result.run_id,
+        "sessionKey": result.session_key,
+        "assistantText": result.assistant_text,
+        "payloads": [
+            {
+                "text": result.assistant_text
+            }
+        ],
+        "meta": {
+            "implementation": "rust-native",
+            "source": source,
+            "trigger": trigger
+        },
+        "events": events
+    }))
+}
+
+async fn special_agent_run(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let request = serde_json::from_value::<SpecialAgentRunRequest>(params)
+        .map_err(|error| format!("invalid special_agents.run params: {error}"))?;
+    let selector = request
+        .kind
+        .as_deref()
+        .or(request.spawn_source.as_deref())
+        .ok_or_else(|| "special_agents.run requires kind or spawnSource".to_string())?;
+    let definition =
+        find_special_agent(selector).ok_or_else(|| format!("unknown special agent kind: {selector}"))?;
+    if matches!(definition.id, "review-spec" | "review-quality") {
+        return special_agent_run_with_agent_runtime(state, request, definition.id).await;
+    }
+    let response = SpecialAgentRunner::new(state.runtime_root.clone()).run(request)?;
+    Ok(json!(response))
+}
+
+async fn special_agent_run_with_agent_runtime(
+    state: &GatewayState,
+    request: SpecialAgentRunRequest,
+    kind: &str,
+) -> Result<Value, String> {
+    let run_id = format!("special-{kind}-{}", now_millis());
+    let session_key = request
+        .parent_session_key
+        .clone()
+        .unwrap_or_else(|| format!("special:{kind}:{run_id}"));
+    let task = request.task.unwrap_or_default();
+    let agent_request = AgentRunRequest {
+        run_id: run_id.clone(),
+        agent_id: kind.to_string(),
+        session_key: session_key.clone(),
+        inbound: ChannelInboundEnvelope {
+            channel: "special-agent".to_string(),
+            account_id: Some("rust-runtime".to_string()),
+            from: "special-agent".to_string(),
+            to: format!("agent:{kind}"),
+            chat_type: ChannelChatType::Direct,
+            body: task.clone(),
+            raw_body: Some(task),
+            message_id: Some(format!("{run_id}:input")),
+            thread_id: Some(session_key.clone()),
+            media_urls: Vec::new(),
+            metadata: BTreeMap::new(),
+        },
+        model: AgentModelSelection {
+            provider: "configured".to_string(),
+            model: "configured".to_string(),
+            reasoning_level: None,
+        },
+        enabled_tools: Vec::new(),
+        options: BTreeMap::new(),
+    };
+    let result = state
+        .agent_runtime
+        .run_turn(agent_request)
+        .await
+        .map_err(|error| error.message().to_string())?;
+    record_agent_run_events(state, &result)?;
+    let events = agent_run_events_value(&result.events)?;
+    Ok(json!({
+        "status": "completed",
+        "runId": result.run_id,
+        "kind": kind,
+        "executionMode": "spawned_session",
+        "parentSessionKey": request.parent_session_key,
+        "result": {
+            "status": "completed",
+            "assistantText": result.assistant_text,
+            "payloads": [
+                {
+                    "text": result.assistant_text
+                }
+            ],
+            "events": events,
+            "implementation": "rust-native"
+        }
+    }))
+}
+
 async fn channel_inbound_handle(state: &GatewayState, params: Value) -> Result<Value, String> {
     let inbound_value = params
         .get("inbound")
@@ -9309,6 +9430,10 @@ fn runtime_status_value(state: &GatewayState) -> Value {
         "jsPluginRuntime": "none",
         "providerPlugins": crawclaw_providers::bundled_provider_plugin_metadata(),
         "providerDescriptors": crawclaw_providers::bundled_provider_descriptors(),
+        "providerAuthChoices": crawclaw_providers::bundled_provider_auth_choices(),
+        "providerSetupOptions": crawclaw_providers::bundled_provider_setup_options(),
+        "providerModelPickerEntries": crawclaw_providers::bundled_provider_model_picker_entries(),
+        "webProviderBoundaries": crawclaw_providers::bundled_web_provider_boundaries(),
         "nativePluginDescriptors": native_registry.descriptors(),
         "nativeWebSearchProviders": native_registry.web_search_provider_descriptors(),
         "nativeWebFetchProviders": native_registry.web_fetch_provider_descriptors(),
@@ -9457,6 +9582,9 @@ fn gateway_methods() -> Vec<&'static str> {
         "workflow.resume",
         "workflow.agent.run",
         "agent.runTurn",
+        "agent.command.run",
+        "auto_reply.run",
+        "autoReply.run",
         "agent.streamEvents",
         "agent.cancel",
         "chat.history",
@@ -9517,6 +9645,9 @@ fn gateway_methods() -> Vec<&'static str> {
         "memory.ingestBatch",
         "memory.assemble",
         "memory.compact",
+        "memory.afterTurn",
+        "memory.prepareSubagentSpawn",
+        "memory.onSubagentEnded",
     ]
 }
 
@@ -10580,6 +10711,56 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rust_gateway_special_agent_run_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-special-agent-runtime");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"reviewed by rust special agent"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let run = handle_gateway_method(
+            &state,
+            "special_agents.run",
+            json!({
+                "kind": "review-spec",
+                "task": "check this plan",
+                "parentSessionKey": "agent:main:parent"
+            }),
+        )
+        .await
+        .expect("run special agent");
+
+        assert_eq!(run["status"], "completed");
+        assert_eq!(run["kind"], "review-spec");
+        assert_eq!(run["result"]["assistantText"], "reviewed by rust special agent");
+        assert_eq!(run["result"]["payloads"][0]["text"], "reviewed by rust special agent");
+
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured special agent request");
+        assert!(request.contains("check this plan"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
     async fn rust_gateway_memory_prompt_journal_summary_reads_jsonl() {
         let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-prompt-journal-summary");
@@ -10717,6 +10898,39 @@ mod tests {
             summary["experienceWrite"]["titles"][0],
             json!({ "title": "Useful note", "count": 1 })
         );
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_memory_after_turn_ingests_from_native_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-memory-after-turn");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let result = handle_gateway_method(
+            &state,
+            "memory.afterTurn",
+            json!({
+                "sessionId": "session-after-turn",
+                "sessionKey": "agent:main:after-turn",
+                "prePromptMessageCount": 1,
+                "messages": [
+                    { "role": "system", "content": "old context" },
+                    { "role": "user", "content": "remember this" },
+                    { "role": "assistant", "content": "stored" }
+                ]
+            }),
+        )
+        .await
+        .expect("memory after turn");
+
+        assert_eq!(result["status"], "ok");
+        assert_eq!(result["ingest"]["ingestedCount"], 2);
+        assert_eq!(result["durableExtraction"], true);
+        assert_eq!(result["experienceExtraction"], true);
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -11583,7 +11797,9 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             result["events"][1]["payload"]["text"],
             "hello from rust provider"
         );
-        assert_eq!(result["events"][3]["type"], "runCompleted");
+        assert_eq!(result["events"][3]["type"], "toolResult");
+        assert_eq!(result["events"][3]["toolName"], "memory.afterTurn");
+        assert_eq!(result["events"][4]["type"], "runCompleted");
         let request = request_rx
             .recv_timeout(Duration::from_secs(2))
             .expect("captured native provider request");
@@ -11660,7 +11876,9 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             result["events"][1]["payload"]["text"],
             "hello from agent run turn"
         );
-        assert_eq!(result["events"][3]["type"], "runCompleted");
+        assert_eq!(result["events"][3]["type"], "toolResult");
+        assert_eq!(result["events"][3]["toolName"], "memory.afterTurn");
+        assert_eq!(result["events"][4]["type"], "runCompleted");
 
         let streamed = handle_gateway_method(
             &state,
@@ -11694,6 +11912,91 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
                 .expect("updated transcript");
         assert!(transcript.contains("hello run turn"));
         assert!(transcript.contains("hello from agent run turn"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_agent_command_and_auto_reply_use_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-agent-surfaces");
+        let (provider_base_url, request_rx) = serve_openai_compatible_n(
+            r#"{"choices":[{"message":{"content":"first rust reply"}}]}"#,
+            2,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let command = handle_gateway_method(
+            &state,
+            "agent.command.run",
+            json!({
+                "runId": "command-run-1",
+                "agentId": "main",
+                "sessionKey": "agent:main:command",
+                "message": "run from command",
+                "channel": "telegram",
+                "accountId": "bot",
+                "from": "user-1",
+                "to": "agent:main",
+                "messageId": "cmd-1",
+                "threadId": "thread-1"
+            }),
+        )
+        .await
+        .expect("agent command run");
+        assert_eq!(command["ok"], true);
+        assert_eq!(command["runId"], "command-run-1");
+        assert_eq!(command["payloads"][0]["text"], "first rust reply");
+        assert_eq!(command["events"][0]["type"], "runStarted");
+
+        let auto_reply = handle_gateway_method(
+            &state,
+            "auto_reply.run",
+            json!({
+                "runId": "auto-reply-run-1",
+                "agentId": "main",
+                "sessionKey": "agent:main:auto",
+                "message": "run from auto reply",
+                "channel": "discord",
+                "accountId": "bot",
+                "from": "user-2",
+                "to": "agent:main",
+                "messageId": "auto-1",
+                "threadId": "thread-2",
+                "trigger": "heartbeat"
+            }),
+        )
+        .await
+        .expect("auto reply run");
+        assert_eq!(auto_reply["ok"], true);
+        assert_eq!(auto_reply["runId"], "auto-reply-run-1");
+        assert_eq!(auto_reply["payloads"][0]["text"], "first rust reply");
+        assert_eq!(auto_reply["trigger"], "heartbeat");
+
+        let command_request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured command request");
+        assert!(command_request.contains("run from command"));
+        let auto_request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured auto reply request");
+        assert!(auto_request.contains("run from auto reply"));
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -11751,7 +12054,9 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
         assert_eq!(result["assistantText"], "hello from inbound handler");
         assert_eq!(result["events"][0]["type"], "runStarted");
         assert_eq!(result["events"][1]["type"], "replyPayload");
-        assert_eq!(result["events"][3]["type"], "runCompleted");
+        assert_eq!(result["events"][3]["type"], "toolResult");
+        assert_eq!(result["events"][3]["toolName"], "memory.afterTurn");
+        assert_eq!(result["events"][4]["type"], "runCompleted");
 
         let streamed = handle_gateway_method(
             &state,
@@ -11816,6 +12121,28 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             .any(|provider| provider["provider"] == "fal"
                 && provider["kind"] == "image-generation"
                 && provider["transport"].is_null()));
+        assert!(models["providerSetupOptions"]
+            .as_array()
+            .expect("provider setup options")
+            .iter()
+            .any(|choice| choice["provider"] == "openai"
+                && choice["method"] == "api-key"
+                && choice["value"] == "openai-api-key"));
+        assert!(models["providerModelPickerEntries"]
+            .as_array()
+            .expect("provider model picker entries")
+            .iter()
+            .any(|entry| entry["provider"] == "ollama"
+                && entry["value"] == "provider-plugin:ollama:local"));
+        assert!(models["webProviderBoundaries"]
+            .as_array()
+            .expect("web provider boundaries")
+            .iter()
+            .any(|entry| entry["surface"] == "web-search"
+                && entry["provider"] == "open-websearch"
+                && entry["productBoundary"] == "rust-native-plugin"
+                && entry["executionRuntime"] == "node-ts-js"
+                && entry["runtimeMajor"] == 24));
         assert!(models["nativeWebFetchProviders"]
             .as_array()
             .expect("native web fetch providers")
@@ -11826,6 +12153,55 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             .expect("native speech providers")
             .iter()
             .any(|provider| provider["id"] == "qwen3-tts"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_config_schema_uses_provider_registry() {
+        let runtime_root = unique_test_runtime_root("gateway-provider-config-schema");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let schema = handle_gateway_method(&state, "config.schema", json!({}))
+            .await
+            .expect("config schema");
+        assert_eq!(schema["version"], "rust-provider-config-v1");
+        assert_eq!(
+            schema["schema"]["properties"]["models"]["properties"]["providers"]
+                ["additionalProperties"]["properties"]["api"]["enum"],
+            json!([
+                "openai-completions",
+                "openai-responses",
+                "openai-codex-responses",
+                "anthropic-messages",
+                "google-generative-ai",
+                "github-copilot",
+                "bedrock-converse-stream",
+                "ollama",
+                "azure-openai-responses"
+            ])
+        );
+        assert_eq!(
+            schema["uiHints"]["models.providers.*.apiKey"]["sensitive"],
+            true
+        );
+        assert!(schema["uiHints"].get("plugins.entries.*.hooks").is_none());
+
+        let lookup = handle_gateway_method(
+            &state,
+            "config.schema.lookup",
+            json!({ "path": "models.providers.*" }),
+        )
+        .await
+        .expect("provider lookup");
+        assert!(lookup["children"]
+            .as_array()
+            .expect("children")
+            .iter()
+            .any(|child| child["path"] == "models.providers.*.models"));
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -13685,6 +14061,34 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             stream
                 .write_all(response.as_bytes())
                 .expect("write provider response");
+        });
+        (format!("http://{addr}"), request_rx)
+    }
+
+    fn serve_openai_compatible_n(
+        response_body: &'static str,
+        request_count: usize,
+    ) -> (String, mpsc::Receiver<String>) {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind mock provider");
+        let addr = listener.local_addr().expect("mock provider addr");
+        let (request_tx, request_rx) = mpsc::channel();
+        thread::spawn(move || {
+            for _ in 0..request_count {
+                let (mut stream, _) = listener.accept().expect("accept provider request");
+                let mut buffer = [0; 8192];
+                let count = stream.read(&mut buffer).expect("read provider request");
+                request_tx
+                    .send(String::from_utf8_lossy(&buffer[..count]).to_string())
+                    .expect("send captured request");
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+                    response_body.len(),
+                    response_body
+                );
+                stream
+                    .write_all(response.as_bytes())
+                    .expect("write provider response");
+            }
         });
         (format!("http://{addr}"), request_rx)
     }

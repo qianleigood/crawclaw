@@ -206,7 +206,7 @@ describe("buildStatusMessage", () => {
       config: {
         channels: {
           modelByChannel: {
-            discord: {
+            qqbot: {
               "123": "openai/gpt-4.1",
             },
           },
@@ -218,10 +218,10 @@ describe("buildStatusMessage", () => {
       sessionEntry: {
         sessionId: "abc",
         updatedAt: 0,
-        channel: "discord",
+        channel: "qqbot",
         groupId: "123",
       },
-      sessionKey: "agent:main:discord:channel:123",
+      sessionKey: "agent:main:qqbot:channel:123",
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
     });
@@ -607,12 +607,12 @@ describe("buildStatusMessage", () => {
         agents: {
           list: [
             { id: "main", default: true },
-            { id: "discord", sandbox: { mode: "all" } },
+            { id: "qqbot", sandbox: { mode: "all" } },
           ],
         },
       } as unknown as CrawClawConfig,
       agent: {},
-      sessionKey: "agent:discord:discord:channel:1456350065223270435",
+      sessionKey: "agent:qqbot:qqbot:channel:1456350065223270435",
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
     });
@@ -822,7 +822,7 @@ describe("buildStatusMessage", () => {
         groupActivation: "always",
         chatType: "group",
       },
-      sessionKey: "agent:main:whatsapp:group:123@g.us",
+      sessionKey: "agent:main:weixin:group:123@g.us",
       sessionScope: "per-sender",
       queue: { mode: "collect", depth: 0 },
       modelAuth: "api-key",
@@ -1010,7 +1010,7 @@ describe("buildStatusMessage", () => {
 
         const text = buildTranscriptStatusText({
           sessionId,
-          sessionKey: "agent:worker1:telegram:12345",
+          sessionKey: "agent:worker1:feishu:12345",
         });
 
         expect(normalizeTestText(text)).toContain("Context: 1.0k/32k");
@@ -1406,13 +1406,13 @@ describe("buildHelpMessage", () => {
 });
 
 describe("buildCommandsMessagePaginated", () => {
-  it("formats telegram output with pages", () => {
+  it("formats feishu output with pages", () => {
     const result = buildCommandsMessagePaginated(
       {
         commands: { config: false, debug: false },
       } as unknown as CrawClawConfig,
       undefined,
-      { surface: "telegram", page: 1 },
+      { surface: "feishu", page: 1 },
     );
     expect(result.text).toContain("ℹ️ Commands (1/");
     expect(result.text).toContain("Session");
@@ -1432,7 +1432,7 @@ describe("buildCommandsMessagePaginated", () => {
         commands: { config: false, debug: false },
       } as unknown as CrawClawConfig,
       undefined,
-      { surface: "telegram", page: 1 },
+      { surface: "feishu", page: 1 },
     );
     const pages = Array.from({ length: firstPage.totalPages }, (_, index) =>
       buildPaginatedCommands(
@@ -1440,7 +1440,7 @@ describe("buildCommandsMessagePaginated", () => {
           commands: { config: false, debug: false },
         } as unknown as CrawClawConfig,
         undefined,
-        { surface: "telegram", page: index + 1 },
+        { surface: "feishu", page: index + 1 },
       ),
     );
     const pluginPage = pages.find((page) => page.text.includes("/plugin_cmd (demo-plugin)"));

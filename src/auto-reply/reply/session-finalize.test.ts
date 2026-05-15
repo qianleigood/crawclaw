@@ -29,7 +29,7 @@ describe("finalizeSessionInitState", () => {
 
   it("clears new-session runtime counters, persists the entry, and archives the previous session", async () => {
     const sessionStore: Record<string, SessionEntry> = {
-      "agent:main:telegram:direct:123": {
+      "agent:main:feishu:direct:123": {
         sessionId: "prev-session",
         updatedAt: 1_700_000_000_000,
       } as SessionEntry,
@@ -51,7 +51,7 @@ describe("finalizeSessionInitState", () => {
     const result = await finalizeSessionInitState({
       cfg: {} as never,
       sessionStore,
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       sessionEntry,
       storePath: "/tmp/sessions.json",
       retiredLegacyMainDelivery: {
@@ -76,7 +76,7 @@ describe("finalizeSessionInitState", () => {
     expect(result.outputTokens).toBeUndefined();
     expect(result.estimatedCostUsd).toBeUndefined();
     expect(result.contextTokens).toBeUndefined();
-    expect(sessionStore["agent:main:telegram:direct:123"]).toMatchObject({
+    expect(sessionStore["agent:main:feishu:direct:123"]).toMatchObject({
       sessionId: "next-session",
       compactionCount: 0,
     });

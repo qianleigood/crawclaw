@@ -42,7 +42,7 @@ const hoisted = vi.hoisted(() => {
   const providerManager = {
     getRuntimeSnapshot: vi.fn(() => ({
       providers: {
-        whatsapp: {
+        weixin: {
           running: false,
           connected: false,
           reconnectAttempts: 0,
@@ -52,55 +52,39 @@ const hoisted = vi.hoisted(() => {
           lastEventAt: null,
           lastError: null,
         },
-        telegram: {
+        feishu: {
           running: false,
           lastStartAt: null,
           lastStopAt: null,
           lastError: null,
           mode: null,
         },
-        discord: {
+        qqbot: {
           running: false,
           lastStartAt: null,
           lastStopAt: null,
           lastError: null,
         },
-        slack: {
+        ddingtalk: {
           running: false,
           lastStartAt: null,
           lastStopAt: null,
           lastError: null,
         },
-        signal: {
+        esp32: {
           running: false,
           lastStartAt: null,
           lastStopAt: null,
           lastError: null,
-          baseUrl: null,
-        },
-        imessage: {
-          running: false,
-          lastStartAt: null,
-          lastStopAt: null,
-          lastError: null,
-          cliPath: null,
-          dbPath: null,
-        },
-        msteams: {
-          running: false,
-          lastStartAt: null,
-          lastStopAt: null,
-          lastError: null,
+          deviceId: null,
         },
       },
       providerAccounts: {
-        whatsapp: {},
-        telegram: {},
-        discord: {},
-        slack: {},
-        signal: {},
-        imessage: {},
-        msteams: {},
+        weixin: {},
+        feishu: {},
+        qqbot: {},
+        ddingtalk: {},
+        esp32: {},
       },
     })),
     startChannels: vi.fn(async () => {}),
@@ -287,9 +271,9 @@ describe("gateway hot reload", () => {
       `${JSON.stringify(
         {
           channels: {
-            telegram: {
+            feishu: {
               enabled: false,
-              botToken: { source: "env", provider: "default", id: "DISABLED_TELEGRAM_STARTUP_REF" },
+              botToken: { source: "env", provider: "default", id: "DISABLED_FEISHU_STARTUP_REF" },
             },
           },
           tools: {
@@ -464,7 +448,7 @@ describe("gateway hot reload", () => {
     return ws;
   }
 
-  it("applies hot reload actions and emits restart signal", async () => {
+  it("applies hot reload actions and emits channel restart events", async () => {
     await withGatewayServer(async () => {
       const onHotReload = hoisted.getOnHotReload();
       expect(onHotReload).toBeTypeOf("function");
@@ -479,10 +463,11 @@ describe("gateway hot reload", () => {
         agents: { defaults: { heartbeat: { target: "last" }, maxConcurrent: 2 } },
         web: { enabled: true },
         channels: {
-          telegram: { botToken: "token" },
-          discord: { token: "token" },
-          signal: { account: "+15550000000" },
-          imessage: { enabled: true },
+          feishu: { appId: "app", appSecret: "secret" },
+          qqbot: { token: "token" },
+          ddingtalk: { botToken: "token" },
+          weixin: { enabled: true },
+          esp32: { deviceId: "device-1" },
         },
       };
 
@@ -493,10 +478,11 @@ describe("gateway hot reload", () => {
             "cron.enabled",
             "agents.defaults.heartbeat.target",
             "web.enabled",
-            "channels.telegram.botToken",
-            "channels.discord.token",
-            "channels.signal.account",
-            "channels.imessage.enabled",
+            "channels.feishu.appSecret",
+            "channels.qqbot.token",
+            "channels.ddingtalk.botToken",
+            "channels.weixin.enabled",
+            "channels.esp32.deviceId",
           ],
           restartGateway: false,
           restartReasons: [],
@@ -505,7 +491,7 @@ describe("gateway hot reload", () => {
           restartGmailWatcher: true,
           restartCron: true,
           restartHeartbeat: true,
-          restartChannels: new Set(["whatsapp", "telegram", "discord", "signal", "imessage"]),
+          restartChannels: new Set(["weixin", "feishu", "qqbot", "ddingtalk", "esp32"]),
           noopPaths: [],
         },
         nextConfig,
@@ -526,22 +512,22 @@ describe("gateway hot reload", () => {
 
       expect(hoisted.providerManager.stopChannel).toHaveBeenCalledTimes(5);
       expect(hoisted.providerManager.startChannel).toHaveBeenCalledTimes(5);
-      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("whatsapp");
-      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("whatsapp");
-      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("telegram");
-      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("telegram");
-      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("discord");
-      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("discord");
-      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("signal");
-      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("signal");
-      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("imessage");
-      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("imessage");
+      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("weixin");
+      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("weixin");
+      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("feishu");
+      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("feishu");
+      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("qqbot");
+      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("qqbot");
+      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("feishu");
+      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("feishu");
+      expect(hoisted.providerManager.stopChannel).toHaveBeenCalledWith("weixin");
+      expect(hoisted.providerManager.startChannel).toHaveBeenCalledWith("weixin");
 
       const onRestart = hoisted.getOnRestart();
       expect(onRestart).toBeTypeOf("function");
 
-      const signalSpy = vi.fn();
-      process.once("SIGUSR1", signalSpy);
+      const feishuSpy = vi.fn();
+      process.once("SIGUSR1", feishuSpy);
 
       const restartResult = onRestart?.(
         {
@@ -560,7 +546,7 @@ describe("gateway hot reload", () => {
       );
       await Promise.resolve(restartResult);
 
-      expect(signalSpy).toHaveBeenCalledTimes(1);
+      expect(feishuSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -665,7 +651,7 @@ describe("gateway hot reload", () => {
 
   it("allows startup when unresolved refs exist only on disabled surfaces", async () => {
     await writeDisabledSurfaceRefConfig();
-    delete process.env.DISABLED_TELEGRAM_STARTUP_REF;
+    delete process.env.DISABLED_FEISHU_STARTUP_REF;
     delete process.env.DISABLED_WEB_SEARCH_STARTUP_REF;
     await expect(withGatewayServer(async () => {})).resolves.toBeUndefined();
   });

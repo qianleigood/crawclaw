@@ -179,22 +179,22 @@ describe("normalizeReplyPayload", () => {
     expect(result!.mediaUrl).toBe("https://example.com/img.png");
   });
 
-  it("does not compile Slack directives unless interactive replies are enabled", () => {
+  it("does not compile Feishu directives unless interactive replies are enabled", () => {
     const result = normalizeReplyPayload({
-      text: "hello [[slack_buttons: Retry:retry, Ignore:ignore]]",
+      text: "hello [[feishu_buttons: Retry:retry, Ignore:ignore]]",
     });
 
     expect(result).not.toBeNull();
-    expect(result!.text).toBe("hello [[slack_buttons: Retry:retry, Ignore:ignore]]");
+    expect(result!.text).toBe("hello [[feishu_buttons: Retry:retry, Ignore:ignore]]");
     expect(result!.interactive).toBeUndefined();
   });
 
-  it("applies responsePrefix before compiling Slack directives into shared interactive blocks", () => {
+  it("applies responsePrefix before compiling Feishu directives into shared interactive blocks", () => {
     const result = normalizeReplyPayload(
       {
-        text: "hello [[slack_buttons: Retry:retry, Ignore:ignore]]",
+        text: "hello [[feishu_buttons: Retry:retry, Ignore:ignore]]",
       },
-      { responsePrefix: "[bot]", enableSlackInteractiveReplies: true },
+      { responsePrefix: "[bot]", enableChannelInteractiveReplies: true },
     );
 
     expect(result).not.toBeNull();
@@ -222,12 +222,12 @@ describe("normalizeReplyPayload", () => {
     });
   });
 
-  it("compiles simple trailing Options lines into Slack buttons when interactive replies are enabled", () => {
+  it("compiles simple trailing Options lines into Feishu buttons when interactive replies are enabled", () => {
     const result = normalizeReplyPayload(
       {
         text: "Current verbose level: off.\nOptions: on, full, off.",
       },
-      { enableSlackInteractiveReplies: true },
+      { enableChannelInteractiveReplies: true },
     );
 
     expect(result).not.toBeNull();
@@ -250,12 +250,12 @@ describe("normalizeReplyPayload", () => {
     });
   });
 
-  it("uses a Slack select when simple Options lines exceed the button row size", () => {
+  it("uses a Feishu select when simple Options lines exceed the button row size", () => {
     const result = normalizeReplyPayload(
       {
         text: "Choose a reasoning level.\nOptions: off, minimal, low, medium, high, adaptive.",
       },
-      { enableSlackInteractiveReplies: true },
+      { enableChannelInteractiveReplies: true },
     );
 
     expect(result).not.toBeNull();
@@ -287,7 +287,7 @@ describe("normalizeReplyPayload", () => {
       {
         text: "ACP runtime choices.\nOptions: host=auto|sandbox|gateway|node, security=deny|allowlist|full.",
       },
-      { enableSlackInteractiveReplies: true },
+      { enableChannelInteractiveReplies: true },
     );
 
     expect(result).not.toBeNull();

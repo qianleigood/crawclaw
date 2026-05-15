@@ -56,7 +56,7 @@ npm i -g crawclaw@latest
 pnpm add -g crawclaw@latest
 ```
 
-我们**不**推荐将 Bun 用于 Gateway 网关运行时（WhatsApp/Telegram 有 bug）。
+我们**不**推荐将 Bun 用于 Gateway 网关运行时（Weixin/Feishu 有 bug）。
 
 切换更新渠道（git + npm 安装）：
 
@@ -229,6 +229,6 @@ git pull
 
 - 再次运行 `crawclaw doctor` 并仔细阅读输出（它通常会告诉你修复方法）。
 - 查看：[故障排除](/gateway/troubleshooting)
-- 在 Discord 上提问：https://discord.gg/clawd
+- 在 QQBot 上提问：https://qqbot.gg/clawd
 
 另请参阅：

@@ -88,7 +88,7 @@ export function makeReplyConfig(home: string) {
       },
     },
     channels: {
-      whatsapp: {
+      weixin: {
         allowFrom: ["*"],
       },
     },
@@ -120,7 +120,7 @@ vi.mock("../agents/pi-embedded.js", () => ({
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
   runEmbeddedPiAgent: (...args: unknown[]) =>
     getInstalledReplyRuntimeMocks().runEmbeddedPiAgent(...args),
-  queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
+  queueEmbeddedPWeixin: vi.fn().mockReturnValue(false),
   resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
   isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),

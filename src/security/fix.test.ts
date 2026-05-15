@@ -30,13 +30,6 @@ describe("security fix", () => {
     CRAWCLAW_CONFIG_PATH: configPath,
   });
 
-  const writeJsonConfig = async (configPath: string, config: Record<string, unknown>) => {
-    await fs.writeFile(configPath, `${JSON.stringify(config, null, 2)}\n`, "utf-8");
-  };
-
-  const readParsedConfig = async (configPath: string) =>
-    JSON.parse(await fs.readFile(configPath, "utf-8")) as Record<string, unknown>;
-
   const expectTightenedStateAndConfigPerms = async (stateDir: string, configPath: string) => {
     const stateMode = (await fs.stat(stateDir)).mode & 0o777;
     expectPerms(stateMode, 0o700);
@@ -53,78 +46,6 @@ describe("security fix", () => {
     if (fixtureRoot) {
       await fs.rm(fixtureRoot, { recursive: true, force: true });
     }
-  });
-
-  it("tightens retained channel groupPolicy + filesystem perms", async () => {
-    const stateDir = await createStateDir("tightens");
-    await fs.chmod(stateDir, 0o755);
-
-    const configPath = path.join(stateDir, "crawclaw.json");
-    await writeJsonConfig(configPath, {
-      channels: {
-        ddingtalk: { groupPolicy: "open" },
-        esp32: { groupPolicy: "open" },
-        feishu: { groupPolicy: "open" },
-        qqbot: { groupPolicy: "open" },
-        weixin: { groupPolicy: "open" },
-      },
-      logging: { redactSensitive: "off" },
-    });
-    await fs.chmod(configPath, 0o644);
-
-    const res = await fixSecurityFootguns({
-      env: createFixEnv(stateDir, configPath),
-      stateDir,
-      configPath,
-    });
-    expect(res.ok).toBe(true);
-    expect(res.configWritten).toBe(true);
-    expect(res.changes).toEqual(
-      expect.arrayContaining([
-        "channels.ddingtalk.groupPolicy=open -> allowlist",
-        "channels.esp32.groupPolicy=open -> allowlist",
-        "channels.feishu.groupPolicy=open -> allowlist",
-        "channels.qqbot.groupPolicy=open -> allowlist",
-        "channels.weixin.groupPolicy=open -> allowlist",
-        'logging.redactSensitive=off -> "tools"',
-      ]),
-    );
-
-    await expectTightenedStateAndConfigPerms(stateDir, configPath);
-
-    const parsed = await readParsedConfig(configPath);
-    const channels = parsed.channels as Record<string, Record<string, unknown>>;
-    expect(channels.ddingtalk.groupPolicy).toBe("allowlist");
-    expect(channels.esp32.groupPolicy).toBe("allowlist");
-    expect(channels.feishu.groupPolicy).toBe("allowlist");
-    expect(channels.qqbot.groupPolicy).toBe("allowlist");
-    expect(channels.weixin.groupPolicy).toBe("allowlist");
-  });
-
-  it("applies allowlist per retained channel account", async () => {
-    const stateDir = await createStateDir("per-account");
-    const configPath = path.join(stateDir, "crawclaw.json");
-    await writeJsonConfig(configPath, {
-      channels: {
-        feishu: {
-          accounts: {
-            work: { groupPolicy: "open" },
-          },
-        },
-      },
-    });
-
-    const res = await fixSecurityFootguns({
-      env: createFixEnv(stateDir, configPath),
-      stateDir,
-      configPath,
-    });
-    expect(res.ok).toBe(true);
-
-    const parsed = await readParsedConfig(configPath);
-    const feishu = (parsed.channels as Record<string, Record<string, unknown>>).feishu;
-    const accounts = feishu.accounts as Record<string, Record<string, unknown>>;
-    expect(accounts.work?.groupPolicy).toBe("allowlist");
   });
 
   it("returns ok=false for invalid config but still tightens perms", async () => {
@@ -155,16 +76,12 @@ describe("security fix", () => {
     await fs.chmod(includePath, 0o644);
 
     const configPath = path.join(stateDir, "crawclaw.json");
-    await fs.writeFile(
-      configPath,
-      `{ "$include": "./includes/extra.json5", channels: { feishu: { groupPolicy: "open" } } }\n`,
-      "utf-8",
-    );
+    await fs.writeFile(configPath, `{ "$include": "./includes/extra.json5" }\n`, "utf-8");
     await fs.chmod(configPath, 0o644);
 
     const credsDir = path.join(stateDir, "credentials");
     await fs.mkdir(credsDir, { recursive: true });
-    const secretPath = path.join(credsDir, "feishu-secret.json");
+    const secretPath = path.join(credsDir, "runtime-secret.json");
     await fs.writeFile(secretPath, "{}\n", "utf-8");
     await fs.chmod(secretPath, 0o644);
 

@@ -60,22 +60,22 @@ describe("exec approval followup", () => {
 
   it.each([
     {
-      channel: "slack",
-      sessionKey: "agent:main:slack:channel:C123",
+      channel: "ddingtalk",
+      sessionKey: "agent:main:ddingtalk:channel:C123",
       to: "channel:C123",
       accountId: "default",
       threadId: "1712419200.1234",
     },
     {
-      channel: "discord",
-      sessionKey: "agent:main:discord:channel:123",
+      channel: "qqbot",
+      sessionKey: "agent:main:qqbot:channel:123",
       to: "123",
       accountId: "default",
       threadId: "456",
     },
     {
-      channel: "telegram",
-      sessionKey: "agent:main:telegram:-100123",
+      channel: "feishu",
+      sessionKey: "agent:main:feishu:-100123",
       to: "-100123",
       accountId: "default",
       threadId: "789",
@@ -88,7 +88,7 @@ describe("exec approval followup", () => {
       turnSourceTo: target.to,
       turnSourceAccountId: target.accountId,
       turnSourceThreadId: target.threadId,
-      resultText: "slack exec approval smoke",
+      resultText: "ddingtalk exec approval smoke",
     });
 
     expect(callGatewayTool).toHaveBeenCalledWith(
@@ -112,7 +112,7 @@ describe("exec approval followup", () => {
   it("falls back to sanitized direct external delivery only when no session exists", async () => {
     await sendExecApprovalFollowup({
       approvalId: "req-no-session",
-      turnSourceChannel: "discord",
+      turnSourceChannel: "qqbot",
       turnSourceTo: "123",
       turnSourceAccountId: "default",
       turnSourceThreadId: "456",
@@ -121,7 +121,7 @@ describe("exec approval followup", () => {
 
     expect(sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
-        channel: "discord",
+        channel: "qqbot",
         to: "123",
         accountId: "default",
         threadId: "456",
@@ -137,8 +137,8 @@ describe("exec approval followup", () => {
 
     await sendExecApprovalFollowup({
       approvalId: "req-session-resume-failed",
-      sessionKey: "agent:main:discord:channel:123",
-      turnSourceChannel: "discord",
+      sessionKey: "agent:main:qqbot:channel:123",
+      turnSourceChannel: "qqbot",
       turnSourceTo: "123",
       turnSourceAccountId: "default",
       turnSourceThreadId: "456",
@@ -157,7 +157,7 @@ describe("exec approval followup", () => {
   it("uses a generic summary when a no-session completion has no user-visible output", async () => {
     await sendExecApprovalFollowup({
       approvalId: "req-no-session-empty",
-      turnSourceChannel: "discord",
+      turnSourceChannel: "qqbot",
       turnSourceTo: "123",
       turnSourceAccountId: "default",
       turnSourceThreadId: "456",
@@ -177,8 +177,8 @@ describe("exec approval followup", () => {
 
     await sendExecApprovalFollowup({
       approvalId: "req-denied-resume-failed",
-      sessionKey: "agent:main:telegram:-100123",
-      turnSourceChannel: "telegram",
+      sessionKey: "agent:main:feishu:-100123",
+      turnSourceChannel: "feishu",
       turnSourceTo: "-100123",
       turnSourceAccountId: "default",
       turnSourceThreadId: "789",
@@ -199,7 +199,7 @@ describe("exec approval followup", () => {
       sendExecApprovalFollowup({
         approvalId: "req-denied-subagent",
         sessionKey: "agent:main:subagent:test",
-        turnSourceChannel: "telegram",
+        turnSourceChannel: "feishu",
         turnSourceTo: "123",
         turnSourceAccountId: "default",
         resultText: "Exec denied (gateway id=req-denied-subagent, approval-timeout): uname -a",
@@ -217,7 +217,7 @@ describe("exec approval followup", () => {
     await expect(
       sendExecApprovalFollowup({
         approvalId: "req-denied-nosession",
-        turnSourceChannel: "telegram",
+        turnSourceChannel: "feishu",
         turnSourceTo: "123",
         turnSourceAccountId: "default",
         resultText,
@@ -232,7 +232,7 @@ describe("exec approval followup", () => {
     await expect(
       sendExecApprovalFollowup({
         approvalId: "req-missing",
-        turnSourceChannel: "slack",
+        turnSourceChannel: "ddingtalk",
         resultText: "Exec completed: echo ok",
       }),
     ).rejects.toThrow("Session key or deliverable origin route is required");

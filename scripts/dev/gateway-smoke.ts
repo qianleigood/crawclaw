@@ -40,7 +40,7 @@ async function main() {
     maxProtocol: 3,
     client: {
       id: "crawclaw-smoke",
-      displayName: "crawclaw gateway smoke test",
+      displayName: "CrawClaw Gateway smoke test",
       version: "dev",
       platform: "dev",
       mode: "ui",

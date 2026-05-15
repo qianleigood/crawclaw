@@ -7,10 +7,6 @@ import {
 import { loadConfig, type CrawClawConfig } from "../../config/config.js";
 import { coerceSecretRef } from "../../config/types.secrets.js";
 import { withFileLock } from "../../infra/file-lock.js";
-import {
-  formatProviderAuthProfileApiKeyWithPlugin,
-  refreshProviderOAuthCredentialWithPlugin,
-} from "../../plugins/provider-runtime.runtime.js";
 import { resolveSecretRefString, type SecretRefResolveCache } from "../../secrets/resolve.js";
 import { refreshChutesTokens } from "../chutes-oauth.js";
 import { AUTH_STORE_LOCK_OPTIONS, log } from "./constants.js";
@@ -82,11 +78,8 @@ function isProfileConfigCompatible(params: {
 }
 
 async function buildOAuthApiKey(provider: string, credentials: OAuthCredential): Promise<string> {
-  const formatted = await formatProviderAuthProfileApiKeyWithPlugin({
-    provider,
-    context: credentials,
-  });
-  return typeof formatted === "string" && formatted.length > 0 ? formatted : credentials.access;
+  void provider;
+  return credentials.access;
 }
 
 function buildApiKeyProfileResult(params: { apiKey: string; provider: string; email?: string }) {
@@ -177,24 +170,6 @@ async function refreshOAuthTokenWithLock(params: {
       return {
         apiKey: await buildOAuthApiKey(cred.provider, cred),
         newCredentials: cred,
-      };
-    }
-
-    const pluginRefreshed = await refreshProviderOAuthCredentialWithPlugin({
-      provider: cred.provider,
-      context: cred,
-    });
-    if (pluginRefreshed) {
-      const refreshedCredentials: OAuthCredential = {
-        ...cred,
-        ...pluginRefreshed,
-        type: "oauth",
-      };
-      store.profiles[params.profileId] = refreshedCredentials;
-      saveAuthProfileStore(store, params.agentDir);
-      return {
-        apiKey: await buildOAuthApiKey(cred.provider, refreshedCredentials),
-        newCredentials: refreshedCredentials,
       };
     }
 

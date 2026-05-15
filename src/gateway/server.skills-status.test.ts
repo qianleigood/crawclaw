@@ -11,12 +11,12 @@ describe("gateway skills.status", () => {
     await withEnvAsync(
       { CRAWCLAW_BUNDLED_SKILLS_DIR: path.join(process.cwd(), "skills") },
       async () => {
-        const secret = "discord-token-secret-abc"; // pragma: allowlist secret
+        const secret = "qqbot-token-secret-abc"; // pragma: allowlist secret
         const { writeConfigFile } = await import("../config/config.js");
         await writeConfigFile({
           session: { mainKey: "main-test" },
           channels: {
-            discord: {
+            qqbot: {
               token: secret,
             },
           },
@@ -36,9 +36,9 @@ describe("gateway skills.status", () => {
           expect(res.ok).toBe(true);
           expect(JSON.stringify(res.payload)).not.toContain(secret);
 
-          const discord = res.payload?.skills?.find((s) => s.name === "discord");
-          expect(discord).toBeTruthy();
-          const check = discord?.configChecks?.find((c) => c.path === "channels.discord.token");
+          const qqbot = res.payload?.skills?.find((s) => s.name === "qqbot");
+          expect(qqbot).toBeTruthy();
+          const check = qqbot?.configChecks?.find((c) => c.path === "channels.qqbot.token");
           expect(check).toBeTruthy();
           expect(check?.satisfied).toBe(true);
           expect(check && "value" in check).toBe(false);

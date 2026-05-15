@@ -20,10 +20,10 @@ This matrix describes the current support posture for CrawClaw surfaces. It is n
 
 | Surface                    | Status    | Notes                                                                 |
 | -------------------------- | --------- | --------------------------------------------------------------------- |
-| CLI                        | Supported | Main operator entrypoint.                                             |
+| CrawClaw Desktop           | Supported | Main Apple-platform user entrypoint.                                  |
 | Gateway                    | Supported | Primary control plane for sessions, tools, channels, and events.      |
 | Local workspace and config | Supported | `~/.crawclaw` and `crawclaw.json` are the canonical runtime surfaces. |
-| Onboarding                 | Beta      | Recommended setup path; still evolving quickly.                       |
+| Onboarding                 | Beta      | Desktop-first setup path; still evolving quickly.                     |
 
 ## Agent platform
 
@@ -46,13 +46,13 @@ This matrix describes the current support posture for CrawClaw surfaces. It is n
 
 ## User interfaces
 
-| Surface                            | Status       | Notes                                                 |
-| ---------------------------------- | ------------ | ----------------------------------------------------- |
-| Terminal-first setup and operation | Supported    | Primary recommended path.                             |
-| Browser tooling                    | Experimental | Powerful local-first features with fast-moving edges. |
+| Surface                           | Status       | Notes                                                 |
+| --------------------------------- | ------------ | ----------------------------------------------------- |
+| Desktop-first setup and operation | Supported    | Primary recommended path on Apple platforms.          |
+| Browser tooling                   | Experimental | Powerful local-first features with fast-moving edges. |
 
 ## Contributor guidance
 
-- If you want the safest place to contribute, start with CLI, gateway, sessions, or docs.
+- If you want the safest place to contribute, start with Desktop, Gateway, sessions, or docs.
 - If you touch memory, skills, workflows, or plugin-sdk, expect more product and API discussion.
 - If you touch long-tail channels, browser/canvas, or automation, expect more environment-specific validation.

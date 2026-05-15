@@ -9,13 +9,13 @@ title: "Tests"
 
 - Full testing kit (suites and live tests): [Testing](/help/testing)
 
-- `pnpm test:force`: Kills any lingering gateway process holding the default control port, then runs the full Vitest suite with an isolated gateway port so server tests don’t collide with a running instance. Use this when a prior gateway run left port 18789 occupied.
+- `pnpm test`: Kills any lingering gateway process holding the default control port, then runs the full Vitest suite with an isolated gateway port so server tests don’t collide with a running instance. Use this when a prior gateway run left port 18789 occupied.
 - `pnpm test:coverage`: Runs the unit suite with V8 coverage (via `vitest.unit.config.ts`). Global thresholds are 70% lines/branches/functions/statements. Coverage excludes integration-heavy gateway/channel bridges to keep the target focused on unit-testable logic.
 - `pnpm test:coverage:changed`: Runs unit coverage only for files changed since `origin/main`.
 - `pnpm test:changed`: runs the wrapper with `--changed origin/main`. The base Vitest config treats the wrapper manifests/config files as `forceRerunTriggers` so scheduler changes still rerun broadly when needed.
 - `pnpm test`: runs the full wrapper. It keeps only a small behavioral override manifest in git, then uses a checked-in timing snapshot to peel the heaviest measured unit files into dedicated lanes.
 - Unit, channel, extension, and gateway wrapper lanes default to Vitest `forks`.
-- `pnpm test:channels` runs through the wrapper and uses `forks`; channel-specific isolated and hotspot lanes are tracked in `test/fixtures/test-parallel.behavior.json`.
+- Channel adapter tests have moved to Rust-native channel crates; the TS runner no longer has a dedicated channel lane.
 - `pnpm test:extensions` runs through the wrapper and uses `forks` for shared and isolated extension lanes.
 - `pnpm test:extensions`: runs extension/plugin suites.
 - `pnpm test:perf:imports`: enables Vitest import-duration + import-breakdown reporting for the wrapper.

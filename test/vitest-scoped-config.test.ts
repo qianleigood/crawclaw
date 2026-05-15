@@ -67,10 +67,7 @@ describe("scoped vitest configs", () => {
       fs.writeFileSync(
         includeFile,
         JSON.stringify([
-          bundledPluginFile(
-            "discord",
-            "src/monitor/message-handler.preflight.acp-bindings.test.ts",
-          ),
+          bundledPluginFile("qqbot", "src/monitor/message-handler.preflight.acp-bindings.test.ts"),
         ]),
         "utf8",
       );
@@ -80,7 +77,7 @@ describe("scoped vitest configs", () => {
       });
 
       expect(config.test?.include).toEqual([
-        bundledPluginFile("discord", "src/monitor/message-handler.preflight.acp-bindings.test.ts"),
+        bundledPluginFile("qqbot", "src/monitor/message-handler.preflight.acp-bindings.test.ts"),
       ]);
     } finally {
       fs.rmSync(tempDir, { recursive: true, force: true });

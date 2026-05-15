@@ -48,20 +48,20 @@ describe("web login gateway handlers", () => {
     channelRegistryMocks.listChannelPlugins.mockReset();
   });
 
-  it("uses the explicit WhatsApp QR provider instead of channel gateway method metadata", async () => {
+  it("uses the explicit Weixin QR provider instead of channel gateway method metadata", async () => {
     const loginWithQrStart = vi.fn(async () => ({
-      channel: "whatsapp",
+      channel: "weixin",
       accountId: "default",
       message: "scan",
     }));
-    const whatsappPlugin = {
-      id: "whatsapp",
+    const weixinPlugin = {
+      id: "weixin",
       gateway: { loginWithQrStart },
     } satisfies Partial<ChannelPlugin>;
     channelRegistryMocks.getChannelPlugin.mockImplementation((channel: string) =>
-      channel === "whatsapp" ? whatsappPlugin : undefined,
+      channel === "weixin" ? weixinPlugin : undefined,
     );
-    channelRegistryMocks.listChannelPlugins.mockReturnValue([whatsappPlugin]);
+    channelRegistryMocks.listChannelPlugins.mockReturnValue([weixinPlugin]);
     const context = createWebLoginContext();
     const { calls, respond } = createRespondCapture();
     const { webHandlers } = await import("./web.js");
@@ -70,16 +70,16 @@ describe("web login gateway handlers", () => {
       createHandlerOptions({ accountId: "default", force: true }, context, respond),
     );
 
-    expect(channelRegistryMocks.getChannelPlugin).toHaveBeenCalledWith("whatsapp");
+    expect(channelRegistryMocks.getChannelPlugin).toHaveBeenCalledWith("weixin");
     expect(loginWithQrStart).toHaveBeenCalledWith({
       accountId: "default",
       force: true,
       timeoutMs: undefined,
       verbose: false,
     });
-    expect(context.stopChannel).toHaveBeenCalledWith("whatsapp", "default");
+    expect(context.stopChannel).toHaveBeenCalledWith("weixin", "default");
     expect(calls).toEqual([
-      [true, { channel: "whatsapp", accountId: "default", message: "scan" }, undefined],
+      [true, { channel: "weixin", accountId: "default", message: "scan" }, undefined],
     ]);
   });
 });

@@ -1,6 +1,5 @@
 import { getAcpSessionManager } from "../../acp/control-plane/manager.js";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
-import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
 import {
   getLatestSubagentRunByChildSessionKey,
   listSubagentRunsForController,
@@ -19,7 +18,6 @@ import {
   type SessionEntry,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
-import { parseAgentSessionKey } from "../../routing/session-key.js";
 import { executeAbortTarget } from "../../sessions/runtime/abort-executor.js";
 import { resolveCommandAuthorization } from "../command-auth.js";
 import type { FinalizedMsgContext, MsgContext } from "../templating.js";
@@ -47,7 +45,6 @@ export {
 
 const defaultAbortDeps = {
   getAcpSessionManager,
-  abortEmbeddedPiRun,
   getLatestSubagentRunByChildSessionKey,
   listSubagentRunsForController,
   markSubagentRunTerminated,
@@ -61,7 +58,6 @@ export const __testing = {
   setDepsForTests(deps: Partial<typeof defaultAbortDeps> | undefined): void {
     abortDeps.getAcpSessionManager =
       deps?.getAcpSessionManager ?? defaultAbortDeps.getAcpSessionManager;
-    abortDeps.abortEmbeddedPiRun = deps?.abortEmbeddedPiRun ?? defaultAbortDeps.abortEmbeddedPiRun;
     abortDeps.getLatestSubagentRunByChildSessionKey =
       deps?.getLatestSubagentRunByChildSessionKey ??
       defaultAbortDeps.getLatestSubagentRunByChildSessionKey;
@@ -72,7 +68,6 @@ export const __testing = {
   },
   resetDepsForTests(): void {
     abortDeps.getAcpSessionManager = defaultAbortDeps.getAcpSessionManager;
-    abortDeps.abortEmbeddedPiRun = defaultAbortDeps.abortEmbeddedPiRun;
     abortDeps.getLatestSubagentRunByChildSessionKey =
       defaultAbortDeps.getLatestSubagentRunByChildSessionKey;
     abortDeps.listSubagentRunsForController = defaultAbortDeps.listSubagentRunsForController;
@@ -162,7 +157,6 @@ export function stopSubagentsForRequester(params: {
     return { stopped: 0 };
   }
 
-  const storeCache = new Map<string, Record<string, SessionEntry>>();
   const seenChildKeys = new Set<string>();
   let stopped = 0;
 
@@ -175,16 +169,6 @@ export function stopSubagentsForRequester(params: {
 
     if (!run.endedAt) {
       const cleared = clearSessionQueues([childKey]);
-      const parsed = parseAgentSessionKey(childKey);
-      const storePath = resolveStorePath(params.cfg.session?.store, { agentId: parsed?.agentId });
-      let store = storeCache.get(storePath);
-      if (!store) {
-        store = loadSessionStore(storePath);
-        storeCache.set(storePath, store);
-      }
-      const entry = store[childKey];
-      const sessionId = entry?.sessionId;
-      const aborted = sessionId ? abortDeps.abortEmbeddedPiRun(sessionId) : false;
       const markedTerminated =
         abortDeps.markSubagentRunTerminated({
           runId: run.runId,
@@ -192,7 +176,7 @@ export function stopSubagentsForRequester(params: {
           reason: "killed",
         }) > 0;
 
-      if (markedTerminated || aborted || cleared.followupCleared > 0 || cleared.laneCleared > 0) {
+      if (markedTerminated || cleared.followupCleared > 0 || cleared.laneCleared > 0) {
         stopped += 1;
       }
     }

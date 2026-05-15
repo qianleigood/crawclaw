@@ -1,7 +1,7 @@
 ---
 read_when:
   - 你正在将 CrawClaw 迁移到新的笔记本电脑/服务器
-  - 你想保留会话、认证和渠道登录（WhatsApp 等）
+  - 你想保留会话、认证和渠道登录（Weixin 等）
 summary: 将 CrawClaw 安装从一台机器迁移到另一台
 title: 迁移指南
 x-i18n:
@@ -61,7 +61,7 @@ crawclaw status
 - Gateway 网关配置（`crawclaw.json`）
 - 认证配置文件 / API 密钥 / OAuth 令牌
 - 会话历史 + 智能体状态
-- 渠道状态（例如 WhatsApp 登录/会话）
+- 渠道状态（例如 Weixin 登录/会话）
 - 你的工作区文件（记忆、Skills 笔记等）
 
 如果你**只**复制工作区（例如通过 Git），你**不会**保留：
@@ -177,7 +177,7 @@ crawclaw doctor
 
 ### 陷阱：备份中的密钥
 
-`$CRAWCLAW_STATE_DIR` 包含密钥（API 密钥、OAuth 令牌、WhatsApp 凭证）。将备份视为生产密钥：
+`$CRAWCLAW_STATE_DIR` 包含密钥（API 密钥、OAuth 令牌、Weixin 凭证）。将备份视为生产密钥：
 
 - 加密存储
 - 避免通过不安全的渠道共享
@@ -188,7 +188,7 @@ crawclaw doctor
 在新机器上，确认：
 
 - `crawclaw status` 显示 Gateway 网关正在运行
-- 你的渠道仍然连接（例如 WhatsApp 不需要重新配对）
+- 你的渠道仍然连接（例如 Weixin 不需要重新配对）
 - Gateway 客户端能连接并显示现有会话
 - 你的工作区文件（记忆、配置）存在
 

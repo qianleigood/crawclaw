@@ -97,24 +97,22 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
           new Error(
             "A request error occurred: Client network socket disconnected before secure TLS connection was established",
           ),
-          { code: "slack_webapi_request_error" },
+          { code: "ddingtalk_webapi_request_error" },
         ),
-        Object.assign(new Error("A request error occurred: getaddrinfo EAI_AGAIN slack.com"), {
-          code: "slack_webapi_request_error",
-          original: { code: "EAI_AGAIN", syscall: "getaddrinfo", hostname: "slack.com" },
+        Object.assign(new Error("A request error occurred: getaddrinfo EAI_AGAIN ddingtalk.com"), {
+          code: "ddingtalk_webapi_request_error",
+          original: { code: "EAI_AGAIN", syscall: "getaddrinfo", hostname: "ddingtalk.com" },
         }),
         Object.assign(new Error("A request error occurred: unknown"), {
-          code: "slack_webapi_request_error",
+          code: "ddingtalk_webapi_request_error",
           original: Object.assign(new Error("connect timeout"), {
             code: "UND_ERR_CONNECT_TIMEOUT",
           }),
         }),
       ];
 
-      // Wrapped fetch-failed (e.g. Discord: "Failed to get gateway information from Discord: fetch failed")
-      transientCases.push(
-        new Error("Failed to get gateway information from Discord: fetch failed"),
-      );
+      // Wrapped fetch-failed (e.g. QQBot: "Failed to get gateway information from QQBot: fetch failed")
+      transientCases.push(new Error("Failed to get gateway information from QQBot: fetch failed"));
 
       for (const transientErr of transientCases) {
         expectExitCodeFromUnhandled(transientErr, []);
@@ -159,15 +157,15 @@ describe("installUnhandledRejectionHandler - fatal detection", () => {
       );
     });
 
-    it("exits on non-transient Slack request errors", () => {
-      const slackErr = Object.assign(
+    it("exits on non-transient DingTalk request errors", () => {
+      const ddingtalkErr = Object.assign(
         new Error("A request error occurred: invalid request payload"),
         {
-          code: "slack_webapi_request_error",
+          code: "ddingtalk_webapi_request_error",
         },
       );
 
-      expectExitCodeFromUnhandled(slackErr, [1]);
+      expectExitCodeFromUnhandled(ddingtalkErr, [1]);
     });
 
     it("does not exit on AbortError and logs suppression warning", () => {

@@ -12,13 +12,7 @@
  */
 
 /** Channels where HTML tags should be converted/stripped. */
-const PLAIN_TEXT_SURFACES = new Set([
-  "ddingtalk",
-  "esp32",
-  "feishu",
-  "qqbot",
-  "weixin",
-]);
+const PLAIN_TEXT_SURFACES = new Set(["ddingtalk", "esp32", "feishu", "qqbot", "weixin"]);
 
 /** Returns `true` when the channel cannot render raw HTML. */
 export function isPlainTextSurface(channelId: string): boolean {

@@ -27,8 +27,8 @@ export type MdnsDiscoveryConfig = {
   /**
    * mDNS/Bonjour discovery broadcast mode (default: minimal).
    * - off: disable mDNS entirely
-   * - minimal: omit cliPath/sshPort from TXT records
-   * - full: include cliPath/sshPort in TXT records
+   * - minimal: omit sshPort from TXT records
+   * - full: include sshPort in TXT records
    */
   mode?: MdnsDiscoveryMode;
 };

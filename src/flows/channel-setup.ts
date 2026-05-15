@@ -7,26 +7,26 @@ import {
 } from "../channels/plugins/setup-registry.js";
 import type { ChannelSetupPlugin } from "../channels/plugins/setup-wizard-types.js";
 import { listChatChannels } from "../channels/registry.js";
-import { formatCliCommand } from "../cli/command-format.js";
-import { translateActiveCliText } from "../cli/i18n/text.js";
-import { resolveChannelSetupEntries } from "../commands/channel-setup/discovery.js";
+import { isChannelConfigured } from "../config/channel-configured.js";
+import type { CrawClawConfig } from "../config/config.js";
+import { resolveChannelSetupEntries } from "../control/channel-setup/discovery.js";
 import {
   ensureChannelSetupPluginInstalled,
   loadChannelSetupPluginRegistrySnapshotForChannel,
-} from "../commands/channel-setup/plugin-install.js";
-import { resolveChannelSetupWizardAdapterForPlugin } from "../commands/channel-setup/registry.js";
+} from "../control/channel-setup/plugin-install.js";
+import { resolveChannelSetupWizardAdapterForPlugin } from "../control/channel-setup/registry.js";
 import type {
   ChannelSetupConfiguredResult,
   ChannelSetupResult,
   ChannelOnboardingPostWriteHook,
   SetupChannelsOptions,
-} from "../commands/channel-setup/types.js";
-import type { ChannelChoice } from "../commands/onboard-types.js";
-import { isChannelConfigured } from "../config/channel-configured.js";
-import type { CrawClawConfig } from "../config/config.js";
+} from "../control/channel-setup/types.js";
+import type { ChannelChoice } from "../control/onboard-types.js";
 import { enablePluginInConfig } from "../plugins/enable.js";
 import { DEFAULT_ACCOUNT_ID, normalizeAccountId } from "../routing/session-key.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { formatCliCommand } from "../terminal/command-format.js";
+import { translateActiveCliText } from "../terminal/i18n/text.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import {
   maybeConfigureDmPolicies,

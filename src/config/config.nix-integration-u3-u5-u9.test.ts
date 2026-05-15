@@ -159,15 +159,6 @@ describe("Nix integration (U3, U5, U9)", () => {
                   },
                 ],
               },
-              channels: {
-                weixin: {
-                  accounts: {
-                    personal: {
-                      authDir: "~/.crawclaw/credentials/weixin-personal",
-                    },
-                  },
-                },
-              },
             },
             null,
             2,
@@ -182,9 +173,6 @@ describe("Nix integration (U3, U5, U9)", () => {
         expect(cfg.agents?.list?.[0]?.workspace).toBe(path.join(home, "ws-agent"));
         expect(cfg.agents?.list?.[0]?.agentDir).toBe(
           path.join(home, ".crawclaw", "agents", "main"),
-        );
-        expect(cfg.channels?.weixin?.accounts?.personal?.authDir).toBe(
-          path.join(home, ".crawclaw", "credentials", "weixin-personal"),
         );
       });
     });
@@ -215,5 +203,4 @@ describe("Nix integration (U3, U5, U9)", () => {
       ).toBe(19003);
     });
   });
-
 });

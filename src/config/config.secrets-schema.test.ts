@@ -69,14 +69,14 @@ describe("config secret refs schema", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("accepts googlechat serviceAccount refs", () => {
+  it("accepts feishu serviceAccount refs", () => {
     const result = validateConfigObjectRaw({
       channels: {
-        googlechat: {
+        feishu: {
           serviceAccountRef: {
             source: "file",
             provider: "filemain",
-            id: "/channels/googlechat/serviceAccount",
+            id: "/channels/feishu/serviceAccount",
           },
         },
       },

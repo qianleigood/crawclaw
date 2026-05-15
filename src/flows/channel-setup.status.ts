@@ -8,18 +8,18 @@ import {
   formatChannelSelectionLine,
   listChatChannels,
 } from "../channels/registry.js";
-import { formatCliCommand } from "../cli/command-format.js";
-import { translateActiveCliText } from "../cli/i18n/text.js";
-import { resolveChannelSetupEntries } from "../commands/channel-setup/discovery.js";
-import { resolveChannelSetupWizardAdapterForPlugin } from "../commands/channel-setup/registry.js";
+import { isChannelConfigured } from "../config/channel-configured.js";
+import type { CrawClawConfig } from "../config/config.js";
+import { resolveChannelSetupEntries } from "../control/channel-setup/discovery.js";
+import { resolveChannelSetupWizardAdapterForPlugin } from "../control/channel-setup/registry.js";
 import type {
   ChannelSetupWizardAdapter,
   ChannelSetupStatus,
   SetupChannelsOptions,
-} from "../commands/channel-setup/types.js";
-import type { ChannelChoice } from "../commands/onboard-types.js";
-import { isChannelConfigured } from "../config/channel-configured.js";
-import type { CrawClawConfig } from "../config/config.js";
+} from "../control/channel-setup/types.js";
+import type { ChannelChoice } from "../control/onboard-types.js";
+import { formatCliCommand } from "../terminal/command-format.js";
+import { translateActiveCliText } from "../terminal/i18n/text.js";
 import { formatDocsLink } from "../terminal/links.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { FlowContribution } from "./types.js";

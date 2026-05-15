@@ -1,20 +1,14 @@
-import { resolveProviderBuiltInModelSuppression } from "../plugins/provider-runtime.js";
-import { normalizeProviderId } from "./provider-id.js";
+type BuiltInModelSuppression = {
+  suppress: boolean;
+  errorMessage: string;
+};
 
-function resolveBuiltInModelSuppression(params: { provider?: string | null; id?: string | null }) {
-  const provider = normalizeProviderId(params.provider?.trim().toLowerCase() ?? "");
-  const modelId = params.id?.trim().toLowerCase() ?? "";
-  if (!provider || !modelId) {
-    return undefined;
-  }
-  return resolveProviderBuiltInModelSuppression({
-    env: process.env,
-    context: {
-      env: process.env,
-      provider,
-      modelId,
-    },
-  });
+function resolveBuiltInModelSuppression(params: {
+  provider?: string | null;
+  id?: string | null;
+}): BuiltInModelSuppression | undefined {
+  void params;
+  return undefined;
 }
 
 export function shouldSuppressBuiltInModel(params: {

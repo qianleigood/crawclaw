@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { parseByteSize } from "../cli/parse-bytes.js";
 import type { CronConfig } from "../config/types.cron.js";
+import { parseByteSize } from "../terminal/parse-bytes.js";
 import type { CronDeliveryStatus, CronRunStatus, CronRunTelemetry } from "./types.js";
 
 export type CronRunLogEntry = {

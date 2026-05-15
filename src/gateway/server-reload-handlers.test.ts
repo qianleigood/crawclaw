@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import type { CliDeps } from "../cli/deps.js";
 import type { CrawClawConfig } from "../config/config.js";
+import type { CliDeps } from "../terminal/deps.js";
 import type { GatewayReloadPlan } from "./config-reload.js";
 import type { GatewayCronState } from "./server-cron.js";
 import { createGatewayReloadHandlers } from "./server-reload-handlers.js";
@@ -113,18 +113,18 @@ describe("createGatewayReloadHandlers", () => {
 
   it("routes channel reloads through the optional channel reconfigure hook", async () => {
     const { callbacks, handlers } = createHarness();
-    const nextConfig: CrawClawConfig = { channels: { telegram: { enabled: true } } };
+    const nextConfig: CrawClawConfig = { channels: { feishu: { enabled: true } } };
 
     await handlers.applyHotReload(
       makePlan({
-        changedPaths: ["channels.telegram.enabled"],
-        restartChannels: new Set(["telegram"]),
+        changedPaths: ["channels.feishu.enabled"],
+        restartChannels: new Set(["feishu"]),
       }),
       nextConfig,
     );
 
-    expect(callbacks.reconfigureChannel).toHaveBeenCalledWith("telegram", nextConfig, [
-      "channels.telegram.enabled",
+    expect(callbacks.reconfigureChannel).toHaveBeenCalledWith("feishu", nextConfig, [
+      "channels.feishu.enabled",
     ]);
   });
 

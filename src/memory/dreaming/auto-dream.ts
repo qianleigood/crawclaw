@@ -15,12 +15,6 @@ import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-he
 import type { RuntimeStore } from "../runtime/runtime-store.ts";
 import type { DreamingConfig } from "../types/config.ts";
 import { newId } from "../util/ids.ts";
-import type {
-  DreamRunParams,
-  DreamRunResult,
-  DreamSignal,
-  DreamTranscriptRef,
-} from "./agent-runner.ts";
 import {
   markDreamConsolidationSucceeded,
   readDreamConsolidationStatus,
@@ -29,6 +23,40 @@ import {
 } from "./consolidation-lock.ts";
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
+
+export type DreamTranscriptRef = {
+  sessionId: string;
+  path: string;
+};
+
+export type DreamSignal = {
+  sessionId: string;
+  kind: "archive_actions" | "maintenance_runs" | "recent_durable_changes";
+  text: string;
+};
+
+export type DreamRunParams = {
+  runId: string;
+  sessionId: string;
+  sessionFile: string;
+  workspaceDir: string;
+  scope: DurableMemoryScope;
+  sessionKey?: string;
+  triggerSource: string;
+  lastSuccessAt?: number | null;
+  recentTranscriptRefs?: DreamTranscriptRef[];
+  recentSignals?: DreamSignal[];
+  dryRun?: boolean;
+};
+
+export type DreamRunResult = {
+  status: "written" | "skipped" | "no_change" | "failed";
+  summary?: string;
+  writtenCount: number;
+  updatedCount: number;
+  deletedCount: number;
+  touchedNotes?: string[];
+};
 
 export type AutoDreamRunner = (
   params: DreamRunParams,

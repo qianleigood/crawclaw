@@ -1,22 +1,19 @@
 ---
 title: "Plugin Setup and Config"
 sidebarTitle: "Setup and Config"
-summary: "Setup wizards, setup-entry.ts, config schemas, and package.json metadata"
+summary: "Setup wizards, config schemas, and package.json metadata"
 read_when:
   - You are adding a setup wizard to a plugin
-  - You need to understand setup-entry.ts vs index.ts
   - You are defining plugin config schemas or package.json crawclaw metadata
 ---
 
 # Plugin Setup and Config
 
 Reference for plugin packaging (`package.json` metadata), manifests
-(`crawclaw.plugin.json`), setup entries, and config schemas.
+(`crawclaw.plugin.json`) and config schemas.
 
 <Tip>
-  **Looking for a walkthrough?** The how-to guides cover packaging in context:
-  [Channel Plugins](/plugins/sdk-channel-plugins#step-1-package-and-manifest) and
-  [Provider Plugins](/plugins/sdk-provider-plugins#step-1-package-and-manifest).
+  **Looking for a walkthrough?** See [Provider Configuration](/plugins/sdk-provider-plugins).
 </Tip>
 
 ## Package metadata
@@ -129,21 +126,6 @@ CrawClaw uses this to validate config without executing plugin code.
 }
 ```
 
-For channel plugins, add `kind` and `channels`:
-
-```json
-{
-  "id": "my-channel",
-  "kind": "channel",
-  "channels": ["my-channel"],
-  "configSchema": {
-    "type": "object",
-    "additionalProperties": false,
-    "properties": {}
-  }
-}
-```
-
 Even plugins with no config must ship a schema. An empty schema is valid:
 
 ```json
@@ -169,42 +151,6 @@ clawhub package publish your-org/your-plugin
 
 The legacy skill-only publish alias is for skills. Plugin packages should
 always use `clawhub package publish`.
-
-## Setup entry
-
-The `setup-entry.ts` file is a lightweight alternative to `index.ts` that
-CrawClaw loads when it only needs setup surfaces (onboarding, config repair,
-disabled channel inspection).
-
-```typescript
-// setup-entry.ts
-import { defineSetupPluginEntry } from "crawclaw/plugin-sdk/core";
-import { myChannelPlugin } from "./src/channel.js";
-
-export default defineSetupPluginEntry(myChannelPlugin);
-```
-
-This avoids loading heavy runtime code (crypto libraries, CLI registrations,
-background services) during setup flows.
-
-**When CrawClaw uses `setupEntry` instead of the full entry:**
-
-- The channel is disabled but needs setup/onboarding surfaces
-- The channel is enabled but unconfigured
-- Deferred loading is enabled (`deferConfiguredChannelFullLoadUntilAfterListen`)
-
-**What `setupEntry` must register:**
-
-- The channel plugin object (via `defineSetupPluginEntry`)
-- Any HTTP routes required before gateway listen
-- Any gateway methods needed during startup
-
-**What `setupEntry` should NOT include:**
-
-- CLI registrations
-- Background services
-- Heavy runtime imports (crypto, SDKs)
-- Gateway methods only needed after startup
 
 ## Config schema
 
@@ -264,6 +210,6 @@ discovered during build.
 
 ## Related
 
-- [SDK Entry Points](/plugins/sdk-entrypoints) -- `definePluginEntry` and `defineChannelPluginEntry`
+- [SDK Entry Points](/plugins/sdk-entrypoints) -- `definePluginEntry`
 - [Plugin Manifest](/plugins/manifest) -- full manifest schema reference
 - [Building Plugins](/plugins/building-plugins) -- step-by-step getting started guide

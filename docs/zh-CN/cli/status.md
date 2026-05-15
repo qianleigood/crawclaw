@@ -26,7 +26,7 @@ crawclaw status --usage
 
 注意事项：
 
-- `--deep` 运行实时探测（WhatsApp Web + Telegram + Discord + Google Chat + Slack + Signal）。
+- `--deep` 运行实时探测（Weixin Web + Feishu + QQBot + Feishu + DingTalk + Feishu）。
 - 当配置了多个智能体时，输出包含每个智能体的会话存储。
 - 概览包含 Gateway 网关 + 节点主机服务安装/运行时状态（如果可用）。
 - 概览包含更新渠道 + git SHA（用于源代码检出）。

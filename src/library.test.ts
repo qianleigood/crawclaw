@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 const libraryPath = resolve(dirname(fileURLToPath(import.meta.url)), "library.ts");
 const lazyRuntimeSpecifiers = [
   "./auto-reply/reply.runtime.js",
-  "./cli/prompt.js",
+  "./terminal/prompt.js",
   "./infra/binaries.js",
   "./process/exec.js",
 ] as const;

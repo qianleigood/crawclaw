@@ -9,13 +9,16 @@ import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider } from "../../agents/model-selection.js";
-import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import {
+  runNativeAgentTurn,
+  type NativeAgentRunResult,
+} from "../../agents/runtime-tools/agent-turn-client.js";
 import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
 import { createTypingSignaler } from "../../channels/typing-mode.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import type { TypingMode } from "../../config/types.js";
 import { logVerbose } from "../../globals.js";
-import { registerAgentRunContext } from "../../infra/agent-events.js";
+import { registerAgentRunContext, type AgentEventPayload } from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import { stripHeartbeatToken } from "../heartbeat.js";
@@ -151,7 +154,7 @@ export function createFollowupRunner(params: {
         });
       }
       let autoCompactionCount = 0;
-      let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
+      let runResult: NativeAgentRunResult;
       let fallbackProvider = queued.run.provider;
       let fallbackModel = queued.run.model;
       let activeSessionEntry =
@@ -187,7 +190,7 @@ export function createFollowupRunner(params: {
             const authProfile = resolveRunAuthProfile(queued.run, provider);
             let attemptCompactionCount = 0;
             try {
-              const result = await runEmbeddedPiAgent({
+              const result = await runNativeAgentTurn({
                 allowGatewaySubagentBinding: true,
                 sessionId: queued.run.sessionId,
                 sessionKey: queued.run.sessionKey,
@@ -237,7 +240,7 @@ export function createFollowupRunner(params: {
                   bootstrapPromptWarningSignaturesSeen[
                     bootstrapPromptWarningSignaturesSeen.length - 1
                   ],
-                onAgentEvent: (evt) => {
+                onAgentEvent: (evt: AgentEventPayload) => {
                   if (evt.stream !== "compaction") {
                     return;
                   }
@@ -402,7 +405,7 @@ export function createFollowupRunner(params: {
       // buffered dispatcher's finally block, but followup turns bypass the
       // dispatcher entirely — so we must fire both signals here.  Without
       // this, NO_REPLY / empty-payload followups leave the typing indicator
-      // stuck (the keepalive loop keeps sending "typing" to Telegram
+      // stuck (the keepalive loop keeps sending "typing" to the channel
       // indefinitely until the TTL expires).
       typing.markRunComplete();
       typing.markDispatchIdle();

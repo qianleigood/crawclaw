@@ -37,15 +37,15 @@
           - "docs/**"
           - "docs.acp.md"
 
-"cli":
+"terminal":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/cli/**"
+          - "src/terminal/**"
 
-"commands":
+"control":
   - changed-files:
       - any-glob-to-any-file:
-          - "src/commands/**"
+          - "src/control/**"
 
 "scripts":
   - changed-files:

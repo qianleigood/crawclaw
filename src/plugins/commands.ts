@@ -127,9 +127,7 @@ function resolveBindingConversationFromCommand(params: {
   const accountId = params.accountId?.trim() || "default";
   const channel = params.channel.trim().toLowerCase();
   const source =
-    params.to?.startsWith("slash:") || !params.to?.trim()
-      ? (params.from ?? params.to)
-      : params.to;
+    params.to?.startsWith("slash:") || !params.to?.trim() ? (params.from ?? params.to) : params.to;
   const rawTarget = source?.trim();
   if (!channel || !rawTarget || rawTarget.startsWith("slash:")) {
     return null;

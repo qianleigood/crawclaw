@@ -233,7 +233,6 @@ describe("bonjour-discovery", () => {
               `"transport=gateway"`,
               `"sshPort=22"`,
               `"tailnetDns=peters-mac-studio-1.sheep-coho.ts.net"`,
-              `"cliPath=/opt/homebrew/bin/crawclaw"`,
               "",
             ].join(" "),
             stderr: "",
@@ -265,7 +264,6 @@ describe("bonjour-discovery", () => {
         tailnetDns: "peters-mac-studio-1.sheep-coho.ts.net",
         gatewayPort: 18789,
         sshPort: 22,
-        cliPath: "/opt/homebrew/bin/crawclaw",
       }),
     ]);
 

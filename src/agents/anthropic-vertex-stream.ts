@@ -1,12 +1,106 @@
+import { existsSync, readFileSync } from "node:fs";
+import { homedir, platform } from "node:os";
+import { join } from "node:path";
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk";
 import type { StreamFn } from "@mariozechner/pi-agent-core";
 import { streamAnthropic, type AnthropicOptions, type Model } from "@mariozechner/pi-ai";
-import {
-  resolveAnthropicVertexClientRegion,
-  resolveAnthropicVertexProjectId,
-} from "../plugin-sdk/anthropic-vertex.js";
+import { resolveProviderEndpoint } from "./provider-attribution.js";
 
 type AnthropicVertexEffort = NonNullable<AnthropicOptions["effort"]>;
+const ANTHROPIC_VERTEX_DEFAULT_REGION = "global";
+const ANTHROPIC_VERTEX_REGION_RE = /^[a-z0-9-]+$/;
+const GCLOUD_DEFAULT_ADC_PATH = join(
+  homedir(),
+  ".config",
+  "gcloud",
+  "application_default_credentials.json",
+);
+
+type AdcProjectFile = {
+  project_id?: unknown;
+  quota_project_id?: unknown;
+};
+
+function normalizeOptionalEnvValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+export function resolveAnthropicVertexRegion(env: NodeJS.ProcessEnv = process.env): string {
+  const region =
+    normalizeOptionalEnvValue(env.GOOGLE_CLOUD_LOCATION) ||
+    normalizeOptionalEnvValue(env.CLOUD_ML_REGION);
+
+  return region && ANTHROPIC_VERTEX_REGION_RE.test(region)
+    ? region
+    : ANTHROPIC_VERTEX_DEFAULT_REGION;
+}
+
+export function resolveAnthropicVertexRegionFromBaseUrl(baseUrl?: string): string | undefined {
+  const endpoint = resolveProviderEndpoint(baseUrl);
+  return endpoint.endpointClass === "google-vertex" ? endpoint.googleVertexRegion : undefined;
+}
+
+export function resolveAnthropicVertexClientRegion(params?: {
+  baseUrl?: string;
+  env?: NodeJS.ProcessEnv;
+}): string {
+  return (
+    resolveAnthropicVertexRegionFromBaseUrl(params?.baseUrl) ||
+    resolveAnthropicVertexRegion(params?.env)
+  );
+}
+
+function resolveAnthropicVertexDefaultAdcPath(env: NodeJS.ProcessEnv = process.env): string {
+  return platform() === "win32"
+    ? join(
+        env.APPDATA ?? join(homedir(), "AppData", "Roaming"),
+        "gcloud",
+        "application_default_credentials.json",
+      )
+    : GCLOUD_DEFAULT_ADC_PATH;
+}
+
+function resolveAnthropicVertexAdcCredentialsPath(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const explicitCredentialsPath = normalizeOptionalEnvValue(env.GOOGLE_APPLICATION_CREDENTIALS);
+  if (explicitCredentialsPath) {
+    return existsSync(explicitCredentialsPath) ? explicitCredentialsPath : undefined;
+  }
+
+  const defaultAdcPath = resolveAnthropicVertexDefaultAdcPath(env);
+  return existsSync(defaultAdcPath) ? defaultAdcPath : undefined;
+}
+
+function resolveAnthropicVertexProjectIdFromAdc(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  const credentialsPath = resolveAnthropicVertexAdcCredentialsPath(env);
+  if (!credentialsPath) {
+    return undefined;
+  }
+
+  try {
+    const parsed = JSON.parse(readFileSync(credentialsPath, "utf8")) as AdcProjectFile;
+    return (
+      normalizeOptionalEnvValue(parsed.project_id) ||
+      normalizeOptionalEnvValue(parsed.quota_project_id)
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+export function resolveAnthropicVertexProjectId(
+  env: NodeJS.ProcessEnv = process.env,
+): string | undefined {
+  return (
+    normalizeOptionalEnvValue(env.ANTHROPIC_VERTEX_PROJECT_ID) ||
+    normalizeOptionalEnvValue(env.GOOGLE_CLOUD_PROJECT) ||
+    normalizeOptionalEnvValue(env.GOOGLE_CLOUD_PROJECT_ID) ||
+    resolveAnthropicVertexProjectIdFromAdc(env)
+  );
+}
 
 function resolveAnthropicVertexMaxTokens(params: {
   modelMaxTokens: number | undefined;

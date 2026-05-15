@@ -1,6 +1,9 @@
-import type { EmbeddedRunModelSwitchRequest } from "./pi-embedded-runner/runs.js";
-
-export type LiveSessionModelSelection = EmbeddedRunModelSwitchRequest;
+export type LiveSessionModelSelection = {
+  provider: string;
+  model: string;
+  authProfileId?: string;
+  authProfileIdSource?: "auto" | "user";
+};
 
 export class LiveSessionModelSwitchError extends Error {
   provider: string;

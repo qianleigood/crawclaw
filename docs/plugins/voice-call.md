@@ -355,19 +355,9 @@ When a Twilio media stream disconnects, Voice Call waits `2000ms` before auto-en
 - If the stream reconnects during that window, auto-end is canceled.
 - If no stream is re-registered after the grace period, the call is ended to prevent stuck active calls.
 
-## CLI
+## Desktop and Gateway API
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Configure Voice Call from CrawClaw Desktop. Automation should use the local Gateway API so the desktop app and runtime stay on the same control plane.
 
 `latency` reads `calls.jsonl` from the default voice-call storage path. Use
 `--file <path>` to point at a different log and `--last <n>` to limit analysis

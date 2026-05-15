@@ -6,7 +6,6 @@ import from this tree directly.
 ## Public Contracts
 
 - Docs:
-  - `docs/plugins/sdk-channel-plugins.md`
   - `docs/plugins/architecture.md`
   - `docs/plugins/sdk-overview.md`
 - Definition files:

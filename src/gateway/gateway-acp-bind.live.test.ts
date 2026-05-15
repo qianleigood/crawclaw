@@ -307,7 +307,7 @@ async function sendChatAndWait(params: {
 
 describeLive("gateway live (ACP bind)", () => {
   it(
-    "binds a synthetic Slack DM conversation to a live ACP session and reroutes the next turn",
+    "binds a synthetic DingTalk DM conversation to a live ACP session and reroutes the next turn",
     async () => {
       const previous = {
         configPath: process.env.CRAWCLAW_CONFIG_PATH,
@@ -326,8 +326,8 @@ describeLive("gateway live (ACP bind)", () => {
       const port = await getFreeGatewayPort();
       const token = `test-${randomUUID()}`;
       const originalSessionKey = "main";
-      const slackUserId = `U${randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`;
-      const conversationId = `user:${slackUserId}`;
+      const ddingtalkUserId = `U${randomUUID().replace(/-/g, "").slice(0, 10).toUpperCase()}`;
+      const conversationId = `user:${ddingtalkUserId}`;
       const accountId = "default";
       const followupNonce = randomBytes(4).toString("hex").toUpperCase();
 
@@ -405,7 +405,7 @@ describeLive("gateway live (ACP bind)", () => {
           client,
           sessionKey: originalSessionKey,
           liveAgent,
-          originatingChannel: "slack",
+          originatingChannel: "ddingtalk",
           originatingTo: conversationId,
           originatingAccountId: accountId,
         });
@@ -419,7 +419,7 @@ describeLive("gateway live (ACP bind)", () => {
           sessionKey: originalSessionKey,
           idempotencyKey: `idem-followup-${randomUUID()}`,
           message: `Please include the token ACP-BIND-${followupNonce} in your reply.`,
-          originatingChannel: "slack",
+          originatingChannel: "ddingtalk",
           originatingTo: conversationId,
           originatingAccountId: accountId,
         });

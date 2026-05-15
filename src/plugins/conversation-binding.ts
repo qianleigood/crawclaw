@@ -246,7 +246,7 @@ function buildApprovalInteractiveReply(
 }
 
 function createApprovalRequestId(): string {
-  // Keep approval ids compact so Telegram callback_data stays under its 64-byte limit.
+  // Keep approval ids compact for channel callback payload limits.
   return crypto.randomBytes(9).toString("base64url");
 }
 

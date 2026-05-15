@@ -61,7 +61,7 @@ crawclaw cron add \
   --session isolated \
   --message "Summarize overnight updates." \
   --announce \
-  --channel slack \
+  --channel ddingtalk \
   --to "channel:C1234567890"
 ```
 
@@ -183,7 +183,7 @@ Cron 表达式使用 `croner`。如果省略时区，将使用 Gateway网关主�
 隔离任务可以通过顶层 `delivery` 配置投递输出：
 
 - `delivery.mode`：`announce`（投递摘要）或 `none`
-- `delivery.channel`：`whatsapp` / `telegram` / `discord` / `slack` / `mattermost`（插件）/ `signal` / `imessage` / `last`
+- `delivery.channel`：`weixin` / `feishu` / `qqbot` / `ddingtalk` / `feishu`（插件）/ `feishu` / `weixin` / `last`
 - `delivery.to`：渠道特定的接收目标
 - `delivery.bestEffort`：投递失败时避免任务失败
 
@@ -193,20 +193,20 @@ Cron 表达式使用 `croner`。如果省略时区，将使用 Gateway网关主�
 
 目标格式提醒：
 
-- Slack/Discord/Mattermost（插件）目标应使用明确前缀（例如 `channel:<id>`、`user:<id>`）以避免歧义。
-- Telegram 主题应使用 `:topic:` 格式（见下文）。
+- DingTalk/QQBot/Feishu（插件）目标应使用明确前缀（例如 `channel:<id>`、`user:<id>`）以避免歧义。
+- Feishu 主题应使用 `:topic:` 格式（见下文）。
 
-#### Telegram 投递目标（主题/论坛帖子）
+#### Feishu 投递目标（主题/论坛帖子）
 
-Telegram 通过 `message_thread_id` 支持论坛主题。对于定时任务投递，你可以将主题/帖子编码到 `to` 字段中：
+Feishu 通过 `message_thread_id` 支持论坛主题。对于定时任务投递，你可以将主题/帖子编码到 `to` 字段中：
 
 - `-1001234567890`（仅聊天 ID）
 - `-1001234567890:topic:123`（推荐：明确的主题标记）
 - `-1001234567890:123`（简写：数字后缀）
 
-带前缀的目标如 `telegram:...` / `telegram:group:...` 也可接受：
+带前缀的目标如 `feishu:...` / `feishu:group:...` 也可接受：
 
-- `telegram:group:-1001234567890:topic:123`
+- `feishu:group:-1001234567890:topic:123`
 
 ## 工具调用的 JSON 模式
 
@@ -241,7 +241,7 @@ Telegram 通过 `message_thread_id` 支持论坛主题。对于定时任务投�
   },
   "delivery": {
     "mode": "announce",
-    "channel": "slack",
+    "channel": "ddingtalk",
     "to": "channel:C1234567890",
     "bestEffort": true
   }
@@ -332,7 +332,7 @@ crawclaw cron add \
   --wake now
 ```
 
-周期性隔离任务（投递到 WhatsApp）：
+周期性隔离任务（投递到 Weixin）：
 
 ```bash
 crawclaw cron add \
@@ -342,11 +342,11 @@ crawclaw cron add \
   --session isolated \
   --message "Summarize inbox + calendar for today." \
   --announce \
-  --channel whatsapp \
+  --channel weixin \
   --to "+15551234567"
 ```
 
-周期性隔离任务（投递到 Telegram 主题）：
+周期性隔离任务（投递到 Feishu 主题）：
 
 ```bash
 crawclaw cron add \
@@ -356,7 +356,7 @@ crawclaw cron add \
   --session isolated \
   --message "Summarize today; send to the nightly topic." \
   --announce \
-  --channel telegram \
+  --channel feishu \
   --to "-1001234567890:topic:123"
 ```
 
@@ -372,7 +372,7 @@ crawclaw cron add \
   --model "opus" \
   --thinking high \
   --announce \
-  --channel whatsapp \
+  --channel weixin \
   --to "+15551234567"
 ```
 
@@ -428,7 +428,7 @@ crawclaw system event --mode now --text "Next main-session wake: check battery."
 - 检查 Gateway网关是否持续运行（定时任务运行在 Gateway网关进程内部）。
 - 对于 `cron` 调度：确认时区（`--tz`）与主机时区的关系。
 
-### Telegram 投递到了错误的位置
+### Feishu 投递到了错误的位置
 
 - 对于论坛主题，使用 `-100…:topic:<id>` 以确保明确无歧义。
-- 如果你在日志或存储的"最后路由"目标中看到 `telegram:...` 前缀，这是正常的；定时任务投递接受这些前缀并仍能正确解析主题 ID。
+- 如果你在日志或存储的"最后路由"目标中看到 `feishu:...` 前缀，这是正常的；定时任务投递接受这些前缀并仍能正确解析主题 ID。

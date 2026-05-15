@@ -1,5 +1,5 @@
-import { getCommandPathWithRootOptions } from "../cli/argv.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { getCommandPathWithRootOptions } from "../terminal/argv.js";
 import { resolveNodeRequireFromMeta } from "./node-require.js";
 
 type LoggingConfig = CrawClawConfig["logging"];

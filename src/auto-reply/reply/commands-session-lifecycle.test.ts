@@ -42,19 +42,15 @@ const hoisted = vi.hoisted(() => {
   const getThreadBindingManagerMock = vi.fn();
   const setThreadBindingIdleTimeoutBySessionKeyMock = vi.fn();
   const setThreadBindingMaxAgeBySessionKeyMock = vi.fn();
-  const setMatrixThreadBindingIdleTimeoutBySessionKeyMock = vi.fn();
-  const setMatrixThreadBindingMaxAgeBySessionKeyMock = vi.fn();
-  const setTelegramThreadBindingIdleTimeoutBySessionKeyMock = vi.fn();
-  const setTelegramThreadBindingMaxAgeBySessionKeyMock = vi.fn();
+  const setFeishuThreadBindingIdleTimeoutBySessionKeyMock = vi.fn();
+  const setFeishuThreadBindingMaxAgeBySessionKeyMock = vi.fn();
   const sessionBindingResolveByConversationMock = vi.fn();
   return {
     getThreadBindingManagerMock,
     setThreadBindingIdleTimeoutBySessionKeyMock,
     setThreadBindingMaxAgeBySessionKeyMock,
-    setMatrixThreadBindingIdleTimeoutBySessionKeyMock,
-    setMatrixThreadBindingMaxAgeBySessionKeyMock,
-    setTelegramThreadBindingIdleTimeoutBySessionKeyMock,
-    setTelegramThreadBindingMaxAgeBySessionKeyMock,
+    setFeishuThreadBindingIdleTimeoutBySessionKeyMock,
+    setFeishuThreadBindingMaxAgeBySessionKeyMock,
     sessionBindingResolveByConversationMock,
   };
 });
@@ -65,25 +61,19 @@ vi.mock("../../plugins/runtime/index.js", () => {
       channel: {
         threadBindings: {
           setIdleTimeoutBySessionKey: ({ channelId, ...params }: Record<string, unknown>) => {
-            if (channelId === "telegram") {
-              return hoisted.setTelegramThreadBindingIdleTimeoutBySessionKeyMock(params);
-            }
-            if (channelId === "matrix") {
-              return hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock(params);
+            if (channelId === "feishu") {
+              return hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock(params);
             }
             return hoisted.setThreadBindingIdleTimeoutBySessionKeyMock(params);
           },
           setMaxAgeBySessionKey: ({ channelId, ...params }: Record<string, unknown>) => {
-            if (channelId === "telegram") {
-              return hoisted.setTelegramThreadBindingMaxAgeBySessionKeyMock(params);
-            }
-            if (channelId === "matrix") {
-              return hoisted.setMatrixThreadBindingMaxAgeBySessionKeyMock(params);
+            if (channelId === "feishu") {
+              return hoisted.setFeishuThreadBindingMaxAgeBySessionKeyMock(params);
             }
             return hoisted.setThreadBindingMaxAgeBySessionKeyMock(params);
           },
         },
-        discord: {
+        qqbot: {
           threadBindings: {
             getManager: hoisted.getThreadBindingManagerMock,
             resolveIdleTimeoutMs: resolveThreadBindingIdleTimeoutMs,
@@ -95,10 +85,10 @@ vi.mock("../../plugins/runtime/index.js", () => {
             unbindBySessionKey: vi.fn(),
           },
         },
-        matrix: {
+        feishu: {
           threadBindings: {
-            setIdleTimeoutBySessionKey: hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock,
-            setMaxAgeBySessionKey: hoisted.setMatrixThreadBindingMaxAgeBySessionKeyMock,
+            setIdleTimeoutBySessionKey: hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock,
+            setMaxAgeBySessionKey: hoisted.setFeishuThreadBindingMaxAgeBySessionKeyMock,
           },
         },
       },
@@ -140,11 +130,11 @@ type FakeBinding = {
   maxAgeMs?: number;
 };
 
-function createDiscordCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
+function createQQBotCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
   return buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "discord",
-    Surface: "discord",
-    OriginatingChannel: "discord",
+    Provider: "qqbot",
+    Surface: "qqbot",
+    OriginatingChannel: "qqbot",
     OriginatingTo: "channel:thread-1",
     AccountId: "default",
     MessageThreadId: "thread-1",
@@ -152,11 +142,11 @@ function createDiscordCommandParams(commandBody: string, overrides?: Record<stri
   });
 }
 
-function createTelegramCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
+function createFeishuCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
   return buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "telegram",
-    Surface: "telegram",
-    OriginatingChannel: "telegram",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "-100200300:topic:77",
     AccountId: "default",
     MessageThreadId: "77",
@@ -164,11 +154,11 @@ function createTelegramCommandParams(commandBody: string, overrides?: Record<str
   });
 }
 
-function createMatrixThreadCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
+function createFeishuThreadCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
   return buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "matrix",
-    Surface: "matrix",
-    OriginatingChannel: "matrix",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "room:!room:example.org",
     AccountId: "default",
     MessageThreadId: "$thread-1",
@@ -176,14 +166,14 @@ function createMatrixThreadCommandParams(commandBody: string, overrides?: Record
   });
 }
 
-function createMatrixTriggerThreadCommandParams(
+function createFeishuTriggerThreadCommandParams(
   commandBody: string,
   overrides?: Record<string, unknown>,
 ) {
   return buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "matrix",
-    Surface: "matrix",
-    OriginatingChannel: "matrix",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "room:!room:example.org",
     AccountId: "default",
     MessageThreadId: "$root",
@@ -191,11 +181,11 @@ function createMatrixTriggerThreadCommandParams(
   });
 }
 
-function createMatrixRoomCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
+function createFeishuRoomCommandParams(commandBody: string, overrides?: Record<string, unknown>) {
   return buildCommandTestParams(commandBody, baseCfg, {
-    Provider: "matrix",
-    Surface: "matrix",
-    OriginatingChannel: "matrix",
+    Provider: "feishu",
+    Surface: "feishu",
+    OriginatingChannel: "feishu",
     OriginatingTo: "room:!room:example.org",
     AccountId: "default",
     ...overrides,
@@ -218,13 +208,15 @@ function createFakeBinding(overrides: Partial<FakeBinding> = {}): FakeBinding {
   };
 }
 
-function createTelegramBinding(overrides?: Partial<SessionBindingRecord>): SessionBindingRecord {
+function createFeishuConversationBinding(
+  overrides?: Partial<SessionBindingRecord>,
+): SessionBindingRecord {
   return {
     bindingId: "default:-100200300:topic:77",
     targetSessionKey: "agent:main:subagent:child",
     targetKind: "subagent",
     conversation: {
-      channel: "telegram",
+      channel: "feishu",
       accountId: "default",
       conversationId: "-100200300:topic:77",
     },
@@ -240,13 +232,15 @@ function createTelegramBinding(overrides?: Partial<SessionBindingRecord>): Sessi
   };
 }
 
-function createMatrixBinding(overrides?: Partial<SessionBindingRecord>): SessionBindingRecord {
+function createFeishuThreadBinding(
+  overrides?: Partial<SessionBindingRecord>,
+): SessionBindingRecord {
   return {
     bindingId: "default:$thread-1",
     targetSessionKey: "agent:main:subagent:child",
     targetKind: "subagent",
     conversation: {
-      channel: "matrix",
+      channel: "feishu",
       accountId: "default",
       conversationId: "$thread-1",
       parentConversationId: "!room:example.org",
@@ -263,13 +257,13 @@ function createMatrixBinding(overrides?: Partial<SessionBindingRecord>): Session
   };
 }
 
-function createMatrixTriggerBinding(
+function createFeishuTriggerBinding(
   overrides?: Partial<SessionBindingRecord>,
 ): SessionBindingRecord {
-  return createMatrixBinding({
+  return createFeishuThreadBinding({
     bindingId: "default:$root",
     conversation: {
-      channel: "matrix",
+      channel: "feishu",
       accountId: "default",
       conversationId: "$root",
       parentConversationId: "!room:example.org",
@@ -306,15 +300,13 @@ describe("/session idle and /session max-age", () => {
     hoisted.getThreadBindingManagerMock.mockReset();
     hoisted.setThreadBindingIdleTimeoutBySessionKeyMock.mockReset();
     hoisted.setThreadBindingMaxAgeBySessionKeyMock.mockReset();
-    hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock.mockReset();
-    hoisted.setMatrixThreadBindingMaxAgeBySessionKeyMock.mockReset();
-    hoisted.setTelegramThreadBindingIdleTimeoutBySessionKeyMock.mockReset();
-    hoisted.setTelegramThreadBindingMaxAgeBySessionKeyMock.mockReset();
+    hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock.mockReset();
+    hoisted.setFeishuThreadBindingMaxAgeBySessionKeyMock.mockReset();
     hoisted.sessionBindingResolveByConversationMock.mockReset().mockReturnValue(null);
     vi.useRealTimers();
   });
 
-  it("sets idle timeout for the focused Discord session", async () => {
+  it("sets idle timeout for the focused QQBot session", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
 
@@ -328,7 +320,7 @@ describe("/session idle and /session max-age", () => {
       },
     ]);
 
-    const result = await handleSessionCommand(createDiscordCommandParams("/session idle 2h"), true);
+    const result = await handleSessionCommand(createQQBotCommandParams("/session idle 2h"), true);
     const text = result?.reply?.text ?? "";
 
     expectIdleTimeoutSetReply(
@@ -349,12 +341,12 @@ describe("/session idle and /session max-age", () => {
     });
     hoisted.getThreadBindingManagerMock.mockReturnValue(createFakeThreadBindingManager(binding));
 
-    const result = await handleSessionCommand(createDiscordCommandParams("/session idle"), true);
+    const result = await handleSessionCommand(createQQBotCommandParams("/session idle"), true);
     expect(result?.reply?.text).toContain("Idle timeout active (2h");
     expect(result?.reply?.text).toContain("2026-02-20T02:00:00.000Z");
   });
 
-  it("sets max age for the focused Discord session", async () => {
+  it("sets max age for the focused QQBot session", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
 
@@ -369,7 +361,7 @@ describe("/session idle and /session max-age", () => {
     ]);
 
     const result = await handleSessionCommand(
-      createDiscordCommandParams("/session max-age 3h"),
+      createQQBotCommandParams("/session max-age 3h"),
       true,
     );
     const text = result?.reply?.text ?? "";
@@ -383,12 +375,14 @@ describe("/session idle and /session max-age", () => {
     expect(text).toContain("2026-02-20T03:00:00.000Z");
   });
 
-  it("sets idle timeout for focused Telegram conversations", async () => {
+  it("sets idle timeout for focused Feishu conversations", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
 
-    hoisted.sessionBindingResolveByConversationMock.mockReturnValue(createTelegramBinding());
-    hoisted.setTelegramThreadBindingIdleTimeoutBySessionKeyMock.mockReturnValue([
+    hoisted.sessionBindingResolveByConversationMock.mockReturnValue(
+      createFeishuConversationBinding(),
+    );
+    hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock.mockReturnValue([
       {
         targetSessionKey: "agent:main:subagent:child",
         boundAt: Date.now(),
@@ -397,26 +391,23 @@ describe("/session idle and /session max-age", () => {
       },
     ]);
 
-    const result = await handleSessionCommand(
-      createTelegramCommandParams("/session idle 2h"),
-      true,
-    );
+    const result = await handleSessionCommand(createFeishuCommandParams("/session idle 2h"), true);
     const text = result?.reply?.text ?? "";
 
     expectIdleTimeoutSetReply(
-      hoisted.setTelegramThreadBindingIdleTimeoutBySessionKeyMock,
+      hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock,
       text,
       2 * 60 * 60 * 1000,
       "2h",
     );
   });
 
-  it("sets idle timeout for focused Matrix threads", async () => {
+  it("sets idle timeout for focused Feishu threads", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
 
-    hoisted.sessionBindingResolveByConversationMock.mockReturnValue(createMatrixBinding());
-    hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock.mockReturnValue([
+    hoisted.sessionBindingResolveByConversationMock.mockReturnValue(createFeishuThreadBinding());
+    hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock.mockReturnValue([
       {
         targetSessionKey: "agent:main:subagent:child",
         boundAt: Date.now(),
@@ -426,25 +417,25 @@ describe("/session idle and /session max-age", () => {
     ]);
 
     const result = await handleSessionCommand(
-      createMatrixThreadCommandParams("/session idle 2h"),
+      createFeishuThreadCommandParams("/session idle 2h"),
       true,
     );
     const text = result?.reply?.text ?? "";
 
     expectIdleTimeoutSetReply(
-      hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock,
+      hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock,
       text,
       2 * 60 * 60 * 1000,
       "2h",
     );
   });
 
-  it("sets idle timeout for the triggering Matrix always-thread turn", async () => {
+  it("sets idle timeout for the triggering Feishu always-thread turn", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
 
-    hoisted.sessionBindingResolveByConversationMock.mockReturnValue(createMatrixTriggerBinding());
-    hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock.mockReturnValue([
+    hoisted.sessionBindingResolveByConversationMock.mockReturnValue(createFeishuTriggerBinding());
+    hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock.mockReturnValue([
       {
         targetSessionKey: "agent:main:subagent:child",
         boundAt: Date.now(),
@@ -454,34 +445,34 @@ describe("/session idle and /session max-age", () => {
     ]);
 
     const result = await handleSessionCommand(
-      createMatrixTriggerThreadCommandParams("/session idle 2h"),
+      createFeishuTriggerThreadCommandParams("/session idle 2h"),
       true,
     );
     const text = result?.reply?.text ?? "";
 
     expect(hoisted.sessionBindingResolveByConversationMock).toHaveBeenCalledWith({
-      channel: "matrix",
+      channel: "feishu",
       accountId: "default",
       conversationId: "$root",
       parentConversationId: "!room:example.org",
     });
     expectIdleTimeoutSetReply(
-      hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock,
+      hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock,
       text,
       2 * 60 * 60 * 1000,
       "2h",
     );
   });
 
-  it("sets max age for focused Matrix threads", async () => {
+  it("sets max age for focused Feishu threads", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
 
     const boundAt = Date.parse("2026-02-19T22:00:00.000Z");
     hoisted.sessionBindingResolveByConversationMock.mockReturnValue(
-      createMatrixBinding({ boundAt }),
+      createFeishuThreadBinding({ boundAt }),
     );
-    hoisted.setMatrixThreadBindingMaxAgeBySessionKeyMock.mockReturnValue([
+    hoisted.setFeishuThreadBindingMaxAgeBySessionKeyMock.mockReturnValue([
       {
         targetSessionKey: "agent:main:subagent:child",
         boundAt,
@@ -491,12 +482,12 @@ describe("/session idle and /session max-age", () => {
     ]);
 
     const result = await handleSessionCommand(
-      createMatrixThreadCommandParams("/session max-age 3h"),
+      createFeishuThreadCommandParams("/session max-age 3h"),
       true,
     );
     const text = result?.reply?.text ?? "";
 
-    expect(hoisted.setMatrixThreadBindingMaxAgeBySessionKeyMock).toHaveBeenCalledWith({
+    expect(hoisted.setFeishuThreadBindingMaxAgeBySessionKeyMock).toHaveBeenCalledWith({
       targetSessionKey: "agent:main:subagent:child",
       accountId: "default",
       maxAgeMs: 3 * 60 * 60 * 1000,
@@ -505,15 +496,15 @@ describe("/session idle and /session max-age", () => {
     expect(text).toContain("2026-02-20T01:00:00.000Z");
   });
 
-  it("reports Telegram max-age expiry from the original bind time", async () => {
+  it("reports Feishu max-age expiry from the original bind time", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-02-20T00:00:00.000Z"));
 
     const boundAt = Date.parse("2026-02-19T22:00:00.000Z");
     hoisted.sessionBindingResolveByConversationMock.mockReturnValue(
-      createTelegramBinding({ boundAt }),
+      createFeishuConversationBinding({ boundAt }),
     );
-    hoisted.setTelegramThreadBindingMaxAgeBySessionKeyMock.mockReturnValue([
+    hoisted.setFeishuThreadBindingMaxAgeBySessionKeyMock.mockReturnValue([
       {
         targetSessionKey: "agent:main:subagent:child",
         boundAt,
@@ -523,12 +514,12 @@ describe("/session idle and /session max-age", () => {
     ]);
 
     const result = await handleSessionCommand(
-      createTelegramCommandParams("/session max-age 3h"),
+      createFeishuCommandParams("/session max-age 3h"),
       true,
     );
     const text = result?.reply?.text ?? "";
 
-    expect(hoisted.setTelegramThreadBindingMaxAgeBySessionKeyMock).toHaveBeenCalledWith({
+    expect(hoisted.setFeishuThreadBindingMaxAgeBySessionKeyMock).toHaveBeenCalledWith({
       targetSessionKey: "agent:main:subagent:child",
       accountId: "default",
       maxAgeMs: 3 * 60 * 60 * 1000,
@@ -543,7 +534,7 @@ describe("/session idle and /session max-age", () => {
     hoisted.setThreadBindingMaxAgeBySessionKeyMock.mockReturnValue([{ ...binding, maxAgeMs: 0 }]);
 
     const result = await handleSessionCommand(
-      createDiscordCommandParams("/session max-age off"),
+      createQQBotCommandParams("/session max-age off"),
       true,
     );
 
@@ -555,22 +546,22 @@ describe("/session idle and /session max-age", () => {
     expect(result?.reply?.text).toContain("Max age disabled");
   });
 
-  it("is unavailable outside discord and telegram", async () => {
+  it("is unavailable outside qqbot and feishu", async () => {
     const params = buildCommandTestParams("/session idle 2h", baseCfg);
     const result = await handleSessionCommand(params, true);
     expect(result?.reply?.text).toContain(
-      "currently available for Discord, Matrix, and Telegram bound sessions",
+      "currently available for QQBot, Feishu, and Feishu bound sessions",
     );
   });
 
-  it("requires a focused Matrix thread for lifecycle updates", async () => {
+  it("requires a focused Feishu thread for lifecycle updates", async () => {
     const result = await handleSessionCommand(
-      createMatrixRoomCommandParams("/session idle 2h"),
+      createFeishuRoomCommandParams("/session idle 2h"),
       true,
     );
 
-    expect(result?.reply?.text).toContain("must be run inside a focused Matrix thread");
-    expect(hoisted.setMatrixThreadBindingIdleTimeoutBySessionKeyMock).not.toHaveBeenCalled();
+    expect(result?.reply?.text).toContain("must be run inside a focused Feishu thread");
+    expect(hoisted.setFeishuThreadBindingIdleTimeoutBySessionKeyMock).not.toHaveBeenCalled();
   });
 
   it("requires binding owner for lifecycle updates", async () => {
@@ -578,7 +569,7 @@ describe("/session idle and /session max-age", () => {
     hoisted.getThreadBindingManagerMock.mockReturnValue(createFakeThreadBindingManager(binding));
 
     const result = await handleSessionCommand(
-      createDiscordCommandParams("/session idle 2h", {
+      createQQBotCommandParams("/session idle 2h", {
         SenderId: "other-user",
       }),
       true,

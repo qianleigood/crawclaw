@@ -80,7 +80,7 @@ describe("spawn-session seam", () => {
       },
       {
         agentSessionKey: " agent:main:main ",
-        agentChannel: " discord ",
+        agentChannel: " qqbot ",
         agentAccountId: " acct ",
         agentTo: " channel:123 ",
         agentThreadId: " 456 ",
@@ -117,7 +117,7 @@ describe("spawn-session seam", () => {
       }),
       expect.objectContaining({
         agentSessionKey: "agent:main:main",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "acct",
         agentTo: "channel:123",
         agentThreadId: "456",
@@ -144,7 +144,7 @@ describe("spawn-session seam", () => {
       },
       {
         agentSessionKey: "agent:main:main",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "acct",
         agentTo: "channel:123",
         agentThreadId: "456",
@@ -165,7 +165,7 @@ describe("spawn-session seam", () => {
       }),
       expect.objectContaining({
         agentSessionKey: "agent:main:main",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "acct",
         agentTo: "channel:123",
         agentThreadId: "456",

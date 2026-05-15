@@ -12,7 +12,6 @@ import {
   makeAgentAssistantMessage,
   makeAgentUserMessage,
 } from "../../agents/test-helpers/agent-message-fixtures.js";
-import { createMemoryNoteWriteTool } from "../../agents/tools/memory-file-tools.ts";
 import { createContextMemoryRuntime } from "../engine/context-memory-runtime.ts";
 import { SqliteRuntimeStore } from "../runtime/sqlite-runtime-store.ts";
 import type { MemoryRuntimeConfig } from "../types/config.ts";
@@ -165,13 +164,16 @@ function createFakeExtractorRun(params: { capturedEmbeddedRuns: RunEmbeddedPiAge
     expect(embeddedParams.specialParentPromptEnvelope).toBeUndefined();
     expect(embeddedParams.specialParentForkMessages).toHaveLength(4);
 
-    const writeTool = createMemoryNoteWriteTool({
-      scope: embeddedParams.specialDurableMemoryScope,
-    });
-    expect(writeTool).not.toBeNull();
-    await writeTool!.execute("write-note", {
-      notePath: "60 Preferences/step-first-answers.md",
-      content: [
+    const durableRoot = path.join(
+      process.env.CRAWCLAW_STATE_DIR ?? "",
+      "durable-memory",
+      "agents",
+      "main",
+    );
+    await fs.mkdir(path.join(durableRoot, "60 Preferences"), { recursive: true });
+    await fs.writeFile(
+      path.join(durableRoot, "60 Preferences", "step-first-answers.md"),
+      [
         "---",
         'type: "feedback"',
         'title: "回答先给步骤"',
@@ -181,12 +183,13 @@ function createFakeExtractorRun(params: { capturedEmbeddedRuns: RunEmbeddedPiAge
         "",
         "默认先给可执行步骤，再补充解释。",
       ].join("\n"),
-    });
-    await writeTool!.execute("write-index", {
-      notePath: "MEMORY.md",
-      content:
-        "# MEMORY.md\n\n## feedback\n- [回答先给步骤](./60 Preferences/step-first-answers.md) — 用户偏好操作类问题先给步骤。\n",
-    });
+      "utf8",
+    );
+    await fs.writeFile(
+      path.join(durableRoot, "MEMORY.md"),
+      "# MEMORY.md\n\n## feedback\n- [回答先给步骤](./60 Preferences/step-first-answers.md) — 用户偏好操作类问题先给步骤。\n",
+      "utf8",
+    );
 
     return {
       payloads: [

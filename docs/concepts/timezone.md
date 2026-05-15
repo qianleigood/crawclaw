@@ -62,7 +62,7 @@ You can override this with:
 
 ## Tool payloads (raw provider data + normalized fields)
 
-Tool calls (`channels.discord.readMessages`, `channels.slack.readMessages`, etc.) return **raw provider timestamps**.
+Tool calls (`channels.qqbot.readMessages`, `channels.ddingtalk.readMessages`, etc.) return **raw provider timestamps**.
 We also attach normalized fields for consistency:
 
 - `timestampMs` (UTC epoch milliseconds)

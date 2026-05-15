@@ -24,7 +24,7 @@ describe("resolveChannelContextVisibilityMode", () => {
     expect(
       resolveChannelContextVisibilityMode({
         cfg: {},
-        channel: "slack",
+        channel: "ddingtalk",
         configuredContextVisibility: "allowlist",
       }),
     ).toBe("allowlist");
@@ -36,7 +36,7 @@ describe("resolveChannelContextVisibilityMode", () => {
         defaults: {
           contextVisibility: "allowlist_quote",
         },
-        slack: {
+        ddingtalk: {
           contextVisibility: "allowlist",
           accounts: {
             work: {
@@ -49,14 +49,14 @@ describe("resolveChannelContextVisibilityMode", () => {
     expect(
       resolveChannelContextVisibilityMode({
         cfg,
-        channel: "slack",
+        channel: "ddingtalk",
         accountId: "work",
       }),
     ).toBe("all");
     expect(
       resolveChannelContextVisibilityMode({
         cfg,
-        channel: "slack",
+        channel: "ddingtalk",
         accountId: "missing",
       }),
     ).toBe("allowlist");
@@ -76,7 +76,7 @@ describe("resolveChannelContextVisibilityMode", () => {
     expect(
       resolveChannelContextVisibilityMode({
         cfg: {},
-        channel: "telegram",
+        channel: "feishu",
       }),
     ).toBe("all");
   });

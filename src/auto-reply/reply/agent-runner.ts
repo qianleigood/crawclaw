@@ -4,7 +4,6 @@ import { lookupContextTokens } from "../../agents/context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../../agents/defaults.js";
 import { resolveModelAuthMode } from "../../agents/model-auth.js";
 import { isCliProvider } from "../../agents/model-selection.js";
-import { queueEmbeddedPiMessage } from "../../agents/pi-embedded.js";
 import { hasNonzeroUsage } from "../../agents/usage.js";
 import { createReplyToModeFilterForChannel } from "../../channels/reply-threading.js";
 import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
@@ -105,11 +104,9 @@ export async function runReplyAgent(params: {
     followupRun,
     queueKey,
     resolvedQueue,
-    shouldSteer,
     shouldFollowup,
     isActive,
     isRunActive,
-    isStreaming,
     opts,
     typing,
     sessionEntry,
@@ -203,15 +200,6 @@ export async function runReplyAgent(params: {
       });
     }
   };
-
-  if (shouldSteer && isStreaming) {
-    const steered = queueEmbeddedPiMessage(followupRun.run.sessionId, followupRun.prompt);
-    if (steered && !shouldFollowup) {
-      await touchActiveSessionEntry();
-      typing.cleanup();
-      return undefined;
-    }
-  }
 
   const activeRunQueueAction = resolveActiveRunQueueAction({
     isActive,

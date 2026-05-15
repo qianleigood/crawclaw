@@ -10,7 +10,6 @@ describe("config schema", () => {
   let pluginUiHintInput: SchemaInput;
   let tokenHintInput: SchemaInput;
   let mergedSchemaInput: SchemaInput;
-  let heartbeatChannelInput: SchemaInput;
   let cachedMergeInput: SchemaInput;
 
   beforeAll(() => {
@@ -53,23 +52,14 @@ describe("config schema", () => {
       ],
       channels: [
         {
-          id: "matrix",
-          label: "Matrix",
+          id: "feishu",
+          label: "Feishu",
           configSchema: {
             type: "object",
             properties: {
               accessToken: { type: "string" },
             },
           },
-        },
-      ],
-    };
-    heartbeatChannelInput = {
-      channels: [
-        {
-          id: "bluebubbles",
-          label: "BlueBubbles",
-          configSchema: { type: "object" },
         },
       ],
     };
@@ -83,8 +73,8 @@ describe("config schema", () => {
       ],
       channels: [
         {
-          id: "matrix",
-          label: "Matrix",
+          id: "feishu",
+          label: "Feishu",
           configSchema: { type: "object", properties: { accessToken: { type: "string" } } },
         },
       ],
@@ -162,11 +152,11 @@ describe("config schema", () => {
 
     const channelsNode = schema.properties?.channels as Record<string, unknown> | undefined;
     const channelsProps = channelsNode?.properties as Record<string, unknown> | undefined;
-    const channelSchema = channelsProps?.matrix as Record<string, unknown> | undefined;
+    const channelSchema = channelsProps?.feishu as Record<string, unknown> | undefined;
     const channelProps = channelSchema?.properties as Record<string, unknown> | undefined;
     expect(channelProps?.accessToken).toBeTruthy();
-    expect(res.uiHints["channels.matrix"]?.label).toBe("Matrix");
-    expect(res.uiHints["channels.matrix.accessToken"]?.sensitive).toBe(true);
+    expect(res.uiHints["channels.feishu"]?.label).toBe("Feishu");
+    expect(res.uiHints["channels.feishu.accessToken"]?.sensitive).toBe(true);
   });
 
   it("looks up plugin config paths for slash-delimited plugin ids", () => {
@@ -193,16 +183,6 @@ describe("config schema", () => {
       path: "plugins.entries.pack/one.config.provider",
       type: "string",
     });
-  });
-
-  it("adds heartbeat target hints with dynamic channels", () => {
-    const res = buildConfigSchema(heartbeatChannelInput);
-
-    const defaultsHint = res.uiHints["agents.defaults.heartbeat.target"];
-    const listHint = res.uiHints["agents.list.*.heartbeat.target"];
-    expect(defaultsHint?.help).toContain("bluebubbles");
-    expect(defaultsHint?.help).toContain("last");
-    expect(listHint?.help).toContain("bluebubbles");
   });
 
   it("caches merged schemas for identical plugin/channel metadata", () => {
@@ -266,7 +246,7 @@ describe("config schema", () => {
     const withTags = applyDerivedTags({
       "gateway.auth.token": {},
       "tools.web.fetch.timeoutSeconds": {},
-      "channels.slack.accounts.*.token": {},
+      "channels.ddingtalk.accounts.*.token": {},
     });
     const allowed = new Set<string>(CONFIG_TAGS);
     for (const hint of Object.values(withTags)) {

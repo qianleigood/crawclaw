@@ -856,15 +856,6 @@
       "entrypoint": "core",
       "exports": [
         {
-          "declaration": "export function applyAccountNameToChannelSection(params: { cfg: CrawClawConfig; channelKey: string; accountId: string; name?: string | undefined; alwaysUseAccounts?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "applyAccountNameToChannelSection",
-          "kind": "function",
-          "source": {
-            "line": 35,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
           "declaration": "export function buildAgentSessionKey(params: { agentId: string; channel: string; accountId?: string | null | undefined; peer?: RoutePeer | null | undefined; dmScope?: \"main\" | \"per-peer\" | \"per-channel-peer\" | \"per-account-channel-peer\" | undefined; identityLinks?: Record<...> | undefined; }): string;",
           "exportName": "buildAgentSessionKey",
           "kind": "function",
@@ -874,75 +865,12 @@
           }
         },
         {
-          "declaration": "export function buildChannelConfigSchema(schema: ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>, options?: BuildChannelConfigSchemaOptions | undefined): ChannelConfigSchema;",
-          "exportName": "buildChannelConfigSchema",
-          "kind": "function",
-          "source": {
-            "line": 76,
-            "path": "src/channels/plugins/config-schema.ts"
-          }
-        },
-        {
-          "declaration": "export function buildChannelOutboundSessionRoute(params: { cfg: CrawClawConfig; agentId: string; channel: string; accountId?: string | null | undefined; peer: { kind: \"direct\" | \"group\" | \"channel\"; id: string; }; chatType: \"direct\" | \"group\" | \"channel\"; from: string; to: string; threadId?: string | ... 1 more ... | undefined; }): ChannelOutboundSessionRoute;",
-          "exportName": "buildChannelOutboundSessionRoute",
-          "kind": "function",
-          "source": {
-            "line": 313,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
-          }
-        },
-        {
           "declaration": "export function buildPluginConfigSchema(schema: ZodType<unknown, unknown, $ZodTypeInternals<unknown, unknown>>, options?: BuildPluginConfigSchemaOptions | undefined): CrawClawPluginConfigSchema;",
           "exportName": "buildPluginConfigSchema",
           "kind": "function",
           "source": {
             "line": 78,
             "path": "src/plugins/config-schema.ts"
-          }
-        },
-        {
-          "declaration": "export function channelTargetSchema(options?: { description?: string | undefined; } | undefined): TString;",
-          "exportName": "channelTargetSchema",
-          "kind": "function",
-          "source": {
-            "line": 38,
-            "path": "src/agents/schema/typebox.ts"
-          }
-        },
-        {
-          "declaration": "export function channelTargetsSchema(options?: { description?: string | undefined; } | undefined): TArray<TString>;",
-          "exportName": "channelTargetsSchema",
-          "kind": "function",
-          "source": {
-            "line": 44,
-            "path": "src/agents/schema/typebox.ts"
-          }
-        },
-        {
-          "declaration": "export function clearAccountEntryFields<TAccountEntry extends object>(params: { accounts?: Record<string, TAccountEntry> | undefined; accountId: string; fields: string[]; isValueSet?: ((value: unknown) => boolean) | undefined; markClearedOnFieldPresence?: boolean | undefined; }): { ...; };",
-          "exportName": "clearAccountEntryFields",
-          "kind": "function",
-          "source": {
-            "line": 122,
-            "path": "src/channels/plugins/config-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createChannelPluginBase<TResolvedAccount>(params: CreateChannelPluginBaseOptions<TResolvedAccount>): CreatedChannelPluginBase<TResolvedAccount>;",
-          "exportName": "createChannelPluginBase",
-          "kind": "function",
-          "source": {
-            "line": 430,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
-          }
-        },
-        {
-          "declaration": "export function createChatChannelPlugin<TResolvedAccount extends { accountId?: string | null; }, Probe = unknown, Audit = unknown>(params: { base: ChatChannelPluginBase<TResolvedAccount, Probe, Audit>; security?: ChannelSecurityAdapter<TResolvedAccount> | ChatChannelSecurityOptions<...> | undefined; pairing?: ChannelPairingAdapter | ... 1 more ... | undefined; threading?: ChannelThreadingAdapter | ... 1 more ... | undefined; outbound?: ChannelOutboundAdapter | ... 1 more ... | undefined; }): ChannelPlugin<...>;",
-          "exportName": "createChatChannelPlugin",
-          "kind": "function",
-          "source": {
-            "line": 403,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
           }
         },
         {
@@ -964,39 +892,12 @@
           }
         },
         {
-          "declaration": "export function defineChannelPluginEntry<TPlugin>({ id, name, description, plugin, configSchema, setRuntime, registerCliMetadata, registerFull, }: DefineChannelPluginEntryOptions<TPlugin>): DefinedChannelPluginEntry<TPlugin>;",
-          "exportName": "defineChannelPluginEntry",
-          "kind": "function",
-          "source": {
-            "line": 353,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
-          }
-        },
-        {
           "declaration": "export function definePluginEntry({ id, name, description, kind, configSchema, register, }: DefinePluginEntryOptions): DefinedPluginEntry;",
           "exportName": "definePluginEntry",
           "kind": "function",
           "source": {
-            "line": 145,
+            "line": 83,
             "path": "src/plugin-sdk/plugin-entry.ts"
-          }
-        },
-        {
-          "declaration": "export function defineSetupPluginEntry<TPlugin>(plugin: TPlugin): { __crawclawEntryType: \"setup\"; plugin: TPlugin; };",
-          "exportName": "defineSetupPluginEntry",
-          "kind": "function",
-          "source": {
-            "line": 397,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
-          }
-        },
-        {
-          "declaration": "export function deleteAccountFromConfigSection(params: { cfg: CrawClawConfig; sectionKey: string; accountId: string; clearBaseFields?: string[] | undefined; }): CrawClawConfig;",
-          "exportName": "deleteAccountFromConfigSection",
-          "kind": "function",
-          "source": {
-            "line": 60,
-            "path": "src/channels/plugins/config-helpers.ts"
           }
         },
         {
@@ -1018,15 +919,6 @@
           }
         },
         {
-          "declaration": "export function formatPairingApproveHint(channelId: string): string;",
-          "exportName": "formatPairingApproveHint",
-          "kind": "function",
-          "source": {
-            "line": 17,
-            "path": "src/channels/plugins/helpers.ts"
-          }
-        },
-        {
           "declaration": "export function generateSecureToken(bytes?: number): string;",
           "exportName": "generateSecureToken",
           "kind": "function",
@@ -1042,15 +934,6 @@
           "source": {
             "line": 3,
             "path": "src/infra/secure-random.ts"
-          }
-        },
-        {
-          "declaration": "export function getChatChannelMeta(id: ChatChannelId): ChannelMeta;",
-          "exportName": "getChatChannelMeta",
-          "kind": "function",
-          "source": {
-            "line": 126,
-            "path": "src/channels/chat-meta.ts"
           }
         },
         {
@@ -1072,24 +955,6 @@
           }
         },
         {
-          "declaration": "export function migrateBaseNameToDefaultAccount(params: { cfg: CrawClawConfig; channelKey: string; alwaysUseAccounts?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "migrateBaseNameToDefaultAccount",
-          "kind": "function",
-          "source": {
-            "line": 94,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function normalizeAccountId(value: string | null | undefined): string;",
-          "exportName": "normalizeAccountId",
-          "kind": "function",
-          "source": {
-            "line": 34,
-            "path": "src/routing/account-id.ts"
-          }
-        },
-        {
           "declaration": "export function normalizeAtHashSlug(raw?: string | null | undefined): string;",
           "exportName": "normalizeAtHashSlug",
           "kind": "function",
@@ -1105,24 +970,6 @@
           "source": {
             "line": 9,
             "path": "src/shared/string-normalization.ts"
-          }
-        },
-        {
-          "declaration": "export function optionalStringEnum<T extends readonly string[]>(values: T, options?: StringEnumOptions<T>): TOptional<TUnsafe<T[number]>>;",
-          "exportName": "optionalStringEnum",
-          "kind": "function",
-          "source": {
-            "line": 31,
-            "path": "src/agents/schema/typebox.ts"
-          }
-        },
-        {
-          "declaration": "export function parseOptionalDelimitedEntries(value?: string | undefined): string[] | undefined;",
-          "exportName": "parseOptionalDelimitedEntries",
-          "kind": "function",
-          "source": {
-            "line": 23,
-            "path": "src/channels/plugins/helpers.ts"
           }
         },
         {
@@ -1180,57 +1027,12 @@
           }
         },
         {
-          "declaration": "export function setAccountEnabledInConfigSection(params: { cfg: CrawClawConfig; sectionKey: string; accountId: string; enabled: boolean; allowTopLevel?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "setAccountEnabledInConfigSection",
-          "kind": "function",
-          "source": {
-            "line": 16,
-            "path": "src/channels/plugins/config-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function stringEnum<T extends readonly string[]>(values: T, options?: StringEnumOptions<T>): TUnsafe<T[number]>;",
-          "exportName": "stringEnum",
-          "kind": "function",
-          "source": {
-            "line": 15,
-            "path": "src/agents/schema/typebox.ts"
-          }
-        },
-        {
-          "declaration": "export function stripChannelTargetPrefix(raw: string, ...providers: string[]): string;",
-          "exportName": "stripChannelTargetPrefix",
-          "kind": "function",
-          "source": {
-            "line": 293,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
-          }
-        },
-        {
-          "declaration": "export function stripTargetKindPrefix(raw: string): string;",
-          "exportName": "stripTargetKindPrefix",
-          "kind": "function",
-          "source": {
-            "line": 305,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
-          }
-        },
-        {
           "declaration": "export function tryReadSecretFileSync(filePath: string | undefined, label: string, options?: SecretFileReadOptions): string | undefined;",
           "exportName": "tryReadSecretFileSync",
           "kind": "function",
           "source": {
             "line": 130,
             "path": "src/infra/secret-file.ts"
-          }
-        },
-        {
-          "declaration": "export const DEFAULT_ACCOUNT_ID: \"default\";",
-          "exportName": "DEFAULT_ACCOUNT_ID",
-          "kind": "const",
-          "source": {
-            "line": 3,
-            "path": "src/routing/account-id.ts"
           }
         },
         {
@@ -1270,69 +1072,6 @@
           }
         },
         {
-          "declaration": "export type ChannelConfigUiHint = ChannelConfigUiHint;",
-          "exportName": "ChannelConfigUiHint",
-          "kind": "type",
-          "source": {
-            "line": 41,
-            "path": "src/channels/plugins/types.plugin.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelMessageActionContext = ChannelMessageActionContext;",
-          "exportName": "ChannelMessageActionContext",
-          "kind": "type",
-          "source": {
-            "line": 538,
-            "path": "src/channels/plugins/types.core.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelMessagingAdapter = ChannelMessagingAdapter;",
-          "exportName": "ChannelMessagingAdapter",
-          "kind": "type",
-          "source": {
-            "line": 416,
-            "path": "src/channels/plugins/types.core.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelOutboundSessionRoute = ChannelOutboundSessionRoute;",
-          "exportName": "ChannelOutboundSessionRoute",
-          "kind": "type",
-          "source": {
-            "line": 335,
-            "path": "src/channels/plugins/types.core.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelOutboundSessionRouteParams = {    cfg: CrawClawConfig;    agentId: string;    accountId?: string | null;    target: string;    resolvedTarget?: {        to: string;        kind: import(\"../channels/plugins/types.core.js\").ChannelDirectoryEntryKind | \"channel\";        display?: string;        source: \"normalized\" | \"directory\";    };    replyToId?: string | null;    threadId?: string | number | null;};",
-          "exportName": "ChannelOutboundSessionRouteParams",
-          "kind": "type",
-          "source": {
-            "line": 342,
-            "path": "src/plugin-sdk/channel-plugin-builders.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelPlugin = ChannelPlugin<ResolvedAccount, Probe, Audit>;",
-          "exportName": "ChannelPlugin",
-          "kind": "type",
-          "source": {
-            "line": 87,
-            "path": "src/channels/plugins/types.plugin.ts"
-          }
-        },
-        {
-          "declaration": "export type ChatType = ChatType;",
-          "exportName": "ChatType",
-          "kind": "type",
-          "source": {
-            "line": 1,
-            "path": "src/channels/chat-type.ts"
-          }
-        },
-        {
           "declaration": "export type CrawClawConfig = CrawClawConfig;",
           "exportName": "CrawClawConfig",
           "kind": "type",
@@ -1346,7 +1085,7 @@
           "exportName": "CrawClawPluginApi",
           "kind": "type",
           "source": {
-            "line": 1631,
+            "line": 1598,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1355,7 +1094,7 @@
           "exportName": "CrawClawPluginCommandDefinition",
           "kind": "type",
           "source": {
-            "line": 1507,
+            "line": 1505,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1364,7 +1103,7 @@
           "exportName": "CrawClawPluginConfigSchema",
           "kind": "type",
           "source": {
-            "line": 104,
+            "line": 102,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1373,7 +1112,7 @@
           "exportName": "CrawClawPluginDefinition",
           "kind": "type",
           "source": {
-            "line": 1613,
+            "line": 1580,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1382,7 +1121,7 @@
           "exportName": "CrawClawPluginService",
           "kind": "type",
           "source": {
-            "line": 1579,
+            "line": 1550,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1391,7 +1130,7 @@
           "exportName": "CrawClawPluginServiceContext",
           "kind": "type",
           "source": {
-            "line": 1570,
+            "line": 1541,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1400,7 +1139,7 @@
           "exportName": "CrawClawPluginToolContext",
           "kind": "type",
           "source": {
-            "line": 121,
+            "line": 119,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1409,7 +1148,7 @@
           "exportName": "CrawClawPluginToolFactory",
           "kind": "type",
           "source": {
-            "line": 145,
+            "line": 143,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1418,7 +1157,7 @@
           "exportName": "CrawClawToolSchema",
           "kind": "type",
           "source": {
-            "line": 2597,
+            "line": 2529,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1445,7 +1184,7 @@
           "exportName": "MediaUnderstandingProviderPlugin",
           "kind": "type",
           "source": {
-            "line": 1385,
+            "line": 1383,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1454,7 +1193,7 @@
           "exportName": "PluginCommandContext",
           "kind": "type",
           "source": {
-            "line": 1399,
+            "line": 1397,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1463,7 +1202,7 @@
           "exportName": "PluginLogger",
           "kind": "type",
           "source": {
-            "line": 75,
+            "line": 73,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1504,20 +1243,11 @@
           }
         },
         {
-          "declaration": "export type ProviderAugmentModelCatalogContext = ProviderAugmentModelCatalogContext;",
-          "exportName": "ProviderAugmentModelCatalogContext",
-          "kind": "type",
-          "source": {
-            "line": 756,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
           "declaration": "export type ProviderAuthContext = ProviderAuthContext;",
           "exportName": "ProviderAuthContext",
           "kind": "type",
           "source": {
-            "line": 180,
+            "line": 178,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1526,7 +1256,7 @@
           "exportName": "ProviderAuthDoctorHintContext",
           "kind": "type",
           "source": {
-            "line": 519,
+            "line": 517,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1535,7 +1265,7 @@
           "exportName": "ProviderAuthMethod",
           "kind": "type",
           "source": {
-            "line": 259,
+            "line": 257,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1544,7 +1274,7 @@
           "exportName": "ProviderAuthMethodNonInteractiveContext",
           "kind": "type",
           "source": {
-            "line": 243,
+            "line": 241,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1553,232 +1283,7 @@
           "exportName": "ProviderAuthResult",
           "kind": "type",
           "source": {
-            "line": 165,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuildMissingAuthMessageContext = ProviderBuildMissingAuthMessageContext;",
-          "exportName": "ProviderBuildMissingAuthMessageContext",
-          "kind": "type",
-          "source": {
-            "line": 668,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuildUnknownModelHintContext = ProviderBuildUnknownModelHintContext;",
-          "exportName": "ProviderBuildUnknownModelHintContext",
-          "kind": "type",
-          "source": {
-            "line": 684,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuiltInModelSuppressionContext = ProviderBuiltInModelSuppressionContext;",
-          "exportName": "ProviderBuiltInModelSuppressionContext",
-          "kind": "type",
-          "source": {
-            "line": 700,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuiltInModelSuppressionResult = ProviderBuiltInModelSuppressionResult;",
-          "exportName": "ProviderBuiltInModelSuppressionResult",
-          "kind": "type",
-          "source": {
-            "line": 709,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderCacheTtlEligibilityContext = ProviderCacheTtlEligibilityContext;",
-          "exportName": "ProviderCacheTtlEligibilityContext",
-          "kind": "type",
-          "source": {
-            "line": 656,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderCatalogContext = ProviderCatalogContext;",
-          "exportName": "ProviderCatalogContext",
-          "kind": "type",
-          "source": {
-            "line": 280,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderCatalogResult = ProviderCatalogResult;",
-          "exportName": "ProviderCatalogResult",
-          "kind": "type",
-          "source": {
-            "line": 303,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderDefaultThinkingPolicyContext = ProviderDefaultThinkingPolicyContext;",
-          "exportName": "ProviderDefaultThinkingPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 733,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderFetchUsageSnapshotContext = ProviderFetchUsageSnapshotContext;",
-          "exportName": "ProviderFetchUsageSnapshotContext",
-          "kind": "type",
-          "source": {
-            "line": 500,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderModernModelPolicyContext = ProviderModernModelPolicyContext;",
-          "exportName": "ProviderModernModelPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 743,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderNormalizeResolvedModelContext = ProviderNormalizeResolvedModelContext;",
-          "exportName": "ProviderNormalizeResolvedModelContext",
-          "kind": "type",
-          "source": {
-            "line": 364,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderNormalizeToolSchemasContext = ProviderNormalizeToolSchemasContext;",
-          "exportName": "ProviderNormalizeToolSchemasContext",
-          "kind": "type",
-          "source": {
-            "line": 600,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderPreparedRuntimeAuth = ProviderPreparedRuntimeAuth;",
-          "exportName": "ProviderPreparedRuntimeAuth",
-          "kind": "type",
-          "source": {
-            "line": 446,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderPrepareDynamicModelContext = ProviderResolveDynamicModelContext;",
-          "exportName": "ProviderPrepareDynamicModelContext",
-          "kind": "type",
-          "source": {
-            "line": 355,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderPrepareRuntimeAuthContext = ProviderPrepareRuntimeAuthContext;",
-          "exportName": "ProviderPrepareRuntimeAuthContext",
-          "kind": "type",
-          "source": {
-            "line": 425,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReasoningOutputMode = ProviderReasoningOutputMode;",
-          "exportName": "ProviderReasoningOutputMode",
-          "kind": "type",
-          "source": {
-            "line": 530,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReasoningOutputModeContext = ProviderReplayPolicyContext;",
-          "exportName": "ProviderReasoningOutputModeContext",
-          "kind": "type",
-          "source": {
-            "line": 610,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReplayPolicy = ProviderReplayPolicy;",
-          "exportName": "ProviderReplayPolicy",
-          "kind": "type",
-          "source": {
-            "line": 539,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReplayPolicyContext = ProviderReplayPolicyContext;",
-          "exportName": "ProviderReplayPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 560,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderResolvedUsageAuth = ProviderResolvedUsageAuth;",
-          "exportName": "ProviderResolvedUsageAuth",
-          "kind": "type",
-          "source": {
-            "line": 487,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderResolveDynamicModelContext = ProviderResolveDynamicModelContext;",
-          "exportName": "ProviderResolveDynamicModelContext",
-          "kind": "type",
-          "source": {
-            "line": 338,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderResolveUsageAuthContext = ProviderResolveUsageAuthContext;",
-          "exportName": "ProviderResolveUsageAuthContext",
-          "kind": "type",
-          "source": {
-            "line": 468,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderRuntimeModel = ProviderRuntimeModel;",
-          "exportName": "ProviderRuntimeModel",
-          "kind": "type",
-          "source": {
-            "line": 321,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderSanitizeReplayHistoryContext = ProviderSanitizeReplayHistoryContext;",
-          "exportName": "ProviderSanitizeReplayHistoryContext",
-          "kind": "type",
-          "source": {
-            "line": 577,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderThinkingPolicyContext = ProviderThinkingPolicyContext;",
-          "exportName": "ProviderThinkingPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 721,
+            "line": 163,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1789,15 +1294,6 @@
           "source": {
             "line": 7,
             "path": "src/infra/provider-usage.types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderValidateReplayTurnsContext = ProviderValidateReplayTurnsContext;",
-          "exportName": "ProviderValidateReplayTurnsContext",
-          "kind": "type",
-          "source": {
-            "line": 589,
-            "path": "src/plugins/types.ts"
           }
         },
         {
@@ -1832,7 +1328,7 @@
           "exportName": "SpeechProviderPlugin",
           "kind": "type",
           "source": {
-            "line": 1360,
+            "line": 1358,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1951,7 +1447,7 @@
           "exportName": "definePluginEntry",
           "kind": "function",
           "source": {
-            "line": 145,
+            "line": 83,
             "path": "src/plugin-sdk/plugin-entry.ts"
           }
         },
@@ -1987,7 +1483,7 @@
           "exportName": "CrawClawPluginApi",
           "kind": "type",
           "source": {
-            "line": 1631,
+            "line": 1598,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1996,7 +1492,7 @@
           "exportName": "CrawClawPluginCommandDefinition",
           "kind": "type",
           "source": {
-            "line": 1507,
+            "line": 1505,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2005,7 +1501,7 @@
           "exportName": "CrawClawPluginConfigSchema",
           "kind": "type",
           "source": {
-            "line": 104,
+            "line": 102,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2014,7 +1510,7 @@
           "exportName": "CrawClawPluginDefinition",
           "kind": "type",
           "source": {
-            "line": 1613,
+            "line": 1580,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2023,7 +1519,7 @@
           "exportName": "CrawClawPluginService",
           "kind": "type",
           "source": {
-            "line": 1579,
+            "line": 1550,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2032,7 +1528,7 @@
           "exportName": "CrawClawPluginServiceContext",
           "kind": "type",
           "source": {
-            "line": 1570,
+            "line": 1541,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2041,7 +1537,7 @@
           "exportName": "CrawClawPluginToolContext",
           "kind": "type",
           "source": {
-            "line": 121,
+            "line": 119,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2050,7 +1546,7 @@
           "exportName": "CrawClawPluginToolFactory",
           "kind": "type",
           "source": {
-            "line": 145,
+            "line": 143,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2059,7 +1555,7 @@
           "exportName": "CrawClawToolSchema",
           "kind": "type",
           "source": {
-            "line": 2597,
+            "line": 2529,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2068,7 +1564,7 @@
           "exportName": "MediaUnderstandingProviderPlugin",
           "kind": "type",
           "source": {
-            "line": 1385,
+            "line": 1383,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2077,7 +1573,7 @@
           "exportName": "PluginCommandContext",
           "kind": "type",
           "source": {
-            "line": 1399,
+            "line": 1397,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2086,16 +1582,7 @@
           "exportName": "PluginLogger",
           "kind": "type",
           "source": {
-            "line": 75,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAugmentModelCatalogContext = ProviderAugmentModelCatalogContext;",
-          "exportName": "ProviderAugmentModelCatalogContext",
-          "kind": "type",
-          "source": {
-            "line": 756,
+            "line": 73,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2104,7 +1591,7 @@
           "exportName": "ProviderAuthContext",
           "kind": "type",
           "source": {
-            "line": 180,
+            "line": 178,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2113,7 +1600,7 @@
           "exportName": "ProviderAuthDoctorHintContext",
           "kind": "type",
           "source": {
-            "line": 519,
+            "line": 517,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2122,7 +1609,7 @@
           "exportName": "ProviderAuthMethod",
           "kind": "type",
           "source": {
-            "line": 259,
+            "line": 257,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2131,7 +1618,7 @@
           "exportName": "ProviderAuthMethodNonInteractiveContext",
           "kind": "type",
           "source": {
-            "line": 243,
+            "line": 241,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2140,277 +1627,7 @@
           "exportName": "ProviderAuthResult",
           "kind": "type",
           "source": {
-            "line": 165,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuildMissingAuthMessageContext = ProviderBuildMissingAuthMessageContext;",
-          "exportName": "ProviderBuildMissingAuthMessageContext",
-          "kind": "type",
-          "source": {
-            "line": 668,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuildUnknownModelHintContext = ProviderBuildUnknownModelHintContext;",
-          "exportName": "ProviderBuildUnknownModelHintContext",
-          "kind": "type",
-          "source": {
-            "line": 684,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuiltInModelSuppressionContext = ProviderBuiltInModelSuppressionContext;",
-          "exportName": "ProviderBuiltInModelSuppressionContext",
-          "kind": "type",
-          "source": {
-            "line": 700,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderBuiltInModelSuppressionResult = ProviderBuiltInModelSuppressionResult;",
-          "exportName": "ProviderBuiltInModelSuppressionResult",
-          "kind": "type",
-          "source": {
-            "line": 709,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderCacheTtlEligibilityContext = ProviderCacheTtlEligibilityContext;",
-          "exportName": "ProviderCacheTtlEligibilityContext",
-          "kind": "type",
-          "source": {
-            "line": 656,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderCatalogContext = ProviderCatalogContext;",
-          "exportName": "ProviderCatalogContext",
-          "kind": "type",
-          "source": {
-            "line": 280,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderCatalogResult = ProviderCatalogResult;",
-          "exportName": "ProviderCatalogResult",
-          "kind": "type",
-          "source": {
-            "line": 303,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderDefaultThinkingPolicyContext = ProviderDefaultThinkingPolicyContext;",
-          "exportName": "ProviderDefaultThinkingPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 733,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderFetchUsageSnapshotContext = ProviderFetchUsageSnapshotContext;",
-          "exportName": "ProviderFetchUsageSnapshotContext",
-          "kind": "type",
-          "source": {
-            "line": 500,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderModernModelPolicyContext = ProviderModernModelPolicyContext;",
-          "exportName": "ProviderModernModelPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 743,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderNormalizeConfigContext = ProviderNormalizeConfigContext;",
-          "exportName": "ProviderNormalizeConfigContext",
-          "kind": "type",
-          "source": {
-            "line": 390,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderNormalizeModelIdContext = ProviderNormalizeModelIdContext;",
-          "exportName": "ProviderNormalizeModelIdContext",
-          "kind": "type",
-          "source": {
-            "line": 379,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderNormalizeResolvedModelContext = ProviderNormalizeResolvedModelContext;",
-          "exportName": "ProviderNormalizeResolvedModelContext",
-          "kind": "type",
-          "source": {
-            "line": 364,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderNormalizeToolSchemasContext = ProviderNormalizeToolSchemasContext;",
-          "exportName": "ProviderNormalizeToolSchemasContext",
-          "kind": "type",
-          "source": {
-            "line": 600,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderNormalizeTransportContext = ProviderNormalizeTransportContext;",
-          "exportName": "ProviderNormalizeTransportContext",
-          "kind": "type",
-          "source": {
-            "line": 402,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderPreparedRuntimeAuth = ProviderPreparedRuntimeAuth;",
-          "exportName": "ProviderPreparedRuntimeAuth",
-          "kind": "type",
-          "source": {
-            "line": 446,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderPrepareDynamicModelContext = ProviderResolveDynamicModelContext;",
-          "exportName": "ProviderPrepareDynamicModelContext",
-          "kind": "type",
-          "source": {
-            "line": 355,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderPrepareRuntimeAuthContext = ProviderPrepareRuntimeAuthContext;",
-          "exportName": "ProviderPrepareRuntimeAuthContext",
-          "kind": "type",
-          "source": {
-            "line": 425,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReasoningOutputMode = ProviderReasoningOutputMode;",
-          "exportName": "ProviderReasoningOutputMode",
-          "kind": "type",
-          "source": {
-            "line": 530,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReasoningOutputModeContext = ProviderReplayPolicyContext;",
-          "exportName": "ProviderReasoningOutputModeContext",
-          "kind": "type",
-          "source": {
-            "line": 610,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReplayPolicy = ProviderReplayPolicy;",
-          "exportName": "ProviderReplayPolicy",
-          "kind": "type",
-          "source": {
-            "line": 539,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderReplayPolicyContext = ProviderReplayPolicyContext;",
-          "exportName": "ProviderReplayPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 560,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderResolveConfigApiKeyContext = ProviderResolveConfigApiKeyContext;",
-          "exportName": "ProviderResolveConfigApiKeyContext",
-          "kind": "type",
-          "source": {
-            "line": 414,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderResolvedUsageAuth = ProviderResolvedUsageAuth;",
-          "exportName": "ProviderResolvedUsageAuth",
-          "kind": "type",
-          "source": {
-            "line": 487,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderResolveDynamicModelContext = ProviderResolveDynamicModelContext;",
-          "exportName": "ProviderResolveDynamicModelContext",
-          "kind": "type",
-          "source": {
-            "line": 338,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderResolveUsageAuthContext = ProviderResolveUsageAuthContext;",
-          "exportName": "ProviderResolveUsageAuthContext",
-          "kind": "type",
-          "source": {
-            "line": 468,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderRuntimeModel = ProviderRuntimeModel;",
-          "exportName": "ProviderRuntimeModel",
-          "kind": "type",
-          "source": {
-            "line": 321,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderSanitizeReplayHistoryContext = ProviderSanitizeReplayHistoryContext;",
-          "exportName": "ProviderSanitizeReplayHistoryContext",
-          "kind": "type",
-          "source": {
-            "line": 577,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderThinkingPolicyContext = ProviderThinkingPolicyContext;",
-          "exportName": "ProviderThinkingPolicyContext",
-          "kind": "type",
-          "source": {
-            "line": 721,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderValidateReplayTurnsContext = ProviderValidateReplayTurnsContext;",
-          "exportName": "ProviderValidateReplayTurnsContext",
-          "kind": "type",
-          "source": {
-            "line": 589,
+            "line": 163,
             "path": "src/plugins/types.ts"
           }
         },
@@ -2419,7 +1636,7 @@
           "exportName": "SpeechProviderPlugin",
           "kind": "type",
           "source": {
-            "line": 1360,
+            "line": 1358,
             "path": "src/plugins/types.ts"
           }
         }
@@ -3217,7 +2434,7 @@
           }
         },
         {
-          "declaration": "export function createTopLevelChannelGroupPolicySetter(params: { channel: string; enabled?: boolean | undefined; }): (cfg: CrawClawConfig, groupPolicy: \"allowlist\" | \"disabled\" | \"open\") => CrawClawConfig;",
+          "declaration": "export function createTopLevelChannelGroupPolicySetter(params: { channel: string; enabled?: boolean | undefined; }): (cfg: CrawClawConfig, groupPolicy: \"disabled\" | \"allowlist\" | \"open\") => CrawClawConfig;",
           "exportName": "createTopLevelChannelGroupPolicySetter",
           "kind": "function",
           "source": {
@@ -3258,7 +2475,7 @@
           "kind": "function",
           "source": {
             "line": 8,
-            "path": "src/cli/command-format.ts"
+            "path": "src/terminal/command-format.ts"
           }
         },
         {
@@ -3727,7 +2944,7 @@
           "exportName": "capturePluginRegistration",
           "kind": "function",
           "source": {
-            "line": 124,
+            "line": 83,
             "path": "src/plugins/captured-registration.ts"
           }
         },
@@ -3746,7 +2963,7 @@
           "kind": "function",
           "source": {
             "line": 34,
-            "path": "src/cli/test-runtime-capture.ts"
+            "path": "src/terminal/test-runtime-capture.ts"
           }
         },
         {
@@ -3772,7 +2989,7 @@
           "exportName": "createWindowsCmdShimFixture",
           "kind": "function",
           "source": {
-            "line": 48,
+            "line": 47,
             "path": "src/plugin-sdk/testing.ts"
           }
         },
@@ -3782,7 +2999,7 @@
           "kind": "function",
           "source": {
             "line": 92,
-            "path": "src/cli/test-runtime-capture.ts"
+            "path": "src/terminal/test-runtime-capture.ts"
           }
         },
         {
@@ -3799,7 +3016,7 @@
           "exportName": "installCommonResolveTargetErrorCases",
           "kind": "function",
           "source": {
-            "line": 74,
+            "line": 73,
             "path": "src/plugin-sdk/testing.ts"
           }
         },
@@ -3885,15 +3102,6 @@
           }
         },
         {
-          "declaration": "export function resolveProviderPluginChoice(params: { providers: ProviderPlugin[]; choice: string; }): { provider: ProviderPlugin; method: ProviderAuthMethod; wizard?: ProviderPluginWizardSetup | undefined; } | null;",
-          "exportName": "resolveProviderPluginChoice",
-          "kind": "function",
-          "source": {
-            "line": 13,
-            "path": "src/plugins/provider-auth-choice.runtime.ts"
-          }
-        },
-        {
           "declaration": "export function runAcpRuntimeAdapterContract(params: AcpRuntimeAdapterContractParams): Promise<void>;",
           "exportName": "runAcpRuntimeAdapterContract",
           "kind": "function",
@@ -3926,7 +3134,7 @@
           "kind": "function",
           "source": {
             "line": 84,
-            "path": "src/cli/test-runtime-capture.ts"
+            "path": "src/terminal/test-runtime-capture.ts"
           }
         },
         {
@@ -3935,7 +3143,7 @@
           "kind": "function",
           "source": {
             "line": 88,
-            "path": "src/cli/test-runtime-capture.ts"
+            "path": "src/terminal/test-runtime-capture.ts"
           }
         },
         {
@@ -3944,7 +3152,7 @@
           "kind": "function",
           "source": {
             "line": 80,
-            "path": "src/cli/test-runtime-capture.ts"
+            "path": "src/terminal/test-runtime-capture.ts"
           }
         },
         {
@@ -3998,7 +3206,7 @@
           "kind": "type",
           "source": {
             "line": 5,
-            "path": "src/cli/test-runtime-capture.ts"
+            "path": "src/terminal/test-runtime-capture.ts"
           }
         },
         {
@@ -4007,7 +3215,7 @@
           "kind": "type",
           "source": {
             "line": 13,
-            "path": "src/cli/test-runtime-capture.ts"
+            "path": "src/terminal/test-runtime-capture.ts"
           }
         },
         {

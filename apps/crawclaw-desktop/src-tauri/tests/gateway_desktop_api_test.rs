@@ -1116,6 +1116,33 @@ esac
         json["desktopState"]["preferences"]["permissionMode"],
         "只读模式"
     );
+    assert!(json["desktopState"]["preferences"]["providerDescriptors"]
+        .as_array()
+        .expect("provider descriptors")
+        .iter()
+        .any(|entry| entry["provider"] == "openai" && entry["transport"] == "openai-responses"));
+    assert!(json["desktopState"]["preferences"]["providerSetupOptions"]
+        .as_array()
+        .expect("provider setup options")
+        .iter()
+        .any(|entry| entry["provider"] == "openai" && entry["value"] == "openai-api-key"));
+    assert!(
+        json["desktopState"]["preferences"]["providerModelPickerEntries"]
+            .as_array()
+            .expect("provider model picker entries")
+            .iter()
+            .any(|entry| entry["provider"] == "ollama"
+                && entry["value"] == "provider-plugin:ollama:local")
+    );
+    assert!(json["desktopState"]["preferences"]["webProviderBoundaries"]
+        .as_array()
+        .expect("web provider boundaries")
+        .iter()
+        .any(|entry| entry["surface"] == "web-search"
+            && entry["provider"] == "open-websearch"
+            && entry["productBoundary"] == "rust-native-plugin"
+            && entry["executionRuntime"] == "node-ts-js"
+            && entry["runtimeMajor"] == 24));
 }
 
 #[cfg(unix)]

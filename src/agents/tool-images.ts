@@ -22,7 +22,7 @@ type TextContentBlock = Extract<ToolContentBlock, { type: "text" }>;
 // - Images over ~2000px per side can fail in multi-image requests.
 // - Images over 5MB are rejected by the API.
 //
-// To keep sessions resilient (and avoid "silent" WhatsApp non-replies), we auto-downscale
+// To keep sessions resilient (and avoid "silent" channel non-replies), we auto-downscale
 // and recompress base64 image blocks when they exceed these limits.
 const MAX_IMAGE_DIMENSION_PX = DEFAULT_IMAGE_MAX_DIMENSION_PX;
 const MAX_IMAGE_BYTES = DEFAULT_IMAGE_MAX_BYTES;

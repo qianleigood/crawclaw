@@ -1,18 +1,10 @@
-import path from "node:path";
 import { resolveDefaultAgentId } from "../../agents/agent-scope.js";
 import { loadConfig, writeConfigFile, type CrawClawConfig } from "../../config/config.js";
-import {
-  loadSessionStore,
-  resolveSessionStoreEntry,
-  resolveStorePath,
-} from "../../config/sessions.js";
 import {
   clearNotebookLmProviderStateCache,
   ensureNotebookLmNotebook,
   flushPendingExperienceNotes,
   getNotebookLmProviderState,
-  getSharedAutoDreamScheduler,
-  getSharedSessionSummaryScheduler,
   listDurableMemoryIndexDocuments,
   normalizeNotebookLmConfig,
   readSessionSummaryFile,
@@ -23,8 +15,6 @@ import {
   resolveDreamClosedLoopStatus,
   readDreamConsolidationStatus,
   resolveMemoryConfig,
-  runDreamAgentOnce,
-  runSessionSummaryAgentOnce,
   SqliteRuntimeStore,
   summarizePromptJournal,
   type DurableMemoryIndexDocumentEntry,
@@ -44,7 +34,6 @@ import {
   inferNotebookLmLoginCommand,
   runNotebookLmLoginCommand,
 } from "../../memory/notebooklm/login.js";
-import { buildManualSessionSummaryRefreshContext } from "../../memory/session-summary/manual-refresh.ts";
 import { inferSessionSummaryProfile } from "../../memory/session-summary/template.ts";
 import { prepareSecretsRuntimeSnapshot } from "../../secrets/runtime.js";
 import { ErrorCodes, errorShape } from "../protocol/index.js";
@@ -562,7 +551,6 @@ export const memoryHandlers: GatewayRequestHandlers = {
 
   "memory.dream.run": async ({ params, respond }) => {
     try {
-      const cfg = await loadResolvedMemoryConfig();
       const resolvedScope = resolveDreamScopeParams(asRecord(params));
       if (resolvedScope.error) {
         respond(false, undefined, errorShape(ErrorCodes.INVALID_REQUEST, resolvedScope.error));
@@ -579,28 +567,14 @@ export const memoryHandlers: GatewayRequestHandlers = {
         );
         return;
       }
-      const scope = resolvedScope.scope;
-      await withMemoryRuntimeStore(cfg, async (store, memoryConfig) => {
-        const scheduler = getSharedAutoDreamScheduler({
-          config: memoryConfig.dreaming,
-          runtimeStore: store,
-          runner: runDreamAgentOnce,
-          logger: {
-            info: () => {},
-            warn: () => {},
-            error: () => {},
-          },
-        });
-        const result = await scheduler.runNow({
-          scope,
-          triggerSource: "browser_client",
-          bypassGate: readOptionalBoolean(asRecord(params).force) ?? false,
-          dryRun: readOptionalBoolean(asRecord(params).dryRun) ?? false,
-          sessionLimit: readOptionalPositiveInt(asRecord(params).sessionLimit) ?? 12,
-          signalLimit: readOptionalPositiveInt(asRecord(params).signalLimit) ?? 12,
-        });
-        respond(true, result, undefined);
-      });
+      respond(
+        false,
+        undefined,
+        errorShape(
+          ErrorCodes.UNAVAILABLE,
+          "memory.dream.run is implemented by the Rust gateway runtime.",
+        ),
+      );
     } catch (error) {
       respond(
         false,
@@ -693,76 +667,14 @@ export const memoryHandlers: GatewayRequestHandlers = {
       );
       return;
     }
-    try {
-      const cfg = await loadResolvedMemoryConfig();
-      const agentId = readOptionalString(asRecord(params).agent) || resolveDefaultAgentId(cfg);
-      const resolvedSessionEntry = (() => {
-        const storePath = resolveStorePath(cfg.session?.store, { agentId });
-        const store = loadSessionStore(storePath);
-        return resolveSessionStoreEntry({ store, sessionKey }).existing;
-      })();
-      const sessionFile =
-        resolvedSessionEntry?.sessionFile?.trim() || path.join(process.cwd(), `${sessionId}.jsonl`);
-      const workspaceDir = resolvedSessionEntry?.spawnedWorkspaceDir?.trim() || process.cwd();
-      await withMemoryRuntimeStore(cfg, async (store, memoryConfig) => {
-        const [file, rows] = await Promise.all([
-          readSessionSummaryFile({ agentId, sessionId }),
-          store.listMessagesByTurnRange(sessionId, 1, Number.MAX_SAFE_INTEGER),
-        ]);
-        const manualRefreshContext = buildManualSessionSummaryRefreshContext({
-          sessionId,
-          rows,
-        });
-        const scheduler = getSharedSessionSummaryScheduler({
-          config: {
-            enabled: memoryConfig.sessionSummary.enabled,
-            lightInitialTokenThreshold:
-              memoryConfig.sessionSummary.lightInitTokenThreshold ?? 3_000,
-            initialTokenThreshold: memoryConfig.sessionSummary.minTokensToInit,
-            updateTokenThreshold: memoryConfig.sessionSummary.minTokensBetweenUpdates,
-            minToolCalls: memoryConfig.sessionSummary.toolCallsBetweenUpdates,
-            runTimeoutSeconds:
-              memoryConfig.sessionSummary.maxWaitMs > 0
-                ? Math.max(90, Math.floor(memoryConfig.sessionSummary.maxWaitMs / 1000))
-                : undefined,
-            maxTurns: memoryConfig.sessionSummary.maxTurns,
-          },
-          runtimeStore: store,
-          runner: runSessionSummaryAgentOnce,
-          logger: {
-            info: () => {},
-            warn: () => {},
-            error: () => {},
-          },
-        });
-        const result = await scheduler.runNow({
-          sessionId,
-          sessionKey,
-          sessionFile,
-          workspaceDir,
-          agentId,
-          recentMessages: manualRefreshContext.recentMessages,
-          recentMessageLimit: 24,
-          currentTokenCount: manualRefreshContext.currentTokenCount,
-          toolCallCount: 0,
-          isSettledTurn: true,
-          bypassGate: readOptionalBoolean(asRecord(params).force) ?? false,
-          currentSummary: file.document,
-          lastModelVisibleMessageId: manualRefreshContext.lastModelVisibleMessageId,
-          parentForkContext: manualRefreshContext.parentForkContext,
-        });
-        respond(true, { agentId, sessionId, sessionKey, result }, undefined);
-      });
-    } catch (error) {
-      respond(
-        false,
-        undefined,
-        errorShape(
-          ErrorCodes.UNAVAILABLE,
-          `memory.sessionSummary.refresh failed: ${describeUnknownError(error)}`,
-        ),
-      );
-    }
+    respond(
+      false,
+      undefined,
+      errorShape(
+        ErrorCodes.UNAVAILABLE,
+        "memory.sessionSummary.refresh is implemented by the Rust gateway runtime.",
+      ),
+    );
   },
 
   "memory.experience.outbox.list": async ({ params, respond }) => {

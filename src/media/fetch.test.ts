@@ -53,27 +53,27 @@ async function expectRemoteMediaMaxBytesError(params: {
   ).rejects.toThrow("exceeds maxBytes");
 }
 
-async function expectRedactedTelegramFetchError(params: {
-  telegramFileUrl: string;
-  telegramToken: string;
-  redactedTelegramToken: string;
+async function expectRedactedFeishuFetchError(params: {
+  feishuFileUrl: string;
+  feishuToken: string;
+  redactedFeishuToken: string;
   fetchImpl: Parameters<typeof fetchRemoteMedia>[0]["fetchImpl"];
 }) {
   const error = await fetchRemoteMedia({
-    url: params.telegramFileUrl,
+    url: params.feishuFileUrl,
     fetchImpl: params.fetchImpl,
     lookupFn: makeLookupFn(),
     maxBytes: 1024,
     ssrfPolicy: {
-      allowedHostnames: ["api.telegram.org"],
+      allowedHostnames: ["api.feishu.org"],
       allowRfc2544BenchmarkRange: true,
     },
   }).catch((err: unknown) => err as Error);
 
   expect(error).toBeInstanceOf(Error);
   const errorText = error instanceof Error ? String(error) : "";
-  expect(errorText).not.toContain(params.telegramToken);
-  expect(errorText).toContain(`bot${params.redactedTelegramToken}`);
+  expect(errorText).not.toContain(params.feishuToken);
+  expect(errorText).toContain(`bot${params.redactedFeishuToken}`);
 }
 
 async function expectFetchRemoteMediaRejected(params: {
@@ -168,9 +168,9 @@ function createFetchRemoteMediaParams(
 }
 
 describe("fetchRemoteMedia", () => {
-  const telegramToken = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcd";
-  const redactedTelegramToken = `${telegramToken.slice(0, 6)}…${telegramToken.slice(-4)}`;
-  const telegramFileUrl = `https://api.telegram.org/file/bot${telegramToken}/photos/1.jpg`;
+  const feishuToken = "123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZabcd";
+  const redactedFeishuToken = `${feishuToken.slice(0, 6)}…${feishuToken.slice(-4)}`;
+  const feishuFileUrl = `https://api.feishu.org/file/bot${feishuToken}/photos/1.jpg`;
 
   beforeAll(async () => {
     ({ fetchRemoteMedia } = await import("./fetch.js"));
@@ -221,20 +221,20 @@ describe("fetchRemoteMedia", () => {
 
   it.each([
     {
-      name: "redacts Telegram bot tokens from fetch failure messages",
+      name: "redacts Feishu bot tokens from fetch failure messages",
       fetchImpl: vi.fn(async () => {
-        throw new Error(`dial failed for ${telegramFileUrl}`);
+        throw new Error(`dial failed for ${feishuFileUrl}`);
       }),
     },
     {
-      name: "redacts Telegram bot tokens from HTTP error messages",
+      name: "redacts Feishu bot tokens from HTTP error messages",
       fetchImpl: vi.fn(async () => new Response("unauthorized", { status: 401 })),
     },
   ] as const)("$name", async ({ fetchImpl }) => {
-    await expectRedactedTelegramFetchError({
-      telegramFileUrl,
-      telegramToken,
-      redactedTelegramToken,
+    await expectRedactedFeishuFetchError({
+      feishuFileUrl,
+      feishuToken,
+      redactedFeishuToken,
       fetchImpl,
     });
   });

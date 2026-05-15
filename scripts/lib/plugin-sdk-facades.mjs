@@ -6,7 +6,7 @@ function pluginSource(dirName, artifactBasename = "api.js") {
   return `@crawclaw/${dirName}/${artifactBasename}`;
 }
 
-export const GENERATED_PLUGIN_SDK_FACADES = [
+const ALL_GENERATED_PLUGIN_SDK_FACADES = [
   {
     subpath: "amazon-bedrock",
     source: pluginSource("amazon-bedrock", "api.js"),
@@ -190,6 +190,8 @@ export const GENERATED_PLUGIN_SDK_FACADES = [
       "applyOpenrouterConfig",
       "applyOpenrouterProviderConfig",
       "buildOpenrouterProvider",
+      "getOpenRouterModelCapabilities",
+      "loadOpenRouterModelCapabilities",
       "OPENROUTER_DEFAULT_MODEL_REF",
     ],
   },
@@ -282,22 +284,7 @@ export const GENERATED_PLUGIN_SDK_FACADES = [
   {
     subpath: "ollama",
     source: pluginSource("ollama", "runtime-api.js"),
-    exports: [
-      "buildAssistantMessage",
-      "buildOllamaChatRequest",
-      "convertToOllamaMessages",
-      "createOllamaEmbeddingProvider",
-      "createConfiguredOllamaStreamFn",
-      "createOllamaStreamFn",
-      "DEFAULT_OLLAMA_EMBEDDING_MODEL",
-      "isOllamaCompatProvider",
-      "OLLAMA_NATIVE_BASE_URL",
-      "parseNdjsonStream",
-      "resolveOllamaBaseUrlForRun",
-      "resolveOllamaCompatNumCtxEnabled",
-      "shouldInjectOllamaCompatNumCtx",
-      "wrapOllamaCompatNumCtx",
-    ],
+    exports: ["createOllamaEmbeddingProvider", "DEFAULT_OLLAMA_EMBEDDING_MODEL"],
     typeExports: ["OllamaEmbeddingClient", "OllamaEmbeddingProvider"],
   },
   {
@@ -330,8 +317,6 @@ export const GENERATED_PLUGIN_SDK_FACADES = [
     exports: [
       "applyOpenAIConfig",
       "applyOpenAIProviderConfig",
-      "buildOpenAICodexProvider",
-      "buildOpenAIProvider",
       "OPENAI_CODEX_DEFAULT_MODEL",
       "OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL",
       "OPENAI_DEFAULT_EMBEDDING_MODEL",
@@ -556,6 +541,44 @@ export const GENERATED_PLUGIN_SDK_FACADES = [
     ],
   },
 ];
+
+const RUST_OWNED_PROVIDER_FACADE_SUBPATHS = new Set([
+  "amazon-bedrock",
+  "anthropic-vertex",
+  "byteplus",
+  "chutes",
+  "cloudflare-ai-gateway",
+  "deepseek",
+  "huggingface",
+  "kilocode",
+  "kimi-coding",
+  "litellm",
+  "minimax",
+  "mistral",
+  "modelstudio",
+  "modelstudio-definitions",
+  "moonshot",
+  "nvidia",
+  "ollama",
+  "opencode",
+  "opencode-go",
+  "openrouter",
+  "qianfan",
+  "sglang",
+  "synthetic",
+  "together",
+  "venice",
+  "vercel-ai-gateway",
+  "volcengine",
+  "vllm",
+  "xai",
+  "xiaomi",
+  "zai",
+]);
+
+export const GENERATED_PLUGIN_SDK_FACADES = ALL_GENERATED_PLUGIN_SDK_FACADES.filter(
+  (entry) => !RUST_OWNED_PROVIDER_FACADE_SUBPATHS.has(entry.subpath),
+);
 
 export const GENERATED_PLUGIN_SDK_FACADES_BY_SUBPATH = Object.fromEntries(
   GENERATED_PLUGIN_SDK_FACADES.map((entry) => [entry.subpath, entry]),

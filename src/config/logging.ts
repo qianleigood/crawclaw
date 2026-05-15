@@ -1,5 +1,5 @@
-import { createCliTranslator, getActiveCliLocale } from "../cli/i18n/text.js";
 import type { RuntimeEnv } from "../runtime.js";
+import { createCliTranslator, getActiveCliLocale } from "../terminal/i18n/text.js";
 import { displayPath } from "../utils.js";
 import { createConfigIO } from "./io.js";
 

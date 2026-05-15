@@ -8,8 +8,8 @@ const mocks = vi.hoisted(() => ({
   getTailnetHostname: vi.fn(),
 }));
 
-vi.mock("../commands/onboard-helpers.js", async (importActual) => {
-  const actual = await importActual<typeof import("../commands/onboard-helpers.js")>();
+vi.mock("../control/onboard-helpers.js", async (importActual) => {
+  const actual = await importActual<typeof import("../control/onboard-helpers.js")>();
   return {
     ...actual,
     randomToken: mocks.randomToken,

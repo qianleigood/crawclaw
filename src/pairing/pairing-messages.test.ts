@@ -17,18 +17,18 @@ describe("buildPairingReply", () => {
 
   const pairingReplyCases = [
     {
-      channel: "telegram",
-      idLine: "Your Telegram user id: 42",
+      channel: "feishu",
+      idLine: "Your Feishu user id: 42",
       code: "QRS678",
     },
     {
-      channel: "discord",
-      idLine: "Your Discord user id: 1",
+      channel: "qqbot",
+      idLine: "Your QQBot user id: 1",
       code: "ABC123",
     },
     {
-      channel: "slack",
-      idLine: "Your Slack user id: U1",
+      channel: "ddingtalk",
+      idLine: "Your DingTalk user id: U1",
       code: "DEF456",
     },
     {
@@ -37,13 +37,13 @@ describe("buildPairingReply", () => {
       code: "GHI789",
     },
     {
-      channel: "imessage",
-      idLine: "Your iMessage sender id: +15550002222",
+      channel: "weixin",
+      idLine: "Your Weixin sender id: +15550002222",
       code: "JKL012",
     },
     {
-      channel: "whatsapp",
-      idLine: "Your WhatsApp phone number: +15550003333",
+      channel: "weixin",
+      idLine: "Your Weixin phone number: +15550003333",
       code: "MNO345",
     },
   ] as const;

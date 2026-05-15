@@ -1,5 +1,5 @@
 import { select } from "@clack/prompts";
-import { translateActiveCliText } from "../cli/i18n/text.js";
+import { translateActiveCliText } from "./i18n/text.js";
 import { stylePromptHint, stylePromptMessage } from "./prompt-style.js";
 
 const translateOptionLabel = (label: string | undefined, fallback: unknown): string =>

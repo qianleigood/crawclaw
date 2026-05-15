@@ -69,6 +69,22 @@ pub fn initial_desktop_state(runtime: &RuntimeStatus) -> DesktopState {
             selected_thinking: "high".to_string(),
             permission_mode: "工作区模式".to_string(),
             model_options: crawclaw_providers::default_model_options(),
+            provider_descriptors: serde_json::to_value(
+                crawclaw_providers::bundled_provider_descriptors(),
+            )
+            .unwrap_or_else(|_| serde_json::json!([])),
+            provider_setup_options: serde_json::to_value(
+                crawclaw_providers::bundled_provider_setup_options(),
+            )
+            .unwrap_or_else(|_| serde_json::json!([])),
+            provider_model_picker_entries: serde_json::to_value(
+                crawclaw_providers::bundled_provider_model_picker_entries(),
+            )
+            .unwrap_or_else(|_| serde_json::json!([])),
+            web_provider_boundaries: serde_json::to_value(
+                crawclaw_providers::bundled_web_provider_boundaries(),
+            )
+            .unwrap_or_else(|_| serde_json::json!([])),
             thinking_options: vec!["high".to_string(), "medium".to_string(), "low".to_string()],
             permission_mode_options: vec![
                 "工作区模式".to_string(),

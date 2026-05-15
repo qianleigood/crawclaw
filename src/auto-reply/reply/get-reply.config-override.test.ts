@@ -35,16 +35,16 @@ async function loadFreshGetReplyModuleForTest() {
 
 function buildCtx(overrides: Partial<MsgContext> = {}): MsgContext {
   return {
-    Provider: "telegram",
-    Surface: "telegram",
+    Provider: "feishu",
+    Surface: "feishu",
     ChatType: "direct",
     Body: "hello",
     BodyForAgent: "hello",
     RawBody: "hello",
     CommandBody: "hello",
-    SessionKey: "agent:main:telegram:123",
-    From: "telegram:user:42",
-    To: "telegram:123",
+    SessionKey: "agent:main:feishu:123",
+    From: "feishu:user:42",
+    To: "feishu:123",
     Timestamp: 1710000000000,
     ...overrides,
   };
@@ -64,7 +64,7 @@ describe("getReplyFromConfig configOverride", () => {
       sessionEntry: {},
       previousSessionEntry: {},
       sessionStore: {},
-      sessionKey: "agent:main:telegram:123",
+      sessionKey: "agent:main:feishu:123",
       sessionId: "session-1",
       isNewSession: false,
       resetTriggered: false,
@@ -82,8 +82,8 @@ describe("getReplyFromConfig configOverride", () => {
   it("merges configOverride over fresh loadConfig()", async () => {
     vi.mocked(loadConfigMock).mockReturnValue({
       channels: {
-        telegram: {
-          botToken: "resolved-telegram-token",
+        feishu: {
+          botToken: "resolved-feishu-token",
         },
       },
       agents: {
@@ -105,8 +105,8 @@ describe("getReplyFromConfig configOverride", () => {
       expect.objectContaining({
         cfg: expect.objectContaining({
           channels: expect.objectContaining({
-            telegram: expect.objectContaining({
-              botToken: "resolved-telegram-token",
+            feishu: expect.objectContaining({
+              botToken: "resolved-feishu-token",
             }),
           }),
           agents: expect.objectContaining({

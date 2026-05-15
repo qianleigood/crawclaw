@@ -7,9 +7,7 @@ import { runCallsiteGuard } from "./lib/callsite-guard.mjs";
 import { runAsScript, toLine, unwrapExpression } from "./lib/ts-guard-utils.mjs";
 
 const sourceRoots = ["extensions"];
-const enforcedFiles = new Set([
-  bundledPluginFile("feishu", "src/monitor.transport.ts"),
-]);
+const enforcedFiles = new Set([bundledPluginFile("feishu", "src/monitor.transport.ts")]);
 const blockedCallees = new Set(["readJsonBodyWithLimit", "readRequestBodyWithLimit"]);
 const allowedCallsites = new Set([
   // Feishu signs the exact wire body, so this handler must read raw bytes before parsing JSON.

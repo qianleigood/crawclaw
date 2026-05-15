@@ -1,10 +1,3 @@
-import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
-import {
-  normalizeGatewayTokenInput,
-  randomToken,
-  validateGatewayPasswordInput,
-} from "../commands/onboard-helpers.js";
-import type { GatewayAuthChoice, SecretInputMode } from "../commands/onboard-types.js";
 import type { GatewayBindMode, GatewayTailscaleMode, CrawClawConfig } from "../config/config.js";
 import { ensureBrowserClientsAllowedOriginsForNonLoopbackBind } from "../config/gateway-browser-client-origins.js";
 import {
@@ -12,6 +5,12 @@ import {
   resolveSecretInputRef,
   type SecretInput,
 } from "../config/types.secrets.js";
+import {
+  normalizeGatewayTokenInput,
+  randomToken,
+  validateGatewayPasswordInput,
+} from "../control/onboard-helpers.js";
+import type { GatewayAuthChoice, SecretInputMode } from "../control/onboard-types.js";
 import {
   maybeAddTailnetOriginToBrowserClientsAllowedOrigins,
   TAILSCALE_DOCS_LINES,
@@ -23,6 +22,7 @@ import { resolveSecretInputModeForEnvSelection } from "../plugins/provider-auth-
 import { promptSecretRefForSetup } from "../plugins/provider-auth-ref.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { validateIPv4AddressInput } from "../shared/net/ipv4.js";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../terminal/i18n/index.js";
 import type { WizardPrompter } from "./prompts.js";
 import { resolveSetupSecretInputString } from "./setup.secret-input.js";
 import type {

@@ -43,7 +43,7 @@ const providerIds = new Set(["brave", "gemini", "grok", "kimi", "perplexity", "s
 
 const allowedGenericFiles = new Set([
   "src/agents/tools/web-search.ts",
-  "src/commands/onboard-search.ts",
+  "src/control/onboard-search.ts",
   "src/plugins/bundled-web-search-registry.ts",
   "src/secrets/runtime-web-tools.ts",
   "src/web-search/runtime.ts",

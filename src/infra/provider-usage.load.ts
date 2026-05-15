@@ -1,5 +1,4 @@
 import { loadConfig, type CrawClawConfig } from "../config/config.js";
-import { resolveProviderUsageSnapshotWithPlugin } from "../plugins/provider-runtime.js";
 import { resolveFetch } from "./fetch.js";
 import { type ProviderAuth, resolveProviderAuths } from "./provider-usage.auth.js";
 import {
@@ -129,33 +128,9 @@ type UsageSummaryOptions = {
 
 async function fetchProviderUsageSnapshot(params: {
   auth: ProviderAuth;
-  config: CrawClawConfig;
-  env: NodeJS.ProcessEnv;
-  agentDir?: string;
-  workspaceDir?: string;
   timeoutMs: number;
   fetchFn: typeof fetch;
 }): Promise<ProviderUsageSnapshot> {
-  const pluginSnapshot = await resolveProviderUsageSnapshotWithPlugin({
-    provider: params.auth.provider,
-    config: params.config,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-    context: {
-      config: params.config,
-      agentDir: params.agentDir,
-      workspaceDir: params.workspaceDir,
-      env: params.env,
-      provider: params.auth.provider,
-      token: params.auth.token,
-      accountId: params.auth.accountId,
-      timeoutMs: params.timeoutMs,
-      fetchFn: params.fetchFn,
-    },
-  });
-  if (pluginSnapshot) {
-    return pluginSnapshot;
-  }
   return await fetchProviderUsageSnapshotFallback({
     auth: params.auth,
     timeoutMs: params.timeoutMs,
@@ -190,10 +165,6 @@ export async function loadProviderUsageSummary(
     withTimeout(
       fetchProviderUsageSnapshot({
         auth,
-        config,
-        env,
-        agentDir: opts.agentDir,
-        workspaceDir: opts.workspaceDir,
         timeoutMs,
         fetchFn,
       }),

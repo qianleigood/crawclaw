@@ -34,13 +34,7 @@ const systemMarkLiteralGuardSources = [
   path.join(repoRoot, "src", "channels", "thread-bindings-messages.ts"),
 ];
 
-const channelIds = [
-  "ddingtalk",
-  "esp32",
-  "feishu",
-  "qqbot",
-  "weixin",
-];
+const channelIds = ["ddingtalk", "esp32", "feishu", "qqbot", "weixin"];
 
 const channelIdSet = new Set(channelIds);
 const channelSegmentRe = new RegExp(`(^|[._/-])(?:${channelIds.join("|")})([._/-]|$)`);
@@ -82,8 +76,7 @@ function matchesChannelModuleSpecifier(specifier) {
   return channelSegmentRe.test(specifier.replaceAll("\\", "/"));
 }
 
-const userFacingChannelNameRe =
-  /\b(?:dingtalk|ddingtalk|esp32|feishu|qq|qqbot|wechat|weixin)\b/i;
+const userFacingChannelNameRe = /\b(?:dingtalk|ddingtalk|esp32|feishu|qq|qqbot|wechat|weixin)\b/i;
 const systemMarkLiteral = "⚙️";
 
 function isModuleSpecifierStringNode(node) {

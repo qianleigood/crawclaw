@@ -271,8 +271,8 @@ describe("task-executor", () => {
         ownerKey: "agent:main:main",
         scopeKind: "session",
         requesterOrigin: {
-          channel: "telegram",
-          to: "telegram:123",
+          channel: "feishu",
+          to: "feishu:123",
         },
         childSessionKey: "agent:codex:acp:child",
         runId: "run-executor-blocked",
@@ -386,8 +386,8 @@ describe("task-executor", () => {
         controllerId: "tests/managed-flow",
         goal: "Inspect PR batch",
         requesterOrigin: {
-          channel: "telegram",
-          to: "telegram:123",
+          channel: "feishu",
+          to: "feishu:123",
         },
       });
 

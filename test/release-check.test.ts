@@ -58,7 +58,7 @@ describe("collectBundledExtensionManifestErrors", () => {
     expect(
       collectBundledExtensionManifestErrors([
         {
-          id: "irc",
+          id: "feishu",
           packageJson: {
             crawclaw: {
               install: { minHostVersion: ">=2026.3.14" },
@@ -91,7 +91,7 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
       collectBundledExtensionRootDependencyMirrorErrors(
         [
           {
-            id: "matrix",
+            id: "feishu",
             packageJson: {
               crawclaw: {
                 releaseChecks: {
@@ -104,7 +104,7 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
         new Map(),
       ),
     ).toEqual([
-      "bundled extension 'matrix' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist must be an array",
+      "bundled extension 'feishu' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist must be an array",
     ]);
   });
 
@@ -113,23 +113,23 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
       collectBundledExtensionRootDependencyMirrorErrors(
         [
           {
-            id: "matrix",
+            id: "feishu",
             packageJson: {
               dependencies: {
-                "matrix-js-sdk": "41.2.0",
+                "feishu-js-sdk": "41.2.0",
               },
               crawclaw: {
                 releaseChecks: {
-                  rootDependencyMirrorAllowlist: ["@matrix-org/matrix-sdk-crypto-wasm"],
+                  rootDependencyMirrorAllowlist: ["@feishu-org/feishu-sdk-crypto-wasm"],
                 },
               },
             },
           },
         ],
-        new Map([["@matrix-org/matrix-sdk-crypto-wasm", "18.0.0"]]),
+        new Map([["@feishu-org/feishu-sdk-crypto-wasm", "18.0.0"]]),
       ),
     ).toEqual([
-      "bundled extension 'matrix' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist entry '@matrix-org/matrix-sdk-crypto-wasm' must be declared in extension runtime dependencies",
+      "bundled extension 'feishu' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist entry '@feishu-org/feishu-sdk-crypto-wasm' must be declared in extension runtime dependencies",
     ]);
   });
 
@@ -138,14 +138,14 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
       collectBundledExtensionRootDependencyMirrorErrors(
         [
           {
-            id: "matrix",
+            id: "feishu",
             packageJson: {
               dependencies: {
-                "@matrix-org/matrix-sdk-crypto-wasm": "18.0.0",
+                "@feishu-org/feishu-sdk-crypto-wasm": "18.0.0",
               },
               crawclaw: {
                 releaseChecks: {
-                  rootDependencyMirrorAllowlist: ["@matrix-org/matrix-sdk-crypto-wasm"],
+                  rootDependencyMirrorAllowlist: ["@feishu-org/feishu-sdk-crypto-wasm"],
                 },
               },
             },
@@ -154,7 +154,7 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
         new Map(),
       ),
     ).toEqual([
-      "bundled extension 'matrix' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist entry '@matrix-org/matrix-sdk-crypto-wasm' must be mirrored in root runtime dependencies",
+      "bundled extension 'feishu' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist entry '@feishu-org/feishu-sdk-crypto-wasm' must be mirrored in root runtime dependencies",
     ]);
   });
 
@@ -163,23 +163,23 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
       collectBundledExtensionRootDependencyMirrorErrors(
         [
           {
-            id: "matrix",
+            id: "feishu",
             packageJson: {
               dependencies: {
-                "@matrix-org/matrix-sdk-crypto-wasm": "18.0.0",
+                "@feishu-org/feishu-sdk-crypto-wasm": "18.0.0",
               },
               crawclaw: {
                 releaseChecks: {
-                  rootDependencyMirrorAllowlist: ["@matrix-org/matrix-sdk-crypto-wasm"],
+                  rootDependencyMirrorAllowlist: ["@feishu-org/feishu-sdk-crypto-wasm"],
                 },
               },
             },
           },
         ],
-        new Map([["@matrix-org/matrix-sdk-crypto-wasm", "18.1.0"]]),
+        new Map([["@feishu-org/feishu-sdk-crypto-wasm", "18.1.0"]]),
       ),
     ).toEqual([
-      "bundled extension 'matrix' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist entry '@matrix-org/matrix-sdk-crypto-wasm' must match root runtime dependency version (extension '18.0.0', root '18.1.0')",
+      "bundled extension 'feishu' manifest invalid | crawclaw.releaseChecks.rootDependencyMirrorAllowlist entry '@feishu-org/feishu-sdk-crypto-wasm' must match root runtime dependency version (extension '18.0.0', root '18.1.0')",
     ]);
   });
 
@@ -188,20 +188,20 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
       collectBundledExtensionRootDependencyMirrorErrors(
         [
           {
-            id: "matrix",
+            id: "feishu",
             packageJson: {
               dependencies: {
-                "@matrix-org/matrix-sdk-crypto-wasm": "18.0.0",
+                "@feishu-org/feishu-sdk-crypto-wasm": "18.0.0",
               },
               crawclaw: {
                 releaseChecks: {
-                  rootDependencyMirrorAllowlist: ["@matrix-org/matrix-sdk-crypto-wasm"],
+                  rootDependencyMirrorAllowlist: ["@feishu-org/feishu-sdk-crypto-wasm"],
                 },
               },
             },
           },
         ],
-        new Map([["@matrix-org/matrix-sdk-crypto-wasm", "18.0.0"]]),
+        new Map([["@feishu-org/feishu-sdk-crypto-wasm", "18.0.0"]]),
       ),
     ).toEqual([]);
   });
@@ -212,11 +212,14 @@ describe("collectForbiddenPackPaths", () => {
     expect(
       collectForbiddenPackPaths([
         "dist/index.js",
-        bundledDistPluginFile("discord", "node_modules/@buape/carbon/index.js"),
-        bundledPluginFile("tlon", "node_modules/.bin/tlon"),
+        bundledDistPluginFile("qqbot", "node_modules/@buape/carbon/index.js"),
+        bundledPluginFile("feishu", "node_modules/.bin/feishu"),
         "node_modules/.bin/crawclaw",
       ]),
-    ).toEqual([bundledPluginFile("tlon", "node_modules/.bin/tlon"), "node_modules/.bin/crawclaw"]);
+    ).toEqual([
+      bundledPluginFile("feishu", "node_modules/.bin/feishu"),
+      "node_modules/.bin/crawclaw",
+    ]);
   });
 });
 
@@ -242,15 +245,8 @@ describe("collectMissingPackPaths", () => {
         "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",
         bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
-        bundledDistPluginFile("matrix", "helper-api.js"),
-        bundledDistPluginFile("matrix", "runtime-api.js"),
-        bundledDistPluginFile("matrix", "thread-bindings-runtime.js"),
-        bundledDistPluginFile("matrix", "crawclaw.plugin.json"),
-        bundledDistPluginFile("matrix", "package.json"),
-        bundledDistPluginFile("whatsapp", "light-runtime-api.js"),
-        bundledDistPluginFile("whatsapp", "runtime-api.js"),
-        bundledDistPluginFile("whatsapp", "crawclaw.plugin.json"),
-        bundledDistPluginFile("whatsapp", "package.json"),
+        bundledDistPluginFile("acpx", "runtime-api.js"),
+        bundledDistPluginFile("ollama", "runtime-api.js"),
       ]),
     );
   });
@@ -282,11 +278,9 @@ describe("collectMissingPackPaths", () => {
   it("requires bundled plugin runtime sidecars that dynamic plugin boundaries resolve at runtime", () => {
     expect(requiredBundledPluginPackPaths).toEqual(
       expect.arrayContaining([
-        bundledDistPluginFile("matrix", "helper-api.js"),
-        bundledDistPluginFile("matrix", "runtime-api.js"),
-        bundledDistPluginFile("matrix", "thread-bindings-runtime.js"),
-        bundledDistPluginFile("whatsapp", "light-runtime-api.js"),
-        bundledDistPluginFile("whatsapp", "runtime-api.js"),
+        bundledDistPluginFile("acpx", "runtime-api.js"),
+        bundledDistPluginFile("diffs", "runtime-api.js"),
+        bundledDistPluginFile("ollama", "runtime-api.js"),
       ]),
     );
   });

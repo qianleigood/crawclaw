@@ -34,22 +34,6 @@ function expectGeneratedPathResolution(tempRoot: string, expectedRelativePath: s
   ).toBe(path.join(tempRoot, expectedRelativePath));
 }
 
-function expectArtifactPresence(
-  artifacts: readonly string[] | undefined,
-  params: { contains?: readonly string[]; excludes?: readonly string[] },
-) {
-  if (params.contains) {
-    for (const artifact of params.contains) {
-      expect(artifacts).toContain(artifact);
-    }
-  }
-  if (params.excludes) {
-    for (const artifact of params.excludes) {
-      expect(artifacts).not.toContain(artifact);
-    }
-  }
-}
-
 describe("bundled plugin metadata", () => {
   it(
     "matches the runtime metadata snapshot",
@@ -59,25 +43,6 @@ describe("bundled plugin metadata", () => {
     },
   );
 
-  it("captures setup-entry metadata for bundled channel plugins", () => {
-    const discord = listBundledPluginMetadata().find((entry) => entry.dirName === "discord");
-    expect(discord?.source).toEqual({ source: "./index.ts", built: "index.js" });
-    expect(discord?.setupSource).toEqual({ source: "./setup-entry.ts", built: "setup-entry.js" });
-    expectArtifactPresence(discord?.publicSurfaceArtifacts, {
-      contains: ["api.js", "runtime-api.js", "session-key-api.js"],
-      excludes: ["test-api.js"],
-    });
-    expectArtifactPresence(discord?.runtimeSidecarArtifacts, {
-      contains: ["runtime-api.js"],
-    });
-    expect(discord?.manifest.id).toBe("discord");
-    expect(discord?.manifest.channelConfigs?.discord).toEqual(
-      expect.objectContaining({
-        schema: expect.objectContaining({ type: "object" }),
-      }),
-    );
-  });
-
   it("captures native-only bundled plugins without TS entrypoints", () => {
     const lobster = listBundledPluginMetadata().find((entry) => entry.dirName === "lobster");
     expect(lobster?.source).toEqual({
@@ -86,24 +51,6 @@ describe("bundled plugin metadata", () => {
     });
     expect(lobster?.publicSurfaceArtifacts).toBeUndefined();
     expect(lobster?.manifest.contracts?.tools).toEqual(["lobster"]);
-  });
-
-  it("loads tlon channel config metadata from the lightweight schema surface", () => {
-    const tlon = listBundledPluginMetadata().find((entry) => entry.dirName === "tlon");
-    expect(tlon?.manifest.channelConfigs?.tlon).toEqual(
-      expect.objectContaining({
-        schema: expect.objectContaining({ type: "object" }),
-      }),
-    );
-  });
-
-  it("loads esp32 channel config metadata from the lightweight schema surface", () => {
-    const esp32 = listBundledPluginMetadata().find((entry) => entry.dirName === "esp32");
-    expect(esp32?.manifest.channelConfigs?.esp32).toEqual(
-      expect.objectContaining({
-        schema: expect.objectContaining({ type: "object" }),
-      }),
-    );
   });
 
   it("excludes test-only public surface artifacts", () => {

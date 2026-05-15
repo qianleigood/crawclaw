@@ -158,15 +158,15 @@ describe("/subagents spawn command", () => {
       context: {
         CommandSource: "native",
         CommandTargetSessionKey: "agent:main:main",
-        OriginatingChannel: "discord",
+        OriginatingChannel: "qqbot",
         OriginatingTo: "channel:12345",
       },
       mutateParams: (commandParams) => {
-        commandParams.sessionKey = "agent:main:slack:slash:u1";
+        commandParams.sessionKey = "agent:main:ddingtalk:slash:u1";
       },
     });
     expect(spawnCtx.agentSessionKey).toBe("agent:main:main");
-    expect(spawnCtx.agentChannel).toBe("discord");
+    expect(spawnCtx.agentChannel).toBe("qqbot");
     expect(spawnCtx.agentTo).toBe("channel:12345");
   });
 

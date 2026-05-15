@@ -125,10 +125,10 @@ title: 执行过程可见性系统
 按 surface 能力渲染：
 
 - UI tool cards / action feed
-- Slack/Discord/Telegram 的编辑中消息
+- DingTalk/QQBot/Feishu 的编辑中消息
 - Feishu 的 card stream
 - Teams 的 streaminfo
-- WhatsApp/LINE/iMessage 的轻量摘要或仅最终结果
+- Weixin/LINE/Weixin 的轻量摘要或仅最终结果
 
 ## 统一事件模型
 
@@ -264,14 +264,14 @@ type ExecutionVisibilityConfig = {
           "mode": "summary"
         },
         "overrides": {
-          "slack": { "mode": "verbose" },
-          "discord": { "mode": "summary" },
-          "telegram": { "mode": "summary" },
+          "ddingtalk": { "mode": "verbose" },
+          "qqbot": { "mode": "summary" },
           "feishu": { "mode": "summary" },
-          "msteams": { "mode": "summary" },
-          "whatsapp": { "mode": "off" },
+          "feishu": { "mode": "summary" },
+          "qqbot": { "mode": "summary" },
+          "weixin": { "mode": "off" },
           "line": { "mode": "off" },
-          "imessage": { "mode": "off" }
+          "weixin": { "mode": "off" }
         }
       }
     }
@@ -300,18 +300,18 @@ type ExecutionVisibilityCapability = {
 默认建议：
 
 - `browserClients`: `full`
-- `slack`: `verbose`
-- `discord`: `summary`
-- `telegram`: `summary`
-- `matrix`: `summary`
+- `ddingtalk`: `verbose`
+- `qqbot`: `summary`
 - `feishu`: `summary`
-- `msteams`: `summary`
-- `googlechat`: `summary`
-- `mattermost`: `summary`
-- `signal`: `summary` 或 `off`
-- `whatsapp`: `off`
+- `feishu`: `summary`
+- `feishu`: `summary`
+- `qqbot`: `summary`
+- `feishu`: `summary`
+- `feishu`: `summary`
+- `feishu`: `summary` 或 `off`
+- `weixin`: `off`
 - `line`: `off`
-- `imessage`: `off`
+- `weixin`: `off`
 
 规则：
 
@@ -396,7 +396,7 @@ workflow 必须单独考虑，不能只被折叠成 `execute`。
 - `正在搜索网页资料`
 - `正在读取本地文件`
 - `正在整理分析结果`
-- `正在发送到 Slack`
+- `正在发送到 DingTalk`
 - `等待批准后继续`
 
 ### 聚合规则
@@ -431,7 +431,7 @@ workflow 必须单独考虑，不能只被折叠成 `execute`。
 - `verbose`: 展示更多阶段和能力名
 - `full`: tool cards + action feed + detail sidebar + inspect timeline
 
-### Slack / Discord / Telegram / Matrix
+### DingTalk / QQBot / Feishu / Feishu
 
 - 默认 `summary`
 - 高级用户可开 `verbose`
@@ -448,7 +448,7 @@ workflow 必须单独考虑，不能只被折叠成 `execute`。
 - 默认 `summary`
 - 使用 streaminfo / typing surface 展示阶段性状态
 
-### WhatsApp / LINE / iMessage
+### Weixin / LINE / Weixin
 
 - 默认 `off`
 - 最多 very light summary
@@ -512,7 +512,7 @@ workflow 必须单独考虑，不能只被折叠成 `execute`。
 
 - 打通 `summary`
 - UI 先接
-- Slack / Telegram / Feishu / Teams 先接
+- DingTalk / Feishu / Feishu / Teams 先接
 
 ### Phase 3
 

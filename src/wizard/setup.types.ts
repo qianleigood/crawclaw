@@ -1,5 +1,5 @@
-import type { GatewayAuthChoice } from "../commands/onboard-types.js";
 import type { SecretInput } from "../config/types.secrets.js";
+import type { GatewayAuthChoice } from "../control/onboard-types.js";
 
 export type WizardFlow = "quickstart" | "advanced";
 

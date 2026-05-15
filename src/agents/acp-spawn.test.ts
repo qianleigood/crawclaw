@@ -33,7 +33,7 @@ function createDefaultSpawnConfig(): CrawClawConfig {
       scope: "per-sender",
     },
     channels: {
-      discord: {
+      qqbot: {
         threadBindings: {
           enabled: true,
           spawnAcpSessions: true,
@@ -126,7 +126,7 @@ function createSessionBinding(overrides?: Partial<SessionBindingRecord>): Sessio
     targetSessionKey: "agent:codex:acp:s1",
     targetKind: "session",
     conversation: {
-      channel: "discord",
+      channel: "qqbot",
       accountId: "default",
       conversationId: "child-thread",
       parentConversationId: "parent-channel",
@@ -174,10 +174,10 @@ function createSpawnRequest(overrides?: Partial<SpawnRequest>): SpawnRequest {
 
 function createRequesterContext(overrides?: Partial<SpawnContext>): SpawnContext {
   return {
-    agentSessionKey: "agent:main:telegram:direct:6098642967",
-    agentChannel: "telegram",
+    agentSessionKey: "agent:main:feishu:direct:6098642967",
+    agentChannel: "feishu",
     agentAccountId: "default",
-    agentTo: "telegram:6098642967",
+    agentTo: "feishu:6098642967",
     agentThreadId: "1",
     ...overrides,
   };
@@ -197,12 +197,12 @@ function expectAgentGatewayCall(overrides: AgentCallParams): void {
   expect(agentCall?.params?.threadId).toBe(overrides.threadId);
 }
 
-function enableMatrixAcpThreadBindings(): void {
+function enableFeishuAcpThreadBindings(): void {
   replaceSpawnConfig({
     ...hoisted.state.cfg,
     channels: {
       ...hoisted.state.cfg.channels,
-      matrix: {
+      feishu: {
         threadBindings: {
           enabled: true,
           spawnAcpSessions: true,
@@ -211,7 +211,7 @@ function enableMatrixAcpThreadBindings(): void {
     },
   });
   registerSessionBindingAdapter({
-    channel: "matrix",
+    channel: "feishu",
     accountId: "default",
     capabilities: createSessionBindingCapabilities(),
     bind: async (input) => await hoisted.sessionBindingBindMock(input),
@@ -335,7 +335,7 @@ describe("spawnAcpDirect", () => {
           createSessionBinding({
             targetSessionKey: input.targetSessionKey,
             conversation: {
-              channel: "discord",
+              channel: "qqbot",
               accountId: input.conversation.accountId,
               conversationId: "child-thread",
               parentConversationId: "parent-channel",
@@ -353,7 +353,7 @@ describe("spawnAcpDirect", () => {
     hoisted.sessionBindingUnbindMock.mockReset().mockResolvedValue([]);
     sessionBindingServiceTesting.resetSessionBindingAdaptersForTests();
     registerSessionBindingAdapter({
-      channel: "discord",
+      channel: "qqbot",
       accountId: "default",
       capabilities: createSessionBindingCapabilities(),
       bind: async (input) => await hoisted.sessionBindingBindMock(input),
@@ -432,7 +432,7 @@ describe("spawnAcpDirect", () => {
       },
       {
         agentSessionKey: "agent:main:main",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
         agentThreadId: "requester-thread",
@@ -480,8 +480,8 @@ describe("spawnAcpDirect", () => {
     expect(transcriptCalls[1]?.threadId).toBe("child-thread");
   });
 
-  it("spawns Matrix thread-bound ACP sessions from top-level room targets", async () => {
-    enableMatrixAcpThreadBindings();
+  it("spawns Feishu thread-bound ACP sessions from top-level room targets", async () => {
+    enableFeishuAcpThreadBindings();
     hoisted.sessionBindingBindMock.mockImplementationOnce(
       async (input: {
         targetSessionKey: string;
@@ -491,7 +491,7 @@ describe("spawnAcpDirect", () => {
         createSessionBinding({
           targetSessionKey: input.targetSessionKey,
           conversation: {
-            channel: "matrix",
+            channel: "feishu",
             accountId: input.conversation.accountId,
             conversationId: "child-thread",
             parentConversationId: input.conversation.parentConversationId ?? "!room:example",
@@ -513,8 +513,8 @@ describe("spawnAcpDirect", () => {
         thread: true,
       },
       {
-        agentSessionKey: "agent:main:matrix:channel:!room:example",
-        agentChannel: "matrix",
+        agentSessionKey: "agent:main:feishu:channel:!room:example",
+        agentChannel: "feishu",
         agentAccountId: "default",
         agentTo: "room:!room:example",
       },
@@ -524,7 +524,7 @@ describe("spawnAcpDirect", () => {
       expect.objectContaining({
         placement: "child",
         conversation: expect.objectContaining({
-          channel: "matrix",
+          channel: "feishu",
           accountId: "default",
           conversationId: "!room:example",
         }),
@@ -532,7 +532,7 @@ describe("spawnAcpDirect", () => {
     );
     expectAgentGatewayCall({
       deliver: true,
-      channel: "matrix",
+      channel: "feishu",
       to: "room:!room:example",
       threadId: "child-thread",
     });
@@ -731,9 +731,9 @@ describe("spawnAcpDirect", () => {
       },
       {
         agentSessionKey: "agent:main:main",
-        agentChannel: "telegram",
+        agentChannel: "feishu",
         agentAccountId: "default",
-        agentTo: "telegram:6098642967",
+        agentTo: "feishu:6098642967",
         agentThreadId: "1",
       },
     );
@@ -757,7 +757,7 @@ describe("spawnAcpDirect", () => {
       },
       {
         agentSessionKey: "agent:main:main",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
       },
@@ -812,11 +812,11 @@ describe("spawnAcpDirect", () => {
     expect(result.error).toContain("set `acp.defaultAgent`");
   });
 
-  it("fails fast when Discord ACP thread spawn is disabled", async () => {
+  it("fails fast when QQBot ACP thread spawn is disabled", async () => {
     replaceSpawnConfig({
       ...hoisted.state.cfg,
       channels: {
-        discord: {
+        qqbot: {
           threadBindings: {
             enabled: true,
             spawnAcpSessions: false,
@@ -833,7 +833,7 @@ describe("spawnAcpDirect", () => {
         mode: "session",
       },
       {
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
       },
@@ -876,7 +876,7 @@ describe("spawnAcpDirect", () => {
       },
       {
         agentSessionKey: "agent:main:main",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
       },
@@ -943,7 +943,7 @@ describe("spawnAcpDirect", () => {
           sessionId: "parent-sess-1",
           updatedAt: Date.now(),
           deliveryContext: {
-            channel: "discord",
+            channel: "qqbot",
             to: "channel:parent-channel",
             accountId: "default",
           },
@@ -966,7 +966,7 @@ describe("spawnAcpDirect", () => {
       },
       {
         agentSessionKey: "agent:main:subagent:parent",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
       },
@@ -1000,7 +1000,7 @@ describe("spawnAcpDirect", () => {
       agents: {
         defaults: {
           heartbeat: {
-            target: "discord",
+            target: "qqbot",
             to: "channel:ops-room",
           },
         },
@@ -1162,7 +1162,7 @@ describe("spawnAcpDirect", () => {
       },
       {
         agentSessionKey: "agent:main:subagent:thread-context",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
         agentThreadId: "requester-thread",
@@ -1196,7 +1196,7 @@ describe("spawnAcpDirect", () => {
       },
       {
         agentSessionKey: "agent:main:subagent:thread-bound",
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
       },
@@ -1240,12 +1240,12 @@ describe("spawnAcpDirect", () => {
     expect(notifyOrder[0] > agentCallOrder).toBe(true);
   });
 
-  it("binds Telegram forum-topic ACP sessions to the current topic", async () => {
+  it("binds Feishu forum-topic ACP sessions to the current topic", async () => {
     replaceSpawnConfig({
       ...hoisted.state.cfg,
       channels: {
         ...hoisted.state.cfg.channels,
-        telegram: {
+        feishu: {
           threadBindings: {
             enabled: true,
           },
@@ -1253,7 +1253,7 @@ describe("spawnAcpDirect", () => {
       },
     });
     registerSessionBindingAdapter({
-      channel: "telegram",
+      channel: "feishu",
       accountId: "default",
       capabilities: createSessionBindingCapabilities(),
       bind: async (input) => await hoisted.sessionBindingBindMock(input),
@@ -1271,10 +1271,10 @@ describe("spawnAcpDirect", () => {
         thread: true,
       },
       {
-        agentSessionKey: "agent:main:telegram:group:-1003342490704:topic:2",
-        agentChannel: "telegram",
+        agentSessionKey: "agent:main:feishu:group:-1003342490704:topic:2",
+        agentChannel: "feishu",
         agentAccountId: "default",
-        agentTo: "telegram:-1003342490704",
+        agentTo: "feishu:-1003342490704",
         agentThreadId: "2",
         agentGroupId: "-1003342490704",
       },
@@ -1286,7 +1286,7 @@ describe("spawnAcpDirect", () => {
       expect.objectContaining({
         placement: "current",
         conversation: expect.objectContaining({
-          channel: "telegram",
+          channel: "feishu",
           accountId: "default",
           conversationId: "-1003342490704:topic:2",
         }),
@@ -1296,15 +1296,15 @@ describe("spawnAcpDirect", () => {
       .map((call: unknown[]) => call[0] as { method?: string; params?: Record<string, unknown> })
       .find((request) => request.method === "agent");
     expect(agentCall?.params?.deliver).toBe(true);
-    expect(agentCall?.params?.channel).toBe("telegram");
+    expect(agentCall?.params?.channel).toBe("feishu");
   });
 
-  it("preserves topic-qualified Telegram targets without a separate threadId", async () => {
+  it("preserves topic-qualified Feishu targets without a separate threadId", async () => {
     replaceSpawnConfig({
       ...hoisted.state.cfg,
       channels: {
         ...hoisted.state.cfg.channels,
-        telegram: {
+        feishu: {
           threadBindings: {
             enabled: true,
           },
@@ -1312,7 +1312,7 @@ describe("spawnAcpDirect", () => {
       },
     });
     registerSessionBindingAdapter({
-      channel: "telegram",
+      channel: "feishu",
       accountId: "default",
       capabilities: createSessionBindingCapabilities(),
       bind: async (input) => await hoisted.sessionBindingBindMock(input),
@@ -1330,10 +1330,10 @@ describe("spawnAcpDirect", () => {
         thread: true,
       },
       {
-        agentSessionKey: "agent:main:telegram:group:-1003342490704:topic:2",
-        agentChannel: "telegram",
+        agentSessionKey: "agent:main:feishu:group:-1003342490704:topic:2",
+        agentChannel: "feishu",
         agentAccountId: "default",
-        agentTo: "telegram:group:-1003342490704:topic:2",
+        agentTo: "feishu:group:-1003342490704:topic:2",
       },
     );
 
@@ -1342,7 +1342,7 @@ describe("spawnAcpDirect", () => {
       expect.objectContaining({
         placement: "current",
         conversation: expect.objectContaining({
-          channel: "telegram",
+          channel: "feishu",
           accountId: "default",
           conversationId: "-1003342490704:topic:2",
         }),
@@ -1392,7 +1392,7 @@ describe("spawnAcpDirect", () => {
         streamTo: "parent",
       },
       {
-        agentChannel: "discord",
+        agentChannel: "qqbot",
         agentAccountId: "default",
         agentTo: "channel:parent-channel",
       },

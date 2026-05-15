@@ -213,7 +213,7 @@ describe("chunkText", () => {
 
 describe("resolveTextChunkLimit", () => {
   it.each([
-    ...(["whatsapp", "telegram", "slack", "signal", "imessage", "discord"] as const).map(
+    ...(["weixin", "feishu", "ddingtalk", "signal", "weixin", "qqbot"] as const).map(
       (provider) => ({
         name: `uses default limit for ${provider}`,
         cfg: undefined,
@@ -226,23 +226,23 @@ describe("resolveTextChunkLimit", () => {
     {
       name: "uses fallback limit override when provided",
       cfg: undefined,
-      provider: "discord" as const,
+      provider: "qqbot" as const,
       accountId: undefined,
       options: { fallbackLimit: 2000 },
       expected: 2000,
     },
     {
-      name: "supports provider overrides for telegram",
-      cfg: { channels: { telegram: { textChunkLimit: 1234 } } },
-      provider: "telegram" as const,
+      name: "supports provider overrides for feishu",
+      cfg: { channels: { feishu: { textChunkLimit: 1234 } } },
+      provider: "feishu" as const,
       accountId: undefined,
       options: undefined,
       expected: 1234,
     },
     {
       name: "falls back when provider override does not match",
-      cfg: { channels: { telegram: { textChunkLimit: 1234 } } },
-      provider: "whatsapp" as const,
+      cfg: { channels: { feishu: { textChunkLimit: 1234 } } },
+      provider: "weixin" as const,
       accountId: undefined,
       options: undefined,
       expected: 4000,
@@ -251,7 +251,7 @@ describe("resolveTextChunkLimit", () => {
       name: "prefers account overrides when provided",
       cfg: {
         channels: {
-          telegram: {
+          feishu: {
             textChunkLimit: 2000,
             accounts: {
               default: { textChunkLimit: 1234 },
@@ -260,7 +260,7 @@ describe("resolveTextChunkLimit", () => {
           },
         },
       },
-      provider: "telegram" as const,
+      provider: "feishu" as const,
       accountId: "primary",
       options: undefined,
       expected: 777,
@@ -269,7 +269,7 @@ describe("resolveTextChunkLimit", () => {
       name: "uses default account override when requested",
       cfg: {
         channels: {
-          telegram: {
+          feishu: {
             textChunkLimit: 2000,
             accounts: {
               default: { textChunkLimit: 1234 },
@@ -278,33 +278,33 @@ describe("resolveTextChunkLimit", () => {
           },
         },
       },
-      provider: "telegram" as const,
+      provider: "feishu" as const,
       accountId: "default",
       options: undefined,
       expected: 1234,
     },
     {
-      name: "uses the matching provider override for discord",
+      name: "uses the matching provider override for qqbot",
       cfg: {
         channels: {
-          discord: { textChunkLimit: 111 },
-          slack: { textChunkLimit: 222 },
+          qqbot: { textChunkLimit: 111 },
+          ddingtalk: { textChunkLimit: 222 },
         },
       },
-      provider: "discord" as const,
+      provider: "qqbot" as const,
       accountId: undefined,
       options: undefined,
       expected: 111,
     },
     {
-      name: "uses the matching provider override for slack",
+      name: "uses the matching provider override for ddingtalk",
       cfg: {
         channels: {
-          discord: { textChunkLimit: 111 },
-          slack: { textChunkLimit: 222 },
+          qqbot: { textChunkLimit: 111 },
+          ddingtalk: { textChunkLimit: 222 },
         },
       },
-      provider: "slack" as const,
+      provider: "ddingtalk" as const,
       accountId: undefined,
       options: undefined,
       expected: 222,
@@ -313,11 +313,11 @@ describe("resolveTextChunkLimit", () => {
       name: "falls back when multi-provider override does not match",
       cfg: {
         channels: {
-          discord: { textChunkLimit: 111 },
-          slack: { textChunkLimit: 222 },
+          qqbot: { textChunkLimit: 111 },
+          ddingtalk: { textChunkLimit: 222 },
         },
       },
-      provider: "telegram" as const,
+      provider: "feishu" as const,
       accountId: undefined,
       options: undefined,
       expected: 4000,
@@ -554,10 +554,10 @@ describe("chunkMarkdownTextWithMode", () => {
 });
 
 describe("resolveChunkMode", () => {
-  const providerCfg = { channels: { slack: { chunkMode: "newline" as const } } };
+  const providerCfg = { channels: { ddingtalk: { chunkMode: "newline" as const } } };
   const accountCfg = {
     channels: {
-      slack: {
+      ddingtalk: {
         chunkMode: "length" as const,
         accounts: {
           primary: { chunkMode: "newline" as const },
@@ -567,14 +567,14 @@ describe("resolveChunkMode", () => {
   };
 
   it.each([
-    { cfg: undefined, provider: "telegram", accountId: undefined, expected: "length" },
-    { cfg: {}, provider: "discord", accountId: undefined, expected: "length" },
-    { cfg: undefined, provider: "bluebubbles", accountId: undefined, expected: "length" },
+    { cfg: undefined, provider: "feishu", accountId: undefined, expected: "length" },
+    { cfg: {}, provider: "qqbot", accountId: undefined, expected: "length" },
+    { cfg: undefined, provider: "weixin", accountId: undefined, expected: "length" },
     { cfg: providerCfg, provider: "__internal__", accountId: undefined, expected: "length" },
-    { cfg: providerCfg, provider: "slack", accountId: undefined, expected: "newline" },
-    { cfg: providerCfg, provider: "discord", accountId: undefined, expected: "length" },
-    { cfg: accountCfg, provider: "slack", accountId: "primary", expected: "newline" },
-    { cfg: accountCfg, provider: "slack", accountId: "other", expected: "length" },
+    { cfg: providerCfg, provider: "ddingtalk", accountId: undefined, expected: "newline" },
+    { cfg: providerCfg, provider: "qqbot", accountId: undefined, expected: "length" },
+    { cfg: accountCfg, provider: "ddingtalk", accountId: "primary", expected: "newline" },
+    { cfg: accountCfg, provider: "ddingtalk", accountId: "other", expected: "length" },
   ] as const)(
     "resolves default/provider/account/internal chunk mode for $provider $accountId",
     ({ cfg, provider, accountId, expected }) => {

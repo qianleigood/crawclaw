@@ -116,16 +116,16 @@ describe("delivery-queue recovery", () => {
     expect(log.warn).toHaveBeenCalledWith(expect.stringContaining("permanent error"));
   });
 
-  it("treats Matrix 'User not in room' as a permanent error", async () => {
+  it("treats Feishu 'User not in room' as a permanent error", async () => {
     const id = await enqueueDelivery(
-      { channel: "matrix", to: "!lowercased:matrix.example.com", payloads: [{ text: "hi" }] },
+      { channel: "feishu", to: "!lowercased:feishu.example.com", payloads: [{ text: "hi" }] },
       tmpDir(),
     );
     const deliver = vi
       .fn()
       .mockRejectedValue(
         new Error(
-          "MatrixError: [403] User @bot:matrix.example.com not in room !lowercased:matrix.example.com",
+          "FeishuError: [403] User @bot:feishu.example.com not in room !lowercased:feishu.example.com",
         ),
       );
     const log = createRecoveryLog();

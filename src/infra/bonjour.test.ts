@@ -140,7 +140,6 @@ describe("gateway bonjour advertiser", () => {
       gatewayPort: 18789,
       sshPort: 2222,
       tailnetDns: "host.tailnet.ts.net",
-      cliPath: "/opt/homebrew/bin/crawclaw",
     });
 
     expect(createService).toHaveBeenCalledTimes(1);
@@ -154,9 +153,6 @@ describe("gateway bonjour advertiser", () => {
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.lanHost).toBe("test-host.local");
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.gatewayPort).toBe("18789");
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.sshPort).toBe("2222");
-    expect((gatewayCall?.[0]?.txt as Record<string, string>)?.cliPath).toBe(
-      "/opt/homebrew/bin/crawclaw",
-    );
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.transport).toBe("gateway");
 
     // We don't await `advertise()`, but it should still be called for each service.
@@ -169,7 +165,7 @@ describe("gateway bonjour advertiser", () => {
     expect(shutdown).toHaveBeenCalledTimes(1);
   });
 
-  it("omits cliPath and sshPort in minimal mode", async () => {
+  it("omits sshPort in minimal mode", async () => {
     enableAdvertiserUnitMode();
 
     const destroy = vi.fn().mockResolvedValue(undefined);
@@ -179,13 +175,11 @@ describe("gateway bonjour advertiser", () => {
     const started = await startGatewayBonjourAdvertiser({
       gatewayPort: 18789,
       sshPort: 2222,
-      cliPath: "/opt/homebrew/bin/crawclaw",
       minimal: true,
     });
 
     const [gatewayCall] = createService.mock.calls as Array<[Record<string, unknown>]>;
     expect((gatewayCall?.[0]?.txt as Record<string, string>)?.sshPort).toBeUndefined();
-    expect((gatewayCall?.[0]?.txt as Record<string, string>)?.cliPath).toBeUndefined();
 
     await started.stop();
   });

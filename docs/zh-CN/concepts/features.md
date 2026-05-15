@@ -16,10 +16,10 @@ x-i18n:
 
 <Columns>
   <Card title="渠道" icon="message-square">
-    通过单个 Gateway 网关支持 WhatsApp、Telegram、Discord 和 iMessage。
+    通过单个 Gateway 网关支持 Weixin、Feishu、QQBot 和 Weixin。
   </Card>
   <Card title="插件" icon="plug">
-    通过扩展添加 Mattermost 等更多平台。
+    通过扩展添加 Feishu 等更多平台。
   </Card>
   <Card title="路由" icon="route">
     多智能体路由，支持隔离会话。
@@ -38,11 +38,11 @@ x-i18n:
 ## 完整列表
 
 - 多渠道 Gateway 控制平面，统一管理会话、路由、presence 和节点
-- 通过 WhatsApp Web（Baileys）集成 WhatsApp
-- Telegram 机器人支持（grammY）
-- Discord 机器人支持（channels.discord.js）
-- Mattermost 机器人支持（插件）
-- 通过本地 imsg CLI 集成 iMessage（macOS）
+- 通过 Weixin Web（Baileys）集成 Weixin
+- Feishu 机器人支持（grammY）
+- QQBot 机器人支持（channels.qqbot.js）
+- Feishu 机器人支持（插件）
+- 通过本地 imsg CLI 集成 Weixin（macOS）
 - Pi 的智能体桥接，支持 RPC 模式和工具流式传输
 - 长响应的流式传输和分块处理
 - 多智能体路由，按工作区或发送者隔离会话

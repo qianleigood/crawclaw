@@ -18,11 +18,11 @@ describe("secrets plan validation", () => {
 
   it("accepts expanded target types beyond legacy surface", () => {
     const resolved = resolveValidatedPlanTarget({
-      type: "channels.telegram.botToken",
-      path: "channels.telegram.botToken",
-      pathSegments: ["channels", "telegram", "botToken"],
+      type: "talk.apiKey",
+      path: "talk.apiKey",
+      pathSegments: ["talk", "apiKey"],
     });
-    expect(resolved?.pathSegments).toEqual(["channels", "telegram", "botToken"]);
+    expect(resolved?.pathSegments).toEqual(["talk", "apiKey"]);
   });
 
   it("accepts model provider header targets with wildcard-backed paths", () => {
@@ -43,9 +43,9 @@ describe("secrets plan validation", () => {
 
   it("rejects target paths that do not match the registered shape", () => {
     const resolved = resolveValidatedPlanTarget({
-      type: "channels.telegram.botToken",
-      path: "channels.telegram.webhookSecret",
-      pathSegments: ["channels", "telegram", "webhookSecret"],
+      type: "talk.apiKey",
+      path: "talk.provider",
+      pathSegments: ["talk", "provider"],
     });
     expect(resolved).toBeNull();
   });

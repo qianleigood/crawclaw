@@ -5,7 +5,7 @@ describe("createResolvedApproverActionAuthAdapter", () => {
   it.each([
     {
       name: "falls back to generic same-chat auth when no approvers resolve",
-      channelLabel: "Slack",
+      channelLabel: "Feishu",
       resolveApprovers: () => [],
       normalizeSenderId: undefined,
       cases: [

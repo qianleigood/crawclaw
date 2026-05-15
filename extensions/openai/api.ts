@@ -9,5 +9,3 @@ export {
   OPENAI_DEFAULT_TTS_MODEL,
   OPENAI_DEFAULT_TTS_VOICE,
 } from "./default-models.js";
-export { buildOpenAICodexProvider } from "./openai-codex-catalog.js";
-export { buildOpenAIProvider } from "./openai-provider.js";

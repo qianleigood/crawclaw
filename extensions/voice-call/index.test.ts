@@ -1,7 +1,3 @@
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { Command } from "commander";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 let runtimeStub: {
@@ -34,25 +30,7 @@ type Registered = {
   methods: Map<string, unknown>;
   tools: unknown[];
 };
-type RegisterVoiceCall = (api: Record<string, unknown>) => void | Promise<void>;
-type RegisterCliContext = {
-  program: Command;
-  config: Record<string, unknown>;
-  workspaceDir?: string;
-  logger: typeof noopLogger;
-};
 
-function captureStdout() {
-  let output = "";
-  const writeSpy = vi.spyOn(process.stdout, "write").mockImplementation(((chunk: unknown) => {
-    output += String(chunk);
-    return true;
-  }) as typeof process.stdout.write);
-  return {
-    output: () => output,
-    restore: () => writeSpy.mockRestore(),
-  };
-}
 function setup(config: Record<string, unknown>): Registered {
   const methods = new Map<string, unknown>();
   const tools: unknown[] = [];
@@ -70,39 +48,10 @@ function setup(config: Record<string, unknown>): Registered {
     logger: noopLogger,
     registerGatewayMethod: (method: string, handler: unknown) => methods.set(method, handler),
     registerTool: (tool: unknown) => tools.push(tool),
-    registerCli: () => {},
     registerService: () => {},
     resolvePath: (p: string) => p,
   } as unknown as Parameters<typeof plugin.register>[0]);
   return { methods, tools };
-}
-
-async function registerVoiceCallCli(program: Command) {
-  const { register } = plugin as unknown as {
-    register: RegisterVoiceCall;
-  };
-  await register({
-    id: "voice-call",
-    name: "Voice Call",
-    description: "test",
-    version: "0",
-    source: "test",
-    config: {},
-    pluginConfig: { provider: "mock" },
-    runtime: { tts: { textToSpeechTelephony: vi.fn() } },
-    logger: noopLogger,
-    registerGatewayMethod: () => {},
-    registerTool: () => {},
-    registerCli: (fn: (ctx: RegisterCliContext) => void) =>
-      fn({
-        program,
-        config: {},
-        workspaceDir: undefined,
-        logger: noopLogger,
-      }),
-    registerService: () => {},
-    resolvePath: (p: string) => p,
-  });
 }
 
 describe("voice-call plugin", () => {
@@ -178,51 +127,5 @@ describe("voice-call plugin", () => {
       details: { error?: unknown };
     };
     expect(String(result.details.error)).toContain("sid required");
-  });
-
-  it("CLI latency summarizes turn metrics from JSONL", async () => {
-    const program = new Command();
-    const tmpFile = path.join(os.tmpdir(), `voicecall-latency-${Date.now()}.jsonl`);
-    fs.writeFileSync(
-      tmpFile,
-      [
-        JSON.stringify({ metadata: { lastTurnLatencyMs: 100, lastTurnListenWaitMs: 70 } }),
-        JSON.stringify({ metadata: { lastTurnLatencyMs: 200, lastTurnListenWaitMs: 110 } }),
-      ].join("\n") + "\n",
-      "utf8",
-    );
-
-    const stdout = captureStdout();
-
-    try {
-      await registerVoiceCallCli(program);
-
-      await program.parseAsync(["voicecall", "latency", "--file", tmpFile, "--last", "10"], {
-        from: "user",
-      });
-
-      const printed = stdout.output();
-      expect(printed).toContain('"recordsScanned": 2');
-      expect(printed).toContain('"p50Ms": 100');
-      expect(printed).toContain('"p95Ms": 200');
-    } finally {
-      stdout.restore();
-      fs.unlinkSync(tmpFile);
-    }
-  });
-
-  it("CLI start prints JSON", async () => {
-    const program = new Command();
-    const stdout = captureStdout();
-    await registerVoiceCallCli(program);
-
-    try {
-      await program.parseAsync(["voicecall", "start", "--to", "+1", "--message", "Hello"], {
-        from: "user",
-      });
-      expect(stdout.output()).toContain('"callId": "call-1"');
-    } finally {
-      stdout.restore();
-    }
   });
 });

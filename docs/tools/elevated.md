@@ -37,8 +37,8 @@ Send `/elevated` with no argument to see the current level.
         elevated: {
           enabled: true,
           allowFrom: {
-            discord: ["user-id-123"],
-            whatsapp: ["+15555550123"],
+            qqbot: ["user-id-123"],
+            weixin: ["+15555550123"],
           },
         },
       },
@@ -80,7 +80,7 @@ Send `/elevated` with no argument to see the current level.
 - **Sender allowlist**: `tools.elevated.allowFrom` with per-channel lists
 - **Per-agent gate**: `agents.list[].tools.elevated.enabled` (can only further restrict)
 - **Per-agent allowlist**: `agents.list[].tools.elevated.allowFrom` (sender must match both global + per-agent)
-- **Discord fallback**: if `tools.elevated.allowFrom.discord` is omitted, `channels.discord.allowFrom` is used as fallback
+- **QQBot fallback**: if `tools.elevated.allowFrom.qqbot` is omitted, `channels.qqbot.allowFrom` is used as fallback
 - **All gates must pass**; otherwise elevated is treated as unavailable
 
 Allowlist entry formats:

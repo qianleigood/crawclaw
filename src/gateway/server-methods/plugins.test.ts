@@ -43,7 +43,6 @@ describe("gateway plugins.list", () => {
           webFetchProviderIds: [],
           webSearchProviderIds: [],
           gatewayMethods: [],
-          cliCommands: [],
           services: [],
           commands: [],
           httpRoutes: 0,
@@ -218,7 +217,7 @@ describe("gateway plugins.list", () => {
     mocks.installPluginWithRustLifecycle.mockResolvedValue({
       ok: true,
       value: {
-        pluginId: "matrix",
+        pluginId: "feishu",
         warnings: [],
         requiresRestart: true,
         installSource: "npm",
@@ -238,9 +237,9 @@ describe("gateway plugins.list", () => {
         type: "req",
         id: "req-4",
         method: "plugins.install",
-        params: { raw: "@crawclaw/matrix", baseHash: "cfg-1" },
+        params: { raw: "@crawclaw/feishu", baseHash: "cfg-1" },
       },
-      params: { raw: "@crawclaw/matrix", baseHash: "cfg-1" },
+      params: { raw: "@crawclaw/feishu", baseHash: "cfg-1" },
       client: null,
       isWebchatConnect: () => false,
       respond,
@@ -248,13 +247,13 @@ describe("gateway plugins.list", () => {
     });
 
     expect(mocks.installPluginWithRustLifecycle).toHaveBeenCalledWith({
-      raw: "@crawclaw/matrix",
+      raw: "@crawclaw/feishu",
     });
     expect(respond).toHaveBeenCalledWith(
       true,
       {
         ok: true,
-        pluginId: "matrix",
+        pluginId: "feishu",
         warnings: [],
         requiresRestart: true,
         installSource: "npm",

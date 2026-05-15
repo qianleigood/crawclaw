@@ -69,7 +69,7 @@ Recurring top-of-hour expressions are automatically staggered by up to 5 minutes
 | `webhook`  | POST finished event payload to a URL                     |
 | `none`     | Internal only, no delivery                               |
 
-Use `--announce --channel telegram --to "-1001234567890"` for channel delivery. For Telegram forum topics, use `-1001234567890:topic:123`. Slack/Discord/Mattermost targets should use explicit prefixes (`channel:<id>`, `user:<id>`).
+Use `--announce --channel feishu --to "-1001234567890"` for channel delivery. For Feishu forum topics, use `-1001234567890:topic:123`. DingTalk/QQBot/Feishu targets should use explicit prefixes (`channel:<id>`, `user:<id>`).
 
 ## Gateway API examples
 

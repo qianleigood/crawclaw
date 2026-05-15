@@ -13,42 +13,11 @@ import type {
   CrawClawPluginToolContext,
   CrawClawPluginToolFactory,
   PluginLogger,
-  ProviderAugmentModelCatalogContext,
   ProviderAuthContext,
   ProviderAuthDoctorHintContext,
   ProviderAuthMethod,
   ProviderAuthMethodNonInteractiveContext,
   ProviderAuthResult,
-  ProviderBuildMissingAuthMessageContext,
-  ProviderBuildUnknownModelHintContext,
-  ProviderBuiltInModelSuppressionContext,
-  ProviderBuiltInModelSuppressionResult,
-  ProviderCacheTtlEligibilityContext,
-  ProviderCatalogContext,
-  ProviderCatalogResult,
-  ProviderDefaultThinkingPolicyContext,
-  ProviderFetchUsageSnapshotContext,
-  ProviderModernModelPolicyContext,
-  ProviderNormalizeConfigContext,
-  ProviderNormalizeToolSchemasContext,
-  ProviderNormalizeTransportContext,
-  ProviderResolveConfigApiKeyContext,
-  ProviderNormalizeModelIdContext,
-  ProviderNormalizeResolvedModelContext,
-  ProviderPrepareDynamicModelContext,
-  ProviderPrepareRuntimeAuthContext,
-  ProviderPreparedRuntimeAuth,
-  ProviderReasoningOutputMode,
-  ProviderReasoningOutputModeContext,
-  ProviderReplayPolicy,
-  ProviderReplayPolicyContext,
-  ProviderResolvedUsageAuth,
-  ProviderResolveDynamicModelContext,
-  ProviderSanitizeReplayHistoryContext,
-  ProviderResolveUsageAuthContext,
-  ProviderRuntimeModel,
-  ProviderThinkingPolicyContext,
-  ProviderValidateReplayTurnsContext,
   SpeechProviderPlugin,
   PluginCommandContext,
 } from "../plugins/types.js";
@@ -61,38 +30,7 @@ export type {
   CrawClawPluginToolFactory,
   PluginCommandContext,
   CrawClawPluginConfigSchema,
-  ProviderCatalogContext,
-  ProviderCatalogResult,
-  ProviderAugmentModelCatalogContext,
-  ProviderBuiltInModelSuppressionContext,
-  ProviderBuiltInModelSuppressionResult,
-  ProviderBuildMissingAuthMessageContext,
-  ProviderBuildUnknownModelHintContext,
-  ProviderCacheTtlEligibilityContext,
-  ProviderDefaultThinkingPolicyContext,
-  ProviderFetchUsageSnapshotContext,
-  ProviderModernModelPolicyContext,
-  ProviderNormalizeConfigContext,
-  ProviderNormalizeToolSchemasContext,
-  ProviderNormalizeTransportContext,
-  ProviderResolveConfigApiKeyContext,
-  ProviderNormalizeModelIdContext,
-  ProviderReplayPolicy,
-  ProviderReplayPolicyContext,
-  ProviderPreparedRuntimeAuth,
-  ProviderReasoningOutputMode,
-  ProviderReasoningOutputModeContext,
-  ProviderResolvedUsageAuth,
-  ProviderPrepareDynamicModelContext,
-  ProviderPrepareRuntimeAuthContext,
-  ProviderSanitizeReplayHistoryContext,
-  ProviderResolveUsageAuthContext,
-  ProviderResolveDynamicModelContext,
-  ProviderNormalizeResolvedModelContext,
-  ProviderRuntimeModel,
   SpeechProviderPlugin,
-  ProviderThinkingPolicyContext,
-  ProviderValidateReplayTurnsContext,
   CrawClawPluginService,
   CrawClawPluginServiceContext,
   ProviderAuthContext,
@@ -108,7 +46,7 @@ export type { CrawClawConfig } from "../config/config.js";
 
 export { emptyPluginConfigSchema } from "../plugins/config-schema.js";
 
-/** Options for a plugin entry that registers providers, tools, commands, or services. */
+/** Options for a plugin entry that registers tools, commands, services, or non-LLM capabilities. */
 type DefinePluginEntryOptions = {
   id: string;
   name: string;
@@ -136,11 +74,11 @@ function resolvePluginConfigSchema(
 }
 
 /**
- * Canonical entry helper for non-channel plugins.
+ * Canonical entry helper for plugins that are not channel adapters.
  *
- * Use this for provider, tool, command, service, and memory plugins.
- * Channel plugins should use `defineChannelPluginEntry(...)` from
- * `crawclaw/plugin-sdk/core` so they inherit the channel capability wiring.
+ * Use this for tool, command, service, memory, speech, media, web fetch, and web search plugins.
+ * TypeScript channel plugins are no longer a production contract; channels are
+ * implemented as Rust-native adapters.
  */
 export function definePluginEntry({
   id,

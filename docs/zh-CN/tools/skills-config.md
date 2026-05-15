@@ -52,7 +52,7 @@ x-i18n:
 - `load.watch`：监视 Skills 文件夹并刷新 Skills 快照（默认：true）。
 - `load.watchDebounceMs`：Skills 监视器事件的防抖时间（毫秒）（默认：250）。
 - `install.preferBrew`：在可用时优先使用 brew 安装器（默认：true）。
-- `install.nodeManager`：node 安装器偏好（`npm` | `pnpm` | `yarn` | `bun`，默认：npm）。这仅影响 **Skills 安装**；Gateway 网关运行时应仍为 Node（不推荐 Bun 用于 WhatsApp/Telegram）。
+- `install.nodeManager`：node 安装器偏好（`npm` | `pnpm` | `yarn` | `bun`，默认：npm）。这仅影响 **Skills 安装**；Gateway 网关运行时应仍为 Node（不推荐 Bun 用于 Weixin/Feishu）。
 - `entries.<skillKey>`：单 Skills 覆盖。
 
 单 Skills 字段：

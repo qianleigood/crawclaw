@@ -14,8 +14,8 @@ describe("isChannelExecApprovalTargetRecipient", () => {
           enabled: true,
           mode: "targets",
           targets: [
-            { channel: "matrix", to: "user:@owner:example.org", accountId: "ops" },
-            { channel: "matrix", to: "user:@other:example.org", accountId: "other" },
+            { channel: "feishu", to: "user:@owner:example.org", accountId: "ops" },
+            { channel: "feishu", to: "user:@other:example.org", accountId: "other" },
           ],
         },
       },
@@ -26,7 +26,7 @@ describe("isChannelExecApprovalTargetRecipient", () => {
         cfg,
         senderId: "@owner:example.org",
         accountId: "ops",
-        channel: "matrix",
+        channel: "feishu",
         matchTarget: ({ target, normalizedSenderId }) => target.to === `user:${normalizedSenderId}`,
       }),
     ).toBe(true);
@@ -36,7 +36,7 @@ describe("isChannelExecApprovalTargetRecipient", () => {
         cfg,
         senderId: "@owner:example.org",
         accountId: "other",
-        channel: "matrix",
+        channel: "feishu",
         matchTarget: ({ target, normalizedSenderId }) => target.to === `user:${normalizedSenderId}`,
       }),
     ).toBe(false);
@@ -48,7 +48,7 @@ describe("isChannelExecApprovalTargetRecipient", () => {
         exec: {
           enabled: true,
           mode: "targets",
-          targets: [{ channel: "matrix", to: "user:@owner:example.org" }],
+          targets: [{ channel: "feishu", to: "user:@owner:example.org" }],
         },
       },
     };
@@ -57,7 +57,7 @@ describe("isChannelExecApprovalTargetRecipient", () => {
       isChannelExecApprovalTargetRecipient({
         cfg,
         senderId: "@owner:example.org",
-        channel: " Matrix ",
+        channel: " Feishu ",
         matchTarget: ({ target, normalizedSenderId }) => target.to === `user:${normalizedSenderId}`,
       }),
     ).toBe(true);
@@ -123,7 +123,7 @@ describe("createChannelExecApprovalProfile", () => {
           request: {
             command: "echo hi",
             agentId: "ops",
-            sessionKey: "agent:ops:telegram:direct:owner:tail",
+            sessionKey: "agent:ops:feishu:direct:owner:tail",
           },
           createdAtMs: 0,
           expiresAtMs: 1000,
@@ -140,7 +140,7 @@ describe("createChannelExecApprovalProfile", () => {
           request: {
             command: "echo hi",
             agentId: "ops",
-            sessionKey: "agent:ops:telegram:direct:owner:tail",
+            sessionKey: "agent:ops:feishu:direct:owner:tail",
           },
           createdAtMs: 0,
           expiresAtMs: 1000,

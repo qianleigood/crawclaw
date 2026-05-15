@@ -291,7 +291,7 @@ describe("createGatewayPluginRequestHandler", () => {
     setActivePluginRegistry(laterActiveRegistry);
 
     const unregister = registerPluginHttpRoute({
-      path: "/bluebubbles-webhook",
+      path: "/weixin-webhook",
       auth: "plugin",
       handler: routeHandler,
     });
@@ -303,7 +303,7 @@ describe("createGatewayPluginRequestHandler", () => {
       });
 
       const { res } = makeMockHttpResponse();
-      const handled = await handler({ url: "/bluebubbles-webhook" } as IncomingMessage, res);
+      const handled = await handler({ url: "/weixin-webhook" } as IncomingMessage, res);
       expect(handled).toBe(true);
       expect(routeHandler).toHaveBeenCalledTimes(1);
       expect(laterActiveRegistry.httpRoutes).toHaveLength(0);
@@ -326,7 +326,7 @@ describe("createGatewayPluginRequestHandler", () => {
     pinActivePluginHttpRouteRegistry(startupRegistry);
 
     const unregister = registerPluginHttpRoute({
-      path: "/bluebubbles-webhook",
+      path: "/weixin-webhook",
       auth: "plugin",
       handler: routeHandler,
     });
@@ -338,7 +338,7 @@ describe("createGatewayPluginRequestHandler", () => {
       });
 
       const { res } = makeMockHttpResponse();
-      const handled = await handler({ url: "/bluebubbles-webhook" } as IncomingMessage, res);
+      const handled = await handler({ url: "/weixin-webhook" } as IncomingMessage, res);
       expect(handled).toBe(true);
       expect(routeHandler).toHaveBeenCalledTimes(1);
       expect(staleExplicitRegistry.httpRoutes).toHaveLength(1);
@@ -376,8 +376,8 @@ describe("createGatewayPluginRequestHandler", () => {
 
 describe("plugin HTTP route auth checks", () => {
   const deeplyEncodedChannelPath =
-    "/api%2525252fchannels%2525252fnostr%2525252fdefault%2525252fprofile";
-  const decodeOverflowPublicPath = `/googlechat${buildRepeatedEncodedSlash(40)}public`;
+    "/api%2525252fchannels%2525252ffeishu%2525252fdefault%2525252fprofile";
+  const decodeOverflowPublicPath = `/feishu${buildRepeatedEncodedSlash(40)}public`;
 
   it("detects registered route paths", () => {
     const registry = createTestRegistry({
@@ -399,12 +399,12 @@ describe("plugin HTTP route auth checks", () => {
   it("enforces auth for protected and gateway-auth routes", () => {
     const registry = createTestRegistry({
       httpRoutes: [
-        createRoute({ path: "/googlechat", match: "prefix", auth: "plugin" }),
+        createRoute({ path: "/feishu", match: "prefix", auth: "plugin" }),
         createRoute({ path: "/api/demo", auth: "gateway" }),
       ],
     });
     expect(shouldEnforceGatewayAuthForPluginPath(registry, "/api//demo")).toBe(true);
-    expect(shouldEnforceGatewayAuthForPluginPath(registry, "/googlechat/public")).toBe(false);
+    expect(shouldEnforceGatewayAuthForPluginPath(registry, "/feishu/public")).toBe(false);
     expect(shouldEnforceGatewayAuthForPluginPath(registry, "/api/channels/status")).toBe(true);
     expect(shouldEnforceGatewayAuthForPluginPath(registry, deeplyEncodedChannelPath)).toBe(true);
     expect(shouldEnforceGatewayAuthForPluginPath(registry, decodeOverflowPublicPath)).toBe(true);

@@ -11,7 +11,6 @@ import {
   buildAnnounceIdempotencyKey,
 } from "./announce-idempotency.js";
 import { formatAgentInternalEventsForPrompt, type AgentInternalEvent } from "./internal-events.js";
-import { isEmbeddedPiRunActive, waitForEmbeddedPiRunEnd } from "./pi-embedded.js";
 import {
   deliverSubagentAnnouncement,
   loadRequesterSessionEntry,
@@ -133,8 +132,8 @@ export function buildSubagentSystemPrompt(params: {
         ? [
             'For ACP harness sessions (codex/claudecode/gemini), use `sessions_spawn` with `runtime: "acp"` (set `agentId` unless `acp.defaultAgent` is configured).',
             '`subagents` applies to CrawClaw sub-agents (`runtime: "subagent"`); ACP harness ids are controlled by `acp.allowedAgents`.',
-            "Do not ask users to run slash commands or CLI when `sessions_spawn` can do it directly.",
-            "Do not use `bash` (`crawclaw ...`, `acpx ...`) to spawn ACP sessions.",
+            "Do not ask users to run slash commands or shell commands when `sessions_spawn` can do it directly.",
+            "Do not use `bash` or ACPX wrappers to spawn ACP sessions.",
             'Use `subagents` only for CrawClaw subagents (`runtime: "subagent"`).',
             "Subagent results auto-announce back to you; ACP sessions continue in their bound thread.",
             "Avoid polling loops; spawn, orchestrate, and synthesize results.",
@@ -331,10 +330,6 @@ export async function runSubagentAnnounceFlow(params: {
     let targetRequesterSessionKey = params.requesterSessionKey;
     let targetRequesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
     const childSessionEntry = loadSessionEntryByKey(params.childSessionKey);
-    const childSessionId =
-      typeof childSessionEntry?.sessionId === "string" && childSessionEntry.sessionId.trim()
-        ? childSessionEntry.sessionId.trim()
-        : undefined;
     childSpawnSource =
       typeof childSessionEntry?.spawnSource === "string" && childSessionEntry.spawnSource.trim()
         ? childSessionEntry.spawnSource.trim()
@@ -342,13 +337,6 @@ export async function runSubagentAnnounceFlow(params: {
     const settleTimeoutMs = Math.min(Math.max(params.timeoutMs, 1), 120_000);
     let reply = params.roundOneReply;
     let outcome: SubagentRunOutcome | undefined = params.outcome;
-    if (childSessionId && isEmbeddedPiRunActive(childSessionId)) {
-      const settled = await waitForEmbeddedPiRunEnd(childSessionId, settleTimeoutMs);
-      if (!settled && isEmbeddedPiRunActive(childSessionId)) {
-        shouldDeleteChildSession = false;
-        return false;
-      }
-    }
 
     if (!reply && params.waitForCompletion !== false) {
       const wait = await waitForSubagentRunOutcome(params.childRunId, settleTimeoutMs);
@@ -515,7 +503,10 @@ export async function runSubagentAnnounceFlow(params: {
             : "finished with unknown status";
 
     const taskLabel = params.label || params.task || "task";
-    const announceSessionId = childSessionId || "unknown";
+    const announceSessionId =
+      typeof childSessionEntry?.sessionId === "string" && childSessionEntry.sessionId.trim()
+        ? childSessionEntry.sessionId.trim()
+        : "unknown";
     const findings = childCompletionFindings || reply || "(no output)";
 
     let requesterIsSubagent = requesterIsInternalSession();

@@ -158,12 +158,12 @@ describe("applyMergePatch", () => {
   it("falls back to replacement for non-id arrays even when enabled", () => {
     const base = {
       channels: {
-        telegram: { allowFrom: ["111", "222"] },
+        feishu: { allowFrom: ["111", "222"] },
       },
     };
     const patch = {
       channels: {
-        telegram: { allowFrom: ["333"] },
+        feishu: { allowFrom: ["333"] },
       },
     };
 
@@ -171,9 +171,9 @@ describe("applyMergePatch", () => {
       mergeObjectArraysById: true,
     }) as {
       channels?: {
-        telegram?: { allowFrom?: string[] };
+        feishu?: { allowFrom?: string[] };
       };
     };
-    expect(merged.channels?.telegram?.allowFrom).toEqual(["333"]);
+    expect(merged.channels?.feishu?.allowFrom).toEqual(["333"]);
   });
 });

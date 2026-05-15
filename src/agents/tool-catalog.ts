@@ -238,7 +238,7 @@ const CORE_TOOL_DEFINITIONS: CoreToolDefinition[] = [
     label: "tts",
     description: "Text-to-speech conversion",
     sectionId: "media",
-    profiles: [],
+    profiles: ["coding"],
     includeInCrawClawGroup: true,
   },
   {

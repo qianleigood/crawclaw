@@ -118,10 +118,10 @@ describe("buildWorkspaceSkillCommandSpecs", () => {
     expect(commands.find((entry) => entry.skillName === "hidden-skill")).toBeUndefined();
   });
 
-  it("truncates descriptions longer than 100 characters for Discord compatibility", async () => {
+  it("truncates descriptions longer than 100 characters for QQBot compatibility", async () => {
     const workspaceDir = await makeWorkspace();
     const longDescription =
-      "This is a very long description that exceeds Discord's 100 character limit for slash command descriptions and should be truncated";
+      "This is a very long description that exceeds QQBot's 100 character limit for slash command descriptions and should be truncated";
     await writeSkill({
       dir: path.join(workspaceDir, "skills", "long-desc"),
       name: "long-desc",

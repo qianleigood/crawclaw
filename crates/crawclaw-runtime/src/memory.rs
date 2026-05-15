@@ -682,6 +682,76 @@ impl RustMemoryRuntime {
     }
 }
 
+pub fn execute_memory_runtime_operation(
+    runtime_root: &Path,
+    operation: &str,
+    input: Value,
+) -> Result<Value, String> {
+    let runtime = RustMemoryRuntime::new(runtime_root.to_path_buf());
+    match operation {
+        "memory.bootstrap" | "memory_bootstrap" => Ok(json!({
+            "bootstrapped": true,
+            "importedMessages": 0,
+            "runtime": runtime.info()
+        })),
+        "memory.ingestBatch" | "memory_ingest_batch" => {
+            let session_id = required_input_string(&input, &["sessionId", "sessionKey"])?;
+            let session_key = string_value(&input, &["sessionKey"]);
+            let messages = input
+                .get("messages")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            runtime.ingest_batch(&session_id, session_key.as_deref(), &messages)
+        }
+        "memory.assemble" | "memory_assemble" => {
+            let session_id = required_input_string(&input, &["sessionId", "sessionKey"])?;
+            let messages = input
+                .get("messages")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let prompt = string_value(&input, &["prompt"]);
+            runtime.assemble(&session_id, messages, prompt.as_deref())
+        }
+        "memory.compact" | "memory_compact" => {
+            let session_id = required_input_string(&input, &["sessionId", "sessionKey"])?;
+            let force = input.get("force").and_then(Value::as_bool).unwrap_or(true);
+            runtime.compact(&session_id, force)
+        }
+        "memory.afterTurn" | "memory_after_turn" => {
+            let session_id = required_input_string(&input, &["sessionId", "sessionKey"])?;
+            let session_key = string_value(&input, &["sessionKey"]);
+            let messages = input
+                .get("messages")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let pre_prompt_message_count = input
+                .get("prePromptMessageCount")
+                .and_then(Value::as_u64)
+                .unwrap_or(0) as usize;
+            runtime.after_turn(
+                &session_id,
+                session_key.as_deref(),
+                &messages,
+                pre_prompt_message_count,
+            )
+        }
+        "memory.prepareSubagentSpawn" | "memory_prepare_subagent_spawn" => {
+            let parent_session_key = required_input_string(&input, &["parentSessionKey"])?;
+            let child_session_key = required_input_string(&input, &["childSessionKey"])?;
+            runtime.prepare_subagent_spawn(&parent_session_key, &child_session_key)
+        }
+        "memory.onSubagentEnded" | "memory_on_subagent_ended" => {
+            let child_session_key = required_input_string(&input, &["childSessionKey"])?;
+            let reason = string_value(&input, &["reason"]).unwrap_or_else(|| "completed".to_string());
+            runtime.on_subagent_ended(&child_session_key, &reason)
+        }
+        _ => Err(format!("unsupported memory runtime operation: {operation}")),
+    }
+}
+
 impl MemoryRuntimeConfig {
     pub fn load(runtime_root: &Path) -> Self {
         let raw = read_active_config()
@@ -1339,6 +1409,10 @@ fn string_value(value: &Value, keys: &[&str]) -> Option<String> {
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(str::to_string)
+}
+
+fn required_input_string(value: &Value, keys: &[&str]) -> Result<String, String> {
+    string_value(value, keys).ok_or_else(|| format!("missing required field: {}", keys.join("|")))
 }
 
 fn string_vec_value(value: Option<&Value>) -> Option<Vec<String>> {

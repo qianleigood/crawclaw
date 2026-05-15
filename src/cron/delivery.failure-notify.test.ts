@@ -25,7 +25,7 @@ vi.mock("../infra/outbound/session-context.js", () => ({
   buildOutboundSessionContext: mocks.buildOutboundSessionContext,
 }));
 
-vi.mock("../cli/outbound-send-deps.js", () => ({
+vi.mock("../terminal/outbound-send-deps.js", () => ({
   createOutboundSendDeps: mocks.createOutboundSendDeps,
 }));
 

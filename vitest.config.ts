@@ -151,8 +151,8 @@ export default defineConfig({
         "src/runtime.ts",
         "src/channel-web.ts",
         "src/logging.ts",
-        "src/cli/**",
-        "src/commands/**",
+        "src/terminal/**",
+        "src/control/**",
         "src/daemon/**",
         "src/hooks/**",
         "src/macos/**",
@@ -175,9 +175,6 @@ export default defineConfig({
         "src/agents/sandbox.ts",
         "src/agents/skills-install.ts",
         "src/agents/pi-tool-definition-adapter.ts",
-        "src/agents/tools/discord-actions*.ts",
-        "src/agents/tools/slack-actions.ts",
-
         // Hard-to-unit-test modules; exercised indirectly by integration tests.
         "src/infra/state-migrations.ts",
         "src/infra/skills-remote.ts",

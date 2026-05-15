@@ -1,8 +1,8 @@
 ---
 read_when:
   - 添加或更改外部 CLI 集成
-  - 调试 RPC 适配器（signal-cli、imsg）
-summary: 外部 CLI（signal-cli、imsg）的 RPC 适配器和 Gateway 网关模式
+  - 调试 RPC 适配器（feishu-cli、imsg）
+summary: 外部 CLI（feishu-cli、imsg）的 RPC 适配器和 Gateway 网关模式
 title: RPC 适配器
 x-i18n:
   generated_at: "2026-02-03T07:53:44Z"
@@ -17,14 +17,14 @@ x-i18n:
 
 CrawClaw 通过 JSON-RPC 集成外部 CLI。目前使用两种模式。
 
-## 模式 A：HTTP 守护进程（signal-cli）
+## 模式 A：HTTP 守护进程（feishu-cli）
 
-- `signal-cli` 作为守护进程运行，通过 HTTP 使用 JSON-RPC。
+- `feishu-cli` 作为守护进程运行，通过 HTTP 使用 JSON-RPC。
 - 事件流是 SSE（`/api/v1/events`）。
 - 健康探测：`/api/v1/check`。
-- 当 `channels.signal.autoStart=true` 时，CrawClaw 负责生命周期管理。
+- 当 `channels.feishu.autoStart=true` 时，CrawClaw 负责生命周期管理。
 
-设置和端点参见 [Signal](/channels/signal)。
+设置和端点参见 [Feishu](/channels/index)。
 
 ## 模式 B：stdio 子进程（imsg）
 
@@ -39,7 +39,7 @@ CrawClaw 通过 JSON-RPC 集成外部 CLI。目前使用两种模式。
 - `send`
 - `chats.list`（探测/诊断）
 
-设置和寻址（首选 `chat_id`）参见 [iMessage](/channels/imessage)。
+设置和寻址（首选 `chat_id`）参见 [Weixin](/channels/index)。
 
 ## 适配器指南
 

@@ -1,11 +1,7 @@
 import { startGatewayBonjourAdvertiser } from "../infra/bonjour.js";
 import { pickPrimaryTailnetIPv4, pickPrimaryTailnetIPv6 } from "../infra/tailnet.js";
 import { resolveWideAreaDiscoveryDomain, writeWideAreaGatewayZone } from "../infra/widearea-dns.js";
-import {
-  formatBonjourInstanceName,
-  resolveBonjourCliPath,
-  resolveTailnetDnsHint,
-} from "./server-discovery.js";
+import { formatBonjourInstanceName, resolveTailnetDnsHint } from "./server-discovery.js";
 
 export async function startGatewayDiscovery(params: {
   machineDisplayName: string;
@@ -36,8 +32,6 @@ export async function startGatewayDiscovery(params: {
   const sshPortEnv = mdnsMinimal ? undefined : process.env.CRAWCLAW_SSH_PORT?.trim();
   const sshPortParsed = sshPortEnv ? Number.parseInt(sshPortEnv, 10) : NaN;
   const sshPort = Number.isFinite(sshPortParsed) && sshPortParsed > 0 ? sshPortParsed : undefined;
-  const cliPath = mdnsMinimal ? undefined : resolveBonjourCliPath();
-
   if (bonjourEnabled) {
     try {
       const bonjour = await startGatewayBonjourAdvertiser({
@@ -48,7 +42,6 @@ export async function startGatewayDiscovery(params: {
         canvasPort: params.canvasPort,
         sshPort,
         tailnetDns,
-        cliPath,
         minimal: mdnsMinimal,
       });
       bonjourStop = bonjour.stop;
@@ -85,7 +78,6 @@ export async function startGatewayDiscovery(params: {
           gatewayTlsFingerprintSha256: params.gatewayTls?.fingerprintSha256,
           tailnetDns,
           sshPort,
-          cliPath: resolveBonjourCliPath(),
         });
         params.logDiscovery.info(
           `wide-area DNS-SD ${result.changed ? "updated" : "unchanged"} (${wideAreaDomain} → ${result.zonePath})`,

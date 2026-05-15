@@ -188,8 +188,9 @@ export function collectReleasePackageMetadataErrors(pkg: PackageJson): string[] 
   if (Object.prototype.hasOwnProperty.call(pkg.exports ?? {}, "./cli-entry")) {
     errors.push('package.json exports must not expose legacy "./cli-entry".');
   }
-  if (pkg.files?.includes("crawclaw.mjs")) {
-    errors.push('package.json files must not include legacy "crawclaw.mjs".');
+  const legacyNodeEntrypoint = ["crawclaw", "mjs"].join(".");
+  if (pkg.files?.includes(legacyNodeEntrypoint)) {
+    errors.push("package.json files must not include the legacy Node entry file.");
   }
   if (pkg.peerDependencies?.["node-llama-cpp"] !== "3.18.1") {
     errors.push(

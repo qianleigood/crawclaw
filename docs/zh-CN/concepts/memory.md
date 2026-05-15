@@ -82,7 +82,7 @@ CrawClaw 也有第二层持久记忆维护层：
 - auto-dream 由其运行超时限制，而非固定的回合数上限，因此大型跨会话整合不会仅仅因为需要更多智能体回合而被中断
 - auto-dream 整合相同的持久 profile/上下文层，并且不得将可复用操作经验转化为持久笔记
 - auto-dream 现在通过操作源呈现用于定向/收集/整合/修剪的阶段级操作
-- 手动 dream 运行现在可以用以下方式限制 `--session-limit` / `--signal-limit`
+- 手动 dream 运行现在可以用以下方式限制 `--session-limit` / `--feishu-limit`
   并使用以下方式预览 `--dry-run` ：无需获取 dream 锁或写入记忆即可预览。
 - status 和 inspect 界面明确报告 dream 闭环针对所检查的持久作用域是否处于活跃状态，而非将 dream 保留为不透明的可选后台行为
 - dream status 和 inspect 界面报告文件水印、锁路径以及当前是否有锁处于活跃状态；dream 运行历史不再持久化到运行时数据库中
@@ -241,8 +241,8 @@ crawclaw memory refresh  # Refresh NotebookLM auth from cookie fallback
 crawclaw memory sync     # Flush pending experience notes to NotebookLM
 crawclaw memory dream status --json
 crawclaw memory dream history --json
-crawclaw memory dream run --agent main --channel telegram --user alice --force
-crawclaw memory dream run --agent main --channel telegram --user alice --dry-run --session-limit 6 --signal-limit 6
+crawclaw memory dream run --agent main --channel feishu --user alice --force
+crawclaw memory dream run --agent main --channel feishu --user alice --dry-run --session-limit 6 --feishu-limit 6
 crawclaw memory prompt-journal-summary --json --days 1
 crawclaw agent export-context --task-id <task-id> --json
 ```

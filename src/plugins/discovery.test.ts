@@ -307,11 +307,11 @@ describe("discoverCrawClawPlugins", () => {
     mkdirSafe(backupDir);
     fs.writeFileSync(path.join(backupDir, "index.ts"), "export default function () {}", "utf-8");
 
-    const disabledDir = path.join(globalExt, "telegram.disabled.20260222");
+    const disabledDir = path.join(globalExt, "feishu.disabled.20260222");
     mkdirSafe(disabledDir);
     fs.writeFileSync(path.join(disabledDir, "index.ts"), "export default function () {}", "utf-8");
 
-    const bakDir = path.join(globalExt, "discord.bak");
+    const bakDir = path.join(globalExt, "qqbot.bak");
     mkdirSafe(bakDir);
     fs.writeFileSync(path.join(bakDir, "index.ts"), "export default function () {}", "utf-8");
 
@@ -322,7 +322,7 @@ describe("discoverCrawClawPlugins", () => {
     const { candidates } = await discoverWithStateDir(stateDir, {});
     expectCandidateIds(candidates, {
       includes: ["live"],
-      excludes: ["feishu.backup-20260222", "telegram.disabled.20260222", "discord.bak"],
+      excludes: ["feishu.backup-20260222", "feishu.disabled.20260222", "qqbot.bak"],
     });
   });
 

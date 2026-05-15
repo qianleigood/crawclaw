@@ -1,6 +1,5 @@
 import { getAcpSessionManager } from "../../acp/control-plane/manager.js";
 import { clearBootstrapSnapshot } from "../../agents/bootstrap-cache.js";
-import { abortEmbeddedPiRun, waitForEmbeddedPiRunEnd } from "../../agents/pi-embedded.js";
 import { stopSubagentsForRequester } from "../../auto-reply/reply/abort.js";
 import { clearSessionQueues } from "../../auto-reply/reply/queue.js";
 import type { CrawClawConfig } from "../../config/config.js";
@@ -46,17 +45,9 @@ async function ensureSessionRuntimeCleanup(params: {
     await closeTrackedBrowserTabs();
     return undefined;
   }
-  abortEmbeddedPiRun(params.sessionId);
-  const ended = await waitForEmbeddedPiRunEnd(params.sessionId, 15_000);
   clearBootstrapSnapshot(params.target.canonicalKey);
-  if (ended) {
-    await closeTrackedBrowserTabs();
-    return undefined;
-  }
-  return errorShape(
-    ErrorCodes.UNAVAILABLE,
-    `Session ${params.key} is still active; try again in a moment.`,
-  );
+  await closeTrackedBrowserTabs();
+  return undefined;
 }
 
 async function stopDurableExtractionWorkersForTarget(params: {

@@ -1,9 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
-import { createRequire } from "node:module";
 import os from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 import * as tar from "tar";
 import { describe, expect, it } from "vitest";
 import { pluginSdkEntrypoints } from "../../plugin-sdk/entrypoints.js";
@@ -55,26 +54,6 @@ function readRootPackageJson(): {
   return JSON.parse(readFileSync(resolve(REPO_ROOT, "package.json"), "utf8")) as {
     dependencies?: Record<string, string>;
     optionalDependencies?: Record<string, string>;
-  };
-}
-
-function readMatrixPackageJson(): {
-  dependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  crawclaw?: {
-    releaseChecks?: {
-      rootDependencyMirrorAllowlist?: unknown;
-    };
-  };
-} {
-  return JSON.parse(readFileSync(resolve(REPO_ROOT, "extensions/matrix/package.json"), "utf8")) as {
-    dependencies?: Record<string, string>;
-    optionalDependencies?: Record<string, string>;
-    crawclaw?: {
-      releaseChecks?: {
-        rootDependencyMirrorAllowlist?: unknown;
-      };
-    };
   };
 }
 
@@ -134,10 +113,6 @@ function collectRuntimeDependencySpecs(packageJson: {
     ...Object.entries(packageJson.dependencies ?? {}),
     ...Object.entries(packageJson.optionalDependencies ?? {}),
   ]);
-}
-
-function createRootPackageRequire() {
-  return createRequire(pathToFileURL(resolve(REPO_ROOT, "package.json")).href);
 }
 
 function isNpmExecPath(value: string): boolean {
@@ -355,23 +330,6 @@ describe("plugin-sdk package contract guardrails", () => {
     expect(failures).toEqual([]);
   });
 
-  it("mirrors matrix runtime deps needed by the bundled host graph", () => {
-    const rootRuntimeDeps = collectRuntimeDependencySpecs(readRootPackageJson());
-    const matrixPackageJson = readMatrixPackageJson();
-    const matrixRuntimeDeps = collectRuntimeDependencySpecs(matrixPackageJson);
-    const allowlist = matrixPackageJson.crawclaw?.releaseChecks?.rootDependencyMirrorAllowlist;
-
-    expect(Array.isArray(allowlist)).toBe(true);
-    const matrixRootMirrorAllowlist = allowlist as string[];
-    expect(matrixRootMirrorAllowlist).toEqual(
-      expect.arrayContaining(["@matrix-org/matrix-sdk-crypto-wasm"]),
-    );
-
-    for (const dep of matrixRootMirrorAllowlist) {
-      expect(rootRuntimeDeps.get(dep)).toBe(matrixRuntimeDeps.get(dep));
-    }
-  });
-
   it("mirrors Bedrock runtime deps needed by the bundled host graph", () => {
     const rootRuntimeDeps = collectRuntimeDependencySpecs(readRootPackageJson());
     const bedrockPackageJson = readAmazonBedrockPackageJson();
@@ -403,31 +361,17 @@ describe("plugin-sdk package contract guardrails", () => {
     }
   });
 
-  it("resolves matrix crypto WASM from the root runtime surface", () => {
-    const rootRequire = createRootPackageRequire();
-    // Normalize filesystem separators so the package assertion stays portable.
-    const resolvedPath = rootRequire
-      .resolve("@matrix-org/matrix-sdk-crypto-wasm")
-      .replaceAll("\\", "/");
-
-    expect(resolvedPath).toContain("@matrix-org/matrix-sdk-crypto-wasm");
-  });
-
-  it("keeps matrix crypto WASM in the packed artifact manifest", async () => {
-    const tempRoot = mkdtempSync(join(os.tmpdir(), "crawclaw-matrix-wasm-pack-"));
+  it("keeps mirrored runtime dependencies in the packed artifact manifest", async () => {
+    const tempRoot = mkdtempSync(join(os.tmpdir(), "crawclaw-runtime-deps-pack-"));
     try {
       const packDir = join(tempRoot, "pack");
       mkdirSync(packDir, { recursive: true });
 
       const archivePath = packCrawClawToTempDir(packDir);
       const packedPackageJson = await readPackedRootPackageJson(archivePath);
-      const matrixPackageJson = readMatrixPackageJson();
       const bedrockPackageJson = readAmazonBedrockPackageJson();
       const diffsPackageJson = readDiffsPackageJson();
 
-      expect(packedPackageJson.dependencies?.["@matrix-org/matrix-sdk-crypto-wasm"]).toBe(
-        matrixPackageJson.dependencies?.["@matrix-org/matrix-sdk-crypto-wasm"],
-      );
       expect(packedPackageJson.dependencies?.["@aws-sdk/client-bedrock"]).toBe(
         bedrockPackageJson.dependencies?.["@aws-sdk/client-bedrock"],
       );

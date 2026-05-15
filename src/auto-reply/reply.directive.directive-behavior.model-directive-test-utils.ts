@@ -1,5 +1,5 @@
 import {
-  makeWhatsAppDirectiveConfig,
+  makeWeixinDirectiveConfig,
   replyText,
   sessionStorePath,
 } from "./reply.directive.directive-behavior.e2e-harness.js";
@@ -17,7 +17,7 @@ export async function runModelDirectiveText(
   const res = await getReplyFromConfig(
     { Body: body, From: "+1222", To: "+1222", CommandAuthorized: true },
     {},
-    makeWhatsAppDirectiveConfig(
+    makeWeixinDirectiveConfig(
       home,
       {
         model: { primary: "anthropic/claude-opus-4-5" },

@@ -32,10 +32,10 @@ function createManager(snapshot: ChannelRuntimeSnapshot): ChannelManager {
   };
 }
 
-function createHealthyDiscordManager(startedAt: number, lastEventAt: number): ChannelManager {
+function createHealthyQQBotManager(startedAt: number, lastEventAt: number): ChannelManager {
   return createManager(
     snapshotWith({
-      discord: {
+      qqbot: {
         running: true,
         connected: true,
         enabled: true,
@@ -78,7 +78,7 @@ describe("createReadinessChecker", () => {
   it("reports ready when all managed channels are healthy", () => {
     withReadinessClock(() => {
       const startedAt = Date.now() - 5 * 60_000;
-      const manager = createHealthyDiscordManager(startedAt, Date.now() - 1_000);
+      const manager = createHealthyQQBotManager(startedAt, Date.now() - 1_000);
 
       const readiness = createReadinessChecker({ channelManager: manager, startedAt });
       expect(readiness()).toEqual({ ready: true, failing: [], uptimeMs: 300_000 });
@@ -90,13 +90,13 @@ describe("createReadinessChecker", () => {
       const { readiness } = createReadinessHarness({
         startedAgoMs: 5 * 60_000,
         accounts: {
-          discord: {
+          qqbot: {
             running: false,
             enabled: false,
             configured: true,
             lastStartAt: Date.now() - 5 * 60_000,
           },
-          telegram: {
+          feishu: {
             running: false,
             enabled: true,
             configured: false,
@@ -113,7 +113,7 @@ describe("createReadinessChecker", () => {
       const { readiness } = createReadinessHarness({
         startedAgoMs: 30_000,
         accounts: {
-          discord: {
+          qqbot: {
             running: true,
             connected: false,
             enabled: true,
@@ -131,7 +131,7 @@ describe("createReadinessChecker", () => {
       const { readiness } = createReadinessHarness({
         startedAgoMs: 5 * 60_000,
         accounts: {
-          discord: {
+          qqbot: {
             running: true,
             connected: false,
             enabled: true,
@@ -140,7 +140,7 @@ describe("createReadinessChecker", () => {
           },
         },
       });
-      expect(readiness()).toEqual({ ready: false, failing: ["discord"], uptimeMs: 300_000 });
+      expect(readiness()).toEqual({ ready: false, failing: ["qqbot"], uptimeMs: 300_000 });
     });
   });
 
@@ -150,7 +150,7 @@ describe("createReadinessChecker", () => {
       const { readiness } = createReadinessHarness({
         startedAgoMs: 5 * 60_000,
         accounts: {
-          discord: {
+          qqbot: {
             running: false,
             restartPending: true,
             reconnectAttempts: 3,
@@ -171,7 +171,7 @@ describe("createReadinessChecker", () => {
       const { readiness } = createReadinessHarness({
         startedAgoMs: 31 * 60_000,
         accounts: {
-          discord: {
+          qqbot: {
             running: true,
             connected: true,
             enabled: true,
@@ -185,13 +185,13 @@ describe("createReadinessChecker", () => {
     });
   });
 
-  it("keeps telegram long-polling channels ready without stale-socket classification", () => {
+  it("keeps feishu long-polling channels ready without stale-socket classification", () => {
     withReadinessClock(() => {
       const startedAt = Date.now() - 31 * 60_000;
       const { readiness } = createReadinessHarness({
         startedAgoMs: 31 * 60_000,
         accounts: {
-          telegram: {
+          feishu: {
             running: true,
             connected: true,
             enabled: true,
@@ -210,7 +210,7 @@ describe("createReadinessChecker", () => {
       const { manager, readiness } = createReadinessHarness({
         startedAgoMs: 5 * 60_000,
         accounts: {
-          discord: {
+          qqbot: {
             running: true,
             connected: true,
             enabled: true,

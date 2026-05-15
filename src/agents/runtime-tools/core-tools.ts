@@ -3,10 +3,25 @@ import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import type { ExecToolDefaults, ExecToolDetails } from "../bash-tools.exec-types.js";
 import type { ProcessToolDefaults } from "../bash-tools.process.js";
+import {
+  CLAUDE_PARAM_GROUPS,
+  assertRequiredParams,
+  normalizeToolParams,
+  patchToolSchemaForClaudeCompatibility,
+  wrapToolParamNormalization,
+} from "../pi-tools.params.js";
+import type { AnyAgentTool } from "../pi-tools.types.js";
 import { runCrawClawRuntimeTool } from "./native.js";
 
 type RuntimeTextResult = {
   text?: string;
+};
+
+type RuntimeToolResult = {
+  content?: AgentToolResult<unknown>["content"];
+  text?: string;
+  details?: unknown;
+  isError?: boolean;
 };
 
 type RuntimeBashResult = {
@@ -49,6 +64,415 @@ function textResult(text: string, details?: Record<string, unknown>): AgentToolR
     ],
     details,
   };
+}
+
+function runtimeResult(result: RuntimeToolResult): AgentToolResult<unknown> {
+  if (Array.isArray(result.content)) {
+    return {
+      content: result.content,
+      details: result.details,
+      ...(result.isError ? { isError: true } : {}),
+    } as AgentToolResult<unknown>;
+  }
+  return textResult(result.text || JSON.stringify(result.details ?? result, null, 2), {
+    ...(result.details && typeof result.details === "object"
+      ? (result.details as Record<string, unknown>)
+      : {}),
+    ...(result.isError ? { isError: true } : {}),
+  });
+}
+
+function runtimeOptions(root?: string) {
+  return root ? { runtimeRoot: root } : undefined;
+}
+
+function unsupportedRustTool(_value: never, label: string): never {
+  throw new Error(`Unsupported ${label}`);
+}
+
+function normalizeRecord(args: unknown): Record<string, unknown> {
+  return (
+    normalizeToolParams(args) ??
+    (args && typeof args === "object" ? { ...(args as Record<string, unknown>) } : {})
+  );
+}
+
+function createRustRuntimeTool(params: {
+  name: string;
+  label?: string;
+  description: string;
+  parameters: AnyAgentTool["parameters"];
+  defaults?: Record<string, unknown>;
+  runtimeRoot?: string;
+  normalize?: (args: unknown) => Record<string, unknown>;
+  afterExecute?: (args: Record<string, unknown>) => Promise<void> | void;
+}): AnyAgentTool {
+  return {
+    name: params.name,
+    label: params.label ?? params.name,
+    description: params.description,
+    parameters: params.parameters,
+    execute: async (_toolCallId, args) => {
+      const input = {
+        ...params.defaults,
+        ...(params.normalize ? params.normalize(args) : normalizeRecord(args)),
+      };
+      const result = await runCrawClawRuntimeTool<RuntimeToolResult>(
+        params.name,
+        input,
+        runtimeOptions(params.runtimeRoot),
+      );
+      await params.afterExecute?.(input);
+      return runtimeResult(result);
+    },
+  };
+}
+
+const readSchema = Type.Object({
+  path: Type.String({ description: "File path, relative to the workspace." }),
+  offset: Type.Optional(Type.Number({ description: "1-based line offset." })),
+  limit: Type.Optional(Type.Number({ description: "Maximum lines to read." })),
+});
+
+const writeSchema = Type.Object({
+  path: Type.String({ description: "File path, relative to the workspace." }),
+  content: Type.String({ description: "File content to write." }),
+});
+
+const editSchema = Type.Object({
+  path: Type.String({ description: "File path, relative to the workspace." }),
+  oldText: Type.Optional(Type.String({ description: "Exact text to replace." })),
+  newText: Type.Optional(Type.String({ description: "Replacement text." })),
+  edits: Type.Optional(
+    Type.Array(
+      Type.Object({
+        oldText: Type.String({ description: "Exact text to replace." }),
+        newText: Type.String({ description: "Replacement text." }),
+      }),
+    ),
+  ),
+});
+
+const applyPatchSchema = Type.Object({
+  input: Type.String({
+    description: "Patch content using the *** Begin Patch/End Patch format.",
+  }),
+  patch: Type.Optional(
+    Type.String({
+      description: "Alias for input.",
+    }),
+  ),
+});
+
+const sessionStatusSchema = Type.Object({
+  sessionKey: Type.Optional(Type.String({ description: "Session key. Defaults to main." })),
+});
+
+const sessionsListSchema = Type.Object({
+  parentSessionKey: Type.Optional(
+    Type.String({ description: "Optional parent session key for subagent filtering." }),
+  ),
+});
+
+const sessionsHistorySchema = Type.Object({
+  sessionKey: Type.Optional(Type.String({ description: "Session key." })),
+});
+
+const sessionsSendSchema = Type.Object({
+  sessionKey: Type.String({ description: "Target session key." }),
+  message: Type.String({ description: "Message to send into the target session." }),
+});
+
+const sessionsSpawnSchema = Type.Object({
+  task: Type.String({ description: "Task for the child subagent session." }),
+  label: Type.Optional(Type.String({ description: "Optional child session label." })),
+  parentSessionKey: Type.Optional(Type.String({ description: "Optional parent session key." })),
+});
+
+const sessionsYieldSchema = Type.Object({
+  sessionKey: Type.Optional(Type.String({ description: "Session key. Defaults to main." })),
+  message: Type.Optional(Type.String({ description: "Yield message." })),
+});
+
+const cronSchema = Type.Object(
+  {
+    action: Type.Union([
+      Type.Literal("status"),
+      Type.Literal("list"),
+      Type.Literal("add"),
+      Type.Literal("update"),
+      Type.Literal("remove"),
+      Type.Literal("run"),
+      Type.Literal("runs"),
+      Type.Literal("wake"),
+    ]),
+    id: Type.Optional(Type.String()),
+    jobId: Type.Optional(Type.String()),
+    job: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    patch: Type.Optional(Type.Record(Type.String(), Type.Unknown())),
+    mode: Type.Optional(
+      Type.Union([Type.Literal("due"), Type.Literal("force"), Type.Literal("now")]),
+    ),
+    includeDisabled: Type.Optional(Type.Boolean()),
+    text: Type.Optional(Type.String()),
+    message: Type.Optional(Type.String()),
+  },
+  { additionalProperties: true },
+);
+
+const reviewTaskSchema = Type.Object({
+  task: Type.String({ description: "Review task." }),
+  stage: Type.Optional(Type.Union([Type.Literal("spec"), Type.Literal("quality")])),
+});
+
+const memoryManifestSchema = Type.Object({
+  scope: Type.Optional(Type.String({ description: "Memory scope." })),
+});
+
+const memoryNoteReadSchema = Type.Object({
+  scope: Type.Optional(Type.String({ description: "Memory scope." })),
+  notePath: Type.String({ description: "Relative note path." }),
+  path: Type.Optional(Type.String({ description: "Alias for notePath." })),
+});
+
+const memoryNoteWriteSchema = Type.Object({
+  scope: Type.Optional(Type.String({ description: "Memory scope." })),
+  notePath: Type.String({ description: "Relative note path." }),
+  path: Type.Optional(Type.String({ description: "Alias for notePath." })),
+  content: Type.String({ description: "Note content." }),
+});
+
+const memoryNoteEditSchema = Type.Object({
+  scope: Type.Optional(Type.String({ description: "Memory scope." })),
+  notePath: Type.String({ description: "Relative note path." }),
+  path: Type.Optional(Type.String({ description: "Alias for notePath." })),
+  search: Type.String({ description: "Exact text to replace." }),
+  replace: Type.String({ description: "Replacement text." }),
+});
+
+const writeExperienceNoteSchema = Type.Object({
+  scope: Type.Optional(Type.String({ description: "Experience scope." })),
+  title: Type.Optional(Type.String({ description: "Experience title." })),
+  body: Type.Optional(Type.String({ description: "Experience body." })),
+  content: Type.Optional(Type.String({ description: "Alias for body." })),
+  source: Type.Optional(Type.String({ description: "Experience source." })),
+});
+
+const sessionSummaryReadSchema = Type.Object({
+  scope: Type.Optional(Type.String({ description: "Session summary scope." })),
+});
+
+const sessionSummaryEditSchema = Type.Object({
+  scope: Type.Optional(Type.String({ description: "Session summary scope." })),
+  content: Type.String({ description: "Complete replacement summary file content." }),
+});
+
+function normalizePatchInput(args: unknown): Record<string, unknown> {
+  const record = normalizeRecord(args);
+  if (typeof record.input !== "string" && typeof record.patch === "string") {
+    record.input = record.patch;
+  }
+  delete record.patch;
+  return record;
+}
+
+function normalizeEditInput(args: unknown): Record<string, unknown> {
+  const record = args && typeof args === "object" ? { ...(args as Record<string, unknown>) } : {};
+  if (typeof record.oldText === "string" && typeof record.newText === "string") {
+    delete record.edits;
+    return record;
+  }
+  return normalizeRecord(args);
+}
+
+function normalizeMemoryNoteInput(args: unknown): Record<string, unknown> {
+  const record = normalizeRecord(args);
+  if (typeof record.notePath !== "string" && typeof record.path === "string") {
+    record.notePath = record.path;
+  }
+  return record;
+}
+
+function requiredTool(tool: AnyAgentTool, groups: Parameters<typeof assertRequiredParams>[1]) {
+  return {
+    ...tool,
+    execute: async (toolCallId, params, signal, onUpdate) => {
+      const normalized = normalizeToolParams(params);
+      const record =
+        normalized ??
+        (params && typeof params === "object" ? (params as Record<string, unknown>) : undefined);
+      assertRequiredParams(record, groups, tool.name);
+      return tool.execute(toolCallId, normalized ?? params, signal, onUpdate);
+    },
+  } satisfies AnyAgentTool;
+}
+
+export function createRustReadTool(root: string): AnyAgentTool {
+  return wrapToolParamNormalization(
+    createRustRuntimeTool({
+      name: "read",
+      description: "Read file contents through CrawClaw's Rust runtime.",
+      parameters: readSchema,
+      runtimeRoot: root,
+    }),
+    CLAUDE_PARAM_GROUPS.read,
+  );
+}
+
+export function createRustWriteTool(root: string): AnyAgentTool {
+  return wrapToolParamNormalization(
+    createRustRuntimeTool({
+      name: "write",
+      description: "Create or overwrite files through CrawClaw's Rust runtime.",
+      parameters: writeSchema,
+      runtimeRoot: root,
+    }),
+    CLAUDE_PARAM_GROUPS.write,
+  );
+}
+
+export function createRustEditTool(root: string): AnyAgentTool {
+  return wrapToolParamNormalization(
+    createRustRuntimeTool({
+      name: "edit",
+      description: "Make precise file edits through CrawClaw's Rust runtime.",
+      parameters: editSchema,
+      runtimeRoot: root,
+      normalize: normalizeEditInput,
+    }),
+    CLAUDE_PARAM_GROUPS.edit,
+  );
+}
+
+export function createRustApplyPatchTool(root: string): AnyAgentTool {
+  const tool = createRustRuntimeTool({
+    name: "apply_patch",
+    description:
+      "Apply a patch to one or more files through CrawClaw's Rust runtime. The input should include *** Begin Patch and *** End Patch markers.",
+    parameters: applyPatchSchema,
+    runtimeRoot: root,
+    normalize: normalizePatchInput,
+  });
+  return requiredTool(patchToolSchemaForClaudeCompatibility(tool), [
+    { keys: ["input", "patch"], label: "patch input" },
+  ]);
+}
+
+export type RustSessionToolName =
+  | "session_status"
+  | "sessions_list"
+  | "sessions_history"
+  | "sessions_send"
+  | "sessions_spawn"
+  | "sessions_yield"
+  | "subagents";
+
+export function createRustSessionTool(
+  name: RustSessionToolName,
+  defaults?: {
+    sessionKey?: string;
+    parentSessionKey?: string;
+    sessionId?: string;
+    onYield?: (message: string) => Promise<void> | void;
+  },
+): AnyAgentTool {
+  const parameters = (() => {
+    switch (name) {
+      case "session_status":
+        return sessionStatusSchema;
+      case "sessions_list":
+      case "subagents":
+        return sessionsListSchema;
+      case "sessions_history":
+        return sessionsHistorySchema;
+      case "sessions_send":
+        return sessionsSendSchema;
+      case "sessions_spawn":
+        return sessionsSpawnSchema;
+      case "sessions_yield":
+        return sessionsYieldSchema;
+      default:
+        return unsupportedRustTool(name, "Rust session tool");
+    }
+  })();
+  return createRustRuntimeTool({
+    name,
+    description: `Run ${name} through CrawClaw's Rust runtime.`,
+    parameters,
+    defaults: {
+      ...(defaults?.sessionKey ? { sessionKey: defaults.sessionKey } : {}),
+      ...(defaults?.parentSessionKey ? { parentSessionKey: defaults.parentSessionKey } : {}),
+    },
+    afterExecute:
+      name === "sessions_yield" && defaults?.sessionId && defaults.onYield
+        ? async (args) => {
+            const message =
+              typeof args.message === "string" && args.message.trim()
+                ? args.message.trim()
+                : "Turn yielded.";
+            await defaults.onYield?.(message);
+          }
+        : undefined,
+  });
+}
+
+export function createRustCronTool(defaults?: { sessionKey?: string }): AnyAgentTool {
+  return createRustRuntimeTool({
+    name: "cron",
+    description: "Manage Rust-native CrawClaw cron jobs and wake scheduled agent sessions.",
+    parameters: cronSchema,
+    defaults: defaults?.sessionKey ? { sessionKey: defaults.sessionKey } : undefined,
+  });
+}
+
+export type RustSpecialAgentToolName =
+  | "review_task"
+  | "memory_manifest_read"
+  | "memory_note_read"
+  | "memory_note_write"
+  | "memory_note_edit"
+  | "memory_note_delete"
+  | "write_experience_note"
+  | "session_summary_file_read"
+  | "session_summary_file_edit";
+
+export function createRustSpecialAgentTool(
+  name: RustSpecialAgentToolName,
+  defaults?: { scope?: string; sessionKey?: string },
+): AnyAgentTool {
+  const parameters = (() => {
+    switch (name) {
+      case "review_task":
+        return reviewTaskSchema;
+      case "memory_manifest_read":
+        return memoryManifestSchema;
+      case "memory_note_read":
+      case "memory_note_delete":
+        return memoryNoteReadSchema;
+      case "memory_note_write":
+        return memoryNoteWriteSchema;
+      case "memory_note_edit":
+        return memoryNoteEditSchema;
+      case "write_experience_note":
+        return writeExperienceNoteSchema;
+      case "session_summary_file_read":
+        return sessionSummaryReadSchema;
+      case "session_summary_file_edit":
+        return sessionSummaryEditSchema;
+      default:
+        return unsupportedRustTool(name, "Rust special agent tool");
+    }
+  })();
+  return createRustRuntimeTool({
+    name,
+    description: `Run ${name} through CrawClaw's Rust runtime.`,
+    parameters,
+    defaults: {
+      ...(defaults?.scope ? { scope: defaults.scope } : {}),
+      ...(defaults?.sessionKey ? { sessionKey: defaults.sessionKey } : {}),
+    },
+    normalize: name.startsWith("memory_note_") ? normalizeMemoryNoteInput : undefined,
+  });
 }
 
 const grepSchema = Type.Object({
@@ -113,12 +537,16 @@ export function createRustGrepTool(root: string): AgentTool<typeof grepSchema, u
     parameters: grepSchema,
     execute: async (_toolCallId, args) => {
       const params = args as { pattern?: string; path?: string; maxMatches?: number };
-      const result = await runCrawClawRuntimeTool<RuntimeTextResult>("grep", {
-        root,
-        pattern: params.pattern,
-        path: params.path,
-        max_matches: params.maxMatches,
-      });
+      const result = await runCrawClawRuntimeTool<RuntimeTextResult>(
+        "grep",
+        {
+          root,
+          pattern: params.pattern,
+          path: params.path,
+          max_matches: params.maxMatches,
+        },
+        runtimeOptions(root),
+      );
       return textResult(result.text || "(no matches)", result as Record<string, unknown>);
     },
   };
@@ -132,12 +560,16 @@ export function createRustFindTool(root: string): AgentTool<typeof findSchema, u
     parameters: findSchema,
     execute: async (_toolCallId, args) => {
       const params = args as { path?: string; name?: string; maxResults?: number };
-      const result = await runCrawClawRuntimeTool<RuntimeTextResult>("find", {
-        root,
-        path: params.path,
-        name: params.name,
-        max_results: params.maxResults,
-      });
+      const result = await runCrawClawRuntimeTool<RuntimeTextResult>(
+        "find",
+        {
+          root,
+          path: params.path,
+          name: params.name,
+          max_results: params.maxResults,
+        },
+        runtimeOptions(root),
+      );
       return textResult(result.text || "(no results)", result as Record<string, unknown>);
     },
   };
@@ -151,10 +583,14 @@ export function createRustLsTool(root: string): AgentTool<typeof lsSchema, unkno
     parameters: lsSchema,
     execute: async (_toolCallId, args) => {
       const params = args as { path?: string };
-      const result = await runCrawClawRuntimeTool<RuntimeTextResult>("ls", {
-        root,
-        path: params.path,
-      });
+      const result = await runCrawClawRuntimeTool<RuntimeTextResult>(
+        "ls",
+        {
+          root,
+          path: params.path,
+        },
+        runtimeOptions(root),
+      );
       return textResult(result.text || "(empty)", result as Record<string, unknown>);
     },
   };
@@ -263,7 +699,10 @@ export function createRustBashTool(
           pathPrepend: defaults?.pathPrepend,
           scopeKey: defaults?.scopeKey,
         },
-        { timeoutMs: background ? 30_000 : runtimeRequestTimeoutMs(timeoutMs) },
+        {
+          runtimeRoot: root,
+          timeoutMs: background ? 30_000 : runtimeRequestTimeoutMs(timeoutMs),
+        },
       );
       return textResult(bashResultText(result), {
         status: result.status,
@@ -308,7 +747,7 @@ function processResultText(result: RuntimeProcessResult) {
 }
 
 export function createRustProcessTool(
-  defaults?: ProcessToolDefaults,
+  defaults?: ProcessToolDefaults & { runtimeRoot?: string },
 ): AgentTool<typeof processSchema, unknown> {
   return {
     name: "process",
@@ -328,15 +767,19 @@ export function createRustProcessTool(
       if (!params.action) {
         return textResult("action is required.", { status: "failed" });
       }
-      const result = await runCrawClawRuntimeTool<RuntimeProcessResult>("process", {
-        action: params.action === "clear" ? "remove" : params.action,
-        sessionId: params.sessionId,
-        data: params.data,
-        text: params.text,
-        eof: params.eof,
-        timeoutMs: params.timeout,
-        scopeKey: defaults?.scopeKey,
-      });
+      const result = await runCrawClawRuntimeTool<RuntimeProcessResult>(
+        "process",
+        {
+          action: params.action === "clear" ? "remove" : params.action,
+          sessionId: params.sessionId,
+          data: params.data,
+          text: params.text,
+          eof: params.eof,
+          timeoutMs: params.timeout,
+          scopeKey: defaults?.scopeKey,
+        },
+        runtimeOptions(defaults?.runtimeRoot),
+      );
       return textResult(processResultText(result), result as Record<string, unknown>);
     },
   };

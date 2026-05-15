@@ -1,12 +1,9 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { importFreshModule } from "../../../test/helpers/import-fresh.js";
-import { finalizeInboundContext } from "../../channels/inbound-context.js";
-import { expectChannelInboundContextContract as expectInboundContextContract } from "../../channels/plugins/contracts/suites.js";
 import { createReplyToModeFilter } from "../../channels/reply-threading.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import * as secureRandom from "../../infra/secure-random.js";
 import { defaultRuntime } from "../../runtime.js";
-import type { MsgContext } from "../templating.js";
 import { HEARTBEAT_TOKEN, SILENT_REPLY_TOKEN } from "../tokens.js";
 import { normalizeInboundTextNewlines } from "./inbound-text.js";
 import type { FollowupRun, QueueSettings } from "./queue.js";
@@ -35,163 +32,6 @@ describe("normalizeInboundTextNewlines", () => {
       expect(normalizeInboundTextNewlines(testCase.input)).toBe(testCase.expected);
     }
   });
-});
-
-describe("inbound context contract (providers + extensions)", () => {
-  const cases: Array<{ name: string; ctx: MsgContext }> = [
-    {
-      name: "whatsapp group",
-      ctx: {
-        Provider: "whatsapp",
-        Surface: "whatsapp",
-        ChatType: "group",
-        From: "123@g.us",
-        To: "+15550001111",
-        Body: "[WhatsApp 123@g.us] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        SenderName: "Alice",
-      },
-    },
-    {
-      name: "telegram group",
-      ctx: {
-        Provider: "telegram",
-        Surface: "telegram",
-        ChatType: "group",
-        From: "group:123",
-        To: "telegram:123",
-        Body: "[Telegram group:123] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "Telegram Group",
-        SenderName: "Alice",
-      },
-    },
-    {
-      name: "slack channel",
-      ctx: {
-        Provider: "slack",
-        Surface: "slack",
-        ChatType: "channel",
-        From: "slack:channel:C123",
-        To: "channel:C123",
-        Body: "[Slack #general] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "#general",
-        SenderName: "Alice",
-      },
-    },
-    {
-      name: "discord channel",
-      ctx: {
-        Provider: "discord",
-        Surface: "discord",
-        ChatType: "channel",
-        From: "group:123",
-        To: "channel:123",
-        Body: "[Discord #general] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "#general",
-        SenderName: "Alice",
-      },
-    },
-    {
-      name: "signal dm",
-      ctx: {
-        Provider: "signal",
-        Surface: "signal",
-        ChatType: "direct",
-        From: "signal:+15550001111",
-        To: "signal:+15550002222",
-        Body: "[Signal] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-      },
-    },
-    {
-      name: "imessage group",
-      ctx: {
-        Provider: "imessage",
-        Surface: "imessage",
-        ChatType: "group",
-        From: "group:chat_id:123",
-        To: "chat_id:123",
-        Body: "[iMessage Group] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "iMessage Group",
-        SenderName: "Alice",
-      },
-    },
-    {
-      name: "matrix channel",
-      ctx: {
-        Provider: "matrix",
-        Surface: "matrix",
-        ChatType: "channel",
-        From: "matrix:channel:!room:example.org",
-        To: "room:!room:example.org",
-        Body: "[Matrix] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "#general",
-        SenderName: "Alice",
-      },
-    },
-    {
-      name: "msteams channel",
-      ctx: {
-        Provider: "msteams",
-        Surface: "msteams",
-        ChatType: "channel",
-        From: "msteams:channel:19:abc@thread.tacv2",
-        To: "msteams:channel:19:abc@thread.tacv2",
-        Body: "[Teams] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "Teams Channel",
-        SenderName: "Alice",
-      },
-    },
-    {
-      name: "zalo dm",
-      ctx: {
-        Provider: "zalo",
-        Surface: "zalo",
-        ChatType: "direct",
-        From: "zalo:123",
-        To: "zalo:123",
-        Body: "[Zalo] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-      },
-    },
-    {
-      name: "zalouser group",
-      ctx: {
-        Provider: "zalouser",
-        Surface: "zalouser",
-        ChatType: "group",
-        From: "group:123",
-        To: "zalouser:123",
-        Body: "[Zalo Personal] hi",
-        RawBody: "hi",
-        CommandBody: "hi",
-        GroupSubject: "Zalouser Group",
-        SenderName: "Alice",
-      },
-    },
-  ];
-
-  for (const entry of cases) {
-    it(entry.name, () => {
-      const ctx = finalizeInboundContext({ ...entry.ctx });
-      expectInboundContextContract(ctx);
-    });
-  }
 });
 
 function createDeferred<T>() {
@@ -251,7 +91,7 @@ describe("followup queue deduplication", () => {
     resetRecentQueuedMessageIdDedupe();
   });
 
-  it("deduplicates messages with same Discord message_id", async () => {
+  it("deduplicates messages with same QQBot message_id", async () => {
     const key = `test-dedup-message-id-${Date.now()}`;
     const calls: FollowupRun[] = [];
     const done = createDeferred<void>();
@@ -273,9 +113,9 @@ describe("followup queue deduplication", () => {
     const first = enqueueFollowupRun(
       key,
       createRun({
-        prompt: "[Discord Guild #test channel id:123] Hello",
+        prompt: "[QQBot Guild #test channel id:123] Hello",
         messageId: "m1",
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:123",
       }),
       settings,
@@ -286,9 +126,9 @@ describe("followup queue deduplication", () => {
     const second = enqueueFollowupRun(
       key,
       createRun({
-        prompt: "[Discord Guild #test channel id:123] Hello (dupe)",
+        prompt: "[QQBot Guild #test channel id:123] Hello (dupe)",
         messageId: "m1",
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:123",
       }),
       settings,
@@ -299,9 +139,9 @@ describe("followup queue deduplication", () => {
     const third = enqueueFollowupRun(
       key,
       createRun({
-        prompt: "[Discord Guild #test channel id:123] World",
+        prompt: "[QQBot Guild #test channel id:123] World",
         messageId: "m2",
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:123",
       }),
       settings,
@@ -470,7 +310,7 @@ describe("followup queue deduplication", () => {
   });
 
   it("deduplicates exact prompt when routing matches and no message id", async () => {
-    const key = `test-dedup-whatsapp-${Date.now()}`;
+    const key = `test-dedup-weixin-${Date.now()}`;
     const settings: QueueSettings = {
       mode: "collect",
       debounceMs: 0,
@@ -483,7 +323,7 @@ describe("followup queue deduplication", () => {
       key,
       createRun({
         prompt: "Hello world",
-        originatingChannel: "whatsapp",
+        originatingChannel: "weixin",
         originatingTo: "+1234567890",
       }),
       settings,
@@ -495,7 +335,7 @@ describe("followup queue deduplication", () => {
       key,
       createRun({
         prompt: "Hello world",
-        originatingChannel: "whatsapp",
+        originatingChannel: "weixin",
         originatingTo: "+1234567890",
       }),
       settings,
@@ -507,7 +347,7 @@ describe("followup queue deduplication", () => {
       key,
       createRun({
         prompt: "Hello world 2",
-        originatingChannel: "whatsapp",
+        originatingChannel: "weixin",
         originatingTo: "+1234567890",
       }),
       settings,
@@ -528,7 +368,7 @@ describe("followup queue deduplication", () => {
       key,
       createRun({
         prompt: "Same text",
-        originatingChannel: "whatsapp",
+        originatingChannel: "weixin",
         originatingTo: "+1234567890",
       }),
       settings,
@@ -539,7 +379,7 @@ describe("followup queue deduplication", () => {
       key,
       createRun({
         prompt: "Same text",
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:123",
       }),
       settings,
@@ -560,7 +400,7 @@ describe("followup queue deduplication", () => {
       key,
       createRun({
         prompt: "Hello world",
-        originatingChannel: "whatsapp",
+        originatingChannel: "weixin",
         originatingTo: "+1234567890",
       }),
       settings,
@@ -572,7 +412,7 @@ describe("followup queue deduplication", () => {
       key,
       createRun({
         prompt: "Hello world",
-        originatingChannel: "whatsapp",
+        originatingChannel: "weixin",
         originatingTo: "+1234567890",
       }),
       settings,
@@ -605,7 +445,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "one",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:A",
       }),
       settings,
@@ -614,7 +454,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "two",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:B",
       }),
       settings,
@@ -648,7 +488,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "one",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:A",
       }),
       settings,
@@ -657,7 +497,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "two",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:A",
       }),
       settings,
@@ -666,12 +506,12 @@ describe("followup queue collect routing", () => {
     scheduleFollowupDrain(key, runFollowup);
     await done.promise;
     expect(calls[0]?.prompt).toContain("[Queued messages while agent was busy]");
-    expect(calls[0]?.originatingChannel).toBe("slack");
+    expect(calls[0]?.originatingChannel).toBe("ddingtalk");
     expect(calls[0]?.originatingTo).toBe("channel:A");
   });
 
-  it("collects Slack messages in same thread and preserves string thread id", async () => {
-    const key = `test-collect-slack-thread-same-${Date.now()}`;
+  it("collects DingTalk messages in same thread and preserves string thread id", async () => {
+    const key = `test-collect-ddingtalk-thread-same-${Date.now()}`;
     const calls: FollowupRun[] = [];
     const done = createDeferred<void>();
     const expectedCalls = 1;
@@ -692,7 +532,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "one",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:A",
         originatingThreadId: "1706000000.000001",
       }),
@@ -702,7 +542,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "two",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:A",
         originatingThreadId: "1706000000.000001",
       }),
@@ -715,8 +555,8 @@ describe("followup queue collect routing", () => {
     expect(calls[0]?.originatingThreadId).toBe("1706000000.000001");
   });
 
-  it("does not collect Slack messages when thread ids differ", async () => {
-    const key = `test-collect-slack-thread-diff-${Date.now()}`;
+  it("does not collect DingTalk messages when thread ids differ", async () => {
+    const key = `test-collect-ddingtalk-thread-diff-${Date.now()}`;
     const calls: FollowupRun[] = [];
     const done = createDeferred<void>();
     const expectedCalls = 2;
@@ -737,7 +577,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "one",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:A",
         originatingThreadId: "1706000000.000001",
       }),
@@ -747,7 +587,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "two",
-        originatingChannel: "slack",
+        originatingChannel: "ddingtalk",
         originatingTo: "channel:A",
         originatingThreadId: "1706000000.000002",
       }),
@@ -845,7 +685,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "first",
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:C1",
         originatingAccountId: "work",
         originatingThreadId: "1739142736.000100",
@@ -856,7 +696,7 @@ describe("followup queue collect routing", () => {
       key,
       createRun({
         prompt: "second",
-        originatingChannel: "discord",
+        originatingChannel: "qqbot",
         originatingTo: "channel:C1",
         originatingAccountId: "work",
         originatingThreadId: "1739142736.000100",
@@ -867,7 +707,7 @@ describe("followup queue collect routing", () => {
     scheduleFollowupDrain(key, runFollowup);
     await done.promise;
 
-    expect(calls[0]?.originatingChannel).toBe("discord");
+    expect(calls[0]?.originatingChannel).toBe("qqbot");
     expect(calls[0]?.originatingTo).toBe("channel:C1");
     expect(calls[0]?.originatingAccountId).toBe("work");
     expect(calls[0]?.originatingThreadId).toBe("1739142736.000100");
@@ -1210,16 +1050,16 @@ describe("createReplyDispatcher", () => {
     expect(onHeartbeatStrip).toHaveBeenCalledTimes(2);
   });
 
-  it("compiles Slack directives in dispatcher flows when enabled", async () => {
+  it("compiles DingTalk directives in dispatcher flows when enabled", async () => {
     const deliver = vi.fn().mockResolvedValue(undefined);
     const dispatcher = createReplyDispatcher({
       deliver,
-      enableSlackInteractiveReplies: true,
+      enableChannelInteractiveReplies: true,
     });
 
     expect(
       dispatcher.sendFinalReply({
-        text: "Choose [[slack_buttons: Retry:retry]]",
+        text: "Choose [[ddingtalk_buttons: Retry:retry]]",
       }),
     ).toBe(true);
     await dispatcher.waitForIdle();

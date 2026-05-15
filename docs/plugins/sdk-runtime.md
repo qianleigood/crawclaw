@@ -14,9 +14,8 @@ Reference for the `api.runtime` object injected into every plugin during
 registration. Use these helpers instead of importing host internals directly.
 
 <Tip>
-  **Looking for a walkthrough?** See [Channel Plugins](/plugins/sdk-channel-plugins)
-  or [Provider Plugins](/plugins/sdk-provider-plugins) for step-by-step guides
-  that show these helpers in context.
+  **Looking for a walkthrough?** See [Provider Configuration](/plugins/sdk-provider-plugins)
+  for a step-by-step guide that shows these helpers in context.
 </Tip>
 
 ```typescript
@@ -299,10 +298,6 @@ Tool factories and CLI helpers.
 const tool = api.runtime.tools.createCliTool(/* ... */);
 ```
 
-### `api.runtime.channel`
-
-Channel-specific runtime helpers (available when a channel plugin is loaded).
-
 ## Storing runtime references
 
 Use `createPluginRuntimeStore` to store the runtime reference for use outside
@@ -315,12 +310,13 @@ import type { PluginRuntime } from "crawclaw/plugin-sdk/runtime-store";
 const store = createPluginRuntimeStore<PluginRuntime>("my-plugin runtime not initialized");
 
 // In your entry point
-export default defineChannelPluginEntry({
+export default definePluginEntry({
   id: "my-plugin",
   name: "My Plugin",
   description: "Example",
-  plugin: myPlugin,
-  setRuntime: store.setRuntime,
+  register(api) {
+    store.setRuntime(api.runtime);
+  },
 });
 
 // In other files
@@ -337,15 +333,15 @@ export function tryGetRuntime() {
 
 Beyond `api.runtime`, the API object also provides:
 
-| Field                    | Type                      | Description                                                      |
-| ------------------------ | ------------------------- | ---------------------------------------------------------------- |
-| `api.id`                 | `string`                  | Plugin id                                                        |
-| `api.name`               | `string`                  | Plugin display name                                              |
-| `api.config`             | `CrawClawConfig`          | Current config snapshot                                          |
-| `api.pluginConfig`       | `Record<string, unknown>` | Plugin-specific config from `plugins.entries.<id>.config`        |
-| `api.logger`             | `PluginLogger`            | Scoped logger (`debug`, `info`, `warn`, `error`)                 |
-| `api.registrationMode`   | `PluginRegistrationMode`  | `"full"`, `"setup-only"`, `"setup-runtime"`, or `"cli-metadata"` |
-| `api.resolvePath(input)` | `(string) => string`      | Resolve a path relative to the plugin root                       |
+| Field                    | Type                      | Description                                               |
+| ------------------------ | ------------------------- | --------------------------------------------------------- |
+| `api.id`                 | `string`                  | Plugin id                                                 |
+| `api.name`               | `string`                  | Plugin display name                                       |
+| `api.config`             | `CrawClawConfig`          | Current config snapshot                                   |
+| `api.pluginConfig`       | `Record<string, unknown>` | Plugin-specific config from `plugins.entries.<id>.config` |
+| `api.logger`             | `PluginLogger`            | Scoped logger (`debug`, `info`, `warn`, `error`)          |
+| `api.registrationMode`   | `PluginRegistrationMode`  | Plugin registration mode                                  |
+| `api.resolvePath(input)` | `(string) => string`      | Resolve a path relative to the plugin root                |
 
 ## Related
 

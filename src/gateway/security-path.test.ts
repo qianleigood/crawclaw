@@ -12,37 +12,37 @@ function buildRepeatedEncodedSlashPath(depth: number): string {
   for (let i = 1; i < depth; i++) {
     encodedSlash = encodedSlash.replace(/%/g, "%25");
   }
-  return `/api${encodedSlash}channels${encodedSlash}nostr${encodedSlash}default${encodedSlash}profile`;
+  return `/api${encodedSlash}channels${encodedSlash}feishu${encodedSlash}default${encodedSlash}profile`;
 }
 
 describe("security-path canonicalization", () => {
   it("canonicalizes decoded case/slash variants", () => {
-    expect(canonicalizePathForSecurity("/API/channels//nostr/default/profile/")).toEqual(
+    expect(canonicalizePathForSecurity("/API/channels//feishu/default/profile/")).toEqual(
       expect.objectContaining({
-        canonicalPath: "/api/channels/nostr/default/profile",
-        candidates: ["/api/channels/nostr/default/profile"],
+        canonicalPath: "/api/channels/feishu/default/profile",
+        candidates: ["/api/channels/feishu/default/profile"],
         malformedEncoding: false,
         decodePasses: 0,
         decodePassLimitReached: false,
-        rawNormalizedPath: "/api/channels/nostr/default/profile",
+        rawNormalizedPath: "/api/channels/feishu/default/profile",
       }),
     );
-    const encoded = canonicalizePathForSecurity("/api/%63hannels%2Fnostr%2Fdefault%2Fprofile");
-    expect(encoded.canonicalPath).toBe("/api/channels/nostr/default/profile");
-    expect(encoded.candidates).toContain("/api/%63hannels%2fnostr%2fdefault%2fprofile");
-    expect(encoded.candidates).toContain("/api/channels/nostr/default/profile");
+    const encoded = canonicalizePathForSecurity("/api/%63hannels%2Ffeishu%2Fdefault%2Fprofile");
+    expect(encoded.canonicalPath).toBe("/api/channels/feishu/default/profile");
+    expect(encoded.candidates).toContain("/api/%63hannels%2ffeishu%2fdefault%2fprofile");
+    expect(encoded.candidates).toContain("/api/channels/feishu/default/profile");
     expect(encoded.decodePasses).toBeGreaterThan(0);
     expect(encoded.decodePassLimitReached).toBe(false);
   });
 
   it("resolves traversal after repeated decoding", () => {
     expect(
-      canonicalizePathForSecurity("/api/foo/..%2fchannels/nostr/default/profile").canonicalPath,
-    ).toBe("/api/channels/nostr/default/profile");
+      canonicalizePathForSecurity("/api/foo/..%2fchannels/feishu/default/profile").canonicalPath,
+    ).toBe("/api/channels/feishu/default/profile");
     expect(
-      canonicalizePathForSecurity("/api/foo/%252e%252e%252fchannels/nostr/default/profile")
+      canonicalizePathForSecurity("/api/foo/%252e%252e%252fchannels/feishu/default/profile")
         .canonicalPath,
-    ).toBe("/api/channels/nostr/default/profile");
+    ).toBe("/api/channels/feishu/default/profile");
   });
 
   it("marks malformed encoding", () => {
@@ -51,9 +51,9 @@ describe("security-path canonicalization", () => {
   });
 
   it("resolves 4x encoded slash path variants to protected channel routes", () => {
-    const deeplyEncoded = "/api%2525252fchannels%2525252fnostr%2525252fdefault%2525252fprofile";
+    const deeplyEncoded = "/api%2525252fchannels%2525252ffeishu%2525252fdefault%2525252fprofile";
     const canonical = canonicalizePathForSecurity(deeplyEncoded);
-    expect(canonical.canonicalPath).toBe("/api/channels/nostr/default/profile");
+    expect(canonical.canonicalPath).toBe("/api/channels/feishu/default/profile");
     expect(canonical.decodePasses).toBeGreaterThanOrEqual(4);
     expect(isProtectedPluginRoutePath(deeplyEncoded)).toBe(true);
   });
@@ -69,13 +69,13 @@ describe("security-path canonicalization", () => {
 
 describe("security-path protected-prefix matching", () => {
   const channelVariants = [
-    "/API/channels/nostr/default/profile",
-    "/api/channels%2Fnostr%2Fdefault%2Fprofile",
-    "/api/%63hannels/nostr/default/profile",
-    "/api/foo/..%2fchannels/nostr/default/profile",
-    "/api/foo/%2e%2e%2fchannels/nostr/default/profile",
-    "/api/foo/%252e%252e%252fchannels/nostr/default/profile",
-    "/api%2525252fchannels%2525252fnostr%2525252fdefault%2525252fprofile",
+    "/API/channels/feishu/default/profile",
+    "/api/channels%2Ffeishu%2Fdefault%2Fprofile",
+    "/api/%63hannels/feishu/default/profile",
+    "/api/foo/..%2fchannels/feishu/default/profile",
+    "/api/foo/%2e%2e%2fchannels/feishu/default/profile",
+    "/api/foo/%252e%252e%252fchannels/feishu/default/profile",
+    "/api%2525252fchannels%2525252ffeishu%2525252fdefault%2525252fprofile",
     "/api/channels%2",
     "/api/channels%zz",
   ];

@@ -20,17 +20,17 @@ title: "Retry Policy"
 - Max delay cap: 30000 ms
 - Jitter: 0.1 (10 percent)
 - Provider defaults:
-  - Telegram min delay: 400 ms
-  - Discord min delay: 500 ms
+  - Feishu min delay: 400 ms
+  - QQBot min delay: 500 ms
 
 ## Behavior
 
-### Discord
+### QQBot
 
 - Retries only on rate-limit errors (HTTP 429).
-- Uses Discord `retry_after` when available, otherwise exponential backoff.
+- Uses QQBot `retry_after` when available, otherwise exponential backoff.
 
-### Telegram
+### Feishu
 
 - Retries on transient errors (429, timeout, connect/reset/closed, temporarily unavailable).
 - Uses `retry_after` when available, otherwise exponential backoff.
@@ -43,7 +43,7 @@ Set retry policy per provider in `~/.crawclaw/crawclaw.json`:
 ```json5
 {
   channels: {
-    telegram: {
+    feishu: {
       retry: {
         attempts: 3,
         minDelayMs: 400,
@@ -51,7 +51,7 @@ Set retry policy per provider in `~/.crawclaw/crawclaw.json`:
         jitter: 0.1,
       },
     },
-    discord: {
+    qqbot: {
       retry: {
         attempts: 3,
         minDelayMs: 500,

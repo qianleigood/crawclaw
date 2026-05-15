@@ -27,7 +27,7 @@ function createTestContext(): ToolHandlerContext {
     params: {
       runId: "run-test",
       sessionId: "session-test",
-      sessionKey: "agent:main:discord:user-1",
+      sessionKey: "agent:main:qqbot:user-1",
       agentId: "main",
       onBlockReplyFlush: vi.fn(),
       onAgentEvent: undefined,

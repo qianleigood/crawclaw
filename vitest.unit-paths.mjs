@@ -22,7 +22,7 @@ export const unitTestAdditionalExcludePatterns = [
   "src/line/**",
   "src/agents/**",
   "src/auto-reply/**",
-  "src/commands/**",
+  "src/control/**",
   "src/channels/plugins/contracts/**",
   "src/plugins/contracts/**",
 ];

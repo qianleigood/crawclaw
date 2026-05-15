@@ -156,7 +156,7 @@ function createAdapter(channel: string, accountId: string): SessionBindingAdapte
   };
 }
 
-function createDiscordCodexBindRequest(
+function createQQBotCodexBindRequest(
   conversationId: string,
   summary: string,
   accountId = "isolated",
@@ -167,7 +167,7 @@ function createDiscordCodexBindRequest(
     pluginRoot: "/plugins/codex-a",
     requestedBySenderId: "user-1",
     conversation: {
-      channel: "discord",
+      channel: "qqbot",
       accountId,
       conversationId,
     },
@@ -175,7 +175,7 @@ function createDiscordCodexBindRequest(
   };
 }
 
-function createTelegramCodexBindRequest(
+function createFeishuCodexBindRequest(
   conversationId: string,
   threadId: string,
   summary: string,
@@ -187,7 +187,7 @@ function createTelegramCodexBindRequest(
     pluginRoot,
     requestedBySenderId: "user-1",
     conversation: {
-      channel: "telegram",
+      channel: "feishu",
       accountId: "default",
       conversationId,
       parentConversationId: "-10099",
@@ -198,7 +198,7 @@ function createTelegramCodexBindRequest(
 }
 
 function createCodexBindRequest(params: {
-  channel: "discord" | "telegram";
+  channel: "qqbot" | "feishu";
   accountId: string;
   conversationId: string;
   summary: string;
@@ -412,17 +412,17 @@ describe("plugin conversation binding approvals", () => {
     __testing.reset();
     setActivePluginRegistry(createEmptyPluginRegistry());
     fs.rmSync(approvalsPath, { force: true });
-    unregisterSessionBindingAdapter({ channel: "discord", accountId: "default" });
-    unregisterSessionBindingAdapter({ channel: "discord", accountId: "work" });
-    unregisterSessionBindingAdapter({ channel: "discord", accountId: "isolated" });
-    unregisterSessionBindingAdapter({ channel: "telegram", accountId: "default" });
-    registerSessionBindingAdapter(createAdapter("discord", "default"));
-    registerSessionBindingAdapter(createAdapter("discord", "work"));
-    registerSessionBindingAdapter(createAdapter("discord", "isolated"));
-    registerSessionBindingAdapter(createAdapter("telegram", "default"));
+    unregisterSessionBindingAdapter({ channel: "qqbot", accountId: "default" });
+    unregisterSessionBindingAdapter({ channel: "qqbot", accountId: "work" });
+    unregisterSessionBindingAdapter({ channel: "qqbot", accountId: "isolated" });
+    unregisterSessionBindingAdapter({ channel: "feishu", accountId: "default" });
+    registerSessionBindingAdapter(createAdapter("qqbot", "default"));
+    registerSessionBindingAdapter(createAdapter("qqbot", "work"));
+    registerSessionBindingAdapter(createAdapter("qqbot", "isolated"));
+    registerSessionBindingAdapter(createAdapter("feishu", "default"));
   });
 
-  it("keeps Telegram bind approval callback_data within Telegram's limit", () => {
+  it("keeps Feishu bind approval callback_data within Feishu's limit", () => {
     const allowOnce = buildPluginBindingApprovalCustomId("abcdefghijkl", "allow-once");
     const allowAlways = buildPluginBindingApprovalCustomId("abcdefghijkl", "allow-always");
     const deny = buildPluginBindingApprovalCustomId("abcdefghijkl", "deny");
@@ -438,14 +438,14 @@ describe("plugin conversation binding approvals", () => {
 
   it("requires a fresh approval again after allow-once is consumed", async () => {
     const firstRequest = await requestPendingBinding(
-      createDiscordCodexBindRequest("channel:1", "Bind this conversation to Codex thread 123."),
+      createQQBotCodexBindRequest("channel:1", "Bind this conversation to Codex thread 123."),
     );
     const approved = await approveBindingRequest(firstRequest.approvalId, "allow-once");
 
     expect(approved.status).toBe("approved");
 
     const secondRequest = await requestPluginConversationBinding(
-      createDiscordCodexBindRequest("channel:2", "Bind this conversation to Codex thread 456."),
+      createQQBotCodexBindRequest("channel:2", "Bind this conversation to Codex thread 456."),
     );
 
     expect(secondRequest.status).toBe("pending");
@@ -453,20 +453,20 @@ describe("plugin conversation binding approvals", () => {
 
   it("persists always-allow by plugin root plus channel/account only", async () => {
     const firstRequest = await requestPendingBinding(
-      createDiscordCodexBindRequest("channel:1", "Bind this conversation to Codex thread 123."),
+      createQQBotCodexBindRequest("channel:1", "Bind this conversation to Codex thread 123."),
     );
     const approved = await approveBindingRequest(firstRequest.approvalId, "allow-always");
 
     expect(approved.status).toBe("approved");
 
     const sameScope = await requestPluginConversationBinding(
-      createDiscordCodexBindRequest("channel:2", "Bind this conversation to Codex thread 456."),
+      createQQBotCodexBindRequest("channel:2", "Bind this conversation to Codex thread 456."),
     );
 
     expect(sameScope.status).toBe("bound");
 
     const differentAccount = await requestPluginConversationBinding(
-      createDiscordCodexBindRequest(
+      createQQBotCodexBindRequest(
         "channel:3",
         "Bind this conversation to Codex thread 789.",
         "work",
@@ -479,7 +479,7 @@ describe("plugin conversation binding approvals", () => {
   it("shares pending bind approvals across duplicate module instances", async () => {
     const { first, second } = await importDuplicateConversationBindingModules();
     const request = await requestPendingBinding(
-      createTelegramCodexBindRequest(
+      createFeishuCodexBindRequest(
         "-10099:topic:77",
         "77",
         "Bind this conversation to Codex thread abc.",
@@ -508,7 +508,7 @@ describe("plugin conversation binding approvals", () => {
   it("shares persistent approvals across duplicate module instances", async () => {
     const { first, second } = await importDuplicateConversationBindingModules();
     const request = await requestPendingBinding(
-      createTelegramCodexBindRequest(
+      createFeishuCodexBindRequest(
         "-10099:topic:77",
         "77",
         "Bind this conversation to Codex thread abc.",
@@ -528,7 +528,7 @@ describe("plugin conversation binding approvals", () => {
     });
 
     const rebound = await first.requestPluginConversationBinding(
-      createTelegramCodexBindRequest(
+      createFeishuCodexBindRequest(
         "-10099:topic:78",
         "78",
         "Bind this conversation to Codex thread def.",
@@ -544,7 +544,7 @@ describe("plugin conversation binding approvals", () => {
   it("does not share persistent approvals across plugin roots even with the same plugin id", async () => {
     const request = await requestPluginConversationBinding(
       createCodexBindRequest({
-        channel: "telegram",
+        channel: "feishu",
         accountId: "default",
         conversationId: "-10099:topic:77",
         parentConversationId: "-10099",
@@ -566,7 +566,7 @@ describe("plugin conversation binding approvals", () => {
 
     const samePluginNewPath = await requestPluginConversationBinding(
       createCodexBindRequest({
-        channel: "telegram",
+        channel: "feishu",
         accountId: "default",
         conversationId: "-10099:topic:78",
         parentConversationId: "-10099",
@@ -582,7 +582,7 @@ describe("plugin conversation binding approvals", () => {
   it("persists detachHint on approved plugin bindings", async () => {
     const binding = await requestResolvedBinding(
       createCodexBindRequest({
-        channel: "discord",
+        channel: "qqbot",
         accountId: "isolated",
         conversationId: "channel:detach-hint",
         summary: "Bind this conversation to Codex thread 999.",
@@ -595,7 +595,7 @@ describe("plugin conversation binding approvals", () => {
     const currentBinding = await getCurrentPluginConversationBinding({
       pluginRoot: "/plugins/codex-a",
       conversation: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "isolated",
         conversationId: "channel:detach-hint",
       },
@@ -614,7 +614,7 @@ describe("plugin conversation binding approvals", () => {
         pluginRoot: "/plugins/callback-test",
         requestedBySenderId: "user-1",
         conversation: {
-          channel: "discord",
+          channel: "qqbot",
           accountId: "isolated",
           conversationId: "channel:callback-test",
         },
@@ -635,7 +635,7 @@ describe("plugin conversation binding approvals", () => {
           detachHint: undefined,
           requestedBySenderId: "user-1",
           conversation: {
-            channel: "discord",
+            channel: "qqbot",
             accountId: "isolated",
             conversationId: "channel:callback-test",
           },
@@ -651,7 +651,7 @@ describe("plugin conversation binding approvals", () => {
         pluginRoot: "/plugins/callback-deny",
         requestedBySenderId: "user-1",
         conversation: {
-          channel: "telegram",
+          channel: "feishu",
           accountId: "default",
           conversationId: "8460800771",
         },
@@ -668,7 +668,7 @@ describe("plugin conversation binding approvals", () => {
           detachHint: undefined,
           requestedBySenderId: "user-1",
           conversation: {
-            channel: "telegram",
+            channel: "feishu",
             accountId: "default",
             conversationId: "8460800771",
           },
@@ -689,7 +689,7 @@ describe("plugin conversation binding approvals", () => {
         pluginRoot: "/plugins/callback-slow-approve",
         requestedBySenderId: "user-1",
         conversation: {
-          channel: "discord",
+          channel: "qqbot",
           accountId: "isolated",
           conversationId: "channel:slow-approve",
         },
@@ -707,7 +707,7 @@ describe("plugin conversation binding approvals", () => {
         pluginRoot: "/plugins/callback-slow-deny",
         requestedBySenderId: "user-1",
         conversation: {
-          channel: "telegram",
+          channel: "feishu",
           accountId: "default",
           conversationId: "slow-deny",
         },
@@ -727,7 +727,7 @@ describe("plugin conversation binding approvals", () => {
       pluginRoot: "/plugins/codex-a",
       requestedBySenderId: "user-1",
       conversation: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "isolated",
         conversationId: "channel:1",
       },
@@ -737,7 +737,7 @@ describe("plugin conversation binding approvals", () => {
     const current = await getCurrentPluginConversationBinding({
       pluginRoot: "/plugins/codex-a",
       conversation: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "isolated",
         conversationId: "channel:1",
       },
@@ -754,7 +754,7 @@ describe("plugin conversation binding approvals", () => {
     const otherPluginView = await getCurrentPluginConversationBinding({
       pluginRoot: "/plugins/codex-b",
       conversation: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "isolated",
         conversationId: "channel:1",
       },
@@ -766,7 +766,7 @@ describe("plugin conversation binding approvals", () => {
       await detachPluginConversationBinding({
         pluginRoot: "/plugins/codex-b",
         conversation: {
-          channel: "discord",
+          channel: "qqbot",
           accountId: "isolated",
           conversationId: "channel:1",
         },
@@ -777,7 +777,7 @@ describe("plugin conversation binding approvals", () => {
       await detachPluginConversationBinding({
         pluginRoot: "/plugins/codex-a",
         conversation: {
-          channel: "discord",
+          channel: "qqbot",
           accountId: "isolated",
           conversationId: "channel:1",
         },
@@ -788,10 +788,10 @@ describe("plugin conversation binding approvals", () => {
   it("refuses to claim a conversation already bound by core", async () => {
     sessionBindingState.setRecord({
       bindingId: "binding-core",
-      targetSessionKey: "agent:main:discord:channel:1",
+      targetSessionKey: "agent:main:qqbot:channel:1",
       targetKind: "session",
       conversation: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "default",
         conversationId: "channel:1",
       },
@@ -806,7 +806,7 @@ describe("plugin conversation binding approvals", () => {
       pluginRoot: "/plugins/codex-a",
       requestedBySenderId: "user-1",
       conversation: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "default",
         conversationId: "channel:1",
       },
@@ -828,7 +828,7 @@ describe("plugin conversation binding approvals", () => {
         targetSessionKey: "plugin-binding:old-codex-plugin:legacy123",
         targetKind: "session" as const,
         conversation: {
-          channel: "telegram",
+          channel: "feishu",
           accountId: "default",
           conversationId: "-10099:topic:77",
         },
@@ -838,7 +838,7 @@ describe("plugin conversation binding approvals", () => {
         },
       },
       requestInput: createCodexBindRequest({
-        channel: "telegram",
+        channel: "feishu",
         accountId: "default",
         conversationId: "-10099:topic:77",
         parentConversationId: "-10099",
@@ -858,7 +858,7 @@ describe("plugin conversation binding approvals", () => {
         targetSessionKey: "crawclaw-app-server:thread:019ce411-6322-7db2-a821-1a61c530e7d9",
         targetKind: "session" as const,
         conversation: {
-          channel: "telegram",
+          channel: "feishu",
           accountId: "default",
           conversationId: "8460800771",
         },
@@ -868,7 +868,7 @@ describe("plugin conversation binding approvals", () => {
         },
       },
       requestInput: createCodexBindRequest({
-        channel: "telegram",
+        channel: "feishu",
         accountId: "default",
         conversationId: "8460800771",
         summary: "Bind this conversation to Codex thread 019ce411-6322-7db2-a821-1a61c530e7d9.",

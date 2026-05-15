@@ -44,7 +44,7 @@ describe("normalizeChannelTargetInput", () => {
 
 describe("normalizeTargetForProvider", () => {
   it.each([undefined, "   "])("returns undefined for blank raw input %j", (raw) => {
-    expect(normalizeTargetForProvider("telegram", raw)).toBeUndefined();
+    expect(normalizeTargetForProvider("feishu", raw)).toBeUndefined();
   });
 
   it.each([
@@ -56,9 +56,9 @@ describe("normalizeTargetForProvider", () => {
       expected: "raw-id",
     },
     {
-      provider: "telegram",
+      provider: "feishu",
       setup: () => {
-        normalizeChannelIdMock.mockReturnValueOnce("telegram");
+        normalizeChannelIdMock.mockReturnValueOnce("feishu");
         getActivePluginChannelRegistryVersionMock.mockReturnValueOnce(1);
         getChannelPluginMock.mockReturnValueOnce(undefined);
       },
@@ -75,7 +75,7 @@ describe("normalizeTargetForProvider", () => {
   it("uses the cached target normalizer until the plugin registry version changes", () => {
     const firstNormalizer = vi.fn((raw: string) => raw.trim().toUpperCase());
     const secondNormalizer = vi.fn((raw: string) => `next:${raw.trim()}`);
-    normalizeChannelIdMock.mockReturnValue("telegram");
+    normalizeChannelIdMock.mockReturnValue("feishu");
     getActivePluginChannelRegistryVersionMock
       .mockReturnValueOnce(10)
       .mockReturnValueOnce(10)
@@ -88,9 +88,9 @@ describe("normalizeTargetForProvider", () => {
         messaging: { normalizeTarget: secondNormalizer },
       });
 
-    expect(normalizeTargetForProvider("telegram", "  abc  ")).toBe("ABC");
-    expect(normalizeTargetForProvider("telegram", "  def  ")).toBe("DEF");
-    expect(normalizeTargetForProvider("telegram", "  ghi  ")).toBe("next:ghi");
+    expect(normalizeTargetForProvider("feishu", "  abc  ")).toBe("ABC");
+    expect(normalizeTargetForProvider("feishu", "  def  ")).toBe("DEF");
+    expect(normalizeTargetForProvider("feishu", "  ghi  ")).toBe("next:ghi");
 
     expect(getChannelPluginMock).toHaveBeenCalledTimes(2);
     expect(firstNormalizer).toHaveBeenCalledTimes(2);
@@ -98,7 +98,7 @@ describe("normalizeTargetForProvider", () => {
   });
 
   it("returns undefined when the provider normalizer resolves to an empty value", () => {
-    normalizeChannelIdMock.mockReturnValueOnce("telegram");
+    normalizeChannelIdMock.mockReturnValueOnce("feishu");
     getActivePluginChannelRegistryVersionMock.mockReturnValueOnce(20);
     getChannelPluginMock.mockReturnValueOnce({
       messaging: {
@@ -106,7 +106,7 @@ describe("normalizeTargetForProvider", () => {
       },
     });
 
-    expect(normalizeTargetForProvider("telegram", "  raw-id  ")).toBeUndefined();
+    expect(normalizeTargetForProvider("feishu", "  raw-id  ")).toBeUndefined();
   });
 });
 
@@ -122,7 +122,7 @@ describe("buildTargetResolverSignature", () => {
       },
     });
 
-    const first = buildTargetResolverSignature("slack");
+    const first = buildTargetResolverSignature("ddingtalk");
     getChannelPluginMock.mockReturnValueOnce({
       messaging: {
         targetResolver: {
@@ -131,7 +131,7 @@ describe("buildTargetResolverSignature", () => {
         },
       },
     });
-    const second = buildTargetResolverSignature("slack");
+    const second = buildTargetResolverSignature("ddingtalk");
 
     expect(first).toBe(second);
   });
@@ -145,7 +145,7 @@ describe("buildTargetResolverSignature", () => {
         },
       },
     });
-    const first = buildTargetResolverSignature("slack");
+    const first = buildTargetResolverSignature("ddingtalk");
 
     getChannelPluginMock.mockReturnValueOnce({
       messaging: {
@@ -155,7 +155,7 @@ describe("buildTargetResolverSignature", () => {
         },
       },
     });
-    const second = buildTargetResolverSignature("slack");
+    const second = buildTargetResolverSignature("ddingtalk");
 
     expect(first).not.toBe(second);
   });

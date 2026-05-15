@@ -9,7 +9,6 @@ import {
   resolveToolProfilePolicy,
   type ToolPolicyLike,
 } from "../agents/tool-policy.js";
-import { formatCliCommand } from "../cli/command-format.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   resolveAgentModelFallbackValues,
@@ -21,6 +20,7 @@ import { resolveAllowedAgentIds } from "../gateway/hooks-policy.js";
 import { resolveBrowserConfig } from "../plugin-sdk/browser-config.js";
 import { hasBundledWebSearchCredential } from "../plugins/bundled-web-search-registry.js";
 import { inferParamBFromIdOrName } from "../shared/model-param-b.js";
+import { formatCliCommand } from "../terminal/command-format.js";
 
 export type SecurityAuditFinding = {
   checkId: string;

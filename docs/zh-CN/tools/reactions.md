@@ -22,8 +22,8 @@ x-i18n:
 
 渠道说明：
 
-- **Discord/Slack**：空 `emoji` 移除机器人在该消息上的所有表情回应；`remove: true` 仅移除指定的表情。
-- **Google Chat**：空 `emoji` 移除应用在该消息上的表情回应；`remove: true` 仅移除指定的表情。
-- **Telegram**：空 `emoji` 移除机器人的表情回应；`remove: true` 同样移除表情回应，但工具验证仍要求 `emoji` 为非空值。
-- **WhatsApp**：空 `emoji` 移除机器人的表情回应；`remove: true` 映射为空 emoji（仍需提供 `emoji`）。
-- **Signal**：当启用 `channels.signal.reactionNotifications` 时，收到的表情回应通知会触发系统事件。
+- **QQBot/DingTalk**：空 `emoji` 移除机器人在该消息上的所有表情回应；`remove: true` 仅移除指定的表情。
+- **Feishu**：空 `emoji` 移除应用在该消息上的表情回应；`remove: true` 仅移除指定的表情。
+- **Feishu**：空 `emoji` 移除机器人的表情回应；`remove: true` 同样移除表情回应，但工具验证仍要求 `emoji` 为非空值。
+- **Weixin**：空 `emoji` 移除机器人的表情回应；`remove: true` 映射为空 emoji（仍需提供 `emoji`）。
+- **Feishu**：当启用 `channels.feishu.reactionNotifications` 时，收到的表情回应通知会触发系统事件。

@@ -6,15 +6,11 @@
   "files": {
     "extensions/acpx/src/runtime.test.ts": {
       "deltaKb": 1824522,
-      "sources": [
-        "checks-fast-extensions:2026-04-03"
-      ]
+      "sources": ["checks-fast-extensions:2026-04-03"]
     },
     "extensions/diffs/src/tool.test.ts": {
       "deltaKb": 1604321,
-      "sources": [
-        "checks-fast-extensions:2026-04-03"
-      ]
+      "sources": ["checks-fast-extensions:2026-04-03"]
     }
   }
 }

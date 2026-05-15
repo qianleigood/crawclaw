@@ -8,7 +8,7 @@ import type { CrawClawConfig } from "./config-runtime.js";
 describe("createChannelNativeOriginTargetResolver", () => {
   it("reuses shared turn-source routing and respects shouldHandle gating", () => {
     const resolveOriginTarget = createChannelNativeOriginTargetResolver({
-      channel: "matrix",
+      channel: "feishu",
       shouldHandleRequest: ({ accountId }) => accountId === "ops",
       resolveTurnSourceTarget: (request) => ({
         to: String(request.request.turnSourceTo),
@@ -30,7 +30,7 @@ describe("createChannelNativeOriginTargetResolver", () => {
           request: {
             title: "Plugin approval",
             description: "Allow access",
-            turnSourceChannel: "matrix",
+            turnSourceChannel: "feishu",
             turnSourceTo: "room:!room:example.org",
             turnSourceThreadId: "t1",
             turnSourceAccountId: "ops",
@@ -53,7 +53,7 @@ describe("createChannelNativeOriginTargetResolver", () => {
           request: {
             title: "Plugin approval",
             description: "Allow access",
-            turnSourceChannel: "matrix",
+            turnSourceChannel: "feishu",
             turnSourceTo: "room:!room:example.org",
             turnSourceThreadId: "t1",
             turnSourceAccountId: "ops",

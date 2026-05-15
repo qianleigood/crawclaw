@@ -7,7 +7,7 @@ status: active
 
 # Multi-Agent Routing
 
-Goal: multiple _isolated_ agents (separate workspace + `agentDir` + sessions), plus multiple channel accounts (e.g. two WhatsApps) in one running Gateway. Inbound is routed to an agent via bindings.
+Goal: multiple _isolated_ agents (separate workspace + `agentDir` + sessions), plus multiple channel accounts (e.g. two Weixins) in one running Gateway. Inbound is routed to an agent via bindings.
 
 ## What is "one agent"?
 
@@ -88,15 +88,15 @@ Each agent gets its own workspace with `SOUL.md`, `AGENTS.md`, and optional `USE
 
 Create one account per agent on your preferred channels:
 
-- Discord: one bot per agent, enable Message Content Intent, copy each token.
-- Telegram: one bot per agent via BotFather, copy each token.
-- WhatsApp: link each phone number per account.
+- QQBot: one bot per agent, enable Message Content Intent, copy each token.
+- Feishu: one bot per agent via BotFather, copy each token.
+- Weixin: link each phone number per account.
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-See channel guides: [Discord](/channels/discord), [Telegram](/channels/telegram), [WhatsApp](/channels/whatsapp).
+See channel guides: [QQBot](/channels/index), [Feishu](/channels/index), [Weixin](/channels/index).
 
   </Step>
 
@@ -134,9 +134,9 @@ If you need shared long-term context, keep it in explicit shared project docs or
 shared durable notes and reference that boundary in each agent's `AGENTS.md`.
 Do not rely on hidden cross-agent transcript search.
 
-## One WhatsApp number, multiple people (DM split)
+## One Weixin number, multiple people (DM split)
 
-You can route **different WhatsApp DMs** to different agents while staying on **one WhatsApp account**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. Replies still come from the same WhatsApp number (no per‑agent sender identity).
+You can route **different Weixin DMs** to different agents while staying on **one Weixin account**. Match on sender E.164 (like `+15551234567`) with `peer.kind: "direct"`. Replies still come from the same Weixin number (no per‑agent sender identity).
 
 Important detail: direct chats collapse to the agent’s **main session key**, so true isolation requires **one agent per person**.
 
@@ -153,15 +153,15 @@ Example:
   bindings: [
     {
       agentId: "alex",
-      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230001" } },
+      match: { channel: "weixin", peer: { kind: "direct", id: "+15551230001" } },
     },
     {
       agentId: "mia",
-      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551230002" } },
+      match: { channel: "weixin", peer: { kind: "direct", id: "+15551230002" } },
     },
   ],
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "allowlist",
       allowFrom: ["+15551230001", "+15551230002"],
     },
@@ -171,7 +171,7 @@ Example:
 
 Notes:
 
-- DM access control is **global per WhatsApp account** (pairing/allowlist), not per agent.
+- DM access control is **global per Weixin account** (pairing/allowlist), not per agent.
 - For shared groups, bind the group to one agent or use [Broadcast groups](/channels/broadcast-groups).
 
 ## Routing rules (how messages pick an agent)
@@ -180,9 +180,9 @@ Bindings are **deterministic** and **most-specific wins**:
 
 1. `peer` match (exact DM/group/channel id)
 2. `parentPeer` match (thread inheritance)
-3. `guildId + roles` (Discord role routing)
-4. `guildId` (Discord)
-5. `teamId` (Slack)
+3. `guildId + roles` (QQBot role routing)
+4. `guildId` (QQBot)
+5. `teamId` (DingTalk)
 6. `accountId` match for a channel
 7. channel-level match (`accountId: "*"`)
 8. fallback to default agent (`agents.list[].default`, else first list entry, default: `main`)
@@ -198,7 +198,7 @@ Important account-scope detail:
 
 ## Multiple accounts / phone numbers
 
-Channels that support **multiple accounts** (e.g. WhatsApp) use `accountId` to identify
+Channels that support **multiple accounts** (e.g. Weixin) use `accountId` to identify
 each login. Each `accountId` can be routed to a different agent, so one server can host
 multiple phone numbers without mixing sessions.
 
@@ -208,22 +208,20 @@ to `default` if present, otherwise the first configured account id (sorted).
 
 Common channels supporting this pattern include:
 
-- `whatsapp`, `telegram`, `discord`, `slack`, `signal`, `imessage`
-- `irc`, `line`, `googlechat`, `mattermost`, `matrix`, `nextcloud-talk`
-- `bluebubbles`, `zalo`, `zalouser`, `nostr`, `feishu`
+- `weixin`, `feishu`, `qqbot`, `ddingtalk`, and `esp32`
 
 ## Concepts
 
 - `agentId`: one “brain” (workspace, per-agent auth, per-agent session store).
-- `accountId`: one channel account instance (e.g. WhatsApp account `"personal"` vs `"biz"`).
+- `accountId`: one channel account instance (e.g. Weixin account `"personal"` vs `"biz"`).
 - `binding`: routes inbound messages to an `agentId` by `(channel, accountId, peer)` and optionally guild/team ids.
 - Direct chats collapse to `agent:<agentId>:<mainKey>` (per-agent “main”; `session.mainKey`).
 
 ## Platform examples
 
-### Discord bots per agent
+### QQBot bots per agent
 
-Each Discord bot account maps to a unique `accountId`. Bind each account to an agent and keep allowlists per bot.
+Each QQBot bot account maps to a unique `accountId`. Bind each account to an agent and keep allowlists per bot.
 
 ```json5
 {
@@ -234,11 +232,11 @@ Each Discord bot account maps to a unique `accountId`. Bind each account to an a
     ],
   },
   bindings: [
-    { agentId: "main", match: { channel: "discord", accountId: "default" } },
-    { agentId: "coding", match: { channel: "discord", accountId: "coding" } },
+    { agentId: "main", match: { channel: "qqbot", accountId: "default" } },
+    { agentId: "coding", match: { channel: "qqbot", accountId: "coding" } },
   ],
   channels: {
-    discord: {
+    qqbot: {
       groupPolicy: "allowlist",
       accounts: {
         default: {
@@ -270,9 +268,9 @@ Each Discord bot account maps to a unique `accountId`. Bind each account to an a
 Notes:
 
 - Invite each bot to the guild and enable Message Content Intent.
-- Tokens live in `channels.discord.accounts.<id>.token` (default account can use `DISCORD_BOT_TOKEN`).
+- Tokens live in `channels.qqbot.accounts.<id>.token` (default account can use `DISCORD_BOT_TOKEN`).
 
-### Telegram bots per agent
+### Feishu bots per agent
 
 ```json5
 {
@@ -283,11 +281,11 @@ Notes:
     ],
   },
   bindings: [
-    { agentId: "main", match: { channel: "telegram", accountId: "default" } },
-    { agentId: "alerts", match: { channel: "telegram", accountId: "alerts" } },
+    { agentId: "main", match: { channel: "feishu", accountId: "default" } },
+    { agentId: "alerts", match: { channel: "feishu", accountId: "alerts" } },
   ],
   channels: {
-    telegram: {
+    feishu: {
       accounts: {
         default: {
           botToken: "123456:ABC...",
@@ -307,9 +305,9 @@ Notes:
 Notes:
 
 - Create one bot per agent with BotFather and copy each token.
-- Tokens live in `channels.telegram.accounts.<id>.botToken` (default account can use `TELEGRAM_BOT_TOKEN`).
+- Tokens live in `channels.feishu.accounts.<id>.botToken` (default account can use `TELEGRAM_BOT_TOKEN`).
 
-### WhatsApp numbers per agent
+### Weixin numbers per agent
 
 Link each account before starting the gateway:
 
@@ -342,14 +340,14 @@ Link each account before starting the gateway:
 
   // Deterministic routing: first match wins (most-specific first).
   bindings: [
-    { agentId: "home", match: { channel: "whatsapp", accountId: "personal" } },
-    { agentId: "work", match: { channel: "whatsapp", accountId: "biz" } },
+    { agentId: "home", match: { channel: "weixin", accountId: "personal" } },
+    { agentId: "work", match: { channel: "weixin", accountId: "biz" } },
 
     // Optional per-peer override (example: send a specific group to work agent).
     {
       agentId: "work",
       match: {
-        channel: "whatsapp",
+        channel: "weixin",
         accountId: "personal",
         peer: { kind: "group", id: "1203630...@g.us" },
       },
@@ -365,15 +363,15 @@ Link each account before starting the gateway:
   },
 
   channels: {
-    whatsapp: {
+    weixin: {
       accounts: {
         personal: {
-          // Optional override. Default: ~/.crawclaw/credentials/whatsapp/personal
-          // authDir: "~/.crawclaw/credentials/whatsapp/personal",
+          // Optional override. Default: ~/.crawclaw/credentials/weixin/personal
+          // authDir: "~/.crawclaw/credentials/weixin/personal",
         },
         biz: {
-          // Optional override. Default: ~/.crawclaw/credentials/whatsapp/biz
-          // authDir: "~/.crawclaw/credentials/whatsapp/biz",
+          // Optional override. Default: ~/.crawclaw/credentials/weixin/biz
+          // authDir: "~/.crawclaw/credentials/weixin/biz",
         },
       },
     },
@@ -381,9 +379,9 @@ Link each account before starting the gateway:
 }
 ```
 
-## Example: WhatsApp daily chat + Telegram deep work
+## Example: Weixin daily chat + Feishu deep work
 
-Split by channel: route WhatsApp to a fast everyday agent and Telegram to an Opus agent.
+Split by channel: route Weixin to a fast everyday agent and Feishu to an Opus agent.
 
 ```json5
 {
@@ -404,20 +402,20 @@ Split by channel: route WhatsApp to a fast everyday agent and Telegram to an Opu
     ],
   },
   bindings: [
-    { agentId: "chat", match: { channel: "whatsapp" } },
-    { agentId: "opus", match: { channel: "telegram" } },
+    { agentId: "chat", match: { channel: "weixin" } },
+    { agentId: "opus", match: { channel: "feishu" } },
   ],
 }
 ```
 
 Notes:
 
-- If you have multiple accounts for a channel, add `accountId` to the binding (for example `{ channel: "whatsapp", accountId: "personal" }`).
+- If you have multiple accounts for a channel, add `accountId` to the binding (for example `{ channel: "weixin", accountId: "personal" }`).
 - To route a single DM/group to Opus while keeping the rest on chat, add a `match.peer` binding for that peer; peer matches always win over channel-wide rules.
 
 ## Example: same channel, one peer to Opus
 
-Keep WhatsApp on the fast agent, but route one DM to Opus:
+Keep Weixin on the fast agent, but route one DM to Opus:
 
 ```json5
 {
@@ -440,18 +438,18 @@ Keep WhatsApp on the fast agent, but route one DM to Opus:
   bindings: [
     {
       agentId: "opus",
-      match: { channel: "whatsapp", peer: { kind: "direct", id: "+15551234567" } },
+      match: { channel: "weixin", peer: { kind: "direct", id: "+15551234567" } },
     },
-    { agentId: "chat", match: { channel: "whatsapp" } },
+    { agentId: "chat", match: { channel: "weixin" } },
   ],
 }
 ```
 
 Peer bindings always win, so keep them above the channel-wide rule.
 
-## Family agent bound to a WhatsApp group
+## Family agent bound to a Weixin group
 
-Bind a dedicated family agent to a single WhatsApp group, with mention gating
+Bind a dedicated family agent to a single Weixin group, with mention gating
 and a tighter tool policy:
 
 ```json5
@@ -488,7 +486,7 @@ and a tighter tool policy:
     {
       agentId: "family",
       match: {
-        channel: "whatsapp",
+        channel: "weixin",
         peer: { kind: "group", id: "120363999999999999@g.us" },
       },
     },

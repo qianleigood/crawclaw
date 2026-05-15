@@ -388,7 +388,7 @@ This keeps short-term continuity on one source of truth:
 - that agent sees the current model-visible message context carried by the
   captured parent fork context
 - automatic summary updates require that parent fork context; explicit
-  CLI/gateway refresh reconstructs a bounded manual fork context from persisted
+  Gateway refresh reconstructs a bounded manual fork context from persisted
   model-visible rows
 - compaction preserves the tail after the summarized boundary, expanding
   backward only enough to keep a usable recent working set
@@ -397,20 +397,9 @@ This keeps short-term continuity on one source of truth:
 - prompt assembly keeps using the recent transcript and does not separately
   inject `summary.md`
 
-## CLI
+## Desktop and Gateway API
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop for interactive memory settings and diagnostics. Automation should call the local Gateway API instead of a command wrapper.
 
 ## Further reading
 

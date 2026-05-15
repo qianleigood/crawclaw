@@ -18,7 +18,7 @@ wired end-to-end.
 ## Entry points
 
 - Gateway RPC: `agent` and `agent.wait`.
-- CLI: `agent` command.
+- Desktop UI actions call the same Gateway RPC path.
 
 ## How it works (high-level)
 
@@ -128,7 +128,7 @@ debug logs.
 CrawClaw has two hook systems:
 
 - **Internal hooks** (Gateway hooks): event-driven scripts for commands and lifecycle events.
-- **Plugin hooks**: extension points inside the agent/tool lifecycle and gateway pipeline.
+- **Gateway runtime hooks**: internal extension points inside the agent/tool lifecycle and gateway pipeline.
 
 ### Internal hooks (Gateway hooks)
 
@@ -138,33 +138,13 @@ CrawClaw has two hook systems:
 
 See [Hooks](/automation/hooks) for setup and examples.
 
-### Plugin hooks (agent + gateway lifecycle)
+### Runtime lifecycle
 
-These run inside the agent loop or gateway pipeline:
-
-- **`before_model_resolve`**: runs pre-session (no `messages`) to deterministically override provider/model before model resolution.
-- **`before_prompt_build`**: runs after session load (with `messages`) to return a structured `queryContextPatch` before prompt submission. Use `prependUserContextSections` for per-turn dynamic text, `replaceSystemPromptSections` for full system-prompt overrides, and `prependSystemContextSections` / `appendSystemContextSections` for stable guidance that should sit in system-context space.
-- **`before_model_resolve` / `before_prompt_build`**: the active pre-run hook phases. Model/provider selection and prompt-context mutation now flow through these two hooks only.
-- **`before_agent_reply`**: runs after inline actions and before the LLM call, letting a plugin claim the turn and return a synthetic reply or silence the turn entirely.
-- **`agent_end`**: inspect the final message list and run metadata after completion.
-- **`before_compaction` / `after_compaction`**: observe or annotate compaction cycles.
-- **`before_tool_call` / `after_tool_call`**: intercept tool params/results.
-- **`before_install`**: inspect built-in scan findings and optionally block skill or plugin installs.
-- **`tool_result_persist`**: synchronously transform tool results before they are written to the session transcript.
-- **`message_received` / `message_sending` / `message_sent`**: inbound + outbound message hooks.
-- **`session_start` / `session_end`**: session lifecycle boundaries.
-- **`gateway_start` / `gateway_stop`**: gateway lifecycle events.
-
-Hook decision rules for outbound/tool guards:
-
-- `before_tool_call`: `{ block: true }` is terminal and stops lower-priority handlers.
-- `before_tool_call`: `{ block: false }` is a no-op and does not clear a prior block.
-- `before_install`: `{ block: true }` is terminal and stops lower-priority handlers.
-- `before_install`: `{ block: false }` is a no-op and does not clear a prior block.
-- `message_sending`: `{ cancel: true }` is terminal and stops lower-priority handlers.
-- `message_sending`: `{ cancel: false }` is a no-op and does not clear a prior cancel.
-
-See [Plugin hooks](/plugins/architecture#provider-runtime-hooks) for the hook API and registration details.
+The agent loop still has runtime-owned lifecycle stages for model selection,
+prompt assembly, tool execution, transcript persistence, compaction, and
+outbound delivery. Typed Plugin SDK lifecycle hooks have been removed from the
+public plugin API, so these stages are no longer a third-party plugin
+registration surface.
 
 ## Streaming + partial replies
 

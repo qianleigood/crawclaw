@@ -20,7 +20,6 @@ import { getApiKeyForModel, requireApiKey } from "./model-auth.js";
 import { ensureCrawClawModelsJson } from "./models-config.js";
 import { EmbeddedBlockChunker, type BlockReplyChunking } from "./pi-embedded-block-chunker.js";
 import { resolveModelWithRegistry } from "./pi-embedded-runner/model.js";
-import { getActiveEmbeddedRunSnapshot } from "./pi-embedded-runner/runs.js";
 import { discoverAuthStorage, discoverModels } from "./pi-model-discovery.js";
 import { stripToolResultDetails } from "./session-transcript-repair.js";
 
@@ -35,6 +34,16 @@ type SessionManagerLike = {
   resetLeaf?: () => void;
   buildSessionContext: () => { messages?: unknown[] };
 };
+
+type ActiveRunSnapshot = {
+  messages?: unknown[];
+  inFlightPrompt?: string;
+  transcriptLeafId?: string;
+};
+
+function getRustActiveRunSnapshot(): ActiveRunSnapshot | undefined {
+  return undefined;
+}
 
 function collectTextContent(content: Array<{ type?: string; text?: string }>): string {
   return content
@@ -198,7 +207,7 @@ export async function runBtwSideQuestion(
   }
 
   const sessionManager = SessionManager.open(sessionFile) as SessionManagerLike;
-  const activeRunSnapshot = getActiveEmbeddedRunSnapshot(sessionId);
+  const activeRunSnapshot = getRustActiveRunSnapshot();
   let messages: Message[] = [];
   let inFlightPrompt: string | undefined;
   if (Array.isArray(activeRunSnapshot?.messages) && activeRunSnapshot.messages.length > 0) {

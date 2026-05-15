@@ -19,34 +19,25 @@ export type BuildPluginApiParams = {
     Pick<
       CrawClawPluginApi,
       | "registerTool"
-      | "registerHook"
       | "registerHttpRoute"
-      | "registerChannel"
       | "registerGatewayMethod"
-      | "registerCli"
       | "registerService"
       | "registerCliBackend"
-      | "registerProvider"
       | "registerSpeechProvider"
       | "registerMediaUnderstandingProvider"
       | "registerWebFetchProvider"
       | "registerWebSearchProvider"
       | "onConversationBindingResolved"
       | "registerCommand"
-      | "on"
     >
   >;
 };
 
 const noopRegisterTool: CrawClawPluginApi["registerTool"] = () => {};
-const noopRegisterHook: CrawClawPluginApi["registerHook"] = () => {};
 const noopRegisterHttpRoute: CrawClawPluginApi["registerHttpRoute"] = () => {};
-const noopRegisterChannel: CrawClawPluginApi["registerChannel"] = () => {};
 const noopRegisterGatewayMethod: CrawClawPluginApi["registerGatewayMethod"] = () => {};
-const noopRegisterCli: CrawClawPluginApi["registerCli"] = () => {};
 const noopRegisterService: CrawClawPluginApi["registerService"] = () => {};
 const noopRegisterCliBackend: CrawClawPluginApi["registerCliBackend"] = () => {};
-const noopRegisterProvider: CrawClawPluginApi["registerProvider"] = () => {};
 const noopRegisterSpeechProvider: CrawClawPluginApi["registerSpeechProvider"] = () => {};
 const noopRegisterMediaUnderstandingProvider: CrawClawPluginApi["registerMediaUnderstandingProvider"] =
   () => {};
@@ -55,7 +46,6 @@ const noopRegisterWebSearchProvider: CrawClawPluginApi["registerWebSearchProvide
 const noopOnConversationBindingResolved: CrawClawPluginApi["onConversationBindingResolved"] =
   () => {};
 const noopRegisterCommand: CrawClawPluginApi["registerCommand"] = () => {};
-const noopOn: CrawClawPluginApi["on"] = () => {};
 
 export function buildPluginApi(params: BuildPluginApiParams): CrawClawPluginApi {
   const handlers = params.handlers ?? {};
@@ -72,14 +62,10 @@ export function buildPluginApi(params: BuildPluginApiParams): CrawClawPluginApi 
     runtime: params.runtime,
     logger: params.logger,
     registerTool: handlers.registerTool ?? noopRegisterTool,
-    registerHook: handlers.registerHook ?? noopRegisterHook,
     registerHttpRoute: handlers.registerHttpRoute ?? noopRegisterHttpRoute,
-    registerChannel: handlers.registerChannel ?? noopRegisterChannel,
     registerGatewayMethod: handlers.registerGatewayMethod ?? noopRegisterGatewayMethod,
-    registerCli: handlers.registerCli ?? noopRegisterCli,
     registerService: handlers.registerService ?? noopRegisterService,
     registerCliBackend: handlers.registerCliBackend ?? noopRegisterCliBackend,
-    registerProvider: handlers.registerProvider ?? noopRegisterProvider,
     registerSpeechProvider: handlers.registerSpeechProvider ?? noopRegisterSpeechProvider,
     registerMediaUnderstandingProvider:
       handlers.registerMediaUnderstandingProvider ?? noopRegisterMediaUnderstandingProvider,
@@ -89,6 +75,5 @@ export function buildPluginApi(params: BuildPluginApiParams): CrawClawPluginApi 
       handlers.onConversationBindingResolved ?? noopOnConversationBindingResolved,
     registerCommand: handlers.registerCommand ?? noopRegisterCommand,
     resolvePath: params.resolvePath,
-    on: handlers.on ?? noopOn,
   };
 }

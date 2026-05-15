@@ -23,6 +23,6 @@ x-i18n:
 ## 命令
 
 ```bash
-crawclaw pairing list whatsapp
-crawclaw pairing approve whatsapp <code> --notify
+crawclaw pairing list weixin
+crawclaw pairing approve weixin <code> --notify
 ```

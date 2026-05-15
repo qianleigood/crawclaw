@@ -14,13 +14,10 @@ Plugin system: `https://docs.crawclaw.ai/plugin`
 
 ## Install (local dev)
 
-### Option A: install via CrawClaw (recommended)
+### Option A: install through Desktop (recommended)
 
-```bash
-crawclaw plugins install @crawclaw/voice-call
-```
-
-Restart the Gateway afterwards.
+Install `@crawclaw/voice-call` from Desktop Settings → Plugins, then restart
+the local Gateway from the desktop app.
 
 ### Option B: copy into your global extensions folder (dev)
 
@@ -103,17 +100,9 @@ Voice Call uses the core `messages.tts` configuration for
 streaming speech on calls. Override examples and provider caveats live here:
 `https://docs.crawclaw.ai/plugins/voice-call#tts-for-calls`
 
-## CLI
+## Desktop and Gateway API
 
-```bash
-crawclaw voicecall call --to "+15555550123" --message "Hello from CrawClaw"
-crawclaw voicecall continue --call-id <id> --message "Any questions?"
-crawclaw voicecall speak --call-id <id> --message "One moment"
-crawclaw voicecall end --call-id <id>
-crawclaw voicecall status --call-id <id>
-crawclaw voicecall tail
-crawclaw voicecall expose --mode funnel
-```
+Use CrawClaw Desktop for interactive Voice Call setup and the local Gateway API for automation.
 
 ## Tool
 

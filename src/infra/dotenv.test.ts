@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { loadCliDotEnv } from "../cli/dotenv.js";
+import { loadCliDotEnv } from "../terminal/dotenv.js";
 import { loadDotEnv, loadWorkspaceDotEnvFile } from "./dotenv.js";
 
 async function writeEnvFile(filePath: string, contents: string) {

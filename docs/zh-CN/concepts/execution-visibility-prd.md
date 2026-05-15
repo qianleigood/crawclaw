@@ -317,7 +317,7 @@ type SummaryHints = {
 
 说明：
 
-- `object`: “网页资料”“本地文件”“Slack 消息”“Notion 页面”
+- `object`: “网页资料”“本地文件”“DingTalk 消息”“Notion 页面”
 - `targetLabel`: “产品群”“日报频道”“用户身份”
 - `textStart/textUpdate/textEnd`: 完全自定义文案
 
@@ -616,14 +616,14 @@ summary：
 ```ts
 summary: {
   intent: "send",
-  object: "Slack 消息",
+  object: "DingTalk 消息",
   targetLabel: "产品群"
 }
 ```
 
 summary：
 
-- `正在发送 Slack 消息到产品群`
+- `正在发送 DingTalk 消息到产品群`
 
 ### 工作流
 

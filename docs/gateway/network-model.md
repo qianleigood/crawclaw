@@ -14,6 +14,6 @@ process that owns channel connections and the WebSocket control plane.
 
 ## Core rules
 
-- One Gateway per host is recommended. It is the only process allowed to own the WhatsApp Web session. For rescue bots or strict isolation, run multiple gateways with isolated profiles and ports. See [Multiple gateways](/gateway/multiple-gateways).
+- One Gateway per host is recommended. It is the only process allowed to own the Weixin Web session. For rescue bots or strict isolation, run multiple gateways with isolated profiles and ports. See [Multiple gateways](/gateway/multiple-gateways).
 - Loopback first: the Gateway WS defaults to `ws://127.0.0.1:18789`. The wizard generates a gateway token by default, even for loopback. For tailnet access, run CrawClaw Desktop or the local Gateway API because tokens are required for non-loopback binds.
 - Remote use is typically SSH tunnel or tailnet VPN. See [Remote access](/gateway/remote) and [Discovery](/gateway/discovery).

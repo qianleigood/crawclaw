@@ -23,10 +23,10 @@ x-i18n:
 如果你要看整个仓库的项目级分层，请先读 [项目整体架构总览](/concepts/project-architecture-overview)；如果你要看目录和依赖边界，请继续读 [目录与边界规划](/concepts/project-directory-boundaries)。
 </Note>
 
-- 单个长期运行的 **Gateway 网关**拥有所有消息平台（通过 Baileys 的 WhatsApp、通过 grammY 的 Telegram、Slack、Discord、Signal、iMessage）。
+- 单个长期运行的 **Gateway 网关**拥有所有消息平台（通过 Baileys 的 Weixin、通过 grammY 的 Feishu、DingTalk、QQBot、Feishu、Weixin）。
 - 控制平面客户端（CLI、自动化、浏览器来源客户端）通过配置的绑定主机（默认 `127.0.0.1:18789`）上的 **WebSocket** 连接到 Gateway 网关。
 - **节点**（macOS/无头设备）也通过 **WebSocket** 连接，但声明 `role: node` 并带有明确的能力/命令。
-- 每台主机一个 Gateway 网关；它是唯一打开 WhatsApp 会话的位置。
+- 每台主机一个 Gateway 网关；它是唯一打开 Weixin 会话的位置。
 
 ## 组件和流程
 

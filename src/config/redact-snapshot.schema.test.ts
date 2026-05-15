@@ -38,7 +38,7 @@ describe("realredactConfigSnapshot_real", () => {
     const hints = buildConfigSchema().uiHints;
     const snapshot = makeSnapshot({
       channels: {
-        nostr: {
+        feishu: {
           privateKey: "nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5",
           relays: ["wss://relay.example.com"],
         },
@@ -47,10 +47,10 @@ describe("realredactConfigSnapshot_real", () => {
 
     const result = redactConfigSnapshot(snapshot, hints);
     const channels = result.runtimeConfig.channels as Record<string, Record<string, unknown>>;
-    expect(channels.nostr.privateKey).toBe(REDACTED_SENTINEL);
+    expect(channels.feishu.privateKey).toBe(REDACTED_SENTINEL);
 
     const restored = restoreRedactedValues(result.runtimeConfig, snapshot.runtimeConfig, hints);
-    expect(restored.channels.nostr.privateKey).toBe(
+    expect(restored.channels.feishu.privateKey).toBe(
       "nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5",
     );
   });

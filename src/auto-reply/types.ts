@@ -76,7 +76,7 @@ export type GetReplyOptions = {
   blockReplyTimeoutMs?: number;
   /** If provided, only load these skills for this session (empty = no skills). */
   skillFilter?: string[];
-  /** Mutable ref to track if a reply was sent (for Slack "first" threading mode). */
+  /** Mutable ref to track if a reply was sent for first-reply threading mode. */
   hasRepliedRef?: { value: boolean };
   /** Override agent timeout in seconds (0 = no timeout). Threads through to resolveAgentTimeoutMs. */
   timeoutOverrideSeconds?: number;
@@ -98,7 +98,7 @@ export type ReplyPayload = {
   audioAsVoice?: boolean;
   isError?: boolean;
   /** Marks this payload as a reasoning/thinking block. Channels that do not
-   *  have a dedicated reasoning lane (e.g. WhatsApp, web) should suppress it. */
+   *  have a dedicated reasoning lane should suppress it. */
   isReasoning?: boolean;
   /** Marks this payload as a compaction status notice (start/end).
    *  Should be excluded from TTS transcript accumulation so compaction

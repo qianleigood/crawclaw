@@ -259,14 +259,14 @@ describe("packNpmSpecToArchive", () => {
     const cwd = await createFixtureDir();
     mockPackCommandResult({
       stdout: "",
-      stderr: "npm error code E404\nnpm error 404  '@crawclaw/whatsapp@*' is not in this registry.",
+      stderr: "npm error code E404\nnpm error 404  '@crawclaw/weixin@*' is not in this registry.",
       code: 1,
     });
 
-    const result = await runPack("@crawclaw/whatsapp", cwd);
+    const result = await runPack("@crawclaw/weixin", cwd);
     expectPackError(result, [
       "Package not found on npm",
-      "@crawclaw/whatsapp",
+      "@crawclaw/weixin",
       "docs.crawclaw.ai/tools/plugin",
     ]);
   });

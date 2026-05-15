@@ -25,7 +25,7 @@ x-i18n:
 ```json5
 {
   agent: { workspace: "~/.crawclaw/workspace" },
-  channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+  channels: { weixin: { allowFrom: ["+15555550123"] } },
 }
 ```
 
@@ -45,7 +45,7 @@ x-i18n:
     model: { primary: "anthropic/claude-sonnet-4-5" },
   },
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: { "*": { requireMention: true } },
     },
@@ -121,12 +121,12 @@ x-i18n:
       cap: 20,
       drop: "summarize",
       byChannel: {
-        whatsapp: "collect",
-        telegram: "collect",
-        discord: "collect",
-        slack: "collect",
-        signal: "collect",
-        imessage: "collect",
+        weixin: "collect",
+        feishu: "collect",
+        qqbot: "collect",
+        ddingtalk: "collect",
+        feishu: "collect",
+        weixin: "collect",
       },
     },
   },
@@ -161,20 +161,20 @@ x-i18n:
       idleMinutes: 60,
     },
     resetByChannel: {
-      discord: { mode: "idle", idleMinutes: 10080 },
+      qqbot: { mode: "idle", idleMinutes: 10080 },
     },
     resetTriggers: ["/new"],
     store: "~/.crawclaw/agents/default/sessions/sessions.json",
     typingIntervalSeconds: 5,
     sendPolicy: {
       default: "allow",
-      rules: [{ action: "deny", match: { channel: "discord", chatType: "group" } }],
+      rules: [{ action: "deny", match: { channel: "qqbot", chatType: "group" } }],
     },
   },
 
   // 渠道
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "pairing",
       allowFrom: ["+15555550123"],
       groupPolicy: "allowlist",
@@ -182,7 +182,7 @@ x-i18n:
       groups: { "*": { requireMention: true } },
     },
 
-    telegram: {
+    feishu: {
       enabled: true,
       botToken: "YOUR_TELEGRAM_BOT_TOKEN",
       allowFrom: ["123456789"],
@@ -191,7 +191,7 @@ x-i18n:
       groups: { "*": { requireMention: true } },
     },
 
-    discord: {
+    qqbot: {
       enabled: true,
       token: "YOUR_DISCORD_BOT_TOKEN",
       dm: { enabled: true, allowFrom: ["steipete"] },
@@ -207,7 +207,7 @@ x-i18n:
       },
     },
 
-    slack: {
+    ddingtalk: {
       enabled: true,
       botToken: "xoxb-REPLACE_ME",
       appToken: "xapp-REPLACE_ME",
@@ -218,7 +218,7 @@ x-i18n:
       slashCommand: {
         enabled: true,
         name: "crawclaw",
-        sessionPrefix: "slack:slash",
+        sessionPrefix: "ddingtalk:slash",
         ephemeral: true,
       },
     },
@@ -291,12 +291,12 @@ x-i18n:
     elevated: {
       enabled: true,
       allowFrom: {
-        whatsapp: ["+15555550123"],
-        telegram: ["123456789"],
-        discord: ["steipete"],
-        slack: ["U123"],
-        signal: ["+15555550123"],
-        imessage: ["user@example.com"],
+        weixin: ["+15555550123"],
+        feishu: ["123456789"],
+        qqbot: ["steipete"],
+        ddingtalk: ["U123"],
+        feishu: ["+15555550123"],
+        weixin: ["user@example.com"],
       },
     },
   },
@@ -418,13 +418,13 @@ x-i18n:
 {
   agent: { workspace: "~/.crawclaw/workspace" },
   channels: {
-    whatsapp: { allowFrom: ["+15555550123"] },
-    telegram: {
+    weixin: { allowFrom: ["+15555550123"] },
+    feishu: {
       enabled: true,
       botToken: "YOUR_TOKEN",
       allowFrom: ["123456789"],
     },
-    discord: {
+    qqbot: {
       enabled: true,
       token: "YOUR_TOKEN",
       dm: { allowFrom: ["yourname"] },
@@ -515,7 +515,7 @@ x-i18n:
     elevated: { enabled: false },
   },
   channels: {
-    slack: {
+    ddingtalk: {
       enabled: true,
       botToken: "xoxb-...",
       channels: {
@@ -563,5 +563,5 @@ x-i18n:
 
 - 如果你设置 `dmPolicy: "open"`，匹配的 `allowFrom` 列表必须包含 `"*"`。
 - 提供商 ID 各不相同（电话号码、用户 ID、频道 ID）。使用提供商文档确认格式。
-- 稍后添加的可选部分：`web`、`browser`、`ui`、`discovery`、`talk`、`signal`、`imessage`。
-- 参阅[提供商](/channels/whatsapp)和[故障排除](/gateway/troubleshooting)了解更深入的设置说明。
+- 稍后添加的可选部分：`web`、`browser`、`ui`、`discovery`、`talk`、`feishu`、`weixin`。
+- 参阅[提供商](/channels/index)和[故障排除](/gateway/troubleshooting)了解更深入的设置说明。

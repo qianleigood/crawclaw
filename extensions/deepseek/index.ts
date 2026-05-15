@@ -1,38 +1,8 @@
-import { defineSingleProviderPluginEntry } from "crawclaw/plugin-sdk/provider-entry";
-import { applyDeepSeekConfig, DEEPSEEK_DEFAULT_MODEL_REF } from "./onboard.js";
-import { buildDeepSeekProvider } from "./provider-catalog.js";
+import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
 
-const PROVIDER_ID = "deepseek";
-
-export default defineSingleProviderPluginEntry({
-  id: PROVIDER_ID,
+export default definePluginEntry({
+  id: "deepseek",
   name: "DeepSeek Provider",
-  description: "Bundled DeepSeek provider plugin",
-  provider: {
-    label: "DeepSeek",
-    docsPath: "/providers/deepseek",
-    auth: [
-      {
-        methodId: "api-key",
-        label: "DeepSeek API key",
-        hint: "API key",
-        optionKey: "deepseekApiKey",
-        flagName: "--deepseek-api-key",
-        envVar: "DEEPSEEK_API_KEY",
-        promptMessage: "Enter DeepSeek API key",
-        defaultModel: DEEPSEEK_DEFAULT_MODEL_REF,
-        applyConfig: (cfg) => applyDeepSeekConfig(cfg),
-        wizard: {
-          choiceId: "deepseek-api-key",
-          choiceLabel: "DeepSeek API key",
-          groupId: "deepseek",
-          groupLabel: "DeepSeek",
-          groupHint: "API key",
-        },
-      },
-    ],
-    catalog: {
-      buildProvider: buildDeepSeekProvider,
-    },
-  },
+  description: "Bundled DeepSeek provider metadata plugin",
+  register() {},
 });

@@ -1,4 +1,4 @@
-import type { HealthSummary } from "../commands/health.js";
+import type { HealthSummary } from "../control/health.js";
 import { cleanOldMedia } from "../media/store.js";
 import { abortChatRunById, type ChatAbortControllerEntry } from "./chat-abort.js";
 import type { ChatRunEntry } from "./server-chat.js";

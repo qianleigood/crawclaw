@@ -132,19 +132,15 @@ Each event includes: `type`, `action`, `sessionKey`, `timestamp`, `messages` (pu
 Hooks are discovered from these directories, in order of increasing override precedence:
 
 1. **Bundled hooks**: shipped with CrawClaw
-2. **Plugin hooks**: hooks bundled inside installed plugins
+2. **Packaged hooks**: hooks bundled by installed hook packs
 3. **Managed hooks**: `~/.crawclaw/hooks/` (user-installed, shared across workspaces). Extra directories from `hooks.internal.load.extraDirs` share this precedence.
 4. **Workspace hooks**: `<workspace>/hooks/` (per-agent, disabled by default until explicitly enabled)
 
-Workspace hooks can add new hook names but cannot override bundled, managed, or plugin-provided hooks with the same name.
+Workspace hooks can add new hook names but cannot override bundled, managed, or packaged hooks with the same name.
 
 ### Hook packs
 
-Hook packs are npm packages that export hooks via `crawclaw.hooks` in `package.json`. Install with:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Hook packs are npm packages that export hooks via `crawclaw.hooks` in `package.json`. Install and enable them from CrawClaw Desktop or through the local Gateway API.
 
 Npm specs are registry-only (package name + optional exact version or dist-tag). Git/URL/file specs and semver ranges are rejected.
 
@@ -197,9 +193,10 @@ Paths resolve relative to workspace. Only recognized bootstrap basenames are loa
 
 ## Plugin hooks
 
-Plugins can register hooks through the Plugin SDK for deeper integration: intercepting tool calls, modifying prompts, controlling message flow, and more. The Plugin SDK exposes 28 hooks covering model resolution, agent lifecycle, message flow, tool execution, subagent coordination, and gateway lifecycle.
-
-For the complete plugin hook reference including `before_tool_call`, `before_agent_reply`, `before_install`, and all other plugin hooks, see [Plugin Architecture](/plugins/architecture#provider-runtime-hooks).
+Typed Plugin SDK lifecycle hooks have been removed. Plugins no longer register
+`before_tool_call`, `before_agent_reply`, `before_install`, model resolution, or
+message-flow hooks through `api.on(...)`; use the internal hook and webhook
+systems on this page for operational automation.
 
 ## Configuration
 
@@ -306,5 +303,4 @@ Check for missing binaries (PATH), environment variables, config values, or OS c
 
 - [Gateway API Reference: hooks](/automation/hooks)
 - [Webhooks](/automation/cron-jobs#webhooks)
-- [Plugin Architecture](/plugins/architecture#provider-runtime-hooks) — full plugin hook reference
 - [Configuration](/gateway/configuration-reference#hooks)

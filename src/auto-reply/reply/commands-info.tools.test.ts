@@ -90,7 +90,7 @@ async function loadToolsHarness(options?: {
 function buildConfig() {
   return {
     commands: { text: true },
-    channels: { whatsapp: { allowFrom: ["*"] } },
+    channels: { weixin: { allowFrom: ["*"] } },
   } as CrawClawConfig;
 }
 
@@ -106,7 +106,7 @@ describe("handleToolsCommand", () => {
     params.model = "gpt-4.1";
     params.ctx = {
       ...params.ctx,
-      From: "telegram:group:abc123",
+      From: "feishu:group:abc123",
       GroupChannel: "#ops",
       GroupSpace: "workspace-1",
       SenderName: "User Name",
@@ -114,7 +114,7 @@ describe("handleToolsCommand", () => {
       SenderE164: "+1000",
       MessageThreadId: 99,
       AccountId: "acct-1",
-      Provider: "telegram",
+      Provider: "feishu",
       ChatType: "group",
     };
 
@@ -185,8 +185,8 @@ describe("handleToolsCommand", () => {
     });
     params.ctx = {
       ...params.ctx,
-      From: "telegram:8231046597",
-      Provider: "telegram",
+      From: "feishu:8231046597",
+      Provider: "feishu",
       ChatType: "dm",
     };
 

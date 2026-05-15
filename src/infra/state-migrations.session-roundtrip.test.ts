@@ -97,7 +97,7 @@ describe("session key write/read round-trip (#29683)", () => {
 
       const rawWriteKey = resolveSessionKey(
         "per-sender",
-        { From: "group:discord:group:123456789" },
+        { From: "group:qqbot:group:123456789" },
         mainKey,
       );
       const writeKey = canonicalizeMainSessionAlias({

@@ -213,7 +213,7 @@ export function resolveAgentTransportOverride(params: {
   return resolveSupportedTransport(params.effectiveExtraParams?.transport);
 }
 
-function createStreamFnWithExtraParams(
+function createStreamWithExtraParams(
   baseStreamFn: StreamFn | undefined,
   extraParams: Record<string, unknown> | undefined,
   provider: string,
@@ -390,7 +390,7 @@ function applyPrePluginStreamWrappers(ctx: ApplyExtraParamsContext): void {
     ctx.agent.streamFn = createOpenAIAttributionHeadersWrapper(ctx.agent.streamFn);
   }
 
-  const wrappedStreamFn = createStreamFnWithExtraParams(
+  const wrappedStreamFn = createStreamWithExtraParams(
     ctx.agent.streamFn,
     ctx.effectiveExtraParams,
     ctx.provider,

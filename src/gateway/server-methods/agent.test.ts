@@ -49,7 +49,7 @@ vi.mock("../../config/sessions.js", async () => {
   };
 });
 
-vi.mock("../../commands/agent.js", () => ({
+vi.mock("../../control/agent.js", () => ({
   agentCommand: mocks.agentCommand,
   agentCommandFromIngress: mocks.agentCommand,
 }));
@@ -679,7 +679,7 @@ describe("gateway agent handler", () => {
       updatedAt: Date.now(),
       fastMode: true,
       sendPolicy: "deny",
-      lastChannel: "telegram",
+      lastChannel: "feishu",
       lastTo: "-100123",
       lastAccountId: "acct-1",
       lastThreadId: 42,
@@ -689,7 +689,7 @@ describe("gateway agent handler", () => {
         "agent:main:main": buildExistingMainStoreEntry({
           fastMode: true,
           sendPolicy: "deny",
-          lastChannel: "telegram",
+          lastChannel: "feishu",
           lastTo: "-100123",
           lastAccountId: "acct-1",
           lastThreadId: 42,
@@ -706,7 +706,7 @@ describe("gateway agent handler", () => {
       subagentControlScope: "children",
       fastMode: true,
       sendPolicy: "deny",
-      lastChannel: "telegram",
+      lastChannel: "feishu",
       lastTo: "-100123",
       lastAccountId: "acct-1",
       lastThreadId: 42,
@@ -749,7 +749,7 @@ describe("gateway agent handler", () => {
         subagentControlScope: "children",
         fastMode: true,
         sendPolicy: "deny",
-        lastChannel: "telegram",
+        lastChannel: "feishu",
         lastTo: "-100123",
         lastAccountId: "acct-1",
         lastThreadId: 42,
@@ -835,7 +835,7 @@ describe("gateway agent handler", () => {
         agentId: "main",
         sessionKey: "agent:main:main",
         deliver: true,
-        replyChannel: "telegram",
+        replyChannel: "feishu",
         to: "123",
         bestEffortDeliver: false,
         idempotencyKey: "test-strict-delivery",
@@ -949,13 +949,13 @@ describe("gateway agent handler", () => {
   it("keeps origin messageChannel as webchat while delivery channel uses last session channel", async () => {
     mockMainSessionEntry({
       sessionId: "reused-session-id",
-      lastChannel: "telegram",
+      lastChannel: "feishu",
       lastTo: "12345",
     });
     mocks.updateSessionStore.mockImplementation(async (_path, updater) => {
       const store: Record<string, unknown> = {
         "agent:main:main": buildExistingMainStoreEntry({
-          lastChannel: "telegram",
+          lastChannel: "feishu",
           lastTo: "12345",
         }),
       };
@@ -989,7 +989,7 @@ describe("gateway agent handler", () => {
       messageChannel?: string;
       runContext?: { messageChannel?: string };
     };
-    expect(callArgs.channel).toBe("telegram");
+    expect(callArgs.channel).toBe("feishu");
     expect(callArgs.messageChannel).toBe("webchat");
     expect(callArgs.runContext?.messageChannel).toBe("webchat");
   });

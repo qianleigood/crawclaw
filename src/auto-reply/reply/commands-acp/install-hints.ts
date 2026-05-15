@@ -2,7 +2,6 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import type { CrawClawConfig } from "../../../config/config.js";
 import { resolveBundledPluginWorkspaceSourcePath } from "../../../plugins/bundled-plugin-metadata.js";
-import { resolveBundledPluginInstallCommandHint } from "../../../plugins/bundled-sources.js";
 
 export function resolveConfiguredAcpBackendId(cfg: CrawClawConfig): string {
   return cfg.acp?.backend?.trim() || "acpx";
@@ -21,24 +20,13 @@ export function resolveAcpInstallCommandHint(cfg: CrawClawConfig): string {
       pluginId: backendId,
     });
     if (workspaceLocalPath && existsSync(workspaceLocalPath)) {
-      return `crawclaw plugins install ${workspaceLocalPath}`;
+      return `Install local plugin from Desktop Settings → Plugins: ${workspaceLocalPath}`;
     }
-    const bundledInstallHint = resolveBundledPluginInstallCommandHint({
-      pluginId: backendId,
-      workspaceDir,
-    });
-    if (bundledInstallHint) {
-      const localPath = bundledInstallHint.replace(/^crawclaw plugins install /u, "");
-      const resolvedLocalPath = path.resolve(localPath);
-      const relativeToWorkspace = path.relative(workspaceDir, resolvedLocalPath);
-      const belongsToWorkspace =
-        relativeToWorkspace.length === 0 ||
-        (!relativeToWorkspace.startsWith("..") && !path.isAbsolute(relativeToWorkspace));
-      if (belongsToWorkspace && existsSync(resolvedLocalPath)) {
-        return bundledInstallHint;
-      }
+    const workspaceExtensionPath = path.join(workspaceDir, "extensions", backendId);
+    if (existsSync(workspaceExtensionPath)) {
+      return `Install local plugin from Desktop Settings → Plugins: ${workspaceExtensionPath}`;
     }
-    return "crawclaw plugins install acpx";
+    return "Install acpx from Desktop Settings → Plugins.";
   }
   return `Install and enable the plugin that provides ACP backend "${backendId}".`;
 }

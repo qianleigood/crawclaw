@@ -106,34 +106,7 @@ describe("detectChangedScope", () => {
     });
   });
 
-  it("runs Windows lane when the native Windows smoke workflow changes", () => {
-    expect(detectChangedScope([".github/workflows/windows-native-smoke.yml"])).toEqual({
-      runNode: true,
-      runWindows: true,
-      runSkillsPython: false,
-      runChangedSmoke: false,
-    });
-  });
-
-  it("runs changed-smoke for install and packaging surfaces", () => {
-    expect(detectChangedScope(["scripts/install.sh"])).toEqual({
-      runNode: true,
-      runWindows: true,
-      runSkillsPython: false,
-      runChangedSmoke: true,
-    });
-    expect(detectChangedScope(["scripts/install.ps1"])).toEqual({
-      runNode: true,
-      runWindows: true,
-      runSkillsPython: false,
-      runChangedSmoke: true,
-    });
-    expect(detectChangedScope(["scripts/ci/windows-packed-install-smoke.mjs"])).toEqual({
-      runNode: true,
-      runWindows: true,
-      runSkillsPython: false,
-      runChangedSmoke: true,
-    });
+  it("runs changed-smoke for packaging surfaces", () => {
     expect(detectChangedScope(["scripts/postinstall-bundled-plugins.mjs"])).toEqual({
       runNode: true,
       runWindows: true,
@@ -158,7 +131,7 @@ describe("detectChangedScope", () => {
       runSkillsPython: false,
       runChangedSmoke: true,
     });
-    expect(detectChangedScope([bundledPluginFile("matrix", "package.json")])).toEqual({
+    expect(detectChangedScope([bundledPluginFile("brave", "package.json")])).toEqual({
       runNode: true,
       runWindows: true,
       runSkillsPython: false,

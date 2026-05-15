@@ -5,11 +5,11 @@ import { listAgentIds, resolveAgentDir, resolveDefaultAgentId } from "../agents/
 import type { AuthProfileStore } from "../agents/auth-profiles.js";
 import { AUTH_STORE_VERSION } from "../agents/auth-profiles/constants.js";
 import { resolveAuthStorePath } from "../agents/auth-profiles/paths.js";
-import { translateActiveCliText } from "../cli/i18n/text.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { SecretProviderConfig, SecretRef, SecretRefSource } from "../config/types.secrets.js";
 import { isSafeExecutableValue } from "../infra/exec-safety.js";
 import { normalizeAgentId } from "../routing/session-key.js";
+import { translateActiveCliText } from "../terminal/i18n/text.js";
 import { stylePromptHint, stylePromptMessage } from "../terminal/prompt-style.js";
 import { runSecretsApply, type SecretsApplyResult } from "./apply.js";
 import { createSecretsConfigIO } from "./config-io.js";

@@ -11,10 +11,10 @@ title: "Features"
 
 <Columns>
   <Card title="Channels" icon="message-square">
-    WhatsApp, Telegram, Discord, and iMessage with a single Gateway.
+    Weixin, Feishu, community chat, and Weixin with a single Gateway.
   </Card>
   <Card title="Plugins" icon="plug">
-    Add Mattermost and more with extensions.
+    Add native channels and more with extensions.
   </Card>
   <Card title="Routing" icon="route">
     Multi-agent routing with isolated sessions.
@@ -28,8 +28,8 @@ title: "Features"
 
 **Channels:**
 
-- WhatsApp, Telegram, Discord, iMessage (built-in)
-- Mattermost, Matrix, Microsoft Teams, Nostr, and more (plugins)
+- Weixin, Feishu, community chat, Weixin (built-in)
+- Feishu, QQBot, DingTalk, Weixin, and ESP32
 - Group chat support with mention-based activation
 - DM safety with allowlists and pairing
 

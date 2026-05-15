@@ -1088,7 +1088,7 @@ describe("agent event handler", () => {
       seq: 1,
       stream: "assistant",
       ts: Date.now(),
-      data: { text: "Reply from imessage" },
+      data: { text: "Reply from weixin" },
     });
     emitLifecycleEnd(handler, "run-hidden", 2);
 

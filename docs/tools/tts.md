@@ -306,7 +306,7 @@ These override `messages.tts.*` for that host.
 
 ## Output formats (fixed)
 
-- **Feishu / Matrix / Telegram / WhatsApp**: Opus voice message (`opus` from Qwen3-TTS).
+- **Feishu / QQBot / Weixin / DingTalk**: Opus voice message (`opus` from Qwen3-TTS).
   - 48kHz / 64kbps is a good voice message tradeoff.
 - **Other channels**: WAV from the local Qwen3-TTS sidecar.
 
@@ -342,7 +342,7 @@ Reply -> TTS enabled?
 There is a single command: `/tts`.
 See [Slash commands](/tools/slash-commands) for enablement details.
 
-Discord note: `/tts` is a built-in Discord command, so CrawClaw registers
+community chat note: `/tts` is a built-in community chat command, so CrawClaw registers
 `/voice` as the native command there. Text `/tts ...` still works.
 
 ```
@@ -372,7 +372,7 @@ Notes:
 ## Agent tool
 
 The `tts` tool converts text to speech and returns an audio attachment for
-reply delivery. When the channel is Feishu, Matrix, Telegram, or WhatsApp,
+reply delivery. When the channel is Feishu, Feishu, Feishu, or Weixin,
 the audio is delivered as a voice message rather than a file attachment.
 
 ## Gateway RPC

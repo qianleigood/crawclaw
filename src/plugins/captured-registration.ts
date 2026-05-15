@@ -6,24 +6,13 @@ import type {
   CliBackendPlugin,
   MediaUnderstandingProviderPlugin,
   CrawClawPluginApi,
-  CrawClawPluginCliCommandDescriptor,
-  CrawClawPluginCliRegistrar,
-  ProviderPlugin,
   SpeechProviderPlugin,
   WebFetchProviderPlugin,
   WebSearchProviderPlugin,
 } from "./types.js";
 
-type CapturedPluginCliRegistration = {
-  register: CrawClawPluginCliRegistrar;
-  commands: string[];
-  descriptors: CrawClawPluginCliCommandDescriptor[];
-};
-
 export type CapturedPluginRegistration = {
   api: CrawClawPluginApi;
-  providers: ProviderPlugin[];
-  cliRegistrars: CapturedPluginCliRegistration[];
   cliBackends: CliBackendPlugin[];
   speechProviders: SpeechProviderPlugin[];
   mediaUnderstandingProviders: MediaUnderstandingProviderPlugin[];
@@ -36,8 +25,6 @@ export function createCapturedPluginRegistration(params?: {
   config?: CrawClawConfig;
   registrationMode?: CrawClawPluginApi["registrationMode"];
 }): CapturedPluginRegistration {
-  const providers: ProviderPlugin[] = [];
-  const cliRegistrars: CapturedPluginCliRegistration[] = [];
   const cliBackends: CliBackendPlugin[] = [];
   const speechProviders: SpeechProviderPlugin[] = [];
   const mediaUnderstandingProviders: MediaUnderstandingProviderPlugin[] = [];
@@ -52,8 +39,6 @@ export function createCapturedPluginRegistration(params?: {
   };
 
   return {
-    providers,
-    cliRegistrars,
     cliBackends,
     speechProviders,
     mediaUnderstandingProviders,
@@ -70,32 +55,6 @@ export function createCapturedPluginRegistration(params?: {
       logger: noopLogger,
       resolvePath: (input) => input,
       handlers: {
-        registerCli(registrar, opts) {
-          const descriptors = (opts?.descriptors ?? [])
-            .map((descriptor) => ({
-              name: descriptor.name.trim(),
-              description: descriptor.description.trim(),
-              hasSubcommands: descriptor.hasSubcommands,
-            }))
-            .filter((descriptor) => descriptor.name && descriptor.description);
-          const commands = [
-            ...(opts?.commands ?? []),
-            ...descriptors.map((descriptor) => descriptor.name),
-          ]
-            .map((command) => command.trim())
-            .filter(Boolean);
-          if (commands.length === 0) {
-            return;
-          }
-          cliRegistrars.push({
-            register: registrar,
-            commands,
-            descriptors,
-          });
-        },
-        registerProvider(provider: ProviderPlugin) {
-          providers.push(provider);
-        },
         registerCliBackend(backend: CliBackendPlugin) {
           cliBackends.push(backend);
         },

@@ -3,11 +3,6 @@ import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { SessionManager } from "@mariozechner/pi-coding-agent";
 import type { CrawClawConfig } from "../../config/config.js";
 import { registerUnhandledRejectionHandler } from "../../infra/unhandled-rejections.js";
-import {
-  normalizeProviderToolSchemasWithPlugin,
-  sanitizeProviderReplayHistoryWithPlugin,
-  validateProviderReplayTurnsWithPlugin,
-} from "../../plugins/provider-runtime.js";
 import type { ProviderRuntimeModel } from "../../plugins/types.js";
 import {
   hasInterSessionUserProvenance,
@@ -30,7 +25,6 @@ import {
   stripToolResultDetails,
   sanitizeToolUseResultPairing,
 } from "../session-transcript-repair.js";
-import type { AnyAgentTool } from "../tools/common.js";
 import type { CrawClawToolSchema } from "../tools/schema-types.js";
 import type { TranscriptPolicy } from "../transcript-policy.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
@@ -421,26 +415,6 @@ export function sanitizeToolsForGoogle<TResult = unknown>(params: {
   model?: ProviderRuntimeModel;
 }): AgentTool<CrawClawToolSchema, TResult>[] {
   const provider = params.provider.trim();
-  const pluginNormalized = normalizeProviderToolSchemasWithPlugin({
-    provider,
-    config: params.config,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-    context: {
-      config: params.config,
-      workspaceDir: params.workspaceDir,
-      env: params.env,
-      provider,
-      modelId: params.modelId,
-      modelApi: params.modelApi,
-      model: params.model,
-      tools: params.tools as unknown as AnyAgentTool[],
-    },
-  });
-  if (Array.isArray(pluginNormalized)) {
-    return pluginNormalized as AgentTool<CrawClawToolSchema, TResult>[];
-  }
-
   // Cloud Code Assist uses the OpenAPI 3.03 `parameters` field for both Gemini
   // AND Claude models.  This field does not support JSON Schema keywords such as
   // patternProperties, additionalProperties, $ref, etc.  We must clean schemas
@@ -694,29 +668,7 @@ export async function sanitizeSessionHistory(params: {
         downgradeOpenAIReasoningBlocks(sanitizedCompactionUsage),
       )
     : sanitizedCompactionUsage;
-  const provider = params.provider?.trim();
-  const providerSanitized =
-    provider && provider.length > 0
-      ? await sanitizeProviderReplayHistoryWithPlugin({
-          provider,
-          config: params.config,
-          workspaceDir: params.workspaceDir,
-          env: params.env,
-          context: {
-            config: params.config,
-            workspaceDir: params.workspaceDir,
-            env: params.env,
-            provider,
-            modelId: params.modelId,
-            modelApi: params.modelApi,
-            model: params.model,
-            sessionId: params.sessionId,
-            messages: sanitizedOpenAI,
-            allowedToolNames: params.allowedToolNames,
-          },
-        })
-      : undefined;
-  const sanitizedWithProvider = providerSanitized ?? sanitizedOpenAI;
+  const sanitizedWithProvider = sanitizedOpenAI;
 
   if (hasSnapshot && (!priorSnapshot || modelChanged)) {
     appendModelSnapshot(params.sessionManager, {
@@ -771,30 +723,6 @@ export async function validateReplayTurns(params: {
       env: params.env,
       model: params.model,
     });
-  const provider = params.provider?.trim();
-  if (provider) {
-    const providerValidated = await validateProviderReplayTurnsWithPlugin({
-      provider,
-      config: params.config,
-      workspaceDir: params.workspaceDir,
-      env: params.env,
-      context: {
-        config: params.config,
-        workspaceDir: params.workspaceDir,
-        env: params.env,
-        provider,
-        modelId: params.modelId,
-        modelApi: params.modelApi,
-        model: params.model,
-        sessionId: params.sessionId,
-        messages: params.messages,
-      },
-    });
-    if (providerValidated) {
-      return providerValidated;
-    }
-  }
-
   const validatedGemini = policy.validateGeminiTurns
     ? validateGeminiTurns(params.messages)
     : params.messages;

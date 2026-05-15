@@ -28,8 +28,8 @@ crawclaw agents list
 crawclaw agents status
 crawclaw agents add work --workspace ~/.crawclaw/workspace-work
 crawclaw agents bindings
-crawclaw agents bind --agent work --bind telegram:ops
-crawclaw agents unbind --agent work --bind telegram:ops
+crawclaw agents bind --agent work --bind feishu:ops
+crawclaw agents unbind --agent work --bind feishu:ops
 crawclaw agents set-identity --workspace ~/.crawclaw/workspace --from-identity
 crawclaw agents set-identity --agent main --avatar avatars/crawclaw.png
 crawclaw agents harness report --json
@@ -93,7 +93,7 @@ crawclaw agents bindings --json
 添加 bindings：
 
 ```bash
-crawclaw agents bind --agent work --bind telegram:ops --bind discord:guild-a
+crawclaw agents bind --agent work --bind feishu:ops --bind qqbot:guild-a
 ```
 
 如果你省略 `accountId`（`--bind <channel>`），CrawClaw 会在可用时从通道默认配置和插件 setup hooks 中解析。
@@ -108,18 +108,18 @@ crawclaw agents bind --agent work --bind telegram:ops --bind discord:guild-a
 
 ```bash
 # 初始的仅 channel binding
-crawclaw agents bind --agent work --bind telegram
+crawclaw agents bind --agent work --bind feishu
 
 # 后续升级为 account-scoped binding
-crawclaw agents bind --agent work --bind telegram:ops
+crawclaw agents bind --agent work --bind feishu:ops
 ```
 
-升级后，这条 binding 只会路由 `telegram:ops`。如果还想保留默认 account 路由，需要显式再加一条（例如 `--bind telegram:default`）。
+升级后，这条 binding 只会路由 `feishu:ops`。如果还想保留默认 account 路由，需要显式再加一条（例如 `--bind feishu:default`）。
 
 移除 bindings：
 
 ```bash
-crawclaw agents unbind --agent work --bind telegram:ops
+crawclaw agents unbind --agent work --bind feishu:ops
 crawclaw agents unbind --agent work --all
 ```
 

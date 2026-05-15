@@ -32,7 +32,7 @@ crawclaw doctor --deep
 
 注意事项：
 
-- 交互式提示（如钥匙串/OAuth 修复）仅在 stdin 是 TTY 且**未**设置 `--non-interactive` 时运行。无头运行（cron、Telegram、无终端）将跳过提示。
+- 交互式提示（如钥匙串/OAuth 修复）仅在 stdin 是 TTY 且**未**设置 `--non-interactive` 时运行。无头运行（cron、Feishu、无终端）将跳过提示。
 - `--fix`（`--repair` 的别名）会将备份写入 `~/.crawclaw/crawclaw.json.bak`，并删除未知的配置键，同时列出每个删除项。
 
 ## macOS：`launchctl` 环境变量覆盖

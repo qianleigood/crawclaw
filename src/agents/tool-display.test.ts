@@ -27,14 +27,14 @@ describe("tool display details", () => {
         name: "message",
         args: {
           action: "react",
-          provider: "discord",
+          provider: "qqbot",
           to: "chan-1",
           remove: false,
         },
       }),
     );
 
-    expect(detail).toContain("provider discord");
+    expect(detail).toContain("provider qqbot");
     expect(detail).toContain("to chan-1");
     expect(detail).not.toContain("remove");
   });

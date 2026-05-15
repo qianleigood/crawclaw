@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveAgentWorkspaceDir } from "../../../agents/agent-scope.js";
-import type { CliDeps } from "../../../cli/deps.js";
 import type { CrawClawConfig } from "../../../config/config.js";
+import type { CliDeps } from "../../../terminal/deps.js";
 
 const runBootOnce = vi.fn();
 

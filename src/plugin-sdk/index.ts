@@ -1,46 +1,6 @@
 // Shared root plugin-sdk surface.
-// Keep this entry intentionally tiny. Channel/provider helpers belong on
-// dedicated subpaths. The old plugin-sdk compat surface has been removed.
-
-export type {
-  ChannelAccountSnapshot,
-  ChannelAgentTool,
-  ChannelAgentToolFactory,
-  ChannelCapabilities,
-  ChannelGatewayContext,
-  ChannelId,
-  ChannelMessageActionAdapter,
-  ChannelMessageActionContext,
-  ChannelMessageActionName,
-  ChannelStatusIssue,
-} from "../channels/plugins/types.js";
-export type {
-  ChannelConfiguredBindingConversationRef,
-  ChannelConfiguredBindingMatch,
-  ChannelConfiguredBindingProvider,
-} from "../channels/plugins/types.adapters.js";
-export type {
-  ChannelConfigSchema,
-  ChannelConfigUiHint,
-  ChannelPlugin,
-} from "../channels/plugins/types.plugin.js";
-export type { ChannelSetupAdapter, ChannelSetupInput } from "../channels/plugins/types.js";
-export type {
-  ConfiguredBindingConversation,
-  ConfiguredBindingResolution,
-  CompiledConfiguredBinding,
-  StatefulBindingTargetDescriptor,
-} from "../channels/plugins/binding-types.js";
-export type {
-  StatefulBindingTargetDriver,
-  StatefulBindingTargetReadyResult,
-  StatefulBindingTargetResetResult,
-  StatefulBindingTargetSessionResult,
-} from "../channels/plugins/stateful-target-drivers.js";
-export type {
-  ChannelSetupWizard,
-  ChannelSetupWizardAllowFromEntry,
-} from "../channels/plugins/setup-wizard.js";
+// Keep this entry intentionally tiny. Channel plugin SDK exports have been
+// removed; future bundled channels should use Rust-native adapter contracts.
 export type {
   AnyAgentTool,
   CliBackendPlugin,
@@ -50,7 +10,6 @@ export type {
   PluginLogger,
   ProviderAuthContext,
   ProviderAuthResult,
-  ProviderRuntimeModel,
   SpeechProviderPlugin,
 } from "../plugins/types.js";
 export type {

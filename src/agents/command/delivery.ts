@@ -3,7 +3,6 @@ import { normalizeReplyPayload } from "../../auto-reply/reply/normalize-reply.js
 import type { ReplyPayload } from "../../auto-reply/types.js";
 import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
 import { createReplyPrefixContext } from "../../channels/reply-prefix.js";
-import { createOutboundSendDeps, type CliDeps } from "../../cli/outbound-send-deps.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
 import {
@@ -21,11 +20,13 @@ import {
 } from "../../infra/outbound/payloads.js";
 import type { OutboundSessionContext } from "../../infra/outbound/session-context.js";
 import type { RuntimeEnv } from "../../runtime.js";
+import { createOutboundSendDeps, type CliDeps } from "../../terminal/outbound-send-deps.js";
 import { isInternalMessageChannel } from "../../utils/message-channel.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
+import type { NativeAgentRunResult } from "../runtime-tools/agent-turn-client.js";
 import type { AgentCommandOpts } from "./types.js";
 
-type RunResult = Awaited<ReturnType<(typeof import("../pi-embedded.js"))["runEmbeddedPiAgent"]>>;
+type RunResult = NativeAgentRunResult;
 
 const NESTED_LOG_PREFIX = "[agent:nested]";
 
@@ -117,7 +118,7 @@ export function normalizeAgentCommandReplyPayloads(params: {
   for (const payload of payloads) {
     const normalized = normalizeReplyPayload(payload as ReplyPayload, {
       responsePrefix: replyPrefix.responsePrefix,
-      enableSlackInteractiveReplies: replyPrefix.enableSlackInteractiveReplies,
+      enableChannelInteractiveReplies: replyPrefix.enableChannelInteractiveReplies,
       applyChannelTransforms,
       responsePrefixContext,
     });

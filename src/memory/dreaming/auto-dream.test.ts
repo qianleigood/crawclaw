@@ -532,7 +532,7 @@ describe("AutoDreamScheduler", () => {
           sessionId: "same-scope-thread",
         },
         { sessionKey: "agent:main:feishu:direct:user-2", sessionId: "other-user-session" },
-        { sessionKey: "agent:main:discord:direct:user-1", sessionId: "other-channel-session" },
+        { sessionKey: "agent:main:qqbot:direct:user-1", sessionId: "other-channel-session" },
       ],
     });
     await writeTranscript({ sessionId: "current-session", mtimeMs: 40_000 });

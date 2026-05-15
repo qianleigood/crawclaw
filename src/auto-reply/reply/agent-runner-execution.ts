@@ -21,7 +21,10 @@ import {
   isTransientHttpError,
   sanitizeUserFacingText,
 } from "../../agents/pi-embedded-helpers.js";
-import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import {
+  runNativeAgentTurn,
+  type NativeAgentRunResult,
+} from "../../agents/runtime-tools/agent-turn-client.js";
 import type { TypingSignaler } from "../../channels/typing-mode.js";
 import {
   resolveGroupSessionKey,
@@ -30,7 +33,11 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { logVerbose } from "../../globals.js";
-import { emitAgentEvent, registerAgentRunContext } from "../../infra/agent-events.js";
+import {
+  emitAgentEvent,
+  registerAgentRunContext,
+  type AgentEventPayload,
+} from "../../infra/agent-events.js";
 import { defaultRuntime } from "../../runtime.js";
 import { sanitizeForLog } from "../../terminal/ansi.js";
 import {
@@ -76,7 +83,7 @@ export type AgentRunLoopResult =
   | {
       kind: "success";
       runId: string;
-      runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
+      runResult: NativeAgentRunResult;
       fallbackProvider?: string;
       fallbackModel?: string;
       fallbackAttempts: RuntimeFallbackAttempt[];
@@ -197,7 +204,7 @@ export async function runAgentTurnWithFallback(params: {
       isBrowserClientsVisible: shouldSurfaceToBrowserClients,
     });
   }
-  let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>>;
+  let runResult: NativeAgentRunResult;
   let fallbackProvider = params.followupRun.run.provider;
   let fallbackModel = params.followupRun.run.model;
   let fallbackAttempts: RuntimeFallbackAttempt[] = [];
@@ -416,7 +423,7 @@ export async function runAgentTurnWithFallback(params: {
           return (async () => {
             let attemptCompactionCount = 0;
             try {
-              const result = await runEmbeddedPiAgent({
+              const result = await runNativeAgentTurn({
                 ...embeddedContext,
                 allowGatewaySubagentBinding: true,
                 trigger: params.isHeartbeat ? "heartbeat" : "user",
@@ -446,7 +453,7 @@ export async function runAgentTurnWithFallback(params: {
                 abortSignal: params.opts?.abortSignal,
                 blockReplyBreak: params.resolvedBlockStreamingBreak,
                 blockReplyChunking: params.blockReplyChunking,
-                onPartialReply: async (payload) => {
+                onPartialReply: async (payload: ReplyPayload) => {
                   const textForTyping = await handlePartialForTyping(payload);
                   if (!params.opts?.onPartialReply || textForTyping === undefined) {
                     return;
@@ -462,7 +469,7 @@ export async function runAgentTurnWithFallback(params: {
                 },
                 onReasoningStream:
                   params.typingSignals.shouldStartOnReasoning || params.opts?.onReasoningStream
-                    ? async (payload) => {
+                    ? async (payload: ReplyPayload) => {
                         if (params.followupRun.run.silentExpected) {
                           return;
                         }
@@ -474,7 +481,7 @@ export async function runAgentTurnWithFallback(params: {
                       }
                     : undefined,
                 onReasoningEnd: params.opts?.onReasoningEnd,
-                onAgentEvent: async (evt) => {
+                onAgentEvent: async (evt: AgentEventPayload) => {
                   // Signal run start only after the embedded agent emits real activity.
                   const hasLifecyclePhase =
                     evt.stream === "lifecycle" && typeof evt.data.phase === "string";
@@ -807,7 +814,7 @@ export async function runAgentTurnWithFallback(params: {
   // If the run completed but with an embedded context overflow error that
   // wasn't recovered from (e.g. compaction reset already attempted), surface
   // the error to the user instead of silently returning an empty response.
-  // See #26905: Slack DM sessions silently swallowed messages when context
+  // See #26905: threaded sessions silently swallowed messages when context
   // overflow errors were returned as embedded error payloads.
   const finalEmbeddedError = runResult?.meta?.error;
   const hasPayloadText = runResult?.payloads?.some((p) => p.text?.trim());

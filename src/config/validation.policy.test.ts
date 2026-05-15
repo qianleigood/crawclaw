@@ -57,5 +57,4 @@ describe("config validation SecretRef policy guards", () => {
 
     expect(result.ok).toBe(true);
   });
-
 });

@@ -1,5 +1,4 @@
 import { getAcpSessionManager } from "../../acp/control-plane/manager.js";
-import { abortEmbeddedPiRun } from "../../agents/pi-embedded.js";
 import type { AbortCutoff } from "../../auto-reply/reply/abort-cutoff.js";
 import { setAbortMemory } from "../../auto-reply/reply/abort-primitives.js";
 import { persistAbortTargetEntry } from "../../auto-reply/reply/commands-session-store.js";
@@ -64,7 +63,7 @@ export async function executeAbortTarget(params: {
     (value): value is string => typeof value === "string" && value.trim().length > 0,
   );
   const cleared = clearSessionQueues(queueKeys);
-  const aborted = params.sessionId ? abortEmbeddedPiRun(params.sessionId) : false;
+  const aborted = false;
   const persisted = await persistAbortTargetEntry({
     entry: params.entry,
     key: params.key,

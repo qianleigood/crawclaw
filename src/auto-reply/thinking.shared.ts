@@ -1,5 +1,3 @@
-import { matchesExactOrPrefix } from "../plugin-sdk/provider-model-shared.js";
-
 export type ThinkLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive";
 export type VerboseLevel = "off" | "on" | "full";
 export type NoticeLevel = "off" | "on" | "full";
@@ -30,6 +28,14 @@ const OPENAI_CODEX_XHIGH_MODEL_IDS = [
   "gpt-5.1-codex",
 ] as const;
 const GITHUB_COPILOT_XHIGH_MODEL_IDS = ["gpt-5.2", "gpt-5.2-codex"] as const;
+
+function matchesExactOrPrefix(id: string, values: readonly string[]): boolean {
+  const normalizedId = id.trim().toLowerCase();
+  return values.some((value) => {
+    const normalizedValue = value.trim().toLowerCase();
+    return normalizedId === normalizedValue || normalizedId.startsWith(normalizedValue);
+  });
+}
 
 export function normalizeProviderId(provider?: string | null): string {
   if (!provider) {

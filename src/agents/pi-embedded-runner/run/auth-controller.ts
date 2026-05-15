@@ -1,6 +1,5 @@
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { ThinkLevel } from "../../../auto-reply/thinking.js";
-import { prepareProviderRuntimeAuth } from "../../../plugins/provider-runtime.js";
 import {
   type AuthProfileStore,
   isProfileInCooldown,
@@ -9,23 +8,9 @@ import {
 import { FailoverError, resolveFailoverStatus } from "../../failover-error.js";
 import { shouldAllowCooldownProbeForReason } from "../../failover-policy.js";
 import { getApiKeyForModel, type ResolvedProviderAuth } from "../../model-auth.js";
-import {
-  classifyFailoverReason,
-  isFailoverErrorMessage,
-  type FailoverReason,
-} from "../../pi-embedded-helpers.js";
-import {
-  resolveProviderRequestConfig,
-  sanitizeRuntimeProviderRequestOverrides,
-} from "../../provider-request-config.js";
-import { clampRuntimeAuthRefreshDelayMs } from "../../runtime-auth-refresh.js";
+import { classifyFailoverReason, type FailoverReason } from "../../pi-embedded-helpers.js";
 import { describeUnknownError } from "../utils.js";
-import {
-  RUNTIME_AUTH_REFRESH_MARGIN_MS,
-  RUNTIME_AUTH_REFRESH_MIN_DELAY_MS,
-  RUNTIME_AUTH_REFRESH_RETRY_MS,
-  type RuntimeAuthState,
-} from "./helpers.js";
+import type { RuntimeAuthState } from "./helpers.js";
 import type { RunEmbeddedPiAgentParams } from "./params.js";
 
 type ApiKeyInfo = ResolvedProviderAuth;
@@ -71,48 +56,6 @@ export function createEmbeddedRunAuthController(params: {
   setThinkLevel(next: ThinkLevel): void;
   log: LogLike;
 }) {
-  const applyPreparedRuntimeRequestOverrides = (paramsForApply: {
-    runtimeModel: Model<Api>;
-    preparedAuth: {
-      baseUrl?: string;
-      request?: Parameters<typeof resolveProviderRequestConfig>[0]["request"];
-    };
-  }): void => {
-    if (!paramsForApply.preparedAuth.baseUrl && !paramsForApply.preparedAuth.request) {
-      return;
-    }
-    const runtimeRequestConfig = resolveProviderRequestConfig({
-      provider: paramsForApply.runtimeModel.provider,
-      api: paramsForApply.runtimeModel.api,
-      baseUrl: paramsForApply.preparedAuth.baseUrl ?? paramsForApply.runtimeModel.baseUrl,
-      providerHeaders:
-        paramsForApply.runtimeModel.headers &&
-        typeof paramsForApply.runtimeModel.headers === "object"
-          ? paramsForApply.runtimeModel.headers
-          : undefined,
-      request: sanitizeRuntimeProviderRequestOverrides(paramsForApply.preparedAuth.request),
-      capability: "llm",
-      transport: "stream",
-    });
-    params.setRuntimeModel({
-      ...paramsForApply.runtimeModel,
-      ...(paramsForApply.preparedAuth.baseUrl
-        ? { baseUrl: paramsForApply.preparedAuth.baseUrl }
-        : {}),
-      ...(runtimeRequestConfig.headers ? { headers: runtimeRequestConfig.headers } : {}),
-    });
-    params.setEffectiveModel({
-      ...params.getEffectiveModel(),
-      ...(paramsForApply.preparedAuth.baseUrl
-        ? { baseUrl: paramsForApply.preparedAuth.baseUrl }
-        : {}),
-      ...(runtimeRequestConfig.headers ? { headers: runtimeRequestConfig.headers } : {}),
-    });
-  };
-
-  const hasRefreshableRuntimeAuth = () =>
-    Boolean(params.getRuntimeAuthState()?.sourceApiKey.trim());
-
   const clearRuntimeAuthRefreshTimer = () => {
     const runtimeAuthState = params.getRuntimeAuthState();
     if (!runtimeAuthState?.refreshTimer) {
@@ -128,133 +71,6 @@ export function createEmbeddedRunAuthController(params: {
     }
     params.setRuntimeAuthRefreshCancelled(true);
     clearRuntimeAuthRefreshTimer();
-  };
-
-  const refreshRuntimeAuth = async (reason: string): Promise<void> => {
-    const runtimeAuthState = params.getRuntimeAuthState();
-    if (!runtimeAuthState) {
-      return;
-    }
-    if (runtimeAuthState.refreshInFlight) {
-      await runtimeAuthState.refreshInFlight;
-      return;
-    }
-    runtimeAuthState.refreshInFlight = (async () => {
-      const currentRuntimeAuthState = params.getRuntimeAuthState();
-      const sourceApiKey = currentRuntimeAuthState?.sourceApiKey.trim() ?? "";
-      if (!sourceApiKey) {
-        throw new Error(`Runtime auth refresh requires a source credential.`);
-      }
-      const runtimeModel = params.getRuntimeModel();
-      params.log.debug(`Refreshing runtime auth for ${runtimeModel.provider} (${reason})...`);
-      const preparedAuth = await prepareProviderRuntimeAuth({
-        provider: runtimeModel.provider,
-        config: params.config,
-        workspaceDir: params.workspaceDir,
-        env: process.env,
-        context: {
-          config: params.config,
-          agentDir: params.agentDir,
-          workspaceDir: params.workspaceDir,
-          env: process.env,
-          provider: runtimeModel.provider,
-          modelId: params.getModelId(),
-          model: runtimeModel,
-          apiKey: sourceApiKey,
-          authMode: currentRuntimeAuthState?.authMode ?? "unknown",
-          profileId: currentRuntimeAuthState?.profileId,
-        },
-      });
-      if (!preparedAuth?.apiKey) {
-        throw new Error(
-          `Provider "${runtimeModel.provider}" does not support runtime auth refresh.`,
-        );
-      }
-      params.authStorage.setRuntimeApiKey(runtimeModel.provider, preparedAuth.apiKey);
-      applyPreparedRuntimeRequestOverrides({ runtimeModel, preparedAuth });
-      params.setRuntimeAuthState({
-        ...params.getRuntimeAuthState(),
-        expiresAt: preparedAuth.expiresAt,
-      } as RuntimeAuthState);
-      if (preparedAuth.expiresAt) {
-        const remaining = preparedAuth.expiresAt - Date.now();
-        params.log.debug(
-          `Runtime auth refreshed for ${runtimeModel.provider}; expires in ${Math.max(0, Math.floor(remaining / 1000))}s.`,
-        );
-      }
-    })()
-      .catch((err) => {
-        const runtimeModel = params.getRuntimeModel();
-        params.log.warn(
-          `Runtime auth refresh failed for ${runtimeModel.provider}: ${describeUnknownError(err)}`,
-        );
-        throw err;
-      })
-      .finally(() => {
-        const activeState = params.getRuntimeAuthState();
-        if (activeState) {
-          activeState.refreshInFlight = undefined;
-        }
-      });
-    await runtimeAuthState.refreshInFlight;
-  };
-
-  const scheduleRuntimeAuthRefresh = (): void => {
-    const runtimeAuthState = params.getRuntimeAuthState();
-    if (!runtimeAuthState || params.getRuntimeAuthRefreshCancelled()) {
-      return;
-    }
-    const runtimeModel = params.getRuntimeModel();
-    if (!hasRefreshableRuntimeAuth()) {
-      params.log.warn(
-        `Skipping runtime auth refresh scheduling for ${runtimeModel.provider}; source credential missing.`,
-      );
-      return;
-    }
-    if (!runtimeAuthState.expiresAt) {
-      return;
-    }
-    clearRuntimeAuthRefreshTimer();
-    const now = Date.now();
-    const refreshAt = runtimeAuthState.expiresAt - RUNTIME_AUTH_REFRESH_MARGIN_MS;
-    const delayMs = clampRuntimeAuthRefreshDelayMs({
-      refreshAt,
-      now,
-      minDelayMs: RUNTIME_AUTH_REFRESH_MIN_DELAY_MS,
-    });
-    const timer = setTimeout(() => {
-      if (params.getRuntimeAuthRefreshCancelled()) {
-        return;
-      }
-      refreshRuntimeAuth("scheduled")
-        .then(() => scheduleRuntimeAuthRefresh())
-        .catch(() => {
-          if (params.getRuntimeAuthRefreshCancelled()) {
-            return;
-          }
-          const retryTimer = setTimeout(() => {
-            if (params.getRuntimeAuthRefreshCancelled()) {
-              return;
-            }
-            refreshRuntimeAuth("scheduled-retry")
-              .then(() => scheduleRuntimeAuthRefresh())
-              .catch(() => undefined);
-          }, RUNTIME_AUTH_REFRESH_RETRY_MS);
-          const activeRuntimeAuthState = params.getRuntimeAuthState();
-          if (activeRuntimeAuthState) {
-            activeRuntimeAuthState.refreshTimer = retryTimer;
-          }
-          if (params.getRuntimeAuthRefreshCancelled() && activeRuntimeAuthState) {
-            clearTimeout(retryTimer);
-            activeRuntimeAuthState.refreshTimer = undefined;
-          }
-        });
-    }, delayMs);
-    runtimeAuthState.refreshTimer = timer;
-    if (params.getRuntimeAuthRefreshCancelled()) {
-      clearTimeout(timer);
-      runtimeAuthState.refreshTimer = undefined;
-    }
   };
 
   const resolveAuthProfileFailoverReason = (failoverParams: {
@@ -334,44 +150,9 @@ export function createEmbeddedRunAuthController(params: {
       params.setLastProfileId(resolvedProfileId);
       return;
     }
-    let runtimeAuthHandled = false;
     const runtimeModel = params.getRuntimeModel();
-    const preparedAuth = await prepareProviderRuntimeAuth({
-      provider: runtimeModel.provider,
-      config: params.config,
-      workspaceDir: params.workspaceDir,
-      env: process.env,
-      context: {
-        config: params.config,
-        agentDir: params.agentDir,
-        workspaceDir: params.workspaceDir,
-        env: process.env,
-        provider: runtimeModel.provider,
-        modelId: params.getModelId(),
-        model: runtimeModel,
-        apiKey: apiKeyInfo.apiKey,
-        authMode: apiKeyInfo.mode,
-        profileId: apiKeyInfo.profileId,
-      },
-    });
-    applyPreparedRuntimeRequestOverrides({ runtimeModel, preparedAuth: preparedAuth ?? {} });
-    if (preparedAuth?.apiKey) {
-      params.authStorage.setRuntimeApiKey(runtimeModel.provider, preparedAuth.apiKey);
-      params.setRuntimeAuthState({
-        sourceApiKey: apiKeyInfo.apiKey,
-        authMode: apiKeyInfo.mode,
-        profileId: apiKeyInfo.profileId,
-        expiresAt: preparedAuth.expiresAt,
-      });
-      if (preparedAuth.expiresAt) {
-        scheduleRuntimeAuthRefresh();
-      }
-      runtimeAuthHandled = true;
-    }
-    if (!runtimeAuthHandled) {
-      params.authStorage.setRuntimeApiKey(runtimeModel.provider, apiKeyInfo.apiKey);
-      params.setRuntimeAuthState(null);
-    }
+    params.authStorage.setRuntimeApiKey(runtimeModel.provider, apiKeyInfo.apiKey);
+    params.setRuntimeAuthState(null);
     params.setLastProfileId(apiKeyInfo.profileId);
   };
 
@@ -472,22 +253,9 @@ export function createEmbeddedRunAuthController(params: {
     errorText: string,
     retried: boolean,
   ): Promise<boolean> => {
-    if (!params.getRuntimeAuthState() || retried) {
-      return false;
-    }
-    if (!isFailoverErrorMessage(errorText)) {
-      return false;
-    }
-    if (classifyFailoverReason(errorText) !== "auth") {
-      return false;
-    }
-    try {
-      await refreshRuntimeAuth("auth-error");
-      scheduleRuntimeAuthRefresh();
-      return true;
-    } catch {
-      return false;
-    }
+    void errorText;
+    void retried;
+    return false;
   };
 
   return {

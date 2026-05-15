@@ -132,29 +132,29 @@ function buildConfigForCrawClawTarget(entry: SecretRegistryEntry, envId: string)
     setPathCreateStrict(config, ["gateway", "mode"], "remote");
     setPathCreateStrict(config, ["gateway", "remote", "url"], "wss://gateway.example");
   }
-  if (entry.id === "channels.telegram.webhookSecret") {
-    setPathCreateStrict(config, ["channels", "telegram", "webhookUrl"], "https://example.com/hook");
+  if (entry.id === "channels.feishu.webhookSecret") {
+    setPathCreateStrict(config, ["channels", "feishu", "webhookUrl"], "https://example.com/hook");
   }
-  if (entry.id === "channels.telegram.accounts.*.webhookSecret") {
+  if (entry.id === "channels.feishu.accounts.*.webhookSecret") {
     setPathCreateStrict(
       config,
-      ["channels", "telegram", "accounts", "sample", "webhookUrl"],
+      ["channels", "feishu", "accounts", "sample", "webhookUrl"],
       "https://example.com/hook",
     );
   }
-  if (entry.id === "channels.slack.signingSecret") {
-    setPathCreateStrict(config, ["channels", "slack", "mode"], "http");
+  if (entry.id === "channels.ddingtalk.signingSecret") {
+    setPathCreateStrict(config, ["channels", "ddingtalk", "mode"], "http");
   }
-  if (entry.id === "channels.slack.accounts.*.signingSecret") {
-    setPathCreateStrict(config, ["channels", "slack", "accounts", "sample", "mode"], "http");
+  if (entry.id === "channels.ddingtalk.accounts.*.signingSecret") {
+    setPathCreateStrict(config, ["channels", "ddingtalk", "accounts", "sample", "mode"], "http");
   }
-  if (entry.id === "channels.zalo.webhookSecret") {
-    setPathCreateStrict(config, ["channels", "zalo", "webhookUrl"], "https://example.com/hook");
+  if (entry.id === "channels.feishu.webhookSecret") {
+    setPathCreateStrict(config, ["channels", "feishu", "webhookUrl"], "https://example.com/hook");
   }
-  if (entry.id === "channels.zalo.accounts.*.webhookSecret") {
+  if (entry.id === "channels.feishu.accounts.*.webhookSecret") {
     setPathCreateStrict(
       config,
-      ["channels", "zalo", "accounts", "sample", "webhookUrl"],
+      ["channels", "feishu", "accounts", "sample", "webhookUrl"],
       "https://example.com/hook",
     );
   }

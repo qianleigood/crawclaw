@@ -227,13 +227,10 @@ export default definePluginEntry({
   id: "my-plugin",
   name: "My Plugin",
   register(api) {
-    api.registerProvider({
-      /* ... */
-    });
     api.registerTool({
       /* ... */
     });
-    api.registerChannel({
+    api.registerCommand({
       /* ... */
     });
   },
@@ -244,28 +241,18 @@ Common registration methods:
 
 | Method                               | What it registers               |
 | ------------------------------------ | ------------------------------- |
-| `registerProvider`                   | Model provider (LLM)            |
-| `registerChannel`                    | Chat channel                    |
 | `registerTool`                       | Agent tool                      |
-| `registerHook` / `on(...)`           | Lifecycle hooks                 |
 | `registerSpeechProvider`             | Text-to-speech / STT            |
 | `registerMediaUnderstandingProvider` | Image/audio analysis            |
 | `registerWebSearchProvider`          | Web search                      |
 | `registerHttpRoute`                  | HTTP endpoint                   |
-| `registerCommand` / `registerCli`    | Desktop and Gateway API actions |
+| `registerCommand`                    | Agent command action            |
+| `registerGatewayMethod`              | Desktop and Gateway API actions |
 | `registerService`                    | Background service              |
 
-Hook guard behavior for typed lifecycle hooks:
-
-- `before_tool_call`: `{ block: true }` is terminal; lower-priority handlers are skipped.
-- `before_tool_call`: `{ block: false }` is a no-op and does not clear an earlier block.
-- `before_tool_call`: hook context includes runtime-derived `guard` state; task-backed agent runs can also expose persisted capability details via `guard.capability`.
-- `before_install`: `{ block: true }` is terminal; lower-priority handlers are skipped.
-- `before_install`: `{ block: false }` is a no-op and does not clear an earlier block.
-- `message_sending`: `{ cancel: true }` is terminal; lower-priority handlers are skipped.
-- `message_sending`: `{ cancel: false }` is a no-op and does not clear an earlier cancel.
-
-For full typed hook behavior, see [SDK Overview](/plugins/sdk-overview#hook-decision-semantics).
+Model providers and typed lifecycle hooks are no longer plugin API surfaces.
+Configure custom LLM providers with `models.providers`; built-in provider
+metadata is owned by Rust.
 
 ## Related
 

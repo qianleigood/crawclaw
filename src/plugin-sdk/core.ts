@@ -14,33 +14,6 @@ export type {
   ProviderAuthMethod,
   ProviderAuthMethodNonInteractiveContext,
   ProviderAuthResult,
-  ProviderAugmentModelCatalogContext,
-  ProviderBuildMissingAuthMessageContext,
-  ProviderBuildUnknownModelHintContext,
-  ProviderBuiltInModelSuppressionContext,
-  ProviderBuiltInModelSuppressionResult,
-  ProviderCacheTtlEligibilityContext,
-  ProviderCatalogContext,
-  ProviderCatalogResult,
-  ProviderDefaultThinkingPolicyContext,
-  ProviderFetchUsageSnapshotContext,
-  ProviderModernModelPolicyContext,
-  ProviderNormalizeResolvedModelContext,
-  ProviderNormalizeToolSchemasContext,
-  ProviderPrepareDynamicModelContext,
-  ProviderPrepareRuntimeAuthContext,
-  ProviderPreparedRuntimeAuth,
-  ProviderReasoningOutputMode,
-  ProviderReasoningOutputModeContext,
-  ProviderReplayPolicy,
-  ProviderReplayPolicyContext,
-  ProviderResolveDynamicModelContext,
-  ProviderResolvedUsageAuth,
-  ProviderSanitizeReplayHistoryContext,
-  ProviderResolveUsageAuthContext,
-  ProviderRuntimeModel,
-  ProviderThinkingPolicyContext,
-  ProviderValidateReplayTurnsContext,
   SpeechProviderPlugin,
 } from "./plugin-entry.js";
 export type { CrawClawToolSchema } from "./plugin-entry.js";
@@ -49,16 +22,10 @@ export type { CrawClawConfig } from "../config/config.js";
 export { isSecretRef } from "../config/types.secrets.js";
 export type { GatewayRequestHandlerOptions } from "../gateway/request-types.js";
 export type {
-  ChannelOutboundSessionRoute,
-  ChannelMessagingAdapter,
-} from "../channels/plugins/types.core.js";
-export type {
   ProviderUsageSnapshot,
   UsageProviderId,
   UsageWindow,
 } from "../infra/provider-usage.types.js";
-export type { ChannelMessageActionContext } from "../channels/plugins/types.js";
-export type { ChannelConfigUiHint, ChannelPlugin } from "../channels/plugins/types.plugin.js";
 export type { PluginRuntime } from "../plugins/runtime/types.js";
 export type {
   BoundTaskFlowsRuntime,
@@ -82,27 +49,6 @@ export { KeyedAsyncQueue, enqueueKeyedTask } from "./keyed-async-queue.js";
 export { createDedupeCache, resolveGlobalDedupeCache } from "../infra/dedupe.js";
 export { generateSecureToken, generateSecureUuid } from "../infra/secure-random.js";
 export {
-  applyAccountNameToChannelSection,
-  buildChannelConfigSchema,
-  DEFAULT_ACCOUNT_ID,
-  formatPairingApproveHint,
-  getChatChannelMeta,
-  migrateBaseNameToDefaultAccount,
-  normalizeAccountId,
-} from "./channel-plugin-common.js";
-export {
-  clearAccountEntryFields,
-  deleteAccountFromConfigSection,
-  setAccountEnabledInConfigSection,
-} from "../channels/plugins/config-helpers.js";
-export { parseOptionalDelimitedEntries } from "../channels/plugins/helpers.js";
-export {
-  channelTargetSchema,
-  channelTargetsSchema,
-  optionalStringEnum,
-  stringEnum,
-} from "../agents/schema/typebox.js";
-export {
   DEFAULT_SECRET_FILE_MAX_BYTES,
   loadSecretFileSync,
   readSecretFileSync,
@@ -122,15 +68,4 @@ export type {
   TailscaleStatusCommandRunner,
 } from "../shared/tailscale-status.js";
 export { buildAgentSessionKey, type RoutePeer } from "../routing/resolve-route.js";
-export type { ChatType } from "../channels/chat-type.js";
 export { resolveThreadSessionKeys } from "../routing/session-key.js";
-export {
-  buildChannelOutboundSessionRoute,
-  createChannelPluginBase,
-  createChatChannelPlugin,
-  defineChannelPluginEntry,
-  defineSetupPluginEntry,
-  stripChannelTargetPrefix,
-  stripTargetKindPrefix,
-} from "./channel-plugin-builders.js";
-export type { ChannelOutboundSessionRouteParams } from "./channel-plugin-builders.js";

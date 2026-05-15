@@ -116,16 +116,6 @@ vi.mock("../plugins/hook-runner-global.js", () => ({
   getGlobalHookRunner: vi.fn(() => null),
 }));
 
-vi.mock("./pi-embedded.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./pi-embedded.js")>();
-  return {
-    ...actual,
-    isEmbeddedPiRunActive: () => false,
-    queueEmbeddedPiMessage: () => false,
-    waitForEmbeddedPiRunEnd: async () => true,
-  };
-});
-
 vi.mock("./subagent-depth.js", () => ({
   getSubagentDepthFromSessionStore: () => 0,
 }));
@@ -163,15 +153,6 @@ describe("subagent registry lifecycle error grace", () => {
     vi.doMock("../plugins/hook-runner-global.js", () => ({
       getGlobalHookRunner: vi.fn(() => null),
     }));
-    vi.doMock("./pi-embedded.js", async (importOriginal) => {
-      const actual = await importOriginal<typeof import("./pi-embedded.js")>();
-      return {
-        ...actual,
-        isEmbeddedPiRunActive: () => false,
-        queueEmbeddedPiMessage: () => false,
-        waitForEmbeddedPiRunEnd: async () => true,
-      };
-    });
     vi.doMock("./subagent-depth.js", () => ({
       getSubagentDepthFromSessionStore: () => 0,
     }));
@@ -199,8 +180,8 @@ describe("subagent registry lifecycle error grace", () => {
         "agent:main:main": {
           sessionId: "sess-main",
           updatedAt: 1,
-          channel: "discord",
-          lastChannel: "discord",
+          channel: "qqbot",
+          lastChannel: "qqbot",
           to: "user-1",
           accountId: "default",
         },

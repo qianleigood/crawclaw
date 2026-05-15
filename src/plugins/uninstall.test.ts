@@ -223,15 +223,15 @@ describe("resolveUninstallChannelConfigKeys", () => {
   });
 
   it("keeps explicit empty channelIds as remove-nothing", () => {
-    expect(resolveUninstallChannelConfigKeys("telegram", { channelIds: [] })).toEqual([]);
+    expect(resolveUninstallChannelConfigKeys("feishu", { channelIds: [] })).toEqual([]);
   });
 
   it("filters shared keys and duplicate channel ids", () => {
     expect(
       resolveUninstallChannelConfigKeys("bad-plugin", {
-        channelIds: ["defaults", "discord", "discord", "modelByChannel", "slack"],
+        channelIds: ["defaults", "qqbot", "qqbot", "modelByChannel", "ddingtalk"],
       }),
-    ).toEqual(["discord", "slack"]);
+    ).toEqual(["qqbot", "ddingtalk"]);
   });
 });
 
@@ -419,12 +419,12 @@ describe("removePluginFromConfig", () => {
         },
         channels: {
           timbot: { sdkAppId: "123", secretKey: "abc" },
-          telegram: { enabled: true },
+          feishu: { enabled: true },
         },
       }),
       pluginId: "timbot",
       expectedChannels: {
-        telegram: { enabled: true },
+        feishu: { enabled: true },
       },
       expectedChanged: true,
     },
@@ -432,17 +432,17 @@ describe("removePluginFromConfig", () => {
       name: "does not remove channel config for built-in channel without install record",
       config: createPluginConfig({
         entries: {
-          telegram: { enabled: true },
+          feishu: { enabled: true },
         },
         channels: {
-          telegram: { enabled: true },
-          discord: { enabled: true },
+          feishu: { enabled: true },
+          qqbot: { enabled: true },
         },
       }),
-      pluginId: "telegram",
+      pluginId: "feishu",
       expectedChannels: {
-        telegram: { enabled: true },
-        discord: { enabled: true },
+        feishu: { enabled: true },
+        qqbot: { enabled: true },
       },
       expectedChanged: false,
     },
@@ -479,15 +479,15 @@ describe("removePluginFromConfig", () => {
       name: "does not remove channel config when plugin has no install record",
       config: createPluginConfig({
         entries: {
-          discord: { enabled: true },
+          qqbot: { enabled: true },
         },
         channels: {
-          discord: { enabled: true, token: "abc" },
+          qqbot: { enabled: true, token: "abc" },
         },
       }),
-      pluginId: "discord",
+      pluginId: "qqbot",
       expectedChannels: {
-        discord: {
+        qqbot: {
           enabled: true,
           token: "abc",
         },
@@ -506,7 +506,7 @@ describe("removePluginFromConfig", () => {
         channels: {
           timbot: { sdkAppId: "123" },
           "timbot-v2": { sdkAppId: "456" },
-          telegram: { enabled: true },
+          feishu: { enabled: true },
         },
       }),
       pluginId: "timbot-plugin",
@@ -514,7 +514,7 @@ describe("removePluginFromConfig", () => {
         channelIds: ["timbot", "timbot-v2"],
       },
       expectedChannels: {
-        telegram: { enabled: true },
+        feishu: { enabled: true },
       },
       expectedChanged: true,
     },
@@ -566,21 +566,21 @@ describe("removePluginFromConfig", () => {
       name: "skips channel cleanup when channelIds is empty array (non-channel plugin)",
       config: createPluginConfig({
         entries: {
-          telegram: { enabled: true },
+          feishu: { enabled: true },
         },
         installs: {
-          telegram: createNpmInstallRecord("telegram"),
+          feishu: createNpmInstallRecord("feishu"),
         },
         channels: {
-          telegram: { enabled: true },
+          feishu: { enabled: true },
         },
       }),
-      pluginId: "telegram",
+      pluginId: "feishu",
       options: {
         channelIds: [],
       },
       expectedChannels: {
-        telegram: { enabled: true },
+        feishu: { enabled: true },
       },
       expectedChanged: false,
     },

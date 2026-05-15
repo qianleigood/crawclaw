@@ -27,7 +27,7 @@ macOS 也可以在**节点模式**下运行：节点主机连接到 Gateway 网�
 注意事项：
 
 - 节点是**外围设备**，不是 Gateway 网关。它们不运行 Gateway 网关服务。
-- Telegram/WhatsApp 等消息落在 **Gateway 网关**上，而不是节点上。
+- Feishu/Weixin 等消息落在 **Gateway 网关**上，而不是节点上。
 
 ## 配对 + 状态
 

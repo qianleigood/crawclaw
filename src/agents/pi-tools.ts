@@ -1,4 +1,4 @@
-import { createCodingTools, createReadTool } from "@mariozechner/pi-coding-agent";
+import { createCodingTools } from "@mariozechner/pi-coding-agent";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   loadSessionStore,
@@ -10,17 +10,14 @@ import type { ToolLoopDetectionConfig } from "../config/types.tools.js";
 import { resolveMergedSafeBinProfileFixtures } from "../infra/exec-safe-bin-runtime-policy.js";
 import { logWarn } from "../logger.js";
 import { resolveDurableMemoryScope } from "../memory/durable/scope.js";
-import { SESSION_SUMMARY_SPAWN_SOURCE } from "../memory/session-summary/agent-runner.js";
 import { getPluginToolMeta } from "../plugins/tools.js";
 import { isSubagentSessionKey } from "../routing/session-key.js";
 import { resolveGatewayMessageChannel } from "../utils/message-channel.js";
 import { resolveAgentConfig, resolveAgentIdFromSessionKey } from "./agent-scope.js";
-import { createApplyPatchTool } from "./apply-patch.js";
 import type { ExecToolDefaults, ProcessToolDefaults } from "./bash-tools.js";
 import { listChannelAgentTools } from "./channel-tools.js";
 import { shouldSuppressManagedWebSearchTool } from "./codex-native-web-search.js";
 import { createCrawClawTools } from "./crawclaw-tools.js";
-import { resolveImageSanitizationLimits } from "./image-sanitization.js";
 import type { ModelAuthMode } from "./model-auth.js";
 import { wrapToolWithAbortSignal } from "./pi-tools.abort.js";
 import {
@@ -35,27 +32,33 @@ import {
 } from "./pi-tools.policy.js";
 import {
   assertRequiredParams,
-  createHostWorkspaceEditTool,
-  createHostWorkspaceWriteTool,
-  createCrawClawReadTool,
   normalizeToolParams,
   patchToolSchemaForClaudeCompatibility,
   wrapToolMemoryFlushAppendOnlyWrite,
-  wrapToolWorkspaceRootGuard,
   wrapToolParamNormalization,
 } from "./pi-tools.read.js";
 import { normalizeToolParameters } from "./pi-tools.schema.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
+import { isReviewSpawnSource } from "./review-agent.js";
 import {
+  createRustApplyPatchTool,
   createRustBashTool,
+  createRustCronTool,
+  createRustEditTool,
   createRustFindTool,
   createRustGrepTool,
   createRustLsTool,
   createRustProcessTool,
+  createRustReadTool,
+  createRustSessionTool,
+  createRustSpecialAgentTool,
+  createRustWriteTool,
 } from "./runtime-tools/core-tools.js";
 import { cleanSchemaForGemini } from "./schema/clean-for-gemini.js";
 import type { SkillSemanticRetriever } from "./skills/discovery.js";
 import { createSkillSemanticRetrieverFromConfig } from "./skills/semantic-retrieval.js";
+
+const SESSION_SUMMARY_SPAWN_SOURCE = "session-summary";
 import { resolveSpecialAgentDefinitionBySpawnSource } from "./special/runtime/registry.js";
 import { createToolFsPolicy, resolveToolFsConfig } from "./tool-fs-policy.js";
 import {
@@ -69,7 +72,6 @@ import {
   resolveToolProfilePolicy,
 } from "./tool-policy.js";
 import { createDiscoverSkillsTool } from "./tools/discover-skills-tool.js";
-import { createSessionSummaryTools } from "./tools/session-summary-tools.js";
 import { resolveWorkspaceRoot } from "./workspace-dir.js";
 
 function isOpenAIProvider(provider?: string) {
@@ -82,10 +84,29 @@ const TOOL_DENY_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>>
 };
 const TOOL_ALLOW_BY_MESSAGE_PROVIDER: Readonly<Record<string, readonly string[]>> = {};
 const MEMORY_FLUSH_ALLOWED_TOOL_NAMES = new Set(["read", "write"]);
+const MAIN_DURABLE_MEMORY_TOOL_NAMES = [
+  "memory_manifest_read",
+  "memory_note_read",
+  "memory_note_write",
+  "memory_note_edit",
+  "memory_note_delete",
+  "write_experience_note",
+] as const;
 
 function normalizeMessageProvider(messageProvider?: string): string | undefined {
   const normalized = messageProvider?.trim().toLowerCase();
   return normalized && normalized.length > 0 ? normalized : undefined;
+}
+
+function rustRuntimeScope(parts: Array<string | null | undefined>): string | undefined {
+  const value = parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(".");
+  if (!value) {
+    return undefined;
+  }
+  return value.replace(/[^A-Za-z0-9_.-]+/g, "_");
 }
 
 function resolveSessionSpawnContext(params: {
@@ -371,11 +392,11 @@ export function createCrawClawCodingTools(options?: {
    * tool-name blocking quirks.
    */
   modelAuthMode?: ModelAuthMode;
-  /** Current channel ID for auto-threading (Slack). */
+  /** Current channel ID for auto-threading. */
   currentChannelId?: string;
-  /** Current thread timestamp for auto-threading (Slack). */
+  /** Current thread timestamp for auto-threading. */
   currentThreadTs?: string;
-  /** Current inbound message id for action fallbacks (e.g. Telegram react). */
+  /** Current inbound message id for action fallbacks (e.g. channel react). */
   currentMessageId?: string | number;
   /** Group id for channel-level tool policy resolution. */
   groupId?: string | null;
@@ -389,7 +410,7 @@ export function createCrawClawCodingTools(options?: {
   senderName?: string | null;
   senderUsername?: string | null;
   senderE164?: string | null;
-  /** Reply-to mode for Slack auto-threading. */
+  /** Reply-to mode for channel auto-threading. */
   replyToMode?: "off" | "first" | "all";
   /** Mutable ref to track if a reply was sent (for "first" mode). */
   hasRepliedRef?: { value: boolean };
@@ -511,13 +532,22 @@ export function createCrawClawCodingTools(options?: {
             : {}),
         } satisfies SpecialToolGuardContext)
       : undefined;
+  const durableMemoryAlsoAllow =
+    profile === "coding" &&
+    normalizeMessageProvider(options?.messageProvider) &&
+    typeof options?.senderId === "string" &&
+    options.senderId.trim().length > 0
+      ? MAIN_DURABLE_MEMORY_TOOL_NAMES
+      : [];
   const profilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(profilePolicy, [
     ...(profileAlsoAllow ?? []),
     ...specialAgentAlsoAllow,
+    ...durableMemoryAlsoAllow,
   ]);
   const providerProfilePolicyWithAlsoAllow = mergeAlsoAllowPolicy(providerProfilePolicy, [
     ...(providerProfileAlsoAllow ?? []),
     ...specialAgentAlsoAllow,
+    ...durableMemoryAlsoAllow,
   ]);
   const globalPolicyWithSpecialAllow = mergeAlsoAllowPolicy(globalPolicy, specialAgentAlsoAllow);
   const globalProviderPolicyWithSpecialAllow = mergeAlsoAllowPolicy(globalProviderPolicy, [
@@ -545,11 +575,7 @@ export function createCrawClawCodingTools(options?: {
     workspaceOnly: isMemoryFlushRun || fsConfig.workspaceOnly,
   });
   const workspaceRoot = resolveWorkspaceRoot(options?.workspaceDir);
-  const workspaceOnly = fsPolicy.workspaceOnly;
   const applyPatchConfig = execConfig.applyPatch;
-  // Secure by default: apply_patch is workspace-contained unless explicitly disabled.
-  // (tools.fs.workspaceOnly is a separate umbrella flag for read/write/edit/apply_patch.)
-  const applyPatchWorkspaceOnly = workspaceOnly || applyPatchConfig?.workspaceOnly !== false;
   const applyPatchEnabled =
     applyPatchConfig?.enabled !== false &&
     isOpenAIProvider(options?.modelProvider) &&
@@ -559,30 +585,18 @@ export function createCrawClawCodingTools(options?: {
       allowModels: applyPatchConfig?.allowModels,
     });
 
-  const imageSanitization = resolveImageSanitizationLimits(options?.config);
-
   const base = (createCodingTools(workspaceRoot) as unknown as AnyAgentTool[]).flatMap((tool) => {
-    if (tool.name === "read") {
-      const freshReadTool = createReadTool(workspaceRoot);
-      const wrapped = createCrawClawReadTool(freshReadTool, {
-        modelContextWindowTokens: options?.modelContextWindowTokens,
-        imageSanitization,
-      });
-      return [workspaceOnly ? wrapToolWorkspaceRootGuard(wrapped, workspaceRoot) : wrapped];
-    }
-    if (tool.name === "bash" || tool.name === "exec") {
+    if (
+      tool.name === "read" ||
+      tool.name === "write" ||
+      tool.name === "edit" ||
+      tool.name === "bash" ||
+      tool.name === "exec" ||
+      tool.name === "grep" ||
+      tool.name === "find" ||
+      tool.name === "ls"
+    ) {
       return [];
-    }
-    if (tool.name === "grep" || tool.name === "find" || tool.name === "ls") {
-      return [];
-    }
-    if (tool.name === "write") {
-      const wrapped = createHostWorkspaceWriteTool(workspaceRoot, { workspaceOnly });
-      return [workspaceOnly ? wrapToolWorkspaceRootGuard(wrapped, workspaceRoot) : wrapped];
-    }
-    if (tool.name === "edit") {
-      const wrapped = createHostWorkspaceEditTool(workspaceRoot, { workspaceOnly });
-      return [workspaceOnly ? wrapToolWorkspaceRootGuard(wrapped, workspaceRoot) : wrapped];
     }
     return [tool];
   });
@@ -619,36 +633,85 @@ export function createCrawClawCodingTools(options?: {
   const processTool = createRustProcessTool({
     cleanupMs: cleanupMsOverride ?? execConfig.cleanupMs,
     scopeKey,
+    runtimeRoot: workspaceRoot,
   });
-  const applyPatchTool = !applyPatchEnabled
-    ? null
-    : createApplyPatchTool({
-        cwd: workspaceRoot,
-        workspaceOnly: applyPatchWorkspaceOnly,
-      });
+  const applyPatchTool = !applyPatchEnabled ? null : createRustApplyPatchTool(workspaceRoot);
   const skillSemanticRetrieve =
     options?.skillSemanticRetrieve ??
     createSkillSemanticRetrieverFromConfig({
       config: options?.config,
       workspaceDir: workspaceRoot,
     });
-  const tools: AnyAgentTool[] = [
-    ...base,
+  const rustMemoryScope = rustRuntimeScope([
+    sessionSpawnContext.durableMemoryScope?.agentId,
+    sessionSpawnContext.durableMemoryScope?.channel,
+    sessionSpawnContext.durableMemoryScope?.userId,
+  ]);
+  const rustSessionSummaryScope = rustRuntimeScope([
+    sessionSpawnContext.sessionSummaryTarget?.agentId,
+    sessionSpawnContext.sessionSummaryTarget?.sessionId,
+  ]);
+  const rustCoreTools: AnyAgentTool[] = [
+    createRustReadTool(workspaceRoot),
+    createRustWriteTool(workspaceRoot),
+    createRustEditTool(workspaceRoot),
     createRustGrepTool(workspaceRoot) as unknown as AnyAgentTool,
     createRustFindTool(workspaceRoot) as unknown as AnyAgentTool,
     createRustLsTool(workspaceRoot) as unknown as AnyAgentTool,
     ...(applyPatchTool ? [applyPatchTool as unknown as AnyAgentTool] : []),
     execTool as unknown as AnyAgentTool,
     processTool as unknown as AnyAgentTool,
-    createDiscoverSkillsTool({
-      workspaceDir: workspaceRoot,
-      config: options?.config,
-      sessionId: options?.sessionId,
+    createRustCronTool({ sessionKey: options?.sessionKey }),
+    createRustSessionTool("sessions_list", { sessionKey: options?.sessionKey }),
+    createRustSessionTool("sessions_history", { sessionKey: options?.sessionKey }),
+    createRustSessionTool("sessions_send"),
+    createRustSessionTool("sessions_yield", {
       sessionKey: options?.sessionKey,
-      semanticRetrieve: skillSemanticRetrieve,
+      sessionId: options?.sessionId,
+      onYield: options?.onYield,
     }),
+    createRustSessionTool("sessions_spawn", {
+      parentSessionKey: options?.sessionKey,
+    }),
+    createRustSessionTool("subagents", { parentSessionKey: options?.sessionKey }),
+    createRustSessionTool("session_status", { sessionKey: options?.sessionKey }),
+    createRustSpecialAgentTool("memory_manifest_read", { scope: rustMemoryScope }),
+    createRustSpecialAgentTool("memory_note_read", { scope: rustMemoryScope }),
+    createRustSpecialAgentTool("memory_note_write", { scope: rustMemoryScope }),
+    createRustSpecialAgentTool("memory_note_edit", { scope: rustMemoryScope }),
+    createRustSpecialAgentTool("memory_note_delete", { scope: rustMemoryScope }),
+    createRustSpecialAgentTool("write_experience_note", { scope: rustMemoryScope }),
+    ...(isReviewSpawnSource(sessionSpawnContext.spawnSource)
+      ? []
+      : [createRustSpecialAgentTool("review_task", { sessionKey: options?.sessionKey })]),
+    ...(sessionSpawnContext.spawnSource === SESSION_SUMMARY_SPAWN_SOURCE && rustSessionSummaryScope
+      ? [
+          createRustSpecialAgentTool("session_summary_file_read", {
+            scope: rustSessionSummaryScope,
+          }),
+          createRustSpecialAgentTool("session_summary_file_edit", {
+            scope: rustSessionSummaryScope,
+          }),
+        ]
+      : []),
+  ];
+  const discoverSkillsTool = createDiscoverSkillsTool({
+    workspaceDir: workspaceRoot,
+    config: options?.config,
+    sessionId: options?.sessionId,
+    sessionKey: options?.sessionKey,
+    semanticRetrieve: skillSemanticRetrieve,
+  });
+  const channelTools = listChannelAgentTools({ cfg: options?.config });
+  const reservedToolNames = new Set(
+    [...base, ...rustCoreTools, discoverSkillsTool, ...channelTools].map((tool) => tool.name),
+  );
+  const tools: AnyAgentTool[] = [
+    ...base,
+    ...rustCoreTools,
+    discoverSkillsTool,
     // Channel docking: include channel-defined agent tools (login, etc.).
-    ...listChannelAgentTools({ cfg: options?.config }),
+    ...channelTools,
     ...createCrawClawTools({
       allowHostBrowserControl: true,
       agentSessionKey: options?.sessionKey,
@@ -693,14 +756,8 @@ export function createCrawClawCodingTools(options?: {
       sessionId: options?.sessionId,
       onYield: options?.onYield,
       allowGatewaySubagentBinding: options?.allowGatewaySubagentBinding,
+      reservedToolNames,
     }),
-    ...(sessionSpawnContext.spawnSource === SESSION_SUMMARY_SPAWN_SOURCE &&
-    sessionSpawnContext.sessionSummaryTarget
-      ? createSessionSummaryTools({
-          agentId: sessionSpawnContext.sessionSummaryTarget.agentId,
-          summarySessionId: sessionSpawnContext.sessionSummaryTarget.sessionId,
-        })
-      : []),
   ];
   const toolsForMemoryFlush =
     isMemoryFlushRun && memoryFlushWritePath

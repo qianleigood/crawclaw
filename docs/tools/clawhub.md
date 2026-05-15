@@ -1,9 +1,9 @@
 ---
-summary: "ClawHub guide: public registry, native CrawClaw install flows, and ClawHub CLI workflows"
+summary: "ClawHub guide: public registry, CrawClaw Desktop install flows, and ClawHub CLI workflows"
 read_when:
   - Introducing ClawHub to new users
   - Installing, searching, or publishing skills or plugins
-  - Explaining ClawHub CLI flags and sync behavior
+  - Explaining separate ClawHub CLI flags and sync behavior
 title: "ClawHub"
 ---
 
@@ -11,44 +11,26 @@ title: "ClawHub"
 
 ClawHub is the public registry for **CrawClaw skills and plugins**.
 
-- Use native `crawclaw` commands to search/install/update skills and install
-  plugins from ClawHub.
+- Use CrawClaw Desktop or the local Gateway API to search, install, and update skills and plugins from ClawHub.
 - Use the separate `clawhub` CLI when you need registry auth, publish, delete,
   undelete, or sync workflows.
 
 Site: [clawhub.ai](https://clawhub.ai)
 
-## Native CrawClaw flows
+## CrawClaw Desktop flows
 
-Skills:
+Desktop can search, install, and update skills and plugins. Automation should call the local Gateway API.
 
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Bare npm-safe plugin specs are also tried against ClawHub before npm.
 
-Plugins:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Bare npm-safe plugin specs are also tried against ClawHub before npm:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Native `crawclaw` commands install into your active workspace and persist source
-metadata so later `update` calls can stay on ClawHub.
+CrawClaw Desktop installs into your active workspace and persists source
+metadata so later updates can stay on ClawHub.
 
 ## What ClawHub is
 
 - A public registry for CrawClaw skills and plugins.
 - A versioned store of skill bundles and metadata.
-- A discovery surface for search, tags, and usage signals.
+- A discovery surface for search, tags, and usage native channels.
 
 ## How it works
 
@@ -71,7 +53,7 @@ If you want to add new capabilities to your CrawClaw agent, ClawHub is the easie
 
 - Search for skills by plain language.
 - Install a skill into your workspace.
-- Update skills later with one command.
+- Update skills later from Desktop or the Gateway API.
 - Back up your own skills by publishing them.
 
 ## Quick start (non-technical)
@@ -125,7 +107,7 @@ A typical skill includes:
 - Metadata such as tags, summary, and install requirements.
 
 ClawHub uses metadata to power discovery and safely expose skill capabilities.
-The registry also tracks usage signals (such as stars and downloads) to improve
+The registry also tracks usage native channels (such as stars and downloads) to improve
 ranking and visibility.
 
 ## What the service provides (features)
@@ -153,7 +135,7 @@ Reporting and moderation:
 - Moderators can view hidden skills, unhide them, delete them, or ban users.
 - Abusing the report feature can result in account bans.
 
-Interested in becoming a moderator? Ask in the CrawClaw Discord and contact a
+Interested in becoming a moderator? Ask in the CrawClaw community chat and contact a
 moderator or maintainer.
 
 ## Desktop and Gateway API actions and parameters

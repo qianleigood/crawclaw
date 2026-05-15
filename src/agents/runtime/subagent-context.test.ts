@@ -9,7 +9,7 @@ describe("subagent-context", () => {
   it("normalizes spawn tool context and derives requester origin", () => {
     const normalized = normalizeAgentSpawnContext({
       agentSessionKey: " agent:main:main ",
-      agentChannel: " discord ",
+      agentChannel: " qqbot ",
       agentAccountId: " acct ",
       agentTo: " channel:123 ",
       agentThreadId: " 456 ",
@@ -22,7 +22,7 @@ describe("subagent-context", () => {
 
     expect(normalized).toMatchObject({
       agentSessionKey: "agent:main:main",
-      agentChannel: "discord",
+      agentChannel: "qqbot",
       agentAccountId: "acct",
       agentTo: "channel:123",
       agentThreadId: "456",
@@ -32,7 +32,7 @@ describe("subagent-context", () => {
       requesterAgentIdOverride: "child-agent",
       workspaceDir: "/workspace/project",
       requesterOrigin: {
-        channel: "discord",
+        channel: "qqbot",
         accountId: "acct",
         to: "channel:123",
         threadId: "456",
@@ -43,7 +43,7 @@ describe("subagent-context", () => {
   it("maps normalized context into ACP and subagent-specific shapes", () => {
     const normalized = normalizeAgentSpawnContext({
       agentSessionKey: "agent:main:main",
-      agentChannel: "discord",
+      agentChannel: "qqbot",
       agentAccountId: "acct",
       agentTo: "channel:123",
       agentThreadId: 456,
@@ -56,7 +56,7 @@ describe("subagent-context", () => {
 
     expect(toAcpSpawnContext(normalized)).toEqual({
       agentSessionKey: "agent:main:main",
-      agentChannel: "discord",
+      agentChannel: "qqbot",
       agentAccountId: "acct",
       agentTo: "channel:123",
       agentThreadId: 456,
@@ -64,7 +64,7 @@ describe("subagent-context", () => {
     });
     expect(toSubagentSpawnContext(normalized)).toEqual({
       agentSessionKey: "agent:main:main",
-      agentChannel: "discord",
+      agentChannel: "qqbot",
       agentAccountId: "acct",
       agentTo: "channel:123",
       agentThreadId: 456,

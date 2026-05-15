@@ -83,10 +83,9 @@ const TEXT_ZH_CN: Record<string, string> = {
   "⚠️ /btw is unavailable because the active agent directory could not be resolved.":
     "⚠️ /btw 当前不可用，因为无法解析活动 agent 目录。",
   "⚙️ Group activation only applies to group chats.": "⚙️ 群组激活仅适用于群聊。",
-  "❌ This /approve command targets a different Telegram bot.":
-    "❌ 这个 /approve 命令指向了另一个 Telegram bot。",
-  "❌ Telegram exec approvals are not enabled for this bot account.":
-    "❌ 当前 bot 账号未启用 Telegram exec 审批。",
+  "❌ This /approve command targets a different bot.": "❌ 这个 /approve 命令指向了另一个 bot。",
+  "❌ Chat exec approvals are not enabled for this bot account.":
+    "❌ 当前 bot 账号未启用聊天 exec 审批。",
   "🔊 TTS enabled.": "🔊 TTS 已启用。",
   "🔇 TTS disabled.": "🔇 TTS 已关闭。",
   "All clear - nothing linked to this session right now.": "一切正常，当前没有与此会话关联的任务。",

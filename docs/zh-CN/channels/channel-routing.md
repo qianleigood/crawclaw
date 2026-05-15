@@ -67,7 +67,10 @@ CrawClaw 将回复**路由回消息来源的渠道**。模型不会选择渠道�
     list: [{ id: "support", name: "Support", workspace: "~/.crawclaw/workspace-support" }],
   },
   bindings: [
-    { match: { channel: "internal", peer: { kind: "group", id: "group-123" } }, agentId: "support" },
+    {
+      match: { channel: "internal", peer: { kind: "group", id: "group-123" } },
+      agentId: "support",
+    },
   ],
 }
 ```

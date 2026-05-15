@@ -4,12 +4,16 @@ import "./test-helpers/fast-coding-tools.js";
 import { createCrawClawCodingTools } from "./pi-tools.js";
 
 const defaultTools = createCrawClawCodingTools({ senderIsOwner: true });
+const fullProfileTools = createCrawClawCodingTools({
+  senderIsOwner: true,
+  config: { tools: { profile: "full" } },
+});
 
 describe("createCrawClawCodingTools", () => {
   it("preserves action enums in normalized schemas", () => {
-    const toolNames = ["canvas", "cron", "gateway", "message"];
+    const toolNames = ["cron", "message"];
     const missingNames = toolNames.filter(
-      (name) => !defaultTools.some((candidate) => candidate.name === name),
+      (name) => !fullProfileTools.some((candidate) => candidate.name === name),
     );
     expect(missingNames).toEqual([]);
 
@@ -36,7 +40,7 @@ describe("createCrawClawCodingTools", () => {
     };
 
     for (const name of toolNames) {
-      const tool = defaultTools.find((candidate) => candidate.name === name);
+      const tool = fullProfileTools.find((candidate) => candidate.name === name);
       const parameters = tool?.parameters as {
         properties?: Record<string, unknown>;
       };
@@ -55,7 +59,7 @@ describe("createCrawClawCodingTools", () => {
     }
   });
   it("enforces apply_patch availability and canonical names across model/provider constraints", () => {
-    expect(defaultTools.some((tool) => tool.name === "exec")).toBe(true);
+    expect(defaultTools.some((tool) => tool.name === "bash")).toBe(true);
     expect(defaultTools.some((tool) => tool.name === "process")).toBe(true);
     expect(defaultTools.some((tool) => tool.name === "apply_patch")).toBe(false);
 
@@ -118,7 +122,7 @@ describe("createCrawClawCodingTools", () => {
       modelAuthMode: "oauth",
     });
     const names = new Set(oauthTools.map((tool) => tool.name));
-    expect(names.has("exec")).toBe(true);
+    expect(names.has("bash")).toBe(true);
     expect(names.has("read")).toBe(true);
     expect(names.has("write")).toBe(true);
     expect(names.has("edit")).toBe(true);

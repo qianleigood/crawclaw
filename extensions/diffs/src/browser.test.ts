@@ -202,7 +202,6 @@ describe("diffs plugin registration", () => {
       | ((ctx: CrawClawPluginToolContext) => RegisteredTool | RegisteredTool[] | null | undefined)
       | undefined;
     let registeredHttpRouteHandler: RegisteredHttpRouteParams["handler"] | undefined;
-    const on = vi.fn();
 
     const api = createTestPluginApi({
       id: "diffs",
@@ -236,25 +235,9 @@ describe("diffs plugin registration", () => {
       registerHttpRoute(params: RegisteredHttpRouteParams) {
         registeredHttpRouteHandler = params.handler;
       },
-      on,
     });
 
     plugin.register?.(api as unknown as CrawClawPluginApi);
-
-    expect(on).toHaveBeenCalledTimes(1);
-    expect(on.mock.calls[0]?.[0]).toBe("before_prompt_build");
-    const beforePromptBuild = on.mock.calls[0]?.[1];
-    const promptResult = await beforePromptBuild?.({}, {});
-    expect(promptResult).toMatchObject({
-      queryContextPatch: {
-        prependSystemContextSections: [
-          expect.objectContaining({
-            content: expect.stringContaining("prefer the `diffs` tool"),
-          }),
-        ],
-      },
-    });
-    expect(promptResult?.prependContext).toBeUndefined();
 
     const registeredTool = registeredToolFactory?.({
       agentId: "main",

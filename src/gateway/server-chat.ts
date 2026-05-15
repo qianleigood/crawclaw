@@ -759,7 +759,7 @@ export function createAgentEventHandler({
       // Always broadcast tool events to registered WS recipients with
       // tool-events capability, regardless of verboseLevel. The verbose
       // setting only controls whether tool details are sent as channel
-      // messages to messaging surfaces (Telegram, Discord, etc.).
+      // messages to native messaging surfaces.
       const recipients = toolEventRecipients.get(evt.runId);
       if (recipients && recipients.size > 0) {
         broadcastToConnIds(

@@ -1,7 +1,7 @@
 import { listAgentIds, resolveAgentWorkspaceDir } from "../../../agents/agent-scope.js";
-import { createDefaultDeps } from "../../../cli/deps.js";
 import { runBootOnce } from "../../../gateway/boot.js";
 import { createSubsystemLogger } from "../../../logging/subsystem.js";
+import { createDefaultDeps } from "../../../terminal/deps.js";
 import type { HookHandler } from "../../hooks.js";
 import { isGatewayStartupEvent } from "../../internal-hooks.js";
 

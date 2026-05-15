@@ -143,31 +143,15 @@ describe("normalizePluginsConfig", () => {
 });
 
 describe("resolveEffectiveEnableState", () => {
-  function resolveBundledTelegramState(config: Parameters<typeof normalizePluginsConfig>[0]) {
+  function resolveConfigOriginFeishuState(config: Parameters<typeof normalizePluginsConfig>[0]) {
     const normalized = normalizePluginsConfig(config);
     return resolveEffectiveEnableState({
-      id: "telegram",
-      origin: "bundled",
-      config: normalized,
-      rootConfig: {
-        channels: {
-          telegram: {
-            enabled: true,
-          },
-        },
-      },
-    });
-  }
-
-  function resolveConfigOriginTelegramState(config: Parameters<typeof normalizePluginsConfig>[0]) {
-    const normalized = normalizePluginsConfig(config);
-    return resolveEffectiveEnableState({
-      id: "telegram",
+      id: "feishu",
       origin: "config",
       config: normalized,
       rootConfig: {
         channels: {
-          telegram: {
+          feishu: {
             enabled: true,
           },
         },
@@ -175,30 +159,9 @@ describe("resolveEffectiveEnableState", () => {
     });
   }
 
-  it.each([
-    [{ enabled: true }, { enabled: true }],
-    [
-      { enabled: true, allow: ["browser"] as string[] },
-      { enabled: false, reason: "not in allowlist" },
-    ],
-    [
-      {
-        enabled: true,
-        entries: {
-          telegram: {
-            enabled: false,
-          },
-        },
-      },
-      { enabled: false, reason: "disabled in config" },
-    ],
-  ] as const)("resolves bundled telegram state for %o", (config, expected) => {
-    expect(resolveBundledTelegramState(config)).toEqual(expected);
-  });
-
   it("does not bypass allowlists for non-bundled plugins that reuse a channel id", () => {
     expect(
-      resolveConfigOriginTelegramState({
+      resolveConfigOriginFeishuState({
         enabled: true,
         allow: ["browser"] as string[],
       }),
@@ -212,7 +175,7 @@ describe("resolveEffectivePluginActivationState", () => {
       Parameters<typeof resolveEffectivePluginActivationState>[0]["sourceRootConfig"]
     > = {
       channels: {
-        telegram: {
+        feishu: {
           botToken: "x",
         },
       },
@@ -221,7 +184,7 @@ describe("resolveEffectivePluginActivationState", () => {
       Parameters<typeof resolveEffectivePluginActivationState>[0]["rootConfig"]
     > = {
       channels: {
-        telegram: {
+        feishu: {
           botToken: "x",
           enabled: true,
         },
@@ -230,20 +193,20 @@ describe("resolveEffectivePluginActivationState", () => {
 
     expect(
       resolveEffectivePluginActivationState({
-        id: "telegram",
+        id: "feishu",
         origin: "bundled",
         config: normalizePluginsConfig(effectiveConfig.plugins),
         rootConfig: effectiveConfig,
         sourceConfig: normalizePluginsConfig(rawConfig.plugins),
         sourceRootConfig: rawConfig,
-        autoEnabledReason: "telegram configured",
+        autoEnabledReason: "feishu configured",
       }),
     ).toEqual({
       enabled: true,
       activated: true,
       explicitlyEnabled: false,
       source: "auto",
-      reason: "telegram configured",
+      reason: "feishu configured",
     });
   });
 
@@ -299,7 +262,7 @@ describe("resolveEffectivePluginActivationState", () => {
       plugins: {
         allow: ["browser"],
         entries: {
-          telegram: {
+          feishu: {
             enabled: true,
           },
         },
@@ -308,37 +271,7 @@ describe("resolveEffectivePluginActivationState", () => {
 
     expect(
       resolveEffectivePluginActivationState({
-        id: "telegram",
-        origin: "bundled",
-        config: normalizePluginsConfig(rawConfig.plugins),
-        rootConfig: rawConfig,
-        sourceConfig: normalizePluginsConfig(rawConfig.plugins),
-        sourceRootConfig: rawConfig,
-      }),
-    ).toEqual({
-      enabled: false,
-      activated: false,
-      explicitlyEnabled: true,
-      source: "disabled",
-      reason: "not in allowlist",
-    });
-  });
-
-  it("keeps allowlists authoritative over bundled channel activation", () => {
-    const rawConfig = {
-      channels: {
-        telegram: {
-          enabled: true,
-        },
-      },
-      plugins: {
-        allow: ["browser"],
-      },
-    };
-
-    expect(
-      resolveEffectivePluginActivationState({
-        id: "telegram",
+        id: "feishu",
         origin: "bundled",
         config: normalizePluginsConfig(rawConfig.plugins),
         rootConfig: rawConfig,
@@ -363,13 +296,13 @@ describe("resolveEffectivePluginActivationState", () => {
 
     expect(
       resolveEffectivePluginActivationState({
-        id: "telegram",
+        id: "feishu",
         origin: "bundled",
         config: normalizePluginsConfig(rawConfig.plugins),
         rootConfig: rawConfig,
         sourceConfig: normalizePluginsConfig(rawConfig.plugins),
         sourceRootConfig: rawConfig,
-        autoEnabledReason: "telegram configured",
+        autoEnabledReason: "feishu configured",
       }),
     ).toEqual({
       enabled: false,
@@ -436,7 +369,7 @@ describe("resolveEnableState", () => {
     {
       name: "keeps the selected memory slot plugin enabled even when omitted from plugins.allow",
       config: {
-        allow: ["telegram"],
+        allow: ["feishu"],
         slots: { memory: "legacy-memory" },
       },
       expected: { enabled: true },
@@ -444,7 +377,7 @@ describe("resolveEnableState", () => {
     {
       name: "keeps explicit disable authoritative for the selected memory slot plugin",
       config: {
-        allow: ["telegram"],
+        allow: ["feishu"],
         slots: { memory: "legacy-memory" },
         entries: {
           "legacy-memory": {

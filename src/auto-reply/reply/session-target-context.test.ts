@@ -29,9 +29,9 @@ const { resolveSessionTargetContext } = await import("./session-target-context.j
 describe("resolveSessionTargetContext", () => {
   function buildCtx(overrides: Partial<MsgContext> = {}): MsgContext {
     return {
-      Provider: "discord",
-      Surface: "discord",
-      SessionKey: "agent:main:discord:channel:raw",
+      Provider: "qqbot",
+      Surface: "qqbot",
+      SessionKey: "agent:main:qqbot:channel:raw",
       To: "channel:raw",
       ...overrides,
     } as MsgContext;
@@ -49,34 +49,34 @@ describe("resolveSessionTargetContext", () => {
 
   it("uses the bound conversation session key as the target session and touches the binding", () => {
     targetContextMocks.resolveConversationBindingContextFromMessage.mockReturnValue({
-      channel: "discord",
+      channel: "qqbot",
       accountId: "default",
       conversationId: "channel:bound",
     });
     targetContextMocks.resolveByConversation.mockReturnValue({
       bindingId: "binding-1",
-      targetSessionKey: "agent:main:discord:channel:bound",
+      targetSessionKey: "agent:main:qqbot:channel:bound",
     });
     targetContextMocks.resolveEffectiveResetTargetSessionKey.mockReturnValue(
-      "agent:codex:acp:binding:discord:default:feedface",
+      "agent:codex:acp:binding:qqbot:default:feedface",
     );
 
     const result = resolveSessionTargetContext({
       cfg: {} as never,
       ctx: buildCtx({
         CommandSource: "native",
-        CommandTargetSessionKey: "agent:main:discord:channel:slash",
+        CommandTargetSessionKey: "agent:main:qqbot:channel:slash",
       }),
     });
 
     expect(result.bindingContext).toEqual({
-      channel: "discord",
+      channel: "qqbot",
       accountId: "default",
       conversationId: "channel:bound",
     });
-    expect(result.targetSessionKey).toBe("agent:main:discord:channel:bound");
-    expect(result.sessionCtxForState.SessionKey).toBe("agent:main:discord:channel:bound");
-    expect(result.boundAcpSessionKey).toBe("agent:codex:acp:binding:discord:default:feedface");
+    expect(result.targetSessionKey).toBe("agent:main:qqbot:channel:bound");
+    expect(result.sessionCtxForState.SessionKey).toBe("agent:main:qqbot:channel:bound");
+    expect(result.boundAcpSessionKey).toBe("agent:codex:acp:binding:qqbot:default:feedface");
     expect(result.shouldUseAcpInPlaceReset).toBe(true);
     expect(targetContextMocks.touch).toHaveBeenCalledWith("binding-1");
   });
@@ -86,12 +86,12 @@ describe("resolveSessionTargetContext", () => {
       cfg: {} as never,
       ctx: buildCtx({
         CommandSource: "native",
-        CommandTargetSessionKey: "agent:main:discord:channel:slash",
+        CommandTargetSessionKey: "agent:main:qqbot:channel:slash",
       }),
     });
 
-    expect(result.targetSessionKey).toBe("agent:main:discord:channel:slash");
-    expect(result.sessionCtxForState.SessionKey).toBe("agent:main:discord:channel:slash");
+    expect(result.targetSessionKey).toBe("agent:main:qqbot:channel:slash");
+    expect(result.sessionCtxForState.SessionKey).toBe("agent:main:qqbot:channel:slash");
     expect(result.shouldUseAcpInPlaceReset).toBe(false);
   });
 

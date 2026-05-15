@@ -178,13 +178,13 @@ function loadRegistryForMinHostVersionCase(params: {
     ...(params.env ? { env: params.env } : {}),
     candidates: [
       createPluginCandidate({
-        idHint: "synology-chat",
+        idHint: "feishu",
         rootDir: params.rootDir,
         packageDir: params.rootDir,
         origin: "global",
         packageManifest: {
           install: {
-            npmSpec: "@crawclaw/synology-chat",
+            npmSpec: "@crawclaw/feishu",
             minHostVersion: params.minHostVersion,
           },
         },
@@ -336,7 +336,7 @@ describe("loadPluginManifestRegistry", () => {
   it("reports explicit installed globals as the effective duplicate winner", () => {
     const bundledDir = makeTempDir();
     const globalDir = makeTempDir();
-    const manifest = { id: "zalouser", configSchema: { type: "object" } };
+    const manifest = { id: "feishu", configSchema: { type: "object" } };
     writeManifest(bundledDir, manifest);
     writeManifest(globalDir, manifest);
 
@@ -345,7 +345,7 @@ describe("loadPluginManifestRegistry", () => {
       config: {
         plugins: {
           installs: {
-            zalouser: {
+            feishu: {
               source: "npm",
               installPath: globalDir,
             },
@@ -354,12 +354,12 @@ describe("loadPluginManifestRegistry", () => {
       },
       candidates: [
         createPluginCandidate({
-          idHint: "zalouser",
+          idHint: "feishu",
           rootDir: bundledDir,
           origin: "bundled",
         }),
         createPluginCandidate({
-          idHint: "zalouser",
+          idHint: "feishu",
           rootDir: globalDir,
           origin: "global",
         }),
@@ -418,11 +418,11 @@ describe("loadPluginManifestRegistry", () => {
   it("preserves channel config metadata from plugin manifests", () => {
     const dir = makeTempDir();
     writeManifest(dir, {
-      id: "matrix",
-      channels: ["matrix"],
+      id: "feishu",
+      channels: ["feishu"],
       configSchema: { type: "object" },
       channelConfigs: {
-        matrix: {
+        feishu: {
           schema: {
             type: "object",
             properties: {
@@ -434,23 +434,23 @@ describe("loadPluginManifestRegistry", () => {
               label: "Homeserver",
             },
           },
-          label: "Matrix",
-          description: "Matrix config",
-          preferOver: ["matrix-legacy"],
+          label: "Feishu",
+          description: "Feishu config",
+          preferOver: ["feishu-legacy"],
         },
       },
     });
 
     const registry = loadRegistry([
       createPluginCandidate({
-        idHint: "matrix",
+        idHint: "feishu",
         rootDir: dir,
         origin: "workspace",
       }),
     ]);
 
     expect(registry.plugins[0]?.channelConfigs).toEqual({
-      matrix: {
+      feishu: {
         schema: {
           type: "object",
           properties: {
@@ -462,9 +462,9 @@ describe("loadPluginManifestRegistry", () => {
             label: "Homeserver",
           },
         },
-        label: "Matrix",
-        description: "Matrix config",
-        preferOver: ["matrix-legacy"],
+        label: "Feishu",
+        description: "Feishu config",
+        preferOver: ["feishu-legacy"],
       },
     });
   });
@@ -473,16 +473,16 @@ describe("loadPluginManifestRegistry", () => {
     const dir = makeTempDir();
     const registry = loadRegistry([
       createPluginCandidate({
-        idHint: "telegram",
+        idHint: "feishu",
         rootDir: dir,
         origin: "bundled",
         bundledManifestPath: path.join(dir, "crawclaw.plugin.json"),
         bundledManifest: {
-          id: "telegram",
+          id: "feishu",
           configSchema: { type: "object" },
-          channels: ["telegram"],
+          channels: ["feishu"],
           channelConfigs: {
-            telegram: {
+            feishu: {
               schema: { type: "object" },
             },
           },
@@ -490,7 +490,7 @@ describe("loadPluginManifestRegistry", () => {
       }),
     ]);
 
-    expect(registry.plugins[0]?.channelConfigs?.telegram).toEqual(
+    expect(registry.plugins[0]?.channelConfigs?.feishu).toEqual(
       expect.objectContaining({
         schema: expect.objectContaining({
           type: "object",
@@ -539,7 +539,7 @@ describe("loadPluginManifestRegistry", () => {
     },
   ] as const)("$name", ({ minHostVersion, env, expectedMessage, expectWarn }) => {
     const dir = makeTempDir();
-    writeManifest(dir, { id: "synology-chat", configSchema: { type: "object" } });
+    writeManifest(dir, { id: "feishu", configSchema: { type: "object" } });
 
     const registry = loadRegistryForMinHostVersionCase({
       rootDir: dir,
@@ -636,7 +636,7 @@ describe("loadPluginManifestRegistry", () => {
   it.each([
     { name: "provider-style", manifestId: "openai", idHint: "openai-provider" },
     { name: "plugin-style", manifestId: "brave", idHint: "brave-plugin" },
-    { name: "multi-entry-style", manifestId: "matrix", idHint: "matrix/index" },
+    { name: "multi-entry-style", manifestId: "feishu", idHint: "feishu/index" },
     {
       name: "media-understanding-style",
       manifestId: "groq",
@@ -858,17 +858,17 @@ describe("loadPluginManifestRegistry", () => {
   it("does not reuse cached bundled plugin roots across env changes", () => {
     const bundledA = makeTempDir();
     const bundledB = makeTempDir();
-    const matrixA = createManifestPluginRoot({
+    const feishuA = createManifestPluginRoot({
       baseDir: bundledA,
-      pluginId: "matrix",
-      name: "Matrix A",
-      relativePath: "matrix",
+      pluginId: "feishu",
+      name: "Feishu A",
+      relativePath: "feishu",
     });
-    const matrixB = createManifestPluginRoot({
+    const feishuB = createManifestPluginRoot({
       baseDir: bundledB,
-      pluginId: "matrix",
-      name: "Matrix B",
-      relativePath: "matrix",
+      pluginId: "feishu",
+      name: "Feishu B",
+      relativePath: "feishu",
     });
 
     const first = loadPluginManifestRegistry({
@@ -887,9 +887,9 @@ describe("loadPluginManifestRegistry", () => {
     expectCachedPluginRoot({
       first,
       second,
-      pluginId: "matrix",
-      firstRoot: matrixA,
-      secondRoot: matrixB,
+      pluginId: "feishu",
+      firstRoot: feishuA,
+      secondRoot: feishuB,
     });
   });
 
@@ -947,17 +947,17 @@ describe("loadPluginManifestRegistry", () => {
 
   it("does not reuse cached manifests across host version changes", () => {
     const dir = makeTempDir();
-    writeManifest(dir, { id: "synology-chat", configSchema: { type: "object" } });
+    writeManifest(dir, { id: "feishu", configSchema: { type: "object" } });
     fs.writeFileSync(path.join(dir, "index.ts"), "export default {}", "utf-8");
     const candidates = [
       createPluginCandidate({
-        idHint: "synology-chat",
+        idHint: "feishu",
         rootDir: dir,
         packageDir: dir,
         origin: "global",
         packageManifest: {
           install: {
-            npmSpec: "@crawclaw/synology-chat",
+            npmSpec: "@crawclaw/feishu",
             minHostVersion: ">=2026.3.22",
           },
         },
@@ -983,7 +983,7 @@ describe("loadPluginManifestRegistry", () => {
     expect(
       olderHost.diagnostics.some((diag) => diag.message.includes("this host is 2026.3.21")),
     ).toBe(true);
-    expect(newerHost.plugins.some((plugin) => plugin.id === "synology-chat")).toBe(true);
+    expect(newerHost.plugins.some((plugin) => plugin.id === "feishu")).toBe(true);
     expect(
       newerHost.diagnostics.some((diag) => diag.message.includes("this host is 2026.3.21")),
     ).toBe(false);

@@ -150,7 +150,7 @@ const SKIP_EAGER_WARMUP_PRIMARY_COMMANDS = new Set([
 ]);
 
 function shouldEagerWarmContextWindowCache(argv: string[] = process.argv): boolean {
-  // Keep this gate tied to the real CrawClaw CLI entrypoints.
+  // Keep this gate tied to the real local runtime entrypoints.
   //
   // This module can also land inside shared dist chunks that are imported from
   // plugin-sdk/library surfaces during smoke tests and plugin loading. If we do
@@ -263,7 +263,7 @@ export function lookupContextTokens(
 }
 
 if (shouldEagerWarmContextWindowCache()) {
-  // Keep startup warmth for the real CLI, but avoid import-time side effects
+  // Keep startup warmth for real local runtime entrypoints, but avoid import-time side effects
   // when this module is pulled in through library/plugin-sdk surfaces.
   void ensureContextWindowCacheLoaded();
 }

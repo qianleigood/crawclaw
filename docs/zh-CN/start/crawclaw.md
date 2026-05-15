@@ -15,7 +15,7 @@ x-i18n:
 
 # 使用 CrawClaw 构建个人助手
 
-CrawClaw 是一个自托管 Gateway，可以把 WhatsApp、Telegram、Discord、iMessage 等渠道连接到 AI agents。本指南是"个人助手"设置：一个专用的 WhatsApp 号码，表现得像你的常驻 AI 助手。
+CrawClaw 是一个自托管 Gateway，可以把 Weixin、Feishu、QQBot、Weixin 等渠道连接到 AI agents。本指南是"个人助手"设置：一个专用的 Weixin 号码，表现得像你的常驻 AI 助手。
 
 ## ⚠️ 安全第一
 
@@ -23,12 +23,12 @@ CrawClaw 是一个自托管 Gateway，可以把 WhatsApp、Telegram、Discord、
 
 - 在你的机器上运行命令（取决于你的工具策略）
 - 在你的工作区读/写文件
-- 通过 WhatsApp/Telegram/Discord/Mattermost（插件）发送消息
+- 通过 Weixin/Feishu/QQBot/Feishu（插件）发送消息
 
 从保守开始：
 
-- 始终设置 `channels.whatsapp.allowFrom`（永远不要在你的个人 Mac 上对全世界开放）。
-- 为助手使用专用的 WhatsApp 号码。
+- 始终设置 `channels.weixin.allowFrom`（永远不要在你的个人 Mac 上对全世界开放）。
+- 为助手使用专用的 Weixin 号码。
 - 只有在信任设置和投递目标后，才用 cron 添加主动检查。
 
 ## 先决条件
@@ -43,7 +43,7 @@ CrawClaw 是一个自托管 Gateway，可以把 WhatsApp、Telegram、Discord、
 ```
 你的手机（个人）               第二部手机（助手）
 ┌─────────────────┐           ┌─────────────────┐
-│  你的 WhatsApp  │  ──────▶  │   助手 WA       │
+│  你的 Weixin  │  ──────▶  │   助手 WA       │
 │  +1-555-YOU     │  消息     │  +1-555-ASSIST  │
 └─────────────────┘           └────────┬────────┘
                                        │ 通过二维码关联
@@ -55,11 +55,11 @@ CrawClaw 是一个自托管 Gateway，可以把 WhatsApp、Telegram、Discord、
                               └─────────────────┘
 ```
 
-如果你将个人 WhatsApp 关联到 CrawClaw，发给你的每条消息都会变成"智能体输入"。这通常不是你想要的。
+如果你将个人 Weixin 关联到 CrawClaw，发给你的每条消息都会变成"智能体输入"。这通常不是你想要的。
 
 ## 5 分钟快速开始
 
-1. 配对 WhatsApp Web（显示二维码；用助手手机扫描）：
+1. 配对 Weixin Web（显示二维码；用助手手机扫描）：
 
 ```bash
 crawclaw channels login
@@ -75,7 +75,7 @@ crawclaw gateway --port 18789
 
 ```json5
 {
-  channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+  channels: { weixin: { allowFrom: ["+15555550123"] } },
 }
 ```
 
@@ -142,7 +142,7 @@ CrawClaw 默认为良好的助手设置，但你通常需要调整：
     },
   },
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: {
         "*": { requireMention: true },
@@ -201,7 +201,7 @@ CrawClaw 会提取这些并将它们作为媒体与文本一起发送。
 ```bash
 crawclaw status          # 本地状态（凭证、会话、排队事件）
 crawclaw status --all    # 完整诊断（只读，可粘贴）
-crawclaw status --deep   # 添加 Gateway 网关健康探测（Telegram + Discord）
+crawclaw status --deep   # 添加 Gateway 网关健康探测（Feishu + QQBot）
 crawclaw health --json   # Gateway 网关健康快照（WS）
 ```
 

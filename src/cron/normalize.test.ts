@@ -85,7 +85,7 @@ describe("normalizeCronJobCreate", () => {
       name: "legacy",
       payload: {
         deliver: true,
-        provider: " TeLeGrAm ",
+        provider: " FeIsHu ",
         to: "7200373102",
       },
     });
@@ -93,7 +93,7 @@ describe("normalizeCronJobCreate", () => {
     const payload = normalized.payload as Record<string, unknown>;
     expectPayloadDeliveryHintsPreserved(payload, {
       deliver: true,
-      provider: " TeLeGrAm ",
+      provider: " FeIsHu ",
       to: "7200373102",
     });
     expect(normalized.delivery).toBeUndefined();

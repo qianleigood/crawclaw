@@ -28,32 +28,32 @@ The Windows matrix uses three support states:
 
 ## Native capability matrix
 
-| Surface                             | Status       | Windows boundary                                                                                                                             |
-| ----------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Installer                           | `supported`  | `install.ps1` installs Node 24 by default, accepts Node 25 as an experimental runtime, checks Git/PATH prerequisites, and installs CrawClaw. |
-| CLI                                 | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                                            |
-| Gateway foreground                  | `supported`  | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Windows host.                                                   |
-| Gateway service                     | `supported`  | Per-user login service: Scheduled Task when allowed, Startup-folder fallback when task creation is denied.                                   |
-| `exec` and `system.run` tools       | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.                                 |
-| Browser automation                  | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                                              |
-| Telegram, Discord, Slack, Matrix    | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.                           |
-| Common provider plugins             | `supported`  | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                                              |
-| BlueBubbles and iMessage            | `not-native` | Requires a Mac-side BlueBubbles or Apple messaging host outside the Windows runtime.                                                         |
-| Apple skills and macOS-only tooling | `not-native` | Requires an Apple host outside the Windows runtime.                                                                                          |
+| Surface                             | Status       | Windows boundary                                                                                                                                            |
+| ----------------------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Installer                           | `supported`  | `CrawClaw Desktop installer` installs Node 24 by default, accepts Node 25 as an experimental runtime, checks Git/PATH prerequisites, and installs CrawClaw. |
+| CLI                                 | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                                                           |
+| Gateway foreground                  | `supported`  | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Windows host.                                                                  |
+| Gateway service                     | `supported`  | Per-user login service: Scheduled Task when allowed, Startup-folder fallback when task creation is denied.                                                  |
+| `exec` and `system.run` tools       | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.                                                |
+| Browser automation                  | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                                                             |
+| Feishu, QQBot, DingTalk, Weixin     | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.                                          |
+| Common provider plugins             | `supported`  | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                                                             |
+| legacy messaging and Weixin         | `not-native` | Requires a Mac-side legacy messaging or Apple messaging host outside the Windows runtime.                                                                   |
+| Apple skills and macOS-only tooling | `not-native` | Requires an Apple host outside the Windows runtime.                                                                                                         |
 
 ## Install
 
 Run PowerShell as your normal user:
 
 ```powershell
-iwr -useb https://crawclaw.ai/install.ps1 | iex
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 For a dry run or beta install:
 
 ```powershell
-& ([scriptblock]::Create((iwr -useb https://crawclaw.ai/install.ps1))) -DryRun
-& ([scriptblock]::Create((iwr -useb https://crawclaw.ai/install.ps1))) -Tag beta
+# Install CrawClaw Desktop from GitHub Releases.
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 Verify the install:
@@ -64,8 +64,7 @@ Verify the install:
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-If PowerShell cannot find `crawclaw` in a new terminal, see
-[Node.js troubleshooting](/install/node#troubleshooting).
+Desktop users do not need a global `crawclaw` command. Use CrawClaw Desktop or the local Gateway API for operator actions.
 
 ## Gateway references
 
@@ -111,15 +110,15 @@ executable discovery, and plugin runtime spawn helpers.
 Full native validation still requires a Windows VM or host:
 
 ```bash
-pnpm test:parallels:windows
-pnpm test:parallels:npm-update
+pnpm desktop:tauri:release-check
+pnpm desktop:tauri:release-check
 ```
 
 ## First-class acceptance criteria
 
 Native Windows can be described as first-class when all of these are true:
 
-- `install.ps1` can install or update CrawClaw without manual Node or Git setup
+- `CrawClaw Desktop installer` can install or update CrawClaw without manual Node or Git setup
   on a clean supported Windows 11 machine.
 - the packaged desktop version check works in a fresh PowerShell session without manually
   repairing PATH.

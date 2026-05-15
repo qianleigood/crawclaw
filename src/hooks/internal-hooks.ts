@@ -6,12 +6,12 @@
  */
 
 import type { WorkspaceBootstrapFile } from "../agents/workspace.js";
-import type { CliDeps } from "../cli/deps.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import type { SessionsPatchParams } from "../gateway/protocol/index.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
+import type { CliDeps } from "../terminal/deps.js";
 
 export type InternalHookEventType = "command" | "session" | "agent" | "gateway" | "message";
 

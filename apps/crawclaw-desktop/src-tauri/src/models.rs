@@ -385,6 +385,14 @@ pub struct DesktopPreferences {
     pub selected_thinking: String,
     pub permission_mode: String,
     pub model_options: Vec<String>,
+    #[serde(default)]
+    pub provider_descriptors: serde_json::Value,
+    #[serde(default)]
+    pub provider_setup_options: serde_json::Value,
+    #[serde(default)]
+    pub provider_model_picker_entries: serde_json::Value,
+    #[serde(default)]
+    pub web_provider_boundaries: serde_json::Value,
     pub thinking_options: Vec<String>,
     pub permission_mode_options: Vec<String>,
 }

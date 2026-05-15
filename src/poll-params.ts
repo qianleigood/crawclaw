@@ -13,7 +13,7 @@ const SHARED_POLL_CREATION_PARAM_DEFS = {
   pollMulti: { kind: "boolean" },
 } satisfies Record<string, PollCreationParamDef>;
 
-const TELEGRAM_POLL_CREATION_PARAM_DEFS = {
+const VISIBILITY_POLL_CREATION_PARAM_DEFS = {
   pollDurationSeconds: { kind: "number" },
   pollAnonymous: { kind: "boolean" },
   pollPublic: { kind: "boolean" },
@@ -21,26 +21,26 @@ const TELEGRAM_POLL_CREATION_PARAM_DEFS = {
 
 export const POLL_CREATION_PARAM_DEFS: Record<string, PollCreationParamDef> = {
   ...SHARED_POLL_CREATION_PARAM_DEFS,
-  ...TELEGRAM_POLL_CREATION_PARAM_DEFS,
+  ...VISIBILITY_POLL_CREATION_PARAM_DEFS,
 };
 
 export type SharedPollCreationParamName = keyof typeof SHARED_POLL_CREATION_PARAM_DEFS;
-export type TelegramPollCreationParamName = keyof typeof TELEGRAM_POLL_CREATION_PARAM_DEFS;
+export type VisibilityPollCreationParamName = keyof typeof VISIBILITY_POLL_CREATION_PARAM_DEFS;
 export type PollCreationParamName = keyof typeof POLL_CREATION_PARAM_DEFS;
 
 export const POLL_CREATION_PARAM_NAMES = Object.keys(POLL_CREATION_PARAM_DEFS);
 export const SHARED_POLL_CREATION_PARAM_NAMES = Object.keys(
   SHARED_POLL_CREATION_PARAM_DEFS,
 ) as SharedPollCreationParamName[];
-export const TELEGRAM_POLL_CREATION_PARAM_NAMES = Object.keys(
-  TELEGRAM_POLL_CREATION_PARAM_DEFS,
-) as TelegramPollCreationParamName[];
+export const VISIBILITY_POLL_CREATION_PARAM_NAMES = Object.keys(
+  VISIBILITY_POLL_CREATION_PARAM_DEFS,
+) as VisibilityPollCreationParamName[];
 
 function readPollParamRaw(params: Record<string, unknown>, key: string): unknown {
   return readSnakeCaseParamRaw(params, key);
 }
 
-export function resolveTelegramPollVisibility(params: {
+export function resolvePollVisibility(params: {
   pollAnonymous?: boolean;
   pollPublic?: boolean;
 }): boolean | undefined {

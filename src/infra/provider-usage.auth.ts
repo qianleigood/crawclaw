@@ -9,7 +9,6 @@ import { isNonSecretApiKeyMarker } from "../agents/model-auth-markers.js";
 import { resolveUsableCustomProviderApiKey } from "../agents/model-auth.js";
 import { normalizeProviderId } from "../agents/model-selection.js";
 import { loadConfig, type CrawClawConfig } from "../config/config.js";
-import { resolveProviderUsageAuthWithPlugin } from "../plugins/provider-runtime.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
 import { resolveLegacyPiAgentAccessToken } from "./provider-usage.shared.js";
 import type { UsageProviderId } from "./provider-usage.types.js";
@@ -136,49 +135,6 @@ async function resolveOAuthToken(params: {
   return null;
 }
 
-async function resolveProviderUsageAuthViaPlugin(params: {
-  state: UsageAuthState;
-  provider: UsageProviderId;
-}): Promise<ProviderAuth | null> {
-  const resolved = await resolveProviderUsageAuthWithPlugin({
-    provider: params.provider,
-    config: params.state.cfg,
-    env: params.state.env,
-    context: {
-      config: params.state.cfg,
-      agentDir: params.state.agentDir,
-      env: params.state.env,
-      provider: params.provider,
-      resolveApiKeyFromConfigAndStore: (options) =>
-        resolveProviderApiKeyFromConfigAndStore({
-          state: params.state,
-          providerIds: options?.providerIds ?? [params.provider],
-          envDirect: options?.envDirect,
-        }),
-      resolveOAuthToken: async () => {
-        const auth = await resolveOAuthToken({
-          state: params.state,
-          provider: params.provider,
-        });
-        return auth
-          ? {
-              token: auth.token,
-              ...(auth.accountId ? { accountId: auth.accountId } : {}),
-            }
-          : null;
-      },
-    },
-  });
-  if (!resolved?.token) {
-    return null;
-  }
-  return {
-    provider: params.provider,
-    token: resolved.token,
-    ...(resolved.accountId ? { accountId: resolved.accountId } : {}),
-  };
-}
-
 async function resolveProviderUsageAuthFallback(params: {
   state: UsageAuthState;
   provider: UsageProviderId;
@@ -247,14 +203,6 @@ export async function resolveProviderAuths(params: {
   const auths: ProviderAuth[] = [];
 
   for (const provider of params.providers) {
-    const pluginAuth = await resolveProviderUsageAuthViaPlugin({
-      state,
-      provider,
-    });
-    if (pluginAuth) {
-      auths.push(pluginAuth);
-      continue;
-    }
     const fallbackAuth = await resolveProviderUsageAuthFallback({
       state,
       provider,

@@ -1,13 +1,7 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveManifestProviderAuthChoices } from "../plugins/provider-auth-choices.js";
-import {
-  resolveProviderModelPickerEntries,
-  resolveProviderWizardOptions,
-} from "../plugins/provider-wizard.js";
-import { resolvePluginProviders } from "../plugins/providers.runtime.js";
-import type { ProviderPlugin } from "../plugins/types.js";
 import type { FlowContribution, FlowOption } from "./types.js";
-import { mergeFlowContributions, sortFlowContributionsByLabel } from "./types.js";
+import { sortFlowContributionsByLabel } from "./types.js";
 
 export type ProviderFlowScope = "text-inference";
 
@@ -26,7 +20,7 @@ export type ProviderSetupFlowContribution = FlowContribution & {
   pluginId?: string;
   option: ProviderSetupFlowOption;
   onboardingScopes?: ProviderFlowScope[];
-  source: "manifest" | "runtime";
+  source: "manifest";
 };
 
 export type ProviderModelPickerFlowContribution = FlowContribution & {
@@ -34,7 +28,7 @@ export type ProviderModelPickerFlowContribution = FlowContribution & {
   surface: "model-picker";
   providerId: string;
   option: ProviderModelPickerFlowEntry;
-  source: "runtime";
+  source: "rust";
 };
 
 function includesProviderFlowScope(
@@ -49,18 +43,12 @@ function resolveProviderDocsById(params?: {
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): Map<string, string> {
+  void params;
   return new Map(
-    resolvePluginProviders({
-      config: params?.config,
-      workspaceDir: params?.workspaceDir,
-      env: params?.env,
-      bundledProviderAllowlistCompat: true,
-      bundledProviderVitestCompat: true,
-    })
-      .filter((provider): provider is ProviderPlugin & { docsPath: string } =>
-        Boolean(provider.docsPath?.trim()),
-      )
-      .map((provider) => [provider.id, provider.docsPath.trim()]),
+    resolveManifestProviderAuthChoices(params).map((choice) => [
+      choice.providerId,
+      `/providers/${choice.providerId}`,
+    ]),
   );
 }
 
@@ -119,9 +107,8 @@ export function resolveRuntimeFallbackProviderSetupFlowOptions(params?: {
   env?: NodeJS.ProcessEnv;
   scope?: ProviderFlowScope;
 }): ProviderSetupFlowOption[] {
-  return resolveRuntimeFallbackProviderSetupFlowContributions(params).map(
-    (contribution) => contribution.option,
-  );
+  void params;
+  return [];
 }
 
 export function resolveRuntimeFallbackProviderSetupFlowContributions(params?: {
@@ -130,27 +117,8 @@ export function resolveRuntimeFallbackProviderSetupFlowContributions(params?: {
   env?: NodeJS.ProcessEnv;
   scope?: ProviderFlowScope;
 }): ProviderSetupFlowContribution[] {
-  const scope = params?.scope ?? DEFAULT_PROVIDER_FLOW_SCOPE;
-  return resolveProviderWizardOptions(params ?? {})
-    .filter((option) => includesProviderFlowScope(option.onboardingScopes, scope))
-    .map((option) => ({
-      id: `provider:setup:${option.value}`,
-      kind: "provider" as const,
-      surface: "setup" as const,
-      providerId: option.groupId,
-      option: {
-        value: option.value,
-        label: option.label,
-        ...(option.hint ? { hint: option.hint } : {}),
-        group: {
-          id: option.groupId,
-          label: option.groupLabel,
-          ...(option.groupHint ? { hint: option.groupHint } : {}),
-        },
-      },
-      ...(option.onboardingScopes ? { onboardingScopes: [...option.onboardingScopes] } : {}),
-      source: "runtime" as const,
-    }));
+  void params;
+  return [];
 }
 
 export function resolveProviderSetupFlowOptions(params?: {
@@ -168,12 +136,7 @@ export function resolveProviderSetupFlowContributions(params?: {
   env?: NodeJS.ProcessEnv;
   scope?: ProviderFlowScope;
 }): ProviderSetupFlowContribution[] {
-  return sortFlowContributionsByLabel(
-    mergeFlowContributions({
-      primary: resolveManifestProviderSetupFlowContributions(params),
-      fallbacks: resolveRuntimeFallbackProviderSetupFlowContributions(params),
-    }),
-  );
+  return sortFlowContributionsByLabel(resolveManifestProviderSetupFlowContributions(params));
 }
 
 export function resolveProviderModelPickerFlowEntries(params?: {
@@ -191,29 +154,8 @@ export function resolveProviderModelPickerFlowContributions(params?: {
   workspaceDir?: string;
   env?: NodeJS.ProcessEnv;
 }): ProviderModelPickerFlowContribution[] {
-  const docsByProvider = resolveProviderDocsById(params ?? {});
-  return sortFlowContributionsByLabel(
-    resolveProviderModelPickerEntries(params ?? {}).map((entry) => {
-      const providerId = entry.value.startsWith("provider-plugin:")
-        ? entry.value.slice("provider-plugin:".length).split(":")[0]
-        : entry.value;
-      return {
-        id: `provider:model-picker:${entry.value}`,
-        kind: "provider" as const,
-        surface: "model-picker" as const,
-        providerId,
-        option: {
-          value: entry.value,
-          label: entry.label,
-          ...(entry.hint ? { hint: entry.hint } : {}),
-          ...(docsByProvider.get(providerId)
-            ? { docs: { path: docsByProvider.get(providerId)! } }
-            : {}),
-        },
-        source: "runtime" as const,
-      };
-    }),
-  );
+  void params;
+  return [];
 }
 
 export { includesProviderFlowScope };

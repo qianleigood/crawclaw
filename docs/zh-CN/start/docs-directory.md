@@ -43,13 +43,13 @@ x-i18n:
 
 ## 提供商与用户体验
 
-- [Telegram](/channels/telegram)
-- [Discord](/channels/discord)
-- [Mattermost（插件）](/channels/mattermost)
-- [BlueBubbles (iMessage)](/channels/bluebubbles)
-- [iMessage（旧版）](/channels/imessage)
+- [Feishu](/channels/index)
+- [QQBot](/channels/index)
+- [Feishu（插件）](/channels/index)
+- [Weixin (Weixin)](/channels/index)
+- [Weixin（旧版）](/channels/index)
 - [群组](/channels/groups)
-- [WhatsApp 群消息](/channels/group-messages)
+- [Weixin 群消息](/channels/group-messages)
 - [媒体图片](/nodes/images)
 - [媒体音频](/nodes/audio)
 

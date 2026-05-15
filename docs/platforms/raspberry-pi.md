@@ -17,7 +17,7 @@ Perfect for:
 
 - 24/7 personal AI assistant
 - Home automation hub
-- Low-power, always-available Telegram/WhatsApp bot
+- Low-power, always-available Feishu/Weixin bot
 
 ## Hardware Requirements
 
@@ -112,7 +112,7 @@ sudo sysctl -p
 ### Option A: Standard Install (Recommended)
 
 ```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 ### Option B: Hackable Install (For tinkering)
@@ -137,7 +137,7 @@ Follow the wizard:
 
 1. **Gateway mode:** Local
 2. **Auth:** API keys recommended (OAuth can be finicky on headless Pi)
-3. **Channels:** Telegram is easiest to start with
+3. **Channels:** Feishu is easiest to start with
 4. **Daemon:** Yes (systemd)
 
 ## 8) Verify Installation
@@ -191,9 +191,9 @@ lsblk
 
 See [Pi USB boot guide](https://www.raspberrypi.com/documentation/computers/raspberry-pi.html#usb-mass-storage-boot) for setup.
 
-### Speed up CLI startup (module compile cache)
+### Speed up local runtime startup (module compile cache)
 
-On lower-power Pi hosts, enable Node's module compile cache so repeated CLI runs are faster:
+On lower-power Pi hosts, enable Node's module compile cache so repeated local runtime starts are faster:
 
 ```bash
 grep -q 'NODE_COMPILE_CACHE=/var/tmp/crawclaw-compile-cache' ~/.bashrc || cat >> ~/.bashrc <<'EOF' # pragma: allowlist secret
@@ -276,8 +276,8 @@ Most CrawClaw features work on ARM64, but some external binaries may need ARM bu
 | Tool               | ARM64 Status | Notes                               |
 | ------------------ | ------------ | ----------------------------------- |
 | Node.js            | ✅           | Works great                         |
-| WhatsApp (Baileys) | ✅           | Pure JS, no issues                  |
-| Telegram           | ✅           | Pure JS, no issues                  |
+| Weixin (Baileys)   | ✅           | Pure JS, no issues                  |
+| Feishu             | ✅           | Pure JS, no issues                  |
 | gog (Gmail CLI)    | ⚠️           | Check for ARM release               |
 | Chromium (browser) | ✅           | `sudo apt install chromium-browser` |
 

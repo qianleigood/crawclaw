@@ -11,14 +11,14 @@ import {
   spinner,
   text,
 } from "@clack/prompts";
+import { stripAnsi } from "../terminal/ansi.js";
 import {
   createCliTranslator,
   resolveCliLocaleFromRuntime,
   translateCliText,
-} from "../cli/i18n/index.js";
-import { createCliProgress } from "../cli/progress.js";
-import { stripAnsi } from "../terminal/ansi.js";
+} from "../terminal/i18n/index.js";
 import { note as emitNote } from "../terminal/note.js";
+import { createCliProgress } from "../terminal/progress.js";
 import { stylePromptHint, stylePromptMessage, stylePromptTitle } from "../terminal/prompt-style.js";
 import { theme } from "../terminal/theme.js";
 import type { WizardProgress, WizardPrompter } from "./prompts.js";

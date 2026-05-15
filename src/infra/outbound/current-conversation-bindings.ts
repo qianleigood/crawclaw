@@ -136,7 +136,7 @@ function resolveChannelSupportsCurrentConversationBinding(channel: string): bool
   if (plugin?.conversationBindings?.supportsCurrentConversationBinding === true) {
     return true;
   }
-  // Slack live/gateway tests intentionally skip channel startup, so there is no
+  // Live/gateway tests intentionally skip channel startup, so there is no
   // active runtime plugin snapshot even though the generic current-conversation
   // path is still expected to work.
   return FALLBACK_CURRENT_CONVERSATION_BINDING_CHANNELS.has(normalized);

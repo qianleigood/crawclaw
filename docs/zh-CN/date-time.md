@@ -54,19 +54,19 @@ CrawClaw 默认使用**主机本地时间作为传输时间戳**，并且**仅�
 **本地时间（默认）：**
 
 ```
-[WhatsApp +1555 2026-01-18 00:19 PST] hello
+[Weixin +1555 2026-01-18 00:19 PST] hello
 ```
 
 **用户时区：**
 
 ```
-[WhatsApp +1555 2026-01-18 00:19 CST] hello
+[Weixin +1555 2026-01-18 00:19 CST] hello
 ```
 
 **启用已用时间：**
 
 ```
-[WhatsApp +1555 +30s 2026-01-18T05:19Z] follow-up
+[Weixin +1555 +30s 2026-01-18T05:19Z] follow-up
 ```
 
 ## 系统提示词：当前日期与时间
@@ -116,9 +116,9 @@ System: [2026-01-12 12:19:17 PST] Model switched.
 
 原始提供商字段会被保留，不会丢失任何数据。
 
-- Slack：来自 API 的类纪元字符串
-- Discord：UTC ISO 时间戳
-- Telegram/WhatsApp：提供商特定的数字/ISO 时间戳
+- DingTalk：来自 API 的类纪元字符串
+- QQBot：UTC ISO 时间戳
+- Feishu/Weixin：提供商特定的数字/ISO 时间戳
 
 如果需要本地时间，请使用已知时区在下游进行转换。
 

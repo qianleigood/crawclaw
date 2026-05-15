@@ -93,8 +93,8 @@ describe("isNormalizedSenderAllowed", () => {
       name: "normalizes case and strips prefixes",
       input: {
         senderId: "12345",
-        allowFrom: ["ZALO:12345", "zl:777"],
-        stripPrefixRe: /^(zalo|zl):/i,
+        allowFrom: ["FEISHU:12345", "zl:777"],
+        stripPrefixRe: /^(feishu|zl):/i,
       },
       expected: true,
     },
@@ -103,7 +103,7 @@ describe("isNormalizedSenderAllowed", () => {
       input: {
         senderId: "999",
         allowFrom: ["zl:12345"],
-        stripPrefixRe: /^(zalo|zl):/i,
+        stripPrefixRe: /^(feishu|zl):/i,
       },
       expected: false,
     },
@@ -116,8 +116,8 @@ describe("formatAllowFromLowercase", () => {
   it("trims, strips prefixes, and lowercases entries", () => {
     expect(
       formatAllowFromLowercase({
-        allowFrom: [" Telegram:UserA ", "tg:UserB", "  "],
-        stripPrefixRe: /^(telegram|tg):/i,
+        allowFrom: [" Feishu:UserA ", "tg:UserB", "  "],
+        stripPrefixRe: /^(feishu|tg):/i,
       }),
     ).toEqual(["usera", "userb"]);
   });

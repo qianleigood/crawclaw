@@ -128,55 +128,6 @@ vi.mock("../agents/auth-profiles.js", () => {
   };
 });
 
-const providerRuntimeMocks = vi.hoisted(() => ({
-  resolveProviderUsageAuthWithPluginMock: vi.fn(async (..._args: unknown[]) => null),
-  providerRuntimeMock: {
-    augmentModelCatalogWithProviderPlugins: vi.fn((catalog: unknown) => catalog),
-    buildProviderAuthDoctorHintWithPlugin: vi.fn(() => undefined),
-    buildProviderMissingAuthMessageWithPlugin: vi.fn(() => undefined),
-    buildProviderUnknownModelHintWithPlugin: vi.fn(() => undefined),
-    clearProviderRuntimeHookCache: vi.fn(() => {}),
-    createProviderEmbeddingProvider: vi.fn(() => undefined),
-    formatProviderAuthProfileApiKeyWithPlugin: vi.fn(() => undefined),
-    normalizeProviderResolvedModelWithPlugin: vi.fn(() => undefined),
-    prepareProviderDynamicModel: vi.fn(async () => {}),
-    prepareProviderExtraParams: vi.fn(() => undefined),
-    prepareProviderRuntimeAuth: vi.fn(async () => undefined),
-    refreshProviderOAuthCredentialWithPlugin: vi.fn(async () => undefined),
-    resetProviderRuntimeHookCacheForTest: vi.fn(() => {}),
-    resolveProviderBinaryThinking: vi.fn(() => undefined),
-    resolveProviderBuiltInModelSuppression: vi.fn(() => undefined),
-    resolveProviderCacheTtlEligibility: vi.fn(() => undefined),
-    resolveProviderCapabilitiesWithPlugin: vi.fn(() => undefined),
-    resolveProviderDefaultThinkingLevel: vi.fn(() => undefined),
-    resolveProviderModernModelRef: vi.fn(() => undefined),
-    resolveProviderRuntimePlugin: vi.fn(() => undefined),
-    resolveProviderSyntheticAuthWithPlugin: vi.fn(() => undefined),
-    resolveProviderUsageSnapshotWithPlugin: vi.fn(async () => undefined),
-    resolveProviderXHighThinking: vi.fn(() => undefined),
-    runProviderDynamicModel: vi.fn(() => undefined),
-    wrapProviderStreamFn: vi.fn(() => undefined),
-  },
-}));
-
-vi.mock("../plugins/provider-runtime.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../plugins/provider-runtime.js")>();
-  return {
-    ...actual,
-    ...providerRuntimeMocks.providerRuntimeMock,
-    resolveProviderUsageAuthWithPlugin: providerRuntimeMocks.resolveProviderUsageAuthWithPluginMock,
-  };
-});
-
-vi.mock("../plugins/provider-runtime.ts", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("../plugins/provider-runtime.ts")>();
-  return {
-    ...actual,
-    ...providerRuntimeMocks.providerRuntimeMock,
-    resolveProviderUsageAuthWithPlugin: providerRuntimeMocks.resolveProviderUsageAuthWithPluginMock,
-  };
-});
-
 vi.mock("../agents/cli-credentials.js", () => ({
   readCodexCliCredentialsCached: () => null,
   readMiniMaxCliCredentialsCached: () => null,
@@ -220,8 +171,6 @@ describe("resolveProviderAuths key normalization", () => {
     clearRuntimeConfigSnapshot();
     clearConfigCache();
     clearRuntimeAuthProfileStoreSnapshots();
-    providerRuntimeMocks.resolveProviderUsageAuthWithPluginMock.mockReset();
-    providerRuntimeMocks.resolveProviderUsageAuthWithPluginMock.mockResolvedValue(null);
   });
 
   afterEach(() => {

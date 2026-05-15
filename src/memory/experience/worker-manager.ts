@@ -7,18 +7,47 @@ import { resolveMemoryMessageChannel } from "../engine/context-memory-runtime-he
 import type { RuntimeStore } from "../runtime/runtime-store.js";
 import type { ExperienceExtractionConfig } from "../types/config.js";
 import type { GmMessageRow } from "../types/runtime.js";
-import type {
-  ForegroundExperienceWrite,
-  ExperienceExtractionRunParams,
-  ExperienceExtractionRunResult,
-} from "./agent-runner.js";
 
 type RuntimeLogger = { info(msg: string): void; warn(msg: string): void; error(msg: string): void };
 
-export type {
-  ExperienceExtractionRunParams,
-  ExperienceExtractionRunResult,
-} from "./agent-runner.js";
+export type ForegroundExperienceWrite = {
+  cursor: number;
+  action: "upsert" | "archive" | "supersede";
+  toolCallId?: string;
+  noteId?: string;
+  targetId?: string;
+  dedupeKey?: string;
+  title?: string;
+  summary?: string;
+  type?: string;
+  supersededBy?: string;
+};
+
+export type ExperienceExtractionRunParams = {
+  runId: string;
+  sessionId: string;
+  sessionKey: string;
+  sessionFile: string;
+  workspaceDir: string;
+  scope: DurableMemoryScope;
+  parentRunId?: string;
+  parentForkContext?: SpecialAgentParentForkContext;
+  messageCursor: number;
+  recentMessages: AgentMessage[];
+  foregroundExperienceWrites?: ForegroundExperienceWrite[];
+  recentMessageLimit: number;
+  maxNotes: number;
+};
+
+export type ExperienceExtractionRunResult = {
+  status: "written" | "skipped" | "no_change" | "failed";
+  summary?: string;
+  writtenCount: number;
+  updatedCount: number;
+  deletedCount: number;
+  touchedNotes?: string[];
+  advanceCursor: boolean;
+};
 
 export type ExperienceExtractionRunner = (
   params: ExperienceExtractionRunParams,

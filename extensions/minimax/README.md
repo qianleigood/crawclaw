@@ -7,29 +7,19 @@ Bundled MiniMax plugin for both:
 
 ## Enable
 
-```bash
-crawclaw plugins enable minimax
-```
-
-Restart the Gateway after enabling.
-
-```bash
-crawclaw gateway restart
-```
+Enable the MiniMax plugin from Desktop Settings → Plugins, then restart the
+local Gateway from the desktop app.
 
 ## Authenticate
 
 OAuth:
 
-```bash
-crawclaw models auth login --provider minimax-portal --set-default
-```
+Use Desktop Settings → Models to authenticate the `minimax-portal` provider
+and set it as the default model provider.
 
 API key:
 
-```bash
-crawclaw setup --wizard --auth-choice minimax-global-api
-```
+Use Desktop Settings → Models to add the MiniMax API-key provider.
 
 ## Notes
 

@@ -339,7 +339,7 @@ jobs:
           use-sticky-disk: "false"
 
       - name: Configure Node test resources
-        if: (github.event_name != 'pull_request' || matrix.task != 'compat-node22') && matrix.runtime == 'node' && (matrix.task == 'test' || matrix.task == 'channels' || matrix.task == 'compat-node22')
+        if: (github.event_name != 'pull_request' || matrix.task != 'compat-node22') && matrix.runtime == 'node' && (matrix.task == 'test' || matrix.task == 'compat-node22')
         env:
           TASK: ${{ matrix.task }}
           SHARD_COUNT: ${{ matrix.shard_count || '' }}
@@ -349,10 +349,6 @@ jobs:
           # Default heap limits have been too low on Linux CI (V8 OOM near 4GB).
           echo "CRAWCLAW_TEST_WORKERS=2" >> "$GITHUB_ENV"
           echo "CRAWCLAW_TEST_MAX_OLD_SPACE_SIZE_MB=6144" >> "$GITHUB_ENV"
-          if [ "$TASK" = "channels" ]; then
-            echo "CRAWCLAW_TEST_WORKERS=1" >> "$GITHUB_ENV"
-            echo "CRAWCLAW_TEST_ISOLATE=1" >> "$GITHUB_ENV"
-          fi
           if [ -n "$SHARD_COUNT" ] && [ -n "$SHARD_INDEX" ]; then
             echo "CRAWCLAW_TEST_SHARDS=$SHARD_COUNT" >> "$GITHUB_ENV"
             echo "CRAWCLAW_TEST_SHARD_INDEX=$SHARD_INDEX" >> "$GITHUB_ENV"
@@ -376,13 +372,8 @@ jobs:
             test)
               pnpm test
               ;;
-            channels)
-              pnpm test:channels
-              ;;
             compat-node22)
               pnpm build
-              node crawclaw.mjs --help
-              node crawclaw.mjs status --json --timeout 1
               pnpm test:build:singleton
               ;;
             *)
@@ -638,17 +629,8 @@ jobs:
         if: github.event_name != 'push'
         run: pnpm build
 
-      - name: Smoke test CLI launcher help
-        run: node crawclaw.mjs --help
-
-      - name: Smoke test CLI launcher status json
-        run: node crawclaw.mjs status --json --timeout 1
-
       - name: Smoke test built bundled plugin singleton
         run: pnpm test:build:singleton
-
-      - name: Check CLI startup memory
-        run: pnpm test:startup:memory
 
   # Validate docs (format, lint, broken links) only when docs files changed.
   check-docs:
@@ -802,7 +784,7 @@ jobs:
 
       - name: Download dist artifact
         id: download_dist
-        if: matrix.task == 'test' || matrix.task == 'install-smoke'
+        if: matrix.task == 'test'
         continue-on-error: true
         uses: actions/download-artifact@v8
         with:
@@ -810,7 +792,7 @@ jobs:
           path: dist/
 
       - name: Build dist when artifact download fails
-        if: (matrix.task == 'test' || matrix.task == 'install-smoke') && steps.download_dist.outcome != 'success'
+        if: matrix.task == 'test' && steps.download_dist.outcome != 'success'
         run: |
           echo "::warning title=Artifact download fallback::Building dist locally because the Windows dist artifact download failed."
           pnpm build
@@ -827,9 +809,6 @@ jobs:
               ;;
             build)
               pnpm build
-              ;;
-            install-smoke)
-              node scripts/ci/windows-packed-install-smoke.mjs --include-gateway
               ;;
             *)
               echo "Unsupported Windows checks task: $TASK" >&2
@@ -883,9 +862,6 @@ jobs:
           case "$TASK" in
             test)
               pnpm test
-              ;;
-            install-smoke)
-              node scripts/ci/macos-packed-install-smoke.mjs
               ;;
             *)
               echo "Unsupported macOS node task: $TASK" >&2

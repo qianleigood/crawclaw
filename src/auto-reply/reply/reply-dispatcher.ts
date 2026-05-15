@@ -44,7 +44,7 @@ function getHumanDelay(config: HumanDelayConfig | undefined): number {
 export type ReplyDispatcherOptions = {
   deliver: ReplyDispatchDeliverer;
   responsePrefix?: string;
-  enableSlackInteractiveReplies?: boolean;
+  enableChannelInteractiveReplies?: boolean;
   /** Static context for response prefix template interpolation. */
   responsePrefixContext?: ResponsePrefixContext;
   /** Dynamic context provider for response prefix template interpolation.
@@ -53,7 +53,7 @@ export type ReplyDispatcherOptions = {
   onHeartbeatStrip?: () => void;
   onIdle?: () => void;
   onError?: ReplyDispatchErrorHandler;
-  // AIDEV-NOTE: onSkip lets channels detect silent/empty drops (e.g. Telegram empty-response fallback).
+  // AIDEV-NOTE: onSkip lets channels detect silent/empty drops (e.g. empty-response fallback).
   onSkip?: ReplyDispatchSkipHandler;
   /** Human-like delay between block replies for natural rhythm. */
   humanDelay?: HumanDelayConfig;
@@ -88,7 +88,7 @@ export type ReplyDispatcher = {
 type NormalizeReplyPayloadInternalOptions = Pick<
   ReplyDispatcherOptions,
   | "responsePrefix"
-  | "enableSlackInteractiveReplies"
+  | "enableChannelInteractiveReplies"
   | "responsePrefixContext"
   | "responsePrefixContextProvider"
   | "onHeartbeatStrip"
@@ -105,7 +105,7 @@ function normalizeReplyPayloadInternal(
 
   return normalizeReplyPayload(payload, {
     responsePrefix: opts.responsePrefix,
-    enableSlackInteractiveReplies: opts.enableSlackInteractiveReplies,
+    enableChannelInteractiveReplies: opts.enableChannelInteractiveReplies,
     responsePrefixContext: prefixContext,
     onHeartbeatStrip: opts.onHeartbeatStrip,
     onSkip: opts.onSkip,
@@ -142,7 +142,7 @@ export function createReplyDispatcher(options: ReplyDispatcherOptions): ReplyDis
   const enqueue = (kind: ReplyDispatchKind, payload: ReplyPayload) => {
     const normalized = normalizeReplyPayloadInternal(payload, {
       responsePrefix: options.responsePrefix,
-      enableSlackInteractiveReplies: options.enableSlackInteractiveReplies,
+      enableChannelInteractiveReplies: options.enableChannelInteractiveReplies,
       responsePrefixContext: options.responsePrefixContext,
       responsePrefixContextProvider: options.responsePrefixContextProvider,
       onHeartbeatStrip: options.onHeartbeatStrip,

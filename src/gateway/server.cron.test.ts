@@ -358,7 +358,7 @@ describe("gateway server cron", () => {
       const mergeUpdateRes = await rpcReq(ws, "cron.update", {
         id: mergeJobId,
         patch: {
-          delivery: { mode: "announce", channel: "telegram", to: "19098680" },
+          delivery: { mode: "announce", channel: "feishu", to: "19098680" },
         },
       });
       expect(mergeUpdateRes.ok).toBe(true);
@@ -372,7 +372,7 @@ describe("gateway server cron", () => {
       expect(merged?.payload?.message).toBe("hello");
       expect(merged?.payload?.model).toBe("opus");
       expect(merged?.delivery?.mode).toBe("announce");
-      expect(merged?.delivery?.channel).toBe("telegram");
+      expect(merged?.delivery?.channel).toBe("feishu");
       expect(merged?.delivery?.to).toBe("19098680");
 
       const modelOnlyPatchRes = await rpcReq(ws, "cron.update", {
@@ -826,7 +826,7 @@ describe("gateway server cron", () => {
         sessionTarget: "isolated",
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "19098680",
           failureDestination: {
             mode: "webhook",
@@ -855,7 +855,7 @@ describe("gateway server cron", () => {
         sessionTarget: "isolated",
         delivery: {
           mode: "announce",
-          channel: "telegram",
+          channel: "feishu",
           to: "19098680",
           bestEffort: true,
           failureDestination: {

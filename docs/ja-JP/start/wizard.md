@@ -37,7 +37,7 @@ crawclaw onboard
     - Gatewayポート `18789`
     - Gateway認証トークンは自動生成（loopback上でも生成されます）
     - Tailscale公開はオフ
-    - TelegramとWhatsAppのDMはデフォルトで許可リスト（電話番号の入力を求められる場合があります）
+    - FeishuとWeixinのDMはデフォルトで許可リスト（電話番号の入力を求められる場合があります）
   </Tab>
   <Tab title="詳細設定（完全な制御）">
     - モード、ワークスペース、Gateway、チャンネル、デーモン、Skillsの完全なプロンプトフローを表示
@@ -48,7 +48,7 @@ crawclaw onboard
 
 <Columns>
   <Card title="CLIリファレンス" href="/start/wizard-cli-reference">
-    ローカルおよびリモートフローの完全な説明、認証とモデルマトリックス、設定出力、ウィザードRPC、signal-cliの動作。
+    ローカルおよびリモートフローの完全な説明、認証とモデルマトリックス、設定出力、ウィザードRPC、feishu-cliの動作。
   </Card>
   <Card title="自動化とスクリプト" href="/start/wizard-cli-automation">
     非対話式オンボーディングのレシピと自動化された `agents add` の例。

@@ -130,26 +130,26 @@ describe("registerPluginHttpRoute", () => {
     const secondHandler = vi.fn();
 
     const unregisterFirst = register({
-      path: "/plugins/synology",
+      path: "/plugins/feishu",
       auth: "plugin",
       handler: firstHandler,
       accountId: "default",
-      pluginId: "synology-chat",
+      pluginId: "feishu",
     });
 
     const unregisterSecond = register({
-      path: "/plugins/synology",
+      path: "/plugins/feishu",
       auth: "plugin",
       replaceExisting: true,
       handler: secondHandler,
       accountId: "default",
-      pluginId: "synology-chat",
+      pluginId: "feishu",
     });
 
     expect(registry.httpRoutes).toHaveLength(1);
     expect(registry.httpRoutes[0]?.handler).toBe(secondHandler);
     expect(logs).toContain(
-      'plugin: replacing stale webhook path /plugins/synology (exact) for account "default" (synology-chat)',
+      'plugin: replacing stale webhook path /plugins/feishu (exact) for account "default" (feishu)',
     );
 
     // Old unregister must not remove the replacement route.
@@ -214,13 +214,13 @@ describe("registerPluginHttpRoute", () => {
     setActivePluginRegistry(laterActiveRegistry);
 
     const unregister = registerPluginHttpRoute({
-      path: "/bluebubbles-webhook",
+      path: "/weixin-webhook",
       auth: "plugin",
       handler: vi.fn(),
     });
 
     expectRegisteredRouteShape(startupRegistry, {
-      path: "/bluebubbles-webhook",
+      path: "/weixin-webhook",
       auth: "plugin",
     });
     expect(laterActiveRegistry.httpRoutes).toHaveLength(0);

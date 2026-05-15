@@ -3,28 +3,28 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleReviewCommand } from "./commands-review.js";
 import { buildCommandTestParams } from "./commands.test-harness.js";
 
-const { executeMock, createReviewTaskToolMock } = vi.hoisted(() => {
+const { executeMock, createRustSpecialAgentToolMock } = vi.hoisted(() => {
   const executeMock =
     vi.fn<
       (toolCallId: string, args: Record<string, unknown>) => Promise<AgentToolResult<unknown>>
     >();
-  const createReviewTaskToolMock = vi.fn(() => ({
+  const createRustSpecialAgentToolMock = vi.fn(() => ({
     execute: executeMock,
   }));
   return {
     executeMock,
-    createReviewTaskToolMock,
+    createRustSpecialAgentToolMock,
   };
 });
 
-vi.mock("../../agents/tools/review-task-tool.js", () => ({
-  createReviewTaskTool: createReviewTaskToolMock,
+vi.mock("../../agents/runtime-tools/core-tools.js", () => ({
+  createRustSpecialAgentTool: createRustSpecialAgentToolMock,
 }));
 
 describe("handleReviewCommand", () => {
   beforeEach(() => {
     executeMock.mockReset();
-    createReviewTaskToolMock.mockClear();
+    createRustSpecialAgentToolMock.mockClear();
   });
 
   it("uses the default review task when no args are provided", async () => {
@@ -76,8 +76,7 @@ describe("handleReviewCommand", () => {
     expect(result?.reply?.text).toContain("Plugin SDK boundary was bypassed.");
     expect(result?.reply?.text).toContain("Blocking issues:");
     expect(executeMock).toHaveBeenCalledWith("command:/review", {
-      task: expect.stringContaining("Review the current task outcome"),
-      reviewFocus: ["重点看 plugin SDK 边界有没有被破坏"],
+      task: expect.stringContaining("Review focus:\n- 重点看 plugin SDK 边界有没有被破坏"),
     });
   });
 

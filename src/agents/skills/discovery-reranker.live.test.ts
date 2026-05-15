@@ -39,9 +39,10 @@ const CANDIDATE_SKILLS: SkillDiscoveryCandidate[] = [
     location: "/tmp/crawclaw-skills/release-risk/SKILL.md",
   },
   {
-    name: "slack-update",
-    description: "Use when drafting or sending Slack updates to teammates after engineering work.",
-    location: "/tmp/crawclaw-skills/slack-update/SKILL.md",
+    name: "ddingtalk-update",
+    description:
+      "Use when drafting or sending DingTalk updates to teammates after engineering work.",
+    location: "/tmp/crawclaw-skills/ddingtalk-update/SKILL.md",
   },
   {
     name: "ci-fix",
@@ -178,7 +179,7 @@ describeLive("skill discovery reranker live", () => {
 
     const result = await discoverSkillsForTask({
       taskDescription:
-        "上线前做 release readiness and launch risk review，确认门禁和回滚预案，不要写 Slack 更新。",
+        "上线前做 release readiness and launch risk review，确认门禁和回滚预案，不要写 DingTalk 更新。",
       availableSkills: CANDIDATE_SKILLS,
       limit: 1,
       signal: "turn_zero",

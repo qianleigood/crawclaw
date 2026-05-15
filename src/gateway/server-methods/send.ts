@@ -1,7 +1,6 @@
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import { normalizeChannelId } from "../../channels/plugins/index.js";
-import { createOutboundSendDeps } from "../../cli/deps.js";
 import { loadConfig } from "../../config/config.js";
 import { applyPluginAutoEnable } from "../../config/plugin-auto-enable.js";
 import { resolveOutboundChannelPlugin } from "../../infra/outbound/channel-resolution.js";
@@ -16,6 +15,7 @@ import { buildOutboundSessionContext } from "../../infra/outbound/session-contex
 import { maybeResolveIdLikeTarget } from "../../infra/outbound/target-resolver.js";
 import { resolveOutboundTarget } from "../../infra/outbound/targets.js";
 import { normalizePollInput } from "../../polls.js";
+import { createOutboundSendDeps } from "../../terminal/deps.js";
 import {
   ErrorCodes,
   errorShape,

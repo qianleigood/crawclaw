@@ -39,7 +39,7 @@ describe("subagent-announce-queue", () => {
       item: {
         prompt: "subagent completed",
         enqueuedAt: Date.now(),
-        sessionKey: "agent:main:telegram:dm:u1",
+        sessionKey: "agent:main:feishu:dm:u1",
       },
       settings: { mode: "followup", debounceMs: 0 },
       send: sender.send,
@@ -59,7 +59,7 @@ describe("subagent-announce-queue", () => {
         prompt: "first result",
         summaryLine: "first result",
         enqueuedAt: Date.now(),
-        sessionKey: "agent:main:telegram:dm:u1",
+        sessionKey: "agent:main:feishu:dm:u1",
       },
       settings: { mode: "followup", debounceMs: 0, cap: 1, dropPolicy: "summarize" },
       send: sender.send,
@@ -70,7 +70,7 @@ describe("subagent-announce-queue", () => {
         prompt: "second result",
         summaryLine: "second result",
         enqueuedAt: Date.now(),
-        sessionKey: "agent:main:telegram:dm:u1",
+        sessionKey: "agent:main:feishu:dm:u1",
       },
       settings: { mode: "followup", debounceMs: 0, cap: 1, dropPolicy: "summarize" },
       send: sender.send,
@@ -90,7 +90,7 @@ describe("subagent-announce-queue", () => {
       item: {
         prompt: "queued item one",
         enqueuedAt: Date.now(),
-        sessionKey: "agent:main:telegram:dm:u1",
+        sessionKey: "agent:main:feishu:dm:u1",
       },
       settings: { mode: "collect", debounceMs: 0 },
       send: sender.send,
@@ -100,7 +100,7 @@ describe("subagent-announce-queue", () => {
       item: {
         prompt: "queued item two",
         enqueuedAt: Date.now(),
-        sessionKey: "agent:main:telegram:dm:u1",
+        sessionKey: "agent:main:feishu:dm:u1",
       },
       settings: { mode: "collect", debounceMs: 0 },
       send: sender.send,
@@ -138,7 +138,7 @@ describe("subagent-announce-queue", () => {
         item: {
           prompt: "subagent completed",
           enqueuedAt: Date.now(),
-          sessionKey: "agent:main:telegram:dm:u1",
+          sessionKey: "agent:main:feishu:dm:u1",
         },
         settings: { mode: "followup", debounceMs: 5_000 },
         send,

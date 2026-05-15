@@ -20,7 +20,7 @@ describe("emitSessionRolloverHooks", () => {
       isNewSession: true,
       sessionId: "session-new",
       previousSessionId: "session-old",
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       cfg: {} as CrawClawConfig,
     });
 
@@ -31,23 +31,23 @@ describe("emitSessionRolloverHooks", () => {
     expect(hookRunner.runSessionEnd).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: "session-old",
-        sessionKey: "agent:main:telegram:direct:123",
+        sessionKey: "agent:main:feishu:direct:123",
         messageCount: 0,
       }),
       expect.objectContaining({
         sessionId: "session-old",
-        sessionKey: "agent:main:telegram:direct:123",
+        sessionKey: "agent:main:feishu:direct:123",
       }),
     );
     expect(hookRunner.runSessionStart).toHaveBeenCalledWith(
       expect.objectContaining({
         sessionId: "session-new",
-        sessionKey: "agent:main:telegram:direct:123",
+        sessionKey: "agent:main:feishu:direct:123",
         resumedFrom: "session-old",
       }),
       expect.objectContaining({
         sessionId: "session-new",
-        sessionKey: "agent:main:telegram:direct:123",
+        sessionKey: "agent:main:feishu:direct:123",
       }),
     );
   });
@@ -60,7 +60,7 @@ describe("emitSessionRolloverHooks", () => {
       isNewSession: false,
       sessionId: "session-existing",
       previousSessionId: "session-existing",
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       cfg: {} as CrawClawConfig,
     });
 
@@ -77,7 +77,7 @@ describe("emitSessionRolloverHooks", () => {
       isNewSession: true,
       sessionId: "session-same",
       previousSessionId: "session-same",
-      sessionKey: "agent:main:telegram:direct:123",
+      sessionKey: "agent:main:feishu:direct:123",
       cfg: {} as CrawClawConfig,
     });
 

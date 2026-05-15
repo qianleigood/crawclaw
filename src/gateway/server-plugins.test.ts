@@ -6,7 +6,7 @@ import type { PluginDiagnostic } from "../plugins/types.js";
 import type { GatewayRequestContext, GatewayRequestOptions } from "./request-types.js";
 
 const loadCrawClawPlugins = vi.hoisted(() => vi.fn());
-const resolveGatewayStartupPluginIds = vi.hoisted(() => vi.fn(() => ["discord", "telegram"]));
+const resolveGatewayStartupPluginIds = vi.hoisted(() => vi.fn(() => ["qqbot", "feishu"]));
 const applyPluginAutoEnable = vi.hoisted(() =>
   vi.fn(({ config }) => ({ config, changes: [], autoEnabledReasons: {} })),
 );
@@ -72,7 +72,6 @@ const createRegistry = (diagnostics: PluginDiagnostic[]): PluginRegistry => ({
   webSearchProviders: [],
   gatewayHandlers: {},
   httpRoutes: [],
-  cliRegistrars: [],
   services: [],
   conversationBindingResolvedHandlers: [],
   diagnostics,
@@ -191,7 +190,7 @@ beforeAll(async () => {
 
 beforeEach(() => {
   loadCrawClawPlugins.mockReset();
-  resolveGatewayStartupPluginIds.mockReset().mockReturnValue(["discord", "telegram"]);
+  resolveGatewayStartupPluginIds.mockReset().mockReturnValue(["qqbot", "feishu"]);
   applyPluginAutoEnable
     .mockReset()
     .mockImplementation(({ config }) => ({ config, changes: [], autoEnabledReasons: {} }));
@@ -229,8 +228,8 @@ describe("loadGatewayPlugins", () => {
     const diagnostics: PluginDiagnostic[] = [
       {
         level: "error",
-        pluginId: "telegram",
-        source: "/tmp/telegram/index.ts",
+        pluginId: "feishu",
+        source: "/tmp/feishu/index.ts",
         message: "failed to load plugin: boom",
       },
     ];
@@ -238,7 +237,7 @@ describe("loadGatewayPlugins", () => {
     const log = loadGatewayStartupPluginsForTest();
 
     expect(log.error).toHaveBeenCalledWith(
-      "[plugins] failed to load plugin: boom (plugin=telegram, source=/tmp/telegram/index.ts)",
+      "[plugins] failed to load plugin: boom (plugin=feishu, source=/tmp/feishu/index.ts)",
     );
     expect(log.warn).not.toHaveBeenCalled();
   });
@@ -258,7 +257,7 @@ describe("loadGatewayPlugins", () => {
     });
     expect(loadCrawClawPlugins).toHaveBeenCalledWith(
       expect.objectContaining({
-        onlyPluginIds: ["discord", "telegram"],
+        onlyPluginIds: ["qqbot", "feishu"],
       }),
     );
   });
@@ -295,12 +294,12 @@ describe("loadGatewayPlugins", () => {
   });
 
   test("loads gateway plugins from the auto-enabled config snapshot", async () => {
-    const autoEnabledConfig = { channels: { slack: { enabled: true } }, autoEnabled: true };
+    const autoEnabledConfig = { channels: { ddingtalk: { enabled: true } }, autoEnabled: true };
     applyPluginAutoEnable.mockReturnValue({
       config: autoEnabledConfig,
       changes: [],
       autoEnabledReasons: {
-        slack: ["slack configured"],
+        ddingtalk: ["ddingtalk configured"],
       },
     });
     loadCrawClawPlugins.mockReturnValue(createRegistry([]));
@@ -317,20 +316,20 @@ describe("loadGatewayPlugins", () => {
         config: autoEnabledConfig,
         activationSourceConfig: {},
         autoEnabledReasons: {
-          slack: ["slack configured"],
+          ddingtalk: ["ddingtalk configured"],
         },
       }),
     );
   });
 
   test("re-derives auto-enable reasons when only activationSourceConfig is provided", async () => {
-    const rawConfig = { channels: { slack: { enabled: true } } };
-    const resolvedConfig = { channels: { slack: { enabled: true } }, autoEnabled: true };
+    const rawConfig = { channels: { ddingtalk: { enabled: true } } };
+    const resolvedConfig = { channels: { ddingtalk: { enabled: true } }, autoEnabled: true };
     applyPluginAutoEnable.mockReturnValue({
       config: resolvedConfig,
       changes: [],
       autoEnabledReasons: {
-        slack: ["slack configured"],
+        ddingtalk: ["ddingtalk configured"],
       },
     });
     loadCrawClawPlugins.mockReturnValue(createRegistry([]));
@@ -349,7 +348,7 @@ describe("loadGatewayPlugins", () => {
         config: resolvedConfig,
         activationSourceConfig: rawConfig,
         autoEnabledReasons: {
-          slack: ["slack configured"],
+          ddingtalk: ["ddingtalk configured"],
         },
       }),
     );
@@ -649,12 +648,12 @@ describe("loadGatewayPlugins", () => {
   test("primes configured bindings during gateway startup", async () => {
     loadCrawClawPlugins.mockReturnValue(createRegistry([]));
     const cfg = {};
-    const autoEnabledConfig = { channels: { slack: { enabled: true } }, autoEnabled: true };
+    const autoEnabledConfig = { channels: { ddingtalk: { enabled: true } }, autoEnabled: true };
     applyPluginAutoEnable.mockReturnValue({
       config: autoEnabledConfig,
       changes: [],
       autoEnabledReasons: {
-        slack: ["slack configured"],
+        ddingtalk: ["ddingtalk configured"],
       },
     });
     loadGatewayStartupPluginsForTest({ cfg });
@@ -701,8 +700,8 @@ describe("loadGatewayPlugins", () => {
     const diagnostics: PluginDiagnostic[] = [
       {
         level: "error",
-        pluginId: "telegram",
-        source: "/tmp/telegram/index.ts",
+        pluginId: "feishu",
+        source: "/tmp/feishu/index.ts",
         message: "failed to load plugin: boom",
       },
     ];
@@ -732,14 +731,14 @@ describe("loadGatewayPlugins", () => {
       log: createTestLog(),
       coreGatewayHandlers: {},
       baseMethods: [],
-      pluginIds: ["discord"],
+      pluginIds: ["qqbot"],
       logDiagnostics: false,
     });
 
     expect(resolveGatewayStartupPluginIds).not.toHaveBeenCalled();
     expect(loadCrawClawPlugins).toHaveBeenCalledWith(
       expect.objectContaining({
-        onlyPluginIds: ["discord"],
+        onlyPluginIds: ["qqbot"],
       }),
     );
   });

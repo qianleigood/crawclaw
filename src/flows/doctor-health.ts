@@ -1,11 +1,11 @@
 import { intro as clackIntro, outro as clackOutro } from "@clack/prompts";
-import { loadAndMaybeMigrateDoctorConfig } from "../commands/doctor-config-flow.js";
-import { noteSourceInstallIssues } from "../commands/doctor-install.js";
-import { noteStartupOptimizationHints } from "../commands/doctor-platform-notes.js";
-import { createDoctorPrompter, type DoctorOptions } from "../commands/doctor-prompter.js";
-import { maybeOfferUpdateBeforeDoctor } from "../commands/doctor-update.js";
-import { printWizardHeader } from "../commands/onboard-helpers.js";
 import { CONFIG_PATH } from "../config/config.js";
+import { loadAndMaybeMigrateDoctorConfig } from "../control/doctor-config-flow.js";
+import { noteSourceInstallIssues } from "../control/doctor-install.js";
+import { noteStartupOptimizationHints } from "../control/doctor-platform-notes.js";
+import { createDoctorPrompter, type DoctorOptions } from "../control/doctor-prompter.js";
+import { maybeOfferUpdateBeforeDoctor } from "../control/doctor-update.js";
+import { printWizardHeader } from "../control/onboard-helpers.js";
 import { resolveCrawClawPackageRoot } from "../infra/crawclaw-root.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";

@@ -26,10 +26,7 @@ falls back to npm automatically.
 
 ## What kind of plugin?
 
-<CardGroup cols={3}>
-  <Card title="Channel plugin" icon="messages-square" href="/plugins/sdk-channel-plugins">
-    Connect CrawClaw to a messaging platform (Discord, IRC, etc.)
-  </Card>
+<CardGroup cols={2}>
   <Card title="Provider plugin" icon="cpu" href="/plugins/sdk-provider-plugins">
     Add a model provider (LLM, proxy, or custom endpoint)
   </Card>
@@ -108,9 +105,10 @@ and provider plugins have dedicated guides linked above.
     });
     ```
 
-    `definePluginEntry` is for non-channel plugins. For channels, use
-    `defineChannelPluginEntry` — see [Channel Plugins](/plugins/sdk-channel-plugins).
-    For full entry point options, see [Entry Points](/plugins/sdk-entrypoints).
+    `definePluginEntry` is for provider, tool, hook, command, service, speech,
+    media, and web plugins. TypeScript channel plugins are no longer a
+    production contract; channels are implemented as Rust-native adapters. For
+    full entry point options, see [Entry Points](/plugins/sdk-entrypoints).
 
   </Step>
 
@@ -140,34 +138,17 @@ and provider plugins have dedicated guides linked above.
 
 A single plugin can register any number of capabilities via the `api` object:
 
-| Capability            | Registration method                           | Detailed guide                                                                  |
-| --------------------- | --------------------------------------------- | ------------------------------------------------------------------------------- |
-| Text inference (LLM)  | `api.registerProvider(...)`                   | [Provider Plugins](/plugins/sdk-provider-plugins)                               |
-| Local process backend | `api.registerCliBackend(...)`                 | [Local Process Backends](/gateway/local-process-backends)                       |
-| Channel / messaging   | `api.registerChannel(...)`                    | [Channel Plugins](/plugins/sdk-channel-plugins)                                 |
-| Speech (TTS/STT)      | `api.registerSpeechProvider(...)`             | [Provider Plugins](/plugins/sdk-provider-plugins#step-5-add-extra-capabilities) |
-| Media understanding   | `api.registerMediaUnderstandingProvider(...)` | [Provider Plugins](/plugins/sdk-provider-plugins#step-5-add-extra-capabilities) |
-| Web search            | `api.registerWebSearchProvider(...)`          | [Provider Plugins](/plugins/sdk-provider-plugins#step-5-add-extra-capabilities) |
-| Agent tools           | `api.registerTool(...)`                       | Below                                                                           |
-| Custom commands       | `api.registerCommand(...)`                    | [Entry Points](/plugins/sdk-entrypoints)                                        |
-| Event hooks           | `api.registerHook(...)`                       | [Entry Points](/plugins/sdk-entrypoints)                                        |
-| HTTP routes           | `api.registerHttpRoute(...)`                  | [Internals](/plugins/architecture#gateway-http-routes)                          |
+| Capability            | Registration method                           | Detailed guide                                            |
+| --------------------- | --------------------------------------------- | --------------------------------------------------------- |
+| Local process backend | `api.registerCliBackend(...)`                 | [Local Process Backends](/gateway/local-process-backends) |
+| Speech (TTS/STT)      | `api.registerSpeechProvider(...)`             | [SDK Overview](/plugins/sdk-overview)                     |
+| Media understanding   | `api.registerMediaUnderstandingProvider(...)` | [SDK Overview](/plugins/sdk-overview)                     |
+| Web search            | `api.registerWebSearchProvider(...)`          | [SDK Overview](/plugins/sdk-overview)                     |
+| Agent tools           | `api.registerTool(...)`                       | Below                                                     |
+| Custom commands       | `api.registerCommand(...)`                    | [Entry Points](/plugins/sdk-entrypoints)                  |
+| HTTP routes           | `api.registerHttpRoute(...)`                  | [Internals](/plugins/architecture#gateway-http-routes)    |
 
 For the full registration API, see [SDK Overview](/plugins/sdk-overview#registration-api).
-
-Hook guard semantics to keep in mind:
-
-- `before_tool_call`: `{ block: true }` is terminal and stops lower-priority handlers.
-- `before_tool_call`: `{ block: false }` is treated as no decision.
-- `before_tool_call`: `{ requireApproval: true }` pauses agent execution and prompts the user for approval via the exec approval overlay, Telegram buttons, Discord interactions, or the `/approve` command on any channel.
-- `before_install`: `{ block: true }` is terminal and stops lower-priority handlers.
-- `before_install`: `{ block: false }` is treated as no decision.
-- `message_sending`: `{ cancel: true }` is terminal and stops lower-priority handlers.
-- `message_sending`: `{ cancel: false }` is treated as no decision.
-
-The `/approve` command handles both exec and plugin approvals with automatic fallback. Plugin approval forwarding can be configured independently via `approvals.plugin` in config.
-
-See [SDK Overview hook decision semantics](/plugins/sdk-overview#hook-decision-semantics) for details.
 
 ## Registering agent tools
 
@@ -234,7 +215,7 @@ internal imports — never import your own plugin through its SDK path.
 
 <Check>**package.json** has correct `crawclaw` metadata</Check>
 <Check>**crawclaw.plugin.json** manifest is present and valid</Check>
-<Check>Entry point uses `defineChannelPluginEntry` or `definePluginEntry`</Check>
+<Check>Entry point uses `definePluginEntry`</Check>
 <Check>All imports use focused `plugin-sdk/<subpath>` paths</Check>
 <Check>Internal imports use local modules, not SDK self-imports</Check>
 <Check>Tests pass (`pnpm test -- <bundled-plugin-root>/my-plugin/`)</Check>
@@ -244,19 +225,16 @@ internal imports — never import your own plugin through its SDK path.
 
 1. Watch for GitHub release tags on [crawclaw/crawclaw](https://github.com/qianleigood/crawclaw/releases) and subscribe via `Watch` > `Releases`. Beta tags look like `v2026.3.N-beta.1`. You can also turn on notifications for the official CrawClaw X account [@crawclaw](https://x.com/crawclaw) for release announcements.
 2. Test your plugin against the beta tag as soon as it appears. The window before stable is typically only a few hours.
-3. Post in your plugin's thread in the `plugin-forum` Discord channel after testing with either `all good` or what broke. If you do not have a thread yet, create one.
+3. Post in your plugin's thread in the `plugin-forum` community chat channel after testing with either `all good` or what broke. If you do not have a thread yet, create one.
 4. If something breaks, open or update an issue titled `Beta blocker: <plugin-name> - <summary>` and apply the `beta-blocker` label. Put the issue link in your thread.
-5. Open a PR to `main` titled `fix(<plugin-id>): beta blocker - <summary>` and link the issue in both the PR and your Discord thread. Contributors cannot label PRs, so the title is the PR-side signal for maintainers and automation. Blockers with a PR get merged; blockers without one might ship anyway. Maintainers watch these threads during beta testing.
+5. Open a PR to `main` titled `fix(<plugin-id>): beta blocker - <summary>` and link the issue in both the PR and your community chat thread. Contributors cannot label PRs, so the title is the PR-side native channel for maintainers and automation. Blockers with a PR get merged; blockers without one might ship anyway. Maintainers watch these threads during beta testing.
 6. Silence means green. If you miss the window, your fix likely lands in the next cycle.
 
 ## Next steps
 
 <CardGroup cols={2}>
-  <Card title="Channel Plugins" icon="messages-square" href="/plugins/sdk-channel-plugins">
-    Build a messaging channel plugin
-  </Card>
-  <Card title="Provider Plugins" icon="cpu" href="/plugins/sdk-provider-plugins">
-    Build a model provider plugin
+  <Card title="Provider Configuration" icon="cpu" href="/plugins/sdk-provider-plugins">
+    Configure Rust-owned model providers
   </Card>
   <Card title="SDK Overview" icon="book-open" href="/plugins/sdk-overview">
     Import map and registration API reference
@@ -277,5 +255,4 @@ internal imports — never import your own plugin through its SDK path.
 - [Plugin Architecture](/plugins/architecture) — internal architecture deep dive
 - [SDK Overview](/plugins/sdk-overview) — Plugin SDK reference
 - [Manifest](/plugins/manifest) — plugin manifest format
-- [Channel Plugins](/plugins/sdk-channel-plugins) — building channel plugins
-- [Provider Plugins](/plugins/sdk-provider-plugins) — building provider plugins
+- [Provider Configuration](/plugins/sdk-provider-plugins) — Rust-owned providers and custom provider config

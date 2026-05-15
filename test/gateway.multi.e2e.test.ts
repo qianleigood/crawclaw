@@ -65,10 +65,10 @@ describe("gateway multi-instance e2e", () => {
   });
 
   it(
-    "delivers final chat event for telegram-shaped session keys",
+    "delivers final chat event for feishu-shaped session keys",
     { timeout: E2E_TIMEOUT_MS },
     async () => {
-      const gw = await spawnGatewayInstance("chat-telegram-fixture");
+      const gw = await spawnGatewayInstance("chat-feishu-fixture");
       instances.push(gw);
 
       const chatEvents: ChatEventPayload[] = [];
@@ -88,7 +88,7 @@ describe("gateway multi-instance e2e", () => {
       });
       chatClients.push(chatClient);
 
-      const sessionKey = "agent:main:telegram:direct:123456";
+      const sessionKey = "agent:main:feishu:direct:123456";
       const idempotencyKey = `idem-${randomUUID()}`;
       const sendRes = await chatClient.request<{ runId?: string; status?: string }>("chat.send", {
         sessionKey,

@@ -241,7 +241,7 @@ describe("hooks", () => {
         event: createInternalHookEvent("message", "received", "test-session", {
           from: "+1234567890",
           content: "Hello world",
-          channelId: "whatsapp",
+          channelId: "weixin",
           conversationId: "chat-123",
           timestamp: Date.now(),
         } satisfies MessageReceivedHookContext),
@@ -253,7 +253,7 @@ describe("hooks", () => {
           to: "+1234567890",
           content: "Hello world",
           success: true,
-          channelId: "whatsapp",
+          channelId: "weixin",
         } satisfies MessageSentHookContext),
         expected: false,
       },
@@ -274,7 +274,7 @@ describe("hooks", () => {
           to: "+1234567890",
           content: "Hello world",
           success: true,
-          channelId: "telegram",
+          channelId: "feishu",
           conversationId: "chat-456",
           messageId: "msg-789",
         } satisfies MessageSentHookContext),
@@ -287,7 +287,7 @@ describe("hooks", () => {
           content: "Hello world",
           success: false,
           error: "Network error",
-          channelId: "whatsapp",
+          channelId: "weixin",
         } satisfies MessageSentHookContext),
         expected: true,
       },
@@ -296,7 +296,7 @@ describe("hooks", () => {
         event: createInternalHookEvent("message", "received", "test-session", {
           from: "+1234567890",
           content: "Hello world",
-          channelId: "whatsapp",
+          channelId: "weixin",
         } satisfies MessageReceivedHookContext),
         expected: false,
       },
@@ -331,7 +331,7 @@ describe("hooks", () => {
       );
       const missingSentContext = createInternalHookEvent("message", "sent", "test-session", {
         to: "+1234567890",
-        channelId: "whatsapp",
+        channelId: "weixin",
         // missing success
       });
 
@@ -351,7 +351,7 @@ describe("hooks", () => {
       const context: MessageReceivedHookContext = {
         from: "+1234567890",
         content: "Hello world",
-        channelId: "whatsapp",
+        channelId: "weixin",
         conversationId: "chat-123",
       };
       const event = createInternalHookEvent("message", "received", "test-session", context);
@@ -368,7 +368,7 @@ describe("hooks", () => {
         to: "+1234567890",
         content: "Hello world",
         success: true,
-        channelId: "telegram",
+        channelId: "feishu",
         messageId: "msg-123",
       };
       const event = createInternalHookEvent("message", "sent", "test-session", context);
@@ -384,7 +384,7 @@ describe("hooks", () => {
       const receivedContext: MessageReceivedHookContext = {
         from: "+1234567890",
         content: "Hello",
-        channelId: "whatsapp",
+        channelId: "weixin",
       };
       const receivedEvent = createInternalHookEvent(
         "message",
@@ -398,7 +398,7 @@ describe("hooks", () => {
         to: "+1234567890",
         content: "World",
         success: true,
-        channelId: "whatsapp",
+        channelId: "weixin",
       };
       const sentEvent = createInternalHookEvent("message", "sent", "test-session", sentContext);
       await triggerInternalHook(sentEvent);
@@ -420,7 +420,7 @@ describe("hooks", () => {
       const context: MessageReceivedHookContext = {
         from: "+1234567890",
         content: "Hello",
-        channelId: "whatsapp",
+        channelId: "weixin",
       };
       const event = createInternalHookEvent("message", "received", "test-session", context);
       await triggerInternalHook(event);

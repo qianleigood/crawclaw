@@ -11,9 +11,9 @@ const state = vi.hoisted(() => ({
   storePath: "",
   sessionDir: "",
   target: {
-    canonicalKey: "agent:main:telegram:direct:123",
+    canonicalKey: "agent:main:feishu:direct:123",
     storePath: "",
-    storeKeys: ["agent:main:telegram:direct:123"],
+    storeKeys: ["agent:main:feishu:direct:123"],
     agentId: "main",
   } as {
     canonicalKey: string;
@@ -61,9 +61,9 @@ describe("performGatewaySessionReset", () => {
       session: { store: state.storePath },
     } as CrawClawConfig;
     state.target = {
-      canonicalKey: "agent:main:telegram:direct:123",
+      canonicalKey: "agent:main:feishu:direct:123",
       storePath: state.storePath,
-      storeKeys: ["agent:main:telegram:direct:123"],
+      storeKeys: ["agent:main:feishu:direct:123"],
       agentId: "main",
     };
     state.entry = undefined;
@@ -128,7 +128,7 @@ describe("performGatewaySessionReset", () => {
     vi.doMock("../plugins/runtime/index.js", () => ({
       createPluginRuntime: () => ({
         channel: {
-          discord: {
+          qqbot: {
             threadBindings: {
               unbindBySessionKey: resetServiceMocks.unbindBySessionKey,
             },
@@ -214,17 +214,17 @@ describe("performGatewaySessionReset", () => {
       queueDebounceMs: 300,
       queueCap: 9,
       queueDrop: "summarize",
-      spawnedBy: "agent:main:telegram:direct:parent",
+      spawnedBy: "agent:main:feishu:direct:parent",
       spawnedWorkspaceDir: "/tmp/inherited-workspace",
-      parentSessionKey: "agent:main:telegram:direct:parent",
+      parentSessionKey: "agent:main:feishu:direct:parent",
       spawnDepth: 2,
       subagentRole: "leaf",
       subagentControlScope: "children",
       label: "Pinned",
       displayName: "Pinned Display",
-      channel: "telegram",
-      lastChannel: "telegram",
-      lastTo: "telegram:user",
+      channel: "feishu",
+      lastChannel: "feishu",
+      lastTo: "feishu:user",
       lastThreadId: "topic-1",
       inputTokens: 42,
       outputTokens: 84,
@@ -265,8 +265,8 @@ describe("performGatewaySessionReset", () => {
     expect(result.entry.queueDebounceMs).toBe(300);
     expect(result.entry.queueCap).toBe(9);
     expect(result.entry.queueDrop).toBe("summarize");
-    expect(result.entry.spawnedBy).toBe("agent:main:telegram:direct:parent");
-    expect(result.entry.parentSessionKey).toBe("agent:main:telegram:direct:parent");
+    expect(result.entry.spawnedBy).toBe("agent:main:feishu:direct:parent");
+    expect(result.entry.parentSessionKey).toBe("agent:main:feishu:direct:parent");
     expect(result.entry.spawnDepth).toBe(2);
     expect(result.entry.subagentRole).toBe("leaf");
     expect(result.entry.label).toBe("Pinned");

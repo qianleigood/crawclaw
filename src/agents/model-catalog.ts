@@ -1,6 +1,5 @@
 import { type CrawClawConfig, loadConfig } from "../config/config.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { augmentModelCatalogWithProviderPlugins } from "../plugins/provider-runtime.runtime.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
 import { ensureCrawClawModelsJson } from "./models-config.js";
 import { normalizeProviderId } from "./provider-id.js";
@@ -238,32 +237,6 @@ export async function loadModelCatalog(params?: {
       }
       mergeConfiguredOptInProviderModels({ config: cfg, models });
       logStage("configured-models-merged", `entries=${models.length}`);
-      const supplemental = await augmentModelCatalogWithProviderPlugins({
-        config: cfg,
-        env: process.env,
-        context: {
-          config: cfg,
-          agentDir,
-          env: process.env,
-          entries: [...models],
-        },
-      });
-      if (supplemental.length > 0) {
-        const seen = new Set(
-          models.map(
-            (entry) => `${entry.provider.toLowerCase().trim()}::${entry.id.toLowerCase().trim()}`,
-          ),
-        );
-        for (const entry of supplemental) {
-          const key = `${entry.provider.toLowerCase().trim()}::${entry.id.toLowerCase().trim()}`;
-          if (seen.has(key)) {
-            continue;
-          }
-          models.push(entry);
-          seen.add(key);
-        }
-      }
-      logStage("plugin-models-merged", `entries=${models.length}`);
 
       if (models.length === 0) {
         // If we found nothing, don't cache this result so we can try again.

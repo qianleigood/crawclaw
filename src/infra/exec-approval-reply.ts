@@ -339,14 +339,14 @@ export function buildExecApprovalUnavailableReplyPayload(
       `Exec approval is required, but chat exec approvals are not enabled on ${params.channelLabel ?? "this platform"}.`,
     );
     lines.push(
-      "Approve it from the terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
+      "Approve it from the terminal UI, or enable a native chat approval client. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
     );
   } else if (params.reason === "initiating-platform-unsupported") {
     lines.push(
       `Exec approval is required, but ${params.channelLabel ?? "this platform"} does not support chat exec approvals.`,
     );
     lines.push(
-      "Approve it from the terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
+      "Approve it from the terminal UI, or enable a native chat approval client. If those accounts already know your owner ID via allowFrom or owner config, CrawClaw can often infer approvers automatically.",
     );
   } else if (params.reason === "heartbeat") {
     if (!warningText) {
@@ -380,7 +380,7 @@ export function buildExecApprovalUnavailableReplyPayload(
       "Exec approval is required, but no interactive approval client is currently available.",
     );
     lines.push(
-      "Open the terminal UI, or enable a native chat approval client such as Discord, Slack, or Telegram, then retry the command. If those accounts already know your owner ID via allowFrom or owner config, you can usually leave execApprovals.approvers unset.",
+      "Open the terminal UI, or enable a native chat approval client, then retry the command. If those accounts already know your owner ID via allowFrom or owner config, you can usually leave execApprovals.approvers unset.",
     );
   }
 

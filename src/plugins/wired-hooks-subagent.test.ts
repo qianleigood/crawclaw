@@ -6,7 +6,7 @@ import { createHookRunnerWithRegistry } from "./hooks.test-helpers.js";
 
 describe("subagent hook runner methods", () => {
   const baseRequester = {
-    channel: "discord",
+    channel: "qqbot",
     accountId: "work",
     to: "channel:123",
     threadId: "456",
@@ -96,7 +96,7 @@ describe("subagent hook runner methods", () => {
       ctx: baseSubagentCtx,
       handlerResult: {
         origin: {
-          channel: "discord" as const,
+          channel: "qqbot" as const,
           accountId: "work",
           to: "channel:777",
           threadId: "777",
@@ -104,7 +104,7 @@ describe("subagent hook runner methods", () => {
       },
       expectedResult: {
         origin: {
-          channel: "discord",
+          channel: "qqbot",
           accountId: "work",
           to: "channel:777",
           threadId: "777",

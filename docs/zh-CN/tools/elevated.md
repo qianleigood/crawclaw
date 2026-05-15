@@ -52,10 +52,10 @@ x-i18n:
 ## 可用性 + 允许列表
 
 - 功能门控：`tools.elevated.enabled`（即使代码支持，也可以通过配置将默认值设为关闭）。
-- 发送者允许列表：`tools.elevated.allowFrom`，带有每提供商允许列表（例如 `discord`、`whatsapp`）。
+- 发送者允许列表：`tools.elevated.allowFrom`，带有每提供商允许列表（例如 `qqbot`、`weixin`）。
 - 每智能体门控：`agents.list[].tools.elevated.enabled`（可选；只能进一步限制）。
 - 每智能体允许列表：`agents.list[].tools.elevated.allowFrom`（可选；设置时，发送者必须同时匹配全局 + 每智能体允许列表）。
-- Discord 回退：如果省略 `tools.elevated.allowFrom.discord`，则使用 `channels.discord.dm.allowFrom` 列表作为回退。设置 `tools.elevated.allowFrom.discord`（即使是 `[]`）以覆盖。每智能体允许列表**不**使用回退。
+- QQBot 回退：如果省略 `tools.elevated.allowFrom.qqbot`，则使用 `channels.qqbot.dm.allowFrom` 列表作为回退。设置 `tools.elevated.allowFrom.qqbot`（即使是 `[]`）以覆盖。每智能体允许列表**不**使用回退。
 - 所有门控都必须通过；否则 elevated 被视为不可用。
 
 ## 日志 + 状态

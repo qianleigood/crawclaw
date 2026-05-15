@@ -229,7 +229,7 @@ describe("gateway server chat", () => {
           main: {
             sessionId: "sess-main",
             updatedAt: Date.now(),
-            lastChannel: "whatsapp",
+            lastChannel: "weixin",
             lastTo: "+1555",
           },
         },
@@ -250,7 +250,7 @@ describe("gateway server chat", () => {
         string,
         { lastChannel?: string; lastTo?: string } | undefined
       >;
-      expect(stored["agent:main:main"]?.lastChannel).toBe("whatsapp");
+      expect(stored["agent:main:main"]?.lastChannel).toBe("weixin");
       expect(stored["agent:main:main"]?.lastTo).toBe("+1555");
     });
   });

@@ -221,7 +221,7 @@ export default myHandler;
     sessionEntry?: SessionEntry,
     sessionId?: string,
     sessionFile?: string,
-    commandSource?: string,    // 例如 'whatsapp'、'telegram'
+    commandSource?: string,    // 例如 'weixin'、'feishu'
     senderId?: string,
     workspaceDir?: string,
     bootstrapFiles?: WorkspaceBootstrapFile[],
@@ -284,7 +284,7 @@ export default myHandler;
   from: string,           // 发送者标识符（电话号码、用户 ID 等）
   content: string,        // 消息内容
   timestamp?: number,     // 接收时的 Unix 时间戳
-  channelId: string,      // 渠道（例如 "whatsapp"、"telegram"、"discord"）
+  channelId: string,      // 渠道（例如 "weixin"、"feishu"、"qqbot"）
   accountId?: string,     // 多账号设置中的提供商账号 ID
   conversationId?: string, // 聊天/会话 ID
   messageId?: string,     // 提供商返回的消息 ID
@@ -306,7 +306,7 @@ export default myHandler;
   content: string,        // 已发送的消息内容
   success: boolean,       // 发送是否成功
   error?: string,         // 如果发送失败，则为错误消息
-  channelId: string,      // 渠道（例如 "whatsapp"、"telegram"、"discord"）
+  channelId: string,      // 渠道（例如 "weixin"、"feishu"、"qqbot"）
   accountId?: string,     // 提供商账号 ID
   conversationId?: string, // 聊天/会话 ID
   messageId?: string,     // 提供商返回的消息 ID
@@ -319,7 +319,7 @@ export default myHandler;
   body?: string,          // 增强前的原始入站正文
   bodyForAgent?: string,  // 对智能体可见的增强正文
   transcript: string,     // 音频转写文本
-  channelId: string,      // 渠道（例如 "telegram"、"whatsapp"）
+  channelId: string,      // 渠道（例如 "feishu"、"weixin"）
   conversationId?: string,
   messageId?: string,
 }
@@ -329,7 +329,7 @@ export default myHandler;
   body?: string,          // 原始入站正文
   bodyForAgent?: string,  // 媒体/链接理解后的最终增强正文
   transcript?: string,    // 存在音频时的转写内容
-  channelId: string,      // 渠道（例如 "telegram"、"whatsapp"）
+  channelId: string,      // 渠道（例如 "feishu"、"weixin"）
   conversationId?: string,
   messageId?: string,
   isGroup?: boolean,
@@ -626,8 +626,8 @@ crawclaw hooks enable bootstrap-extra-files
 **示例日志条目**：
 
 ```jsonl
-{"timestamp":"2026-01-16T14:30:00.000Z","action":"new","sessionKey":"agent:main:main","senderId":"+1234567890","source":"telegram"}
-{"timestamp":"2026-01-16T15:45:22.000Z","action":"stop","sessionKey":"agent:main:main","senderId":"user@example.com","source":"whatsapp"}
+{"timestamp":"2026-01-16T14:30:00.000Z","action":"new","sessionKey":"agent:main:main","senderId":"+1234567890","source":"feishu"}
+{"timestamp":"2026-01-16T15:45:22.000Z","action":"stop","sessionKey":"agent:main:main","senderId":"user@example.com","source":"weixin"}
 ```
 
 **查看日志**：

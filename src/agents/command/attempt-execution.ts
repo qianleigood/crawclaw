@@ -26,7 +26,7 @@ import { formatAgentInternalEventsForPrompt } from "../internal-events.js";
 import { hasInternalRuntimeContext } from "../internal-runtime-context.js";
 import { isCliProvider } from "../model-selection.js";
 import { prepareSessionManagerForRun } from "../pi-embedded-runner/session-manager-init.js";
-import { runEmbeddedPiAgent } from "../pi-embedded.js";
+import { runNativeAgentTurn } from "../runtime-tools/agent-turn-client.js";
 import { resolveAgentRunContext } from "./run-context.js";
 import type { AgentCommandOpts } from "./types.js";
 
@@ -459,7 +459,7 @@ export function runAgentAttempt(params: {
     });
   }
 
-  return runEmbeddedPiAgent({
+  return runNativeAgentTurn({
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
     agentId: params.sessionAgentId,

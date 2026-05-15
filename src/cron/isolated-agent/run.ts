@@ -19,7 +19,10 @@ import { LiveSessionModelSwitchError } from "../../agents/live-model-switch-erro
 import { loadModelCatalog } from "../../agents/model-catalog.js";
 import { runWithModelFallback } from "../../agents/model-fallback.js";
 import { isCliProvider, resolveThinkingDefault } from "../../agents/model-selection.js";
-import { runEmbeddedPiAgent } from "../../agents/pi-embedded.js";
+import {
+  runNativeAgentTurn,
+  type NativeAgentRunResult,
+} from "../../agents/runtime-tools/agent-turn-client.js";
 import {
   countActiveDescendantRuns,
   listDescendantRunsForRequester,
@@ -32,7 +35,6 @@ import {
   normalizeVerboseLevel,
   supportsXHighThinking,
 } from "../../auto-reply/thinking.js";
-import type { CliDeps } from "../../cli/outbound-send-deps.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import {
   resolveSessionTranscriptPath,
@@ -49,6 +51,7 @@ import {
   isExternalHookSession,
   resolveHookExternalContentSource,
 } from "../../security/external-content.js";
+import type { CliDeps } from "../../terminal/outbound-send-deps.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
 import { resolveCronDeliveryPlan } from "../delivery.js";
 import type { CronJob, CronRunOutcome, CronRunTelemetry } from "../types.js";
@@ -442,7 +445,7 @@ export async function runCronIsolatedAgentTurn(params: {
     delete cronSession.sessionEntry.authProfileOverrideCompactionCount;
   };
 
-  let runResult: Awaited<ReturnType<typeof runEmbeddedPiAgent>> | undefined;
+  let runResult: NativeAgentRunResult | Awaited<ReturnType<typeof runCliAgent>> | undefined;
   let fallbackProvider = liveSelection.provider;
   let fallbackModel = liveSelection.model;
   const runStartedAt = Date.now();
@@ -513,7 +516,7 @@ export async function runCronIsolatedAgentTurn(params: {
             );
             return result;
           }
-          const result = await runEmbeddedPiAgent({
+          const result = await runNativeAgentTurn({
             sessionId: cronSession.sessionEntry.sessionId,
             sessionKey: agentSessionKey,
             agentId,

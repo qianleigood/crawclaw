@@ -1,29 +1,30 @@
 ---
 title: "Plugin Entry Points"
 sidebarTitle: "Entry Points"
-summary: "Reference for definePluginEntry, defineChannelPluginEntry, and defineSetupPluginEntry"
+summary: "Reference for definePluginEntry and plugin registration modes"
 read_when:
-  - You need the exact type signature of definePluginEntry or defineChannelPluginEntry
+  - You need the exact type signature of definePluginEntry
   - You want to understand registration mode (full vs setup vs CLI metadata)
   - You are looking up entry point options
 ---
 
 # Plugin Entry Points
 
-Every plugin exports a default entry object. The SDK provides three helpers for
-creating them.
+Every TypeScript plugin exports a default entry object. The SDK provides
+`definePluginEntry` for provider, tool, hook, command, service, speech, media,
+and web plugins.
 
 <Tip>
-  **Looking for a walkthrough?** See [Channel Plugins](/plugins/sdk-channel-plugins)
-  or [Provider Plugins](/plugins/sdk-provider-plugins) for step-by-step guides.
+  **Looking for a walkthrough?** See [Provider Configuration](/plugins/sdk-provider-plugins)
+  for model setup.
 </Tip>
 
 ## `definePluginEntry`
 
 **Import:** `crawclaw/plugin-sdk/plugin-entry`
 
-For provider plugins, tool plugins, hook plugins, and anything that is **not**
-a messaging channel.
+For tool plugins, service plugins, local process backends, providers, and other
+non-channel capabilities.
 
 ```typescript
 import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
@@ -33,9 +34,6 @@ export default definePluginEntry({
   name: "My Plugin",
   description: "Short summary",
   register(api) {
-    api.registerProvider({
-      /* ... */
-    });
     api.registerTool({
       /* ... */
     });
@@ -56,109 +54,18 @@ export default definePluginEntry({
 - `kind` is for the exclusive memory slot: `"memory"`.
 - `configSchema` can be a function for lazy evaluation.
 
-## `defineChannelPluginEntry`
+## Channel Adapters
 
-**Import:** `crawclaw/plugin-sdk/core`
-
-Wraps `definePluginEntry` with channel-specific wiring. Automatically calls
-`api.registerChannel({ plugin })`, exposes an optional root-help CLI metadata
-seam, and gates `registerFull` on registration mode.
-
-```typescript
-import { defineChannelPluginEntry } from "crawclaw/plugin-sdk/core";
-
-export default defineChannelPluginEntry({
-  id: "my-channel",
-  name: "My Channel",
-  description: "Short summary",
-  plugin: myChannelPlugin,
-  setRuntime: setMyRuntime,
-  registerCliMetadata(api) {
-    api.registerCli(/* ... */);
-  },
-  registerFull(api) {
-    return import("./full.runtime.js").then(({ registerMyChannelFull }) => {
-      registerMyChannelFull(api);
-    });
-  },
-});
-```
-
-| Field                 | Type                                                             | Required | Default             |
-| --------------------- | ---------------------------------------------------------------- | -------- | ------------------- |
-| `id`                  | `string`                                                         | Yes      | —                   |
-| `name`                | `string`                                                         | Yes      | —                   |
-| `description`         | `string`                                                         | Yes      | —                   |
-| `plugin`              | `ChannelPlugin`                                                  | Yes      | —                   |
-| `configSchema`        | `CrawClawPluginConfigSchema \| () => CrawClawPluginConfigSchema` | No       | Empty object schema |
-| `setRuntime`          | `(runtime: PluginRuntime) => void`                               | No       | —                   |
-| `registerCliMetadata` | `(api: CrawClawPluginApi) => void`                               | No       | —                   |
-| `registerFull`        | `(api: CrawClawPluginApi) => void \| Promise<void>`              | No       | —                   |
-
-- `setRuntime` is called during registration so you can store the runtime reference
-  (typically via `createPluginRuntimeStore`). It is skipped during CLI metadata
-  capture.
-- `registerCliMetadata` runs during both `api.registrationMode === "cli-metadata"`
-  and `api.registrationMode === "full"`.
-  Use it as the canonical place for channel-owned CLI descriptors so root help
-  stays non-activating while normal CLI command registration remains compatible
-  with full plugin loads.
-- `registerFull` only runs when `api.registrationMode === "full"`. It is skipped
-  during setup-only loading. It may return a promise, which makes it the right
-  place to lazily import heavy runtime-only registration code from a dedicated
-  `full.runtime.ts` or `full.runtime.js` boundary.
-- For plugin-owned root Desktop and Gateway API actions, prefer `api.registerCli(..., { descriptors: [...] })`
-  when you want the command to stay lazy-loaded without disappearing from the
-  root CLI parse tree. For channel plugins, prefer registering those descriptors
-  from `registerCliMetadata(...)` and keep `registerFull(...)` focused on runtime-only work.
-  Add `descriptionZhCN` to descriptors that should show a translated root-help
-  label when the CLI runs with `--lang zh-CN`.
-
-## `defineSetupPluginEntry`
-
-**Import:** `crawclaw/plugin-sdk/core`
-
-For the lightweight `setup-entry.ts` file. Returns just `{ plugin }` with no
-runtime or CLI wiring.
-
-```typescript
-import { defineSetupPluginEntry } from "crawclaw/plugin-sdk/core";
-
-export default defineSetupPluginEntry(myChannelPlugin);
-```
-
-CrawClaw loads this instead of the full entry when a channel is disabled,
-unconfigured, or when deferred loading is enabled. See
-[Setup and Config](/plugins/sdk-setup#setup-entry) for when this matters.
+TypeScript channel entry helpers have been removed from the production SDK.
+Channels are implemented as Rust-native adapters.
 
 ## Registration mode
 
 `api.registrationMode` tells your plugin how it was loaded:
 
-| Mode              | When                              | What to register              |
-| ----------------- | --------------------------------- | ----------------------------- |
-| `"full"`          | Normal gateway startup            | Everything                    |
-| `"setup-only"`    | Disabled/unconfigured channel     | Channel registration only     |
-| `"setup-runtime"` | Setup flow with runtime available | Channel + lightweight runtime |
-| `"cli-metadata"`  | Root help / CLI metadata capture  | CLI descriptors only          |
-
-`defineChannelPluginEntry` handles this split automatically. If you use
-`definePluginEntry` directly for a channel, check mode yourself:
-
-```typescript
-register(api) {
-  if (api.registrationMode === "cli-metadata" || api.registrationMode === "full") {
-    api.registerCli(/* ... */);
-    if (api.registrationMode === "cli-metadata") return;
-  }
-
-  api.registerChannel({ plugin: myPlugin });
-  if (api.registrationMode !== "full") return;
-
-  // Heavy runtime-only registrations
-  api.registerService(/* ... */);
-}
-```
+| Mode     | When                   | What to register |
+| -------- | ---------------------- | ---------------- |
+| `"full"` | Normal gateway startup | Everything       |
 
 For CLI registrars specifically:
 
@@ -172,12 +79,11 @@ For CLI registrars specifically:
 
 CrawClaw classifies loaded plugins by their registration behavior:
 
-| Shape                 | Description                                        |
-| --------------------- | -------------------------------------------------- |
-| **plain-capability**  | One capability type (e.g. provider-only)           |
-| **hybrid-capability** | Multiple capability types (e.g. provider + speech) |
-| **hook-only**         | Only hooks, no capabilities                        |
-| **non-capability**    | Tools/commands/services but no capabilities        |
+| Shape                 | Description                                     |
+| --------------------- | ----------------------------------------------- |
+| **plain-capability**  | One capability type (e.g. channel-only)         |
+| **hybrid-capability** | Multiple capability types (e.g. speech + media) |
+| **non-capability**    | Tools/commands/services but no capabilities     |
 
 Use CrawClaw Desktop or the local Gateway API to see a plugin's shape.
 
@@ -186,5 +92,4 @@ Use CrawClaw Desktop or the local Gateway API to see a plugin's shape.
 - [SDK Overview](/plugins/sdk-overview) — registration API and subpath reference
 - [Runtime Helpers](/plugins/sdk-runtime) — `api.runtime` and `createPluginRuntimeStore`
 - [Setup and Config](/plugins/sdk-setup) — manifest, setup entry, deferred loading
-- [Channel Plugins](/plugins/sdk-channel-plugins) — building the `ChannelPlugin` object
-- [Provider Plugins](/plugins/sdk-provider-plugins) — provider registration and hooks
+- [Provider Configuration](/plugins/sdk-provider-plugins) — Rust-owned providers and `models.providers`

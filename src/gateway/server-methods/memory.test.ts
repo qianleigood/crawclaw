@@ -341,7 +341,7 @@ describe("memoryHandlers", () => {
   });
 
   it("rejects legacy colon-delimited dream scope keys", async () => {
-    const opts = createOptions("memory.dream.status", { scopeKey: "main:telegram:alice" });
+    const opts = createOptions("memory.dream.status", { scopeKey: "main:feishu:alice" });
 
     await memoryHandlers["memory.dream.status"](opts);
 

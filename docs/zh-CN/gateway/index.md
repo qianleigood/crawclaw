@@ -18,7 +18,7 @@ x-i18n:
 
 ## 是什么
 
-- 拥有单一 Baileys/Telegram 连接和控制/事件平面的常驻进程。
+- 拥有单一 Baileys/Feishu 连接和控制/事件平面的常驻进程。
 - 替代旧版 `gateway` 命令。CLI 入口点：`crawclaw gateway`。
 - 运行直到停止；出现致命错误时以非零退出码退出，以便 supervisor 重启它。
 - 面向浏览器 Browser client 的稳定 method surface、capability 规则和 config 写路径，见 [控制面 RPC](/gateway/control-plane-rpc)。
@@ -114,7 +114,7 @@ crawclaw --dev health
 - 唯一的 `CRAWCLAW_CONFIG_PATH`
 - 唯一的 `CRAWCLAW_STATE_DIR`
 - 唯一的 `agents.defaults.workspace`
-- 单独的 WhatsApp 号码（如果使用 WA）
+- 单独的 Weixin 号码（如果使用 WA）
 
 按配置文件安装服务：
 
@@ -185,7 +185,7 @@ CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b crawcla
 
 - 错误使用 `{ code, message, details?, retryable?, retryAfterMs? }`。
 - 标准码：
-  - `NOT_LINKED` — WhatsApp 未认证。
+  - `NOT_LINKED` — Weixin 未认证。
   - `AGENT_TIMEOUT` — 智能体未在配置的截止时间内响应。
   - `INVALID_REQUEST` — schema/参数验证失败。
   - `UNAVAILABLE` — Gateway 网关正在关闭或依赖项不可用。
@@ -320,7 +320,7 @@ Windows 安装使用原生 PowerShell 安装器和每用户启动模式。参阅
 ## CLI 辅助工具
 
 - `crawclaw gateway health|status` — 通过 Gateway 网关 WS 请求 health/status。
-- `crawclaw message send --target <num> --message "hi" [--media ...]` — 通过 Gateway 网关发送（对 WhatsApp 是幂等的）。
+- `crawclaw message send --target <num> --message "hi" [--media ...]` — 通过 Gateway 网关发送（对 Weixin 是幂等的）。
 - `crawclaw agent --message "hi" --to <num>` — 运行智能体轮次（默认等待最终结果）。
 - `crawclaw gateway call <method> --params '{"k":"v"}'` — 用于调试的原始方法调用器。
 - `crawclaw gateway stop|restart` — 停止/重启受监管的 Gateway 网关服务（launchd/systemd）。

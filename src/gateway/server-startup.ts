@@ -12,7 +12,6 @@ import { ensureCrawClawModelsJson } from "../agents/models-config.js";
 import { resolveModel } from "../agents/pi-embedded-runner/model.js";
 import { resolveAgentSessionDirs } from "../agents/session-dirs.js";
 import { cleanStaleLockFiles } from "../agents/session-write-lock.js";
-import type { CliDeps } from "../cli/deps.js";
 import type { loadConfig } from "../config/config.js";
 import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
 import { resolveStateDir } from "../config/paths.js";
@@ -26,6 +25,7 @@ import { loadInternalHooks } from "../hooks/loader.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import type { loadCrawClawPlugins } from "../plugins/loader.js";
 import { type PluginServicesHandle, startPluginServices } from "../plugins/services.js";
+import type { CliDeps } from "../terminal/deps.js";
 import {
   scheduleRestartSentinelWake,
   shouldWakeFromRestartSentinel,

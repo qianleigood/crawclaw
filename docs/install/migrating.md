@@ -2,7 +2,7 @@
 summary: "Move (migrate) a CrawClaw install from one machine to another"
 read_when:
   - You are moving CrawClaw to a new laptop/server
-  - You want to preserve sessions, auth, and channel logins (WhatsApp, etc.)
+  - You want to preserve sessions, auth, and channel logins (Weixin, etc.)
 title: "Migration Guide"
 ---
 
@@ -17,7 +17,7 @@ When you copy the **state directory** (`~/.crawclaw/` by default) and your **wor
 - **Config** -- `crawclaw.json` and all gateway settings
 - **Auth** -- API keys, OAuth tokens, credential profiles
 - **Sessions** -- conversation history and agent state
-- **Channel state** -- WhatsApp login, Telegram session, etc.
+- **Channel state** -- Weixin login, Feishu session, etc.
 - **Workspace files** -- `MEMORY.md`, `USER.md`, skills, and prompts
 
 <Tip>

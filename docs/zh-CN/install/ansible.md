@@ -70,7 +70,7 @@ sudo -i -u crawclaw
 安装后脚本将引导你完成：
 
 1. **新手引导向导**：配置 CrawClaw 设置
-2. **提供商登录**：连接 WhatsApp/Telegram/Discord/Signal
+2. **提供商登录**：连接 Weixin/Feishu/QQBot/Feishu
 3. **Gateway 网关测试**：验证安装
 4. **Tailscale 设置**：连接到你的 VPN mesh
 

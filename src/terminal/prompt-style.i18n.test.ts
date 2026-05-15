@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { setActiveCliLocale } from "../cli/i18n/text.js";
+import { setActiveCliLocale } from "./i18n/text.js";
 import { stylePromptHint, stylePromptMessage, stylePromptTitle } from "./prompt-style.js";
 
 describe("prompt style i18n", () => {

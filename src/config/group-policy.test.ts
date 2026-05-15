@@ -6,7 +6,7 @@ describe("resolveChannelGroupPolicy", () => {
   it("fails closed when groupPolicy=allowlist and groups are missing", () => {
     const cfg = {
       channels: {
-        whatsapp: {
+        weixin: {
           groupPolicy: "allowlist",
         },
       },
@@ -14,7 +14,7 @@ describe("resolveChannelGroupPolicy", () => {
 
     const policy = resolveChannelGroupPolicy({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       groupId: "123@g.us",
     });
 
@@ -25,7 +25,7 @@ describe("resolveChannelGroupPolicy", () => {
   it("allows configured groups when groupPolicy=allowlist", () => {
     const cfg = {
       channels: {
-        whatsapp: {
+        weixin: {
           groupPolicy: "allowlist",
           groups: {
             "123@g.us": { requireMention: true },
@@ -36,7 +36,7 @@ describe("resolveChannelGroupPolicy", () => {
 
     const policy = resolveChannelGroupPolicy({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       groupId: "123@g.us",
     });
 
@@ -47,7 +47,7 @@ describe("resolveChannelGroupPolicy", () => {
   it("blocks all groups when groupPolicy=disabled", () => {
     const cfg = {
       channels: {
-        whatsapp: {
+        weixin: {
           groupPolicy: "disabled",
           groups: {
             "*": { requireMention: false },
@@ -58,7 +58,7 @@ describe("resolveChannelGroupPolicy", () => {
 
     const policy = resolveChannelGroupPolicy({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       groupId: "123@g.us",
     });
 
@@ -68,7 +68,7 @@ describe("resolveChannelGroupPolicy", () => {
   it("respects account-scoped groupPolicy overrides", () => {
     const cfg = {
       channels: {
-        whatsapp: {
+        weixin: {
           groupPolicy: "open",
           accounts: {
             work: {
@@ -81,7 +81,7 @@ describe("resolveChannelGroupPolicy", () => {
 
     const policy = resolveChannelGroupPolicy({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       accountId: "work",
       groupId: "123@g.us",
     });
@@ -93,7 +93,7 @@ describe("resolveChannelGroupPolicy", () => {
   it("allows groups when groupPolicy=allowlist with hasGroupAllowFrom but no groups", () => {
     const cfg = {
       channels: {
-        whatsapp: {
+        weixin: {
           groupPolicy: "allowlist",
         },
       },
@@ -101,7 +101,7 @@ describe("resolveChannelGroupPolicy", () => {
 
     const policy = resolveChannelGroupPolicy({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       groupId: "123@g.us",
       hasGroupAllowFrom: true,
     });
@@ -113,7 +113,7 @@ describe("resolveChannelGroupPolicy", () => {
   it("still fails closed when groupPolicy=allowlist without groups or groupAllowFrom", () => {
     const cfg = {
       channels: {
-        whatsapp: {
+        weixin: {
           groupPolicy: "allowlist",
         },
       },
@@ -121,7 +121,7 @@ describe("resolveChannelGroupPolicy", () => {
 
     const policy = resolveChannelGroupPolicy({
       cfg,
-      channel: "whatsapp",
+      channel: "weixin",
       groupId: "123@g.us",
       hasGroupAllowFrom: false,
     });

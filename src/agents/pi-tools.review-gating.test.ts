@@ -53,7 +53,7 @@ describe("review session tool gating", () => {
     });
     const toolNames = tools.map((tool) => tool.name);
 
-    expect(toolNames).toEqual(expect.arrayContaining(["read", "exec", "process"]));
+    expect(toolNames).toEqual(expect.arrayContaining(["read", "bash", "process"]));
     expect(toolNames).toContain("write");
     expect(toolNames).toContain("edit");
     expect(toolNames).not.toContain("review_task");
@@ -198,7 +198,7 @@ describe("review session tool gating", () => {
     expect(dreamToolNames).toEqual(
       expect.arrayContaining([
         "read",
-        "exec",
+        "bash",
         "write",
         "edit",
         "memory_manifest_read",
@@ -216,7 +216,7 @@ describe("review session tool gating", () => {
         content: "should-not-run",
       }),
     ).rejects.toThrow("memory maintenance write/edit is restricted");
-    const blockedDreamExec = dreamTools.find((tool) => tool.name === "exec");
+    const blockedDreamExec = dreamTools.find((tool) => tool.name === "bash");
     expect(blockedDreamExec).toBeDefined();
     await expect(
       blockedDreamExec!.execute?.("call-dream-exec-deny", {

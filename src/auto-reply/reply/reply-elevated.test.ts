@@ -8,7 +8,7 @@ function buildConfig(allowFrom: string[]): CrawClawConfig {
     tools: {
       elevated: {
         allowFrom: {
-          whatsapp: allowFrom,
+          weixin: allowFrom,
         },
       },
     },
@@ -17,10 +17,10 @@ function buildConfig(allowFrom: string[]): CrawClawConfig {
 
 function buildContext(overrides?: Partial<MsgContext>): MsgContext {
   return {
-    Provider: "whatsapp",
-    Surface: "whatsapp",
+    Provider: "weixin",
+    Surface: "weixin",
     SenderId: "+15550001111",
-    From: "whatsapp:+15550001111",
+    From: "weixin:+15550001111",
     SenderE164: "+15550001111",
     To: "+15559990000",
     ...overrides,
@@ -35,7 +35,7 @@ function expectAllowFromDecision(params: {
   const result = resolveElevatedPermissions({
     cfg: buildConfig(params.allowFrom),
     agentId: "main",
-    provider: "whatsapp",
+    provider: "weixin",
     ctx: buildContext(params.ctx),
   });
 
@@ -48,7 +48,7 @@ function expectAllowFromDecision(params: {
 
   expect(result.failures).toContainEqual({
     gate: "allowFrom",
-    key: "tools.elevated.allowFrom.whatsapp",
+    key: "tools.elevated.allowFrom.weixin",
   });
 }
 

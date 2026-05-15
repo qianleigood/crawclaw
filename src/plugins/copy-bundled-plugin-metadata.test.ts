@@ -72,10 +72,13 @@ function expectBundledSkills(repoRoot: string, pluginId: string, skills: string[
   expect(readBundledManifest(repoRoot, pluginId).skills).toEqual(skills);
 }
 
-function createTlonSkillPlugin(repoRoot: string, skillPath = "node_modules/@tloncorp/tlon-skill") {
+function createFeishuSkillPlugin(
+  repoRoot: string,
+  skillPath = "node_modules/@feishucorp/feishu-skill",
+) {
   return createPlugin(repoRoot, {
-    id: "tlon",
-    packageName: "@crawclaw/tlon",
+    id: "feishu",
+    packageName: "@crawclaw/feishu",
     manifest: { skills: [skillPath] },
     packageCrawClaw: { extensions: ["./index.ts"] },
   });
@@ -130,35 +133,35 @@ describe("copyBundledPluginMetadata", () => {
 
   it("relocates node_modules-backed skill paths into bundled-skills and rewrites the manifest", () => {
     const repoRoot = makeRepoRoot("crawclaw-bundled-plugin-node-modules-");
-    const pluginDir = createTlonSkillPlugin(repoRoot);
+    const pluginDir = createFeishuSkillPlugin(repoRoot);
     const storeSkillDir = path.join(
       repoRoot,
       "node_modules",
       ".pnpm",
-      "@tloncorp+tlon-skill@0.2.2",
+      "@feishucorp+feishu-skill@0.2.2",
       "node_modules",
-      "@tloncorp",
-      "tlon-skill",
+      "@feishucorp",
+      "feishu-skill",
     );
     fs.mkdirSync(storeSkillDir, { recursive: true });
-    fs.writeFileSync(path.join(storeSkillDir, "SKILL.md"), "# Tlon Skill\n", "utf8");
+    fs.writeFileSync(path.join(storeSkillDir, "SKILL.md"), "# Feishu Skill\n", "utf8");
     fs.mkdirSync(path.join(storeSkillDir, "node_modules", ".bin"), { recursive: true });
     fs.writeFileSync(
-      path.join(storeSkillDir, "node_modules", ".bin", "tlon"),
+      path.join(storeSkillDir, "node_modules", ".bin", "feishu"),
       "#!/bin/sh\n",
       "utf8",
     );
-    fs.mkdirSync(path.join(pluginDir, "node_modules", "@tloncorp"), { recursive: true });
+    fs.mkdirSync(path.join(pluginDir, "node_modules", "@feishucorp"), { recursive: true });
     fs.symlinkSync(
       storeSkillDir,
-      path.join(pluginDir, "node_modules", "@tloncorp", "tlon-skill"),
+      path.join(pluginDir, "node_modules", "@feishucorp", "feishu-skill"),
       process.platform === "win32" ? "junction" : "dir",
     );
     const staleNodeModulesSkillDir = path.join(
-      bundledPluginDir(repoRoot, "tlon"),
+      bundledPluginDir(repoRoot, "feishu"),
       "node_modules",
-      "@tloncorp",
-      "tlon-skill",
+      "@feishucorp",
+      "feishu-skill",
     );
     fs.mkdirSync(staleNodeModulesSkillDir, { recursive: true });
     fs.writeFileSync(path.join(staleNodeModulesSkillDir, "stale.txt"), "stale\n", "utf8");
@@ -166,59 +169,66 @@ describe("copyBundledPluginMetadata", () => {
     copyBundledPluginMetadata({ repoRoot });
 
     const copiedSkillDir = path.join(
-      bundledPluginDir(repoRoot, "tlon"),
+      bundledPluginDir(repoRoot, "feishu"),
       "bundled-skills",
-      "@tloncorp",
-      "tlon-skill",
+      "@feishucorp",
+      "feishu-skill",
     );
     expect(fs.existsSync(path.join(copiedSkillDir, "SKILL.md"))).toBe(true);
     expect(fs.lstatSync(copiedSkillDir).isSymbolicLink()).toBe(false);
     expect(fs.existsSync(path.join(copiedSkillDir, "node_modules"))).toBe(false);
-    expect(fs.existsSync(path.join(bundledPluginDir(repoRoot, "tlon"), "node_modules"))).toBe(
+    expect(fs.existsSync(path.join(bundledPluginDir(repoRoot, "feishu"), "node_modules"))).toBe(
       false,
     );
-    expectBundledSkills(repoRoot, "tlon", ["./bundled-skills/@tloncorp/tlon-skill"]);
+    expectBundledSkills(repoRoot, "feishu", ["./bundled-skills/@feishucorp/feishu-skill"]);
   });
 
   it("falls back to repo-root hoisted node_modules skill paths", () => {
     const repoRoot = makeRepoRoot("crawclaw-bundled-plugin-hoisted-skill-");
-    const pluginDir = createTlonSkillPlugin(repoRoot);
-    const hoistedSkillDir = path.join(repoRoot, "node_modules", "@tloncorp", "tlon-skill");
+    const pluginDir = createFeishuSkillPlugin(repoRoot);
+    const hoistedSkillDir = path.join(repoRoot, "node_modules", "@feishucorp", "feishu-skill");
     fs.mkdirSync(hoistedSkillDir, { recursive: true });
-    fs.writeFileSync(path.join(hoistedSkillDir, "SKILL.md"), "# Hoisted Tlon Skill\n", "utf8");
+    fs.writeFileSync(path.join(hoistedSkillDir, "SKILL.md"), "# Hoisted Feishu Skill\n", "utf8");
     fs.mkdirSync(pluginDir, { recursive: true });
 
     copyBundledPluginMetadata({ repoRoot });
 
     expect(
       fs.readFileSync(
-        bundledSkillPath(repoRoot, "tlon", "bundled-skills", "@tloncorp", "tlon-skill", "SKILL.md"),
+        bundledSkillPath(
+          repoRoot,
+          "feishu",
+          "bundled-skills",
+          "@feishucorp",
+          "feishu-skill",
+          "SKILL.md",
+        ),
         "utf8",
       ),
-    ).toContain("Hoisted Tlon Skill");
-    expectBundledSkills(repoRoot, "tlon", ["./bundled-skills/@tloncorp/tlon-skill"]);
+    ).toContain("Hoisted Feishu Skill");
+    expectBundledSkills(repoRoot, "feishu", ["./bundled-skills/@feishucorp/feishu-skill"]);
   });
 
   it("omits missing declared skill paths and removes stale generated outputs", () => {
     const repoRoot = makeRepoRoot("crawclaw-bundled-plugin-missing-skill-");
-    createTlonSkillPlugin(repoRoot);
+    createFeishuSkillPlugin(repoRoot);
     const staleBundledSkillDir = path.join(
-      bundledPluginDir(repoRoot, "tlon"),
+      bundledPluginDir(repoRoot, "feishu"),
       "bundled-skills",
-      "@tloncorp",
-      "tlon-skill",
+      "@feishucorp",
+      "feishu-skill",
     );
     fs.mkdirSync(staleBundledSkillDir, { recursive: true });
     fs.writeFileSync(path.join(staleBundledSkillDir, "SKILL.md"), "# stale\n", "utf8");
-    const staleNodeModulesDir = path.join(bundledPluginDir(repoRoot, "tlon"), "node_modules");
+    const staleNodeModulesDir = path.join(bundledPluginDir(repoRoot, "feishu"), "node_modules");
     fs.mkdirSync(staleNodeModulesDir, { recursive: true });
 
     copyBundledPluginMetadata({ repoRoot });
 
-    expectBundledSkills(repoRoot, "tlon", []);
-    expect(fs.existsSync(path.join(repoRoot, "dist", "extensions", "tlon", "bundled-skills"))).toBe(
-      false,
-    );
+    expectBundledSkills(repoRoot, "feishu", []);
+    expect(
+      fs.existsSync(path.join(repoRoot, "dist", "extensions", "feishu", "bundled-skills")),
+    ).toBe(false);
     expect(fs.existsSync(staleNodeModulesDir)).toBe(false);
   });
 
@@ -331,11 +341,11 @@ describe("copyBundledPluginMetadata", () => {
     },
     {
       name: "still bundles previously released optional plugins without the opt-in env",
-      pluginId: "whatsapp",
-      packageName: "@crawclaw/whatsapp",
+      pluginId: "weixin",
+      packageName: "@crawclaw/weixin",
       packageCrawClaw: {
         extensions: ["./index.ts"],
-        install: { npmSpec: "@crawclaw/whatsapp" },
+        install: { npmSpec: "@crawclaw/weixin" },
       },
       env: {},
       expectedExists: true,

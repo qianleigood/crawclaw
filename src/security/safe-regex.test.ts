@@ -29,10 +29,10 @@ describe("safe regex", () => {
   });
 
   it("compiles common safe filter regex", () => {
-    const re = compileSafeRegex("^agent:.*:discord:");
+    const re = compileSafeRegex("^agent:.*:qqbot:");
     expect(re).toBeInstanceOf(RegExp);
-    expect(re?.test("agent:main:discord:channel:123")).toBe(true);
-    expect(re?.test("agent:main:telegram:channel:123")).toBe(false);
+    expect(re?.test("agent:main:qqbot:channel:123")).toBe(true);
+    expect(re?.test("agent:main:feishu:channel:123")).toBe(false);
   });
 
   it("supports explicit flags", () => {
@@ -51,9 +51,9 @@ describe("safe regex", () => {
   });
 
   it.each([
-    [/^agent:main:discord:/, `agent:main:discord:${"x".repeat(5000)}`, true],
-    [/discord:tail$/, `${"x".repeat(5000)}discord:tail`, true],
-    [/discord:tail$/, `${"x".repeat(5000)}telegram:tail`, false],
+    [/^agent:main:qqbot:/, `agent:main:qqbot:${"x".repeat(5000)}`, true],
+    [/qqbot:tail$/, `${"x".repeat(5000)}qqbot:tail`, true],
+    [/qqbot:tail$/, `${"x".repeat(5000)}feishu:tail`, false],
   ] as const)("checks bounded regex windows for %s", (pattern, input, expected) => {
     expect(testRegexWithBoundedInput(pattern, input)).toBe(expected);
   });

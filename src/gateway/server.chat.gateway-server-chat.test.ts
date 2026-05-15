@@ -357,7 +357,7 @@ describe("gateway server chat", () => {
           rules: [
             {
               action: "deny",
-              match: { channel: "discord", chatType: "group" },
+              match: { channel: "qqbot", chatType: "group" },
             },
           ],
         },
@@ -365,17 +365,17 @@ describe("gateway server chat", () => {
 
       await writeSessionStore({
         entries: {
-          "discord:group:dev": {
-            sessionId: "sess-discord",
+          "qqbot:group:dev": {
+            sessionId: "sess-qqbot",
             updatedAt: Date.now(),
             chatType: "group",
-            channel: "discord",
+            channel: "qqbot",
           },
         },
       });
 
       const blockedRes = await rpcReq(ws, "chat.send", {
-        sessionKey: "discord:group:dev",
+        sessionKey: "qqbot:group:dev",
         message: "hello",
         idempotencyKey: "idem-1",
       });

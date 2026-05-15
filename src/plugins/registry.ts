@@ -1,9 +1,7 @@
-import path from "node:path";
 import type { AnyAgentTool } from "../agents/tools/common.js";
 import type { ChannelPlugin } from "../channels/plugins/types.js";
 import type { OperatorScope } from "../gateway/method-scopes.js";
 import type { GatewayRequestHandler, GatewayRequestHandlers } from "../gateway/request-types.js";
-import { registerInternalHook } from "../hooks/internal-hooks.js";
 import type { HookEntry } from "../hooks/types.js";
 import { resolveUserPath } from "../utils.js";
 import { buildPluginApi } from "./api-builder.js";
@@ -11,27 +9,20 @@ import { registerPluginCommand, validatePluginCommandDefinition } from "./comman
 import type { PluginActivationSource } from "./config-state.js";
 import { normalizePluginHttpPath } from "./http-path.js";
 import { findOverlappingPluginHttpRoute } from "./http-route-overlap.js";
-import { normalizeRegisteredProvider } from "./provider-validation.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
 import { withPluginRuntimePluginIdScope } from "./runtime/gateway-request-scope.js";
 import type { PluginRuntime } from "./runtime/types.js";
-import { isPluginHookName, isPromptInjectionHookName } from "./types.js";
 import type {
   CliBackendPlugin,
   WebFetchProviderPlugin,
   CrawClawPluginApi,
-  CrawClawPluginChannelRegistration,
-  CrawClawPluginCliCommandDescriptor,
-  CrawClawPluginCliRegistrar,
   CrawClawPluginCommandDefinition,
   PluginConversationBindingResolvedEvent,
   CrawClawPluginHttpRouteAuth,
   CrawClawPluginHttpRouteMatch,
   CrawClawPluginHttpRouteHandler,
   CrawClawPluginHttpRouteParams,
-  CrawClawPluginHookOptions,
   MediaUnderstandingProviderPlugin,
-  ProviderPlugin,
   CrawClawPluginService,
   CrawClawPluginToolContext,
   CrawClawPluginToolFactory,
@@ -43,8 +34,6 @@ import type {
   PluginOrigin,
   PluginKind,
   PluginRegistrationMode,
-  PluginHookName,
-  PluginHookHandlerMap,
   PluginHookRegistration as TypedPluginHookRegistration,
   SpeechProviderPlugin,
   WebSearchProviderPlugin,
@@ -57,16 +46,6 @@ export type PluginToolRegistration = {
   factory: CrawClawPluginToolFactory;
   names: string[];
   optional: boolean;
-  source: string;
-  rootDir?: string;
-};
-
-export type PluginCliRegistration = {
-  pluginId: string;
-  pluginName?: string;
-  register: CrawClawPluginCliRegistrar;
-  commands: string[];
-  descriptors: CrawClawPluginCliCommandDescriptor[];
   source: string;
   rootDir?: string;
 };
@@ -97,14 +76,6 @@ export type PluginChannelSetupRegistration = {
   rootDir?: string;
 };
 
-export type PluginProviderRegistration = {
-  pluginId: string;
-  pluginName?: string;
-  provider: ProviderPlugin;
-  source: string;
-  rootDir?: string;
-};
-
 export type PluginCliBackendRegistration = {
   pluginId: string;
   pluginName?: string;
@@ -123,6 +94,7 @@ type PluginOwnedProviderRegistration<T extends { id: string }> = {
 
 export type PluginSpeechProviderRegistration =
   PluginOwnedProviderRegistration<SpeechProviderPlugin>;
+export type PluginProviderRegistration = never;
 export type PluginMediaUnderstandingProviderRegistration =
   PluginOwnedProviderRegistration<MediaUnderstandingProviderPlugin>;
 export type PluginWebFetchProviderRegistration =
@@ -194,7 +166,6 @@ export type PluginRecord = {
   webFetchProviderIds: string[];
   webSearchProviderIds: string[];
   gatewayMethods: string[];
-  cliCommands: string[];
   services: string[];
   commands: string[];
   httpRoutes: number;
@@ -221,7 +192,6 @@ export type PluginRegistry = {
   gatewayHandlers: GatewayRequestHandlers;
   gatewayMethodScopes?: Partial<Record<string, OperatorScope>>;
   httpRoutes: PluginHttpRouteRegistration[];
-  cliRegistrars: PluginCliRegistration[];
   services: PluginServiceRegistration[];
   commands: PluginCommandRegistration[];
   conversationBindingResolvedHandlers: PluginConversationBindingResolvedHandlerRegistration[];
@@ -235,10 +205,6 @@ export type PluginRegistryParams = {
   // When false, keep registration local to the returned registry and avoid mutating
   // process-global command/hook state during non-activating snapshot loads.
   activateGlobalSideEffects?: boolean;
-};
-
-type PluginTypedHookPolicy = {
-  allowPromptInjection?: boolean;
 };
 
 export { createEmptyPluginRegistry } from "./registry-empty.js";
@@ -278,90 +244,6 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
       source: record.source,
       rootDir: record.rootDir,
     });
-  };
-
-  const registerHook = (
-    record: PluginRecord,
-    events: string | string[],
-    handler: Parameters<typeof registerInternalHook>[1],
-    opts: CrawClawPluginHookOptions | undefined,
-    config: CrawClawPluginApi["config"],
-  ) => {
-    const eventList = Array.isArray(events) ? events : [events];
-    const normalizedEvents = eventList.map((event) => event.trim()).filter(Boolean);
-    const entry = opts?.entry ?? null;
-    const name = entry?.hook.name ?? opts?.name?.trim();
-    if (!name) {
-      pushDiagnostic({
-        level: "warn",
-        pluginId: record.id,
-        source: record.source,
-        message: "hook registration missing name",
-      });
-      return;
-    }
-    const existingHook = registry.hooks.find((entry) => entry.entry.hook.name === name);
-    if (existingHook) {
-      pushDiagnostic({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: `hook already registered: ${name} (${existingHook.pluginId})`,
-      });
-      return;
-    }
-
-    const description = entry?.hook.description ?? opts?.description ?? "";
-    const hookEntry: HookEntry = entry
-      ? {
-          ...entry,
-          hook: {
-            ...entry.hook,
-            name,
-            description,
-            source: "crawclaw-plugin",
-            pluginId: record.id,
-          },
-          metadata: {
-            ...entry.metadata,
-            events: normalizedEvents,
-          },
-        }
-      : {
-          hook: {
-            name,
-            description,
-            source: "crawclaw-plugin",
-            pluginId: record.id,
-            filePath: record.source,
-            baseDir: path.dirname(record.source),
-            handlerPath: record.source,
-          },
-          frontmatter: {},
-          metadata: { events: normalizedEvents },
-          invocation: { enabled: true },
-        };
-
-    record.hookNames.push(name);
-    registry.hooks.push({
-      pluginId: record.id,
-      entry: hookEntry,
-      events: normalizedEvents,
-      source: record.source,
-    });
-
-    const hookSystemEnabled = config?.hooks?.internal?.enabled !== false;
-    if (
-      !registryParams.activateGlobalSideEffects ||
-      !hookSystemEnabled ||
-      opts?.register === false
-    ) {
-      return;
-    }
-
-    for (const event of normalizedEvents) {
-      registerInternalHook(event, handler);
-    }
   };
 
   const registerGatewayMethod = (
@@ -478,98 +360,6 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
       auth: params.auth,
       match,
       source: record.source,
-    });
-  };
-
-  const registerChannel = (
-    record: PluginRecord,
-    registration: CrawClawPluginChannelRegistration | ChannelPlugin,
-    mode: PluginRegistrationMode = "full",
-  ) => {
-    const normalized =
-      typeof (registration as CrawClawPluginChannelRegistration).plugin === "object"
-        ? (registration as CrawClawPluginChannelRegistration)
-        : { plugin: registration as ChannelPlugin };
-    const plugin = normalized.plugin;
-    const id = typeof plugin?.id === "string" ? plugin.id.trim() : String(plugin?.id ?? "").trim();
-    if (!id) {
-      pushDiagnostic({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: "channel registration missing id",
-      });
-      return;
-    }
-    const existingRuntime = registry.channels.find((entry) => entry.plugin.id === id);
-    if (mode !== "setup-only" && existingRuntime) {
-      pushDiagnostic({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: `channel already registered: ${id} (${existingRuntime.pluginId})`,
-      });
-      return;
-    }
-    const existingSetup = registry.channelSetups.find((entry) => entry.plugin.id === id);
-    if (existingSetup) {
-      pushDiagnostic({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: `channel setup already registered: ${id} (${existingSetup.pluginId})`,
-      });
-      return;
-    }
-    record.channelIds.push(id);
-    registry.channelSetups.push({
-      pluginId: record.id,
-      pluginName: record.name,
-      plugin,
-      source: record.source,
-      enabled: record.enabled,
-      rootDir: record.rootDir,
-    });
-    if (mode === "setup-only") {
-      return;
-    }
-    registry.channels.push({
-      pluginId: record.id,
-      pluginName: record.name,
-      plugin,
-      source: record.source,
-      rootDir: record.rootDir,
-    });
-  };
-
-  const registerProvider = (record: PluginRecord, provider: ProviderPlugin) => {
-    const normalizedProvider = normalizeRegisteredProvider({
-      pluginId: record.id,
-      source: record.source,
-      provider,
-      pushDiagnostic,
-    });
-    if (!normalizedProvider) {
-      return;
-    }
-    const id = normalizedProvider.id;
-    const existing = registry.providers.find((entry) => entry.provider.id === id);
-    if (existing) {
-      pushDiagnostic({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: `provider already registered: ${id} (${existing.pluginId})`,
-      });
-      return;
-    }
-    record.providerIds.push(id);
-    registry.providers.push({
-      pluginId: record.id,
-      pluginName: record.name,
-      provider: normalizedProvider,
-      source: record.source,
-      rootDir: record.rootDir,
     });
   };
 
@@ -696,58 +486,6 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     });
   };
 
-  const registerCli = (
-    record: PluginRecord,
-    registrar: CrawClawPluginCliRegistrar,
-    opts?: { commands?: string[]; descriptors?: CrawClawPluginCliCommandDescriptor[] },
-  ) => {
-    const descriptors = (opts?.descriptors ?? [])
-      .map((descriptor) => ({
-        name: descriptor.name.trim(),
-        description: descriptor.description.trim(),
-        hasSubcommands: descriptor.hasSubcommands,
-      }))
-      .filter((descriptor) => descriptor.name && descriptor.description);
-    const commands = [
-      ...(opts?.commands ?? []),
-      ...descriptors.map((descriptor) => descriptor.name),
-    ]
-      .map((cmd) => cmd.trim())
-      .filter(Boolean);
-    if (commands.length === 0) {
-      pushDiagnostic({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: "cli registration missing explicit commands metadata",
-      });
-      return;
-    }
-    const existing = registry.cliRegistrars.find((entry) =>
-      entry.commands.some((command) => commands.includes(command)),
-    );
-    if (existing) {
-      const overlap = commands.find((command) => existing.commands.includes(command));
-      pushDiagnostic({
-        level: "error",
-        pluginId: record.id,
-        source: record.source,
-        message: `cli command already registered: ${overlap ?? commands[0]} (${existing.pluginId})`,
-      });
-      return;
-    }
-    record.cliCommands.push(...commands);
-    registry.cliRegistrars.push({
-      pluginId: record.id,
-      pluginName: record.name,
-      register: registrar,
-      commands,
-      descriptors,
-      source: record.source,
-      rootDir: record.rootDir,
-    });
-  };
-
   const registerService = (record: PluginRecord, service: CrawClawPluginService) => {
     const id = service.id.trim();
     if (!id) {
@@ -828,42 +566,6 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     });
   };
 
-  const registerTypedHook = <K extends PluginHookName>(
-    record: PluginRecord,
-    hookName: K,
-    handler: PluginHookHandlerMap[K],
-    opts?: { priority?: number },
-    policy?: PluginTypedHookPolicy,
-  ) => {
-    if (!isPluginHookName(hookName)) {
-      pushDiagnostic({
-        level: "warn",
-        pluginId: record.id,
-        source: record.source,
-        message: `unknown typed hook "${String(hookName)}" ignored`,
-      });
-      return;
-    }
-    let effectiveHandler = handler;
-    if (policy?.allowPromptInjection === false && isPromptInjectionHookName(hookName)) {
-      pushDiagnostic({
-        level: "warn",
-        pluginId: record.id,
-        source: record.source,
-        message: `typed hook "${hookName}" blocked by plugins.entries.${record.id}.hooks.allowPromptInjection=false`,
-      });
-      return;
-    }
-    record.hookCount += 1;
-    registry.typedHooks.push({
-      pluginId: record.id,
-      hookName,
-      handler: effectiveHandler,
-      priority: opts?.priority,
-      source: record.source,
-    } as TypedPluginHookRegistration);
-  };
-
   const registerConversationBindingResolvedHandler = (
     record: PluginRecord,
     handler: (event: PluginConversationBindingResolvedEvent) => void | Promise<void>,
@@ -918,7 +620,6 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     params: {
       config: CrawClawPluginApi["config"];
       pluginConfig?: Record<string, unknown>;
-      hookPolicy?: PluginTypedHookPolicy;
       registrationMode?: PluginRegistrationMode;
     },
   ): CrawClawPluginApi => {
@@ -940,10 +641,7 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
         ...(registrationMode === "full"
           ? {
               registerTool: (tool, opts) => registerTool(record, tool, opts),
-              registerHook: (events, handler, opts) =>
-                registerHook(record, events, handler, opts, params.config),
               registerHttpRoute: (routeParams) => registerHttpRoute(record, routeParams),
-              registerProvider: (provider) => registerProvider(record, provider),
               registerSpeechProvider: (provider) => registerSpeechProvider(record, provider),
               registerMediaUnderstandingProvider: (provider) =>
                 registerMediaUnderstandingProvider(record, provider),
@@ -956,14 +654,9 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
               onConversationBindingResolved: (handler) =>
                 registerConversationBindingResolvedHandler(record, handler),
               registerCommand: (command) => registerCommand(record, command),
-              on: (hookName, handler, opts) =>
-                registerTypedHook(record, hookName, handler, opts, params.hookPolicy),
             }
           : {}),
-        // Allow setup-only/setup-runtime paths to surface parse-time CLI metadata
-        // without opting into the wider full-registration surface.
-        registerCli: (registrar, opts) => registerCli(record, registrar, opts),
-        registerChannel: (registration) => registerChannel(record, registration, registrationMode),
+        ...(registrationMode !== "full" ? {} : {}),
       },
     });
   };
@@ -973,17 +666,12 @@ export function createPluginRegistry(registryParams: PluginRegistryParams) {
     createApi,
     pushDiagnostic,
     registerTool,
-    registerChannel,
-    registerProvider,
     registerCliBackend,
     registerSpeechProvider,
     registerMediaUnderstandingProvider,
     registerWebSearchProvider,
     registerGatewayMethod,
-    registerCli,
     registerService,
     registerCommand,
-    registerHook,
-    registerTypedHook,
   };
 }

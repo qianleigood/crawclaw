@@ -26,12 +26,12 @@ describe("hasApprovalTurnSourceRoute", () => {
 
     expect(
       hasApprovalTurnSourceRoute({
-        turnSourceChannel: "slack",
+        turnSourceChannel: "ddingtalk",
         turnSourceAccountId: "work",
       }),
     ).toBe(true);
     expect(resolveExecApprovalInitiatingSurfaceStateMock).toHaveBeenCalledWith({
-      channel: "slack",
+      channel: "ddingtalk",
       accountId: "work",
       cfg: { loaded: true },
     });
@@ -39,7 +39,7 @@ describe("hasApprovalTurnSourceRoute", () => {
 
   it("returns false when the initiating surface is disabled or unsupported", () => {
     resolveExecApprovalInitiatingSurfaceStateMock.mockReturnValueOnce({ kind: "disabled" });
-    expect(hasApprovalTurnSourceRoute({ turnSourceChannel: "discord" })).toBe(false);
+    expect(hasApprovalTurnSourceRoute({ turnSourceChannel: "qqbot" })).toBe(false);
 
     resolveExecApprovalInitiatingSurfaceStateMock.mockReturnValueOnce({ kind: "unsupported" });
     expect(hasApprovalTurnSourceRoute({ turnSourceChannel: "unknown-channel" })).toBe(false);

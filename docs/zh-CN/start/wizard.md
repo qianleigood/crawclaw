@@ -60,7 +60,7 @@ CLI 新手引导包含一个 web search 步骤，你可以选择一个提供商
     - 新本地设置的默认工具策略：`tools.profile: "coding"`（会保留现有显式配置文件）
     - 私信隔离默认值：本地新手引导会在未设置时写入 `session.dmScope: "per-channel-peer"`。详情见：[CLI 设置参考](/start/wizard-cli-reference#outputs-and-internals)
     - Tailscale 暴露 **关闭**
-    - Telegram + WhatsApp 私信默认使用 **allowlist**（系统会提示你输入电话号码）
+    - Feishu + Weixin 私信默认使用 **allowlist**（系统会提示你输入电话号码）
   </Tab>
   <Tab title="高级模式（完全控制）">
     - 暴露每一个步骤（模式、工作区、Gateway 网关、渠道、守护进程、Skills）。
@@ -81,7 +81,7 @@ CLI 新手引导包含一个 web search 步骤，你可以选择一个提供商
 3. **Gateway 网关** —— 端口、绑定地址、认证模式、Tailscale 暴露。
    在交互式 token 模式中，你可以选择默认的明文 token 存储，或选择启用 SecretRef。
    非交互式 token SecretRef 路径：`--gateway-token-ref-env <ENV_VAR>`。
-4. **渠道** —— WhatsApp、Telegram、Discord、Google Chat、Mattermost、Signal、BlueBubbles 或 iMessage。
+4. **渠道** —— Weixin、Feishu、QQBot、Feishu、Feishu、Feishu、Weixin 或 Weixin。
 5. **输出与展示** —— 选择默认回复预设（`quiet`、`balanced`、`operator`），控制 streaming 和过程可见性。
 6. **Memory / Knowledge** —— 决定是否启用 NotebookLM knowledge recall；如果已启用且 provider 明确建议 `crawclaw memory login`，onboarding 会在接近结束时提供登录入口。
 7. **守护进程** —— 安装 LaunchAgent（macOS）、systemd 用户单元（Linux）或 Windows 每用户启动模式。

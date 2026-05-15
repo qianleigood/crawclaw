@@ -14,7 +14,7 @@ const resolveStorePathMock = vi.fn((_store: unknown, _options: unknown) => "/tmp
 const resolveMainSessionKeyMock = vi.fn((_cfg: unknown) => "agent:main:main");
 const readLatestAssistantReplyMock = vi.fn(async (_params?: unknown) => "raw subagent reply");
 const isEmbeddedPiRunActiveMock = vi.fn((_sessionId: string) => false);
-const queueEmbeddedPiMessageMock = vi.fn((_sessionId: string, _text: string) => false);
+const queueEmbeddedPWeixinMock = vi.fn((_sessionId: string, _text: string) => false);
 const waitForEmbeddedPiRunEndMock = vi.fn(async (_sessionId: string, _timeoutMs?: number) => true);
 let mockConfig: Partial<CrawClawConfig> = {
   session: {
@@ -64,18 +64,6 @@ vi.mock("../gateway/call.js", () => ({
 vi.mock("../plugins/hook-runner-global.js", () => ({
   getGlobalHookRunner: () => ({ hasHooks: () => false }),
 }));
-
-vi.mock("./pi-embedded.js", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("./pi-embedded.js")>();
-  return {
-    ...actual,
-    isEmbeddedPiRunActive: (sessionId: string) => isEmbeddedPiRunActiveMock(sessionId),
-    queueEmbeddedPiMessage: (sessionId: string, text: string) =>
-      queueEmbeddedPiMessageMock(sessionId, text),
-    waitForEmbeddedPiRunEnd: (sessionId: string, timeoutMs?: number) =>
-      waitForEmbeddedPiRunEndMock(sessionId, timeoutMs),
-  };
-});
 
 vi.mock("./tools/agent-step.js", () => ({
   readLatestAssistantReply: (params?: unknown) => readLatestAssistantReplyMock(params),
@@ -128,7 +116,7 @@ describe("subagent announce seam flow", () => {
     resolveMainSessionKeyMock.mockReset().mockImplementation(() => "agent:main:main");
     readLatestAssistantReplyMock.mockReset().mockResolvedValue("raw subagent reply");
     isEmbeddedPiRunActiveMock.mockReset().mockReturnValue(false);
-    queueEmbeddedPiMessageMock.mockReset().mockReturnValue(false);
+    queueEmbeddedPWeixinMock.mockReset().mockReturnValue(false);
     waitForEmbeddedPiRunEndMock.mockReset().mockResolvedValue(true);
     mockConfig = {
       session: {
@@ -305,7 +293,7 @@ describe("subagent announce seam flow", () => {
       },
     }));
     isEmbeddedPiRunActiveMock.mockReturnValue(true);
-    queueEmbeddedPiMessageMock.mockReturnValue(true);
+    queueEmbeddedPWeixinMock.mockReturnValue(true);
 
     const didAnnounce = await runSubagentAnnounceFlow({
       childSessionKey: "agent:main:subagent:test",
@@ -322,7 +310,7 @@ describe("subagent announce seam flow", () => {
     });
 
     expect(didAnnounce).toBe(true);
-    expect(queueEmbeddedPiMessageMock).toHaveBeenCalledWith(
+    expect(queueEmbeddedPWeixinMock).toHaveBeenCalledWith(
       "session-origin-provider-steer",
       expect.stringContaining("[Internal task completion event]"),
     );
@@ -376,7 +364,7 @@ describe("subagent announce seam flow", () => {
       requesterSessionKey: "agent:main:subagent:orchestrator",
       requesterDisplayKey: "orchestrator",
       requesterOrigin: {
-        channel: "telegram",
+        channel: "feishu",
         to: "-100123",
         accountId: "default",
       },

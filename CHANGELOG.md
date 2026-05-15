@@ -4,6 +4,10 @@ Docs: https://docs.crawclaw.ai
 
 ## Unreleased
 
+### Breaking
+
+- Providers/plugins: remove the TypeScript LLM provider plugin runtime and typed lifecycle hook API. Provider metadata, config schema, model catalog, and native transport behavior are now Rust-owned; custom endpoints should use `models.providers`.
+
 ### Changes
 
 - Android/assistant: auto-send Google Assistant App Actions prompts once chat is healthy and idle, while keeping bare assistant launches as open-only. (#59721) Thanks @obviyus.

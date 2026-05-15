@@ -315,13 +315,13 @@ describe("AcpSessionManager", () => {
             entry: {
               sessionId: "child-1",
               updatedAt: Date.now(),
-              spawnedBy: "agent:quant:telegram:quant:direct:822430204",
+              spawnedBy: "agent:quant:feishu:quant:direct:822430204",
               label: "Quant patch",
             },
             acp: readySessionMeta(),
           };
         }
-        if (sessionKey === "agent:quant:telegram:quant:direct:822430204") {
+        if (sessionKey === "agent:quant:feishu:quant:direct:822430204") {
           return {
             sessionKey,
             storeSessionKey: sessionKey,
@@ -347,7 +347,7 @@ describe("AcpSessionManager", () => {
 
       expect(findTaskByRunId("direct-parented-run")).toMatchObject({
         runtime: "acp",
-        ownerKey: "agent:quant:telegram:quant:direct:822430204",
+        ownerKey: "agent:quant:feishu:quant:direct:822430204",
         scopeKind: "session",
         childSessionKey: "agent:codex:acp:child-1",
         label: "Quant patch",

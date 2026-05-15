@@ -1,13 +1,16 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { VoiceCallConfigSchema } from "./config.js";
 import type { CoreAgentDeps, CoreConfig } from "./core-bridge.js";
 import { generateVoiceResponse } from "./response-generator.js";
 
+const callGatewayMock = vi.fn();
+
+vi.mock("crawclaw/plugin-sdk/gateway-runtime", () => ({
+  callGateway: (params: unknown) => callGatewayMock(params),
+}));
+
 function createAgentRuntime(payloads: Array<Record<string, unknown>>) {
-  const runEmbeddedPiAgent = vi.fn(async () => ({
-    payloads,
-    meta: { durationMs: 12, aborted: false },
-  }));
+  callGatewayMock.mockResolvedValue({ payloads, meta: { durationMs: 12, aborted: false } });
 
   const runtime = {
     defaults: {
@@ -20,7 +23,6 @@ function createAgentRuntime(payloads: Array<Record<string, unknown>>) {
     resolveThinkingDefault: () => "off",
     resolveAgentTimeoutMs: () => 30_000,
     ensureAgentWorkspace: async () => {},
-    runEmbeddedPiAgent,
     session: {
       resolveStorePath: () => "/tmp/crawclaw/sessions.json",
       loadSessionStore: () => ({}),
@@ -29,20 +31,20 @@ function createAgentRuntime(payloads: Array<Record<string, unknown>>) {
     },
   } as unknown as CoreAgentDeps;
 
-  return { runtime, runEmbeddedPiAgent };
+  return { runtime };
 }
 
-function requireEmbeddedAgentArgs(runEmbeddedPiAgent: ReturnType<typeof vi.fn>) {
-  const calls = runEmbeddedPiAgent.mock.calls as unknown[][];
+function requireGatewayArgs() {
+  const calls = callGatewayMock.mock.calls as unknown[][];
   const firstCall = calls[0];
   if (!firstCall) {
-    throw new Error("voice response generator did not invoke the embedded agent");
+    throw new Error("voice response generator did not invoke the Rust auto-reply gateway");
   }
-  const args = firstCall[0] as { extraSystemPrompt?: string } | undefined;
-  if (!args?.extraSystemPrompt) {
+  const args = firstCall[0] as { params?: { extraSystemPrompt?: string } } | undefined;
+  if (!args?.params?.extraSystemPrompt) {
     throw new Error("voice response generator did not pass the spoken-output contract prompt");
   }
-  return args;
+  return args.params;
 }
 
 async function runGenerateVoiceResponse(
@@ -72,16 +74,20 @@ async function runGenerateVoiceResponse(
 }
 
 describe("generateVoiceResponse", () => {
+  beforeEach(() => {
+    callGatewayMock.mockReset();
+  });
+
   it("suppresses reasoning payloads and reads structured spoken output", async () => {
-    const { runtime, runEmbeddedPiAgent } = createAgentRuntime([
+    const { runtime } = createAgentRuntime([
       { text: "Reasoning: hidden", isReasoning: true },
       { text: '{"spoken":"Hello from JSON."}' },
     ]);
     const { result } = await runGenerateVoiceResponse([], { runtime });
 
     expect(result.text).toBe("Hello from JSON.");
-    expect(runEmbeddedPiAgent).toHaveBeenCalledTimes(1);
-    const args = requireEmbeddedAgentArgs(runEmbeddedPiAgent);
+    expect(callGatewayMock).toHaveBeenCalledTimes(1);
+    const args = requireGatewayArgs();
     expect(args.extraSystemPrompt).toContain('{"spoken":"..."}');
   });
 

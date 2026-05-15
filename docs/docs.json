@@ -43,11 +43,6 @@
         "label": "Releases",
         "href": "https://github.com/qianleigood/crawclaw/releases",
         "icon": "package"
-      },
-      {
-        "label": "Discord",
-        "href": "https://discord.com/invite/clawd",
-        "icon": "discord"
       }
     ]
   },
@@ -708,7 +703,7 @@
             "groups": [
               {
                 "group": "Install overview",
-                "pages": ["install/index", "install/desktop", "install/installer", "install/node"]
+                "pages": ["install/index", "install/desktop", "install/node"]
               },
               {
                 "group": "Alternative runtimes",
@@ -733,7 +728,6 @@
                 "pages": [
                   "install/updating",
                   "install/migrating",
-                  "install/migrating-matrix",
                   "install/uninstall",
                   "install/development-channels"
                 ]
@@ -839,7 +833,6 @@
                     "group": "Building Plugins",
                     "pages": [
                       "plugins/building-plugins",
-                      "plugins/sdk-channel-plugins",
                       "plugins/sdk-provider-plugins",
                       "plugins/sdk-migration"
                     ]

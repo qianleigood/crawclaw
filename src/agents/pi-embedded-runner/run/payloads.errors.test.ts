@@ -173,23 +173,23 @@ describe("buildEmbeddedRunPayloads", () => {
 
   it("does not add synthetic completion text when tools run without final assistant text", () => {
     expectNoPayloads({
-      sessionKey: "agent:main:discord:direct:u123",
+      sessionKey: "agent:main:qqbot:direct:u123",
       toolMetas: [{ toolName: "write", meta: "/tmp/out.md" }],
       lastAssistant: makeStoppedAssistant(),
     });
   });
 
   it("does not add synthetic completion text for channel sessions", () => {
-    expectNoSyntheticCompletionForSession("agent:main:discord:channel:c123");
+    expectNoSyntheticCompletionForSession("agent:main:qqbot:channel:c123");
   });
 
   it("does not add synthetic completion text for group sessions", () => {
-    expectNoSyntheticCompletionForSession("agent:main:telegram:group:g123");
+    expectNoSyntheticCompletionForSession("agent:main:feishu:group:g123");
   });
 
   it("does not add synthetic completion text when messaging tool already delivered output", () => {
     expectNoPayloads({
-      sessionKey: "agent:main:discord:direct:u123",
+      sessionKey: "agent:main:qqbot:direct:u123",
       toolMetas: [{ toolName: "message_send", meta: "sent to #ops" }],
       didSendViaMessagingTool: true,
       lastAssistant: makeAssistant({

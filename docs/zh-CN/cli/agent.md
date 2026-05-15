@@ -26,7 +26,7 @@ x-i18n:
 crawclaw agent --to +15555550123 --message "status update" --deliver
 crawclaw agent --agent ops --message "Summarize logs"
 crawclaw agent --session-id 1234 --message "Summarize inbox" --thinking medium
-crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel slack --reply-to "#reports"
+crawclaw agent --agent ops --message "Generate report" --deliver --reply-channel ddingtalk --reply-to "#reports"
 crawclaw agent inspect --run-id 778a918a-2a03-469f-9428-021272e341ee
 crawclaw agent inspect --task-id 65b3fbc5-1827-4e99-b6f5-a9b964bcaa1d --json
 crawclaw agent export-context --task-id 65b3fbc5-1827-4e99-b6f5-a9b964bcaa1d --json

@@ -1,5 +1,4 @@
 import type { CrawClawConfig } from "../config/config.js";
-import { resolveProviderReplayPolicyWithPlugin } from "../plugins/provider-runtime.js";
 import type { ProviderRuntimeModel } from "../plugins/types.js";
 import { normalizeProviderId } from "./model-selection.js";
 import { isGoogleModelApi } from "./pi-embedded-helpers/google.js";
@@ -134,51 +133,5 @@ export function resolveTranscriptPolicy(params: {
     allowSyntheticToolResults: !isOpenAi && (isGoogle || isAnthropic),
   };
 
-  const pluginPolicy = provider
-    ? resolveProviderReplayPolicyWithPlugin({
-        provider,
-        config: params.config,
-        workspaceDir: params.workspaceDir,
-        env: params.env,
-        context: {
-          config: params.config,
-          workspaceDir: params.workspaceDir,
-          env: params.env,
-          provider,
-          modelId,
-          modelApi: params.modelApi,
-          model: params.model,
-        },
-      })
-    : undefined;
-  if (!pluginPolicy) {
-    return basePolicy;
-  }
-
-  return {
-    ...basePolicy,
-    ...(pluginPolicy.sanitizeMode != null ? { sanitizeMode: pluginPolicy.sanitizeMode } : {}),
-    ...(typeof pluginPolicy.sanitizeToolCallIds === "boolean"
-      ? { sanitizeToolCallIds: pluginPolicy.sanitizeToolCallIds }
-      : {}),
-    ...(pluginPolicy.toolCallIdMode ? { toolCallIdMode: pluginPolicy.toolCallIdMode } : {}),
-    ...(typeof pluginPolicy.repairToolUseResultPairing === "boolean"
-      ? { repairToolUseResultPairing: pluginPolicy.repairToolUseResultPairing }
-      : {}),
-    ...(typeof pluginPolicy.preserveSignatures === "boolean"
-      ? { preserveSignatures: pluginPolicy.preserveSignatures }
-      : {}),
-    ...(pluginPolicy.sanitizeThoughtSignatures
-      ? { sanitizeThoughtSignatures: pluginPolicy.sanitizeThoughtSignatures }
-      : {}),
-    ...(typeof pluginPolicy.dropThinkingBlocks === "boolean"
-      ? { dropThinkingBlocks: pluginPolicy.dropThinkingBlocks }
-      : {}),
-    ...(typeof pluginPolicy.applyAssistantFirstOrderingFix === "boolean"
-      ? { applyGoogleTurnOrdering: pluginPolicy.applyAssistantFirstOrderingFix }
-      : {}),
-    ...(typeof pluginPolicy.allowSyntheticToolResults === "boolean"
-      ? { allowSyntheticToolResults: pluginPolicy.allowSyntheticToolResults }
-      : {}),
-  };
+  return basePolicy;
 }

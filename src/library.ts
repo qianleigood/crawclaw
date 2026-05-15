@@ -1,8 +1,5 @@
 import type { getReplyFromConfig as getReplyFromConfigRuntime } from "./auto-reply/reply.runtime.js";
 import { applyTemplate } from "./auto-reply/templating.js";
-import { createDefaultDeps } from "./cli/deps.js";
-import type { promptYesNo as promptYesNoRuntime } from "./cli/prompt.js";
-import { waitForever } from "./cli/wait.js";
 import { loadConfig } from "./config/config.js";
 import { resolveStorePath } from "./config/sessions/paths.js";
 import { deriveSessionKey, resolveSessionKey } from "./config/sessions/session-key.js";
@@ -18,6 +15,9 @@ import type {
   runCommandWithTimeout as runCommandWithTimeoutRuntime,
   runExec as runExecRuntime,
 } from "./process/exec.js";
+import { createDefaultDeps } from "./terminal/deps.js";
+import type { promptYesNo as promptYesNoRuntime } from "./terminal/prompt.js";
+import { waitForever } from "./terminal/wait.js";
 import { assertWebChannel, normalizeE164 } from "./utils.js";
 
 type GetReplyFromConfig = typeof getReplyFromConfigRuntime;
@@ -27,7 +27,7 @@ type RunExec = typeof runExecRuntime;
 type RunCommandWithTimeout = typeof runCommandWithTimeoutRuntime;
 
 let replyRuntimePromise: Promise<typeof import("./auto-reply/reply.runtime.js")> | null = null;
-let promptRuntimePromise: Promise<typeof import("./cli/prompt.js")> | null = null;
+let promptRuntimePromise: Promise<typeof import("./terminal/prompt.js")> | null = null;
 let binariesRuntimePromise: Promise<typeof import("./infra/binaries.js")> | null = null;
 let execRuntimePromise: Promise<typeof import("./process/exec.js")> | null = null;
 
@@ -37,7 +37,7 @@ function loadReplyRuntime() {
 }
 
 function loadPromptRuntime() {
-  promptRuntimePromise ??= import("./cli/prompt.js");
+  promptRuntimePromise ??= import("./terminal/prompt.js");
   return promptRuntimePromise;
 }
 

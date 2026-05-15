@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { applyLocalSetupWorkspaceConfig } from "../commands/onboard-config.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { applyLocalSetupWorkspaceConfig } from "../control/onboard-config.js";
 import { createCrawClawCodingTools } from "./pi-tools.js";
 
 describe("createCrawClawCodingTools message provider policy", () => {
@@ -14,7 +14,7 @@ describe("createCrawClawCodingTools message provider policy", () => {
   );
 
   it("keeps tts tool for non-voice providers", () => {
-    const tools = createCrawClawCodingTools({ messageProvider: "discord" });
+    const tools = createCrawClawCodingTools({ messageProvider: "qqbot" });
     const names = new Set(tools.map((tool) => tool.name));
     expect(names.has("tts")).toBe(true);
   });

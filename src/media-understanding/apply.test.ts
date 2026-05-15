@@ -434,12 +434,12 @@ describe("applyMediaUnderstanding", () => {
     expect(ctx.Body).toBe("[Audio]\nTranscript:\nremote transcript");
   });
 
-  it("transcribes WhatsApp audio with parameterized MIME despite casing/whitespace", async () => {
+  it("transcribes Weixin audio with parameterized MIME despite casing/whitespace", async () => {
     const ctx = await createAudioCtx({
       fileName: "voice-note",
       mediaType: " Audio/Ogg; codecs=opus ",
     });
-    ctx.Surface = "whatsapp";
+    ctx.Surface = "weixin";
 
     const cfg: CrawClawConfig = {
       tools: {
@@ -449,7 +449,7 @@ describe("applyMediaUnderstanding", () => {
             maxBytes: 1024 * 1024,
             scope: {
               default: "deny",
-              rules: [{ action: "allow", match: { channel: "whatsapp" } }],
+              rules: [{ action: "allow", match: { channel: "weixin" } }],
             },
             models: [{ provider: "groq" }],
           },
@@ -460,12 +460,12 @@ describe("applyMediaUnderstanding", () => {
     const result = await applyMediaUnderstanding({
       ctx,
       cfg,
-      providers: createGroqProviders("whatsapp transcript"),
+      providers: createGroqProviders("weixin transcript"),
     });
 
     expect(result.appliedAudio).toBe(true);
-    expect(ctx.Transcript).toBe("whatsapp transcript");
-    expect(ctx.Body).toBe("[Audio]\nTranscript:\nwhatsapp transcript");
+    expect(ctx.Transcript).toBe("weixin transcript");
+    expect(ctx.Body).toBe("[Audio]\nTranscript:\nweixin transcript");
   });
 
   it("skips URL-only audio when remote file is too small", async () => {
@@ -726,7 +726,7 @@ describe("applyMediaUnderstanding", () => {
     await fs.writeFile(modelPath, "model");
 
     const ctx = await createAudioCtx({
-      fileName: "telegram-voice.ogg",
+      fileName: "feishu-voice.ogg",
       mediaType: "audio/ogg",
       content: createSafeAudioFixtureBuffer(2048),
     });
@@ -760,19 +760,19 @@ describe("applyMediaUnderstanding", () => {
     expect(mockedRunFfmpeg).toHaveBeenCalledWith(
       expect.arrayContaining([
         "-i",
-        expect.stringMatching(/telegram-voice\.ogg$/),
+        expect.stringMatching(/feishu-voice\.ogg$/),
         "-ac",
         "1",
         "-ar",
         "16000",
         "-c:a",
         "pcm_s16le",
-        expect.stringMatching(/telegram-voice\.wav$/),
+        expect.stringMatching(/feishu-voice\.wav$/),
       ]),
     );
     expect(mockedRunExec).toHaveBeenCalledWith(
       "whisper-cli",
-      expect.arrayContaining([expect.stringMatching(/telegram-voice\.wav$/)]),
+      expect.arrayContaining([expect.stringMatching(/feishu-voice\.wav$/)]),
       expect.any(Object),
     );
   });

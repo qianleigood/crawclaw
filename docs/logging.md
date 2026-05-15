@@ -1,5 +1,5 @@
 ---
-summary: "Logging overview: file logs, console output, and CLI tailing"
+summary: "Logging overview: file logs, console output, and Gateway log tailing"
 read_when:
   - You need a beginner-friendly overview of logging
   - You want to configure log levels or formats
@@ -37,13 +37,9 @@ You can override this in `~/.crawclaw/crawclaw.json`:
 
 ## How to read logs
 
-### CLI: live tail (recommended)
+### Desktop and Gateway API live tail
 
-Use the CLI to tail the gateway log file via RPC:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop diagnostics or the local Gateway API to tail the gateway log file via RPC.
 
 Output modes:
 
@@ -53,7 +49,7 @@ Output modes:
 - `--plain`: force plain text in TTY sessions.
 - `--no-color`: disable ANSI colors.
 
-In JSON mode, the CLI emits `type`-tagged objects:
+In JSON mode, Gateway log streaming emits `type`-tagged objects:
 
 - `meta`: stream metadata (file, cursor, size)
 - `log`: parsed log entry
@@ -68,7 +64,7 @@ If the Gateway is unreachable, the CLI prints a short hint to run:
 
 ### Channel-only logs
 
-To filter channel activity (WhatsApp/Telegram/etc), use:
+To filter channel activity (Weixin/Feishu/etc), use:
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -85,7 +81,7 @@ render structured output (time, level, subsystem, message).
 
 Console logs are **TTY-aware** and formatted for readability:
 
-- Subsystem prefixes (e.g. `gateway/channels/whatsapp`)
+- Subsystem prefixes (e.g. `gateway/channels/index`)
 - Level coloring (info/warn/error)
 - Optional compact or JSON mode
 
@@ -232,12 +228,12 @@ Use this if you want diagnostics events available to plugins or custom sinks:
 ### Diagnostics flags (targeted logs)
 
 Use flags to turn on extra, targeted debug logs without raising `logging.level`.
-Flags are case-insensitive and support wildcards (e.g. `telegram.*` or `*`).
+Flags are case-insensitive and support wildcards (e.g. `feishu.*` or `*`).
 
 ```json
 {
   "diagnostics": {
-    "flags": ["telegram.http"]
+    "flags": ["feishu.http"]
   }
 }
 ```
@@ -245,7 +241,7 @@ Flags are case-insensitive and support wildcards (e.g. `telegram.*` or `*`).
 Env override (one-off):
 
 ```
-CRAWCLAW_DIAGNOSTICS=telegram.http,telegram.payload
+CRAWCLAW_DIAGNOSTICS=feishu.http,feishu.payload
 ```
 
 Notes:

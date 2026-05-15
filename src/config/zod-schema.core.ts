@@ -544,9 +544,7 @@ export const RetryConfigSchema = z
   .strict()
   .optional();
 
-export const QueueModeBySurfaceSchema = z
-  .record(z.string(), QueueModeSchema)
-  .optional();
+export const QueueModeBySurfaceSchema = z.record(z.string(), QueueModeSchema).optional();
 
 export const DebounceMsBySurfaceSchema = z
   .record(z.string(), z.number().int().nonnegative())

@@ -8,7 +8,7 @@ title: "Personal Assistant Setup"
 
 # Building a personal assistant with CrawClaw
 
-CrawClaw is a self-hosted gateway that connects WhatsApp, Telegram, Discord, iMessage, and more to AI agents. This guide covers the "personal assistant" setup: a dedicated WhatsApp number that behaves like your always-on AI assistant.
+CrawClaw is a self-hosted gateway that connects Weixin, Feishu, QQBot, Weixin, and more to AI agents. This guide covers the "personal assistant" setup: a dedicated Weixin number that behaves like your always-on AI assistant.
 
 ## ⚠️ Safety first
 
@@ -16,12 +16,12 @@ You’re putting an agent in a position to:
 
 - run commands on your machine (depending on your tool policy)
 - read/write files in your workspace
-- send messages back out via WhatsApp/Telegram/Discord/Mattermost (plugin)
+- send messages back out via Weixin/Feishu/QQBot/Feishu (plugin)
 
 Start conservative:
 
-- Always set `channels.whatsapp.allowFrom` (never run open-to-the-world on your personal Mac).
-- Use a dedicated WhatsApp number for the assistant.
+- Always set `channels.weixin.allowFrom` (never run open-to-the-world on your personal Mac).
+- Use a dedicated Weixin number for the assistant.
 - Add proactive checks with cron only after you trust the setup and delivery target.
 
 ## Prerequisites
@@ -35,15 +35,15 @@ You want this:
 
 ```mermaid
 flowchart TB
-    A["<b>Your Phone (personal)<br></b><br>Your WhatsApp<br>+1-555-YOU"] -- message --> B["<b>Second Phone (assistant)<br></b><br>Assistant WA<br>+1-555-ASSIST"]
+    A["<b>Your Phone (personal)<br></b><br>Your Weixin<br>+1-555-YOU"] -- message --> B["<b>Second Phone (assistant)<br></b><br>Assistant WA<br>+1-555-ASSIST"]
     B -- linked via QR --> C["<b>Your Mac (crawclaw)<br></b><br>AI agent"]
 ```
 
-If you link your personal WhatsApp to CrawClaw, every message to you becomes “agent input”. That’s rarely what you want.
+If you link your personal Weixin to CrawClaw, every message to you becomes “agent input”. That’s rarely what you want.
 
 ## 5-minute quick start
 
-1. Pair WhatsApp Web (shows QR; scan with the assistant phone):
+1. Pair Weixin Web (shows QR; scan with the assistant phone):
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -59,7 +59,7 @@ If you link your personal WhatsApp to CrawClaw, every message to you becomes “
 
 ```json5
 {
-  channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+  channels: { weixin: { allowFrom: ["+15555550123"] } },
 }
 ```
 
@@ -131,7 +131,7 @@ Example:
     },
   },
   channels: {
-    whatsapp: {
+    weixin: {
       allowFrom: ["+15555550123"],
       groups: {
         "*": { requireMention: true },

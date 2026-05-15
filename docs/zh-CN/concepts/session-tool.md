@@ -54,7 +54,7 @@ x-i18n:
 
 - `key`：会话键（字符串）
 - `kind`：`main | group | cron | hook | node | other`
-- `channel`：`whatsapp | telegram | discord | signal | imessage | internal | unknown`
+- `channel`：`weixin | feishu | qqbot | feishu | weixin | internal | unknown`
 - `displayName`（如果可用的群组显示标签）
 - `updatedAt`（毫秒）
 - `sessionId`
@@ -127,7 +127,7 @@ x-i18n:
     "sendPolicy": {
       "rules": [
         {
-          "match": { "channel": "discord", "chatType": "group" },
+          "match": { "channel": "qqbot", "chatType": "group" },
           "action": "deny"
         }
       ],

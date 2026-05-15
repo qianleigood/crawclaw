@@ -10,7 +10,6 @@ const probeGatewayReachable = vi.hoisted(() =>
 const waitForGatewayReachable = vi.hoisted(() =>
   vi.fn<() => Promise<{ ok: boolean; detail?: string }>>(async () => ({ ok: true })),
 );
-const setupWizardShellCompletion = vi.hoisted(() => vi.fn(async () => {}));
 const buildGatewayInstallPlan = vi.hoisted(() =>
   vi.fn(async () => ({
     programArguments: [],
@@ -53,7 +52,7 @@ const listConfiguredWebSearchProviders = vi.hoisted(() =>
   vi.fn<(params?: { config?: CrawClawConfig }) => PluginWebSearchProviderEntry[]>(() => []),
 );
 
-vi.mock("../commands/onboard-helpers.js", () => ({
+vi.mock("../control/onboard-helpers.js", () => ({
   probeGatewayReachable,
   resolveBrowserClientsLinks: vi.fn(() => ({
     httpUrl: "http://127.0.0.1:18789",
@@ -62,29 +61,29 @@ vi.mock("../commands/onboard-helpers.js", () => ({
   waitForGatewayReachable,
 }));
 
-vi.mock("../commands/daemon-install-helpers.js", () => ({
+vi.mock("../control/daemon-install-helpers.js", () => ({
   buildGatewayInstallPlan,
   gatewayInstallErrorHint: vi.fn(() => "hint"),
 }));
 
-vi.mock("../commands/gateway-install-token.js", () => ({
+vi.mock("../control/gateway-install-token.js", () => ({
   resolveGatewayInstallToken,
 }));
 
-vi.mock("../commands/daemon-runtime.js", () => ({
+vi.mock("../control/daemon-runtime.js", () => ({
   DEFAULT_GATEWAY_DAEMON_RUNTIME: "node",
   GATEWAY_DAEMON_RUNTIME_OPTIONS: [{ value: "node", label: "Node" }],
 }));
 
-vi.mock("../commands/health-format.js", () => ({
+vi.mock("../control/health-format.js", () => ({
   formatHealthCheckFailure: vi.fn(() => "health failed"),
 }));
 
-vi.mock("../commands/health.js", () => ({
+vi.mock("../control/health.js", () => ({
   healthCommand: vi.fn(async () => {}),
 }));
 
-vi.mock("../commands/onboard-search.js", () => ({
+vi.mock("../control/onboard-search.js", () => ({
   SEARCH_PROVIDER_OPTIONS: [],
   resolveSearchProviderOptions: () => [],
   hasExistingKey,
@@ -131,10 +130,6 @@ vi.mock("../terminal/restore.js", () => ({
 
 vi.mock("./setup.secret-input.js", () => ({
   resolveSetupSecretInputString,
-}));
-
-vi.mock("./setup.completion.js", () => ({
-  setupWizardShellCompletion,
 }));
 
 import { finalizeSetupWizard } from "./setup.finalize.js";
@@ -227,7 +222,6 @@ describe("finalizeSetupWizard", () => {
     probeGatewayReachable.mockClear();
     waitForGatewayReachable.mockReset();
     waitForGatewayReachable.mockResolvedValue({ ok: true });
-    setupWizardShellCompletion.mockClear();
     buildGatewayInstallPlan.mockClear();
     gatewayServiceInstall.mockClear();
     gatewayServiceIsLoaded.mockReset();

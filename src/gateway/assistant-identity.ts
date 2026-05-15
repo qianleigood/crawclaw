@@ -1,7 +1,7 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { resolveAgentIdentity } from "../agents/identity.js";
-import { loadAgentIdentity } from "../commands/agents.config.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { loadAgentIdentity } from "../control/agents.config.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { coerceIdentityValue } from "../shared/assistant-identity-values.js";
 import {

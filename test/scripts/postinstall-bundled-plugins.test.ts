@@ -180,9 +180,9 @@ describe("bundled plugin postinstall", () => {
 
   it("discovers bundled plugin runtime deps from extension manifests", async () => {
     const extensionsDir = await createExtensionsDir();
-    await writePluginPackage(extensionsDir, "slack", {
+    await writePluginPackage(extensionsDir, "ddingtalk", {
       dependencies: {
-        "@slack/web-api": "7.11.0",
+        "@ddingtalk/web-api": "7.11.0",
       },
     });
     await writePluginPackage(extensionsDir, "amazon-bedrock", {
@@ -194,9 +194,9 @@ describe("bundled plugin postinstall", () => {
     expect(discoverBundledPluginRuntimeDeps({ extensionsDir })).toEqual(
       expect.arrayContaining([
         {
-          name: "@slack/web-api",
-          pluginIds: ["slack"],
-          sentinelPath: path.join("node_modules", "@slack", "web-api", "package.json"),
+          name: "@ddingtalk/web-api",
+          pluginIds: ["ddingtalk"],
+          sentinelPath: path.join("node_modules", "@ddingtalk", "web-api", "package.json"),
           version: "7.11.0",
         },
         {
@@ -211,7 +211,7 @@ describe("bundled plugin postinstall", () => {
 
   it("merges duplicate bundled runtime deps across plugins", async () => {
     const extensionsDir = await createExtensionsDir();
-    await writePluginPackage(extensionsDir, "slack", {
+    await writePluginPackage(extensionsDir, "ddingtalk", {
       dependencies: {
         "https-proxy-agent": "^8.0.0",
       },
@@ -226,7 +226,7 @@ describe("bundled plugin postinstall", () => {
       expect.arrayContaining([
         {
           name: "https-proxy-agent",
-          pluginIds: ["feishu", "slack"],
+          pluginIds: ["ddingtalk", "feishu"],
           sentinelPath: path.join("node_modules", "https-proxy-agent", "package.json"),
           version: "^8.0.0",
         },
@@ -236,14 +236,14 @@ describe("bundled plugin postinstall", () => {
 
   it("classifies package-root and staged bundled plugin runtime deps", async () => {
     const extensionsDir = await createExtensionsDir();
-    await writePluginPackage(extensionsDir, "slack", {
+    await writePluginPackage(extensionsDir, "ddingtalk", {
       crawclaw: {
         bundle: {
           stageRuntimeDependencies: true,
         },
       },
       dependencies: {
-        "@slack/web-api": "7.11.0",
+        "@ddingtalk/web-api": "7.11.0",
         "https-proxy-agent": "^9.0.0",
       },
     });
@@ -257,14 +257,14 @@ describe("bundled plugin postinstall", () => {
     expect(discoverBundledPluginDependencyPlan({ extensionsDir })).toEqual({
       packageRootRuntimeDeps: expect.arrayContaining([
         {
-          name: "@slack/web-api",
-          pluginIds: ["slack"],
-          sentinelPath: path.join("node_modules", "@slack", "web-api", "package.json"),
+          name: "@ddingtalk/web-api",
+          pluginIds: ["ddingtalk"],
+          sentinelPath: path.join("node_modules", "@ddingtalk", "web-api", "package.json"),
           version: "7.11.0",
         },
         {
           name: "https-proxy-agent",
-          pluginIds: ["feishu", "slack"],
+          pluginIds: ["ddingtalk", "feishu"],
           sentinelPath: path.join("node_modules", "https-proxy-agent", "package.json"),
           version: "^9.0.0",
         },
@@ -277,8 +277,8 @@ describe("bundled plugin postinstall", () => {
       ]),
       stagedRuntimeDependencyPlugins: [
         {
-          dependencyNames: ["@slack/web-api", "https-proxy-agent"],
-          pluginId: "slack",
+          dependencyNames: ["@ddingtalk/web-api", "https-proxy-agent"],
+          pluginId: "ddingtalk",
         },
       ],
     });
@@ -287,12 +287,12 @@ describe("bundled plugin postinstall", () => {
   it("installs missing bundled plugin runtime deps during global installs", async () => {
     const extensionsDir = await createExtensionsDir();
     const packageRoot = path.dirname(path.dirname(extensionsDir));
-    await writePluginPackage(extensionsDir, "slack", {
+    await writePluginPackage(extensionsDir, "ddingtalk", {
       dependencies: {
-        "@slack/web-api": "7.11.0",
+        "@ddingtalk/web-api": "7.11.0",
       },
     });
-    await writePluginPackage(extensionsDir, "telegram", {
+    await writePluginPackage(extensionsDir, "feishu", {
       dependencies: {
         grammy: "1.38.4",
       },
@@ -313,7 +313,7 @@ describe("bundled plugin postinstall", () => {
         "--omit=dev",
         "--no-save",
         "--package-lock=false",
-        "@slack/web-api@7.11.0",
+        "@ddingtalk/web-api@7.11.0",
         "grammy@1.38.4",
       ]),
       spawnSync,
@@ -327,7 +327,7 @@ describe("bundled plugin postinstall", () => {
         "--omit=dev",
         "--no-save",
         "--package-lock=false",
-        "@slack/web-api@7.11.0",
+        "@ddingtalk/web-api@7.11.0",
         "grammy@1.38.4",
       ],
       {
@@ -347,21 +347,21 @@ describe("bundled plugin postinstall", () => {
   it("installs only missing bundled plugin runtime deps", async () => {
     const extensionsDir = await createExtensionsDir();
     const packageRoot = path.dirname(path.dirname(extensionsDir));
-    await writePluginPackage(extensionsDir, "slack", {
+    await writePluginPackage(extensionsDir, "ddingtalk", {
       dependencies: {
-        "@slack/web-api": "7.11.0",
+        "@ddingtalk/web-api": "7.11.0",
       },
     });
-    await writePluginPackage(extensionsDir, "telegram", {
+    await writePluginPackage(extensionsDir, "feishu", {
       dependencies: {
         grammy: "1.38.4",
       },
     });
-    await fs.mkdir(path.join(packageRoot, "node_modules", "@slack", "web-api"), {
+    await fs.mkdir(path.join(packageRoot, "node_modules", "@ddingtalk", "web-api"), {
       recursive: true,
     });
     await fs.writeFile(
-      path.join(packageRoot, "node_modules", "@slack", "web-api", "package.json"),
+      path.join(packageRoot, "node_modules", "@ddingtalk", "web-api", "package.json"),
       "{}\n",
     );
     const spawnSync = vi.fn(() => ({ status: 0, stderr: "", stdout: "" }));
@@ -403,7 +403,7 @@ describe("bundled plugin postinstall", () => {
   it("installs bundled plugin deps when npm location is global", async () => {
     const extensionsDir = await createExtensionsDir();
     const packageRoot = path.dirname(path.dirname(extensionsDir));
-    await writePluginPackage(extensionsDir, "telegram", {
+    await writePluginPackage(extensionsDir, "feishu", {
       dependencies: {
         grammy: "1.38.4",
       },
@@ -449,7 +449,7 @@ describe("bundled plugin postinstall", () => {
   it("retries transient bundled plugin dependency install failures", async () => {
     const extensionsDir = await createExtensionsDir();
     const packageRoot = path.dirname(path.dirname(extensionsDir));
-    await writePluginPackage(extensionsDir, "telegram", {
+    await writePluginPackage(extensionsDir, "feishu", {
       dependencies: {
         grammy: "1.38.4",
       },

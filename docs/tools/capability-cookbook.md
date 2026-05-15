@@ -66,7 +66,7 @@ Vendor plugin:
 - vendor-specific request normalization
 - registration of the capability implementation
 
-Feature/channel plugin:
+Feature plugin:
 
 - calls `api.runtime.*` or the matching `plugin-sdk/*-runtime` helper
 - never calls a vendor implementation directly

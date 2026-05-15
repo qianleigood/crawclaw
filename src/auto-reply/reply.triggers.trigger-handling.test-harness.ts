@@ -6,7 +6,6 @@ import { afterAll, afterEach, beforeAll, expect, vi } from "vitest";
 import { clearRuntimeAuthProfileStoreSnapshots } from "../agents/auth-profiles.js";
 import { resetCliCredentialCachesForTest } from "../agents/cli-credentials.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { resetProviderRuntimeHookCacheForTest } from "../plugins/provider-runtime.js";
 import { resolveRelativeBundledPluginPublicModuleId } from "../test-utils/bundled-plugin-public-surface.js";
 
 // Avoid exporting vitest mock types (TS2742 under pnpm + d.ts emit).
@@ -28,7 +27,7 @@ const piEmbeddedMocks = getSharedMocks("crawclaw.trigger-handling.pi-embedded-mo
   abortEmbeddedPiRun: vi.fn().mockReturnValue(false),
   compactEmbeddedPiSession: vi.fn(),
   runEmbeddedPiAgent: vi.fn(),
-  queueEmbeddedPiMessage: vi.fn().mockReturnValue(false),
+  queueEmbeddedPWeixin: vi.fn().mockReturnValue(false),
   isEmbeddedPiRunActive: vi.fn().mockReturnValue(false),
   isEmbeddedPiRunStreaming: vi.fn().mockReturnValue(false),
 }));
@@ -45,8 +44,8 @@ export function getRunEmbeddedPiAgentMock(): AnyMock {
   return piEmbeddedMocks.runEmbeddedPiAgent;
 }
 
-export function getQueueEmbeddedPiMessageMock(): AnyMock {
-  return piEmbeddedMocks.queueEmbeddedPiMessage;
+export function getQueueEmbeddedPWeixinMock(): AnyMock {
+  return piEmbeddedMocks.queueEmbeddedPWeixin;
 }
 
 const installPiEmbeddedMock = () =>
@@ -55,7 +54,7 @@ const installPiEmbeddedMock = () =>
     compactEmbeddedPiSession: (...args: unknown[]) =>
       piEmbeddedMocks.compactEmbeddedPiSession(...args),
     runEmbeddedPiAgent: (...args: unknown[]) => piEmbeddedMocks.runEmbeddedPiAgent(...args),
-    queueEmbeddedPiMessage: (...args: unknown[]) => piEmbeddedMocks.queueEmbeddedPiMessage(...args),
+    queueEmbeddedPWeixin: (...args: unknown[]) => piEmbeddedMocks.queueEmbeddedPWeixin(...args),
     resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
     isEmbeddedPiRunActive: (...args: unknown[]) => piEmbeddedMocks.isEmbeddedPiRunActive(...args),
     isEmbeddedPiRunStreaming: (...args: unknown[]) =>
@@ -115,16 +114,6 @@ vi.doMock("../agents/model-catalog.runtime.js", () => ({
   loadModelCatalog: (...args: unknown[]) => modelCatalogMocks.loadModelCatalog(...args),
 }));
 
-vi.doMock("../plugins/provider-runtime.runtime.js", () => ({
-  augmentModelCatalogWithProviderPlugins: async (params: { catalog?: unknown[] }) =>
-    params.catalog ?? [],
-  buildProviderAuthDoctorHintWithPlugin: () => undefined,
-  buildProviderMissingAuthMessageWithPlugin: () => undefined,
-  formatProviderAuthProfileApiKeyWithPlugin: (params: { apiKey?: string }) => params.apiKey,
-  prepareProviderRuntimeAuth: async () => undefined,
-  refreshProviderOAuthCredentialWithPlugin: async () => undefined,
-}));
-
 const modelFallbackMocks = getSharedMocks("crawclaw.trigger-handling.model-fallback-mocks", () => ({
   runWithModelFallback: vi.fn(
     async (params: {
@@ -159,9 +148,9 @@ const webSessionMocks = getSharedMocks("crawclaw.trigger-handling.web-session-mo
   readWebSelfId: vi.fn().mockReturnValue({ e164: "+1999" }),
 }));
 
-const whatsappRuntimeApiModuleId = resolveRelativeBundledPluginPublicModuleId({
+const weixinRuntimeApiModuleId = resolveRelativeBundledPluginPublicModuleId({
   fromModuleUrl: import.meta.url,
-  pluginId: "whatsapp",
+  pluginId: "weixin",
   artifactBasename: "runtime-api.js",
 });
 
@@ -169,7 +158,7 @@ export function getWebSessionMocks(): AnyMocks {
   return webSessionMocks;
 }
 
-const installWebSessionMock = () => vi.doMock(whatsappRuntimeApiModuleId, () => webSessionMocks);
+const installWebSessionMock = () => vi.doMock(weixinRuntimeApiModuleId, () => webSessionMocks);
 
 installWebSessionMock();
 
@@ -260,7 +249,7 @@ export async function withTempHome<T>(fn: (home: string) => Promise<T>): Promise
     piEmbeddedMocks.runEmbeddedPiAgent.mockReset();
     piEmbeddedMocks.abortEmbeddedPiRun.mockReset().mockReturnValue(false);
     piEmbeddedMocks.compactEmbeddedPiSession.mockReset();
-    piEmbeddedMocks.queueEmbeddedPiMessage.mockReset().mockReturnValue(false);
+    piEmbeddedMocks.queueEmbeddedPWeixin.mockReset().mockReturnValue(false);
     piEmbeddedMocks.isEmbeddedPiRunActive.mockReset().mockReturnValue(false);
     piEmbeddedMocks.isEmbeddedPiRunStreaming.mockReset().mockReturnValue(false);
     modelFallbackMocks.runWithModelFallback.mockClear();
@@ -283,7 +272,7 @@ export function makeCfg(home: string): CrawClawConfig {
       },
     },
     channels: {
-      whatsapp: {
+      weixin: {
         allowFrom: ["*"],
       },
     },
@@ -326,24 +315,24 @@ export async function readSessionStore(cfg: {
   return JSON.parse(storeRaw) as Record<string, { elevatedLevel?: string }>;
 }
 
-export function makeWhatsAppElevatedCfg(
+export function makeWeixinElevatedCfg(
   home: string,
   opts?: { elevatedEnabled?: boolean; requireMentionInGroups?: boolean },
 ): CrawClawConfig {
   const cfg = makeCfg(home);
   cfg.channels ??= {};
-  cfg.channels.whatsapp = {
-    ...cfg.channels.whatsapp,
+  cfg.channels.weixin = {
+    ...cfg.channels.weixin,
     allowFrom: ["+1000"],
   };
   if (opts?.requireMentionInGroups !== undefined) {
-    cfg.channels.whatsapp.groups = { "*": { requireMention: opts.requireMentionInGroups } };
+    cfg.channels.weixin.groups = { "*": { requireMention: opts.requireMentionInGroups } };
   }
 
   cfg.tools = {
     ...cfg.tools,
     elevated: {
-      allowFrom: { whatsapp: ["+1000"] },
+      allowFrom: { weixin: ["+1000"] },
       ...(opts?.elevatedEnabled === false ? { enabled: false } : {}),
     },
   };
@@ -363,7 +352,7 @@ export async function runDirectElevatedToggleAndLoadStore(params: {
       Body: params.body ?? "/elevated on",
       From: "+1000",
       To: "+2000",
-      Provider: "whatsapp",
+      Provider: "weixin",
       SenderE164: "+1000",
       CommandAuthorized: true,
     },
@@ -448,7 +437,6 @@ export function installTriggerHandlingE2eTestHooks() {
   afterEach(() => {
     clearRuntimeAuthProfileStoreSnapshots();
     resetCliCredentialCachesForTest();
-    resetProviderRuntimeHookCacheForTest();
     vi.clearAllMocks();
   });
 }

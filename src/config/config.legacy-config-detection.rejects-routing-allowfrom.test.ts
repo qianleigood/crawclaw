@@ -1,13 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { migrateLegacyConfig } from "./legacy-migrate.js";
-import type { CrawClawConfig } from "./types.js";
 import { validateConfigObject } from "./validation.js";
-
-function getChannelConfig(config: unknown, provider: string) {
-  const channels = (config as { channels?: Record<string, Record<string, unknown>> } | undefined)
-    ?.channels;
-  return channels?.[provider];
-}
 
 describe("legacy config detection", () => {
   it.each([
@@ -38,7 +31,6 @@ describe("legacy config detection", () => {
   it("does not rewrite removed routing.allowFrom migrations", async () => {
     const res = migrateLegacyConfig({
       routing: { allowFrom: ["+15555550123"] },
-      channels: { whatsapp: {} },
     });
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
@@ -47,7 +39,6 @@ describe("legacy config detection", () => {
   it("does not rewrite removed routing.groupChat.requireMention migrations", async () => {
     const res = migrateLegacyConfig({
       routing: { groupChat: { requireMention: false } },
-      channels: { whatsapp: {} },
     });
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
@@ -90,7 +81,7 @@ describe("legacy config detection", () => {
       agent: {
         model: "openai/gpt-5.2",
         tools: { allow: ["sessions.list"], deny: ["danger"] },
-        elevated: { enabled: true, allowFrom: { discord: ["user:1"] } },
+        elevated: { enabled: true, allowFrom: { qqbot: ["user:1"] } },
         bash: { timeoutSec: 12 },
         subagents: { tools: { deny: ["danger"] } },
       },
@@ -122,7 +113,7 @@ describe("legacy config detection", () => {
     const res = validateConfigObject({
       tools: {
         elevated: {
-          allowFrom: { whatsapp: ["+15555550123"] },
+          allowFrom: { weixin: ["+15555550123"] },
         },
       },
       agents: {
@@ -133,7 +124,7 @@ describe("legacy config detection", () => {
             tools: {
               elevated: {
                 enabled: false,
-                allowFrom: { whatsapp: ["+15555550123"] },
+                allowFrom: { weixin: ["+15555550123"] },
               },
             },
           },
@@ -144,29 +135,8 @@ describe("legacy config detection", () => {
     if (res.ok) {
       expect(res.config?.agents?.list?.[0]?.tools?.elevated).toEqual({
         enabled: false,
-        allowFrom: { whatsapp: ["+15555550123"] },
+        allowFrom: { weixin: ["+15555550123"] },
       });
-    }
-  });
-  it("rejects telegram.requireMention", async () => {
-    const res = validateConfigObject({
-      telegram: { requireMention: true },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues[0]?.path).toBe("");
-      expect(res.issues[0]?.message).toContain('"telegram"');
-    }
-  });
-  it("rejects channels.telegram.groupMentionsOnly", async () => {
-    const res = validateConfigObject({
-      channels: { telegram: { groupMentionsOnly: true } },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues.some((issue) => issue.path === "channels.telegram.groupMentionsOnly")).toBe(
-        true,
-      );
     }
   });
   it("rejects gateway.token", async () => {
@@ -236,162 +206,5 @@ describe("legacy config detection", () => {
     });
     expect(res.changes).toEqual([]);
     expect(res.config).toBeNull();
-  });
-  it.each([
-    {
-      provider: "telegram",
-      allowFrom: ["123456789"],
-      expectedIssuePath: "channels.telegram.allowFrom",
-    },
-    {
-      provider: "whatsapp",
-      allowFrom: ["+15555550123"],
-      expectedIssuePath: "channels.whatsapp.allowFrom",
-    },
-    {
-      provider: "signal",
-      allowFrom: ["+15555550123"],
-      expectedIssuePath: "channels.signal.allowFrom",
-    },
-    {
-      provider: "imessage",
-      allowFrom: ["+15555550123"],
-      expectedIssuePath: "channels.imessage.allowFrom",
-    },
-  ] as const)(
-    'enforces dmPolicy="open" allowFrom wildcard for $provider',
-    ({ provider, allowFrom, expectedIssuePath }) => {
-      const res = validateConfigObject({
-        channels: {
-          [provider]: { dmPolicy: "open", allowFrom },
-        },
-      });
-      expect(res.ok, provider).toBe(false);
-      if (!res.ok) {
-        expect(res.issues[0]?.path, provider).toBe(expectedIssuePath);
-      }
-    },
-    180_000,
-  );
-
-  it.each(["telegram", "whatsapp", "signal"] as const)(
-    'accepts dmPolicy="open" with wildcard for %s',
-    (provider) => {
-      const res = validateConfigObject({
-        channels: { [provider]: { dmPolicy: "open", allowFrom: ["*"] } },
-      });
-      expect(res.ok, provider).toBe(true);
-      if (res.ok) {
-        const channel = getChannelConfig(res.config, provider);
-        expect(channel?.dmPolicy, provider).toBe("open");
-      }
-    },
-  );
-
-  it.each(["telegram", "whatsapp", "signal"] as const)(
-    "defaults dm/group policy for configured provider %s",
-    (provider) => {
-      const res = validateConfigObject({ channels: { [provider]: {} } });
-      expect(res.ok, provider).toBe(true);
-      if (res.ok) {
-        const channel = getChannelConfig(res.config, provider);
-        expect(channel?.dmPolicy, provider).toBe("pairing");
-        expect(channel?.groupPolicy, provider).toBe("allowlist");
-        if (provider === "telegram") {
-          expect(channel?.streaming, provider).toBe("partial");
-        }
-      }
-    },
-  );
-
-  it.each([
-    {
-      name: "streaming=true",
-      input: { channels: { discord: { streaming: true } } },
-      expectedStreaming: "partial",
-    },
-    {
-      name: "streaming=false",
-      input: { channels: { discord: { streaming: false } } },
-      expectedStreaming: "off",
-    },
-  ] as const)(
-    "normalizes discord streaming fields during validation: $name",
-    ({ input, expectedStreaming, name }) => {
-      const res = validateConfigObject(input);
-      expect(res.ok, name).toBe(true);
-      if (res.ok) {
-        expect(res.config.channels?.discord?.streaming, name).toBe(expectedStreaming);
-      }
-    },
-  );
-  it.each([
-    {
-      name: "discord account streaming boolean",
-      input: {
-        channels: {
-          discord: {
-            accounts: {
-              work: {
-                streaming: true,
-              },
-            },
-          },
-        },
-      },
-      assert: (config: NonNullable<CrawClawConfig>) => {
-        expect(config.channels?.discord?.accounts?.work?.streaming).toBe("partial");
-      },
-    },
-    {
-      name: "slack streaming boolean legacy",
-      input: {
-        channels: {
-          slack: {
-            streaming: false,
-          },
-        },
-      },
-      assert: (config: NonNullable<CrawClawConfig>) => {
-        expect(config.channels?.slack?.streaming).toBe("off");
-        expect(config.channels?.slack?.nativeStreaming).toBe(false);
-      },
-    },
-  ] as const)(
-    "normalizes account-level discord/slack streaming alias: $name",
-    ({ input, assert, name }) => {
-      const res = validateConfigObject(input);
-      expect(res.ok, name).toBe(true);
-      if (res.ok) {
-        assert(res.config);
-      }
-    },
-  );
-  it("accepts historyLimit overrides per provider and account", async () => {
-    const res = validateConfigObject({
-      messages: { groupChat: { historyLimit: 12 } },
-      channels: {
-        whatsapp: { historyLimit: 9, accounts: { work: { historyLimit: 4 } } },
-        telegram: { historyLimit: 8, accounts: { ops: { historyLimit: 3 } } },
-        slack: { historyLimit: 7, accounts: { ops: { historyLimit: 2 } } },
-        signal: { historyLimit: 6 },
-        imessage: { historyLimit: 5 },
-        msteams: { historyLimit: 4 },
-        discord: { historyLimit: 3 },
-      },
-    });
-    expect(res.ok).toBe(true);
-    if (res.ok) {
-      expect(res.config.channels?.whatsapp?.historyLimit).toBe(9);
-      expect(res.config.channels?.whatsapp?.accounts?.work?.historyLimit).toBe(4);
-      expect(res.config.channels?.telegram?.historyLimit).toBe(8);
-      expect(res.config.channels?.telegram?.accounts?.ops?.historyLimit).toBe(3);
-      expect(res.config.channels?.slack?.historyLimit).toBe(7);
-      expect(res.config.channels?.slack?.accounts?.ops?.historyLimit).toBe(2);
-      expect(res.config.channels?.signal?.historyLimit).toBe(6);
-      expect(res.config.channels?.imessage?.historyLimit).toBe(5);
-      expect(res.config.channels?.msteams?.historyLimit).toBe(4);
-      expect(res.config.channels?.discord?.historyLimit).toBe(3);
-    }
   });
 });

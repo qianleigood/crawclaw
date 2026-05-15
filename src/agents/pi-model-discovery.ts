@@ -7,11 +7,6 @@ import type {
   ModelRegistry as PiModelRegistry,
 } from "@mariozechner/pi-coding-agent";
 import { normalizeModelCompat } from "../plugins/provider-model-compat.js";
-import {
-  applyProviderResolvedModelCompatWithPlugins,
-  applyProviderResolvedTransportWithPlugin,
-  normalizeProviderResolvedModelWithPlugin,
-} from "../plugins/provider-runtime.js";
 import type { ProviderRuntimeModel } from "../plugins/types.js";
 import { ensureAuthProfileStore } from "./auth-profiles.js";
 import { PROVIDER_ENV_API_KEY_CANDIDATES } from "./model-auth-env-vars.js";
@@ -69,37 +64,8 @@ function normalizeRegistryModel<T>(value: T, agentDir: string): T {
     return value;
   }
   const model = value as unknown as ProviderRuntimeModel;
-  const pluginNormalized =
-    normalizeProviderResolvedModelWithPlugin({
-      provider: model.provider,
-      context: {
-        provider: model.provider,
-        modelId: model.id,
-        model,
-        agentDir,
-      },
-    }) ?? model;
-  const compatNormalized =
-    applyProviderResolvedModelCompatWithPlugins({
-      provider: model.provider,
-      context: {
-        provider: model.provider,
-        modelId: model.id,
-        model: pluginNormalized,
-        agentDir,
-      },
-    }) ?? pluginNormalized;
-  const transportNormalized =
-    applyProviderResolvedTransportWithPlugin({
-      provider: model.provider,
-      context: {
-        provider: model.provider,
-        modelId: model.id,
-        model: compatNormalized,
-        agentDir,
-      },
-    }) ?? compatNormalized;
-  return normalizeModelCompat(transportNormalized as Model<Api>) as T;
+  void agentDir;
+  return normalizeModelCompat(model as Model<Api>) as T;
 }
 
 type PiModelRegistryClassLike = {

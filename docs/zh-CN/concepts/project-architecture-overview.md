@@ -328,7 +328,7 @@ UI 现在已经独立成包，但当前更接近 control console，还不是彻�
 
 ### Memory 维护链
 
-`session / runtime signals -> memory orchestration -> special agent -> durable/session-summary outputs -> prompt assembly`
+`session / runtime feishus -> memory orchestration -> special agent -> durable/session-summary outputs -> prompt assembly`
 
 ### Workflow 链
 

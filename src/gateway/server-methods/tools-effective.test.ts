@@ -51,7 +51,7 @@ vi.mock("../session-utils.js", async (importOriginal) => {
       entry: {
         sessionId: "session-1",
         updatedAt: 1,
-        lastChannel: "telegram",
+        lastChannel: "feishu",
         lastAccountId: "acct-1",
         lastThreadId: "thread-2",
         lastTo: "channel-1",
@@ -72,7 +72,7 @@ vi.mock("../../utils/delivery-context.js", async (importOriginal) => {
   return {
     ...actual,
     deliveryContextFromSession: vi.fn(() => ({
-      channel: "telegram",
+      channel: "feishu",
       to: "channel-1",
       accountId: "acct-1",
       threadId: "thread-2",
@@ -188,7 +188,7 @@ describe("tools.effective handler", () => {
         groupChannel: "#ops",
         groupSpace: "workspace-5",
         replyToMode: "first",
-        messageProvider: "telegram",
+        messageProvider: "feishu",
         modelProvider: "openai",
         modelId: "gpt-4.1",
       }),
@@ -202,11 +202,11 @@ describe("tools.effective handler", () => {
       entry: {
         sessionId: "session-origin-thread",
         updatedAt: 1,
-        lastChannel: "telegram",
+        lastChannel: "feishu",
         lastAccountId: "acct-1",
         lastTo: "channel-1",
         origin: {
-          provider: "telegram",
+          provider: "feishu",
           accountId: "acct-1",
           threadId: 42,
         },
@@ -220,7 +220,7 @@ describe("tools.effective handler", () => {
     } as never);
     const deliveryContextModule = await import("../../utils/delivery-context.js");
     vi.mocked(deliveryContextModule.deliveryContextFromSession).mockReturnValueOnce({
-      channel: "telegram",
+      channel: "feishu",
       to: "channel-1",
       accountId: "acct-1",
     });

@@ -39,53 +39,12 @@ Scope intent:
 - `gateway.remote.token`
 - `gateway.remote.password`
 - `cron.webhookToken`
-- `channels.telegram.botToken`
-- `channels.telegram.webhookSecret`
-- `channels.telegram.accounts.*.botToken`
-- `channels.telegram.accounts.*.webhookSecret`
-- `channels.slack.botToken`
-- `channels.slack.appToken`
-- `channels.slack.userToken`
-- `channels.slack.signingSecret`
-- `channels.slack.accounts.*.botToken`
-- `channels.slack.accounts.*.appToken`
-- `channels.slack.accounts.*.userToken`
-- `channels.slack.accounts.*.signingSecret`
-- `channels.discord.token`
-- `channels.discord.pluralkit.token`
-- `channels.discord.voice.tts.providers.*.apiKey`
-- `channels.discord.accounts.*.token`
-- `channels.discord.accounts.*.pluralkit.token`
-- `channels.discord.accounts.*.voice.tts.providers.*.apiKey`
-- `channels.irc.password`
-- `channels.irc.nickserv.password`
-- `channels.irc.accounts.*.password`
-- `channels.irc.accounts.*.nickserv.password`
-- `channels.bluebubbles.password`
-- `channels.bluebubbles.accounts.*.password`
 - `channels.feishu.appSecret`
 - `channels.feishu.encryptKey`
 - `channels.feishu.verificationToken`
 - `channels.feishu.accounts.*.appSecret`
 - `channels.feishu.accounts.*.encryptKey`
 - `channels.feishu.accounts.*.verificationToken`
-- `channels.msteams.appPassword`
-- `channels.mattermost.botToken`
-- `channels.mattermost.accounts.*.botToken`
-- `channels.matrix.accessToken`
-- `channels.matrix.password`
-- `channels.matrix.accounts.*.accessToken`
-- `channels.matrix.accounts.*.password`
-- `channels.nextcloud-talk.botSecret`
-- `channels.nextcloud-talk.apiPassword`
-- `channels.nextcloud-talk.accounts.*.botSecret`
-- `channels.nextcloud-talk.accounts.*.apiPassword`
-- `channels.zalo.botToken`
-- `channels.zalo.webhookSecret`
-- `channels.zalo.accounts.*.botToken`
-- `channels.zalo.accounts.*.webhookSecret`
-- `channels.googlechat.serviceAccount` via sibling `serviceAccountRef` (compatibility exception)
-- `channels.googlechat.accounts.*.serviceAccount` via sibling `serviceAccountRef` (compatibility exception)
 
 ### `auth-profiles.json` targets (`secrets configure` + `secrets apply` + `secrets audit`)
 
@@ -119,10 +78,6 @@ Out-of-scope credentials include:
 - `hooks.gmail.pushToken`
 - `hooks.mappings[].sessionKey`
 - `auth-profiles.oauth.*`
-- `channels.discord.threadBindings.webhookToken`
-- `channels.discord.accounts.*.threadBindings.webhookToken`
-- `channels.whatsapp.creds.json`
-- `channels.whatsapp.accounts.*.creds.json`
 
 [//]: # "secretref-unsupported-list-end"
 

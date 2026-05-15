@@ -99,5 +99,5 @@ export function resolveBundledPluginInstallCommandHint(params: {
   if (!bundledSource?.localPath) {
     return null;
   }
-  return `crawclaw plugins install ${bundledSource.localPath}`;
+  return `Install local plugin from Desktop Settings → Plugins: ${bundledSource.localPath}`;
 }

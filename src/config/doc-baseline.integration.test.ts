@@ -83,15 +83,11 @@ describe("config doc baseline integration", () => {
     expect(rendered.jsonl).toBe(generatedJsonl);
   });
 
-  it("includes core, channel, and plugin config metadata", async () => {
+  it("includes core and plugin config metadata", async () => {
     const byPath = await getSharedByPath();
 
     expect(byPath.get("gateway.auth.token")).toMatchObject({
       kind: "core",
-      sensitive: true,
-    });
-    expect(byPath.get("channels.telegram.botToken")).toMatchObject({
-      kind: "channel",
       sensitive: true,
     });
     expect(byPath.get("plugins.entries.voice-call.config.twilio.authToken")).toMatchObject({
@@ -109,23 +105,10 @@ describe("config doc baseline integration", () => {
     expect(tokenEntry?.tags).toContain("security");
   });
 
-  it("uses human-readable channel metadata for top-level channel sections", async () => {
+  it("omits removed TypeScript channel metadata", async () => {
     const byPath = await getSharedByPath();
 
-    expect(byPath.get("channels.discord")).toMatchObject({
-      label: "Discord",
-      help: "very well supported right now.",
-    });
-    expect(byPath.get("channels.msteams")).toMatchObject({
-      label: "Microsoft Teams",
-      help: "Teams SDK; enterprise support.",
-    });
-    expect(byPath.get("channels.matrix")).toMatchObject({
-      label: "Matrix",
-      help: "open protocol; install the plugin to enable.",
-    });
-    expect(byPath.get("channels.msteams")?.label).not.toContain("@crawclaw/");
-    expect(byPath.get("channels.matrix")?.help).not.toContain("homeserver");
+    expect(byPath.get("channels.legacyChannel")).toBeUndefined();
   });
 
   it("matches array help hints that still use [] notation", async () => {

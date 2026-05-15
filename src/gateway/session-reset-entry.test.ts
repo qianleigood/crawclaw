@@ -52,7 +52,7 @@ describe("buildGatewayResetEntry", () => {
 
     const result = buildGatewayResetEntry({
       cfg: {} as never,
-      primaryKey: "agent:main:telegram:direct:123",
+      primaryKey: "agent:main:feishu:direct:123",
       currentEntry,
       storePath: "/tmp/sessions.json",
       now: 1_800_000_000_000,

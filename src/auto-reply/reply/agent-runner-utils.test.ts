@@ -188,18 +188,18 @@ describe("agent-runner-utils", () => {
       run,
       sessionCtx: {
         Provider: "heartbeat",
-        OriginatingChannel: "Telegram",
+        OriginatingChannel: "Feishu",
         OriginatingTo: "268300329",
       },
       hasRepliedRef: undefined,
       provider: "openai",
     });
 
-    expect(resolved.embeddedContext.messageProvider).toBe("telegram");
+    expect(resolved.embeddedContext.messageProvider).toBe("feishu");
     expect(resolved.embeddedContext.messageTo).toBe("268300329");
   });
 
-  it("uses telegram plugin threading context for native commands", () => {
+  it("uses feishu plugin threading context for native commands", () => {
     hoisted.getChannelPluginMock.mockReturnValue({
       threading: {
         buildToolContext: ({
@@ -219,30 +219,30 @@ describe("agent-runner-utils", () => {
 
     const context = buildThreadingToolContext({
       sessionCtx: {
-        Provider: "telegram",
+        Provider: "feishu",
         To: "slash:8460800771",
-        OriginatingChannel: "telegram",
-        OriginatingTo: "telegram:-1003841603622",
+        OriginatingChannel: "feishu",
+        OriginatingTo: "feishu:-1003841603622",
         MessageThreadId: 928,
         MessageSid: "2284",
       },
-      config: { channels: { telegram: { allowFrom: ["*"] } } },
+      config: { channels: { feishu: { allowFrom: ["*"] } } },
       hasRepliedRef: undefined,
     });
 
     expect(context).toMatchObject({
-      currentChannelId: "telegram:-1003841603622",
+      currentChannelId: "feishu:-1003841603622",
       currentThreadTs: "928",
       currentMessageId: "2284",
     });
   });
 
-  it("uses OriginatingTo for threading tool context on discord native commands", () => {
+  it("uses OriginatingTo for threading tool context on qqbot native commands", () => {
     const context = buildThreadingToolContext({
       sessionCtx: {
-        Provider: "discord",
+        Provider: "qqbot",
         To: "slash:1177378744822943744",
-        OriginatingChannel: "discord",
+        OriginatingChannel: "qqbot",
         OriginatingTo: "channel:123456789012345678",
         MessageSid: "msg-9",
       },

@@ -280,11 +280,11 @@ const DISALLOWED_ELEVATION_CASES: DisallowedElevationCase[] = [
   withLabel("rejects elevated requests when not allowed", {
     defaultLevel: "off",
     overrides: {
-      messageProvider: "telegram",
+      messageProvider: "feishu",
       sessionKey: DEFAULT_NOTIFY_SESSION_KEY,
     },
     requestElevated: true,
-    expectedError: "Context: provider=telegram session=agent:main:main",
+    expectedError: "Context: provider=feishu session=agent:main:main",
   }),
   withLabel("does not default to elevated when not allowed", {
     defaultLevel: "on",

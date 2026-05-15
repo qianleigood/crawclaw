@@ -29,7 +29,7 @@ describe("handleSubagentsAgentsAction", () => {
               targetSessionKey: childSessionKey,
               targetKind: "subagent",
               conversation: {
-                channel: "discord",
+                channel: "qqbot",
                 accountId: "default",
                 conversationId: "thread-1",
               },
@@ -43,11 +43,11 @@ describe("handleSubagentsAgentsAction", () => {
     const result = handleSubagentsAgentsAction({
       params: {
         ctx: {
-          Provider: "discord",
-          Surface: "discord",
+          Provider: "qqbot",
+          Surface: "qqbot",
         },
         command: {
-          channel: "discord",
+          channel: "qqbot",
         },
       },
       requesterKey: "agent:main:main",
@@ -93,7 +93,7 @@ describe("handleSubagentsAgentsAction", () => {
               targetSessionKey: visibleSessionKey,
               targetKind: "subagent",
               conversation: {
-                channel: "discord",
+                channel: "qqbot",
                 accountId: "default",
                 conversationId: "thread-visible",
               },
@@ -107,11 +107,11 @@ describe("handleSubagentsAgentsAction", () => {
     const result = handleSubagentsAgentsAction({
       params: {
         ctx: {
-          Provider: "discord",
-          Surface: "discord",
+          Provider: "qqbot",
+          Surface: "qqbot",
         },
         command: {
-          channel: "discord",
+          channel: "qqbot",
         },
       },
       requesterKey: "agent:main:main",
@@ -149,27 +149,27 @@ describe("handleSubagentsAgentsAction", () => {
     expect(result.reply?.text).not.toContain("hidden recent worker");
   });
 
-  it("shows matrix runs as unbound instead of claiming only discord/telegram bindings", () => {
+  it("shows feishu runs as unbound instead of claiming only qqbot/feishu bindings", () => {
     listBySessionMock.mockReturnValue([]);
 
     const result = handleSubagentsAgentsAction({
       params: {
         ctx: {
-          Provider: "matrix",
-          Surface: "matrix",
+          Provider: "feishu",
+          Surface: "feishu",
         },
         command: {
-          channel: "matrix",
+          channel: "feishu",
         },
       },
       requesterKey: "agent:main:main",
       runs: [
         {
-          runId: "run-matrix-worker",
-          childSessionKey: "agent:main:subagent:matrix-worker",
+          runId: "run-feishu-worker",
+          childSessionKey: "agent:main:subagent:feishu-worker",
           requesterSessionKey: "agent:main:main",
           requesterDisplayKey: "main",
-          task: "matrix worker",
+          task: "feishu worker",
           cleanup: "keep",
           createdAt: Date.now() - 20_000,
           startedAt: Date.now() - 20_000,
@@ -178,21 +178,21 @@ describe("handleSubagentsAgentsAction", () => {
       restTokens: [],
     } as never);
 
-    expect(result.reply?.text).toContain("matrix worker (unbound)");
-    expect(result.reply?.text).not.toContain("bindings available on discord/telegram");
+    expect(result.reply?.text).toContain("feishu worker (unbound)");
+    expect(result.reply?.text).not.toContain("bindings available on qqbot/feishu");
   });
 
-  it("formats matrix bindings as threads", () => {
-    const childSessionKey = "agent:main:subagent:matrix-bound";
+  it("formats feishu bindings as threads", () => {
+    const childSessionKey = "agent:main:subagent:feishu-bound";
     listBySessionMock.mockImplementation((sessionKey: string) =>
       sessionKey === childSessionKey
         ? [
             {
-              bindingId: "binding-matrix",
+              bindingId: "binding-feishu",
               targetSessionKey: childSessionKey,
               targetKind: "subagent",
               conversation: {
-                channel: "matrix",
+                channel: "feishu",
                 accountId: "default",
                 conversationId: "room-thread-1",
               },
@@ -206,21 +206,21 @@ describe("handleSubagentsAgentsAction", () => {
     const result = handleSubagentsAgentsAction({
       params: {
         ctx: {
-          Provider: "matrix",
-          Surface: "matrix",
+          Provider: "feishu",
+          Surface: "feishu",
         },
         command: {
-          channel: "matrix",
+          channel: "feishu",
         },
       },
       requesterKey: "agent:main:main",
       runs: [
         {
-          runId: "run-matrix-bound",
+          runId: "run-feishu-bound",
           childSessionKey,
           requesterSessionKey: "agent:main:main",
           requesterDisplayKey: "main",
-          task: "matrix bound worker",
+          task: "feishu bound worker",
           cleanup: "keep",
           createdAt: Date.now() - 20_000,
           startedAt: Date.now() - 20_000,
@@ -229,7 +229,7 @@ describe("handleSubagentsAgentsAction", () => {
       restTokens: [],
     } as never);
 
-    expect(result.reply?.text).toContain("matrix bound worker (thread:room-thread-1)");
+    expect(result.reply?.text).toContain("feishu bound worker (thread:room-thread-1)");
     expect(result.reply?.text).not.toContain("binding:room-thread-1");
   });
 });

@@ -1,20 +1,20 @@
-import { formatCliCommand } from "../cli/command-format.js";
-import { createCliTranslator, resolveCliLocaleFromRuntime } from "../cli/i18n/index.js";
+import type { CrawClawConfig } from "../config/config.js";
+import { readConfigFileSnapshot, resolveGatewayPort, writeConfigFile } from "../config/config.js";
+import { normalizeSecretInputString } from "../config/types.secrets.js";
 import type {
   GatewayAuthChoice,
   OnboardMode,
   OnboardOptions,
   ResetScope,
-} from "../commands/onboard-types.js";
-import type { CrawClawConfig } from "../config/config.js";
-import { readConfigFileSnapshot, resolveGatewayPort, writeConfigFile } from "../config/config.js";
-import { normalizeSecretInputString } from "../config/types.secrets.js";
+} from "../control/onboard-types.js";
 import {
   buildPluginCompatibilityNotices,
   formatPluginCompatibilityNotice,
 } from "../plugins/status.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { defaultRuntime } from "../runtime.js";
+import { formatCliCommand } from "../terminal/command-format.js";
+import { createCliTranslator, resolveCliLocaleFromRuntime } from "../terminal/i18n/index.js";
 import { resolveUserPath } from "../utils.js";
 import { WizardCancelledError, type WizardPrompter } from "./prompts.js";
 import { promptNotebookLmEnablement } from "./setup.notebooklm.js";
@@ -48,31 +48,10 @@ async function resolveAuthChoiceModelSelectionPolicy(params: {
     env: params.env,
   });
 
-  const { resolvePluginProviders, resolveProviderPluginChoice } =
-    await import("../plugins/provider-auth-choice.runtime.js");
-  const providers = resolvePluginProviders({
-    config: params.config,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-    bundledProviderAllowlistCompat: true,
-    bundledProviderVitestCompat: true,
-  });
-  const resolvedChoice = resolveProviderPluginChoice({
-    providers,
-    choice: params.authChoice,
-  });
-  const matchedProvider =
-    resolvedChoice?.provider ??
-    (preferredProvider
-      ? providers.find((provider) => provider.id.trim() === preferredProvider.trim())
-      : undefined);
-  const setupPolicy =
-    resolvedChoice?.wizard?.modelSelection ?? matchedProvider?.wizard?.setup?.modelSelection;
-
   return {
     preferredProvider,
-    promptWhenAuthChoiceProvided: setupPolicy?.promptWhenAuthChoiceProvided === true,
-    allowKeepCurrent: setupPolicy?.allowKeepCurrent ?? true,
+    promptWhenAuthChoiceProvided: false,
+    allowKeepCurrent: true,
   };
 }
 
@@ -105,7 +84,7 @@ export async function runSetupWizard(
   prompter: WizardPrompter,
 ) {
   const t = createCliTranslator(resolveCliLocaleFromRuntime(process.argv));
-  const onboardHelpers = await import("../commands/onboard-helpers.js");
+  const onboardHelpers = await import("../control/onboard-helpers.js");
   onboardHelpers.printWizardHeader(runtime);
   await prompter.intro(t("wizard.setup.intro"));
   await requireRiskAcknowledgement({ opts, prompter, t });
@@ -462,7 +441,7 @@ export async function runSetupWizard(
         })) as OnboardMode));
 
   if (mode === "remote") {
-    const { promptRemoteGatewayConfig } = await import("../commands/onboard-remote.js");
+    const { promptRemoteGatewayConfig } = await import("../control/onboard-remote.js");
     const { logConfigUpdated } = await import("../config/logging.js");
     let nextConfig = await promptRemoteGatewayConfig(baseConfig, prompter, {
       secretInputMode: opts.secretInputMode,
@@ -485,15 +464,15 @@ export async function runSetupWizard(
 
   const workspaceDir = resolveUserPath(workspaceInput.trim() || onboardHelpers.DEFAULT_WORKSPACE);
 
-  const { applyLocalSetupWorkspaceConfig } = await import("../commands/onboard-config.js");
+  const { applyLocalSetupWorkspaceConfig } = await import("../control/onboard-config.js");
   let nextConfig: CrawClawConfig = applyLocalSetupWorkspaceConfig(baseConfig, workspaceDir);
 
   const { ensureAuthProfileStore } = await import("../agents/auth-profiles.runtime.js");
-  const { promptAuthChoiceGrouped } = await import("../commands/auth-choice-prompt.js");
-  const { promptCustomApiConfig } = await import("../commands/onboard-custom.js");
+  const { promptAuthChoiceGrouped } = await import("../control/auth-choice-prompt.js");
+  const { promptCustomApiConfig } = await import("../control/onboard-custom.js");
   const { applyAuthChoice, resolvePreferredProviderForAuthChoice, warnIfModelConfigLooksOff } =
-    await import("../commands/auth-choice.js");
-  const { applyPrimaryModel, promptDefaultModel } = await import("../commands/model-picker.js");
+    await import("../control/auth-choice.js");
+  const { applyPrimaryModel, promptDefaultModel } = await import("../control/model-picker.js");
 
   const authStore = ensureAuthProfileStore(undefined, {
     allowKeychainPrompt: false,
@@ -554,7 +533,6 @@ export async function runSetupWizard(
       prompter,
       allowKeep: authChoiceModelSelectionPolicy?.allowKeepCurrent ?? true,
       ignoreAllowlist: true,
-      includeProviderPluginSetups: true,
       preferredProvider: authChoiceModelSelectionPolicy?.preferredProvider,
       workspaceDir,
       runtime,
@@ -587,7 +565,7 @@ export async function runSetupWizard(
     await prompter.note(t("wizard.setup.skip.channels"), t("wizard.setup.skip.channelsTitle"));
   } else {
     const { listChannelPlugins } = await import("../channels/plugins/index.js");
-    const { setupChannels } = await import("../commands/onboard-channels.js");
+    const { setupChannels } = await import("../control/onboard-channels.js");
     const quickstartAllowFromChannels =
       flow === "quickstart"
         ? listChannelPlugins()
@@ -621,7 +599,7 @@ export async function runSetupWizard(
   if (opts.skipSearch) {
     await prompter.note(t("wizard.setup.skip.search"), t("wizard.setup.skip.searchTitle"));
   } else {
-    const { setupSearch } = await import("../commands/onboard-search.js");
+    const { setupSearch } = await import("../control/onboard-search.js");
     nextConfig = await setupSearch(nextConfig, runtime, prompter, {
       quickstartDefaults: flow === "quickstart",
       secretInputMode: opts.secretInputMode,
@@ -631,12 +609,12 @@ export async function runSetupWizard(
   if (opts.skipSkills) {
     await prompter.note(t("wizard.setup.skip.skills"), t("wizard.setup.skip.skillsTitle"));
   } else {
-    const { setupSkills } = await import("../commands/onboard-skills.js");
+    const { setupSkills } = await import("../control/onboard-skills.js");
     nextConfig = await setupSkills(nextConfig, workspaceDir, runtime, prompter);
   }
 
   // Setup internal hooks
-  const { setupInternalHooks } = await import("../commands/onboard-hooks.js");
+  const { setupInternalHooks } = await import("../control/onboard-hooks.js");
   nextConfig = await setupInternalHooks(nextConfig, runtime, prompter);
 
   nextConfig = onboardHelpers.applyWizardMetadata(nextConfig, { command: "onboard", mode });

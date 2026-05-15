@@ -2,7 +2,6 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import type { ChannelPlugin } from "../channels/plugins/types.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { saveExecApprovals } from "../infra/exec-approvals.js";
 import { createPathResolutionEnv, withEnvAsync } from "../test-utils/env.js";
@@ -28,155 +27,6 @@ const pathResolutionEnvKeys = [
   "CRAWCLAW_STATE_DIR",
   "CRAWCLAW_BUNDLED_PLUGINS_DIR",
 ] as const;
-function stubChannelPlugin(params: {
-  id: "discord" | "slack" | "synology-chat" | "telegram" | "zalouser";
-  label: string;
-  resolveAccount: (cfg: CrawClawConfig, accountId: string | null | undefined) => unknown;
-  inspectAccount?: (cfg: CrawClawConfig, accountId: string | null | undefined) => unknown;
-  listAccountIds?: (cfg: CrawClawConfig) => string[];
-  isConfigured?: (account: unknown, cfg: CrawClawConfig) => boolean;
-  isEnabled?: (account: unknown, cfg: CrawClawConfig) => boolean;
-}): ChannelPlugin {
-  return {
-    id: params.id,
-    meta: {
-      id: params.id,
-      label: params.label,
-      selectionLabel: params.label,
-      docsPath: "/docs/testing",
-      blurb: "test stub",
-    },
-    capabilities: {
-      chatTypes: ["direct", "group"],
-    },
-    security: {},
-    config: {
-      listAccountIds:
-        params.listAccountIds ??
-        ((cfg) => {
-          const enabled = Boolean(
-            (cfg.channels as Record<string, unknown> | undefined)?.[params.id],
-          );
-          return enabled ? ["default"] : [];
-        }),
-      inspectAccount:
-        params.inspectAccount ??
-        ((cfg, accountId) => {
-          const resolvedAccountId =
-            typeof accountId === "string" && accountId ? accountId : "default";
-          let account: { config?: Record<string, unknown> } | undefined;
-          try {
-            account = params.resolveAccount(cfg, resolvedAccountId) as
-              | { config?: Record<string, unknown> }
-              | undefined;
-          } catch {
-            return null;
-          }
-          const config = account?.config ?? {};
-          return {
-            accountId: resolvedAccountId,
-            enabled: params.isEnabled?.(account, cfg) ?? true,
-            configured: params.isConfigured?.(account, cfg) ?? true,
-            config,
-          };
-        }),
-      resolveAccount: (cfg, accountId) => params.resolveAccount(cfg, accountId),
-      isEnabled: (account, cfg) => params.isEnabled?.(account, cfg) ?? true,
-      isConfigured: (account, cfg) => params.isConfigured?.(account, cfg) ?? true,
-    },
-  };
-}
-
-const discordPlugin = stubChannelPlugin({
-  id: "discord",
-  label: "Discord",
-  listAccountIds: (cfg) => {
-    const ids = Object.keys(cfg.channels?.discord?.accounts ?? {});
-    return ids.length > 0 ? ids : ["default"];
-  },
-  resolveAccount: (cfg, accountId) => {
-    const resolvedAccountId = typeof accountId === "string" && accountId ? accountId : "default";
-    const base = cfg.channels?.discord ?? {};
-    const account = cfg.channels?.discord?.accounts?.[resolvedAccountId] ?? {};
-    return { config: { ...base, ...account } };
-  },
-});
-
-const slackPlugin = stubChannelPlugin({
-  id: "slack",
-  label: "Slack",
-  listAccountIds: (cfg) => {
-    const ids = Object.keys(cfg.channels?.slack?.accounts ?? {});
-    return ids.length > 0 ? ids : ["default"];
-  },
-  resolveAccount: (cfg, accountId) => {
-    const resolvedAccountId = typeof accountId === "string" && accountId ? accountId : "default";
-    const base = cfg.channels?.slack ?? {};
-    const account = cfg.channels?.slack?.accounts?.[resolvedAccountId] ?? {};
-    return { config: { ...base, ...account } };
-  },
-});
-
-const telegramPlugin = stubChannelPlugin({
-  id: "telegram",
-  label: "Telegram",
-  listAccountIds: (cfg) => {
-    const ids = Object.keys(cfg.channels?.telegram?.accounts ?? {});
-    return ids.length > 0 ? ids : ["default"];
-  },
-  resolveAccount: (cfg, accountId) => {
-    const resolvedAccountId = typeof accountId === "string" && accountId ? accountId : "default";
-    const base = cfg.channels?.telegram ?? {};
-    const account = cfg.channels?.telegram?.accounts?.[resolvedAccountId] ?? {};
-    return { config: { ...base, ...account } };
-  },
-});
-
-const zalouserPlugin = stubChannelPlugin({
-  id: "zalouser",
-  label: "Zalo Personal",
-  listAccountIds: (cfg) => {
-    const channel = (cfg.channels as Record<string, unknown> | undefined)?.zalouser as
-      | { accounts?: Record<string, unknown> }
-      | undefined;
-    const ids = Object.keys(channel?.accounts ?? {});
-    return ids.length > 0 ? ids : ["default"];
-  },
-  resolveAccount: (cfg, accountId) => {
-    const resolvedAccountId = typeof accountId === "string" && accountId ? accountId : "default";
-    const channel = (cfg.channels as Record<string, unknown> | undefined)?.zalouser as
-      | { accounts?: Record<string, unknown> }
-      | undefined;
-    const base = (channel ?? {}) as Record<string, unknown>;
-    const account = channel?.accounts?.[resolvedAccountId] ?? {};
-    return { config: { ...base, ...account } };
-  },
-});
-
-const synologyChatPlugin = stubChannelPlugin({
-  id: "synology-chat",
-  label: "Synology Chat",
-  listAccountIds: (cfg) => {
-    const ids = Object.keys(cfg.channels?.["synology-chat"]?.accounts ?? {});
-    return ids.length > 0 ? ids : ["default"];
-  },
-  inspectAccount: () => null,
-  resolveAccount: (cfg, accountId) => {
-    const resolvedAccountId = typeof accountId === "string" && accountId ? accountId : "default";
-    const base = cfg.channels?.["synology-chat"] ?? {};
-    const account = cfg.channels?.["synology-chat"]?.accounts?.[resolvedAccountId] ?? {};
-    const dangerouslyAllowNameMatching =
-      typeof account.dangerouslyAllowNameMatching === "boolean"
-        ? account.dangerouslyAllowNameMatching
-        : base.dangerouslyAllowNameMatching === true;
-    return {
-      accountId: resolvedAccountId,
-      enabled: true,
-      dangerouslyAllowNameMatching,
-    };
-  },
-});
-
 function successfulProbeResult(url: string) {
   return {
     ok: true,
@@ -292,18 +142,6 @@ async function expectSeverityByExposureCases(params: {
   );
 }
 
-async function runChannelSecurityAudit(
-  cfg: CrawClawConfig,
-  plugins: ChannelPlugin[],
-): Promise<SecurityAuditReport> {
-  return runSecurityAudit({
-    config: cfg,
-    includeFilesystem: false,
-    includeChannelSecurity: true,
-    plugins,
-  });
-}
-
 async function runInstallMetadataAudit(
   cfg: CrawClawConfig,
   stateDir: string,
@@ -320,8 +158,6 @@ async function runInstallMetadataAudit(
 describe("security audit", () => {
   let fixtureRoot = "";
   let caseId = 0;
-  let channelSecurityRoot = "";
-  let sharedChannelSecurityStateDir = "";
   let sharedCodeSafetyStateDir = "";
   let sharedCodeSafetyWorkspaceDir = "";
   let sharedExtensionsStateDir = "";
@@ -335,27 +171,6 @@ describe("security audit", () => {
     const dir = path.join(fixtureRoot, `case-${caseId++}-${label}`);
     await fs.mkdir(dir, { recursive: true });
     return dir;
-  };
-
-  const withChannelSecurityStateDir = async (fn: (tmp: string) => Promise<void>) => {
-    const credentialsDir = path.join(sharedChannelSecurityStateDir, "credentials");
-    await fs.rm(credentialsDir, { recursive: true, force: true }).catch(() => undefined);
-    await fs.mkdir(credentialsDir, { recursive: true, mode: 0o700 });
-    await withEnvAsync(
-      {
-        CRAWCLAW_STATE_DIR: sharedChannelSecurityStateDir,
-      },
-      () => fn(sharedChannelSecurityStateDir),
-    );
-  };
-
-  const runChannelSecurityStateCases = async <T>(
-    cases: readonly T[],
-    run: (testCase: T, tmp: string) => Promise<void>,
-  ) => {
-    for (const testCase of cases) {
-      await withChannelSecurityStateDir(async (tmp) => run(testCase, tmp));
-    }
   };
 
   const runSharedExtensionsAudit = async (config: CrawClawConfig) => {
@@ -423,13 +238,6 @@ description: test skill
     }
     homedirSpy = vi.spyOn(os, "homedir").mockReturnValue(isolatedHome);
     await fs.mkdir(isolatedHome, { recursive: true, mode: 0o700 });
-    channelSecurityRoot = path.join(fixtureRoot, "channel-security");
-    await fs.mkdir(channelSecurityRoot, { recursive: true, mode: 0o700 });
-    sharedChannelSecurityStateDir = path.join(channelSecurityRoot, "state-shared");
-    await fs.mkdir(path.join(sharedChannelSecurityStateDir, "credentials"), {
-      recursive: true,
-      mode: 0o700,
-    });
     const codeSafetyFixture = await createSharedCodeSafetyFixture();
     sharedCodeSafetyStateDir = codeSafetyFixture.stateDir;
     sharedCodeSafetyWorkspaceDir = codeSafetyFixture.workspaceDir;
@@ -460,8 +268,8 @@ description: test skill
 
   it("includes an attack surface summary (info)", async () => {
     const cfg: CrawClawConfig = {
-      channels: { whatsapp: { groupPolicy: "open" }, telegram: { groupPolicy: "allowlist" } },
-      tools: { elevated: { enabled: true, allowFrom: { whatsapp: ["+1"] } } },
+      channels: { weixin: { groupPolicy: "open" }, feishu: { groupPolicy: "allowlist" } },
+      tools: { elevated: { enabled: true, allowFrom: { weixin: ["+1"] } } },
       hooks: { enabled: true },
       browser: { enabled: true },
     };
@@ -883,7 +691,7 @@ description: test skill
   it("flags open channel access combined with exec-enabled scopes", async () => {
     const res = await audit({
       channels: {
-        discord: {
+        weixin: {
           groupPolicy: "open",
         },
       },
@@ -901,7 +709,7 @@ description: test skill
   it("escalates open channel exec exposure when full exec is configured", async () => {
     const res = await audit({
       channels: {
-        slack: {
+        feishu: {
           dmPolicy: "open",
         },
       },
@@ -1226,14 +1034,14 @@ description: test skill
     const cfg: CrawClawConfig = {
       tools: {
         elevated: {
-          allowFrom: { whatsapp: ["*"] },
+          allowFrom: { weixin: ["*"] },
         },
       },
     };
 
     const res = await audit(cfg);
 
-    expectFinding(res, "tools.elevated.allowFrom.whatsapp.wildcard", "critical");
+    expectFinding(res, "tools.elevated.allowFrom.weixin.wildcard", "critical");
   });
 
   it.each([
@@ -1740,809 +1548,6 @@ description: test skill
           expectedAbsent: ["gateway.bind_no_auth", "gateway.auth_no_rate_limit"],
         });
       }
-    });
-  });
-
-  it("warns when multiple DM senders share the main session", async () => {
-    const cfg: CrawClawConfig = {
-      session: { dmScope: "main" },
-      channels: { whatsapp: { enabled: true } },
-    };
-    const plugins: ChannelPlugin[] = [
-      {
-        id: "whatsapp",
-        meta: {
-          id: "whatsapp",
-          label: "WhatsApp",
-          selectionLabel: "WhatsApp",
-          docsPath: "/channels/whatsapp",
-          blurb: "Test",
-        },
-        capabilities: { chatTypes: ["direct"] },
-        config: {
-          listAccountIds: () => ["default"],
-          resolveAccount: () => ({}),
-          isEnabled: () => true,
-          isConfigured: () => true,
-        },
-        security: {
-          resolveDmPolicy: () => ({
-            policy: "allowlist",
-            allowFrom: ["user-a", "user-b"],
-            policyPath: "channels.whatsapp.dmPolicy",
-            allowFromPath: "channels.whatsapp.",
-            approveHint: "approve",
-          }),
-        },
-      },
-    ];
-
-    const res = await runSecurityAudit({
-      config: cfg,
-      includeFilesystem: false,
-      includeChannelSecurity: true,
-      plugins,
-    });
-
-    expect(res.findings).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          checkId: "channels.whatsapp.dm.scope_main_multiuser",
-          severity: "warn",
-          remediation: expect.stringContaining('config set session.dmScope "per-channel-peer"'),
-        }),
-      ]),
-    );
-  });
-
-  it("evaluates Discord native command allowlist findings", async () => {
-    const cases = [
-      {
-        name: "flags missing guild user allowlists",
-        cfg: {
-          channels: {
-            discord: {
-              enabled: true,
-              token: "t",
-              groupPolicy: "allowlist",
-              guilds: {
-                "123": {
-                  channels: {
-                    general: { allow: true },
-                  },
-                },
-              },
-            },
-          },
-        } as CrawClawConfig,
-        expectFinding: true,
-      },
-      {
-        name: "does not flag when dm.allowFrom includes a Discord snowflake id",
-        cfg: {
-          channels: {
-            discord: {
-              enabled: true,
-              token: "t",
-              dm: { allowFrom: ["387380367612706819"] },
-              groupPolicy: "allowlist",
-              guilds: {
-                "123": {
-                  channels: {
-                    general: { allow: true },
-                  },
-                },
-              },
-            },
-          },
-        } as CrawClawConfig,
-        expectFinding: false,
-      },
-    ] as const;
-
-    await runChannelSecurityStateCases(cases, async (testCase) => {
-      const res = await runSecurityAudit({
-        config: testCase.cfg,
-        includeFilesystem: false,
-        includeChannelSecurity: true,
-        plugins: [discordPlugin],
-      });
-
-      expect(
-        res.findings.some(
-          (finding) => finding.checkId === "channels.discord.commands.native.no_allowlists",
-        ),
-        testCase.name,
-      ).toBe(testCase.expectFinding);
-    });
-  });
-
-  it("keeps source-configured channel security findings when resolved inspection is incomplete", async () => {
-    const cases = [
-      {
-        name: "discord SecretRef configured but unavailable",
-        sourceConfig: {
-          channels: {
-            discord: {
-              enabled: true,
-              token: { source: "env", provider: "default", id: "DISCORD_BOT_TOKEN" },
-              groupPolicy: "allowlist",
-              guilds: {
-                "123": {
-                  channels: {
-                    general: { allow: true },
-                  },
-                },
-              },
-            },
-          },
-        } as CrawClawConfig,
-        resolvedConfig: {
-          channels: {
-            discord: {
-              enabled: true,
-              groupPolicy: "allowlist",
-              guilds: {
-                "123": {
-                  channels: {
-                    general: { allow: true },
-                  },
-                },
-              },
-            },
-          },
-        } as CrawClawConfig,
-        plugin: () =>
-          stubChannelPlugin({
-            id: "discord",
-            label: "Discord",
-            inspectAccount: (cfg) => {
-              const channel = cfg.channels?.discord ?? {};
-              const token = channel.token;
-              return {
-                accountId: "default",
-                enabled: true,
-                configured:
-                  Boolean(token) &&
-                  typeof token === "object" &&
-                  !Array.isArray(token) &&
-                  "source" in token,
-                token: "",
-                tokenSource:
-                  Boolean(token) &&
-                  typeof token === "object" &&
-                  !Array.isArray(token) &&
-                  "source" in token
-                    ? "config"
-                    : "none",
-                tokenStatus:
-                  Boolean(token) &&
-                  typeof token === "object" &&
-                  !Array.isArray(token) &&
-                  "source" in token
-                    ? "configured_unavailable"
-                    : "missing",
-                config: channel,
-              };
-            },
-            resolveAccount: (cfg) => ({ config: cfg.channels?.discord ?? {} }),
-            isConfigured: (account) => Boolean((account as { configured?: boolean }).configured),
-          }),
-        expectedCheckId: "channels.discord.commands.native.no_allowlists",
-      },
-      {
-        name: "slack resolved inspection only exposes signingSecret status",
-        sourceConfig: {
-          channels: {
-            slack: {
-              enabled: true,
-              mode: "http",
-              groupPolicy: "open",
-              slashCommand: { enabled: true },
-            },
-          },
-        } as CrawClawConfig,
-        resolvedConfig: {
-          channels: {
-            slack: {
-              enabled: true,
-              mode: "http",
-              groupPolicy: "open",
-              slashCommand: { enabled: true },
-            },
-          },
-        } as CrawClawConfig,
-        plugin: (sourceConfig: CrawClawConfig) =>
-          stubChannelPlugin({
-            id: "slack",
-            label: "Slack",
-            inspectAccount: (cfg) => {
-              const channel = cfg.channels?.slack ?? {};
-              if (cfg === sourceConfig) {
-                return {
-                  accountId: "default",
-                  enabled: false,
-                  configured: true,
-                  mode: "http",
-                  botTokenSource: "config",
-                  botTokenStatus: "configured_unavailable",
-                  signingSecretSource: "config", // pragma: allowlist secret
-                  signingSecretStatus: "configured_unavailable", // pragma: allowlist secret
-                  config: channel,
-                };
-              }
-              return {
-                accountId: "default",
-                enabled: true,
-                configured: true,
-                mode: "http",
-                botTokenSource: "config",
-                botTokenStatus: "available",
-                signingSecretSource: "config", // pragma: allowlist secret
-                signingSecretStatus: "available", // pragma: allowlist secret
-                config: channel,
-              };
-            },
-            resolveAccount: (cfg) => ({ config: cfg.channels?.slack ?? {} }),
-            isConfigured: (account) => Boolean((account as { configured?: boolean }).configured),
-          }),
-        expectedCheckId: "channels.slack.commands.slash.no_allowlists",
-      },
-      {
-        name: "slack source config still wins when resolved inspection is unconfigured",
-        sourceConfig: {
-          channels: {
-            slack: {
-              enabled: true,
-              mode: "http",
-              groupPolicy: "open",
-              slashCommand: { enabled: true },
-            },
-          },
-        } as CrawClawConfig,
-        resolvedConfig: {
-          channels: {
-            slack: {
-              enabled: true,
-              mode: "http",
-              groupPolicy: "open",
-              slashCommand: { enabled: true },
-            },
-          },
-        } as CrawClawConfig,
-        plugin: (sourceConfig: CrawClawConfig) =>
-          stubChannelPlugin({
-            id: "slack",
-            label: "Slack",
-            inspectAccount: (cfg) => {
-              const channel = cfg.channels?.slack ?? {};
-              if (cfg === sourceConfig) {
-                return {
-                  accountId: "default",
-                  enabled: true,
-                  configured: true,
-                  mode: "http",
-                  botTokenSource: "config",
-                  botTokenStatus: "configured_unavailable",
-                  signingSecretSource: "config", // pragma: allowlist secret
-                  signingSecretStatus: "configured_unavailable", // pragma: allowlist secret
-                  config: channel,
-                };
-              }
-              return {
-                accountId: "default",
-                enabled: true,
-                configured: false,
-                mode: "http",
-                botTokenSource: "config",
-                botTokenStatus: "available",
-                signingSecretSource: "config", // pragma: allowlist secret
-                signingSecretStatus: "missing", // pragma: allowlist secret
-                config: channel,
-              };
-            },
-            resolveAccount: (cfg) => ({ config: cfg.channels?.slack ?? {} }),
-            isConfigured: (account) => Boolean((account as { configured?: boolean }).configured),
-          }),
-        expectedCheckId: "channels.slack.commands.slash.no_allowlists",
-      },
-    ] as const;
-
-    await runChannelSecurityStateCases(cases, async (testCase) => {
-      const res = await runSecurityAudit({
-        config: testCase.resolvedConfig,
-        sourceConfig: testCase.sourceConfig,
-        includeFilesystem: false,
-        includeChannelSecurity: true,
-        plugins: [testCase.plugin(testCase.sourceConfig)],
-      });
-
-      expect(res.findings, testCase.name).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            checkId: testCase.expectedCheckId,
-            severity: "warn",
-          }),
-        ]),
-      );
-    });
-  });
-
-  it("adds a read-only resolution warning when channel account resolveAccount throws", async () => {
-    const plugin = stubChannelPlugin({
-      id: "zalouser",
-      label: "Zalo Personal",
-      listAccountIds: () => ["default"],
-      resolveAccount: () => {
-        throw new Error("missing SecretRef");
-      },
-    });
-
-    const cfg: CrawClawConfig = {
-      channels: {
-        zalouser: {
-          enabled: true,
-        },
-      },
-    };
-
-    const res = await runSecurityAudit({
-      config: cfg,
-      includeFilesystem: false,
-      includeChannelSecurity: true,
-      plugins: [plugin],
-    });
-
-    const finding = res.findings.find(
-      (entry) => entry.checkId === "channels.zalouser.account.read_only_resolution",
-    );
-    expect(finding?.severity).toBe("warn");
-    expect(finding?.title).toContain("could not be fully resolved");
-    expect(finding?.detail).toContain("zalouser:default: failed to resolve account");
-    expect(finding?.detail).toContain("missing SecretRef");
-  });
-
-  it.each([
-    {
-      name: "warns when Discord allowlists contain name-based entries",
-      setup: async (tmp: string) => {
-        await fs.writeFile(
-          path.join(tmp, "credentials", "discord-allowFrom.json"),
-          JSON.stringify({ version: 1, allowFrom: ["team.owner"] }),
-        );
-      },
-      cfg: {
-        channels: {
-          discord: {
-            enabled: true,
-            token: "t",
-            allowFrom: ["Alice#1234", "<@123456789012345678>"],
-            guilds: {
-              "123": {
-                users: ["trusted.operator"],
-                channels: {
-                  general: {
-                    users: ["987654321098765432", "security-team"],
-                  },
-                },
-              },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [discordPlugin],
-      expectNameBasedSeverity: "warn",
-      detailIncludes: [
-        "channels.discord.allowFrom:Alice#1234",
-        "channels.discord.guilds.123.users:trusted.operator",
-        "channels.discord.guilds.123.channels.general.users:security-team",
-        "~/.crawclaw/credentials/discord-allowFrom.json:team.owner",
-      ],
-      detailExcludes: ["<@123456789012345678>"],
-    },
-    {
-      name: "marks Discord name-based allowlists as break-glass when dangerous matching is enabled",
-      cfg: {
-        channels: {
-          discord: {
-            enabled: true,
-            token: "t",
-            dangerouslyAllowNameMatching: true,
-            allowFrom: ["Alice#1234"],
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [discordPlugin],
-      expectNameBasedSeverity: "info",
-      detailIncludes: ["out-of-scope"],
-      expectFindingMatch: {
-        checkId: "channels.discord.allowFrom.dangerous_name_matching_enabled",
-        severity: "info",
-      },
-    },
-    {
-      name: "audits non-default Discord accounts for dangerous name matching",
-      cfg: {
-        channels: {
-          discord: {
-            enabled: true,
-            token: "t",
-            accounts: {
-              alpha: { token: "a" },
-              beta: {
-                token: "b",
-                dangerouslyAllowNameMatching: true,
-              },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [discordPlugin],
-      expectNoNameBasedFinding: true,
-      expectFindingMatch: {
-        checkId: "channels.discord.allowFrom.dangerous_name_matching_enabled",
-        title: expect.stringContaining("(account: beta)"),
-        severity: "info",
-      },
-    },
-    {
-      name: "audits name-based allowlists on non-default Discord accounts",
-      cfg: {
-        channels: {
-          discord: {
-            enabled: true,
-            token: "t",
-            accounts: {
-              alpha: {
-                token: "a",
-                allowFrom: ["123456789012345678"],
-              },
-              beta: {
-                token: "b",
-                allowFrom: ["Alice#1234"],
-              },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [discordPlugin],
-      expectNameBasedSeverity: "warn",
-      detailIncludes: ["channels.discord.accounts.beta.allowFrom:Alice#1234"],
-    },
-    {
-      name: "does not warn when Discord allowlists use ID-style entries only",
-      cfg: {
-        channels: {
-          discord: {
-            enabled: true,
-            token: "t",
-            allowFrom: [
-              "123456789012345678",
-              "<@223456789012345678>",
-              "user:323456789012345678",
-              "discord:423456789012345678",
-              "pk:member-123",
-            ],
-            guilds: {
-              "123": {
-                users: ["523456789012345678", "<@623456789012345678>", "pk:member-456"],
-                channels: {
-                  general: {
-                    users: ["723456789012345678", "user:823456789012345678"],
-                  },
-                },
-              },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [discordPlugin],
-      expectNoNameBasedFinding: true,
-    },
-  ])("$name", async (testCase) => {
-    await withChannelSecurityStateDir(async (tmp) => {
-      await testCase.setup?.(tmp);
-      const res = await runChannelSecurityAudit(testCase.cfg, testCase.plugins);
-      const nameBasedFinding = res.findings.find(
-        (entry) => entry.checkId === "channels.discord.allowFrom.name_based_entries",
-      );
-
-      if (testCase.expectNoNameBasedFinding) {
-        expect(nameBasedFinding).toBeUndefined();
-      } else if (
-        testCase.expectNameBasedSeverity ||
-        testCase.detailIncludes?.length ||
-        testCase.detailExcludes?.length
-      ) {
-        expect(nameBasedFinding).toBeDefined();
-        if (testCase.expectNameBasedSeverity) {
-          expect(nameBasedFinding?.severity).toBe(testCase.expectNameBasedSeverity);
-        }
-        for (const snippet of testCase.detailIncludes ?? []) {
-          expect(nameBasedFinding?.detail).toContain(snippet);
-        }
-        for (const snippet of testCase.detailExcludes ?? []) {
-          expect(nameBasedFinding?.detail).not.toContain(snippet);
-        }
-      }
-
-      if (testCase.expectFindingMatch) {
-        expect(res.findings).toEqual(
-          expect.arrayContaining([expect.objectContaining(testCase.expectFindingMatch)]),
-        );
-      }
-    });
-  });
-
-  it.each([
-    {
-      name: "audits Synology Chat base dangerous name matching",
-      cfg: {
-        channels: {
-          "synology-chat": {
-            token: "t",
-            incomingUrl: "https://nas.example.com/incoming",
-            dangerouslyAllowNameMatching: true,
-          },
-        },
-      } satisfies CrawClawConfig,
-      expectedMatch: {
-        checkId: "channels.synology-chat.reply.dangerous_name_matching_enabled",
-        severity: "info",
-        title: "Synology Chat dangerous name matching is enabled",
-      },
-    },
-    {
-      name: "audits non-default Synology Chat accounts for dangerous name matching",
-      cfg: {
-        channels: {
-          "synology-chat": {
-            token: "t",
-            incomingUrl: "https://nas.example.com/incoming",
-            accounts: {
-              alpha: {
-                token: "a",
-                incomingUrl: "https://nas.example.com/incoming-alpha",
-              },
-              beta: {
-                token: "b",
-                incomingUrl: "https://nas.example.com/incoming-beta",
-                dangerouslyAllowNameMatching: true,
-              },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      expectedMatch: {
-        checkId: "channels.synology-chat.reply.dangerous_name_matching_enabled",
-        severity: "info",
-        title: expect.stringContaining("(account: beta)"),
-      },
-    },
-  ])("$name", async (testCase) => {
-    await withChannelSecurityStateDir(async () => {
-      const res = await runChannelSecurityAudit(testCase.cfg, [synologyChatPlugin]);
-      expect(res.findings).toEqual(
-        expect.arrayContaining([expect.objectContaining(testCase.expectedMatch)]),
-      );
-    });
-  });
-
-  it("does not treat prototype properties as explicit Discord account config paths", async () => {
-    await withChannelSecurityStateDir(async () => {
-      const cfg: CrawClawConfig = {
-        channels: {
-          discord: {
-            enabled: true,
-            token: "t",
-            dangerouslyAllowNameMatching: true,
-            allowFrom: ["Alice#1234"],
-            accounts: {},
-          },
-        },
-      };
-
-      const pluginWithProtoDefaultAccount: ChannelPlugin = {
-        ...discordPlugin,
-        config: {
-          ...discordPlugin.config,
-          listAccountIds: () => [],
-          defaultAccountId: () => "toString",
-        },
-      };
-
-      const res = await runSecurityAudit({
-        config: cfg,
-        includeFilesystem: false,
-        includeChannelSecurity: true,
-        plugins: [pluginWithProtoDefaultAccount],
-      });
-
-      const dangerousMatchingFinding = res.findings.find(
-        (entry) => entry.checkId === "channels.discord.allowFrom.dangerous_name_matching_enabled",
-      );
-      expect(dangerousMatchingFinding).toBeDefined();
-      expect(dangerousMatchingFinding?.title).not.toContain("(account: toString)");
-
-      const nameBasedFinding = res.findings.find(
-        (entry) => entry.checkId === "channels.discord.allowFrom.name_based_entries",
-      );
-      expect(nameBasedFinding).toBeDefined();
-      expect(nameBasedFinding?.detail).toContain("channels.discord.allowFrom:Alice#1234");
-      expect(nameBasedFinding?.detail).not.toContain("channels.discord.accounts.toString");
-    });
-  });
-
-  it.each([
-    {
-      name: "warns when Zalouser group routing contains mutable group entries",
-      cfg: {
-        channels: {
-          zalouser: {
-            enabled: true,
-            groups: {
-              "Ops Room": { allow: true },
-              "group:g-123": { allow: true },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      expectedSeverity: "warn",
-      detailIncludes: ["channels.zalouser.groups:Ops Room"],
-      detailExcludes: ["group:g-123"],
-    },
-    {
-      name: "marks Zalouser mutable group routing as break-glass when dangerous matching is enabled",
-      cfg: {
-        channels: {
-          zalouser: {
-            enabled: true,
-            dangerouslyAllowNameMatching: true,
-            groups: {
-              "Ops Room": { allow: true },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      expectedSeverity: "info",
-      detailIncludes: ["out-of-scope"],
-      expectFindingMatch: {
-        checkId: "channels.zalouser.allowFrom.dangerous_name_matching_enabled",
-        severity: "info",
-      },
-    },
-  ])("$name", async (testCase) => {
-    await withChannelSecurityStateDir(async () => {
-      const res = await runChannelSecurityAudit(testCase.cfg, [zalouserPlugin]);
-      const finding = res.findings.find(
-        (entry) => entry.checkId === "channels.zalouser.groups.mutable_entries",
-      );
-
-      expect(finding).toBeDefined();
-      expect(finding?.severity).toBe(testCase.expectedSeverity);
-      for (const snippet of testCase.detailIncludes) {
-        expect(finding?.detail).toContain(snippet);
-      }
-      for (const snippet of testCase.detailExcludes ?? []) {
-        expect(finding?.detail).not.toContain(snippet);
-      }
-      if (testCase.expectFindingMatch) {
-        expect(res.findings).toEqual(
-          expect.arrayContaining([expect.objectContaining(testCase.expectFindingMatch)]),
-        );
-      }
-    });
-  });
-
-  it.each([
-    {
-      name: "flags Discord slash commands when access-group enforcement is disabled and no users allowlist exists",
-      cfg: {
-        commands: { useAccessGroups: false },
-        channels: {
-          discord: {
-            enabled: true,
-            token: "t",
-            groupPolicy: "allowlist",
-            guilds: {
-              "123": {
-                channels: {
-                  general: { allow: true },
-                },
-              },
-            },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [discordPlugin],
-      expectedFinding: {
-        checkId: "channels.discord.commands.native.unrestricted",
-        severity: "critical",
-      },
-    },
-    {
-      name: "flags Slack slash commands without a channel users allowlist",
-      cfg: {
-        channels: {
-          slack: {
-            enabled: true,
-            botToken: "xoxb-test",
-            appToken: "xapp-test",
-            groupPolicy: "open",
-            slashCommand: { enabled: true },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [slackPlugin],
-      expectedFinding: {
-        checkId: "channels.slack.commands.slash.no_allowlists",
-        severity: "warn",
-      },
-    },
-    {
-      name: "flags Slack slash commands when access-group enforcement is disabled",
-      cfg: {
-        commands: { useAccessGroups: false },
-        channels: {
-          slack: {
-            enabled: true,
-            botToken: "xoxb-test",
-            appToken: "xapp-test",
-            groupPolicy: "open",
-            slashCommand: { enabled: true },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [slackPlugin],
-      expectedFinding: {
-        checkId: "channels.slack.commands.slash.useAccessGroups_off",
-        severity: "critical",
-      },
-    },
-    {
-      name: "flags Telegram group commands without a sender allowlist",
-      cfg: {
-        channels: {
-          telegram: {
-            enabled: true,
-            botToken: "t",
-            groupPolicy: "allowlist",
-            groups: { "-100123": {} },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [telegramPlugin],
-      expectedFinding: {
-        checkId: "channels.telegram.groups.allowFrom.missing",
-        severity: "critical",
-      },
-    },
-    {
-      name: "warns when Telegram allowFrom entries are non-numeric (legacy @username configs)",
-      cfg: {
-        channels: {
-          telegram: {
-            enabled: true,
-            botToken: "t",
-            groupPolicy: "allowlist",
-            groupAllowFrom: ["@TrustedOperator"],
-            groups: { "-100123": {} },
-          },
-        },
-      } satisfies CrawClawConfig,
-      plugins: [telegramPlugin],
-      expectedFinding: {
-        checkId: "channels.telegram.allowFrom.invalid_entries",
-        severity: "warn",
-      },
-    },
-  ])("$name", async (testCase) => {
-    await withChannelSecurityStateDir(async () => {
-      const res = await runChannelSecurityAudit(testCase.cfg, testCase.plugins);
-
-      expect(res.findings).toEqual(
-        expect.arrayContaining([expect.objectContaining(testCase.expectedFinding)]),
-      );
     });
   });
 
@@ -3070,43 +2075,14 @@ description: test skill
         },
       },
       {
-        name: "flags unallowlisted extensions as critical when native skill commands are exposed",
-        cfg: {
-          channels: {
-            discord: { enabled: true, token: "t" },
-          },
-        } satisfies CrawClawConfig,
+        name: "flags unallowlisted extensions without channel severity escalation",
+        cfg: {} satisfies CrawClawConfig,
         assert: (res: SecurityAuditReport) => {
           expect(res.findings).toEqual(
             expect.arrayContaining([
               expect.objectContaining({
                 checkId: "plugins.extensions_no_allowlist",
-                severity: "critical",
-              }),
-            ]),
-          );
-        },
-      },
-      {
-        name: "treats SecretRef channel credentials as configured for extension allowlist severity",
-        cfg: {
-          channels: {
-            discord: {
-              enabled: true,
-              token: {
-                source: "env",
-                provider: "default",
-                id: "DISCORD_BOT_TOKEN",
-              } as unknown as string,
-            },
-          },
-        } satisfies CrawClawConfig,
-        assert: (res: SecurityAuditReport) => {
-          expect(res.findings).toEqual(
-            expect.arrayContaining([
-              expect.objectContaining({
-                checkId: "plugins.extensions_no_allowlist",
-                severity: "critical",
+                severity: "warn",
               }),
             ]),
           );
@@ -3252,8 +2228,8 @@ description: test skill
       {
         name: "flags open groupPolicy when tools.elevated is enabled",
         cfg: {
-          tools: { elevated: { enabled: true, allowFrom: { whatsapp: ["+1"] } } },
-          channels: { whatsapp: { groupPolicy: "open" } },
+          tools: { elevated: { enabled: true, allowFrom: { weixin: ["+1"] } } },
+          channels: { weixin: { groupPolicy: "open" } },
         } satisfies CrawClawConfig,
         assert: (res: SecurityAuditReport) => {
           expect(res.findings).toEqual(
@@ -3269,7 +2245,7 @@ description: test skill
       {
         name: "flags open groupPolicy when runtime/filesystem tools are exposed without guards",
         cfg: {
-          channels: { whatsapp: { groupPolicy: "open" } },
+          channels: { weixin: { groupPolicy: "open" } },
           tools: { elevated: { enabled: false } },
         } satisfies CrawClawConfig,
         assert: (res: SecurityAuditReport) => {
@@ -3286,7 +2262,7 @@ description: test skill
       {
         name: "does not flag runtime/filesystem exposure for open groups when runtime is denied and fs is workspace-only",
         cfg: {
-          channels: { whatsapp: { groupPolicy: "open" } },
+          channels: { weixin: { groupPolicy: "open" } },
           tools: {
             elevated: { enabled: false },
             profile: "coding",
@@ -3306,7 +2282,7 @@ description: test skill
         name: "warns when config heuristics suggest a likely multi-user setup",
         cfg: {
           channels: {
-            discord: {
+            feishu: {
               groupPolicy: "allowlist",
               guilds: {
                 "1234567890": {
@@ -3325,7 +2301,7 @@ description: test skill
           );
           expect(finding?.severity).toBe("warn");
           expect(finding?.detail).toContain(
-            'channels.discord.groupPolicy="allowlist" with configured group targets',
+            'channels.feishu.groupPolicy="allowlist" with configured group targets',
           );
           expect(finding?.detail).toContain("personal-assistant");
           expect(finding?.remediation).toContain("split trust boundaries");
@@ -3335,7 +2311,7 @@ description: test skill
         name: "does not warn for multi-user heuristic when no shared-user signals are configured",
         cfg: {
           channels: {
-            discord: {
+            feishu: {
               groupPolicy: "allowlist",
             },
           },

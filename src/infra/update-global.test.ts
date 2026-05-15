@@ -22,7 +22,8 @@ import {
   type CommandRunner,
 } from "./update-global.js";
 
-const MATRIX_HELPER_API = bundledDistPluginFile("matrix", "helper-api.js");
+const FIRST_RUNTIME_SIDECAR =
+  BUNDLED_RUNTIME_SIDECAR_PATHS[0] ?? bundledDistPluginFile("acpx", "runtime-api.js");
 
 describe("update global helpers", () => {
   let envSnapshot: ReturnType<typeof captureEnv> | undefined;
@@ -191,7 +192,7 @@ describe("update global helpers", () => {
     await expect(fs.stat(path.join(root, ".crawclaw-file"))).resolves.toBeDefined();
   });
 
-  it("checks bundled runtime sidecars, including Matrix helper-api", async () => {
+  it("checks bundled runtime sidecars", async () => {
     const packageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-update-global-pkg-"));
     await fs.writeFile(
       path.join(packageRoot, "package.json"),
@@ -206,9 +207,9 @@ describe("update global helpers", () => {
 
     await expect(collectInstalledGlobalPackageErrors({ packageRoot })).resolves.toEqual([]);
 
-    await fs.rm(path.join(packageRoot, MATRIX_HELPER_API));
+    await fs.rm(path.join(packageRoot, FIRST_RUNTIME_SIDECAR));
     await expect(collectInstalledGlobalPackageErrors({ packageRoot })).resolves.toContain(
-      `missing bundled runtime sidecar ${MATRIX_HELPER_API}`,
+      `missing bundled runtime sidecar ${FIRST_RUNTIME_SIDECAR}`,
     );
   });
 });

@@ -120,8 +120,7 @@ function buildCoreDistEntries(): Record<string, string> {
     // dist/ trees do not strand already-running gateways on stale hashed chunks.
     "agents/auth-profiles.runtime": "src/agents/auth-profiles.runtime.ts",
     "agents/pi-model-discovery-runtime": "src/agents/pi-model-discovery-runtime.ts",
-    "commands/status.summary.runtime": "src/commands/status.summary.runtime.ts",
-    "plugins/provider-runtime.runtime": "src/plugins/provider-runtime.runtime.ts",
+    "control/status.summary.runtime": "src/control/status.summary.runtime.ts",
     "infra/warning-filter": "src/infra/warning-filter.ts",
     "plugins/build-smoke-entry": "src/plugins/build-smoke-entry.ts",
     "plugins/runtime/index": "src/plugins/runtime/index.ts",
@@ -152,10 +151,7 @@ export default defineConfig([
     // and bundled hooks in one graph so runtime singletons are emitted once.
     entry: buildUnifiedDistEntries(),
     deps: {
-      neverBundle: [
-        "@lancedb/lancedb",
-        ...bundledPluginRuntimeDependencies,
-      ],
+      neverBundle: ["@lancedb/lancedb", ...bundledPluginRuntimeDependencies],
     },
   }),
 ]);

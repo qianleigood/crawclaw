@@ -28,7 +28,7 @@ describe("sendControlledSubagentMessage", () => {
   it("rejects runs controlled by another session", async () => {
     const result = await sendControlledSubagentMessage({
       cfg: {
-        channels: { whatsapp: { allowFrom: ["*"] } },
+        channels: { weixin: { allowFrom: ["*"] } },
       } as CrawClawConfig,
       controller: {
         controllerSessionKey: "agent:main:subagent:leaf",
@@ -82,7 +82,7 @@ describe("sendControlledSubagentMessage", () => {
 
     const result = await sendControlledSubagentMessage({
       cfg: {
-        channels: { whatsapp: { allowFrom: ["*"] } },
+        channels: { weixin: { allowFrom: ["*"] } },
       } as CrawClawConfig,
       controller: {
         controllerSessionKey: "agent:main:main",
@@ -126,7 +126,7 @@ describe("sendControlledSubagentMessage", () => {
 
     const result = await sendControlledSubagentMessage({
       cfg: {
-        channels: { whatsapp: { allowFrom: ["*"] } },
+        channels: { weixin: { allowFrom: ["*"] } },
       } as CrawClawConfig,
       controller: {
         controllerSessionKey: "agent:main:main",
@@ -187,7 +187,7 @@ describe("sendControlledSubagentMessage", () => {
 
     const result = await sendControlledSubagentMessage({
       cfg: {
-        channels: { whatsapp: { allowFrom: ["*"] } },
+        channels: { weixin: { allowFrom: ["*"] } },
       } as CrawClawConfig,
       controller: {
         controllerSessionKey: "agent:main:main",
@@ -262,7 +262,7 @@ describe("sendControlledSubagentMessage", () => {
 
     const result = await sendControlledSubagentMessage({
       cfg: {
-        channels: { whatsapp: { allowFrom: ["*"] } },
+        channels: { weixin: { allowFrom: ["*"] } },
       } as CrawClawConfig,
       controller: {
         controllerSessionKey: "agent:main:main",
@@ -332,7 +332,7 @@ describe("sendControlledSubagentMessage", () => {
 
     const result = await sendControlledSubagentMessage({
       cfg: {
-        channels: { whatsapp: { allowFrom: ["*"] } },
+        channels: { weixin: { allowFrom: ["*"] } },
       } as CrawClawConfig,
       controller: {
         controllerSessionKey: "agent:main:main",

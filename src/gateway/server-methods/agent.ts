@@ -11,7 +11,6 @@ import {
   resolveIngressWorkspaceOverrideForSpawnedRun,
 } from "../../agents/spawned-context.js";
 import { buildBareSessionResetPrompt } from "../../auto-reply/reply/session-reset-prompt.js";
-import { agentCommandFromIngress } from "../../commands/agent.js";
 import { loadConfig } from "../../config/config.js";
 import {
   mergeSessionEntry,
@@ -21,6 +20,7 @@ import {
   type SessionEntry,
   updateSessionStore,
 } from "../../config/sessions.js";
+import { agentCommandFromIngress } from "../../control/agent.js";
 import { registerAgentRunContext } from "../../infra/agent-events.js";
 import {
   createObservationRoot,
@@ -595,7 +595,7 @@ export const agentHandlers: GatewayRequestHandlers = {
     }
 
     // Inject timestamp into user-authored messages that don't already have one.
-    // Channel messages (Discord, Telegram, etc.) get timestamps via envelope
+    // Channel messages (native channels) get timestamps via envelope
     // formatting in a separate code path — they never reach this handler.
     // See: https://github.com/qianleigood/crawclaw/issues/3658
     if (!skipTimestampInjection) {

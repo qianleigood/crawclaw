@@ -59,12 +59,12 @@ x-i18n:
 
 一个 Gateway 网关服务拥有状态 + 渠道。节点是外围设备。
 
-流程示例（Telegram → 节点）：
+流程示例（Feishu → 节点）：
 
-- Telegram 消息到达 **Gateway 网关**。
+- Feishu 消息到达 **Gateway 网关**。
 - Gateway 网关运行**智能体**并决定是否调用节点工具。
 - Gateway 网关通过 Gateway WebSocket 调用**节点**（`node.*` RPC）。
-- 节点返回结果；Gateway 网关回复到 Telegram。
+- 节点返回结果；Gateway 网关回复到 Feishu。
 
 说明：
 

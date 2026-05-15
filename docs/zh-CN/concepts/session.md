@@ -40,7 +40,7 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
 
 - 在 **Gateway 网关主机**上：
   - 存储文件：`~/.crawclaw/agents/<agentId>/sessions/sessions.json`（每个智能体）。
-- 对话记录：`~/.crawclaw/agents/<agentId>/sessions/<SessionId>.jsonl`（Telegram 话题会话使用 `.../<SessionId>-topic-<threadId>.jsonl`）。
+- 对话记录：`~/.crawclaw/agents/<agentId>/sessions/<SessionId>.jsonl`（Feishu 话题会话使用 `.../<SessionId>-topic-<threadId>.jsonl`）。
 - 存储是一个映射 `sessionKey -> { sessionId, updatedAt, ... }`。删除条目是安全的；它们会按需重新创建。
 - 群组条目可能包含 `displayName`、`channel`、`subject`、`room` 和 `space` 以在 UI 中标记会话。
 - 会话条目包含 `origin` 元数据（标签 + 路由提示），以便 UI 可以解释会话的来源。
@@ -63,9 +63,9 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
   - `per-peer`：`agent:<agentId>:dm:<peerId>`。
   - `per-channel-peer`：`agent:<agentId>:<channel>:dm:<peerId>`。
   - `per-account-channel-peer`：`agent:<agentId>:<channel>:<accountId>:dm:<peerId>`（accountId 默认为 `default`）。
-  - 如果 `session.identityLinks` 匹配带提供商前缀的对等 ID（例如 `telegram:123`），则规范键替换 `<peerId>`，这样同一个人可以跨渠道共享会话。
+  - 如果 `session.identityLinks` 匹配带提供商前缀的对等 ID（例如 `feishu:123`），则规范键替换 `<peerId>`，这样同一个人可以跨渠道共享会话。
 - 群组聊天隔离状态：`agent:<agentId>:<channel>:group:<id>`（房间/频道使用 `agent:<agentId>:<channel>:channel:<id>`）。
-  - Telegram 论坛话题在群组 ID 后附加 `:topic:<threadId>` 以进行隔离。
+  - Feishu 论坛话题在群组 ID 后附加 `:topic:<threadId>` 以进行隔离。
   - 旧版 `group:<id>` 键仍被识别以进行迁移。
 - 入站上下文可能仍使用 `group:<id>`；渠道从 `Provider` 推断并规范化为规范的 `agent:<agentId>:<channel>:group:<id>` 形式。
 - 其他来源：
@@ -79,7 +79,7 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
 - 每日重置：默认为 **Gateway 网关主机本地时间凌晨 4:00**。当会话的最后更新早于最近的每日重置时间时，会话即为过期。
 - 空闲重置（可选）：`idleMinutes` 添加一个滑动空闲窗口。当同时配置每日和空闲重置时，**先过期者**强制新会话。
 - 旧版仅空闲模式：如果你设置了 `session.idleMinutes` 而没有任何 `session.reset`/`resetByType` 配置，CrawClaw 会保持仅空闲模式以保持向后兼容。
-- 按类型覆盖（可选）：`resetByType` 允许你覆盖 `dm`、`group` 和 `thread` 会话的策略（thread = Slack/Discord 线程、Telegram 话题、连接器提供的 Matrix 线程）。
+- 按类型覆盖（可选）：`resetByType` 允许你覆盖 `dm`、`group` 和 `thread` 会话的策略（thread = DingTalk/QQBot 线程、Feishu 话题、连接器提供的 Matrix 线程）。
 - 按渠道覆盖（可选）：`resetByChannel` 覆盖渠道的重置策略（适用于该渠道的所有会话类型，优先于 `reset`/`resetByType`）。
 - 重置触发器：精确的 `/new`（加上 `resetTriggers` 中的任何额外项）启动新的会话 ID 并传递消息的其余部分。`/new <model>` 接受模型别名、`provider/model` 或提供商名称（模糊匹配）来设置新会话模型。如果单独发送 `/new`，CrawClaw 会运行一个简短的“问候”轮次来确认重置。
 - 手动重置：从存储中删除特定键或删除 JSONL 对话记录；下一条消息会重新创建它们。
@@ -94,7 +94,7 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
   session: {
     sendPolicy: {
       rules: [
-        { action: "deny", match: { channel: "discord", chatType: "group" } },
+        { action: "deny", match: { channel: "qqbot", chatType: "group" } },
         { action: "deny", match: { keyPrefix: "cron:" } },
       ],
       default: "allow",
@@ -119,7 +119,7 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
     scope: "per-sender", // keep group keys separate
     dmScope: "main", // DM continuity (set per-channel-peer/per-account-channel-peer for shared inboxes)
     identityLinks: {
-      alice: ["telegram:123456789", "discord:987654321012345678"],
+      alice: ["feishu:123456789", "qqbot:987654321012345678"],
     },
     reset: {
       // Defaults: mode=daily, atHour=4 (gateway host local time).
@@ -134,7 +134,7 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
       group: { mode: "idle", idleMinutes: 120 },
     },
     resetByChannel: {
-      discord: { mode: "idle", idleMinutes: 10080 },
+      qqbot: { mode: "idle", idleMinutes: 10080 },
     },
     resetTriggers: ["/new"],
     store: "~/.crawclaw/agents/{agentId}/sessions/sessions.json",
@@ -155,7 +155,7 @@ CrawClaw 将**每个智能体的一个直接聊天会话**视为主会话。直�
 - `crawclaw status` — 显示存储路径和最近的会话。
 - `crawclaw sessions --json` — 导出每个条目（使用 `--active <minutes>` 过滤）。
 - `crawclaw gateway call sessions.list --params '{}'` — 从运行中的 Gateway 网关获取会话（使用 `--url`/`--token` 进行远程 Gateway 网关访问）。
-- 在聊天中单独发送 `/status` 消息可查看智能体是否可达、会话上下文使用了多少、当前的思考/详细模式开关，以及你的 WhatsApp Web 凭证上次刷新时间（有助于发现重新链接需求）。
+- 在聊天中单独发送 `/status` 消息可查看智能体是否可达、会话上下文使用了多少、当前的思考/详细模式开关，以及你的 Weixin Web 凭证上次刷新时间（有助于发现重新链接需求）。
 - 发送 `/context list` 或 `/context detail` 查看系统提示中的内容和注入的工作区文件（以及最大的上下文贡献者）。
 - 单独发送 `/stop` 消息可中止当前运行、清除该会话的排队后续操作，并停止从中生成的任何子智能体运行（回复包含已停止的数量）。
 - 单独发送 `/compact`（可选指令）消息可总结旧上下文并释放窗口空间。参见 [/concepts/compaction](/concepts/compaction)。

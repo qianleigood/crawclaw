@@ -24,7 +24,6 @@ import {
   normalizeProviderId,
   normalizeProviderIdForAuth,
 } from "./provider-id.js";
-import { normalizeProviderModelIdWithRuntime } from "./provider-model-normalization.runtime.js";
 
 let log: ReturnType<typeof createSubsystemLogger> | null = null;
 
@@ -160,15 +159,7 @@ function normalizeProviderModelId(provider: string, model: string): string {
       return `anthropic/${normalizedAnthropicModel}`;
     }
   }
-  return (
-    normalizeProviderModelIdWithRuntime({
-      provider,
-      context: {
-        provider,
-        modelId: model,
-      },
-    }) ?? model
-  );
+  return model;
 }
 
 type ModelRefNormalizeOptions = {

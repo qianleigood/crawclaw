@@ -33,7 +33,7 @@ x-i18n:
 更新投递设置而不更改消息：
 
 ```bash
-crawclaw cron edit <job-id> --announce --channel telegram --to "123456789"
+crawclaw cron edit <job-id> --announce --channel feishu --to "123456789"
 ```
 
 为隔离的作业禁用投递：

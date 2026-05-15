@@ -53,11 +53,11 @@ x-i18n:
   - [本地模型适合日常聊天吗？](#is-a-local-model-ok-for-casual-chats)
   - [如何将托管模型流量限制在特定区域？](#how-do-i-keep-hosted-model-traffic-in-a-specific-region)
   - [我必须购买 Mac Mini 才能安装吗？](#do-i-have-to-buy-a-mac-mini-to-install-this)
-  - [iMessage 支持需要 Mac mini 吗？](#do-i-need-a-mac-mini-for-imessage-support)
+  - [Weixin 支持需要 Mac mini 吗？](#do-i-need-a-mac-mini-for-weixin-support)
   - [如果我买了 Mac mini 运行 CrawClaw，能连接到我的 MacBook Pro 吗？](#if-i-buy-a-mac-mini-to-run-crawclaw-can-i-connect-it-to-my-macbook-pro)
   - [可以使用 Bun 吗？](#can-i-use-bun)
-  - [Telegram：`allowFrom` 填什么？](#telegram-what-goes-in-allowfrom)
-  - [多人能否使用同一个 WhatsApp 号码配合不同的 CrawClaw 实例？](#can-multiple-people-use-one-whatsapp-number-with-different-crawclaw-instances)
+  - [Feishu：`allowFrom` 填什么？](#feishu-what-goes-in-allowfrom)
+  - [多人能否使用同一个 Weixin 号码配合不同的 CrawClaw 实例？](#can-multiple-people-use-one-weixin-number-with-different-crawclaw-instances)
   - [能否同时运行一个“快速聊天”智能体和一个“用 Opus 编程”的智能体？](#can-i-run-a-fast-chat-agent-and-an-opus-for-coding-agent)
   - [Homebrew 在 Linux 上可用吗？](#does-homebrew-work-on-linux)
   - [可编辑（git）安装和 npm 安装有什么区别？](#whats-the-difference-between-the-hackable-git-install-and-npm-install)
@@ -109,7 +109,7 @@ x-i18n:
   - [CrawClaw 浏览器可以无头运行吗？](#can-the-crawclaw-browser-run-headless)
   - [如何使用 Brave 进行浏览器控制？](#how-do-i-use-brave-for-browser-control)
 - [远程 Gateway 网关与节点](#remote-gateways-nodes)
-  - [命令如何在 Telegram、Gateway 网关和节点之间传播？](#how-do-commands-propagate-between-telegram-the-gateway-and-nodes)
+  - [命令如何在 Feishu、Gateway 网关和节点之间传播？](#how-do-commands-propagate-between-feishu-the-gateway-and-nodes)
   - [如果 Gateway 网关托管在远程，我的智能体如何访问我的电脑？](#how-can-my-agent-access-my-computer-if-the-gateway-is-hosted-remotely)
   - [Tailscale 已连接但收不到回复，怎么办？](#tailscale-is-connected-but-i-get-no-replies-what-now)
   - [两个 CrawClaw 实例（本地 + VPS）可以互相通信吗？](#can-two-crawclaw-instances-talk-to-each-other-local-vps)
@@ -134,12 +134,12 @@ x-i18n:
   - [我遇到了"context too large"错误——如何重置或压缩？](#im-getting-context-too-large-errors-how-do-i-reset-or-compact)
   - [为什么我看到"LLM request rejected: messages.N.content.X.tool_use.input: Field required"？](#why-am-i-seeing-llm-request-rejected-messagesncontentxtooluseinput-field-required)
   - [为什么我还会收到旧版 heartbeat 消息？](#why-am-i-getting-legacy-heartbeat-messages)
-  - [需要在 WhatsApp 群组中添加“机器人账号”吗？](#do-i-need-to-add-a-bot-account-to-a-whatsapp-group)
-  - [如何获取 WhatsApp 群组的 JID？](#how-do-i-get-the-jid-of-a-whatsapp-group)
+  - [需要在 Weixin 群组中添加“机器人账号”吗？](#do-i-need-to-add-a-bot-account-to-a-weixin-group)
+  - [如何获取 Weixin 群组的 JID？](#how-do-i-get-the-jid-of-a-weixin-group)
   - [为什么 CrawClaw 不在群组中回复？](#why-doesnt-crawclaw-reply-in-a-group)
   - [群组/线程与私聊共享上下文吗？](#do-groupsthreads-share-context-with-dms)
   - [可以创建多少个工作区和智能体？](#how-many-workspaces-and-agents-can-i-create)
-  - [可以同时运行多个机器人或聊天（Slack）吗？应该如何设置？](#can-i-run-multiple-bots-or-chats-at-the-same-time-slack-and-how-should-i-set-that-up)
+  - [可以同时运行多个机器人或聊天（DingTalk）吗？应该如何设置？](#can-i-run-multiple-bots-or-chats-at-the-same-time-ddingtalk-and-how-should-i-set-that-up)
 - [模型：默认值、选择、别名、切换](#models-defaults-selection-aliases-switching)
   - [什么是“默认模型”？](#what-is-the-default-model)
   - [推荐什么模型？](#what-model-do-you-recommend)
@@ -180,7 +180,7 @@ x-i18n:
   - [我在 Windows 上关闭了终端——如何重启 CrawClaw？](#i-closed-my-terminal-on-windows-how-do-i-restart-crawclaw)
   - [Gateway 网关已启动但回复始终不到达，应该检查什么？](#the-gateway-is-up-but-replies-never-arrive-what-should-i-check)
   - ["Disconnected from gateway: no reason"——怎么办？](#disconnected-from-gateway-no-reason-what-now)
-  - [Telegram setMyCommands 因网络错误失败，应该检查什么？](#telegram-setmycommands-fails-with-network-errors-what-should-i-check)
+  - [Feishu setMyCommands 因网络错误失败，应该检查什么？](#feishu-setmycommands-fails-with-network-errors-what-should-i-check)
   - [TUI 没有输出，应该检查什么？](#tui-shows-no-output-what-should-i-check)
   - [如何完全停止然后启动 Gateway 网关？](#how-do-i-completely-stop-then-start-the-gateway)
   - [通俗解释：`crawclaw gateway restart` 与 `crawclaw gateway`](#eli5-crawclaw-gateway-restart-vs-crawclaw-gateway)
@@ -193,12 +193,12 @@ x-i18n:
   - [我的机器人应该有自己的邮箱、GitHub 账户或电话号码吗？](#should-my-bot-have-its-own-email-github-account-or-phone-number)
   - [我能让它自主管理我的短信吗？这安全吗？](#can-i-give-it-autonomy-over-my-text-messages-and-is-that-safe)
   - [个人助理任务可以使用更便宜的模型吗？](#can-i-use-cheaper-models-for-personal-assistant-tasks)
-  - [我在 Telegram 中运行了 `/start` 但没收到配对码](#i-ran-start-in-telegram-but-didnt-get-a-pairing-code)
-  - [WhatsApp：会给我的联系人发消息吗？配对如何工作？](#whatsapp-will-it-message-my-contacts-how-does-pairing-work)
+  - [我在 Feishu 中运行了 `/start` 但没收到配对码](#i-ran-start-in-feishu-but-didnt-get-a-pairing-code)
+  - [Weixin：会给我的联系人发消息吗？配对如何工作？](#weixin-will-it-message-my-contacts-how-does-pairing-work)
 - [聊天命令、中止任务和“停不下来”](#chat-commands-aborting-tasks-and-it-wont-stop)
   - [如何阻止内部系统消息显示在聊天中？](#how-do-i-stop-internal-system-messages-from-showing-in-chat)
   - [如何停止/取消正在运行的任务？](#how-do-i-stopcancel-a-running-task)
-  - [如何从 Telegram 发送 Discord 消息？（"Cross-context messaging denied"）](#how-do-i-send-a-discord-message-from-telegram-crosscontext-messaging-denied)
+  - [如何从 Feishu 发送 QQBot 消息？（"Cross-context messaging denied"）](#how-do-i-send-a-qqbot-message-from-feishu-crosscontext-messaging-denied)
   - [为什么感觉机器人“忽略”了快速连发的消息？](#why-does-it-feel-like-the-bot-ignores-rapidfire-messages)
 
 ## 出问题后的最初六十秒
@@ -268,7 +268,7 @@ x-i18n:
 
 ### 我卡住了，最快的排障方法是什么
 
-使用能**看到你机器**的本地 AI 智能体。这比在 Discord 上提问有效得多，因为大多数“卡住了”的情况都是**本地配置或环境问题**，远程帮助者无法检查。
+使用能**看到你机器**的本地 AI 智能体。这比在 QQBot 上提问有效得多，因为大多数“卡住了”的情况都是**本地配置或环境问题**，远程帮助者无法检查。
 
 - **Claude Code**：https://www.anthropic.com/claude-code/
 - **OpenAI Codex**：https://openai.com/codex/
@@ -408,7 +408,7 @@ crawclaw doctor
 3. 复制你的工作区（默认：`~/.crawclaw/workspace`）。
 4. 运行 `crawclaw doctor` 并重启 Gateway 网关服务。
 
-这会保留配置、认证配置文件、WhatsApp 凭据、会话和记忆。如果你处于远程模式，请记住 Gateway 网关主机拥有会话存储和工作区。
+这会保留配置、认证配置文件、Weixin 凭据、会话和记忆。如果你处于远程模式，请记住 Gateway 网关主机拥有会话存储和工作区。
 
 **重要：** 如果你只将工作区提交/推送到 GitHub，你只备份了**记忆 + 引导文件**，但**不包括**会话历史或认证。它们位于 `~/.crawclaw/` 下（例如 `~/.crawclaw/agents/<agentId>/sessions/`）。
 
@@ -618,7 +618,7 @@ crawclaw gateway restart
 - **模型/认证设置**（推荐使用 Anthropic **setup-token** 进行 Claude 订阅，支持 OpenAI Codex OAuth，API 密钥可选，支持 LM Studio 本地模型）
 - **工作区**位置 + 引导文件
 - **Gateway 网关设置**（绑定/端口/认证/tailscale）
-- **渠道**（WhatsApp、Telegram、Discord、Mattermost（插件）、Signal、iMessage）
+- **渠道**（Weixin、Feishu、QQBot、Feishu（插件）、Feishu、Weixin）
 - **守护进程安装**（macOS 上的 LaunchAgent；Linux 上的 systemd 用户单元；Windows 上的每用户启动模式）
 - **健康检查**和**Skills**选择
 
@@ -701,20 +701,20 @@ Gemini CLI 使用**插件认证流程**，而不是 `crawclaw.json` 中的 clien
 
 不需要。CrawClaw 可运行在 macOS、Linux 或 Windows 上。Mac mini 是可选的——有些人买一台作为常开主机，但小型 VPS、家庭服务器或 Raspberry Pi 级别的设备也可以。
 
-你只有在使用 **macOS 专用工具**时才需要 Mac。对于 iMessage，你可以将 Gateway 网关保持在 Linux 上，通过将 `channels.imessage.cliPath` 指向 SSH 包装器在任何 Mac 上运行 `imsg`。如果你需要其他 macOS 专用工具，在 Mac 上运行 Gateway 网关或配对一个 macOS 节点。
+你只有在使用 **macOS 专用工具**时才需要 Mac。对于 Weixin，你可以将 Gateway 网关保持在 Linux 上，通过将 `channels.weixin.cliPath` 指向 SSH 包装器在任何 Mac 上运行 `imsg`。如果你需要其他 macOS 专用工具，在 Mac 上运行 Gateway 网关或配对一个 macOS 节点。
 
-文档：[iMessage](/channels/imessage)、[节点](/nodes)、[Mac 远程模式](/gateway/remote)。
+文档：[Weixin](/channels/index)、[节点](/nodes)、[Mac 远程模式](/gateway/remote)。
 
-### iMessage 支持需要 Mac mini 吗
+### Weixin 支持需要 Mac mini 吗
 
-你需要**某台登录了 Messages 的 macOS 设备**。它**不一定**是 Mac mini——任何 Mac 都可以。CrawClaw 的 iMessage 集成在 macOS 上运行（BlueBubbles 或 `imsg`），而 Gateway 网关可以在其他地方运行。
+你需要**某台登录了 Messages 的 macOS 设备**。它**不一定**是 Mac mini——任何 Mac 都可以。CrawClaw 的 Weixin 集成在 macOS 上运行（Weixin 或 `imsg`），而 Gateway 网关可以在其他地方运行。
 
 常见设置：
 
-- 在 Linux/VPS 上运行 Gateway 网关，将 `channels.imessage.cliPath` 指向在 Mac 上运行 `imsg` 的 SSH 包装器。
+- 在 Linux/VPS 上运行 Gateway 网关，将 `channels.weixin.cliPath` 指向在 Mac 上运行 `imsg` 的 SSH 包装器。
 - 如果你想要最简单的单机设置，在 Mac 上运行所有组件。
 
-文档：[iMessage](/channels/imessage)、[BlueBubbles](/channels/bluebubbles)、
+文档：[Weixin](/channels/index)、[Weixin](/channels/index)、
 [Mac 远程模式](/gateway/remote)。
 
 ### 如果我买了 Mac mini 运行 CrawClaw，能连接到我的 MacBook Pro 吗
@@ -731,14 +731,14 @@ Gemini CLI 使用**插件认证流程**，而不是 `crawclaw.json` 中的 clien
 
 ### 可以使用 Bun 吗
 
-Bun **不推荐**。我们观察到运行时 bug，特别是在 WhatsApp 和 Telegram 方面。
+Bun **不推荐**。我们观察到运行时 bug，特别是在 Weixin 和 Feishu 方面。
 使用 **Node** 以获得稳定的 Gateway 网关。
 
-如果你仍想尝试 Bun，请在没有 WhatsApp/Telegram 的非生产 Gateway 网关上进行。
+如果你仍想尝试 Bun，请在没有 Weixin/Feishu 的非生产 Gateway 网关上进行。
 
-### Telegram：allowFrom 填什么
+### Feishu：allowFrom 填什么
 
-`channels.telegram.allowFrom` 是**人类发送者的 Telegram 用户 ID**（数字，推荐）或 `@username`。它不是机器人用户名。
+`channels.feishu.allowFrom` 是**人类发送者的 Feishu 用户 ID**（数字，推荐）或 `@username`。它不是机器人用户名。
 
 更安全的方式（无需第三方机器人）：
 
@@ -746,17 +746,17 @@ Bun **不推荐**。我们观察到运行时 bug，特别是在 WhatsApp 和 Tel
 
 官方 Bot API：
 
-- 给你的机器人发私信，然后调用 `https://api.telegram.org/bot<bot_token>/getUpdates` 并读取 `message.from.id`。
+- 给你的机器人发私信，然后调用 `https://api.feishu.org/bot<bot_token>/getUpdates` 并读取 `message.from.id`。
 
 第三方（隐私性较低）：
 
 - 给 `@userinfobot` 或 `@getidsbot` 发私信。
 
-参阅 [/channels/telegram](/channels/telegram#access-control-dms--groups)。
+参阅 [/channels/index](/channels/index#access-control-dms--groups)。
 
-### 多人能否使用同一个 WhatsApp 号码配合不同的 CrawClaw 实例
+### 多人能否使用同一个 Weixin 号码配合不同的 CrawClaw 实例
 
-可以，通过**多智能体路由**。将每个发送者的 WhatsApp **私信**（peer `kind: "dm"`，发送者 E.164 格式如 `+15551234567`）绑定到不同的 `agentId`，这样每个人获得自己的工作区和会话存储。回复仍然来自**同一个 WhatsApp 账户**，且私信访问控制（`channels.whatsapp.dmPolicy` / `channels.whatsapp.allowFrom`）对每个 WhatsApp 账户是全局的。参阅[多智能体路由](/concepts/multi-agent)和 [WhatsApp](/channels/whatsapp)。
+可以，通过**多智能体路由**。将每个发送者的 Weixin **私信**（peer `kind: "dm"`，发送者 E.164 格式如 `+15551234567`）绑定到不同的 `agentId`，这样每个人获得自己的工作区和会话存储。回复仍然来自**同一个 Weixin 账户**，且私信访问控制（`channels.weixin.dmPolicy` / `channels.weixin.allowFrom`）对每个 Weixin 账户是全局的。参阅[多智能体路由](/concepts/multi-agent)和 [Weixin](/channels/index)。
 
 ### 能否同时运行一个“快速聊天”智能体和一个“用 Opus 编程”的智能体
 
@@ -824,7 +824,7 @@ Doctor 会检测 Gateway 网关服务入口点不匹配，并提供重写服务�
 - **优点：** 常开，网络稳定，无笔记本休眠问题，更容易保持运行。
 - **缺点：** 通常无头运行（使用截图），仅远程文件访问，更新需要 SSH。
 
-**CrawClaw 特定说明：** WhatsApp/Telegram/Slack/Mattermost（插件）/Discord 在 VPS 上都能正常工作。唯一的真正权衡是**无头浏览器**与可见窗口。参阅[浏览器](/tools/browser)。
+**CrawClaw 特定说明：** Weixin/Feishu/DingTalk/Feishu（插件）/QQBot 在 VPS 上都能正常工作。唯一的真正权衡是**无头浏览器**与可见窗口。参阅[浏览器](/tools/browser)。
 
 **推荐默认值：** 如果之前遇到过 Gateway 网关断连，使用 VPS。当你正在积极使用 Mac 并且需要本地文件访问或可见浏览器的 UI 自动化时，本地运行很好。
 
@@ -866,7 +866,7 @@ CrawClaw 是轻量级的。对于基本的 Gateway 网关 + 一个聊天渠道�
 
 ### 用一段话描述 CrawClaw
 
-CrawClaw 是一个运行在你自己设备上的个人 AI 助手。它在你已经使用的消息平台上回复（WhatsApp、Telegram、Slack、Mattermost（插件）、Discord、Google Chat、Signal、iMessage），还可以在支持的平台上进行语音和节点工具。**Gateway 网关** 是常开的控制平面；助手是产品。
+CrawClaw 是一个运行在你自己设备上的个人 AI 助手。它在你已经使用的消息平台上回复（Weixin、Feishu、DingTalk、Feishu（插件）、QQBot、Feishu、Feishu、Weixin），还可以在支持的平台上进行语音和节点工具。**Gateway 网关** 是常开的控制平面；助手是产品。
 
 ### 价值主张是什么
 
@@ -875,7 +875,7 @@ CrawClaw 不是“只是一个 Claude 包装器”。它是一个**本地优先�
 亮点：
 
 - **你的设备，你的数据：** 在任何你想要的地方运行 Gateway 网关（Mac、Linux、VPS），并将工作区 + 会话历史保持在本地。
-- **真实渠道，而非 Web 沙箱：** WhatsApp/Telegram/Slack/Discord/Signal/iMessage/等，加上支持平台上的语音和节点工具。
+- **真实渠道，而非 Web 沙箱：** Weixin/Feishu/DingTalk/QQBot/Feishu/Weixin/等，加上支持平台上的语音和节点工具。
 - **模型无关：** 使用 Anthropic、OpenAI、MiniMax、OpenRouter 等，支持按智能体路由和故障转移。
 - **纯本地选项：** 运行本地模型，让**所有数据都保留在你的设备上**。
 - **多智能体路由：** 按渠道、账户或任务分配不同的智能体，每个都有自己的工作区和默认值。
@@ -920,7 +920,7 @@ CrawClaw 是一个**个人助手**和协调层，不是 IDE 替代品。使用 C
 优势：
 
 - 跨会话的**持久记忆 + 工作区**
-- **多平台访问**（WhatsApp、Telegram、TUI）
+- **多平台访问**（Weixin、Feishu、TUI）
 - **工具编排**（浏览器、文件、调度、钩子）
 - **常开 Gateway 网关**（在 VPS 上运行，从任何地方交互）
 - 用于本地浏览器/屏幕/摄像头/执行的**节点**
@@ -1029,13 +1029,13 @@ pnpm add -g clawhub
    ```markdown
    ---
    name: imsg
-   description: iMessage/SMS CLI for listing chats, history, watch, and sending.
+   description: Weixin/SMS CLI for listing chats, history, watch, and sending.
    metadata: { "crawclaw": { "os": ["darwin", "linux"], "requires": { "bins": ["imsg"] } } }
    ---
    ```
 4. 开始新会话以刷新 Skills 快照。
 
-对于 iMessage，你也可以将 `channels.imessage.cliPath` 指向 SSH 包装器（CrawClaw 只需要 stdio）。参阅 [iMessage](/channels/imessage)。
+对于 Weixin，你也可以将 `channels.weixin.cliPath` 指向 SSH 包装器（CrawClaw 只需要 stdio）。参阅 [Weixin](/channels/index)。
 
 ### 有 Notion 或 HeyGen 集成吗
 
@@ -1129,7 +1129,7 @@ CrawClaw 还会运行**静默的预压缩记忆刷新**，以提醒模型在自�
 不是——**CrawClaw 的状态是本地的**，但**外部服务仍然会看到你发送给它们的内容**。
 
 - **默认本地：** 会话、记忆文件、配置和工作区位于 Gateway 网关主机上（`~/.crawclaw` + 你的工作区目录）。
-- **必然远程：** 你发送给模型提供商（Anthropic/OpenAI/等）的消息会发送到它们的 API，聊天平台（WhatsApp/Telegram/Slack/等）在它们的服务器上存储消息数据。
+- **必然远程：** 你发送给模型提供商（Anthropic/OpenAI/等）的消息会发送到它们的 API，聊天平台（Weixin/Feishu/DingTalk/等）在它们的服务器上存储消息数据。
 - **你控制范围：** 使用本地模型可以将提示保留在你的机器上，但渠道流量仍然通过渠道的服务器。
 
 相关：[智能体工作区](/concepts/agent-workspace)、[记忆](/concepts/memory)。
@@ -1138,16 +1138,16 @@ CrawClaw 还会运行**静默的预压缩记忆刷新**，以提醒模型在自�
 
 所有内容位于 `$CRAWCLAW_STATE_DIR`（默认：`~/.crawclaw`）下：
 
-| 路径                                                            | 用途                                                 |
-| --------------------------------------------------------------- | ---------------------------------------------------- |
-| `$CRAWCLAW_STATE_DIR/crawclaw.json`                             | 主配置（JSON5）                                      |
-| `$CRAWCLAW_STATE_DIR/credentials/oauth.json`                    | 旧版 OAuth 导入（首次使用时复制到认证配置文件）      |
-| `$CRAWCLAW_STATE_DIR/agents/<agentId>/agent/auth-profiles.json` | 认证配置文件（OAuth + API 密钥）                     |
-| `$CRAWCLAW_STATE_DIR/agents/<agentId>/agent/auth.json`          | 运行时认证缓存（自动管理）                           |
-| `$CRAWCLAW_STATE_DIR/credentials/`                              | 提供商状态（例如 `whatsapp/<accountId>/creds.json`） |
-| `$CRAWCLAW_STATE_DIR/agents/`                                   | 按智能体的状态（agentDir + 会话）                    |
-| `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/`                | 对话历史和状态（按智能体）                           |
-| `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/sessions.json`   | 会话元数据（按智能体）                               |
+| 路径                                                            | 用途                                               |
+| --------------------------------------------------------------- | -------------------------------------------------- |
+| `$CRAWCLAW_STATE_DIR/crawclaw.json`                             | 主配置（JSON5）                                    |
+| `$CRAWCLAW_STATE_DIR/credentials/oauth.json`                    | 旧版 OAuth 导入（首次使用时复制到认证配置文件）    |
+| `$CRAWCLAW_STATE_DIR/agents/<agentId>/agent/auth-profiles.json` | 认证配置文件（OAuth + API 密钥）                   |
+| `$CRAWCLAW_STATE_DIR/agents/<agentId>/agent/auth.json`          | 运行时认证缓存（自动管理）                         |
+| `$CRAWCLAW_STATE_DIR/credentials/`                              | 提供商状态（例如 `weixin/<accountId>/creds.json`） |
+| `$CRAWCLAW_STATE_DIR/agents/`                                   | 按智能体的状态（agentDir + 会话）                  |
+| `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/`                | 对话历史和状态（按智能体）                         |
+| `$CRAWCLAW_STATE_DIR/agents/<agentId>/sessions/sessions.json`   | 会话元数据（按智能体）                             |
 
 旧版单智能体路径：`~/.crawclaw/agent/*`（通过 `crawclaw doctor` 迁移）。
 
@@ -1316,7 +1316,7 @@ Gateway 网关监视配置文件并支持热重载：
 
 常见模式是**一个 Gateway 网关**（例如 Raspberry Pi）加上**节点**和**智能体**：
 
-- **Gateway 网关（中心）：** 拥有渠道（Signal/WhatsApp）、路由和会话。
+- **Gateway 网关（中心）：** 拥有渠道（Feishu/Weixin）、路由和会话。
 - **节点（设备）：** Mac/无头节点主机作为外围设备连接，暴露本地工具（`system.run`、`canvas`、`camera`）。
 - **智能体（工作者）：** 用于特殊角色的独立大脑/工作区（例如“Hetzner 运维”、“个人数据”）。
 - **子智能体：** 需要并行处理时从主智能体生成后台工作。
@@ -1353,11 +1353,11 @@ Gateway 网关监视配置文件并支持热重载：
 
 ## 远程 Gateway 网关与节点
 
-### 命令如何在 Telegram、Gateway 网关和节点之间传播
+### 命令如何在 Feishu、Gateway 网关和节点之间传播
 
-Telegram 消息由 **Gateway 网关** 处理。Gateway 网关运行智能体，只有在需要节点工具时才通过 **Gateway 网关 WebSocket** 调用节点：
+Feishu 消息由 **Gateway 网关** 处理。Gateway 网关运行智能体，只有在需要节点工具时才通过 **Gateway 网关 WebSocket** 调用节点：
 
-Telegram → Gateway 网关 → 智能体 → `node.*` → 节点 → Gateway 网关 → Telegram
+Feishu → Gateway 网关 → 智能体 → `node.*` → 节点 → Gateway 网关 → Feishu
 
 节点不会看到入站提供商流量；它们只接收节点 RPC 调用。
 
@@ -1403,14 +1403,14 @@ Telegram → Gateway 网关 → 智能体 → `node.*` → 节点 → Gateway �
 
 可以。没有内置的“机器人对机器人”桥接，但你可以通过几种可靠的方式实现：
 
-**最简单：** 使用两个机器人都能访问的普通聊天渠道（Telegram/Slack/WhatsApp）。让机器人 A 给机器人 B 发消息，然后让机器人 B 正常回复。
+**最简单：** 使用两个机器人都能访问的普通聊天渠道（Feishu/DingTalk/Weixin）。让机器人 A 给机器人 B 发消息，然后让机器人 B 正常回复。
 
 **CLI 桥接（通用）：** 运行一个脚本调用另一个 Gateway 网关，使用 `crawclaw agent --message ... --deliver`，定向到另一个机器人监听的聊天。如果一个机器人在远程 VPS 上，通过 SSH/Tailscale 将你的 CLI 指向该远程 Gateway 网关（参阅[远程访问](/gateway/remote)）。
 
 示例模式（从能到达目标 Gateway 网关的机器上运行）：
 
 ```bash
-crawclaw agent --message "Hello from local bot" --deliver --channel telegram --reply-to <chat-id>
+crawclaw agent --message "Hello from local bot" --deliver --channel feishu --reply-to <chat-id>
 ```
 
 提示：添加护栏防止两个机器人无限循环（仅提及、渠道允许列表或“不回复机器人消息”规则）。
@@ -1459,7 +1459,7 @@ SSH 对临时 shell 访问很好，但节点对于持续的智能体工作流和
 ```json5
 {
   agents: { defaults: { workspace: "~/.crawclaw/workspace" } },
-  channels: { whatsapp: { allowFrom: ["+15555550123"] } },
+  channels: { weixin: { allowFrom: ["+15555550123"] } },
 }
 ```
 
@@ -1675,7 +1675,7 @@ crawclaw onboard --install-daemon
 
 文档：[心跳](/gateway/heartbeat)、[Cron jobs](/automation/cron-jobs)。
 
-### 需要在 WhatsApp 群组中添加“机器人账号”吗
+### 需要在 Weixin 群组中添加“机器人账号”吗
 
 不需要。CrawClaw 运行在**你自己的账户**上，所以如果你在群组中，CrawClaw 就能看到它。
 默认情况下，群组回复被阻止，直到你允许发送者（`groupPolicy: "allowlist"`）。
@@ -1685,7 +1685,7 @@ crawclaw onboard --install-daemon
 ```json5
 {
   channels: {
-    whatsapp: {
+    weixin: {
       groupPolicy: "allowlist",
       groupAllowFrom: ["+15551234567"],
     },
@@ -1693,7 +1693,7 @@ crawclaw onboard --install-daemon
 }
 ```
 
-### 如何获取 WhatsApp 群组的 JID
+### 如何获取 Weixin 群组的 JID
 
 方法 1（最快）：跟踪日志并在群组中发送测试消息：
 
@@ -1707,23 +1707,23 @@ crawclaw logs --follow --json
 方法 2（如果已配置/加入允许列表）：从配置中列出群组：
 
 ```bash
-crawclaw directory groups list --channel whatsapp
+crawclaw directory groups list --channel weixin
 ```
 
-文档：[WhatsApp](/channels/whatsapp)、[目录](/cli/directory)、[日志](/cli/logs)。
+文档：[Weixin](/channels/index)、[目录](/cli/directory)、[日志](/cli/logs)。
 
 ### 为什么 CrawClaw 不在群组中回复
 
 两个常见原因：
 
 - 提及限制已开启（默认）。你必须 @提及机器人（或匹配 `mentionPatterns`）。
-- 你配置了 `channels.whatsapp.groups` 但没有 `"*"` 且该群组未加入允许列表。
+- 你配置了 `channels.weixin.groups` 但没有 `"*"` 且该群组未加入允许列表。
 
 参阅[群组](/channels/groups)和[群组消息](/channels/group-messages)。
 
 ### 群组/线程与私聊共享上下文吗
 
-直接聊天默认折叠到主会话。群组/频道有自己的会话键，Telegram 话题 / Discord 线程是独立的会话。参阅[群组](/channels/groups)和[群组消息](/channels/group-messages)。
+直接聊天默认折叠到主会话。群组/频道有自己的会话键，Feishu 话题 / QQBot 线程是独立的会话。参阅[群组](/channels/groups)和[群组消息](/channels/group-messages)。
 
 ### 可以创建多少个工作区和智能体
 
@@ -1739,9 +1739,9 @@ crawclaw directory groups list --channel whatsapp
 - 如果磁盘增长，修剪旧会话（删除 JSONL 或存储条目）。
 - 使用 `crawclaw doctor` 发现无用的工作区和配置文件不匹配。
 
-### 可以同时运行多个机器人或聊天（Slack）吗？应该如何设置
+### 可以同时运行多个机器人或聊天（DingTalk）吗？应该如何设置
 
-可以。使用**多智能体路由**运行多个隔离的智能体，并按渠道/账户/对等方路由入站消息。Slack 作为渠道受支持，可以绑定到特定智能体。
+可以。使用**多智能体路由**运行多个隔离的智能体，并按渠道/账户/对等方路由入站消息。DingTalk 作为渠道受支持，可以绑定到特定智能体。
 
 浏览器访问功能强大，但不是“能做人类能做的一切”——反机器人、验证码和 MFA 仍然可以阻止自动化。为了最可靠的浏览器控制，在运行浏览器的机器上使用 Chrome 扩展中继（Gateway 网关可以在任何地方）。
 
@@ -1749,10 +1749,10 @@ crawclaw directory groups list --channel whatsapp
 
 - 常开 Gateway 网关主机（VPS/Mac mini）。
 - 每个角色一个智能体（绑定）。
-- Slack 渠道绑定到这些智能体。
+- DingTalk 渠道绑定到这些智能体。
 - 需要时通过扩展中继（或节点）使用本地浏览器。
 
-文档：[多智能体路由](/concepts/multi-agent)、[Slack](/channels/slack)、
+文档：[多智能体路由](/concepts/multi-agent)、[DingTalk](/channels/index)、
 [浏览器](/tools/browser)、[Chrome 扩展](/tools/chrome-extension)、[节点](/nodes)。
 
 ## 模型：默认值、选择、别名、切换
@@ -2352,19 +2352,19 @@ crawclaw logs --follow
 
 文档：[远程访问](/gateway/remote)、[故障排除](/gateway/troubleshooting)。
 
-### Telegram setMyCommands 因网络错误失败，应该检查什么
+### Feishu setMyCommands 因网络错误失败，应该检查什么
 
 从日志和渠道状态开始：
 
 ```bash
 crawclaw channels status
-crawclaw channels logs --channel telegram
+crawclaw channels logs --channel feishu
 ```
 
 如果你在 VPS 上或代理后面，确认出站 HTTPS 被允许且 DNS 正常工作。
 如果 Gateway 网关在远程，确保你在 Gateway 网关主机上查看日志。
 
-文档：[Telegram](/channels/telegram)、[渠道故障排除](/channels/troubleshooting)。
+文档：[Feishu](/channels/index)、[渠道故障排除](/channels/troubleshooting)。
 
 ### TUI 没有输出，应该检查什么
 
@@ -2476,35 +2476,35 @@ crawclaw message send --target +15555550123 --message "Here you go" --media /pat
 
 可以，**如果**智能体仅用于聊天且输入是可信的。较小的模型更容易受到指令劫持，因此避免将它们用于启用工具的智能体或读取不可信内容时。如果你必须使用较小的模型，锁定工具并在沙箱中运行。参阅[安全](/gateway/security)。
 
-### 我在 Telegram 中运行了 /start 但没收到配对码
+### 我在 Feishu 中运行了 /start 但没收到配对码
 
 配对码**仅在**未知发送者向机器人发消息且 `dmPolicy: "pairing"` 启用时发送。`/start` 本身不会生成代码。
 
 检查待处理请求：
 
 ```bash
-crawclaw pairing list telegram
+crawclaw pairing list feishu
 ```
 
 如果你想立即获得访问权限，将你的发送者 ID 加入允许列表或为该账户设置 `dmPolicy: "open"`。
 
-### WhatsApp：会给我的联系人发消息吗？配对如何工作
+### Weixin：会给我的联系人发消息吗？配对如何工作
 
-不会。WhatsApp 的默认私信策略是**配对**。未知发送者只会收到配对码，他们的消息**不会被处理**。CrawClaw 只回复它收到的聊天或你明确触发的发送。
+不会。Weixin 的默认私信策略是**配对**。未知发送者只会收到配对码，他们的消息**不会被处理**。CrawClaw 只回复它收到的聊天或你明确触发的发送。
 
 批准配对：
 
 ```bash
-crawclaw pairing approve whatsapp <code>
+crawclaw pairing approve weixin <code>
 ```
 
 列出待处理请求：
 
 ```bash
-crawclaw pairing list whatsapp
+crawclaw pairing list weixin
 ```
 
-向导电话号码提示：它用于设置你的**允许列表/所有者**，以便你自己的私信被允许。它不用于自动发送。如果你在个人 WhatsApp 号码上运行，使用该号码并启用 `channels.whatsapp.selfChatMode`。
+向导电话号码提示：它用于设置你的**允许列表/所有者**，以便你自己的私信被允许。它不用于自动发送。如果你在个人 Weixin 号码上运行，使用该号码并启用 `channels.weixin.selfChatMode`。
 
 ## 聊天命令、中止任务和“停不下来”
 
@@ -2548,9 +2548,9 @@ process action:kill sessionId:XXX
 
 大多数命令必须作为以 `/` 开头的**独立**消息发送，但一些快捷方式（如 `/status`）对允许列表中的发送者也支持内联使用。
 
-### 如何从 Telegram 发送 Discord 消息？（"Cross-context messaging denied"）
+### 如何从 Feishu 发送 QQBot 消息？（"Cross-context messaging denied"）
 
-CrawClaw 默认阻止**跨提供商**消息。如果工具调用绑定到 Telegram，除非你明确允许，否则不会发送到 Discord。
+CrawClaw 默认阻止**跨提供商**消息。如果工具调用绑定到 Feishu，除非你明确允许，否则不会发送到 QQBot。
 
 为智能体启用跨提供商消息：
 
@@ -2593,4 +2593,4 @@ CrawClaw 默认阻止**跨提供商**消息。如果工具调用绑定到 Telegr
 
 ---
 
-仍然卡住？在 [Discord](https://discord.com/invite/clawd) 中提问或发起 [GitHub 讨论](https://github.com/qianleigood/crawclaw/discussions)。
+仍然卡住？在 [QQBot](https://qqbot.com/invite/clawd) 中提问或发起 [GitHub 讨论](https://github.com/qianleigood/crawclaw/discussions)。

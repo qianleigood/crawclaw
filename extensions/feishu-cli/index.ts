@@ -1,5 +1,4 @@
 import { definePluginEntry, type CrawClawPluginApi } from "crawclaw/plugin-sdk/plugin-entry";
-import { registerFeishuCliCli } from "./src/cli.js";
 import { feishuCliConfigSchema, parseFeishuCliConfig } from "./src/config.js";
 import { handleFeishuCliStatusGatewayRequest } from "./src/gateway.js";
 import { registerFeishuCliTools } from "./src/tools.js";
@@ -11,27 +10,6 @@ export default definePluginEntry({
   configSchema: feishuCliConfigSchema,
   register(api: CrawClawPluginApi) {
     const config = parseFeishuCliConfig(api.pluginConfig);
-
-    api.registerCli(
-      ({ program, locale }) =>
-        registerFeishuCliCli({
-          program,
-          config,
-          logger: api.logger,
-          locale,
-        }),
-      {
-        commands: ["feishu-cli"],
-        descriptors: [
-          {
-            name: "feishu-cli",
-            description: "Inspect Feishu user-identity tooling via the official lark-cli",
-            descriptionZhCN: "通过官方 lark-cli 检查飞书用户身份工具",
-            hasSubcommands: true,
-          },
-        ],
-      },
-    );
 
     api.registerGatewayMethod(
       "feishu.cli.status",

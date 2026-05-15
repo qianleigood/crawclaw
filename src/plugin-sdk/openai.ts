@@ -16,12 +16,6 @@ export const applyOpenAIProviderConfig: FacadeModule["applyOpenAIProviderConfig"
   loadFacadeModule()["applyOpenAIProviderConfig"](
     ...args,
   )) as FacadeModule["applyOpenAIProviderConfig"];
-export const buildOpenAICodexProvider: FacadeModule["buildOpenAICodexProvider"] = ((...args) =>
-  loadFacadeModule()["buildOpenAICodexProvider"](
-    ...args,
-  )) as FacadeModule["buildOpenAICodexProvider"];
-export const buildOpenAIProvider: FacadeModule["buildOpenAIProvider"] = ((...args) =>
-  loadFacadeModule()["buildOpenAIProvider"](...args)) as FacadeModule["buildOpenAIProvider"];
 export const OPENAI_CODEX_DEFAULT_MODEL: FacadeModule["OPENAI_CODEX_DEFAULT_MODEL"] =
   loadFacadeModule()["OPENAI_CODEX_DEFAULT_MODEL"];
 export const OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL: FacadeModule["OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL"] =

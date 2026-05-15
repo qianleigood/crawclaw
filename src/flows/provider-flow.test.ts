@@ -5,21 +5,9 @@ import {
 } from "./provider-flow.js";
 
 const resolveManifestProviderAuthChoices = vi.hoisted(() => vi.fn(() => []));
-const resolveProviderWizardOptions = vi.hoisted(() => vi.fn(() => []));
-const resolveProviderModelPickerEntries = vi.hoisted(() => vi.fn(() => []));
-const resolvePluginProviders = vi.hoisted(() => vi.fn(() => []));
 
 vi.mock("../plugins/provider-auth-choices.js", () => ({
   resolveManifestProviderAuthChoices,
-}));
-
-vi.mock("../plugins/provider-wizard.js", () => ({
-  resolveProviderWizardOptions,
-  resolveProviderModelPickerEntries,
-}));
-
-vi.mock("../plugins/providers.runtime.js", () => ({
-  resolvePluginProviders,
 }));
 
 describe("provider flow", () => {
@@ -27,7 +15,7 @@ describe("provider flow", () => {
     vi.clearAllMocks();
   });
 
-  it("uses bundled compat when resolving docs for manifest-backed setup contributions", () => {
+  it("builds setup contributions from manifest metadata without loading provider runtime", () => {
     resolveManifestProviderAuthChoices.mockReturnValue([
       {
         pluginId: "sglang",
@@ -37,9 +25,6 @@ describe("provider flow", () => {
         choiceLabel: "SGLang",
       },
     ] as never);
-    resolvePluginProviders.mockReturnValue([
-      { id: "sglang", docsPath: "/providers/sglang" },
-    ] as never);
 
     const contributions = resolveManifestProviderSetupFlowContributions({
       config: {},
@@ -47,38 +32,16 @@ describe("provider flow", () => {
       env: process.env,
     });
 
-    expect(resolvePluginProviders).toHaveBeenCalledWith({
-      config: {},
-      workspaceDir: "/tmp/workspace",
-      env: process.env,
-      bundledProviderAllowlistCompat: true,
-      bundledProviderVitestCompat: true,
-    });
     expect(contributions[0]?.option.docs).toEqual({ path: "/providers/sglang" });
   });
 
-  it("uses bundled compat when resolving docs for runtime model-picker contributions", () => {
-    resolveProviderModelPickerEntries.mockReturnValue([
-      {
-        value: "provider-plugin:vllm:custom",
-        label: "vLLM",
-      },
-    ] as never);
-    resolvePluginProviders.mockReturnValue([{ id: "vllm", docsPath: "/providers/vllm" }] as never);
-
+  it("does not expose TS runtime model-picker contributions", () => {
     const contributions = resolveProviderModelPickerFlowContributions({
       config: {},
       workspaceDir: "/tmp/workspace",
       env: process.env,
     });
 
-    expect(resolvePluginProviders).toHaveBeenCalledWith({
-      config: {},
-      workspaceDir: "/tmp/workspace",
-      env: process.env,
-      bundledProviderAllowlistCompat: true,
-      bundledProviderVitestCompat: true,
-    });
-    expect(contributions[0]?.option.docs).toEqual({ path: "/providers/vllm" });
+    expect(contributions).toEqual([]);
   });
 });

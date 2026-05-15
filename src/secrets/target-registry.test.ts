@@ -100,11 +100,11 @@ describe("secret target registry", () => {
     expect(targets[0]?.path).toBe("talk.apiKey");
   });
 
-  it("resolves config targets by exact path including sibling ref metadata", () => {
-    const target = resolveConfigSecretTargetByPath(["channels", "googlechat", "serviceAccount"]);
+  it("resolves config targets by exact path", () => {
+    const target = resolveConfigSecretTargetByPath(["talk", "apiKey"]);
     expect(target).not.toBeNull();
-    expect(target?.entry.id).toBe("channels.googlechat.serviceAccount");
-    expect(target?.refPathSegments).toEqual(["channels", "googlechat", "serviceAccountRef"]);
+    expect(target?.entry.id).toBe("talk.apiKey");
+    expect(target?.refPathSegments).toBeUndefined();
   });
 
   it("returns null when no config target path matches", () => {

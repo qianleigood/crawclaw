@@ -52,7 +52,7 @@ function resolveOriginRoutingMetadata(items: FollowupRun[]): OriginRoutingMetada
     originatingChannel: items.find((item) => item.originatingChannel)?.originatingChannel,
     originatingTo: items.find((item) => item.originatingTo)?.originatingTo,
     originatingAccountId: items.find((item) => item.originatingAccountId)?.originatingAccountId,
-    // Support both number (Telegram topic) and string (Slack thread_ts) thread IDs.
+    // Support both numeric topic and string channel thread IDs.
     originatingThreadId: items.find(
       (item) => item.originatingThreadId != null && item.originatingThreadId !== "",
     )?.originatingThreadId,
@@ -68,7 +68,7 @@ function resolveCrossChannelKey(item: FollowupRun): { cross?: true; key?: string
   if (!isRoutableChannel(channel) || !to) {
     return { cross: true };
   }
-  // Support both number (Telegram topic IDs) and string (Slack thread_ts) thread IDs.
+  // Support both number (channel topic IDs) and string (channel thread id) thread IDs.
   const threadKey = threadId != null && threadId !== "" ? String(threadId) : "";
   return {
     key: [channel, to, accountId || "", threadKey].join("|"),

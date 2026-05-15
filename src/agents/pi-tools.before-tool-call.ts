@@ -434,7 +434,7 @@ function evaluateMemoryMaintenanceToolGuard(params: {
   if (toolName === "read") {
     return { blocked: false, params: params.toolParams };
   }
-  if (toolName === "exec") {
+  if (toolName === "exec" || toolName === "bash") {
     if (!isPlainObject(params.toolParams)) {
       return { blocked: true, reason: "memory maintenance exec requires object parameters" };
     }

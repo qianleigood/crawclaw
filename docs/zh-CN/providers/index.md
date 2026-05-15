@@ -18,7 +18,7 @@ x-i18n:
 CrawClaw 可以使用许多 LLM 提供商。选择一个提供商，完成身份验证，然后将
 默认模型设置为 `provider/model`。
 
-在找聊天渠道文档（WhatsApp/Telegram/Discord/Slack/Mattermost（插件）/等）？请参见 [Channels](/channels)。
+在找聊天渠道文档（Weixin/Feishu/QQBot/DingTalk/Feishu（插件）/等）？请参见 [Channels](/channels)。
 
 ## 快速开始
 

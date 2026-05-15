@@ -33,12 +33,12 @@ describe("message policy runtime adapter", () => {
           },
         },
       } as CrawClawConfig,
-      channel: "telegram",
+      channel: "feishu",
       action: "send",
-      args: { to: "telegram:@ops" },
+      args: { to: "feishu:@ops" },
       toolContext: {
         currentChannelId: "C123",
-        currentChannelProvider: "slack",
+        currentChannelProvider: "ddingtalk",
       },
     });
 
@@ -47,9 +47,9 @@ describe("message policy runtime adapter", () => {
       {
         operation: "outbound.enforceCrossContextPolicy",
         payload: expect.objectContaining({
-          channel: "telegram",
+          channel: "feishu",
           action: "send",
-          args: { to: "telegram:@ops" },
+          args: { to: "feishu:@ops" },
         }),
       },
       expect.objectContaining({
@@ -64,12 +64,12 @@ describe("message policy runtime adapter", () => {
     await expect(
       enforceRustCrossContextPolicy({
         cfg: {} as CrawClawConfig,
-        channel: "telegram",
+        channel: "feishu",
         action: "send",
-        args: { to: "telegram:@ops" },
+        args: { to: "feishu:@ops" },
         toolContext: {
           currentChannelId: "C123",
-          currentChannelProvider: "slack",
+          currentChannelProvider: "ddingtalk",
         },
       }),
     ).rejects.toThrow("Cross-context messaging denied");
@@ -78,7 +78,7 @@ describe("message policy runtime adapter", () => {
   it("keeps no-context sends on the local fast path", async () => {
     await enforceRustCrossContextPolicy({
       cfg: {} as CrawClawConfig,
-      channel: "slack",
+      channel: "ddingtalk",
       action: "send",
       args: { to: "channel:C123" },
     });
@@ -124,7 +124,7 @@ describe("message policy runtime adapter", () => {
     runRuntimeTool.mockResolvedValue({
       request: {
         requestId: "out-1",
-        channel: "slack",
+        channel: "ddingtalk",
         accountId: "default",
         action: "send",
         to: "channel:C123",
@@ -138,7 +138,7 @@ describe("message policy runtime adapter", () => {
 
     const request = await buildRustChannelOutboundRequest({
       requestId: "out-1",
-      channel: "slack",
+      channel: "ddingtalk",
       accountId: "default",
       action: "send",
       to: "channel:C123",
@@ -152,7 +152,7 @@ describe("message policy runtime adapter", () => {
     expect(request).toEqual(
       expect.objectContaining({
         requestId: "out-1",
-        channel: "slack",
+        channel: "ddingtalk",
         action: "send",
         to: "channel:C123",
         text: "hello",

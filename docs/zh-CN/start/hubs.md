@@ -85,14 +85,14 @@ x-i18n:
 
 - [聊天渠道中心](/channels)
 - [模型提供商中心](/providers/models)
-- [WhatsApp](/channels/whatsapp)
-- [Telegram](/channels/telegram)
-- [Slack](/channels/slack)
-- [Discord](/channels/discord)
-- [Mattermost](/channels/mattermost)（插件）
-- [Signal](/channels/signal)
-- [BlueBubbles (iMessage)](/channels/bluebubbles)
-- [iMessage（旧版）](/channels/imessage)
+- [Weixin](/channels/index)
+- [Feishu](/channels/index)
+- [DingTalk](/channels/index)
+- [QQBot](/channels/index)
+- [Feishu](/channels/index)（插件）
+- [Feishu](/channels/index)
+- [Weixin (Weixin)](/channels/index)
+- [Weixin（旧版）](/channels/index)
 - [位置解析](/channels/location)
 - [Webhooks](/automation/webhook)
 - [Gmail Pub/Sub](/automation/gmail-pubsub)

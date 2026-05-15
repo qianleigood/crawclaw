@@ -65,7 +65,7 @@ x-i18n:
 - 在 LM Studio 中，下载**可用的最大 MiniMax M2.5 构建版本**（避免 “small” / 重度量化变体），启动服务器，并确认 `http://127.0.0.1:1234/v1/models` 中列出了它。
 - 保持模型处于已加载状态；冷加载会增加启动延迟。
 - 如果你的 LM Studio 构建不同，请调整 `contextWindow` / `maxTokens`。
-- 对于 WhatsApp，请坚持使用 Responses API，这样只会发送最终文本。
+- 对于 Weixin，请坚持使用 Responses API，这样只会发送最终文本。
 
 即使在本地运行时，也要保留托管模型配置；使用 `models.mode: "merge"`，以便回退模型始终可用。
 

@@ -7,7 +7,7 @@ It covers:
 - discovery and manifest loading
 - registry assembly
 - plugin runtime activation
-- provider and channel capability wiring
+- non-LLM provider and channel capability wiring
 - contract enforcement for bundled and external plugins
 
 Top-level plugin boundary notes already live in `src/plugins/AGENTS.md`. This
@@ -18,7 +18,6 @@ README is the maintainer entry point for the core plugin runtime.
 - `loader.ts`
 - `registry.ts`
 - `runtime.ts`
-- `provider-runtime.ts`
 - `manifest.ts`
 - `public-artifacts.ts`
 

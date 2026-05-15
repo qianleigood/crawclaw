@@ -24,7 +24,7 @@ afterEach(() => {
 
 describe("plugin loader git path regression", () => {
   it("loads git-style package extension entries when they import plugin-sdk infra-runtime (#49806)", async () => {
-    const copiedExtensionRoot = path.join(makeTempDir(), "extensions", "imessage");
+    const copiedExtensionRoot = path.join(makeTempDir(), "extensions", "weixin");
     const copiedSourceDir = path.join(copiedExtensionRoot, "src");
     const copiedPluginSdkDir = path.join(copiedExtensionRoot, "plugin-sdk");
     mkdirSafe(copiedSourceDir);

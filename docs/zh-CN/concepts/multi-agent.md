@@ -19,7 +19,7 @@ x-i18n:
 如果你想看整个仓库里 `agents / channels / gateway / memory / workflow` 的分层关系，请先读 [项目整体架构总览](/concepts/project-architecture-overview)；如果你想看单个运行时的细节，请继续读 [智能体运行时](/concepts/agent)。
 </Note>
 
-目标：多个*隔离的*智能体（独立的工作区 + `agentDir` + 会话），加上多个渠道账户（例如两个 WhatsApp）在一个运行的 Gateway 网关中。入站消息通过绑定路由到智能体。
+目标：多个*隔离的*智能体（独立的工作区 + `agentDir` + 会话），加上多个渠道账户（例如两个 Weixin）在一个运行的 Gateway 网关中。入站消息通过绑定路由到智能体。
 
 ## 什么是"一个智能体"？
 
@@ -86,9 +86,9 @@ crawclaw agents list --bindings
 
 这让**多个人**共享一个 Gateway 网关服务器，同时保持他们的 AI"大脑"和数据隔离。
 
-## 一个 WhatsApp 号码，多个人（私信分割）
+## 一个 Weixin 号码，多个人（私信分割）
 
-你可以将**不同的 WhatsApp 私信**路由到不同的智能体，同时保持**一个 WhatsApp 账户**。使用 `peer.kind: "dm"` 匹配发送者 E.164（如 `+15551234567`）。回复仍然来自同一个 WhatsApp 号码（无每智能体发送者身份）。
+你可以将**不同的 Weixin 私信**路由到不同的智能体，同时保持**一个 Weixin 账户**。使用 `peer.kind: "dm"` 匹配发送者 E.164（如 `+15551234567`）。回复仍然来自同一个 Weixin 号码（无每智能体发送者身份）。
 
 重要细节：直接聊天折叠到智能体的**主会话键**，因此真正的隔离需要**每人一个智能体**。
 
@@ -103,11 +103,11 @@ crawclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "alex", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230001" } } },
-    { agentId: "mia", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551230002" } } },
+    { agentId: "alex", match: { channel: "weixin", peer: { kind: "dm", id: "+15551230001" } } },
+    { agentId: "mia", match: { channel: "weixin", peer: { kind: "dm", id: "+15551230002" } } },
   ],
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "allowlist",
       allowFrom: ["+15551230001", "+15551230002"],
     },
@@ -117,7 +117,7 @@ crawclaw agents list --bindings
 
 注意事项：
 
-- 私信访问控制是**每 WhatsApp 账户全局的**（配对/允许列表），而不是每智能体。
+- 私信访问控制是**每 Weixin 账户全局的**（配对/允许列表），而不是每智能体。
 - 对于共享群组，将群组绑定到一个智能体或使用 [广播群组](/channels/broadcast-groups)。
 
 ## 路由规则（消息如何选择智能体）
@@ -125,24 +125,24 @@ crawclaw agents list --bindings
 绑定是**确定性的**，**最具体的优先**：
 
 1. `peer` 匹配（精确私信/群组/频道 id）
-2. `guildId`（Discord）
-3. `teamId`（Slack）
+2. `guildId`（QQBot）
+3. `teamId`（DingTalk）
 4. 渠道的 `accountId` 匹配
 5. 渠道级匹配（`accountId: "*"`）
 6. 回退到默认智能体（`agents.list[].default`，否则列表中的第一个条目，默认：`main`）
 
 ## 多账户/电话号码
 
-支持**多账户**的渠道（如 WhatsApp）使用 `accountId` 来识别每个登录。每个 `accountId` 可以路由到不同的智能体，因此一个服务器可以托管多个电话号码而不混合会话。
+支持**多账户**的渠道（如 Weixin）使用 `accountId` 来识别每个登录。每个 `accountId` 可以路由到不同的智能体，因此一个服务器可以托管多个电话号码而不混合会话。
 
 ## 概念
 
 - `agentId`：一个"大脑"（工作区、每智能体认证、每智能体会话存储）。
-- `accountId`：一个渠道账户实例（例如 WhatsApp 账户 `"personal"` vs `"biz"`）。
+- `accountId`：一个渠道账户实例（例如 Weixin 账户 `"personal"` vs `"biz"`）。
 - `binding`：通过 `(channel, accountId, peer)` 以及可选的 guild/team id 将入站消息路由到 `agentId`。
 - 直接聊天折叠到 `agent:<agentId>:<mainKey>`（每智能体"主"；`session.mainKey`）。
 
-## 示例：两个 WhatsApp → 两个智能体
+## 示例：两个 Weixin → 两个智能体
 
 `~/.crawclaw/crawclaw.json`（JSON5）：
 
@@ -168,14 +168,14 @@ crawclaw agents list --bindings
 
   // 确定性路由：第一个匹配获胜（最具体的优先）。
   bindings: [
-    { agentId: "home", match: { channel: "whatsapp", accountId: "personal" } },
-    { agentId: "work", match: { channel: "whatsapp", accountId: "biz" } },
+    { agentId: "home", match: { channel: "weixin", accountId: "personal" } },
+    { agentId: "work", match: { channel: "weixin", accountId: "biz" } },
 
     // 可选的每对等方覆盖（示例：将特定群组发送到 work 智能体）。
     {
       agentId: "work",
       match: {
-        channel: "whatsapp",
+        channel: "weixin",
         accountId: "personal",
         peer: { kind: "group", id: "1203630...@g.us" },
       },
@@ -191,15 +191,15 @@ crawclaw agents list --bindings
   },
 
   channels: {
-    whatsapp: {
+    weixin: {
       accounts: {
         personal: {
-          // 可选覆盖。默认：~/.crawclaw/credentials/whatsapp/personal
-          // authDir: "~/.crawclaw/credentials/whatsapp/personal",
+          // 可选覆盖。默认：~/.crawclaw/credentials/weixin/personal
+          // authDir: "~/.crawclaw/credentials/weixin/personal",
         },
         biz: {
-          // 可选覆盖。默认：~/.crawclaw/credentials/whatsapp/biz
-          // authDir: "~/.crawclaw/credentials/whatsapp/biz",
+          // 可选覆盖。默认：~/.crawclaw/credentials/weixin/biz
+          // authDir: "~/.crawclaw/credentials/weixin/biz",
         },
       },
     },
@@ -214,9 +214,9 @@ crawclaw agents list --bindings
 - [Models CLI](/concepts/models)
 - [项目整体架构总览](/concepts/project-architecture-overview)
 
-## 示例：WhatsApp 日常聊天 + Telegram 深度工作
+## 示例：Weixin 日常聊天 + Feishu 深度工作
 
-按渠道分割：将 WhatsApp 路由到快速日常智能体，Telegram 路由到 Opus 智能体。
+按渠道分割：将 Weixin 路由到快速日常智能体，Feishu 路由到 Opus 智能体。
 
 ```json5
 {
@@ -237,20 +237,20 @@ crawclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "chat", match: { channel: "whatsapp" } },
-    { agentId: "opus", match: { channel: "telegram" } },
+    { agentId: "chat", match: { channel: "weixin" } },
+    { agentId: "opus", match: { channel: "feishu" } },
   ],
 }
 ```
 
 注意事项：
 
-- 如果你有一个渠道的多个账户，请在绑定中添加 `accountId`（例如 `{ channel: "whatsapp", accountId: "personal" }`）。
+- 如果你有一个渠道的多个账户，请在绑定中添加 `accountId`（例如 `{ channel: "weixin", accountId: "personal" }`）。
 - 要将单个私信/群组路由到 Opus 而保持其余在 chat 上，请为该对等方添加 `match.peer` 绑定；对等方匹配始终优先于渠道级规则。
 
 ## 示例：同一渠道，一个对等方到 Opus
 
-保持 WhatsApp 在快速智能体上，但将一个私信路由到 Opus：
+保持 Weixin 在快速智能体上，但将一个私信路由到 Opus：
 
 ```json5
 {
@@ -271,17 +271,17 @@ crawclaw agents list --bindings
     ],
   },
   bindings: [
-    { agentId: "opus", match: { channel: "whatsapp", peer: { kind: "dm", id: "+15551234567" } } },
-    { agentId: "chat", match: { channel: "whatsapp" } },
+    { agentId: "opus", match: { channel: "weixin", peer: { kind: "dm", id: "+15551234567" } } },
+    { agentId: "chat", match: { channel: "weixin" } },
   ],
 }
 ```
 
 对等方绑定始终获胜，因此将它们放在渠道级规则之上。
 
-## 绑定到 WhatsApp 群组的家庭智能体
+## 绑定到 Weixin 群组的家庭智能体
 
-将专用家庭智能体绑定到单个 WhatsApp 群组，使用提及限制和更严格的工具策略：
+将专用家庭智能体绑定到单个 Weixin 群组，使用提及限制和更严格的工具策略：
 
 ```json5
 {
@@ -318,7 +318,7 @@ crawclaw agents list --bindings
     {
       agentId: "family",
       match: {
-        channel: "whatsapp",
+        channel: "weixin",
         peer: { kind: "group", id: "120363999999999999@g.us" },
       },
     },

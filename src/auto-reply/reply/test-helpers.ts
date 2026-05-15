@@ -31,7 +31,7 @@ export function createMockFollowupRun(
       agentDir: "/tmp/agent",
       sessionId: "session",
       sessionKey: "main",
-      messageProvider: "whatsapp",
+      messageProvider: "weixin",
       agentAccountId: "primary",
       sessionFile: "/tmp/session.jsonl",
       workspaceDir: "/tmp",

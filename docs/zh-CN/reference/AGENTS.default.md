@@ -95,7 +95,7 @@ git commit -m "Add Clawd workspace"
 
 ## CrawClaw 的功能
 
-- 运行 WhatsApp Gateway 网关 + Pi 编程智能体，使助手可以读写聊天、获取上下文，并通过主机 Mac 运行 Skills。
+- 运行 Weixin Gateway 网关 + Pi 编程智能体，使助手可以读写聊天、获取上下文，并通过主机 Mac 运行 Skills。
 - 节点主机管理权限（屏幕录制、通知、麦克风）并通过其内置二进制文件暴露 `crawclaw` CLI。
 - 私聊默认折叠到智能体的 `main` 会话；群组保持隔离为 `agent:<agentId>:<channel>:group:<id>`（房间/频道：`agent:<agentId>:<channel>:channel:<id>`）；后台任务完成时可以入队主会话唤醒事件。
 
@@ -106,9 +106,9 @@ git commit -m "Add Clawd workspace"
 - **camsnap** — 从 RTSP/ONVIF 安防摄像头捕获帧、片段或运动警报。
 - **oracle** — 支持 OpenAI 的智能体 CLI，具有会话回放和浏览器控制。
 - **eightctl** — 从终端控制你的睡眠。
-- **imsg** — 发送、读取、流式传输 iMessage 和短信。
-- **wacli** — WhatsApp CLI：同步、搜索、发送。
-- **discord** — Discord 操作：回应、贴纸、投票。使用 `user:<id>` 或 `channel:<id>` 目标（纯数字 id 有歧义）。
+- **imsg** — 发送、读取、流式传输 Weixin 和短信。
+- **wacli** — Weixin CLI：同步、搜索、发送。
+- **qqbot** — QQBot 操作：回应、贴纸、投票。使用 `user:<id>` 或 `channel:<id>` 目标（纯数字 id 有歧义）。
 - **gog** — Google Suite CLI：Gmail、日历、云端硬盘、通讯录。
 - **spotify-player** — 终端 Spotify 客户端，用于搜索/排队/控制播放。
 - **sag** — 具有 mac 风格 say UX 的 ElevenLabs 语音；默认流式输出到扬声器。

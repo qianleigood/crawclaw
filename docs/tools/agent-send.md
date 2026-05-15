@@ -40,10 +40,10 @@ programmatic delivery.
 
   <Step title="Deliver the reply to a channel">
     ```bash
-    # Deliver to WhatsApp (default channel)
+    # Deliver to Weixin (default channel)
     # Use CrawClaw Desktop or the local Gateway API for this operation.
 
-    # Deliver to Slack
+    # Deliver to DingTalk
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
@@ -60,7 +60,7 @@ programmatic delivery.
 | `--session-id \<id\>`         | Reuse an existing session by id                             |
 | `--local`                     | Force local embedded runtime (skip Gateway)                 |
 | `--deliver`                   | Send the reply to a chat channel                            |
-| `--channel \<name\>`          | Delivery channel (whatsapp, telegram, discord, slack, etc.) |
+| `--channel \<name\>`          | Delivery channel (weixin, feishu, qqbot, ddingtalk, etc.)   |
 | `--reply-to \<target\>`       | Delivery target override                                    |
 | `--reply-channel \<name\>`    | Delivery channel override                                   |
 | `--reply-account \<id\>`      | Delivery account id override                                |

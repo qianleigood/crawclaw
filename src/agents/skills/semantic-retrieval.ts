@@ -1,18 +1,17 @@
 import path from "node:path";
 import type { CrawClawConfig } from "../../config/config.js";
-import { createProviderEmbeddingProvider } from "../../plugins/provider-runtime.js";
-import type { PluginEmbeddingProvider } from "../../plugins/types.js";
 import type {
   SkillDiscoveryCandidate,
   SkillSemanticRetrieveRequest,
   SkillSemanticRetriever,
 } from "./discovery.js";
-import { getSkillsSnapshotVersion } from "./refresh.js";
 
-type SkillEmbeddingProvider = Pick<
-  PluginEmbeddingProvider,
-  "id" | "model" | "embedQuery" | "embedBatch"
->;
+type SkillEmbeddingProvider = {
+  id: string;
+  model: string;
+  embedQuery: (input: string) => Promise<number[]>;
+  embedBatch: (inputs: string[]) => Promise<number[][]>;
+};
 
 type CreateEmbeddingProvider = () => Promise<SkillEmbeddingProvider | null | undefined>;
 
@@ -195,26 +194,6 @@ export function createSkillSemanticRetrieverFromConfig(params: {
   if (!provider || !model) {
     return undefined;
   }
-  return createSkillSemanticRetriever({
-    workspaceDir: params.workspaceDir,
-    provider,
-    model,
-    snapshotVersion: getSkillsSnapshotVersion(params.workspaceDir),
-    batchSize: semanticConfig.batchSize,
-    createEmbeddingProvider: async () => {
-      const providerApiKey = await params.getProviderApiKey?.(provider);
-      return await createProviderEmbeddingProvider({
-        provider,
-        config: params.config,
-        workspaceDir: params.workspaceDir,
-        context: {
-          config: params.config ?? {},
-          workspaceDir: params.workspaceDir,
-          provider,
-          model,
-          providerApiKey,
-        },
-      });
-    },
-  });
+  void params.getProviderApiKey;
+  return undefined;
 }

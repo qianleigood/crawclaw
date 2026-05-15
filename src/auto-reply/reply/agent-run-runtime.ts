@@ -49,7 +49,7 @@ type RustAgentRunEvent =
       [key: string]: unknown;
     };
 
-type RustAgentRunResult = {
+type NativeAgentRunResult = {
   runId: string;
   sessionKey: string;
   assistantText?: string;
@@ -306,7 +306,7 @@ export async function dispatchInboundWithRustAgent(params: {
 
   throwIfAborted(params.replyOptions?.abortSignal);
   const result = await withAbort(
-    runCrawClawRuntimeTool<RustAgentRunResult>("agent_run_turn", request, {
+    runCrawClawRuntimeTool<NativeAgentRunResult>("agent_run_turn", request, {
       timeoutMs: resolveAgentTimeoutMs({
         cfg: params.cfg,
         overrideSeconds: params.replyOptions?.timeoutOverrideSeconds,

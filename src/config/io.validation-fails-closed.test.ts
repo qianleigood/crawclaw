@@ -14,12 +14,7 @@ describe("config validation fail-closed behavior", () => {
       {
         agents: { list: [{ id: "main" }] },
         nope: true,
-        channels: {
-          feishu: {
-            dmPolicy: "allowlist",
-            allowFrom: ["+1234567890"],
-          },
-        },
+        gateway: { mode: "local" },
       },
       async () => {
         const spy = vi.spyOn(console, "error").mockImplementation(() => {});
@@ -37,21 +32,15 @@ describe("config validation fail-closed behavior", () => {
     );
   });
 
-  it("still loads valid security settings unchanged", async () => {
+  it("still loads valid gateway settings unchanged", async () => {
     await withTempHomeConfig(
       {
         agents: { list: [{ id: "main" }] },
-        channels: {
-          feishu: {
-            dmPolicy: "allowlist",
-            allowFrom: ["+1234567890"],
-          },
-        },
+        gateway: { mode: "local" },
       },
       async () => {
         const cfg = loadConfig();
-        expect(cfg.channels?.feishu?.dmPolicy).toBe("allowlist");
-        expect(cfg.channels?.feishu?.allowFrom).toEqual(["+1234567890"]);
+        expect(cfg.gateway?.mode).toBe("local");
       },
     );
   });

@@ -95,7 +95,6 @@ describe("wide-area DNS-SD zone rendering", () => {
     const txt = renderZoneText({
       tailnetIPv6: "fd7a:115c:a1e0::8801:e04c",
       sshPort: 22,
-      cliPath: "/opt/homebrew/bin/crawclaw",
     });
 
     expectZoneRecords(txt, [
@@ -107,7 +106,6 @@ describe("wide-area DNS-SD zone rendering", () => {
       `displayName=Mac Studio (CrawClaw)`,
       `gatewayPort=18789`,
       `sshPort=22`,
-      `cliPath=/opt/homebrew/bin/crawclaw`,
     ]);
   });
 
@@ -127,7 +125,6 @@ describe("wide-area DNS-SD zone rendering", () => {
         gatewayTlsEnabled: true,
         gatewayTlsFingerprintSha256: "abc123",
         tailnetDns: " tailnet.ts.net ",
-        cliPath: " /opt/homebrew/bin/crawclaw ",
       },
       records: [
         `$ORIGIN crawclaw.internal.`,
@@ -137,7 +134,6 @@ describe("wide-area DNS-SD zone rendering", () => {
         `gatewayTls=1`,
         `gatewayTlsSha256=abc123`,
         `tailnetDns=tailnet.ts.net`,
-        `cliPath=/opt/homebrew/bin/crawclaw`,
       ],
     },
   ])("$name", ({ overrides, records }) => {

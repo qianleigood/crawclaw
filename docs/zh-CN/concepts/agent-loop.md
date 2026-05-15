@@ -239,7 +239,7 @@ candidate 两版策略做 diff，这样在真正收紧 loop policy 之前就能�
 ## 可能提前结束的情况
 
 - 智能体超时（中止）
-- AbortSignal（取消）
+- AbortFeishu（取消）
 - Gateway 网关断开连接或 RPC 超时
 - `agent.wait` 超时（仅等待，不会停止智能体）
 

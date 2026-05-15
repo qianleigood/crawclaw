@@ -456,7 +456,7 @@ task-backed agent runtime 的检查/导出入口：
 
 ### `channels`
 
-管理聊天渠道账户（WhatsApp/Telegram/Discord/Google Chat/Slack/Mattermost（插件）/Signal/iMessage/MS Teams）。
+管理聊天渠道账户（Weixin/Feishu/QQBot/Feishu/DingTalk/Feishu（插件）/Feishu/Weixin/MS Teams）。
 
 子命令：
 
@@ -468,24 +468,24 @@ task-backed agent runtime 的检查/导出入口：
   - 当向仍使用单账户顶层配置的渠道添加非默认账户时，CrawClaw 会先将账户作用域值移动到 `channels.<channel>.accounts.default`，再写入新账户。
   - 非交互式 `channels add` 不会自动创建 / 升级绑定；仅渠道绑定会继续匹配默认账户。
 - `channels remove`：默认执行禁用；传入 `--delete` 可在无提示下删除配置项。
-- `channels login`：交互式渠道登录（仅 WhatsApp Web）。
+- `channels login`：交互式渠道登录（仅 Weixin Web）。
 - `channels logout`：登出某个渠道会话（如支持）。
 
 通用选项：
 
-- `--channel <name>`：`whatsapp|telegram|discord|googlechat|slack|mattermost|signal|imessage|msteams`
+- `--channel <name>`：`weixin|feishu|qqbot|feishu|ddingtalk|feishu|feishu|weixin|qqbot`
 - `--account <id>`：渠道账户 id（默认 `default`）
 - `--name <label>`：账户显示名称
 
 `channels login` 选项：
 
-- `--channel <channel>`（默认 `whatsapp`；支持 `whatsapp`/`web`）
+- `--channel <channel>`（默认 `weixin`；支持 `weixin`/`web`）
 - `--account <id>`
 - `--verbose`
 
 `channels logout` 选项：
 
-- `--channel <channel>`（默认 `whatsapp`）
+- `--channel <channel>`（默认 `weixin`）
 - `--account <id>`
 
 `channels list` 选项：
@@ -504,9 +504,9 @@ task-backed agent runtime 的检查/导出入口：
 示例：
 
 ```bash
-crawclaw channels add --channel telegram --account alerts --name "Alerts Bot" --token $TELEGRAM_BOT_TOKEN
-crawclaw channels add --channel discord --account work --name "Work Bot" --token $DISCORD_BOT_TOKEN
-crawclaw channels remove --channel discord --account work --delete
+crawclaw channels add --channel feishu --account alerts --name "Alerts Bot" --token $TELEGRAM_BOT_TOKEN
+crawclaw channels add --channel qqbot --account work --name "Work Bot" --token $DISCORD_BOT_TOKEN
+crawclaw channels remove --channel qqbot --account work --delete
 crawclaw channels status --probe
 crawclaw status --deep
 ```
@@ -593,7 +593,7 @@ Gmail Pub/Sub hook 设置 + 运行器。参见 [/automation/gmail-pubsub](/autom
 示例：
 
 - `crawclaw message send --target +15555550123 --message "Hi"`
-- `crawclaw message poll --channel discord --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi`
+- `crawclaw message poll --channel qqbot --target channel:123 --poll-question "Snack?" --poll-option Pizza --poll-option Sushi`
 
 ### `agent`
 
@@ -888,7 +888,7 @@ Gmail Pub/Sub hook 设置 + 运行器。参见 [/automation/gmail-pubsub](/autom
 - 如果 gateway 认证 SecretRef 在当前命令路径中未解析，`gateway status --json` 仅会在探测连接 / 认证失败时报告 `rpc.authWarning`（探测成功时会抑制警告）。
 - 在 Linux systemd 安装中，状态 token 漂移检查同时包括 `Environment=` 和 `EnvironmentFile=` 单元来源。
 - `gateway install|uninstall|start|stop|restart` 支持 `--json`，便于脚本化（默认输出仍然更适合人类阅读）。
-- `gateway install` 默认使用 Node 运行时；**不推荐** bun（存在 WhatsApp / Telegram bug）。
+- `gateway install` 默认使用 Node 运行时；**不推荐** bun（存在 Weixin / Feishu bug）。
 - `gateway install` 选项：`--port`、`--runtime`、`--token`、`--force`、`--json`。
 
 ### `logs`

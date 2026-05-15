@@ -53,7 +53,7 @@ const actionCases: ActionCase[] = [
       body: "🎤 [Audio]",
       bodyForAgent: "[Audio] Transcript: Hello from voice",
       transcript: "Hello from voice",
-      channelId: "telegram",
+      channelId: "feishu",
       mediaType: "audio/ogg",
     },
     assertContext: (context) => {
@@ -71,7 +71,7 @@ const actionCases: ActionCase[] = [
       body: "🎤 [Audio]",
       bodyForAgent: "[Audio] Transcript: Check https://example.com\n[Link summary: Example site]",
       transcript: "Check https://example.com",
-      channelId: "telegram",
+      channelId: "feishu",
       mediaType: "audio/ogg",
       isGroup: false,
     },
@@ -89,17 +89,17 @@ const actionCases: ActionCase[] = [
       from: "bot:456",
       to: "user:123",
       content: "Reply text",
-      channelId: "discord",
+      channelId: "qqbot",
       conversationId: "channel:C123",
-      provider: "discord",
-      surface: "discord",
+      provider: "qqbot",
+      surface: "qqbot",
       threadId: "thread-abc",
-      originatingChannel: "discord",
+      originatingChannel: "qqbot",
       originatingTo: "channel:C123",
     },
     assertContext: (context) => {
       expect(context.content).toBe("Reply text");
-      expect(context.channelId).toBe("discord");
+      expect(context.channelId).toBe("qqbot");
       expect(context.conversationId).toBe("channel:C123");
       expect(context.threadId).toBe("thread-abc");
     },
@@ -259,7 +259,7 @@ describe("message hooks", () => {
         events.push(event);
       });
 
-      const sessionKey = "agent:main:telegram:abc";
+      const sessionKey = "agent:main:feishu:abc";
       const received = createInternalHookEvent("message", "received", sessionKey, {
         content: "hi",
       });

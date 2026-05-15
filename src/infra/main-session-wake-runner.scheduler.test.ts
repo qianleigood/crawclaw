@@ -244,13 +244,13 @@ describe("startMainSessionWakeRunner", () => {
       wake: {
         reason: "cron:job-123",
         agentId: "ops",
-        sessionKey: "agent:ops:discord:channel:alerts",
+        sessionKey: "agent:ops:qqbot:channel:alerts",
         coalesceMs: 0,
       },
       expectedCall: {
         agentId: "ops",
         reason: "cron:job-123",
-        sessionKey: "agent:ops:discord:channel:alerts",
+        sessionKey: "agent:ops:qqbot:channel:alerts",
       },
     });
 

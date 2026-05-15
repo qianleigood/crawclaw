@@ -202,7 +202,7 @@ title: 模块公开 Surface 与拆包准备
 
 现状：
 
-- `PR-06` 已把 workflow projection、typing、threading、binding、Telegram/Matrix/Slack/LINE 等 seam 收回 `src/channels`
+- `PR-06` 已把 workflow projection、typing、threading、binding、Feishu/Matrix/DingTalk/LINE 等 seam 收回 `src/channels`
 - 但这里仍有大量 internal runtime helper
 - 其对 extension 的正式 surface 目前主要还是通过 `plugin-sdk`
 

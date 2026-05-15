@@ -31,7 +31,7 @@ export interface TimestampInjectionOptions {
  * spawned subagents, `sessions_send`, and heartbeat wake events date/time
  * awareness — without modifying the system prompt (which is cached).
  *
- * Channel messages (Discord, Telegram, etc.) already have timestamps via
+ * Channel messages (native channels) already have timestamps via
  * envelope formatting and take a separate code path — they never reach
  * these handlers, so there is no double-stamping risk. The detection
  * pattern is a safety net for edge cases.

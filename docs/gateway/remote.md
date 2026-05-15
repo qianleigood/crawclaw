@@ -53,17 +53,17 @@ Guide: [Tailscale](/gateway/tailscale).
 
 One gateway service owns state, channels, and host-side tools.
 
-Flow example (Telegram -> Gateway tool):
+Flow example (Feishu -> Gateway tool):
 
-- Telegram message arrives at the **Gateway**.
+- Feishu message arrives at the **Gateway**.
 - Gateway runs the **agent** and calls local tools when policy allows.
-- Gateway replies back out to Telegram.
+- Gateway replies back out to Feishu.
 
 Notes:
 
 - Only one gateway should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)).
 
-## SSH tunnel (CLI + tools)
+## SSH tunnel (Desktop + tools)
 
 Create a local tunnel to the remote Gateway WS:
 
@@ -73,14 +73,13 @@ ssh -N -L 18789:127.0.0.1:18789 user@host
 
 With the tunnel up:
 
-- CrawClaw Desktop or the local Gateway API and CrawClaw Desktop or the local Gateway API now reach the remote gateway via `ws://127.0.0.1:18789`.
-- CrawClaw Desktop or the local Gateway API can also target the forwarded URL via `--url` when needed.
+- CrawClaw Desktop and local automation clients can reach the remote gateway via `ws://127.0.0.1:18789`.
+- Gateway API clients can target the forwarded URL when needed.
 
-Note: replace `18789` with your configured `gateway.port` (or `--port`/`CRAWCLAW_GATEWAY_PORT`).
-Note: when you pass `--url`, the CLI does not fall back to config or environment credentials.
-Include `--token` or `--password` explicitly. Missing explicit credentials is an error.
+Note: replace `18789` with your configured `gateway.port` or `CRAWCLAW_GATEWAY_PORT`.
+Remote clients should provide an explicit token or password instead of relying on implicit local credentials.
 
-## CLI remote defaults
+## Remote defaults
 
 You can persist a remote target so Desktop and Gateway API actions use it by default:
 
@@ -100,11 +99,11 @@ When the gateway is loopback-only, keep the URL at `ws://127.0.0.1:18789` and op
 
 ## Credential precedence
 
-Gateway credential resolution follows one shared contract across call/probe/status paths and Discord exec-approval monitoring. Node-host uses the same base contract with one local-mode exception (it intentionally ignores `gateway.remote.*`):
+Gateway credential resolution follows one shared contract across call/probe/status paths and community chat exec-approval monitoring. Node-host uses the same base contract with one local-mode exception (it intentionally ignores `gateway.remote.*`):
 
 - Explicit credentials (`--token`, `--password`, or tool `gatewayToken`) always win on call paths that accept explicit auth.
 - URL override safety:
-  - CLI URL overrides (`--url`) never reuse implicit config/env credentials.
+  - Explicit URL overrides never reuse implicit config credentials.
   - Env URL overrides (`CRAWCLAW_GATEWAY_URL`) may use env credentials only (`CRAWCLAW_GATEWAY_TOKEN` / `CRAWCLAW_GATEWAY_PASSWORD`).
 - Local mode defaults:
   - token: `CRAWCLAW_GATEWAY_TOKEN` -> `gateway.auth.token` -> `gateway.remote.token` (remote fallback applies only when local auth token input is unset)

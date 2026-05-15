@@ -14,7 +14,7 @@ const { handleBtwCommand } = await import("./commands-btw.js");
 function buildParams(commandBody: string) {
   const cfg = {
     commands: { text: true },
-    channels: { whatsapp: { allowFrom: ["*"] } },
+    channels: { weixin: { allowFrom: ["*"] } },
   } as CrawClawConfig;
   return buildCommandTestParams(commandBody, cfg, undefined, { workspaceDir: "/tmp/workspace" });
 }

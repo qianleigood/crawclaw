@@ -3,13 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestPluginApi } from "../../test/helpers/plugins/plugin-api.js";
 
 const runtimeMocks = vi.hoisted(() => ({
-  registerFeishuCliCli: vi.fn(),
   registerFeishuCliTools: vi.fn(),
   handleFeishuCliStatusGatewayRequest: vi.fn(),
-}));
-
-vi.mock("./src/cli.js", () => ({
-  registerFeishuCliCli: runtimeMocks.registerFeishuCliCli,
 }));
 
 vi.mock("./src/tools.js", () => ({
@@ -23,7 +18,6 @@ vi.mock("./src/gateway.js", () => ({
 import feishuCliPlugin from "./index.js";
 
 function createApi(pluginConfig?: Record<string, unknown>) {
-  const registerCli = vi.fn();
   const registerGatewayMethod = vi.fn();
   const registerTool = vi.fn();
   const api = createTestPluginApi({
@@ -33,13 +27,11 @@ function createApi(pluginConfig?: Record<string, unknown>) {
     config: {},
     pluginConfig,
     runtime: {} as CrawClawPluginApi["runtime"],
-    registerCli,
     registerGatewayMethod,
     registerTool,
   }) as CrawClawPluginApi;
   return {
     api,
-    registerCli,
     registerGatewayMethod,
     registerTool,
   };
@@ -50,11 +42,10 @@ describe("feishu-cli plugin", () => {
     vi.clearAllMocks();
   });
 
-  it("registers cli and gateway surfaces, plus tools when enabled", () => {
-    const { api, registerCli, registerGatewayMethod } = createApi();
+  it("registers gateway surfaces, plus tools when enabled", () => {
+    const { api, registerGatewayMethod } = createApi();
     feishuCliPlugin.register(api);
 
-    expect(registerCli).toHaveBeenCalledTimes(1);
     expect(registerGatewayMethod).toHaveBeenCalledWith(
       "feishu.cli.status",
       expect.any(Function),

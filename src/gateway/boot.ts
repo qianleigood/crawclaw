@@ -2,8 +2,6 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
-import type { CliDeps } from "../cli/deps.js";
-import { agentCommand } from "../commands/agent.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   resolveAgentIdFromSessionKey,
@@ -13,8 +11,10 @@ import {
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionStore, updateSessionStore } from "../config/sessions/store.js";
 import type { SessionEntry } from "../config/sessions/types.js";
+import { agentCommand } from "../control/agent.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { type RuntimeEnv, defaultRuntime } from "../runtime.js";
+import type { CliDeps } from "../terminal/deps.js";
 
 function generateBootSessionId(): string {
   const now = new Date();

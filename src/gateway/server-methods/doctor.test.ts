@@ -59,7 +59,7 @@ vi.mock("../../agents/agent-scope.js", () => ({
   resolveDefaultAgentId,
 }));
 
-vi.mock("../../commands/doctor-memory-health.js", () => ({
+vi.mock("../../control/doctor-memory-health.js", () => ({
   resolveDoctorMemoryHealth,
 }));
 

@@ -331,7 +331,7 @@ function normalizePayloadsForChannelDelivery(
   const normalizedPayloads: ReplyPayload[] = [];
   for (const payload of normalizeReplyPayloadsForDelivery(payloads)) {
     let sanitizedPayload = payload;
-    // Strip HTML tags for plain-text surfaces (WhatsApp, Signal, etc.)
+    // Strip HTML tags for plain-text surfaces (plain-text channels)
     // Models occasionally produce <br>, <b>, etc. that render as literal text.
     // See https://github.com/qianleigood/crawclaw/issues/31884
     if (handler.sanitizeText && sanitizedPayload.text) {

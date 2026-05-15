@@ -31,8 +31,8 @@ crawclaw memory refresh
 crawclaw memory login
 crawclaw memory dream status --json
 crawclaw memory dream history --json
-crawclaw memory dream run --agent main --channel telegram --user alice --force
-crawclaw memory dream run --agent main --channel telegram --user alice --dry-run --session-limit 6 --signal-limit 6
+crawclaw memory dream run --agent main --channel feishu --user alice --force
+crawclaw memory dream run --agent main --channel feishu --user alice --dry-run --session-limit 6 --feishu-limit 6
 crawclaw memory session-summary status --agent main --session-id sess-1 --json
 crawclaw memory session-summary refresh --agent main --session-id sess-1 --session-key agent:main:sess-1 --force
 crawclaw memory status --json
@@ -75,7 +75,7 @@ crawclaw memory prompt-journal-summary --json --days 1
 - `--force`：绕过手动运行的最小小时数和最小会话数门控。
 - `--dry-run`：预览 dream 窗口，无需获取文件锁或写入持久记忆。
 - `--session-limit <n>`：限制手动运行或预览的最近会话数量。
-- `--signal-limit <n>`：限制手动运行或预览的结构化信号数量。
+- `--feishu-limit <n>`：限制手动运行或预览的结构化信号数量。
 - `--verbose`：输出详细日志。
 
 `memory dream history`：

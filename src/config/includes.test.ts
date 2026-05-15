@@ -386,19 +386,19 @@ describe("real-world config patterns", () => {
         [configPath("gateway.json")]: {
           gateway: { port: 18789, bind: "loopback" },
         },
-        [configPath("channels", "whatsapp.json")]: {
-          channels: { whatsapp: { dmPolicy: "pairing", allowFrom: ["+49123"] } },
+        [configPath("channels", "weixin.json")]: {
+          channels: { weixin: { dmPolicy: "pairing", allowFrom: ["+49123"] } },
         },
         [configPath("agents", "defaults.json")]: {
           agents: { defaults: { workspace: "/srv/crawclaw/work" } },
         },
       },
       obj: {
-        $include: ["./gateway.json", "./channels/whatsapp.json", "./agents/defaults.json"],
+        $include: ["./gateway.json", "./channels/weixin.json", "./agents/defaults.json"],
       },
       expected: {
         gateway: { port: 18789, bind: "loopback" },
-        channels: { whatsapp: { dmPolicy: "pairing", allowFrom: ["+49123"] } },
+        channels: { weixin: { dmPolicy: "pairing", allowFrom: ["+49123"] } },
         agents: { defaults: { workspace: "/srv/crawclaw/work" } },
       },
     },

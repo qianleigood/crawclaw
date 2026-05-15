@@ -113,7 +113,7 @@ Model "provider/model" is not allowed. Use /model to list available models.
 说明：
 
 - `/model`（以及 `/model list`）是一个紧凑的编号选择器（模型家族 + 可用提供商）。
-- 在 Discord 上，`/model` 和 `/models` 会打开一个交互式选择器，其中包含提供商和模型下拉菜单，以及一个 Submit 步骤。
+- 在 QQBot 上，`/model` 和 `/models` 会打开一个交互式选择器，其中包含提供商和模型下拉菜单，以及一个 Submit 步骤。
 - `/model <#>` 会从该选择器中进行选择。
 - `/model status` 是详细视图（凭证候选项，以及在已配置时显示提供商端点 `baseUrl` + `api` 模式）。
 - 模型引用是通过按 **第一个** `/` 进行分割来解析的。输入 `/model <ref>` 时请使用 `provider/model`。

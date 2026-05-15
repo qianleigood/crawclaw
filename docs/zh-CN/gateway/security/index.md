@@ -60,10 +60,10 @@ CrawClaw 既是产品也是实验：你正在将前沿模型的行为连接到�
 
 在审计访问权限或决定备份内容时使用：
 
-- **WhatsApp**：`~/.crawclaw/credentials/whatsapp/<accountId>/creds.json`
-- **Telegram 机器人令牌**：配置/环境变量或 `channels.telegram.tokenFile`
-- **Discord 机器人令牌**：配置/环境变量（尚不支持令牌文件）
-- **Slack 令牌**：配置/环境变量（`channels.slack.*`）
+- **Weixin**：`~/.crawclaw/credentials/weixin/<accountId>/creds.json`
+- **Feishu 机器人令牌**：配置/环境变量或 `channels.feishu.tokenFile`
+- **QQBot 机器人令牌**：配置/环境变量（尚不支持令牌文件）
+- **DingTalk 令牌**：配置/环境变量（`channels.ddingtalk.*`）
 - **配对白名单**：`~/.crawclaw/credentials/<channel>-allowFrom.json`
 - **模型认证配置**：`~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`
 - **旧版 OAuth 导入**：`~/.crawclaw/credentials/oauth.json`
@@ -132,7 +132,7 @@ CrawClaw 可以在会话中刷新 Skills 列表：
 - 执行任意 shell 命令
 - 读写文件
 - 访问网络服务
-- 向任何人发送消息（如果你给它 WhatsApp 访问权限）
+- 向任何人发送消息（如果你给它 Weixin 访问权限）
 
 给你发消息的人可以：
 
@@ -205,13 +205,13 @@ crawclaw pairing approve <channel> <code>
 
 CrawClaw 有两个独立的"谁可以触发我？"层：
 
-- **私信白名单**（`allowFrom` / `channels.discord.dm.allowFrom` / `channels.slack.dm.allowFrom`）：谁被允许在私信中与机器人交谈。
+- **私信白名单**（`allowFrom` / `channels.qqbot.dm.allowFrom` / `channels.ddingtalk.dm.allowFrom`）：谁被允许在私信中与机器人交谈。
   - 当 `dmPolicy="pairing"` 时，批准会写入 `~/.crawclaw/credentials/<channel>-allowFrom.json`（与配置白名单合并）。
 - **群组白名单**（特定于渠道）：机器人会接受来自哪些群组/渠道/公会的消息。
   - 常见模式：
-    - `channels.whatsapp.groups`、`channels.telegram.groups`、`channels.imessage.groups`：单群组默认值如 `requireMention`；设置时，它也充当群组白名单（包含 `"*"` 以保持允许所有的行为）。
-    - `groupPolicy="allowlist"` + `groupAllowFrom`：限制谁可以在群组会话*内部*触发机器人（WhatsApp/Telegram/Signal/iMessage/Microsoft Teams）。
-    - `channels.discord.guilds` / `channels.slack.channels`：单平台白名单 + 提及默认值。
+    - `channels.weixin.groups`、`channels.feishu.groups`、`channels.weixin.groups`：单群组默认值如 `requireMention`；设置时，它也充当群组白名单（包含 `"*"` 以保持允许所有的行为）。
+    - `groupPolicy="allowlist"` + `groupAllowFrom`：限制谁可以在群组会话*内部*触发机器人（Weixin/Feishu/Feishu/Weixin/QQBot）。
+    - `channels.qqbot.guilds` / `channels.ddingtalk.channels`：单平台白名单 + 提及默认值。
   - **安全说明：** 将 `dmPolicy="open"` 和 `groupPolicy="open"` 视为最后手段的设置。应该很少使用；除非你完全信任房间的每个成员，否则优先使用配对 + 白名单。
 
 详情：[配置](/gateway/configuration)和[群组](/channels/groups)
@@ -449,7 +449,7 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
 假设 `~/.crawclaw/`（或 `$CRAWCLAW_STATE_DIR/`）下的任何内容都可能包含秘密或私有数据：
 
 - `crawclaw.json`：配置可能包含令牌（Gateway 网关、远程 Gateway 网关）、提供商设置和白名单。
-- `credentials/**`：渠道凭证（例如：WhatsApp 凭证）、配对白名单、旧版 OAuth 导入。
+- `credentials/**`：渠道凭证（例如：Weixin 凭证）、配对白名单、旧版 OAuth 导入。
 - `agents/<agentId>/agent/auth-profiles.json`：API 密钥 + OAuth 令牌（从旧版 `credentials/oauth.json` 导入）。
 - `agents/<agentId>/sessions/**`：会话记录（`*.jsonl`）+ 路由元数据（`sessions.json`），可能包含私人消息和工具输出。
 - `extensions/**`：已安装的插件（加上它们的 `node_modules/`）。
@@ -481,7 +481,7 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
 
 ```json5
 {
-  channels: { whatsapp: { dmPolicy: "pairing" } },
+  channels: { weixin: { dmPolicy: "pairing" } },
 }
 ```
 
@@ -490,7 +490,7 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
 ```json
 {
   "channels": {
-    "whatsapp": {
+    "weixin": {
       "groups": {
         "*": { "requireMention": true }
       }
@@ -538,7 +538,7 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
     auth: { mode: "token", token: "your-long-random-token" },
   },
   channels: {
-    whatsapp: {
+    weixin: {
       dmPolicy: "pairing",
       groups: { "*": { requireMention: true } },
     },
@@ -653,10 +653,10 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
             "sessions_send",
             "sessions_spawn",
             "session_status",
-            "whatsapp",
-            "telegram",
-            "slack",
-            "discord",
+            "weixin",
+            "feishu",
+            "ddingtalk",
+            "qqbot",
           ],
           deny: [
             "read",
@@ -706,7 +706,7 @@ Doctor 可以为你生成一个：`crawclaw doctor --generate-gateway-token`。
 
 1. 轮换 Gateway 网关认证（`gateway.auth.token` / `CRAWCLAW_GATEWAY_PASSWORD`）并重启。
 2. 轮换任何可以调用 Gateway 网关的机器上的远程客户端秘密（`gateway.remote.token` / `.password`）。
-3. 轮换提供商/API 凭证（WhatsApp 凭证、Slack/Discord 令牌、`auth-profiles.json` 中的模型/API 密钥）。
+3. 轮换提供商/API 凭证（Weixin 凭证、DingTalk/QQBot 令牌、`auth-profiles.json` 中的模型/API 密钥）。
 
 ### 审计
 

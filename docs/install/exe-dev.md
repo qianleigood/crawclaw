@@ -64,7 +64,7 @@ sudo apt-get install -y git curl jq ca-certificates openssl
 Run the CrawClaw install script:
 
 ```bash
-curl -fsSL https://crawclaw.ai/install.sh | bash
+# Install CrawClaw Desktop from GitHub Releases.
 ```
 
 ## 4) Setup nginx to proxy CrawClaw to port 8000

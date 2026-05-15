@@ -4,9 +4,6 @@ import {
   normalizeThinkLevel,
   normalizeVerboseLevel,
 } from "../../auto-reply/thinking.js";
-import { formatCliCommand } from "../../cli/command-format.js";
-import { resolveCommandSecretRefsViaGateway } from "../../cli/command-secret-gateway.js";
-import { getAgentRuntimeCommandSecretTargetIds } from "../../cli/command-secret-targets.js";
 import {
   loadConfig,
   readConfigFileSnapshotForWrite,
@@ -16,6 +13,9 @@ import { resolveAgentIdFromSessionKey, type SessionEntry } from "../../config/se
 import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import type { RuntimeEnv } from "../../runtime.js";
+import { formatCliCommand } from "../../terminal/command-format.js";
+import { resolveCommandSecretRefsViaGateway } from "../../terminal/command-secret-gateway.js";
+import { getAgentRuntimeCommandSecretTargetIds } from "../../terminal/command-secret-targets.js";
 import {
   listAgentIds,
   resolveAgentDir,
