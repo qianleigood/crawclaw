@@ -1,5 +1,5 @@
 import type { Context, Model, SimpleStreamOptions } from "@mariozechner/pi-ai";
-import type { ThinkLevel } from "../../auto-reply/thinking.shared.js";
+import type { ThinkLevel } from "../../agents/thinking.shared.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { StreamFn } from "../agent-types.js";
 import { applyExtraParamsToAgent } from "./extra-params.js";

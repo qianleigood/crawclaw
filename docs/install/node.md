@@ -1,17 +1,19 @@
 ---
 title: "Node.js"
-summary: "Node.js requirements for CrawClaw repository development and bundled Node plugin runtime work"
+summary: "Node.js requirements for CrawClaw repository development"
 read_when:
   - "You are working from a CrawClaw source checkout"
-  - "You are developing a Node-based plugin runtime"
   - "You need to run repository tests or build scripts"
 ---
 
 # Node.js
 
-Desktop users do not need a global `crawclaw` command or a manually configured Node install. CrawClaw Desktop bundles the runtime it needs.
+Desktop users do not need a global `crawclaw` command or a manually configured
+Node install. CrawClaw Desktop bundles the Rust runtime and managed native
+runtime resources it needs.
 
-Repository development still uses **Node 24.x or newer** for TypeScript tooling, tests, docs checks, and Node-based plugin runtime work. Node 24 is the stable baseline.
+Repository development still uses **Node 24.x or newer** for TypeScript tooling,
+tests, docs checks, and packaging scripts. Node 24 is the stable baseline.
 
 ## Check your version
 

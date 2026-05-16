@@ -17,7 +17,7 @@ import {
 } from "./lib/ts-guard-utils.mjs";
 
 const repoRoot = resolveRepoRoot(import.meta.url);
-const scanRoots = resolveSourceRoots(repoRoot, ["src/agents", "src/auto-reply"]);
+const scanRoots = resolveSourceRoots(repoRoot, ["src/agents"]);
 
 const AGENT_GATEWAY_ALLOWED_IMPORTS = new Set([
   "src/gateway/agent-list.js",

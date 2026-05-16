@@ -1,11 +1,67 @@
-import { getAcpSessionManager } from "../../acp/control-plane/manager.js";
-import type { AbortCutoff } from "../../auto-reply/reply/abort-cutoff.js";
-import { setAbortMemory } from "../../auto-reply/reply/abort-primitives.js";
-import { persistAbortTargetEntry } from "../../auto-reply/reply/commands-session-store.js";
-import { clearSessionQueues } from "../../auto-reply/reply/queue.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import type { SessionEntry } from "../../config/sessions.js";
+import { updateSessionStore, type SessionEntry } from "../../config/sessions.js";
+import { callGateway } from "../../gateway/call.js";
 import { logVerbose } from "../../globals.js";
+
+export type AbortCutoff = {
+  messageSid?: string;
+  timestamp?: number;
+};
+
+export type ClearSessionQueueResult = {
+  followupCleared: number;
+  laneCleared: number;
+  keys: string[];
+};
+
+function applyAbortCutoffToSessionEntry(
+  entry: Pick<SessionEntry, "abortCutoffMessageSid" | "abortCutoffTimestamp">,
+  cutoff: AbortCutoff | undefined,
+): void {
+  entry.abortCutoffMessageSid = cutoff?.messageSid;
+  entry.abortCutoffTimestamp = cutoff?.timestamp;
+}
+
+async function persistAbortTargetEntry(params: {
+  entry?: SessionEntry;
+  key?: string;
+  legacyKeys?: string[];
+  sessionStore?: Record<string, SessionEntry>;
+  storePath?: string;
+  abortCutoff?: AbortCutoff;
+}): Promise<boolean> {
+  const { entry, key, legacyKeys, sessionStore, storePath, abortCutoff } = params;
+  if (!entry || !key || !sessionStore) {
+    return false;
+  }
+
+  entry.abortedLastRun = true;
+  applyAbortCutoffToSessionEntry(entry, abortCutoff);
+  entry.updatedAt = Date.now();
+  sessionStore[key] = entry;
+  for (const legacyKey of legacyKeys ?? []) {
+    if (legacyKey !== key) {
+      delete sessionStore[legacyKey];
+    }
+  }
+
+  if (storePath) {
+    await updateSessionStore(storePath, (store) => {
+      const nextEntry = store[key] ?? entry;
+      nextEntry.abortedLastRun = true;
+      applyAbortCutoffToSessionEntry(nextEntry, abortCutoff);
+      nextEntry.updatedAt = Date.now();
+      store[key] = nextEntry;
+      for (const legacyKey of legacyKeys ?? []) {
+        if (legacyKey !== key) {
+          delete store[legacyKey];
+        }
+      }
+    });
+  }
+
+  return true;
+}
 
 async function cancelAcpSessionIfPresent(params: {
   cfg?: CrawClawConfig;
@@ -15,19 +71,14 @@ async function cancelAcpSessionIfPresent(params: {
   if (!params.cfg || !params.sessionKey) {
     return;
   }
-  const acpManager = getAcpSessionManager();
-  const acpResolution = acpManager.resolveSession({
-    cfg: params.cfg,
-    sessionKey: params.sessionKey,
-  });
-  if (acpResolution.kind === "none") {
-    return;
-  }
   try {
-    await acpManager.cancelSession({
-      cfg: params.cfg,
-      sessionKey: params.sessionKey,
-      reason: params.reason,
+    await callGateway({
+      method: "acp.session.cancel",
+      params: {
+        sessionKey: params.sessionKey,
+        reason: params.reason,
+      },
+      timeoutMs: 10_000,
     });
   } catch (error) {
     logVerbose(
@@ -52,7 +103,7 @@ export async function executeAbortTarget(params: {
 }): Promise<{
   aborted: boolean;
   persisted: boolean;
-  cleared: ReturnType<typeof clearSessionQueues>;
+  cleared: ClearSessionQueueResult;
 }> {
   await cancelAcpSessionIfPresent({
     cfg: params.cfg,
@@ -62,7 +113,11 @@ export async function executeAbortTarget(params: {
   const queueKeys = (params.queueKeys ?? []).filter(
     (value): value is string => typeof value === "string" && value.trim().length > 0,
   );
-  const cleared = clearSessionQueues(queueKeys);
+  const cleared: ClearSessionQueueResult = {
+    followupCleared: 0,
+    laneCleared: 0,
+    keys: queueKeys,
+  };
   const aborted = false;
   const persisted = await persistAbortTargetEntry({
     entry: params.entry,
@@ -72,8 +127,5 @@ export async function executeAbortTarget(params: {
     storePath: params.storePath,
     abortCutoff: params.abortCutoff,
   });
-  if (!persisted && params.abortKey) {
-    setAbortMemory(params.abortKey, true);
-  }
   return { aborted, persisted, cleared };
 }

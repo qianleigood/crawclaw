@@ -9,7 +9,7 @@ import type { TaskRuntime } from "../tasks/task-registry.types.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
 import { upsertAgentTaskRuntimeMetadata } from "./runtime/agent-metadata-store.js";
 import { markAgentRunCancelled, registerAgentRuntimeRun } from "./runtime/agent-progress.js";
-import type { SubagentRunOutcome } from "./subagent-announce.js";
+import type { SubagentRunOutcome } from "./subagent-announce-output.js";
 import {
   SUBAGENT_ENDED_REASON_COMPLETE,
   SUBAGENT_ENDED_REASON_ERROR,

@@ -1,11 +1,11 @@
 import crypto from "node:crypto";
-import type { MsgContext } from "../../auto-reply/templating.js";
 import {
   normalizeThinkLevel,
   normalizeVerboseLevel,
   type ThinkLevel,
   type VerboseLevel,
-} from "../../auto-reply/thinking.js";
+} from "../../agents/thinking.js";
+import type { MsgContext } from "../../chat/templating.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import {
   loadSessionStore,

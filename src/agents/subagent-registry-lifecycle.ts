@@ -1,4 +1,4 @@
-import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../chat/tokens.js";
 import { appendAssistantMessageToSessionTranscript } from "../config/sessions/transcript.js";
 import { formatErrorMessage, readErrorName } from "../infra/errors.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
@@ -14,9 +14,8 @@ import { normalizeDeliveryContext } from "../utils/delivery-context.js";
 import { markAgentRunCompleted, markAgentRunFailed } from "./runtime/agent-progress.js";
 import {
   captureSubagentCompletionReply,
-  runSubagentAnnounceFlow,
   type SubagentRunOutcome,
-} from "./subagent-announce.js";
+} from "./subagent-announce-output.js";
 import {
   SUBAGENT_ENDED_REASON_COMPLETE,
   type SubagentLifecycleEndedReason,
@@ -61,7 +60,26 @@ export function createSubagentRegistryLifecycleController(params: {
   }): Promise<void>;
   resumeSubagentRun(runId: string): void;
   captureSubagentCompletionReply: typeof captureSubagentCompletionReply;
-  runSubagentAnnounceFlow: typeof runSubagentAnnounceFlow;
+  announceSubagentViaRust: (params: {
+    childSessionKey: string;
+    childRunId: string;
+    requesterSessionKey: string;
+    requesterOrigin?: ReturnType<typeof normalizeDeliveryContext>;
+    requesterDisplayKey: string;
+    task: string;
+    timeoutMs: number;
+    cleanup: "delete" | "keep";
+    roundOneReply?: string;
+    fallbackReply?: string;
+    waitForCompletion?: boolean;
+    startedAt?: number;
+    endedAt?: number;
+    label?: string;
+    outcome?: SubagentRunOutcome;
+    spawnMode?: "run" | "session";
+    expectsCompletionMessage?: boolean;
+    wakeOnDescendantSettle?: boolean;
+  }) => Promise<boolean>;
   warn(message: string, meta?: Record<string, unknown>): void;
 }) {
   const resolveTrackedTaskRuntime = (
@@ -550,7 +568,7 @@ export function createSubagentRegistryLifecycleController(params: {
     };
 
     void params
-      .runSubagentAnnounceFlow({
+      .announceSubagentViaRust({
         childSessionKey: entry.childSessionKey,
         childRunId: entry.runId,
         requesterSessionKey: entry.requesterSessionKey,

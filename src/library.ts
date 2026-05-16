@@ -1,4 +1,4 @@
-import { applyTemplate } from "./auto-reply/templating.js";
+import { applyTemplate } from "./chat/templating.js";
 import { loadConfig } from "./config/config.js";
 import { resolveStorePath } from "./config/sessions/paths.js";
 import { deriveSessionKey, resolveSessionKey } from "./config/sessions/session-key.js";

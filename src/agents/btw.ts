@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
-import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
-import type { GetReplyOptions, ReplyPayload } from "../auto-reply/types.js";
+import type { ReasoningLevel, ThinkLevel } from "../agents/thinking.js";
+import type { GetReplyOptions, ReplyPayload } from "../chat/reply-payload.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { callGatewayCli } from "../gateway/call.js";

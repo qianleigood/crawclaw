@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { FinalizedMsgContext } from "../auto-reply/templating.js";
+import type { FinalizedMsgContext } from "../chat/templating.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   buildCanonicalSentMessageToolCallPreflightContext,

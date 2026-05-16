@@ -12,6 +12,5 @@ describe("loadBundledCapabilityRuntimeRegistry", () => {
     expect(lobster?.status).toBe("loaded");
     expect(lobster?.source).toMatch(/crawclaw\.plugin\.json$/);
     expect(lobster?.toolNames).toEqual(["lobster"]);
-    expect(registry.tools).toEqual([]);
   });
 });

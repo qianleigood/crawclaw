@@ -328,7 +328,6 @@ esac
 "#,
     );
     write_plugin_manifest(&runtime_layout);
-    stage_test_node_runtime(&runtime_layout);
     let plugin_dir = runtime_layout.runtime_root.join("plugins").join("test-js");
     fs::create_dir_all(&plugin_dir).expect("plugin dir");
     fs::write(
@@ -401,7 +400,6 @@ esac
 "#,
     );
     write_plugin_manifest(&runtime_layout);
-    stage_test_node_runtime(&runtime_layout);
     let plugin_dir = runtime_layout.runtime_root.join("plugins").join("test-js");
     fs::create_dir_all(&plugin_dir).expect("plugin dir");
     fs::write(
@@ -454,7 +452,6 @@ esac
 "#,
     );
     write_plugin_manifest(&runtime_layout);
-    stage_test_node_runtime(&runtime_layout);
     let plugin_dir = runtime_layout.runtime_root.join("plugins").join("comfyui");
     fs::create_dir_all(&plugin_dir).expect("plugin dir");
     fs::write(
@@ -2228,42 +2225,6 @@ fn create_runtime_fixture(name: &str, runtime_script: &str) -> RuntimeLayout {
     }
 
     layout
-}
-
-#[cfg(unix)]
-fn stage_test_node_runtime(layout: &RuntimeLayout) {
-    let node_dir = layout
-        .runtime_root
-        .join("runtimes")
-        .join("node-v24")
-        .join("bin");
-    fs::create_dir_all(&node_dir).expect("node runtime bin dir");
-    let node_bin = node_dir.join("node");
-    fs::write(
-        &node_bin,
-        r#"#!/bin/sh
-if [ "$1" = "--version" ]; then
-  echo "v24.0.0"
-  exit 0
-fi
-exec node "$@"
-"#,
-    )
-    .expect("node runtime shim");
-    fs::write(
-        node_dir.join("npm"),
-        r#"#!/bin/sh
-echo "11.0.0"
-"#,
-    )
-    .expect("npm runtime shim");
-
-    use std::os::unix::fs::PermissionsExt;
-    let mut node_permissions = fs::metadata(&node_bin)
-        .expect("node runtime metadata")
-        .permissions();
-    node_permissions.set_mode(0o755);
-    fs::set_permissions(&node_bin, node_permissions).expect("node runtime chmod");
 }
 
 #[cfg(unix)]

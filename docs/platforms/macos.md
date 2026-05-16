@@ -36,7 +36,7 @@ The macOS matrix uses two support states:
 | Gateway foreground                  | `supported` | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Mac.                                 |
 | Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                                          |
 | Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                                   |
-| Common provider plugins             | `supported` | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                   |
+| Common provider plugins             | `supported` | Provider catalog and transports are Rust-owned; bundled defaults use native runtime resources.                    |
 | Weixin and Apple-local messaging    | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.                 |
 | Camera, microphone, and screen APIs | `external`  | Permission-sensitive APIs depend on macOS TCC prompts, signing, and a separate local runtime.                     |
 
@@ -88,8 +88,8 @@ pnpm desktop:tauri:release-check
 ```
 
 This gate packs the current checkout, installs it into a temporary global npm
-prefix, verifies the CLI, checks bundled plugin runtime dependencies, validates
-the install-time runtime manifest, lists plugins, and starts a foreground
+prefix, verifies the CLI, checks bundled plugin dependency staging, validates
+the install-time native runtime manifest, lists plugins, and starts a foreground
 Gateway on a temporary loopback port.
 
 Full VM validation remains separate:
@@ -101,7 +101,7 @@ pnpm desktop:tauri:release-check
 
 ## Current boundaries
 
-- The npm smoke covers CLI, plugin runtime setup, and foreground Gateway startup.
+- The npm smoke covers CLI, native runtime setup, and foreground Gateway startup.
   It does not validate notarization or TCC permission prompts.
 - LaunchAgent behavior is the native managed-startup path.
 - Apple-local integrations can require local services, Apple accounts, or

@@ -28,12 +28,9 @@ const resetServiceMocks = vi.hoisted(() => ({
   archiveSessionTranscripts: vi.fn(() => [] as string[]),
   readSessionMessages: vi.fn(() => [] as unknown[]),
   triggerInternalHook: vi.fn(async () => {}),
-  clearSessionQueues: vi.fn(() => {}),
-  stopSubagentsForRequester: vi.fn(() => ({ stopped: 0 })),
   clearBootstrapSnapshot: vi.fn(() => {}),
   closeTrackedBrowserTabsForSessions: vi.fn(async () => undefined),
-  cancelSession: vi.fn(async () => {}),
-  closeSession: vi.fn(async () => {}),
+  callGateway: vi.fn(async () => ({})),
   snapshotSessionOrigin: vi.fn((entry?: SessionEntry) =>
     entry ? { sourceSessionId: entry.sessionId } : undefined,
   ),
@@ -62,12 +59,9 @@ describe("performGatewaySessionReset", () => {
     resetServiceMocks.archiveSessionTranscripts.mockReset().mockReturnValue([]);
     resetServiceMocks.readSessionMessages.mockReset().mockReturnValue([]);
     resetServiceMocks.triggerInternalHook.mockReset().mockResolvedValue(undefined);
-    resetServiceMocks.clearSessionQueues.mockReset();
-    resetServiceMocks.stopSubagentsForRequester.mockReset().mockReturnValue({ stopped: 0 });
     resetServiceMocks.clearBootstrapSnapshot.mockReset();
     resetServiceMocks.closeTrackedBrowserTabsForSessions.mockReset().mockResolvedValue(undefined);
-    resetServiceMocks.cancelSession.mockReset().mockResolvedValue(undefined);
-    resetServiceMocks.closeSession.mockReset().mockResolvedValue(undefined);
+    resetServiceMocks.callGateway.mockReset().mockResolvedValue({});
     resetServiceMocks.snapshotSessionOrigin.mockClear();
 
     vi.doMock("../config/config.js", () => ({
@@ -105,23 +99,12 @@ describe("performGatewaySessionReset", () => {
       clearBootstrapSnapshot: resetServiceMocks.clearBootstrapSnapshot,
     }));
 
-    vi.doMock("../auto-reply/reply/abort.js", () => ({
-      stopSubagentsForRequester: resetServiceMocks.stopSubagentsForRequester,
-    }));
-
-    vi.doMock("../auto-reply/reply/queue.js", () => ({
-      clearSessionQueues: resetServiceMocks.clearSessionQueues,
-    }));
-
     vi.doMock("../plugin-sdk/browser-maintenance.js", () => ({
       closeTrackedBrowserTabsForSessions: resetServiceMocks.closeTrackedBrowserTabsForSessions,
     }));
 
-    vi.doMock("../acp/control-plane/manager.js", () => ({
-      getAcpSessionManager: () => ({
-        cancelSession: resetServiceMocks.cancelSession,
-        closeSession: resetServiceMocks.closeSession,
-      }),
+    vi.doMock("./call.js", () => ({
+      callGateway: resetServiceMocks.callGateway,
     }));
 
     vi.doMock("../sessions/transcript-archive.fs.js", () => ({
@@ -273,21 +256,29 @@ describe("performGatewaySessionReset", () => {
     });
 
     expect(result).toBeUndefined();
-    expect(resetServiceMocks.cancelSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cfg: state.cfg,
+    expect(resetServiceMocks.callGateway).toHaveBeenCalledWith({
+      method: "subagents.control",
+      params: {
+        action: "killAll",
+        requesterSessionKey: state.target.canonicalKey,
+      },
+      timeoutMs: 10_000,
+    });
+    expect(resetServiceMocks.callGateway).toHaveBeenCalledWith({
+      method: "acp.session.cancel",
+      params: {
         sessionKey: state.target.canonicalKey,
         reason: "session-delete",
-      }),
-    );
-    expect(resetServiceMocks.closeSession).toHaveBeenCalledWith(
-      expect.objectContaining({
-        cfg: state.cfg,
+      },
+      timeoutMs: expect.any(Number),
+    });
+    expect(resetServiceMocks.callGateway).toHaveBeenCalledWith({
+      method: "acp.session.close",
+      params: {
         sessionKey: state.target.canonicalKey,
         reason: "session-delete",
-        requireAcpSession: false,
-        allowBackendUnavailable: true,
-      }),
-    );
+      },
+      timeoutMs: expect.any(Number),
+    });
   });
 });

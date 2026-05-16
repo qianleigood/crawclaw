@@ -2,7 +2,7 @@ import { resolveAgentConfig } from "../agents/agent-scope.js";
 import {
   DEFAULT_HEARTBEAT_ACK_MAX_CHARS,
   resolveHeartbeatPrompt as resolveHeartbeatPromptText,
-} from "../auto-reply/heartbeat.js";
+} from "../chat/heartbeat.js";
 import type { CrawClawConfig } from "../config/config.js";
 
 export type MainSessionWakeSummary = {

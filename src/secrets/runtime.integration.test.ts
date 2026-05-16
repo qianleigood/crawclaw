@@ -98,7 +98,6 @@ function buildGeminiWebSearchProvider(): PluginWebSearchProviderEntry {
       const webSearch = ensureRecord(config, "webSearch");
       webSearch.apiKey = value;
     },
-    createTool: () => null,
   };
 }
 

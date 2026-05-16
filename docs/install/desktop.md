@@ -64,10 +64,8 @@ Agent/session state, sub-agent routing, local plugin execution, and desktop
 runtime resources. End users do not need a globally installed `crawclaw` binary
 or a preconfigured shell `PATH` for the desktop flow.
 
-Bundled/default desktop plugins use Rust-native entries first. Third-party local
-JS/TS plugins must explicitly declare `runtime.kind="node"` and run through the
-bundled Node 24 plugin runtime; the desktop product path no longer stages a
-QuickJS compatibility fallback.
+Bundled/default desktop plugins use Rust-native entries. The desktop product
+path does not stage JS runtime support or a QuickJS compatibility fallback.
 
 Desktop speech is intentionally local-first. The desktop package exposes the
 native `qwen3-tts` path for text-to-speech; cloud speech plugins are not part of

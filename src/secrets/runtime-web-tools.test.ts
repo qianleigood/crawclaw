@@ -145,7 +145,6 @@ function createTestProvider(params: {
             perplexityTransport: "search_api" as const,
           })
         : undefined,
-    createTool: () => null,
   };
 }
 
@@ -186,7 +185,6 @@ function buildTestWebFetchProviders(): PluginWebFetchProviderEntry[] {
       setConfiguredCredentialValue: (configTarget, value) => {
         setConfiguredFetchProviderKey(configTarget, value);
       },
-      createTool: () => null,
     },
   ];
 }

@@ -1,4 +1,4 @@
-import type { SubagentRunOutcome } from "./subagent-announce.js";
+import type { SubagentRunOutcome } from "./subagent-announce-output.js";
 
 export function runOutcomesEqual(
   a: SubagentRunOutcome | undefined,

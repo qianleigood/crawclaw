@@ -6,7 +6,6 @@ import {
   resolveDefaultModelForAgent,
   resolveSubagentConfiguredModelSelection,
 } from "../agents/model-selection.js";
-import { normalizeGroupActivation } from "../auto-reply/group-activation.js";
 import {
   formatThinkingLevels,
   formatXHighModelHint,
@@ -16,7 +15,8 @@ import {
   normalizeThinkLevel,
   normalizeUsageDisplay,
   supportsXHighThinking,
-} from "../auto-reply/thinking.js";
+} from "../agents/thinking.js";
+import { normalizeGroupActivation } from "../chat/group-activation.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { normalizeExecTarget } from "../infra/exec-approvals.js";

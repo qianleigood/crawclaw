@@ -11,7 +11,9 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 use async_trait::async_trait;
 use crawclaw_native_plugins::llm_task::{complete_llm_task, prepare_llm_task, LlmTaskPrepareInput};
 use crawclaw_native_plugins::web::{run_searxng_search, run_spider_fetch};
-use crawclaw_plugin_sdk::{NativeToolContentBlock, NativeToolDescriptor, NativeToolResultEnvelope};
+use crawclaw_plugin_sdk::{
+    NativeInvocationTarget, NativeToolContentBlock, NativeToolDescriptor, NativeToolResultEnvelope,
+};
 use crawclaw_providers::{
     send_native_provider_conversation, NativeProviderConfig, NativeProviderMessage,
 };
@@ -24,9 +26,10 @@ use crate::special_agents::{
 };
 use crate::DesktopSessionStore;
 use crate::{
-    invoke_native_plugin_operation, with_native_runtime_context, AgentModelSelection,
-    AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope, NativePluginRuntime,
-    NativeToolRegistration,
+    dispatch_native_channel_outbound, invoke_native_plugin_operation, with_native_runtime_context,
+    AgentModelSelection, AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
+    ChannelOutboundAction, ChannelOutboundRequest, NativeChannelDispatchContext,
+    NativePluginRuntime, NativeToolRegistration,
 };
 
 pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk::ToolRegistry {
@@ -38,6 +41,22 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         Box::new(ApplyPatchTool::new(runtime_root)),
         Box::new(BashTool::new(runtime_root, Arc::clone(&process_registry))),
         Box::new(ProcessTool::new(process_registry)),
+    ];
+    tools.extend(
+        crate::native_plugin_registry(runtime_root)
+            .tool_registrations()
+            .into_iter()
+            .map(|registration| {
+                Box::new(NativePluginTool::new(runtime_root, registration))
+                    as Box<dyn pi::sdk::Tool>
+            }),
+    );
+    tools.extend([
+        pi::sdk::create_grep_tool(runtime_root),
+        pi::sdk::create_find_tool(runtime_root),
+        pi::sdk::create_ls_tool(runtime_root),
+        Box::new(WebTool::new(WebToolKind::Search)) as Box<dyn pi::sdk::Tool>,
+        Box::new(WebTool::new(WebToolKind::Fetch)) as Box<dyn pi::sdk::Tool>,
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Status)),
         Box::new(SessionTool::new(runtime_root, SessionToolKind::List)),
         Box::new(SessionTool::new(runtime_root, SessionToolKind::History)),
@@ -45,10 +64,40 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Spawn)),
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Yield)),
         Box::new(SessionTool::new(runtime_root, SessionToolKind::Subagents)),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Canvas,
+        )),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Message,
+        )),
         Box::new(CronTool::new(runtime_root)),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Image,
+        )),
+        Box::new(CoreRuntimeTool::new(runtime_root, CoreRuntimeToolKind::Pdf)),
+        Box::new(CoreRuntimeTool::new(runtime_root, CoreRuntimeToolKind::Tts)),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::DiscoverSkills,
+        )),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Workflow,
+        )),
+        Box::new(CoreRuntimeTool::new(
+            runtime_root,
+            CoreRuntimeToolKind::Workflowize,
+        )),
         Box::new(SpecialAgentTool::new(
             runtime_root,
             SpecialAgentToolKind::ReviewTask,
+        )),
+        Box::new(SpecialAgentTool::new(
+            runtime_root,
+            SpecialAgentToolKind::WriteExperienceNote,
         )),
         Box::new(SpecialAgentTool::new(
             runtime_root,
@@ -72,34 +121,13 @@ pub(crate) fn build_pi_agent_rust_tool_registry(runtime_root: &Path) -> pi::sdk:
         )),
         Box::new(SpecialAgentTool::new(
             runtime_root,
-            SpecialAgentToolKind::WriteExperienceNote,
-        )),
-        Box::new(SpecialAgentTool::new(
-            runtime_root,
             SpecialAgentToolKind::SessionSummaryFileRead,
         )),
         Box::new(SpecialAgentTool::new(
             runtime_root,
             SpecialAgentToolKind::SessionSummaryFileEdit,
         )),
-        Box::new(WebTool::new(WebToolKind::Search)),
-        Box::new(WebTool::new(WebToolKind::Fetch)),
-    ];
-    tools.extend(
-        crate::native_plugin_registry(runtime_root)
-            .tool_registrations()
-            .into_iter()
-            .map(|registration| {
-                Box::new(NativePluginTool::new(runtime_root, registration))
-                    as Box<dyn pi::sdk::Tool>
-            }),
-    );
-    tools.extend([
-        pi::sdk::create_grep_tool(runtime_root),
-        pi::sdk::create_find_tool(runtime_root),
-        pi::sdk::create_ls_tool(runtime_root),
     ]);
-
     pi::sdk::ToolRegistry::from_tools(tools)
 }
 
@@ -859,6 +887,1681 @@ impl pi::sdk::Tool for WebTool {
     fn is_read_only(&self) -> bool {
         true
     }
+}
+
+#[derive(Clone, Copy)]
+enum CoreRuntimeToolKind {
+    Canvas,
+    Message,
+    Image,
+    Pdf,
+    Tts,
+    DiscoverSkills,
+    Workflow,
+    Workflowize,
+}
+
+impl CoreRuntimeToolKind {
+    fn name(self) -> &'static str {
+        match self {
+            Self::Canvas => "canvas",
+            Self::Message => "message",
+            Self::Image => "image",
+            Self::Pdf => "pdf",
+            Self::Tts => "tts",
+            Self::DiscoverSkills => "discover_skills",
+            Self::Workflow => "workflow",
+            Self::Workflowize => "workflowize",
+        }
+    }
+
+    fn description(self) -> &'static str {
+        match self {
+            Self::Canvas => "Canvas control is unavailable in current CrawClaw builds.",
+            Self::Message => "Send messages and channel actions through Rust outbound delivery.",
+            Self::Image => "Describe images through the Rust native media-understanding registry.",
+            Self::Pdf => "Analyze PDF documents through the Rust runtime.",
+            Self::Tts => "Convert text to speech through the Rust native TTS provider.",
+            Self::DiscoverSkills => "Search available skills from the Rust runtime skill roots.",
+            Self::Workflow => "Manage local workflow registry entries through the Rust runtime.",
+            Self::Workflowize => "Create a local workflow draft through the Rust runtime.",
+        }
+    }
+
+    fn parameters(self) -> Value {
+        match self {
+            Self::Canvas => json!({
+                "type": "object",
+                "properties": {
+                    "action": { "type": "string", "enum": ["present", "hide", "navigate", "eval", "snapshot"] }
+                },
+                "required": ["action"]
+            }),
+            Self::Message => json!({
+                "type": "object",
+                "properties": {
+                    "action": { "type": "string", "enum": ["send", "poll", "action"] },
+                    "channel": { "type": "string" },
+                    "accountId": { "type": "string" },
+                    "target": { "type": "string" },
+                    "to": { "type": "string" },
+                    "text": { "type": "string" },
+                    "message": { "type": "string" },
+                    "mediaUrls": { "type": "array", "items": { "type": "string" } },
+                    "threadId": { "type": "string" },
+                    "replyToId": { "type": "string" }
+                }
+            }),
+            Self::Image => json!({
+                "type": "object",
+                "properties": {
+                    "prompt": { "type": "string" },
+                    "image": { "type": "string" },
+                    "images": { "type": "array", "items": { "type": "string" } },
+                    "model": { "type": "string" },
+                    "provider": { "type": "string" },
+                    "apiKey": { "type": "string" },
+                    "baseUrl": { "type": "string" },
+                    "maxTokens": { "type": "number" }
+                }
+            }),
+            Self::Pdf => json!({
+                "type": "object",
+                "properties": {
+                    "prompt": { "type": "string" },
+                    "pdf": { "type": "string" },
+                    "pdfs": { "type": "array", "items": { "type": "string" } },
+                    "pages": { "type": "string" },
+                    "model": { "type": "string" },
+                    "maxBytesMb": { "type": "number" }
+                }
+            }),
+            Self::Tts => json!({
+                "type": "object",
+                "properties": {
+                    "text": { "type": "string" },
+                    "channel": { "type": "string" },
+                    "voice": { "type": "string" },
+                    "outputFormat": { "type": "string" },
+                    "providerOverrides": { "type": "object" },
+                    "providerConfig": { "type": "object" },
+                    "baseUrl": { "type": "string" }
+                },
+                "required": ["text"]
+            }),
+            Self::DiscoverSkills => json!({
+                "type": "object",
+                "properties": {
+                    "taskDescription": { "type": "string" },
+                    "limit": { "type": "number" }
+                },
+                "required": ["taskDescription"]
+            }),
+            Self::Workflow => json!({
+                "type": "object",
+                "properties": {
+                    "action": { "type": "string" },
+                    "workflow": { "type": "string" },
+                    "query": { "type": "string" },
+                    "limit": { "type": "number" },
+                    "inputs": { "type": "object" },
+                    "patch": { "type": "object" }
+                },
+                "required": ["action"]
+            }),
+            Self::Workflowize => json!({
+                "type": "object",
+                "properties": {
+                    "name": { "type": "string" },
+                    "goal": { "type": "string" },
+                    "topology": { "type": "string" },
+                    "description": { "type": "string" },
+                    "sourceSummary": { "type": "string" },
+                    "steps": { "type": "array", "items": { "type": "string" } },
+                    "stepSpecs": { "type": "array", "items": { "type": "object" } },
+                    "tags": { "type": "array", "items": { "type": "string" } },
+                    "inputs": { "type": "array", "items": { "type": "string" } },
+                    "outputs": { "type": "array", "items": { "type": "string" } },
+                    "safeForAutoRun": { "type": "boolean" },
+                    "requiresApproval": { "type": "boolean" }
+                },
+                "required": ["name", "goal"]
+            }),
+        }
+    }
+
+    fn is_read_only(self) -> bool {
+        matches!(
+            self,
+            Self::Canvas | Self::Image | Self::Pdf | Self::DiscoverSkills
+        )
+    }
+}
+
+#[derive(Clone)]
+struct CoreRuntimeTool {
+    runtime_root: PathBuf,
+    kind: CoreRuntimeToolKind,
+}
+
+impl CoreRuntimeTool {
+    fn new(runtime_root: &Path, kind: CoreRuntimeToolKind) -> Self {
+        Self {
+            runtime_root: runtime_root.to_path_buf(),
+            kind,
+        }
+    }
+}
+
+#[async_trait]
+impl pi::sdk::Tool for CoreRuntimeTool {
+    fn name(&self) -> &str {
+        self.kind.name()
+    }
+
+    fn label(&self) -> &str {
+        self.kind.name()
+    }
+
+    fn description(&self) -> &str {
+        self.kind.description()
+    }
+
+    fn parameters(&self) -> Value {
+        self.kind.parameters()
+    }
+
+    async fn execute(
+        &self,
+        _tool_call_id: &str,
+        input: Value,
+        _on_update: Option<Box<dyn Fn(pi::sdk::ToolUpdate) + Send + Sync>>,
+    ) -> pi::sdk::Result<pi::sdk::ToolOutput> {
+        let result = match self.kind {
+            CoreRuntimeToolKind::Canvas => run_canvas_tool(&self.runtime_root, input)
+                .map_err(|error| tool_error(self.kind.name(), error))?,
+            CoreRuntimeToolKind::Message => run_message_tool(&self.runtime_root, input)
+                .map_err(|error| tool_error(self.kind.name(), error))?,
+            CoreRuntimeToolKind::Image => run_image_tool(&self.runtime_root, input)
+                .await
+                .map_err(|error| tool_error(self.kind.name(), error))?,
+            CoreRuntimeToolKind::Pdf => run_pdf_tool(&self.runtime_root, input)
+                .await
+                .map_err(|error| tool_error(self.kind.name(), error))?,
+            CoreRuntimeToolKind::Tts => run_tts_tool(&self.runtime_root, input)
+                .await
+                .map_err(|error| tool_error(self.kind.name(), error))?,
+            CoreRuntimeToolKind::DiscoverSkills => {
+                run_discover_skills_tool(&self.runtime_root, input)
+                    .map_err(|error| tool_error(self.kind.name(), error))?
+            }
+            CoreRuntimeToolKind::Workflow => run_workflow_tool(&self.runtime_root, input)
+                .map_err(|error| tool_error(self.kind.name(), error))?,
+            CoreRuntimeToolKind::Workflowize => run_workflowize_tool(&self.runtime_root, input)
+                .map_err(|error| tool_error(self.kind.name(), error))?,
+        };
+        Ok(native_tool_output(result))
+    }
+
+    fn is_read_only(&self) -> bool {
+        self.kind.is_read_only()
+    }
+}
+
+fn tool_envelope(text: impl Into<String>, details: Value, is_error: bool) -> Value {
+    json!({
+        "content": [{ "type": "text", "text": text.into() }],
+        "details": details,
+        "isError": is_error
+    })
+}
+
+fn required_param_string(tool_name: &str, input: &Value, keys: &[&str]) -> Result<String, String> {
+    required_tool_param(tool_name, input, keys).map_err(|error| error.to_string())
+}
+
+fn canvas_state_path(runtime_root: &Path) -> PathBuf {
+    runtime_root.join("canvas").join("state.json")
+}
+
+fn load_canvas_state(runtime_root: &Path) -> Result<Value, String> {
+    let path = canvas_state_path(runtime_root);
+    if !path.exists() {
+        return Ok(json!({
+            "visible": false,
+            "current": Value::Null,
+            "history": []
+        }));
+    }
+    fs::read_to_string(&path)
+        .map_err(|error| error.to_string())
+        .and_then(|raw| serde_json::from_str(&raw).map_err(|error| error.to_string()))
+}
+
+fn save_canvas_state(runtime_root: &Path, state: &Value) -> Result<(), String> {
+    let path = canvas_state_path(runtime_root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(state).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn run_canvas_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let action = string_param(&input, &["action"]).unwrap_or_else(|| "snapshot".to_string());
+    let now = now_millis();
+    let mut state = load_canvas_state(runtime_root)?;
+    if !state.is_object() {
+        state = json!({});
+    }
+    match action.as_str() {
+        "present" => {
+            let artifact_id = string_param(&input, &["artifactId", "id"])
+                .unwrap_or_else(|| format!("canvas-{now}"));
+            let content = input
+                .get("content")
+                .or_else(|| input.get("html"))
+                .or_else(|| input.get("markdown"))
+                .cloned()
+                .unwrap_or(Value::Null);
+            let current = json!({
+                "artifactId": artifact_id,
+                "title": string_param(&input, &["title"]),
+                "mimeType": string_param(&input, &["mimeType"]).unwrap_or_else(|| "text/html".to_string()),
+                "url": string_param(&input, &["url", "targetUrl"]),
+                "content": content,
+                "updatedAt": now
+            });
+            state["visible"] = Value::Bool(true);
+            state["current"] = current.clone();
+            state["updatedAt"] = json!(now);
+            if !state.get("history").map(Value::is_array).unwrap_or(false) {
+                state["history"] = json!([]);
+            }
+            if let Some(history) = state.get_mut("history").and_then(Value::as_array_mut) {
+                history.push(current);
+            }
+            save_canvas_state(runtime_root, &state)?;
+            Ok(tool_envelope(
+                "Canvas artifact presented.",
+                json!({ "status": "presented", "state": state, "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "hide" => {
+            state["visible"] = Value::Bool(false);
+            state["updatedAt"] = json!(now);
+            save_canvas_state(runtime_root, &state)?;
+            Ok(tool_envelope(
+                "Canvas hidden.",
+                json!({ "status": "hidden", "state": state, "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "navigate" => {
+            let target = required_param_string("canvas", &input, &["url", "targetUrl", "path"])?;
+            if state.get("current").is_none() || state.get("current") == Some(&Value::Null) {
+                state["current"] = json!({});
+            }
+            if let Some(current) = state.get_mut("current").and_then(Value::as_object_mut) {
+                current.insert("url".to_string(), Value::String(target));
+                current.insert("updatedAt".to_string(), json!(now));
+            }
+            state["visible"] = Value::Bool(true);
+            state["updatedAt"] = json!(now);
+            save_canvas_state(runtime_root, &state)?;
+            Ok(tool_envelope(
+                "Canvas navigation recorded.",
+                json!({ "status": "navigated", "state": state, "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "snapshot" => Ok(tool_envelope(
+            "Canvas snapshot loaded.",
+            json!({ "status": "ok", "state": state, "implementation": "rust-native" }),
+            false,
+        )),
+        "eval" => Ok(tool_envelope(
+            "Canvas eval is recorded but not executed by the Rust canvas runtime.",
+            json!({
+                "status": "not_executed",
+                "script": string_param(&input, &["script", "code"]),
+                "state": state,
+                "implementation": "rust-native"
+            }),
+            false,
+        )),
+        other => Err(format!("unsupported canvas action: {other}")),
+    }
+}
+
+fn media_urls_param(input: &Value) -> Vec<String> {
+    input
+        .get("mediaUrls")
+        .or_else(|| input.get("media"))
+        .and_then(Value::as_array)
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(str::trim)
+                .filter(|value| !value.is_empty())
+                .map(ToOwned::to_owned)
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+fn append_tool_jsonl(path: &Path, value: &Value) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    let mut file = fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(path)
+        .map_err(|error| error.to_string())?;
+    serde_json::to_writer(&mut file, value).map_err(|error| error.to_string())?;
+    file.write_all(b"\n").map_err(|error| error.to_string())
+}
+
+fn run_message_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let action = string_param(&input, &["action"]).unwrap_or_else(|| "send".to_string());
+    let channel = string_param(&input, &["channel"]).unwrap_or_else(|| "desktop".to_string());
+    let account_id = string_param(&input, &["accountId"]).unwrap_or_else(|| "default".to_string());
+    let to =
+        string_param(&input, &["to", "target", "recipient"]).unwrap_or_else(|| "user".to_string());
+    let text = string_param(&input, &["text", "message", "body"]);
+    let media_urls = media_urls_param(&input);
+    if text.is_none() && media_urls.is_empty() && action != "action" {
+        return Err("message requires text or media".to_string());
+    }
+    let now = now_millis();
+    let request_id = string_param(&input, &["idempotencyKey", "runId", "requestId"])
+        .unwrap_or_else(|| format!("message-{now}"));
+    let outbound_action = match action.as_str() {
+        "send" => ChannelOutboundAction::Send,
+        "poll" => ChannelOutboundAction::Poll,
+        "action" => {
+            let raw = string_param(&input, &["outboundAction", "channelAction"])
+                .unwrap_or_else(|| "threadReply".to_string());
+            serde_json::from_value(Value::String(raw))
+                .map_err(|error| format!("invalid message outbound action: {error}"))?
+        }
+        other => return Err(format!("unsupported message action: {other}")),
+    };
+    let request = ChannelOutboundRequest {
+        request_id,
+        channel: channel.clone(),
+        account_id: Some(account_id),
+        action: outbound_action,
+        to,
+        text,
+        media_urls,
+        reply_to_id: string_param(&input, &["replyToId", "replyTo", "messageId"]),
+        thread_id: string_param(&input, &["threadId"]),
+        params: BTreeMap::new(),
+    };
+    let record = dispatch_native_channel_outbound(
+        &request,
+        NativeChannelDispatchContext {
+            connected: crate::is_local_native_delivery_channel(&channel),
+            now_ms: now,
+        },
+    );
+    let details = serde_json::to_value(&record).map_err(|error| error.to_string())?;
+    let file = if record.sent {
+        runtime_root.join("channels").join("deliveries.jsonl")
+    } else {
+        runtime_root.join("channels").join("outbox.jsonl")
+    };
+    append_tool_jsonl(&file, &details)?;
+    Ok(tool_envelope(
+        if record.sent {
+            "Message delivered."
+        } else {
+            "Message queued or blocked."
+        },
+        details,
+        false,
+    ))
+}
+
+async fn run_tts_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let text = required_param_string("tts", &input, &["text"])?;
+    let mut provider_config = input
+        .get("providerConfig")
+        .and_then(Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+    provider_config
+        .entry("runtime".to_string())
+        .or_insert_with(|| Value::String("qwen-tts".to_string()));
+    provider_config
+        .entry("baseUrl".to_string())
+        .or_insert_with(|| {
+            Value::String(
+                string_param(&input, &["baseUrl"])
+                    .unwrap_or_else(|| "http://127.0.0.1:8013".to_string()),
+            )
+        });
+    provider_config
+        .entry("defaultProfile".to_string())
+        .or_insert_with(|| Value::String("assistant".to_string()));
+    provider_config.entry("profiles".to_string()).or_insert_with(|| {
+        json!({
+            "assistant": {
+                "source": "preset",
+                "voice": string_param(&input, &["voice"]).unwrap_or_else(|| "serena".to_string()),
+                "quality": "fast"
+            }
+        })
+    });
+    let request = json!({
+        "text": text,
+        "target": string_param(&input, &["channel"]).unwrap_or_else(|| "voice-note".to_string()),
+        "providerConfig": provider_config,
+        "providerOverrides": input.get("providerOverrides").cloned().unwrap_or_else(|| json!({})),
+        "responseFormat": string_param(&input, &["outputFormat"]).unwrap_or_else(|| "wav".to_string()),
+    });
+    let result = invoke_native_plugin_operation(
+        NativePluginRuntime::Builtin,
+        NativeInvocationTarget {
+            plugin_id: "qwen3-tts".to_string(),
+            operation: "synthesize".to_string(),
+        },
+        with_native_runtime_context(runtime_root, request),
+    )
+    .await
+    .map_err(|error| error.to_string())?;
+    Ok(tool_envelope(
+        "Generated audio reply.",
+        json!({
+            "provider": "qwen3-tts",
+            "media": {
+                "audioBase64": result.get("audioBase64").cloned().unwrap_or(Value::Null),
+                "outputFormat": result.get("outputFormat").cloned().unwrap_or(Value::Null),
+                "audioAsVoice": true
+            },
+            "result": result
+        }),
+        false,
+    ))
+}
+
+fn media_attachment_from_value(value: &str, index: usize, default_name: &str) -> Value {
+    if let Some((mime, data)) = parse_data_url(value) {
+        json!({ "index": index, "fileName": default_name, "mimeType": mime, "base64": data })
+    } else {
+        json!({ "index": index, "path": value })
+    }
+}
+
+fn parse_data_url(value: &str) -> Option<(String, String)> {
+    let trimmed = value.trim();
+    let rest = trimmed.strip_prefix("data:")?;
+    let (mime, data) = rest.split_once(";base64,")?;
+    Some((mime.to_string(), data.to_string()))
+}
+
+async fn run_image_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let mut attachments = Vec::new();
+    if let Some(image) = string_param(&input, &["image"]) {
+        attachments.push(media_attachment_from_value(&image, 0, "image-0"));
+    }
+    if let Some(images) = input.get("images").and_then(Value::as_array) {
+        for (index, image) in images.iter().filter_map(Value::as_str).enumerate() {
+            attachments.push(media_attachment_from_value(image, index, "image"));
+        }
+    }
+    if attachments.is_empty() {
+        return Err("image requires image or images".to_string());
+    }
+    let request = json!({
+        "capability": "image",
+        "prompt": string_param(&input, &["prompt"]).unwrap_or_else(|| "Describe the image.".to_string()),
+        "model": string_param(&input, &["model"]).unwrap_or_else(|| "gpt-5.4-mini".to_string()),
+        "provider": string_param(&input, &["provider"]).unwrap_or_else(|| "openai".to_string()),
+        "apiKey": string_param(&input, &["apiKey"]),
+        "baseUrl": string_param(&input, &["baseUrl"]),
+        "attachments": attachments
+    });
+    let result = invoke_native_plugin_operation(
+        NativePluginRuntime::Builtin,
+        NativeInvocationTarget {
+            plugin_id: "openai".to_string(),
+            operation: "media-understanding".to_string(),
+        },
+        with_native_runtime_context(runtime_root, request),
+    )
+    .await
+    .map_err(|error| error.to_string())?;
+    Ok(tool_envelope("Image analysis complete.", result, false))
+}
+
+async fn load_pdf_bytes(input: &str) -> Result<Vec<u8>, String> {
+    if input.starts_with("http://") || input.starts_with("https://") {
+        let response = reqwest::get(input)
+            .await
+            .map_err(|error| error.to_string())?;
+        let status = response.status();
+        if !status.is_success() {
+            return Err(format!("PDF fetch failed with HTTP {status}"));
+        }
+        return response
+            .bytes()
+            .await
+            .map(|bytes| bytes.to_vec())
+            .map_err(|error| error.to_string());
+    }
+    fs::read(input).map_err(|error| error.to_string())
+}
+
+fn parse_pdf_page_filter(value: Option<&str>) -> Result<Option<Vec<usize>>, String> {
+    let Some(raw) = value.map(str::trim).filter(|value| !value.is_empty()) else {
+        return Ok(None);
+    };
+    let mut pages = Vec::new();
+    for part in raw
+        .split(',')
+        .map(str::trim)
+        .filter(|part| !part.is_empty())
+    {
+        if let Some((start, end)) = part.split_once('-') {
+            let start = start
+                .trim()
+                .parse::<usize>()
+                .map_err(|_| format!("invalid PDF page range: {part}"))?;
+            let end = end
+                .trim()
+                .parse::<usize>()
+                .map_err(|_| format!("invalid PDF page range: {part}"))?;
+            if start == 0 || end == 0 || end < start {
+                return Err(format!("invalid PDF page range: {part}"));
+            }
+            pages.extend(start..=end);
+        } else {
+            let page = part
+                .parse::<usize>()
+                .map_err(|_| format!("invalid PDF page: {part}"))?;
+            if page == 0 {
+                return Err(format!("invalid PDF page: {part}"));
+            }
+            pages.push(page);
+        }
+    }
+    pages.sort_unstable();
+    pages.dedup();
+    Ok(Some(pages))
+}
+
+async fn run_pdf_tool(_runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let mut pdfs = Vec::new();
+    if let Some(pdf) = string_param(&input, &["pdf"]) {
+        pdfs.push(pdf);
+    }
+    if let Some(items) = input.get("pdfs").and_then(Value::as_array) {
+        pdfs.extend(
+            items
+                .iter()
+                .filter_map(Value::as_str)
+                .map(ToOwned::to_owned),
+        );
+    }
+    if pdfs.is_empty() {
+        return Err("pdf requires pdf or pdfs".to_string());
+    }
+    let max_bytes = input
+        .get("maxBytesMb")
+        .and_then(Value::as_u64)
+        .unwrap_or(25)
+        .saturating_mul(1024 * 1024);
+    let max_chars = input
+        .get("maxChars")
+        .and_then(Value::as_u64)
+        .unwrap_or(80_000) as usize;
+    let page_filter = parse_pdf_page_filter(string_param(&input, &["pages"]).as_deref())?;
+    let mut documents = Vec::new();
+    for (index, pdf) in pdfs.iter().enumerate() {
+        let bytes = load_pdf_bytes(pdf).await?;
+        if bytes.len() as u64 > max_bytes {
+            return Err(format!("PDF input exceeds maxBytesMb: {pdf}"));
+        }
+        let extracted_pages = pdf_extract::extract_text_from_mem_by_pages(&bytes)
+            .map_err(|error| format!("PDF text extraction failed for {pdf}: {error}"))?;
+        let selected_pages = extracted_pages
+            .iter()
+            .enumerate()
+            .filter_map(|(page_index, text)| {
+                let page_number = page_index + 1;
+                if page_filter
+                    .as_ref()
+                    .map(|pages| pages.binary_search(&page_number).is_ok())
+                    .unwrap_or(true)
+                {
+                    Some(json!({
+                        "page": page_number,
+                        "text": text
+                    }))
+                } else {
+                    None
+                }
+            })
+            .collect::<Vec<_>>();
+        let mut text = selected_pages
+            .iter()
+            .filter_map(|page| page.get("text").and_then(Value::as_str))
+            .collect::<Vec<_>>()
+            .join("\n\n");
+        let original_chars = text.chars().count();
+        let truncated = original_chars > max_chars;
+        if truncated {
+            text = text.chars().take(max_chars).collect();
+        }
+        let text_preview = text.chars().take(2000).collect::<String>();
+        documents.push(json!({
+            "index": index,
+            "source": pdf,
+            "bytes": bytes.len(),
+            "pageCount": extracted_pages.len(),
+            "selectedPageCount": selected_pages.len(),
+            "pages": selected_pages,
+            "text": text,
+            "textPreview": text_preview,
+            "textChars": original_chars,
+            "truncated": truncated
+        }));
+    }
+    Ok(tool_envelope(
+        "PDF analysis complete.",
+        json!({
+            "status": "ok",
+            "implementation": "rust-native",
+            "prompt": string_param(&input, &["prompt"]).unwrap_or_default(),
+            "documents": documents,
+            "providerAnalysis": Value::Null,
+            "fallback": "rust-pdf-extract"
+        }),
+        false,
+    ))
+}
+
+fn run_discover_skills_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(5) as usize;
+    let task = required_param_string("discover_skills", &input, &["taskDescription", "task"])?;
+    let skills_root = runtime_root.join("skills");
+    let mut skills = Vec::new();
+    if let Ok(entries) = fs::read_dir(&skills_root) {
+        for entry in entries.flatten().filter(|entry| entry.path().is_dir()) {
+            let path = entry.path().join("SKILL.md");
+            let Ok(raw) = fs::read_to_string(&path) else {
+                continue;
+            };
+            let name = frontmatter_field(&raw, "name")
+                .unwrap_or_else(|| entry.file_name().to_string_lossy().to_string());
+            let description = frontmatter_field(&raw, "description").unwrap_or_default();
+            let haystack = format!("{name} {description}").to_lowercase();
+            let score = task
+                .split_whitespace()
+                .filter(|term| haystack.contains(&term.to_lowercase()))
+                .count();
+            skills.push(json!({
+                "name": name,
+                "description": description,
+                "location": path.to_string_lossy(),
+                "score": score
+            }));
+        }
+    }
+    skills.sort_by(|a, b| {
+        b.get("score")
+            .and_then(Value::as_u64)
+            .cmp(&a.get("score").and_then(Value::as_u64))
+    });
+    skills.truncate(limit.max(1));
+    Ok(tool_envelope(
+        "Skill discovery complete.",
+        json!({
+            "status": "ok",
+            "skills": skills,
+            "reason": "rust-runtime-scan",
+            "source": "rust-native",
+            "reminder": "Use a discovered skill when it directly matches the next task."
+        }),
+        false,
+    ))
+}
+
+fn frontmatter_field(raw: &str, key: &str) -> Option<String> {
+    let mut lines = raw.lines();
+    if lines.next()? != "---" {
+        return None;
+    }
+    for line in lines {
+        if line == "---" {
+            break;
+        }
+        let (field, value) = line.split_once(':')?;
+        if field.trim() == key {
+            return Some(value.trim().trim_matches('"').to_string());
+        }
+    }
+    None
+}
+
+fn workflow_store_path(runtime_root: &Path) -> PathBuf {
+    runtime_root.join("workflows").join("registry.json")
+}
+
+fn workflow_executions_path(runtime_root: &Path) -> PathBuf {
+    runtime_root.join("workflows").join("executions.json")
+}
+
+fn workflow_spec_path(runtime_root: &Path, workflow_id: &str) -> PathBuf {
+    runtime_root
+        .join("workflows")
+        .join("specs")
+        .join(format!("{workflow_id}.json"))
+}
+
+fn workflow_version_path(runtime_root: &Path, workflow_id: &str, version: u64) -> PathBuf {
+    runtime_root
+        .join("workflows")
+        .join("versions")
+        .join(workflow_id)
+        .join(format!("{version}.json"))
+}
+
+fn load_workflow_store(runtime_root: &Path) -> Result<Value, String> {
+    let path = workflow_store_path(runtime_root);
+    let mut store = if path.exists() {
+        fs::read_to_string(&path)
+            .map_err(|error| error.to_string())
+            .and_then(|raw| serde_json::from_str(&raw).map_err(|error| error.to_string()))?
+    } else {
+        json!({})
+    };
+    if !store.is_object() {
+        store = json!({});
+    }
+    if !store.get("workflows").map(Value::is_array).unwrap_or(false) {
+        store["workflows"] = json!([]);
+    }
+    if store.get("version").is_none() {
+        store["version"] = json!(1);
+    }
+    Ok(store)
+}
+
+fn save_workflow_store(runtime_root: &Path, store: &Value) -> Result<(), String> {
+    let path = workflow_store_path(runtime_root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(store).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn load_workflow_executions(runtime_root: &Path) -> Result<Value, String> {
+    let path = workflow_executions_path(runtime_root);
+    let mut store = if path.exists() {
+        fs::read_to_string(&path)
+            .map_err(|error| error.to_string())
+            .and_then(|raw| serde_json::from_str(&raw).map_err(|error| error.to_string()))?
+    } else {
+        json!({})
+    };
+    if !store.is_object() {
+        store = json!({});
+    }
+    if !store
+        .get("executions")
+        .map(Value::is_array)
+        .unwrap_or(false)
+    {
+        store["executions"] = json!([]);
+    }
+    if store.get("version").is_none() {
+        store["version"] = json!(1);
+    }
+    Ok(store)
+}
+
+fn save_workflow_executions(runtime_root: &Path, store: &Value) -> Result<(), String> {
+    let path = workflow_executions_path(runtime_root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(store).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn save_json_file(path: &Path, value: &Value) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|error| error.to_string())?;
+    }
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(value).map_err(|error| error.to_string())?,
+    )
+    .map_err(|error| error.to_string())
+}
+
+fn load_json_file(path: &Path) -> Result<Value, String> {
+    fs::read_to_string(path)
+        .map_err(|error| error.to_string())
+        .and_then(|raw| serde_json::from_str(&raw).map_err(|error| error.to_string()))
+}
+
+fn slug(value: &str) -> String {
+    let slug = value
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() {
+                ch.to_ascii_lowercase()
+            } else {
+                '-'
+            }
+        })
+        .collect::<String>()
+        .split('-')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("-");
+    if slug.is_empty() {
+        "workflow".to_string()
+    } else {
+        slug
+    }
+}
+
+fn workflow_id(entry: &Value) -> String {
+    entry
+        .get("workflowId")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn workflow_name(entry: &Value) -> String {
+    entry
+        .get("name")
+        .and_then(Value::as_str)
+        .or_else(|| entry.get("workflowId").and_then(Value::as_str))
+        .unwrap_or_default()
+        .to_string()
+}
+
+fn workflow_invocation(entry: &Value) -> Value {
+    if entry.get("archivedAt").is_some() {
+        return json!({ "canRun": false, "autoRunnable": false, "recommendedAction": "skip", "reason": "Workflow is archived." });
+    }
+    if !entry
+        .get("enabled")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return json!({ "canRun": false, "autoRunnable": false, "recommendedAction": "skip", "reason": "Workflow is disabled." });
+    }
+    if entry
+        .get("deploymentState")
+        .and_then(Value::as_str)
+        .unwrap_or("draft")
+        != "deployed"
+    {
+        return json!({ "canRun": false, "autoRunnable": false, "recommendedAction": "skip", "reason": "Workflow is still draft and must be deployed first." });
+    }
+    if entry
+        .get("requiresApproval")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return json!({ "canRun": true, "autoRunnable": false, "recommendedAction": "ask", "reason": "Workflow requires explicit operator approval before running." });
+    }
+    if entry
+        .get("safeForAutoRun")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        return json!({ "canRun": true, "autoRunnable": true, "recommendedAction": "run", "reason": "Workflow is deployed, enabled, and marked safe for auto-run." });
+    }
+    json!({ "canRun": true, "autoRunnable": false, "recommendedAction": "ask", "reason": "Workflow is runnable, but not marked safe for autonomous execution." })
+}
+
+fn workflow_view(entry: Value) -> Value {
+    let mut object = entry.as_object().cloned().unwrap_or_default();
+    object.insert(
+        "invocation".to_string(),
+        workflow_invocation(&Value::Object(object.clone())),
+    );
+    Value::Object(object)
+}
+
+fn workflow_execution_view(execution: Value) -> Value {
+    let mut object = execution.as_object().cloned().unwrap_or_default();
+    if let Some(execution_id) = object.get("executionId").cloned() {
+        object.insert("localExecutionId".to_string(), execution_id);
+    }
+    object
+        .entry("source".to_string())
+        .or_insert_with(|| Value::String("rust-native".to_string()));
+    Value::Object(object)
+}
+
+fn workflow_match_score(entry: &Value, query: &str) -> u64 {
+    let query = query.trim().to_lowercase();
+    if query.is_empty() {
+        return 0;
+    }
+    let name = workflow_name(entry).to_lowercase();
+    let description = entry
+        .get("description")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_lowercase();
+    let tags = entry
+        .get("tags")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default()
+        .into_iter()
+        .filter_map(|tag| tag.as_str().map(str::to_lowercase))
+        .collect::<Vec<_>>();
+    let mut score = 0;
+    if name == query {
+        score += 100;
+    }
+    if name.contains(&query) {
+        score += 50;
+    }
+    if description.contains(&query) {
+        score += 20;
+    }
+    for tag in &tags {
+        if tag == &query {
+            score += 20;
+        } else if tag.contains(&query) {
+            score += 10;
+        }
+    }
+    for term in query.split_whitespace() {
+        if name.contains(term) {
+            score += 8;
+        }
+        if description.contains(term) {
+            score += 4;
+        }
+        if tags.iter().any(|tag| tag.contains(term)) {
+            score += 2;
+        }
+    }
+    score
+}
+
+fn save_workflow_snapshot(
+    runtime_root: &Path,
+    workflow_id: &str,
+    spec_version: u64,
+    spec: &Value,
+) -> Result<PathBuf, String> {
+    let snapshot = json!({
+        "workflowId": workflow_id,
+        "specVersion": spec_version,
+        "createdAt": now_millis(),
+        "spec": spec
+    });
+    let path = workflow_version_path(runtime_root, workflow_id, spec_version);
+    save_json_file(&path, &snapshot)?;
+    Ok(path)
+}
+
+fn workflow_versions(runtime_root: &Path, workflow_id: &str) -> Result<Vec<Value>, String> {
+    let dir = runtime_root
+        .join("workflows")
+        .join("versions")
+        .join(workflow_id);
+    let mut versions = Vec::new();
+    if let Ok(entries) = fs::read_dir(dir) {
+        for entry in entries.flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|value| value.to_str()) != Some("json") {
+                continue;
+            }
+            if let Ok(snapshot) = load_json_file(&path) {
+                versions.push(snapshot);
+            }
+        }
+    }
+    versions.sort_by(|left, right| {
+        left.get("specVersion")
+            .and_then(Value::as_u64)
+            .unwrap_or(0)
+            .cmp(
+                &right
+                    .get("specVersion")
+                    .and_then(Value::as_u64)
+                    .unwrap_or(0),
+            )
+    });
+    Ok(versions)
+}
+
+fn run_workflowize_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let name = required_param_string("workflowize", &input, &["name"])?;
+    let goal = required_param_string("workflowize", &input, &["goal"])?;
+    let now = now_millis();
+    let workflow_id = format!("wf_{}_{}", slug(&name), now);
+    let spec = json!({
+        "workflowId": workflow_id,
+        "name": name,
+        "goal": goal,
+        "topology": string_param(&input, &["topology"]).unwrap_or_else(|| "linear_v1".to_string()),
+        "description": string_param(&input, &["description"]),
+        "sourceSummary": string_param(&input, &["sourceSummary"]),
+        "steps": input.get("stepSpecs").cloned().or_else(|| input.get("steps").cloned()).unwrap_or_else(|| json!([])),
+        "tags": input.get("tags").cloned().unwrap_or_else(|| json!([])),
+        "inputs": input.get("inputs").cloned().unwrap_or_else(|| json!([])),
+        "outputs": input.get("outputs").cloned().unwrap_or_else(|| json!([])),
+        "createdAt": now,
+        "updatedAt": now
+    });
+    let mut store = load_workflow_store(runtime_root)?;
+    let workflows = store
+        .get_mut("workflows")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "workflow store is invalid".to_string())?;
+    if workflows
+        .iter()
+        .any(|entry| entry.get("name").and_then(Value::as_str) == Some(&name))
+    {
+        return Err(format!("Workflow \"{name}\" already exists."));
+    }
+    let entry = json!({
+        "workflowId": workflow_id,
+        "name": name,
+        "goal": goal,
+        "enabled": true,
+        "scope": "runtime",
+        "target": "rust-native",
+        "deploymentState": "draft",
+        "specVersion": 1,
+        "deploymentVersion": 0,
+        "safeForAutoRun": input.get("safeForAutoRun").and_then(Value::as_bool).unwrap_or(false),
+        "requiresApproval": input.get("requiresApproval").and_then(Value::as_bool).unwrap_or(true),
+        "createdAt": now,
+        "updatedAt": now
+    });
+    workflows.push(entry.clone());
+    store["updatedAt"] = json!(now);
+    save_workflow_store(runtime_root, &store)?;
+    let spec_path = workflow_spec_path(runtime_root, &workflow_id);
+    save_json_file(&spec_path, &spec)?;
+    let snapshot_path = save_workflow_snapshot(runtime_root, &workflow_id, 1, &spec)?;
+    Ok(tool_envelope(
+        "Workflow draft created.",
+        json!({
+            "status": "created",
+            "workflowId": workflow_id,
+            "name": entry["name"],
+            "deploymentState": "draft",
+            "target": "rust-native",
+            "storeRoot": runtime_root.join("workflows").to_string_lossy(),
+            "specPath": spec_path.to_string_lossy(),
+            "snapshotPath": snapshot_path.to_string_lossy(),
+            "workflow": entry,
+            "spec": spec
+        }),
+        false,
+    ))
+}
+
+fn run_workflow_tool(runtime_root: &Path, input: Value) -> Result<Value, String> {
+    let action = required_param_string("workflow", &input, &["action"])?;
+    let mut store = load_workflow_store(runtime_root)?;
+    let workflows = store
+        .get_mut("workflows")
+        .and_then(Value::as_array_mut)
+        .ok_or_else(|| "workflow store is invalid".to_string())?;
+    match action.as_str() {
+        "list" => {
+            let include_disabled = input
+                .get("includeDisabled")
+                .and_then(Value::as_bool)
+                .unwrap_or(true);
+            let limit = input
+                .get("limit")
+                .and_then(Value::as_u64)
+                .map(|value| value as usize);
+            let executions = load_workflow_executions(runtime_root)?;
+            let execution_items = executions
+                .get("executions")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default();
+            let mut items = workflows
+                .iter()
+                .filter(|entry| {
+                    include_disabled
+                        || entry
+                            .get("enabled")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false)
+                })
+                .cloned()
+                .map(|entry| {
+                    let id = workflow_id(&entry);
+                    let run_count = execution_items
+                        .iter()
+                        .filter(|execution| {
+                            execution.get("workflowId").and_then(Value::as_str) == Some(&id)
+                        })
+                        .count();
+                    let mut view = workflow_view(entry);
+                    view["runCount"] = json!(run_count);
+                    view
+                })
+                .collect::<Vec<_>>();
+            items.sort_by(|left, right| {
+                right
+                    .get("updatedAt")
+                    .and_then(Value::as_u64)
+                    .cmp(&left.get("updatedAt").and_then(Value::as_u64))
+            });
+            if let Some(limit) = limit {
+                items.truncate(limit);
+            }
+            Ok(tool_envelope(
+                "Workflow list loaded.",
+                json!({ "status": "ok", "workflows": items, "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "describe" | "get" => {
+            let workflow =
+                required_param_string("workflow", &input, &["workflow", "workflowId", "name"])?;
+            let entry = workflows
+                .iter()
+                .find(|entry| workflow_matches(entry, &workflow))
+                .cloned()
+                .ok_or_else(|| format!("Workflow \"{workflow}\" not found."))?;
+            let id = workflow_id(&entry);
+            let spec_path = workflow_spec_path(runtime_root, &id);
+            let spec = if spec_path.exists() {
+                load_json_file(&spec_path).ok()
+            } else {
+                None
+            };
+            let executions = load_workflow_executions(runtime_root)?;
+            let mut recent_executions = executions
+                .get("executions")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|execution| {
+                    execution.get("workflowId").and_then(Value::as_str) == Some(&id)
+                })
+                .map(workflow_execution_view)
+                .collect::<Vec<_>>();
+            recent_executions.sort_by(|left, right| {
+                right
+                    .get("updatedAt")
+                    .and_then(Value::as_u64)
+                    .cmp(&left.get("updatedAt").and_then(Value::as_u64))
+            });
+            recent_executions.truncate(10);
+            Ok(tool_envelope(
+                "Workflow loaded.",
+                json!({
+                    "status": "ok",
+                    "workflow": workflow_view(entry),
+                    "spec": spec,
+                    "specPath": spec_path.to_string_lossy(),
+                    "recentExecutions": recent_executions,
+                    "implementation": "rust-native"
+                }),
+                false,
+            ))
+        }
+        "versions" => {
+            let workflow =
+                required_param_string("workflow", &input, &["workflow", "workflowId", "name"])?;
+            let entry = workflows
+                .iter()
+                .find(|entry| workflow_matches(entry, &workflow))
+                .cloned()
+                .ok_or_else(|| format!("Workflow \"{workflow}\" not found."))?;
+            let versions = workflow_versions(runtime_root, &workflow_id(&entry))?;
+            Ok(tool_envelope(
+                "Workflow versions loaded.",
+                json!({ "status": "ok", "versions": versions, "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "diff" => {
+            let workflow =
+                required_param_string("workflow", &input, &["workflow", "workflowId", "name"])?;
+            let entry = workflows
+                .iter()
+                .find(|entry| workflow_matches(entry, &workflow))
+                .cloned()
+                .ok_or_else(|| format!("Workflow \"{workflow}\" not found."))?;
+            let id = workflow_id(&entry);
+            let current_version = entry
+                .get("specVersion")
+                .and_then(Value::as_u64)
+                .unwrap_or(1);
+            let from_version = input
+                .get("specVersion")
+                .or_else(|| input.get("fromSpecVersion"))
+                .and_then(Value::as_u64)
+                .unwrap_or_else(|| current_version.saturating_sub(1).max(1));
+            let to_version = input
+                .get("toSpecVersion")
+                .and_then(Value::as_u64)
+                .unwrap_or(current_version);
+            let from_path = workflow_version_path(runtime_root, &id, from_version);
+            let to_path = workflow_version_path(runtime_root, &id, to_version);
+            let from = if from_path.exists() {
+                Some(load_json_file(&from_path)?)
+            } else {
+                None
+            };
+            let to = if to_path.exists() {
+                Some(load_json_file(&to_path)?)
+            } else {
+                None
+            };
+            Ok(tool_envelope(
+                "Workflow diff loaded.",
+                json!({
+                    "status": "ok",
+                    "workflowId": id,
+                    "fromSpecVersion": from_version,
+                    "toSpecVersion": to_version,
+                    "changed": from != to,
+                    "from": from,
+                    "to": to,
+                    "implementation": "rust-native"
+                }),
+                false,
+            ))
+        }
+        "update" => {
+            let workflow =
+                required_param_string("workflow", &input, &["workflow", "workflowId", "name"])?;
+            let patch = input
+                .get("patch")
+                .and_then(Value::as_object)
+                .cloned()
+                .ok_or_else(|| "workflow update requires patch object".to_string())?;
+            let index = workflows
+                .iter()
+                .position(|entry| workflow_matches(entry, &workflow))
+                .ok_or_else(|| format!("Workflow \"{workflow}\" not found."))?;
+            let mut entry = workflows[index].clone();
+            let id = workflow_id(&entry);
+            let spec_path = workflow_spec_path(runtime_root, &id);
+            let mut spec = if spec_path.exists() {
+                load_json_file(&spec_path)?
+            } else {
+                json!({ "workflowId": id })
+            };
+            let now = now_millis();
+            for (key, value) in patch {
+                match key.as_str() {
+                    "name" | "goal" | "description" | "tags" | "inputs" | "outputs"
+                    | "topology" | "steps" | "safeForAutoRun" | "requiresApproval" => {
+                        spec[&key] = value.clone();
+                        if matches!(
+                            key.as_str(),
+                            "name"
+                                | "goal"
+                                | "description"
+                                | "tags"
+                                | "safeForAutoRun"
+                                | "requiresApproval"
+                        ) {
+                            entry[&key] = value;
+                        }
+                    }
+                    _ => return Err(format!("unsupported workflow patch field: {key}")),
+                }
+            }
+            let next_version = entry
+                .get("specVersion")
+                .and_then(Value::as_u64)
+                .unwrap_or(1)
+                + 1;
+            entry["specVersion"] = json!(next_version);
+            entry["updatedAt"] = json!(now);
+            spec["specVersion"] = json!(next_version);
+            spec["updatedAt"] = json!(now);
+            workflows[index] = entry.clone();
+            store["updatedAt"] = json!(now);
+            save_workflow_store(runtime_root, &store)?;
+            save_json_file(&spec_path, &spec)?;
+            let snapshot_path = save_workflow_snapshot(runtime_root, &id, next_version, &spec)?;
+            Ok(tool_envelope(
+                "Workflow updated.",
+                json!({
+                    "status": "updated",
+                    "workflow": workflow_view(entry),
+                    "spec": spec,
+                    "snapshotPath": snapshot_path.to_string_lossy(),
+                    "implementation": "rust-native"
+                }),
+                false,
+            ))
+        }
+        "match" => {
+            let query = string_param(&input, &["query"])
+                .unwrap_or_default()
+                .to_lowercase();
+            let enabled_only = input
+                .get("enabledOnly")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let deployed_only = input
+                .get("deployedOnly")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let auto_runnable_only = input
+                .get("autoRunnableOnly")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(5) as usize;
+            let mut matches = workflows
+                .iter()
+                .filter(|entry| {
+                    (!enabled_only
+                        || entry
+                            .get("enabled")
+                            .and_then(Value::as_bool)
+                            .unwrap_or(false))
+                        && (!deployed_only
+                            || entry
+                                .get("deploymentState")
+                                .and_then(Value::as_str)
+                                .unwrap_or("draft")
+                                == "deployed")
+                        && (!auto_runnable_only
+                            || workflow_invocation(entry)
+                                .get("autoRunnable")
+                                .and_then(Value::as_bool)
+                                .unwrap_or(false))
+                })
+                .filter_map(|entry| {
+                    let score = workflow_match_score(entry, &query);
+                    if !query.is_empty() && score == 0 {
+                        return None;
+                    }
+                    let mut view = workflow_view(entry.clone());
+                    view["score"] = json!(score);
+                    Some(view)
+                })
+                .collect::<Vec<_>>();
+            matches.sort_by(|left, right| {
+                right
+                    .get("score")
+                    .and_then(Value::as_u64)
+                    .cmp(&left.get("score").and_then(Value::as_u64))
+            });
+            matches.truncate(limit.max(1));
+            Ok(tool_envelope(
+                "Workflow match complete.",
+                json!({ "status": "ok", "matches": matches, "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "enable" | "disable" | "archive" | "unarchive" | "deploy" | "delete" => {
+            let workflow =
+                required_param_string("workflow", &input, &["workflow", "workflowId", "name"])?;
+            let index = workflows
+                .iter()
+                .position(|entry| workflow_matches(entry, &workflow))
+                .ok_or_else(|| format!("Workflow \"{workflow}\" not found."))?;
+            let mut entry = workflows[index].clone();
+            let now = now_millis();
+            match action.as_str() {
+                "enable" => entry["enabled"] = Value::Bool(true),
+                "disable" => entry["enabled"] = Value::Bool(false),
+                "archive" => entry["archivedAt"] = json!(now),
+                "unarchive" => {
+                    if let Some(object) = entry.as_object_mut() {
+                        object.remove("archivedAt");
+                    }
+                }
+                "deploy" => {
+                    let deployment_version = entry
+                        .get("deploymentVersion")
+                        .and_then(Value::as_u64)
+                        .unwrap_or(0)
+                        + 1;
+                    entry["deploymentState"] = json!("deployed");
+                    entry["target"] = json!("rust-native");
+                    entry["deploymentVersion"] = json!(deployment_version);
+                    entry["deployedAt"] = json!(now);
+                }
+                "delete" => {
+                    let removed_id = workflow_id(&workflows[index]);
+                    let removed = workflows.remove(index);
+                    save_workflow_store(runtime_root, &store)?;
+                    let mut executions = load_workflow_executions(runtime_root)?;
+                    if let Some(items) = executions
+                        .get_mut("executions")
+                        .and_then(Value::as_array_mut)
+                    {
+                        items.retain(|execution| {
+                            execution.get("workflowId").and_then(Value::as_str) != Some(&removed_id)
+                        });
+                    }
+                    save_workflow_executions(runtime_root, &executions)?;
+                    return Ok(tool_envelope(
+                        "Workflow deleted.",
+                        json!({ "status": "deleted", "workflow": removed, "implementation": "rust-native" }),
+                        false,
+                    ));
+                }
+                _ => {}
+            }
+            entry["updatedAt"] = json!(now);
+            workflows[index] = entry.clone();
+            store["updatedAt"] = json!(now);
+            save_workflow_store(runtime_root, &store)?;
+            Ok(tool_envelope(
+                "Workflow updated.",
+                json!({ "status": "ok", "action": action, "workflow": workflow_view(entry), "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "runs" => {
+            let workflow_filter = string_param(&input, &["workflow", "workflowId", "name"]);
+            let limit = input.get("limit").and_then(Value::as_u64).unwrap_or(50) as usize;
+            let executions = load_workflow_executions(runtime_root)?;
+            let mut runs = executions
+                .get("executions")
+                .and_then(Value::as_array)
+                .cloned()
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|execution| {
+                    workflow_filter
+                        .as_deref()
+                        .map(|needle| {
+                            workflows
+                                .iter()
+                                .find(|entry| workflow_matches(entry, needle))
+                                .map(|entry| {
+                                    execution.get("workflowId").and_then(Value::as_str)
+                                        == Some(workflow_id(entry).as_str())
+                                })
+                                .unwrap_or_else(|| workflow_execution_matches(execution, needle))
+                        })
+                        .unwrap_or(true)
+                })
+                .map(workflow_execution_view)
+                .collect::<Vec<_>>();
+            runs.sort_by(|left, right| {
+                right
+                    .get("updatedAt")
+                    .and_then(Value::as_u64)
+                    .cmp(&left.get("updatedAt").and_then(Value::as_u64))
+            });
+            runs.truncate(limit.max(1));
+            Ok(tool_envelope(
+                "Workflow runs loaded.",
+                json!({ "status": "ok", "runs": runs, "implementation": "rust-native" }),
+                false,
+            ))
+        }
+        "run" => {
+            let workflow =
+                required_param_string("workflow", &input, &["workflow", "workflowId", "name"])?;
+            let index = workflows
+                .iter()
+                .position(|entry| workflow_matches(entry, &workflow))
+                .ok_or_else(|| format!("Workflow \"{workflow}\" not found."))?;
+            let mut entry = workflows[index].clone();
+            let invocation = workflow_invocation(&entry);
+            if !invocation
+                .get("canRun")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+            {
+                return Err(invocation
+                    .get("reason")
+                    .and_then(Value::as_str)
+                    .unwrap_or("Workflow cannot run.")
+                    .to_string());
+            }
+            if entry
+                .get("requiresApproval")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+                && !input
+                    .get("approved")
+                    .and_then(Value::as_bool)
+                    .unwrap_or(false)
+            {
+                return Err("workflow run requires approved=true".to_string());
+            }
+            let now = now_millis();
+            let execution_id = format!("rust-workflow-{now}");
+            let execution = json!({
+                "executionId": execution_id,
+                "localExecutionId": execution_id,
+                "workflowId": workflow_id(&entry),
+                "workflowName": workflow_name(&entry),
+                "status": "running",
+                "currentExecutor": "rust-native",
+                "startedAt": now,
+                "updatedAt": now,
+                "inputs": input.get("inputs").cloned().unwrap_or(Value::Null),
+                "originSessionKey": string_param(&input, &["sessionKey", "originSessionKey"])
+            });
+            let mut executions = load_workflow_executions(runtime_root)?;
+            executions
+                .get_mut("executions")
+                .and_then(Value::as_array_mut)
+                .ok_or_else(|| "workflow execution store is invalid".to_string())?
+                .push(execution.clone());
+            save_workflow_executions(runtime_root, &executions)?;
+            entry["lastRunAt"] = json!(now);
+            entry["updatedAt"] = json!(now);
+            workflows[index] = entry.clone();
+            store["updatedAt"] = json!(now);
+            save_workflow_store(runtime_root, &store)?;
+            Ok(tool_envelope(
+                "Workflow run started.",
+                json!({
+                    "status": "running",
+                    "runId": execution_id,
+                    "execution": workflow_execution_view(execution),
+                    "workflow": workflow_view(entry),
+                    "implementation": "rust-native"
+                }),
+                false,
+            ))
+        }
+        "status" | "cancel" | "resume" => {
+            let execution_id = required_param_string(
+                "workflow",
+                &input,
+                &[
+                    "executionId",
+                    "runId",
+                    "localExecutionId",
+                    "n8nExecutionId",
+                    "remoteExecutionId",
+                ],
+            )?;
+            let mut executions = load_workflow_executions(runtime_root)?;
+            let items = executions
+                .get_mut("executions")
+                .and_then(Value::as_array_mut)
+                .ok_or_else(|| "workflow execution store is invalid".to_string())?;
+            let index = items
+                .iter()
+                .position(|execution| workflow_execution_matches(execution, &execution_id))
+                .ok_or_else(|| format!("Workflow execution \"{execution_id}\" not found."))?;
+            if action == "cancel" || action == "resume" {
+                let now = now_millis();
+                let execution = &mut items[index];
+                if action == "cancel" {
+                    execution["status"] = json!("cancelled");
+                    execution["endedAt"] = json!(now);
+                } else {
+                    execution["status"] = json!("running");
+                    execution["resumedAt"] = json!(now);
+                    if let Some(resume_input) = input.get("resumeInput") {
+                        execution["resumeInput"] = resume_input.clone();
+                    }
+                }
+                execution["updatedAt"] = json!(now);
+                save_workflow_executions(runtime_root, &executions)?;
+            }
+            let execution = executions
+                .get("executions")
+                .and_then(Value::as_array)
+                .and_then(|items| items.get(index))
+                .cloned()
+                .ok_or_else(|| "workflow execution store is invalid".to_string())?;
+            Ok(tool_envelope(
+                "Workflow execution loaded.",
+                json!({
+                    "status": execution.get("status").and_then(Value::as_str).unwrap_or("unknown"),
+                    "action": action,
+                    "execution": workflow_execution_view(execution),
+                    "implementation": "rust-native"
+                }),
+                false,
+            ))
+        }
+        other => Err(format!("unsupported workflow action: {other}")),
+    }
+}
+
+fn workflow_matches(entry: &Value, needle: &str) -> bool {
+    entry.get("workflowId").and_then(Value::as_str) == Some(needle)
+        || entry.get("name").and_then(Value::as_str) == Some(needle)
+}
+
+fn workflow_execution_matches(execution: &Value, needle: &str) -> bool {
+    execution.get("executionId").and_then(Value::as_str) == Some(needle)
+        || execution.get("localExecutionId").and_then(Value::as_str) == Some(needle)
+        || execution.get("runId").and_then(Value::as_str) == Some(needle)
+        || execution.get("n8nExecutionId").and_then(Value::as_str) == Some(needle)
+        || execution.get("remoteExecutionId").and_then(Value::as_str) == Some(needle)
 }
 
 struct NativePluginTool {
@@ -2728,5 +4431,15 @@ mod tests {
             }
             other => panic!("expected image block, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn pdf_page_filter_parses_pages_and_ranges() {
+        assert_eq!(
+            parse_pdf_page_filter(Some("1, 3-5, 5")).expect("page filter"),
+            Some(vec![1, 3, 4, 5])
+        );
+        assert!(parse_pdf_page_filter(Some("0")).is_err());
+        assert!(parse_pdf_page_filter(Some("4-2")).is_err());
     }
 }

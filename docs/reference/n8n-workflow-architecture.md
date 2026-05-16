@@ -222,8 +222,8 @@ read_when:
 
 ### 1. Workflow Tool
 
-- `src/agents/tools/workflow-tool.ts`
-- `src/agents/tools/workflowize-tool.ts`
+- Rust core `workflow` tool
+- Rust core `workflowize` tool
 
 职责：
 

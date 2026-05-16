@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { AgentMessage } from "../agents/agent-types.js";
+import type { AgentTool } from "../agents/agent-types.js";
 import type {
   ApiKeyCredential,
   AuthProfileCredential,
@@ -8,8 +9,7 @@ import type {
 } from "../agents/auth-profiles/types.js";
 import type { ModelCatalogEntry } from "../agents/model-catalog.js";
 import type { ProviderRequestTransportOverrides } from "../agents/provider-request-config.js";
-import type { AnyAgentTool } from "../agents/tools/common.js";
-import type { ReplyPayload } from "../auto-reply/types.js";
+import type { ReplyPayload } from "../chat/reply-payload.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import type { GatewayRequestHandler } from "../gateway/request-types.js";
@@ -35,12 +35,9 @@ import type {
   SpeechTelephonySynthesisResult,
   SpeechVoiceOption,
 } from "../tts/provider-types.js";
-import type { DeliveryContext } from "../utils/delivery-context.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { SecretInputMode } from "./provider-auth-types.js";
 import type { createVpsAwareOAuthHandlers } from "./provider-oauth-flow.js";
-
-export type { AnyAgentTool } from "../agents/tools/common.js";
 
 export type ProviderAuthOptionBag = {
   token?: string;
@@ -101,41 +98,6 @@ export type CrawClawPluginConfigSchema = {
 };
 
 export type PluginObservationContext = ObservationContext;
-
-/** Trusted execution context passed to plugin-owned agent tool factories. */
-export type CrawClawPluginToolContext = {
-  config?: CrawClawConfig;
-  /** Active runtime-resolved config snapshot when one is available. */
-  runtimeConfig?: CrawClawConfig;
-  workspaceDir?: string;
-  agentDir?: string;
-  agentId?: string;
-  sessionKey?: string;
-  /** Ephemeral session UUID - regenerated on /new. Use for per-conversation isolation. */
-  sessionId?: string;
-  browser?: {
-    allowHostControl?: boolean;
-  };
-  messageChannel?: string;
-  agentAccountId?: string;
-  /** Trusted ambient delivery route for the active agent/session. */
-  deliveryContext?: DeliveryContext;
-  observation?: PluginObservationContext;
-  /** Trusted sender id from inbound context (runtime-provided, not tool args). */
-  requesterSenderId?: string;
-  /** Whether the trusted sender is an owner. */
-  senderIsOwner?: boolean;
-};
-
-export type CrawClawPluginToolFactory = (
-  ctx: CrawClawPluginToolContext,
-) => AnyAgentTool | AnyAgentTool[] | null | undefined;
-
-export type CrawClawPluginToolOptions = {
-  name?: string;
-  names?: string[];
-  optional?: boolean;
-};
 
 export type ProviderAuthKind = "oauth" | "api_key" | "token" | "device_code" | "custom";
 
@@ -536,7 +498,7 @@ export type ProviderValidateReplayTurnsContext = ProviderReplayPolicyContext & {
  * can rewrite schema keywords that their transport family does not support.
  */
 export type ProviderNormalizeToolSchemasContext = ProviderReplayPolicyContext & {
-  tools: AnyAgentTool[];
+  tools: AgentTool[];
 };
 
 /**
@@ -788,30 +750,6 @@ export type ProviderSyntheticAuthResult = {
 export type WebSearchProviderId = string;
 export type WebFetchProviderId = string;
 
-export type WebSearchProviderToolDefinition = {
-  description: string;
-  parameters: CrawClawToolSchema;
-  execute: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
-};
-
-export type WebFetchProviderToolDefinition = {
-  description: string;
-  parameters: CrawClawToolSchema;
-  execute: (args: Record<string, unknown>) => Promise<Record<string, unknown>>;
-};
-
-export type WebSearchProviderContext = {
-  config?: CrawClawConfig;
-  searchConfig?: Record<string, unknown>;
-  runtimeMetadata?: RuntimeWebSearchMetadata;
-};
-
-export type WebFetchProviderContext = {
-  config?: CrawClawConfig;
-  fetchConfig?: Record<string, unknown>;
-  runtimeMetadata?: RuntimeWebFetchMetadata;
-};
-
 export type WebSearchCredentialResolutionSource = "config" | "secretRef" | "env" | "missing";
 
 export type WebSearchRuntimeMetadataContext = {
@@ -877,7 +815,6 @@ export type WebSearchProviderPlugin = {
   resolveRuntimeMetadata?: (
     ctx: WebSearchRuntimeMetadataContext,
   ) => Partial<RuntimeWebSearchMetadata> | Promise<Partial<RuntimeWebSearchMetadata>>;
-  createTool: (ctx: WebSearchProviderContext) => WebSearchProviderToolDefinition | null;
 };
 
 export type PluginWebSearchProviderEntry = WebSearchProviderPlugin & {
@@ -912,7 +849,6 @@ export type WebFetchProviderPlugin = {
   resolveRuntimeMetadata?: (
     ctx: WebFetchRuntimeMetadataContext,
   ) => Partial<RuntimeWebFetchMetadata> | Promise<Partial<RuntimeWebFetchMetadata>>;
-  createTool: (ctx: WebFetchProviderContext) => WebFetchProviderToolDefinition | null;
 };
 
 export type PluginWebFetchProviderEntry = WebFetchProviderPlugin & {
@@ -1070,4 +1006,5 @@ export type PluginDiagnostic = {
   source?: string;
 };
 
-export type CrawClawToolSchema = import("../agents/tools/schema-types.js").CrawClawToolSchema;
+export type CrawClawToolSchema =
+  import("../agents/session-client/schema-types.js").CrawClawToolSchema;

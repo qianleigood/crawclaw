@@ -96,17 +96,6 @@ function scanWebSearchRegistrySmells(sourceFile, filePath) {
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
 
-    if (line.includes("web-search-plugin-factory.js")) {
-      pushEntry(entries, {
-        file: relativeFile,
-        line: lineNumber,
-        kind: "registry-smell",
-        specifier: "../agents/tools/web-search-plugin-factory.js",
-        resolvedPath: "src/agents/tools/web-search-plugin-factory.js",
-        reason: "imports core-owned web search provider factory into plugin registry",
-      });
-    }
-
     const pluginMatch = line.match(/pluginId:\s*"([^"]+)"/);
     if (pluginMatch && bundledWebSearchPluginIds.has(pluginMatch[1])) {
       pushEntry(entries, {

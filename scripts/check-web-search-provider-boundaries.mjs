@@ -42,11 +42,9 @@ const bundledProviderPluginToSearchProvider = new Map([
 const providerIds = new Set(["brave", "gemini", "grok", "kimi", "perplexity", "shared"]);
 
 const allowedGenericFiles = new Set([
-  "src/agents/tools/web-search.ts",
   "src/control/onboard-search.ts",
   "src/plugins/bundled-web-search-registry.ts",
   "src/secrets/runtime-web-tools.ts",
-  "src/web-search/runtime.ts",
 ]);
 
 const ignoredFiles = new Set([
@@ -111,15 +109,6 @@ function scanWebSearchProviderRegistry(lines, relativeFile, inventory) {
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
 
-    if (line.includes("web-search-plugin-factory.js")) {
-      pushEntry(inventory, {
-        provider: "shared",
-        file: relativeFile,
-        line: lineNumber,
-        reason: "imports shared web search provider registration helper into core registry",
-      });
-    }
-
     const pluginMatch = line.match(/pluginId:\s*"([^"]+)"/);
     const providerFromPlugin = pluginMatch
       ? bundledProviderPluginToSearchProvider.get(pluginMatch[1])
@@ -157,14 +146,6 @@ function scanGenericCoreImports(lines, relativeFile, inventory) {
         file: relativeFile,
         line: lineNumber,
         reason: "imports bundled web search registry outside allowed generic plumbing",
-      });
-    }
-    if (line.includes("web-search-plugin-factory.js")) {
-      pushEntry(inventory, {
-        provider: "shared",
-        file: relativeFile,
-        line: lineNumber,
-        reason: "imports web search provider registration helper outside extensions",
       });
     }
   }

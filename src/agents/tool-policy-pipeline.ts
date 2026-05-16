@@ -1,4 +1,4 @@
-import type { AnyAgentTool } from "./pi-tools.types.js";
+import type { AgentTool } from "./agent-types.js";
 import { isKnownCoreToolId } from "./tool-catalog.js";
 import { isToolAllowedByPolicyName } from "./tool-policy-match.js";
 import {
@@ -91,12 +91,12 @@ export function buildDefaultToolPolicyPipelineSteps(params: {
 }
 
 export function applyToolPolicyPipeline(params: {
-  tools: AnyAgentTool[];
-  toolMeta: (tool: AnyAgentTool) => { pluginId: string } | undefined;
+  tools: AgentTool[];
+  toolMeta: (tool: AgentTool) => { pluginId: string } | undefined;
   warn: (message: string) => void;
   diagnose?: (message: string) => void;
   steps: ToolPolicyPipelineStep[];
-}): AnyAgentTool[] {
+}): AgentTool[] {
   const coreToolNames = new Set(
     params.tools
       .filter((tool) => !params.toolMeta(tool))

@@ -1,5 +1,5 @@
 import { streamSimple } from "@mariozechner/pi-ai";
-import type { ThinkLevel } from "../../auto-reply/thinking.js";
+import type { ThinkLevel } from "../../agents/thinking.js";
 import type { StreamFn } from "../agent-types.js";
 import { streamWithPayloadPatch } from "./stream-payload-utils.js";
 

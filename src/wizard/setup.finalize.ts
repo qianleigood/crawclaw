@@ -20,7 +20,6 @@ import { describeGatewayServiceRestart, resolveGatewayService } from "../daemon/
 import { isSystemdUserServiceAvailable } from "../daemon/systemd.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { formatCliCommand } from "../terminal/command-format.js";
-import { listConfiguredWebSearchProviders } from "../web-search/runtime.js";
 import type { WizardPrompter } from "./prompts.js";
 import { maybeHandleNotebookLmOnboarding } from "./setup.notebooklm.js";
 import { resolveSetupSecretInputString } from "./setup.secret-input.js";
@@ -347,53 +346,26 @@ export async function finalizeSetupWizard(
   const codexNativeSummary = describeCodexNativeWebSearch(nextConfig);
   const webSearchProvider = nextConfig.tools?.web?.search?.provider;
   const webSearchEnabled = nextConfig.tools?.web?.search?.enabled;
-  const configuredSearchProviders = listConfiguredWebSearchProviders({ config: nextConfig });
   if (webSearchProvider) {
-    const { resolveExistingKey, hasExistingKey, hasKeyInEnv } =
-      await import("../control/onboard-search.js");
-    const entry = configuredSearchProviders.find((e) => e.id === webSearchProvider);
-    const label = entry?.label ?? webSearchProvider;
-    const storedKey = entry ? resolveExistingKey(nextConfig, webSearchProvider) : undefined;
-    const keyConfigured = entry ? hasExistingKey(nextConfig, webSearchProvider) : false;
-    const envAvailable = entry ? hasKeyInEnv(entry) : false;
-    const hasKey = keyConfigured || envAvailable;
-    const keySource = storedKey
-      ? "API key: stored in config."
-      : keyConfigured
-        ? "API key: configured via secret reference."
-        : envAvailable
-          ? `API key: provided via ${entry?.envVars.join(" / ")} env var.`
-          : undefined;
-    if (!entry) {
+    const provider = webSearchProvider.trim().toLowerCase();
+    const label = provider === "searxng" ? "SearXNG" : webSearchProvider;
+    if (provider !== "searxng") {
       await prompter.note(
         [
-          `Web search provider ${label} is selected but unavailable under the current plugin policy.`,
-          "web_search will not work until the provider is re-enabled or a different provider is selected.",
+          `Web search provider ${label} is no longer a model-visible provider.`,
+          "web_search now uses the Rust-managed SearXNG provider.",
           `  ${formatCliCommand("crawclaw configure --section web")}`,
           "",
           "Docs: https://docs.crawclaw.ai/tools/web",
         ].join("\n"),
         "Web search",
       );
-    } else if (webSearchEnabled !== false && hasKey) {
+    } else if (webSearchEnabled !== false) {
       await prompter.note(
         [
           "Web search is enabled, so your agent can look things up online when needed.",
           "",
           `Provider: ${label}`,
-          ...(keySource ? [keySource] : []),
-          "Docs: https://docs.crawclaw.ai/tools/web",
-        ].join("\n"),
-        "Web search",
-      );
-    } else if (!hasKey) {
-      await prompter.note(
-        [
-          `Provider ${label} is selected but no API key was found.`,
-          "web_search will not work until a key is added.",
-          `  ${formatCliCommand("crawclaw configure --section web")}`,
-          "",
-          `Get your key at: ${entry?.signupUrl ?? "https://docs.crawclaw.ai/tools/web"}`,
           "Docs: https://docs.crawclaw.ai/tools/web",
         ].join("\n"),
         "Web search",
@@ -410,21 +382,7 @@ export async function finalizeSetupWizard(
       );
     }
   } else {
-    // Legacy configs may have a working key (e.g. apiKey or BRAVE_API_KEY) without
-    // an explicit provider. Runtime auto-detects these, so avoid saying "skipped".
-    const { hasExistingKey, hasKeyInEnv } = await import("../control/onboard-search.js");
-    const legacyDetected = configuredSearchProviders.find(
-      (e) => hasExistingKey(nextConfig, e.id) || hasKeyInEnv(e),
-    );
-    if (legacyDetected) {
-      await prompter.note(
-        [
-          `Web search is available via ${legacyDetected.label} (auto-detected).`,
-          "Docs: https://docs.crawclaw.ai/tools/web",
-        ].join("\n"),
-        "Web search",
-      );
-    } else if (codexNativeSummary) {
+    if (codexNativeSummary) {
       await prompter.note(
         [
           "Managed web search provider was skipped.",

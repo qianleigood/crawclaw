@@ -199,7 +199,7 @@
           "exportName": "CrawClawPluginConfigSchema",
           "kind": "type",
           "source": {
-            "line": 89,
+            "line": 86,
             "path": "src/plugins/types.ts"
           }
         },
@@ -226,7 +226,7 @@
           "exportName": "PluginLogger",
           "kind": "type",
           "source": {
-            "line": 60,
+            "line": 57,
             "path": "src/plugins/types.ts"
           }
         },
@@ -761,15 +761,6 @@
       "entrypoint": "testing",
       "exports": [
         {
-          "declaration": "export function buildCommandTestParams(commandBody: string, cfg: CrawClawConfig, ctxOverrides?: Partial<MsgContext> | undefined): HandleCommandsParams;",
-          "exportName": "buildCommandTestParams",
-          "kind": "function",
-          "source": {
-            "line": 5,
-            "path": "src/auto-reply/reply/commands-spawn.test-harness.ts"
-          }
-        },
-        {
           "declaration": "export function callGateway<T = Record<string, unknown>>(opts: CallGatewayOptions): Promise<T>;",
           "exportName": "callGateway",
           "kind": "function",
@@ -819,7 +810,7 @@
           "exportName": "createWindowsCmdShimFixture",
           "kind": "function",
           "source": {
-            "line": 45,
+            "line": 40,
             "path": "src/plugin-sdk/testing.ts"
           }
         },
@@ -846,7 +837,7 @@
           "exportName": "installCommonResolveTargetErrorCases",
           "kind": "function",
           "source": {
-            "line": 71,
+            "line": 66,
             "path": "src/plugin-sdk/testing.ts"
           }
         },
@@ -932,15 +923,6 @@
           }
         },
         {
-          "declaration": "export function runAcpRuntimeAdapterContract(params: AcpRuntimeAdapterContractParams): Promise<void>;",
-          "exportName": "runAcpRuntimeAdapterContract",
-          "kind": "function",
-          "source": {
-            "line": 19,
-            "path": "src/acp/runtime/adapter-contract.testkit.ts"
-          }
-        },
-        {
           "declaration": "export function sanitizeTerminalText(input: string): string;",
           "exportName": "sanitizeTerminalText",
           "kind": "function",
@@ -1001,33 +983,6 @@
           "source": {
             "line": 4,
             "path": "src/agents/skills.e2e-test-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export const __testing: { resetAcpSessionManagerForTests(): void; setAcpSessionManagerForTests(manager: unknown): void; };",
-          "exportName": "__testing",
-          "kind": "const",
-          "source": {
-            "line": 25,
-            "path": "src/acp/control-plane/manager.ts"
-          }
-        },
-        {
-          "declaration": "export const __testing: { resetAcpSessionManagerForTests(): void; setAcpSessionManagerForTests(manager: unknown): void; };",
-          "exportName": "acpManagerTesting",
-          "kind": "const",
-          "source": {
-            "line": 25,
-            "path": "src/acp/control-plane/manager.ts"
-          }
-        },
-        {
-          "declaration": "export const handleAcpCommand: CommandHandler;",
-          "exportName": "handleAcpCommand",
-          "kind": "const",
-          "source": {
-            "line": 75,
-            "path": "src/auto-reply/reply/commands-acp.ts"
           }
         },
         {

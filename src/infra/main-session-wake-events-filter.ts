@@ -1,4 +1,4 @@
-import { HEARTBEAT_TOKEN } from "../auto-reply/tokens.js";
+import { HEARTBEAT_TOKEN } from "../chat/tokens.js";
 
 // Build a dynamic prompt for cron events by embedding the actual event content.
 // This ensures the model sees the reminder text directly instead of relying on

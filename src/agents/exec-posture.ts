@@ -8,7 +8,6 @@ import {
   type ExecTarget,
 } from "../infra/exec-approvals.js";
 import { resolveAgentConfig } from "./agent-scope.js";
-import { resolveExecTarget } from "./bash-tools.exec-runtime.js";
 
 export type ExecPosture = {
   host: ExecTarget;
@@ -16,6 +15,54 @@ export type ExecPosture = {
   security: ExecSecurity;
   ask: ExecAsk;
 };
+
+export function renderExecTargetLabel(target: ExecTarget) {
+  return target;
+}
+
+function isRequestedExecTargetAllowed(params: {
+  configuredTarget: ExecTarget;
+  requestedTarget: ExecTarget;
+}) {
+  return params.requestedTarget === params.configuredTarget;
+}
+
+export function resolveExecTarget(params: {
+  configuredTarget?: ExecTarget;
+  requestedTarget?: ExecTarget | null;
+  elevatedRequested: boolean;
+}) {
+  const configuredTarget = params.configuredTarget ?? "auto";
+  const requestedTarget = params.requestedTarget ?? null;
+  if (params.elevatedRequested) {
+    return {
+      configuredTarget,
+      requestedTarget,
+      selectedTarget: "gateway" as const,
+      effectiveHost: "gateway" as const,
+    };
+  }
+  if (
+    requestedTarget &&
+    !isRequestedExecTargetAllowed({
+      configuredTarget,
+      requestedTarget,
+    })
+  ) {
+    throw new Error(
+      `exec host not allowed (requested ${renderExecTargetLabel(requestedTarget)}; ` +
+        `configure tools.exec.host=${renderExecTargetLabel(requestedTarget)} to allow).`,
+    );
+  }
+  const selectedTarget = requestedTarget ?? configuredTarget;
+  const effectiveHost = selectedTarget === "auto" ? "gateway" : selectedTarget;
+  return {
+    configuredTarget,
+    requestedTarget,
+    selectedTarget,
+    effectiveHost,
+  };
+}
 
 export function resolveExecPosture(params: {
   cfg: CrawClawConfig;

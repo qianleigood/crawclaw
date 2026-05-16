@@ -10226,7 +10226,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "acp.runtime.installCommand": {
       label: "ACP Runtime Install Command",
-      help: "Optional operator install/setup command shown by `/acp install` and `/acp doctor` when ACP backend wiring is missing.",
+      help: "Optional operator install/setup command surfaced by Rust ACP diagnostics when ACP backend wiring is missing.",
       tags: ["advanced"],
     },
     "models.mode": {

@@ -131,7 +131,7 @@ Rules of thumb:
 - **Idle expiry** (`session.reset.idleMinutes` or legacy `session.idleMinutes`) creates a new `sessionId` when a message arrives after the idle window. When daily + idle are both configured, whichever expires first wins.
 - **Thread parent fork guard** (`session.parentForkMaxTokens`, default `100000`) skips parent transcript forking when the parent session is already too large; the new thread starts fresh. Set `0` to disable.
 
-Implementation detail: the decision happens in `initSessionState()` in `src/auto-reply/reply/session.ts`.
+Implementation detail: the reset and fork decision is owned by the Rust agent runtime and exposed through the Rust Gateway session methods.
 
 ---
 

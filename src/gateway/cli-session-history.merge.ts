@@ -1,4 +1,4 @@
-import { stripInboundMetadata } from "../auto-reply/reply/strip-inbound-meta.js";
+import { stripInboundMetadata } from "../chat/inbound-meta-strip.js";
 
 const DEDUPE_TIMESTAMP_WINDOW_MS = 5 * 60 * 1000;
 

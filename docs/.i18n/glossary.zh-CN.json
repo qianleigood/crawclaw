@@ -308,6 +308,10 @@
     "target": "运行时"
   },
   {
+    "source": "Runtime surface",
+    "target": "运行时边界"
+  },
+  {
     "source": "Plugin Setup",
     "target": "插件设置"
   },

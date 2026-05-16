@@ -1,5 +1,14 @@
-import type { AcpSessionUpdateTag } from "../acp/runtime/types.js";
-import type { ExecutionVisibilityMode } from "../auto-reply/reply/execution-visibility.js";
+import type { ExecutionVisibilityMode } from "../agents/action-feed/execution-visibility.js";
+
+export type AcpSessionUpdateTag =
+  | "thinking"
+  | "tool_call"
+  | "tool_result"
+  | "command"
+  | "diff"
+  | "status"
+  | "error"
+  | "other";
 
 export type AcpDispatchConfig = {
   /** Master switch for ACP turn dispatch in the reply pipeline. */
@@ -33,7 +42,7 @@ export type AcpStreamConfig = {
 export type AcpRuntimeConfig = {
   /** Idle runtime TTL in minutes for ACP session workers. */
   ttlMinutes?: number;
-  /** Optional operator install/setup command shown by `/acp install` and `/acp doctor`. */
+  /** Optional operator install/setup command surfaced by Rust ACP diagnostics. */
   installCommand?: string;
 };
 

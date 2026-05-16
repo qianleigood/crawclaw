@@ -337,6 +337,13 @@ pub struct RustCoreToolDefinition {
     pub status: RustCoreToolStatus,
     pub default_enabled: bool,
     pub read_only: bool,
+    pub label: &'static str,
+    pub description: &'static str,
+    pub section_id: &'static str,
+    pub default_profiles: &'static [&'static str],
+    pub lifecycle: &'static str,
+    #[serde(rename = "includeInCrawClawGroup")]
+    pub include_in_crawclaw_group: bool,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -349,207 +356,438 @@ pub struct RustAgentToolDescriptor {
     pub read_only: bool,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct RustCoreToolSection {
+    pub id: &'static str,
+    pub label: &'static str,
+}
+
+const PROFILE_MINIMAL_CODING_FULL: &[&str] = &["minimal", "coding", "full"];
+const PROFILE_CODING_FULL: &[&str] = &["coding", "full"];
+const PROFILE_MESSAGING: &[&str] = &["messaging"];
+const PROFILE_FULL: &[&str] = &["full"];
+const PROFILE_NONE: &[&str] = &[];
+
+const RUST_CORE_TOOL_SECTIONS: &[RustCoreToolSection] = &[
+    RustCoreToolSection {
+        id: "fs",
+        label: "Files",
+    },
+    RustCoreToolSection {
+        id: "runtime",
+        label: "Runtime",
+    },
+    RustCoreToolSection {
+        id: "web",
+        label: "Web",
+    },
+    RustCoreToolSection {
+        id: "sessions",
+        label: "Sessions",
+    },
+    RustCoreToolSection {
+        id: "ui",
+        label: "UI",
+    },
+    RustCoreToolSection {
+        id: "messaging",
+        label: "Messaging",
+    },
+    RustCoreToolSection {
+        id: "automation",
+        label: "Automation",
+    },
+    RustCoreToolSection {
+        id: "skills",
+        label: "Skills",
+    },
+    RustCoreToolSection {
+        id: "workflow",
+        label: "Workflow",
+    },
+    RustCoreToolSection {
+        id: "review",
+        label: "Review",
+    },
+    RustCoreToolSection {
+        id: "memory",
+        label: "Memory",
+    },
+    RustCoreToolSection {
+        id: "session_summary",
+        label: "Session Summary",
+    },
+    RustCoreToolSection {
+        id: "media",
+        label: "Media",
+    },
+];
+
+const fn core_tool(
+    id: &'static str,
+    label: &'static str,
+    description: &'static str,
+    section_id: &'static str,
+    default_profiles: &'static [&'static str],
+    read_only: bool,
+    include_in_crawclaw_group: bool,
+) -> RustCoreToolDefinition {
+    RustCoreToolDefinition {
+        id,
+        backing_runtime_id: id,
+        status: RustCoreToolStatus::RustNative,
+        default_enabled: true,
+        read_only,
+        label,
+        description,
+        section_id,
+        default_profiles,
+        lifecycle: "profile_default",
+        include_in_crawclaw_group,
+    }
+}
+
+const fn special_agent_tool(
+    id: &'static str,
+    label: &'static str,
+    description: &'static str,
+    section_id: &'static str,
+    read_only: bool,
+) -> RustCoreToolDefinition {
+    RustCoreToolDefinition {
+        lifecycle: "special_agent_only",
+        ..core_tool(
+            id,
+            label,
+            description,
+            section_id,
+            PROFILE_NONE,
+            read_only,
+            false,
+        )
+    }
+}
+
 const RUST_CORE_TOOL_DEFINITIONS: &[RustCoreToolDefinition] = &[
-    RustCoreToolDefinition {
-        id: "read",
-        backing_runtime_id: "read",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "write",
-        backing_runtime_id: "write",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "edit",
-        backing_runtime_id: "edit",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "apply_patch",
-        backing_runtime_id: "apply_patch",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "bash",
-        backing_runtime_id: "bash",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "process",
-        backing_runtime_id: "process",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "session_status",
-        backing_runtime_id: "session_status",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "sessions_list",
-        backing_runtime_id: "sessions_list",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "sessions_history",
-        backing_runtime_id: "sessions_history",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "sessions_send",
-        backing_runtime_id: "sessions_send",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "sessions_spawn",
-        backing_runtime_id: "sessions_spawn",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "sessions_yield",
-        backing_runtime_id: "sessions_yield",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "subagents",
-        backing_runtime_id: "subagents",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "cron",
-        backing_runtime_id: "cron",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "review_task",
-        backing_runtime_id: "review_task",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "memory_manifest_read",
-        backing_runtime_id: "memory_manifest_read",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "memory_note_read",
-        backing_runtime_id: "memory_note_read",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "memory_note_write",
-        backing_runtime_id: "memory_note_write",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "memory_note_edit",
-        backing_runtime_id: "memory_note_edit",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "memory_note_delete",
-        backing_runtime_id: "memory_note_delete",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "write_experience_note",
-        backing_runtime_id: "write_experience_note",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "session_summary_file_read",
-        backing_runtime_id: "session_summary_file_read",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "session_summary_file_edit",
-        backing_runtime_id: "session_summary_file_edit",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: false,
-    },
-    RustCoreToolDefinition {
-        id: "web_search",
-        backing_runtime_id: "web_search",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "web_fetch",
-        backing_runtime_id: "web_fetch",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "grep",
-        backing_runtime_id: "grep",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "find",
-        backing_runtime_id: "find",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
-    RustCoreToolDefinition {
-        id: "ls",
-        backing_runtime_id: "ls",
-        status: RustCoreToolStatus::RustNative,
-        default_enabled: true,
-        read_only: true,
-    },
+    core_tool(
+        "read",
+        "read",
+        "Read file contents",
+        "fs",
+        PROFILE_MINIMAL_CODING_FULL,
+        true,
+        false,
+    ),
+    core_tool(
+        "write",
+        "write",
+        "Create or overwrite files",
+        "fs",
+        PROFILE_CODING_FULL,
+        false,
+        false,
+    ),
+    core_tool(
+        "edit",
+        "edit",
+        "Make precise edits",
+        "fs",
+        PROFILE_CODING_FULL,
+        false,
+        false,
+    ),
+    core_tool(
+        "apply_patch",
+        "apply_patch",
+        "Patch files",
+        "fs",
+        PROFILE_CODING_FULL,
+        false,
+        false,
+    ),
+    core_tool(
+        "bash",
+        "bash",
+        "Run shell commands",
+        "runtime",
+        PROFILE_CODING_FULL,
+        false,
+        false,
+    ),
+    core_tool(
+        "process",
+        "process",
+        "Manage background processes",
+        "runtime",
+        PROFILE_CODING_FULL,
+        false,
+        false,
+    ),
+    core_tool(
+        "grep",
+        "grep",
+        "Search file contents",
+        "runtime",
+        PROFILE_MINIMAL_CODING_FULL,
+        true,
+        false,
+    ),
+    core_tool(
+        "find",
+        "find",
+        "Find files and directories",
+        "runtime",
+        PROFILE_MINIMAL_CODING_FULL,
+        true,
+        false,
+    ),
+    core_tool(
+        "ls",
+        "ls",
+        "List directory contents",
+        "runtime",
+        PROFILE_MINIMAL_CODING_FULL,
+        true,
+        false,
+    ),
+    core_tool(
+        "web_search",
+        "web_search",
+        "Search the web",
+        "web",
+        PROFILE_CODING_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "web_fetch",
+        "web_fetch",
+        "Fetch web content",
+        "web",
+        PROFILE_CODING_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "session_status",
+        "session_status",
+        "Session status",
+        "sessions",
+        PROFILE_MINIMAL_CODING_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "sessions_list",
+        "sessions_list",
+        "List sessions",
+        "sessions",
+        PROFILE_MINIMAL_CODING_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "sessions_history",
+        "sessions_history",
+        "Session history",
+        "sessions",
+        PROFILE_MINIMAL_CODING_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "sessions_send",
+        "sessions_send",
+        "Send to session",
+        "sessions",
+        PROFILE_CODING_FULL,
+        false,
+        true,
+    ),
+    core_tool(
+        "sessions_spawn",
+        "sessions_spawn",
+        "Spawn sub-agent",
+        "sessions",
+        PROFILE_CODING_FULL,
+        false,
+        true,
+    ),
+    core_tool(
+        "sessions_yield",
+        "sessions_yield",
+        "End turn to receive sub-agent results",
+        "sessions",
+        PROFILE_CODING_FULL,
+        false,
+        true,
+    ),
+    core_tool(
+        "subagents",
+        "subagents",
+        "Manage sub-agents",
+        "sessions",
+        PROFILE_CODING_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "canvas",
+        "canvas",
+        "Control canvases",
+        "ui",
+        PROFILE_NONE,
+        true,
+        true,
+    ),
+    core_tool(
+        "message",
+        "message",
+        "Send messages",
+        "messaging",
+        PROFILE_MESSAGING,
+        false,
+        true,
+    ),
+    core_tool(
+        "cron",
+        "cron",
+        "Schedule tasks",
+        "automation",
+        PROFILE_FULL,
+        false,
+        true,
+    ),
+    core_tool(
+        "image",
+        "image",
+        "Image understanding",
+        "media",
+        PROFILE_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "pdf",
+        "pdf",
+        "PDF analysis",
+        "media",
+        PROFILE_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "tts",
+        "tts",
+        "Text-to-speech conversion",
+        "media",
+        PROFILE_CODING_FULL,
+        false,
+        true,
+    ),
+    core_tool(
+        "discover_skills",
+        "discover_skills",
+        "Search available skills",
+        "skills",
+        PROFILE_CODING_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "workflow",
+        "workflow",
+        "Manage and run workflows",
+        "workflow",
+        PROFILE_FULL,
+        false,
+        true,
+    ),
+    core_tool(
+        "workflowize",
+        "workflowize",
+        "Create workflow drafts",
+        "workflow",
+        PROFILE_FULL,
+        false,
+        true,
+    ),
+    core_tool(
+        "review_task",
+        "review_task",
+        "Review task completion",
+        "review",
+        PROFILE_FULL,
+        true,
+        true,
+    ),
+    core_tool(
+        "write_experience_note",
+        "write_experience_note",
+        "Write reusable experience notes",
+        "memory",
+        PROFILE_CODING_FULL,
+        false,
+        true,
+    ),
+    special_agent_tool(
+        "memory_manifest_read",
+        "memory_manifest_read",
+        "Read scoped durable-memory manifest",
+        "memory",
+        true,
+    ),
+    special_agent_tool(
+        "memory_note_read",
+        "memory_note_read",
+        "Read scoped durable-memory notes",
+        "memory",
+        true,
+    ),
+    special_agent_tool(
+        "memory_note_write",
+        "memory_note_write",
+        "Write scoped durable-memory notes",
+        "memory",
+        false,
+    ),
+    special_agent_tool(
+        "memory_note_edit",
+        "memory_note_edit",
+        "Edit scoped durable-memory notes",
+        "memory",
+        false,
+    ),
+    special_agent_tool(
+        "memory_note_delete",
+        "memory_note_delete",
+        "Delete scoped durable-memory notes",
+        "memory",
+        false,
+    ),
+    special_agent_tool(
+        "session_summary_file_read",
+        "session_summary_file_read",
+        "Read session-summary files",
+        "session_summary",
+        true,
+    ),
+    special_agent_tool(
+        "session_summary_file_edit",
+        "session_summary_file_edit",
+        "Edit session-summary files",
+        "session_summary",
+        false,
+    ),
 ];
 
 pub fn rust_core_tool_definitions() -> &'static [RustCoreToolDefinition] {
     RUST_CORE_TOOL_DEFINITIONS
+}
+
+pub fn rust_core_tool_sections() -> &'static [RustCoreToolSection] {
+    RUST_CORE_TOOL_SECTIONS
 }
 
 pub fn native_plugin_descriptors() -> Vec<crawclaw_plugin_sdk::NativePluginDescriptor> {
@@ -2943,25 +3181,6 @@ mod tests {
             "apply_patch",
             "bash",
             "process",
-            "session_status",
-            "sessions_list",
-            "sessions_history",
-            "sessions_send",
-            "sessions_spawn",
-            "sessions_yield",
-            "subagents",
-            "cron",
-            "review_task",
-            "memory_manifest_read",
-            "memory_note_read",
-            "memory_note_write",
-            "memory_note_edit",
-            "memory_note_delete",
-            "write_experience_note",
-            "session_summary_file_read",
-            "session_summary_file_edit",
-            "web_search",
-            "web_fetch",
             "browser",
             "lobster",
             "comfyui_workflow",
@@ -2969,6 +3188,33 @@ mod tests {
             "grep",
             "find",
             "ls",
+            "web_search",
+            "web_fetch",
+            "session_status",
+            "sessions_list",
+            "sessions_history",
+            "sessions_send",
+            "sessions_spawn",
+            "sessions_yield",
+            "subagents",
+            "canvas",
+            "message",
+            "cron",
+            "image",
+            "pdf",
+            "tts",
+            "discover_skills",
+            "workflow",
+            "workflowize",
+            "review_task",
+            "write_experience_note",
+            "memory_manifest_read",
+            "memory_note_read",
+            "memory_note_write",
+            "memory_note_edit",
+            "memory_note_delete",
+            "session_summary_file_read",
+            "session_summary_file_edit",
         ];
         assert_eq!(tool_names, expected_tool_names);
         assert!(registry.get("bash").is_some());
@@ -3047,6 +3293,15 @@ esac
                 "apply_patch",
                 "bash",
                 "process",
+                "browser",
+                "lobster",
+                "comfyui_workflow",
+                "llm-task",
+                "grep",
+                "find",
+                "ls",
+                "web_search",
+                "web_fetch",
                 "session_status",
                 "sessions_list",
                 "sessions_history",
@@ -3054,25 +3309,24 @@ esac
                 "sessions_spawn",
                 "sessions_yield",
                 "subagents",
+                "canvas",
+                "message",
                 "cron",
+                "image",
+                "pdf",
+                "tts",
+                "discover_skills",
+                "workflow",
+                "workflowize",
                 "review_task",
+                "write_experience_note",
                 "memory_manifest_read",
                 "memory_note_read",
                 "memory_note_write",
                 "memory_note_edit",
                 "memory_note_delete",
-                "write_experience_note",
                 "session_summary_file_read",
                 "session_summary_file_edit",
-                "web_search",
-                "web_fetch",
-                "browser",
-                "lobster",
-                "comfyui_workflow",
-                "llm-task",
-                "grep",
-                "find",
-                "ls"
             ]
         );
         for tool_name in ["grep", "find", "ls"] {
@@ -3119,6 +3373,12 @@ esac
                 status: RustCoreToolStatus::RustNative,
                 default_enabled: true,
                 read_only: false,
+                label: "bash",
+                description: "Run shell commands",
+                section_id: "runtime",
+                default_profiles: &["coding", "full"],
+                lifecycle: "profile_default",
+                include_in_crawclaw_group: false,
             }
         );
         assert_eq!(
@@ -3140,6 +3400,16 @@ esac
         assert!(!definition("sessions_yield").read_only);
         assert!(definition("cron").default_enabled);
         assert!(!definition("cron").read_only);
+        assert_eq!(definition("canvas").description, "Control canvases");
+        assert!(definition("canvas").default_enabled);
+        assert_eq!(definition("message").section_id, "messaging");
+        assert!(!definition("message").read_only);
+        assert!(definition("image").read_only);
+        assert!(definition("pdf").read_only);
+        assert!(!definition("tts").read_only);
+        assert!(definition("discover_skills").read_only);
+        assert!(!definition("workflow").read_only);
+        assert!(!definition("workflowize").read_only);
         for tool_name in [
             "session_status",
             "sessions_list",
@@ -3172,7 +3442,11 @@ esac
             "apply_patch",
             "process",
             "sessions_spawn",
+            "message",
             "cron",
+            "tts",
+            "workflow",
+            "workflowize",
             "review_task",
             "memory_note_write",
             "write_experience_note",
@@ -3185,6 +3459,179 @@ esac
         ] {
             assert!(tool_names.contains(&expected.to_string()));
         }
+    }
+
+    #[tokio::test]
+    async fn core_tools_canvas_message_and_discover_skills_are_rust_backed() {
+        let runtime_root = unique_test_runtime_root("core-tools-rust-backed");
+        fs::create_dir_all(runtime_root.join("skills/demo")).expect("skill dir");
+        fs::write(
+            runtime_root.join("skills/demo/SKILL.md"),
+            "---\nname: demo\ndescription: Demo skill for Rust discovery.\n---\n# Demo\n",
+        )
+        .expect("skill file");
+
+        let canvas =
+            execute_rust_core_tool(&runtime_root, "canvas", json!({ "action": "snapshot" }))
+                .await
+                .expect("canvas output");
+        assert_eq!(canvas["details"]["status"], "ok");
+        assert_eq!(canvas["details"]["implementation"], "rust-native");
+        assert_eq!(canvas["details"]["state"]["visible"], false);
+
+        let message = execute_rust_core_tool(
+            &runtime_root,
+            "message",
+            json!({
+                "action": "send",
+                "channel": "desktop",
+                "target": "user",
+                "text": "hello"
+            }),
+        )
+        .await
+        .expect("message output");
+        assert_eq!(message["details"]["deliveryStatus"], "delivered");
+        assert_eq!(message["details"]["implementation"], "rust-native");
+
+        let skills = execute_rust_core_tool(
+            &runtime_root,
+            "discover_skills",
+            json!({ "taskDescription": "Need a demo helper", "limit": 5 }),
+        )
+        .await
+        .expect("discover skills output");
+        assert_eq!(skills["details"]["status"], "ok");
+        assert!(skills["details"]["skills"]
+            .as_array()
+            .expect("skills")
+            .iter()
+            .any(|skill| skill["name"] == "demo"));
+
+        let _ = fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn core_tools_workflow_lifecycle_is_rust_backed() {
+        let runtime_root = unique_test_runtime_root("core-tools-workflow-lifecycle");
+        let created = execute_rust_core_tool(
+            &runtime_root,
+            "workflowize",
+            json!({
+                "name": "Demo workflow",
+                "goal": "Exercise Rust workflow lifecycle",
+                "safeForAutoRun": true,
+                "requiresApproval": false,
+                "steps": [{ "id": "one", "title": "First step" }]
+            }),
+        )
+        .await
+        .expect("workflow created");
+        let workflow_id = created["details"]["workflowId"]
+            .as_str()
+            .expect("workflow id");
+        assert_eq!(created["details"]["target"], "rust-native");
+
+        let updated = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({
+                "action": "update",
+                "workflow": workflow_id,
+                "patch": { "description": "Updated by Rust runtime" }
+            }),
+        )
+        .await
+        .expect("workflow updated");
+        assert_eq!(updated["details"]["status"], "updated");
+        assert_eq!(updated["details"]["workflow"]["specVersion"], 2);
+
+        let versions = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({ "action": "versions", "workflow": workflow_id }),
+        )
+        .await
+        .expect("workflow versions");
+        assert_eq!(
+            versions["details"]["versions"]
+                .as_array()
+                .expect("versions")
+                .len(),
+            2
+        );
+
+        let diff = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({
+                "action": "diff",
+                "workflow": workflow_id,
+                "fromSpecVersion": 1,
+                "toSpecVersion": 2
+            }),
+        )
+        .await
+        .expect("workflow diff");
+        assert_eq!(diff["details"]["changed"], true);
+
+        let deployed = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({ "action": "deploy", "workflow": workflow_id }),
+        )
+        .await
+        .expect("workflow deployed");
+        assert_eq!(
+            deployed["details"]["workflow"]["deploymentState"],
+            "deployed"
+        );
+
+        let run = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({
+                "action": "run",
+                "workflow": workflow_id,
+                "inputs": { "topic": "rust" }
+            }),
+        )
+        .await
+        .expect("workflow run");
+        let run_id = run["details"]["runId"].as_str().expect("run id");
+        assert_eq!(run["details"]["status"], "running");
+
+        let status = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({ "action": "status", "executionId": run_id }),
+        )
+        .await
+        .expect("workflow status");
+        assert_eq!(status["details"]["execution"]["status"], "running");
+
+        let cancelled = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({ "action": "cancel", "executionId": run_id }),
+        )
+        .await
+        .expect("workflow cancel");
+        assert_eq!(cancelled["details"]["execution"]["status"], "cancelled");
+
+        let runs = execute_rust_core_tool(
+            &runtime_root,
+            "workflow",
+            json!({ "action": "runs", "workflow": workflow_id }),
+        )
+        .await
+        .expect("workflow runs");
+        assert_eq!(
+            runs["details"]["runs"][0]["executionId"].as_str(),
+            Some(run_id)
+        );
+
+        let _ = fs::remove_dir_all(runtime_root);
     }
 
     #[test]

@@ -3219,8 +3219,9 @@ mod tests {
             entry.surface == "web-search"
                 && entry.provider == "searxng"
                 && entry.product_boundary == "rust-native-plugin"
-                && entry.execution_runtime == "node-ts-js"
-                && entry.runtime_major == Some(24)
+                && entry.execution_runtime == "python-sidecar"
+                && entry.runtime_major.is_none()
+                && entry.sidecar == Some("searxng")
         }));
         assert!(web_boundaries.iter().any(|entry| {
             entry.surface == "web-fetch"

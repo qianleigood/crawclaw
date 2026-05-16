@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  RUST_CORE_TOOL_DEFINITIONS,
+  RUST_NATIVE_TOOL_DEFINITIONS,
+} from "./rust-tool-catalog.generated.js";
+import {
   CORE_TOOL_GROUPS,
+  isKnownCoreToolId,
   listCoreToolSections,
   listCoreToolIdsByLifecycle,
   resolveCoreToolProfilePolicy,
@@ -22,7 +27,6 @@ describe("tool-catalog", () => {
     expect(policy!.allow).toContain("write_experience_note");
     expect(policy!.allow).toEqual(expect.arrayContaining(["sessions_spawn", "sessions_yield"]));
     expect(policy!.allow).not.toContain("gateway");
-    expect(policy!.allow).not.toContain("sessions_list");
   });
 
   it("lists pdf in the media group and core tool sections", () => {
@@ -47,5 +51,26 @@ describe("tool-catalog", () => {
         "memory_note_delete",
       ]),
     );
+  });
+
+  it("uses the generated Rust catalog snapshot for core and native tool ids", () => {
+    const generatedIds = [
+      ...RUST_CORE_TOOL_DEFINITIONS.map((tool) => tool.id),
+      ...RUST_NATIVE_TOOL_DEFINITIONS.map((tool) => tool.id),
+    ];
+    expect(generatedIds).toEqual(expect.arrayContaining(["browser", "comfyui_workflow"]));
+    for (const toolId of [
+      "canvas",
+      "message",
+      "image",
+      "pdf",
+      "tts",
+      "discover_skills",
+      "workflow",
+      "workflowize",
+    ]) {
+      expect(generatedIds).toContain(toolId);
+      expect(isKnownCoreToolId(toolId)).toBe(true);
+    }
   });
 });

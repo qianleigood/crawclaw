@@ -49,7 +49,6 @@ function createCustomProviderEntry(): PluginWebSearchProviderEntry {
       const webSearch = (pluginConfig.webSearch ??= {}) as Record<string, unknown>;
       webSearch.apiKey = value;
     },
-    createTool: () => null,
   };
 }
 
@@ -70,7 +69,6 @@ function createBundledBraveEntry(): PluginWebSearchProviderEntry {
       (config?.plugins?.entries?.brave?.config as { webSearch?: { apiKey?: unknown } } | undefined)
         ?.webSearch?.apiKey,
     setConfiguredCredentialValue: () => {},
-    createTool: () => null,
   };
 }
 
@@ -87,7 +85,6 @@ function createBundledDuckDuckGoEntry(): PluginWebSearchProviderEntry {
     credentialPath: "",
     getCredentialValue: () => "duckduckgo-no-key-needed",
     setCredentialValue: () => {},
-    createTool: () => null,
   };
 }
 

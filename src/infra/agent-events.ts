@@ -1,4 +1,4 @@
-import type { VerboseLevel } from "../auto-reply/thinking.js";
+import type { VerboseLevel } from "../agents/thinking.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import { notifyListeners, registerListener } from "../shared/listeners.js";
 import type { AgentTaskMode, TaskRuntime } from "../tasks/task-registry.types.js";

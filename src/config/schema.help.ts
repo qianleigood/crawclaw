@@ -194,7 +194,7 @@ export const FIELD_HELP: Record<string, string> = {
   "acp.runtime.ttlMinutes":
     "Idle runtime TTL in minutes for ACP session workers before eligible cleanup.",
   "acp.runtime.installCommand":
-    "Optional operator install/setup command shown by `/acp install` and `/acp doctor` when ACP backend wiring is missing.",
+    "Optional operator install/setup command surfaced by Rust ACP diagnostics when ACP backend wiring is missing.",
   "agents.list.*.skills":
     "Optional allowlist of skills for this agent (omit = all skills; empty = no skills).",
   "agents.list[].skills":

@@ -1,10 +1,10 @@
-import {
-  buildToolExecutionVisibilityText,
-  type ExecutionEventPhase,
-} from "../../auto-reply/reply/execution-visibility.js";
 import { buildApprovalActionVisibilityProjection } from "../../infra/approval-visibility.js";
 import { buildWorkflowActionVisibilityProjection } from "../../workflows/visibility.js";
 import { buildCompletionActionVisibilityProjection } from "../tasks/completion-visibility.js";
+import {
+  buildToolExecutionVisibilityText,
+  type ExecutionEventPhase,
+} from "./execution-visibility.js";
 import type { AgentActionEventData, AgentActionKind, AgentActionStatus } from "./types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {

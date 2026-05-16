@@ -73,7 +73,7 @@ export type SkillInvocationPolicy = {
 
 export type SkillCommandDispatchSpec = {
   kind: "tool";
-  /** Name of the tool to invoke (AnyAgentTool.name). */
+  /** Name of the runtime tool to invoke. */
   toolName: string;
   /**
    * How to forward user-provided args to the tool.

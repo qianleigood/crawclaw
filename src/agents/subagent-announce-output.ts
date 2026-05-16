@@ -1,4 +1,4 @@
-import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import { isSilentReplyText, SILENT_REPLY_TOKEN } from "../chat/tokens.js";
 import { loadConfig } from "../config/config.js";
 import {
   loadSessionStore,
@@ -8,8 +8,8 @@ import {
 import { callGateway } from "../gateway/call.js";
 import { isAcpSessionKey, parseAgentSessionKey } from "../routing/session-key.js";
 import { extractTextFromChatContent } from "../shared/chat-content.js";
-import { readLatestAssistantReply } from "./tools/agent-step.js";
-import { sanitizeTextContent, extractAssistantText } from "./tools/sessions-helpers.js";
+import { readLatestAssistantReply } from "./session-client/agent-step.js";
+import { sanitizeTextContent, extractAssistantText } from "./session-client/sessions-helpers.js";
 
 function isAnnounceSkip(text: string | undefined): boolean {
   return text?.trim().toUpperCase() === "NO_REPLY";

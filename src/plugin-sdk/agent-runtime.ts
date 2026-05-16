@@ -12,10 +12,6 @@ export * from "../agents/model-catalog.js";
 export * from "../agents/model-selection.js";
 export * from "../agents/simple-completion-runtime.js";
 export * from "../agents/provider-id.js";
-export * from "../agents/tools/common.js";
-export * from "../agents/tools/web-guarded-fetch.js";
-export * from "../agents/tools/web-shared.js";
-export * from "../agents/tools/web-fetch-utils.js";
 export * from "../agents/agent-command.js";
 export * from "../tts/tts.js";
 

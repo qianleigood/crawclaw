@@ -755,6 +755,9 @@ async fn handle_gateway_method(
         "autoReply.run" | "auto_reply.run" | "auto_reply_run" => {
             auto_reply_run(state, params).await
         }
+        "autoReply.command" | "auto_reply.command" | "auto_reply_command" => {
+            auto_reply_command(state, params).await
+        }
         "agent.streamEvents" => agent_stream_events(state, params),
         "agent.cancel" => chat_abort(params),
         "chat.history" => chat_history(state, params),
@@ -1061,6 +1064,18 @@ async fn handle_gateway_method(
                 "subagents": state.session_store.list_subagents(parent.as_deref()).map_err(|error| error.to_string())?
             }))
         }
+        "subagents.spawnRun" | "subagents.spawn_run" | "subagents_spawn_run" => {
+            subagents_spawn_run(state, params).await
+        }
+        "subagents.control" | "subagents_control" => subagents_control(state, params).await,
+        "subagents.announce" | "subagents_announce" => subagents_announce(state, params).await,
+        "acp.session.list" | "acp_session_list" => acp_session_list(state, params),
+        "acp.session.new" | "acp_session_new" => acp_session_new(state, params),
+        "acp.session.load" | "acp_session_load" => acp_session_load(state, params),
+        "acp.session.patch" | "acp_session_patch" => acp_session_patch(state, params),
+        "acp.session.prompt" | "acp_session_prompt" => acp_session_prompt(state, params).await,
+        "acp.session.cancel" | "acp_session_cancel" => acp_session_cancel(state, params),
+        "acp.session.close" | "acp_session_close" => acp_session_close(state, params),
         other => Err(format!("Unsupported Rust Gateway method: {other}")),
     }
 }
@@ -1493,21 +1508,24 @@ fn tool_catalog_entry(
 ) -> Value {
     let label = descriptor
         .map(|tool| tool.label.clone())
-        .unwrap_or_else(|| tool_label(definition.id));
+        .unwrap_or_else(|| definition.label.to_string());
     let description = descriptor
         .map(|tool| tool.description.clone())
-        .unwrap_or_else(|| tool_description(definition.id).to_string());
+        .unwrap_or_else(|| definition.description.to_string());
     json!({
         "id": definition.id,
         "label": label,
         "description": description,
+        "sectionId": definition.section_id,
+        "lifecycle": definition.lifecycle,
         "parameters": descriptor
             .map(|tool| tool.parameters.clone())
             .unwrap_or_else(|| json!({ "type": "object" })),
         "readOnly": descriptor.map(|tool| tool.read_only).unwrap_or(definition.read_only),
         "source": "core",
         "optional": !definition.default_enabled,
-        "defaultProfiles": tool_default_profiles(definition.id)
+        "defaultProfiles": definition.default_profiles,
+        "includeInCrawClawGroup": definition.include_in_crawclaw_group
     })
 }
 
@@ -1517,20 +1535,24 @@ fn tool_effective_entry(
 ) -> Value {
     let label = descriptor
         .map(|tool| tool.label.clone())
-        .unwrap_or_else(|| tool_label(definition.id));
+        .unwrap_or_else(|| definition.label.to_string());
     let description = descriptor
         .map(|tool| tool.description.clone())
-        .unwrap_or_else(|| tool_description(definition.id).to_string());
+        .unwrap_or_else(|| definition.description.to_string());
     json!({
         "id": definition.id,
         "label": label,
         "description": description,
         "rawDescription": description,
+        "sectionId": definition.section_id,
+        "lifecycle": definition.lifecycle,
         "parameters": descriptor
             .map(|tool| tool.parameters.clone())
             .unwrap_or_else(|| json!({ "type": "object" })),
         "readOnly": descriptor.map(|tool| tool.read_only).unwrap_or(definition.read_only),
-        "source": "core"
+        "source": "core",
+        "defaultProfiles": definition.default_profiles,
+        "includeInCrawClawGroup": definition.include_in_crawclaw_group
     })
 }
 
@@ -1564,53 +1586,6 @@ fn native_tool_effective_entry(
         "source": "native-plugin",
         "pluginId": plugin_id
     })
-}
-
-fn tool_default_profiles(tool_id: &str) -> Vec<&'static str> {
-    match tool_id {
-        "read" | "grep" | "find" | "ls" => vec!["minimal", "coding", "full"],
-        "write" | "edit" | "apply_patch" | "bash" | "process" => vec!["coding", "full"],
-        "sessions_send" | "sessions_spawn" | "sessions_yield" | "subagents" => {
-            vec!["coding", "full"]
-        }
-        "session_status" | "sessions_list" | "sessions_history" => {
-            vec!["minimal", "coding", "full"]
-        }
-        "web_search" | "web_fetch" => vec!["coding", "full"],
-        "cron" => vec!["full"],
-        _ => vec!["full"],
-    }
-}
-
-fn tool_label(tool_id: &str) -> String {
-    tool_id.replace('_', " ")
-}
-
-fn tool_description(tool_id: &str) -> &'static str {
-    match tool_id {
-        "read" => "Read a file from the local workspace.",
-        "write" => "Write a file in the local workspace.",
-        "edit" => "Edit an existing local file.",
-        "apply_patch" => "Apply a unified patch to local files.",
-        "bash" => "Run a shell command through the Rust runtime.",
-        "process" => "Inspect or control background processes managed by the Rust runtime.",
-        "grep" => "Search file contents in the local workspace.",
-        "find" => "Find files and directories in the local workspace.",
-        "ls" => "List local files and directories.",
-        "web_search" => "Search the web through the Rust-owned SearXNG provider.",
-        "web_fetch" => "Fetch static HTTP content through the Rust runtime.",
-        "cron" => "Manage scheduled jobs in the Rust cron service.",
-        "review_task" => "Run a local Rust review task.",
-        "session_status" => "Inspect the current session status.",
-        "sessions_list" => "List local agent sessions.",
-        "sessions_history" => "Read local session history.",
-        "sessions_send" => "Send a message into a local session.",
-        "sessions_spawn" => "Spawn a local sub-session.",
-        "sessions_yield" => "Mark a local session as yielded.",
-        "subagents" => "List sub-sessions for a parent session.",
-        "write_experience_note" => "Write an experience note through the Rust memory store.",
-        _ => "Rust-native CrawClaw tool.",
-    }
 }
 
 fn models_list(state: &GatewayState) -> Value {
@@ -7014,6 +6989,41 @@ async fn auto_reply_run(state: &GatewayState, params: Value) -> Result<Value, St
     agent_run_response(result, "autoReply")
 }
 
+async fn auto_reply_command(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let command = required_param(&params, &["command", "name", "action"])?;
+    match command.as_str() {
+        "run" | "reply" | "message" => auto_reply_run(state, params).await,
+        "status" => Ok(json!({
+            "ok": true,
+            "status": "ok",
+            "implementation": "rust-native",
+            "runtime": "autoReply",
+            "sessionKey": string_param(&params, &["sessionKey", "key"]).unwrap_or_else(|| "main".to_string())
+        })),
+        "compact" => {
+            let session_key =
+                string_param(&params, &["sessionKey", "key"]).unwrap_or_else(|| "main".to_string());
+            let result = state
+                .session_store
+                .compact_session(&normalize_session_key(&session_key)?, 200)
+                .map_err(|error| error.to_string())?;
+            Ok(json!({
+                "ok": true,
+                "status": "compacted",
+                "implementation": "rust-native",
+                "sessionKey": session_key,
+                "compacted": result.0,
+                "kept": result.1
+            }))
+        }
+        "abort" | "cancel" | "stop" => chat_abort(json!({
+            "sessionKey": string_param(&params, &["sessionKey", "key"]).unwrap_or_else(|| "main".to_string()),
+            "runId": string_param(&params, &["runId"])
+        })),
+        other => Err(format!("Unsupported Rust auto-reply command: {other}")),
+    }
+}
+
 fn agent_run_response(result: AgentRunResult, kind: &str) -> Result<Value, String> {
     let events = agent_run_events_value(&result.events)?;
     Ok(json!({
@@ -9453,6 +9463,401 @@ fn sessions_messages_subscription(
     Ok(json!({ "subscribed": subscribed, "key": normalized }))
 }
 
+async fn subagents_spawn_run(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let task = required_param(&params, &["task", "message"])?;
+    let parent = string_param(&params, &["parentSessionKey", "parent", "spawnedBy"])
+        .unwrap_or_else(|| "main".to_string());
+    let label = string_param(&params, &["label", "title"]);
+    let session = state
+        .session_store
+        .spawn_session(Some(&parent), label.as_deref(), &task)
+        .map_err(|error| error.to_string())?;
+    emit(
+        state,
+        "sessionStarted",
+        json!({ "session": session.clone() }),
+    );
+    emit(
+        state,
+        "sessions.changed",
+        json!({ "session": session.clone() }),
+    );
+
+    if params.get("run").and_then(Value::as_bool) == Some(false) {
+        return Ok(json!({
+            "ok": true,
+            "status": "spawned",
+            "implementation": "rust-native",
+            "sessionKey": session.key,
+            "session": session
+        }));
+    }
+
+    let mut run_params = params.clone();
+    let run_object = ensure_json_object(&mut run_params);
+    run_object.insert("sessionKey".to_string(), Value::String(session.key.clone()));
+    run_object.insert("message".to_string(), Value::String(task));
+    run_object.insert("channel".to_string(), Value::String("subagent".to_string()));
+    run_object.insert(
+        "idempotencyKey".to_string(),
+        Value::String(
+            string_param(&params, &["idempotencyKey", "runId"])
+                .unwrap_or_else(|| format!("subagent-run-{}", now_millis())),
+        ),
+    );
+
+    let result = execute_agent_run_turn(state, &run_params, "rust-subagent").await?;
+    let events = agent_run_events_value(&result.events)?;
+    Ok(json!({
+        "ok": true,
+        "status": "running",
+        "implementation": "rust-native",
+        "sessionKey": result.session_key,
+        "session": session,
+        "runId": result.run_id,
+        "assistantText": result.assistant_text,
+        "events": events
+    }))
+}
+
+async fn subagents_control(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let action = required_param(&params, &["action", "command"])?;
+    match action.as_str() {
+        "list" | "status" => {
+            let parent = string_param(&params, &["parentSessionKey", "parent", "spawnedBy"]);
+            Ok(json!({
+                "ok": true,
+                "status": "ok",
+                "implementation": "rust-native",
+                "subagents": state.session_store.list_subagents(parent.as_deref()).map_err(|error| error.to_string())?
+            }))
+        }
+        "kill" | "cancel" | "stop" => {
+            let key = resolve_existing_session_key(
+                state,
+                &required_param(&params, &["sessionKey", "key"])?,
+            )?;
+            let status = state
+                .session_store
+                .patch_session(&key, None, None, None, Some("killed"))
+                .map_err(|error| error.to_string())?;
+            emit(
+                state,
+                "sessions.changed",
+                json!({ "session": status.clone() }),
+            );
+            Ok(json!({
+                "ok": true,
+                "status": "killed",
+                "implementation": "rust-native",
+                "sessionKey": key,
+                "session": status
+            }))
+        }
+        "killAll" | "kill_all" | "cancelAll" | "cancel_all" => {
+            let parent = string_param(&params, &["parentSessionKey", "parent", "spawnedBy"]);
+            let sessions = state
+                .session_store
+                .list_subagents(parent.as_deref())
+                .map_err(|error| error.to_string())?;
+            let mut killed = Vec::new();
+            for session in sessions {
+                if matches!(session.status.as_str(), "done" | "completed" | "killed") {
+                    continue;
+                }
+                let status = state
+                    .session_store
+                    .patch_session(&session.key, None, None, None, Some("killed"))
+                    .map_err(|error| error.to_string())?;
+                emit(
+                    state,
+                    "sessions.changed",
+                    json!({ "session": status.clone() }),
+                );
+                killed.push(json!({ "key": status.key, "status": status.status }));
+            }
+            Ok(json!({
+                "ok": true,
+                "status": "killed",
+                "implementation": "rust-native",
+                "killed": killed
+            }))
+        }
+        "send" | "steer" => {
+            let key = resolve_existing_session_key(
+                state,
+                &required_param(&params, &["sessionKey", "key"])?,
+            )?;
+            let message = required_param(&params, &["message", "text"])?;
+            let mut run_params = params.clone();
+            let run_object = ensure_json_object(&mut run_params);
+            run_object.insert("sessionKey".to_string(), Value::String(key));
+            run_object.insert("message".to_string(), Value::String(message));
+            run_object.insert(
+                "channel".to_string(),
+                Value::String("subagent-control".to_string()),
+            );
+            run_object.insert(
+                "idempotencyKey".to_string(),
+                Value::String(
+                    string_param(&params, &["idempotencyKey", "runId"])
+                        .unwrap_or_else(|| format!("subagent-control-{}", now_millis())),
+                ),
+            );
+            let result =
+                execute_agent_run_turn(state, &run_params, "rust-subagent-control").await?;
+            let events = agent_run_events_value(&result.events)?;
+            Ok(json!({
+                "ok": true,
+                "status": "accepted",
+                "implementation": "rust-native",
+                "sessionKey": result.session_key,
+                "runId": result.run_id,
+                "assistantText": result.assistant_text,
+                "events": events
+            }))
+        }
+        other => Err(format!("Unsupported Rust subagent control action: {other}")),
+    }
+}
+
+async fn subagents_announce(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let child_session_key = resolve_existing_session_key(
+        state,
+        &required_param(&params, &["childSessionKey", "sessionKey", "key"])?,
+    )?;
+    let requester_session_key = resolve_existing_session_key(
+        state,
+        &required_param(&params, &["requesterSessionKey", "parentSessionKey"])?,
+    )?;
+    let findings = string_param(&params, &["findings", "message", "text"])
+        .unwrap_or_else(|| "Subagent completed.".to_string());
+    let announce_type = string_param(&params, &["announceType", "type"])
+        .unwrap_or_else(|| "subagent task".to_string());
+    let message = format!("Completed {announce_type} from {child_session_key}:\n\n{findings}");
+
+    let mut run_params = params.clone();
+    let run_object = ensure_json_object(&mut run_params);
+    run_object.insert(
+        "sessionKey".to_string(),
+        Value::String(requester_session_key.clone()),
+    );
+    run_object.insert("message".to_string(), Value::String(message));
+    run_object.insert(
+        "channel".to_string(),
+        Value::String("subagent-announce".to_string()),
+    );
+    run_object.insert(
+        "idempotencyKey".to_string(),
+        Value::String(
+            string_param(&params, &["announceId", "idempotencyKey", "runId"])
+                .unwrap_or_else(|| format!("subagent-announce-{}", now_millis())),
+        ),
+    );
+
+    let result = execute_agent_run_turn(state, &run_params, "rust-subagent-announce").await?;
+    if params
+        .get("cleanup")
+        .and_then(Value::as_str)
+        .is_some_and(|cleanup| cleanup == "delete")
+    {
+        let _ = state.session_store.delete_session(&child_session_key);
+    } else {
+        let _ =
+            state
+                .session_store
+                .patch_session(&child_session_key, None, None, None, Some("done"));
+    }
+    let events = agent_run_events_value(&result.events)?;
+    Ok(json!({
+        "ok": true,
+        "status": "announced",
+        "implementation": "rust-native",
+        "childSessionKey": child_session_key,
+        "requesterSessionKey": requester_session_key,
+        "runId": result.run_id,
+        "assistantText": result.assistant_text,
+        "events": events
+    }))
+}
+
+fn acp_session_list(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let limit = params
+        .get("limit")
+        .and_then(Value::as_u64)
+        .unwrap_or(100)
+        .min(1000) as usize;
+    let sessions = state
+        .session_store
+        .list_summaries()
+        .map_err(|error| error.to_string())?
+        .into_iter()
+        .take(limit)
+        .map(|session| {
+            json!({
+                "id": session.key,
+                "sessionId": session.key,
+                "key": session.key,
+                "title": session.title,
+                "status": session.status,
+                "messageCount": session.message_count,
+                "spawnedBy": session.spawned_by
+            })
+        })
+        .collect::<Vec<_>>();
+    Ok(json!({
+        "ok": true,
+        "implementation": "rust-native",
+        "sessions": sessions
+    }))
+}
+
+fn acp_session_new(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let key = normalize_session_key(
+        &string_param(&params, &["sessionKey", "key", "sessionId"])
+            .unwrap_or_else(|| format!("acp:{}", now_millis())),
+    )?;
+    let label = string_param(&params, &["label", "title"]).unwrap_or_else(|| format!("ACP {key}"));
+    let model = string_param(&params, &["model"]);
+    let status = state
+        .session_store
+        .create_session(&key, Some(&label), model.as_deref())
+        .map_err(|error| error.to_string())?;
+    Ok(json!({
+        "ok": true,
+        "implementation": "rust-native",
+        "sessionId": key,
+        "sessionKey": status.key,
+        "session": status
+    }))
+}
+
+fn acp_session_load(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let key = resolve_existing_session_key(
+        state,
+        &required_param(&params, &["sessionKey", "key", "sessionId"])?,
+    )?;
+    let status = state
+        .session_store
+        .session_status(&key)
+        .map_err(|error| error.to_string())?
+        .ok_or_else(|| format!("ACP session not found: {key}"))?;
+    let messages = state
+        .session_store
+        .session_history(&key)
+        .map_err(|error| error.to_string())?;
+    Ok(json!({
+        "ok": true,
+        "implementation": "rust-native",
+        "sessionId": key,
+        "sessionKey": status.key,
+        "session": status,
+        "messages": messages
+    }))
+}
+
+fn acp_session_patch(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let key = resolve_existing_session_key(
+        state,
+        &required_param(&params, &["sessionKey", "key", "sessionId"])?,
+    )?;
+    let status = state
+        .session_store
+        .patch_session(
+            &key,
+            string_param(&params, &["label", "title"]).as_deref(),
+            string_param(&params, &["model"]).as_deref(),
+            params.get("pinned").and_then(Value::as_bool),
+            string_param(&params, &["status", "mode"]).as_deref(),
+        )
+        .map_err(|error| error.to_string())?;
+    Ok(json!({
+        "ok": true,
+        "implementation": "rust-native",
+        "sessionId": key,
+        "session": status
+    }))
+}
+
+async fn acp_session_prompt(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let key = resolve_existing_session_key(
+        state,
+        &required_param(&params, &["sessionKey", "key", "sessionId"])?,
+    )?;
+    let prompt = required_param(&params, &["prompt", "message", "text"])?;
+    let mut run_params = params.clone();
+    let run_object = ensure_json_object(&mut run_params);
+    run_object.insert("sessionKey".to_string(), Value::String(key.clone()));
+    run_object.insert("message".to_string(), Value::String(prompt));
+    run_object.insert("channel".to_string(), Value::String("acp".to_string()));
+    run_object.insert(
+        "idempotencyKey".to_string(),
+        Value::String(
+            string_param(&params, &["idempotencyKey", "runId"])
+                .unwrap_or_else(|| format!("acp-prompt-{}", now_millis())),
+        ),
+    );
+    let result = execute_agent_run_turn(state, &run_params, "rust-acp").await?;
+    let events = agent_run_events_value(&result.events)?;
+    Ok(json!({
+        "ok": true,
+        "status": "completed",
+        "implementation": "rust-native",
+        "sessionId": key,
+        "sessionKey": result.session_key,
+        "runId": result.run_id,
+        "assistantText": result.assistant_text,
+        "events": events
+    }))
+}
+
+fn acp_session_cancel(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let key = resolve_existing_session_key(
+        state,
+        &required_param(&params, &["sessionKey", "key", "sessionId"])?,
+    )?;
+    let status = state
+        .session_store
+        .patch_session(&key, None, None, None, Some("killed"))
+        .map_err(|error| error.to_string())?;
+    Ok(json!({
+        "ok": true,
+        "status": "cancelled",
+        "implementation": "rust-native",
+        "sessionId": key,
+        "session": status
+    }))
+}
+
+fn acp_session_close(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let key = resolve_existing_session_key(
+        state,
+        &required_param(&params, &["sessionKey", "key", "sessionId"])?,
+    )?;
+    let deleted = if params
+        .get("delete")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        state
+            .session_store
+            .delete_session(&key)
+            .map_err(|error| error.to_string())?
+    } else {
+        let _ = state
+            .session_store
+            .patch_session(&key, None, None, None, Some("closed"));
+        false
+    };
+    Ok(json!({
+        "ok": true,
+        "status": "closed",
+        "implementation": "rust-native",
+        "sessionId": key,
+        "deleted": deleted
+    }))
+}
+
 fn normalize_session_key(input: &str) -> Result<String, String> {
     let value = input.trim();
     if value.is_empty() {
@@ -9466,6 +9871,22 @@ fn normalize_session_key(input: &str) -> Result<String, String> {
     } else {
         Ok(format!("agent:main:{value}"))
     }
+}
+
+fn resolve_existing_session_key(state: &GatewayState, input: &str) -> Result<String, String> {
+    let raw = input.trim();
+    if raw.is_empty() {
+        return Err("session key cannot be empty".to_string());
+    }
+    if state
+        .session_store
+        .session_status(raw)
+        .map_err(|error| error.to_string())?
+        .is_some()
+    {
+        return Ok(raw.to_string());
+    }
+    normalize_session_key(raw)
 }
 
 fn runtime_status_value(state: &GatewayState) -> Value {
@@ -9633,6 +10054,7 @@ fn gateway_methods() -> Vec<&'static str> {
         "agent.runTurn",
         "agent.command.run",
         "autoReply.run",
+        "autoReply.command",
         "agent.streamEvents",
         "agent.cancel",
         "chat.history",
@@ -9658,6 +10080,16 @@ fn gateway_methods() -> Vec<&'static str> {
         "sessions.spawn",
         "sessions.yield",
         "subagents",
+        "subagents.spawnRun",
+        "subagents.control",
+        "subagents.announce",
+        "acp.session.list",
+        "acp.session.new",
+        "acp.session.load",
+        "acp.session.patch",
+        "acp.session.prompt",
+        "acp.session.cancel",
+        "acp.session.close",
         "wake",
         "cron.start",
         "cron.stop",
@@ -10625,6 +11057,147 @@ mod tests {
         .expect("subagents");
         assert_eq!(subagents["subagents"][0]["title"], "gateway worker");
 
+        let native_spawned = handle_gateway_method(
+            &state,
+            "subagents.spawnRun",
+            json!({
+                "task": "native subagent",
+                "label": "native worker",
+                "parentSessionKey": "main",
+                "run": false
+            }),
+        )
+        .await
+        .expect("native subagent spawn");
+        assert_eq!(native_spawned["implementation"], "rust-native");
+        assert_eq!(native_spawned["status"], "spawned");
+        let native_key = native_spawned["sessionKey"]
+            .as_str()
+            .expect("native key")
+            .to_string();
+
+        let native_list = handle_gateway_method(
+            &state,
+            "subagents.control",
+            json!({
+                "action": "list",
+                "parentSessionKey": "main"
+            }),
+        )
+        .await
+        .expect("native subagent list");
+        assert!(native_list["subagents"]
+            .as_array()
+            .expect("native subagents")
+            .iter()
+            .any(|entry| entry["key"] == native_key));
+
+        let killed = handle_gateway_method(
+            &state,
+            "subagents.control",
+            json!({
+                "action": "kill",
+                "sessionKey": native_key
+            }),
+        )
+        .await
+        .expect("native subagent kill");
+        assert_eq!(killed["status"], "killed");
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_rpc_handles_auto_reply_and_acp_control() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-rpc-acp-auto-reply");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let auto_status = handle_gateway_method(
+            &state,
+            "autoReply.command",
+            json!({
+                "command": "status",
+                "sessionKey": "main"
+            }),
+        )
+        .await
+        .expect("auto reply status");
+        assert_eq!(auto_status["implementation"], "rust-native");
+        assert_eq!(auto_status["runtime"], "autoReply");
+
+        let acp_new = handle_gateway_method(
+            &state,
+            "acp.session.new",
+            json!({
+                "sessionKey": "acp-test",
+                "label": "ACP test"
+            }),
+        )
+        .await
+        .expect("acp session new");
+        assert_eq!(acp_new["implementation"], "rust-native");
+        assert_eq!(acp_new["sessionKey"], "agent:main:acp-test");
+
+        let acp_loaded = handle_gateway_method(
+            &state,
+            "acp.session.load",
+            json!({
+                "sessionKey": "acp-test"
+            }),
+        )
+        .await
+        .expect("acp session load");
+        assert_eq!(acp_loaded["session"]["title"], "ACP test");
+
+        let acp_patched = handle_gateway_method(
+            &state,
+            "acp.session.patch",
+            json!({
+                "sessionKey": "acp-test",
+                "status": "running"
+            }),
+        )
+        .await
+        .expect("acp session patch");
+        assert_eq!(acp_patched["session"]["status"], "running");
+
+        let acp_cancelled = handle_gateway_method(
+            &state,
+            "acp.session.cancel",
+            json!({
+                "sessionKey": "acp-test"
+            }),
+        )
+        .await
+        .expect("acp session cancel");
+        assert_eq!(acp_cancelled["status"], "cancelled");
+
+        let listed = handle_gateway_method(&state, "acp.session.list", json!({ "limit": 10 }))
+            .await
+            .expect("acp session list");
+        assert!(listed["sessions"]
+            .as_array()
+            .expect("acp sessions")
+            .iter()
+            .any(|entry| entry["key"] == "agent:main:acp-test"));
+
+        let closed = handle_gateway_method(
+            &state,
+            "acp.session.close",
+            json!({
+                "sessionKey": "acp-test",
+                "delete": true
+            }),
+        )
+        .await
+        .expect("acp session close");
+        assert_eq!(closed["status"], "closed");
+        assert_eq!(closed["deleted"], true);
+
         let _ = std::fs::remove_dir_all(runtime_root);
     }
 
@@ -11466,6 +12039,25 @@ mod tests {
             .expect("core tools")
             .iter()
             .any(|tool| tool == "review_task"));
+        for tool_id in [
+            "canvas",
+            "message",
+            "image",
+            "pdf",
+            "tts",
+            "discover_skills",
+            "workflow",
+            "workflowize",
+        ] {
+            assert!(
+                status["coreTools"]
+                    .as_array()
+                    .expect("core tools")
+                    .iter()
+                    .any(|tool| tool == tool_id),
+                "missing Rust core tool {tool_id}"
+            );
+        }
         assert!(status["coreTools"]
             .as_array()
             .expect("core tools")

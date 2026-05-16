@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { MsgContext } from "../../auto-reply/templating.js";
+import type { MsgContext } from "../../chat/templating.js";
 import { normalizeExplicitSessionKey } from "./explicit-session-key-normalization.js";
 
 function makeCtx(overrides: Partial<MsgContext>): MsgContext {

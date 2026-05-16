@@ -9,7 +9,7 @@ import {
   type SessionEntry,
 } from "../config/sessions.js";
 import { defaultRuntime } from "../runtime.js";
-import { type SubagentRunOutcome } from "./subagent-announce.js";
+import { type SubagentRunOutcome } from "./subagent-announce-output.js";
 import {
   SUBAGENT_ENDED_REASON_ERROR,
   SUBAGENT_ENDED_REASON_KILLED,

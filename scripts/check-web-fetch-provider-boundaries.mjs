@@ -35,10 +35,7 @@ const bundledProviderPluginToFetchProvider = new Map([["spider-fetch", "spider"]
 
 const providerIds = new Set(["spider", "shared"]);
 
-const allowedGenericFiles = new Set([
-  "src/secrets/runtime-web-tools.ts",
-  "src/web-fetch/runtime.ts",
-]);
+const allowedGenericFiles = new Set(["src/secrets/runtime-web-tools.ts"]);
 
 const ignoredFiles = new Set([
   "src/plugins/contracts/loader.contract.test.ts",

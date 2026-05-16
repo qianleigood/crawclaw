@@ -1,6 +1,12 @@
-import type { ReasoningLevel, ThinkLevel } from "../../auto-reply/thinking.js";
+import type { ReasoningLevel, ThinkLevel } from "../../agents/thinking.js";
+import type { ElevatedLevel } from "../../agents/thinking.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import type { ExecElevatedDefaults } from "../bash-tools.js";
+
+export type ExecElevatedDefaults = {
+  enabled?: boolean;
+  allowed?: boolean;
+  defaultLevel?: ElevatedLevel;
+};
 
 export type AgentCompactionRuntimeContext = {
   sessionKey?: string;

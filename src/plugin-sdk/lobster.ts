@@ -6,8 +6,3 @@ export {
   materializeWindowsSpawnProgram,
   resolveWindowsSpawnProgramCandidate,
 } from "./windows-spawn.js";
-export type {
-  AnyAgentTool,
-  CrawClawPluginToolContext,
-  CrawClawPluginToolFactory,
-} from "../plugins/types.js";

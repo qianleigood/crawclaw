@@ -8,9 +8,11 @@ import type { TaskRuntime } from "../tasks/task-registry.types.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
 import { emitRunLoopLifecycleEvent } from "./runtime/lifecycle/bus.js";
 import { ensureSharedRunLoopLifecycleSubscribers } from "./runtime/lifecycle/shared-subscribers.js";
+import {
+  captureSubagentCompletionReply,
+  type SubagentRunOutcome,
+} from "./subagent-announce-output.js";
 import { resetAnnounceQueuesForTests } from "./subagent-announce-queue.js";
-import * as subagentAnnounceModule from "./subagent-announce.js";
-import type { SubagentRunOutcome } from "./subagent-announce.js";
 import {
   SUBAGENT_ENDED_REASON_COMPLETE,
   SUBAGENT_ENDED_REASON_ERROR,
@@ -68,27 +70,54 @@ type MemorySubagentEndReason =
 
 type SubagentRegistryDeps = {
   callGateway: typeof callGateway;
-  captureSubagentCompletionReply: typeof subagentAnnounceModule.captureSubagentCompletionReply;
+  captureSubagentCompletionReply: typeof captureSubagentCompletionReply;
   getSubagentRunsSnapshotForRead: typeof getSubagentRunsSnapshotForRead;
   loadConfig: typeof loadConfig;
   onAgentEvent: typeof onAgentEvent;
   persistSubagentRunsToDisk: typeof persistSubagentRunsToDisk;
   resolveAgentTimeoutMs: typeof resolveAgentTimeoutMs;
   restoreSubagentRunsFromDisk: typeof restoreSubagentRunsFromDisk;
-  runSubagentAnnounceFlow: typeof subagentAnnounceModule.runSubagentAnnounceFlow;
+  announceSubagentViaRust: (params: {
+    childSessionKey: string;
+    childRunId: string;
+    requesterSessionKey: string;
+    requesterDisplayKey: string;
+    task: string;
+    cleanup: "delete" | "keep";
+    roundOneReply?: string;
+    fallbackReply?: string;
+    label?: string;
+    announceType?: string;
+  }) => Promise<boolean>;
 };
 
 const defaultSubagentRegistryDeps: SubagentRegistryDeps = {
   callGateway,
-  captureSubagentCompletionReply: (sessionKey) =>
-    subagentAnnounceModule.captureSubagentCompletionReply(sessionKey),
+  captureSubagentCompletionReply,
   getSubagentRunsSnapshotForRead,
   loadConfig,
   onAgentEvent,
   persistSubagentRunsToDisk,
   resolveAgentTimeoutMs,
   restoreSubagentRunsFromDisk,
-  runSubagentAnnounceFlow: (params) => subagentAnnounceModule.runSubagentAnnounceFlow(params),
+  announceSubagentViaRust: async (params) => {
+    const result = await callGateway<{ status?: string }>({
+      method: "subagents.announce",
+      params: {
+        childSessionKey: params.childSessionKey,
+        childRunId: params.childRunId,
+        requesterSessionKey: params.requesterSessionKey,
+        requesterDisplayKey: params.requesterDisplayKey,
+        task: params.task,
+        cleanup: params.cleanup,
+        findings: params.roundOneReply ?? params.fallbackReply ?? params.task,
+        label: params.label,
+        announceType: params.announceType ?? "subagent task",
+      },
+      timeoutMs: 120_000,
+    });
+    return result.status === "announced";
+  },
 };
 
 let subagentRegistryDeps: SubagentRegistryDeps = defaultSubagentRegistryDeps;
@@ -328,7 +357,7 @@ const subagentLifecycleController = createSubagentRegistryLifecycleController({
   resumeSubagentRun,
   captureSubagentCompletionReply: (sessionKey) =>
     subagentRegistryDeps.captureSubagentCompletionReply(sessionKey),
-  runSubagentAnnounceFlow: (params) => subagentRegistryDeps.runSubagentAnnounceFlow(params),
+  announceSubagentViaRust: (params) => subagentRegistryDeps.announceSubagentViaRust(params),
   warn: (message, meta) => {
     const childSessionKey =
       typeof meta?.childSessionKey === "string" ? meta.childSessionKey : undefined;

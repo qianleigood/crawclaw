@@ -1,4 +1,4 @@
-import { type VerboseLevel } from "../auto-reply/thinking.js";
+import { type VerboseLevel } from "../agents/thinking.js";
 import { type SessionEntry } from "../config/sessions.js";
 import { callGatewayCli } from "../gateway/call.js";
 import {
@@ -104,15 +104,10 @@ async function runAgentCommandInternal(
     sessionAgentId,
     workspaceDir,
     runId,
-    acpResolution,
   } = prepared;
   let sessionEntry = prepared.sessionEntry;
 
   try {
-    if (acpResolution?.kind === "stale") {
-      throw acpResolution.error;
-    }
-
     const resolvedThinkLevel = thinkOnce ?? thinkOverride ?? persistedThinking;
     const resolvedVerboseLevel =
       verboseOverride ?? persistedVerbose ?? (agentCfg?.verboseDefault as VerboseLevel | undefined);

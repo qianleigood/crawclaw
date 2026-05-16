@@ -1,4 +1,4 @@
-import type { MsgContext } from "../../auto-reply/templating.js";
+import type { MsgContext } from "../../chat/templating.js";
 import { normalizeMessageChannel } from "../../utils/gateway-client-surface.js";
 import { resolveGroupSessionKey } from "./group.js";
 import type { GroupKeyResolution, SessionEntry, SessionOrigin } from "./types.js";

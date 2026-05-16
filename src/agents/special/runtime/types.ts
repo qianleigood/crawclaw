@@ -1,4 +1,4 @@
-import type { ThinkLevel } from "../../../auto-reply/thinking.js";
+import type { ThinkLevel } from "../../../agents/thinking.js";
 import type { CrawClawConfig } from "../../../config/config.js";
 import type { AgentEventPayload } from "../../../infra/agent-events.js";
 import type { ObservationContext } from "../../../infra/observation/types.js";

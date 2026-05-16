@@ -1,5 +1,5 @@
 import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
-import { stripHeartbeatToken } from "../auto-reply/heartbeat.js";
+import { stripHeartbeatToken } from "../chat/heartbeat.js";
 
 export type HeartbeatDeliveryPayload = {
   text?: string;

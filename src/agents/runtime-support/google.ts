@@ -19,12 +19,12 @@ import {
   validateGeminiTurns,
 } from "../runtime-helpers.js";
 import { cleanSchemaForGemini } from "../schema/clean-for-gemini.js";
+import type { CrawClawToolSchema } from "../session-client/schema-types.js";
 import {
   sanitizeToolCallInputs,
   stripToolResultDetails,
   sanitizeToolUseResultPairing,
 } from "../session-transcript-repair.js";
-import type { CrawClawToolSchema } from "../tools/schema-types.js";
 import type { TranscriptPolicy } from "../transcript-policy.js";
 import { resolveTranscriptPolicy } from "../transcript-policy.js";
 import {

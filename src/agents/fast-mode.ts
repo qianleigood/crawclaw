@@ -1,4 +1,4 @@
-import { normalizeFastMode } from "../auto-reply/thinking.shared.js";
+import { normalizeFastMode } from "../agents/thinking.shared.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { SessionEntry } from "../config/sessions.js";
 import { resolveAgentConfig } from "./agent-scope.js";

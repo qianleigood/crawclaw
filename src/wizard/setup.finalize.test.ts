@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWizardPrompter as buildWizardPrompter } from "../../test/helpers/wizard-prompter.js";
 import type { CrawClawConfig } from "../config/config.js";
-import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 
 const probeGatewayReachable = vi.hoisted(() =>
@@ -39,19 +38,6 @@ const readSystemdUserLingerStatus = vi.hoisted(() =>
 const resolveSetupSecretInputString = vi.hoisted(() =>
   vi.fn<() => Promise<string | undefined>>(async () => undefined),
 );
-const resolveExistingKey = vi.hoisted(() =>
-  vi.fn<(config: CrawClawConfig, provider: string) => string | undefined>(() => undefined),
-);
-const hasExistingKey = vi.hoisted(() =>
-  vi.fn<(config: CrawClawConfig, provider: string) => boolean>(() => false),
-);
-const hasKeyInEnv = vi.hoisted(() =>
-  vi.fn<(entry: Pick<PluginWebSearchProviderEntry, "envVars">) => boolean>(() => false),
-);
-const listConfiguredWebSearchProviders = vi.hoisted(() =>
-  vi.fn<(params?: { config?: CrawClawConfig }) => PluginWebSearchProviderEntry[]>(() => []),
-);
-
 vi.mock("../control/onboard-helpers.js", () => ({
   probeGatewayReachable,
   resolveBrowserClientsLinks: vi.fn(() => ({
@@ -86,13 +72,6 @@ vi.mock("../control/health.js", () => ({
 vi.mock("../control/onboard-search.js", () => ({
   SEARCH_PROVIDER_OPTIONS: [],
   resolveSearchProviderOptions: () => [],
-  hasExistingKey,
-  hasKeyInEnv,
-  resolveExistingKey,
-}));
-
-vi.mock("../web-search/runtime.js", () => ({
-  listConfiguredWebSearchProviders,
 }));
 
 vi.mock("../daemon/service.js", () => ({
@@ -139,21 +118,6 @@ function createRuntime(): RuntimeEnv {
     log: vi.fn(),
     error: vi.fn(),
     exit: vi.fn(),
-  };
-}
-
-function createWebSearchProviderEntry(
-  provider: Pick<
-    PluginWebSearchProviderEntry,
-    "id" | "label" | "hint" | "envVars" | "placeholder" | "signupUrl" | "credentialPath"
-  >,
-): PluginWebSearchProviderEntry {
-  return {
-    pluginId: `plugin-${provider.id}`,
-    getCredentialValue: () => undefined,
-    setCredentialValue: () => {},
-    createTool: () => null,
-    ...provider,
   };
 }
 
@@ -236,14 +200,6 @@ describe("finalizeSetupWizard", () => {
     readSystemdUserLingerStatus.mockResolvedValue({ user: "test-user", linger: "yes" });
     resolveSetupSecretInputString.mockReset();
     resolveSetupSecretInputString.mockResolvedValue(undefined);
-    resolveExistingKey.mockReset();
-    resolveExistingKey.mockReturnValue(undefined);
-    hasExistingKey.mockReset();
-    hasExistingKey.mockReturnValue(false);
-    hasKeyInEnv.mockReset();
-    hasKeyInEnv.mockReturnValue(false);
-    listConfiguredWebSearchProviders.mockReset();
-    listConfiguredWebSearchProviders.mockReturnValue([]);
   });
 
   it("resolves gateway password SecretRef for gateway probe", async () => {
@@ -409,7 +365,7 @@ describe("finalizeSetupWizard", () => {
     expect(progressStop).toHaveBeenCalledWith("Gateway service restart scheduled.");
   });
 
-  it("reports selected providers blocked by plugin policy as unavailable", async () => {
+  it("reports legacy web search providers as unavailable", async () => {
     const prompter = createLaterPrompter();
 
     await finalizeSetupWizard(
@@ -420,56 +376,26 @@ describe("finalizeSetupWizard", () => {
     );
 
     expect(prompter.note).toHaveBeenCalledWith(
-      expect.stringContaining("selected but unavailable under the current plugin policy"),
-      "Web search",
-    );
-    expect(resolveExistingKey).not.toHaveBeenCalled();
-    expect(hasExistingKey).not.toHaveBeenCalled();
-  });
-
-  it("only reports legacy auto-detect for runtime-visible providers", async () => {
-    listConfiguredWebSearchProviders.mockReturnValue([
-      createWebSearchProviderEntry({
-        id: "perplexity",
-        label: "Perplexity Search",
-        hint: "Fast web answers",
-        envVars: ["PERPLEXITY_API_KEY"],
-        placeholder: "pplx-...",
-        signupUrl: "https://www.perplexity.ai/",
-        credentialPath: "plugins.entries.perplexity.config.webSearch.apiKey",
-      }),
-    ]);
-    hasExistingKey.mockImplementation((_config, provider) => provider === "perplexity");
-
-    const prompter = createLaterPrompter();
-
-    await finalizeSetupWizard(createAdvancedFinalizeArgs({ prompter }));
-
-    expect(prompter.note).toHaveBeenCalledWith(
-      expect.stringContaining("Web search is available via Perplexity Search (auto-detected)."),
+      expect.stringContaining("is no longer a model-visible provider"),
       "Web search",
     );
   });
 
-  it("uses configured provider resolution instead of the active runtime registry", async () => {
-    listConfiguredWebSearchProviders.mockReturnValue([
-      createWebSearchProviderEntry({
-        id: "brave",
-        label: "Brave Search",
-        hint: "General web search",
-        envVars: ["BRAVE_API_KEY"],
-        placeholder: "BSA-...",
-        signupUrl: "https://brave.com/search/api/",
-        credentialPath: "plugins.entries.brave.config.webSearch.apiKey",
-      }),
-    ]);
-    hasExistingKey.mockImplementation((_config, provider) => provider === "brave");
-
+  it("reports Rust-managed searxng web search when enabled", async () => {
     const prompter = createLaterPrompter();
 
     await finalizeSetupWizard(
       createAdvancedFinalizeArgs({
-        nextConfig: createEnabledBraveSearchConfig(),
+        nextConfig: {
+          tools: {
+            web: {
+              search: {
+                provider: "searxng",
+                enabled: true,
+              },
+            },
+          },
+        },
         prompter,
       }),
     );

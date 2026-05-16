@@ -1,4 +1,3 @@
-import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
 import { resolveAgentMaxConcurrent, resolveSubagentMaxConcurrent } from "../config/agent-limits.js";
 import { isRestartEnabled } from "../config/commands.js";
 import type { loadConfig } from "../config/config.js";
@@ -137,7 +136,7 @@ export function createGatewayReloadHandlers(params: {
 
     const getActiveCounts = () => {
       const queueSize = getTotalQueueSize();
-      const pendingReplies = getTotalPendingReplies();
+      const pendingReplies = 0;
       const embeddedRuns = 0;
       const activeTasks = getInspectableTaskRegistrySummary().active;
       return {

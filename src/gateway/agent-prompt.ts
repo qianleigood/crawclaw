@@ -1,4 +1,4 @@
-import { buildHistoryContextFromEntries, type HistoryEntry } from "../auto-reply/reply/history.js";
+import { buildHistoryContextFromEntries, type HistoryEntry } from "../chat/history.js";
 import { extractTextFromChatContent } from "../shared/chat-content.js";
 
 export type ConversationEntry = {

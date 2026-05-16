@@ -1,4 +1,4 @@
-import type { ReasoningLevel, ThinkLevel } from "../../auto-reply/thinking.js";
+import type { ReasoningLevel, ThinkLevel } from "../../agents/thinking.js";
 import type { ThinkingLevel } from "../agent-types.js";
 
 export function mapThinkingLevel(level?: ThinkLevel): ThinkingLevel {

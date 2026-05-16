@@ -1,4 +1,4 @@
-import type { MsgContext } from "../../auto-reply/templating.js";
+import type { MsgContext } from "../../chat/templating.js";
 import {
   buildAgentMainSessionKey,
   DEFAULT_AGENT_ID,

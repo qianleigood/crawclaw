@@ -1,7 +1,6 @@
 import crypto from "node:crypto";
-import { getAcpSessionManager } from "../acp/control-plane/manager.js";
-import { killSubagentRunAdmin } from "../agents/subagent-control.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { callGateway } from "../gateway/call.js";
 import { onAgentEvent } from "../infra/agent-events.js";
 import { requestMainSessionWakeNow } from "../infra/main-session-wake.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
@@ -1761,21 +1760,29 @@ export async function cancelTaskById(params: {
   }
   try {
     if (task.runtime === "acp") {
-      await getAcpSessionManager().cancelSession({
-        cfg: params.cfg,
-        sessionKey: childSessionKey,
-        reason: "task-cancel",
+      await callGateway({
+        method: "acp.session.cancel",
+        params: {
+          sessionKey: childSessionKey,
+          reason: "task-cancel",
+        },
+        timeoutMs: 10_000,
       });
     } else if (task.runtime === "subagent") {
-      const result = await killSubagentRunAdmin({
-        cfg: params.cfg,
-        sessionKey: childSessionKey,
+      const result = await callGateway<{ status?: string }>({
+        method: "subagents.control",
+        params: {
+          action: "kill",
+          sessionKey: childSessionKey,
+          admin: true,
+        },
+        timeoutMs: 10_000,
       });
-      if (!result.found || !result.killed) {
+      if (result.status !== "killed") {
         return {
           found: true,
           cancelled: false,
-          reason: result.found ? "Subagent was not running." : "Subagent task not found.",
+          reason: "Subagent was not running.",
           task: cloneTaskRecord(task),
         };
       }

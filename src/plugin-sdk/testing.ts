@@ -30,11 +30,6 @@ export {
 } from "../media-understanding/audio.test-helpers.ts";
 export { isLiveTestEnabled } from "../agents/live-test-helpers.js";
 export { writeSkill } from "../agents/skills.e2e-test-helpers.js";
-export { __testing } from "../acp/control-plane/manager.js";
-export { __testing as acpManagerTesting } from "../acp/control-plane/manager.js";
-export { runAcpRuntimeAdapterContract } from "../acp/runtime/adapter-contract.testkit.js";
-export { handleAcpCommand } from "../auto-reply/reply/commands-acp.js";
-export { buildCommandTestParams } from "../auto-reply/reply/commands-spawn.test-harness.js";
 export { peekSystemEvents, resetSystemEventsForTest } from "../infra/system-events.js";
 export { jsonResponse, requestBodyText, requestUrl } from "../test-helpers/http.js";
 export { mockPinnedHostnameResolution } from "../test-helpers/ssrf.js";

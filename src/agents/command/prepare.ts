@@ -1,9 +1,8 @@
-import { getAcpSessionManager } from "../../acp/control-plane/manager.js";
 import {
   formatThinkingLevels,
   normalizeThinkLevel,
   normalizeVerboseLevel,
-} from "../../auto-reply/thinking.js";
+} from "../../agents/thinking.js";
 import {
   loadConfig,
   readConfigFileSnapshotForWrite,
@@ -233,14 +232,6 @@ export async function prepareAgentCommandExecution(
   });
   const workspaceDir = workspace.dir;
   const runId = opts.runId?.trim() || sessionId;
-  const acpManager = getAcpSessionManager();
-  const acpResolution = sessionKey
-    ? acpManager.resolveSession({
-        cfg,
-        sessionKey,
-      })
-    : null;
-
   return {
     body,
     cfg,
@@ -263,8 +254,7 @@ export async function prepareAgentCommandExecution(
     workspaceDir,
     agentDir,
     runId,
-    acpManager,
-    acpResolution,
+    acpResolution: null,
   };
 }
 

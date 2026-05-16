@@ -77,11 +77,6 @@ function createRuntimeWebFetchProvider() {
       credentialPath: "plugins.entries.sample-fetch.config.webFetch.apiKey",
       getCredentialValue: () => "configured",
       setCredentialValue: () => {},
-      createTool: () => ({
-        description: "sample-fetch",
-        parameters: {},
-        execute: async () => ({}),
-      }),
     },
   };
 }

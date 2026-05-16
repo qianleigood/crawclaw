@@ -85,7 +85,6 @@ export function createPluginLoadResult(
     speechProviders: [],
     webFetchProviders: [],
     webSearchProviders: [],
-    tools: [],
     hooks: [],
     httpRoutes: [],
     gatewayHandlers: {},

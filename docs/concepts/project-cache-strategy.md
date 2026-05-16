@@ -76,13 +76,12 @@ The serialized cache must not skip writes after an external process changes the 
 
 Primary code:
 
-- `src/agents/tools/web-fetch.ts`
-- `src/agents/tools/web-fetch-runtime-helpers.ts`
-- `src/agents/tools/web-shared.ts`
+- `crates/crawclaw-native-plugins/src/web.rs`
+- `src/cache/web-fetch-cache.ts`
 
-`web_fetch` caches provider-backed and local fetch responses in process memory. Its cache key includes the requested URL, output shape, fetch settings, provider ID, sticky `sessionId`, and provider wait hints.
+`web_fetch` caches Rust native fetch responses in process memory. Its cache key includes the requested URL, output shape, fetch settings, provider ID, sticky `sessionId`, and provider wait hints.
 
-This is a security-sensitive cache. A provider-backed response for one sticky browser session must never be reused for another session. Regression coverage lives in `src/agents/tools/web-fetch.provider-fallback.test.ts`.
+This is a security-sensitive cache. A rendered response for one sticky browser session must never be reused for another session. Regression coverage lives in the Rust native web fetch tests.
 
 ## Routing And Control Plane Caches
 
@@ -93,7 +92,6 @@ Primary code:
 - `src/plugins/discovery.ts`
 - `src/plugins/manifest-registry.ts`
 - `src/gateway/model-pricing-cache.ts`
-- `src/acp/control-plane/runtime-cache.ts`
 - `src/infra/outbound/directory-cache.ts`
 
 Routing caches are keyed by config object plus content signatures for mutable config sections such as `bindings`, `agents`, and `session`. This lets routing stay fast for stable config while still detecting in-place mutations during tests or reload flows.

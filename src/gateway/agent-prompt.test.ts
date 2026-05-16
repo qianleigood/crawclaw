@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildHistoryContextFromEntries } from "../auto-reply/reply/history.js";
+import { buildHistoryContextFromEntries } from "../chat/history.js";
 import { extractTextFromChatContent } from "../shared/chat-content.js";
 import { buildAgentMessageFromConversationEntries } from "./agent-prompt.js";
 

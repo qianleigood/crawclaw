@@ -159,7 +159,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
   void it("release check rejects missing runtime release inputs", () => {
     const cases = [
       ["binary", /embedded Rust runtime binary/],
-      ["manifest", /embedded managed plugin runtime manifest/],
+      ["manifest", /embedded managed runtime manifest/],
       ["channels", /embedded Rust channel manifest/],
       ["providers", /embedded Rust provider transport manifest/],
       ["plugins", /embedded Rust plugin manifest/],
@@ -268,7 +268,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
     );
   });
 
-  void it("release check rejects QuickJS plugin runtime metadata", () => {
+  void it("release check rejects QuickJS fallback metadata", () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-js-fallback-"));
     writeReleaseFixture(rootDir, { jsPluginRuntime: "pi-quickjs" });
 
@@ -281,7 +281,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
             return { status: 0, signal: null, stdout: "", stderr: "" };
           },
         }),
-      /must not advertise a JS plugin runtime/,
+      /must not advertise JS runtime support/,
     );
   });
 

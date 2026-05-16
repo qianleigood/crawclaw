@@ -1,9 +1,7 @@
-import { getAcpSessionManager } from "../../acp/control-plane/manager.js";
 import { clearBootstrapSnapshot } from "../../agents/bootstrap-cache.js";
-import { stopSubagentsForRequester } from "../../auto-reply/reply/abort.js";
-import { clearSessionQueues } from "../../auto-reply/reply/queue.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions.js";
+import { callGateway } from "../../gateway/call.js";
 import { ErrorCodes, errorShape } from "../../gateway/protocol/index.js";
 import { resolveGatewaySessionStoreTarget } from "../../gateway/session-utils.js";
 import { logVerbose } from "../../globals.js";
@@ -12,6 +10,25 @@ import { closeTrackedBrowserTabsForSessions } from "../../plugin-sdk/browser-mai
 const ACP_RUNTIME_CLEANUP_TIMEOUT_MS = 15_000;
 
 type GatewaySessionStoreTarget = ReturnType<typeof resolveGatewaySessionStoreTarget>;
+
+async function stopSubagentsForRequesterViaRust(params: {
+  requesterSessionKey: string;
+}): Promise<void> {
+  try {
+    await callGateway({
+      method: "subagents.control",
+      params: {
+        action: "killAll",
+        requesterSessionKey: params.requesterSessionKey,
+      },
+      timeoutMs: 10_000,
+    });
+  } catch (error) {
+    logVerbose(
+      `sessions.reset: Rust subagent cleanup failed for ${params.requesterSessionKey}: ${String(error)}`,
+    );
+  }
+}
 
 async function ensureSessionRuntimeCleanup(params: {
   cfg: CrawClawConfig;
@@ -32,13 +49,9 @@ async function ensureSessionRuntimeCleanup(params: {
     });
   };
 
-  const queueKeys = new Set<string>(params.target.storeKeys);
-  queueKeys.add(params.target.canonicalKey);
-  if (params.sessionId) {
-    queueKeys.add(params.sessionId);
-  }
-  clearSessionQueues([...queueKeys]);
-  stopSubagentsForRequester({ cfg: params.cfg, requesterSessionKey: params.target.canonicalKey });
+  await stopSubagentsForRequesterViaRust({
+    requesterSessionKey: params.target.canonicalKey,
+  });
   if (!params.sessionId) {
     clearBootstrapSnapshot(params.target.canonicalKey);
     await closeTrackedBrowserTabs();
@@ -85,13 +98,15 @@ async function closeAcpRuntimeForSession(params: {
   if (!params.entry?.acp) {
     return undefined;
   }
-  const acpManager = getAcpSessionManager();
   const cancelOutcome = await runAcpCleanupStep({
     op: async () => {
-      await acpManager.cancelSession({
-        cfg: params.cfg,
-        sessionKey: params.sessionKey,
-        reason: params.reason,
+      await callGateway({
+        method: "acp.session.cancel",
+        params: {
+          sessionKey: params.sessionKey,
+          reason: params.reason,
+        },
+        timeoutMs: ACP_RUNTIME_CLEANUP_TIMEOUT_MS,
       });
     },
   });
@@ -109,12 +124,13 @@ async function closeAcpRuntimeForSession(params: {
 
   const closeOutcome = await runAcpCleanupStep({
     op: async () => {
-      await acpManager.closeSession({
-        cfg: params.cfg,
-        sessionKey: params.sessionKey,
-        reason: params.reason,
-        requireAcpSession: false,
-        allowBackendUnavailable: true,
+      await callGateway({
+        method: "acp.session.close",
+        params: {
+          sessionKey: params.sessionKey,
+          reason: params.reason,
+        },
+        timeoutMs: ACP_RUNTIME_CLEANUP_TIMEOUT_MS,
       });
     },
   });

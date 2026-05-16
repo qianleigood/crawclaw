@@ -1,7 +1,6 @@
 import { WORKSPACE_BOOTSTRAP_CACHE_DESCRIPTOR } from "../agents/bootstrap-cache.js";
 import { MODEL_CONTEXT_TOKEN_CACHE_DESCRIPTOR } from "../agents/context-cache.js";
 import { QUERY_LAYER_CACHE_IDENTITY_DESCRIPTOR } from "../agents/query-context/cache-contract.js";
-import { WEB_FETCH_RESPONSE_CACHE_DESCRIPTOR } from "../agents/tools/web-fetch-cache.js";
 import { SESSION_STORE_CACHE_DESCRIPTOR } from "../config/sessions/store-cache.js";
 import { GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR } from "../gateway/model-pricing-cache.js";
 import {
@@ -10,6 +9,7 @@ import {
   ROUTE_RESOLVED_ROUTE_CACHE_DESCRIPTOR,
 } from "../routing/resolve-route.js";
 import type { CacheGovernanceDescriptor } from "./governance-types.js";
+import { WEB_FETCH_RESPONSE_CACHE_DESCRIPTOR } from "./web-fetch-cache.js";
 
 export const CACHE_GOVERNANCE_REGISTRY: CacheGovernanceDescriptor[] = [
   QUERY_LAYER_CACHE_IDENTITY_DESCRIPTOR,

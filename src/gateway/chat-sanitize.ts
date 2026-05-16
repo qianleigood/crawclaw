@@ -1,7 +1,4 @@
-import {
-  extractInboundSenderLabel,
-  stripInboundMetadata,
-} from "../auto-reply/reply/strip-inbound-meta.js";
+import { extractInboundSenderLabel, stripInboundMetadata } from "../chat/inbound-meta-strip.js";
 import { stripEnvelope, stripMessageIdHints } from "../shared/chat-envelope.js";
 
 export { stripEnvelope };

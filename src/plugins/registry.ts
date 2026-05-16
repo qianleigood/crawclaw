@@ -10,27 +10,16 @@ import type {
   CrawClawPluginHttpRouteMatch,
   CrawClawPluginHttpRouteHandler,
   CrawClawPluginService,
-  CrawClawPluginToolFactory,
   PluginConfigUiHint,
   PluginDiagnostic,
   PluginBundleFormat,
   PluginFormat,
   PluginLogger,
-  PluginOrigin,
   PluginKind,
+  PluginOrigin,
   SpeechProviderPlugin,
   WebSearchProviderPlugin,
 } from "./types.js";
-
-export type PluginToolRegistration = {
-  pluginId: string;
-  pluginName?: string;
-  factory: CrawClawPluginToolFactory;
-  names: string[];
-  optional: boolean;
-  source: string;
-  rootDir?: string;
-};
 
 export type PluginHttpRouteRegistration = {
   pluginId?: string;
@@ -121,7 +110,6 @@ export type PluginRecord = {
 
 export type PluginRegistry = {
   plugins: PluginRecord[];
-  tools: PluginToolRegistration[];
   hooks: WorkspaceHookRegistration[];
   providers: PluginProviderRegistration[];
   speechProviders: PluginSpeechProviderRegistration[];

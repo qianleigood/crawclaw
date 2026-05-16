@@ -4,7 +4,7 @@ import {
   acquireSessionWriteLock,
   resolveSessionLockMaxHoldFromTimeout,
 } from "../../agents/session-write-lock.js";
-import type { MsgContext } from "../../auto-reply/templating.js";
+import type { MsgContext } from "../../chat/templating.js";
 import { writeTextAtomic } from "../../infra/json-files.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 import {

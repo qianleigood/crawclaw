@@ -150,7 +150,7 @@ if (rawCli.showHelp) {
       "Examples:",
       "  node scripts/test-parallel.mjs",
       "  node scripts/test-parallel.mjs --plan --surface unit --surface extensions",
-      "  node scripts/test-parallel.mjs --explain src/auto-reply/reply/commands-acp/install-hints.test.ts",
+      "  node scripts/test-parallel.mjs --explain src/agents/thinking.test.ts",
       "  node scripts/test-parallel.mjs --collect-failures --surface unit",
       "  node scripts/test-parallel.mjs --files src/foo.test.ts -- --reporter=dot",
       "",

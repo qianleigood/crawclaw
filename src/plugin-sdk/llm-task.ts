@@ -7,5 +7,4 @@ export {
   formatXHighModelHint,
   normalizeThinkLevel,
   supportsXHighThinking,
-} from "../auto-reply/thinking.js";
-export type { AnyAgentTool } from "../plugins/types.js";
+} from "../agents/thinking.js";

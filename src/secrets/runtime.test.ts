@@ -75,7 +75,6 @@ function createTestProvider(params: {
             perplexityTransport: "search_api" as const,
           })
         : undefined,
-    createTool: () => null,
   };
 }
 

@@ -1,6 +1,4 @@
-import { readNumberParam, readStringArrayParam, readStringParam } from "../agents/tools/common.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { callGateway } from "../gateway/call.js";
 import { enablePluginInConfig } from "./enable.js";
 import type {
   PluginWebFetchProviderEntry,
@@ -79,60 +77,6 @@ function searxngProvider(): WebSearchProviderPlugin {
       setPluginConfigValue(configTarget, SEARXNG_PLUGIN_ID, "webSearch", "baseUrl", value);
     },
     applySelectionConfig: (config) => enablePluginInConfig(config, SEARXNG_PLUGIN_ID).config,
-    createTool: (ctx) => ({
-      description: "Search the web using CrawClaw's Rust-owned SearXNG provider.",
-      parameters: {
-        type: "object",
-        additionalProperties: false,
-        required: ["query"],
-        properties: {
-          query: { type: "string", description: "Search query string." },
-          count: {
-            type: "number",
-            description: "Number of results to return.",
-            minimum: 1,
-            maximum: 10,
-          },
-          engines: {
-            type: "array",
-            items: { type: "string" },
-            description: "Optional SearXNG engine ids.",
-          },
-          categories: {
-            type: "array",
-            items: { type: "string" },
-            description: "Optional SearXNG categories.",
-          },
-          language: { type: "string" },
-          safeSearch: { type: "string", enum: ["off", "moderate", "strict"] },
-          timeRange: { type: "string", enum: ["day", "week", "month", "year"] },
-          baseUrl: {
-            type: "string",
-            description: "Optional explicit SearXNG endpoint override.",
-          },
-          timeoutSeconds: { type: "number" },
-        },
-      },
-      execute: async (args) =>
-        await callGateway({
-          method: "tools.invoke",
-          params: {
-            tool: "web_search",
-            input: {
-              query: readStringParam(args, "query", { required: true }),
-              count: readNumberParam(args, "count", { integer: true }),
-              engines: readStringArrayParam(args, "engines"),
-              categories: readStringArrayParam(args, "categories"),
-              language: readStringParam(args, "language"),
-              safeSearch: readStringParam(args, "safeSearch"),
-              timeRange: readStringParam(args, "timeRange"),
-              baseUrl: readStringParam(args, "baseUrl"),
-              timeoutSeconds: readNumberParam(args, "timeoutSeconds", { integer: true }),
-              pluginConfig: pluginConfig(ctx.config, SEARXNG_PLUGIN_ID),
-            },
-          },
-        }),
-    }),
   };
 }
 
@@ -165,54 +109,6 @@ function spiderFetchProvider(): WebFetchProviderPlugin {
       );
     },
     applySelectionConfig: (config) => enablePluginInConfig(config, SPIDER_FETCH_PLUGIN_ID).config,
-    createTool: (ctx) => ({
-      description: "Fetch a page using CrawClaw's Rust-native Spider provider.",
-      parameters: {
-        type: "object",
-        additionalProperties: false,
-        required: ["url"],
-        properties: {
-          url: { type: "string", description: "Absolute URL to fetch." },
-          output: {
-            type: "string",
-            enum: ["markdown", "text", "html", "structured"],
-          },
-          extractMode: { type: "string", enum: ["markdown", "text", "html"] },
-          detail: { type: "string", enum: ["brief", "standard", "full"] },
-          render: { type: "string", enum: ["auto", "never", "stealth", "dynamic"] },
-          extract: { type: "string", enum: ["readable", "raw", "links", "metadata"] },
-          maxChars: { type: "number" },
-          timeoutSeconds: { type: "number" },
-          mainContentOnly: { type: "boolean" },
-          waitUntil: { type: "string", enum: ["domcontentloaded", "load", "networkidle"] },
-          waitFor: { type: "string" },
-          sessionId: { type: "string" },
-        },
-      },
-      execute: async (args) =>
-        await callGateway({
-          method: "tools.invoke",
-          params: {
-            tool: "web_fetch",
-            input: {
-              url: readStringParam(args, "url", { required: true }),
-              output: readStringParam(args, "output"),
-              extractMode: readStringParam(args, "extractMode"),
-              detail: readStringParam(args, "detail"),
-              render: readStringParam(args, "render"),
-              extract: readStringParam(args, "extract"),
-              maxChars: readNumberParam(args, "maxChars", { integer: true }),
-              timeoutSeconds: readNumberParam(args, "timeoutSeconds", { integer: true }),
-              mainContentOnly:
-                typeof args.mainContentOnly === "boolean" ? args.mainContentOnly : undefined,
-              waitUntil: readStringParam(args, "waitUntil"),
-              waitFor: readStringParam(args, "waitFor"),
-              sessionId: readStringParam(args, "sessionId"),
-              pluginConfig: pluginConfig(ctx.config, SPIDER_FETCH_PLUGIN_ID),
-            },
-          },
-        }),
-    }),
   };
 }
 

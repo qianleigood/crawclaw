@@ -1,4 +1,4 @@
-import type { MsgContext } from "../auto-reply/templating.js";
+import type { MsgContext } from "../chat/templating.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type {
   MediaUnderstandingConfig,

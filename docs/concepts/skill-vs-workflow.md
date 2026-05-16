@@ -128,7 +128,7 @@ Skill-heavy areas today include:
 Workflow-heavy areas today include:
 
 - `src/workflows`
-- `src/agents/tools/workflow-tool.ts`
+- Rust core `workflow` and `workflowize` tools
 - Rust Gateway workflow RPC handlers
 - `src/cron`
 - `src/hooks`

@@ -1,7 +1,6 @@
 import "./ts-gateway-runtime-guard.js";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { initSubagentRegistry } from "../agents/subagent-registry.js";
-import { getTotalPendingReplies } from "../auto-reply/reply/dispatcher-registry.js";
 import { isRestartEnabled } from "../config/commands.js";
 import {
   type ConfigFileSnapshot,
@@ -498,8 +497,7 @@ export async function startGatewayServer(
   }
   setGatewaySigusr1RestartPolicy({ allowExternal: isRestartEnabled(cfgAtStart) });
   setPreRestartDeferralCheck(
-    () =>
-      getTotalQueueSize() + getTotalPendingReplies() + getInspectableTaskRegistrySummary().active,
+    () => getTotalQueueSize() + getInspectableTaskRegistrySummary().active,
   );
   // Unconditional startup migration: seed gateway.browserClients.allowedOrigins for existing
   // non-loopback installs that upgraded to v2026.2.26+ without required origins.

@@ -1,4 +1,3 @@
-import { readAcpSessionEntry } from "../acp/runtime/session-meta.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import {
@@ -68,16 +67,7 @@ function hasBackingSession(task: TaskRecord): boolean {
   if (!childSessionKey) {
     return true;
   }
-  if (task.runtime === "acp") {
-    const acpEntry = readAcpSessionEntry({
-      sessionKey: childSessionKey,
-    });
-    if (!acpEntry || acpEntry.storeReadFailed) {
-      return true;
-    }
-    return Boolean(acpEntry.entry);
-  }
-  if (task.runtime === "subagent" || task.runtime === "cli") {
+  if (task.runtime === "subagent" || task.runtime === "acp" || task.runtime === "cli") {
     const agentId = parseAgentSessionKey(childSessionKey)?.agentId;
     const storePath = resolveStorePath(undefined, { agentId });
     const store = loadSessionStore(storePath);

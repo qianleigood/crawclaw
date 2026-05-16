@@ -220,7 +220,7 @@ function assertRuntimeTree(paths, label = "embedded") {
   assertNoPublicCliBinary(paths.runtimeRoot, label);
   assertFile(
     path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
-    `${label} managed plugin runtime manifest`,
+    `${label} managed runtime manifest`,
   );
   assertSearxngRuntimeTree(paths.runtimeRoot, label);
   assertAgentBrowserRuntimeTree(paths.runtimeRoot, label);
@@ -447,7 +447,7 @@ function assertNoPublicCliBinary(runtimeRoot, label) {
 function assertNoDefaultJsPluginRuntime(manifestPath, label) {
   const manifest = readJson(manifestPath);
   if (manifest.jsPluginRuntime && manifest.jsPluginRuntime !== "none") {
-    throw new Error(`${label} must not advertise a JS plugin runtime: ${manifestPath}`);
+    throw new Error(`${label} must not advertise JS runtime support: ${manifestPath}`);
   }
   if (JSON.stringify(manifest).includes("pi-quickjs")) {
     throw new Error(`${label} must not stage Pi QuickJS fallback metadata: ${manifestPath}`);

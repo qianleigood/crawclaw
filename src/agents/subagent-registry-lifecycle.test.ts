@@ -113,7 +113,7 @@ describe("subagent registry lifecycle hardening", () => {
       notifyMemoryRuntimeSubagentEnded: vi.fn(async () => {}),
       resumeSubagentRun: vi.fn(),
       captureSubagentCompletionReply: vi.fn(async () => "final completion reply"),
-      runSubagentAnnounceFlow: vi.fn(async () => true),
+      announceSubagentViaRust: vi.fn(async () => true),
       warn,
     });
 
@@ -188,7 +188,7 @@ describe("subagent registry lifecycle hardening", () => {
       notifyMemoryRuntimeSubagentEnded: vi.fn(async () => {}),
       resumeSubagentRun: vi.fn(),
       captureSubagentCompletionReply: vi.fn(async () => undefined),
-      runSubagentAnnounceFlow: vi.fn(async () => true),
+      announceSubagentViaRust: vi.fn(async () => true),
       warn,
     });
 
@@ -239,7 +239,7 @@ describe("subagent registry lifecycle hardening", () => {
       notifyMemoryRuntimeSubagentEnded: vi.fn(async () => {}),
       resumeSubagentRun: vi.fn(),
       captureSubagentCompletionReply: vi.fn(async () => "ACP_LIVE_OK"),
-      runSubagentAnnounceFlow: vi.fn(async () => true),
+      announceSubagentViaRust: vi.fn(async () => true),
       warn: vi.fn(),
     });
 
@@ -294,7 +294,7 @@ describe("subagent registry lifecycle hardening", () => {
       notifyMemoryRuntimeSubagentEnded: vi.fn(async () => {}),
       resumeSubagentRun: vi.fn(),
       captureSubagentCompletionReply: vi.fn(async () => "ACP_LIVE_OK"),
-      runSubagentAnnounceFlow: vi.fn(async () => true),
+      announceSubagentViaRust: vi.fn(async () => true),
       warn: vi.fn(),
     });
 

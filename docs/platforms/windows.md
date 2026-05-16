@@ -37,7 +37,7 @@ The Windows matrix uses three support states:
 | `exec` and `system.run` tools       | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.                                                |
 | Browser automation                  | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                                                             |
 | Feishu, QQBot, DingTalk, Weixin     | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.                                          |
-| Common provider plugins             | `supported`  | Node-based providers load through the bundled plugin runtime and install-time dependency setup.                                                             |
+| Common provider plugins             | `supported`  | Provider catalog and transports are Rust-owned; bundled defaults use native runtime resources.                                                              |
 | legacy messaging and Weixin         | `not-native` | Requires a Mac-side legacy messaging or Apple messaging host outside the Windows runtime.                                                                   |
 | Apple skills and macOS-only tooling | `not-native` | Requires an Apple host outside the Windows runtime.                                                                                                         |
 
@@ -105,7 +105,7 @@ pnpm test:windows:compat
 This gate covers installer wrapper regressions, Windows process spawning,
 PowerShell shell selection, path normalization, Scheduled Task fallback
 behavior, startup fallback handling, browser
-executable discovery, and plugin runtime spawn helpers.
+executable discovery, and native runtime spawn helpers.
 
 Full native validation still requires a Windows VM or host:
 

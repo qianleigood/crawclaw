@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import { SILENT_REPLY_TOKEN } from "../chat/tokens.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   resolveAgentIdFromSessionKey,

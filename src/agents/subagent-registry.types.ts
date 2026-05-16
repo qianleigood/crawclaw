@@ -1,8 +1,8 @@
 import type { TaskRuntime } from "../tasks/task-registry.types.js";
 import type { DeliveryContext } from "../utils/delivery-context.js";
-import type { SubagentRunOutcome } from "./subagent-announce.js";
+import type { SubagentRunOutcome } from "./subagent-announce-output.js";
 import type { SubagentLifecycleEndedReason } from "./subagent-lifecycle-events.js";
-import type { SpawnSubagentMode } from "./subagent-spawn.js";
+import type { SpawnSubagentMode } from "./subagents/spawn-types.js";
 
 export type SubagentRunRecord = {
   runId: string;

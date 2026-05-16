@@ -12,7 +12,6 @@ import {
 import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { isRecord } from "../utils.js";
 import { applyPiCompactionSettingsFromConfig } from "./pi-settings.js";
-import { loadRuntimeMcpConfig } from "./runtime-mcp-config.js";
 
 const log = createSubsystemLogger("runtime-project-settings");
 
@@ -153,19 +152,6 @@ export function loadEnabledBundleRuntimeSettingsSnapshot(params: {
       }
       snapshot = applyMergePatch(snapshot, bundleSettings) as RuntimeSettingsSnapshot;
     }
-  }
-
-  const runtimeMcp = loadRuntimeMcpConfig({
-    workspaceDir,
-    cfg: params.cfg,
-  });
-  for (const diagnostic of runtimeMcp.diagnostics) {
-    log.warn(`bundle MCP skipped for ${diagnostic.pluginId}: ${diagnostic.message}`);
-  }
-  if (Object.keys(runtimeMcp.mcpServers).length > 0) {
-    snapshot = applyMergePatch(snapshot, {
-      mcpServers: runtimeMcp.mcpServers,
-    }) as RuntimeSettingsSnapshot;
   }
 
   return snapshot;

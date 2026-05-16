@@ -3,7 +3,7 @@ import path from "node:path";
 import readline from "node:readline";
 import type { NormalizedUsage, UsageLike } from "../agents/usage.js";
 import { normalizeUsage } from "../agents/usage.js";
-import { stripInboundMetadata } from "../auto-reply/reply/strip-inbound-meta.js";
+import { stripInboundMetadata } from "../chat/inbound-meta-strip.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   isPrimarySessionTranscriptFileName,

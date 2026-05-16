@@ -1,8 +1,4 @@
-import { disposeSessionMcpRuntime } from "../../agents/pi-bundle-mcp-tools.js";
-import { createSubsystemLogger } from "../../logging/subsystem.js";
 import { archiveSessionTranscripts as archiveSessionTranscriptFiles } from "../transcript-archive.fs.js";
-
-const log = createSubsystemLogger("session-reset-artifacts");
 
 export function archiveSessionTranscriptsForMutation(params: {
   sessionId: string | undefined;
@@ -37,12 +33,6 @@ export async function archivePreviousSessionArtifacts(params: {
     agentId: params.agentId,
     reason: "reset",
   });
-  if (params.disposeMcpRuntime && params.sessionId) {
-    await disposeSessionMcpRuntime(params.sessionId).catch((error) => {
-      log.warn(`failed to dispose bundle MCP runtime for session ${params.sessionId}`, {
-        error: String(error),
-      });
-    });
-  }
+  void params.disposeMcpRuntime;
   return archived;
 }

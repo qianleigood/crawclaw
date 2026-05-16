@@ -1,5 +1,5 @@
-import { stripHeartbeatToken } from "../auto-reply/heartbeat.js";
-import { isSilentReplyText } from "../auto-reply/tokens.js";
+import { stripHeartbeatToken } from "../chat/heartbeat.js";
+import { isSilentReplyText } from "../chat/tokens.js";
 import type { AgentMessage } from "./agent-types.js";
 
 export const TOOL_RESULT_REAL_CONVERSATION_LOOKBACK = 20;

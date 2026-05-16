@@ -1,20 +1,14 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import {
-  killControlledSubagentRun,
-  killSubagentRunAdmin,
-  resolveSubagentController,
-} from "../agents/subagent-control.js";
-import { getLatestSubagentRunByChildSessionKey } from "../agents/subagent-registry.js";
 import { loadConfig } from "../config/config.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import { isLocalDirectRequest, type ResolvedGatewayAuth } from "./auth.js";
+import { callGateway } from "./call.js";
 import { sendJson, sendMethodNotAllowed } from "./http-common.js";
 import {
   authorizeGatewayHttpRequestOrReply,
   resolveTrustedHttpOperatorScopes,
 } from "./http-utils.js";
 import { authorizeOperatorScopesForMethod } from "./method-scopes.js";
-import { loadSessionEntry } from "./session-utils.js";
 
 const REQUESTER_SESSION_KEY_HEADER = "x-crawclaw-requester-session-key";
 
@@ -96,50 +90,29 @@ export async function handleSessionKillHttpRequest(
     return true;
   }
 
-  const { entry, canonicalKey } = loadSessionEntry(sessionKey);
-  if (!entry) {
+  try {
+    const result = await callGateway<{ status?: string }>({
+      method: "subagents.control",
+      params: {
+        action: "kill",
+        sessionKey,
+        requesterSessionKey,
+        admin: allowLocalAdminKill,
+      },
+      timeoutMs: 10_000,
+    });
+    sendJson(res, 200, {
+      ok: true,
+      killed: result.status === "killed",
+    });
+  } catch (error) {
     sendJson(res, 404, {
       ok: false,
       error: {
         type: "not_found",
-        message: `Session not found: ${sessionKey}`,
+        message: error instanceof Error ? error.message : String(error),
       },
     });
-    return true;
   }
-
-  let killed = false;
-  if (!allowLocalAdminKill && requesterSessionKey) {
-    const runEntry = getLatestSubagentRunByChildSessionKey(canonicalKey);
-    if (runEntry) {
-      const result = await killControlledSubagentRun({
-        cfg,
-        controller: resolveSubagentController({ cfg, agentSessionKey: requesterSessionKey }),
-        entry: runEntry,
-      });
-      if (result.status === "forbidden") {
-        sendJson(res, 403, {
-          ok: false,
-          error: {
-            type: "forbidden",
-            message: result.error,
-          },
-        });
-        return true;
-      }
-      killed = result.status === "ok";
-    }
-  } else {
-    const result = await killSubagentRunAdmin({
-      cfg,
-      sessionKey: canonicalKey,
-    });
-    killed = result.killed;
-  }
-
-  sendJson(res, 200, {
-    ok: true,
-    killed,
-  });
   return true;
 }

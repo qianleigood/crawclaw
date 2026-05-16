@@ -37,10 +37,6 @@
       "types": "./dist/plugin-sdk/account-id.d.ts",
       "default": "./dist/plugin-sdk/account-id.js"
     },
-    "./plugin-sdk/acp-runtime": {
-      "types": "./dist/plugin-sdk/acp-runtime.d.ts",
-      "default": "./dist/plugin-sdk/acp-runtime.js"
-    },
     "./plugin-sdk/agent-config-primitives": {
       "types": "./dist/plugin-sdk/agent-config-primitives.d.ts",
       "default": "./dist/plugin-sdk/agent-config-primitives.js"
@@ -60,14 +56,6 @@
     "./plugin-sdk/collection-runtime": {
       "types": "./dist/plugin-sdk/collection-runtime.d.ts",
       "default": "./dist/plugin-sdk/collection-runtime.js"
-    },
-    "./plugin-sdk/command-detection": {
-      "types": "./dist/plugin-sdk/command-detection.d.ts",
-      "default": "./dist/plugin-sdk/command-detection.js"
-    },
-    "./plugin-sdk/command-surface": {
-      "types": "./dist/plugin-sdk/command-surface.d.ts",
-      "default": "./dist/plugin-sdk/command-surface.js"
     },
     "./plugin-sdk/config-runtime": {
       "types": "./dist/plugin-sdk/config-runtime.d.ts",
@@ -137,17 +125,9 @@
       "types": "./dist/plugin-sdk/logging-core.d.ts",
       "default": "./dist/plugin-sdk/logging-core.js"
     },
-    "./plugin-sdk/native-command-registry": {
-      "types": "./dist/plugin-sdk/native-command-registry.d.ts",
-      "default": "./dist/plugin-sdk/native-command-registry.js"
-    },
     "./plugin-sdk/native-plugin-runtime": {
       "types": "./dist/plugin-sdk/native-plugin-runtime.d.ts",
       "default": "./dist/plugin-sdk/native-plugin-runtime.js"
-    },
-    "./plugin-sdk/param-readers": {
-      "types": "./dist/plugin-sdk/param-readers.d.ts",
-      "default": "./dist/plugin-sdk/param-readers.js"
     },
     "./plugin-sdk/process-runtime": {
       "types": "./dist/plugin-sdk/process-runtime.d.ts",
@@ -233,10 +213,6 @@
       "types": "./dist/plugin-sdk/setup-tools.d.ts",
       "default": "./dist/plugin-sdk/setup-tools.js"
     },
-    "./plugin-sdk/skill-commands-runtime": {
-      "types": "./dist/plugin-sdk/skill-commands-runtime.d.ts",
-      "default": "./dist/plugin-sdk/skill-commands-runtime.js"
-    },
     "./plugin-sdk/speech": {
       "types": "./dist/plugin-sdk/speech.d.ts",
       "default": "./dist/plugin-sdk/speech.js"
@@ -296,7 +272,7 @@
   },
   "scripts": {
     "audit:seams": "node scripts/audit-seams.mjs",
-    "build": "node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && node scripts/build-native-plugins.mjs && node scripts/build-stamp.mjs && pnpm build:plugin-sdk:dts && node --import tsx scripts/write-plugin-sdk-entry-dts.ts && node scripts/check-plugin-sdk-exports.mjs && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/copy-export-html-templates.ts && node --import tsx scripts/write-build-info.ts",
+    "build": "node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && node scripts/build-native-plugins.mjs && node scripts/build-stamp.mjs && pnpm build:plugin-sdk:dts && node --import tsx scripts/write-plugin-sdk-entry-dts.ts && node scripts/check-plugin-sdk-exports.mjs && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/write-build-info.ts",
     "build:plugin-sdk:dts": "tsc -p tsconfig.plugin-sdk.dts.json",
     "build:strict-smoke": "node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && node scripts/build-native-plugins.mjs && node scripts/build-stamp.mjs && pnpm build:plugin-sdk:dts && node --import tsx scripts/write-plugin-sdk-entry-dts.ts && node scripts/check-plugin-sdk-exports.mjs",
     "canon:check": "node scripts/canon.mjs check",

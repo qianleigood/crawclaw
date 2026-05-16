@@ -1,12 +1,13 @@
 import { createHmac, createHash } from "node:crypto";
-import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
-import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
+import type { ReasoningLevel, ThinkLevel } from "../agents/thinking.js";
+import { SILENT_REPLY_TOKEN } from "../chat/tokens.js";
 import { listDeliverableMessageChannels } from "../utils/gateway-client-surface.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
 import { renderQueryContextSections } from "./query-context/render.js";
 import type { QueryContextSection } from "./query-context/types.js";
 import type { RuntimeContextFile } from "./runtime-context-file.js";
 import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
+import { listCoreToolIdsInCatalogOrder, listCoreToolPromptEntries } from "./tool-catalog.js";
 
 /**
  * Controls which hardcoded sections are included in the system prompt.
@@ -308,57 +309,20 @@ export function buildAgentSystemPromptSections(params: {
 }): QueryContextSection[] {
   const acpEnabled = params.acpEnabled !== false;
   const acpSpawnRuntimeEnabled = acpEnabled;
-  const coreToolSummaries: Record<string, string> = {
-    read: "Read file contents",
-    write: "Create or overwrite files",
-    edit: "Make precise edits to files",
-    apply_patch: "Apply multi-file patches",
-    grep: "Search file contents for patterns",
-    find: "Find files by glob pattern",
-    ls: "List directory contents",
-    bash: "Run shell commands (pty available for TTY-required CLIs)",
-    process: "Manage background bash sessions",
-    web_search: "Search the web",
-    web_fetch: "Fetch and extract readable content from a URL",
-    // Channel docking: add login tools here when a channel needs interactive linking.
-    browser: "Control web browser",
-    canvas: "Present/eval/snapshot the Canvas",
-    cron: "Manage cron jobs and wake events (use for reminders; when scheduling a reminder, write the systemEvent text as something that will read like a reminder when it fires, and mention that it is a reminder depending on the time gap between setting and firing; include recent context in reminder text if appropriate)",
-    message: "Send messages and channel actions",
-    sessions_spawn: acpSpawnRuntimeEnabled
-      ? 'Spawn an isolated sub-agent or ACP coding session (runtime="acp" requires `agentId` unless `acp.defaultAgent` is configured; ACP harness ids follow acp.allowedAgents)'
-      : "Spawn an isolated sub-agent session",
-    sessions_yield: "End this turn and wait for spawned sub-agent results",
-    session_status:
-      "Show a /status-equivalent status card (usage + time + Reasoning/Verbose/Elevated); use for model-use questions (📊 session_status); optional per-session model override",
-    discover_skills: "Search available skills for the current task",
-    write_experience_note: "Write reusable experience notes",
-  };
+  const coreToolSummaries = new Map(
+    listCoreToolPromptEntries().map((tool) => [tool.id, tool.description]),
+  );
+  coreToolSummaries.set("message", "Send messages and channel actions");
+  if (acpSpawnRuntimeEnabled) {
+    coreToolSummaries.set(
+      "sessions_spawn",
+      'Spawn an isolated sub-agent or ACP coding session (runtime="acp" requires `agentId` unless `acp.defaultAgent` is configured; ACP harness ids follow acp.allowedAgents)',
+    );
+  } else {
+    coreToolSummaries.set("sessions_spawn", "Spawn an isolated sub-agent session");
+  }
 
-  const toolOrder = [
-    "read",
-    "discover_skills",
-    "write",
-    "edit",
-    "apply_patch",
-    "grep",
-    "find",
-    "ls",
-    "bash",
-    "process",
-    "web_search",
-    "web_fetch",
-    "sessions_spawn",
-    "sessions_yield",
-    "session_status",
-    "browser",
-    "message",
-    "cron",
-    "image",
-    "pdf",
-    "tts",
-    "write_experience_note",
-  ];
+  const toolOrder = listCoreToolIdsInCatalogOrder();
 
   const rawToolNames = (params.toolNames ?? []).map((tool) => tool.trim());
   const canonicalToolNames = rawToolNames.filter(Boolean);
@@ -390,12 +354,12 @@ export function buildAgentSystemPromptSections(params: {
   );
   const enabledTools = toolOrder.filter((tool) => availableTools.has(tool));
   const toolLines = enabledTools.map((tool) => {
-    const summary = coreToolSummaries[tool] ?? externalToolSummaries.get(tool);
+    const summary = coreToolSummaries.get(tool) ?? externalToolSummaries.get(tool);
     const name = resolveToolName(tool);
     return summary ? `- ${name}: ${summary}` : `- ${name}`;
   });
   for (const tool of extraTools.toSorted()) {
-    const summary = coreToolSummaries[tool] ?? externalToolSummaries.get(tool);
+    const summary = coreToolSummaries.get(tool) ?? externalToolSummaries.get(tool);
     const name = resolveToolName(tool);
     toolLines.push(summary ? `- ${name}: ${summary}` : `- ${name}`);
   }
@@ -515,7 +479,7 @@ export function buildAgentSystemPromptSections(params: {
       ...(acpHarnessSpawnAllowed
         ? [
             'For requests like "do this in codex/claude code/cursor/gemini" or similar ACP harnesses, treat it as ACP harness intent and call `sessions_spawn` with `runtime: "acp"`.',
-            'On threaded channels, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`) unless the user asks otherwise.',
+            'On QQBot, default ACP harness requests to thread-bound persistent sessions (`thread: true`, `mode: "session"`) unless the user asks otherwise.',
             "Set `agentId` explicitly unless `acp.defaultAgent` is configured, and do not route ACP harness requests through local PTY bash flows.",
             'For ACP harness thread spawns, do not call `message` with `action=thread-create`; use `sessions_spawn` (`runtime: "acp"`, `thread: true`) as the single thread creation path.',
           ]

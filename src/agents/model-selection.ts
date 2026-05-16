@@ -1,4 +1,4 @@
-import { resolveThinkingDefaultForModel } from "../auto-reply/thinking.shared.js";
+import { resolveThinkingDefaultForModel } from "../agents/thinking.shared.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   resolveAgentModelFallbackValues,

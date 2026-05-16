@@ -32,7 +32,7 @@ This is the execution surface of the system.
 
 Relevant areas:
 
-- `src/agents/tools`
+- Rust tool catalog and runtime
 - `src/gateway`
 - `src/plugin-sdk`
 - `src/plugins`
@@ -350,7 +350,7 @@ That framing is stronger than listing features such as sessions, memory, skills,
 
 Today the project already contains the main pieces of this loop:
 
-- action: `agents/tools`, `gateway`, `plugin-sdk`, `plugins`
+- action: Rust tool catalog/runtime, `gateway`, `plugin-sdk`, `plugins`
 - record: `sessions`, `chat`, `context-archive`, gateway execution surfaces
 - evaluate: `memory/extraction`, `memory/session-summary`, `memory/promotion`
 - retain: `memory/durable`, `memory/experience`, `memory/notebooklm`, `memory/vector`, `memory/graph`

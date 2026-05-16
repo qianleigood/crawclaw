@@ -5,7 +5,6 @@ import {
   resolveToolProfilePolicy,
   TOOL_GROUPS,
 } from "./tool-policy-shared.js";
-import type { AnyAgentTool } from "./tools/common.js";
 export {
   expandToolGroups,
   normalizeToolList,
@@ -16,19 +15,6 @@ export {
 export type { ToolProfileId } from "./tool-policy-shared.js";
 
 export type OwnerOnlyToolApprovalClass = "control_plane" | "exec_capable" | "interactive";
-
-// Keep tool-policy browser-safe: do not import tools/common at runtime.
-function wrapOwnerOnlyToolExecution(tool: AnyAgentTool, senderIsOwner: boolean): AnyAgentTool {
-  if (tool.ownerOnly !== true || senderIsOwner || !tool.execute) {
-    return tool;
-  }
-  return {
-    ...tool,
-    execute: async () => {
-      throw new Error("Tool restricted to owner senders.");
-    },
-  };
-}
 
 const OWNER_ONLY_TOOL_APPROVAL_CLASS_FALLBACKS = new Map<string, OwnerOnlyToolApprovalClass>([
   ["cron", "control_plane"],
@@ -42,23 +28,6 @@ export function resolveOwnerOnlyToolApprovalClass(
 
 export function isOwnerOnlyToolName(name: string) {
   return resolveOwnerOnlyToolApprovalClass(name) !== undefined;
-}
-
-function isOwnerOnlyTool(tool: AnyAgentTool) {
-  return tool.ownerOnly === true || isOwnerOnlyToolName(tool.name);
-}
-
-export function applyOwnerOnlyToolPolicy(tools: AnyAgentTool[], senderIsOwner: boolean) {
-  const withGuard = tools.map((tool) => {
-    if (!isOwnerOnlyTool(tool)) {
-      return tool;
-    }
-    return wrapOwnerOnlyToolExecution(tool, senderIsOwner);
-  });
-  if (senderIsOwner) {
-    return withGuard;
-  }
-  return withGuard.filter((tool) => !isOwnerOnlyTool(tool));
 }
 
 export type ToolPolicyLike = {

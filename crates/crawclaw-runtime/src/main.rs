@@ -44,13 +44,37 @@ async fn main() {
 
 fn status(args: &[String]) {
     if args.iter().any(|arg| arg == "--json") {
+        let native_tools = crawclaw_runtime::native_plugin_tool_descriptors()
+            .into_iter()
+            .map(|(plugin_id, descriptor)| {
+                json!({
+                    "id": descriptor.name,
+                    "label": descriptor.label,
+                    "description": descriptor.description,
+                    "sectionId": "runtime",
+                    "defaultProfiles": descriptor.default_profiles,
+                    "lifecycle": "runtime_conditional",
+                    "includeInCrawClawGroup": true,
+                    "defaultEnabled": descriptor.default_enabled,
+                    "readOnly": descriptor.read_only,
+                    "status": "rust-native",
+                    "source": "native-plugin",
+                    "pluginId": plugin_id
+                })
+            })
+            .collect::<Vec<_>>();
         println!(
             "{}",
             json!({
                 "ok": true,
                 "runtime": "ready",
                 "implementation": "rust-native",
-                "tools": crawclaw_runtime::pi_agent_rust_tool_names()
+                "tools": crawclaw_runtime::pi_agent_rust_tool_names(),
+                "toolCatalog": {
+                    "sections": crawclaw_runtime::rust_core_tool_sections(),
+                    "coreTools": crawclaw_runtime::rust_core_tool_definitions(),
+                    "nativeTools": native_tools
+                }
             })
         );
         return;

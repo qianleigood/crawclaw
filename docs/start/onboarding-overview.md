@@ -32,7 +32,7 @@ Desktop setup configures:
 2. **Workspace** — directory for agent files, bootstrap templates, and memory.
 3. **Gateway** — loopback bind, auth mode, local runtime state, and health.
 4. **Channels** — supported message channels exposed by the desktop Gateway.
-5. **Plugins and tools** — bundled Rust-native plugins plus declared Node plugin runtimes.
+5. **Plugins and tools** — bundled Rust-native plugins plus managed native tool runtimes.
 6. **Memory and experience** — local capture, recall, and maintenance settings.
 
 ## Automation

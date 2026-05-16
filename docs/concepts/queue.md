@@ -1,17 +1,17 @@
 ---
-summary: "Command queue design that serializes inbound auto-reply runs"
+summary: "Command queue design that serializes inbound agent runs"
 read_when:
-  - Changing auto-reply execution or concurrency
+  - Changing agent execution or concurrency
 title: "Command Queue"
 ---
 
 # Command Queue (2026-01-16)
 
-We serialize inbound auto-reply runs (all channels) through a tiny in-process queue to prevent multiple agent runs from colliding, while still allowing safe parallelism across sessions.
+We serialize inbound agent runs (all channels) through the Rust runtime queue to prevent multiple agent runs from colliding, while still allowing safe parallelism across sessions.
 
 ## Why
 
-- Auto-reply runs can be expensive (LLM calls) and can collide when multiple inbound messages arrive close together.
+- Agent runs can be expensive (LLM calls) and can collide when multiple inbound messages arrive close together.
 - Serializing avoids competing for shared resources (session files, logs, CLI stdin) and reduces the chance of upstream rate limits.
 
 ## How it works
@@ -77,11 +77,11 @@ Defaults: `debounceMs: 1000`, `cap: 20`, `drop: summarize`.
 
 ## Scope and guarantees
 
-- Applies to auto-reply agent runs across all inbound channels that use the gateway reply pipeline (Weixin web, Feishu, Feishu, community chat, native channel, Weixin, etc.).
+- Applies to Rust agent runs across all inbound channels that use the gateway reply pipeline.
 - Default lane (`main`) is process-wide for inbound replies and main-session wakes; set `agents.defaults.maxConcurrent` to allow multiple sessions in parallel.
 - Additional lanes may exist (e.g. `cron`, `subagent`) so background jobs can run in parallel without blocking inbound replies. These detached runs are tracked as [background tasks](/automation/tasks).
 - Per-session lanes guarantee that only one agent run touches a given session at a time.
-- No external dependencies or background worker threads; pure TypeScript + promises.
+- No TypeScript agent runner participates in execution; runtime ownership is Rust.
 
 ## Troubleshooting
 

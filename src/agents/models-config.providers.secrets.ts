@@ -1,4 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
+import { resolvePluginWebSearchConfig } from "../config/legacy-web-search.js";
 import { coerceSecretRef, resolveSecretInputRef } from "../config/types.secrets.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import { listProfilesForProvider } from "./auth-profiles/profiles.js";
@@ -11,7 +12,6 @@ import {
   resolveNonEnvSecretRefHeaderValueMarker,
 } from "./model-auth-markers.js";
 import { resolveAwsSdkEnvVarName } from "./model-auth-runtime-shared.js";
-import { resolveProviderWebSearchPluginConfig } from "./tools/web-search-provider-config.js";
 
 type ModelsConfig = NonNullable<CrawClawConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];
@@ -455,10 +455,7 @@ function resolveXaiConfigFallbackAuth(params: { provider: string; config?: CrawC
     return undefined;
   }
   const pluginApiKey = normalizeOptionalSecretInput(
-    resolveProviderWebSearchPluginConfig(
-      params.config as Record<string, unknown> | undefined,
-      "xai",
-    )?.apiKey,
+    resolvePluginWebSearchConfig(params.config, "xai")?.apiKey,
   );
   if (pluginApiKey) {
     return {
@@ -468,10 +465,7 @@ function resolveXaiConfigFallbackAuth(params: { provider: string; config?: CrawC
     };
   }
   const pluginApiKeyRef = coerceSecretRef(
-    resolveProviderWebSearchPluginConfig(
-      params.config as Record<string, unknown> | undefined,
-      "xai",
-    )?.apiKey,
+    resolvePluginWebSearchConfig(params.config, "xai")?.apiKey,
   );
   if (pluginApiKeyRef) {
     return {

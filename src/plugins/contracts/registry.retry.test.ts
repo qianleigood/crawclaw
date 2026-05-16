@@ -76,11 +76,6 @@ describe("plugin contract registry scoped retries", () => {
                 requiresCredential: true,
                 getCredentialValue: () => undefined,
                 setCredentialValue() {},
-                createTool: () => ({
-                  description: "search",
-                  parameters: {},
-                  execute: async () => ({}),
-                }),
               } as WebSearchProviderPlugin,
             },
           ],
@@ -140,11 +135,6 @@ describe("plugin contract registry scoped retries", () => {
                 requiresCredential: false,
                 getCredentialValue: () => undefined,
                 setCredentialValue() {},
-                createTool: () => ({
-                  description: "fetch",
-                  parameters: {},
-                  execute: async () => ({}),
-                }),
               } as WebFetchProviderPlugin,
             },
           ],

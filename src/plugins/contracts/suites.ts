@@ -1,5 +1,4 @@
 import { expect, it } from "vitest";
-import type { CrawClawConfig } from "../../config/config.js";
 import type { WebFetchProviderPlugin, WebSearchProviderPlugin } from "../types.js";
 
 type Lazy<T> = T | (() => T);
@@ -32,22 +31,6 @@ export function installWebSearchProviderContractSuite(params: {
     provider.setCredentialValue(searchConfigTarget, credentialValue);
     expect(provider.getCredentialValue(searchConfigTarget)).toEqual(credentialValue);
 
-    const config = {
-      tools: {
-        web: {
-          search: {
-            provider: provider.id,
-            ...searchConfigTarget,
-          },
-        },
-      },
-    } as CrawClawConfig;
-    const tool = provider.createTool({ config, searchConfig: searchConfigTarget });
-
-    expect(tool).not.toBeNull();
-    expect(tool?.description.trim()).not.toBe("");
-    expect(tool?.parameters).toEqual(expect.any(Object));
-    expect(typeof tool?.execute).toBe("function");
     if (provider.runSetup) {
       expect(typeof provider.runSetup).toBe("function");
     }
@@ -86,31 +69,14 @@ export function installWebFetchProviderContractSuite(params: {
     expect(provider.getCredentialValue(fetchConfigTarget)).toEqual(credentialValue);
 
     if (provider.setConfiguredCredentialValue && provider.getConfiguredCredentialValue) {
-      const configTarget = {} as CrawClawConfig;
+      const configTarget = {};
       provider.setConfiguredCredentialValue(configTarget, credentialValue);
       expect(provider.getConfiguredCredentialValue(configTarget)).toEqual(credentialValue);
     }
 
     if (provider.applySelectionConfig && params.pluginId) {
-      const applied = provider.applySelectionConfig({} as CrawClawConfig);
+      const applied = provider.applySelectionConfig({});
       expect(applied.plugins?.entries?.[params.pluginId]?.enabled).toBe(true);
     }
-
-    const config = {
-      tools: {
-        web: {
-          fetch: {
-            provider: provider.id,
-            ...fetchConfigTarget,
-          },
-        },
-      },
-    } as CrawClawConfig;
-    const tool = provider.createTool({ config, fetchConfig: fetchConfigTarget });
-
-    expect(tool).not.toBeNull();
-    expect(tool?.description.trim()).not.toBe("");
-    expect(tool?.parameters).toEqual(expect.any(Object));
-    expect(typeof tool?.execute).toBe("function");
   });
 }

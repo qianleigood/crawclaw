@@ -27,7 +27,7 @@ export class GatewayDrainingError extends Error {
 // Minimal in-process queue to serialize command executions.
 // Default lane ("main") preserves the existing behavior. Additional lanes allow
 // low-risk parallelism (e.g. cron jobs) without interleaving stdin / logs for
-// the main auto-reply workflow.
+// the main agent command workflow.
 
 type QueueEntry = {
   task: () => Promise<unknown>;

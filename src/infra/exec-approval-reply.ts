@@ -1,4 +1,4 @@
-import type { ReplyPayload } from "../auto-reply/types.js";
+import type { ReplyPayload } from "../chat/reply-payload.js";
 import type { InteractiveReply, InteractiveReplyButton } from "../interactive/payload.js";
 import {
   resolveExecApprovalAllowedDecisions,

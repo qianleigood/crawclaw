@@ -1,4 +1,4 @@
-import type { MsgContext } from "../../auto-reply/templating.js";
+import type { MsgContext } from "../../chat/templating.js";
 
 export function normalizeExplicitSessionKey(sessionKey: string, ctx: MsgContext): string {
   const normalized = sessionKey.trim().toLowerCase();

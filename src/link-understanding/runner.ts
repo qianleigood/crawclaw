@@ -1,5 +1,5 @@
-import type { MsgContext } from "../auto-reply/templating.js";
-import { applyTemplate } from "../auto-reply/templating.js";
+import type { MsgContext } from "../chat/templating.js";
+import { applyTemplate } from "../chat/templating.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { LinkModelConfig, LinkToolsConfig } from "../config/types.tools.js";
 import { logVerbose, shouldLogVerbose } from "../globals.js";

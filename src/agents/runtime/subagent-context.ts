@@ -1,6 +1,14 @@
 import { normalizeDeliveryContext } from "../../utils/delivery-context.js";
-import type { SpawnAcpContext } from "../acp-spawn.js";
-import type { SpawnSubagentContext } from "../subagent-spawn.js";
+import type { SpawnSubagentContext } from "../subagents/spawn-types.js";
+
+type SpawnAcpContext = {
+  agentSessionKey?: string;
+  agentChannel?: string;
+  agentAccountId?: string;
+  agentTo?: string;
+  agentThreadId?: string | number;
+  agentGroupId?: string;
+};
 
 export type AgentSpawnToolContext = {
   agentSessionKey?: string;

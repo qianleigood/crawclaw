@@ -14,6 +14,7 @@ title: Maintainers Docs
 
 - [Plugin dependency maintenance](/maintainers/plugin-dependency-maintenance)
 - [Repository structure](/maintainers/repo-structure)
+- [Runtime surface](/maintainers/runtime-surface)
 - [Skills catalog](/maintainers/skills-catalog)
 
 ## Recommended Companion Sections

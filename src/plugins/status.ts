@@ -271,12 +271,15 @@ export function buildPluginInspectReport(params: {
       events: [...entry.events].toSorted(),
     }))
     .toSorted((a, b) => a.name.localeCompare(b.name));
-  const tools = report.tools
-    .filter((entry) => entry.pluginId === plugin.id)
-    .map((entry) => ({
-      names: [...entry.names],
-      optional: entry.optional,
-    }));
+  const tools =
+    plugin.toolNames.length > 0
+      ? [
+          {
+            names: [...plugin.toolNames],
+            optional: false,
+          },
+        ]
+      : [];
   const diagnostics = report.diagnostics.filter((entry) => entry.pluginId === plugin.id);
   const policyEntry = normalizePluginsConfig(config.plugins).entries[plugin.id];
   const capabilityCount = capabilities.length;

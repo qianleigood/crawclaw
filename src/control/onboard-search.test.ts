@@ -149,7 +149,6 @@ function createProviderEntry(
       entry.enabled = true;
       return config;
     },
-    createTool: () => null,
   };
 }
 

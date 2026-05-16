@@ -560,9 +560,7 @@ function isSubagentProductionPath(relativePath) {
   return (
     (relativePath.startsWith("src/agents/") || relativePath.startsWith("src/cron/")) &&
     isProductionLikeFile(relativePath) &&
-    (/subagent|sessions-spawn|acp-spawn/.test(relativePath) ||
-      relativePath === "src/agents/tools/sessions-spawn-tool.ts" ||
-      relativePath === "src/agents/tools/subagents-tool.ts")
+    /subagent|sessions-spawn|acp-spawn/.test(relativePath)
   );
 }
 
@@ -587,11 +585,8 @@ function describeSubagentSeamKinds(relativePath, source) {
   const importsSpawnRuntime = hasAnyImportSource(source, [
     "./subagent-spawn.js",
     "../subagent-spawn.js",
-    "./acp-spawn.js",
-    "../acp-spawn.js",
     "./subagent-registry.js",
     "../subagent-registry.js",
-    "../acp/control-plane/manager.js",
   ]);
   const importsLifecycleRegistry = hasAnyImportSource(source, [
     "./subagent-registry-completion.js",
@@ -613,10 +608,8 @@ function describeSubagentSeamKinds(relativePath, source) {
   const importsCleanup = hasAnyImportSource(source, [
     "../gateway/call.js",
     "./subagent-registry-cleanup.js",
-    "../acp/control-plane/spawn.js",
   ]);
   const importsParentStream = hasAnyImportSource(source, [
-    "./acp-spawn-parent-stream.js",
     "../infra/heartbeat-wake.js",
     "../infra/system-events.js",
     "../infra/agent-events.js",
@@ -624,9 +617,7 @@ function describeSubagentSeamKinds(relativePath, source) {
 
   if (
     importsSpawnRuntime &&
-    /\bspawnSubagentDirect\b|\bspawnAcpDirect\b|\bregisterSubagentRun\b|\bgetAcpSessionManager\b|\bspawnSubagent\b|\bspawnAcp\b/.test(
-      source,
-    )
+    /\bspawnSubagentDirect\b|\bregisterSubagentRun\b|\bspawnSubagent\b/.test(source)
   ) {
     seamKinds.push("subagent-session-spawn");
   }
@@ -682,14 +673,6 @@ export function describeSeamKinds(relativePath, source) {
         relativePath,
       )) ||
     /^src\/channels\/plugins\/outbound\/[^/]+\.ts$/.test(relativePath);
-  if (
-    relativePath.startsWith("src/agents/tools/") &&
-    source.includes("details") &&
-    source.includes("media") &&
-    /details\s*:\s*{[\s\S]*\bmedia\b\s*:/.test(source)
-  ) {
-    seamKinds.push("tool-result-media");
-  }
   if (
     isReplyDeliveryPath &&
     /\bmediaUrl\b|\bmediaUrls\b|resolveSendableOutboundReplyParts/.test(source)

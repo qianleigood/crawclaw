@@ -708,13 +708,8 @@ CrawClaw plugin tools such as memory recall/store, enable the dedicated bridge:
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-What this does:
-
-- Injects a built-in MCP server named `crawclaw-plugin-tools` into ACPX session
-  bootstrap.
-- Exposes plugin tools already registered by installed and enabled CrawClaw
-  plugins.
-- Keeps the feature explicit and default-off.
+Plugin-owned tool execution has been removed from the TypeScript runtime.
+Use the Rust Gateway API for CrawClaw-owned operations.
 
 Security and trust notes:
 

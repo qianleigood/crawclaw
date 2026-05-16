@@ -71,11 +71,6 @@ function buildMockedWebSearchProviders(params?: {
       credentialPath: provider.credentialPath,
       getCredentialValue: () => "configured",
       setCredentialValue: () => {},
-      createTool: () => ({
-        description: provider.id,
-        parameters: {},
-        execute: async () => ({}),
-      }),
     },
   }));
   return webSearchProviders;
@@ -253,11 +248,6 @@ function createRuntimeWebSearchProvider(params: {
       credentialPath: params.credentialPath,
       getCredentialValue: () => "configured",
       setCredentialValue: () => {},
-      createTool: () => ({
-        description: params.id,
-        parameters: {},
-        execute: async () => ({}),
-      }),
     },
     source: "test" as const,
   };
