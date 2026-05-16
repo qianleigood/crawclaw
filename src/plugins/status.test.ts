@@ -4,7 +4,6 @@ import {
   createCustomHook,
   createPluginLoadResult,
   createPluginRecord,
-  createTypedHook,
   HOOK_ONLY_MESSAGE,
 } from "./status.test-helpers.js";
 
@@ -311,12 +310,9 @@ describe("plugin status reports", () => {
   });
 
   it("loads plugin status from the auto-enabled config snapshot", () => {
-    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig(
-      {
-        demo: { enabled: true },
-      },
-      { channels: { demo: { enabled: true } } },
-    );
+    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig({
+      demo: { enabled: true },
+    });
     applyPluginAutoEnableMock.mockReturnValue({
       config: autoEnabledConfig,
       changes: [],
@@ -338,19 +334,16 @@ describe("plugin status reports", () => {
   });
 
   it("uses the auto-enabled config snapshot for inspect policy summaries", () => {
-    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig(
-      {
-        demo: {
-          enabled: true,
-          subagent: {
-            allowModelOverride: true,
-            allowedModels: ["openai/gpt-5.4"],
-            hasAllowedModelsConfig: true,
-          },
+    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig({
+      demo: {
+        enabled: true,
+        subagent: {
+          allowModelOverride: true,
+          allowedModels: ["openai/gpt-5.4"],
+          hasAllowedModelsConfig: true,
         },
       },
-      { channels: { demo: { enabled: true } } },
-    );
+    });
     applyPluginAutoEnableMock.mockReturnValue({
       config: autoEnabledConfig,
       changes: [],
@@ -372,7 +365,6 @@ describe("plugin status reports", () => {
 
     expect(inspect).not.toBeNull();
     expectInspectPolicy(inspect!, {
-      allowPromptInjection: undefined,
       allowModelOverride: true,
       allowedModels: ["openai/gpt-5.4"],
       hasAllowedModelsConfig: true,
@@ -381,12 +373,9 @@ describe("plugin status reports", () => {
   });
 
   it("preserves raw config activation context when compatibility notices build their own report", () => {
-    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig(
-      {
-        demo: { enabled: true },
-      },
-      { channels: { demo: { enabled: true } } },
-    );
+    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig({
+      demo: { enabled: true },
+    });
     applyPluginAutoEnableMock.mockReturnValue({
       config: autoEnabledConfig,
       changes: [],
@@ -403,7 +392,7 @@ describe("plugin status reports", () => {
         hookCount: 1,
       }),
       {
-        typedHooks: [createTypedHook({ pluginId: "demo", hookName: "before_prompt_build" })],
+        hooks: [createCustomHook({ pluginId: "demo", events: ["message"] })],
       },
     );
 
@@ -439,12 +428,9 @@ describe("plugin status reports", () => {
   });
 
   it("preserves raw config activation context for compatibility-derived reports", () => {
-    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig(
-      {
-        demo: { enabled: true },
-      },
-      { channels: { demo: { enabled: true } } },
-    );
+    const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig({
+      demo: { enabled: true },
+    });
     applyPluginAutoEnableMock.mockReturnValue({
       config: autoEnabledConfig,
       changes: [],
@@ -461,7 +447,7 @@ describe("plugin status reports", () => {
         hookCount: 1,
       }),
       {
-        typedHooks: [createTypedHook({ pluginId: "demo", hookName: "before_prompt_build" })],
+        hooks: [createCustomHook({ pluginId: "demo", events: ["message"] })],
       },
     );
 
@@ -483,10 +469,9 @@ describe("plugin status reports", () => {
       createPluginRecord({
         id: "weixin",
         name: "Weixin",
-        description: "Bundled channel plugin",
+        description: "Bundled plugin",
         version: "2026.3.22",
         origin: "bundled",
-        channelIds: ["weixin"],
       }),
     );
 
@@ -562,7 +547,6 @@ describe("plugin status reports", () => {
       plugins: {
         entries: {
           google: {
-            hooks: { allowPromptInjection: false },
             subagent: {
               allowModelOverride: true,
               allowedModels: ["openai/gpt-5.4"],
@@ -578,14 +562,11 @@ describe("plugin status reports", () => {
           name: "Google",
           description: "Google provider plugin",
           origin: "bundled",
-          cliBackendIds: ["google-gemini-cli"],
           providerIds: ["google"],
-          mediaUnderstandingProviderIds: ["google"],
           webSearchProviderIds: ["google"],
         }),
       ],
       diagnostics: [{ level: "warn", pluginId: "google", message: "watch this surface" }],
-      typedHooks: [createTypedHook({ pluginId: "google", hookName: "before_prompt_build" })],
     });
 
     const inspect = buildPluginInspectReport({ id: "google" });
@@ -594,11 +575,10 @@ describe("plugin status reports", () => {
     expectInspectShape(inspect!, {
       shape: "hybrid-capability",
       capabilityMode: "hybrid",
-      capabilityKinds: ["cli-backend", "text-inference", "media-understanding", "web-search"],
+      capabilityKinds: ["text-inference", "web-search"],
     });
     expect(inspect?.compatibility).toEqual([]);
     expectInspectPolicy(inspect!, {
-      allowPromptInjection: false,
       allowModelOverride: true,
       allowedModels: ["openai/gpt-5.4"],
       hasAllowedModelsConfig: true,
@@ -627,7 +607,6 @@ describe("plugin status reports", () => {
         }),
       ],
       hooks: [createCustomHook({ pluginId: "lca", events: ["message"] })],
-      typedHooks: [createTypedHook({ pluginId: "lca", hookName: "before_prompt_build" })],
     });
 
     const inspect = buildAllPluginInspectReports();
@@ -635,25 +614,6 @@ describe("plugin status reports", () => {
     expect(inspect.map((entry) => entry.plugin.id)).toEqual(["lca", "microsoft"]);
     expect(inspect.map((entry) => entry.shape)).toEqual(["hook-only", "hybrid-capability"]);
     expectCapabilityKinds(inspect[1], ["text-inference", "web-search"]);
-  });
-
-  it("treats a CLI-backend-only plugin as a plain capability", () => {
-    setSinglePluginLoadResult(
-      createPluginRecord({
-        id: "anthropic",
-        name: "Anthropic",
-        cliBackendIds: ["claude-cli"],
-      }),
-    );
-
-    const inspect = expectInspectReport("anthropic");
-
-    expectInspectShape(inspect, {
-      shape: "plain-capability",
-      capabilityMode: "plain",
-      capabilityKinds: ["cli-backend"],
-    });
-    expect(inspect.capabilities).toEqual([{ kind: "cli-backend", ids: ["claude-cli"] }]);
   });
 
   it("builds compatibility warnings for legacy compatibility paths", () => {
@@ -666,7 +626,7 @@ describe("plugin status reports", () => {
           hookCount: 1,
         }),
       ],
-      typedHooks: [createTypedHook({ pluginId: "lca", hookName: "before_prompt_build" })],
+      hooks: [createCustomHook({ pluginId: "lca", events: ["message"] })],
     });
 
     expectCompatibilityOutput({
@@ -690,7 +650,6 @@ describe("plugin status reports", () => {
         }),
       ],
       hooks: [createCustomHook({ pluginId: "hook-only", events: ["message"] })],
-      typedHooks: [createTypedHook({ pluginId: "legacy-only", hookName: "before_prompt_build" })],
     });
 
     expectCompatibilityOutput({

@@ -103,9 +103,9 @@ After every AI turn, the conversation is persisted to Honcho. Both user and
 agent messages are observed, allowing Honcho to build and refine its models over
 time.
 
-During conversation, Honcho tools query the service in the `before_prompt_build`
-phase, injecting relevant context before the model sees the prompt. This ensures
-accurate turn boundaries and relevant recall.
+During conversation, the memory runtime assembles Honcho recall before the Rust
+agent runtime builds the model turn. This keeps turn boundaries and relevant
+recall in the same memory lifecycle as the rest of the agent runtime.
 
 ## Honcho vs builtin memory
 

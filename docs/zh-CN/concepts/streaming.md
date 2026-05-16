@@ -45,7 +45,7 @@ CrawClaw 有两个独立的"流式传输"层：
 图例：
 
 - `text_delta/events`：模型流事件（对于非流式模型可能稀疏）。
-- `chunker`：应用最小/最大边界 + 断点偏好的 `EmbeddedBlockChunker`。
+- `chunker`：应用最小/最大边界 + 断点偏好的 `BlockReplyChunker`。
 - `channel send`：实际的出站消息（块回复）。
 
 **控制项：**
@@ -68,7 +68,7 @@ CrawClaw 有两个独立的"流式传输"层：
 
 ## 分块算法（低/高边界）
 
-块分块由 `EmbeddedBlockChunker` 实现：
+块分块由 `BlockReplyChunker` 实现：
 
 - **低边界：** 在缓冲区 >= `minChars` 之前不发出（除非强制）。
 - **高边界：** 优先在 `maxChars` 之前分割；如果强制，则在 `maxChars` 处分割。

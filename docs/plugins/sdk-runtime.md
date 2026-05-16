@@ -1,350 +1,48 @@
 ---
-title: "Plugin Runtime Helpers"
-sidebarTitle: "Runtime Helpers"
-summary: "api.runtime -- the injected runtime helpers available to plugins"
+title: "Plugin Runtime Boundary"
+sidebarTitle: "Runtime Boundary"
+summary: "Rust-owned plugin runtime model"
 read_when:
-  - You need to call core helpers from a plugin (TTS, STT, image gen, web search, subagent)
-  - You want to understand what api.runtime exposes
-  - You are accessing config, agent, or media helpers from plugin code
+  - You need to call runtime behavior from a plugin
+  - You want to understand where provider, tool, hook, or channel code runs
+  - You are migrating old TypeScript plugin runtime code
 ---
 
-# Plugin Runtime Helpers
-
-Reference for the `api.runtime` object injected into every plugin during
-registration. Use these helpers instead of importing host internals directly.
-
-<Tip>
-  **Looking for a walkthrough?** See [Provider Configuration](/plugins/sdk-provider-plugins)
-  for a step-by-step guide that shows these helpers in context.
-</Tip>
-
-```typescript
-register(api) {
-  const runtime = api.runtime;
-}
-```
-
-## Runtime namespaces
-
-### `api.runtime.agent`
-
-Agent identity, directories, and session management.
-
-```typescript
-// Resolve the agent's working directory
-const agentDir = api.runtime.agent.resolveAgentDir(cfg);
-
-// Resolve agent workspace
-const workspaceDir = api.runtime.agent.resolveAgentWorkspaceDir(cfg);
-
-// Get agent identity
-const identity = api.runtime.agent.resolveAgentIdentity(cfg);
-
-// Get default thinking level
-const thinking = api.runtime.agent.resolveThinkingDefault(cfg, provider, model);
-
-// Get agent timeout
-const timeoutMs = api.runtime.agent.resolveAgentTimeoutMs(cfg);
-
-// Ensure workspace exists
-await api.runtime.agent.ensureAgentWorkspace(cfg);
-
-// Run an embedded Pi agent
-const agentDir = api.runtime.agent.resolveAgentDir(cfg);
-const result = await api.runtime.agent.runEmbeddedPiAgent({
-  sessionId: "my-plugin:task-1",
-  runId: crypto.randomUUID(),
-  sessionFile: path.join(agentDir, "sessions", "my-plugin-task-1.jsonl"),
-  workspaceDir: api.runtime.agent.resolveAgentWorkspaceDir(cfg),
-  prompt: "Summarize the latest changes",
-  timeoutMs: api.runtime.agent.resolveAgentTimeoutMs(cfg),
-});
-```
-
-**Session store helpers** are under `api.runtime.agent.session`:
-
-```typescript
-const storePath = api.runtime.agent.session.resolveStorePath(cfg);
-const store = api.runtime.agent.session.loadSessionStore(cfg);
-await api.runtime.agent.session.saveSessionStore(cfg, store);
-const filePath = api.runtime.agent.session.resolveSessionFilePath(cfg, sessionId);
-```
-
-### `api.runtime.agent.defaults`
-
-Default model and provider constants:
-
-```typescript
-const model = api.runtime.agent.defaults.model; // e.g. "anthropic/claude-sonnet-4-6"
-const provider = api.runtime.agent.defaults.provider; // e.g. "anthropic"
-```
-
-### `api.runtime.subagent`
-
-Launch and manage background subagent runs.
-
-```typescript
-// Start a subagent run
-const { runId } = await api.runtime.subagent.run({
-  sessionKey: "agent:main:subagent:search-helper",
-  message: "Expand this query into focused follow-up searches.",
-  provider: "openai", // optional override
-  model: "gpt-4.1-mini", // optional override
-  deliver: false,
-});
-
-// Wait for completion
-const result = await api.runtime.subagent.waitForRun({ runId, timeoutMs: 30000 });
-
-// Read session messages
-const { messages } = await api.runtime.subagent.getSessionMessages({
-  sessionKey: "agent:main:subagent:search-helper",
-  limit: 10,
-});
-
-// Delete a session
-await api.runtime.subagent.deleteSession({
-  sessionKey: "agent:main:subagent:search-helper",
-});
-```
-
-<Warning>
-  Model overrides (`provider`/`model`) require operator opt-in via
-  `plugins.entries.<id>.subagent.allowModelOverride: true` in config.
-  Untrusted plugins can still run subagents, but override requests are rejected.
-</Warning>
-
-### `api.runtime.tasks.flows`
-
-Bind the Task Flow runtime to an existing CrawClaw session key or trusted tool
-context, then read owner-scoped Task Flow DTOs without passing the owner on
-every call.
-
-```typescript
-const taskFlows = api.runtime.tasks.flows.fromToolContext(ctx);
-
-const latest = taskFlows.findLatest();
-const flows = taskFlows.list();
-const detail = latest ? taskFlows.get(latest.id) : undefined;
-const summary = latest ? taskFlows.getTaskSummary(latest.id) : undefined;
-```
-
-Use `bindSession({ sessionKey, requesterOrigin })` when you already have a
-trusted CrawClaw session key from your own binding layer. Do not bind from raw
-user input.
-
-### `api.runtime.tts`
-
-Text-to-speech synthesis.
-
-```typescript
-// Standard TTS
-const clip = await api.runtime.tts.textToSpeech({
-  text: "Hello from CrawClaw",
-  cfg: api.config,
-});
-
-// Telephony-optimized TTS
-const telephonyClip = await api.runtime.tts.textToSpeechTelephony({
-  text: "Hello from CrawClaw",
-  cfg: api.config,
-});
-
-// List available voices
-const voices = await api.runtime.tts.listVoices({
-  provider: "elevenlabs",
-  cfg: api.config,
-});
-```
-
-Uses core `messages.tts` configuration and provider selection. Returns PCM audio
-buffer + sample rate.
-
-### `api.runtime.mediaUnderstanding`
-
-Image, audio, and video analysis.
-
-```typescript
-// Describe an image
-const image = await api.runtime.mediaUnderstanding.describeImageFile({
-  filePath: "/tmp/inbound-photo.jpg",
-  cfg: api.config,
-  agentDir: "/tmp/agent",
-});
-
-// Transcribe audio
-const { text } = await api.runtime.mediaUnderstanding.transcribeAudioFile({
-  filePath: "/tmp/inbound-audio.ogg",
-  cfg: api.config,
-  mime: "audio/ogg", // optional, for when MIME cannot be inferred
-});
-
-// Describe a video
-const video = await api.runtime.mediaUnderstanding.describeVideoFile({
-  filePath: "/tmp/inbound-video.mp4",
-  cfg: api.config,
-});
-
-// Generic file analysis
-const result = await api.runtime.mediaUnderstanding.runFile({
-  filePath: "/tmp/inbound-file.pdf",
-  cfg: api.config,
-});
-```
-
-Returns `{ text: undefined }` when no output is produced (e.g. skipped input).
-
-<Info>
-  `api.runtime.stt.transcribeAudioFile(...)` remains as a compatibility alias
-  for `api.runtime.mediaUnderstanding.transcribeAudioFile(...)`.
-</Info>
-
-### `api.runtime.webSearch`
-
-Web search.
-
-```typescript
-const providers = api.runtime.webSearch.listProviders({ config: api.config });
-
-const result = await api.runtime.webSearch.search({
-  config: api.config,
-  args: { query: "CrawClaw plugin SDK", count: 5 },
-});
-```
-
-### `api.runtime.media`
-
-Low-level media utilities.
-
-```typescript
-const webMedia = await api.runtime.media.loadWebMedia(url);
-const mime = await api.runtime.media.detectMime(buffer);
-const kind = api.runtime.media.mediaKindFromMime("image/jpeg"); // "image"
-const isVoice = api.runtime.media.isVoiceCompatibleAudio(filePath);
-const metadata = await api.runtime.media.getImageMetadata(filePath);
-const resized = await api.runtime.media.resizeToJpeg(buffer, { maxWidth: 800 });
-```
-
-### `api.runtime.config`
-
-Config load and write.
-
-```typescript
-const cfg = await api.runtime.config.loadConfig();
-await api.runtime.config.writeConfigFile(cfg);
-```
-
-### `api.runtime.system`
-
-System-level utilities.
-
-```typescript
-await api.runtime.system.enqueueSystemEvent(event);
-api.runtime.system.requestMainSessionWakeNow();
-const output = await api.runtime.system.runCommandWithTimeout(cmd, args, opts);
-const hint = api.runtime.system.formatNativeDependencyHint(pkg);
-```
-
-`requestMainSessionWakeNow()` queues an event-driven main-session wake. It does not
-schedule or enable legacy periodic agent heartbeat.
-
-### `api.runtime.events`
-
-Event subscriptions.
-
-```typescript
-api.runtime.events.onAgentEvent((event) => {
-  /* ... */
-});
-api.runtime.events.onSessionTranscriptUpdate((update) => {
-  /* ... */
-});
-```
-
-### `api.runtime.logging`
-
-Logging.
-
-```typescript
-const verbose = api.runtime.logging.shouldLogVerbose();
-const childLogger = api.runtime.logging.getChildLogger({ plugin: "my-plugin" }, { level: "debug" });
-```
-
-### `api.runtime.modelAuth`
-
-Model and provider auth resolution.
-
-```typescript
-const auth = await api.runtime.modelAuth.getApiKeyForModel({ model, cfg });
-const providerAuth = await api.runtime.modelAuth.resolveApiKeyForProvider({
-  provider: "openai",
-  cfg,
-});
-```
-
-### `api.runtime.state`
-
-State directory resolution.
-
-```typescript
-const stateDir = api.runtime.state.resolveStateDir();
-```
-
-### `api.runtime.tools`
-
-Tool factories and CLI helpers.
-
-```typescript
-const tool = api.runtime.tools.createCliTool(/* ... */);
-```
-
-## Storing runtime references
-
-Use `createPluginRuntimeStore` to store the runtime reference for use outside
-the `register` callback:
-
-```typescript
-import { createPluginRuntimeStore } from "crawclaw/plugin-sdk/runtime-store";
-import type { PluginRuntime } from "crawclaw/plugin-sdk/runtime-store";
-
-const store = createPluginRuntimeStore<PluginRuntime>("my-plugin runtime not initialized");
-
-// In your entry point
-export default definePluginEntry({
-  id: "my-plugin",
-  name: "My Plugin",
-  description: "Example",
-  register(api) {
-    store.setRuntime(api.runtime);
-  },
-});
-
-// In other files
-export function getRuntime() {
-  return store.getRuntime(); // throws if not initialized
-}
-
-export function tryGetRuntime() {
-  return store.tryGetRuntime(); // returns null if not initialized
-}
-```
-
-## Other top-level `api` fields
-
-Beyond `api.runtime`, the API object also provides:
-
-| Field                    | Type                      | Description                                               |
-| ------------------------ | ------------------------- | --------------------------------------------------------- |
-| `api.id`                 | `string`                  | Plugin id                                                 |
-| `api.name`               | `string`                  | Plugin display name                                       |
-| `api.config`             | `CrawClawConfig`          | Current config snapshot                                   |
-| `api.pluginConfig`       | `Record<string, unknown>` | Plugin-specific config from `plugins.entries.<id>.config` |
-| `api.logger`             | `PluginLogger`            | Scoped logger (`debug`, `info`, `warn`, `error`)          |
-| `api.registrationMode`   | `PluginRegistrationMode`  | Plugin registration mode                                  |
-| `api.resolvePath(input)` | `(string) => string`      | Resolve a path relative to the plugin root                |
+# Plugin Runtime Boundary
+
+Production plugin runtime behavior is Rust-owned. CrawClaw does not inject a
+TypeScript runtime object into plugin entries, and TypeScript plugins cannot
+register tools, hooks, commands, services, providers, channels, HTTP routes, or
+Gateway methods.
+
+## Where runtime behavior lives
+
+| Runtime area                                                        | Owner                              |
+| ------------------------------------------------------------------- | ---------------------------------- |
+| Agent turns and special agents                                      | Rust runtime                       |
+| Cron, auto-reply, command execution, and memory jobs                | Rust runtime                       |
+| Provider catalog, model list, config schema, and provider transport | Rust provider registry             |
+| Tools and workflows                                                 | Rust runtime or Rust native plugin |
+| Channels and outbound delivery                                      | Rust channel runtime               |
+| Plugin hooks and lifecycle events                                   | Rust event bus                     |
+
+## Plugin package boundary
+
+A plugin package may still include TypeScript for docs, generated types, tests,
+or local helper code. That code is not a production execution bridge. The
+production contract is the manifest plus any Rust native descriptor declared by
+the manifest.
+
+## Adding a runtime capability
+
+1. Add the capability implementation in the owning Rust crate.
+2. Expose the capability through the Rust native plugin registry or a typed
+   Gateway RPC.
+3. Add manifest/config schema metadata in `crawclaw.plugin.json`.
+4. Update generated SDK/config baselines and docs.
 
 ## Related
 
-- [SDK Overview](/plugins/sdk-overview) -- subpath reference
-- [SDK Entry Points](/plugins/sdk-entrypoints) -- `definePluginEntry` options
-- [Plugin Internals](/plugins/architecture) -- capability model and registry
+- [SDK Overview](/plugins/sdk-overview) -- import map and SDK boundary
+- [Plugin Entry Points](/plugins/sdk-entrypoints) -- current discovery inputs
+- [Plugin Internals](/plugins/architecture) -- architecture and capability model

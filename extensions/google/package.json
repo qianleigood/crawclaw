@@ -5,8 +5,6 @@
   "description": "CrawClaw Google plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

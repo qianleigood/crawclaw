@@ -1,7 +1,7 @@
-import type { AgentTool } from "@mariozechner/pi-agent-core";
 import type { SessionSystemPromptReport } from "../config/sessions/types.js";
+import type { AgentTool } from "./agent-types.js";
 import { buildBootstrapInjectionStats } from "./bootstrap-budget.js";
-import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
+import type { RuntimeContextFile } from "./runtime-context-file.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";
 
 function extractBetween(
@@ -101,7 +101,7 @@ export function buildSystemPromptReport(params: {
   bootstrapTruncation?: SessionSystemPromptReport["bootstrapTruncation"];
   systemPrompt: string;
   bootstrapFiles: WorkspaceBootstrapFile[];
-  injectedFiles: EmbeddedContextFile[];
+  injectedFiles: RuntimeContextFile[];
   skillsPrompt: string;
   surfacedSkills?: string[];
   discoveredSkills?: string[];

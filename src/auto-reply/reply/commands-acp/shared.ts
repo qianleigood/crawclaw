@@ -2,11 +2,9 @@ import { randomUUID } from "node:crypto";
 import { toAcpRuntimeErrorText } from "../../../acp/runtime/error-text.js";
 import type { AcpRuntimeError } from "../../../acp/runtime/errors.js";
 import type { AcpRuntimeSessionMode } from "../../../acp/runtime/types.js";
-import { supportsAutomaticThreadBindingSpawn } from "../../../channels/thread-bindings-policy.js";
 import type { AcpSessionRuntimeOptions } from "../../../config/sessions/types.js";
 import { normalizeAgentId } from "../../../routing/session-key.js";
 import type { CommandHandlerResult, HandleCommandsParams } from "../commands-types.js";
-import { resolveAcpCommandChannel, resolveAcpCommandThreadId } from "./context.js";
 export { resolveAcpInstallCommandHint, resolveConfiguredAcpBackendId } from "./install-hints.js";
 
 export const COMMAND = "/acp";
@@ -170,12 +168,8 @@ function normalizeAcpOptionToken(raw: string): string {
 }
 
 function resolveDefaultSpawnThreadMode(params: HandleCommandsParams): AcpSpawnThreadMode {
-  const channel = resolveAcpCommandChannel(params);
-  if (!supportsAutomaticThreadBindingSpawn(channel)) {
-    return "off";
-  }
-  const currentThreadId = resolveAcpCommandThreadId(params);
-  return currentThreadId ? "here" : "auto";
+  void params;
+  return "off";
 }
 
 export function parseSpawnInput(

@@ -7,7 +7,6 @@ import type { SessionEntry } from "../../config/sessions.js";
 import { ErrorCodes, errorShape } from "../../gateway/protocol/index.js";
 import { resolveGatewaySessionStoreTarget } from "../../gateway/session-utils.js";
 import { logVerbose } from "../../globals.js";
-import { stopSharedDurableExtractionWorkerForSession } from "../../memory/durable/worker-manager.ts";
 import { closeTrackedBrowserTabsForSessions } from "../../plugin-sdk/browser-maintenance.js";
 
 const ACP_RUNTIME_CLEANUP_TIMEOUT_MS = 15_000;
@@ -56,21 +55,7 @@ async function stopDurableExtractionWorkersForTarget(params: {
   legacyKey?: string;
   canonicalKey?: string;
 }) {
-  const sessionKeys = new Set<string>([
-    params.key,
-    params.legacyKey ?? "",
-    params.canonicalKey ?? "",
-    params.target.canonicalKey ?? "",
-    ...params.target.storeKeys,
-  ]);
-  await Promise.all(
-    [...sessionKeys]
-      .filter((value) => value.trim().length > 0)
-      .map(
-        async (sessionKey) =>
-          await stopSharedDurableExtractionWorkerForSession(sessionKey, { timeoutMs: 2_000 }),
-      ),
-  );
+  void params;
 }
 
 async function runAcpCleanupStep(params: {

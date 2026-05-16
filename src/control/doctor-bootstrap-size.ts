@@ -7,7 +7,7 @@ import { resolveBootstrapContextForRun } from "../agents/bootstrap-files.js";
 import {
   resolveBootstrapMaxChars,
   resolveBootstrapTotalMaxChars,
-} from "../agents/pi-embedded-helpers.js";
+} from "../agents/bootstrap-limits.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { note } from "../terminal/note.js";
 

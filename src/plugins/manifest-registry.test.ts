@@ -379,7 +379,6 @@ describe("loadPluginManifestRegistry", () => {
       id: "openai",
       enabledByDefault: true,
       providers: ["openai", "openai-codex"],
-      cliBackends: ["codex-cli"],
       providerAuthEnvVars: {
         openai: ["OPENAI_API_KEY"],
       },
@@ -403,7 +402,6 @@ describe("loadPluginManifestRegistry", () => {
     expect(registry.plugins[0]?.providerAuthEnvVars).toEqual({
       openai: ["OPENAI_API_KEY"],
     });
-    expect(registry.plugins[0]?.cliBackends).toEqual(["codex-cli"]);
     expect(registry.plugins[0]?.enabledByDefault).toBe(true);
     expect(registry.plugins[0]?.providerAuthChoices).toEqual([
       {
@@ -415,89 +413,6 @@ describe("loadPluginManifestRegistry", () => {
     ]);
   });
 
-  it("preserves channel config metadata from plugin manifests", () => {
-    const dir = makeTempDir();
-    writeManifest(dir, {
-      id: "feishu",
-      channels: ["feishu"],
-      configSchema: { type: "object" },
-      channelConfigs: {
-        feishu: {
-          schema: {
-            type: "object",
-            properties: {
-              homeserver: { type: "string" },
-            },
-          },
-          uiHints: {
-            homeserver: {
-              label: "Homeserver",
-            },
-          },
-          label: "Feishu",
-          description: "Feishu config",
-          preferOver: ["feishu-legacy"],
-        },
-      },
-    });
-
-    const registry = loadRegistry([
-      createPluginCandidate({
-        idHint: "feishu",
-        rootDir: dir,
-        origin: "workspace",
-      }),
-    ]);
-
-    expect(registry.plugins[0]?.channelConfigs).toEqual({
-      feishu: {
-        schema: {
-          type: "object",
-          properties: {
-            homeserver: { type: "string" },
-          },
-        },
-        uiHints: {
-          homeserver: {
-            label: "Homeserver",
-          },
-        },
-        label: "Feishu",
-        description: "Feishu config",
-        preferOver: ["feishu-legacy"],
-      },
-    });
-  });
-
-  it("hydrates bundled channel config metadata onto manifest records", () => {
-    const dir = makeTempDir();
-    const registry = loadRegistry([
-      createPluginCandidate({
-        idHint: "feishu",
-        rootDir: dir,
-        origin: "bundled",
-        bundledManifestPath: path.join(dir, "crawclaw.plugin.json"),
-        bundledManifest: {
-          id: "feishu",
-          configSchema: { type: "object" },
-          channels: ["feishu"],
-          channelConfigs: {
-            feishu: {
-              schema: { type: "object" },
-            },
-          },
-        },
-      }),
-    ]);
-
-    expect(registry.plugins[0]?.channelConfigs?.feishu).toEqual(
-      expect.objectContaining({
-        schema: expect.objectContaining({
-          type: "object",
-        }),
-      }),
-    );
-  });
   it("does not promote legacy top-level capability fields into contracts", () => {
     const dir = makeTempDir();
     writeManifest(dir, {

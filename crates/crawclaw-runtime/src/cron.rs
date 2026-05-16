@@ -342,17 +342,28 @@ impl CronService {
         handle.spawn(async move {
             service.run_due_jobs().await;
             loop {
-                if service.inner.scheduler_stop_requested.load(Ordering::SeqCst) {
+                if service
+                    .inner
+                    .scheduler_stop_requested
+                    .load(Ordering::SeqCst)
+                {
                     break;
                 }
                 let delay = service.next_timer_delay();
                 tokio::time::sleep(Duration::from_millis(delay)).await;
-                if service.inner.scheduler_stop_requested.load(Ordering::SeqCst) {
+                if service
+                    .inner
+                    .scheduler_stop_requested
+                    .load(Ordering::SeqCst)
+                {
                     break;
                 }
                 service.run_due_jobs().await;
             }
-            service.inner.scheduler_started.store(false, Ordering::SeqCst);
+            service
+                .inner
+                .scheduler_started
+                .store(false, Ordering::SeqCst);
         });
     }
 
@@ -745,9 +756,10 @@ impl CronService {
         let ended_at = now_millis();
         self.clear_running(&job.id);
         let delivery_status = match &result {
-            Ok(execution) => self
-                .deliver_webhook_if_requested(&job, &execution.summary)
-                .await,
+            Ok(execution) => {
+                self.deliver_webhook_if_requested(&job, &execution.summary)
+                    .await
+            }
             Err(_) => resolve_delivery_status(&job, false),
         };
 
@@ -774,7 +786,8 @@ impl CronService {
                         stored.enabled = false;
                     }
                     next_run_at_ms = state.next_run_at_ms;
-                    self.deliver_webhook_if_requested(stored, &execution.summary).await;
+                    self.deliver_webhook_if_requested(stored, &execution.summary)
+                        .await;
                 }
                 Err(error) => {
                     state.last_run_status = Some("error".to_string());
@@ -811,7 +824,10 @@ impl CronService {
             job_id: job.id.clone(),
             action: "finished".to_string(),
             status: Some(status.to_string()),
-            summary: result.as_ref().ok().map(|execution| execution.summary.clone()),
+            summary: result
+                .as_ref()
+                .ok()
+                .map(|execution| execution.summary.clone()),
             error: result.as_ref().err().cloned(),
             delivered: None,
             delivery_status: Some(delivery_status),
@@ -879,7 +895,16 @@ impl CronService {
                     session_key: Some(session_key.to_string()),
                 })
             }
-            (_, CronPayload::AgentTurn { message, model, thinking, tools_allow, .. }) => {
+            (
+                _,
+                CronPayload::AgentTurn {
+                    message,
+                    model,
+                    thinking,
+                    tools_allow,
+                    ..
+                },
+            ) => {
                 let session_key = resolve_agent_session_key(job);
                 let (provider, model_id) = resolve_cron_agent_model(model.as_deref());
                 let result = AgentRuntime::new(self.inner.runtime_root.clone())
@@ -891,10 +916,7 @@ impl CronService {
                             channel: "cron".to_string(),
                             account_id: Some("local".to_string()),
                             from: "cron".to_string(),
-                            to: format!(
-                                "agent:{}",
-                                job.agent_id.as_deref().unwrap_or("main")
-                            ),
+                            to: format!("agent:{}", job.agent_id.as_deref().unwrap_or("main")),
                             chat_type: ChannelChatType::Direct,
                             body: message.clone(),
                             raw_body: Some(message.clone()),
@@ -1159,7 +1181,11 @@ pub async fn execute_cron_runtime_operation(
 ) -> Result<Value, String> {
     let method = normalize_cron_runtime_operation(operation)?;
     let start_scheduler = method == "cron.start";
-    let service = worker_cron_service(runtime_root, cron_store_path_from_input(&input), start_scheduler)?;
+    let service = worker_cron_service(
+        runtime_root,
+        cron_store_path_from_input(&input),
+        start_scheduler,
+    )?;
     if method == "cron.start" {
         service.start_scheduler();
         return service.handle_method("cron.status", input).await;

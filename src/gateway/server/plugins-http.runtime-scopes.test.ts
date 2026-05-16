@@ -50,7 +50,7 @@ function createMockLogger(): SubsystemLogger {
 
 function assertWriteHelperAllowed() {
   const scopes = getPluginRuntimeGatewayRequestScope()?.client?.connect?.scopes ?? [];
-  const auth = authorizeOperatorScopesForMethod("agent", scopes);
+  const auth = authorizeOperatorScopesForMethod("agent.command.run", scopes);
   if (!auth.allowed) {
     throw new Error(`missing scope: ${auth.missingScope}`);
   }

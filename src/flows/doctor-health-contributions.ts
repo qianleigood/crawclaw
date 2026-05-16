@@ -18,7 +18,6 @@ import {
 } from "../control/doctor-auth.js";
 import { noteBootstrapFileSize } from "../control/doctor-bootstrap-size.js";
 import { noteChromeMcpBrowserReadiness } from "../control/doctor-browser.js";
-import { maybeRepairBundledPluginRuntimeDeps } from "../control/doctor-bundled-plugin-runtime-deps.js";
 import { maybeRepairLegacyCronStore } from "../control/doctor-cron.js";
 import { maybeRepairGatewayDaemon } from "../control/doctor-gateway-daemon-flow.js";
 import { checkGatewayHealth, probeGatewayMemoryStatus } from "../control/doctor-gateway-health.js";
@@ -32,7 +31,6 @@ import {
   noteMacLaunchctlGatewayEnvOverrides,
 } from "../control/doctor-platform-notes.js";
 import { maybeRepairLegacyPluginManifestContracts } from "../control/doctor-plugin-manifests.js";
-import { maybeRepairSharedPluginRuntimes } from "../control/doctor-plugin-runtimes.js";
 import type { DoctorOptions, DoctorPrompter } from "../control/doctor-prompter.js";
 import { noteSecurityWarnings } from "../control/doctor-security.js";
 import { noteSessionLockHealth } from "../control/doctor-session-locks.js";
@@ -206,20 +204,6 @@ async function runGatewayAuthHealth(ctx: DoctorHealthFlowContext): Promise<void>
 async function runLegacyPluginManifestHealth(ctx: DoctorHealthFlowContext): Promise<void> {
   await maybeRepairLegacyPluginManifestContracts({
     env: process.env,
-    runtime: ctx.runtime,
-    prompter: ctx.prompter,
-  });
-}
-
-async function runSharedPluginRuntimesHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  await maybeRepairSharedPluginRuntimes({
-    runtime: ctx.runtime,
-    prompter: ctx.prompter,
-  });
-}
-
-async function runBundledPluginRuntimeDepsHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  await maybeRepairBundledPluginRuntimeDeps({
     runtime: ctx.runtime,
     prompter: ctx.prompter,
   });
@@ -450,16 +434,6 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
       id: "doctor:legacy-plugin-manifests",
       label: "Legacy plugin manifests",
       run: runLegacyPluginManifestHealth,
-    }),
-    createDoctorHealthContribution({
-      id: "doctor:shared-plugin-runtimes",
-      label: "Shared plugin runtimes",
-      run: runSharedPluginRuntimesHealth,
-    }),
-    createDoctorHealthContribution({
-      id: "doctor:bundled-plugin-runtime-deps",
-      label: "Bundled plugin runtime deps",
-      run: runBundledPluginRuntimeDepsHealth,
     }),
     createDoctorHealthContribution({
       id: "doctor:state-integrity",

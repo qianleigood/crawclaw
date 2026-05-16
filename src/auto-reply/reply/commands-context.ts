@@ -32,7 +32,6 @@ export function buildCommandContext(params: {
   return {
     surface,
     channel,
-    channelId: auth.providerId,
     ownerList: auth.ownerList,
     senderIsOwner: auth.senderIsOwner,
     isAuthorizedSender: auth.isAuthorizedSender,

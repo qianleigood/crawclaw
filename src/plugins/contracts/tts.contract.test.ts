@@ -11,7 +11,7 @@ import * as tts from "../../tts/tts.js";
 let completeSimple: typeof import("@mariozechner/pi-ai").completeSimple;
 let getApiKeyForModelMock: typeof import("../../agents/model-auth.js").getApiKeyForModel;
 let requireApiKeyMock: typeof import("../../agents/model-auth.js").requireApiKey;
-let resolveModelAsyncMock: typeof import("../../agents/pi-embedded-runner/model.js").resolveModelAsync;
+let resolveModelAsyncMock: typeof import("../../agents/runtime-support/model.js").resolveModelAsync;
 let ensureCustomApiRegisteredMock: typeof import("../../agents/custom-api-registry.js").ensureCustomApiRegistered;
 let prepareModelForSimpleCompletionMock: typeof import("../../agents/simple-completion-transport.js").prepareModelForSimpleCompletion;
 
@@ -52,7 +52,7 @@ function createResolvedModel(provider: string, modelId: string, api = "openai-co
   };
 }
 
-vi.mock("../../agents/pi-embedded-runner/model.js", () => ({
+vi.mock("../../agents/runtime-support/model.js", () => ({
   resolveModel: vi.fn((provider: string, modelId: string) =>
     createResolvedModel(provider, modelId),
   ),
@@ -337,7 +337,7 @@ describe("tts", () => {
     ({ getApiKeyForModel: getApiKeyForModelMock, requireApiKey: requireApiKeyMock } =
       await import("../../agents/model-auth.js"));
     ({ resolveModelAsync: resolveModelAsyncMock } =
-      await import("../../agents/pi-embedded-runner/model.js"));
+      await import("../../agents/runtime-support/model.js"));
     ({ ensureCustomApiRegistered: ensureCustomApiRegisteredMock } =
       await import("../../agents/custom-api-registry.js"));
     prepareModelForSimpleCompletionMock = vi.fn(({ model }) => model);

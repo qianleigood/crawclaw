@@ -1,10 +1,13 @@
 import os from "node:os";
-import { formatSkillsForPrompt, type Skill } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../../config/config.js";
 import { createCanonicalFixtureSkill } from "../skills.test-helpers.js";
-import type { SkillEntry } from "./types.js";
-import { formatSkillsCompact, buildWorkspaceSkillsPrompt } from "./workspace.js";
+import type { Skill, SkillEntry } from "./types.js";
+import {
+  formatSkillsCompact,
+  buildWorkspaceSkillsPrompt,
+  formatSkillsForPrompt,
+} from "./workspace.js";
 
 function makeSkill(name: string, desc = "A skill", filePath = `/skills/${name}/SKILL.md`): Skill {
   return createCanonicalFixtureSkill({

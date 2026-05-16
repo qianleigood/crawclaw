@@ -85,26 +85,6 @@ function readAmazonBedrockPackageJson(): {
   };
 }
 
-function readDiffsPackageJson(): {
-  dependencies?: Record<string, string>;
-  optionalDependencies?: Record<string, string>;
-  crawclaw?: {
-    releaseChecks?: {
-      rootDependencyMirrorAllowlist?: unknown;
-    };
-  };
-} {
-  return JSON.parse(readFileSync(resolve(REPO_ROOT, "extensions/diffs/package.json"), "utf8")) as {
-    dependencies?: Record<string, string>;
-    optionalDependencies?: Record<string, string>;
-    crawclaw?: {
-      releaseChecks?: {
-        rootDependencyMirrorAllowlist?: unknown;
-      };
-    };
-  };
-}
-
 function collectRuntimeDependencySpecs(packageJson: {
   dependencies?: Record<string, string>;
   optionalDependencies?: Record<string, string>;
@@ -346,21 +326,6 @@ describe("plugin-sdk package contract guardrails", () => {
     }
   });
 
-  it("mirrors diffs runtime deps needed by the bundled host graph", () => {
-    const rootRuntimeDeps = collectRuntimeDependencySpecs(readRootPackageJson());
-    const diffsPackageJson = readDiffsPackageJson();
-    const diffsRuntimeDeps = collectRuntimeDependencySpecs(diffsPackageJson);
-    const allowlist = diffsPackageJson.crawclaw?.releaseChecks?.rootDependencyMirrorAllowlist;
-
-    expect(Array.isArray(allowlist)).toBe(true);
-    const diffsRootMirrorAllowlist = allowlist as string[];
-    expect(diffsRootMirrorAllowlist).toEqual(expect.arrayContaining(["@pierre/diffs"]));
-
-    for (const dep of diffsRootMirrorAllowlist) {
-      expect(rootRuntimeDeps.get(dep)).toBe(diffsRuntimeDeps.get(dep));
-    }
-  });
-
   it("keeps mirrored runtime dependencies in the packed artifact manifest", async () => {
     const tempRoot = mkdtempSync(join(os.tmpdir(), "crawclaw-runtime-deps-pack-"));
     try {
@@ -370,13 +335,9 @@ describe("plugin-sdk package contract guardrails", () => {
       const archivePath = packCrawClawToTempDir(packDir);
       const packedPackageJson = await readPackedRootPackageJson(archivePath);
       const bedrockPackageJson = readAmazonBedrockPackageJson();
-      const diffsPackageJson = readDiffsPackageJson();
 
       expect(packedPackageJson.dependencies?.["@aws-sdk/client-bedrock"]).toBe(
         bedrockPackageJson.dependencies?.["@aws-sdk/client-bedrock"],
-      );
-      expect(packedPackageJson.dependencies?.["@pierre/diffs"]).toBe(
-        diffsPackageJson.dependencies?.["@pierre/diffs"],
       );
       expect(packedPackageJson.dependencies?.["@crawclaw/plugin-package-contract"]).toBeUndefined();
     } finally {

@@ -52,8 +52,7 @@ Primary code:
 - `src/config/cache-utils.ts`
 - `src/agents/context-cache.ts`
 - `src/agents/bootstrap-cache.ts`
-- `src/agents/pi-embedded-runner/session-manager-cache.ts`
-- `src/agents/pi-embedded-runner/cache-ttl.ts`
+- Rust AgentRuntime session and context caches
 
 These caches reduce repeated runtime work. They are usually short-lived, process-local, and scoped by TTL, session, or workspace.
 

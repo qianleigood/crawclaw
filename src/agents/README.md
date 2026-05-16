@@ -15,7 +15,7 @@ It owns:
 
 - `crawclaw-tools.ts`
 - `command/*`
-- `pi-embedded-runner.ts`
+- Rust runtime client seams
 - `runtime/*`
 - `query-context/*`
 - `subagents/*`
@@ -29,11 +29,11 @@ It owns:
 - `src/shared/**`
 - explicit plugin/provider runtime seams in `src/plugins/**`
 - a small approved gateway runtime seam such as `src/gateway/call.ts`
-- explicit domain contracts from `src/memory/**` and `src/workflows/**`
+- explicit Rust-backed domain contracts and `src/workflows/**`
 
 ## Boundary Rules
 
-- Do not import `src/gateway/server-methods/**`, `server.impl.ts`, or other control-plane internals from here.
+- Do not import gateway method implementation files, `server.impl.ts`, or other control-plane internals from here.
 - If agent code needs new gateway behavior, add or extend a narrow runtime seam first.
 - Do not create a private background-agent mechanism. Use `src/agents/special/runtime/**` for maintenance or review agents.
 - Keep execution visibility, tool lifecycle output, and workflow projection on the shared event path instead of ad hoc strings.

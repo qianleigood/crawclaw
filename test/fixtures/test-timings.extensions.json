@@ -3,145 +3,17 @@
   "generatedAt": "2026-03-31T06:24:09.128Z",
   "defaultDurationMs": 1000,
   "files": {
-    "extensions/acpx/src/runtime.test.ts": {
-      "durationMs": 4928.570556640625,
-      "testCount": 22
-    },
-    "extensions/acpx/src/runtime-internals/process.test.ts": {
-      "durationMs": 357.69775390625,
-      "testCount": 16
-    },
-    "extensions/diffs/src/tool.test.ts": {
-      "durationMs": 197.076171875,
-      "testCount": 16
-    },
-    "extensions/diffs/src/config.test.ts": {
-      "durationMs": 187.2568359375,
-      "testCount": 24
-    },
-    "extensions/acpx/src/runtime-internals/mcp-proxy.test.ts": {
-      "durationMs": 152.1640625,
-      "testCount": 1
-    },
-    "extensions/voice-call/src/media-stream.test.ts": {
-      "durationMs": 142.008544921875,
-      "testCount": 9
-    },
     "extensions/google/oauth.test.ts": {
       "durationMs": 127.036376953125,
       "testCount": 8
-    },
-    "extensions/diffs/src/store.test.ts": {
-      "durationMs": 88.814453125,
-      "testCount": 20
-    },
-    "extensions/voice-call/src/webhook/tailscale.test.ts": {
-      "durationMs": 57.841552734375,
-      "testCount": 5
-    },
-    "extensions/voice-call/src/providers/twilio.test.ts": {
-      "durationMs": 54.70068359375,
-      "testCount": 16
-    },
-    "extensions/voice-call/src/webhook.test.ts": {
-      "durationMs": 49.31201171875,
-      "testCount": 17
-    },
-    "extensions/voice-call/src/manager.notify.test.ts": {
-      "durationMs": 27.918212890625,
-      "testCount": 10
-    },
-    "extensions/voice-call/src/manager.closed-loop.test.ts": {
-      "durationMs": 24.541748046875,
-      "testCount": 5
-    },
-    "extensions/voice-call/src/telephony-audio.test.ts": {
-      "durationMs": 19.759033203125,
-      "testCount": 4
-    },
-    "extensions/diffs/src/browser.test.ts": {
-      "durationMs": 17.973876953125,
-      "testCount": 6
-    },
-    "extensions/voice-call/src/webhook.hangup-once.lifecycle.test.ts": {
-      "durationMs": 11.766357421875,
-      "testCount": 2
-    },
-    "extensions/voice-call/src/manager/timers.test.ts": {
-      "durationMs": 9.802734375,
-      "testCount": 4
-    },
-    "extensions/voice-call/src/webhook-security.test.ts": {
-      "durationMs": 9.156494140625,
-      "testCount": 21
-    },
-    "extensions/voice-call/src/manager/events.test.ts": {
-      "durationMs": 7.883056640625,
-      "testCount": 10
-    },
-    "extensions/talk-voice/index.test.ts": {
-      "durationMs": 7.751220703125,
-      "testCount": 10
-    },
-    "extensions/acpx/src/config.test.ts": {
-      "durationMs": 7.31298828125,
-      "testCount": 13
-    },
-    "extensions/voice-call/src/manager.inbound-allowlist.test.ts": {
-      "durationMs": 7.1240234375,
-      "testCount": 5
-    },
-    "extensions/voice-call/src/manager.restore.test.ts": {
-      "durationMs": 6.91845703125,
-      "testCount": 6
-    },
-    "extensions/voice-call/src/manager/outbound.test.ts": {
-      "durationMs": 6.2216796875,
-      "testCount": 6
-    },
-    "extensions/diagnostics-otel/src/service.test.ts": {
-      "durationMs": 5.76513671875,
-      "testCount": 8
-    },
-    "extensions/voice-call/src/runtime.test.ts": {
-      "durationMs": 4.73291015625,
-      "testCount": 2
     },
     "extensions/google/google-shared.test.ts": {
       "durationMs": 4.324951171875,
       "testCount": 11
     },
-    "extensions/voice-call/src/providers/telnyx.test.ts": {
-      "durationMs": 4.214599609375,
-      "testCount": 7
-    },
-    "extensions/acpx/src/ensure.test.ts": {
-      "durationMs": 4.14990234375,
-      "testCount": 10
-    },
-    "extensions/voice-call/src/config.test.ts": {
-      "durationMs": 3.82763671875,
-      "testCount": 9
-    },
     "extensions/xai/web-search.test.ts": {
       "durationMs": 3.056396484375,
       "testCount": 21
-    },
-    "extensions/duckduckgo/src/ddg-search-provider.test.ts": {
-      "durationMs": 2.543701171875,
-      "testCount": 8
-    },
-    "extensions/exa/src/exa-web-search-provider.test.ts": {
-      "durationMs": 2.3779296875,
-      "testCount": 10
-    },
-    "extensions/voice-call/src/providers/shared/guarded-json-api.test.ts": {
-      "durationMs": 2.32666015625,
-      "testCount": 3
-    },
-    "extensions/acpx/src/service.test.ts": {
-      "durationMs": 2.209228515625,
-      "testCount": 5
     }
   }
 }

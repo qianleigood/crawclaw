@@ -18,7 +18,7 @@ function normalizePart(value: unknown, fallback: string): string {
 export function resolveControlPlaneActor(client: GatewayClient | null): ControlPlaneActor {
   return {
     actor: normalizePart(client?.connect?.client?.id, "unknown-actor"),
-    deviceId: normalizePart(client?.connect?.device?.id, "unknown-device"),
+    deviceId: normalizePart(client?.connect?.client?.instanceId, "unknown-device"),
     clientIp: normalizePart(client?.clientIp, "unknown-ip"),
     connId: normalizePart(client?.connId, "unknown-conn"),
   };

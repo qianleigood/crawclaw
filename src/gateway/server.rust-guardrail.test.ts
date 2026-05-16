@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const removedTsGatewayHandlersFile = ["legacy-ts-gateway", "handlers.ts"].join("-");
 
 describe("TS Gateway server runtime guardrail", () => {
   it("keeps production source from importing the disabled TS Gateway runtime", () => {
@@ -13,7 +14,7 @@ describe("TS Gateway server runtime guardrail", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("keeps legacy TS Gateway handlers isolated to tests and the disabled runtime", () => {
+  it("keeps old TS Gateway handlers out of production imports", () => {
     const offenders = findProductionGatewayHandlerImports(path.join(repoRoot, "src"));
 
     expect(offenders).toEqual([]);
@@ -61,7 +62,7 @@ describe("TS Gateway server runtime guardrail", () => {
     expect(result.stderr).toBe("");
   });
 
-  it("blocks direct imports of the legacy TS Gateway implementation and handlers", () => {
+  it("blocks direct imports of the legacy TS Gateway implementation", () => {
     const script = `
       delete process.env.VITEST;
       delete process.env.VITEST_POOL_ID;
@@ -69,7 +70,6 @@ describe("TS Gateway server runtime guardrail", () => {
       delete process.env.CRAWCLAW_ALLOW_TS_GATEWAY;
       const blocked = [
         "./src/gateway/server.impl.ts",
-        "./src/gateway/legacy-ts-gateway-handlers.ts",
       ];
       for (const specifier of blocked) {
         await import(specifier).then(
@@ -210,10 +210,7 @@ function findProductionGatewayHandlerImports(root: string): string[] {
     }
     const source = fs.readFileSync(file, "utf8");
     for (const specifier of valueImportedModuleSpecifiers(source)) {
-      if (
-        resolveTypeScriptImport(file, specifier) ===
-        path.join(repoRoot, "src/gateway/legacy-ts-gateway-handlers.ts")
-      ) {
+      if (resolveTypeScriptImport(file, specifier)?.includes(removedTsGatewayHandlersFile)) {
         offenders.push(relative);
       }
     }
@@ -229,10 +226,7 @@ function isTestOrLegacyGatewayHandlerFile(relative: string): boolean {
   ) {
     return true;
   }
-  return (
-    relative === "src/gateway/server.impl.ts" ||
-    relative === "src/gateway/legacy-ts-gateway-handlers.ts"
-  );
+  return relative === "src/gateway/server.impl.ts";
 }
 
 function importedModuleSpecifiers(source: string): string[] {

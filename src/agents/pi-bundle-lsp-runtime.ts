@@ -1,13 +1,13 @@
 import { spawn, type ChildProcess } from "node:child_process";
-import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import type { CrawClawConfig } from "../config/config.js";
 import { logDebug, logWarn } from "../logger.js";
-import { loadEmbeddedPiLspConfig } from "./embedded-pi-lsp.js";
+import type { AgentToolResult } from "./agent-types.js";
 import {
   resolveStdioMcpServerLaunchConfig,
   describeStdioMcpServerLaunchConfig,
 } from "./mcp-stdio.js";
 import { sanitizeServerName } from "./pi-bundle-mcp-names.js";
+import { loadRuntimeLspConfig } from "./runtime-lsp-config.js";
 import type { AnyAgentTool } from "./tools/common.js";
 
 // Minimal LSP JSON-RPC framing over stdio (Content-Length header + JSON body).
@@ -303,11 +303,7 @@ function buildLspTools(session: LspSession, safeServerName: string): AnyAgentToo
   return tools;
 }
 
-function formatLspResult(
-  serverName: string,
-  method: string,
-  result: unknown,
-): AgentToolResult<unknown> {
+function formatLspResult(serverName: string, method: string, result: unknown): AgentToolResult {
   const text =
     result !== null && result !== undefined
       ? JSON.stringify(result, null, 2)
@@ -323,7 +319,7 @@ export async function createBundleLspToolRuntime(params: {
   cfg?: CrawClawConfig;
   reservedToolNames?: Iterable<string>;
 }): Promise<BundleLspToolRuntime> {
-  const loaded = loadEmbeddedPiLspConfig({
+  const loaded = loadRuntimeLspConfig({
     workspaceDir: params.workspaceDir,
     cfg: params.cfg,
   });

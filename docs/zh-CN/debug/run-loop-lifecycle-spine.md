@@ -114,7 +114,7 @@ run-loop 负责发生命周期事件。
 
 具体来说：
 
-- embedded runner 发 `post_sampling` 和 `settled_turn`
+- Rust runtime 发 `post_sampling` 和 `settled_turn`
 - compaction runtime 发 `pre_compact` 和 `post_compact`
 - subagent orchestration 发 `subagent_start` 和 `subagent_stop`
 
@@ -250,7 +250,7 @@ pnpm test:runtime:stack
 - memory/context runtime 的 prompt assembly
 - 基于 lifecycle spine 的 memory scheduling
 - session summary / durable extraction / dream 三个记忆 agent runner
-- embedded runner 和 memory runtime 的接线
+- Rust runtime 和 memory runtime 的接线
 - provider lifecycle 事件发射
 - embedded special agent 的继承上下文、cache、observability
 - `agent inspect` 的 runtime/archive 富化
@@ -262,7 +262,7 @@ pnpm test:runtime:stack
 - `src/memory/session-summary/agent-runner.test.ts`
 - `src/memory/durable/agent-runner.test.ts`
 - `src/memory/dreaming/agent-runner.test.ts`
-- `src/agents/pi-embedded-runner/run/attempt.*.test.ts`
+- Rust agent runtime attempt tests
 - `src/agents/special/runtime/*.test.ts`
 - `src/commands/agent.inspect.test.ts`
 

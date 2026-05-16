@@ -1,42 +1,39 @@
-import type {
-  AgentTool,
-  AgentToolResult,
-  AgentToolUpdateCallback,
-} from "@mariozechner/pi-agent-core";
-import type { ToolDefinition } from "@mariozechner/pi-coding-agent";
 import { logDebug, logError } from "../logger.js";
 import { redactToolDetail } from "../logging/redact.js";
 import { isPlainObject } from "../utils.js";
+import type { AgentTool, AgentToolResult, AgentToolUpdateCallback } from "./agent-types.js";
+import type { ClientToolDefinition } from "./client-tool-definition.js";
 import { sanitizeForConsole } from "./console-sanitize.js";
-import type { ClientToolDefinition } from "./pi-embedded-runner/run/params.js";
-import type { HookContext } from "./pi-tools.before-tool-call.js";
-import {
-  isToolWrappedWithBeforeToolCallHook,
-  runBeforeToolCallHook,
-} from "./pi-tools.before-tool-call.js";
 import { normalizeToolName } from "./tool-policy.js";
 import { jsonResult, payloadTextResult } from "./tools/common.js";
 
 type AnyAgentTool = AgentTool;
+export type ToolDefinition = {
+  name: string;
+  label: string;
+  description: string;
+  parameters?: unknown;
+  execute: (...args: ToolExecuteArgsCurrent) => Promise<AgentToolResult>;
+};
+
+export type ToolCallPreflightContext = Record<string, unknown>;
 
 type ToolExecuteArgsCurrent = [
   string,
   unknown,
   AbortSignal | undefined,
-  AgentToolUpdateCallback<unknown> | undefined,
+  AgentToolUpdateCallback | undefined,
   unknown,
 ];
 type ToolExecuteArgsLegacy = [
   string,
   unknown,
-  AgentToolUpdateCallback<unknown> | undefined,
+  AgentToolUpdateCallback | undefined,
   unknown,
   AbortSignal | undefined,
 ];
-type ToolExecuteArgs = ToolDefinition["execute"] extends (...args: infer P) => unknown
-  ? P
-  : ToolExecuteArgsCurrent;
-type ToolExecuteArgsAny = ToolExecuteArgs | ToolExecuteArgsLegacy | ToolExecuteArgsCurrent;
+type ToolExecuteArgs = ToolExecuteArgsCurrent;
+type ToolExecuteArgsAny = ToolExecuteArgs | ToolExecuteArgsLegacy;
 const TOOL_ERROR_PARAM_PREVIEW_MAX_CHARS = 600;
 
 function isAbortSignal(value: unknown): value is AbortSignal {
@@ -118,12 +115,12 @@ function describeToolFailureInputs(params: {
 function normalizeToolExecutionResult(params: {
   toolName: string;
   result: unknown;
-}): AgentToolResult<unknown> {
+}): AgentToolResult {
   const { toolName, result } = params;
   if (result && typeof result === "object") {
     const record = result as Record<string, unknown>;
     if (Array.isArray(record.content)) {
-      return result as AgentToolResult<unknown>;
+      return result as AgentToolResult;
     }
     logDebug(`tools: ${toolName} returned non-standard result (missing content[]); coercing`);
     const details = "details" in record ? record.details : record;
@@ -137,7 +134,7 @@ function normalizeToolExecutionResult(params: {
 function buildToolExecutionErrorResult(params: {
   toolName: string;
   message: string;
-}): AgentToolResult<unknown> {
+}): AgentToolResult {
   return jsonResult({
     status: "error",
     tool: params.toolName,
@@ -148,7 +145,7 @@ function buildToolExecutionErrorResult(params: {
 function splitToolExecuteArgs(args: ToolExecuteArgsAny): {
   toolCallId: string;
   params: unknown;
-  onUpdate: AgentToolUpdateCallback<unknown> | undefined;
+  onUpdate: AgentToolUpdateCallback | undefined;
   signal: AbortSignal | undefined;
 } {
   if (isLegacyToolExecuteArgs(args)) {
@@ -173,27 +170,15 @@ export function toToolDefinitions(tools: AnyAgentTool[]): ToolDefinition[] {
   return tools.map((tool) => {
     const name = tool.name || "tool";
     const normalizedName = normalizeToolName(name);
-    const beforeHookWrapped = isToolWrappedWithBeforeToolCallHook(tool);
     return {
       name,
       label: tool.label ?? name,
       description: tool.description ?? "",
       parameters: tool.parameters,
-      execute: async (...args: ToolExecuteArgs): Promise<AgentToolResult<unknown>> => {
+      execute: async (...args: ToolExecuteArgs): Promise<AgentToolResult> => {
         const { toolCallId, params, onUpdate, signal } = splitToolExecuteArgs(args);
         let executeParams = params;
         try {
-          if (!beforeHookWrapped) {
-            const hookOutcome = await runBeforeToolCallHook({
-              toolName: name,
-              params,
-              toolCallId,
-            });
-            if (hookOutcome.blocked) {
-              throw new Error(hookOutcome.reason);
-            }
-            executeParams = hookOutcome.params;
-          }
           const rawResult = await tool.execute(toolCallId, executeParams, signal, onUpdate);
           const result = normalizeToolExecutionResult({
             toolName: normalizedName,
@@ -268,7 +253,7 @@ function coerceParamsRecord(value: unknown): Record<string, unknown> {
 export function toClientToolDefinitions(
   tools: ClientToolDefinition[],
   onClientToolCall?: (toolName: string, params: Record<string, unknown>) => void,
-  hookContext?: HookContext,
+  _preflightContext?: ToolCallPreflightContext,
 ): ToolDefinition[] {
   return tools.map((tool) => {
     const func = tool.function;
@@ -277,19 +262,9 @@ export function toClientToolDefinitions(
       label: func.name,
       description: func.description ?? "",
       parameters: func.parameters as ToolDefinition["parameters"],
-      execute: async (...args: ToolExecuteArgs): Promise<AgentToolResult<unknown>> => {
-        const { toolCallId, params } = splitToolExecuteArgs(args);
-        const outcome = await runBeforeToolCallHook({
-          toolName: func.name,
-          params,
-          toolCallId,
-          ctx: hookContext,
-        });
-        if (outcome.blocked) {
-          throw new Error(outcome.reason);
-        }
-        const adjustedParams = outcome.params;
-        const paramsRecord = coerceParamsRecord(adjustedParams);
+      execute: async (...args: ToolExecuteArgs): Promise<AgentToolResult> => {
+        const { params } = splitToolExecuteArgs(args);
+        const paramsRecord = coerceParamsRecord(params);
         // Notify handler that a client tool was called
         if (onClientToolCall) {
           onClientToolCall(func.name, paramsRecord);

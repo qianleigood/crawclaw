@@ -10,7 +10,7 @@ import { clearRuntimeConfigSnapshot, loadConfig } from "../config/config.js";
 import { isTruthyEnvValue } from "../infra/env.js";
 import { extractFirstTextBlock } from "../shared/chat-message-content.js";
 import { sleep } from "../utils.js";
-import { GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { GATEWAY_CLIENT_NAMES } from "../utils/gateway-client-surface.js";
 import { GatewayClient } from "./client.js";
 import { startGatewayServer } from "./server.js";
 
@@ -156,7 +156,6 @@ async function connectClientOnce(params: { url: string; token: string; timeoutMs
       clientVersion: "dev",
       mode: "test",
       requestTimeoutMs: timeoutMs,
-      connectChallengeTimeoutMs: timeoutMs,
       onHelloOk: () => finish({ client }),
       onConnectError: (error) => finish({ error }),
       onClose: (code, reason) =>
@@ -176,8 +175,7 @@ function isRetryableGatewayConnectError(error: Error): boolean {
   const message = error.message.toLowerCase();
   return (
     message.includes("gateway closed during connect (1000)") ||
-    message.includes("gateway connect timeout") ||
-    message.includes("gateway connect challenge timeout")
+    message.includes("gateway connect timeout")
   );
 }
 

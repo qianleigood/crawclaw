@@ -207,6 +207,10 @@ describe("update global helpers", () => {
 
     await expect(collectInstalledGlobalPackageErrors({ packageRoot })).resolves.toEqual([]);
 
+    if (BUNDLED_RUNTIME_SIDECAR_PATHS.length === 0) {
+      return;
+    }
+
     await fs.rm(path.join(packageRoot, FIRST_RUNTIME_SIDECAR));
     await expect(collectInstalledGlobalPackageErrors({ packageRoot })).resolves.toContain(
       `missing bundled runtime sidecar ${FIRST_RUNTIME_SIDECAR}`,

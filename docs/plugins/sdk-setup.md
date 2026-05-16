@@ -48,7 +48,6 @@ your plugin provides:
   "version": "1.0.0",
   "type": "module",
   "crawclaw": {
-    "extensions": ["./index.ts"],
     "compat": {
       "pluginApi": ">=2026.3.24-beta.2",
       "minGatewayVersion": "2026.3.24-beta.2"
@@ -210,6 +209,6 @@ discovered during build.
 
 ## Related
 
-- [SDK Entry Points](/plugins/sdk-entrypoints) -- `definePluginEntry`
+- [SDK Entry Points](/plugins/sdk-entrypoints) -- current manifest and Rust native boundary
 - [Plugin Manifest](/plugins/manifest) -- full manifest schema reference
 - [Building Plugins](/plugins/building-plugins) -- step-by-step getting started guide

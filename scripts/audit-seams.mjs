@@ -27,11 +27,9 @@ Sections:
   optionalClusterStaticLeaks   Optional extension/plugin clusters referenced from the static graph
   missingPackages              Workspace packages whose deps are not mirrored at the root
   seamTestInventory            High-signal seam candidates with nearby-test gap signals,
-                               including cron orchestration seams for agent handoff,
-                               outbound/media delivery, heartbeat/followup handoff,
-                               and scheduler state crossings, plus subagent seams
-                               for spawn/session handoff, announce delivery,
-                               lifecycle registry, cleanup, and parent streaming
+                               including subagent seams for spawn/session handoff,
+                               announce delivery, lifecycle registry, cleanup,
+                               and parent streaming
 
 Notes:
   - Output is JSON only.
@@ -573,101 +571,8 @@ function describeCronSeamKinds(relativePath, source) {
     return [];
   }
 
-  const seamKinds = [];
-  const importsAgentRunner = hasAnyImportSource(source, [
-    "../../agents/cli-runner.js",
-    "../../agents/pi-embedded.js",
-    "../../agents/model-fallback.js",
-    "../../agents/subagent-registry.js",
-    "../../infra/agent-events.js",
-  ]);
-  const importsOutboundDelivery = hasAnyImportSource(source, [
-    "../infra/outbound/deliver.js",
-    "../../infra/outbound/deliver.js",
-    "../infra/outbound/session-context.js",
-    "../../infra/outbound/session-context.js",
-    "../infra/outbound/identity.js",
-    "../../infra/outbound/identity.js",
-    "../terminal/outbound-send-deps.js",
-    "../../terminal/outbound-send-deps.js",
-  ]);
-  const importsHeartbeat = hasAnyImportSource(source, [
-    "../auto-reply/heartbeat.js",
-    "../../auto-reply/heartbeat.js",
-    "../infra/heartbeat-wake.js",
-    "../../infra/heartbeat-wake.js",
-  ]);
-  const importsFollowup = hasAnyImportSource(source, [
-    "./subagent-followup.js",
-    "../../agents/subagent-registry.js",
-    "../../agents/tools/agent-step.js",
-    "../../gateway/call.js",
-  ]);
-  const importsSchedulerModules =
-    relativePath.startsWith("src/cron/service/") &&
-    hasAnyImportSource(source, [
-      "./jobs.js",
-      "./store.js",
-      "./timer.js",
-      "./state.js",
-      "../schedule.js",
-      "../store.js",
-      "../run-log.js",
-    ]);
-
-  if (
-    importsAgentRunner &&
-    /\brunCliAgent\b|\brunEmbeddedPiAgent\b|\brunWithModelFallback\b|\bregisterAgentRunContext\b/.test(
-      source,
-    )
-  ) {
-    seamKinds.push("cron-agent-handoff");
-  }
-
-  if (
-    importsOutboundDelivery &&
-    /\bdeliverOutboundPayloads\b|\bbuildOutboundSessionContext\b|\bresolveAgentOutboundIdentity\b/.test(
-      source,
-    )
-  ) {
-    seamKinds.push("cron-outbound-delivery");
-  }
-
-  if (
-    importsHeartbeat &&
-    /\bstripHeartbeatToken\b|\bHeartbeat\b|\bheartbeat\b|\bnext-heartbeat\b/.test(source)
-  ) {
-    seamKinds.push("cron-heartbeat-handoff");
-  }
-
-  if (
-    importsSchedulerModules &&
-    /\bensureLoaded\b|\bpersist\b|\barmTimer\b|\brunMissedJobs\b|\bcomputeJobNextRunAtMs\b|\brecomputeNextRuns\b|\bnextWakeAtMs\b/.test(
-      source,
-    )
-  ) {
-    seamKinds.push("cron-scheduler-state");
-  }
-
-  if (
-    importsOutboundDelivery &&
-    /\bmediaUrl\b|\bmediaUrls\b|\bfilename\b|\baudioAsVoice\b|\bdeliveryPayloads\b|\bdeliveryPayloadHasStructuredContent\b/.test(
-      source,
-    )
-  ) {
-    seamKinds.push("cron-media-delivery");
-  }
-
-  if (
-    importsFollowup &&
-    /\bwaitForDescendantSubagentSummary\b|\breadDescendantSubagentFallbackReply\b|\bexpectsSubagentFollowup\b|\bcallGateway\b|\blistDescendantRunsForRequester\b/.test(
-      source,
-    )
-  ) {
-    seamKinds.push("cron-followup-handoff");
-  }
-
-  return seamKinds;
+  void source;
+  return [];
 }
 
 function describeSubagentSeamKinds(relativePath, source) {
@@ -702,7 +607,6 @@ function describeSubagentSeamKinds(relativePath, source) {
     "./subagent-announce.js",
     "./subagent-announce-dispatch.js",
     "./subagent-announce-queue.js",
-    "../infra/outbound/bound-delivery-router.js",
     "../utils/delivery-context.js",
     "../gateway/call.js",
   ]);
@@ -738,7 +642,7 @@ function describeSubagentSeamKinds(relativePath, source) {
 
   if (
     (importsAnnounceDelivery || isAnnounceDispatchPath) &&
-    /\brunSubagentAnnounceFlow\b|\brunSubagentAnnounceDispatch\b|\benqueueAnnounce\b|\bcreateBoundDeliveryRouter\b|\bqueueEmbeddedPiMessage\b|\bwaitForEmbeddedPiRunEnd\b|\bqueue-fallback\b|\bdirect-primary\b/.test(
+    /\brunSubagentAnnounceFlow\b|\brunSubagentAnnounceDispatch\b|\benqueueAnnounce\b|\bqueue-fallback\b|\bdirect-primary\b/.test(
       source,
     )
   ) {
@@ -936,12 +840,6 @@ export function determineSeamTestStatus(seamKinds, relatedTestMatches) {
     seamKinds.includes("reply-delivery-media") ||
     seamKinds.includes("streaming-media-handoff") ||
     seamKinds.includes("tool-result-media") ||
-    seamKinds.includes("cron-agent-handoff") ||
-    seamKinds.includes("cron-outbound-delivery") ||
-    seamKinds.includes("cron-heartbeat-handoff") ||
-    seamKinds.includes("cron-scheduler-state") ||
-    seamKinds.includes("cron-media-delivery") ||
-    seamKinds.includes("cron-followup-handoff") ||
     seamKinds.includes("subagent-session-spawn") ||
     seamKinds.includes("subagent-lifecycle-registry") ||
     seamKinds.includes("subagent-announce-delivery") ||

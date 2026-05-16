@@ -18,12 +18,12 @@ export function normalizeApiKeyTokenProviderAuthChoice(params: {
     return params.authChoice;
   }
   return (
-    (resolveManifestProviderApiKeyChoice({
+    resolveManifestProviderApiKeyChoice({
       providerId: normalizedTokenProvider,
       config: params.config,
       workspaceDir: params.workspaceDir,
       env: params.env,
-    })?.choiceId as AuthChoice | undefined) ?? params.authChoice
+    })?.choiceId ?? params.authChoice
   );
 }
 

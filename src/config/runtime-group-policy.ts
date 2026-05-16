@@ -33,15 +33,13 @@ export type ResolveProviderRuntimeGroupPolicyParams = {
 };
 
 export type GroupPolicyDefaultsConfig = {
-  channels?: {
-    defaults?: {
-      groupPolicy?: GroupPolicy;
-    };
+  defaults?: {
+    groupPolicy?: GroupPolicy;
   };
 };
 
 export function resolveDefaultGroupPolicy(cfg: GroupPolicyDefaultsConfig): GroupPolicy | undefined {
-  return cfg.channels?.defaults?.groupPolicy;
+  return cfg.defaults?.groupPolicy;
 }
 
 export const GROUP_POLICY_BLOCKED_LABEL = {
@@ -105,7 +103,7 @@ export function warnMissingProviderGroupPolicyFallbackOnce(params: {
   warnedMissingProviderGroupPolicy.add(key);
   const blockedLabel = params.blockedLabel?.trim() || "group messages";
   params.log(
-    `${params.providerKey}: channels.${params.providerKey} is missing; defaulting groupPolicy to "allowlist" (${blockedLabel} blocked until explicitly configured).`,
+    `${params.providerKey}: provider config is missing; defaulting groupPolicy to "allowlist" (${blockedLabel} blocked until explicitly configured).`,
   );
   return true;
 }

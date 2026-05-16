@@ -60,6 +60,6 @@ describe("gateway request scope", () => {
   });
 
   it("attaches plugin id to the active scope", async () => {
-    await expectPluginIdScopedGatewayScope("voice-call");
+    await expectPluginIdScopedGatewayScope("demo-plugin");
   });
 });

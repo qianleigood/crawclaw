@@ -1,4 +1,3 @@
-import type { ChatType } from "../channels/chat-type.js";
 import type { SessionEntry } from "../config/sessions.js";
 import type {
   GatewayAgentRow as SharedGatewayAgentRow,
@@ -6,6 +5,8 @@ import type {
   SessionsPatchResultBase,
 } from "../shared/session-types.js";
 import type { DeliveryContext } from "../utils/delivery-context.js";
+
+export type ChatType = "direct" | "group" | "channel" | "thread" | "room";
 
 export type GatewaySessionsDefaults = {
   modelProvider: string | null;

@@ -31,10 +31,6 @@
       "durationMs": 941.44287109375,
       "testCount": 22
     },
-    "src/cron/isolated-agent/delivery-dispatch.named-agent.test.ts": {
-      "durationMs": 871.858642578125,
-      "testCount": 11
-    },
     "test/architecture-smells.test.ts": {
       "durationMs": 853.270263671875,
       "testCount": 2
@@ -163,10 +159,6 @@
       "durationMs": 224.001953125,
       "testCount": 1
     },
-    "src/cron/isolated-agent.lane.test.ts": {
-      "durationMs": 217.71826171875,
-      "testCount": 3
-    },
     "src/secrets/runtime.integration.test.ts": {
       "durationMs": 216.497314453125,
       "testCount": 5
@@ -267,10 +259,6 @@
       "durationMs": 113.197021484375,
       "testCount": 9
     },
-    "src/cron/service.persists-delivered-status.test.ts": {
-      "durationMs": 108.559814453125,
-      "testCount": 6
-    },
     "src/plugins/discovery.test.ts": {
       "durationMs": 107.716064453125,
       "testCount": 25
@@ -279,17 +267,9 @@
       "durationMs": 107.50634765625,
       "testCount": 11
     },
-    "src/cron/service.session-reaper-in-finally.test.ts": {
-      "durationMs": 103.7470703125,
-      "testCount": 3
-    },
     "src/pairing/setup-code.test.ts": {
       "durationMs": 102.3203125,
       "testCount": 16
-    },
-    "src/cron/isolated-agent/run.owner-auth.test.ts": {
-      "durationMs": 100.48779296875,
-      "testCount": 1
     },
     "src/infra/boundary-path.test.ts": {
       "durationMs": 98.96142578125,
@@ -306,10 +286,6 @@
     "src/plugins/web-search-providers.runtime.test.ts": {
       "durationMs": 95.8154296875,
       "testCount": 9
-    },
-    "src/cron/service.restart-catchup.test.ts": {
-      "durationMs": 93.3232421875,
-      "testCount": 8
     },
     "src/media-understanding/runner.skip-tiny-audio.test.ts": {
       "durationMs": 92.167236328125,
@@ -363,10 +339,6 @@
       "durationMs": 71.692138671875,
       "testCount": 3
     },
-    "src/cron/service.read-ops-nonblocking.test.ts": {
-      "durationMs": 70.1806640625,
-      "testCount": 3
-    },
     "src/security/skill-scanner.test.ts": {
       "durationMs": 69.302490234375,
       "testCount": 27
@@ -383,10 +355,6 @@
       "durationMs": 66.935791015625,
       "testCount": 1
     },
-    "src/cron/service.every-jobs-fire.test.ts": {
-      "durationMs": 66.443115234375,
-      "testCount": 3
-    },
     "src/daemon/schtasks.test.ts": {
       "durationMs": 66.254638671875,
       "testCount": 23
@@ -402,14 +370,6 @@
     "src/config/config.talk-validation.test.ts": {
       "durationMs": 65.213134765625,
       "testCount": 5
-    },
-    "src/plugins/runtime/index.test.ts": {
-      "durationMs": 64.8515625,
-      "testCount": 12
-    },
-    "src/cron/isolated-agent/run.skill-filter.test.ts": {
-      "durationMs": 64.020751953125,
-      "testCount": 13
     },
     "src/config/config-misc.test.ts": {
       "durationMs": 63.940185546875,
@@ -438,10 +398,6 @@
     "src/infra/install-source-utils.test.ts": {
       "durationMs": 59.5400390625,
       "testCount": 16
-    },
-    "src/cron/service.heartbeat-ok-summary-suppressed.test.ts": {
-      "durationMs": 59.4853515625,
-      "testCount": 2
     },
     "src/config/doc-baseline.integration.test.ts": {
       "durationMs": 58.551025390625,
@@ -491,10 +447,6 @@
       "durationMs": 52.273681640625,
       "testCount": 4
     },
-    "src/cron/service.issue-16156-list-skips-cron.test.ts": {
-      "durationMs": 51.369140625,
-      "testCount": 3
-    },
     "src/media-understanding/runner.auto-audio.test.ts": {
       "durationMs": 51.368408203125,
       "testCount": 4
@@ -502,10 +454,6 @@
     "src/infra/restart-stale-pids.test.ts": {
       "durationMs": 51.15234375,
       "testCount": 37
-    },
-    "src/cron/service.runs-one-shot-main-job-disables-it.test.ts": {
-      "durationMs": 51.140869140625,
-      "testCount": 11
     },
     "src/infra/update-startup.test.ts": {
       "durationMs": 50.162841796875,
@@ -559,10 +507,6 @@
       "durationMs": 43.653564453125,
       "testCount": 7
     },
-    "src/cron/isolated-agent/run.interim-retry.test.ts": {
-      "durationMs": 43.59423828125,
-      "testCount": 3
-    },
     "src/plugins/uninstall.test.ts": {
       "durationMs": 43.580322265625,
       "testCount": 23
@@ -574,10 +518,6 @@
     "src/infra/system-presence.test.ts": {
       "durationMs": 42.49365234375,
       "testCount": 5
-    },
-    "src/cron/isolated-agent/run.cron-model-override.test.ts": {
-      "durationMs": 42.2236328125,
-      "testCount": 6
     },
     "src/plugins/web-search-providers.test.ts": {
       "durationMs": 42.105224609375,
@@ -595,10 +535,6 @@
       "durationMs": 41.49267578125,
       "testCount": 44
     },
-    "src/cron/isolated-agent/run.fast-mode.test.ts": {
-      "durationMs": 41.228759765625,
-      "testCount": 3
-    },
     "src/infra/exec-approvals-store.test.ts": {
       "durationMs": 40.9560546875,
       "testCount": 8
@@ -610,10 +546,6 @@
     "src/security/dm-policy-shared.test.ts": {
       "durationMs": 38.9951171875,
       "testCount": 66
-    },
-    "src/cron/isolated-agent/run.message-tool-policy.test.ts": {
-      "durationMs": 38.073486328125,
-      "testCount": 3
     },
     "src/infra/session-maintenance-warning.test.ts": {
       "durationMs": 37.757568359375,

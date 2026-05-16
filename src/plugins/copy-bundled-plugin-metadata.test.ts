@@ -333,8 +333,8 @@ describe("copyBundledPluginMetadata", () => {
   it.each([
     {
       name: "skips metadata for optional bundled clusters only when explicitly disabled",
-      pluginId: "acpx",
-      packageName: "@crawclaw/acpx-plugin",
+      pluginId: "ui",
+      packageName: "@crawclaw/ui-plugin",
       packageCrawClaw: { extensions: ["./index.ts"] },
       env: excludeOptionalEnv,
       expectedExists: false,

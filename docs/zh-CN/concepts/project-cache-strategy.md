@@ -52,8 +52,7 @@ Tool inventory、thinking config、system prompt text 和 fork context 都属于
 - `src/config/cache-utils.ts`
 - `src/agents/context-cache.ts`
 - `src/agents/bootstrap-cache.ts`
-- `src/agents/pi-embedded-runner/session-manager-cache.ts`
-- `src/agents/pi-embedded-runner/cache-ttl.ts`
+- Rust AgentRuntime session 和 context caches
 
 这些 cache 用来减少重复 runtime work。它们通常是短生命周期、进程内的 cache，并按 TTL、session 或 workspace 作用域隔离。
 

@@ -1,6 +1,9 @@
-import type { ChatType } from "../channels/chat-type.js";
 import type { SafeBinProfileFixture } from "../infra/exec-safe-bin-policy.js";
-import type { AgentElevatedAllowFromConfig, SessionSendPolicyAction } from "./types.base.js";
+import type {
+  AgentElevatedAllowFromConfig,
+  ChatType,
+  SessionSendPolicyAction,
+} from "./types.base.js";
 import type { SecretInput } from "./types.secrets.js";
 
 export type MediaUnderstandingScopeMatch = {

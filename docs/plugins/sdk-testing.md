@@ -49,7 +49,6 @@ import type {
   ChannelAccountSnapshot,
   ChannelGatewayContext,
   CrawClawConfig,
-  PluginRuntime,
   RuntimeEnv,
   MockFn,
 } from "crawclaw/plugin-sdk/testing";
@@ -108,35 +107,6 @@ describe("my-provider plugin", () => {
     expect(result?.provider?.models).toHaveLength(2);
   });
 });
-```
-
-### Mocking the plugin runtime
-
-For code that uses `createPluginRuntimeStore`, mock the runtime in tests:
-
-```typescript
-import { createPluginRuntimeStore } from "crawclaw/plugin-sdk/runtime-store";
-import type { PluginRuntime } from "crawclaw/plugin-sdk/runtime-store";
-
-const store = createPluginRuntimeStore<PluginRuntime>("test runtime not set");
-
-// In test setup
-const mockRuntime = {
-  agent: {
-    resolveAgentDir: vi.fn().mockReturnValue("/tmp/agent"),
-    // ... other mocks
-  },
-  config: {
-    loadConfig: vi.fn(),
-    writeConfigFile: vi.fn(),
-  },
-  // ... other namespaces
-} as unknown as PluginRuntime;
-
-store.setRuntime(mockRuntime);
-
-// After tests
-store.clearRuntime();
 ```
 
 ### Testing with per-instance stubs

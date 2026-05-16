@@ -6,7 +6,6 @@ import type { CrawClawConfig } from "../config/config.js";
 import { resolvePluginInstallDir } from "./install-metadata.js";
 import {
   removePluginFromConfig,
-  resolveUninstallChannelConfigKeys,
   resolveUninstallDirectoryTarget,
   uninstallPlugin,
 } from "./uninstall.js";
@@ -128,7 +127,6 @@ function createPluginConfig(params: {
   enabled?: boolean;
   slots?: PluginConfig["slots"];
   loadPaths?: string[];
-  channels?: CrawClawConfig["channels"];
 }): CrawClawConfig {
   const plugins: PluginConfig = {};
   if (params.entries) {
@@ -152,37 +150,7 @@ function createPluginConfig(params: {
   if (params.loadPaths) {
     plugins.load = { paths: params.loadPaths };
   }
-  return {
-    ...(Object.keys(plugins).length > 0 ? { plugins } : {}),
-    ...(params.channels ? { channels: params.channels } : {}),
-  };
-}
-
-function expectRemainingChannels(
-  channels: CrawClawConfig["channels"],
-  expected: Record<string, unknown> | undefined,
-) {
-  expect(channels as Record<string, unknown> | undefined).toEqual(expected);
-}
-
-function expectChannelCleanupResult(params: {
-  config: CrawClawConfig;
-  pluginId: string;
-  expectedChannels: Record<string, unknown> | undefined;
-  expectedChanged: boolean;
-  options?: { channelIds?: readonly string[] };
-}) {
-  const { config: result, actions } = removePluginFromConfig(
-    params.config,
-    params.pluginId,
-    params.options
-      ? params.options.channelIds
-        ? { channelIds: [...params.options.channelIds] }
-        : {}
-      : undefined,
-  );
-  expectRemainingChannels(result.channels, params.expectedChannels);
-  expect(actions.channelConfig).toBe(params.expectedChanged);
+  return Object.keys(plugins).length > 0 ? { plugins } : {};
 }
 
 function createSinglePluginWithEmptySlotsConfig(): CrawClawConfig {
@@ -216,24 +184,6 @@ async function expectPathAccessState(pathToCheck: string, expected: "exists" | "
   }
   await expect(accessExpectation).rejects.toThrow();
 }
-
-describe("resolveUninstallChannelConfigKeys", () => {
-  it("falls back to pluginId when channelIds are unknown", () => {
-    expect(resolveUninstallChannelConfigKeys("timbot")).toEqual(["timbot"]);
-  });
-
-  it("keeps explicit empty channelIds as remove-nothing", () => {
-    expect(resolveUninstallChannelConfigKeys("feishu", { channelIds: [] })).toEqual([]);
-  });
-
-  it("filters shared keys and duplicate channel ids", () => {
-    expect(
-      resolveUninstallChannelConfigKeys("bad-plugin", {
-        channelIds: ["defaults", "qqbot", "qqbot", "modelByChannel", "ddingtalk"],
-      }),
-    ).toEqual(["qqbot", "ddingtalk"]);
-  });
-});
 
 describe("removePluginFromConfig", () => {
   it("removes plugin from entries", () => {
@@ -405,193 +355,6 @@ describe("removePluginFromConfig", () => {
 
     expect(result.plugins?.enabled).toBe(true);
     expect(result.plugins?.deny).toEqual(["denied-plugin"]);
-  });
-
-  it.each([
-    {
-      name: "removes channel config for installed extension plugin",
-      config: createPluginConfig({
-        entries: {
-          timbot: { enabled: true },
-        },
-        installs: {
-          timbot: createNpmInstallRecord("timbot"),
-        },
-        channels: {
-          timbot: { sdkAppId: "123", secretKey: "abc" },
-          feishu: { enabled: true },
-        },
-      }),
-      pluginId: "timbot",
-      expectedChannels: {
-        feishu: { enabled: true },
-      },
-      expectedChanged: true,
-    },
-    {
-      name: "does not remove channel config for built-in channel without install record",
-      config: createPluginConfig({
-        entries: {
-          feishu: { enabled: true },
-        },
-        channels: {
-          feishu: { enabled: true },
-          qqbot: { enabled: true },
-        },
-      }),
-      pluginId: "feishu",
-      expectedChannels: {
-        feishu: { enabled: true },
-        qqbot: { enabled: true },
-      },
-      expectedChanged: false,
-    },
-    {
-      name: "cleans up channels object when removing the only channel config",
-      config: createPluginConfig({
-        entries: {
-          timbot: { enabled: true },
-        },
-        installs: {
-          timbot: createNpmInstallRecord("timbot"),
-        },
-        channels: {
-          timbot: { sdkAppId: "123" },
-        },
-      }),
-      pluginId: "timbot",
-      expectedChannels: undefined,
-      expectedChanged: true,
-    },
-    {
-      name: "does not set channelConfig action when no channel config exists",
-      config: createPluginConfig({
-        entries: createSinglePluginEntries(),
-        installs: {
-          "my-plugin": createNpmInstallRecord(),
-        },
-      }),
-      pluginId: "my-plugin",
-      expectedChannels: undefined,
-      expectedChanged: false,
-    },
-    {
-      name: "does not remove channel config when plugin has no install record",
-      config: createPluginConfig({
-        entries: {
-          qqbot: { enabled: true },
-        },
-        channels: {
-          qqbot: { enabled: true, token: "abc" },
-        },
-      }),
-      pluginId: "qqbot",
-      expectedChannels: {
-        qqbot: {
-          enabled: true,
-          token: "abc",
-        },
-      },
-      expectedChanged: false,
-    },
-    {
-      name: "removes channel config using explicit channelIds when pluginId differs",
-      config: createPluginConfig({
-        entries: {
-          "timbot-plugin": { enabled: true },
-        },
-        installs: {
-          "timbot-plugin": createNpmInstallRecord("timbot-plugin"),
-        },
-        channels: {
-          timbot: { sdkAppId: "123" },
-          "timbot-v2": { sdkAppId: "456" },
-          feishu: { enabled: true },
-        },
-      }),
-      pluginId: "timbot-plugin",
-      options: {
-        channelIds: ["timbot", "timbot-v2"],
-      },
-      expectedChannels: {
-        feishu: { enabled: true },
-      },
-      expectedChanged: true,
-    },
-    {
-      name: "preserves shared channel keys (defaults, modelByChannel)",
-      config: createPluginConfig({
-        entries: {
-          timbot: { enabled: true },
-        },
-        installs: {
-          timbot: createNpmInstallRecord("timbot"),
-        },
-        channels: {
-          defaults: { groupPolicy: "opt-in" },
-          modelByChannel: { timbot: "gpt-3.5" } as Record<string, string>,
-          timbot: { sdkAppId: "123" },
-        } as unknown as CrawClawConfig["channels"],
-      }),
-      pluginId: "timbot",
-      expectedChannels: {
-        defaults: { groupPolicy: "opt-in" },
-        modelByChannel: { timbot: "gpt-3.5" },
-      },
-      expectedChanged: true,
-    },
-    {
-      name: "does not remove shared keys even when passed as channelIds",
-      config: createPluginConfig({
-        entries: {
-          "bad-plugin": { enabled: true },
-        },
-        installs: {
-          "bad-plugin": createNpmInstallRecord("bad-plugin"),
-        },
-        channels: {
-          defaults: { groupPolicy: "opt-in" },
-        } as unknown as CrawClawConfig["channels"],
-      }),
-      pluginId: "bad-plugin",
-      options: {
-        channelIds: ["defaults"],
-      },
-      expectedChannels: {
-        defaults: { groupPolicy: "opt-in" },
-      },
-      expectedChanged: false,
-    },
-    {
-      name: "skips channel cleanup when channelIds is empty array (non-channel plugin)",
-      config: createPluginConfig({
-        entries: {
-          feishu: { enabled: true },
-        },
-        installs: {
-          feishu: createNpmInstallRecord("feishu"),
-        },
-        channels: {
-          feishu: { enabled: true },
-        },
-      }),
-      pluginId: "feishu",
-      options: {
-        channelIds: [],
-      },
-      expectedChannels: {
-        feishu: { enabled: true },
-      },
-      expectedChanged: false,
-    },
-  ] as const)("$name", ({ config, pluginId, expectedChannels, expectedChanged, options }) => {
-    expectChannelCleanupResult({
-      config,
-      pluginId,
-      expectedChannels,
-      expectedChanged,
-      options,
-    });
   });
 });
 

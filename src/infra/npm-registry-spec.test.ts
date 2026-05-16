@@ -16,22 +16,22 @@ function parseSpecOrThrow(spec: string) {
 
 describe("npm registry spec validation", () => {
   it.each([
-    "@crawclaw/voice-call",
-    "@crawclaw/voice-call@1.2.3",
-    "@crawclaw/voice-call@1.2.3-beta.4",
-    "@crawclaw/voice-call@latest",
-    "@crawclaw/voice-call@beta",
+    "@crawclaw/demo-plugin",
+    "@crawclaw/demo-plugin@1.2.3",
+    "@crawclaw/demo-plugin@1.2.3-beta.4",
+    "@crawclaw/demo-plugin@latest",
+    "@crawclaw/demo-plugin@beta",
   ])("accepts %s", (spec) => {
     expect(validateRegistryNpmSpec(spec)).toBeNull();
   });
 
   it.each([
     {
-      spec: "@crawclaw/voice-call@^1.2.3",
+      spec: "@crawclaw/demo-plugin@^1.2.3",
       expected: "exact version or dist-tag",
     },
     {
-      spec: "@crawclaw/voice-call@~1.2.3",
+      spec: "@crawclaw/demo-plugin@~1.2.3",
       expected: "exact version or dist-tag",
     },
     {
@@ -43,11 +43,11 @@ describe("npm registry spec validation", () => {
       expected: "URLs are not allowed",
     },
     {
-      spec: "@crawclaw/voice-call@",
+      spec: "@crawclaw/demo-plugin@",
       expected: "missing version/tag after @",
     },
     {
-      spec: "@crawclaw/voice-call@../beta",
+      spec: "@crawclaw/demo-plugin@../beta",
       expected: "invalid version/tag",
     },
   ])("rejects %s", ({ spec, expected }) => {
@@ -58,29 +58,29 @@ describe("npm registry spec validation", () => {
 describe("npm registry spec parsing helpers", () => {
   it.each([
     {
-      spec: "@crawclaw/voice-call",
+      spec: "@crawclaw/demo-plugin",
       expected: {
-        name: "@crawclaw/voice-call",
-        raw: "@crawclaw/voice-call",
+        name: "@crawclaw/demo-plugin",
+        raw: "@crawclaw/demo-plugin",
         selectorKind: "none",
         selectorIsPrerelease: false,
       },
     },
     {
-      spec: "@crawclaw/voice-call@beta",
+      spec: "@crawclaw/demo-plugin@beta",
       expected: {
-        name: "@crawclaw/voice-call",
-        raw: "@crawclaw/voice-call@beta",
+        name: "@crawclaw/demo-plugin",
+        raw: "@crawclaw/demo-plugin@beta",
         selector: "beta",
         selectorKind: "tag",
         selectorIsPrerelease: false,
       },
     },
     {
-      spec: "@crawclaw/voice-call@1.2.3-beta.1",
+      spec: "@crawclaw/demo-plugin@1.2.3-beta.1",
       expected: {
-        name: "@crawclaw/voice-call",
-        raw: "@crawclaw/voice-call@1.2.3-beta.1",
+        name: "@crawclaw/demo-plugin",
+        raw: "@crawclaw/demo-plugin@1.2.3-beta.1",
         selector: "1.2.3-beta.1",
         selectorKind: "exact-version",
         selectorIsPrerelease: true,
@@ -108,32 +108,32 @@ describe("npm registry spec parsing helpers", () => {
 describe("npm prerelease resolution policy", () => {
   it.each([
     {
-      spec: "@crawclaw/voice-call",
+      spec: "@crawclaw/demo-plugin",
       resolvedVersion: "1.2.3-beta.1",
       expected: false,
     },
     {
-      spec: "@crawclaw/voice-call@latest",
+      spec: "@crawclaw/demo-plugin@latest",
       resolvedVersion: "1.2.3-rc.1",
       expected: false,
     },
     {
-      spec: "@crawclaw/voice-call@beta",
+      spec: "@crawclaw/demo-plugin@beta",
       resolvedVersion: "1.2.3-beta.4",
       expected: true,
     },
     {
-      spec: "@crawclaw/voice-call@1.2.3-beta.1",
+      spec: "@crawclaw/demo-plugin@1.2.3-beta.1",
       resolvedVersion: "1.2.3-beta.1",
       expected: true,
     },
     {
-      spec: "@crawclaw/voice-call",
+      spec: "@crawclaw/demo-plugin",
       resolvedVersion: "1.2.3",
       expected: true,
     },
     {
-      spec: "@crawclaw/voice-call@latest",
+      spec: "@crawclaw/demo-plugin@latest",
       resolvedVersion: undefined,
       expected: true,
     },
@@ -148,12 +148,12 @@ describe("npm prerelease resolution policy", () => {
 
   it.each([
     {
-      spec: "@crawclaw/voice-call",
+      spec: "@crawclaw/demo-plugin",
       resolvedVersion: "1.2.3-beta.1",
-      expected: `Use "@crawclaw/voice-call@beta"`,
+      expected: `Use "@crawclaw/demo-plugin@beta"`,
     },
     {
-      spec: "@crawclaw/voice-call@beta",
+      spec: "@crawclaw/demo-plugin@beta",
       resolvedVersion: "1.2.3-rc.1",
       expected: "Use an explicit prerelease tag or exact prerelease version",
     },

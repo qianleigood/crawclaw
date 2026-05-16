@@ -1,4 +1,4 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::fs;
 use std::future::Future;
 use std::io::Write;
@@ -180,11 +180,7 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
         &runtimes_dir.join("manifest.json"),
         &json!({
             "runtime": "rust-native",
-            "jsPluginRuntime": "node",
-            "node": {
-                "major": 24,
-                "distribution": "bundled"
-            },
+            "jsPluginRuntime": "none",
         }),
     )?;
     write_json_file(
@@ -212,12 +208,7 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
         &plugins_dir.join("manifest.json"),
         &json!({
             "readModel": true,
-            "jsPluginRuntime": "node",
-            "node": {
-                "major": 24,
-                "distribution": "bundled",
-                "permissions": "full"
-            },
+            "jsPluginRuntime": "none",
             "nativeChannels": crawclaw_plugin_host::native_channel_ids(),
         }),
     )?;
@@ -288,6 +279,7 @@ pub struct AgentRuntimeRequest<'a> {
     pub history: Vec<AgentRuntimeMessage>,
     pub provider_config: NativeProviderConfig,
     pub reasoning_level: Option<String>,
+    pub enabled_tools: Vec<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -316,6 +308,16 @@ pub struct RustCoreToolDefinition {
     pub backing_runtime_id: &'static str,
     pub status: RustCoreToolStatus,
     pub default_enabled: bool,
+    pub read_only: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RustAgentToolDescriptor {
+    pub name: String,
+    pub label: String,
+    pub description: String,
+    pub parameters: Value,
     pub read_only: bool,
 }
 
@@ -583,6 +585,22 @@ pub fn pi_agent_rust_tool_names_for_runtime_root(runtime_root: &Path) -> Vec<Str
     names
 }
 
+pub fn pi_agent_rust_tool_descriptors_for_runtime_root(
+    runtime_root: &Path,
+) -> Vec<RustAgentToolDescriptor> {
+    build_pi_agent_rust_tool_registry(runtime_root)
+        .tools()
+        .iter()
+        .map(|tool| RustAgentToolDescriptor {
+            name: tool.name().to_string(),
+            label: tool.label().to_string(),
+            description: tool.description().to_string(),
+            parameters: tool.parameters(),
+            read_only: tool.is_read_only(),
+        })
+        .collect()
+}
+
 #[doc(hidden)]
 pub fn build_pi_agent_rust_tool_registry_for_test(runtime_root: &Path) -> pi::sdk::ToolRegistry {
     build_pi_agent_rust_tool_registry(runtime_root)
@@ -752,12 +770,12 @@ pub async fn execute_agent_run_turn_operation(
         .map_err(|error| format!("failed to serialize agent_run_turn result: {error}"))
 }
 
-pub fn execute_memory_runtime_operation(
+pub async fn execute_memory_runtime_operation(
     runtime_root: &Path,
     operation: &str,
     input: Value,
 ) -> Result<Value, String> {
-    memory::execute_memory_runtime_operation(runtime_root, operation, input)
+    memory::execute_memory_runtime_operation(runtime_root, operation, input).await
 }
 
 pub async fn execute_cron_runtime_operation(
@@ -1873,6 +1891,39 @@ impl AgentRuntimeError {
     }
 }
 
+fn agent_run_option_string(options: &BTreeMap<String, Value>, keys: &[&str]) -> Option<String> {
+    keys.iter()
+        .find_map(|key| options.get(*key).and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(str::to_string)
+}
+
+fn agent_run_option_is(options: &BTreeMap<String, Value>, key: &str, expected: &str) -> bool {
+    options
+        .get(key)
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .is_some_and(|value| value.eq_ignore_ascii_case(expected))
+}
+
+fn build_btw_question_prompt(question: &str) -> String {
+    [
+        "You are answering an ephemeral /btw side question about the current conversation.",
+        "Use the conversation only as background context.",
+        "Answer only the side question below.",
+        "Do not continue, resume, or complete any unfinished task from the conversation.",
+        "Do not emit tool calls, pseudo-tool calls, shell commands, file writes, patches, or code unless the side question explicitly asks for them.",
+        "Do not say you will continue the main task after answering.",
+        "If the question can be answered briefly, answer briefly.",
+        "",
+        "<btw_side_question>",
+        question.trim(),
+        "</btw_side_question>",
+    ]
+    .join("\n")
+}
+
 impl AgentRuntime {
     pub fn new(runtime_root: PathBuf) -> Self {
         Self {
@@ -1901,9 +1952,34 @@ impl AgentRuntime {
         let agent_id = request.agent_id;
         let session_key = request.session_key;
         let user_text = request.inbound.body;
+        let inbound_metadata = request.inbound.metadata;
         let model = request.model;
+        let options = request.options;
+        if agent_run_option_is(&options, "mode", "btw") {
+            let question = agent_run_option_string(&options, &["btwQuestion"]).or_else(|| {
+                inbound_metadata
+                    .get("btw")
+                    .and_then(Value::as_object)
+                    .and_then(|btw| btw.get("question"))
+                    .and_then(Value::as_str)
+                    .map(str::to_string)
+            });
+            let question = question
+                .or_else(|| (!user_text.trim().is_empty()).then(|| user_text.clone()))
+                .ok_or_else(|| {
+                    AgentRuntimeError::ProviderFailed("No BTW question provided.".to_string())
+                })?;
+            return self
+                .run_btw_turn(run_id, agent_id, session_key, question, model)
+                .await;
+        }
         let result = self
-            .send_message_with_model(session_key.clone(), user_text.clone(), Some(&model))
+            .send_message_with_model(
+                session_key.clone(),
+                user_text.clone(),
+                Some(&model),
+                &request.enabled_tools,
+            )
             .await?;
         let assistant_text = result.assistant_text;
         let mut events = vec![
@@ -1927,7 +2003,13 @@ impl AgentRuntime {
                 message_id: format!("{run_id}:assistant"),
             },
         ];
-        match self.record_memory_after_turn(&result.thread_id, &session_key, &run_id, &user_text, &assistant_text) {
+        match self.record_memory_after_turn(
+            &result.thread_id,
+            &session_key,
+            &run_id,
+            &user_text,
+            &assistant_text,
+        ) {
             Ok(memory_result) => events.push(AgentRunEvent::ToolResult {
                 run_id: run_id.clone(),
                 call_id: format!("{run_id}:memory-after-turn"),
@@ -1943,14 +2025,57 @@ impl AgentRuntime {
                 is_error: Some(true),
             }),
         }
-        events.push(
-            AgentRunEvent::RunCompleted {
-                run_id: run_id.clone(),
-            },
-        );
+        events.push(AgentRunEvent::RunCompleted {
+            run_id: run_id.clone(),
+        });
         Ok(AgentRunResult {
             run_id,
             session_key: result.thread_id,
+            assistant_text,
+            events,
+        })
+    }
+
+    async fn run_btw_turn(
+        &self,
+        run_id: String,
+        agent_id: String,
+        session_key: String,
+        question: String,
+        model: AgentModelSelection,
+    ) -> Result<AgentRunResult, AgentRuntimeError> {
+        let result = self
+            .send_ephemeral_message_with_model(
+                session_key.clone(),
+                build_btw_question_prompt(&question),
+                Some(&model),
+                &[],
+            )
+            .await?;
+        let assistant_text = result.assistant_text;
+        let mut metadata = BTreeMap::new();
+        metadata.insert("btw".to_string(), json!({ "question": question }));
+        let events = vec![
+            AgentRunEvent::RunStarted {
+                run_id: run_id.clone(),
+                agent_id,
+                session_key: session_key.clone(),
+            },
+            AgentRunEvent::ReplyPayload {
+                run_id: run_id.clone(),
+                payload: ReplyPayload {
+                    text: Some(assistant_text.clone()),
+                    media_urls: Vec::new(),
+                    metadata,
+                },
+            },
+            AgentRunEvent::RunCompleted {
+                run_id: run_id.clone(),
+            },
+        ];
+        Ok(AgentRunResult {
+            run_id,
+            session_key,
             assistant_text,
             events,
         })
@@ -1961,7 +2086,7 @@ impl AgentRuntime {
         thread_id: String,
         user_text: String,
     ) -> Result<AgentSendResult, AgentRuntimeError> {
-        self.send_message_with_model(thread_id, user_text, None)
+        self.send_message_with_model(thread_id, user_text, None, &[])
             .await
     }
 
@@ -1970,6 +2095,7 @@ impl AgentRuntime {
         thread_id: String,
         user_text: String,
         model_selection: Option<&AgentModelSelection>,
+        enabled_tools: &[String],
     ) -> Result<AgentSendResult, AgentRuntimeError> {
         let config = self.read_provider_config()?;
         let history = self.load_thread_history(&thread_id)?;
@@ -1987,6 +2113,7 @@ impl AgentRuntime {
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
+                        enabled_tools: enabled_tools.to_vec(),
                     })
                     .await?
             }
@@ -2003,12 +2130,66 @@ impl AgentRuntime {
                         provider_config,
                         reasoning_level: model_selection
                             .and_then(|model| model.reasoning_level.clone()),
+                        enabled_tools: enabled_tools.to_vec(),
                     })
                     .await?
             }
         };
 
         self.append_transcript(&thread_id, &user_text, &assistant_text)?;
+        Ok(AgentSendResult {
+            thread_id,
+            user_text,
+            assistant_text,
+        })
+    }
+
+    async fn send_ephemeral_message_with_model(
+        &self,
+        thread_id: String,
+        user_text: String,
+        model_selection: Option<&AgentModelSelection>,
+        enabled_tools: &[String],
+    ) -> Result<AgentSendResult, AgentRuntimeError> {
+        let config = self.read_provider_config()?;
+        let history = self.load_thread_history(&thread_id)?;
+        let assistant_text = match config.runtime_mode() {
+            DesktopAgentRuntimeMode::PiAgentRust => {
+                let mut provider_config =
+                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+                apply_agent_model_selection(&mut provider_config, model_selection)?;
+                self.pi_agent_backend
+                    .send_message(AgentRuntimeRequest {
+                        runtime_root: &self.runtime_root,
+                        thread_id: &thread_id,
+                        user_text: &user_text,
+                        history: history.clone(),
+                        provider_config,
+                        reasoning_level: model_selection
+                            .and_then(|model| model.reasoning_level.clone()),
+                        enabled_tools: enabled_tools.to_vec(),
+                    })
+                    .await?
+            }
+            DesktopAgentRuntimeMode::NativeProvider => {
+                let mut provider_config =
+                    ProviderResolver::resolve_desktop_config(&config, &self.runtime_root)?;
+                apply_agent_model_selection(&mut provider_config, model_selection)?;
+                self.native_provider_backend
+                    .send_message(AgentRuntimeRequest {
+                        runtime_root: &self.runtime_root,
+                        thread_id: &thread_id,
+                        user_text: &user_text,
+                        history,
+                        provider_config,
+                        reasoning_level: model_selection
+                            .and_then(|model| model.reasoning_level.clone()),
+                        enabled_tools: enabled_tools.to_vec(),
+                    })
+                    .await?
+            }
+        };
+
         Ok(AgentSendResult {
             thread_id,
             user_text,
@@ -2201,7 +2382,10 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
                 config: request.provider_config.clone(),
                 reasoning_level: request.reasoning_level.clone(),
             });
-            let tools = build_pi_agent_rust_tool_registry(request.runtime_root);
+            let tools = build_filtered_pi_agent_rust_tool_registry(
+                request.runtime_root,
+                &request.enabled_tools,
+            );
             let agent_config = pi::sdk::AgentConfig {
                 system_prompt: None,
                 max_tool_iterations: 8,
@@ -2230,6 +2414,31 @@ impl AgentRuntimeBackend for PiAgentRuntimeBackend {
             pi_agent_assistant_text(&assistant)
         })
     }
+}
+
+fn build_filtered_pi_agent_rust_tool_registry(
+    runtime_root: &Path,
+    enabled_tools: &[String],
+) -> pi::sdk::ToolRegistry {
+    let registry = build_pi_agent_rust_tool_registry(runtime_root);
+    if enabled_tools.is_empty() {
+        return registry;
+    }
+    let allowlist = enabled_tools
+        .iter()
+        .map(|tool| tool.trim())
+        .filter(|tool| !tool.is_empty())
+        .collect::<BTreeSet<_>>();
+    if allowlist.is_empty() {
+        return pi::sdk::ToolRegistry::from_tools(Vec::new());
+    }
+    pi::sdk::ToolRegistry::from_tools(
+        registry
+            .into_tools()
+            .into_iter()
+            .filter(|tool| allowlist.contains(tool.name()))
+            .collect(),
+    )
 }
 
 #[derive(Clone)]
@@ -2807,6 +3016,27 @@ esac
     }
 
     #[test]
+    fn pi_agent_rust_tool_registry_honors_runtime_allowlist() {
+        let runtime_root = unique_test_runtime_root("pi-agent-rust-tool-allowlist");
+        let registry = build_filtered_pi_agent_rust_tool_registry(
+            &runtime_root,
+            &[
+                "memory_note_read".to_string(),
+                "sessions_history".to_string(),
+            ],
+        );
+        let tool_names = registry
+            .tools()
+            .iter()
+            .map(|tool| tool.name())
+            .collect::<Vec<_>>();
+
+        assert_eq!(tool_names, vec!["sessions_history", "memory_note_read"]);
+        assert!(registry.get("memory_note_write").is_none());
+        assert!(registry.get("bash").is_none());
+    }
+
+    #[test]
     fn rust_core_tool_inventory_tracks_native_tools() {
         let definition = |tool_id: &str| {
             rust_core_tool_definitions()
@@ -3353,12 +3583,118 @@ esac
                 .expect("transcript");
         assert!(transcript.contains(r#""content":"hello event loop""#));
         assert!(transcript.contains(r#""content":"hello from run_turn""#));
-        let memory_messages = crate::memory::RuntimeStore::new(
-            runtime_root.join("memory").join("runtime.db"),
-        )
-        .list_messages("thread-events", 10)
-        .expect("memory messages");
+        let memory_messages =
+            crate::memory::RuntimeStore::new(runtime_root.join("memory").join("runtime.db"))
+                .list_messages("thread-events", 10)
+                .expect("memory messages");
         assert_eq!(memory_messages.len(), 2);
+    }
+
+    #[tokio::test]
+    async fn memory_runtime_compact_operation_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("memory-runtime-compact-agent");
+        let (provider_base_url, request_rx) =
+            start_openai_compatible_provider("compact from runtime agent");
+        let config_dir = runtime_root.join("config");
+        fs::create_dir_all(&config_dir).expect("config dir");
+        fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "model": "test-model",
+                "apiKey": "test-key"
+            }))
+            .expect("config json"),
+        )
+        .expect("write config");
+
+        execute_memory_runtime_operation(
+            &runtime_root,
+            "memory.ingestBatch",
+            json!({
+                "sessionId": "runtime-compact-session",
+                "messages": [
+                    { "id": "m1", "role": "user", "content": "runtime compact input" },
+                    { "id": "m2", "role": "assistant", "content": "runtime compact response" }
+                ]
+            }),
+        )
+        .await
+        .expect("ingest compact messages");
+        let compact = execute_memory_runtime_operation(
+            &runtime_root,
+            "memory.compact",
+            json!({
+                "sessionId": "runtime-compact-session",
+                "force": true
+            }),
+        )
+        .await
+        .expect("compact via runtime operation");
+
+        assert_eq!(compact["ok"], true);
+        assert_eq!(compact["compacted"], true);
+        assert_eq!(compact["result"]["summary"], "compact from runtime agent");
+        assert_eq!(
+            compact["result"]["implementation"],
+            "rust-native-agent-runtime"
+        );
+        let request = request_rx
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .expect("captured compact provider request");
+        assert!(request.contains("runtime compact input"));
+
+        let summary = fs::read_to_string(
+            runtime_root.join("memory/session-summary/runtime-compact-session.md"),
+        )
+        .expect("summary file");
+        assert!(summary.contains("compact from runtime agent"));
+
+        let _ = fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn review_task_tool_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("review-task-agent-runtime");
+        let (provider_base_url, request_rx) =
+            start_openai_compatible_provider("reviewed by runtime agent");
+        let config_dir = runtime_root.join("config");
+        fs::create_dir_all(&config_dir).expect("config dir");
+        fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "model": "test-model",
+                "apiKey": "test-key"
+            }))
+            .expect("config json"),
+        )
+        .expect("write config");
+
+        let output = execute_rust_core_tool(
+            &runtime_root,
+            "review_task",
+            json!({
+                "stage": "spec",
+                "task": "review this Rust migration"
+            }),
+        )
+        .await
+        .expect("review task tool");
+
+        assert_eq!(output["details"]["kind"], "review-spec");
+        assert_eq!(
+            output["details"]["result"]["assistantText"],
+            "reviewed by runtime agent"
+        );
+        let request = request_rx
+            .recv_timeout(std::time::Duration::from_secs(2))
+            .expect("captured review provider request");
+        assert!(request.contains("review this Rust migration"));
+
+        let _ = fs::remove_dir_all(runtime_root);
     }
 
     #[tokio::test]
@@ -3413,6 +3749,102 @@ esac
             .expect("run turn");
 
         assert_eq!(result.assistant_text, "selected model reply");
+    }
+
+    #[tokio::test]
+    async fn agent_runtime_btw_turn_is_ephemeral_and_marks_reply_metadata() {
+        let runtime_root = unique_test_runtime_root("agent-run-turn-btw");
+        let config_dir = runtime_root.join("config");
+        fs::create_dir_all(&config_dir).expect("config dir");
+        fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "provider": "test-provider",
+                "model": "test-model",
+                "apiKey": "test-key"
+            }))
+            .expect("config json"),
+        )
+        .expect("write config");
+
+        let runtime = AgentRuntime::with_pi_agent_backend(
+            runtime_root.clone(),
+            Arc::new(FakeAgentRuntimeBackend {
+                reply: "side answer".to_string(),
+            }),
+        );
+        let result = runtime
+            .run_turn(AgentRunRequest {
+                run_id: "run-btw".to_string(),
+                agent_id: "main".to_string(),
+                session_key: "thread-btw".to_string(),
+                inbound: ChannelInboundEnvelope {
+                    channel: "btw".to_string(),
+                    account_id: None,
+                    from: "user".to_string(),
+                    to: "agent:main".to_string(),
+                    chat_type: ChannelChatType::Direct,
+                    body: "what changed?".to_string(),
+                    raw_body: Some("what changed?".to_string()),
+                    message_id: None,
+                    thread_id: Some("thread-btw".to_string()),
+                    media_urls: Vec::new(),
+                    metadata: BTreeMap::new(),
+                },
+                model: AgentModelSelection {
+                    provider: "test-provider".to_string(),
+                    model: "test-model".to_string(),
+                    reasoning_level: Some("off".to_string()),
+                },
+                enabled_tools: Vec::new(),
+                options: BTreeMap::from([
+                    ("mode".to_string(), json!("btw")),
+                    ("btwQuestion".to_string(), json!("what changed?")),
+                    ("ephemeral".to_string(), json!(true)),
+                ]),
+            })
+            .await
+            .expect("btw run turn");
+
+        assert_eq!(result.assistant_text, "side answer");
+        assert_eq!(
+            serde_json::to_value(&result.events).expect("events json"),
+            json!([
+                {
+                    "type": "runStarted",
+                    "runId": "run-btw",
+                    "agentId": "main",
+                    "sessionKey": "thread-btw"
+                },
+                {
+                    "type": "replyPayload",
+                    "runId": "run-btw",
+                    "payload": {
+                        "text": "side answer",
+                        "metadata": {
+                            "btw": {
+                                "question": "what changed?"
+                            }
+                        }
+                    }
+                },
+                {
+                    "type": "runCompleted",
+                    "runId": "run-btw"
+                }
+            ])
+        );
+        assert!(!runtime_root
+            .join("sessions")
+            .join("thread-btw.jsonl")
+            .exists());
+        let memory_db = runtime_root.join("memory").join("runtime.db");
+        if memory_db.exists() {
+            let memory_messages = crate::memory::RuntimeStore::new(memory_db)
+                .list_messages("thread-btw", 10)
+                .expect("memory messages");
+            assert!(memory_messages.is_empty());
+        }
     }
 
     #[tokio::test]

@@ -12,8 +12,8 @@ use crawclaw_native_plugins::qwen3_tts::build_synthesis_payload;
 use crawclaw_native_plugins::registry::{
     builtin_native_plugin_descriptors, builtin_native_tool_descriptors,
     dispatch_builtin_native_plugin_operation, find_builtin_native_plugin_descriptor,
-    native_speech_provider_descriptors, native_web_fetch_provider_descriptors,
-    native_web_search_provider_descriptors,
+    native_media_understanding_provider_descriptors, native_speech_provider_descriptors,
+    native_web_fetch_provider_descriptors, native_web_search_provider_descriptors,
 };
 use crawclaw_native_plugins::web::{
     build_open_websearch_search_url, decode_html_entities, open_websearch_runtime_bin_candidates,
@@ -38,6 +38,7 @@ fn native_plugin_descriptors_cover_target_plugins() {
         "scrapling-fetch",
         "llm-task",
         "qwen3-tts",
+        "openai",
     ] {
         assert!(ids.contains(&expected), "missing descriptor for {expected}");
     }
@@ -77,6 +78,9 @@ fn native_capability_views_expose_provider_like_descriptors() {
     assert!(native_speech_provider_descriptors()
         .iter()
         .any(|provider| provider.id == "qwen3-tts"));
+    assert!(native_media_understanding_provider_descriptors()
+        .iter()
+        .any(|provider| provider.id == "openai"));
     assert!(builtin_native_tool_descriptors()
         .iter()
         .any(|(_, tool)| tool.name == "lobster"));
@@ -96,6 +100,34 @@ async fn native_dispatch_uses_registry_and_reports_unknown_operations() {
         .await
         .expect_err("unknown operation should fail");
     assert_eq!(error.code(), "invalid_input");
+}
+
+#[tokio::test]
+async fn openai_media_understanding_posts_images_to_responses() {
+    let base_url = spawn_openai_responses_sidecar().await;
+    let result = dispatch_builtin_native_plugin_operation(
+        "openai",
+        "media-understanding",
+        json!({
+            "apiKey": "test-key",
+            "baseUrl": base_url,
+            "capability": "image",
+            "model": "gpt-test",
+            "attachments": [{
+                "index": 2,
+                "mimeType": "image/png",
+                "dataBase64": "aGVsbG8="
+            }]
+        }),
+    )
+    .await
+    .expect("openai media understanding");
+
+    assert_eq!(result["provider"], "openai");
+    assert_eq!(result["model"], "gpt-test");
+    assert_eq!(result["outputs"][0]["kind"], "image.description");
+    assert_eq!(result["outputs"][0]["attachmentIndex"], 2);
+    assert_eq!(result["outputs"][0]["text"], "mock image description");
 }
 
 #[tokio::test]
@@ -458,7 +490,6 @@ fn web_native_resolves_open_websearch_runtime_from_workspace() {
     let candidates = open_websearch_runtime_bin_candidates(
         Some(workspace.path()),
         Some(workspace.path().join("state").as_path()),
-        22,
     );
 
     assert_eq!(
@@ -468,7 +499,7 @@ fn web_native_resolves_open_websearch_runtime_from_workspace() {
             .join("runtimes/open-websearch/node_modules/.bin/open-websearch")
     );
     assert!(candidates.iter().any(|candidate| candidate
-        .ends_with("state/runtimes/node-22/open-websearch/node_modules/.bin/open-websearch")));
+        .ends_with("state/runtimes/open-websearch/node_modules/.bin/open-websearch")));
 }
 
 #[tokio::test]
@@ -557,6 +588,57 @@ async fn spawn_scrapling_sidecar() -> String {
                 .await
                 .expect("write scrapling response");
         }
+    });
+    format!("http://{addr}")
+}
+
+async fn spawn_openai_responses_sidecar() -> String {
+    let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
+        .await
+        .expect("bind openai sidecar");
+    let addr = listener.local_addr().expect("openai sidecar addr");
+    tokio::spawn(async move {
+        let (mut stream, _) = listener.accept().await.expect("accept openai request");
+        let mut bytes = Vec::new();
+        let mut buffer = [0; 4096];
+        loop {
+            let count = stream.read(&mut buffer).await.expect("read openai request");
+            if count == 0 {
+                break;
+            }
+            bytes.extend_from_slice(&buffer[..count]);
+            if let Some(header_end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
+                let headers = String::from_utf8_lossy(&bytes[..header_end]);
+                let content_length = headers
+                    .lines()
+                    .find_map(|line| {
+                        let (name, value) = line.split_once(':')?;
+                        if name.eq_ignore_ascii_case("content-length") {
+                            value.trim().parse::<usize>().ok()
+                        } else {
+                            None
+                        }
+                    })
+                    .unwrap_or(0);
+                if bytes.len() >= header_end + 4 + content_length {
+                    break;
+                }
+            }
+        }
+        let request = String::from_utf8_lossy(&bytes);
+        assert!(request.starts_with("POST /responses "));
+        assert!(request.contains("authorization: Bearer test-key"));
+        assert!(request.contains("data:image/png;base64,aGVsbG8="));
+        let body = r#"{"output_text":"mock image description"}"#;
+        let response = format!(
+            "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+            body.len(),
+            body
+        );
+        stream
+            .write_all(response.as_bytes())
+            .await
+            .expect("write openai response");
     });
     format!("http://{addr}")
 }

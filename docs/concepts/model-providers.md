@@ -29,8 +29,7 @@ For model selection rules, see [/concepts/models](/concepts/models).
 Rust owns the provider list used by `models.list`, the provider status shown by
 `runtime.status`, and the config schema surfaced by `config.schema` and
 `config.schema.lookup`. Bundled TypeScript packages may still register
-non-provider capabilities such as speech, media understanding, web search, or
-local process backends.
+non-provider capabilities such as speech, media understanding, or web search.
 
 ## API key rotation
 
@@ -131,16 +130,12 @@ CrawClaw ships with the pi‑ai catalog. These providers require **no**
 - Compatibility: legacy CrawClaw config using `google/gemini-3.1-flash-preview` is normalized to `google/gemini-3-flash-preview`
 - CLI: CrawClaw Desktop or the local Gateway API
 
-### Google Vertex and Gemini CLI
+### Google Vertex
 
-- Providers: `google-vertex`, `google-gemini-cli`
-- Auth: Vertex uses gcloud ADC; Gemini CLI uses its OAuth flow
-- Caution: Gemini CLI OAuth in CrawClaw is an unofficial integration. Some users have reported Google account restrictions after using third-party clients. Review Google terms and use a non-critical account if you choose to proceed.
-- Gemini CLI OAuth is shipped as part of the bundled `google` plugin.
+- Provider: `google-vertex`
+- Auth: Vertex uses gcloud ADC.
   - Enable: CrawClaw Desktop or the local Gateway API
   - Login: CrawClaw Desktop or the local Gateway API
-  - Note: you do **not** paste a client id or secret into `crawclaw.json`. The CLI login flow stores
-    tokens in auth profiles on the gateway host.
 
 ### Z.AI (GLM)
 

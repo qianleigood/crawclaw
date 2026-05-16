@@ -80,7 +80,7 @@ Skills 可通过配置/环境变量控制（参见 [Gateway 网关配置](/gatew
 
 ## 运行时边界
 
-CrawClaw 复用 Pi agent core 的模型、工具和 prompt pipeline，但**会话管理、任务化运行时、设备发现、工具装配和消息投递由 CrawClaw 负责**。
+CrawClaw 复用 Rust agent runtime 的模型、工具和 prompt pipeline，但**会话管理、任务化运行时、设备发现、工具装配和消息投递由 CrawClaw 负责**。
 
 - 不读取 `~/.pi/agent` 或 `<workspace>/.pi` 设置。
 

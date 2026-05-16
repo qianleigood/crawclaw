@@ -4,7 +4,7 @@ import { runCommandWithTimeout } from "../process/exec.js";
 import { fetchWithTimeout } from "../utils/fetch-timeout.js";
 import { detectPackageManager as detectPackageManagerImpl } from "./detect-package-manager.js";
 import { compareComparableSemver, parseComparableSemver } from "./semver-compare.js";
-import { channelToNpmTag, type UpdateChannel } from "./update-channels.js";
+import { channelToNpmTag, type UpdateChannel } from "./update-track.js";
 
 export type PackageManager = "pnpm" | "bun" | "npm" | "unknown";
 

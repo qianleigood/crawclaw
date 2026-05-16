@@ -5,9 +5,7 @@ import { getAcpRuntimeBackend, requireAcpRuntimeBackend } from "../../../acp/run
 import { resolveSessionStorePathForAcp } from "../../../acp/runtime/session-meta.js";
 import { loadSessionStore } from "../../../config/sessions.js";
 import type { SessionEntry } from "../../../config/sessions/types.js";
-import { getSessionBindingService } from "../../../infra/outbound/session-binding-service.js";
 import type { CommandHandlerResult, HandleCommandsParams } from "../commands-types.js";
-import { resolveAcpCommandBindingContext } from "./context.js";
 import {
   ACP_DOCTOR_USAGE,
   ACP_INSTALL_USAGE,
@@ -169,28 +167,15 @@ export function handleAcpSessionsAction(
     store = {};
   }
 
-  const bindingContext = resolveAcpCommandBindingContext(params);
-  const normalizedChannel = bindingContext.channel;
-  const normalizedAccountId = bindingContext.accountId || undefined;
-  const bindingService = getSessionBindingService();
-
   const rows = Object.entries(store)
     .filter(([, entry]) => Boolean(entry?.acp))
     .toSorted(([, a], [, b]) => (b?.updatedAt ?? 0) - (a?.updatedAt ?? 0))
     .slice(0, 20)
     .map(([key, entry]) => {
-      const bindingThreadId = bindingService
-        .listBySession(key)
-        .find(
-          (binding) =>
-            (!normalizedChannel || binding.conversation.channel === normalizedChannel) &&
-            (!normalizedAccountId || binding.conversation.accountId === normalizedAccountId),
-        )?.conversation.conversationId;
       return formatAcpSessionLine({
         key,
         entry,
         currentSessionKey,
-        threadId: bindingThreadId,
       });
     })
     .filter(Boolean);

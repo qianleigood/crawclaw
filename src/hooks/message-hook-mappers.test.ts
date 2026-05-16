@@ -2,17 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { FinalizedMsgContext } from "../auto-reply/templating.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
-  buildCanonicalSentMessageHookContext,
-  deriveInboundMessageHookContext,
-  toPluginInboundClaimEvent,
-  toPluginInboundClaimContext,
+  buildCanonicalSentMessageToolCallPreflightContext,
+  deriveInboundMessageToolCallPreflightContext,
   toInternalMessagePreprocessedContext,
   toInternalMessageReceivedContext,
   toInternalMessageSentContext,
   toInternalMessageTranscribedContext,
-  toPluginMessageContext,
-  toPluginMessageReceivedEvent,
-  toPluginMessageSentEvent,
 } from "./message-hook-mappers.js";
 
 function makeInboundCtx(overrides: Partial<FinalizedMsgContext> = {}): FinalizedMsgContext {
@@ -47,7 +42,7 @@ function makeInboundCtx(overrides: Partial<FinalizedMsgContext> = {}): Finalized
 
 describe("message hook mappers", () => {
   it("derives canonical inbound context with body precedence and group metadata", () => {
-    const canonical = deriveInboundMessageHookContext(makeInboundCtx());
+    const canonical = deriveInboundMessageToolCallPreflightContext(makeInboundCtx());
 
     expect(canonical.content).toBe("commands-body");
     expect(canonical.channelId).toBe("feishu");
@@ -59,7 +54,7 @@ describe("message hook mappers", () => {
   });
 
   it("supports explicit content/messageId overrides", () => {
-    const canonical = deriveInboundMessageHookContext(makeInboundCtx(), {
+    const canonical = deriveInboundMessageToolCallPreflightContext(makeInboundCtx(), {
       content: "override-content",
       messageId: "override-msg",
     });
@@ -69,7 +64,7 @@ describe("message hook mappers", () => {
   });
 
   it("preserves multi-attachment arrays for inbound claim metadata", () => {
-    const canonical = deriveInboundMessageHookContext(
+    const canonical = deriveInboundMessageToolCallPreflightContext(
       makeInboundCtx({
         MediaPath: undefined,
         MediaType: undefined,
@@ -82,36 +77,11 @@ describe("message hook mappers", () => {
     expect(canonical.mediaType).toBe("image/jpeg");
     expect(canonical.mediaPaths).toEqual(["/tmp/tree.jpg", "/tmp/ramp.jpg"]);
     expect(canonical.mediaTypes).toEqual(["image/jpeg", "image/jpeg"]);
-    expect(toPluginInboundClaimEvent(canonical)).toEqual(
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          mediaPath: "/tmp/tree.jpg",
-          mediaType: "image/jpeg",
-          mediaPaths: ["/tmp/tree.jpg", "/tmp/ramp.jpg"],
-          mediaTypes: ["image/jpeg", "image/jpeg"],
-        }),
-      }),
-    );
   });
 
-  it("maps canonical inbound context to plugin/internal received payloads", () => {
-    const canonical = deriveInboundMessageHookContext(makeInboundCtx());
+  it("maps canonical inbound context to internal received payloads", () => {
+    const canonical = deriveInboundMessageToolCallPreflightContext(makeInboundCtx());
 
-    expect(toPluginMessageContext(canonical)).toEqual({
-      channelId: "feishu",
-      accountId: "acc-1",
-      conversationId: "feishu:chat:456",
-    });
-    expect(toPluginMessageReceivedEvent(canonical)).toEqual({
-      from: "feishu:user:123",
-      content: "commands-body",
-      timestamp: 1710000000,
-      metadata: expect.objectContaining({
-        messageId: "msg-1",
-        senderName: "User One",
-        threadId: 42,
-      }),
-    });
     expect(toInternalMessageReceivedContext(canonical)).toEqual({
       from: "feishu:user:123",
       content: "commands-body",
@@ -127,56 +97,11 @@ describe("message hook mappers", () => {
     });
   });
 
-  it("maps retained channel targets for inbound claim contexts", () => {
-    const canonical = deriveInboundMessageHookContext(
-      makeInboundCtx({
-        Provider: "feishu",
-        Surface: "feishu",
-        OriginatingChannel: "feishu",
-        To: "oc_123456",
-        OriginatingTo: "oc_123456",
-        GroupChannel: "general",
-        GroupSubject: "guild",
-      }),
-    );
-
-    expect(toPluginInboundClaimContext(canonical)).toEqual({
-      channelId: "feishu",
-      accountId: "acc-1",
-      conversationId: "oc_123456",
-      parentConversationId: undefined,
-      senderId: "sender-1",
-      messageId: "msg-1",
-    });
-  });
-
-  it("maps retained direct targets for inbound claim contexts", () => {
-    const canonical = deriveInboundMessageHookContext(
-      makeInboundCtx({
-        Provider: "feishu",
-        Surface: "feishu",
-        OriginatingChannel: "feishu",
-        From: "feishu:user_1",
-        To: "ou_2",
-        OriginatingTo: "ou_2",
-        GroupChannel: undefined,
-        GroupSubject: undefined,
-      }),
-    );
-
-    expect(toPluginInboundClaimContext(canonical)).toEqual({
-      channelId: "feishu",
-      accountId: "acc-1",
-      conversationId: "ou_2",
-      parentConversationId: undefined,
-      senderId: "sender-1",
-      messageId: "msg-1",
-    });
-  });
-
   it("maps transcribed and preprocessed internal payloads", () => {
     const cfg = {} as CrawClawConfig;
-    const canonical = deriveInboundMessageHookContext(makeInboundCtx({ Transcript: undefined }));
+    const canonical = deriveInboundMessageToolCallPreflightContext(
+      makeInboundCtx({ Transcript: undefined }),
+    );
 
     const transcribed = toInternalMessageTranscribedContext(canonical, cfg);
     expect(transcribed.transcript).toBe("");
@@ -189,8 +114,8 @@ describe("message hook mappers", () => {
     expect(preprocessed.cfg).toBe(cfg);
   });
 
-  it("maps sent context consistently for plugin/internal hooks", () => {
-    const canonical = buildCanonicalSentMessageHookContext({
+  it("maps sent context consistently for internal hooks", () => {
+    const canonical = buildCanonicalSentMessageToolCallPreflightContext({
       to: "feishu:chat:456",
       content: "reply",
       success: false,
@@ -202,17 +127,6 @@ describe("message hook mappers", () => {
       groupId: "feishu:chat:456",
     });
 
-    expect(toPluginMessageContext(canonical)).toEqual({
-      channelId: "feishu",
-      accountId: "acc-1",
-      conversationId: "feishu:chat:456",
-    });
-    expect(toPluginMessageSentEvent(canonical)).toEqual({
-      to: "feishu:chat:456",
-      content: "reply",
-      success: false,
-      error: "network error",
-    });
     expect(toInternalMessageSentContext(canonical)).toEqual({
       to: "feishu:chat:456",
       content: "reply",

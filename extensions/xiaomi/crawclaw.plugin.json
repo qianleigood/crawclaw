@@ -1,6 +1,11 @@
 {
   "id": "xiaomi",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["xiaomi"],
   "providerAuthEnvVars": {
     "xiaomi": ["XIAOMI_API_KEY"]

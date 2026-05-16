@@ -1,7 +1,7 @@
 import type { AssistantMessage } from "@mariozechner/pi-ai";
 import type { CrawClawConfig } from "../../config/config.js";
+import { extractAssistantText } from "../agent-output-utils.js";
 import { findNormalizedProviderValue } from "../model-selection.js";
-import { extractAssistantText } from "../pi-embedded-utils.js";
 import { coerceToolModelConfig, type ToolModelConfig } from "./model-config.helpers.js";
 
 export type ImageModelConfig = ToolModelConfig;

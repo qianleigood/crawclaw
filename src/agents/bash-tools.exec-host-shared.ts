@@ -1,15 +1,8 @@
 import crypto from "node:crypto";
-import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import { loadConfig } from "../config/config.js";
 import {
   buildExecApprovalUnavailableReplyPayload,
   type ExecApprovalUnavailableReason,
 } from "../infra/exec-approval-reply.js";
-import {
-  hasConfiguredExecApprovalDmRoute,
-  type ExecApprovalInitiatingSurfaceState,
-  resolveExecApprovalInitiatingSurfaceState,
-} from "../infra/exec-approval-surface.js";
 import {
   maxAsk,
   minSecurity,
@@ -20,6 +13,7 @@ import {
   type ExecSecurity,
 } from "../infra/exec-approvals.js";
 import { logWarn } from "../logger.js";
+import type { AgentToolResult } from "./agent-types.js";
 import { sendExecApprovalFollowup } from "./bash-tools.exec-approval-followup.js";
 import {
   type ExecApprovalRegistration,
@@ -36,6 +30,11 @@ import {
 type ResolvedExecApprovals = ReturnType<typeof resolveExecApprovals>;
 export const MAX_EXEC_APPROVAL_FOLLOWUP_FAILURE_LOG_KEYS = 256;
 const loggedExecApprovalFollowupFailures = new Set<string>();
+
+export type ExecApprovalInitiatingSurfaceState = {
+  kind: "available" | "disabled" | "unsupported";
+  channelLabel?: string;
+};
 
 function rememberExecApprovalFollowupFailureKey(key: string): boolean {
   if (loggedExecApprovalFollowupFailures.has(key)) {
@@ -277,13 +276,13 @@ export function resolveExecApprovalUnavailableState(params: {
   sentApproverDms: boolean;
   unavailableReason: ExecApprovalUnavailableReason | null;
 } {
-  const initiatingSurface = resolveExecApprovalInitiatingSurfaceState({
-    channel: params.turnSourceChannel,
-    accountId: params.turnSourceAccountId,
-  });
-  const sentApproverDms =
-    (initiatingSurface.kind === "disabled" || initiatingSurface.kind === "unsupported") &&
-    hasConfiguredExecApprovalDmRoute(loadConfig());
+  void params.turnSourceChannel;
+  void params.turnSourceAccountId;
+  const initiatingSurface: ExecApprovalInitiatingSurfaceState = {
+    kind: "unsupported",
+    channelLabel: "external",
+  };
+  const sentApproverDms = false;
   const unavailableReason =
     params.preResolvedDecision === null
       ? "no-approval-route"

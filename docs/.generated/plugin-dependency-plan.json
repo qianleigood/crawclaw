@@ -2,37 +2,8 @@
   "bundledPlugins": [
     {
       "capabilities": [
-        "skill"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {
-        "acpx": "0.4.0"
-      },
-      "devDependencies": {},
-      "dir": "extensions/acpx",
-      "enabledByDefault": false,
-      "id": "acpx",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/acpx/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/acpx/package.json",
-      "packageName": "@crawclaw/acpx",
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {
         "@aws-sdk/client-bedrock": "3.1020.0"
@@ -42,9 +13,7 @@
       "enabledByDefault": true,
       "id": "amazon-bedrock",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/amazon-bedrock/crawclaw.plugin.json",
@@ -60,23 +29,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "cli-backend",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/anthropic",
       "enabledByDefault": true,
       "id": "anthropic",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/anthropic/crawclaw.plugin.json",
@@ -94,7 +56,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -102,9 +63,7 @@
       "enabledByDefault": true,
       "id": "anthropic-vertex",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/anthropic-vertex/crawclaw.plugin.json",
@@ -122,7 +81,6 @@
       "capabilities": [
         "support"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -130,9 +88,7 @@
       "enabledByDefault": false,
       "id": "brave",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/brave/crawclaw.plugin.json",
@@ -148,7 +104,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -156,9 +111,7 @@
       "enabledByDefault": true,
       "id": "byteplus",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/byteplus/crawclaw.plugin.json",
@@ -177,7 +130,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -185,9 +137,7 @@
       "enabledByDefault": true,
       "id": "chutes",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/chutes/crawclaw.plugin.json",
@@ -205,7 +155,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -213,9 +162,7 @@
       "enabledByDefault": true,
       "id": "cloudflare-ai-gateway",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/cloudflare-ai-gateway/crawclaw.plugin.json",
@@ -233,7 +180,6 @@
       "capabilities": [
         "contract"
       ],
-      "channelIds": [],
       "contractKeys": [
         "tools"
       ],
@@ -259,7 +205,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -267,9 +212,7 @@
       "enabledByDefault": true,
       "id": "copilot-proxy",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/copilot-proxy/crawclaw.plugin.json",
@@ -285,12 +228,9 @@
     },
     {
       "capabilities": [
-        "contract"
+        "support"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/deepgram",
@@ -313,7 +253,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -321,9 +260,7 @@
       "enabledByDefault": true,
       "id": "deepseek",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/deepseek/crawclaw.plugin.json",
@@ -341,97 +278,6 @@
       "capabilities": [
         "support"
       ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/device-pair",
-      "enabledByDefault": true,
-      "id": "device-pair",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/device-pair/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": []
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {
-        "@opentelemetry/api": "^1.9.1",
-        "@opentelemetry/api-logs": "^0.214.0",
-        "@opentelemetry/exporter-logs-otlp-proto": "^0.214.0",
-        "@opentelemetry/exporter-metrics-otlp-proto": "^0.214.0",
-        "@opentelemetry/exporter-trace-otlp-proto": "^0.214.0",
-        "@opentelemetry/resources": "^2.6.1",
-        "@opentelemetry/sdk-logs": "^0.214.0",
-        "@opentelemetry/sdk-metrics": "^2.6.1",
-        "@opentelemetry/sdk-node": "^0.214.0",
-        "@opentelemetry/sdk-trace-base": "^2.6.1",
-        "@opentelemetry/semantic-conventions": "^1.40.0"
-      },
-      "devDependencies": {},
-      "dir": "extensions/diagnostics-otel",
-      "enabledByDefault": false,
-      "id": "diagnostics-otel",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/diagnostics-otel/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/diagnostics-otel/package.json",
-      "packageName": "@crawclaw/diagnostics-otel",
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "skill"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {
-        "@pierre/diffs": "1.1.7",
-        "@pierre/theme": "0.0.26",
-        "@sinclair/typebox": "0.34.49",
-        "playwright-core": "1.58.2"
-      },
-      "devDependencies": {},
-      "dir": "extensions/diffs",
-      "enabledByDefault": false,
-      "id": "diffs",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/diffs/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/diffs/package.json",
-      "packageName": "@crawclaw/diffs",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -439,9 +285,7 @@
       "enabledByDefault": false,
       "id": "duckduckgo",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/duckduckgo/crawclaw.plugin.json",
@@ -457,7 +301,6 @@
       "capabilities": [
         "support"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -481,7 +324,6 @@
       "capabilities": [
         "support"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -489,9 +331,7 @@
       "enabledByDefault": false,
       "id": "exa",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/exa/crawclaw.plugin.json",
@@ -507,7 +347,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -515,9 +354,7 @@
       "enabledByDefault": true,
       "id": "fal",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/fal/crawclaw.plugin.json",
@@ -533,34 +370,8 @@
     },
     {
       "capabilities": [
-        "skill",
-        "cli",
-        "contract"
-      ],
-      "channelIds": [],
-      "contractKeys": [
-        "tools"
-      ],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/feishu-cli",
-      "enabledByDefault": false,
-      "id": "feishu-cli",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/feishu-cli/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": []
-    },
-    {
-      "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -568,9 +379,7 @@
       "enabledByDefault": true,
       "id": "github-copilot",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/github-copilot/crawclaw.plugin.json",
@@ -586,23 +395,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "cli-backend",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/google",
       "enabledByDefault": true,
       "id": "google",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/google/crawclaw.plugin.json",
@@ -619,21 +421,16 @@
     },
     {
       "capabilities": [
-        "contract"
+        "support"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/groq",
       "enabledByDefault": false,
       "id": "groq",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/groq/crawclaw.plugin.json",
@@ -649,7 +446,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -657,9 +453,7 @@
       "enabledByDefault": true,
       "id": "huggingface",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/huggingface/crawclaw.plugin.json",
@@ -677,7 +471,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -685,9 +478,7 @@
       "enabledByDefault": true,
       "id": "kilocode",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/kilocode/crawclaw.plugin.json",
@@ -705,7 +496,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -713,9 +503,7 @@
       "enabledByDefault": true,
       "id": "kimi",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/kimi-coding/crawclaw.plugin.json",
@@ -734,7 +522,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -742,9 +529,7 @@
       "enabledByDefault": true,
       "id": "litellm",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/litellm/crawclaw.plugin.json",
@@ -762,7 +547,6 @@
       "capabilities": [
         "contract"
       ],
-      "channelIds": [],
       "contractKeys": [
         "tools"
       ],
@@ -788,7 +572,6 @@
       "capabilities": [
         "contract"
       ],
-      "channelIds": [],
       "contractKeys": [
         "tools"
       ],
@@ -814,7 +597,6 @@
       "capabilities": [
         "support"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {
         "node-edge-tts": "^1.2.10"
@@ -840,7 +622,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -848,9 +629,7 @@
       "enabledByDefault": true,
       "id": "microsoft-foundry",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/microsoft-foundry/crawclaw.plugin.json",
@@ -866,22 +645,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/minimax",
       "enabledByDefault": true,
       "id": "minimax",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/minimax/crawclaw.plugin.json",
@@ -898,22 +671,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/mistral",
       "enabledByDefault": true,
       "id": "mistral",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/mistral/crawclaw.plugin.json",
@@ -931,7 +698,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -939,9 +705,7 @@
       "enabledByDefault": true,
       "id": "modelstudio",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/modelstudio/crawclaw.plugin.json",
@@ -957,22 +721,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/moonshot",
       "enabledByDefault": true,
       "id": "moonshot",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/moonshot/crawclaw.plugin.json",
@@ -990,7 +748,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -998,9 +755,7 @@
       "enabledByDefault": true,
       "id": "nvidia",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/nvidia/crawclaw.plugin.json",
@@ -1018,7 +773,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1026,9 +780,7 @@
       "enabledByDefault": true,
       "id": "ollama",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/ollama/crawclaw.plugin.json",
@@ -1046,7 +798,6 @@
       "capabilities": [
         "skill"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1054,9 +805,7 @@
       "enabledByDefault": false,
       "id": "open-prose",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/open-prose/crawclaw.plugin.json",
@@ -1072,7 +821,6 @@
       "capabilities": [
         "contract"
       ],
-      "channelIds": [],
       "contractKeys": [
         "webSearchProviders"
       ],
@@ -1096,23 +844,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "cli-backend",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/openai",
       "enabledByDefault": true,
       "id": "openai",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/openai/crawclaw.plugin.json",
@@ -1131,7 +872,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1139,9 +879,7 @@
       "enabledByDefault": true,
       "id": "opencode",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/opencode/crawclaw.plugin.json",
@@ -1159,7 +897,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1167,9 +904,7 @@
       "enabledByDefault": true,
       "id": "opencode-go",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/opencode-go/crawclaw.plugin.json",
@@ -1185,22 +920,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/openrouter",
       "enabledByDefault": true,
       "id": "openrouter",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/openrouter/crawclaw.plugin.json",
@@ -1218,7 +947,6 @@
       "capabilities": [
         "support"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1226,9 +954,7 @@
       "enabledByDefault": false,
       "id": "perplexity",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/perplexity/crawclaw.plugin.json",
@@ -1244,7 +970,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1252,9 +977,7 @@
       "enabledByDefault": true,
       "id": "qianfan",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/qianfan/crawclaw.plugin.json",
@@ -1272,7 +995,6 @@
       "capabilities": [
         "contract"
       ],
-      "channelIds": [],
       "contractKeys": [
         "speechProviders"
       ],
@@ -1298,7 +1020,6 @@
       "capabilities": [
         "contract"
       ],
-      "channelIds": [],
       "contractKeys": [
         "webFetchProviders"
       ],
@@ -1324,7 +1045,6 @@
       "capabilities": [
         "support"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1332,9 +1052,7 @@
       "enabledByDefault": false,
       "id": "searxng",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/searxng/crawclaw.plugin.json",
@@ -1350,7 +1068,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1358,9 +1075,7 @@
       "enabledByDefault": true,
       "id": "sglang",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/sglang/crawclaw.plugin.json",
@@ -1378,7 +1093,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1386,9 +1100,7 @@
       "enabledByDefault": true,
       "id": "synthetic",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/synthetic/crawclaw.plugin.json",
@@ -1404,30 +1116,8 @@
     },
     {
       "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/talk-voice",
-      "enabledByDefault": true,
-      "id": "talk-voice",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/talk-voice/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "peerDependencies": {},
-      "private": false,
-      "providerIds": []
-    },
-    {
-      "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1435,9 +1125,7 @@
       "enabledByDefault": true,
       "id": "together",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/together/crawclaw.plugin.json",
@@ -1453,39 +1141,8 @@
     },
     {
       "capabilities": [
-        "contract"
-      ],
-      "channelIds": [],
-      "contractKeys": [
-        "tools"
-      ],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49"
-      },
-      "devDependencies": {},
-      "dir": "extensions/turix-cua",
-      "enabledByDefault": true,
-      "id": "turix-cua",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/turix-cua/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/turix-cua/package.json",
-      "packageName": "@crawclaw/turix-cua-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1493,9 +1150,7 @@
       "enabledByDefault": true,
       "id": "venice",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/venice/crawclaw.plugin.json",
@@ -1513,7 +1168,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1521,9 +1175,7 @@
       "enabledByDefault": true,
       "id": "vercel-ai-gateway",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/vercel-ai-gateway/crawclaw.plugin.json",
@@ -1541,7 +1193,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1549,9 +1200,7 @@
       "enabledByDefault": true,
       "id": "vllm",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/vllm/crawclaw.plugin.json",
@@ -1567,42 +1216,8 @@
     },
     {
       "capabilities": [
-        "support"
-      ],
-      "channelIds": [],
-      "contractKeys": [],
-      "dependencies": {
-        "@sinclair/typebox": "0.34.49",
-        "ws": "^8.20.0"
-      },
-      "devDependencies": {
-        "crawclaw": "workspace:*"
-      },
-      "dir": "extensions/voice-call",
-      "enabledByDefault": false,
-      "id": "voice-call",
-      "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/voice-call/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/voice-call/package.json",
-      "packageName": "@crawclaw/voice-call",
-      "peerDependencies": {
-        "crawclaw": ">=2026.4.1-beta.1"
-      },
-      "private": false,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1610,9 +1225,7 @@
       "enabledByDefault": true,
       "id": "volcengine",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/volcengine/crawclaw.plugin.json",
@@ -1631,7 +1244,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1639,9 +1251,7 @@
       "enabledByDefault": true,
       "id": "xai",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/xai/crawclaw.plugin.json",
@@ -1659,7 +1269,6 @@
       "capabilities": [
         "provider"
       ],
-      "channelIds": [],
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
@@ -1667,9 +1276,7 @@
       "enabledByDefault": true,
       "id": "xiaomi",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/xiaomi/crawclaw.plugin.json",
@@ -1685,22 +1292,16 @@
     },
     {
       "capabilities": [
-        "provider",
-        "contract"
+        "provider"
       ],
-      "channelIds": [],
-      "contractKeys": [
-        "mediaUnderstandingProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/zai",
       "enabledByDefault": true,
       "id": "zai",
       "install": {
-        "entryPoints": [
-          "./index.ts"
-        ],
+        "entryPoints": [],
         "stageRuntimeDependencies": false
       },
       "manifestPath": "extensions/zai/crawclaw.plugin.json",
@@ -1716,173 +1317,7 @@
     }
   ],
   "generatedBy": "scripts/generate-plugin-dependency-plan.mjs",
-  "managedRuntimes": [
-    {
-      "id": "browser",
-      "installTime": true,
-      "npmPackage": "agent-browser@0.27.0",
-      "source": "scripts/install-plugin-runtimes.mjs"
-    },
-    {
-      "id": "core-skills",
-      "installTime": true,
-      "python": {
-        "candidates": [
-          "python3.14",
-          "python3.13",
-          "python3.12",
-          "python3.11",
-          "python3.10",
-          "python3",
-          "python",
-          "py"
-        ],
-        "envOverrides": [
-          "CRAWCLAW_RUNTIME_PYTHON",
-          "CRAWCLAW_CORE_SKILLS_PYTHON"
-        ],
-        "minimumVersion": "3.10",
-        "requirements": [
-          "PyYAML==6.0.3"
-        ]
-      },
-      "source": "scripts/install-plugin-runtimes.mjs"
-    },
-    {
-      "id": "n8n",
-      "installTime": true,
-      "localization": {
-        "locale": "zh-CN",
-        "source": "other-blowsnow/n8n-i18n-chinese",
-        "url": "https://github.com/other-blowsnow/n8n-i18n-chinese/releases/download/release%2F2.18.5/editor-ui.tar.gz"
-      },
-      "npmPackage": "n8n@2.18.5",
-      "source": "scripts/install-plugin-runtimes.mjs"
-    },
-    {
-      "id": "notebooklm-mcp-cli",
-      "installTime": true,
-      "python": {
-        "candidates": [
-          "python3.14",
-          "python3.13",
-          "python3.12",
-          "python3.11",
-          "python3.10",
-          "python3",
-          "python",
-          "py"
-        ],
-        "envOverrides": [
-          "CRAWCLAW_RUNTIME_PYTHON",
-          "CRAWCLAW_NOTEBOOKLM_PYTHON"
-        ],
-        "minimumVersion": "3.11",
-        "package": "notebooklm-mcp-cli==0.6.1"
-      },
-      "source": "scripts/install-plugin-runtimes.mjs"
-    },
-    {
-      "id": "open-websearch",
-      "installTime": true,
-      "npmPackage": "open-websearch@2.1.5",
-      "source": "scripts/install-plugin-runtimes.mjs"
-    },
-    {
-      "id": "qwen3-tts",
-      "installTime": true,
-      "platforms": [
-        "darwin:arm64",
-        "darwin:x64",
-        "linux:x64",
-        "linux:arm64",
-        "win32:x64",
-        "win32:arm64"
-      ],
-      "python": {
-        "candidates": [
-          "python3.14",
-          "python3.13",
-          "python3.12",
-          "python3.11",
-          "python3.10",
-          "python3",
-          "python",
-          "py"
-        ],
-        "envOverrides": [
-          "CRAWCLAW_RUNTIME_PYTHON",
-          "CRAWCLAW_QWEN3_TTS_PYTHON"
-        ],
-        "minimumVersion": "3.10",
-        "requirements": [
-          "qwen-tts==0.1.1"
-        ]
-      },
-      "source": "scripts/install-plugin-runtimes.mjs"
-    },
-    {
-      "id": "scrapling-fetch",
-      "installTime": true,
-      "python": {
-        "candidates": [
-          "python3.14",
-          "python3.13",
-          "python3.12",
-          "python3.11",
-          "python3.10",
-          "python3",
-          "python",
-          "py"
-        ],
-        "envOverrides": [
-          "CRAWCLAW_RUNTIME_PYTHON",
-          "CRAWCLAW_SCRAPLING_PYTHON"
-        ],
-        "minimumVersion": "3.10",
-        "requirements": [
-          "Scrapling==0.4.6",
-          "curl-cffi==0.15.0",
-          "playwright==1.58.0",
-          "browserforge==1.2.4",
-          "patchright==1.58.2",
-          "msgspec==0.20.0"
-        ],
-        "windowsExtraPackages": [
-          "msvc-runtime==14.44.35112"
-        ]
-      },
-      "source": "scripts/install-plugin-runtimes.mjs"
-    },
-    {
-      "id": "skill-openai-whisper",
-      "installTime": false,
-      "platforms": [
-        "darwin:arm64"
-      ],
-      "python": {
-        "candidates": [
-          "python3.14",
-          "python3.13",
-          "python3.12",
-          "python3.11",
-          "python3.10",
-          "python3",
-          "python",
-          "py"
-        ],
-        "envOverrides": [
-          "CRAWCLAW_RUNTIME_PYTHON",
-          "CRAWCLAW_CORE_SKILLS_PYTHON"
-        ],
-        "minimumVersion": "3.10",
-        "requirements": [
-          "mlx-whisper==0.4.3"
-        ]
-      },
-      "source": "scripts/install-plugin-runtimes.mjs"
-    }
-  ],
+  "managedRuntimes": [],
   "root": {
     "dependencies": {
       "@agentclientprotocol/sdk": "0.17.1",
@@ -1891,14 +1326,10 @@
       "@clack/prompts": "^1.1.0",
       "@homebridge/ciao": "^1.3.6",
       "@lydell/node-pty": "1.2.0-beta.3",
-      "@mariozechner/pi-agent-core": "0.70.0",
       "@mariozechner/pi-ai": "0.70.0",
-      "@mariozechner/pi-coding-agent": "0.70.0",
       "@modelcontextprotocol/sdk": "1.29.0",
       "@mozilla/readability": "^0.6.0",
       "@photostructure/sqlite": "^1.0.0",
-      "@pierre/diffs": "1.1.7",
-      "@pierre/theme": "0.0.26",
       "@sinclair/typebox": "0.34.49",
       "ajv": "^8.18.0",
       "chalk": "^5.6.2",
@@ -2023,26 +1454,24 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "bundledPluginCount": 61,
+    "bundledPluginCount": 53,
     "capabilityCounts": {
-      "cli": 1,
-      "cli-backend": 3,
-      "contract": 18,
+      "contract": 6,
       "provider": 37,
-      "skill": 4,
-      "support": 11
+      "skill": 1,
+      "support": 9
     },
-    "disabledByDefaultCount": 17,
-    "enabledByDefaultCount": 44,
+    "disabledByDefaultCount": 12,
+    "enabledByDefaultCount": 41,
     "pluginRuntimeDependencyVersionSplits": [],
     "releasedNpmSpecPluginIds": [],
     "rootDependencyCounts": {
-      "dependencies": 47,
+      "dependencies": 43,
       "devDependencies": 21,
       "optionalDependencies": 0,
       "peerDependencies": 2
     },
     "stagedRuntimeDependencyPluginIds": [],
-    "uniquePluginRuntimeDependencyCount": 19
+    "uniquePluginRuntimeDependencyCount": 2
   }
 }

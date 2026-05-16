@@ -34,7 +34,7 @@ function applySharedSubagentTestDeps() {
     loadConfig: () => configOverride,
   });
   queueCleanupTesting.setDepsForTests({
-    resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
+    resolveAgentSessionLane: (key: string) => `session:${key.trim() || "main"}`,
   });
 }
 

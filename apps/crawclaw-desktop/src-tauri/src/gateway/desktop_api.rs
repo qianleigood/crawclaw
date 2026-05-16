@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::convert::Infallible;
 use std::net::SocketAddr;
 use std::path::PathBuf;
@@ -22,12 +23,13 @@ use crawclaw_native_plugins::comfyui::handle_comfyui;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
 use crawclaw_native_plugins::web::{run_open_websearch_search, run_scrapling_fetch};
 use crawclaw_plugin_host::{
-    add_custom_plugin_skill, invoke_node_plugin_tool, is_desktop_or_native_channel_id,
-    load_plugin_manifest, native_channel, toggle_plugin_skill_open, toggle_plugin_tool_open,
-    NativeChannelDefinition, PluginHostError, PluginHostSkill, PluginHostTool,
+    add_custom_plugin_skill, is_desktop_or_native_channel_id, load_plugin_manifest, native_channel,
+    toggle_plugin_skill_open, toggle_plugin_tool_open, NativeChannelDefinition, PluginHostError,
+    PluginHostSkill, PluginHostTool,
 };
 use crawclaw_runtime::{
-    special_agents::SpecialAgentRunner, AgentRuntime, AgentRuntimeError, DesktopAgentStore,
+    special_agents::find_special_agent, AgentModelSelection, AgentRunRequest, AgentRuntime,
+    AgentRuntimeError, ChannelChatType, ChannelInboundEnvelope, DesktopAgentStore,
     DesktopAgentStoreError, DesktopMemoryRecord, DesktopMemoryStore, DesktopMemoryStoreError,
     DesktopPreferencesRecord, DesktopPreferencesStore, DesktopPreferencesStoreError,
     DesktopSessionRecord, DesktopSessionStore, DesktopSessionStoreError,
@@ -1240,11 +1242,57 @@ async fn apply_native_operation(
                     .cloned()
                     .ok_or(StatusCode::NOT_FOUND)?
             };
-            let dream_result = SpecialAgentRunner::new(state.runtime_root.clone())
-                .dream_store()
-                .run(&agent.id, "desktop memory dream")
+            let definition =
+                find_special_agent("dream").ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+            let run_id = format!("desktop-dream-{}", Uuid::new_v4());
+            let session_key = format!("special:dream:{run_id}");
+            let mut options = BTreeMap::new();
+            options.insert(
+                "specialAgent".to_string(),
+                json!({
+                    "kind": definition.id,
+                    "spawnSource": definition.spawn_source,
+                    "executionMode": definition.execution_mode,
+                    "transcriptPolicy": definition.transcript_policy,
+                    "parentContextPolicy": definition.parent_context_policy,
+                    "timeoutSeconds": definition.timeout_seconds,
+                    "maxTurns": definition.max_turns
+                }),
+            );
+            let dream_result = state
+                .agent_runtime
+                .run_turn(AgentRunRequest {
+                    run_id,
+                    agent_id: "dream".to_string(),
+                    session_key: session_key.clone(),
+                    inbound: ChannelInboundEnvelope {
+                        channel: "desktop".to_string(),
+                        account_id: Some("desktop".to_string()),
+                        from: "desktop".to_string(),
+                        to: "agent:dream".to_string(),
+                        chat_type: ChannelChatType::Direct,
+                        body: format!("Run memory dream for agent {}", agent.id),
+                        raw_body: Some("desktop memory dream".to_string()),
+                        message_id: Some(format!("{session_key}:input")),
+                        thread_id: Some(session_key),
+                        media_urls: Vec::new(),
+                        metadata: BTreeMap::new(),
+                    },
+                    model: AgentModelSelection {
+                        provider: "configured".to_string(),
+                        model: "configured".to_string(),
+                        reasoning_level: None,
+                    },
+                    enabled_tools: definition
+                        .tool_allowlist
+                        .iter()
+                        .map(|tool| (*tool).to_string())
+                        .collect(),
+                    options,
+                })
+                .await
                 .map_err(|error| {
-                    eprintln!("[desktop-gateway] memory dream failed: {error}");
+                    eprintln!("[desktop-gateway] memory dream failed: {}", error.message());
                     StatusCode::INTERNAL_SERVER_ERROR
                 })?;
             {
@@ -1259,8 +1307,7 @@ async fn apply_native_operation(
                 desktop_state.memory_workspace.dream.agent_id = agent.id;
                 desktop_state.memory_workspace.dream.message = format!(
                     "{} 的记忆整理已由 Rust special-agent 完成：{}",
-                    agent.name,
-                    dream_result["runId"].as_str().unwrap_or("dream")
+                    agent.name, dream_result.run_id
                 );
                 desktop_state.memory_workspace.dream.last_run_at = "刚刚".to_string();
             }
@@ -1550,32 +1597,17 @@ async fn invoke_plugin_tool_operation(
                 return Err(plugin_host_status(state, PluginHostError::Invalid(error)));
             }
             None => {
-                if is_rust_native_plugin_id(&plugin_id) {
-                    let _ = state.events.send(DesktopEvent::ToolResult {
-                        thread_id: thread_id.clone(),
-                        tool_id: tool_id.clone(),
-                        ok: false,
-                    });
-                    return Err(plugin_host_status(
-                        state,
-                        PluginHostError::Invalid(format!(
-                            "Rust-native plugin \"{plugin_id}\" does not expose tool \"{tool_id}\""
-                        )),
-                    ));
-                }
-                match invoke_node_plugin_tool(&state.runtime_root, &plugin_id, &tool_id, tool_input)
-                    .await
-                {
-                    Ok(result) => result,
-                    Err(error) => {
-                        let _ = state.events.send(DesktopEvent::ToolResult {
-                            thread_id,
-                            tool_id,
-                            ok: false,
-                        });
-                        return Err(plugin_host_status(state, error));
-                    }
-                }
+                let _ = state.events.send(DesktopEvent::ToolResult {
+                    thread_id: thread_id.clone(),
+                    tool_id: tool_id.clone(),
+                    ok: false,
+                });
+                return Err(plugin_host_status(
+                    state,
+                    PluginHostError::Invalid(format!(
+                        "Rust-native plugin \"{plugin_id}\" does not expose tool \"{tool_id}\""
+                    )),
+                ));
             }
         };
     let result_text = plugin_tool_result_text(&result);
@@ -1593,13 +1625,6 @@ async fn invoke_plugin_tool_operation(
         ok: true,
     });
     emit_state_changed(state).await
-}
-
-fn is_rust_native_plugin_id(plugin_id: &str) -> bool {
-    matches!(
-        plugin_id,
-        "comfyui" | "open-websearch" | "scrapling-fetch" | "qwen3-tts"
-    )
 }
 
 async fn invoke_rust_native_plugin_tool(

@@ -4,9 +4,6 @@ import { isRestartEnabled } from "../config/commands.js";
 import type { loadConfig } from "../config/config.js";
 import { startGmailWatcherWithLogs } from "../hooks/gmail-watcher-lifecycle.js";
 import { stopGmailWatcher } from "../hooks/gmail-watcher.js";
-import { isTruthyEnvValue } from "../infra/env.js";
-import type { MainSessionWakeRunner } from "../infra/main-session-wake-runner.js";
-import { resetDirectoryCache } from "../infra/outbound/target-resolver.js";
 import {
   deferGatewayRestartUntilIdle,
   emitGatewayRestart,
@@ -15,9 +12,6 @@ import {
 import { setCommandLaneConcurrency, getTotalQueueSize } from "../process/command-queue.js";
 import { CommandLane } from "../process/lanes.js";
 import { getInspectableTaskRegistrySummary } from "../tasks/task-registry.maintenance.js";
-import type { CliDeps } from "../terminal/deps.js";
-import type { ChannelHealthMonitor } from "./channel-health-monitor.js";
-import type { ChannelKind } from "./config-reload-plan.js";
 import type { GatewayReloadPlan } from "./config-reload.js";
 import { resolveHooksConfig } from "./hooks.js";
 import { buildGatewayCronService, type GatewayCronState } from "./server-cron.js";
@@ -27,36 +21,20 @@ import { resolveHookClientIpConfig } from "./server/hooks.js";
 type GatewayHotReloadState = {
   hooksConfig: ReturnType<typeof resolveHooksConfig>;
   hookClientIpConfig: HookClientIpConfig;
-  mainSessionWakeRunner: MainSessionWakeRunner;
   cronState: GatewayCronState;
-  channelHealthMonitor: ChannelHealthMonitor | null;
 };
 
 export function createGatewayReloadHandlers(params: {
-  deps: CliDeps;
   broadcast: (event: string, payload: unknown, opts?: { dropIfSlow?: boolean }) => void;
   getState: () => GatewayHotReloadState;
   setState: (state: GatewayHotReloadState) => void;
-  startChannel: (name: ChannelKind) => Promise<void>;
-  stopChannel: (name: ChannelKind) => Promise<void>;
-  reconfigureChannel?: (
-    name: ChannelKind,
-    nextConfig: ReturnType<typeof loadConfig>,
-    changedPaths: string[],
-  ) => Promise<void>;
   logHooks: {
     info: (msg: string) => void;
     warn: (msg: string) => void;
     error: (msg: string) => void;
   };
-  logChannels: { info: (msg: string) => void; error: (msg: string) => void };
   logCron: { error: (msg: string) => void };
   logReload: { info: (msg: string) => void; warn: (msg: string) => void };
-  createHealthMonitor: (opts: {
-    checkIntervalMs: number;
-    timing?: { staleEventThresholdMs?: number };
-    maxRestartsPerHour?: number;
-  }) => ChannelHealthMonitor;
   reloadServerSurface?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
   reloadInternalHooks?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
   reloadDiscovery?: (nextConfig: ReturnType<typeof loadConfig>) => void | Promise<void>;
@@ -91,40 +69,15 @@ export function createGatewayReloadHandlers(params: {
     }
     nextState.hookClientIpConfig = resolveHookClientIpConfig(nextConfig);
 
-    if (plan.restartHeartbeat) {
-      nextState.mainSessionWakeRunner.updateConfig(nextConfig);
-    }
-
-    resetDirectoryCache();
-
     if (plan.restartCron) {
       state.cronState.cron.stop();
       nextState.cronState = buildGatewayCronService({
         cfg: nextConfig,
-        deps: params.deps,
         broadcast: params.broadcast,
       });
       void nextState.cronState.cron
         .start()
         .catch((err) => params.logCron.error(`failed to start: ${String(err)}`));
-    }
-
-    if (plan.restartHealthMonitor) {
-      state.channelHealthMonitor?.stop();
-      const minutes = nextConfig.gateway?.channelHealthCheckMinutes;
-      const staleMinutes = nextConfig.gateway?.channelStaleEventThresholdMinutes;
-      nextState.channelHealthMonitor =
-        minutes === 0
-          ? null
-          : params.createHealthMonitor({
-              checkIntervalMs: (minutes ?? 5) * 60_000,
-              ...(staleMinutes != null && {
-                timing: { staleEventThresholdMs: staleMinutes * 60_000 },
-              }),
-              ...(nextConfig.gateway?.channelMaxRestartsPerHour != null && {
-                maxRestartsPerHour: nextConfig.gateway.channelMaxRestartsPerHour,
-              }),
-            });
     }
 
     if (plan.restartGmailWatcher) {
@@ -135,26 +88,6 @@ export function createGatewayReloadHandlers(params: {
         onSkipped: () =>
           params.logHooks.info("skipping gmail watcher restart (CRAWCLAW_SKIP_GMAIL_WATCHER=1)"),
       });
-    }
-
-    if (plan.restartChannels.size > 0) {
-      if (isTruthyEnvValue(process.env.CRAWCLAW_SKIP_CHANNELS)) {
-        params.logChannels.info("skipping channel reload (CRAWCLAW_SKIP_CHANNELS=1)");
-      } else {
-        const restartChannel = async (name: ChannelKind) => {
-          if (params.reconfigureChannel) {
-            params.logChannels.info(`reconfiguring ${name} channel`);
-            await params.reconfigureChannel(name, nextConfig, plan.changedPaths);
-            return;
-          }
-          params.logChannels.info(`restarting ${name} channel`);
-          await params.stopChannel(name);
-          await params.startChannel(name);
-        };
-        for (const channel of plan.restartChannels) {
-          await restartChannel(channel);
-        }
-      }
     }
 
     if (plan.restartModelPricing) {

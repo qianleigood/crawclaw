@@ -5,8 +5,6 @@
   "description": "CrawClaw OpenAI provider plugins",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

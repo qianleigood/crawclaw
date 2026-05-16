@@ -1,10 +1,4 @@
-import {
-  ADMIN_SCOPE,
-  APPROVALS_SCOPE,
-  PAIRING_SCOPE,
-  READ_SCOPE,
-  WRITE_SCOPE,
-} from "./method-scopes.js";
+import { ADMIN_SCOPE, APPROVALS_SCOPE, READ_SCOPE, WRITE_SCOPE } from "./method-scopes.js";
 import { MAX_BUFFERED_BYTES } from "./server-constants.js";
 import type { GatewayWsClient } from "./server/ws-types.js";
 import { logWs, shouldLogWs, summarizeAgentEventForWsLog } from "./ws-log.js";
@@ -14,8 +8,6 @@ const EVENT_SCOPE_GUARDS: Record<string, string[]> = {
   "exec.approval.resolved": [APPROVALS_SCOPE],
   "plugin.approval.requested": [APPROVALS_SCOPE],
   "plugin.approval.resolved": [APPROVALS_SCOPE],
-  "device.pair.requested": [PAIRING_SCOPE],
-  "device.pair.resolved": [PAIRING_SCOPE],
   "sessions.changed": [READ_SCOPE],
   "session.message": [READ_SCOPE],
   "session.tool": [READ_SCOPE],

@@ -1,12 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
-import { channelTestPrefixes } from "../../vitest.channel-paths.mjs";
 import { isUnitConfigTestFile } from "../../vitest.unit-paths.mjs";
 import {
   BUNDLED_PLUGIN_PATH_PREFIX,
   BUNDLED_PLUGIN_ROOT_DIR,
 } from "../lib/bundled-plugin-paths.mjs";
-import { dedupeFilesPreserveOrder, loadTestRunnerBehavior } from "../test-runner-manifest.mjs";
+import { loadTestRunnerBehavior } from "../test-runner-manifest.mjs";
 
 const baseConfigPrefixes = ["src/agents/", "src/auto-reply/", "src/control/", "test/", "ui/"];
 const contractTestPrefixes = ["src/plugins/contracts/"];
@@ -50,8 +49,6 @@ export function loadTestCatalog() {
     entries.map((entry) => entry.file).filter((file) => fs.existsSync(file));
   const existingUnitConfigFiles = (entries) => existingFiles(entries).filter(isUnitConfigTestFile);
   const baseThreadPinnedFiles = existingFiles(behaviorManifest.base?.threadPinned ?? []);
-  const channelIsolatedManifestFiles = existingFiles(behaviorManifest.channels?.isolated ?? []);
-  const channelIsolatedPrefixes = behaviorManifest.channels?.isolatedPrefixes ?? [];
   const extensionForkIsolatedFiles = existingFiles(behaviorManifest.extensions?.isolated ?? []);
   const unitForkIsolatedFiles = existingUnitConfigFiles(behaviorManifest.unit.isolated);
   const unitThreadPinnedFiles = existingUnitConfigFiles(behaviorManifest.unit.threadPinned);
@@ -65,13 +62,6 @@ export function loadTestCatalog() {
       ...walkTestFiles(path.join("ui", "src", "ui")),
     ]),
   ];
-  const channelIsolatedFiles = dedupeFilesPreserveOrder([
-    ...channelIsolatedManifestFiles,
-    ...allKnownTestFiles.filter((file) =>
-      channelIsolatedPrefixes.some((prefix) => file.startsWith(prefix)),
-    ),
-  ]);
-  const channelIsolatedFileSet = new Set(channelIsolatedFiles);
   const extensionForkIsolatedFileSet = new Set(extensionForkIsolatedFiles);
   const baseThreadPinnedFileSet = new Set(baseThreadPinnedFiles);
   const unitThreadPinnedFileSet = new Set(unitThreadPinnedFiles);
@@ -84,10 +74,8 @@ export function loadTestCatalog() {
       options.unitMemoryIsolatedFiles?.includes(normalizedFile) ||
       options.extensionMemoryIsolatedFiles?.includes(normalizedFile) ||
       options.extensionTimedIsolatedFiles?.includes(normalizedFile) ||
-      options.channelTimedIsolatedFiles?.includes(normalizedFile) ||
       unitForkIsolatedFileSet.has(normalizedFile) ||
-      extensionForkIsolatedFileSet.has(normalizedFile) ||
-      channelIsolatedFileSet.has(normalizedFile);
+      extensionForkIsolatedFileSet.has(normalizedFile);
     if (options.unitMemoryIsolatedFiles?.includes(normalizedFile)) {
       reasons.push("unit-memory-isolated");
     }
@@ -97,19 +85,12 @@ export function loadTestCatalog() {
     if (options.extensionTimedIsolatedFiles?.includes(normalizedFile)) {
       reasons.push("extensions-timed-heavy");
     }
-    if (options.channelTimedIsolatedFiles?.includes(normalizedFile)) {
-      reasons.push("channels-timed-heavy");
-    }
     if (unitForkIsolatedFileSet.has(normalizedFile)) {
       reasons.push("unit-isolated-manifest");
     }
     if (extensionForkIsolatedFileSet.has(normalizedFile)) {
       reasons.push("extensions-isolated-manifest");
     }
-    if (channelIsolatedFileSet.has(normalizedFile)) {
-      reasons.push("channels-isolated-rule");
-    }
-
     let surface = "base";
     if (isUnitConfigTestFile(normalizedFile)) {
       surface = "unit";
@@ -119,8 +100,6 @@ export function loadTestCatalog() {
       surface = "live";
     } else if (normalizedFile.endsWith(".e2e.test.ts")) {
       surface = "e2e";
-    } else if (channelTestPrefixes.some((prefix) => normalizedFile.startsWith(prefix))) {
-      surface = "channels";
     } else if (normalizedFile.startsWith(BUNDLED_PLUGIN_PATH_PREFIX)) {
       surface = "extensions";
     } else if (normalizedFile.startsWith("src/gateway/")) {
@@ -190,9 +169,6 @@ export function loadTestCatalog() {
     allKnownTestFiles,
     allKnownUnitFiles: allKnownTestFiles.filter((file) => isUnitConfigTestFile(file)),
     baseThreadPinnedFiles,
-    channelIsolatedFiles,
-    channelIsolatedFileSet,
-    channelTestPrefixes,
     extensionForkIsolatedFiles,
     extensionForkIsolatedFileSet,
     unitBehaviorOverrideSet,
@@ -204,13 +180,4 @@ export function loadTestCatalog() {
   };
 }
 
-export const testSurfaces = [
-  "unit",
-  "extensions",
-  "channels",
-  "contracts",
-  "gateway",
-  "live",
-  "e2e",
-  "base",
-];
+export const testSurfaces = ["unit", "extensions", "contracts", "gateway", "live", "e2e", "base"];

@@ -2,7 +2,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import { fireAndForgetHook } from "../../hooks/fire-and-forget.js";
 import { createInternalHookEvent, triggerInternalHook } from "../../hooks/internal-hooks.js";
 import {
-  deriveInboundMessageHookContext,
+  deriveInboundMessageToolCallPreflightContext,
   toInternalMessagePreprocessedContext,
   toInternalMessageTranscribedContext,
 } from "../../hooks/message-hook-mappers.js";
@@ -21,7 +21,7 @@ export function emitPreAgentMessageHooks(params: {
     return;
   }
 
-  const canonical = deriveInboundMessageHookContext(params.ctx);
+  const canonical = deriveInboundMessageToolCallPreflightContext(params.ctx);
   if (canonical.transcript) {
     fireAndForgetHook(
       triggerInternalHook(
@@ -32,7 +32,7 @@ export function emitPreAgentMessageHooks(params: {
           toInternalMessageTranscribedContext(canonical, params.cfg),
         ),
       ),
-      "get-reply: message:transcribed internal hook failed",
+      "auto-reply: message:transcribed internal hook failed",
     );
   }
 
@@ -45,6 +45,6 @@ export function emitPreAgentMessageHooks(params: {
         toInternalMessagePreprocessedContext(canonical, params.cfg),
       ),
     ),
-    "get-reply: message:preprocessed internal hook failed",
+    "auto-reply: message:preprocessed internal hook failed",
   );
 }

@@ -69,7 +69,7 @@
     },
     {
       "source": "/plugins/agent-tools",
-      "destination": "/plugins/building-plugins#registering-agent-tools"
+      "destination": "/plugins/building-plugins#runtime-capabilities"
     },
     {
       "source": "/tools/capability-cookbook",
@@ -828,7 +828,6 @@
                   "tools/plugin",
                   "plugins/community",
                   "plugins/bundles",
-                  "plugins/voice-call",
                   {
                     "group": "Building Plugins",
                     "pages": [
@@ -891,7 +890,6 @@
                   },
                   "tools/btw",
                   "tools/comfyui",
-                  "tools/diffs",
                   "tools/elevated",
                   "tools/exec",
                   "tools/exec-approvals",
@@ -1019,7 +1017,6 @@
                       "gateway/openai-http-api",
                       "gateway/openresponses-http-api",
                       "gateway/tools-invoke-http-api",
-                      "gateway/local-process-backends",
                       "gateway/local-models"
                     ]
                   },
@@ -1326,12 +1323,7 @@
               },
               {
                 "group": "扩展",
-                "pages": [
-                  "zh-CN/plugins/voice-call",
-                  "zh-CN/plugins/manifest",
-                  "zh-CN/plugins/agent-tools",
-                  "zh-CN/prose"
-                ]
+                "pages": ["zh-CN/plugins/manifest", "zh-CN/prose"]
               },
               {
                 "group": "自动化与任务",

@@ -25,8 +25,6 @@ let requesterDepthResolver: (sessionKey?: string) => number = () => 0;
 let subagentSessionRunActive = true;
 let shouldIgnorePostCompletion = false;
 let pendingDescendantRuns = 0;
-const isEmbeddedPiRunActiveMock = vi.fn((_sessionId: string) => false);
-const waitForEmbeddedPiRunEndMock = vi.fn(async (_sessionId: string, _timeoutMs?: number) => true);
 let fallbackRequesterResolution: {
   requesterSessionKey: string;
   requesterOrigin?: { channel?: string; to?: string; accountId?: string };
@@ -174,7 +172,9 @@ function findGatewayCall(predicate: (call: GatewayCall) => boolean): GatewayCall
 }
 
 function findFinalDirectAgentCall(): GatewayCall | undefined {
-  return findGatewayCall((call) => call.method === "agent" && call.expectFinal === true);
+  return findGatewayCall(
+    (call) => call.method === "agent.command.run" && call.expectFinal === true,
+  );
 }
 
 function setupParentSessionFallback(parentSessionKey: string): void {
@@ -206,8 +206,6 @@ describe("subagent announce timeout config", () => {
     subagentSessionRunActive = true;
     shouldIgnorePostCompletion = false;
     pendingDescendantRuns = 0;
-    isEmbeddedPiRunActiveMock.mockReset().mockReturnValue(false);
-    waitForEmbeddedPiRunEndMock.mockReset().mockResolvedValue(true);
     fallbackRequesterResolution = null;
   });
 
@@ -215,7 +213,7 @@ describe("subagent announce timeout config", () => {
     await runAnnounceFlowForTest("run-default-timeout");
 
     const directAgentCall = findGatewayCall(
-      (call) => call.method === "agent" && call.expectFinal === true,
+      (call) => call.method === "agent.command.run" && call.expectFinal === true,
     );
     expect(directAgentCall?.timeoutMs).toBe(90_000);
   });
@@ -225,7 +223,7 @@ describe("subagent announce timeout config", () => {
     await runAnnounceFlowForTest("run-config-timeout-agent");
 
     const directAgentCall = findGatewayCall(
-      (call) => call.method === "agent" && call.expectFinal === true,
+      (call) => call.method === "agent.command.run" && call.expectFinal === true,
     );
     expect(directAgentCall?.timeoutMs).toBe(90_000);
   });
@@ -241,7 +239,7 @@ describe("subagent announce timeout config", () => {
     });
 
     const completionDirectAgentCall = findGatewayCall(
-      (call) => call.method === "agent" && call.expectFinal === true,
+      (call) => call.method === "agent.command.run" && call.expectFinal === true,
     );
     expect(completionDirectAgentCall?.timeoutMs).toBe(90_000);
   });
@@ -266,7 +264,7 @@ describe("subagent announce timeout config", () => {
       await expect(announcePromise).resolves.toBe(false);
 
       const directAgentCalls = gatewayCalls.filter(
-        (call) => call.method === "agent" && call.expectFinal === true,
+        (call) => call.method === "agent.command.run" && call.expectFinal === true,
       );
       expect(directAgentCalls).toHaveLength(4);
     } finally {
@@ -285,7 +283,7 @@ describe("subagent announce timeout config", () => {
 
     expect(didAnnounce).toBe(false);
     expect(
-      findGatewayCall((call) => call.method === "agent" && call.expectFinal === true),
+      findGatewayCall((call) => call.method === "agent.command.run" && call.expectFinal === true),
     ).toBeUndefined();
   });
 
@@ -298,7 +296,7 @@ describe("subagent announce timeout config", () => {
 
     expect(didAnnounce).toBe(true);
     const directAgentCall = findGatewayCall(
-      (call) => call.method === "agent" && call.expectFinal === true,
+      (call) => call.method === "agent.command.run" && call.expectFinal === true,
     );
     const internalEvents =
       (directAgentCall?.params?.internalEvents as Array<{ announceType?: string }>) ?? [];
@@ -350,10 +348,10 @@ describe("subagent announce timeout config", () => {
 
     const directAgentCall = findFinalDirectAgentCall();
     expect(directAgentCall?.params?.sessionKey).toBe("agent:main:main");
-    expect(directAgentCall?.params?.deliver).toBe(true);
-    expect(directAgentCall?.params?.channel).toBe("qqbot");
-    expect(directAgentCall?.params?.to).toBe("chan-main");
-    expect(directAgentCall?.params?.accountId).toBe("acct-main");
+    expect(directAgentCall?.params?.deliver).toBe(false);
+    expect(directAgentCall?.params?.channel).toBeUndefined();
+    expect(directAgentCall?.params?.to).toBeUndefined();
+    expect(directAgentCall?.params?.accountId).toBeUndefined();
   });
 
   it("uses partial progress on timeout when the child only made tool calls", async () => {
@@ -452,7 +450,7 @@ describe("subagent announce timeout config", () => {
     });
 
     expect(
-      findGatewayCall((call) => call.method === "agent" && call.expectFinal === true),
+      findGatewayCall((call) => call.method === "agent.command.run" && call.expectFinal === true),
     ).toBeUndefined();
   });
 

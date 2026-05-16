@@ -123,8 +123,6 @@ function buildCoreDistEntries(): Record<string, string> {
     "control/status.summary.runtime": "src/control/status.summary.runtime.ts",
     "infra/warning-filter": "src/infra/warning-filter.ts",
     "plugins/build-smoke-entry": "src/plugins/build-smoke-entry.ts",
-    "plugins/runtime/index": "src/plugins/runtime/index.ts",
-    "llm-slug-generator": "src/hooks/llm-slug-generator.ts",
     "mcp/plugin-tools-serve": "src/mcp/plugin-tools-serve.ts",
   };
 }

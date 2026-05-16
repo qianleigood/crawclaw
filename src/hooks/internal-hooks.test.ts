@@ -11,10 +11,10 @@ import {
   registerInternalHook,
   triggerInternalHook,
   unregisterInternalHook,
-  type AgentBootstrapHookContext,
-  type GatewayStartupHookContext,
-  type MessageReceivedHookContext,
-  type MessageSentHookContext,
+  type AgentBootstrapToolCallPreflightContext,
+  type GatewayStartupToolCallPreflightContext,
+  type MessageReceivedToolCallPreflightContext,
+  type MessageSentToolCallPreflightContext,
 } from "./internal-hooks.js";
 
 const INTERNAL_HOOK_HANDLERS_KEY = Symbol.for("crawclaw.internalHookHandlers");
@@ -194,7 +194,7 @@ describe("hooks", () => {
         event: createInternalHookEvent("agent", "bootstrap", "test-session", {
           workspaceDir: "/tmp",
           bootstrapFiles: [],
-        } satisfies AgentBootstrapHookContext),
+        } satisfies AgentBootstrapToolCallPreflightContext),
         expected: true,
       },
       {
@@ -217,7 +217,7 @@ describe("hooks", () => {
         name: "returns true for gateway:startup events with expected context",
         event: createInternalHookEvent("gateway", "startup", "gateway:startup", {
           cfg: {},
-        } satisfies GatewayStartupHookContext),
+        } satisfies GatewayStartupToolCallPreflightContext),
         expected: true,
       },
       {
@@ -244,7 +244,7 @@ describe("hooks", () => {
           channelId: "weixin",
           conversationId: "chat-123",
           timestamp: Date.now(),
-        } satisfies MessageReceivedHookContext),
+        } satisfies MessageReceivedToolCallPreflightContext),
         expected: true,
       },
       {
@@ -254,7 +254,7 @@ describe("hooks", () => {
           content: "Hello world",
           success: true,
           channelId: "weixin",
-        } satisfies MessageSentHookContext),
+        } satisfies MessageSentToolCallPreflightContext),
         expected: false,
       },
     ] satisfies Array<{
@@ -277,7 +277,7 @@ describe("hooks", () => {
           channelId: "feishu",
           conversationId: "chat-456",
           messageId: "msg-789",
-        } satisfies MessageSentHookContext),
+        } satisfies MessageSentToolCallPreflightContext),
         expected: true,
       },
       {
@@ -288,7 +288,7 @@ describe("hooks", () => {
           success: false,
           error: "Network error",
           channelId: "weixin",
-        } satisfies MessageSentHookContext),
+        } satisfies MessageSentToolCallPreflightContext),
         expected: true,
       },
       {
@@ -297,7 +297,7 @@ describe("hooks", () => {
           from: "+1234567890",
           content: "Hello world",
           channelId: "weixin",
-        } satisfies MessageReceivedHookContext),
+        } satisfies MessageReceivedToolCallPreflightContext),
         expected: false,
       },
     ] satisfies Array<{
@@ -348,7 +348,7 @@ describe("hooks", () => {
       const handler = vi.fn();
       registerInternalHook("message:received", handler);
 
-      const context: MessageReceivedHookContext = {
+      const context: MessageReceivedToolCallPreflightContext = {
         from: "+1234567890",
         content: "Hello world",
         channelId: "weixin",
@@ -364,7 +364,7 @@ describe("hooks", () => {
       const handler = vi.fn();
       registerInternalHook("message:sent", handler);
 
-      const context: MessageSentHookContext = {
+      const context: MessageSentToolCallPreflightContext = {
         to: "+1234567890",
         content: "Hello world",
         success: true,
@@ -381,7 +381,7 @@ describe("hooks", () => {
       const handler = vi.fn();
       registerInternalHook("message", handler);
 
-      const receivedContext: MessageReceivedHookContext = {
+      const receivedContext: MessageReceivedToolCallPreflightContext = {
         from: "+1234567890",
         content: "Hello",
         channelId: "weixin",
@@ -394,7 +394,7 @@ describe("hooks", () => {
       );
       await triggerInternalHook(receivedEvent);
 
-      const sentContext: MessageSentHookContext = {
+      const sentContext: MessageSentToolCallPreflightContext = {
         to: "+1234567890",
         content: "World",
         success: true,
@@ -417,7 +417,7 @@ describe("hooks", () => {
       registerInternalHook("message:received", errorHandler);
       registerInternalHook("message:received", successHandler);
 
-      const context: MessageReceivedHookContext = {
+      const context: MessageReceivedToolCallPreflightContext = {
         from: "+1234567890",
         content: "Hello",
         channelId: "weixin",

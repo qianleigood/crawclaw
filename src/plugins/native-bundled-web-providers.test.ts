@@ -5,17 +5,20 @@ import {
   nativeBundledWebSearchProvidersForPlugin,
 } from "./native-bundled-web-providers.js";
 
-const runCrawClawRuntimeTool = vi.hoisted(() =>
-  vi.fn(async (tool: string, input: unknown) => ({ input, tool })),
+const callGateway = vi.hoisted(() =>
+  vi.fn(async (request: { params?: { tool?: string; input?: unknown } }) => ({
+    input: request.params?.input,
+    tool: request.params?.tool,
+  })),
 );
 
-vi.mock("../agents/runtime-tools/native.js", () => ({
-  runCrawClawRuntimeTool,
+vi.mock("../gateway/call.js", () => ({
+  callGateway,
 }));
 
 describe("native bundled web providers", () => {
   beforeEach(() => {
-    runCrawClawRuntimeTool.mockClear();
+    callGateway.mockClear();
   });
 
   it("routes open-websearch provider tools through the Rust runtime worker", async () => {
@@ -39,12 +42,18 @@ describe("native bundled web providers", () => {
       timeoutSeconds: 5,
     });
 
-    expect(runCrawClawRuntimeTool).toHaveBeenCalledWith("web_search", {
-      query: "rust native plugin",
-      count: 3,
-      engines: ["duckduckgo"],
-      timeoutSeconds: 5,
-      pluginConfig: { webSearch: { baseUrl: "http://127.0.0.1:3210" } },
+    expect(callGateway).toHaveBeenCalledWith({
+      method: "tools.invoke",
+      params: {
+        tool: "web_search",
+        input: {
+          query: "rust native plugin",
+          count: 3,
+          engines: ["duckduckgo"],
+          timeoutSeconds: 5,
+          pluginConfig: { webSearch: { baseUrl: "http://127.0.0.1:3210" } },
+        },
+      },
     });
   });
 
@@ -70,20 +79,26 @@ describe("native bundled web providers", () => {
       timeoutSeconds: 10,
     });
 
-    expect(runCrawClawRuntimeTool).toHaveBeenCalledWith("web_fetch", {
-      url: "https://example.com",
-      output: "markdown",
-      extractMode: undefined,
-      detail: undefined,
-      render: "auto",
-      extract: undefined,
-      maxChars: undefined,
-      timeoutSeconds: 10,
-      mainContentOnly: true,
-      waitUntil: undefined,
-      waitFor: undefined,
-      sessionId: undefined,
-      pluginConfig: { webFetch: { timeoutSeconds: 20 } },
+    expect(callGateway).toHaveBeenCalledWith({
+      method: "tools.invoke",
+      params: {
+        tool: "web_fetch",
+        input: {
+          url: "https://example.com",
+          output: "markdown",
+          extractMode: undefined,
+          detail: undefined,
+          render: "auto",
+          extract: undefined,
+          maxChars: undefined,
+          timeoutSeconds: 10,
+          mainContentOnly: true,
+          waitUntil: undefined,
+          waitFor: undefined,
+          sessionId: undefined,
+          pluginConfig: { webFetch: { timeoutSeconds: 20 } },
+        },
+      },
     });
   });
 });

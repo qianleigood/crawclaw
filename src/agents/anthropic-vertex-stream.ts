@@ -2,8 +2,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk";
-import type { StreamFn } from "@mariozechner/pi-agent-core";
 import { streamAnthropic, type AnthropicOptions, type Model } from "@mariozechner/pi-ai";
+import type { StreamFn } from "./agent-types.js";
 import { resolveProviderEndpoint } from "./provider-attribution.js";
 
 type AnthropicVertexEffort = NonNullable<AnthropicOptions["effort"]>;

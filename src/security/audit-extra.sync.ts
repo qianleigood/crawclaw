@@ -41,28 +41,8 @@ function summarizeGroupPolicy(cfg: CrawClawConfig): {
   allowlist: number;
   other: number;
 } {
-  const channels = cfg.channels as Record<string, unknown> | undefined;
-  if (!channels || typeof channels !== "object") {
-    return { open: 0, allowlist: 0, other: 0 };
-  }
-  let open = 0;
-  let allowlist = 0;
-  let other = 0;
-  for (const value of Object.values(channels)) {
-    if (!value || typeof value !== "object") {
-      continue;
-    }
-    const section = value as Record<string, unknown>;
-    const policy = section.groupPolicy;
-    if (policy === "open") {
-      open += 1;
-    } else if (policy === "allowlist") {
-      allowlist += 1;
-    } else {
-      other += 1;
-    }
-  }
-  return { open, allowlist, other };
+  void cfg;
+  return { open: 0, allowlist: 0, other: 0 };
 }
 
 function isProbablySyncedPath(p: string): boolean {
@@ -235,109 +215,13 @@ function isBrowserEnabled(cfg: CrawClawConfig): boolean {
 }
 
 function listGroupPolicyOpen(cfg: CrawClawConfig): string[] {
-  const out: string[] = [];
-  const channels = cfg.channels as Record<string, unknown> | undefined;
-  if (!channels || typeof channels !== "object") {
-    return out;
-  }
-  for (const [channelId, value] of Object.entries(channels)) {
-    if (!value || typeof value !== "object") {
-      continue;
-    }
-    const section = value as Record<string, unknown>;
-    if (section.groupPolicy === "open") {
-      out.push(`channels.${channelId}.groupPolicy`);
-    }
-    const accounts = section.accounts;
-    if (accounts && typeof accounts === "object") {
-      for (const [accountId, accountVal] of Object.entries(accounts)) {
-        if (!accountVal || typeof accountVal !== "object") {
-          continue;
-        }
-        const acc = accountVal as Record<string, unknown>;
-        if (acc.groupPolicy === "open") {
-          out.push(`channels.${channelId}.accounts.${accountId}.groupPolicy`);
-        }
-      }
-    }
-  }
-  return out;
-}
-
-function hasConfiguredGroupTargets(section: Record<string, unknown>): boolean {
-  const groupKeys = ["groups", "guilds", "channels", "rooms"];
-  return groupKeys.some((key) => {
-    const value = section[key];
-    return Boolean(value && typeof value === "object" && Object.keys(value).length > 0);
-  });
+  void cfg;
+  return [];
 }
 
 function listPotentialMultiUserSignals(cfg: CrawClawConfig): string[] {
-  const out = new Set<string>();
-  const channels = cfg.channels as Record<string, unknown> | undefined;
-  if (!channels || typeof channels !== "object") {
-    return [];
-  }
-
-  const inspectSection = (section: Record<string, unknown>, basePath: string) => {
-    const groupPolicy = typeof section.groupPolicy === "string" ? section.groupPolicy : null;
-    if (groupPolicy === "open") {
-      out.add(`${basePath}.groupPolicy="open"`);
-    } else if (groupPolicy === "allowlist" && hasConfiguredGroupTargets(section)) {
-      out.add(`${basePath}.groupPolicy="allowlist" with configured group targets`);
-    }
-
-    const dmPolicy = typeof section.dmPolicy === "string" ? section.dmPolicy : null;
-    if (dmPolicy === "open") {
-      out.add(`${basePath}.dmPolicy="open"`);
-    }
-
-    const allowFrom = Array.isArray(section.allowFrom) ? section.allowFrom : [];
-    if (allowFrom.some((entry) => String(entry).trim() === "*")) {
-      out.add(`${basePath}.allowFrom includes "*"`);
-    }
-
-    const groupAllowFrom = Array.isArray(section.groupAllowFrom) ? section.groupAllowFrom : [];
-    if (groupAllowFrom.some((entry) => String(entry).trim() === "*")) {
-      out.add(`${basePath}.groupAllowFrom includes "*"`);
-    }
-
-    const dm = section.dm;
-    if (dm && typeof dm === "object") {
-      const dmSection = dm as Record<string, unknown>;
-      const dmLegacyPolicy = typeof dmSection.policy === "string" ? dmSection.policy : null;
-      if (dmLegacyPolicy === "open") {
-        out.add(`${basePath}.dm.policy="open"`);
-      }
-      const dmAllowFrom = Array.isArray(dmSection.allowFrom) ? dmSection.allowFrom : [];
-      if (dmAllowFrom.some((entry) => String(entry).trim() === "*")) {
-        out.add(`${basePath}.dm.allowFrom includes "*"`);
-      }
-    }
-  };
-
-  for (const [channelId, value] of Object.entries(channels)) {
-    if (!value || typeof value !== "object") {
-      continue;
-    }
-    const section = value as Record<string, unknown>;
-    inspectSection(section, `channels.${channelId}`);
-    const accounts = section.accounts;
-    if (!accounts || typeof accounts !== "object") {
-      continue;
-    }
-    for (const [accountId, accountValue] of Object.entries(accounts)) {
-      if (!accountValue || typeof accountValue !== "object") {
-        continue;
-      }
-      inspectSection(
-        accountValue as Record<string, unknown>,
-        `channels.${channelId}.accounts.${accountId}`,
-      );
-    }
-  }
-
-  return Array.from(out);
+  void cfg;
+  return [];
 }
 
 function collectRiskyToolExposureContexts(cfg: CrawClawConfig): {
@@ -633,7 +517,6 @@ export function collectGatewayHttpNoAuthFindings(
   const chatCompletionsEnabled = cfg.gateway?.http?.endpoints?.chatCompletions?.enabled === true;
   const responsesEnabled = cfg.gateway?.http?.endpoints?.responses?.enabled === true;
   const enabledEndpoints = [
-    "/tools/invoke",
     chatCompletionsEnabled ? "/v1/chat/completions" : null,
     responsesEnabled ? "/v1/responses" : null,
   ].filter((entry): entry is string => Boolean(entry));

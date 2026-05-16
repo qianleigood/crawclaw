@@ -3,14 +3,9 @@ import {
   runAfterCompactionInternalHooks,
   runBeforeCompactionInternalHooks,
 } from "./internal-hooks.js";
-import type { CompactionHookRunner } from "./plugin-hooks.js";
-import { runAfterCompactionPluginHooks, runBeforeCompactionPluginHooks } from "./plugin-hooks.js";
 import { runPostCompactionSideEffects } from "./post-compaction.js";
 
-export type { CompactionHookRunner } from "./plugin-hooks.js";
-
 export async function runBeforeCompactionHooks(params: {
-  hookRunner?: CompactionHookRunner | null;
   sessionId: string;
   sessionKey?: string;
   sessionAgentId: string;
@@ -32,22 +27,10 @@ export async function runBeforeCompactionHooks(params: {
     messageCountOriginal: params.metrics.messageCountOriginal,
     tokenCountOriginal: params.metrics.tokenCountOriginal,
   });
-  await runBeforeCompactionPluginHooks({
-    hookRunner: params.hookRunner,
-    sessionId: params.sessionId,
-    sessionAgentId: params.sessionAgentId,
-    hookSessionKey: hookState.hookSessionKey,
-    workspaceDir: params.workspaceDir,
-    messageProvider: params.messageProvider,
-    sessionFile: params.sessionFile,
-    messageCountBefore: params.metrics.messageCountBefore,
-    tokenCountBefore: params.metrics.tokenCountBefore,
-  });
   return hookState;
 }
 
 export async function runAfterCompactionHooks(params: {
-  hookRunner?: CompactionHookRunner | null;
   sessionId: string;
   sessionAgentId: string;
   hookSessionKey: string;
@@ -82,18 +65,6 @@ export async function runAfterCompactionHooks(params: {
     postCompactAttachments: params.postCompactAttachments,
     postCompactDiscoveredTools: params.postCompactDiscoveredTools,
     postCompactHasPreservedSegment: params.postCompactHasPreservedSegment,
-  });
-  await runAfterCompactionPluginHooks({
-    hookRunner: params.hookRunner,
-    sessionId: params.sessionId,
-    sessionAgentId: params.sessionAgentId,
-    hookSessionKey: params.hookSessionKey,
-    workspaceDir: params.workspaceDir,
-    messageProvider: params.messageProvider,
-    messageCountAfter: params.messageCountAfter,
-    tokensAfter: params.tokensAfter,
-    compactedCount: params.compactedCount,
-    sessionFile: params.sessionFile,
   });
 }
 

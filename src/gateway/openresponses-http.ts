@@ -8,8 +8,8 @@
 
 import { createHash, randomUUID } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
+import type { ClientToolDefinition } from "../agents/client-tool-definition.js";
 import type { ImageContent } from "../agents/command/types.js";
-import type { ClientToolDefinition } from "../agents/pi-embedded-runner/run/params.js";
 import type { GatewayHttpResponsesConfig } from "../config/types.gateway.js";
 import { agentCommandFromIngress } from "../control/agent.js";
 import { emitAgentEvent, onAgentEvent } from "../infra/agent-events.js";
@@ -648,7 +648,6 @@ export async function handleOpenResponsesHttpRequest(
     user,
     sessionPrefix: "openresponses",
     defaultMessageChannel: "webchat",
-    useMessageChannelHeader: true,
   });
   const responseSessionScope = createResponseSessionScope({
     req,

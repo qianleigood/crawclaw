@@ -120,7 +120,6 @@ function scanRuntimeServiceLocatorSmells(sourceFile, filePath) {
 
   const entries = [];
   const exportedNames = new Set();
-  const runtimeStoreCalls = [];
   const mutableStateNodes = [];
 
   for (const statement of sourceFile.statements) {
@@ -150,36 +149,8 @@ function scanRuntimeServiceLocatorSmells(sourceFile, filePath) {
     }
   }
 
-  function visit(node) {
-    if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === "createPluginRuntimeStore"
-    ) {
-      runtimeStoreCalls.push(node.expression);
-    }
-
-    ts.forEachChild(node, visit);
-  }
-
-  visit(sourceFile);
-
   const getterNames = [...exportedNames].filter((name) => /^get[A-Z]/.test(name));
   const setterNames = [...exportedNames].filter((name) => /^set[A-Z]/.test(name));
-
-  if (runtimeStoreCalls.length > 0 && getterNames.length > 0 && setterNames.length > 0) {
-    for (const callNode of runtimeStoreCalls) {
-      pushEntry(entries, {
-        category: "runtime-service-locator",
-        file: relativeFile,
-        line: toLine(sourceFile, callNode),
-        kind: "runtime-store",
-        specifier: "createPluginRuntimeStore",
-        resolvedPath: relativeFile,
-        reason: `exports paired runtime accessors (${getterNames.join(", ")} / ${setterNames.join(", ")}) over module-global store state`,
-      });
-    }
-  }
 
   if (mutableStateNodes.length > 0 && getterNames.length > 0 && setterNames.length > 0) {
     for (const identifier of mutableStateNodes) {

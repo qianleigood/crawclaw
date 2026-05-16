@@ -110,7 +110,7 @@ function setBundledCapabilityFixture(contractKey: string) {
 }
 
 function expectCompatChainApplied(params: {
-  key: "speechProviders" | "mediaUnderstandingProviders";
+  key: "speechProviders";
   contractKey: string;
   cfg: CrawClawConfig;
   allowlistCompat: { plugins: { allow: string[] } };
@@ -211,32 +211,14 @@ describe("resolvePluginCapabilityProviders", () => {
     });
   });
 
-  it.each([
-    ["speechProviders", "speechProviders"],
-    ["mediaUnderstandingProviders", "mediaUnderstandingProviders"],
-  ] as const)("applies bundled compat before fallback loading for %s", (key, contractKey) => {
+  it("applies bundled compat before fallback loading for speech providers", () => {
     const { cfg, allowlistCompat, enablementCompat } = createCompatChainConfig();
     expectCompatChainApplied({
-      key,
-      contractKey,
+      key: "speechProviders",
+      contractKey: "speechProviders",
       cfg,
       allowlistCompat,
       enablementCompat,
-    });
-  });
-
-  it("reuses a compatible active registry even when the capability list is empty", () => {
-    const active = createEmptyPluginRegistry();
-    mocks.resolveRuntimePluginRegistry.mockReturnValue(active);
-
-    const providers = resolvePluginCapabilityProviders({
-      key: "mediaUnderstandingProviders",
-      cfg: {} as CrawClawConfig,
-    });
-
-    expectNoResolvedCapabilityProviders(providers);
-    expect(mocks.resolveRuntimePluginRegistry).toHaveBeenCalledWith({
-      config: expect.anything(),
     });
   });
 });

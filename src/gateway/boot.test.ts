@@ -41,14 +41,7 @@ describe("runBootOnce", () => {
     await fs.rm(storePath, { force: true });
   });
 
-  const makeDeps = () => ({
-    sendMessageWhatsApp: vi.fn(),
-    sendMessageTelegram: vi.fn(),
-    sendMessageDiscord: vi.fn(),
-    sendMessageSlack: vi.fn(),
-    sendMessageSignal: vi.fn(),
-    sendMessageIMessage: vi.fn(),
-  });
+  const makeDeps = () => ({});
 
   const withBootWorkspace = async (
     options: BootWorkspaceOptions,

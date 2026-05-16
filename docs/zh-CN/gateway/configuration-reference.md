@@ -2381,18 +2381,15 @@ Base URL 不应包含 `/v1`（Anthropic 客户端会追加它）。快捷方式�
 {
   plugins: {
     enabled: true,
-    allow: ["voice-call"],
+    allow: ["my-plugin"],
     deny: [],
     load: {
-      paths: ["~/Projects/oss/voice-call-extension"],
+      paths: ["~/Projects/oss/my-plugin"],
     },
     entries: {
-      "voice-call": {
+      "my-plugin": {
         enabled: true,
-        hooks: {
-          allowPromptInjection: false,
-        },
-        config: { provider: "twilio" },
+        config: {},
       },
     },
   },

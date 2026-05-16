@@ -19,7 +19,7 @@ function normalizePart(value: unknown, fallback: string): string {
 }
 
 export function resolveControlPlaneRateLimitKey(client: GatewayClient | null): string {
-  const deviceId = normalizePart(client?.connect?.device?.id, "unknown-device");
+  const deviceId = normalizePart(client?.connect?.client?.instanceId, "unknown-device");
   const clientIp = normalizePart(client?.clientIp, "unknown-ip");
   if (deviceId === "unknown-device" && clientIp === "unknown-ip") {
     // Last-resort fallback: avoid cross-client contention when upstream identity is missing.

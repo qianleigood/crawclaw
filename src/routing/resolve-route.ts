@@ -1,8 +1,7 @@
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import type { CacheGovernanceDescriptor } from "../cache/governance-types.js";
-import type { ChatType } from "../channels/chat-type.js";
-import { normalizeChatType } from "../channels/chat-type.js";
 import type { CrawClawConfig } from "../config/config.js";
+import type { ChatType } from "../config/types.base.js";
 import { shouldLogVerbose } from "../globals.js";
 import { logDebug } from "../logger.js";
 import { listBindings } from "./bindings.js";
@@ -20,6 +19,23 @@ export type RoutePeer = {
   kind: ChatType;
   id: string;
 };
+
+function normalizeChatType(value: unknown): ChatType | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === "direct" ||
+    normalized === "group" ||
+    normalized === "channel" ||
+    normalized === "thread" ||
+    normalized === "room"
+  ) {
+    return normalized;
+  }
+  return undefined;
+}
 
 export type ResolveAgentRouteInput = {
   cfg: CrawClawConfig;

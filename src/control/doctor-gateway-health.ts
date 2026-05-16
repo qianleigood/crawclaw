@@ -1,7 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
-import type { DoctorMemoryStatusPayload } from "../gateway/server-methods/doctor.js";
-import { collectChannelStatusIssues } from "../infra/channels-status-issues.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
 import type { DoctorMemoryHealthSummary } from "./doctor-memory-health.js";
@@ -13,6 +11,11 @@ export type GatewayMemoryProbe = {
   ready: boolean;
   error?: string;
   memoryHealth?: DoctorMemoryHealthSummary;
+};
+
+type GatewayDoctorMemoryStatusPayload = {
+  agentId: string;
+  memoryHealth: DoctorMemoryHealthSummary;
 };
 
 export async function checkGatewayHealth(params: {
@@ -37,32 +40,6 @@ export async function checkGatewayHealth(params: {
     }
   }
 
-  if (healthOk) {
-    try {
-      const status = await callGateway({
-        method: "channels.status",
-        params: { probe: true, timeoutMs: 5000 },
-        timeoutMs: 6000,
-      });
-      const issues = collectChannelStatusIssues(status);
-      if (issues.length > 0) {
-        note(
-          issues
-            .map(
-              (issue) =>
-                `- ${issue.channel} ${issue.accountId}: ${issue.message}${
-                  issue.fix ? ` (${issue.fix})` : ""
-                }`,
-            )
-            .join("\n"),
-          "Channel warnings",
-        );
-      }
-    } catch {
-      // ignore: doctor already reported gateway health
-    }
-  }
-
   return { healthOk };
 }
 
@@ -73,7 +50,7 @@ export async function probeGatewayMemoryStatus(params: {
   const timeoutMs =
     typeof params.timeoutMs === "number" && params.timeoutMs > 0 ? params.timeoutMs : 8_000;
   try {
-    const payload = await callGateway<DoctorMemoryStatusPayload>({
+    const payload = await callGateway<GatewayDoctorMemoryStatusPayload>({
       method: "doctor.memory.status",
       timeoutMs,
       config: params.cfg,

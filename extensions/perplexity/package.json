@@ -5,8 +5,6 @@
   "description": "CrawClaw Perplexity plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

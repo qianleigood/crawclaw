@@ -9,16 +9,6 @@ import {
 import path from "node:path";
 import { DatabaseSync } from "@photostructure/sqlite";
 import type { CrawClawConfig } from "../config/config.js";
-import {
-  getNotebookLmProviderState,
-  getSharedDurableExtractionWorkerManagerStatus,
-  normalizeNotebookLmConfig,
-  parseMarkdownFrontmatter,
-  resolveDurableMemoryRootDir,
-  resolveHome,
-  resolveMemoryConfig,
-  type NotebookLmProviderState,
-} from "../memory/command-api.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { formatCliCommand } from "../terminal/command-format.js";
 import { note } from "../terminal/note.js";
@@ -29,14 +19,14 @@ export interface DoctorNotebookLmMemoryHealth {
   kind: "notebooklm";
   level: DoctorMemoryHealthLevel;
   enabled: boolean;
-  lifecycle: NotebookLmProviderState["lifecycle"];
+  lifecycle: "disabled" | "removed";
   ready: boolean;
-  reason: NotebookLmProviderState["reason"];
+  reason: "notebooklm_removed" | null;
   profile: string;
   notebookId?: string;
   lastValidatedAt?: string;
   nextAllowedRefreshAt?: string;
-  recommendedAction?: NotebookLmProviderState["recommendedAction"];
+  recommendedAction?: string;
   details?: string;
 }
 
@@ -105,6 +95,76 @@ function checkWritableDir(targetDir: string): boolean {
   }
 }
 
+function resolveHome(input: string): string {
+  if (input === "~") {
+    return osHomeDir();
+  }
+  if (input.startsWith("~/")) {
+    return path.join(osHomeDir(), input.slice(2));
+  }
+  return input;
+}
+
+function osHomeDir(): string {
+  return process.env.HOME || process.cwd();
+}
+
+function resolveStateDir(): string {
+  return path.resolve(
+    process.env.CRAWCLAW_STATE_DIR?.trim() || path.join(osHomeDir(), ".crawclaw"),
+  );
+}
+
+function resolveDurableMemoryRootDir(): string {
+  const override = process.env.CRAWCLAW_DURABLE_MEMORY_DIR?.trim();
+  return override ? path.resolve(override) : path.join(resolveStateDir(), "durable-memory");
+}
+
+function parseMarkdownFrontmatter(text: string): void {
+  if (!text.startsWith("---\n")) {
+    return;
+  }
+  const close = text.indexOf("\n---", 4);
+  if (close === -1) {
+    throw new Error("frontmatter is not closed");
+  }
+}
+
+function readConfigRecord(value: unknown): Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function readBoolean(value: unknown, fallback: boolean): boolean {
+  return typeof value === "boolean" ? value : fallback;
+}
+
+function readNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function resolveMemoryHealthConfig(cfg: CrawClawConfig) {
+  const memory = readConfigRecord(cfg.memory);
+  const runtimeStore = readConfigRecord(memory.runtimeStore);
+  const durableExtraction = readConfigRecord(memory.durableExtraction);
+  return {
+    runtimeStore: {
+      dbPath:
+        typeof runtimeStore.dbPath === "string" && runtimeStore.dbPath.trim()
+          ? runtimeStore.dbPath.trim()
+          : "~/.crawclaw/memory-runtime.db",
+    },
+    durableExtraction: {
+      enabled: readBoolean(durableExtraction.enabled, true),
+      maxNotesPerTurn: readNumber(durableExtraction.maxNotesPerTurn, 2),
+      minEligibleTurnsBetweenRuns: readNumber(durableExtraction.minEligibleTurnsBetweenRuns, 1),
+      maxConcurrentWorkers: readNumber(durableExtraction.maxConcurrentWorkers, 2),
+      workerIdleTtlMs: readNumber(durableExtraction.workerIdleTtlMs, 15 * 60_000),
+    },
+  };
+}
+
 function listMarkdownFiles(rootDir: string, limit = 50): string[] {
   const files: string[] = [];
   const stack = [rootDir];
@@ -140,36 +200,28 @@ function listMarkdownFiles(rootDir: string, limit = 50): string[] {
 export async function checkNotebookLmMemoryHealth(
   cfg: CrawClawConfig,
 ): Promise<DoctorNotebookLmMemoryHealth> {
-  const notebooklm = normalizeNotebookLmConfig(cfg.memory?.notebooklm ?? {});
-  const state = await getNotebookLmProviderState({
-    config: notebooklm,
-    mode: "query",
-  });
+  const enabled = readConfigRecord(readConfigRecord(cfg.memory).notebooklm).enabled === true;
   return {
     kind: "notebooklm",
-    level: state.ready ? "ok" : "warn",
-    enabled: state.enabled,
-    lifecycle: state.lifecycle,
-    ready: state.ready,
-    reason: state.reason,
-    profile: state.profile,
-    notebookId: state.notebookId,
-    lastValidatedAt: state.lastValidatedAt,
-    nextAllowedRefreshAt: state.nextAllowedRefreshAt,
-    recommendedAction: state.recommendedAction,
-    details: state.details,
+    level: enabled ? "warn" : "ok",
+    enabled,
+    lifecycle: enabled ? "removed" : "disabled",
+    ready: false,
+    reason: enabled ? "notebooklm_removed" : null,
+    profile: "default",
+    recommendedAction: enabled
+      ? "Disable memory.notebooklm; NotebookLM runtime was removed"
+      : undefined,
+    details: enabled
+      ? "NotebookLM TS runtime integration has been removed from the production runtime."
+      : undefined,
   };
 }
 
 export async function checkDurableMemoryHealth(
   cfg: CrawClawConfig,
 ): Promise<DoctorDurableMemoryHealth> {
-  const memoryConfig = resolveMemoryConfig({
-    notebooklm: cfg.memory?.notebooklm ?? {},
-    durableExtraction:
-      (cfg.memory as { durableExtraction?: Record<string, unknown> } | undefined)
-        ?.durableExtraction ?? {},
-  });
+  const memoryConfig = resolveMemoryHealthConfig(cfg);
   const rootDir = resolveDurableMemoryRootDir();
   const rootExists = existsSync(rootDir);
   const parentDir = path.dirname(rootDir);
@@ -178,8 +230,6 @@ export async function checkDurableMemoryHealth(
   const parseErrors: string[] = [];
   let manifestReadable = true;
   let markdownFilesScanned = 0;
-  const workerStatus = getSharedDurableExtractionWorkerManagerStatus();
-
   if (rootExists) {
     const markdownFiles = listMarkdownFiles(rootDir);
     markdownFilesScanned = markdownFiles.length;
@@ -233,11 +283,11 @@ export async function checkDurableMemoryHealth(
     extractionMaxConcurrentWorkers: memoryConfig.durableExtraction.maxConcurrentWorkers,
     extractionWorkerIdleTtlMs: memoryConfig.durableExtraction.workerIdleTtlMs,
     extractionWorkers: {
-      workerCount: workerStatus?.workerCount ?? 0,
-      runningCount: workerStatus?.runningCount ?? 0,
-      queuedCount: workerStatus?.queuedCount ?? 0,
-      idleWorkers: workerStatus?.idleWorkers ?? 0,
-      cooldownWorkers: workerStatus?.cooldownWorkers ?? 0,
+      workerCount: 0,
+      runningCount: 0,
+      queuedCount: 0,
+      idleWorkers: 0,
+      cooldownWorkers: 0,
     },
     markdownFilesScanned,
     manifestReadable,
@@ -250,9 +300,7 @@ export async function checkDurableMemoryHealth(
 export async function checkSessionMemoryHealth(
   cfg: CrawClawConfig,
 ): Promise<DoctorSessionMemoryHealth> {
-  const memoryConfig = resolveMemoryConfig({
-    notebooklm: cfg.memory?.notebooklm ?? {},
-  });
+  const memoryConfig = resolveMemoryHealthConfig(cfg);
   const dbPath = resolveHome(memoryConfig.runtimeStore.dbPath);
   const dbExists = existsSync(dbPath);
   const parentDir = path.dirname(dbPath);

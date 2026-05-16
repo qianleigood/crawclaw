@@ -480,430 +480,6 @@
       "hasChildren": false
     },
     {
-      "path": "agents.defaults.cliBackends",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "CLI Backends",
-      "help": "Optional CLI backends for text-only fallback (claude-cli, etc.).",
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.args",
-      "kind": "core",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.args.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.clearEnv",
-      "kind": "core",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.clearEnv.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.command",
-      "kind": "core",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.env",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.env.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.imageArg",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.imageMode",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.input",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.maxPromptArgChars",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.modelAliases",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.modelAliases.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.modelArg",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.output",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.fresh",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.fresh.maxMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.fresh.minMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.fresh.noOutputTimeoutMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.fresh.noOutputTimeoutRatio",
-      "kind": "core",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.resume",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.resume.maxMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.resume.minMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.resume.noOutputTimeoutMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.reliability.watchdog.resume.noOutputTimeoutRatio",
-      "kind": "core",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.resumeArgs",
-      "kind": "core",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.resumeArgs.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.resumeOutput",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.serialize",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.sessionArg",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.sessionArgs",
-      "kind": "core",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.sessionArgs.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.sessionIdFields",
-      "kind": "core",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.sessionIdFields.*",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.sessionMode",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.systemPromptArg",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.systemPromptMode",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "agents.defaults.cliBackends.*.systemPromptWhen",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
       "path": "agents.defaults.compaction",
       "kind": "core",
       "type": "object",
@@ -1449,34 +1025,6 @@
       "hasChildren": false
     },
     {
-      "path": "agents.defaults.embeddedPi",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Embedded Pi",
-      "help": "Embedded Pi runner hardening controls for how workspace-local Pi settings are trusted and applied in CrawClaw sessions.",
-      "hasChildren": true
-    },
-    {
-      "path": "agents.defaults.embeddedPi.projectSettingsPolicy",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Embedded Pi Project Settings Policy",
-      "help": "How embedded Pi handles workspace-local `.pi/config/settings.json`: \"sanitize\" (default) strips shellPath/shellCommandPrefix, \"ignore\" disables project settings entirely, and \"trusted\" applies project settings as-is.",
-      "hasChildren": false
-    },
-    {
       "path": "agents.defaults.envelopeElapsed",
       "kind": "core",
       "type": "string",
@@ -1645,10 +1193,7 @@
       "required": false,
       "deprecated": false,
       "sensitive": false,
-      "tags": [
-        "automation"
-      ],
-      "help": "Delivery target (\"last\", \"none\", or a channel id).",
+      "tags": [],
       "hasChildren": false
     },
     {
@@ -2047,6 +1592,34 @@
       ],
       "label": "Repo Root",
       "help": "Optional repository root shown in the system prompt runtime line (overrides auto-detect).",
+      "hasChildren": false
+    },
+    {
+      "path": "agents.defaults.runtime",
+      "kind": "core",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Agent Runtime",
+      "help": "Rust agent runtime hardening controls for how workspace-local runtime settings are trusted and applied in CrawClaw sessions.",
+      "hasChildren": true
+    },
+    {
+      "path": "agents.defaults.runtime.projectSettingsPolicy",
+      "kind": "core",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Runtime Project Settings Policy",
+      "help": "How the Rust agent runtime handles workspace-local settings: \"sanitize\" (default) strips shellPath/shellCommandPrefix, \"ignore\" disables project settings entirely, and \"trusted\" applies project settings as-is.",
       "hasChildren": false
     },
     {
@@ -2501,10 +2074,7 @@
       "required": false,
       "deprecated": false,
       "sensitive": false,
-      "tags": [
-        "automation"
-      ],
-      "help": "Delivery target (\"last\", \"none\", or a channel id).",
+      "tags": [],
       "hasChildren": false
     },
     {
@@ -3803,7 +3373,7 @@
         "advanced"
       ],
       "label": "Approval Target Thread ID",
-      "help": "Optional thread/topic target for channels that support threaded delivery of forwarded approvals. Use this to keep approval traffic contained in operational threads instead of main channels.",
+      "help": "Optional thread/topic target for approval delivery. Use this to keep approval traffic contained in operational threads.",
       "hasChildren": false
     },
     {
@@ -3831,7 +3401,7 @@
         "advanced"
       ],
       "label": "Plugin Approval Forwarding",
-      "help": "Groups plugin-approval forwarding behavior including enablement, routing mode, filters, and explicit targets. Independent of exec approval forwarding. Configure here when plugin approval prompts must reach operational channels.",
+      "help": "Groups plugin-approval forwarding behavior including enablement, routing mode, filters, and explicit targets. Independent of exec approval forwarding.",
       "hasChildren": true
     },
     {
@@ -4960,20 +4530,6 @@
       "deprecated": false,
       "sensitive": false,
       "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "channels",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Channels",
-      "help": "Channel provider configurations plus shared defaults that control access policies, heartbeat visibility, and per-surface behavior. Keep defaults centralized and override per provider only where required.",
       "hasChildren": false
     },
     {
@@ -6584,67 +6140,6 @@
       "hasChildren": false
     },
     {
-      "path": "gateway.browserClients.dangerouslyDisableDeviceAuth",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access",
-        "advanced",
-        "network",
-        "security"
-      ],
-      "label": "Dangerously Disable Browser-Origin Device Auth",
-      "help": "Disables browser-origin device identity checks and relies on token/password only. Use only for short-lived debugging on trusted networks, then turn it off immediately.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.channelHealthCheckMinutes",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "network",
-        "reliability"
-      ],
-      "label": "Gateway Channel Health Check Interval (min)",
-      "help": "Interval in minutes for automatic channel health probing and status updates. Use lower intervals for faster detection, or higher intervals to reduce periodic probe noise.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.channelMaxRestartsPerHour",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "network",
-        "performance"
-      ],
-      "label": "Gateway Channel Max Restarts Per Hour",
-      "help": "Maximum number of health-monitor-initiated channel restarts allowed within a rolling one-hour window. Once hit, further restarts are skipped until the window expires. Default: 10.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.channelStaleEventThresholdMinutes",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "network"
-      ],
-      "label": "Gateway Channel Stale Event Threshold (min)",
-      "help": "How many minutes a connected channel can go without receiving any event before the health monitor treats it as a stale socket and triggers a restart. Default: 30.",
-      "hasChildren": false
-    },
-    {
       "path": "gateway.customBindHost",
       "kind": "core",
       "type": "string",
@@ -7795,7 +7290,7 @@
         "storage"
       ],
       "label": "Hooks Default Session Key",
-      "help": "Fallback session key used for hook deliveries when a request does not provide one through allowed channels. Use a stable but scoped key to avoid mixing unrelated automation conversations.",
+      "help": "Fallback session key used for hook deliveries when a request does not provide one. Use a stable but scoped key to avoid mixing unrelated automation conversations.",
       "hasChildren": false
     },
     {
@@ -9038,7 +8533,7 @@
         "advanced"
       ],
       "label": "MCP",
-      "help": "Global MCP server definitions managed by CrawClaw. Embedded Pi and other runtime adapters can consume these servers without storing them inside Pi-owned project settings.",
+      "help": "Global MCP server definitions managed by CrawClaw. Runtime adapters can consume these servers without storing them inside project settings.",
       "hasChildren": true
     },
     {
@@ -10184,7 +9679,7 @@
         "advanced"
       ],
       "label": "Outbound Response Prefix",
-      "help": "Prefix text prepended to outbound assistant replies before sending to channels. Use for lightweight branding/context tags and avoid long prefixes that reduce content density.",
+      "help": "Prefix text prepended to outbound assistant replies. Use for lightweight branding/context tags and avoid long prefixes that reduce content density.",
       "hasChildren": false
     },
     {
@@ -11605,34 +11100,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.*.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.*.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.*.subagent",
       "kind": "plugin",
       "type": "object",
@@ -11672,338 +11139,6 @@
     },
     {
       "path": "plugins.entries.*.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "ACPX Runtime",
-      "help": "ACP runtime backend powered by acpx with configurable command path and version policy. (plugin: acpx)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "ACPX Runtime Config",
-      "help": "Plugin-defined config payload for acpx.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.config.command",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "acpx Command",
-      "help": "Optional path/command override for acpx (for example /home/user/repos/acpx/dist/cli.js). Leave unset to use plugin-local bundled acpx.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.cwd",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Working Directory",
-      "help": "Default cwd for ACP session operations when not set per session.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.expectedVersion",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Expected acpx Version",
-      "help": "Exact version to enforce or \"any\" to skip strict version matching.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.mcpServers",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "MCP Servers",
-      "help": "Named MCP server definitions to inject into ACPX-backed session bootstrap. Each entry needs a command and can include args and env.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.config.mcpServers.*",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.config.mcpServers.*.args",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.config.mcpServers.*.args.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.mcpServers.*.command",
-      "kind": "plugin",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.mcpServers.*.env",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.config.mcpServers.*.env.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.nonInteractivePermissions",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "deny",
-        "fail"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Non-Interactive Permission Policy",
-      "help": "acpx policy when interactive permission prompts are unavailable.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.permissionMode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "approve-all",
-        "approve-reads",
-        "deny-all"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Permission Mode",
-      "help": "Default acpx permission policy for runtime prompts.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.pluginToolsMcpBridge",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Tools MCP Bridge",
-      "help": "Default off. When enabled, inject the built-in CrawClaw plugin-tools MCP server into ACPX sessions so ACP agents can call plugin-registered tools.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.queueOwnerTtlSeconds",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access",
-        "advanced"
-      ],
-      "label": "Queue Owner TTL Seconds",
-      "help": "Idle queue-owner TTL for acpx prompt turns. Keep this short in CrawClaw to avoid delayed completion after each turn.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.strictWindowsCmdWrapper",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Strict Windows cmd Wrapper",
-      "help": "Enabled by default. On Windows, reject unresolved .cmd/.bat wrappers instead of shell fallback. Disable only for compatibility with non-standard wrappers.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.config.timeoutSeconds",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "performance"
-      ],
-      "label": "Prompt Timeout Seconds",
-      "help": "Optional acpx timeout for each runtime turn.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable ACPX Runtime",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.acpx.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.acpx.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -12117,34 +11252,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.amazon-bedrock.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.amazon-bedrock.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.amazon-bedrock.subagent",
       "kind": "plugin",
       "type": "object",
@@ -12252,34 +11359,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.anthropic-vertex.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.anthropic-vertex.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.anthropic-vertex.subagent",
       "kind": "plugin",
       "type": "object",
@@ -12356,34 +11435,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/anthropic-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.anthropic.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.anthropic.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -12526,34 +11577,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.brave.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.brave.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.brave.subagent",
       "kind": "plugin",
       "type": "object",
@@ -12644,34 +11667,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/byteplus-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.byteplus.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.byteplus.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -12768,34 +11763,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.chutes.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.chutes.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.chutes.subagent",
       "kind": "plugin",
       "type": "object",
@@ -12886,34 +11853,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/cloudflare-ai-gateway-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.cloudflare-ai-gateway.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.cloudflare-ai-gateway.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -13103,34 +12042,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.comfyui.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.comfyui.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.comfyui.subagent",
       "kind": "plugin",
       "type": "object",
@@ -13224,34 +12135,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.copilot-proxy.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.copilot-proxy.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.copilot-proxy.subagent",
       "kind": "plugin",
       "type": "object",
@@ -13291,6 +12174,99 @@
     },
     {
       "path": "plugins.entries.copilot-proxy.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.deepgram",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/deepgram-provider",
+      "help": "CrawClaw Deepgram native provider metadata (plugin: deepgram)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.deepgram.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/deepgram-provider Config",
+      "help": "Plugin-defined config payload for deepgram.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.deepgram.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @crawclaw/deepgram-provider",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.deepgram.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.deepgram.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.deepgram.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.deepgram.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -13345,34 +12321,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.deepseek.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.deepseek.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.deepseek.subagent",
       "kind": "plugin",
       "type": "object",
@@ -13412,732 +12360,6 @@
     },
     {
       "path": "plugins.entries.deepseek.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.device-pair",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Device Pairing",
-      "help": "Generate setup codes and approve device pairing requests. (plugin: device-pair)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.device-pair.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Device Pairing Config",
-      "help": "Plugin-defined config payload for device-pair.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.device-pair.config.publicUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Gateway URL",
-      "help": "Public WebSocket URL used for /pair setup codes (ws/wss or http/https).",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.device-pair.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable Device Pairing",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.device-pair.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.device-pair.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.device-pair.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.device-pair.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.device-pair.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.device-pair.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "observability"
-      ],
-      "label": "@crawclaw/diagnostics-otel",
-      "help": "CrawClaw diagnostics OpenTelemetry exporter (plugin: diagnostics-otel)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "observability"
-      ],
-      "label": "@crawclaw/diagnostics-otel Config",
-      "help": "Plugin-defined config payload for diagnostics-otel.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "observability"
-      ],
-      "label": "Enable @crawclaw/diagnostics-otel",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diagnostics-otel.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Diffs",
-      "help": "Read-only diff viewer and file renderer for agents. (plugin: diffs)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diffs.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Diffs Config",
-      "help": "Plugin-defined config payload for diffs.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.background",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "defaultValue": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Background Highlights",
-      "help": "Show added/removed background highlights by default.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.diffIndicators",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "bars",
-        "classic",
-        "none"
-      ],
-      "defaultValue": "bars",
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Diff Indicator Style",
-      "help": "Choose added/removed indicators style.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.fileFormat",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "png",
-        "pdf"
-      ],
-      "defaultValue": "png",
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Default File Format",
-      "help": "Rendered file format for file mode (PNG or PDF).",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.fileMaxWidth",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "performance",
-        "storage"
-      ],
-      "label": "Default File Max Width",
-      "help": "Maximum file render width in CSS pixels.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.fileQuality",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "standard",
-        "hq",
-        "print"
-      ],
-      "defaultValue": "standard",
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Default File Quality",
-      "help": "Quality preset for PNG/PDF rendering.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.fileScale",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Default File Scale",
-      "help": "Device scale factor used while rendering file artifacts.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.fontFamily",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "defaultValue": "Fira Code",
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Font",
-      "help": "Preferred font family name for diff content and headers.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.fontSize",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "defaultValue": 15,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Font Size",
-      "help": "Base diff font size in pixels.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.format",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "png",
-        "pdf"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.imageFormat",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "png",
-        "pdf"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.imageMaxWidth",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.imageQuality",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "standard",
-        "hq",
-        "print"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.imageScale",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.layout",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "unified",
-        "split"
-      ],
-      "defaultValue": "unified",
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Layout",
-      "help": "Initial diff layout shown in the viewer.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.lineSpacing",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "defaultValue": 1.6,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Line Spacing",
-      "help": "Line-height multiplier applied to diff rows.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.mode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "view",
-        "image",
-        "file",
-        "both"
-      ],
-      "defaultValue": "both",
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Output Mode",
-      "help": "Tool default when mode is omitted. Use view for canvas/gateway viewer, file for PNG/PDF, or both.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.showLineNumbers",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "defaultValue": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Show Line Numbers",
-      "help": "Show line numbers by default.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.theme",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "light",
-        "dark"
-      ],
-      "defaultValue": "dark",
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Theme",
-      "help": "Initial viewer theme.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.defaults.wordWrap",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "defaultValue": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Word Wrap",
-      "help": "Wrap long lines by default.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.security",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diffs.config.security.allowRemoteViewer",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "defaultValue": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Remote Viewer",
-      "help": "Allow non-loopback access to diff viewer URLs when the token path is known.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.config.viewerBaseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Viewer Base URL",
-      "help": "Persistent gateway base URL used for returned viewer links when a tool call does not pass baseUrl.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable Diffs",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diffs.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diffs.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.diffs.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.diffs.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -14235,34 +12457,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.duckduckgo.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.duckduckgo.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.duckduckgo.subagent",
       "kind": "plugin",
       "type": "object",
@@ -14302,6 +12496,99 @@
     },
     {
       "path": "plugins.entries.duckduckgo.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.elevenlabs",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/elevenlabs-speech",
+      "help": "CrawClaw ElevenLabs speech plugin (plugin: elevenlabs)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.elevenlabs.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/elevenlabs-speech Config",
+      "help": "Plugin-defined config payload for elevenlabs.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.elevenlabs.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @crawclaw/elevenlabs-speech",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.elevenlabs.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.elevenlabs.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.elevenlabs.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.elevenlabs.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -14381,34 +12668,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/exa-plugin",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.exa.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.exa.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -14505,34 +12764,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.fal.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.fal.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.fal.subagent",
       "kind": "plugin",
       "type": "object",
@@ -14585,183 +12816,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.feishu-cli",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "feishu-cli",
-      "help": "Plugin entry for feishu-cli.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.feishu-cli.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "feishu-cli Config",
-      "help": "Plugin-defined config payload for feishu-cli.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.feishu-cli.config.command",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "lark-cli command",
-      "help": "Executable used for user-identity Feishu actions.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.feishu-cli.config.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable Feishu CLI user tools",
-      "help": "Uses the official lark-cli with user identity. Separate from the Feishu bot/channel plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.feishu-cli.config.profile",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "CLI profile",
-      "help": "Optional lark-cli profile name for user auth context.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.feishu-cli.config.timeoutMs",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "performance"
-      ],
-      "label": "Command timeout (ms)",
-      "help": "Timeout used for lark-cli status and tool calls.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.feishu-cli.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable feishu-cli",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.feishu-cli.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.feishu-cli.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.feishu-cli.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.feishu-cli.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.feishu-cli.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.feishu-cli.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.github-copilot",
       "kind": "plugin",
       "type": "object",
@@ -14800,34 +12854,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/github-copilot-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.github-copilot.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.github-copilot.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -14966,34 +12992,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.google.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.google.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.google.subagent",
       "kind": "plugin",
       "type": "object",
@@ -15056,7 +13054,7 @@
         "advanced"
       ],
       "label": "@crawclaw/groq-provider",
-      "help": "CrawClaw Groq media-understanding provider (plugin: groq)",
+      "help": "CrawClaw Groq native provider metadata (plugin: groq)",
       "hasChildren": true
     },
     {
@@ -15084,34 +13082,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/groq-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.groq.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.groq.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -15208,34 +13178,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.huggingface.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.huggingface.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.huggingface.subagent",
       "kind": "plugin",
       "type": "object",
@@ -15326,34 +13268,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/kilocode-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.kilocode.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.kilocode.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -15450,34 +13364,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.kimi.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.kimi.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.kimi.subagent",
       "kind": "plugin",
       "type": "object",
@@ -15568,34 +13454,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/litellm-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.litellm.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.litellm.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -15762,34 +13620,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.llm-task.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.llm-task.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.llm-task.subagent",
       "kind": "plugin",
       "type": "object",
@@ -15883,34 +13713,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.lobster.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.lobster.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.lobster.subagent",
       "kind": "plugin",
       "type": "object",
@@ -15963,6 +13765,20 @@
       "hasChildren": false
     },
     {
+      "path": "plugins.entries.microsoft",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/microsoft-speech",
+      "help": "CrawClaw Microsoft speech plugin (plugin: microsoft)",
+      "hasChildren": true
+    },
+    {
       "path": "plugins.entries.microsoft-foundry",
       "kind": "plugin",
       "type": "object",
@@ -16001,34 +13817,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/microsoft-foundry",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.microsoft-foundry.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.microsoft-foundry.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -16084,6 +13872,85 @@
       "hasChildren": false
     },
     {
+      "path": "plugins.entries.microsoft.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/microsoft-speech Config",
+      "help": "Plugin-defined config payload for microsoft.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.microsoft.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @crawclaw/microsoft-speech",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.microsoft.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.microsoft.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.microsoft.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.microsoft.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
       "path": "plugins.entries.minimax",
       "kind": "plugin",
       "type": "object",
@@ -16122,34 +13989,6 @@
         "performance"
       ],
       "label": "Enable @crawclaw/minimax-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.minimax.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.minimax.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -16246,34 +14085,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.mistral.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.mistral.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.mistral.subagent",
       "kind": "plugin",
       "type": "object",
@@ -16364,34 +14175,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/modelstudio-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.modelstudio.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.modelstudio.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -16545,34 +14328,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.moonshot.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.moonshot.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.moonshot.subagent",
       "kind": "plugin",
       "type": "object",
@@ -16663,34 +14418,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/nvidia-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.nvidia.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.nvidia.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -16787,34 +14514,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.ollama.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.ollama.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.ollama.subagent",
       "kind": "plugin",
       "type": "object",
@@ -16854,127 +14553,6 @@
     },
     {
       "path": "plugins.entries.ollama.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-prose",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "OpenProse",
-      "help": "OpenProse VM skill pack with a /prose slash command. (plugin: open-prose)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-prose.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "OpenProse Config",
-      "help": "Plugin-defined config payload for open-prose.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-prose.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable OpenProse",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-prose.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-prose.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-prose.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-prose.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-prose.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-prose.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,
@@ -17113,34 +14691,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.open-websearch.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-websearch.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.open-websearch.subagent",
       "kind": "plugin",
       "type": "object",
@@ -17231,34 +14781,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/openai-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.openai.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.openai.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -17369,34 +14891,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.opencode-go.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.opencode-go.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.opencode-go.subagent",
       "kind": "plugin",
       "type": "object",
@@ -17473,34 +14967,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/opencode-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.opencode.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.opencode.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -17594,34 +15060,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/openrouter-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.openrouter.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.openrouter.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -17775,34 +15213,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.perplexity.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.perplexity.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.perplexity.subagent",
       "kind": "plugin",
       "type": "object",
@@ -17896,34 +15306,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.qianfan.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.qianfan.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.qianfan.subagent",
       "kind": "plugin",
       "type": "object",
@@ -18014,34 +15396,6 @@
         "media"
       ],
       "label": "Enable @crawclaw/qwen3-tts-speech",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.qwen3-tts.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.qwen3-tts.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -18359,34 +15713,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.scrapling-fetch.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.scrapling-fetch.subagent",
       "kind": "plugin",
       "type": "object",
@@ -18536,34 +15862,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.searxng.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.searxng.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.searxng.subagent",
       "kind": "plugin",
       "type": "object",
@@ -18654,34 +15952,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/sglang-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.sglang.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.sglang.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -18778,34 +16048,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.synthetic.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.synthetic.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.synthetic.subagent",
       "kind": "plugin",
       "type": "object",
@@ -18858,127 +16100,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.talk-voice",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Talk Voice",
-      "help": "Manage Talk voice selection (list/set). (plugin: talk-voice)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.talk-voice.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Talk Voice Config",
-      "help": "Plugin-defined config payload for talk-voice.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.talk-voice.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable Talk Voice",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.talk-voice.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.talk-voice.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.talk-voice.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.talk-voice.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.talk-voice.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.talk-voice.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.together",
       "kind": "plugin",
       "type": "object",
@@ -19017,34 +16138,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/together-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.together.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.together.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -19100,357 +16193,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.turix-cua",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "TuriX CUA",
-      "help": "Run high-risk local desktop automation tasks through a controlled TuriX-CUA worker. (plugin: turix-cua)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.turix-cua.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "TuriX CUA Config",
-      "help": "Plugin-defined config payload for turix-cua.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.allowRemoteRequests",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow channel-originated desktop runs",
-      "help": "Keep disabled unless you explicitly want remote chat channels to trigger local desktop automation after approval.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.defaultMaxSteps",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.defaultTimeoutMs",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.forceStopHotkey",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.maxActionsPerStep",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.models",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.models.actor",
-      "kind": "plugin",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.models.brain",
-      "kind": "plugin",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.models.memory",
-      "kind": "plugin",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.models.planner",
-      "kind": "plugin",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.outputRoot",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.retainRunsDays",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.runtime",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.runtime.mode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "managed",
-        "external"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "TuriX runtime mode",
-      "help": "Use managed for CrawClaw-owned runtime provisioning, or external to point at an existing TuriX-CUA checkout.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.runtime.projectDir",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "TuriX project directory",
-      "help": "Required for external runtime mode. Points at a TuriX-CUA checkout.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.runtime.pythonPath",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "TuriX Python executable",
-      "help": "Python executable used to run examples/main.py.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.runtime.ref",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.skillsDir",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.stripReasoningTags",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Strip leading reasoning tags",
-      "help": "Remove leading <think>...</think> blocks from TuriX model responses before TuriX parses structured output.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.usePlan",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.config.useSkills",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable TuriX CUA",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.turix-cua.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.turix-cua.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.turix-cua.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.turix-cua.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.venice",
       "kind": "plugin",
       "type": "object",
@@ -19489,34 +16231,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/venice-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.venice.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.venice.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -19613,34 +16327,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.vercel-ai-gateway.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.vercel-ai-gateway.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.vercel-ai-gateway.subagent",
       "kind": "plugin",
       "type": "object",
@@ -19734,34 +16420,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.vllm.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.vllm.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.vllm.subagent",
       "kind": "plugin",
       "type": "object",
@@ -19814,1634 +16472,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.voice-call",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/voice-call",
-      "help": "CrawClaw voice-call plugin (plugin: voice-call)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/voice-call Config",
-      "help": "Plugin-defined config payload for voice-call.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.allowFrom",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Inbound Allowlist",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.allowFrom.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.fromNumber",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "From Number",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.inboundGreeting",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Inbound Greeting",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.inboundPolicy",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "disabled",
-        "allowlist",
-        "pairing",
-        "open"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Inbound Policy",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.maxConcurrentCalls",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.maxDurationSeconds",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.outbound",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.outbound.defaultMode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "notify",
-        "conversation"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default Call Mode",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.outbound.notifyHangupDelaySec",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Notify Hangup Delay (sec)",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.plivo",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.plivo.authId",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.plivo.authToken",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security"
-      ],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.provider",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "telnyx",
-        "twilio",
-        "plivo",
-        "mock"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Provider",
-      "help": "Use twilio, telnyx, or mock for dev/no-network.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.publicUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Public Webhook URL",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.responseModel",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Response Model",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.responseSystemPrompt",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Response System Prompt",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.responseTimeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "performance"
-      ],
-      "label": "Response Timeout (ms)",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.ringTimeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.serve",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.serve.bind",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Webhook Bind",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.serve.path",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Webhook Path",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.serve.port",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Webhook Port",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.silenceTimeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.skipSignatureVerification",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Skip Signature Verification",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.staleCallReaperSeconds",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.store",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "storage"
-      ],
-      "label": "Call Log Store Path",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable Streaming",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.maxConnections",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.maxPendingConnections",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.maxPendingConnectionsPerIp",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.openaiApiKey",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "advanced",
-        "auth",
-        "security"
-      ],
-      "label": "OpenAI Realtime API Key",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.preStartTimeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.silenceDurationMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.streamPath",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "storage"
-      ],
-      "label": "Media Stream Path",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.sttModel",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "media"
-      ],
-      "label": "Realtime STT Model",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.sttProvider",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "openai-realtime"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.streaming.vadThreshold",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.stt",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.stt.model",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.stt.provider",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "openai"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tailscale",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tailscale.mode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "off",
-        "serve",
-        "funnel"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Tailscale Mode",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tailscale.path",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "storage"
-      ],
-      "label": "Tailscale Path",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.telnyx",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.telnyx.apiKey",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security"
-      ],
-      "label": "Telnyx API Key",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.telnyx.connectionId",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Telnyx Connection ID",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.telnyx.publicKey",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "security"
-      ],
-      "label": "Telnyx Public Key",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.toNumber",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Default To Number",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.transcriptTimeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.auto",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "off",
-        "always",
-        "inbound",
-        "tagged"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.maxTextLength",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.mode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "final",
-        "all"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.allowModelId",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.allowNormalization",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.allowProvider",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.allowSeed",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.allowText",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.allowVoice",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.allowVoiceSettings",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.modelOverrides.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.prefsPath",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.provider",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "media"
-      ],
-      "label": "TTS Provider Override",
-      "help": "Deep-merges with messages.tts (Microsoft is ignored for calls).",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.*",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.*.apiKey",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "media",
-        "security"
-      ],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.lang",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.outputFormat",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.pitch",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.proxy",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.rate",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.saveSubtitles",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.timeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.voice",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.edge.volume",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.apiKey",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "advanced",
-        "auth",
-        "media",
-        "security"
-      ],
-      "label": "ElevenLabs API Key",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.applyTextNormalization",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "auto",
-        "on",
-        "off"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "media",
-        "url-secret"
-      ],
-      "label": "ElevenLabs Base URL",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.languageCode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.modelId",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "media",
-        "models"
-      ],
-      "label": "ElevenLabs Model ID",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.seed",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.voiceId",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "media"
-      ],
-      "label": "ElevenLabs Voice ID",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.voiceSettings",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.voiceSettings.similarityBoost",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.voiceSettings.speed",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.voiceSettings.stability",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.voiceSettings.style",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.elevenlabs.voiceSettings.useSpeakerBoost",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.lang",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.outputFormat",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.pitch",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.proxy",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.rate",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.saveSubtitles",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.timeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.voice",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.microsoft.volume",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.openai",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.openai.apiKey",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "advanced",
-        "auth",
-        "media",
-        "security"
-      ],
-      "label": "OpenAI API Key",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.openai.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "media",
-        "url-secret"
-      ],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.openai.instructions",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.openai.model",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "media",
-        "models"
-      ],
-      "label": "OpenAI TTS Model",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.openai.speed",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.providers.openai.voice",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "media"
-      ],
-      "label": "OpenAI TTS Voice",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.summaryModel",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tts.timeoutMs",
-      "kind": "plugin",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tunnel",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tunnel.allowNgrokFreeTierLoopbackBypass",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access",
-        "advanced"
-      ],
-      "label": "Allow ngrok Free Tier (Loopback Bypass)",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tunnel.ngrokAuthToken",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "advanced",
-        "auth",
-        "security"
-      ],
-      "label": "ngrok Auth Token",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tunnel.ngrokDomain",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "ngrok Domain",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.tunnel.provider",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "none",
-        "ngrok",
-        "tailscale-serve",
-        "tailscale-funnel"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Tunnel Provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.twilio",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.twilio.accountSid",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Twilio Account SID",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.twilio.authToken",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security"
-      ],
-      "label": "Twilio Auth Token",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.webhookSecurity",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.webhookSecurity.allowedHosts",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.webhookSecurity.allowedHosts.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.webhookSecurity.trustedProxyIPs",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.config.webhookSecurity.trustedProxyIPs.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.config.webhookSecurity.trustForwardingHeaders",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/voice-call",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.voice-call.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.voice-call.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.volcengine",
       "kind": "plugin",
       "type": "object",
@@ -21480,34 +16510,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/volcengine-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.volcengine.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.volcengine.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -21660,34 +16662,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.xai.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.xai.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.xai.subagent",
       "kind": "plugin",
       "type": "object",
@@ -21781,34 +16755,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.xiaomi.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.xiaomi.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.xiaomi.subagent",
       "kind": "plugin",
       "type": "object",
@@ -21899,34 +16845,6 @@
         "advanced"
       ],
       "label": "Enable @crawclaw/zai-provider",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.zai.hooks",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Hook Policy",
-      "help": "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.zai.hooks.allowPromptInjection",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Prompt Injection Hooks",
-      "help": "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
       "hasChildren": false
     },
     {
@@ -23429,7 +18347,7 @@
         "storage"
       ],
       "label": "Session Typing Interval (seconds)",
-      "help": "Controls interval for repeated typing indicators while replies are being prepared in typing-capable channels. Increase to reduce chatty updates or decrease for more active typing feedback.",
+      "help": "Controls interval for repeated typing indicators while replies are being prepared. Increase to reduce chatty updates or decrease for more active typing feedback.",
       "hasChildren": false
     },
     {
@@ -26327,7 +21245,7 @@
         "tools"
       ],
       "label": "Image Understanding Prompt",
-      "help": "Instruction template used for image understanding requests to shape extraction style and detail level. Keep prompts deterministic so outputs stay consistent across turns and channels.",
+      "help": "Instruction template used for image understanding requests to shape extraction style and detail level. Keep prompts deterministic so outputs stay consistent across turns and chat surfaces.",
       "hasChildren": false
     },
     {
@@ -28270,8 +23188,8 @@
       "tags": [
         "advanced"
       ],
-      "label": "Web Channel",
-      "help": "Web channel runtime settings for heartbeat and reconnect behavior when operating web-based chat surfaces. Use reconnect values tuned to your network reliability profile and expected uptime needs.",
+      "label": "Web Chat",
+      "help": "Web chat runtime settings for heartbeat and reconnect behavior when operating web-based chat surfaces. Use reconnect values tuned to your network reliability profile and expected uptime needs.",
       "hasChildren": true
     },
     {
@@ -28284,8 +23202,8 @@
       "tags": [
         "advanced"
       ],
-      "label": "Web Channel Enabled",
-      "help": "Enables the web channel runtime and related websocket lifecycle behavior. Keep disabled when web chat is unused to reduce active connection management overhead.",
+      "label": "Web Chat Enabled",
+      "help": "Enables the web chat runtime and related websocket lifecycle behavior. Keep disabled when web chat is unused to reduce active connection management overhead.",
       "hasChildren": false
     },
     {
@@ -28298,8 +23216,8 @@
       "tags": [
         "automation"
       ],
-      "label": "Web Channel Heartbeat Interval (sec)",
-      "help": "Heartbeat interval in seconds for web channel connectivity and liveness maintenance. Use shorter intervals for faster detection, or longer intervals to reduce keepalive chatter.",
+      "label": "Web Chat Heartbeat Interval (sec)",
+      "help": "Heartbeat interval in seconds for web chat connectivity and liveness maintenance. Use shorter intervals for faster detection, or longer intervals to reduce keepalive chatter.",
       "hasChildren": false
     },
     {
@@ -28312,8 +23230,8 @@
       "tags": [
         "advanced"
       ],
-      "label": "Web Channel Reconnect Policy",
-      "help": "Reconnect backoff policy for web channel reconnect attempts after transport failure. Keep bounded retries and jitter tuned to avoid thundering-herd reconnect behavior.",
+      "label": "Web Chat Reconnect Policy",
+      "help": "Reconnect backoff policy for web chat reconnect attempts after transport failure. Keep bounded retries and jitter tuned to avoid thundering-herd reconnect behavior.",
       "hasChildren": true
     },
     {
@@ -28327,7 +23245,7 @@
         "advanced"
       ],
       "label": "Web Reconnect Backoff Factor",
-      "help": "Exponential backoff multiplier used between reconnect attempts in web channel retry loops. Keep factor above 1 and tune with jitter for stable large-fleet reconnect behavior.",
+      "help": "Exponential backoff multiplier used between reconnect attempts in web chat retry loops. Keep factor above 1 and tune with jitter for stable large-fleet reconnect behavior.",
       "hasChildren": false
     },
     {

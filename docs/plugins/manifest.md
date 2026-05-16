@@ -62,7 +62,7 @@ Those belong in your plugin code and `package.json`.
 
 ```json
 {
-  "id": "voice-call",
+  "id": "my-plugin",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,
@@ -80,7 +80,6 @@ Those belong in your plugin code and `package.json`.
   "description": "OpenRouter provider plugin",
   "version": "1.0.0",
   "providers": ["openrouter"],
-  "cliBackends": ["openrouter-cli"],
   "providerAuthEnvVars": {
     "openrouter": ["OPENROUTER_API_KEY"]
   },
@@ -129,10 +128,9 @@ Those belong in your plugin code and `package.json`.
 | `kind`                | No       | `"memory"`                 | Declares the exclusive memory plugin kind used by `plugins.slots.memory`.                                                    |
 | `channels`            | No       | `string[]`                 | Channel ids owned by this plugin. Used for discovery and config validation.                                                  |
 | `providers`           | No       | `string[]`                 | Provider ids owned by this plugin.                                                                                           |
-| `cliBackends`         | No       | `string[]`                 | Local process backend ids owned by this plugin. Used for startup auto-activation from explicit config refs.                  |
 | `providerAuthEnvVars` | No       | `Record<string, string[]>` | Cheap provider-auth env metadata that CrawClaw can inspect without loading plugin code.                                      |
 | `providerAuthChoices` | No       | `object[]`                 | Cheap auth-choice metadata for onboarding pickers, preferred-provider resolution, and simple CLI flag wiring.                |
-| `contracts`           | No       | `object`                   | Static bundled capability snapshot for speech, media-understanding, web search, and tool ownership.                          |
+| `contracts`           | No       | `object`                   | Static bundled capability snapshot for speech, web search, and tool ownership.                                               |
 | `skills`              | No       | `string[]`                 | Skill directories to load, relative to the plugin root.                                                                      |
 | `name`                | No       | `string`                   | Human-readable plugin name.                                                                                                  |
 | `description`         | No       | `string`                   | Short summary shown in plugin surfaces.                                                                                      |
@@ -197,7 +195,6 @@ read without importing the plugin runtime.
 {
   "contracts": {
     "speechProviders": ["openai"],
-    "mediaUnderstandingProviders": ["openai", "openai-codex"],
     "webSearchProviders": ["gemini"],
     "tools": []
   }
@@ -206,17 +203,16 @@ read without importing the plugin runtime.
 
 Each list is optional:
 
-| Field                         | Type       | What it means                                                  |
-| ----------------------------- | ---------- | -------------------------------------------------------------- |
-| `speechProviders`             | `string[]` | Speech provider ids this plugin owns.                          |
-| `mediaUnderstandingProviders` | `string[]` | Media-understanding provider ids this plugin owns.             |
-| `webSearchProviders`          | `string[]` | Web-search provider ids this plugin owns.                      |
-| `tools`                       | `string[]` | Agent tool names this plugin owns for bundled contract checks. |
+| Field                | Type       | What it means                                                  |
+| -------------------- | ---------- | -------------------------------------------------------------- |
+| `speechProviders`    | `string[]` | Speech provider ids this plugin owns.                          |
+| `webSearchProviders` | `string[]` | Web-search provider ids this plugin owns.                      |
+| `tools`              | `string[]` | Agent tool names this plugin owns for bundled contract checks. |
 
-Legacy top-level `speechProviders` and `mediaUnderstandingProviders` are
-deprecated. Use CrawClaw Desktop or the local Gateway API to move them under `contracts`; normal
-manifest loading no longer treats top-level legacy fields as capability
-ownership.
+Legacy top-level `speechProviders` is deprecated. Use CrawClaw Desktop or the local
+Gateway API to move it under `contracts`; normal manifest loading no longer treats
+top-level legacy fields as capability ownership. Legacy `mediaUnderstandingProviders`
+is removed and no longer has a `contracts` replacement.
 
 ## Native sidecar discovery
 
@@ -333,8 +329,8 @@ See [Configuration reference](/gateway/configuration) for the full `plugins.*` s
 - Exclusive plugin kinds are selected through `plugins.slots.*`.
   - `kind: "memory"` is the only supported exclusive plugin kind.
   - Legacy `kind: "context-engine"` manifests are rejected by the loader.
-- `channels`, `providers`, `cliBackends`, and `skills` can be omitted when a
-  plugin does not need them.
+- `channels`, `providers`, and `skills` can be omitted when a plugin does not
+  need them.
 - If your plugin depends on native modules, document the build steps and any
   package-manager allowlist requirements (for example, pnpm `allow-build-scripts`
   - `pnpm rebuild <package>`).

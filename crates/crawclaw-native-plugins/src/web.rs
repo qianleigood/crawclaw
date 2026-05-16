@@ -14,7 +14,6 @@ const DEFAULT_SEARCH_COUNT: usize = 5;
 const DEFAULT_TIMEOUT_SECONDS: u64 = 20;
 const DESKTOP_USER_AGENT: &str =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-const OPEN_WEBSEARCH_VERSION: &str = "2.1.5";
 const OPEN_WEBSEARCH_DEFAULT_HOST: &str = "127.0.0.1";
 const OPEN_WEBSEARCH_DEFAULT_PORT: u64 = 3210;
 const OPEN_WEBSEARCH_DEFAULT_STARTUP_TIMEOUT_MS: u64 = 20_000;
@@ -53,14 +52,11 @@ pub async fn run_open_websearch_search(input: Value) -> NativeResult<Value> {
     let auto_start = read_bool(params, "autoStart")
         .or_else(|| nested_bool(&input, &["pluginConfig", "webSearch", "autoStart"]))
         .unwrap_or(true);
-    let auto_install = read_bool(params, "autoInstall")
-        .or_else(|| nested_bool(&input, &["pluginConfig", "webSearch", "autoInstall"]))
-        .unwrap_or(true);
     let startup_timeout_ms = read_u64(params, "startupTimeoutMs")
         .or_else(|| nested_u64(&input, &["pluginConfig", "webSearch", "startupTimeoutMs"]))
         .unwrap_or(OPEN_WEBSEARCH_DEFAULT_STARTUP_TIMEOUT_MS);
     if auto_start {
-        ensure_open_websearch_daemon(&input, &base_url, startup_timeout_ms, auto_install).await?;
+        ensure_open_websearch_daemon(&input, &base_url, startup_timeout_ms).await?;
     }
     let engines = read_string_array(params, "engines");
     let timeout_seconds = read_u64(params, "timeoutSeconds").unwrap_or(DEFAULT_TIMEOUT_SECONDS);
@@ -92,13 +88,10 @@ pub async fn start_open_websearch_service(input: Value) -> NativeResult<Value> {
             format!("http://{host}:{port}")
         });
     validate_open_websearch_base_url(&base_url)?;
-    let auto_install = read_bool(params, "autoInstall")
-        .or_else(|| nested_bool(&input, &["pluginConfig", "webSearch", "autoInstall"]))
-        .unwrap_or(true);
     let startup_timeout_ms = read_u64(params, "startupTimeoutMs")
         .or_else(|| nested_u64(&input, &["pluginConfig", "webSearch", "startupTimeoutMs"]))
         .unwrap_or(OPEN_WEBSEARCH_DEFAULT_STARTUP_TIMEOUT_MS);
-    ensure_open_websearch_daemon(&input, &base_url, startup_timeout_ms, auto_install).await?;
+    ensure_open_websearch_daemon(&input, &base_url, startup_timeout_ms).await?;
     Ok(json!({
         "status": "running",
         "provider": "open-websearch",
@@ -493,7 +486,6 @@ pub fn parse_open_websearch_response_text(
 pub fn open_websearch_runtime_bin_candidates(
     workspace_dir: Option<&Path>,
     state_dir: Option<&Path>,
-    node_major: u64,
 ) -> Vec<PathBuf> {
     let bin = managed_bin_name("open-websearch");
     let mut candidates = Vec::new();
@@ -523,7 +515,6 @@ pub fn open_websearch_runtime_bin_candidates(
         candidates.push(
             state_dir
                 .join("runtimes")
-                .join(format!("node-{node_major}"))
                 .join("open-websearch")
                 .join("node_modules")
                 .join(".bin")
@@ -531,19 +522,6 @@ pub fn open_websearch_runtime_bin_candidates(
         );
     }
     candidates
-}
-
-pub fn install_open_websearch_runtime_from_env() -> NativeResult<Value> {
-    let state_dir = state_dir();
-    let node_major = runtime_node_major();
-    let bin_path = install_open_websearch_runtime(&state_dir, node_major)?;
-    Ok(json!({
-        "state": "healthy",
-        "runtime": "node",
-        "version": OPEN_WEBSEARCH_VERSION,
-        "binPath": bin_path.to_string_lossy(),
-        "installedAt": now_iso_like()
-    }))
 }
 
 pub fn install_scrapling_runtime_from_env() -> NativeResult<Value> {
@@ -744,7 +722,6 @@ async fn ensure_open_websearch_daemon(
     input: &Value,
     base_url: &str,
     startup_timeout_ms: u64,
-    auto_install: bool,
 ) -> NativeResult<()> {
     let parsed = Url::parse(base_url).map_err(|_| {
         invalid_input("Open-WebSearch base URL must be a valid http:// or https:// URL.")
@@ -759,7 +736,7 @@ async fn ensure_open_websearch_daemon(
     let port = parsed
         .port_or_known_default()
         .unwrap_or(OPEN_WEBSEARCH_DEFAULT_PORT as u16);
-    let bin = resolve_open_websearch_runtime_bin(input, auto_install)?;
+    let bin = resolve_open_websearch_runtime_bin(input)?;
     spawn_open_websearch_daemon(&bin, host, port)?;
     wait_for_http_ready(
         build_open_websearch_status_url(base_url)?.as_str(),
@@ -783,62 +760,19 @@ fn build_open_websearch_status_url(base_url: &str) -> NativeResult<Url> {
     Ok(url)
 }
 
-fn resolve_open_websearch_runtime_bin(input: &Value, auto_install: bool) -> NativeResult<PathBuf> {
+fn resolve_open_websearch_runtime_bin(input: &Value) -> NativeResult<PathBuf> {
     let workspace_dir = workspace_dir(input);
     let state_dir = state_dir();
-    let node_major = runtime_node_major();
-    for candidate in open_websearch_runtime_bin_candidates(
-        workspace_dir.as_deref(),
-        Some(state_dir.as_path()),
-        node_major,
-    ) {
+    for candidate in
+        open_websearch_runtime_bin_candidates(workspace_dir.as_deref(), Some(&state_dir))
+    {
         if candidate.exists() {
             return Ok(candidate);
         }
     }
-    if auto_install {
-        return install_open_websearch_runtime(&state_dir, node_major);
-    }
     Err(runtime_error(
-        "Open-WebSearch runtime is not installed. Run `crawclaw runtimes install` or enable autoInstall.",
+        "Open-WebSearch runtime is not installed. Configure an explicit native Open-WebSearch runtime or disable autoStart.",
     ))
-}
-
-fn install_open_websearch_runtime(state_dir: &Path, node_major: u64) -> NativeResult<PathBuf> {
-    let runtime_dir = state_dir
-        .join("runtimes")
-        .join(format!("node-{node_major}"))
-        .join("open-websearch");
-    fs::create_dir_all(&runtime_dir)?;
-    let package = format!("open-websearch@{OPEN_WEBSEARCH_VERSION}");
-    let status = Command::new(npm_command())
-        .arg("install")
-        .arg("--prefix")
-        .arg(&runtime_dir)
-        .arg(&package)
-        .env("NO_COLOR", "1")
-        .status()
-        .map_err(|error| {
-            runtime_error(format!(
-                "Failed to start npm for Open-WebSearch install: {error}"
-            ))
-        })?;
-    if !status.success() {
-        return Err(runtime_error(format!(
-            "Open-WebSearch runtime install failed with status {status}."
-        )));
-    }
-    let bin = runtime_dir
-        .join("node_modules")
-        .join(".bin")
-        .join(managed_bin_name("open-websearch"));
-    if !bin.exists() {
-        return Err(runtime_error(format!(
-            "Open-WebSearch binary missing after install: {}",
-            bin.display()
-        )));
-    }
-    Ok(bin)
 }
 
 fn spawn_open_websearch_daemon(bin: &Path, host: &str, port: u16) -> NativeResult<()> {
@@ -908,7 +842,7 @@ fn resolve_scrapling_python(input: &Value, bootstrap: bool) -> NativeResult<Path
         return install_scrapling_runtime(&state_dir);
     }
     Err(runtime_error(
-        "Scrapling fetch runtime is not installed. Run `crawclaw runtimes install` or enable service.bootstrap.",
+        "Scrapling fetch runtime is not installed. Configure the native Scrapling sidecar runtime or enable service.bootstrap.",
     ))
 }
 
@@ -1185,33 +1119,11 @@ fn daemon_log_file(name: &str) -> NativeResult<std::fs::File> {
         .map_err(NativeError::from)
 }
 
-fn runtime_node_major() -> u64 {
-    env::var("CRAWCLAW_RUNTIME_NODE_VERSION")
-        .ok()
-        .and_then(|value| {
-            value
-                .trim()
-                .trim_start_matches('v')
-                .split('.')
-                .next()
-                .and_then(|major| major.parse::<u64>().ok())
-        })
-        .unwrap_or(0)
-}
-
 fn managed_bin_name(name: &str) -> String {
     if cfg!(windows) {
         format!("{name}.cmd")
     } else {
         name.to_string()
-    }
-}
-
-fn npm_command() -> &'static str {
-    if cfg!(windows) {
-        "npm.cmd"
-    } else {
-        "npm"
     }
 }
 

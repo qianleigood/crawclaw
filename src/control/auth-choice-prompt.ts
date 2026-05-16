@@ -28,14 +28,14 @@ export async function promptAuthChoiceGrouped(params: {
       ...(skipOption ? [skipOption] : []),
     ];
 
-    const providerSelection = (await params.prompter.select({
+    const providerSelection = await params.prompter.select({
       message: translateActiveCliText("Model/auth provider"),
       options: providerOptions.map((option) => ({
         ...option,
         label: translateActiveCliText(option.label),
         ...(option.hint ? { hint: translateActiveCliText(option.hint) } : {}),
       })),
-    })) as string;
+    });
 
     if (providerSelection === "skip") {
       return "skip";

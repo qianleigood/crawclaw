@@ -34,17 +34,13 @@ If you need transcript storage details, see:
 
 ## Where this runs
 
-All transcript hygiene is centralized in the embedded runner:
+Transcript hygiene is part of the Rust AgentRuntime context assembly path. The
+runtime uses provider, model API, and model id metadata to decide which
+in-memory adjustments to apply before model transport.
 
-- Policy selection: `src/agents/transcript-policy.ts`
-- Sanitization/repair application: `sanitizeSessionHistory` in `src/agents/pi-embedded-runner/google.ts`
-
-The policy uses `provider`, `modelApi`, and `modelId` to decide what to apply.
-
-Separate from transcript hygiene, session files are repaired (if needed) before load:
-
-- `repairSessionFileIfNeeded` in `src/agents/session-file-repair.ts`
-- Called from `run/attempt.ts` and `compact.ts` (embedded runner)
+Separate from transcript hygiene, session files may be repaired before load when
+the runtime detects malformed JSONL. Repair is a storage guard, not a provider
+policy hook.
 
 ---
 
@@ -58,7 +54,7 @@ Lower max dimensions generally reduce token usage; higher dimensions preserve de
 
 Implementation:
 
-- `sanitizeSessionMessagesImages` in `src/agents/pi-embedded-helpers/images.ts`
+- `sanitizeSessionMessagesImages` in `src/agents/runtime-helpers/images.ts`
 - `sanitizeContentBlocksImages` in `src/agents/tool-images.ts`
 - Max image side is configurable via `agents.defaults.imageMaxDimensionPx` (default: `1200`).
 
@@ -70,10 +66,8 @@ Assistant tool-call blocks that are missing both `input` and `arguments` are dro
 before model context is built. This prevents provider rejections from partially
 persisted tool calls (for example, after a rate limit failure).
 
-Implementation:
-
-- `sanitizeToolCallInputs` in `src/agents/session-transcript-repair.ts`
-- Applied in `sanitizeSessionHistory` in `src/agents/pi-embedded-runner/google.ts`
+Implementation detail: this is applied during runtime context assembly before
+the provider request is built.
 
 ---
 
@@ -106,7 +100,7 @@ external end-user instructions.
 - No synthetic tool results.
 - No thought signature stripping.
 
-**Google (Generative AI / Gemini CLI / Antigravity)**
+**Google (Generative AI / Antigravity)**
 
 - Tool call id sanitization: strict alphanumeric.
 - Tool result pairing repair and synthetic tool results.

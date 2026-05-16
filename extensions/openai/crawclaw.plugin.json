@@ -1,8 +1,12 @@
 {
   "id": "openai",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["openai", "openai-codex"],
-  "cliBackends": ["codex-cli"],
   "providerAuthEnvVars": {
     "openai": ["OPENAI_API_KEY"]
   },
@@ -32,9 +36,6 @@
       "cliDescription": "OpenAI API key"
     }
   ],
-  "contracts": {
-    "mediaUnderstandingProviders": ["openai", "openai-codex"]
-  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

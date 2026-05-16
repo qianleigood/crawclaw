@@ -10,7 +10,7 @@ describe("gateway startup log", () => {
       cfg: {
         gateway: {
           browserClients: {
-            dangerouslyDisableDeviceAuth: true,
+            allowInsecureAuth: true,
           },
         },
       },
@@ -23,7 +23,7 @@ describe("gateway startup log", () => {
     expect(warn).toHaveBeenCalledTimes(1);
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("dangerous config flags enabled"));
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining("gateway.browserClients.dangerouslyDisableDeviceAuth=true"),
+      expect.stringContaining("gateway.browserClients.allowInsecureAuth=true"),
     );
     expect(warn).toHaveBeenCalledWith(expect.stringContaining("crawclaw security audit"));
   });

@@ -14,18 +14,6 @@ describe("normalizeConfigPaths", () => {
           path: "~/.crawclaw/hooks.json5",
           transformsDir: "~/hooks-xform",
         },
-        channels: {
-          feishu: {
-            accounts: {
-              personal: {
-                tokenFile: "~/.crawclaw/feishu.token",
-              },
-            },
-          },
-          weixin: {
-            accounts: { personal: { dbPath: "~/Library/Messages/chat.db" } },
-          },
-        },
         agents: {
           defaults: { workspace: "~/ws-default" },
           list: [
@@ -46,12 +34,6 @@ describe("normalizeConfigPaths", () => {
       expect(cfg.hooks?.path).toBe(path.join(home, ".crawclaw", "hooks.json5"));
       expect(cfg.hooks?.transformsDir).toBe(path.join(home, "hooks-xform"));
       expect(cfg.tools?.exec?.pathPrepend?.[0]).toBe(path.join(home, "bin"));
-      expect(cfg.channels?.feishu?.accounts?.personal?.tokenFile).toBe(
-        path.join(home, ".crawclaw", "feishu.token"),
-      );
-      expect(cfg.channels?.weixin?.accounts?.personal?.dbPath).toBe(
-        path.join(home, "Library", "Messages", "chat.db"),
-      );
       expect(cfg.agents?.defaults?.workspace).toBe(path.join(home, "ws-default"));
       expect(cfg.agents?.list?.[0]?.workspace).toBe(path.join(home, "ws-agent"));
       expect(cfg.agents?.list?.[0]?.agentDir).toBe(path.join(home, ".crawclaw", "agents", "main"));

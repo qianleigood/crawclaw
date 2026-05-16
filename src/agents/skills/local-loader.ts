@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
-import { createSyntheticSourceInfo, type Skill } from "@mariozechner/pi-coding-agent";
 import { openVerifiedFileSync } from "../../infra/safe-open-sync.js";
 import { parseFrontmatter, resolveSkillInvocationPolicy } from "./frontmatter.js";
+import type { Skill, SkillSourceInfo } from "./types.js";
 
 function isPathWithinRoot(rootRealPath: string, candidatePath: string): boolean {
   const relative = path.relative(rootRealPath, candidatePath);
@@ -67,6 +67,12 @@ function loadSingleSkillDirectory(params: {
   const invocation = resolveSkillInvocationPolicy(frontmatter);
   const filePath = path.resolve(skillFilePath);
   const baseDir = path.resolve(params.skillDir);
+  const sourceInfo: SkillSourceInfo = {
+    source: params.source,
+    baseDir,
+    scope: "project",
+    origin: "top-level",
+  };
 
   return {
     name,
@@ -74,12 +80,7 @@ function loadSingleSkillDirectory(params: {
     filePath,
     baseDir,
     source: params.source,
-    sourceInfo: createSyntheticSourceInfo(filePath, {
-      source: params.source,
-      baseDir,
-      scope: "project",
-      origin: "top-level",
-    }),
+    sourceInfo,
     disableModelInvocation: invocation.disableModelInvocation,
   };
 }

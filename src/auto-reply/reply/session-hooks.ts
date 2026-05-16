@@ -1,17 +1,17 @@
 import { resolveSessionAgentId } from "../../agents/agent-scope.js";
 import type { CrawClawConfig } from "../../config/config.js";
 
-export type SessionHookContext = {
+export type SessionToolCallPreflightContext = {
   sessionId: string;
   sessionKey: string;
   agentId: string;
 };
 
-function buildSessionHookContext(params: {
+function buildSessionToolCallPreflightContext(params: {
   sessionId: string;
   sessionKey: string;
   cfg: CrawClawConfig;
-}): SessionHookContext {
+}): SessionToolCallPreflightContext {
   return {
     sessionId: params.sessionId,
     sessionKey: params.sessionKey,
@@ -26,7 +26,7 @@ export function buildSessionStartHookPayload(params: {
   resumedFrom?: string;
 }): {
   event: { sessionId: string; sessionKey: string; resumedFrom?: string };
-  context: SessionHookContext;
+  context: SessionToolCallPreflightContext;
 } {
   return {
     event: {
@@ -34,7 +34,7 @@ export function buildSessionStartHookPayload(params: {
       sessionKey: params.sessionKey,
       resumedFrom: params.resumedFrom,
     },
-    context: buildSessionHookContext({
+    context: buildSessionToolCallPreflightContext({
       sessionId: params.sessionId,
       sessionKey: params.sessionKey,
       cfg: params.cfg,
@@ -49,7 +49,7 @@ export function buildSessionEndHookPayload(params: {
   messageCount?: number;
 }): {
   event: { sessionId: string; sessionKey: string; messageCount: number };
-  context: SessionHookContext;
+  context: SessionToolCallPreflightContext;
 } {
   return {
     event: {
@@ -57,7 +57,7 @@ export function buildSessionEndHookPayload(params: {
       sessionKey: params.sessionKey,
       messageCount: params.messageCount ?? 0,
     },
-    context: buildSessionHookContext({
+    context: buildSessionToolCallPreflightContext({
       sessionId: params.sessionId,
       sessionKey: params.sessionKey,
       cfg: params.cfg,

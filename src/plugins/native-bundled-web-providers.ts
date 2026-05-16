@@ -1,6 +1,6 @@
-import { runCrawClawRuntimeTool } from "../agents/runtime-tools/native.js";
 import { readNumberParam, readStringArrayParam, readStringParam } from "../agents/tools/common.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { callGateway } from "../gateway/call.js";
 import { enablePluginInConfig } from "./enable.js";
 import type {
   PluginWebFetchProviderEntry,
@@ -102,12 +102,18 @@ function openWebSearchProvider(): WebSearchProviderPlugin {
         },
       },
       execute: async (args) =>
-        await runCrawClawRuntimeTool("web_search", {
-          query: readStringParam(args, "query", { required: true }),
-          count: readNumberParam(args, "count", { integer: true }),
-          engines: readStringArrayParam(args, "engines"),
-          timeoutSeconds: readNumberParam(args, "timeoutSeconds", { integer: true }),
-          pluginConfig: pluginConfig(ctx.config, OPEN_WEBSEARCH_PLUGIN_ID),
+        await callGateway({
+          method: "tools.invoke",
+          params: {
+            tool: "web_search",
+            input: {
+              query: readStringParam(args, "query", { required: true }),
+              count: readNumberParam(args, "count", { integer: true }),
+              engines: readStringArrayParam(args, "engines"),
+              timeoutSeconds: readNumberParam(args, "timeoutSeconds", { integer: true }),
+              pluginConfig: pluginConfig(ctx.config, OPEN_WEBSEARCH_PLUGIN_ID),
+            },
+          },
         }),
     }),
   };
@@ -167,21 +173,27 @@ function scraplingFetchProvider(): WebFetchProviderPlugin {
         },
       },
       execute: async (args) =>
-        await runCrawClawRuntimeTool("web_fetch", {
-          url: readStringParam(args, "url", { required: true }),
-          output: readStringParam(args, "output"),
-          extractMode: readStringParam(args, "extractMode"),
-          detail: readStringParam(args, "detail"),
-          render: readStringParam(args, "render"),
-          extract: readStringParam(args, "extract"),
-          maxChars: readNumberParam(args, "maxChars", { integer: true }),
-          timeoutSeconds: readNumberParam(args, "timeoutSeconds", { integer: true }),
-          mainContentOnly:
-            typeof args.mainContentOnly === "boolean" ? args.mainContentOnly : undefined,
-          waitUntil: readStringParam(args, "waitUntil"),
-          waitFor: readStringParam(args, "waitFor"),
-          sessionId: readStringParam(args, "sessionId"),
-          pluginConfig: pluginConfig(ctx.config, SCRAPLING_FETCH_PLUGIN_ID),
+        await callGateway({
+          method: "tools.invoke",
+          params: {
+            tool: "web_fetch",
+            input: {
+              url: readStringParam(args, "url", { required: true }),
+              output: readStringParam(args, "output"),
+              extractMode: readStringParam(args, "extractMode"),
+              detail: readStringParam(args, "detail"),
+              render: readStringParam(args, "render"),
+              extract: readStringParam(args, "extract"),
+              maxChars: readNumberParam(args, "maxChars", { integer: true }),
+              timeoutSeconds: readNumberParam(args, "timeoutSeconds", { integer: true }),
+              mainContentOnly:
+                typeof args.mainContentOnly === "boolean" ? args.mainContentOnly : undefined,
+              waitUntil: readStringParam(args, "waitUntil"),
+              waitFor: readStringParam(args, "waitFor"),
+              sessionId: readStringParam(args, "sessionId"),
+              pluginConfig: pluginConfig(ctx.config, SCRAPLING_FETCH_PLUGIN_ID),
+            },
+          },
         }),
     }),
   };

@@ -1,12 +1,15 @@
 import fs from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { setTimeout as scheduleNativeTimeout } from "node:timers";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { createCronStoreHarness } from "./service.test-harness.js";
 import { loadCronStore, resolveCronStorePath, saveCronStore } from "./store.js";
 import type { CronStoreFile } from "./types.js";
 
-const { makeStorePath } = createCronStoreHarness({ prefix: "crawclaw-cron-store-" });
+async function makeStorePath() {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-cron-store-"));
+  return { storePath: path.join(dir, "jobs.json") };
+}
 
 function makeStore(jobId: string, enabled: boolean): CronStoreFile {
   const now = Date.now();

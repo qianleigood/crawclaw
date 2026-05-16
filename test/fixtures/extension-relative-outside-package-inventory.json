@@ -1,10 +1,1 @@
-[
-  {
-    "file": "extensions/voice-call/runtime-api.ts",
-    "line": 4,
-    "kind": "export",
-    "specifier": "../../src/plugin-sdk/voice-call.js",
-    "resolvedPath": "src/plugin-sdk/voice-call.js",
-    "reason": "re-exports plugin-sdk via relative path; use crawclaw/plugin-sdk/<subpath>"
-  }
-]
+[]

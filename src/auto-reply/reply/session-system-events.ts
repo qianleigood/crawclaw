@@ -1,6 +1,5 @@
 import { resolveUserTimezone } from "../../agents/date-time.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import { buildChannelSummary } from "../../infra/channel-summary.js";
 import {
   formatUtcTimestamp,
   formatZonedTimestamp,
@@ -93,14 +92,8 @@ export async function drainFormattedSystemEvents(params: {
         .map((subline, index) => `${prefix}: ${index === 0 ? `${timestamp} ` : ""}${subline}`);
     }),
   );
-  if (params.isMainSession && params.isNewSession) {
-    const summary = await buildChannelSummary(params.cfg);
-    if (summary.length > 0) {
-      systemLines.unshift(
-        ...summary.flatMap((line) => line.split("\n").map((subline) => `System: ${subline}`)),
-      );
-    }
-  }
+  void params.isMainSession;
+  void params.isNewSession;
   if (systemLines.length === 0) {
     return undefined;
   }

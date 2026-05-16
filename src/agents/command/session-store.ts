@@ -6,14 +6,12 @@ import {
   updateSessionStore,
 } from "../../config/sessions.js";
 import { estimateUsageCost, resolveModelCostConfig } from "../../utils/usage-format.js";
-import { setCliSessionBinding, setCliSessionId } from "../cli-session.js";
 import { resolveContextTokensForModel } from "../context.js";
 import { DEFAULT_CONTEXT_TOKENS } from "../defaults.js";
-import { isCliProvider } from "../model-selection.js";
-import type { NativeAgentRunResult } from "../runtime-tools/agent-turn-client.js";
+import type { RustAgentRunResult } from "../rust-agent-result.js";
 import { deriveSessionTotalTokens, hasNonzeroUsage } from "../usage.js";
 
-type RunResult = NativeAgentRunResult;
+type RunResult = RustAgentRunResult;
 
 function resolveNonNegativeNumber(value: number | undefined): number | undefined {
   return typeof value === "number" && Number.isFinite(value) && value >= 0 ? value : undefined;
@@ -74,17 +72,6 @@ export async function updateSessionStoreAfterAgentRun(params: {
     provider: providerUsed,
     model: modelUsed,
   });
-  if (isCliProvider(providerUsed, cfg)) {
-    const cliSessionBinding = result.meta.agentMeta?.cliSessionBinding;
-    if (cliSessionBinding?.sessionId?.trim()) {
-      setCliSessionBinding(next, providerUsed, cliSessionBinding);
-    } else {
-      const cliSessionId = result.meta.agentMeta?.sessionId?.trim();
-      if (cliSessionId) {
-        setCliSessionId(next, providerUsed, cliSessionId);
-      }
-    }
-  }
   next.abortedLastRun = result.meta.aborted ?? false;
   if (result.meta.systemPromptReport) {
     next.systemPromptReport = result.meta.systemPromptReport;

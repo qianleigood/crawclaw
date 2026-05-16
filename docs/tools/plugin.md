@@ -48,9 +48,9 @@ with CrawClaw), others are **external** (published on npm by the community).
 If you prefer chat-native control, enable `commands.plugins: true` and use:
 
 ```text
-/plugin install clawhub:@crawclaw/voice-call
-/plugin show voice-call
-/plugin enable voice-call
+/plugin install clawhub:@org/plugin-name
+/plugin show plugin-name
+/plugin enable plugin-name
 ```
 
 The install path uses the same resolver as the CLI: local path/archive, explicit
@@ -71,12 +71,6 @@ If you are writing a native plugin, start with [Building Plugins](/plugins/build
 and the [Plugin SDK Overview](/plugins/sdk-overview).
 
 ## Official plugins
-
-### Installable (npm)
-
-| Plugin     | Package                | Docs                              |
-| ---------- | ---------------------- | --------------------------------- |
-| Voice Call | `@crawclaw/voice-call` | [Voice Call](/plugins/voice-call) |
 
 ### Core (shipped with CrawClaw)
 
@@ -106,11 +100,11 @@ Looking for third-party plugins? See [Community Plugins](/plugins/community).
 {
   plugins: {
     enabled: true,
-    allow: ["voice-call"],
+    allow: ["trusted-plugin"],
     deny: ["untrusted-plugin"],
-    load: { paths: ["~/Projects/oss/voice-call-extension"] },
+    load: { paths: ["~/Projects/oss/crawclaw-plugin"] },
     entries: {
-      "voice-call": { enabled: true, config: { provider: "twilio" } },
+      "trusted-plugin": { enabled: true, config: {} },
     },
   },
 }
@@ -220,45 +214,28 @@ See [CrawClaw Desktop or the local Gateway API Gateway API reference](/tools/plu
 
 ## Plugin API overview
 
-Plugins export either a function or an object with `register(api)`:
+Plugins are discovered from `crawclaw.plugin.json` and Rust native descriptors.
+TypeScript package files are allowed for metadata, generated types, docs, and
+tests only; production runtime behavior does not run through a TypeScript
+callback.
 
-```typescript
-export default definePluginEntry({
-  id: "my-plugin",
-  name: "My Plugin",
-  register(api) {
-    api.registerTool({
-      /* ... */
-    });
-    api.registerCommand({
-      /* ... */
-    });
-  },
-});
-```
+Common capability surfaces:
 
-Common registration methods:
+| Method                            | What it registers    |
+| --------------------------------- | -------------------- |
+| Rust native speech descriptor     | Text-to-speech / STT |
+| Rust native media descriptor      | Image/audio analysis |
+| Rust native web-search descriptor | Web search           |
 
-| Method                               | What it registers               |
-| ------------------------------------ | ------------------------------- |
-| `registerTool`                       | Agent tool                      |
-| `registerSpeechProvider`             | Text-to-speech / STT            |
-| `registerMediaUnderstandingProvider` | Image/audio analysis            |
-| `registerWebSearchProvider`          | Web search                      |
-| `registerHttpRoute`                  | HTTP endpoint                   |
-| `registerCommand`                    | Agent command action            |
-| `registerGatewayMethod`              | Desktop and Gateway API actions |
-| `registerService`                    | Background service              |
-
-Model providers and typed lifecycle hooks are no longer plugin API surfaces.
-Configure custom LLM providers with `models.providers`; built-in provider
-metadata is owned by Rust.
+Model providers, tools, commands, Gateway methods, services, HTTP handlers, and
+typed lifecycle hooks are no longer TypeScript plugin API surfaces. Configure
+custom LLM providers with `models.providers`; runtime capabilities are owned by
+Rust.
 
 ## Related
 
 - [Building Plugins](/plugins/building-plugins) — create your own plugin
 - [Plugin Bundles](/plugins/bundles) — Codex/Claude/Cursor bundle compatibility
 - [Plugin Manifest](/plugins/manifest) — manifest schema
-- [Registering Tools](/plugins/building-plugins#registering-agent-tools) — add agent tools in a plugin
 - [Plugin Internals](/plugins/architecture) — capability model and load pipeline
 - [Community Plugins](/plugins/community) — third-party listings

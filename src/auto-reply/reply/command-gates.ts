@@ -2,7 +2,7 @@ import type { CommandFlagKey } from "../../config/commands.js";
 import { isCommandFlagEnabled } from "../../config/commands.js";
 import { logVerbose } from "../../globals.js";
 import { redactIdentifier } from "../../logging/redact-identifier.js";
-import { isInternalMessageChannel } from "../../utils/message-channel.js";
+import { isInternalMessageChannel } from "../../utils/gateway-client-surface.js";
 import type { ReplyPayload } from "../types.js";
 import type { CommandHandlerResult, HandleCommandsParams } from "./commands-types.js";
 

@@ -1,37 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { buildAllPluginInspectReports } from "../status.js";
-import { createPluginRegistryFixture, registerVirtualTestPlugin } from "./testkit.js";
+import { createPluginRecord } from "../status.test-helpers.js";
+import { createPluginRegistryFixture } from "./testkit.js";
 
 describe("plugin shape compatibility matrix", () => {
   it("classifies remaining plugin capabilities without TS provider or typed hook registration", () => {
     const { config, registry } = createPluginRegistryFixture();
 
-    registerVirtualTestPlugin({
-      registry,
-      config,
-      id: "hybrid-company",
-      name: "Hybrid Company",
-      register(api) {
-        api.registerWebSearchProvider({
-          id: "hybrid-search",
-          label: "Hybrid Search",
-          hint: "Search the web",
-          envVars: ["HYBRID_SEARCH_KEY"],
-          placeholder: "hsk_...",
-          signupUrl: "https://example.com/signup",
-          credentialPath: "tools.web.search.hybrid-search.apiKey",
-          getCredentialValue: () => "hsk-test",
-          setCredentialValue(searchConfigTarget, value) {
-            searchConfigTarget.apiKey = value;
-          },
-          createTool: () => ({
-            description: "Hybrid search",
-            parameters: {},
-            execute: async () => ({}),
-          }),
-        });
-      },
-    });
+    registry.registry.plugins.push(
+      createPluginRecord({
+        id: "hybrid-company",
+        name: "Hybrid Company",
+        source: "/virtual/hybrid-company/crawclaw.plugin.json",
+      }),
+    );
+    const plugin = registry.registry.plugins.find((entry) => entry.id === "hybrid-company");
+    if (!plugin) {
+      throw new Error("Expected hybrid-company plugin record");
+    }
+    plugin.webSearchProviderIds.push("hybrid-search");
 
     const inspect = buildAllPluginInspectReports({
       config,

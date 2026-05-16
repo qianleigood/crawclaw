@@ -10,7 +10,10 @@ import { isAcpSessionKey, parseAgentSessionKey } from "../routing/session-key.js
 import { extractTextFromChatContent } from "../shared/chat-content.js";
 import { readLatestAssistantReply } from "./tools/agent-step.js";
 import { sanitizeTextContent, extractAssistantText } from "./tools/sessions-helpers.js";
-import { isAnnounceSkip } from "./tools/sessions-send-helpers.js";
+
+function isAnnounceSkip(text: string | undefined): boolean {
+  return text?.trim().toUpperCase() === "NO_REPLY";
+}
 
 const FAST_TEST_RETRY_INTERVAL_MS = 8;
 

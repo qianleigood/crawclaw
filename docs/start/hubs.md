@@ -116,7 +116,6 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Plugin bundles](/plugins/bundles)
 - [Community plugins](/plugins/community)
 - [Capability cookbook](/tools/capability-cookbook)
-- [Voice call plugin](/plugins/voice-call)
 
 ## Workspace + templates
 

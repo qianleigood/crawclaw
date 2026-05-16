@@ -1,5 +1,4 @@
 const ENVELOPE_PREFIX = /^\[([^\]]+)\]\s*/;
-const ENVELOPE_CHANNELS = ["WebChat", "Weixin", "Feishu", "QQ Bot", "DingTalk", "ESP32"];
 
 const MESSAGE_ID_LINE = /^\s*\[message_id:\s*[^\]]+\]\s*$/i;
 function looksLikeEnvelopeHeader(header: string): boolean {
@@ -9,7 +8,7 @@ function looksLikeEnvelopeHeader(header: string): boolean {
   if (/\d{4}-\d{2}-\d{2} \d{2}:\d{2}\b/.test(header)) {
     return true;
   }
-  return ENVELOPE_CHANNELS.some((label) => header.startsWith(`${label} `));
+  return false;
 }
 
 export function stripEnvelope(text: string): string {

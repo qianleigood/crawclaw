@@ -162,8 +162,8 @@ Notes:
 - `browser.ssrfPolicy.allowPrivateNetwork` remains supported as a legacy alias for compatibility.
 - `color` + per-profile `color` tint the browser UI so you can see which profile is active.
 - Default profile is `crawclaw`.
-- The native runtime uses the managed `agent-browser` CLI under
-  `~/.crawclaw/runtimes/browser`.
+- The native runtime can launch an `agent-browser` CLI when one is explicitly
+  available to the native runtime.
 
 ## Runtime model
 

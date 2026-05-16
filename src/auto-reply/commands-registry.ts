@@ -11,11 +11,7 @@ import {
   translateSlashCommandText,
   translateSlashCommandChoiceLabel,
 } from "./commands-i18n.js";
-import {
-  getChatCommands,
-  getLocalizedChatCommands,
-  getNativeCommandSurfaces,
-} from "./commands-registry.data.js";
+import { assertCommandRegistry, buildBuiltinChatCommands } from "./commands-registry.shared.js";
 import type {
   ChatCommandDefinition,
   CommandArgChoiceContext,
@@ -53,6 +49,26 @@ let cachedTextAliasMap: Map<string, TextAliasSpec> | null = null;
 let cachedTextAliasCommands: ChatCommandDefinition[] | null = null;
 let cachedDetection: CommandDetection | undefined;
 let cachedDetectionCommands: ChatCommandDefinition[] | null = null;
+let cachedCommands: ChatCommandDefinition[] | null = null;
+
+function getChatCommands(): ChatCommandDefinition[] {
+  if (cachedCommands) {
+    return cachedCommands;
+  }
+  const commands = buildBuiltinChatCommands();
+  assertCommandRegistry(commands);
+  cachedCommands = commands;
+  return commands;
+}
+
+function getLocalizedChatCommands(cfg?: CrawClawConfig): ChatCommandDefinition[] {
+  const commands = getChatCommands();
+  return commands.map((command) => localizeChatCommandDefinition(command, cfg));
+}
+
+function getNativeCommandSurfaces(): Set<string> {
+  return new Set();
+}
 
 function getTextAliasMap(): Map<string, TextAliasSpec> {
   const commands = getChatCommands();

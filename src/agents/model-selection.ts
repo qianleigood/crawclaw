@@ -27,30 +27,6 @@ import {
 
 let log: ReturnType<typeof createSubsystemLogger> | null = null;
 
-type CliBackendRuntimeModule = typeof import("../plugins/cli-backends.runtime.js");
-
-const CLI_BACKEND_RUNTIME_CANDIDATES = [
-  "../plugins/cli-backends.runtime.js",
-  "../plugins/cli-backends.runtime.ts",
-] as const;
-
-let cliBackendRuntimeModule: CliBackendRuntimeModule | undefined;
-
-function loadCliBackendRuntime(): CliBackendRuntimeModule | null {
-  if (cliBackendRuntimeModule) {
-    return cliBackendRuntimeModule;
-  }
-  for (const candidate of CLI_BACKEND_RUNTIME_CANDIDATES) {
-    try {
-      cliBackendRuntimeModule = require(candidate) as CliBackendRuntimeModule;
-      return cliBackendRuntimeModule;
-    } catch {
-      // Try source/runtime candidates in order.
-    }
-  }
-  return null;
-}
-
 function getLog(): ReturnType<typeof createSubsystemLogger> {
   log ??= createSubsystemLogger("model-selection");
   return log;
@@ -103,16 +79,6 @@ export {
   normalizeProviderId,
   normalizeProviderIdForAuth,
 };
-
-export function isCliProvider(provider: string, cfg?: CrawClawConfig): boolean {
-  const normalized = normalizeProviderId(provider);
-  const cliBackends = loadCliBackendRuntime()?.resolveRuntimeCliBackends() ?? [];
-  if (cliBackends.some((backend) => normalizeProviderId(backend.id) === normalized)) {
-    return true;
-  }
-  const backends = cfg?.agents?.defaults?.cliBackends ?? {};
-  return Object.keys(backends).some((key) => normalizeProviderId(key) === normalized);
-}
 
 function normalizeAnthropicModelId(model: string): string {
   const trimmed = model.trim();
@@ -772,7 +738,7 @@ export function resolveHooksGmailModel(params: {
 /**
  * Normalize a model selection value (string or `{primary?: string}`) to a
  * plain trimmed string.  Returns `undefined` when the input is empty/missing.
- * Shared by sessions-spawn and cron isolated-agent model resolution.
+ * Shared by session spawn and runtime model resolution.
  */
 export function normalizeModelSelection(value: unknown): string | undefined {
   if (typeof value === "string") {

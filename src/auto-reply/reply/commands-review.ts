@@ -1,5 +1,5 @@
 import { isReviewSpawnSource } from "../../agents/review-agent.js";
-import { createRustSpecialAgentTool } from "../../agents/runtime-tools/core-tools.js";
+import { callGateway } from "../../gateway/call.js";
 import { logVerbose } from "../../globals.js";
 import type { CommandHandler, CommandHandlerResult } from "./commands-types.js";
 
@@ -24,6 +24,10 @@ type ReviewTaskToolDetails = {
   evidence?: string[];
   recommendedFixes?: string[];
   childRuns?: Array<{ childSessionKey?: string | null }>;
+};
+
+type ReviewTaskToolResult = {
+  details?: unknown;
 };
 
 function titleForVerdict(verdict: ReviewTaskToolDetails["verdict"]): string {
@@ -101,16 +105,20 @@ export const handleReviewCommand: CommandHandler = async (params, allowTextComma
   }
 
   const focus = match[1]?.trim();
-  const tool = createRustSpecialAgentTool("review_task", {
-    sessionKey: params.sessionKey,
-  });
 
   try {
     const task = focus
       ? `${DEFAULT_REVIEW_TASK}\n\nReview focus:\n- ${focus}`
       : DEFAULT_REVIEW_TASK;
-    const result = await tool.execute("command:/review", {
-      task,
+    const result = await callGateway<ReviewTaskToolResult>({
+      method: "tools.invoke",
+      params: {
+        tool: "review_task",
+        input: {
+          sessionKey: params.sessionKey,
+          task,
+        },
+      },
     });
     return formatReviewReply((result.details ?? {}) as ReviewTaskToolDetails);
   } catch (error) {

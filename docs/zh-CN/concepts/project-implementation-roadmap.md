@@ -362,7 +362,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 收口说明：
 
 - 这轮重点是先把最清晰的两条 owner 线 `command` 与 `subagents` 从根文件热点里抽出来。
-- 没有做机械搬目录，也没有直接碰 `pi-embedded-runner` 这种更高风险的主循环热点。
+- 没有做机械搬目录，也没有直接碰当时更高风险的主循环热点。
 - 后续如果继续细化 `agents`，应该优先沿现有子域做增量收口，而不是再往根层堆 helper。
 
 ### 产出
@@ -456,7 +456,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
   - `vitest run src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.test.ts src/auto-reply/reply/commands-core.test.ts`
   - `vitest run src/gateway/session-reset-service.test.ts src/config/sessions/sessions.test.ts -t "appendAssistantMessageToSessionTranscript"`
   - `vitest run src/gateway/session-utils.fs.test.ts -t "skips files that do not exist and archives only existing ones"`
-  - `pnpm lint src/sessions/runtime/reset-cleanup.ts src/gateway/session-reset-service.ts src/gateway/session-reset-service.test.ts src/sessions/runtime/reset-lifecycle.ts src/sessions/runtime/reset-lifecycle.test.ts src/sessions/transcript-archive.fs.ts src/sessions/runtime/reset-artifacts.ts src/sessions/runtime/reset-artifacts.test.ts src/sessions/runtime/reset-carry-over.ts src/sessions/runtime/reset-carry-over.test.ts src/auto-reply/reply/session.ts src/gateway/server-methods/sessions.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `pnpm lint` for session reset runtime, Gateway session reset service, auto-reply session, command core, and abort coverage.
   - `pnpm lint src/auto-reply/reply/acp-reset-adapter.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/abort.ts src/auto-reply/reply/commands-session-abort.ts src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts`
   - `pnpm lint src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.ts`
   - `pnpm lint src/sessions/runtime/before-reset-hook.ts src/sessions/runtime/before-reset-hook.test.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.ts`
@@ -546,7 +546,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - 已为 registry 增加“列出所有已注册 special agent contract 问题”的能力，先把定义层标准化拉成可测试入口。
 - 已新增 registry-level contract test，锁住当前已注册 special agent 定义的 contract 合法性。
 - 已新增 special-agent substrate definition preset，开始把共用 policy 从 memory runner 下沉回 substrate。
-- `memory-extraction / session-summary / dream` 已开始共用 embedded memory definition preset；`verification` 已开始共用 shared `runtime_deny` tool policy helper。
+- `memory-extraction / session-summary / dream` 已开始共用 runtime memory definition preset；`verification` 已开始共用 shared `runtime_deny` tool policy helper。
 - memory file maintenance allowlist 已抽成共享入口，减少 `dream` 与 `durable` 之间的定义层耦合。
 - 已新增 shared action-feed emitter，开始统一 memory special-agent 的 action payload 发射路径，减少 runner 本地重复包装逻辑。
 - 已新增 shared runtime deps bundle，开始统一 memory special-agent 对 `runSpecialAgentToCompletion` 和 action-feed 的 runtime 依赖拼装方式。
@@ -719,7 +719,7 @@ UI、channels、workflow、inspect、ACP 想统一展示，前提是：
 - `src/auto-reply/reply/commands-models.ts` 与 `src/auto-reply/reply/directive-handling.model.ts` 已改为复用 `src/channels/index-model-picker.ts`，不再保留 `auto-reply/reply` 下的 Feishu picker 实现。
 - `src/auto-reply/reply/commands-info.ts` 与 `src/plugin-sdk/command-auth.ts` 已改为复用 `src/channels/index-pagination.ts`，不再保留 `auto-reply/reply` 下的 Feishu 分页键盘实现。
 - `src/workflows/channel-forwarder.ts`、`src/infra/exec-approval-forwarder.ts`、`src/media-understanding/echo-transcript.ts` 与 `src/tasks/task-registry.ts` 已开始复用 `src/channels/deliverable-target.ts`，减少各自手写的 deliverable target 归一化。
-- `src/auto-reply/reply/agent-runner.ts`、`src/auto-reply/reply/followup-runner.ts`、`src/auto-reply/reply/commands-info.ts` 与 `src/gateway/server-methods/tools-effective.ts` 已改为复用 `src/channels/reply-to-mode.ts`，不再继续从 `auto-reply/reply` 读取 channel-specific replyToMode resolver。
+- auto-reply projection、command info 与 Gateway effective-tools projection 已改为复用 `src/channels/reply-to-mode.ts`，不再继续从 `auto-reply/reply` 读取 channel-specific replyToMode resolver。
 - `src/auto-reply/reply/reply-payloads-base.ts` 与 `src/auto-reply/reply/agent-runner.ts` 已改为复用 `src/channels/reply-threading.ts`，原来的 `src/auto-reply/reply/reply-threading.ts` 已删除。
 - `src/auto-reply/reply/dispatch-acp-delivery.ts` 已改为复用 `src/channels/acp-delivery-visibility.ts`，不再内联 Feishu block visibility 判定。
 - `src/auto-reply/dispatch.ts`、`src/auto-reply/reply/get-reply.ts`、`src/auto-reply/reply/dispatch-from-config.ts`、`src/plugins/runtime/runtime-channel.ts` 与 `src/plugin-sdk/reply-runtime.ts` 已改为复用 `src/channels/inbound-context.ts` / `src/channels/inbound-dedupe.ts`，原来的 `src/auto-reply/reply/inbound-context.ts` 与 `src/auto-reply/reply/inbound-dedupe.ts` 已删除。

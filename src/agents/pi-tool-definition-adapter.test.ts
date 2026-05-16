@@ -1,7 +1,7 @@
-import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import { describe, expect, it } from "vitest";
-import type { ClientToolDefinition } from "./pi-embedded-runner/run/params.js";
+import type { AgentTool } from "./agent-types.js";
+import type { ClientToolDefinition } from "./client-tool-definition.js";
 import { toClientToolDefinitions, toToolDefinitions } from "./pi-tool-definition-adapter.js";
 
 type ToolExecute = ReturnType<typeof toToolDefinitions>[number]["execute"];
@@ -52,7 +52,7 @@ describe("pi tool definition adapter", () => {
 
     expect(result.details).toMatchObject({
       status: "error",
-      tool: "exec",
+      tool: "bash",
       error: "nope",
     });
   });

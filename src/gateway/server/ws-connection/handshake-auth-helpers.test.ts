@@ -4,7 +4,6 @@ import {
   BROWSER_ORIGIN_LOOPBACK_RATE_LIMIT_IP,
   resolveHandshakeBrowserSecurityContext,
   resolveUnauthorizedHandshakeContext,
-  shouldAllowSilentLocalPairing,
 } from "./handshake-auth-helpers.js";
 
 function createRateLimiter(): AuthRateLimiter {
@@ -37,82 +36,27 @@ describe("handshake auth helpers", () => {
     });
   });
 
-  it("recommends device-token retry only for shared-token mismatch with device identity", () => {
+  it("recommends waiting after shared-token mismatch", () => {
     const resolved = resolveUnauthorizedHandshakeContext({
       connectAuth: { token: "shared-token" },
       failedAuth: { ok: false, reason: "token_mismatch" },
-      hasDeviceIdentity: true,
     });
 
     expect(resolved).toEqual({
       authProvided: "token",
-      canRetryWithDeviceToken: true,
-      recommendedNextStep: "retry_with_device_token",
+      recommendedNextStep: "wait_then_retry",
     });
   });
 
-  it("treats explicit device-token mismatch as credential update guidance", () => {
+  it("recommends configuration updates when auth is missing", () => {
     const resolved = resolveUnauthorizedHandshakeContext({
-      connectAuth: { deviceToken: "device-token" },
-      failedAuth: { ok: false, reason: "device_token_mismatch" },
-      hasDeviceIdentity: true,
+      connectAuth: null,
+      failedAuth: { ok: false, reason: "token_missing" },
     });
 
     expect(resolved).toEqual({
-      authProvided: "device-token",
-      canRetryWithDeviceToken: false,
-      recommendedNextStep: "update_auth_credentials",
+      authProvided: "none",
+      recommendedNextStep: "update_auth_configuration",
     });
-  });
-
-  it("allows silent local pairing for not-paired, scope-upgrade and role-upgrade", () => {
-    expect(
-      shouldAllowSilentLocalPairing({
-        isLocalClient: true,
-        hasBrowserOriginHeader: false,
-        isBrowserClients: false,
-        isWebchat: false,
-        reason: "not-paired",
-      }),
-    ).toBe(true);
-    expect(
-      shouldAllowSilentLocalPairing({
-        isLocalClient: true,
-        hasBrowserOriginHeader: false,
-        isBrowserClients: false,
-        isWebchat: false,
-        reason: "role-upgrade",
-      }),
-    ).toBe(true);
-    expect(
-      shouldAllowSilentLocalPairing({
-        isLocalClient: true,
-        hasBrowserOriginHeader: false,
-        isBrowserClients: false,
-        isWebchat: false,
-        reason: "scope-upgrade",
-      }),
-    ).toBe(true);
-    expect(
-      shouldAllowSilentLocalPairing({
-        isLocalClient: true,
-        hasBrowserOriginHeader: false,
-        isBrowserClients: false,
-        isWebchat: false,
-        reason: "metadata-upgrade",
-      }),
-    ).toBe(false);
-  });
-
-  it("rejects silent role-upgrade for remote clients", () => {
-    expect(
-      shouldAllowSilentLocalPairing({
-        isLocalClient: false,
-        hasBrowserOriginHeader: false,
-        isBrowserClients: false,
-        isWebchat: false,
-        reason: "role-upgrade",
-      }),
-    ).toBe(false);
   });
 });

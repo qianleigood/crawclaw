@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs;
 use std::io::{Read, Write};
 use std::path::{Component, Path, PathBuf};
@@ -20,12 +20,12 @@ use serde_json::{json, Value};
 
 use crate::cron::CronTool;
 use crate::special_agents::{
-    ExperienceStore, SessionSummaryStore, SpecialAgentMemoryTools, SpecialAgentRunRequest,
-    SpecialAgentRunner,
+    find_special_agent, ExperienceStore, SessionSummaryStore, SpecialAgentMemoryTools,
 };
 use crate::DesktopSessionStore;
 use crate::{
-    invoke_native_plugin_operation, with_native_runtime_context, NativePluginRuntime,
+    invoke_native_plugin_operation, with_native_runtime_context, AgentModelSelection,
+    AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope, NativePluginRuntime,
     NativeToolRegistration,
 };
 
@@ -542,20 +542,19 @@ impl pi::sdk::Tool for SpecialAgentTool {
             SpecialAgentToolKind::ReviewTask => {
                 let task = required_tool_param(self.kind.name(), &input, &["task", "message"])?;
                 let stage = string_param(&input, &["stage", "kind"]).unwrap_or_default();
-                SpecialAgentRunner::new(self.runtime_root.clone())
-                    .run(SpecialAgentRunRequest {
-                        kind: Some(if stage == "spec" {
-                            "review-spec".to_string()
-                        } else {
-                            "review-quality".to_string()
-                        }),
-                        spawn_source: None,
-                        task: Some(task),
-                        scope: None,
-                        parent_session_key: session_key_param(&input),
-                    })
-                    .map(|response| json!(response))
-                    .map_err(|error| tool_error(self.kind.name(), error))?
+                let kind = if stage == "spec" {
+                    "review-spec"
+                } else {
+                    "review-quality"
+                };
+                run_review_task_with_agent_runtime(
+                    &self.runtime_root,
+                    kind,
+                    &task,
+                    session_key_param(&input),
+                )
+                .await
+                .map_err(|error| tool_error(self.kind.name(), error))?
             }
             SpecialAgentToolKind::MemoryManifestRead => {
                 let scope = scope_param(&input);
@@ -629,6 +628,83 @@ impl pi::sdk::Tool for SpecialAgentTool {
     fn is_read_only(&self) -> bool {
         self.kind.is_read_only()
     }
+}
+
+async fn run_review_task_with_agent_runtime(
+    runtime_root: &Path,
+    kind: &str,
+    task: &str,
+    parent_session_key: Option<String>,
+) -> Result<Value, String> {
+    let definition =
+        find_special_agent(kind).ok_or_else(|| format!("unknown special agent kind: {kind}"))?;
+    let run_id = format!("special-{kind}-{}", now_millis());
+    let session_key = parent_session_key
+        .clone()
+        .unwrap_or_else(|| format!("special:{kind}:{run_id}"));
+    let mut options = BTreeMap::new();
+    options.insert(
+        "specialAgent".to_string(),
+        json!({
+            "kind": definition.id,
+            "spawnSource": definition.spawn_source,
+            "executionMode": definition.execution_mode,
+            "transcriptPolicy": definition.transcript_policy,
+            "parentContextPolicy": definition.parent_context_policy,
+            "timeoutSeconds": definition.timeout_seconds,
+            "maxTurns": definition.max_turns
+        }),
+    );
+    let result = AgentRuntime::new(runtime_root.to_path_buf())
+        .run_turn(AgentRunRequest {
+            run_id: run_id.clone(),
+            agent_id: definition.id.to_string(),
+            session_key: session_key.clone(),
+            inbound: ChannelInboundEnvelope {
+                channel: "special-agent".to_string(),
+                account_id: Some("rust-runtime".to_string()),
+                from: "review_task".to_string(),
+                to: format!("agent:{}", definition.id),
+                chat_type: ChannelChatType::Direct,
+                body: task.to_string(),
+                raw_body: Some(task.to_string()),
+                message_id: Some(format!("{run_id}:input")),
+                thread_id: Some(session_key),
+                media_urls: Vec::new(),
+                metadata: BTreeMap::new(),
+            },
+            model: AgentModelSelection {
+                provider: "configured".to_string(),
+                model: "configured".to_string(),
+                reasoning_level: None,
+            },
+            enabled_tools: definition
+                .tool_allowlist
+                .iter()
+                .map(|tool| (*tool).to_string())
+                .collect(),
+            options,
+        })
+        .await
+        .map_err(|error| format!("{}: {}", error.code(), error.message()))?;
+    let assistant_text = result.assistant_text;
+    Ok(json!({
+        "status": "completed",
+        "runId": result.run_id,
+        "kind": definition.id,
+        "executionMode": definition.execution_mode,
+        "parentSessionKey": parent_session_key,
+        "result": {
+            "status": "completed",
+            "assistantText": assistant_text,
+            "payloads": [
+                {
+                    "text": assistant_text
+                }
+            ],
+            "implementation": "rust-native"
+        }
+    }))
 }
 
 #[derive(Clone, Copy)]

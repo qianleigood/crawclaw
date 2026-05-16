@@ -3,14 +3,16 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const noop = () => {};
 
 const mocks = vi.hoisted(() => ({
+  callGateway: vi.fn(async () => ({})),
   loadConfig: vi.fn(() => ({})),
-  ensureRuntimePluginsLoaded: vi.fn(),
-  resolveMemoryRuntime: vi.fn(),
-  onSubagentEnded: vi.fn(async () => {}),
   onAgentEvent: vi.fn(() => noop),
   persistSubagentRunsToDisk: vi.fn(),
   restoreSubagentRunsFromDisk: vi.fn(() => 0),
   getSubagentRunsSnapshotForRead: vi.fn((runs: Map<string, unknown>) => new Map(runs)),
+}));
+
+vi.mock("../gateway/call.js", () => ({
+  callGateway: mocks.callGateway,
 }));
 
 vi.mock("../config/config.js", async () => {
@@ -21,16 +23,8 @@ vi.mock("../config/config.js", async () => {
   };
 });
 
-vi.mock("../memory/index.js", () => ({
-  resolveMemoryRuntime: mocks.resolveMemoryRuntime,
-}));
-
 vi.mock("../infra/agent-events.js", () => ({
   onAgentEvent: mocks.onAgentEvent,
-}));
-
-vi.mock("./runtime-plugins.js", () => ({
-  ensureRuntimePluginsLoaded: mocks.ensureRuntimePluginsLoaded,
 }));
 
 vi.mock("./subagent-registry-state.js", () => ({
@@ -53,14 +47,11 @@ describe("subagent-registry memory runtime bootstrap", () => {
   beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
-    mocks.resolveMemoryRuntime.mockResolvedValue({
-      onSubagentEnded: mocks.onSubagentEnded,
-    });
     mod = await import("./subagent-registry.js");
     mod.resetSubagentRegistryForTests({ persist: false });
   });
 
-  it("reloads runtime plugins with the spawned workspace before released subagent end hooks", async () => {
+  it("notifies Rust memory when released subagent runs end", async () => {
     mod.addSubagentRunForTests({
       runId: "run-1",
       childSessionKey: "agent:main:session:child",
@@ -83,16 +74,15 @@ describe("subagent-registry memory runtime bootstrap", () => {
     mod.releaseSubagentRun("run-1");
 
     await vi.waitFor(() => {
-      expect(mocks.ensureRuntimePluginsLoaded).toHaveBeenCalledWith({
-        config: {},
-        workspaceDir: "/tmp/workspace",
-        allowGatewaySubagentBinding: true,
+      expect(mocks.callGateway).toHaveBeenCalledWith({
+        method: "memory.onSubagentEnded",
+        params: {
+          childSessionKey: "agent:main:session:child",
+          reason: "released",
+          workspaceDir: "/tmp/workspace",
+        },
+        timeoutMs: 10_000,
       });
-    });
-    expect(mocks.onSubagentEnded).toHaveBeenCalledWith({
-      childSessionKey: "agent:main:session:child",
-      reason: "released",
-      workspaceDir: "/tmp/workspace",
     });
   });
 });

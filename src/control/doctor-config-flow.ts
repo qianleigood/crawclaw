@@ -15,14 +15,6 @@ import {
   applyUnknownConfigKeyStep,
 } from "./doctor/shared/config-flow-steps.js";
 import { applyDoctorConfigMutation } from "./doctor/shared/config-mutation-state.js";
-import {
-  collectMissingDefaultAccountBindingWarnings,
-  collectMissingExplicitDefaultAccountWarnings,
-} from "./doctor/shared/default-account-warnings.js";
-import {
-  collectMutableAllowlistWarnings,
-  scanMutableAllowlistEntries,
-} from "./doctor/shared/mutable-allowlist.js";
 import { collectDoctorPreviewWarnings } from "./doctor/shared/preview-warnings.js";
 
 export async function loadAndMaybeMigrateDoctorConfig(params: {
@@ -75,16 +67,6 @@ export async function loadAndMaybeMigrateDoctorConfig(params: {
     }));
   }
 
-  const missingDefaultAccountBindingWarnings =
-    collectMissingDefaultAccountBindingWarnings(candidate);
-  if (missingDefaultAccountBindingWarnings.length > 0) {
-    note(missingDefaultAccountBindingWarnings.join("\n"), "Doctor warnings");
-  }
-  const missingExplicitDefaultWarnings = collectMissingExplicitDefaultAccountWarnings(candidate);
-  if (missingExplicitDefaultWarnings.length > 0) {
-    note(missingExplicitDefaultWarnings.join("\n"), "Doctor warnings");
-  }
-
   if (shouldRepair) {
     const repairSequence = await runDoctorRepairSequence({
       state: { cfg, candidate, pendingChanges, fixHints },
@@ -104,11 +86,6 @@ export async function loadAndMaybeMigrateDoctorConfig(params: {
         doctorFixCommand,
       }),
     });
-  }
-
-  const mutableAllowlistHits = scanMutableAllowlistEntries(candidate);
-  if (mutableAllowlistHits.length > 0) {
-    note(collectMutableAllowlistWarnings(mutableAllowlistHits).join("\n"), "Doctor warnings");
   }
 
   const unknownStep = applyUnknownConfigKeyStep({

@@ -1,17 +1,17 @@
-import type { ChannelId } from "../channels/plugins/types.js";
 import { isPlainObject } from "../infra/plain-object.js";
 import type { CommandsConfig, NativeCommandsSetting } from "./types.js";
+type ProviderId = string;
 
 export type CommandFlagKey = {
   [K in keyof CommandsConfig]-?: Exclude<CommandsConfig[K], undefined> extends boolean ? K : never;
 }[keyof CommandsConfig];
 
-function resolveAutoDefault(_providerId?: ChannelId): boolean {
+function resolveAutoDefault(_providerId?: ProviderId): boolean {
   return false;
 }
 
 export function resolveNativeSkillsEnabled(params: {
-  providerId: ChannelId;
+  providerId: ProviderId;
   providerSetting?: NativeCommandsSetting;
   globalSetting?: NativeCommandsSetting;
 }): boolean {
@@ -19,7 +19,7 @@ export function resolveNativeSkillsEnabled(params: {
 }
 
 export function resolveNativeCommandsEnabled(params: {
-  providerId: ChannelId;
+  providerId: ProviderId;
   providerSetting?: NativeCommandsSetting;
   globalSetting?: NativeCommandsSetting;
 }): boolean {
@@ -27,7 +27,7 @@ export function resolveNativeCommandsEnabled(params: {
 }
 
 function resolveNativeCommandSetting(params: {
-  providerId: ChannelId;
+  providerId: ProviderId;
   providerSetting?: NativeCommandsSetting;
   globalSetting?: NativeCommandsSetting;
 }): boolean {

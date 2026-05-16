@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  PROTECTED_PLUGIN_ROUTE_PREFIXES,
   buildCanonicalPathCandidates,
   canonicalizePathForSecurity,
   isPathProtectedByPrefixes,
@@ -12,50 +11,52 @@ function buildRepeatedEncodedSlashPath(depth: number): string {
   for (let i = 1; i < depth; i++) {
     encodedSlash = encodedSlash.replace(/%/g, "%25");
   }
-  return `/api${encodedSlash}channels${encodedSlash}feishu${encodedSlash}default${encodedSlash}profile`;
+  return `/api${encodedSlash}private${encodedSlash}plugins${encodedSlash}default${encodedSlash}profile`;
 }
+
+const protectedPrefixes = ["/api/private/plugins"] as const;
 
 describe("security-path canonicalization", () => {
   it("canonicalizes decoded case/slash variants", () => {
-    expect(canonicalizePathForSecurity("/API/channels//feishu/default/profile/")).toEqual(
+    expect(canonicalizePathForSecurity("/API/private/plugins//default/profile/")).toEqual(
       expect.objectContaining({
-        canonicalPath: "/api/channels/feishu/default/profile",
-        candidates: ["/api/channels/feishu/default/profile"],
+        canonicalPath: "/api/private/plugins/default/profile",
+        candidates: ["/api/private/plugins/default/profile"],
         malformedEncoding: false,
         decodePasses: 0,
         decodePassLimitReached: false,
-        rawNormalizedPath: "/api/channels/feishu/default/profile",
+        rawNormalizedPath: "/api/private/plugins/default/profile",
       }),
     );
-    const encoded = canonicalizePathForSecurity("/api/%63hannels%2Ffeishu%2Fdefault%2Fprofile");
-    expect(encoded.canonicalPath).toBe("/api/channels/feishu/default/profile");
-    expect(encoded.candidates).toContain("/api/%63hannels%2ffeishu%2fdefault%2fprofile");
-    expect(encoded.candidates).toContain("/api/channels/feishu/default/profile");
+    const encoded = canonicalizePathForSecurity("/api/private/%70lugins%2Fdefault%2Fprofile");
+    expect(encoded.canonicalPath).toBe("/api/private/plugins/default/profile");
+    expect(encoded.candidates).toContain("/api/private/%70lugins%2fdefault%2fprofile");
+    expect(encoded.candidates).toContain("/api/private/plugins/default/profile");
     expect(encoded.decodePasses).toBeGreaterThan(0);
     expect(encoded.decodePassLimitReached).toBe(false);
   });
 
   it("resolves traversal after repeated decoding", () => {
     expect(
-      canonicalizePathForSecurity("/api/foo/..%2fchannels/feishu/default/profile").canonicalPath,
-    ).toBe("/api/channels/feishu/default/profile");
+      canonicalizePathForSecurity("/api/private/foo/..%2fplugins/default/profile").canonicalPath,
+    ).toBe("/api/private/plugins/default/profile");
     expect(
-      canonicalizePathForSecurity("/api/foo/%252e%252e%252fchannels/feishu/default/profile")
+      canonicalizePathForSecurity("/api/private/foo/%252e%252e%252fplugins/default/profile")
         .canonicalPath,
-    ).toBe("/api/channels/feishu/default/profile");
+    ).toBe("/api/private/plugins/default/profile");
   });
 
   it("marks malformed encoding", () => {
-    expect(canonicalizePathForSecurity("/api/channels%2").malformedEncoding).toBe(true);
-    expect(canonicalizePathForSecurity("/api/channels%zz").malformedEncoding).toBe(true);
+    expect(canonicalizePathForSecurity("/api/private/plugins%2").malformedEncoding).toBe(true);
+    expect(canonicalizePathForSecurity("/api/private/plugins%zz").malformedEncoding).toBe(true);
   });
 
-  it("resolves 4x encoded slash path variants to protected channel routes", () => {
-    const deeplyEncoded = "/api%2525252fchannels%2525252ffeishu%2525252fdefault%2525252fprofile";
+  it("resolves 4x encoded slash path variants to protected plugin routes", () => {
+    const deeplyEncoded = "/api%2525252fprivate%2525252fplugins%2525252fdefault%2525252fprofile";
     const canonical = canonicalizePathForSecurity(deeplyEncoded);
-    expect(canonical.canonicalPath).toBe("/api/channels/feishu/default/profile");
+    expect(canonical.canonicalPath).toBe("/api/private/plugins/default/profile");
     expect(canonical.decodePasses).toBeGreaterThanOrEqual(4);
-    expect(isProtectedPluginRoutePath(deeplyEncoded)).toBe(true);
+    expect(isPathProtectedByPrefixes(deeplyEncoded, protectedPrefixes)).toBe(true);
   });
 
   it("flags decode depth overflow and fails closed for protected prefix checks", () => {
@@ -63,34 +64,36 @@ describe("security-path canonicalization", () => {
     const candidates = buildCanonicalPathCandidates(excessiveDepthPath, 32);
     expect(candidates.decodePassLimitReached).toBe(true);
     expect(candidates.malformedEncoding).toBe(false);
-    expect(isProtectedPluginRoutePath(excessiveDepthPath)).toBe(true);
+    expect(isPathProtectedByPrefixes(excessiveDepthPath, protectedPrefixes)).toBe(true);
   });
 });
 
 describe("security-path protected-prefix matching", () => {
-  const channelVariants = [
-    "/API/channels/feishu/default/profile",
-    "/api/channels%2Ffeishu%2Fdefault%2Fprofile",
-    "/api/%63hannels/feishu/default/profile",
-    "/api/foo/..%2fchannels/feishu/default/profile",
-    "/api/foo/%2e%2e%2fchannels/feishu/default/profile",
-    "/api/foo/%252e%252e%252fchannels/feishu/default/profile",
-    "/api%2525252fchannels%2525252ffeishu%2525252fdefault%2525252fprofile",
-    "/api/channels%2",
-    "/api/channels%zz",
+  const pluginVariants = [
+    "/API/private/plugins/default/profile",
+    "/api/private/plugins%2Fdefault%2Fprofile",
+    "/api/private/%70lugins/default/profile",
+    "/api/private/foo/..%2fplugins/default/profile",
+    "/api/private/foo/%2e%2e%2fplugins/default/profile",
+    "/api/private/foo/%252e%252e%252fplugins/default/profile",
+    "/api%2525252fprivate%2525252fplugins%2525252fdefault%2525252fprofile",
+    "/api/private/plugins%2",
+    "/api/private/plugins%zz",
   ];
 
-  for (const path of channelVariants) {
-    it(`protects plugin channel path variant: ${path}`, () => {
-      expect(isProtectedPluginRoutePath(path)).toBe(true);
-      expect(isPathProtectedByPrefixes(path, PROTECTED_PLUGIN_ROUTE_PREFIXES)).toBe(true);
+  for (const path of pluginVariants) {
+    it(`protects plugin path variant: ${path}`, () => {
+      expect(isPathProtectedByPrefixes(path, protectedPrefixes)).toBe(true);
     });
   }
 
   it("does not protect unrelated paths", () => {
     expect(isProtectedPluginRoutePath("/plugin/public")).toBe(false);
-    expect(isProtectedPluginRoutePath("/api/channels-public")).toBe(false);
-    expect(isProtectedPluginRoutePath("/api/foo/..%2fchannels-public")).toBe(false);
-    expect(isProtectedPluginRoutePath("/api/channel")).toBe(false);
+    expect(isProtectedPluginRoutePath("/api/private/plugins/default/profile")).toBe(false);
+    expect(isPathProtectedByPrefixes("/api/private/plugins-public", protectedPrefixes)).toBe(false);
+    expect(
+      isPathProtectedByPrefixes("/api/private/foo/..%2fplugins-public", protectedPrefixes),
+    ).toBe(false);
+    expect(isPathProtectedByPrefixes("/api/private/plugin", protectedPrefixes)).toBe(false);
   });
 });

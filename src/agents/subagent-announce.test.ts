@@ -13,9 +13,6 @@ const resolveAgentIdFromSessionKeyMock = vi.fn((sessionKey: string) => {
 const resolveStorePathMock = vi.fn((_store: unknown, _options: unknown) => "/tmp/sessions.json");
 const resolveMainSessionKeyMock = vi.fn((_cfg: unknown) => "agent:main:main");
 const readLatestAssistantReplyMock = vi.fn(async (_params?: unknown) => "raw subagent reply");
-const isEmbeddedPiRunActiveMock = vi.fn((_sessionId: string) => false);
-const queueEmbeddedPWeixinMock = vi.fn((_sessionId: string, _text: string) => false);
-const waitForEmbeddedPiRunEndMock = vi.fn(async (_sessionId: string, _timeoutMs?: number) => true);
 let mockConfig: Partial<CrawClawConfig> = {
   session: {
     mainKey: "main",
@@ -61,10 +58,6 @@ vi.mock("../gateway/call.js", () => ({
   callGateway: (request: unknown) => callGatewayMock(request),
 }));
 
-vi.mock("../plugins/hook-runner-global.js", () => ({
-  getGlobalHookRunner: () => ({ hasHooks: () => false }),
-}));
-
 vi.mock("./tools/agent-step.js", () => ({
   readLatestAssistantReply: (params?: unknown) => readLatestAssistantReplyMock(params),
 }));
@@ -92,7 +85,7 @@ describe("subagent announce seam flow", () => {
     sessionsDeleteSpy.mockClear();
     callGatewayMock.mockReset().mockImplementation(async (req: unknown) => {
       const typed = req as AgentCallRequest;
-      if (typed.method === "agent") {
+      if (typed.method === "agent.command.run") {
         return await agentSpy(typed);
       }
       if (typed.method === "agent.wait") {
@@ -115,9 +108,6 @@ describe("subagent announce seam flow", () => {
     resolveStorePathMock.mockReset().mockImplementation(() => "/tmp/sessions.json");
     resolveMainSessionKeyMock.mockReset().mockImplementation(() => "agent:main:main");
     readLatestAssistantReplyMock.mockReset().mockResolvedValue("raw subagent reply");
-    isEmbeddedPiRunActiveMock.mockReset().mockReturnValue(false);
-    queueEmbeddedPWeixinMock.mockReset().mockReturnValue(false);
-    waitForEmbeddedPiRunEndMock.mockReset().mockResolvedValue(true);
     mockConfig = {
       session: {
         mainKey: "main",
@@ -159,10 +149,10 @@ describe("subagent announce seam flow", () => {
     subagentAnnounceDeliveryTesting.setDepsForTest(deps);
   });
 
-  it("suppresses ANNOUNCE_SKIP delivery while still deleting the child session", async () => {
+  it("suppresses NO_REPLY delivery while still deleting the child session", async () => {
     const didAnnounce = await runSubagentAnnounceFlow({
       childSessionKey: "agent:main:subagent:test",
-      childRunId: "run-direct-skip-whitespace",
+      childRunId: "run-direct-no-reply-whitespace",
       requesterSessionKey: "agent:main:main",
       requesterDisplayKey: "main",
       task: "do thing",
@@ -172,7 +162,7 @@ describe("subagent announce seam flow", () => {
       startedAt: 10,
       endedAt: 20,
       outcome: { status: "ok" },
-      roundOneReply: "  ANNOUNCE_SKIP  ",
+      roundOneReply: "  NO_REPLY  ",
     });
 
     expect(didAnnounce).toBe(true);
@@ -224,7 +214,7 @@ describe("subagent announce seam flow", () => {
     const patchCalls: AgentCallRequest[] = [];
     callGatewayMock.mockImplementation(async (req: unknown) => {
       const typed = req as AgentCallRequest;
-      if (typed.method === "agent") {
+      if (typed.method === "agent.command.run") {
         return await agentSpy(typed);
       }
       if (typed.method === "agent.wait") {
@@ -271,52 +261,6 @@ describe("subagent announce seam flow", () => {
     expect(patchCalls).toHaveLength(0);
   });
 
-  it("uses origin.provider for channel-specific queue settings in active announce delivery", async () => {
-    mockConfig = {
-      session: {
-        mainKey: "main",
-        scope: "per-sender",
-      },
-      messages: {
-        queue: {
-          byChannel: {
-            feishu: "steer",
-          },
-        },
-      },
-    };
-    loadSessionStoreMock.mockImplementation(() => ({
-      "agent:main:main": {
-        sessionId: "session-origin-provider-steer",
-        updatedAt: Date.now(),
-        origin: { provider: "feishu" },
-      },
-    }));
-    isEmbeddedPiRunActiveMock.mockReturnValue(true);
-    queueEmbeddedPWeixinMock.mockReturnValue(true);
-
-    const didAnnounce = await runSubagentAnnounceFlow({
-      childSessionKey: "agent:main:subagent:test",
-      childRunId: "run-origin-provider-steer",
-      requesterSessionKey: "agent:main:main",
-      requesterDisplayKey: "main",
-      task: "do thing",
-      timeoutMs: 10,
-      cleanup: "keep",
-      waitForCompletion: false,
-      startedAt: 10,
-      endedAt: 20,
-      outcome: { status: "ok" },
-    });
-
-    expect(didAnnounce).toBe(true);
-    expect(queueEmbeddedPWeixinMock).toHaveBeenCalledWith(
-      "session-origin-provider-steer",
-      expect.stringContaining("[Internal task completion event]"),
-    );
-    expect(agentSpy).not.toHaveBeenCalled();
-  });
-
   it("keeps completion direct announce session-only when requester origin is webchat", async () => {
     const didAnnounce = await runSubagentAnnounceFlow({
       childSessionKey: "agent:main:subagent:webchat",
@@ -344,17 +288,18 @@ describe("subagent announce seam flow", () => {
     expect(agentSpy).toHaveBeenCalledTimes(1);
     expect(agentSpy).toHaveBeenCalledWith(
       expect.objectContaining({
-        method: "agent",
+        method: "agent.command.run",
         params: expect.objectContaining({
           sessionKey: "agent:main:main",
           deliver: false,
-          bestEffortDeliver: true,
-          channel: "webchat",
-          to: "chat:123",
-          accountId: "default",
         }),
       }),
     );
+    const params = agentSpy.mock.calls[0]?.[0]?.params ?? {};
+    expect(params.bestEffortDeliver).toBeUndefined();
+    expect(params.channel).toBeUndefined();
+    expect(params.to).toBeUndefined();
+    expect(params.accountId).toBeUndefined();
   });
 
   it("keeps nested subagent completion announces channel-less in session-only mode", async () => {
@@ -386,7 +331,7 @@ describe("subagent announce seam flow", () => {
     const params = call?.params ?? {};
     expect(params.sessionKey).toBe("agent:main:subagent:orchestrator");
     expect(params.deliver).toBe(false);
-    expect(params.bestEffortDeliver).toBe(true);
+    expect(params.bestEffortDeliver).toBeUndefined();
     expect(params.channel).toBeUndefined();
     expect(params.to).toBeUndefined();
     expect(params.accountId).toBeUndefined();

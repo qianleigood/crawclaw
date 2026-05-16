@@ -3,9 +3,7 @@ import { WebSocketServer } from "ws";
 import type { createSubsystemLogger } from "../logging/subsystem.js";
 import type { PluginRegistry } from "../plugins/registry.js";
 import {
-  pinActivePluginChannelRegistry,
   pinActivePluginHttpRouteRegistry,
-  releasePinnedPluginChannelRegistry,
   releasePinnedPluginHttpRouteRegistry,
   resolveActivePluginHttpRouteRegistry,
 } from "../plugins/runtime.js";
@@ -74,7 +72,7 @@ export async function startGatewayRuntimeHttpListeners(params: {
     rateLimiter?: AuthRateLimiter;
   };
   gatewayTls?: GatewayTlsRuntime;
-  hooksConfig: () => HooksConfigResolved | null;
+  hooksConfig: () => HooksConfigResolved;
   getHookClientIpConfig: () => HookClientIpConfig;
   pluginRegistry: PluginRegistry;
   deps: CliDeps;
@@ -202,10 +200,9 @@ export async function createGatewayRuntimeState(params: {
     rateLimiter?: AuthRateLimiter;
   };
   gatewayTls?: GatewayTlsRuntime;
-  hooksConfig: () => HooksConfigResolved | null;
+  hooksConfig: () => HooksConfigResolved;
   getHookClientIpConfig: () => HookClientIpConfig;
   pluginRegistry: PluginRegistry;
-  pinChannelRegistry?: boolean;
   deps: CliDeps;
   log: { info: (msg: string) => void; warn: (msg: string) => void };
   logHooks: ReturnType<typeof createSubsystemLogger>;
@@ -237,11 +234,6 @@ export async function createGatewayRuntimeState(params: {
   toolEventRecipients: ReturnType<typeof createToolEventRecipientRegistry>;
 }> {
   pinActivePluginHttpRouteRegistry(params.pluginRegistry);
-  if (params.pinChannelRegistry !== false) {
-    pinActivePluginChannelRegistry(params.pluginRegistry);
-  } else {
-    releasePinnedPluginChannelRegistry();
-  }
   try {
     const clients = new Set<GatewayWsClient>();
     const { broadcast, broadcastToConnIds } = createGatewayBroadcaster({ clients });
@@ -271,12 +263,7 @@ export async function createGatewayRuntimeState(params: {
 
     return {
       releasePluginRouteRegistry: () => {
-        // Releases both pinned HTTP-route and channel registries set at startup.
-        // Release unconditionally (no registry arg): runtime reconfigure may
-        // re-pin either surface to a registry that differs from the original
-        // startup registry, so identity-guarded release would leak the pin.
         releasePinnedPluginHttpRouteRegistry();
-        releasePinnedPluginChannelRegistry();
       },
       httpServer,
       httpServers,
@@ -299,7 +286,6 @@ export async function createGatewayRuntimeState(params: {
     };
   } catch (err) {
     releasePinnedPluginHttpRouteRegistry(params.pluginRegistry);
-    releasePinnedPluginChannelRegistry();
     throw err;
   }
 }

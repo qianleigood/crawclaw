@@ -1,4 +1,4 @@
-import { resolveEmbeddedSessionLane } from "../../../agents/pi-embedded-runner/lanes.js";
+import { resolveAgentSessionLane } from "../../../agents/runtime-support/lanes.js";
 import { clearCommandLane } from "../../../process/command-queue.js";
 import { clearFollowupDrainCallback } from "./drain.js";
 import { clearFollowupQueue } from "./state.js";
@@ -10,7 +10,7 @@ export type ClearSessionQueueResult = {
 };
 
 const defaultQueueCleanupDeps = {
-  resolveEmbeddedSessionLane,
+  resolveAgentSessionLane,
   clearCommandLane,
 };
 
@@ -19,9 +19,9 @@ const queueCleanupDeps = {
 };
 
 function resolveQueueCleanupLaneResolver() {
-  return typeof queueCleanupDeps.resolveEmbeddedSessionLane === "function"
-    ? queueCleanupDeps.resolveEmbeddedSessionLane
-    : defaultQueueCleanupDeps.resolveEmbeddedSessionLane;
+  return typeof queueCleanupDeps.resolveAgentSessionLane === "function"
+    ? queueCleanupDeps.resolveAgentSessionLane
+    : defaultQueueCleanupDeps.resolveAgentSessionLane;
 }
 
 function resolveQueueCleanupLaneClearer() {
@@ -32,18 +32,17 @@ function resolveQueueCleanupLaneClearer() {
 
 export const __testing = {
   setDepsForTests(deps: Partial<typeof defaultQueueCleanupDeps> | undefined): void {
-    queueCleanupDeps.resolveEmbeddedSessionLane =
-      typeof deps?.resolveEmbeddedSessionLane === "function"
-        ? deps.resolveEmbeddedSessionLane
-        : defaultQueueCleanupDeps.resolveEmbeddedSessionLane;
+    queueCleanupDeps.resolveAgentSessionLane =
+      typeof deps?.resolveAgentSessionLane === "function"
+        ? deps.resolveAgentSessionLane
+        : defaultQueueCleanupDeps.resolveAgentSessionLane;
     queueCleanupDeps.clearCommandLane =
       typeof deps?.clearCommandLane === "function"
         ? deps.clearCommandLane
         : defaultQueueCleanupDeps.clearCommandLane;
   },
   resetDepsForTests(): void {
-    queueCleanupDeps.resolveEmbeddedSessionLane =
-      defaultQueueCleanupDeps.resolveEmbeddedSessionLane;
+    queueCleanupDeps.resolveAgentSessionLane = defaultQueueCleanupDeps.resolveAgentSessionLane;
     queueCleanupDeps.clearCommandLane = defaultQueueCleanupDeps.clearCommandLane;
   },
 };

@@ -9,11 +9,7 @@ type RootPackageManifest = {
   };
 };
 
-const PI_PACKAGE_NAMES = [
-  "@mariozechner/pi-agent-core",
-  "@mariozechner/pi-ai",
-  "@mariozechner/pi-coding-agent",
-] as const;
+const PI_PACKAGE_NAMES = ["@mariozechner/pi-ai"] as const;
 
 function readRootManifest(): RootPackageManifest {
   const manifestPath = path.resolve(process.cwd(), "package.json");
@@ -47,14 +43,14 @@ describe("pi package graph guardrails", () => {
     const missing = specs.filter((entry) => !entry.spec).map((entry) => entry.name);
     expectNoGraphViolations(
       missing,
-      `Missing required root Pi dependencies: ${missing.join(", ") || "<none>"}. Mixed or incomplete Pi root dependencies create an unsupported package graph.`,
+      `Missing required root Pi dependencies: ${missing.join(", ") || "<none>"}. Incomplete Pi root dependencies create an unsupported package graph.`,
     );
 
     const presentSpecs = specs.map((entry) => entry.spec);
     const uniqueSpecs = [...new Set(presentSpecs)];
     expect(
       uniqueSpecs,
-      `Root Pi dependencies must stay aligned to one exact version. Found: ${specs.map((entry) => `${entry.name}=${entry.spec}`).join(", ")}. Mixed Pi versions create an unsupported package graph.`,
+      `Root Pi dependencies must stay aligned to one exact version when more than one is present. Found: ${specs.map((entry) => `${entry.name}=${entry.spec}`).join(", ")}. Mixed Pi versions create an unsupported package graph.`,
     ).toHaveLength(1);
 
     const inexact = specs.filter((entry) => !isExactPinnedVersion(entry.spec));

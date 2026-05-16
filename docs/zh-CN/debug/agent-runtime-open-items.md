@@ -66,7 +66,7 @@ special agent 的运行机制也收成一套公共底座，但不把各自职责
 - [x] 增加一层共享 runtime substrate，用于维护型 special agent。
   - 已落地：
     - 共享 `SpecialAgentDefinition`
-    - 双执行模式：`spawned_session` 和 `embedded_fork`
+    - 双执行模式：`spawned_session` 和 `runtime_fork`
     - 在 definition 上显式声明 transcript policy
     - 通过共享 registry 解析 special-agent tool policy
     - Claude 风格的 special-agent runtime deny 工具限制
@@ -74,27 +74,27 @@ special agent 的运行机制也收成一套公共底座，但不把各自职责
     - 按 `runId` 持久化 parent-run `cacheSafeParams` snapshot
     - 共享 spawn / embedded-run / completion capture runtime
     - 在 runtime runner 内建共享 event / history / usage hooks
-    - `session_summary` 已迁到 `embedded_fork`
+    - `session_summary` 已迁到 `runtime_fork`
     - `memory_extractor` 已迁入共享 substrate
     - `dream` 已迁入共享 substrate
-    - embedded memory special run 现在会把 usage/history/action 观测写进 Context Archive
-    - embedded memory special run 现在会把 usage，包括 cache read/write，带回 Action Feed 的完成态 detail
+    - runtime memory special run 现在会把 usage/history/action 观测写进 Context Archive
+    - runtime memory special run 现在会把 usage，包括 cache read/write，带回 Action Feed 的完成态 detail
     - review 已迁入
 - [x] 明确未来 task-specific special agent 继续按 case-by-case 接入 substrate。
-  - fire-and-forget 的后台维护型 agent 默认优先走 `embedded_fork`
+  - fire-and-forget 的后台维护型 agent 默认优先走 `runtime_fork`
   - 面向用户、需要独立 session 状态的 task agent 默认保持 `spawned_session`
 - [x] 在 embedded-fork substrate 上补显式 cache-write suppression（`skipCacheWrite` 等价物）。
-  - embedded memory special agent 现在会通过共享 substrate 显式声明 cache-write suppression
+  - runtime memory special agent 现在会通过共享 substrate 显式声明 cache-write suppression
   - runtime 会把它映射到 provider 支持的“避免创建新 cache entry”控制，并尽量保留 prompt-cache read
 - [x] 把 parent-run cache snapshot 从 hash/key 级元数据扩成更完整的 cache-safe prompt envelope。
   - 已落地：
     - tool prompt payload 和 tool-inventory digest
     - thinking config
     - fork-context messages
-    - embedded memory special agent 现在会继承捕获到的 parent system-prompt envelope
+    - runtime memory special agent 现在会继承捕获到的 parent system-prompt envelope
     - cache-safe snapshot 现在会带一份 canonical cache-identity hash
-    - embedded fork 在没有显式 parent key 时，会优先基于这份 canonical envelope identity 派生 prompt-cache key
-    - embedded memory special run 现在会在 live tool/thinking/fork-context 和 inherited envelope 漂移时自动停用 inherited prompt-cache key
+    - runtime fork 在没有显式 parent key 时，会优先基于这份 canonical envelope identity 派生 prompt-cache key
+    - runtime memory special run 现在会在 live tool/thinking/fork-context 和 inherited envelope 漂移时自动停用 inherited prompt-cache key
     - cache owner 现在已经明确拆成：
       - `CacheEnvelope` identity + snapshot 持久化
       - fork-cache 规划 / drift 校验

@@ -1,9 +1,25 @@
-import type { Skill } from "@mariozechner/pi-coding-agent";
 import type {
   WorkflowHttpMethod,
   WorkflowPortability,
   WorkflowStepKind,
 } from "../../workflows/api.js";
+
+export type SkillSourceInfo = {
+  source?: string;
+  baseDir?: string;
+  scope?: string;
+  origin?: string;
+};
+
+export type Skill = {
+  name: string;
+  description: string;
+  filePath: string;
+  baseDir: string;
+  source?: string;
+  sourceInfo?: SkillSourceInfo;
+  disableModelInvocation?: boolean;
+};
 
 export type SkillInstallSpec = {
   id?: string;

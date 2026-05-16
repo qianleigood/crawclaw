@@ -22,19 +22,11 @@ if (!urlRaw || !token) {
 
 async function main() {
   const url = resolveGatewayUrl(urlRaw);
-  const { request, waitOpen, close } = createGatewayWsClient({
-    url: url.toString(),
-    onEvent: (evt) => {
-      // Ignore noisy connect handshakes.
-      if (evt.event === "connect.challenge") {
-        return;
-      }
-    },
-  });
+  const { request, waitOpen, close } = createGatewayWsClient({ url: url.toString() });
 
   await waitOpen();
 
-  // Match operator session defaults: token auth, no device identity.
+  // Match operator session defaults: token auth.
   const connectRes = await request("connect", {
     minProtocol: 3,
     maxProtocol: 3,

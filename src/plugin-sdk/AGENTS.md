@@ -16,17 +16,16 @@ can affect bundled plugins and third-party plugins.
   - `scripts/lib/plugin-sdk-entrypoints.json`
   - `src/plugin-sdk/entrypoints.ts`
   - `src/plugin-sdk/api-baseline.ts`
-  - `src/plugin-sdk/plugin-entry.ts`
   - `src/plugin-sdk/core.ts`
 
 ## Boundary Rules
 
 - Prefer narrow, purpose-built subpaths over broad convenience re-exports.
-- Do not expose implementation convenience from `src/channels/**`,
-  `src/agents/**`, `src/plugins/**`, or other internals unless you are
+- Do not expose implementation convenience from `src/agents/**`,
+  `src/plugins/**`, or other internals unless you are
   intentionally promoting a supported public contract.
-- Prefer `api.runtime` or a focused SDK facade over telling extensions to reach
-  into host internals directly.
+- Runtime behavior is Rust-owned. Do not add a TypeScript plugin execution
+  callback or runtime bridge to this SDK.
 - When core or tests need bundled plugin helpers, expose them through
   the plugin package `api.ts` and a matching `src/plugin-sdk/<id>.ts` facade
   instead of importing plugin-private `src/**` files or `onboard.js`

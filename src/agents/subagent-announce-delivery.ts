@@ -7,11 +7,6 @@ import {
   resolveStorePath,
 } from "../config/sessions.js";
 import { callGateway } from "../gateway/call.js";
-import { resolveExternalBestEffortDeliveryTarget } from "../infra/outbound/best-effort-delivery.js";
-import { createBoundDeliveryRouter } from "../infra/outbound/bound-delivery-router.js";
-import { resolveConversationIdFromTargets } from "../infra/outbound/conversation-id.js";
-import type { ConversationRef } from "../infra/outbound/session-binding-service.js";
-import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import { normalizeAccountId, normalizeMainKey } from "../routing/session-key.js";
 import { defaultRuntime } from "../runtime.js";
 import { isCronSessionKey } from "../sessions/session-key-utils.js";
@@ -20,14 +15,11 @@ import {
   deliveryContextFromSession,
   mergeDeliveryContext,
   normalizeDeliveryContext,
-  resolveConversationDeliveryTarget,
 } from "../utils/delivery-context.js";
 import {
   INTERNAL_MESSAGE_CHANNEL,
-  isGatewayMessageChannel,
   isInternalMessageChannel,
-  normalizeMessageChannel,
-} from "../utils/message-channel.js";
+} from "../utils/gateway-client-surface.js";
 import { buildAnnounceIdempotencyKey, resolveQueueAnnounceId } from "./announce-idempotency.js";
 import type { AgentInternalEvent } from "./internal-events.js";
 import {
@@ -228,81 +220,12 @@ export async function resolveSubagentCompletionOrigin(params: {
   spawnMode?: SpawnSubagentMode;
   expectsCompletionMessage: boolean;
 }): Promise<DeliveryContext | undefined> {
-  const requesterOrigin = normalizeDeliveryContext(params.requesterOrigin);
-  const channel = requesterOrigin?.channel?.trim().toLowerCase();
-  const to = requesterOrigin?.to?.trim();
-  const accountId = normalizeAccountId(requesterOrigin?.accountId);
-  const threadId =
-    requesterOrigin?.threadId != null && requesterOrigin.threadId !== ""
-      ? String(requesterOrigin.threadId).trim()
-      : undefined;
-  const conversationId =
-    threadId ||
-    resolveConversationIdFromTargets({
-      targets: [to],
-    }) ||
-    "";
-  const requesterConversation: ConversationRef | undefined =
-    channel && conversationId ? { channel, accountId, conversationId } : undefined;
-
-  const route = createBoundDeliveryRouter().resolveDestination({
-    eventKind: "task_completion",
-    targetSessionKey: params.childSessionKey,
-    requester: requesterConversation,
-    failClosed: false,
-  });
-  if (route.mode === "bound" && route.binding) {
-    const boundTarget = resolveConversationDeliveryTarget({
-      channel: route.binding.conversation.channel,
-      conversationId: route.binding.conversation.conversationId,
-      parentConversationId: route.binding.conversation.parentConversationId,
-    });
-    return mergeDeliveryContext(
-      {
-        channel: route.binding.conversation.channel,
-        accountId: route.binding.conversation.accountId,
-        to: boundTarget.to,
-        threadId:
-          boundTarget.threadId ??
-          (requesterOrigin?.threadId != null && requesterOrigin.threadId !== ""
-            ? String(requesterOrigin.threadId)
-            : undefined),
-      },
-      requesterOrigin,
-    );
-  }
-
-  const hookRunner = getGlobalHookRunner();
-  if (!hookRunner?.hasHooks("subagent_delivery_target")) {
-    return requesterOrigin;
-  }
-  try {
-    const result = await hookRunner.runSubagentDeliveryTarget(
-      {
-        childSessionKey: params.childSessionKey,
-        requesterSessionKey: params.requesterSessionKey,
-        requesterOrigin,
-        childRunId: params.childRunId,
-        spawnMode: params.spawnMode,
-        expectsCompletionMessage: params.expectsCompletionMessage,
-      },
-      {
-        runId: params.childRunId,
-        childSessionKey: params.childSessionKey,
-        requesterSessionKey: params.requesterSessionKey,
-      },
-    );
-    const hookOrigin = normalizeDeliveryContext(result?.origin);
-    if (!hookOrigin) {
-      return requesterOrigin;
-    }
-    if (hookOrigin.channel && isInternalMessageChannel(hookOrigin.channel)) {
-      return requesterOrigin;
-    }
-    return mergeDeliveryContext(hookOrigin, requesterOrigin);
-  } catch {
-    return requesterOrigin;
-  }
+  void params.childSessionKey;
+  void params.requesterSessionKey;
+  void params.childRunId;
+  void params.spawnMode;
+  void params.expectsCompletionMessage;
+  return normalizeDeliveryContext(params.requesterOrigin);
 }
 
 async function sendAnnounce(item: AnnounceQueueItem) {
@@ -320,7 +243,7 @@ async function sendAnnounce(item: AnnounceQueueItem) {
     }),
   );
   await subagentAnnounceDeliveryDeps.callGateway({
-    method: "agent",
+    method: "agent.command.run",
     params: {
       sessionKey: item.sessionKey,
       message: item.prompt,
@@ -489,22 +412,8 @@ async function sendSubagentAnnounceDirectly(params: {
     const sessionOnlyOrigin = effectiveDirectOrigin?.channel
       ? effectiveDirectOrigin
       : requesterSessionOrigin;
-    const deliveryTarget = !params.requesterIsSubagent
-      ? resolveExternalBestEffortDeliveryTarget({
-          channel: effectiveDirectOrigin?.channel,
-          to: effectiveDirectOrigin?.to,
-          accountId: effectiveDirectOrigin?.accountId,
-          threadId: effectiveDirectOrigin?.threadId,
-        })
-      : { deliver: false };
-    const normalizedSessionOnlyOriginChannel = !params.requesterIsSubagent
-      ? normalizeMessageChannel(sessionOnlyOrigin?.channel)
-      : undefined;
-    const sessionOnlyOriginChannel =
-      normalizedSessionOnlyOriginChannel &&
-      isGatewayMessageChannel(normalizedSessionOnlyOriginChannel)
-        ? normalizedSessionOnlyOriginChannel
-        : undefined;
+    void effectiveDirectOrigin;
+    void sessionOnlyOrigin;
     if (params.signal?.aborted) {
       return {
         delivered: false,
@@ -518,29 +427,12 @@ async function sendSubagentAnnounceDirectly(params: {
       signal: params.signal,
       run: async () =>
         await subagentAnnounceDeliveryDeps.callGateway({
-          method: "agent",
+          method: "agent.command.run",
           params: {
             sessionKey: canonicalRequesterSessionKey,
             message: params.triggerMessage,
-            deliver: deliveryTarget.deliver,
-            bestEffortDeliver: params.bestEffortDeliver,
+            deliver: false,
             internalEvents: params.internalEvents,
-            channel: deliveryTarget.deliver ? deliveryTarget.channel : sessionOnlyOriginChannel,
-            accountId: deliveryTarget.deliver
-              ? deliveryTarget.accountId
-              : sessionOnlyOriginChannel
-                ? sessionOnlyOrigin?.accountId
-                : undefined,
-            to: deliveryTarget.deliver
-              ? deliveryTarget.to
-              : sessionOnlyOriginChannel
-                ? sessionOnlyOrigin?.to
-                : undefined,
-            threadId: deliveryTarget.deliver
-              ? deliveryTarget.threadId
-              : sessionOnlyOriginChannel
-                ? sessionOnlyOrigin?.threadId
-                : undefined,
             inputProvenance: {
               kind: "inter_session",
               sourceSessionKey: params.sourceSessionKey,

@@ -1,8 +1,5 @@
 import { callGateway } from "../../../gateway/call.js";
-import { resolveEffectiveResetTargetSessionKey } from "../acp-reset-target.js";
-import { resolveRequesterSessionKey } from "../commands-subagents/shared.js";
 import type { HandleCommandsParams } from "../commands-types.js";
-import { resolveAcpCommandBindingContext } from "./context.js";
 import { SESSION_ID_RE } from "./shared.js";
 
 async function resolveSessionKeyByToken(token: string): Promise<string | null> {
@@ -39,18 +36,7 @@ export function resolveBoundAcpThreadSessionKey(params: HandleCommandsParams): s
     typeof params.ctx.CommandTargetSessionKey === "string"
       ? params.ctx.CommandTargetSessionKey.trim()
       : "";
-  const activeSessionKey = commandTargetSessionKey || params.sessionKey.trim();
-  const bindingContext = resolveAcpCommandBindingContext(params);
-  return resolveEffectiveResetTargetSessionKey({
-    cfg: params.cfg,
-    channel: bindingContext.channel,
-    accountId: bindingContext.accountId,
-    conversationId: bindingContext.conversationId,
-    parentConversationId: bindingContext.parentConversationId,
-    activeSessionKey,
-    allowNonAcpBindingSessionKey: true,
-    skipConfiguredFallbackWhenActiveSessionNonAcp: false,
-  });
+  return commandTargetSessionKey || params.sessionKey || undefined;
 }
 
 export async function resolveAcpTargetSessionKey(params: {
@@ -61,33 +47,12 @@ export async function resolveAcpTargetSessionKey(params: {
   if (token) {
     const resolved = await resolveSessionKeyByToken(token);
     if (!resolved) {
-      return {
-        ok: false,
-        error: `Unable to resolve session target: ${token}`,
-      };
+      return { ok: false, error: `Unable to resolve session target: ${token}` };
     }
     return { ok: true, sessionKey: resolved };
   }
-
-  const threadBound = resolveBoundAcpThreadSessionKey(params.commandParams);
-  if (threadBound) {
-    return {
-      ok: true,
-      sessionKey: threadBound,
-    };
-  }
-
-  const fallback = resolveRequesterSessionKey(params.commandParams, {
-    preferCommandTarget: true,
-  });
-  if (!fallback) {
-    return {
-      ok: false,
-      error: "Missing session key.",
-    };
-  }
-  return {
-    ok: true,
-    sessionKey: fallback,
-  };
+  const fallback = resolveBoundAcpThreadSessionKey(params.commandParams);
+  return fallback
+    ? { ok: true, sessionKey: fallback }
+    : { ok: false, error: "Missing session key." };
 }

@@ -12,10 +12,8 @@ import {
   type LegacyConfigRule,
 } from "./legacy.shared.js";
 import { DEFAULT_GATEWAY_PORT } from "./paths.js";
-import { isBlockedObjectKey } from "./prototype-keys.js";
 
 const LEGACY_TTS_PROVIDER_KEYS = ["openai", "elevenlabs", "microsoft", "edge"] as const;
-const LEGACY_TTS_PLUGIN_IDS = new Set(["voice-call"]);
 
 function isLegacyGatewayBindHostAlias(value: unknown): boolean {
   if (typeof value !== "string") {
@@ -56,21 +54,6 @@ function hasLegacyTtsProviderKeys(value: unknown): boolean {
     return false;
   }
   return LEGACY_TTS_PROVIDER_KEYS.some((key) => Object.prototype.hasOwnProperty.call(tts, key));
-}
-
-function hasLegacyPluginEntryTtsProviderKeys(value: unknown): boolean {
-  const entries = getRecord(value);
-  if (!entries) {
-    return false;
-  }
-  return Object.entries(entries).some(([pluginId, entryValue]) => {
-    if (isBlockedObjectKey(pluginId) || !LEGACY_TTS_PLUGIN_IDS.has(pluginId)) {
-      return false;
-    }
-    const entry = getRecord(entryValue);
-    const config = getRecord(entry?.config);
-    return hasLegacyTtsProviderKeys(config?.tts);
-  });
 }
 
 function getOrCreateTtsProviders(tts: Record<string, unknown>): Record<string, unknown> {
@@ -135,7 +118,7 @@ const GATEWAY_BIND_RULE: LegacyConfigRule = {
 const HEARTBEAT_RULE: LegacyConfigRule = {
   path: ["heartbeat"],
   message:
-    "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for event-driven wake settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
+    "top-level heartbeat is not a valid config path; use cron for cadence or agents.defaults.heartbeat for event-driven wake settings.",
 };
 
 const LEGACY_TTS_RULES: LegacyConfigRule[] = [
@@ -144,12 +127,6 @@ const LEGACY_TTS_RULES: LegacyConfigRule[] = [
     message:
       "messages.tts.<provider> keys (openai/elevenlabs/microsoft/edge) are legacy; use messages.tts.providers.<provider> (auto-migrated on load).",
     match: (value) => hasLegacyTtsProviderKeys(value),
-  },
-  {
-    path: ["plugins", "entries"],
-    message:
-      "plugins.entries.voice-call.config.tts.<provider> keys (openai/elevenlabs/microsoft/edge) are legacy; use plugins.entries.voice-call.config.tts.providers.<provider> (auto-migrated on load).",
-    match: (value) => hasLegacyPluginEntryTtsProviderKeys(value),
   },
 ];
 
@@ -247,24 +224,6 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME: LegacyConfigMigrationSpec[] = [
     apply: (raw, changes) => {
       const messages = getRecord(raw.messages);
       migrateLegacyTtsConfig(getRecord(messages?.tts), "messages.tts", changes);
-
-      const plugins = getRecord(raw.plugins);
-      const pluginEntries = getRecord(plugins?.entries);
-      if (!pluginEntries) {
-        return;
-      }
-      for (const [pluginId, entryValue] of Object.entries(pluginEntries)) {
-        if (isBlockedObjectKey(pluginId) || !LEGACY_TTS_PLUGIN_IDS.has(pluginId)) {
-          continue;
-        }
-        const entry = getRecord(entryValue);
-        const config = getRecord(entry?.config);
-        migrateLegacyTtsConfig(
-          getRecord(config?.tts),
-          `plugins.entries.${pluginId}.config.tts`,
-          changes,
-        );
-      }
     },
   }),
   defineLegacyConfigMigration({

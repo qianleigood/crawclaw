@@ -29,12 +29,12 @@ function resolveProviderChoiceOptions(params?: {
     ...params,
     scope: "text-inference",
   }).map((contribution) => ({
-    value: contribution.option.value as AuthChoice,
+    value: contribution.option.value,
     label: contribution.option.label,
     ...(contribution.option.hint ? { hint: contribution.option.hint } : {}),
     ...(contribution.option.group
       ? {
-          groupId: contribution.option.group.id as AuthChoiceGroupId,
+          groupId: contribution.option.group.id,
           groupLabel: contribution.option.group.label,
           ...(contribution.option.group.hint ? { groupHint: contribution.option.group.hint } : {}),
         }

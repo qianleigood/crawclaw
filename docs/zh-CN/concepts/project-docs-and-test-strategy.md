@@ -237,7 +237,7 @@ title: 文档与测试体系规划
 重点：
 
 - contract validation
-- `embedded_fork` vs `spawned_session`
+- `runtime_fork` vs `spawned_session`
 - tool allowlist 与 runtime deny
 - cache policy
 - prompt inheritance

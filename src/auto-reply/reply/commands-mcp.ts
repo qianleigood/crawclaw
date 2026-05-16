@@ -3,7 +3,7 @@ import {
   setConfiguredMcpServer,
   unsetConfiguredMcpServer,
 } from "../../config/mcp-config.js";
-import { isInternalMessageChannel } from "../../utils/message-channel.js";
+import { isInternalMessageChannel } from "../../utils/gateway-client-surface.js";
 import {
   rejectNonOwnerCommand,
   rejectUnauthorizedCommand,

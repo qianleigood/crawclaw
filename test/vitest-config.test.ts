@@ -191,14 +191,12 @@ describe("resolveLocalVitestMaxWorkers", () => {
     expect(budget.topLevelParallelLimit).toBe(2);
   });
 
-  it("enables shared channel batching on high-memory local hosts", () => {
+  it("enables broad deferred concurrency on high-memory local hosts", () => {
     const runtime = resolveHighMemoryLocalRuntime();
     const budget = resolveExecutionBudget(runtime);
 
     expect(runtime.memoryBand).toBe("high");
     expect(runtime.loadBand).toBe("idle");
-    expect(budget.channelsBatchTargetMs).toBe(30_000);
-    expect(budget.channelSharedWorkers).toBe(5);
     expect(budget.deferredRunConcurrency).toBe(8);
     expect(budget.topLevelParallelLimitNoIsolate).toBe(14);
   });

@@ -29,28 +29,6 @@ const AGENT_GATEWAY_ALLOWED_IMPORTS = new Set([
   "src/gateway/session-utils.js",
 ]);
 
-const AUTO_REPLY_CHANNEL_ALLOWED_IMPORTS = new Set([
-  "src/channels/chat-type.js",
-  "src/channels/conversation-binding-context.js",
-  "src/channels/conversation-label.js",
-  "src/channels/model-overrides.js",
-  "src/channels/plugins/binding-registry.js",
-  "src/channels/plugins/binding-targets.js",
-  "src/channels/plugins/config-writes.js",
-  "src/channels/plugins/exec-approval-local.js",
-  "src/channels/plugins/index.js",
-  "src/channels/plugins/session-conversation.js",
-  "src/channels/plugins/target-parsing.js",
-  "src/channels/plugins/types.js",
-  "src/channels/registry.js",
-  "src/channels/sender-label.js",
-  "src/channels/thread-bindings-messages.js",
-  "src/channels/thread-bindings-policy.js",
-  "src/channels/typing-lifecycle.js",
-  "src/channels/typing-start-guard.js",
-  "src/channels/typing.js",
-]);
-
 function compareEntries(left, right) {
   return (
     left.boundary.localeCompare(right.boundary) ||
@@ -103,20 +81,6 @@ function collectEntriesForFile(sourceFile, filePath) {
       }
       return;
     }
-
-    if (relativeFile.startsWith("src/auto-reply/") && resolvedPath.startsWith("src/channels/")) {
-      if (!AUTO_REPLY_CHANNEL_ALLOWED_IMPORTS.has(resolvedPath)) {
-        pushEntry(entries, {
-          boundary: "auto-reply->channels",
-          file: relativeFile,
-          line: toLine(sourceFile, specifierNode),
-          kind,
-          specifier,
-          resolvedPath,
-          reason: `imports channel internal "${resolvedPath}" outside the approved auto-reply interaction seam`,
-        });
-      }
-    }
   });
 
   return entries;
@@ -145,14 +109,12 @@ function formatInventoryHuman(inventory) {
   if (inventory.length === 0) {
     return [
       "Rule: src/agents/** may only import approved gateway runtime seams",
-      "Rule: src/auto-reply/** may only import approved channel interaction seams",
       "No runtime module boundary violations found.",
     ].join("\n");
   }
 
   const lines = [
     "Rule: src/agents/** may only import approved gateway runtime seams",
-    "Rule: src/auto-reply/** may only import approved channel interaction seams",
     "Runtime module boundary violations:",
   ];
   let activeFile = "";

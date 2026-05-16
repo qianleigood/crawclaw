@@ -69,7 +69,7 @@ contracts.
 - [x] Add a shared runtime substrate for maintenance-style special agents.
   - Landed:
     - shared `SpecialAgentDefinition`
-    - dual execution modes: `spawned_session` and `embedded_fork`
+    - dual execution modes: `spawned_session` and `runtime_fork`
     - explicit transcript policy on special-agent definitions
     - explicit tool policies resolved from the shared special-agent registry
     - runtime deny for special-agent tool enforcement
@@ -78,17 +78,17 @@ contracts.
       fallback artifact
     - shared spawn / embedded-run / completion capture runtime
     - shared event / history / usage hooks in the runtime runner
-    - `session_summary` migrated to `embedded_fork`
+    - `session_summary` migrated to `runtime_fork`
     - `durable_memory` migrated as a pilot on the shared substrate
     - `dream` migrated on the shared substrate
-    - embedded memory special runs now record usage/history/action observations into Context Archive
-    - embedded memory special runs now surface usage, including cache read/write, in Action Feed completion details
+    - runtime memory special runs now record usage/history/action observations into Context Archive
+    - runtime memory special runs now surface usage, including cache read/write, in Action Feed completion details
     - review migrated
 - [x] Keep future task-specific special agents on case-by-case substrate opt-in.
-  - Embedded maintenance forks are the default only for fire-and-forget background agents.
+  - Runtime maintenance forks are the default only for fire-and-forget background agents.
   - User-invoked or session-bearing task agents stay `spawned_session` unless they need parent-run cache inheritance more than child-session state.
 - [x] Add explicit cache-write suppression (`skipCacheWrite` equivalent) to the embedded-fork substrate.
-  - Embedded memory special agents now carry explicit cache-write suppression through the shared substrate.
+  - Runtime memory special agents now carry explicit cache-write suppression through the shared substrate.
   - The runtime maps that to provider-supported "avoid creating new cache entries" controls while still preserving prompt-cache reads when the provider can do so.
 - [x] Replace persisted parent-run prompt artifacts with a fuller parent fork prompt envelope.
   - Landed:
@@ -98,12 +98,12 @@ contracts.
     - `session_summary` now receives one lifecycle `parentForkContext` that
       bundles the retained parent prompt envelope with the current full
       model-visible message context
-    - non-summary embedded forks no longer read parent prompt state from a
+    - non-summary runtime forks no longer read parent prompt state from a
       persisted `runId` artifact
     - durable extraction and dream keep short retention plus cache-write
       suppression, while session-summary uses the parent fork context only for
       prompt/history handoff and does not reuse parent prompt-cache keys
-    - embedded forks now declare explicit `parentContextPolicy`
+    - runtime forks now declare explicit `parentContextPolicy`
       (`none`, `fork_messages_only`, `full_envelope`) instead of relying on
       ad hoc call-site omission or `definitionId` checks
     - dream does not consume session-summary files or compact-summary state;
@@ -115,7 +115,7 @@ contracts.
       child-session state, subagent announcement, default main-agent prompt,
       skills, bootstrap context, workspace reminders, or main memory runtime
       recall/lifecycle because its contract is now `parentContextPolicy: "none"`
-    - dream now declares `isolatedContext: true`, and the embedded runner uses
+    - dream now declares `isolatedContext: true`, and the runtime runner uses
       that definition-level contract to omit default prompt extras instead of
       relying on a spawn-source allowlist
     - explicit CLI/gateway summary refresh now reconstructs a bounded manual
@@ -265,12 +265,12 @@ Memory is aligned with the current simplified model, but follow-up work remains.
 - [x] Move maintenance-agent isolation onto `SpecialAgentDefinition`.
   - `durable-memory`, `session-summary`, `dream`, and `experience` now declare
     `isolatedContext: true` directly.
-  - the embedded runner resolves isolation from the registered definition
+  - the runtime runner resolves isolation from the registered definition
     instead of a hardcoded spawn-source set.
 - [ ] Revisit candidate extraction as a future suggestion layer only.
   - It should not become a hidden writeback path again.
 - [x] Keep dreaming as a separate durable-memory consolidation pipeline.
-  - Dream uses an isolated embedded special-agent run with host-provided
+  - Dream uses an isolated runtime-fork special-agent run with host-provided
     manifest, structured signals, and narrow transcript refs.
   - It does not spawn a child session, emit a subagent completion message, or
     inherit parent prompt/context state.

@@ -5,8 +5,6 @@
   "description": "CrawClaw Exa plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

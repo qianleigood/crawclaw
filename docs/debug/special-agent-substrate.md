@@ -41,21 +41,20 @@ That follows the Claude Code pattern: shared forked-agent runtime, specialized a
 
 The shared runtime lives in:
 
-- `src/agents/special/runtime/types.ts`
-- `src/agents/special/runtime/run-once.ts`
+- `crates/crawclaw-runtime/src/lib.rs`
 
 Core concepts:
 
 - `SpecialAgentDefinition`
   Declares the stable runtime contract for one special agent, including
-  `executionMode: "spawned_session" | "embedded_fork"`.
+  `executionMode: "spawned_session" | "runtime_fork"`.
 - `registry.ts`
   Resolves registered special-agent definitions and tool policies by `spawnSource`.
-- `runSpecialAgentToCompletion(...)`
-  Dispatches to the correct substrate, then handles completion capture,
-  transcript-policy enforcement, and optional event/history/usage hooks.
-- `embedded-run-once.ts`
-  Hosts the new embedded-fork substrate path.
+- Rust special-agent runtime
+  Dispatches to the selected special-agent definition, then handles completion
+  capture, transcript-policy enforcement, and optional event/history/usage hooks.
+- Rust embedded-fork runner
+  Hosts the embedded-fork substrate path inside the native agent runtime.
 - `createRunLoopLifecycleRegistration(...)`
   Handles shared lifecycle phase registration for special-agent subscribers.
 - `createSharedLifecycleSubscriberAccessor(...)`
@@ -66,13 +65,13 @@ Core concepts:
 The shared substrate is now used by:
 
 - session summary
-  - `src/memory/session-summary/agent-runner.ts`
+  - Rust memory runtime session-summary job
   - definition: `SESSION_SUMMARY_AGENT_DEFINITION`
 - durable memory agent
-  - `src/memory/durable/agent-runner.ts`
+  - Rust memory runtime durable extraction job
   - definition: `DURABLE_MEMORY_AGENT_DEFINITION`
 - dream
-  - `src/memory/dreaming/agent-runner.ts`
+  - Rust memory runtime dream job
   - definition: `DREAM_AGENT_DEFINITION`
 - review-spec
   - `src/agents/review-agent.ts`
@@ -128,9 +127,9 @@ agents:
 - the shared runner translates those policies into provider request params
   such as short retention and cache-write suppression
 - parent runs build a lifecycle `parentForkContext` from the final parent
-  prompt assembly, so embedded forks can receive one captured handoff object
+  prompt assembly, so runtime forks can receive one captured handoff object
   containing model-visible messages plus cache/debug metadata
-- embedded forks now declare a definition-level `parentContextPolicy`
+- runtime forks now declare a definition-level `parentContextPolicy`
   (`none`, `fork_messages_only`, or `full_envelope`) so the runtime decides
   whether a captured parent prompt envelope may be attached at all
 - the parent fork context separates:
@@ -143,7 +142,7 @@ agents:
   - fork-context messages
 - provider-specific request patching now only consumes direct cache hints; it no
   longer derives a parent prompt-cache key from the parent envelope
-- the substrate now supports an explicit `embedded_fork` execution mode, so special agents no longer need to be modeled only as child sessions
+- the substrate now supports an explicit `runtime_fork` execution mode, so special agents no longer need to be modeled only as child sessions
 - session-summary special runs consume the lifecycle `parentForkContext` as the
   automatic parent handoff
 - that parent fork context carries the full current model-visible
@@ -186,9 +185,9 @@ agents:
   before the preserved tail
 - stale `summaryInProgress` leases are cleared during compaction rather than
   blocking on a dead summary run
-- embedded memory special runs now record shared agent-event / history / usage observations into Context Archive without depending on child-session transcript state
-- the same embedded memory runs now surface usage, including `cacheRead` / `cacheWrite`, back into their Action Feed completion details
-- embedded memory special agents now declare explicit cache-write suppression on the substrate, which maps to provider-supported "do not create new cache entries" controls while preserving prompt-cache reads when possible
+- runtime memory special runs now record shared agent-event / history / usage observations into Context Archive without depending on child-session transcript state
+- the same runtime memory runs now surface usage, including `cacheRead` / `cacheWrite`, back into their Action Feed completion details
+- runtime memory special agents now declare explicit cache-write suppression on the substrate, which maps to provider-supported "do not create new cache entries" controls while preserving prompt-cache reads when possible
 - review stage agents are intentionally explicit about staying on `spawned_session`; they use the shared substrate contract, but they are not treated as fire-and-forget maintenance forks
 
 At the current CrawClaw runtime layer, this closes most of the substrate-level design gap that was still open after the first embedded-fork rollout while also simplifying ownership:
@@ -203,7 +202,7 @@ The main remaining difference from Claude Code is that CrawClaw still does not r
 Future task-specific special agents should continue to opt in case-by-case:
 
 - maintenance-style, fire-and-forget background agents should prefer
-  `embedded_fork`; independence should come from an explicit
+  `runtime_fork`; independence should come from an explicit
   `parentContextPolicy` choice plus isolated context behavior, not from
   implicitly omitting parent fork context at the call site
 - user-invoked or session-bearing task agents should remain `spawned_session` unless they explicitly need a parent fork context more than child-session state

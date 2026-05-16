@@ -1,6 +1,11 @@
 {
   "id": "moonshot",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["moonshot"],
   "providerAuthEnvVars": {
     "moonshot": ["MOONSHOT_API_KEY"]
@@ -47,9 +52,6 @@
       "label": "Kimi Search Model",
       "help": "Kimi model override."
     }
-  },
-  "contracts": {
-    "mediaUnderstandingProviders": ["moonshot"]
   },
   "configSchema": {
     "type": "object",

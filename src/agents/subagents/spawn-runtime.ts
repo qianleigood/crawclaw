@@ -7,21 +7,17 @@ import {
   pruneLegacyStoreKeys,
   resolveGatewaySessionStoreTarget,
 } from "../../gateway/session-utils.js";
-import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
-import type { SubagentLifecycleHookRunner } from "../../plugins/hooks.js";
 import type { SpawnSubagentMode, SpawnSubagentParams } from "./spawn-types.js";
 import { splitModelRef } from "./spawn-types.js";
 
 export type SubagentSpawnDeps = {
   callGateway: typeof callGateway;
-  getGlobalHookRunner: () => SubagentLifecycleHookRunner | null;
   loadConfig: typeof loadConfig;
   updateSessionStore: typeof updateSessionStore;
 };
 
 const defaultSubagentSpawnDeps: SubagentSpawnDeps = {
   callGateway,
-  getGlobalHookRunner,
   loadConfig,
   updateSessionStore,
 };
@@ -35,10 +31,6 @@ export function setSubagentSpawnDepsForTest(overrides?: Partial<SubagentSpawnDep
         ...overrides,
       }
     : defaultSubagentSpawnDeps;
-}
-
-export function getSubagentHookRunner(): SubagentLifecycleHookRunner | null {
-  return subagentSpawnDeps.getGlobalHookRunner();
 }
 
 export function loadSubagentConfig() {
@@ -229,7 +221,6 @@ export function summarizeSpawnError(err: unknown): string {
 }
 
 export async function ensureThreadBindingForSubagentSpawn(params: {
-  hookRunner: SubagentLifecycleHookRunner | null;
   childSessionKey: string;
   agentId: string;
   label?: string;
@@ -242,51 +233,11 @@ export async function ensureThreadBindingForSubagentSpawn(params: {
     threadId?: string | number;
   };
 }): Promise<{ status: "ok" } | { status: "error"; error: string }> {
-  const hookRunner = params.hookRunner;
-  if (!hookRunner?.hasHooks("subagent_spawning")) {
-    return {
-      status: "error",
-      error:
-        "thread=true is unavailable because no channel plugin registered subagent_spawning hooks.",
-    };
-  }
-
-  try {
-    const result = await hookRunner.runSubagentSpawning(
-      {
-        childSessionKey: params.childSessionKey,
-        agentId: params.agentId,
-        label: params.label,
-        mode: params.mode,
-        requester: params.requester,
-        threadRequested: true,
-      },
-      {
-        childSessionKey: params.childSessionKey,
-        requesterSessionKey: params.requesterSessionKey,
-      },
-    );
-    if (result?.status === "error") {
-      const error = result.error.trim();
-      return {
-        status: "error",
-        error: error || "Failed to prepare thread binding for this subagent session.",
-      };
-    }
-    if (result?.status !== "ok" || !result.threadBindingReady) {
-      return {
-        status: "error",
-        error:
-          "Unable to create or bind a thread for this subagent session. Session mode is unavailable for this target.",
-      };
-    }
-    return { status: "ok" };
-  } catch (err) {
-    return {
-      status: "error",
-      error: `Thread bind failed: ${summarizeSpawnError(err)}`,
-    };
-  }
+  void params;
+  return {
+    status: "error",
+    error: "thread=true is unavailable because TS plugin subagent hooks were removed.",
+  };
 }
 
 export const __testing = {

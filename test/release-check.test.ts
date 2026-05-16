@@ -224,7 +224,7 @@ describe("collectForbiddenPackPaths", () => {
 });
 
 describe("collectMissingPackPaths", () => {
-  it("requires the shipped channel catalog and optional bundled metadata", () => {
+  it("requires the shipped runtime surface and optional bundled metadata", () => {
     const missing = collectMissingPackPaths([
       "dist/index.js",
       "dist/native/crawclaw-runtime",
@@ -238,15 +238,11 @@ describe("collectMissingPackPaths", () => {
     expect(missing).toEqual(
       expect.arrayContaining([
         "docs/reference/templates/AGENTS.md",
-        "dist/channel-catalog.json",
         "extensions/scrapling-fetch/runtime/requirements.lock.txt",
-        "scripts/install-plugin-runtimes.mjs",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",
-        bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
-        bundledDistPluginFile("acpx", "runtime-api.js"),
-        bundledDistPluginFile("ollama", "runtime-api.js"),
+        bundledDistPluginFile("speech-core", "runtime-api.js"),
       ]),
     );
   });
@@ -258,26 +254,22 @@ describe("collectMissingPackPaths", () => {
         "dist/native/crawclaw-runtime",
         "dist/native/crawclaw-gateway",
         "dist/native/crawclaw-native-plugins",
-        "dist/extensions/acpx/mcp-proxy.mjs",
-        bundledDistPluginFile("diffs", "assets/viewer-runtime.js"),
         ...requiredBundledPluginPackPaths,
         ...requiredPluginSdkPackPaths,
         "extensions/scrapling-fetch/runtime/requirements.lock.txt",
-        "scripts/install-plugin-runtimes.mjs",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",
         "docs/reference/templates/AGENTS.md",
         "dist/build-info.json",
-        "dist/channel-catalog.json",
         ...requiredStaticExtensionAssetPaths,
       ]),
     ).toEqual([]);
   });
 
-  it("requires bundled plugin runtime sidecars that dynamic plugin boundaries resolve at runtime", () => {
+  it("does not require legacy bundled plugin runtime sidecars after native cutover", () => {
     expect(requiredBundledPluginPackPaths).toEqual(
-      expect.arrayContaining([
+      expect.not.arrayContaining([
         bundledDistPluginFile("acpx", "runtime-api.js"),
         bundledDistPluginFile("diffs", "runtime-api.js"),
         bundledDistPluginFile("ollama", "runtime-api.js"),

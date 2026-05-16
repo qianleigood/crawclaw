@@ -1,25 +1,10 @@
-import { resolveAccountEntry } from "../routing/account-lookup.js";
-import { normalizeAccountId } from "../routing/session-key.js";
 import type { CrawClawConfig } from "./config.js";
 import type { ContextVisibilityMode } from "./types.base.js";
 
-type ChannelContextVisibilityConfig = {
-  contextVisibility?: ContextVisibilityMode;
-  accounts?: Record<string, { contextVisibility?: ContextVisibilityMode }>;
-};
-
-export type ContextVisibilityDefaultsConfig = {
-  channels?: {
-    defaults?: {
-      contextVisibility?: ContextVisibilityMode;
-    };
-  };
-};
-
 export function resolveDefaultContextVisibility(
-  cfg: ContextVisibilityDefaultsConfig,
+  _cfg: Record<string, unknown>,
 ): ContextVisibilityMode | undefined {
-  return cfg.channels?.defaults?.contextVisibility;
+  return undefined;
 }
 
 export function resolveChannelContextVisibilityMode(params: {
@@ -31,15 +16,8 @@ export function resolveChannelContextVisibilityMode(params: {
   if (params.configuredContextVisibility) {
     return params.configuredContextVisibility;
   }
-  const channelConfig = params.cfg.channels?.[params.channel] as
-    | ChannelContextVisibilityConfig
-    | undefined;
-  const accountId = normalizeAccountId(params.accountId);
-  const accountMode = resolveAccountEntry(channelConfig?.accounts, accountId)?.contextVisibility;
-  return (
-    accountMode ??
-    channelConfig?.contextVisibility ??
-    resolveDefaultContextVisibility(params.cfg) ??
-    "all"
-  );
+  void params.cfg;
+  void params.channel;
+  void params.accountId;
+  return "all";
 }

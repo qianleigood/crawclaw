@@ -1,9 +1,4 @@
 // Narrow plugin-sdk surface for the bundled copilot-proxy plugin.
 // Keep this list additive and scoped to the bundled Copilot proxy surface.
 
-export { definePluginEntry } from "./plugin-entry.js";
-export type {
-  CrawClawPluginApi,
-  ProviderAuthContext,
-  ProviderAuthResult,
-} from "../plugins/types.js";
+export type { ProviderAuthContext, ProviderAuthResult } from "../plugins/types.js";

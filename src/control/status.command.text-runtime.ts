@@ -9,9 +9,7 @@ export {
 } from "../plugins/status.js";
 export { getTerminalTableWidth, renderTable } from "../terminal/table.js";
 export { theme } from "../terminal/theme.js";
-export { formatHealthChannelLines } from "./health.js";
 export { resolveBrowserClientsLinks } from "./onboard-helpers.js";
-export { groupChannelIssuesByChannel } from "./status-all/channel-issues.js";
 export { formatGatewayAuthUsed } from "./status-all/format.js";
 export {
   formatDuration,

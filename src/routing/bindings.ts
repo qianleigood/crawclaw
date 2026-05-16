@@ -1,15 +1,10 @@
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { normalizeChatChannelId } from "../channels/registry.js";
 import { listRouteBindings } from "../config/bindings.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { AgentRouteBinding } from "../config/types.agents.js";
 import { normalizeAccountId, normalizeAgentId } from "./session-key.js";
 
 function normalizeBindingChannelId(raw?: string | null): string | null {
-  const normalized = normalizeChatChannelId(raw);
-  if (normalized) {
-    return normalized;
-  }
   const fallback = (raw ?? "").trim().toLowerCase();
   return fallback || null;
 }

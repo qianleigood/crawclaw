@@ -1,8 +1,7 @@
-// Shared tool-risk constants.
-// Keep these centralized so gateway HTTP restrictions and security audits don't drift.
+// Shared tool-risk constants retained for config migration and audit compatibility.
 
 /**
- * Tools denied via Gateway HTTP `POST /tools/invoke` by default.
+ * Tools formerly denied by the removed Gateway HTTP direct tool endpoint.
  * These are high-risk because they enable session orchestration, control-plane actions,
  * or interactive flows that don't make sense over a non-interactive HTTP surface.
  */

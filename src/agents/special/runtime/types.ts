@@ -9,7 +9,7 @@ import type { NormalizedUsage } from "../../usage.js";
 import type { SpecialAgentParentForkContext } from "./parent-fork-context.js";
 
 export type SpecialAgentTranscriptPolicy = "isolated" | "thread_bound";
-export type SpecialAgentExecutionMode = "embedded_fork" | "spawned_session";
+export type SpecialAgentExecutionMode = "runtime_fork" | "spawned_session";
 export type SpecialAgentToolGuard = "memory_maintenance";
 export type SpecialAgentParentContextPolicy = "none" | "fork_messages_only" | "full_envelope";
 
@@ -25,7 +25,7 @@ export type SpecialAgentCachePolicy = {
   skipWrite?: boolean;
 };
 
-export type SpecialAgentEmbeddedContext = {
+export type SpecialAgentRuntimeContext = {
   sessionId: string;
   sessionFile: string;
   workspaceDir: string;
@@ -58,7 +58,6 @@ export type SpecialAgentEmbeddedContext = {
   currentChannelId?: string;
   currentThreadTs?: string;
   currentMessageId?: string | number;
-  allowGatewaySubagentBinding?: boolean;
   observation?: ObservationContext;
 };
 
@@ -109,7 +108,7 @@ export type SpecialAgentSpawnRequest = {
   parentRunId?: string;
   observation?: ObservationContext;
   parentForkContext?: SpecialAgentParentForkContext;
-  embeddedContext?: SpecialAgentEmbeddedContext;
+  runtimeContext?: SpecialAgentRuntimeContext;
   spawnContext?: AgentSpawnToolContext;
   spawnOverrides?: SpecialAgentSpawnOverrides;
   historyLimit?: number;
@@ -155,21 +154,21 @@ export function validateSpecialAgentDefinitionContract(
   if (allowlist.length === 0) {
     issues.push("toolPolicy.allowlist must contain at least one tool");
   }
-  if (executionMode === "embedded_fork" && transcriptPolicy !== "isolated") {
-    issues.push('embedded_fork requires transcriptPolicy="isolated"');
+  if (executionMode === "runtime_fork" && transcriptPolicy !== "isolated") {
+    issues.push('runtime_fork requires transcriptPolicy="isolated"');
   }
-  if (executionMode === "embedded_fork" && !definition.parentContextPolicy) {
+  if (executionMode === "runtime_fork" && !definition.parentContextPolicy) {
     issues.push(
-      'embedded_fork requires explicit parentContextPolicy ("none", "fork_messages_only", or "full_envelope")',
+      'runtime_fork requires explicit parentContextPolicy ("none", "fork_messages_only", or "full_envelope")',
     );
   }
-  if (executionMode === "embedded_fork" && !toolPolicy?.enforcement) {
+  if (executionMode === "runtime_fork" && !toolPolicy?.enforcement) {
     issues.push(
-      'embedded_fork requires explicit toolPolicy.enforcement ("prompt_allowlist" or "runtime_deny")',
+      'runtime_fork requires explicit toolPolicy.enforcement ("prompt_allowlist" or "runtime_deny")',
     );
   }
-  if (executionMode === "embedded_fork" && definition.mode && definition.mode !== "run") {
-    issues.push('embedded_fork requires mode="run"');
+  if (executionMode === "runtime_fork" && definition.mode && definition.mode !== "run") {
+    issues.push('runtime_fork requires mode="run"');
   }
   if (transcriptPolicy === "thread_bound" && executionMode !== "spawned_session") {
     issues.push('thread_bound transcriptPolicy requires executionMode="spawned_session"');

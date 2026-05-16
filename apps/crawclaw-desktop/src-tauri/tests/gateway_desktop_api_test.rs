@@ -215,7 +215,7 @@ esac
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
         app_version: "test".to_string(),
-        runtime_layout,
+        runtime_layout: runtime_layout.clone(),
         session_token: "session".to_string(),
     })
     .await
@@ -316,7 +316,7 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
-async fn gateway_invokes_node_plugin_tool_through_rust_plugin_host() {
+async fn gateway_rejects_node_plugin_tool_after_rust_hard_cut() {
     let runtime_layout = create_runtime_fixture(
         "desktop-node-plugin",
         r#"#!/bin/sh
@@ -369,7 +369,7 @@ esac
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
         app_version: "test".to_string(),
-        runtime_layout,
+        runtime_layout: runtime_layout.clone(),
         session_token: "session".to_string(),
     })
     .await
@@ -383,17 +383,8 @@ esac
     );
     let (status, body) = request(server.addr, &request_body).await;
 
-    assert_eq!(status, 200);
-    let json: serde_json::Value = serde_json::from_str(&body).expect("state json");
-    assert_eq!(json["activeNavId"], "plugins");
-    let result_items = json["conversation"]["resultItems"]
-        .as_array()
-        .expect("result items");
-    assert!(result_items.iter().any(|item| {
-        item.as_str()
-            .unwrap_or_default()
-            .contains(r#"test-js/echo: {"output":"node:node:hi"}"#)
-    }));
+    assert_eq!(status, 500);
+    assert!(!body.contains("node:node:hi"));
 }
 
 #[cfg(unix)]
@@ -1860,7 +1851,7 @@ esac
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
         app_version: "test".to_string(),
-        runtime_layout,
+        runtime_layout: runtime_layout.clone(),
         session_token: "session".to_string(),
     })
     .await
@@ -1881,6 +1872,12 @@ esac
     let agent_id = json["agentWorkspace"]["selectedAgentId"]
         .as_str()
         .expect("agent id");
+    let provider_base_url = spawn_openai_compatible_provider(
+        &format!("Run memory dream for agent {agent_id}"),
+        "desktop dream complete",
+    )
+    .await;
+    write_openai_compatible_provider_config(&runtime_layout, &provider_base_url);
 
     let mut events = tokio::net::TcpStream::connect(server.addr)
         .await

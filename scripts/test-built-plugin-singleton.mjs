@@ -44,18 +44,13 @@ const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 const smokeEntryPath = path.join(repoRoot, "dist", "plugins", "build-smoke-entry.js");
 assert.ok(fs.existsSync(smokeEntryPath), `missing build output: ${smokeEntryPath}`);
 
-const { clearPluginCommands, getPluginCommandSpecs, loadCrawClawPlugins, matchPluginCommand } =
-  await import(pathToFileURL(smokeEntryPath).href);
+const { loadCrawClawPlugins } = await import(pathToFileURL(smokeEntryPath).href);
 
 assert.equal(typeof loadCrawClawPlugins, "function", "built loader export missing");
-assert.equal(typeof clearPluginCommands, "function", "clearPluginCommands missing");
-assert.equal(typeof getPluginCommandSpecs, "function", "getPluginCommandSpecs missing");
-assert.equal(typeof matchPluginCommand, "function", "matchPluginCommand missing");
 
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-build-smoke-"));
 
 function cleanup() {
-  clearPluginCommands();
   fs.rmSync(tempRoot, { recursive: true, force: true });
 }
 
@@ -112,17 +107,6 @@ fs.writeFileSync(
     "export default {",
     `  id: ${JSON.stringify(pluginId)},`,
     "  configSchema: emptyPluginConfigSchema(),",
-    "  register(api) {",
-    "    api.registerCommand({",
-    "      name: 'pair',",
-    "      description: 'Pair a device',",
-    "      acceptsArgs: true,",
-    "      nativeNames: { feishu: 'pair', weixin: 'pair' },",
-    "      async handler({ args }) {",
-    "        return { text: `paired:${args ?? ''}` };",
-    "      },",
-    "    });",
-    "  },",
     "};",
     "",
   ].join("\n"),
@@ -138,8 +122,6 @@ assert.equal(
   false,
   "dist-runtime must not stage a duplicate commands module",
 );
-
-clearPluginCommands();
 
 const registry = loadCrawClawPlugins({
   cache: false,
@@ -163,15 +145,5 @@ const registry = loadCrawClawPlugins({
 const record = registry.plugins.find((entry) => entry.id === pluginId);
 assert.ok(record, "smoke plugin missing from registry");
 assert.equal(record.status, "loaded", record.error ?? "smoke plugin failed to load");
-
-assert.deepEqual(getPluginCommandSpecs("feishu"), [
-  { name: "pair", description: "Pair a device", acceptsArgs: true },
-]);
-
-const match = matchPluginCommand("/pair now");
-assert.ok(match, "canonical built command registry did not receive the command");
-assert.equal(match.args, "now");
-const result = await match.command.handler({ args: match.args });
-assert.deepEqual(result, { text: "paired:now" });
 
 process.stdout.write("[build-smoke] built plugin singleton smoke passed\n");

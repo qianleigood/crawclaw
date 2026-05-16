@@ -1,8 +1,19 @@
-import { runCrawClawRuntimeTool } from "../agents/runtime-tools/native.js";
-import type { CronServiceDeps } from "./service/state.js";
+import { callGateway } from "../gateway/call.js";
 import type { CronJob, CronJobCreate, CronJobPatch } from "./types.js";
 
-export type { CronEvent, CronServiceDeps } from "./service/state.js";
+export type CronEvent = {
+  jobId: string;
+  action: string;
+  status?: string;
+  summary?: string;
+  error?: string;
+  [key: string]: unknown;
+};
+
+export type CronServiceDeps = {
+  storePath: string;
+  cronEnabled?: boolean;
+};
 
 export type CronListPageOptions = {
   includeDisabled?: boolean;
@@ -103,13 +114,13 @@ export class CronService {
   }
 
   private async call<T>(method: string, input?: Record<string, unknown>): Promise<T> {
-    return await runCrawClawRuntimeTool<T>(
+    return await callGateway<T>({
       method,
-      {
+      params: {
         ...input,
         storePath: this.storePath,
       },
-      { timeoutMs: DEFAULT_CRON_TIMEOUT_MS },
-    );
+      timeoutMs: DEFAULT_CRON_TIMEOUT_MS,
+    });
   }
 }

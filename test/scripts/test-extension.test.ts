@@ -38,11 +38,11 @@ function findExtensionWithoutTests() {
 
 describe("scripts/test-extension.mjs", () => {
   it("resolves provider extensions onto the extensions vitest config", () => {
-    const plan = resolveExtensionTestPlan({ targetArg: "brave", cwd: process.cwd() });
+    const plan = resolveExtensionTestPlan({ targetArg: "google", cwd: process.cwd() });
 
-    expect(plan.extensionId).toBe("brave");
+    expect(plan.extensionId).toBe("google");
     expect(plan.config).toBe("vitest.extensions.config.ts");
-    expect(plan.testFiles.some((file) => file.startsWith(`${bundledPluginRoot("brave")}/`))).toBe(
+    expect(plan.testFiles.some((file) => file.startsWith(`${bundledPluginRoot("google")}/`))).toBe(
       true,
     );
   });

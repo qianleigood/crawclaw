@@ -1,30 +1,26 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { type ChatAttachment, parseMessageWithAttachments } from "./chat-attachments.js";
 
-const {
-  extractFileContentFromSourceMock,
-  transcribeAudioFileMock,
-  saveMediaBufferMock,
-  deleteMediaBufferMock,
-} = vi.hoisted(() => ({
-  extractFileContentFromSourceMock: vi.fn(),
-  transcribeAudioFileMock: vi.fn(),
-  saveMediaBufferMock: vi.fn(
-    async (
-      _buffer: Buffer,
-      mimeType?: string,
-      _subdir?: string,
-      _maxBytes?: number,
-      fileName?: string,
-    ) => ({
-      id: `${fileName ?? "media"}-id`,
-      path: `/tmp/${fileName ?? "media"}`,
-      size: 123,
-      contentType: mimeType,
-    }),
-  ),
-  deleteMediaBufferMock: vi.fn(async (_id: string, _subdir?: "inbound") => {}),
-}));
+const { extractFileContentFromSourceMock, saveMediaBufferMock, deleteMediaBufferMock } = vi.hoisted(
+  () => ({
+    extractFileContentFromSourceMock: vi.fn(),
+    saveMediaBufferMock: vi.fn(
+      async (
+        _buffer: Buffer,
+        mimeType?: string,
+        _subdir?: string,
+        _maxBytes?: number,
+        fileName?: string,
+      ) => ({
+        id: `${fileName ?? "media"}-id`,
+        path: `/tmp/${fileName ?? "media"}`,
+        size: 123,
+        contentType: mimeType,
+      }),
+    ),
+    deleteMediaBufferMock: vi.fn(async (_id: string, _subdir?: "inbound") => {}),
+  }),
+);
 
 vi.mock("../media/input-files.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../media/input-files.js")>();
@@ -35,14 +31,6 @@ vi.mock("../media/input-files.js", async (importOriginal) => {
     ) => extractFileContentFromSourceMock(...args),
   };
 });
-
-vi.mock("../media-understanding/transcribe-audio.js", () => ({
-  transcribeAudioFile: (
-    ...args: Parameters<
-      typeof import("../media-understanding/transcribe-audio.js").transcribeAudioFile
-    >
-  ) => transcribeAudioFileMock(...args),
-}));
 
 vi.mock("../media/store.js", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../media/store.js")>();
@@ -98,8 +86,7 @@ describe("parseMessageWithAttachments", () => {
     expect(parsed.additionalMedia).toHaveLength(1);
   });
 
-  it("transcribes audio into message text", async () => {
-    transcribeAudioFileMock.mockResolvedValueOnce({ text: "voice memo text" });
+  it("stores audio attachments without invoking TS transcription", async () => {
     const audio = Buffer.from("fake-audio").toString("base64");
 
     const parsed = await parseMessageWithAttachments(
@@ -116,7 +103,7 @@ describe("parseMessageWithAttachments", () => {
     );
 
     expect(parsed.message).toContain("Attached audio: memo.mp3");
-    expect(parsed.message).toContain("voice memo text");
+    expect(parsed.message).toContain("Audio transcription is not available");
     expect(parsed.additionalMedia).toHaveLength(1);
   });
 

@@ -83,7 +83,7 @@ title: 项目基线冻结
 典型入口：
 
 - `src/gateway/server.ts`
-- `src/gateway/server-methods/**`
+- Rust Gateway RPC handlers
 
 职责：
 

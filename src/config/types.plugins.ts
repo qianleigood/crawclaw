@@ -1,9 +1,5 @@
 export type PluginEntryConfig = {
   enabled?: boolean;
-  hooks?: {
-    /** Controls prompt mutation via before_prompt_build. */
-    allowPromptInjection?: boolean;
-  };
   subagent?: {
     /** Explicitly allow this plugin to request per-run provider/model overrides for subagent runs. */
     allowModelOverride?: boolean;

@@ -341,8 +341,8 @@ title: Phase 对应 PR 计划
 
 已验证：
 
-- `vitest run src/workflows/control-runtime.test.ts src/auto-reply/reply/commands-workflow.test.ts src/gateway/server-methods/workflow.test.ts`
-- `pnpm lint src/workflows/control-runtime.ts src/auto-reply/reply/commands-workflow.ts src/gateway/server-methods/workflow.ts src/workflows/control-runtime.test.ts src/auto-reply/reply/commands-workflow.test.ts`
+- `vitest run` for workflow control runtime, command workflow, and Gateway workflow coverage.
+- `pnpm lint` for workflow control runtime, command workflow, and Gateway workflow coverage.
 - `vitest run src/auto-reply/reply/commands-session-settings.test.ts src/gateway/sessions-patch.test.ts`
 - `pnpm lint src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-session-store.ts src/auto-reply/reply/commands-session-settings.test.ts`
 - `vitest run src/auto-reply/reply/commands-session-settings.test.ts src/auto-reply/reply/directive-handling.model.test.ts src/gateway/sessions-patch.test.ts`
@@ -582,7 +582,7 @@ title: Phase 对应 PR 计划
   - `vitest run src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.test.ts src/auto-reply/reply/commands-core.test.ts`
   - `vitest run src/gateway/session-reset-service.test.ts src/config/sessions/sessions.test.ts -t "appendAssistantMessageToSessionTranscript"`
   - `vitest run src/gateway/session-utils.fs.test.ts -t "skips files that do not exist and archives only existing ones"`
-  - `pnpm lint src/sessions/runtime/reset-cleanup.ts src/gateway/session-reset-service.ts src/gateway/session-reset-service.test.ts src/sessions/runtime/reset-lifecycle.ts src/sessions/runtime/reset-lifecycle.test.ts src/sessions/transcript-archive.fs.ts src/sessions/runtime/reset-artifacts.ts src/sessions/runtime/reset-artifacts.test.ts src/sessions/runtime/reset-carry-over.ts src/sessions/runtime/reset-carry-over.test.ts src/auto-reply/reply/session.ts src/gateway/server-methods/sessions.ts src/auto-reply/reply/commands-core.test.ts src/auto-reply/reply/abort.test.ts`
+  - `pnpm lint` for session reset runtime, Gateway session reset service, auto-reply session, command core, and abort coverage.
   - `pnpm lint src/auto-reply/reply/acp-reset-adapter.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/abort.ts src/auto-reply/reply/commands-session-abort.ts src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts`
   - `pnpm lint src/sessions/runtime/abort-executor.ts src/sessions/runtime/abort-executor.test.ts src/auto-reply/reply/commands-session-abort.ts src/auto-reply/reply/commands-session-abort.test.ts src/auto-reply/reply/abort.ts`
   - `pnpm lint src/sessions/runtime/before-reset-hook.ts src/sessions/runtime/before-reset-hook.test.ts src/auto-reply/reply/commands-core.ts src/auto-reply/reply/commands-core.test.ts src/gateway/session-reset-service.ts`
@@ -650,9 +650,9 @@ title: Phase 对应 PR 计划
   - `session-summary`
 - `src/agents/special/runtime/definition-presets.ts` 已新增 substrate preset，开始把 special agent 的共用 policy 从各域 runner 里回收到 substrate：
   - shared `runtime_deny` tool policy helper
-  - shared embedded memory special-agent definition preset
+  - shared runtime memory special-agent definition preset
   - shared short parent-session prompt cache preset
-- `memory-extraction / session-summary / dream` 已开始复用同一套 embedded memory definition preset，review stage agents 也已复用 shared `runtime_deny` tool policy helper。
+- `memory-extraction / session-summary / dream` 已开始复用同一套 runtime memory definition preset，review stage agents 也已复用 shared `runtime_deny` tool policy helper。
 - memory file maintenance allowlist 已抽到共享入口，避免 `dream -> durable` 的导入环继续成为 special-agent substrate 收口阻力。
 - `src/agents/special/runtime/action-feed.ts` 已新增 shared action-feed emitter，`memory-extraction / session-summary / dream` 不再各自手写一套 `emitAgentActionEvent` 包装器，memory special-agent 的 action payload 归一到同一条 substrate helper。
 - `src/agents/special/runtime/runtime-deps.ts` 已新增 shared runtime deps bundle，memory special-agent 不再各自手写 `defaultSpecialAgentRuntimeDeps + emitAgentActionEvent` 组合逻辑。
@@ -764,12 +764,12 @@ title: Phase 对应 PR 计划
   - `src/routing/resolve-route.test.ts`
   - `src/gateway/model-pricing-cache.test.ts`
 - 已补并通过至少一条 memory 主链 e2e：
-  - `src/agents/pi-embedded-runner.e2e.test.ts -t "prefers the built-in memory runtime over the legacy context engine path"`
+  - Rust memory runtime e2e coverage for preferring the built-in memory runtime over the legacy context engine path.
 
 已验证：
 
 - `vitest run src/memory/engine/context-memory-runtime.lifecycle.test.ts`
-- `vitest run -c vitest.e2e.config.ts src/agents/pi-embedded-runner.e2e.test.ts -t "prefers the built-in memory runtime over the legacy context engine path"`
+- `vitest run -c vitest.e2e.config.ts` for built-in memory runtime preference coverage.
 - `pnpm check`
 
 收口结论：
@@ -908,7 +908,7 @@ title: Phase 对应 PR 计划
 - `vitest run src/channels/acp-delivery-visibility.test.ts src/auto-reply/reply/dispatch-acp-delivery.test.ts`
 - `vitest run src/channels/inbound-context.test.ts src/channels/inbound-dedupe.test.ts src/auto-reply/inbound.test.ts src/auto-reply/reply/dispatch-from-config.test.ts -t "finalizeInboundContext|inbound dedupe|skips duplicates|builds a stable key"`
 - `vitest run src/channels/reply-threading.test.ts src/channels/reply-to-mode.test.ts`
-- `vitest run src/channels/reply-to-mode.test.ts src/auto-reply/reply/reply-flow.test.ts -t "createReplyToModeFilter" src/auto-reply/reply/commands-info.tools.test.ts src/gateway/server-methods/tools-effective.test.ts`
+- `vitest run` for reply-to mode, reply flow, command tool info, and Gateway effective tools coverage.
 - `vitest run src/channels/session-delivery-route.test.ts src/auto-reply/reply/session-entry-state.test.ts src/auto-reply/reply/session.test.ts -t "dmScope delivery migration"`
 - `vitest run src/channels/command-surface-context.test.ts src/auto-reply/reply/commands-session-lifecycle.test.ts src/auto-reply/reply/commands-subagents-focus.test.ts`
 - `vitest run src/channels/conversation-binding-input.test.ts src/auto-reply/reply/session-target-context.test.ts src/auto-reply/reply/commands-acp.test.ts`
@@ -923,7 +923,7 @@ title: Phase 对应 PR 计划
 - `pnpm lint src/channels/acp-delivery-visibility.ts src/channels/acp-delivery-visibility.test.ts src/auto-reply/reply/dispatch-acp-delivery.ts src/channels/README.md`
 - `pnpm lint src/channels/inbound-context.ts src/channels/inbound-context.test.ts src/channels/inbound-dedupe.ts src/channels/inbound-dedupe.test.ts src/auto-reply/dispatch.ts src/auto-reply/reply/get-reply.ts src/auto-reply/reply/dispatch-from-config.ts src/plugins/runtime/runtime-channel.ts src/plugins/runtime/types-channel.ts src/plugin-sdk/reply-runtime.ts src/plugin-sdk/reply-dispatch-runtime.ts src/link-understanding/apply.ts src/media-understanding/apply.ts src/channels/README.md`
 - `pnpm lint src/channels/reply-threading.ts src/channels/reply-threading.test.ts src/auto-reply/reply/reply-payloads-base.ts src/auto-reply/reply/agent-runner.ts src/auto-reply/reply/reply-flow.test.ts src/channels/README.md`
-- `pnpm lint src/channels/reply-to-mode.ts src/channels/reply-to-mode.test.ts src/auto-reply/reply/agent-runner.ts src/auto-reply/reply/followup-runner.ts src/auto-reply/reply/commands-info.ts src/auto-reply/reply/commands-info.tools.test.ts src/gateway/server-methods/tools-effective.ts src/gateway/server-methods/tools-effective.test.ts src/channels/README.md`
+- `pnpm lint` for reply-to mode, auto-reply projection, command tool info, Gateway effective tools, and channel docs coverage.
 - `pnpm lint src/channels/session-delivery-route.ts src/channels/session-delivery-route.test.ts src/auto-reply/reply/session-entry-state.ts src/auto-reply/reply/session.ts src/channels/README.md`
 - `pnpm lint src/channels/command-surface-context.ts src/channels/command-surface-context.test.ts src/auto-reply/reply/commands-session.ts src/auto-reply/reply/commands-subagents/shared.ts src/auto-reply/reply/commands-subagents/action-agents.ts src/channels/README.md`
 - `pnpm lint src/channels/conversation-binding-input.ts src/channels/conversation-binding-input.test.ts src/auto-reply/reply/session-target-context.ts src/auto-reply/reply/session-target-context.test.ts src/auto-reply/reply/commands-acp/context.ts src/channels/README.md`
@@ -1010,7 +1010,7 @@ title: Phase 对应 PR 计划
   - `src/infra/approval-visibility.ts`
   - `src/infra/approval-visibility.test.ts`
 - `src/agents/action-feed/projector.ts` 的 approval fallback 已改为复用 shared approval visibility；raw approval action 不再通过通用 `wait_approval` intent 临时拼出另一套标题。
-- `src/gateway/server-methods/exec-approval.ts` 与 `src/gateway/server-methods/plugin-approval.ts` 现在会在 emit action event 时直接附带 shared approval projectedTitle / projectedSummary。
+- Gateway approval handlers 现在会在 emit action event 时直接附带 shared approval projectedTitle / projectedSummary。
 - client action feed focused tests 也已开始锁住 approval projected fields；`Waiting for exec approval` / `Approval granted` / `Approval unavailable` 不再依赖各层各自猜标题。
 - 已新增 shared completion visibility seam：
   - `src/agents/tasks/completion-visibility.ts`

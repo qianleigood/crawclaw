@@ -21,10 +21,7 @@ import {
   SUBAGENT_ENDED_REASON_COMPLETE,
   type SubagentLifecycleEndedReason,
 } from "./subagent-lifecycle-events.js";
-import {
-  resolveCleanupCompletionReason,
-  resolveDeferredCleanupDecision,
-} from "./subagent-registry-cleanup.js";
+import { resolveDeferredCleanupDecision } from "./subagent-registry-cleanup.js";
 import { runOutcomesEqual } from "./subagent-registry-completion.js";
 import {
   ANNOUNCE_COMPLETION_HARD_EXPIRY_MS,
@@ -47,16 +44,6 @@ export function createSubagentRegistryLifecycleController(params: {
   clearPendingLifecycleError(runId: string): void;
   countPendingDescendantRuns(rootSessionKey: string): number;
   suppressAnnounceForSteerRestart(entry?: SubagentRunRecord): boolean;
-  shouldEmitEndedHookForRun(args: {
-    entry: SubagentRunRecord;
-    reason: SubagentLifecycleEndedReason;
-  }): boolean;
-  emitSubagentEndedHookForRun(args: {
-    entry: SubagentRunRecord;
-    reason?: SubagentLifecycleEndedReason;
-    sendFarewell?: boolean;
-    accountId?: string;
-  }): Promise<void>;
   emitSubagentLifecycleEvent(args: {
     phase: "subagent_start" | "subagent_stop";
     runId: string;
@@ -334,25 +321,6 @@ export function createSubagentRegistryLifecycleController(params: {
     return changed;
   };
 
-  const emitCompletionEndedHookIfNeeded = async (
-    entry: SubagentRunRecord,
-    reason: SubagentLifecycleEndedReason,
-  ) => {
-    if (
-      entry.expectsCompletionMessage === true &&
-      params.shouldEmitEndedHookForRun({
-        entry,
-        reason,
-      })
-    ) {
-      await params.emitSubagentEndedHookForRun({
-        entry,
-        reason,
-        sendFarewell: true,
-      });
-    }
-  };
-
   const finalizeResumedAnnounceGiveUp = async (giveUpParams: {
     runId: string;
     entry: SubagentRunRecord;
@@ -372,8 +340,6 @@ export function createSubagentRegistryLifecycleController(params: {
     if (shouldDeleteAttachments) {
       await safeRemoveAttachmentsDir(giveUpParams.entry);
     }
-    const completionReason = resolveCleanupCompletionReason(giveUpParams.entry);
-    await emitCompletionEndedHookIfNeeded(giveUpParams.entry, completionReason);
     logAnnounceGiveUp(giveUpParams.entry, giveUpParams.reason);
     completeCleanupBookkeeping({
       runId: giveUpParams.runId,
@@ -485,8 +451,6 @@ export function createSubagentRegistryLifecycleController(params: {
       entry.wakeOnDescendantSettle = undefined;
       entry.fallbackFrozenResultText = undefined;
       entry.fallbackFrozenResultCapturedAt = undefined;
-      const completionReason = resolveCleanupCompletionReason(entry);
-      await emitCompletionEndedHookIfNeeded(entry, completionReason);
       const shouldDeleteAttachments = cleanup === "delete" || !entry.retainAttachmentsOnKeep;
       if (shouldDeleteAttachments) {
         await safeRemoveAttachmentsDir(entry);
@@ -547,8 +511,6 @@ export function createSubagentRegistryLifecycleController(params: {
       if (shouldDeleteAttachments) {
         await safeRemoveAttachmentsDir(entry);
       }
-      const completionReason = resolveCleanupCompletionReason(entry);
-      await emitCompletionEndedHookIfNeeded(entry, completionReason);
       logAnnounceGiveUp(entry, deferredDecision.reason);
       completeCleanupBookkeeping({
         runId,
@@ -713,26 +675,6 @@ export function createSubagentRegistryLifecycleController(params: {
         label: entry.label,
       });
     }
-    const shouldEmitEndedHook =
-      !suppressedForSteerRestart &&
-      params.shouldEmitEndedHookForRun({
-        entry,
-        reason: completeParams.reason,
-      });
-    const shouldDeferEndedHook =
-      shouldEmitEndedHook &&
-      completeParams.triggerCleanup &&
-      entry.expectsCompletionMessage === true &&
-      !suppressedForSteerRestart;
-    if (!shouldDeferEndedHook && shouldEmitEndedHook) {
-      await params.emitSubagentEndedHookForRun({
-        entry,
-        reason: completeParams.reason,
-        sendFarewell: completeParams.sendFarewell,
-        accountId: completeParams.accountId,
-      });
-    }
-
     if (!completeParams.triggerCleanup || suppressedForSteerRestart) {
       return;
     }

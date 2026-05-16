@@ -4,21 +4,18 @@ export const ADMIN_SCOPE = "operator.admin" as const;
 export const READ_SCOPE = "operator.read" as const;
 export const WRITE_SCOPE = "operator.write" as const;
 export const APPROVALS_SCOPE = "operator.approvals" as const;
-export const PAIRING_SCOPE = "operator.pairing" as const;
 
 export type OperatorScope =
   | typeof ADMIN_SCOPE
   | typeof READ_SCOPE
   | typeof WRITE_SCOPE
-  | typeof APPROVALS_SCOPE
-  | typeof PAIRING_SCOPE;
+  | typeof APPROVALS_SCOPE;
 
 export const CLI_DEFAULT_OPERATOR_SCOPES: OperatorScope[] = [
   ADMIN_SCOPE,
   READ_SCOPE,
   WRITE_SCOPE,
   APPROVALS_SCOPE,
-  PAIRING_SCOPE,
 ];
 
 const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
@@ -30,27 +27,11 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "plugin.approval.waitDecision",
     "plugin.approval.resolve",
   ],
-  [PAIRING_SCOPE]: [
-    "device.pair.list",
-    "device.pair.approve",
-    "device.pair.reject",
-    "device.pair.remove",
-    "device.token.rotate",
-    "device.token.revoke",
-  ],
   [READ_SCOPE]: [
     "health",
     "system.health",
     "doctor.memory.status",
     "logs.tail",
-    "channels.status",
-    "channels.capabilities",
-    "channels.setup.surface",
-    "channels.config.get",
-    "channels.config.schema",
-    "channels.account.verify",
-    "channel.directory.lookup",
-    "channel.lifecycle.status",
     "status",
     "system.status",
     "usage.status",
@@ -115,19 +96,10 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "workflow.diff",
     "workflow.runs",
     "workflow.status",
-    "esp32.status.get",
-    "esp32.pairing.requests.list",
-    "esp32.devices.list",
-    "esp32.devices.get",
   ],
   [WRITE_SCOPE]: [
     "send",
-    "channel.outbound.send",
-    "channel.outbound.poll",
-    "channel.outbound.action",
-    "channel.inbound.handle",
     "poll",
-    "agent",
     "agent.wait",
     "wake",
     "talk.mode",
@@ -138,12 +110,10 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "tts.convert",
     "tts.setProvider",
     "voicewake.set",
-    "esp32.pairing.request.approve",
-    "esp32.pairing.request.reject",
-    "esp32.devices.command.send",
     "chat.send",
     "chat.abort",
     "agent.runTurn",
+    "agent.command.run",
     "agent.cancel",
     "sessions.create",
     "sessions.send",
@@ -161,6 +131,11 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "memory.prepareSubagentSpawn",
     "memory.onSubagentEnded",
     "agentRuntime.cancel",
+    "tools.invoke",
+    "message.policy",
+    "nativePlugin.invoke",
+    "nativePlugin.service.start",
+    "nativePlugin.service.stop",
     "workflow.enable",
     "workflow.disable",
     "workflow.archive",
@@ -176,7 +151,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "workflow.agent.run",
   ],
   [ADMIN_SCOPE]: [
-    "channels.logout",
     "memory.refresh",
     "memory.login",
     "agents.create",
@@ -189,10 +163,9 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "plugins.install",
     "secrets.reload",
     "secrets.resolve",
-    "esp32.pairing.start",
-    "esp32.pairing.session.revoke",
-    "esp32.devices.revoke",
     "cron.add",
+    "cron.start",
+    "cron.stop",
     "cron.update",
     "cron.remove",
     "cron.run",
@@ -204,17 +177,6 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
     "chat.inject",
     "web.login.start",
     "web.login.wait",
-    "channels.account.login.start",
-    "channels.account.login.wait",
-    "channels.account.reconnect",
-    "channels.config.patch",
-    "channels.config.apply",
-    "channels.account.logout",
-    "channel.lifecycle.start",
-    "channel.lifecycle.stop",
-    "channel.lifecycle.restart",
-    "channels.login.start",
-    "channels.login.wait",
     "system-event",
     "agents.files.set",
     "voice.qwen3Tts.uploadReferenceAudio",
@@ -246,10 +208,6 @@ function resolveScopedMethod(method: string): OperatorScope | undefined {
 
 export function isApprovalMethod(method: string): boolean {
   return resolveScopedMethod(method) === APPROVALS_SCOPE;
-}
-
-export function isPairingMethod(method: string): boolean {
-  return resolveScopedMethod(method) === PAIRING_SCOPE;
 }
 
 export function isReadMethod(method: string): boolean {

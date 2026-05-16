@@ -1,6 +1,11 @@
 {
   "id": "opencode-go",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["opencode-go"],
   "providerAuthEnvVars": {
     "opencode-go": ["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"]

@@ -285,19 +285,6 @@ export function collectConfiguredModelPricingRefs(config: CrawClawConfig): Model
     addResolvedModelRef({ raw: mapping.model, aliasIndex, refs });
   }
 
-  for (const channelMap of Object.values(config.channels?.modelByChannel ?? {})) {
-    if (!channelMap || typeof channelMap !== "object") {
-      continue;
-    }
-    for (const raw of Object.values(channelMap)) {
-      addResolvedModelRef({
-        raw: typeof raw === "string" ? raw : undefined,
-        aliasIndex,
-        refs,
-      });
-    }
-  }
-
   addResolvedModelRef({
     raw: resolvePluginWebSearchConfig(config, "google")?.model as string | undefined,
     aliasIndex,

@@ -5,49 +5,6 @@ import {
   determineSeamTestStatus,
 } from "../../scripts/audit-seams.mjs";
 
-describe("audit-seams cron seam classification", () => {
-  it("detects cron agent handoff and outbound delivery boundaries", () => {
-    const source = `
-      import { runCliAgent } from "../../agents/cli-runner.js";
-      import { runWithModelFallback } from "../../agents/model-fallback.js";
-      import { registerAgentRunContext } from "../../infra/agent-events.js";
-      import { deliverOutboundPayloads } from "../../infra/outbound/deliver.js";
-      import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
-
-      export async function runCronIsolatedAgentTurn() {
-        registerAgentRunContext({});
-        await runWithModelFallback(() => runCliAgent({}));
-        await deliverOutboundPayloads({ payloads: [{ text: "done" }] });
-        return buildOutboundSessionContext({});
-      }
-    `;
-
-    expect(describeSeamKinds("src/cron/isolated-agent/run.ts", source)).toEqual([
-      "cron-agent-handoff",
-      "cron-outbound-delivery",
-    ]);
-  });
-
-  it("detects scheduler-state seams in cron service orchestration", () => {
-    const source = `
-      import { recomputeNextRuns, computeJobNextRunAtMs } from "./jobs.js";
-      import { ensureLoaded, persist } from "./store.js";
-      import { armTimer, runMissedJobs } from "./timer.js";
-
-      export async function start(state) {
-        await ensureLoaded(state);
-        recomputeNextRuns(state);
-        await persist(state);
-        armTimer(state);
-        await runMissedJobs(state);
-        return computeJobNextRunAtMs(state.store.jobs[0], Date.now());
-      }
-    `;
-
-    expect(describeSeamKinds("src/cron/service/ops.ts", source)).toContain("cron-scheduler-state");
-  });
-});
-
 describe("audit-seams subagent seam classification", () => {
   it("detects subagent spawn and cleanup handoff boundaries", () => {
     const source = `
@@ -114,19 +71,6 @@ describe("audit-seams subagent seam classification", () => {
 });
 
 describe("audit-seams status/help", () => {
-  it("keeps cron seam statuses conservative when nearby tests exist", () => {
-    expect(
-      determineSeamTestStatus(
-        ["cron-agent-handoff"],
-        [{ file: "src/cron/service.issue-regressions.test.ts", matchQuality: "path-nearby" }],
-      ),
-    ).toEqual({
-      status: "partial",
-      reason:
-        "Nearby tests exist (best match: path-nearby), but this inventory does not prove cross-layer seam coverage end to end.",
-    });
-  });
-
   it("keeps subagent seam statuses conservative when nearby tests exist", () => {
     expect(
       determineSeamTestStatus(
@@ -140,8 +84,7 @@ describe("audit-seams status/help", () => {
     });
   });
 
-  it("documents cron and subagent seam coverage in help text", () => {
-    expect(HELP_TEXT).toContain("cron orchestration seams");
+  it("documents subagent seam coverage in help text", () => {
     expect(HELP_TEXT).toContain("subagent seams");
     expect(HELP_TEXT).toContain("announce delivery");
     expect(HELP_TEXT).toContain("parent streaming");

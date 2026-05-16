@@ -1,5 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
-import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/gateway-client-surface.js";
 import { buildGatewayConnectionDetails } from "./call.js";
 import { GatewayClient, type GatewayClientOptions } from "./client.js";
 import { resolveGatewayConnectionAuth } from "./connection-auth.js";

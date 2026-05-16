@@ -1,14 +1,15 @@
 ---
-title: "Pi Development Workflow"
-summary: "Developer workflow for Pi integration: build, test, and live validation"
+title: "Agent Runtime Development Workflow"
+summary: "Developer workflow for Rust agent runtime build, test, and live validation"
 read_when:
-  - Working on Pi integration code or tests
-  - Running Pi-specific lint, typecheck, and live test flows
+  - Working on agent runtime code or tests
+  - Running runtime lint, typecheck, and live test flows
 ---
 
-# Pi Development Workflow
+# Agent Runtime Development Workflow
 
-This guide summarizes a sane workflow for working on the pi integration in CrawClaw.
+This guide summarizes a sane workflow for working on CrawClaw's Rust-owned
+agent runtime and the remaining TypeScript projection surfaces around it.
 
 ## Type Checking and Linting
 
@@ -17,34 +18,25 @@ This guide summarizes a sane workflow for working on the pi integration in CrawC
 - Format check: `pnpm format`
 - Full gate before pushing: `pnpm lint && pnpm build && pnpm test`
 
-## Running Pi Tests
+## Running Agent Runtime Tests
 
-Run the Pi-focused test set directly with Vitest:
+Run the Rust runtime tests for execution behavior:
 
 ```bash
-pnpm test -- \
-  "src/agents/pi-*.test.ts" \
-  "src/agents/pi-embedded-*.test.ts" \
-  "src/agents/pi-tools*.test.ts" \
-  "src/agents/pi-settings.test.ts" \
-  "src/agents/pi-tool-definition-adapter*.test.ts" \
-  "src/agents/pi-hooks/**/*.test.ts"
+cargo test -p crawclaw-runtime agent_runtime
+cargo test -p crawclaw-runtime memory
+cargo test -p crawclaw-gateway agent_run_turn
 ```
 
 To include the live provider exercise:
 
 ```bash
-CRAWCLAW_LIVE_TEST=1 pnpm test -- src/agents/pi-embedded-runner-extraparams.live.test.ts
+pnpm test:live
 ```
 
-This covers the main Pi unit suites:
-
-- `src/agents/pi-*.test.ts`
-- `src/agents/pi-embedded-*.test.ts`
-- `src/agents/pi-tools*.test.ts`
-- `src/agents/pi-settings.test.ts`
-- `src/agents/pi-tool-definition-adapter.test.ts`
-- `src/agents/pi-hooks/*.test.ts`
+TypeScript tests should focus on Gateway clients, channel projection, SDK
+surfaces, and stale-reference guards. Do not add new execution behavior to the
+removed TypeScript agent runner path.
 
 ## Manual Testing
 
@@ -52,9 +44,7 @@ Recommended flow:
 
 - Run the gateway in dev mode:
   - `pnpm gateway:dev`
-- Trigger the agent directly:
-  - `pnpm CrawClaw Desktop or the local Gateway API
-- Use the desktop client or `pnpm CrawClaw Desktop or the local Gateway API.
+- Trigger the agent through CrawClaw Desktop or the local Gateway API.
 
 For tool call behavior, prompt for a `read` or `exec` action so you can see tool streaming and payload handling.
 

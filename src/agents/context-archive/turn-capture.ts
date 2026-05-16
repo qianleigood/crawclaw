@@ -1,6 +1,6 @@
-import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionSystemPromptReport } from "../../config/sessions/types.js";
+import type { AgentMessage, AgentTool } from "../agent-types.js";
 import type {
   QueryContextDiagnostics,
   QueryContextProviderRequestSnapshot,
@@ -68,7 +68,7 @@ export function createContextArchiveTurnCapture(params: {
       ...(typeof input.turnIndex === "number" ? { turnIndex: input.turnIndex } : {}),
       label: "memory-context-assembly",
       metadata: {
-        source: "context-memory-runtime",
+        source: "rust-native-memory-runtime",
       },
     });
     runIdsBySession.set(input.sessionId, run.id);

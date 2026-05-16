@@ -1,5 +1,5 @@
 import path from "node:path";
-import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
+import type { RuntimeContextFile } from "./runtime-context-file.js";
 import type { WorkspaceBootstrapFile } from "./workspace.js";
 
 export const DEFAULT_BOOTSTRAP_NEAR_LIMIT_RATIO = 0.85;
@@ -123,7 +123,7 @@ export function resolveBootstrapWarningSignaturesSeen(report?: {
 
 export function buildBootstrapInjectionStats(params: {
   bootstrapFiles: WorkspaceBootstrapFile[];
-  injectedFiles: EmbeddedContextFile[];
+  injectedFiles: RuntimeContextFile[];
 }): BootstrapInjectionStat[] {
   const injectedByPath = new Map<string, string>();
   const injectedByBaseName = new Map<string, string>();

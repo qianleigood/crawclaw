@@ -7,14 +7,14 @@ export type ExecApprovalForwardTarget = {
   channel: string;
   /** Destination id (channel id, user id, etc. depending on channel). */
   to: string;
-  /** Optional account id for multi-account channels. */
+  /** Optional account id for multi-account delivery targets. */
   accountId?: string;
   /** Optional thread id to reply inside a thread. */
   threadId?: string | number;
 };
 
 export type ExecApprovalForwardingConfig = {
-  /** Enable forwarding exec approvals to chat channels. Default: false. */
+  /** Enable forwarding exec approvals to external delivery targets. Default: false. */
   enabled?: boolean;
   /** Delivery mode (session=origin chat, targets=config targets, both=both). Default: session. */
   mode?: ExecApprovalForwardingMode;

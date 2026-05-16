@@ -3,12 +3,7 @@ import { createServer } from "node:net";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { WebSocket, WebSocketServer } from "ws";
 import { rawDataToString } from "../infra/ws.js";
-import { GatewayClient, resolveGatewayClientConnectChallengeTimeoutMs } from "./client.js";
-import {
-  DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS,
-  MAX_CONNECT_CHALLENGE_TIMEOUT_MS,
-  MIN_CONNECT_CHALLENGE_TIMEOUT_MS,
-} from "./handshake-timeouts.js";
+import { GatewayClient } from "./client.js";
 
 // Find a free localhost port for ad-hoc WS servers.
 async function getFreePort(): Promise<number> {
@@ -78,23 +73,6 @@ describe("GatewayClient", () => {
     }
   });
 
-  test("uses connectChallengeTimeoutMs for gateway preauth handshake timeout", () => {
-    expect(resolveGatewayClientConnectChallengeTimeoutMs({})).toBe(
-      DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS,
-    );
-    expect(resolveGatewayClientConnectChallengeTimeoutMs({ connectChallengeTimeoutMs: 0 })).toBe(
-      MIN_CONNECT_CHALLENGE_TIMEOUT_MS,
-    );
-    expect(
-      resolveGatewayClientConnectChallengeTimeoutMs({ connectChallengeTimeoutMs: 20_000 }),
-    ).toBe(MAX_CONNECT_CHALLENGE_TIMEOUT_MS);
-    expect(
-      resolveGatewayClientConnectChallengeTimeoutMs({
-        connectChallengeTimeoutMs: 5_000,
-      }),
-    ).toBe(5_000);
-  });
-
   test("closes on missing ticks", async () => {
     const port = await getFreePort();
     wss = new WebSocketServer({ port, host: "127.0.0.1" });
@@ -128,7 +106,6 @@ describe("GatewayClient", () => {
     const closed = new Promise<{ code: number; reason: string }>((resolve) => {
       const client = new GatewayClient({
         url: `ws://127.0.0.1:${port}`,
-        connectChallengeTimeoutMs: 0,
         tickWatchMinIntervalMs: 5,
         onClose: (code, reason) => resolve({ code, reason }),
       });
@@ -307,7 +284,6 @@ r1USnb+wUdA7Zoj/mQ==
       }, 2000);
       client = new GatewayClient({
         url: `wss://127.0.0.1:${port}`,
-        connectChallengeTimeoutMs: 0,
         tlsFingerprint: "deadbeef",
         onConnectError: (err) => {
           clearTimeout(timeout);

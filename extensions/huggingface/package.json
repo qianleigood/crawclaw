@@ -5,8 +5,6 @@
   "description": "CrawClaw Hugging Face provider plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

@@ -85,7 +85,6 @@ Read-only query commands:
 - `/devices` (chat/mobile device pairing summary)
 - `/memory` (memory provider access status; `/context` explains prompt inputs)
 - `/skills` (list user-invocable skill slash commands; `/skill` runs one)
-- `/runtimes` (plugin runtime install manifest; `/plugins` manages plugin enablement)
 
 Action and session commands:
 
@@ -304,7 +303,7 @@ Examples:
 
 Notes:
 
-- `/mcp` stores config in CrawClaw config, not Pi-owned project settings.
+- `/mcp` stores config in CrawClaw config, not project-local runtime settings.
 - Runtime adapters decide which transports are actually executable.
 
 ## Plugin updates

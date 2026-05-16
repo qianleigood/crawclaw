@@ -2,18 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 
 const note = vi.hoisted(() => vi.fn());
-const getNotebookLmProviderState = vi.hoisted(() => vi.fn());
 
 vi.mock("../terminal/note.js", () => ({
   note,
-}));
-
-vi.mock("../memory/notebooklm/provider-state.ts", () => ({
-  getNotebookLmProviderState,
-}));
-
-vi.mock("../memory/durable/worker-manager.ts", () => ({
-  getSharedDurableExtractionWorkerManagerStatus: vi.fn(() => null),
 }));
 
 import { checkNotebookLmMemoryHealth, noteMemoryHealth } from "./doctor-memory-health.js";
@@ -21,29 +12,21 @@ import { checkNotebookLmMemoryHealth, noteMemoryHealth } from "./doctor-memory-h
 describe("doctor-memory-health", () => {
   beforeEach(() => {
     note.mockReset();
-    getNotebookLmProviderState.mockReset();
   });
 
-  it("maps notebooklm provider state into doctor health", async () => {
-    getNotebookLmProviderState.mockResolvedValue({
-      enabled: true,
-      ready: false,
-      lifecycle: "expired",
-      reason: "auth_expired",
-      profile: "default",
-      notebookId: "nb-1",
-      refreshAttempted: false,
-      refreshSucceeded: false,
-      lastValidatedAt: "2026-04-05T00:00:00.000Z",
-      recommendedAction: "crawclaw memory login",
-    });
-
-    const result = await checkNotebookLmMemoryHealth({} as CrawClawConfig);
+  it("reports removed NotebookLM runtime when it is still enabled in config", async () => {
+    const result = await checkNotebookLmMemoryHealth({
+      memory: {
+        notebooklm: {
+          enabled: true,
+        },
+      },
+    } as CrawClawConfig);
 
     expect(result.level).toBe("warn");
-    expect(result.lifecycle).toBe("expired");
-    expect(result.reason).toBe("auth_expired");
-    expect(result.recommendedAction).toBe("crawclaw memory login");
+    expect(result.lifecycle).toBe("removed");
+    expect(result.reason).toBe("notebooklm_removed");
+    expect(result.recommendedAction).toContain("Disable memory.notebooklm");
   });
 
   it("renders memory health note with recommended actions", async () => {
@@ -54,9 +37,9 @@ describe("doctor-memory-health", () => {
           kind: "notebooklm",
           level: "warn",
           enabled: true,
-          lifecycle: "degraded",
+          lifecycle: "removed",
           ready: false,
-          reason: "unknown",
+          reason: "notebooklm_removed",
           profile: "default",
           recommendedAction: "crawclaw memory status",
         },

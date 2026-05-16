@@ -4,10 +4,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveCrawClawPackageRootSync } from "../infra/crawclaw-root.js";
 import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
-import {
-  collectChannelSchemaMetadata,
-  collectPluginSchemaMetadata,
-} from "./channel-config-metadata.js";
+import { collectPluginSchemaMetadata } from "./plugin-config-metadata.js";
 import { FIELD_HELP } from "./schema.help.js";
 import type { ConfigSchemaResponse } from "./schema.js";
 import { buildConfigSchema } from "./schema.js";
@@ -31,7 +28,7 @@ type JsonSchemaObject = JsonSchemaNode & {
   oneOf?: JsonSchemaObject[];
 };
 
-export type ConfigDocBaselineKind = "core" | "channel" | "plugin";
+export type ConfigDocBaselineKind = "core" | "plugin";
 
 export type ConfigDocBaselineEntry = {
   path: string;
@@ -319,9 +316,6 @@ function mergeConfigDocBaselineEntry(
 }
 
 function resolveEntryKind(configPath: string): ConfigDocBaselineKind {
-  if (configPath.startsWith("channels.")) {
-    return "channel";
-  }
   if (configPath.startsWith("plugins.entries.")) {
     return "plugin";
   }
@@ -347,15 +341,9 @@ async function loadBundledConfigSchemaResponse(): Promise<ConfigSchemaResponse> 
     ...manifestRegistry,
     plugins: manifestRegistry.plugins.filter((plugin) => plugin.origin === "bundled"),
   };
-  const channelPlugins = collectChannelSchemaMetadata(bundledRegistry);
-  logConfigDocBaselineDebug(
-    `loaded ${channelPlugins.length} bundled channel entries from metadata`,
-  );
-
   return buildConfigSchema({
     cache: false,
     plugins: collectPluginSchemaMetadata(bundledRegistry),
-    channels: channelPlugins,
   });
 }
 

@@ -100,26 +100,6 @@ async function createFixtureRepo(): Promise<string> {
     },
     version: "0.0.0",
   });
-  await fs.mkdir(path.join(repoRoot, "scripts"), { recursive: true });
-  await fs.writeFile(
-    path.join(repoRoot, "scripts", "install-plugin-runtimes.mjs"),
-    [
-      'const OPEN_WEBSEARCH_VERSION = "2.1.5";',
-      'const AGENT_BROWSER_VERSION = "0.27.0";',
-      'const WINDOWS_SCRAPLING_RUNTIME_PACKAGES = ["msvc-runtime==14.44.35112"];',
-      '"No supported Python interpreter found for scrapling-fetch; requires Python >= 3.10.";',
-      "env.CRAWCLAW_RUNTIME_PYTHON;",
-      "env.CRAWCLAW_SCRAPLING_PYTHON;",
-      '"python3.13";',
-      '"python3.12";',
-      '"python3.10";',
-      '"python3";',
-      '"python";',
-      '"py";',
-      "",
-    ].join("\n"),
-    "utf8",
-  );
   await fs.mkdir(path.join(repoRoot, "extensions", "scrapling-fetch", "runtime"), {
     recursive: true,
   });
@@ -140,7 +120,7 @@ async function createFixtureRepo(): Promise<string> {
 }
 
 describe("plugin dependency plan", () => {
-  it("renders root, bundled plugin, and managed runtime dependencies", async () => {
+  it("renders root and bundled plugin dependencies without managed runtime installers", async () => {
     const script = await loadPluginDependencyPlanScript();
     const repoRoot = await createFixtureRepo();
 
@@ -199,123 +179,7 @@ describe("plugin dependency plan", () => {
         providerIds: ["sample"],
       }),
     ]);
-    expect(plan.managedRuntimes).toEqual([
-      expect.objectContaining({
-        id: "browser",
-        installTime: true,
-        npmPackage: "agent-browser@0.27.0",
-        source: "scripts/install-plugin-runtimes.mjs",
-      }),
-      expect.objectContaining({
-        id: "core-skills",
-        installTime: true,
-        source: "scripts/install-plugin-runtimes.mjs",
-        python: expect.objectContaining({
-          candidates: expect.arrayContaining([
-            "python3.14",
-            "python3.13",
-            "python3.12",
-            "python3.11",
-            "python3.10",
-            "python3",
-            "python",
-            "py",
-          ]),
-          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"],
-          minimumVersion: "3.10",
-          requirements: ["PyYAML==6.0.3"],
-        }),
-      }),
-      expect.objectContaining({
-        id: "n8n",
-        installTime: true,
-        npmPackage: "n8n@2.18.5",
-        source: "scripts/install-plugin-runtimes.mjs",
-      }),
-      expect.objectContaining({
-        id: "notebooklm-mcp-cli",
-        installTime: true,
-        source: "scripts/install-plugin-runtimes.mjs",
-        python: expect.objectContaining({
-          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_NOTEBOOKLM_PYTHON"],
-          minimumVersion: "3.11",
-          package: "notebooklm-mcp-cli==0.6.1",
-        }),
-      }),
-      expect.objectContaining({
-        id: "open-websearch",
-        installTime: true,
-        npmPackage: "open-websearch@2.1.5",
-        source: "scripts/install-plugin-runtimes.mjs",
-      }),
-      expect.objectContaining({
-        id: "qwen3-tts",
-        installTime: true,
-        platforms: [
-          "darwin:arm64",
-          "darwin:x64",
-          "linux:x64",
-          "linux:arm64",
-          "win32:x64",
-          "win32:arm64",
-        ],
-        source: "scripts/install-plugin-runtimes.mjs",
-        python: expect.objectContaining({
-          candidates: expect.arrayContaining([
-            "python3.14",
-            "python3.13",
-            "python3.12",
-            "python3.11",
-            "python3.10",
-            "python3",
-            "python",
-            "py",
-          ]),
-          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_QWEN3_TTS_PYTHON"],
-          minimumVersion: "3.10",
-          requirements: ["qwen-tts==0.1.1"],
-        }),
-      }),
-      expect.objectContaining({
-        id: "scrapling-fetch",
-        installTime: true,
-        source: "scripts/install-plugin-runtimes.mjs",
-        python: expect.objectContaining({
-          candidates: expect.arrayContaining([
-            "python3.14",
-            "python3.13",
-            "python3.12",
-            "python3.11",
-            "python3.10",
-            "python3",
-            "python",
-            "py",
-          ]),
-          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_SCRAPLING_PYTHON"],
-          minimumVersion: "3.10",
-          requirements: expect.arrayContaining([
-            "Scrapling==0.4.6",
-            "curl-cffi==0.15.0",
-            "playwright==1.58.0",
-            "browserforge==1.2.4",
-            "patchright==1.58.2",
-            "msgspec==0.20.0",
-          ]),
-          windowsExtraPackages: ["msvc-runtime==14.44.35112"],
-        }),
-      }),
-      expect.objectContaining({
-        id: "skill-openai-whisper",
-        installTime: false,
-        platforms: ["darwin:arm64"],
-        source: "scripts/install-plugin-runtimes.mjs",
-        python: expect.objectContaining({
-          envOverrides: ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_CORE_SKILLS_PYTHON"],
-          minimumVersion: "3.10",
-          requirements: ["mlx-whisper==0.4.3"],
-        }),
-      }),
-    ]);
+    expect(plan.managedRuntimes).toEqual([]);
     expect(rendered.json).toContain('"generatedBy": "scripts/generate-plugin-dependency-plan.mjs"');
     expect(rendered.jsonl).toContain('"kind":"bundled-plugin"');
   });

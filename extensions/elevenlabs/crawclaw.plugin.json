@@ -4,5 +4,10 @@
     "type": "object",
     "additionalProperties": false,
     "properties": {}
+  },
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
   }
 }

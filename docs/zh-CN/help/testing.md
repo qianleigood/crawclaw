@@ -157,8 +157,8 @@ CrawClaw 包含三个 Vitest 测试套件（单元/集成、端到端、实时�
   - 流程（高层次）：
     - 测试生成一个带有"CAT"+ 随机代码的小型 PNG（`src/gateway/live-image-probe.ts`）
     - 通过 `agent` `attachments: [{ mimeType: "image/png", content: "<base64>" }]` 发送
-    - Gateway 网关将附件解析为 `images[]`（`src/gateway/server-methods/agent.ts` + `src/gateway/chat-attachments.ts`）
-    - 嵌入式智能体将多模态用户消息转发给模型
+    - Gateway 网关通过 Rust-backed agent runtime 路径转发图片附件负载
+    - runtime 将多模态用户消息转发给模型
     - 断言：回复包含 `cat` + 代码（OCR 容差：允许轻微错误）
 
 提示：要查看你的机器上可以测试什么（以及确切的 `provider/model` ID），运行：

@@ -118,14 +118,14 @@ export function collectBundledPluginBuildEntries(params = {}) {
     const packageJsonPath = path.join(pluginDir, "package.json");
     const packageJson = readBundledPluginPackageJson(packageJsonPath);
     const topLevelPublicSurfaceEntries = collectTopLevelPublicSurfaceEntries(pluginDir);
-    if (
+    const isManifestlessSupportPackage =
       !hasManifest &&
-      !isManifestlessBundledRuntimeSupportPackage({
+      isManifestlessBundledRuntimeSupportPackage({
         dirName: dirent.name,
         packageJson,
         topLevelPublicSurfaceEntries,
-      })
-    ) {
+      });
+    if (!hasManifest && !isManifestlessSupportPackage) {
       continue;
     }
     if (!shouldBuildBundledCluster(dirent.name, env, { packageJson })) {
@@ -140,7 +140,7 @@ export function collectBundledPluginBuildEntries(params = {}) {
       sourceEntries: Array.from(
         new Set([
           ...(hasManifest ? collectPluginSourceEntries(packageJson) : []),
-          ...topLevelPublicSurfaceEntries,
+          ...(isManifestlessSupportPackage ? topLevelPublicSurfaceEntries : []),
         ]),
       ),
     });

@@ -58,8 +58,8 @@ first pass.
 CrawClaw already has the right extension boundary for this work:
 
 - bundled plugins live under `extensions/`
-- non-channel plugins use `definePluginEntry`
-- plugins can register agent tools and services
+- non-channel runtime plugins use Rust native descriptors
+- runtime tools and services are Rust-owned
 - plugin-owned dependencies stay in the plugin package
 - core workflow execution is currently centered on n8n and should not be
   expanded for this first ComfyUI pass

@@ -4,7 +4,6 @@ import { HeartbeatSchema, AgentModelSchema } from "./zod-schema.agent-runtime.js
 import {
   BlockStreamingChunkSchema,
   BlockStreamingCoalesceSchema,
-  CliBackendSchema,
   HumanDelaySchema,
   TypingModeSchema,
 } from "./zod-schema.core.js";
@@ -46,7 +45,6 @@ export const AgentDefaultsSchema = z
     envelopeTimestamp: z.union([z.literal("on"), z.literal("off")]).optional(),
     envelopeElapsed: z.union([z.literal("on"), z.literal("off")]).optional(),
     contextTokens: z.number().int().positive().optional(),
-    cliBackends: z.record(z.string(), CliBackendSchema).optional(),
     contextPruning: z
       .object({
         mode: z.union([z.literal("off"), z.literal("cache-ttl")]).optional(),
@@ -137,7 +135,7 @@ export const AgentDefaultsSchema = z
       })
       .strict()
       .optional(),
-    embeddedPi: z
+    runtime: z
       .object({
         projectSettingsPolicy: z
           .union([z.literal("trusted"), z.literal("sanitize"), z.literal("ignore")])

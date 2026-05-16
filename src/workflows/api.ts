@@ -3,7 +3,6 @@ export {
   type WorkflowAgentNodeResult,
   type WorkflowAgentNodeRequest,
 } from "./agent-node-contract.js";
-export { handleWorkflowAgentNodeCallback } from "./callback-runner.js";
 export { createWorkflowDefinitionDiffFromSnapshots } from "./diff.js";
 export {
   attachWorkflowExecutionRemoteRef,

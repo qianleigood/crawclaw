@@ -377,7 +377,7 @@ describe("discoverCrawClawPlugins", () => {
     writePluginManifest({ pluginDir: nestedDiffsDir, id: "diffs" });
     fs.writeFileSync(
       path.join(nestedDiffsDir, "index.js"),
-      "module.exports = { id: 'diffs', register() {} };",
+      "module.exports = { id: 'diffs' };",
       "utf-8",
     );
 
@@ -389,15 +389,15 @@ describe("discoverCrawClawPlugins", () => {
     {
       name: "derives unscoped ids for scoped packages",
       setup: (stateDir: string) => {
-        const packageDir = path.join(stateDir, "extensions", "voice-call-pack");
+        const packageDir = path.join(stateDir, "extensions", "demo-plugin-pack");
         createPackagePluginWithEntry({
           packageDir,
-          packageName: "@crawclaw/voice-call",
+          packageName: "@crawclaw/demo-plugin",
           entryPath: "src/index.ts",
         });
         return {};
       },
-      includes: ["voice-call"],
+      includes: ["demo-plugin"],
     },
     {
       name: "strips provider suffixes from package-derived ids",

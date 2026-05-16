@@ -16,25 +16,12 @@ const tokenAuth = { mode: "token" as const };
 const noneAuth = { mode: "none" as const };
 
 describe("resolveGatewayRequestContext", () => {
-  it("uses normalized x-crawclaw-message-channel when enabled", () => {
+  it("uses the default message surface", () => {
     const result = resolveGatewayRequestContext({
-      req: createReq({ "x-crawclaw-message-channel": " Custom-Channel " }),
-      model: "crawclaw",
-      sessionPrefix: "openai",
-      defaultMessageChannel: "webchat",
-      useMessageChannelHeader: true,
-    });
-
-    expect(result.messageChannel).toBe("custom-channel");
-  });
-
-  it("uses default messageChannel when header support is disabled", () => {
-    const result = resolveGatewayRequestContext({
-      req: createReq({ "x-crawclaw-message-channel": "custom-channel" }),
+      req: createReq(),
       model: "crawclaw",
       sessionPrefix: "openresponses",
       defaultMessageChannel: "webchat",
-      useMessageChannelHeader: false,
     });
 
     expect(result.messageChannel).toBe("webchat");

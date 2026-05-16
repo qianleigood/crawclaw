@@ -1,3 +1,4 @@
+use std::collections::BTreeMap;
 use std::env;
 use std::fs;
 use std::io::Write;
@@ -9,6 +10,11 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use rusqlite::{params, Connection, OptionalExtension};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+
+use crate::special_agents::find_special_agent;
+use crate::{
+    AgentModelSelection, AgentRunRequest, AgentRuntime, ChannelChatType, ChannelInboundEnvelope,
+};
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -275,7 +281,11 @@ impl RustMemoryRuntime {
         }))
     }
 
-    pub fn compact(&self, session_id: &str, force: bool) -> Result<Value, String> {
+    pub async fn compact_with_agent_runtime(
+        &self,
+        session_id: &str,
+        force: bool,
+    ) -> Result<Value, String> {
         let store = self.store();
         store.init()?;
         let messages = store.list_messages(session_id, 10_000)?;
@@ -286,17 +296,78 @@ impl RustMemoryRuntime {
                 "reason": "below_threshold"
             }));
         }
-        let summary = format!("Rust memory compacted {} stored messages.", messages.len());
+        let transcript = serde_json::to_string_pretty(&messages)
+            .map_err(|error| format!("failed to serialize compact transcript: {error}"))?;
+        let definition = find_special_agent("session-summary")
+            .ok_or_else(|| "missing session-summary special agent".to_string())?;
+        let run_id = format!(
+            "memory-compact-{}-{}",
+            normalize_scope(session_id)?,
+            now_millis()
+        );
+        let session_key = format!("memory:compact:{session_id}");
+        let mut options = BTreeMap::new();
+        options.insert(
+            "specialAgent".to_string(),
+            json!({
+                "kind": definition.id,
+                "spawnSource": definition.spawn_source,
+                "executionMode": definition.execution_mode,
+                "transcriptPolicy": definition.transcript_policy,
+                "parentContextPolicy": definition.parent_context_policy,
+                "timeoutSeconds": definition.timeout_seconds,
+                "maxTurns": definition.max_turns
+            }),
+        );
+        let result = AgentRuntime::new(self.runtime_root.clone())
+            .run_turn(AgentRunRequest {
+                run_id: run_id.clone(),
+                agent_id: definition.id.to_string(),
+                session_key: session_key.clone(),
+                inbound: ChannelInboundEnvelope {
+                    channel: "memory".to_string(),
+                    account_id: Some("rust-runtime".to_string()),
+                    from: "memory.compact".to_string(),
+                    to: format!("agent:{}", definition.id),
+                    chat_type: ChannelChatType::Direct,
+                    body: format!(
+                        "Compact session {session_id} into a concise, durable session summary.\n\n{transcript}"
+                    ),
+                    raw_body: None,
+                    message_id: Some(format!("{run_id}:input")),
+                    thread_id: Some(session_key),
+                    media_urls: Vec::new(),
+                    metadata: BTreeMap::new(),
+                },
+                model: AgentModelSelection {
+                    provider: "configured".to_string(),
+                    model: "configured".to_string(),
+                    reasoning_level: None,
+                },
+                enabled_tools: definition
+                    .tool_allowlist
+                    .iter()
+                    .map(|tool| (*tool).to_string())
+                    .collect(),
+                options,
+            })
+            .await
+            .map_err(|error| format!("{}: {}", error.code(), error.message()))?;
+        let summary = result.assistant_text;
         self.session_summary_store().refresh(session_id, &summary)?;
         store.upsert_session_compaction_state(session_id, messages.len() as i64)?;
+        let tokens_before = estimate_json_tokens(&json!(&messages));
+        let tokens_after = estimate_text_tokens(&summary);
         Ok(json!({
             "ok": true,
             "compacted": true,
             "result": {
                 "summary": summary,
                 "firstKeptEntryId": messages.last().and_then(|message| message.get("id")).and_then(Value::as_str).unwrap_or(session_id),
-                "tokensBefore": estimate_json_tokens(&json!(messages)),
-                "tokensAfter": estimate_text_tokens(&summary)
+                "tokensBefore": tokens_before,
+                "tokensAfter": tokens_after,
+                "runId": result.run_id,
+                "implementation": "rust-native-agent-runtime"
             }
         }))
     }
@@ -306,11 +377,20 @@ impl RustMemoryRuntime {
         parent_session_key: &str,
         child_session_key: &str,
     ) -> Result<Value, String> {
-        Ok(json!({
-            "status": "prepared",
+        let store = self.store();
+        store.init()?;
+        store.upsert_session_compaction_state(child_session_key, 0)?;
+        let event = json!({
+            "status": "ok",
+            "event": "subagent_spawn_registered",
             "parentSessionKey": parent_session_key,
-            "childSessionKey": child_session_key
-        }))
+            "childSessionKey": child_session_key,
+            "state": "running",
+            "createdAtMillis": now_millis()
+        });
+        self.append_subagent_event(event.clone())?;
+        self.upsert_subagent_state(parent_session_key, child_session_key, "running", None)?;
+        Ok(event)
     }
 
     pub fn on_subagent_ended(
@@ -318,11 +398,89 @@ impl RustMemoryRuntime {
         child_session_key: &str,
         reason: &str,
     ) -> Result<Value, String> {
-        Ok(json!({
+        let parent_session_key = self
+            .subagent_parent(child_session_key)?
+            .unwrap_or_else(|| "unknown".to_string());
+        let event = json!({
             "status": "ok",
+            "event": "subagent_ended",
+            "parentSessionKey": parent_session_key,
             "childSessionKey": child_session_key,
-            "reason": reason
+            "reason": reason,
+            "state": "ended",
+            "createdAtMillis": now_millis()
+        });
+        self.append_subagent_event(event.clone())?;
+        self.upsert_subagent_state(
+            &parent_session_key,
+            child_session_key,
+            "ended",
+            Some(reason),
+        )?;
+        Ok(event)
+    }
+
+    fn append_subagent_event(&self, event: Value) -> Result<(), String> {
+        let path = self.runtime_root.join("memory").join("subagents.json");
+        let mut events = read_json_array(&path)?;
+        events.push(event);
+        write_json_array(&path, &events)
+    }
+
+    fn subagent_state_file(&self) -> PathBuf {
+        self.runtime_root.join("memory").join("subagent-state.json")
+    }
+
+    fn subagent_parent(&self, child_session_key: &str) -> Result<Option<String>, String> {
+        let states = read_json_array(&self.subagent_state_file())?;
+        Ok(states.into_iter().find_map(|entry| {
+            (entry.get("childSessionKey").and_then(Value::as_str) == Some(child_session_key)).then(
+                || {
+                    entry
+                        .get("parentSessionKey")
+                        .and_then(Value::as_str)
+                        .unwrap_or("unknown")
+                        .to_string()
+                },
+            )
         }))
+    }
+
+    fn upsert_subagent_state(
+        &self,
+        parent_session_key: &str,
+        child_session_key: &str,
+        state: &str,
+        reason: Option<&str>,
+    ) -> Result<(), String> {
+        let path = self.subagent_state_file();
+        let mut states = read_json_array(&path)?;
+        let now = now_millis();
+        let mut updated = false;
+        for entry in &mut states {
+            if entry.get("childSessionKey").and_then(Value::as_str) == Some(child_session_key) {
+                if let Some(object) = entry.as_object_mut() {
+                    object.insert("state".to_string(), Value::String(state.to_string()));
+                    object.insert("updatedAtMillis".to_string(), json!(now));
+                    if let Some(reason) = reason {
+                        object.insert("reason".to_string(), Value::String(reason.to_string()));
+                        object.insert("endedAtMillis".to_string(), json!(now));
+                    }
+                }
+                updated = true;
+            }
+        }
+        if !updated {
+            states.push(json!({
+                "parentSessionKey": parent_session_key,
+                "childSessionKey": child_session_key,
+                "state": state,
+                "reason": reason,
+                "createdAtMillis": now,
+                "updatedAtMillis": now
+            }));
+        }
+        write_json_array(&path, &states)
     }
 
     pub fn status(&self) -> Result<Value, String> {
@@ -682,7 +840,7 @@ impl RustMemoryRuntime {
     }
 }
 
-pub fn execute_memory_runtime_operation(
+pub async fn execute_memory_runtime_operation(
     runtime_root: &Path,
     operation: &str,
     input: Value,
@@ -717,7 +875,7 @@ pub fn execute_memory_runtime_operation(
         "memory.compact" | "memory_compact" => {
             let session_id = required_input_string(&input, &["sessionId", "sessionKey"])?;
             let force = input.get("force").and_then(Value::as_bool).unwrap_or(true);
-            runtime.compact(&session_id, force)
+            runtime.compact_with_agent_runtime(&session_id, force).await
         }
         "memory.afterTurn" | "memory_after_turn" => {
             let session_id = required_input_string(&input, &["sessionId", "sessionKey"])?;
@@ -745,7 +903,8 @@ pub fn execute_memory_runtime_operation(
         }
         "memory.onSubagentEnded" | "memory_on_subagent_ended" => {
             let child_session_key = required_input_string(&input, &["childSessionKey"])?;
-            let reason = string_value(&input, &["reason"]).unwrap_or_else(|| "completed".to_string());
+            let reason =
+                string_value(&input, &["reason"]).unwrap_or_else(|| "completed".to_string());
             runtime.on_subagent_ended(&child_session_key, &reason)
         }
         _ => Err(format!("unsupported memory runtime operation: {operation}")),
@@ -1937,6 +2096,37 @@ mod tests {
             .unwrap();
         let rows = store.list_messages("session-1", 10).unwrap();
         assert_eq!(rows.len(), 1);
+    }
+
+    #[test]
+    fn subagent_lifecycle_records_native_events() {
+        let temp = tempfile::tempdir().unwrap();
+        let runtime = RustMemoryRuntime::new(temp.path());
+
+        let prepared = runtime
+            .prepare_subagent_spawn("agent:main:parent", "agent:main:child")
+            .expect("prepare subagent spawn");
+        assert_eq!(prepared["status"], "ok");
+        assert_eq!(prepared["event"], "subagent_spawn_registered");
+        assert_eq!(prepared["state"], "running");
+
+        let ended = runtime
+            .on_subagent_ended("agent:main:child", "completed")
+            .expect("subagent ended");
+        assert_eq!(ended["status"], "ok");
+        assert_eq!(ended["event"], "subagent_ended");
+        assert_eq!(ended["parentSessionKey"], "agent:main:parent");
+        assert_eq!(ended["state"], "ended");
+
+        let events = read_json_array(&temp.path().join("memory").join("subagents.json")).unwrap();
+        assert_eq!(events.len(), 2);
+        assert_eq!(events[0]["parentSessionKey"], "agent:main:parent");
+        assert_eq!(events[1]["reason"], "completed");
+        let states =
+            read_json_array(&temp.path().join("memory").join("subagent-state.json")).unwrap();
+        assert_eq!(states.len(), 1);
+        assert_eq!(states[0]["childSessionKey"], "agent:main:child");
+        assert_eq!(states[0]["state"], "ended");
     }
 
     #[test]

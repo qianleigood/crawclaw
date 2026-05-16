@@ -7,7 +7,8 @@ import { shortenHomePath } from "../utils.js";
 import { safeParseJsonWithSchema, safeParseWithSchema } from "../utils/zod-parse.js";
 import type { DoctorPrompter } from "./doctor-prompter.js";
 
-const LEGACY_MANIFEST_CONTRACT_KEYS = ["speechProviders", "mediaUnderstandingProviders"] as const;
+const LEGACY_MANIFEST_CONTRACT_KEYS = ["speechProviders"] as const;
+const REMOVED_LEGACY_MANIFEST_CONTRACT_KEYS = ["mediaUnderstandingProviders"] as const;
 
 type LegacyManifestContractMigration = {
   manifestPath: string;
@@ -59,6 +60,13 @@ function buildLegacyManifestContractMigration(params: {
       );
     }
     delete nextRaw[key];
+  }
+  for (const key of REMOVED_LEGACY_MANIFEST_CONTRACT_KEYS) {
+    if (!(key in params.raw)) {
+      continue;
+    }
+    delete nextRaw[key];
+    changeLines.push(`- ${shortenHomePath(params.manifestPath)}: removed legacy ${key}`);
   }
 
   if (changeLines.length === 0) {

@@ -1,5 +1,4 @@
 import {
-  BUNDLED_MEDIA_UNDERSTANDING_PLUGIN_IDS,
   BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS,
   BUNDLED_SPEECH_PLUGIN_IDS,
   BUNDLED_WEB_FETCH_PLUGIN_IDS,
@@ -7,15 +6,11 @@ import {
 } from "../bundled-capability-metadata.js";
 import { loadBundledCapabilityRuntimeRegistry } from "../bundled-capability-runtime.js";
 import type {
-  MediaUnderstandingProviderPlugin,
   SpeechProviderPlugin,
   WebFetchProviderPlugin,
   WebSearchProviderPlugin,
 } from "../types.js";
-import {
-  loadVitestMediaUnderstandingProviderContractRegistry,
-  loadVitestSpeechProviderContractRegistry,
-} from "./speech-vitest-registry.js";
+import { loadVitestSpeechProviderContractRegistry } from "./speech-vitest-registry.js";
 
 type BundledCapabilityRuntimeRegistry = ReturnType<typeof loadBundledCapabilityRuntimeRegistry>;
 type CapabilityContractEntry<T> = {
@@ -31,14 +26,10 @@ type WebFetchProviderContractEntry = CapabilityContractEntry<WebFetchProviderPlu
 };
 
 type SpeechProviderContractEntry = CapabilityContractEntry<SpeechProviderPlugin>;
-type MediaUnderstandingProviderContractEntry =
-  CapabilityContractEntry<MediaUnderstandingProviderPlugin>;
 type PluginRegistrationContractEntry = {
   pluginId: string;
-  cliBackendIds: string[];
   providerIds: string[];
   speechProviderIds: string[];
-  mediaUnderstandingProviderIds: string[];
   webFetchProviderIds: string[];
   webSearchProviderIds: string[];
   toolNames: string[];
@@ -68,9 +59,6 @@ let webSearchProviderContractRegistryByPluginIdCache: Map<
   WebSearchProviderContractEntry[]
 > | null = null;
 let speechProviderContractRegistryCache: SpeechProviderContractEntry[] | null = null;
-let mediaUnderstandingProviderContractRegistryCache:
-  | MediaUnderstandingProviderContractEntry[]
-  | null = null;
 export let providerContractLoadError: Error | undefined = undefined;
 
 function formatBundledCapabilityPluginLoadError(params: {
@@ -277,21 +265,6 @@ function loadSpeechProviderContractRegistry(): SpeechProviderContractEntry[] {
   return speechProviderContractRegistryCache;
 }
 
-function loadMediaUnderstandingProviderContractRegistry(): MediaUnderstandingProviderContractEntry[] {
-  if (!mediaUnderstandingProviderContractRegistryCache) {
-    mediaUnderstandingProviderContractRegistryCache = process.env.VITEST
-      ? loadVitestMediaUnderstandingProviderContractRegistry()
-      : loadBundledCapabilityRuntimeRegistry({
-          pluginIds: BUNDLED_MEDIA_UNDERSTANDING_PLUGIN_IDS,
-          pluginSdkResolution: "dist",
-        }).mediaUnderstandingProviders.map((entry) => ({
-          pluginId: entry.pluginId,
-          provider: entry.provider,
-        }));
-  }
-  return mediaUnderstandingProviderContractRegistryCache;
-}
-
 function createLazyArrayView<T>(load: () => T[]): T[] {
   return new Proxy([] as T[], {
     get(_target, prop) {
@@ -334,16 +307,11 @@ export const speechProviderContractRegistry: SpeechProviderContractEntry[] = cre
   loadSpeechProviderContractRegistry,
 );
 
-export const mediaUnderstandingProviderContractRegistry: MediaUnderstandingProviderContractEntry[] =
-  createLazyArrayView(loadMediaUnderstandingProviderContractRegistry);
-
 function loadPluginRegistrationContractRegistry(): PluginRegistrationContractEntry[] {
   return BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS.map((entry) => ({
     pluginId: entry.pluginId,
-    cliBackendIds: uniqueStrings(entry.cliBackendIds),
     providerIds: uniqueStrings(entry.providerIds),
     speechProviderIds: uniqueStrings(entry.speechProviderIds),
-    mediaUnderstandingProviderIds: uniqueStrings(entry.mediaUnderstandingProviderIds),
     webFetchProviderIds: uniqueStrings(entry.webFetchProviderIds),
     webSearchProviderIds: uniqueStrings(entry.webSearchProviderIds),
     toolNames: uniqueStrings(entry.toolNames),

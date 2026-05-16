@@ -20,8 +20,7 @@ CrawClaw has three layers that work together:
 <Steps>
   <Step title="Tools are what the agent calls">
     A tool is a typed function the agent can invoke (e.g. `bash`, `browser`,
-    `web_search`, `message`). CrawClaw ships a set of **built-in tools** and
-    plugins can register additional ones.
+    `web_search`, `message`). CrawClaw ships a set of built-in and native tools.
 
     The agent sees tools as structured function definitions sent to the model API.
 
@@ -38,10 +37,8 @@ CrawClaw has three layers that work together:
   </Step>
 
   <Step title="Plugins package everything together">
-    A plugin is a package that can register any combination of capabilities:
-    channels, model providers, tools, skills, speech, image generation, and more.
-    Some plugins are **core** (shipped with CrawClaw), others are **external**
-    (published on npm by the community).
+    A plugin is a package of declarative metadata, configuration, skills, and
+    native capabilities. Production execution is owned by the Rust runtime.
 
     [Install and configure plugins](/tools/plugin) | [Build your own](/plugins/building-plugins)
 
@@ -75,14 +72,10 @@ Use `/tools` in an authorized chat to inspect the current agent's effective tool
 `/tools verbose` also lists unavailable built-in tools and warnings, including risky
 exec postures such as host execution without approval prompts.
 
-### Plugin-provided tools
-
-Plugins can register additional tools. Some examples:
+### Native tools
 
 - [Lobster](/tools/lobster) — typed workflow runtime with resumable approvals
 - [LLM Task](/tools/llm-task) — JSON-only LLM step for structured output
-- [Diffs](/tools/diffs) — diff viewer and renderer
-- [TuriX CUA](/tools/turix-cua) — high-risk local desktop automation through TuriX-CUA
 - [OpenProse](/prose) — markdown-first workflow orchestration
 
 ## Tool configuration

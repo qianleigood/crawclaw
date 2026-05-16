@@ -642,7 +642,7 @@ describe("runGatewayUpdate", () => {
     expect(calls).toContain("npm i -g crawclaw@2026.3.23-2 --no-fund --no-audit --loglevel=error");
   });
 
-  it("fails global npm update when bundled runtime sidecars are missing after install", async () => {
+  it("does not require removed TypeScript runtime sidecars after global npm install", async () => {
     const { nodeModules, pkgRoot } = await createGlobalPackageFixture(tempDir);
     const expectedInstallCommand = "npm i -g crawclaw@latest --no-fund --no-audit --loglevel=error";
     const { runCommand } = createGlobalInstallHarness({
@@ -661,11 +661,13 @@ describe("runGatewayUpdate", () => {
 
     const result = await runWithCommand(runCommand, { cwd: pkgRoot });
 
-    expect(result.status).toBe("error");
-    expect(result.reason).toBe("global install verify");
-    expect(result.steps.at(-1)?.stderrTail).toContain(
-      `missing bundled runtime sidecar ${FIRST_RUNTIME_SIDECAR}`,
-    );
+    expect(result.status).toBe(BUNDLED_RUNTIME_SIDECAR_PATHS.length === 0 ? "ok" : "error");
+    if (BUNDLED_RUNTIME_SIDECAR_PATHS.length > 0) {
+      expect(result.reason).toBe("global install verify");
+      expect(result.steps.at(-1)?.stderrTail).toContain(
+        `missing bundled runtime sidecar ${FIRST_RUNTIME_SIDECAR}`,
+      );
+    }
   });
 
   it("prepends portable Git PATH for global Windows npm updates", async () => {
@@ -814,7 +816,9 @@ describe("runGatewayUpdate", () => {
     const result = await runWithCommand(runCommand, { channel: "stable" });
 
     expect(result.status).toBe("ok");
-    expect(await pathExists(sidecarPath)).toBe(true);
+    if (BUNDLED_RUNTIME_SIDECAR_PATHS.length > 0) {
+      expect(await pathExists(sidecarPath)).toBe(true);
+    }
     expect(calls).toContain(doctorKey);
   });
 });

@@ -2,7 +2,7 @@
   "name": "@crawclaw/deepgram-provider",
   "version": "2026.4.1-beta.1",
   "private": true,
-  "description": "CrawClaw Deepgram media-understanding provider",
+  "description": "CrawClaw Deepgram native provider metadata",
   "type": "module",
   "crawclaw": {
     "extensions": []

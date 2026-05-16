@@ -44,42 +44,6 @@ import {
   AgentsListResultSchema,
   type AgentWaitParams,
   AgentWaitParamsSchema,
-  type ChannelsAccountLoginStartParams,
-  ChannelsAccountLoginStartParamsSchema,
-  type ChannelsAccountLoginWaitParams,
-  ChannelsAccountLoginWaitParamsSchema,
-  type ChannelsAccountReconnectParams,
-  ChannelsAccountReconnectParamsSchema,
-  type ChannelsSetupSurfaceParams,
-  ChannelsSetupSurfaceParamsSchema,
-  type ChannelsConfigApplyParams,
-  ChannelsConfigApplyParamsSchema,
-  type ChannelsConfigGetParams,
-  ChannelsConfigGetParamsSchema,
-  type ChannelsConfigPatchParams,
-  ChannelsConfigPatchParamsSchema,
-  type ChannelsConfigSchemaParams,
-  ChannelsConfigSchemaParamsSchema,
-  type ChannelsAccountLogoutParams,
-  ChannelsAccountLogoutParamsSchema,
-  type ChannelsAccountTargetParams,
-  ChannelsAccountTargetParamsSchema,
-  type ChannelsAccountVerifyParams,
-  ChannelsAccountVerifyParamsSchema,
-  type ChannelsLogoutParams,
-  ChannelsLogoutParamsSchema,
-  type TalkConfigParams,
-  TalkConfigParamsSchema,
-  type TalkConfigResult,
-  TalkConfigResultSchema,
-  type TalkSpeakParams,
-  TalkSpeakParamsSchema,
-  type TalkSpeakResult,
-  TalkSpeakResultSchema,
-  type ChannelsStatusParams,
-  ChannelsStatusParamsSchema,
-  type ChannelsStatusResult,
-  ChannelsStatusResultSchema,
   type ChatAbortParams,
   ChatAbortParamsSchema,
   type ChatEvent,
@@ -123,28 +87,6 @@ import {
   CronStatusParamsSchema,
   type CronUpdateParams,
   CronUpdateParamsSchema,
-  type DevicePairApproveParams,
-  DevicePairApproveParamsSchema,
-  type DevicePairListParams,
-  DevicePairListParamsSchema,
-  type DevicePairRemoveParams,
-  DevicePairRemoveParamsSchema,
-  type DevicePairRejectParams,
-  DevicePairRejectParamsSchema,
-  type DeviceTokenRevokeParams,
-  DeviceTokenRevokeParamsSchema,
-  type DeviceTokenRotateParams,
-  DeviceTokenRotateParamsSchema,
-  Esp32DeviceCommandSendParamsSchema,
-  Esp32DeviceGetParamsSchema,
-  Esp32DeviceRevokeParamsSchema,
-  Esp32DevicesListParamsSchema,
-  Esp32PairingRequestApproveParamsSchema,
-  Esp32PairingRequestRejectParamsSchema,
-  Esp32PairingSessionRevokeParamsSchema,
-  Esp32PairingRequestsListParamsSchema,
-  Esp32PairingStartParamsSchema,
-  Esp32StatusGetParamsSchema,
   type ExecApprovalsGetParams,
   ExecApprovalsGetParamsSchema,
   type ExecApprovalsSetParams,
@@ -244,18 +186,12 @@ import {
   SnapshotSchema,
   type StateVersion,
   StateVersionSchema,
-  type TalkModeParams,
-  TalkModeParamsSchema,
   type TickEvent,
   TickEventSchema,
   type UpdateRunParams,
   UpdateRunParamsSchema,
   type WakeParams,
   WakeParamsSchema,
-  type WebLoginStartParams,
-  WebLoginStartParamsSchema,
-  type WebLoginWaitParams,
-  WebLoginWaitParamsSchema,
   type WizardCancelParams,
   WizardCancelParamsSchema,
   type WizardNextParams,
@@ -356,50 +292,6 @@ export const validateWizardStartParams = ajv.compile<WizardStartParams>(WizardSt
 export const validateWizardNextParams = ajv.compile<WizardNextParams>(WizardNextParamsSchema);
 export const validateWizardCancelParams = ajv.compile<WizardCancelParams>(WizardCancelParamsSchema);
 export const validateWizardStatusParams = ajv.compile<WizardStatusParams>(WizardStatusParamsSchema);
-export const validateTalkModeParams = ajv.compile<TalkModeParams>(TalkModeParamsSchema);
-export const validateTalkConfigParams = ajv.compile<TalkConfigParams>(TalkConfigParamsSchema);
-export const validateTalkConfigResult = ajv.compile<TalkConfigResult>(TalkConfigResultSchema);
-export const validateTalkSpeakParams = ajv.compile<TalkSpeakParams>(TalkSpeakParamsSchema);
-export const validateTalkSpeakResult = ajv.compile<TalkSpeakResult>(TalkSpeakResultSchema);
-export const validateChannelsStatusParams = ajv.compile<ChannelsStatusParams>(
-  ChannelsStatusParamsSchema,
-);
-export const validateChannelsSetupSurfaceParams = ajv.compile<ChannelsSetupSurfaceParams>(
-  ChannelsSetupSurfaceParamsSchema,
-);
-export const validateChannelsLogoutParams = ajv.compile<ChannelsLogoutParams>(
-  ChannelsLogoutParamsSchema,
-);
-export const validateChannelsAccountTargetParams = ajv.compile<ChannelsAccountTargetParams>(
-  ChannelsAccountTargetParamsSchema,
-);
-export const validateChannelsAccountLoginStartParams = ajv.compile<ChannelsAccountLoginStartParams>(
-  ChannelsAccountLoginStartParamsSchema,
-);
-export const validateChannelsAccountLoginWaitParams = ajv.compile<ChannelsAccountLoginWaitParams>(
-  ChannelsAccountLoginWaitParamsSchema,
-);
-export const validateChannelsAccountReconnectParams = ajv.compile<ChannelsAccountReconnectParams>(
-  ChannelsAccountReconnectParamsSchema,
-);
-export const validateChannelsConfigGetParams = ajv.compile<ChannelsConfigGetParams>(
-  ChannelsConfigGetParamsSchema,
-);
-export const validateChannelsConfigSchemaParams = ajv.compile<ChannelsConfigSchemaParams>(
-  ChannelsConfigSchemaParamsSchema,
-);
-export const validateChannelsConfigPatchParams = ajv.compile<ChannelsConfigPatchParams>(
-  ChannelsConfigPatchParamsSchema,
-);
-export const validateChannelsConfigApplyParams = ajv.compile<ChannelsConfigApplyParams>(
-  ChannelsConfigApplyParamsSchema,
-);
-export const validateChannelsAccountVerifyParams = ajv.compile<ChannelsAccountVerifyParams>(
-  ChannelsAccountVerifyParamsSchema,
-);
-export const validateChannelsAccountLogoutParams = ajv.compile<ChannelsAccountLogoutParams>(
-  ChannelsAccountLogoutParamsSchema,
-);
 export const validateModelsListParams = ajv.compile<ModelsListParams>(ModelsListParamsSchema);
 export const validateSkillsStatusParams = ajv.compile<SkillsStatusParams>(SkillsStatusParamsSchema);
 export const validateToolsCatalogParams = ajv.compile<ToolsCatalogParams>(ToolsCatalogParamsSchema);
@@ -417,42 +309,6 @@ export const validateCronUpdateParams = ajv.compile<CronUpdateParams>(CronUpdate
 export const validateCronRemoveParams = ajv.compile<CronRemoveParams>(CronRemoveParamsSchema);
 export const validateCronRunParams = ajv.compile<CronRunParams>(CronRunParamsSchema);
 export const validateCronRunsParams = ajv.compile<CronRunsParams>(CronRunsParamsSchema);
-export const validateDevicePairListParams = ajv.compile<DevicePairListParams>(
-  DevicePairListParamsSchema,
-);
-export const validateDevicePairApproveParams = ajv.compile<DevicePairApproveParams>(
-  DevicePairApproveParamsSchema,
-);
-export const validateDevicePairRejectParams = ajv.compile<DevicePairRejectParams>(
-  DevicePairRejectParamsSchema,
-);
-export const validateDevicePairRemoveParams = ajv.compile<DevicePairRemoveParams>(
-  DevicePairRemoveParamsSchema,
-);
-export const validateDeviceTokenRotateParams = ajv.compile<DeviceTokenRotateParams>(
-  DeviceTokenRotateParamsSchema,
-);
-export const validateDeviceTokenRevokeParams = ajv.compile<DeviceTokenRevokeParams>(
-  DeviceTokenRevokeParamsSchema,
-);
-export const validateEsp32StatusGetParams = ajv.compile(Esp32StatusGetParamsSchema);
-export const validateEsp32PairingStartParams = ajv.compile(Esp32PairingStartParamsSchema);
-export const validateEsp32PairingRequestsListParams = ajv.compile(
-  Esp32PairingRequestsListParamsSchema,
-);
-export const validateEsp32PairingRequestApproveParams = ajv.compile(
-  Esp32PairingRequestApproveParamsSchema,
-);
-export const validateEsp32PairingRequestRejectParams = ajv.compile(
-  Esp32PairingRequestRejectParamsSchema,
-);
-export const validateEsp32PairingSessionRevokeParams = ajv.compile(
-  Esp32PairingSessionRevokeParamsSchema,
-);
-export const validateEsp32DevicesListParams = ajv.compile(Esp32DevicesListParamsSchema);
-export const validateEsp32DeviceGetParams = ajv.compile(Esp32DeviceGetParamsSchema);
-export const validateEsp32DeviceRevokeParams = ajv.compile(Esp32DeviceRevokeParamsSchema);
-export const validateEsp32DeviceCommandSendParams = ajv.compile(Esp32DeviceCommandSendParamsSchema);
 export const validateExecApprovalsGetParams = ajv.compile<ExecApprovalsGetParams>(
   ExecApprovalsGetParamsSchema,
 );
@@ -487,9 +343,6 @@ export const validateChatAbortParams = ajv.compile<ChatAbortParams>(ChatAbortPar
 export const validateChatInjectParams = ajv.compile<ChatInjectParams>(ChatInjectParamsSchema);
 export const validateChatEvent = ajv.compile(ChatEventSchema);
 export const validateUpdateRunParams = ajv.compile<UpdateRunParams>(UpdateRunParamsSchema);
-export const validateWebLoginStartParams =
-  ajv.compile<WebLoginStartParams>(WebLoginStartParamsSchema);
-export const validateWebLoginWaitParams = ajv.compile<WebLoginWaitParams>(WebLoginWaitParamsSchema);
 
 export function formatValidationErrors(errors: ErrorObject[] | null | undefined) {
   if (!errors?.length) {
@@ -575,26 +428,6 @@ export {
   WizardNextResultSchema,
   WizardStartResultSchema,
   WizardStatusResultSchema,
-  TalkConfigParamsSchema,
-  TalkConfigResultSchema,
-  TalkSpeakParamsSchema,
-  TalkSpeakResultSchema,
-  ChannelsStatusParamsSchema,
-  ChannelsStatusResultSchema,
-  ChannelsLogoutParamsSchema,
-  ChannelsAccountTargetParamsSchema,
-  ChannelsAccountLoginStartParamsSchema,
-  ChannelsAccountLoginWaitParamsSchema,
-  ChannelsAccountReconnectParamsSchema,
-  ChannelsSetupSurfaceParamsSchema,
-  ChannelsConfigGetParamsSchema,
-  ChannelsConfigSchemaParamsSchema,
-  ChannelsConfigPatchParamsSchema,
-  ChannelsConfigApplyParamsSchema,
-  ChannelsAccountVerifyParamsSchema,
-  ChannelsAccountLogoutParamsSchema,
-  WebLoginStartParamsSchema,
-  WebLoginWaitParamsSchema,
   AgentSummarySchema,
   AgentsFileEntrySchema,
   AgentsCreateParamsSchema,
@@ -658,9 +491,6 @@ export type {
   TickEvent,
   ShutdownEvent,
   WakeParams,
-  DevicePairListParams,
-  DevicePairApproveParams,
-  DevicePairRejectParams,
   ConfigGetParams,
   ConfigSetParams,
   ConfigApplyParams,
@@ -675,27 +505,6 @@ export type {
   WizardNextResult,
   WizardStartResult,
   WizardStatusResult,
-  TalkConfigParams,
-  TalkConfigResult,
-  TalkSpeakParams,
-  TalkSpeakResult,
-  TalkModeParams,
-  ChannelsStatusParams,
-  ChannelsStatusResult,
-  ChannelsSetupSurfaceParams,
-  ChannelsLogoutParams,
-  ChannelsAccountTargetParams,
-  ChannelsAccountLoginStartParams,
-  ChannelsAccountLoginWaitParams,
-  ChannelsAccountReconnectParams,
-  ChannelsConfigGetParams,
-  ChannelsConfigSchemaParams,
-  ChannelsConfigPatchParams,
-  ChannelsConfigApplyParams,
-  ChannelsAccountVerifyParams,
-  ChannelsAccountLogoutParams,
-  WebLoginStartParams,
-  WebLoginWaitParams,
   AgentSummary,
   AgentsFileEntry,
   AgentsCreateParams,

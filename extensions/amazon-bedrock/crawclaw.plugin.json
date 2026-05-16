@@ -1,6 +1,11 @@
 {
   "id": "amazon-bedrock",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["amazon-bedrock"],
   "configSchema": {
     "type": "object",
@@ -10,10 +15,20 @@
         "type": "object",
         "additionalProperties": false,
         "properties": {
-          "guardrailIdentifier": { "type": "string" },
-          "guardrailVersion": { "type": "string" },
-          "streamProcessingMode": { "type": "string", "enum": ["sync", "async"] },
-          "trace": { "type": "string", "enum": ["enabled", "disabled", "enabled_full"] }
+          "guardrailIdentifier": {
+            "type": "string"
+          },
+          "guardrailVersion": {
+            "type": "string"
+          },
+          "streamProcessingMode": {
+            "type": "string",
+            "enum": ["sync", "async"]
+          },
+          "trace": {
+            "type": "string",
+            "enum": ["enabled", "disabled", "enabled_full"]
+          }
         },
         "required": ["guardrailIdentifier", "guardrailVersion"]
       }

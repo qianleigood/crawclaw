@@ -8,22 +8,38 @@ import {
 } from "../../auto-reply/thinking.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import {
-  evaluateSessionFreshness,
   loadSessionStore,
   resolveAgentIdFromSessionKey,
-  resolveChannelResetConfig,
   resolveExplicitAgentSessionKey,
-  resolveSessionResetPolicy,
-  resolveSessionResetType,
   resolveSessionKey,
   resolveStorePath,
   type SessionEntry,
 } from "../../config/sessions.js";
+import type { SessionResetConfig } from "../../config/types.base.js";
 import { normalizeMainKey } from "../../routing/session-key.js";
 import { resolvePreferredSessionKeyForSessionIdMatches } from "../../sessions/session-id-resolution.js";
 import { listAgentIds } from "../agent-scope.js";
 import { clearBootstrapSnapshotOnSessionRollover } from "../bootstrap-cache.js";
 import { resolveAgentTaskResumeTargetBySessionId } from "../runtime/agent-metadata-store.js";
+
+function resolveSessionResetPolicy(params: {
+  sessionCfg?: CrawClawConfig["session"];
+  resetOverride?: SessionResetConfig;
+}): SessionResetConfig {
+  return params.resetOverride ?? params.sessionCfg?.reset ?? {};
+}
+
+function evaluateSessionFreshness(params: {
+  updatedAt?: number;
+  now: number;
+  policy: SessionResetConfig;
+}): { fresh: boolean } {
+  const idleMinutes = params.policy.idleMinutes;
+  if (typeof idleMinutes === "number" && idleMinutes > 0 && params.updatedAt) {
+    return { fresh: params.now - params.updatedAt < idleMinutes * 60_000 };
+  }
+  return { fresh: Boolean(params.updatedAt) };
+}
 
 export type SessionResolution = {
   sessionId: string;
@@ -163,15 +179,8 @@ export function resolveSession(opts: {
 
   const sessionEntry = sessionKey ? sessionStore[sessionKey] : undefined;
 
-  const resetType = resolveSessionResetType({ sessionKey });
-  const channelReset = resolveChannelResetConfig({
-    sessionCfg,
-    channel: sessionEntry?.lastChannel ?? sessionEntry?.channel ?? sessionEntry?.origin?.provider,
-  });
   const resetPolicy = resolveSessionResetPolicy({
     sessionCfg,
-    resetType,
-    resetOverride: channelReset,
   });
   const fresh = sessionEntry
     ? evaluateSessionFreshness({ updatedAt: sessionEntry.updatedAt, now, policy: resetPolicy })

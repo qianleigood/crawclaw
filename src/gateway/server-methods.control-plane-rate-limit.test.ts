@@ -3,7 +3,7 @@ import {
   __testing as controlPlaneRateLimitTesting,
   resolveControlPlaneRateLimitKey,
 } from "./control-plane-rate-limit.js";
-import { handleGatewayRequest } from "./legacy-ts-gateway-handlers.js";
+import { handleGatewayRequest } from "./request-dispatcher.js";
 import type { GatewayRequestHandler } from "./request-types.js";
 
 const noWebchat = () => false;

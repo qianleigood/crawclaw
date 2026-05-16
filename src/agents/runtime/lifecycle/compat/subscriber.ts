@@ -6,11 +6,6 @@ import {
   runAfterCompactionInternalHooks,
   runBeforeCompactionInternalHooks,
 } from "./internal-hooks.js";
-import {
-  getCompactionHookRunner,
-  runAfterCompactionPluginHooks,
-  runBeforeCompactionPluginHooks,
-} from "./plugin-hooks.js";
 import { runPostCompactionSideEffects } from "./post-compaction.js";
 
 type CompactionLifecycleMetadata = {
@@ -38,22 +33,6 @@ function resolveLifecycleMetadata(event: RunLoopLifecycleEvent): CompactionLifec
   ) as CompactionLifecycleMetadata;
 }
 
-function resolveLifecycleSessionAgentId(event: RunLoopLifecycleEvent): string {
-  return typeof event.agentId === "string" && event.agentId.trim() ? event.agentId.trim() : "main";
-}
-
-function resolveLifecycleWorkspaceDir(event: RunLoopLifecycleEvent): string {
-  const metadata = resolveLifecycleMetadata(event);
-  return typeof metadata.workspaceDir === "string" ? metadata.workspaceDir : "";
-}
-
-function resolveLifecycleMessageProvider(event: RunLoopLifecycleEvent): string | undefined {
-  const metadata = resolveLifecycleMetadata(event);
-  return typeof metadata.messageProvider === "string" && metadata.messageProvider.trim()
-    ? metadata.messageProvider
-    : undefined;
-}
-
 function resolveLifecycleConfig(event: RunLoopLifecycleEvent): CrawClawConfig | undefined {
   const metadata = resolveLifecycleMetadata(event);
   return typeof metadata.config === "object" && metadata.config ? metadata.config : undefined;
@@ -69,8 +48,7 @@ function resolveString(value: unknown): string | undefined {
 
 async function handlePreCompactionLifecycleEvent(event: RunLoopLifecycleEvent): Promise<void> {
   const metadata = resolveLifecycleMetadata(event);
-  const hookRunner = getCompactionHookRunner();
-  const { hookSessionKey } = await runBeforeCompactionInternalHooks({
+  await runBeforeCompactionInternalHooks({
     sessionId: event.sessionId,
     sessionKey: event.sessionKey,
     messageCountBefore: event.messageCount ?? -1,
@@ -78,17 +56,6 @@ async function handlePreCompactionLifecycleEvent(event: RunLoopLifecycleEvent): 
     messageCountOriginal:
       resolveFiniteNumber(metadata.messageCountOriginal) ?? event.messageCount ?? -1,
     tokenCountOriginal: resolveFiniteNumber(metadata.tokenCountOriginal),
-  });
-  await runBeforeCompactionPluginHooks({
-    hookRunner,
-    sessionId: event.sessionId,
-    sessionAgentId: resolveLifecycleSessionAgentId(event),
-    hookSessionKey,
-    workspaceDir: resolveLifecycleWorkspaceDir(event),
-    messageProvider: resolveLifecycleMessageProvider(event),
-    sessionFile: typeof event.sessionFile === "string" ? event.sessionFile : undefined,
-    messageCountBefore: event.messageCount ?? -1,
-    tokenCountBefore: resolveFiniteNumber(event.tokenCount),
   });
 }
 
@@ -109,7 +76,6 @@ async function handlePostCompactionLifecycleEvent(event: RunLoopLifecycleEvent):
     sessionId: event.sessionId,
     sessionKey: event.sessionKey,
   });
-  const hookRunner = getCompactionHookRunner();
   await runAfterCompactionInternalHooks({
     sessionId: event.sessionId,
     hookSessionKey,
@@ -125,18 +91,6 @@ async function handlePostCompactionLifecycleEvent(event: RunLoopLifecycleEvent):
     postCompactAttachments: resolveFiniteNumber(metadata.postCompactAttachments),
     postCompactDiscoveredTools: resolveFiniteNumber(metadata.postCompactDiscoveredTools),
     postCompactHasPreservedSegment: metadata.postCompactHasPreservedSegment === true,
-  });
-  await runAfterCompactionPluginHooks({
-    hookRunner,
-    sessionId: event.sessionId,
-    sessionAgentId: resolveLifecycleSessionAgentId(event),
-    hookSessionKey,
-    workspaceDir: resolveLifecycleWorkspaceDir(event),
-    messageProvider: resolveLifecycleMessageProvider(event),
-    messageCountAfter: event.messageCount ?? -1,
-    tokensAfter: resolveFiniteNumber(event.tokenCount),
-    compactedCount: resolveFiniteNumber(metadata.compactedCount) ?? -1,
-    sessionFile,
   });
 }
 

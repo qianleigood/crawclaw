@@ -28,7 +28,6 @@ import {
 } from "../routing/session-key.js";
 import { applyVerboseOverride, parseVerboseOverride } from "../sessions/level-overrides.js";
 import { applyModelOverrideToSessionEntry } from "../sessions/model-overrides.js";
-import { normalizeSendPolicy } from "../sessions/send-policy.js";
 import { parseSessionLabel } from "../sessions/session-label.js";
 import {
   ErrorCodes,
@@ -52,6 +51,14 @@ function normalizeExecSecurity(raw: string): "deny" | "allowlist" | "full" | und
 function normalizeExecAsk(raw: string): "off" | "on-miss" | "always" | undefined {
   const normalized = raw.trim().toLowerCase();
   if (normalized === "off" || normalized === "on-miss" || normalized === "always") {
+    return normalized;
+  }
+  return undefined;
+}
+
+function normalizeSendPolicy(raw: string): "allow" | "deny" | undefined {
+  const normalized = raw.trim().toLowerCase();
+  if (normalized === "allow" || normalized === "deny") {
     return normalized;
   }
   return undefined;

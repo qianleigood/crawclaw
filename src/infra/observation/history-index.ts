@@ -1,13 +1,159 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { RuntimeStore } from "../../memory/runtime/runtime-store.js";
-import type {
-  ObservationEventIndexRow,
-  ObservationIndexSource,
-  ObservationIndexRunStatus,
-} from "../../memory/types/runtime.js";
 import type { ObservationContext, ObservationRefValue } from "./types.js";
+
+export type ObservationIndexSource =
+  | "lifecycle"
+  | "diagnostic"
+  | "action"
+  | "archive"
+  | "trajectory"
+  | "log"
+  | "otel";
+
+export type ObservationIndexRunStatus =
+  | "running"
+  | "ok"
+  | "error"
+  | "timeout"
+  | "archived"
+  | "unknown";
+
+export interface ObservationRunIndexRow {
+  traceId: string;
+  rootSpanId: string | null;
+  runId: string | null;
+  taskId: string | null;
+  sessionId: string | null;
+  sessionKey: string | null;
+  agentId: string | null;
+  parentAgentId: string | null;
+  workflowRunId: string | null;
+  status: ObservationIndexRunStatus;
+  startedAt: number | null;
+  endedAt: number | null;
+  lastEventAt: number | null;
+  eventCount: number;
+  errorCount: number;
+  sourcesJson: string;
+  refsJson: string | null;
+  summary: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface UpsertObservationRunInput {
+  traceId: string;
+  rootSpanId?: string | null;
+  runId?: string | null;
+  taskId?: string | null;
+  sessionId?: string | null;
+  sessionKey?: string | null;
+  agentId?: string | null;
+  parentAgentId?: string | null;
+  workflowRunId?: string | null;
+  status: ObservationIndexRunStatus;
+  startedAt?: number | null;
+  endedAt?: number | null;
+  lastEventAt?: number | null;
+  eventCount: number;
+  errorCount: number;
+  sourcesJson: string;
+  refsJson?: string | null;
+  summary: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface ObservationEventIndexRow {
+  eventId: string;
+  eventKey: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId: string | null;
+  runId: string | null;
+  taskId: string | null;
+  sessionId: string | null;
+  sessionKey: string | null;
+  agentId: string | null;
+  parentAgentId: string | null;
+  source: ObservationIndexSource;
+  type: string;
+  phase: string | null;
+  status: string | null;
+  decisionCode: string | null;
+  summary: string;
+  observationJson: string;
+  metricsJson: string | null;
+  refsJson: string | null;
+  payloadRefJson: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface UpsertObservationEventInput {
+  eventId: string;
+  eventKey: string;
+  traceId: string;
+  spanId: string;
+  parentSpanId?: string | null;
+  runId?: string | null;
+  taskId?: string | null;
+  sessionId?: string | null;
+  sessionKey?: string | null;
+  agentId?: string | null;
+  parentAgentId?: string | null;
+  source: ObservationIndexSource;
+  type: string;
+  phase?: string | null;
+  status?: string | null;
+  decisionCode?: string | null;
+  summary: string;
+  observationJson: string;
+  metricsJson?: string | null;
+  refsJson?: string | null;
+  payloadRefJson?: string | null;
+  createdAt: number;
+  updatedAt?: number;
+}
+
+export interface UpsertObservationBackfillCheckpointInput {
+  source: string;
+  cursor: string;
+  updatedAt?: number;
+}
+
+export interface ObservationHistoryStore {
+  upsertObservationRun(input: UpsertObservationRunInput): Promise<void>;
+  upsertObservationEvent(input: UpsertObservationEventInput): Promise<void>;
+  listObservationRuns(input?: {
+    query?: string;
+    status?: ObservationIndexRunStatus;
+    source?: ObservationIndexSource;
+    limit?: number;
+    cursor?: string;
+    from?: number;
+    to?: number;
+  }): Promise<{ items: ObservationRunIndexRow[]; nextCursor?: string }>;
+  getObservationRunByLookup(input: {
+    runId?: string;
+    taskId?: string;
+    traceId?: string;
+  }): Promise<ObservationRunIndexRow | null>;
+  listObservationEvents(traceId: string, limit?: number): Promise<ObservationEventIndexRow[]>;
+  listAllContextArchiveRuns(): Promise<Array<{ id: string; status: string }>>;
+  listContextArchiveEvents(
+    runId: string,
+    limit?: number,
+  ): Promise<
+    Array<{ id: string; eventKind: string; payloadJson: string | null; createdAt: number }>
+  >;
+  getObservationBackfillCheckpoint(source: string): Promise<{ cursor?: string | null } | null>;
+  upsertObservationBackfillCheckpoint(
+    input: UpsertObservationBackfillCheckpointInput,
+  ): Promise<void>;
+}
 
 type ObservationIndexStatus = ObservationIndexRunStatus | "failed" | "completed";
 type ObservationIndexRefMap = Record<string, ObservationRefValue>;
@@ -156,7 +302,10 @@ function aggregateRunStatus(events: ObservationEventIndexRow[]): ObservationInde
   return "running";
 }
 
-async function refreshObservationRun(store: RuntimeStore, traceId: string): Promise<void> {
+async function refreshObservationRun(
+  store: ObservationHistoryStore,
+  traceId: string,
+): Promise<void> {
   const events = await store.listObservationEvents(traceId, 10_000);
   if (events.length === 0) {
     return;
@@ -197,7 +346,7 @@ async function refreshObservationRun(store: RuntimeStore, traceId: string): Prom
 }
 
 export async function indexObservationEvent(input: {
-  store: RuntimeStore;
+  store: ObservationHistoryStore;
   eventKey?: string;
   eventId?: string;
   observation: ObservationContext;
@@ -299,7 +448,7 @@ function readPayloadObservation(
   return isObservationContext(metadata?.observation) ? metadata.observation : undefined;
 }
 
-async function backfillContextArchiveEvents(store: RuntimeStore): Promise<void> {
+async function backfillContextArchiveEvents(store: ObservationHistoryStore): Promise<void> {
   const checkpoint = await store.getObservationBackfillCheckpoint("context-archive");
   if (checkpoint?.cursor === "complete") {
     return;
@@ -372,7 +521,10 @@ function statusFromTrajectory(value: unknown): ObservationIndexStatus | undefine
   return typeof value === "string" ? normalizeRunStatus(value) : undefined;
 }
 
-async function backfillTaskTrajectories(store: RuntimeStore, stateDir: string): Promise<void> {
+async function backfillTaskTrajectories(
+  store: ObservationHistoryStore,
+  stateDir: string,
+): Promise<void> {
   const checkpoint = await store.getObservationBackfillCheckpoint("task-trajectory");
   if (checkpoint?.cursor === "complete") {
     return;
@@ -464,7 +616,7 @@ async function backfillTaskTrajectories(store: RuntimeStore, stateDir: string): 
 }
 
 export async function backfillObservationIndex(input: {
-  store: RuntimeStore;
+  store: ObservationHistoryStore;
   stateDir: string;
 }): Promise<void> {
   await backfillContextArchiveEvents(input.store);

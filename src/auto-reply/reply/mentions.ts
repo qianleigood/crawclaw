@@ -1,104 +1,25 @@
 import { resolveAgentConfig } from "../../agents/agent-scope.js";
-import { getChannelPlugin, normalizeChannelId } from "../../channels/plugins/index.js";
-import type { ChannelId } from "../../channels/plugins/types.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import { createSubsystemLogger } from "../../logging/subsystem.js";
-import { compileConfigRegexes, type ConfigRegexRejectReason } from "../../security/config-regex.js";
+import { compileConfigRegexes } from "../../security/config-regex.js";
 import { escapeRegExp } from "../../utils.js";
 import type { MsgContext } from "../templating.js";
+
+export const CURRENT_MESSAGE_MARKER = "[Current message - respond to this]";
 
 function deriveMentionPatterns(identity?: { name?: string; emoji?: string }) {
   const patterns: string[] = [];
   const name = identity?.name?.trim();
   if (name) {
     const parts = name.split(/\s+/).filter(Boolean).map(escapeRegExp);
-    const re = parts.length ? parts.join(String.raw`\s+`) : escapeRegExp(name);
-    patterns.push(String.raw`\b@?${re}\b`);
+    patterns.push(
+      String.raw`\b@?${parts.length ? parts.join(String.raw`\s+`) : escapeRegExp(name)}\b`,
+    );
   }
   const emoji = identity?.emoji?.trim();
   if (emoji) {
     patterns.push(escapeRegExp(emoji));
   }
   return patterns;
-}
-
-const BACKSPACE_CHAR = "\u0008";
-const mentionMatchRegexCompileCache = new Map<string, RegExp[]>();
-const mentionStripRegexCompileCache = new Map<string, RegExp[]>();
-const MAX_MENTION_REGEX_COMPILE_CACHE_KEYS = 512;
-const mentionPatternWarningCache = new Set<string>();
-const MAX_MENTION_PATTERN_WARNING_KEYS = 512;
-const log = createSubsystemLogger("mentions");
-
-export const CURRENT_MESSAGE_MARKER = "[Current message - respond to this]";
-
-function normalizeMentionPattern(pattern: string): string {
-  if (!pattern.includes(BACKSPACE_CHAR)) {
-    return pattern;
-  }
-  return pattern.split(BACKSPACE_CHAR).join("\\b");
-}
-
-function normalizeMentionPatterns(patterns: string[]): string[] {
-  return patterns.map(normalizeMentionPattern);
-}
-
-function warnRejectedMentionPattern(
-  pattern: string,
-  flags: string,
-  reason: ConfigRegexRejectReason,
-) {
-  const key = `${flags}::${reason}::${pattern}`;
-  if (mentionPatternWarningCache.has(key)) {
-    return;
-  }
-  mentionPatternWarningCache.add(key);
-  if (mentionPatternWarningCache.size > MAX_MENTION_PATTERN_WARNING_KEYS) {
-    mentionPatternWarningCache.clear();
-    mentionPatternWarningCache.add(key);
-  }
-  log.warn("Ignoring unsupported group mention pattern", {
-    pattern,
-    flags,
-    reason,
-  });
-}
-
-function cacheMentionRegexes(
-  cache: Map<string, RegExp[]>,
-  cacheKey: string,
-  regexes: RegExp[],
-): RegExp[] {
-  cache.set(cacheKey, regexes);
-  if (cache.size > MAX_MENTION_REGEX_COMPILE_CACHE_KEYS) {
-    cache.clear();
-    cache.set(cacheKey, regexes);
-  }
-  return [...regexes];
-}
-
-function compileMentionPatternsCached(params: {
-  patterns: string[];
-  flags: string;
-  cache: Map<string, RegExp[]>;
-  warnRejected: boolean;
-}): RegExp[] {
-  if (params.patterns.length === 0) {
-    return [];
-  }
-  const cacheKey = `${params.flags}\u001e${params.patterns.join("\u001f")}`;
-  const cached = params.cache.get(cacheKey);
-  if (cached) {
-    return [...cached];
-  }
-
-  const compiled = compileConfigRegexes(params.patterns, params.flags);
-  if (params.warnRejected) {
-    for (const rejected of compiled.rejected) {
-      warnRejectedMentionPattern(rejected.pattern, rejected.flags, rejected.reason);
-    }
-  }
-  return cacheMentionRegexes(params.cache, cacheKey, compiled.regexes);
 }
 
 function resolveMentionPatterns(cfg: CrawClawConfig | undefined, agentId?: string): string[] {
@@ -114,22 +35,12 @@ function resolveMentionPatterns(cfg: CrawClawConfig | undefined, agentId?: strin
   if (globalGroupChat && Object.hasOwn(globalGroupChat, "mentionPatterns")) {
     return globalGroupChat.mentionPatterns ?? [];
   }
-  const derived = deriveMentionPatterns(agentConfig?.identity);
-  return derived.length > 0 ? derived : [];
-}
-
-function resolveFallbackProviderMentionStripRegexes(_providerId?: string | null): RegExp[] {
-  return [];
+  return deriveMentionPatterns(agentConfig?.identity);
 }
 
 export function buildMentionRegexes(cfg: CrawClawConfig | undefined, agentId?: string): RegExp[] {
-  const patterns = normalizeMentionPatterns(resolveMentionPatterns(cfg, agentId));
-  return compileMentionPatternsCached({
-    patterns,
-    flags: "i",
-    cache: mentionMatchRegexCompileCache,
-    warnRejected: true,
-  });
+  const compiled = compileConfigRegexes(resolveMentionPatterns(cfg, agentId), "i");
+  return compiled.regexes;
 }
 
 export function normalizeMentionText(text: string): string {
@@ -137,14 +48,8 @@ export function normalizeMentionText(text: string): string {
 }
 
 export function matchesMentionPatterns(text: string, mentionRegexes: RegExp[]): boolean {
-  if (mentionRegexes.length === 0) {
-    return false;
-  }
   const cleaned = normalizeMentionText(text ?? "");
-  if (!cleaned) {
-    return false;
-  }
-  return mentionRegexes.some((re) => re.test(cleaned));
+  return Boolean(cleaned) && mentionRegexes.some((re) => re.test(cleaned));
 }
 
 export type ExplicitMentionSignal = {
@@ -160,14 +65,11 @@ export function matchesMentionWithExplicit(params: {
   transcript?: string;
 }): boolean {
   const cleaned = normalizeMentionText(params.text ?? "");
+  const transcriptCleaned = params.transcript ? normalizeMentionText(params.transcript) : "";
+  const textToCheck = cleaned || transcriptCleaned;
   const explicit = params.explicit?.isExplicitlyMentioned === true;
   const explicitAvailable = params.explicit?.canResolveExplicit === true;
   const hasAnyMention = params.explicit?.hasAnyMention === true;
-
-  // Check transcript if text is empty and transcript is provided
-  const transcriptCleaned = params.transcript ? normalizeMentionText(params.transcript) : "";
-  const textToCheck = cleaned || transcriptCleaned;
-
   if (hasAnyMention && explicitAvailable) {
     return explicit || params.mentionRegexes.some((re) => re.test(textToCheck));
   }
@@ -181,8 +83,6 @@ export function stripStructuralPrefixes(text: string): string {
   if (!text) {
     return "";
   }
-  // Ignore wrapper labels, timestamps, and sender prefixes so directive-only
-  // detection still works in group batches that include history/context.
   const afterMarker = text.includes(CURRENT_MESSAGE_MARKER)
     ? text.slice(text.indexOf(CURRENT_MESSAGE_MARKER) + CURRENT_MESSAGE_MARKER.length).trimStart()
     : text;
@@ -197,46 +97,17 @@ export function stripStructuralPrefixes(text: string): string {
 
 export function stripMentions(
   text: string,
-  ctx: MsgContext,
+  _ctx: MsgContext,
   cfg: CrawClawConfig | undefined,
   agentId?: string,
 ): string {
   let result = text;
-  const providerId =
-    (ctx.Provider ? normalizeChannelId(ctx.Provider) : null) ??
-    (ctx.Provider?.trim().toLowerCase() as ChannelId | undefined) ??
-    null;
-  const providerMentions = providerId ? getChannelPlugin(providerId)?.mentions : undefined;
-  const configRegexes = compileMentionPatternsCached({
-    patterns: normalizeMentionPatterns(resolveMentionPatterns(cfg, agentId)),
-    flags: "gi",
-    cache: mentionStripRegexCompileCache,
-    warnRejected: true,
-  });
-  const providerRegexes =
-    providerMentions?.stripRegexes?.({ ctx, cfg, agentId }) ??
-    compileMentionPatternsCached({
-      patterns: normalizeMentionPatterns(
-        providerMentions?.stripPatterns?.({ ctx, cfg, agentId }) ?? [],
-      ),
-      flags: "gi",
-      cache: mentionStripRegexCompileCache,
-      warnRejected: false,
-    });
-  const fallbackProviderRegexes =
-    providerRegexes.length > 0 ? [] : resolveFallbackProviderMentionStripRegexes(providerId);
-  for (const re of [...configRegexes, ...providerRegexes, ...fallbackProviderRegexes]) {
+  const compiled = compileConfigRegexes(resolveMentionPatterns(cfg, agentId), "gi");
+  for (const re of compiled.regexes) {
     result = result.replace(re, " ");
   }
-  if (providerMentions?.stripMentions) {
-    result = providerMentions.stripMentions({
-      text: result,
-      ctx,
-      cfg,
-      agentId,
-    });
-  }
-  // Generic mention patterns like @123456789 or plain digits
-  result = result.replace(/@[0-9+]{5,}/g, " ");
-  return result.replace(/\s+/g, " ").trim();
+  return result
+    .replace(/@[0-9+]{5,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }

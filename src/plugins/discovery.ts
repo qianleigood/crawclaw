@@ -347,7 +347,7 @@ function deriveIdHint(params: {
   }
 
   // Prefer the unscoped name so config keys stay stable even when the npm
-  // package is scoped (example: @crawclaw/voice-call -> voice-call).
+  // package is scoped (example: @crawclaw/my-plugin -> my-plugin).
   const unscoped = rawPackageName.includes("/")
     ? (rawPackageName.split("/").pop() ?? rawPackageName)
     : rawPackageName;

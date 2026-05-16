@@ -5,8 +5,6 @@
   "description": "CrawClaw Chutes.ai provider plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

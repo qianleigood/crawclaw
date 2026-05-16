@@ -1,10 +1,10 @@
-import type { StreamFn } from "@mariozechner/pi-agent-core";
 import {
   getApiProvider,
   registerApiProvider,
   type Api,
   type StreamOptions,
 } from "@mariozechner/pi-ai";
+import type { StreamFn } from "./agent-types.js";
 
 const CUSTOM_API_SOURCE_PREFIX = "crawclaw-custom-api:";
 

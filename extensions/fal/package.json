@@ -5,8 +5,6 @@
   "description": "CrawClaw fal provider plugin",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

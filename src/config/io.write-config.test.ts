@@ -4,8 +4,8 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createConfigIO } from "./io.js";
 
-// Mock the plugin manifest registry so we can register a fake channel whose
-// AJV JSON Schema carries a `default` value.  This lets the #56772 regression
+// Mock the plugin manifest registry so we can register a fake plugin whose AJV
+// JSON Schema carries a `default` value. This lets the #56772 regression
 // test exercise the exact code path that caused the bug: AJV injecting
 // defaults during the write-back validation pass.
 const mockLoadPluginManifestRegistry = vi.hoisted(() => vi.fn());
@@ -31,8 +31,7 @@ describe("config io write", () => {
   beforeAll(async () => {
     fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-config-io-"));
 
-    // Default: return an empty plugin list so existing tests that don't need
-    // plugin-owned channel schemas keep working unchanged.
+    // Default: return an empty plugin list so existing tests keep working unchanged.
     mockLoadPluginManifestRegistry.mockReturnValue({
       diagnostics: [],
       plugins: [],
@@ -316,11 +315,10 @@ describe("config io write", () => {
         initialConfig: {
           agents: {
             defaults: {
-              cliBackends: {
+              models: {
                 codex: {
-                  command: "codex",
-                  env: {
-                    OPENAI_API_KEY: "${OPENAI_API_KEY}",
+                  params: {
+                    apiKey: "${OPENAI_API_KEY}",
                   },
                 },
               },
@@ -330,12 +328,10 @@ describe("config io write", () => {
         },
       });
       const persisted = (await writeTokenAuthAndReadConfig({ io, snapshot, configPath })) as {
-        agents: { defaults: { cliBackends: { codex: { env: { OPENAI_API_KEY: string } } } } };
+        agents: { defaults: { models: { codex: { params: { apiKey: string } } } } };
         gateway: { port: number; auth: { mode: string } };
       };
-      expect(persisted.agents.defaults.cliBackends.codex.env.OPENAI_API_KEY).toBe(
-        "${OPENAI_API_KEY}",
-      );
+      expect(persisted.agents.defaults.models.codex.params.apiKey).toBe("${OPENAI_API_KEY}");
       expect(persisted.gateway).toEqual({
         port: 18789,
         auth: { mode: "token" },
@@ -353,10 +349,11 @@ describe("config io write", () => {
           {
             agents: {
               defaults: {
-                cliBackends: {
+                models: {
                   codex: {
-                    command: "codex",
-                    args: ["${DISCORD_USER_ID}", "123"],
+                    params: {
+                      args: ["${DISCORD_USER_ID}", "123"],
+                    },
                   },
                 },
               },
@@ -378,18 +375,22 @@ describe("config io write", () => {
       expect(snapshot.valid).toBe(true);
 
       const next = structuredClone(snapshot.runtimeConfig);
-      const codexBackend = next.agents?.defaults?.cliBackends?.codex;
-      const args = Array.isArray(codexBackend?.args) ? codexBackend?.args : [];
+      const codexModel = next.agents?.defaults?.models?.codex;
+      const params =
+        codexModel?.params && typeof codexModel.params === "object" ? codexModel.params : {};
+      const args = Array.isArray(params.args) ? params.args : [];
       next.agents = {
         ...next.agents,
         defaults: {
           ...next.agents?.defaults,
-          cliBackends: {
-            ...next.agents?.defaults?.cliBackends,
+          models: {
+            ...next.agents?.defaults?.models,
             codex: {
-              ...codexBackend,
-              command: typeof codexBackend?.command === "string" ? codexBackend.command : "codex",
-              args: [...args, "456"],
+              ...codexModel,
+              params: {
+                ...params,
+                args: [...args, "456"],
+              },
             },
           },
         },
@@ -400,15 +401,17 @@ describe("config io write", () => {
       const persisted = JSON.parse(await fs.readFile(configPath, "utf-8")) as {
         agents: {
           defaults: {
-            cliBackends: {
+            models: {
               codex: {
-                args: string[];
+                params: {
+                  args: string[];
+                };
               };
             };
           };
         };
       };
-      expect(persisted.agents.defaults.cliBackends.codex.args).toEqual([
+      expect(persisted.agents.defaults.models.codex.params.args).toEqual([
         "${DISCORD_USER_ID}",
         "123",
         "456",

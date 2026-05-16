@@ -46,7 +46,7 @@ describe("detectChangedScope", () => {
   });
 
   it("enables node lane for node-relevant files", () => {
-    expect(detectChangedScope(["src/plugins/runtime/index.ts"])).toEqual({
+    expect(detectChangedScope(["src/plugins/loader.ts"])).toEqual({
       runNode: true,
       runWindows: true,
       runSkillsPython: false,

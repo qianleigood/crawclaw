@@ -1,4 +1,4 @@
-import { sanitizeUserFacingText } from "../../agents/pi-embedded-helpers.js";
+import { sanitizeUserFacingText } from "../../agents/user-facing-text.js";
 import { hasReplyPayloadContent } from "../../interactive/payload.js";
 import { stripHeartbeatToken } from "../heartbeat.js";
 import {

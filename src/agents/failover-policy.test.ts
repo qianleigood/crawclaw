@@ -4,7 +4,7 @@ import {
   shouldPreserveTransientCooldownProbeSlot,
   shouldUseTransientCooldownProbeSlot,
 } from "./failover-policy.js";
-import type { FailoverReason } from "./pi-embedded-helpers.js";
+import type { FailoverReason } from "./runtime-helpers.js";
 
 type ReasonCase = {
   reason: FailoverReason | null | undefined;

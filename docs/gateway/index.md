@@ -227,7 +227,7 @@ Defaults include isolated state/config and base gateway port `19001`.
 - First client frame must be `connect`.
 - Gateway returns `hello-ok` snapshot (`presence`, `health`, `stateVersion`, `uptimeMs`, limits/policy).
 - Requests: `req(method, params)` → `res(ok/payload|error)`.
-- Common events: `connect.challenge`, `agent`, `chat`, `presence`, `tick`, `health`, `heartbeat`, `shutdown`.
+- Common events: `agent`, `chat`, `presence`, `tick`, `health`, `heartbeat`, `shutdown`.
 
 Agent runs are two-stage:
 

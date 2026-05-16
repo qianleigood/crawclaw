@@ -1,12 +1,48 @@
-import { compactNativeMemorySession } from "../../agents/runtime-tools/agent-turn-client.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import { resolveFreshSessionTotalTokens } from "../../config/sessions.js";
+import { callGateway } from "../../gateway/call.js";
 import { logVerbose } from "../../globals.js";
 import { enqueueSystemEvent } from "../../infra/system-events.js";
 import { formatContextUsageShort, formatTokenCount } from "../status.js";
 import type { CommandHandler } from "./commands-types.js";
 import { stripMentions, stripStructuralPrefixes } from "./mentions.js";
 import { incrementCompactionCount } from "./session-updates.js";
+
+type RustMemoryCompactionResult = {
+  ok?: boolean;
+  compacted?: boolean;
+  reason?: string;
+  result?: {
+    summary?: string;
+    firstKeptEntryId?: string;
+    tokensBefore?: number;
+    tokensAfter?: number;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+};
+
+async function compactRustMemorySession(params: {
+  sessionId: string;
+  sessionKey?: string;
+  customInstructions?: string;
+  force?: boolean;
+  timeoutMs?: number;
+}): Promise<RustMemoryCompactionResult> {
+  const result = await callGateway({
+    method: "memory.compact",
+    params: {
+      sessionId: params.sessionId,
+      sessionKey: params.sessionKey,
+      customInstructions: params.customInstructions,
+      force: params.force ?? true,
+    },
+    timeoutMs: params.timeoutMs,
+  });
+  return result && typeof result === "object"
+    ? (result as RustMemoryCompactionResult)
+    : { ok: false, compacted: false, reason: "invalid_runtime_response" };
+}
 
 function extractCompactInstructions(params: {
   rawBody?: string;
@@ -94,7 +130,7 @@ export const handleCompactCommand: CommandHandler = async (params) => {
     agentId: params.agentId,
     isGroup: params.isGroup,
   });
-  const result = await compactNativeMemorySession({
+  const result = await compactRustMemorySession({
     sessionId,
     sessionKey: params.sessionKey,
     customInstructions,

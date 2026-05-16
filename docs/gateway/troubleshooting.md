@@ -104,43 +104,20 @@ Look for:
 
 - Correct probe URL and client URL.
 - Auth mode/token mismatch between client and gateway.
-- HTTP usage where device identity is required.
 
 Common signatures:
 
-- `device identity required` → non-secure context or missing device auth.
-- `device nonce required` / `device nonce mismatch` → client is not completing the
-  challenge-based device auth flow (`connect.challenge` + `device.nonce`).
-- `device signature invalid` / `device signature expired` → client signed the wrong
-  payload (or stale timestamp) for the current handshake.
-- `AUTH_TOKEN_MISMATCH` with `canRetryWithDeviceToken=true` → client can do one trusted retry with cached device token.
-- repeated `unauthorized` after that retry → shared token/device token drift; refresh token config and re-approve/rotate device token if needed.
+- `AUTH_TOKEN_MISMATCH` → shared token drift; refresh token config and retry.
 - `gateway connect failed:` → wrong host/port/url target.
 
 ### Auth detail codes quick map
 
 Use `error.details.code` from the failed `connect` response to pick the next action:
 
-| Detail code                  | Meaning                                                  | Recommended action                                                                                                                                               |
-| ---------------------------- | -------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AUTH_TOKEN_MISSING`         | Client did not send a required shared token.             | Set the client token to match CrawClaw Desktop or the local Gateway API and retry.                                                                               |
-| `AUTH_TOKEN_MISMATCH`        | Shared token did not match gateway auth token.           | If `canRetryWithDeviceToken=true`, allow one trusted retry. If still failing, run the [token drift recovery checklist](/network#token-drift-recovery-checklist). |
-| `AUTH_DEVICE_TOKEN_MISMATCH` | Cached per-device token is stale or revoked.             | Rotate/re-approve device token using [devices CLI](/network), then reconnect.                                                                                    |
-| `PAIRING_REQUIRED`           | Device identity is known but not approved for this role. | Approve pending request: CrawClaw Desktop or the local Gateway API then CrawClaw Desktop or the local Gateway API.                                               |
-
-Device auth v2 migration check:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-If logs show nonce/signature errors, update the connecting client and verify it:
-
-1. waits for `connect.challenge`
-2. signs the challenge-bound payload
-3. sends `connect.params.device.nonce` with the same challenge nonce
+| Detail code           | Meaning                                        | Recommended action                                                                 |
+| --------------------- | ---------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `AUTH_TOKEN_MISSING`  | Client did not send a required shared token.   | Set the client token to match CrawClaw Desktop or the local Gateway API and retry. |
+| `AUTH_TOKEN_MISMATCH` | Shared token did not match gateway auth token. | Run the [token drift recovery checklist](/network#token-drift-recovery-checklist). |
 
 Related:
 
@@ -321,7 +298,7 @@ Common signatures:
 - `refusing to bind gateway ... without auth` → bind+auth mismatch.
 - `RPC probe: failed` while runtime is running → gateway alive but inaccessible with current auth/url.
 
-### 3) Pairing and device identity state changed
+### 3) Pairing or identity policy changed
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -332,13 +309,7 @@ Common signatures:
 
 What to check:
 
-- Pending device approvals for dashboard clients.
-- Pending DM pairing approvals after policy or identity changes.
-
-Common signatures:
-
-- `device identity required` → device auth not satisfied.
-- `pairing required` → sender/device must be approved.
+- Pending DM pairing approvals after channel policy or sender identity changes.
 
 If the service config and runtime still disagree after checks, reinstall service metadata from the same profile/state directory:
 

@@ -26,19 +26,19 @@ x-i18n:
 ## 工作原理（高层次）
 
 1. `agent` RPC 验证参数，解析会话（sessionKey/sessionId），持久化会话元数据，立即返回 `{ runId, acceptedAt }`。
-2. `agentCommand` 运行智能体：
+2. Rust `AgentRuntime` 运行智能体回合：
    - 解析模型 + 思考/详细模式默认值
    - 为本次运行注册 run context 和 runtime state
    - 加载 Skills 快照
-   - 调用 `runEmbeddedPiAgent`（pi-agent-core 运行时）
-   - 如果嵌入式循环未发出**生命周期结束/错误**事件，则发出该事件
-3. `runEmbeddedPiAgent`：
+   - 组装上下文、工具、记录和记忆输入
+   - 发出流、工具、用量和记录事件
+3. Rust runtime：
    - 通过每会话 + 全局队列序列化运行
-   - 解析模型 + 认证配置文件并构建 pi 会话
-   - 订阅 pi 事件并流式传输助手/工具增量
+   - 从 Rust provider registry 解析 provider transport 和模型默认值
+   - 通过 Gateway events 流式传输助手/工具增量
    - 强制执行超时 -> 超时则中止运行
    - 返回有效负载 + 使用元数据
-4. `subscribeEmbeddedPiSession` 将 pi-agent-core 事件桥接到 CrawClaw `agent` 流：
+4. Gateway stream projection 将 Rust runtime 事件映射到 CrawClaw `agent` 流：
    - 工具事件 => `stream: "tool"`
    - 助手增量 => `stream: "assistant"`
    - 生命周期事件 => `stream: "lifecycle"`（`phase: "start" | "end" | "error"`）
@@ -167,7 +167,7 @@ CrawClaw 有两个钩子系统：
 
 ## 流式传输 + 部分回复
 
-- 助手增量从 pi-agent-core 流式传输并作为 `assistant` 事件发出。
+- 助手增量从 Rust agent runtime 流式传输并作为 `assistant` 事件发出。
 - 分块流式传输可以在 `text_end` 或 `message_end` 时发出部分回复。
 - 推理流式传输可以作为单独的流或作为块回复发出。
 - 参见[流式传输](/concepts/streaming)了解分块和块回复行为。
@@ -219,9 +219,9 @@ candidate 两版策略做 diff，这样在真正收紧 loop policy 之前就能�
 
 ## 事件流（当前）
 
-- `lifecycle`：由 `subscribeEmbeddedPiSession` 发出（以及作为 `agentCommand` 的回退）
-- `assistant`：从 pi-agent-core 流式传输的增量
-- `tool`：从 pi-agent-core 流式传输的工具事件
+- `lifecycle`：由 `subscribeRustAgentSession` 发出（以及作为 `agent.command.run` 的回退）
+- `assistant`：从 Rust agent runtime 流式传输的增量
+- `tool`：从 Rust agent runtime 流式传输的工具事件
 
 运行时 progress event 也会被写入任务状态和 task trajectory，但目前还没
 作为单独的公开流暴露出去。
@@ -234,7 +234,7 @@ candidate 两版策略做 diff，这样在真正收紧 loop policy 之前就能�
 ## 超时
 
 - `agent.wait` 默认：30 秒（仅等待）。`timeoutMs` 参数可覆盖。
-- 智能体运行时：`agents.defaults.timeoutSeconds` 默认 172800 秒（48 小时）；在 `runEmbeddedPiAgent` 中止计时器中强制执行。使用 `0` 可完全禁用超时。
+- 智能体运行时：`agents.defaults.timeoutSeconds` 默认 172800 秒（48 小时）；由 Rust runtime 中止计时器强制执行。使用 `0` 可完全禁用超时。
 
 ## 可能提前结束的情况
 

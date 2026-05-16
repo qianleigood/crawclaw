@@ -13,9 +13,7 @@ type RegistryState = {
   activeRegistry: PluginRegistry | null;
   activeVersion: number;
   httpRoute: RegistrySurfaceState;
-  channel: RegistrySurfaceState;
   key: string | null;
-  runtimeSubagentMode: "default" | "explicit" | "gateway-bindable";
   importedPluginIds: Set<string>;
 };
 
@@ -32,13 +30,7 @@ const state: RegistryState = (() => {
         pinned: false,
         version: 0,
       },
-      channel: {
-        registry: null,
-        pinned: false,
-        version: 0,
-      },
       key: null,
-      runtimeSubagentMode: "default",
       importedPluginIds: new Set<string>(),
     };
   }
@@ -79,17 +71,11 @@ function syncTrackedSurface(
   installSurfaceRegistry(surface, registry, false);
 }
 
-export function setActivePluginRegistry(
-  registry: PluginRegistry,
-  cacheKey?: string,
-  runtimeSubagentMode: "default" | "explicit" | "gateway-bindable" = "default",
-) {
+export function setActivePluginRegistry(registry: PluginRegistry, cacheKey?: string) {
   state.activeRegistry = registry;
   state.activeVersion += 1;
   syncTrackedSurface(state.httpRoute, registry, true);
-  syncTrackedSurface(state.channel, registry, true);
   state.key = cacheKey ?? null;
-  state.runtimeSubagentMode = runtimeSubagentMode;
 }
 
 export function getActivePluginRegistry(): PluginRegistry | null {
@@ -101,7 +87,6 @@ export function requireActivePluginRegistry(): PluginRegistry {
     state.activeRegistry = createEmptyPluginRegistry();
     state.activeVersion += 1;
     syncTrackedSurface(state.httpRoute, state.activeRegistry);
-    syncTrackedSurface(state.channel, state.activeRegistry);
   }
   return state.activeRegistry;
 }
@@ -148,48 +133,8 @@ export function resolveActivePluginHttpRouteRegistry(fallback: PluginRegistry): 
   return routeRegistry;
 }
 
-/** Pin the channel registry so that subsequent `setActivePluginRegistry` calls
- *  do not replace the channel snapshot used by `getChannelPlugin`. Call at
- *  gateway startup after the initial plugin load so that config-schema reads
- *  and other non-primary registry loads cannot evict channel plugins. */
-export function pinActivePluginChannelRegistry(registry: PluginRegistry) {
-  installSurfaceRegistry(state.channel, registry, true);
-}
-
-export function releasePinnedPluginChannelRegistry(registry?: PluginRegistry) {
-  if (registry && state.channel.registry !== registry) {
-    return;
-  }
-  installSurfaceRegistry(state.channel, state.activeRegistry, false);
-}
-
-/** Return the registry that should be used for channel plugin resolution.
- *  When pinned, this returns the startup registry regardless of subsequent
- *  `setActivePluginRegistry` calls. */
-export function getActivePluginChannelRegistry(): PluginRegistry | null {
-  return state.channel.registry ?? state.activeRegistry;
-}
-
-export function getActivePluginChannelRegistryVersion(): number {
-  return state.channel.registry ? state.channel.version : state.activeVersion;
-}
-
-export function requireActivePluginChannelRegistry(): PluginRegistry {
-  const existing = getActivePluginChannelRegistry();
-  if (existing) {
-    return existing;
-  }
-  const created = requireActivePluginRegistry();
-  installSurfaceRegistry(state.channel, created, false);
-  return created;
-}
-
 export function getActivePluginRegistryKey(): string | null {
   return state.key;
-}
-
-export function getActivePluginRuntimeSubagentMode(): "default" | "explicit" | "gateway-bindable" {
-  return state.runtimeSubagentMode;
 }
 
 export function getActivePluginRegistryVersion(): number {
@@ -224,7 +169,6 @@ function collectLoadedPluginIds(
 export function listImportedRuntimePluginIds(): string[] {
   const imported = new Set(state.importedPluginIds);
   collectLoadedPluginIds(state.activeRegistry, imported);
-  collectLoadedPluginIds(state.channel.registry, imported);
   collectLoadedPluginIds(state.httpRoute.registry, imported);
   return [...imported].toSorted((left, right) => left.localeCompare(right));
 }
@@ -233,8 +177,6 @@ export function resetPluginRuntimeStateForTest(): void {
   state.activeRegistry = null;
   state.activeVersion += 1;
   installSurfaceRegistry(state.httpRoute, null, false);
-  installSurfaceRegistry(state.channel, null, false);
   state.key = null;
-  state.runtimeSubagentMode = "default";
   state.importedPluginIds.clear();
 }

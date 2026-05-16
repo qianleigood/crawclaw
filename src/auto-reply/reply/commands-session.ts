@@ -5,9 +5,7 @@ import { scheduleGatewaySigusr1Restart, triggerCrawClawRestart } from "../../inf
 import { loadCostUsageSummary, loadSessionCostSummary } from "../../infra/session-cost-usage.js";
 import { formatTokenCount, formatUsd } from "../../utils/usage-format.js";
 import { parseActivationCommand } from "../group-activation.js";
-import { parseSendPolicyCommand } from "../send-policy.js";
 import { normalizeFastMode, normalizeUsageDisplay, resolveResponseUsageMode } from "../thinking.js";
-import { rejectNonOwnerCommand, rejectUnauthorizedCommand } from "./command-gates.js";
 import { handleAbortTrigger, handleStopCommand } from "./commands-session-abort.js";
 import { applyCommandSessionPatch, persistSessionEntry } from "./commands-session-store.js";
 import type { CommandHandler } from "./commands-types.js";
@@ -63,49 +61,6 @@ export const handleActivationCommand: CommandHandler = async (params, allowTextC
     reply: {
       text: `⚙️ Group activation set to ${activationCommand.mode}.`,
     },
-  };
-};
-
-export const handleSendPolicyCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
-    return null;
-  }
-  const sendPolicyCommand = parseSendPolicyCommand(params.command.commandBodyNormalized);
-  if (!sendPolicyCommand.hasCommand) {
-    return null;
-  }
-  const unauthorizedResult = rejectUnauthorizedCommand(params, "/send");
-  if (unauthorizedResult) {
-    return unauthorizedResult;
-  }
-  const nonOwnerResult = rejectNonOwnerCommand(params, "/send");
-  if (nonOwnerResult) {
-    return nonOwnerResult;
-  }
-  if (!sendPolicyCommand.mode) {
-    return {
-      shouldContinue: false,
-      reply: { text: "⚙️ Usage: /send on|off|inherit" },
-    };
-  }
-  const patched = await applyCommandSessionPatch({
-    commandParams: params,
-    patch: {
-      sendPolicy: sendPolicyCommand.mode === "inherit" ? null : sendPolicyCommand.mode,
-    },
-  });
-  if (!patched.ok) {
-    return buildSessionControlPatchFailureReply(patched.error.message);
-  }
-  const label =
-    sendPolicyCommand.mode === "inherit"
-      ? "inherit"
-      : sendPolicyCommand.mode === "allow"
-        ? "on"
-        : "off";
-  return {
-    shouldContinue: false,
-    reply: { text: `⚙️ Send policy set to ${label}.` },
   };
 };
 

@@ -1,11 +1,7 @@
-import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { loadConfig } from "../config/config.js";
 import { type SessionEntry, updateSessionStore } from "../config/sessions.js";
 import { ensureSessionTranscriptHeader } from "../config/sessions/transcript.js";
-import { logVerbose } from "../globals.js";
-import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
-import { isSubagentSessionKey, normalizeAgentId } from "../routing/session-key.js";
-import { emitBeforeResetPluginHook } from "../sessions/runtime/before-reset-hook.js";
+import { isSubagentSessionKey } from "../routing/session-key.js";
 import { archiveSessionTranscriptsForMutation } from "../sessions/runtime/reset-artifacts.js";
 import { cleanupSessionBeforeMutation } from "../sessions/runtime/reset-cleanup.js";
 import { emitResetInternalHook } from "../sessions/runtime/reset-internal-hook.js";
@@ -14,7 +10,6 @@ import { buildGatewayResetEntry } from "./session-reset-entry.js";
 import {
   loadSessionEntry,
   migrateAndPruneGatewaySessionStoreKey,
-  readSessionMessages,
   resolveGatewaySessionStoreTarget,
 } from "./session-utils.js";
 
@@ -28,63 +23,10 @@ export async function emitSessionUnboundLifecycleEvent(params: {
   if (params.emitHooks === false) {
     return;
   }
-
-  const hookRunner = getGlobalHookRunner();
-  if (!hookRunner?.hasHooks("subagent_ended")) {
-    return;
-  }
-  await hookRunner.runSubagentEnded(
-    {
-      targetSessionKey: params.targetSessionKey,
-      targetKind,
-      reason: params.reason,
-      sendFarewell: true,
-      outcome: params.reason === "session-reset" ? "reset" : "deleted",
-    },
-    {
-      childSessionKey: params.targetSessionKey,
-    },
-  );
+  void targetKind;
 }
 
 export { cleanupSessionBeforeMutation };
-
-function emitGatewayBeforeResetPluginHook(params: {
-  cfg: ReturnType<typeof loadConfig>;
-  key: string;
-  target: ReturnType<typeof resolveGatewaySessionStoreTarget>;
-  storePath: string;
-  entry?: SessionEntry;
-  reason: "new" | "reset";
-}): void {
-  const hookRunner = getGlobalHookRunner();
-  const sessionKey = params.target.canonicalKey ?? params.key;
-  const sessionId = params.entry?.sessionId;
-  const sessionFile = params.entry?.sessionFile;
-  const agentId = normalizeAgentId(params.target.agentId ?? resolveDefaultAgentId(params.cfg));
-  const workspaceDir = resolveAgentWorkspaceDir(params.cfg, agentId);
-  emitBeforeResetPluginHook({
-    hookRunner: hookRunner ?? undefined,
-    loadMessages: async () => {
-      let messages: unknown[] = [];
-      try {
-        if (typeof sessionId === "string" && sessionId.trim().length > 0) {
-          messages = readSessionMessages(sessionId, params.storePath, sessionFile);
-        }
-      } catch (err) {
-        logVerbose(
-          `before_reset: failed to read session messages for ${sessionId ?? "(none)"}; firing hook with empty messages (${String(err)})`,
-        );
-      }
-      return { sessionFile, messages };
-    },
-    reason: params.reason,
-    agentId,
-    sessionKey,
-    sessionId,
-    workspaceDir,
-  });
-}
 
 export async function performGatewaySessionReset(params: {
   key: string;
@@ -124,7 +66,6 @@ export async function performGatewaySessionReset(params: {
 
   let oldSessionId: string | undefined;
   let oldSessionFile: string | undefined;
-  let resetSourceEntry: SessionEntry | undefined;
   const next = await updateSessionStore(storePath, (store) => {
     const { primaryKey } = migrateAndPruneGatewaySessionStoreKey({
       cfg,
@@ -137,22 +78,12 @@ export async function performGatewaySessionReset(params: {
       currentEntry: store[primaryKey],
       storePath,
     });
-    resetSourceEntry = built.resetSourceEntry;
     oldSessionId = built.oldSessionId;
     oldSessionFile = built.oldSessionFile;
     const nextEntry = built.nextEntry;
     store[primaryKey] = nextEntry;
     return nextEntry;
   });
-  emitGatewayBeforeResetPluginHook({
-    cfg,
-    key: params.key,
-    target,
-    storePath,
-    entry: resetSourceEntry,
-    reason: params.reason,
-  });
-
   archiveSessionTranscriptsForMutation({
     sessionId: oldSessionId,
     storePath,

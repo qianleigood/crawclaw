@@ -1,9 +1,8 @@
-import type { RuntimeStore } from "../../memory/runtime/runtime-store.ts";
-import type {
-  ContextArchiveMode,
-  ContextArchiveRunKind,
-  ContextArchiveRunStatus,
-} from "../../memory/types/runtime.ts";
+import type { ObservationHistoryStore } from "../../infra/observation/history-index.js";
+
+export type ContextArchiveMode = "off" | "replay" | "full";
+export type ContextArchiveRunKind = "session" | "turn" | "task" | "manual";
+export type ContextArchiveRunStatus = "pending" | "recording" | "complete" | "failed" | "cancelled";
 
 export type ContextArchiveBlobEncoding = "utf8" | "base64";
 
@@ -54,6 +53,47 @@ export type ContextArchiveRunInput = {
   updatedAt?: number;
 };
 
+export interface CreateContextArchiveRunInput {
+  sessionId: string;
+  conversationUid: string;
+  runKind: ContextArchiveRunKind;
+  archiveMode?: ContextArchiveMode;
+  status?: ContextArchiveRunStatus;
+  turnIndex?: number | null;
+  taskId?: string | null;
+  agentId?: string | null;
+  parentAgentId?: string | null;
+  summaryJson?: string | null;
+  metadataJson?: string | null;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface UpdateContextArchiveRunInput {
+  id: string;
+  status: ContextArchiveRunStatus;
+  summaryJson?: string | null;
+  metadataJson?: string | null;
+  updatedAt?: number;
+}
+
+export interface ContextArchiveRunRow {
+  id: string;
+  sessionId: string;
+  conversationUid: string;
+  runKind: ContextArchiveRunKind;
+  archiveMode: ContextArchiveMode;
+  status: ContextArchiveRunStatus;
+  turnIndex: number | null;
+  taskId: string | null;
+  agentId: string | null;
+  parentAgentId: string | null;
+  summaryJson: string | null;
+  metadataJson: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export type ContextArchiveRunRecord = {
   id: string;
   sessionId: string;
@@ -72,6 +112,33 @@ export type ContextArchiveRunRecord = {
   createdAt: number;
   updatedAt: number;
 };
+
+export interface UpsertContextArchiveBlobInput {
+  runId: string;
+  blobKey: string;
+  blobHash: string;
+  blobKind?: string;
+  storagePath?: string | null;
+  contentType?: string | null;
+  byteLength?: number | null;
+  metadataJson?: string | null;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+export interface ContextArchiveBlobRow {
+  id: string;
+  runId: string;
+  blobKey: string;
+  blobHash: string;
+  blobKind: string | null;
+  storagePath: string | null;
+  contentType: string | null;
+  byteLength: number | null;
+  metadataJson: string | null;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export type ContextArchiveRunRefs = {
   runRef: string;
@@ -186,13 +253,48 @@ export type ContextArchiveEventRecord = {
   createdAt: number;
 };
 
+export interface AppendContextArchiveEventInput {
+  runId: string;
+  eventKind: string;
+  sequence?: number;
+  turnIndex?: number | null;
+  payloadJson: string;
+  payloadHash?: string | null;
+  createdAt?: number;
+}
+
+export interface ContextArchiveEventRow {
+  id: string;
+  runId: string;
+  eventKind: string;
+  sequence: number;
+  turnIndex: number | null;
+  payloadJson: string;
+  payloadHash: string | null;
+  createdAt: number;
+}
+
+export interface ContextArchiveRuntimeStore extends ObservationHistoryStore {
+  createContextArchiveRun(input: CreateContextArchiveRunInput): Promise<string>;
+  getContextArchiveRun(runId: string): Promise<ContextArchiveRunRow | null>;
+  updateContextArchiveRun(input: UpdateContextArchiveRunInput): Promise<void>;
+  listRecentContextArchiveRuns(limit: number, sessionId?: string): Promise<ContextArchiveRunRow[]>;
+  listAllContextArchiveRuns(): Promise<ContextArchiveRunRow[]>;
+  listContextArchiveBlobs(runId: string, limit: number): Promise<ContextArchiveBlobRow[]>;
+  listContextArchiveEvents(runId: string, limit: number): Promise<ContextArchiveEventRow[]>;
+  deleteContextArchiveRun(runId: string): Promise<void>;
+  upsertContextArchiveBlob(input: UpsertContextArchiveBlobInput): Promise<void>;
+  getContextArchiveBlob(runId: string, blobKey: string): Promise<ContextArchiveBlobRow | null>;
+  appendContextArchiveEvent(input: AppendContextArchiveEventInput): Promise<string>;
+}
+
 export type ContextArchiveReadEventsOptions = {
   hydratePayload?: boolean;
   limit?: number;
 };
 
 export type ContextArchiveServiceOptions = {
-  runtimeStore: RuntimeStore;
+  runtimeStore: ContextArchiveRuntimeStore;
   rootDir?: string;
   baseDir?: string;
   env?: NodeJS.ProcessEnv;

@@ -5,8 +5,6 @@
   "description": "OpenProse VM skill pack plugin (slash command + telemetry).",
   "type": "module",
   "crawclaw": {
-    "extensions": [
-      "./index.ts"
-    ]
+    "extensions": []
   }
 }

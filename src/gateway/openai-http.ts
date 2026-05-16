@@ -452,7 +452,6 @@ export async function handleOpenAiHttpRequest(
     user,
     sessionPrefix: "openai",
     defaultMessageChannel: "webchat",
-    useMessageChannelHeader: true,
   });
   const { modelOverride, errorMessage: modelError } = await resolveOpenAiCompatModelOverride({
     req,

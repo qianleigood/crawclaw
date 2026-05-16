@@ -15,7 +15,11 @@ import type { CronConfig } from "../config/types.cron.js";
 import { cleanupArchivedSessionTranscripts } from "../gateway/session-utils.fs.js";
 import { isCronRunSessionKey } from "../sessions/session-key-utils.js";
 import { parseDurationMs } from "../terminal/parse-duration.js";
-import type { Logger } from "./service/state.js";
+
+export type Logger = {
+  info: (obj: Record<string, unknown>, msg: string) => void;
+  warn: (obj: Record<string, unknown>, msg: string) => void;
+};
 
 const DEFAULT_RETENTION_MS = 24 * 3_600_000; // 24 hours
 

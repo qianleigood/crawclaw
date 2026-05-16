@@ -1,18 +1,9 @@
-import fs from "node:fs/promises";
 import path from "node:path";
-import type { AgentToolResult } from "@mariozechner/pi-agent-core";
-import { createEditTool, createWriteTool } from "@mariozechner/pi-coding-agent";
-import {
-  appendFileWithinRoot,
-  SafeOpenError,
-  openFileWithinRoot,
-  readFileWithinRoot,
-  writeFileWithinRoot,
-} from "../infra/fs-safe.js";
+import { appendFileWithinRoot } from "../infra/fs-safe.js";
 import { sniffMimeFromBase64 } from "../media/sniff-mime-from-base64.js";
+import type { AgentToolResult } from "./agent-types.js";
 import type { ImageSanitizationLimits } from "./image-sanitization.js";
 import { toRelativeWorkspacePath } from "./path-policy.js";
-import { wrapEditToolWithRecovery } from "./pi-tools.host-edit.js";
 import {
   CLAUDE_PARAM_GROUPS,
   assertRequiredParams,
@@ -33,7 +24,7 @@ export {
 
 // NOTE(steipete): Upstream read now does file-magic MIME detection; we keep the wrapper
 // to normalize payloads and sanitize oversized images before they hit providers.
-type ToolContentBlock = AgentToolResult<unknown>["content"][number];
+type ToolContentBlock = AgentToolResult["content"][number];
 type ImageContentBlock = Extract<ToolContentBlock, { type: "image" }>;
 type TextContentBlock = Extract<ToolContentBlock, { type: "text" }>;
 
@@ -86,7 +77,7 @@ function formatBytes(bytes: number): string {
   return `${bytes}B`;
 }
 
-function getToolResultText(result: AgentToolResult<unknown>): string | undefined {
+function getToolResultText(result: AgentToolResult): string | undefined {
   const content = Array.isArray(result.content) ? result.content : [];
   const textBlocks = content
     .map((block) => {
@@ -107,10 +98,7 @@ function getToolResultText(result: AgentToolResult<unknown>): string | undefined
   return textBlocks.join("\n");
 }
 
-function withToolResultText(
-  result: AgentToolResult<unknown>,
-  text: string,
-): AgentToolResult<unknown> {
+function withToolResultText(result: AgentToolResult, text: string): AgentToolResult {
   const content = Array.isArray(result.content) ? result.content : [];
   let replaced = false;
   const nextContent: ToolContentBlock[] = content.map((block) => {
@@ -131,19 +119,17 @@ function withToolResultText(
   if (replaced) {
     return {
       ...result,
-      content: nextContent as unknown as AgentToolResult<unknown>["content"],
+      content: nextContent as unknown as AgentToolResult["content"],
     };
   }
   const textBlock = { type: "text", text } as unknown as TextContentBlock;
   return {
     ...result,
-    content: [textBlock] as unknown as AgentToolResult<unknown>["content"],
+    content: [textBlock] as unknown as AgentToolResult["content"],
   };
 }
 
-function extractReadTruncationDetails(
-  result: AgentToolResult<unknown>,
-): ReadTruncationDetails | null {
+function extractReadTruncationDetails(result: AgentToolResult): ReadTruncationDetails | null {
   const details = (result as { details?: unknown }).details;
   if (!details || typeof details !== "object") {
     return null;
@@ -172,9 +158,7 @@ function stripReadContinuationNotice(text: string): string {
   return text.replace(READ_CONTINUATION_NOTICE_RE, "");
 }
 
-function stripReadTruncationContentDetails(
-  result: AgentToolResult<unknown>,
-): AgentToolResult<unknown> {
+function stripReadTruncationContentDetails(result: AgentToolResult): AgentToolResult {
   const details = (result as { details?: unknown }).details;
   if (!details || typeof details !== "object") {
     return result;
@@ -207,7 +191,7 @@ async function executeReadWithAdaptivePaging(params: {
   args: Record<string, unknown>;
   signal?: AbortSignal;
   maxBytes: number;
-}): Promise<AgentToolResult<unknown>> {
+}): Promise<AgentToolResult> {
   const userLimit = params.args.limit;
   const hasExplicitLimit =
     typeof userLimit === "number" && Number.isFinite(userLimit) && userLimit > 0;
@@ -220,7 +204,7 @@ async function executeReadWithAdaptivePaging(params: {
     typeof offsetRaw === "number" && Number.isFinite(offsetRaw) && offsetRaw > 0
       ? Math.floor(offsetRaw)
       : 1;
-  let firstResult: AgentToolResult<unknown> | null = null;
+  let firstResult: AgentToolResult | null = null;
   let aggregatedText = "";
   let aggregatedBytes = 0;
   let capped = false;
@@ -288,9 +272,9 @@ function rewriteReadImageHeader(text: string, mimeType: string): string {
 }
 
 async function normalizeReadImageResult(
-  result: AgentToolResult<unknown>,
+  result: AgentToolResult,
   filePath: string,
-): Promise<AgentToolResult<unknown>> {
+): Promise<AgentToolResult> {
   const content = Array.isArray(result.content) ? result.content : [];
 
   const image = content.find(
@@ -440,24 +424,6 @@ export function wrapToolMemoryFlushAppendOnlyWrite(
   };
 }
 
-export function createHostWorkspaceWriteTool(root: string, options?: { workspaceOnly?: boolean }) {
-  const base = createWriteTool(root, {
-    operations: createHostWriteOperations(root, options),
-  }) as unknown as AnyAgentTool;
-  return wrapToolParamNormalization(base, CLAUDE_PARAM_GROUPS.write);
-}
-
-export function createHostWorkspaceEditTool(root: string, options?: { workspaceOnly?: boolean }) {
-  const base = createEditTool(root, {
-    operations: createHostEditOperations(root, options),
-  }) as unknown as AnyAgentTool;
-  const withRecovery = wrapEditToolWithRecovery(base, {
-    root,
-    readFile: (absolutePath: string) => fs.readFile(absolutePath, "utf-8"),
-  });
-  return wrapToolParamNormalization(withRecovery, CLAUDE_PARAM_GROUPS.edit);
-}
-
 export function createCrawClawReadTool(
   base: AnyAgentTool,
   options?: CrawClawReadToolOptions,
@@ -488,119 +454,4 @@ export function createCrawClawReadTool(
       );
     },
   };
-}
-
-async function writeHostFile(absolutePath: string, content: string) {
-  const resolved = path.resolve(absolutePath);
-  await fs.mkdir(path.dirname(resolved), { recursive: true });
-  await fs.writeFile(resolved, content, "utf-8");
-}
-
-function createHostWriteOperations(root: string, options?: { workspaceOnly?: boolean }) {
-  const workspaceOnly = options?.workspaceOnly ?? false;
-
-  if (!workspaceOnly) {
-    // When workspaceOnly is false, allow writes anywhere on the host
-    return {
-      mkdir: async (dir: string) => {
-        const resolved = path.resolve(dir);
-        await fs.mkdir(resolved, { recursive: true });
-      },
-      writeFile: writeHostFile,
-    } as const;
-  }
-
-  // When workspaceOnly is true, enforce workspace boundary
-  return {
-    mkdir: async (dir: string) => {
-      const relative = toRelativeWorkspacePath(root, dir, { allowRoot: true });
-      const resolved = relative ? path.resolve(root, relative) : path.resolve(root);
-      await fs.mkdir(resolved, { recursive: true });
-    },
-    writeFile: async (absolutePath: string, content: string) => {
-      const relative = toRelativeWorkspacePath(root, absolutePath);
-      await writeFileWithinRoot({
-        rootDir: root,
-        relativePath: relative,
-        data: content,
-        mkdir: true,
-      });
-    },
-  } as const;
-}
-
-function createHostEditOperations(root: string, options?: { workspaceOnly?: boolean }) {
-  const workspaceOnly = options?.workspaceOnly ?? false;
-
-  if (!workspaceOnly) {
-    // When workspaceOnly is false, allow edits anywhere on the host
-    return {
-      readFile: async (absolutePath: string) => {
-        const resolved = path.resolve(absolutePath);
-        return await fs.readFile(resolved);
-      },
-      writeFile: writeHostFile,
-      access: async (absolutePath: string) => {
-        const resolved = path.resolve(absolutePath);
-        await fs.access(resolved);
-      },
-    } as const;
-  }
-
-  // When workspaceOnly is true, enforce workspace boundary
-  return {
-    readFile: async (absolutePath: string) => {
-      const relative = toRelativeWorkspacePath(root, absolutePath);
-      const safeRead = await readFileWithinRoot({
-        rootDir: root,
-        relativePath: relative,
-      });
-      return safeRead.buffer;
-    },
-    writeFile: async (absolutePath: string, content: string) => {
-      const relative = toRelativeWorkspacePath(root, absolutePath);
-      await writeFileWithinRoot({
-        rootDir: root,
-        relativePath: relative,
-        data: content,
-        mkdir: true,
-      });
-    },
-    access: async (absolutePath: string) => {
-      let relative: string;
-      try {
-        relative = toRelativeWorkspacePath(root, absolutePath);
-      } catch {
-        // Path escapes workspace root.  Don't throw here – the upstream
-        // library replaces any `access` error with a misleading "File not
-        // found" message.  By returning silently the subsequent `readFile`
-        // call will throw the same "Path escapes workspace root" error
-        // through a code-path that propagates the original message.
-        return;
-      }
-      try {
-        const opened = await openFileWithinRoot({
-          rootDir: root,
-          relativePath: relative,
-        });
-        await opened.handle.close().catch(() => {});
-      } catch (error) {
-        if (error instanceof SafeOpenError && error.code === "not-found") {
-          throw createFsAccessError("ENOENT", absolutePath);
-        }
-        if (error instanceof SafeOpenError && error.code === "outside-workspace") {
-          // Don't throw here – see the comment above about the upstream
-          // library swallowing access errors as "File not found".
-          return;
-        }
-        throw error;
-      }
-    },
-  } as const;
-}
-
-function createFsAccessError(code: string, filePath: string): NodeJS.ErrnoException {
-  const error = new Error(`Filesystem error (${code}): ${filePath}`) as NodeJS.ErrnoException;
-  error.code = code;
-  return error;
 }

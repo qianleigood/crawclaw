@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import type { DeviceIdentity } from "../infra/device-identity.js";
 import { captureEnv } from "../test-utils/env.js";
 import {
   loadConfigMock as loadConfig,
@@ -9,22 +8,12 @@ import {
   resolveGatewayPortMock as resolveGatewayPort,
 } from "./gateway-connection.test-mocks.js";
 
-const deviceIdentityState = vi.hoisted(() => ({
-  value: {
-    deviceId: "test-device-identity",
-    publicKeyPem: "test-public-key",
-    privateKeyPem: "test-private-key",
-  } satisfies DeviceIdentity,
-  throwOnLoad: false,
-}));
-
 let lastClientOptions: {
   url?: string;
   token?: string;
   password?: string;
   tlsFingerprint?: string;
   scopes?: string[];
-  deviceIdentity?: unknown;
   onHelloOk?: (hello: { features?: { methods?: string[] } }) => void | Promise<void>;
   onClose?: (code: number, reason: string) => void;
 } | null = null;
@@ -139,15 +128,8 @@ function resetGatewayCallMocks() {
     createGatewayClient: (opts) =>
       new StubGatewayClient(opts as ConstructorParameters<typeof StubGatewayClient>[0]) as never,
     loadConfig: loadConfigForTests,
-    loadOrCreateDeviceIdentity: () => {
-      if (deviceIdentityState.throwOnLoad) {
-        throw new Error("read-only identity dir");
-      }
-      return deviceIdentityState.value;
-    },
     resolveGatewayPort: resolveGatewayPortForTests,
   });
-  deviceIdentityState.throwOnLoad = false;
 }
 
 function setGatewayNetworkDefaults(port = 18789) {
@@ -273,34 +255,6 @@ describe("callGateway url resolution", () => {
     expect(lastClientOptions?.token).toBe("explicit-token");
   });
 
-  it("keeps device identity enabled for local loopback shared-token auth", async () => {
-    setLocalLoopbackGatewayConfig();
-
-    await callGateway({
-      method: "health",
-      token: "explicit-token",
-    });
-
-    expect(lastClientOptions?.url).toBe("ws://127.0.0.1:18789");
-    expect(lastClientOptions?.token).toBe("explicit-token");
-    expect(lastClientOptions?.deviceIdentity).toEqual(deviceIdentityState.value);
-  });
-
-  it("falls back to token/password auth when device identity cannot be persisted", async () => {
-    setLocalLoopbackGatewayConfig();
-    deviceIdentityState.throwOnLoad = true;
-
-    await callGateway({
-      method: "health",
-      token: "explicit-token",
-    });
-
-    expect(lastClientOptions?.url).toBe("ws://127.0.0.1:18789");
-    expect(lastClientOptions?.token).toBe("explicit-token");
-    expect(lastClientOptions?.deviceIdentity).toBeNull();
-    expect(lastRequestOptions?.method).toBe("health");
-  });
-
   it("uses CRAWCLAW_GATEWAY_URL env override in remote mode when remote URL is missing", async () => {
     loadConfig.mockReturnValue({
       gateway: { mode: "remote", bind: "loopback", remote: {} },
@@ -401,13 +355,7 @@ describe("callGateway url resolution", () => {
     {
       label: "keeps legacy admin scopes for explicit CLI callers",
       call: () => callGatewayCli({ method: "health" }),
-      expectedScopes: [
-        "operator.admin",
-        "operator.read",
-        "operator.write",
-        "operator.approvals",
-        "operator.pairing",
-      ],
+      expectedScopes: ["operator.admin", "operator.read", "operator.write", "operator.approvals"],
     },
   ])("scope selection: $label", async ({ call, expectedScopes }) => {
     setLocalLoopbackGatewayConfig();

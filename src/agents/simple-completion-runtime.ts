@@ -13,7 +13,7 @@ import {
   resolveDefaultModelForAgent,
   resolveModelRefFromString,
 } from "./model-selection.js";
-import { resolveModel } from "./pi-embedded-runner/model.js";
+import { resolveModel } from "./runtime-support/model.js";
 
 type SimpleCompletionAuthStorage = {
   setRuntimeApiKey: (provider: string, apiKey: string) => void;

@@ -40,7 +40,6 @@ const GROUP_LABELS: Record<string, string> = {
   hooks: "Hooks",
   browser: "Browser",
   talk: "Talk",
-  channels: "Messaging Channels",
   skills: "Skills",
   plugins: "Plugins",
   discovery: "Discovery",
@@ -66,7 +65,6 @@ const GROUP_ORDER: Record<string, number> = {
   hooks: 110,
   browser: 120,
   talk: 130,
-  channels: 140,
   skills: 200,
   plugins: 205,
   discovery: 210,
@@ -82,25 +80,6 @@ const FIELD_PLACEHOLDERS: Record<string, string> = {
   "gateway.browserClients.allowedOrigins": "https://control.example.com",
   "agents.list[].identity.avatar": "avatars/crawclaw.png",
 };
-
-const CHANNEL_NAMESPACE_PREFIX = "channels.";
-const CHANNEL_KERNEL_HINT_PREFIXES = ["channels.defaults", "channels.modelByChannel"] as const;
-
-function isKernelOwnedChannelHintPath(path: string): boolean {
-  if (path === "channels") {
-    return true;
-  }
-  return CHANNEL_KERNEL_HINT_PREFIXES.some(
-    (prefix) => path === prefix || path.startsWith(`${prefix}.`),
-  );
-}
-
-export function isPluginOwnedChannelHintPath(path: string): boolean {
-  if (!path.startsWith(CHANNEL_NAMESPACE_PREFIX)) {
-    return false;
-  }
-  return !isKernelOwnedChannelHintPath(path);
-}
 
 /**
  * Non-sensitive field names that happen to match sensitive patterns.
@@ -156,23 +135,14 @@ export function buildBaseHints(): ConfigUiHints {
     };
   }
   for (const [path, label] of Object.entries(FIELD_LABELS)) {
-    if (isPluginOwnedChannelHintPath(path)) {
-      continue;
-    }
     const current = hints[path];
     hints[path] = current ? { ...current, label } : { label };
   }
   for (const [path, help] of Object.entries(FIELD_HELP)) {
-    if (isPluginOwnedChannelHintPath(path)) {
-      continue;
-    }
     const current = hints[path];
     hints[path] = current ? { ...current, help } : { help };
   }
   for (const [path, placeholder] of Object.entries(FIELD_PLACEHOLDERS)) {
-    if (isPluginOwnedChannelHintPath(path)) {
-      continue;
-    }
     const current = hints[path];
     hints[path] = current ? { ...current, placeholder } : { placeholder };
   }

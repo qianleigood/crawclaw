@@ -82,24 +82,24 @@ afterEach(() => {
 describe("stageBundledPluginRuntime", () => {
   it("stages bundled dist plugins as runtime wrappers and links staged dist node_modules", () => {
     const repoRoot = makeRepoRoot("crawclaw-stage-bundled-runtime-");
-    const distPluginDir = createDistPluginDir(repoRoot, "diffs");
+    const distPluginDir = createDistPluginDir(repoRoot, "demo-plugin");
     fs.mkdirSync(path.join(repoRoot, "dist"), { recursive: true });
-    fs.mkdirSync(path.join(distPluginDir, "node_modules", "@pierre", "diffs"), {
+    fs.mkdirSync(path.join(distPluginDir, "node_modules", "@example", "dependency"), {
       recursive: true,
     });
     setupRepoFiles(repoRoot, {
-      [bundledDistPluginFile("diffs", "index.js")]: "export default {}\n",
-      [bundledDistPluginFile("diffs", "node_modules/@pierre/diffs/index.js")]:
+      [bundledDistPluginFile("demo-plugin", "index.js")]: "export default {}\n",
+      [bundledDistPluginFile("demo-plugin", "node_modules/@example/dependency/index.js")]:
         "export default {}\n",
     });
 
     stageBundledPluginRuntime({ repoRoot });
 
-    const runtimePluginDir = path.join(repoRoot, "dist-runtime", "extensions", "diffs");
+    const runtimePluginDir = path.join(repoRoot, "dist-runtime", "extensions", "demo-plugin");
     expectRuntimePluginWrapperContains({
       repoRoot,
-      pluginId: "diffs",
-      expectedImport: distRuntimeImportPath("diffs"),
+      pluginId: "demo-plugin",
+      expectedImport: distRuntimeImportPath("demo-plugin"),
     });
     expect(fs.lstatSync(path.join(runtimePluginDir, "node_modules")).isSymbolicLink()).toBe(true);
     expect(fs.realpathSync(path.join(runtimePluginDir, "node_modules"))).toBe(
@@ -110,19 +110,26 @@ describe("stageBundledPluginRuntime", () => {
 
   it("writes wrappers that forward plugin entry imports into canonical dist files", async () => {
     const repoRoot = makeRepoRoot("crawclaw-stage-bundled-runtime-chunks-");
-    createDistPluginDir(repoRoot, "diffs");
+    createDistPluginDir(repoRoot, "demo-plugin");
     setupRepoFiles(repoRoot, {
       "dist/chunk-abc.js": "export const value = 1;\n",
-      [bundledDistPluginFile("diffs", "index.js")]: "export { value } from '../../chunk-abc.js';\n",
+      [bundledDistPluginFile("demo-plugin", "index.js")]:
+        "export { value } from '../../chunk-abc.js';\n",
     });
 
     stageBundledPluginRuntime({ repoRoot });
 
-    const runtimeEntryPath = path.join(repoRoot, "dist-runtime", "extensions", "diffs", "index.js");
+    const runtimeEntryPath = path.join(
+      repoRoot,
+      "dist-runtime",
+      "extensions",
+      "demo-plugin",
+      "index.js",
+    );
     expectRuntimePluginWrapperContains({
       repoRoot,
-      pluginId: "diffs",
-      expectedImport: distRuntimeImportPath("diffs"),
+      pluginId: "demo-plugin",
+      expectedImport: distRuntimeImportPath("demo-plugin"),
     });
     expect(fs.existsSync(path.join(repoRoot, "dist-runtime", "chunk-abc.js"))).toBe(false);
 
@@ -264,29 +271,29 @@ describe("stageBundledPluginRuntime", () => {
 
   it("copies package metadata files but symlinks other non-js plugin artifacts into the runtime overlay", () => {
     const repoRoot = makeRepoRoot("crawclaw-stage-bundled-runtime-assets-");
-    createDistPluginDir(repoRoot, "diffs");
+    createDistPluginDir(repoRoot, "demo-plugin");
     setupRepoFiles(repoRoot, {
-      [bundledDistPluginFile("diffs", "package.json")]: JSON.stringify(
-        { name: "@crawclaw/diffs", crawclaw: { extensions: ["./index.js"] } },
+      [bundledDistPluginFile("demo-plugin", "package.json")]: JSON.stringify(
+        { name: "@crawclaw/dependency", crawclaw: { extensions: ["./index.js"] } },
         null,
         2,
       ),
-      [bundledDistPluginFile("diffs", "crawclaw.plugin.json")]: "{}\n",
-      [bundledDistPluginFile("diffs", "assets/info.txt")]: "ok\n",
+      [bundledDistPluginFile("demo-plugin", "crawclaw.plugin.json")]: "{}\n",
+      [bundledDistPluginFile("demo-plugin", "assets/info.txt")]: "ok\n",
     });
 
     stageBundledPluginRuntime({ repoRoot });
 
     expectRuntimeArtifactText({
       repoRoot,
-      pluginId: "diffs",
+      pluginId: "demo-plugin",
       relativePath: "crawclaw.plugin.json",
       expectedText: "{}\n",
       symbolicLink: false,
     });
     expectRuntimeArtifactText({
       repoRoot,
-      pluginId: "diffs",
+      pluginId: "demo-plugin",
       relativePath: "assets/info.txt",
       expectedText: "ok\n",
       symbolicLink: true,
@@ -295,7 +302,7 @@ describe("stageBundledPluginRuntime", () => {
       repoRoot,
       "dist-runtime",
       "extensions",
-      "diffs",
+      "demo-plugin",
       "package.json",
     );
     expect(fs.lstatSync(runtimePackagePath).isSymbolicLink()).toBe(false);
@@ -313,9 +320,6 @@ describe("stageBundledPluginRuntime", () => {
           crawclaw: {
             extensions: ["./main.js"],
             setupEntry: "./setup.js",
-            startup: {
-              deferConfiguredChannelFullLoadUntilAfterListen: true,
-            },
           },
         },
         null,
@@ -324,7 +328,6 @@ describe("stageBundledPluginRuntime", () => {
       [bundledDistPluginFile("demo", "crawclaw.plugin.json")]: JSON.stringify(
         {
           id: "demo",
-          channels: ["demo"],
           configSchema: { type: "object" },
         },
         null,
@@ -365,9 +368,6 @@ describe("stageBundledPluginRuntime", () => {
     expect(fs.realpathSync(manifestRegistry.plugins[0]?.setupSource ?? "")).toBe(
       expectedRuntimeSetupPath,
     );
-    expect(manifestRegistry.plugins[0]?.startupDeferConfiguredChannelFullLoadUntilAfterListen).toBe(
-      true,
-    );
   });
 
   it("removes stale runtime plugin directories that are no longer in dist", () => {
@@ -384,7 +384,7 @@ describe("stageBundledPluginRuntime", () => {
 
   it("removes dist-runtime when the built bundled plugin tree is absent", () => {
     const repoRoot = makeRepoRoot("crawclaw-stage-bundled-runtime-missing-");
-    const runtimeRoot = path.join(repoRoot, "dist-runtime", "extensions", "diffs");
+    const runtimeRoot = path.join(repoRoot, "dist-runtime", "extensions", "demo-plugin");
     fs.mkdirSync(runtimeRoot, { recursive: true });
 
     stageBundledPluginRuntime({ repoRoot });

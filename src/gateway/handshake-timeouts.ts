@@ -1,19 +1,4 @@
 export const DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS = 10_000;
-export const MIN_CONNECT_CHALLENGE_TIMEOUT_MS = 250;
-export const MAX_CONNECT_CHALLENGE_TIMEOUT_MS = DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS;
-
-export function clampConnectChallengeTimeoutMs(timeoutMs: number): number {
-  return Math.max(
-    MIN_CONNECT_CHALLENGE_TIMEOUT_MS,
-    Math.min(MAX_CONNECT_CHALLENGE_TIMEOUT_MS, timeoutMs),
-  );
-}
-
-export function resolveConnectChallengeTimeoutMs(timeoutMs?: number | null): number {
-  return typeof timeoutMs === "number" && Number.isFinite(timeoutMs)
-    ? clampConnectChallengeTimeoutMs(timeoutMs)
-    : DEFAULT_PREAUTH_HANDSHAKE_TIMEOUT_MS;
-}
 
 export function getPreauthHandshakeTimeoutMsFromEnv(env: NodeJS.ProcessEnv = process.env): number {
   const configuredTimeout =

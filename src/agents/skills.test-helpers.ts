@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { createSyntheticSourceInfo, type Skill } from "@mariozechner/pi-coding-agent";
+import type { Skill, SkillSourceInfo } from "./skills/types.js";
 
 export async function writeSkill(params: {
   dir: string;
@@ -31,18 +31,19 @@ export function createCanonicalFixtureSkill(params: {
   source: string;
   disableModelInvocation?: boolean;
 }): Skill {
+  const sourceInfo: SkillSourceInfo = {
+    source: params.source,
+    baseDir: params.baseDir,
+    scope: "project",
+    origin: "top-level",
+  };
   return {
     name: params.name,
     description: params.description,
     filePath: params.filePath,
     baseDir: params.baseDir,
     source: params.source,
-    sourceInfo: createSyntheticSourceInfo(params.filePath, {
-      source: params.source,
-      baseDir: params.baseDir,
-      scope: "project",
-      origin: "top-level",
-    }),
+    sourceInfo,
     disableModelInvocation: params.disableModelInvocation ?? false,
   };
 }

@@ -108,18 +108,18 @@ CrawClaw also has a second durable-memory maintenance layer:
 - `session_summary` is the short-term continuity agent for one session
 - both `durable_memory` and `dream` now subscribe to the same
   run-loop `stop` phase instead of being scheduled directly from `afterTurn`
-- Dream runs as an independent embedded background maintenance job, not as a
+- Dream runs as an independent runtime-fork background maintenance job, not as a
   spawned child session and not as a parent-run fork. The stop event only
   triggers scheduling and scope resolution; Dream does not receive the parent
   prompt envelope, parent model-visible messages, parent run id, child-session
   state, subagent announcement, or parent provider/model selection. This is now
   enforced by the special-agent contract with `parentContextPolicy: "none"`,
   rather than relying on the caller to omit `parentForkContext`.
-- Dream uses its own system prompt and isolated embedded special-agent context
+- Dream uses its own system prompt and isolated runtime-fork special-agent context
   with the dream tool policy, so it does not inherit the default main-agent
   prompt, surfaced skills, bootstrap context files, or workspace reminders.
-  The embedded runner skips those default prompt extras for Dream rather than
-  falling back to the normal main-agent embedded prompt branch.
+  The Rust runtime skips those default prompt extras for Dream rather than
+  falling back to the normal main-agent prompt branch.
 - auto-dream uses a per-scope `.consolidate-lock` file in the durable memory
   scope directory for both lock ownership and its consolidation watermark; the
   lock file `mtime` advances at run start and rolls back if the run fails

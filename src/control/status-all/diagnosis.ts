@@ -15,7 +15,6 @@ import {
 } from "../../plugins/status.js";
 import { translateActiveCliText } from "../../terminal/i18n/text.js";
 import type { ProgressReporter } from "../../terminal/progress.js";
-import type { FeishuCliStatusResolution } from "../feishu-cli-status.js";
 import { formatTimeAgo, redactSecrets } from "./format.js";
 import { readFileTailLines, summarizeLogTail } from "./gateway.js";
 
@@ -42,14 +41,6 @@ type SkillStatusLike = {
   skills: Array<{ eligible: boolean; missing: Record<string, unknown[]> }>;
 };
 
-type ChannelIssueLike = {
-  channel: string;
-  accountId: string;
-  kind: string;
-  message: string;
-  fix?: string;
-};
-
 export async function appendStatusAllDiagnosis(params: {
   lines: string[];
   progress: ProgressReporter;
@@ -70,9 +61,6 @@ export async function appendStatusAllDiagnosis(params: {
   tailscaleHttpsUrl: string | null;
   skillStatus: SkillStatusLike | null;
   pluginCompatibility: PluginCompatibilityNotice[];
-  feishuCli: FeishuCliStatusResolution | null;
-  channelsStatus: unknown;
-  channelIssues: ChannelIssueLike[];
   gatewayReachable: boolean;
   health: unknown;
 }) {
@@ -196,48 +184,6 @@ export async function appendStatusAllDiagnosis(params: {
     );
   }
 
-  if (!params.feishuCli) {
-    emitCheck(
-      `Feishu user tools skipped (gateway ${params.gatewayReachable ? "query failed" : "unreachable"})`,
-      params.gatewayReachable ? "warn" : "ok",
-    );
-  } else if (!params.feishuCli.supported) {
-    emitCheck("Feishu user tools: plugin not loaded on this gateway", "warn");
-    lines.push(`  ${muted("enable: plugins.entries.feishu-cli.enabled = true")}`);
-    lines.push(`  ${muted("restart: crawclaw gateway restart")}`);
-  } else if (params.feishuCli.error) {
-    emitCheck("Feishu user tools: status query failed", "warn");
-    lines.push(`  ${muted(params.feishuCli.error)}`);
-    lines.push(`  ${muted("check: crawclaw feishu-cli status")}`);
-  } else {
-    const status = params.feishuCli.status;
-    const summary = [
-      status?.status ?? "unknown",
-      status?.identity ?? "user",
-      status?.version ? `lark-cli ${status.version}` : null,
-    ]
-      .filter((part): part is string => Boolean(part))
-      .join(" · ");
-    const state =
-      status?.authOk === true && status?.installed !== false && status?.status === "ready"
-        ? "ok"
-        : "warn";
-    emitCheck(`Feishu user tools: ${summary}`, state);
-    if (status?.message) {
-      lines.push(`  ${muted(status.message)}`);
-    }
-    if (status?.hint) {
-      lines.push(`  ${muted(`hint: ${status.hint}`)}`);
-    }
-    if (status?.authOk === false) {
-      lines.push(`  ${muted("next: crawclaw feishu-cli auth login")}`);
-      lines.push(`  ${muted("check: crawclaw feishu-cli status --verify")}`);
-    } else if (status?.authOk === true) {
-      lines.push(`  ${muted("config: plugins.entries.feishu-cli.config")}`);
-      lines.push(`  ${muted("check: crawclaw feishu-cli status --verify")}`);
-    }
-  }
-
   emitCheck(
     `Plugin compatibility (${params.pluginCompatibility.length || "none"})`,
     params.pluginCompatibility.length === 0 ? "ok" : "warn",
@@ -280,27 +226,6 @@ export async function appendStatusAllDiagnosis(params: {
     }
   }
   params.progress.tick();
-
-  if (params.channelsStatus) {
-    emitCheck(
-      `Channel issues (${params.channelIssues.length || "none"})`,
-      params.channelIssues.length === 0 ? "ok" : "warn",
-    );
-    for (const issue of params.channelIssues.slice(0, 12)) {
-      const fixText = issue.fix ? ` · fix: ${issue.fix}` : "";
-      lines.push(
-        `  - ${issue.channel}[${issue.accountId}] ${issue.kind}: ${issue.message}${fixText}`,
-      );
-    }
-    if (params.channelIssues.length > 12) {
-      lines.push(`  ${muted(`… +${params.channelIssues.length - 12} more`)}`);
-    }
-  } else {
-    emitCheck(
-      `Channel issues skipped (gateway ${params.gatewayReachable ? "query failed" : "unreachable"})`,
-      "warn",
-    );
-  }
 
   const healthErr = (() => {
     if (!params.health || typeof params.health !== "object") {

@@ -13,7 +13,6 @@ export const CONFIG_TAGS = [
   "models",
   "media",
   "automation",
-  "channels",
   "tools",
   "advanced",
 ] as const;
@@ -33,9 +32,8 @@ const TAG_PRIORITY: Record<ConfigTag, number> = {
   models: 9,
   media: 10,
   automation: 11,
-  channels: 12,
-  tools: 13,
-  advanced: 14,
+  tools: 12,
+  advanced: 13,
 };
 
 const TAG_OVERRIDES: Record<string, ConfigTag[]> = {
@@ -47,18 +45,11 @@ const TAG_OVERRIDES: Record<string, ConfigTag[]> = {
     "network",
     "advanced",
   ],
-  "gateway.browserClients.dangerouslyDisableDeviceAuth": [
-    "security",
-    "access",
-    "network",
-    "advanced",
-  ],
   "gateway.browserClients.allowInsecureAuth": ["security", "access", "network", "advanced"],
   "tools.exec.applyPatch.workspaceOnly": ["tools", "security", "access", "advanced"],
 };
 
 const PREFIX_RULES: Array<{ prefix: string; tags: ConfigTag[] }> = [
-  { prefix: "channels.", tags: ["channels", "network"] },
   { prefix: "tools.", tags: ["tools"] },
   { prefix: "gateway.", tags: ["network"] },
   { prefix: "discovery.", tags: ["network"] },

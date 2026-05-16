@@ -1,15 +1,8 @@
-import fs from "node:fs";
-import { fileURLToPath } from "node:url";
-import { openBoundaryFileSync } from "../infra/boundary-file-read.js";
-import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   withBundledPluginEnablementCompat,
   withBundledPluginVitestCompat,
 } from "./bundled-compat.js";
-import { createCapturedPluginRegistration } from "./captured-registration.js";
 import { discoverCrawClawPlugins } from "./discovery.js";
-import { resolvePluginModuleExport } from "./entry-contract.js";
-import { createCrawClawJiti, type JitiLoader } from "./jiti-loader.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { nativeBundledSpeechProvidersForPlugin } from "./native-bundled-speech-providers.js";
@@ -18,49 +11,9 @@ import {
   nativeBundledWebSearchProvidersForPlugin,
 } from "./native-bundled-web-providers.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
-import type { PluginRecord, PluginRegistry } from "./registry.js";
-import {
-  buildPluginLoaderAliasMap,
-  buildPluginLoaderJitiOptions,
-  shouldPreferNativeJiti,
-  type PluginSdkResolutionPreference,
-} from "./sdk-alias.js";
-import type { CrawClawPluginModule } from "./types.js";
+import type { PluginRecord } from "./registry.js";
+import type { PluginSdkResolutionPreference } from "./sdk-alias.js";
 import { isApiKeylessBundledWebSearchPluginId } from "./web-search-provider-policy.js";
-
-const log = createSubsystemLogger("plugins");
-
-function applyVitestCapabilityAliasOverrides(params: {
-  aliasMap: Record<string, string>;
-  pluginSdkResolution?: PluginSdkResolutionPreference;
-  env?: PluginLoadOptions["env"];
-}): Record<string, string> {
-  if (!params.env?.VITEST || params.pluginSdkResolution !== "dist") {
-    return params.aliasMap;
-  }
-
-  return {
-    ...params.aliasMap,
-    // Capability contract loads only need a narrow SDK slice. Keep those
-    // helpers on a tiny source graph so Vitest does not pull the dist chunk
-    // bundle that also drags channel code into these tests.
-    "crawclaw/plugin-sdk/llm-task": fileURLToPath(
-      new URL("./capability-runtime-vitest-shims/llm-task.ts", import.meta.url),
-    ),
-    "crawclaw/plugin-sdk/config-runtime": fileURLToPath(
-      new URL("./capability-runtime-vitest-shims/config-runtime.ts", import.meta.url),
-    ),
-    "crawclaw/plugin-sdk/media-runtime": fileURLToPath(
-      new URL("./capability-runtime-vitest-shims/media-runtime.ts", import.meta.url),
-    ),
-    "crawclaw/plugin-sdk/provider-onboard": fileURLToPath(
-      new URL("../plugin-sdk/provider-onboard.ts", import.meta.url),
-    ),
-    "crawclaw/plugin-sdk/speech-core": fileURLToPath(
-      new URL("./capability-runtime-vitest-shims/speech-core.ts", import.meta.url),
-    ),
-  };
-}
 
 export function buildBundledCapabilityRuntimeConfig(
   pluginIds: readonly string[],
@@ -99,11 +52,8 @@ function createCapabilityPluginRecord(params: {
     status: "loaded",
     toolNames: [],
     hookNames: [],
-    channelIds: [],
-    cliBackendIds: [],
     providerIds: [],
     speechProviderIds: [],
-    mediaUnderstandingProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     gatewayMethods: [],
@@ -113,23 +63,6 @@ function createCapabilityPluginRecord(params: {
     hookCount: 0,
     configSchema: true,
   };
-}
-
-function recordCapabilityLoadError(
-  registry: PluginRegistry,
-  record: PluginRecord,
-  message: string,
-): void {
-  record.status = "error";
-  record.error = message;
-  registry.plugins.push(record);
-  registry.diagnostics.push({
-    level: "error",
-    pluginId: record.id,
-    source: record.source,
-    message: `failed to load plugin: ${message}`,
-  });
-  log.error(`[plugins] ${record.id} failed to load from ${record.source}: ${message}`);
 }
 
 function pushUnique(target: string[], values: readonly string[] | undefined): void {
@@ -148,36 +81,6 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
   const env = params.env ?? process.env;
   const pluginIds = new Set(params.pluginIds);
   const registry = createEmptyPluginRegistry();
-  const jitiLoaders = new Map<string, JitiLoader>();
-
-  const getJiti = (modulePath: string) => {
-    const tryNative =
-      shouldPreferNativeJiti(modulePath) && !(env?.VITEST && params.pluginSdkResolution === "dist");
-    const aliasMap = applyVitestCapabilityAliasOverrides({
-      aliasMap: buildPluginLoaderAliasMap(
-        modulePath,
-        process.argv[1],
-        import.meta.url,
-        params.pluginSdkResolution,
-      ),
-      pluginSdkResolution: params.pluginSdkResolution,
-      env,
-    });
-    const cacheKey = JSON.stringify({
-      tryNative,
-      aliasMap: Object.entries(aliasMap).toSorted(([left], [right]) => left.localeCompare(right)),
-    });
-    const cached = jitiLoaders.get(cacheKey);
-    if (cached) {
-      return cached;
-    }
-    const loader = createCrawClawJiti(import.meta.url, {
-      ...buildPluginLoaderJitiOptions(aliasMap),
-      tryNative,
-    });
-    jitiLoaders.set(cacheKey, loader);
-    return loader;
-  };
 
   const discovery = discoverCrawClawPlugins({
     cache: false,
@@ -231,10 +134,6 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
         record.speechProviderIds,
         nativeSpeechProviders.map((provider) => provider.id),
       );
-      pushUnique(
-        record.mediaUnderstandingProviderIds,
-        manifest.contracts?.mediaUnderstandingProviders,
-      );
       pushUnique(record.webFetchProviderIds, manifest.contracts?.webFetchProviders);
       pushUnique(
         record.webFetchProviderIds,
@@ -282,117 +181,7 @@ export function loadBundledCapabilityRuntimeRegistry(params: {
       continue;
     }
 
-    const opened = openBoundaryFileSync({
-      absolutePath: candidate.source,
-      rootPath: candidate.rootDir,
-      boundaryLabel: "plugin root",
-      rejectHardlinks: false,
-      skipLexicalRootCheck: true,
-    });
-    if (!opened.ok) {
-      recordCapabilityLoadError(
-        registry,
-        record,
-        "plugin entry path escapes plugin root or fails alias checks",
-      );
-      continue;
-    }
-
-    const safeSource = opened.path;
-    fs.closeSync(opened.fd);
-
-    let mod: CrawClawPluginModule | null = null;
-    try {
-      mod = getJiti(safeSource)(safeSource) as CrawClawPluginModule;
-    } catch (error) {
-      recordCapabilityLoadError(registry, record, String(error));
-      continue;
-    }
-
-    const resolved = resolvePluginModuleExport(mod);
-    const register = resolved.register;
-    if (typeof register !== "function") {
-      record.status = "disabled";
-      record.error = "plugin export missing register(api)";
-      registry.plugins.push(record);
-      continue;
-    }
-
-    try {
-      const captured = createCapturedPluginRegistration();
-      void register(captured.api);
-      record.cliBackendIds.push(...captured.cliBackends.map((entry) => entry.id));
-      record.speechProviderIds.push(...captured.speechProviders.map((entry) => entry.id));
-      record.mediaUnderstandingProviderIds.push(
-        ...captured.mediaUnderstandingProviders.map((entry) => entry.id),
-      );
-      record.webFetchProviderIds.push(...captured.webFetchProviders.map((entry) => entry.id));
-      const webSearchProviders = isApiKeylessBundledWebSearchPluginId(record.id)
-        ? captured.webSearchProviders
-        : [];
-      record.webSearchProviderIds.push(...webSearchProviders.map((entry) => entry.id));
-      record.toolNames.push(...captured.tools.map((entry) => entry.name));
-
-      registry.cliBackends?.push(
-        ...captured.cliBackends.map((backend) => ({
-          pluginId: record.id,
-          pluginName: record.name,
-          backend,
-          source: record.source,
-          rootDir: record.rootDir,
-        })),
-      );
-      registry.speechProviders.push(
-        ...captured.speechProviders.map((provider) => ({
-          pluginId: record.id,
-          pluginName: record.name,
-          provider,
-          source: record.source,
-          rootDir: record.rootDir,
-        })),
-      );
-      registry.mediaUnderstandingProviders.push(
-        ...captured.mediaUnderstandingProviders.map((provider) => ({
-          pluginId: record.id,
-          pluginName: record.name,
-          provider,
-          source: record.source,
-          rootDir: record.rootDir,
-        })),
-      );
-      registry.webFetchProviders.push(
-        ...captured.webFetchProviders.map((provider) => ({
-          pluginId: record.id,
-          pluginName: record.name,
-          provider,
-          source: record.source,
-          rootDir: record.rootDir,
-        })),
-      );
-      registry.webSearchProviders.push(
-        ...webSearchProviders.map((provider) => ({
-          pluginId: record.id,
-          pluginName: record.name,
-          provider,
-          source: record.source,
-          rootDir: record.rootDir,
-        })),
-      );
-      registry.tools.push(
-        ...captured.tools.map((tool) => ({
-          pluginId: record.id,
-          pluginName: record.name,
-          factory: () => tool,
-          names: [tool.name],
-          optional: false,
-          source: record.source,
-          rootDir: record.rootDir,
-        })),
-      );
-      registry.plugins.push(record);
-    } catch (error) {
-      recordCapabilityLoadError(registry, record, String(error));
-    }
+    registry.plugins.push(record);
   }
 
   return registry;

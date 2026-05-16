@@ -3,7 +3,7 @@ import type { WebSocket, WebSocketServer } from "ws";
 import { upsertPresence } from "../../infra/system-presence.js";
 import type { createSubsystemLogger } from "../../logging/subsystem.js";
 import { truncateUtf16Safe } from "../../utils.js";
-import { isWebchatClient } from "../../utils/message-channel.js";
+import { isWebchatClient } from "../../utils/gateway-client-surface.js";
 import type { AuthRateLimiter } from "../auth-rate-limit.js";
 import type { ResolvedGatewayAuth } from "../auth.js";
 import { getPreauthHandshakeTimeoutMsFromEnv } from "../handshake-timeouts.js";
@@ -182,13 +182,6 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
       }
     };
 
-    const connectNonce = randomUUID();
-    send({
-      type: "event",
-      event: "connect.challenge",
-      payload: { nonce: connectNonce, ts: Date.now() },
-    });
-
     const close = (code = 1000, reason?: string) => {
       if (closed) {
         return;
@@ -292,7 +285,6 @@ export function attachGatewayWsConnectionHandler(params: AttachGatewayWsConnecti
       requestHost,
       requestOrigin,
       requestUserAgent,
-      connectNonce,
       resolvedAuth: getResolvedAuth?.() ?? resolvedAuth,
       rateLimiter: getRateLimiter?.() ?? rateLimiter,
       browserRateLimiter: getBrowserRateLimiter?.() ?? browserRateLimiter,

@@ -154,7 +154,7 @@ export function isPathProtectedByPrefixes(pathname: string, prefixes: readonly s
   return normalizedPrefixes.some((prefix) => prefixMatch(canonical.rawNormalizedPath, prefix));
 }
 
-export const PROTECTED_PLUGIN_ROUTE_PREFIXES = ["/api/channels"] as const;
+export const PROTECTED_PLUGIN_ROUTE_PREFIXES = [] as const;
 
 export function isProtectedPluginRoutePath(pathname: string): boolean {
   return isPathProtectedByPrefixes(pathname, PROTECTED_PLUGIN_ROUTE_PREFIXES);

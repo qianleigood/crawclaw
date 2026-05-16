@@ -1,8 +1,7 @@
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { CURRENT_SESSION_VERSION, SessionManager } from "@mariozechner/pi-coding-agent";
 import { emitSessionTranscriptUpdate } from "../../sessions/transcript-events.js";
-import { parseSessionThreadInfo } from "./delivery-info.js";
 import {
   resolveDefaultSessionStorePath,
   resolveSessionFilePath,
@@ -11,7 +10,17 @@ import {
 } from "./paths.js";
 import { resolveAndPersistSessionFile } from "./session-file.js";
 import { loadSessionStore, normalizeStoreSessionKey } from "./store.js";
+import { parseSessionThreadInfo } from "./thread-info.js";
 import type { SessionEntry } from "./types.js";
+
+export const SESSION_TRANSCRIPT_VERSION = 1;
+
+export type SessionTranscriptMessage = {
+  role: string;
+  content: unknown;
+  timestamp?: number;
+  [key: string]: unknown;
+};
 
 function stripQuery(value: string): string {
   const noHash = value.split("#")[0] ?? value;
@@ -74,7 +83,7 @@ export async function ensureSessionTranscriptHeader(params: {
   await fs.promises.mkdir(path.dirname(params.sessionFile), { recursive: true });
   const header = {
     type: "session",
-    version: CURRENT_SESSION_VERSION,
+    version: SESSION_TRANSCRIPT_VERSION,
     id: params.sessionId,
     timestamp: new Date().toISOString(),
     cwd: process.cwd(),
@@ -130,6 +139,52 @@ export async function resolveSessionTranscriptFile(params: {
     sessionFile,
     sessionEntry,
   };
+}
+
+export async function appendMessageToSessionTranscriptFile(params: {
+  sessionFile: string;
+  sessionKey?: string;
+  message: SessionTranscriptMessage;
+}): Promise<{ messageId: string; record: Record<string, unknown> }> {
+  const messageId = randomUUID();
+  const parentId = await readLastTranscriptMessageId(params.sessionFile);
+  const record = {
+    type: "message",
+    id: messageId,
+    parentId,
+    message: params.message,
+  };
+  await fs.promises.mkdir(path.dirname(params.sessionFile), { recursive: true });
+  await fs.promises.appendFile(params.sessionFile, `${JSON.stringify(record)}\n`, {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+  emitSessionTranscriptUpdate({
+    sessionFile: params.sessionFile,
+    sessionKey: params.sessionKey,
+    message: params.message,
+    messageId,
+  });
+  return { messageId, record };
+}
+
+async function readLastTranscriptMessageId(sessionFile: string): Promise<string | null> {
+  try {
+    const raw = await fs.promises.readFile(sessionFile, "utf-8");
+    for (const line of raw.split(/\r?\n/).filter(Boolean).toReversed()) {
+      try {
+        const parsed = JSON.parse(line) as { type?: unknown; id?: unknown };
+        if (parsed.type === "message" && typeof parsed.id === "string" && parsed.id) {
+          return parsed.id;
+        }
+      } catch {
+        continue;
+      }
+    }
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function inferTerminalTopicIdFromSessionKey(sessionKey: string | undefined): string | undefined {
@@ -222,11 +277,12 @@ export async function appendAssistantMessageToSessionTranscript(params: {
     stopReason: "stop" as const,
     timestamp: Date.now(),
     ...(params.idempotencyKey ? { idempotencyKey: params.idempotencyKey } : {}),
-  } as Parameters<SessionManager["appendMessage"]>[0];
-  const sessionManager = SessionManager.open(sessionFile);
-  const messageId = sessionManager.appendMessage(message);
-
-  emitSessionTranscriptUpdate({ sessionFile, sessionKey, message, messageId });
+  };
+  const { messageId } = await appendMessageToSessionTranscriptFile({
+    sessionFile,
+    sessionKey,
+    message,
+  });
   return { ok: true, sessionFile, messageId };
 }
 
@@ -243,14 +299,16 @@ async function transcriptHasIdempotencyKey(
       try {
         const parsed = JSON.parse(line) as {
           id?: unknown;
-          message?: { idempotencyKey?: unknown };
+          message?: { id?: unknown; idempotencyKey?: unknown };
         };
-        if (
-          parsed.message?.idempotencyKey === idempotencyKey &&
-          typeof parsed.id === "string" &&
-          parsed.id
-        ) {
-          return parsed.id;
+        if (parsed.message?.idempotencyKey === idempotencyKey) {
+          if (typeof parsed.id === "string" && parsed.id) {
+            return parsed.id;
+          }
+          if (typeof parsed.message.id === "string" && parsed.message.id) {
+            return parsed.message.id;
+          }
+          return idempotencyKey;
         }
       } catch {
         continue;

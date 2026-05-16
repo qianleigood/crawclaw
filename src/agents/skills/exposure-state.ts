@@ -1,11 +1,17 @@
-import type { PluginHookSkillExposureState } from "../../plugins/types.js";
-
 type SkillExposureScope = {
   sessionId?: string;
   sessionKey?: string;
 };
 
-const exposureStateBySession = new Map<string, PluginHookSkillExposureState>();
+export type SkillExposureState = {
+  surfacedSkillNames?: string[];
+  loadedSkillNames?: string[];
+  discoveredSkillNames?: string[];
+  discoverCount?: number;
+  discoverBudgetRemaining?: number;
+};
+
+const exposureStateBySession = new Map<string, SkillExposureState>();
 
 function resolveScopeKey(scope: SkillExposureScope): string | null {
   const sessionId = scope.sessionId?.trim();
@@ -19,9 +25,7 @@ function resolveScopeKey(scope: SkillExposureScope): string | null {
   return null;
 }
 
-function cloneState(
-  state: PluginHookSkillExposureState | undefined,
-): PluginHookSkillExposureState | undefined {
+function cloneState(state: SkillExposureState | undefined): SkillExposureState | undefined {
   if (!state) {
     return undefined;
   }
@@ -46,7 +50,7 @@ function normalizeSkillNames(skillNames: readonly string[] | undefined): string[
 
 function updateState(
   scope: SkillExposureScope,
-  updater: (state: PluginHookSkillExposureState) => void,
+  updater: (state: SkillExposureState) => void,
 ): void {
   const key = resolveScopeKey(scope);
   if (!key) {
@@ -57,9 +61,7 @@ function updateState(
   exposureStateBySession.set(key, nextState);
 }
 
-export function getSkillExposureState(
-  scope: SkillExposureScope,
-): PluginHookSkillExposureState | undefined {
+export function getSkillExposureState(scope: SkillExposureScope): SkillExposureState | undefined {
   const key = resolveScopeKey(scope);
   return key ? cloneState(exposureStateBySession.get(key)) : undefined;
 }
@@ -92,7 +94,7 @@ export function recordLoadedSkillName(scope: SkillExposureScope, skillName: stri
 
 export function updateSkillExposureState(
   scope: SkillExposureScope,
-  patch: Partial<PluginHookSkillExposureState>,
+  patch: Partial<SkillExposureState>,
 ): void {
   updateState(scope, (state) => {
     if (patch.surfacedSkillNames) {

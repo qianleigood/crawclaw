@@ -64,18 +64,11 @@ sequenceDiagram
 - Idempotency keys are required for side‑effecting methods (`send`, `agent`) to
   safely retry; the server keeps a short‑lived dedupe cache.
 
-## Pairing + local trust
+## Local trust
 
-- WS clients include a **device identity** on `connect`.
-- New device IDs require pairing approval; the Gateway issues a **device token**
-  for subsequent connects.
-- **Local** connects (loopback or the gateway host’s own tailnet address) can be
-  auto‑approved to keep same‑host UX smooth.
-- All connects must sign the `connect.challenge` nonce.
-- Signature payload `v3` also binds `platform` + `deviceFamily`; the gateway
-  pins paired metadata on reconnect and requires repair pairing for metadata
-  changes.
-- **Non‑local** connects still require explicit approval.
+- WS clients authenticate through the configured Gateway auth mode.
+- Local loopback setups can run with less friction, but non-loopback binds should keep token,
+  password, or trusted-proxy auth configured.
 - Gateway auth (`gateway.auth.*`) still applies to **all** connections, local or
   remote.
 

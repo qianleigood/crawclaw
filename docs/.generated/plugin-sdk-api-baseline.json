@@ -2,856 +2,6 @@
   "generatedBy": "scripts/generate-plugin-sdk-api-baseline.ts",
   "modules": [
     {
-      "category": "utilities",
-      "entrypoint": "allow-from",
-      "exports": [
-        {
-          "declaration": "export function addAllowlistUserEntriesFromConfigEntry(target: Set<string>, entry: unknown): void;",
-          "exportName": "addAllowlistUserEntriesFromConfigEntry",
-          "kind": "function",
-          "source": {
-            "line": 133,
-            "path": "src/channels/allowlists/resolve-utils.ts"
-          }
-        },
-        {
-          "declaration": "export function buildAllowlistResolutionSummary<T extends AllowlistUserResolutionLike>(resolvedUsers: T[], opts?: { formatResolved?: ((entry: T) => string) | undefined; formatUnresolved?: ((entry: T) => string) | undefined; } | undefined): { ...; };",
-          "exportName": "buildAllowlistResolutionSummary",
-          "kind": "function",
-          "source": {
-            "line": 39,
-            "path": "src/channels/allowlists/resolve-utils.ts"
-          }
-        },
-        {
-          "declaration": "export function canonicalizeAllowlistWithResolvedIds<T extends AllowlistUserResolutionLike>(params: { existing?: (string | number)[] | undefined; resolvedMap: Map<string, T>; }): string[];",
-          "exportName": "canonicalizeAllowlistWithResolvedIds",
-          "kind": "function",
-          "source": {
-            "line": 76,
-            "path": "src/channels/allowlists/resolve-utils.ts"
-          }
-        },
-        {
-          "declaration": "export function compileAllowlist(entries: readonly string[]): CompiledAllowlist;",
-          "exportName": "compileAllowlist",
-          "kind": "function",
-          "source": {
-            "line": 30,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export function firstDefined<T>(...values: (T | undefined)[]): (T & ({} | null)) | undefined;",
-          "exportName": "firstDefined",
-          "kind": "function",
-          "source": {
-            "line": 29,
-            "path": "src/channels/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function formatAllowFromLowercase(params: { allowFrom: (string | number)[]; stripPrefixRe?: RegExp | undefined; }): string[];",
-          "exportName": "formatAllowFromLowercase",
-          "kind": "function",
-          "source": {
-            "line": 31,
-            "path": "src/plugin-sdk/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function formatAllowlistMatchMeta(match?: { matchKey?: string | undefined; matchSource?: string | undefined; } | null | undefined): string;",
-          "exportName": "formatAllowlistMatchMeta",
-          "kind": "function",
-          "source": {
-            "line": 24,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export function formatNormalizedAllowFromEntries(params: { allowFrom: (string | number)[]; normalizeEntry: (entry: string) => string | null | undefined; }): string[];",
-          "exportName": "formatNormalizedAllowFromEntries",
-          "kind": "function",
-          "source": {
-            "line": 43,
-            "path": "src/plugin-sdk/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function isAllowedParsedChatSender<TParsed extends ParsedChatAllowTarget>(params: { allowFrom: (string | number)[]; sender: string; chatId?: number | null | undefined; chatGuid?: string | null | undefined; chatIdentifier?: string | null | undefined; normalizeSender: (sender: string) => string; parseAllowTarget: (entry: string) => TParsed; }): boolean;",
-          "exportName": "isAllowedParsedChatSender",
-          "kind": "function",
-          "source": {
-            "line": 81,
-            "path": "src/plugin-sdk/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function isNormalizedSenderAllowed(params: { senderId: string | number; allowFrom: (string | number)[]; stripPrefixRe?: RegExp | undefined; }): boolean;",
-          "exportName": "isNormalizedSenderAllowed",
-          "kind": "function",
-          "source": {
-            "line": 55,
-            "path": "src/plugin-sdk/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function isSenderIdAllowed(allow: { entries: string[]; hasWildcard: boolean; hasEntries: boolean; }, senderId: string | undefined, allowWhenEmpty: boolean): boolean;",
-          "exportName": "isSenderIdAllowed",
-          "kind": "function",
-          "source": {
-            "line": 38,
-            "path": "src/channels/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function mapAllowlistResolutionInputs<T>(params: { inputs: string[]; mapInput: (input: string) => T | Promise<T>; }): Promise<T[]>;",
-          "exportName": "mapAllowlistResolutionInputs",
-          "kind": "function",
-          "source": {
-            "line": 151,
-            "path": "src/plugin-sdk/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function mapBasicAllowlistResolutionEntries(entries: BasicAllowlistResolutionEntry[]): BasicAllowlistResolutionEntry[];",
-          "exportName": "mapBasicAllowlistResolutionEntries",
-          "kind": "function",
-          "source": {
-            "line": 138,
-            "path": "src/plugin-sdk/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function mergeAllowlist(params: { existing?: (string | number)[] | undefined; additions: string[]; }): string[];",
-          "exportName": "mergeAllowlist",
-          "kind": "function",
-          "source": {
-            "line": 32,
-            "path": "src/channels/allowlists/resolve-utils.ts"
-          }
-        },
-        {
-          "declaration": "export function mergeDmAllowFromSources(params: { allowFrom?: (string | number)[] | undefined; storeAllowFrom?: (string | number)[] | undefined; dmPolicy?: string | undefined; }): string[];",
-          "exportName": "mergeDmAllowFromSources",
-          "kind": "function",
-          "source": {
-            "line": 1,
-            "path": "src/channels/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function patchAllowlistUsersInConfigEntries<T extends AllowlistUserResolutionLike, TEntries extends Record<string, unknown>>(params: { entries: TEntries; resolvedMap: Map<string, T>; strategy?: \"merge\" | \"canonicalize\" | undefined; }): TEntries;",
-          "exportName": "patchAllowlistUsersInConfigEntries",
-          "kind": "function",
-          "source": {
-            "line": 95,
-            "path": "src/channels/allowlists/resolve-utils.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveAllowlistCandidates<TSource extends string>(params: { compiledAllowlist: CompiledAllowlist; candidates: { value?: string | undefined; source: TSource; }[]; }): AllowlistMatch<TSource>;",
-          "exportName": "resolveAllowlistCandidates",
-          "kind": "function",
-          "source": {
-            "line": 44,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveAllowlistMatchByCandidates<TSource extends string>(params: { allowList: readonly string[]; candidates: { value?: string | undefined; source: TSource; }[]; }): AllowlistMatch<TSource>;",
-          "exportName": "resolveAllowlistMatchByCandidates",
-          "kind": "function",
-          "source": {
-            "line": 76,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveAllowlistMatchSimple(params: { allowFrom: readonly (string | number)[]; senderId: string; senderName?: string | null | undefined; allowNameMatching?: boolean | undefined; }): AllowlistMatch<\"id\" | \"wildcard\" | \"name\">;",
-          "exportName": "resolveAllowlistMatchSimple",
-          "kind": "function",
-          "source": {
-            "line": 86,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveCompiledAllowlistMatch<TSource extends string>(params: { compiledAllowlist: CompiledAllowlist; candidates: { value?: string | undefined; source: TSource; }[]; }): AllowlistMatch<TSource>;",
-          "exportName": "resolveCompiledAllowlistMatch",
-          "kind": "function",
-          "source": {
-            "line": 63,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveGroupAllowFromSources(params: { allowFrom?: (string | number)[] | undefined; groupAllowFrom?: (string | number)[] | undefined; fallbackToAllowFrom?: boolean | undefined; }): string[];",
-          "exportName": "resolveGroupAllowFromSources",
-          "kind": "function",
-          "source": {
-            "line": 12,
-            "path": "src/channels/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export function summarizeMapping(label: string, mapping: string[], unresolved: string[], runtime: RuntimeEnv): void;",
-          "exportName": "summarizeMapping",
-          "kind": "function",
-          "source": {
-            "line": 149,
-            "path": "src/channels/allowlists/resolve-utils.ts"
-          }
-        },
-        {
-          "declaration": "export type AllowlistMatch = AllowlistMatch<TSource>;",
-          "exportName": "AllowlistMatch",
-          "kind": "type",
-          "source": {
-            "line": 13,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export type AllowlistMatchSource = AllowlistMatchSource;",
-          "exportName": "AllowlistMatchSource",
-          "kind": "type",
-          "source": {
-            "line": 1,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        },
-        {
-          "declaration": "export type AllowlistUserResolutionLike = AllowlistUserResolutionLike;",
-          "exportName": "AllowlistUserResolutionLike",
-          "kind": "type",
-          "source": {
-            "line": 8,
-            "path": "src/channels/allowlists/resolve-utils.ts"
-          }
-        },
-        {
-          "declaration": "export type BasicAllowlistResolutionEntry = BasicAllowlistResolutionEntry;",
-          "exportName": "BasicAllowlistResolutionEntry",
-          "kind": "type",
-          "source": {
-            "line": 129,
-            "path": "src/plugin-sdk/allow-from.ts"
-          }
-        },
-        {
-          "declaration": "export type CompiledAllowlist = CompiledAllowlist;",
-          "exportName": "CompiledAllowlist",
-          "kind": "type",
-          "source": {
-            "line": 19,
-            "path": "src/channels/allowlist-match.ts"
-          }
-        }
-      ],
-      "importSpecifier": "crawclaw/plugin-sdk/allow-from",
-      "source": {
-        "line": 1,
-        "path": "src/plugin-sdk/allow-from.ts"
-      }
-    },
-    {
-      "category": "utilities",
-      "entrypoint": "command-auth",
-      "exports": [
-        {
-          "declaration": "export function buildCommandsMessage(cfg?: CrawClawConfig | undefined, skillCommands?: SkillCommandSpec[] | undefined, options?: CommandsMessageOptions | undefined): string;",
-          "exportName": "buildCommandsMessage",
-          "kind": "function",
-          "source": {
-            "line": 1077,
-            "path": "src/auto-reply/status.ts"
-          }
-        },
-        {
-          "declaration": "export function buildCommandsMessagePaginated(cfg?: CrawClawConfig | undefined, skillCommands?: SkillCommandSpec[] | undefined, options?: CommandsMessageOptions | undefined): CommandsMessageResult;",
-          "exportName": "buildCommandsMessagePaginated",
-          "kind": "function",
-          "source": {
-            "line": 1086,
-            "path": "src/auto-reply/status.ts"
-          }
-        },
-        {
-          "declaration": "export function buildCommandText(commandName: string, args?: string | undefined): string;",
-          "exportName": "buildCommandText",
-          "kind": "function",
-          "source": {
-            "line": 202,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function buildCommandTextFromArgs(command: ChatCommandDefinition, args?: CommandArgs | undefined): string;",
-          "exportName": "buildCommandTextFromArgs",
-          "kind": "function",
-          "source": {
-            "line": 294,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function buildHelpMessage(cfg?: CrawClawConfig | undefined): string;",
-          "exportName": "buildHelpMessage",
-          "kind": "function",
-          "source": {
-            "line": 832,
-            "path": "src/auto-reply/status.ts"
-          }
-        },
-        {
-          "declaration": "export function buildModelsProviderData(cfg: CrawClawConfig, agentId?: string | undefined): Promise<ModelsProviderData>;",
-          "exportName": "buildModelsProviderData",
-          "kind": "function",
-          "source": {
-            "line": 32,
-            "path": "src/auto-reply/reply/commands-models.ts"
-          }
-        },
-        {
-          "declaration": "export function findCommandByNativeName(name: string, provider?: string | undefined): ChatCommandDefinition | undefined;",
-          "exportName": "findCommandByNativeName",
-          "kind": "function",
-          "source": {
-            "line": 190,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function formatModelsAvailableHeader(params: { provider: string; total: number; cfg: CrawClawConfig; agentDir?: string | undefined; sessionEntry?: SessionEntry | undefined; }): string;",
-          "exportName": "formatModelsAvailableHeader",
-          "kind": "function",
-          "source": {
-            "line": 208,
-            "path": "src/auto-reply/reply/commands-models.ts"
-          }
-        },
-        {
-          "declaration": "export function getCommandDetection(_cfg?: CrawClawConfig | undefined): CommandDetection;",
-          "exportName": "getCommandDetection",
-          "kind": "function",
-          "source": {
-            "line": 465,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function hasControlCommand(text?: string | undefined, cfg?: CrawClawConfig | undefined, options?: CommandNormalizeOptions | undefined): boolean;",
-          "exportName": "hasControlCommand",
-          "kind": "function",
-          "source": {
-            "line": 11,
-            "path": "src/auto-reply/command-detection.ts"
-          }
-        },
-        {
-          "declaration": "export function hasInlineCommandTokens(text?: string | undefined): boolean;",
-          "exportName": "hasInlineCommandTokens",
-          "kind": "function",
-          "source": {
-            "line": 80,
-            "path": "src/auto-reply/command-detection.ts"
-          }
-        },
-        {
-          "declaration": "export function isCommandEnabled(cfg: CrawClawConfig, commandKey: string): boolean;",
-          "exportName": "isCommandEnabled",
-          "kind": "function",
-          "source": {
-            "line": 108,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function isCommandMessage(raw: string): boolean;",
-          "exportName": "isCommandMessage",
-          "kind": "function",
-          "source": {
-            "line": 460,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function isControlCommandMessage(text?: string | undefined, cfg?: CrawClawConfig | undefined, options?: CommandNormalizeOptions | undefined): boolean;",
-          "exportName": "isControlCommandMessage",
-          "kind": "function",
-          "source": {
-            "line": 53,
-            "path": "src/auto-reply/command-detection.ts"
-          }
-        },
-        {
-          "declaration": "export function isNativeCommandSurface(surface?: string | undefined): boolean;",
-          "exportName": "isNativeCommandSurface",
-          "kind": "function",
-          "source": {
-            "line": 546,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function listChatCommands(params?: { skillCommands?: SkillCommandSpec[] | undefined; cfg?: CrawClawConfig | undefined; } | undefined): ChatCommandDefinition[];",
-          "exportName": "listChatCommands",
-          "kind": "function",
-          "source": {
-            "line": 97,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function listChatCommandsForConfig(cfg: CrawClawConfig, params?: { skillCommands?: SkillCommandSpec[] | undefined; } | undefined): ChatCommandDefinition[];",
-          "exportName": "listChatCommandsForConfig",
-          "kind": "function",
-          "source": {
-            "line": 127,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function listNativeCommandSpecs(params?: { skillCommands?: SkillCommandSpec[] | undefined; provider?: string | undefined; } | undefined): NativeCommandSpec[];",
-          "exportName": "listNativeCommandSpecs",
-          "kind": "function",
-          "source": {
-            "line": 173,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function listNativeCommandSpecsForConfig(cfg: CrawClawConfig, params?: { skillCommands?: SkillCommandSpec[] | undefined; provider?: string | undefined; } | undefined): NativeCommandSpec[];",
-          "exportName": "listNativeCommandSpecsForConfig",
-          "kind": "function",
-          "source": {
-            "line": 183,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function listReservedChatSlashCommandNames(extraNames?: string[]): Set<string>;",
-          "exportName": "listReservedChatSlashCommandNames",
-          "kind": "function",
-          "source": {
-            "line": 4,
-            "path": "src/auto-reply/skill-commands-base.ts"
-          }
-        },
-        {
-          "declaration": "export function listSkillCommandsForAgents(params: { cfg: CrawClawConfig; agentIds?: string[] | undefined; }): SkillCommandSpec[];",
-          "exportName": "listSkillCommandsForAgents",
-          "kind": "function",
-          "source": {
-            "line": 46,
-            "path": "src/auto-reply/skill-commands.ts"
-          }
-        },
-        {
-          "declaration": "export function listSkillCommandsForWorkspace(params: { workspaceDir: string; cfg: CrawClawConfig; skillFilter?: string[] | undefined; }): SkillCommandSpec[];",
-          "exportName": "listSkillCommandsForWorkspace",
-          "kind": "function",
-          "source": {
-            "line": 17,
-            "path": "src/auto-reply/skill-commands.ts"
-          }
-        },
-        {
-          "declaration": "export function maybeResolveTextAlias(raw: string, cfg?: CrawClawConfig | undefined): string | null;",
-          "exportName": "maybeResolveTextAlias",
-          "kind": "function",
-          "source": {
-            "line": 498,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function normalizeCommandBody(raw: string, options?: CommandNormalizeOptions | undefined): string;",
-          "exportName": "normalizeCommandBody",
-          "kind": "function",
-          "source": {
-            "line": 409,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function parseCommandArgs(command: ChatCommandDefinition, raw?: string | undefined): CommandArgs | undefined;",
-          "exportName": "parseCommandArgs",
-          "kind": "function",
-          "source": {
-            "line": 257,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveCommandArgChoices(params: { command: ChatCommandDefinition; arg: CommandArgDefinition; cfg?: CrawClawConfig | undefined; provider?: string | undefined; model?: string | undefined; }): ResolvedCommandArgChoice[];",
-          "exportName": "resolveCommandArgChoices",
-          "kind": "function",
-          "source": {
-            "line": 319,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveCommandArgMenu(params: { command: ChatCommandDefinition; args?: CommandArgs | undefined; cfg?: CrawClawConfig | undefined; }): { arg: CommandArgDefinition; choices: ResolvedCommandArgChoice[]; title?: string | undefined; } | null;",
-          "exportName": "resolveCommandArgMenu",
-          "kind": "function",
-          "source": {
-            "line": 366,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveCommandAuthorization(params: { ctx: MsgContext; cfg: CrawClawConfig; commandAuthorized: boolean; }): CommandAuthorization;",
-          "exportName": "resolveCommandAuthorization",
-          "kind": "function",
-          "source": {
-            "line": 458,
-            "path": "src/auto-reply/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveCommandAuthorizedFromAuthorizers(params: { useAccessGroups: boolean; authorizers: CommandAuthorizer[]; modeWhenAccessGroupsOff?: CommandGatingModeWhenAccessGroupsOff | undefined; }): boolean;",
-          "exportName": "resolveCommandAuthorizedFromAuthorizers",
-          "kind": "function",
-          "source": {
-            "line": 8,
-            "path": "src/channels/command-gating.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveControlCommandGate(params: { useAccessGroups: boolean; authorizers: CommandAuthorizer[]; allowTextCommands: boolean; hasControlCommand: boolean; modeWhenAccessGroupsOff?: CommandGatingModeWhenAccessGroupsOff | undefined; }): { ...; };",
-          "exportName": "resolveControlCommandGate",
-          "kind": "function",
-          "source": {
-            "line": 31,
-            "path": "src/channels/command-gating.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveDirectDmAuthorizationOutcome(params: { isGroup: boolean; dmPolicy: string; senderAllowedForCommands: boolean; }): \"disabled\" | \"unauthorized\" | \"allowed\";",
-          "exportName": "resolveDirectDmAuthorizationOutcome",
-          "kind": "function",
-          "source": {
-            "line": 115,
-            "path": "src/plugin-sdk/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveDualTextControlCommandGate(params: { useAccessGroups: boolean; primaryConfigured: boolean; primaryAllowed: boolean; secondaryConfigured: boolean; secondaryAllowed: boolean; hasControlCommand: boolean; modeWhenAccessGroupsOff?: CommandGatingModeWhenAccessGroupsOff | undefined; }): { ...; };",
-          "exportName": "resolveDualTextControlCommandGate",
-          "kind": "function",
-          "source": {
-            "line": 47,
-            "path": "src/channels/command-gating.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveModelsCommandReply(params: { cfg: CrawClawConfig; commandBodyNormalized: string; surface?: string | undefined; currentModel?: string | undefined; agentId?: string | undefined; agentDir?: string | undefined; sessionEntry?: SessionEntry | undefined; }): Promise<...>;",
-          "exportName": "resolveModelsCommandReply",
-          "kind": "function",
-          "source": {
-            "line": 224,
-            "path": "src/auto-reply/reply/commands-models.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveNativeCommandSessionTargets(params: ResolveNativeCommandSessionTargetsParams): { sessionKey: string; commandTargetSessionKey: string; };",
-          "exportName": "resolveNativeCommandSessionTargets",
-          "kind": "function",
-          "source": {
-            "line": 10,
-            "path": "src/channels/native-command-session-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveSenderCommandAuthorization(params: ResolveSenderCommandAuthorizationParams): Promise<{ shouldComputeAuth: boolean; effectiveAllowFrom: string[]; effectiveGroupAllowFrom: string[]; senderAllowedForCommands: boolean; commandAuthorized: boolean | undefined; }>;",
-          "exportName": "resolveSenderCommandAuthorization",
-          "kind": "function",
-          "source": {
-            "line": 144,
-            "path": "src/plugin-sdk/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveSenderCommandAuthorizationWithRuntime(params: ResolveSenderCommandAuthorizationWithRuntimeParams): Promise<{ shouldComputeAuth: boolean; effectiveAllowFrom: string[]; effectiveGroupAllowFrom: string[]; senderAllowedForCommands: boolean; commandAuthorized: boolean | undefined; }>;",
-          "exportName": "resolveSenderCommandAuthorizationWithRuntime",
-          "kind": "function",
-          "source": {
-            "line": 133,
-            "path": "src/plugin-sdk/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveSkillCommandInvocation(params: { commandBodyNormalized: string; skillCommands: SkillCommandSpec[]; }): { command: SkillCommandSpec; args?: string | undefined; } | null;",
-          "exportName": "resolveSkillCommandInvocation",
-          "kind": "function",
-          "source": {
-            "line": 58,
-            "path": "src/auto-reply/skill-commands-base.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveStoredModelOverride(params: { sessionEntry?: SessionEntry | undefined; sessionStore?: Record<string, SessionEntry> | undefined; sessionKey?: string | undefined; parentSessionKey?: string | undefined; }): StoredModelOverride | null;",
-          "exportName": "resolveStoredModelOverride",
-          "kind": "function",
-          "source": {
-            "line": 148,
-            "path": "src/auto-reply/reply/model-selection.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveTextCommand(raw: string, cfg?: CrawClawConfig | undefined): { command: ChatCommandDefinition; args?: string | undefined; } | null;",
-          "exportName": "resolveTextCommand",
-          "kind": "function",
-          "source": {
-            "line": 519,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function serializeCommandArgs(command: ChatCommandDefinition, args?: CommandArgs | undefined): string | undefined;",
-          "exportName": "serializeCommandArgs",
-          "kind": "function",
-          "source": {
-            "line": 274,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function shouldComputeCommandAuthorized(text?: string | undefined, cfg?: CrawClawConfig | undefined, options?: CommandNormalizeOptions | undefined): boolean;",
-          "exportName": "shouldComputeCommandAuthorized",
-          "kind": "function",
-          "source": {
-            "line": 88,
-            "path": "src/auto-reply/command-detection.ts"
-          }
-        },
-        {
-          "declaration": "export function shouldHandleTextCommands(params: ShouldHandleTextCommandsParams): boolean;",
-          "exportName": "shouldHandleTextCommands",
-          "kind": "function",
-          "source": {
-            "line": 553,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export type ChatCommandDefinition = ChatCommandDefinition;",
-          "exportName": "ChatCommandDefinition",
-          "kind": "type",
-          "source": {
-            "line": 55,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandArgChoiceContext = CommandArgChoiceContext;",
-          "exportName": "CommandArgChoiceContext",
-          "kind": "type",
-          "source": {
-            "line": 16,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandArgDefinition = CommandArgDefinition;",
-          "exportName": "CommandArgDefinition",
-          "kind": "type",
-          "source": {
-            "line": 28,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandArgMenuSpec = CommandArgMenuSpec;",
-          "exportName": "CommandArgMenuSpec",
-          "kind": "type",
-          "source": {
-            "line": 39,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandArgs = CommandArgs;",
-          "exportName": "CommandArgs",
-          "kind": "type",
-          "source": {
-            "line": 48,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandArgsParsing = CommandArgsParsing;",
-          "exportName": "CommandArgsParsing",
-          "kind": "type",
-          "source": {
-            "line": 53,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandArgValues = CommandArgValues;",
-          "exportName": "CommandArgValues",
-          "kind": "type",
-          "source": {
-            "line": 46,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandAuthorization = CommandAuthorization;",
-          "exportName": "CommandAuthorization",
-          "kind": "type",
-          "source": {
-            "line": 13,
-            "path": "src/auto-reply/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandAuthorizationRuntime = CommandAuthorizationRuntime;",
-          "exportName": "CommandAuthorizationRuntime",
-          "kind": "type",
-          "source": {
-            "line": 99,
-            "path": "src/plugin-sdk/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandAuthorizer = CommandAuthorizer;",
-          "exportName": "CommandAuthorizer",
-          "kind": "type",
-          "source": {
-            "line": 1,
-            "path": "src/channels/command-gating.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandDetection = CommandDetection;",
-          "exportName": "CommandDetection",
-          "kind": "type",
-          "source": {
-            "line": 81,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandGatingModeWhenAccessGroupsOff = CommandGatingModeWhenAccessGroupsOff;",
-          "exportName": "CommandGatingModeWhenAccessGroupsOff",
-          "kind": "type",
-          "source": {
-            "line": 6,
-            "path": "src/channels/command-gating.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandNormalizeOptions = CommandNormalizeOptions;",
-          "exportName": "CommandNormalizeOptions",
-          "kind": "type",
-          "source": {
-            "line": 77,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type CommandScope = CommandScope;",
-          "exportName": "CommandScope",
-          "kind": "type",
-          "source": {
-            "line": 3,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type ModelsProviderData = ModelsProviderData;",
-          "exportName": "ModelsProviderData",
-          "kind": "type",
-          "source": {
-            "line": 20,
-            "path": "src/auto-reply/reply/commands-models.ts"
-          }
-        },
-        {
-          "declaration": "export type NativeCommandSpec = NativeCommandSpec;",
-          "exportName": "NativeCommandSpec",
-          "kind": "type",
-          "source": {
-            "line": 70,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type ResolvedCommandArgChoice = ResolvedCommandArgChoice;",
-          "exportName": "ResolvedCommandArgChoice",
-          "kind": "type",
-          "source": {
-            "line": 317,
-            "path": "src/auto-reply/commands-registry.ts"
-          }
-        },
-        {
-          "declaration": "export type ResolveNativeCommandSessionTargetsParams = ResolveNativeCommandSessionTargetsParams;",
-          "exportName": "ResolveNativeCommandSessionTargetsParams",
-          "kind": "type",
-          "source": {
-            "line": 1,
-            "path": "src/channels/native-command-session-targets.ts"
-          }
-        },
-        {
-          "declaration": "export type ResolveSenderCommandAuthorizationParams = ResolveSenderCommandAuthorizationParams;",
-          "exportName": "ResolveSenderCommandAuthorizationParams",
-          "kind": "type",
-          "source": {
-            "line": 82,
-            "path": "src/plugin-sdk/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export type ResolveSenderCommandAuthorizationWithRuntimeParams = ResolveSenderCommandAuthorizationWithRuntimeParams;",
-          "exportName": "ResolveSenderCommandAuthorizationWithRuntimeParams",
-          "kind": "type",
-          "source": {
-            "line": 107,
-            "path": "src/plugin-sdk/command-auth.ts"
-          }
-        },
-        {
-          "declaration": "export type ShouldHandleTextCommandsParams = ShouldHandleTextCommandsParams;",
-          "exportName": "ShouldHandleTextCommandsParams",
-          "kind": "type",
-          "source": {
-            "line": 86,
-            "path": "src/auto-reply/commands-registry.types.ts"
-          }
-        },
-        {
-          "declaration": "export type SkillCommandSpec = SkillCommandSpec;",
-          "exportName": "SkillCommandSpec",
-          "kind": "type",
-          "source": {
-            "line": 69,
-            "path": "src/agents/skills/types.ts"
-          }
-        },
-        {
-          "declaration": "export type StoredModelOverride = StoredModelOverride;",
-          "exportName": "StoredModelOverride",
-          "kind": "type",
-          "source": {
-            "line": 115,
-            "path": "src/auto-reply/reply/model-selection.ts"
-          }
-        }
-      ],
-      "importSpecifier": "crawclaw/plugin-sdk/command-auth",
-      "source": {
-        "line": 1,
-        "path": "src/plugin-sdk/command-auth.ts"
-      }
-    },
-    {
       "category": "core",
       "entrypoint": "core",
       "exports": [
@@ -860,7 +10,7 @@
           "exportName": "buildAgentSessionKey",
           "kind": "function",
           "source": {
-            "line": 90,
+            "line": 106,
             "path": "src/routing/resolve-route.ts"
           }
         },
@@ -889,15 +39,6 @@
           "source": {
             "line": 554,
             "path": "src/logging/subsystem.ts"
-          }
-        },
-        {
-          "declaration": "export function definePluginEntry({ id, name, description, kind, configSchema, register, }: DefinePluginEntryOptions): DefinedPluginEntry;",
-          "exportName": "definePluginEntry",
-          "kind": "function",
-          "source": {
-            "line": 83,
-            "path": "src/plugin-sdk/plugin-entry.ts"
           }
         },
         {
@@ -1045,57 +186,12 @@
           }
         },
         {
-          "declaration": "export type AnyAgentTool = AnyAgentTool;",
-          "exportName": "AnyAgentTool",
-          "kind": "type",
-          "source": {
-            "line": 9,
-            "path": "src/agents/tools/common.ts"
-          }
-        },
-        {
-          "declaration": "export type BoundTaskFlowsRuntime = BoundTaskFlowsRuntime;",
-          "exportName": "BoundTaskFlowsRuntime",
-          "kind": "type",
-          "source": {
-            "line": 73,
-            "path": "src/plugins/runtime/runtime-tasks.ts"
-          }
-        },
-        {
-          "declaration": "export type BoundTaskRunsRuntime = BoundTaskRunsRuntime;",
-          "exportName": "BoundTaskRunsRuntime",
-          "kind": "type",
-          "source": {
-            "line": 53,
-            "path": "src/plugins/runtime/runtime-tasks.ts"
-          }
-        },
-        {
           "declaration": "export type CrawClawConfig = CrawClawConfig;",
           "exportName": "CrawClawConfig",
           "kind": "type",
           "source": {
-            "line": 22,
+            "line": 21,
             "path": "src/config/types.crawclaw.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginApi = CrawClawPluginApi;",
-          "exportName": "CrawClawPluginApi",
-          "kind": "type",
-          "source": {
-            "line": 1598,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginCommandDefinition = CrawClawPluginCommandDefinition;",
-          "exportName": "CrawClawPluginCommandDefinition",
-          "kind": "type",
-          "source": {
-            "line": 1505,
-            "path": "src/plugins/types.ts"
           }
         },
         {
@@ -1103,61 +199,7 @@
           "exportName": "CrawClawPluginConfigSchema",
           "kind": "type",
           "source": {
-            "line": 102,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginDefinition = CrawClawPluginDefinition;",
-          "exportName": "CrawClawPluginDefinition",
-          "kind": "type",
-          "source": {
-            "line": 1580,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginService = CrawClawPluginService;",
-          "exportName": "CrawClawPluginService",
-          "kind": "type",
-          "source": {
-            "line": 1550,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginServiceContext = CrawClawPluginServiceContext;",
-          "exportName": "CrawClawPluginServiceContext",
-          "kind": "type",
-          "source": {
-            "line": 1541,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginToolContext = CrawClawPluginToolContext;",
-          "exportName": "CrawClawPluginToolContext",
-          "kind": "type",
-          "source": {
-            "line": 119,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginToolFactory = CrawClawPluginToolFactory;",
-          "exportName": "CrawClawPluginToolFactory",
-          "kind": "type",
-          "source": {
-            "line": 143,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawToolSchema = import(\"../agents/tools/schema-types.js\").CrawClawToolSchema;",
-          "exportName": "CrawClawToolSchema",
-          "kind": "type",
-          "source": {
-            "line": 2529,
+            "line": 89,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1175,26 +217,8 @@
           "exportName": "GatewayRequestHandlerOptions",
           "kind": "type",
           "source": {
-            "line": 104,
+            "line": 90,
             "path": "src/gateway/request-types.ts"
-          }
-        },
-        {
-          "declaration": "export type MediaUnderstandingProviderPlugin = MediaUnderstandingProvider;",
-          "exportName": "MediaUnderstandingProviderPlugin",
-          "kind": "type",
-          "source": {
-            "line": 1383,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginCommandContext = PluginCommandContext;",
-          "exportName": "PluginCommandContext",
-          "kind": "type",
-          "source": {
-            "line": 1397,
-            "path": "src/plugins/types.ts"
           }
         },
         {
@@ -1202,88 +226,7 @@
           "exportName": "PluginLogger",
           "kind": "type",
           "source": {
-            "line": 73,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginRuntime = PluginRuntime;",
-          "exportName": "PluginRuntime",
-          "kind": "type",
-          "source": {
-            "line": 52,
-            "path": "src/plugins/runtime/types.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginRuntimeTaskFlows = PluginRuntimeTaskFlows;",
-          "exportName": "PluginRuntimeTaskFlows",
-          "kind": "type",
-          "source": {
-            "line": 83,
-            "path": "src/plugins/runtime/runtime-tasks.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginRuntimeTaskRuns = PluginRuntimeTaskRuns;",
-          "exportName": "PluginRuntimeTaskRuns",
-          "kind": "type",
-          "source": {
-            "line": 63,
-            "path": "src/plugins/runtime/runtime-tasks.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginRuntimeTasks = PluginRuntimeTasks;",
-          "exportName": "PluginRuntimeTasks",
-          "kind": "type",
-          "source": {
-            "line": 93,
-            "path": "src/plugins/runtime/runtime-tasks.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthContext = ProviderAuthContext;",
-          "exportName": "ProviderAuthContext",
-          "kind": "type",
-          "source": {
-            "line": 178,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthDoctorHintContext = ProviderAuthDoctorHintContext;",
-          "exportName": "ProviderAuthDoctorHintContext",
-          "kind": "type",
-          "source": {
-            "line": 517,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthMethod = ProviderAuthMethod;",
-          "exportName": "ProviderAuthMethod",
-          "kind": "type",
-          "source": {
-            "line": 257,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthMethodNonInteractiveContext = ProviderAuthMethodNonInteractiveContext;",
-          "exportName": "ProviderAuthMethodNonInteractiveContext",
-          "kind": "type",
-          "source": {
-            "line": 241,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthResult = ProviderAuthResult;",
-          "exportName": "ProviderAuthResult",
-          "kind": "type",
-          "source": {
-            "line": 163,
+            "line": 60,
             "path": "src/plugins/types.ts"
           }
         },
@@ -1301,7 +244,7 @@
           "exportName": "RoutePeer",
           "kind": "type",
           "source": {
-            "line": 19,
+            "line": 18,
             "path": "src/routing/resolve-route.ts"
           }
         },
@@ -1324,15 +267,6 @@
           }
         },
         {
-          "declaration": "export type SpeechProviderPlugin = SpeechProviderPlugin;",
-          "exportName": "SpeechProviderPlugin",
-          "kind": "type",
-          "source": {
-            "line": 1358,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
           "declaration": "export type TailscaleStatusCommandResult = TailscaleStatusCommandResult;",
           "exportName": "TailscaleStatusCommandResult",
           "kind": "type",
@@ -1348,60 +282,6 @@
           "source": {
             "line": 9,
             "path": "src/shared/tailscale-status.ts"
-          }
-        },
-        {
-          "declaration": "export type TaskFlowDetail = TaskFlowDetail;",
-          "exportName": "TaskFlowDetail",
-          "kind": "type",
-          "source": {
-            "line": 74,
-            "path": "src/plugins/runtime/task-domain-types.ts"
-          }
-        },
-        {
-          "declaration": "export type TaskFlowView = TaskFlowView;",
-          "exportName": "TaskFlowView",
-          "kind": "type",
-          "source": {
-            "line": 60,
-            "path": "src/plugins/runtime/task-domain-types.ts"
-          }
-        },
-        {
-          "declaration": "export type TaskRunAggregateSummary = TaskRunAggregateSummary;",
-          "exportName": "TaskRunAggregateSummary",
-          "kind": "type",
-          "source": {
-            "line": 14,
-            "path": "src/plugins/runtime/task-domain-types.ts"
-          }
-        },
-        {
-          "declaration": "export type TaskRunCancelResult = TaskRunCancelResult;",
-          "exportName": "TaskRunCancelResult",
-          "kind": "type",
-          "source": {
-            "line": 53,
-            "path": "src/plugins/runtime/task-domain-types.ts"
-          }
-        },
-        {
-          "declaration": "export type TaskRunDetail = TaskRunView;",
-          "exportName": "TaskRunDetail",
-          "kind": "type",
-          "source": {
-            "line": 51,
-            "path": "src/plugins/runtime/task-domain-types.ts"
-          }
-        },
-        {
-          "declaration": "export type TaskRunView = TaskRunView;",
-          "exportName": "TaskRunView",
-          "kind": "type",
-          "source": {
-            "line": 23,
-            "path": "src/plugins/runtime/task-domain-types.ts"
           }
         },
         {
@@ -1439,433 +319,15 @@
       }
     },
     {
-      "category": "core",
-      "entrypoint": "plugin-entry",
-      "exports": [
-        {
-          "declaration": "export function definePluginEntry({ id, name, description, kind, configSchema, register, }: DefinePluginEntryOptions): DefinedPluginEntry;",
-          "exportName": "definePluginEntry",
-          "kind": "function",
-          "source": {
-            "line": 83,
-            "path": "src/plugin-sdk/plugin-entry.ts"
-          }
-        },
-        {
-          "declaration": "export function emptyPluginConfigSchema(): CrawClawPluginConfigSchema;",
-          "exportName": "emptyPluginConfigSchema",
-          "kind": "function",
-          "source": {
-            "line": 108,
-            "path": "src/plugins/config-schema.ts"
-          }
-        },
-        {
-          "declaration": "export type AnyAgentTool = AnyAgentTool;",
-          "exportName": "AnyAgentTool",
-          "kind": "type",
-          "source": {
-            "line": 9,
-            "path": "src/agents/tools/common.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawConfig = CrawClawConfig;",
-          "exportName": "CrawClawConfig",
-          "kind": "type",
-          "source": {
-            "line": 22,
-            "path": "src/config/types.crawclaw.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginApi = CrawClawPluginApi;",
-          "exportName": "CrawClawPluginApi",
-          "kind": "type",
-          "source": {
-            "line": 1598,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginCommandDefinition = CrawClawPluginCommandDefinition;",
-          "exportName": "CrawClawPluginCommandDefinition",
-          "kind": "type",
-          "source": {
-            "line": 1505,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginConfigSchema = CrawClawPluginConfigSchema;",
-          "exportName": "CrawClawPluginConfigSchema",
-          "kind": "type",
-          "source": {
-            "line": 102,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginDefinition = CrawClawPluginDefinition;",
-          "exportName": "CrawClawPluginDefinition",
-          "kind": "type",
-          "source": {
-            "line": 1580,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginService = CrawClawPluginService;",
-          "exportName": "CrawClawPluginService",
-          "kind": "type",
-          "source": {
-            "line": 1550,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginServiceContext = CrawClawPluginServiceContext;",
-          "exportName": "CrawClawPluginServiceContext",
-          "kind": "type",
-          "source": {
-            "line": 1541,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginToolContext = CrawClawPluginToolContext;",
-          "exportName": "CrawClawPluginToolContext",
-          "kind": "type",
-          "source": {
-            "line": 119,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawPluginToolFactory = CrawClawPluginToolFactory;",
-          "exportName": "CrawClawPluginToolFactory",
-          "kind": "type",
-          "source": {
-            "line": 143,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawToolSchema = import(\"../agents/tools/schema-types.js\").CrawClawToolSchema;",
-          "exportName": "CrawClawToolSchema",
-          "kind": "type",
-          "source": {
-            "line": 2529,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type MediaUnderstandingProviderPlugin = MediaUnderstandingProvider;",
-          "exportName": "MediaUnderstandingProviderPlugin",
-          "kind": "type",
-          "source": {
-            "line": 1383,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginCommandContext = PluginCommandContext;",
-          "exportName": "PluginCommandContext",
-          "kind": "type",
-          "source": {
-            "line": 1397,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginLogger = PluginLogger;",
-          "exportName": "PluginLogger",
-          "kind": "type",
-          "source": {
-            "line": 73,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthContext = ProviderAuthContext;",
-          "exportName": "ProviderAuthContext",
-          "kind": "type",
-          "source": {
-            "line": 178,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthDoctorHintContext = ProviderAuthDoctorHintContext;",
-          "exportName": "ProviderAuthDoctorHintContext",
-          "kind": "type",
-          "source": {
-            "line": 517,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthMethod = ProviderAuthMethod;",
-          "exportName": "ProviderAuthMethod",
-          "kind": "type",
-          "source": {
-            "line": 257,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthMethodNonInteractiveContext = ProviderAuthMethodNonInteractiveContext;",
-          "exportName": "ProviderAuthMethodNonInteractiveContext",
-          "kind": "type",
-          "source": {
-            "line": 241,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderAuthResult = ProviderAuthResult;",
-          "exportName": "ProviderAuthResult",
-          "kind": "type",
-          "source": {
-            "line": 163,
-            "path": "src/plugins/types.ts"
-          }
-        },
-        {
-          "declaration": "export type SpeechProviderPlugin = SpeechProviderPlugin;",
-          "exportName": "SpeechProviderPlugin",
-          "kind": "type",
-          "source": {
-            "line": 1358,
-            "path": "src/plugins/types.ts"
-          }
-        }
-      ],
-      "importSpecifier": "crawclaw/plugin-sdk/plugin-entry",
-      "source": {
-        "line": 1,
-        "path": "src/plugin-sdk/plugin-entry.ts"
-      }
-    },
-    {
-      "category": "provider",
-      "entrypoint": "provider-onboard",
-      "exports": [
-        {
-          "declaration": "export function applyAgentDefaultModelPrimary(cfg: CrawClawConfig, primary: string): CrawClawConfig;",
-          "exportName": "applyAgentDefaultModelPrimary",
-          "kind": "function",
-          "source": {
-            "line": 69,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function applyOnboardAuthAgentModelsAndProviders(cfg: CrawClawConfig, params: { agentModels: Record<string, AgentModelEntryConfig>; providers: Record<string, ModelProviderConfig>; }): CrawClawConfig;",
-          "exportName": "applyOnboardAuthAgentModelsAndProviders",
-          "kind": "function",
-          "source": {
-            "line": 46,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function applyProviderConfigWithDefaultModel(cfg: CrawClawConfig, params: { agentModels: Record<string, AgentModelEntryConfig>; providerId: string; api: \"github-copilot\" | \"openai-completions\" | ... 6 more ... | \"azure-openai-responses\"; baseUrl: string; defaultModel: ModelDefinitionConfig; defaultModelId?: string | undefined; }): CrawClawConfig;",
-          "exportName": "applyProviderConfigWithDefaultModel",
-          "kind": "function",
-          "source": {
-            "line": 124,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function applyProviderConfigWithDefaultModelPreset(cfg: CrawClawConfig, params: { providerId: string; api: \"github-copilot\" | \"openai-completions\" | \"openai-responses\" | \"openai-codex-responses\" | \"anthropic-messages\" | \"google-generative-ai\" | \"bedrock-converse-stream\" | \"ollama\" | \"azure-openai-responses\"; ... 4 more ...; primaryModelRef?: string | undefined; }): CrawClawConfig;",
-          "exportName": "applyProviderConfigWithDefaultModelPreset",
-          "kind": "function",
-          "source": {
-            "line": 145,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function applyProviderConfigWithDefaultModels(cfg: CrawClawConfig, params: { agentModels: Record<string, AgentModelEntryConfig>; providerId: string; api: \"github-copilot\" | \"openai-completions\" | ... 6 more ... | \"azure-openai-responses\"; baseUrl: string; defaultModels: ModelDefinitionConfig[]; defaultModelId?: string | undefined; }): CrawClawConfig;",
-          "exportName": "applyProviderConfigWithDefaultModels",
-          "kind": "function",
-          "source": {
-            "line": 89,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function applyProviderConfigWithDefaultModelsPreset(cfg: CrawClawConfig, params: { providerId: string; api: \"github-copilot\" | \"openai-completions\" | \"openai-responses\" | \"openai-codex-responses\" | \"anthropic-messages\" | \"google-generative-ai\" | \"bedrock-converse-stream\" | \"ollama\" | \"azure-openai-responses\"; ... 4 more ...; primaryModelRef?: string | undefined; }): CrawClawConfig;",
-          "exportName": "applyProviderConfigWithDefaultModelsPreset",
-          "kind": "function",
-          "source": {
-            "line": 187,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function applyProviderConfigWithModelCatalog(cfg: CrawClawConfig, params: { agentModels: Record<string, AgentModelEntryConfig>; providerId: string; api: \"github-copilot\" | \"openai-completions\" | ... 6 more ... | \"azure-openai-responses\"; baseUrl: string; catalogModels: ModelDefinitionConfig[]; }): CrawClawConfig;",
-          "exportName": "applyProviderConfigWithModelCatalog",
-          "kind": "function",
-          "source": {
-            "line": 229,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function applyProviderConfigWithModelCatalogPreset(cfg: CrawClawConfig, params: { providerId: string; api: \"github-copilot\" | \"openai-completions\" | \"openai-responses\" | \"openai-codex-responses\" | \"anthropic-messages\" | \"google-generative-ai\" | \"bedrock-converse-stream\" | \"ollama\" | \"azure-openai-responses\"; baseUrl: string; catalogModels: ModelDefinitionConfig[]; aliases?: readonly AgentModelAliasEntry[] | undefined; primaryModelRef?: string | undefined; }): CrawClawConfig;",
-          "exportName": "applyProviderConfigWithModelCatalogPreset",
-          "kind": "function",
-          "source": {
-            "line": 262,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function createDefaultModelPresetAppliers<TArgs extends unknown[]>(params: { resolveParams: (cfg: CrawClawConfig, ...args: TArgs) => Omit<{ providerId: string; api: \"github-copilot\" | \"openai-completions\" | \"openai-responses\" | ... 5 more ... | \"azure-openai-responses\"; ... 4 more ...; primaryModelRef?: string | undefined; }, \"primaryModelRef\"> | null | undefined; primaryModelRef: string; }): ProviderOnboardPresetAppliers<...>;",
-          "exportName": "createDefaultModelPresetAppliers",
-          "kind": "function",
-          "source": {
-            "line": 170,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function createDefaultModelsPresetAppliers<TArgs extends unknown[]>(params: { resolveParams: (cfg: CrawClawConfig, ...args: TArgs) => Omit<{ providerId: string; api: \"github-copilot\" | \"openai-completions\" | \"openai-responses\" | ... 5 more ... | \"azure-openai-responses\"; ... 4 more ...; primaryModelRef?: string | undefined; }, \"primaryModelRef\"> | null | undefined; primaryModelRef: string; }): ProviderOnboardPresetAppliers<...>;",
-          "exportName": "createDefaultModelsPresetAppliers",
-          "kind": "function",
-          "source": {
-            "line": 212,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function createModelCatalogPresetAppliers<TArgs extends unknown[]>(params: { resolveParams: (cfg: CrawClawConfig, ...args: TArgs) => Omit<{ providerId: string; api: \"github-copilot\" | \"openai-completions\" | \"openai-responses\" | ... 5 more ... | \"azure-openai-responses\"; baseUrl: string; catalogModels: ModelDefinitionConfig[]; aliases?: readonly AgentModelAliasEntry[] | undefined; primaryModelRef?: string | undefined; }, \"primaryModelRef\"> | null | undefined; primaryModelRef: string; }): ProviderOnboardPresetAppliers<...>;",
-          "exportName": "createModelCatalogPresetAppliers",
-          "kind": "function",
-          "source": {
-            "line": 285,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function ensureModelAllowlistEntry(params: { cfg: CrawClawConfig; modelRef: string; defaultProvider?: string | undefined; }): CrawClawConfig;",
-          "exportName": "ensureModelAllowlistEntry",
-          "kind": "function",
-          "source": {
-            "line": 302,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveAgentModelFallbackValues(model?: AgentModelConfig | undefined): string[];",
-          "exportName": "resolveAgentModelFallbackValues",
-          "kind": "function",
-          "source": {
-            "line": 20,
-            "path": "src/config/model-input.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveAgentModelPrimaryValue(model?: AgentModelConfig | undefined): string | undefined;",
-          "exportName": "resolveAgentModelPrimaryValue",
-          "kind": "function",
-          "source": {
-            "line": 8,
-            "path": "src/config/model-input.ts"
-          }
-        },
-        {
-          "declaration": "export function withAgentModelAliases(existing: Record<string, AgentModelEntryConfig> | undefined, aliases: readonly AgentModelAliasEntry[]): Record<string, AgentModelEntryConfig>;",
-          "exportName": "withAgentModelAliases",
-          "kind": "function",
-          "source": {
-            "line": 31,
-            "path": "src/plugin-sdk/provider-onboard.ts"
-          }
-        },
-        {
-          "declaration": "export type AgentModelAliasEntry = AgentModelAliasEntry;",
-          "exportName": "AgentModelAliasEntry",
-          "kind": "type",
-          "source": {
-            "line": 16,
-            "path": "src/plugin-sdk/provider-onboard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export type CrawClawConfig = CrawClawConfig;",
-          "exportName": "CrawClawConfig",
-          "kind": "type",
-          "source": {
-            "line": 22,
-            "path": "src/config/types.crawclaw.ts"
-          }
-        },
-        {
-          "declaration": "export type ModelApi = \"github-copilot\" | \"openai-completions\" | \"openai-responses\" | \"openai-codex-responses\" | \"anthropic-messages\" | \"google-generative-ai\" | \"bedrock-converse-stream\" | \"ollama\" | \"azure-openai-responses\";",
-          "exportName": "ModelApi",
-          "kind": "type",
-          "source": {
-            "line": 16,
-            "path": "src/config/types.models.ts"
-          }
-        },
-        {
-          "declaration": "export type ModelDefinitionConfig = ModelDefinitionConfig;",
-          "exportName": "ModelDefinitionConfig",
-          "kind": "type",
-          "source": {
-            "line": 49,
-            "path": "src/config/types.models.ts"
-          }
-        },
-        {
-          "declaration": "export type ModelProviderConfig = ModelProviderConfig;",
-          "exportName": "ModelProviderConfig",
-          "kind": "type",
-          "source": {
-            "line": 67,
-            "path": "src/config/types.models.ts"
-          }
-        },
-        {
-          "declaration": "export type ProviderOnboardPresetAppliers = ProviderOnboardPresetAppliers<TArgs>;",
-          "exportName": "ProviderOnboardPresetAppliers",
-          "kind": "type",
-          "source": {
-            "line": 23,
-            "path": "src/plugin-sdk/provider-onboard-helpers.ts"
-          }
-        }
-      ],
-      "importSpecifier": "crawclaw/plugin-sdk/provider-onboard",
-      "source": {
-        "line": 1,
-        "path": "src/plugin-sdk/provider-onboard.ts"
-      }
-    },
-    {
       "category": "utilities",
       "entrypoint": "reply-payload",
       "exports": [
-        {
-          "declaration": "export function buildMediaPayload(mediaList: MediaPayloadInput[], opts?: { preserveMediaTypeCardinality?: boolean | undefined; } | undefined): MediaPayload;",
-          "exportName": "buildMediaPayload",
-          "kind": "function",
-          "source": {
-            "line": 15,
-            "path": "src/channels/plugins/media-payload.ts"
-          }
-        },
         {
           "declaration": "export function countOutboundMedia(payload: { mediaUrls?: string[] | undefined; mediaUrl?: string | undefined; }): number;",
           "exportName": "countOutboundMedia",
           "kind": "function",
           "source": {
-            "line": 93,
+            "line": 86,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1874,7 +336,7 @@
           "exportName": "createNormalizedOutboundDeliverer",
           "kind": "function",
           "source": {
-            "line": 61,
+            "line": 51,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1883,7 +345,7 @@
           "exportName": "deliverFormattedTextWithAttachments",
           "kind": "function",
           "source": {
-            "line": 327,
+            "line": 288,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1892,7 +354,7 @@
           "exportName": "deliverTextOrMediaReply",
           "kind": "function",
           "source": {
-            "line": 286,
+            "line": 247,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1910,7 +372,7 @@
           "exportName": "hasOutboundMedia",
           "kind": "function",
           "source": {
-            "line": 98,
+            "line": 91,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1919,7 +381,7 @@
           "exportName": "hasOutboundReplyContent",
           "kind": "function",
           "source": {
-            "line": 109,
+            "line": 102,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1928,7 +390,7 @@
           "exportName": "hasOutboundText",
           "kind": "function",
           "source": {
-            "line": 103,
+            "line": 96,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1946,7 +408,7 @@
           "exportName": "normalizeOutboundReplyPayload",
           "kind": "function",
           "source": {
-            "line": 41,
+            "line": 31,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1955,16 +417,16 @@
           "exportName": "resolveOutboundMediaUrls",
           "kind": "function",
           "source": {
-            "line": 74,
+            "line": 64,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
         {
-          "declaration": "export function resolvePayloadMediaUrls(payload: ReplyPayload): string[];",
+          "declaration": "export function resolvePayloadMediaUrls(payload: { mediaUrls?: string[] | undefined; mediaUrl?: string | undefined; }): string[];",
           "exportName": "resolvePayloadMediaUrls",
           "kind": "function",
           "source": {
-            "line": 88,
+            "line": 78,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1973,7 +435,7 @@
           "exportName": "resolveSendableOutboundReplyParts",
           "kind": "function",
           "source": {
-            "line": 117,
+            "line": 110,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -1982,7 +444,7 @@
           "exportName": "resolveTextChunksWithFallback",
           "kind": "function",
           "source": {
-            "line": 141,
+            "line": 134,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -2000,7 +462,7 @@
           "exportName": "sendPayloadMediaSequence",
           "kind": "function",
           "source": {
-            "line": 193,
+            "line": 186,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -2009,7 +471,7 @@
           "exportName": "sendPayloadMediaSequenceAndFinalize",
           "kind": "function",
           "source": {
-            "line": 237,
+            "line": 230,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -2018,7 +480,7 @@
           "exportName": "sendPayloadMediaSequenceOrFallback",
           "kind": "function",
           "source": {
-            "line": 219,
+            "line": 212,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -2027,35 +489,8 @@
           "exportName": "sendPayloadWithChunkedTextAndMedia",
           "kind": "function",
           "source": {
-            "line": 152,
+            "line": 145,
             "path": "src/plugin-sdk/reply-payload.ts"
-          }
-        },
-        {
-          "declaration": "export function sendTextMediaPayload(params: { channel: string; ctx: ChannelOutboundPayloadContext; adapter: SendPayloadAdapter; }): Promise<OutboundDeliveryResult>;",
-          "exportName": "sendTextMediaPayload",
-          "kind": "function",
-          "source": {
-            "line": 254,
-            "path": "src/plugin-sdk/reply-payload.ts"
-          }
-        },
-        {
-          "declaration": "export type MediaPayload = MediaPayload;",
-          "exportName": "MediaPayload",
-          "kind": "type",
-          "source": {
-            "line": 6,
-            "path": "src/channels/plugins/media-payload.ts"
-          }
-        },
-        {
-          "declaration": "export type MediaPayloadInput = MediaPayloadInput;",
-          "exportName": "MediaPayloadInput",
-          "kind": "type",
-          "source": {
-            "line": 1,
-            "path": "src/channels/plugins/media-payload.ts"
           }
         },
         {
@@ -2063,7 +498,7 @@
           "exportName": "OutboundReplyPayload",
           "kind": "type",
           "source": {
-            "line": 16,
+            "line": 13,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         },
@@ -2072,7 +507,7 @@
           "exportName": "SendableOutboundReplyParts",
           "kind": "type",
           "source": {
-            "line": 23,
+            "line": 20,
             "path": "src/plugin-sdk/reply-payload.ts"
           }
         }
@@ -2081,35 +516,6 @@
       "source": {
         "line": 1,
         "path": "src/plugin-sdk/reply-payload.ts"
-      }
-    },
-    {
-      "category": "runtime",
-      "entrypoint": "runtime-store",
-      "exports": [
-        {
-          "declaration": "export function createPluginRuntimeStore<T>(errorMessage: string): { setRuntime: (next: T) => void; clearRuntime: () => void; tryGetRuntime: () => T | null; getRuntime: () => T; };",
-          "exportName": "createPluginRuntimeStore",
-          "kind": "function",
-          "source": {
-            "line": 4,
-            "path": "src/plugin-sdk/runtime-store.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginRuntime = PluginRuntime;",
-          "exportName": "PluginRuntime",
-          "kind": "type",
-          "source": {
-            "line": 52,
-            "path": "src/plugins/runtime/types.ts"
-          }
-        }
-      ],
-      "importSpecifier": "crawclaw/plugin-sdk/runtime-store",
-      "source": {
-        "line": 1,
-        "path": "src/plugin-sdk/runtime-store.ts"
       }
     },
     {
@@ -2200,267 +606,6 @@
       "entrypoint": "setup",
       "exports": [
         {
-          "declaration": "export function addWildcardAllowFrom(allowFrom?: (string | number)[] | null | undefined): string[];",
-          "exportName": "addWildcardAllowFrom",
-          "kind": "function",
-          "source": {
-            "line": 60,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function applyAccountNameToChannelSection(params: { cfg: CrawClawConfig; channelKey: string; accountId: string; name?: string | undefined; alwaysUseAccounts?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "applyAccountNameToChannelSection",
-          "kind": "function",
-          "source": {
-            "line": 35,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function applySetupAccountConfigPatch(params: { cfg: CrawClawConfig; channelKey: string; accountId: string; patch: Record<string, unknown>; }): CrawClawConfig;",
-          "exportName": "applySetupAccountConfigPatch",
-          "kind": "function",
-          "source": {
-            "line": 153,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function buildSingleChannelSecretPromptState(params: { accountConfigured: boolean; hasConfigToken: boolean; allowEnv: boolean; envValue?: string | undefined; }): { accountConfigured: boolean; hasConfigToken: boolean; canUseEnv: boolean; };",
-          "exportName": "buildSingleChannelSecretPromptState",
-          "kind": "function",
-          "source": {
-            "line": 557,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createAllowFromSection(params: { helpTitle?: string | undefined; helpLines?: string[] | undefined; credentialInputKey?: keyof ChannelSetupInput | undefined; message: string; placeholder: string; ... 4 more ...; apply: (params: { ...; }) => CrawClawConfig | Promise<...>; }): ChannelSetupWizardAllowFrom;",
-          "exportName": "createAllowFromSection",
-          "kind": "function",
-          "source": {
-            "line": 949,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createAllowlistSetupWizardProxy<TGroupResolved>(params: { loadWizard: () => Promise<ChannelSetupWizard>; createBase: (handlers: { promptAllowFrom: (params: { cfg: CrawClawConfig; prompter: WizardPrompter; accountId?: string | undefined; }) => Promise<...>; resolveAllowFromEntries: (params: { ...; }) => Promise<...>; resolveGroupAllowlist: (params: { ...; }) => Promise<...>; }) => ChannelSetupWizard; fallbackResolvedGroupAllowlist: (entries: string[]) => TGroupResolved; }): ChannelSetupWizard;",
-          "exportName": "createAllowlistSetupWizardProxy",
-          "kind": "function",
-          "source": {
-            "line": 73,
-            "path": "src/channels/plugins/setup-wizard-proxy.ts"
-          }
-        },
-        {
-          "declaration": "export function createCliPathTextInput(params: { inputKey: keyof ChannelSetupInput; message: string; resolvePath: (params: { cfg: CrawClawConfig; accountId: string; credentialValues: Partial<Record<string, string>>; }) => string | undefined; shouldPrompt: (params: { ...; }) => boolean | Promise<...>; helpTitle?: string | undefined; helpLines?: string[] | undefined; }): ChannelSetupWizardTextInput;",
-          "exportName": "createCliPathTextInput",
-          "kind": "function",
-          "source": {
-            "line": 66,
-            "path": "src/channels/plugins/setup-wizard-binary.ts"
-          }
-        },
-        {
-          "declaration": "export function createDelegatedFinalize(loadWizard: () => Promise<ChannelSetupWizard>): (params: { ...; }) => Promise<void | { cfg?: CrawClawConfig | undefined; credentialValues?: Partial<Record<string, string>> | undefined; } | { ...; } | undefined>;",
-          "exportName": "createDelegatedFinalize",
-          "kind": "function",
-          "source": {
-            "line": 28,
-            "path": "src/channels/plugins/setup-wizard-proxy.ts"
-          }
-        },
-        {
-          "declaration": "export function createDelegatedPrepare(loadWizard: () => Promise<ChannelSetupWizard>): (params: { ...; }) => Promise<void | { cfg?: CrawClawConfig | undefined; credentialValues?: Partial<Record<string, string>> | undefined; } | { ...; } | undefined>;",
-          "exportName": "createDelegatedPrepare",
-          "kind": "function",
-          "source": {
-            "line": 23,
-            "path": "src/channels/plugins/setup-wizard-proxy.ts"
-          }
-        },
-        {
-          "declaration": "export function createDelegatedResolveConfigured(loadWizard: () => Promise<ChannelSetupWizard>): ({ cfg }: { cfg: CrawClawConfig; }) => Promise<boolean>;",
-          "exportName": "createDelegatedResolveConfigured",
-          "kind": "function",
-          "source": {
-            "line": 18,
-            "path": "src/channels/plugins/setup-wizard-proxy.ts"
-          }
-        },
-        {
-          "declaration": "export function createDelegatedSetupWizardProxy(params: { channel: string; loadWizard: () => Promise<ChannelSetupWizard>; status: DelegatedStatusBase; credentials?: ChannelSetupWizardCredential[] | undefined; ... 7 more ...; delegateFinalize?: boolean | undefined; }): ChannelSetupWizard;",
-          "exportName": "createDelegatedSetupWizardProxy",
-          "kind": "function",
-          "source": {
-            "line": 38,
-            "path": "src/channels/plugins/setup-wizard-proxy.ts"
-          }
-        },
-        {
-          "declaration": "export function createDelegatedSetupWizardStatusResolvers(loadWizard: () => Promise<ChannelSetupWizard>): Pick<ChannelSetupWizardStatus, \"resolveStatusLines\" | \"resolveSelectionHint\" | \"resolveQuickstartScore\">;",
-          "exportName": "createDelegatedSetupWizardStatusResolvers",
-          "kind": "function",
-          "source": {
-            "line": 87,
-            "path": "src/channels/plugins/setup-wizard-binary.ts"
-          }
-        },
-        {
-          "declaration": "export function createDelegatedTextInputShouldPrompt(params: { loadWizard: () => Promise<ChannelSetupWizard>; inputKey: keyof ChannelSetupInput; }): (params: { cfg: CrawClawConfig; accountId: string; credentialValues: Partial<...>; currentValue?: string | undefined; }) => boolean | Promise<...>;",
-          "exportName": "createDelegatedTextInputShouldPrompt",
-          "kind": "function",
-          "source": {
-            "line": 106,
-            "path": "src/channels/plugins/setup-wizard-binary.ts"
-          }
-        },
-        {
-          "declaration": "export function createDetectedBinaryStatus(params: { channelLabel: string; binaryLabel: string; configuredLabel: string; unconfiguredLabel: string; configuredHint: string; unconfiguredHint: string; configuredScore: number; unconfiguredScore: number; resolveConfigured: (params: { ...; }) => boolean | Promise<...>; resolveBinaryPath: (params: { ...; }) => string; detectBinary?: ((path: string) => Promise<...>) | undefined; }): ChannelSetupWizardStatus;",
-          "exportName": "createDetectedBinaryStatus",
-          "kind": "function",
-          "source": {
-            "line": 12,
-            "path": "src/channels/plugins/setup-wizard-binary.ts"
-          }
-        },
-        {
-          "declaration": "export function createEnvPatchedAccountSetupAdapter(params: { channelKey: string; alwaysUseAccounts?: boolean | undefined; ensureChannelEnabled?: boolean | undefined; ensureAccountEnabled?: boolean | undefined; defaultAccountOnlyEnvError: string; missingCredentialError: string; hasCredentials: (input: ChannelSetupInput) => boolean; validateInput?: ((params: { ...; }) => string | null) | undefined; buildPatch: (input: ChannelSetupInput) => Record<...>; }): ChannelSetupAdapter;",
-          "exportName": "createEnvPatchedAccountSetupAdapter",
-          "kind": "function",
-          "source": {
-            "line": 279,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createNestedChannelAllowFromSetter(params: { channel: string; section: string; enabled?: boolean | undefined; }): (cfg: CrawClawConfig, allowFrom: string[]) => CrawClawConfig;",
-          "exportName": "createNestedChannelAllowFromSetter",
-          "kind": "function",
-          "source": {
-            "line": 486,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createNestedChannelDmPolicy(params: { label: string; channel: string; section: string; policyKey: string; allowFromKey: string; getCurrent: (cfg: CrawClawConfig) => DmPolicy; promptAllowFrom?: ((params: { ...; }) => Promise<...>) | undefined; getAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[] | undefined) | undefined; enabled?: boolean | undefined; }): ChannelSetupDmPolicy;",
-          "exportName": "createNestedChannelDmPolicy",
-          "kind": "function",
-          "source": {
-            "line": 415,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createNestedChannelDmPolicySetter(params: { channel: string; section: string; getAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[] | undefined) | undefined; enabled?: boolean | undefined; }): (cfg: CrawClawConfig, dmPolicy: DmPolicy) => CrawClawConfig;",
-          "exportName": "createNestedChannelDmPolicySetter",
-          "kind": "function",
-          "source": {
-            "line": 456,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createNestedChannelParsedAllowFromPrompt(params: { channel: string; section: string; defaultAccountId: string; enabled?: boolean | undefined; noteTitle?: string | undefined; noteLines?: string[] | undefined; message: string; placeholder: string; parseEntries: (raw: string) => ParsedAllowFromResult; getExistingAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[]) | undefined; mergeEntries?: ((params: { ...; }) => string[]) | undefined; }): (params: { ...; }) => Promise<...>;",
-          "exportName": "createNestedChannelParsedAllowFromPrompt",
-          "kind": "function",
-          "source": {
-            "line": 897,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createPatchedAccountSetupAdapter(params: { channelKey: string; alwaysUseAccounts?: boolean | undefined; ensureChannelEnabled?: boolean | undefined; ensureAccountEnabled?: boolean | undefined; validateInput?: ((params: { cfg: CrawClawConfig; accountId: string; input: ChannelSetupInput; }) => string | null) | undefined; buildPatch: (input: ChannelSetupInput) => Record<...>; }): ChannelSetupAdapter;",
-          "exportName": "createPatchedAccountSetupAdapter",
-          "kind": "function",
-          "source": {
-            "line": 167,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createPromptParsedAllowFromForAccount<TConfig extends CrawClawConfig>(params: { defaultAccountId: string | ((cfg: TConfig) => string); noteTitle?: string | undefined; noteLines?: string[] | undefined; message: string; placeholder: string; parseEntries: (raw: string) => ParsedAllowFromResult; getExistingAllowFrom: (params: { ...; }) => (string | number)[]; mergeEntries?: ((params: { ...; }) => string[]) | undefined; applyAllowFrom: (params: { ...; }) => TConfig | Promise<...>; }): (params: { ...; }) => Promise<...>;",
-          "exportName": "createPromptParsedAllowFromForAccount",
-          "kind": "function",
-          "source": {
-            "line": 829,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createSetupInputPresenceValidator(params: { defaultAccountOnlyEnvError?: string | undefined; whenNotUseEnv?: SetupInputPresenceRequirement[] | undefined; validate?: ((params: { cfg: CrawClawConfig; accountId: string; input: ChannelSetupInput; }) => string | null) | undefined; }): (params: { ...; }) => string | null;",
-          "exportName": "createSetupInputPresenceValidator",
-          "kind": "function",
-          "source": {
-            "line": 246,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createStandardChannelSetupStatus(params: { channelLabel: string; configuredLabel: string; unconfiguredLabel: string; configuredHint?: string | undefined; unconfiguredHint?: string | undefined; configuredScore?: number | undefined; unconfiguredScore?: number | undefined; includeStatusLine?: boolean | undefined; resolveConfigured: (params: { ...; }) => boolean | Promise<...>; resolveExtraStatusLines?: ((params: { ...; }) => string[] | Promise<...>) | undefined; }): ChannelSetupWizardStatus;",
-          "exportName": "createStandardChannelSetupStatus",
-          "kind": "function",
-          "source": {
-            "line": 159,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createTopLevelChannelAllowFromSetter(params: { channel: string; enabled?: boolean | undefined; }): (cfg: CrawClawConfig, allowFrom: string[]) => CrawClawConfig;",
-          "exportName": "createTopLevelChannelAllowFromSetter",
-          "kind": "function",
-          "source": {
-            "line": 473,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createTopLevelChannelDmPolicy(params: { label: string; channel: string; policyKey: string; allowFromKey: string; getCurrent: (cfg: CrawClawConfig) => DmPolicy; promptAllowFrom?: ((params: { cfg: CrawClawConfig; prompter: WizardPrompter; accountId?: string | undefined; }) => Promise<...>) | undefined; getAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[] | undefined) | undefined; }): ChannelSetupDmPolicy;",
-          "exportName": "createTopLevelChannelDmPolicy",
-          "kind": "function",
-          "source": {
-            "line": 391,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createTopLevelChannelDmPolicySetter(params: { channel: string; getAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[] | undefined) | undefined; }): (cfg: CrawClawConfig, dmPolicy: DmPolicy) => CrawClawConfig;",
-          "exportName": "createTopLevelChannelDmPolicySetter",
-          "kind": "function",
-          "source": {
-            "line": 443,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createTopLevelChannelGroupPolicySetter(params: { channel: string; enabled?: boolean | undefined; }): (cfg: CrawClawConfig, groupPolicy: \"disabled\" | \"allowlist\" | \"open\") => CrawClawConfig;",
-          "exportName": "createTopLevelChannelGroupPolicySetter",
-          "kind": "function",
-          "source": {
-            "line": 501,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createTopLevelChannelParsedAllowFromPrompt(params: { channel: string; defaultAccountId: string; enabled?: boolean | undefined; noteTitle?: string | undefined; noteLines?: string[] | undefined; message: string; placeholder: string; parseEntries: (raw: string) => ParsedAllowFromResult; getExistingAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[]) | undefined; mergeEntries?: ((params: { ...; }) => string[]) | undefined; }): (params: { ...; }) => Promise<...>;",
-          "exportName": "createTopLevelChannelParsedAllowFromPrompt",
-          "kind": "function",
-          "source": {
-            "line": 864,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function createZodSetupInputValidator<T extends ChannelSetupInput>(params: { schema: ZodType<T, unknown, $ZodTypeInternals<T, unknown>>; validate?: ((params: { cfg: CrawClawConfig; accountId: string; input: T; }) => string | null) | undefined; }): (params: { ...; }) => string | null;",
-          "exportName": "createZodSetupInputValidator",
-          "kind": "function",
-          "source": {
-            "line": 210,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
           "declaration": "export function detectBinary(name: string): Promise<boolean>;",
           "exportName": "detectBinary",
           "kind": "function",
@@ -2506,24 +651,6 @@
           }
         },
         {
-          "declaration": "export function mergeAllowFromEntries(current: (string | number)[] | null | undefined, additions: (string | number)[]): string[];",
-          "exportName": "mergeAllowFromEntries",
-          "kind": "function",
-          "source": {
-            "line": 68,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function migrateBaseNameToDefaultAccount(params: { cfg: CrawClawConfig; channelKey: string; alwaysUseAccounts?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "migrateBaseNameToDefaultAccount",
-          "kind": "function",
-          "source": {
-            "line": 94,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
           "declaration": "export function normalizeAccountId(value: string | null | undefined): string;",
           "exportName": "normalizeAccountId",
           "kind": "function",
@@ -2533,20 +660,11 @@
           }
         },
         {
-          "declaration": "export function normalizeAllowFromEntries(entries: (string | number)[], normalizeEntry?: ((value: string) => string | null | undefined) | undefined): string[];",
-          "exportName": "normalizeAllowFromEntries",
-          "kind": "function",
-          "source": {
-            "line": 138,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
           "declaration": "export function normalizeE164(number: string): string;",
           "exportName": "normalizeE164",
           "kind": "function",
           "source": {
-            "line": 71,
+            "line": 63,
             "path": "src/utils.ts"
           }
         },
@@ -2560,228 +678,12 @@
           }
         },
         {
-          "declaration": "export function noteChannelLookupFailure(params: { prompter: Pick<WizardPrompter, \"note\">; label: string; error: unknown; }): Promise<void>;",
-          "exportName": "noteChannelLookupFailure",
-          "kind": "function",
-          "source": {
-            "line": 998,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function noteChannelLookupSummary(params: { prompter: Pick<WizardPrompter, \"note\">; label: string; resolvedSections: { title: string; values: string[]; }[]; unresolved?: string[] | undefined; }): Promise<void>;",
-          "exportName": "noteChannelLookupSummary",
-          "kind": "function",
-          "source": {
-            "line": 977,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function parseMentionOrPrefixedId(params: { value: string; mentionPattern: RegExp; prefixPattern?: RegExp | undefined; idPattern: RegExp; normalizeId?: ((id: string) => string) | undefined; }): string | null;",
-          "exportName": "parseMentionOrPrefixedId",
-          "kind": "function",
-          "source": {
-            "line": 113,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function parseSetupEntriesAllowingWildcard(raw: string, parseEntry: (entry: string) => ParsedSetupEntry): { entries: string[]; error?: string | undefined; };",
-          "exportName": "parseSetupEntriesAllowingWildcard",
-          "kind": "function",
-          "source": {
-            "line": 101,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function parseSetupEntriesWithParser(raw: string, parseEntry: (entry: string) => ParsedSetupEntry): { entries: string[]; error?: string | undefined; };",
-          "exportName": "parseSetupEntriesWithParser",
-          "kind": "function",
-          "source": {
-            "line": 85,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function patchNestedChannelConfigSection(params: { cfg: CrawClawConfig; channel: string; section: string; enabled?: boolean | undefined; clearFields?: string[] | undefined; patch: Record<string, unknown>; }): CrawClawConfig;",
-          "exportName": "patchNestedChannelConfigSection",
-          "kind": "function",
-          "source": {
-            "line": 260,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function patchScopedAccountConfig(params: { cfg: CrawClawConfig; channelKey: string; accountId: string; patch: Record<string, unknown>; accountPatch?: Record<string, unknown> | undefined; ensureChannelEnabled?: boolean | undefined; ensureAccountEnabled?: boolean | undefined; scopeDefaultToAccounts?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "patchScopedAccountConfig",
-          "kind": "function",
-          "source": {
-            "line": 308,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function patchTopLevelChannelConfigSection(params: { cfg: CrawClawConfig; channel: string; enabled?: boolean | undefined; clearFields?: string[] | undefined; patch: Record<string, unknown>; }): CrawClawConfig;",
-          "exportName": "patchTopLevelChannelConfigSection",
-          "kind": "function",
-          "source": {
-            "line": 234,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
           "declaration": "export function pathExists(targetPath: string): Promise<boolean>;",
           "exportName": "pathExists",
           "kind": "function",
           "source": {
             "line": 15,
             "path": "src/utils.ts"
-          }
-        },
-        {
-          "declaration": "export function prepareScopedSetupConfig(params: { cfg: CrawClawConfig; channelKey: string; accountId: string; name?: string | undefined; alwaysUseAccounts?: boolean | undefined; migrateBaseName?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "prepareScopedSetupConfig",
-          "kind": "function",
-          "source": {
-            "line": 128,
-            "path": "src/channels/plugins/setup-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function promptParsedAllowFromForAccount<TConfig extends CrawClawConfig>(params: { cfg: TConfig; accountId?: string | undefined; defaultAccountId: string; prompter: Pick<WizardPrompter, \"text\" | \"note\">; noteTitle?: string | undefined; ... 6 more ...; applyAllowFrom: (params: { ...; }) => TConfig | Promise<...>; }): Promise<...>;",
-          "exportName": "promptParsedAllowFromForAccount",
-          "kind": "function",
-          "source": {
-            "line": 775,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function promptResolvedAllowFrom(params: { prompter: WizardPrompter; existing: (string | number)[]; token?: string | null | undefined; message: string; placeholder: string; label: string; parseInputs: (value: string) => string[]; parseId: (value: string) => string | null; invalidWithoutTokenNote: string; resolveEntries: (params: { ...; }) => Promise<...>; }): Promise<...>;",
-          "exportName": "promptResolvedAllowFrom",
-          "kind": "function",
-          "source": {
-            "line": 1031,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function promptSingleChannelSecretInput(params: { cfg: CrawClawConfig; prompter: Pick<WizardPrompter, \"text\" | \"note\" | \"confirm\" | \"select\">; providerHint: string; credentialLabel: string; ... 7 more ...; preferredEnvVar?: string | undefined; }): Promise<...>;",
-          "exportName": "promptSingleChannelSecretInput",
-          "kind": "function",
-          "source": {
-            "line": 696,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveEntriesWithOptionalToken<TResult>(params: { token?: string | null | undefined; entries: string[]; buildWithoutToken: (input: string) => TResult; resolveEntries: (params: { token: string; entries: string[]; }) => Promise<TResult[]>; }): Promise<...>;",
-          "exportName": "resolveEntriesWithOptionalToken",
-          "kind": "function",
-          "source": {
-            "line": 1015,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveGroupAllowlistWithLookupNotes<TResolved>(params: { label: string; prompter: Pick<WizardPrompter, \"note\">; entries: string[]; fallback: TResolved; resolve: () => Promise<TResolved>; }): Promise<...>;",
-          "exportName": "resolveGroupAllowlistWithLookupNotes",
-          "kind": "function",
-          "source": {
-            "line": 514,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveParsedAllowFromEntries(params: { entries: string[]; parseId: (raw: string) => string | null; }): ChannelSetupWizardAllowFromEntry[];",
-          "exportName": "resolveParsedAllowFromEntries",
-          "kind": "function",
-          "source": {
-            "line": 935,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveSetupAccountId(params: { accountId?: string | undefined; defaultAccountId: string; }): string;",
-          "exportName": "resolveSetupAccountId",
-          "kind": "function",
-          "source": {
-            "line": 203,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function runSingleChannelSecretStep(params: { cfg: CrawClawConfig; prompter: Pick<WizardPrompter, \"text\" | \"note\" | \"confirm\" | \"select\">; providerHint: string; credentialLabel: string; ... 11 more ...; applySet?: ((cfg: CrawClawConfig, value: SecretInput, resolvedValue: string) => CrawClawConfig | Promise<...>) | undefined; }): Promise<...>;",
-          "exportName": "runSingleChannelSecretStep",
-          "kind": "function",
-          "source": {
-            "line": 620,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function setNestedChannelAllowFrom(params: { cfg: CrawClawConfig; channel: string; section: string; allowFrom: string[]; enabled?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "setNestedChannelAllowFrom",
-          "kind": "function",
-          "source": {
-            "line": 307,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function setNestedChannelDmPolicyWithAllowFrom(params: { cfg: CrawClawConfig; channel: string; section: string; dmPolicy: DmPolicy; getAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[] | undefined) | undefined; enabled?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "setNestedChannelDmPolicyWithAllowFrom",
-          "kind": "function",
-          "source": {
-            "line": 347,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function setSetupChannelEnabled(cfg: CrawClawConfig, channel: string, enabled: boolean): CrawClawConfig;",
-          "exportName": "setSetupChannelEnabled",
-          "kind": "function",
-          "source": {
-            "line": 539,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function setTopLevelChannelAllowFrom(params: { cfg: CrawClawConfig; channel: string; allowFrom: string[]; enabled?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "setTopLevelChannelAllowFrom",
-          "kind": "function",
-          "source": {
-            "line": 293,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function setTopLevelChannelDmPolicyWithAllowFrom(params: { cfg: CrawClawConfig; channel: string; dmPolicy: DmPolicy; getAllowFrom?: ((cfg: CrawClawConfig) => (string | number)[] | undefined) | undefined; }): CrawClawConfig;",
-          "exportName": "setTopLevelChannelDmPolicyWithAllowFrom",
-          "kind": "function",
-          "source": {
-            "line": 323,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function setTopLevelChannelGroupPolicy(params: { cfg: CrawClawConfig; channel: string; groupPolicy: GroupPolicy; enabled?: boolean | undefined; }): CrawClawConfig;",
-          "exportName": "setTopLevelChannelGroupPolicy",
-          "kind": "function",
-          "source": {
-            "line": 377,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
-          }
-        },
-        {
-          "declaration": "export function splitSetupEntries(raw: string): string[];",
-          "exportName": "splitSetupEntries",
-          "kind": "function",
-          "source": {
-            "line": 76,
-            "path": "src/channels/plugins/setup-wizard-helpers.ts"
           }
         },
         {
@@ -2794,74 +696,11 @@
           }
         },
         {
-          "declaration": "export type ChannelSetupAdapter = ChannelSetupAdapter;",
-          "exportName": "ChannelSetupAdapter",
-          "kind": "type",
-          "source": {
-            "line": 63,
-            "path": "src/channels/plugins/types.adapters.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelSetupDmPolicy = ChannelSetupDmPolicy;",
-          "exportName": "ChannelSetupDmPolicy",
-          "kind": "type",
-          "source": {
-            "line": 89,
-            "path": "src/channels/plugins/setup-wizard-types.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelSetupInput = ChannelSetupInput;",
-          "exportName": "ChannelSetupInput",
-          "kind": "type",
-          "source": {
-            "line": 75,
-            "path": "src/channels/plugins/types.core.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelSetupWizard = ChannelSetupWizard;",
-          "exportName": "ChannelSetupWizard",
-          "kind": "type",
-          "source": {
-            "line": 247,
-            "path": "src/channels/plugins/setup-wizard.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelSetupWizardAdapter = ChannelSetupWizardAdapter;",
-          "exportName": "ChannelSetupWizardAdapter",
-          "kind": "type",
-          "source": {
-            "line": 107,
-            "path": "src/channels/plugins/setup-wizard-types.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelSetupWizardAllowFromEntry = ChannelSetupWizardAllowFromEntry;",
-          "exportName": "ChannelSetupWizardAllowFromEntry",
-          "kind": "type",
-          "source": {
-            "line": 154,
-            "path": "src/channels/plugins/setup-wizard.ts"
-          }
-        },
-        {
-          "declaration": "export type ChannelSetupWizardTextInput = ChannelSetupWizardTextInput;",
-          "exportName": "ChannelSetupWizardTextInput",
-          "kind": "type",
-          "source": {
-            "line": 108,
-            "path": "src/channels/plugins/setup-wizard.ts"
-          }
-        },
-        {
           "declaration": "export type CrawClawConfig = CrawClawConfig;",
           "exportName": "CrawClawConfig",
           "kind": "type",
           "source": {
-            "line": 22,
+            "line": 21,
             "path": "src/config/types.crawclaw.ts"
           }
         },
@@ -2935,17 +774,8 @@
           "exportName": "callGateway",
           "kind": "function",
           "source": {
-            "line": 933,
+            "line": 911,
             "path": "src/gateway/call.ts"
-          }
-        },
-        {
-          "declaration": "export function capturePluginRegistration(params: { register(api: CrawClawPluginApi): void; }): CapturedPluginRegistration;",
-          "exportName": "capturePluginRegistration",
-          "kind": "function",
-          "source": {
-            "line": 83,
-            "path": "src/plugins/captured-registration.ts"
           }
         },
         {
@@ -2989,7 +819,7 @@
           "exportName": "createWindowsCmdShimFixture",
           "kind": "function",
           "source": {
-            "line": 47,
+            "line": 45,
             "path": "src/plugin-sdk/testing.ts"
           }
         },
@@ -3007,7 +837,7 @@
           "exportName": "getActivePluginRegistry",
           "kind": "function",
           "source": {
-            "line": 95,
+            "line": 81,
             "path": "src/plugins/runtime.ts"
           }
         },
@@ -3016,7 +846,7 @@
           "exportName": "installCommonResolveTargetErrorCases",
           "kind": "function",
           "source": {
-            "line": 73,
+            "line": 71,
             "path": "src/plugin-sdk/testing.ts"
           }
         },
@@ -3088,7 +918,7 @@
           "exportName": "resetPluginRuntimeStateForTest",
           "kind": "function",
           "source": {
-            "line": 232,
+            "line": 176,
             "path": "src/plugins/runtime.ts"
           }
         },
@@ -3120,11 +950,11 @@
           }
         },
         {
-          "declaration": "export function setActivePluginRegistry(registry: PluginRegistry, cacheKey?: string | undefined, runtimeSubagentMode?: \"default\" | \"explicit\" | \"gateway-bindable\"): void;",
+          "declaration": "export function setActivePluginRegistry(registry: PluginRegistry, cacheKey?: string | undefined): void;",
           "exportName": "setActivePluginRegistry",
           "kind": "function",
           "source": {
-            "line": 82,
+            "line": 74,
             "path": "src/plugins/runtime.ts"
           }
         },
@@ -3223,7 +1053,7 @@
           "exportName": "CrawClawConfig",
           "kind": "type",
           "source": {
-            "line": 22,
+            "line": 21,
             "path": "src/config/types.crawclaw.ts"
           }
         },
@@ -3234,15 +1064,6 @@
           "source": {
             "line": 5,
             "path": "src/test-utils/vitest-mock-fn.ts"
-          }
-        },
-        {
-          "declaration": "export type PluginRuntime = PluginRuntime;",
-          "exportName": "PluginRuntime",
-          "kind": "type",
-          "source": {
-            "line": 52,
-            "path": "src/plugins/runtime/types.ts"
           }
         },
         {
@@ -3259,368 +1080,6 @@
       "source": {
         "line": 1,
         "path": "src/plugin-sdk/testing.ts"
-      }
-    },
-    {
-      "category": "utilities",
-      "entrypoint": "webhook-ingress",
-      "exports": [
-        {
-          "declaration": "export function applyBasicWebhookRequestGuards(params: { req: IncomingMessage; res: ServerResponse<IncomingMessage>; allowMethods?: readonly string[] | undefined; rateLimiter?: FixedWindowRateLimiter | undefined; rateLimitKey?: string | undefined; nowMs?: number | undefined; requireJsonContentType?: boolean | undefined; }): boolean;",
-          "exportName": "applyBasicWebhookRequestGuards",
-          "kind": "function",
-          "source": {
-            "line": 151,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function beginWebhookRequestPipelineOrReject(params: { req: IncomingMessage; res: ServerResponse<IncomingMessage>; allowMethods?: readonly string[] | undefined; rateLimiter?: FixedWindowRateLimiter | undefined; ... 6 more ...; inFlightLimitMessage?: string | undefined; }): { ...; } | { ...; };",
-          "exportName": "beginWebhookRequestPipelineOrReject",
-          "kind": "function",
-          "source": {
-            "line": 192,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function createBoundedCounter(options: { maxTrackedKeys: number; ttlMs?: number | undefined; pruneIntervalMs?: number | undefined; }): BoundedCounter;",
-          "exportName": "createBoundedCounter",
-          "kind": "function",
-          "source": {
-            "line": 109,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function createFixedWindowRateLimiter(options: { windowMs: number; maxRequests: number; maxTrackedKeys: number; pruneIntervalMs?: number | undefined; }): FixedWindowRateLimiter;",
-          "exportName": "createFixedWindowRateLimiter",
-          "kind": "function",
-          "source": {
-            "line": 52,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function createWebhookAnomalyTracker(options?: { maxTrackedKeys?: number | undefined; ttlMs?: number | undefined; logEvery?: number | undefined; trackedStatusCodes?: readonly number[] | undefined; } | undefined): WebhookAnomalyTracker;",
-          "exportName": "createWebhookAnomalyTracker",
-          "kind": "function",
-          "source": {
-            "line": 167,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function createWebhookInFlightLimiter(options?: { maxInFlightPerKey?: number | undefined; maxTrackedKeys?: number | undefined; } | undefined): WebhookInFlightLimiter;",
-          "exportName": "createWebhookInFlightLimiter",
-          "kind": "function",
-          "source": {
-            "line": 94,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function isJsonContentType(value: string | string[] | undefined): boolean;",
-          "exportName": "isJsonContentType",
-          "kind": "function",
-          "source": {
-            "line": 141,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function isRequestBodyLimitError(error: unknown, code?: RequestBodyLimitErrorCode | undefined): error is RequestBodyLimitError;",
-          "exportName": "isRequestBodyLimitError",
-          "kind": "function",
-          "source": {
-            "line": 47,
-            "path": "src/infra/http-body.ts"
-          }
-        },
-        {
-          "declaration": "export function normalizePluginHttpPath(path?: string | null | undefined, fallback?: string | null | undefined): string | null;",
-          "exportName": "normalizePluginHttpPath",
-          "kind": "function",
-          "source": {
-            "line": 1,
-            "path": "src/plugins/http-path.ts"
-          }
-        },
-        {
-          "declaration": "export function normalizeWebhookPath(raw: string): string;",
-          "exportName": "normalizeWebhookPath",
-          "kind": "function",
-          "source": {
-            "line": 2,
-            "path": "src/plugin-sdk/webhook-path.ts"
-          }
-        },
-        {
-          "declaration": "export function readJsonWebhookBodyOrReject(params: { req: IncomingMessage; res: ServerResponse<IncomingMessage>; maxBytes?: number | undefined; timeoutMs?: number | undefined; profile?: WebhookBodyReadProfile | undefined; emptyObjectOnEmpty?: boolean | undefined; invalidJsonMessage?: string | undefined; }): Promise<...>;",
-          "exportName": "readJsonWebhookBodyOrReject",
-          "kind": "function",
-          "source": {
-            "line": 278,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function readRequestBodyWithLimit(req: IncomingMessage, options: ReadRequestBodyOptions): Promise<string>;",
-          "exportName": "readRequestBodyWithLimit",
-          "kind": "function",
-          "source": {
-            "line": 122,
-            "path": "src/infra/http-body.ts"
-          }
-        },
-        {
-          "declaration": "export function readWebhookBodyOrReject(params: { req: IncomingMessage; res: ServerResponse<IncomingMessage>; maxBytes?: number | undefined; timeoutMs?: number | undefined; profile?: WebhookBodyReadProfile | undefined; invalidBodyMessage?: string | undefined; }): Promise<...>;",
-          "exportName": "readWebhookBodyOrReject",
-          "kind": "function",
-          "source": {
-            "line": 243,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export function registerPluginHttpRoute(params: { path?: string | null | undefined; fallbackPath?: string | null | undefined; handler: PluginHttpRouteHandler; auth: CrawClawPluginHttpRouteAuth; ... 6 more ...; registry?: PluginRegistry | undefined; }): () => void;",
-          "exportName": "registerPluginHttpRoute",
-          "kind": "function",
-          "source": {
-            "line": 12,
-            "path": "src/plugins/http-registry.ts"
-          }
-        },
-        {
-          "declaration": "export function registerWebhookTarget<T extends { path: string; }>(targetsByPath: Map<string, T[]>, target: T, opts?: RegisterWebhookTargetOptions<T> | undefined): RegisteredWebhookTarget<T>;",
-          "exportName": "registerWebhookTarget",
-          "kind": "function",
-          "source": {
-            "line": 61,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function registerWebhookTargetWithPluginRoute<T extends { path: string; }>(params: { targetsByPath: Map<string, T[]>; target: T; route: RegisterWebhookPluginRouteOptions; onLastPathTargetRemoved?: ((params: { ...; }) => void) | undefined; }): RegisteredWebhookTarget<...>;",
-          "exportName": "registerWebhookTargetWithPluginRoute",
-          "kind": "function",
-          "source": {
-            "line": 30,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function requestBodyErrorToText(code: RequestBodyLimitErrorCode): string;",
-          "exportName": "requestBodyErrorToText",
-          "kind": "function",
-          "source": {
-            "line": 60,
-            "path": "src/infra/http-body.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveRequestClientIp(req?: IncomingMessage | undefined, trustedProxies?: string[] | undefined, allowRealIpFallback?: boolean): string | undefined;",
-          "exportName": "resolveRequestClientIp",
-          "kind": "function",
-          "source": {
-            "line": 186,
-            "path": "src/gateway/net.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveSingleWebhookTarget<T>(targets: readonly T[], isMatch: (target: T) => boolean): WebhookTargetMatchResult<T>;",
-          "exportName": "resolveSingleWebhookTarget",
-          "kind": "function",
-          "source": {
-            "line": 193,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveSingleWebhookTargetAsync<T>(targets: readonly T[], isMatch: (target: T) => Promise<boolean>): Promise<WebhookTargetMatchResult<T>>;",
-          "exportName": "resolveSingleWebhookTargetAsync",
-          "kind": "function",
-          "source": {
-            "line": 212,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveWebhookPath(params: { webhookPath?: string | undefined; webhookUrl?: string | undefined; defaultPath?: string | null | undefined; }): string | null;",
-          "exportName": "resolveWebhookPath",
-          "kind": "function",
-          "source": {
-            "line": 15,
-            "path": "src/plugin-sdk/webhook-path.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveWebhookTargets<T>(req: IncomingMessage, targetsByPath: Map<string, T[]>): { path: string; targets: T[]; } | null;",
-          "exportName": "resolveWebhookTargets",
-          "kind": "function",
-          "source": {
-            "line": 107,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveWebhookTargetWithAuthOrReject<T>(params: { targets: readonly T[]; res: ServerResponse<IncomingMessage>; isMatch: (target: T) => boolean | Promise<boolean>; unauthorizedStatusCode?: number | undefined; unauthorizedMessage?: string | undefined; ambiguousStatusCode?: number | undefined; ambiguousMessage?: string | undefined; }): Promise<...>;",
-          "exportName": "resolveWebhookTargetWithAuthOrReject",
-          "kind": "function",
-          "source": {
-            "line": 231,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function resolveWebhookTargetWithAuthOrRejectSync<T>(params: { targets: readonly T[]; res: ServerResponse<IncomingMessage>; isMatch: (target: T) => boolean; unauthorizedStatusCode?: number | undefined; unauthorizedMessage?: string | undefined; ambiguousStatusCode?: number | undefined; ambiguousMessage?: string | undefined; }): T | null;",
-          "exportName": "resolveWebhookTargetWithAuthOrRejectSync",
-          "kind": "function",
-          "source": {
-            "line": 248,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export function withResolvedWebhookRequestPipeline<T>(params: { req: IncomingMessage; res: ServerResponse<IncomingMessage>; targetsByPath: Map<string, T[]>; allowMethods?: readonly string[] | undefined; ... 8 more ...; handle: (args: { ...; }) => boolean | ... 1 more ... | Promise<...>; }): Promise<...>;",
-          "exportName": "withResolvedWebhookRequestPipeline",
-          "kind": "function",
-          "source": {
-            "line": 121,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export const WEBHOOK_ANOMALY_COUNTER_DEFAULTS: Readonly<{ maxTrackedKeys: 4096; ttlMs: number; logEvery: 25; }>;",
-          "exportName": "WEBHOOK_ANOMALY_COUNTER_DEFAULTS",
-          "kind": "const",
-          "source": {
-            "line": 31,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export const WEBHOOK_ANOMALY_STATUS_CODES: readonly number[];",
-          "exportName": "WEBHOOK_ANOMALY_STATUS_CODES",
-          "kind": "const",
-          "source": {
-            "line": 37,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export const WEBHOOK_BODY_READ_DEFAULTS: Readonly<{ preAuth: { maxBytes: number; timeoutMs: number; }; postAuth: { maxBytes: number; timeoutMs: number; }; }>;",
-          "exportName": "WEBHOOK_BODY_READ_DEFAULTS",
-          "kind": "const",
-          "source": {
-            "line": 22,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export const WEBHOOK_IN_FLIGHT_DEFAULTS: Readonly<{ maxInFlightPerKey: 8; maxTrackedKeys: 4096; }>;",
-          "exportName": "WEBHOOK_IN_FLIGHT_DEFAULTS",
-          "kind": "const",
-          "source": {
-            "line": 33,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export const WEBHOOK_RATE_LIMIT_DEFAULTS: Readonly<{ windowMs: 60000; maxRequests: 120; maxTrackedKeys: 4096; }>;",
-          "exportName": "WEBHOOK_RATE_LIMIT_DEFAULTS",
-          "kind": "const",
-          "source": {
-            "line": 25,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export type BoundedCounter = BoundedCounter;",
-          "exportName": "BoundedCounter",
-          "kind": "type",
-          "source": {
-            "line": 19,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export type FixedWindowRateLimiter = FixedWindowRateLimiter;",
-          "exportName": "FixedWindowRateLimiter",
-          "kind": "type",
-          "source": {
-            "line": 13,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export type RegisteredWebhookTarget = RegisteredWebhookTarget<T>;",
-          "exportName": "RegisteredWebhookTarget",
-          "kind": "type",
-          "source": {
-            "line": 10,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export type RegisterWebhookPluginRouteOptions = RegisterWebhookPluginRouteOptions;",
-          "exportName": "RegisterWebhookPluginRouteOptions",
-          "kind": "type",
-          "source": {
-            "line": 24,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export type RegisterWebhookTargetOptions = RegisterWebhookTargetOptions<T>;",
-          "exportName": "RegisterWebhookTargetOptions",
-          "kind": "type",
-          "source": {
-            "line": 15,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        },
-        {
-          "declaration": "export type WebhookAnomalyTracker = WebhookAnomalyTracker;",
-          "exportName": "WebhookAnomalyTracker",
-          "kind": "type",
-          "source": {
-            "line": 39,
-            "path": "src/plugin-sdk/webhook-memory-guards.ts"
-          }
-        },
-        {
-          "declaration": "export type WebhookBodyReadProfile = WebhookBodyReadProfile;",
-          "exportName": "WebhookBodyReadProfile",
-          "kind": "type",
-          "source": {
-            "line": 12,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export type WebhookInFlightLimiter = WebhookInFlightLimiter;",
-          "exportName": "WebhookInFlightLimiter",
-          "kind": "type",
-          "source": {
-            "line": 38,
-            "path": "src/plugin-sdk/webhook-request-guards.ts"
-          }
-        },
-        {
-          "declaration": "export type WebhookTargetMatchResult = WebhookTargetMatchResult<T>;",
-          "exportName": "WebhookTargetMatchResult",
-          "kind": "type",
-          "source": {
-            "line": 170,
-            "path": "src/plugin-sdk/webhook-targets.ts"
-          }
-        }
-      ],
-      "importSpecifier": "crawclaw/plugin-sdk/webhook-ingress",
-      "source": {
-        "line": 1,
-        "path": "src/plugin-sdk/webhook-ingress.ts"
       }
     }
   ]

@@ -20,16 +20,6 @@ at handshake time.
 
 ## Handshake (connect)
 
-Gateway → Client (pre-connect challenge):
-
-```json
-{
-  "type": "event",
-  "event": "connect.challenge",
-  "payload": { "nonce": "…", "ts": 1737264000000 }
-}
-```
-
 Client → Gateway:
 
 ```json
@@ -73,18 +63,6 @@ Gateway → Client:
   "id": "…",
   "ok": true,
   "payload": { "type": "hello-ok", "protocol": 3, "policy": { "tickIntervalMs": 15000 } }
-}
-```
-
-When a device token is issued, `hello-ok` also includes:
-
-```json
-{
-  "auth": {
-    "deviceToken": "…",
-    "role": "operator",
-    "scopes": ["operator.read", "operator.write"]
-  }
 }
 ```
 
@@ -154,8 +132,8 @@ Method scope is only the first gate. Some slash commands reached through
 
 ## Presence
 
-- `system-presence` returns entries keyed by device identity.
-- Presence entries include `deviceId`, `roles`, and `scopes` so UIs can show a single row per device.
+- `system-presence` returns entries keyed by client instance when available.
+- Presence entries include `deviceId` for compatibility, plus `roles` and `scopes` so UIs can show a single row per client instance.
 
 ### Operator helper methods
 
@@ -204,56 +182,17 @@ Method scope is only the first gate. Some slash commands reached through
 
 - If `CRAWCLAW_GATEWAY_TOKEN` (or `--token`) is set, `connect.params.auth.token`
   must match or the socket is closed.
-- After pairing, the Gateway issues a **device token** scoped to the connection
-  role + scopes. It is returned in `hello-ok.auth.deviceToken` and should be
-  persisted by the client for future connects.
-- Device tokens can be rotated/revoked via `device.token.rotate` and
-  `device.token.revoke` (requires `operator.pairing` scope).
-- Auth failures include `error.details.code` plus recovery hints:
-  - `error.details.canRetryWithDeviceToken` (boolean)
-  - `error.details.recommendedNextStep` (`retry_with_device_token`, `update_auth_configuration`, `update_auth_credentials`, `wait_then_retry`, `review_auth_configuration`)
-- Client behavior for `AUTH_TOKEN_MISMATCH`:
-  - Trusted clients may attempt one bounded retry with a cached per-device token.
+- Auth failures include `error.details.code` plus `error.details.recommendedNextStep`
+  (`update_auth_configuration`, `update_auth_credentials`, `wait_then_retry`, `review_auth_configuration`).
   - If that retry fails, clients should stop automatic reconnect loops and surface operator action guidance.
 
-## Device identity + pairing
+## Device authorization
 
-- Clients should include a stable device identity (`device.id`) derived from a
-  keypair fingerprint.
-- Gateways issue tokens per device + role.
-- Pairing approvals are required for new device IDs unless local auto-approval
-  is enabled.
-- **Local** connects include loopback and the gateway host’s own tailnet address
-  (so same‑host tailnet binds can still auto‑approve).
-- All WS clients must include `device` identity during `connect` (operator + node).
-  Browser-facing clients can omit it only in these modes:
-  - `gateway.browserClients.allowInsecureAuth=true` for localhost-only insecure HTTP compatibility.
-  - `gateway.browserClients.dangerouslyDisableDeviceAuth=true` (break-glass, severe security downgrade).
-- All connections must sign the server-provided `connect.challenge` nonce.
+Gateway device authorization has been removed. WebSocket clients authenticate with the configured
+Gateway auth mode (`token`, `password`, `trusted-proxy`, or explicit `none`) and no longer send
+a legacy device payload or wait for a preliminary challenge frame.
+in addition to device/client/role/scopes/token/nonce fields.
 
-### Device auth migration diagnostics
-
-For legacy clients that still use pre-challenge signing behavior, `connect` now returns
-`DEVICE_AUTH_*` detail codes under `error.details.code` with a stable `error.details.reason`.
-
-Common migration failures:
-
-| Message                     | details.code                     | details.reason           | Meaning                                            |
-| --------------------------- | -------------------------------- | ------------------------ | -------------------------------------------------- |
-| `device nonce required`     | `DEVICE_AUTH_NONCE_REQUIRED`     | `device-nonce-missing`   | Client omitted `device.nonce` (or sent blank).     |
-| `device nonce mismatch`     | `DEVICE_AUTH_NONCE_MISMATCH`     | `device-nonce-mismatch`  | Client signed with a stale/wrong nonce.            |
-| `device signature invalid`  | `DEVICE_AUTH_SIGNATURE_INVALID`  | `device-signature`       | Signature payload does not match v2 payload.       |
-| `device signature expired`  | `DEVICE_AUTH_SIGNATURE_EXPIRED`  | `device-signature-stale` | Signed timestamp is outside allowed skew.          |
-| `device identity mismatch`  | `DEVICE_AUTH_DEVICE_ID_MISMATCH` | `device-id-mismatch`     | `device.id` does not match public key fingerprint. |
-| `device public key invalid` | `DEVICE_AUTH_PUBLIC_KEY_INVALID` | `device-public-key`      | Public key format/canonicalization failed.         |
-
-Migration target:
-
-- Always wait for `connect.challenge`.
-- Sign the v2 payload that includes the server nonce.
-- Send the same nonce in `connect.params.device.nonce`.
-- Preferred signature payload is `v3`, which binds `platform` and `deviceFamily`
-  in addition to device/client/role/scopes/token/nonce fields.
 - Legacy `v2` signatures remain accepted for compatibility, but paired-device
   metadata pinning still controls command policy on reconnect.
 

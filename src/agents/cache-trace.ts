@@ -1,6 +1,5 @@
 import crypto from "node:crypto";
 import path from "node:path";
-import type { AgentMessage, StreamFn } from "@mariozechner/pi-agent-core";
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveStateDir } from "../config/paths.js";
 import { observationRef } from "../infra/observation/context.js";
@@ -8,6 +7,7 @@ import type { ObservationContext } from "../infra/observation/types.js";
 import { resolveUserPath } from "../utils.js";
 import { parseBooleanValue } from "../utils/boolean.js";
 import { safeJsonStringify } from "../utils/safe-json.js";
+import type { AgentMessage, StreamFn } from "./agent-types.js";
 import { sanitizeDiagnosticPayload } from "./payload-redaction.js";
 import { getQueuedFileWriter, type QueuedFileWriter } from "./queued-file-writer.js";
 import { buildAgentTraceBase } from "./trace-base.js";

@@ -37,9 +37,8 @@ explicitly turn it on in config. That prevents auto-select from hijacking TTS
 for users who have not started a local runtime yet.
 
 If you want CrawClaw to start a loopback sidecar automatically, set
-`providers.qwen3-tts.autoStart: true`. CrawClaw ships two bundled sidecars and
-uses the managed venv at `~/.crawclaw/runtimes/qwen3-tts/venv` when you do not
-provide an explicit launch command:
+`providers.qwen3-tts.autoStart: true`. Configure an explicit native runtime
+launch command for the sidecar you want to use:
 
 - macOS Apple Silicon uses the MLX sidecar and pinned `mlx-audio` packages.
 - Linux, Windows, and non-Apple-Silicon macOS use the official `qwen-tts`

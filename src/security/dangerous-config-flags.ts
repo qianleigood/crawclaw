@@ -8,9 +8,6 @@ export function collectEnabledInsecureOrDangerousFlags(cfg: CrawClawConfig): str
   if (cfg.gateway?.browserClients?.dangerouslyAllowHostHeaderOriginFallback === true) {
     enabledFlags.push("gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true");
   }
-  if (cfg.gateway?.browserClients?.dangerouslyDisableDeviceAuth === true) {
-    enabledFlags.push("gateway.browserClients.dangerouslyDisableDeviceAuth=true");
-  }
   if (cfg.hooks?.gmail?.allowUnsafeExternalContent === true) {
     enabledFlags.push("hooks.gmail.allowUnsafeExternalContent=true");
   }

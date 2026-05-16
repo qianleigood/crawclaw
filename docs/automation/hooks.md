@@ -195,7 +195,7 @@ Paths resolve relative to workspace. Only recognized bootstrap basenames are loa
 
 Typed Plugin SDK lifecycle hooks have been removed. Plugins no longer register
 `before_tool_call`, `before_agent_reply`, `before_install`, model resolution, or
-message-flow hooks through `api.on(...)`; use the internal hook and webhook
+message-flow hooks through the removed typed plugin API; use the internal hook and webhook
 systems on this page for operational automation.
 
 ## Configuration

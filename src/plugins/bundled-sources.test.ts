@@ -141,19 +141,14 @@ describe("bundled plugin sources", () => {
         rootDir: appBundledPluginRoot("acpx-dup"),
         packageName: "@crawclaw/acpx",
       }),
-      createBundledCandidate({
-        rootDir: appBundledPluginRoot("device-pair"),
-        packageName: "@crawclaw/device-pair",
-      }),
     ]);
     setBundledManifestIdsByRoot({
       [appBundledPluginRoot("acpx")]: "acpx",
-      [appBundledPluginRoot("device-pair")]: "device-pair",
     });
 
     const map = resolveBundledPluginSources({});
 
-    expect(Array.from(map.keys())).toEqual(["acpx", "device-pair"]);
+    expect(Array.from(map.keys())).toEqual(["acpx"]);
     expect(map.get("acpx")).toEqual(
       createResolvedBundledSource({
         pluginId: "acpx",

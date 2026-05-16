@@ -7,7 +7,7 @@ title: "Agent Runtime"
 
 # Agent Runtime
 
-CrawClaw runs a task-backed embedded agent runtime for each active run, while
+CrawClaw runs a task-backed Rust agent runtime for each active run, while
 supporting multiple configured top-level agents plus spawned sub-agent and ACP
 child runs.
 
@@ -67,9 +67,9 @@ Skills can be gated by config/env (see `skills` in [Gateway configuration](/gate
 
 ## Runtime boundaries
 
-The embedded agent runtime is built on the Pi agent core (models, tools, and
-prompt pipeline). Session management, discovery, tool wiring, and channel
-delivery are CrawClaw-owned layers on top of that core.
+The Rust agent runtime owns model selection, tool wiring, prompt assembly,
+session state, and transcript writes. TypeScript code on this path is limited
+to Gateway clients, channel projection, and UI-facing shells.
 
 ## Task-backed runtime
 

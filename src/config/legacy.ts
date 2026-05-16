@@ -30,7 +30,6 @@ function hasLegacyThreadBindingTtl(value: unknown): boolean {
 }
 
 const LEGACY_TTS_PROVIDER_KEYS = ["openai", "elevenlabs", "microsoft", "edge"] as const;
-const LEGACY_TTS_PLUGIN_IDS = new Set(["voice-call"]);
 
 function hasLegacyTtsProviderKeys(value: unknown): boolean {
   const tts = getRecord(value);
@@ -40,19 +39,25 @@ function hasLegacyTtsProviderKeys(value: unknown): boolean {
   return LEGACY_TTS_PROVIDER_KEYS.some((key) => hasOwnKey(tts, key));
 }
 
-function hasLegacyPluginEntryTtsProviderKeys(value: unknown): boolean {
-  const entries = getRecord(value);
+function findLegacyPluginEntryTtsIssues(root: Record<string, unknown>): LegacyConfigIssue[] {
+  const plugins = getRecord(root.plugins);
+  const entries = getRecord(plugins?.entries);
   if (!entries) {
-    return false;
+    return [];
   }
-  return Object.entries(entries).some(([pluginId, entryValue]) => {
-    if (!LEGACY_TTS_PLUGIN_IDS.has(pluginId)) {
-      return false;
+  for (const entry of Object.values(entries)) {
+    const config = getRecord(getRecord(entry)?.config);
+    if (config && hasLegacyTtsProviderKeys(config.tts)) {
+      return [
+        {
+          path: "plugins.entries",
+          message:
+            "plugins.entries.*.config.tts.<provider> keys were removed; use messages.tts.providers.<provider> or a Rust-native speech provider instead.",
+        },
+      ];
     }
-    const entry = getRecord(entryValue);
-    const config = getRecord(entry?.config);
-    return hasLegacyTtsProviderKeys(config?.tts);
-  });
+  }
+  return [];
 }
 
 function isLegacyGatewayBindHostAlias(value: unknown): boolean {
@@ -99,19 +104,13 @@ const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
   {
     path: ["heartbeat"],
     message:
-      "top-level heartbeat is not a valid config path; use cron for cadence, agents.defaults.heartbeat for event-driven wake settings, or channels.defaults.heartbeat for showOk/showAlerts/useIndicator.",
+      "top-level heartbeat is not a valid config path; use cron for cadence or agents.defaults.heartbeat for event-driven wake settings.",
   },
   {
     path: ["messages", "tts"],
     message:
       "messages.tts.<provider> keys (openai/elevenlabs/microsoft/edge) were removed; use messages.tts.providers.<provider> instead.",
     match: (value) => hasLegacyTtsProviderKeys(value),
-  },
-  {
-    path: ["plugins", "entries"],
-    message:
-      "plugins.entries.voice-call.config.tts.<provider> keys (openai/elevenlabs/microsoft/edge) were removed; use plugins.entries.voice-call.config.tts.providers.<provider> instead.",
-    match: (value) => hasLegacyPluginEntryTtsProviderKeys(value),
   },
 ];
 
@@ -139,6 +138,7 @@ export function findLegacyConfigIssues(raw: unknown, sourceRaw?: unknown): Legac
   }
 
   issues.push(...findLegacyWebSearchConfigIssues(root));
+  issues.push(...findLegacyPluginEntryTtsIssues(root));
   return issues;
 }
 

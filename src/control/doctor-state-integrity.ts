@@ -415,35 +415,6 @@ export function detectMacCloudSyncedStateDir(
   return null;
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
-
-function isPairingPolicy(value: unknown): boolean {
-  return typeof value === "string" && value.trim().toLowerCase() === "pairing";
-}
-
-function hasPairingPolicy(value: unknown): boolean {
-  if (!isRecord(value)) {
-    return false;
-  }
-  if (isPairingPolicy(value.dmPolicy)) {
-    return true;
-  }
-  if (isRecord(value.dm) && isPairingPolicy(value.dm.policy)) {
-    return true;
-  }
-  if (!isRecord(value.accounts)) {
-    return false;
-  }
-  for (const accountCfg of Object.values(value.accounts)) {
-    if (hasPairingPolicy(accountCfg)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 function isSlashRoutingSessionKey(sessionKey: string): boolean {
   const raw = sessionKey.trim().toLowerCase();
   if (!raw) {
@@ -453,24 +424,8 @@ function isSlashRoutingSessionKey(sessionKey: string): boolean {
   return /^[^:]+:slash:[^:]+(?:$|:)/.test(scoped);
 }
 
-function shouldRequireOAuthDir(cfg: CrawClawConfig, env: NodeJS.ProcessEnv): boolean {
-  if (env.CRAWCLAW_OAUTH_DIR?.trim()) {
-    return true;
-  }
-  const channels = cfg.channels;
-  if (!isRecord(channels)) {
-    return false;
-  }
-  // Pairing allowlists are persisted under credentials/<channel>-allowFrom.json.
-  for (const [channelId, channelCfg] of Object.entries(channels)) {
-    if (channelId === "defaults" || channelId === "modelByChannel") {
-      continue;
-    }
-    if (hasPairingPolicy(channelCfg)) {
-      return true;
-    }
-  }
-  return false;
+function shouldRequireOAuthDir(_cfg: CrawClawConfig, env: NodeJS.ProcessEnv): boolean {
+  return Boolean(env.CRAWCLAW_OAUTH_DIR?.trim());
 }
 
 export async function noteStateIntegrity(

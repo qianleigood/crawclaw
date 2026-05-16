@@ -7,7 +7,6 @@ import {
 import type { MsgContext } from "../../auto-reply/templating.js";
 import { writeTextAtomic } from "../../infra/json-files.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
-import { stopSharedDurableExtractionWorkerForSession } from "../../memory/durable/worker-manager.ts";
 import {
   deliveryContextFromSession,
   mergeDeliveryContext,
@@ -487,14 +486,14 @@ async function saveSessionStoreUnlocked(
       const removedSessionFiles = new Map<string, string | undefined>();
       const pruned = pruneStaleEntries(store, maintenance.pruneAfterMs, {
         onPruned: ({ key, entry }) => {
+          void key;
           rememberRemovedSessionFile(removedSessionFiles, entry);
-          void stopSharedDurableExtractionWorkerForSession(key);
         },
       });
       const capped = capEntryCount(store, maintenance.maxEntries, {
         onCapped: ({ key, entry }) => {
+          void key;
           rememberRemovedSessionFile(removedSessionFiles, entry);
-          void stopSharedDurableExtractionWorkerForSession(key);
         },
       });
       const archivedDirs = new Set<string>();

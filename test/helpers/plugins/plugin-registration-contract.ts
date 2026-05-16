@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  mediaUnderstandingProviderContractRegistry,
   pluginRegistrationContractRegistry,
   speechProviderContractRegistry,
 } from "../../../src/plugins/contracts/registry.js";
@@ -12,11 +11,8 @@ type PluginRegistrationContractParams = {
   webFetchProviderIds?: string[];
   webSearchProviderIds?: string[];
   speechProviderIds?: string[];
-  mediaUnderstandingProviderIds?: string[];
-  cliBackendIds?: string[];
   toolNames?: string[];
   requireSpeechVoices?: boolean;
-  requireDescribeImages?: boolean;
   manifestAuthChoice?: {
     pluginId: string;
     choiceId: string;
@@ -48,23 +44,6 @@ function findSpeechProvider(pluginId: string) {
   const entry = speechProviderContractRegistry.find((candidate) => candidate.pluginId === pluginId);
   if (!entry) {
     throw new Error(`speech provider contract missing for ${pluginId}`);
-  }
-  return entry.provider;
-}
-
-function findMediaUnderstandingProviderIds(pluginId: string) {
-  return mediaUnderstandingProviderContractRegistry
-    .filter((entry) => entry.pluginId === pluginId)
-    .map((entry) => entry.provider.id)
-    .toSorted((left, right) => left.localeCompare(right));
-}
-
-function findMediaUnderstandingProvider(pluginId: string) {
-  const entry = mediaUnderstandingProviderContractRegistry.find(
-    (candidate) => candidate.pluginId === pluginId,
-  );
-  if (!entry) {
-    throw new Error(`media-understanding provider contract missing for ${pluginId}`);
   }
   return entry.provider;
 }
@@ -102,23 +81,6 @@ export function describePluginRegistrationContract(params: PluginRegistrationCon
       });
     }
 
-    if (params.mediaUnderstandingProviderIds) {
-      it("keeps bundled media-understanding ownership explicit", () => {
-        expect(findRegistration(params.pluginId).mediaUnderstandingProviderIds).toEqual(
-          params.mediaUnderstandingProviderIds,
-        );
-        expect(findMediaUnderstandingProviderIds(params.pluginId)).toEqual(
-          params.mediaUnderstandingProviderIds,
-        );
-      });
-    }
-
-    if (params.cliBackendIds) {
-      it("keeps bundled CLI backend ownership explicit", () => {
-        expect(findRegistration(params.pluginId).cliBackendIds).toEqual(params.cliBackendIds);
-      });
-    }
-
     if (params.toolNames) {
       it("keeps bundled tool ownership explicit", () => {
         expect(findRegistration(params.pluginId).toolNames).toEqual(params.toolNames);
@@ -128,14 +90,6 @@ export function describePluginRegistrationContract(params: PluginRegistrationCon
     if (params.requireSpeechVoices) {
       it("keeps bundled speech voice-list support explicit", () => {
         expect(findSpeechProvider(params.pluginId).listVoices).toEqual(expect.any(Function));
-      });
-    }
-
-    if (params.requireDescribeImages) {
-      it("keeps bundled multi-image support explicit", () => {
-        expect(findMediaUnderstandingProvider(params.pluginId).describeImages).toEqual(
-          expect.any(Function),
-        );
       });
     }
 

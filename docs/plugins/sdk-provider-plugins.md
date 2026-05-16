@@ -11,8 +11,7 @@ read_when:
 # Provider Configuration
 
 CrawClaw no longer supports TypeScript model provider plugins. The old
-`api.registerProvider(...)`, `crawclaw/plugin-sdk/provider-entry`,
-`crawclaw/plugin-sdk/provider-model-shared`, provider catalog hooks, and
+TypeScript provider registration entrypoint, provider catalog hooks, and
 provider runtime hooks have been removed from the public Plugin SDK.
 
 Provider metadata, auth choices, model catalogs, config schema, and native
@@ -54,12 +53,13 @@ transport adapter enum, and model entry fields.
 
 ## Plugin boundary
 
-Plugins can still register tools, commands, services, channels, speech
-providers, media understanding providers, web fetch providers, and web search
-providers. They cannot register LLM providers or typed lifecycle hooks.
+TypeScript plugins no longer register production tools, commands, services,
+channels, speech providers, media-understanding providers, web fetch providers,
+web search providers, LLM providers, or typed lifecycle hooks.
 
-If a provider needs to become built-in, add it to the Rust provider registry
-and keep its TypeScript package limited to non-provider capabilities.
+If a provider needs to become built-in, add it to the Rust provider registry or
+the appropriate Rust native plugin registry. Keep any TypeScript package limited
+to metadata/config helpers.
 
 ## Related
 

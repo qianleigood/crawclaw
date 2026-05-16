@@ -461,21 +461,6 @@ jobs:
         continue-on-error: true
         run: pnpm run lint:plugins:no-extension-imports
 
-      - name: Run no-random-messaging guard
-        id: no_random_messaging
-        continue-on-error: true
-        run: pnpm run lint:tmp:no-random-messaging
-
-      - name: Run channel-agnostic boundary guard
-        id: channel_agnostic_boundaries
-        continue-on-error: true
-        run: pnpm run lint:tmp:channel-agnostic-boundaries
-
-      - name: Run no-raw-channel-fetch guard
-        id: no_raw_channel_fetch
-        continue-on-error: true
-        run: pnpm run lint:tmp:no-raw-channel-fetch
-
       - name: Run ingress owner guard
         id: ingress_owner
         continue-on-error: true
@@ -553,9 +538,6 @@ jobs:
         if: always()
         env:
           PLUGIN_EXTENSION_BOUNDARY_OUTCOME: ${{ steps.plugin_extension_boundary.outcome }}
-          NO_RANDOM_MESSAGING_OUTCOME: ${{ steps.no_random_messaging.outcome }}
-          CHANNEL_AGNOSTIC_BOUNDARIES_OUTCOME: ${{ steps.channel_agnostic_boundaries.outcome }}
-          NO_RAW_CHANNEL_FETCH_OUTCOME: ${{ steps.no_raw_channel_fetch.outcome }}
           INGRESS_OWNER_OUTCOME: ${{ steps.ingress_owner.outcome }}
           NO_REGISTER_HTTP_HANDLER_OUTCOME: ${{ steps.no_register_http_handler.outcome }}
           NO_MONOLITHIC_PLUGIN_SDK_ENTRY_IMPORTS_OUTCOME: ${{ steps.no_monolithic_plugin_sdk_entry_imports.outcome }}
@@ -573,9 +555,6 @@ jobs:
           failures=0
           for result in \
             "plugin-extension-boundary|$PLUGIN_EXTENSION_BOUNDARY_OUTCOME" \
-            "lint:tmp:no-random-messaging|$NO_RANDOM_MESSAGING_OUTCOME" \
-            "lint:tmp:channel-agnostic-boundaries|$CHANNEL_AGNOSTIC_BOUNDARIES_OUTCOME" \
-            "lint:tmp:no-raw-channel-fetch|$NO_RAW_CHANNEL_FETCH_OUTCOME" \
             "lint:agent:ingress-owner|$INGRESS_OWNER_OUTCOME" \
             "lint:plugins:no-register-http-handler|$NO_REGISTER_HTTP_HANDLER_OUTCOME" \
             "lint:plugins:no-monolithic-plugin-sdk-entry-imports|$NO_MONOLITHIC_PLUGIN_SDK_ENTRY_IMPORTS_OUTCOME" \

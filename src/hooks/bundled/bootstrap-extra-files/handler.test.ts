@@ -3,7 +3,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../../../config/config.js";
 import { makeTempWorkspace, writeWorkspaceFile } from "../../../test-helpers/workspace.js";
-import type { AgentBootstrapHookContext } from "../../hooks.js";
+import type { AgentBootstrapToolCallPreflightContext } from "../../hooks.js";
 import { createHookEvent } from "../../hooks.js";
 import handler from "./handler.js";
 
@@ -27,7 +27,7 @@ async function createBootstrapContext(params: {
   cfg: CrawClawConfig;
   sessionKey: string;
   rootFiles: Array<{ name: string; content: string }>;
-}): Promise<AgentBootstrapHookContext> {
+}): Promise<AgentBootstrapToolCallPreflightContext> {
   const bootstrapFiles = (await Promise.all(
     params.rootFiles.map(async (file) => ({
       name: file.name,
@@ -39,7 +39,7 @@ async function createBootstrapContext(params: {
       content: file.content,
       missing: false,
     })),
-  )) as AgentBootstrapHookContext["bootstrapFiles"];
+  )) as AgentBootstrapToolCallPreflightContext["bootstrapFiles"];
   return {
     workspaceDir: params.workspaceDir,
     bootstrapFiles,

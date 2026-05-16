@@ -1,16 +1,16 @@
 ---
 title: "Dependency Maintenance"
-summary: "Maintainer workflow for plugin dependency baselines, core skill dependencies, and install-time runtime setup"
+summary: "Maintainer workflow for plugin dependency baselines and core skill dependencies"
 read_when:
   - You add, remove, rename, publish, or repackage a bundled plugin
-  - You change plugin package dependencies, staged runtime dependencies, managed plugin runtimes, or bundled core skill runtime requirements
-  - You need to verify Python runtime requirements for install setup
+  - You change plugin package dependencies, staged runtime dependencies, or bundled core skill runtime requirements
+  - You need to verify Python requirement lockfiles
 ---
 
 # Dependency Maintenance
 
 The plugin dependency plan is a read-only generated baseline for the dependency
-surface owned by bundled plugins, managed plugin runtimes, and bundled core skill helper runtimes.
+surface owned by bundled plugins and bundled core skill helper runtimes.
 
 It is generated from source metadata. It does not install packages, activate
 plugins, import plugin runtime code, or modify runtime state.
@@ -31,7 +31,6 @@ The plan covers:
 - each tracked bundled plugin `package.json` dependency section
 - released plugin `crawclaw.install.npmSpec` metadata
 - `crawclaw.bundle.stageRuntimeDependencies` metadata
-- install-time managed runtimes from `scripts/install-plugin-runtimes.mjs`
 - bundled core skill Python package pins from
   `skills/.runtime/requirements.lock.txt`
 - `openai-whisper` Apple Silicon package pins from
@@ -69,31 +68,21 @@ Treat plugin dependency setup as four separate layers:
 - Bundled plugin JavaScript dependencies live in each plugin package.
 - Staged bundled plugin dependencies are explicitly marked by
   `crawclaw.bundle.stageRuntimeDependencies`.
-- Managed runtimes are prepared by `scripts/install-plugin-runtimes.mjs`
-  during install or repair flows.
+- Python sidecars and external tools must be owned by Rust/native runtime
+  descriptors or explicit user configuration, not install-time TS repair flows.
 
 Do not move plugin-only dependencies into the root package unless core code
 imports them directly.
 
-## Python Runtime Policy
+## Python Requirement Policy
 
-Python is currently a managed runtime concern for `core-skills`, `scrapling-fetch`,
-`notebooklm-mcp-cli`, and Apple Silicon `skill-openai-whisper`.
+The generated plan records locked Python packages from committed requirement
+lockfiles. CrawClaw no longer has an install-time managed plugin runtime
+installer; runtime launch and sidecar ownership must stay in Rust/native
+runtime code or explicit user configuration.
 
-The generated plan records the policy from `scripts/install-plugin-runtimes.mjs`:
-
-- minimum Python version per runtime
-- override environment variables such as `CRAWCLAW_RUNTIME_PYTHON`,
-  `CRAWCLAW_CORE_SKILLS_PYTHON`, `CRAWCLAW_SCRAPLING_PYTHON`, and
-  `CRAWCLAW_NOTEBOOKLM_PYTHON`
-- interpreter candidates discovered by the installer
-- platform/architecture install-time policy, such as `skill-openai-whisper`
-  only installing on `darwin/arm64`
-- Windows-only extra package pins such as `msvc-runtime`
-- locked Python packages from the runtime requirement lockfiles above
-
-If the Python policy changes, update the installer and locked requirements first,
-then run `pnpm plugin-deps:gen`.
+If the Python policy changes, update the owning Rust/native runtime descriptor
+and locked requirements first, then run `pnpm plugin-deps:gen`.
 
 ## Review Checklist
 

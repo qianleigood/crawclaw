@@ -182,51 +182,6 @@ async function safeAclReset(params: {
   }
 }
 
-function setGroupPolicyAllowlist(params: {
-  cfg: CrawClawConfig;
-  channel: string;
-  changes: string[];
-  policyFlips: Set<string>;
-}): void {
-  if (!params.cfg.channels) {
-    return;
-  }
-  const section = params.cfg.channels[params.channel as keyof CrawClawConfig["channels"]] as
-    | Record<string, unknown>
-    | undefined;
-  if (!section || typeof section !== "object") {
-    return;
-  }
-
-  const topPolicy = section.groupPolicy;
-  if (topPolicy === "open") {
-    section.groupPolicy = "allowlist";
-    params.changes.push(`channels.${params.channel}.groupPolicy=open -> allowlist`);
-    params.policyFlips.add(`channels.${params.channel}.`);
-  }
-
-  const accounts = section.accounts;
-  if (!accounts || typeof accounts !== "object") {
-    return;
-  }
-  for (const [accountId, accountValue] of Object.entries(accounts)) {
-    if (!accountId) {
-      continue;
-    }
-    if (!accountValue || typeof accountValue !== "object") {
-      continue;
-    }
-    const account = accountValue as Record<string, unknown>;
-    if (account.groupPolicy === "open") {
-      account.groupPolicy = "allowlist";
-      params.changes.push(
-        `channels.${params.channel}.accounts.${accountId}.groupPolicy=open -> allowlist`,
-      );
-      params.policyFlips.add(`channels.${params.channel}.accounts.${accountId}.`);
-    }
-  }
-}
-
 function applyConfigFixes(params: { cfg: CrawClawConfig; env: NodeJS.ProcessEnv }): {
   cfg: CrawClawConfig;
   changes: string[];
@@ -239,10 +194,6 @@ function applyConfigFixes(params: { cfg: CrawClawConfig; env: NodeJS.ProcessEnv 
   if (next.logging?.redactSensitive === "off") {
     next.logging = { ...next.logging, redactSensitive: "tools" };
     changes.push('logging.redactSensitive=off -> "tools"');
-  }
-
-  for (const channel of ["ddingtalk", "esp32", "feishu", "qqbot", "weixin", "wecom"]) {
-    setGroupPolicyAllowlist({ cfg: next, channel, changes, policyFlips });
   }
 
   return { cfg: next, changes, policyFlips };

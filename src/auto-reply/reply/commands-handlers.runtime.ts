@@ -16,7 +16,6 @@ import {
 } from "./commands-info.js";
 import { handleMcpCommand } from "./commands-mcp.js";
 import { handleModelsCommand } from "./commands-models.js";
-import { handlePluginCommand } from "./commands-plugin.js";
 import { handlePluginsCommand } from "./commands-plugins.js";
 import { handleQueryCommand } from "./commands-query.js";
 import { handleReviewCommand } from "./commands-review.js";
@@ -25,7 +24,6 @@ import {
   handleActivationCommand,
   handleFastCommand,
   handleRestartCommand,
-  handleSendPolicyCommand,
   handleSessionCommand,
   handleStopCommand,
   handleUsageCommand,
@@ -38,11 +36,9 @@ import { handleWorkflowCommand } from "./commands-workflow.js";
 
 export function loadCommandHandlers(): CommandHandler[] {
   return [
-    handlePluginCommand,
     handleBtwCommand,
     handleBashCommand,
     handleActivationCommand,
-    handleSendPolicyCommand,
     handleFastCommand,
     handleUsageCommand,
     handleSessionCommand,

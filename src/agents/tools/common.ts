@@ -1,12 +1,12 @@
 import fs from "node:fs/promises";
-import type { AgentTool, AgentToolResult } from "@mariozechner/pi-agent-core";
 import { detectMime } from "../../media/mime.js";
 import { readSnakeCaseParamRaw } from "../../param-key.js";
+import type { AgentTool, AgentToolResult } from "../agent-types.js";
 import type { ImageSanitizationLimits } from "../image-sanitization.js";
 import { sanitizeToolResultImages } from "../tool-images.js";
 
 // oxlint-disable-next-line typescript/no-explicit-any
-export type AnyAgentTool = AgentTool<any, unknown> & {
+export type AnyAgentTool = AgentTool<any> & {
   ownerOnly?: boolean;
   displaySummary?: string;
 };
@@ -259,7 +259,7 @@ export function payloadTextResult<TDetails>(payload: TDetails): AgentToolResult<
   return textResult(stringifyToolPayload(payload), payload);
 }
 
-export function jsonResult(payload: unknown): AgentToolResult<unknown> {
+export function jsonResult(payload: unknown): AgentToolResult {
   return textResult(JSON.stringify(payload, null, 2), payload);
 }
 
@@ -286,8 +286,8 @@ export async function imageResult(params: {
   extraText?: string;
   details?: Record<string, unknown>;
   imageSanitization?: ImageSanitizationLimits;
-}): Promise<AgentToolResult<unknown>> {
-  const content: AgentToolResult<unknown>["content"] = [
+}): Promise<AgentToolResult> {
+  const content: AgentToolResult["content"] = [
     ...(params.extraText ? [{ type: "text" as const, text: params.extraText }] : []),
     {
       type: "image",
@@ -301,7 +301,7 @@ export async function imageResult(params: {
     !Array.isArray(params.details.media)
       ? (params.details.media as Record<string, unknown>)
       : undefined;
-  const result: AgentToolResult<unknown> = {
+  const result: AgentToolResult = {
     content,
     details: {
       path: params.path,
@@ -321,7 +321,7 @@ export async function imageResultFromFile(params: {
   extraText?: string;
   details?: Record<string, unknown>;
   imageSanitization?: ImageSanitizationLimits;
-}): Promise<AgentToolResult<unknown>> {
+}): Promise<AgentToolResult> {
   const buf = await fs.readFile(params.path);
   const mimeType = (await detectMime({ buffer: buf.slice(0, 256) })) ?? "image/png";
   return await imageResult({

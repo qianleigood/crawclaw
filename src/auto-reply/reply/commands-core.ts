@@ -1,29 +1,15 @@
 import { logVerbose } from "../../globals.js";
-import { getGlobalHookRunner } from "../../plugins/hook-runner-global.js";
-import { resolveAgentIdFromSessionKey } from "../../routing/session-key.js";
-import {
-  emitBeforeResetPluginHook,
-  loadBeforeResetTranscript,
-} from "../../sessions/runtime/before-reset-hook.js";
 import { emitResetInternalHook } from "../../sessions/runtime/reset-internal-hook.js";
-import { resolveSendPolicy } from "../../sessions/send-policy.js";
 import { localizeSlashCommandReplyText } from "../commands-i18n.js";
 import { shouldHandleTextCommands } from "../commands-registry.js";
-import { handleAcpResetInPlace } from "./acp-reset-adapter.js";
 import type {
   CommandHandler,
   CommandHandlerResult,
   HandleCommandsParams,
 } from "./commands-types.js";
 
-let routeReplyRuntimePromise: Promise<typeof import("./route-reply.runtime.js")> | null = null;
 let commandHandlersRuntimePromise: Promise<typeof import("./commands-handlers.runtime.js")> | null =
   null;
-
-function loadRouteReplyRuntime() {
-  routeReplyRuntimePromise ??= import("./route-reply.runtime.js");
-  return routeReplyRuntimePromise;
-}
 
 function loadCommandHandlersRuntime() {
   commandHandlersRuntimePromise ??= import("./commands-handlers.runtime.js");
@@ -63,44 +49,7 @@ export async function emitResetCommandHooks(params: {
   });
   params.command.resetHookTriggered = true;
 
-  // Send hook messages immediately if present
-  if (hookEvent.messages.length > 0) {
-    // Use OriginatingChannel/To if available, otherwise fall back to command channel/from
-    // oxlint-disable-next-line typescript/no-explicit-any
-    const channel = params.ctx.OriginatingChannel || (params.command.channel as any);
-    // For replies, use 'from' (the sender) not 'to' (which might be the bot itself)
-    const to = params.ctx.OriginatingTo || params.command.from || params.command.to;
-
-    if (channel && to) {
-      const { routeReply } = await loadRouteReplyRuntime();
-      const hookReply = { text: hookEvent.messages.join("\n\n") };
-      await routeReply({
-        payload: hookReply,
-        channel: channel,
-        to: to,
-        sessionKey: params.sessionKey,
-        accountId: params.ctx.AccountId,
-        threadId: params.ctx.MessageThreadId,
-        cfg: params.cfg,
-      });
-    }
-  }
-
-  // Fire before_reset plugin hook — extract memories before session history is lost
-  const hookRunner = getGlobalHookRunner();
-  const prevEntry = params.previousSessionEntry;
-  emitBeforeResetPluginHook({
-    hookRunner: hookRunner ?? undefined,
-    loadMessages: async () =>
-      await loadBeforeResetTranscript({
-        sessionFile: prevEntry?.sessionFile,
-      }),
-    reason: params.action,
-    agentId: resolveAgentIdFromSessionKey(params.sessionKey),
-    sessionKey: params.sessionKey,
-    sessionId: prevEntry?.sessionId,
-    workspaceDir: params.workspaceDir,
-  });
+  void hookEvent;
 }
 
 export async function handleCommands(params: HandleCommandsParams): Promise<CommandHandlerResult> {
@@ -117,19 +66,6 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
   // Trigger internal hook for reset/new commands
   if (resetRequested && params.command.isAuthorizedSender) {
     const commandAction: ResetCommandAction = "new";
-    const resetTail =
-      resetMatch != null
-        ? params.command.commandBodyNormalized.slice(resetMatch[0].length).trimStart()
-        : "";
-    const acpResetResult = await handleAcpResetInPlace({
-      commandAction,
-      commandParams: params,
-      resetTail,
-      emitResetCommandHooks,
-    });
-    if (acpResetResult) {
-      return acpResetResult;
-    }
     await emitResetCommandHooks({
       action: commandAction,
       ctx: params.ctx,
@@ -162,18 +98,6 @@ export async function handleCommands(params: HandleCommandsParams): Promise<Comm
       }
       return result;
     }
-  }
-
-  const sendPolicy = resolveSendPolicy({
-    cfg: params.cfg,
-    entry: params.sessionEntry,
-    sessionKey: params.sessionKey,
-    channel: params.sessionEntry?.channel ?? params.command.channel,
-    chatType: params.sessionEntry?.chatType,
-  });
-  if (sendPolicy === "deny") {
-    logVerbose(`Send blocked by policy for session ${params.sessionKey ?? "unknown"}`);
-    return { shouldContinue: false };
   }
 
   return { shouldContinue: true };

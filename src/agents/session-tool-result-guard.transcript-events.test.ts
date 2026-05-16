@@ -1,11 +1,11 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import { SessionManager } from "@mariozechner/pi-coding-agent";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   onSessionTranscriptUpdate,
   type SessionTranscriptUpdate,
 } from "../sessions/transcript-events.js";
+import type { AgentMessage } from "./agent-types.js";
 import { guardSessionManager } from "./session-tool-result-guard-wrapper.js";
+import { createInMemorySessionManager } from "./test-helpers/in-memory-session-manager.js";
 
 const listeners: Array<() => void> = [];
 
@@ -20,7 +20,7 @@ describe("guardSessionManager transcript updates", () => {
     const updates: SessionTranscriptUpdate[] = [];
     listeners.push(onSessionTranscriptUpdate((update) => updates.push(update)));
 
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const sessionFile = "/tmp/crawclaw-session-message-events.jsonl";
     Object.assign(sm, {
       getSessionFile: () => sessionFile,
@@ -54,7 +54,7 @@ describe("guardSessionManager transcript updates", () => {
     const updates: SessionTranscriptUpdate[] = [];
     listeners.push(onSessionTranscriptUpdate((update) => updates.push(update)));
 
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const sessionFile = "/tmp/crawclaw-session-tool-result-events.jsonl";
     Object.assign(sm, {
       getSessionFile: () => sessionFile,

@@ -1,6 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
-  AUTH_RATE_LIMIT_SCOPE_DEVICE_TOKEN,
   AUTH_RATE_LIMIT_SCOPE_HOOK_AUTH,
   AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET,
   createAuthRateLimiter,
@@ -144,7 +143,7 @@ describe("auth rate limiter", () => {
     expect(limiter.check("::ffff:1.2.3.4").allowed).toBe(false);
   });
 
-  it.each([AUTH_RATE_LIMIT_SCOPE_DEVICE_TOKEN, AUTH_RATE_LIMIT_SCOPE_HOOK_AUTH])(
+  it.each(["custom-scope", AUTH_RATE_LIMIT_SCOPE_HOOK_AUTH])(
     "tracks %s independently from shared-secret for the same IP",
     (otherScope) => {
       limiter = createAuthRateLimiter({ maxAttempts: 1, windowMs: 60_000, lockoutMs: 60_000 });
@@ -189,13 +188,13 @@ describe("auth rate limiter", () => {
   it("reset only clears the requested scope for an IP", () => {
     limiter = createAuthRateLimiter({ maxAttempts: 1, windowMs: 60_000, lockoutMs: 60_000 });
     limiter.recordFailure("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET);
-    limiter.recordFailure("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_DEVICE_TOKEN);
+    limiter.recordFailure("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_HOOK_AUTH);
     expect(limiter.check("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET).allowed).toBe(false);
-    expect(limiter.check("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_DEVICE_TOKEN).allowed).toBe(false);
+    expect(limiter.check("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_HOOK_AUTH).allowed).toBe(false);
 
     limiter.reset("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET);
     expect(limiter.check("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET).allowed).toBe(true);
-    expect(limiter.check("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_DEVICE_TOKEN).allowed).toBe(false);
+    expect(limiter.check("10.0.0.21", AUTH_RATE_LIMIT_SCOPE_HOOK_AUTH).allowed).toBe(false);
   });
 
   // ---------- prune ----------

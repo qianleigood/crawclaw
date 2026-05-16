@@ -26,7 +26,6 @@ describe("ensureRuntimePluginsLoaded", () => {
     ensureRuntimePluginsLoaded({
       config: {} as never,
       workspaceDir: "/tmp/workspace",
-      allowGatewaySubagentBinding: true,
     });
 
     expect(hoisted.resolveRuntimePluginRegistry).toHaveBeenCalledTimes(1);
@@ -36,15 +35,11 @@ describe("ensureRuntimePluginsLoaded", () => {
     ensureRuntimePluginsLoaded({
       config: {} as never,
       workspaceDir: "/tmp/workspace",
-      allowGatewaySubagentBinding: true,
     });
 
     expect(hoisted.resolveRuntimePluginRegistry).toHaveBeenCalledWith({
       config: {} as never,
       workspaceDir: "/tmp/workspace",
-      runtimeOptions: {
-        allowGatewaySubagentBinding: true,
-      },
     });
   });
 });

@@ -1,4 +1,4 @@
-import type { ChatType } from "../channels/chat-type.js";
+export type ChatType = "direct" | "group" | "channel" | "thread" | "room";
 
 export type ReplyMode = "text" | "command";
 export type TypingMode = "never" | "instant" | "thinking" | "message";
@@ -217,7 +217,7 @@ export type WebReconnectConfig = {
 };
 
 export type WebConfig = {
-  /** If false, do not start the legacy web channel provider. Default: true. */
+  /** If false, do not start the web chat provider. Default: true. */
   enabled?: boolean;
   heartbeatSeconds?: number;
   reconnect?: WebReconnectConfig;

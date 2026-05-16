@@ -28,12 +28,10 @@ const requiredPathGroups = [
   ...listStaticExtensionAssetOutputs(),
   "docs/reference/templates/AGENTS.md",
   "extensions/scrapling-fetch/runtime/requirements.lock.txt",
-  "scripts/install-plugin-runtimes.mjs",
   "scripts/npm-runner.mjs",
   "scripts/postinstall-bundled-plugins.mjs",
   "skills/coding-agent/SKILL.md",
   "dist/build-info.json",
-  "dist/channel-catalog.json",
 ];
 const forbiddenPrefixes = ["dist-runtime/"];
 // 2026.3.12 ballooned to ~213.6 MiB unpacked and correlated with low-memory
@@ -250,7 +248,6 @@ const requiredPluginSdkExports = [
   "emptyPluginConfigSchema",
   "onDiagnosticEvent",
   "normalizePluginHttpPath",
-  "registerPluginHttpRoute",
   "DEFAULT_ACCOUNT_ID",
   "DEFAULT_GROUP_HISTORY_LIMIT",
 ];

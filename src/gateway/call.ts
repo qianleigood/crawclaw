@@ -13,7 +13,6 @@ import {
   resolveStateDir as resolveStateDirFromPaths,
 } from "../config/paths.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
-import { loadOrCreateDeviceIdentity } from "../infra/device-identity.js";
 import { loadGatewayTlsRuntime } from "../infra/tls/gateway.js";
 import { resolveSecretInputString } from "../secrets/resolve-secret-input-string.js";
 import {
@@ -21,7 +20,7 @@ import {
   GATEWAY_CLIENT_NAMES,
   type GatewayClientMode,
   type GatewayClientName,
-} from "../utils/message-channel.js";
+} from "../utils/gateway-client-surface.js";
 import { VERSION } from "../version.js";
 import { GatewayClient, type GatewayClientOptions } from "./client.js";
 import {
@@ -87,7 +86,6 @@ const defaultCreateGatewayClient = (opts: GatewayClientOptions) => new GatewayCl
 const defaultGatewayCallDeps = {
   createGatewayClient: defaultCreateGatewayClient,
   loadConfig,
-  loadOrCreateDeviceIdentity,
   resolveGatewayPort,
   resolveConfigPath,
   resolveStateDir,
@@ -151,8 +149,6 @@ export const __testing = {
     gatewayCallDeps.createGatewayClient =
       deps?.createGatewayClient ?? defaultGatewayCallDeps.createGatewayClient;
     gatewayCallDeps.loadConfig = deps?.loadConfig ?? defaultGatewayCallDeps.loadConfig;
-    gatewayCallDeps.loadOrCreateDeviceIdentity =
-      deps?.loadOrCreateDeviceIdentity ?? defaultGatewayCallDeps.loadOrCreateDeviceIdentity;
     gatewayCallDeps.resolveGatewayPort =
       deps?.resolveGatewayPort ?? defaultGatewayCallDeps.resolveGatewayPort;
     gatewayCallDeps.resolveConfigPath =
@@ -169,28 +165,12 @@ export const __testing = {
   resetDepsForTests(): void {
     gatewayCallDeps.createGatewayClient = defaultGatewayCallDeps.createGatewayClient;
     gatewayCallDeps.loadConfig = defaultGatewayCallDeps.loadConfig;
-    gatewayCallDeps.loadOrCreateDeviceIdentity = defaultGatewayCallDeps.loadOrCreateDeviceIdentity;
     gatewayCallDeps.resolveGatewayPort = defaultGatewayCallDeps.resolveGatewayPort;
     gatewayCallDeps.resolveConfigPath = defaultGatewayCallDeps.resolveConfigPath;
     gatewayCallDeps.resolveStateDir = defaultGatewayCallDeps.resolveStateDir;
     gatewayCallDeps.loadGatewayTlsRuntime = defaultGatewayCallDeps.loadGatewayTlsRuntime;
   },
 };
-
-function resolveDeviceIdentityForGatewayCall(): ReturnType<
-  typeof loadOrCreateDeviceIdentity
-> | null {
-  // Shared-auth local calls should still stay device-bound so operator scopes
-  // remain available for detail RPCs such as status / system-presence /
-  // last-main-session-wake.
-  try {
-    return gatewayCallDeps.loadOrCreateDeviceIdentity();
-  } catch {
-    // Read-only or restricted environments should still be able to call the
-    // gateway with token/password auth without crashing before the RPC.
-    return null;
-  }
-}
 
 export type ExplicitGatewayAuth = {
   token?: string;
@@ -219,7 +199,7 @@ export function ensureExplicitGatewayAuth(params: {
     return;
   }
   // URL overrides are untrusted redirects and can move WebSocket traffic off the intended host.
-  // Never allow an override to silently reuse implicit credentials or device token fallback.
+  // Never allow an override to silently reuse implicit credentials.
   const explicitToken = params.explicitAuth?.token;
   const explicitPassword = params.explicitAuth?.password;
   if (params.urlOverrideSource === "cli" && (explicitToken || explicitPassword)) {
@@ -231,7 +211,6 @@ export function ensureExplicitGatewayAuth(params: {
     explicitToken ||
     explicitPassword;
   // Env overrides are supported for deployment ergonomics, but only when explicit auth is available.
-  // This avoids implicit device-token fallback against attacker-controlled WSS endpoints.
   if (params.urlOverrideSource === "env" && hasResolvedAuth) {
     return;
   }
@@ -829,7 +808,6 @@ async function executeGatewayRequestWithScopes<T>(params: {
       mode: opts.mode ?? GATEWAY_CLIENT_MODES.CLI,
       role: "operator",
       scopes,
-      deviceIdentity: resolveDeviceIdentityForGatewayCall(),
       minProtocol: opts.minProtocol ?? PROTOCOL_VERSION,
       maxProtocol: opts.maxProtocol ?? PROTOCOL_VERSION,
       onHelloOk: async (hello) => {

@@ -1,177 +1,43 @@
-import { resolveSessionAgentId } from "../../agents/agent-scope.js";
-import { resolveEffectiveToolInventory } from "../../agents/tools-effective-inventory.js";
-import { resolveReplyToMode } from "../../channels/reply-to-mode.js";
-import { logVerbose } from "../../globals.js";
-import { translateSlashCommandText } from "../commands-i18n.js";
-import { listSkillCommandsForAgents } from "../skill-commands.js";
 import { buildCommandsMessage, buildHelpMessage, buildToolsMessage } from "../status.js";
-import { buildThreadingToolContext } from "./agent-runner-utils.js";
-import { buildContextReply } from "./commands-context-report.js";
-import { buildExportSessionReply } from "./commands-export-session.js";
 import { buildStatusReply } from "./commands-status.js";
 import type { CommandHandler } from "./commands-types.js";
-import { extractExplicitGroupId } from "./group-id.js";
 
-export const handleHelpCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
-    return null;
-  }
+export const handleHelpCommand: CommandHandler = async (params) => {
   if (params.command.commandBodyNormalized !== "/help") {
     return null;
   }
-  if (!params.command.isAuthorizedSender) {
-    logVerbose(
-      `Ignoring /help from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
-    );
-    return { shouldContinue: false };
-  }
-  return {
-    shouldContinue: false,
-    reply: { text: buildHelpMessage(params.cfg) },
-  };
+  return { shouldContinue: false, reply: { text: buildHelpMessage(params.cfg) } };
 };
 
-export const handleCommandsListCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
-    return null;
-  }
+export const handleCommandsListCommand: CommandHandler = async (params) => {
   if (params.command.commandBodyNormalized !== "/commands") {
     return null;
   }
-  if (!params.command.isAuthorizedSender) {
-    logVerbose(
-      `Ignoring /commands from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
-    );
-    return { shouldContinue: false };
-  }
-  const skillCommands =
-    params.skillCommands ??
-    listSkillCommandsForAgents({
-      cfg: params.cfg,
-      agentIds: params.agentId ? [params.agentId] : undefined,
-    });
-  const surface = params.ctx.Surface;
-
   return {
     shouldContinue: false,
-    reply: { text: buildCommandsMessage(params.cfg, skillCommands, { surface }) },
+    reply: { text: buildCommandsMessage(params.cfg, params.skillCommands) },
   };
 };
 
-export const handleToolsCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
+export const handleToolsCommand: CommandHandler = async (params) => {
+  if (params.command.commandBodyNormalized !== "/tools") {
     return null;
   }
-  const normalized = params.command.commandBodyNormalized;
-  let verbose = false;
-  if (normalized === "/tools" || normalized === "/tools compact") {
-    verbose = false;
-  } else if (normalized === "/tools verbose") {
-    verbose = true;
-  } else if (normalized.startsWith("/tools ")) {
-    return {
-      shouldContinue: false,
-      reply: { text: translateSlashCommandText("Usage: /tools [compact|verbose]", params.cfg) },
-    };
-  } else {
-    return null;
-  }
-  if (!params.command.isAuthorizedSender) {
-    logVerbose(
-      `Ignoring /tools from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
-    );
-    return { shouldContinue: false };
-  }
-
-  try {
-    const agentId =
-      params.agentId ??
-      resolveSessionAgentId({ sessionKey: params.sessionKey, config: params.cfg });
-    const threadingContext = buildThreadingToolContext({
-      sessionCtx: params.ctx,
-      config: params.cfg,
-      hasRepliedRef: undefined,
-    });
-    const result = resolveEffectiveToolInventory({
-      cfg: params.cfg,
-      sessionEntry: params.sessionEntry,
-      agentId,
-      sessionKey: params.sessionKey,
-      workspaceDir: params.workspaceDir,
-      agentDir: params.agentDir,
-      modelProvider: params.provider,
-      modelId: params.model,
-      messageProvider: params.command.channel,
-      senderIsOwner: params.command.senderIsOwner,
-      senderId: params.command.senderId,
-      senderName: params.ctx.SenderName,
-      senderUsername: params.ctx.SenderUsername,
-      senderE164: params.ctx.SenderE164,
-      accountId: params.ctx.AccountId,
-      currentChannelId: threadingContext.currentChannelId,
-      currentThreadTs:
-        typeof params.ctx.MessageThreadId === "string" ||
-        typeof params.ctx.MessageThreadId === "number"
-          ? String(params.ctx.MessageThreadId)
-          : undefined,
-      currentMessageId: threadingContext.currentMessageId,
-      groupId: params.sessionEntry?.groupId ?? extractExplicitGroupId(params.ctx.From),
-      groupChannel:
-        params.sessionEntry?.groupChannel ?? params.ctx.GroupChannel ?? params.ctx.GroupSubject,
-      groupSpace: params.sessionEntry?.space ?? params.ctx.GroupSpace,
-      replyToMode: resolveReplyToMode(
-        params.cfg,
-        params.ctx.OriginatingChannel ?? params.ctx.Provider,
-        params.ctx.AccountId,
-        params.ctx.ChatType,
-      ),
-    });
-    return {
-      shouldContinue: false,
-      reply: { text: buildToolsMessage(result, { verbose, cfg: params.cfg }) },
-    };
-  } catch (err) {
-    const message = String(err);
-    const text = message.includes("missing scope:")
-      ? translateSlashCommandText(
-          "You do not have permission to view available tools.",
-          params.cfg,
-          "你没有权限查看可用工具。",
-        )
-      : translateSlashCommandText(
-          "Couldn't load available tools right now. Try again in a moment.",
-          params.cfg,
-          "现在无法加载可用工具。请稍后重试。",
-        );
-    return {
-      shouldContinue: false,
-      reply: { text },
-    };
-  }
+  return { shouldContinue: false, reply: { text: buildToolsMessage() } };
 };
 
-export const handleStatusCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
+export const handleStatusCommand: CommandHandler = async (params) => {
+  if (params.command.commandBodyNormalized !== "/status") {
     return null;
-  }
-  const statusRequested =
-    params.directives.hasStatusDirective || params.command.commandBodyNormalized === "/status";
-  if (!statusRequested) {
-    return null;
-  }
-  if (!params.command.isAuthorizedSender) {
-    logVerbose(
-      `Ignoring /status from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
-    );
-    return { shouldContinue: false };
   }
   const reply = await buildStatusReply({
     cfg: params.cfg,
     command: params.command,
     sessionEntry: params.sessionEntry,
     sessionKey: params.sessionKey,
-    parentSessionKey: params.ctx.ParentSessionKey,
+    parentSessionKey: params.sessionEntry?.parentSessionKey,
     sessionScope: params.sessionScope,
+    storePath: params.storePath,
     provider: params.provider,
     model: params.model,
     contextTokens: params.contextTokens,
@@ -182,81 +48,20 @@ export const handleStatusCommand: CommandHandler = async (params, allowTextComma
     resolveDefaultThinkingLevel: params.resolveDefaultThinkingLevel,
     isGroup: params.isGroup,
     defaultGroupActivation: params.defaultGroupActivation,
-    mediaDecisions: params.ctx.MediaUnderstandingDecisions,
   });
   return { shouldContinue: false, reply };
 };
 
-export const handleContextCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
-    return null;
-  }
-  const normalized = params.command.commandBodyNormalized;
-  if (normalized !== "/context" && !normalized.startsWith("/context ")) {
-    return null;
-  }
-  if (!params.command.isAuthorizedSender) {
-    logVerbose(
-      `Ignoring /context from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
-    );
-    return { shouldContinue: false };
-  }
-  return { shouldContinue: false, reply: await buildContextReply(params) };
-};
+export const handleContextCommand: CommandHandler = async () => null;
 
-export const handleExportSessionCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
-    return null;
-  }
-  const normalized = params.command.commandBodyNormalized;
-  if (
-    normalized !== "/export-session" &&
-    !normalized.startsWith("/export-session ") &&
-    normalized !== "/export" &&
-    !normalized.startsWith("/export ")
-  ) {
-    return null;
-  }
-  if (!params.command.isAuthorizedSender) {
-    logVerbose(
-      `Ignoring /export-session from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
-    );
-    return { shouldContinue: false };
-  }
-  return { shouldContinue: false, reply: await buildExportSessionReply(params) };
-};
+export const handleExportSessionCommand: CommandHandler = async () => null;
 
-export const handleWhoamiCommand: CommandHandler = async (params, allowTextCommands) => {
-  if (!allowTextCommands) {
-    return null;
-  }
+export const handleWhoamiCommand: CommandHandler = async (params) => {
   if (params.command.commandBodyNormalized !== "/whoami") {
     return null;
   }
-  if (!params.command.isAuthorizedSender) {
-    logVerbose(
-      `Ignoring /whoami from unauthorized sender: ${params.command.senderId || "<unknown>"}`,
-    );
-    return { shouldContinue: false };
-  }
-  const senderId = params.ctx.SenderId ?? "";
-  const senderUsername = params.ctx.SenderUsername ?? "";
-  const lines = ["🧭 Identity", `Channel: ${params.command.channel}`];
-  if (senderId) {
-    lines.push(`User id: ${senderId}`);
-  }
-  if (senderUsername) {
-    const handle = senderUsername.startsWith("@") ? senderUsername : `@${senderUsername}`;
-    lines.push(`Username: ${handle}`);
-  }
-  if (params.ctx.ChatType === "group" && params.ctx.From) {
-    lines.push(`Chat: ${params.ctx.From}`);
-  }
-  if (params.ctx.MessageThreadId != null) {
-    lines.push(`Thread: ${params.ctx.MessageThreadId}`);
-  }
-  if (senderId) {
-    lines.push(`AllowFrom: ${senderId}`);
-  }
-  return { shouldContinue: false, reply: { text: lines.join("\n") } };
+  return {
+    shouldContinue: false,
+    reply: { text: params.command.senderId ?? "unknown" },
+  };
 };

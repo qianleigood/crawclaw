@@ -18,5 +18,4 @@ Current state:
   old compaction delegation bridge are no longer supported.
 
 If you are migrating an older plugin, move custom context behavior onto the
-memory runtime and typed hook surfaces instead of trying to recreate the old
-engine registry.
+Rust memory runtime instead of trying to recreate the old engine registry.

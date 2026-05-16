@@ -19,24 +19,20 @@ describe("readConnectErrorRecoveryAdvice", () => {
   it("reads retry advice fields when present", () => {
     expect(
       readConnectErrorRecoveryAdvice({
-        canRetryWithDeviceToken: true,
-        recommendedNextStep: "retry_with_device_token",
+        recommendedNextStep: "wait_then_retry",
       }),
     ).toEqual({
-      canRetryWithDeviceToken: true,
-      recommendedNextStep: "retry_with_device_token",
+      recommendedNextStep: "wait_then_retry",
     });
   });
 
   it("returns empty advice for invalid payloads", () => {
     expect(readConnectErrorRecoveryAdvice(null)).toEqual({});
     expect(readConnectErrorRecoveryAdvice("x")).toEqual({});
-    expect(readConnectErrorRecoveryAdvice({ canRetryWithDeviceToken: "yes" })).toEqual({});
     expect(
       readConnectErrorRecoveryAdvice({
-        canRetryWithDeviceToken: true,
         recommendedNextStep: "retry_with_magic",
       }),
-    ).toEqual({ canRetryWithDeviceToken: true, recommendedNextStep: undefined });
+    ).toEqual({ recommendedNextStep: undefined });
   });
 });

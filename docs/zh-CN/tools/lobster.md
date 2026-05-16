@@ -339,7 +339,7 @@ OpenProse 与 Lobster 配合良好：使用 `/prose` 编排多智能体准备，
 ## 了解更多
 
 - [插件](/tools/plugin)
-- [插件工具开发](/plugins/agent-tools)
+- [插件运行能力](/plugins/building-plugins#runtime-capabilities)
 
 ## 案例研究：社区工作流
 

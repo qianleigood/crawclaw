@@ -4,14 +4,6 @@
   "defaultMinDeltaKb": 262144,
   "lane": "unit-fast, unit-*",
   "files": {
-    "src/cron/isolated-agent/run.skill-filter.test.ts": {
-      "deltaKb": 1069548,
-      "sources": ["crawclaw-test-memory-trace:unit-run.skill-filter-memory-isolated"]
-    },
-    "src/cron/isolated-agent/run.cron-model-override.test.ts": {
-      "deltaKb": 946790,
-      "sources": ["crawclaw-test-memory-trace:unit-run.cron-model-override-memory-isolated"]
-    },
     "src/plugins/manifest-registry.test.ts": {
       "deltaKb": 684749,
       "sources": ["crawclaw-manifest-registry-mem:unit"]

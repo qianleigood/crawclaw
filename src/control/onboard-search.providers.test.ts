@@ -102,7 +102,7 @@ describe("onboard-search provider resolution", () => {
     vi.clearAllMocks();
   });
 
-  it("uses config-aware non-bundled provider hooks when resolving existing keys", async () => {
+  it("uses config-aware non-bundled provider metadata when resolving existing keys", async () => {
     const customEntry = createCustomProviderEntry();
     mocks.resolvePluginWebSearchProviders.mockImplementation((params) =>
       params?.config ? [customEntry] : [],

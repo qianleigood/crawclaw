@@ -67,7 +67,7 @@ Authoritative pieces now live in different layers:
 - protocol schemas: `src/gateway/protocol/schema/*`
 - shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
 - gateway protocol schema index: `src/gateway/protocol/schema.ts`
-- gateway dispatch/runtime behavior: `src/gateway/server-methods.ts`
+- gateway dispatch/runtime behavior: `crates/crawclaw-gateway/src/lib.rs`
 
 ## Where the schemas live
 
@@ -75,7 +75,8 @@ Authoritative pieces now live in different layers:
 - Shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
 - Runtime validators (AJV): `src/gateway/protocol/index.ts`
 - Gateway protocol schema index: `src/gateway/protocol/schema.ts`
-- Server handshake + method dispatch: `src/gateway/server-methods.ts`
+- Server handshake: `src/gateway/server.impl.ts`
+- Method dispatch/runtime behavior: `crates/crawclaw-gateway/src/lib.rs`
 - Node client: `src/gateway/client.ts`
 - Generated JSON Schema: `dist/protocol.schema.json`
 - Generated Swift models: `apps/macos/Sources/CrawClawProtocol/GatewayModels.swift`

@@ -1,10 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { formatErrorMessage } from "../infra/errors.js";
 import type { SystemPresence } from "../infra/system-presence.js";
-import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/message-channel.js";
+import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/gateway-client-surface.js";
 import { GatewayClient } from "./client.js";
 import { READ_SCOPE } from "./method-scopes.js";
-import { isLoopbackHost } from "./net.js";
 
 export type GatewayProbeAuth = {
   token?: string;
@@ -56,28 +55,6 @@ export async function probeGateway(opts: {
 
   const detailLevel = opts.includeDetails === false ? "none" : (opts.detailLevel ?? "full");
 
-  const deviceIdentity = await (async () => {
-    let hostname: string;
-    try {
-      hostname = new URL(opts.url).hostname;
-    } catch {
-      return null;
-    }
-    // Local authenticated probes should stay device-bound so read/detail RPCs
-    // are not scope-limited by the shared-auth scope stripping hardening.
-    if (isLoopbackHost(hostname) && !(opts.auth?.token || opts.auth?.password)) {
-      return null;
-    }
-    try {
-      const { loadOrCreateDeviceIdentity } = await import("../infra/device-identity.js");
-      return loadOrCreateDeviceIdentity();
-    } catch {
-      // Read-only or restricted environments should still be able to run
-      // token/password-auth detail probes without crashing on identity persistence.
-      return null;
-    }
-  })();
-
   return await new Promise<GatewayProbeResult>((resolve) => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -111,7 +88,6 @@ export async function probeGateway(opts: {
       clientVersion: "dev",
       mode: GATEWAY_CLIENT_MODES.PROBE,
       instanceId,
-      deviceIdentity,
       onConnectError: (err) => {
         connectError = formatErrorMessage(err);
       },

@@ -3,7 +3,6 @@ import { resolveBundledWebFetchPluginIds } from "../bundled-web-fetch.js";
 import { resolveBundledWebSearchPluginIds } from "../bundled-web-search.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
 import {
-  mediaUnderstandingProviderContractRegistry,
   pluginRegistrationContractRegistry,
   providerContractLoadError,
   resolveWebFetchProviderContractEntriesForPluginId,
@@ -63,10 +62,6 @@ describe("plugin contract registry", () => {
     {
       name: "does not duplicate bundled web search provider ids",
       ids: () => pluginRegistrationContractRegistry.flatMap((entry) => entry.webSearchProviderIds),
-    },
-    {
-      name: "does not duplicate bundled media provider ids",
-      ids: () => mediaUnderstandingProviderContractRegistry.map((entry) => entry.provider.id),
     },
   ] as const)("$name", ({ ids }) => {
     expectUniqueIds(ids());

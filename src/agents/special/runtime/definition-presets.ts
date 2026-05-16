@@ -27,7 +27,7 @@ export function createShortMemoryCachePolicy(): SpecialAgentCachePolicy {
   };
 }
 
-export function createEmbeddedMemorySpecialAgentDefinition(params: {
+export function createRuntimeMemorySpecialAgentDefinition(params: {
   id: string;
   label: string;
   spawnSource: string;
@@ -42,7 +42,7 @@ export function createEmbeddedMemorySpecialAgentDefinition(params: {
     id: params.id,
     label: params.label,
     spawnSource: params.spawnSource,
-    executionMode: "embedded_fork",
+    executionMode: "runtime_fork",
     isolatedContext: true,
     transcriptPolicy: "isolated",
     parentContextPolicy: params.parentContextPolicy,

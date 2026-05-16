@@ -29,11 +29,6 @@ const mocks = vi.hoisted(() => ({
   resetAnnounceQueuesForTests: vi.fn(),
   captureSubagentCompletionReply: vi.fn(async () => "final completion reply"),
   runSubagentAnnounceFlow: vi.fn(async () => true),
-  getGlobalHookRunner: vi.fn(() => null),
-  ensureRuntimePluginsLoaded: vi.fn(),
-  resolveMemoryRuntime: vi.fn(),
-  onSubagentEnded: vi.fn(async () => {}),
-  runSubagentEnded: vi.fn(async () => {}),
   resolveAgentTimeoutMs: vi.fn(() => 1_000),
   emitRunLoopLifecycleEvent: vi.fn(async () => {}),
   ensureSharedRunLoopLifecycleSubscribers: vi.fn(),
@@ -81,18 +76,6 @@ vi.mock("./subagent-announce-queue.js", () => ({
 vi.mock("./subagent-announce.js", () => ({
   captureSubagentCompletionReply: mocks.captureSubagentCompletionReply,
   runSubagentAnnounceFlow: mocks.runSubagentAnnounceFlow,
-}));
-
-vi.mock("../plugins/hook-runner-global.js", () => ({
-  getGlobalHookRunner: mocks.getGlobalHookRunner,
-}));
-
-vi.mock("./runtime-plugins.js", () => ({
-  ensureRuntimePluginsLoaded: mocks.ensureRuntimePluginsLoaded,
-}));
-
-vi.mock("../memory/index.js", () => ({
-  resolveMemoryRuntime: mocks.resolveMemoryRuntime,
 }));
 
 vi.mock("./timeout.js", () => ({
@@ -143,10 +126,6 @@ describe("subagent registry seam flow", () => {
         updatedAt: 1,
       },
     });
-    mocks.getGlobalHookRunner.mockReturnValue(null);
-    mocks.resolveMemoryRuntime.mockResolvedValue({
-      onSubagentEnded: mocks.onSubagentEnded,
-    });
     mocks.callGateway.mockImplementation(async (request: { method?: string }) => {
       if (request.method === "agent.wait") {
         return {
@@ -160,6 +139,18 @@ describe("subagent registry seam flow", () => {
     mod = await import("./subagent-registry.js");
     mod.resetSubagentRegistryForTests({ persist: false });
   });
+
+  const expectMemorySubagentEnded = (params: {
+    childSessionKey: string;
+    reason: string;
+    workspaceDir?: string;
+  }) => {
+    expect(mocks.callGateway).toHaveBeenCalledWith({
+      method: "memory.onSubagentEnded",
+      params,
+      timeoutMs: 10_000,
+    });
+  };
 
   afterEach(() => {
     mod.resetSubagentRegistryForTests({ persist: false });
@@ -333,11 +324,6 @@ describe("subagent registry seam flow", () => {
   });
 
   it("finalizes retry-budgeted completion delete runs during resume", async () => {
-    const endedHookRunner = {
-      hasHooks: (hookName: string) => hookName === "subagent_ended",
-      runSubagentEnded: mocks.runSubagentEnded,
-    };
-    mocks.getGlobalHookRunner.mockReturnValue(endedHookRunner as never);
     mocks.restoreSubagentRunsFromDisk.mockImplementation(((params: {
       runs: Map<string, unknown>;
       mergeOnly?: boolean;
@@ -364,9 +350,8 @@ describe("subagent registry seam flow", () => {
     await Promise.resolve();
 
     expect(mocks.runSubagentAnnounceFlow).not.toHaveBeenCalled();
-    expect(mocks.runSubagentEnded).toHaveBeenCalledTimes(1);
     await vi.waitFor(() => {
-      expect(mocks.onSubagentEnded).toHaveBeenCalledWith({
+      expectMemorySubagentEnded({
         childSessionKey: "agent:main:subagent:child",
         reason: "deleted",
         workspaceDir: undefined,
@@ -429,66 +414,12 @@ describe("subagent registry seam flow", () => {
       }),
     );
     await vi.waitFor(() => {
-      expect(mocks.onSubagentEnded).toHaveBeenCalledWith({
+      expectMemorySubagentEnded({
         childSessionKey: "agent:main:subagent:parent",
         reason: "deleted",
         workspaceDir: undefined,
       });
     });
-  });
-
-  it("loads runtime plugins before emitting killed subagent ended hooks", async () => {
-    const endedHookRunner = {
-      hasHooks: (hookName: string) => hookName === "subagent_ended",
-      runSubagentEnded: mocks.runSubagentEnded,
-    };
-    mocks.getGlobalHookRunner.mockReturnValue(null);
-    mocks.ensureRuntimePluginsLoaded.mockImplementation(() => {
-      mocks.getGlobalHookRunner.mockReturnValue(endedHookRunner as never);
-    });
-
-    mod.registerSubagentRun({
-      runId: "run-killed-init",
-      childSessionKey: "agent:main:subagent:killed",
-      requesterSessionKey: "agent:main:main",
-      requesterDisplayKey: "main",
-      requesterOrigin: { channel: "qqbot", accountId: "acct-1" },
-      task: "kill after init",
-      cleanup: "keep",
-      workspaceDir: "/tmp/killed-workspace",
-    });
-
-    const updated = mod.markSubagentRunTerminated({
-      runId: "run-killed-init",
-      reason: "manual kill",
-    });
-
-    expect(updated).toBe(1);
-    await vi.waitFor(() => {
-      expect(mocks.ensureRuntimePluginsLoaded).toHaveBeenCalledWith({
-        config: {
-          agents: { defaults: { subagents: { archiveAfterMinutes: 0 } } },
-          session: { mainKey: "main", scope: "per-sender" },
-        },
-        workspaceDir: "/tmp/killed-workspace",
-        allowGatewaySubagentBinding: true,
-      });
-    });
-    expect(mocks.runSubagentEnded).toHaveBeenCalledWith(
-      expect.objectContaining({
-        targetSessionKey: "agent:main:subagent:killed",
-        reason: "subagent-killed",
-        accountId: "acct-1",
-        runId: "run-killed-init",
-        outcome: "killed",
-        error: "manual kill",
-      }),
-      expect.objectContaining({
-        runId: "run-killed-init",
-        childSessionKey: "agent:main:subagent:killed",
-        requesterSessionKey: "agent:main:main",
-      }),
-    );
   });
 
   it("deletes killed delete-mode runs and notifies deleted cleanup", async () => {
@@ -514,7 +445,7 @@ describe("subagent registry seam flow", () => {
         .find((entry) => entry.runId === "run-killed-delete"),
     ).toBeUndefined();
     await vi.waitFor(() => {
-      expect(mocks.onSubagentEnded).toHaveBeenCalledWith({
+      expectMemorySubagentEnded({
         childSessionKey: "agent:main:subagent:killed-delete",
         reason: "deleted",
         workspaceDir: "/tmp/killed-delete-workspace",
@@ -586,7 +517,7 @@ describe("subagent registry seam flow", () => {
       await expect(fs.access(attachmentsDir)).rejects.toMatchObject({ code: "ENOENT" });
     });
     await vi.waitFor(() => {
-      expect(mocks.onSubagentEnded).toHaveBeenCalledWith({
+      expectMemorySubagentEnded({
         childSessionKey: "agent:main:subagent:release-delete",
         reason: "released",
         workspaceDir: undefined,

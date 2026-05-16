@@ -53,21 +53,9 @@ export GROQ_API_KEY="gsk_..."
 
 ## Audio transcription
 
-Groq also provides fast Whisper-based audio transcription. When configured as a
-media-understanding provider, CrawClaw uses Groq's `whisper-large-v3-turbo`
-model to transcribe voice messages.
-
-```json5
-{
-  media: {
-    understanding: {
-      audio: {
-        models: [{ provider: "groq" }],
-      },
-    },
-  },
-}
-```
+The old TypeScript media-understanding provider path has been removed. Groq
+audio transcription must land through the Rust-native media-understanding
+runtime before it is exposed again.
 
 ## Environment note
 

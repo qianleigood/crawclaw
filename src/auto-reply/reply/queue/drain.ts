@@ -10,7 +10,6 @@ import {
   previewQueueSummaryPrompt,
   waitForQueueDebounce,
 } from "../../../utils/queue-helpers.js";
-import { isRoutableChannel } from "../route-reply.js";
 import { FOLLOWUP_QUEUES } from "./state.js";
 import type { FollowupRun } from "./types.js";
 
@@ -21,6 +20,10 @@ const FOLLOWUP_DRAIN_CALLBACKS_KEY = Symbol.for("crawclaw.followupDrainCallbacks
 const FOLLOWUP_RUN_CALLBACKS = resolveGlobalMap<string, (run: FollowupRun) => Promise<void>>(
   FOLLOWUP_DRAIN_CALLBACKS_KEY,
 );
+
+function isRoutableMessageProvider(value: unknown): boolean {
+  return typeof value === "string" && value.trim() !== "";
+}
 
 export function rememberFollowupDrainCallback(
   key: string,
@@ -65,7 +68,7 @@ function resolveCrossChannelKey(item: FollowupRun): { cross?: true; key?: string
   if (!channel && !to && !accountId && (threadId == null || threadId === "")) {
     return {};
   }
-  if (!isRoutableChannel(channel) || !to) {
+  if (!isRoutableMessageProvider(channel) || !to) {
     return { cross: true };
   }
   // Support both number (channel topic IDs) and string (channel thread id) thread IDs.
@@ -97,7 +100,7 @@ export function scheduleFollowupDrain(
           // Prevents “collect after shift” collapsing different targets.
           //
           // Debug: `pnpm test src/auto-reply/reply/reply-flow.test.ts`
-          // Check if messages span multiple channels.
+          // Check if messages span multiple delivery contexts.
           // If so, process individually to preserve per-message routing.
           const isCrossChannel = hasCrossChannelItems(queue.items, resolveCrossChannelKey);
 

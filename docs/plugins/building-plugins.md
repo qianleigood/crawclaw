@@ -10,8 +10,9 @@ read_when:
 
 # Building Plugins
 
-Plugins extend CrawClaw with new capabilities: channels, model providers, speech,
-image generation, web search, agent tools, or any combination.
+Plugins extend CrawClaw with declarative metadata and configuration for
+Rust-native capabilities such as model providers, speech, image generation, and
+web search.
 
 You do not need to add your plugin to the CrawClaw repository. Publish to
 [ClawHub](/tools/clawhub) or npm and users install with
@@ -30,15 +31,15 @@ falls back to npm automatically.
   <Card title="Provider plugin" icon="cpu" href="/plugins/sdk-provider-plugins">
     Add a model provider (LLM, proxy, or custom endpoint)
   </Card>
-  <Card title="Tool / hook plugin" icon="wrench">
-    Register agent tools, event hooks, or services — continue below
+  <Card title="Native capability plugin" icon="wrench">
+    Describe Rust-native capabilities — continue below
   </Card>
 </CardGroup>
 
-## Quick start: tool plugin
+## Quick start: metadata plugin
 
-This walkthrough creates a minimal plugin that registers an agent tool. Channel
-and provider plugins have dedicated guides linked above.
+This walkthrough creates a minimal manifest plugin. Runtime execution belongs in
+Rust native capability code, not TypeScript callbacks.
 
 <Steps>
   <Step title="Create the package and manifest">
@@ -49,7 +50,6 @@ and provider plugins have dedicated guides linked above.
       "version": "1.0.0",
       "type": "module",
       "crawclaw": {
-        "extensions": ["./index.ts"],
         "compat": {
           "pluginApi": ">=2026.3.24-beta.2",
           "minGatewayVersion": "2026.3.24-beta.2"
@@ -67,6 +67,11 @@ and provider plugins have dedicated guides linked above.
       "id": "my-plugin",
       "name": "My Plugin",
       "description": "Adds a custom tool to CrawClaw",
+      "native": {
+        "protocol": "crawclaw-native-plugin-jsonrpc",
+        "schemaVersion": 1,
+        "bin": "./target/release/my-plugin"
+      },
       "configSchema": {
         "type": "object",
         "additionalProperties": false
@@ -81,34 +86,11 @@ and provider plugins have dedicated guides linked above.
 
   </Step>
 
-  <Step title="Write the entry point">
+  <Step title="Implement the native runtime">
 
-    ```typescript
-    // index.ts
-    import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
-    import { Type } from "@sinclair/typebox";
-
-    export default definePluginEntry({
-      id: "my-plugin",
-      name: "My Plugin",
-      description: "Adds a custom tool to CrawClaw",
-      register(api) {
-        api.registerTool({
-          name: "my_tool",
-          description: "Do a thing",
-          parameters: Type.Object({ input: Type.String() }),
-          async execute(_id, params) {
-            return { content: [{ type: "text", text: `Got: ${params.input}` }] };
-          },
-        });
-      },
-    });
-    ```
-
-    `definePluginEntry` is for provider, tool, hook, command, service, speech,
-    media, and web plugins. TypeScript channel plugins are no longer a
-    production contract; channels are implemented as Rust-native adapters. For
-    full entry point options, see [Entry Points](/plugins/sdk-entrypoints).
+    Implement runtime behavior in Rust and expose it through the native plugin
+    protocol declared in `crawclaw.plugin.json`. TypeScript package files are
+    metadata, docs, generated types, or tests only.
 
   </Step>
 
@@ -136,71 +118,30 @@ and provider plugins have dedicated guides linked above.
 
 ## Plugin capabilities
 
-A single plugin can register any number of capabilities via the `api` object:
+A plugin can declare metadata and expose Rust-native capabilities:
 
-| Capability            | Registration method                           | Detailed guide                                            |
-| --------------------- | --------------------------------------------- | --------------------------------------------------------- |
-| Local process backend | `api.registerCliBackend(...)`                 | [Local Process Backends](/gateway/local-process-backends) |
-| Speech (TTS/STT)      | `api.registerSpeechProvider(...)`             | [SDK Overview](/plugins/sdk-overview)                     |
-| Media understanding   | `api.registerMediaUnderstandingProvider(...)` | [SDK Overview](/plugins/sdk-overview)                     |
-| Web search            | `api.registerWebSearchProvider(...)`          | [SDK Overview](/plugins/sdk-overview)                     |
-| Agent tools           | `api.registerTool(...)`                       | Below                                                     |
-| Custom commands       | `api.registerCommand(...)`                    | [Entry Points](/plugins/sdk-entrypoints)                  |
-| HTTP routes           | `api.registerHttpRoute(...)`                  | [Internals](/plugins/architecture#gateway-http-routes)    |
+| Capability          | Registration method    | Detailed guide                        |
+| ------------------- | ---------------------- | ------------------------------------- |
+| Speech (TTS/STT)    | Rust native descriptor | [SDK Overview](/plugins/sdk-overview) |
+| Media understanding | Rust native descriptor | [SDK Overview](/plugins/sdk-overview) |
+| Web search          | Rust native descriptor | [SDK Overview](/plugins/sdk-overview) |
 
-For the full registration API, see [SDK Overview](/plugins/sdk-overview#registration-api).
+For the current SDK import surface, see [SDK Overview](/plugins/sdk-overview).
 
-## Registering agent tools
+## Runtime capabilities
 
-Tools are typed functions the LLM can call. They can be required (always
-available) or optional (user opt-in):
-
-```typescript
-register(api) {
-  // Required tool — always available
-  api.registerTool({
-    name: "my_tool",
-    description: "Do a thing",
-    parameters: Type.Object({ input: Type.String() }),
-    async execute(_id, params) {
-      return { content: [{ type: "text", text: params.input }] };
-    },
-  });
-
-  // Optional tool — user must add to allowlist
-  api.registerTool(
-    {
-      name: "workflow_tool",
-      description: "Run a workflow",
-      parameters: Type.Object({ pipeline: Type.String() }),
-      async execute(_id, params) {
-        return { content: [{ type: "text", text: params.pipeline }] };
-      },
-    },
-    { optional: true },
-  );
-}
-```
-
-Users enable optional tools in config:
-
-```json5
-{
-  tools: { allow: ["workflow_tool"] },
-}
-```
-
-- Tool names must not clash with core tools (conflicts are skipped)
-- Use `optional: true` for tools with side effects or extra binary requirements
-- Users can enable all tools from a plugin by adding the plugin id to `tools.allow`
+TypeScript plugins no longer register production tools, commands, gateway
+methods, HTTP routes, or background services. Add new runtime capabilities in
+Rust and expose configuration through the manifest or the Rust native plugin
+registry.
 
 ## Import conventions
 
-Always import from focused `crawclaw/plugin-sdk/<subpath>` paths:
+If a plugin package needs generated helper types, import from focused
+`crawclaw/plugin-sdk/<subpath>` paths:
 
 ```typescript
-import { definePluginEntry } from "crawclaw/plugin-sdk/plugin-entry";
-import { createPluginRuntimeStore } from "crawclaw/plugin-sdk/runtime-store";
+import type { CrawClawConfig } from "crawclaw/plugin-sdk/testing";
 
 // Wrong: removed monolithic root entry
 import { ... } from "crawclaw/plugin-sdk";
@@ -215,7 +156,7 @@ internal imports — never import your own plugin through its SDK path.
 
 <Check>**package.json** has correct `crawclaw` metadata</Check>
 <Check>**crawclaw.plugin.json** manifest is present and valid</Check>
-<Check>Entry point uses `definePluginEntry`</Check>
+<Check>Runtime behavior is implemented by a Rust native descriptor</Check>
 <Check>All imports use focused `plugin-sdk/<subpath>` paths</Check>
 <Check>Internal imports use local modules, not SDK self-imports</Check>
 <Check>Tests pass (`pnpm test -- <bundled-plugin-root>/my-plugin/`)</Check>
@@ -237,10 +178,10 @@ internal imports — never import your own plugin through its SDK path.
     Configure Rust-owned model providers
   </Card>
   <Card title="SDK Overview" icon="book-open" href="/plugins/sdk-overview">
-    Import map and registration API reference
+    Import map and SDK reference
   </Card>
   <Card title="Runtime Helpers" icon="settings" href="/plugins/sdk-runtime">
-    TTS, search, subagent via api.runtime
+    Rust-owned runtime boundary
   </Card>
   <Card title="Testing" icon="test-tubes" href="/plugins/sdk-testing">
     Test utilities and patterns

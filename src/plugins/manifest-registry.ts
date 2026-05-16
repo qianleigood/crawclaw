@@ -8,10 +8,7 @@ import { normalizePluginsConfig, type NormalizedPluginsConfig } from "./config-s
 import { discoverCrawClawPlugins, type PluginCandidate } from "./discovery.js";
 import {
   loadPluginManifest,
-  type CrawClawPackageManifest,
-  type PluginPackageStateProbe,
   type PluginManifest,
-  type PluginManifestChannelConfig,
   type PluginManifestContracts,
 } from "./manifest.js";
 import { checkMinHostVersion } from "./min-host-version.js";
@@ -52,9 +49,7 @@ export type PluginManifestRecord = {
   bundleFormat?: PluginBundleFormat;
   bundleCapabilities?: string[];
   kind?: PluginKind | PluginKind[];
-  channels: string[];
   providers: string[];
-  cliBackends: string[];
   providerAuthEnvVars?: Record<string, string[]>;
   providerAuthChoices?: PluginManifest["providerAuthChoices"];
   skills: string[];
@@ -65,23 +60,11 @@ export type PluginManifestRecord = {
   rootDir: string;
   source: string;
   setupSource?: string;
-  startupDeferConfiguredChannelFullLoadUntilAfterListen?: boolean;
   manifestPath: string;
   schemaCacheKey?: string;
   configSchema?: Record<string, unknown>;
   configUiHints?: Record<string, PluginConfigUiHint>;
   contracts?: PluginManifestContracts;
-  channelConfigs?: Record<string, PluginManifestChannelConfig>;
-  channelCatalogMeta?: {
-    id: string;
-    label?: string;
-    blurb?: string;
-    preferOver?: readonly string[];
-  };
-  channelStateProbes?: {
-    configuredState?: PluginPackageStateProbe;
-    persistedAuthState?: PluginPackageStateProbe;
-  };
 };
 
 export type PluginManifestRegistry = {
@@ -156,46 +139,6 @@ function normalizeManifestLabel(raw: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
-function normalizePreferredPluginIds(raw: unknown): string[] | undefined {
-  if (!Array.isArray(raw)) {
-    return undefined;
-  }
-  const values = raw
-    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-    .filter(Boolean);
-  return values.length > 0 ? values : undefined;
-}
-
-function mergePackageChannelMetaIntoChannelConfigs(params: {
-  channelConfigs?: Record<string, PluginManifestChannelConfig>;
-  packageChannel?: CrawClawPackageManifest["channel"];
-}): Record<string, PluginManifestChannelConfig> | undefined {
-  const channelId = params.packageChannel?.id?.trim();
-  if (!channelId || !params.channelConfigs?.[channelId]) {
-    return params.channelConfigs;
-  }
-
-  const existing = params.channelConfigs[channelId];
-  const label =
-    existing.label ??
-    (typeof params.packageChannel?.label === "string" ? params.packageChannel.label.trim() : "");
-  const description =
-    existing.description ??
-    (typeof params.packageChannel?.blurb === "string" ? params.packageChannel.blurb.trim() : "");
-  const preferOver =
-    existing.preferOver ?? normalizePreferredPluginIds(params.packageChannel?.preferOver);
-
-  return {
-    ...params.channelConfigs,
-    [channelId]: {
-      ...existing,
-      ...(label ? { label } : {}),
-      ...(description ? { description } : {}),
-      ...(preferOver?.length ? { preferOver } : {}),
-    },
-  };
-}
-
 function isCompatiblePluginIdHint(idHint: string | undefined, manifestId: string): boolean {
   const normalizedHint = idHint?.trim();
   if (!normalizedHint) {
@@ -222,11 +165,6 @@ function buildRecord(params: {
   schemaCacheKey?: string;
   configSchema?: Record<string, unknown>;
 }): PluginManifestRecord {
-  const channelConfigs = mergePackageChannelMetaIntoChannelConfigs({
-    channelConfigs: params.manifest.channelConfigs,
-    packageChannel: params.candidate.packageManifest?.channel,
-  });
-  const packageChannel = params.candidate.packageManifest?.channel;
   return {
     id: params.manifest.id,
     name: normalizeManifestLabel(params.manifest.name) ?? params.candidate.packageName,
@@ -239,9 +177,7 @@ function buildRecord(params: {
     format: params.candidate.format ?? "crawclaw",
     bundleFormat: params.candidate.bundleFormat,
     kind: params.manifest.kind,
-    channels: params.manifest.channels ?? [],
     providers: params.manifest.providers ?? [],
-    cliBackends: params.manifest.cliBackends ?? [],
     providerAuthEnvVars: params.manifest.providerAuthEnvVars,
     providerAuthChoices: params.manifest.providerAuthChoices,
     skills: params.manifest.skills ?? [],
@@ -252,37 +188,11 @@ function buildRecord(params: {
     rootDir: params.candidate.rootDir,
     source: params.candidate.source,
     setupSource: params.candidate.setupSource,
-    startupDeferConfiguredChannelFullLoadUntilAfterListen:
-      params.candidate.packageManifest?.startup?.deferConfiguredChannelFullLoadUntilAfterListen ===
-      true,
     manifestPath: params.manifestPath,
     schemaCacheKey: params.schemaCacheKey,
     configSchema: params.configSchema,
     configUiHints: params.manifest.uiHints,
     contracts: params.manifest.contracts,
-    channelConfigs,
-    ...(packageChannel?.id
-      ? {
-          channelCatalogMeta: {
-            id: packageChannel.id,
-            ...(typeof packageChannel.label === "string" ? { label: packageChannel.label } : {}),
-            ...(typeof packageChannel.blurb === "string" ? { blurb: packageChannel.blurb } : {}),
-            ...(packageChannel.preferOver ? { preferOver: packageChannel.preferOver } : {}),
-          },
-          ...(packageChannel.configuredState || packageChannel.persistedAuthState
-            ? {
-                channelStateProbes: {
-                  ...(packageChannel.configuredState
-                    ? { configuredState: packageChannel.configuredState }
-                    : {}),
-                  ...(packageChannel.persistedAuthState
-                    ? { persistedAuthState: packageChannel.persistedAuthState }
-                    : {}),
-                },
-              }
-            : {}),
-        }
-      : {}),
   };
 }
 
@@ -308,9 +218,7 @@ function buildBundleRecord(params: {
     format: "bundle",
     bundleFormat: params.candidate.bundleFormat,
     bundleCapabilities: params.manifest.capabilities,
-    channels: [],
     providers: [],
-    cliBackends: [],
     skills: params.manifest.skills ?? [],
     settingsFiles: params.manifest.settingsFiles ?? [],
     hooks: params.manifest.hooks ?? [],
@@ -322,7 +230,6 @@ function buildBundleRecord(params: {
     schemaCacheKey: undefined,
     configSchema: undefined,
     configUiHints: undefined,
-    channelConfigs: undefined,
   };
 }
 

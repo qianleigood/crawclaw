@@ -26,12 +26,11 @@ This page covers the internal architecture of the CrawClaw plugin system.
 Capabilities are the public **native plugin** model inside CrawClaw. Every
 native CrawClaw plugin registers against one or more capability types:
 
-| Capability            | Registration method                           | Example plugins           |
-| --------------------- | --------------------------------------------- | ------------------------- |
-| Local process backend | `api.registerCliBackend(...)`                 | `openai`, `anthropic`     |
-| Speech                | `api.registerSpeechProvider(...)`             | `elevenlabs`, `microsoft` |
-| Media understanding   | `api.registerMediaUnderstandingProvider(...)` | `openai`, `google`        |
-| Web search            | `api.registerWebSearchProvider(...)`          | `google`                  |
+| Capability          | Registration method    | Example plugins    |
+| ------------------- | ---------------------- | ------------------ |
+| Speech              | Rust native descriptor | `qwen3-tts`        |
+| Media understanding | Rust native descriptor | `openai`, `google` |
+| Web search          | Rust native descriptor | `open-websearch`   |
 
 A plugin that registers zero capabilities but provides tools, commands, or
 services is a **non-capability** plugin.
@@ -78,16 +77,11 @@ registration behavior (not just static metadata):
 Use CrawClaw Desktop or the local Gateway API to see a plugin's shape and capability
 breakdown. See [Gateway API reference](/tools/plugin#inspect) for details.
 
-### Typed runtime hooks
+### Runtime hooks
 
-For current plugin development, use the typed runtime hooks:
-
-- `before_model_resolve` for deterministic provider/model override work before
-  session load
-- `before_prompt_build` for structured `queryContextPatch` prompt shaping after
-  session load
-
-`before_agent_start` is no longer part of the active runtime path.
+TypeScript typed runtime hooks have been removed. Provider/model resolution,
+prompt assembly, and agent lifecycle behavior now run through the Rust provider
+catalog and Rust agent runtime.
 
 ### Compatibility signals
 
@@ -115,21 +109,19 @@ CrawClaw's plugin system has four layers:
    Core decides whether a discovered plugin is enabled, disabled, blocked, or
    selected for an exclusive slot such as memory.
 3. **Runtime loading**
-   Native CrawClaw plugins are loaded in-process via jiti and register
-   capabilities into a central registry. Compatible bundles are normalized into
-   registry records without importing runtime code.
+   CrawClaw reads plugin metadata and Rust native descriptors into a central
+   registry. Compatible bundles are normalized into registry records without
+   importing runtime code.
 4. **Surface consumption**
-   The rest of CrawClaw reads the registry to expose tools, channels, provider
-   setup, hooks, HTTP routes, Desktop and Gateway API actions, and services.
-
-Plugin-owned user actions should register Gateway methods and surface through
-the Desktop UI or local automation clients.
+   The rest of CrawClaw reads the registry to expose Rust-owned capabilities,
+   provider setup, Desktop surfaces, and Gateway API actions.
 
 The important design boundary:
 
 - discovery + config validation should work from **manifest/schema metadata**
   without executing plugin code
-- native runtime behavior comes from the plugin module's `register(api)` path
+- production runtime behavior comes from Rust Gateway/runtime or Rust native
+  plugin descriptors
 
 That split lets CrawClaw validate config, explain missing/disabled plugins, and
 build UI/schema hints before the full runtime is active.
@@ -138,9 +130,9 @@ build UI/schema hints before the full runtime is active.
 
 TypeScript channel plugins are no longer a production contract. The shared
 message tool and channel control plane now route through Rust-native channel
-descriptors and adapter contracts. TypeScript plugins can still provide
-providers, tools, commands, hooks, services, speech, media, web fetch, and web
-search capabilities.
+descriptors and adapter contracts. Runtime capabilities such as providers,
+tools, commands, hooks, services, speech, media, web fetch, and web search are
+owned by Rust native registries or Rust Gateway/runtime code.
 
 See [Load pipeline](#load-pipeline) for the full startup sequence.
 
@@ -167,9 +159,6 @@ Examples:
   media-understanding + web-search behavior
 - the bundled `minimax`, `mistral`, `moonshot`, and `zai` plugins own their
   media-understanding backends
-- the `voice-call` plugin is a feature plugin: it owns call transport, tools,
-  CLI, routes, and runtime, but it consumes core TTS/STT capability instead of
-  inventing a second speech stack
 
 The intended end state is:
 
@@ -192,9 +181,9 @@ can register against it and channel/feature plugins can consume it.
 If the capability does not exist yet, the right move is usually:
 
 1. define the missing capability in core
-2. expose it through the plugin API/runtime in a typed way
+2. expose it through the Rust native registry or a typed Gateway RPC
 3. wire channels/features against that capability
-4. let vendor plugins register implementations
+4. let vendor plugins declare Rust native implementations
 
 This keeps ownership explicit while avoiding core behavior that depends on a
 single vendor or a one-off plugin-specific code path.
@@ -207,14 +196,14 @@ Use this mental model when deciding where code belongs:
   merge rules, delivery semantics, and typed contracts
 - **vendor plugin layer**: vendor-specific APIs, auth, model catalogs, speech
   synthesis, image generation, future video backends, usage endpoints
-- **channel/feature plugin layer**: DingTalk/QQBot/voice-call/etc. integration
-  that consumes core capabilities and presents them on a surface
+- **channel/feature layer**: native integrations that consume core capabilities
+  and present them on a surface
 
 For example, TTS follows this shape:
 
 - core owns reply-time TTS policy, fallback order, prefs, and channel delivery
 - `openai`, `elevenlabs`, and `microsoft` own synthesis implementations
-- `voice-call` consumes the telephony TTS runtime helper
+- native channel and feature runtimes consume the shared speech helpers
 
 That same pattern should be preferred for future capabilities.
 
@@ -224,61 +213,24 @@ A company plugin should feel cohesive from the outside. If CrawClaw has shared
 contracts for models, speech, media understanding, and web search, a vendor can
 own all of its surfaces in one place:
 
-```ts
-import type { CrawClawPluginDefinition } from "crawclaw/plugin-sdk/plugin-entry";
-import {
-  describeImageWithModel,
-  transcribeOpenAiCompatibleAudio,
-} from "crawclaw/plugin-sdk/media-understanding";
-
-const plugin: CrawClawPluginDefinition = {
-  id: "exampleai",
-  name: "ExampleAI",
-  register(api) {
-    api.registerSpeechProvider({
-      id: "exampleai",
-      // vendor speech config — implement the SpeechProviderPlugin interface directly
-    });
-
-    api.registerMediaUnderstandingProvider({
-      id: "exampleai",
-      capabilities: ["image", "audio", "video"],
-      async describeImage(req) {
-        return describeImageWithModel({
-          provider: "exampleai",
-          model: req.model,
-          input: req.input,
-        });
-      },
-      async transcribeAudio(req) {
-        return transcribeOpenAiCompatibleAudio({
-          provider: "exampleai",
-          model: req.model,
-          input: req.input,
-        });
-      },
-    });
-
-    api.registerWebSearchProvider({
-      id: "exampleai-search",
-      // credential + fetch logic
-      createTool(ctx) {
-        // provider-owned tool wiring
-        return ctx.tool;
-      },
-    });
-  },
-};
-
-export default plugin;
+```json
+{
+  "id": "exampleai",
+  "name": "ExampleAI",
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "exampleai-sidecar"
+  }
+}
 ```
 
 What matters is not the exact helper names. The shape matters:
 
 - one plugin owns the vendor surface
 - core still owns the capability contracts
-- channels and feature plugins consume `api.runtime.*` helpers, not vendor code
-- contract tests can assert that the plugin registered the capabilities it
+- channels and feature runtimes consume Rust-owned capability contracts, not vendor code
+- contract tests can assert that the plugin declares the capabilities it
   claims to own
 
 ### Capability example: video understanding
@@ -287,8 +239,8 @@ CrawClaw already treats image/audio/video understanding as one shared
 capability. The same ownership model applies there:
 
 1. core defines the media-understanding contract
-2. vendor plugins register `describeImage`, `transcribeAudio`, and
-   `describeVideo` as applicable
+2. vendor plugins expose `describeImage`, `transcribeAudio`, and
+   `describeVideo` through Rust native descriptors as applicable
 3. channels and feature plugins consume the shared core behavior instead of
    wiring directly to vendor code
 
@@ -297,35 +249,35 @@ the vendor surface; core owns the capability contract and fallback behavior.
 
 If CrawClaw adds a new domain later, such as video generation, use the same
 sequence again: define the core capability first, then let vendor plugins
-register implementations against it.
+declare implementations against it.
 
 Need a concrete rollout checklist? See
 [Capability Cookbook](/tools/capability-cookbook).
 
 ## Contracts and enforcement
 
-The plugin API surface is intentionally typed and centralized in
-`CrawClawPluginApi`. That contract defines the supported registration points and
-the runtime helpers a plugin may rely on.
+The plugin surface is intentionally typed and centralized in manifest schemas,
+Rust native descriptors, and Gateway RPC definitions. Those contracts define
+the supported runtime surfaces a plugin may rely on.
 
 Why this matters:
 
 - plugin authors get one stable internal standard
 - core can reject duplicate ownership such as two plugins registering the same
   provider id
-- startup can surface actionable diagnostics for malformed registration
+- startup can surface actionable diagnostics for malformed descriptors
 - contract tests can enforce bundled-plugin ownership and prevent silent drift
 
 There are two layers of enforcement:
 
-1. **runtime registration enforcement**
-   The plugin registry validates registrations as plugins load. Examples:
+1. **runtime descriptor enforcement**
+   The plugin registry validates descriptors as plugins load. Examples:
    duplicate provider ids, duplicate speech provider ids, and malformed
-   registrations produce plugin diagnostics instead of undefined behavior.
+   descriptors produce plugin diagnostics instead of undefined behavior.
 2. **contract tests**
-   Bundled plugins are captured in contract registries during test runs so
+   Bundled plugins are checked through manifest/native descriptor tests so
    CrawClaw can assert ownership explicitly. Today this is used for model
-   providers, speech providers, web search providers, and bundled registration
+   providers, speech providers, web search providers, and bundled descriptor
    ownership.
 
 The practical effect is that CrawClaw knows, up front, which plugin owns which
@@ -348,23 +300,22 @@ Bad plugin contracts are:
 - vendor-specific policy hidden in core
 - one-off plugin escape hatches that bypass the registry
 - channel code reaching straight into a vendor implementation
-- ad hoc runtime objects that are not part of `CrawClawPluginApi` or
-  `api.runtime`
+- ad hoc TypeScript runtime objects that bypass the Rust native boundary
 
 When in doubt, raise the abstraction level: define the capability first, then
 let plugins plug into it.
 
 ## Execution model
 
-Native CrawClaw plugins run **in-process** with the Gateway. They are not
-core code.
+Rust native CrawClaw plugins run inside the Rust Gateway/runtime boundary. They
+are not TypeScript extension code.
 
 Implications:
 
-- a native plugin can register tools, network handlers, hooks, and services
-- a native plugin bug can crash or destabilize the gateway
-- a malicious native plugin is equivalent to arbitrary code execution inside
-  the CrawClaw process
+- a Rust native plugin can expose tools, network handlers, hooks, and services
+- a native plugin bug can crash or destabilize the gateway/runtime
+- a malicious native plugin is equivalent to arbitrary code execution inside the
+  CrawClaw runtime boundary
 
 Compatible bundles are safer by default because CrawClaw currently treats them
 as metadata/content packs. In current releases, that mostly means bundled
@@ -405,13 +356,8 @@ At startup, CrawClaw does roughly this:
 4. normalize plugin config (`plugins.enabled`, `allow`, `deny`, `entries`,
    `slots`, `load.paths`)
 5. decide enablement for each candidate
-6. load enabled native modules via jiti
-7. call native `register(api)` (or `activate(api)` — a legacy alias) hooks and collect registrations into the plugin registry
-8. expose the registry to commands/runtime surfaces
-
-<Note>
-`activate` is a legacy alias for `register` — the loader resolves whichever is present (`def.register ?? def.activate`) and calls it at the same point. All bundled plugins use `register`; prefer `register` for new plugins.
-</Note>
+6. collect declarative metadata and Rust native descriptors
+7. expose the registry to Gateway/runtime surfaces
 
 The safety gates happen **before** runtime execution. Candidates are blocked
 when the entry escapes the plugin root, the path is world-writable, or path
@@ -427,8 +373,8 @@ The manifest is the control-plane source of truth. CrawClaw uses it to:
 - augment browser-client labels/placeholders
 - show install/catalog metadata
 
-For native plugins, the runtime module is the data-plane part. It registers
-actual behavior such as hooks, tools, commands, or provider flows.
+For native plugins, the Rust descriptor/runtime is the data-plane part. It owns
+actual behavior such as hooks, tools, commands, services, or provider flows.
 
 ### What the loader caches
 
@@ -457,7 +403,7 @@ The registry tracks:
 
 - plugin records (identity, source, origin, status, diagnostics)
 - tools
-- legacy hooks and typed hooks
+- workspace hook bundles
 - channels
 - providers
 - gateway RPC handlers
@@ -476,41 +422,11 @@ That separation matters for maintainability. It means most core surfaces only
 need one integration point: "read the registry", not "special-case every plugin
 module".
 
-## Conversation binding callbacks
+## Conversation binding events
 
-Plugins that bind a conversation can react when an approval is resolved.
-
-Use `api.onConversationBindingResolved(...)` to receive a callback after a bind
-request is approved or denied:
-
-```ts
-export default {
-  id: "my-plugin",
-  register(api) {
-    api.onConversationBindingResolved(async (event) => {
-      if (event.status === "approved") {
-        // A binding now exists for this plugin + conversation.
-        console.log(event.binding?.conversationId);
-        return;
-      }
-
-      // The request was denied; clear any local pending state.
-      console.log(event.request.conversation.conversationId);
-    });
-  },
-};
-```
-
-Callback payload fields:
-
-- `status`: `"approved"` or `"denied"`
-- `decision`: `"allow-once"`, `"allow-always"`, or `"deny"`
-- `binding`: the resolved binding for approved requests
-- `request`: the original request summary, detach hint, sender id, and
-  conversation metadata
-
-This callback is notification-only. It does not change who is allowed to bind a
-conversation, and it runs after core approval handling finishes.
+Conversation binding events are owned by the Rust runtime and internal Gateway
+event bus. TypeScript plugins cannot register production callbacks for binding
+resolution.
 
 ## Provider runtime hooks
 
@@ -545,7 +461,7 @@ The "When to use" column is the quick decision guide.
 | --  | _(built-in model lookup)_     | CrawClaw tries the normal registry/catalog path first                                    | _(not a plugin hook)_                                                             |
 | 2   | `resolveDynamicModel`         | Sync fallback for provider-owned model ids not in the local registry yet                 | Provider accepts arbitrary upstream model ids                                     |
 | 3   | `prepareDynamicModel`         | Async warm-up, then `resolveDynamicModel` runs again                                     | Provider needs network metadata before resolving unknown ids                      |
-| 4   | `normalizeResolvedModel`      | Final rewrite before the embedded runner uses the resolved model                         | Provider needs transport rewrites but still uses a core transport                 |
+| 4   | `normalizeResolvedModel`      | Final rewrite before the Rust runtime uses the resolved model                            | Provider needs transport rewrites but still uses a core transport                 |
 | 5   | `capabilities`                | Provider-owned transcript/tooling metadata used by shared core logic                     | Provider needs transcript/provider-family quirks                                  |
 | 6   | `formatApiKey`                | Auth-profile formatter: stored profile becomes the runtime `apiKey` string               | Provider stores extra auth metadata and needs a custom runtime token shape        |
 | 7   | `refreshOAuth`                | OAuth refresh override for custom refresh endpoints or refresh-failure policy            | Provider does not fit the shared `pi-ai` refreshers                               |
@@ -563,7 +479,7 @@ The "When to use" column is the quick decision guide.
 | 19  | `fetchUsageSnapshot`          | Fetch and normalize provider-specific usage/quota snapshots after auth is resolved       | Provider needs a provider-specific usage endpoint or payload parser               |
 | 20  | `buildReplayPolicy`           | Return a replay policy controlling transcript handling for the provider                  | Provider needs custom transcript policy (for example, thinking-block stripping)   |
 | 21  | `sanitizeReplayHistory`       | Rewrite replay history after generic transcript cleanup                                  | Provider needs provider-specific replay rewrites beyond shared compaction helpers |
-| 22  | `validateReplayTurns`         | Final replay-turn validation or reshaping before the embedded runner                     | Provider transport needs stricter turn validation after generic sanitation        |
+| 22  | `validateReplayTurns`         | Final replay-turn validation or reshaping before the Rust runtime                        | Provider transport needs stricter turn validation after generic sanitation        |
 
 If the provider needs a fully custom wire protocol or custom request executor,
 that is a different class of extension. These hooks are for provider behavior
@@ -645,11 +561,8 @@ return await fetchExampleProxyUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn);
   `resolveUsageAuth` and `fetchUsageSnapshot` because it owns transport/base
   URL normalization, OAuth refresh fallback policy, default transport choice,
   synthetic Codex catalog rows, and ChatGPT usage endpoint integration.
-- Google AI Studio and Gemini CLI OAuth use `resolveDynamicModel` and
-  `isModernModelRef` because they own Gemini 3.1 forward-compat fallback and
-  modern-model matching; Gemini CLI OAuth also uses `formatApiKey`,
-  `resolveUsageAuth`, and `fetchUsageSnapshot` for token formatting, token
-  parsing, and quota endpoint wiring.
+- Google AI Studio uses `resolveDynamicModel` and `isModernModelRef` because it
+  owns Gemini 3.1 forward-compat fallback and modern-model matching.
 - Moonshot uses `catalog`; Rust/native provider transport owns request payload normalization.
 - Kilocode uses `catalog`, `capabilities`, and `isCacheTtlEligible`; Rust provider transport owns request headers and reasoning payload normalization.
 - Z.AI uses `resolveDynamicModel`, `isCacheTtlEligible`, `isBinaryThinking`,
@@ -694,23 +607,9 @@ Notes:
 - Voice listings can include richer metadata such as locale, gender, and personality tags for provider-aware pickers.
 - OpenAI and ElevenLabs support telephony today. Microsoft does not.
 
-Plugins can also register speech providers via `api.registerSpeechProvider(...)`.
-
-```ts
-api.registerSpeechProvider({
-  id: "acme-speech",
-  label: "Acme Speech",
-  isConfigured: ({ config }) => Boolean(config.messages?.tts),
-  synthesize: async (req) => {
-    return {
-      audioBuffer: Buffer.from([]),
-      outputFormat: "mp3",
-      fileExtension: ".mp3",
-      voiceCompatible: false,
-    };
-  },
-});
-```
+Speech providers now come from Rust native plugin descriptors. TypeScript
+plugins can call shared TTS runtime helpers, but they do not register speech
+providers at runtime.
 
 Notes:
 
@@ -721,18 +620,8 @@ Notes:
   text, speech, image, and future media providers as CrawClaw adds those
   capability contracts.
 
-For image/audio/video understanding, plugins register one typed
-media-understanding provider instead of a generic key/value bag:
-
-```ts
-api.registerMediaUnderstandingProvider({
-  id: "google",
-  capabilities: ["image", "audio", "video"],
-  describeImage: async (req) => ({ text: "..." }),
-  transcribeAudio: async (req) => ({ text: "..." }),
-  describeVideo: async (req) => ({ text: "..." }),
-});
-```
+For image/audio/video understanding, Rust native plugin descriptors declare the
+provider and invocation target instead of a generic key/value bag.
 
 Notes:
 
@@ -743,40 +632,10 @@ Notes:
 - If CrawClaw adds a new capability such as video generation later, define the
   core capability contract first, then let vendor plugins register against it.
 
-For media-understanding runtime helpers, plugins can call:
-
-```ts
-const image = await api.runtime.mediaUnderstanding.describeImageFile({
-  filePath: "/tmp/inbound-photo.jpg",
-  cfg: api.config,
-  agentDir: "/tmp/agent",
-});
-
-const video = await api.runtime.mediaUnderstanding.describeVideoFile({
-  filePath: "/tmp/inbound-video.mp4",
-  cfg: api.config,
-});
-```
-
-For audio transcription, plugins can use either the media-understanding runtime
-or the older STT alias:
-
-```ts
-const { text } = await api.runtime.mediaUnderstanding.transcribeAudioFile({
-  filePath: "/tmp/inbound-audio.ogg",
-  cfg: api.config,
-  // Optional when MIME cannot be inferred reliably:
-  mime: "audio/ogg",
-});
-```
-
-Notes:
-
-- `api.runtime.mediaUnderstanding.*` is the preferred shared surface for
-  image/audio/video understanding.
-- Uses core media-understanding audio configuration (`tools.media.audio`) and provider fallback order.
-- Returns `{ text: undefined }` when no transcription output is produced (for example skipped/unsupported input).
-- `api.runtime.stt.transcribeAudioFile(...)` remains as a compatibility alias.
+The old TypeScript media-understanding runtime helpers have been removed from
+the public plugin SDK. Media understanding is now exposed through Rust native
+runtime capabilities and declarative plugin descriptors, not TS plugin runtime
+calls.
 
 Plugins can also launch background subagent runs through `api.runtime.subagent`:
 
@@ -815,8 +674,7 @@ const result = await api.runtime.webSearch.search({
 });
 ```
 
-Plugins can also register web-search providers via
-`api.registerWebSearchProvider(...)`.
+Web-search providers now come from Rust native plugin descriptors.
 
 Notes:
 
@@ -826,55 +684,26 @@ Notes:
 
 ## Gateway HTTP routes
 
-Plugins can expose HTTP endpoints with `api.registerHttpRoute(...)`.
-
-```ts
-api.registerHttpRoute({
-  path: "/acme/webhook",
-  auth: "plugin",
-  match: "exact",
-  handler: async (_req, res) => {
-    res.statusCode = 200;
-    res.end("ok");
-    return true;
-  },
-});
-```
-
-Route fields:
-
-- `path`: route path under the gateway HTTP server.
-- `auth`: required. Use `"gateway"` to require normal gateway auth, or `"plugin"` for plugin-managed auth/webhook verification.
-- `match`: optional. `"exact"` (default) or `"prefix"`.
-- `replaceExisting`: optional. Allows the same plugin to replace its own existing route registration.
-- `handler`: return `true` when the route handled the request.
-
-Notes:
-
-- `api.registerHttpHandler(...)` was removed and will cause a plugin-load error. Use `api.registerHttpRoute(...)` instead.
-- Plugin routes must declare `auth` explicitly.
-- Exact `path + match` conflicts are rejected unless `replaceExisting: true`, and one plugin cannot replace another plugin's route.
-- Overlapping routes with different `auth` levels are rejected. Keep `exact`/`prefix` fallthrough chains on the same auth level only.
+Production Gateway HTTP routes are owned by Rust Gateway or internal runtime
+services. TypeScript plugins cannot register HTTP handlers.
 
 ## Plugin SDK import paths
 
 Use SDK subpaths instead of the monolithic `crawclaw/plugin-sdk` import when
 authoring plugins:
 
-- `crawclaw/plugin-sdk/plugin-entry` for plugin registration primitives.
-- `crawclaw/plugin-sdk/core` for the generic shared plugin-facing contract.
-- Stable primitives such as `crawclaw/plugin-sdk/command-auth`,
-  `crawclaw/plugin-sdk/secret-input`, and
-  `crawclaw/plugin-sdk/webhook-ingress` for shared auth/webhook wiring.
+- `crawclaw/plugin-sdk/core` for shared non-executing plugin helper types.
+- Stable primitives such as `crawclaw/plugin-sdk/secret-input` and
+  `crawclaw/plugin-sdk/webhook-request-guards` for shared webhook request
+  validation.
 - Domain subpaths such as `crawclaw/plugin-sdk/allow-from`,
   `crawclaw/plugin-sdk/approval-runtime`,
   `crawclaw/plugin-sdk/config-runtime`,
   `crawclaw/plugin-sdk/infra-runtime`,
   `crawclaw/plugin-sdk/agent-runtime`,
   `crawclaw/plugin-sdk/lazy-runtime`,
-  `crawclaw/plugin-sdk/reply-history`,
-  `crawclaw/plugin-sdk/routing`,
-  `crawclaw/plugin-sdk/runtime-store` for shared runtime/config helpers.
+  and `crawclaw/plugin-sdk/reply-history` for non-executing shared helper
+  types.
 - Approval-specific channel seams should prefer one `approvalCapability`
   contract on the plugin. Core then reads approval auth, delivery, render, and
   native-routing behavior through that one capability instead of mixing
@@ -1060,16 +889,16 @@ Recommended sequence:
 1. define the core contract
    Decide what shared behavior core should own: policy, fallback, config merge,
    lifecycle, channel-facing semantics, and runtime helper shape.
-2. add typed plugin registration/runtime surfaces
-   Extend `CrawClawPluginApi` and/or `api.runtime` with the smallest useful
-   typed capability surface.
+2. add Rust native descriptor or Gateway RPC surfaces
+   Extend the Rust-owned contract with the smallest useful typed capability
+   surface.
 3. wire core + channel/feature consumers
    Channels and feature plugins should consume the new capability through core,
    not by importing a vendor implementation directly.
-4. register vendor implementations
-   Vendor plugins then register their backends against the capability.
+4. declare vendor implementations
+   Vendor plugins then declare their backends through Rust native descriptors.
 5. add contract coverage
-   Add tests so ownership and registration shape stay explicit over time.
+   Add tests so ownership and descriptor shape stay explicit over time.
 
 This is how CrawClaw stays opinionated without becoming hardcoded to one
 provider's worldview. See the [Capability Cookbook](/tools/capability-cookbook)
@@ -1105,14 +934,8 @@ export type VideoGenerationProviderPlugin = {
   generateVideo: (req: VideoGenerationRequest) => Promise<VideoGenerationResult>;
 };
 
-// plugin API
-api.registerVideoGenerationProvider({
-  id: "openai",
-  label: "OpenAI",
-  async generateVideo(req) {
-    return await generateOpenAiVideo(req);
-  },
-});
+// Native plugin descriptors are the runtime extension mechanism for new
+// provider-like capabilities.
 
 // shared runtime helper for feature/channel plugins
 const clip = await api.runtime.videoGeneration.generateFile({

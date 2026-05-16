@@ -86,7 +86,7 @@ function runPlannerPlan(args: string[], envOverrides: NodeJS.ProcessEnv = {}): s
 
 function runHighMemoryLocalMultiSurfacePlan(): string {
   return runPlannerPlan(
-    ["--plan", "--surface", "unit", "--surface", "extensions", "--surface", "channels"],
+    ["--plan", "--surface", "unit", "--surface", "extensions"],
     createHighMemoryLocalPlannerEnv(),
   );
 }
@@ -242,15 +242,15 @@ describe("scripts/test-parallel lane planning", () => {
     expect(output).not.toContain("unit-fast filters=all maxWorkers=");
   });
 
-  it("keeps legacy base-pinned targeted reruns on dedicated forks lanes", () => {
+  it("keeps base-pinned targeted reruns on dedicated forks lanes", () => {
     const output = runPlannerPlan([
       "--plan",
       "--files",
-      "src/auto-reply/reply/followup-runner.test.ts",
+      "src/auto-reply/reply/commands-acp/install-hints.test.ts",
     ]);
 
-    expect(output).toContain("base-pinned-followup-runner");
-    expect(output).not.toContain("base-followup-runner");
+    expect(output).toContain("base-pinned-install-hints");
+    expect(output).not.toContain("base-install-hints");
   });
 
   it("reports capability-derived output for mid-memory local macOS hosts", () => {
@@ -282,7 +282,10 @@ describe("scripts/test-parallel lane planning", () => {
       }),
     );
 
-    const midSharedBatches = getPlanLines(midMemoryOutput, "extensions-batch-");
+    const midSharedBatches = [
+      ...getPlanLines(midMemoryOutput, "extensions-batch-"),
+      ...getPlanLines(midMemoryOutput, "extensions "),
+    ];
     const highSharedBatches = [
       ...getPlanLines(highMemoryOutput, "extensions-batch-"),
       ...getPlanLines(highMemoryOutput, "extensions "),
@@ -335,7 +338,10 @@ describe("scripts/test-parallel lane planning", () => {
   });
 
   it("explains targeted file ownership and execution policy", () => {
-    const output = runPlannerPlan(["--explain", "src/auto-reply/reply/followup-runner.test.ts"]);
+    const output = runPlannerPlan([
+      "--explain",
+      "src/auto-reply/reply/commands-acp/install-hints.test.ts",
+    ]);
 
     expect(output).toContain("surface=base");
     expect(output).toContain("reasons=base-surface,base-pinned-manifest");
@@ -387,7 +393,7 @@ describe("scripts/test-parallel lane planning", () => {
 
   it("passes through vitest --mode values that are not wrapper runtime overrides", () => {
     const output = runPlannerPlan(
-      ["--plan", "--mode", "development", "src/infra/outbound/deliver.test.ts"],
+      ["--plan", "--mode", "development", "src/media/store.test.ts"],
       createLocalPlannerEnv({
         RUNNER_OS: "Linux",
         CRAWCLAW_TEST_HOST_CPU_COUNT: "16",

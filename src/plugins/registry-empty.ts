@@ -5,13 +5,8 @@ export function createEmptyPluginRegistry(): PluginRegistry {
     plugins: [],
     tools: [],
     hooks: [],
-    typedHooks: [],
-    channels: [],
-    channelSetups: [],
     providers: [],
-    cliBackends: [],
     speechProviders: [],
-    mediaUnderstandingProviders: [],
     webFetchProviders: [],
     webSearchProviders: [],
     gatewayHandlers: {},
@@ -19,7 +14,6 @@ export function createEmptyPluginRegistry(): PluginRegistry {
     httpRoutes: [],
     services: [],
     commands: [],
-    conversationBindingResolvedHandlers: [],
     diagnostics: [],
   };
 }

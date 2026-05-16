@@ -1,7 +1,6 @@
 import type { CrawClawConfig } from "../../config/config.js";
 import { callGateway } from "../../gateway/call.js";
 import { logVerbose } from "../../globals.js";
-import { getSessionBindingService } from "../../infra/outbound/session-binding-service.js";
 import { getAcpSessionManager } from "./manager.js";
 
 export type AcpSpawnRuntimeCloseHandle = {
@@ -46,17 +45,6 @@ export async function cleanupFailedAcpSpawn(params: {
     .catch((err) => {
       logVerbose(
         `acp-spawn: manager cleanup close failed for ${params.sessionKey}: ${String(err)}`,
-      );
-    });
-
-  await getSessionBindingService()
-    .unbind({
-      targetSessionKey: params.sessionKey,
-      reason: "spawn-failed",
-    })
-    .catch((err) => {
-      logVerbose(
-        `acp-spawn: binding cleanup unbind failed for ${params.sessionKey}: ${String(err)}`,
       );
     });
 

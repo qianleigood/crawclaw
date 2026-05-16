@@ -1,9 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import {
-  createPluginLoadResult,
-  createPluginRecord,
-  createTypedHook,
-} from "../plugins/status.test-helpers.js";
+import { createPluginLoadResult, createPluginRecord } from "../plugins/status.test-helpers.js";
 import * as noteModule from "../terminal/note.js";
 import { noteWorkspaceStatus } from "./doctor-workspace-status.js";
 
@@ -78,9 +74,6 @@ describe("noteWorkspaceStatus", () => {
             name: "Legacy Plugin",
             hookCount: 1,
           }),
-        ],
-        typedHooks: [
-          createTypedHook({ pluginId: "legacy-plugin", hookName: "before_prompt_build" }),
         ],
       }),
     );
@@ -176,7 +169,6 @@ describe("noteWorkspaceStatus", () => {
           hookCount: 1,
         }),
       ],
-      typedHooks: [createTypedHook({ pluginId: "legacy-plugin", hookName: "before_prompt_build" })],
     });
     const noteSpy = await runNoteWorkspaceStatusForTest(loadResult, ["legacy-plugin is hook-only"]);
     try {

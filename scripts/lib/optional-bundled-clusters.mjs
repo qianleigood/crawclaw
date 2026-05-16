@@ -1,4 +1,4 @@
-export const optionalBundledClusters = ["acpx", "diagnostics-otel", "diffs", "ui"];
+export const optionalBundledClusters = ["ui"];
 
 export const optionalBundledClusterSet = new Set(optionalBundledClusters);
 

@@ -1,5 +1,4 @@
 import type { CrawClawConfig } from "../config/config.js";
-import { transcribeAudioFile } from "../media-understanding/transcribe-audio.js";
 import { estimateBase64DecodedBytes } from "../media/base64.js";
 import { extractFileContentFromSource, resolveInputFileLimits } from "../media/input-files.js";
 import type { PromptImageOrderEntry } from "../media/prompt-image-order.js";
@@ -452,21 +451,10 @@ export async function parseMessageWithAttachments(
         }
         savedMediaIds.push(savedAudio.id);
         additionalMedia.push(savedAudio);
-        const transcript = (
-          await transcribeAudioFile({
-            filePath: savedAudio.path,
-            cfg: opts.cfg,
-            agentDir: opts.agentDir,
-            mime: finalMime,
-          })
-        ).text?.trim();
-        if (!transcript) {
-          throw new Error(`attachment ${label}: audio transcription is unavailable for this file`);
-        }
         updatedMessage = appendAttachmentText(
           updatedMessage,
           `Attached audio: ${ensureExtension(label, finalMime)}`,
-          `Transcript:\n${transcript}`,
+          "Audio transcription is not available in the Rust-native runtime yet.",
         );
         continue;
       }

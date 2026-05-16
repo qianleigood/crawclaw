@@ -20,7 +20,7 @@ if (process.argv.slice(2).includes("--help")) {
       "",
       "Examples:",
       "  node scripts/test-hotspots.mjs",
-      "  node scripts/test-hotspots.mjs --config vitest.channels.config.ts --limit 10",
+      "  node scripts/test-hotspots.mjs --config vitest.extensions.config.ts --limit 10",
       "  node scripts/test-hotspots.mjs --report /tmp/vitest-report.json",
     ].join("\n"),
   );

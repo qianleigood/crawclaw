@@ -1,10 +1,13 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import { SessionManager } from "@mariozechner/pi-coding-agent";
 import { describe, expect, it } from "vitest";
+import type { AgentMessage } from "./agent-types.js";
 import { installSessionToolResultGuard } from "./session-tool-result-guard.js";
 import { castAgentMessage } from "./test-helpers/agent-message-fixtures.js";
+import {
+  createInMemorySessionManager,
+  type TestSessionManager,
+} from "./test-helpers/in-memory-session-manager.js";
 
-type AppendMessage = Parameters<SessionManager["appendMessage"]>[0];
+type AppendMessage = Parameters<TestSessionManager["appendMessage"]>[0];
 
 const asAppendMessage = (message: unknown) => message as AppendMessage;
 
@@ -13,7 +16,7 @@ const toolCallMessage = asAppendMessage({
   content: [{ type: "toolCall", id: "call_1", name: "read", arguments: {} }],
 });
 
-function appendToolResultText(sm: SessionManager, text: string) {
+function appendToolResultText(sm: TestSessionManager, text: string) {
   sm.appendMessage(toolCallMessage);
   sm.appendMessage(
     asAppendMessage({
@@ -28,7 +31,7 @@ function appendToolResultText(sm: SessionManager, text: string) {
 }
 
 function appendAssistantToolCall(
-  sm: SessionManager,
+  sm: TestSessionManager,
   params: { id: string; name: string; withArguments?: boolean },
 ) {
   const toolCall: {
@@ -52,14 +55,14 @@ function appendAssistantToolCall(
   );
 }
 
-function getPersistedMessages(sm: SessionManager): AgentMessage[] {
+function getPersistedMessages(sm: TestSessionManager): AgentMessage[] {
   return sm
     .getEntries()
     .filter((e) => e.type === "message")
     .map((e) => (e as { message: AgentMessage }).message);
 }
 
-function expectPersistedRoles(sm: SessionManager, expectedRoles: AgentMessage["role"][]) {
+function expectPersistedRoles(sm: TestSessionManager, expectedRoles: AgentMessage["role"][]) {
   const messages = getPersistedMessages(sm);
   expect(messages.map((message) => message.role)).toEqual(expectedRoles);
   return messages;
@@ -78,7 +81,7 @@ function getToolResultText(messages: AgentMessage[]): string {
 
 describe("installSessionToolResultGuard", () => {
   it("inserts synthetic toolResult before non-tool message when pending", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     sm.appendMessage(toolCallMessage);
@@ -102,7 +105,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("flushes pending tool calls when asked explicitly", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm);
 
     sm.appendMessage(toolCallMessage);
@@ -112,7 +115,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("clears pending tool calls without inserting synthetic tool results", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm);
 
     sm.appendMessage(toolCallMessage);
@@ -123,7 +126,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("clears pending on user interruption when synthetic tool results are disabled", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm, {
       allowSyntheticToolResults: false,
     });
@@ -142,7 +145,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("does not add synthetic toolResult when a matching one exists", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     sm.appendMessage(toolCallMessage);
@@ -159,7 +162,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("backfills blank toolResult names from pending tool calls", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     sm.appendMessage(toolCallMessage);
@@ -181,7 +184,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("preserves ordering with multiple tool calls and partial results", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm);
 
     sm.appendMessage(
@@ -219,7 +222,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("flushes pending on guard when no toolResult arrived", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm);
 
     sm.appendMessage(toolCallMessage);
@@ -234,7 +237,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("handles toolUseId on toolResult", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     sm.appendMessage(
@@ -255,7 +258,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("drops malformed tool calls missing input before persistence", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     sm.appendMessage(
@@ -270,7 +273,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("drops malformed tool calls with invalid name tokens before persistence", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     sm.appendMessage(
@@ -291,7 +294,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("drops tool calls not present in allowedToolNames", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm, {
       allowedToolNames: ["read"],
     });
@@ -307,7 +310,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("flushes pending tool results when a sanitized assistant message is dropped", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     appendAssistantToolCall(sm, { id: "call_1", name: "read" });
@@ -317,7 +320,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("clears pending when a sanitized assistant message is dropped and synthetic results are disabled", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm, {
       allowSyntheticToolResults: false,
       allowedToolNames: ["read"],
@@ -331,7 +334,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("drops older pending ids before new tool calls when synthetic results are disabled", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm, {
       allowSyntheticToolResults: false,
     });
@@ -354,7 +357,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("caps oversized tool result text during persistence", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     appendToolResultText(sm, "x".repeat(500_000));
@@ -365,7 +368,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("does not truncate tool results under the limit", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     const originalText = "small tool result";
@@ -375,65 +378,8 @@ describe("installSessionToolResultGuard", () => {
     expect(text).toBe(originalText);
   });
 
-  it("blocks persistence when before_message_write returns block=true", () => {
-    const sm = SessionManager.inMemory();
-    installSessionToolResultGuard(sm, {
-      beforeMessageWriteHook: () => ({ block: true }),
-    });
-
-    sm.appendMessage(
-      asAppendMessage({
-        role: "user",
-        content: "hidden",
-        timestamp: Date.now(),
-      }),
-    );
-
-    expect(getPersistedMessages(sm)).toHaveLength(0);
-  });
-
-  it("applies before_message_write message mutations before persistence", () => {
-    const sm = SessionManager.inMemory();
-    installSessionToolResultGuard(sm, {
-      beforeMessageWriteHook: ({ message }) => {
-        if ((message as { role?: string }).role !== "toolResult") {
-          return undefined;
-        }
-        return {
-          message: castAgentMessage({
-            ...(message as unknown as Record<string, unknown>),
-            content: [{ type: "text", text: "rewritten by hook" }],
-          }),
-        };
-      },
-    });
-
-    appendToolResultText(sm, "original");
-
-    const text = getToolResultText(getPersistedMessages(sm));
-    expect(text).toBe("rewritten by hook");
-  });
-
-  it("applies before_message_write to synthetic tool-result flushes", () => {
-    const sm = SessionManager.inMemory();
-    const guard = installSessionToolResultGuard(sm, {
-      beforeMessageWriteHook: ({ message }) => {
-        if ((message as { role?: string }).role !== "toolResult") {
-          return undefined;
-        }
-        return { block: true };
-      },
-    });
-
-    sm.appendMessage(toolCallMessage);
-    guard.flushPendingToolResults();
-
-    const messages = getPersistedMessages(sm);
-    expect(messages.map((m) => m.role)).toEqual(["assistant"]);
-  });
-
   it("applies message persistence transform to user messages", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm, {
       transformMessageForPersistence: (message) =>
         (message as { role?: string }).role === "user"
@@ -466,7 +412,7 @@ describe("installSessionToolResultGuard", () => {
   // should be created. Creating synthetic results for aborted/incomplete tool calls
   // causes API 400 errors: "unexpected tool_use_id found in tool_result blocks".
   it("does NOT create synthetic toolResult for aborted assistant messages with toolCalls", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     installSessionToolResultGuard(sm);
 
     // Aborted assistant message with incomplete toolCall
@@ -495,7 +441,7 @@ describe("installSessionToolResultGuard", () => {
   });
 
   it("does NOT create synthetic toolResult for errored assistant messages with toolCalls", () => {
-    const sm = SessionManager.inMemory();
+    const sm = createInMemorySessionManager();
     const guard = installSessionToolResultGuard(sm);
 
     // Error assistant message with incomplete toolCall

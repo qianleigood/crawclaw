@@ -1,0 +1,144 @@
+import type { AgentTool } from "../agent-types.js";
+import type { ResolvedTimeFormat } from "../date-time.js";
+import type { QueryContextSection } from "../query-context/types.js";
+import type { RuntimeContextFile } from "../runtime-context-file.js";
+import { buildAgentSystemPrompt, type PromptMode } from "../system-prompt.js";
+import { buildAgentSystemPromptSections } from "../system-prompt.js";
+import { buildToolSummaryMap } from "../tool-summaries.js";
+import type { ReasoningLevel, ThinkLevel } from "./utils.js";
+
+export function buildRuntimeSystemPrompt(params: {
+  workspaceDir: string;
+  defaultThinkLevel?: ThinkLevel;
+  reasoningLevel?: ReasoningLevel;
+  extraSystemPrompt?: string;
+  ownerNumbers?: string[];
+  ownerDisplay?: "raw" | "hash";
+  ownerDisplaySecret?: string;
+  reasoningTagHint: boolean;
+  heartbeatPrompt?: string;
+  skillsPrompt?: string;
+  docsPath?: string;
+  ttsHint?: string;
+  memoryRuntimeActive?: boolean;
+  reactionGuidance?: {
+    level: "minimal" | "extensive";
+    channel: string;
+  };
+  workspaceNotes?: string[];
+  /** Controls which hardcoded sections to include. Defaults to "full". */
+  promptMode?: PromptMode;
+  /** Whether ACP-specific routing guidance should be included. Defaults to true. */
+  acpEnabled?: boolean;
+  runtimeInfo: {
+    agentId?: string;
+    host: string;
+    os: string;
+    arch: string;
+    node: string;
+    model: string;
+    provider?: string;
+    capabilities?: string[];
+    channel?: string;
+    /** Supported message actions for the current channel (e.g., react, edit, unsend) */
+    channelActions?: string[];
+  };
+  messageToolHints?: string[];
+  tools: AgentTool[];
+  modelAliasLines: string[];
+  userTimezone: string;
+  userTime?: string;
+  userTimeFormat?: ResolvedTimeFormat;
+  contextFiles?: RuntimeContextFile[];
+}): string {
+  return buildAgentSystemPrompt({
+    workspaceDir: params.workspaceDir,
+    defaultThinkLevel: params.defaultThinkLevel,
+    reasoningLevel: params.reasoningLevel,
+    extraSystemPrompt: params.extraSystemPrompt,
+    ownerNumbers: params.ownerNumbers,
+    ownerDisplay: params.ownerDisplay,
+    ownerDisplaySecret: params.ownerDisplaySecret,
+    reasoningTagHint: params.reasoningTagHint,
+    heartbeatPrompt: params.heartbeatPrompt,
+    skillsPrompt: params.skillsPrompt,
+    docsPath: params.docsPath,
+    ttsHint: params.ttsHint,
+    memoryRuntimeActive: params.memoryRuntimeActive,
+    workspaceNotes: params.workspaceNotes,
+    reactionGuidance: params.reactionGuidance,
+    promptMode: params.promptMode,
+    acpEnabled: params.acpEnabled,
+    runtimeInfo: params.runtimeInfo,
+    messageToolHints: params.messageToolHints,
+    toolNames: params.tools.map((tool) => tool.name),
+    toolSummaries: buildToolSummaryMap(params.tools),
+    modelAliasLines: params.modelAliasLines,
+    userTimezone: params.userTimezone,
+    userTime: params.userTime,
+    userTimeFormat: params.userTimeFormat,
+    contextFiles: params.contextFiles,
+  });
+}
+
+export function buildRuntimeSystemPromptSections(
+  params: Parameters<typeof buildRuntimeSystemPrompt>[0],
+): QueryContextSection[] {
+  return buildAgentSystemPromptSections({
+    workspaceDir: params.workspaceDir,
+    defaultThinkLevel: params.defaultThinkLevel,
+    reasoningLevel: params.reasoningLevel,
+    extraSystemPrompt: params.extraSystemPrompt,
+    ownerNumbers: params.ownerNumbers,
+    ownerDisplay: params.ownerDisplay,
+    ownerDisplaySecret: params.ownerDisplaySecret,
+    reasoningTagHint: params.reasoningTagHint,
+    heartbeatPrompt: params.heartbeatPrompt,
+    skillsPrompt: params.skillsPrompt,
+    docsPath: params.docsPath,
+    ttsHint: params.ttsHint,
+    memoryRuntimeActive: params.memoryRuntimeActive,
+    workspaceNotes: params.workspaceNotes,
+    reactionGuidance: params.reactionGuidance,
+    promptMode: params.promptMode,
+    acpEnabled: params.acpEnabled,
+    runtimeInfo: params.runtimeInfo,
+    messageToolHints: params.messageToolHints,
+    toolNames: params.tools.map((tool) => tool.name),
+    toolSummaries: buildToolSummaryMap(params.tools),
+    modelAliasLines: params.modelAliasLines,
+    userTimezone: params.userTimezone,
+    userTime: params.userTime,
+    userTimeFormat: params.userTimeFormat,
+    contextFiles: params.contextFiles,
+  });
+}
+
+export function createSystemPromptOverride(
+  systemPrompt: string,
+): (defaultPrompt?: string) => string {
+  const override = systemPrompt.trim();
+  return (_defaultPrompt?: string) => override;
+}
+
+type RuntimeSystemPromptSession = {
+  agent: {
+    state: {
+      systemPrompt: string;
+    };
+  };
+};
+
+export function applySystemPromptOverrideToSession(
+  session: RuntimeSystemPromptSession,
+  override: string | ((defaultPrompt?: string) => string),
+) {
+  const prompt = typeof override === "function" ? override() : override.trim();
+  session.agent.state.systemPrompt = prompt;
+  const mutableSession = session as unknown as {
+    _baseSystemPrompt?: string;
+    _rebuildSystemPrompt?: (toolNames: string[]) => string;
+  };
+  mutableSession._baseSystemPrompt = prompt;
+  mutableSession._rebuildSystemPrompt = () => prompt;
+}

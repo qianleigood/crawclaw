@@ -8,7 +8,7 @@ import {
 } from "./commands.js";
 
 describe("resolveNativeSkillsEnabled", () => {
-  it("disables auto by default after TypeScript channel plugins were removed", () => {
+  it("disables auto by default after TypeScript delivery plugins were removed", () => {
     expect(
       resolveNativeSkillsEnabled({
         providerId: "custom-channel",

@@ -15,26 +15,8 @@ export function resolveAckReaction(
   agentId: string,
   opts?: { channel?: string; accountId?: string },
 ): string {
-  // L1: Channel account level
-  if (opts?.channel && opts?.accountId) {
-    const channelCfg = getChannelConfig(cfg, opts.channel);
-    const accounts = channelCfg?.accounts as Record<string, Record<string, unknown>> | undefined;
-    const accountReaction = accounts?.[opts.accountId]?.ackReaction as string | undefined;
-    if (accountReaction !== undefined) {
-      return accountReaction.trim();
-    }
-  }
+  void opts;
 
-  // L2: Channel level
-  if (opts?.channel) {
-    const channelCfg = getChannelConfig(cfg, opts.channel);
-    const channelReaction = channelCfg?.ackReaction as string | undefined;
-    if (channelReaction !== undefined) {
-      return channelReaction.trim();
-    }
-  }
-
-  // L3: Global messages level
   const configured = cfg.messages?.ackReaction;
   if (configured !== undefined) {
     return configured.trim();
@@ -79,49 +61,13 @@ export function resolveMessagePrefix(
   return resolveIdentityNamePrefix(cfg, agentId) ?? opts?.fallback ?? "[crawclaw]";
 }
 
-/** Helper to extract a channel config value by dynamic key. */
-function getChannelConfig(
-  cfg: CrawClawConfig,
-  channel: string,
-): Record<string, unknown> | undefined {
-  const channels = cfg.channels as Record<string, unknown> | undefined;
-  const value = channels?.[channel];
-  return typeof value === "object" && value !== null
-    ? (value as Record<string, unknown>)
-    : undefined;
-}
-
 export function resolveResponsePrefix(
   cfg: CrawClawConfig,
   agentId: string,
   opts?: { channel?: string; accountId?: string },
 ): string | undefined {
-  // L1: Channel account level
-  if (opts?.channel && opts?.accountId) {
-    const channelCfg = getChannelConfig(cfg, opts.channel);
-    const accounts = channelCfg?.accounts as Record<string, Record<string, unknown>> | undefined;
-    const accountPrefix = accounts?.[opts.accountId]?.responsePrefix as string | undefined;
-    if (accountPrefix !== undefined) {
-      if (accountPrefix === "auto") {
-        return resolveIdentityNamePrefix(cfg, agentId);
-      }
-      return accountPrefix;
-    }
-  }
+  void opts;
 
-  // L2: Channel level
-  if (opts?.channel) {
-    const channelCfg = getChannelConfig(cfg, opts.channel);
-    const channelPrefix = channelCfg?.responsePrefix as string | undefined;
-    if (channelPrefix !== undefined) {
-      if (channelPrefix === "auto") {
-        return resolveIdentityNamePrefix(cfg, agentId);
-      }
-      return channelPrefix;
-    }
-  }
-
-  // L4: Global level
   const configured = cfg.messages?.responsePrefix;
   if (configured !== undefined) {
     if (configured === "auto") {

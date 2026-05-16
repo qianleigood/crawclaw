@@ -7,7 +7,6 @@ import type { CrawClawConfig } from "../config/config.js";
 import { logWarn } from "../logger.js";
 import { resolveGlobalSingleton } from "../shared/global-singleton.js";
 import { redactSensitiveUrlLikeString } from "../shared/net/redact-sensitive-url.js";
-import { loadEmbeddedPiMcpConfig } from "./embedded-pi-mcp.js";
 import { isMcpConfigRecord } from "./mcp-config-shared.js";
 import { resolveMcpTransport } from "./mcp-transport.js";
 import { sanitizeServerName } from "./pi-bundle-mcp-names.js";
@@ -18,6 +17,7 @@ import type {
   SessionMcpRuntime,
   SessionMcpRuntimeManager,
 } from "./pi-bundle-mcp-types.js";
+import { loadRuntimeMcpConfig } from "./runtime-mcp-config.js";
 
 type BundleMcpSession = {
   serverName: string;
@@ -27,7 +27,7 @@ type BundleMcpSession = {
   detachStderr?: () => void;
 };
 
-type LoadedMcpConfig = ReturnType<typeof loadEmbeddedPiMcpConfig>;
+type LoadedMcpConfig = ReturnType<typeof loadRuntimeMcpConfig>;
 type ListedTool = Awaited<ReturnType<Client["listTools"]>>["tools"][number];
 
 const SESSION_MCP_RUNTIME_MANAGER_KEY = Symbol.for("crawclaw.sessionMcpRuntimeManager");
@@ -91,7 +91,7 @@ function loadSessionMcpConfig(params: {
   loaded: LoadedMcpConfig;
   fingerprint: string;
 } {
-  const loaded = loadEmbeddedPiMcpConfig({
+  const loaded = loadRuntimeMcpConfig({
     workspaceDir: params.workspaceDir,
     cfg: params.cfg,
   });

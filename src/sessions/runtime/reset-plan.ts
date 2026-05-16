@@ -1,5 +1,25 @@
-import { evaluateSessionFreshness, type SessionResetPolicy } from "../../config/sessions/reset.js";
 import { DEFAULT_RESET_TRIGGERS, type SessionEntry } from "../../config/sessions/types.js";
+
+export type SessionResetPolicy =
+  | { mode: "never" }
+  | { mode: "always" }
+  | { mode: "idle"; idleMinutes: number };
+
+function evaluateSessionFreshness(params: {
+  updatedAt?: number;
+  now: number;
+  policy: SessionResetPolicy;
+}): { fresh: boolean } {
+  if (params.policy.mode === "always") {
+    return { fresh: false };
+  }
+  if (params.policy.mode === "never") {
+    return { fresh: true };
+  }
+  const updatedAt = typeof params.updatedAt === "number" ? params.updatedAt : 0;
+  const idleMs = params.policy.idleMinutes * 60_000;
+  return { fresh: params.now - updatedAt < idleMs };
+}
 
 export type SessionResetPlan = {
   resetTriggered: boolean;

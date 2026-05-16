@@ -1,13 +1,9 @@
-import type { ChannelId } from "../channels/plugins/types.js";
-import { listBundledPluginMetadata } from "../plugins/bundled-plugin-metadata.js";
-
 export type GatewayReconfigureOwnerId =
   | "gateway-file-noop"
   | "gateway-long-tail-config"
   | "gateway-remote-config"
   | "gateway-reload-policy"
   | "gateway-server-surface"
-  | "gateway-channel-health"
   | "gateway-discovery"
   | "gateway-tailscale"
   | "gateway-hooks"
@@ -16,7 +12,6 @@ export type GatewayReconfigureOwnerId =
   | "gateway-model-pricing"
   | "gateway-update"
   | "gateway-media"
-  | "gateway-channel-runtime"
   | "gateway-plugin-runtime"
   | "gateway-browser-runtime";
 
@@ -34,8 +29,7 @@ export type GatewayReconfigureAction =
   | "restart-model-pricing"
   | "restart-update-check"
   | "restart-media-cleanup"
-  | "reload-plugin-runtime"
-  | `restart-channel:${ChannelId}`;
+  | "reload-plugin-runtime";
 
 export type GatewayReconfigureOwner = {
   id: GatewayReconfigureOwnerId;
@@ -53,7 +47,6 @@ export type GatewayReconfigurePlan = {
   unmatchedPaths: string[];
   ownerIds: GatewayReconfigureOwnerId[];
   actions: Set<GatewayReconfigureAction>;
-  restartChannels: Set<ChannelId>;
 };
 
 const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
@@ -71,16 +64,6 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
     id: "gateway-reload-policy",
     prefixes: ["gateway.reload"],
     effect: "noop",
-  },
-  {
-    id: "gateway-channel-health",
-    prefixes: [
-      "gateway.channelHealthCheckMinutes",
-      "gateway.channelStaleEventThresholdMinutes",
-      "gateway.channelMaxRestartsPerHour",
-    ],
-    effect: "reconfigure",
-    actions: ["restart-health-monitor"],
   },
   {
     id: "gateway-tailscale",
@@ -157,11 +140,6 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
     actions: ["restart-media-cleanup"],
   },
   {
-    id: "gateway-channel-runtime",
-    prefixes: ["channels", "web"],
-    effect: "reconfigure",
-  },
-  {
     id: "gateway-plugin-runtime",
     prefixes: ["plugins"],
     effect: "reconfigure",
@@ -196,39 +174,12 @@ const BASE_RECONFIGURE_OWNERS: GatewayReconfigureOwner[] = [
   },
 ];
 
-let cachedOwners: GatewayReconfigureOwner[] | null = null;
-
 function matchesPrefix(path: string, prefix: string): boolean {
   return path === prefix || path.startsWith(`${prefix}.`);
 }
 
-function listChannelReloadOwners(): GatewayReconfigureOwner[] {
-  const owners: GatewayReconfigureOwner[] = [];
-  for (const entry of listBundledPluginMetadata({
-    includeChannelConfigs: false,
-    includeSyntheticChannelConfigs: false,
-  })) {
-    for (const channelId of entry.manifest.channels ?? []) {
-      if (!channelId) {
-        continue;
-      }
-      owners.push({
-        id: "gateway-channel-runtime",
-        prefixes: [`channels.${channelId}`],
-        effect: "reconfigure",
-        actions: [`restart-channel:${channelId as ChannelId}`],
-      });
-    }
-  }
-  return owners;
-}
-
 export function listGatewayReconfigureOwners(): GatewayReconfigureOwner[] {
-  if (cachedOwners) {
-    return cachedOwners;
-  }
-  cachedOwners = [...BASE_RECONFIGURE_OWNERS, ...listChannelReloadOwners()];
-  return cachedOwners;
+  return BASE_RECONFIGURE_OWNERS;
 }
 
 function matchOwners(path: string): GatewayReconfigureOwner[] {
@@ -266,7 +217,6 @@ function orderedOwnerIds(ids: Set<GatewayReconfigureOwnerId>): GatewayReconfigur
 export function buildGatewayReconfigurePlan(changedPaths: string[]): GatewayReconfigurePlan {
   const ownerIds = new Set<GatewayReconfigureOwnerId>();
   const actions = new Set<GatewayReconfigureAction>();
-  const restartChannels = new Set<ChannelId>();
   const plan: GatewayReconfigurePlan = {
     changedPaths,
     restartGateway: false,
@@ -276,7 +226,6 @@ export function buildGatewayReconfigurePlan(changedPaths: string[]): GatewayReco
     unmatchedPaths: [],
     ownerIds: [],
     actions,
-    restartChannels,
   };
 
   for (const path of changedPaths) {
@@ -303,9 +252,6 @@ export function buildGatewayReconfigurePlan(changedPaths: string[]): GatewayReco
       }
       for (const action of owner.actions ?? []) {
         actions.add(action);
-        if (action.startsWith("restart-channel:")) {
-          restartChannels.add(action.slice("restart-channel:".length) as ChannelId);
-        }
       }
     }
   }

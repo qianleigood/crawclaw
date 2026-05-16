@@ -16,7 +16,7 @@ export {
   listGatewayReconfigureOwners,
   type GatewayReconfigurePlan,
 } from "./config-reconfigure-plan.js";
-export type { ChannelKind, GatewayReloadPlan } from "./config-reload-plan.js";
+export type { GatewayReloadPlan } from "./config-reload-plan.js";
 
 export type GatewayReloadSettings = {
   mode: GatewayReloadMode;

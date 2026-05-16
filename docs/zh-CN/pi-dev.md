@@ -31,7 +31,7 @@ x-i18n:
 ```bash
 pnpm test -- \
   "src/agents/pi-*.test.ts" \
-  "src/agents/pi-embedded-*.test.ts" \
+  "src/agents/runtime-helpers*.test.ts" \
   "src/agents/pi-tools*.test.ts" \
   "src/agents/pi-settings.test.ts" \
   "src/agents/pi-tool-definition-adapter*.test.ts" \
@@ -41,13 +41,13 @@ pnpm test -- \
 如果还要包含提供商的实时演练：
 
 ```bash
-CRAWCLAW_LIVE_TEST=1 pnpm test -- src/agents/pi-embedded-runner-extraparams.live.test.ts
+pnpm test:live
 ```
 
 这涵盖了主要的 Pi 单元测试套件：
 
 - `src/agents/pi-*.test.ts`
-- `src/agents/pi-embedded-*.test.ts`
+- `src/agents/runtime-helpers*.test.ts`
 - `src/agents/pi-tools*.test.ts`
 - `src/agents/pi-settings.test.ts`
 - `src/agents/pi-tool-definition-adapter.test.ts`

@@ -29,7 +29,7 @@ vi.mock("../agents/models-config.js", () => ({
     ensureCrawClawModelsJsonMock(config, agentDir),
 }));
 
-vi.mock("../agents/pi-embedded-runner/model.js", () => ({
+vi.mock("../agents/runtime-support/model.js", () => ({
   resolveModel: (
     provider: unknown,
     modelId: unknown,

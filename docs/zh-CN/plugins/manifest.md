@@ -23,7 +23,7 @@ x-i18n:
 
 ```json
 {
-  "id": "voice-call",
+  "id": "my-plugin",
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

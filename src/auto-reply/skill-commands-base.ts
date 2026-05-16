@@ -1,9 +1,9 @@
 import type { SkillCommandSpec } from "../agents/skills.js";
-import { getChatCommands } from "./commands-registry.data.js";
+import { buildBuiltinChatCommands } from "./commands-registry.shared.js";
 
 export function listReservedChatSlashCommandNames(extraNames: string[] = []): Set<string> {
   const reserved = new Set<string>();
-  for (const command of getChatCommands()) {
+  for (const command of buildBuiltinChatCommands()) {
     if (command.nativeName) {
       reserved.add(command.nativeName.toLowerCase());
     }

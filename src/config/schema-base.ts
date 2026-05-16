@@ -43,12 +43,7 @@ function stripChannelSchema(schema: ConfigSchema): ConfigSchema {
   if (Array.isArray(root.required)) {
     root.required = root.required.filter((key) => key !== "$schema");
   }
-  const channelsNode = asJsonSchemaObject(root.properties.channels);
-  if (channelsNode) {
-    channelsNode.properties = {};
-    channelsNode.required = [];
-    channelsNode.additionalProperties = true;
-  }
+  delete root.properties.channels;
   return next;
 }
 

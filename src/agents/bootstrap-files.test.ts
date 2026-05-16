@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   clearInternalHooks,
   registerInternalHook,
-  type AgentBootstrapHookContext,
+  type AgentBootstrapToolCallPreflightContext,
 } from "../hooks/internal-hooks.js";
 import { makeTempWorkspace } from "../test-helpers/workspace.js";
 import { resolveBootstrapContextForRun, resolveBootstrapFilesForRun } from "./bootstrap-files.js";
@@ -12,7 +12,7 @@ import type { WorkspaceBootstrapFile } from "./workspace.js";
 
 function registerExtraBootstrapFileHook() {
   registerInternalHook("agent:bootstrap", (event) => {
-    const context = event.context as AgentBootstrapHookContext;
+    const context = event.context as AgentBootstrapToolCallPreflightContext;
     context.bootstrapFiles = [
       ...context.bootstrapFiles,
       {
@@ -27,7 +27,7 @@ function registerExtraBootstrapFileHook() {
 
 function registerMalformedBootstrapFileHook() {
   registerInternalHook("agent:bootstrap", (event) => {
-    const context = event.context as AgentBootstrapHookContext;
+    const context = event.context as AgentBootstrapToolCallPreflightContext;
     context.bootstrapFiles = [
       ...context.bootstrapFiles,
       {

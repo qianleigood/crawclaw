@@ -36,10 +36,6 @@ vi.mock("./subagent-announce.js", () => ({
   runSubagentAnnounceFlow: vi.fn(async () => true),
 }));
 
-vi.mock("../plugins/hook-runner-global.js", () => ({
-  getGlobalHookRunner: vi.fn(() => null),
-}));
-
 vi.mock("./subagent-registry.store.js", () => ({
   loadSubagentRegistryFromDisk: vi.fn(() => new Map()),
   saveSubagentRegistryToDisk: vi.fn(() => {}),

@@ -1,6 +1,6 @@
-import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import type { AgentTool } from "./agent-types.js";
 
 const mocks = vi.hoisted(() => ({
   logDebug: vi.fn(),

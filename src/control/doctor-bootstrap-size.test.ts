@@ -21,7 +21,7 @@ vi.mock("../agents/bootstrap-files.js", () => ({
   resolveBootstrapContextForRun,
 }));
 
-vi.mock("../agents/pi-embedded-helpers.js", () => ({
+vi.mock("../agents/runtime-helpers.js", () => ({
   resolveBootstrapMaxChars,
   resolveBootstrapTotalMaxChars,
 }));

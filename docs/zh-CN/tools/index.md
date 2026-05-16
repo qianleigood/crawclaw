@@ -199,7 +199,7 @@ CrawClaw 把文件、运行时、Web、会话、浏览器、消息、多媒体�
 插件可以在核心集之外注册**额外的工具**（和 CLI 命令）。
 参见[插件](/tools/plugin)了解安装 + 配置，以及 [Skills](/tools/skills) 了解
 工具使用指导如何被注入到提示中。一些插件随工具一起提供自己的 Skills
-（例如，voice-call 插件）。
+（例如，demo-plugin 插件）。
 
 可选的插件工具：
 

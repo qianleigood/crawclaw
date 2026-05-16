@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { resolveDefaultAgentId } from "../agents/agent-scope.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { snapshotSessionOrigin, type SessionEntry } from "../config/sessions.js";
+import type { SessionEntry } from "../config/sessions.js";
+import { snapshotSessionOrigin } from "../config/sessions/metadata.js";
 import { resolveSessionFilePath, resolveSessionFilePathOptions } from "../config/sessions/paths.js";
 import { normalizeAgentId, parseAgentSessionKey } from "../routing/session-key.js";
 import { pickResetCarryOverFields } from "../sessions/runtime/reset-carry-over.js";

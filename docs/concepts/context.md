@@ -183,15 +183,14 @@ Docs: [Session](/concepts/session), [Compaction](/concepts/compaction), [Session
 
 CrawClaw now uses the built-in memory runtime for context assembly and
 compaction. Legacy plugin-provided context engines have been removed; custom
-memory behavior should be implemented through the memory runtime and typed hook
-surfaces instead.
+memory behavior should be implemented through the Rust memory runtime instead.
 
 ## What `/context` actually reports
 
 `/context` prefers the latest **run-built** system prompt report when available:
 
 - `System prompt (run)` = captured from the last embedded (tool-capable) run and persisted in the session store.
-- `System prompt (estimate)` = computed on the fly when no run report exists (or when running via a local process backend that doesn’t generate the report).
+- `System prompt (estimate)` = computed on the fly when no run report exists.
 
 Either way, it reports sizes and top contributors; it does **not** dump the full system prompt or tool schemas.
 

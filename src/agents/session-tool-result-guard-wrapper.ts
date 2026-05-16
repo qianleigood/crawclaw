@@ -1,12 +1,13 @@
-import type { SessionManager } from "@mariozechner/pi-coding-agent";
-import { getGlobalHookRunner } from "../plugins/hook-runner-global.js";
 import {
   applyInputProvenanceToUserMessage,
   type InputProvenance,
 } from "../sessions/input-provenance.js";
-import { installSessionToolResultGuard } from "./session-tool-result-guard.js";
+import {
+  installSessionToolResultGuard,
+  type SessionManagerLike,
+} from "./session-tool-result-guard.js";
 
-export type GuardedSessionManager = SessionManager & {
+export type GuardedSessionManager<T extends SessionManagerLike = SessionManagerLike> = T & {
   /** Flush any synthetic tool results for pending tool calls. Idempotent. */
   flushPendingToolResults?: () => void;
   /** Clear pending tool calls without persisting synthetic tool results. Idempotent. */
@@ -17,8 +18,8 @@ export type GuardedSessionManager = SessionManager & {
  * Apply the tool-result guard to a SessionManager exactly once and expose
  * a flush method on the instance for easy teardown handling.
  */
-export function guardSessionManager(
-  sessionManager: SessionManager,
+export function guardSessionManager<T extends SessionManagerLike>(
+  sessionManager: T,
   opts?: {
     agentId?: string;
     sessionKey?: string;
@@ -26,52 +27,21 @@ export function guardSessionManager(
     allowSyntheticToolResults?: boolean;
     allowedToolNames?: Iterable<string>;
   },
-): GuardedSessionManager {
+): GuardedSessionManager<T> {
   if (typeof (sessionManager as GuardedSessionManager).flushPendingToolResults === "function") {
-    return sessionManager as GuardedSessionManager;
+    return sessionManager as GuardedSessionManager<T>;
   }
-
-  const hookRunner = getGlobalHookRunner();
-  const beforeMessageWrite = hookRunner?.hasHooks("before_message_write")
-    ? (event: { message: import("@mariozechner/pi-agent-core").AgentMessage }) => {
-        return hookRunner.runBeforeMessageWrite(event, {
-          agentId: opts?.agentId,
-          sessionKey: opts?.sessionKey,
-        });
-      }
-    : undefined;
-
-  const transform = hookRunner?.hasHooks("tool_result_persist")
-    ? // oxlint-disable-next-line typescript/no-explicit-any
-      (message: any, meta: { toolCallId?: string; toolName?: string; isSynthetic?: boolean }) => {
-        const out = hookRunner.runToolResultPersist(
-          {
-            toolName: meta.toolName,
-            toolCallId: meta.toolCallId,
-            message,
-            isSynthetic: meta.isSynthetic,
-          },
-          {
-            agentId: opts?.agentId,
-            sessionKey: opts?.sessionKey,
-            toolName: meta.toolName,
-            toolCallId: meta.toolCallId,
-          },
-        );
-        return out?.message ?? message;
-      }
-    : undefined;
 
   const guard = installSessionToolResultGuard(sessionManager, {
     sessionKey: opts?.sessionKey,
     transformMessageForPersistence: (message) =>
       applyInputProvenanceToUserMessage(message, opts?.inputProvenance),
-    transformToolResultForPersistence: transform,
     allowSyntheticToolResults: opts?.allowSyntheticToolResults,
     allowedToolNames: opts?.allowedToolNames,
-    beforeMessageWriteHook: beforeMessageWrite,
   });
-  (sessionManager as GuardedSessionManager).flushPendingToolResults = guard.flushPendingToolResults;
-  (sessionManager as GuardedSessionManager).clearPendingToolResults = guard.clearPendingToolResults;
-  return sessionManager as GuardedSessionManager;
+  (sessionManager as GuardedSessionManager<T>).flushPendingToolResults =
+    guard.flushPendingToolResults;
+  (sessionManager as GuardedSessionManager<T>).clearPendingToolResults =
+    guard.clearPendingToolResults;
+  return sessionManager as GuardedSessionManager<T>;
 }

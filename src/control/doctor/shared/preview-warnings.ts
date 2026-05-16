@@ -1,15 +1,8 @@
 import type { CrawClawConfig } from "../../../config/config.js";
-import { sanitizeForLog } from "../../../terminal/ansi.js";
 import {
   collectBundledPluginLoadPathWarnings,
   scanBundledPluginLoadPathMigrations,
 } from "./bundled-plugin-load-paths.js";
-import {
-  collectConfiguredChannelPluginBlockerWarnings,
-  isWarningBlockedByChannelPlugin,
-  scanConfiguredChannelPluginBlockers,
-} from "./channel-plugin-blockers.js";
-import { scanEmptyAllowlistPolicyWarnings } from "./empty-allowlist-scan.js";
 import {
   collectExecSafeBinCoverageWarnings,
   collectExecSafeBinTrustedDirHintWarnings,
@@ -21,10 +14,6 @@ import {
   scanLegacyToolsBySenderKeys,
 } from "./legacy-tools-by-sender.js";
 import {
-  collectOpenPolicyAllowFromWarnings,
-  maybeRepairOpenPolicyAllowFrom,
-} from "./open-policy-allowfrom.js";
-import {
   collectStalePluginConfigWarnings,
   isStalePluginAutoRepairBlocked,
   scanStalePluginConfig,
@@ -35,23 +24,6 @@ export function collectDoctorPreviewWarnings(params: {
   doctorFixCommand: string;
 }): string[] {
   const warnings: string[] = [];
-
-  const channelPluginBlockerHits = scanConfiguredChannelPluginBlockers(params.cfg, process.env);
-  if (channelPluginBlockerHits.length > 0) {
-    warnings.push(
-      collectConfiguredChannelPluginBlockerWarnings(channelPluginBlockerHits).join("\n"),
-    );
-  }
-
-  const allowFromScan = maybeRepairOpenPolicyAllowFrom(params.cfg);
-  if (allowFromScan.changes.length > 0) {
-    warnings.push(
-      collectOpenPolicyAllowFromWarnings({
-        changes: allowFromScan.changes,
-        doctorFixCommand: params.doctorFixCommand,
-      }).join("\n"),
-    );
-  }
 
   const stalePluginHits = scanStalePluginConfig(params.cfg, process.env);
   if (stalePluginHits.length > 0) {
@@ -72,13 +44,6 @@ export function collectDoctorPreviewWarnings(params: {
         doctorFixCommand: params.doctorFixCommand,
       }).join("\n"),
     );
-  }
-
-  const emptyAllowlistWarnings = scanEmptyAllowlistPolicyWarnings(params.cfg, {
-    doctorFixCommand: params.doctorFixCommand,
-  }).filter((warning) => !isWarningBlockedByChannelPlugin(warning, channelPluginBlockerHits));
-  if (emptyAllowlistWarnings.length > 0) {
-    warnings.push(emptyAllowlistWarnings.map((line) => sanitizeForLog(line)).join("\n"));
   }
 
   const toolsBySenderHits = scanLegacyToolsBySenderKeys(params.cfg);

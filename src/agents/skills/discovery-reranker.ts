@@ -1,11 +1,73 @@
 import { complete, type Api, type Context, type Model } from "@mariozechner/pi-ai";
-import { callStructuredOutput } from "../../memory/llm/structured-output.js";
-import { extractAssistantText } from "../pi-embedded-utils.js";
+import { extractAssistantText } from "../agent-output-utils.js";
 import type { SkillDiscoveryReranker } from "./discovery.js";
 
 type SkillDiscoveryRerankerAuthStorage = {
   getApiKey(provider: string): Promise<string | undefined>;
 };
+
+type StructuredCompleteFn = (system: string, user: string) => Promise<string>;
+
+type StructuredFallback<T> = (raw: string, error: unknown) => T;
+
+function stripThinkingBlocks(raw: string): string {
+  return raw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+}
+
+function extractJsonPayload(raw: string): string {
+  const cleaned = stripThinkingBlocks(raw)
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/\s*```\s*$/i, "")
+    .trim();
+  const firstBrace = cleaned.indexOf("{");
+  const lastBrace = cleaned.lastIndexOf("}");
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    return cleaned.slice(firstBrace, lastBrace + 1);
+  }
+  const firstBracket = cleaned.indexOf("[");
+  const lastBracket = cleaned.lastIndexOf("]");
+  if (firstBracket !== -1 && lastBracket > firstBracket) {
+    return cleaned.slice(firstBracket, lastBracket + 1);
+  }
+  return cleaned;
+}
+
+async function callStructuredOutput<T>(
+  completeFn: StructuredCompleteFn,
+  options: {
+    system: string;
+    user: string;
+    formatHint?: string;
+    retries?: number;
+    validator: (value: unknown) => T;
+    fallback?: StructuredFallback<T>;
+  },
+): Promise<{ value: T }> {
+  const retries = Math.max(0, options.retries ?? 1);
+  let lastRaw = "";
+  let lastError: unknown;
+  let repairUser = options.user;
+
+  for (let attempt = 0; attempt <= retries; attempt += 1) {
+    const system = [options.system.trim(), options.formatHint?.trim()].filter(Boolean).join("\n\n");
+    const raw = await completeFn(system, repairUser);
+    lastRaw = raw;
+    try {
+      return { value: options.validator(JSON.parse(extractJsonPayload(raw))) };
+    } catch (error) {
+      lastError = error;
+      repairUser = `${options.user}\n\n<FORMAT_REPAIR>\n上一次输出未通过 JSON schema 校验。请仅输出合法 JSON，不要解释，不要 markdown fence。\n原始输出：\n${raw.slice(0, 2000)}\n</FORMAT_REPAIR>`;
+    }
+  }
+
+  if (options.fallback) {
+    return { value: options.fallback(lastRaw, lastError) };
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error(lastError == null ? "structured output failed" : JSON.stringify(lastError));
+}
 
 function clampConfidence(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value)

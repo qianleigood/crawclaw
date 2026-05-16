@@ -67,13 +67,14 @@ Reference notes:
 
 ## Model routing
 
-CrawClaw resolves an image-capable model first, then runs the request through
-the matching media-understanding provider.
+CrawClaw no longer runs the old TypeScript media-understanding provider path.
+Image analysis is available only after a Rust-native media-understanding runtime
+is present.
 
 Provider notes:
 
-- Multi-image input uses provider-native multi-image support when available.
-- Otherwise CrawClaw falls back to sequential per-image descriptions.
+- TypeScript media-understanding providers are not loaded.
+- Plugin manifests no longer declare `mediaUnderstandingProviders`.
 - MiniMax vision models are routed through the MiniMax VLM path automatically.
 
 ## Config

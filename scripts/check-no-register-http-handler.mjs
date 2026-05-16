@@ -29,7 +29,7 @@ export async function main() {
     findCallLines: findDeprecatedRegisterHttpHandlerLines,
     header: "Found deprecated plugin API call registerHttpHandler(...):",
     footer:
-      "Use registerHttpRoute({ path, auth, match, handler }) and registerPluginHttpRoute for dynamic webhook paths.",
+      "TypeScript plugins cannot register HTTP handlers; move production routes to Rust Gateway/native runtime.",
   });
 }
 

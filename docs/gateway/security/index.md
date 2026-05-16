@@ -237,7 +237,6 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 | `gateway.browser_client.allowed_origins_required`             | critical      | Non-loopback browser client access without explicit browser-origin allowlist         | `gateway.browserClients.allowedOrigins`                                                              | no       |
 | `gateway.browser_client.host_header_origin_fallback`          | warn/critical | Enables Host-header origin fallback (DNS rebinding hardening downgrade)              | `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback`                                    | no       |
 | `gateway.browser_client.insecure_auth`                        | warn          | Insecure-auth compatibility toggle enabled                                           | `gateway.browserClients.allowInsecureAuth`                                                           | no       |
-| `gateway.browser_client.device_auth_disabled`                 | critical      | Disables device identity check                                                       | `gateway.browserClients.dangerouslyDisableDeviceAuth`                                                | no       |
 | `gateway.real_ip_fallback_enabled`                            | warn/critical | Trusting `X-Real-IP` fallback can enable source-IP spoofing via proxy misconfig      | `gateway.allowRealIpFallback`, `gateway.trustedProxies`                                              | no       |
 | `discovery.mdns_full_mode`                                    | warn/critical | mDNS full mode advertises `sshPort` metadata on local network                        | `discovery.mdns.mode`, `gateway.bind`                                                                | no       |
 | `config.insecure_or_dangerous_flags`                          | warn          | Any insecure/dangerous debug flags enabled                                           | multiple keys (see finding detail)                                                                   | no       |
@@ -261,21 +260,9 @@ High-signal `checkId` values you will most likely see in real deployments (not e
 
 ## Browser clients over HTTP
 
-Browser clients need a **secure context** (HTTPS or localhost) to generate device
-identity. `gateway.browserClients.allowInsecureAuth` is a local compatibility toggle:
-
-- On localhost, it allows browser-client auth without device identity when the page
-  is loaded over non-secure HTTP.
-- It does not bypass pairing checks.
-- It does not relax remote (non-localhost) device identity requirements.
-
-Prefer HTTPS (Tailscale Serve) or open the UI on `127.0.0.1`.
-
-For break-glass scenarios only, `gateway.browserClients.dangerouslyDisableDeviceAuth`
-disables device identity checks entirely. This is a severe security downgrade;
-keep it off unless you are actively debugging and can revert quickly.
-
-CrawClaw Desktop or the local Gateway API warns when this setting is enabled.
+Browser clients should use HTTPS or localhost. `gateway.browserClients.allowInsecureAuth`
+is a local compatibility toggle for non-standard browser-origin setups; keep it off unless
+you trust the network and proxy path.
 
 ## Insecure or dangerous flags summary
 
@@ -285,7 +272,6 @@ aggregates:
 
 - `gateway.browserClients.allowInsecureAuth=true`
 - `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback=true`
-- `gateway.browserClients.dangerouslyDisableDeviceAuth=true`
 - `hooks.gmail.allowUnsafeExternalContent=true`
 - `hooks.mappings[<index>].allowUnsafeExternalContent=true`
 - `tools.exec.applyPatch.workspaceOnly=false`
@@ -295,7 +281,6 @@ Complete `dangerous*` / `dangerously*` config keys defined in CrawClaw config
 schema:
 
 - `gateway.browserClients.dangerouslyAllowHostHeaderOriginFallback`
-- `gateway.browserClients.dangerouslyDisableDeviceAuth`
 - `browser.ssrfPolicy.dangerouslyAllowPrivateNetwork`
 - `channels.qqbot.dangerouslyAllowNameMatching`
 - `channels.qqbot.accounts.<accountId>.dangerouslyAllowNameMatching`

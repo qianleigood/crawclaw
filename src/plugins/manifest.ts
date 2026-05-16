@@ -9,14 +9,6 @@ import type { PluginConfigUiHint, PluginKind } from "./types.js";
 export const PLUGIN_MANIFEST_FILENAME = "crawclaw.plugin.json";
 export const PLUGIN_MANIFEST_FILENAMES = [PLUGIN_MANIFEST_FILENAME] as const;
 
-export type PluginManifestChannelConfig = {
-  schema: Record<string, unknown>;
-  uiHints?: Record<string, PluginConfigUiHint>;
-  label?: string;
-  description?: string;
-  preferOver?: string[];
-};
-
 export type PluginManifest = {
   id: string;
   configSchema: Record<string, unknown>;
@@ -27,10 +19,7 @@ export type PluginManifest = {
   /** Provider ids that should auto-enable this plugin when referenced in auth/config/models. */
   autoEnableWhenConfiguredProviders?: string[];
   kind?: PluginKind | PluginKind[];
-  channels?: string[];
   providers?: string[];
-  /** Cheap startup activation lookup for plugin-owned CLI inference backends. */
-  cliBackends?: string[];
   /** Cheap provider-auth env lookup without booting plugin runtime. */
   providerAuthEnvVars?: Record<string, string[]>;
   /**
@@ -48,7 +37,6 @@ export type PluginManifest = {
    * compat wiring, and contract coverage without importing plugin runtime.
    */
   contracts?: PluginManifestContracts;
-  channelConfigs?: Record<string, PluginManifestChannelConfig>;
 };
 
 export type PluginManifestNativeDiscovery = {
@@ -60,7 +48,6 @@ export type PluginManifestNativeDiscovery = {
 
 export type PluginManifestContracts = {
   speechProviders?: string[];
-  mediaUnderstandingProviders?: string[];
   webFetchProviders?: string[];
   webSearchProviders?: string[];
   tools?: string[];
@@ -132,13 +119,11 @@ function normalizeManifestContracts(value: unknown): PluginManifestContracts | u
   }
 
   const speechProviders = normalizeStringList(value.speechProviders);
-  const mediaUnderstandingProviders = normalizeStringList(value.mediaUnderstandingProviders);
   const webFetchProviders = normalizeStringList(value.webFetchProviders);
   const webSearchProviders = normalizeStringList(value.webSearchProviders);
   const tools = normalizeStringList(value.tools);
   const contracts = {
     ...(speechProviders.length > 0 ? { speechProviders } : {}),
-    ...(mediaUnderstandingProviders.length > 0 ? { mediaUnderstandingProviders } : {}),
     ...(webFetchProviders.length > 0 ? { webFetchProviders } : {}),
     ...(webSearchProviders.length > 0 ? { webSearchProviders } : {}),
     ...(tools.length > 0 ? { tools } : {}),
@@ -213,39 +198,6 @@ function normalizeProviderAuthChoices(
     });
   }
   return normalized.length > 0 ? normalized : undefined;
-}
-
-function normalizeChannelConfigs(
-  value: unknown,
-): Record<string, PluginManifestChannelConfig> | undefined {
-  if (!isRecord(value)) {
-    return undefined;
-  }
-  const normalized: Record<string, PluginManifestChannelConfig> = {};
-  for (const [key, rawEntry] of Object.entries(value)) {
-    const channelId = typeof key === "string" ? key.trim() : "";
-    if (!channelId || !isRecord(rawEntry)) {
-      continue;
-    }
-    const schema = isRecord(rawEntry.schema) ? rawEntry.schema : null;
-    if (!schema) {
-      continue;
-    }
-    const uiHints = isRecord(rawEntry.uiHints)
-      ? (rawEntry.uiHints as Record<string, PluginConfigUiHint>)
-      : undefined;
-    const label = typeof rawEntry.label === "string" ? rawEntry.label.trim() : "";
-    const description = typeof rawEntry.description === "string" ? rawEntry.description.trim() : "";
-    const preferOver = normalizeStringList(rawEntry.preferOver);
-    normalized[channelId] = {
-      schema,
-      ...(uiHints ? { uiHints } : {}),
-      ...(label ? { label } : {}),
-      ...(description ? { description } : {}),
-      ...(preferOver.length > 0 ? { preferOver } : {}),
-    };
-  }
-  return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
 
 export function resolvePluginManifestPath(rootDir: string): string {
@@ -338,14 +290,11 @@ export function loadPluginManifest(
   const description = typeof raw.description === "string" ? raw.description.trim() : undefined;
   const version = typeof raw.version === "string" ? raw.version.trim() : undefined;
   const native = normalizeNativeDiscovery(raw.native);
-  const channels = normalizeStringList(raw.channels);
   const providers = normalizeStringList(raw.providers);
-  const cliBackends = normalizeStringList(raw.cliBackends);
   const providerAuthEnvVars = normalizeStringListRecord(raw.providerAuthEnvVars);
   const providerAuthChoices = normalizeProviderAuthChoices(raw.providerAuthChoices);
   const skills = normalizeStringList(raw.skills);
   const contracts = normalizeManifestContracts(raw.contracts);
-  const channelConfigs = normalizeChannelConfigs(raw.channelConfigs);
 
   let uiHints: Record<string, PluginConfigUiHint> | undefined;
   if (isRecord(raw.uiHints)) {
@@ -364,9 +313,7 @@ export function loadPluginManifest(
         ? { autoEnableWhenConfiguredProviders }
         : {}),
       kind,
-      channels,
       providers,
-      cliBackends,
       providerAuthEnvVars,
       providerAuthChoices,
       skills,
@@ -375,37 +322,10 @@ export function loadPluginManifest(
       version,
       uiHints,
       contracts,
-      channelConfigs,
     },
     manifestPath,
   };
 }
-
-// package.json "crawclaw" metadata
-export type PluginPackageChannel = {
-  id?: string;
-  label?: string;
-  selectionLabel?: string;
-  detailLabel?: string;
-  docsPath?: string;
-  docsLabel?: string;
-  blurb?: string;
-  order?: number;
-  aliases?: readonly string[];
-  preferOver?: readonly string[];
-  systemImage?: string;
-  selectionDocsPrefix?: string;
-  selectionDocsOmitLabel?: boolean;
-  selectionExtras?: readonly string[];
-  markdownCapable?: boolean;
-  showConfigured?: boolean;
-  quickstartAllowFrom?: boolean;
-  forceAccountBinding?: boolean;
-  preferSessionLookupForAnnounceTarget?: boolean;
-  profile?: "primary-cn" | "optional" | "legacy";
-  configuredState?: PluginPackageStateProbe;
-  persistedAuthState?: PluginPackageStateProbe;
-};
 
 export type PluginPackageStateProbe = {
   specifier?: string;
@@ -419,20 +339,10 @@ export type PluginPackageInstall = {
   minHostVersion?: string;
 };
 
-export type CrawClawPackageStartup = {
-  /**
-   * Opt-in for channel plugins whose `setupEntry` fully covers the gateway
-   * startup surface needed before the server starts listening.
-   */
-  deferConfiguredChannelFullLoadUntilAfterListen?: boolean;
-};
-
 export type CrawClawPackageManifest = {
   extensions?: string[];
   setupEntry?: string;
-  channel?: PluginPackageChannel;
   install?: PluginPackageInstall;
-  startup?: CrawClawPackageStartup;
 };
 
 export const DEFAULT_PLUGIN_ENTRY_CANDIDATES = [

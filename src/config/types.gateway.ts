@@ -96,12 +96,9 @@ export type GatewayBrowserClientsConfig = {
   dangerouslyAllowHostHeaderOriginFallback?: boolean;
   /**
    * Insecure-auth toggle.
-   * Browser-origin clients still require secure context + device identity unless
-   * dangerouslyDisableDeviceAuth is enabled.
+   * Browser-origin clients still require normal gateway authentication.
    */
   allowInsecureAuth?: boolean;
-  /** DANGEROUS: Disable device identity checks for browser-origin clients (default: false). */
-  dangerouslyDisableDeviceAuth?: boolean;
 };
 
 export type GatewayAuthMode = "none" | "token" | "password" | "trusted-proxy";
@@ -339,9 +336,9 @@ export type GatewayHttpConfig = {
 };
 
 export type GatewayToolsConfig = {
-  /** Tools to deny via gateway HTTP /tools/invoke (extends defaults). */
+  /** Legacy gateway HTTP tool deny list retained for config migration. */
   deny?: string[];
-  /** Tools to explicitly allow (removes from default deny list). */
+  /** Legacy gateway HTTP tool allow list retained for config migration. */
   allow?: string[];
 };
 
@@ -388,26 +385,8 @@ export type GatewayConfig = {
    * Default: false (safer fail-closed behavior).
    */
   allowRealIpFallback?: boolean;
-  /** Tool access restrictions for HTTP /tools/invoke endpoint. */
+  /** Legacy gateway HTTP tool exposure policy retained for config migration. */
   tools?: GatewayToolsConfig;
   /** Internal Gateway chat display/history settings. */
   webchat?: GatewayWebchatConfig;
-  /**
-   * Channel health monitor interval in minutes.
-   * Periodically checks channel health and restarts unhealthy channels.
-   * Set to 0 to disable. Default: 5.
-   */
-  channelHealthCheckMinutes?: number;
-  /**
-   * Stale event threshold in minutes for the channel health monitor.
-   * A connected channel that receives no events for this duration is treated
-   * as a stale socket and restarted. Default: 30.
-   */
-  channelStaleEventThresholdMinutes?: number;
-  /**
-   * Maximum number of health-monitor-initiated channel restarts per hour.
-   * Once this limit is reached, the monitor skips further restarts until
-   * the rolling window expires. Default: 10.
-   */
-  channelMaxRestartsPerHour?: number;
 };

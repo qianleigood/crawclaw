@@ -18,19 +18,13 @@ import { createPluginLoaderLogger } from "./logger.js";
 import { resolveBundledProviderCompatPluginIds } from "./providers.js";
 import type { PluginRegistry } from "./registry.js";
 import { listImportedRuntimePluginIds } from "./runtime.js";
-import type { PluginDiagnostic, PluginHookName } from "./types.js";
+import type { PluginDiagnostic } from "./types.js";
 
 export type PluginStatusReport = PluginRegistry & {
   workspaceDir?: string;
 };
 
-export type PluginCapabilityKind =
-  | "cli-backend"
-  | "text-inference"
-  | "speech"
-  | "media-understanding"
-  | "web-search"
-  | "channel";
+export type PluginCapabilityKind = "cli-backend" | "text-inference" | "speech" | "web-search";
 
 export type PluginInspectShape =
   | "hook-only"
@@ -60,10 +54,6 @@ export type PluginInspectReport = {
     kind: PluginCapabilityKind;
     ids: string[];
   }>;
-  typedHooks: Array<{
-    name: PluginHookName;
-    priority?: number;
-  }>;
   customHooks: Array<{
     name: string;
     events: string[];
@@ -87,7 +77,6 @@ export type PluginInspectReport = {
   bundleCapabilities: string[];
   diagnostics: PluginDiagnostic[];
   policy: {
-    allowPromptInjection?: boolean;
     allowModelOverride?: boolean;
     allowedModels: string[];
     hasAllowedModelsConfig: boolean;
@@ -218,18 +207,14 @@ export function buildPluginDiagnosticsReport(params?: PluginReportParams): Plugi
 
 function buildCapabilityEntries(plugin: PluginRegistry["plugins"][number]) {
   return [
-    { kind: "cli-backend" as const, ids: plugin.cliBackendIds ?? [] },
     { kind: "text-inference" as const, ids: plugin.providerIds },
     { kind: "speech" as const, ids: plugin.speechProviderIds },
-    { kind: "media-understanding" as const, ids: plugin.mediaUnderstandingProviderIds },
     { kind: "web-search" as const, ids: plugin.webSearchProviderIds },
-    { kind: "channel" as const, ids: plugin.channelIds },
   ].filter((entry) => entry.ids.length > 0);
 }
 
 function deriveInspectShape(params: {
   capabilityCount: number;
-  typedHookCount: number;
   customHookCount: number;
   toolCount: number;
   commandCount: number;
@@ -244,7 +229,7 @@ function deriveInspectShape(params: {
     return "plain-capability";
   }
   const hasOnlyHooks =
-    params.typedHookCount + params.customHookCount > 0 &&
+    params.customHookCount > 0 &&
     params.toolCount === 0 &&
     params.commandCount === 0 &&
     params.serviceCount === 0 &&
@@ -279,13 +264,6 @@ export function buildPluginInspectReport(params: {
   }
 
   const capabilities = buildCapabilityEntries(plugin);
-  const typedHooks = report.typedHooks
-    .filter((entry) => entry.pluginId === plugin.id)
-    .map((entry) => ({
-      name: entry.hookName,
-      priority: entry.priority,
-    }))
-    .toSorted((a, b) => a.name.localeCompare(b.name));
   const customHooks = report.hooks
     .filter((entry) => entry.pluginId === plugin.id)
     .map((entry) => ({
@@ -304,7 +282,6 @@ export function buildPluginInspectReport(params: {
   const capabilityCount = capabilities.length;
   const shape = deriveInspectShape({
     capabilityCount,
-    typedHookCount: typedHooks.length,
     customHookCount: customHooks.length,
     toolCount: tools.length,
     commandCount: plugin.commands.length,
@@ -364,7 +341,6 @@ export function buildPluginInspectReport(params: {
     capabilityMode: capabilityCount === 0 ? "none" : capabilityCount === 1 ? "plain" : "hybrid",
     capabilityCount,
     capabilities,
-    typedHooks,
     customHooks,
     tools,
     commands: [...plugin.commands],
@@ -376,7 +352,6 @@ export function buildPluginInspectReport(params: {
     bundleCapabilities: plugin.bundleCapabilities ?? [],
     diagnostics,
     policy: {
-      allowPromptInjection: policyEntry?.hooks?.allowPromptInjection,
       allowModelOverride: policyEntry?.subagent?.allowModelOverride,
       allowedModels: [...(policyEntry?.subagent?.allowedModels ?? [])],
       hasAllowedModelsConfig: policyEntry?.subagent?.hasAllowedModelsConfig === true,

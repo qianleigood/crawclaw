@@ -118,22 +118,6 @@ Optional ops scripts (systemd/Termux) are documented here:
 
 > `claude setup-token` requires an interactive TTY.
 
-## Anthropic: Claude CLI migration
-
-If Claude CLI is already installed and signed in on the gateway host, you can
-switch an existing Anthropic setup over to the local process backend instead of pasting a
-setup-token:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-This keeps your existing Anthropic auth profiles for rollback, but changes the
-default model selection to `claude-cli/...` and adds matching Claude CLI
-allowlist entries under `agents.defaults.models`.
-
-Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
-
 ## Checking model auth status
 
 ```bash

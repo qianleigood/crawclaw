@@ -13,7 +13,7 @@ It should not contain:
 
 - general session reset logic
 - unrelated tool registration
-- channel runtime policy unrelated to subagent lifecycle
+- delivery runtime policy unrelated to subagent lifecycle
 
 Start here:
 

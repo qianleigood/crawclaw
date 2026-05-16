@@ -7,14 +7,6 @@ import { readPackageName, readPackageVersion } from "./package-json.js";
 import { normalizePackageTagInput } from "./package-tag.js";
 import { trimLogTail } from "./restart-sentinel.js";
 import { resolveStableNodePath } from "./stable-node-path.js";
-import {
-  channelToNpmTag,
-  DEFAULT_PACKAGE_CHANNEL,
-  DEV_BRANCH,
-  isBetaTag,
-  isStableTag,
-  type UpdateChannel,
-} from "./update-channels.js";
 import { compareSemverStrings } from "./update-check.js";
 import {
   collectInstalledGlobalPackageErrors,
@@ -27,6 +19,14 @@ import {
   resolveGlobalInstallSpec,
   resolveGlobalPackageRoot,
 } from "./update-global.js";
+import {
+  channelToNpmTag,
+  DEFAULT_PACKAGE_CHANNEL,
+  DEV_BRANCH,
+  isBetaTag,
+  isStableTag,
+  type UpdateChannel,
+} from "./update-track.js";
 
 export type UpdateStepResult = {
   name: string;

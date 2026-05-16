@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { callGateway } from "../../gateway/call.js";
-import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/message-channel.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../../utils/gateway-client-surface.js";
 import { AGENT_LANE_NESTED } from "../lanes.js";
 import { extractAssistantText, stripToolMessages } from "./sessions-helpers.js";
 
@@ -53,7 +53,7 @@ export async function runAgentStep(params: {
 }): Promise<string | undefined> {
   const stepIdem = crypto.randomUUID();
   const response = await agentStepDeps.callGateway<{ runId?: string }>({
-    method: "agent",
+    method: "agent.command.run",
     params: {
       message: params.message,
       sessionKey: params.sessionKey,

@@ -1,21 +1,21 @@
 import fs from "node:fs";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { runCrawClawRuntimeTool } from "../../agents/runtime-tools/native.js";
+import { callGateway } from "../../gateway/call.js";
 import { resolveReplyRoutingDecisionWithRust } from "./routing-policy-runtime.js";
 
-vi.mock("../../agents/runtime-tools/native.js", () => ({
-  runCrawClawRuntimeTool: vi.fn(),
+vi.mock("../../gateway/call.js", () => ({
+  callGateway: vi.fn(),
 }));
 
-const runRuntimeTool = vi.mocked(runCrawClawRuntimeTool);
+const callGatewayMock = vi.mocked(callGateway);
 
 describe("resolveReplyRoutingDecisionWithRust", () => {
   beforeEach(() => {
-    runRuntimeTool.mockReset();
+    callGatewayMock.mockReset();
   });
 
   it("uses the Rust message policy worker operation", async () => {
-    runRuntimeTool.mockResolvedValue({
+    callGatewayMock.mockResolvedValue({
       originatingChannel: "feishu",
       currentSurface: "ddingtalk",
       isInternalWebchatTurn: false,
@@ -32,12 +32,12 @@ describe("resolveReplyRoutingDecisionWithRust", () => {
     });
 
     expect(decision.shouldRouteToOriginating).toBe(true);
-    expect(runRuntimeTool).toHaveBeenCalledWith(
-      "message_policy",
-      {
+    expect(callGatewayMock).toHaveBeenCalledWith({
+      method: "message.policy",
+      params: {
         operation: "outbound.resolveReplyRoutingDecision",
         payload: {
-          provider: "ddingtalk",
+          provider: "dingtalk",
           surface: "ddingtalk",
           explicitDeliverRoute: undefined,
           originatingChannel: "feishu",
@@ -46,12 +46,12 @@ describe("resolveReplyRoutingDecisionWithRust", () => {
           originatingRoutable: true,
         },
       },
-      { timeoutMs: 30_000 },
-    );
+      timeoutMs: 30_000,
+    });
   });
 
   it("normalizes nullable Rust channels to undefined", async () => {
-    runRuntimeTool.mockResolvedValue({
+    callGatewayMock.mockResolvedValue({
       originatingChannel: null,
       currentSurface: null,
       isInternalWebchatTurn: false,
@@ -67,10 +67,10 @@ describe("resolveReplyRoutingDecisionWithRust", () => {
     expect(decision.currentSurface).toBeUndefined();
   });
 
-  it("keeps dispatch reply routing on the Rust policy adapter", () => {
-    const source = fs.readFileSync(new URL("./dispatch-from-config.ts", import.meta.url), "utf8");
+  it("keeps auto-reply dispatch on the Rust agent adapter", () => {
+    const source = fs.readFileSync(new URL("../dispatch.ts", import.meta.url), "utf8");
 
-    expect(source).toContain("./routing-policy-runtime.js");
-    expect(source).not.toContain("./routing-policy.js");
+    expect(source).toContain("dispatchInboundWithRustAgent");
+    expect(source).not.toContain("dispatchReplyFromConfig");
   });
 });

@@ -130,7 +130,7 @@ CrawClaw 通过 `src/config/sessions.ts` 解析这些位置。
 
 ## 记录结构（`*.jsonl`）
 
-记录由 `@mariozechner/pi-coding-agent` 的 `SessionManager` 管理。
+记录由 CrawClaw 的 Rust AgentRuntime session store 管理。
 
 文件是 JSONL 格式：
 
@@ -219,7 +219,7 @@ CrawClaw 还为嵌入式运行强制执行安全下限：
 
 原因：为压缩变得不可避免之前的多回合"内务处理"（如记忆写入）留出足够的空间。
 
-实现：`src/agents/pi-settings.ts` 中的 `ensurePiCompactionReserveTokens()`（从 `src/agents/pi-embedded-runner.ts` 调用）。
+实现细节：Rust AgentRuntime 在上下文组装和压缩时应用有效的压缩设置。
 
 ---
 

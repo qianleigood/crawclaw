@@ -310,8 +310,7 @@ const buildOrderedParallelSegments = (units) => {
 };
 
 const prioritizeDeferredUnitsForPhase = (units, phase) => {
-  const preferredSurface =
-    phase === "extensions" || phase === "channels" ? phase : phase === "unit-fast" ? "unit" : null;
+  const preferredSurface = phase === "extensions" ? phase : phase === "unit-fast" ? "unit" : null;
   if (preferredSurface === null) {
     return units;
   }
@@ -325,19 +324,6 @@ const prioritizeDeferredUnitsForPhase = (units, phase) => {
     }
   }
   return preferred.length > 0 ? [...preferred, ...remaining] : units;
-};
-
-const partitionUnitsBySurface = (units, surface) => {
-  const matching = [];
-  const remaining = [];
-  for (const unit of units) {
-    if (unit.surface === surface) {
-      matching.push(unit);
-    } else {
-      remaining.push(unit);
-    }
-  }
-  return { matching, remaining };
 };
 
 export async function executePlan(plan, options = {}) {
@@ -1017,9 +1003,7 @@ export async function executePlan(plan, options = {}) {
               plan.passthroughOptionArgs,
               availableSlots,
             );
-            deferredCarrySurface = prePhaseDeferred.some((unit) => unit.surface === "channels")
-              ? "channels"
-              : null;
+            deferredCarrySurface = null;
             pendingDeferredSegment = null;
           }
         }
@@ -1029,35 +1013,11 @@ export async function executePlan(plan, options = {}) {
           pendingDeferredSegment.units,
           segment.phase,
         );
-        if (segment.phase === "extensions") {
-          const { matching: channelDeferred, remaining: otherDeferred } = partitionUnitsBySurface(
-            prioritizedDeferred,
-            "channels",
-          );
-          deferredPromise =
-            otherDeferred.length > 0
-              ? runUnitsWithLimit(
-                  otherDeferred,
-                  plan.passthroughOptionArgs,
-                  plan.deferredRunConcurrency ?? 1,
-                )
-              : null;
-          deferredCarryPromise =
-            channelDeferred.length > 0
-              ? runUnitsWithLimit(
-                  channelDeferred,
-                  plan.passthroughOptionArgs,
-                  plan.deferredRunConcurrency ?? 1,
-                )
-              : carriedDeferredPromise;
-          deferredCarrySurface = channelDeferred.length > 0 ? "channels" : carriedDeferredSurface;
-        } else {
-          deferredPromise = runUnitsWithLimit(
-            prioritizedDeferred,
-            plan.passthroughOptionArgs,
-            plan.deferredRunConcurrency ?? 1,
-          );
-        }
+        deferredPromise = runUnitsWithLimit(
+          prioritizedDeferred,
+          plan.passthroughOptionArgs,
+          plan.deferredRunConcurrency ?? 1,
+        );
       }
       pendingDeferredSegment = null;
       // eslint-disable-next-line no-await-in-loop

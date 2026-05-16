@@ -1,6 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { GatewayAuthResult } from "./auth.js";
-import { readJsonBody } from "./hooks.js";
 
 /**
  * Apply baseline security headers that are safe for all response types (API JSON,
@@ -93,6 +92,31 @@ export async function readJsonBodyOrError(
     return undefined;
   }
   return body.value;
+}
+
+async function readJsonBody(
+  req: IncomingMessage,
+  maxBytes: number,
+): Promise<{ ok: true; value: unknown } | { ok: false; error: string }> {
+  const chunks: Buffer[] = [];
+  let total = 0;
+  for await (const chunk of req) {
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buffer.length;
+    if (total > maxBytes) {
+      return { ok: false, error: "payload too large" };
+    }
+    chunks.push(buffer);
+  }
+  const raw = Buffer.concat(chunks).toString("utf8").trim();
+  if (!raw) {
+    return { ok: true, value: null };
+  }
+  try {
+    return { ok: true, value: JSON.parse(raw) };
+  } catch {
+    return { ok: false, error: "Invalid JSON body" };
+  }
 }
 
 export function writeDone(res: ServerResponse) {

@@ -1,12 +1,11 @@
 import { createHmac, createHash } from "node:crypto";
 import type { ReasoningLevel, ThinkLevel } from "../auto-reply/thinking.js";
 import { SILENT_REPLY_TOKEN } from "../auto-reply/tokens.js";
-import { MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST } from "../memory/special-agent-toollists.js";
-import { listDeliverableMessageChannels } from "../utils/message-channel.js";
+import { listDeliverableMessageChannels } from "../utils/gateway-client-surface.js";
 import type { ResolvedTimeFormat } from "./date-time.js";
-import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
 import { renderQueryContextSections } from "./query-context/render.js";
 import type { QueryContextSection } from "./query-context/types.js";
+import type { RuntimeContextFile } from "./runtime-context-file.js";
 import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 
 /**
@@ -18,6 +17,14 @@ import { sanitizeForPromptLiteral } from "./sanitize-for-prompt.js";
 export type PromptMode = "full" | "minimal" | "none";
 type OwnerIdDisplay = "raw" | "hash";
 
+const MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST = [
+  "memory_manifest_read",
+  "memory_note_read",
+  "memory_note_write",
+  "memory_note_edit",
+  "memory_note_delete",
+  "sessions_history",
+] as const;
 const DURABLE_MEMORY_TOOL_NAMES = new Set<string>(MEMORY_FILE_MAINTENANCE_TOOL_ALLOWLIST);
 const EXPERIENCE_WRITE_TOOL_NAME = "write_experience_note";
 
@@ -267,7 +274,7 @@ export function buildAgentSystemPromptSections(params: {
   userTimezone?: string;
   userTime?: string;
   userTimeFormat?: ResolvedTimeFormat;
-  contextFiles?: EmbeddedContextFile[];
+  contextFiles?: RuntimeContextFile[];
   skillsPrompt?: string;
   heartbeatPrompt?: string;
   docsPath?: string;

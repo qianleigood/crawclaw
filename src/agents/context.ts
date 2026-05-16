@@ -330,7 +330,7 @@ function resolveConfiguredProviderContextWindow(
     return undefined;
   }
 
-  // Mirror the lookup order in pi-embedded-runner/model.ts: exact key first,
+  // Mirror the lookup order in runtime-support/model.ts: exact key first,
   // then normalized fallback. This prevents alias collisions from picking the
   // wrong contextWindow based on Object.entries iteration order.
   function findContextWindow(matchProviderId: (id: string) => boolean): number | undefined {

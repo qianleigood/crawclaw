@@ -14,25 +14,7 @@ export const pluginSdkDocMetadata = {
   core: {
     category: "core",
   },
-  "plugin-entry": {
-    category: "core",
-  },
-  "command-auth": {
-    category: "utilities",
-  },
   "secret-input": {
-    category: "utilities",
-  },
-  "webhook-ingress": {
-    category: "utilities",
-  },
-  "provider-onboard": {
-    category: "provider",
-  },
-  "runtime-store": {
-    category: "runtime",
-  },
-  "allow-from": {
     category: "utilities",
   },
   "reply-payload": {

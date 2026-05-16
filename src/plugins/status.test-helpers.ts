@@ -1,7 +1,6 @@
 import type { PluginLoadResult } from "./loader.js";
 import type { PluginRecord } from "./registry.js";
 import type { PluginCompatibilityNotice, PluginStatusReport } from "./status.js";
-import type { PluginHookName } from "./types.js";
 
 export const HOOK_ONLY_MESSAGE =
   "is hook-only. This remains a supported compatibility path, but it has not migrated to explicit capability registration yet.";
@@ -36,11 +35,8 @@ export function createPluginRecord(
     status: overrides.status ?? "loaded",
     toolNames: [],
     hookNames: [],
-    channelIds: [],
-    cliBackendIds: [],
     providerIds: [],
     speechProviderIds: [],
-    mediaUnderstandingProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     gatewayMethods: [],
@@ -50,19 +46,6 @@ export function createPluginRecord(
     hookCount: 0,
     configSchema: false,
     ...rest,
-  };
-}
-
-export function createTypedHook(params: {
-  pluginId: string;
-  hookName: PluginHookName;
-  source?: string;
-}): PluginLoadResult["typedHooks"][number] {
-  return {
-    pluginId: params.pluginId,
-    hookName: params.hookName,
-    handler: () => undefined,
-    source: params.source ?? `/tmp/${params.pluginId}/index.ts`,
   };
 }
 
@@ -98,21 +81,16 @@ export function createPluginLoadResult(
   return {
     plugins,
     diagnostics: [],
-    channels: [],
-    channelSetups: [],
     providers: [],
     speechProviders: [],
-    mediaUnderstandingProviders: [],
     webFetchProviders: [],
     webSearchProviders: [],
     tools: [],
     hooks: [],
-    typedHooks: [],
     httpRoutes: [],
     gatewayHandlers: {},
     services: [],
     commands: [],
-    conversationBindingResolvedHandlers: [],
     ...rest,
   };
 }

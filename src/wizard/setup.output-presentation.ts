@@ -22,18 +22,6 @@ const OUTPUT_PRESENTATION_OPTIONS: Array<WizardSelectOption<OnboardOutputPreset>
 
 const OUTPUT_PRESENTATION_PRESETS = new Set<OnboardOutputPreset>(["quiet", "balanced", "operator"]);
 
-const STREAMING_BY_PRESET: Record<OnboardOutputPreset, "off" | "partial" | "block"> = {
-  quiet: "off",
-  balanced: "partial",
-  operator: "block",
-};
-
-const REPLY_TO_MODE_BY_PRESET: Record<OnboardOutputPreset, "off" | "first" | "all"> = {
-  quiet: "off",
-  balanced: "first",
-  operator: "all",
-};
-
 const VERBOSE_BY_PRESET: Record<OnboardOutputPreset, "off" | "on" | "full"> = {
   quiet: "off",
   balanced: "on",
@@ -56,11 +44,6 @@ export function isOnboardOutputPreset(value: unknown): value is OnboardOutputPre
   return typeof value === "string" && OUTPUT_PRESENTATION_PRESETS.has(value as OnboardOutputPreset);
 }
 
-const CHANNELS_WITH_STREAMING = ["ddingtalk", "feishu", "qqbot", "weixin"] as const;
-const CHANNELS_WITH_REPLY_TO_MODE = ["ddingtalk", "feishu", "qqbot", "weixin"] as const;
-
-type WritableChannelConfig = Record<string, unknown>;
-
 export async function promptOutputPresentationPreset(
   prompter: WizardPrompter,
 ): Promise<OnboardOutputPreset> {
@@ -77,32 +60,6 @@ export function applyOnboardOutputPresentationConfig(
 ): CrawClawConfig {
   if (!isOnboardOutputPreset(preset)) {
     throw new Error(`Invalid output preset: ${String(preset)}`);
-  }
-
-  const channels = config.channels
-    ? ({ ...config.channels } as Record<string, WritableChannelConfig>)
-    : undefined;
-
-  if (channels) {
-    for (const channelId of CHANNELS_WITH_STREAMING) {
-      const channelConfig = channels[channelId];
-      if (channelConfig) {
-        channels[channelId] = {
-          ...channelConfig,
-          streaming: STREAMING_BY_PRESET[preset],
-        };
-      }
-    }
-
-    for (const channelId of CHANNELS_WITH_REPLY_TO_MODE) {
-      const channelConfig = channels[channelId];
-      if (channelConfig) {
-        channels[channelId] = {
-          ...channelConfig,
-          replyToMode: REPLY_TO_MODE_BY_PRESET[preset],
-        };
-      }
-    }
   }
 
   return {
@@ -123,6 +80,5 @@ export function applyOnboardOutputPresentationConfig(
         deliveryMode: ACP_DELIVERY_BY_PRESET[preset],
       },
     },
-    ...(channels ? { channels: channels as CrawClawConfig["channels"] } : {}),
   };
 }

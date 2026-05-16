@@ -10,9 +10,9 @@ import {
 function normalizeVoiceCallEntry(entry: Record<string, unknown>) {
   return normalizePluginsConfig({
     entries: {
-      "voice-call": entry,
+      "demo-plugin": entry,
     },
-  }).entries["voice-call"];
+  }).entries["demo-plugin"];
 }
 
 function expectResolvedEnableState(
@@ -51,31 +51,6 @@ describe("normalizePluginsConfig", () => {
     [{ slots: { memory: "   " } }, "none"],
   ] as const)("normalizes memory slot for %o", (config, expected) => {
     expect(normalizePluginsConfig(config).slots.memory).toBe(expected);
-  });
-
-  it.each([
-    {
-      name: "normalizes plugin hook policy flags",
-      entry: {
-        hooks: {
-          allowPromptInjection: false,
-        },
-      },
-      expectedHooks: {
-        allowPromptInjection: false,
-      },
-    },
-    {
-      name: "drops invalid plugin hook policy values",
-      entry: {
-        hooks: {
-          allowPromptInjection: "nope",
-        } as unknown as { allowPromptInjection: boolean },
-      },
-      expectedHooks: undefined,
-    },
-  ] as const)("$name", ({ entry, expectedHooks }) => {
-    expect(normalizeVoiceCallEntry(entry)?.hooks).toEqual(expectedHooks);
   });
 
   it.each([
@@ -143,73 +118,21 @@ describe("normalizePluginsConfig", () => {
 });
 
 describe("resolveEffectiveEnableState", () => {
-  function resolveConfigOriginFeishuState(config: Parameters<typeof normalizePluginsConfig>[0]) {
-    const normalized = normalizePluginsConfig(config);
-    return resolveEffectiveEnableState({
-      id: "feishu",
-      origin: "config",
-      config: normalized,
-      rootConfig: {
-        channels: {
-          feishu: {
-            enabled: true,
-          },
-        },
-      },
-    });
-  }
-
-  it("does not bypass allowlists for non-bundled plugins that reuse a channel id", () => {
+  it("does not bypass allowlists for config-origin plugins", () => {
     expect(
-      resolveConfigOriginFeishuState({
-        enabled: true,
-        allow: ["browser"] as string[],
+      resolveEffectiveEnableState({
+        id: "feishu",
+        origin: "config",
+        config: normalizePluginsConfig({
+          enabled: true,
+          allow: ["browser"] as string[],
+        }),
       }),
     ).toEqual({ enabled: false, reason: "not in allowlist" });
   });
 });
 
 describe("resolveEffectivePluginActivationState", () => {
-  it("distinguishes explicit enablement from auto activation", () => {
-    const rawConfig: NonNullable<
-      Parameters<typeof resolveEffectivePluginActivationState>[0]["sourceRootConfig"]
-    > = {
-      channels: {
-        feishu: {
-          botToken: "x",
-        },
-      },
-    };
-    const effectiveConfig: NonNullable<
-      Parameters<typeof resolveEffectivePluginActivationState>[0]["rootConfig"]
-    > = {
-      channels: {
-        feishu: {
-          botToken: "x",
-          enabled: true,
-        },
-      },
-    };
-
-    expect(
-      resolveEffectivePluginActivationState({
-        id: "feishu",
-        origin: "bundled",
-        config: normalizePluginsConfig(effectiveConfig.plugins),
-        rootConfig: effectiveConfig,
-        sourceConfig: normalizePluginsConfig(rawConfig.plugins),
-        sourceRootConfig: rawConfig,
-        autoEnabledReason: "feishu configured",
-      }),
-    ).toEqual({
-      enabled: true,
-      activated: true,
-      explicitlyEnabled: false,
-      source: "auto",
-      reason: "feishu configured",
-    });
-  });
-
   it("preserves explicit selection even when plugins are globally disabled", () => {
     const rawConfig = {
       plugins: {

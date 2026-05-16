@@ -15,7 +15,6 @@ Gemini Grounding.
 - Provider: `google`
 - Auth: `GEMINI_API_KEY` or `GOOGLE_API_KEY`
 - API: Google Gemini API
-- Alternative provider: `google-gemini-cli` (OAuth)
 
 ## Quick start
 
@@ -42,19 +41,6 @@ Gemini Grounding.
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
-
-## OAuth (Gemini CLI)
-
-An alternative provider `google-gemini-cli` uses PKCE OAuth instead of an API
-key. This is an unofficial integration; some users report account
-restrictions. Use at your own risk.
-
-Environment variables:
-
-- `CRAWCLAW_GEMINI_OAUTH_CLIENT_ID`
-- `CRAWCLAW_GEMINI_OAUTH_CLIENT_SECRET`
-
-(Or the `GEMINI_CLI_*` variants.)
 
 ## Capabilities
 

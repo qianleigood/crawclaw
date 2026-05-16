@@ -91,7 +91,7 @@ async function resumeOrphanedSession(params: {
 
   try {
     const result = await callGateway<{ runId: string }>({
-      method: "agent",
+      method: "agent.command.run",
       params: {
         message: resumeMessage,
         sessionKey: params.sessionKey,

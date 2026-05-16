@@ -1,15 +1,8 @@
-import { primeConfiguredBindingRegistry } from "../channels/plugins/binding-registry.js";
 import type { loadConfig } from "../config/config.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import type { PluginRegistry } from "../plugins/registry.js";
-import { pinActivePluginChannelRegistry } from "../plugins/runtime.js";
-import { setGatewaySubagentRuntime } from "../plugins/runtime/index.js";
 import type { GatewayRequestHandler } from "./request-types.js";
-import {
-  createGatewaySubagentRuntime,
-  loadGatewayPlugins,
-  setPluginSubagentOverridePolicies,
-} from "./server-plugins.js";
+import { loadGatewayPlugins } from "./server-plugins.js";
 
 type GatewayPluginBootstrapLog = {
   info: (msg: string) => void;
@@ -25,15 +18,9 @@ type GatewayPluginBootstrapParams = {
   coreGatewayHandlers: Record<string, GatewayRequestHandler>;
   baseMethods: string[];
   pluginIds?: string[];
-  preferSetupRuntimeForChannelPlugins?: boolean;
   logDiagnostics?: boolean;
   beforePrimeRegistry?: (pluginRegistry: PluginRegistry) => void;
 };
-
-function installGatewayPluginRuntimeEnvironment(cfg: ReturnType<typeof loadConfig>) {
-  setPluginSubagentOverridePolicies(cfg);
-  setGatewaySubagentRuntime(createGatewaySubagentRuntime());
-}
 
 function logGatewayPluginDiagnostics(params: {
   diagnostics: PluginRegistry["diagnostics"];
@@ -63,7 +50,6 @@ export function prepareGatewayPluginLoad(params: GatewayPluginBootstrapParams) {
     env: process.env,
   });
   const resolvedConfig = autoEnabled.config;
-  installGatewayPluginRuntimeEnvironment(resolvedConfig);
   const loaded = loadGatewayPlugins({
     cfg: resolvedConfig,
     activationSourceConfig: params.cfg,
@@ -73,10 +59,8 @@ export function prepareGatewayPluginLoad(params: GatewayPluginBootstrapParams) {
     coreGatewayHandlers: params.coreGatewayHandlers,
     baseMethods: params.baseMethods,
     pluginIds: params.pluginIds,
-    preferSetupRuntimeForChannelPlugins: params.preferSetupRuntimeForChannelPlugins,
   });
   params.beforePrimeRegistry?.(loaded.pluginRegistry);
-  primeConfiguredBindingRegistry({ cfg: resolvedConfig });
   if ((params.logDiagnostics ?? true) && loaded.pluginRegistry.diagnostics.length > 0) {
     logGatewayPluginDiagnostics({
       diagnostics: loaded.pluginRegistry.diagnostics,
@@ -93,13 +77,7 @@ export function loadGatewayStartupPlugins(
 }
 
 export function reloadDeferredGatewayPlugins(
-  params: Omit<
-    GatewayPluginBootstrapParams,
-    "beforePrimeRegistry" | "preferSetupRuntimeForChannelPlugins"
-  >,
+  params: Omit<GatewayPluginBootstrapParams, "beforePrimeRegistry">,
 ) {
-  return prepareGatewayPluginLoad({
-    ...params,
-    beforePrimeRegistry: pinActivePluginChannelRegistry,
-  });
+  return prepareGatewayPluginLoad(params);
 }

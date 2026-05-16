@@ -93,39 +93,26 @@ is a small, self-contained module with a clear purpose and documented contract.
     // Before (removed backwards-compatibility layer)
     import {
       createChannelReplyPipeline,
-      createPluginRuntimeStore,
       resolveControlCommandGate,
     } from "crawclaw/plugin-sdk/compat";
 
     // After (modern focused imports)
-    import { createPluginRuntimeStore } from "crawclaw/plugin-sdk/runtime-store";
     import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
 
-````
+    ```
 
-    For host-side helpers, use the injected plugin runtime instead of importing
-    directly:
+    Host-side runtime helpers no longer have a TypeScript plugin replacement.
+    The old embedded TypeScript agent execution bridge has been removed; agent
+    execution is owned by the Rust Gateway/runtime path.
 
     ```typescript
     // Before (deprecated extension-api bridge)
-    import { runEmbeddedPiAgent } from "crawclaw/extension-api";
-    const result = await runEmbeddedPiAgent({ sessionId, prompt });
+    import { resolveAgentDir } from "crawclaw/extension-api";
+    const agentDir = resolveAgentDir(cfg);
 
-    // After (injected runtime)
-    const result = await api.runtime.agent.runEmbeddedPiAgent({ sessionId, prompt });
+    // After
+    const agentDir = await gatewayClient.call("agent.resolveDir", { agentId });
     ```
-
-    The same pattern applies to other legacy bridge helpers:
-
-    | Old import | Modern equivalent |
-    | --- | --- |
-    | `resolveAgentDir` | `api.runtime.agent.resolveAgentDir` |
-    | `resolveAgentWorkspaceDir` | `api.runtime.agent.resolveAgentWorkspaceDir` |
-    | `resolveAgentIdentity` | `api.runtime.agent.resolveAgentIdentity` |
-    | `resolveThinkingDefault` | `api.runtime.agent.resolveThinkingDefault` |
-    | `resolveAgentTimeoutMs` | `api.runtime.agent.resolveAgentTimeoutMs` |
-    | `ensureAgentWorkspace` | `api.runtime.agent.ensureAgentWorkspace` |
-    | session store helpers | `api.runtime.agent.session.*` |
 
   </Step>
 
@@ -142,10 +129,8 @@ is a small, self-contained module with a clear purpose and documented contract.
 <Accordion title="Full import path table">
   | Import path | Purpose | Key exports |
   | --- | --- | --- |
-  | `plugin-sdk/plugin-entry` | Canonical plugin entry helper | `definePluginEntry` |
-  | `plugin-sdk/core` | Generic plugin entry types and shared plugin helpers | Plugin base types |
+  | `plugin-sdk/core` | Shared non-executing plugin helper types | Plugin base types |
   | `plugin-sdk/infra-runtime` | Shared infra/runtime helpers | `enqueueSystemEvent`, `recordChannelActivity`, `waitForTransportReady` |
-  | `plugin-sdk/runtime-store` | Persistent plugin storage | `createPluginRuntimeStore` |
   | `plugin-sdk/approval-runtime` | Approval prompt helpers | Exec/plugin approval payload, approval capability/profile helpers, native approval routing/runtime helpers |
   | `plugin-sdk/collection-runtime` | Bounded cache helpers | `pruneMapToMaxSize` |
   | `plugin-sdk/diagnostic-runtime` | Diagnostic gating helpers | `isDiagnosticFlagEnabled`, `isDiagnosticsEnabled` |
@@ -157,10 +142,8 @@ is a small, self-contained module with a clear purpose and documented contract.
   | `plugin-sdk/allowlist-resolution` | Allowlist input mapping | `mapAllowlistResolutionInputs` |
   | `plugin-sdk/command-auth` | Command gating | `resolveControlCommandGate` |
   | `plugin-sdk/secret-input` | Secret input parsing | Secret input helpers |
-  | `plugin-sdk/webhook-ingress` | Webhook request helpers | Webhook target utilities |
   | `plugin-sdk/webhook-request-guards` | Webhook body guard helpers | Request body read/limit helpers |
   | `plugin-sdk/reply-payload` | Message reply types | Reply payload types |
-  | `plugin-sdk/provider-onboard` | Provider onboarding patches | Onboarding config helpers |
   | `plugin-sdk/keyed-async-queue` | Ordered async queue | `KeyedAsyncQueue` |
   | `plugin-sdk/testing` | Test utilities | Test helpers and mocks |
 </Accordion>
@@ -184,4 +167,7 @@ the focused subpaths before updating to this release.
 - [Provider Configuration](/plugins/sdk-provider-plugins) — Rust-owned provider setup
 - [Plugin Internals](/plugins/architecture) — architecture deep dive
 - [Plugin Manifest](/plugins/manifest) — manifest schema reference
-````
+
+```
+
+```

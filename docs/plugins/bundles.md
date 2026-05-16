@@ -72,13 +72,13 @@ is detected but not yet wired.
 
 ### Supported now
 
-| Feature       | How it maps                                                                                 | Applies to     |
-| ------------- | ------------------------------------------------------------------------------------------- | -------------- |
-| Skill content | Bundle skill roots load as normal CrawClaw skills                                           | All formats    |
-| Commands      | `commands/` and `.cursor/commands/` treated as skill roots                                  | Claude, Cursor |
-| Hook packs    | CrawClaw-style `HOOK.md` + `handler.ts` layouts                                             | Codex          |
-| MCP tools     | Bundle MCP config merged into embedded Pi settings; supported stdio and HTTP servers loaded | All formats    |
-| Settings      | Claude `settings.json` imported as embedded Pi defaults                                     | Claude         |
+| Feature       | How it maps                                                                             | Applies to     |
+| ------------- | --------------------------------------------------------------------------------------- | -------------- |
+| Skill content | Bundle skill roots load as normal CrawClaw skills                                       | All formats    |
+| Commands      | `commands/` and `.cursor/commands/` treated as skill roots                              | Claude, Cursor |
+| Hook packs    | CrawClaw-style `HOOK.md` + `handler.ts` layouts                                         | Codex          |
+| MCP tools     | Bundle MCP config merged into runtime settings; supported stdio and HTTP servers loaded | All formats    |
+| Settings      | Claude `settings.json` imported as sanitized runtime defaults                           | Claude         |
 
 #### Skill content
 
@@ -96,14 +96,14 @@ loader. Cursor command markdown works through the same path.
   - `HOOK.md`
   - `handler.ts` or `handler.js`
 
-#### MCP for Pi
+#### Runtime MCP
 
 - enabled bundles can contribute MCP server config
-- CrawClaw merges bundle MCP config into the effective embedded Pi settings as
+- CrawClaw merges bundle MCP config into the effective runtime settings as
   `mcpServers`
-- CrawClaw exposes supported bundle MCP tools during embedded Pi agent turns by
+- CrawClaw exposes supported bundle MCP tools during Rust agent turns by
   launching stdio servers or connecting to HTTP servers
-- project-local Pi settings still apply after bundle defaults, so workspace
+- project-local runtime settings still apply after bundle defaults, so workspace
   settings can override bundle MCP entries when needed
 
 ##### Transports
@@ -166,9 +166,9 @@ CrawClaw registers bundle MCP tools with provider-safe names in the form
 - empty server names fall back to `mcp`
 - colliding sanitized names are disambiguated with numeric suffixes
 
-#### Embedded Pi settings
+#### Runtime settings
 
-- Claude `settings.json` is imported as default embedded Pi settings when the
+- Claude `settings.json` is imported as default runtime settings when the
   bundle is enabled
 - CrawClaw sanitizes shell override keys before applying them
 
@@ -207,8 +207,8 @@ These are recognized and shown in diagnostics, but CrawClaw does not run them:
     Claude-specific behavior:
 
     - `commands/` is treated as skill content
-    - `settings.json` is imported into embedded Pi settings (shell override keys are sanitized)
-    - `.mcp.json` exposes supported stdio tools to embedded Pi
+    - `settings.json` is imported into runtime settings (shell override keys are sanitized)
+    - `.mcp.json` exposes supported stdio tools to the Rust agent runtime
     - `hooks/hooks.json` is detected but not executed
     - Custom component paths in the manifest are additive (they extend defaults, not replace them)
 
@@ -261,7 +261,7 @@ bundles as trusted content for the features they do expose.
   </Accordion>
 
   <Accordion title="Claude settings do not apply">
-    Only embedded Pi settings from `settings.json` are supported. CrawClaw does
+    Only runtime settings from `settings.json` are supported. CrawClaw does
     not treat bundle settings as raw config patches.
   </Accordion>
 

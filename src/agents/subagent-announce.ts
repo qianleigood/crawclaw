@@ -5,7 +5,7 @@ import { callGateway } from "../gateway/call.js";
 import { defaultRuntime } from "../runtime.js";
 import { isCronSessionKey } from "../sessions/session-key-utils.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
-import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../utils/gateway-client-surface.js";
 import {
   buildAnnounceIdFromChildRun,
   buildAnnounceIdempotencyKey,
@@ -33,7 +33,10 @@ import {
 } from "./subagent-announce-output.js";
 import { getSubagentDepthFromSessionStore } from "./subagent-depth.js";
 import type { SpawnSubagentMode } from "./subagent-spawn.js";
-import { isAnnounceSkip } from "./tools/sessions-send-helpers.js";
+
+function isAnnounceSkip(text: string | undefined): boolean {
+  return text?.trim().toUpperCase() === "NO_REPLY";
+}
 
 type SubagentAnnounceDeps = {
   callGateway: typeof callGateway;
@@ -261,7 +264,7 @@ async function wakeSubagentRunAfterDescendants(params: {
       signal: params.signal,
       run: async () =>
         await subagentAnnounceDeps.callGateway({
-          method: "agent",
+          method: "agent.command.run",
           params: {
             sessionKey: params.childSessionKey,
             message: wakeMessage,

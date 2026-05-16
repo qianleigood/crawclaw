@@ -9,8 +9,6 @@ describe("bundled plugin build entries", () => {
     const entries = listBundledPluginBuildEntries();
 
     expect(entries).toMatchObject({
-      "extensions/media-understanding-core/runtime-api":
-        "extensions/media-understanding-core/runtime-api.ts",
       "extensions/speech-core/api": "extensions/speech-core/api.ts",
       "extensions/speech-core/runtime-api": "extensions/speech-core/runtime-api.ts",
     });
@@ -19,7 +17,6 @@ describe("bundled plugin build entries", () => {
   it("packs runtime core support packages without requiring plugin manifests", () => {
     const artifacts = listBundledPluginPackArtifacts();
 
-    expect(artifacts).toContain("dist/extensions/media-understanding-core/runtime-api.js");
     expect(artifacts).not.toContain(
       "dist/extensions/media-understanding-core/crawclaw.plugin.json",
     );

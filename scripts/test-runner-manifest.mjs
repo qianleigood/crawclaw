@@ -3,7 +3,6 @@ import { normalizeTrackedRepoPath, tryReadJsonFile } from "./test-report-utils.m
 export const behaviorManifestPath = "test/fixtures/test-parallel.behavior.json";
 export const cliStartupBenchManifestPath = "test/fixtures/cli-startup-bench.json";
 export const unitTimingManifestPath = "test/fixtures/test-timings.unit.json";
-export const channelTimingManifestPath = "test/fixtures/test-timings.channels.json";
 export const extensionTimingManifestPath = "test/fixtures/test-timings.extensions.json";
 export const unitMemoryHotspotManifestPath = "test/fixtures/test-memory-hotspots.unit.json";
 export const extensionMemoryHotspotManifestPath =
@@ -12,11 +11,6 @@ export const extensionMemoryHotspotManifestPath =
 const defaultTimingManifest = {
   config: "vitest.unit.config.ts",
   defaultDurationMs: 250,
-  files: {},
-};
-const defaultChannelTimingManifest = {
-  config: "vitest.channels.config.ts",
-  defaultDurationMs: 3000,
   files: {},
 };
 const defaultExtensionTimingManifest = {
@@ -63,39 +57,14 @@ const mergeManifestEntries = (section, keys) => {
   return merged;
 };
 
-const mergeManifestStrings = (section, keys) => {
-  const merged = [];
-  const seen = new Set();
-  for (const key of keys) {
-    const values = Array.isArray(section?.[key]) ? section[key] : [];
-    for (const value of values) {
-      if (typeof value !== "string") {
-        continue;
-      }
-      const normalizedValue = normalizeTrackedRepoPath(value);
-      if (normalizedValue.length === 0 || seen.has(normalizedValue)) {
-        continue;
-      }
-      seen.add(normalizedValue);
-      merged.push(normalizedValue);
-    }
-  }
-  return merged;
-};
-
 export function loadTestRunnerBehavior() {
   const raw = tryReadJsonFile(behaviorManifestPath, {});
   const unit = raw.unit ?? {};
   const base = raw.base ?? {};
-  const channels = raw.channels ?? {};
   const extensions = raw.extensions ?? {};
   return {
     base: {
       threadPinned: mergeManifestEntries(base, ["threadPinned", "threadSingleton"]),
-    },
-    channels: {
-      isolated: mergeManifestEntries(channels, ["isolated"]),
-      isolatedPrefixes: mergeManifestStrings(channels, ["isolatedPrefixes"]),
     },
     extensions: {
       isolated: mergeManifestEntries(extensions, ["isolated"]),
@@ -145,10 +114,6 @@ const loadTimingManifest = (manifestPath, fallbackManifest) => {
 
 export function loadUnitTimingManifest() {
   return loadTimingManifest(unitTimingManifestPath, defaultTimingManifest);
-}
-
-export function loadChannelTimingManifest() {
-  return loadTimingManifest(channelTimingManifestPath, defaultChannelTimingManifest);
 }
 
 export function loadExtensionTimingManifest() {

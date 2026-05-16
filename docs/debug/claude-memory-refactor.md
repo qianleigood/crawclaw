@@ -105,7 +105,7 @@ Avoid these older behaviors:
 
 - `src/memory/durable/lifecycle-subscriber.ts`
 - `src/memory/durable/worker-manager.ts`
-- `src/memory/durable/agent-runner.ts`
+- `crates/crawclaw-runtime/src/memory.rs`
 - `src/memory/durable/read.ts`
 - `src/memory/durable/body-index.ts`
 - `src/memory/dreaming/auto-dream.ts`

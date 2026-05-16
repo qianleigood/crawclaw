@@ -1,8 +1,12 @@
 {
   "id": "anthropic",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["anthropic"],
-  "cliBackends": ["claude-cli"],
   "providerAuthEnvVars": {
     "anthropic": ["ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"]
   },
@@ -42,9 +46,6 @@
       "cliDescription": "Anthropic API key"
     }
   ],
-  "contracts": {
-    "mediaUnderstandingProviders": ["anthropic"]
-  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

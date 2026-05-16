@@ -10,77 +10,42 @@ import { resolveGatewayService } from "../daemon/service.js";
 import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
 import { resolveGatewayProbeAuthSafeWithSecretInputs } from "../gateway/probe-auth.js";
 import { probeGateway } from "../gateway/probe.js";
-import { collectChannelStatusIssues } from "../infra/channels-status-issues.js";
 import { resolveCrawClawPackageRoot } from "../infra/crawclaw-root.js";
 import { resolveOsSummary } from "../infra/os-summary.js";
 import { inspectPortUsage } from "../infra/ports.js";
 import { readRestartSentinel } from "../infra/restart-sentinel.js";
 import { getRemoteSkillEligibility } from "../infra/skills-remote.js";
 import { readTailscaleStatusJson } from "../infra/tailscale.js";
-import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
 import { checkUpdateStatus, formatGitInstallLabel } from "../infra/update-check.js";
+import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-track.js";
 import { buildPluginCompatibilityNotices } from "../plugins/status.js";
 import { runExec } from "../process/exec.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { formatCliCommand } from "../terminal/command-format.js";
 import { resolveCommandSecretRefsViaGateway } from "../terminal/command-secret-gateway.js";
-import { getStatusCommandSecretTargetIds } from "../terminal/command-secret-targets.js";
 import { resolveCliLocaleFromRuntime } from "../terminal/i18n/index.js";
 import { withProgress } from "../terminal/progress.js";
 import { VERSION } from "../version.js";
-import {
-  type FeishuCliStatusSnapshot,
-  resolveFeishuCliStatusViaGateway,
-} from "./feishu-cli-status.js";
 import { getAgentLocalStatuses } from "./status-all/agents.js";
-import { buildChannelsTable } from "./status-all/channels.js";
 import { formatDurationPrecise, formatGatewayAuthUsed } from "./status-all/format.js";
 import { pickGatewaySelfPresence } from "./status-all/gateway.js";
 import { buildStatusAllReportLines } from "./status-all/report-lines.js";
 import { readServiceStatusSummary } from "./status.service-summary.js";
 import { formatUpdateOneLiner } from "./status.update.js";
 
-function formatFeishuCliOverviewValue(
-  status: FeishuCliStatusSnapshot | null,
-  gatewayReachable: boolean,
-): string {
-  if (!gatewayReachable) {
-    return "gateway unreachable";
-  }
-  if (!status) {
-    return "not loaded";
-  }
-  const segments: string[] = [];
-  segments.push(status.status ?? "unknown");
-  segments.push(status.identity ?? "user");
-  if (status.version) {
-    segments.push(`lark-cli ${status.version}`);
-  }
-  if (status.installed === false) {
-    segments.push("not installed");
-  }
-  if (status.authOk === false) {
-    segments.push("auth missing");
-  }
-  if (status.message && status.status !== "ready") {
-    segments.push(status.message);
-  }
-  return segments.join(" · ");
-}
-
 export async function statusAllCommand(
   runtime: RuntimeEnv,
   opts?: { timeoutMs?: number },
 ): Promise<void> {
   resolveCliLocaleFromRuntime(process.argv);
-  await withProgress({ label: "Scanning status --all…", total: 11 }, async (progress) => {
+  await withProgress({ label: "Scanning status --all…", total: 10 }, async (progress) => {
     progress.setLabel("Loading config…");
     const loadedRaw = await readBestEffortConfig();
     const { resolvedConfig: cfg, diagnostics: secretDiagnostics } =
       await resolveCommandSecretRefsViaGateway({
         config: loadedRaw,
         commandName: "status --all",
-        targetIds: getStatusCommandSecretTargetIds(),
+        targetIds: new Set(),
         mode: "read_only_status",
       });
     const osSummary = resolveOsSummary();
@@ -192,13 +157,6 @@ export async function statusAllCommand(
     progress.setLabel("Scanning agents…");
     const agentStatus = await getAgentLocalStatuses(cfg);
     progress.tick();
-    progress.setLabel("Summarizing channels…");
-    const channels = await buildChannelsTable(cfg, {
-      showSecrets: false,
-      sourceConfig: loadedRaw,
-    });
-    progress.tick();
-
     const connectionDetailsForReport = (() => {
       if (!remoteUrlMissing) {
         return connection.message;
@@ -233,30 +191,6 @@ export async function statusAllCommand(
         }).catch((err) => ({ error: String(err) }))
       : { error: gatewayProbe?.error ?? "gateway unreachable" };
 
-    const channelsStatus = gatewayReachable
-      ? await callGateway({
-          config: cfg,
-          method: "channels.status",
-          params: { probe: false, timeoutMs: opts?.timeoutMs ?? 10_000 },
-          timeoutMs: Math.min(8000, opts?.timeoutMs ?? 10_000),
-          ...callOverrides,
-        }).catch(() => null)
-      : null;
-    const feishuCli = await resolveFeishuCliStatusViaGateway({
-      callGateway,
-      config: cfg,
-      gatewayReachable,
-      timeoutMs: Math.min(8000, opts?.timeoutMs ?? 10_000),
-      callOverrides,
-    });
-    const feishuCliStatus: FeishuCliStatusSnapshot | null =
-      feishuCli?.error != null
-        ? {
-            status: "error",
-            message: feishuCli.error,
-          }
-        : (feishuCli?.status ?? null);
-    const channelIssues = channelsStatus ? collectChannelStatusIssues(channelsStatus) : [];
     progress.tick();
 
     progress.setLabel("Checking local state…");
@@ -356,10 +290,6 @@ export async function statusAllCommand(
         Value: `${agentStatus.agents.length} total · ${agentStatus.bootstrapPendingCount} bootstrapping · ${aliveAgents} active · ${agentStatus.totalSessions} sessions`,
       },
       {
-        Item: "Feishu CLI",
-        Value: formatFeishuCliOverviewValue(feishuCliStatus, gatewayReachable),
-      },
-      {
         Item: "Secrets",
         Value:
           secretDiagnostics.length > 0
@@ -371,11 +301,6 @@ export async function statusAllCommand(
     const lines = await buildStatusAllReportLines({
       progress,
       overviewRows,
-      channels,
-      channelIssues: channelIssues.map((issue) => ({
-        channel: issue.channel,
-        message: issue.message,
-      })),
       agentStatus,
       connectionDetailsForReport,
       diagnosis: {
@@ -391,9 +316,6 @@ export async function statusAllCommand(
         tailscaleHttpsUrl,
         skillStatus,
         pluginCompatibility,
-        feishuCli,
-        channelsStatus,
-        channelIssues,
         gatewayReachable,
         health,
       },

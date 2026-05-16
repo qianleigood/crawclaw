@@ -1540,254 +1540,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 exclusiveMinimum: 0,
                 maximum: 9007199254740991,
               },
-              cliBackends: {
-                type: "object",
-                propertyNames: {
-                  type: "string",
-                },
-                additionalProperties: {
-                  type: "object",
-                  properties: {
-                    command: {
-                      type: "string",
-                    },
-                    args: {
-                      type: "array",
-                      items: {
-                        type: "string",
-                      },
-                    },
-                    output: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "json",
-                        },
-                        {
-                          type: "string",
-                          const: "text",
-                        },
-                        {
-                          type: "string",
-                          const: "jsonl",
-                        },
-                      ],
-                    },
-                    resumeOutput: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "json",
-                        },
-                        {
-                          type: "string",
-                          const: "text",
-                        },
-                        {
-                          type: "string",
-                          const: "jsonl",
-                        },
-                      ],
-                    },
-                    input: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "arg",
-                        },
-                        {
-                          type: "string",
-                          const: "stdin",
-                        },
-                      ],
-                    },
-                    maxPromptArgChars: {
-                      type: "integer",
-                      exclusiveMinimum: 0,
-                      maximum: 9007199254740991,
-                    },
-                    env: {
-                      type: "object",
-                      propertyNames: {
-                        type: "string",
-                      },
-                      additionalProperties: {
-                        type: "string",
-                      },
-                    },
-                    clearEnv: {
-                      type: "array",
-                      items: {
-                        type: "string",
-                      },
-                    },
-                    modelArg: {
-                      type: "string",
-                    },
-                    modelAliases: {
-                      type: "object",
-                      propertyNames: {
-                        type: "string",
-                      },
-                      additionalProperties: {
-                        type: "string",
-                      },
-                    },
-                    sessionArg: {
-                      type: "string",
-                    },
-                    sessionArgs: {
-                      type: "array",
-                      items: {
-                        type: "string",
-                      },
-                    },
-                    resumeArgs: {
-                      type: "array",
-                      items: {
-                        type: "string",
-                      },
-                    },
-                    sessionMode: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "always",
-                        },
-                        {
-                          type: "string",
-                          const: "existing",
-                        },
-                        {
-                          type: "string",
-                          const: "none",
-                        },
-                      ],
-                    },
-                    sessionIdFields: {
-                      type: "array",
-                      items: {
-                        type: "string",
-                      },
-                    },
-                    systemPromptArg: {
-                      type: "string",
-                    },
-                    systemPromptMode: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "append",
-                        },
-                        {
-                          type: "string",
-                          const: "replace",
-                        },
-                      ],
-                    },
-                    systemPromptWhen: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "first",
-                        },
-                        {
-                          type: "string",
-                          const: "always",
-                        },
-                        {
-                          type: "string",
-                          const: "never",
-                        },
-                      ],
-                    },
-                    imageArg: {
-                      type: "string",
-                    },
-                    imageMode: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "repeat",
-                        },
-                        {
-                          type: "string",
-                          const: "list",
-                        },
-                      ],
-                    },
-                    serialize: {
-                      type: "boolean",
-                    },
-                    reliability: {
-                      type: "object",
-                      properties: {
-                        watchdog: {
-                          type: "object",
-                          properties: {
-                            fresh: {
-                              type: "object",
-                              properties: {
-                                noOutputTimeoutMs: {
-                                  type: "integer",
-                                  minimum: 1000,
-                                  maximum: 9007199254740991,
-                                },
-                                noOutputTimeoutRatio: {
-                                  type: "number",
-                                  minimum: 0.05,
-                                  maximum: 0.95,
-                                },
-                                minMs: {
-                                  type: "integer",
-                                  minimum: 1000,
-                                  maximum: 9007199254740991,
-                                },
-                                maxMs: {
-                                  type: "integer",
-                                  minimum: 1000,
-                                  maximum: 9007199254740991,
-                                },
-                              },
-                              additionalProperties: false,
-                            },
-                            resume: {
-                              type: "object",
-                              properties: {
-                                noOutputTimeoutMs: {
-                                  type: "integer",
-                                  minimum: 1000,
-                                  maximum: 9007199254740991,
-                                },
-                                noOutputTimeoutRatio: {
-                                  type: "number",
-                                  minimum: 0.05,
-                                  maximum: 0.95,
-                                },
-                                minMs: {
-                                  type: "integer",
-                                  minimum: 1000,
-                                  maximum: 9007199254740991,
-                                },
-                                maxMs: {
-                                  type: "integer",
-                                  minimum: 1000,
-                                  maximum: 9007199254740991,
-                                },
-                              },
-                              additionalProperties: false,
-                            },
-                          },
-                          additionalProperties: false,
-                        },
-                      },
-                      additionalProperties: false,
-                    },
-                  },
-                  required: ["command"],
-                  additionalProperties: false,
-                },
-              },
               contextPruning: {
                 type: "object",
                 properties: {
@@ -2021,7 +1773,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 },
                 additionalProperties: false,
               },
-              embeddedPi: {
+              runtime: {
                 type: "object",
                 properties: {
                   projectSettingsPolicy: {
@@ -6788,12 +6540,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
         },
         additionalProperties: false,
       },
-      channels: {
-        type: "object",
-        properties: {},
-        additionalProperties: true,
-        required: [],
-      },
       discovery: {
         type: "object",
         properties: {
@@ -7081,9 +6827,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               allowInsecureAuth: {
                 type: "boolean",
               },
-              dangerouslyDisableDeviceAuth: {
-                type: "boolean",
-              },
             },
             additionalProperties: false,
           },
@@ -7326,21 +7069,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               },
             },
             additionalProperties: false,
-          },
-          channelHealthCheckMinutes: {
-            type: "integer",
-            minimum: 0,
-            maximum: 9007199254740991,
-          },
-          channelStaleEventThresholdMinutes: {
-            type: "integer",
-            minimum: 1,
-            maximum: 9007199254740991,
-          },
-          channelMaxRestartsPerHour: {
-            type: "integer",
-            minimum: 1,
-            maximum: 9007199254740991,
           },
           tailscale: {
             type: "object",
@@ -8399,15 +8127,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 enabled: {
                   type: "boolean",
                 },
-                hooks: {
-                  type: "object",
-                  properties: {
-                    allowPromptInjection: {
-                      type: "boolean",
-                    },
-                  },
-                  additionalProperties: false,
-                },
                 subagent: {
                   type: "object",
                   properties: {
@@ -8683,13 +8402,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       group: "Talk",
       order: 130,
       help: "Talk-mode voice synthesis settings for voice identity, model selection, output format, and interruption behavior. Use this section to tune human-facing voice UX while controlling latency and cost.",
-      tags: ["advanced"],
-    },
-    channels: {
-      label: "Channels",
-      group: "Messaging Channels",
-      order: 140,
-      help: "Channel provider configurations plus shared defaults that control access policies, heartbeat visibility, and per-surface behavior. Keep defaults centralized and override per provider only where required.",
       tags: ["advanced"],
     },
     skills: {
@@ -9109,21 +8821,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Explicit gateway-level tool denylist to block risky tools even if lower-level policies allow them. Use deny rules for emergency response and defense-in-depth hardening.",
       tags: ["access", "network"],
     },
-    "gateway.channelHealthCheckMinutes": {
-      label: "Gateway Channel Health Check Interval (min)",
-      help: "Interval in minutes for automatic channel health probing and status updates. Use lower intervals for faster detection, or higher intervals to reduce periodic probe noise.",
-      tags: ["network", "reliability"],
-    },
-    "gateway.channelStaleEventThresholdMinutes": {
-      label: "Gateway Channel Stale Event Threshold (min)",
-      help: "How many minutes a connected channel can go without receiving any event before the health monitor treats it as a stale socket and triggers a restart. Default: 30.",
-      tags: ["network"],
-    },
-    "gateway.channelMaxRestartsPerHour": {
-      label: "Gateway Channel Max Restarts Per Hour",
-      help: "Maximum number of health-monitor-initiated channel restarts allowed within a rolling one-hour window. Once hit, further restarts are skipped until the window expires. Default: 10.",
-      tags: ["network", "performance"],
-    },
     "gateway.tailscale": {
       label: "Gateway Tailscale",
       help: "Tailscale integration settings for Serve/Funnel exposure and lifecycle handling on gateway start/exit. Keep off unless your deployment intentionally relies on Tailscale ingress.",
@@ -9353,7 +9050,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "tools.media.image.prompt": {
       label: "Image Understanding Prompt",
-      help: "Instruction template used for image understanding requests to shape extraction style and detail level. Keep prompts deterministic so outputs stay consistent across turns and channels.",
+      help: "Instruction template used for image understanding requests to shape extraction style and detail level. Keep prompts deterministic so outputs stay consistent across turns and chat surfaces.",
       tags: ["media", "tools"],
     },
     "tools.media.image.timeoutSeconds": {
@@ -9748,12 +9445,12 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "approvals.exec.targets[].threadId": {
       label: "Approval Target Thread ID",
-      help: "Optional thread/topic target for channels that support threaded delivery of forwarded approvals. Use this to keep approval traffic contained in operational threads instead of main channels.",
+      help: "Optional thread/topic target for approval delivery. Use this to keep approval traffic contained in operational threads.",
       tags: ["advanced"],
     },
     "approvals.plugin": {
       label: "Plugin Approval Forwarding",
-      help: "Groups plugin-approval forwarding behavior including enablement, routing mode, filters, and explicit targets. Independent of exec approval forwarding. Configure here when plugin approval prompts must reach operational channels.",
+      help: "Groups plugin-approval forwarding behavior including enablement, routing mode, filters, and explicit targets. Independent of exec approval forwarding.",
       tags: ["advanced"],
     },
     "approvals.plugin.enabled": {
@@ -9970,11 +9667,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     "gateway.browserClients.allowInsecureAuth": {
       label: "Insecure Browser-Origin Auth Toggle",
       help: "Loosens strict browser-origin auth checks when you must run a non-standard setup. Keep this off unless you trust your network and proxy path, because impersonation risk is higher.",
-      tags: ["security", "access", "network", "advanced"],
-    },
-    "gateway.browserClients.dangerouslyDisableDeviceAuth": {
-      label: "Dangerously Disable Browser-Origin Device Auth",
-      help: "Disables browser-origin device identity checks and relies on token/password only. Use only for short-lived debugging on trusted networks, then turn it off immediately.",
       tags: ["security", "access", "network", "advanced"],
     },
     "gateway.http.endpoints.chatCompletions.enabled": {
@@ -10723,11 +10415,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "Maximum delay in ms for custom humanDelay (default: 2500).",
       tags: ["performance"],
     },
-    "agents.defaults.cliBackends": {
-      label: "CLI Backends",
-      help: "Optional CLI backends for text-only fallback (claude-cli, etc.).",
-      tags: ["advanced"],
-    },
     "agents.defaults.compaction": {
       label: "Compaction",
       help: "Compaction tuning for when context nears token limits, including history share, reserve headroom, and pre-compaction memory flush behavior. Use this when long-running sessions need stable continuity under tight context windows.",
@@ -10843,14 +10530,14 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "System-prompt override for the pre-compaction memory flush turn to control extraction style and safety constraints. Use carefully so custom instructions do not reduce memory quality or leak sensitive context.",
       tags: ["advanced"],
     },
-    "agents.defaults.embeddedPi": {
-      label: "Embedded Pi",
-      help: "Embedded Pi runner hardening controls for how workspace-local Pi settings are trusted and applied in CrawClaw sessions.",
+    "agents.defaults.runtime": {
+      label: "Agent Runtime",
+      help: "Rust agent runtime hardening controls for how workspace-local runtime settings are trusted and applied in CrawClaw sessions.",
       tags: ["advanced"],
     },
-    "agents.defaults.embeddedPi.projectSettingsPolicy": {
-      label: "Embedded Pi Project Settings Policy",
-      help: 'How embedded Pi handles workspace-local `.pi/config/settings.json`: "sanitize" (default) strips shellPath/shellCommandPrefix, "ignore" disables project settings entirely, and "trusted" applies project settings as-is.',
+    "agents.defaults.runtime.projectSettingsPolicy": {
+      label: "Runtime Project Settings Policy",
+      help: 'How the Rust agent runtime handles workspace-local settings: "sanitize" (default) strips shellPath/shellCommandPrefix, "ignore" disables project settings entirely, and "trusted" applies project settings as-is.',
       tags: ["access"],
     },
     "agents.defaults.heartbeat.directPolicy": {
@@ -10946,7 +10633,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     mcp: {
       label: "MCP",
-      help: "Global MCP server definitions managed by CrawClaw. Embedded Pi and other runtime adapters can consume these servers without storing them inside Pi-owned project settings.",
+      help: "Global MCP server definitions managed by CrawClaw. Runtime adapters can consume these servers without storing them inside project settings.",
       tags: ["advanced"],
     },
     "mcp.servers": {
@@ -11081,7 +10768,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "session.typingIntervalSeconds": {
       label: "Session Typing Interval (seconds)",
-      help: "Controls interval for repeated typing indicators while replies are being prepared in typing-capable channels. Increase to reduce chatty updates or decrease for more active typing feedback.",
+      help: "Controls interval for repeated typing indicators while replies are being prepared. Increase to reduce chatty updates or decrease for more active typing feedback.",
       tags: ["performance", "storage"],
     },
     "session.typingMode": {
@@ -11298,7 +10985,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "hooks.defaultSessionKey": {
       label: "Hooks Default Session Key",
-      help: "Fallback session key used for hook deliveries when a request does not provide one through allowed channels. Use a stable but scoped key to avoid mixing unrelated automation conversations.",
+      help: "Fallback session key used for hook deliveries when a request does not provide one. Use a stable but scoped key to avoid mixing unrelated automation conversations.",
       tags: ["storage"],
     },
     "hooks.allowRequestSessionKey": {
@@ -11599,23 +11286,23 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       tags: ["advanced"],
     },
     web: {
-      label: "Web Channel",
-      help: "Web channel runtime settings for heartbeat and reconnect behavior when operating web-based chat surfaces. Use reconnect values tuned to your network reliability profile and expected uptime needs.",
+      label: "Web Chat",
+      help: "Web chat runtime settings for heartbeat and reconnect behavior when operating web-based chat surfaces. Use reconnect values tuned to your network reliability profile and expected uptime needs.",
       tags: ["advanced"],
     },
     "web.enabled": {
-      label: "Web Channel Enabled",
-      help: "Enables the web channel runtime and related websocket lifecycle behavior. Keep disabled when web chat is unused to reduce active connection management overhead.",
+      label: "Web Chat Enabled",
+      help: "Enables the web chat runtime and related websocket lifecycle behavior. Keep disabled when web chat is unused to reduce active connection management overhead.",
       tags: ["advanced"],
     },
     "web.heartbeatSeconds": {
-      label: "Web Channel Heartbeat Interval (sec)",
-      help: "Heartbeat interval in seconds for web channel connectivity and liveness maintenance. Use shorter intervals for faster detection, or longer intervals to reduce keepalive chatter.",
+      label: "Web Chat Heartbeat Interval (sec)",
+      help: "Heartbeat interval in seconds for web chat connectivity and liveness maintenance. Use shorter intervals for faster detection, or longer intervals to reduce keepalive chatter.",
       tags: ["automation"],
     },
     "web.reconnect": {
-      label: "Web Channel Reconnect Policy",
-      help: "Reconnect backoff policy for web channel reconnect attempts after transport failure. Keep bounded retries and jitter tuned to avoid thundering-herd reconnect behavior.",
+      label: "Web Chat Reconnect Policy",
+      help: "Reconnect backoff policy for web chat reconnect attempts after transport failure. Keep bounded retries and jitter tuned to avoid thundering-herd reconnect behavior.",
       tags: ["advanced"],
     },
     "web.reconnect.initialMs": {
@@ -11630,7 +11317,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "web.reconnect.factor": {
       label: "Web Reconnect Backoff Factor",
-      help: "Exponential backoff multiplier used between reconnect attempts in web channel retry loops. Keep factor above 1 and tune with jitter for stable large-fleet reconnect behavior.",
+      help: "Exponential backoff multiplier used between reconnect attempts in web chat retry loops. Keep factor above 1 and tune with jitter for stable large-fleet reconnect behavior.",
       tags: ["advanced"],
     },
     "web.reconnect.jitter": {
@@ -11695,7 +11382,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "messages.responsePrefix": {
       label: "Outbound Response Prefix",
-      help: "Prefix text prepended to outbound assistant replies before sending to channels. Use for lightweight branding/context tags and avoid long prefixes that reduce content density.",
+      help: "Prefix text prepended to outbound assistant replies. Use for lightweight branding/context tags and avoid long prefixes that reduce content density.",
       tags: ["advanced"],
     },
     "messages.groupChat": {
@@ -11866,46 +11553,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       tags: ["security", "auth", "media"],
       sensitive: true,
     },
-    "channels.defaults": {
-      label: "Channel Defaults",
-      help: "Default channel behavior applied across providers when provider-specific settings are not set. Use this to enforce consistent baseline policy before per-provider tuning.",
-      tags: ["network", "channels"],
-    },
-    "channels.defaults.groupPolicy": {
-      label: "Default Group Policy",
-      help: 'Default group policy across channels: "open", "disabled", or "allowlist". Keep "allowlist" for safer production setups unless broad group participation is intentional.',
-      tags: ["access", "network", "channels"],
-    },
-    "channels.defaults.contextVisibility": {
-      label: "Default Context Visibility",
-      help: 'Default supplemental context visibility for fetched quote/thread/history content: "all" (keep all context), "allowlist" (only allowlisted senders), or "allowlist_quote" (allowlist + keep explicit quotes).',
-      tags: ["network", "channels"],
-    },
-    "channels.defaults.heartbeat": {
-      label: "Default Heartbeat Visibility",
-      help: "Default heartbeat visibility settings for status messages emitted by providers/channels. Tune this globally to reduce noisy healthy-state updates while keeping alerts visible.",
-      tags: ["network", "automation", "channels"],
-    },
-    "channels.defaults.heartbeat.showOk": {
-      label: "Heartbeat Show OK",
-      help: "Shows healthy/OK heartbeat status entries when true in channel status outputs. Keep false in noisy environments and enable only when operators need explicit healthy confirmations.",
-      tags: ["network", "automation", "channels"],
-    },
-    "channels.defaults.heartbeat.showAlerts": {
-      label: "Heartbeat Show Alerts",
-      help: "Shows degraded/error heartbeat alerts when true so operator channels surface problems promptly. Keep enabled in production so broken channel states are visible.",
-      tags: ["network", "automation", "channels"],
-    },
-    "channels.defaults.heartbeat.useIndicator": {
-      label: "Heartbeat Use Indicator",
-      help: "Enables concise indicator-style heartbeat rendering instead of verbose status text where supported. Use indicator mode for dense status views with many active channels.",
-      tags: ["network", "automation", "channels"],
-    },
-    "channels.modelByChannel": {
-      label: "Channel Model Overrides",
-      help: "Map provider -> channel id -> model override (values are provider/model or aliases).",
-      tags: ["network", "channels"],
-    },
     "agents.list[].skills": {
       label: "Agent Skill Filter",
       help: "Optional allowlist of skills for this agent (omit = all skills; empty = no skills).",
@@ -11966,16 +11613,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "Plugin Enabled",
       help: "Per-plugin enablement override for a specific entry, applied on top of global plugin policy. The gateway swaps plugin runtime state during live reconfigure.",
       tags: ["advanced"],
-    },
-    "plugins.entries.*.hooks": {
-      label: "Plugin Hook Policy",
-      help: "Per-plugin typed hook policy controls for core-enforced safety gates. Use this to constrain high-impact hook categories without disabling the entire plugin.",
-      tags: ["advanced"],
-    },
-    "plugins.entries.*.hooks.allowPromptInjection": {
-      label: "Allow Prompt Injection Hooks",
-      help: "Controls whether this plugin may mutate prompts through typed hooks. Set false to block `before_prompt_build` prompt mutation for this plugin.",
-      tags: ["access"],
     },
     "plugins.entries.*.subagent": {
       label: "Plugin Subagent Policy",

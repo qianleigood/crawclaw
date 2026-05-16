@@ -98,7 +98,7 @@ describe("subagent-orphan-recovery", () => {
     expect(gateway.callGateway).toHaveBeenCalledOnce();
     const callArgs = vi.mocked(gateway.callGateway).mock.calls[0];
     const opts = callArgs[0];
-    expect(opts.method).toBe("agent");
+    expect(opts.method).toBe("agent.command.run");
     const params = opts.params as Record<string, unknown>;
     expect(params.sessionKey).toBe("agent:main:subagent:test-session-1");
     expect(params.message).toContain("gateway reload");

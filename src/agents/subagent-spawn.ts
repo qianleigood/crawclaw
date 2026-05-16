@@ -34,7 +34,6 @@ import {
   cleanupFailedSpawnBeforeAgentStart,
   cleanupProvisionalSession,
   ensureThreadBindingForSubagentSpawn,
-  getSubagentHookRunner,
   loadSubagentConfig,
   persistInitialChildSessionDurableMemoryScope,
   persistInitialChildSessionRuntimeModel,
@@ -192,7 +191,6 @@ export async function spawnSubagentDirect(
     to: ctx.agentTo,
     threadId: ctx.agentThreadId,
   });
-  const hookRunner = getSubagentHookRunner();
   // When agent omits runTimeoutSeconds, use the config default.
   // Falls back to 0 (no timeout) if config key is also unset,
   // preserving current behavior for existing deployments.
@@ -369,7 +367,6 @@ export async function spawnSubagentDirect(
   }
   if (requestThreadBinding) {
     const bindResult = await ensureThreadBindingForSubagentSpawn({
-      hookRunner,
       childSessionKey,
       agentId: targetAgentId,
       label: label || undefined,
@@ -507,7 +504,7 @@ export async function spawnSubagentDirect(
       ...publicSpawnedMetadata
     } = spawnedMetadata;
     const response = await callSubagentGateway({
-      method: "agent",
+      method: "agent.command.run",
       params: {
         message: childTaskMessage,
         sessionKey: childSessionKey,
@@ -540,38 +537,8 @@ export async function spawnSubagentDirect(
         // Best-effort cleanup only.
       }
     }
-    let emitLifecycleHooks = false;
-    if (threadBindingReady) {
-      const hasEndedHook = hookRunner?.hasHooks("subagent_ended") === true;
-      let endedHookEmitted = false;
-      if (hasEndedHook) {
-        try {
-          await hookRunner?.runSubagentEnded(
-            {
-              targetSessionKey: childSessionKey,
-              targetKind: "subagent",
-              reason: "spawn-failed",
-              sendFarewell: true,
-              accountId: requesterOrigin?.accountId,
-              runId: childRunId,
-              outcome: "error",
-              error: "Session failed to start",
-            },
-            {
-              runId: childRunId,
-              childSessionKey,
-              requesterSessionKey: requesterInternalKey,
-            },
-          );
-          endedHookEmitted = true;
-        } catch {
-          // Spawn should still return an actionable error even if cleanup hooks fail.
-        }
-      }
-      emitLifecycleHooks = !endedHookEmitted;
-    }
+    const emitLifecycleHooks = threadBindingReady;
     // Always delete the provisional child session after a failed spawn attempt.
-    // If we already emitted subagent_ended above, suppress a duplicate lifecycle hook.
     try {
       await callSubagentGateway({
         method: "sessions.delete",
@@ -642,34 +609,6 @@ export async function spawnSubagentDirect(
       childSessionKey,
       runId: childRunId,
     };
-  }
-
-  if (hookRunner?.hasHooks("subagent_spawned")) {
-    try {
-      await hookRunner.runSubagentSpawned(
-        {
-          runId: childRunId,
-          childSessionKey,
-          agentId: targetAgentId,
-          label: label || undefined,
-          requester: {
-            channel: requesterOrigin?.channel,
-            accountId: requesterOrigin?.accountId,
-            to: requesterOrigin?.to,
-            threadId: requesterOrigin?.threadId,
-          },
-          threadRequested: requestThreadBinding,
-          mode: spawnMode,
-        },
-        {
-          runId: childRunId,
-          childSessionKey,
-          requesterSessionKey: requesterInternalKey,
-        },
-      );
-    } catch {
-      // Spawn should still return accepted if spawn lifecycle hooks fail.
-    }
   }
 
   // Emit lifecycle event so the gateway can broadcast sessions.changed to SSE subscribers.

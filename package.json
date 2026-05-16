@@ -27,7 +27,6 @@
     "docs/reference/templates/",
     "extensions/scrapling-fetch/runtime/requirements.lock.txt",
     "skills/",
-    "scripts/install-plugin-runtimes.mjs",
     "scripts/npm-runner.mjs",
     "scripts/postinstall-bundled-plugins.mjs"
   ],
@@ -35,21 +34,9 @@
   "main": "dist/index.js",
   "exports": {
     ".": "./dist/index.js",
-    "./plugin-sdk/account-core": {
-      "types": "./dist/plugin-sdk/account-core.d.ts",
-      "default": "./dist/plugin-sdk/account-core.js"
-    },
-    "./plugin-sdk/account-helpers": {
-      "types": "./dist/plugin-sdk/account-helpers.d.ts",
-      "default": "./dist/plugin-sdk/account-helpers.js"
-    },
     "./plugin-sdk/account-id": {
       "types": "./dist/plugin-sdk/account-id.d.ts",
       "default": "./dist/plugin-sdk/account-id.js"
-    },
-    "./plugin-sdk/account-resolution": {
-      "types": "./dist/plugin-sdk/account-resolution.d.ts",
-      "default": "./dist/plugin-sdk/account-resolution.js"
     },
     "./plugin-sdk/acp-runtime": {
       "types": "./dist/plugin-sdk/acp-runtime.d.ts",
@@ -63,10 +50,6 @@
       "types": "./dist/plugin-sdk/agent-runtime.d.ts",
       "default": "./dist/plugin-sdk/agent-runtime.js"
     },
-    "./plugin-sdk/allow-from": {
-      "types": "./dist/plugin-sdk/allow-from.d.ts",
-      "default": "./dist/plugin-sdk/allow-from.js"
-    },
     "./plugin-sdk/approval-runtime": {
       "types": "./dist/plugin-sdk/approval-runtime.d.ts",
       "default": "./dist/plugin-sdk/approval-runtime.js"
@@ -78,14 +61,6 @@
     "./plugin-sdk/collection-runtime": {
       "types": "./dist/plugin-sdk/collection-runtime.d.ts",
       "default": "./dist/plugin-sdk/collection-runtime.js"
-    },
-    "./plugin-sdk/command-auth": {
-      "types": "./dist/plugin-sdk/command-auth.d.ts",
-      "default": "./dist/plugin-sdk/command-auth.js"
-    },
-    "./plugin-sdk/command-auth-native": {
-      "types": "./dist/plugin-sdk/command-auth-native.d.ts",
-      "default": "./dist/plugin-sdk/command-auth-native.js"
     },
     "./plugin-sdk/command-detection": {
       "types": "./dist/plugin-sdk/command-detection.d.ts",
@@ -103,25 +78,9 @@
       "types": "./dist/plugin-sdk/core.d.ts",
       "default": "./dist/plugin-sdk/core.js"
     },
-    "./plugin-sdk/dangerous-name-runtime": {
-      "types": "./dist/plugin-sdk/dangerous-name-runtime.d.ts",
-      "default": "./dist/plugin-sdk/dangerous-name-runtime.js"
-    },
-    "./plugin-sdk/device-bootstrap": {
-      "types": "./dist/plugin-sdk/device-bootstrap.d.ts",
-      "default": "./dist/plugin-sdk/device-bootstrap.js"
-    },
     "./plugin-sdk/diagnostic-runtime": {
       "types": "./dist/plugin-sdk/diagnostic-runtime.d.ts",
       "default": "./dist/plugin-sdk/diagnostic-runtime.js"
-    },
-    "./plugin-sdk/diagnostics-otel": {
-      "types": "./dist/plugin-sdk/diagnostics-otel.d.ts",
-      "default": "./dist/plugin-sdk/diagnostics-otel.js"
-    },
-    "./plugin-sdk/diffs": {
-      "types": "./dist/plugin-sdk/diffs.d.ts",
-      "default": "./dist/plugin-sdk/diffs.js"
     },
     "./plugin-sdk/error-runtime": {
       "types": "./dist/plugin-sdk/error-runtime.d.ts",
@@ -143,10 +102,6 @@
       "types": "./dist/plugin-sdk/gateway-runtime.d.ts",
       "default": "./dist/plugin-sdk/gateway-runtime.js"
     },
-    "./plugin-sdk/github-copilot-login": {
-      "types": "./dist/plugin-sdk/github-copilot-login.d.ts",
-      "default": "./dist/plugin-sdk/github-copilot-login.js"
-    },
     "./plugin-sdk/github-copilot-token": {
       "types": "./dist/plugin-sdk/github-copilot-token.d.ts",
       "default": "./dist/plugin-sdk/github-copilot-token.js"
@@ -154,18 +109,6 @@
     "./plugin-sdk/global-singleton": {
       "types": "./dist/plugin-sdk/global-singleton.d.ts",
       "default": "./dist/plugin-sdk/global-singleton.js"
-    },
-    "./plugin-sdk/google": {
-      "types": "./dist/plugin-sdk/google.d.ts",
-      "default": "./dist/plugin-sdk/google.js"
-    },
-    "./plugin-sdk/group-access": {
-      "types": "./dist/plugin-sdk/group-access.d.ts",
-      "default": "./dist/plugin-sdk/group-access.js"
-    },
-    "./plugin-sdk/hook-runtime": {
-      "types": "./dist/plugin-sdk/hook-runtime.d.ts",
-      "default": "./dist/plugin-sdk/hook-runtime.js"
     },
     "./plugin-sdk/host-runtime": {
       "types": "./dist/plugin-sdk/host-runtime.d.ts",
@@ -191,29 +134,9 @@
       "types": "./dist/plugin-sdk/llm-task.d.ts",
       "default": "./dist/plugin-sdk/llm-task.js"
     },
-    "./plugin-sdk/local-process-backend": {
-      "types": "./dist/plugin-sdk/local-process-backend.d.ts",
-      "default": "./dist/plugin-sdk/local-process-backend.js"
-    },
     "./plugin-sdk/logging-core": {
       "types": "./dist/plugin-sdk/logging-core.d.ts",
       "default": "./dist/plugin-sdk/logging-core.js"
-    },
-    "./plugin-sdk/markdown-table-runtime": {
-      "types": "./dist/plugin-sdk/markdown-table-runtime.d.ts",
-      "default": "./dist/plugin-sdk/markdown-table-runtime.js"
-    },
-    "./plugin-sdk/media-runtime": {
-      "types": "./dist/plugin-sdk/media-runtime.d.ts",
-      "default": "./dist/plugin-sdk/media-runtime.js"
-    },
-    "./plugin-sdk/media-understanding": {
-      "types": "./dist/plugin-sdk/media-understanding.d.ts",
-      "default": "./dist/plugin-sdk/media-understanding.js"
-    },
-    "./plugin-sdk/media-understanding-runtime": {
-      "types": "./dist/plugin-sdk/media-understanding-runtime.d.ts",
-      "default": "./dist/plugin-sdk/media-understanding-runtime.js"
     },
     "./plugin-sdk/native-command-registry": {
       "types": "./dist/plugin-sdk/native-command-registry.d.ts",
@@ -223,33 +146,9 @@
       "types": "./dist/plugin-sdk/native-plugin-runtime.d.ts",
       "default": "./dist/plugin-sdk/native-plugin-runtime.js"
     },
-    "./plugin-sdk/ollama-surface": {
-      "types": "./dist/plugin-sdk/ollama-surface.d.ts",
-      "default": "./dist/plugin-sdk/ollama-surface.js"
-    },
-    "./plugin-sdk/open-websearch-runtime": {
-      "types": "./dist/plugin-sdk/open-websearch-runtime.d.ts",
-      "default": "./dist/plugin-sdk/open-websearch-runtime.js"
-    },
-    "./plugin-sdk/openai": {
-      "types": "./dist/plugin-sdk/openai.d.ts",
-      "default": "./dist/plugin-sdk/openai.js"
-    },
-    "./plugin-sdk/openrouter-model-capabilities": {
-      "types": "./dist/plugin-sdk/openrouter-model-capabilities.d.ts",
-      "default": "./dist/plugin-sdk/openrouter-model-capabilities.js"
-    },
     "./plugin-sdk/param-readers": {
       "types": "./dist/plugin-sdk/param-readers.d.ts",
       "default": "./dist/plugin-sdk/param-readers.js"
-    },
-    "./plugin-sdk/plugin-entry": {
-      "types": "./dist/plugin-sdk/plugin-entry.d.ts",
-      "default": "./dist/plugin-sdk/plugin-entry.js"
-    },
-    "./plugin-sdk/plugin-runtime": {
-      "types": "./dist/plugin-sdk/plugin-runtime.d.ts",
-      "default": "./dist/plugin-sdk/plugin-runtime.js"
     },
     "./plugin-sdk/process-runtime": {
       "types": "./dist/plugin-sdk/process-runtime.d.ts",
@@ -283,25 +182,9 @@
       "types": "./dist/plugin-sdk/provider-http.d.ts",
       "default": "./dist/plugin-sdk/provider-http.js"
     },
-    "./plugin-sdk/provider-onboard": {
-      "types": "./dist/plugin-sdk/provider-onboard.d.ts",
-      "default": "./dist/plugin-sdk/provider-onboard.js"
-    },
-    "./plugin-sdk/provider-tools": {
-      "types": "./dist/plugin-sdk/provider-tools.d.ts",
-      "default": "./dist/plugin-sdk/provider-tools.js"
-    },
     "./plugin-sdk/provider-usage": {
       "types": "./dist/plugin-sdk/provider-usage.d.ts",
       "default": "./dist/plugin-sdk/provider-usage.js"
-    },
-    "./plugin-sdk/provider-web-fetch": {
-      "types": "./dist/plugin-sdk/provider-web-fetch.d.ts",
-      "default": "./dist/plugin-sdk/provider-web-fetch.js"
-    },
-    "./plugin-sdk/provider-web-search": {
-      "types": "./dist/plugin-sdk/provider-web-search.d.ts",
-      "default": "./dist/plugin-sdk/provider-web-search.js"
     },
     "./plugin-sdk/reply-chunking": {
       "types": "./dist/plugin-sdk/reply-chunking.d.ts",
@@ -323,10 +206,6 @@
       "types": "./dist/plugin-sdk/retry-runtime.d.ts",
       "default": "./dist/plugin-sdk/retry-runtime.js"
     },
-    "./plugin-sdk/routing": {
-      "types": "./dist/plugin-sdk/routing.d.ts",
-      "default": "./dist/plugin-sdk/routing.js"
-    },
     "./plugin-sdk/runtime": {
       "types": "./dist/plugin-sdk/runtime.d.ts",
       "default": "./dist/plugin-sdk/runtime.js"
@@ -339,21 +218,9 @@
       "types": "./dist/plugin-sdk/runtime-env.d.ts",
       "default": "./dist/plugin-sdk/runtime-env.js"
     },
-    "./plugin-sdk/runtime-group-policy": {
-      "types": "./dist/plugin-sdk/runtime-group-policy.d.ts",
-      "default": "./dist/plugin-sdk/runtime-group-policy.js"
-    },
-    "./plugin-sdk/runtime-store": {
-      "types": "./dist/plugin-sdk/runtime-store.d.ts",
-      "default": "./dist/plugin-sdk/runtime-store.js"
-    },
     "./plugin-sdk/secret-input": {
       "types": "./dist/plugin-sdk/secret-input.d.ts",
       "default": "./dist/plugin-sdk/secret-input.js"
-    },
-    "./plugin-sdk/security-runtime": {
-      "types": "./dist/plugin-sdk/security-runtime.d.ts",
-      "default": "./dist/plugin-sdk/security-runtime.js"
     },
     "./plugin-sdk/session-store-runtime": {
       "types": "./dist/plugin-sdk/session-store-runtime.d.ts",
@@ -378,10 +245,6 @@
     "./plugin-sdk/speech-core": {
       "types": "./dist/plugin-sdk/speech-core.d.ts",
       "default": "./dist/plugin-sdk/speech-core.js"
-    },
-    "./plugin-sdk/speech-runtime": {
-      "types": "./dist/plugin-sdk/speech-runtime.d.ts",
-      "default": "./dist/plugin-sdk/speech-runtime.js"
     },
     "./plugin-sdk/ssrf-runtime": {
       "types": "./dist/plugin-sdk/ssrf-runtime.d.ts",
@@ -411,17 +274,9 @@
       "types": "./dist/plugin-sdk/text-runtime.d.ts",
       "default": "./dist/plugin-sdk/text-runtime.js"
     },
-    "./plugin-sdk/voice-call": {
-      "types": "./dist/plugin-sdk/voice-call.d.ts",
-      "default": "./dist/plugin-sdk/voice-call.js"
-    },
     "./plugin-sdk/web-media": {
       "types": "./dist/plugin-sdk/web-media.d.ts",
       "default": "./dist/plugin-sdk/web-media.js"
-    },
-    "./plugin-sdk/webhook-ingress": {
-      "types": "./dist/plugin-sdk/webhook-ingress.d.ts",
-      "default": "./dist/plugin-sdk/webhook-ingress.js"
     },
     "./plugin-sdk/webhook-path": {
       "types": "./dist/plugin-sdk/webhook-path.d.ts",
@@ -448,7 +303,7 @@
     "canon:check": "node scripts/canon.mjs check",
     "canon:check:json": "node scripts/canon.mjs check --json",
     "canon:enforce": "node scripts/canon.mjs enforce --json",
-    "check": "pnpm check:no-conflict-markers && pnpm tsgo && pnpm lint && pnpm lint:boundaries && pnpm lint:webhook:no-low-level-body-read && pnpm lint:auth:no-pairing-store-group && pnpm lint:auth:pairing-account-scope",
+    "check": "pnpm check:no-conflict-markers && pnpm tsgo && pnpm lint && pnpm lint:boundaries && pnpm lint:webhook:no-low-level-body-read",
     "check:base-config-schema": "node --import tsx scripts/generate-base-config-schema.ts --check",
     "check:bundled-provider-auth-env-vars": "node scripts/generate-bundled-provider-auth-env-vars.mjs --check",
     "check:docs": "pnpm format:docs:check && pnpm lint:docs && pnpm docs:check-i18n-glossary && pnpm docs:check-links",
@@ -493,9 +348,7 @@
     "lint": "node scripts/run-oxlint.mjs",
     "lint:agent:ingress-owner": "node scripts/check-ingress-agent-owner-context.mjs",
     "lint:all": "pnpm lint",
-    "lint:auth:no-pairing-store-group": "node scripts/check-no-pairing-store-group-auth.mjs",
-    "lint:auth:pairing-account-scope": "node scripts/check-pairing-account-scope.mjs",
-    "lint:boundaries": "pnpm lint:agent:ingress-owner && pnpm lint:runtime:module-boundaries && pnpm lint:tmp:channel-agnostic-boundaries && pnpm lint:web-search-provider-boundaries && pnpm lint:boundaries:ecosystem",
+    "lint:boundaries": "pnpm lint:agent:ingress-owner && pnpm lint:runtime:module-boundaries && pnpm lint:web-search-provider-boundaries && pnpm lint:boundaries:ecosystem",
     "lint:boundaries:ecosystem": "pnpm lint:extensions:no-plugin-sdk-internal && pnpm lint:extensions:no-relative-outside-package && pnpm lint:extensions:no-src-outside-plugin-sdk && pnpm lint:plugins:no-extension-imports && pnpm lint:plugins:no-extension-src-imports && pnpm lint:plugins:no-extension-test-core-imports && pnpm lint:plugins:no-monolithic-plugin-sdk-entry-imports && pnpm lint:plugins:plugin-sdk-subpaths-exported",
     "lint:docs": "pnpm dlx markdownlint-cli2",
     "lint:docs:fix": "pnpm dlx markdownlint-cli2 --fix",
@@ -510,9 +363,6 @@
     "lint:plugins:no-register-http-handler": "node scripts/check-no-register-http-handler.mjs",
     "lint:plugins:plugin-sdk-subpaths-exported": "node scripts/check-plugin-sdk-subpath-exports.mjs",
     "lint:runtime:module-boundaries": "node scripts/check-runtime-module-boundaries.mjs",
-    "lint:tmp:channel-agnostic-boundaries": "node scripts/check-channel-agnostic-boundaries.mjs",
-    "lint:tmp:no-random-messaging": "node scripts/check-no-random-messaging-tmp.mjs",
-    "lint:tmp:no-raw-channel-fetch": "node scripts/check-no-raw-channel-fetch.mjs",
     "lint:web-fetch-provider-boundaries": "node scripts/check-web-fetch-provider-boundaries.mjs",
     "lint:web-search-provider-boundaries": "node scripts/check-web-search-provider-boundaries.mjs",
     "lint:webhook:no-low-level-body-read": "node scripts/check-webhook-auth-body-order.mjs",
@@ -526,7 +376,7 @@
     "plugin-sdk:sync-exports": "node scripts/sync-plugin-sdk-exports.mjs",
     "plugin-sdk:usage": "node --import tsx scripts/analyze-plugin-sdk-usage.ts",
     "plugins:sync": "node --import tsx scripts/sync-plugin-versions.ts",
-    "postinstall": "node scripts/postinstall-bundled-plugins.mjs && node scripts/install-plugin-runtimes.mjs",
+    "postinstall": "node scripts/postinstall-bundled-plugins.mjs",
     "prepack": "node --import tsx scripts/crawclaw-prepack.ts",
     "prepare": "command -v git >/dev/null 2>&1 && git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0",
     "prepush:ci": "bash scripts/prepush-ci.sh",
@@ -571,9 +421,8 @@
     "test:runtime:stack": "node scripts/test-runtime-stack.mjs",
     "test:sectriage": "pnpm exec vitest run --config vitest.gateway.config.ts && vitest run --config vitest.unit.config.ts --exclude src/daemon/launchd.integration.test.ts --exclude src/process/exec.test.ts",
     "test:serial": "node scripts/test-parallel.mjs --profile serial",
-    "test:voicecall:closedloop": "node scripts/test-voicecall-closedloop.mjs",
     "test:watch": "vitest",
-    "test:windows:compat": "pnpm test -- src/install-plugin-runtimes.test.ts src/plugin-sdk/windows-spawn.test.ts src/process/exec.windows.test.ts src/daemon/runtime-hints.windows-paths.test.ts src/daemon/schtasks.startup-fallback.test.ts src/daemon/schtasks.install.test.ts src/daemon/schtasks.stop.test.ts src/infra/windows-install-roots.test.ts src/infra/windows-task-restart.test.ts src/agents/shell-utils.test.ts src/agents/path-policy.test.ts src/open-websearch/daemon.test.ts",
+    "test:windows:compat": "pnpm test -- src/plugin-sdk/windows-spawn.test.ts src/process/exec.windows.test.ts src/daemon/runtime-hints.windows-paths.test.ts src/daemon/schtasks.startup-fallback.test.ts src/daemon/schtasks.install.test.ts src/daemon/schtasks.stop.test.ts src/infra/windows-install-roots.test.ts src/infra/windows-task-restart.test.ts src/agents/shell-utils.test.ts src/agents/path-policy.test.ts",
     "ts-topology": "node --import tsx scripts/ts-topology.ts",
     "tsgo": "node scripts/run-tsgo.mjs",
     "typecheck": "node scripts/typecheck.mjs"
@@ -585,14 +434,10 @@
     "@clack/prompts": "^1.1.0",
     "@homebridge/ciao": "^1.3.6",
     "@lydell/node-pty": "1.2.0-beta.3",
-    "@mariozechner/pi-agent-core": "0.70.0",
     "@mariozechner/pi-ai": "0.70.0",
-    "@mariozechner/pi-coding-agent": "0.70.0",
     "@modelcontextprotocol/sdk": "1.29.0",
     "@mozilla/readability": "^0.6.0",
     "@photostructure/sqlite": "^1.0.0",
-    "@pierre/diffs": "1.1.7",
-    "@pierre/theme": "0.0.26",
     "@sinclair/typebox": "0.34.49",
     "ajv": "^8.18.0",
     "chalk": "^5.6.2",
@@ -700,12 +545,6 @@
     "ignoredBuiltDependencies": [
       "koffi"
     ],
-    "packageExtensions": {
-      "@mariozechner/pi-coding-agent": {
-        "dependencies": {
-          "strip-ansi": "^7.2.0"
-        }
-      }
-    }
+    "packageExtensions": {}
   }
 }

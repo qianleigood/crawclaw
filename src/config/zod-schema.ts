@@ -12,7 +12,6 @@ import {
 } from "./zod-schema.core.js";
 import { HookMappingSchema, HooksGmailSchema, InternalHooksSchema } from "./zod-schema.hooks.js";
 import { PluginInstallRecordShape } from "./zod-schema.installs.js";
-import { ChannelsSchema } from "./zod-schema.providers.js";
 import { sensitive } from "./zod-schema.sensitive.js";
 import { CommandsSchema, MessagesSchema, SessionSchema } from "./zod-schema.session.js";
 
@@ -175,12 +174,6 @@ const SkillEntrySchema = z
 const PluginEntrySchema = z
   .object({
     enabled: z.boolean().optional(),
-    hooks: z
-      .object({
-        allowPromptInjection: z.boolean().optional(),
-      })
-      .strict()
-      .optional(),
     subagent: z
       .object({
         allowModelOverride: z.boolean().optional(),
@@ -637,7 +630,6 @@ export const CrawClawSchema = z
       })
       .strict()
       .optional(),
-    channels: ChannelsSchema,
     discovery: z
       .object({
         wideArea: z
@@ -676,7 +668,6 @@ export const CrawClawSchema = z
             allowedOrigins: z.array(z.string()).optional(),
             dangerouslyAllowHostHeaderOriginFallback: z.boolean().optional(),
             allowInsecureAuth: z.boolean().optional(),
-            dangerouslyDisableDeviceAuth: z.boolean().optional(),
           })
           .strict()
           .optional(),
@@ -728,9 +719,6 @@ export const CrawClawSchema = z
           })
           .strict()
           .optional(),
-        channelHealthCheckMinutes: z.number().int().min(0).optional(),
-        channelStaleEventThresholdMinutes: z.number().int().min(1).optional(),
-        channelMaxRestartsPerHour: z.number().int().min(1).optional(),
         tailscale: z
           .object({
             mode: z.union([z.literal("off"), z.literal("serve"), z.literal("funnel")]).optional(),
@@ -836,21 +824,6 @@ export const CrawClawSchema = z
           .optional(),
       })
       .strict()
-      .superRefine((gateway, ctx) => {
-        const effectiveHealthCheckMinutes = gateway.channelHealthCheckMinutes ?? 5;
-        if (
-          gateway.channelStaleEventThresholdMinutes != null &&
-          effectiveHealthCheckMinutes !== 0 &&
-          gateway.channelStaleEventThresholdMinutes < effectiveHealthCheckMinutes
-        ) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            path: ["channelStaleEventThresholdMinutes"],
-            message:
-              "channelStaleEventThresholdMinutes should be >= channelHealthCheckMinutes to avoid delayed stale detection",
-          });
-        }
-      })
       .optional(),
     memory: MemorySchema,
     workflow: WorkflowSchema,

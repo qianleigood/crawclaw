@@ -348,20 +348,6 @@ fn top_string<'a>(input: &'a Value, key: &str) -> Option<&'a str> {
         .filter(|value| !value.is_empty())
 }
 
-fn runtime_node_major() -> u64 {
-    env::var("CRAWCLAW_RUNTIME_NODE_VERSION")
-        .ok()
-        .and_then(|value| {
-            value
-                .trim()
-                .trim_start_matches('v')
-                .split('.')
-                .next()
-                .and_then(|major| major.parse::<u64>().ok())
-        })
-        .unwrap_or(0)
-}
-
 fn path_list_separator() -> char {
     if cfg!(windows) {
         ';'
@@ -404,17 +390,9 @@ fn plugin_runtime_roots() -> Vec<PathBuf> {
 fn qwen3_tts_runtime_python() -> PathBuf {
     let runtime_dir = plugin_runtime_roots()
         .into_iter()
-        .map(|root| {
-            root.join(format!("node-{}", runtime_node_major()))
-                .join("qwen3-tts")
-        })
+        .map(|root| root.join("qwen3-tts"))
         .find(|candidate| candidate.exists())
-        .unwrap_or_else(|| {
-            state_dir()
-                .join("runtimes")
-                .join(format!("node-{}", runtime_node_major()))
-                .join("qwen3-tts")
-        });
+        .unwrap_or_else(|| state_dir().join("runtimes").join("qwen3-tts"));
     let venv = runtime_dir.join("venv");
     if cfg!(windows) {
         venv.join("Scripts").join("python.exe")
@@ -629,7 +607,7 @@ async fn ensure_managed_runtime_ready(command: &str, runtime: Option<&str>) -> N
     .collect::<Vec<_>>()
     .join("\n");
     Err(NativeError::Message(format!(
-        "Managed Qwen3-TTS runtime is not installed or failed verification. Run `crawclaw runtimes install` or `crawclaw runtimes repair`.{}",
+        "Qwen3-TTS runtime is not installed or failed verification. Configure the native Qwen3-TTS sidecar runtime.{}",
         if detail.is_empty() {
             String::new()
         } else {

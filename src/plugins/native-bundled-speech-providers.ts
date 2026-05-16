@@ -1,5 +1,5 @@
 import { Buffer } from "node:buffer";
-import { runCrawClawRuntimeTool } from "../agents/runtime-tools/native.js";
+import { callGateway } from "../gateway/call.js";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechProviderConfig,
@@ -214,24 +214,24 @@ async function synthesizeQwen3Tts(params: {
     providerOverrides: readOverrides(params.providerOverrides),
     pluginRoot: params.rootDir,
   };
-  await runCrawClawRuntimeTool(
-    "native_plugin_service_start",
-    {
+  await callGateway({
+    method: "nativePlugin.service.start",
+    params: {
       pluginId: QWEN3_TTS_PLUGIN_ID,
       serviceId: "qwen3-tts-daemon",
       input: { providerConfig: params.providerConfig, pluginRoot: params.rootDir },
     },
-    { timeoutMs: params.timeoutMs },
-  );
-  return await runCrawClawRuntimeTool<SidecarSynthesisResponse>(
-    "native_plugin_invoke",
-    {
+    timeoutMs: params.timeoutMs,
+  });
+  return await callGateway<SidecarSynthesisResponse>({
+    method: "nativePlugin.invoke",
+    params: {
       pluginId: QWEN3_TTS_PLUGIN_ID,
       operation: "synthesize",
       input,
     },
-    { timeoutMs: params.timeoutMs },
-  );
+    timeoutMs: params.timeoutMs,
+  });
 }
 
 function qwen3TtsSpeechProvider(options: NativeSpeechOptions = {}): SpeechProviderPlugin {

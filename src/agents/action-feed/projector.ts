@@ -3,13 +3,78 @@ import {
   type ExecutionEventPhase,
 } from "../../auto-reply/reply/execution-visibility.js";
 import { buildApprovalActionVisibilityProjection } from "../../infra/approval-visibility.js";
-import { buildMemoryActionVisibilityProjection } from "../../memory/action-visibility.js";
 import { buildWorkflowActionVisibilityProjection } from "../../workflows/visibility.js";
 import { buildCompletionActionVisibilityProjection } from "../tasks/completion-visibility.js";
 import type { AgentActionEventData, AgentActionKind, AgentActionStatus } from "./types.js";
 
 function normalizeOptionalString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+type MemoryVisibilityKind = "durable_memory" | "session_summary" | "dream";
+type MemoryVisibilityPhase =
+  | "scheduled"
+  | "running"
+  | "failed_to_start"
+  | "wait_failed"
+  | "invalid_report"
+  | "orient"
+  | "gather"
+  | "final";
+type MemoryVisibilityResultStatus = "written" | "skipped" | "no_change" | "failed";
+
+function resolveMemoryTitle(params: {
+  kind: MemoryVisibilityKind;
+  phase: MemoryVisibilityPhase;
+  resultStatus?: MemoryVisibilityResultStatus;
+}): string {
+  if (params.kind === "durable_memory") {
+    if (params.phase === "final") {
+      return params.resultStatus === "written"
+        ? "Durable memory agent wrote durable notes"
+        : params.resultStatus === "skipped"
+          ? "Durable memory agent skipped"
+          : params.resultStatus === "no_change"
+            ? "Durable memory agent found no durable changes"
+            : "Durable memory agent failed";
+    }
+    return `Durable memory agent ${params.phase.replace(/_/g, " ")}`;
+  }
+  if (params.kind === "session_summary") {
+    if (params.phase === "final") {
+      return params.resultStatus === "written"
+        ? "Session summary updated"
+        : params.resultStatus === "skipped"
+          ? "Session summary skipped"
+          : params.resultStatus === "no_change"
+            ? "Session summary unchanged"
+            : "Session summary failed";
+    }
+    return `Session summary ${params.phase.replace(/_/g, " ")}`;
+  }
+  if (params.phase === "final") {
+    return params.resultStatus === "written"
+      ? "Dream updated durable notes"
+      : params.resultStatus === "skipped"
+        ? "Dream skipped"
+        : params.resultStatus === "no_change"
+          ? "Dream found no changes"
+          : "Dream failed";
+  }
+  return `Dream ${params.phase.replace(/_/g, " ")}`;
+}
+
+function buildMemoryActionVisibilityProjection(params: {
+  kind: MemoryVisibilityKind;
+  phase: MemoryVisibilityPhase;
+  summary?: string;
+  resultStatus?: MemoryVisibilityResultStatus;
+}) {
+  const projectedTitle = resolveMemoryTitle(params);
+  const projectedSummary = normalizeOptionalString(params.summary);
+  return projectedSummary && projectedSummary !== projectedTitle
+    ? { projectedTitle, projectedSummary }
+    : { projectedTitle };
 }
 
 function resolveExecutionPhase(status: AgentActionStatus): ExecutionEventPhase {

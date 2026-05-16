@@ -23,9 +23,9 @@ x-i18n:
 - 模型引用使用 `provider/model`（示例：`opencode/claude-opus-4-6`）。
 - 如果你设置了 `agents.defaults.models`，它就会成为 allowlist。
 - CLI 辅助命令：`crawclaw onboard`、`crawclaw models list`、`crawclaw models set <provider/model>`。
-- 提供商插件可以通过 `registerProvider({ catalog })` 注入模型目录；
-  CrawClaw 会在写入
-  `models.json` 之前将该输出合并到 `models.providers` 中。
+- TypeScript 提供商插件已移除；模型目录和 provider metadata
+  由 Rust provider registry 生成，额外 provider 通过
+  `models.providers` 配置扩展。
 - 提供商清单可以声明 `providerAuthEnvVars`，这样基于通用环境变量的
   身份验证探测就不需要加载插件运行时。其余的核心环境变量映射
   现在只用于非插件/核心提供商，以及少数通用优先级场景，

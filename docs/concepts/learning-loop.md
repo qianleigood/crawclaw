@@ -61,7 +61,7 @@ Relevant areas:
 - `src/sessions`
 - `src/chat`
 - `src/agents/context-archive`
-- `src/gateway/server-methods`
+- `crates/crawclaw-gateway/src/lib.rs`
 
 Question answered:
 

@@ -6,7 +6,7 @@ const TEST_DEFINITION: SpecialAgentDefinition = {
   id: "test_special_agent",
   label: "test-special-agent",
   spawnSource: "test-special-agent",
-  executionMode: "embedded_fork",
+  executionMode: "runtime_fork",
   transcriptPolicy: "isolated",
   parentContextPolicy: "none",
   toolPolicy: {
@@ -19,7 +19,7 @@ const TEST_DEFINITION: SpecialAgentDefinition = {
 };
 
 describe("special-agent observability", () => {
-  it("records embedded special-agent events, history, usage, and completion into the archive capture", async () => {
+  it("records runtime-fork special-agent events, history, usage, and completion into the archive capture", async () => {
     const appendEvent = vi.fn().mockResolvedValue("evt-1");
     const updateRunState = vi.fn().mockResolvedValue("run-1");
     const createContextArchiveRunCapture = vi.fn().mockReturnValue({
@@ -103,7 +103,7 @@ describe("special-agent observability", () => {
         metadata: expect.objectContaining({
           definitionId: "test_special_agent",
           spawnSource: "test-special-agent",
-          executionMode: "embedded_fork",
+          executionMode: "runtime_fork",
           parentRunId: "parent-run-1",
           stream: "assistant",
         }),

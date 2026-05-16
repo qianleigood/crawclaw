@@ -1,20 +1,13 @@
 import type { FinalizedMsgContext } from "../auto-reply/templating.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type {
-  PluginHookInboundClaimContext,
-  PluginHookInboundClaimEvent,
-  PluginHookMessageContext,
-  PluginHookMessageReceivedEvent,
-  PluginHookMessageSentEvent,
-} from "../plugins/types.js";
-import type {
-  MessagePreprocessedHookContext,
-  MessageReceivedHookContext,
-  MessageSentHookContext,
-  MessageTranscribedHookContext,
+  MessagePreprocessedToolCallPreflightContext,
+  MessageReceivedToolCallPreflightContext,
+  MessageSentToolCallPreflightContext,
+  MessageTranscribedToolCallPreflightContext,
 } from "./internal-hooks.js";
 
-export type CanonicalInboundMessageHookContext = {
+export type CanonicalInboundMessageToolCallPreflightContext = {
   from: string;
   to?: string;
   content: string;
@@ -45,7 +38,7 @@ export type CanonicalInboundMessageHookContext = {
   groupId?: string;
 };
 
-export type CanonicalSentMessageHookContext = {
+export type CanonicalSentMessageToolCallPreflightContext = {
   to: string;
   content: string;
   success: boolean;
@@ -58,13 +51,13 @@ export type CanonicalSentMessageHookContext = {
   groupId?: string;
 };
 
-export function deriveInboundMessageHookContext(
+export function deriveInboundMessageToolCallPreflightContext(
   ctx: FinalizedMsgContext,
   overrides?: {
     content?: string;
     messageId?: string;
   },
-): CanonicalInboundMessageHookContext {
+): CanonicalInboundMessageToolCallPreflightContext {
   const content =
     overrides?.content ??
     (typeof ctx.BodyForCommands === "string"
@@ -127,7 +120,7 @@ export function deriveInboundMessageHookContext(
   };
 }
 
-export function buildCanonicalSentMessageHookContext(params: {
+export function buildCanonicalSentMessageToolCallPreflightContext(params: {
   to: string;
   content: string;
   success: boolean;
@@ -138,7 +131,7 @@ export function buildCanonicalSentMessageHookContext(params: {
   messageId?: string;
   isGroup?: boolean;
   groupId?: string;
-}): CanonicalSentMessageHookContext {
+}): CanonicalSentMessageToolCallPreflightContext {
   return {
     to: params.to,
     content: params.content,
@@ -153,141 +146,9 @@ export function buildCanonicalSentMessageHookContext(params: {
   };
 }
 
-export function toPluginMessageContext(
-  canonical: CanonicalInboundMessageHookContext | CanonicalSentMessageHookContext,
-): PluginHookMessageContext {
-  return {
-    channelId: canonical.channelId,
-    accountId: canonical.accountId,
-    conversationId: canonical.conversationId,
-  };
-}
-
-function stripChannelPrefix(value: string | undefined, channelId: string): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-  const genericPrefixes = ["channel:", "chat:", "user:"];
-  for (const prefix of genericPrefixes) {
-    if (value.startsWith(prefix)) {
-      return value.slice(prefix.length);
-    }
-  }
-  const prefix = `${channelId}:`;
-  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
-}
-
-function deriveParentConversationId(
-  _canonical: CanonicalInboundMessageHookContext,
-): string | undefined {
-  return undefined;
-}
-
-function deriveConversationId(canonical: CanonicalInboundMessageHookContext): string | undefined {
-  return stripChannelPrefix(
-    canonical.to ?? canonical.originatingTo ?? canonical.conversationId,
-    canonical.channelId,
-  );
-}
-
-export function toPluginInboundClaimContext(
-  canonical: CanonicalInboundMessageHookContext,
-): PluginHookInboundClaimContext {
-  const conversationId = deriveConversationId(canonical);
-  return {
-    channelId: canonical.channelId,
-    accountId: canonical.accountId,
-    conversationId,
-    parentConversationId: deriveParentConversationId(canonical),
-    senderId: canonical.senderId,
-    messageId: canonical.messageId,
-  };
-}
-
-export function toPluginInboundClaimEvent(
-  canonical: CanonicalInboundMessageHookContext,
-  extras?: {
-    commandAuthorized?: boolean;
-    wasMentioned?: boolean;
-  },
-): PluginHookInboundClaimEvent {
-  const context = toPluginInboundClaimContext(canonical);
-  return {
-    content: canonical.content,
-    body: canonical.body,
-    bodyForAgent: canonical.bodyForAgent,
-    transcript: canonical.transcript,
-    timestamp: canonical.timestamp,
-    channel: canonical.channelId,
-    accountId: canonical.accountId,
-    conversationId: context.conversationId,
-    parentConversationId: context.parentConversationId,
-    senderId: canonical.senderId,
-    senderName: canonical.senderName,
-    senderUsername: canonical.senderUsername,
-    threadId: canonical.threadId,
-    messageId: canonical.messageId,
-    isGroup: canonical.isGroup,
-    commandAuthorized: extras?.commandAuthorized,
-    wasMentioned: extras?.wasMentioned,
-    metadata: {
-      from: canonical.from,
-      to: canonical.to,
-      provider: canonical.provider,
-      surface: canonical.surface,
-      originatingChannel: canonical.originatingChannel,
-      originatingTo: canonical.originatingTo,
-      senderE164: canonical.senderE164,
-      mediaPath: canonical.mediaPath,
-      mediaType: canonical.mediaType,
-      mediaPaths: canonical.mediaPaths,
-      mediaTypes: canonical.mediaTypes,
-      guildId: canonical.guildId,
-      channelName: canonical.channelName,
-      groupId: canonical.groupId,
-    },
-  };
-}
-
-export function toPluginMessageReceivedEvent(
-  canonical: CanonicalInboundMessageHookContext,
-): PluginHookMessageReceivedEvent {
-  return {
-    from: canonical.from,
-    content: canonical.content,
-    timestamp: canonical.timestamp,
-    metadata: {
-      to: canonical.to,
-      provider: canonical.provider,
-      surface: canonical.surface,
-      threadId: canonical.threadId,
-      originatingChannel: canonical.originatingChannel,
-      originatingTo: canonical.originatingTo,
-      messageId: canonical.messageId,
-      senderId: canonical.senderId,
-      senderName: canonical.senderName,
-      senderUsername: canonical.senderUsername,
-      senderE164: canonical.senderE164,
-      guildId: canonical.guildId,
-      channelName: canonical.channelName,
-    },
-  };
-}
-
-export function toPluginMessageSentEvent(
-  canonical: CanonicalSentMessageHookContext,
-): PluginHookMessageSentEvent {
-  return {
-    to: canonical.to,
-    content: canonical.content,
-    success: canonical.success,
-    ...(canonical.error ? { error: canonical.error } : {}),
-  };
-}
-
 export function toInternalMessageReceivedContext(
-  canonical: CanonicalInboundMessageHookContext,
-): MessageReceivedHookContext {
+  canonical: CanonicalInboundMessageToolCallPreflightContext,
+): MessageReceivedToolCallPreflightContext {
   return {
     from: canonical.from,
     content: canonical.content,
@@ -312,10 +173,10 @@ export function toInternalMessageReceivedContext(
 }
 
 export function toInternalMessageTranscribedContext(
-  canonical: CanonicalInboundMessageHookContext,
+  canonical: CanonicalInboundMessageToolCallPreflightContext,
   cfg: CrawClawConfig,
-): MessageTranscribedHookContext & { cfg: CrawClawConfig } {
-  const shared = toInternalInboundMessageHookContextBase(canonical);
+): MessageTranscribedToolCallPreflightContext & { cfg: CrawClawConfig } {
+  const shared = toInternalInboundMessageToolCallPreflightContextBase(canonical);
   return {
     ...shared,
     transcript: canonical.transcript ?? "",
@@ -324,10 +185,10 @@ export function toInternalMessageTranscribedContext(
 }
 
 export function toInternalMessagePreprocessedContext(
-  canonical: CanonicalInboundMessageHookContext,
+  canonical: CanonicalInboundMessageToolCallPreflightContext,
   cfg: CrawClawConfig,
-): MessagePreprocessedHookContext & { cfg: CrawClawConfig } {
-  const shared = toInternalInboundMessageHookContextBase(canonical);
+): MessagePreprocessedToolCallPreflightContext & { cfg: CrawClawConfig } {
+  const shared = toInternalInboundMessageToolCallPreflightContextBase(canonical);
   return {
     ...shared,
     transcript: canonical.transcript,
@@ -337,7 +198,9 @@ export function toInternalMessagePreprocessedContext(
   };
 }
 
-function toInternalInboundMessageHookContextBase(canonical: CanonicalInboundMessageHookContext) {
+function toInternalInboundMessageToolCallPreflightContextBase(
+  canonical: CanonicalInboundMessageToolCallPreflightContext,
+) {
   return {
     from: canonical.from,
     to: canonical.to,
@@ -358,8 +221,8 @@ function toInternalInboundMessageHookContextBase(canonical: CanonicalInboundMess
 }
 
 export function toInternalMessageSentContext(
-  canonical: CanonicalSentMessageHookContext,
-): MessageSentHookContext {
+  canonical: CanonicalSentMessageToolCallPreflightContext,
+): MessageSentToolCallPreflightContext {
   return {
     to: canonical.to,
     content: canonical.content,

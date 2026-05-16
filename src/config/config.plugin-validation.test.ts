@@ -23,21 +23,17 @@ async function writePluginFixture(params: {
   dir: string;
   id: string;
   schema: Record<string, unknown>;
-  channels?: string[];
 }) {
   await mkdirSafe(params.dir);
   await fs.writeFile(
     path.join(params.dir, "index.js"),
-    `export default { id: "${params.id}", register() {} };`,
+    `export default { id: "${params.id}" };`,
     "utf-8",
   );
   const manifest: Record<string, unknown> = {
     id: params.id,
     configSchema: params.schema,
   };
-  if (params.channels) {
-    manifest.channels = params.channels;
-  }
   await fs.writeFile(
     path.join(params.dir, "crawclaw.plugin.json"),
     JSON.stringify(manifest, null, 2),
@@ -97,9 +93,7 @@ describe("config plugin validation", () => {
   let suiteHome = "";
   let badPluginDir = "";
   let enumPluginDir = "";
-  let weixinPluginDir = "";
   let googleOverridePluginDir = "";
-  let voiceCallSchemaPluginDir = "";
   let bundlePluginDir = "";
   let manifestlessClaudeBundleDir = "";
   const suiteEnv = () =>
@@ -136,7 +130,6 @@ describe("config plugin validation", () => {
     await mkdirSafe(suiteHome);
     badPluginDir = path.join(suiteHome, "bad-plugin");
     enumPluginDir = path.join(suiteHome, "enum-plugin");
-    weixinPluginDir = path.join(suiteHome, "weixin-plugin");
     await writePluginFixture({
       dir: badPluginDir,
       id: "bad-plugin",
@@ -163,12 +156,6 @@ describe("config plugin validation", () => {
         required: ["fileFormat"],
       },
     });
-    await writePluginFixture({
-      dir: weixinPluginDir,
-      id: "weixin-plugin",
-      channels: ["weixin"],
-      schema: { type: "object" },
-    });
     googleOverridePluginDir = path.join(suiteHome, "google");
     await writePluginFixture({
       dir: googleOverridePluginDir,
@@ -190,24 +177,6 @@ describe("config plugin validation", () => {
     await writeManifestlessClaudeBundleFixture({
       dir: manifestlessClaudeBundleDir,
     });
-    voiceCallSchemaPluginDir = path.join(suiteHome, "voice-call-schema-plugin");
-    const voiceCallManifestPath = path.join(
-      process.cwd(),
-      "extensions",
-      "voice-call",
-      "crawclaw.plugin.json",
-    );
-    const voiceCallManifest = JSON.parse(await fs.readFile(voiceCallManifestPath, "utf-8")) as {
-      configSchema?: Record<string, unknown>;
-    };
-    if (!voiceCallManifest.configSchema) {
-      throw new Error("voice-call manifest missing configSchema");
-    }
-    await writePluginFixture({
-      dir: voiceCallSchemaPluginDir,
-      id: "voice-call-schema-fixture",
-      schema: voiceCallManifest.configSchema,
-    });
     clearPluginManifestRegistryCache();
     // Warm the plugin manifest cache once so path-based validations can reuse
     // parsed manifests across test cases.
@@ -215,13 +184,7 @@ describe("config plugin validation", () => {
       plugins: {
         enabled: false,
         load: {
-          paths: [
-            badPluginDir,
-            weixinPluginDir,
-            bundlePluginDir,
-            manifestlessClaudeBundleDir,
-            voiceCallSchemaPluginDir,
-          ],
+          paths: [badPluginDir, bundlePluginDir, manifestlessClaudeBundleDir],
         },
       },
     });
@@ -399,172 +362,25 @@ describe("config plugin validation", () => {
     }
   });
 
-  it("accepts voice-call webhookSecurity and streaming guard config fields", async () => {
-    const res = validateInSuite({
-      agents: { list: [{ id: "pi" }] },
-      plugins: {
-        enabled: true,
-        load: { paths: [voiceCallSchemaPluginDir] },
-        entries: {
-          "voice-call-schema-fixture": {
-            config: {
-              provider: "twilio",
-              webhookSecurity: {
-                allowedHosts: ["voice.example.com"],
-                trustForwardingHeaders: false,
-                trustedProxyIPs: ["127.0.0.1"],
-              },
-              streaming: {
-                enabled: true,
-                preStartTimeoutMs: 5000,
-                maxPendingConnections: 16,
-                maxPendingConnectionsPerIp: 4,
-                maxConnections: 64,
-              },
-              staleCallReaperSeconds: 180,
-            },
-          },
-        },
-      },
-    });
-    expect(res.ok).toBe(true);
-  });
-
-  it("accepts voice-call OpenAI TTS speed, instructions, and baseUrl config fields", async () => {
-    const res = validateInSuite({
-      agents: { list: [{ id: "pi" }] },
-      plugins: {
-        enabled: true,
-        load: { paths: [voiceCallSchemaPluginDir] },
-        entries: {
-          "voice-call-schema-fixture": {
-            config: {
-              tts: {
-                providers: {
-                  openai: {
-                    baseUrl: "http://localhost:8880/v1",
-                    voice: "alloy",
-                    speed: 1.5,
-                    instructions: "Speak in a cheerful tone",
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-    expect(res.ok).toBe(true);
-  });
-
-  it("rejects out-of-range voice-call OpenAI TTS speed values", async () => {
-    const res = validateInSuite({
-      agents: { list: [{ id: "pi" }] },
-      plugins: {
-        enabled: true,
-        load: { paths: [voiceCallSchemaPluginDir] },
-        entries: {
-          "voice-call-schema-fixture": {
-            config: {
-              tts: {
-                providers: {
-                  openai: {
-                    speed: 10,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(
-        res.issues.some(
-          (issue) =>
-            issue.path ===
-            "plugins.entries.voice-call-schema-fixture.config.tts.providers.openai.speed",
-        ),
-      ).toBe(true);
-    }
-  });
-
-  it("rejects out-of-range voice-call ElevenLabs voice settings", async () => {
-    const res = validateInSuite({
-      agents: { list: [{ id: "pi" }] },
-      plugins: {
-        enabled: true,
-        load: { paths: [voiceCallSchemaPluginDir] },
-        entries: {
-          "voice-call-schema-fixture": {
-            config: {
-              tts: {
-                providers: {
-                  elevenlabs: {
-                    voiceSettings: {
-                      stability: 5,
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(
-        res.issues.some(
-          (issue) =>
-            issue.path ===
-            "plugins.entries.voice-call-schema-fixture.config.tts.providers.elevenlabs.voiceSettings.stability",
-        ),
-      ).toBe(true);
-    }
-  });
-
-  it("accepts known plugin ids and valid channel/heartbeat enums", async () => {
+  it("accepts known plugin ids and valid heartbeat enums", async () => {
     const res = validateInSuite({
       agents: {
         defaults: { heartbeat: { target: "last", directPolicy: "block" } },
         list: [{ id: "pi", heartbeat: { directPolicy: "allow" } }],
-      },
-      channels: {
-        modelByChannel: {
-          openai: {
-            weixin: "openai/gpt-5.2",
-          },
-        },
       },
       plugins: { enabled: false, entries: { qqbot: { enabled: true } } },
     });
     expect(res.ok).toBe(true);
   });
 
-  it("accepts plugin heartbeat targets", async () => {
-    const res = validateInSuite({
-      agents: { defaults: { heartbeat: { target: "weixin" } }, list: [{ id: "pi" }] },
-      plugins: { enabled: false, load: { paths: [weixinPluginDir] } },
-    });
-    expect(res.ok).toBe(true);
-  });
-
-  it("rejects unknown heartbeat targets", async () => {
+  it("accepts custom heartbeat targets", async () => {
     const res = validateInSuite({
       agents: {
         defaults: { heartbeat: { target: "not-a-channel" } },
         list: [{ id: "pi" }],
       },
     });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues).toContainEqual({
-        path: "agents.defaults.heartbeat.target",
-        message: "unknown heartbeat target: not-a-channel",
-      });
-    }
+    expect(res.ok).toBe(true);
   });
 
   it("rejects invalid heartbeat directPolicy values", async () => {

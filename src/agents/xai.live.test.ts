@@ -6,7 +6,7 @@ import {
   extractNonEmptyAssistantText,
   isLiveTestEnabled,
 } from "./live-test-helpers.js";
-import { applyExtraParamsToAgent } from "./pi-embedded-runner.js";
+import { applyExtraParamsToAgent } from "./runtime-support.js";
 import { createWebSearchTool } from "./tools/web-search.js";
 
 const XAI_KEY = process.env.XAI_API_KEY ?? "";

@@ -1,5 +1,4 @@
 use std::env;
-use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
@@ -51,7 +50,6 @@ pub struct AgentBrowserLaunch {
 #[derive(Clone, Debug)]
 struct AgentBrowserOptions {
     bin_path: PathBuf,
-    node_bin_path: Option<PathBuf>,
     session_name: String,
     profile: Option<String>,
     executable_path: Option<String>,
@@ -123,7 +121,7 @@ fn browser_bin_for_runtimes_root(runtimes_root: &Path) -> PathBuf {
 fn managed_agent_browser_bin(input: &Value) -> PathBuf {
     if let Some(root) = plugin_config_string(input, "runtimesRoot").map(PathBuf::from) {
         let candidate = browser_bin_for_runtimes_root(&root);
-        if candidate.exists() || root.join("node-v24").exists() {
+        if candidate.exists() {
             return candidate;
         }
     }
@@ -135,31 +133,11 @@ fn managed_agent_browser_bin(input: &Value) -> PathBuf {
     }
     if let Some(root) = runtime_root(input).map(|root| root.join("runtimes")) {
         let candidate = browser_bin_for_runtimes_root(&root);
-        if candidate.exists() || root.join("node-v24").exists() {
+        if candidate.exists() {
             return candidate;
         }
     }
     browser_bin_for_runtimes_root(&state_dir().join("runtimes"))
-}
-
-fn embedded_node_bin(input: &Value) -> Option<PathBuf> {
-    if let Some(path) = plugin_config_string(input, "nodeBinPath").map(PathBuf::from) {
-        return Some(path);
-    }
-    if let Some(path) = env::var_os("CRAWCLAW_DESKTOP_NODE24_BIN")
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
-    {
-        return Some(path);
-    }
-    let root = plugin_config_string(input, "runtimesRoot")
-        .map(PathBuf::from)
-        .or_else(|| runtime_root(input).map(|root| root.join("runtimes")))?;
-    let candidate =
-        root.join("node-v24")
-            .join("bin")
-            .join(if cfg!(windows) { "node.exe" } else { "node" });
-    candidate.exists().then_some(candidate)
 }
 
 fn string_field<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a str> {
@@ -276,22 +254,6 @@ fn build_agent_browser_launch(
     }
 }
 
-fn path_with_embedded_node(node_bin_path: &Path) -> Option<OsString> {
-    let node_dir = node_bin_path.parent()?;
-    let current = env::var_os("PATH").unwrap_or_default();
-    env::join_paths(std::iter::once(node_dir.to_path_buf()).chain(env::split_paths(&current))).ok()
-}
-
-fn apply_agent_browser_env(command: &mut Command, opts: &AgentBrowserOptions) {
-    let Some(node_bin_path) = opts.node_bin_path.as_ref() else {
-        return;
-    };
-    command.env("CRAWCLAW_DESKTOP_NODE24_BIN", node_bin_path);
-    if let Some(path) = path_with_embedded_node(node_bin_path) {
-        command.env("PATH", path);
-    }
-}
-
 fn normalize_agent_browser_error(error: &Value) -> String {
     error
         .as_str()
@@ -335,14 +297,13 @@ async fn run_agent_browser(
 ) -> NativeResult<Value> {
     if !opts.bin_path.exists() {
         return Err(runtime_error(format!(
-            "Managed agent-browser runtime is not installed. Expected binary at {}. Run `crawclaw runtimes install`.",
+            "agent-browser runtime is not installed. Expected binary at {}. Configure an explicit native browser runtime.",
             opts.bin_path.display()
         )));
     }
     let launch = build_agent_browser_launch(opts, &command_args);
     let mut command = Command::new(&launch.program);
     command.args(&launch.args);
-    apply_agent_browser_env(&mut command, opts);
     let output = timeout(Duration::from_millis(opts.timeout_ms), command.output())
         .await
         .map_err(|_| {
@@ -605,7 +566,6 @@ fn resolve_options(
         .unwrap_or(DEFAULT_AGENT_BROWSER_TIMEOUT_MS);
     Ok(AgentBrowserOptions {
         bin_path: bin_path(input),
-        node_bin_path: embedded_node_bin(input),
         session_name: resolve_session_name(agent_session_key, profile.as_deref()),
         profile,
         executable_path: config.executable_path,
@@ -876,13 +836,12 @@ pub async fn start_browser_service(input: Value) -> NativeResult<Value> {
     let bin_path = bin_path(&input);
     if !bin_path.exists() {
         return Err(runtime_error(format!(
-            "Managed agent-browser runtime is not installed. Expected binary at {}. Run `crawclaw runtimes install`.",
+            "agent-browser runtime is not installed. Expected binary at {}. Configure an explicit native browser runtime.",
             bin_path.display()
         )));
     }
     let opts = AgentBrowserOptions {
         bin_path,
-        node_bin_path: embedded_node_bin(&input),
         session_name: "service:browser".to_string(),
         profile: None,
         executable_path: None,
@@ -892,7 +851,6 @@ pub async fn start_browser_service(input: Value) -> NativeResult<Value> {
     };
     let mut command = Command::new(&opts.bin_path);
     command.arg("--version");
-    apply_agent_browser_env(&mut command, &opts);
     let output = timeout(Duration::from_millis(VERSION_TIMEOUT_MS), command.output())
         .await
         .map_err(|_| {
@@ -932,7 +890,6 @@ mod tests {
         let launch = build_agent_browser_launch(
             &AgentBrowserOptions {
                 bin_path: PathBuf::from("/tmp/agent-browser"),
-                node_bin_path: None,
                 session_name: "host:agent:main:user".to_string(),
                 profile: Some("user".to_string()),
                 executable_path: Some("/Applications/Chrome".to_string()),
@@ -969,32 +926,35 @@ mod tests {
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&root);
-        std::fs::create_dir_all(root.join("runtimes").join("node-v24")).expect("node-v24 dir");
         let runtimes_root = root.join("runtimes");
-        let node_bin = runtimes_root.join("node-v24").join("bin").join("node");
-        let input = json!({
-            "pluginConfig": {
-                "runtimeRoot": root.to_string_lossy(),
-                "runtimesRoot": runtimes_root.to_string_lossy(),
-                "nodeBinPath": node_bin.to_string_lossy()
-            }
-        });
-
-        let expected_bin = if cfg!(windows) {
-            root.join("runtimes")
+        let agent_browser_bin = if cfg!(windows) {
+            runtimes_root
                 .join("browser")
                 .join("node_modules")
                 .join(".bin")
                 .join("agent-browser.cmd")
         } else {
-            root.join("runtimes")
+            runtimes_root
                 .join("browser")
                 .join("node_modules")
                 .join(".bin")
                 .join("agent-browser")
         };
-        assert_eq!(bin_path(&input), expected_bin);
-        assert_eq!(embedded_node_bin(&input), Some(node_bin));
+        std::fs::create_dir_all(
+            agent_browser_bin
+                .parent()
+                .expect("agent-browser bin parent"),
+        )
+        .expect("agent-browser bin dir");
+        std::fs::write(&agent_browser_bin, "").expect("agent-browser bin");
+        let input = json!({
+            "pluginConfig": {
+                "runtimeRoot": root.to_string_lossy(),
+                "runtimesRoot": runtimes_root.to_string_lossy()
+            }
+        });
+
+        assert_eq!(bin_path(&input), agent_browser_bin);
         let _ = std::fs::remove_dir_all(root);
     }
 

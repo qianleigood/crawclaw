@@ -223,18 +223,10 @@ CRAWCLAW_DIAGNOSTICS=feishu.http,feishu.payload
 
 ### 导出到 OpenTelemetry
 
-诊断可以通过 `diagnostics-otel` 插件（OTLP/HTTP）导出。这适用于任何接受 OTLP/HTTP 的 OpenTelemetry 收集器/后端。
+诊断可以通过内建 OpenTelemetry（OTLP/HTTP）导出。这适用于任何接受 OTLP/HTTP 的 OpenTelemetry 收集器/后端。
 
 ```json
 {
-  "plugins": {
-    "allow": ["diagnostics-otel"],
-    "entries": {
-      "diagnostics-otel": {
-        "enabled": true
-      }
-    }
-  },
   "diagnostics": {
     "enabled": true,
     "otel": {
@@ -254,7 +246,6 @@ CRAWCLAW_DIAGNOSTICS=feishu.http,feishu.payload
 
 注意：
 
-- 你也可以使用 `crawclaw plugins enable diagnostics-otel` 启用插件。
 - `protocol` 目前仅支持 `http/protobuf`。`grpc` 被忽略。
 - 指标包括令牌使用、成本、上下文大小、运行持续时间和消息流计数器/直方图（webhooks、队列、会话状态、队列深度/等待）。
 - 追踪/指标可以通过 `traces` / `metrics` 切换（默认：开启）。启用时，追踪包括模型使用 span 加上 webhook/消息处理 span。

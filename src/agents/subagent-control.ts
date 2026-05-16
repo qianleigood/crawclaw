@@ -22,7 +22,7 @@ import {
   resolveTotalTokens,
   truncateLine,
 } from "../shared/subagents-format.js";
-import { INTERNAL_MESSAGE_CHANNEL } from "../utils/message-channel.js";
+import { INTERNAL_MESSAGE_CHANNEL } from "../utils/gateway-client-surface.js";
 import { AGENT_LANE_SUBAGENT } from "./lanes.js";
 import { resolveStoredSubagentCapabilities } from "./subagent-capabilities.js";
 import {
@@ -799,7 +799,7 @@ export async function steerControlledSubagentRun(params: {
   let runId: string = idempotencyKey;
   try {
     const response = await subagentControlDeps.callGateway<{ runId: string }>({
-      method: "agent",
+      method: "agent.command.run",
       params: {
         message: params.message,
         sessionKey: params.entry.childSessionKey,
@@ -905,7 +905,7 @@ export async function sendControlledSubagentMessage(params: {
     );
 
     const response = await subagentControlDeps.callGateway<{ runId: string }>({
-      method: "agent",
+      method: "agent.command.run",
       params: {
         message: params.message,
         sessionKey: targetSessionKey,

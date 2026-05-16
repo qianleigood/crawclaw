@@ -1,8 +1,6 @@
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import { resolvePathFromInput } from "../agents/path-policy.js";
-import { resolveGroupToolPolicy } from "../agents/pi-tools.policy.js";
 import { resolveEffectiveToolFsRootExpansionAllowed } from "../agents/tool-fs-policy.js";
-import { isToolAllowedByPolicies } from "../agents/tool-policy-match.js";
 import { resolveWorkspaceRoot } from "../agents/workspace-dir.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { readLocalFileSafely } from "../infra/fs-safe.js";
@@ -25,11 +23,6 @@ type OutboundHostMediaPolicyContext = {
   requesterSenderE164?: string | null;
 };
 
-function normalizeOptionalString(value?: string | null): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
 function isAgentScopedHostMediaReadAllowed(
   params: {
     cfg: CrawClawConfig;
@@ -42,22 +35,6 @@ function isAgentScopedHostMediaReadAllowed(
       agentId: params.agentId,
     })
   ) {
-    return false;
-  }
-  const groupPolicy = resolveGroupToolPolicy({
-    config: params.cfg,
-    sessionKey: params.sessionKey,
-    messageProvider: params.messageProvider,
-    groupId: params.groupId,
-    groupChannel: params.groupChannel,
-    groupSpace: params.groupSpace,
-    accountId: params.accountId,
-    senderId: normalizeOptionalString(params.requesterSenderId),
-    senderName: normalizeOptionalString(params.requesterSenderName),
-    senderUsername: normalizeOptionalString(params.requesterSenderUsername),
-    senderE164: normalizeOptionalString(params.requesterSenderE164),
-  });
-  if (groupPolicy && !isToolAllowedByPolicies("read", [groupPolicy])) {
     return false;
   }
   return true;

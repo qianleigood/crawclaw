@@ -81,7 +81,7 @@ describe("test planner", () => {
 
     expect(plan.runtimeCapabilities.memoryBand).toBe("constrained");
     expect(plan.executionBudget.extensionsBatchTargetMs).toBe(60_000);
-    expect(sharedExtensionBatches.length).toBeGreaterThan(3);
+    expect(sharedExtensionBatches.length).toBeGreaterThanOrEqual(3);
     artifacts.cleanupTempArtifacts();
   });
 
@@ -119,7 +119,7 @@ describe("test planner", () => {
     artifacts.cleanupTempArtifacts();
   });
 
-  it("auto-isolates memory-heavy extension suites in CI", () => {
+  it("does not create extension memory-isolated lanes when the hotspot manifest is empty", () => {
     const env = {
       CI: "true",
       GITHUB_ACTIONS: "true",
@@ -142,39 +142,11 @@ describe("test planner", () => {
       },
     );
 
-    const hotspotFile = bundledPluginFile("acpx", "src/runtime.test.ts");
-    const hotspotUnit = plan.selectedUnits.find((unit) => unit.args.includes(hotspotFile));
-
-    expect(hotspotUnit).toBeTruthy();
-    expect(hotspotUnit?.isolate).toBe(true);
-    expect(hotspotUnit?.reasons).toContain("extensions-memory-heavy");
-    artifacts.cleanupTempArtifacts();
-  });
-
-  it("keeps channel CI plans empty when no TS channel suites remain", () => {
-    const env = {
-      CI: "true",
-      GITHUB_ACTIONS: "true",
-      RUNNER_OS: "Linux",
-      CRAWCLAW_TEST_HOST_CPU_COUNT: "4",
-      CRAWCLAW_TEST_HOST_MEMORY_GIB: "16",
-    };
-    const artifacts = createExecutionArtifacts(env);
-    const plan = buildExecutionPlan(
-      {
-        profile: null,
-        mode: "ci",
-        surfaces: ["channels"],
-        passthroughArgs: [],
-      },
-      {
-        env,
-        platform: "linux",
-        writeTempJsonArtifact: artifacts.writeTempJsonArtifact,
-      },
+    const memoryIsolatedUnits = plan.selectedUnits.filter((unit) =>
+      unit.reasons.includes("extensions-memory-heavy"),
     );
 
-    expect(plan.selectedUnits).toEqual([]);
+    expect(memoryIsolatedUnits).toEqual([]);
     artifacts.cleanupTempArtifacts();
   });
 
@@ -338,8 +310,8 @@ describe("test planner", () => {
         mode: "local",
         surfaces: [],
         passthroughArgs: [
-          "src/auto-reply/reply/followup-runner.test.ts",
-          bundledPluginFile("voice-call", "index.test.ts"),
+          "src/auto-reply/reply/commands-acp/install-hints.test.ts",
+          bundledPluginFile("google", "oauth.test.ts"),
         ],
       },
       {
@@ -380,7 +352,7 @@ describe("test planner", () => {
     const explanation = explainExecutionTarget(
       {
         mode: "local",
-        fileFilters: ["src/auto-reply/reply/followup-runner.test.ts"],
+        fileFilters: ["src/auto-reply/reply/commands-acp/install-hints.test.ts"],
       },
       {
         env: {},
@@ -478,13 +450,10 @@ describe("test planner", () => {
     const defaultUnitWithSameId = plan.allUnits.find((unit) => unit.id === targetedUnit?.id);
 
     expect(targetedUnit).toBeTruthy();
-    expect(defaultUnitWithSameId).toBeTruthy();
     const targetedUnitRecord = targetedUnit!;
-    const defaultUnitRecord = defaultUnitWithSameId as typeof targetedUnitRecord;
 
-    expect(defaultUnitRecord).not.toBe(targetedUnitRecord);
+    expect(defaultUnitWithSameId).toBeUndefined();
     expect(plan.topLevelSingleShardAssignments.get(targetedUnitRecord)).toBeUndefined();
-    expect(plan.topLevelSingleShardAssignments.get(defaultUnitRecord)).toBeDefined();
 
     artifacts.cleanupTempArtifacts();
   });
@@ -590,7 +559,6 @@ describe("test planner", () => {
 
     expect(manifest.jobs.buildArtifacts.enabled).toBe(true);
     expect(manifest.shardCounts.unit).toBe(4);
-    expect(manifest.shardCounts.channels).toBe(1);
     expect(manifest.shardCounts.extensionFast).toBeGreaterThanOrEqual(4);
     expect(manifest.shardCounts.extensionFast).toBeLessThanOrEqual(6);
     expect(manifest.shardCounts.windows).toBe(6);

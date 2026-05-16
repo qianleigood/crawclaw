@@ -24,12 +24,6 @@ const state = vi.hoisted(() => ({
   entry: undefined as SessionEntry | undefined,
 }));
 
-const hookRunnerMocks = vi.hoisted(() => ({
-  hasHooks: vi.fn<(name: string) => boolean>(() => false),
-  runBeforeReset: vi.fn(async () => {}),
-  runSubagentEnded: vi.fn(async () => {}),
-}));
-
 const resetServiceMocks = vi.hoisted(() => ({
   archiveSessionTranscripts: vi.fn(() => [] as string[]),
   readSessionMessages: vi.fn(() => [] as unknown[]),
@@ -37,11 +31,7 @@ const resetServiceMocks = vi.hoisted(() => ({
   clearSessionQueues: vi.fn(() => {}),
   stopSubagentsForRequester: vi.fn(() => ({ stopped: 0 })),
   clearBootstrapSnapshot: vi.fn(() => {}),
-  stopSharedDurableExtractionWorkerForSession: vi.fn(async () => {}),
   closeTrackedBrowserTabsForSessions: vi.fn(async () => undefined),
-  abortEmbeddedPiRun: vi.fn(() => false),
-  waitForEmbeddedPiRunEnd: vi.fn(async () => true),
-  unbindBySessionKey: vi.fn(() => {}),
   cancelSession: vi.fn(async () => {}),
   closeSession: vi.fn(async () => {}),
   snapshotSessionOrigin: vi.fn((entry?: SessionEntry) =>
@@ -69,22 +59,13 @@ describe("performGatewaySessionReset", () => {
     state.entry = undefined;
     state.store = {};
 
-    hookRunnerMocks.hasHooks.mockReset().mockReturnValue(false);
-    hookRunnerMocks.runBeforeReset.mockReset().mockResolvedValue(undefined);
-    hookRunnerMocks.runSubagentEnded.mockReset().mockResolvedValue(undefined);
     resetServiceMocks.archiveSessionTranscripts.mockReset().mockReturnValue([]);
     resetServiceMocks.readSessionMessages.mockReset().mockReturnValue([]);
     resetServiceMocks.triggerInternalHook.mockReset().mockResolvedValue(undefined);
     resetServiceMocks.clearSessionQueues.mockReset();
     resetServiceMocks.stopSubagentsForRequester.mockReset().mockReturnValue({ stopped: 0 });
     resetServiceMocks.clearBootstrapSnapshot.mockReset();
-    resetServiceMocks.stopSharedDurableExtractionWorkerForSession
-      .mockReset()
-      .mockResolvedValue(undefined);
     resetServiceMocks.closeTrackedBrowserTabsForSessions.mockReset().mockResolvedValue(undefined);
-    resetServiceMocks.abortEmbeddedPiRun.mockReset().mockReturnValue(false);
-    resetServiceMocks.waitForEmbeddedPiRunEnd.mockReset().mockResolvedValue(true);
-    resetServiceMocks.unbindBySessionKey.mockReset();
     resetServiceMocks.cancelSession.mockReset().mockResolvedValue(undefined);
     resetServiceMocks.closeSession.mockReset().mockResolvedValue(undefined);
     resetServiceMocks.snapshotSessionOrigin.mockClear();
@@ -98,6 +79,9 @@ describe("performGatewaySessionReset", () => {
         _storePath: string,
         mutator: (store: Record<string, SessionEntry>) => SessionEntry,
       ) => mutator(state.store),
+    }));
+
+    vi.doMock("../config/sessions/metadata.js", () => ({
       snapshotSessionOrigin: resetServiceMocks.snapshotSessionOrigin,
     }));
 
@@ -117,26 +101,6 @@ describe("performGatewaySessionReset", () => {
       triggerInternalHook: resetServiceMocks.triggerInternalHook,
     }));
 
-    vi.doMock("../plugins/hook-runner-global.js", () => ({
-      getGlobalHookRunner: () => ({
-        hasHooks: hookRunnerMocks.hasHooks,
-        runBeforeReset: hookRunnerMocks.runBeforeReset,
-        runSubagentEnded: hookRunnerMocks.runSubagentEnded,
-      }),
-    }));
-
-    vi.doMock("../plugins/runtime/index.js", () => ({
-      createPluginRuntime: () => ({
-        channel: {
-          qqbot: {
-            threadBindings: {
-              unbindBySessionKey: resetServiceMocks.unbindBySessionKey,
-            },
-          },
-        },
-      }),
-    }));
-
     vi.doMock("../agents/bootstrap-cache.js", () => ({
       clearBootstrapSnapshot: resetServiceMocks.clearBootstrapSnapshot,
     }));
@@ -149,18 +113,8 @@ describe("performGatewaySessionReset", () => {
       clearSessionQueues: resetServiceMocks.clearSessionQueues,
     }));
 
-    vi.doMock("../memory/durable/worker-manager.ts", () => ({
-      stopSharedDurableExtractionWorkerForSession:
-        resetServiceMocks.stopSharedDurableExtractionWorkerForSession,
-    }));
-
     vi.doMock("../plugin-sdk/browser-maintenance.js", () => ({
       closeTrackedBrowserTabsForSessions: resetServiceMocks.closeTrackedBrowserTabsForSessions,
-    }));
-
-    vi.doMock("../agents/pi-embedded.js", () => ({
-      abortEmbeddedPiRun: resetServiceMocks.abortEmbeddedPiRun,
-      waitForEmbeddedPiRunEnd: resetServiceMocks.waitForEmbeddedPiRunEnd,
     }));
 
     vi.doMock("../acp/control-plane/manager.js", () => ({
@@ -296,71 +250,6 @@ describe("performGatewaySessionReset", () => {
       type: "session",
       id: result.entry.sessionId,
     });
-  });
-
-  it("fires before_reset hooks and unbinds the old session when resetting an existing entry", async () => {
-    state.entry = {
-      sessionId: "old-session-id",
-      sessionFile: path.join(state.sessionDir, "existing.jsonl"),
-      updatedAt: Date.now(),
-      acp: undefined,
-    } as SessionEntry;
-    state.store[state.target.canonicalKey] = { ...state.entry };
-    hookRunnerMocks.hasHooks.mockImplementation((name) => name === "before_reset");
-    resetServiceMocks.readSessionMessages.mockReturnValue([{ role: "user", content: "before" }]);
-
-    const result = await performGatewaySessionReset({
-      key: state.target.canonicalKey,
-      reason: "new",
-      commandSource: "gateway:sessions.reset",
-    });
-
-    expect(result.ok).toBe(true);
-    await vi.waitFor(() => expect(hookRunnerMocks.runBeforeReset).toHaveBeenCalledTimes(1));
-    expect(hookRunnerMocks.runBeforeReset).toHaveBeenCalledWith(
-      expect.objectContaining({
-        sessionFile: state.entry.sessionFile,
-        messages: [{ role: "user", content: "before" }],
-        reason: "new",
-      }),
-      expect.objectContaining({
-        agentId: "main",
-        sessionKey: state.target.canonicalKey,
-        sessionId: "old-session-id",
-        workspaceDir: "/tmp/crawclaw-agent-workspace",
-      }),
-    );
-    expect(resetServiceMocks.unbindBySessionKey).toHaveBeenCalledWith(
-      expect.objectContaining({
-        targetSessionKey: state.target.canonicalKey,
-        reason: "session-reset",
-      }),
-    );
-  });
-
-  it("returns unavailable when the active embedded run does not stop during cleanup", async () => {
-    resetServiceMocks.waitForEmbeddedPiRunEnd.mockResolvedValue(false);
-
-    const result = await cleanupSessionBeforeMutation({
-      cfg: state.cfg,
-      key: state.target.canonicalKey,
-      target: state.target,
-      entry: {
-        sessionId: "active-session",
-        updatedAt: Date.now(),
-      } as SessionEntry,
-      reason: "session-reset",
-    });
-
-    expect(result).toMatchObject({
-      code: "UNAVAILABLE",
-      message: expect.stringContaining("still active"),
-    });
-    expect(resetServiceMocks.abortEmbeddedPiRun).toHaveBeenCalledWith("active-session");
-    expect(resetServiceMocks.clearSessionQueues).toHaveBeenCalled();
-    expect(resetServiceMocks.clearBootstrapSnapshot).toHaveBeenCalledWith(
-      state.target.canonicalKey,
-    );
   });
 
   it("cancels and closes ACP runtimes during cleanup when the session carries ACP metadata", async () => {

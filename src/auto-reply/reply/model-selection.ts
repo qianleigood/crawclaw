@@ -14,7 +14,6 @@ import {
   resolveReasoningDefault,
   resolveThinkingDefault,
 } from "../../agents/model-selection.js";
-import { resolveSessionParentSessionKey } from "../../channels/plugins/session-conversation.js";
 import type { CrawClawConfig } from "../../config/config.js";
 import type { SessionEntry } from "../../config/sessions/types.js";
 import type { ThinkLevel } from "./directives.js";
@@ -138,7 +137,10 @@ function resolveParentSessionKeyCandidate(params: {
   if (explicit && explicit !== params.sessionKey) {
     return explicit;
   }
-  const derived = resolveSessionParentSessionKey(params.sessionKey);
+  const sessionKey = params.sessionKey?.trim();
+  const marker = ":thread:";
+  const markerIndex = sessionKey?.indexOf(marker) ?? -1;
+  const derived = markerIndex > 0 ? sessionKey?.slice(0, markerIndex) : undefined;
   if (derived && derived !== params.sessionKey) {
     return derived;
   }

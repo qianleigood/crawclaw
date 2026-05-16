@@ -16,7 +16,7 @@ import {
   type PluginStatusReport,
 } from "../../plugins/status.js";
 import { setPluginEnabledInConfig } from "../../plugins/toggle-config.js";
-import { isInternalMessageChannel } from "../../utils/message-channel.js";
+import { isInternalMessageChannel } from "../../utils/gateway-client-surface.js";
 import {
   rejectNonOwnerCommand,
   rejectUnauthorizedCommand,

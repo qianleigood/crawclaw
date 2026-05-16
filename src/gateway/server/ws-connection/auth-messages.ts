@@ -2,10 +2,10 @@ import {
   isGatewayCliClient,
   isOperatorUiClient,
   isWebchatClient,
-} from "../../../utils/message-channel.js";
+} from "../../../utils/gateway-client-surface.js";
 import type { ResolvedGatewayAuth } from "../../auth.js";
 
-export type AuthProvidedKind = "token" | "bootstrap-token" | "device-token" | "password" | "none";
+export type AuthProvidedKind = "token" | "password" | "none";
 
 export function formatGatewayAuthFailureMessage(params: {
   authMode: ResolvedGatewayAuth["mode"];
@@ -41,8 +41,6 @@ export function formatGatewayAuthFailureMessage(params: {
       return `unauthorized: gateway password mismatch (${passwordHint})`;
     case "password_missing_config":
       return "unauthorized: gateway password not configured on gateway (set gateway.auth.password)";
-    case "bootstrap_token_invalid":
-      return "unauthorized: bootstrap token invalid or expired (scan a fresh setup code)";
     case "tailscale_user_missing":
       return "unauthorized: tailscale identity missing (use Tailscale Serve auth or gateway token/password)";
     case "tailscale_proxy_missing":
@@ -53,20 +51,12 @@ export function formatGatewayAuthFailureMessage(params: {
       return "unauthorized: tailscale identity mismatch (use Tailscale Serve auth or gateway token/password)";
     case "rate_limited":
       return "unauthorized: too many failed authentication attempts (retry later)";
-    case "device_token_mismatch":
-      return "unauthorized: device token mismatch (rotate/reissue device token)";
     default:
       break;
   }
 
   if (authMode === "token" && authProvided === "none") {
     return `unauthorized: gateway token missing (${tokenHint})`;
-  }
-  if (authMode === "token" && authProvided === "device-token") {
-    return "unauthorized: device token rejected (pair/repair this device, or provide gateway token)";
-  }
-  if (authProvided === "bootstrap-token") {
-    return "unauthorized: bootstrap token invalid or expired (scan a fresh setup code)";
   }
   if (authMode === "password" && authProvided === "none") {
     return `unauthorized: gateway password missing (${passwordHint})`;

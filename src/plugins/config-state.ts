@@ -1,4 +1,3 @@
-import { normalizeChatChannelId } from "../channels/registry.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
   BUNDLED_LEGACY_PLUGIN_ID_ALIASES,
@@ -29,9 +28,6 @@ export type NormalizedPluginsConfig = {
     string,
     {
       enabled?: boolean;
-      hooks?: {
-        allowPromptInjection?: boolean;
-      };
       subagent?: {
         allowModelOverride?: boolean;
         allowedModels?: string[];
@@ -89,20 +85,6 @@ const normalizePluginEntries = (entries: unknown): NormalizedPluginsConfig["entr
       continue;
     }
     const entry = value as Record<string, unknown>;
-    const hooksRaw = entry.hooks;
-    const hooks =
-      hooksRaw && typeof hooksRaw === "object" && !Array.isArray(hooksRaw)
-        ? {
-            allowPromptInjection: (hooksRaw as { allowPromptInjection?: unknown })
-              .allowPromptInjection,
-          }
-        : undefined;
-    const normalizedHooks =
-      hooks && typeof hooks.allowPromptInjection === "boolean"
-        ? {
-            allowPromptInjection: hooks.allowPromptInjection,
-          }
-        : undefined;
     const subagentRaw = entry.subagent;
     const subagent =
       subagentRaw && typeof subagentRaw === "object" && !Array.isArray(subagentRaw)
@@ -138,7 +120,6 @@ const normalizePluginEntries = (entries: unknown): NormalizedPluginsConfig["entr
       ...normalized[normalizedKey],
       enabled:
         typeof entry.enabled === "boolean" ? entry.enabled : normalized[normalizedKey]?.enabled,
-      hooks: normalizedHooks ?? normalized[normalizedKey]?.hooks,
       subagent: normalizedSubagent ?? normalized[normalizedKey]?.subagent,
       config: "config" in entry ? entry.config : normalized[normalizedKey]?.config,
     };
@@ -251,12 +232,6 @@ function resolveExplicitPluginSelection(params: {
   if (params.config.entries[params.id]?.enabled === true) {
     return { explicitlyEnabled: true, reason: "enabled in config" };
   }
-  if (
-    params.origin === "bundled" &&
-    isBundledChannelEnabledByChannelConfig(params.rootConfig, params.id)
-  ) {
-    return { explicitlyEnabled: true, reason: "channel enabled in config" };
-  }
   if (params.config.slots.memory === params.id) {
     return { explicitlyEnabled: true, reason: "selected memory slot" };
   }
@@ -366,18 +341,6 @@ export function resolvePluginActivationState(params: {
       reason: "enabled by effective config",
     };
   }
-  if (
-    params.origin === "bundled" &&
-    isBundledChannelEnabledByChannelConfig(params.rootConfig, params.id)
-  ) {
-    return {
-      enabled: true,
-      activated: true,
-      explicitlyEnabled: false,
-      source: "auto",
-      reason: "channel configured",
-    };
-  }
   if (params.origin === "bundled" && params.enabledByDefault === true) {
     return {
       enabled: true,
@@ -417,25 +380,6 @@ export function resolveEnableState(
     enabledByDefault,
   });
   return state.enabled ? { enabled: true } : { enabled: false, reason: state.reason };
-}
-
-export function isBundledChannelEnabledByChannelConfig(
-  cfg: CrawClawConfig | undefined,
-  pluginId: string,
-): boolean {
-  if (!cfg) {
-    return false;
-  }
-  const channelId = normalizeChatChannelId(pluginId);
-  if (!channelId) {
-    return false;
-  }
-  const channels = cfg.channels as Record<string, unknown> | undefined;
-  const entry = channels?.[channelId];
-  if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
-    return false;
-  }
-  return (entry as Record<string, unknown>).enabled === true;
 }
 
 export function resolveEffectiveEnableState(params: {

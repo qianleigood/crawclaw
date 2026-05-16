@@ -2,7 +2,6 @@ import type { CrawClawConfig } from "../config/config.js";
 import { STATE_DIR } from "../config/paths.js";
 import { createObservationRoot } from "../infra/observation/context.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { getPluginRuntimeStatus } from "./plugin-runtimes.js";
 import type { PluginRegistry } from "./registry.js";
 import type { CrawClawPluginServiceContext, PluginLogger } from "./types.js";
 
@@ -55,12 +54,6 @@ export async function startPluginServices(params: {
 
   for (const entry of params.registry.services) {
     const service = entry.service;
-    const runtimeStatus = getPluginRuntimeStatus(entry.pluginId);
-    if (runtimeStatus && runtimeStatus.state !== "healthy") {
-      log.warn(
-        `plugin runtime not healthy (${entry.pluginId}): ${runtimeStatus.state ?? "unknown"}; service startup will continue and may fall back to bootstrap logic`,
-      );
-    }
     try {
       await service.start(serviceContext);
       running.push({

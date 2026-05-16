@@ -3,7 +3,6 @@ import os from "node:os";
 import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import {
-  assertWebChannel,
   ensureDir,
   normalizeE164,
   resolveConfigDir,
@@ -43,16 +42,6 @@ describe("sleep", () => {
     vi.advanceTimersByTime(1000);
     await expect(promise).resolves.toBeUndefined();
     vi.useRealTimers();
-  });
-});
-
-describe("assertWebChannel", () => {
-  it("accepts valid channel", () => {
-    expect(() => assertWebChannel("web")).not.toThrow();
-  });
-
-  it("throws for invalid channel", () => {
-    expect(() => assertWebChannel("bad" as string)).toThrow();
   });
 });
 

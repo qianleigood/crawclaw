@@ -1,10 +1,13 @@
 import type { MainSessionWakeEventPayload } from "../infra/main-session-wake-events.js";
-import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-channels.js";
+import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/update-track.js";
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import { createCliTranslator, getActiveCliLocale } from "../terminal/i18n/index.js";
 import { withProgress } from "../terminal/progress.js";
-import type { HealthSummary } from "./health.js";
 import { getDaemonStatusSummary } from "./status.daemon.js";
+
+type HealthSummary = {
+  durationMs?: number;
+};
 
 let providerUsagePromise: Promise<typeof import("../infra/provider-usage.js")> | undefined;
 let securityAuditModulePromise: Promise<typeof import("../security/audit.runtime.js")> | undefined;
@@ -53,33 +56,6 @@ function loadStatusCommandTextRuntime() {
   return statusCommandTextRuntimePromise;
 }
 
-function resolvePairingRecoveryContext(params: {
-  error?: string | null;
-  closeReason?: string | null;
-}): { requestId: string | null } | null {
-  const sanitizeRequestId = (value: string): string | null => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return null;
-    }
-    // Keep CLI guidance injection-safe: allow only compact id characters.
-    if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(trimmed)) {
-      return null;
-    }
-    return trimmed;
-  };
-  const source = [params.error, params.closeReason]
-    .filter((part) => typeof part === "string" && part.trim().length > 0)
-    .join(" ");
-  if (!source || !/pairing required/i.test(source)) {
-    return null;
-  }
-  const requestIdMatch = source.match(/requestId:\s*([^\s)]+)/i);
-  const requestId =
-    requestIdMatch && requestIdMatch[1] ? sanitizeRequestId(requestIdMatch[1]) : null;
-  return { requestId: requestId || null };
-}
-
 export async function statusCommand(
   opts: {
     json?: boolean;
@@ -112,7 +88,7 @@ export async function statusCommand(
         sourceConfig: scan.sourceConfig,
         deep: false,
         includeFilesystem: true,
-        includeChannelSecurity: true,
+        includeChannelSecurity: false,
       }),
     );
   const securityAudit = opts.json
@@ -140,12 +116,9 @@ export async function statusCommand(
     gatewayProbe,
     gatewayReachable,
     gatewaySelf,
-    channelIssues,
     agentStatus,
-    channels,
     summary,
     secretDiagnostics,
-    feishuCli,
     pluginCompatibility,
   } = scan;
 
@@ -210,7 +183,6 @@ export async function statusCommand(
       update,
       updateChannel: channelInfo.channel,
       updateChannelSource: channelInfo.source,
-      feishuCli,
       gateway: {
         mode: gatewayMode,
         url: gatewayConnection.url,
@@ -241,7 +213,6 @@ export async function statusCommand(
     formatDuration,
     formatGatewayAuthUsed,
     formatGitInstallLabel,
-    formatHealthChannelLines,
     formatKTokens,
     formatPluginCompatibilityNotice,
     formatTimeAgo,
@@ -249,7 +220,6 @@ export async function statusCommand(
     formatUpdateAvailableHint,
     formatUpdateOneLiner,
     getTerminalTableWidth,
-    groupChannelIssuesByChannel,
     info,
     renderTable,
     resolveUpdateAvailability,
@@ -310,11 +280,6 @@ export async function statusCommand(
     const suffix = self ? ` · ${self}` : "";
     return `${gatewayMode} · ${target} · ${reach}${auth}${suffix}`;
   })();
-  const pairingRecovery = resolvePairingRecoveryContext({
-    error: gatewayProbe?.error ?? null,
-    closeReason: gatewayProbe?.close?.reason ?? null,
-  });
-
   const agentsValue = (() => {
     const pending =
       agentStatus.bootstrapPendingCount > 0
@@ -478,20 +443,6 @@ export async function statusCommand(
     }
   }
 
-  if (pairingRecovery) {
-    runtime.log("");
-    runtime.log(theme.warn("Gateway pairing approval required."));
-    if (pairingRecovery.requestId) {
-      runtime.log(
-        theme.muted(
-          `Recovery: ${formatCliCommand(`crawclaw devices approve ${pairingRecovery.requestId}`)}`,
-        ),
-      );
-    }
-    runtime.log(theme.muted(`Fallback: ${formatCliCommand("crawclaw devices approve --latest")}`));
-    runtime.log(theme.muted(`Inspect: ${formatCliCommand("crawclaw devices list")}`));
-  }
-
   runtime.log("");
   runtime.log(theme.heading("Security audit"));
   const fmtSummary = (value: { critical: number; warn: number; info: number }) => {
@@ -539,42 +490,6 @@ export async function statusCommand(
   runtime.log(theme.muted(`Deep probe: ${formatCliCommand("crawclaw security audit --deep")}`));
 
   runtime.log("");
-  runtime.log(theme.heading("Channels"));
-  const channelIssuesByChannel = groupChannelIssuesByChannel(channelIssues);
-  runtime.log(
-    renderTable({
-      width: tableWidth,
-      columns: [
-        { key: "Channel", header: "Channel", minWidth: 10 },
-        { key: "Enabled", header: "Enabled", minWidth: 7 },
-        { key: "State", header: "State", minWidth: 8 },
-        { key: "Detail", header: "Detail", flex: true, minWidth: 24 },
-      ],
-      rows: channels.rows.map((row) => {
-        const issues = channelIssuesByChannel.get(row.id) ?? [];
-        const effectiveState = row.state === "off" ? "off" : issues.length > 0 ? "warn" : row.state;
-        const issueSuffix =
-          issues.length > 0
-            ? ` · ${warn(`gateway: ${shortenText(issues[0]?.message ?? "issue", 84)}`)}`
-            : "";
-        return {
-          Channel: row.label,
-          Enabled: row.enabled ? ok("ON") : muted("OFF"),
-          State:
-            effectiveState === "ok"
-              ? ok("OK")
-              : effectiveState === "warn"
-                ? warn("WARN")
-                : effectiveState === "off"
-                  ? muted("OFF")
-                  : theme.accentDim("SETUP"),
-          Detail: `${row.detail}${issueSuffix}`,
-        };
-      }),
-    }).trimEnd(),
-  );
-
-  runtime.log("");
   runtime.log(theme.heading("Sessions"));
   runtime.log(
     renderTable({
@@ -615,7 +530,7 @@ export async function statusCommand(
         width: tableWidth,
         columns: [{ key: "Event", header: "Event", flex: true, minWidth: 24 }],
         rows: summary.queuedSystemEvents.slice(0, 5).map((event) => ({
-          Event: event,
+          Event: String(event),
         })),
       }).trimEnd(),
     );
@@ -631,40 +546,8 @@ export async function statusCommand(
     rows.push({
       Item: "Gateway",
       Status: ok("reachable"),
-      Detail: `${health.durationMs}ms`,
+      Detail: typeof health.durationMs === "number" ? `${health.durationMs}ms` : "",
     });
-
-    for (const line of formatHealthChannelLines(health, { accountMode: "all" })) {
-      const colon = line.indexOf(":");
-      if (colon === -1) {
-        continue;
-      }
-      const item = line.slice(0, colon).trim();
-      const detail = line.slice(colon + 1).trim();
-      const normalized = detail.toLowerCase();
-      const status = (() => {
-        if (normalized.startsWith("ok")) {
-          return ok("OK");
-        }
-        if (normalized.startsWith("failed")) {
-          return warn("WARN");
-        }
-        if (normalized.startsWith("not configured")) {
-          return muted("OFF");
-        }
-        if (normalized.startsWith("configured")) {
-          return ok("OK");
-        }
-        if (normalized.startsWith("linked")) {
-          return ok("LINKED");
-        }
-        if (normalized.startsWith("not linked")) {
-          return warn("UNLINKED");
-        }
-        return warn("WARN");
-      })();
-      rows.push({ Item: item, Status: status, Detail: detail });
-    }
 
     runtime.log(
       renderTable({
@@ -707,7 +590,7 @@ export async function statusCommand(
   );
   if (gatewayReachable) {
     runtime.log(
-      `  ${t("status.next.needTestChannels").padEnd(19)} ${formatCliCommand("crawclaw status --deep")}`,
+      `  ${"Need deeper status?".padEnd(19)} ${formatCliCommand("crawclaw status --deep")}`,
     );
   } else {
     runtime.log(

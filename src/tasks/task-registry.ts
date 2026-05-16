@@ -1,13 +1,11 @@
 import crypto from "node:crypto";
 import { getAcpSessionManager } from "../acp/control-plane/manager.js";
 import { killSubagentRunAdmin } from "../agents/subagent-control.js";
-import { resolveDeliverableTarget } from "../channels/deliverable-target.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { onAgentEvent } from "../infra/agent-events.js";
 import { requestMainSessionWakeNow } from "../infra/main-session-wake.js";
 import { enqueueSystemEvent } from "../infra/system-events.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { parseAgentSessionKey } from "../routing/session-key.js";
 import { normalizeDeliveryContext } from "../utils/delivery-context.js";
 import {
   formatTaskBlockedFollowupMessage,
@@ -62,8 +60,6 @@ const tasksWithPendingDelivery = new Set<string>();
 let listenerStarted = false;
 let listenerStop: (() => void) | null = null;
 let restoreAttempted = false;
-let deliveryRuntimePromise: Promise<typeof import("./task-registry-delivery-runtime.js")> | null =
-  null;
 
 type TaskDeliveryOwner = {
   sessionKey?: string;
@@ -434,11 +430,6 @@ function normalizeAgentId(agentId?: string): string | undefined {
 
 function normalizeParentAgentId(metadata?: AgentTaskMetadata): string | undefined {
   return metadata?.parentAgentId?.trim() || undefined;
-}
-
-function loadTaskRegistryDeliveryRuntime() {
-  deliveryRuntimePromise ??= import("./task-registry-delivery-runtime.js");
-  return deliveryRuntimePromise;
 }
 
 function addRunIdIndex(taskId: string, runId?: string) {
@@ -827,31 +818,6 @@ function mergeExistingTaskForCreate(
   return updateTask(existing.taskId, patch) ?? cloneTaskRecord(existing);
 }
 
-function taskTerminalDeliveryIdempotencyKey(task: TaskRecord): string {
-  const outcome = task.status === "succeeded" ? (task.terminalOutcome ?? "default") : "default";
-  return `task-terminal:${task.taskId}:${task.status}:${outcome}`;
-}
-
-function resolveTaskStateChangeIdempotencyKey(params: {
-  task: TaskRecord;
-  latestEvent: TaskEventRecord;
-  owner: TaskDeliveryOwner;
-}): string {
-  if (params.owner.flowId) {
-    return `flow-event:${params.owner.flowId}:${params.task.taskId}:${params.latestEvent.at}:${params.latestEvent.kind}`;
-  }
-  return `task-event:${params.task.taskId}:${params.latestEvent.at}:${params.latestEvent.kind}`;
-}
-
-function resolveTaskTerminalIdempotencyKey(task: TaskRecord): string {
-  const owner = resolveTaskDeliveryOwner(task);
-  if (owner.flowId) {
-    const outcome = task.status === "succeeded" ? (task.terminalOutcome ?? "default") : "default";
-    return `flow-terminal:${owner.flowId}:${task.taskId}:${task.status}:${outcome}`;
-  }
-  return taskTerminalDeliveryIdempotencyKey(task);
-}
-
 function getLinkedFlowForDelivery(task: TaskRecord) {
   const flowId = task.parentFlowId?.trim();
   if (!flowId || task.scopeKind !== "session") {
@@ -1070,16 +1036,6 @@ function getTaskDeliveryState(taskId: string): TaskDeliveryState | undefined {
   return state ? cloneTaskDeliveryState(state) : undefined;
 }
 
-function canDeliverTaskToRequesterOrigin(task: TaskRecord): boolean {
-  const origin = resolveTaskDeliveryOwner(task).requesterOrigin;
-  return Boolean(
-    resolveDeliverableTarget({
-      channel: origin?.channel,
-      to: origin?.to,
-    }),
-  );
-}
-
 function resolveMissingOwnerDeliveryStatus(task: TaskRecord): TaskDeliveryStatus {
   return task.scopeKind === "system" ? "not_applicable" : "parent_missing";
 }
@@ -1159,72 +1115,21 @@ export async function maybeDeliverTaskTerminalUpdate(taskId: string): Promise<Ta
       });
     }
     const eventText = formatTaskTerminalMessage(latest);
-    if (!canDeliverTaskToRequesterOrigin(latest)) {
-      try {
-        queueTaskSystemEvent(latest, eventText);
-        if (latest.terminalOutcome === "blocked") {
-          queueBlockedTaskFollowup(latest);
-        }
-        return updateTask(taskId, {
-          deliveryStatus: "session_queued",
-          lastEventAt: Date.now(),
-        });
-      } catch (error) {
-        log.warn("Failed to queue background task session delivery", {
-          taskId,
-          ownerKey: latest.ownerKey,
-          error,
-        });
-        return updateTask(taskId, {
-          deliveryStatus: "failed",
-          lastEventAt: Date.now(),
-        });
-      }
-    }
     try {
-      const { sendMessage } = await loadTaskRegistryDeliveryRuntime();
-      const requesterAgentId = parseAgentSessionKey(ownerSessionKey)?.agentId;
-      const idempotencyKey = resolveTaskTerminalIdempotencyKey(latest);
-      await sendMessage({
-        channel: owner.requesterOrigin?.channel,
-        to: owner.requesterOrigin?.to ?? "",
-        accountId: owner.requesterOrigin?.accountId,
-        threadId: owner.requesterOrigin?.threadId,
-        content: eventText,
-        agentId: requesterAgentId,
-        idempotencyKey,
-        mirror: {
-          sessionKey: ownerSessionKey,
-          agentId: requesterAgentId,
-          idempotencyKey,
-        },
-      });
+      queueTaskSystemEvent(latest, eventText);
       if (latest.terminalOutcome === "blocked") {
         queueBlockedTaskFollowup(latest);
       }
       return updateTask(taskId, {
-        deliveryStatus: "delivered",
+        deliveryStatus: "session_queued",
         lastEventAt: Date.now(),
       });
     } catch (error) {
-      log.warn("Failed to deliver background task update", {
+      log.warn("Failed to queue background task session delivery", {
         taskId,
-        ownerKey: ownerSessionKey,
-        requesterOrigin: owner.requesterOrigin,
+        ownerKey: latest.ownerKey,
         error,
       });
-      try {
-        queueTaskSystemEvent(latest, eventText);
-        if (latest.terminalOutcome === "blocked") {
-          queueBlockedTaskFollowup(latest);
-        }
-      } catch (fallbackError) {
-        log.warn("Failed to queue background task fallback event", {
-          taskId,
-          ownerKey: latest.ownerKey,
-          error: fallbackError,
-        });
-      }
       return updateTask(taskId, {
         deliveryStatus: "failed",
         lastEventAt: Date.now(),
@@ -1261,38 +1166,7 @@ export async function maybeDeliverTaskStateChangeUpdate(
         lastEventAt: Date.now(),
       });
     }
-    if (!canDeliverTaskToRequesterOrigin(current)) {
-      queueTaskSystemEvent(current, eventText);
-      upsertTaskDeliveryState({
-        taskId,
-        requesterOrigin: deliveryState?.requesterOrigin,
-        lastNotifiedEventAt: latestEvent.at,
-      });
-      return updateTask(taskId, {
-        lastEventAt: Date.now(),
-      });
-    }
-    const { sendMessage } = await loadTaskRegistryDeliveryRuntime();
-    const requesterAgentId = parseAgentSessionKey(ownerSessionKey)?.agentId;
-    const idempotencyKey = resolveTaskStateChangeIdempotencyKey({
-      task: current,
-      latestEvent,
-      owner,
-    });
-    await sendMessage({
-      channel: owner.requesterOrigin?.channel,
-      to: owner.requesterOrigin?.to ?? "",
-      accountId: owner.requesterOrigin?.accountId,
-      threadId: owner.requesterOrigin?.threadId,
-      content: eventText,
-      agentId: requesterAgentId,
-      idempotencyKey,
-      mirror: {
-        sessionKey: ownerSessionKey,
-        agentId: requesterAgentId,
-        idempotencyKey,
-      },
-    });
+    queueTaskSystemEvent(current, eventText);
     upsertTaskDeliveryState({
       taskId,
       requesterOrigin: deliveryState?.requesterOrigin,
@@ -2132,5 +2006,5 @@ export function resetTaskRegistryForTests(opts?: { persist?: boolean }) {
 }
 
 export function resetTaskRegistryDeliveryRuntimeForTests() {
-  deliveryRuntimePromise = null;
+  // Delivery is session-event only in the TS runtime.
 }

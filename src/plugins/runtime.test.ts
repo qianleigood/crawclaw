@@ -19,9 +19,9 @@ function createRegistryWithRoute(path: string) {
   registry.httpRoutes.push({
     path,
     auth: "plugin",
-    match: path === "/plugins/diffs" ? "prefix" : "exact",
+    match: path === "/plugins/demo" ? "prefix" : "exact",
     handler: () => true,
-    pluginId: path === "/plugins/diffs" ? "diffs" : "demo",
+    pluginId: "demo",
     source: "test",
   });
   return registry;
@@ -124,7 +124,7 @@ describe("plugin runtime route registry", () => {
     {
       name: "prefers the pinned route registry when it already owns routes",
       pinnedRegistry: createRegistryWithRoute("/weixin-webhook"),
-      explicitRegistry: createRegistryWithRoute("/plugins/diffs"),
+      explicitRegistry: createRegistryWithRoute("/plugins/demo"),
       expected: "pinned",
     },
   ] as const)("$name", ({ pinnedRegistry, explicitRegistry, expected }) => {
@@ -195,11 +195,8 @@ describe("setActivePluginRegistry", () => {
       format: "bundle",
       toolNames: [],
       hookNames: [],
-      channelIds: [],
-      cliBackendIds: [],
       providerIds: [],
       speechProviderIds: [],
-      mediaUnderstandingProviderIds: [],
       webFetchProviderIds: [],
       webSearchProviderIds: [],
       gatewayMethods: [],
@@ -219,11 +216,8 @@ describe("setActivePluginRegistry", () => {
       format: "crawclaw",
       toolNames: [],
       hookNames: [],
-      channelIds: [],
-      cliBackendIds: [],
       providerIds: [],
       speechProviderIds: [],
-      mediaUnderstandingProviderIds: [],
       webFetchProviderIds: [],
       webSearchProviderIds: [],
       gatewayMethods: [],

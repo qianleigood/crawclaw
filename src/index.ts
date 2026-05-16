@@ -7,14 +7,12 @@ type LibraryExports = typeof import("./library.js");
 
 // These bindings are populated only for library consumers. The CLI entry stays
 // on the lean path and must not read them while running as main.
-export let assertWebChannel: LibraryExports["assertWebChannel"];
 export let applyTemplate: LibraryExports["applyTemplate"];
 export let createDefaultDeps: LibraryExports["createDefaultDeps"];
 export let deriveSessionKey: LibraryExports["deriveSessionKey"];
 export let describePortOwner: LibraryExports["describePortOwner"];
 export let ensureBinary: LibraryExports["ensureBinary"];
 export let ensurePortAvailable: LibraryExports["ensurePortAvailable"];
-export let getReplyFromConfig: LibraryExports["getReplyFromConfig"];
 export let handlePortError: LibraryExports["handlePortError"];
 export let loadConfig: LibraryExports["loadConfig"];
 export let loadSessionStore: LibraryExports["loadSessionStore"];
@@ -34,14 +32,12 @@ const isMain = isMainModule({
 
 if (!isMain) {
   ({
-    assertWebChannel,
     applyTemplate,
     createDefaultDeps,
     deriveSessionKey,
     describePortOwner,
     ensureBinary,
     ensurePortAvailable,
-    getReplyFromConfig,
     handlePortError,
     loadConfig,
     loadSessionStore,

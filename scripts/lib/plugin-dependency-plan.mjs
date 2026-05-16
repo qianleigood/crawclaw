@@ -3,7 +3,6 @@ import fsSync from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
-import { listManagedPluginRuntimeInstallPlan } from "../install-plugin-runtimes.mjs";
 
 const GENERATED_BY = "scripts/generate-plugin-dependency-plan.mjs";
 const DEFAULT_JSON_OUTPUT = "docs/.generated/plugin-dependency-plan.json";
@@ -133,12 +132,6 @@ function collectManifestCapabilities(manifest) {
   if (Array.isArray(manifest?.providers) && manifest.providers.length > 0) {
     capabilities.push("provider");
   }
-  if (Array.isArray(manifest?.channels) && manifest.channels.length > 0) {
-    capabilities.push("channel");
-  }
-  if (Array.isArray(manifest?.cliBackends) && manifest.cliBackends.length > 0) {
-    capabilities.push("cli-backend");
-  }
   if (Array.isArray(manifest?.skills) && manifest.skills.length > 0) {
     capabilities.push("skill");
   }
@@ -176,21 +169,6 @@ function collectManifestProviderIds(manifest) {
     .toSorted((left, right) => left.localeCompare(right));
 }
 
-function collectManifestChannelIds(manifest) {
-  if (!Array.isArray(manifest?.channels)) {
-    return [];
-  }
-  return manifest.channels
-    .map((entry) => {
-      if (typeof entry === "string") {
-        return entry;
-      }
-      return typeof entry?.id === "string" ? entry.id : null;
-    })
-    .filter(Boolean)
-    .toSorted((left, right) => left.localeCompare(right));
-}
-
 function collectPackageEntryPoints(packageJson) {
   const crawclaw = packageJson?.crawclaw;
   const entries = [];
@@ -217,7 +195,6 @@ async function collectBundledPlugins(repoRoot) {
     const crawclaw = packageJson?.crawclaw ?? {};
     const entry = {
       capabilities: collectManifestCapabilities(manifest),
-      channelIds: collectManifestChannelIds(manifest),
       contractKeys: collectManifestContractKeys(manifest),
       dependencies: sortObject(packageJson?.dependencies),
       devDependencies: sortObject(packageJson?.devDependencies),
@@ -244,46 +221,8 @@ async function collectBundledPlugins(repoRoot) {
   return plugins.toSorted((left, right) => left.id.localeCompare(right.id));
 }
 
-async function readLockedRequirements(filePath) {
-  const text = await readTextFile(filePath);
-  if (text === null) {
-    return [];
-  }
-  return text
-    .split(/\r?\n/u)
-    .map((line) => line.trim())
-    .filter((line) => line.length > 0 && !line.startsWith("#"));
-}
-
-async function collectManagedRuntimes(repoRoot) {
-  const runtimeScriptPath = path.join("scripts", "install-plugin-runtimes.mjs");
-  const runtimes = await Promise.all(
-    listManagedPluginRuntimeInstallPlan({ platform: "win32" }).map(async (runtime) => {
-      const requirementsLockPath = runtime.python?.requirementsLockPath;
-      const python = runtime.python
-        ? {
-            candidates: runtime.python.candidates,
-            envOverrides: runtime.python.envOverrides,
-            minimumVersion: runtime.python.minimumVersion,
-            package: runtime.python.package,
-            requirements: requirementsLockPath
-              ? await readLockedRequirements(
-                  path.isAbsolute(requirementsLockPath)
-                    ? requirementsLockPath
-                    : path.join(repoRoot, requirementsLockPath),
-                )
-              : undefined,
-            windowsExtraPackages: runtime.python.windowsExtraPackages,
-          }
-        : undefined;
-      return {
-        ...runtime,
-        python,
-        source: runtimeScriptPath,
-      };
-    }),
-  );
-  return runtimes.toSorted((left, right) => left.id.localeCompare(right.id)).map(sortJsonValue);
+async function collectManagedRuntimes(_repoRoot) {
+  return [];
 }
 
 function collectVersionSplits(plugins) {

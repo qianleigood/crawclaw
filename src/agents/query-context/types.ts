@@ -1,4 +1,4 @@
-import type { AgentMessage, AgentTool } from "@mariozechner/pi-agent-core";
+import type { AgentMessage, AgentTool } from "../agent-types.js";
 import type { ContextWindowSource, ModelContextBudgetConfidence } from "../context-window-guard.js";
 
 export type QueryContextSectionRole = "system_prompt" | "system_context" | "user_context";

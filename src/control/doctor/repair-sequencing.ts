@@ -5,10 +5,8 @@ import {
   applyDoctorConfigMutation,
   type DoctorConfigMutationState,
 } from "./shared/config-mutation-state.js";
-import { scanEmptyAllowlistPolicyWarnings } from "./shared/empty-allowlist-scan.js";
 import { maybeRepairExecSafeBinProfiles } from "./shared/exec-safe-bins.js";
 import { maybeRepairLegacyToolsBySenderKeys } from "./shared/legacy-tools-by-sender.js";
-import { maybeRepairOpenPolicyAllowFrom } from "./shared/open-policy-allowfrom.js";
 import { maybeRepairStalePluginConfig } from "./shared/stale-plugin-config.js";
 
 export async function runDoctorRepairSequence(params: {
@@ -42,17 +40,9 @@ export async function runDoctorRepairSequence(params: {
     }
   };
 
-  applyMutation(maybeRepairOpenPolicyAllowFrom(state.candidate));
   applyMutation(maybeRepairBundledPluginLoadPaths(state.candidate, process.env));
   applyMutation(maybeRepairStalePluginConfig(state.candidate, process.env));
   applyMutation(await maybeRepairAllowlistPolicyAllowFrom(state.candidate));
-
-  const emptyAllowlistWarnings = scanEmptyAllowlistPolicyWarnings(state.candidate, {
-    doctorFixCommand: params.doctorFixCommand,
-  });
-  if (emptyAllowlistWarnings.length > 0) {
-    warningNotes.push(sanitizeLines(emptyAllowlistWarnings));
-  }
 
   applyMutation(maybeRepairLegacyToolsBySenderKeys(state.candidate));
   applyMutation(maybeRepairExecSafeBinProfiles(state.candidate));

@@ -1,12 +1,9 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { getOrLoadBootstrapFiles } from "./bootstrap-cache.js";
 import { applyBootstrapHookOverrides } from "./bootstrap-hooks.js";
-import type { EmbeddedContextFile } from "./pi-embedded-helpers.js";
-import {
-  buildBootstrapContextFiles,
-  resolveBootstrapMaxChars,
-  resolveBootstrapTotalMaxChars,
-} from "./pi-embedded-helpers.js";
+import { resolveBootstrapMaxChars, resolveBootstrapTotalMaxChars } from "./bootstrap-limits.js";
+import type { RuntimeContextFile } from "./runtime-context-file.js";
+import { buildBootstrapContextFiles } from "./runtime-helpers/bootstrap.js";
 import {
   filterBootstrapFilesForSession,
   loadWorkspaceBootstrapFiles,
@@ -111,7 +108,7 @@ export async function resolveBootstrapContextForRun(params: {
   runKind?: BootstrapContextRunKind;
 }): Promise<{
   bootstrapFiles: WorkspaceBootstrapFile[];
-  contextFiles: EmbeddedContextFile[];
+  contextFiles: RuntimeContextFile[];
 }> {
   const bootstrapFiles = await resolveBootstrapFilesForRun(params);
   const contextFiles = buildBootstrapContextFiles(bootstrapFiles, {

@@ -22,8 +22,8 @@ vi.mock("../../../process/command-queue.js", () => ({
   clearCommandLane: commandQueueMocks.clearCommandLane,
 }));
 
-vi.mock("../../../agents/pi-embedded-runner/lanes.js", () => ({
-  resolveEmbeddedSessionLane: (key: string) => `session:${key.trim() || "main"}`,
+vi.mock("../../../agents/runtime-support/lanes.js", () => ({
+  resolveAgentSessionLane: (key: string) => `session:${key.trim() || "main"}`,
 }));
 
 describe("clearSessionQueues", () => {
@@ -36,7 +36,7 @@ describe("clearSessionQueues", () => {
 
   it("falls back to default runtime deps when injected deps are invalid", () => {
     __testing.setDepsForTests({
-      resolveEmbeddedSessionLane: undefined,
+      resolveAgentSessionLane: undefined,
       clearCommandLane: undefined,
     });
 
@@ -54,7 +54,7 @@ describe("clearSessionQueues", () => {
 
   it("falls back at call time when a test mutates deps to non-functions", () => {
     __testing.setDepsForTests({
-      resolveEmbeddedSessionLane: ((key: string) => `custom:${key}`) as never,
+      resolveAgentSessionLane: ((key: string) => `custom:${key}`) as never,
       clearCommandLane: ((lane: string) => (lane === "custom:alpha" ? 7 : 0)) as never,
     });
     (
@@ -62,7 +62,7 @@ describe("clearSessionQueues", () => {
         setDepsForTests: (deps: Partial<Record<string, unknown>> | undefined) => void;
       }
     ).setDepsForTests({
-      resolveEmbeddedSessionLane: "broken",
+      resolveAgentSessionLane: "broken",
       clearCommandLane: "broken",
     });
 

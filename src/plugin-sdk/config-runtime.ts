@@ -13,17 +13,6 @@ export {
 export { resolveOAuthDir, resolveStateDir, STATE_DIR } from "../config/paths.js";
 export { logConfigUpdated } from "../config/logging.js";
 export { updateConfig } from "../control/models/shared.js";
-export { resolveChannelModelOverride } from "../channels/model-overrides.js";
-export {
-  resolveChannelContextVisibilityMode,
-  resolveDefaultContextVisibility,
-} from "../config/context-visibility.js";
-export { resolveMarkdownTableMode } from "../config/markdown-tables.js";
-export {
-  resolveChannelGroupPolicy,
-  resolveChannelGroupRequireMention,
-  type ChannelGroupPolicy,
-} from "../config/group-policy.js";
 export {
   GROUP_POLICY_BLOCKED_LABEL,
   resolveAllowlistProviderRuntimeGroupPolicy,
@@ -63,26 +52,13 @@ export {
   clearSessionStoreCacheForTest,
   loadSessionStore,
   readSessionUpdatedAt,
-  recordSessionMetaFromInbound,
   saveSessionStore,
   resolveSessionKey,
   resolveStorePath,
-  updateLastRoute,
   updateSessionStore,
-  type SessionResetMode,
   type SessionScope,
 } from "../config/sessions.js";
 export { resolveGroupSessionKey } from "../config/sessions/group.js";
 export { canonicalizeMainSessionAlias } from "../config/sessions/main-session.js";
-export {
-  evaluateSessionFreshness,
-  resolveChannelResetConfig,
-  resolveSessionResetPolicy,
-  resolveSessionResetType,
-  resolveThreadFlag,
-} from "../config/sessions/reset.js";
 export { resolveSessionStoreEntry } from "../config/sessions/store.js";
-export {
-  isDangerousNameMatchingEnabled,
-  resolveDangerousNameMatchingEnabled,
-} from "../config/dangerous-name-matching.js";
+export type { SessionResetMode } from "../config/types.base.js";

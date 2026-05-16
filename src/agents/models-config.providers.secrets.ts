@@ -1,6 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { coerceSecretRef, resolveSecretInputRef } from "../config/types.secrets.js";
-import { resolveProviderWebSearchPluginConfig } from "../plugin-sdk/provider-web-search.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import { listProfilesForProvider } from "./auth-profiles/profiles.js";
 import { ensureAuthProfileStore } from "./auth-profiles/store.js";
@@ -12,6 +11,7 @@ import {
   resolveNonEnvSecretRefHeaderValueMarker,
 } from "./model-auth-markers.js";
 import { resolveAwsSdkEnvVarName } from "./model-auth-runtime-shared.js";
+import { resolveProviderWebSearchPluginConfig } from "./tools/web-search-provider-config.js";
 
 type ModelsConfig = NonNullable<CrawClawConfig["models"]>;
 export type ProviderConfig = NonNullable<ModelsConfig["providers"]>[string];

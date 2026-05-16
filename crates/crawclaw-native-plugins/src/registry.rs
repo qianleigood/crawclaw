@@ -14,6 +14,7 @@ use crate::envelope::to_value;
 use crate::error::invalid_input;
 use crate::llm_task::{complete_llm_task, prepare_llm_task, LlmTaskPrepareInput};
 use crate::lobster::execute_lobster;
+use crate::media_understanding::describe_openai_media;
 use crate::open_prose::describe_open_prose;
 use crate::openshell::handle_openshell;
 use crate::qwen3_tts::{
@@ -377,6 +378,29 @@ fn open_prose_descriptor() -> NativePluginDescriptor {
     )
 }
 
+fn openai_descriptor() -> NativePluginDescriptor {
+    let mut entry = descriptor(
+        "openai",
+        "OpenAI",
+        "Rust-native OpenAI model and media-understanding provider.",
+    );
+    entry
+        .media_understanding_providers
+        .push(NativeMediaUnderstandingProviderDescriptor {
+            id: "openai".to_string(),
+            label: "OpenAI media understanding".to_string(),
+            invocation: target("openai", "media-understanding"),
+        });
+    entry
+        .media_understanding_providers
+        .push(NativeMediaUnderstandingProviderDescriptor {
+            id: "openai-codex".to_string(),
+            label: "OpenAI Codex media understanding".to_string(),
+            invocation: target("openai", "media-understanding"),
+        });
+    entry
+}
+
 fn openshell_descriptor() -> NativePluginDescriptor {
     descriptor(
         "openshell",
@@ -394,6 +418,7 @@ pub fn builtin_native_plugin_descriptors() -> Vec<NativePluginDescriptor> {
         scrapling_fetch_descriptor(),
         llm_task_descriptor(),
         qwen3_tts_descriptor(),
+        openai_descriptor(),
         open_prose_descriptor(),
         openshell_descriptor(),
     ]
@@ -448,6 +473,7 @@ pub async fn dispatch_builtin_native_plugin_operation(
         ("scrapling-fetch", "fetch") => run_scrapling_fetch(input).await,
         ("scrapling-fetch", "service-start") => start_scrapling_fetch_service(input).await,
         ("scrapling-fetch", "service-stop") => Ok(stop_scrapling_fetch_service()),
+        ("openai", "media-understanding") => describe_openai_media(input).await,
         (plugin, operation) => Err(invalid_input(format!(
             "Unsupported native plugin operation: {plugin} {operation}"
         ))),

@@ -157,23 +157,23 @@ describe("applyMergePatch", () => {
 
   it("falls back to replacement for non-id arrays even when enabled", () => {
     const base = {
-      channels: {
-        feishu: { allowFrom: ["111", "222"] },
+      tools: {
+        exec: { pathPrepend: ["/usr/local/bin", "/opt/bin"] },
       },
     };
     const patch = {
-      channels: {
-        feishu: { allowFrom: ["333"] },
+      tools: {
+        exec: { pathPrepend: ["/custom/bin"] },
       },
     };
 
     const merged = applyMergePatch(base, patch, {
       mergeObjectArraysById: true,
     }) as {
-      channels?: {
-        feishu?: { allowFrom?: string[] };
+      tools?: {
+        exec?: { pathPrepend?: string[] };
       };
     };
-    expect(merged.channels?.feishu?.allowFrom).toEqual(["333"]);
+    expect(merged.tools?.exec?.pathPrepend).toEqual(["/custom/bin"]);
   });
 });

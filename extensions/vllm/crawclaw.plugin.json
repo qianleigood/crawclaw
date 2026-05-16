@@ -1,6 +1,11 @@
 {
   "id": "vllm",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["vllm"],
   "providerAuthEnvVars": {
     "vllm": ["VLLM_API_KEY"]

@@ -1,4 +1,3 @@
-import type { Skill } from "@mariozechner/pi-coding-agent";
 import { validateRegistryNpmSpec } from "../../infra/npm-registry-spec.js";
 import { parseFrontmatterBlock } from "../../markdown/frontmatter.js";
 import {
@@ -21,6 +20,7 @@ import type {
 import type {
   CrawClawSkillMetadata,
   ParsedSkillFrontmatter,
+  Skill,
   SkillEntry,
   SkillInstallSpec,
   SkillInvocationPolicy,

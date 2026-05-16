@@ -12,7 +12,6 @@ assembly, and contract enforcement.
   - `docs/plugins/sdk-entrypoints.md`
 - Definition files:
   - `src/plugins/types.ts`
-  - `src/plugins/runtime/types.ts`
   - `src/plugins/contracts/registry.ts`
   - `src/plugins/public-artifacts.ts`
 
@@ -27,8 +26,7 @@ assembly, and contract enforcement.
   docs, and contract tests instead of relying on incidental internals.
 - Do not normalize "plugin-owned" into "core-owned" by scattering direct reads
   of `plugins.entries.<id>.config` through unrelated core paths. Prefer generic
-  helpers, plugin runtime hooks, manifest metadata, and explicit auto-enable
-  wiring.
+  helpers, manifest metadata, and explicit auto-enable wiring.
 - When plugin-owned tools or provider fallbacks need core participation, keep
   the contract generic and honor plugin disablement plus SecretRef semantics.
 - Keep contract loading and contract tests on the dedicated bundled registry

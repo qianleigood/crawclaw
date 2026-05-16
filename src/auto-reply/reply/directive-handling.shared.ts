@@ -1,5 +1,5 @@
 import { SYSTEM_MARK, prefixSystemMessage } from "../../infra/system-message.js";
-import { isInternalMessageChannel } from "../../utils/message-channel.js";
+import { isInternalMessageChannel } from "../../utils/gateway-client-surface.js";
 import type { ElevatedLevel, ReasoningLevel } from "./directives.js";
 
 export const formatDirectiveAck = (text: string): string => {

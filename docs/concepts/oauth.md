@@ -80,25 +80,11 @@ Verify:
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-## Anthropic Claude CLI migration
-
-If Claude CLI is already installed and signed in on the gateway host, you can
-switch Anthropic model selection over to the local local process backend:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Onboarding no longer exposes the old `anthropic-cli` auth-choice alias.
-
-This keeps existing Anthropic auth profiles for rollback, but rewrites the main
-default-model path from `anthropic/...` to `claude-cli/...`.
-
 ## OAuth exchange (how login works)
 
 CrawClaw’s interactive login flows are implemented in `@mariozechner/pi-ai` and wired into the wizards/commands.
 
-### Anthropic setup-token / Claude CLI
+### Anthropic setup-token
 
 Flow shape:
 
@@ -107,12 +93,6 @@ Setup-token path:
 1. run `claude setup-token`
 2. paste the token into CrawClaw
 3. store as a token auth profile (no refresh)
-
-Claude CLI path:
-
-1. sign in with `claude auth login` on the gateway host
-2. run CrawClaw Desktop or the local Gateway API
-3. store no new auth profile; switch model selection to `claude-cli/...`
 
 Wizard path:
 

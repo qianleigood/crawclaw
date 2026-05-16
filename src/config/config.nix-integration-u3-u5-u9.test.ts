@@ -125,7 +125,7 @@ describe("Nix integration (U3, U5, U9)", () => {
         await fs.mkdir(pluginDir, { recursive: true });
         await fs.writeFile(
           path.join(pluginDir, "index.js"),
-          'export default { id: "demo-plugin", register() {} };',
+          'export default { id: "demo-plugin" };',
           "utf-8",
         );
         await fs.writeFile(

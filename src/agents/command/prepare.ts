@@ -10,7 +10,6 @@ import {
   setRuntimeConfigSnapshot,
 } from "../../config/config.js";
 import { resolveAgentIdFromSessionKey, type SessionEntry } from "../../config/sessions.js";
-import { buildOutboundSessionContext } from "../../infra/outbound/session-context.js";
 import { normalizeAgentId } from "../../routing/session-key.js";
 import type { RuntimeEnv } from "../../runtime.js";
 import { formatCliCommand } from "../../terminal/command-format.js";
@@ -225,11 +224,6 @@ export async function prepareAgentCommandExecution(
       sessionKey: sessionKey ?? opts.sessionKey?.trim(),
       config: cfg,
     });
-  const outboundSession = buildOutboundSessionContext({
-    cfg,
-    agentId: sessionAgentId,
-    sessionKey,
-  });
   const workspaceDirRaw =
     normalizedSpawned.workspaceDir ?? resolveAgentWorkspaceDir(cfg, sessionAgentId);
   const agentDir = resolveAgentDir(cfg, sessionAgentId);
@@ -266,7 +260,6 @@ export async function prepareAgentCommandExecution(
     persistedThinking,
     persistedVerbose,
     sessionAgentId,
-    outboundSession,
     workspaceDir,
     agentDir,
     runId,

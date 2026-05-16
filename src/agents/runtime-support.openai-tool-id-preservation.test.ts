@@ -1,0 +1,73 @@
+import { describe, expect, it } from "vitest";
+import type { AgentMessage } from "./agent-types.js";
+import {
+  makeInMemorySessionManager,
+  makeModelSnapshotEntry,
+} from "./runtime-support.sanitize-session-history.test-harness.js";
+import { sanitizeSessionHistory } from "./runtime-support/google.js";
+import { castAgentMessage } from "./test-helpers/agent-message-fixtures.js";
+
+describe("sanitizeSessionHistory openai tool id preservation", () => {
+  const makeSessionManager = () =>
+    makeInMemorySessionManager([
+      makeModelSnapshotEntry({
+        provider: "openai",
+        modelApi: "openai-responses",
+        modelId: "gpt-5.2-codex",
+      }),
+    ]);
+
+  const makeMessages = (withReasoning: boolean): AgentMessage[] => [
+    castAgentMessage({
+      role: "assistant",
+      content: [
+        ...(withReasoning
+          ? [
+              {
+                type: "thinking",
+                thinking: "internal reasoning",
+                thinkingSignature: JSON.stringify({ id: "rs_123", type: "reasoning" }),
+              },
+            ]
+          : []),
+        { type: "toolCall", id: "call_123|fc_123", name: "noop", arguments: {} },
+      ],
+    }),
+    castAgentMessage({
+      role: "toolResult",
+      toolCallId: "call_123|fc_123",
+      toolName: "noop",
+      content: [{ type: "text", text: "ok" }],
+      isError: false,
+    }),
+  ];
+
+  it.each([
+    {
+      name: "strips fc ids when replayable reasoning metadata is missing",
+      withReasoning: false,
+      expectedToolId: "call_123",
+    },
+    {
+      name: "keeps canonical call_id|fc_id pairings when replayable reasoning is present",
+      withReasoning: true,
+      expectedToolId: "call_123|fc_123",
+    },
+  ])("$name", async ({ withReasoning, expectedToolId }) => {
+    const result = await sanitizeSessionHistory({
+      messages: makeMessages(withReasoning),
+      modelApi: "openai-responses",
+      provider: "openai",
+      modelId: "gpt-5.2-codex",
+      sessionManager: makeSessionManager(),
+      sessionId: "test-session",
+    });
+
+    const assistant = result[0] as { content?: Array<{ type?: string; id?: string }> };
+    const toolCall = assistant.content?.find((block) => block.type === "toolCall");
+    expect(toolCall?.id).toBe(expectedToolId);
+
+    const toolResult = result[1] as { toolCallId?: string };
+    expect(toolResult.toolCallId).toBe(expectedToolId);
+  });
+});

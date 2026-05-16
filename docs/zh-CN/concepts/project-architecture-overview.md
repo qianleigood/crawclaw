@@ -256,7 +256,7 @@ memory 是平台级领域服务，不应被简化成“向量检索”或“附�
 - 运行时加速缓存：
   - `src/agents/context-cache.ts`
   - `src/agents/bootstrap-cache.ts`
-  - `src/agents/pi-embedded-runner/session-manager-cache.ts`
+  - Rust AgentRuntime session cache
 - plugin / routing / control plane 缓存：
   - `src/plugins/loader.ts`
   - `src/routing/resolve-route.ts`
@@ -336,7 +336,7 @@ UI 现在已经独立成包，但当前更接近 control console，还不是彻�
 
 ### Special Agent 链
 
-`domain trigger / parent run -> special agent substrate -> embedded_fork 或 spawned_session -> constrained tools/cache/transcript -> structured completion`
+`domain trigger / parent run -> special agent substrate -> runtime_fork 或 spawned_session -> constrained tools/cache/transcript -> structured completion`
 
 ### Cache 链
 

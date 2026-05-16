@@ -10,7 +10,7 @@ import {
   randomToken,
   validateGatewayPasswordInput,
 } from "../control/onboard-helpers.js";
-import type { GatewayAuthChoice, SecretInputMode } from "../control/onboard-types.js";
+import type { SecretInputMode } from "../control/onboard-types.js";
 import {
   maybeAddTailnetOriginToBrowserClientsAllowedOrigins,
   TAILSCALE_DOCS_LINES,
@@ -98,7 +98,7 @@ export async function configureGatewayForSetup(
   let authMode =
     flow === "quickstart"
       ? quickstartGateway.authMode
-      : ((await prompter.select({
+      : await prompter.select({
           message: t("wizard.gateway.auth.message"),
           options: [
             {
@@ -109,7 +109,7 @@ export async function configureGatewayForSetup(
             { value: "password", label: t("wizard.gateway.auth.password") },
           ],
           initialValue: "token",
-        })) as GatewayAuthChoice);
+        });
 
   const tailscaleMode: GatewayWizardSettings["tailscaleMode"] =
     flow === "quickstart"

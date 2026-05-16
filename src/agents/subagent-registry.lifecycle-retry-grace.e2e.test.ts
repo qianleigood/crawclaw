@@ -66,7 +66,7 @@ const callGatewayMock = vi.fn(async (request: GatewayRequest) => {
       messages: chatHistoryBySessionKey.get(sessionKey) ?? [],
     };
   }
-  if (method === "agent") {
+  if (method === "agent.command.run") {
     const next = agentCallPlan.shift() ?? "ok";
     if (next === "throw") {
       throw new Error("announce delivery failed");
@@ -112,10 +112,6 @@ vi.mock("../config/sessions.js", () => ({
   updateSessionStore: vi.fn(),
 }));
 
-vi.mock("../plugins/hook-runner-global.js", () => ({
-  getGlobalHookRunner: vi.fn(() => null),
-}));
-
 vi.mock("./subagent-depth.js", () => ({
   getSubagentDepthFromSessionStore: () => 0,
 }));
@@ -149,9 +145,6 @@ describe("subagent registry lifecycle error grace", () => {
       resolveStorePath: () => "/tmp/test-store",
       resolveMainSessionKey: () => "agent:main:main",
       updateSessionStore: vi.fn(),
-    }));
-    vi.doMock("../plugins/hook-runner-global.js", () => ({
-      getGlobalHookRunner: vi.fn(() => null),
     }));
     vi.doMock("./subagent-depth.js", () => ({
       getSubagentDepthFromSessionStore: () => 0,
@@ -199,10 +192,6 @@ describe("subagent registry lifecycle error grace", () => {
       },
     );
     mod = await import("./subagent-registry.js");
-    mod.__testing.setDepsForTest({
-      ensureRuntimePluginsLoaded: () => {},
-      resolveMemoryRuntime: async () => ({}) as never,
-    });
   });
 
   afterEach(() => {
@@ -319,7 +308,7 @@ describe("subagent registry lifecycle error grace", () => {
   function getAgentCalls() {
     return (callGatewayMock.mock.calls as [GatewayRequest][])
       .map(([request]) => request)
-      .filter((request): request is GatewayRequest => request.method === "agent");
+      .filter((request): request is GatewayRequest => request.method === "agent.command.run");
   }
 
   function getAgentResultsForChildSession(childSessionKey: string): string[] {

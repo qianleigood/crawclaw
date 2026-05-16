@@ -28,6 +28,7 @@ export {
   requireInRange,
 } from "../tts/tts-core.js";
 export { parseTtsDirectives } from "../tts/directives.js";
+export { isVoiceCompatibleAudio } from "../media/audio.js";
 export {
   canonicalizeSpeechProviderId,
   getSpeechProvider,

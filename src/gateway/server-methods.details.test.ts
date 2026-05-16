@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { handleGatewayRequest } from "./legacy-ts-gateway-handlers.js";
 import { GatewayRequestDetailCodes } from "./protocol/request-error-details.js";
+import { handleGatewayRequest } from "./request-dispatcher.js";
 import type { GatewayRequestHandler } from "./request-types.js";
 
 const noWebchat = () => false;

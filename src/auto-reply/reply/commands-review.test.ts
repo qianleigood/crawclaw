@@ -1,34 +1,25 @@
-import type { AgentToolResult } from "@mariozechner/pi-agent-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { handleReviewCommand } from "./commands-review.js";
 import { buildCommandTestParams } from "./commands.test-harness.js";
 
-const { executeMock, createRustSpecialAgentToolMock } = vi.hoisted(() => {
-  const executeMock =
-    vi.fn<
-      (toolCallId: string, args: Record<string, unknown>) => Promise<AgentToolResult<unknown>>
-    >();
-  const createRustSpecialAgentToolMock = vi.fn(() => ({
-    execute: executeMock,
-  }));
+const { callGatewayMock } = vi.hoisted(() => {
+  const callGatewayMock = vi.fn();
   return {
-    executeMock,
-    createRustSpecialAgentToolMock,
+    callGatewayMock,
   };
 });
 
-vi.mock("../../agents/runtime-tools/core-tools.js", () => ({
-  createRustSpecialAgentTool: createRustSpecialAgentToolMock,
+vi.mock("../../gateway/call.js", () => ({
+  callGateway: callGatewayMock,
 }));
 
 describe("handleReviewCommand", () => {
   beforeEach(() => {
-    executeMock.mockReset();
-    createRustSpecialAgentToolMock.mockClear();
+    callGatewayMock.mockReset();
   });
 
   it("uses the default review task when no args are provided", async () => {
-    executeMock.mockResolvedValue({
+    callGatewayMock.mockResolvedValue({
       content: [{ type: "text", text: "{}" }],
       details: {
         status: "completed",
@@ -48,16 +39,20 @@ describe("handleReviewCommand", () => {
     expect(result?.reply?.text).toContain("Spec Compliance: PASS");
     expect(result?.reply?.text).toContain("Code Quality: PASS");
     expect(result?.reply?.text).toContain("review-spec");
-    expect(executeMock).toHaveBeenCalledWith(
-      "command:/review",
-      expect.objectContaining({
-        task: expect.stringContaining("Review the current task outcome"),
-      }),
-    );
+    expect(callGatewayMock).toHaveBeenCalledWith({
+      method: "tools.invoke",
+      params: {
+        tool: "review_task",
+        input: expect.objectContaining({
+          sessionKey: params.sessionKey,
+          task: expect.stringContaining("Review the current task outcome"),
+        }),
+      },
+    });
   });
 
   it("passes explicit review focus through to the tool", async () => {
-    executeMock.mockResolvedValue({
+    callGatewayMock.mockResolvedValue({
       content: [{ type: "text", text: "{}" }],
       details: {
         status: "completed",
@@ -75,8 +70,15 @@ describe("handleReviewCommand", () => {
     expect(result?.reply?.text).toContain("Review FAIL");
     expect(result?.reply?.text).toContain("Plugin SDK boundary was bypassed.");
     expect(result?.reply?.text).toContain("Blocking issues:");
-    expect(executeMock).toHaveBeenCalledWith("command:/review", {
-      task: expect.stringContaining("Review focus:\n- 重点看 plugin SDK 边界有没有被破坏"),
+    expect(callGatewayMock).toHaveBeenCalledWith({
+      method: "tools.invoke",
+      params: {
+        tool: "review_task",
+        input: expect.objectContaining({
+          sessionKey: params.sessionKey,
+          task: expect.stringContaining("Review focus:\n- 重点看 plugin SDK 边界有没有被破坏"),
+        }),
+      },
     });
   });
 
@@ -94,6 +96,6 @@ describe("handleReviewCommand", () => {
       shouldContinue: false,
       reply: { text: "⚠️ Review sessions cannot start nested review runs." },
     });
-    expect(executeMock).not.toHaveBeenCalled();
+    expect(callGatewayMock).not.toHaveBeenCalled();
   });
 });

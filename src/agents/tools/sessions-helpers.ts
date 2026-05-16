@@ -44,13 +44,13 @@ import {
   parseAgentSessionKey,
 } from "../../routing/session-key.js";
 import { extractTextFromChatContent } from "../../shared/chat-content.js";
-import { sanitizeUserFacingText } from "../pi-embedded-helpers.js";
 import {
   stripDowngradedToolCallText,
   stripMinimaxToolCallXml,
   stripModelSpecialTokens,
   stripThinkingTagsFromText,
-} from "../pi-embedded-utils.js";
+} from "../agent-output-utils.js";
+import { sanitizeUserFacingText } from "../user-facing-text.js";
 import { resolveSessionReference, resolveVisibleSessionReference } from "./sessions-resolution.js";
 
 export type SessionKind = "main" | "group" | "cron" | "hook" | "node" | "other";

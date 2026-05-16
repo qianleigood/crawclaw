@@ -1,0 +1,58 @@
+import { describe, expect, it } from "vitest";
+import { buildAgentMessageActionDiscoveryInput } from "./message-action-discovery-input.js";
+
+describe("buildAgentMessageActionDiscoveryInput", () => {
+  it("maps sender and routing scope into message-action discovery context", () => {
+    expect(
+      buildAgentMessageActionDiscoveryInput({
+        channel: "feishu",
+        currentChannelId: "chat-1",
+        currentThreadTs: "thread-9",
+        currentMessageId: "msg-42",
+        accountId: "acct-1",
+        sessionKey: "agent:main:thread:1",
+        sessionId: "session-1",
+        agentId: "main",
+        senderId: "user-123",
+      }),
+    ).toEqual({
+      cfg: undefined,
+      channel: "feishu",
+      currentChannelId: "chat-1",
+      currentThreadTs: "thread-9",
+      currentMessageId: "msg-42",
+      accountId: "acct-1",
+      sessionKey: "agent:main:thread:1",
+      sessionId: "session-1",
+      agentId: "main",
+      requesterSenderId: "user-123",
+    });
+  });
+
+  it("normalizes nullable routing fields to undefined", () => {
+    expect(
+      buildAgentMessageActionDiscoveryInput({
+        channel: "ddingtalk",
+        currentChannelId: null,
+        currentThreadTs: null,
+        currentMessageId: null,
+        accountId: null,
+        sessionKey: null,
+        sessionId: null,
+        agentId: null,
+        senderId: null,
+      }),
+    ).toEqual({
+      cfg: undefined,
+      channel: "ddingtalk",
+      currentChannelId: undefined,
+      currentThreadTs: undefined,
+      currentMessageId: undefined,
+      accountId: undefined,
+      sessionKey: undefined,
+      sessionId: undefined,
+      agentId: undefined,
+      requesterSenderId: undefined,
+    });
+  });
+});

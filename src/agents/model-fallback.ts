@@ -37,8 +37,8 @@ import {
   resolveConfiguredModelRef,
   resolveModelRefFromString,
 } from "./model-selection.js";
-import type { FailoverReason } from "./pi-embedded-helpers.js";
-import { isLikelyContextOverflowError } from "./pi-embedded-helpers.js";
+import type { FailoverReason } from "./runtime-helpers.js";
+import { isLikelyContextOverflowError } from "./runtime-helpers.js";
 
 const log = createSubsystemLogger("model-fallback");
 

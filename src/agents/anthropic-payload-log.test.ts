@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
-import type { StreamFn } from "@mariozechner/pi-agent-core";
 import { describe, expect, it } from "vitest";
+import type { StreamFn } from "./agent-types.js";
 import { createAnthropicPayloadLogger } from "./anthropic-payload-log.js";
 
 describe("createAnthropicPayloadLogger", () => {

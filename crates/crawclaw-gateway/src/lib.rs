@@ -49,7 +49,8 @@ use crawclaw_runtime::{
     memory::RustMemoryRuntime,
     resolve_native_channel_lifecycle_update,
     special_agents::{
-        find_special_agent, special_agent_definitions, SpecialAgentRunRequest, SpecialAgentRunner,
+        find_special_agent, special_agent_definitions, SpecialAgentDefinition,
+        SpecialAgentRunRequest,
     },
     AgentModelSelection, AgentRunEvent, AgentRunRequest, AgentRunResult, AgentRuntime,
     ChannelCapabilityDescriptor, ChannelChatType, ChannelDirectoryLookupRequest,
@@ -192,10 +193,6 @@ struct ConnectParams {
 struct ConnectAuth {
     #[serde(default)]
     token: Option<String>,
-    #[serde(default)]
-    bootstrap_token: Option<String>,
-    #[serde(default)]
-    device_token: Option<String>,
     #[serde(default)]
     password: Option<String>,
 }
@@ -633,6 +630,15 @@ async fn handle_gateway_method(
         "secrets.resolve" => secrets_resolve(state, params),
         "tools.catalog" => Ok(tools_catalog(state, params)),
         "tools.effective" => Ok(tools_effective(state, params)),
+        "tools.invoke" => tools_invoke(state, params).await,
+        "message.policy" | "message_policy" => message_policy(params),
+        "nativePlugin.invoke" | "native_plugin_invoke" => native_plugin_invoke(state, params).await,
+        "nativePlugin.service.start" | "native_plugin_service_start" => {
+            native_plugin_service_lifecycle(state, params, true).await
+        }
+        "nativePlugin.service.stop" | "native_plugin_service_stop" => {
+            native_plugin_service_lifecycle(state, params, false).await
+        }
         "models.list" => Ok(models_list(state)),
         "agents.list" => Ok(agents_list(state)),
         "logs.tail" => Ok(logs_tail()),
@@ -695,13 +701,13 @@ async fn handle_gateway_method(
         "tts.enable" => tts_set_enabled(state, true),
         "tts.disable" => tts_set_enabled(state, false),
         "tts.setProvider" => tts_set_provider(state, params),
-        "tts.convert" => tts_convert(state, params),
+        "tts.convert" => tts_convert(state, params).await,
         "talk.config" => talk_config(state),
         "talk.mode" => talk_mode(state, params),
-        "talk.speak" => talk_speak(state, params),
+        "talk.speak" => talk_speak(state, params).await,
         "voice.getOverview" => Ok(voice_overview(state)),
         "voice.qwen3Tts.preview" | "voice.qwen3Tts.uploadReferenceAudio" => {
-            voice_qwen3_tts(state, method, params)
+            voice_qwen3_tts(state, method, params).await
         }
         "voicewake.get" => Ok(voicewake_get(state)),
         "voicewake.set" => voicewake_set(state, params),
@@ -721,12 +727,6 @@ async fn handle_gateway_method(
         "channel.lifecycle.start" | "channel.lifecycle.stop" | "channel.lifecycle.restart" => {
             channel_lifecycle_action(state, method, params)
         }
-        "device.pair.list" => device_pair_list(state),
-        "device.pair.approve" => device_pair_approve(state, params),
-        "device.pair.reject" => device_pair_reject(state, params),
-        "device.pair.remove" => device_pair_remove(state, params),
-        "device.token.rotate" => device_token_rotate(state, params),
-        "device.token.revoke" => device_token_revoke(state, params),
         "esp32.status.get" => esp32_status_get(state),
         "esp32.pairing.start" => esp32_pairing_start(state, params),
         "esp32.pairing.requests.list" => esp32_pairing_requests_list(state),
@@ -749,11 +749,9 @@ async fn handle_gateway_method(
         }
         "workflow.agent.run" => workflow_agent_run(state, params),
         "agent.runTurn" => agent_run_turn(state, params).await,
-        "agent.command.run" | "agent_command_run" => {
-            agent_runtime_surface_run(state, params, "rust-agent-command", "agent-command").await
-        }
-        "auto_reply.run" | "autoReply.run" | "auto_reply_run" => {
-            agent_runtime_surface_run(state, params, "rust-auto-reply", "auto-reply").await
+        "agent.command.run" | "agent_command_run" => agent_command_run(state, params).await,
+        "autoReply.run" | "auto_reply.run" | "auto_reply_run" => {
+            auto_reply_run(state, params).await
         }
         "agent.streamEvents" => agent_stream_events(state, params),
         "agent.cancel" => chat_abort(params),
@@ -761,8 +759,8 @@ async fn handle_gateway_method(
         "chat.inject" => chat_inject(state, params),
         "chat.abort" => chat_abort(params),
         "chat.send" => chat_send(state, params).await,
-        "wake" | "cron.status" | "cron.list" | "cron.add" | "cron.update" | "cron.remove"
-        | "cron.run" | "cron.runs" => {
+        "wake" | "cron.start" | "cron.stop" | "cron.status" | "cron.list" | "cron.add"
+        | "cron.update" | "cron.remove" | "cron.run" | "cron.runs" => {
             let wake_text = if method == "wake" {
                 Some(
                     string_param(&params, &["text", "message"])
@@ -778,7 +776,6 @@ async fn handle_gateway_method(
             emit(state, "cron", result.clone());
             Ok(result)
         }
-        "agent" => run_agent(state, params).await,
         "special_agents.list" | "special_agents_list" => Ok(json!({
             "status": "ok",
             "agents": special_agent_definitions()
@@ -789,7 +786,25 @@ async fn handle_gateway_method(
             let quality = string_param(&params, &["stage", "kind"])
                 .map(|stage| stage != "spec")
                 .unwrap_or(true);
-            SpecialAgentRunner::new(state.runtime_root.clone()).run_review_task(&task, quality)
+            let kind = if quality {
+                "review-quality"
+            } else {
+                "review-spec"
+            };
+            let definition = find_special_agent(kind)
+                .ok_or_else(|| format!("unknown special agent kind: {kind}"))?;
+            special_agent_run_with_agent_runtime(
+                state,
+                SpecialAgentRunRequest {
+                    kind: Some(kind.to_string()),
+                    spawn_source: None,
+                    task: Some(task),
+                    scope: None,
+                    parent_session_key: string_param(&params, &["parentSessionKey", "sessionKey"]),
+                },
+                definition,
+            )
+            .await
         }
         "memory.status" | "memory_status" => memory_runtime(state).status(),
         "memory.refresh" | "memory_refresh" => Ok(json!({
@@ -844,17 +859,20 @@ async fn handle_gateway_method(
             let scope =
                 string_param(&params, &["scope", "agentId"]).unwrap_or_else(|| "main".to_string());
             let task = string_param(&params, &["task", "message"]).unwrap_or_default();
-            let result = memory_runtime(state).dream_store().run(&scope, &task)?;
-            emit(
+            let definition = find_special_agent("dream")
+                .ok_or_else(|| "missing dream special agent".to_string())?;
+            special_agent_run_with_agent_runtime(
                 state,
-                "specialAgent.result",
-                json!({ "kind": "dream", "result": result }),
-            );
-            Ok(json!({
-                "status": "completed",
-                "kind": "dream",
-                "result": result
-            }))
+                SpecialAgentRunRequest {
+                    kind: Some("dream".to_string()),
+                    spawn_source: None,
+                    task: Some(task),
+                    scope: Some(scope),
+                    parent_session_key: None,
+                },
+                definition,
+            )
+            .await
         }
         "memory.session_summary.status"
         | "memory_session_summary_status"
@@ -872,19 +890,20 @@ async fn handle_gateway_method(
                 .unwrap_or_else(|| "main".to_string());
             let content =
                 string_param(&params, &["content", "summary", "message"]).unwrap_or_default();
-            let result = memory_runtime(state)
-                .session_summary_store()
-                .refresh(&scope, &content)?;
-            emit(
+            let definition = find_special_agent("session-summary")
+                .ok_or_else(|| "missing session-summary special agent".to_string())?;
+            special_agent_run_with_agent_runtime(
                 state,
-                "specialAgent.result",
-                json!({ "kind": "session-summary", "result": result }),
-            );
-            Ok(json!({
-                "status": "completed",
-                "kind": "session-summary",
-                "result": result
-            }))
+                SpecialAgentRunRequest {
+                    kind: Some("session-summary".to_string()),
+                    spawn_source: None,
+                    task: Some(content),
+                    scope: Some(scope),
+                    parent_session_key: None,
+                },
+                definition,
+            )
+            .await
         }
         "memory.experience.outbox.list" | "memory_experience_outbox_list" => Ok(json!({
             "status": "ok",
@@ -934,7 +953,7 @@ async fn handle_gateway_method(
                 .get("force")
                 .and_then(Value::as_bool)
                 .unwrap_or(false);
-            memory_runtime(state).compact(&session_id, force)
+            memory_compact_with_agent_runtime(state, &session_id, force).await
         }
         "memory.afterTurn" | "memory_after_turn" => {
             let session_id = required_param(&params, &["sessionId"])?;
@@ -962,7 +981,8 @@ async fn handle_gateway_method(
         }
         "memory.onSubagentEnded" | "memory_on_subagent_ended" => {
             let child_session_key = required_param(&params, &["childSessionKey"])?;
-            let reason = string_param(&params, &["reason"]).unwrap_or_else(|| "completed".to_string());
+            let reason =
+                string_param(&params, &["reason"]).unwrap_or_else(|| "completed".to_string());
             memory_runtime(state).on_subagent_ended(&child_session_key, &reason)
         }
         "sessions.list" | "sessions_list" => sessions_list(state),
@@ -1348,6 +1368,8 @@ fn resolve_secret_value(
 fn tools_catalog(state: &GatewayState, params: Value) -> Value {
     let agent_id = string_param(&params, &["agentId"]).unwrap_or_else(|| "main".to_string());
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
+    let rust_tools =
+        crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
     json!({
         "agentId": agent_id,
         "profiles": tool_profiles(),
@@ -1358,7 +1380,10 @@ fn tools_catalog(state: &GatewayState, params: Value) -> Value {
                 "source": "core",
                 "tools": crawclaw_runtime::rust_core_tool_definitions()
                     .iter()
-                    .map(tool_catalog_entry)
+                    .map(|definition| tool_catalog_entry(
+                        definition,
+                        rust_tools.iter().find(|tool| tool.name == definition.id),
+                    ))
                     .collect::<Vec<_>>()
             },
             {
@@ -1384,6 +1409,8 @@ fn tools_effective(state: &GatewayState, params: Value) -> Value {
         "full"
     };
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
+    let rust_tools =
+        crawclaw_runtime::pi_agent_rust_tool_descriptors_for_runtime_root(&state.runtime_root);
     json!({
         "agentId": agent_id,
         "profile": profile,
@@ -1395,7 +1422,10 @@ fn tools_effective(state: &GatewayState, params: Value) -> Value {
                 "tools": crawclaw_runtime::rust_core_tool_definitions()
                     .iter()
                     .filter(|definition| definition.default_enabled)
-                    .map(tool_effective_entry)
+                    .map(|definition| tool_effective_entry(
+                        definition,
+                        rust_tools.iter().find(|tool| tool.name == definition.id),
+                    ))
                     .collect::<Vec<_>>()
             },
             {
@@ -1415,6 +1445,37 @@ fn tools_effective(state: &GatewayState, params: Value) -> Value {
     })
 }
 
+async fn tools_invoke(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let tool = required_param(&params, &["tool", "name"])?;
+    let input = params
+        .get("input")
+        .or_else(|| params.get("args"))
+        .cloned()
+        .unwrap_or_else(|| json!({}));
+    crawclaw_runtime::execute_rust_core_tool(&state.runtime_root, &tool, input).await
+}
+
+fn message_policy(params: Value) -> Result<Value, String> {
+    crawclaw_runtime::execute_message_policy_operation(params)
+}
+
+async fn native_plugin_invoke(state: &GatewayState, params: Value) -> Result<Value, String> {
+    crawclaw_runtime::execute_native_plugin_invoke_operation(&state.runtime_root, params).await
+}
+
+async fn native_plugin_service_lifecycle(
+    state: &GatewayState,
+    params: Value,
+    start: bool,
+) -> Result<Value, String> {
+    let mut input = params;
+    if let Value::Object(object) = &mut input {
+        object.insert("start".to_string(), Value::Bool(start));
+    }
+    crawclaw_runtime::execute_native_plugin_service_lifecycle_operation(&state.runtime_root, input)
+        .await
+}
+
 fn tool_profiles() -> Vec<Value> {
     vec![
         json!({ "id": "minimal", "label": "Minimal" }),
@@ -1424,24 +1485,49 @@ fn tool_profiles() -> Vec<Value> {
     ]
 }
 
-fn tool_catalog_entry(definition: &crawclaw_runtime::RustCoreToolDefinition) -> Value {
+fn tool_catalog_entry(
+    definition: &crawclaw_runtime::RustCoreToolDefinition,
+    descriptor: Option<&crawclaw_runtime::RustAgentToolDescriptor>,
+) -> Value {
+    let label = descriptor
+        .map(|tool| tool.label.clone())
+        .unwrap_or_else(|| tool_label(definition.id));
+    let description = descriptor
+        .map(|tool| tool.description.clone())
+        .unwrap_or_else(|| tool_description(definition.id).to_string());
     json!({
         "id": definition.id,
-        "label": tool_label(definition.id),
-        "description": tool_description(definition.id),
+        "label": label,
+        "description": description,
+        "parameters": descriptor
+            .map(|tool| tool.parameters.clone())
+            .unwrap_or_else(|| json!({ "type": "object" })),
+        "readOnly": descriptor.map(|tool| tool.read_only).unwrap_or(definition.read_only),
         "source": "core",
         "optional": !definition.default_enabled,
         "defaultProfiles": tool_default_profiles(definition.id)
     })
 }
 
-fn tool_effective_entry(definition: &crawclaw_runtime::RustCoreToolDefinition) -> Value {
-    let description = tool_description(definition.id);
+fn tool_effective_entry(
+    definition: &crawclaw_runtime::RustCoreToolDefinition,
+    descriptor: Option<&crawclaw_runtime::RustAgentToolDescriptor>,
+) -> Value {
+    let label = descriptor
+        .map(|tool| tool.label.clone())
+        .unwrap_or_else(|| tool_label(definition.id));
+    let description = descriptor
+        .map(|tool| tool.description.clone())
+        .unwrap_or_else(|| tool_description(definition.id).to_string());
     json!({
         "id": definition.id,
-        "label": tool_label(definition.id),
+        "label": label,
         "description": description,
         "rawDescription": description,
+        "parameters": descriptor
+            .map(|tool| tool.parameters.clone())
+            .unwrap_or_else(|| json!({ "type": "object" })),
+        "readOnly": descriptor.map(|tool| tool.read_only).unwrap_or(definition.read_only),
         "source": "core"
     })
 }
@@ -1453,6 +1539,7 @@ fn native_tool_catalog_entry(
         "id": descriptor.name,
         "label": descriptor.label,
         "description": descriptor.description,
+        "parameters": descriptor.parameters,
         "source": "native-plugin",
         "pluginId": plugin_id,
         "optional": !descriptor.default_enabled,
@@ -1470,6 +1557,8 @@ fn native_tool_effective_entry(
         "label": descriptor.label,
         "description": descriptor.description,
         "rawDescription": descriptor.description,
+        "parameters": descriptor.parameters,
+        "readOnly": descriptor.read_only,
         "source": "native-plugin",
         "pluginId": plugin_id
     })
@@ -6171,7 +6260,66 @@ fn qwen3_tts_platform_supported() -> bool {
     cfg!(target_os = "macos") || cfg!(target_os = "linux") || cfg!(target_os = "windows")
 }
 
-fn tts_convert(state: &GatewayState, params: Value) -> Result<Value, String> {
+fn qwen3_tts_default_profile() -> Value {
+    json!({
+        "source": "preset",
+        "quality": "balanced",
+        "voice": "vivian",
+        "language": "Auto",
+        "instructions": "natural, warm, expressive"
+    })
+}
+
+fn qwen3_tts_provider_config(config: &Value) -> Map<String, Value> {
+    let mut provider_config = qwen3_tts_config(config).cloned().unwrap_or_default();
+    provider_config
+        .entry("runtime".to_string())
+        .or_insert_with(|| Value::String(qwen3_tts_runtime(config).to_string()));
+    provider_config
+        .entry("baseUrl".to_string())
+        .or_insert_with(|| Value::String(qwen3_tts_base_url(config)));
+    provider_config
+        .entry("defaultProfile".to_string())
+        .or_insert_with(|| Value::String("assistant".to_string()));
+    let profiles = provider_config
+        .entry("profiles".to_string())
+        .or_insert_with(|| json!({ "assistant": qwen3_tts_default_profile() }));
+    if profiles.as_object().map(Map::is_empty).unwrap_or(true) {
+        *profiles = json!({ "assistant": qwen3_tts_default_profile() });
+    }
+    provider_config
+}
+
+fn qwen3_tts_provider_overrides(params: &Value, voice: Option<&str>) -> Value {
+    let mut overrides = Map::new();
+    if let Some(voice) = voice {
+        overrides.insert("voice".to_string(), Value::String(voice.to_string()));
+    }
+    for (source_key, target_key) in [
+        ("profile", "profile"),
+        ("model", "model"),
+        ("language", "language"),
+        ("instructions", "instructions"),
+    ] {
+        if let Some(value) = string_param(params, &[source_key]) {
+            overrides.insert(target_key.to_string(), Value::String(value));
+        }
+    }
+    Value::Object(overrides)
+}
+
+fn qwen3_tts_audio_mime_type(output_format: &str) -> String {
+    match output_format {
+        "opus" => "audio/opus",
+        "pcm" => "audio/L16",
+        "mp3" => "audio/mpeg",
+        "wav" | "wave" => "audio/wav",
+        other => return format!("audio/{other}"),
+    }
+    .to_string()
+}
+
+async fn tts_convert(state: &GatewayState, params: Value) -> Result<Value, String> {
     let text = required_param(&params, &["text", "message"])?;
     let config = read_config_value(&config_path(state)).unwrap_or(Value::Object(Map::new()));
     let provider = string_param(&params, &["provider"])
@@ -6181,6 +6329,9 @@ fn tts_convert(state: &GatewayState, params: Value) -> Result<Value, String> {
                 .map(ToOwned::to_owned)
         })
         .unwrap_or_else(|| "qwen3-tts".to_string());
+    let provider = canonical_native_tts_provider(&provider)
+        .ok_or_else(|| format!("Rust TTS provider is not implemented: {provider}"))?
+        .to_string();
     let voice = string_param(&params, &["voice", "voiceId"]).or_else(|| {
         get_json_path(
             &config,
@@ -6189,16 +6340,84 @@ fn tts_convert(state: &GatewayState, params: Value) -> Result<Value, String> {
         .and_then(Value::as_str)
         .map(ToOwned::to_owned)
     });
+    if !qwen3_tts_supported(&config) {
+        return Err(format!("{provider} is not supported on this platform"));
+    }
+    if let Some(max_length) = get_json_path(&config, "messages.tts.maxTextLength")
+        .and_then(Value::as_u64)
+        .or_else(|| params.get("maxTextLength").and_then(Value::as_u64))
+    {
+        if text.chars().count() as u64 > max_length {
+            return Err(format!(
+                "TTS input exceeds messages.tts.maxTextLength ({max_length})"
+            ));
+        }
+    }
+    let provider_config = qwen3_tts_provider_config(&config);
+    let target = string_param(&params, &["target"]).unwrap_or_else(|| "audio-file".to_string());
+    let mut input = json!({
+        "text": text,
+        "target": target,
+        "provider": provider,
+        "providerConfig": provider_config.clone(),
+        "providerOverrides": qwen3_tts_provider_overrides(&params, voice.as_deref())
+    });
+    if let Some(agent_id) = string_param(&params, &["agentId"]) {
+        input["agentId"] = Value::String(agent_id);
+    }
+    if let Some(timeout_ms) = params.get("timeoutMs").and_then(Value::as_u64) {
+        input["timeoutMs"] = Value::Number(timeout_ms.into());
+    } else if let Some(timeout_ms) =
+        get_json_path(&config, "messages.tts.timeoutMs").and_then(Value::as_u64)
+    {
+        input["timeoutMs"] = Value::Number(timeout_ms.into());
+    }
+    if provider_config
+        .get("autoStart")
+        .and_then(Value::as_bool)
+        .unwrap_or(false)
+    {
+        crawclaw_native_plugins::registry::dispatch_builtin_native_plugin_operation(
+            "qwen3-tts",
+            "service-start",
+            json!({ "providerConfig": provider_config.clone() }),
+        )
+        .await
+        .map_err(|error| error.to_string())?;
+    }
+    let native = crawclaw_native_plugins::registry::dispatch_builtin_native_plugin_operation(
+        "qwen3-tts",
+        "synthesize",
+        input,
+    )
+    .await
+    .map_err(|error| error.to_string())?;
+    let audio_base64 = native
+        .get("audioBase64")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "Qwen3-TTS did not return audioBase64".to_string())?
+        .to_string();
+    let output_format = native
+        .get("outputFormat")
+        .and_then(Value::as_str)
+        .unwrap_or("wav")
+        .to_string();
     let result = json!({
         "ok": true,
-        "status": "prepared",
+        "status": "generated",
         "provider": provider,
         "voice": voice,
         "text": text,
-        "audio": Value::Null,
+        "audio": {
+            "base64": audio_base64,
+            "mimeType": qwen3_tts_audio_mime_type(&output_format),
+            "format": output_format
+        },
+        "audioBase64": audio_base64,
+        "outputFormat": output_format,
         "artifact": Value::Null,
-        "implementation": "rust-native",
-        "message": "Rust Gateway prepared the TTS request locally; provider synthesis is handled by native plugin tools when configured."
+        "native": native,
+        "implementation": "rust-native"
     });
     append_jsonl(
         &state.runtime_root.join("tts").join("requests.jsonl"),
@@ -6233,11 +6452,11 @@ fn talk_mode(state: &GatewayState, params: Value) -> Result<Value, String> {
     Ok(json!({ "ok": true, "enabled": enabled }))
 }
 
-fn talk_speak(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let speech = tts_convert(state, params.clone())?;
+async fn talk_speak(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let speech = tts_convert(state, params.clone()).await?;
     let payload = json!({
         "ok": true,
-        "status": speech.get("status").cloned().unwrap_or_else(|| Value::String("prepared".to_string())),
+        "status": speech.get("status").cloned().unwrap_or_else(|| Value::String("generated".to_string())),
         "speech": speech,
         "implementation": "rust-native"
     });
@@ -6245,19 +6464,28 @@ fn talk_speak(state: &GatewayState, params: Value) -> Result<Value, String> {
     Ok(payload)
 }
 
-fn voice_qwen3_tts(state: &GatewayState, method: &str, params: Value) -> Result<Value, String> {
+async fn voice_qwen3_tts(
+    state: &GatewayState,
+    method: &str,
+    mut params: Value,
+) -> Result<Value, String> {
     let operation = method.rsplit('.').next().unwrap_or("preview").to_string();
-    let text = string_param(&params, &["text", "message"]).unwrap_or_default();
-    let reference = string_param(&params, &["path", "referenceAudioPath", "referenceAudio"]);
-    let result = json!({
-        "ok": true,
-        "status": "prepared",
-        "provider": "qwen3-tts",
-        "operation": operation,
-        "text": text,
-        "referenceAudio": reference,
-        "implementation": "rust-native"
-    });
+    if operation == "uploadReferenceAudio" {
+        return Err(
+            "voice.qwen3Tts.uploadReferenceAudio is not implemented in Rust yet".to_string(),
+        );
+    }
+    let Some(object) = params.as_object_mut() else {
+        return Err("voice.qwen3Tts.preview requires an object payload".to_string());
+    };
+    object.insert(
+        "provider".to_string(),
+        Value::String(QWEN3_TTS_PROVIDER_ID.to_string()),
+    );
+    let mut result = tts_convert(state, params).await?;
+    if let Some(object) = result.as_object_mut() {
+        object.insert("operation".to_string(), Value::String(operation));
+    }
     append_jsonl(
         &state.runtime_root.join("tts").join("qwen3-tts.jsonl"),
         &result,
@@ -6704,8 +6932,25 @@ fn build_agent_run_request(
             reasoning_level: string_param(params, &["reasoningLevel"]),
         },
         enabled_tools: Vec::new(),
-        options: BTreeMap::new(),
+        options: agent_run_options(params),
     })
+}
+
+fn agent_run_options(params: &Value) -> BTreeMap<String, Value> {
+    let mut options = params
+        .get("options")
+        .and_then(Value::as_object)
+        .map(|object| {
+            object
+                .iter()
+                .map(|(key, value)| (key.clone(), value.clone()))
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
+    if let Some(question) = string_param(params, &["btwQuestion"]) {
+        options.insert("btwQuestion".to_string(), Value::String(question));
+    }
+    options
 }
 
 fn agent_model_param(params: &Value, field: &str) -> Option<String> {
@@ -6754,45 +6999,29 @@ fn record_agent_run_events(state: &GatewayState, result: &AgentRunResult) -> Res
 
 async fn agent_run_turn(state: &GatewayState, params: Value) -> Result<Value, String> {
     let result = execute_agent_run_turn(state, &params, "rust-agent-run").await?;
-    let events = agent_run_events_value(&result.events)?;
-    Ok(json!({
-        "ok": true,
-        "status": "completed",
-        "runId": result.run_id,
-        "sessionKey": result.session_key,
-        "assistantText": result.assistant_text,
-        "events": events
-    }))
+    agent_run_response(result, "agentRun")
 }
 
-async fn agent_runtime_surface_run(
-    state: &GatewayState,
-    params: Value,
-    default_run_prefix: &str,
-    source: &str,
-) -> Result<Value, String> {
-    let trigger = string_param(&params, &["trigger"]).unwrap_or_else(|| "user".to_string());
-    let result = execute_agent_run_turn(state, &params, default_run_prefix).await?;
+async fn agent_command_run(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let result = execute_agent_run_turn(state, &params, "rust-agent-command").await?;
+    agent_run_response(result, "agentCommand")
+}
+
+async fn auto_reply_run(state: &GatewayState, params: Value) -> Result<Value, String> {
+    let result = execute_agent_run_turn(state, &params, "rust-auto-reply").await?;
+    agent_run_response(result, "autoReply")
+}
+
+fn agent_run_response(result: AgentRunResult, kind: &str) -> Result<Value, String> {
     let events = agent_run_events_value(&result.events)?;
     Ok(json!({
         "ok": true,
         "status": "completed",
+        "kind": kind,
         "implementation": "rust-native",
-        "source": source,
-        "trigger": trigger,
         "runId": result.run_id,
         "sessionKey": result.session_key,
         "assistantText": result.assistant_text,
-        "payloads": [
-            {
-                "text": result.assistant_text
-            }
-        ],
-        "meta": {
-            "implementation": "rust-native",
-            "source": source,
-            "trigger": trigger
-        },
         "events": events
     }))
 }
@@ -6805,26 +7034,37 @@ async fn special_agent_run(state: &GatewayState, params: Value) -> Result<Value,
         .as_deref()
         .or(request.spawn_source.as_deref())
         .ok_or_else(|| "special_agents.run requires kind or spawnSource".to_string())?;
-    let definition =
-        find_special_agent(selector).ok_or_else(|| format!("unknown special agent kind: {selector}"))?;
-    if matches!(definition.id, "review-spec" | "review-quality") {
-        return special_agent_run_with_agent_runtime(state, request, definition.id).await;
-    }
-    let response = SpecialAgentRunner::new(state.runtime_root.clone()).run(request)?;
-    Ok(json!(response))
+    let definition = find_special_agent(selector)
+        .ok_or_else(|| format!("unknown special agent kind: {selector}"))?;
+    special_agent_run_with_agent_runtime(state, request, definition).await
 }
 
 async fn special_agent_run_with_agent_runtime(
     state: &GatewayState,
     request: SpecialAgentRunRequest,
-    kind: &str,
+    definition: &'static SpecialAgentDefinition,
 ) -> Result<Value, String> {
+    let kind = definition.id;
     let run_id = format!("special-{kind}-{}", now_millis());
     let session_key = request
         .parent_session_key
         .clone()
         .unwrap_or_else(|| format!("special:{kind}:{run_id}"));
+    let scope = request.scope.clone().unwrap_or_else(|| "main".to_string());
     let task = request.task.unwrap_or_default();
+    let mut options = BTreeMap::new();
+    options.insert(
+        "specialAgent".to_string(),
+        json!({
+            "kind": kind,
+            "spawnSource": definition.spawn_source,
+            "executionMode": definition.execution_mode,
+            "transcriptPolicy": definition.transcript_policy,
+            "parentContextPolicy": definition.parent_context_policy,
+            "timeoutSeconds": definition.timeout_seconds,
+            "maxTurns": definition.max_turns
+        }),
+    );
     let agent_request = AgentRunRequest {
         run_id: run_id.clone(),
         agent_id: kind.to_string(),
@@ -6847,8 +7087,12 @@ async fn special_agent_run_with_agent_runtime(
             model: "configured".to_string(),
             reasoning_level: None,
         },
-        enabled_tools: Vec::new(),
-        options: BTreeMap::new(),
+        enabled_tools: definition
+            .tool_allowlist
+            .iter()
+            .map(|tool| (*tool).to_string())
+            .collect(),
+        options,
     };
     let result = state
         .agent_runtime
@@ -6857,11 +7101,12 @@ async fn special_agent_run_with_agent_runtime(
         .map_err(|error| error.message().to_string())?;
     record_agent_run_events(state, &result)?;
     let events = agent_run_events_value(&result.events)?;
-    Ok(json!({
+    let memory = persist_special_agent_memory_result(state, kind, &scope, &result.assistant_text)?;
+    let response = json!({
         "status": "completed",
         "runId": result.run_id,
         "kind": kind,
-        "executionMode": "spawned_session",
+        "executionMode": definition.execution_mode,
         "parentSessionKey": request.parent_session_key,
         "result": {
             "status": "completed",
@@ -6872,9 +7117,106 @@ async fn special_agent_run_with_agent_runtime(
                 }
             ],
             "events": events,
+            "memory": memory,
             "implementation": "rust-native"
         }
+    });
+    emit(
+        state,
+        "specialAgent.result",
+        json!({ "kind": kind, "result": response["result"].clone() }),
+    );
+    Ok(response)
+}
+
+fn persist_special_agent_memory_result(
+    state: &GatewayState,
+    kind: &str,
+    scope: &str,
+    assistant_text: &str,
+) -> Result<Value, String> {
+    let runtime = memory_runtime(state);
+    match kind {
+        "dream" => runtime.dream_store().run(scope, assistant_text),
+        "session-summary" => runtime
+            .session_summary_store()
+            .refresh(scope, assistant_text),
+        "experience" => runtime.experience_store().write_note(
+            scope,
+            "special-agent",
+            assistant_text,
+            "rust-agent-runtime",
+        ),
+        "durable-memory" => runtime.durable_index_list(scope, 100),
+        _ => Ok(Value::Null),
+    }
+}
+
+async fn memory_compact_with_agent_runtime(
+    state: &GatewayState,
+    session_id: &str,
+    force: bool,
+) -> Result<Value, String> {
+    let runtime = memory_runtime(state);
+    let store = runtime.store();
+    store.init()?;
+    let messages = store.list_messages(session_id, 10_000)?;
+    if !force && messages.len() < 64 {
+        return Ok(json!({
+            "ok": true,
+            "compacted": false,
+            "reason": "below_threshold"
+        }));
+    }
+    let transcript = serde_json::to_string_pretty(&messages)
+        .map_err(|error| format!("failed to serialize compact transcript: {error}"))?;
+    let definition = find_special_agent("session-summary")
+        .ok_or_else(|| "missing session-summary special agent".to_string())?;
+    let run = special_agent_run_with_agent_runtime(
+        state,
+        SpecialAgentRunRequest {
+            kind: Some("session-summary".to_string()),
+            spawn_source: None,
+            task: Some(format!(
+                "Compact session {session_id} into a concise, durable session summary.\n\n{transcript}"
+            )),
+            scope: Some(session_id.to_string()),
+            parent_session_key: Some(format!("memory:compact:{session_id}")),
+        },
+        definition,
+    )
+    .await?;
+    let summary = run
+        .get("result")
+        .and_then(|result| result.get("assistantText"))
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    store.upsert_session_compaction_state(session_id, messages.len() as i64)?;
+    Ok(json!({
+        "ok": true,
+        "compacted": true,
+        "result": {
+            "summary": summary,
+            "firstKeptEntryId": messages
+                .last()
+                .and_then(|message| message.get("id"))
+                .and_then(Value::as_str)
+                .unwrap_or(session_id),
+            "tokensBefore": estimate_gateway_json_tokens(&json!(messages)),
+            "tokensAfter": estimate_gateway_text_tokens(&summary),
+            "runId": run.get("runId").cloned().unwrap_or(Value::Null),
+            "implementation": "rust-native-agent-runtime"
+        }
     }))
+}
+
+fn estimate_gateway_json_tokens(value: &Value) -> u32 {
+    estimate_gateway_text_tokens(&serde_json::to_string(value).unwrap_or_default())
+}
+
+fn estimate_gateway_text_tokens(value: &str) -> u32 {
+    value.split_whitespace().count().max(value.len() / 4).max(1) as u32
 }
 
 async fn channel_inbound_handle(state: &GatewayState, params: Value) -> Result<Value, String> {
@@ -8201,16 +8543,6 @@ fn workflow_execution_action(
     }))
 }
 
-const DEVICE_PENDING_TTL_MS: u64 = 5 * 60 * 1000;
-
-fn device_pairing_pending_path(state: &GatewayState) -> PathBuf {
-    state.state_dir.join("devices").join("pending.json")
-}
-
-fn device_pairing_paired_path(state: &GatewayState) -> PathBuf {
-    state.state_dir.join("devices").join("paired.json")
-}
-
 fn read_json_object_file(path: PathBuf) -> Result<Map<String, Value>, String> {
     match read_config_value(&path)? {
         Value::Object(object) => Ok(object),
@@ -8218,129 +8550,43 @@ fn read_json_object_file(path: PathBuf) -> Result<Map<String, Value>, String> {
     }
 }
 
-fn read_device_pairing_state(
+const ESP32_PENDING_TTL_MS: u64 = 5 * 60 * 1000;
+
+fn esp32_pending_path(state: &GatewayState) -> PathBuf {
+    state.state_dir.join("devices").join("pending.json")
+}
+
+fn esp32_paired_path(state: &GatewayState) -> PathBuf {
+    state.state_dir.join("devices").join("paired.json")
+}
+
+fn read_esp32_device_pairing_state(
     state: &GatewayState,
 ) -> Result<(Map<String, Value>, Map<String, Value>), String> {
-    let mut pending = read_json_object_file(device_pairing_pending_path(state))?;
-    prune_expired_device_pairing(&mut pending);
-    let paired = read_json_object_file(device_pairing_paired_path(state))?;
+    let mut pending = read_json_object_file(esp32_pending_path(state))?;
+    prune_expired_esp32_pairing(&mut pending);
+    let paired = read_json_object_file(esp32_paired_path(state))?;
     Ok((pending, paired))
 }
 
-fn prune_expired_device_pairing(pending: &mut Map<String, Value>) {
+fn prune_expired_esp32_pairing(pending: &mut Map<String, Value>) {
     let now = now_millis() as u64;
     pending.retain(|_, request| {
         request
             .get("ts")
             .and_then(Value::as_u64)
-            .map(|ts| now.saturating_sub(ts) <= DEVICE_PENDING_TTL_MS)
+            .map(|ts| now.saturating_sub(ts) <= ESP32_PENDING_TTL_MS)
             .unwrap_or(true)
     });
 }
 
-fn device_pair_list(state: &GatewayState) -> Result<Value, String> {
-    let (pending, paired) = read_device_pairing_state(state)?;
-    let mut pending = pending.into_values().collect::<Vec<_>>();
-    pending.sort_by(|left, right| {
-        let left_ts = left.get("ts").and_then(Value::as_u64).unwrap_or(0);
-        let right_ts = right.get("ts").and_then(Value::as_u64).unwrap_or(0);
-        right_ts.cmp(&left_ts)
-    });
-    let mut paired = paired
-        .into_values()
-        .map(redact_paired_device)
-        .collect::<Vec<_>>();
-    paired.sort_by(|left, right| {
-        let left_ts = left
-            .get("approvedAtMs")
-            .and_then(Value::as_u64)
-            .unwrap_or(0);
-        let right_ts = right
-            .get("approvedAtMs")
-            .and_then(Value::as_u64)
-            .unwrap_or(0);
-        right_ts.cmp(&left_ts)
-    });
-    Ok(json!({ "pending": pending, "paired": paired }))
-}
-
-fn device_pair_approve(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let request_id = required_param(&params, &["requestId", "id"])?;
-    let (mut pending, mut paired) = read_device_pairing_state(state)?;
-    let request = pending
-        .remove(&request_id)
-        .ok_or_else(|| "unknown requestId".to_string())?;
-    validate_device_pair_approval_scope(&request, &params)?;
-    let device = build_paired_device_from_request(&request);
-    let device_id = device
-        .get("deviceId")
-        .and_then(Value::as_str)
-        .ok_or_else(|| "device pairing request missing deviceId".to_string())?
-        .to_string();
-    paired.insert(device_id, device.clone());
-    write_json_file(&device_pairing_pending_path(state), &Value::Object(pending))?;
-    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
-    Ok(json!({
-        "requestId": request_id,
-        "device": redact_paired_device(device)
-    }))
-}
-
-fn device_pair_reject(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let request_id = required_param(&params, &["requestId", "id"])?;
-    let (mut pending, _) = read_device_pairing_state(state)?;
-    let request = pending
-        .remove(&request_id)
-        .ok_or_else(|| "unknown requestId".to_string())?;
-    write_json_file(&device_pairing_pending_path(state), &Value::Object(pending))?;
-    Ok(json!({
-        "requestId": request_id,
-        "deviceId": request.get("deviceId").cloned().unwrap_or(Value::Null)
-    }))
-}
-
-fn device_pair_remove(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let device_id = required_param(&params, &["deviceId", "id"])?;
-    let (_, mut paired) = read_device_pairing_state(state)?;
-    if paired.remove(&device_id).is_none() {
-        return Err("unknown deviceId".to_string());
-    }
-    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
-    Ok(json!({ "deviceId": device_id }))
-}
-
-fn validate_device_pair_approval_scope(request: &Value, params: &Value) -> Result<(), String> {
-    let requested_scopes = request
-        .get("scopes")
-        .and_then(Value::as_array)
-        .map(|scopes| {
-            scopes
-                .iter()
-                .filter_map(Value::as_str)
-                .map(str::trim)
-                .filter(|scope| scope.starts_with("operator."))
-                .map(ToOwned::to_owned)
-                .collect::<Vec<_>>()
-        })
-        .unwrap_or_default();
-    if requested_scopes.is_empty() {
-        return Ok(());
-    }
-    let caller_scopes = string_array_param(params, "callerScopes").unwrap_or_default();
-    for scope in requested_scopes {
-        if !caller_scopes
-            .iter()
-            .any(|caller_scope| caller_scope == &scope)
-        {
-            return Err(format!("missing scope: {scope}"));
-        }
-    }
-    Ok(())
-}
-
-fn build_paired_device_from_request(request: &Value) -> Value {
+fn build_esp32_paired_device_from_request(request: &Value) -> Value {
     let now = now_millis() as u64;
-    let role = request.get("role").and_then(Value::as_str).map(str::trim);
+    let role = request
+        .get("role")
+        .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|role| !role.is_empty());
     let scopes = request
         .get("scopes")
         .and_then(Value::as_array)
@@ -8369,222 +8615,17 @@ fn build_paired_device_from_request(request: &Value) -> Value {
     }
     device.insert("roles".to_string(), roles);
     device.insert("scopes".to_string(), Value::Array(scopes.clone()));
-    device.insert("approvedScopes".to_string(), Value::Array(scopes.clone()));
+    device.insert("approvedScopes".to_string(), Value::Array(scopes));
     device.insert("createdAtMs".to_string(), json!(now));
     device.insert("approvedAtMs".to_string(), json!(now));
-    if let Some(role) = role.filter(|role| !role.is_empty()) {
-        device.insert(
-            "tokens".to_string(),
-            json!({
-                role: {
-                    "token": format!("rust-device-token-{role}-{now}"),
-                    "role": role,
-                    "scopes": scopes,
-                    "createdAtMs": now
-                }
-            }),
-        );
-    } else {
-        device.insert("tokens".to_string(), json!({}));
-    }
     Value::Object(device)
 }
 
-fn redact_paired_device(device: Value) -> Value {
+fn redact_esp32_paired_device(device: Value) -> Value {
     let mut object = device.as_object().cloned().unwrap_or_default();
     object.remove("approvedScopes");
-    let summaries = object.remove("tokens").and_then(|tokens| {
-        let mut summaries = tokens
-            .as_object()?
-            .values()
-            .filter_map(device_token_summary)
-            .collect::<Vec<_>>();
-        summaries.sort_by(|left, right| {
-            let left_role = left.get("role").and_then(Value::as_str).unwrap_or_default();
-            let right_role = right
-                .get("role")
-                .and_then(Value::as_str)
-                .unwrap_or_default();
-            left_role.cmp(right_role)
-        });
-        if summaries.is_empty() {
-            None
-        } else {
-            Some(Value::Array(summaries))
-        }
-    });
-    if let Some(summaries) = summaries {
-        object.insert("tokens".to_string(), summaries);
-    }
+    object.remove("tokens");
     Value::Object(object)
-}
-
-fn device_token_summary(token: &Value) -> Option<Value> {
-    let token = token.as_object()?;
-    let mut summary = Map::new();
-    for field in [
-        "role",
-        "scopes",
-        "createdAtMs",
-        "rotatedAtMs",
-        "revokedAtMs",
-        "lastUsedAtMs",
-    ] {
-        if let Some(value) = token.get(field) {
-            summary.insert(field.to_string(), value.clone());
-        }
-    }
-    Some(Value::Object(summary))
-}
-
-fn device_token_rotate(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let device_id =
-        safe_config_component_id(&required_param(&params, &["deviceId", "id"])?, "device id")?;
-    let Some(role) = string_param(&params, &["role"]) else {
-        return device_token_rotate_legacy_config(state, device_id);
-    };
-    let role = role.trim().to_string();
-    if role.is_empty() {
-        return Err("role required".to_string());
-    }
-    let (_, mut paired) = read_device_pairing_state(state)?;
-    let device = paired
-        .get_mut(&device_id)
-        .ok_or_else(|| "unknown deviceId/role".to_string())?;
-    let now = now_millis() as u64;
-    let requested_scopes = requested_device_token_scopes(device, &role, &params);
-    if !scopes_within_device_baseline(device, &requested_scopes) {
-        return Err("device token rotation denied".to_string());
-    }
-    let existing = device
-        .get("tokens")
-        .and_then(Value::as_object)
-        .and_then(|tokens| tokens.get(&role))
-        .cloned();
-    let created_at_ms = existing
-        .as_ref()
-        .and_then(|token| token.get("createdAtMs"))
-        .and_then(Value::as_u64)
-        .unwrap_or(now);
-    let last_used_at_ms = existing
-        .as_ref()
-        .and_then(|token| token.get("lastUsedAtMs"))
-        .cloned();
-    let token = format!("rust-device-token-{role}-{now}");
-    let mut next = Map::new();
-    next.insert("token".to_string(), Value::String(token.clone()));
-    next.insert("role".to_string(), Value::String(role.clone()));
-    next.insert("scopes".to_string(), json!(requested_scopes));
-    next.insert("createdAtMs".to_string(), json!(created_at_ms));
-    next.insert("rotatedAtMs".to_string(), json!(now));
-    if let Some(last_used_at_ms) = last_used_at_ms {
-        next.insert("lastUsedAtMs".to_string(), last_used_at_ms);
-    }
-    let tokens = device
-        .as_object_mut()
-        .ok_or_else(|| "paired device entry must be an object".to_string())?
-        .entry("tokens".to_string())
-        .or_insert_with(|| json!({}));
-    if !tokens.is_object() {
-        *tokens = json!({});
-    }
-    tokens
-        .as_object_mut()
-        .ok_or_else(|| "paired device tokens must be an object".to_string())?
-        .insert(role.clone(), Value::Object(next));
-    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
-    Ok(json!({
-        "deviceId": device_id,
-        "role": role,
-        "token": token,
-        "scopes": requested_scopes,
-        "rotatedAtMs": now,
-        "implementation": "rust-native"
-    }))
-}
-
-fn device_token_rotate_legacy_config(
-    state: &GatewayState,
-    device_id: String,
-) -> Result<Value, String> {
-    let device_token = format!("rust-device-{device_id}-{}", now_millis());
-    let path = config_path(state);
-    let mut config = read_config_value(&path)?;
-    set_json_path(
-        &mut config,
-        &format!("devices.tokens.{device_id}.token"),
-        Value::String(device_token.clone()),
-    )?;
-    set_json_path(
-        &mut config,
-        &format!("devices.tokens.{device_id}.rotatedAtMs"),
-        json!(now_millis()),
-    )?;
-    write_config_value(&path, &config)?;
-    Ok(json!({
-        "ok": true,
-        "deviceId": device_id,
-        "deviceToken": device_token,
-        "rotatedAtMs": now_millis(),
-        "implementation": "rust-native"
-    }))
-}
-
-fn device_token_revoke(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let device_id =
-        safe_config_component_id(&required_param(&params, &["deviceId", "id"])?, "device id")?;
-    let role = required_param(&params, &["role"])?;
-    let role = role.trim().to_string();
-    if role.is_empty() {
-        return Err("role required".to_string());
-    }
-    let (_, mut paired) = read_device_pairing_state(state)?;
-    let device = paired
-        .get_mut(&device_id)
-        .ok_or_else(|| "unknown deviceId/role".to_string())?;
-    let Some(token) = device
-        .get_mut("tokens")
-        .and_then(Value::as_object_mut)
-        .and_then(|tokens| tokens.get_mut(&role))
-    else {
-        return Err("unknown deviceId/role".to_string());
-    };
-    let revoked_at_ms = now_millis() as u64;
-    token
-        .as_object_mut()
-        .ok_or_else(|| "device token must be an object".to_string())?
-        .insert("revokedAtMs".to_string(), json!(revoked_at_ms));
-    write_json_file(&device_pairing_paired_path(state), &Value::Object(paired))?;
-    Ok(json!({
-        "deviceId": device_id,
-        "role": role,
-        "revokedAtMs": revoked_at_ms,
-        "implementation": "rust-native"
-    }))
-}
-
-fn requested_device_token_scopes(device: &Value, role: &str, params: &Value) -> Vec<String> {
-    string_array_param(params, "scopes")
-        .or_else(|| {
-            device
-                .get("tokens")
-                .and_then(Value::as_object)
-                .and_then(|tokens| tokens.get(role))
-                .and_then(|token| string_array_param(token, "scopes"))
-        })
-        .or_else(|| string_array_param(device, "scopes"))
-        .unwrap_or_default()
-}
-
-fn scopes_within_device_baseline(device: &Value, requested_scopes: &[String]) -> bool {
-    let baseline = string_array_param(device, "approvedScopes")
-        .or_else(|| string_array_param(device, "scopes"));
-    let Some(baseline) = baseline else {
-        return false;
-    };
-    requested_scopes
-        .iter()
-        .all(|scope| baseline.iter().any(|allowed| allowed == scope))
 }
 
 const ESP32_DEVICE_ROLE: &str = "esp32";
@@ -8887,7 +8928,7 @@ fn esp32_pending_summary(request: Value, stored: Option<&Value>) -> Value {
 }
 
 fn esp32_overview(state: &GatewayState) -> Result<(Vec<Value>, Vec<Value>), String> {
-    let (pending, paired) = read_device_pairing_state(state)?;
+    let (pending, paired) = read_esp32_device_pairing_state(state)?;
     let stored = read_esp32_stored_devices(state)?;
     let mut pending = pending
         .into_values()
@@ -9036,15 +9077,43 @@ fn esp32_pairing_requests_list(state: &GatewayState) -> Result<Value, String> {
 }
 
 fn esp32_pairing_request_approve(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let approved = device_pair_approve(state, params)?;
+    let request_id = required_param(&params, &["requestId", "id"])?;
+    let (mut pending, mut paired) = read_esp32_device_pairing_state(state)?;
+    let request = pending
+        .remove(&request_id)
+        .ok_or_else(|| "unknown requestId".to_string())?;
+    if !esp32_pending_request(&request) {
+        return Err("request is not an ESP32 pairing request".to_string());
+    }
+    let device = build_esp32_paired_device_from_request(&request);
+    let device_id = device
+        .get("deviceId")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "ESP32 pairing request missing deviceId".to_string())?
+        .to_string();
+    paired.insert(device_id.clone(), device);
+    write_json_file(&esp32_pending_path(state), &Value::Object(pending))?;
+    write_json_file(&esp32_paired_path(state), &Value::Object(paired))?;
     Ok(json!({
-        "requestId": approved["requestId"].clone(),
-        "deviceId": approved["device"]["deviceId"].clone()
+        "requestId": request_id,
+        "deviceId": device_id
     }))
 }
 
 fn esp32_pairing_request_reject(state: &GatewayState, params: Value) -> Result<Value, String> {
-    device_pair_reject(state, params)
+    let request_id = required_param(&params, &["requestId", "id"])?;
+    let (mut pending, _) = read_esp32_device_pairing_state(state)?;
+    let request = pending
+        .remove(&request_id)
+        .ok_or_else(|| "unknown requestId".to_string())?;
+    if !esp32_pending_request(&request) {
+        return Err("request is not an ESP32 pairing request".to_string());
+    }
+    write_json_file(&esp32_pending_path(state), &Value::Object(pending))?;
+    Ok(json!({
+        "requestId": request_id,
+        "deviceId": request.get("deviceId").cloned().unwrap_or(Value::Null)
+    }))
 }
 
 fn esp32_pairing_session_revoke(state: &GatewayState, params: Value) -> Result<Value, String> {
@@ -9068,7 +9137,7 @@ fn esp32_devices_list(state: &GatewayState) -> Result<Value, String> {
 fn esp32_device_get(state: &GatewayState, params: Value) -> Result<Value, String> {
     let device_id =
         safe_config_component_id(&required_param(&params, &["deviceId", "id"])?, "device id")?;
-    let (_, paired) = read_device_pairing_state(state)?;
+    let (_, paired) = read_esp32_device_pairing_state(state)?;
     let stored = read_esp32_stored_devices(state)?;
     let device = paired.get(&device_id).cloned().filter(esp32_paired_device);
     let summary = device
@@ -9079,13 +9148,22 @@ fn esp32_device_get(state: &GatewayState, params: Value) -> Result<Value, String
         "status": if device.is_some() { "found" } else { "not_found" },
         "deviceId": device_id,
         "device": summary.clone().unwrap_or(Value::Null),
-        "paired": device.map(redact_paired_device).unwrap_or(Value::Null),
+        "paired": device.map(redact_esp32_paired_device).unwrap_or(Value::Null),
         "implementation": "rust-native"
     }))
 }
 
 fn esp32_devices_revoke(state: &GatewayState, params: Value) -> Result<Value, String> {
-    device_pair_remove(state, params)
+    let device_id = required_param(&params, &["deviceId", "id"])?;
+    let (_, mut paired) = read_esp32_device_pairing_state(state)?;
+    let removed = paired
+        .remove(&device_id)
+        .filter(esp32_paired_device)
+        .ok_or_else(|| "unknown deviceId".to_string())?;
+    write_json_file(&esp32_paired_path(state), &Value::Object(paired))?;
+    Ok(json!({
+        "deviceId": removed.get("deviceId").cloned().unwrap_or_else(|| json!(device_id))
+    }))
 }
 
 fn esp32_device_command_send(state: &GatewayState, params: Value) -> Result<Value, String> {
@@ -9388,36 +9466,6 @@ fn normalize_session_key(input: &str) -> Result<String, String> {
     }
 }
 
-async fn run_agent(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let session_key =
-        string_param(&params, &["sessionKey", "key"]).unwrap_or_else(|| "main".to_string());
-    let message = required_param(&params, &["message", "text", "input"])?;
-    let result = state
-        .agent_runtime
-        .send_message(session_key.clone(), message)
-        .await
-        .map_err(|error| error.message().to_string())?;
-    emit(
-        state,
-        "session.message",
-        json!({
-            "sessionKey": session_key,
-            "role": "assistant",
-            "content": result.assistant_text
-        }),
-    );
-    emit(
-        state,
-        "sessions.changed",
-        json!({ "sessionKey": result.thread_id }),
-    );
-    Ok(json!({
-        "runId": format!("rust-run-{}", now_millis()),
-        "sessionKey": result.thread_id,
-        "assistantText": result.assistant_text
-    }))
-}
-
 fn runtime_status_value(state: &GatewayState) -> Value {
     let native_registry = crawclaw_runtime::native_plugin_registry(&state.runtime_root);
     json!({
@@ -9461,6 +9509,11 @@ fn gateway_methods() -> Vec<&'static str> {
         "secrets.resolve",
         "tools.catalog",
         "tools.effective",
+        "tools.invoke",
+        "message.policy",
+        "nativePlugin.invoke",
+        "nativePlugin.service.start",
+        "nativePlugin.service.stop",
         "models.list",
         "agents.list",
         "logs.tail",
@@ -9549,12 +9602,6 @@ fn gateway_methods() -> Vec<&'static str> {
         "channel.lifecycle.start",
         "channel.lifecycle.stop",
         "channel.lifecycle.restart",
-        "device.pair.list",
-        "device.pair.approve",
-        "device.pair.reject",
-        "device.pair.remove",
-        "device.token.rotate",
-        "device.token.revoke",
         "esp32.status.get",
         "esp32.pairing.start",
         "esp32.pairing.requests.list",
@@ -9583,7 +9630,6 @@ fn gateway_methods() -> Vec<&'static str> {
         "workflow.agent.run",
         "agent.runTurn",
         "agent.command.run",
-        "auto_reply.run",
         "autoReply.run",
         "agent.streamEvents",
         "agent.cancel",
@@ -9591,7 +9637,6 @@ fn gateway_methods() -> Vec<&'static str> {
         "chat.send",
         "chat.abort",
         "chat.inject",
-        "agent",
         "sessions.list",
         "sessions.create",
         "sessions.subscribe",
@@ -9612,6 +9657,8 @@ fn gateway_methods() -> Vec<&'static str> {
         "sessions.yield",
         "subagents",
         "wake",
+        "cron.start",
+        "cron.stop",
         "cron.status",
         "cron.list",
         "cron.add",
@@ -9979,10 +10026,7 @@ fn authorize_connect(state: &GatewayState, params: &Value) -> Result<(), String>
         .map_err(|error| format!("invalid connect params: {error}"))?;
     let auth = connect.auth.as_ref();
     if let Some(expected) = state.auth_token.as_deref() {
-        let supplied = auth
-            .and_then(|auth| auth.token.as_deref())
-            .or_else(|| auth.and_then(|auth| auth.bootstrap_token.as_deref()))
-            .or_else(|| auth.and_then(|auth| auth.device_token.as_deref()));
+        let supplied = auth.and_then(|auth| auth.token.as_deref());
         return match supplied {
             Some(value) if value == expected => Ok(()),
             Some(_) => Err("gateway token mismatch".to_string()),
@@ -10441,6 +10485,53 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn rust_gateway_invokes_message_policy_and_core_tools() {
+        let runtime_root = unique_test_runtime_root("gateway-runtime-invoke");
+        std::fs::create_dir_all(&runtime_root).expect("runtime root");
+        std::fs::write(runtime_root.join("note.txt"), "hello from rust tools\n")
+            .expect("write fixture");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let policy = handle_gateway_method(
+            &state,
+            "message.policy",
+            json!({
+                "operation": "outbound.resolveTypingPolicy",
+                "payload": {
+                    "isHeartbeat": true,
+                    "requestedPolicy": "user_message"
+                }
+            }),
+        )
+        .await
+        .expect("message policy");
+        assert_eq!(policy["typingPolicy"], "heartbeat");
+
+        let listed = handle_gateway_method(
+            &state,
+            "tools.invoke",
+            json!({
+                "tool": "ls",
+                "input": {
+                    "root": runtime_root.to_string_lossy(),
+                    "path": "."
+                }
+            }),
+        )
+        .await
+        .expect("tools invoke");
+        assert!(listed["text"]
+            .as_str()
+            .expect("ls text")
+            .contains("note.txt"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
     async fn rust_gateway_rpc_manages_sessions_and_subagents() {
         let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-rpc-sessions");
@@ -10665,6 +10756,24 @@ mod tests {
     async fn rust_gateway_rpc_manages_special_agents_and_memory() {
         let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-rpc-special-agents");
+        let (provider_base_url, _request_rx) = serve_openai_compatible_n(
+            r#"{"choices":[{"message":{"content":"durable memory inspected"}}]}"#,
+            2,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
         let state = GatewayState::new(GatewayRunConfig {
             runtime_root: Some(runtime_root.clone()),
             ..GatewayRunConfig::default()
@@ -10749,13 +10858,391 @@ mod tests {
 
         assert_eq!(run["status"], "completed");
         assert_eq!(run["kind"], "review-spec");
-        assert_eq!(run["result"]["assistantText"], "reviewed by rust special agent");
-        assert_eq!(run["result"]["payloads"][0]["text"], "reviewed by rust special agent");
+        assert_eq!(
+            run["result"]["assistantText"],
+            "reviewed by rust special agent"
+        );
+        assert_eq!(
+            run["result"]["payloads"][0]["text"],
+            "reviewed by rust special agent"
+        );
 
         let request = request_rx
             .recv_timeout(Duration::from_secs(2))
             .expect("captured special agent request");
         assert!(request.contains("check this plan"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_review_task_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-review-task-runtime");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"gateway review used rust agent runtime"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let run = handle_gateway_method(
+            &state,
+            "review_task",
+            json!({
+                "stage": "spec",
+                "task": "review gateway task path"
+            }),
+        )
+        .await
+        .expect("run review task");
+
+        assert_eq!(run["status"], "completed");
+        assert_eq!(run["kind"], "review-spec");
+        assert_eq!(
+            run["result"]["assistantText"],
+            "gateway review used rust agent runtime"
+        );
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured review task request");
+        assert!(request.contains("review gateway task path"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_memory_special_agent_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-memory-special-agent-runtime");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"dreamed by rust agent runtime"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let run = handle_gateway_method(
+            &state,
+            "special_agents.run",
+            json!({
+                "kind": "dream",
+                "scope": "main",
+                "task": "consolidate memory"
+            }),
+        )
+        .await
+        .expect("run dream special agent");
+
+        assert_eq!(run["status"], "completed");
+        assert_eq!(run["kind"], "dream");
+        assert_eq!(
+            run["result"]["assistantText"],
+            "dreamed by rust agent runtime"
+        );
+        assert_eq!(
+            run["result"]["memory"]["summary"],
+            "dreamed by rust agent runtime"
+        );
+
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured dream special agent request");
+        assert!(request.contains("consolidate memory"));
+
+        let history = handle_gateway_method(&state, "memory.dream.history", json!({}))
+            .await
+            .expect("dream history");
+        assert_eq!(
+            history["history"][0]["summary"],
+            "dreamed by rust agent runtime"
+        );
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_memory_dream_run_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-memory-dream-runtime");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"dream rpc used rust agent runtime"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let dream = handle_gateway_method(
+            &state,
+            "memory.dream.run",
+            json!({
+                "scope": "main",
+                "task": "consolidate from memory RPC"
+            }),
+        )
+        .await
+        .expect("run dream");
+
+        assert_eq!(dream["status"], "completed");
+        assert_eq!(
+            dream["result"]["assistantText"],
+            "dream rpc used rust agent runtime"
+        );
+        assert_eq!(
+            dream["result"]["memory"]["summary"],
+            "dream rpc used rust agent runtime"
+        );
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured memory dream request");
+        assert!(request.contains("consolidate from memory RPC"));
+
+        let history = handle_gateway_method(&state, "memory.dream.history", json!({}))
+            .await
+            .expect("dream history");
+        assert_eq!(
+            history["history"][0]["summary"],
+            "dream rpc used rust agent runtime"
+        );
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_memory_session_summary_refresh_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-memory-session-summary-runtime");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"summary generated by rust agent runtime"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let summary = handle_gateway_method(
+            &state,
+            "memory.session_summary.refresh",
+            json!({
+                "scope": "main",
+                "content": "summarize this session transcript"
+            }),
+        )
+        .await
+        .expect("refresh session summary");
+
+        assert_eq!(summary["status"], "completed");
+        assert_eq!(summary["kind"], "session-summary");
+        assert_eq!(
+            summary["result"]["assistantText"],
+            "summary generated by rust agent runtime"
+        );
+        assert!(
+            summary["result"]["memory"]["bytesWritten"]
+                .as_u64()
+                .unwrap_or_default()
+                > 0
+        );
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured session summary request");
+        assert!(request.contains("summarize this session transcript"));
+
+        let summary_body =
+            std::fs::read_to_string(runtime_root.join("memory/session-summary/main.md"))
+                .expect("read session summary file");
+        assert!(summary_body.contains("summary generated by rust agent runtime"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_memory_compact_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-memory-compact-runtime");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"compact summary from rust agent runtime"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        handle_gateway_method(
+            &state,
+            "memory.ingestBatch",
+            json!({
+                "sessionId": "session-compact",
+                "messages": [
+                    { "id": "m1", "role": "user", "content": "remember the deployment decision" },
+                    { "id": "m2", "role": "assistant", "content": "deployment decision acknowledged" }
+                ]
+            }),
+        )
+        .await
+        .expect("ingest messages");
+
+        let compact = handle_gateway_method(
+            &state,
+            "memory.compact",
+            json!({
+                "sessionId": "session-compact",
+                "force": true
+            }),
+        )
+        .await
+        .expect("compact memory");
+
+        assert_eq!(compact["ok"], true);
+        assert_eq!(compact["compacted"], true);
+        assert_eq!(
+            compact["result"]["summary"],
+            "compact summary from rust agent runtime"
+        );
+        assert_eq!(
+            compact["result"]["implementation"],
+            "rust-native-agent-runtime"
+        );
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured compact request");
+        assert!(request.contains("remember the deployment decision"));
+
+        let summary_body =
+            std::fs::read_to_string(runtime_root.join("memory/session-summary/session-compact.md"))
+                .expect("read compact summary file");
+        assert!(summary_body.contains("compact summary from rust agent runtime"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_experience_special_agent_writes_agent_runtime_result() {
+        let runtime_root = unique_test_runtime_root("gateway-memory-experience-runtime");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"experience captured by rust agent runtime"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let run = handle_gateway_method(
+            &state,
+            "special_agents.run",
+            json!({
+                "kind": "experience",
+                "scope": "main",
+                "task": "extract an experience note"
+            }),
+        )
+        .await
+        .expect("run experience special agent");
+
+        assert_eq!(run["status"], "completed");
+        assert_eq!(run["kind"], "experience");
+        assert_eq!(
+            run["result"]["assistantText"],
+            "experience captured by rust agent runtime"
+        );
+        assert_eq!(
+            run["result"]["memory"]["entry"]["body"],
+            "experience captured by rust agent runtime"
+        );
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured experience request");
+        assert!(request.contains("extract an experience note"));
+
+        let entries = handle_gateway_method(&state, "memory.experience.outbox.list", json!({}))
+            .await
+            .expect("list experience outbox");
+        assert_eq!(
+            entries["entries"][0]["body"],
+            "experience captured by rust agent runtime"
+        );
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -11276,7 +11763,10 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             installed["manifest"]["providerAuthEnvVars"]["fal"],
             json!(["FAL_KEY"])
         );
-        assert!(runtime_root.join("plugins/fal/index.ts").exists());
+        assert!(runtime_root
+            .join("plugins/fal/crawclaw.plugin.json")
+            .exists());
+        assert!(!runtime_root.join("plugins/fal/index.ts").exists());
 
         let config = read_config_value(&config_path(&state)).expect("read config");
         assert_eq!(
@@ -11917,91 +12407,6 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
     }
 
     #[tokio::test]
-    async fn rust_gateway_agent_command_and_auto_reply_use_native_agent_runtime() {
-        let runtime_root = unique_test_runtime_root("gateway-agent-surfaces");
-        let (provider_base_url, request_rx) = serve_openai_compatible_n(
-            r#"{"choices":[{"message":{"content":"first rust reply"}}]}"#,
-            2,
-        );
-        let config_dir = runtime_root.join("config");
-        std::fs::create_dir_all(&config_dir).expect("config dir");
-        std::fs::write(
-            config_dir.join("desktop-agent-provider.json"),
-            serde_json::to_vec_pretty(&json!({
-                "runtime": "native-provider",
-                "provider": "openai-compatible",
-                "baseUrl": provider_base_url,
-                "apiKey": "test-key",
-                "model": "test-model"
-            }))
-            .expect("provider config json"),
-        )
-        .expect("write provider config");
-
-        let state = GatewayState::new(GatewayRunConfig {
-            runtime_root: Some(runtime_root.clone()),
-            ..GatewayRunConfig::default()
-        });
-        let command = handle_gateway_method(
-            &state,
-            "agent.command.run",
-            json!({
-                "runId": "command-run-1",
-                "agentId": "main",
-                "sessionKey": "agent:main:command",
-                "message": "run from command",
-                "channel": "telegram",
-                "accountId": "bot",
-                "from": "user-1",
-                "to": "agent:main",
-                "messageId": "cmd-1",
-                "threadId": "thread-1"
-            }),
-        )
-        .await
-        .expect("agent command run");
-        assert_eq!(command["ok"], true);
-        assert_eq!(command["runId"], "command-run-1");
-        assert_eq!(command["payloads"][0]["text"], "first rust reply");
-        assert_eq!(command["events"][0]["type"], "runStarted");
-
-        let auto_reply = handle_gateway_method(
-            &state,
-            "auto_reply.run",
-            json!({
-                "runId": "auto-reply-run-1",
-                "agentId": "main",
-                "sessionKey": "agent:main:auto",
-                "message": "run from auto reply",
-                "channel": "discord",
-                "accountId": "bot",
-                "from": "user-2",
-                "to": "agent:main",
-                "messageId": "auto-1",
-                "threadId": "thread-2",
-                "trigger": "heartbeat"
-            }),
-        )
-        .await
-        .expect("auto reply run");
-        assert_eq!(auto_reply["ok"], true);
-        assert_eq!(auto_reply["runId"], "auto-reply-run-1");
-        assert_eq!(auto_reply["payloads"][0]["text"], "first rust reply");
-        assert_eq!(auto_reply["trigger"], "heartbeat");
-
-        let command_request = request_rx
-            .recv_timeout(Duration::from_secs(2))
-            .expect("captured command request");
-        assert!(command_request.contains("run from command"));
-        let auto_request = request_rx
-            .recv_timeout(Duration::from_secs(2))
-            .expect("captured auto reply request");
-        assert!(auto_request.contains("run from auto reply"));
-
-        let _ = std::fs::remove_dir_all(runtime_root);
-    }
-
-    #[tokio::test]
     async fn rust_gateway_channel_inbound_handle_runs_native_agent_turn() {
         let runtime_root = unique_test_runtime_root("gateway-channel-inbound-handle");
         let (provider_base_url, request_rx) = serve_openai_compatible_once(
@@ -12308,15 +12713,52 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             .join("plugins/local-plugin/crawclaw.plugin.json")
             .exists());
 
+        let (tts_base_url, tts_request_rx) = serve_qwen3_tts_sidecar(2);
+        handle_gateway_method(
+            &state,
+            "config.patch",
+            json!({
+                "patch": {
+                    "messages": {
+                        "tts": {
+                            "provider": "qwen3-tts",
+                            "providers": {
+                                "qwen3-tts": {
+                                    "enabled": true,
+                                    "baseUrl": tts_base_url,
+                                    "autoStart": false,
+                                    "defaultProfile": "assistant",
+                                    "profiles": {
+                                        "assistant": {
+                                            "source": "preset",
+                                            "voice": "vivian"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }),
+        )
+        .await
+        .expect("configure qwen3 tts");
         let tts = handle_gateway_method(&state, "tts.convert", json!({ "text": "hello" }))
             .await
             .expect("tts convert");
-        assert_eq!(tts["status"], "prepared");
+        assert_eq!(tts["status"], "generated");
+        assert_eq!(tts["outputFormat"], "wav");
+        assert_eq!(tts["audio"]["base64"], "aGVsbG8=");
 
         let talk = handle_gateway_method(&state, "talk.speak", json!({ "text": "hello" }))
             .await
             .expect("talk speak");
         assert_eq!(talk["ok"], true);
+        assert_eq!(talk["status"], "generated");
+        let tts_request = tts_request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured tts request");
+        assert!(tts_request.contains("\"text\":\"hello\""));
 
         let send = handle_gateway_method(
             &state,
@@ -12327,19 +12769,6 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
         .expect("send");
         assert_eq!(send["deliveryStatus"], "blocked");
         assert_eq!(send["sent"], false);
-
-        let rotated = handle_gateway_method(
-            &state,
-            "device.token.rotate",
-            json!({ "deviceId": "device-1" }),
-        )
-        .await
-        .expect("rotate token");
-        assert_eq!(rotated["ok"], true);
-        assert!(rotated["deviceToken"]
-            .as_str()
-            .unwrap_or_default()
-            .starts_with("rust-device-"));
 
         let esp32 = handle_gateway_method(
             &state,
@@ -12577,175 +13006,6 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
     }
 
     #[tokio::test]
-    async fn rust_gateway_device_pairing_tracks_local_state_files() {
-        let _guard = env_lock().lock().expect("env lock");
-        let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
-        let runtime_root = unique_test_runtime_root("gateway-device-pairing-runtime");
-        let state_dir = unique_test_runtime_root("gateway-device-pairing-state");
-        env::set_var("CRAWCLAW_STATE_DIR", &state_dir);
-        std::fs::create_dir_all(state_dir.join("devices")).expect("create devices dir");
-        let now = now_millis() as u64;
-        write_json_file(
-            &state_dir.join("devices/pending.json"),
-            &json!({
-                "req-1": {
-                    "requestId": "req-1",
-                    "deviceId": "device-1",
-                    "publicKey": "public-key",
-                    "displayName": "Phone",
-                    "role": "operator",
-                    "roles": ["operator"],
-                    "scopes": ["operator.read"],
-                    "ts": now
-                }
-            }),
-        )
-        .expect("write pending");
-        write_json_file(
-            &state_dir.join("devices/paired.json"),
-            &json!({
-                "device-2": {
-                    "deviceId": "device-2",
-                    "publicKey": "paired-key",
-                    "displayName": "Tablet",
-                    "role": "operator",
-                    "roles": ["operator"],
-                    "scopes": ["operator.read"],
-                    "approvedScopes": ["operator.read"],
-                    "tokens": {
-                        "operator": {
-                            "token": "secret-token",
-                            "role": "operator",
-                            "scopes": ["operator.read"],
-                            "createdAtMs": 123
-                        }
-                    },
-                    "createdAtMs": now - 2,
-                    "approvedAtMs": now - 1
-                }
-            }),
-        )
-        .expect("write paired");
-
-        let state = GatewayState::new(GatewayRunConfig {
-            runtime_root: Some(runtime_root.clone()),
-            ..GatewayRunConfig::default()
-        });
-
-        let listed = handle_gateway_method(&state, "device.pair.list", json!({}))
-            .await
-            .expect("list pairings");
-        assert_eq!(listed["pending"][0]["requestId"], "req-1");
-        assert_eq!(listed["paired"][0]["deviceId"], "device-2");
-        assert!(listed["paired"][0].get("approvedScopes").is_none());
-        assert_eq!(listed["paired"][0]["tokens"][0]["role"], "operator");
-        assert!(listed["paired"][0]["tokens"][0].get("token").is_none());
-
-        let approved = handle_gateway_method(
-            &state,
-            "device.pair.approve",
-            json!({ "requestId": "req-1", "callerScopes": ["operator.read"] }),
-        )
-        .await
-        .expect("approve pairing");
-        assert_eq!(approved["requestId"], "req-1");
-        assert_eq!(approved["device"]["deviceId"], "device-1");
-        assert_eq!(approved["device"]["tokens"][0]["role"], "operator");
-        assert!(approved["device"]["tokens"][0].get("token").is_none());
-
-        let listed = handle_gateway_method(&state, "device.pair.list", json!({}))
-            .await
-            .expect("list after approve");
-        assert!(listed["pending"].as_array().expect("pending").is_empty());
-        assert!(listed["paired"]
-            .as_array()
-            .expect("paired")
-            .iter()
-            .any(|device| device["deviceId"] == "device-1"));
-
-        let rotated = handle_gateway_method(
-            &state,
-            "device.token.rotate",
-            json!({ "deviceId": "device-2", "role": "operator", "scopes": ["operator.read"] }),
-        )
-        .await
-        .expect("rotate paired device token");
-        assert_eq!(rotated["deviceId"], "device-2");
-        assert_eq!(rotated["role"], "operator");
-        assert_eq!(rotated["scopes"][0], "operator.read");
-        assert!(rotated["token"]
-            .as_str()
-            .unwrap_or_default()
-            .starts_with("rust-device-token-operator-"));
-
-        let revoked = handle_gateway_method(
-            &state,
-            "device.token.revoke",
-            json!({ "deviceId": "device-2", "role": "operator" }),
-        )
-        .await
-        .expect("revoke paired device token");
-        assert_eq!(revoked["deviceId"], "device-2");
-        assert_eq!(revoked["role"], "operator");
-        assert!(revoked["revokedAtMs"].as_u64().unwrap_or_default() >= now);
-
-        let listed = handle_gateway_method(&state, "device.pair.list", json!({}))
-            .await
-            .expect("list after token revoke");
-        let revoked_device = listed["paired"]
-            .as_array()
-            .expect("paired")
-            .iter()
-            .find(|device| device["deviceId"] == "device-2")
-            .expect("revoked device");
-        assert!(revoked_device["tokens"][0].get("token").is_none());
-        assert!(
-            revoked_device["tokens"][0]["revokedAtMs"]
-                .as_u64()
-                .unwrap_or_default()
-                >= now
-        );
-
-        write_json_file(
-            &state_dir.join("devices/pending.json"),
-            &json!({
-                "req-2": {
-                    "requestId": "req-2",
-                    "deviceId": "device-3",
-                    "publicKey": "public-key-3",
-                    "ts": now
-                }
-            }),
-        )
-        .expect("write reject pending");
-        let rejected = handle_gateway_method(
-            &state,
-            "device.pair.reject",
-            json!({ "requestId": "req-2" }),
-        )
-        .await
-        .expect("reject pairing");
-        assert_eq!(rejected["requestId"], "req-2");
-        assert_eq!(rejected["deviceId"], "device-3");
-
-        let removed = handle_gateway_method(
-            &state,
-            "device.pair.remove",
-            json!({ "deviceId": "device-2" }),
-        )
-        .await
-        .expect("remove paired device");
-        assert_eq!(removed["deviceId"], "device-2");
-
-        match previous_state_dir {
-            Some(value) => env::set_var("CRAWCLAW_STATE_DIR", value),
-            None => env::remove_var("CRAWCLAW_STATE_DIR"),
-        }
-        let _ = std::fs::remove_dir_all(runtime_root);
-        let _ = std::fs::remove_dir_all(state_dir);
-    }
-
-    #[tokio::test]
     async fn rust_gateway_esp32_methods_track_local_state_files() {
         let _guard = env_lock().lock().expect("env lock");
         let previous_state_dir = env::var_os("CRAWCLAW_STATE_DIR");
@@ -12955,14 +13215,32 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
         .expect("approve esp32 request");
         assert_eq!(approved["deviceId"], "esp32-2");
 
+        write_json_file(
+            &state_dir.join("devices/pending.json"),
+            &json!({
+                "req-esp32-reject": {
+                    "requestId": "req-esp32-reject",
+                    "deviceId": "esp32-3",
+                    "publicKey": "fingerprint-3",
+                    "displayName": "Desk Rejected",
+                    "role": "esp32",
+                    "roles": ["esp32"],
+                    "scopes": ["device.esp32"],
+                    "deviceFamily": "ESP32-S3-BOX-3",
+                    "clientMode": "mqtt-udp",
+                    "ts": now
+                }
+            }),
+        )
+        .expect("write reject pending");
         let rejected = handle_gateway_method(
             &state,
             "esp32.pairing.request.reject",
-            json!({ "requestId": "req-other" }),
+            json!({ "requestId": "req-esp32-reject" }),
         )
         .await
-        .expect("reject non-esp32 request");
-        assert_eq!(rejected["requestId"], "req-other");
+        .expect("reject esp32 request");
+        assert_eq!(rejected["requestId"], "req-esp32-reject");
 
         let removed = handle_gateway_method(
             &state,
@@ -14043,26 +14321,7 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
     fn serve_openai_compatible_once(
         response_body: &'static str,
     ) -> (String, mpsc::Receiver<String>) {
-        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind mock provider");
-        let addr = listener.local_addr().expect("mock provider addr");
-        let (request_tx, request_rx) = mpsc::channel();
-        thread::spawn(move || {
-            let (mut stream, _) = listener.accept().expect("accept provider request");
-            let mut buffer = [0; 8192];
-            let count = stream.read(&mut buffer).expect("read provider request");
-            request_tx
-                .send(String::from_utf8_lossy(&buffer[..count]).to_string())
-                .expect("send captured request");
-            let response = format!(
-                "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
-                response_body.len(),
-                response_body
-            );
-            stream
-                .write_all(response.as_bytes())
-                .expect("write provider response");
-        });
-        (format!("http://{addr}"), request_rx)
+        serve_openai_compatible_n(response_body, 1)
     }
 
     fn serve_openai_compatible_n(
@@ -14088,6 +14347,32 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
                 stream
                     .write_all(response.as_bytes())
                     .expect("write provider response");
+            }
+        });
+        (format!("http://{addr}"), request_rx)
+    }
+
+    fn serve_qwen3_tts_sidecar(request_count: usize) -> (String, mpsc::Receiver<String>) {
+        let listener = std::net::TcpListener::bind("127.0.0.1:0").expect("bind mock tts sidecar");
+        let addr = listener.local_addr().expect("mock tts sidecar addr");
+        let (request_tx, request_rx) = mpsc::channel();
+        thread::spawn(move || {
+            for _ in 0..request_count {
+                let (mut stream, _) = listener.accept().expect("accept tts request");
+                let mut buffer = [0; 8192];
+                let count = stream.read(&mut buffer).expect("read tts request");
+                request_tx
+                    .send(String::from_utf8_lossy(&buffer[..count]).to_string())
+                    .expect("send captured tts request");
+                let response_body = r#"{"audioBase64":"aGVsbG8=","outputFormat":"wav"}"#;
+                let response = format!(
+                    "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
+                    response_body.len(),
+                    response_body
+                );
+                stream
+                    .write_all(response.as_bytes())
+                    .expect("write tts response");
             }
         });
         (format!("http://{addr}"), request_rx)

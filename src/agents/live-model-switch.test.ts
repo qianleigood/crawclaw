@@ -2,23 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { importFreshModule } from "../../test/helpers/import-fresh.js";
 
 const state = vi.hoisted(() => ({
-  abortEmbeddedPiRunMock: vi.fn(),
-  requestEmbeddedRunModelSwitchMock: vi.fn(),
-  consumeEmbeddedRunModelSwitchMock: vi.fn(),
   resolveDefaultModelForAgentMock: vi.fn(),
   loadSessionStoreMock: vi.fn(),
   resolveStorePathMock: vi.fn(),
-}));
-
-vi.mock("./pi-embedded.js", () => ({
-  abortEmbeddedPiRun: (...args: unknown[]) => state.abortEmbeddedPiRunMock(...args),
-}));
-
-vi.mock("./pi-embedded-runner/runs.js", () => ({
-  requestEmbeddedRunModelSwitch: (...args: unknown[]) =>
-    state.requestEmbeddedRunModelSwitchMock(...args),
-  consumeEmbeddedRunModelSwitch: (...args: unknown[]) =>
-    state.consumeEmbeddedRunModelSwitchMock(...args),
 }));
 
 vi.mock("./model-selection.js", () => ({
@@ -40,9 +26,6 @@ async function loadModule() {
 
 describe("live model switch", () => {
   beforeEach(() => {
-    state.abortEmbeddedPiRunMock.mockReset().mockReturnValue(false);
-    state.requestEmbeddedRunModelSwitchMock.mockReset();
-    state.consumeEmbeddedRunModelSwitchMock.mockReset();
     state.resolveDefaultModelForAgentMock
       .mockReset()
       .mockReturnValue({ provider: "anthropic", model: "claude-opus-4-6" });
@@ -117,9 +100,7 @@ describe("live model switch", () => {
     });
   });
 
-  it("queues a live switch only when an active run was aborted", async () => {
-    state.abortEmbeddedPiRunMock.mockReturnValue(true);
-
+  it("accepts live switch requests for persisted runtime selection", async () => {
     const { requestLiveSessionModelSwitch } = await loadModule();
 
     expect(
@@ -128,12 +109,6 @@ describe("live model switch", () => {
         selection: { provider: "openai", model: "gpt-5.4", authProfileId: "profile-gpt" },
       }),
     ).toBe(true);
-    expect(state.abortEmbeddedPiRunMock).toHaveBeenCalledWith("session-1");
-    expect(state.requestEmbeddedRunModelSwitchMock).toHaveBeenCalledWith("session-1", {
-      provider: "openai",
-      model: "gpt-5.4",
-      authProfileId: "profile-gpt",
-    });
   });
 
   it("treats auth-profile-source changes as no-op when no auth profile is selected", async () => {

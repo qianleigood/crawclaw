@@ -163,7 +163,7 @@ The store is safe to edit, but the Gateway is the authority: it may rewrite or r
 
 ## Transcript structure (`*.jsonl`)
 
-Transcripts are managed by `@mariozechner/pi-coding-agent`’s `SessionManager`.
+Transcripts are managed by CrawClaw's Rust AgentRuntime session store.
 
 The file is JSONL:
 
@@ -178,7 +178,8 @@ Notable entry types:
 - `compaction`: persisted compaction summary with `firstKeptEntryId` and `tokensBefore`
 - `branch_summary`: persisted summary when navigating a tree branch
 
-CrawClaw intentionally does **not** “fix up” transcripts; the Gateway uses `SessionManager` to read/write them.
+CrawClaw intentionally does **not** “fix up” transcripts during normal reads;
+the Rust runtime owns transcript reads, writes, and any guarded repair step.
 
 ---
 
@@ -211,9 +212,9 @@ Compaction is **persistent** (unlike session pruning). See [/concepts/session-pr
 
 ---
 
-## When auto-compaction happens (Pi runtime)
+## When auto-compaction happens (Rust runtime)
 
-In the embedded Pi agent, auto-compaction triggers in two cases:
+The Rust AgentRuntime auto-compaction path triggers in two cases:
 
 1. **Overflow recovery**: the model returns a context overflow error → compact → retry.
 2. **Threshold maintenance**: after a successful turn, when:
@@ -225,13 +226,13 @@ Where:
 - `contextWindow` is the model’s context window
 - `reserveTokens` is headroom reserved for prompts + the next model output
 
-These are Pi runtime semantics (CrawClaw consumes the events, but Pi decides when to compact).
+These are runtime semantics owned by CrawClaw's Rust AgentRuntime.
 
 ---
 
 ## Compaction settings (`reserveTokens`, `keepRecentTokens`)
 
-Pi’s compaction settings live in Pi settings:
+Compaction settings live in CrawClaw agent defaults:
 
 ```json5
 {
@@ -243,7 +244,7 @@ Pi’s compaction settings live in Pi settings:
 }
 ```
 
-CrawClaw also enforces a safety floor for embedded runs:
+CrawClaw also enforces a safety floor for agent runs:
 
 - If `compaction.reserveTokens < reserveTokensFloor`, CrawClaw bumps it.
 - Default floor is `20000` tokens.
@@ -252,8 +253,8 @@ CrawClaw also enforces a safety floor for embedded runs:
 
 Why: leave enough headroom for multi-turn “housekeeping” (like memory writes) before compaction becomes unavoidable.
 
-Implementation: `ensurePiCompactionReserveTokens()` in `src/agents/pi-settings.ts`
-(called from `src/agents/pi-embedded-runner.ts`).
+Implementation detail: the Rust AgentRuntime applies the effective compaction
+settings during context assembly and compaction.
 
 ---
 
@@ -305,12 +306,12 @@ Notes:
 
 - The default prompt/system prompt include a `NO_REPLY` hint to suppress delivery.
 - The flush runs once per compaction cycle (tracked in `sessions.json`).
-- The flush runs only for embedded Pi sessions (Local process backends skip it).
+- The flush runs for Rust agent sessions.
 - The flush is skipped when the session workspace is read-only (`workspaceAccess: "ro"` or `"none"`).
 - See [Memory](/concepts/memory) for the workspace file layout and write patterns.
 
-Pi also exposes a `session_before_compact` hook in the extension API, but CrawClaw’s
-flush logic lives on the Gateway side today.
+The old TypeScript `session_before_compact` plugin hook is no longer part of the
+production path; flush logic is owned by the Rust runtime.
 
 ---
 

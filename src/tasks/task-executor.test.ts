@@ -34,19 +34,13 @@ import {
 
 const ORIGINAL_STATE_DIR = process.env.CRAWCLAW_STATE_DIR;
 const hoisted = vi.hoisted(() => {
-  const sendMessageMock = vi.fn();
   const cancelSessionMock = vi.fn();
   const killSubagentRunAdminMock = vi.fn();
   return {
-    sendMessageMock,
     cancelSessionMock,
     killSubagentRunAdminMock,
   };
 });
-
-vi.mock("./task-registry-delivery-runtime.js", () => ({
-  sendMessage: hoisted.sendMessageMock,
-}));
 
 vi.mock("../acp/control-plane/manager.js", () => ({
   getAcpSessionManager: () => ({
@@ -95,7 +89,6 @@ describe("task-executor", () => {
     resetAgentRunContextForTest();
     resetTaskRegistryForTests({ persist: false });
     resetTaskFlowRegistryForTests({ persist: false });
-    hoisted.sendMessageMock.mockReset();
     hoisted.cancelSessionMock.mockReset();
     hoisted.killSubagentRunAdminMock.mockReset();
   });

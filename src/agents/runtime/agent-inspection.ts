@@ -1,24 +1,19 @@
-import { loadConfig } from "../../config/config.js";
-import { resolveStateDir } from "../../config/paths.js";
 import {
   getAgentRunContext,
   listAgentRunContexts,
   type AgentRunContext,
 } from "../../infra/agent-events.js";
-import { backfillObservationIndex } from "../../infra/observation/history-index.js";
+import type {
+  ObservationEventIndexRow,
+  ObservationHistoryStore,
+  ObservationRunIndexRow,
+} from "../../infra/observation/history-index.js";
 import type { ObservationContext } from "../../infra/observation/types.js";
 import {
   type ChannelStreamingDecisionSnapshot,
   peekDiagnosticSessionState,
   type SessionState,
 } from "../../logging/diagnostic-session-state.js";
-import { resolveMemoryConfig } from "../../memory/config/resolve.js";
-import type { RuntimeStore } from "../../memory/runtime/runtime-store.js";
-import { SqliteRuntimeStore } from "../../memory/runtime/sqlite-runtime-store.js";
-import type {
-  ObservationEventIndexRow,
-  ObservationRunIndexRow,
-} from "../../memory/types/runtime.js";
 import { findTaskByRunId, getTaskById } from "../../tasks/runtime-internal.js";
 import type { TaskRecord } from "../../tasks/task-registry.types.js";
 import type { ContextArchiveInspectionSnapshot } from "../context-archive/types.js";
@@ -256,7 +251,7 @@ export type ObservationRunListResult = {
 };
 
 type ObservationHistoryDeps = {
-  store?: RuntimeStore;
+  store?: ObservationHistoryStore;
   skipBackfill?: boolean;
   stateDir?: string;
 };
@@ -537,30 +532,14 @@ function observationEventTimelineEntryFromIndex(
 
 async function withObservationHistoryStore<T>(
   deps: ObservationHistoryDeps | undefined,
-  callback: (store: RuntimeStore) => Promise<T>,
+  callback: (store: ObservationHistoryStore) => Promise<T>,
 ): Promise<T | undefined> {
   if (deps?.store) {
-    if (!deps.skipBackfill) {
-      await backfillObservationIndex({
-        store: deps.store,
-        stateDir: deps.stateDir ?? resolveStateDir(),
-      });
-    }
     return await callback(deps.store);
   }
-  let store: SqliteRuntimeStore | undefined;
-  try {
-    const config = loadConfig();
-    const memoryConfig = resolveMemoryConfig(config.memory ?? {});
-    store = new SqliteRuntimeStore(memoryConfig.runtimeStore.dbPath);
-    await store.init();
-    await backfillObservationIndex({ store, stateDir: deps?.stateDir ?? resolveStateDir() });
-    return await callback(store);
-  } catch {
-    return undefined;
-  } finally {
-    await store?.close();
-  }
+  void deps;
+  void callback;
+  return undefined;
 }
 
 export async function listObservationRunSummaries(

@@ -35,7 +35,7 @@ title: "Features"
 
 **Agent:**
 
-- Embedded agent runtime with tool streaming
+- Rust agent runtime with tool streaming
 - Multi-agent routing with isolated sessions per workspace or sender
 - Sessions: direct chats collapse into shared `main`; groups are isolated
 - Streaming and chunking for long responses

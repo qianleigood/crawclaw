@@ -1,6 +1,11 @@
 {
   "id": "venice",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["venice"],
   "providerAuthEnvVars": {
     "venice": ["VENICE_API_KEY"]

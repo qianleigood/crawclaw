@@ -1,6 +1,11 @@
 {
   "id": "minimax",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "legacyPluginIds": ["minimax-portal-auth"],
   "providers": ["minimax", "minimax-portal"],
   "autoEnableWhenConfiguredProviders": ["minimax", "minimax-portal"],
@@ -60,9 +65,6 @@
       "cliDescription": "MiniMax API key"
     }
   ],
-  "contracts": {
-    "mediaUnderstandingProviders": ["minimax", "minimax-portal"]
-  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

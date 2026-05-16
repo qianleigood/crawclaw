@@ -8,86 +8,24 @@ title: "Deepgram"
 
 # Deepgram (Audio Transcription)
 
-Deepgram is a speech-to-text API. In CrawClaw it is used for **inbound audio/voice note
-transcription** via `tools.media.audio`.
-
-When enabled, CrawClaw uploads the audio file to Deepgram and injects the transcript
-into the reply pipeline (`{{Transcript}}` + `[Audio]` block). This is **not streaming**;
-it uses the pre-recorded transcription endpoint.
+Deepgram is a speech-to-text API. CrawClaw's old TypeScript
+media-understanding provider path has been removed, so Deepgram transcription is
+not exposed until it lands in the Rust-native media-understanding runtime.
 
 Website: [https://deepgram.com](https://deepgram.com)  
 Docs: [https://developers.deepgram.com](https://developers.deepgram.com)
 
-## Quick start
+## Status
 
-1. Set your API key:
-
-```
-DEEPGRAM_API_KEY=dg_...
-```
-
-2. Enable the provider:
-
-```json5
-{
-  tools: {
-    media: {
-      audio: {
-        enabled: true,
-        models: [{ provider: "deepgram", model: "nova-3" }],
-      },
-    },
-  },
-}
-```
+Do not configure Deepgram through TypeScript plugin media-understanding
+providers. The next supported route is Rust-native.
 
 ## Options
 
-- `model`: Deepgram model id (default: `nova-3`)
-- `language`: language hint (optional)
-- `tools.media.audio.providerOptions.deepgram.detect_language`: enable language detection (optional)
-- `tools.media.audio.providerOptions.deepgram.punctuate`: enable punctuation (optional)
-- `tools.media.audio.providerOptions.deepgram.smart_format`: enable smart formatting (optional)
-
-Example with language:
-
-```json5
-{
-  tools: {
-    media: {
-      audio: {
-        enabled: true,
-        models: [{ provider: "deepgram", model: "nova-3", language: "en" }],
-      },
-    },
-  },
-}
-```
-
-Example with Deepgram options:
-
-```json5
-{
-  tools: {
-    media: {
-      audio: {
-        enabled: true,
-        providerOptions: {
-          deepgram: {
-            detect_language: true,
-            punctuate: true,
-            smart_format: true,
-          },
-        },
-        models: [{ provider: "deepgram", model: "nova-3" }],
-      },
-    },
-  },
-}
-```
+- Rust-native implementation is required before `tools.media.audio` can route to
+  Deepgram again.
 
 ## Notes
 
-- Authentication follows the standard provider auth order; `DEEPGRAM_API_KEY` is the simplest path.
-- Override endpoints or headers with `tools.media.audio.baseUrl` and `tools.media.audio.headers` when using a proxy.
-- Output follows the same audio rules as other providers (size caps, timeouts, transcript injection).
+- `DEEPGRAM_API_KEY` remains the expected secret name for the future
+  Rust-native implementation.

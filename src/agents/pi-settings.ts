@@ -1,7 +1,10 @@
 import type { CrawClawConfig } from "../config/config.js";
-import type { MemoryRuntimeInfo } from "../memory/index.js";
 
 export const DEFAULT_PI_COMPACTION_RESERVE_TOKENS_FLOOR = 20_000;
+
+export interface MemoryRuntimeInfo {
+  ownsCompaction?: boolean;
+}
 
 type PiSettingsManagerLike = {
   getCompactionReserveTokens: () => number;

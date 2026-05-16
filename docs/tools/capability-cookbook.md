@@ -68,7 +68,7 @@ Vendor plugin:
 
 Feature plugin:
 
-- calls `api.runtime.*` or the matching `plugin-sdk/*-runtime` helper
+- calls the Rust native runtime or the matching non-executing SDK helper
 - never calls a vendor implementation directly
 
 ## File checklist
@@ -79,12 +79,10 @@ For a new capability, expect to touch these areas:
 - `src/<capability>/...registry/runtime.ts`
 - `src/plugins/types.ts`
 - `src/plugins/registry.ts`
-- `src/plugins/captured-registration.ts`
 - `src/plugins/contracts/registry.ts`
-- `src/plugins/runtime/types-core.ts`
-- `src/plugins/runtime/index.ts`
 - `src/plugin-sdk/<capability>.ts`
-- `src/plugin-sdk/<capability>-runtime.ts`
+- `crates/crawclaw-plugin-host/src/lib.rs`
+- `crates/crawclaw-runtime/src/lib.rs`
 - one or more bundled plugin packages
 - config/docs/tests
 

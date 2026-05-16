@@ -15,7 +15,6 @@ third-party plugins see.
   - `docs/plugins/sdk-provider-plugins.md`
   - `docs/plugins/manifest.md`
 - Definition files:
-  - `src/plugin-sdk/plugin-entry.ts`
   - `src/plugin-sdk/core.ts`
   - `src/plugin-sdk/channel-contract.ts`
   - `scripts/lib/plugin-sdk-entrypoints.json`

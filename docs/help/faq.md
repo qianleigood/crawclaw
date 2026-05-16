@@ -618,18 +618,6 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="How do I set up Gemini CLI OAuth?">
-    Gemini CLI uses a **plugin auth flow**, not a client id or secret in `crawclaw.json`.
-
-    Steps:
-
-    1. Enable the plugin: CrawClaw Desktop or the local Gateway API
-    2. Login: CrawClaw Desktop or the local Gateway API
-
-    This stores OAuth tokens in auth profiles on the gateway host. Details: [Model providers](/concepts/model-providers).
-
-  </Accordion>
-
   <Accordion title="Is a local model OK for casual chats?">
     Usually no. CrawClaw needs large context + strong safety; small cards truncate and leak. If you must, run the **largest** model build you can locally (LM Studio) and see [/gateway/local-models](/gateway/local-models). Smaller/quantized models increase prompt-injection risk - see [Security](/gateway/security).
   </Accordion>
@@ -2345,7 +2333,7 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
     Facts (from code):
 
     - Browser clients may keep the token in session-scoped storage for the selected gateway URL, so same-tab refreshes can keep working without restoring long-lived token persistence.
-    - On `AUTH_TOKEN_MISMATCH`, trusted clients can attempt one bounded retry with a cached device token when the gateway returns retry hints (`canRetryWithDeviceToken=true`, `recommendedNextStep=retry_with_device_token`).
+    - On `AUTH_TOKEN_MISMATCH`, refresh the client token/password so it matches the gateway auth configuration.
 
     Fix:
 

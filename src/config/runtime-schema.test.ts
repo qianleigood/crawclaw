@@ -47,81 +47,11 @@ function makeManifestRegistry() {
         name: "Demo",
         description: "Demo plugin",
         origin: "bundled",
-        channels: [],
         configUiHints: {},
         configSchema: {
           type: "object",
           properties: {
             mode: { type: "string" },
-          },
-        },
-      },
-      {
-        id: "feishu",
-        name: "Feishu",
-        description: "Feishu plugin",
-        origin: "bundled",
-        channels: ["feishu"],
-        channelCatalogMeta: {
-          id: "feishu",
-          label: "Feishu",
-          blurb: "Feishu channel",
-        },
-        channelConfigs: {
-          feishu: {
-            schema: {
-              type: "object",
-              properties: {
-                botToken: { type: "string" },
-              },
-            },
-            uiHints: {},
-          },
-        },
-      },
-      {
-        id: "ddingtalk",
-        name: "DingTalk",
-        description: "DingTalk plugin",
-        origin: "bundled",
-        channels: ["ddingtalk"],
-        channelCatalogMeta: {
-          id: "ddingtalk",
-          label: "DingTalk",
-          blurb: "DingTalk channel",
-        },
-        channelConfigs: {
-          ddingtalk: {
-            schema: {
-              type: "object",
-              properties: {
-                botToken: { type: "string" },
-              },
-            },
-            uiHints: {},
-          },
-        },
-      },
-      {
-        id: "feishu",
-        name: "Feishu",
-        description: "Feishu plugin",
-        origin: "workspace",
-        channels: ["feishu"],
-        channelCatalogMeta: {
-          id: "feishu",
-          label: "Feishu",
-          blurb: "Feishu channel",
-        },
-        channelConfigs: {
-          feishu: {
-            schema: {
-              type: "object",
-              properties: {
-                homeserver: { type: "string" },
-              },
-            },
-            uiHints: {},
           },
         },
       },
@@ -132,13 +62,11 @@ function makeManifestRegistry() {
 async function readSchemaNodes() {
   const result = await readBestEffortRuntimeConfigSchema();
   const schema = result.schema as { properties?: Record<string, unknown> };
-  const channelsNode = schema.properties?.channels as Record<string, unknown> | undefined;
-  const channelProps = channelsNode?.properties as Record<string, unknown> | undefined;
   const pluginsNode = schema.properties?.plugins as Record<string, unknown> | undefined;
   const pluginProps = pluginsNode?.properties as Record<string, unknown> | undefined;
   const entriesNode = pluginProps?.entries as Record<string, unknown> | undefined;
   const entryProps = entriesNode?.properties as Record<string, unknown> | undefined;
-  return { channelProps, entryProps };
+  return { entryProps };
 }
 
 beforeAll(async () => {
@@ -161,7 +89,7 @@ describe("readBestEffortRuntimeConfigSchema", () => {
       }),
     );
 
-    const { channelProps, entryProps } = await readSchemaNodes();
+    const { entryProps } = await readSchemaNodes();
 
     expect(mockLoadPluginManifestRegistry).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -169,15 +97,13 @@ describe("readBestEffortRuntimeConfigSchema", () => {
         cache: false,
       }),
     );
-    expect(channelProps?.feishu).toBeTruthy();
-    expect(channelProps?.feishu).toBeTruthy();
     expect(entryProps?.demo).toBeTruthy();
   });
 
-  it("falls back to bundled channel metadata when config is invalid", async () => {
+  it("falls back to bundled plugin metadata when config is invalid", async () => {
     mockReadConfigFileSnapshot.mockResolvedValueOnce(makeSnapshot({ valid: false }));
 
-    const { channelProps, entryProps } = await readSchemaNodes();
+    const { entryProps } = await readSchemaNodes();
 
     expect(mockLoadPluginManifestRegistry).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -185,9 +111,7 @@ describe("readBestEffortRuntimeConfigSchema", () => {
         cache: false,
       }),
     );
-    expect(channelProps?.feishu).toBeTruthy();
-    expect(channelProps?.ddingtalk).toBeTruthy();
-    expect(entryProps?.demo).toBeUndefined();
+    expect(entryProps?.demo).toBeTruthy();
   });
 });
 
@@ -201,8 +125,10 @@ describe("loadGatewayRuntimeConfigSchema", () => {
   it("uses manifest metadata instead of booting plugin runtime", async () => {
     const result = loadGatewayRuntimeConfigSchema();
     const schema = result.schema as { properties?: Record<string, unknown> };
-    const channelsNode = schema.properties?.channels as Record<string, unknown> | undefined;
-    const channelProps = channelsNode?.properties as Record<string, unknown> | undefined;
+    const pluginsNode = schema.properties?.plugins as Record<string, unknown> | undefined;
+    const pluginProps = pluginsNode?.properties as Record<string, unknown> | undefined;
+    const entriesNode = pluginProps?.entries as Record<string, unknown> | undefined;
+    const entryProps = entriesNode?.properties as Record<string, unknown> | undefined;
 
     expect(mockLoadPluginManifestRegistry).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -210,7 +136,6 @@ describe("loadGatewayRuntimeConfigSchema", () => {
         cache: false,
       }),
     );
-    expect(channelProps?.feishu).toBeTruthy();
-    expect(channelProps?.feishu).toBeTruthy();
+    expect(entryProps?.demo).toBeTruthy();
   });
 });

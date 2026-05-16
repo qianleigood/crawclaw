@@ -1,14 +1,9 @@
-import type { AgentMessage } from "@mariozechner/pi-agent-core";
-import type { SessionManager } from "@mariozechner/pi-coding-agent";
-import type {
-  PluginHookBeforeMessageWriteEvent,
-  PluginHookBeforeMessageWriteResult,
-} from "../plugins/types.js";
 import { emitSessionTranscriptUpdate } from "../sessions/transcript-events.js";
+import type { AgentMessage } from "./agent-types.js";
 import {
   HARD_MAX_TOOL_RESULT_CHARS,
   truncateToolResultMessage,
-} from "./pi-embedded-runner/tool-result-truncation.js";
+} from "./runtime-support/tool-result-truncation.js";
 import { createPendingToolCallState } from "./session-tool-result-state.js";
 import { makeMissingToolResult, sanitizeToolCallInputs } from "./session-transcript-repair.js";
 import { extractToolCallsFromAssistant, extractToolResultId } from "./tool-call-id.js";
@@ -18,8 +13,14 @@ const GUARD_TRUNCATION_SUFFIX =
   "Use offset/limit parameters or request specific sections for large content.]";
 const RAW_APPEND_MESSAGE = Symbol("crawclaw.session.rawAppendMessage");
 
-type SessionManagerWithRawAppend = SessionManager & {
-  [RAW_APPEND_MESSAGE]?: SessionManager["appendMessage"];
+export type SessionManagerLike = {
+  appendMessage: (message: never) => string | undefined | void;
+  getEntries: () => Array<{ type: string; message?: unknown }>;
+  getSessionFile?: () => string | null | undefined;
+};
+
+type SessionManagerWithRawAppend<T extends SessionManagerLike = SessionManagerLike> = T & {
+  [RAW_APPEND_MESSAGE]?: T["appendMessage"];
 };
 
 /**
@@ -76,15 +77,15 @@ function normalizePersistedToolResultName(
 /**
  * Return the unguarded appendMessage implementation for a session manager.
  */
-export function getRawSessionAppendMessage(
-  sessionManager: SessionManager,
-): SessionManager["appendMessage"] {
-  const rawAppend = (sessionManager as SessionManagerWithRawAppend)[RAW_APPEND_MESSAGE];
-  return rawAppend ?? sessionManager.appendMessage.bind(sessionManager);
+export function getRawSessionAppendMessage<T extends SessionManagerLike>(
+  sessionManager: T,
+): T["appendMessage"] {
+  const rawAppend = (sessionManager as SessionManagerWithRawAppend<T>)[RAW_APPEND_MESSAGE];
+  return rawAppend ?? (sessionManager.appendMessage.bind(sessionManager) as T["appendMessage"]);
 }
 
-export function installSessionToolResultGuard(
-  sessionManager: SessionManager,
+export function installSessionToolResultGuard<T extends SessionManagerLike>(
+  sessionManager: T,
   opts?: {
     /** Optional session key for transcript update broadcasts. */
     sessionKey?: string;
@@ -92,14 +93,6 @@ export function installSessionToolResultGuard(
      * Optional transform applied to any message before persistence.
      */
     transformMessageForPersistence?: (message: AgentMessage) => AgentMessage;
-    /**
-     * Optional, synchronous transform applied to toolResult messages *before* they are
-     * persisted to the session transcript.
-     */
-    transformToolResultForPersistence?: (
-      message: AgentMessage,
-      meta: { toolCallId?: string; toolName?: string; isSynthetic?: boolean },
-    ) => AgentMessage;
     /**
      * Whether to synthesize missing tool results to satisfy strict providers.
      * Defaults to true.
@@ -110,14 +103,6 @@ export function installSessionToolResultGuard(
      * When set, tool calls with unknown names are dropped before persistence.
      */
     allowedToolNames?: Iterable<string>;
-    /**
-     * Synchronous hook invoked before any message is written to the session JSONL.
-     * If the hook returns { block: true }, the message is silently dropped.
-     * If it returns { message }, the modified message is written instead.
-     */
-    beforeMessageWriteHook?: (
-      event: PluginHookBeforeMessageWriteEvent,
-    ) => PluginHookBeforeMessageWriteResult | undefined;
   },
 ): {
   flushPendingToolResults: () => void;
@@ -125,23 +110,14 @@ export function installSessionToolResultGuard(
   getPendingIds: () => string[];
 } {
   const originalAppend = getRawSessionAppendMessage(sessionManager);
-  (sessionManager as SessionManagerWithRawAppend)[RAW_APPEND_MESSAGE] = originalAppend;
+  (sessionManager as SessionManagerWithRawAppend<T>)[RAW_APPEND_MESSAGE] = originalAppend;
   const pendingState = createPendingToolCallState();
   const persistMessage = (message: AgentMessage) => {
     const transformer = opts?.transformMessageForPersistence;
     return transformer ? transformer(message) : message;
   };
 
-  const persistToolResult = (
-    message: AgentMessage,
-    meta: { toolCallId?: string; toolName?: string; isSynthetic?: boolean },
-  ) => {
-    const transformer = opts?.transformToolResultForPersistence;
-    return transformer ? transformer(message, meta) : message;
-  };
-
   const allowSyntheticToolResults = opts?.allowSyntheticToolResults ?? true;
-  const beforeWrite = opts?.beforeMessageWriteHook;
   const appendAndEmitTranscriptUpdate = (message: AgentMessage) => {
     const result = originalAppend(message as never);
     const sessionFile = (
@@ -158,24 +134,6 @@ export function installSessionToolResultGuard(
     return result;
   };
 
-  /**
-   * Run the before_message_write hook. Returns the (possibly modified) message,
-   * or null if the message should be blocked.
-   */
-  const applyBeforeWriteHook = (msg: AgentMessage): AgentMessage | null => {
-    if (!beforeWrite) {
-      return msg;
-    }
-    const result = beforeWrite({ message: msg });
-    if (result?.block) {
-      return null;
-    }
-    if (result?.message) {
-      return result.message;
-    }
-    return msg;
-  };
-
   const flushPendingToolResults = () => {
     if (pendingState.size() === 0) {
       return;
@@ -183,16 +141,7 @@ export function installSessionToolResultGuard(
     if (allowSyntheticToolResults) {
       for (const [id, name] of pendingState.entries()) {
         const synthetic = makeMissingToolResult({ toolCallId: id, toolName: name });
-        const flushed = applyBeforeWriteHook(
-          persistToolResult(persistMessage(synthetic), {
-            toolCallId: id,
-            toolName: name,
-            isSynthetic: true,
-          }),
-        );
-        if (flushed) {
-          appendAndEmitTranscriptUpdate(flushed);
-        }
+        appendAndEmitTranscriptUpdate(persistMessage(synthetic));
       }
     }
     pendingState.clear();
@@ -229,17 +178,7 @@ export function installSessionToolResultGuard(
       // Apply hard size cap before persistence to prevent oversized tool results
       // from consuming the entire context window on subsequent LLM calls.
       const capped = capToolResultSize(persistMessage(normalizedToolResult));
-      const persisted = applyBeforeWriteHook(
-        persistToolResult(capped, {
-          toolCallId: id ?? undefined,
-          toolName,
-          isSynthetic: false,
-        }),
-      );
-      if (!persisted) {
-        return undefined;
-      }
-      return appendAndEmitTranscriptUpdate(persisted);
+      return appendAndEmitTranscriptUpdate(capped);
     }
 
     // Skip tool call extraction for aborted/errored assistant messages.
@@ -268,10 +207,7 @@ export function installSessionToolResultGuard(
       flushPendingToolResults();
     }
 
-    const finalMessage = applyBeforeWriteHook(persistMessage(nextMessage));
-    if (!finalMessage) {
-      return undefined;
-    }
+    const finalMessage = persistMessage(nextMessage);
     const result = appendAndEmitTranscriptUpdate(finalMessage);
 
     if (toolCalls.length > 0) {
@@ -282,7 +218,7 @@ export function installSessionToolResultGuard(
   };
 
   // Monkey-patch appendMessage with our guarded version.
-  sessionManager.appendMessage = guardedAppend as SessionManager["appendMessage"];
+  sessionManager.appendMessage = guardedAppend as T["appendMessage"];
 
   return {
     flushPendingToolResults,

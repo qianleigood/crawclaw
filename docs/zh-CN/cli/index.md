@@ -61,7 +61,6 @@ x-i18n:
 - [`secrets`](/cli/secrets)
 - [`skills`](/cli/skills)
 - [`daemon`](/cli/daemon)（Gateway 网关服务命令的旧别名）
-- [`voicecall`](/cli/voicecall)（插件；如已安装）
 
 ## 全局标志
 
@@ -287,7 +286,7 @@ crawclaw [--dev] [--profile <name>] <command>
   tui
 ```
 
-注意：插件可以添加额外的顶层命令（例如 `crawclaw voicecall`）。
+注意：TypeScript 插件不再添加额外的顶层命令；生产命令入口由 Rust runtime 管理。
 
 ## 安全
 

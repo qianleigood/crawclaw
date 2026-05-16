@@ -781,7 +781,7 @@ describe("parentPeer binding inheritance (thread support)", () => {
   });
 });
 
-describe("backward compatibility: peer.kind dm → direct", () => {
+describe("removed compatibility: peer.kind dm no longer aliases direct", () => {
   test.each([
     {
       name: "legacy dm in config matches runtime direct peer",
@@ -811,8 +811,8 @@ describe("backward compatibility: peer.kind dm → direct", () => {
       peer: createCompatPeer(runtimePeerKind, "+15551234567"),
     });
     expectResolvedRoute(route, {
-      agentId: "alex",
-      matchedBy: "binding.peer",
+      agentId: "main",
+      matchedBy: "default",
     });
   });
 });

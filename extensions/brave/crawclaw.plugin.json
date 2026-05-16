@@ -33,5 +33,10 @@
         }
       }
     }
+  },
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
   }
 }

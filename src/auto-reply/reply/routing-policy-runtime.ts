@@ -1,8 +1,7 @@
-import { runCrawClawRuntimeTool } from "../../agents/runtime-tools/native.js";
-import { normalizeMessageChannel } from "../../utils/message-channel.js";
+import { callGateway } from "../../gateway/call.js";
+import { normalizeMessageChannel } from "../../utils/gateway-client-surface.js";
 import type { OriginatingChannelType } from "../templating.js";
 
-const MESSAGE_POLICY_TOOL = "message_policy";
 const MESSAGE_POLICY_TIMEOUT_MS = 30_000;
 
 export type ReplyRoutingDecision = {
@@ -33,9 +32,9 @@ export async function resolveReplyRoutingDecisionWithRust(params: {
   const originatingChannel = normalizeMessageChannel(params.originatingChannel);
   const provider = normalizeMessageChannel(params.provider);
   const surface = normalizeMessageChannel(params.surface);
-  const result = await runCrawClawRuntimeTool<RustReplyRoutingDecision>(
-    MESSAGE_POLICY_TOOL,
-    {
+  const result = await callGateway<RustReplyRoutingDecision>({
+    method: "message.policy",
+    params: {
       operation: "outbound.resolveReplyRoutingDecision",
       payload: {
         provider,
@@ -44,13 +43,11 @@ export async function resolveReplyRoutingDecisionWithRust(params: {
         originatingChannel,
         originatingTo: params.originatingTo,
         suppressDirectUserDelivery: params.suppressDirectUserDelivery,
-        originatingRoutable: params.isRoutableChannel(
-          originatingChannel as OriginatingChannelType | undefined,
-        ),
+        originatingRoutable: params.isRoutableChannel(originatingChannel),
       },
     },
-    { timeoutMs: MESSAGE_POLICY_TIMEOUT_MS },
-  );
+    timeoutMs: MESSAGE_POLICY_TIMEOUT_MS,
+  });
   return {
     ...result,
     originatingChannel: result.originatingChannel ?? undefined,

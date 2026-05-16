@@ -1,4 +1,3 @@
-import type { ChannelId } from "../channels/plugins/types.js";
 import type { AgentModelConfig } from "./types.agents-shared.js";
 import type {
   BlockStreamingChunkConfig,
@@ -40,79 +39,6 @@ export type AgentContextPruningConfig = {
   hardClear?: {
     enabled?: boolean;
     placeholder?: string;
-  };
-};
-
-export type CliBackendConfig = {
-  /** CLI command to execute (absolute path or on PATH). */
-  command: string;
-  /** Base args applied to every invocation. */
-  args?: string[];
-  /** Output parsing mode (default: json). */
-  output?: "json" | "text" | "jsonl";
-  /** Output parsing mode when resuming a CLI session. */
-  resumeOutput?: "json" | "text" | "jsonl";
-  /** Prompt input mode (default: arg). */
-  input?: "arg" | "stdin";
-  /** Max prompt length for arg mode (if exceeded, stdin is used). */
-  maxPromptArgChars?: number;
-  /** Extra env vars injected for this CLI. */
-  env?: Record<string, string>;
-  /** Env vars to remove before launching this CLI. */
-  clearEnv?: string[];
-  /** Flag used to pass model id (e.g. --model). */
-  modelArg?: string;
-  /** Model aliases mapping (config model id → CLI model id). */
-  modelAliases?: Record<string, string>;
-  /** Flag used to pass session id (e.g. --session-id). */
-  sessionArg?: string;
-  /** Extra args used when resuming a session (use {sessionId} placeholder). */
-  sessionArgs?: string[];
-  /** Alternate args to use when resuming a session (use {sessionId} placeholder). */
-  resumeArgs?: string[];
-  /** When to pass session ids. */
-  sessionMode?: "always" | "existing" | "none";
-  /** JSON fields to read session id from (in order). */
-  sessionIdFields?: string[];
-  /** Flag used to pass system prompt. */
-  systemPromptArg?: string;
-  /** System prompt behavior (append vs replace). */
-  systemPromptMode?: "append" | "replace";
-  /** When to send system prompt. */
-  systemPromptWhen?: "first" | "always" | "never";
-  /** Flag used to pass image paths. */
-  imageArg?: string;
-  /** How to pass multiple images. */
-  imageMode?: "repeat" | "list";
-  /** Serialize runs for this CLI. */
-  serialize?: boolean;
-  /** Runtime reliability tuning for this backend's process lifecycle. */
-  reliability?: {
-    /** No-output watchdog tuning (fresh vs resumed runs). */
-    watchdog?: {
-      /** Fresh/new sessions (non-resume). */
-      fresh?: {
-        /** Fixed watchdog timeout in ms (overrides ratio when set). */
-        noOutputTimeoutMs?: number;
-        /** Fraction of overall timeout used when fixed timeout is not set. */
-        noOutputTimeoutRatio?: number;
-        /** Lower bound for computed watchdog timeout. */
-        minMs?: number;
-        /** Upper bound for computed watchdog timeout. */
-        maxMs?: number;
-      };
-      /** Resume sessions. */
-      resume?: {
-        /** Fixed watchdog timeout in ms (overrides ratio when set). */
-        noOutputTimeoutMs?: number;
-        /** Fraction of overall timeout used when fixed timeout is not set. */
-        noOutputTimeoutRatio?: number;
-        /** Lower bound for computed watchdog timeout. */
-        minMs?: number;
-        /** Upper bound for computed watchdog timeout. */
-        maxMs?: number;
-      };
-    };
   };
 };
 
@@ -166,18 +92,16 @@ export type AgentDefaultsConfig = {
   envelopeElapsed?: "on" | "off";
   /** Optional context window cap (used for runtime estimates + status %). */
   contextTokens?: number;
-  /** Optional CLI backends for text-only fallback (claude-cli, etc.). */
-  cliBackends?: Record<string, CliBackendConfig>;
   /** Opt-in: prune old tool results from the LLM context to reduce token usage. */
   contextPruning?: AgentContextPruningConfig;
   /** LLM timeout configuration. */
   llm?: AgentLlmConfig;
   /** Compaction tuning and pre-compaction memory flush behavior. */
   compaction?: AgentCompactionConfig;
-  /** Embedded Pi runner hardening and compatibility controls. */
-  embeddedPi?: {
+  /** Runtime hardening controls for workspace-local agent settings. */
+  runtime?: {
     /**
-     * How embedded Pi should trust workspace-local `.pi/config/settings.json`.
+     * How the Rust agent runtime should trust workspace-local settings.
      * - sanitize (default): apply project settings except shellPath/shellCommandPrefix
      * - ignore: ignore project settings entirely
      * - trusted: trust project settings as-is
@@ -225,12 +149,12 @@ export type AgentDefaultsConfig = {
     /** Session key for event-driven main-session wake turns ("main" or explicit session key). */
     session?: string;
     /** Delivery target ("last", "none", or a channel id). */
-    target?: "last" | "none" | ChannelId;
+    target?: string;
     /** Direct/DM delivery policy. Default: "allow". */
     directPolicy?: "allow" | "block";
     /** Optional delivery override for the selected channel target. */
     to?: string;
-    /** Optional account id for multi-account channels. */
+    /** Optional account id for multi-account delivery targets. */
     accountId?: string;
     /** Override the event-driven wake prompt body. */
     prompt?: string;

@@ -1,10 +1,7 @@
-import type { ChannelId } from "../channels/plugins/index.js";
 import {
   buildGatewayReconfigurePlan,
   type GatewayReconfigureAction,
 } from "./config-reconfigure-plan.js";
-
-export type ChannelKind = ChannelId;
 
 export type GatewayReloadPlan = {
   changedPaths: string[];
@@ -23,7 +20,6 @@ export type GatewayReloadPlan = {
   restartUpdateCheck: boolean;
   restartMediaCleanup: boolean;
   reloadPluginRuntime: boolean;
-  restartChannels: Set<ChannelKind>;
   noopPaths: string[];
   unmatchedPaths: string[];
   ownerIds: string[];
@@ -49,7 +45,6 @@ export function buildGatewayReloadPlan(changedPaths: string[]): GatewayReloadPla
     restartUpdateCheck: reconfigurePlan.actions.has("restart-update-check"),
     restartMediaCleanup: reconfigurePlan.actions.has("restart-media-cleanup"),
     reloadPluginRuntime: reconfigurePlan.actions.has("reload-plugin-runtime"),
-    restartChannels: reconfigurePlan.restartChannels,
     noopPaths: reconfigurePlan.noopPaths,
     unmatchedPaths: reconfigurePlan.unmatchedPaths,
     ownerIds: reconfigurePlan.ownerIds,

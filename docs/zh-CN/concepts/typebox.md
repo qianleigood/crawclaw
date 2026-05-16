@@ -240,7 +240,7 @@ export const validateSystemEchoParams = ajv.compile<SystemEchoParams>(SystemEcho
 
 3. **服务器行为**
 
-在 `src/gateway/server-methods/system.ts` 中添加处理程序：
+在 Rust Gateway RPC handler 中添加处理程序：
 
 ```ts
 export const systemHandlers: GatewayRequestHandlers = {

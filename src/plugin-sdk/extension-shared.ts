@@ -1,17 +1,5 @@
-import type { z } from "zod";
-import { runPassiveAccountLifecycle } from "./channel-lifecycle.core.js";
 import { createLoggerBackedRuntime } from "./runtime.js";
 export { safeParseJsonWithSchema, safeParseWithSchema } from "../utils/zod-parse.js";
-
-type PassiveChannelStatusSnapshot = {
-  configured?: boolean;
-  running?: boolean;
-  lastStartAt?: number | null;
-  lastStopAt?: number | null;
-  lastError?: string | null;
-  probe?: unknown;
-  lastProbeAt?: number | null;
-};
 
 type TrafficStatusSnapshot = {
   lastInboundAt?: number | null;
@@ -21,39 +9,6 @@ type TrafficStatusSnapshot = {
 type StoppableMonitor = {
   stop: () => void;
 };
-
-type RequireOpenAllowFromFn = (params: {
-  policy?: string;
-  allowFrom?: Array<string | number>;
-  ctx: z.RefinementCtx;
-  path: Array<string | number>;
-  message: string;
-}) => void;
-
-export function buildPassiveChannelStatusSummary<TExtra extends object>(
-  snapshot: PassiveChannelStatusSnapshot,
-  extra?: TExtra,
-) {
-  return {
-    configured: snapshot.configured ?? false,
-    ...(extra ?? ({} as TExtra)),
-    running: snapshot.running ?? false,
-    lastStartAt: snapshot.lastStartAt ?? null,
-    lastStopAt: snapshot.lastStopAt ?? null,
-    lastError: snapshot.lastError ?? null,
-  };
-}
-
-export function buildPassiveProbedChannelStatusSummary<TExtra extends object>(
-  snapshot: PassiveChannelStatusSnapshot,
-  extra?: TExtra,
-) {
-  return {
-    ...buildPassiveChannelStatusSummary(snapshot, extra),
-    probe: snapshot.probe,
-    lastProbeAt: snapshot.lastProbeAt ?? null,
-  };
-}
 
 export function buildTrafficStatusSummary<TSnapshot extends TrafficStatusSnapshot>(
   snapshot?: TSnapshot | null,
@@ -68,12 +23,23 @@ export async function runStoppablePassiveMonitor<TMonitor extends StoppableMonit
   abortSignal: AbortSignal;
   start: () => Promise<TMonitor>;
 }): Promise<void> {
-  await runPassiveAccountLifecycle({
-    abortSignal: params.abortSignal,
-    start: params.start,
-    stop: async (monitor) => {
-      monitor.stop();
-    },
+  const monitor = await params.start();
+  if (params.abortSignal.aborted) {
+    monitor.stop();
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    params.abortSignal.addEventListener(
+      "abort",
+      () => {
+        try {
+          monitor.stop();
+        } finally {
+          resolve();
+        }
+      },
+      { once: true },
+    );
   });
 }
 
@@ -88,22 +54,6 @@ export function resolveLoggerBackedRuntime<TRuntime>(
       exitError: () => new Error("Runtime exit not available"),
     }) as TRuntime)
   );
-}
-
-export function requireChannelOpenAllowFrom(params: {
-  channel: string;
-  policy?: string;
-  allowFrom?: Array<string | number>;
-  ctx: z.RefinementCtx;
-  requireOpenAllowFrom: RequireOpenAllowFromFn;
-}) {
-  params.requireOpenAllowFrom({
-    policy: params.policy,
-    allowFrom: params.allowFrom,
-    ctx: params.ctx,
-    path: ["allowFrom"],
-    message: `channels.${params.channel}.dmPolicy="open" requires channels.${params.channel}.allowFrom to include "*"`,
-  });
 }
 
 export function readStatusIssueFields<TField extends string>(

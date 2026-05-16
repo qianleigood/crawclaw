@@ -1,10 +1,11 @@
 ---
-summary: "Redirects to Building Plugins (registering tools section)"
+summary: "Redirects to Building Plugins runtime capabilities"
 read_when:
   - Legacy link to agent-tools
-title: "Registering Tools"
+title: "Plugin Runtime Capabilities"
 ---
 
-# Registering Tools in Plugins
+# Plugin Runtime Capabilities
 
-This page has moved. See [Building Plugins: Registering agent tools](/plugins/building-plugins#registering-agent-tools).
+This page has moved. TypeScript plugins no longer register production tools.
+See [Building Plugins: Runtime capabilities](/plugins/building-plugins#runtime-capabilities).

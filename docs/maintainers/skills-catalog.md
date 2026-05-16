@@ -142,9 +142,6 @@ owning extension instead of copying them into the repo-wide bundled surface.
 Current extension-scoped set:
 
 - `extensions/lobster`
-- `extensions/acpx/skills/acp-router`
-- `extensions/diffs/skills/diffs`
-- `extensions/feishu-cli/skills/feishu-user-toolkit`
 - `extensions/open-prose/skills/prose`
 
 Rules of thumb:

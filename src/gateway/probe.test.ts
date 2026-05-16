@@ -4,12 +4,7 @@ const gatewayClientState = vi.hoisted(() => ({
   options: null as Record<string, unknown> | null,
   requests: [] as string[],
   startMode: "hello" as "hello" | "close",
-  close: { code: 1008, reason: "pairing required" },
-}));
-
-const deviceIdentityState = vi.hoisted(() => ({
-  value: { id: "test-device-identity" } as Record<string, unknown>,
-  throwOnLoad: false,
+  close: { code: 1008, reason: "unauthorized" },
 }));
 
 class MockGatewayClient {
@@ -54,22 +49,12 @@ vi.mock("./client.js", () => ({
   GatewayClient: MockGatewayClient,
 }));
 
-vi.mock("../infra/device-identity.js", () => ({
-  loadOrCreateDeviceIdentity: () => {
-    if (deviceIdentityState.throwOnLoad) {
-      throw new Error("read-only identity dir");
-    }
-    return deviceIdentityState.value;
-  },
-}));
-
 const { clampProbeTimeoutMs, probeGateway } = await import("./probe.js");
 
 describe("probeGateway", () => {
   beforeEach(() => {
-    deviceIdentityState.throwOnLoad = false;
     gatewayClientState.startMode = "hello";
-    gatewayClientState.close = { code: 1008, reason: "pairing required" };
+    gatewayClientState.close = { code: 1008, reason: "unauthorized" };
   });
 
   it("clamps probe timeout to timer-safe bounds", () => {
@@ -85,7 +70,6 @@ describe("probeGateway", () => {
     });
 
     expect(gatewayClientState.options?.scopes).toEqual(["operator.read"]);
-    expect(gatewayClientState.options?.deviceIdentity).toEqual(deviceIdentityState.value);
     expect(gatewayClientState.requests).toEqual([
       "health",
       "status",
@@ -93,25 +77,6 @@ describe("probeGateway", () => {
       "config.get",
     ]);
     expect(result.ok).toBe(true);
-  });
-
-  it("keeps device identity enabled for remote probes", async () => {
-    await probeGateway({
-      url: "wss://gateway.example/ws",
-      auth: { token: "secret" },
-      timeoutMs: 1_000,
-    });
-
-    expect(gatewayClientState.options?.deviceIdentity).toEqual(deviceIdentityState.value);
-  });
-
-  it("keeps device identity disabled for unauthenticated loopback probes", async () => {
-    await probeGateway({
-      url: "ws://127.0.0.1:18789",
-      timeoutMs: 1_000,
-    });
-
-    expect(gatewayClientState.options?.deviceIdentity).toBeNull();
   });
 
   it("skips detail RPCs for lightweight reachability probes", async () => {
@@ -122,11 +87,10 @@ describe("probeGateway", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(gatewayClientState.options?.deviceIdentity).toBeNull();
     expect(gatewayClientState.requests).toEqual([]);
   });
 
-  it("keeps device identity enabled for authenticated lightweight probes", async () => {
+  it("uses token auth for authenticated lightweight probes", async () => {
     const result = await probeGateway({
       url: "ws://127.0.0.1:18789",
       auth: { token: "secret" },
@@ -135,27 +99,7 @@ describe("probeGateway", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(gatewayClientState.options?.deviceIdentity).toEqual(deviceIdentityState.value);
     expect(gatewayClientState.requests).toEqual([]);
-  });
-
-  it("falls back to token/password auth when device identity cannot be persisted", async () => {
-    deviceIdentityState.throwOnLoad = true;
-
-    const result = await probeGateway({
-      url: "ws://127.0.0.1:18789",
-      auth: { token: "secret" },
-      timeoutMs: 1_000,
-    });
-
-    expect(result.ok).toBe(true);
-    expect(gatewayClientState.options?.deviceIdentity).toBeNull();
-    expect(gatewayClientState.requests).toEqual([
-      "health",
-      "status",
-      "system-presence",
-      "config.get",
-    ]);
   });
 
   it("fetches only presence for presence-only probes", async () => {
@@ -196,8 +140,8 @@ describe("probeGateway", () => {
 
     expect(result).toMatchObject({
       ok: false,
-      error: "gateway closed (1008): pairing required",
-      close: { code: 1008, reason: "pairing required" },
+      error: "gateway closed (1008): unauthorized",
+      close: { code: 1008, reason: "unauthorized" },
     });
     expect(gatewayClientState.requests).toEqual([]);
   });

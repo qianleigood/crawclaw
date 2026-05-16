@@ -1,38 +1,18 @@
-import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
-import {
-  collectChannelSchemaMetadata,
-  collectPluginSchemaMetadata,
-} from "./channel-config-metadata.js";
 import { loadConfig, readConfigFileSnapshot } from "./config.js";
 import type { CrawClawConfig } from "./config.js";
 import { buildConfigSchema, type ConfigSchemaResponse } from "./schema.js";
-
-function loadManifestRegistry(config: CrawClawConfig, env?: NodeJS.ProcessEnv) {
-  const workspaceDir = resolveAgentWorkspaceDir(config, resolveDefaultAgentId(config));
-  return loadPluginManifestRegistry({
-    config,
-    cache: false,
-    env,
-    workspaceDir,
-  });
-}
+import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
 
 export function loadGatewayRuntimeConfigSchema(): ConfigSchemaResponse {
   const config = loadConfig();
-  const registry = loadManifestRegistry(config);
-  return buildConfigSchema({
-    plugins: collectPluginSchemaMetadata(registry),
-    channels: collectChannelSchemaMetadata(registry),
-  });
+  const registry = loadPluginManifestRegistry({ config, cache: false });
+  return buildConfigSchema({ plugins: registry.plugins, cache: false });
 }
 
 export async function readBestEffortRuntimeConfigSchema(): Promise<ConfigSchemaResponse> {
   const snapshot = await readConfigFileSnapshot();
   const config = snapshot.valid ? snapshot.runtimeConfig : { plugins: { enabled: true } };
-  const registry = loadManifestRegistry(config);
-  return buildConfigSchema({
-    plugins: snapshot.valid ? collectPluginSchemaMetadata(registry) : [],
-    channels: collectChannelSchemaMetadata(registry),
-  });
+  void (config satisfies CrawClawConfig);
+  const registry = loadPluginManifestRegistry({ config, cache: false });
+  return buildConfigSchema({ plugins: registry.plugins, cache: false });
 }

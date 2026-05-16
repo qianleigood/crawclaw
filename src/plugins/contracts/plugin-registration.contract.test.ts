@@ -5,36 +5,24 @@ type PluginRegistrationContractParams = Parameters<typeof describePluginRegistra
 const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   {
     pluginId: "anthropic",
-    mediaUnderstandingProviderIds: ["anthropic"],
-    cliBackendIds: ["claude-cli"],
-    requireDescribeImages: true,
   },
   {
     pluginId: "fal",
   },
   {
     pluginId: "google",
-    mediaUnderstandingProviderIds: ["google"],
-    cliBackendIds: ["google-gemini-cli"],
-    requireDescribeImages: true,
   },
   {
     pluginId: "groq",
-    mediaUnderstandingProviderIds: ["groq"],
   },
   {
     pluginId: "minimax",
-    mediaUnderstandingProviderIds: ["minimax", "minimax-portal"],
-    requireDescribeImages: true,
   },
   {
     pluginId: "mistral",
-    mediaUnderstandingProviderIds: ["mistral"],
   },
   {
     pluginId: "moonshot",
-    mediaUnderstandingProviderIds: ["moonshot"],
-    requireDescribeImages: true,
     manifestAuthChoice: {
       pluginId: "kimi",
       choiceId: "kimi-code-api-key",
@@ -46,9 +34,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   },
   {
     pluginId: "openai",
-    mediaUnderstandingProviderIds: ["openai", "openai-codex"],
-    cliBackendIds: ["codex-cli"],
-    requireDescribeImages: true,
   },
   {
     pluginId: "open-websearch",
@@ -65,16 +50,12 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   },
   {
     pluginId: "openrouter",
-    mediaUnderstandingProviderIds: ["openrouter"],
-    requireDescribeImages: true,
   },
   {
     pluginId: "xai",
   },
   {
     pluginId: "zai",
-    mediaUnderstandingProviderIds: ["zai"],
-    requireDescribeImages: true,
   },
 ];
 

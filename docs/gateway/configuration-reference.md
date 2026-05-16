@@ -846,40 +846,6 @@ Z.AI GLM-4.x models automatically enable thinking mode unless you set `--thinkin
 Z.AI models enable `tool_stream` by default for tool call streaming. Set `agents.defaults.models["zai/<model>"].params.tool_stream` to `false` to disable it.
 Anthropic Claude 4.6 models default to `adaptive` thinking when no explicit thinking level is set.
 
-### `agents.defaults.cliBackends`
-
-Optional Local process backends for text-only fallback runs (no tool calls). Useful as a backup when API providers fail.
-
-```json5
-{
-  agents: {
-    defaults: {
-      cliBackends: {
-        "claude-cli": {
-          command: "/opt/homebrew/bin/claude",
-        },
-        "my-cli": {
-          command: "my-cli",
-          args: ["--json"],
-          output: "json",
-          modelArg: "--model",
-          sessionArg: "--session",
-          sessionMode: "existing",
-          systemPromptArg: "--system",
-          systemPromptWhen: "first",
-          imageArg: "--image",
-          imageMode: "repeat",
-        },
-      },
-    },
-  },
-}
-```
-
-- Local process backends are text-first; tools are always disabled.
-- Sessions supported when `sessionArg` is set.
-- Image pass-through supported when `imageArg` accepts file paths.
-
 ### `agents.defaults.heartbeat`
 
 Event-driven main-session wake settings. The Gateway no longer schedules
@@ -2078,18 +2044,15 @@ See [Local Models](/gateway/local-models). TL;DR: run a large local model via LM
 {
   plugins: {
     enabled: true,
-    allow: ["voice-call"],
+    allow: ["my-plugin"],
     deny: [],
     load: {
-      paths: ["~/Projects/oss/voice-call-extension"],
+      paths: ["~/Projects/oss/my-plugin"],
     },
     entries: {
-      "voice-call": {
+      "my-plugin": {
         enabled: true,
-        hooks: {
-          allowPromptInjection: false,
-        },
-        config: { provider: "twilio" },
+        config: {},
       },
     },
   },
@@ -2098,15 +2061,14 @@ See [Local Models](/gateway/local-models). TL;DR: run a large local model via LM
 
 - Loaded from `~/.crawclaw/extensions`, `<workspace>/.crawclaw/extensions`, plus `plugins.load.paths`.
 - Discovery accepts native CrawClaw plugins plus compatible Codex bundles and Claude bundles, including manifestless Claude default-layout bundles.
-- Config changes are applied through Gateway live reconfigure. Plugins without a dedicated reconfigure hook fall back to stop/start for their own runtime service.
+- Config changes are applied through Gateway live reconfigure.
 - `allow`: optional allowlist (only listed plugins load). `deny` wins.
 - `plugins.entries.<id>.apiKey`: plugin-level API key convenience field (when supported by the plugin).
 - `plugins.entries.<id>.env`: plugin-scoped env var map.
-- `plugins.entries.<id>.hooks.allowPromptInjection`: when `false`, core blocks `before_prompt_build` prompt mutation for that plugin. Applies to native plugin hooks and supported bundle-provided hook directories.
 - `plugins.entries.<id>.subagent.allowModelOverride`: explicitly trust this plugin to request per-run `provider` and `model` overrides for background subagent runs.
 - `plugins.entries.<id>.subagent.allowedModels`: optional allowlist of canonical `provider/model` targets for trusted subagent overrides. Use `"*"` only when you intentionally want to allow any model.
 - `plugins.entries.<id>.config`: plugin-defined config object (validated by native CrawClaw plugin schema when available).
-- Enabled Claude bundle plugins can also contribute embedded Pi defaults from `settings.json`; CrawClaw applies those as sanitized agent settings, not as raw CrawClaw config patches.
+- Enabled Claude bundle plugins can also contribute sanitized runtime defaults from `settings.json`; CrawClaw applies those as agent runtime settings, not as raw CrawClaw config patches.
 - `plugins.installs`: CLI-managed install metadata used by CrawClaw Desktop or the local Gateway API.
   - Includes `source`, `spec`, `sourcePath`, `installPath`, `version`, `resolvedName`, `resolvedVersion`, `resolvedSpec`, `integrity`, `shasum`, `resolvedAt`, `installedAt`.
   - Treat `plugins.installs.*` as managed state; prefer Desktop and Gateway API actions over manual edits.
@@ -2182,7 +2144,6 @@ See [Plugins](/tools/plugin).
       // allowedOrigins: ["https://control.example.com"], // required for non-loopback browser-client access
       // dangerouslyAllowHostHeaderOriginFallback: false, // dangerous Host-header origin fallback mode
       // allowInsecureAuth: false,
-      // dangerouslyDisableDeviceAuth: false,
     },
     remote: {
       url: "ws://gateway.tailnet:18789",
@@ -2214,7 +2175,7 @@ See [Plugins](/tools/plugin).
 - `gateway.auth.mode: "none"`: explicit no-auth mode. Use only for trusted local loopback setups; this is intentionally not offered by onboarding prompts.
 - `gateway.auth.mode: "trusted-proxy"`: delegate auth to an identity-aware reverse proxy and trust identity headers from `gateway.trustedProxies` (see [Trusted Proxy Auth](/gateway/trusted-proxy-auth)).
 - `gateway.auth.allowTailscale`: when `true`, Tailscale Serve identity headers can satisfy browser-client/WebSocket auth (verified via `tailscale whois`); HTTP API endpoints still require token/password auth. This tokenless flow assumes the gateway host is trusted. Defaults to `true` when `tailscale.mode = "serve"`.
-- `gateway.auth.rateLimit`: optional failed-auth limiter. Applies per client IP and per auth scope (shared-secret and device-token are tracked independently). Blocked attempts return `429` + `Retry-After`.
+- `gateway.auth.rateLimit`: optional failed-auth limiter. Applies per client IP and auth scope. Blocked attempts return `429` + `Retry-After`.
   - `gateway.auth.rateLimit.exemptLoopback` defaults to `true`; set `false` when you intentionally want localhost traffic rate-limited too (for test setups or strict proxy deployments).
 - Browser-origin WS auth attempts are always throttled with loopback exemption disabled (defense-in-depth against browser-based localhost brute force).
 - `tailscale.mode`: `serve` (tailnet only, loopback bind) or `funnel` (public, requires auth).

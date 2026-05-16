@@ -1,8 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import type { SessionEntry as PiSessionEntry, SessionHeader } from "@mariozechner/pi-coding-agent";
-import { SessionManager } from "@mariozechner/pi-coding-agent";
 import {
   resolveDefaultSessionStorePath,
   resolveSessionFilePath,
@@ -17,9 +15,12 @@ import type { HandleCommandsParams } from "./commands-types.js";
 // Export HTML templates are bundled with this module
 const EXPORT_HTML_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "export-html");
 
+type SessionHeaderRecord = Record<string, unknown> & { type: "session" };
+type SessionEntryRecord = Record<string, unknown>;
+
 interface SessionData {
-  header: SessionHeader | null;
-  entries: PiSessionEntry[];
+  header: SessionHeaderRecord | null;
+  entries: SessionEntryRecord[];
   leafId: string | null;
   systemPrompt?: string;
   tools?: Array<{ name: string; description?: string; parameters?: unknown }>;
@@ -143,10 +144,7 @@ export async function buildExportSessionReply(params: HandleCommandsParams): Pro
   }
 
   // 2. Load session entries
-  const sessionManager = SessionManager.open(sessionFile);
-  const entries = sessionManager.getEntries();
-  const header = sessionManager.getHeader();
-  const leafId = sessionManager.getLeafId();
+  const { header, entries, leafId } = loadSessionData(sessionFile);
 
   // 3. Build full system prompt
   const { systemPrompt, tools } = await resolveCommandsSystemPromptBundle(params);
@@ -200,4 +198,33 @@ export async function buildExportSessionReply(params: HandleCommandsParams): Pro
       `🔧 Tools: ${tools.length}`,
     ].join("\n"),
   };
+}
+
+function loadSessionData(sessionFile: string): {
+  header: SessionHeaderRecord | null;
+  entries: SessionEntryRecord[];
+  leafId: string | null;
+} {
+  const entries: SessionEntryRecord[] = [];
+  let header: SessionHeaderRecord | null = null;
+  let leafId: string | null = null;
+  const raw = fs.readFileSync(sessionFile, "utf-8");
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim()) {
+      continue;
+    }
+    try {
+      const parsed = JSON.parse(line) as SessionEntryRecord;
+      entries.push(parsed);
+      if (parsed.type === "session" && !header) {
+        header = parsed as SessionHeaderRecord;
+      }
+      if (parsed.type === "message" && typeof parsed.id === "string") {
+        leafId = parsed.id;
+      }
+    } catch {
+      continue;
+    }
+  }
+  return { header, entries, leafId };
 }

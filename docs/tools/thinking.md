@@ -41,7 +41,7 @@ title: "Thinking Levels"
 
 ## Application by agent
 
-- **Embedded Pi**: the resolved level is passed to the in-process Pi agent runtime.
+- **Rust agent runtime**: the resolved level is passed to the active agent run.
 
 ## Fast mode (/fast)
 

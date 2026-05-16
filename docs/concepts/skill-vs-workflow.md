@@ -129,7 +129,7 @@ Workflow-heavy areas today include:
 
 - `src/workflows`
 - `src/agents/tools/workflow-tool.ts`
-- `src/gateway/server-methods/workflow.ts`
+- Rust Gateway workflow RPC handlers
 - `src/cron`
 - `src/hooks`
 

@@ -8,7 +8,7 @@ const hoisted = vi.hoisted(() => ({
   resolveCopilotApiTokenMock: vi.fn(),
 }));
 
-vi.mock("./pi-embedded-runner/model.js", () => ({
+vi.mock("./runtime-support/model.js", () => ({
   resolveModel: hoisted.resolveModelMock,
 }));
 

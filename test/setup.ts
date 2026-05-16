@@ -54,7 +54,6 @@ import { createEmptyPluginRegistry } from "../src/plugins/registry-empty.js";
 import type { PluginRegistry } from "../src/plugins/registry.js";
 import {
   getActivePluginRegistry,
-  releasePinnedPluginChannelRegistry,
   releasePinnedPluginHttpRouteRegistry,
   setActivePluginRegistry,
 } from "../src/plugins/runtime.js";
@@ -101,7 +100,6 @@ const DEFAULT_PLUGIN_REGISTRY = new Proxy({} as PluginRegistry, {
 
 function installDefaultPluginRegistry(): void {
   releasePinnedPluginHttpRouteRegistry();
-  releasePinnedPluginChannelRegistry();
   setActivePluginRegistry(DEFAULT_PLUGIN_REGISTRY, "test:default");
 }
 

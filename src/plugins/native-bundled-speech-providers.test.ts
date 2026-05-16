@@ -2,9 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { nativeBundledSpeechProvidersForPlugin } from "./native-bundled-speech-providers.js";
 
-const runCrawClawRuntimeTool = vi.hoisted(() =>
-  vi.fn(async (tool: string) =>
-    tool === "native_plugin_invoke"
+const callGateway = vi.hoisted(() =>
+  vi.fn(async (request: { method: string }) =>
+    request.method === "nativePlugin.invoke"
       ? {
           audioBase64: Buffer.from("voice").toString("base64"),
           outputFormat: "wav",
@@ -13,13 +13,13 @@ const runCrawClawRuntimeTool = vi.hoisted(() =>
   ),
 );
 
-vi.mock("../agents/runtime-tools/native.js", () => ({
-  runCrawClawRuntimeTool,
+vi.mock("../gateway/call.js", () => ({
+  callGateway,
 }));
 
 describe("native bundled speech providers", () => {
   beforeEach(() => {
-    runCrawClawRuntimeTool.mockClear();
+    callGateway.mockClear();
   });
 
   it("routes Qwen3-TTS synthesis through native service lifecycle and invocation", async () => {
@@ -48,10 +48,9 @@ describe("native bundled speech providers", () => {
     });
 
     expect(result?.audioBuffer.toString("utf8")).toBe("voice");
-    expect(runCrawClawRuntimeTool).toHaveBeenNthCalledWith(
-      1,
-      "native_plugin_service_start",
-      {
+    expect(callGateway).toHaveBeenNthCalledWith(1, {
+      method: "nativePlugin.service.start",
+      params: {
         pluginId: "qwen3-tts",
         serviceId: "qwen3-tts-daemon",
         input: {
@@ -59,12 +58,11 @@ describe("native bundled speech providers", () => {
           pluginRoot: "/tmp/qwen3-tts",
         },
       },
-      { timeoutMs: 30_000 },
-    );
-    expect(runCrawClawRuntimeTool).toHaveBeenNthCalledWith(
-      2,
-      "native_plugin_invoke",
-      {
+      timeoutMs: 30_000,
+    });
+    expect(callGateway).toHaveBeenNthCalledWith(2, {
+      method: "nativePlugin.invoke",
+      params: {
         pluginId: "qwen3-tts",
         operation: "synthesize",
         input: {
@@ -83,7 +81,7 @@ describe("native bundled speech providers", () => {
           pluginRoot: "/tmp/qwen3-tts",
         },
       },
-      { timeoutMs: 30_000 },
-    );
+      timeoutMs: 30_000,
+    });
   });
 });

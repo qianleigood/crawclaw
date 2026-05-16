@@ -4,6 +4,7 @@ pub mod envelope;
 pub mod error;
 pub mod llm_task;
 pub mod lobster;
+pub mod media_understanding;
 pub mod open_prose;
 pub mod openshell;
 pub mod qwen3_tts;

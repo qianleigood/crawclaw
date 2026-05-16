@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   clearInternalHooks,
   registerInternalHook,
-  type AgentBootstrapHookContext,
+  type AgentBootstrapToolCallPreflightContext,
 } from "../hooks/internal-hooks.js";
 import { applyBootstrapHookOverrides } from "./bootstrap-hooks.js";
 import { DEFAULT_SOUL_FILENAME, type WorkspaceBootstrapFile } from "./workspace.js";
@@ -24,7 +24,7 @@ describe("applyBootstrapHookOverrides", () => {
 
   it("returns updated files when a hook mutates the context", async () => {
     registerInternalHook("agent:bootstrap", (event) => {
-      const context = event.context as AgentBootstrapHookContext;
+      const context = event.context as AgentBootstrapToolCallPreflightContext;
       context.bootstrapFiles = [
         ...context.bootstrapFiles,
         {

@@ -3,11 +3,9 @@ import { callGateway } from "../gateway/call.js";
 import { getAgentRunContext, onAgentEvent } from "../infra/agent-events.js";
 import { createObservationRoot, deriveObservationChild } from "../infra/observation/context.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import type { MemoryRuntime, MemorySubagentEndReason } from "../memory/engine/types.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
 import type { TaskRuntime } from "../tasks/task-registry.types.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
-import { ensureRuntimePluginsLoaded } from "./runtime-plugins.js";
 import { emitRunLoopLifecycleEvent } from "./runtime/lifecycle/bus.js";
 import { ensureSharedRunLoopLifecycleSubscribers } from "./runtime/lifecycle/shared-subscribers.js";
 import { resetAnnounceQueuesForTests } from "./subagent-announce-queue.js";
@@ -16,13 +14,8 @@ import type { SubagentRunOutcome } from "./subagent-announce.js";
 import {
   SUBAGENT_ENDED_REASON_COMPLETE,
   SUBAGENT_ENDED_REASON_ERROR,
-  SUBAGENT_ENDED_REASON_KILLED,
   type SubagentLifecycleEndedReason,
 } from "./subagent-lifecycle-events.js";
-import {
-  emitSubagentEndedHookOnce,
-  resolveLifecycleOutcomeFromRunOutcome,
-} from "./subagent-registry-completion.js";
 import {
   ANNOUNCE_EXPIRY_MS,
   MAX_ANNOUNCE_RETRY_COUNT,
@@ -64,27 +57,23 @@ export {
 } from "./subagent-registry-helpers.js";
 const log = createSubsystemLogger("agents/subagent-registry");
 
-let memoryRuntimeLoaderPromise: Promise<
-  (typeof import("../memory/index.js"))["resolveMemoryRuntime"]
-> | null = null;
-
-function loadResolveMemoryRuntime() {
-  memoryRuntimeLoaderPromise ??= import("../memory/index.js").then(
-    (module) => module.resolveMemoryRuntime,
-  );
-  return memoryRuntimeLoaderPromise;
-}
+type MemorySubagentEndReason =
+  | "completed"
+  | "deleted"
+  | "error"
+  | "killed"
+  | "released"
+  | "swept"
+  | "timeout";
 
 type SubagentRegistryDeps = {
   callGateway: typeof callGateway;
   captureSubagentCompletionReply: typeof subagentAnnounceModule.captureSubagentCompletionReply;
-  ensureRuntimePluginsLoaded: typeof ensureRuntimePluginsLoaded;
   getSubagentRunsSnapshotForRead: typeof getSubagentRunsSnapshotForRead;
   loadConfig: typeof loadConfig;
   onAgentEvent: typeof onAgentEvent;
   persistSubagentRunsToDisk: typeof persistSubagentRunsToDisk;
   resolveAgentTimeoutMs: typeof resolveAgentTimeoutMs;
-  resolveMemoryRuntime: (cfg: ReturnType<typeof loadConfig>) => Promise<MemoryRuntime>;
   restoreSubagentRunsFromDisk: typeof restoreSubagentRunsFromDisk;
   runSubagentAnnounceFlow: typeof subagentAnnounceModule.runSubagentAnnounceFlow;
 };
@@ -93,16 +82,11 @@ const defaultSubagentRegistryDeps: SubagentRegistryDeps = {
   callGateway,
   captureSubagentCompletionReply: (sessionKey) =>
     subagentAnnounceModule.captureSubagentCompletionReply(sessionKey),
-  ensureRuntimePluginsLoaded,
   getSubagentRunsSnapshotForRead,
   loadConfig,
   onAgentEvent,
   persistSubagentRunsToDisk,
   resolveAgentTimeoutMs,
-  resolveMemoryRuntime: async (cfg) => {
-    const resolveMemoryRuntime = await loadResolveMemoryRuntime();
-    return await resolveMemoryRuntime(cfg);
-  },
   restoreSubagentRunsFromDisk,
   runSubagentAnnounceFlow: (params) => subagentAnnounceModule.runSubagentAnnounceFlow(params),
 };
@@ -116,7 +100,7 @@ let listenerStop: (() => void) | null = null;
 var restoreAttempted = false;
 const SUBAGENT_ANNOUNCE_TIMEOUT_MS = 120_000;
 /**
- * Embedded runs can emit transient lifecycle `error` events while provider/model
+ * Runtime runs can emit transient lifecycle `error` events while provider/model
  * retry is still in progress. Defer terminal error cleanup briefly so a
  * subsequent lifecycle `start` / `end` can cancel premature failure announces.
  */
@@ -127,7 +111,6 @@ function persistSubagentRuns() {
 }
 
 const resumedRuns = new Set<string>();
-const endedHookInFlightRunIds = new Set<string>();
 const pendingLifecycleErrorByRunId = new Map<
   string,
   {
@@ -305,17 +288,15 @@ async function notifyMemoryRuntimeSubagentEnded(params: {
   workspaceDir?: string;
 }) {
   try {
-    const cfg = subagentRegistryDeps.loadConfig();
-    subagentRegistryDeps.ensureRuntimePluginsLoaded({
-      config: cfg,
-      workspaceDir: params.workspaceDir,
-      allowGatewaySubagentBinding: true,
+    await subagentRegistryDeps.callGateway({
+      method: "memory.onSubagentEnded",
+      params: {
+        childSessionKey: params.childSessionKey,
+        reason: params.reason,
+        workspaceDir: params.workspaceDir,
+      },
+      timeoutMs: 10_000,
     });
-    const memoryRuntime = await subagentRegistryDeps.resolveMemoryRuntime(cfg);
-    if (!memoryRuntime.onSubagentEnded) {
-      return;
-    }
-    await memoryRuntime.onSubagentEnded(params);
   } catch (err) {
     const parsed = parseAgentSessionKey(params.childSessionKey);
     log
@@ -323,7 +304,7 @@ async function notifyMemoryRuntimeSubagentEnded(params: {
         sessionId: params.childSessionKey,
         ...(parsed?.agentId ? { agentId: parsed.agentId } : {}),
         phase: "subagent_stop",
-        decision: "memory_runtime_on_subagent_ended_failed",
+        decision: "memory_runtime_subagent_end_failed",
         status: "error",
       })
       .warn("memory-runtime onSubagentEnded failed (best-effort)", { err });
@@ -334,50 +315,6 @@ function suppressAnnounceForSteerRestart(entry?: SubagentRunRecord) {
   return entry?.suppressAnnounceReason === "steer-restart";
 }
 
-function shouldKeepThreadBindingAfterRun(params: {
-  entry: SubagentRunRecord;
-  reason: SubagentLifecycleEndedReason;
-}) {
-  if (params.reason === SUBAGENT_ENDED_REASON_KILLED) {
-    return false;
-  }
-  return params.entry.spawnMode === "session";
-}
-
-function shouldEmitEndedHookForRun(params: {
-  entry: SubagentRunRecord;
-  reason: SubagentLifecycleEndedReason;
-}) {
-  return !shouldKeepThreadBindingAfterRun(params);
-}
-
-async function emitSubagentEndedHookForRun(params: {
-  entry: SubagentRunRecord;
-  reason?: SubagentLifecycleEndedReason;
-  sendFarewell?: boolean;
-  accountId?: string;
-}) {
-  const cfg = subagentRegistryDeps.loadConfig();
-  subagentRegistryDeps.ensureRuntimePluginsLoaded({
-    config: cfg,
-    workspaceDir: params.entry.workspaceDir,
-    allowGatewaySubagentBinding: true,
-  });
-  const reason = params.reason ?? params.entry.endedReason ?? SUBAGENT_ENDED_REASON_COMPLETE;
-  const outcome = resolveLifecycleOutcomeFromRunOutcome(params.entry.outcome);
-  const error = params.entry.outcome?.status === "error" ? params.entry.outcome.error : undefined;
-  await emitSubagentEndedHookOnce({
-    entry: params.entry,
-    reason,
-    sendFarewell: params.sendFarewell,
-    accountId: params.accountId ?? params.entry.requesterOrigin?.accountId,
-    outcome,
-    error,
-    inFlightRunIds: endedHookInFlightRunIds,
-    persist: persistSubagentRuns,
-  });
-}
-
 const subagentLifecycleController = createSubagentRegistryLifecycleController({
   runs: subagentRuns,
   resumedRuns,
@@ -386,8 +323,6 @@ const subagentLifecycleController = createSubagentRegistryLifecycleController({
   clearPendingLifecycleError,
   countPendingDescendantRuns,
   suppressAnnounceForSteerRestart,
-  shouldEmitEndedHookForRun,
-  emitSubagentEndedHookForRun,
   emitSubagentLifecycleEvent: emitTrackedSubagentLifecycleEvent,
   notifyMemoryRuntimeSubagentEnded,
   resumeSubagentRun,
@@ -693,11 +628,9 @@ function ensureListener() {
 const subagentRunManager = createSubagentRunManager({
   runs: subagentRuns,
   resumedRuns,
-  endedHookInFlightRunIds,
   persist: persistSubagentRuns,
   callGateway: (request) => subagentRegistryDeps.callGateway(request),
   loadConfig: () => subagentRegistryDeps.loadConfig(),
-  ensureRuntimePluginsLoaded,
   ensureListener,
   startSweeper,
   stopSweeper,
@@ -754,7 +687,6 @@ export function registerSubagentRun(params: {
 export function resetSubagentRegistryForTests(opts?: { persist?: boolean }) {
   subagentRuns.clear();
   resumedRuns.clear();
-  endedHookInFlightRunIds.clear();
   clearAllPendingLifecycleErrors();
   resetAnnounceQueuesForTests();
   stopSweeper();

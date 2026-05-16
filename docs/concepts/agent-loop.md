@@ -17,25 +17,25 @@ wired end-to-end.
 
 ## Entry points
 
-- Gateway RPC: `agent` and `agent.wait`.
+- Gateway RPC: `agent.runTurn`, `agent.command.run`, `autoReply.run`, `agent`, and `agent.wait`.
 - Desktop UI actions call the same Gateway RPC path.
 
 ## How it works (high-level)
 
-1. `agent` RPC validates params, resolves session (sessionKey/sessionId), persists session metadata, returns `{ runId, acceptedAt }` immediately.
-2. `agentCommand` runs the agent:
+1. Gateway RPC validates params, resolves session (`sessionKey`/`sessionId`), persists session metadata, and records `{ runId, acceptedAt }`.
+2. The Rust `AgentRuntime` runs the turn:
    - resolves model + thinking/verbose defaults
    - registers run context + runtime state for this run
-   - loads skills snapshot
-   - calls `runEmbeddedPiAgent` (pi-agent-core runtime)
-   - emits **lifecycle end/error** if the embedded loop does not emit one
-3. `runEmbeddedPiAgent`:
+   - assembles context, tools, transcript, and memory inputs
+   - emits stream, tool, usage, and transcript events
+   - records memory ingest hooks after the turn
+3. Rust runtime serialization:
    - serializes runs via per-session + global queues
-   - resolves model + auth profile and builds the pi session
-   - subscribes to pi events and streams assistant/tool deltas
+   - resolves provider transport and model defaults from the Rust provider registry
+   - streams assistant/tool deltas through gateway events
    - enforces timeout -> aborts run if exceeded
    - returns payloads + usage metadata
-4. `subscribeEmbeddedPiSession` bridges pi-agent-core events to CrawClaw `agent` stream:
+4. Gateway stream projection maps Rust runtime events to CrawClaw `agent` stream:
    - tool events => `stream: "tool"`
    - assistant deltas => `stream: "assistant"`
    - lifecycle events => `stream: "lifecycle"` (`phase: "start" | "end" | "error"`)
@@ -148,7 +148,7 @@ registration surface.
 
 ## Streaming + partial replies
 
-- Assistant deltas are streamed from pi-agent-core and emitted as `assistant` events.
+- Assistant deltas are streamed from the Rust agent runtime and emitted as `assistant` events.
 - Block streaming can emit partial replies either on `text_end` or `message_end`.
 - Reasoning streaming can be emitted as a separate stream or as block replies.
 - See [Streaming](/concepts/streaming) for chunking and block reply behavior.
@@ -205,9 +205,9 @@ they affect live runs.
 
 ## Event streams (today)
 
-- `lifecycle`: emitted by `subscribeEmbeddedPiSession` (and as a fallback by `agentCommand`)
-- `assistant`: streamed deltas from pi-agent-core
-- `tool`: streamed tool events from pi-agent-core
+- `lifecycle`: emitted by `subscribeRustAgentSession` (and as a fallback by `agent.command.run`)
+- `assistant`: streamed deltas from the Rust agent runtime
+- `tool`: streamed tool events from the Rust agent runtime
 
 Internally, runtime progress events also feed task state and task trajectories,
 but those are persisted as runtime metadata rather than exposed as a separate
@@ -221,7 +221,7 @@ public stream today.
 ## Timeouts
 
 - `agent.wait` default: 30s (just the wait). `timeoutMs` param overrides.
-- Agent runtime: `agents.defaults.timeoutSeconds` default 172800s (48 hours); enforced in `runEmbeddedPiAgent` abort timer.
+- Agent runtime: `agents.defaults.timeoutSeconds` default 172800s (48 hours); enforced by the Rust runtime abort timer.
 
 ## Where things can end early
 

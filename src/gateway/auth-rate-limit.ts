@@ -2,9 +2,8 @@
  * In-memory sliding-window rate limiter for gateway authentication attempts.
  *
  * Tracks failed auth attempts by {scope, clientIp}. A scope lets callers keep
- * independent counters for different credential classes (for example, shared
- * gateway token/password vs device-token auth) while still sharing one
- * limiter instance.
+ * independent counters for different credential classes while still sharing
+ * one limiter instance.
  *
  * Design decisions:
  * - Pure in-memory Map – no external dependencies; suitable for a single
@@ -37,7 +36,6 @@ export interface RateLimitConfig {
 
 export const AUTH_RATE_LIMIT_SCOPE_DEFAULT = "default";
 export const AUTH_RATE_LIMIT_SCOPE_SHARED_SECRET = "shared-secret";
-export const AUTH_RATE_LIMIT_SCOPE_DEVICE_TOKEN = "device-token";
 export const AUTH_RATE_LIMIT_SCOPE_HOOK_AUTH = "hook-auth";
 
 export interface RateLimitEntry {

@@ -9,7 +9,7 @@ import {
   resolveHooksGmailModel,
 } from "../agents/model-selection.js";
 import { ensureCrawClawModelsJson } from "../agents/models-config.js";
-import { resolveModel } from "../agents/pi-embedded-runner/model.js";
+import { resolveModel } from "../agents/runtime-support/model.js";
 import { resolveAgentSessionDirs } from "../agents/session-dirs.js";
 import { cleanStaleLockFiles } from "../agents/session-write-lock.js";
 import type { loadConfig } from "../config/config.js";
@@ -22,7 +22,6 @@ import {
   triggerInternalHook,
 } from "../hooks/internal-hooks.js";
 import { loadInternalHooks } from "../hooks/loader.js";
-import { isTruthyEnvValue } from "../infra/env.js";
 import type { loadCrawClawPlugins } from "../plugins/loader.js";
 import { type PluginServicesHandle, startPluginServices } from "../plugins/services.js";
 import type { CliDeps } from "../terminal/deps.js";
@@ -68,14 +67,12 @@ export async function startGatewaySidecars(params: {
   pluginRegistry: ReturnType<typeof loadCrawClawPlugins>;
   defaultWorkspaceDir: string;
   deps: CliDeps;
-  startChannels: () => Promise<void>;
   log: { warn: (msg: string) => void };
   logHooks: {
     info: (msg: string) => void;
     warn: (msg: string) => void;
     error: (msg: string) => void;
   };
-  logChannels: { info: (msg: string) => void; error: (msg: string) => void };
 }) {
   try {
     const stateDir = resolveStateDir(process.env);
@@ -145,22 +142,10 @@ export async function startGatewaySidecars(params: {
     params.logHooks.error(`failed to load hooks: ${String(err)}`);
   }
 
-  // Launch configured channels so gateway replies via the surface the message came from.
-  // Tests can opt out via CRAWCLAW_SKIP_CHANNELS.
-  const skipChannels = isTruthyEnvValue(process.env.CRAWCLAW_SKIP_CHANNELS);
-  if (!skipChannels) {
-    try {
-      await prewarmConfiguredPrimaryModel({
-        cfg: params.cfg,
-        log: params.log,
-      });
-      await params.startChannels();
-    } catch (err) {
-      params.logChannels.error(`channel startup failed: ${String(err)}`);
-    }
-  } else {
-    params.logChannels.info("skipping channel start (CRAWCLAW_SKIP_CHANNELS=1)");
-  }
+  await prewarmConfiguredPrimaryModel({
+    cfg: params.cfg,
+    log: params.log,
+  });
 
   if (params.cfg.hooks?.internal?.enabled !== false) {
     setTimeout(() => {

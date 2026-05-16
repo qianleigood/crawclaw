@@ -77,7 +77,7 @@ describe("config hooks module paths", () => {
     );
   });
 
-  it("accepts hooks.mappings[].channel runtime plugin ids", () => {
+  it("accepts hooks.mappings[].channel target ids", () => {
     const res = validateConfigObjectWithPlugins({
       agents: { list: [{ id: "pi" }] },
       hooks: {

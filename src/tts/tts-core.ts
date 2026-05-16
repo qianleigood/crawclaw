@@ -7,7 +7,7 @@ import {
   resolveModelRefFromString,
   type ModelRef,
 } from "../agents/model-selection.js";
-import { resolveModelAsync } from "../agents/pi-embedded-runner/model.js";
+import { resolveModelAsync } from "../agents/runtime-support/model.js";
 import { prepareModelForSimpleCompletion } from "../agents/simple-completion-transport.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ResolvedTtsConfig } from "./tts.js";

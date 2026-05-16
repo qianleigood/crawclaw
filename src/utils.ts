@@ -60,14 +60,6 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export type WebChannel = "web";
-
-export function assertWebChannel(input: string): asserts input is WebChannel {
-  if (input !== "web") {
-    throw new Error("Web channel must be 'web'");
-  }
-}
-
 export function normalizeE164(number: string): string {
   const withoutPrefix = number.replace(/^[a-z][\w-]*:/i, "").trim();
   const digits = withoutPrefix.replace(/[^\d+]/g, "");

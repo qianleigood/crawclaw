@@ -59,7 +59,6 @@ pub struct BundledProviderPluginCapabilities {
     pub chat: bool,
     pub non_chat: bool,
     pub image_generation: bool,
-    pub cli_backend: bool,
     pub media_understanding: bool,
 }
 
@@ -1335,23 +1334,59 @@ pub fn provider_config_schema_lookup(path: &str) -> Value {
             config_lookup_child("mode", "models.mode", "Model Catalog Mode"),
             config_lookup_child("providers", "models.providers", "Model Providers"),
         ],
-        "models.providers" => vec![config_lookup_child("*", "models.providers.*", "Provider Entry")],
+        "models.providers" => vec![config_lookup_child(
+            "*",
+            "models.providers.*",
+            "Provider Entry",
+        )],
         "models.providers.*" => vec![
-            config_lookup_child("baseUrl", "models.providers.*.baseUrl", "Model Provider Base URL"),
-            config_lookup_child("apiKey", "models.providers.*.apiKey", "Model Provider API Key"),
-            config_lookup_child("auth", "models.providers.*.auth", "Model Provider Auth Mode"),
-            config_lookup_child("api", "models.providers.*.api", "Model Provider API Adapter"),
+            config_lookup_child(
+                "baseUrl",
+                "models.providers.*.baseUrl",
+                "Model Provider Base URL",
+            ),
+            config_lookup_child(
+                "apiKey",
+                "models.providers.*.apiKey",
+                "Model Provider API Key",
+            ),
+            config_lookup_child(
+                "auth",
+                "models.providers.*.auth",
+                "Model Provider Auth Mode",
+            ),
+            config_lookup_child(
+                "api",
+                "models.providers.*.api",
+                "Model Provider API Adapter",
+            ),
             config_lookup_child(
                 "injectNumCtxForOpenAICompat",
                 "models.providers.*.injectNumCtxForOpenAICompat",
                 "Model Provider Inject num_ctx (OpenAI Compat)",
             ),
-            config_lookup_child("headers", "models.providers.*.headers", "Model Provider Headers"),
-            config_lookup_child("authHeader", "models.providers.*.authHeader", "Model Provider Authorization Header"),
-            config_lookup_child("models", "models.providers.*.models", "Model Provider Model List"),
+            config_lookup_child(
+                "headers",
+                "models.providers.*.headers",
+                "Model Provider Headers",
+            ),
+            config_lookup_child(
+                "authHeader",
+                "models.providers.*.authHeader",
+                "Model Provider Authorization Header",
+            ),
+            config_lookup_child(
+                "models",
+                "models.providers.*.models",
+                "Model Provider Model List",
+            ),
         ],
         "models.providers.*.headers" => {
-            vec![config_lookup_child("*", "models.providers.*.headers.*", "Model Provider Header")]
+            vec![config_lookup_child(
+                "*",
+                "models.providers.*.headers.*",
+                "Model Provider Header",
+            )]
         }
         _ => Vec::new(),
     };
@@ -1559,21 +1594,8 @@ fn parse_bundled_provider_plugin_metadata(
             .iter()
             .any(|entry| entry.id == provider)
     });
-    let contracts = manifest
-        .get("contracts")
-        .cloned()
-        .unwrap_or_else(|| json!({}));
-    let media_understanding = contracts
-        .get("mediaUnderstandingProviders")
-        .and_then(Value::as_array)
-        .map(|values| !values.is_empty())
-        .unwrap_or(false);
-    let cli_backend = manifest
-        .get("cliBackends")
-        .and_then(Value::as_array)
-        .map(|values| !values.is_empty())
-        .unwrap_or(false);
     let image_generation = plugin_id == "fal";
+    let media_understanding = matches!(plugin_id, "openai");
     BundledProviderPluginMetadata {
         plugin_id: plugin_id.to_string(),
         providers,
@@ -1583,7 +1605,6 @@ fn parse_bundled_provider_plugin_metadata(
             chat,
             non_chat: !chat,
             image_generation,
-            cli_backend,
             media_understanding,
         },
     }
@@ -1992,7 +2013,13 @@ pub fn build_native_provider_conversation_request_with_options(
     options: &NativeProviderRequestOptions,
 ) -> Result<NativeProviderRequest, ProviderTransportError> {
     let messages = normalize_native_provider_messages(messages)?;
-    match resolve_provider_transport(config)? {
+    let transport = resolve_provider_transport(config)?;
+    if !is_implemented_native_provider_transport(transport) {
+        return Err(ProviderTransportError::Unsupported(format!(
+            "Unsupported Rust provider transport: {transport}"
+        )));
+    }
+    match transport {
         "openai-responses" | "openai-codex-responses" => openai_responses_request(
             config,
             if is_default_openai_provider(&config.provider) {
@@ -2021,10 +2048,23 @@ pub fn build_native_provider_conversation_request_with_options(
         "openai-completions" => {
             chat_completions_request(config, "", "Authorization", "Bearer ", &messages, options)
         }
-        transport => Err(ProviderTransportError::Unsupported(format!(
-            "Rust provider transport is not implemented: {transport}"
-        ))),
+        _ => unreachable!("transport implementation checked before request build"),
     }
+}
+
+fn is_implemented_native_provider_transport(transport: &str) -> bool {
+    matches!(
+        transport,
+        "openai-responses"
+            | "openai-codex-responses"
+            | "azure-openai-responses"
+            | "anthropic-messages"
+            | "google-generative-ai"
+            | "ollama"
+            | "bedrock-converse-stream"
+            | "github-copilot"
+            | "openai-completions"
+    )
 }
 
 pub fn parse_native_provider_response(
@@ -3000,6 +3040,19 @@ mod tests {
     }
 
     #[test]
+    fn registered_native_provider_transports_have_request_builders() {
+        let missing = native_provider_transports()
+            .into_iter()
+            .map(|entry| entry.transport)
+            .collect::<BTreeSet<_>>()
+            .into_iter()
+            .filter(|transport| !is_implemented_native_provider_transport(transport))
+            .collect::<Vec<_>>();
+
+        assert_eq!(missing, Vec::<&str>::new());
+    }
+
+    #[test]
     fn bundled_provider_auth_env_vars_cover_plugin_manifest_snapshot() {
         let actual = bundled_provider_auth_env_vars()
             .into_iter()
@@ -3055,7 +3108,6 @@ mod tests {
             .find(|entry| entry.plugin_id == "openai")
             .expect("openai metadata");
         assert!(openai.capabilities.chat);
-        assert!(openai.capabilities.cli_backend);
         assert!(openai.capabilities.media_understanding);
         assert!(openai
             .auth_choices
@@ -3209,7 +3261,15 @@ mod tests {
         assert_eq!(
             schema["schema"]["properties"]["models"]["properties"]["providers"]
                 ["additionalProperties"]["properties"]["models"]["items"]["required"],
-            json!(["id", "name", "reasoning", "input", "cost", "contextWindow", "maxTokens"])
+            json!([
+                "id",
+                "name",
+                "reasoning",
+                "input",
+                "cost",
+                "contextWindow",
+                "maxTokens"
+            ])
         );
         assert_eq!(
             schema["uiHints"]["models.providers.*.apiKey"]["sensitive"],

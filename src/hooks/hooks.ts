@@ -5,8 +5,8 @@ export type HookEvent = import("./internal-hooks.js").InternalHookEvent;
 export type HookHandler = import("./internal-hooks.js").InternalHookHandler;
 
 export {
-  registerInternalHook as registerHook,
-  unregisterInternalHook as unregisterHook,
+  registerInternalHook,
+  unregisterInternalHook,
   clearInternalHooks as clearHooks,
   getRegisteredEventKeys as getRegisteredHookEventKeys,
   triggerInternalHook as triggerHook,

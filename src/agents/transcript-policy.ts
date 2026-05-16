@@ -1,7 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import type { ProviderRuntimeModel } from "../plugins/types.js";
 import { normalizeProviderId } from "./model-selection.js";
-import { isGoogleModelApi } from "./pi-embedded-helpers/google.js";
 import {
   isAnthropicProviderFamily,
   isOpenAiProviderFamily,
@@ -11,6 +10,7 @@ import {
   shouldSanitizeGeminiThoughtSignaturesForModel,
   supportsOpenAiCompatTurnValidation,
 } from "./provider-capabilities.js";
+import { isGoogleModelApi } from "./runtime-helpers/google.js";
 import type { ToolCallIdMode } from "./tool-call-id.js";
 
 export type TranscriptSanitizeMode = "full" | "images-only";

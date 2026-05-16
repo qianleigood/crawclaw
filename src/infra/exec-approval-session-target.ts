@@ -2,9 +2,8 @@ import type { CrawClawConfig } from "../config/config.js";
 import { loadSessionStore, resolveStorePath } from "../config/sessions.js";
 import { normalizeOptionalAccountId } from "../routing/account-id.js";
 import { parseAgentSessionKey } from "../routing/session-key.js";
-import { normalizeMessageChannel } from "../utils/message-channel.js";
+import { normalizeMessageChannel } from "../utils/gateway-client-surface.js";
 import type { ExecApprovalRequest } from "./exec-approvals.js";
-import { resolveSessionDeliveryTarget } from "./outbound/targets.js";
 import type { PluginApprovalRequest } from "./plugin-approvals.js";
 
 export type ExecApprovalSessionTarget = {
@@ -95,23 +94,22 @@ export function resolveExecApprovalSessionTarget(params: {
     return null;
   }
 
-  const target = resolveSessionDeliveryTarget({
-    entry,
-    requestedChannel: "last",
-    turnSourceChannel: normalizeOptionalString(params.turnSourceChannel),
-    turnSourceTo: normalizeOptionalString(params.turnSourceTo),
-    turnSourceAccountId: normalizeOptionalString(params.turnSourceAccountId),
-    turnSourceThreadId: normalizeOptionalThreadId(params.turnSourceThreadId),
-  });
-  if (!target.to) {
+  const to = normalizeOptionalString(params.turnSourceTo) ?? entry.lastTo ?? entry.origin?.to;
+  if (!to) {
     return null;
   }
 
   return {
-    channel: normalizeOptionalString(target.channel),
-    to: target.to,
-    accountId: normalizeOptionalString(target.accountId),
-    threadId: normalizeOptionalThreadId(target.threadId),
+    channel: normalizeOptionalChannel(
+      params.turnSourceChannel ?? entry.origin?.provider ?? entry.lastChannel,
+    ),
+    to,
+    accountId: normalizeOptionalString(
+      params.turnSourceAccountId ?? entry.origin?.accountId ?? entry.lastAccountId,
+    ),
+    threadId: normalizeOptionalThreadId(
+      params.turnSourceThreadId ?? entry.origin?.threadId ?? entry.lastThreadId,
+    ),
   };
 }
 

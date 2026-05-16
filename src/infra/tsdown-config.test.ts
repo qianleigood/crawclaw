@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { bundledPluginRoot } from "../../test/helpers/bundled-plugin-paths.js";
 import tsdownConfig from "../../tsdown.config.ts";
 
 type TsdownConfigEntry = {
@@ -21,20 +20,14 @@ function entryKeys(config: TsdownConfigEntry): string[] {
   return Object.keys(config.entry);
 }
 
-function bundledEntry(pluginId: string): string {
-  return `${bundledPluginRoot(pluginId)}/index`;
-}
-
 describe("tsdown config", () => {
-  it("keeps core, plugin runtime, plugin-sdk, bundled plugins, and bundled hooks in one dist graph", () => {
+  it("keeps core, plugin-sdk, and bundled hooks in one dist graph", () => {
     const configs = asConfigArray(tsdownConfig);
     const distGraphs = configs.filter((config) => {
       const keys = entryKeys(config);
       return (
         keys.includes("index") ||
-        keys.includes("plugins/runtime/index") ||
         keys.includes("plugin-sdk/index") ||
-        keys.includes(bundledEntry("openai")) ||
         keys.includes("bundled/boot-md/handler")
       );
     });
@@ -46,9 +39,7 @@ describe("tsdown config", () => {
         "agents/pi-model-discovery-runtime",
         "index",
         "control/status.summary.runtime",
-        "plugins/runtime/index",
         "plugin-sdk/core",
-        bundledEntry("openai"),
         "bundled/boot-md/handler",
       ]),
     );

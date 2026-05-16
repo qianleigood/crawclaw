@@ -21,8 +21,6 @@ export {
   resetPluginRuntimeStateForTest,
   setActivePluginRegistry,
 } from "../plugins/runtime.js";
-export { capturePluginRegistration } from "../plugins/captured-registration.js";
-export type { PluginRuntime } from "../plugins/runtime/types.js";
 export type { RuntimeEnv } from "../runtime.js";
 export type { MockFn } from "../test-utils/vitest-mock-fn.js";
 export {

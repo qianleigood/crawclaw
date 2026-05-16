@@ -1,6 +1,5 @@
 import path from "node:path";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
-import { CHANNEL_IDS, normalizeChatChannelId } from "../channels/registry.js";
 import { withBundledPluginAllowlistCompat } from "../plugins/bundled-compat.js";
 import { listBundledWebSearchPluginIds } from "../plugins/bundled-web-search-ids.js";
 import {
@@ -21,7 +20,6 @@ import { isCanonicalDottedDecimalIPv4, isLoopbackIpAddress } from "../shared/net
 import { isRecord } from "../utils.js";
 import { findDuplicateAgentDirs, formatDuplicateAgentDirError } from "./agent-dirs.js";
 import { appendAllowedValuesHint, summarizeAllowedValues } from "./allowed-values.js";
-import { collectChannelSchemaMetadata } from "./channel-config-metadata.js";
 import { findLegacyConfigIssues } from "./legacy.js";
 import { materializeRuntimeConfig } from "./materialize.js";
 import type { CrawClawConfig, ConfigValidationIssue } from "./types.js";
@@ -29,7 +27,6 @@ import { coerceSecretRef } from "./types.secrets.js";
 import { CrawClawSchema } from "./zod-schema.js";
 
 const LEGACY_REMOVED_PLUGIN_IDS = new Set(["google-antigravity-auth", "google-gemini-cli-auth"]);
-
 type UnknownIssueRecord = Record<string, unknown>;
 type ConfigPathSegment = string | number;
 type AllowedValuesCollection = {
@@ -37,21 +34,9 @@ type AllowedValuesCollection = {
   incomplete: boolean;
   hasValues: boolean;
 };
-type JsonSchemaLike = Record<string, unknown>;
 
 const CUSTOM_EXPECTED_ONE_OF_RE = /expected one of ((?:"[^"]+"(?:\|"?[^"]+"?)*)+)/i;
 const SECRETREF_POLICY_DOC_URL = "https://docs.crawclaw.ai/reference/secretref-credential-surface";
-const GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA = [] as const;
-type BundledChannelConfigMetadata = {
-  channelId: string;
-  schema: unknown;
-};
-const bundledChannelSchemaById = new Map<string, unknown>(
-  (GENERATED_BUNDLED_CHANNEL_CONFIG_METADATA as readonly BundledChannelConfigMetadata[]).map(
-    (entry) => [entry.channelId, entry.schema] as const,
-  ),
-);
-
 function toIssueRecord(value: unknown): UnknownIssueRecord | null {
   if (!value || typeof value !== "object") {
     return null;
@@ -73,97 +58,6 @@ function formatConfigPath(segments: readonly ConfigPathSegment[]): string {
   return segments.join(".");
 }
 
-function asJsonSchemaLike(value: unknown): JsonSchemaLike | null {
-  return value && typeof value === "object" ? (value as JsonSchemaLike) : null;
-}
-
-function lookupJsonSchemaNode(
-  schema: unknown,
-  pathSegments: readonly ConfigPathSegment[],
-): JsonSchemaLike | null {
-  let current = asJsonSchemaLike(schema);
-  for (const segment of pathSegments) {
-    if (!current) {
-      return null;
-    }
-    if (typeof segment === "number") {
-      const items = current.items;
-      if (Array.isArray(items)) {
-        current = asJsonSchemaLike(items[segment] ?? items[0]);
-        continue;
-      }
-      current = asJsonSchemaLike(items);
-      continue;
-    }
-    const properties = asJsonSchemaLike(current.properties);
-    const next =
-      (properties && asJsonSchemaLike(properties[segment])) ||
-      asJsonSchemaLike(current.additionalProperties);
-    current = next;
-  }
-  return current;
-}
-
-function collectAllowedValuesFromJsonSchemaNode(schema: unknown): AllowedValuesCollection {
-  const node = asJsonSchemaLike(schema);
-  if (!node) {
-    return { values: [], incomplete: false, hasValues: false };
-  }
-
-  if (Object.prototype.hasOwnProperty.call(node, "const")) {
-    return { values: [node.const], incomplete: false, hasValues: true };
-  }
-
-  if (Array.isArray(node.enum)) {
-    return { values: node.enum, incomplete: false, hasValues: node.enum.length > 0 };
-  }
-
-  const type = node.type;
-  if (type === "boolean") {
-    return { values: [true, false], incomplete: false, hasValues: true };
-  }
-  if (Array.isArray(type) && type.includes("boolean")) {
-    return { values: [true, false], incomplete: false, hasValues: true };
-  }
-
-  const unionBranches = Array.isArray(node.anyOf)
-    ? node.anyOf
-    : Array.isArray(node.oneOf)
-      ? node.oneOf
-      : null;
-  if (!unionBranches) {
-    return { values: [], incomplete: false, hasValues: false };
-  }
-
-  const collected: unknown[] = [];
-  for (const branch of unionBranches) {
-    const branchCollected = collectAllowedValuesFromJsonSchemaNode(branch);
-    if (branchCollected.incomplete || !branchCollected.hasValues) {
-      return { values: [], incomplete: true, hasValues: false };
-    }
-    collected.push(...branchCollected.values);
-  }
-
-  return { values: collected, incomplete: false, hasValues: collected.length > 0 };
-}
-
-function collectAllowedValuesFromBundledChannelSchemaPath(
-  pathSegments: readonly ConfigPathSegment[],
-): AllowedValuesCollection {
-  if (pathSegments[0] !== "channels" || typeof pathSegments[1] !== "string") {
-    return { values: [], incomplete: false, hasValues: false };
-  }
-  const channelSchema = bundledChannelSchemaById.get(pathSegments[1]);
-  if (!channelSchema) {
-    return { values: [], incomplete: false, hasValues: false };
-  }
-  const targetNode = lookupJsonSchemaNode(channelSchema, pathSegments.slice(2));
-  if (!targetNode) {
-    return { values: [], incomplete: false, hasValues: false };
-  }
-  return collectAllowedValuesFromJsonSchemaNode(targetNode);
-}
-
 function collectAllowedValuesFromCustomIssue(record: UnknownIssueRecord): AllowedValuesCollection {
   const message = typeof record.message === "string" ? record.message : "";
   const expectedMatch = message.match(CUSTOM_EXPECTED_ONE_OF_RE);
@@ -172,11 +66,8 @@ function collectAllowedValuesFromCustomIssue(record: UnknownIssueRecord): Allowe
     return { values, incomplete: false, hasValues: values.length > 0 };
   }
 
-  // Custom Zod issues usually come from superRefine rules, but some normalized
-  // channel unions collapse to a generic custom issue. Use generated channel
-  // config metadata here so we can recover enum hints without touching runtime
-  // plugin registries during validation formatting.
-  return collectAllowedValuesFromBundledChannelSchemaPath(toConfigPathSegments(record.path));
+  void record;
+  return { values: [], incomplete: false, hasValues: false };
 }
 
 function collectAllowedValuesFromIssue(issue: unknown): AllowedValuesCollection {
@@ -568,12 +459,6 @@ function validateConfigObjectWithPluginsBase(
     registry: ReturnType<typeof loadPluginManifestRegistry>;
     knownIds?: Set<string>;
     normalizedPlugins?: ReturnType<typeof normalizePluginsConfig>;
-    channelSchemas?: Map<
-      string,
-      {
-        schema?: Record<string, unknown>;
-      }
-    >;
   };
 
   let registryInfo: RegistryInfo | null = null;
@@ -665,40 +550,9 @@ function validateConfigObjectWithPluginsBase(
     return info.normalizedPlugins;
   };
 
-  const ensureChannelSchemas = (): Map<
-    string,
-    {
-      schema?: Record<string, unknown>;
-    }
-  > => {
-    const info = ensureRegistry();
-    if (!info.channelSchemas) {
-      info.channelSchemas = new Map(
-        collectChannelSchemaMetadata(info.registry).map(
-          (entry) => [entry.id, { schema: entry.configSchema }] as const,
-        ),
-      );
-    }
-    return info.channelSchemas;
-  };
-
   let mutatedConfig = config;
-  let channelsCloned = false;
   let pluginsCloned = false;
   let pluginEntriesCloned = false;
-
-  const replaceChannelConfig = (channelId: string, nextValue: unknown) => {
-    if (!channelsCloned) {
-      mutatedConfig = {
-        ...mutatedConfig,
-        channels: {
-          ...mutatedConfig.channels,
-        },
-      };
-      channelsCloned = true;
-    }
-    (mutatedConfig.channels as Record<string, unknown>)[channelId] = nextValue;
-  };
 
   const replacePluginEntryConfig = (pluginId: string, nextValue: Record<string, unknown>) => {
     if (!pluginsCloned) {
@@ -726,61 +580,6 @@ function validateConfigObjectWithPluginsBase(
     };
   };
 
-  const allowedChannels = new Set<string>(["defaults", "modelByChannel", ...CHANNEL_IDS]);
-
-  if (config.channels && isRecord(config.channels)) {
-    for (const key of Object.keys(config.channels)) {
-      const trimmed = key.trim();
-      if (!trimmed) {
-        continue;
-      }
-      if (!allowedChannels.has(trimmed)) {
-        const { registry } = ensureRegistry();
-        for (const record of registry.plugins) {
-          for (const channelId of record.channels) {
-            allowedChannels.add(channelId);
-          }
-        }
-      }
-      if (!allowedChannels.has(trimmed)) {
-        issues.push({
-          path: `channels.${trimmed}`,
-          message: `unknown channel id: ${trimmed}`,
-        });
-        continue;
-      }
-
-      const channelSchema = ensureChannelSchemas().get(trimmed)?.schema;
-      if (!channelSchema) {
-        continue;
-      }
-      const result = validateJsonSchemaValue({
-        schema: channelSchema,
-        cacheKey: `channel:${trimmed}`,
-        value: config.channels[trimmed],
-        applyDefaults: true,
-      });
-      if (!result.ok) {
-        for (const error of result.errors) {
-          issues.push({
-            path:
-              error.path === "<root>" ? `channels.${trimmed}` : `channels.${trimmed}.${error.path}`,
-            message: `invalid config: ${error.message}`,
-            allowedValues: error.allowedValues,
-            allowedValuesHiddenCount: error.allowedValuesHiddenCount,
-          });
-        }
-        continue;
-      }
-      replaceChannelConfig(trimmed, result.value);
-    }
-  }
-
-  const heartbeatChannelIds = new Set<string>();
-  for (const channelId of CHANNEL_IDS) {
-    heartbeatChannelIds.add(channelId.toLowerCase());
-  }
-
   const validateHeartbeatTarget = (target: string | undefined, path: string) => {
     if (typeof target !== "string") {
       return;
@@ -794,24 +593,6 @@ function validateConfigObjectWithPluginsBase(
     if (normalized === "last" || normalized === "none") {
       return;
     }
-    if (normalizeChatChannelId(trimmed)) {
-      return;
-    }
-    if (!heartbeatChannelIds.has(normalized)) {
-      const { registry } = ensureRegistry();
-      for (const record of registry.plugins) {
-        for (const channelId of record.channels) {
-          const pluginChannel = channelId.trim();
-          if (pluginChannel) {
-            heartbeatChannelIds.add(pluginChannel.toLowerCase());
-          }
-        }
-      }
-    }
-    if (heartbeatChannelIds.has(normalized)) {
-      return;
-    }
-    issues.push({ path, message: `unknown heartbeat target: ${target}` });
   };
 
   validateHeartbeatTarget(

@@ -39,12 +39,6 @@ Scope intent:
 - `gateway.remote.token`
 - `gateway.remote.password`
 - `cron.webhookToken`
-- `channels.feishu.appSecret`
-- `channels.feishu.encryptKey`
-- `channels.feishu.verificationToken`
-- `channels.feishu.accounts.*.appSecret`
-- `channels.feishu.accounts.*.encryptKey`
-- `channels.feishu.accounts.*.verificationToken`
 
 ### `auth-profiles.json` targets (`secrets configure` + `secrets apply` + `secrets audit`)
 

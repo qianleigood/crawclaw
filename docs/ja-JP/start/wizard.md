@@ -48,7 +48,7 @@ crawclaw onboard
 
 <Columns>
   <Card title="CLIリファレンス" href="/start/wizard-cli-reference">
-    ローカルおよびリモートフローの完全な説明、認証とモデルマトリックス、設定出力、ウィザードRPC、feishu-cliの動作。
+    ローカルおよびリモートフローの完全な説明、認証とモデルマトリックス、設定出力、ウィザードRPCの動作。
   </Card>
   <Card title="自動化とスクリプト" href="/start/wizard-cli-automation">
     非対話式オンボーディングのレシピと自動化された `agents add` の例。

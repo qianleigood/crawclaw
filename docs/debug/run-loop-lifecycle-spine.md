@@ -129,7 +129,7 @@ The run-loop owns lifecycle emission.
 
 In practice that means:
 
-- the embedded runner emits `post_sampling` and `settled_turn`
+- the Rust runtime emits `post_sampling` and `settled_turn`
 - the compaction runtime emits `pre_compact` and `post_compact`
 - subagent orchestration emits `subagent_start` and `subagent_stop`
 
@@ -237,7 +237,7 @@ parent observation. Lifecycle decisions expose `decision.code` and the derived
 The diagnostic bridge emits every lifecycle phase as a `run.lifecycle`
 diagnostic event with the same observation. Cache trace entries carry the same
 observation identity, subsystem logs read the current observation scope, and
-the `diagnostics-otel` plugin exports observation ids as span/log attributes.
+the Rust diagnostics pipeline can export observation ids as span/log attributes.
 OTel metrics intentionally exclude high-cardinality ids such as `traceId`,
 `spanId`, `runId`, `sessionId`, and `sessionKey`.
 
@@ -330,20 +330,18 @@ quietly regress:
 - memory/context runtime prompt assembly
 - lifecycle-driven memory scheduling
 - session summary / durable extraction / dream agent runners
-- embedded runner memory-runtime handoff
+- Rust runtime memory handoff
 - provider lifecycle emission
-- embedded special-agent inheritance, cache, and observability
+- runtime-fork special-agent inheritance, cache, and observability
 - `agent inspect` runtime/archive enrichment
 - Browser client inspect entrypoints and views (`agents` / `chat` / `sessions`)
 
 Current coverage includes:
 
 - `src/memory/engine/context-memory-runtime.*.test.ts`
-- `src/memory/session-summary/agent-runner.test.ts`
-- `src/memory/durable/agent-runner.test.ts`
-- `src/memory/dreaming/agent-runner.test.ts`
-- `src/agents/pi-embedded-runner/run/attempt.*.test.ts`
-- `src/agents/special/runtime/*.test.ts`
+- `crates/crawclaw-runtime` memory tests
+- `crates/crawclaw-runtime` agent runtime tests
+- `crates/crawclaw-runtime` special-agent tests
 
 At the time of writing, this suite passes as:
 

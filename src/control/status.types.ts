@@ -1,59 +1,52 @@
-import type { ChannelId } from "../channels/plugins/types.js";
-import type { TaskAuditSummary } from "../tasks/task-registry.audit.js";
-import type { TaskRegistrySummary } from "../tasks/task-registry.types.js";
+import type { CrawClawConfig } from "../config/types.js";
+import type { GatewayConnectionDetails } from "../gateway/connection-details.js";
+import type { UpdateCheckResult } from "../infra/update-check.js";
+import type { PluginCompatibilityNotice } from "../plugins/status.js";
+import type { AgentLocalStatus } from "./status.agent-local.js";
 
 export type SessionStatus = {
-  agentId?: string;
   key: string;
-  kind: "direct" | "group" | "global" | "unknown";
-  sessionId?: string;
+  kind: string;
   updatedAt: number | null;
-  age: number | null;
-  thinkingLevel?: string;
-  fastMode?: boolean;
-  verboseLevel?: string;
-  reasoningLevel?: string;
-  elevatedLevel?: string;
-  systemSent?: boolean;
-  abortedLastRun?: boolean;
-  inputTokens?: number;
-  outputTokens?: number;
-  totalTokens: number | null;
-  totalTokensFresh: boolean;
-  cacheRead?: number;
-  cacheWrite?: number;
-  remainingTokens: number | null;
-  percentUsed: number | null;
+  age: number;
   model: string | null;
-  contextTokens: number | null;
-  flags: string[];
-};
-
-export type MainSessionWakeStatus = {
-  agentId: string;
-  enabled: boolean;
+  modelProvider?: string | null;
+  totalTokens?: number | null;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
+  contextTokens?: number | null;
+  percentUsed?: number | null;
+  cacheRead?: number | null;
+  cacheWrite?: number | null;
 };
 
 export type StatusSummary = {
-  runtimeVersion?: string | null;
-  linkChannel?: {
-    id: ChannelId;
-    label: string;
-    linked: boolean;
-    authAgeMs: number | null;
-  };
+  runtimeVersion: string | null;
   mainSessionWake: {
     defaultAgentId: string;
-    agents: MainSessionWakeStatus[];
+    agents: Array<{ agentId: string; enabled: boolean }>;
   };
-  channelSummary: string[];
-  queuedSystemEvents: string[];
-  tasks: TaskRegistrySummary;
-  taskAudit: TaskAuditSummary;
+  queuedSystemEvents: unknown[];
+  tasks: {
+    total: number;
+    active: number;
+    failures: number;
+    byStatus: {
+      queued: number;
+      running: number;
+    };
+  };
+  taskAudit: {
+    errors: number;
+    warnings: number;
+  };
   sessions: {
     paths: string[];
     count: number;
-    defaults: { model: string | null; contextTokens: number | null };
+    defaults: {
+      model: string | null;
+      contextTokens: number | null;
+    };
     recent: SessionStatus[];
     byAgent: Array<{
       agentId: string;
@@ -62,4 +55,39 @@ export type StatusSummary = {
       recent: SessionStatus[];
     }>;
   };
+};
+
+export type StatusScanResult = {
+  cfg: CrawClawConfig;
+  sourceConfig: CrawClawConfig;
+  secretDiagnostics: string[];
+  osSummary: { label: string };
+  tailscaleMode: string;
+  tailscaleDns: string | null;
+  tailscaleHttpsUrl: string | null;
+  update: UpdateCheckResult;
+  gatewayConnection: GatewayConnectionDetails;
+  remoteUrlMissing: boolean;
+  gatewayMode: "local" | "remote";
+  gatewayProbeAuth: {
+    token?: string;
+    password?: string;
+  };
+  gatewayProbeAuthWarning?: string;
+  gatewayProbe: Awaited<ReturnType<typeof import("../gateway/probe.js").probeGateway>> | null;
+  gatewayReachable: boolean;
+  gatewaySelf: {
+    host?: string | null;
+    ip?: string | null;
+    version?: string | null;
+    platform?: string | null;
+  } | null;
+  agentStatus: {
+    defaultId: string;
+    agents: AgentLocalStatus[];
+    totalSessions: number;
+    bootstrapPendingCount: number;
+  };
+  summary: StatusSummary;
+  pluginCompatibility: PluginCompatibilityNotice[];
 };

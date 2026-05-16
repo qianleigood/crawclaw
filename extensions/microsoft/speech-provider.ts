@@ -1,12 +1,12 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
 import { resolvePreferredCrawClawTmpDir } from "crawclaw/plugin-sdk/infra-runtime";
-import { isVoiceCompatibleAudio } from "crawclaw/plugin-sdk/media-runtime";
 import type {
   SpeechProviderConfig,
   SpeechProviderPlugin,
   SpeechVoiceOption,
 } from "crawclaw/plugin-sdk/speech";
+import { isVoiceCompatibleAudio } from "crawclaw/plugin-sdk/speech-core";
 import {
   CHROMIUM_FULL_VERSION,
   TRUSTED_CLIENT_TOKEN,

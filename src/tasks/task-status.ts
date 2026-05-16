@@ -1,4 +1,4 @@
-import { sanitizeUserFacingText } from "../agents/pi-embedded-helpers/errors.js";
+import { sanitizeUserFacingText } from "../agents/user-facing-text.js";
 import { truncateUtf16Safe } from "../utils.js";
 import type { TaskRecord } from "./task-registry.types.js";
 

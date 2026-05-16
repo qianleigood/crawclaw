@@ -250,18 +250,15 @@ This is **scoped to the agent run**, not a global shell environment.
 
 ## Bundled skill dependencies
 
-Bundled core skill helper dependencies are installed at project
-install/postinstall time through the managed `core-skills` runtime under
-`~/.crawclaw/runtimes/core-skills/venv`.
+Bundled core skill helper dependencies are owned by the native runtime and the
+committed requirement lockfiles.
 
 Rules for bundled core skills:
 
 - Put shared Python package pins in `skills/.runtime/requirements.lock.txt`.
-- Let `scripts/install-plugin-runtimes.mjs` create or repair the runtime.
-- Do not run `pip install` or similar package installation from a skill script
-  on first use.
-- If a runtime is missing, report CrawClaw Desktop or the local Gateway API /
-  CrawClaw Desktop or the local Gateway API.
+- Do not add a TypeScript install or repair hook for skill dependencies.
+- If a runtime is missing, report the owning native runtime or explicit user
+  configuration that must provide it.
 
 Platform-specific bundled skill runtimes should declare platform metadata and
 install-time policy together. For example, `openai-whisper` declares

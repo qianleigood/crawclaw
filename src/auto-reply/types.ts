@@ -1,7 +1,10 @@
 import type { ImageContent } from "@mariozechner/pi-ai";
 import type { InteractiveReply } from "../interactive/payload.js";
 import type { PromptImageOrderEntry } from "../media/prompt-image-order.js";
-import type { TypingController } from "./reply/typing.js";
+
+export type TypingController = {
+  startTypingLoop: () => Promise<void> | void;
+};
 
 export type BlockReplyContext = {
   abortSignal?: AbortSignal;

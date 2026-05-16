@@ -1,6 +1,11 @@
 {
   "id": "vercel-ai-gateway",
   "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
   "providers": ["vercel-ai-gateway"],
   "providerAuthEnvVars": {
     "vercel-ai-gateway": ["AI_GATEWAY_API_KEY"]

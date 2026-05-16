@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  createEmbeddedMemorySpecialAgentDefinition,
+  createRuntimeMemorySpecialAgentDefinition,
   createRuntimeDenyToolPolicy,
   createShortMemoryCachePolicy,
 } from "./definition-presets.js";
@@ -20,9 +20,9 @@ describe("special agent definition presets", () => {
     });
   });
 
-  it("creates embedded memory definitions with shared substrate defaults", () => {
+  it("creates runtime memory definitions with shared substrate defaults", () => {
     expect(
-      createEmbeddedMemorySpecialAgentDefinition({
+      createRuntimeMemorySpecialAgentDefinition({
         id: "durable_memory",
         label: "durable-memory",
         spawnSource: "durable-memory",
@@ -35,7 +35,7 @@ describe("special agent definition presets", () => {
       id: "durable_memory",
       label: "durable-memory",
       spawnSource: "durable-memory",
-      executionMode: "embedded_fork",
+      executionMode: "runtime_fork",
       isolatedContext: true,
       transcriptPolicy: "isolated",
       parentContextPolicy: "fork_messages_only",
@@ -49,15 +49,14 @@ describe("special agent definition presets", () => {
       },
       mode: "run",
       cleanup: "keep",
-      sandbox: "inherit",
       expectsCompletionMessage: false,
       defaultRunTimeoutSeconds: 90,
       defaultMaxTurns: 5,
     });
   });
 
-  it("allows embedded memory definitions to rely on timeout without a turn cap", () => {
-    const definition = createEmbeddedMemorySpecialAgentDefinition({
+  it("allows runtime memory definitions to rely on timeout without a turn cap", () => {
+    const definition = createRuntimeMemorySpecialAgentDefinition({
       id: "dream",
       label: "dream",
       spawnSource: "dream",

@@ -134,7 +134,6 @@ describe("doctor plugin manifest legacy contract repair", () => {
     expect(next.mediaUnderstandingProviders).toBeUndefined();
     expect(next.contracts).toEqual({
       speechProviders: ["openai"],
-      mediaUnderstandingProviders: ["openai"],
       webSearchProviders: ["gemini"],
     });
   });

@@ -301,16 +301,6 @@ pub fn with_native_runtime_context(runtime_root: &Path, input: Value) -> Value {
         config.entry("runtimesRoot".to_string()).or_insert_with(|| {
             Value::String(runtime_root.join("runtimes").to_string_lossy().to_string())
         });
-        let node_bin = runtime_root
-            .join("runtimes")
-            .join("node-v24")
-            .join("bin")
-            .join(if cfg!(windows) { "node.exe" } else { "node" });
-        if node_bin.exists() {
-            config
-                .entry("nodeBinPath".to_string())
-                .or_insert_with(|| Value::String(node_bin.to_string_lossy().to_string()));
-        }
     }
     Value::Object(object)
 }

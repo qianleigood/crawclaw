@@ -10,25 +10,25 @@ import {
 describe("plugin install plan helpers", () => {
   it("prefers bundled plugin for bare plugin-id specs", () => {
     const findBundledSource = vi.fn().mockReturnValue({
-      pluginId: "voice-call",
-      localPath: installedPluginRoot("/tmp", "voice-call"),
-      npmSpec: "@crawclaw/voice-call",
+      pluginId: "demo-plugin",
+      localPath: installedPluginRoot("/tmp", "demo-plugin"),
+      npmSpec: "@crawclaw/demo-plugin",
     });
 
     const result = resolveBundledInstallPlanBeforeNpm({
-      rawSpec: "voice-call",
+      rawSpec: "demo-plugin",
       findBundledSource,
     });
 
-    expect(findBundledSource).toHaveBeenCalledWith({ kind: "pluginId", value: "voice-call" });
-    expect(result?.bundledSource.pluginId).toBe("voice-call");
-    expect(result?.warning).toContain('bare install spec "voice-call"');
+    expect(findBundledSource).toHaveBeenCalledWith({ kind: "pluginId", value: "demo-plugin" });
+    expect(result?.bundledSource.pluginId).toBe("demo-plugin");
+    expect(result?.warning).toContain('bare install spec "demo-plugin"');
   });
 
   it("skips bundled pre-plan for scoped npm specs", () => {
     const findBundledSource = vi.fn();
     const result = resolveBundledInstallPlanBeforeNpm({
-      rawSpec: "@crawclaw/voice-call",
+      rawSpec: "@crawclaw/demo-plugin",
       findBundledSource,
     });
 
@@ -40,24 +40,24 @@ describe("plugin install plan helpers", () => {
     const findBundledSource = vi
       .fn()
       .mockImplementation(({ kind, value }: { kind: "pluginId" | "npmSpec"; value: string }) => {
-        if (kind === "pluginId" && value === "voice-call") {
+        if (kind === "pluginId" && value === "demo-plugin") {
           return {
-            pluginId: "voice-call",
-            localPath: installedPluginRoot("/tmp", "voice-call"),
-            npmSpec: "@crawclaw/voice-call",
+            pluginId: "demo-plugin",
+            localPath: installedPluginRoot("/tmp", "demo-plugin"),
+            npmSpec: "@crawclaw/demo-plugin",
           };
         }
         return undefined;
       });
 
     const result = resolveBundledInstallPlanForCatalogEntry({
-      pluginId: "voice-call",
-      npmSpec: "@crawclaw/voice-call",
+      pluginId: "demo-plugin",
+      npmSpec: "@crawclaw/demo-plugin",
       findBundledSource,
     });
 
-    expect(findBundledSource).toHaveBeenCalledWith({ kind: "pluginId", value: "voice-call" });
-    expect(result?.bundledSource.localPath).toBe(installedPluginRoot("/tmp", "voice-call"));
+    expect(findBundledSource).toHaveBeenCalledWith({ kind: "pluginId", value: "demo-plugin" });
+    expect(result?.bundledSource.localPath).toBe(installedPluginRoot("/tmp", "demo-plugin"));
   });
 
   it("rejects npm-spec matches that resolve to a different plugin id", () => {
@@ -66,17 +66,17 @@ describe("plugin install plan helpers", () => {
       .mockImplementation(({ kind }: { kind: "pluginId" | "npmSpec"; value: string }) => {
         if (kind === "npmSpec") {
           return {
-            pluginId: "not-voice-call",
-            localPath: installedPluginRoot("/tmp", "not-voice-call"),
-            npmSpec: "@crawclaw/voice-call",
+            pluginId: "not-demo-plugin",
+            localPath: installedPluginRoot("/tmp", "not-demo-plugin"),
+            npmSpec: "@crawclaw/demo-plugin",
           };
         }
         return undefined;
       });
 
     const result = resolveBundledInstallPlanForCatalogEntry({
-      pluginId: "voice-call",
-      npmSpec: "@crawclaw/voice-call",
+      pluginId: "demo-plugin",
+      npmSpec: "@crawclaw/demo-plugin",
       findBundledSource,
     });
 
@@ -108,19 +108,19 @@ describe("plugin install plan helpers", () => {
 
   it("uses npm-spec bundled fallback only for package-not-found", () => {
     const findBundledSource = vi.fn().mockReturnValue({
-      pluginId: "voice-call",
-      localPath: installedPluginRoot("/tmp", "voice-call"),
-      npmSpec: "@crawclaw/voice-call",
+      pluginId: "demo-plugin",
+      localPath: installedPluginRoot("/tmp", "demo-plugin"),
+      npmSpec: "@crawclaw/demo-plugin",
     });
     const result = resolveBundledInstallPlanForNpmFailure({
-      rawSpec: "@crawclaw/voice-call",
+      rawSpec: "@crawclaw/demo-plugin",
       code: PLUGIN_INSTALL_ERROR_CODE.NPM_PACKAGE_NOT_FOUND,
       findBundledSource,
     });
 
     expect(findBundledSource).toHaveBeenCalledWith({
       kind: "npmSpec",
-      value: "@crawclaw/voice-call",
+      value: "@crawclaw/demo-plugin",
     });
     expect(result?.warning).toContain("npm package unavailable");
   });
@@ -128,7 +128,7 @@ describe("plugin install plan helpers", () => {
   it("skips fallback for non-not-found npm failures", () => {
     const findBundledSource = vi.fn();
     const result = resolveBundledInstallPlanForNpmFailure({
-      rawSpec: "@crawclaw/voice-call",
+      rawSpec: "@crawclaw/demo-plugin",
       code: "INSTALL_FAILED",
       findBundledSource,
     });

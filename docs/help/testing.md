@@ -69,16 +69,14 @@ Think of the suites as “increasing realism” (and increasing flakiness/cost):
   - For surface-only local runs, unit, extension, and channel shared lanes can overlap their isolated hotspots instead of waiting behind one serial prefix.
   - For multi-surface local runs, the wrapper keeps the shared surface phases ordered, but batches inside the same shared phase now fan out together, deferred isolated work can overlap the next shared phase, and spare `unit-fast` headroom now starts that deferred work earlier instead of leaving those slots idle.
   - Refresh the timing snapshots with `pnpm test:perf:update-timings` and `pnpm test:perf:update-timings:extensions` after major suite shape changes.
-- Embedded runner note:
+- Rust agent runtime note:
   - When you change message-tool discovery inputs or compaction runtime context,
     keep both levels of coverage.
   - Add focused helper regressions for pure routing/normalization boundaries.
-  - Also keep the embedded runner integration suites healthy:
-    `src/agents/pi-embedded-runner/run.overflow-compaction.test.ts`, and
-    `src/agents/pi-embedded-runner/run.overflow-compaction.loop.test.ts`.
-  - Those suites verify that scoped ids and compaction behavior still flow
-    through the real `run.ts` / `compact.ts` paths; helper-only tests are not a
-    sufficient substitute for those integration paths.
+  - Keep the Rust agent runtime integration suites healthy. Those suites
+    verify that scoped ids, transcript writes, memory ingest, and compaction
+    behavior still flow through the real runtime path; helper-only tests are not
+    a sufficient substitute for those integration paths.
 - Pool note:
   - Base Vitest config still defaults to `forks`.
   - Unit, channel, extension, and gateway wrapper lanes all default to `forks`.
@@ -173,7 +171,7 @@ Live tests are split into two layers so we can isolate failures:
   - `CRAWCLAW_LIVE_MODELS=all` is an alias for the modern allowlist
   - or `CRAWCLAW_LIVE_MODELS="openai/gpt-5.2,anthropic/claude-opus-4-6,..."` (comma allowlist)
 - How to select providers:
-  - `CRAWCLAW_LIVE_PROVIDERS="google,google-antigravity,google-gemini-cli"` (comma allowlist)
+  - `CRAWCLAW_LIVE_PROVIDERS="google,google-antigravity"` (comma allowlist)
 - Where keys come from:
   - By default: profile store and env fallbacks
   - Set `CRAWCLAW_LIVE_REQUIRE_PROFILE_KEYS=1` to enforce **profile store** only
@@ -204,15 +202,15 @@ Live tests are split into two layers so we can isolate failures:
   - `CRAWCLAW_LIVE_GATEWAY_MODELS=all` is an alias for the modern allowlist
   - Or set `CRAWCLAW_LIVE_GATEWAY_MODELS="provider/model"` (or comma list) to narrow
 - How to select providers (avoid “OpenRouter everything”):
-  - `CRAWCLAW_LIVE_GATEWAY_PROVIDERS="google,google-antigravity,google-gemini-cli,openai,anthropic,zai,minimax"` (comma allowlist)
+  - `CRAWCLAW_LIVE_GATEWAY_PROVIDERS="google,google-antigravity,openai,anthropic,zai,minimax"` (comma allowlist)
 - Tool + image probes are always on in this live test:
   - `read` probe + `exec+read` probe (tool stress)
   - image probe runs when the model advertises image input support
   - Flow (high level):
     - Test generates a tiny PNG with “CAT” + random code (`src/gateway/live-image-probe.ts`)
     - Sends it via `agent` `attachments: [{ mimeType: "image/png", content: "<base64>" }]`
-    - Gateway parses attachments into `images[]` (`src/gateway/server-methods/agent.ts` + `src/gateway/chat-attachments.ts`)
-    - Embedded agent forwards a multimodal user message to the model
+    - Gateway forwards image attachment payloads through the Rust-backed agent runtime path.
+    - The runtime forwards a multimodal user message to the model.
     - Assertion: reply contains `cat` + the code (OCR tolerance: minor mistakes allowed)
 
 Tip: to see what you can test on your machine (and the exact `provider/model` ids), run:
@@ -240,37 +238,6 @@ Setup example:
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 CRAWCLAW_LIVE_SETUP_TOKEN=1 CRAWCLAW_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-token-test pnpm test:live src/agents/anthropic.setup-token.live.test.ts
-```
-
-## Live: local process backend smoke (Claude Code CLI or other local CLIs)
-
-- Test: `src/gateway/gateway-cli-backend.live.test.ts`
-- Goal: validate the Gateway + agent pipeline using a local local process backend, without touching your default config.
-- Enable:
-  - `pnpm test:live` (or `CRAWCLAW_LIVE_TEST=1` if invoking Vitest directly)
-  - `CRAWCLAW_LIVE_CLI_BACKEND=1`
-- Defaults:
-  - Model: `claude-cli/claude-sonnet-4-6`
-  - Command: `claude`
-  - Args: `["-p","--output-format","json","--permission-mode","bypassPermissions"]`
-- Overrides (optional):
-  - `CRAWCLAW_LIVE_CLI_BACKEND_MODEL="claude-cli/claude-opus-4-6"`
-  - `CRAWCLAW_LIVE_CLI_BACKEND_MODEL="codex-cli/gpt-5.4"`
-  - `CRAWCLAW_LIVE_CLI_BACKEND_COMMAND="/full/path/to/claude"`
-  - `CRAWCLAW_LIVE_CLI_BACKEND_ARGS='["-p","--output-format","json","--permission-mode","bypassPermissions"]'`
-  - `CRAWCLAW_LIVE_CLI_BACKEND_CLEAR_ENV='["ANTHROPIC_API_KEY","ANTHROPIC_API_KEY_OLD"]'`
-  - `CRAWCLAW_LIVE_CLI_BACKEND_IMAGE_PROBE=1` to send a real image attachment (paths are injected into the prompt).
-  - `CRAWCLAW_LIVE_CLI_BACKEND_IMAGE_ARG="--image"` to pass image file paths as CLI args instead of prompt injection.
-  - `CRAWCLAW_LIVE_CLI_BACKEND_IMAGE_MODE="repeat"` (or `"list"`) to control how image args are passed when `IMAGE_ARG` is set.
-  - `CRAWCLAW_LIVE_CLI_BACKEND_RESUME_PROBE=1` to send a second turn and validate resume flow.
-- `CRAWCLAW_LIVE_CLI_BACKEND_DISABLE_MCP_CONFIG=0` to keep Claude Code CLI MCP config enabled (default disables MCP config with a temporary empty file).
-
-Example:
-
-```bash
-CRAWCLAW_LIVE_CLI_BACKEND=1 \
-  CRAWCLAW_LIVE_CLI_BACKEND_MODEL="claude-cli/claude-sonnet-4-6" \
-  pnpm test:live src/gateway/gateway-cli-backend.live.test.ts
 ```
 
 ## Live: ACP bind smoke (`/acp spawn ... --bind here`)
@@ -325,10 +292,8 @@ Notes:
 
 - `google/...` uses the Gemini API (API key).
 - `google-antigravity/...` uses the Antigravity OAuth bridge (Cloud Code Assist-style agent endpoint).
-- `google-gemini-cli/...` uses the local Gemini CLI on your machine (separate auth + tooling quirks).
-- Gemini API vs Gemini CLI:
-  - API: CrawClaw calls Google’s hosted Gemini API over HTTP (API key / profile auth); this is what most users mean by “Gemini”.
-  - CLI: CrawClaw shells out to a local `gemini` binary; it has its own auth and can behave differently (streaming/tool support/version skew).
+- CrawClaw no longer supports local Gemini CLI model refs such as
+  `google-gemini-cli/...`.
 
 ## Live: model matrix (what we cover)
 
@@ -379,7 +344,7 @@ If you have keys enabled, we also support testing via:
 
 More providers you can include in the live matrix (if you have creds/config):
 
-- Built-in: `openai`, `openai-codex`, `anthropic`, `google`, `google-vertex`, `google-antigravity`, `google-gemini-cli`, `zai`, `openrouter`, `opencode`, `opencode-go`, `xai`, `groq`, `cerebras`, `mistral`, `github-copilot`
+- Built-in: `openai`, `openai-codex`, `anthropic`, `google`, `google-vertex`, `google-antigravity`, `zai`, `openrouter`, `opencode`, `opencode-go`, `xai`, `groq`, `cerebras`, `mistral`, `github-copilot`
 - Via `models.providers` (custom endpoints): `minimax` (cloud/API), plus any OpenAI/Anthropic-compatible proxy (LM Studio, vLLM, LiteLLM, etc.)
 
 Tip: don’t try to hardcode “all models” in docs. The authoritative list is whatever `discoverModels(...)` returns on your machine + whatever keys are available.
@@ -396,11 +361,6 @@ Live tests discover credentials the same way the local runtime does. Practical i
 - Live local runs copy the active config plus auth stores into a temp test home by default; `agents.*.workspace` / `agentDir` path overrides are stripped in that staged copy so probes stay off your real host workspace.
 
 If you want to rely on env keys (e.g. exported in your `~/.profile`), run local tests after `source ~/.profile`.
-
-## Deepgram live (audio transcription)
-
-- Test: `src/media-understanding/providers/deepgram/audio.live.test.ts`
-- Enable: `DEEPGRAM_API_KEY=... DEEPGRAM_LIVE_TEST=1 pnpm test:live src/media-understanding/providers/deepgram/audio.live.test.ts`
 
 - Current bundled providers covered:
   - `openai`

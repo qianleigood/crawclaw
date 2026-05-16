@@ -1,12 +1,10 @@
+import type { ClientToolDefinition } from "../../agents/client-tool-definition.js";
 import type { AgentInternalEvent } from "../../agents/internal-events.js";
-import type { ClientToolDefinition } from "../../agents/pi-embedded-runner/run/params.js";
 import type { SpawnedRunMetadata } from "../../agents/spawned-context.js";
-import type { ChannelOutboundTargetMode } from "../../channels/plugins/types.js";
 import type { ObservationContext } from "../../infra/observation/types.js";
 import type { PromptImageOrderEntry } from "../../media/prompt-image-order.js";
 import type { InputProvenance } from "../../sessions/input-provenance.js";
 
-/** Image content block for Claude API multimodal messages. */
 export type ImageContent = {
   type: "image";
   data: string;
@@ -14,23 +12,13 @@ export type ImageContent = {
 };
 
 export type AgentStreamParams = {
-  /** Provider stream params override (best-effort). */
   temperature?: number;
   maxTokens?: number;
   toolChoice?: unknown;
-  /** Anthropic-family prompt-cache retention override (best-effort). */
   cacheRetention?: "none" | "short" | "long";
-  /**
-   * Best-effort cache-write suppression for forked/background runs.
-   * Supported providers map this to their native "do not create new cache
-   * entries" controls while still allowing prompt-cache reads when possible.
-   */
   skipCacheWrite?: boolean;
-  /** OpenAI Responses prompt cache key override (best-effort). */
   promptCacheKey?: string;
-  /** OpenAI Responses prompt cache retention override (best-effort). */
   promptCacheRetention?: string;
-  /** Provider fast-mode override (best-effort). */
   fastMode?: boolean;
 };
 
@@ -48,17 +36,11 @@ export type AgentRunContext = {
 
 export type AgentCommandOpts = {
   message: string;
-  /** Optional image attachments for multimodal messages. */
   images?: ImageContent[];
-  /** Original inline/offloaded attachment order for inbound images. */
   imageOrder?: PromptImageOrderEntry[];
-  /** Optional client-provided tools (OpenResponses hosted tools). */
   clientTools?: ClientToolDefinition[];
-  /** Agent id override (must exist in config). */
   agentId?: string;
-  /** Per-run provider override. */
   provider?: string;
-  /** Per-run model override. */
   model?: string;
   to?: string;
   sessionId?: string;
@@ -70,49 +52,33 @@ export type AgentCommandOpts = {
   timeout?: string;
   maxTurns?: string;
   deliver?: boolean;
-  /** Override delivery target (separate from session routing). */
   replyTo?: string;
-  /** Override delivery channel (separate from session routing). */
   replyChannel?: string;
-  /** Override delivery account id (separate from session routing). */
   replyAccountId?: string;
-  /** Override delivery thread/topic id (separate from session routing). */
   threadId?: string | number;
-  /** Message channel context. */
   messageChannel?: string;
   channel?: string;
-  /** Account ID for multi-account channel routing. */
   accountId?: string;
-  /** Context for embedded run routing (channel/account/thread). */
   runContext?: AgentRunContext;
-  /** Whether this caller is authorized for owner-only tools (defaults true for local CLI calls). */
   senderIsOwner?: boolean;
-  /** Whether this caller is authorized to use provider/model per-run overrides. */
   allowModelOverride?: boolean;
-  /** Group/spawn metadata for subagent policy inheritance and routing context. */
   groupId?: SpawnedRunMetadata["groupId"];
   groupChannel?: SpawnedRunMetadata["groupChannel"];
   groupSpace?: SpawnedRunMetadata["groupSpace"];
   spawnedBy?: SpawnedRunMetadata["spawnedBy"];
-  deliveryTargetMode?: ChannelOutboundTargetMode;
+  deliveryTargetMode?: string;
   bestEffortDeliver?: boolean;
   abortSignal?: AbortSignal;
-  /** Optional tool allow-list for the underlying embedded run. */
   toolsAllow?: string[];
-  /** Optional surfaced skill allow-list for the underlying embedded run. */
   skillsAllow?: string[];
   lane?: string;
   runId?: string;
   extraSystemPrompt?: string;
   internalEvents?: AgentInternalEvent[];
   inputProvenance?: InputProvenance;
-  /** Parent/root observation supplied by the ingress boundary for this run. */
   observation?: ObservationContext;
-  /** Per-call stream param overrides (best-effort). */
   streamParams?: AgentStreamParams;
-  /** Explicit workspace directory override (for subagents to inherit parent workspace). */
   workspaceDir?: SpawnedRunMetadata["workspaceDir"];
-  /** Force bundled MCP teardown when a one-shot local run completes. */
   cleanupBundleMcpOnRunEnd?: boolean;
 };
 
@@ -120,8 +86,6 @@ export type AgentCommandIngressOpts = Omit<
   AgentCommandOpts,
   "senderIsOwner" | "allowModelOverride"
 > & {
-  /** Ingress callsites must always pass explicit owner-tool authorization state. */
   senderIsOwner: boolean;
-  /** Ingress callsites must always pass explicit model-override authorization state. */
   allowModelOverride: boolean;
 };

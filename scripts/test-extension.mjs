@@ -4,7 +4,6 @@ import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { channelTestRoots } from "../vitest.channel-paths.mjs";
 import {
   BUNDLED_PLUGIN_PATH_PREFIX,
   BUNDLED_PLUGIN_ROOT_DIR,
@@ -231,8 +230,7 @@ export function resolveExtensionTestPlan(params = {}) {
     }
   }
 
-  const usesChannelConfig = roots.some((root) => channelTestRoots.includes(root));
-  const config = usesChannelConfig ? "vitest.channels.config.ts" : "vitest.extensions.config.ts";
+  const config = "vitest.extensions.config.ts";
   const testFiles = roots
     .flatMap((root) => collectTestFiles(path.join(repoRoot, root)))
     .map((filePath) => normalizeRelative(path.relative(repoRoot, filePath)));
@@ -254,10 +252,7 @@ export function partitionExtensionTestFiles(params) {
   let isolatedEntries = [];
   let isolatedPrefixes = [];
 
-  if (params.config === "vitest.channels.config.ts") {
-    isolatedEntries = testRunnerBehavior.channels.isolated;
-    isolatedPrefixes = testRunnerBehavior.channels.isolatedPrefixes;
-  } else if (params.config === "vitest.extensions.config.ts") {
+  if (params.config === "vitest.extensions.config.ts") {
     isolatedEntries = testRunnerBehavior.extensions.isolated;
   }
 

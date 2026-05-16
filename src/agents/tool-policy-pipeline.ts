@@ -1,6 +1,6 @@
-import { filterToolsByPolicy } from "./pi-tools.policy.js";
 import type { AnyAgentTool } from "./pi-tools.types.js";
 import { isKnownCoreToolId } from "./tool-catalog.js";
+import { isToolAllowedByPolicyName } from "./tool-policy-match.js";
 import {
   analyzeAllowlistByToolType,
   buildPluginToolGroups,
@@ -147,7 +147,9 @@ export function applyToolPolicyPipeline(params: {
     }
 
     const expanded = expandPolicyWithPluginGroups(policy, pluginGroups);
-    filtered = expanded ? filterToolsByPolicy(filtered, expanded) : filtered;
+    filtered = expanded
+      ? filtered.filter((tool) => isToolAllowedByPolicyName(tool.name, expanded))
+      : filtered;
   }
   return filtered;
 }

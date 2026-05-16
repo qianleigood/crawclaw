@@ -126,13 +126,22 @@ async fn run_worker() {
         let root = request.runtime_root.unwrap_or_else(runtime_root);
         let result = if request.tool == "message_policy" {
             crawclaw_runtime::execute_message_policy_operation(request.input)
-        } else if request.tool == "agent_run_turn" {
+        } else if matches!(
+            request.tool.as_str(),
+            "agent_run_turn"
+                | "agent.command.run"
+                | "agent_command_run"
+                | "autoReply.run"
+                | "auto_reply.run"
+                | "auto_reply_run"
+        ) {
             crawclaw_runtime::execute_agent_run_turn_operation(&root, request.input).await
         } else if request.tool.starts_with("memory.")
             || request.tool.starts_with("memory_")
             || request.tool == "memory"
         {
             crawclaw_runtime::execute_memory_runtime_operation(&root, &request.tool, request.input)
+                .await
         } else if request.tool == "wake"
             || request.tool.starts_with("cron.")
             || request.tool.starts_with("cron_")

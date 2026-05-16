@@ -39,44 +39,12 @@ describe("$schema key in config (#14998)", () => {
   });
 });
 
-describe("plugins.entries.*.hooks.allowPromptInjection", () => {
-  it("accepts boolean values", () => {
-    const result = CrawClawSchema.safeParse({
-      plugins: {
-        entries: {
-          "voice-call": {
-            hooks: {
-              allowPromptInjection: false,
-            },
-          },
-        },
-      },
-    });
-    expect(result.success).toBe(true);
-  });
-
-  it("rejects non-boolean values", () => {
-    const result = CrawClawSchema.safeParse({
-      plugins: {
-        entries: {
-          "voice-call": {
-            hooks: {
-              allowPromptInjection: "no",
-            },
-          },
-        },
-      },
-    });
-    expect(result.success).toBe(false);
-  });
-});
-
 describe("plugins.entries.*.subagent", () => {
   it("accepts trusted subagent override settings", () => {
     const result = CrawClawSchema.safeParse({
       plugins: {
         entries: {
-          "voice-call": {
+          "demo-plugin": {
             subagent: {
               allowModelOverride: true,
               allowedModels: ["anthropic/claude-haiku-4-5"],
@@ -92,7 +60,7 @@ describe("plugins.entries.*.subagent", () => {
     const result = CrawClawSchema.safeParse({
       plugins: {
         entries: {
-          "voice-call": {
+          "demo-plugin": {
             subagent: {
               allowModelOverride: "yes",
               allowedModels: [1],
@@ -199,72 +167,6 @@ describe("gateway.tools config", () => {
     expect(res.ok).toBe(false);
     if (!res.ok) {
       expect(res.issues[0]?.path).toBe("gateway.tools.allow");
-    }
-  });
-});
-
-describe("gateway.channelHealthCheckMinutes", () => {
-  it("accepts zero to disable monitor", () => {
-    const res = validateConfigObject({
-      gateway: {
-        channelHealthCheckMinutes: 0,
-      },
-    });
-    expect(res.ok).toBe(true);
-  });
-
-  it("rejects negative intervals", () => {
-    const res = validateConfigObject({
-      gateway: {
-        channelHealthCheckMinutes: -1,
-      },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues[0]?.path).toBe("gateway.channelHealthCheckMinutes");
-    }
-  });
-
-  it("rejects stale thresholds shorter than the health check interval", () => {
-    const res = validateConfigObject({
-      gateway: {
-        channelHealthCheckMinutes: 5,
-        channelStaleEventThresholdMinutes: 4,
-      },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues[0]?.path).toBe("gateway.channelStaleEventThresholdMinutes");
-    }
-  });
-
-  it("accepts stale thresholds that match or exceed the health check interval", () => {
-    const equal = validateConfigObject({
-      gateway: {
-        channelHealthCheckMinutes: 5,
-        channelStaleEventThresholdMinutes: 5,
-      },
-    });
-    expect(equal.ok).toBe(true);
-
-    const greater = validateConfigObject({
-      gateway: {
-        channelHealthCheckMinutes: 5,
-        channelStaleEventThresholdMinutes: 6,
-      },
-    });
-    expect(greater.ok).toBe(true);
-  });
-
-  it("rejects stale thresholds shorter than the default health check interval", () => {
-    const res = validateConfigObject({
-      gateway: {
-        channelStaleEventThresholdMinutes: 4,
-      },
-    });
-    expect(res.ok).toBe(false);
-    if (!res.ok) {
-      expect(res.issues[0]?.path).toBe("gateway.channelStaleEventThresholdMinutes");
     }
   });
 });
@@ -470,7 +372,7 @@ describe("config strict validation", () => {
       await writeCrawClawConfig(home, {
         plugins: {
           entries: {
-            "voice-call": {
+            "demo-plugin": {
               config: {
                 tts: {
                   provider: "openai",

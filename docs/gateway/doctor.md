@@ -63,7 +63,7 @@ cat ~/.crawclaw/crawclaw.json
 - OpenCode provider override warnings (`models.providers.opencode` / `models.providers.opencode-go`).
 - OAuth TLS prerequisites check for OpenAI Codex OAuth profiles.
 - Legacy on-disk state migration (sessions/agent dir/Weixin auth).
-- Legacy plugin manifest contract key migration (`speechProviders`, `mediaUnderstandingProviders` → `contracts`).
+- Legacy plugin manifest contract key migration (`speechProviders` → `contracts`) and removal of legacy media-understanding provider keys.
 - Legacy cron store migration (`jobId`, `schedule.cron`, top-level delivery/payload fields, payload `provider`, simple `notify: true` webhook fallback jobs).
 - Session lock file inspection and stale lock cleanup.
 - State integrity and permissions checks (sessions, transcripts, state dir).
@@ -127,7 +127,6 @@ Current migrations:
 - `messages.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `messages.tts.providers.<provider>`
 - `channels.qqbot.voice.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `channels.qqbot.voice.tts.providers.<provider>`
 - `channels.qqbot.accounts.<id>.voice.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `channels.qqbot.accounts.<id>.voice.tts.providers.<provider>`
-- `plugins.entries.voice-call.config.tts.<provider>` (`openai`/`elevenlabs`/`microsoft`/`edge`) → `plugins.entries.voice-call.config.tts.providers.<provider>`
 - `bindings[].match.accountID` → `bindings[].match.accountId`
 - For channels with named `accounts` but missing `accounts.default`, move account-scoped top-level single-account channel values into `channels.<channel>.accounts.default` when present
 - `identity` → `agents.list[].identity`
@@ -185,11 +184,11 @@ migrated via CrawClaw Desktop or the local Gateway API.
 
 ### 3a) Legacy plugin manifest migrations
 
-Doctor scans all installed plugin manifests for deprecated top-level capability keys
-(`speechProviders`, `mediaUnderstandingProviders`).
-When found, it offers to move them into the `contracts` object and rewrite the manifest
-file in-place. This migration is idempotent; if the `contracts` key already has the
-same values, the legacy key is removed without duplicating the data.
+Doctor scans all installed plugin manifests for deprecated top-level capability keys.
+When `speechProviders` is found, it offers to move it into the `contracts` object
+and rewrite the manifest file in-place. Legacy `mediaUnderstandingProviders` keys
+are removed because TypeScript media-understanding providers are no longer a
+plugin contract.
 
 ### 3b) Legacy cron store migrations
 
@@ -270,13 +269,6 @@ If `hooks.gmail.model` is set, doctor validates the model reference against the
 catalog and allowlist and warns when it won’t resolve or is disallowed.
 
 that can be detected without mutating the runtime.
-
-### 7b) Bundled plugin runtime deps
-
-Doctor verifies that bundled plugin runtime dependencies (for example the
-QQBot plugin runtime packages) are present in the CrawClaw install root.
-If any are missing, doctor reports the packages and installs them in
-CrawClaw Desktop or the local Gateway API / CrawClaw Desktop or the local Gateway API mode.
 
 ### 8) Gateway service migrations and cleanup hints
 

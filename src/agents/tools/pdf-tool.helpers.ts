@@ -4,7 +4,7 @@ import {
   resolveAgentModelFallbackValues,
   resolveAgentModelPrimaryValue,
 } from "../../config/model-input.js";
-import { extractAssistantText } from "../pi-embedded-utils.js";
+import { extractAssistantText } from "../agent-output-utils.js";
 
 export type PdfModelConfig = { primary?: string; fallbacks?: string[] };
 

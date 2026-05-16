@@ -13,8 +13,8 @@ import { isLiveProfileKeyModeEnabled, isLiveTestEnabled } from "./live-test-help
 import { getApiKeyForModel, requireApiKey } from "./model-auth.js";
 import { shouldSuppressBuiltInModel } from "./model-suppression.js";
 import { ensureCrawClawModelsJson } from "./models-config.js";
-import { isRateLimitErrorMessage } from "./pi-embedded-helpers/errors.js";
 import { discoverAuthStorage, discoverModels } from "./pi-model-discovery.js";
+import { isRateLimitErrorMessage } from "./runtime-helpers/errors.js";
 
 const LIVE = isLiveTestEnabled();
 const DIRECT_ENABLED = Boolean(process.env.CRAWCLAW_LIVE_MODELS?.trim());

@@ -69,22 +69,6 @@ describe("config secret refs schema", () => {
     expect(result.ok).toBe(true);
   });
 
-  it("accepts feishu serviceAccount refs", () => {
-    const result = validateConfigObjectRaw({
-      channels: {
-        feishu: {
-          serviceAccountRef: {
-            source: "file",
-            provider: "filemain",
-            id: "/channels/feishu/serviceAccount",
-          },
-        },
-      },
-    });
-
-    expect(result.ok).toBe(true);
-  });
-
   it("accepts skills entry apiKey refs", () => {
     const result = validateConfigObjectRaw({
       skills: {

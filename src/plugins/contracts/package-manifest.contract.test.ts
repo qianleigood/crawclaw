@@ -8,7 +8,6 @@ const packageManifestContractTests: PackageManifestContractParams[] = [
   { pluginId: "deepseek", minHostVersionBaseline: "2026.3.22" },
   { pluginId: "ollama", minHostVersionBaseline: "2026.3.22" },
   { pluginId: "openai", minHostVersionBaseline: "2026.3.22" },
-  { pluginId: "voice-call", minHostVersionBaseline: "2026.3.22" },
 ];
 
 for (const params of packageManifestContractTests) {

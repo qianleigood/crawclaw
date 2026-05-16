@@ -13,22 +13,35 @@ import {
   resolveOpenAiCompatibleHttpOperatorScopes,
 } from "./http-utils.js";
 import { authorizeOperatorScopesForMethod } from "./method-scopes.js";
-import {
-  executeWorkflowAgentRun,
-  validateWorkflowAgentRunParams,
-} from "./server-methods/workflow.js";
 
 const DEFAULT_BODY_BYTES = 2 * 1024 * 1024;
 const WORKFLOW_AGENT_HTTP_PATH = "/workflows/agent/run";
 
-function getErrorMessage(err: unknown): string {
-  if (err instanceof Error) {
-    return err.message || String(err);
+function hasNonEmptyStringField(value: Record<string, unknown>, names: string[]): boolean {
+  return names.some((name) => typeof value[name] === "string" && value[name].trim().length > 0);
+}
+
+function validateWorkflowAgentRunParams(value: unknown): value is Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
   }
-  if (typeof err === "string") {
-    return err;
-  }
-  return String(err);
+  const params = value as Record<string, unknown>;
+  const workspaceBinding = params.workspaceBinding;
+  const hasWorkspaceBinding =
+    !!workspaceBinding &&
+    typeof workspaceBinding === "object" &&
+    !Array.isArray(workspaceBinding) &&
+    hasNonEmptyStringField(workspaceBinding as Record<string, unknown>, [
+      "workspaceDir",
+      "agentDir",
+    ]);
+  return (
+    hasNonEmptyStringField(params, ["workflowId", "workflow"]) &&
+    hasNonEmptyStringField(params, ["executionId"]) &&
+    hasNonEmptyStringField(params, ["stepId"]) &&
+    hasNonEmptyStringField(params, ["goal", "message", "task"]) &&
+    hasWorkspaceBinding
+  );
 }
 
 export async function handleWorkflowAgentHttpRequest(
@@ -91,20 +104,12 @@ export async function handleWorkflowAgentHttpRequest(
     return true;
   }
 
-  try {
-    const handled = await executeWorkflowAgentRun(bodyUnknown);
-    sendJson(res, 200, {
-      ok: true,
-      result: handled,
-    });
-  } catch (error) {
-    sendJson(res, 503, {
-      ok: false,
-      error: {
-        type: "unavailable",
-        message: getErrorMessage(error),
-      },
-    });
-  }
+  sendJson(res, 503, {
+    ok: false,
+    error: {
+      type: "unavailable",
+      message: "workflow.agent.run is handled by the Rust Gateway runtime.",
+    },
+  });
   return true;
 }

@@ -256,21 +256,21 @@ describe("installFromNpmSpecArchiveWithInstaller", () => {
       ok: true,
       archivePath: "/tmp/crawclaw-plugin.tgz",
       metadata: {
-        resolvedSpec: "@crawclaw/voice-call@1.0.0",
+        resolvedSpec: "@crawclaw/demo-plugin@1.0.0",
         integrity: "sha512-same",
       },
     });
     const installFromArchive = vi.fn(
       async (_params: { archivePath: string; pluginId: string }) =>
-        ({ ok: true as const, pluginId: "voice-call" }) as const,
+        ({ ok: true as const, pluginId: "demo-plugin" }) as const,
     );
 
     const result = await installFromNpmSpecArchiveWithInstaller({
       tempDirPrefix: "crawclaw-test-",
-      spec: "@crawclaw/voice-call@1.0.0",
+      spec: "@crawclaw/demo-plugin@1.0.0",
       timeoutMs: 1000,
       installFromArchive,
-      archiveInstallParams: { pluginId: "voice-call" },
+      archiveInstallParams: { pluginId: "demo-plugin" },
     });
 
     expect(result.ok).toBe(true);
@@ -279,9 +279,9 @@ describe("installFromNpmSpecArchiveWithInstaller", () => {
     }
     expect(installFromArchive).toHaveBeenCalledWith({
       archivePath: "/tmp/crawclaw-plugin.tgz",
-      pluginId: "voice-call",
+      pluginId: "demo-plugin",
     });
-    expect(result.installResult).toEqual({ ok: true, pluginId: "voice-call" });
+    expect(result.installResult).toEqual({ ok: true, pluginId: "demo-plugin" });
   });
 });
 
@@ -314,9 +314,9 @@ describe("finalizeNpmSpecArchiveInstall", () => {
       { ok: true; pluginId: string } | { ok: false; error: string }
     >({
       ok: true,
-      installResult: { ok: true, pluginId: "voice-call" },
+      installResult: { ok: true, pluginId: "demo-plugin" },
       npmResolution: {
-        resolvedSpec: "@crawclaw/voice-call@1.0.0",
+        resolvedSpec: "@crawclaw/demo-plugin@1.0.0",
         integrity: "sha512-same",
         resolvedAt: "2026-01-01T00:00:00.000Z",
       },
@@ -328,9 +328,9 @@ describe("finalizeNpmSpecArchiveInstall", () => {
 
     expect(result).toEqual({
       ok: true,
-      pluginId: "voice-call",
+      pluginId: "demo-plugin",
       npmResolution: {
-        resolvedSpec: "@crawclaw/voice-call@1.0.0",
+        resolvedSpec: "@crawclaw/demo-plugin@1.0.0",
         integrity: "sha512-same",
         resolvedAt: "2026-01-01T00:00:00.000Z",
       },

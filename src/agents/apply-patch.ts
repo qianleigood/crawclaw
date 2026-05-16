@@ -1,7 +1,6 @@
 import syncFs from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { Type } from "@sinclair/typebox";
 import { openBoundaryFile, type BoundaryFileOpenResult } from "../infra/boundary-file-read.js";
 import { resolveBoundaryPath } from "../infra/boundary-path.js";
@@ -11,6 +10,7 @@ import {
   writeFileWithinRoot,
 } from "../infra/fs-safe.js";
 import { PATH_ALIAS_POLICIES, type PathAliasPolicy } from "../infra/path-alias-guards.js";
+import type { AgentTool } from "./agent-types.js";
 import { applyUpdateHunk } from "./apply-patch-update.js";
 import { toRelativeWorkspacePath, resolvePathFromInput } from "./path-policy.js";
 

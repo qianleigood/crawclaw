@@ -40,7 +40,7 @@ describe("special agent registry", () => {
     const definition = resolveSpecialAgentDefinitionBySpawnSource("experience");
 
     expect(definition?.id).toBe("experience");
-    expect(definition?.executionMode).toBe("embedded_fork");
+    expect(definition?.executionMode).toBe("runtime_fork");
     expect(definition?.transcriptPolicy).toBe("isolated");
     expect(definition?.isolatedContext).toBe(true);
     expect(definition?.parentContextPolicy).toBe("none");
@@ -51,11 +51,11 @@ describe("special agent registry", () => {
     });
   });
 
-  it("registers dream as an embedded memory maintenance agent", () => {
+  it("registers dream as an runtime memory maintenance agent", () => {
     const definition = resolveSpecialAgentDefinitionBySpawnSource("dream");
 
     expect(definition?.id).toBe("dream");
-    expect(definition?.executionMode).toBe("embedded_fork");
+    expect(definition?.executionMode).toBe("runtime_fork");
     expect(definition?.transcriptPolicy).toBe("isolated");
     expect(definition?.isolatedContext).toBe(true);
     expect(definition?.parentContextPolicy).toBe("none");

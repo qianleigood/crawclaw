@@ -1,4 +1,3 @@
-import { normalizeChatChannelId } from "../channels/registry.js";
 import type { CrawClawConfig } from "../config/config.js";
 import { ensurePluginAllowlisted } from "../config/plugins-allowlist.js";
 import { setPluginEnabledInConfig } from "./toggle-config.js";
@@ -10,8 +9,7 @@ export type PluginEnableResult = {
 };
 
 export function enablePluginInConfig(cfg: CrawClawConfig, pluginId: string): PluginEnableResult {
-  const builtInChannelId = normalizeChatChannelId(pluginId);
-  const resolvedId = builtInChannelId ?? pluginId;
+  const resolvedId = pluginId;
   if (cfg.plugins?.enabled === false) {
     return { config: cfg, enabled: false, reason: "plugins disabled" };
   }

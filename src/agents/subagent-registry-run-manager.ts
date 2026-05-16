@@ -7,18 +7,16 @@ import { parseAgentSessionKey } from "../routing/session-key.js";
 import { createRunningTaskRun } from "../tasks/task-executor.js";
 import type { TaskRuntime } from "../tasks/task-registry.types.js";
 import { type DeliveryContext, normalizeDeliveryContext } from "../utils/delivery-context.js";
-import { ensureRuntimePluginsLoaded } from "./runtime-plugins.js";
 import { upsertAgentTaskRuntimeMetadata } from "./runtime/agent-metadata-store.js";
 import { markAgentRunCancelled, registerAgentRuntimeRun } from "./runtime/agent-progress.js";
 import type { SubagentRunOutcome } from "./subagent-announce.js";
 import {
-  SUBAGENT_ENDED_OUTCOME_KILLED,
   SUBAGENT_ENDED_REASON_COMPLETE,
   SUBAGENT_ENDED_REASON_ERROR,
   SUBAGENT_ENDED_REASON_KILLED,
   type SubagentLifecycleEndedReason,
 } from "./subagent-lifecycle-events.js";
-import { emitSubagentEndedHookOnce, runOutcomesEqual } from "./subagent-registry-completion.js";
+import { runOutcomesEqual } from "./subagent-registry-completion.js";
 import {
   getSubagentSessionRuntimeMs,
   getSubagentSessionStartedAt,
@@ -43,11 +41,9 @@ function resolveSubagentTaskRuntime(
 export function createSubagentRunManager(params: {
   runs: Map<string, SubagentRunRecord>;
   resumedRuns: Set<string>;
-  endedHookInFlightRunIds: Set<string>;
   persist(): void;
   callGateway: typeof callGateway;
   loadConfig: typeof loadConfig;
-  ensureRuntimePluginsLoaded: typeof ensureRuntimePluginsLoaded;
   ensureListener(): void;
   startSweeper(): void;
   stopSweeper(): void;
@@ -302,7 +298,6 @@ export function createSubagentRunManager(params: {
       accumulatedRuntimeMs,
       endedAt: undefined,
       endedReason: undefined,
-      endedHookEmittedAt: undefined,
       wakeOnDescendantSettle: undefined,
       outcome: undefined,
       frozenResultText: undefined,
@@ -561,24 +556,6 @@ export function createSubagentRunManager(params: {
           entry,
           cleanup: entry.cleanup,
           completedAt: now,
-        });
-        const cfg = params.loadConfig();
-        params.ensureRuntimePluginsLoaded({
-          config: cfg,
-          workspaceDir: entry.workspaceDir,
-          allowGatewaySubagentBinding: true,
-        });
-        void emitSubagentEndedHookOnce({
-          entry,
-          reason: SUBAGENT_ENDED_REASON_KILLED,
-          sendFarewell: true,
-          accountId: entry.requesterOrigin?.accountId,
-          outcome: SUBAGENT_ENDED_OUTCOME_KILLED,
-          error: reason,
-          inFlightRunIds: params.endedHookInFlightRunIds,
-          persist: () => params.persist(),
-        }).catch(() => {
-          // Hook failures should not break termination flow.
         });
       }
     }

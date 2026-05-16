@@ -15,7 +15,7 @@ import type { CliDeps } from "../terminal/deps.js";
 
 export type InternalHookEventType = "command" | "session" | "agent" | "gateway" | "message";
 
-export type AgentBootstrapHookContext = {
+export type AgentBootstrapToolCallPreflightContext = {
   workspaceDir: string;
   bootstrapFiles: WorkspaceBootstrapFile[];
   cfg?: CrawClawConfig;
@@ -27,10 +27,10 @@ export type AgentBootstrapHookContext = {
 export type AgentBootstrapHookEvent = InternalHookEvent & {
   type: "agent";
   action: "bootstrap";
-  context: AgentBootstrapHookContext;
+  context: AgentBootstrapToolCallPreflightContext;
 };
 
-export type GatewayStartupHookContext = {
+export type GatewayStartupToolCallPreflightContext = {
   cfg?: CrawClawConfig;
   deps?: CliDeps;
   workspaceDir?: string;
@@ -39,14 +39,14 @@ export type GatewayStartupHookContext = {
 export type GatewayStartupHookEvent = InternalHookEvent & {
   type: "gateway";
   action: "startup";
-  context: GatewayStartupHookContext;
+  context: GatewayStartupToolCallPreflightContext;
 };
 
 // ============================================================================
 // Message Hook Events
 // ============================================================================
 
-export type MessageReceivedHookContext = {
+export type MessageReceivedToolCallPreflightContext = {
   /** Sender identifier (e.g., phone number, user ID) */
   from: string;
   /** Message content */
@@ -68,10 +68,10 @@ export type MessageReceivedHookContext = {
 export type MessageReceivedHookEvent = InternalHookEvent & {
   type: "message";
   action: "received";
-  context: MessageReceivedHookContext;
+  context: MessageReceivedToolCallPreflightContext;
 };
 
-export type MessageSentHookContext = {
+export type MessageSentToolCallPreflightContext = {
   /** Recipient identifier */
   to: string;
   /** Message content */
@@ -97,10 +97,10 @@ export type MessageSentHookContext = {
 export type MessageSentHookEvent = InternalHookEvent & {
   type: "message";
   action: "sent";
-  context: MessageSentHookContext;
+  context: MessageSentToolCallPreflightContext;
 };
 
-type MessageEnrichedBodyHookContext = {
+type MessageEnrichedBodyToolCallPreflightContext = {
   /** Sender identifier (e.g., phone number, user ID) */
   from?: string;
   /** Recipient identifier */
@@ -133,33 +133,35 @@ type MessageEnrichedBodyHookContext = {
   mediaType?: string;
 };
 
-export type MessageTranscribedHookContext = MessageEnrichedBodyHookContext & {
-  /** The transcribed text from audio */
-  transcript: string;
-};
+export type MessageTranscribedToolCallPreflightContext =
+  MessageEnrichedBodyToolCallPreflightContext & {
+    /** The transcribed text from audio */
+    transcript: string;
+  };
 
 export type MessageTranscribedHookEvent = InternalHookEvent & {
   type: "message";
   action: "transcribed";
-  context: MessageTranscribedHookContext;
+  context: MessageTranscribedToolCallPreflightContext;
 };
 
-export type MessagePreprocessedHookContext = MessageEnrichedBodyHookContext & {
-  /** Transcribed audio text, if the message contained audio */
-  transcript?: string;
-  /** Whether this message was sent in a group/channel context */
-  isGroup?: boolean;
-  /** Group or channel identifier, if applicable */
-  groupId?: string;
-};
+export type MessagePreprocessedToolCallPreflightContext =
+  MessageEnrichedBodyToolCallPreflightContext & {
+    /** Transcribed audio text, if the message contained audio */
+    transcript?: string;
+    /** Whether this message was sent in a group/channel context */
+    isGroup?: boolean;
+    /** Group or channel identifier, if applicable */
+    groupId?: string;
+  };
 
 export type MessagePreprocessedHookEvent = InternalHookEvent & {
   type: "message";
   action: "preprocessed";
-  context: MessagePreprocessedHookContext;
+  context: MessagePreprocessedToolCallPreflightContext;
 };
 
-export type SessionPatchHookContext = {
+export type SessionPatchToolCallPreflightContext = {
   sessionEntry: SessionEntry;
   patch: SessionsPatchParams;
   cfg: CrawClawConfig;
@@ -168,7 +170,7 @@ export type SessionPatchHookContext = {
 export type SessionPatchHookEvent = InternalHookEvent & {
   type: "session";
   action: "patch";
-  context: SessionPatchHookContext;
+  context: SessionPatchToolCallPreflightContext;
 };
 
 export interface InternalHookEvent {
@@ -337,7 +339,7 @@ function isHookEventTypeAndAction(
   return event.type === type && event.action === action;
 }
 
-function getHookContext<T extends Record<string, unknown>>(
+function getToolCallPreflightContext<T extends Record<string, unknown>>(
   event: InternalHookEvent,
 ): Partial<T> | null {
   const context = event.context as Partial<T> | null;
@@ -365,7 +367,7 @@ export function isAgentBootstrapEvent(event: InternalHookEvent): event is AgentB
   if (!isHookEventTypeAndAction(event, "agent", "bootstrap")) {
     return false;
   }
-  const context = getHookContext<AgentBootstrapHookContext>(event);
+  const context = getToolCallPreflightContext<AgentBootstrapToolCallPreflightContext>(event);
   if (!context) {
     return false;
   }
@@ -379,7 +381,7 @@ export function isGatewayStartupEvent(event: InternalHookEvent): event is Gatewa
   if (!isHookEventTypeAndAction(event, "gateway", "startup")) {
     return false;
   }
-  return Boolean(getHookContext<GatewayStartupHookContext>(event));
+  return Boolean(getToolCallPreflightContext<GatewayStartupToolCallPreflightContext>(event));
 }
 
 export function isMessageReceivedEvent(
@@ -388,7 +390,7 @@ export function isMessageReceivedEvent(
   if (!isHookEventTypeAndAction(event, "message", "received")) {
     return false;
   }
-  const context = getHookContext<MessageReceivedHookContext>(event);
+  const context = getToolCallPreflightContext<MessageReceivedToolCallPreflightContext>(event);
   if (!context) {
     return false;
   }
@@ -399,7 +401,7 @@ export function isMessageSentEvent(event: InternalHookEvent): event is MessageSe
   if (!isHookEventTypeAndAction(event, "message", "sent")) {
     return false;
   }
-  const context = getHookContext<MessageSentHookContext>(event);
+  const context = getToolCallPreflightContext<MessageSentToolCallPreflightContext>(event);
   if (!context) {
     return false;
   }
@@ -416,7 +418,7 @@ export function isMessageTranscribedEvent(
   if (!isHookEventTypeAndAction(event, "message", "transcribed")) {
     return false;
   }
-  const context = getHookContext<MessageTranscribedHookContext>(event);
+  const context = getToolCallPreflightContext<MessageTranscribedToolCallPreflightContext>(event);
   if (!context) {
     return false;
   }
@@ -431,7 +433,7 @@ export function isMessagePreprocessedEvent(
   if (!isHookEventTypeAndAction(event, "message", "preprocessed")) {
     return false;
   }
-  const context = getHookContext<MessagePreprocessedHookContext>(event);
+  const context = getToolCallPreflightContext<MessagePreprocessedToolCallPreflightContext>(event);
   if (!context) {
     return false;
   }
@@ -442,7 +444,7 @@ export function isSessionPatchEvent(event: InternalHookEvent): event is SessionP
   if (!isHookEventTypeAndAction(event, "session", "patch")) {
     return false;
   }
-  const context = getHookContext<SessionPatchHookContext>(event);
+  const context = getToolCallPreflightContext<SessionPatchToolCallPreflightContext>(event);
   if (!context) {
     return false;
   }

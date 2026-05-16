@@ -3,10 +3,8 @@ import { filterApiKeylessBundledWebSearchPluginIds } from "./web-search-provider
 
 export type BundledPluginContractSnapshot = {
   pluginId: string;
-  cliBackendIds: string[];
   providerIds: string[];
   speechProviderIds: string[];
-  mediaUnderstandingProviderIds: string[];
   webFetchProviderIds: string[];
   webSearchProviderIds: string[];
   toolNames: string[];
@@ -30,10 +28,8 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS: readonly BundledPluginContractSn
   listBundledPluginMetadata()
     .map(({ manifest }) => ({
       pluginId: manifest.id,
-      cliBackendIds: uniqueStrings(manifest.cliBackends),
       providerIds: uniqueStrings(manifest.providers),
       speechProviderIds: uniqueStrings(manifest.contracts?.speechProviders),
-      mediaUnderstandingProviderIds: uniqueStrings(manifest.contracts?.mediaUnderstandingProviders),
       webFetchProviderIds: uniqueStrings(manifest.contracts?.webFetchProviders),
       webSearchProviderIds: filterApiKeylessBundledWebSearchPluginIds(
         uniqueStrings(manifest.contracts?.webSearchProviders),
@@ -42,10 +38,8 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS: readonly BundledPluginContractSn
     }))
     .filter(
       (entry) =>
-        entry.cliBackendIds.length > 0 ||
         entry.providerIds.length > 0 ||
         entry.speechProviderIds.length > 0 ||
-        entry.mediaUnderstandingProviderIds.length > 0 ||
         entry.webFetchProviderIds.length > 0 ||
         entry.webSearchProviderIds.length > 0 ||
         entry.toolNames.length > 0,
@@ -64,10 +58,6 @@ export const BUNDLED_PROVIDER_PLUGIN_IDS = collectPluginIds((entry) => entry.pro
 
 export const BUNDLED_SPEECH_PLUGIN_IDS = collectPluginIds((entry) => entry.speechProviderIds);
 
-export const BUNDLED_MEDIA_UNDERSTANDING_PLUGIN_IDS = collectPluginIds(
-  (entry) => entry.mediaUnderstandingProviderIds,
-);
-
 export const BUNDLED_WEB_FETCH_PLUGIN_IDS = collectPluginIds((entry) => entry.webFetchProviderIds);
 
 export const BUNDLED_RUNTIME_CONTRACT_PLUGIN_IDS = [
@@ -76,7 +66,6 @@ export const BUNDLED_RUNTIME_CONTRACT_PLUGIN_IDS = [
       (entry) =>
         entry.providerIds.length > 0 ||
         entry.speechProviderIds.length > 0 ||
-        entry.mediaUnderstandingProviderIds.length > 0 ||
         entry.webFetchProviderIds.length > 0 ||
         entry.webSearchProviderIds.length > 0,
     ).map((entry) => entry.pluginId),

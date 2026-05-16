@@ -252,19 +252,11 @@ Notes:
 
 ### Export to OpenTelemetry
 
-Diagnostics can be exported via the `diagnostics-otel` plugin (OTLP/HTTP). This
-works with any OpenTelemetry collector/backend that accepts OTLP/HTTP.
+Diagnostics can be exported by the Rust diagnostics pipeline over OTLP/HTTP.
+This works with any OpenTelemetry collector/backend that accepts OTLP/HTTP.
 
 ```json
 {
-  "plugins": {
-    "allow": ["diagnostics-otel"],
-    "entries": {
-      "diagnostics-otel": {
-        "enabled": true
-      }
-    }
-  },
   "diagnostics": {
     "enabled": true,
     "otel": {
@@ -284,7 +276,7 @@ works with any OpenTelemetry collector/backend that accepts OTLP/HTTP.
 
 Notes:
 
-- You can also enable the plugin with CrawClaw Desktop or the local Gateway API.
+- You can also enable diagnostics with CrawClaw Desktop or the local Gateway API.
 - `protocol` currently supports `http/protobuf` only. `grpc` is ignored.
 - Metrics include token usage, cost, context size, run duration, and message-flow
   counters/histograms (webhooks, queueing, session state, queue depth/wait).

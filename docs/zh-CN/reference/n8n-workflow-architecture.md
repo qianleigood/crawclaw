@@ -257,7 +257,7 @@ read_when:
 - `src/workflows/n8n-compiler.ts`
 - `src/workflows/agent-node-contract.ts`
 - `src/gateway/workflow-agent-http.ts`
-- `src/gateway/server-methods/workflow.ts`
+- Rust Gateway workflow RPC handlers
 
 职责：
 

@@ -1,289 +1,96 @@
-import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL, DEFAULT_PROVIDER } from "../agents/defaults.js";
-import { hasPotentialConfiguredChannels } from "../channels/config-presence.js";
+import { resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { DEFAULT_CONTEXT_TOKENS, DEFAULT_MODEL } from "../agents/defaults.js";
+import { resolveAgentModelPrimaryValue } from "../config/model-input.js";
 import { resolveMainSessionKey } from "../config/sessions/main-session.js";
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { readSessionStoreReadOnly } from "../config/sessions/store-read.js";
-import { resolveFreshSessionTotalTokens, type SessionEntry } from "../config/sessions/types.js";
 import type { CrawClawConfig } from "../config/types.js";
 import { listGatewayAgentsBasic } from "../gateway/agent-list.js";
-import { resolveMainSessionWakeSummaryForAgent } from "../infra/main-session-wake-summary.js";
 import { peekSystemEvents } from "../infra/system-events.js";
-import { parseAgentSessionKey } from "../routing/session-key.js";
-import { createLazyRuntimeSurface } from "../shared/lazy-runtime.js";
+import { createEmptyTaskAuditSummary } from "../tasks/task-registry.audit.shared.js";
+import { createEmptyTaskRegistrySummary } from "../tasks/task-registry.summary.js";
 import { resolveRuntimeServiceVersion } from "../version.js";
-import type { MainSessionWakeStatus, SessionStatus, StatusSummary } from "./status.types.js";
+import { statusSummaryRuntime } from "./status.summary.runtime.js";
+import type { SessionStatus, StatusSummary } from "./status.types.js";
 
-let channelSummaryModulePromise: Promise<typeof import("../infra/channel-summary.js")> | undefined;
-let linkChannelModulePromise: Promise<typeof import("./status.link-channel.js")> | undefined;
-let configIoModulePromise: Promise<typeof import("../config/io.js")> | undefined;
-let taskRegistryMaintenanceModulePromise:
-  | Promise<typeof import("../tasks/task-registry.maintenance.js")>
-  | undefined;
-
-function loadChannelSummaryModule() {
-  channelSummaryModulePromise ??= import("../infra/channel-summary.js");
-  return channelSummaryModulePromise;
-}
-
-function loadLinkChannelModule() {
-  linkChannelModulePromise ??= import("./status.link-channel.js");
-  return linkChannelModulePromise;
-}
-
-const loadStatusSummaryRuntimeModule = createLazyRuntimeSurface(
-  () => import("./status.summary.runtime.js"),
-  ({ statusSummaryRuntime }) => statusSummaryRuntime,
-);
-
-function loadConfigIoModule() {
-  configIoModulePromise ??= import("../config/io.js");
-  return configIoModulePromise;
-}
-
-function loadTaskRegistryMaintenanceModule() {
-  taskRegistryMaintenanceModulePromise ??= import("../tasks/task-registry.maintenance.js");
-  return taskRegistryMaintenanceModulePromise;
-}
-
-const buildFlags = (entry?: SessionEntry): string[] => {
-  if (!entry) {
-    return [];
-  }
-  const flags: string[] = [];
-  const think = entry?.thinkingLevel;
-  if (typeof think === "string" && think.length > 0) {
-    flags.push(`think:${think}`);
-  }
-  const verbose = entry?.verboseLevel;
-  if (typeof verbose === "string" && verbose.length > 0) {
-    flags.push(`verbose:${verbose}`);
-  }
-  if (typeof entry?.fastMode === "boolean") {
-    flags.push(entry.fastMode ? "fast" : "fast:off");
-  }
-  const reasoning = entry?.reasoningLevel;
-  if (typeof reasoning === "string" && reasoning.length > 0) {
-    flags.push(`reasoning:${reasoning}`);
-  }
-  const elevated = entry?.elevatedLevel;
-  if (typeof elevated === "string" && elevated.length > 0) {
-    flags.push(`elevated:${elevated}`);
-  }
-  if (entry?.systemSent) {
-    flags.push("system");
-  }
-  if (entry?.abortedLastRun) {
-    flags.push("aborted");
-  }
-  const sessionId = entry?.sessionId as unknown;
-  if (typeof sessionId === "string" && sessionId.length > 0) {
-    flags.push(`id:${sessionId}`);
-  }
-  return flags;
-};
-
-export function redactSensitiveStatusSummary(summary: StatusSummary): StatusSummary {
+function toSessionStatus(params: {
+  key: string;
+  entry: ReturnType<typeof readSessionStoreReadOnly>[string];
+  cfg: CrawClawConfig;
+  agentId: string;
+  now: number;
+}): SessionStatus {
+  const modelRef = statusSummaryRuntime.resolveSessionModelRef(
+    params.cfg,
+    params.entry,
+    params.agentId,
+  );
+  const updatedAt = typeof params.entry?.updatedAt === "number" ? params.entry.updatedAt : null;
   return {
-    ...summary,
-    sessions: {
-      ...summary.sessions,
-      paths: [],
-      defaults: {
-        model: null,
-        contextTokens: null,
-      },
-      recent: [],
-      byAgent: summary.sessions.byAgent.map((entry) => ({
-        ...entry,
-        path: "[redacted]",
-        recent: [],
-      })),
-    },
+    key: params.key,
+    kind: statusSummaryRuntime.classifySessionKey(params.key, params.entry),
+    updatedAt,
+    age: updatedAt ? Math.max(0, params.now - updatedAt) : 0,
+    model: modelRef.model,
+    modelProvider: modelRef.provider,
+    totalTokens:
+      typeof params.entry?.totalTokens === "number" ? params.entry.totalTokens : undefined,
+    inputTokens:
+      typeof params.entry?.inputTokens === "number" ? params.entry.inputTokens : undefined,
+    outputTokens:
+      typeof params.entry?.outputTokens === "number" ? params.entry.outputTokens : undefined,
   };
 }
 
-export async function getStatusSummary(
-  options: {
-    includeSensitive?: boolean;
-    config?: CrawClawConfig;
-    sourceConfig?: CrawClawConfig;
-  } = {},
-): Promise<StatusSummary> {
-  const { includeSensitive = true } = options;
-  const {
-    classifySessionKey,
-    resolveConfiguredStatusModelRef,
-    resolveContextTokensForModel,
-    resolveSessionModelRef,
-  } = await loadStatusSummaryRuntimeModule();
-  const cfg = options.config ?? (await loadConfigIoModule()).loadConfig();
-  const needsChannelPlugins = hasPotentialConfiguredChannels(cfg);
-  const linkContext = needsChannelPlugins
-    ? await loadLinkChannelModule().then(({ resolveLinkChannelContext }) =>
-        resolveLinkChannelContext(cfg),
-      )
-    : null;
+export async function getStatusSummary(params: {
+  config: CrawClawConfig;
+  sourceConfig?: CrawClawConfig;
+}): Promise<StatusSummary> {
+  void params.sourceConfig;
+  const cfg = params.config;
   const agentList = listGatewayAgentsBasic(cfg);
-  const mainSessionWakeAgents: MainSessionWakeStatus[] = agentList.agents.map((agent) => {
-    const summary = resolveMainSessionWakeSummaryForAgent(cfg, agent.id);
-    return {
-      agentId: agent.id,
-      enabled: summary.enabled,
-    } satisfies MainSessionWakeStatus;
-  });
-  const channelSummary = needsChannelPlugins
-    ? await loadChannelSummaryModule().then(({ buildChannelSummary }) =>
-        buildChannelSummary(cfg, {
-          colorize: true,
-          includeAllowFrom: true,
-          sourceConfig: options.sourceConfig,
-        }),
-      )
-    : [];
-  const mainSessionKey = resolveMainSessionKey(cfg);
-  const queuedSystemEvents = peekSystemEvents(mainSessionKey);
-  const taskMaintenanceModule = await loadTaskRegistryMaintenanceModule();
-  const tasks = taskMaintenanceModule.getInspectableTaskRegistrySummary();
-  const taskAudit = taskMaintenanceModule.getInspectableTaskAuditSummary();
-
-  const resolved = resolveConfiguredStatusModelRef({
-    cfg,
-    defaultProvider: DEFAULT_PROVIDER,
-    defaultModel: DEFAULT_MODEL,
-  });
-  const configModel = resolved.model ?? DEFAULT_MODEL;
-  const configContextTokens =
-    resolveContextTokensForModel({
-      cfg,
-      provider: resolved.provider ?? DEFAULT_PROVIDER,
-      model: configModel,
-      contextTokensOverride: cfg.agents?.defaults?.contextTokens,
-      fallbackContextTokens: DEFAULT_CONTEXT_TOKENS,
-      // Keep `status`/`status --json` startup read-only. These summary lookups
-      // should not kick off background provider discovery or plugin scans.
-      allowAsyncLoad: false,
-    }) ?? DEFAULT_CONTEXT_TOKENS;
-
   const now = Date.now();
-  const storeCache = new Map<string, Record<string, SessionEntry | undefined>>();
-  const loadStore = (storePath: string) => {
-    const cached = storeCache.get(storePath);
-    if (cached) {
-      return cached;
-    }
-    const store = readSessionStoreReadOnly(storePath);
-    storeCache.set(storePath, store);
-    return store;
-  };
-  const buildSessionRows = (
-    store: Record<string, SessionEntry | undefined>,
-    opts: { agentIdOverride?: string } = {},
-  ) =>
-    Object.entries(store)
-      .filter(([key]) => key !== "global" && key !== "unknown")
-      .map(([key, entry]) => {
-        const updatedAt = entry?.updatedAt ?? null;
-        const age = updatedAt ? now - updatedAt : null;
-        const resolvedModel = resolveSessionModelRef(cfg, entry, opts.agentIdOverride);
-        const model = resolvedModel.model ?? configModel ?? null;
-        const contextTokens =
-          resolveContextTokensForModel({
-            cfg,
-            provider: resolvedModel.provider,
-            model,
-            contextTokensOverride: entry?.contextTokens,
-            fallbackContextTokens: configContextTokens ?? undefined,
-            allowAsyncLoad: false,
-          }) ?? null;
-        const total = resolveFreshSessionTotalTokens(entry);
-        const totalTokensFresh =
-          typeof entry?.totalTokens === "number" ? entry?.totalTokensFresh !== false : false;
-        const remaining =
-          contextTokens != null && total !== undefined ? Math.max(0, contextTokens - total) : null;
-        const pct =
-          contextTokens && contextTokens > 0 && total !== undefined
-            ? Math.min(999, Math.round((total / contextTokens) * 100))
-            : null;
-        const parsedAgentId = parseAgentSessionKey(key)?.agentId;
-        const agentId = opts.agentIdOverride ?? parsedAgentId;
-
-        return {
-          agentId,
-          key,
-          kind: classifySessionKey(key, entry),
-          sessionId: entry?.sessionId,
-          updatedAt,
-          age,
-          thinkingLevel: entry?.thinkingLevel,
-          fastMode: entry?.fastMode,
-          verboseLevel: entry?.verboseLevel,
-          reasoningLevel: entry?.reasoningLevel,
-          elevatedLevel: entry?.elevatedLevel,
-          systemSent: entry?.systemSent,
-          abortedLastRun: entry?.abortedLastRun,
-          inputTokens: entry?.inputTokens,
-          outputTokens: entry?.outputTokens,
-          cacheRead: entry?.cacheRead,
-          cacheWrite: entry?.cacheWrite,
-          totalTokens: total ?? null,
-          totalTokensFresh,
-          remainingTokens: remaining,
-          percentUsed: pct,
-          model,
-          contextTokens,
-          flags: buildFlags(entry),
-        } satisfies SessionStatus;
-      })
-      .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
-
-  const paths = new Set<string>();
   const byAgent = agentList.agents.map((agent) => {
-    const storePath = resolveStorePath(cfg.session?.store, { agentId: agent.id });
-    paths.add(storePath);
-    const store = loadStore(storePath);
-    const sessions = buildSessionRows(store, { agentIdOverride: agent.id });
+    const path = resolveStorePath(cfg.session?.store, { agentId: agent.id });
+    const store = readSessionStoreReadOnly(path);
+    const recent = Object.entries(store)
+      .filter(([key]) => key !== "global" && key !== "unknown")
+      .map(([key, entry]) => toSessionStatus({ key, entry, cfg, agentId: agent.id, now }))
+      .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+      .slice(0, 10);
     return {
       agentId: agent.id,
-      path: storePath,
-      count: sessions.length,
-      recent: sessions.slice(0, 10),
+      path,
+      count: Object.keys(store).filter((key) => key !== "global" && key !== "unknown").length,
+      recent,
     };
   });
+  const recent = byAgent
+    .flatMap((entry) => entry.recent)
+    .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))
+    .slice(0, 12);
+  const defaultAgentId = resolveDefaultAgentId(cfg);
+  const defaultModel =
+    resolveAgentModelPrimaryValue(cfg.agents?.defaults?.model) ?? DEFAULT_MODEL ?? null;
 
-  const allSessions = Array.from(paths)
-    .flatMap((storePath) => buildSessionRows(loadStore(storePath)))
-    .toSorted((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
-  const recent = allSessions.slice(0, 10);
-  const totalSessions = allSessions.length;
-
-  const summary: StatusSummary = {
+  return {
     runtimeVersion: resolveRuntimeServiceVersion(process.env),
-    linkChannel: linkContext
-      ? {
-          id: linkContext.plugin.id,
-          label: linkContext.plugin.meta.label ?? "Channel",
-          linked: linkContext.linked,
-          authAgeMs: linkContext.authAgeMs,
-        }
-      : undefined,
     mainSessionWake: {
-      defaultAgentId: agentList.defaultId,
-      agents: mainSessionWakeAgents,
+      defaultAgentId,
+      agents: agentList.agents.map((agent) => ({ agentId: agent.id, enabled: false })),
     },
-    channelSummary,
-    queuedSystemEvents,
-    tasks,
-    taskAudit,
+    queuedSystemEvents: peekSystemEvents(resolveMainSessionKey(cfg)),
+    tasks: createEmptyTaskRegistrySummary(),
+    taskAudit: createEmptyTaskAuditSummary(),
     sessions: {
-      paths: Array.from(paths),
-      count: totalSessions,
+      paths: byAgent.map((entry) => entry.path),
+      count: byAgent.reduce((sum, entry) => sum + entry.count, 0),
       defaults: {
-        model: configModel ?? null,
-        contextTokens: configContextTokens ?? null,
+        model: defaultModel,
+        contextTokens: DEFAULT_CONTEXT_TOKENS,
       },
       recent,
       byAgent,
     },
   };
-  return includeSensitive ? summary : redactSensitiveStatusSummary(summary);
 }

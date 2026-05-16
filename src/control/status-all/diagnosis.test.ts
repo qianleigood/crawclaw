@@ -53,9 +53,6 @@ function createBaseParams(
     tailscaleHttpsUrl: null,
     skillStatus: null,
     pluginCompatibility: [],
-    feishuCli: null,
-    channelsStatus: null,
-    channelIssues: [],
     gatewayReachable: false,
     health: null,
   };
@@ -87,64 +84,5 @@ describe("status-all diagnosis port checks", () => {
     const output = params.lines.join("\n");
     expect(output).toContain("! Port 18789");
     expect(output).toContain("Port 18789 is already in use.");
-  });
-
-  it("reports Feishu user tools as ready when lark-cli auth is healthy", async () => {
-    const params = createBaseParams([]);
-    params.feishuCli = {
-      supported: true,
-      error: null,
-      status: {
-        identity: "user",
-        installed: true,
-        authOk: true,
-        status: "ready",
-        version: "1.0.7",
-      },
-    };
-
-    await appendStatusAllDiagnosis(params);
-
-    const output = params.lines.join("\n");
-    expect(output).toContain("✓ Feishu user tools: ready · user · lark-cli 1.0.7");
-  });
-
-  it("warns when Feishu user tools are installed but auth is missing", async () => {
-    const params = createBaseParams([]);
-    params.feishuCli = {
-      supported: true,
-      error: null,
-      status: {
-        identity: "user",
-        installed: true,
-        authOk: false,
-        status: "not_configured",
-        message: "Run crawclaw feishu-cli auth login first.",
-      },
-    };
-
-    await appendStatusAllDiagnosis(params);
-
-    const output = params.lines.join("\n");
-    expect(output).toContain("! Feishu user tools: not_configured · user");
-    expect(output).toContain("Run crawclaw feishu-cli auth login first.");
-    expect(output).toContain("next: crawclaw feishu-cli auth login");
-    expect(output).toContain("check: crawclaw feishu-cli status --verify");
-  });
-
-  it("warns when the Feishu user plugin is not loaded on the gateway", async () => {
-    const params = createBaseParams([]);
-    params.feishuCli = {
-      supported: false,
-      error: null,
-      status: null,
-    };
-
-    await appendStatusAllDiagnosis(params);
-
-    const output = params.lines.join("\n");
-    expect(output).toContain("! Feishu user tools: plugin not loaded on this gateway");
-    expect(output).toContain("enable: plugins.entries.feishu-cli.enabled = true");
-    expect(output).toContain("restart: crawclaw gateway restart");
   });
 });

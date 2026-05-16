@@ -33,7 +33,7 @@ Model output
 Legend:
 
 - `text_delta/events`: model stream events (may be sparse for non-streaming models).
-- `chunker`: `EmbeddedBlockChunker` applying min/max bounds + break preference.
+- `chunker`: `BlockReplyChunker` applying min/max bounds + break preference.
 - `channel send`: actual outbound messages (block replies).
 
 **Controls:**
@@ -56,7 +56,7 @@ Legend:
 
 ## Chunking algorithm (low/high bounds)
 
-Block chunking is implemented by `EmbeddedBlockChunker`:
+Block chunking is implemented by `BlockReplyChunker`:
 
 - **Low bound:** don’t emit until buffer >= `minChars` (unless forced).
 - **High bound:** prefer splits before `maxChars`; if forced, split at `maxChars`.

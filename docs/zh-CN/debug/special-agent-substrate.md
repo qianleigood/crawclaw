@@ -48,7 +48,7 @@ CrawClaw 现在已经有一层统一的 special-agent 运行底座，专门服�
 
 - `SpecialAgentDefinition`
   描述某个 special agent 的稳定运行契约，并显式声明
-  `executionMode: "spawned_session" | "embedded_fork"`。
+  `executionMode: "spawned_session" | "runtime_fork"`。
 - `registry.ts`
   负责按 `spawnSource` 解析已注册的 special-agent definition 和 tool policy。
 - `runSpecialAgentToCompletion(...)`
@@ -137,12 +137,12 @@ CrawClaw 现在也已经接入了 Claude cache 设计里可以直接移植的那
   - fork-context messages
 - cache 复用和 drift 现在通过显式的 fork-cache plan 统一处理，不再把规则分散在 snapshot 持久化、embedded attempt、provider patch 几处
 - provider 侧的请求 patch 现在只消费已经算好的 cache hints，不再自己定义 cache identity
-- substrate 现在也已经支持显式的 `embedded_fork` execution mode，不再只能把 special agent 建模成 child session
-- embedded memory special agent 现在会继承父 run 捕获到的 system-prompt envelope，而不是每次都从头重建一套无关的隔离 prompt
-- embedded memory special run 现在还会把 inherited thinking/tool/fork-context 和当前 embedded 请求做 drift 校验；如果偏移太大，就自动停用 inherited prompt-cache key
-- embedded memory special run 现在会把共享的 agent-event / history / usage 观测写进 Context Archive，不再依赖 child-session transcript
-- 同一批 embedded memory run 现在也会把 usage，包括 `cacheRead` / `cacheWrite`，回灌到 Action Feed 的完成态 detail 里
-- embedded memory special agent 现在也已经在 substrate 上显式声明 cache-write suppression，并把它映射到 provider 支持的“不要创建新 cache entry”控制，同时尽量保留 prompt-cache read
+- substrate 现在也已经支持显式的 `runtime_fork` execution mode，不再只能把 special agent 建模成 child session
+- runtime memory special agent 现在会继承父 run 捕获到的 system-prompt envelope，而不是每次都从头重建一套无关的隔离 prompt
+- runtime memory special run 现在还会把 inherited thinking/tool/fork-context 和当前 embedded 请求做 drift 校验；如果偏移太大，就自动停用 inherited prompt-cache key
+- runtime memory special run 现在会把共享的 agent-event / history / usage 观测写进 Context Archive，不再依赖 child-session transcript
+- 同一批 runtime memory run 现在也会把 usage，包括 `cacheRead` / `cacheWrite`，回灌到 Action Feed 的完成态 detail 里
+- runtime memory special agent 现在也已经在 substrate 上显式声明 cache-write suppression，并把它映射到 provider 支持的“不要创建新 cache entry”控制，同时尽量保留 prompt-cache read
 - review stage agents 显式保留在 `spawned_session`，共享 substrate contract，但不被当成 fire-and-forget maintenance fork
 
 在当前 CrawClaw 的 runtime 层，这意味着 special-agent substrate 的主要设计缺口已经基本收口，而且 cache 语义的 owner 也更清楚了：
@@ -155,5 +155,5 @@ CrawClaw 现在也已经接入了 Claude cache 设计里可以直接移植的那
 
 未来 task-specific special agent 继续按 case-by-case 接入：
 
-- 维护型、后台、fire-and-forget agent 优先走 `embedded_fork`
+- 维护型、后台、fire-and-forget agent 优先走 `runtime_fork`
 - 面向用户、需要独立 session 状态的 task agent 默认保持 `spawned_session`

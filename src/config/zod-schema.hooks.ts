@@ -49,9 +49,9 @@ export const HookMappingSchema = z
     textTemplate: z.string().optional(),
     deliver: z.boolean().optional(),
     allowUnsafeExternalContent: z.boolean().optional(),
-    // Keep this open-ended so runtime channel plugins (for example feishu) can be
-    // referenced without hard-coding every channel id in the config schema.
-    // Runtime still validates the resolved value against currently registered channels.
+    // Keep this open-ended so native delivery targets can be referenced without
+    // hard-coding every target id in the config schema.
+    // Runtime still validates the resolved value against currently registered targets.
     channel: z.string().trim().min(1).optional(),
     to: z.string().optional(),
     model: z.string().optional(),

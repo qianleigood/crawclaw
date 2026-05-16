@@ -1,8 +1,16 @@
 import type { SessionEntry } from "../config/sessions.js";
 import { formatProviderModelRef } from "./model-runtime.js";
-import type { RuntimeFallbackAttempt } from "./reply/agent-runner-execution.js";
 
 const FALLBACK_REASON_PART_MAX = 80;
+
+export type RuntimeFallbackAttempt = {
+  provider: string;
+  model: string;
+  error?: string;
+  reason?: string;
+  code?: string;
+  status?: number;
+};
 
 export type FallbackNoticeState = Pick<
   SessionEntry,

@@ -5,7 +5,6 @@ import { copyBundledPluginMetadata } from "./copy-bundled-plugin-metadata.mjs";
 import { writeTextFileIfChanged } from "./runtime-postbuild-shared.mjs";
 import { stageBundledPluginRuntimeDeps } from "./stage-bundled-plugin-runtime-deps.mjs";
 import { stageBundledPluginRuntime } from "./stage-bundled-plugin-runtime.mjs";
-import { writeOfficialChannelCatalog } from "./write-official-channel-catalog.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ROOT_RUNTIME_ALIAS_PATTERN = /^(?<base>.+\.(?:runtime|contract))-[A-Za-z0-9_-]+\.js$/u;
@@ -34,19 +33,6 @@ function listStaticRuntimeMigrationAssets(params = {}) {
  * Each entry: { src: repo-root-relative source, dest: dist-relative dest }
  */
 export const STATIC_EXTENSION_ASSETS = [
-  // acpx MCP proxy — co-deployed alongside the acpx index bundle so that
-  // `path.resolve(dirname(import.meta.url), "mcp-proxy.mjs")` resolves correctly
-  // at runtime (see extensions/acpx/src/runtime-internals/mcp-agent-command.ts).
-  {
-    src: "extensions/acpx/src/runtime-internals/mcp-proxy.mjs",
-    dest: "dist/extensions/acpx/mcp-proxy.mjs",
-  },
-  // diffs viewer runtime bundle — co-deployed inside the plugin package so the
-  // built bundle can resolve `./assets/viewer-runtime.js` from dist.
-  {
-    src: "extensions/diffs/assets/viewer-runtime.js",
-    dest: "dist/extensions/diffs/assets/viewer-runtime.js",
-  },
   // Scrapling sidecar is a Python runtime asset resolved next to the bundled
   // plugin entry at runtime.
   {
@@ -118,7 +104,6 @@ export function writeStableRootRuntimeAliases(params = {}) {
 
 export function runRuntimePostBuild(params = {}) {
   copyBundledPluginMetadata(params);
-  writeOfficialChannelCatalog(params);
   stageBundledPluginRuntimeDeps(params);
   stageBundledPluginRuntime(params);
   writeStableRootRuntimeAliases(params);

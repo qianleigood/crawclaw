@@ -9,7 +9,6 @@ import {
 } from "../agents/model-selection.js";
 import { loadConfig } from "../config/config.js";
 import { buildAgentMainSessionKey, normalizeAgentId } from "../routing/session-key.js";
-import { normalizeMessageChannel } from "../utils/message-channel.js";
 import type { AuthRateLimiter } from "./auth-rate-limit.js";
 import {
   authorizeHttpGatewayConnect,
@@ -157,7 +156,7 @@ export function resolveOpenAiCompatibleHttpOperatorScopes(
 ): string[] {
   if (usesSharedSecretGatewayMethod(requestAuth.authMethod)) {
     // Shared-secret HTTP bearer auth is a documented trusted-operator surface
-    // for the compat APIs and direct /tools/invoke. This is designed-as-is:
+    // for the compat APIs. This is designed-as-is:
     // token/password auth proves possession of the gateway operator secret, not
     // a narrower per-request scope identity, so restore the normal defaults.
     return [...CLI_DEFAULT_OPERATOR_SCOPES];
@@ -180,7 +179,7 @@ export function resolveOpenAiCompatibleHttpSenderIsOwner(
 ): boolean {
   if (usesSharedSecretGatewayMethod(requestAuth.authMethod)) {
     // Shared-secret HTTP bearer auth also carries owner semantics on the compat
-    // APIs and direct /tools/invoke. This is intentional: there is no separate
+    // APIs. This is intentional: there is no separate
     // per-request owner primitive on that shared-secret path, so owner-only
     // tool policy follows the documented trusted-operator contract.
     return true;
@@ -300,7 +299,6 @@ export function resolveGatewayRequestContext(params: {
   user?: string | undefined;
   sessionPrefix: string;
   defaultMessageChannel: string;
-  useMessageChannelHeader?: boolean;
 }): { agentId: string; sessionKey: string; messageChannel: string } {
   const agentId = resolveAgentIdForRequest({ req: params.req, model: params.model });
   const sessionKey = resolveSessionKey({
@@ -310,10 +308,5 @@ export function resolveGatewayRequestContext(params: {
     prefix: params.sessionPrefix,
   });
 
-  const messageChannel = params.useMessageChannelHeader
-    ? (normalizeMessageChannel(getHeader(params.req, "x-crawclaw-message-channel")) ??
-      params.defaultMessageChannel)
-    : params.defaultMessageChannel;
-
-  return { agentId, sessionKey, messageChannel };
+  return { agentId, sessionKey, messageChannel: params.defaultMessageChannel };
 }

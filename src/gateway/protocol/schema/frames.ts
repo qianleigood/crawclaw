@@ -40,24 +40,10 @@ export const ConnectParamsSchema = Type.Object(
     pathEnv: Type.Optional(Type.String()),
     role: Type.Optional(NonEmptyString),
     scopes: Type.Optional(Type.Array(NonEmptyString)),
-    device: Type.Optional(
-      Type.Object(
-        {
-          id: NonEmptyString,
-          publicKey: NonEmptyString,
-          signature: NonEmptyString,
-          signedAt: Type.Integer({ minimum: 0 }),
-          nonce: NonEmptyString,
-        },
-        { additionalProperties: false },
-      ),
-    ),
     auth: Type.Optional(
       Type.Object(
         {
           token: Type.Optional(Type.String()),
-          bootstrapToken: Type.Optional(Type.String()),
-          deviceToken: Type.Optional(Type.String()),
           password: Type.Optional(Type.String()),
         },
         { additionalProperties: false },
@@ -88,17 +74,6 @@ export const HelloOkSchema = Type.Object(
       { additionalProperties: false },
     ),
     snapshot: SnapshotSchema,
-    auth: Type.Optional(
-      Type.Object(
-        {
-          deviceToken: NonEmptyString,
-          role: NonEmptyString,
-          scopes: Type.Array(NonEmptyString),
-          issuedAtMs: Type.Optional(Type.Integer({ minimum: 0 })),
-        },
-        { additionalProperties: false },
-      ),
-    ),
     policy: Type.Object(
       {
         maxPayload: Type.Integer({ minimum: 1 }),

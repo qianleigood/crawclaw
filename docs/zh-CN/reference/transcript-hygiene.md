@@ -34,12 +34,7 @@ x-i18n:
 
 ## 运行位置
 
-所有对话记录清理逻辑集中在嵌入式运行器中：
-
-- 策略选择：`src/agents/transcript-policy.ts`
-- 清理/修复应用：`src/agents/pi-embedded-runner/google.ts` 中的 `sanitizeSessionHistory`
-
-策略根据 `provider`、`modelApi` 和 `modelId` 来决定应用哪些规则。
+对话记录清理逻辑属于 Rust AgentRuntime 的上下文组装路径。runtime 根据 `provider`、`modelApi` 和 `modelId` 来决定应用哪些内存中的规则。
 
 ---
 
@@ -49,7 +44,7 @@ x-i18n:
 
 实现：
 
-- `src/agents/pi-embedded-helpers/images.ts` 中的 `sanitizeSessionMessagesImages`
+- `src/agents/runtime-helpers/images.ts` 中的 `sanitizeSessionMessagesImages`
 - `src/agents/tool-images.ts` 中的 `sanitizeContentBlocksImages`
 
 ---
