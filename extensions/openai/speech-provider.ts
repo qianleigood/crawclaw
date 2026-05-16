@@ -1,10 +1,10 @@
-import { normalizeResolvedSecretInputString } from "crawclaw/plugin-sdk/secret-input";
+import { normalizeResolvedSecretInputString } from "../../src/internal-plugin-helpers/secret-input.js";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechProviderConfig,
   SpeechProviderOverrides,
   SpeechProviderPlugin,
-} from "crawclaw/plugin-sdk/speech";
+} from "../../src/internal-plugin-helpers/speech.js";
 import {
   DEFAULT_OPENAI_BASE_URL,
   isValidOpenAIModel,

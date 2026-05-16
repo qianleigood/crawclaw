@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { listBundledPluginPackArtifacts } from "../scripts/lib/bundled-plugin-build-entries.mjs";
-import { listPluginSdkDistArtifacts } from "../scripts/lib/plugin-sdk-entries.mjs";
 import {
   collectBundledExtensionManifestErrors,
   collectBundledExtensionRootDependencyMirrorErrors,
@@ -15,7 +14,6 @@ function makePackResult(filename: string, unpackedSize: number) {
   return { filename, unpackedSize };
 }
 
-const requiredPluginSdkPackPaths = [...listPluginSdkDistArtifacts()];
 const requiredBundledPluginPackPaths = listBundledPluginPackArtifacts();
 const requiredStaticExtensionAssetPaths = listStaticExtensionAssetOutputs().flat();
 
@@ -230,8 +228,6 @@ describe("collectMissingPackPaths", () => {
       "dist/native/crawclaw-runtime",
       "dist/native/crawclaw-gateway",
       "dist/native/crawclaw-native-plugins",
-      "dist/plugin-sdk/core.js",
-      "dist/plugin-sdk/core.d.ts",
       "dist/build-info.json",
     ]);
 
@@ -254,7 +250,6 @@ describe("collectMissingPackPaths", () => {
         "dist/native/crawclaw-gateway",
         "dist/native/crawclaw-native-plugins",
         ...requiredBundledPluginPackPaths,
-        ...requiredPluginSdkPackPaths,
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",

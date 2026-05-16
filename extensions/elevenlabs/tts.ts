@@ -7,7 +7,7 @@ import {
   requireInRange,
   trimToUndefined,
   truncateErrorDetail,
-} from "crawclaw/plugin-sdk/speech";
+} from "../../src/internal-plugin-helpers/speech.js";
 
 const DEFAULT_ELEVENLABS_BASE_URL = "https://api.elevenlabs.io";
 

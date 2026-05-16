@@ -1,11 +1,11 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { loadBundledPluginPublicSurfaceModuleSync } from "../plugin-sdk/facade-runtime.js";
+import { loadBundledPluginPublicSurfaceModuleSync } from "../internal-plugin-helpers/facade-runtime.js";
 import {
   findBundledPluginMetadataById,
   type BundledPluginMetadata,
 } from "../plugins/bundled-plugin-metadata.js";
-import { resolveLoaderPackageRoot } from "../plugins/sdk-alias.js";
+import { resolveLoaderPackageRoot } from "../plugins/runtime-alias.js";
 
 const CRAWCLAW_PACKAGE_ROOT =
   resolveLoaderPackageRoot({

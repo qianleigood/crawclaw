@@ -5,7 +5,7 @@ describe("loadBundledCapabilityRuntimeRegistry", () => {
   it("uses native manifests for migrated bundled native plugins", () => {
     const registry = loadBundledCapabilityRuntimeRegistry({
       pluginIds: ["lobster"],
-      pluginSdkResolution: "src",
+      runtimeResolution: "src",
     });
 
     const lobster = registry.plugins.find((plugin) => plugin.id === "lobster");

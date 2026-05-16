@@ -19,10 +19,10 @@ assembly, and contract enforcement.
 
 - Preserve manifest-first behavior: discovery, config validation, and setup
   should work from metadata before plugin runtime executes.
-- Keep loader behavior aligned with the documented Plugin SDK and manifest
+- Keep loader behavior aligned with the documented Rust plugin SDK and manifest
   contracts. Do not create private backdoors that bundled plugins can use but
   external plugins cannot.
-- If a loader or registry change affects plugin authors, update the public SDK,
+- If a loader or registry change affects plugin authors, update the Rust SDK,
   docs, and contract tests instead of relying on incidental internals.
 - Do not normalize "plugin-owned" into "core-owned" by scattering direct reads
   of `plugins.entries.<id>.config` through unrelated core paths. Prefer generic

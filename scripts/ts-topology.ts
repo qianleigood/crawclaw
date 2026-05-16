@@ -2,10 +2,7 @@
 import path from "node:path";
 import { analyzeTopology } from "./lib/ts-topology/analyze.js";
 import { renderTextReport } from "./lib/ts-topology/reports.js";
-import {
-  createFilesystemPublicSurfaceScope,
-  createPluginSdkScope,
-} from "./lib/ts-topology/scope.js";
+import { createFilesystemPublicSurfaceScope } from "./lib/ts-topology/scope.js";
 import type { TopologyReportName, TopologyScope } from "./lib/ts-topology/types.js";
 
 const VALID_REPORTS = new Set<TopologyReportName>([
@@ -38,7 +35,7 @@ function usage() {
     "Usage: ts-topology [analyze] [options]",
     "",
     "Options:",
-    "  --scope=<plugin-sdk|custom>         Built-in or custom scope",
+    "  --scope=custom                     Custom public surface scope",
     "  --entrypoint-root=<path>            Required for --scope=custom",
     "  --import-prefix=<specifier>         Required for --scope=custom",
     "  --report=<name>                     public-surface-usage | owner-map | single-owner-shared | unused-public-surface | consumer-topology",
@@ -57,7 +54,7 @@ function parseArgs(argv: string[]): CliOptions {
   }
   const options: CliOptions = {
     repoRoot: process.cwd(),
-    scopeId: "plugin-sdk",
+    scopeId: "custom",
     report: "public-surface-usage",
     json: false,
     includeTests: true,
@@ -107,9 +104,6 @@ function parseArgs(argv: string[]): CliOptions {
 }
 
 function resolveScope(options: CliOptions): TopologyScope {
-  if (options.scopeId === "plugin-sdk") {
-    return createPluginSdkScope(options.repoRoot);
-  }
   if (options.scopeId === "custom") {
     if (!options.customEntrypointRoot || !options.customImportPrefix) {
       throw new Error("--scope=custom requires --entrypoint-root and --import-prefix");

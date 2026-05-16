@@ -99,7 +99,7 @@ describe("performGatewaySessionReset", () => {
       clearBootstrapSnapshot: resetServiceMocks.clearBootstrapSnapshot,
     }));
 
-    vi.doMock("../plugin-sdk/browser-maintenance.js", () => ({
+    vi.doMock("../internal-plugin-helpers/browser-maintenance.js", () => ({
       closeTrackedBrowserTabsForSessions: resetServiceMocks.closeTrackedBrowserTabsForSessions,
     }));
 

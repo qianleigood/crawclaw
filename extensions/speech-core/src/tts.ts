@@ -16,12 +16,16 @@ import type {
   TtsMode,
   TtsModelOverrideConfig,
   TtsProvider,
-} from "crawclaw/plugin-sdk/config-runtime";
-import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
-import { redactSensitiveText } from "crawclaw/plugin-sdk/runtime-env";
-import { isVerbose, logVerbose } from "crawclaw/plugin-sdk/runtime-env";
-import { resolvePreferredCrawClawTmpDir } from "crawclaw/plugin-sdk/temp-path";
-import { CONFIG_DIR, resolveUserPath, stripMarkdown } from "crawclaw/plugin-sdk/text-runtime";
+} from "../../../src/internal-plugin-helpers/config-runtime.js";
+import { resolveSendableOutboundReplyParts } from "../../../src/internal-plugin-helpers/reply-payload.js";
+import { redactSensitiveText } from "../../../src/internal-plugin-helpers/runtime-env.js";
+import { isVerbose, logVerbose } from "../../../src/internal-plugin-helpers/runtime-env.js";
+import { resolvePreferredCrawClawTmpDir } from "../../../src/internal-plugin-helpers/temp-path.js";
+import {
+  CONFIG_DIR,
+  resolveUserPath,
+  stripMarkdown,
+} from "../../../src/internal-plugin-helpers/text-runtime.js";
 import {
   canonicalizeSpeechProviderId,
   getSpeechProvider,

@@ -5,9 +5,9 @@ import {
   resolveAgentModelPrimaryValue,
   toAgentModelListLike,
 } from "../config/model-input.js";
+import { normalizeGoogleModelId } from "../internal-plugin-helpers/google-model-id.js";
+import { normalizeXaiModelId } from "../internal-plugin-helpers/xai-model-id.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
-import { normalizeGoogleModelId } from "../plugin-sdk/google-model-id.js";
-import { normalizeXaiModelId } from "../plugin-sdk/xai-model-id.js";
 import { sanitizeForLog } from "../terminal/ansi.js";
 import {
   resolveAgentConfig,

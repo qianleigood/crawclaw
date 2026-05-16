@@ -153,9 +153,9 @@ function shouldEagerWarmContextWindowCache(argv: string[] = process.argv): boole
   // Keep this gate tied to the real local runtime entrypoints.
   //
   // This module can also land inside shared dist chunks that are imported from
-  // plugin-sdk/library surfaces during smoke tests and plugin loading. If we do
+  // library/helper surfaces during smoke tests and plugin loading. If we do
   // eager warmup for those generic Node script imports, merely importing the
-  // built plugin-sdk can call ensureCrawClawModelsJson(), which cascades into
+  // built helper chunk can call ensureCrawClawModelsJson(), which cascades into
   // plugin discovery and breaks dist/source singleton assumptions.
   if (!isLikelyCrawClawCliProcess(argv)) {
     return false;
@@ -264,7 +264,7 @@ export function lookupContextTokens(
 
 if (shouldEagerWarmContextWindowCache()) {
   // Keep startup warmth for real local runtime entrypoints, but avoid import-time side effects
-  // when this module is pulled in through library/plugin-sdk surfaces.
+  // when this module is pulled in through library/helper surfaces.
   void ensureContextWindowCacheLoaded();
 }
 

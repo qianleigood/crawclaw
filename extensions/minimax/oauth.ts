@@ -1,6 +1,9 @@
 import { randomBytes, randomUUID } from "node:crypto";
-import { generatePkceVerifierChallenge, toFormUrlEncoded } from "crawclaw/plugin-sdk/provider-auth";
-import { ensureGlobalUndiciEnvProxyDispatcher } from "crawclaw/plugin-sdk/runtime-env";
+import {
+  generatePkceVerifierChallenge,
+  toFormUrlEncoded,
+} from "../../src/internal-plugin-helpers/provider-auth.js";
+import { ensureGlobalUndiciEnvProxyDispatcher } from "../../src/internal-plugin-helpers/runtime-env.js";
 
 export type MiniMaxRegion = "cn" | "global";
 

@@ -27,7 +27,7 @@ function moduleUrlFrom(root: string, relativePath: string): string {
   return pathToFileURL(path.join(root, relativePath)).href;
 }
 
-async function ensureModuleFixture(root: string, relativePath = "dist/plugin-sdk/index.js") {
+async function ensureModuleFixture(root: string, relativePath = "dist/runtime/index.js") {
   await fs.mkdir(path.dirname(path.join(root, relativePath)), { recursive: true });
   return moduleUrlFrom(root, relativePath);
 }
@@ -45,7 +45,7 @@ function expectVersionMetadataToBeMissing(moduleUrl: string) {
 }
 
 describe("version resolution", () => {
-  it("resolves package version from nested dist/plugin-sdk module URL", async () => {
+  it("resolves package version from nested dist module URL", async () => {
     await withTempDir(async (root) => {
       await writeJsonFixture(root, "package.json", { name: "crawclaw", version: "1.2.3" });
       const moduleUrl = await ensureModuleFixture(root);

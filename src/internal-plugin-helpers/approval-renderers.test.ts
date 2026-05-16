@@ -6,7 +6,7 @@ import {
   buildPluginApprovalResolvedReplyPayload,
 } from "./approval-renderers.js";
 
-describe("plugin-sdk/approval-renderers", () => {
+describe("internal plugin approval renderers", () => {
   it.each([
     {
       name: "builds shared approval payloads with generic interactive commands",

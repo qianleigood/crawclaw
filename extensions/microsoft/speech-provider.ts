@@ -1,17 +1,17 @@
 import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import path from "node:path";
-import { resolvePreferredCrawClawTmpDir } from "crawclaw/plugin-sdk/infra-runtime";
-import type {
-  SpeechProviderConfig,
-  SpeechProviderPlugin,
-  SpeechVoiceOption,
-} from "crawclaw/plugin-sdk/speech";
-import { isVoiceCompatibleAudio } from "crawclaw/plugin-sdk/speech-core";
 import {
   CHROMIUM_FULL_VERSION,
   TRUSTED_CLIENT_TOKEN,
   generateSecMsGecToken,
 } from "node-edge-tts/dist/drm.js";
+import { resolvePreferredCrawClawTmpDir } from "../../src/internal-plugin-helpers/infra-runtime.js";
+import { isVoiceCompatibleAudio } from "../../src/internal-plugin-helpers/speech-core.js";
+import type {
+  SpeechProviderConfig,
+  SpeechProviderPlugin,
+  SpeechVoiceOption,
+} from "../../src/internal-plugin-helpers/speech.js";
 import { edgeTTS, inferEdgeExtension } from "./tts.js";
 
 const DEFAULT_EDGE_VOICE = "en-US-MichelleNeural";

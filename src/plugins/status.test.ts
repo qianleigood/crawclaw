@@ -48,7 +48,7 @@ vi.mock("./bundled-compat.js", () => ({
     withBundledPluginEnablementCompatMock(...args),
 }));
 
-vi.mock("../plugin-sdk/facade-runtime.js", () => ({
+vi.mock("../internal-plugin-helpers/facade-runtime.js", () => ({
   listImportedBundledPluginFacadeIds: (...args: unknown[]) =>
     listImportedBundledPluginFacadeIdsMock(...args),
 }));

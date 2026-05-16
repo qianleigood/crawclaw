@@ -1,8 +1,8 @@
-import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import type { CrawClawConfig } from "../../../src/internal-plugin-helpers/config-runtime.js";
 import {
   normalizeResolvedSecretInputString,
   normalizeSecretInput,
-} from "crawclaw/plugin-sdk/secret-input";
+} from "../../../src/internal-plugin-helpers/secret-input.js";
 
 type SearxngPluginConfig = {
   webSearch?: {

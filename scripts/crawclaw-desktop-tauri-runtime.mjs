@@ -422,6 +422,9 @@ function assertNoLegacyDesktopSurface(runtimeRoot) {
 
 function assertNoDisallowedNodeRuntimeSurface(runtimeRoot) {
   for (const filePath of walkFiles(runtimeRoot)) {
+    if (isPluginSdkRuntimeArtifact(filePath)) {
+      throw new Error(`Disallowed Plugin SDK runtime artifact remains: ${filePath}`);
+    }
     if (!filePath.endsWith(".mjs")) {
       const basename = path.basename(filePath);
       if (basename !== "package.json" && !filePath.split(path.sep).includes("node_modules")) {
@@ -431,6 +434,18 @@ function assertNoDisallowedNodeRuntimeSurface(runtimeRoot) {
     }
     throw new Error(`Disallowed Node runtime entrypoint remains: ${filePath}`);
   }
+}
+
+function isPluginSdkRuntimeArtifact(filePath) {
+  const parts = filePath.split(path.sep);
+  const pluginSdkIndex = parts.indexOf("plugin-sdk");
+  if (pluginSdkIndex === -1) {
+    return false;
+  }
+  if (parts[pluginSdkIndex - 1] === "dist") {
+    return true;
+  }
+  return [".js", ".mjs", ".ts", ".d.ts"].some((extension) => filePath.endsWith(extension));
 }
 
 function assertNoPublicCliBinary(runtimeRoot, label) {

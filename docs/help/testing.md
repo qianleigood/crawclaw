@@ -467,7 +467,7 @@ Located in `src/plugins/contracts/*.contract.test.ts`:
 
 ### When to run
 
-- After changing plugin-sdk exports or subpaths
+- After changing Rust plugin SDK descriptors or native registry contracts
 - After adding or modifying a channel or provider plugin
 - After refactoring plugin registration or discovery
 

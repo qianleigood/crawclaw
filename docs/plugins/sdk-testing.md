@@ -1,130 +1,52 @@
 ---
 title: "Plugin Testing"
 sidebarTitle: "Testing"
-summary: "Testing utilities and patterns for CrawClaw plugins"
+summary: "Testing patterns for CrawClaw native plugins"
 read_when:
   - You are writing tests for a plugin
-  - You need test utilities from the plugin SDK
+  - You need to validate Rust plugin descriptors
   - You want to understand contract tests for bundled plugins
 ---
 
 # Plugin Testing
 
-Reference for test utilities, patterns, and lint enforcement for CrawClaw
-plugins.
+CrawClaw plugin runtime behavior is native-owned. Test the Rust SDK, native
+plugin registry, and Gateway/runtime contracts instead of relying on removed
+JavaScript SDK test helpers.
 
 <Tip>
-  **Looking for test examples?** The how-to guides include worked test examples:
-  [Provider plugin tests](/plugins/sdk-provider-plugins#step-6-test).
+  Provider examples live in [Provider Configuration](/plugins/sdk-provider-plugins#step-6-test).
 </Tip>
 
-## Test utilities
+## Rust SDK tests
 
-**Import:** `crawclaw/plugin-sdk/testing`
+Run the SDK crate tests when changing plugin descriptor helpers:
 
-The testing subpath exports a narrow set of helpers for plugin authors:
-
-```typescript
-import {
-  installCommonResolveTargetErrorCases,
-  shouldAckReaction,
-  removeAckReactionAfterReply,
-} from "crawclaw/plugin-sdk/testing";
+```bash
+cargo test -q -p crawclaw-plugin-sdk
 ```
 
-### Available exports
+These tests should prove that helper builders preserve the existing JSON wire
+shape.
 
-| Export                                 | Purpose                                                |
-| -------------------------------------- | ------------------------------------------------------ |
-| `installCommonResolveTargetErrorCases` | Shared test cases for target resolution error handling |
-| `shouldAckReaction`                    | Check whether a channel should add an ack reaction     |
-| `removeAckReactionAfterReply`          | Remove ack reaction after reply delivery               |
+## Native plugin tests
 
-### Types
+Run native registry tests when adding or changing bundled plugin descriptors:
 
-The testing subpath also re-exports types useful in test files:
-
-```typescript
-import type {
-  ChannelAccountSnapshot,
-  ChannelGatewayContext,
-  CrawClawConfig,
-  RuntimeEnv,
-  MockFn,
-} from "crawclaw/plugin-sdk/testing";
+```bash
+cargo test -q -p crawclaw-native-plugins
 ```
 
-## Testing target resolution
+For runtime or Gateway-facing behavior, also run the owning crate tests:
 
-Use `installCommonResolveTargetErrorCases` to add standard error cases for
-channel target resolution:
-
-```typescript
-import { describe } from "vitest";
-import { installCommonResolveTargetErrorCases } from "crawclaw/plugin-sdk/testing";
-
-describe("my-channel target resolution", () => {
-  installCommonResolveTargetErrorCases({
-    resolveTarget: ({ to, mode, allowFrom }) => {
-      // Your channel's target resolution logic
-      return myChannelResolveTarget({ to, mode, allowFrom });
-    },
-    implicitAllowFrom: ["user1", "user2"],
-  });
-
-  // Add channel-specific test cases
-  it("should resolve @username targets", () => {
-    // ...
-  });
-});
+```bash
+cargo test -q -p crawclaw-runtime
+cargo test -q -p crawclaw-gateway
 ```
 
-## Testing patterns
+## Repository contract tests
 
-### Unit testing a provider plugin
-
-```typescript
-import { describe, it, expect } from "vitest";
-
-describe("my-provider plugin", () => {
-  it("should resolve dynamic models", () => {
-    const model = myProvider.resolveDynamicModel({
-      modelId: "custom-model-v2",
-      // ... context
-    });
-
-    expect(model.id).toBe("custom-model-v2");
-    expect(model.provider).toBe("my-provider");
-    expect(model.api).toBe("openai-completions");
-  });
-
-  it("should return catalog when API key is available", async () => {
-    const result = await myProvider.catalog.run({
-      resolveProviderApiKey: () => ({ apiKey: "test-key" }),
-      // ... context
-    });
-
-    expect(result?.provider?.models).toHaveLength(2);
-  });
-});
-```
-
-### Testing with per-instance stubs
-
-Prefer per-instance stubs over prototype mutation:
-
-```typescript
-// Preferred: per-instance stub
-const client = new MyChannelClient();
-client.sendMessage = vi.fn().mockResolvedValue({ id: "msg-1" });
-
-// Avoid: prototype mutation
-// MyChannelClient.prototype.sendMessage = vi.fn();
-```
-
-## Contract tests (in-repo plugins)
-
-Bundled plugins have contract tests that verify registration ownership:
+Bundled plugin contracts verify registration ownership and descriptor shape:
 
 ```bash
 pnpm test -- src/plugins/contracts/
@@ -133,63 +55,36 @@ pnpm test -- src/plugins/contracts/
 These tests assert:
 
 - Which plugins register which providers
-- Which plugins register which speech providers
+- Which plugins register speech or media providers
 - Registration shape correctness
 - Runtime contract compliance
 
-### Running scoped tests
+## Desktop packaging guard
 
-For a specific plugin:
-
-```bash
-pnpm test -- <bundled-plugin-root>/my-channel/
-```
-
-For contract tests only:
+The desktop app must not ship the removed JavaScript SDK runtime artifacts:
 
 ```bash
-pnpm test -- src/plugins/contracts/shape.contract.test.ts
-pnpm test -- src/plugins/contracts/auth.contract.test.ts
-pnpm test -- src/plugins/contracts/runtime.contract.test.ts
+node --test test/scripts/crawclaw-desktop-tauri-runtime.test.mjs
+pnpm desktop:tauri:release-check
 ```
 
-## Lint enforcement (in-repo plugins)
+Run the release check when packaged app artifacts exist locally.
 
-Three rules are enforced by `pnpm check` for in-repo plugins:
+## TypeScript tests
 
-1. **No monolithic root imports** -- `crawclaw/plugin-sdk` root barrel is rejected
-2. **No direct `src/` imports** -- plugins cannot import `../../src/` directly
-3. **No self-imports** -- plugins cannot import their own `plugin-sdk/<name>` subpath
-
-External plugins are not subject to these lint rules, but following the same
-patterns is recommended.
-
-## Test configuration
-
-CrawClaw uses Vitest with V8 coverage thresholds. For plugin tests:
+TypeScript tests can still cover repo-private helpers, packaging, docs, and the
+desktop renderer:
 
 ```bash
-# Run all tests
-pnpm test
-
-# Run specific plugin tests
-pnpm test -- <bundled-plugin-root>/my-channel/src/channel.test.ts
-
-# Run with a specific test name filter
-pnpm test -- <bundled-plugin-root>/my-channel/ -t "resolves account"
-
-# Run with coverage
-pnpm test:coverage
+pnpm test -- <path-or-filter>
+pnpm check
 ```
 
-If local runs cause memory pressure:
-
-```bash
-CRAWCLAW_TEST_PROFILE=low CRAWCLAW_TEST_SERIAL_GATEWAY=1 pnpm test
-```
+Do not add new tests that import a public JavaScript plugin SDK. That package
+surface has been removed.
 
 ## Related
 
-- [SDK Overview](/plugins/sdk-overview) -- import conventions
-- [Provider Configuration](/plugins/sdk-provider-plugins) -- Rust-owned provider setup
+- [SDK Overview](/plugins/sdk-overview) -- Rust SDK overview
+- [Provider Configuration](/plugins/sdk-provider-plugins) -- provider setup
 - [Building Plugins](/plugins/building-plugins) -- getting started guide

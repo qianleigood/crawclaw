@@ -10,7 +10,7 @@ import {
   normalizeSecretInputString,
 } from "./secret-input.js";
 
-describe("plugin-sdk secret input helpers", () => {
+describe("internal plugin secret input helpers", () => {
   it.each([
     {
       name: "accepts undefined for optional secret input",
@@ -36,7 +36,7 @@ describe("plugin-sdk secret input helpers", () => {
   });
 });
 
-describe("plugin-sdk secret input schema", () => {
+describe("internal plugin secret input schema", () => {
   const schema = buildSecretInputSchema();
 
   it("accepts plaintext and valid refs", () => {

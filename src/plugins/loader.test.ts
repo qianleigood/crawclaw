@@ -835,7 +835,7 @@ module.exports = { id: "manifest-only-plugin" };`,
     const scoped = loadCrawClawPlugins({
       cache: false,
       activate: false,
-      pluginSdkResolution: "dist",
+      runtimeResolution: "dist",
       config: {
         plugins: {
           enabled: true,

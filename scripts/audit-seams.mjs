@@ -22,8 +22,6 @@ export const HELP_TEXT = `Usage: node scripts/audit-seams.mjs [--help]
 Audit repo seam inventory and emit JSON to stdout.
 
 Sections:
-  duplicatedSeamFamilies       Plugin SDK seam families imported from multiple production files
-  overlapFiles                 Production files that touch multiple seam families
   optionalClusterStaticLeaks   Optional extension/plugin clusters referenced from the static graph
   missingPackages              Workspace packages whose deps are not mirrored at the root
   seamTestInventory            High-signal seam candidates with nearby-test gap signals,
@@ -164,95 +162,12 @@ function resolveRelativeSpecifier(specifier, importerFile) {
   return normalizePath(path.resolve(path.dirname(importerFile), specifier));
 }
 
-function normalizePluginSdkFamily(resolvedPath) {
-  const relative = resolvedPath.replace(/^src\/plugin-sdk\//, "");
-  return relative.replace(/\.(m|c)?[jt]sx?$/, "");
-}
-
 function resolveOptionalClusterFromPath(resolvedPath) {
   if (resolvedPath.startsWith(BUNDLED_PLUGIN_PATH_PREFIX)) {
     const cluster = resolvedPath.split("/")[1];
     return optionalBundledClusterSet.has(cluster) ? cluster : null;
   }
-  if (resolvedPath.startsWith("src/plugin-sdk/")) {
-    const cluster = normalizePluginSdkFamily(resolvedPath).split("/")[0];
-    return optionalBundledClusterSet.has(cluster) ? cluster : null;
-  }
   return null;
-}
-
-function compareImports(left, right) {
-  return (
-    left.family.localeCompare(right.family) ||
-    left.file.localeCompare(right.file) ||
-    left.line - right.line ||
-    left.kind.localeCompare(right.kind) ||
-    left.specifier.localeCompare(right.specifier)
-  );
-}
-
-function collectPluginSdkImports(filePath, sourceFile) {
-  const entries = [];
-
-  function push(kind, specifierNode, specifier) {
-    const resolvedPath = resolveRelativeSpecifier(specifier, filePath);
-    if (!resolvedPath?.startsWith("src/plugin-sdk/")) {
-      return;
-    }
-    entries.push({
-      family: normalizePluginSdkFamily(resolvedPath),
-      file: normalizePath(filePath),
-      kind,
-      line: toLine(sourceFile, specifierNode),
-      resolvedPath,
-      specifier,
-    });
-  }
-
-  function visit(node) {
-    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier)) {
-      push("import", node.moduleSpecifier, node.moduleSpecifier.text);
-    } else if (
-      ts.isExportDeclaration(node) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteral(node.moduleSpecifier)
-    ) {
-      push("export", node.moduleSpecifier, node.moduleSpecifier.text);
-    } else if (
-      ts.isCallExpression(node) &&
-      node.expression.kind === ts.SyntaxKind.ImportKeyword &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteral(node.arguments[0])
-    ) {
-      push("dynamic-import", node.arguments[0], node.arguments[0].text);
-    }
-    ts.forEachChild(node, visit);
-  }
-
-  visit(sourceFile);
-  return entries;
-}
-
-async function collectCorePluginSdkImports() {
-  const files = await walkCodeFiles(srcRoot);
-  const inventory = [];
-  for (const filePath of files) {
-    if (normalizePath(filePath).startsWith("src/plugin-sdk/")) {
-      continue;
-    }
-    const source = await fs.readFile(filePath, "utf8");
-    const scriptKind =
-      filePath.endsWith(".tsx") || filePath.endsWith(".jsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
-    const sourceFile = ts.createSourceFile(
-      filePath,
-      source,
-      ts.ScriptTarget.Latest,
-      true,
-      scriptKind,
-    );
-    inventory.push(...collectPluginSdkImports(filePath, sourceFile));
-  }
-  return inventory.toSorted(compareImports);
 }
 
 function collectOptionalClusterStaticImports(filePath, sourceFile) {
@@ -301,10 +216,6 @@ async function collectOptionalClusterStaticLeaks() {
   const files = await walkCodeFiles(srcRoot);
   const inventory = [];
   for (const filePath of files) {
-    const relativePath = normalizePath(filePath);
-    if (relativePath.startsWith("src/plugin-sdk/")) {
-      continue;
-    }
     const source = await fs.readFile(filePath, "utf8");
     const scriptKind =
       filePath.endsWith(".tsx") || filePath.endsWith(".jsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS;
@@ -326,68 +237,6 @@ async function collectOptionalClusterStaticLeaks() {
       left.specifier.localeCompare(right.specifier)
     );
   });
-}
-
-function buildDuplicatedSeamFamilies(inventory) {
-  const grouped = new Map();
-  for (const entry of inventory) {
-    const bucket = grouped.get(entry.family) ?? [];
-    bucket.push(entry);
-    grouped.set(entry.family, bucket);
-  }
-
-  const duplicated = Object.fromEntries(
-    [...grouped.entries()]
-      .map(([family, entries]) => {
-        const files = [...new Set(entries.map((entry) => entry.file))].toSorted(compareStrings);
-        return [
-          family,
-          {
-            count: files.length,
-            importCount: entries.length,
-            files,
-            imports: entries,
-          },
-        ];
-      })
-      .filter(([, value]) => value.files.length > 1)
-      .toSorted((left, right) => {
-        return (
-          right[1].count - left[1].count ||
-          right[1].importCount - left[1].importCount ||
-          left[0].localeCompare(right[0])
-        );
-      }),
-  );
-
-  return duplicated;
-}
-
-function buildOverlapFiles(inventory) {
-  const byFile = new Map();
-  for (const entry of inventory) {
-    const bucket = byFile.get(entry.file) ?? [];
-    bucket.push(entry);
-    byFile.set(entry.file, bucket);
-  }
-
-  return [...byFile.entries()]
-    .map(([file, entries]) => {
-      const families = [...new Set(entries.map((entry) => entry.family))].toSorted(compareStrings);
-      return {
-        file,
-        families,
-        imports: entries,
-      };
-    })
-    .filter((entry) => entry.families.length > 1)
-    .toSorted((left, right) => {
-      return (
-        right.families.length - left.families.length ||
-        right.imports.length - left.imports.length ||
-        left.file.localeCompare(right.file)
-      );
-    });
 }
 
 function buildOptionalClusterStaticLeaks(inventory) {
@@ -442,13 +291,6 @@ function classifyMissingPackageCluster(params) {
           "Private UI workspace. Repo-wide CLI/plugin CI should not require UI-only packages.",
       };
     }
-    if (params.pluginSdkEntries.length > 0) {
-      return {
-        decision: "optional",
-        reason:
-          "Public plugin-sdk entry exists, but repo-wide default check/build should isolate this optional cluster from the static graph.",
-      };
-    }
     return {
       decision: "optional",
       reason:
@@ -470,19 +312,6 @@ async function buildMissingPackages(params = {}) {
     ...Object.keys(rootPackage.devDependencies ?? {}),
   ]);
 
-  const pluginSdkEntrySources = await walkCodeFiles(path.join(repoRoot, "src", "plugin-sdk"));
-  const pluginSdkReachability = new Map();
-  for (const filePath of pluginSdkEntrySources) {
-    const source = await fs.readFile(filePath, "utf8");
-    const matches = [...source.matchAll(/from\s+"(\.\.\/\.\.\/extensions\/([^/]+)\/[^"]+)"/g)];
-    for (const match of matches) {
-      const cluster = match[2];
-      const bucket = pluginSdkReachability.get(cluster) ?? new Set();
-      bucket.add(normalizePath(filePath));
-      pluginSdkReachability.set(cluster, bucket);
-    }
-  }
-
   const output = [];
   for (const relativePackagePath of workspacePackagePaths.toSorted(compareStrings)) {
     const packagePath = path.join(repoRoot, relativePackagePath);
@@ -499,12 +328,8 @@ async function buildMissingPackages(params = {}) {
       continue;
     }
     const meta = packageClusterMeta(relativePackagePath);
-    const pluginSdkEntries = [...(pluginSdkReachability.get(meta.cluster) ?? new Set())].toSorted(
-      compareStrings,
-    );
     const classification = classifyMissingPackageCluster({
       cluster: meta.cluster,
-      pluginSdkEntries,
       hasStaticLeak: params.staticLeakClusters?.has(meta.cluster) === true,
     });
     output.push({
@@ -515,8 +340,6 @@ async function buildMissingPackages(params = {}) {
       packagePath: relativePackagePath,
       npmSpec: redactNpmSpec(pkg.crawclaw?.install?.npmSpec),
       private: pkg.private === true,
-      pluginSdkReachability:
-        pluginSdkEntries.length > 0 ? { staticEntryPoints: pluginSdkEntries } : undefined,
       missing,
     });
   }
@@ -891,12 +714,9 @@ export async function main(argv = process.argv.slice(2)) {
   }
 
   await collectWorkspacePackagePaths();
-  const inventory = await collectCorePluginSdkImports();
   const optionalClusterStaticLeaks = await collectOptionalClusterStaticLeaks();
   const staticLeakClusters = new Set(optionalClusterStaticLeaks.map((entry) => entry.cluster));
   const result = {
-    duplicatedSeamFamilies: buildDuplicatedSeamFamilies(inventory),
-    overlapFiles: buildOverlapFiles(inventory),
     optionalClusterStaticLeaks: buildOptionalClusterStaticLeaks(optionalClusterStaticLeaks),
     missingPackages: await buildMissingPackages({ staticLeakClusters }),
     seamTestInventory: await buildSeamTestInventory(),

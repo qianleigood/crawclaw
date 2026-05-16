@@ -80,7 +80,7 @@ For a new capability, expect to touch these areas:
 - `src/plugins/types.ts`
 - `src/plugins/registry.ts`
 - `src/plugins/contracts/registry.ts`
-- `src/plugin-sdk/<capability>.ts`
+- `crates/crawclaw-plugin-sdk/src/lib.rs`
 - `crates/crawclaw-plugin-host/src/lib.rs`
 - `crates/crawclaw-runtime/src/lib.rs`
 - one or more bundled plugin packages

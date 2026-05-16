@@ -5,7 +5,7 @@ import {
   PROVIDER_LABELS,
   type ProviderUsageSnapshot,
   type UsageWindow,
-} from "crawclaw/plugin-sdk/provider-usage";
+} from "../../src/internal-plugin-helpers/provider-usage.js";
 
 type CopilotUsageResponse = {
   quota_snapshots?: {

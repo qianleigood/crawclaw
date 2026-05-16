@@ -302,6 +302,23 @@ void describe("crawclaw tauri desktop runtime staging", () => {
     );
   });
 
+  void it("release check rejects Plugin SDK artifacts in the embedded runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-plugin-sdk-"));
+    writeReleaseFixture(rootDir, { pluginSdkRuntimeArtifact: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /Disallowed Plugin SDK runtime artifact remains/,
+    );
+  });
+
   void it("release check requires the packaged macOS app to embed the Rust runtime", () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-packaged-"));
     writeReleaseFixture(rootDir, { omitPackagedRuntime: true });
@@ -335,6 +352,24 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           },
         }),
       /Disallowed Node runtime entrypoint remains/,
+    );
+  });
+
+  void it("release check rejects Plugin SDK artifacts in the packaged macOS runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-packaged-plugin-sdk-"));
+    writeReleaseFixture(rootDir, { packagedPluginSdkRuntimeArtifact: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          platform: "darwin",
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /Disallowed Plugin SDK runtime artifact remains/,
     );
   });
 
@@ -467,6 +502,11 @@ function writeReleaseFixture(rootDir, options = {}) {
       "utf8",
     );
   }
+  if (options.pluginSdkRuntimeArtifact) {
+    const pluginSdkDir = path.join(paths.runtimeRoot, "dist", "plugin-sdk");
+    fs.mkdirSync(pluginSdkDir, { recursive: true });
+    fs.writeFileSync(path.join(pluginSdkDir, "core.js"), "export {};\n", "utf8");
+  }
   if (!options.omitPackagedRuntime) {
     const packagedRoot = packagedMacRuntimeRoot(rootDir);
     fs.mkdirSync(path.join(packagedRoot, "bin"), { recursive: true });
@@ -519,6 +559,11 @@ function writeReleaseFixture(rootDir, options = {}) {
     }
     if (options.packagedNodeRuntimeEntrypoint) {
       fs.writeFileSync(path.join(packagedRoot, "crawclaw.mjs"), "export {};\n", "utf8");
+    }
+    if (options.packagedPluginSdkRuntimeArtifact) {
+      const pluginSdkDir = path.join(packagedRoot, "dist", "plugin-sdk");
+      fs.mkdirSync(pluginSdkDir, { recursive: true });
+      fs.writeFileSync(path.join(pluginSdkDir, "core.js"), "export {};\n", "utf8");
     }
   }
   if (process.platform !== "win32") {

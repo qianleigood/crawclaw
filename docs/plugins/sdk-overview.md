@@ -1,67 +1,83 @@
 ---
 title: "Plugin SDK Overview"
 sidebarTitle: "SDK Overview"
-summary: "Import map and SDK architecture"
+summary: "Rust native plugin SDK architecture"
 read_when:
-  - You need to know which SDK subpath to import from
-  - You are looking up a specific SDK export
-  - You are checking the Rust native plugin boundary
+  - You need to author a native CrawClaw plugin
+  - You are looking up the Rust plugin descriptor surface
+  - You are checking the native plugin runtime boundary
 ---
 
 # Plugin SDK Overview
 
-The public TypeScript plugin SDK is no longer a production execution surface.
-Plugins declare metadata in `crawclaw.plugin.json`; providers, tools, services,
-hooks, channels, and other runtime behavior are implemented in Rust and exposed
-through native descriptors or Gateway methods.
+CrawClaw's public plugin SDK is the Rust crate `crawclaw-plugin-sdk`.
+The old JavaScript and TypeScript SDK package exports were removed. New plugins
+should expose native descriptors and handle runtime calls through Rust-owned
+JSON-RPC or Gateway methods.
 
-<Tip>
-  **Looking for a how-to guide?**
-  - First plugin? Start with [Getting Started](/plugins/building-plugins)
-  - Model provider config? See [Provider Configuration](/plugins/sdk-provider-plugins)
-</Tip>
+<Warning>
+  The npm package no longer exports JavaScript plugin SDK subpaths. Do not build
+  new plugins around JavaScript SDK imports.
+</Warning>
 
-## Import convention
+## Authoring surface
 
-Only import focused helper subpaths when a package needs generated types or
-non-executing utilities:
+Use `crates/crawclaw-plugin-sdk` for the author-facing native types and helper
+builders:
 
-```typescript
-import type { CrawClawConfig } from "crawclaw/plugin-sdk/testing";
+```rust
+use crawclaw_plugin_sdk::{
+    NativeInvocationTarget, NativePluginDescriptor, NativeToolDescriptor,
+    NativeToolResultEnvelope,
+};
+
+let descriptor = NativePluginDescriptor::new("example")
+    .name("Example")
+    .description("Example native plugin")
+    .tool(
+        NativeToolDescriptor::new("lookup", NativeInvocationTarget::new("example", "lookup"))
+            .label("Lookup")
+            .description("Look up an item")
+            .read_only(true),
+    );
+
+let result = NativeToolResultEnvelope::text("done");
 ```
 
-Do not import the removed monolithic root package from plugin production code.
+These helpers wrap the existing native wire types. They do not change JSON
+field names or the Gateway protocol shape.
 
-## Subpath reference
+## Runtime ownership
 
-The full list of public subpaths is generated from
-`scripts/lib/plugin-sdk-entrypoints.json`. The important boundary is:
+| Area                                          | Current owner                    |
+| --------------------------------------------- | -------------------------------- |
+| Manifest metadata                             | `crawclaw.plugin.json`           |
+| Plugin descriptors                            | `crates/crawclaw-plugin-sdk`     |
+| Bundled native plugin registry                | `crates/crawclaw-native-plugins` |
+| Tools, services, providers, and Gateway calls | Rust runtime and Gateway crates  |
+| Desktop packaged runtime                      | Native runtime binaries          |
 
-| Area                                          | Current owner                      |
-| --------------------------------------------- | ---------------------------------- |
-| Manifest metadata                             | `crawclaw.plugin.json`             |
-| Provider catalog and transport                | Rust provider registry             |
-| Tools, hooks, commands, services, HTTP routes | Rust native runtime                |
-| Channels and outbound delivery                | Rust native runtime                |
-| TypeScript SDK helpers                        | Non-executing types/utilities only |
+TypeScript and JavaScript can still exist for build scripts, docs tooling,
+tests, and the desktop renderer. They are not a public plugin authoring SDK.
 
-## Runtime capabilities
+## Descriptor helpers
 
-TypeScript plugins cannot register production runtime callbacks. Add new runtime
-capabilities in Rust, then expose configuration through the manifest, Rust
-native plugin registry, or typed Gateway RPCs.
+The Rust SDK includes helpers for:
 
-## Internal module convention
+- Plugin descriptors
+- Tool descriptors
+- Invocation targets
+- Tool result envelopes
+- Approval policy metadata
+- JSON-RPC success and error responses
 
-Within a plugin package, use local files for package-private helpers. Do not
-import your own package through `crawclaw/plugin-sdk/<your-plugin>`; SDK subpaths
-are external contracts only.
+If a new plugin-facing capability is needed, add an additive Rust SDK helper and
+keep the serialized shape compatible with the current native protocol.
 
 ## Related
 
 - [Getting Started](/plugins/building-plugins) -- manifest and native runtime setup
 - [Runtime Boundary](/plugins/sdk-runtime) -- Rust-owned runtime model
-- [Setup and Config](/plugins/sdk-setup) -- packaging, manifests, config schemas
-- [Testing](/plugins/sdk-testing) -- test utilities and lint rules
-- [SDK Migration](/plugins/sdk-migration) -- migrating from deprecated surfaces
-- [Plugin Internals](/plugins/architecture) -- deep architecture and capability model
+- [Testing](/plugins/sdk-testing) -- Rust and contract test guidance
+- [SDK Migration](/plugins/sdk-migration) -- migrating from removed JS SDK imports
+- [Plugin Internals](/plugins/architecture) -- architecture and capability model

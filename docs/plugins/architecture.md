@@ -687,59 +687,23 @@ Notes:
 Production Gateway HTTP routes are owned by Rust Gateway or internal runtime
 services. TypeScript plugins cannot register HTTP handlers.
 
-## Plugin SDK import paths
+## Rust plugin SDK boundary
 
-Use SDK subpaths instead of the monolithic `crawclaw/plugin-sdk` import when
-authoring plugins:
+The public plugin authoring SDK is the Rust crate `crawclaw-plugin-sdk`.
+JavaScript plugin SDK package exports have been removed from the npm package.
 
-- `crawclaw/plugin-sdk/core` for shared non-executing plugin helper types.
-- Stable primitives such as `crawclaw/plugin-sdk/secret-input` and
-  `crawclaw/plugin-sdk/webhook-request-guards` for shared webhook request
-  validation.
-- Domain subpaths such as `crawclaw/plugin-sdk/allow-from`,
-  `crawclaw/plugin-sdk/approval-runtime`,
-  `crawclaw/plugin-sdk/config-runtime`,
-  `crawclaw/plugin-sdk/infra-runtime`,
-  `crawclaw/plugin-sdk/agent-runtime`,
-  `crawclaw/plugin-sdk/lazy-runtime`,
-  and `crawclaw/plugin-sdk/reply-history` for non-executing shared helper
-  types.
-- Approval-specific channel seams should prefer one `approvalCapability`
-  contract on the plugin. Core then reads approval auth, delivery, render, and
-  native-routing behavior through that one capability instead of mixing
-  approval behavior into unrelated plugin fields.
-- The legacy channel runtime barrel and TypeScript channel SDK helpers have
-  been removed. Channel plugins should use the Rust-native channel plugin
-  contract.
-- Bundled extension internals remain private. External plugins should use only
-  `crawclaw/plugin-sdk/*` subpaths. CrawClaw core/test code may use the repo
-  public entry points under a plugin package root such as `index.js`, `api.js`,
-  `runtime-api.js`, `setup-entry.js`, and narrowly scoped files such as
-  `login-qr-api.js`. Never import a plugin package's `src/*` from core or from
-  another extension.
-- Repo entry point split:
-  `<plugin-package-root>/api.js` is the helper/types barrel,
-  `<plugin-package-root>/runtime-api.js` is the runtime-only barrel,
-  `<plugin-package-root>/index.js` is the bundled plugin entry,
-  and `<plugin-package-root>/setup-entry.js` is the setup plugin entry.
-- No bundled channel-branded public subpaths remain. Channel-specific helper and
-  runtime seams live under `<plugin-package-root>/api.js` and `<plugin-package-root>/runtime-api.js`;
-  the public SDK contract is the generic shared primitives instead.
-
-Compatibility note:
-
-- Avoid the root `crawclaw/plugin-sdk` barrel for new code.
-- Prefer the narrow stable primitives first. TypeScript channel-specific setup,
-  pairing, reply, inbound, target parsing, and message-action helper subpaths
-  are no longer part of the public SDK.
-- Bundled extension-specific helper barrels are not stable by default. If a
-  helper is only needed by a bundled extension, keep it behind the extension's
-  local `api.js` or `runtime-api.js` seam instead of promoting it into
-  `crawclaw/plugin-sdk/<extension>`.
-- New shared helper seams should be generic, not channel-branded.
-- Capability-specific subpaths such as `media-understanding` and `speech` exist because bundled/native plugins use
-  them today. Their presence does not by itself mean every exported helper is a
-  long-term frozen external contract.
+- Use `NativePluginDescriptor` and capability descriptor helpers for public
+  plugin metadata.
+- Keep plugin discovery manifest-first. Discovery should not require executing
+  JavaScript plugin code.
+- Add new plugin-facing runtime capabilities to Rust crates and keep the JSON
+  wire shape additive.
+- Bundled extension internals remain private. Core and tests may use documented
+  package-root entry points such as `index.js`, `api.js`, `runtime-api.js`, and
+  `setup-entry.js` for repo-owned packages, but external plugins should use the
+  Rust SDK.
+- Repo-private TypeScript helpers can exist only as implementation detail. They
+  are not a public SDK and must not be exported as npm package subpaths.
 
 ## Message tool schemas
 

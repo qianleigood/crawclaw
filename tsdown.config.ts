@@ -5,7 +5,6 @@ import {
   listBundledPluginBuildEntries,
   listBundledPluginRuntimeDependencies,
 } from "./scripts/lib/bundled-plugin-build-entries.mjs";
-import { buildPluginSdkEntrySources } from "./scripts/lib/plugin-sdk-entries.mjs";
 
 type InputOptionsFactory = Extract<NonNullable<UserConfig["inputOptions"]>, Function>;
 type InputOptionsArg = InputOptionsFactory extends (
@@ -131,12 +130,6 @@ const coreDistEntries = buildCoreDistEntries();
 function buildUnifiedDistEntries(): Record<string, string> {
   return {
     ...coreDistEntries,
-    ...Object.fromEntries(
-      Object.entries(buildPluginSdkEntrySources()).map(([entry, source]) => [
-        `plugin-sdk/${entry}`,
-        source,
-      ]),
-    ),
     ...bundledPluginBuildEntries,
     ...bundledHookEntries,
   };
@@ -144,8 +137,8 @@ function buildUnifiedDistEntries(): Record<string, string> {
 
 export default defineConfig([
   nodeBuildConfig({
-    // Build core entrypoints, plugin-sdk subpaths, bundled plugin entrypoints,
-    // and bundled hooks in one graph so runtime singletons are emitted once.
+    // Build core entrypoints, bundled plugin entrypoints, and bundled hooks in
+    // one graph so runtime singletons are emitted once.
     entry: buildUnifiedDistEntries(),
     deps: {
       neverBundle: ["@lancedb/lancedb", ...bundledPluginRuntimeDependencies],

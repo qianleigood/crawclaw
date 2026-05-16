@@ -1,7 +1,7 @@
+import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
 import { loadConfig, readConfigFileSnapshot } from "./config.js";
 import type { CrawClawConfig } from "./config.js";
 import { buildConfigSchema, type ConfigSchemaResponse } from "./schema.js";
-import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
 
 export function loadGatewayRuntimeConfigSchema(): ConfigSchemaResponse {
   const config = loadConfig();

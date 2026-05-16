@@ -1,4 +1,4 @@
-import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
+import type { CrawClawConfig } from "../../../src/internal-plugin-helpers/config-runtime.js";
 
 export const DEFAULT_DDG_SAFE_SEARCH = "moderate";
 

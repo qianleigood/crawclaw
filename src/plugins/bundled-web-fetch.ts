@@ -24,7 +24,7 @@ function loadBundledWebFetchProviders(): BundledWebFetchProviderEntry[] {
         ? []
         : loadBundledCapabilityRuntimeRegistry({
             pluginIds: fallbackPluginIds,
-            pluginSdkResolution: "dist",
+            runtimeResolution: "dist",
           }).webFetchProviders.map((entry) => ({
             pluginId: entry.pluginId,
             ...entry.provider,

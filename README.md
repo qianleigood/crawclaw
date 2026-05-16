@@ -88,7 +88,7 @@ flowchart LR
   Agent --> Tools["Typed tools and policy"]
   Agent --> Providers["Model providers"]
   Agent --> Memory["Memory runtime"]
-  Plugins["Plugin SDK"] --> Channels
+  Plugins["Rust Plugin SDK"] --> Channels
   Plugins --> Tools
   Plugins --> Providers
 ```
@@ -107,21 +107,21 @@ Key docs:
 
 ## Repository Map
 
-| Path                                           | Purpose                                                                             |
-| ---------------------------------------------- | ----------------------------------------------------------------------------------- |
-| [apps/crawclaw-desktop](apps/crawclaw-desktop) | Tauri desktop app, desktop BFF, and UI workbench                                    |
-| [crates](crates)                               | Rust Gateway, runtime, native-plugin, provider, and SDK crates                      |
-| [src/gateway](src/gateway)                     | Gateway control plane, protocol, auth, health, pairing, and runtime services        |
-| [src/memory](src/memory)                       | Durable memory, recall, summaries, compaction, and context assembly                 |
-| [src/workflows](src/workflows)                 | Workflow registry, n8n bridge, execution records, and workflow operations           |
-| [src/channels](src/channels)                   | Core channel implementation behind the channel/plugin boundary                      |
-| [src/plugins](src/plugins)                     | Plugin discovery, manifests, loading, registry, and contract enforcement            |
-| [src/plugin-sdk](src/plugin-sdk)               | Public SDK contracts for plugin-facing code                                         |
-| [extensions](extensions)                       | Bundled plugins for channels, providers, browser backends, speech, media, and tools |
-| [skills](skills)                               | Shipped runtime skills                                                              |
-| [docs](docs)                                   | Mintlify documentation source                                                       |
-| [test](test)                                   | Shared test infrastructure and fixtures                                             |
-| [scripts](scripts)                             | Build, release, generated baseline, and maintenance scripts                         |
+| Path                                                       | Purpose                                                                             |
+| ---------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| [apps/crawclaw-desktop](apps/crawclaw-desktop)             | Tauri desktop app, desktop BFF, and UI workbench                                    |
+| [crates](crates)                                           | Rust Gateway, runtime, native-plugin, provider, and SDK crates                      |
+| [src/gateway](src/gateway)                                 | Gateway control plane, protocol, auth, health, pairing, and runtime services        |
+| [src/memory](src/memory)                                   | Durable memory, recall, summaries, compaction, and context assembly                 |
+| [src/workflows](src/workflows)                             | Workflow registry, n8n bridge, execution records, and workflow operations           |
+| [src/channels](src/channels)                               | Core channel implementation behind the channel/plugin boundary                      |
+| [src/plugins](src/plugins)                                 | Plugin discovery, manifests, loading, registry, and contract enforcement            |
+| [src/internal-plugin-helpers](src/internal-plugin-helpers) | Repo-private helpers for bundled plugin packaging paths                             |
+| [extensions](extensions)                                   | Bundled plugins for channels, providers, browser backends, speech, media, and tools |
+| [skills](skills)                                           | Shipped runtime skills                                                              |
+| [docs](docs)                                               | Mintlify documentation source                                                       |
+| [test](test)                                               | Shared test infrastructure and fixtures                                             |
+| [scripts](scripts)                                         | Build, release, generated baseline, and maintenance scripts                         |
 
 ## Development
 
@@ -147,7 +147,6 @@ Docs and generated baselines:
 pnpm check:docs
 pnpm docs:check-links
 pnpm config:docs:check
-pnpm plugin-sdk:api:check
 ```
 
 More:

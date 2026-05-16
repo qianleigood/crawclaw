@@ -58,7 +58,7 @@ If it is mainly a defined multi-step process that should run as a first-class ob
 
 Examples:
 
-- "How to review plugin-sdk facade regressions" -> skill
+- "How to review Rust plugin SDK descriptor regressions" -> skill
 - "Nightly provider health validation across configured runtimes" -> workflow
 - "How to promote session summaries into durable memory" -> skill
 - "A scheduled memory hygiene pipeline with execution state and rollback" -> workflow

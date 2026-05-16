@@ -3,7 +3,7 @@ import {
   readResponseTextLimited,
   trimToUndefined,
   truncateErrorDetail,
-} from "crawclaw/plugin-sdk/speech";
+} from "../../src/internal-plugin-helpers/speech.js";
 
 export const DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1";
 

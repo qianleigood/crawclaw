@@ -38,11 +38,11 @@ This matrix describes the current support posture for CrawClaw surfaces. It is n
 
 ## Integrations
 
-| Surface                         | Status       | Notes                                          |
-| ------------------------------- | ------------ | ---------------------------------------------- |
-| High-traffic messaging channels | Beta         | Expect active fixes and compatibility work.    |
-| Long-tail channels/plugins      | Experimental | Best-effort unless docs state otherwise.       |
-| Plugin SDK                      | Beta         | Public, but still being slimmed and clarified. |
+| Surface                         | Status       | Notes                                       |
+| ------------------------------- | ------------ | ------------------------------------------- |
+| High-traffic messaging channels | Beta         | Expect active fixes and compatibility work. |
+| Long-tail channels/plugins      | Experimental | Best-effort unless docs state otherwise.    |
+| Rust plugin SDK                 | Beta         | Public native descriptor surface.           |
 
 ## User interfaces
 
@@ -54,5 +54,5 @@ This matrix describes the current support posture for CrawClaw surfaces. It is n
 ## Contributor guidance
 
 - If you want the safest place to contribute, start with Desktop, Gateway, sessions, or docs.
-- If you touch memory, skills, workflows, or plugin-sdk, expect more product and API discussion.
+- If you touch memory, skills, workflows, or the Rust plugin SDK, expect more product and API discussion.
 - If you touch long-tail channels, browser/canvas, or automation, expect more environment-specific validation.

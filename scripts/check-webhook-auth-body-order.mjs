@@ -50,7 +50,7 @@ export async function main() {
     allowCallsite: (callsite) => allowedCallsites.has(callsite),
     header: "Found forbidden low-level body reads in auth-sensitive webhook handlers:",
     footer:
-      "Use plugin-sdk webhook guards (`readJsonWebhookBodyOrReject` / `readWebhookBodyOrReject`) with explicit pre-auth/post-auth profiles.",
+      "Use the shared webhook guards (`readJsonWebhookBodyOrReject` / `readWebhookBodyOrReject`) with explicit pre-auth/post-auth profiles.",
   });
 }
 

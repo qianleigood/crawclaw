@@ -12,8 +12,8 @@
 - Nomenclature: use "plugin" / "plugins" in docs, UI, changelogs, and contributor guidance. The bundled workspace plugin tree remains the internal package layout to avoid repo-wide churn from a rename.
 - Bundled plugin naming: for repo-owned workspace plugins, keep the canonical plugin id aligned across `crawclaw.plugin.json:id`, the default workspace folder name, and package names anchored to the same id (`@crawclaw/<id>` or approved suffix forms like `-provider`, `-plugin`, `-speech`, `-sandbox`, `-media-understanding`). Keep `crawclaw.install.npmSpec` equal to the package name and `crawclaw.channel.id` equal to the plugin id when present. Exceptions must be explicit and covered by the repo invariant test.
 - Plugins: live in the bundled workspace plugin tree (workspace packages). Keep plugin-only deps in the extension `package.json`; do not add them to the root `package.json` unless core uses them.
-- Plugins: install runs `npm install --omit=dev` in plugin dir; runtime deps must live in `dependencies`. Avoid `workspace:*` in `dependencies` (npm install breaks); put `crawclaw` in `devDependencies` or `peerDependencies` instead (runtime resolves `crawclaw/plugin-sdk` via jiti alias).
-- Import boundaries: extension production code should treat `crawclaw/plugin-sdk/*` plus local `api.ts` / `runtime-api.ts` barrels as the public surface. Do not import core `src/**`, `src/plugin-sdk-internal/**`, or another extension's `src/**` directly.
+- Plugins: install runs `npm install --omit=dev` in plugin dir; runtime deps must live in `dependencies`. Avoid `workspace:*` in `dependencies` (npm install breaks); put `crawclaw` in `devDependencies` or `peerDependencies` instead.
+- Import boundaries: extension production code should use local `api.ts` / `runtime-api.ts` barrels or reviewed repo-private helper seams. Public plugin authoring goes through the Rust SDK in `crates/crawclaw-plugin-sdk`; do not add JavaScript package SDK exports.
 - Installers served from `https://crawclaw.ai/*`: live in the sibling repo `../crawclaw.ai` (`public/install.sh`, `public/install-cli.sh`, `public/install.ps1`).
 - Messaging channels: always consider **all** built-in + extension channels when refactoring shared logic (routing, allowlists, pairing, command gating, onboarding, docs).
   - Core channel docs: `docs/channels/`
@@ -25,29 +25,29 @@
 
 - Start here for the repo map:
   - bundled workspace plugin tree = bundled plugins and the closest example surface for third-party plugins
-  - `src/plugin-sdk/*` = the public plugin contract that extensions are allowed to import
+  - `crates/crawclaw-plugin-sdk` = the public Rust plugin SDK contract
+  - `src/internal-plugin-helpers/*` = repo-private helpers, not a public SDK
   - `src/channels/*` = core channel implementation details behind the plugin/channel boundary
   - `src/plugins/*` = plugin discovery, manifest validation, loader, registry, and contract enforcement
   - `src/gateway/protocol/*` = typed Gateway control-plane and node wire protocol
 - Progressive disclosure lives in local boundary guides:
   - bundled-plugin-tree `AGENTS.md`
-  - `src/plugin-sdk/AGENTS.md`
   - `src/channels/AGENTS.md`
   - `src/plugins/AGENTS.md`
   - `src/gateway/protocol/AGENTS.md`
 - Plugin and extension boundary:
   - Public docs: `docs/plugins/building-plugins.md`, `docs/plugins/architecture.md`, `docs/plugins/sdk-overview.md`, `docs/plugins/sdk-entrypoints.md`, `docs/plugins/sdk-runtime.md`, `docs/plugins/manifest.md`, `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/sdk-provider-plugins.md`
-  - Definition files: `src/plugin-sdk/plugin-entry.ts`, `src/plugin-sdk/core.ts`, `src/plugin-sdk/channel-contract.ts`, `scripts/lib/plugin-sdk-entrypoints.json`, `package.json`
-  - Rule: extensions must cross into core only through `crawclaw/plugin-sdk/*`, manifest metadata, and documented runtime helpers. Do not import `src/**` from extension production code.
-  - Rule: core code and tests must not deep-import bundled plugin internals such as a plugin's `src/**` files or `onboard.js`. If core needs a bundled plugin helper, expose it through that plugin's `api.ts` and, when it is a real cross-package contract, through `src/plugin-sdk/<id>.ts`.
-  - Compatibility: new plugin seams are allowed, but they must be added as documented, backwards-compatible, versioned contracts. We have third-party plugins in the wild and do not break them casually.
+  - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`, `src/plugins/contracts/registry.ts`, `package.json`
+  - Rule: third-party authoring contracts belong in the Rust plugin SDK, manifest metadata, and documented runtime helpers. Do not recreate public JavaScript SDK exports.
+  - Rule: core code and tests must not deep-import bundled plugin internals such as a plugin's `src/**` files or `onboard.js`. If core needs a bundled plugin helper, expose it through that plugin's `api.ts`.
+  - Compatibility: new plugin seams are allowed, but they must be added as documented, versioned Rust/native contracts. We have third-party plugins in the wild and do not break them casually.
 - Channel boundary:
   - Public docs: `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/architecture.md`
-  - Definition files: `src/channels/plugins/types.plugin.ts`, `src/channels/plugins/types.core.ts`, `src/channels/plugins/types.adapters.ts`, `src/plugin-sdk/core.ts`, `src/plugin-sdk/channel-contract.ts`
-  - Rule: `src/channels/**` is core implementation. If plugin authors need a new seam, add it to the Plugin SDK instead of telling them to import channel internals.
+  - Definition files: `src/channels/plugins/types.plugin.ts`, `src/channels/plugins/types.core.ts`, `src/channels/plugins/types.adapters.ts`, `crates/crawclaw-plugin-sdk/src/lib.rs`
+  - Rule: `src/channels/**` is core implementation. If plugin authors need a new seam, add it to the Rust plugin SDK instead of telling them to import channel internals.
 - Provider/model boundary:
   - Public docs: `docs/plugins/sdk-provider-plugins.md`, `docs/concepts/model-providers.md`, `docs/plugins/architecture.md`
-  - Definition files: `src/plugins/types.ts`, `src/plugin-sdk/provider-auth.ts`
+  - Definition files: `src/plugins/types.ts`, `crates/crawclaw-plugin-sdk/src/lib.rs`
   - Rule: core owns the generic inference loop; provider plugins own provider-specific behavior through registration and typed hooks. Do not solve provider needs by reaching into unrelated core internals.
   - Rule: avoid ad hoc reads of `plugins.entries.<id>.config` from unrelated core code. If core needs plugin-owned auth/config behavior, add or use a generic seam (`resolveSyntheticAuth`, public SDK/helper facades, manifest metadata, plugin auto-enable hooks) and honor plugin disablement plus SecretRef semantics.
   - Rule: vendor-owned tools and settings belong in the owning plugin. Do not add provider-specific tool config, secret collection, or runtime enablement to core `tools.*` surfaces unless the tool is intentionally core-owned.
@@ -58,10 +58,10 @@
 - Bundled plugin contract boundary:
   - Public docs: `docs/plugins/architecture.md`, `docs/plugins/manifest.md`, `docs/plugins/sdk-overview.md`
 - Definition files: `src/plugins/contracts/registry.ts`, `src/plugins/types.ts`, `src/plugins/public-artifacts.ts`
-  - Rule: keep manifest metadata, runtime registration, public SDK exports, and contract tests aligned. Do not create a hidden path around the declared plugin interfaces.
+  - Rule: keep manifest metadata, runtime registration, Rust SDK exports, and contract tests aligned. Do not create a hidden path around the declared plugin interfaces.
 - Extension test boundary:
   - Keep extension-owned onboarding/config/provider coverage under the owning bundled plugin package when feasible.
-  - If core tests need bundled plugin behavior, consume it through public `src/plugin-sdk/<id>.ts` facades or the plugin's `api.ts`, not private extension modules.
+  - If core tests need bundled plugin behavior, consume it through the plugin's `api.ts`, not private extension modules.
 
 ## Docs Linking (Mintlify)
 
@@ -127,8 +127,8 @@
 - Tests: `pnpm test` (vitest); coverage: `pnpm test:coverage`
 - Generated baseline artifacts live together under `docs/.generated/`.
 - Config schema drift uses `pnpm config:docs:gen` / `pnpm config:docs:check`.
-- Plugin SDK API drift uses `pnpm plugin-sdk:api:gen` / `pnpm plugin-sdk:api:check`.
-- If you change config schema/help or the public Plugin SDK surface, update the matching baseline artifact and keep the two drift-check flows adjacent in scripts/workflows/docs guidance rather than inventing a third pattern.
+- The removed JavaScript Plugin SDK API baseline is no longer maintained.
+- If you change config schema/help or the public Rust plugin SDK surface, update the matching Rust/docs/contract tests instead of adding a JavaScript SDK baseline.
 - For narrowly scoped changes, prefer narrowly scoped tests that directly validate the touched behavior. If no meaningful scoped test exists, say so explicitly and use the next most direct validation available.
 - Verification modes for work on `main`:
   - Default mode: `main` is relatively stable. Count pre-commit hook coverage when it already verified the current tree, avoid rerunning the exact same checks just for ceremony, and prefer keeping CI/main green before landing.
@@ -155,9 +155,9 @@
 - New runtime control-flow code should not branch on `error: string` or `reason: string` when a closed code union would be reasonable.
 - Dynamic import guardrail: do not mix `await import("x")` and static `import ... from "x"` for the same module in production code paths. If you need lazy loading, create a dedicated `*.runtime.ts` boundary (that re-exports from `x`) and dynamically import that boundary from lazy callers only.
 - Dynamic import verification: after refactors that touch lazy-loading/module boundaries, run `pnpm build` and check for `[INEFFECTIVE_DYNAMIC_IMPORT]` warnings before submitting.
-- Extension SDK self-import guardrail: inside an extension package, do not import that same extension via `crawclaw/plugin-sdk/<extension>` from production files. Route internal imports through a local barrel such as `./api.ts` or `./runtime-api.ts`, and keep the `plugin-sdk/<extension>` path as the external contract only.
-- Extension package boundary guardrail: inside a bundled plugin package, do not use relative imports/exports that resolve outside that same package root. If shared code belongs in the plugin SDK, import `crawclaw/plugin-sdk/<subpath>` instead of reaching into `src/plugin-sdk/**` or other repo paths via `../`.
-- Extension API surface rule: `crawclaw/plugin-sdk/<subpath>` is the only public cross-package contract for extension-facing SDK code. If an extension needs a new seam, add a public subpath first; do not reach into `src/plugin-sdk/**` by relative path.
+- Extension SDK self-import guardrail: inside an extension package, route internal imports through a local barrel such as `./api.ts` or `./runtime-api.ts`.
+- Extension package boundary guardrail: inside a bundled plugin package, avoid relative imports/exports that resolve outside that same package root unless they target a reviewed repo-private helper seam. If shared code belongs in the public SDK, add it to the Rust plugin SDK.
+- Extension API surface rule: the Rust plugin SDK is the only public cross-package plugin authoring contract. Do not add new JavaScript package SDK subpaths.
 - Never share class behavior via prototype mutation (`applyPrototypeMixins`, `Object.defineProperty` on `.prototype`, or exporting `Class.prototype` for merges). Use explicit inheritance/composition (`A extends B extends C`) or helper composition so TypeScript can typecheck.
 - If this pattern is needed, stop and get explicit approval before shipping; default behavior is to split/refactor into an explicit class hierarchy and keep members strongly typed.
 - In tests, prefer per-instance stubs over prototype mutation (`SomeClass.prototype.method = ...`) unless a test explicitly documents why prototype-level patching is required.
@@ -182,7 +182,7 @@
 - Write tests to clean up timers, env, globals, mocks, sockets, temp dirs, and module state so `--isolate=false` stays green.
 - Test performance guardrail: do not put `vi.resetModules()` plus `await import(...)` in `beforeEach`/per-test loops for heavy modules unless module state truly requires it. Prefer static imports or one-time `beforeAll` imports, then reset mocks/runtime state directly.
 - Test performance guardrail: if a test file uses stable `vi.mock(...)` hoists or other static module mocks, do not pair them with `vi.resetModules()` and a fresh `await import(...)` in every `beforeEach`. Import the heavy module once in `beforeAll`, then reset/prime mocks in `beforeEach` so Browser/Matrix-style hotspot tests do not pay the module graph cost per case.
-- Test performance guardrail: inside an extension package, prefer a thin local seam (`./api.ts`, `./runtime-api.ts`, or a narrower local `*.runtime-api.ts`) over direct `crawclaw/plugin-sdk/*` imports for internal production code. Keep local seams curated and lightweight; only reach for direct `plugin-sdk/*` imports when you are crossing a real package boundary or when no suitable local seam exists yet.
+- Test performance guardrail: inside an extension package, prefer a thin local seam (`./api.ts`, `./runtime-api.ts`, or a narrower local `*.runtime-api.ts`) for internal production code. Keep local seams curated and lightweight.
 - Test performance guardrail: keep expensive runtime fallback work such as snapshotting, migration, installs, or bootstrap behind dedicated `*.runtime.ts` boundaries so tests can mock the seam instead of accidentally invoking real work.
 - Test performance guardrail: for import-only/runtime-wrapper tests, keep the wrapper lazy. Do not eagerly load heavy verification/bootstrap/runtime modules at module top level if the exported function can import them on demand.
 - Agents MUST NOT modify baseline, inventory, ignore, snapshot, or expected-failure files to silence failing checks without explicit approval in this chat.

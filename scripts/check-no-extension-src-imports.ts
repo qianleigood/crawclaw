@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { collectFilesSync, isCodeFile, relativeToCwd } from "./check-file-utils.js";
 
-const FORBIDDEN_REPO_SRC_IMPORT = /["'](?:\.\.\/)+(?:src\/)[^"']+["']/;
+const FORBIDDEN_REPO_SRC_IMPORT = /["'](?:\.\.\/)+(?:src\/)(?!internal-plugin-helpers\/)[^"']+["']/;
 
 function isProductionExtensionFile(filePath: string): boolean {
   return !(
@@ -45,7 +45,7 @@ function main() {
       console.error(`- ${relativeToCwd(offender)}`);
     }
     console.error(
-      "Publish a focused crawclaw/plugin-sdk/<subpath> surface or use the extension's own public barrel instead.",
+      "Use the Rust plugin SDK, the extension's own public barrel, or a reviewed private helper boundary instead.",
     );
     process.exit(1);
   }

@@ -1,4 +1,4 @@
-import { fetchWithSsrFGuard } from "crawclaw/plugin-sdk/ssrf-runtime";
+import { fetchWithSsrFGuard } from "../../src/internal-plugin-helpers/ssrf-runtime.js";
 import { DEFAULT_FETCH_TIMEOUT_MS } from "./oauth.shared.js";
 
 export async function fetchWithTimeout(

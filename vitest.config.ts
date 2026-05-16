@@ -5,7 +5,6 @@ import {
   BUNDLED_PLUGIN_ROOT_DIR,
   BUNDLED_PLUGIN_TEST_GLOB,
 } from "./scripts/lib/bundled-plugin-paths.mjs";
-import { pluginSdkSubpaths } from "./scripts/lib/plugin-sdk-entries.mjs";
 import { resolveLocalVitestMaxWorkers } from "./scripts/test-planner/runtime-profile.mjs";
 import {
   behaviorManifestPath,
@@ -23,7 +22,6 @@ const localWorkers = resolveLocalVitestMaxWorkers();
 const ciWorkers = isWindows ? 2 : 3;
 export default defineConfig({
   resolve: {
-    // Keep this ordered: the base plugin-sdk aliases are prefix matches.
     alias: [
       {
         find: "crawclaw/extension-api",
@@ -33,25 +31,9 @@ export default defineConfig({
         find: "crawclaw/extension-api",
         replacement: path.join(repoRoot, "src", "extensionAPI.ts"),
       },
-      ...pluginSdkSubpaths.map((subpath) => ({
-        find: `crawclaw/plugin-sdk/${subpath}`,
-        replacement: path.join(repoRoot, "src", "plugin-sdk", `${subpath}.ts`),
-      })),
-      ...pluginSdkSubpaths.map((subpath) => ({
-        find: `crawclaw/plugin-sdk/${subpath}`,
-        replacement: path.join(repoRoot, "src", "plugin-sdk", `${subpath}.ts`),
-      })),
-      {
-        find: "crawclaw/plugin-sdk",
-        replacement: path.join(repoRoot, "src", "plugin-sdk", "index.ts"),
-      },
       {
         find: "@crawclaw/esp32/api.js",
         replacement: path.join(repoRoot, "extensions", "esp32", "api.ts"),
-      },
-      {
-        find: "crawclaw/plugin-sdk",
-        replacement: path.join(repoRoot, "src", "plugin-sdk", "index.ts"),
       },
     ],
   },

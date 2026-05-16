@@ -100,7 +100,7 @@ function loadScopedCapabilityRuntimeRegistryEntries<T>(params: {
   for (let attempt = 0; attempt < 2; attempt += 1) {
     const registry = loadBundledCapabilityRuntimeRegistry({
       pluginIds: [params.pluginId],
-      pluginSdkResolution: "dist",
+      runtimeResolution: "dist",
     });
     const entries = params.loadEntries(registry);
     if (entries.length > 0) {
@@ -158,7 +158,7 @@ function loadWebFetchProviderContractRegistry(): WebFetchProviderContractEntry[]
   if (!webFetchProviderContractRegistryCache) {
     const registry = loadBundledCapabilityRuntimeRegistry({
       pluginIds: BUNDLED_WEB_FETCH_PLUGIN_IDS,
-      pluginSdkResolution: "dist",
+      runtimeResolution: "dist",
     });
     webFetchProviderContractRegistryCache = registry.webFetchProviders.map((entry) => ({
       pluginId: entry.pluginId,
@@ -206,7 +206,7 @@ function loadWebSearchProviderContractRegistry(): WebSearchProviderContractEntry
   if (!webSearchProviderContractRegistryCache) {
     const registry = loadBundledCapabilityRuntimeRegistry({
       pluginIds: BUNDLED_WEB_SEARCH_PLUGIN_IDS,
-      pluginSdkResolution: "dist",
+      runtimeResolution: "dist",
     });
     webSearchProviderContractRegistryCache = registry.webSearchProviders.map((entry) => ({
       pluginId: entry.pluginId,
@@ -256,7 +256,7 @@ function loadSpeechProviderContractRegistry(): SpeechProviderContractEntry[] {
       ? loadVitestSpeechProviderContractRegistry()
       : loadBundledCapabilityRuntimeRegistry({
           pluginIds: BUNDLED_SPEECH_PLUGIN_IDS,
-          pluginSdkResolution: "dist",
+          runtimeResolution: "dist",
         }).speechProviders.map((entry) => ({
           pluginId: entry.pluginId,
           provider: entry.provider,

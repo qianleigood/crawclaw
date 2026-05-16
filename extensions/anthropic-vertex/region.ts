@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
-import { resolveProviderEndpoint } from "crawclaw/plugin-sdk/provider-http";
+import { resolveProviderEndpoint } from "../../src/internal-plugin-helpers/provider-http.js";
 
 const ANTHROPIC_VERTEX_DEFAULT_REGION = "global";
 const ANTHROPIC_VERTEX_REGION_RE = /^[a-z0-9-]+$/;

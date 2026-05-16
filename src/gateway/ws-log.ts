@@ -1,6 +1,6 @@
 import chalk from "chalk";
-import { resolveSendableOutboundReplyParts } from "crawclaw/plugin-sdk/reply-payload";
 import { isVerbose } from "../globals.js";
+import { resolveSendableOutboundReplyParts } from "../internal-plugin-helpers/reply-payload.js";
 import { shouldLogSubsystemToConsole } from "../logging/console.js";
 import { getDefaultRedactPatterns, redactSensitiveText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

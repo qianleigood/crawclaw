@@ -339,4 +339,4 @@ See [Configuration reference](/gateway/configuration) for the full `plugins.*` s
 
 - [Building Plugins](/plugins/building-plugins) — getting started with plugins
 - [Plugin Architecture](/plugins/architecture) — internal architecture
-- [SDK Overview](/plugins/sdk-overview) — Plugin SDK reference
+- [SDK Overview](/plugins/sdk-overview) — Rust SDK reference

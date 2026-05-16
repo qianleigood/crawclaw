@@ -1,1 +1,1 @@
-export * from "crawclaw/plugin-sdk/github-copilot-token";
+export * from "../../src/internal-plugin-helpers/github-copilot-token.js";

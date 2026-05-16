@@ -1,173 +1,88 @@
 ---
 title: "Plugin SDK Migration"
 sidebarTitle: "Migrate to SDK"
-summary: "Migrate from the legacy backwards-compatibility layer to the modern plugin SDK"
+summary: "Migrate from removed JavaScript SDK imports to the Rust plugin SDK"
 read_when:
-  - You see a module-not-found error for crawclaw/plugin-sdk/compat
+  - You see a module-not-found error for removed JavaScript plugin SDK imports
   - You see a module-not-found error for crawclaw/extension-api
-  - You are updating a plugin to the modern plugin architecture
+  - You are updating a plugin to the native plugin architecture
   - You maintain an external CrawClaw plugin
 ---
 
 # Plugin SDK Migration
 
-CrawClaw has moved from a broad backwards-compatibility layer to a modern plugin
-architecture with focused, documented imports. If your plugin was built before
-the new architecture, this guide helps you migrate.
+CrawClaw removed the public JavaScript and TypeScript plugin SDK exports. The
+supported plugin authoring surface is now the Rust crate
+`crawclaw-plugin-sdk`, plus plugin manifests and native runtime descriptors.
 
 ## What changed
 
-The old plugin system provided two wide-open surfaces that let plugins import
-anything they needed from a single entry point:
+The npm package no longer exports JavaScript plugin SDK subpaths or compatibility
+bridges. Plugins that import those removed paths will fail to load on current
+CrawClaw versions.
 
-- **`crawclaw/plugin-sdk/compat`** — a single import that re-exported dozens of
-  helpers. It was introduced to keep older hook-based plugins working while the
-  new plugin architecture was being built.
-- **`crawclaw/extension-api`** — a bridge that gave plugins direct access to
-  host-side helpers like the embedded agent runner.
-- **`crawclaw/plugin-sdk/channel-runtime`** — a broad runtime helper barrel that
-  mixed channel ids, transport readiness, activity tracking, system events, and
-  other unrelated surfaces.
-
-All three legacy surfaces have now been removed.
-
-<Warning>
-  Plugins that still import `crawclaw/plugin-sdk/compat`,
-  `crawclaw/extension-api`, or `crawclaw/plugin-sdk/channel-runtime` will now
-  fail to load. Migrate those imports to focused
-  `crawclaw/plugin-sdk/<subpath>` entries.
-</Warning>
-
-## Why this changed
-
-The old approach caused problems:
-
-- **Slow startup** — importing one helper loaded dozens of unrelated modules
-- **Cnative chatular dependencies** — broad re-exports made it easy to create import cycles
-- **Unclear API surface** — no way to tell which exports were stable vs internal
-
-The modern plugin SDK fixes this: each import path (`crawclaw/plugin-sdk/\<subpath\>`)
-is a small, self-contained module with a clear purpose and documented contract.
+The old helper files were kept only as repo-private implementation helpers where
+the TypeScript codebase still needs them. They are not a public SDK and are not
+packaged as plugin authoring artifacts.
 
 ## How to migrate
 
 <Steps>
-  <Step title="Audit Windows wrapper fallback behavior">
-    If your plugin uses `crawclaw/plugin-sdk/windows-spawn`, unresolved Windows
-    `.cmd`/`.bat` wrappers now fail closed unless you explicitly pass
-    `allowShellFallback: true`.
-
-    ```typescript
-    // Before
-    const program = applyWindowsSpawnProgramPolicy({ candidate });
-
-    // After
-    const program = applyWindowsSpawnProgramPolicy({
-      candidate,
-      // Only set this for trusted compatibility callers that intentionally
-      // accept shell-mediated fallback.
-      allowShellFallback: true,
-    });
-    ```
-
-    If your caller does not intentionally rely on shell fallback, do not set
-    `allowShellFallback` and handle the thrown error instead.
-
-  </Step>
-
-  <Step title="Find deprecated imports">
-    Search your plugin for imports from either legacy surface:
+  <Step title="Find removed imports">
+    Search your plugin for old JavaScript SDK and extension bridge imports:
 
     ```bash
-    grep -r "plugin-sdk/compat" my-plugin/
-    grep -r "crawclaw/extension-api" my-plugin/
-    grep -r "plugin-sdk/channel-runtime" my-plugin/
+    rg "crawclaw/plugin-sdk|crawclaw/extension-api" my-plugin/
     ```
 
   </Step>
 
-  <Step title="Replace with focused imports">
-    Each export from the old surface maps to a specific modern import path:
+  <Step title="Move runtime behavior to Rust">
+    Define plugin metadata with `NativePluginDescriptor` and capability helpers
+    from `crawclaw-plugin-sdk`.
 
-    ```typescript
-    // Before (removed backwards-compatibility layer)
-    import {
-      createChannelReplyPipeline,
-      resolveControlCommandGate,
-    } from "crawclaw/plugin-sdk/compat";
+    ```rust
+    use crawclaw_plugin_sdk::{
+        NativeInvocationTarget, NativePluginDescriptor, NativeToolDescriptor,
+    };
 
-    // After (modern focused imports)
-    import { resolveControlCommandGate } from "crawclaw/plugin-sdk/command-auth";
-
-    ```
-
-    Host-side runtime helpers no longer have a TypeScript plugin replacement.
-    The old embedded TypeScript agent execution bridge has been removed; agent
-    execution is owned by the Rust Gateway/runtime path.
-
-    ```typescript
-    // Before (deprecated extension-api bridge)
-    import { resolveAgentDir } from "crawclaw/extension-api";
-    const agentDir = resolveAgentDir(cfg);
-
-    // After
-    const agentDir = await gatewayClient.call("agent.resolveDir", { agentId });
+    let descriptor = NativePluginDescriptor::new("my-plugin").tool(
+        NativeToolDescriptor::new(
+            "run",
+            NativeInvocationTarget::new("my-plugin", "run"),
+        ),
+    );
     ```
 
   </Step>
 
-  <Step title="Build and test">
+  <Step title="Keep manifest metadata explicit">
+    Keep install, setup, and capability metadata in `crawclaw.plugin.json` and
+    package metadata. Do not depend on JavaScript module execution for discovery.
+  </Step>
+
+  <Step title="Test the native surface">
     ```bash
-    pnpm build
-    pnpm test -- my-plugin/
+    cargo test -q -p crawclaw-plugin-sdk
+    cargo test -q -p crawclaw-native-plugins
+    cargo test -q -p crawclaw-runtime
+    cargo test -q -p crawclaw-gateway
     ```
   </Step>
 </Steps>
 
-## Import path reference
-
-<Accordion title="Full import path table">
-  | Import path | Purpose | Key exports |
-  | --- | --- | --- |
-  | `plugin-sdk/core` | Shared non-executing plugin helper types | Plugin base types |
-  | `plugin-sdk/infra-runtime` | Shared infra/runtime helpers | `enqueueSystemEvent`, `recordChannelActivity`, `waitForTransportReady` |
-  | `plugin-sdk/approval-runtime` | Approval prompt helpers | Exec/plugin approval payload, approval capability/profile helpers, native approval routing/runtime helpers |
-  | `plugin-sdk/collection-runtime` | Bounded cache helpers | `pruneMapToMaxSize` |
-  | `plugin-sdk/diagnostic-runtime` | Diagnostic gating helpers | `isDiagnosticFlagEnabled`, `isDiagnosticsEnabled` |
-  | `plugin-sdk/error-runtime` | Error formatting helpers | `formatUncaughtError`, error graph helpers |
-  | `plugin-sdk/fetch-runtime` | Wrapped fetch/proxy helpers | `resolveFetch`, proxy helpers |
-  | `plugin-sdk/host-runtime` | Host normalization helpers | `normalizeHostname`, `normalizeScpRemoteHost` |
-  | `plugin-sdk/retry-runtime` | Retry helpers | `RetryConfig`, `retryAsync`, policy runners |
-  | `plugin-sdk/allow-from` | Allowlist formatting | `formatAllowFromLowercase` |
-  | `plugin-sdk/allowlist-resolution` | Allowlist input mapping | `mapAllowlistResolutionInputs` |
-  | `plugin-sdk/command-auth` | Command gating | `resolveControlCommandGate` |
-  | `plugin-sdk/secret-input` | Secret input parsing | Secret input helpers |
-  | `plugin-sdk/webhook-request-guards` | Webhook body guard helpers | Request body read/limit helpers |
-  | `plugin-sdk/reply-payload` | Message reply types | Reply payload types |
-  | `plugin-sdk/keyed-async-queue` | Ordered async queue | `KeyedAsyncQueue` |
-  | `plugin-sdk/testing` | Test utilities | Test helpers and mocks |
-</Accordion>
-
-Use the narrowest import that matches the job. If you cannot find an export,
-check the source at `src/plugin-sdk/` or ask in community chat.
-
 ## Removal timeline
 
-| When    | What happens                                                                                  |
-| ------- | --------------------------------------------------------------------------------------------- |
-| **Now** | `plugin-sdk/compat`, `extension-api`, and `channel-runtime` are removed; importing them fails |
-
-All core plugins have already been migrated. External plugins should migrate to
-the focused subpaths before updating to this release.
+| When    | What happens                                                          |
+| ------- | --------------------------------------------------------------------- |
+| Current | JavaScript plugin SDK exports are removed from the npm package        |
+| Current | Desktop packages reject JavaScript plugin SDK runtime artifacts       |
+| Current | New public plugin-facing helpers must be added to the Rust plugin SDK |
 
 ## Related
 
-- [Getting Started](/plugins/building-plugins) — build your first plugin
-- [SDK Overview](/plugins/sdk-overview) — full subpath import reference
-- [Provider Configuration](/plugins/sdk-provider-plugins) — Rust-owned provider setup
-- [Plugin Internals](/plugins/architecture) — architecture deep dive
-- [Plugin Manifest](/plugins/manifest) — manifest schema reference
-
-```
-
-```
+- [Getting Started](/plugins/building-plugins) -- build a native plugin
+- [SDK Overview](/plugins/sdk-overview) -- Rust SDK reference
+- [Provider Configuration](/plugins/sdk-provider-plugins) -- Rust-owned provider setup
+- [Plugin Internals](/plugins/architecture) -- architecture deep dive
+- [Plugin Manifest](/plugins/manifest) -- manifest schema reference

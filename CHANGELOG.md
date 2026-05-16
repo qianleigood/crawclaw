@@ -7,6 +7,7 @@ Docs: https://docs.crawclaw.ai
 ### Breaking
 
 - Providers/plugins: remove the TypeScript LLM provider plugin runtime and typed lifecycle hook API. Provider metadata, config schema, model catalog, and native transport behavior are now Rust-owned; custom endpoints should use `models.providers`.
+- Plugins/SDK: remove the public JavaScript Plugin SDK package exports and generated API baseline. Plugin authors should use the Rust `crawclaw-plugin-sdk` crate and native descriptors.
 
 ### Changes
 

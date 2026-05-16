@@ -6,7 +6,7 @@ import {
   buildPluginLoaderAliasMap,
   buildPluginLoaderJitiOptions,
   shouldPreferNativeJiti,
-} from "../plugins/sdk-alias.js";
+} from "../plugins/runtime-alias.js";
 
 const PUBLIC_SURFACE_SOURCE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"] as const;
 
@@ -86,11 +86,7 @@ export function getOrCreateFacadeJitiLoader(params: {
   const tryNative =
     shouldPreferNativeJiti(params.modulePath) ||
     params.modulePath.includes(`${path.sep}dist${path.sep}`);
-  const aliasMap = buildPluginLoaderAliasMap(
-    params.modulePath,
-    params.processArgv1,
-    params.importMetaUrl,
-  );
+  const aliasMap = buildPluginLoaderAliasMap();
   const cacheKey = JSON.stringify({
     tryNative,
     aliasMap: Object.entries(aliasMap).toSorted(([left], [right]) => left.localeCompare(right)),

@@ -17,7 +17,7 @@ import {
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { resolveGatewayAuth } from "../gateway/auth.js";
 import { resolveAllowedAgentIds } from "../gateway/hooks-policy.js";
-import { resolveBrowserConfig } from "../plugin-sdk/browser-config.js";
+import { resolveBrowserConfig } from "../internal-plugin-helpers/browser-config.js";
 import { hasBundledWebSearchCredential } from "../plugins/bundled-web-search-registry.js";
 import { inferParamBFromIdOrName } from "../shared/model-param-b.js";
 import { formatCliCommand } from "../terminal/command-format.js";

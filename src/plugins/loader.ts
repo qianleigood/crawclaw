@@ -21,23 +21,19 @@ import { isPathInside, safeStatSync } from "./path-safety.js";
 import { createPluginRegistry, type PluginRecord, type PluginRegistry } from "./registry.js";
 import { resolvePluginCacheInputs } from "./roots.js";
 import {
+  buildPluginLoaderAliasMap,
+  buildPluginLoaderJitiOptions,
+  type RuntimeResolutionPreference,
+  resolvePluginRuntimeModulePath,
+  resolveRuntimeAliasCandidateOrder,
+  shouldPreferNativeJiti,
+} from "./runtime-alias.js";
+import {
   getActivePluginRegistry,
   getActivePluginRegistryKey,
   setActivePluginRegistry,
 } from "./runtime.js";
 import { validateJsonSchemaValue } from "./schema-validator.js";
-import {
-  buildPluginLoaderAliasMap,
-  buildPluginLoaderJitiOptions,
-  listPluginSdkAliasCandidates,
-  listPluginSdkExportedSubpaths,
-  type PluginSdkResolutionPreference,
-  resolvePluginSdkAliasCandidateOrder,
-  resolvePluginSdkAliasFile,
-  resolvePluginRuntimeModulePath,
-  resolvePluginSdkScopedAliasMap,
-  shouldPreferNativeJiti,
-} from "./sdk-alias.js";
 import { hasKind } from "./slots.js";
 import type { PluginDiagnostic, PluginBundleFormat, PluginFormat, PluginLogger } from "./types.js";
 
@@ -53,7 +49,7 @@ export type PluginLoadOptions = {
   env?: NodeJS.ProcessEnv;
   logger?: PluginLogger;
   coreGatewayHandlers?: Record<string, GatewayRequestHandler>;
-  pluginSdkResolution?: PluginSdkResolutionPreference;
+  runtimeResolution?: RuntimeResolutionPreference;
   cache?: boolean;
   mode?: "full" | "validate";
   onlyPluginIds?: string[];
@@ -97,11 +93,7 @@ const defaultLogger = () => createSubsystemLogger("plugins");
 export const __testing = {
   buildPluginLoaderJitiOptions,
   buildPluginLoaderAliasMap,
-  listPluginSdkAliasCandidates,
-  listPluginSdkExportedSubpaths,
-  resolvePluginSdkScopedAliasMap,
-  resolvePluginSdkAliasCandidateOrder,
-  resolvePluginSdkAliasFile,
+  resolveRuntimeAliasCandidateOrder,
   resolvePluginRuntimeModulePath,
   shouldPreferNativeJiti,
   getCompatibleActivePluginRegistry,
@@ -150,7 +142,7 @@ function buildCacheKey(params: {
   env: NodeJS.ProcessEnv;
   onlyPluginIds?: string[];
   loadModules?: boolean;
-  pluginSdkResolution?: PluginSdkResolutionPreference;
+  runtimeResolution?: RuntimeResolutionPreference;
   coreGatewayMethodNames?: string[];
 }): string {
   const { roots, loadPaths } = resolvePluginCacheInputs({
@@ -182,7 +174,7 @@ function buildCacheKey(params: {
     installs,
     loadPaths,
     activationMetadataKey: params.activationMetadataKey ?? "",
-  })}::${scopeKey}::${moduleLoadMode}::${params.pluginSdkResolution ?? "auto"}::${gatewayMethodsKey}`;
+  })}::${scopeKey}::${moduleLoadMode}::${params.runtimeResolution ?? "auto"}::${gatewayMethodsKey}`;
 }
 
 function normalizeScopedPluginIds(ids?: string[]): string[] | undefined {
@@ -237,7 +229,7 @@ function hasExplicitCompatibilityInputs(options: PluginLoadOptions): boolean {
     options.workspaceDir !== undefined ||
     options.env !== undefined ||
     options.onlyPluginIds?.length ||
-    options.pluginSdkResolution !== undefined ||
+    options.runtimeResolution !== undefined ||
     options.coreGatewayHandlers !== undefined ||
     options.loadModules === false,
   );
@@ -262,7 +254,7 @@ function resolvePluginLoadCacheContext(options: PluginLoadOptions = {}) {
     env,
     onlyPluginIds,
     loadModules: options.loadModules,
-    pluginSdkResolution: options.pluginSdkResolution,
+    runtimeResolution: options.runtimeResolution,
     coreGatewayMethodNames,
   });
   return {

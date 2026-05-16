@@ -40,6 +40,90 @@ pub struct NativePluginDescriptor {
     pub host_callbacks: Vec<NativeHostCallback>,
 }
 
+impl NativePluginDescriptor {
+    pub fn new(plugin_id: impl Into<String>) -> Self {
+        Self {
+            schema_version: NATIVE_PLUGIN_SCHEMA_VERSION,
+            plugin_id: plugin_id.into(),
+            name: None,
+            description: None,
+            version: None,
+            tools: Vec::new(),
+            gateway_methods: Vec::new(),
+            services: Vec::new(),
+            model_providers: Vec::new(),
+            web_search_providers: Vec::new(),
+            web_fetch_providers: Vec::new(),
+            speech_providers: Vec::new(),
+            media_understanding_providers: Vec::new(),
+            host_callbacks: Vec::new(),
+        }
+    }
+
+    pub fn name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = Some(description.into());
+        self
+    }
+
+    pub fn version(mut self, version: impl Into<String>) -> Self {
+        self.version = Some(version.into());
+        self
+    }
+
+    pub fn tool(mut self, tool: NativeToolDescriptor) -> Self {
+        self.tools.push(tool);
+        self
+    }
+
+    pub fn gateway_method(mut self, method: NativeGatewayMethodDescriptor) -> Self {
+        self.gateway_methods.push(method);
+        self
+    }
+
+    pub fn service(mut self, service: NativeServiceDescriptor) -> Self {
+        self.services.push(service);
+        self
+    }
+
+    pub fn model_provider(mut self, provider: NativeModelProviderDescriptor) -> Self {
+        self.model_providers.push(provider);
+        self
+    }
+
+    pub fn web_search_provider(mut self, provider: NativeWebSearchProviderDescriptor) -> Self {
+        self.web_search_providers.push(provider);
+        self
+    }
+
+    pub fn web_fetch_provider(mut self, provider: NativeWebFetchProviderDescriptor) -> Self {
+        self.web_fetch_providers.push(provider);
+        self
+    }
+
+    pub fn speech_provider(mut self, provider: NativeSpeechProviderDescriptor) -> Self {
+        self.speech_providers.push(provider);
+        self
+    }
+
+    pub fn media_understanding_provider(
+        mut self,
+        provider: NativeMediaUnderstandingProviderDescriptor,
+    ) -> Self {
+        self.media_understanding_providers.push(provider);
+        self
+    }
+
+    pub fn host_callback(mut self, callback: NativeHostCallback) -> Self {
+        self.host_callbacks.push(callback);
+        self
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct NativeToolDescriptor {
@@ -59,11 +143,80 @@ pub struct NativeToolDescriptor {
     pub approval: Option<NativeApprovalPolicy>,
 }
 
+impl NativeToolDescriptor {
+    pub fn new(
+        plugin_id: impl Into<String>,
+        name: impl Into<String>,
+        operation: impl Into<String>,
+    ) -> Self {
+        let name = name.into();
+        Self {
+            name: name.clone(),
+            label: name,
+            description: String::new(),
+            parameters: Value::Object(serde_json::Map::new()),
+            invocation: NativeInvocationTarget::new(plugin_id, operation),
+            read_only: false,
+            default_enabled: false,
+            default_profiles: Vec::new(),
+            approval: None,
+        }
+    }
+
+    pub fn label(mut self, label: impl Into<String>) -> Self {
+        self.label = label.into();
+        self
+    }
+
+    pub fn description(mut self, description: impl Into<String>) -> Self {
+        self.description = description.into();
+        self
+    }
+
+    pub fn parameters(mut self, parameters: Value) -> Self {
+        self.parameters = parameters;
+        self
+    }
+
+    pub fn read_only(mut self, read_only: bool) -> Self {
+        self.read_only = read_only;
+        self
+    }
+
+    pub fn default_enabled(mut self, default_enabled: bool) -> Self {
+        self.default_enabled = default_enabled;
+        self
+    }
+
+    pub fn default_profiles<I, S>(mut self, profiles: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.default_profiles = profiles.into_iter().map(Into::into).collect();
+        self
+    }
+
+    pub fn approval(mut self, approval: NativeApprovalPolicy) -> Self {
+        self.approval = Some(approval);
+        self
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct NativeInvocationTarget {
     pub plugin_id: String,
     pub operation: String,
+}
+
+impl NativeInvocationTarget {
+    pub fn new(plugin_id: impl Into<String>, operation: impl Into<String>) -> Self {
+        Self {
+            plugin_id: plugin_id.into(),
+            operation: operation.into(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -105,6 +258,40 @@ pub struct NativeToolResultEnvelope {
     pub is_error: bool,
 }
 
+impl NativeToolResultEnvelope {
+    pub fn text(text: impl Into<String>) -> Self {
+        Self {
+            content: vec![NativeToolContentBlock::Text { text: text.into() }],
+            details: None,
+            is_error: false,
+        }
+    }
+
+    pub fn image(data: impl Into<String>, mime_type: impl Into<String>) -> Self {
+        Self {
+            content: vec![NativeToolContentBlock::Image {
+                data: data.into(),
+                mime_type: mime_type.into(),
+            }],
+            details: None,
+            is_error: false,
+        }
+    }
+
+    pub fn error(text: impl Into<String>) -> Self {
+        Self {
+            content: vec![NativeToolContentBlock::Text { text: text.into() }],
+            details: None,
+            is_error: true,
+        }
+    }
+
+    pub fn with_details(mut self, details: Value) -> Self {
+        self.details = Some(details);
+        self
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum NativeToolContentBlock {
@@ -136,6 +323,28 @@ pub struct NativeApprovalPolicy {
     pub timeout_behavior: NativeApprovalTimeoutBehavior,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub condition: Option<NativeApprovalCondition>,
+}
+
+impl NativeApprovalPolicy {
+    pub fn new(
+        title: impl Into<String>,
+        description: impl Into<String>,
+        severity: NativeApprovalSeverity,
+        timeout_behavior: NativeApprovalTimeoutBehavior,
+    ) -> Self {
+        Self {
+            title: title.into(),
+            description: description.into(),
+            severity,
+            timeout_behavior,
+            condition: None,
+        }
+    }
+
+    pub fn condition(mut self, condition: NativeApprovalCondition) -> Self {
+        self.condition = Some(condition);
+        self
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -265,6 +474,30 @@ pub struct NativeJsonRpcResponse {
     pub result: Option<Value>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub error: Option<NativePluginError>,
+}
+
+impl NativeJsonRpcResponse {
+    pub fn success(id: Value, result: Value) -> Self {
+        Self {
+            jsonrpc: NATIVE_PLUGIN_JSONRPC_VERSION.to_string(),
+            id,
+            result: Some(result),
+            error: None,
+        }
+    }
+
+    pub fn failure(id: Value, code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            jsonrpc: NATIVE_PLUGIN_JSONRPC_VERSION.to_string(),
+            id,
+            result: None,
+            error: Some(NativePluginError {
+                code: code.into(),
+                message: message.into(),
+                details: None,
+            }),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -441,5 +674,67 @@ mod tests {
         let decoded: NativeJsonRpcResponse =
             serde_json::from_str(&encoded).expect("decode response");
         assert_eq!(decoded, response);
+    }
+
+    #[test]
+    fn descriptor_builders_preserve_native_wire_shape() {
+        let descriptor = NativePluginDescriptor::new("demo")
+            .name("Demo")
+            .description("Demo native plugin")
+            .version("1.0.0")
+            .tool(
+                NativeToolDescriptor::new("demo", "demo_tool", "execute")
+                    .label("Demo Tool")
+                    .description("Runs demo work.")
+                    .parameters(json!({
+                        "type": "object",
+                        "properties": {
+                            "action": { "type": "string" }
+                        },
+                        "required": ["action"]
+                    }))
+                    .read_only(true)
+                    .default_enabled(true)
+                    .default_profiles(["coding", "full"])
+                    .approval(NativeApprovalPolicy::new(
+                        "Run demo",
+                        "Approve demo run.",
+                        NativeApprovalSeverity::Warning,
+                        NativeApprovalTimeoutBehavior::Deny,
+                    )),
+            );
+
+        let encoded = serde_json::to_value(&descriptor).expect("encode descriptor");
+        assert_eq!(encoded["schemaVersion"], NATIVE_PLUGIN_SCHEMA_VERSION);
+        assert_eq!(encoded["pluginId"], "demo");
+        assert_eq!(encoded["tools"][0]["invocation"]["pluginId"], "demo");
+        assert_eq!(encoded["tools"][0]["invocation"]["operation"], "execute");
+        assert_eq!(
+            encoded["tools"][0]["defaultProfiles"],
+            json!(["coding", "full"])
+        );
+        assert_eq!(encoded["tools"][0]["approval"]["severity"], "warning");
+    }
+
+    #[test]
+    fn result_and_json_rpc_helpers_preserve_envelopes() {
+        let result = NativeToolResultEnvelope::text("hello").with_details(json!({ "ok": true }));
+        assert_eq!(
+            serde_json::to_value(&result).expect("encode result"),
+            json!({
+                "content": [{ "type": "text", "text": "hello" }],
+                "details": { "ok": true }
+            }),
+        );
+
+        let response = NativeJsonRpcResponse::success(json!(7), json!({ "ready": true }));
+        assert_eq!(response.jsonrpc, NATIVE_PLUGIN_JSONRPC_VERSION);
+        assert_eq!(response.id, json!(7));
+        assert_eq!(response.result, Some(json!({ "ready": true })));
+        assert_eq!(response.error, None);
+
+        let error = NativeJsonRpcResponse::failure(json!("req"), "invalid_input", "bad input");
+        assert_eq!(error.result, None);
+        assert_eq!(error.error.expect("error").code, "invalid_input");
     }
 }

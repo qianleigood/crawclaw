@@ -13,7 +13,7 @@ import {
   loadPluginManifestRegistry,
   type PluginManifestRecord,
 } from "../plugins/manifest-registry.js";
-import { resolveLoaderPackageRoot } from "../plugins/sdk-alias.js";
+import { resolveLoaderPackageRoot } from "../plugins/runtime-alias.js";
 import {
   ALWAYS_ALLOWED_RUNTIME_DIR_NAMES,
   createLazyFacadeArrayValue,

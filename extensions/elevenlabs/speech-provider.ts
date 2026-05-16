@@ -1,17 +1,17 @@
-import { normalizeResolvedSecretInputString } from "crawclaw/plugin-sdk/secret-input";
+import { normalizeResolvedSecretInputString } from "../../src/internal-plugin-helpers/secret-input.js";
 import type {
   SpeechDirectiveTokenParseContext,
   SpeechProviderConfig,
   SpeechProviderOverrides,
   SpeechProviderPlugin,
   SpeechVoiceOption,
-} from "crawclaw/plugin-sdk/speech";
+} from "../../src/internal-plugin-helpers/speech.js";
 import {
   normalizeApplyTextNormalization,
   normalizeLanguageCode,
   normalizeSeed,
   requireInRange,
-} from "crawclaw/plugin-sdk/speech";
+} from "../../src/internal-plugin-helpers/speech.js";
 import { elevenLabsTTS } from "./tts.js";
 
 const DEFAULT_ELEVENLABS_BASE_URL = "https://api.elevenlabs.io";

@@ -2,7 +2,7 @@
 
 import { execSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   collectBundledExtensionManifestErrors,
@@ -10,7 +10,6 @@ import {
   type ExtensionPackageJson as PackageJson,
 } from "./lib/bundled-extension-manifest.ts";
 import { listBundledPluginPackArtifacts } from "./lib/bundled-plugin-build-entries.mjs";
-import { listPluginSdkDistArtifacts } from "./lib/plugin-sdk-entries.mjs";
 import { listStaticExtensionAssetOutputs } from "./runtime-postbuild.mjs";
 
 export { collectBundledExtensionManifestErrors } from "./lib/bundled-extension-manifest.ts";
@@ -23,7 +22,6 @@ const requiredPathGroups = [
   ["dist/native/crawclaw-runtime", "dist/native/crawclaw-runtime.exe"],
   ["dist/native/crawclaw-gateway", "dist/native/crawclaw-gateway.exe"],
   ["dist/native/crawclaw-native-plugins", "dist/native/crawclaw-native-plugins.exe"],
-  ...listPluginSdkDistArtifacts(),
   ...listBundledPluginPackArtifacts(),
   ...listStaticExtensionAssetOutputs(),
   "docs/reference/templates/AGENTS.md",
@@ -225,85 +223,7 @@ export function collectPackUnpackedSizeErrors(results: Iterable<PackResult>): st
   return errors;
 }
 
-// Critical functions that channel extension plugins import from crawclaw/plugin-sdk.
-// If any are missing from the compiled output, plugins crash at runtime (#27569).
-const requiredPluginSdkExports = [
-  "isDangerousNameMatchingEnabled",
-  "createAccountListHelpers",
-  "buildAgentMediaPayload",
-  "createReplyPrefixOptions",
-  "createTypingCallbacks",
-  "logInboundDrop",
-  "logTypingFailure",
-  "buildPendingHistoryContextFromMap",
-  "clearHistoryEntriesIfEnabled",
-  "recordPendingHistoryEntryIfEnabled",
-  "resolveControlCommandGate",
-  "resolveDmGroupAccessWithLists",
-  "resolveAllowlistProviderRuntimeGroupPolicy",
-  "resolveDefaultGroupPolicy",
-  "resolveChannelMediaMaxBytes",
-  "warnMissingProviderGroupPolicyFallbackOnce",
-  "emptyPluginConfigSchema",
-  "onDiagnosticEvent",
-  "normalizePluginHttpPath",
-  "DEFAULT_ACCOUNT_ID",
-  "DEFAULT_GROUP_HISTORY_LIMIT",
-];
-
-async function collectDistPluginSdkExports(): Promise<Set<string>> {
-  const pluginSdkDir = resolve("dist", "plugin-sdk");
-  let entries: string[];
-  try {
-    entries = readdirSync(pluginSdkDir)
-      .filter((entry) => entry.endsWith(".js"))
-      .toSorted();
-  } catch {
-    console.error("release-check: dist/plugin-sdk directory not found (build missing?).");
-    process.exit(1);
-    return new Set();
-  }
-
-  const exportedNames = new Set<string>();
-  for (const entry of entries) {
-    const content = readFileSync(join(pluginSdkDir, entry), "utf8");
-    for (const match of content.matchAll(/export\s*\{([^}]+)\}(?:\s*from\s*["'][^"']+["'])?/g)) {
-      const names = match[1]?.split(",") ?? [];
-      for (const name of names) {
-        const parts = name.trim().split(/\s+as\s+/);
-        const exportName = (parts[parts.length - 1] || "").trim();
-        if (exportName) {
-          exportedNames.add(exportName);
-        }
-      }
-    }
-    for (const match of content.matchAll(
-      /export\s+(?:const|function|class|let|var)\s+([A-Za-z0-9_$]+)/g,
-    )) {
-      const exportName = match[1]?.trim();
-      if (exportName) {
-        exportedNames.add(exportName);
-      }
-    }
-  }
-
-  return exportedNames;
-}
-
-async function checkPluginSdkExports() {
-  const exportedNames = await collectDistPluginSdkExports();
-  const missingExports = requiredPluginSdkExports.filter((name) => !exportedNames.has(name));
-  if (missingExports.length > 0) {
-    console.error("release-check: missing critical plugin-sdk exports (#27569):");
-    for (const name of missingExports) {
-      console.error(`  - ${name}`);
-    }
-    process.exit(1);
-  }
-}
-
 async function main() {
-  await checkPluginSdkExports();
   checkBundledExtensionMetadata();
 
   const results = runPackDry();

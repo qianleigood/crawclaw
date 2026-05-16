@@ -126,7 +126,7 @@ A plugin can declare metadata and expose Rust-native capabilities:
 | Media understanding | Rust native descriptor | [SDK Overview](/plugins/sdk-overview) |
 | Web search          | Rust native descriptor | [SDK Overview](/plugins/sdk-overview) |
 
-For the current SDK import surface, see [SDK Overview](/plugins/sdk-overview).
+For the current Rust SDK surface, see [SDK Overview](/plugins/sdk-overview).
 
 ## Runtime capabilities
 
@@ -135,30 +135,20 @@ methods, HTTP routes, or background services. Add new runtime capabilities in
 Rust and expose configuration through the manifest or the Rust native plugin
 registry.
 
-## Import conventions
+## SDK conventions
 
-If a plugin package needs generated helper types, import from focused
-`crawclaw/plugin-sdk/<subpath>` paths:
-
-```typescript
-import type { CrawClawConfig } from "crawclaw/plugin-sdk/testing";
-
-// Wrong: removed monolithic root entry
-import { ... } from "crawclaw/plugin-sdk";
-```
-
-For the full subpath reference, see [SDK Overview](/plugins/sdk-overview).
-
-Within your plugin, use local barrel files (`api.ts`, `runtime-api.ts`) for
-internal imports — never import your own plugin through its SDK path.
+Author-facing runtime helpers live in the Rust crate `crawclaw-plugin-sdk`.
+Do not add or import JavaScript plugin SDK package subpaths. If a package still
+needs TypeScript for setup or packaging, keep those helpers private to the
+package and expose runtime behavior through Rust native descriptors.
 
 ## Pre-submission checklist
 
 <Check>**package.json** has correct `crawclaw` metadata</Check>
 <Check>**crawclaw.plugin.json** manifest is present and valid</Check>
 <Check>Runtime behavior is implemented by a Rust native descriptor</Check>
-<Check>All imports use focused `plugin-sdk/<subpath>` paths</Check>
-<Check>Internal imports use local modules, not SDK self-imports</Check>
+<Check>No public JavaScript plugin SDK imports remain</Check>
+<Check>Internal imports use local modules or reviewed repo-private helper seams</Check>
 <Check>Tests pass (`pnpm test -- <bundled-plugin-root>/my-plugin/`)</Check>
 <Check>`pnpm check` passes (in-repo plugins)</Check>
 
@@ -178,7 +168,7 @@ internal imports — never import your own plugin through its SDK path.
     Configure Rust-owned model providers
   </Card>
   <Card title="SDK Overview" icon="book-open" href="/plugins/sdk-overview">
-    Import map and SDK reference
+    Rust SDK reference
   </Card>
   <Card title="Runtime Helpers" icon="settings" href="/plugins/sdk-runtime">
     Rust-owned runtime boundary
@@ -194,6 +184,6 @@ internal imports — never import your own plugin through its SDK path.
 ## Related
 
 - [Plugin Architecture](/plugins/architecture) — internal architecture deep dive
-- [SDK Overview](/plugins/sdk-overview) — Plugin SDK reference
+- [SDK Overview](/plugins/sdk-overview) — Rust SDK reference
 - [Manifest](/plugins/manifest) — plugin manifest format
 - [Provider Configuration](/plugins/sdk-provider-plugins) — Rust-owned providers and custom provider config

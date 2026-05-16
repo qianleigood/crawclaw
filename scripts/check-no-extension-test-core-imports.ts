@@ -5,15 +5,15 @@ import { collectFilesSync, relativeToCwd } from "./check-file-utils.js";
 const FORBIDDEN_PATTERNS: Array<{ pattern: RegExp; hint: string }> = [
   {
     pattern: /["']crawclaw\/plugin-sdk["']/,
-    hint: "Use crawclaw/plugin-sdk/<subpath> instead of the monolithic root entry.",
+    hint: "The JS Plugin SDK was removed; use repo test helpers or the Rust plugin SDK.",
   },
   {
     pattern: /["']crawclaw\/plugin-sdk\/test-utils["']/,
-    hint: "Use crawclaw/plugin-sdk/testing for the public extension test surface.",
+    hint: "The JS Plugin SDK test surface was removed; use test/helpers/plugins/*.",
   },
   {
     pattern: /["']crawclaw\/plugin-sdk\/compat["']/,
-    hint: "Use a focused public plugin-sdk subpath instead of compat.",
+    hint: "The JS Plugin SDK compatibility surface was removed.",
   },
   {
     pattern: /["'](?:\.\.\/)+(?:test-utils\/)[^"']+["']/,
@@ -21,11 +21,11 @@ const FORBIDDEN_PATTERNS: Array<{ pattern: RegExp; hint: string }> = [
   },
   {
     pattern: /["'](?:\.\.\/)+(?:src\/test-utils\/)[^"']+["']/,
-    hint: "Use test/helpers/plugins/* for repo-only helpers, or crawclaw/plugin-sdk/testing for public surfaces.",
+    hint: "Use test/helpers/plugins/* for repo-only helpers.",
   },
   {
     pattern: /["'](?:\.\.\/)+(?:src\/plugins\/types\.js)["']/,
-    hint: "Use public plugin-sdk/core types or test/helpers/plugins/* instead.",
+    hint: "Use test/helpers/plugins/* or a local extension test seam instead.",
   },
 ];
 
@@ -56,9 +56,7 @@ function main() {
   }
 
   if (offenders.length > 0) {
-    console.error(
-      "Extension test files must stay on extension test bridges or public plugin-sdk surfaces.",
-    );
+    console.error("Extension test files must stay on extension test bridges or repo test helpers.");
     for (const offender of offenders.toSorted((a, b) => a.file.localeCompare(b.file))) {
       console.error(`- ${relativeToCwd(offender.file)}: ${offender.hint}`);
     }

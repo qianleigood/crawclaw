@@ -1,6 +1,6 @@
 import { writeFileSync } from "node:fs";
-import type { CrawClawConfig } from "crawclaw/plugin-sdk/config-runtime";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { CrawClawConfig } from "../../src/internal-plugin-helpers/config-runtime.js";
 import {
   buildMicrosoftSpeechProvider,
   isCjkDominant,

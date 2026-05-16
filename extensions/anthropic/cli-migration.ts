@@ -1,5 +1,8 @@
-import type { CrawClawConfig, ProviderAuthResult } from "crawclaw/plugin-sdk/provider-auth";
-import { readClaudeCliCredentialsCached } from "crawclaw/plugin-sdk/provider-auth";
+import type {
+  CrawClawConfig,
+  ProviderAuthResult,
+} from "../../src/internal-plugin-helpers/provider-auth.js";
+import { readClaudeCliCredentialsCached } from "../../src/internal-plugin-helpers/provider-auth.js";
 
 const DEFAULT_CLAUDE_CLI_MODEL = "claude-cli/claude-sonnet-4-6";
 type AgentDefaultsModel = NonNullable<NonNullable<CrawClawConfig["agents"]>["defaults"]>["model"];

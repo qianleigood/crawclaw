@@ -7,10 +7,6 @@
       "durationMs": 2897.3154296875,
       "testCount": 1
     },
-    "test/extension-plugin-sdk-boundary.test.ts": {
-      "durationMs": 1296.1044921875,
-      "testCount": 3
-    },
     "src/hooks/install.test.ts": {
       "durationMs": 1294.3115234375,
       "testCount": 13
@@ -175,7 +171,7 @@
       "durationMs": 204.234130859375,
       "testCount": 10
     },
-    "src/plugins/sdk-alias.test.ts": {
+    "src/plugins/runtime-alias.test.ts": {
       "durationMs": 193.329345703125,
       "testCount": 24
     },
@@ -375,10 +371,6 @@
       "durationMs": 63.940185546875,
       "testCount": 38
     },
-    "src/plugin-sdk/persistent-dedupe.test.ts": {
-      "durationMs": 63.2900390625,
-      "testCount": 6
-    },
     "src/media-understanding/apply.echo-transcript.test.ts": {
       "durationMs": 63.254150390625,
       "testCount": 10
@@ -426,10 +418,6 @@
     "src/infra/restart-sentinel.test.ts": {
       "durationMs": 54.8037109375,
       "testCount": 13
-    },
-    "src/plugin-sdk/keyed-async-queue.test.ts": {
-      "durationMs": 54.710693359375,
-      "testCount": 4
     },
     "src/plugins/status.test.ts": {
       "durationMs": 52.908935546875,
@@ -582,6 +570,14 @@
     "src/media-understanding/provider-registry.test.ts": {
       "durationMs": 33.62744140625,
       "testCount": 3
+    },
+    "src/internal-plugin-helpers/persistent-dedupe.test.ts": {
+      "durationMs": 63.2900390625,
+      "testCount": 6
+    },
+    "src/internal-plugin-helpers/keyed-async-queue.test.ts": {
+      "durationMs": 54.710693359375,
+      "testCount": 4
     }
   }
 }

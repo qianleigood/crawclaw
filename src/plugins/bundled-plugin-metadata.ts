@@ -10,7 +10,7 @@ import {
   type PackageManifest,
   type PluginManifest,
 } from "./manifest.js";
-import { resolveLoaderPackageRoot } from "./sdk-alias.js";
+import { resolveLoaderPackageRoot } from "./runtime-alias.js";
 
 const CRAWCLAW_PACKAGE_ROOT =
   resolveLoaderPackageRoot({

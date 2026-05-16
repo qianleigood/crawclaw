@@ -1,1 +1,1 @@
-export * from "crawclaw/plugin-sdk/speech-core";
+export * from "../../src/internal-plugin-helpers/speech-core.js";

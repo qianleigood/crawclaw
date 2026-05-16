@@ -21,15 +21,11 @@ function entryKeys(config: TsdownConfigEntry): string[] {
 }
 
 describe("tsdown config", () => {
-  it("keeps core, plugin-sdk, and bundled hooks in one dist graph", () => {
+  it("keeps core and bundled hooks in one dist graph", () => {
     const configs = asConfigArray(tsdownConfig);
     const distGraphs = configs.filter((config) => {
       const keys = entryKeys(config);
-      return (
-        keys.includes("index") ||
-        keys.includes("plugin-sdk/index") ||
-        keys.includes("bundled/boot-md/handler")
-      );
+      return keys.includes("index") || keys.includes("bundled/boot-md/handler");
     });
 
     expect(distGraphs).toHaveLength(1);
@@ -39,16 +35,14 @@ describe("tsdown config", () => {
         "agents/pi-model-discovery-runtime",
         "index",
         "control/status.summary.runtime",
-        "plugin-sdk/core",
         "bundled/boot-md/handler",
       ]),
     );
   });
 
-  it("does not emit plugin-sdk or hooks from a separate dist graph", () => {
+  it("does not emit bundled hooks from a separate dist graph", () => {
     const configs = asConfigArray(tsdownConfig);
 
-    expect(configs.some((config) => config.outDir === "dist/plugin-sdk")).toBe(false);
     expect(
       configs.some((config) =>
         Array.isArray(config.entry)

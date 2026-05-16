@@ -39,10 +39,10 @@ shape.
 The following TypeScript and JavaScript surfaces are allowed by design:
 
 - `apps/crawclaw-desktop/src`: the React and Vite desktop renderer.
-- `src/plugin-sdk`: the public plugin SDK compatibility contract exported from the npm package.
+- `src/internal-plugin-helpers`: repo-private TypeScript helpers used by core or bundled plugin packaging paths.
 - `extensions/*/package.json` and plugin metadata files used for plugin packaging and distribution.
 - `scripts`: build, release, generation, docs, and verification tooling.
-- Tests and test fixtures for TypeScript, JavaScript, plugin SDK, docs, and packaging behavior.
+- Tests and test fixtures for TypeScript, JavaScript, Rust plugin SDK, docs, and packaging behavior.
 
 These surfaces should stay bounded. Do not use an allowed surface as a backdoor
 to add a new production Gateway handler, desktop bridge, or default plugin
@@ -69,8 +69,8 @@ together, instead of leaving a compatibility copy behind.
    and the desktop runtime release-check green.
 2. Remove TypeScript or JavaScript only after a Rust/native path owns the same
    runtime behavior.
-3. Keep plugin SDK compatibility unless the breaking change is explicit and
-   reviewed as an ecosystem contract change.
+3. Keep the Rust plugin SDK and native plugin descriptors aligned when adding
+   author-facing capability.
 4. Move build and generation scripts to Rust only when it reduces release risk,
    package size, or maintenance cost. Script language alone is not a product
    runtime concern.
@@ -83,7 +83,7 @@ Use this split instead:
 
 - Product runtime entrypoints: Rust/native.
 - Desktop renderer: TypeScript/React by design.
-- Plugin SDK: TypeScript/JavaScript compatibility contract.
+- Plugin SDK: Rust crate `crawclaw-plugin-sdk`; JavaScript package exports are removed.
 - Bundled plugin packages: mostly metadata shells with native manifests.
 - Build and release tooling: Node/TypeScript allowed unless it is staged into
   the desktop runtime package.

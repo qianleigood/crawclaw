@@ -28,7 +28,7 @@ import { isRateLimitErrorMessage } from "../agents/runtime-helpers/errors.js";
 import { clearRuntimeConfigSnapshot, loadConfig } from "../config/config.js";
 import type { ModelsConfig, CrawClawConfig, ModelProviderConfig } from "../config/types.js";
 import { isTruthyEnvValue } from "../infra/env.js";
-import { normalizeGoogleModelId } from "../plugin-sdk/google-model-id.js";
+import { normalizeGoogleModelId } from "../internal-plugin-helpers/google-model-id.js";
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
 import { stripAssistantInternalScaffolding } from "../shared/text/assistant-visible-text.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/gateway-client-surface.js";

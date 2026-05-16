@@ -204,7 +204,7 @@ Security boundary notes:
 - Plugin/extension code should use CrawClaw temp helpers (`resolvePreferredCrawClawTmpDir`, `buildRandomTempFilePath`, `withTempDownloadPath`) rather than raw `os.tmpdir()` defaults when handling media files.
 - Enforcement reference points:
   - temp root resolver: `src/infra/tmp-crawclaw-dir.ts`
-  - SDK temp helpers: `src/plugin-sdk/temp-path.ts`
+  - Shared temp helpers: `src/internal-plugin-helpers/temp-path.ts`
   - messaging/channel tmp guardrail: `scripts/check-no-random-messaging-tmp.mjs`
 
 ## Operational Guidance

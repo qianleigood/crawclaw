@@ -5,7 +5,7 @@ import { BUNDLED_SPEECH_PLUGIN_IDS } from "../bundled-capability-metadata.js";
 import { loadBundledCapabilityRuntimeRegistry } from "../bundled-capability-runtime.js";
 import { createCrawClawJiti } from "../jiti-loader.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
-import { buildPluginLoaderAliasMap, buildPluginLoaderJitiOptions } from "../sdk-alias.js";
+import { buildPluginLoaderAliasMap, buildPluginLoaderJitiOptions } from "../runtime-alias.js";
 import type { SpeechProviderPlugin } from "../types.js";
 
 export type SpeechProviderContractEntry = {
@@ -13,19 +13,14 @@ export type SpeechProviderContractEntry = {
   provider: SpeechProviderPlugin;
 };
 
-function buildVitestCapabilityAliasMap(modulePath: string): Record<string, string> {
-  const scopedAliasMap = buildPluginLoaderAliasMap(
-    modulePath,
-    process.argv[1],
-    import.meta.url,
-    "dist",
-  );
+function buildVitestCapabilityAliasMap(): Record<string, string> {
+  const scopedAliasMap = buildPluginLoaderAliasMap();
   return {
     ...scopedAliasMap,
-    "crawclaw/plugin-sdk/llm-task": fileURLToPath(
+    "../../internal-plugin-helpers/llm-task.js": fileURLToPath(
       new URL("../capability-runtime-vitest-shims/llm-task.ts", import.meta.url),
     ),
-    "crawclaw/plugin-sdk/speech-core": fileURLToPath(
+    "../../internal-plugin-helpers/speech-core.js": fileURLToPath(
       new URL("../capability-runtime-vitest-shims/speech-core.ts", import.meta.url),
     ),
   };
@@ -51,9 +46,9 @@ function resolveTestApiModuleRecords(pluginIds: readonly string[]) {
   return { manifests, unresolvedPluginIds };
 }
 
-function createVitestCapabilityLoader(modulePath: string) {
+function createVitestCapabilityLoader() {
   return createCrawClawJiti(import.meta.url, {
-    ...buildPluginLoaderJitiOptions(buildVitestCapabilityAliasMap(modulePath)),
+    ...buildPluginLoaderJitiOptions(buildVitestCapabilityAliasMap()),
     tryNative: false,
   });
 }
@@ -71,7 +66,7 @@ export function loadVitestSpeechProviderContractRegistry(): SpeechProviderContra
       continue;
     }
     const builder = resolveNamedBuilder<SpeechProviderPlugin>(
-      createVitestCapabilityLoader(testApiPath)(testApiPath),
+      createVitestCapabilityLoader()(testApiPath),
       /^build.+SpeechProvider$/u,
     );
     if (!builder) {
@@ -90,7 +85,7 @@ export function loadVitestSpeechProviderContractRegistry(): SpeechProviderContra
 
   const runtimeRegistry = loadBundledCapabilityRuntimeRegistry({
     pluginIds: [...unresolvedPluginIds],
-    pluginSdkResolution: "dist",
+    runtimeResolution: "dist",
   });
   registrations.push(
     ...runtimeRegistry.speechProviders.map((entry) => ({

@@ -4,7 +4,7 @@ use crawclaw_plugin_sdk::{
     NativeHostCallback, NativeInvocationTarget, NativeMediaUnderstandingProviderDescriptor,
     NativeModelProviderDescriptor, NativePluginDescriptor, NativeServiceDescriptor,
     NativeSpeechProviderDescriptor, NativeToolDescriptor, NativeWebFetchProviderDescriptor,
-    NativeWebSearchProviderDescriptor, NATIVE_PLUGIN_SCHEMA_VERSION,
+    NativeWebSearchProviderDescriptor,
 };
 use serde_json::{json, Value};
 
@@ -26,10 +26,7 @@ use crate::web::{
 use crate::NativeResult;
 
 fn target(plugin_id: &str, operation: &str) -> NativeInvocationTarget {
-    NativeInvocationTarget {
-        plugin_id: plugin_id.to_string(),
-        operation: operation.to_string(),
-    }
+    NativeInvocationTarget::new(plugin_id, operation)
 }
 
 fn tool_params(properties: Value, required: &[&str]) -> Value {
@@ -41,22 +38,9 @@ fn tool_params(properties: Value, required: &[&str]) -> Value {
 }
 
 fn descriptor(plugin_id: &str, name: &str, description: &str) -> NativePluginDescriptor {
-    NativePluginDescriptor {
-        schema_version: NATIVE_PLUGIN_SCHEMA_VERSION,
-        plugin_id: plugin_id.to_string(),
-        name: Some(name.to_string()),
-        description: Some(description.to_string()),
-        version: None,
-        tools: Vec::new(),
-        gateway_methods: Vec::new(),
-        services: Vec::new(),
-        model_providers: Vec::new(),
-        web_search_providers: Vec::new(),
-        web_fetch_providers: Vec::new(),
-        speech_providers: Vec::new(),
-        media_understanding_providers: Vec::new(),
-        host_callbacks: Vec::new(),
-    }
+    NativePluginDescriptor::new(plugin_id)
+        .name(name)
+        .description(description)
 }
 
 fn lobster_descriptor() -> NativePluginDescriptor {

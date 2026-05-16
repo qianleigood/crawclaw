@@ -2,8 +2,9 @@ import { describe, expect, it, vi } from "vitest";
 
 const readClaudeCliCredentialsCached = vi.hoisted(() => vi.fn());
 
-vi.mock("crawclaw/plugin-sdk/provider-auth", async (importActual) => {
-  const actual = await importActual<typeof import("crawclaw/plugin-sdk/provider-auth")>();
+vi.mock("../../src/internal-plugin-helpers/provider-auth.js", async (importActual) => {
+  const actual =
+    await importActual<typeof import("../../src/internal-plugin-helpers/provider-auth.js")>();
   return {
     ...actual,
     readClaudeCliCredentialsCached,

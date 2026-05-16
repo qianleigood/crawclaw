@@ -1,12 +1,15 @@
 import { intro, note, outro, spinner } from "@clack/prompts";
-import { logConfigUpdated, updateConfig } from "crawclaw/plugin-sdk/config-runtime";
+import {
+  logConfigUpdated,
+  updateConfig,
+} from "../../src/internal-plugin-helpers/config-runtime.js";
 import {
   applyAuthProfileConfig,
   ensureAuthProfileStore,
   upsertAuthProfile,
-} from "crawclaw/plugin-sdk/provider-auth";
-import type { RuntimeEnv } from "crawclaw/plugin-sdk/runtime";
-import { stylePromptTitle } from "crawclaw/plugin-sdk/terminal-runtime";
+} from "../../src/internal-plugin-helpers/provider-auth.js";
+import type { RuntimeEnv } from "../../src/internal-plugin-helpers/runtime.js";
+import { stylePromptTitle } from "../../src/internal-plugin-helpers/terminal-runtime.js";
 
 const CLIENT_ID = "Iv1.b507a08c87ecfe98";
 const DEVICE_CODE_URL = "https://github.com/login/device/code";

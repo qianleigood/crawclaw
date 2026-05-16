@@ -1,4 +1,4 @@
-// Shared root plugin-sdk surface.
+// Shared private helper surface for repo-owned bundled plugins.
 // Keep this entry intentionally tiny. Channel plugin SDK exports have been
 // removed; future bundled channels should use Rust-native adapter contracts.
 export type { CrawClawPluginConfigSchema, PluginLogger } from "../plugins/types.js";
