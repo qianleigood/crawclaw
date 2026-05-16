@@ -110,15 +110,15 @@ describe("plugin contract registry", () => {
 
   it("hydrates native bundled web provider metadata from manifests", () => {
     expect(
-      resolveWebFetchProviderContractEntriesForPluginId("scrapling-fetch").map(
+      resolveWebFetchProviderContractEntriesForPluginId("spider-fetch").map(
         (entry) => entry.provider.id,
       ),
-    ).toContain("scrapling");
+    ).toContain("spider");
     expect(
-      resolveWebSearchProviderContractEntriesForPluginId("open-websearch").map(
+      resolveWebSearchProviderContractEntriesForPluginId("searxng").map(
         (entry) => entry.provider.id,
       ),
-    ).toContain("open-websearch");
+    ).toContain("searxng");
   });
 
   it("covers every bundled web search plugin from the shared resolver", () => {

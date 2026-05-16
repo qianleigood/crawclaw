@@ -1,0 +1,48 @@
+{
+  "id": "spider-fetch",
+  "enabledByDefault": true,
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "crawclaw-native-plugins"
+  },
+  "uiHints": {
+    "webFetch.timeoutSeconds": {
+      "label": "Spider Fetch Timeout",
+      "help": "Maximum time CrawClaw waits for static HTTP or Spider browser-rendered fetches."
+    },
+    "webFetch.maxChars": {
+      "label": "Spider Fetch Max Characters",
+      "help": "Maximum extracted characters returned by the Spider fetch provider."
+    },
+    "webFetch.render": {
+      "label": "Spider Fetch Render Mode",
+      "help": "Default render mode for web_fetch requests when the tool input does not specify one."
+    }
+  },
+  "contracts": {
+    "webFetchProviders": ["spider"]
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "webFetch": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "timeoutSeconds": {
+            "type": "number"
+          },
+          "maxChars": {
+            "type": "number"
+          },
+          "render": {
+            "type": "string",
+            "enum": ["auto", "never", "dynamic", "stealth"]
+          }
+        }
+      }
+    }
+  }
+}

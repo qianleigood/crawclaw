@@ -35,8 +35,6 @@ The plan covers:
   `skills/.runtime/requirements.lock.txt`
 - `openai-whisper` Apple Silicon package pins from
   `skills/openai-whisper/runtime/requirements.macos-arm64.lock.txt`
-- `scrapling-fetch` Python package pins from
-  `extensions/scrapling-fetch/runtime/requirements.lock.txt`
 
 The scanner prefers `git ls-files` for plugin manifests. Local untracked plugin
 experiments do not enter the committed baseline.

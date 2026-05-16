@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { CrawClawConfig } from "../../config/config.js";
 import * as ssrf from "../../infra/net/ssrf.js";
 import { type FetchMock, withFetchPreconnect } from "../../test-utils/fetch-mock.js";
 import { makeFetchHeaders } from "./web-fetch.test-harness.js";
@@ -38,7 +39,7 @@ async function createWebFetchToolForTest() {
     config: {
       plugins: {
         entries: {
-          "scrapling-fetch": {
+          "spider-fetch": {
             enabled: false,
           },
         },
@@ -47,10 +48,11 @@ async function createWebFetchToolForTest() {
         web: {
           fetch: {
             cacheTtlMinutes: 0,
+            spider: { enabled: false },
           },
         },
       },
-    },
+    } as unknown as CrawClawConfig,
   });
 }
 

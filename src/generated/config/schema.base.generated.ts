@@ -8955,7 +8955,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "browser.provider": {
       label: "Browser Provider",
-      help: "Browser runtime provider. CrawClaw ships the agent-browser-backed automation path.",
+      help: "Browser runtime provider. CrawClaw ships the native agent-browser binary automation path.",
       tags: ["advanced"],
     },
     "browser.cdpUrl": {

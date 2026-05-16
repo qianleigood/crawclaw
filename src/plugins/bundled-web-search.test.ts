@@ -69,12 +69,12 @@ describe("hasBundledWebSearchCredential", () => {
 
   it.each([
     {
-      name: "detects open-websearch plugin base URL config",
+      name: "detects searxng plugin base URL config",
       config: {
         ...baseCfg,
         plugins: {
           entries: {
-            "open-websearch": {
+            searxng: {
               enabled: true,
               config: { webSearch: { baseUrl: "http://127.0.0.1:3210" } },
             },
@@ -84,9 +84,9 @@ describe("hasBundledWebSearchCredential", () => {
       env: {},
     },
     {
-      name: "detects open-websearch env base URL",
+      name: "detects searxng env base URL",
       config: baseCfg,
-      env: { OPEN_WEBSEARCH_BASE_URL: "http://127.0.0.1:3210" },
+      env: { SEARXNG_BASE_URL: "http://127.0.0.1:3210" },
     },
   ] as const)("$name", async ({ config, env }) => {
     expect(hasBundledWebSearchCredential({ config, env })).toBe(true);

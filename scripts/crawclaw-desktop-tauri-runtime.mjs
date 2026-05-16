@@ -3,6 +3,11 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  resolveAgentBrowserRuntimePaths,
+  stageAgentBrowserRuntime,
+} from "./stage-agent-browser-runtime.mjs";
+import { resolveSearxngRuntimePaths, stageSearxngRuntime } from "./stage-searxng-runtime.mjs";
 
 const __filename = fileURLToPath(import.meta.url);
 const rootDir = path.resolve(path.dirname(__filename), "..");
@@ -155,6 +160,18 @@ export function stageCrawClawDesktopTauriRuntime(params = {}) {
       fs.chmodSync(dest, 0o755);
     }
   }
+  stageSearxngRuntime({
+    rootDir: checkRootDir,
+    runtimeRoot: paths.runtimeRoot,
+    runCommand,
+    env: buildEnv,
+  });
+  stageAgentBrowserRuntime({
+    rootDir: checkRootDir,
+    runtimeRoot: paths.runtimeRoot,
+    runCommand,
+    env: buildEnv,
+  });
   assertRuntimeTree(paths);
   return paths;
 }
@@ -205,9 +222,15 @@ function assertRuntimeTree(paths, label = "embedded") {
     path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
     `${label} managed plugin runtime manifest`,
   );
+  assertSearxngRuntimeTree(paths.runtimeRoot, label);
+  assertAgentBrowserRuntimeTree(paths.runtimeRoot, label);
   assertNoDefaultJsPluginRuntime(
     path.join(paths.runtimeRoot, "runtimes", "manifest.json"),
     `${label} managed runtime manifest`,
+  );
+  assertFile(
+    path.join(paths.runtimeRoot, "channels", "manifest.json"),
+    `${label} Rust channel manifest`,
   );
   assertProviderTransportManifest(
     path.join(paths.runtimeRoot, "providers", "manifest.json"),
@@ -222,6 +245,44 @@ function assertRuntimeTree(paths, label = "embedded") {
     `${label} Rust plugin manifest`,
   );
   assertNoDisallowedNodeRuntimeSurface(paths.runtimeRoot);
+}
+
+function assertSearxngRuntimeTree(runtimeRoot, label) {
+  const paths = resolveSearxngRuntimePaths(runtimeRoot);
+  assertExecutableFile(paths.pythonPath, `${label} SearXNG Python runtime`);
+  assertFile(paths.settingsPath, `${label} SearXNG settings.yml`);
+  assertFile(paths.manifestPath, `${label} SearXNG runtime manifest`);
+  assertFile(paths.noticePath, `${label} SearXNG NOTICE`);
+  assertFile(paths.licensePath, `${label} SearXNG LICENSE`);
+  assertFile(paths.sourceLockPath, `${label} SearXNG source lock`);
+  const settings = readText(paths.settingsPath);
+  if (!settings.includes("use_default_settings: true") || !settings.includes("json")) {
+    throw new Error(`${label} SearXNG settings.yml must enable JSON format`);
+  }
+  const manifest = readJson(paths.manifestPath);
+  assertEqual(manifest.provider, "searxng", `${label} SearXNG manifest provider`);
+  assertEqual(manifest.runtime, "python-sidecar", `${label} SearXNG manifest runtime`);
+  const sourceLock = readJson(paths.sourceLockPath);
+  assertEqual(
+    sourceLock.sourceCommit,
+    "afafca93f30939f213c1bc3fa3379e5ed883122d",
+    `${label} SearXNG source commit`,
+  );
+  assertEqual(sourceLock.license, "AGPL-3.0-or-later", `${label} SearXNG license`);
+}
+
+function assertAgentBrowserRuntimeTree(runtimeRoot, label) {
+  const paths = resolveAgentBrowserRuntimePaths(runtimeRoot);
+  assertExecutableFile(paths.binaryPath, `${label} agent-browser native runtime`);
+  assertFile(paths.manifestPath, `${label} agent-browser runtime manifest`);
+  assertFile(paths.sourceLockPath, `${label} agent-browser source lock`);
+  assertFile(paths.licensePath, `${label} agent-browser LICENSE`);
+  const manifest = readJson(paths.manifestPath);
+  assertEqual(manifest.provider, "agent-browser", `${label} agent-browser manifest provider`);
+  assertEqual(manifest.runtime, "rust-native-binary", `${label} agent-browser manifest runtime`);
+  const sourceLock = readJson(paths.sourceLockPath);
+  assertEqual(sourceLock.sourcePackage, "agent-browser", `${label} agent-browser source package`);
+  assertEqual(sourceLock.runtime, "rust-native-binary", `${label} agent-browser runtime lock`);
 }
 
 function assertPackagedRuntimeTree(checkRootDir, params) {

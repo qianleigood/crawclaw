@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { resolveBundledPluginWebSearchProviders } from "./web-search-providers.js";
 
 const WEB_SEARCH_PROVIDER_TEST_TIMEOUT_MS = 300_000;
-const EXPECTED_BUNDLED_WEB_SEARCH_PROVIDER_KEYS = ["open-websearch:open-websearch"] as const;
-const EXPECTED_BUNDLED_WEB_SEARCH_PROVIDER_PLUGIN_IDS = ["open-websearch"] as const;
+const EXPECTED_BUNDLED_WEB_SEARCH_PROVIDER_KEYS = ["searxng:searxng"] as const;
+const EXPECTED_BUNDLED_WEB_SEARCH_PROVIDER_PLUGIN_IDS = ["searxng"] as const;
 const EXPECTED_BUNDLED_WEB_SEARCH_CREDENTIAL_PATHS = [
-  "plugins.entries.open-websearch.config.webSearch.baseUrl",
+  "plugins.entries.searxng.config.webSearch.baseUrl",
 ] as const;
 
 function toProviderKeys(
@@ -120,15 +120,15 @@ describe("resolveBundledPluginWebSearchProviders", () => {
           tools: {
             web: {
               search: {
-                provider: "open-websearch",
+                provider: "searxng",
               },
             },
           },
         },
         bundledAllowlistCompat: true,
-        onlyPluginIds: ["open-websearch"],
+        onlyPluginIds: ["searxng"],
       },
-      expectedPluginIds: ["open-websearch"],
+      expectedPluginIds: ["searxng"],
     },
     {
       title: "preserves explicit bundled provider entry state",
@@ -136,12 +136,12 @@ describe("resolveBundledPluginWebSearchProviders", () => {
         config: {
           plugins: {
             entries: {
-              "open-websearch": { enabled: false },
+              searxng: { enabled: false },
             },
           },
         },
       },
-      excludedPluginIds: ["open-websearch"],
+      excludedPluginIds: ["searxng"],
     },
   ])("$title", ({ params, expectedPluginIds, excludedPluginIds }) => {
     expectBundledWebSearchResolution({

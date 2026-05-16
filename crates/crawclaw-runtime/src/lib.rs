@@ -181,6 +181,34 @@ pub fn stage_desktop_runtime_manifests(output: &Path) -> Result<(), String> {
         &json!({
             "runtime": "rust-native",
             "jsPluginRuntime": "none",
+            "managedRuntimes": {
+                "browser": {
+                    "runtime": "rust-native-binary",
+                    "provider": "agent-browser",
+                    "binaryPath": if cfg!(windows) {
+                        "browser/bin/agent-browser.exe"
+                    } else {
+                        "browser/bin/agent-browser"
+                    },
+                    "sourcePackage": "agent-browser",
+                    "version": "0.27.0"
+                },
+                "searxng": {
+                    "runtime": "python-sidecar",
+                    "provider": "searxng",
+                    "sidecar": "searxng",
+                    "baseUrl": "http://127.0.0.1:3210",
+                    "settingsPath": "searxng/settings.yml",
+                    "pythonPath": if cfg!(windows) {
+                        "searxng/venv/Scripts/python.exe"
+                    } else {
+                        "searxng/venv/bin/python"
+                    },
+                    "sourceRepo": "https://github.com/searxng/searxng",
+                    "sourceCommit": "afafca93f30939f213c1bc3fa3379e5ed883122d",
+                    "license": "AGPL-3.0-or-later"
+                }
+            }
         }),
     )?;
     write_json_file(
@@ -2865,6 +2893,44 @@ mod tests {
     }
 
     #[test]
+    fn desktop_runtime_manifest_advertises_managed_searxng_runtime() {
+        let runtime_root = unique_test_runtime_root("runtime-searxng-manifest");
+
+        stage_desktop_runtime_manifests(&runtime_root).expect("stage runtime manifests");
+        let raw = fs::read_to_string(runtime_root.join("runtimes").join("manifest.json"))
+            .expect("runtime manifest");
+        let manifest: Value = serde_json::from_str(&raw).expect("manifest json");
+
+        assert_eq!(manifest["jsPluginRuntime"], "none");
+        assert_eq!(
+            manifest["managedRuntimes"]["browser"]["runtime"],
+            "rust-native-binary"
+        );
+        assert_eq!(
+            manifest["managedRuntimes"]["browser"]["provider"],
+            "agent-browser"
+        );
+        assert_eq!(
+            manifest["managedRuntimes"]["searxng"]["runtime"],
+            "python-sidecar"
+        );
+        assert_eq!(
+            manifest["managedRuntimes"]["searxng"]["provider"],
+            "searxng"
+        );
+        assert_eq!(
+            manifest["managedRuntimes"]["searxng"]["sourceCommit"],
+            "afafca93f30939f213c1bc3fa3379e5ed883122d"
+        );
+        assert_eq!(
+            manifest["managedRuntimes"]["searxng"]["license"],
+            "AGPL-3.0-or-later"
+        );
+
+        let _ = fs::remove_dir_all(runtime_root);
+    }
+
+    #[test]
     fn pi_agent_rust_core_tool_registry_uses_crawclaw_tool_names() {
         let runtime_root = unique_test_runtime_root("pi-agent-rust-core-tools");
         let registry = build_pi_agent_rust_tool_registry(&runtime_root);
@@ -3320,12 +3386,12 @@ esac
                 .details
                 .as_ref()
                 .and_then(|details| details.get("provider")),
-            Some(&json!("scrapling"))
+            Some(&json!("spider"))
         );
     }
 
     #[tokio::test]
-    async fn rust_native_web_search_only_exposes_open_websearch_provider() {
+    async fn rust_native_web_search_only_exposes_searxng_provider() {
         let runtime_root = unique_test_runtime_root("pi-agent-rust-web-search-provider");
         fs::create_dir_all(&runtime_root).expect("runtime root");
         let registry = build_pi_agent_rust_tool_registry(&runtime_root);
@@ -3339,7 +3405,7 @@ esac
             .map(|value| value.as_str().expect("provider value"))
             .collect::<Vec<_>>();
 
-        assert_eq!(providers, vec!["open-websearch"]);
+        assert_eq!(providers, vec!["searxng"]);
         let error = web_search
             .execute(
                 "web-search-call",
@@ -3350,9 +3416,9 @@ esac
                 None,
             )
             .await
-            .expect_err("non-open-websearch provider should not be accepted by web_search");
+            .expect_err("non-searxng provider should not be accepted by web_search");
 
-        assert!(format!("{error}").contains("only supports open-websearch"));
+        assert!(format!("{error}").contains("only supports searxng"));
     }
 
     #[tokio::test]

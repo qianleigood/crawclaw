@@ -1,0 +1,8 @@
+{
+  "name": "SearXNG",
+  "sourceRepo": "https://github.com/searxng/searxng",
+  "sourceCommit": "afafca93f30939f213c1bc3fa3379e5ed883122d",
+  "license": "AGPL-3.0-or-later",
+  "licenseUrl": "https://github.com/searxng/searxng/blob/afafca93f30939f213c1bc3fa3379e5ed883122d/LICENSE",
+  "sourceUrl": "https://github.com/searxng/searxng/tree/afafca93f30939f213c1bc3fa3379e5ed883122d"
+}

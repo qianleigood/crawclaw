@@ -25,7 +25,13 @@ async function createTempRoot() {
 describe("runtime postbuild static assets", () => {
   it("tracks plugin-owned static assets that release packaging must ship", () => {
     expect(listStaticExtensionAssetOutputs()).toContain(
-      "dist/extensions/scrapling-fetch/python/scrapling_sidecar.py",
+      "dist/extensions/qwen3-tts/python/qwen3_tts_sidecar.py",
+    );
+    expect(listStaticExtensionAssetOutputs()).toContain(
+      "dist/extensions/searxng/runtime/settings.yml",
+    );
+    expect(listStaticExtensionAssetOutputs()).toContain(
+      "dist/extensions/searxng/runtime/source.lock.json",
     );
   });
 

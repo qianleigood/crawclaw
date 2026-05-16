@@ -9,10 +9,10 @@ import type {
   WebSearchProviderPlugin,
 } from "./types.js";
 
-const OPEN_WEBSEARCH_PLUGIN_ID = "open-websearch";
-const OPEN_WEBSEARCH_PROVIDER_ID = "open-websearch";
-const SCRAPLING_FETCH_PLUGIN_ID = "scrapling-fetch";
-const SCRAPLING_FETCH_PROVIDER_ID = "scrapling";
+const SEARXNG_PLUGIN_ID = "searxng";
+const SEARXNG_PROVIDER_ID = "searxng";
+const SPIDER_FETCH_PLUGIN_ID = "spider-fetch";
+const SPIDER_FETCH_PROVIDER_ID = "spider";
 
 function record(value: unknown): Record<string, unknown> | undefined {
   return value && typeof value === "object" && !Array.isArray(value)
@@ -54,33 +54,33 @@ function setPluginConfigValue(
   scoped[key] = value;
 }
 
-function openWebSearchProvider(): WebSearchProviderPlugin {
+function searxngProvider(): WebSearchProviderPlugin {
   return {
-    id: OPEN_WEBSEARCH_PROVIDER_ID,
-    label: "Open-WebSearch",
-    hint: "Use the bundled managed open-websearch daemon for keyless multi-engine web search",
+    id: SEARXNG_PROVIDER_ID,
+    label: "SearXNG",
+    hint: "Use the bundled managed SearXNG sidecar for keyless multi-engine web search",
     onboardingScopes: ["text-inference"],
     requiresCredential: false,
-    credentialLabel: "Open-WebSearch base URL override",
-    envVars: ["OPEN_WEBSEARCH_BASE_URL"],
+    credentialLabel: "SearXNG base URL override",
+    envVars: ["SEARXNG_BASE_URL"],
     placeholder: "http://127.0.0.1:3210",
-    signupUrl: "https://github.com/Aas-ee/open-webSearch",
-    docsUrl: "https://docs.crawclaw.ai/tools/open-websearch",
+    signupUrl: "https://github.com/searxng/searxng",
+    docsUrl: "https://docs.crawclaw.ai/tools/web",
     autoDetectOrder: 5,
-    credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
-    inactiveSecretPaths: ["plugins.entries.open-websearch.config.webSearch.baseUrl"],
-    getCredentialValue: (searchConfig) => record(searchConfig)?.[OPEN_WEBSEARCH_PROVIDER_ID],
+    credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
+    inactiveSecretPaths: ["plugins.entries.searxng.config.webSearch.baseUrl"],
+    getCredentialValue: (searchConfig) => record(searchConfig)?.[SEARXNG_PROVIDER_ID],
     setCredentialValue: (searchConfigTarget, value) => {
-      searchConfigTarget[OPEN_WEBSEARCH_PROVIDER_ID] = value;
+      searchConfigTarget[SEARXNG_PROVIDER_ID] = value;
     },
     getConfiguredCredentialValue: (config) =>
-      scopedConfig(config, OPEN_WEBSEARCH_PLUGIN_ID, "webSearch")?.baseUrl,
+      scopedConfig(config, SEARXNG_PLUGIN_ID, "webSearch")?.baseUrl,
     setConfiguredCredentialValue: (configTarget, value) => {
-      setPluginConfigValue(configTarget, OPEN_WEBSEARCH_PLUGIN_ID, "webSearch", "baseUrl", value);
+      setPluginConfigValue(configTarget, SEARXNG_PLUGIN_ID, "webSearch", "baseUrl", value);
     },
-    applySelectionConfig: (config) => enablePluginInConfig(config, OPEN_WEBSEARCH_PLUGIN_ID).config,
+    applySelectionConfig: (config) => enablePluginInConfig(config, SEARXNG_PLUGIN_ID).config,
     createTool: (ctx) => ({
-      description: "Search the web using CrawClaw's Rust-native open-websearch provider.",
+      description: "Search the web using CrawClaw's Rust-owned SearXNG provider.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -96,7 +96,19 @@ function openWebSearchProvider(): WebSearchProviderPlugin {
           engines: {
             type: "array",
             items: { type: "string" },
-            description: "Optional open-websearch engine ids.",
+            description: "Optional SearXNG engine ids.",
+          },
+          categories: {
+            type: "array",
+            items: { type: "string" },
+            description: "Optional SearXNG categories.",
+          },
+          language: { type: "string" },
+          safeSearch: { type: "string", enum: ["off", "moderate", "strict"] },
+          timeRange: { type: "string", enum: ["day", "week", "month", "year"] },
+          baseUrl: {
+            type: "string",
+            description: "Optional explicit SearXNG endpoint override.",
           },
           timeoutSeconds: { type: "number" },
         },
@@ -110,8 +122,13 @@ function openWebSearchProvider(): WebSearchProviderPlugin {
               query: readStringParam(args, "query", { required: true }),
               count: readNumberParam(args, "count", { integer: true }),
               engines: readStringArrayParam(args, "engines"),
+              categories: readStringArrayParam(args, "categories"),
+              language: readStringParam(args, "language"),
+              safeSearch: readStringParam(args, "safeSearch"),
+              timeRange: readStringParam(args, "timeRange"),
+              baseUrl: readStringParam(args, "baseUrl"),
               timeoutSeconds: readNumberParam(args, "timeoutSeconds", { integer: true }),
-              pluginConfig: pluginConfig(ctx.config, OPEN_WEBSEARCH_PLUGIN_ID),
+              pluginConfig: pluginConfig(ctx.config, SEARXNG_PLUGIN_ID),
             },
           },
         }),
@@ -119,37 +136,37 @@ function openWebSearchProvider(): WebSearchProviderPlugin {
   };
 }
 
-function scraplingFetchProvider(): WebFetchProviderPlugin {
+function spiderFetchProvider(): WebFetchProviderPlugin {
   return {
-    id: SCRAPLING_FETCH_PROVIDER_ID,
-    label: "Scrapling",
-    hint: "Fetch pages through CrawClaw's Rust-native Scrapling provider.",
+    id: SPIDER_FETCH_PROVIDER_ID,
+    label: "Spider",
+    hint: "Fetch pages through CrawClaw's Rust-native Spider provider.",
     requiresCredential: false,
     envVars: [],
-    placeholder: "Select explicitly to use the managed Scrapling sidecar",
-    signupUrl: "https://github.com/D4Vinci/Scrapling",
-    docsUrl: "https://scrapling.readthedocs.io/",
+    placeholder: "Select explicitly to use Spider-rendered fetch",
+    signupUrl: "https://github.com/spider-rs/spider",
+    docsUrl: "https://github.com/spider-rs/spider",
     autoDetectOrder: 0,
-    credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
-    inactiveSecretPaths: [
-      "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
-      "tools.web.fetch.scrapling.apiKey",
-    ],
-    getCredentialValue: (fetchConfig) => record(record(fetchConfig)?.scrapling)?.apiKey,
+    credentialPath: "plugins.entries.spider-fetch.config.webFetch.timeoutSeconds",
+    inactiveSecretPaths: [],
+    getCredentialValue: (fetchConfig) => record(fetchConfig)?.[SPIDER_FETCH_PROVIDER_ID],
     setCredentialValue: (fetchConfigTarget, value) => {
-      const current = record(fetchConfigTarget.scrapling) ?? {};
-      current.apiKey = value;
-      fetchConfigTarget.scrapling = current;
+      fetchConfigTarget[SPIDER_FETCH_PROVIDER_ID] = value;
     },
     getConfiguredCredentialValue: (config) =>
-      scopedConfig(config, SCRAPLING_FETCH_PLUGIN_ID, "webFetch")?.apiKey,
+      scopedConfig(config, SPIDER_FETCH_PLUGIN_ID, "webFetch")?.timeoutSeconds,
     setConfiguredCredentialValue: (configTarget, value) => {
-      setPluginConfigValue(configTarget, SCRAPLING_FETCH_PLUGIN_ID, "webFetch", "apiKey", value);
+      setPluginConfigValue(
+        configTarget,
+        SPIDER_FETCH_PLUGIN_ID,
+        "webFetch",
+        "timeoutSeconds",
+        value,
+      );
     },
-    applySelectionConfig: (config) =>
-      enablePluginInConfig(config, SCRAPLING_FETCH_PLUGIN_ID).config,
+    applySelectionConfig: (config) => enablePluginInConfig(config, SPIDER_FETCH_PLUGIN_ID).config,
     createTool: (ctx) => ({
-      description: "Fetch a page using CrawClaw's Rust-native Scrapling provider.",
+      description: "Fetch a page using CrawClaw's Rust-native Spider provider.",
       parameters: {
         type: "object",
         additionalProperties: false,
@@ -191,7 +208,7 @@ function scraplingFetchProvider(): WebFetchProviderPlugin {
               waitUntil: readStringParam(args, "waitUntil"),
               waitFor: readStringParam(args, "waitFor"),
               sessionId: readStringParam(args, "sessionId"),
-              pluginConfig: pluginConfig(ctx.config, SCRAPLING_FETCH_PLUGIN_ID),
+              pluginConfig: pluginConfig(ctx.config, SPIDER_FETCH_PLUGIN_ID),
             },
           },
         }),
@@ -202,17 +219,17 @@ function scraplingFetchProvider(): WebFetchProviderPlugin {
 export function nativeBundledWebSearchProvidersForPlugin(
   pluginId: string,
 ): PluginWebSearchProviderEntry[] {
-  if (pluginId !== OPEN_WEBSEARCH_PLUGIN_ID) {
+  if (pluginId !== SEARXNG_PLUGIN_ID) {
     return [];
   }
-  return [{ pluginId, ...openWebSearchProvider() }];
+  return [{ pluginId, ...searxngProvider() }];
 }
 
 export function nativeBundledWebFetchProvidersForPlugin(
   pluginId: string,
 ): PluginWebFetchProviderEntry[] {
-  if (pluginId !== SCRAPLING_FETCH_PLUGIN_ID) {
+  if (pluginId !== SPIDER_FETCH_PLUGIN_ID) {
     return [];
   }
-  return [{ pluginId, ...scraplingFetchProvider() }];
+  return [{ pluginId, ...spiderFetchProvider() }];
 }

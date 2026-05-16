@@ -25,7 +25,6 @@
     "dist/",
     "!dist/**/*.map",
     "docs/reference/templates/",
-    "extensions/scrapling-fetch/runtime/requirements.lock.txt",
     "skills/",
     "scripts/npm-runner.mjs",
     "scripts/postinstall-bundled-plugins.mjs"

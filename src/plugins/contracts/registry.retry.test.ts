@@ -105,38 +105,38 @@ describe("plugin contract registry scoped retries", () => {
       .mockReturnValueOnce(
         createMockRuntimeRegistry({
           plugin: {
-            id: "scrapling-fetch",
+            id: "spider-fetch",
             status: "error",
-            error: "transient scrapling fetch load failure",
+            error: "transient spider fetch load failure",
             providerIds: [],
             webFetchProviderIds: [],
             webSearchProviderIds: [],
           },
           diagnostics: [
-            { pluginId: "scrapling-fetch", message: "transient scrapling fetch load failure" },
+            { pluginId: "spider-fetch", message: "transient spider fetch load failure" },
           ],
         }),
       )
       .mockReturnValueOnce(
         createMockRuntimeRegistry({
           plugin: {
-            id: "scrapling-fetch",
+            id: "spider-fetch",
             status: "loaded",
             providerIds: [],
-            webFetchProviderIds: ["scrapling"],
+            webFetchProviderIds: ["spider"],
             webSearchProviderIds: [],
           },
           webFetchProviders: [
             {
-              pluginId: "scrapling-fetch",
+              pluginId: "spider-fetch",
               provider: {
-                id: "scrapling",
-                label: "Scrapling",
-                hint: "Fetch with Scrapling",
+                id: "spider",
+                label: "Spider",
+                hint: "Fetch with Spider",
                 envVars: [],
                 placeholder: "managed-local-sidecar",
-                signupUrl: "https://github.com/D4Vinci/Scrapling",
-                credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+                signupUrl: "https://github.com/D4Vinci/Spider",
+                credentialPath: "plugins.entries.spider-fetch.config.webFetch.apiKey",
                 requiresCredential: false,
                 getCredentialValue: () => undefined,
                 setCredentialValue() {},
@@ -158,10 +158,10 @@ describe("plugin contract registry scoped retries", () => {
     const { resolveWebFetchProviderContractEntriesForPluginId } = await import("./registry.js");
 
     expect(
-      resolveWebFetchProviderContractEntriesForPluginId("scrapling-fetch").map(
+      resolveWebFetchProviderContractEntriesForPluginId("spider-fetch").map(
         (entry) => entry.provider.id,
       ),
-    ).toEqual(["scrapling"]);
+    ).toEqual(["spider"]);
     expect(loadBundledCapabilityRuntimeRegistry).toHaveBeenCalledTimes(2);
   });
 });

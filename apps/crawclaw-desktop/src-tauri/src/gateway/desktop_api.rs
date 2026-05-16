@@ -21,7 +21,7 @@ use uuid::Uuid;
 
 use crawclaw_native_plugins::comfyui::handle_comfyui;
 use crawclaw_native_plugins::qwen3_tts::{build_synthesis_payload, synthesize_qwen3_tts};
-use crawclaw_native_plugins::web::{run_open_websearch_search, run_scrapling_fetch};
+use crawclaw_native_plugins::web::{run_searxng_search, run_spider_fetch};
 use crawclaw_plugin_host::{
     add_custom_plugin_skill, is_desktop_or_native_channel_id, load_plugin_manifest, native_channel,
     toggle_plugin_skill_open, toggle_plugin_tool_open, NativeChannelDefinition, PluginHostError,
@@ -1635,13 +1635,13 @@ async fn invoke_rust_native_plugin_tool(
 ) -> Option<Result<Value, String>> {
     match (plugin_id, tool_id) {
         ("comfyui", "comfyui_workflow") => Some(invoke_comfyui_native_tool(state, input).await),
-        ("open-websearch", "open_websearch_search") => Some(
-            run_open_websearch_search(native_tool_input(state, input))
+        ("searxng", "searxng_search") => Some(
+            run_searxng_search(native_tool_input(state, input))
                 .await
                 .map_err(|error| error.to_string()),
         ),
-        ("scrapling-fetch", "scrapling_fetch") => Some(
-            run_scrapling_fetch(native_tool_input(state, input))
+        ("spider-fetch", "spider_fetch") => Some(
+            run_spider_fetch(native_tool_input(state, input))
                 .await
                 .map_err(|error| error.to_string()),
         ),

@@ -255,7 +255,7 @@ async function runWebFetch(params: WebFetchRuntimeParams): Promise<Record<string
         detail: rawDetail,
         contentType: res.headers.get("content-type"),
       });
-      standardizeWebFetchPayload({
+      const errorPayload = standardizeWebFetchPayload({
         fetcher: "http",
         usedFallback: false,
         rendered: false,
@@ -274,7 +274,9 @@ async function runWebFetch(params: WebFetchRuntimeParams): Promise<Record<string
         tookMs: Date.now() - start,
         maxChars: 4_000,
       });
-      throw new Error(`Web fetch failed (${res.status}): ${detail || res.statusText}`);
+      const wrappedDetail =
+        typeof errorPayload.text === "string" ? errorPayload.text : detail || res.statusText;
+      throw new Error(`Web fetch failed (${res.status}): ${wrappedDetail}`);
     }
 
     const contentType = res.headers.get("content-type") ?? "application/octet-stream";

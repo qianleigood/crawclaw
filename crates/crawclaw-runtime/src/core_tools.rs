@@ -10,7 +10,7 @@ use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use async_trait::async_trait;
 use crawclaw_native_plugins::llm_task::{complete_llm_task, prepare_llm_task, LlmTaskPrepareInput};
-use crawclaw_native_plugins::web::{run_open_websearch_search, run_scrapling_fetch};
+use crawclaw_native_plugins::web::{run_searxng_search, run_spider_fetch};
 use crawclaw_plugin_sdk::{NativeToolContentBlock, NativeToolDescriptor, NativeToolResultEnvelope};
 use crawclaw_providers::{
     send_native_provider_conversation, NativeProviderConfig, NativeProviderMessage,
@@ -745,17 +745,24 @@ impl WebToolKind {
                     },
                     "provider": {
                         "type": "string",
-                        "enum": ["open-websearch"],
-                        "description": "Optional Rust-native search provider. web_search only supports Open-WebSearch."
+                        "enum": ["searxng"],
+                        "description": "Optional Rust-owned search provider. web_search only supports SearXNG."
                     },
                     "baseUrl": {
                         "type": "string",
-                        "description": "Open-WebSearch base URL."
+                        "description": "SearXNG base URL."
                     },
                     "engines": {
                         "type": "array",
                         "items": { "type": "string" }
                     },
+                    "categories": {
+                        "type": "array",
+                        "items": { "type": "string" }
+                    },
+                    "language": { "type": "string" },
+                    "safeSearch": { "type": "string", "enum": ["off", "moderate", "strict", "0", "1", "2"] },
+                    "timeRange": { "type": "string", "enum": ["day", "month", "year"] },
                     "timeoutSeconds": { "type": "number" }
                 },
                 "required": ["query"]
@@ -842,7 +849,7 @@ impl pi::sdk::Tool for WebTool {
             WebToolKind::Search => run_web_search(input)
                 .await
                 .map_err(|error| tool_error(self.kind.name(), error.to_string()))?,
-            WebToolKind::Fetch => run_scrapling_fetch(input)
+            WebToolKind::Fetch => run_spider_fetch(input)
                 .await
                 .map_err(|error| tool_error(self.kind.name(), error.to_string()))?,
         };
@@ -1056,12 +1063,12 @@ impl pi::sdk::Tool for NativePluginTool {
 
 async fn run_web_search(input: Value) -> crawclaw_native_plugins::NativeResult<Value> {
     match string_param(tool_input_params(&input), &["provider"])
-        .unwrap_or_else(|| "open-websearch".to_string())
+        .unwrap_or_else(|| "searxng".to_string())
         .as_str()
     {
-        "open-websearch" | "open_websearch" | "" => run_open_websearch_search(input).await,
+        "searxng" | "" => run_searxng_search(input).await,
         provider => Err(crawclaw_native_plugins::NativeError::InvalidInput(format!(
-            "web_search only supports open-websearch provider; got {provider}"
+            "web_search only supports searxng provider; got {provider}"
         ))),
     }
 }

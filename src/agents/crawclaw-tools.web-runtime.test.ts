@@ -138,7 +138,7 @@ describe("crawclaw tools runtime web metadata wiring", () => {
       },
     });
 
-    expect(snapshot.webTools.search.selectedProvider).toBe("open-websearch");
+    expect(snapshot.webTools.search.selectedProvider).toBe("searxng");
     const webSearch = requireWebSearchTool(snapshot.runtimeConfig, snapshot.webTools.search);
     expect(webSearch).toBeTruthy();
   });
@@ -148,7 +148,7 @@ describe("crawclaw tools runtime web metadata wiring", () => {
       config: asConfig({
         plugins: {
           entries: {
-            "scrapling-fetch": {
+            "spider-fetch": {
               enabled: false,
             },
           },

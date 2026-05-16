@@ -9,11 +9,11 @@ type WebSearchProvidersSharedModule = typeof import("./web-search-providers.shar
 
 const BUNDLED_WEB_SEARCH_PROVIDERS = [
   {
-    pluginId: "open-websearch",
-    id: "open-websearch",
+    pluginId: "searxng",
+    id: "searxng",
     order: 10,
-    envVar: "OPEN_WEBSEARCH_BASE_URL",
-    credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+    envVar: "SEARXNG_BASE_URL",
+    credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
   },
 ] as const;
 
@@ -31,9 +31,7 @@ let applyPluginAutoEnableSpy: ReturnType<typeof vi.fn>;
 let webSearchProvidersSharedModule: WebSearchProvidersSharedModule;
 
 const DEFAULT_WEB_SEARCH_WORKSPACE = "/tmp/workspace";
-const EXPECTED_BUNDLED_RUNTIME_WEB_SEARCH_PROVIDER_KEYS = [
-  "open-websearch:open-websearch",
-] as const;
+const EXPECTED_BUNDLED_RUNTIME_WEB_SEARCH_PROVIDER_KEYS = ["searxng:searxng"] as const;
 
 function buildMockedWebSearchProviders(params?: {
   config?: { plugins?: Record<string, unknown> };
@@ -86,7 +84,7 @@ function buildMockedWebSearchProviders(params?: {
 function createOpenWebSearchAllowConfig() {
   return {
     plugins: {
-      allow: ["open-websearch"],
+      allow: ["searxng"],
     },
   };
 }
@@ -130,11 +128,11 @@ function createManifestRegistryFixture() {
   return {
     plugins: [
       {
-        id: "open-websearch",
+        id: "searxng",
         origin: "bundled",
-        rootDir: "/tmp/open-websearch",
-        source: "/tmp/open-websearch/index.js",
-        manifestPath: "/tmp/open-websearch/crawclaw.plugin.json",
+        rootDir: "/tmp/searxng",
+        source: "/tmp/searxng/index.js",
+        manifestPath: "/tmp/searxng/crawclaw.plugin.json",
         providers: [],
         skills: [],
         hooks: [],
@@ -337,7 +335,7 @@ describe("resolvePluginWebSearchProviders", () => {
     const rawConfig = createOpenWebSearchAllowConfig();
     const autoEnabledConfig = {
       plugins: {
-        allow: ["open-websearch"],
+        allow: ["searxng"],
       },
     };
     applyPluginAutoEnableSpy.mockReturnValue({
@@ -350,14 +348,14 @@ describe("resolvePluginWebSearchProviders", () => {
 
     expectAutoEnabledWebSearchLoad({
       rawConfig,
-      expectedAllow: ["open-websearch"],
+      expectedAllow: ["searxng"],
     });
   });
 
   it("scopes plugin loading to manifest-declared web-search candidates", () => {
     resolvePluginWebSearchProviders({});
 
-    expectScopedWebSearchCandidates(["open-websearch"]);
+    expectScopedWebSearchCandidates(["searxng"]);
   });
 
   it("memoizes snapshot provider resolution for the same config and env", () => {
@@ -383,21 +381,21 @@ describe("resolvePluginWebSearchProviders", () => {
       autoEnabledReasons,
       workspaceDir: DEFAULT_WEB_SEARCH_WORKSPACE,
       env,
-      onlyPluginIds: ["open-websearch"],
+      onlyPluginIds: ["searxng"],
       cache: false,
       activate: false,
     });
     const registry = createEmptyPluginRegistry();
     registry.webSearchProviders.push(
       createRuntimeWebSearchProvider({
-        pluginId: "open-websearch",
-        pluginName: "Open WebSearch",
-        id: "open-websearch",
-        label: "Open WebSearch",
-        hint: "Open WebSearch runtime provider",
-        envVar: "OPEN_WEBSEARCH_BASE_URL",
-        signupUrl: "https://example.com/open-websearch",
-        credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+        pluginId: "searxng",
+        pluginName: "SearXNG",
+        id: "searxng",
+        label: "SearXNG",
+        hint: "SearXNG runtime provider",
+        envVar: "SEARXNG_BASE_URL",
+        signupUrl: "https://example.com/searxng",
+        credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
       }),
     );
     setActivePluginRegistry(registry, cacheKey);
@@ -409,7 +407,7 @@ describe("resolvePluginWebSearchProviders", () => {
       env,
     });
 
-    expectRuntimeProviderResolution(providers, ["open-websearch:open-websearch"]);
+    expectRuntimeProviderResolution(providers, ["searxng:searxng"]);
     expect(loadCrawClawPluginsMock).not.toHaveBeenCalled();
   });
 
@@ -554,21 +552,21 @@ describe("resolvePluginWebSearchProviders", () => {
           autoEnabledReasons,
           workspaceDir: DEFAULT_WEB_SEARCH_WORKSPACE,
           env,
-          onlyPluginIds: ["open-websearch"],
+          onlyPluginIds: ["searxng"],
           cache: false,
           activate: false,
         });
         const registry = createEmptyPluginRegistry();
         registry.webSearchProviders.push(
           createRuntimeWebSearchProvider({
-            pluginId: "open-websearch",
-            pluginName: "Open WebSearch",
-            id: "open-websearch",
-            label: "Open WebSearch",
-            hint: "Open WebSearch runtime provider",
-            envVar: "OPEN_WEBSEARCH_BASE_URL",
-            signupUrl: "https://example.com/open-websearch",
-            credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+            pluginId: "searxng",
+            pluginName: "SearXNG",
+            id: "searxng",
+            label: "SearXNG",
+            hint: "SearXNG runtime provider",
+            envVar: "SEARXNG_BASE_URL",
+            signupUrl: "https://example.com/searxng",
+            credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
           }),
         );
         setActivePluginRegistry(registry, cacheKey);
@@ -579,7 +577,7 @@ describe("resolvePluginWebSearchProviders", () => {
           env,
         };
       },
-      expected: ["open-websearch:open-websearch"],
+      expected: ["searxng:searxng"],
     },
   ] as const)("$name", ({ setupRegistry, params, expected }) => {
     const runtimeParams = setupRegistry() ?? params ?? {};

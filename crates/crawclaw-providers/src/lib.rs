@@ -1187,23 +1187,23 @@ pub const BUNDLED_PROVIDER_USAGE_DESCRIPTORS: &[BundledProviderUsageDescriptor] 
 pub const BUNDLED_WEB_PROVIDER_BOUNDARIES: &[BundledWebProviderBoundary] = &[
     BundledWebProviderBoundary {
         surface: "web-search",
-        plugin_id: "open-websearch",
-        provider: "open-websearch",
-        label: "Open-WebSearch",
+        plugin_id: "searxng",
+        provider: "searxng",
+        label: "SearXNG",
         product_boundary: "rust-native-plugin",
-        execution_runtime: "node-ts-js",
-        runtime_major: Some(24),
-        sidecar: Some("open-websearch"),
+        execution_runtime: "python-sidecar",
+        runtime_major: None,
+        sidecar: Some("searxng"),
     },
     BundledWebProviderBoundary {
         surface: "web-fetch",
-        plugin_id: "scrapling-fetch",
-        provider: "scrapling",
-        label: "Scrapling",
+        plugin_id: "spider-fetch",
+        provider: "spider",
+        label: "Spider",
         product_boundary: "rust-native-plugin",
-        execution_runtime: "rust-static-fetch+python-http-sidecar",
+        execution_runtime: "rust-static-fetch+spider-chrome",
         runtime_major: None,
-        sidecar: Some("scrapling"),
+        sidecar: None,
     },
 ];
 
@@ -3217,14 +3217,14 @@ mod tests {
         let web_boundaries = bundled_web_provider_boundaries();
         assert!(web_boundaries.iter().any(|entry| {
             entry.surface == "web-search"
-                && entry.provider == "open-websearch"
+                && entry.provider == "searxng"
                 && entry.product_boundary == "rust-native-plugin"
                 && entry.execution_runtime == "node-ts-js"
                 && entry.runtime_major == Some(24)
         }));
         assert!(web_boundaries.iter().any(|entry| {
             entry.surface == "web-fetch"
-                && entry.provider == "scrapling"
+                && entry.provider == "spider"
                 && entry.product_boundary == "rust-native-plugin"
         }));
     }

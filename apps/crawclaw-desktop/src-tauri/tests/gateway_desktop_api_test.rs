@@ -585,9 +585,9 @@ esac
 
 #[cfg(unix)]
 #[tokio::test]
-async fn gateway_invokes_open_websearch_tool_through_rust_native_plugin() {
+async fn gateway_invokes_searxng_tool_through_rust_native_plugin() {
     let runtime_layout = create_runtime_fixture(
-        "desktop-native-open-websearch-plugin",
+        "desktop-native-searxng-plugin",
         r#"#!/bin/sh
 case "$*" in
   *"desktop-runtime status --json"*) echo '{"ok":true,"runtime":"ready"}'; exit 0 ;;
@@ -596,7 +596,7 @@ case "$*" in
 esac
 "#,
     );
-    let base_url = spawn_open_websearch_provider().await;
+    let base_url = spawn_searxng_provider().await;
 
     let server = start_gateway_server(GatewayConfig {
         app_name: "CrawClaw Desktop".to_string(),
@@ -612,7 +612,7 @@ esac
         serde_json::to_string(&base_url).expect("base url json")
     );
     let request_body = format!(
-        "POST /api/desktop/plugins/open-websearch/tools/open_websearch_search/invoke HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
+        "POST /api/desktop/plugins/searxng/tools/searxng_search/invoke HTTP/1.1\r\nHost: 127.0.0.1\r\nContent-Type: application/json\r\nx-crawclaw-desktop-session: session\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{}",
         body.len(),
         body
     );
@@ -625,9 +625,9 @@ esac
         .expect("result items");
     assert!(result_items.iter().any(|item| {
         let text = item.as_str().unwrap_or_default();
-        text.contains("open-websearch/open_websearch_search")
-            && text.contains(r#""provider":"open-websearch""#)
-            && text.contains("Open WebSearch Result")
+        text.contains("searxng/searxng_search")
+            && text.contains(r#""provider":"searxng""#)
+            && text.contains("SearXNG Result")
     }));
 }
 
@@ -1130,10 +1130,10 @@ esac
         .expect("web provider boundaries")
         .iter()
         .any(|entry| entry["surface"] == "web-search"
-            && entry["provider"] == "open-websearch"
+            && entry["provider"] == "searxng"
             && entry["productBoundary"] == "rust-native-plugin"
-            && entry["executionRuntime"] == "node-ts-js"
-            && entry["runtimeMajor"] == 24));
+            && entry["executionRuntime"] == "python-sidecar"
+            && entry["runtimeMajor"].is_null()));
 }
 
 #[cfg(unix)]
@@ -2081,49 +2081,28 @@ async fn spawn_openai_compatible_provider(expected_text: &str, response_text: &s
 }
 
 #[cfg(unix)]
-async fn spawn_open_websearch_provider() -> String {
+async fn spawn_searxng_provider() -> String {
     let listener = tokio::net::TcpListener::bind(("127.0.0.1", 0))
         .await
-        .expect("bind open-websearch provider");
-    let addr = listener.local_addr().expect("open-websearch addr");
+        .expect("bind searxng provider");
+    let addr = listener.local_addr().expect("searxng addr");
     tokio::spawn(async move {
-        let (mut stream, _) = listener
-            .accept()
-            .await
-            .expect("accept open-websearch request");
+        let (mut stream, _) = listener.accept().await.expect("accept searxng request");
         let mut bytes = Vec::new();
         let mut buffer = [0; 4096];
-        loop {
-            let count = stream
-                .read(&mut buffer)
-                .await
-                .expect("read open-websearch request");
-            assert_ne!(count, 0, "open-websearch request closed early");
-            bytes.extend_from_slice(&buffer[..count]);
-            if let Some(header_end) = bytes.windows(4).position(|window| window == b"\r\n\r\n") {
-                let headers = String::from_utf8_lossy(&bytes[..header_end]);
-                let content_length = headers
-                    .lines()
-                    .find_map(|line| {
-                        let (name, value) = line.split_once(':')?;
-                        if name.eq_ignore_ascii_case("content-length") {
-                            value.trim().parse::<usize>().ok()
-                        } else {
-                            None
-                        }
-                    })
-                    .unwrap_or(0);
-                if bytes.len() >= header_end + 4 + content_length {
-                    break;
-                }
-            }
-        }
+        let count = stream
+            .read(&mut buffer)
+            .await
+            .expect("read searxng request");
+        assert_ne!(count, 0, "searxng request closed early");
+        bytes.extend_from_slice(&buffer[..count]);
         let request = String::from_utf8_lossy(&bytes);
-        assert!(request.starts_with("POST /open/search "));
-        assert!(request.contains(r#""query":"rust native""#));
-        assert!(request.contains(r#""engines":["bing"]"#));
+        assert!(request.starts_with("GET /open/search?"));
+        assert!(request.contains("q=rust+native"));
+        assert!(request.contains("format=json"));
+        assert!(request.contains("engines=bing"));
 
-        let body = r#"{"data":{"results":[{"title":"Open WebSearch Result","url":"https://example.com/open","description":"Desktop runtime open search","engine":"bing"}]}}"#;
+        let body = r#"{"results":[{"title":"SearXNG Result","url":"https://example.com/open","content":"Desktop runtime SearXNG search","engine":"bing"}]}"#;
         let response = format!(
             "HTTP/1.1 200 OK\r\ncontent-type: application/json\r\ncontent-length: {}\r\nconnection: close\r\n\r\n{}",
             body.len(),
@@ -2132,7 +2111,7 @@ async fn spawn_open_websearch_provider() -> String {
         stream
             .write_all(response.as_bytes())
             .await
-            .expect("write open-websearch response");
+            .expect("write searxng response");
     });
 
     format!("http://{addr}/open")

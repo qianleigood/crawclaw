@@ -1,8 +1,8 @@
 {
-  "name": "@crawclaw/scrapling-fetch-plugin",
+  "name": "@crawclaw/spider-fetch-plugin",
   "version": "2026.4.1-beta.1",
   "private": true,
-  "description": "CrawClaw Scrapling web fetch plugin",
+  "description": "CrawClaw Spider web fetch plugin",
   "type": "module",
   "crawclaw": {
     "extensions": []

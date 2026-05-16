@@ -4,7 +4,7 @@ import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 
 type TestPluginWebSearchConfig = {
   webSearch?: {
-    apiKey?: unknown;
+    baseUrl?: unknown;
   };
 };
 
@@ -84,13 +84,13 @@ describe("web search runtime", () => {
   it("executes searches through the active plugin registry", async () => {
     resolveRuntimeWebSearchProvidersMock.mockReturnValue([
       createProvider({
-        pluginId: "open-websearch",
-        id: "open-websearch",
-        credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+        pluginId: "searxng",
+        id: "searxng",
+        credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
         autoDetectOrder: 1,
         requiresCredential: false,
         createTool: () => ({
-          description: "open-websearch",
+          description: "searxng",
           parameters: {},
           execute: async (args) => ({ ...args, ok: true }),
         }),
@@ -103,25 +103,25 @@ describe("web search runtime", () => {
         args: { query: "hello" },
       }),
     ).resolves.toEqual({
-      provider: "open-websearch",
+      provider: "searxng",
       result: { query: "hello", ok: true },
     });
   });
 
-  it("uses open-websearch from canonical plugin-owned config", async () => {
+  it("uses searxng from canonical plugin-owned config", async () => {
     const provider = createProvider({
-      pluginId: "open-websearch",
-      id: "open-websearch",
-      credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+      pluginId: "searxng",
+      id: "searxng",
+      credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
       autoDetectOrder: 1,
       getConfiguredCredentialValue: (config) => {
-        const pluginConfig = config?.plugins?.entries?.["open-websearch"]?.config as
+        const pluginConfig = config?.plugins?.entries?.["searxng"]?.config as
           | TestPluginWebSearchConfig
           | undefined;
-        return pluginConfig?.webSearch?.apiKey;
+        return pluginConfig?.webSearch?.baseUrl;
       },
       createTool: () => ({
-        description: "open-websearch",
+        description: "searxng",
         parameters: {},
         execute: async (args) => ({ ...args, ok: true }),
       }),
@@ -132,11 +132,11 @@ describe("web search runtime", () => {
     const config: CrawClawConfig = {
       plugins: {
         entries: {
-          "open-websearch": {
+          searxng: {
             enabled: true,
             config: {
               webSearch: {
-                apiKey: "open-websearch-config-key",
+                baseUrl: "http://127.0.0.1:3210",
               },
             },
           },
@@ -150,25 +150,25 @@ describe("web search runtime", () => {
         args: { query: "hello" },
       }),
     ).resolves.toEqual({
-      provider: "open-websearch",
+      provider: "searxng",
       result: { query: "hello", ok: true },
     });
   });
 
-  it("treats non-env SecretRefs as configured credentials for open-websearch", async () => {
+  it("treats non-env SecretRefs as configured credentials for searxng", async () => {
     const provider = createProvider({
-      pluginId: "open-websearch",
-      id: "open-websearch",
-      credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+      pluginId: "searxng",
+      id: "searxng",
+      credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
       autoDetectOrder: 1,
       getConfiguredCredentialValue: (config) => {
-        const pluginConfig = config?.plugins?.entries?.["open-websearch"]?.config as
+        const pluginConfig = config?.plugins?.entries?.["searxng"]?.config as
           | TestPluginWebSearchConfig
           | undefined;
-        return pluginConfig?.webSearch?.apiKey;
+        return pluginConfig?.webSearch?.baseUrl;
       },
       createTool: () => ({
-        description: "open-websearch",
+        description: "searxng",
         parameters: {},
         execute: async (args) => ({ ...args, ok: true }),
       }),
@@ -179,14 +179,14 @@ describe("web search runtime", () => {
     const config: CrawClawConfig = {
       plugins: {
         entries: {
-          "open-websearch": {
+          searxng: {
             enabled: true,
             config: {
               webSearch: {
-                apiKey: {
+                baseUrl: {
                   source: "file",
                   provider: "vault",
-                  id: "/providers/open-websearch/apiKey",
+                  id: "/providers/searxng/baseUrl",
                 },
               },
             },
@@ -201,16 +201,16 @@ describe("web search runtime", () => {
         args: { query: "hello" },
       }),
     ).resolves.toEqual({
-      provider: "open-websearch",
+      provider: "searxng",
       result: { query: "hello", ok: true },
     });
   });
 
-  it("falls back to open-websearch when no credentials are available", async () => {
+  it("falls back to searxng when no credentials are available", async () => {
     resolveRuntimeWebSearchProvidersMock.mockReturnValue([
       createProvider({
-        pluginId: "open-websearch",
-        id: "open-websearch",
+        pluginId: "searxng",
+        id: "searxng",
         credentialPath: "",
         autoDetectOrder: 100,
         requiresCredential: false,
@@ -223,25 +223,25 @@ describe("web search runtime", () => {
         args: { query: "fallback" },
       }),
     ).resolves.toEqual({
-      provider: "open-websearch",
-      result: { query: "fallback", provider: "open-websearch" },
+      provider: "searxng",
+      result: { query: "fallback", provider: "searxng" },
     });
   });
 
-  it("ignores non-open-websearch runtime selections", async () => {
+  it("ignores non-searxng runtime selections", async () => {
     resolveRuntimeWebSearchProvidersMock.mockReturnValue([
       createProvider({
-        pluginId: "open-websearch",
-        id: "open-websearch",
-        credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+        pluginId: "searxng",
+        id: "searxng",
+        credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
         autoDetectOrder: 1,
         requiresCredential: false,
         createTool: ({ runtimeMetadata }) => ({
-          description: "open-websearch",
+          description: "searxng",
           parameters: {},
           execute: async (args) => ({
             ...args,
-            provider: "open-websearch",
+            provider: "searxng",
             runtimeSelectedProvider: runtimeMetadata?.selectedProvider,
           }),
         }),
@@ -290,8 +290,8 @@ describe("web search runtime", () => {
         args: { query: "runtime" },
       }),
     ).resolves.toEqual({
-      provider: "open-websearch",
-      result: { query: "runtime", provider: "open-websearch", runtimeSelectedProvider: "beta" },
+      provider: "searxng",
+      result: { query: "runtime", provider: "searxng", runtimeSelectedProvider: "beta" },
     });
   });
 });

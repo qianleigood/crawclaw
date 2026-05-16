@@ -225,10 +225,6 @@
   - changed-files:
       - any-glob-to-any-file:
           - "extensions/open-prose/**"
-"extensions: open-websearch":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "extensions/open-websearch/**"
 "extensions: openai":
   - changed-files:
       - any-glob-to-any-file:

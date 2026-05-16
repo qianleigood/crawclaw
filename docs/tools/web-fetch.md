@@ -1,8 +1,8 @@
 ---
-summary: "web_fetch tool -- context-budgeted fetching through the bundled Scrapling provider"
+summary: "web_fetch tool -- context-budgeted fetching through the bundled Spider provider"
 read_when:
   - You want to fetch a URL and extract readable content
-  - You need to configure web_fetch or its Scrapling provider
+  - You need to configure web_fetch or its Spider provider
   - You want to understand web_fetch limits and caching
 title: "Web Fetch"
 sidebarTitle: "Web Fetch"
@@ -11,7 +11,7 @@ sidebarTitle: "Web Fetch"
 # Web Fetch
 
 The `web_fetch` tool returns a context-budgeted page snapshot. By default it
-routes through the bundled `scrapling-fetch` provider after CrawClaw performs
+routes through the bundled `spider-fetch` provider after CrawClaw performs
 its normal request validation and redirect handling, then returns a `brief` response instead of
 dumping the whole page.
 
@@ -62,14 +62,16 @@ await web_fetch({ url: "https://example.com/article" });
     the provider is allowed to continue.
   </Step>
   <Step title="Default provider">
-    The bundled `scrapling-fetch` provider is the default `web_fetch` path. It
-    can honor `render`, `waitUntil`, `waitFor`, and `sessionId`, then shapes
+    The bundled `spider-fetch` provider is the default `web_fetch` path. Static
+    requests use Rust HTTP fetch; `render: "dynamic"` and `render: "stealth"`
+    use Spider's Rust Chrome integration. It can honor `render`, `waitUntil`,
+    `waitFor`, and `sessionId`, then shapes
     the result into a `brief`, `standard`, or `full` budget.
   </Step>
   <Step title="Local fallback">
-    If the provider is unavailable or returns an error-like payload, CrawClaw
-    falls back to the local HTTP + Readability path so plain pages still work
-    without Python-side dependencies.
+    `render: "auto"` and `render: "never"` stay on the Rust HTTP path. Dynamic
+    rendering returns a Spider error if the local browser capability is missing;
+    CrawClaw does not start a Python sidecar.
   </Step>
   <Step title="Cache">
     Results are cached for 15 minutes (configurable) to reduce repeated
@@ -83,15 +85,13 @@ await web_fetch({ url: "https://example.com/article" });
 {
   plugins: {
     entries: {
-      "scrapling-fetch": {
+      "spider-fetch": {
         enabled: true, // default: true
         config: {
-          service: {
-            baseUrl: "http://127.0.0.1:32119",
-            command: "python3",
-            bootstrap: true, // default: true
-            bootstrapPackages: ["Scrapling==0.4.4", "curl-cffi==0.15.0", "playwright==1.58.0"],
-            startupTimeoutMs: 15000,
+          webFetch: {
+            timeoutSeconds: 30,
+            maxChars: 50000,
+            render: "auto",
           },
         },
       },
@@ -101,7 +101,7 @@ await web_fetch({ url: "https://example.com/article" });
     web: {
       fetch: {
         enabled: true, // default: true
-        provider: "scrapling", // default bundled provider
+        provider: "spider", // default bundled provider
         maxChars: 50000, // max output chars
         maxCharsCap: 50000, // hard cap for maxChars param
         maxResponseBytes: 2000000, // max download size before truncation
@@ -116,11 +116,9 @@ await web_fetch({ url: "https://example.com/article" });
 }
 ```
 
-When `plugins.entries["scrapling-fetch"].config.service.bootstrap` is left at
-its default `true`, gateway creates a plugin-owned virtualenv under the plugin
-state directory and installs the pinned Scrapling runtime packages before the
-sidecar starts. Set it to `false` only if you manage the Python environment
-yourself.
+Spider fetch has no Python virtualenv, service command, sidecar URL, or runtime
+package bootstrap. Dynamic rendering depends on the browser capability available
+to the Rust Spider runtime.
 
 ## Limits and safety
 
@@ -129,7 +127,7 @@ yourself.
   responses are truncated with a warning
 - URL scheme and redirect count are validated before provider execution
 - Redirects are checked and limited by `maxRedirects`
-- The default bundled provider is `scrapling`
+- The default bundled provider is `spider`
 - `web_fetch` is best-effort -- some sites need the [Web Browser](/tools/browser)
 
 ## Tool profiles

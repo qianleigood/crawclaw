@@ -1,3 +1,5 @@
+#![recursion_limit = "256"]
+
 pub mod desktop {
     pub const SSE_EVENTS: &[&str] = &[
         "runtimeChanged",
@@ -1595,7 +1597,7 @@ fn tool_description(tool_id: &str) -> &'static str {
         "grep" => "Search file contents in the local workspace.",
         "find" => "Find files and directories in the local workspace.",
         "ls" => "List local files and directories.",
-        "web_search" => "Search the web through the Rust open-websearch provider.",
+        "web_search" => "Search the web through the Rust-owned SearXNG provider.",
         "web_fetch" => "Fetch static HTTP content through the Rust runtime.",
         "cron" => "Manage scheduled jobs in the Rust cron service.",
         "review_task" => "Run a local Rust review task.",
@@ -11488,7 +11490,7 @@ mod tests {
             .as_array()
             .expect("native web search providers")
             .iter()
-            .any(|provider| provider["id"] == "open-websearch"));
+            .any(|provider| provider["id"] == "searxng"));
         let tools = tools_catalog(&state, json!({}));
         assert!(tools["groups"]
             .as_array()
@@ -12544,15 +12546,15 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             .expect("web provider boundaries")
             .iter()
             .any(|entry| entry["surface"] == "web-search"
-                && entry["provider"] == "open-websearch"
+                && entry["provider"] == "searxng"
                 && entry["productBoundary"] == "rust-native-plugin"
-                && entry["executionRuntime"] == "node-ts-js"
-                && entry["runtimeMajor"] == 24));
+                && entry["executionRuntime"] == "python-sidecar"
+                && entry["runtimeMajor"].is_null()));
         assert!(models["nativeWebFetchProviders"]
             .as_array()
             .expect("native web fetch providers")
             .iter()
-            .any(|provider| provider["id"] == "scrapling"));
+            .any(|provider| provider["id"] == "spider"));
         assert!(models["nativeSpeechProviders"]
             .as_array()
             .expect("native speech providers")

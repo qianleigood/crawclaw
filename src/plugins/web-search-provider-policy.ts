@@ -1,4 +1,4 @@
-const API_KEYLESS_BUNDLED_WEB_SEARCH_PLUGIN_IDS = new Set(["open-websearch"]);
+const API_KEYLESS_BUNDLED_WEB_SEARCH_PLUGIN_IDS = new Set(["searxng"]);
 const API_KEY_BUNDLED_WEB_SEARCH_PLUGIN_IDS = new Set([
   "brave",
   "exa",

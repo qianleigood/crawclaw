@@ -19,7 +19,7 @@ import { getActiveRuntimeWebToolsMetadata } from "../secrets/runtime.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
 import { providerRequiresCredential, readProviderEnvValue } from "../utils/web-provider-runtime.js";
 
-const OPEN_WEBSEARCH_PROVIDER_ID = "open-websearch";
+const SEARXNG_PROVIDER_ID = "searxng";
 
 export type ResolveWebSearchDefinitionParams = {
   config?: CrawClawConfig;
@@ -39,7 +39,7 @@ export function resolveWebSearchEnabled(params: { search?: WebSearchConfig }): b
 function filterModelVisibleSearchProviders(
   providers: PluginWebSearchProviderEntry[],
 ): PluginWebSearchProviderEntry[] {
-  return providers.filter((provider) => provider.id === OPEN_WEBSEARCH_PROVIDER_ID);
+  return providers.filter((provider) => provider.id === SEARXNG_PROVIDER_ID);
 }
 
 function hasEntryCredential(
@@ -182,7 +182,7 @@ export function resolveWebSearchDefinition(
   const providerId =
     [options?.providerId, runtimeWebSearch?.selectedProvider, runtimeWebSearch?.providerConfigured]
       .map((value) => (typeof value === "string" ? value.trim().toLowerCase() : ""))
-      .find((value) => value === OPEN_WEBSEARCH_PROVIDER_ID) ??
+      .find((value) => value === SEARXNG_PROVIDER_ID) ??
     resolveWebSearchProviderId({ config: options?.config, search, providers });
   const provider =
     providers.find((entry) => entry.id === providerId) ??

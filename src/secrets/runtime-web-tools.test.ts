@@ -101,7 +101,7 @@ function setConfiguredProviderKey(
 function setConfiguredFetchProviderKey(configTarget: CrawClawConfig, value: unknown): void {
   const plugins = ensureRecord(configTarget as Record<string, unknown>, "plugins");
   const entries = ensureRecord(plugins, "entries");
-  const pluginEntry = ensureRecord(entries, "scrapling");
+  const pluginEntry = ensureRecord(entries, "spider");
   const config = ensureRecord(pluginEntry, "config");
   const webFetch = ensureRecord(config, "webFetch");
   webFetch.apiKey = value;
@@ -163,22 +163,22 @@ function buildTestWebSearchProviders(): PluginWebSearchProviderEntry[] {
 function buildTestWebFetchProviders(): PluginWebFetchProviderEntry[] {
   return [
     {
-      pluginId: "scrapling",
-      id: "scrapling",
-      label: "scrapling",
-      hint: "scrapling test provider",
-      envVars: ["SCRAPLING_API_KEY"],
-      placeholder: "scrapling-...",
-      signupUrl: "https://example.com/scrapling",
+      pluginId: "spider",
+      id: "spider",
+      label: "spider",
+      hint: "spider test provider",
+      envVars: ["SPIDER_API_KEY"],
+      placeholder: "spider-...",
+      signupUrl: "https://example.com/spider",
       autoDetectOrder: 50,
-      credentialPath: "plugins.entries.scrapling.config.webFetch.apiKey",
-      inactiveSecretPaths: ["plugins.entries.scrapling.config.webFetch.apiKey"],
+      credentialPath: "plugins.entries.spider.config.webFetch.apiKey",
+      inactiveSecretPaths: ["plugins.entries.spider.config.webFetch.apiKey"],
       getCredentialValue: (fetchConfig) => fetchConfig?.apiKey,
       setCredentialValue: (fetchConfigTarget, value) => {
         fetchConfigTarget.apiKey = value;
       },
       getConfiguredCredentialValue: (config) => {
-        const entryConfig = config?.plugins?.entries?.scrapling?.config;
+        const entryConfig = config?.plugins?.entries?.spider?.config;
         return entryConfig && typeof entryConfig === "object"
           ? (entryConfig as { webFetch?: { apiKey?: unknown } }).webFetch?.apiKey
           : undefined;
@@ -253,7 +253,7 @@ function expectInactiveWebFetchProviderSecretRef(params: {
     expect.arrayContaining([
       expect.objectContaining({
         code: "SECRETS_REF_IGNORED_INACTIVE_SURFACE",
-        path: "plugins.entries.scrapling.config.webFetch.apiKey",
+        path: "plugins.entries.spider.config.webFetch.apiKey",
       }),
     ]),
   );
@@ -287,10 +287,10 @@ describe("runtime web tools resolution", () => {
       config: asConfig({
         plugins: {
           entries: {
-            scrapling: {
+            spider: {
               config: {
                 webFetch: {
-                  apiKey: { source: "env", provider: "default", id: "SCRAPLING_API_KEY_REF" },
+                  apiKey: { source: "env", provider: "default", id: "SPIDER_API_KEY_REF" },
                 },
               },
             },
@@ -299,19 +299,19 @@ describe("runtime web tools resolution", () => {
         tools: {
           web: {
             fetch: {
-              provider: "scrapling",
+              provider: "spider",
             },
           },
         },
       }),
       env: {
-        SCRAPLING_API_KEY: "scrapling-runtime-key", // pragma: allowlist secret
+        SPIDER_API_KEY: "spider-runtime-key", // pragma: allowlist secret
       },
     });
 
     expect(metadata.search.selectedProvider).toBeUndefined();
     expect(metadata.search.providerSource).toBe("none");
-    expect(metadata.fetch.selectedProvider).toBe("scrapling");
+    expect(metadata.fetch.selectedProvider).toBe("spider");
     expect(metadata.fetch.selectedProviderKeySource).toBe("env");
   });
 
@@ -663,6 +663,7 @@ describe("runtime web tools resolution", () => {
   });
 
   it("uses bundled provider resolution for configured bundled providers", async () => {
+    const bundledSpy = vi.mocked(bundledWebSearchProviders.resolveBundledPluginWebSearchProviders);
     const genericSpy = vi.mocked(runtimeWebSearchProviders.resolvePluginWebSearchProviders);
 
     const { metadata } = await runRuntimeWebTools({
@@ -694,7 +695,8 @@ describe("runtime web tools resolution", () => {
     });
 
     expect(metadata.search.selectedProvider).toBe("gemini");
-    expect(genericSpy).toHaveBeenCalled();
+    expect(bundledSpy).toHaveBeenCalled();
+    expect(genericSpy).not.toHaveBeenCalled();
   });
 
   it("does not resolve web fetch provider SecretRef when web fetch is inactive", async () => {
@@ -703,10 +705,10 @@ describe("runtime web tools resolution", () => {
       config: asConfig({
         plugins: {
           entries: {
-            scrapling: {
+            spider: {
               config: {
                 webFetch: {
-                  apiKey: { source: "env", provider: "default", id: "MISSING_SCRAPLING_REF" },
+                  apiKey: { source: "env", provider: "default", id: "MISSING_SPIDER_REF" },
                 },
               },
             },
@@ -716,7 +718,7 @@ describe("runtime web tools resolution", () => {
           web: {
             fetch: {
               enabled: false,
-              provider: "scrapling",
+              provider: "spider",
             },
           },
         },
@@ -778,10 +780,10 @@ describe("runtime web tools resolution", () => {
       config: asConfig({
         plugins: {
           entries: {
-            scrapling: {
+            spider: {
               config: {
                 webFetch: {
-                  apiKey: { source: "env", provider: "default", id: "MISSING_SCRAPLING_REF" },
+                  apiKey: { source: "env", provider: "default", id: "MISSING_SPIDER_REF" },
                 },
               },
             },
@@ -790,30 +792,30 @@ describe("runtime web tools resolution", () => {
         tools: {
           web: {
             fetch: {
-              provider: "scrapling",
+              provider: "spider",
             },
           },
         },
       }),
       env: {
-        SCRAPLING_API_KEY: "scrapling-fallback-key", // pragma: allowlist secret
+        SPIDER_API_KEY: "spider-fallback-key", // pragma: allowlist secret
       },
     });
 
-    expect(metadata.fetch.selectedProvider).toBe("scrapling");
+    expect(metadata.fetch.selectedProvider).toBe("spider");
     expect(metadata.fetch.selectedProviderKeySource).toBe("env");
     expect(
       (
-        resolvedConfig.plugins?.entries?.scrapling?.config as
+        resolvedConfig.plugins?.entries?.spider?.config as
           | { webFetch?: { apiKey?: unknown } }
           | undefined
       )?.webFetch?.apiKey,
-    ).toBe("scrapling-fallback-key");
+    ).toBe("spider-fallback-key");
     expect(context.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "WEB_FETCH_PROVIDER_KEY_UNRESOLVED_FALLBACK_USED",
-          path: "plugins.entries.scrapling.config.webFetch.apiKey",
+          path: "plugins.entries.spider.config.webFetch.apiKey",
         }),
       ]),
     );
@@ -824,10 +826,10 @@ describe("runtime web tools resolution", () => {
       config: asConfig({
         plugins: {
           entries: {
-            scrapling: {
+            spider: {
               config: {
                 webFetch: {
-                  apiKey: { source: "env", provider: "default", id: "SCRAPLING_API_KEY" },
+                  apiKey: { source: "env", provider: "default", id: "SPIDER_API_KEY" },
                 },
               },
             },
@@ -835,30 +837,30 @@ describe("runtime web tools resolution", () => {
         },
       }),
       env: {
-        SCRAPLING_API_KEY: "scrapling-runtime-key",
+        SPIDER_API_KEY: "spider-runtime-key",
       },
     });
 
     expect(metadata.fetch.providerSource).toBe("auto-detect");
-    expect(metadata.fetch.selectedProvider).toBe("scrapling");
+    expect(metadata.fetch.selectedProvider).toBe("spider");
     expect(metadata.fetch.selectedProviderKeySource).toBe("secretRef");
     expect(
       (
-        resolvedConfig.plugins?.entries?.scrapling?.config as
+        resolvedConfig.plugins?.entries?.spider?.config as
           | { webFetch?: { apiKey?: unknown } }
           | undefined
       )?.webFetch?.apiKey,
-    ).toBe("scrapling-runtime-key");
+    ).toBe("spider-runtime-key");
   });
 
   it("fails fast when active web fetch provider SecretRef is unresolved with no fallback", async () => {
     const sourceConfig = asConfig({
       plugins: {
         entries: {
-          scrapling: {
+          spider: {
             config: {
               webFetch: {
-                apiKey: { source: "env", provider: "default", id: "MISSING_SCRAPLING_REF" },
+                apiKey: { source: "env", provider: "default", id: "MISSING_SPIDER_REF" },
               },
             },
           },
@@ -867,7 +869,7 @@ describe("runtime web tools resolution", () => {
       tools: {
         web: {
           fetch: {
-            provider: "scrapling",
+            provider: "spider",
           },
         },
       },
@@ -889,7 +891,7 @@ describe("runtime web tools resolution", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "WEB_FETCH_PROVIDER_KEY_UNRESOLVED_NO_FALLBACK",
-          path: "plugins.entries.scrapling.config.webFetch.apiKey",
+          path: "plugins.entries.spider.config.webFetch.apiKey",
         }),
       ]),
     );
@@ -899,7 +901,7 @@ describe("runtime web tools resolution", () => {
     const sourceConfig = asConfig({
       plugins: {
         entries: {
-          scrapling: {
+          spider: {
             config: {
               webFetch: {
                 apiKey: { source: "env", provider: "default", id: "AWS_SECRET_ACCESS_KEY" },
@@ -911,7 +913,7 @@ describe("runtime web tools resolution", () => {
       tools: {
         web: {
           fetch: {
-            provider: "scrapling",
+            provider: "spider",
           },
         },
       },
@@ -935,7 +937,7 @@ describe("runtime web tools resolution", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "WEB_FETCH_PROVIDER_KEY_UNRESOLVED_NO_FALLBACK",
-          path: "plugins.entries.scrapling.config.webFetch.apiKey",
+          path: "plugins.entries.spider.config.webFetch.apiKey",
           message: expect.stringContaining(
             'SecretRef env var "AWS_SECRET_ACCESS_KEY" is not allowed.',
           ),
@@ -955,11 +957,11 @@ describe("runtime web tools resolution", () => {
             paths: ["/tmp/malicious-plugin"],
           },
           entries: {
-            scrapling: {
+            spider: {
               enabled: true,
               config: {
                 webFetch: {
-                  apiKey: "scrapling-config-key",
+                  apiKey: "spider-config-key",
                 },
               },
             },
@@ -968,14 +970,14 @@ describe("runtime web tools resolution", () => {
         tools: {
           web: {
             fetch: {
-              provider: "scrapling",
+              provider: "spider",
             },
           },
         },
       }),
     });
 
-    expect(metadata.fetch.selectedProvider).toBe("scrapling");
+    expect(metadata.fetch.selectedProvider).toBe("spider");
     expect(bundledSpy).toHaveBeenCalled();
     expect(runtimeSpy).not.toHaveBeenCalled();
   });

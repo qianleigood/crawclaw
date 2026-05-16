@@ -819,31 +819,6 @@
     },
     {
       "capabilities": [
-        "contract"
-      ],
-      "contractKeys": [
-        "webSearchProviders"
-      ],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/open-websearch",
-      "enabledByDefault": true,
-      "id": "open-websearch",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/open-websearch/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/open-websearch/package.json",
-      "packageName": "@crawclaw/open-websearch-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.3"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "contractKeys": [],
@@ -1021,35 +996,12 @@
         "contract"
       ],
       "contractKeys": [
-        "webFetchProviders"
+        "webSearchProviders"
       ],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/scrapling-fetch",
-      "enabledByDefault": true,
-      "id": "scrapling-fetch",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/scrapling-fetch/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/scrapling-fetch/package.json",
-      "packageName": "@crawclaw/scrapling-fetch-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/searxng",
-      "enabledByDefault": false,
+      "enabledByDefault": true,
       "id": "searxng",
       "install": {
         "entryPoints": [],
@@ -1087,6 +1039,31 @@
       "providerIds": [
         "sglang"
       ],
+      "version": "2026.4.1-beta.1"
+    },
+    {
+      "capabilities": [
+        "contract"
+      ],
+      "contractKeys": [
+        "webFetchProviders"
+      ],
+      "dependencies": {},
+      "devDependencies": {},
+      "dir": "extensions/spider-fetch",
+      "enabledByDefault": true,
+      "id": "spider-fetch",
+      "install": {
+        "entryPoints": [],
+        "stageRuntimeDependencies": false
+      },
+      "manifestPath": "extensions/spider-fetch/crawclaw.plugin.json",
+      "optionalDependencies": {},
+      "packageJsonPath": "extensions/spider-fetch/package.json",
+      "packageName": "@crawclaw/spider-fetch-plugin",
+      "peerDependencies": {},
+      "private": true,
+      "providerIds": [],
       "version": "2026.4.1-beta.1"
     },
     {
@@ -1454,14 +1431,14 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "bundledPluginCount": 53,
+    "bundledPluginCount": 52,
     "capabilityCounts": {
       "contract": 6,
       "provider": 37,
       "skill": 1,
-      "support": 9
+      "support": 8
     },
-    "disabledByDefaultCount": 12,
+    "disabledByDefaultCount": 11,
     "enabledByDefaultCount": 41,
     "pluginRuntimeDependencyVersionSplits": [],
     "releasedNpmSpecPluginIds": [],

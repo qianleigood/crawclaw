@@ -4,8 +4,8 @@ import { createNonExitingRuntime } from "../runtime.js";
 import { runSearchSetupFlow } from "./search-setup.js";
 
 describe("runSearchSetupFlow", () => {
-  it("selects key-free open-websearch without prompting for an API key", async () => {
-    const select = vi.fn().mockResolvedValueOnce("open-websearch");
+  it("selects key-free searxng without prompting for an API key", async () => {
+    const select = vi.fn().mockResolvedValueOnce("searxng");
     const text = vi.fn();
     const prompter = createWizardPrompter({
       select: select as never,
@@ -13,21 +13,21 @@ describe("runSearchSetupFlow", () => {
     });
 
     const next = await runSearchSetupFlow(
-      { plugins: { allow: ["open-websearch"] } },
+      { plugins: { allow: ["searxng"] } },
       createNonExitingRuntime(),
       prompter,
     );
 
     expect(text).not.toHaveBeenCalled();
     expect(next.tools?.web?.search).toMatchObject({
-      provider: "open-websearch",
+      provider: "searxng",
       enabled: true,
     });
-    expect(next.plugins?.entries?.["open-websearch"]?.enabled).toBe(true);
+    expect(next.plugins?.entries?.["searxng"]?.enabled).toBe(true);
   });
 
   it("preserves disabled web_search state for key-free providers", async () => {
-    const select = vi.fn().mockResolvedValueOnce("open-websearch");
+    const select = vi.fn().mockResolvedValueOnce("searxng");
     const prompter = createWizardPrompter({
       select: select as never,
     });
@@ -35,12 +35,12 @@ describe("runSearchSetupFlow", () => {
     const next = await runSearchSetupFlow(
       {
         plugins: {
-          allow: ["open-websearch"],
+          allow: ["searxng"],
         },
         tools: {
           web: {
             search: {
-              provider: "open-websearch",
+              provider: "searxng",
               enabled: false,
             },
           },
@@ -51,7 +51,7 @@ describe("runSearchSetupFlow", () => {
     );
 
     expect(next.tools?.web?.search).toMatchObject({
-      provider: "open-websearch",
+      provider: "searxng",
       enabled: false,
     });
   });

@@ -31,9 +31,9 @@ const ignoredDirNames = new Set([
   "node_modules",
 ]);
 
-const bundledProviderPluginToFetchProvider = new Map([["scrapling-fetch", "scrapling"]]);
+const bundledProviderPluginToFetchProvider = new Map([["spider-fetch", "spider"]]);
 
-const providerIds = new Set(["scrapling", "shared"]);
+const providerIds = new Set(["spider", "shared"]);
 
 const allowedGenericFiles = new Set([
   "src/secrets/runtime-web-tools.ts",
@@ -114,7 +114,7 @@ function scanWebFetchProviderRegistry(lines, relativeFile, inventory) {
       });
     }
 
-    const providerMatch = line.match(/id:\s*"(scrapling)"/);
+    const providerMatch = line.match(/id:\s*"(spider)"/);
     if (providerMatch) {
       pushEntry(inventory, {
         provider: providerMatch[1],

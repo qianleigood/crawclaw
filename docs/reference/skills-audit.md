@@ -85,7 +85,6 @@ The skill pack is now fully on the thin `SKILL.md` + deeper `references/` patter
 - `jimeng-seedance-web`
 - `video-frames`
 - `bing-search-cn`
-- `scrapling-official`
 - `xhs-auto-import`
 - `ima-skill`
 - `gpt-best-image`

@@ -238,7 +238,6 @@ describe("collectMissingPackPaths", () => {
     expect(missing).toEqual(
       expect.arrayContaining([
         "docs/reference/templates/AGENTS.md",
-        "extensions/scrapling-fetch/runtime/requirements.lock.txt",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",
@@ -256,7 +255,6 @@ describe("collectMissingPackPaths", () => {
         "dist/native/crawclaw-native-plugins",
         ...requiredBundledPluginPackPaths,
         ...requiredPluginSdkPackPaths,
-        "extensions/scrapling-fetch/runtime/requirements.lock.txt",
         "scripts/npm-runner.mjs",
         "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",

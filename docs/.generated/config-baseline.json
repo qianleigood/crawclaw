@@ -4381,7 +4381,7 @@
         "advanced"
       ],
       "label": "Browser Provider",
-      "help": "Browser runtime provider. CrawClaw ships the agent-browser-backed automation path.",
+      "help": "Browser runtime provider. CrawClaw ships the native agent-browser binary automation path.",
       "hasChildren": false
     },
     {
@@ -14566,183 +14566,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.open-websearch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/open-websearch-plugin",
-      "help": "CrawClaw Open-WebSearch plugin (plugin: open-websearch)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-websearch.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/open-websearch-plugin Config",
-      "help": "Plugin-defined config payload for open-websearch.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-websearch.config.webSearch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-websearch.config.webSearch.autoStart",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Auto-start managed daemon",
-      "help": "Start and keep the bundled open-websearch daemon running with gateway startup.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-websearch.config.webSearch.baseUrl",
-      "kind": "plugin",
-      "type": [
-        "object",
-        "string"
-      ],
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "url-secret"
-      ],
-      "label": "Open-WebSearch Base URL",
-      "help": "Optional override for the managed local daemon URL, such as http://127.0.0.1:3210.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-websearch.config.webSearch.host",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Managed daemon host",
-      "help": "Loopback host used for the managed open-websearch daemon.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-websearch.config.webSearch.port",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Managed daemon port",
-      "help": "Loopback port used for the managed open-websearch daemon.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-websearch.config.webSearch.startupTimeoutMs",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "performance"
-      ],
-      "label": "Managed daemon startup timeout",
-      "help": "How long CrawClaw waits for the managed open-websearch daemon to become ready.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-websearch.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/open-websearch-plugin",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-websearch.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-websearch.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.open-websearch.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.open-websearch.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.openai",
       "kind": "plugin",
       "type": "object",
@@ -15451,320 +15274,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.scrapling-fetch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/scrapling-fetch-plugin",
-      "help": "CrawClaw Scrapling web fetch plugin (plugin: scrapling-fetch)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/scrapling-fetch-plugin Config",
-      "help": "Plugin-defined config payload for scrapling-fetch.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.args",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.args.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "url-secret"
-      ],
-      "label": "Scrapling Service Base URL",
-      "help": "Base URL for the managed Scrapling Python/HTTP sidecar service.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.bootstrap",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Managed Scrapling Bootstrap",
-      "help": "Create and maintain a plugin-owned Python virtual environment before starting the sidecar.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.bootstrapPackages",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Managed Scrapling Packages",
-      "help": "Pinned Python packages installed into the managed Scrapling virtual environment.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.bootstrapPackages.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.command",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Scrapling Service Command",
-      "help": "Command used to launch the Scrapling Python service.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.fetchPath",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "storage"
-      ],
-      "label": "Scrapling Service Fetch Path",
-      "help": "HTTP path served by the Scrapling sidecar fetch endpoint.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.healthcheckPath",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.mode",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "enumValues": [
-        "python-http"
-      ],
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.service.startupTimeoutMs",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "performance"
-      ],
-      "label": "Scrapling Service Startup Timeout",
-      "help": "How long CrawClaw should wait for the Scrapling service to become ready.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.webFetch",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
-      "kind": "plugin",
-      "type": [
-        "object",
-        "string"
-      ],
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": [
-        "auth",
-        "security"
-      ],
-      "label": "Scrapling Fetch API Key",
-      "help": "Reserved for optional Scrapling HTTP service auth. Phase 2 keeps the field for compatibility.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.webFetch.baseUrl",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced",
-        "url-secret"
-      ],
-      "label": "Scrapling Fetch Base URL",
-      "help": "Override the base URL used by the Scrapling fetch client.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.webFetch.onlyMainContent",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.config.webFetch.timeoutSeconds",
-      "kind": "plugin",
-      "type": "number",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/scrapling-fetch-plugin",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.scrapling-fetch.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.searxng",
       "kind": "plugin",
       "type": "object",
@@ -15803,6 +15312,20 @@
       "hasChildren": true
     },
     {
+      "path": "plugins.entries.searxng.config.webSearch.autoStart",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Auto-start managed daemon",
+      "help": "Start the bundled local SearXNG sidecar when web_search needs it.",
+      "hasChildren": false
+    },
+    {
       "path": "plugins.entries.searxng.config.webSearch.baseUrl",
       "kind": "plugin",
       "type": [
@@ -15817,7 +15340,7 @@
         "url-secret"
       ],
       "label": "SearXNG Base URL",
-      "help": "Base URL of your SearXNG instance, such as http://localhost:8080 or https://search.example.com/searxng.",
+      "help": "Optional override for the managed local SearXNG URL, such as http://127.0.0.1:3210 or https://search.example.com/searxng.",
       "hasChildren": false
     },
     {
@@ -15835,6 +15358,35 @@
       "hasChildren": false
     },
     {
+      "path": "plugins.entries.searxng.config.webSearch.healthPath",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "reliability",
+        "storage"
+      ],
+      "label": "Managed daemon health path",
+      "help": "HTTP path CrawClaw probes before starting the managed local SearXNG sidecar.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.searxng.config.webSearch.host",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Managed daemon host",
+      "help": "Loopback host used for the managed local SearXNG sidecar.",
+      "hasChildren": false
+    },
+    {
       "path": "plugins.entries.searxng.config.webSearch.language",
       "kind": "plugin",
       "type": "string",
@@ -15846,6 +15398,34 @@
       ],
       "label": "SearXNG Language",
       "help": "Optional language code for results such as en, de, or fr.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.searxng.config.webSearch.port",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Managed daemon port",
+      "help": "Loopback port used for the managed local SearXNG sidecar.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.searxng.config.webSearch.startupTimeoutMs",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "performance"
+      ],
+      "label": "Managed daemon startup timeout",
+      "help": "How long CrawClaw waits for the managed local SearXNG sidecar to become ready.",
       "hasChildren": false
     },
     {
@@ -15994,6 +15574,157 @@
     },
     {
       "path": "plugins.entries.sglang.subagent.allowModelOverride",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Allow Plugin Subagent Model Override",
+      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.spider-fetch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/spider-fetch-plugin",
+      "help": "CrawClaw Spider web fetch plugin (plugin: spider-fetch)",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.spider-fetch.config",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "@crawclaw/spider-fetch-plugin Config",
+      "help": "Plugin-defined config payload for spider-fetch.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.spider-fetch.config.webFetch",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.spider-fetch.config.webFetch.maxChars",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "performance"
+      ],
+      "label": "Spider Fetch Max Characters",
+      "help": "Maximum extracted characters returned by the Spider fetch provider.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.spider-fetch.config.webFetch.render",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "enumValues": [
+        "auto",
+        "never",
+        "dynamic",
+        "stealth"
+      ],
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Spider Fetch Render Mode",
+      "help": "Default render mode for web_fetch requests when the tool input does not specify one.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.spider-fetch.config.webFetch.timeoutSeconds",
+      "kind": "plugin",
+      "type": "number",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "performance"
+      ],
+      "label": "Spider Fetch Timeout",
+      "help": "Maximum time CrawClaw waits for static HTTP or Spider browser-rendered fetches.",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.spider-fetch.enabled",
+      "kind": "plugin",
+      "type": "boolean",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Enable @crawclaw/spider-fetch-plugin",
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.spider-fetch.subagent",
+      "kind": "plugin",
+      "type": "object",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "advanced"
+      ],
+      "label": "Plugin Subagent Policy",
+      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.spider-fetch.subagent.allowedModels",
+      "kind": "plugin",
+      "type": "array",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [
+        "access"
+      ],
+      "label": "Plugin Subagent Allowed Models",
+      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
+      "hasChildren": true
+    },
+    {
+      "path": "plugins.entries.spider-fetch.subagent.allowedModels.*",
+      "kind": "plugin",
+      "type": "string",
+      "required": false,
+      "deprecated": false,
+      "sensitive": false,
+      "tags": [],
+      "hasChildren": false
+    },
+    {
+      "path": "plugins.entries.spider-fetch.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,

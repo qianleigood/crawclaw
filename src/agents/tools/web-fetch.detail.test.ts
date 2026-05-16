@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { CrawClawConfig } from "../../config/config.js";
 import * as ssrf from "../../infra/net/ssrf.js";
 import { withFetchPreconnect } from "../../test-utils/fetch-mock.js";
 import { makeFetchHeaders } from "./web-fetch.test-harness.js";
@@ -46,7 +47,7 @@ describe("web_fetch detail shaping", () => {
       config: {
         plugins: {
           entries: {
-            "scrapling-fetch": {
+            "spider-fetch": {
               enabled: false,
             },
           },
@@ -55,10 +56,11 @@ describe("web_fetch detail shaping", () => {
           web: {
             fetch: {
               cacheTtlMinutes: 0,
+              spider: { enabled: false },
             },
           },
         },
-      },
+      } as unknown as CrawClawConfig,
     });
 
     const result = await tool?.execute?.("call", { url: "https://example.com/article" });
@@ -101,7 +103,7 @@ describe("web_fetch detail shaping", () => {
       config: {
         plugins: {
           entries: {
-            "scrapling-fetch": {
+            "spider-fetch": {
               enabled: false,
             },
           },
@@ -110,10 +112,11 @@ describe("web_fetch detail shaping", () => {
           web: {
             fetch: {
               cacheTtlMinutes: 0,
+              spider: { enabled: false },
             },
           },
         },
-      },
+      } as unknown as CrawClawConfig,
     });
 
     const result = await tool?.execute?.("call", {

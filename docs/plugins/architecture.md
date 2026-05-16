@@ -30,7 +30,7 @@ native CrawClaw plugin registers against one or more capability types:
 | ------------------- | ---------------------- | ------------------ |
 | Speech              | Rust native descriptor | `qwen3-tts`        |
 | Media understanding | Rust native descriptor | `openai`, `google` |
-| Web search          | Rust native descriptor | `open-websearch`   |
+| Web search          | Rust native descriptor | `searxng`          |
 
 A plugin that registers zero capabilities but provides tools, commands, or
 services is a **non-capability** plugin.

@@ -36,8 +36,8 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
     pluginId: "openai",
   },
   {
-    pluginId: "open-websearch",
-    webSearchProviderIds: ["open-websearch"],
+    pluginId: "searxng",
+    webSearchProviderIds: ["searxng"],
   },
   {
     pluginId: "qwen3-tts",
@@ -45,8 +45,8 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
     requireSpeechVoices: true,
   },
   {
-    pluginId: "scrapling-fetch",
-    webFetchProviderIds: ["scrapling"],
+    pluginId: "spider-fetch",
+    webFetchProviderIds: ["spider"],
   },
   {
     pluginId: "openrouter",

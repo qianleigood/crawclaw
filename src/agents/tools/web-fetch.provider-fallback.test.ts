@@ -15,6 +15,29 @@ vi.mock("../../web-fetch/runtime.js", async (importOriginal) => {
   };
 });
 
+function withWebFetchProvider(config: CrawClawConfig = {}, provider = "spider"): CrawClawConfig {
+  return {
+    ...config,
+    plugins: {
+      ...config.plugins,
+      entries: {
+        ...config.plugins?.entries,
+        "spider-fetch": { enabled: false },
+      },
+    },
+    tools: {
+      ...config.tools,
+      web: {
+        ...config.tools?.web,
+        fetch: {
+          ...config.tools?.web?.fetch,
+          provider,
+        },
+      },
+    },
+  };
+}
+
 describe("web_fetch provider fallback normalization", () => {
   const priorFetch = global.fetch;
 
@@ -52,15 +75,18 @@ describe("web_fetch provider fallback normalization", () => {
     });
 
     const tool = createWebFetchTool({
-      config: {
-        tools: {
-          web: {
-            fetch: {
-              maxChars: 800,
+      config: withWebFetchProvider(
+        {
+          tools: {
+            web: {
+              fetch: {
+                maxChars: 800,
+              },
             },
           },
-        },
-      } as CrawClawConfig,
+        } as CrawClawConfig,
+        "sample-fetch",
+      ),
     });
 
     const result = await tool?.execute?.("call-provider-fallback", {
@@ -112,7 +138,7 @@ describe("web_fetch provider fallback normalization", () => {
     });
 
     const tool = createWebFetchTool({
-      config: {} as CrawClawConfig,
+      config: withWebFetchProvider({}, "sample-fetch"),
     });
 
     const result = await tool?.execute?.("call-provider-fallback", {
@@ -137,16 +163,16 @@ describe("web_fetch provider fallback normalization", () => {
       text: "provider body",
     }));
     resolveWebFetchDefinitionMock.mockReturnValue({
-      provider: { id: "scrapling" },
+      provider: { id: "spider" },
       definition: {
-        description: "scrapling",
+        description: "spider",
         parameters: {},
         execute: providerExecute,
       },
     });
 
     const tool = createWebFetchTool({
-      config: {} as CrawClawConfig,
+      config: withWebFetchProvider(),
     });
 
     await tool?.execute?.("call-provider-detail", {
@@ -189,16 +215,16 @@ describe("web_fetch provider fallback normalization", () => {
       text: `provider body for ${input.sessionId}`,
     }));
     resolveWebFetchDefinitionMock.mockReturnValue({
-      provider: { id: "scrapling" },
+      provider: { id: "spider" },
       definition: {
-        description: "scrapling",
+        description: "spider",
         parameters: {},
         execute: providerExecute,
       },
     });
 
     const tool = createWebFetchTool({
-      config: {} as CrawClawConfig,
+      config: withWebFetchProvider(),
     });
 
     await tool?.execute?.("call-provider-session-a", {
@@ -232,23 +258,23 @@ describe("web_fetch provider fallback normalization", () => {
       finalUrl: "https://example.com/provider-first",
       status: 200,
       contentType: "text/plain",
-      extractor: "scrapling",
-      fetcher: "scrapling:fetcher",
+      extractor: "spider",
+      fetcher: "spider:fetcher",
       usedFallback: false,
       text: "Provider body wins.",
       title: "Provider title",
     }));
     resolveWebFetchDefinitionMock.mockReturnValue({
-      provider: { id: "scrapling" },
+      provider: { id: "spider" },
       definition: {
-        description: "scrapling",
+        description: "spider",
         parameters: {},
         execute: providerExecute,
       },
     });
 
     const tool = createWebFetchTool({
-      config: {} as CrawClawConfig,
+      config: withWebFetchProvider(),
     });
 
     const result = await tool?.execute?.("call-provider-primary", {
@@ -267,8 +293,8 @@ describe("web_fetch provider fallback normalization", () => {
         url: "https://example.com/provider-first",
       }),
     );
-    expect(details.fetcher).toBe("scrapling:fetcher");
-    expect(details.extractor).toBe("scrapling");
+    expect(details.fetcher).toBe("spider:fetcher");
+    expect(details.extractor).toBe("spider");
     expect(details.usedFallback).toBe(false);
     expect(details.text).toContain("Provider body wins");
     expect(details.title).toContain("Provider title");

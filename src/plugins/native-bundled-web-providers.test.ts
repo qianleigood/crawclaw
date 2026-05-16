@@ -21,12 +21,12 @@ describe("native bundled web providers", () => {
     callGateway.mockClear();
   });
 
-  it("routes open-websearch provider tools through the Rust runtime worker", async () => {
-    const [provider] = nativeBundledWebSearchProvidersForPlugin("open-websearch");
+  it("routes searxng provider tools through the Rust runtime worker", async () => {
+    const [provider] = nativeBundledWebSearchProvidersForPlugin("searxng");
     const config = {
       plugins: {
         entries: {
-          "open-websearch": {
+          searxng: {
             enabled: true,
             config: { webSearch: { baseUrl: "http://127.0.0.1:3210" } },
           },
@@ -57,12 +57,12 @@ describe("native bundled web providers", () => {
     });
   });
 
-  it("routes scrapling-fetch provider tools through the Rust runtime worker", async () => {
-    const [provider] = nativeBundledWebFetchProvidersForPlugin("scrapling-fetch");
+  it("routes spider-fetch provider tools through the Rust runtime worker", async () => {
+    const [provider] = nativeBundledWebFetchProvidersForPlugin("spider-fetch");
     const config = {
       plugins: {
         entries: {
-          "scrapling-fetch": {
+          "spider-fetch": {
             enabled: true,
             config: { webFetch: { timeoutSeconds: 20 } },
           },

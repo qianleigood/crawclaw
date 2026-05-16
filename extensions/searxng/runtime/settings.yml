@@ -1,0 +1,13 @@
+use_default_settings: true
+
+search:
+  formats:
+    - html
+    - json
+
+server:
+  bind_address: "127.0.0.1"
+  port: 3210
+  public_instance: false
+  limiter: false
+  secret_key: "crawclaw-local-searxng"

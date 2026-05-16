@@ -25,14 +25,14 @@ const getConfiguredPluginWebSearchCredential =
 
 const mockWebSearchProviders = [
   {
-    id: "open-websearch",
-    envVars: ["OPEN_WEBSEARCH_BASE_URL"],
-    credentialPath: "plugins.entries.open-websearch.config.webSearch.baseUrl",
+    id: "searxng",
+    envVars: ["SEARXNG_BASE_URL"],
+    credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
     requiresCredential: false,
     getCredentialValue: (search?: Record<string, unknown>) =>
-      (search?.["open-websearch"] as { baseUrl?: unknown } | undefined)?.baseUrl,
+      (search?.["searxng"] as { baseUrl?: unknown } | undefined)?.baseUrl,
     getConfiguredCredentialValue: (config?: Record<string, unknown>) =>
-      getConfiguredPluginWebSearchConfig("open-websearch")(config)?.baseUrl,
+      getConfiguredPluginWebSearchConfig("searxng")(config)?.baseUrl,
   },
   {
     id: "brave",
@@ -68,15 +68,6 @@ const mockWebSearchProviders = [
     credentialPath: "plugins.entries.perplexity.config.webSearch.apiKey",
     getCredentialValue: getScopedWebSearchCredential("perplexity"),
     getConfiguredCredentialValue: getConfiguredPluginWebSearchCredential("perplexity"),
-  },
-  {
-    id: "searxng",
-    envVars: ["SEARXNG_BASE_URL"],
-    credentialPath: "plugins.entries.searxng.config.webSearch.baseUrl",
-    getCredentialValue: (search?: Record<string, unknown>) =>
-      (search?.searxng as { baseUrl?: unknown } | undefined)?.baseUrl,
-    getConfiguredCredentialValue: (config?: Record<string, unknown>) =>
-      getConfiguredPluginWebSearchConfig("searxng")(config)?.baseUrl,
   },
 ] as const;
 
@@ -238,7 +229,6 @@ describe("web search provider auto-detection", () => {
   const savedEnv = { ...process.env };
 
   beforeEach(() => {
-    delete process.env.OPEN_WEBSEARCH_BASE_URL;
     delete process.env.BRAVE_API_KEY;
     delete process.env.GEMINI_API_KEY;
     delete process.env.KIMI_API_KEY;
@@ -256,17 +246,17 @@ describe("web search provider auto-detection", () => {
     vi.restoreAllMocks();
   });
 
-  it("falls back to open-websearch when no keys are available", () => {
-    expect(resolveSearchProvider({})).toBe("open-websearch");
+  it("falls back to searxng when no keys are available", () => {
+    expect(resolveSearchProvider({})).toBe("searxng");
   });
 
-  it("keeps model-visible web search on open-websearch when legacy provider keys exist", () => {
+  it("keeps model-visible web search on searxng when legacy provider keys exist", () => {
     process.env.BRAVE_API_KEY = "test-brave-key"; // pragma: allowlist secret
     process.env.GEMINI_API_KEY = "test-gemini-key"; // pragma: allowlist secret
     process.env.KIMI_API_KEY = "test-kimi-key"; // pragma: allowlist secret
     process.env.PERPLEXITY_API_KEY = "test-perplexity-key"; // pragma: allowlist secret
     process.env.XAI_API_KEY = "test-xai-key"; // pragma: allowlist secret
-    expect(resolveSearchProvider({})).toBe("open-websearch");
+    expect(resolveSearchProvider({})).toBe("searxng");
   });
 
   it("ignores explicit legacy providers for the model-visible web search entrypoint", () => {
@@ -274,6 +264,6 @@ describe("web search provider auto-detection", () => {
       resolveSearchProvider({ provider: "gemini" } as unknown as Parameters<
         typeof resolveSearchProvider
       >[0]),
-    ).toBe("open-websearch");
+    ).toBe("searxng");
   });
 });

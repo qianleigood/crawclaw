@@ -236,7 +236,7 @@ export const FIELD_HELP: Record<string, string> = {
   "browser.enabled":
     "Enables browser capability wiring in the gateway so browser tools and CDP-driven workflows can run. Disable when browser automation is not needed to reduce surface area and startup work.",
   "browser.provider":
-    "Browser runtime provider. CrawClaw ships the agent-browser-backed automation path.",
+    "Browser runtime provider. CrawClaw ships the native agent-browser binary automation path.",
   "browser.cdpUrl":
     "Remote CDP URL used to attach to an externally managed browser instance. Use this for centralized browser hosts and keep access restricted to trusted network paths.",
   "browser.color":

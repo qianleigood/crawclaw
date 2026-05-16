@@ -76,8 +76,10 @@ Local onboarding keeps the `coding` tool profile for new configs. The native
 ## agent-browser execution engine
 
 CrawClaw now runs the `browser` tool through Rust native dispatch. The handler
-spawns the managed `agent-browser` CLI with JSON output and maps the response
-back into CrawClaw tool content.
+spawns the managed native `agent-browser` binary with JSON output and maps the
+response back into CrawClaw tool content. The desktop runtime stages this binary
+under `runtimes/browser/bin/agent-browser`; it does not embed the old
+`node_modules/.bin/agent-browser` wrapper.
 
 Current scope:
 

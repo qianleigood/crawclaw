@@ -8,19 +8,30 @@ import {
   resolveCrawClawDesktopTauriRuntimeStagePaths,
   stageCrawClawDesktopTauriRuntime,
 } from "../../scripts/crawclaw-desktop-tauri-runtime.mjs";
+import { resolveAgentBrowserRuntimePaths } from "../../scripts/stage-agent-browser-runtime.mjs";
+import { resolveSearxngRuntimePaths } from "../../scripts/stage-searxng-runtime.mjs";
 
 void describe("crawclaw tauri desktop runtime staging", () => {
   void it("stages the embedded CrawClaw runtime under the Tauri app", () => {
     const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-stage-"));
     const paths = resolveCrawClawDesktopTauriRuntimeStagePaths(rootDir);
-    const node24Root = writeSourceNode24Runtime(rootDir);
+    const searxngPaths = resolveSearxngRuntimePaths(paths.runtimeRoot);
+    const agentBrowserPaths = resolveAgentBrowserRuntimePaths(paths.runtimeRoot);
+    const sourceAgentBrowserBin = path.join(rootDir, "agent-browser-native");
+    writeSearxngRuntimeAssets(rootDir);
+    fs.writeFileSync(sourceAgentBrowserBin, "#!/bin/sh\nexit 0\n", "utf8");
+    fs.chmodSync(sourceAgentBrowserBin, 0o755);
     fs.mkdirSync(paths.runtimeRoot, { recursive: true });
     fs.writeFileSync(path.join(paths.runtimeRoot, "stale.txt"), "stale\n", "utf8");
 
     const calls = [];
     stageCrawClawDesktopTauriRuntime({
       rootDir,
-      env: { PATH: "/usr/bin", CRAWCLAW_DESKTOP_NODE24_ROOT: node24Root },
+      env: {
+        PATH: "/usr/bin",
+        CRAWCLAW_SEARXNG_PYTHON: "python3",
+        CRAWCLAW_AGENT_BROWSER_NATIVE_BIN: sourceAgentBrowserBin,
+      },
       runCommand({ cwd, command, args, env }) {
         calls.push({ cwd, command, args, env });
         if (command === "cargo" && args.includes("build")) {
@@ -33,8 +44,8 @@ void describe("crawclaw tauri desktop runtime staging", () => {
         if (command === paths.sourceRuntimeBinaryPath && args[0] === "stage") {
           writeRuntimeManifests(paths.runtimeRoot);
         }
-        if (command === paths.nodeBinaryPath && args.includes("agent-browser@0.27.0")) {
-          writeEmbeddedBrowserRuntime(paths.runtimeRoot);
+        if (command === "python3" && args[0] === "-m" && args[1] === "venv") {
+          writeSearxngPythonRuntime(searxngPaths.pythonPath);
         }
         return { status: 0, signal: null, stdout: "", stderr: "" };
       },
@@ -63,17 +74,23 @@ void describe("crawclaw tauri desktop runtime staging", () => {
           args: ["stage", "--output", paths.runtimeRoot],
         },
         {
-          cwd: paths.runtimeRoot,
-          command: paths.nodeBinaryPath,
+          cwd: searxngPaths.runtimeDir,
+          command: "python3",
+          args: ["-m", "venv", searxngPaths.venvDir],
+        },
+        {
+          cwd: searxngPaths.runtimeDir,
+          command: searxngPaths.pythonPath,
+          args: ["-m", "pip", "install", "--upgrade", "pip"],
+        },
+        {
+          cwd: searxngPaths.runtimeDir,
+          command: searxngPaths.pythonPath,
           args: [
-            path.join(paths.nodeRuntimeRoot, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
+            "-m",
+            "pip",
             "install",
-            "--global=false",
-            "--prefix",
-            path.join(paths.runtimeRoot, "runtimes", "browser"),
-            "--no-save",
-            "--package-lock=false",
-            "agent-browser@0.27.0",
+            "git+https://github.com/searxng/searxng@afafca93f30939f213c1bc3fa3379e5ed883122d",
           ],
         },
       ],
@@ -83,28 +100,20 @@ void describe("crawclaw tauri desktop runtime staging", () => {
       calls.at(-1).env.CRAWCLAW_PLUGIN_RUNTIMES_DIR,
       path.join(paths.runtimeRoot, "runtimes"),
     );
-    assert.equal(calls.at(-1).env.CRAWCLAW_DESKTOP_NODE24_BIN, paths.nodeBinaryPath);
-    assert.ok(calls.at(-1).env.PATH.startsWith(path.dirname(paths.nodeBinaryPath)));
     assert.equal(calls.at(-1).env.CRAWCLAW_RUNTIME_INSTALL_PROFILE, undefined);
     assert.equal(fs.existsSync(path.join(paths.runtimeRoot, "stale.txt")), false);
     assert.equal(fs.existsSync(paths.runtimeBinaryPath), true);
     assert.equal(fs.existsSync(paths.gatewayBinaryPath), true);
     assert.equal(fs.existsSync(paths.nativePluginsBinaryPath), true);
     assert.equal(fs.existsSync(path.join(paths.runtimeRoot, "bin", "crawclaw")), false);
-    assert.equal(fs.existsSync(paths.nodeBinaryPath), true);
-    assert.equal(fs.existsSync(paths.npmBinaryPath), true);
+    assert.equal(fs.existsSync(searxngPaths.pythonPath), true);
+    assert.equal(fs.existsSync(searxngPaths.settingsPath), true);
+    assert.equal(fs.existsSync(searxngPaths.manifestPath), true);
+    assert.equal(fs.existsSync(agentBrowserPaths.binaryPath), true);
+    assert.equal(fs.existsSync(agentBrowserPaths.manifestPath), true);
     assert.equal(
-      fs.existsSync(
-        path.join(
-          paths.runtimeRoot,
-          "runtimes",
-          "browser",
-          "node_modules",
-          ".bin",
-          "agent-browser",
-        ),
-      ),
-      true,
+      fs.existsSync(path.join(paths.runtimeRoot, "runtimes", "browser", "node_modules")),
+      false,
     );
   });
 
@@ -174,9 +183,9 @@ void describe("crawclaw tauri desktop runtime staging", () => {
     }
   });
 
-  void it("release check rejects missing embedded agent-browser runtime", () => {
-    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-browser-runtime-"));
-    writeReleaseFixture(rootDir, { omitBrowserRuntime: true });
+  void it("release check rejects missing embedded SearXNG runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-searxng-runtime-"));
+    writeReleaseFixture(rootDir, { omitSearxngRuntime: true });
 
     assert.throws(
       () =>
@@ -187,7 +196,24 @@ void describe("crawclaw tauri desktop runtime staging", () => {
             return { status: 0, signal: null, stdout: "", stderr: "" };
           },
         }),
-      /embedded agent-browser CLI/,
+      /embedded SearXNG Python runtime/,
+    );
+  });
+
+  void it("release check rejects missing embedded agent-browser native runtime", () => {
+    const rootDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-tauri-browser-runtime-"));
+    writeReleaseFixture(rootDir, { omitAgentBrowserRuntime: true });
+
+    assert.throws(
+      () =>
+        assertCrawClawDesktopTauriReleaseInputs({
+          rootDir,
+          checkGeneratedPaths: false,
+          spawnSyncImpl() {
+            return { status: 0, signal: null, stdout: "", stderr: "" };
+          },
+        }),
+      /embedded agent-browser native runtime/,
     );
   });
 
@@ -255,7 +281,7 @@ void describe("crawclaw tauri desktop runtime staging", () => {
             return { status: 0, signal: null, stdout: "", stderr: "" };
           },
         }),
-      /must advertise the bundled Node plugin runtime/,
+      /must not advertise a JS plugin runtime/,
     );
   });
 
@@ -404,9 +430,11 @@ function writeReleaseFixture(rootDir, options = {}) {
       "utf8",
     );
   }
-  writeNode24Runtime(paths.nodeRuntimeRoot);
-  if (!options.omitBrowserRuntime) {
-    writeEmbeddedBrowserRuntime(paths.runtimeRoot);
+  if (!options.omitSearxngRuntime) {
+    writeSearxngRuntimeFixture(paths.runtimeRoot);
+  }
+  if (!options.omitAgentBrowserRuntime) {
+    writeAgentBrowserRuntimeFixture(paths.runtimeRoot);
   }
   if (options.legacyElectron) {
     fs.mkdirSync(path.join(rootDir, "apps", "crawclaw-admin-desktop"), { recursive: true });
@@ -483,9 +511,11 @@ function writeReleaseFixture(rootDir, options = {}) {
       pluginManifestJson(options),
       "utf8",
     );
-    writeNode24Runtime(path.join(packagedRoot, "runtimes", "node-v24"));
-    if (!options.omitBrowserRuntime) {
-      writeEmbeddedBrowserRuntime(packagedRoot);
+    if (!options.omitSearxngRuntime) {
+      writeSearxngRuntimeFixture(packagedRoot);
+    }
+    if (!options.omitAgentBrowserRuntime) {
+      writeAgentBrowserRuntimeFixture(packagedRoot);
     }
     if (options.packagedNodeRuntimeEntrypoint) {
       fs.writeFileSync(path.join(packagedRoot, "crawclaw.mjs"), "export {};\n", "utf8");
@@ -496,13 +526,9 @@ function writeReleaseFixture(rootDir, options = {}) {
       paths.runtimeBinaryPath,
       paths.gatewayBinaryPath,
       paths.nativePluginsBinaryPath,
-      paths.nodeBinaryPath,
-      paths.npmBinaryPath,
       path.join(packagedMacRuntimeRoot(rootDir), "bin", runtimeBinaryName()),
       path.join(packagedMacRuntimeRoot(rootDir), "bin", gatewayBinaryName()),
       path.join(packagedMacRuntimeRoot(rootDir), "bin", nativePluginsBinaryName()),
-      path.join(packagedMacRuntimeRoot(rootDir), "runtimes", "node-v24", "bin", "node"),
-      path.join(packagedMacRuntimeRoot(rootDir), "runtimes", "node-v24", "bin", "npm"),
     ]) {
       if (fs.existsSync(executablePath)) {
         fs.chmodSync(executablePath, 0o755);
@@ -538,33 +564,48 @@ function writeRuntimeManifests(runtimeRoot, options = {}) {
   );
 }
 
-function writeEmbeddedBrowserRuntime(runtimeRoot) {
-  const browserRuntimeRoot = path.join(runtimeRoot, "runtimes", "browser");
-  const binDir = path.join(browserRuntimeRoot, "node_modules", ".bin");
-  const packageDir = path.join(browserRuntimeRoot, "node_modules", "agent-browser");
-  fs.mkdirSync(binDir, { recursive: true });
-  fs.mkdirSync(packageDir, { recursive: true });
-  const binPath = path.join(
-    binDir,
-    process.platform === "win32" ? "agent-browser.cmd" : "agent-browser",
-  );
-  fs.writeFileSync(binPath, "#!/bin/sh\nprintf 'agent-browser 0.27.0\\n'\n", "utf8");
-  fs.writeFileSync(
-    path.join(packageDir, "package.json"),
-    '{"name":"agent-browser","version":"0.27.0"}\n',
-    "utf8",
-  );
-  if (process.platform !== "win32") {
-    fs.chmodSync(binPath, 0o755);
-  }
-}
-
 function runtimeManifestJson(options = {}) {
   return `${JSON.stringify({
     runtime: "rust-native",
-    jsPluginRuntime: options.jsPluginRuntime ?? "node",
-    node: { major: 24, distribution: "bundled" },
+    jsPluginRuntime: options.jsPluginRuntime ?? "none",
+    managedRuntimes: {
+      browser: {
+        runtime: "rust-native-binary",
+        provider: "agent-browser",
+      },
+      searxng: {
+        runtime: "python-sidecar",
+        provider: "searxng",
+      },
+    },
   })}\n`;
+}
+
+function writeAgentBrowserRuntimeFixture(runtimeRoot) {
+  const paths = resolveAgentBrowserRuntimePaths(runtimeRoot);
+  fs.mkdirSync(paths.binDir, { recursive: true });
+  fs.writeFileSync(paths.binaryPath, "#!/bin/sh\nprintf 'agent-browser 0.27.0\\n'\n", "utf8");
+  fs.writeFileSync(
+    paths.manifestPath,
+    JSON.stringify({
+      id: "agent-browser",
+      runtime: "rust-native-binary",
+      provider: "agent-browser",
+    }) + "\n",
+    "utf8",
+  );
+  fs.writeFileSync(
+    paths.sourceLockPath,
+    JSON.stringify({
+      sourcePackage: "agent-browser",
+      runtime: "rust-native-binary",
+    }) + "\n",
+    "utf8",
+  );
+  fs.writeFileSync(paths.licensePath, "agent-browser license\n", "utf8");
+  if (process.platform !== "win32") {
+    fs.chmodSync(paths.binaryPath, 0o755);
+  }
 }
 
 function runtimeBinaryName() {
@@ -582,31 +623,78 @@ function nativePluginsBinaryName() {
 function pluginManifestJson(options = {}) {
   return `${JSON.stringify({
     readModel: true,
-    jsPluginRuntime: options.jsPluginRuntime ?? "node",
-    node: { major: 24, distribution: "bundled", permissions: "full" },
+    jsPluginRuntime: options.jsPluginRuntime ?? "none",
   })}\n`;
 }
 
-function writeSourceNode24Runtime(rootDir) {
-  const nodeRoot = path.join(rootDir, "fixtures", "node-v24");
-  writeNode24Runtime(nodeRoot);
-  return nodeRoot;
-}
-
-function writeNode24Runtime(nodeRoot) {
-  const binDir = path.join(nodeRoot, "bin");
-  fs.mkdirSync(binDir, { recursive: true });
-  fs.writeFileSync(path.join(binDir, "node"), "#!/bin/sh\nprintf 'v24.0.0\\n'\n", "utf8");
-  fs.writeFileSync(path.join(binDir, "npm"), "#!/bin/sh\nprintf '11.0.0\\n'\n", "utf8");
-  fs.mkdirSync(path.join(nodeRoot, "lib", "node_modules", "npm", "bin"), { recursive: true });
+function writeSearxngRuntimeAssets(rootDir) {
+  const runtimeDir = path.join(rootDir, "extensions", "searxng", "runtime");
+  fs.mkdirSync(runtimeDir, { recursive: true });
   fs.writeFileSync(
-    path.join(nodeRoot, "lib", "node_modules", "npm", "bin", "npm-cli.js"),
-    "require('../lib/cli.js')(process)\n",
+    path.join(runtimeDir, "settings.yml"),
+    [
+      "use_default_settings: true",
+      "search:",
+      "  formats:",
+      "    - html",
+      "    - json",
+      "server:",
+      '  bind_address: "127.0.0.1"',
+      "  port: 3210",
+      "  public_instance: false",
+      "  limiter: false",
+      "",
+    ].join("\n"),
     "utf8",
   );
+  fs.writeFileSync(
+    path.join(runtimeDir, "source.lock.json"),
+    JSON.stringify({
+      sourceRepo: "https://github.com/searxng/searxng",
+      sourceCommit: "afafca93f30939f213c1bc3fa3379e5ed883122d",
+      license: "AGPL-3.0-or-later",
+    }) + "\n",
+    "utf8",
+  );
+  fs.writeFileSync(path.join(runtimeDir, "NOTICE.md"), "SearXNG notice\n", "utf8");
+  fs.writeFileSync(path.join(runtimeDir, "LICENSE"), "AGPL-3.0-or-later\n", "utf8");
+}
+
+function writeSearxngRuntimeFixture(runtimeRoot) {
+  const paths = resolveSearxngRuntimePaths(runtimeRoot);
+  fs.mkdirSync(paths.runtimeDir, { recursive: true });
+  writeSearxngPythonRuntime(paths.pythonPath);
+  fs.writeFileSync(
+    paths.settingsPath,
+    "use_default_settings: true\nsearch:\n  formats:\n    - json\n",
+    "utf8",
+  );
+  fs.writeFileSync(
+    paths.manifestPath,
+    JSON.stringify({
+      id: "searxng",
+      runtime: "python-sidecar",
+      provider: "searxng",
+    }) + "\n",
+    "utf8",
+  );
+  fs.writeFileSync(paths.noticePath, "SearXNG notice\n", "utf8");
+  fs.writeFileSync(paths.licensePath, "AGPL-3.0-or-later\n", "utf8");
+  fs.writeFileSync(
+    paths.sourceLockPath,
+    JSON.stringify({
+      sourceCommit: "afafca93f30939f213c1bc3fa3379e5ed883122d",
+      license: "AGPL-3.0-or-later",
+    }) + "\n",
+    "utf8",
+  );
+}
+
+function writeSearxngPythonRuntime(pythonPath) {
+  fs.mkdirSync(path.dirname(pythonPath), { recursive: true });
+  fs.writeFileSync(pythonPath, "#!/bin/sh\nprintf 'Python 3.12.0\\n'\n", "utf8");
   if (process.platform !== "win32") {
-    fs.chmodSync(path.join(binDir, "node"), 0o755);
-    fs.chmodSync(path.join(binDir, "npm"), 0o755);
+    fs.chmodSync(pythonPath, 0o755);
   }
 }
 

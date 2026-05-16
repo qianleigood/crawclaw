@@ -107,15 +107,11 @@ fn runtime_root(input: &Value) -> Option<PathBuf> {
 
 fn browser_bin_for_runtimes_root(runtimes_root: &Path) -> PathBuf {
     let bin = if cfg!(windows) {
-        "agent-browser.cmd"
+        "agent-browser.exe"
     } else {
         "agent-browser"
     };
-    runtimes_root
-        .join("browser")
-        .join("node_modules")
-        .join(".bin")
-        .join(bin)
+    runtimes_root.join("browser").join("bin").join(bin)
 }
 
 fn managed_agent_browser_bin(input: &Value) -> PathBuf {
@@ -930,14 +926,12 @@ mod tests {
         let agent_browser_bin = if cfg!(windows) {
             runtimes_root
                 .join("browser")
-                .join("node_modules")
-                .join(".bin")
-                .join("agent-browser.cmd")
+                .join("bin")
+                .join("agent-browser.exe")
         } else {
             runtimes_root
                 .join("browser")
-                .join("node_modules")
-                .join(".bin")
+                .join("bin")
                 .join("agent-browser")
         };
         std::fs::create_dir_all(

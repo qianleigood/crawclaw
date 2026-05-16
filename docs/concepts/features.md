@@ -54,6 +54,6 @@ title: "Features"
 
 **Tools and automation:**
 
-- Web search (bundled Open-WebSearch + plugin providers)
+- Web search (bundled SearXNG)
 - Cron jobs and event-driven main-session wakes
 - Skills, plugins, and workflow pipelines (Lobster)

@@ -1,0 +1,6 @@
+SearXNG is licensed under AGPL-3.0-or-later.
+
+The desktop runtime staging step records and packages the exact upstream source
+commit listed in source.lock.json. The upstream license text is available at:
+
+https://github.com/searxng/searxng/blob/afafca93f30939f213c1bc3fa3379e5ed883122d/LICENSE

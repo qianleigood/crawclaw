@@ -21,8 +21,7 @@ use crate::qwen3_tts::{
     build_synthesis_payload, start_qwen3_tts_service, stop_qwen3_tts_service, synthesize_qwen3_tts,
 };
 use crate::web::{
-    run_open_websearch_search, run_scrapling_fetch, start_open_websearch_service,
-    start_scrapling_fetch_service, stop_open_websearch_service, stop_scrapling_fetch_service,
+    run_searxng_search, run_spider_fetch, start_searxng_service, stop_searxng_service,
 };
 use crate::NativeResult;
 
@@ -305,47 +304,41 @@ fn llm_task_descriptor() -> NativePluginDescriptor {
     entry
 }
 
-fn open_websearch_descriptor() -> NativePluginDescriptor {
+fn searxng_descriptor() -> NativePluginDescriptor {
     let mut entry = descriptor(
-        "open-websearch",
-        "Open-WebSearch",
-        "Bundled native provider for managed open-websearch web search.",
+        "searxng",
+        "SearXNG",
+        "Bundled native provider for managed local SearXNG web search.",
     );
     entry
         .web_search_providers
         .push(NativeWebSearchProviderDescriptor {
-            id: "open-websearch".to_string(),
-            label: "Open-WebSearch".to_string(),
-            invocation: target("open-websearch", "search"),
+            id: "searxng".to_string(),
+            label: "SearXNG".to_string(),
+            invocation: target("searxng", "search"),
         });
     entry.services.push(NativeServiceDescriptor {
-        id: "open-websearch-daemon".to_string(),
-        label: "Open-WebSearch Daemon".to_string(),
-        start: target("open-websearch", "service-start"),
-        stop: target("open-websearch", "service-stop"),
+        id: "searxng-daemon".to_string(),
+        label: "SearXNG Daemon".to_string(),
+        start: target("searxng", "service-start"),
+        stop: target("searxng", "service-stop"),
     });
     entry
 }
 
-fn scrapling_fetch_descriptor() -> NativePluginDescriptor {
+fn spider_fetch_descriptor() -> NativePluginDescriptor {
     let mut entry = descriptor(
-        "scrapling-fetch",
-        "Scrapling Fetch",
-        "Bundled native provider for static fetch and managed Scrapling sidecar fetch.",
+        "spider-fetch",
+        "Spider Fetch",
+        "Bundled native provider for static HTTP fetch and Spider browser-rendered fetch.",
     );
     entry
         .web_fetch_providers
         .push(NativeWebFetchProviderDescriptor {
-            id: "scrapling".to_string(),
-            label: "Scrapling".to_string(),
-            invocation: target("scrapling-fetch", "fetch"),
+            id: "spider".to_string(),
+            label: "Spider".to_string(),
+            invocation: target("spider-fetch", "fetch"),
         });
-    entry.services.push(NativeServiceDescriptor {
-        id: "scrapling-fetch-service".to_string(),
-        label: "Scrapling Fetch Service".to_string(),
-        start: target("scrapling-fetch", "service-start"),
-        stop: target("scrapling-fetch", "service-stop"),
-    });
     entry
 }
 
@@ -414,8 +407,8 @@ pub fn builtin_native_plugin_descriptors() -> Vec<NativePluginDescriptor> {
         browser_descriptor(),
         lobster_descriptor(),
         comfyui_descriptor(),
-        open_websearch_descriptor(),
-        scrapling_fetch_descriptor(),
+        searxng_descriptor(),
+        spider_fetch_descriptor(),
         llm_task_descriptor(),
         qwen3_tts_descriptor(),
         openai_descriptor(),
@@ -467,12 +460,10 @@ pub async fn dispatch_builtin_native_plugin_operation(
         ("qwen3-tts", "synthesize") => synthesize_qwen3_tts(input).await,
         ("qwen3-tts", "service-start") => start_qwen3_tts_service(input).await,
         ("qwen3-tts", "service-stop") => Ok(stop_qwen3_tts_service()),
-        ("open-websearch", "search") => run_open_websearch_search(input).await,
-        ("open-websearch", "service-start") => start_open_websearch_service(input).await,
-        ("open-websearch", "service-stop") => Ok(stop_open_websearch_service()),
-        ("scrapling-fetch", "fetch") => run_scrapling_fetch(input).await,
-        ("scrapling-fetch", "service-start") => start_scrapling_fetch_service(input).await,
-        ("scrapling-fetch", "service-stop") => Ok(stop_scrapling_fetch_service()),
+        ("searxng", "search") => run_searxng_search(input).await,
+        ("searxng", "service-start") => start_searxng_service(input).await,
+        ("searxng", "service-stop") => Ok(stop_searxng_service()),
+        ("spider-fetch", "fetch") => run_spider_fetch(input).await,
         ("openai", "media-understanding") => describe_openai_media(input).await,
         (plugin, operation) => Err(invalid_input(format!(
             "Unsupported native plugin operation: {plugin} {operation}"

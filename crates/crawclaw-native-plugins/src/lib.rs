@@ -9,6 +9,7 @@ pub mod open_prose;
 pub mod openshell;
 pub mod qwen3_tts;
 pub mod registry;
+pub mod spider_fetch;
 pub mod web;
 
 pub use error::{NativeError, NativeResult};

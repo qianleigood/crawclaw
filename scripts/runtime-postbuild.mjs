@@ -33,12 +33,6 @@ function listStaticRuntimeMigrationAssets(params = {}) {
  * Each entry: { src: repo-root-relative source, dest: dist-relative dest }
  */
 export const STATIC_EXTENSION_ASSETS = [
-  // Scrapling sidecar is a Python runtime asset resolved next to the bundled
-  // plugin entry at runtime.
-  {
-    src: "extensions/scrapling-fetch/python/scrapling_sidecar.py",
-    dest: "dist/extensions/scrapling-fetch/python/scrapling_sidecar.py",
-  },
   // Qwen3-TTS MLX sidecar is a Python runtime asset resolved next to the
   // bundled plugin entry at runtime.
   {
@@ -48,6 +42,22 @@ export const STATIC_EXTENSION_ASSETS = [
   {
     src: "extensions/qwen3-tts/python/qwen3_tts_python_sidecar.py",
     dest: "dist/extensions/qwen3-tts/python/qwen3_tts_python_sidecar.py",
+  },
+  {
+    src: "extensions/searxng/runtime/settings.yml",
+    dest: "dist/extensions/searxng/runtime/settings.yml",
+  },
+  {
+    src: "extensions/searxng/runtime/source.lock.json",
+    dest: "dist/extensions/searxng/runtime/source.lock.json",
+  },
+  {
+    src: "extensions/searxng/runtime/NOTICE.md",
+    dest: "dist/extensions/searxng/runtime/NOTICE.md",
+  },
+  {
+    src: "extensions/searxng/runtime/LICENSE",
+    dest: "dist/extensions/searxng/runtime/LICENSE",
   },
   // Sqlite runtime migrations are runtime data, not transpiled modules. Ship
   // them under dist/ so published installs do not rely on src/ being present.

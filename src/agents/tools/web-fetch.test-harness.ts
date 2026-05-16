@@ -32,7 +32,7 @@ export function createBaseWebFetchToolConfig(opts?: { maxResponseBytes?: number 
   config: {
     plugins: {
       entries: {
-        "scrapling-fetch": {
+        "spider-fetch": {
           enabled: boolean;
         };
       };
@@ -42,6 +42,7 @@ export function createBaseWebFetchToolConfig(opts?: { maxResponseBytes?: number 
         fetch: {
           cacheTtlMinutes: number;
           maxResponseBytes?: number;
+          spider: { enabled: boolean };
         };
       };
     };
@@ -51,7 +52,7 @@ export function createBaseWebFetchToolConfig(opts?: { maxResponseBytes?: number 
     config: {
       plugins: {
         entries: {
-          "scrapling-fetch": {
+          "spider-fetch": {
             enabled: false,
           },
         },
@@ -60,6 +61,7 @@ export function createBaseWebFetchToolConfig(opts?: { maxResponseBytes?: number 
         web: {
           fetch: {
             cacheTtlMinutes: 0,
+            spider: { enabled: false },
             ...(opts?.maxResponseBytes ? { maxResponseBytes: opts.maxResponseBytes } : {}),
           },
         },

@@ -304,8 +304,6 @@ importers:
 
   extensions/open-prose: {}
 
-  extensions/open-websearch: {}
-
   extensions/openai: {}
 
   extensions/opencode: {}

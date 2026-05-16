@@ -120,17 +120,17 @@ describe("web fetch runtime", () => {
 
   it("prefers the runtime-selected provider when metadata is available", async () => {
     const provider = createProvider({
-      pluginId: "scrapling-fetch",
-      id: "scrapling",
-      credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+      pluginId: "spider-fetch",
+      id: "spider",
+      credentialPath: "plugins.entries.spider-fetch.config.webFetch.apiKey",
       autoDetectOrder: 0,
       requiresCredential: false,
       createTool: ({ runtimeMetadata }) => ({
-        description: "scrapling",
+        description: "spider",
         parameters: {},
         execute: async (args) => ({
           ...args,
-          provider: runtimeMetadata?.selectedProvider ?? "scrapling",
+          provider: runtimeMetadata?.selectedProvider ?? "spider",
         }),
       }),
     });
@@ -139,7 +139,7 @@ describe("web fetch runtime", () => {
 
     const runtimeWebFetch: RuntimeWebFetchMetadata = {
       providerSource: "auto-detect",
-      selectedProvider: "scrapling",
+      selectedProvider: "spider",
       selectedProviderKeySource: "missing",
       diagnostics: [],
     };
@@ -150,7 +150,7 @@ describe("web fetch runtime", () => {
       preferRuntimeProviders: true,
     });
 
-    expect(resolved?.provider.id).toBe("scrapling");
+    expect(resolved?.provider.id).toBe("spider");
     await expect(
       resolved?.definition.execute({
         url: "https://example.com",
@@ -161,7 +161,7 @@ describe("web fetch runtime", () => {
       url: "https://example.com",
       extractMode: "markdown",
       maxChars: 1000,
-      provider: "scrapling",
+      provider: "spider",
     });
   });
 
@@ -182,11 +182,11 @@ describe("web fetch runtime", () => {
     expect(resolved?.provider.id).toBe("hosted");
   });
 
-  it("prefers bundled scrapling as the default provider even when api-backed providers are configured", () => {
-    const scrapling = createProvider({
-      pluginId: "scrapling-fetch",
-      id: "scrapling",
-      credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+  it("prefers bundled spider as the default provider even when api-backed providers are configured", () => {
+    const spider = createProvider({
+      pluginId: "spider-fetch",
+      id: "spider",
+      credentialPath: "plugins.entries.spider-fetch.config.webFetch.apiKey",
       autoDetectOrder: 0,
       requiresCredential: false,
     });
@@ -197,20 +197,20 @@ describe("web fetch runtime", () => {
       autoDetectOrder: 50,
       getConfiguredCredentialValue: () => "hosted-key",
     });
-    resolveBundledPluginWebFetchProvidersMock.mockReturnValue([hosted, scrapling]);
+    resolveBundledPluginWebFetchProvidersMock.mockReturnValue([hosted, spider]);
 
     const resolved = resolveWebFetchDefinition({
       config: {},
     });
 
-    expect(resolved?.provider.id).toBe("scrapling");
+    expect(resolved?.provider.id).toBe("spider");
   });
 
-  it("keeps honoring an explicit configured provider over the default scrapling path", () => {
-    const scrapling = createProvider({
-      pluginId: "scrapling-fetch",
-      id: "scrapling",
-      credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+  it("keeps honoring an explicit configured provider over the default spider path", () => {
+    const spider = createProvider({
+      pluginId: "spider-fetch",
+      id: "spider",
+      credentialPath: "plugins.entries.spider-fetch.config.webFetch.apiKey",
       autoDetectOrder: 0,
       requiresCredential: false,
     });
@@ -221,7 +221,7 @@ describe("web fetch runtime", () => {
       autoDetectOrder: 50,
       getConfiguredCredentialValue: () => "hosted-key",
     });
-    resolveBundledPluginWebFetchProvidersMock.mockReturnValue([hosted, scrapling]);
+    resolveBundledPluginWebFetchProvidersMock.mockReturnValue([hosted, spider]);
 
     const resolved = resolveWebFetchDefinition({
       config: {
@@ -240,9 +240,9 @@ describe("web fetch runtime", () => {
 
   it("falls back to auto-detect when the configured provider is invalid", () => {
     const provider = createProvider({
-      pluginId: "scrapling-fetch",
-      id: "scrapling",
-      credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+      pluginId: "spider-fetch",
+      id: "spider",
+      credentialPath: "plugins.entries.spider-fetch.config.webFetch.apiKey",
       autoDetectOrder: 0,
       requiresCredential: false,
     });
@@ -260,14 +260,14 @@ describe("web fetch runtime", () => {
       } as CrawClawConfig,
     });
 
-    expect(resolved?.provider.id).toBe("scrapling");
+    expect(resolved?.provider.id).toBe("spider");
   });
 
   it("keeps child web fetch on bundled providers even when runtime providers are preferred", () => {
     const bundled = createProvider({
-      pluginId: "scrapling-fetch",
-      id: "scrapling",
-      credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+      pluginId: "spider-fetch",
+      id: "spider",
+      credentialPath: "plugins.entries.spider-fetch.config.webFetch.apiKey",
       autoDetectOrder: 0,
       requiresCredential: false,
     });
@@ -286,14 +286,14 @@ describe("web fetch runtime", () => {
       preferRuntimeProviders: true,
     });
 
-    expect(resolved?.provider.id).toBe("scrapling");
+    expect(resolved?.provider.id).toBe("spider");
   });
 
   it("keeps non-child web fetch on bundled providers even when runtime providers are preferred", () => {
     const bundled = createProvider({
-      pluginId: "scrapling-fetch",
-      id: "scrapling",
-      credentialPath: "plugins.entries.scrapling-fetch.config.webFetch.apiKey",
+      pluginId: "spider-fetch",
+      id: "spider",
+      credentialPath: "plugins.entries.spider-fetch.config.webFetch.apiKey",
       autoDetectOrder: 0,
       requiresCredential: false,
     });
@@ -312,6 +312,6 @@ describe("web fetch runtime", () => {
       preferRuntimeProviders: true,
     });
 
-    expect(resolved?.provider.id).toBe("scrapling");
+    expect(resolved?.provider.id).toBe("spider");
   });
 });

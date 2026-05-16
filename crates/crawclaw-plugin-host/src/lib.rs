@@ -183,21 +183,19 @@ fn first_batch_rust_native_tools() -> Vec<PluginHostTool> {
             open: false,
         },
         PluginHostTool {
-            id: "open_websearch_search".to_string(),
-            name: "Open-WebSearch".to_string(),
-            description:
-                "Search an Open-WebSearch-compatible endpoint through the Rust native runtime."
-                    .to_string(),
+            id: "searxng_search".to_string(),
+            name: "SearXNG Search".to_string(),
+            description: "Search a SearXNG endpoint through the Rust native runtime.".to_string(),
             status: "available".to_string(),
             permission: "network".to_string(),
             icon: "search".to_string(),
             open: false,
         },
         PluginHostTool {
-            id: "scrapling_fetch".to_string(),
-            name: "Scrapling Fetch".to_string(),
+            id: "spider_fetch".to_string(),
+            name: "Spider Fetch".to_string(),
             description:
-                "Fetch static web content through the Rust native runtime without the Python sidecar."
+                "Fetch static and browser-rendered web content through the Rust native runtime."
                     .to_string(),
             status: "available".to_string(),
             permission: "network".to_string(),
@@ -207,8 +205,9 @@ fn first_batch_rust_native_tools() -> Vec<PluginHostTool> {
         PluginHostTool {
             id: "qwen3_tts_build_payload".to_string(),
             name: "Qwen3-TTS Payload".to_string(),
-            description: "Prepare local Qwen3-TTS synthesis payloads through the Rust native runtime."
-                .to_string(),
+            description:
+                "Prepare local Qwen3-TTS synthesis payloads through the Rust native runtime."
+                    .to_string(),
             status: "available".to_string(),
             permission: "local".to_string(),
             icon: "wrench".to_string(),
@@ -530,11 +529,11 @@ mod tests {
         assert!(read_model
             .tools
             .iter()
-            .any(|tool| tool.id == "open_websearch_search" && tool.name == "Open-WebSearch"));
+            .any(|tool| tool.id == "searxng_search" && tool.name == "SearXNG Search"));
         assert!(read_model
             .tools
             .iter()
-            .any(|tool| tool.id == "scrapling_fetch" && tool.name == "Scrapling Fetch"));
+            .any(|tool| tool.id == "spider_fetch" && tool.name == "Spider Fetch"));
         assert!(read_model
             .tools
             .iter()

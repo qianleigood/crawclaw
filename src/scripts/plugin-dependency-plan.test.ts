@@ -100,14 +100,6 @@ async function createFixtureRepo(): Promise<string> {
     },
     version: "0.0.0",
   });
-  await fs.mkdir(path.join(repoRoot, "extensions", "scrapling-fetch", "runtime"), {
-    recursive: true,
-  });
-  await fs.writeFile(
-    path.join(repoRoot, "extensions", "scrapling-fetch", "runtime", "requirements.lock.txt"),
-    "Scrapling==0.4.6\ncurl-cffi==0.13.0\n",
-    "utf8",
-  );
   await fs.mkdir(path.join(repoRoot, "extensions", "qwen3-tts", "runtime"), {
     recursive: true,
   });

@@ -9,105 +9,110 @@ use reqwest::Url;
 use serde_json::{json, Value};
 
 use crate::error::{invalid_input, runtime_error, NativeError, NativeResult};
+use crate::spider_fetch::run_spider_dynamic_fetch;
 
 const DEFAULT_SEARCH_COUNT: usize = 5;
 const DEFAULT_TIMEOUT_SECONDS: u64 = 20;
-const DESKTOP_USER_AGENT: &str =
+pub(crate) const DESKTOP_USER_AGENT: &str =
     "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-const OPEN_WEBSEARCH_DEFAULT_HOST: &str = "127.0.0.1";
-const OPEN_WEBSEARCH_DEFAULT_PORT: u64 = 3210;
-const OPEN_WEBSEARCH_DEFAULT_STARTUP_TIMEOUT_MS: u64 = 20_000;
-const SCRAPLING_DEFAULT_BASE_URL: &str = "http://127.0.0.1:32119";
-const SCRAPLING_DEFAULT_HEALTHCHECK_PATH: &str = "/health";
-const SCRAPLING_DEFAULT_FETCH_PATH: &str = "/fetch";
-const SCRAPLING_DEFAULT_STARTUP_TIMEOUT_MS: u64 = 15_000;
-const SCRAPLING_SIDECAR_SCRIPT: &str =
-    include_str!("../../../extensions/scrapling-fetch/python/scrapling_sidecar.py");
-const SCRAPLING_REQUIREMENTS: &str =
-    include_str!("../../../extensions/scrapling-fetch/runtime/requirements.lock.txt");
+const SEARXNG_DEFAULT_HOST: &str = "127.0.0.1";
+const SEARXNG_DEFAULT_PORT: u64 = 3210;
+const SEARXNG_DEFAULT_STARTUP_TIMEOUT_MS: u64 = 20_000;
+const SEARXNG_DEFAULT_HEALTH_PATH: &str = "/";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct OpenWebSearchResult {
+pub struct SearxngSearchResult {
     pub title: String,
     pub url: String,
     pub snippet: String,
     pub engine: Option<String>,
     pub source: Option<String>,
+    pub category: Option<String>,
+    pub published_at: Option<String>,
 }
 
-pub async fn run_open_websearch_search(input: Value) -> NativeResult<Value> {
+pub struct SearxngSearchRequest {
+    pub query: String,
+    pub engines: Vec<String>,
+    pub categories: Vec<String>,
+    pub language: Option<String>,
+    pub safe_search: Option<String>,
+    pub time_range: Option<String>,
+}
+
+pub async fn run_searxng_search(input: Value) -> NativeResult<Value> {
     let params = tool_params(&input);
     let query = read_required_string(params, "query")?;
     let count = read_count(params);
-    let base_url = read_string(params, "baseUrl")
-        .or_else(|| nested_string(&input, &["pluginConfig", "webSearch", "baseUrl"]))
-        .unwrap_or_else(|| {
-            let host = nested_string(&input, &["pluginConfig", "webSearch", "host"])
-                .unwrap_or_else(|| OPEN_WEBSEARCH_DEFAULT_HOST.to_string());
-            let port = nested_u64(&input, &["pluginConfig", "webSearch", "port"])
-                .unwrap_or(OPEN_WEBSEARCH_DEFAULT_PORT);
-            format!("http://{host}:{port}")
-        });
-    validate_open_websearch_base_url(&base_url)?;
+    let base_url = resolve_searxng_base_url(&input, params);
+    validate_searxng_base_url(&base_url)?;
     let auto_start = read_bool(params, "autoStart")
         .or_else(|| nested_bool(&input, &["pluginConfig", "webSearch", "autoStart"]))
         .unwrap_or(true);
     let startup_timeout_ms = read_u64(params, "startupTimeoutMs")
         .or_else(|| nested_u64(&input, &["pluginConfig", "webSearch", "startupTimeoutMs"]))
-        .unwrap_or(OPEN_WEBSEARCH_DEFAULT_STARTUP_TIMEOUT_MS);
+        .unwrap_or(SEARXNG_DEFAULT_STARTUP_TIMEOUT_MS);
+    let health_path = read_string(params, "healthPath")
+        .or_else(|| nested_string(&input, &["pluginConfig", "webSearch", "healthPath"]))
+        .unwrap_or_else(|| SEARXNG_DEFAULT_HEALTH_PATH.to_string());
     if auto_start {
-        ensure_open_websearch_daemon(&input, &base_url, startup_timeout_ms).await?;
+        ensure_searxng_daemon(&input, &base_url, &health_path, startup_timeout_ms).await?;
     }
-    let engines = read_string_array(params, "engines");
     let timeout_seconds = read_u64(params, "timeoutSeconds").unwrap_or(DEFAULT_TIMEOUT_SECONDS);
-    let url = build_open_websearch_search_url(&base_url)?;
     let started = Instant::now();
-    let mut body = serde_json::Map::new();
-    body.insert("query".to_string(), Value::String(query.clone()));
-    body.insert("limit".to_string(), json!(count));
-    if !engines.is_empty() {
-        body.insert(
-            "engines".to_string(),
-            Value::Array(engines.into_iter().map(Value::String).collect()),
-        );
-    }
-    let text = http_post_json_text(url.as_str(), Value::Object(body), timeout_seconds).await?;
-    let results = parse_open_websearch_response_text(&text, count)?;
-    Ok(open_websearch_payload(&query, results, started))
+    let categories = {
+        let from_params = read_string_list_param(params, "categories");
+        if from_params.is_empty() {
+            nested_string(&input, &["pluginConfig", "webSearch", "categories"])
+                .map(|value| split_csv(&value))
+                .unwrap_or_default()
+        } else {
+            from_params
+        }
+    };
+    let request = SearxngSearchRequest {
+        query: query.clone(),
+        engines: read_string_list_param(params, "engines"),
+        categories,
+        language: read_string(params, "language")
+            .or_else(|| nested_string(&input, &["pluginConfig", "webSearch", "language"])),
+        safe_search: normalize_searxng_safe_search(read_string(params, "safeSearch"))?,
+        time_range: normalize_searxng_time_range(read_string(params, "timeRange"))?,
+    };
+    let url = build_searxng_search_url(&base_url, &request)?;
+    let text = http_get_text(url.as_str(), timeout_seconds, "SearXNG").await?;
+    let results = parse_searxng_response_text(&text, count)?;
+    Ok(searxng_payload(&query, results, started))
 }
 
-pub async fn start_open_websearch_service(input: Value) -> NativeResult<Value> {
+pub async fn start_searxng_service(input: Value) -> NativeResult<Value> {
     let params = tool_params(&input);
-    let base_url = read_string(params, "baseUrl")
-        .or_else(|| nested_string(&input, &["pluginConfig", "webSearch", "baseUrl"]))
-        .unwrap_or_else(|| {
-            let host = nested_string(&input, &["pluginConfig", "webSearch", "host"])
-                .unwrap_or_else(|| OPEN_WEBSEARCH_DEFAULT_HOST.to_string());
-            let port = nested_u64(&input, &["pluginConfig", "webSearch", "port"])
-                .unwrap_or(OPEN_WEBSEARCH_DEFAULT_PORT);
-            format!("http://{host}:{port}")
-        });
-    validate_open_websearch_base_url(&base_url)?;
+    let base_url = resolve_searxng_base_url(&input, params);
+    validate_searxng_base_url(&base_url)?;
     let startup_timeout_ms = read_u64(params, "startupTimeoutMs")
         .or_else(|| nested_u64(&input, &["pluginConfig", "webSearch", "startupTimeoutMs"]))
-        .unwrap_or(OPEN_WEBSEARCH_DEFAULT_STARTUP_TIMEOUT_MS);
-    ensure_open_websearch_daemon(&input, &base_url, startup_timeout_ms).await?;
+        .unwrap_or(SEARXNG_DEFAULT_STARTUP_TIMEOUT_MS);
+    let health_path = read_string(params, "healthPath")
+        .or_else(|| nested_string(&input, &["pluginConfig", "webSearch", "healthPath"]))
+        .unwrap_or_else(|| SEARXNG_DEFAULT_HEALTH_PATH.to_string());
+    ensure_searxng_daemon(&input, &base_url, &health_path, startup_timeout_ms).await?;
     Ok(json!({
         "status": "running",
-        "provider": "open-websearch",
-        "baseUrl": base_url
+        "provider": "searxng",
+        "baseUrl": base_url,
+        "healthPath": health_path
     }))
 }
 
-pub fn stop_open_websearch_service() -> Value {
+pub fn stop_searxng_service() -> Value {
     json!({
         "status": "not-supported",
-        "provider": "open-websearch",
-        "message": "Open-WebSearch is launched as a detached native sidecar in this runtime."
+        "provider": "searxng",
+        "message": "SearXNG is launched as a detached local Python sidecar in this runtime."
     })
 }
 
-pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
+pub async fn run_spider_fetch(input: Value) -> NativeResult<Value> {
     let params = tool_params(&input);
     let url = read_required_string(params, "url")?;
     let output = read_string(params, "output")
@@ -118,7 +123,7 @@ pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
     let max_chars = read_u64(params, "maxChars").unwrap_or(20_000) as usize;
     let started = Instant::now();
     if render == "dynamic" || render == "stealth" {
-        return run_scrapling_sidecar_fetch(&input, params, &url, &output, &render, started).await;
+        return run_spider_dynamic_fetch(params, &url, &output, &render, started).await;
     }
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(timeout_seconds))
@@ -151,17 +156,10 @@ pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
     } else {
         None
     };
-    let warning = match render.as_str() {
-        "dynamic" | "stealth" => Some(
-            "Rust native scrapling-fetch returned static HTTP content; browser rendering remains unavailable in this path.",
-        ),
-        _ => None,
-    };
-
     Ok(json!({
         "status": "ok",
-        "provider": "scrapling",
-        "fetcher": "scrapling-rust-static",
+        "provider": "spider",
+        "fetcher": "spider-rust-static",
         "url": url,
         "finalUrl": final_url,
         "statusCode": status_code,
@@ -182,11 +180,11 @@ pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
         "externalContent": {
             "untrusted": true,
             "source": "web_fetch",
-            "provider": "scrapling",
+            "provider": "spider",
             "wrapped": true
         },
         "rendered": false,
-        "usedFallback": render == "dynamic" || render == "stealth",
+        "usedFallback": false,
         "blockedDetected": false,
         "truncated": truncated,
         "length": content.chars().count(),
@@ -194,7 +192,7 @@ pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
         "wrappedLength": wrapped_content.chars().count(),
         "fetchedAt": now_iso_like(),
         "tookMs": started.elapsed().as_millis() as u64,
-        "warning": warning,
+        "warning": Value::Null,
         "request": {
             "url": url,
             "output": output,
@@ -205,228 +203,48 @@ pub async fn run_scrapling_fetch(input: Value) -> NativeResult<Value> {
     }))
 }
 
-pub async fn start_scrapling_fetch_service(input: Value) -> NativeResult<Value> {
-    let base_url = nested_string(&input, &["pluginConfig", "webFetch", "baseUrl"])
-        .or_else(|| nested_string(&input, &["pluginConfig", "service", "baseUrl"]))
-        .unwrap_or_else(|| SCRAPLING_DEFAULT_BASE_URL.to_string());
-    let fetch_path = nested_string(&input, &["pluginConfig", "service", "fetchPath"])
-        .unwrap_or_else(|| SCRAPLING_DEFAULT_FETCH_PATH.to_string());
-    let healthcheck_path = nested_string(&input, &["pluginConfig", "service", "healthcheckPath"])
-        .unwrap_or_else(|| SCRAPLING_DEFAULT_HEALTHCHECK_PATH.to_string());
-    let bootstrap = nested_bool(&input, &["pluginConfig", "service", "bootstrap"]).unwrap_or(true);
-    let startup_timeout_ms = nested_u64(&input, &["pluginConfig", "service", "startupTimeoutMs"])
-        .unwrap_or(SCRAPLING_DEFAULT_STARTUP_TIMEOUT_MS);
-    ensure_scrapling_sidecar(
-        &input,
-        &base_url,
-        &healthcheck_path,
-        &fetch_path,
-        startup_timeout_ms,
-        bootstrap,
-    )
-    .await?;
-    Ok(json!({
-        "status": "running",
-        "provider": "scrapling",
-        "baseUrl": base_url,
-        "fetchPath": fetch_path,
-        "healthcheckPath": healthcheck_path
-    }))
-}
-
-pub fn stop_scrapling_fetch_service() -> Value {
-    json!({
-        "status": "not-supported",
-        "provider": "scrapling",
-        "message": "Scrapling fetch is launched as a detached native sidecar in this runtime."
-    })
-}
-
-async fn run_scrapling_sidecar_fetch(
-    input: &Value,
-    params: &Value,
-    url: &str,
-    output: &str,
-    render: &str,
-    started: Instant,
-) -> NativeResult<Value> {
-    let base_url = read_string(params, "baseUrl")
-        .or_else(|| nested_string(input, &["pluginConfig", "webFetch", "baseUrl"]))
-        .or_else(|| nested_string(input, &["pluginConfig", "service", "baseUrl"]))
-        .unwrap_or_else(|| SCRAPLING_DEFAULT_BASE_URL.to_string());
-    let fetch_path = nested_string(input, &["pluginConfig", "service", "fetchPath"])
-        .unwrap_or_else(|| SCRAPLING_DEFAULT_FETCH_PATH.to_string());
-    let healthcheck_path = nested_string(input, &["pluginConfig", "service", "healthcheckPath"])
-        .unwrap_or_else(|| SCRAPLING_DEFAULT_HEALTHCHECK_PATH.to_string());
-    let service_enabled =
-        nested_bool(input, &["pluginConfig", "service", "enabled"]).unwrap_or(true);
-    let bootstrap = nested_bool(input, &["pluginConfig", "service", "bootstrap"]).unwrap_or(true);
-    let startup_timeout_ms = nested_u64(input, &["pluginConfig", "service", "startupTimeoutMs"])
-        .unwrap_or(SCRAPLING_DEFAULT_STARTUP_TIMEOUT_MS);
-    if service_enabled {
-        ensure_scrapling_sidecar(
-            input,
-            &base_url,
-            &healthcheck_path,
-            &fetch_path,
-            startup_timeout_ms,
-            bootstrap,
-        )
-        .await?;
-    }
-    let request = scrapling_sidecar_request(params, url, output, render);
-    let endpoint = build_path_endpoint(&base_url, &fetch_path)?;
-    let timeout_seconds = read_u64(params, "timeoutSeconds").unwrap_or(DEFAULT_TIMEOUT_SECONDS);
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(timeout_seconds))
-        .user_agent(DESKTOP_USER_AGENT)
-        .build()?;
-    let response = client
-        .post(endpoint)
-        .header(reqwest::header::ACCEPT, "application/json")
-        .header(reqwest::header::CONTENT_TYPE, "application/json")
-        .json(&request)
-        .send()
-        .await?;
-    let status = response.status();
-    let text = response.text().await?;
-    let payload: Value = serde_json::from_str(&text).map_err(|_| {
-        runtime_error(format!(
-            "Scrapling sidecar returned invalid JSON: {}",
-            truncate_chars(&text, 2_000).0
-        ))
-    })?;
-    if !status.is_success() || payload.get("status").and_then(Value::as_str) == Some("error") {
-        return Err(runtime_error(format!(
-            "Scrapling sidecar error ({}): {}",
-            status.as_u16(),
-            payload
-        )));
-    }
-    normalize_scrapling_sidecar_payload(payload, request, started)
-}
-
-fn scrapling_sidecar_request(params: &Value, url: &str, output: &str, render: &str) -> Value {
-    let mut request = serde_json::Map::new();
-    request.insert("url".to_string(), Value::String(url.to_string()));
-    request.insert("output".to_string(), Value::String(output.to_string()));
-    request.insert(
-        "detail".to_string(),
-        Value::String(read_string(params, "detail").unwrap_or_else(|| "brief".to_string())),
-    );
-    request.insert("render".to_string(), Value::String(render.to_string()));
-    request.insert(
-        "extractMode".to_string(),
-        Value::String(read_string(params, "extractMode").unwrap_or_else(|| "markdown".to_string())),
-    );
-    request.insert(
-        "extract".to_string(),
-        Value::String(read_string(params, "extract").unwrap_or_else(|| "readable".to_string())),
-    );
-    request.insert(
-        "mainContentOnly".to_string(),
-        Value::Bool(read_bool(params, "mainContentOnly").unwrap_or(true)),
-    );
-    if let Some(max_chars) = read_u64(params, "maxChars") {
-        request.insert("maxChars".to_string(), json!(max_chars));
-    }
-    if let Some(timeout_seconds) = read_u64(params, "timeoutSeconds") {
-        request.insert("timeoutSeconds".to_string(), json!(timeout_seconds));
-    }
-    if let Some(wait_until) = read_string(params, "waitUntil") {
-        request.insert("waitUntil".to_string(), Value::String(wait_until));
-    }
-    if let Some(wait_for) = read_string(params, "waitFor") {
-        request.insert("waitFor".to_string(), Value::String(wait_for));
-    }
-    if let Some(session_id) = read_string(params, "sessionId") {
-        request.insert("sessionId".to_string(), Value::String(session_id));
-    }
-    Value::Object(request)
-}
-
-fn normalize_scrapling_sidecar_payload(
-    payload: Value,
-    request: Value,
-    started: Instant,
-) -> NativeResult<Value> {
-    let object = payload
-        .as_object()
-        .ok_or_else(|| runtime_error("Scrapling sidecar returned a non-object payload."))?;
-    let text = value_string(object.get("text"))
-        .or_else(|| value_string(object.get("content")))
-        .unwrap_or_default();
-    let html = value_string(object.get("html"));
-    let summary = value_string(object.get("summary"));
-    let content_preview = value_string(object.get("contentPreview"))
-        .or_else(|| summary.clone())
-        .unwrap_or_else(|| truncate_chars(&text, 2_000).0);
-    let content = value_string(object.get("content")).unwrap_or_else(|| text.clone());
-    let wrapped_text = wrap_external_content(&text, "web_fetch", true);
-    let wrapped_content = if content.is_empty() {
-        wrapped_text.clone()
-    } else {
-        wrap_web_content(&content, "web_fetch")
-    };
-    let wrapped_preview = wrap_web_content(&content_preview, "web_fetch");
-    let wrapped_html = html.map(|value| wrap_web_content(&value, "web_fetch"));
-    Ok(json!({
-        "status": "ok",
-        "provider": "scrapling",
-        "fetcher": value_string(object.get("fetcher")).unwrap_or_else(|| "scrapling-sidecar".to_string()),
-        "url": value_string(object.get("url")).or_else(|| value_string(request.get("url"))).unwrap_or_default(),
-        "finalUrl": value_string(object.get("finalUrl")).or_else(|| value_string(object.get("url"))).or_else(|| value_string(request.get("url"))).unwrap_or_default(),
-        "statusCode": object.get("statusCode").and_then(Value::as_u64).unwrap_or(200),
-        "contentType": value_string(object.get("contentType")).unwrap_or_else(|| if wrapped_html.is_some() { "text/html".to_string() } else { "text/plain".to_string() }),
-        "title": value_string(object.get("title")),
-        "summary": summary.map(|value| wrap_web_content(&value, "web_fetch")),
-        "keyPoints": object.get("keyPoints").cloned().unwrap_or(Value::Null),
-        "headings": object.get("headings").cloned().unwrap_or(Value::Null),
-        "contentPreview": wrapped_preview,
-        "html": wrapped_html,
-        "content": wrapped_content,
-        "text": wrapped_text,
-        "metadata": object.get("metadata").cloned().unwrap_or(Value::Null),
-        "externalContent": {
-            "untrusted": true,
-            "source": "web_fetch",
-            "provider": "scrapling",
-            "wrapped": true
-        },
-        "rendered": object.get("rendered").and_then(Value::as_bool).unwrap_or(false),
-        "usedFallback": object.get("usedFallback").and_then(Value::as_bool).unwrap_or(false),
-        "blockedDetected": object.get("blockedDetected").and_then(Value::as_bool).unwrap_or(false),
-        "truncated": object.get("truncated").and_then(Value::as_bool).unwrap_or(false),
-        "length": object.get("length").and_then(Value::as_u64).unwrap_or(text.chars().count() as u64),
-        "rawLength": object.get("rawLength").and_then(Value::as_u64).unwrap_or(text.chars().count() as u64),
-        "wrappedLength": object.get("wrappedLength").and_then(Value::as_u64).unwrap_or(wrapped_content.chars().count() as u64),
-        "fetchedAt": value_string(object.get("fetchedAt")).unwrap_or_else(now_iso_like),
-        "tookMs": object.get("tookMs").and_then(Value::as_u64).unwrap_or(started.elapsed().as_millis() as u64),
-        "warning": value_string(object.get("warning")),
-        "request": request
-    }))
-}
-
-pub fn build_open_websearch_search_url(base_url: &str) -> NativeResult<Url> {
-    let mut url = Url::parse(base_url).map_err(|_| {
-        invalid_input("Open-WebSearch base URL must be a valid http:// or https:// URL.")
-    })?;
+pub fn build_searxng_search_url(
+    base_url: &str,
+    request: &SearxngSearchRequest,
+) -> NativeResult<Url> {
+    let mut url = Url::parse(base_url)
+        .map_err(|_| invalid_input("SearXNG base URL must be a valid http:// or https:// URL."))?;
     let pathname = if url.path().ends_with('/') {
         format!("{}search", url.path())
     } else {
         format!("{}/search", url.path())
     };
     url.set_path(&pathname);
-    url.set_query(None);
+    {
+        let mut query = url.query_pairs_mut();
+        query.clear();
+        query.append_pair("q", &request.query);
+        query.append_pair("format", "json");
+        if !request.engines.is_empty() {
+            query.append_pair("engines", &request.engines.join(","));
+        }
+        if !request.categories.is_empty() {
+            query.append_pair("categories", &request.categories.join(","));
+        }
+        if let Some(language) = &request.language {
+            query.append_pair("language", language);
+        }
+        if let Some(safe_search) = &request.safe_search {
+            query.append_pair("safesearch", safe_search);
+        }
+        if let Some(time_range) = &request.time_range {
+            query.append_pair("time_range", time_range);
+        }
+    }
     Ok(url)
 }
 
-pub fn parse_open_websearch_response_text(
+pub fn parse_searxng_response_text(
     text: &str,
     count: usize,
-) -> NativeResult<Vec<OpenWebSearchResult>> {
-    let parsed: Value = serde_json::from_str(text)
-        .map_err(|_| invalid_input("Open-WebSearch returned invalid JSON."))?;
+) -> NativeResult<Vec<SearxngSearchResult>> {
+    let parsed: Value =
+        serde_json::from_str(text).map_err(|_| invalid_input("SearXNG returned invalid JSON."))?;
     let raw_results = parsed
         .as_array()
         .or_else(|| parsed.get("results").and_then(Value::as_array))
@@ -456,24 +274,26 @@ pub fn parse_open_websearch_response_text(
                 .unwrap_or("")
                 .trim()
                 .to_string();
-            let engine = raw
-                .get("engine")
-                .and_then(Value::as_str)
-                .map(str::trim)
-                .filter(|value| !value.is_empty())
-                .map(ToString::to_string);
+            let engine = value_string(raw.get("engine")).or_else(|| {
+                raw.get("engines")
+                    .and_then(Value::as_array)
+                    .and_then(|values| values.iter().filter_map(value_string_from_value).next())
+            });
             let source = raw
                 .get("source")
                 .and_then(Value::as_str)
                 .map(str::trim)
                 .filter(|value| !value.is_empty())
                 .map(ToString::to_string);
-            results.push(OpenWebSearchResult {
+            results.push(SearxngSearchResult {
                 title: title.to_string(),
                 url: url.to_string(),
                 snippet,
                 engine,
-                source,
+                source: source.or_else(|| value_string(raw.get("parsed_url"))),
+                category: value_string(raw.get("category")),
+                published_at: value_string(raw.get("publishedDate"))
+                    .or_else(|| value_string(raw.get("published_date"))),
             });
             if results.len() >= count {
                 break;
@@ -483,57 +303,54 @@ pub fn parse_open_websearch_response_text(
     Ok(results)
 }
 
-pub fn open_websearch_runtime_bin_candidates(
+pub fn searxng_runtime_python_candidates(
     workspace_dir: Option<&Path>,
     state_dir: Option<&Path>,
 ) -> Vec<PathBuf> {
-    let bin = managed_bin_name("open-websearch");
+    let mut candidates = Vec::new();
+    if let Some(workspace_dir) = workspace_dir {
+        candidates.push(searxng_python_for_runtime_root(
+            &workspace_dir.join("runtimes"),
+        ));
+    }
+    if let Ok(root) = env::var("CRAWCLAW_PLUGIN_RUNTIMES_DIR") {
+        for root in split_path_list(&root) {
+            candidates.push(searxng_python_for_runtime_root(&root));
+        }
+    }
+    if let Some(state_dir) = state_dir {
+        candidates.push(searxng_python_for_runtime_root(&state_dir.join("runtimes")));
+    }
+    candidates
+}
+
+pub fn searxng_settings_candidates(
+    workspace_dir: Option<&Path>,
+    state_dir: Option<&Path>,
+) -> Vec<PathBuf> {
     let mut candidates = Vec::new();
     if let Some(workspace_dir) = workspace_dir {
         candidates.push(
             workspace_dir
                 .join("runtimes")
-                .join("open-websearch")
-                .join("node_modules")
-                .join(".bin")
-                .join(&bin),
+                .join("searxng")
+                .join("settings.yml"),
         );
     }
     if let Ok(root) = env::var("CRAWCLAW_PLUGIN_RUNTIMES_DIR") {
-        let root = root.trim();
-        if !root.is_empty() {
-            candidates.push(
-                PathBuf::from(root)
-                    .join("open-websearch")
-                    .join("node_modules")
-                    .join(".bin")
-                    .join(&bin),
-            );
+        for root in split_path_list(&root) {
+            candidates.push(root.join("searxng").join("settings.yml"));
         }
     }
     if let Some(state_dir) = state_dir {
         candidates.push(
             state_dir
                 .join("runtimes")
-                .join("open-websearch")
-                .join("node_modules")
-                .join(".bin")
-                .join(bin),
+                .join("searxng")
+                .join("settings.yml"),
         );
     }
     candidates
-}
-
-pub fn install_scrapling_runtime_from_env() -> NativeResult<Value> {
-    let python = install_scrapling_runtime(&state_dir())?;
-    Ok(json!({
-        "state": "healthy",
-        "runtime": "python-http",
-        "python": python.to_string_lossy(),
-        "venvDir": python.parent().and_then(Path::parent).map(|path| path.to_string_lossy().to_string()),
-        "installedAt": now_iso_like(),
-        "packages": scrapling_requirements()
-    }))
 }
 
 pub fn strip_html(html: &str) -> String {
@@ -669,6 +486,54 @@ fn read_string_array(params: &Value, key: &str) -> Vec<String> {
         .unwrap_or_default()
 }
 
+fn read_string_list_param(params: &Value, key: &str) -> Vec<String> {
+    if let Some(value) = read_string(params, key) {
+        return split_csv(&value);
+    }
+    read_string_array(params, key)
+}
+
+fn split_csv(value: &str) -> Vec<String> {
+    value
+        .split(',')
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn normalize_searxng_safe_search(value: Option<String>) -> NativeResult<Option<String>> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let normalized = match value.trim().to_ascii_lowercase().as_str() {
+        "0" | "off" | "none" | "false" => "0",
+        "1" | "moderate" | "medium" => "1",
+        "2" | "strict" | "on" | "true" => "2",
+        other => {
+            return Err(invalid_input(format!(
+                "SearXNG safeSearch must be one of off, moderate, strict, 0, 1, or 2; got {other}"
+            )))
+        }
+    };
+    Ok(Some(normalized.to_string()))
+}
+
+fn normalize_searxng_time_range(value: Option<String>) -> NativeResult<Option<String>> {
+    let Some(value) = value else {
+        return Ok(None);
+    };
+    let normalized = match value.trim().to_ascii_lowercase().as_str() {
+        "day" | "week" | "month" | "year" => value.trim().to_ascii_lowercase(),
+        other => {
+            return Err(invalid_input(format!(
+                "SearXNG timeRange must be one of day, week, month, or year; got {other}"
+            )))
+        }
+    };
+    Ok(Some(normalized))
+}
+
 fn read_count(params: &Value) -> usize {
     params
         .get("count")
@@ -678,23 +543,26 @@ fn read_count(params: &Value) -> usize {
         .unwrap_or(DEFAULT_SEARCH_COUNT)
 }
 
-async fn http_post_json_text(url: &str, body: Value, timeout_seconds: u64) -> NativeResult<String> {
+async fn http_get_text(url: &str, timeout_seconds: u64, label: &str) -> NativeResult<String> {
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(timeout_seconds))
         .user_agent(DESKTOP_USER_AGENT)
         .build()?;
     let response = client
-        .post(url)
+        .get(url)
         .header(reqwest::header::ACCEPT, "application/json")
-        .header(reqwest::header::CONTENT_TYPE, "application/json")
-        .json(&body)
         .send()
         .await?;
     let status = response.status();
     let text = response.text().await?;
     if !status.is_success() {
+        if label == "SearXNG" && status.as_u16() == 403 {
+            return Err(runtime_error(
+                "SearXNG JSON format is disabled. Enable json in the SearXNG settings.yml formats list.",
+            ));
+        }
         return Err(runtime_error(format!(
-            "Open-WebSearch search error ({}): {}",
+            "{label} search error ({}): {}",
             status.as_u16(),
             truncate_chars(&text, 2_000).0
         )));
@@ -702,221 +570,176 @@ async fn http_post_json_text(url: &str, body: Value, timeout_seconds: u64) -> Na
     Ok(text)
 }
 
-fn validate_open_websearch_base_url(base_url: &str) -> NativeResult<()> {
-    let parsed = Url::parse(base_url).map_err(|_| {
-        invalid_input("Open-WebSearch base URL must be a valid http:// or https:// URL.")
-    })?;
+fn resolve_searxng_base_url(input: &Value, params: &Value) -> String {
+    read_string(params, "baseUrl")
+        .or_else(|| nested_string(input, &["pluginConfig", "webSearch", "baseUrl"]))
+        .unwrap_or_else(|| {
+            let host = nested_string(input, &["pluginConfig", "webSearch", "host"])
+                .unwrap_or_else(|| SEARXNG_DEFAULT_HOST.to_string());
+            let port = nested_u64(input, &["pluginConfig", "webSearch", "port"])
+                .unwrap_or(SEARXNG_DEFAULT_PORT);
+            format!("http://{host}:{port}")
+        })
+}
+
+fn validate_searxng_base_url(base_url: &str) -> NativeResult<()> {
+    let parsed = Url::parse(base_url)
+        .map_err(|_| invalid_input("SearXNG base URL must be a valid http:// or https:// URL."))?;
     match parsed.scheme() {
         "https" => Ok(()),
         "http" if is_loopback_host(parsed.host_str().unwrap_or_default()) => Ok(()),
         "http" => Err(invalid_input(
-            "Open-WebSearch HTTP base URL must target a loopback host in the Rust native runtime. Use https:// for remote hosts.",
+            "SearXNG HTTP base URL must target a loopback host in the Rust native runtime. Use https:// for remote hosts.",
         )),
         _ => Err(invalid_input(
-            "Open-WebSearch base URL must use http:// or https://.",
+            "SearXNG base URL must use http:// or https://.",
         )),
     }
 }
 
-async fn ensure_open_websearch_daemon(
+async fn ensure_searxng_daemon(
     input: &Value,
     base_url: &str,
+    health_path: &str,
     startup_timeout_ms: u64,
 ) -> NativeResult<()> {
-    let parsed = Url::parse(base_url).map_err(|_| {
-        invalid_input("Open-WebSearch base URL must be a valid http:// or https:// URL.")
-    })?;
+    let parsed = Url::parse(base_url)
+        .map_err(|_| invalid_input("SearXNG base URL must be a valid http:// or https:// URL."))?;
     if parsed.scheme() != "http" || !is_loopback_host(parsed.host_str().unwrap_or_default()) {
         return Ok(());
     }
-    if probe_http_ok(build_open_websearch_status_url(base_url)?.as_str()).await {
+    if probe_http_ok(build_searxng_health_url(base_url, health_path)?.as_str()).await {
         return Ok(());
     }
-    let host = parsed.host_str().unwrap_or(OPEN_WEBSEARCH_DEFAULT_HOST);
+    let host = parsed.host_str().unwrap_or(SEARXNG_DEFAULT_HOST);
     let port = parsed
         .port_or_known_default()
-        .unwrap_or(OPEN_WEBSEARCH_DEFAULT_PORT as u16);
-    let bin = resolve_open_websearch_runtime_bin(input)?;
-    spawn_open_websearch_daemon(&bin, host, port)?;
+        .unwrap_or(SEARXNG_DEFAULT_PORT as u16);
+    let python = resolve_searxng_runtime_python(input)?;
+    let settings = resolve_searxng_settings(input)?;
+    spawn_searxng_daemon(&python, &settings, host, port)?;
     wait_for_http_ready(
-        build_open_websearch_status_url(base_url)?.as_str(),
+        build_searxng_health_url(base_url, health_path)?.as_str(),
         startup_timeout_ms,
-        "Managed Open-WebSearch daemon",
+        "Managed SearXNG daemon",
     )
     .await
 }
 
-fn build_open_websearch_status_url(base_url: &str) -> NativeResult<Url> {
-    let mut url = Url::parse(base_url).map_err(|_| {
-        invalid_input("Open-WebSearch base URL must be a valid http:// or https:// URL.")
-    })?;
-    let pathname = if url.path().ends_with('/') {
-        format!("{}status", url.path())
+fn build_searxng_health_url(base_url: &str, health_path: &str) -> NativeResult<Url> {
+    let mut url = Url::parse(base_url)
+        .map_err(|_| invalid_input("SearXNG base URL must be a valid http:// or https:// URL."))?;
+    let normalized = if health_path.starts_with('/') {
+        health_path.to_string()
     } else {
-        format!("{}/status", url.path())
+        format!("/{health_path}")
     };
+    let pathname = join_url_path(url.path(), &normalized);
     url.set_path(&pathname);
     url.set_query(None);
     Ok(url)
 }
 
-fn resolve_open_websearch_runtime_bin(input: &Value) -> NativeResult<PathBuf> {
+fn join_url_path(base_path: &str, child_path: &str) -> String {
+    let base = base_path.trim_end_matches('/');
+    let child = child_path.trim_start_matches('/');
+    if base.is_empty() {
+        format!("/{child}")
+    } else if child.is_empty() {
+        base.to_string()
+    } else {
+        format!("{base}/{child}")
+    }
+}
+
+fn resolve_searxng_runtime_python(input: &Value) -> NativeResult<PathBuf> {
     let workspace_dir = workspace_dir(input);
     let state_dir = state_dir();
-    for candidate in
-        open_websearch_runtime_bin_candidates(workspace_dir.as_deref(), Some(&state_dir))
-    {
+    for candidate in searxng_runtime_python_candidates(workspace_dir.as_deref(), Some(&state_dir)) {
         if candidate.exists() {
             return Ok(candidate);
         }
     }
     Err(runtime_error(
-        "Open-WebSearch runtime is not installed. Configure an explicit native Open-WebSearch runtime or disable autoStart.",
+        "SearXNG runtime is not installed. Expected a prebuilt runtimes/searxng/venv Python runtime. Configure an explicit SearXNG baseUrl or disable autoStart.",
     ))
 }
 
-fn spawn_open_websearch_daemon(bin: &Path, host: &str, port: u16) -> NativeResult<()> {
-    let log = daemon_log_file("open-websearch-daemon.log")?;
-    let stderr = log.try_clone()?;
-    Command::new(bin)
-        .arg("serve")
-        .arg("--host")
-        .arg(host)
-        .arg("--port")
-        .arg(port.to_string())
-        .stdin(Stdio::null())
-        .stdout(Stdio::from(log))
-        .stderr(Stdio::from(stderr))
-        .env("NO_COLOR", "1")
-        .spawn()
-        .map_err(|error| {
-            runtime_error(format!(
-                "Failed to start Open-WebSearch daemon at {}: {error}",
-                bin.display()
-            ))
-        })?;
-    Ok(())
+fn searxng_python_for_runtime_root(root: &Path) -> PathBuf {
+    let venv = root.join("searxng").join("venv");
+    if cfg!(windows) {
+        venv.join("Scripts").join("python.exe")
+    } else {
+        venv.join("bin").join("python")
+    }
 }
 
-async fn ensure_scrapling_sidecar(
-    input: &Value,
-    base_url: &str,
-    healthcheck_path: &str,
-    fetch_path: &str,
-    startup_timeout_ms: u64,
-    bootstrap: bool,
-) -> NativeResult<()> {
-    let parsed = Url::parse(base_url).map_err(|_| {
-        invalid_input("Scrapling base URL must be a valid http:// or https:// URL.")
-    })?;
-    if parsed.scheme() != "http" || !is_loopback_host(parsed.host_str().unwrap_or_default()) {
-        return Ok(());
-    }
-    let health_url = build_path_endpoint(base_url, healthcheck_path)?;
-    if probe_http_ok(health_url.as_str()).await {
-        return Ok(());
-    }
-    let host = parsed.host_str().unwrap_or("127.0.0.1");
-    let port = parsed.port_or_known_default().unwrap_or(32119);
-    let python = resolve_scrapling_python(input, bootstrap)?;
-    let script = materialize_scrapling_sidecar_script()?;
-    spawn_scrapling_sidecar_process(&python, &script, host, port, healthcheck_path, fetch_path)?;
-    wait_for_http_ready(
-        health_url.as_str(),
-        startup_timeout_ms,
-        "Managed Scrapling fetch sidecar",
-    )
-    .await
+fn split_path_list(value: &str) -> Vec<PathBuf> {
+    value
+        .split(path_list_separator())
+        .map(str::trim)
+        .filter(|entry| !entry.is_empty())
+        .map(PathBuf::from)
+        .collect()
 }
 
-fn resolve_scrapling_python(input: &Value, bootstrap: bool) -> NativeResult<PathBuf> {
-    if let Some(command) = nested_string(input, &["pluginConfig", "service", "command"]) {
-        return Ok(PathBuf::from(command));
+fn path_list_separator() -> char {
+    if cfg!(windows) {
+        ';'
+    } else {
+        ':'
     }
+}
+
+fn resolve_searxng_settings(input: &Value) -> NativeResult<PathBuf> {
+    if let Some(path) = nested_string(input, &["pluginConfig", "webSearch", "settingsPath"]) {
+        let path = PathBuf::from(path);
+        if path.exists() {
+            return Ok(path);
+        }
+    }
+    let workspace_dir = workspace_dir(input);
     let state_dir = state_dir();
-    let python = managed_python_path(&state_dir, "scrapling-fetch");
-    if python.exists() && verify_scrapling_runtime(&python) {
-        return Ok(python);
-    }
-    if bootstrap {
-        return install_scrapling_runtime(&state_dir);
+    for candidate in searxng_settings_candidates(workspace_dir.as_deref(), Some(&state_dir)) {
+        if candidate.exists() {
+            return Ok(candidate);
+        }
     }
     Err(runtime_error(
-        "Scrapling fetch runtime is not installed. Configure the native Scrapling sidecar runtime or enable service.bootstrap.",
+        "SearXNG settings.yml is not installed. The managed sidecar requires a settings.yml with json enabled in formats.",
     ))
 }
 
-fn install_scrapling_runtime(state_dir: &Path) -> NativeResult<PathBuf> {
-    let runtime_dir = state_dir.join("runtimes").join("scrapling-fetch");
-    let venv_dir = runtime_dir.join("venv");
-    fs::create_dir_all(&runtime_dir)?;
-    let python = resolve_python_command()?;
-    if !managed_python_path_from_venv(&venv_dir).exists() {
-        run_command(&python, &["-m", "venv", &path_arg(&venv_dir)])?;
-    }
-    let venv_python = managed_python_path_from_venv(&venv_dir);
-    run_command(
-        &venv_python,
-        &[
-            "-m",
-            "pip",
-            "install",
-            "--upgrade",
-            "pip",
-            "setuptools",
-            "wheel",
-        ],
-    )?;
-    let packages = scrapling_requirements();
-    let mut args = vec![
-        "-m".to_string(),
-        "pip".to_string(),
-        "install".to_string(),
-        "--disable-pip-version-check".to_string(),
-    ];
-    args.extend(packages);
-    run_command_owned(&venv_python, &args)?;
-    if !verify_scrapling_runtime(&venv_python) {
-        return Err(runtime_error(format!(
-            "Scrapling runtime verification failed at {}",
-            venv_python.display()
-        )));
-    }
-    Ok(venv_python)
-}
-
-fn spawn_scrapling_sidecar_process(
-    python: &Path,
-    script: &Path,
-    host: &str,
-    port: u16,
-    healthcheck_path: &str,
-    fetch_path: &str,
-) -> NativeResult<()> {
-    let log = daemon_log_file("scrapling-fetch-sidecar.log")?;
+fn spawn_searxng_daemon(python: &Path, settings: &Path, host: &str, port: u16) -> NativeResult<()> {
+    let log = daemon_log_file("searxng-daemon.log")?;
     let stderr = log.try_clone()?;
     Command::new(python)
-        .arg(script)
-        .arg("--host")
-        .arg(host)
-        .arg("--port")
-        .arg(port.to_string())
-        .arg("--healthcheck-path")
-        .arg(healthcheck_path)
-        .arg("--fetch-path")
-        .arg(fetch_path)
+        .arg("-m")
+        .arg("searx.webapp")
         .stdin(Stdio::null())
         .stdout(Stdio::from(log))
         .stderr(Stdio::from(stderr))
         .env("NO_COLOR", "1")
+        .env("SEARXNG_SETTINGS_PATH", settings)
+        .env("SEARXNG_BIND_ADDRESS", host)
+        .env("SEARXNG_PORT", port.to_string())
+        .env("SEARXNG_SECRET", searxng_secret())
         .spawn()
         .map_err(|error| {
             runtime_error(format!(
-                "Failed to start Scrapling sidecar with {}: {error}",
+                "Failed to start SearXNG daemon at {}: {error}",
                 python.display()
             ))
         })?;
     Ok(())
+}
+
+fn searxng_secret() -> String {
+    env::var("CRAWCLAW_SEARXNG_SECRET")
+        .ok()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| format!("crawclaw-searxng-{}", boundary_id()))
 }
 
 fn is_loopback_host(host: &str) -> bool {
@@ -926,20 +749,16 @@ fn is_loopback_host(host: &str) -> bool {
     )
 }
 
-fn open_websearch_payload(
-    query: &str,
-    results: Vec<OpenWebSearchResult>,
-    started: Instant,
-) -> Value {
+fn searxng_payload(query: &str, results: Vec<SearxngSearchResult>, started: Instant) -> Value {
     json!({
         "query": query,
-        "provider": "open-websearch",
+        "provider": "searxng",
         "count": results.len(),
         "tookMs": started.elapsed().as_millis() as u64,
         "externalContent": {
             "untrusted": true,
             "source": "web_search",
-            "provider": "open-websearch",
+            "provider": "searxng",
             "wrapped": true
         },
         "results": results.into_iter().map(|result| {
@@ -953,7 +772,9 @@ fn open_websearch_payload(
                 },
                 "siteName": resolve_site_name(&result.url),
                 "engine": result.engine,
-                "source": result.source
+                "source": result.source,
+                "category": result.category,
+                "publishedAt": result.published_at
             })
         }).collect::<Vec<_>>()
     })
@@ -969,7 +790,7 @@ fn normalize_whitespace(value: &str) -> String {
     value.split_whitespace().collect::<Vec<_>>().join(" ")
 }
 
-fn extract_html_title(html: &str) -> Option<String> {
+pub(crate) fn extract_html_title(html: &str) -> Option<String> {
     let lower = html.to_ascii_lowercase();
     let start = lower.find("<title")?;
     let tag_end = html[start..].find('>')? + start;
@@ -982,7 +803,7 @@ fn extract_html_title(html: &str) -> Option<String> {
     }
 }
 
-fn truncate_chars(value: &str, max_chars: usize) -> (String, bool) {
+pub(crate) fn truncate_chars(value: &str, max_chars: usize) -> (String, bool) {
     let mut output = String::new();
     for (index, ch) in value.chars().enumerate() {
         if index >= max_chars {
@@ -1001,11 +822,11 @@ fn resolve_site_name(url: &str) -> Option<String> {
         .filter(|host| !host.is_empty())
 }
 
-fn wrap_web_content(content: &str, source: &str) -> String {
+pub(crate) fn wrap_web_content(content: &str, source: &str) -> String {
     wrap_external_content(content, source, source == "web_fetch")
 }
 
-fn wrap_external_content(content: &str, source: &str, include_warning: bool) -> String {
+pub(crate) fn wrap_external_content(content: &str, source: &str, include_warning: bool) -> String {
     let id = boundary_id();
     let source_label = match source {
         "web_fetch" => "Web Fetch",
@@ -1043,7 +864,7 @@ fn boundary_id() -> String {
     format!("{nanos:x}")
 }
 
-fn now_iso_like() -> String {
+pub(crate) fn now_iso_like() -> String {
     Utc::now().to_rfc3339()
 }
 
@@ -1077,18 +898,6 @@ async fn wait_for_http_ready(url: &str, timeout_ms: u64, label: &str) -> NativeR
     )))
 }
 
-fn build_path_endpoint(base_url: &str, path: &str) -> NativeResult<Url> {
-    let mut url = Url::parse(base_url)
-        .map_err(|_| invalid_input("Base URL must be a valid http:// or https:// URL."))?;
-    url.set_path(if path.starts_with('/') {
-        path
-    } else {
-        return Err(invalid_input("Endpoint path must start with '/'."));
-    });
-    url.set_query(None);
-    Ok(url)
-}
-
 fn workspace_dir(input: &Value) -> Option<PathBuf> {
     nested_string(input, &["workspaceDir"]).map(PathBuf::from)
 }
@@ -1119,147 +928,17 @@ fn daemon_log_file(name: &str) -> NativeResult<std::fs::File> {
         .map_err(NativeError::from)
 }
 
-fn managed_bin_name(name: &str) -> String {
-    if cfg!(windows) {
-        format!("{name}.cmd")
-    } else {
-        name.to_string()
-    }
-}
-
-fn managed_python_path(state_dir: &Path, runtime_id: &str) -> PathBuf {
-    managed_python_path_from_venv(&state_dir.join("runtimes").join(runtime_id).join("venv"))
-}
-
-fn managed_python_path_from_venv(venv_dir: &Path) -> PathBuf {
-    if cfg!(windows) {
-        venv_dir.join("Scripts").join("python.exe")
-    } else {
-        venv_dir.join("bin").join("python")
-    }
-}
-
-fn verify_scrapling_runtime(python: &Path) -> bool {
-    Command::new(python)
-        .arg("-c")
-        .arg(scrapling_verify_script())
-        .env("NO_COLOR", "1")
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|status| status.success())
-        .unwrap_or(false)
-}
-
-fn scrapling_verify_script() -> &'static str {
-    "from scrapling.fetchers import Fetcher, StealthyFetcher, DynamicFetcher\nimport curl_cffi\nimport playwright\nimport browserforge\nimport msgspec\nprint('ok')"
-}
-
-fn resolve_python_command() -> NativeResult<PathBuf> {
-    let mut candidates = Vec::new();
-    for key in ["CRAWCLAW_RUNTIME_PYTHON", "CRAWCLAW_SCRAPLING_PYTHON"] {
-        if let Ok(value) = env::var(key) {
-            let trimmed = value.trim();
-            if !trimmed.is_empty() {
-                candidates.push(PathBuf::from(trimmed));
-            }
-        }
-    }
-    candidates.extend(
-        [
-            "python3.14",
-            "python3.13",
-            "python3.12",
-            "python3.11",
-            "python3.10",
-            "python3",
-            "python",
-        ]
-        .into_iter()
-        .map(PathBuf::from),
-    );
-    for candidate in candidates {
-        if python_version_supported(&candidate) {
-            return Ok(candidate);
-        }
-    }
-    Err(runtime_error(
-        "No supported Python interpreter found for scrapling-fetch; requires Python >= 3.10.",
-    ))
-}
-
-fn python_version_supported(command: &Path) -> bool {
-    let output = Command::new(command)
-        .arg("-c")
-        .arg("import sys; print(f'{sys.version_info[0]}.{sys.version_info[1]}')")
-        .output();
-    let Ok(output) = output else {
-        return false;
-    };
-    if !output.status.success() {
-        return false;
-    }
-    let version = String::from_utf8_lossy(&output.stdout);
-    let mut parts = version.trim().split('.');
-    let major = parts.next().and_then(|value| value.parse::<u64>().ok());
-    let minor = parts.next().and_then(|value| value.parse::<u64>().ok());
-    matches!((major, minor), (Some(major), Some(minor)) if major > 3 || (major == 3 && minor >= 10))
-}
-
-fn materialize_scrapling_sidecar_script() -> NativeResult<PathBuf> {
-    let script_path = state_dir()
-        .join("runtimes")
-        .join("scrapling-fetch")
-        .join("scrapling_sidecar.py");
-    if let Some(parent) = script_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    fs::write(&script_path, SCRAPLING_SIDECAR_SCRIPT)?;
-    Ok(script_path)
-}
-
-fn scrapling_requirements() -> Vec<String> {
-    SCRAPLING_REQUIREMENTS
-        .lines()
-        .map(str::trim)
-        .filter(|line| !line.is_empty() && !line.starts_with('#'))
-        .map(ToString::to_string)
-        .collect()
-}
-
-fn run_command(command: &Path, args: &[&str]) -> NativeResult<()> {
-    let args = args
-        .iter()
-        .map(|value| value.to_string())
-        .collect::<Vec<_>>();
-    run_command_owned(command, &args)
-}
-
-fn run_command_owned(command: &Path, args: &[String]) -> NativeResult<()> {
-    let status = Command::new(command)
-        .args(args)
-        .env("NO_COLOR", "1")
-        .status()
-        .map_err(|error| {
-            runtime_error(format!("Failed to start {}: {error}", command.display()))
-        })?;
-    if status.success() {
-        Ok(())
-    } else {
-        Err(runtime_error(format!(
-            "Command {} failed with status {status}.",
-            command.display()
-        )))
-    }
-}
-
-fn path_arg(path: &Path) -> String {
-    path.to_string_lossy().to_string()
-}
-
-fn value_string(value: Option<&Value>) -> Option<String> {
+pub(crate) fn value_string(value: Option<&Value>) -> Option<String> {
     value
         .and_then(Value::as_str)
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
+fn value_string_from_value(value: &Value) -> Option<String> {
+    value
+        .as_str()
         .map(str::trim)
         .filter(|value| !value.is_empty())
         .map(ToString::to_string)
