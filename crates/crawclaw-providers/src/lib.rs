@@ -163,6 +163,7 @@ pub struct ProviderModelAlias {
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub struct ProviderModelNormalizationMetadata {
+    pub anthropic_model_aliases: &'static [ProviderModelAlias],
     pub google_model_aliases: &'static [ProviderModelAlias],
     pub antigravity_low_suffix_ids: &'static [&'static str],
     pub xai_model_aliases: &'static [ProviderModelAlias],
@@ -1233,6 +1234,25 @@ pub const OLLAMA_DEFAULT_MAX_TOKENS: u32 = 8_192;
 pub const OLLAMA_DEFAULT_MODEL: &str = "glm-4.7-flash";
 pub const OLLAMA_DEFAULT_EMBEDDING_MODEL: &str = "nomic-embed-text";
 
+pub const ANTHROPIC_MODEL_ALIASES: &[ProviderModelAlias] = &[
+    ProviderModelAlias {
+        from: "opus-4.6",
+        to: "claude-opus-4-6",
+    },
+    ProviderModelAlias {
+        from: "opus-4.5",
+        to: "claude-opus-4-5",
+    },
+    ProviderModelAlias {
+        from: "sonnet-4.6",
+        to: "claude-sonnet-4-6",
+    },
+    ProviderModelAlias {
+        from: "sonnet-4.5",
+        to: "claude-sonnet-4-5",
+    },
+];
+
 pub const GOOGLE_MODEL_ALIASES: &[ProviderModelAlias] = &[
     ProviderModelAlias {
         from: "gemini-3-pro",
@@ -1354,6 +1374,20 @@ pub fn anthropic_vertex_config_api_key_marker(has_available_auth: bool) -> Optio
     has_available_auth.then_some(ANTHROPIC_VERTEX_CREDENTIALS_MARKER)
 }
 
+pub fn normalize_anthropic_model_id(id: &str) -> String {
+    let trimmed = id.trim();
+    if trimmed.is_empty() {
+        return trimmed.to_string();
+    }
+    let lower = trimmed.to_ascii_lowercase();
+    ANTHROPIC_MODEL_ALIASES
+        .iter()
+        .find(|alias| alias.from == lower)
+        .map(|alias| alias.to)
+        .unwrap_or(trimmed)
+        .to_string()
+}
+
 pub fn normalize_google_model_id(id: &str) -> String {
     GOOGLE_MODEL_ALIASES
         .iter()
@@ -1449,6 +1483,7 @@ pub fn bundled_web_provider_boundaries() -> Vec<BundledWebProviderBoundary> {
 
 pub fn provider_model_normalization_metadata() -> ProviderModelNormalizationMetadata {
     ProviderModelNormalizationMetadata {
+        anthropic_model_aliases: ANTHROPIC_MODEL_ALIASES,
         google_model_aliases: GOOGLE_MODEL_ALIASES,
         antigravity_low_suffix_ids: ANTIGRAVITY_LOW_SUFFIX_IDS,
         xai_model_aliases: XAI_MODEL_ALIASES,
@@ -3454,6 +3489,18 @@ mod tests {
             Some(ANTHROPIC_VERTEX_CREDENTIALS_MARKER)
         );
 
+        assert_eq!(
+            normalize_anthropic_model_id(" Opus-4.6 "),
+            "claude-opus-4-6"
+        );
+        assert_eq!(
+            normalize_anthropic_model_id("sonnet-4.5"),
+            "claude-sonnet-4-5"
+        );
+        assert_eq!(
+            normalize_anthropic_model_id("claude-sonnet-4-20250514"),
+            "claude-sonnet-4-20250514"
+        );
         assert_eq!(
             normalize_google_model_id("gemini-3-pro"),
             "gemini-3-pro-preview"

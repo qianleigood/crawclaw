@@ -2,6 +2,25 @@
 
 type ModelAlias = { readonly from: string; readonly to: string };
 
+const ANTHROPIC_MODEL_ALIASES = [
+  {
+    from: "opus-4.6",
+    to: "claude-opus-4-6",
+  },
+  {
+    from: "opus-4.5",
+    to: "claude-opus-4-5",
+  },
+  {
+    from: "sonnet-4.6",
+    to: "claude-sonnet-4-6",
+  },
+  {
+    from: "sonnet-4.5",
+    to: "claude-sonnet-4-5",
+  },
+] as const satisfies readonly ModelAlias[];
+
 const GOOGLE_MODEL_ALIASES = [
   {
     from: "gemini-3-pro",
@@ -64,6 +83,18 @@ const XAI_MODEL_ALIASES = [
 
 function normalizeByAlias(id: string, aliases: readonly ModelAlias[]): string {
   return aliases.find((alias) => alias.from === id)?.to ?? id;
+}
+
+function normalizeByTrimmedLowerAlias(id: string, aliases: readonly ModelAlias[]): string {
+  const trimmed = id.trim();
+  if (!trimmed) {
+    return trimmed;
+  }
+  return aliases.find((alias) => alias.from === trimmed.toLowerCase())?.to ?? trimmed;
+}
+
+export function normalizeAnthropicModelId(id: string): string {
+  return normalizeByTrimmedLowerAlias(id, ANTHROPIC_MODEL_ALIASES);
 }
 
 export function normalizeGoogleModelId(id: string): string {

@@ -1,23 +1,5 @@
+import { normalizeAnthropicModelId } from "../generated/providers/model-normalization.generated.js";
 import { normalizeProviderId } from "./provider-id.js";
-
-function normalizeAnthropicModelId(model: string): string {
-  const trimmed = model.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  switch (trimmed.toLowerCase()) {
-    case "opus-4.6":
-      return "claude-opus-4-6";
-    case "opus-4.5":
-      return "claude-opus-4-5";
-    case "sonnet-4.6":
-      return "claude-sonnet-4-6";
-    case "sonnet-4.5":
-      return "claude-sonnet-4-5";
-    default:
-      return trimmed;
-  }
-}
 
 function normalizeStaticProviderModelId(provider: string, model: string): string {
   if (provider === "anthropic") {

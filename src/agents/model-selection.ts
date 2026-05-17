@@ -6,6 +6,7 @@ import {
   toAgentModelListLike,
 } from "../config/model-input.js";
 import {
+  normalizeAnthropicModelId,
   normalizeGoogleModelId,
   normalizeXaiModelId,
 } from "../generated/providers/model-normalization.generated.js";
@@ -81,28 +82,6 @@ export {
   normalizeProviderId,
   normalizeProviderIdForAuth,
 };
-
-function normalizeAnthropicModelId(model: string): string {
-  const trimmed = model.trim();
-  if (!trimmed) {
-    return trimmed;
-  }
-  const lower = trimmed.toLowerCase();
-  // Keep alias resolution local so bundled startup paths cannot trip a TDZ on
-  // a module-level alias table while config parsing is still initializing.
-  switch (lower) {
-    case "opus-4.6":
-      return "claude-opus-4-6";
-    case "opus-4.5":
-      return "claude-opus-4-5";
-    case "sonnet-4.6":
-      return "claude-sonnet-4-6";
-    case "sonnet-4.5":
-      return "claude-sonnet-4-5";
-    default:
-      return trimmed;
-  }
-}
 
 function normalizeProviderModelId(provider: string, model: string): string {
   if (provider === "anthropic") {
