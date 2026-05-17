@@ -3,7 +3,6 @@ import { resolveDefaultAgentWorkspaceDir } from "../agents/workspace.js";
 import { loadConfig } from "../config/config.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import { normalizeCrawClawVersionBase } from "../config/version.js";
-import { listImportedBundledPluginFacadeIds } from "../internal-plugin-helpers/facade-runtime.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveCompatibilityHostVersion } from "../version.js";
 import { inspectBundleLspRuntimeSupport } from "./bundle-lsp.js";
@@ -182,7 +181,6 @@ function buildPluginReport(
           .map((plugin) => plugin.id)
       : []),
     ...listImportedRuntimePluginIds(),
-    ...listImportedBundledPluginFacadeIds(),
   ]);
 
   return {

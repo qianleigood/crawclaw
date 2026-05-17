@@ -13,7 +13,6 @@ const applyPluginAutoEnableMock = vi.fn();
 const resolveBundledProviderCompatPluginIdsMock = vi.fn();
 const withBundledPluginAllowlistCompatMock = vi.fn();
 const withBundledPluginEnablementCompatMock = vi.fn();
-const listImportedBundledPluginFacadeIdsMock = vi.fn();
 const listImportedRuntimePluginIdsMock = vi.fn();
 let buildPluginSnapshotReport: typeof import("./status.js").buildPluginSnapshotReport;
 let buildPluginDiagnosticsReport: typeof import("./status.js").buildPluginDiagnosticsReport;
@@ -46,11 +45,6 @@ vi.mock("./bundled-compat.js", () => ({
     withBundledPluginAllowlistCompatMock(...args),
   withBundledPluginEnablementCompat: (...args: unknown[]) =>
     withBundledPluginEnablementCompatMock(...args),
-}));
-
-vi.mock("../internal-plugin-helpers/facade-runtime.js", () => ({
-  listImportedBundledPluginFacadeIds: (...args: unknown[]) =>
-    listImportedBundledPluginFacadeIdsMock(...args),
 }));
 
 vi.mock("./runtime.js", () => ({
@@ -260,7 +254,6 @@ describe("plugin status reports", () => {
     resolveBundledProviderCompatPluginIdsMock.mockReset();
     withBundledPluginAllowlistCompatMock.mockReset();
     withBundledPluginEnablementCompatMock.mockReset();
-    listImportedBundledPluginFacadeIdsMock.mockReset();
     listImportedRuntimePluginIdsMock.mockReset();
     loadConfigMock.mockReturnValue({});
     applyPluginAutoEnableMock.mockImplementation((params: { config: unknown }) => ({
@@ -275,7 +268,6 @@ describe("plugin status reports", () => {
     withBundledPluginEnablementCompatMock.mockImplementation(
       (params: { config: unknown }) => params.config,
     );
-    listImportedBundledPluginFacadeIdsMock.mockReturnValue([]);
     listImportedRuntimePluginIdsMock.mockReturnValue([]);
     setPluginLoadResult({ plugins: [] });
   });
@@ -498,24 +490,21 @@ describe("plugin status reports", () => {
     expect(report.plugins[0]?.version).toBe("2026.3.23");
   });
 
-  it("marks plugins as imported when runtime or facade state has loaded them", () => {
+  it("marks plugins as imported when runtime state has loaded them", () => {
     setPluginLoadResult({
       plugins: [
         createPluginRecord({ id: "runtime-loaded" }),
-        createPluginRecord({ id: "facade-loaded" }),
         createPluginRecord({ id: "bundle-loaded", format: "bundle" }),
         createPluginRecord({ id: "cold-plugin" }),
       ],
     });
     listImportedRuntimePluginIdsMock.mockReturnValue(["runtime-loaded", "bundle-loaded"]);
-    listImportedBundledPluginFacadeIdsMock.mockReturnValue(["facade-loaded"]);
 
     const report = buildPluginSnapshotReport({ config: {} });
 
     expect(report.plugins).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ id: "runtime-loaded", imported: true }),
-        expect.objectContaining({ id: "facade-loaded", imported: true }),
         expect.objectContaining({ id: "bundle-loaded", imported: false }),
         expect.objectContaining({ id: "cold-plugin", imported: false }),
       ]),
