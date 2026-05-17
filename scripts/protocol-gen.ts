@@ -1,51 +1,28 @@
-import { promises as fs } from "node:fs";
+import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { ProtocolSchemas } from "../src/gateway/protocol/schema.js";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const repoRoot = path.resolve(__dirname, "..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const outputPath = path.join(repoRoot, "dist", "protocol.schema.json");
 
-async function writeJsonSchema() {
-  const definitions: Record<string, unknown> = {};
-  for (const [name, schema] of Object.entries(ProtocolSchemas)) {
-    definitions[name] = schema;
-  }
+const result = spawnSync(
+  "cargo",
+  ["run", "-q", "-p", "crawclaw-gateway", "--", "emit-protocol-schema", "--output", outputPath],
+  {
+    cwd: repoRoot,
+    encoding: "utf8",
+    maxBuffer: 16 * 1024 * 1024,
+  },
+);
 
-  const rootSchema = {
-    $schema: "http://json-schema.org/draft-07/schema#",
-    $id: "https://docs.crawclaw.ai/protocol.schema.json",
-    title: "CrawClaw Gateway Protocol",
-    description: "Handshake, request/response, and event frames for the Gateway WebSocket.",
-    oneOf: [
-      { $ref: "#/definitions/RequestFrame" },
-      { $ref: "#/definitions/ResponseFrame" },
-      { $ref: "#/definitions/EventFrame" },
-    ],
-    discriminator: {
-      propertyName: "type",
-      mapping: {
-        req: "#/definitions/RequestFrame",
-        res: "#/definitions/ResponseFrame",
-        event: "#/definitions/EventFrame",
-      },
-    },
-    definitions,
-  };
-
-  const distDir = path.join(repoRoot, "dist");
-  await fs.mkdir(distDir, { recursive: true });
-  const jsonSchemaPath = path.join(distDir, "protocol.schema.json");
-  await fs.writeFile(jsonSchemaPath, JSON.stringify(rootSchema, null, 2));
-  console.log(`wrote ${jsonSchemaPath}`);
-  return { jsonSchemaPath, schemaString: JSON.stringify(rootSchema) };
+if (result.error) {
+  throw result.error;
 }
-
-async function main() {
-  await writeJsonSchema();
+if (result.status !== 0) {
+  throw new Error(
+    ["crawclaw-gateway emit-protocol-schema failed", result.stderr.trim(), result.stdout.trim()]
+      .filter(Boolean)
+      .join("\n"),
+  );
 }
-
-main().catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+process.stdout.write(result.stdout);

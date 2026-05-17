@@ -23,6 +23,9 @@ pub mod desktop {
     ];
 }
 
+mod protocol_contract;
+pub use protocol_contract::{gateway_protocol_schema_json, gateway_protocol_schema_value};
+
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::Infallible;
 use std::env;

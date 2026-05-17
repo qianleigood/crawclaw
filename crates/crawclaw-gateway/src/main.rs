@@ -18,6 +18,13 @@ async fn main() {
         }
         return;
     }
+    if args.first().map(String::as_str) == Some("emit-protocol-schema") {
+        if let Err(error) = emit_protocol_schema(args.into_iter().skip(1).collect()) {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     let mut index = 0;
 
     while index < args.len() {
@@ -69,6 +76,29 @@ async fn main() {
     }
 }
 
+fn emit_protocol_schema(args: Vec<String>) -> Result<(), String> {
+    if args.len() != 2 || args[0] != "--output" {
+        return Err("usage: crawclaw-gateway emit-protocol-schema --output <path>".to_string());
+    }
+    let output = PathBuf::from(&args[1]);
+    if let Some(parent) = output.parent() {
+        std::fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "failed to create protocol schema output dir {}: {error}",
+                parent.display()
+            )
+        })?;
+    }
+    std::fs::write(&output, crawclaw_gateway::gateway_protocol_schema_json()).map_err(|error| {
+        format!(
+            "failed to write protocol schema artifact {}: {error}",
+            output.display()
+        )
+    })?;
+    println!("wrote {}", output.display());
+    Ok(())
+}
+
 async fn call_gateway_method(args: Vec<String>) -> Result<(), String> {
     let mut method: Option<String> = None;
     let mut params = serde_json::Value::Object(serde_json::Map::new());
@@ -117,6 +147,6 @@ fn exit_usage(message: &str) -> ! {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH]"
+        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH] | call --method <name> [--params-json JSON] | emit-protocol-schema --output <path>"
     );
 }
