@@ -2,7 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { collectFilesSync, isCodeFile, relativeToCwd } from "./check-file-utils.js";
 
-const FORBIDDEN_REPO_SRC_IMPORT = /["'](?:\.\.\/)+(?:src\/)(?!internal-plugin-helpers\/)[^"']+["']/;
+const FORBIDDEN_REPO_SRC_IMPORT = /["'](?:\.\.\/)+(?:src\/)[^"']+["']/;
 
 function isProductionExtensionFile(filePath: string): boolean {
   return !(

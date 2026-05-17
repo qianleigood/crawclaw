@@ -40,7 +40,6 @@ through `pnpm desktop:tauri:stage-runtime` and
 The following TypeScript and JavaScript surfaces are allowed by design:
 
 - `apps/crawclaw-desktop/src`: the React and Vite desktop renderer.
-- `src/internal-plugin-helpers`: repo-private TypeScript helpers used by core or bundled plugin packaging paths.
 - `extensions/*/package.json` and plugin metadata files used for plugin packaging and distribution.
 - `scripts`: build, release, generation, docs, and verification tooling.
 - Tests and test fixtures for TypeScript, JavaScript, Rust plugin SDK, docs, and packaging behavior.

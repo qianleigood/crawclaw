@@ -29,7 +29,7 @@ describe("plugin extension import boundary inventory", () => {
     ).toBe(false);
   });
 
-  it("ignores private helper shims by scope", async () => {
+  it("keeps the removed private helper directory out of the inventory", async () => {
     const inventory = await collectPluginExtensionImportBoundaryInventory();
 
     expect(inventory.some((entry) => entry.file.startsWith("src/internal-plugin-helpers/"))).toBe(
@@ -37,7 +37,7 @@ describe("plugin extension import boundary inventory", () => {
     );
   });
 
-  it("keeps removed broad internal helper barrels out of the repo", () => {
+  it("keeps removed internal helper barrels out of the repo", () => {
     expect(existsSync(path.join(repoRoot, "src/internal-plugin-helpers/core.ts"))).toBe(false);
     expect(existsSync(path.join(repoRoot, "src/internal-plugin-helpers/index.ts"))).toBe(false);
   });
