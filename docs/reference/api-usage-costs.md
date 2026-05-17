@@ -121,9 +121,8 @@ See [Models](/concepts/models).
 
 ### 9) Talk (speech)
 
-Talk mode can invoke **ElevenLabs** when configured:
-
-- `ELEVENLABS_API_KEY` or `talk.apiKey`
+Talk mode uses the bundled Rust native `qwen3-tts` provider by default. It does
+not call ElevenLabs, Microsoft, or OpenAI speech APIs from the product runtime.
 
 See [TTS](/tools/tts).
 

@@ -20,6 +20,7 @@ type PackageJson = {
   bin?: Record<string, string>;
   exports?: Record<string, unknown>;
   files?: string[];
+  scripts?: Record<string, string>;
   peerDependencies?: Record<string, string>;
   peerDependenciesMeta?: Record<string, { optional?: boolean }>;
 };
@@ -56,6 +57,10 @@ export type NpmDistTagMirrorAuth = {
   source: "node-auth-token" | "npm-token" | "none";
 };
 const EXPECTED_REPOSITORY_URL = "https://github.com/qianleigood/crawclaw";
+const INSTALL_TIME_NODE_HELPER_FILES = new Set([
+  "scripts/npm-runner.mjs",
+  "scripts/postinstall-bundled-plugins.mjs",
+]);
 const MAX_CALVER_DISTANCE_DAYS = 2;
 const NPM_PACK_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 const skipPackValidationEnv = "CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK";
@@ -132,6 +137,15 @@ export function shouldSkipPackedTarballValidation(env = process.env): boolean {
   return !/^(0|false)$/i.test(raw);
 }
 
+export function shouldValidateReleaseTag(env = process.env): boolean {
+  return Boolean(
+    env.RELEASE_TAG?.trim() ||
+    env.RELEASE_SHA?.trim() ||
+    env.RELEASE_MAIN_REF?.trim() ||
+    env.GITHUB_ACTIONS === "true",
+  );
+}
+
 export function parseReleaseTagVersion(version: string): ParsedReleaseTag | null {
   const trimmed = version.trim();
   if (!trimmed) {
@@ -201,6 +215,12 @@ export function collectReleasePackageMetadataErrors(pkg: PackageJson): string[] 
   }
   if (pkg.files?.includes("dist/")) {
     errors.push("package.json files must not include the legacy dist JS runtime tree.");
+  }
+  if (pkg.files?.some((file) => INSTALL_TIME_NODE_HELPER_FILES.has(file))) {
+    errors.push("package.json files must not include install-time Node helper scripts.");
+  }
+  if (typeof pkg.scripts?.postinstall === "string" && pkg.scripts.postinstall.trim()) {
+    errors.push("package.json must not run a postinstall script.");
   }
   if (pkg.peerDependencies?.["node-llama-cpp"] !== "3.18.1") {
     errors.push(
@@ -432,14 +452,17 @@ function main(): number {
   const pkg = loadPackageJson();
   const now = new Date();
   const skipPackValidation = shouldSkipPackedTarballValidation();
+  const validateReleaseTag = shouldValidateReleaseTag();
   const metadataErrors = collectReleasePackageMetadataErrors(pkg);
-  const tagErrors = collectReleaseTagErrors({
-    packageVersion: pkg.version ?? "",
-    releaseTag: process.env.RELEASE_TAG ?? "",
-    releaseSha: process.env.RELEASE_SHA,
-    releaseMainRef: process.env.RELEASE_MAIN_REF,
-    now,
-  });
+  const tagErrors = validateReleaseTag
+    ? collectReleaseTagErrors({
+        packageVersion: pkg.version ?? "",
+        releaseTag: process.env.RELEASE_TAG ?? "",
+        releaseSha: process.env.RELEASE_SHA,
+        releaseMainRef: process.env.RELEASE_MAIN_REF,
+        now,
+      })
+    : [];
   const tarballErrors = skipPackValidation ? [] : collectPackedTarballErrors();
   const errors = [...metadataErrors, ...tagErrors, ...tarballErrors];
 
@@ -455,7 +478,7 @@ function main(): number {
   const dayDistance =
     parsedVersion === null ? "unknown" : String(utcCalendarDayDistance(parsedVersion.date, now));
   console.log(
-    `crawclaw-npm-release-check: validated ${channel} release ${pkg.version} (${dayDistance} day UTC delta${skipPackValidation ? "; metadata-only" : ""}).`,
+    `crawclaw-npm-release-check: validated ${channel} release ${pkg.version} (${dayDistance} day UTC delta${skipPackValidation ? "; metadata-only" : ""}${validateReleaseTag ? "" : "; release tag skipped outside release context"}).`,
   );
   return 0;
 }

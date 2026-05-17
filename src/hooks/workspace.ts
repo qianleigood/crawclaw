@@ -6,7 +6,6 @@ import { createSubsystemLogger } from "../logging/subsystem.js";
 import { isPathInsideWithRealpath } from "../security/scan-paths.js";
 import { MANIFEST_KEY } from "../shared/manifest-key.js";
 import { CONFIG_DIR, resolveUserPath } from "../utils.js";
-import { resolveBundledHooksDir } from "./bundled-dir.js";
 import { shouldIncludeHook } from "./config.js";
 import {
   parseFrontmatter,
@@ -244,12 +243,10 @@ export function discoverWorkspaceHookEntries(
   opts?: {
     config?: CrawClawConfig;
     managedHooksDir?: string;
-    bundledHooksDir?: string;
   },
 ): HookEntry[] {
   const managedHooksDir = opts?.managedHooksDir ?? path.join(CONFIG_DIR, "hooks");
   const workspaceHooksDir = path.join(workspaceDir, "hooks");
-  const bundledHooksDir = opts?.bundledHooksDir ?? resolveBundledHooksDir();
   const extraDirsRaw = opts?.config?.hooks?.internal?.load?.extraDirs ?? [];
   const extraDirs = extraDirsRaw
     .map((d) => (typeof d === "string" ? d.trim() : ""))
@@ -259,12 +256,6 @@ export function discoverWorkspaceHookEntries(
     config: opts?.config,
   });
 
-  const bundledHooks = bundledHooksDir
-    ? loadHookEntriesFromDir({
-        dir: bundledHooksDir,
-        source: "crawclaw-bundled",
-      })
-    : [];
   const extraHooks = extraDirs.flatMap((dir) => {
     const resolved = resolveUserPath(dir);
     return loadHookEntriesFromDir({
@@ -288,7 +279,7 @@ export function discoverWorkspaceHookEntries(
     source: "crawclaw-workspace",
   });
 
-  return [...extraHooks, ...bundledHooks, ...pluginHooks, ...managedHooks, ...workspaceHooks];
+  return [...extraHooks, ...pluginHooks, ...managedHooks, ...workspaceHooks];
 }
 
 export function buildWorkspaceHookSnapshot(
@@ -296,7 +287,6 @@ export function buildWorkspaceHookSnapshot(
   opts?: {
     config?: CrawClawConfig;
     managedHooksDir?: string;
-    bundledHooksDir?: string;
     entries?: HookEntry[];
     eligibility?: HookEligibilityContext;
     snapshotVersion?: number;
@@ -320,7 +310,6 @@ export function loadWorkspaceHookEntries(
   opts?: {
     config?: CrawClawConfig;
     managedHooksDir?: string;
-    bundledHooksDir?: string;
     entries?: HookEntry[];
   },
 ): HookEntry[] {

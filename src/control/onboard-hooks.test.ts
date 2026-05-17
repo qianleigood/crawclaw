@@ -59,7 +59,7 @@ describe("onboard-hooks", () => {
       ? undefined
       : "missing requirements") as HookStatusEntry["blockedReason"],
     ...params,
-    source: "crawclaw-bundled" as const,
+    source: "crawclaw-managed" as const,
     pluginId: undefined,
     homepage: undefined,
     always: false,

@@ -3,10 +3,6 @@ import {
   buildGatewayInstallPlan,
   gatewayInstallErrorHint,
 } from "../control/daemon-install-helpers.js";
-import {
-  DEFAULT_GATEWAY_DAEMON_RUNTIME,
-  GATEWAY_DAEMON_RUNTIME_OPTIONS,
-} from "../control/daemon-runtime.js";
 import { resolveGatewayInstallToken } from "../control/gateway-install-token.js";
 import { formatHealthCheckFailure } from "../control/health-format.js";
 import { healthCommand } from "../control/health.js";
@@ -105,18 +101,10 @@ export async function finalizeSetupWizard(
   }
 
   if (installDaemon) {
-    const daemonRuntime =
-      flow === "quickstart"
-        ? DEFAULT_GATEWAY_DAEMON_RUNTIME
-        : await prompter.select({
-            message: "Gateway service runtime",
-            options: GATEWAY_DAEMON_RUNTIME_OPTIONS,
-            initialValue: opts.daemonRuntime ?? DEFAULT_GATEWAY_DAEMON_RUNTIME,
-          });
     if (flow === "quickstart") {
       await prompter.note(
-        "QuickStart uses Node for the Gateway service (stable + supported).",
-        "Gateway service runtime",
+        "QuickStart installs the native Rust Gateway service.",
+        "Gateway service",
       );
     }
     const service = resolveGatewayService();
@@ -185,7 +173,6 @@ export async function finalizeSetupWizard(
             {
               env: process.env,
               port: settings.port,
-              runtime: daemonRuntime,
               warn: (message, title) => prompter.note(message, title),
               config: nextConfig,
             },

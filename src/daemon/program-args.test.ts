@@ -95,23 +95,20 @@ describe("resolveGatewayProgramArguments", () => {
     const result = await resolveGatewayProgramArguments({
       dev: true,
       port: 18789,
-      runtime: "node",
     });
 
     expect(result.programArguments).toEqual([gatewayPath, "--port", "18789"]);
     expect(result.workingDirectory).toBe(path.resolve("/repo"));
   });
 
-  it("uses an explicit native gateway entrypoint when installing a service", async () => {
-    const runtimeEntryPath = path.resolve(
+  it("uses the native gateway entrypoint when service install runs from the gateway binary", async () => {
+    const gatewayPath = path.resolve(
       "/Applications/CrawClaw Desktop.app/Contents/Resources/runtime/crawclaw/bin/crawclaw-gateway",
     );
-    process.argv = [
-      "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
-      runtimeEntryPath,
-    ];
+    process.argv = ["/usr/bin/env", gatewayPath];
+    fsMocks.realpath.mockResolvedValue(gatewayPath);
     fsMocks.access.mockImplementation(async (target: string) => {
-      if (target === runtimeEntryPath) {
+      if (target === gatewayPath) {
         return;
       }
       throw new Error("missing");
@@ -119,10 +116,8 @@ describe("resolveGatewayProgramArguments", () => {
 
     const result = await resolveGatewayProgramArguments({
       port: 18789,
-      runtime: "node",
-      runtimeEntryPath,
     });
 
-    expect(result.programArguments).toEqual([runtimeEntryPath, "--port", "18789"]);
+    expect(result.programArguments).toEqual([gatewayPath, "--port", "18789"]);
   });
 });

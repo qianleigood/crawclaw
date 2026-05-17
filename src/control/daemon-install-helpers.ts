@@ -13,15 +13,11 @@ import {
   normalizeEnvVarKey,
 } from "../infra/host-env-security.js";
 import { formatCliCommand } from "../terminal/command-format.js";
-import {
-  emitDaemonInstallRuntimeWarning,
-  resolveDaemonInstallRuntimeInputs,
-  resolveDaemonNodeBinDir,
-} from "./daemon-install-plan.shared.js";
-import type { DaemonInstallWarnFn } from "./daemon-install-runtime-warning.js";
-import type { GatewayDaemonRuntime } from "./daemon-runtime.js";
+import { resolveDaemonInstallRuntimeInputs } from "./daemon-install-plan.shared.js";
 
 export { resolveGatewayDevMode } from "./daemon-install-plan.shared.js";
+
+export type DaemonInstallWarnFn = (message: string, title?: string) => void;
 
 export type GatewayInstallPlan = {
   programArguments: string[];
@@ -93,34 +89,18 @@ function buildGatewayInstallEnvironment(params: {
 export async function buildGatewayInstallPlan(params: {
   env: Record<string, string | undefined>;
   port: number;
-  runtime: GatewayDaemonRuntime;
   devMode?: boolean;
-  nodePath?: string;
-  runtimeEntryPath?: string;
   warn?: DaemonInstallWarnFn;
   /** Full config to extract env vars from (env vars + inline env keys). */
   config?: CrawClawConfig;
   authStore?: AuthProfileStore;
 }): Promise<GatewayInstallPlan> {
-  const { devMode, nodePath } = await resolveDaemonInstallRuntimeInputs({
-    env: params.env,
-    runtime: params.runtime,
+  const { devMode } = resolveDaemonInstallRuntimeInputs({
     devMode: params.devMode,
-    nodePath: params.nodePath,
   });
   const { programArguments, workingDirectory } = await resolveGatewayProgramArguments({
     port: params.port,
     dev: devMode,
-    runtime: params.runtime,
-    nodePath,
-    runtimeEntryPath: params.runtimeEntryPath,
-  });
-  await emitDaemonInstallRuntimeWarning({
-    env: params.env,
-    runtime: params.runtime,
-    programArguments,
-    warn: params.warn,
-    title: "Gateway runtime",
   });
   const serviceEnvironment = buildServiceEnvironment({
     env: params.env,
@@ -129,9 +109,6 @@ export async function buildGatewayInstallPlan(params: {
       process.platform === "darwin"
         ? resolveGatewayLaunchAgentLabel(params.env.CRAWCLAW_PROFILE ?? params.env.CRAWCLAW_PROFILE)
         : undefined,
-    // Keep npm/pnpm available to the service when the selected daemon node comes from
-    // a version-manager bin directory that isn't covered by static PATH guesses.
-    extraPathDirs: resolveDaemonNodeBinDir(nodePath),
   });
 
   // Merge env sources into the service environment in ascending priority:

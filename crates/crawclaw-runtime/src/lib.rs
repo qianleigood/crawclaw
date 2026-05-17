@@ -13,6 +13,7 @@ mod desktop_packaging;
 pub mod memory;
 mod message_policy;
 mod native_plugin_registry;
+mod package_build;
 pub mod special_agents;
 
 use core_tools::build_pi_agent_rust_tool_registry;
@@ -25,6 +26,10 @@ pub use native_plugin_registry::{
     dispatch_native_service_lifecycle, invoke_native_plugin_operation, load_native_plugin_registry,
     with_native_runtime_context, NativePluginRegistry, NativePluginRegistryDiagnostic,
     NativePluginRuntime, NativeSidecarCommand, NativeToolRegistration,
+};
+pub use package_build::{
+    list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs, stage_package_postbuild,
+    StaticPackageAsset,
 };
 
 pub use crawclaw_channels::{

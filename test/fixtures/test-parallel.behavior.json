@@ -8,12 +8,7 @@
     ]
   },
   "extensions": {
-    "isolated": [
-      {
-        "file": "extensions/duckduckgo/src/ddg-search-provider.test.ts",
-        "reason": "This provider test hoists a client mock and imports the provider lazily; keep it in its own forked lane so shared extension workers do not reuse a previously cached module under test."
-      }
-    ]
+    "isolated": []
   },
   "unit": {
     "isolated": [

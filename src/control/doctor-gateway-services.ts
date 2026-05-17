@@ -4,7 +4,6 @@ import { writeConfigFile, type CrawClawConfig } from "../config/config.js";
 import { resolveGatewayPort, resolveIsNixMode } from "../config/paths.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { findExtraGatewayServices, renderGatewayServiceCleanupHints } from "../daemon/inspect.js";
-import { renderSystemNodeWarning, resolveSystemNodeInfo } from "../daemon/runtime-paths.js";
 import {
   auditGatewayServiceConfig,
   needsNodeRuntimeMigration,
@@ -15,28 +14,21 @@ import { resolveGatewayService } from "../daemon/service.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { note } from "../terminal/note.js";
 import { buildGatewayInstallPlan } from "./daemon-install-helpers.js";
-import { DEFAULT_GATEWAY_DAEMON_RUNTIME, type GatewayDaemonRuntime } from "./daemon-runtime.js";
 import { resolveGatewayAuthTokenForService } from "./doctor-gateway-auth-token.js";
 import type { DoctorOptions, DoctorPrompter } from "./doctor-prompter.js";
 import { isDoctorUpdateRepairMode } from "./doctor-repair-mode.js";
 
-function detectGatewayRuntime(programArguments: string[] | undefined): GatewayDaemonRuntime {
-  const first = programArguments?.[0];
-  if (first) {
-    const base = path.basename(first).toLowerCase();
-    if (base === "bun" || base === "bun.exe") {
-      return "bun";
-    }
-    if (base === "node" || base === "node.exe") {
-      return "node";
-    }
-  }
-  return DEFAULT_GATEWAY_DAEMON_RUNTIME;
+function isNativeGatewayEntrypoint(value: string | undefined): boolean {
+  const base = path.basename(value ?? "").toLowerCase();
+  return base === "crawclaw-gateway" || base === "crawclaw-gateway.exe";
 }
 
 function findGatewayEntrypoint(programArguments?: string[]): string | null {
   if (!programArguments || programArguments.length === 0) {
     return null;
+  }
+  if (isNativeGatewayEntrypoint(programArguments[0])) {
+    return programArguments[0] ?? null;
   }
   const gatewayIndex = programArguments.indexOf("gateway");
   if (gatewayIndex <= 0) {
@@ -111,28 +103,14 @@ export async function maybeRepairGatewayServiceConfig(
     });
   }
   const needsNodeRuntime = needsNodeRuntimeMigration(audit.issues);
-  const systemNodeInfo = needsNodeRuntime
-    ? await resolveSystemNodeInfo({ env: process.env })
-    : null;
-  const systemNodePath = systemNodeInfo?.supported ? systemNodeInfo.path : null;
-  if (needsNodeRuntime && !systemNodePath) {
-    const warning = renderSystemNodeWarning(systemNodeInfo);
-    if (warning) {
-      note(warning, "Gateway runtime");
-    }
-    note(
-      "System Node 24.x (stable) or Node 25.x (experimental) not found. Install one of them via Homebrew/apt/choco and rerun doctor to migrate off Bun/version managers.",
-      "Gateway runtime",
-    );
+  if (needsNodeRuntime) {
+    note("Gateway service will be migrated to the native Rust Gateway binary.", "Gateway runtime");
   }
 
   const port = resolveGatewayPort(cfg, process.env);
-  const runtimeChoice = detectGatewayRuntime(command.programArguments);
   const { programArguments } = await buildGatewayInstallPlan({
     env: process.env,
     port,
-    runtime: needsNodeRuntime && systemNodePath ? "node" : runtimeChoice,
-    nodePath: systemNodePath ?? undefined,
     warn: (message, title) => note(message, title),
     config: cfg,
   });
@@ -236,8 +214,6 @@ export async function maybeRepairGatewayServiceConfig(
   const updatedPlan = await buildGatewayInstallPlan({
     env: process.env,
     port: updatedPort,
-    runtime: needsNodeRuntime && systemNodePath ? "node" : runtimeChoice,
-    nodePath: systemNodePath ?? undefined,
     warn: (message, title) => note(message, title),
     config: cfgForServiceInstall,
   });

@@ -200,7 +200,7 @@ describe("resolveCrawClawMetadata", () => {
         crawclaw: {
           events: ["command"],
           install: [
-            { id: "bundled", kind: "bundled", label: "Bundled with CrawClaw" },
+            { id: "git", kind: "git", repository: "https://github.com/example/hook-pack" },
             { id: "npm", kind: "npm", package: "@crawclaw/hook" },
           ],
         },
@@ -209,7 +209,7 @@ describe("resolveCrawClawMetadata", () => {
 
     const result = resolveCrawClawMetadata(frontmatter);
     expect(result?.install).toHaveLength(2);
-    expect(result?.install?.[0].kind).toBe("bundled");
+    expect(result?.install?.[0].kind).toBe("git");
     expect(result?.install?.[1].kind).toBe("npm");
     expect(result?.install?.[1].package).toBe("@crawclaw/hook");
   });
@@ -230,35 +230,34 @@ describe("resolveCrawClawMetadata", () => {
     expect(result?.arch).toEqual(["arm64"]);
   });
 
-  it("parses real command-logger HOOK.md format", () => {
-    // This is the actual format used in the bundled hooks
+  it("parses hook package HOOK.md format", () => {
     const content = `---
-name: command-logger
-description: "Log all command events to a centralized audit file"
-homepage: https://docs.crawclaw.ai/automation/hooks#command-logger
+name: sample-hook
+description: "Log command events"
+homepage: https://docs.crawclaw.ai/automation/hooks
 metadata:
   {
     "crawclaw":
       {
         "emoji": "📝",
         "events": ["command"],
-        "install": [{ "id": "bundled", "kind": "bundled", "label": "Bundled with CrawClaw" }],
+        "install": [{ "id": "npm", "kind": "npm", "package": "@crawclaw/sample-hook" }],
       },
   }
 ---
 
-# Command Logger Hook
+# Sample Hook
 `;
 
     const frontmatter = parseFrontmatter(content);
-    expect(frontmatter.name).toBe("command-logger");
+    expect(frontmatter.name).toBe("sample-hook");
     expect(frontmatter.metadata).toBeDefined();
 
     const crawclaw = resolveCrawClawMetadata(frontmatter);
     expect(crawclaw).toBeDefined();
     expect(crawclaw?.emoji).toBe("📝");
     expect(crawclaw?.events).toEqual(["command"]);
-    expect(crawclaw?.install?.[0].kind).toBe("bundled");
+    expect(crawclaw?.install?.[0].kind).toBe("npm");
   });
 
   it("parses YAML metadata map", () => {

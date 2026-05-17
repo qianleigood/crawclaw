@@ -1,16 +1,16 @@
 ---
-summary: "Use OpenAI via API keys or Codex subscription in CrawClaw"
+summary: "Use OpenAI via API keys in CrawClaw"
 read_when:
   - You want to use OpenAI models in CrawClaw
-  - You want Codex subscription auth instead of API keys
+  - You want OpenAI API key setup guidance
 title: "OpenAI"
 ---
 
 # OpenAI
 
-OpenAI provides developer APIs for GPT models. Codex supports **ChatGPT sign-in** for subscription
-access or **API key** sign-in for usage-based access. Codex cloud requires ChatGPT sign-in.
-OpenAI explicitly supports subscription OAuth usage in external tools/workflows like CrawClaw.
+OpenAI provides developer APIs for GPT models. CrawClaw's bundled OpenAI setup
+uses API keys; the old bundled Codex OAuth login helper has been removed from
+the product runtime boundary.
 
 ## Option A: OpenAI API key (OpenAI Platform)
 
@@ -43,20 +43,11 @@ CrawClaw does **not** expose `openai/gpt-5.3-codex-spark` on the direct OpenAI
 API path. `pi-ai` still ships a built-in row for that model, but live OpenAI API
 requests currently reject it. Spark is treated as Codex-only in CrawClaw.
 
-## Option B: OpenAI Code (Codex) subscription
+## OpenAI Code (Codex)
 
-**Best for:** using ChatGPT/Codex subscription access instead of an API key.
-Codex cloud requires ChatGPT sign-in, while the Codex CLI supports ChatGPT or API key sign-in.
-
-### Desktop setup (Codex OAuth)
-
-```bash
-# Run Codex OAuth in the wizard
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-
-# Or run OAuth directly
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+The `openai-codex/*` model family remains in the model catalog for users who
+already have compatible token profiles or external tooling, but CrawClaw no
+longer starts a bundled JavaScript Codex OAuth flow.
 
 ### Config snippet (Codex subscription)
 
@@ -67,7 +58,8 @@ Codex cloud requires ChatGPT sign-in, while the Codex CLI supports ChatGPT or AP
 ```
 
 OpenAI's current Codex docs list `gpt-5.4` as the current Codex model. CrawClaw
-maps that to `openai-codex/gpt-5.4` for ChatGPT/Codex OAuth usage.
+maps that to `openai-codex/gpt-5.4` when compatible Codex auth is already
+available.
 
 If your Codex account is entitled to Codex Spark, CrawClaw also supports:
 

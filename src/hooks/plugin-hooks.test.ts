@@ -16,7 +16,6 @@ describe("bundle plugin hooks", () => {
   let fixtureRoot = "";
   let caseId = 0;
   let workspaceDir = "";
-  let previousBundledHooksDir: string | undefined;
 
   beforeAll(async () => {
     fixtureRoot = await fsp.mkdtemp(path.join(os.tmpdir(), "crawclaw-plugin-hooks-"));
@@ -26,17 +25,10 @@ describe("bundle plugin hooks", () => {
     clearInternalHooks();
     workspaceDir = path.join(fixtureRoot, `case-${caseId++}`);
     await fsp.mkdir(workspaceDir, { recursive: true });
-    previousBundledHooksDir = process.env.CRAWCLAW_BUNDLED_HOOKS_DIR;
-    process.env.CRAWCLAW_BUNDLED_HOOKS_DIR = "/nonexistent/bundled/hooks";
   });
 
   afterEach(() => {
     clearInternalHooks();
-    if (previousBundledHooksDir === undefined) {
-      delete process.env.CRAWCLAW_BUNDLED_HOOKS_DIR;
-    } else {
-      process.env.CRAWCLAW_BUNDLED_HOOKS_DIR = previousBundledHooksDir;
-    }
   });
 
   afterAll(async () => {

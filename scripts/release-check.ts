@@ -2,7 +2,7 @@
 
 import { execSync } from "node:child_process";
 import { readdirSync, readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import {
   collectBundledExtensionManifestErrors,
@@ -24,8 +24,6 @@ const requiredPathGroups = [
   ...listBundledPluginPackArtifacts(),
   ...listStaticExtensionAssetOutputs(),
   "docs/reference/templates/AGENTS.md",
-  "scripts/npm-runner.mjs",
-  "scripts/postinstall-bundled-plugins.mjs",
   "skills/coding-agent/SKILL.md",
   "dist/build-info.json",
 ];
@@ -167,13 +165,10 @@ export function collectMissingPackPaths(paths: Iterable<string>): string[] {
 }
 
 export function collectForbiddenPackPaths(paths: Iterable<string>): string[] {
-  const isAllowedBundledPluginNodeModulesPath = (path: string) =>
-    /^dist\/extensions\/[^/]+\/node_modules\//.test(path);
   return [...paths]
     .filter(
       (path) =>
-        forbiddenPrefixes.some((prefix) => path.startsWith(prefix)) ||
-        (/node_modules\//.test(path) && !isAllowedBundledPluginNodeModulesPath(path)),
+        forbiddenPrefixes.some((prefix) => path.startsWith(prefix)) || /node_modules\//.test(path),
     )
     .toSorted((left, right) => left.localeCompare(right));
 }

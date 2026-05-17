@@ -10,8 +10,6 @@ import {
 
 const PUBLIC_SURFACE_SOURCE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"] as const;
 
-export const ALWAYS_ALLOWED_RUNTIME_DIR_NAMES = new Set(["speech-core"]);
-
 export function resolveSourceFirstPublicSurfacePath(params: {
   bundledPluginsDir?: string;
   dirName: string;

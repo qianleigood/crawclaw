@@ -1,7 +1,7 @@
 // Public speech helpers for bundled or third-party plugins.
 //
-// Keep this surface neutral. Provider plugins should not need to know about the
-// bundled `speech-core` plugin id just to consume shared speech types/helpers.
+// Keep this surface neutral. Provider plugins should not need a bundled runtime
+// support package just to consume shared speech types/helpers.
 
 export type { SpeechProviderPlugin } from "../plugins/types.js";
 export type {

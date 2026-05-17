@@ -17,22 +17,19 @@ function writeJson(filePath: string, value: unknown) {
 }
 
 describe("bundled plugin build entries", () => {
-  it("includes manifest-less runtime core support packages in dist build entries", () => {
+  it("does not build manifest-less runtime support packages", () => {
     const entries = listBundledPluginBuildEntries();
 
-    expect(entries).toMatchObject({
-      "extensions/speech-core/api": "extensions/speech-core/api.ts",
-      "extensions/speech-core/runtime-api": "extensions/speech-core/runtime-api.ts",
-    });
+    expect(entries).toEqual({});
   });
 
-  it("packs runtime core support packages without requiring plugin manifests", () => {
+  it("packs only manifest-backed bundled plugin metadata", () => {
     const artifacts = listBundledPluginPackArtifacts();
 
     expect(artifacts).not.toContain(
       "dist/extensions/media-understanding-core/crawclaw.plugin.json",
     );
-    expect(artifacts).toContain("dist/extensions/speech-core/runtime-api.js");
+    expect(artifacts).not.toContain("dist/extensions/speech-core/runtime-api.js");
     expect(artifacts).not.toContain("dist/extensions/speech-core/crawclaw.plugin.json");
   });
 
@@ -43,7 +40,6 @@ describe("bundled plugin build entries", () => {
     });
     writeJson(path.join(cwd, "extensions", "demo", "package.json"), {
       crawclaw: {
-        extensions: ["./index.ts"],
         setupEntry: "./setup-entry.ts",
       },
       name: "@crawclaw/demo",

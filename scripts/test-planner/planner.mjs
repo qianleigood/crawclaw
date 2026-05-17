@@ -1185,7 +1185,6 @@ export function buildCIExecutionManifest(scopeInput = {}, options = {}) {
                   "pnpm build",
                   "dist/native/crawclaw-gateway --help",
                   "dist/native/crawclaw-runtime status --json",
-                  "pnpm test:build:singleton",
                 ].join("\n"),
               },
             ]

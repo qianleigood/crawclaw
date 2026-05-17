@@ -20,11 +20,6 @@ import { formatCliCommand } from "../terminal/command-format.js";
 import { note } from "../terminal/note.js";
 import { sleep } from "../utils.js";
 import { buildGatewayInstallPlan, gatewayInstallErrorHint } from "./daemon-install-helpers.js";
-import {
-  DEFAULT_GATEWAY_DAEMON_RUNTIME,
-  GATEWAY_DAEMON_RUNTIME_OPTIONS,
-  type GatewayDaemonRuntime,
-} from "./daemon-runtime.js";
 import { buildGatewayRuntimeHints, formatGatewayRuntimeSummary } from "./doctor-format.js";
 import type { DoctorOptions, DoctorPrompter } from "./doctor-prompter.js";
 import { resolveGatewayInstallToken } from "./gateway-install-token.js";
@@ -162,14 +157,6 @@ export async function maybeRepairGatewayDaemon(params: {
         initialValue: true,
       });
       if (install) {
-        const daemonRuntime = await params.prompter.select<GatewayDaemonRuntime>(
-          {
-            message: "Gateway service runtime",
-            options: GATEWAY_DAEMON_RUNTIME_OPTIONS,
-            initialValue: DEFAULT_GATEWAY_DAEMON_RUNTIME,
-          },
-          DEFAULT_GATEWAY_DAEMON_RUNTIME,
-        );
         const tokenResolution = await resolveGatewayInstallToken({
           config: params.cfg,
           env: process.env,
@@ -192,7 +179,6 @@ export async function maybeRepairGatewayDaemon(params: {
         const { programArguments, workingDirectory, environment } = await buildGatewayInstallPlan({
           env: process.env,
           port,
-          runtime: daemonRuntime,
           warn: (message, title) => note(message, title),
           config: params.cfg,
         });

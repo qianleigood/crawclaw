@@ -530,11 +530,10 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
   <Accordion title="Do I need a Claude or OpenAI subscription to run this?">
     No. You can run CrawClaw with **API keys** (Anthropic/OpenAI/others) or with
     **local-only models** so your data stays on your device. Subscriptions (Claude
-    Pro/Max or OpenAI Codex) are optional ways to authenticate those providers.
+    Pro/Max) are optional ways to authenticate those providers.
 
     If you choose Anthropic subscription auth, decide for yourself whether to use it:
     Anthropic has blocked some subscription usage outside Claude Code in the past.
-    OpenAI Codex OAuth is explicitly supported for external tools like CrawClaw.
 
     Docs: [Anthropic](/providers/anthropic), [OpenAI](/providers/openai),
     [Local models](/gateway/local-models), [Models](/concepts/models).
@@ -606,13 +605,11 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="How does Codex auth work?">
-    CrawClaw supports **OpenAI Code (Codex)** via OAuth (ChatGPT sign-in). Onboarding can run the OAuth flow and will set the default model to `openai-codex/gpt-5.4` when appropriate. See [Model providers](/concepts/model-providers) and [Desktop onboarding](/start/wizard).
+    CrawClaw keeps `openai-codex/*` models in the catalog for compatible existing auth profiles and external tooling, but the bundled JavaScript Codex OAuth onboarding flow has been removed. Use OpenAI API keys for the default OpenAI setup path. See [Model providers](/concepts/model-providers) and [Desktop onboarding](/start/wizard).
   </Accordion>
 
   <Accordion title="Do you support OpenAI subscription auth (Codex OAuth)?">
-    Yes. CrawClaw fully supports **OpenAI Code (Codex) subscription OAuth**.
-    OpenAI explicitly allows subscription OAuth usage in external tools/workflows
-    like CrawClaw. Onboarding can run the OAuth flow for you.
+    CrawClaw no longer starts a bundled JavaScript Codex OAuth login flow. Existing compatible auth profiles can still be present, but onboarding now favors OpenAI API keys and native provider surfaces.
 
     See [OAuth](/concepts/oauth), [Model providers](/concepts/model-providers), and [Desktop onboarding](/start/wizard).
 
@@ -1125,9 +1122,8 @@ for usage/billing and raise limits as needed.
 
   <Accordion title="Does memory require an OpenAI API key?">
     Not by itself. The built-in memory runtime uses your configured model roles
-    for extraction, summaries, and consolidation. Codex OAuth covers supported
-    model calls but does not replace provider keys for any provider-specific
-    commands you configure.
+    for extraction, summaries, and consolidation. Provider-specific commands still
+    need the credentials that provider requires.
 
     NotebookLM-backed experience recall is optional and uses the command/profile
     you configure under `memory.notebooklm`.
@@ -1984,7 +1980,7 @@ for usage/billing and raise limits as needed.
   <Accordion title="Can I use GPT 5.2 for daily tasks and Codex 5.3 for coding?">
     Yes. Set one as default and switch as needed:
 
-    - **Quick switch (per session):** `/model gpt-5.4` for daily tasks, `/model openai-codex/gpt-5.4` for coding with Codex OAuth.
+    - **Quick switch (per session):** `/model gpt-5.4` for daily tasks, `/model openai-codex/gpt-5.4` for coding when compatible Codex auth is already available.
     - **Default + switch:** set `agents.defaults.model.primary` to `openai/gpt-5.4`, then switch to `openai-codex/gpt-5.4` when coding (or the other way around).
     - **Sub-agents:** route coding tasks to sub-agents with a different default model.
 
@@ -2254,7 +2250,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
     - **OAuth** often leverages subscription access (where applicable).
     - **API keys** use pay-per-token billing.
 
-    The wizard explicitly supports Anthropic setup-token and OpenAI Codex OAuth and can store API keys for you.
+    The wizard supports Anthropic setup-token and API key storage. Provider-specific bundled JavaScript OAuth login helpers have been removed.
 
   </Accordion>
 </AccordionGroup>

@@ -18,12 +18,6 @@ describe("buildImportUrl", () => {
     fs.rmSync(tmpDir, { recursive: true, force: true });
   });
 
-  it("returns bare URL for bundled hooks (no query string)", () => {
-    const url = buildImportUrl(tmpFile, "crawclaw-bundled");
-    expect(url).not.toContain("?t=");
-    expect(url).toMatch(/^file:\/\//);
-  });
-
   it("appends mtime-based cache buster for workspace hooks", () => {
     const url = buildImportUrl(tmpFile, "crawclaw-workspace");
     expect(url).toMatch(/\?t=[\d.]+&s=\d+/);
@@ -41,12 +35,6 @@ describe("buildImportUrl", () => {
   it("appends mtime-based cache buster for plugin hooks", () => {
     const url = buildImportUrl(tmpFile, "crawclaw-plugin");
     expect(url).toMatch(/\?t=[\d.]+&s=\d+/);
-  });
-
-  it("returns same URL for bundled hooks across calls (cacheable)", () => {
-    const url1 = buildImportUrl(tmpFile, "crawclaw-bundled");
-    const url2 = buildImportUrl(tmpFile, "crawclaw-bundled");
-    expect(url1).toBe(url2);
   });
 
   it("returns same URL for workspace hooks when file is unchanged", () => {

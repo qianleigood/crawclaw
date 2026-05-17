@@ -204,7 +204,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.gatewayBindMode": "Gateway bind mode",
   "ui.text.gatewayPassword": "Gateway password",
   "ui.text.gatewayPortForServiceInstall": "Gateway port for service install",
-  "ui.text.gatewayRuntime": "Gateway service runtime",
   "ui.text.gatewayToken": "Gateway token",
   "ui.text.gatewayTokenEnvVar": "Gateway token env var",
   "ui.text.gatewayTokenSource": "Gateway token source",
@@ -224,7 +223,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.modelAuthProvider": "Model/auth provider",
   "ui.text.modelId": "Model ID",
   "ui.text.noAuth": "No auth",
-  "ui.text.nodeRecommended": "Node (recommended)",
   "ui.text.openaiCompatible": "OpenAI-compatible",
   "ui.text.operator": "Operator",
   "ui.text.outputPresentation": "Output and presentation",
@@ -464,7 +462,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
     "Native Windows managed gateway install tries Scheduled Tasks first and falls back to a per-user Startup-folder login item when task creation is denied.",
   "wizard.daemon.systemdUnavailable":
     "Systemd user services are unavailable; skipping service install. Use a direct shell run (`crawclaw gateway run`) or rerun without --install-daemon on this session.",
-  "wizard.daemon.invalidRuntime": "Invalid --daemon-runtime (use node or bun)",
   "wizard.daemon.installBlocked":
     "Gateway install blocked: {reason} Fix gateway auth config/token input and rerun setup.",
   "wizard.daemon.installFailed": "Gateway service install failed: {error}",
@@ -721,7 +718,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.onboard.option.installDaemon": "Install gateway service",
   "command.onboard.option.noInstallDaemon": "Skip gateway service install",
   "command.onboard.option.skipDaemon": "Skip gateway service install",
-  "command.onboard.option.daemonRuntime": "Daemon runtime: node|bun",
   "command.onboard.option.skipSkills": "Skip skills setup",
   "command.onboard.option.skipSearch": "Skip search provider setup",
   "command.onboard.option.skipHealth": "Skip health check",
@@ -1101,7 +1097,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.daemon.install.description": "Install the Gateway service (launchd/systemd/schtasks)",
   "command.daemon.install.option.port": "Gateway port",
   "command.daemon.install.option.runtime": "Daemon runtime (node|bun). Default: node",
-  "command.daemon.install.option.runtimeEntry": "Node runtime entrypoint for the installed service",
   "command.daemon.install.option.token": "Gateway token (token auth)",
   "command.daemon.install.option.force": "Reinstall/overwrite if already installed",
   "command.daemon.uninstall.description":
@@ -1190,10 +1185,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.models.auth.pasteToken.option.profileId": "Auth profile id (default: <provider>:manual)",
   "command.models.auth.pasteToken.option.expiresIn":
     "Optional expiry duration (e.g. 365d, 12h). Stored as absolute expiresAt.",
-  "command.models.auth.loginGithubCopilot.description":
-    "Login to GitHub Copilot via GitHub device flow (TTY required)",
-  "command.models.auth.loginGithubCopilot.option.yes":
-    "Overwrite existing profile without prompting",
   "command.models.auth.order.description": "Manage per-agent auth profile order overrides",
   "command.models.auth.order.get.description":
     "Show per-agent auth order override (from auth-profiles.json)",
@@ -1685,7 +1676,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.137": "Legacy cron",
   "cli.visible.138": "Legacy plugin manifests",
   "cli.visible.139": "Memory health",
-  "cli.visible.140": "OAuth TLS",
   "cli.visible.142": "Session locks",
   "cli.visible.144": "Shell completion",
   "cli.visible.145": "Startup checks",

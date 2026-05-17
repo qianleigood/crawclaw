@@ -42,9 +42,8 @@ describe("scripts/test-extension.mjs", () => {
 
     expect(plan.extensionId).toBe("google");
     expect(plan.config).toBe("vitest.extensions.config.ts");
-    expect(plan.testFiles.some((file) => file.startsWith(`${bundledPluginRoot("google")}/`))).toBe(
-      true,
-    );
+    expect(plan.extensionDir).toBe(bundledPluginRoot("google"));
+    expect(plan.testFiles).toEqual([]);
   });
 
   it("maps changed paths back to extension ids", () => {

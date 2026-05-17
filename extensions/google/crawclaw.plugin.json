@@ -19,21 +19,11 @@
       "choiceLabel": "Google Gemini API key",
       "groupId": "google",
       "groupLabel": "Google",
-      "groupHint": "Gemini API key + OAuth",
+      "groupHint": "Gemini API key",
       "optionKey": "geminiApiKey",
       "cliFlag": "--gemini-api-key",
       "cliOption": "--gemini-api-key <key>",
       "cliDescription": "Gemini API key"
-    },
-    {
-      "provider": "google-gemini-cli",
-      "method": "oauth",
-      "choiceId": "google-gemini-cli",
-      "choiceLabel": "Gemini CLI OAuth",
-      "choiceHint": "Google OAuth with project-aware token payload",
-      "groupId": "google",
-      "groupLabel": "Google",
-      "groupHint": "Gemini API key + OAuth"
     }
   ],
   "uiHints": {

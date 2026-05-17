@@ -137,7 +137,7 @@ describe("lookupContextTokens", () => {
           expectedCalls: 0,
         },
         {
-          argv: ["node", "scripts/test-built-plugin-singleton.mjs"],
+          argv: ["node", "scripts/build-stamp.mjs"],
           expectedCalls: 0,
         },
       ]) {

@@ -396,11 +396,11 @@ describe("discoverCrawClawPlugins", () => {
       excludes: ["ollama-provider"],
     },
     {
-      name: "uses native manifest ids for bundled speech package ids",
+      name: "uses native manifest ids for scoped package ids",
       setup: (stateDir: string) => {
         for (const [dirName, packageName, pluginId] of [
-          ["elevenlabs-speech-pack", "@crawclaw/elevenlabs-speech", "elevenlabs"],
-          ["microsoft-speech-pack", "@crawclaw/microsoft-speech", "microsoft"],
+          ["demo-provider-pack", "@crawclaw/demo-provider", "demo"],
+          ["sample-tool-pack", "@crawclaw/sample-tool-plugin", "sample-tool"],
         ] as const) {
           const packageDir = path.join(stateDir, "extensions", dirName);
           createPackagePluginWithEntry({
@@ -412,8 +412,8 @@ describe("discoverCrawClawPlugins", () => {
         }
         return {};
       },
-      includes: ["elevenlabs", "microsoft"],
-      excludes: ["elevenlabs-speech", "microsoft-speech"],
+      includes: ["demo", "sample-tool"],
+      excludes: ["demo-provider", "sample-tool-plugin"],
     },
     {
       name: "treats configured directory paths as plugin packages",

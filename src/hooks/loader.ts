@@ -2,7 +2,7 @@
  * Dynamic loader for hook handlers
  *
  * Loads hook handlers from external modules based on configuration
- * and from directory-based discovery (bundled, managed, workspace)
+ * and from directory-based discovery (plugin, managed, workspace)
  */
 
 import fs from "node:fs";
@@ -42,7 +42,7 @@ function maybeWarnTrustedHookSource(source: string): void {
  * Load and register all hook handlers
  *
  * Loads hooks from both:
- * 1. Directory-based discovery (bundled, managed, workspace)
+ * 1. Directory-based discovery (plugin, managed, workspace)
  * 2. Legacy config handlers (backwards compatibility)
  *
  * @param cfg - CrawClaw configuration
@@ -62,7 +62,6 @@ export async function loadInternalHooks(
   workspaceDir: string,
   opts?: {
     managedHooksDir?: string;
-    bundledHooksDir?: string;
   },
 ): Promise<number> {
   // Hooks are on by default; only skip when explicitly disabled.
@@ -77,7 +76,6 @@ export async function loadInternalHooks(
     const hookEntries = loadWorkspaceHookEntries(workspaceDir, {
       config: cfg,
       managedHooksDir: opts?.managedHooksDir,
-      bundledHooksDir: opts?.bundledHooksDir,
     });
 
     // Filter by eligibility

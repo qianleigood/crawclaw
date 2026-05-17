@@ -13,7 +13,7 @@ CrawClaw is **not** a hostile multi-tenant security boundary for multiple advers
 If you need mixed-trust or adversarial-user operation, split trust boundaries (separate gateway + credentials, ideally separate OS users/hosts).
 </Warning>
 
-**On this page:** [Trust model](#scope-first-personal-assistant-security-model) | [Quick audit](#quick-check-crawclaw-security-audit) | [Hardened baseline](#hardened-baseline-in-60-seconds) | [DM access model](#dm-access-model) | [Configuration hardening](#configuration-hardening-examples) | [Incident response](#incident-response)
+**On this page:** [Trust model](#scope-first-personal-assistant-security-model) | [Quick audit](#quick-check-crawclaw-desktop-or-the-local-gateway-api) | [Hardened baseline](#hardened-baseline-in-60-seconds) | [DM access model](#dm-access-model) | [Configuration hardening](#configuration-hardening-examples) | [Incident response](#incident-response)
 
 ## Scope first: personal assistant security model
 
@@ -428,7 +428,7 @@ Plugins run **in-process** with the Gateway. Treat them as trusted code:
 - If you install plugins (CrawClaw Desktop or the local Gateway API), treat it like running untrusted code:
   - The install path is the per-plugin directory under the active plugin install root.
   - CrawClaw runs a built-in dangerous-code scan before install. `critical` findings block by default.
-  - CrawClaw uses `npm pack` and then runs `npm install --omit=dev` in that directory (npm lifecycle scripts can execute code during install).
+  - CrawClaw may use `npm pack` to fetch a package source, but it no longer runs `npm install` in the installed plugin directory.
   - Prefer pinned, exact versions (`@scope/pkg@1.2.3`), and inspect the unpacked code on disk before enabling.
   - `--dangerously-force-unsafe-install` is break-glass only for built-in scan false positives. It does not bypass plugin `before_install` hook policy blocks and does not bypass scan failures.
   - Gateway-backed skill dependency installs follow the same dangerous/suspicious split: built-in `critical` findings block unless the caller explicitly sets `dangerouslyForceUnsafeInstall`, while suspicious findings still warn only. CrawClaw Desktop or the local Gateway API remains the separate ClawHub skill download/install flow.
@@ -767,7 +767,7 @@ Assume anything under `~/.crawclaw/` (or `$CRAWCLAW_STATE_DIR/`) may contain sec
 - `secrets.json` (optional): file-backed secret payload used by `file` SecretRef providers (`secrets.providers`).
 - `agents/<agentId>/agent/auth.json`: legacy compatibility file. Static `api_key` entries are scrubbed when discovered.
 - `agents/<agentId>/sessions/**`: session transcripts (`*.jsonl`) + routing metadata (`sessions.json`) that can contain private messages and tool output.
-- bundled plugin packages: installed plugins (plus their `node_modules/`).
+- bundled plugin packages: installed native plugin files and manifests.
 
 Hardening tips:
 

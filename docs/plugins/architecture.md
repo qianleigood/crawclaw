@@ -67,8 +67,7 @@ registration behavior (not just static metadata):
 - **plain-capability** -- registers exactly one capability type (for example a
   provider-only plugin like `mistral`)
 - **hybrid-capability** -- registers multiple capability types (for example
-  `openai` owns text inference, speech, media understanding, and image
-  generation)
+  `openai` owns text inference, media understanding, and image generation)
 - **hook-only** -- registers only hooks (typed or custom), no capabilities,
   tools, commands, or services
 - **non-capability** -- registers tools, commands, services, or routes but no
@@ -152,9 +151,8 @@ That means:
 Examples:
 
 - the bundled `openai` plugin owns OpenAI model-provider behavior and OpenAI
-  speech + media-understanding behavior
-- the bundled `elevenlabs` plugin owns ElevenLabs speech behavior
-- the bundled `microsoft` plugin owns Microsoft speech behavior
+  media-understanding behavior
+- the bundled `qwen3-tts` plugin owns local speech synthesis behavior
 - the bundled `google` plugin owns Google model-provider behavior plus Google
   media-understanding + web-search behavior
 - the bundled `minimax`, `mistral`, `moonshot`, and `zai` plugins own their
@@ -162,7 +160,7 @@ Examples:
 
 The intended end state is:
 
-- OpenAI lives in one plugin even if it spans text models, speech, images, and
+- OpenAI lives in one plugin even if it spans text models, images, and
   future video
 - another vendor can do the same for its own surface area
 - channels do not care which vendor plugin owns the provider; they consume the
@@ -202,7 +200,7 @@ Use this mental model when deciding where code belongs:
 For example, TTS follows this shape:
 
 - core owns reply-time TTS policy, fallback order, prefs, and channel delivery
-- `openai`, `elevenlabs`, and `microsoft` own synthesis implementations
+- `qwen3-tts` owns the bundled native synthesis implementation
 - native channel and feature runtimes consume the shared speech helpers
 
 That same pattern should be preferred for future capabilities.
@@ -595,7 +593,7 @@ const result = await api.runtime.tts.textToSpeechTelephony({
 });
 
 const voices = await api.runtime.tts.listVoices({
-  provider: "elevenlabs",
+  provider: "qwen3-tts",
   cfg: api.config,
 });
 ```
@@ -607,7 +605,7 @@ Notes:
 - Returns PCM audio buffer + sample rate. Plugins must resample/encode for providers.
 - `listVoices` is optional per provider. Use it for vendor-owned voice pickers or setup flows.
 - Voice listings can include richer metadata such as locale, gender, and personality tags for provider-aware pickers.
-- OpenAI and ElevenLabs support telephony today. Microsoft does not.
+- Bundled speech synthesis is provided by the Rust native `qwen3-tts` plugin.
 
 Speech providers now come from Rust native plugin descriptors. TypeScript
 plugins can call shared TTS runtime helpers, but they do not register speech
@@ -617,7 +615,6 @@ Notes:
 
 - Keep TTS policy, fallback, and reply delivery in core.
 - Use speech providers for vendor-owned synthesis behavior.
-- Legacy Microsoft `edge` input is normalized to the `microsoft` provider id.
 - The preferred ownership model is company-oriented: one vendor plugin can own
   text, speech, image, and future media providers as CrawClaw adds those
   capability contracts.
@@ -806,12 +803,10 @@ path" instead of crashing or misreporting the account as not configured.
 
 ## Package metadata
 
-If your plugin imports npm deps, install them in that directory so
-`node_modules` is available (`npm install` / `pnpm install`).
-
-Security note: CrawClaw Desktop or the local Gateway API installs plugin dependencies with
-`npm install --omit=dev --ignore-scripts` (no lifecycle scripts, no dev dependencies at runtime). Keep plugin dependency
-trees "pure JS/TS" and avoid packages that require `postinstall` builds.
+Native plugins must package their executable/runtime files next to
+`crawclaw.plugin.json`. CrawClaw Desktop and the local Gateway API no longer run
+`npm install` while installing plugins, and published package contents must not
+depend on a generated `node_modules` tree.
 
 The legacy `crawclaw.extensions`, `crawclaw.setupEntry`, and
 `deferConfiguredChannelFullLoadUntilAfterListen` package paths were removed with

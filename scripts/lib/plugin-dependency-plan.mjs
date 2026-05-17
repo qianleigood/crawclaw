@@ -197,7 +197,6 @@ async function collectBundledPlugins(repoRoot) {
         entryPoints: collectPackageEntryPoints(packageJson),
         npmSpec:
           typeof crawclaw?.install?.npmSpec === "string" ? crawclaw.install.npmSpec : undefined,
-        stageRuntimeDependencies: crawclaw?.bundle?.stageRuntimeDependencies === true,
       },
       manifestPath,
       optionalDependencies: sortObject(packageJson?.optionalDependencies),
@@ -275,10 +274,6 @@ function buildSummary(plugins) {
     pluginRuntimeDependencyVersionSplits: collectVersionSplits(plugins),
     releasedNpmSpecPluginIds: plugins
       .filter((plugin) => typeof plugin.install?.npmSpec === "string")
-      .map((plugin) => plugin.id)
-      .toSorted((left, right) => left.localeCompare(right)),
-    stagedRuntimeDependencyPluginIds: plugins
-      .filter((plugin) => plugin.install?.stageRuntimeDependencies === true)
       .map((plugin) => plugin.id)
       .toSorted((left, right) => left.localeCompare(right)),
     uniquePluginRuntimeDependencyCount: runtimeDependencyNames.size,

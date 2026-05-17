@@ -54,6 +54,18 @@ function expectTokenAudit(
 }
 
 describe("auditGatewayServiceConfig", () => {
+  it("accepts native Gateway binary service commands", async () => {
+    const audit = await auditGatewayServiceConfig({
+      env: { HOME: "/tmp" },
+      platform: "linux",
+      command: {
+        programArguments: ["/opt/crawclaw/bin/crawclaw-gateway", "--port", "18789"],
+        environment: { PATH: "/usr/local/bin:/usr/bin:/bin" },
+      },
+    });
+    expect(hasIssue(audit, SERVICE_AUDIT_CODES.gatewayCommandMissing)).toBe(false);
+  });
+
   it("flags bun runtime", async () => {
     const audit = await auditGatewayServiceConfig({
       env: { HOME: "/tmp" },

@@ -1,6 +1,6 @@
 export type HookInstallSpec = {
   id?: string;
-  kind: "bundled" | "npm" | "git";
+  kind: "npm" | "git";
   label?: string;
   package?: string;
   repository?: string;
@@ -36,7 +36,7 @@ export type ParsedHookFrontmatter = Record<string, string>;
 export type Hook = {
   name: string;
   description: string;
-  source: "crawclaw-bundled" | "crawclaw-managed" | "crawclaw-workspace" | "crawclaw-plugin";
+  source: "crawclaw-managed" | "crawclaw-workspace" | "crawclaw-plugin";
   pluginId?: string;
   filePath: string; // Path to HOOK.md
   baseDir: string; // Directory containing hook

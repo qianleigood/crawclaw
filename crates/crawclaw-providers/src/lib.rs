@@ -153,6 +153,21 @@ pub struct BundledWebProviderBoundary {
     pub sidecar: Option<&'static str>,
 }
 
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderModelAlias {
+    pub from: &'static str,
+    pub to: &'static str,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderModelNormalizationMetadata {
+    pub google_model_aliases: &'static [ProviderModelAlias],
+    pub antigravity_low_suffix_ids: &'static [&'static str],
+    pub xai_model_aliases: &'static [ProviderModelAlias],
+}
+
 pub const BUNDLED_PROVIDER_PLUGINS: &[BundledProviderPlugin] = &[
     BundledProviderPlugin {
         plugin_id: "amazon-bedrock",
@@ -1000,8 +1015,8 @@ pub const BUNDLED_PROVIDER_DEFAULT_MODELS: &[BundledProviderDefaultModel] = &[
     },
     BundledProviderDefaultModel {
         provider: "ollama",
-        model: "llama3.3:latest",
-        name: "Llama 3.3 local",
+        model: OLLAMA_DEFAULT_MODEL,
+        name: "GLM 4.7 Flash local",
         reasoning: true,
     },
     BundledProviderDefaultModel {
@@ -1207,6 +1222,172 @@ pub const BUNDLED_WEB_PROVIDER_BOUNDARIES: &[BundledWebProviderBoundary] = &[
     },
 ];
 
+pub const CLAUDE_CLI_BACKEND_ID: &str = "claude-cli";
+pub const DEFAULT_CLAUDE_CLI_MODEL: &str = "claude-cli/claude-sonnet-4-6";
+pub const ANTHROPIC_VERTEX_DEFAULT_REGION: &str = "global";
+pub const ANTHROPIC_VERTEX_CREDENTIALS_MARKER: &str = "gcp-vertex-credentials";
+pub const DUCKDUCKGO_DEFAULT_SAFE_SEARCH: &str = "moderate";
+pub const OLLAMA_DEFAULT_BASE_URL: &str = "http://127.0.0.1:11434";
+pub const OLLAMA_DEFAULT_CONTEXT_WINDOW: u32 = 128_000;
+pub const OLLAMA_DEFAULT_MAX_TOKENS: u32 = 8_192;
+pub const OLLAMA_DEFAULT_MODEL: &str = "glm-4.7-flash";
+pub const OLLAMA_DEFAULT_EMBEDDING_MODEL: &str = "nomic-embed-text";
+
+pub const GOOGLE_MODEL_ALIASES: &[ProviderModelAlias] = &[
+    ProviderModelAlias {
+        from: "gemini-3-pro",
+        to: "gemini-3-pro-preview",
+    },
+    ProviderModelAlias {
+        from: "gemini-3-flash",
+        to: "gemini-3-flash-preview",
+    },
+    ProviderModelAlias {
+        from: "gemini-3.1-pro",
+        to: "gemini-3.1-pro-preview",
+    },
+    ProviderModelAlias {
+        from: "gemini-3.1-flash-lite",
+        to: "gemini-3.1-flash-lite-preview",
+    },
+    ProviderModelAlias {
+        from: "gemini-3.1-flash",
+        to: "gemini-3-flash-preview",
+    },
+    ProviderModelAlias {
+        from: "gemini-3.1-flash-preview",
+        to: "gemini-3-flash-preview",
+    },
+];
+
+pub const ANTIGRAVITY_LOW_SUFFIX_IDS: &[&str] =
+    &["gemini-3-pro", "gemini-3.1-pro", "gemini-3-1-pro"];
+
+pub const XAI_MODEL_ALIASES: &[ProviderModelAlias] = &[
+    ProviderModelAlias {
+        from: "grok-4-fast-reasoning",
+        to: "grok-4-fast",
+    },
+    ProviderModelAlias {
+        from: "grok-4-1-fast-reasoning",
+        to: "grok-4-1-fast",
+    },
+    ProviderModelAlias {
+        from: "grok-4.20-experimental-beta-0304-reasoning",
+        to: "grok-4.20-beta-latest-reasoning",
+    },
+    ProviderModelAlias {
+        from: "grok-4.20-reasoning",
+        to: "grok-4.20-beta-latest-reasoning",
+    },
+    ProviderModelAlias {
+        from: "grok-4.20-experimental-beta-0304-non-reasoning",
+        to: "grok-4.20-beta-latest-non-reasoning",
+    },
+    ProviderModelAlias {
+        from: "grok-4.20-non-reasoning",
+        to: "grok-4.20-beta-latest-non-reasoning",
+    },
+];
+
+pub fn is_claude_cli_provider(provider_id: &str) -> bool {
+    provider_id
+        .trim()
+        .eq_ignore_ascii_case(CLAUDE_CLI_BACKEND_ID)
+}
+
+pub fn to_claude_cli_model_ref(raw: &str) -> Option<String> {
+    let trimmed = raw.trim();
+    let model_id = trimmed.strip_prefix("anthropic/")?.trim();
+    if !model_id.to_ascii_lowercase().starts_with("claude-") {
+        return None;
+    }
+    Some(format!("{CLAUDE_CLI_BACKEND_ID}/{model_id}"))
+}
+
+pub fn normalize_anthropic_vertex_region(value: Option<&str>) -> String {
+    let Some(region) = value.map(str::trim).filter(|region| !region.is_empty()) else {
+        return ANTHROPIC_VERTEX_DEFAULT_REGION.to_string();
+    };
+    if region
+        .chars()
+        .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
+    {
+        return region.to_string();
+    }
+    ANTHROPIC_VERTEX_DEFAULT_REGION.to_string()
+}
+
+pub fn anthropic_vertex_region_from_base_url(base_url: &str) -> Option<String> {
+    let trimmed = base_url.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let without_scheme = trimmed
+        .strip_prefix("https://")
+        .or_else(|| trimmed.strip_prefix("http://"))
+        .unwrap_or(trimmed);
+    let host = without_scheme
+        .split('/')
+        .next()
+        .unwrap_or("")
+        .split(':')
+        .next()
+        .unwrap_or("");
+    if host.eq_ignore_ascii_case("aiplatform.googleapis.com") {
+        return Some(ANTHROPIC_VERTEX_DEFAULT_REGION.to_string());
+    }
+    let suffix = "-aiplatform.googleapis.com";
+    let lower = host.to_ascii_lowercase();
+    lower
+        .strip_suffix(suffix)
+        .filter(|region| {
+            !region.is_empty()
+                && region
+                    .chars()
+                    .all(|ch| ch.is_ascii_lowercase() || ch.is_ascii_digit() || ch == '-')
+        })
+        .map(ToString::to_string)
+}
+
+pub fn anthropic_vertex_config_api_key_marker(has_available_auth: bool) -> Option<&'static str> {
+    has_available_auth.then_some(ANTHROPIC_VERTEX_CREDENTIALS_MARKER)
+}
+
+pub fn normalize_google_model_id(id: &str) -> String {
+    GOOGLE_MODEL_ALIASES
+        .iter()
+        .find(|alias| alias.from == id)
+        .map(|alias| alias.to)
+        .unwrap_or(id)
+        .to_string()
+}
+
+pub fn normalize_antigravity_model_id(id: &str) -> String {
+    if ANTIGRAVITY_LOW_SUFFIX_IDS.contains(&id) {
+        format!("{id}-low")
+    } else {
+        id.to_string()
+    }
+}
+
+pub fn normalize_xai_model_id(id: &str) -> String {
+    XAI_MODEL_ALIASES
+        .iter()
+        .find(|alias| alias.from == id)
+        .map(|alias| alias.to)
+        .unwrap_or(id)
+        .to_string()
+}
+
+pub fn normalize_duckduckgo_safe_search(value: Option<&str>) -> &'static str {
+    match value.map(str::trim).map(str::to_ascii_lowercase).as_deref() {
+        Some("strict") => "strict",
+        Some("off") => "off",
+        _ => DUCKDUCKGO_DEFAULT_SAFE_SEARCH,
+    }
+}
+
 pub fn native_provider_transports() -> Vec<ProviderTransport> {
     NATIVE_PROVIDER_TRANSPORTS.to_vec()
 }
@@ -1264,6 +1445,14 @@ pub fn bundled_provider_usage_descriptors() -> Vec<BundledProviderUsageDescripto
 
 pub fn bundled_web_provider_boundaries() -> Vec<BundledWebProviderBoundary> {
     BUNDLED_WEB_PROVIDER_BOUNDARIES.to_vec()
+}
+
+pub fn provider_model_normalization_metadata() -> ProviderModelNormalizationMetadata {
+    ProviderModelNormalizationMetadata {
+        google_model_aliases: GOOGLE_MODEL_ALIASES,
+        antigravity_low_suffix_ids: ANTIGRAVITY_LOW_SUFFIX_IDS,
+        xai_model_aliases: XAI_MODEL_ALIASES,
+    }
 }
 
 pub fn bundled_provider_descriptors() -> Vec<BundledProviderDescriptor> {
@@ -3188,16 +3377,16 @@ mod tests {
         }));
         assert!(auth_choices.iter().any(|choice| {
             choice.plugin_id == "minimax"
-                && choice.provider == "minimax-portal"
-                && choice.method == "oauth"
-                && choice.choice_id == "minimax-global-oauth"
+                && choice.provider == "minimax"
+                && choice.method == "api-global"
+                && choice.choice_id == "minimax-global-api"
         }));
 
         let setup_options = bundled_provider_setup_options();
         assert!(setup_options.iter().any(|choice| {
-            choice.provider == "github-copilot"
-                && choice.value == "github-copilot"
-                && choice.label == "GitHub Copilot"
+            choice.provider == "openai"
+                && choice.value == "openai-api-key"
+                && choice.label == "OpenAI API key"
         }));
 
         let model_pickers = bundled_provider_model_picker_entries();
@@ -3228,6 +3417,75 @@ mod tests {
                 && entry.provider == "spider"
                 && entry.product_boundary == "rust-native-plugin"
         }));
+    }
+
+    #[test]
+    fn provider_extension_constants_are_rust_authoritative() {
+        assert!(is_claude_cli_provider(" CLAUDE-CLI "));
+        assert_eq!(
+            to_claude_cli_model_ref("anthropic/claude-sonnet-4-6").as_deref(),
+            Some(DEFAULT_CLAUDE_CLI_MODEL)
+        );
+        assert_eq!(to_claude_cli_model_ref("openai/gpt-5.4"), None);
+
+        assert_eq!(
+            normalize_anthropic_vertex_region(Some("us-east1")),
+            "us-east1"
+        );
+        assert_eq!(
+            normalize_anthropic_vertex_region(Some("us-central1.attacker.example")),
+            ANTHROPIC_VERTEX_DEFAULT_REGION
+        );
+        assert_eq!(
+            anthropic_vertex_region_from_base_url("https://europe-west4-aiplatform.googleapis.com")
+                .as_deref(),
+            Some("europe-west4")
+        );
+        assert_eq!(
+            anthropic_vertex_region_from_base_url("https://aiplatform.googleapis.com").as_deref(),
+            Some(ANTHROPIC_VERTEX_DEFAULT_REGION)
+        );
+        assert_eq!(
+            anthropic_vertex_region_from_base_url("https://proxy.example.com/google/aiplatform"),
+            None
+        );
+        assert_eq!(
+            anthropic_vertex_config_api_key_marker(true),
+            Some(ANTHROPIC_VERTEX_CREDENTIALS_MARKER)
+        );
+
+        assert_eq!(
+            normalize_google_model_id("gemini-3-pro"),
+            "gemini-3-pro-preview"
+        );
+        assert_eq!(
+            normalize_google_model_id("gemini-3.1-flash-preview"),
+            "gemini-3-flash-preview"
+        );
+        assert_eq!(
+            normalize_antigravity_model_id("gemini-3-1-pro"),
+            "gemini-3-1-pro-low"
+        );
+        assert_eq!(
+            normalize_xai_model_id("grok-4.20-experimental-beta-0304-reasoning"),
+            "grok-4.20-beta-latest-reasoning"
+        );
+        assert_eq!(
+            normalize_xai_model_id("grok-4-fast-reasoning"),
+            "grok-4-fast"
+        );
+        assert_eq!(normalize_xai_model_id("grok-4"), "grok-4");
+
+        assert_eq!(normalize_duckduckgo_safe_search(Some("STRICT")), "strict");
+        assert_eq!(
+            normalize_duckduckgo_safe_search(Some("invalid")),
+            "moderate"
+        );
+        assert_eq!(OLLAMA_DEFAULT_BASE_URL, "http://127.0.0.1:11434");
+        assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
+        assert_eq!(OLLAMA_DEFAULT_MAX_TOKENS, 8_192);
+        assert_eq!(OLLAMA_DEFAULT_MODEL, "glm-4.7-flash");
+        assert_eq!(OLLAMA_DEFAULT_EMBEDDING_MODEL, "nomic-embed-text");
     }
 
     #[test]

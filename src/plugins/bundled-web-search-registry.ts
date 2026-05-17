@@ -8,11 +8,32 @@ function hasConfiguredCredentialValue(value: unknown): boolean {
   return value !== undefined && value !== null;
 }
 
+function readRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+function hasNativeSearxngCredential(params: {
+  config: CrawClawConfig;
+  env?: NodeJS.ProcessEnv;
+}): boolean {
+  const pluginConfig = readRecord(params.config.plugins?.entries?.searxng?.config);
+  const webSearch = readRecord(pluginConfig?.webSearch);
+  return (
+    hasConfiguredCredentialValue(webSearch?.baseUrl) ||
+    hasConfiguredCredentialValue(params.env?.SEARXNG_BASE_URL)
+  );
+}
+
 export function hasBundledWebSearchCredential(params: {
   config: CrawClawConfig;
   env?: NodeJS.ProcessEnv;
   searchConfig?: Record<string, unknown>;
 }): boolean {
+  if (hasNativeSearxngCredential(params)) {
+    return true;
+  }
   const searchConfig =
     params.searchConfig ??
     (params.config.tools?.web?.search as Record<string, unknown> | undefined);

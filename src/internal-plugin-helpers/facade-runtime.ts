@@ -15,7 +15,6 @@ import {
 } from "../plugins/manifest-registry.js";
 import { resolveLoaderPackageRoot } from "../plugins/runtime-alias.js";
 import {
-  ALWAYS_ALLOWED_RUNTIME_DIR_NAMES,
   createLazyFacadeArrayValue,
   createLazyFacadeObjectValue,
   getOrCreateFacadeJitiLoader,
@@ -114,16 +113,6 @@ function resolveBundledPluginPublicSurfaceAccess(params: {
   dirName: string;
   artifactBasename: string;
 }): { allowed: boolean; pluginId?: string; reason?: string } {
-  if (
-    params.artifactBasename === "runtime-api.js" &&
-    ALWAYS_ALLOWED_RUNTIME_DIR_NAMES.has(params.dirName)
-  ) {
-    return {
-      allowed: true,
-      pluginId: params.dirName,
-    };
-  }
-
   const manifestRecord = resolveBundledPluginManifestRecordByDirName(params.dirName);
   if (!manifestRecord) {
     return {

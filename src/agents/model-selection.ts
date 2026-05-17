@@ -5,8 +5,10 @@ import {
   resolveAgentModelPrimaryValue,
   toAgentModelListLike,
 } from "../config/model-input.js";
-import { normalizeGoogleModelId } from "../internal-plugin-helpers/google-model-id.js";
-import { normalizeXaiModelId } from "../internal-plugin-helpers/xai-model-id.js";
+import {
+  normalizeGoogleModelId,
+  normalizeXaiModelId,
+} from "../generated/providers/model-normalization.generated.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { sanitizeForLog } from "../terminal/ansi.js";
 import {

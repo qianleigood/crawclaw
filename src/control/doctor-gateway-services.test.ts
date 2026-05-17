@@ -56,11 +56,6 @@ vi.mock("../daemon/inspect.js", () => ({
   renderGatewayServiceCleanupHints: mocks.renderGatewayServiceCleanupHints,
 }));
 
-vi.mock("../daemon/runtime-paths.js", () => ({
-  renderSystemNodeWarning: vi.fn().mockReturnValue(undefined),
-  resolveSystemNodeInfo: vi.fn().mockResolvedValue(null),
-}));
-
 vi.mock("../daemon/service-audit.js", () => ({
   auditGatewayServiceConfig: mocks.auditGatewayServiceConfig,
   needsNodeRuntimeMigration: vi.fn(() => false),

@@ -10,6 +10,7 @@ import {
   resolveNpmPublishPlan,
   resolveNpmCommandInvocation,
   shouldSkipPackedTarballValidation,
+  shouldValidateReleaseTag,
   utcCalendarDayDistance,
 } from "../scripts/crawclaw-npm-release-check.ts";
 
@@ -193,6 +194,19 @@ describe("shouldSkipPackedTarballValidation", () => {
   });
 });
 
+describe("shouldValidateReleaseTag", () => {
+  it("skips release tag validation for local metadata checks", () => {
+    expect(shouldValidateReleaseTag({})).toBe(false);
+  });
+
+  it("requires release tag validation in release contexts", () => {
+    expect(shouldValidateReleaseTag({ RELEASE_TAG: "v2026.3.10" })).toBe(true);
+    expect(shouldValidateReleaseTag({ RELEASE_SHA: "abc123" })).toBe(true);
+    expect(shouldValidateReleaseTag({ RELEASE_MAIN_REF: "origin/main" })).toBe(true);
+    expect(shouldValidateReleaseTag({ GITHUB_ACTIONS: "true" })).toBe(true);
+  });
+});
+
 describe("compareReleaseVersions", () => {
   it("treats stable as newer than same-day beta", () => {
     expect(compareReleaseVersions("2026.3.29", "2026.3.29-beta.2")).toBe(1);
@@ -268,7 +282,7 @@ describe("parseNpmPackJsonOutput", () => {
       "> crawclaw@2026.3.23 prepack",
       "> pnpm build",
       "",
-      "[copy-hook-metadata] Copied 4 hook metadata files.",
+      "[build-stamp] stamped native runtime metadata.",
       '[{"filename":"crawclaw.tgz","files":[{"path":"dist/native/crawclaw-runtime"}]}]',
     ].join("\n");
 
@@ -345,15 +359,7 @@ describe("collectReleasePackageMetadataErrors", () => {
         description: "Multi-channel AI gateway with extensible messaging integrations",
         license: "MIT",
         repository: { url: "git+https://github.com/qianleigood/crawclaw.git" },
-        files: [
-          "CHANGELOG.md",
-          "LICENSE",
-          "README.md",
-          "assets/",
-          "docs/reference/templates/",
-          "scripts/npm-runner.mjs",
-          "scripts/postinstall-bundled-plugins.mjs",
-        ],
+        files: ["CHANGELOG.md", "LICENSE", "README.md", "assets/", "docs/reference/templates/"],
         peerDependencies: { "node-llama-cpp": "3.18.1" },
         peerDependenciesMeta: { "node-llama-cpp": { optional: true } },
       }),
@@ -382,7 +388,13 @@ describe("collectReleasePackageMetadataErrors", () => {
         main: "dist/index.js",
         bin: { crawclaw: "crawclaw.mjs" },
         exports: { ".": "./dist/index.js", "./cli-entry": "./crawclaw.mjs" },
-        files: ["crawclaw.mjs", "dist/"],
+        files: [
+          "crawclaw.mjs",
+          "dist/",
+          "scripts/npm-runner.mjs",
+          "scripts/postinstall-bundled-plugins.mjs",
+        ],
+        scripts: { postinstall: "node scripts/postinstall-bundled-plugins.mjs" },
         peerDependencies: { "node-llama-cpp": "3.18.1" },
         peerDependenciesMeta: { "node-llama-cpp": { optional: true } },
       }),
@@ -393,6 +405,8 @@ describe("collectReleasePackageMetadataErrors", () => {
       'package.json exports must not expose legacy "./cli-entry".',
       "package.json files must not include the legacy Node entry file.",
       "package.json files must not include the legacy dist JS runtime tree.",
+      "package.json files must not include install-time Node helper scripts.",
+      "package.json must not run a postinstall script.",
     ]);
   });
 });

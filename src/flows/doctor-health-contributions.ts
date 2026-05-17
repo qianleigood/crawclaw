@@ -37,7 +37,6 @@ import { noteSessionLockHealth } from "../control/doctor-session-locks.js";
 import { noteStateIntegrity, noteWorkspaceBackupTip } from "../control/doctor-state-integrity.js";
 import { noteWorkspaceStatus } from "../control/doctor-workspace-status.js";
 import { MEMORY_SYSTEM_PROMPT, shouldSuggestMemorySystem } from "../control/doctor-workspace.js";
-import { noteOpenAIOAuthTlsPrerequisites } from "../control/oauth-tls-preflight.js";
 import { applyWizardMetadata, randomToken } from "../control/onboard-helpers.js";
 import { ensureSystemdUserLingerInteractive } from "../control/systemd-linger.js";
 import { resolveGatewayService } from "../daemon/service.js";
@@ -247,13 +246,6 @@ async function runSecurityHealth(ctx: DoctorHealthFlowContext): Promise<void> {
 
 async function runBrowserHealth(ctx: DoctorHealthFlowContext): Promise<void> {
   await noteChromeMcpBrowserReadiness(ctx.cfg);
-}
-
-async function runOpenAIOAuthTlsHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  await noteOpenAIOAuthTlsPrerequisites({
-    cfg: ctx.cfg,
-    deep: ctx.options.deep === true,
-  });
 }
 
 async function runHooksModelHealth(ctx: DoctorHealthFlowContext): Promise<void> {
@@ -469,11 +461,6 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
       id: "doctor:browser",
       label: "Browser",
       run: runBrowserHealth,
-    }),
-    createDoctorHealthContribution({
-      id: "doctor:oauth-tls",
-      label: "OAuth TLS",
-      run: runOpenAIOAuthTlsHealth,
     }),
     createDoctorHealthContribution({
       id: "doctor:hooks-model",

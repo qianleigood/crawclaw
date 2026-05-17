@@ -10,7 +10,7 @@
 - **Lint/Format**: Oxlint, Oxfmt (`pnpm check`)
 - **Tests**: Vitest with V8 coverage
 - **Terminal Utilities**: clack/prompts helpers for retained internal flows
-- **Build**: tsdown (outputs to `dist/`)
+- **Build**: Rust package postbuild plus native binary staging outputs to `dist/`
 
 ## Anti-Redundancy Rules
 

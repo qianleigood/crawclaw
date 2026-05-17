@@ -13,8 +13,7 @@
       "enabledByDefault": true,
       "id": "amazon-bedrock",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/amazon-bedrock/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -38,8 +37,7 @@
       "enabledByDefault": true,
       "id": "anthropic",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/anthropic/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -63,8 +61,7 @@
       "enabledByDefault": true,
       "id": "anthropic-vertex",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/anthropic-vertex/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -88,8 +85,7 @@
       "enabledByDefault": false,
       "id": "brave",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/brave/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -111,8 +107,7 @@
       "enabledByDefault": true,
       "id": "byteplus",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/byteplus/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -137,8 +132,7 @@
       "enabledByDefault": true,
       "id": "chutes",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/chutes/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -162,8 +156,7 @@
       "enabledByDefault": true,
       "id": "cloudflare-ai-gateway",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/cloudflare-ai-gateway/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -189,8 +182,7 @@
       "enabledByDefault": true,
       "id": "comfyui",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/comfyui/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -212,8 +204,7 @@
       "enabledByDefault": true,
       "id": "copilot-proxy",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/copilot-proxy/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -237,8 +228,7 @@
       "enabledByDefault": false,
       "id": "deepgram",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/deepgram/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -260,8 +250,7 @@
       "enabledByDefault": true,
       "id": "deepseek",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/deepseek/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -285,8 +274,7 @@
       "enabledByDefault": false,
       "id": "duckduckgo",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/duckduckgo/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -304,35 +292,11 @@
       "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
-      "dir": "extensions/elevenlabs",
-      "enabledByDefault": false,
-      "id": "elevenlabs",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/elevenlabs/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/elevenlabs/package.json",
-      "packageName": "@crawclaw/elevenlabs-speech",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
       "dir": "extensions/exa",
       "enabledByDefault": false,
       "id": "exa",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/exa/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -354,8 +318,7 @@
       "enabledByDefault": true,
       "id": "fal",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/fal/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -379,8 +342,7 @@
       "enabledByDefault": true,
       "id": "github-copilot",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/github-copilot/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -404,8 +366,7 @@
       "enabledByDefault": true,
       "id": "google",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/google/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -430,8 +391,7 @@
       "enabledByDefault": false,
       "id": "groq",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/groq/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -453,8 +413,7 @@
       "enabledByDefault": true,
       "id": "huggingface",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/huggingface/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -478,8 +437,7 @@
       "enabledByDefault": true,
       "id": "kilocode",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/kilocode/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -503,8 +461,7 @@
       "enabledByDefault": true,
       "id": "kimi",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/kimi-coding/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -529,8 +486,7 @@
       "enabledByDefault": true,
       "id": "litellm",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/litellm/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -556,8 +512,7 @@
       "enabledByDefault": false,
       "id": "llm-task",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/llm-task/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -581,8 +536,7 @@
       "enabledByDefault": false,
       "id": "lobster",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/lobster/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -590,31 +544,6 @@
       "packageName": "@crawclaw/lobster",
       "peerDependencies": {},
       "private": false,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "contractKeys": [],
-      "dependencies": {
-        "node-edge-tts": "^1.2.10"
-      },
-      "devDependencies": {},
-      "dir": "extensions/microsoft",
-      "enabledByDefault": false,
-      "id": "microsoft",
-      "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
-      },
-      "manifestPath": "extensions/microsoft/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/microsoft/package.json",
-      "packageName": "@crawclaw/microsoft-speech",
-      "peerDependencies": {},
-      "private": true,
       "providerIds": [],
       "version": "2026.4.1-beta.1"
     },
@@ -629,8 +558,7 @@
       "enabledByDefault": true,
       "id": "microsoft-foundry",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/microsoft-foundry/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -654,8 +582,7 @@
       "enabledByDefault": true,
       "id": "minimax",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/minimax/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -680,8 +607,7 @@
       "enabledByDefault": true,
       "id": "mistral",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/mistral/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -705,8 +631,7 @@
       "enabledByDefault": true,
       "id": "modelstudio",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/modelstudio/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -730,8 +655,7 @@
       "enabledByDefault": true,
       "id": "moonshot",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/moonshot/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -755,8 +679,7 @@
       "enabledByDefault": true,
       "id": "nvidia",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/nvidia/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -780,8 +703,7 @@
       "enabledByDefault": true,
       "id": "ollama",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/ollama/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -805,8 +727,7 @@
       "enabledByDefault": false,
       "id": "open-prose",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/open-prose/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -828,8 +749,7 @@
       "enabledByDefault": true,
       "id": "openai",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/openai/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -854,8 +774,7 @@
       "enabledByDefault": true,
       "id": "opencode",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/opencode/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -879,8 +798,7 @@
       "enabledByDefault": true,
       "id": "opencode-go",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/opencode-go/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -904,8 +822,7 @@
       "enabledByDefault": true,
       "id": "openrouter",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/openrouter/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -929,8 +846,7 @@
       "enabledByDefault": false,
       "id": "perplexity",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/perplexity/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -952,8 +868,7 @@
       "enabledByDefault": true,
       "id": "qianfan",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/qianfan/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -979,8 +894,7 @@
       "enabledByDefault": true,
       "id": "qwen3-tts",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/qwen3-tts/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1004,8 +918,7 @@
       "enabledByDefault": true,
       "id": "searxng",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/searxng/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1027,8 +940,7 @@
       "enabledByDefault": true,
       "id": "sglang",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/sglang/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1054,8 +966,7 @@
       "enabledByDefault": true,
       "id": "spider-fetch",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/spider-fetch/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1077,8 +988,7 @@
       "enabledByDefault": true,
       "id": "synthetic",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/synthetic/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1102,8 +1012,7 @@
       "enabledByDefault": true,
       "id": "together",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/together/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1127,8 +1036,7 @@
       "enabledByDefault": true,
       "id": "venice",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/venice/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1152,8 +1060,7 @@
       "enabledByDefault": true,
       "id": "vercel-ai-gateway",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/vercel-ai-gateway/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1177,8 +1084,7 @@
       "enabledByDefault": true,
       "id": "vllm",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/vllm/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1202,8 +1108,7 @@
       "enabledByDefault": true,
       "id": "volcengine",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/volcengine/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1228,8 +1133,7 @@
       "enabledByDefault": true,
       "id": "xai",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/xai/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1253,8 +1157,7 @@
       "enabledByDefault": true,
       "id": "xiaomi",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/xiaomi/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1278,8 +1181,7 @@
       "enabledByDefault": true,
       "id": "zai",
       "install": {
-        "entryPoints": [],
-        "stageRuntimeDependencies": false
+        "entryPoints": []
       },
       "manifestPath": "extensions/zai/crawclaw.plugin.json",
       "optionalDependencies": {},
@@ -1325,7 +1227,6 @@
       "linkedom": "^0.18.12",
       "long": "^5.3.2",
       "markdown-it": "^14.1.1",
-      "node-edge-tts": "^1.2.10",
       "osc-progress": "^0.3.0",
       "pdfjs-dist": "^5.6.205",
       "playwright-core": "1.58.2",
@@ -1431,24 +1332,23 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "bundledPluginCount": 52,
+    "bundledPluginCount": 50,
     "capabilityCounts": {
       "contract": 6,
       "provider": 37,
       "skill": 1,
-      "support": 8
+      "support": 6
     },
-    "disabledByDefaultCount": 11,
+    "disabledByDefaultCount": 9,
     "enabledByDefaultCount": 41,
     "pluginRuntimeDependencyVersionSplits": [],
     "releasedNpmSpecPluginIds": [],
     "rootDependencyCounts": {
-      "dependencies": 43,
+      "dependencies": 42,
       "devDependencies": 21,
       "optionalDependencies": 0,
       "peerDependencies": 2
     },
-    "stagedRuntimeDependencyPluginIds": [],
-    "uniquePluginRuntimeDependencyCount": 2
+    "uniquePluginRuntimeDependencyCount": 1
   }
 }

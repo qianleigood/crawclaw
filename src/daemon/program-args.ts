@@ -6,22 +6,11 @@ type GatewayProgramArgs = {
   workingDirectory?: string;
 };
 
-type GatewayRuntimePreference = "auto" | "node" | "bun";
-
 function nativeGatewayBinaryName(): string {
   return process.platform === "win32" ? "crawclaw-gateway.exe" : "crawclaw-gateway";
 }
 
-async function resolveGatewayBinaryPathForService(params: {
-  dev?: boolean;
-  runtimeEntryPath?: string;
-}): Promise<string> {
-  if (params.runtimeEntryPath?.trim()) {
-    const explicitPath = path.resolve(params.runtimeEntryPath);
-    await fs.access(explicitPath);
-    return explicitPath;
-  }
-
+async function resolveGatewayBinaryPathForService(params: { dev?: boolean }): Promise<string> {
   const argv1 = process.argv[1];
   if (!argv1) {
     throw new Error("Unable to resolve gateway binary path");
@@ -167,12 +156,7 @@ function resolveRepoRootFromPath(inputPath: string): string {
 async function resolveCliProgramArguments(params: {
   args: string[];
   dev?: boolean;
-  runtime?: GatewayRuntimePreference;
-  nodePath?: string;
-  runtimeEntryPath?: string;
 }): Promise<GatewayProgramArgs> {
-  void params.runtime;
-  void params.nodePath;
   const gatewayBinaryPath = await resolveGatewayBinaryPathForService(params);
   const workingDirectory = params.dev
     ? resolveRepoRootFromPath(process.argv[1] ?? gatewayBinaryPath)
@@ -186,16 +170,10 @@ async function resolveCliProgramArguments(params: {
 export async function resolveGatewayProgramArguments(params: {
   port: number;
   dev?: boolean;
-  runtime?: GatewayRuntimePreference;
-  nodePath?: string;
-  runtimeEntryPath?: string;
 }): Promise<GatewayProgramArgs> {
   const gatewayArgs = ["--port", String(params.port)];
   return resolveCliProgramArguments({
     args: gatewayArgs,
     dev: params.dev,
-    runtime: params.runtime,
-    nodePath: params.nodePath,
-    runtimeEntryPath: params.runtimeEntryPath,
   });
 }

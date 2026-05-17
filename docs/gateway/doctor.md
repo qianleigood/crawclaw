@@ -61,7 +61,6 @@ cat ~/.crawclaw/crawclaw.json
 - Config normalization for legacy values.
 - Browser migration checks for legacy browser configs.
 - OpenCode provider override warnings (`models.providers.opencode` / `models.providers.opencode-go`).
-- OAuth TLS prerequisites check for OpenAI Codex OAuth profiles.
 - Legacy on-disk state migration (sessions/agent dir/Weixin auth).
 - Legacy plugin manifest contract key migration (`speechProviders` → `contracts`) and removal of legacy media-understanding provider keys.
 - Legacy cron store migration (`jobId`, `schedule.cron`, top-level delivery/payload fields, payload `provider`, simple `notify: true` webhook fallback jobs).
@@ -153,16 +152,6 @@ If your browser config still points at removed browser relay settings, doctor
 normalizes it to the current Rust native `agent-browser` model:
 
 - `browser.relayBindHost` is removed
-
-### 2d) OAuth TLS prerequisites
-
-When an OpenAI Codex OAuth profile is configured, doctor probes the OpenAI
-authorization endpoint to verify that the local Node/OpenSSL TLS stack can
-validate the certificate chain. If the probe fails with a certificate error (for
-example `UNABLE_TO_GET_ISSUER_CERT_LOCALLY`, expired cert, or self-signed cert),
-doctor prints platform-specific fix guidance. On macOS with a Homebrew Node, the
-fix is usually `brew postinstall ca-certificates`. With `--deep`, the probe runs
-even if the gateway is healthy.
 
 ### 3) Legacy state migrations (disk layout)
 

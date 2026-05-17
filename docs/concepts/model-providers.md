@@ -91,15 +91,15 @@ CrawClaw ships with the pi‑ai catalog. These providers require **no**
 ### OpenAI Code (Codex)
 
 - Provider: `openai-codex`
-- Auth: OAuth (ChatGPT)
+- Auth: existing compatible Codex token profile or external tooling
 - Example model: `openai-codex/gpt-5.4`
 - CLI: CrawClaw Desktop or the local Gateway API or CrawClaw Desktop or the local Gateway API
 - Default transport is `auto` (WebSocket-first, SSE fallback)
 - Override per model via `agents.defaults.models["openai-codex/<model>"].params.transport` (`"sse"`, `"websocket"`, or `"auto"`)
 - `params.serviceTier` is also forwarded on native Codex Responses requests (`chatgpt.com/backend-api`)
 - Shares the same `/fast` toggle and `params.fastMode` config as direct `openai/*`; CrawClaw maps that to `service_tier=priority`
-- `openai-codex/gpt-5.3-codex-spark` remains available when the Codex OAuth catalog exposes it; entitlement-dependent
-- Policy note: OpenAI Codex OAuth is explicitly supported for external tools/workflows like CrawClaw.
+- `openai-codex/gpt-5.3-codex-spark` remains available when the Codex catalog exposes it; entitlement-dependent
+- CrawClaw no longer starts a bundled JavaScript Codex OAuth login flow.
 
 ```json5
 {

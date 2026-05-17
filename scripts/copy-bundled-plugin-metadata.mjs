@@ -12,6 +12,7 @@ const GENERATED_BUNDLED_SKILLS_DIR = "bundled-skills";
 const CANONICAL_PLUGIN_MANIFEST_FILENAME = "crawclaw.plugin.json";
 const TRANSIENT_COPY_ERROR_CODES = new Set(["EEXIST", "ENOENT", "ENOTEMPTY", "EBUSY"]);
 const COPY_RETRY_DELAYS_MS = [10, 25, 50];
+const REMOVED_PACKAGE_CRAWCLAW_FIELDS = ["setupEntry", "extensions"];
 
 function resolvePluginManifestPath(pluginDir) {
   const candidate = path.join(pluginDir, CANONICAL_PLUGIN_MANIFEST_FILENAME);
@@ -19,45 +20,6 @@ function resolvePluginManifestPath(pluginDir) {
     return candidate;
   }
   return path.join(pluginDir, CANONICAL_PLUGIN_MANIFEST_FILENAME);
-}
-
-function collectTopLevelPublicSurfaceEntries(pluginDir) {
-  if (!fs.existsSync(pluginDir)) {
-    return [];
-  }
-
-  return fs
-    .readdirSync(pluginDir, { withFileTypes: true })
-    .flatMap((dirent) => {
-      if (!dirent.isFile()) {
-        return [];
-      }
-
-      if (!/\.(?:[cm]?[jt]s)$/u.test(dirent.name) || dirent.name.endsWith(".d.ts")) {
-        return [];
-      }
-
-      const normalizedName = dirent.name.toLowerCase();
-      if (
-        normalizedName.includes(".test.") ||
-        normalizedName.includes(".spec.") ||
-        normalizedName.includes(".fixture.") ||
-        normalizedName.includes(".snap")
-      ) {
-        return [];
-      }
-
-      return [dirent.name];
-    })
-    .toSorted((left, right) => left.localeCompare(right));
-}
-
-function isManifestlessBundledRuntimeSupportPackage(params) {
-  const packageName = typeof params.packageJson?.name === "string" ? params.packageJson.name : "";
-  if (packageName !== `@crawclaw/${params.dirName}`) {
-    return false;
-  }
-  return params.topLevelPublicSurfaceEntries.length > 0;
 }
 
 function ensurePathInsideRoot(rootDir, rawPath) {
@@ -218,56 +180,44 @@ export function copyBundledPluginMetadata(params = {}) {
     const packageJson = fs.existsSync(packageJsonPath)
       ? JSON.parse(fs.readFileSync(packageJsonPath, "utf8"))
       : undefined;
-    const topLevelPublicSurfaceEntries = collectTopLevelPublicSurfaceEntries(pluginDir);
     if (!shouldBuildBundledCluster(dirent.name, env, { packageJson })) {
       removePathIfExists(distPluginDir);
       continue;
     }
 
-    const isManifestlessSupportPackage =
-      !fs.existsSync(manifestPath) &&
-      isManifestlessBundledRuntimeSupportPackage({
-        dirName: dirent.name,
-        packageJson,
-        topLevelPublicSurfaceEntries,
-      });
-
     sourcePluginDirs.add(dirent.name);
 
     const distManifestPath = path.join(distPluginDir, CANONICAL_PLUGIN_MANIFEST_FILENAME);
     const distPackageJsonPath = path.join(distPluginDir, "package.json");
-    if (!fs.existsSync(manifestPath) && !isManifestlessSupportPackage) {
+    if (!fs.existsSync(manifestPath)) {
       removePathIfExists(distPluginDir);
       continue;
     }
 
-    if (fs.existsSync(manifestPath)) {
-      const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
-      // Generated skill assets live under a dedicated dist-owned directory. Also
-      // remove the older bad node_modules tree so release packs cannot pick it up.
-      removePathIfExists(path.join(distPluginDir, GENERATED_BUNDLED_SKILLS_DIR));
-      removePathIfExists(path.join(distPluginDir, "node_modules"));
-      const copiedSkills = copyDeclaredPluginSkillPaths({
-        manifest,
-        pluginDir,
-        distPluginDir,
-        repoRoot,
-      });
-      const bundledManifest = Array.isArray(manifest.skills)
-        ? { ...manifest, skills: copiedSkills }
-        : manifest;
-      writeTextFileIfChanged(distManifestPath, `${JSON.stringify(bundledManifest, null, 2)}\n`);
-    } else {
-      removeFileIfExists(distManifestPath);
-    }
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+    // Generated skill assets live under a dedicated dist-owned directory. Also
+    // remove the older bad node_modules tree so release packs cannot pick it up.
+    removePathIfExists(path.join(distPluginDir, GENERATED_BUNDLED_SKILLS_DIR));
+    removePathIfExists(path.join(distPluginDir, "node_modules"));
+    const copiedSkills = copyDeclaredPluginSkillPaths({
+      manifest,
+      pluginDir,
+      distPluginDir,
+      repoRoot,
+    });
+    const bundledManifest = Array.isArray(manifest.skills)
+      ? { ...manifest, skills: copiedSkills }
+      : manifest;
+    writeTextFileIfChanged(distManifestPath, `${JSON.stringify(bundledManifest, null, 2)}\n`);
 
     if (!fs.existsSync(packageJsonPath)) {
       removeFileIfExists(distPackageJsonPath);
       continue;
     }
     if (packageJson.crawclaw && typeof packageJson.crawclaw === "object") {
-      delete packageJson.crawclaw.setupEntry;
-      delete packageJson.crawclaw.extensions;
+      for (const field of REMOVED_PACKAGE_CRAWCLAW_FIELDS) {
+        delete packageJson.crawclaw[field];
+      }
     }
 
     writeTextFileIfChanged(distPackageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);

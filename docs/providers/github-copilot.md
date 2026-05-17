@@ -1,8 +1,8 @@
 ---
-summary: "Sign in to GitHub Copilot from CrawClaw using the device flow"
+summary: "Use GitHub Copilot in CrawClaw with an existing GitHub token"
 read_when:
   - You want to use GitHub Copilot as a model provider
-  - You need the CrawClaw Desktop or the local Gateway API flow
+  - You already have a GitHub token available in the environment
 title: "GitHub Copilot"
 ---
 
@@ -18,9 +18,9 @@ provider in two different ways.
 
 ### 1) Built-in GitHub Copilot provider (`github-copilot`)
 
-Use the native device-login flow to obtain a GitHub token, then exchange it for
-Copilot API tokens when CrawClaw runs. This is the **default** and simplest path
-because it does not require VS Code.
+Provide a GitHub token through `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or
+`GITHUB_TOKEN`. CrawClaw exchanges that token for Copilot API tokens when it
+runs. CrawClaw no longer ships a bundled JavaScript device-login helper.
 
 ### 2) Copilot Proxy plugin (`copilot-proxy`)
 
@@ -29,25 +29,8 @@ the proxy’s `/v1` endpoint and uses the model list you configure there. Choose
 this when you already run Copilot Proxy in VS Code or need to route through it.
 You must enable the plugin and keep the VS Code extension running.
 
-Use GitHub Copilot as a model provider (`github-copilot`). The login command runs
-the GitHub device flow, saves an auth profile, and updates your config to use that
-profile.
-
-## Desktop setup
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-You'll be prompted to visit a URL and enter a one-time code. Keep the terminal
-open until it completes.
-
-### Optional flags
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use GitHub Copilot as a model provider (`github-copilot`) by setting one of the
+supported token environment variables before starting the desktop app or gateway.
 
 ## Set a default model
 
@@ -65,8 +48,6 @@ open until it completes.
 
 ## Notes
 
-- Requires an interactive TTY; run it directly in a terminal.
 - Copilot model availability depends on your plan; if a model is rejected, try
   another ID (for example `github-copilot/gpt-4.1`).
-- The login stores a GitHub token in the auth profile store and exchanges it for a
-  Copilot API token when CrawClaw runs.
+- CrawClaw exchanges the configured GitHub token for a Copilot API token when it runs.

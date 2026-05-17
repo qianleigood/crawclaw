@@ -10,7 +10,12 @@ title: "OAuth"
 
 # OAuth
 
-CrawClaw supports “subscription auth” via OAuth for providers that offer it (notably **OpenAI Codex (ChatGPT OAuth)**). For Anthropic subscriptions, you can either use the **setup-token** flow or reuse a local **Claude CLI** login on the gateway host. Anthropic subscription use outside Claude Code has been restricted for some users in the past, so treat it as a user-choice risk and verify current Anthropic policy yourself. OpenAI Codex OAuth is explicitly supported for use in external tools like CrawClaw. This page explains:
+CrawClaw still understands OAuth-shaped auth profiles for providers that need
+token refresh, but bundled JavaScript provider login helpers have been removed.
+For Anthropic subscriptions, you can either use the **setup-token** flow or reuse
+a local **Claude CLI** login on the gateway host. Anthropic subscription use
+outside Claude Code has been restricted for some users in the past, so treat it
+as a user-choice risk and verify current Anthropic policy yourself. This page explains:
 
 For Anthropic in production, API key auth is the safer recommended path over subscription setup-token auth.
 
@@ -18,12 +23,8 @@ For Anthropic in production, API key auth is the safer recommended path over sub
 - where tokens are **stored** (and why)
 - how to handle **multiple accounts** (profiles + per-session overrides)
 
-CrawClaw also supports **provider plugins** that ship their own OAuth or API‑key
-flows. Run them via:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+CrawClaw provider setup now favors API keys, setup tokens, and env-backed tokens
+unless a provider supplies a Rust/native auth flow.
 
 ## The token sink (why it exists)
 
@@ -80,9 +81,7 @@ Verify:
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-## OAuth exchange (how login works)
-
-CrawClaw’s interactive login flows are implemented in `@mariozechner/pi-ai` and wired into the wizards/commands.
+## Auth exchange patterns
 
 ### Anthropic setup-token
 
@@ -98,20 +97,12 @@ Wizard path:
 
 - CrawClaw Desktop or the local Gateway API → auth choice `setup-token` (Anthropic)
 
-### OpenAI Codex (ChatGPT OAuth)
+### Removed bundled provider OAuth flows
 
-OpenAI Codex OAuth is explicitly supported for use outside the Codex CLI, including CrawClaw workflows.
-
-Flow shape (PKCE):
-
-1. generate PKCE verifier/challenge + random `state`
-2. open `https://auth.openai.com/oauth/authorize?...`
-3. try to capture callback on `http://127.0.0.1:1455/auth/callback`
-4. if callback can’t bind (or you’re remote/headless), paste the redirect URL/code
-5. exchange at `https://auth.openai.com/oauth/token`
-6. extract `accountId` from the access token and store `{ access, refresh, expires, accountId }`
-
-Wizard path is CrawClaw Desktop or the local Gateway API → auth choice `openai-codex`.
+The previous bundled JavaScript OpenAI Codex, Google Gemini CLI, MiniMax, and
+GitHub Copilot login helpers have been removed. Existing OAuth/token profiles
+can still be present in auth-profile storage, but CrawClaw no longer starts
+those provider-specific JS browser/device flows.
 
 ## Refresh + expiry
 

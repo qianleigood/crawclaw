@@ -18,25 +18,6 @@ CrawClaw's MiniMax provider defaults to **MiniMax M2.7**.
 
 ## Choose a setup
 
-### MiniMax OAuth (Coding Plan) - recommended
-
-**Best for:** quick setup with MiniMax Coding Plan via OAuth, no API key required.
-
-Enable the bundled OAuth plugin and authenticate:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-You will be prompted to select an endpoint:
-
-- **Global** - International users (`api.minimax.io`)
-- **CN** - Users in China (`api.minimaxi.com`)
-
-See the MiniMax plugin package README in the CrawClaw repo for details.
-
 ### MiniMax M2.7 (API key)
 
 **Best for:** hosted MiniMax with Anthropic-compatible API.

@@ -84,7 +84,7 @@ and the [Plugin SDK Overview](/plugins/sdk-overview).
   </Accordion>
 
   <Accordion title="Speech providers (enabled by default)">
-    `elevenlabs`, `microsoft`
+    `qwen3-tts`
   </Accordion>
 
   <Accordion title="Other">

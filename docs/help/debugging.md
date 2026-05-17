@@ -45,9 +45,9 @@ node scripts/watch-node.mjs gateway --force
 
 The watcher restarts on build-relevant files under `src/`, extension source files,
 extension `package.json` and `crawclaw.plugin.json` metadata, `tsconfig.json`,
-`package.json`, and `tsdown.config.ts`. Extension metadata changes restart the
-gateway without forcing a `tsdown` rebuild; source and config changes still
-rebuild `dist` first.
+and `package.json`. Extension metadata changes restart the gateway without
+forcing a package postbuild pass; source and config changes still rebuild
+`dist` first.
 
 Add any gateway CLI flags after `desktop Gateway dev mode` and they will be passed through on
 each restart.

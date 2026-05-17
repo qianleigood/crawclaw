@@ -107,12 +107,6 @@ describe("detectChangedScope", () => {
   });
 
   it("runs changed-smoke for packaging surfaces", () => {
-    expect(detectChangedScope(["scripts/postinstall-bundled-plugins.mjs"])).toEqual({
-      runNode: true,
-      runWindows: true,
-      runSkillsPython: false,
-      runChangedSmoke: true,
-    });
     expect(detectChangedScope(["scripts/ci-changed-scope.mjs"])).toEqual({
       runNode: true,
       runWindows: true,

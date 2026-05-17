@@ -5,10 +5,9 @@ import { loadPluginManifestRegistry } from "../manifest-registry.js";
 import {
   pluginRegistrationContractRegistry,
   providerContractLoadError,
-  resolveWebFetchProviderContractEntriesForPluginId,
-  resolveWebSearchProviderContractEntriesForPluginId,
   speechProviderContractRegistry,
   webFetchProviderContractRegistry,
+  webSearchProviderContractRegistry,
 } from "./registry.js";
 import { uniqueSortedStrings } from "./testkit.js";
 
@@ -75,9 +74,12 @@ describe("plugin contract registry", () => {
     },
   );
 
-  it("covers every bundled speech plugin discovered from manifests", () => {
+  it("keeps native speech provider implementations out of the TypeScript registry", () => {
+    expect(speechProviderContractRegistry).toEqual([]);
     expectRegistryPluginIds({
-      actualPluginIds: speechProviderContractRegistry.map((entry) => entry.pluginId),
+      actualPluginIds: pluginRegistrationContractRegistry
+        .filter((entry) => entry.speechProviderIds.length > 0)
+        .map((entry) => entry.pluginId),
       predicate: (plugin) =>
         plugin.origin === "bundled" && (plugin.contracts?.speechProviders?.length ?? 0) > 0,
     });
@@ -95,30 +97,9 @@ describe("plugin contract registry", () => {
     ).toEqual(bundledWebFetchPluginIds);
   });
 
-  it(
-    "loads bundled web fetch providers for each shared-resolver plugin",
-    { timeout: REGISTRY_CONTRACT_TIMEOUT_MS },
-    () => {
-      for (const pluginId of resolveBundledWebFetchPluginIds({})) {
-        expect(resolveWebFetchProviderContractEntriesForPluginId(pluginId).length).toBeGreaterThan(
-          0,
-        );
-      }
-      expect(webFetchProviderContractRegistry.length).toBeGreaterThan(0);
-    },
-  );
-
-  it("hydrates native bundled web provider metadata from manifests", () => {
-    expect(
-      resolveWebFetchProviderContractEntriesForPluginId("spider-fetch").map(
-        (entry) => entry.provider.id,
-      ),
-    ).toContain("spider");
-    expect(
-      resolveWebSearchProviderContractEntriesForPluginId("searxng").map(
-        (entry) => entry.provider.id,
-      ),
-    ).toContain("searxng");
+  it("keeps native web provider implementations out of the TypeScript registry", () => {
+    expect(webFetchProviderContractRegistry).toEqual([]);
+    expect(webSearchProviderContractRegistry).toEqual([]);
   });
 
   it("covers every bundled web search plugin from the shared resolver", () => {
@@ -133,15 +114,7 @@ describe("plugin contract registry", () => {
     ).toEqual(bundledWebSearchPluginIds);
   });
 
-  it(
-    "loads bundled web search providers for each shared-resolver plugin",
-    { timeout: REGISTRY_CONTRACT_TIMEOUT_MS },
-    () => {
-      for (const pluginId of resolveBundledWebSearchPluginIds({})) {
-        expect(resolveWebSearchProviderContractEntriesForPluginId(pluginId).length).toBeGreaterThan(
-          0,
-        );
-      }
-    },
-  );
+  it("does not hydrate bundled web search provider objects in TypeScript", () => {
+    expect(webSearchProviderContractRegistry).toEqual([]);
+  });
 });

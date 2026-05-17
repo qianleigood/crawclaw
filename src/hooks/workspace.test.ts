@@ -174,7 +174,6 @@ describe("hooks workspace", () => {
 
     const entries = loadWorkspaceHookEntries(workspaceDir, {
       managedHooksDir,
-      bundledHooksDir: path.join(root, "bundled-none"),
     });
     expect(entries).toHaveLength(1);
     expect(entries[0]?.hook.source).toBe("crawclaw-managed");
@@ -194,7 +193,6 @@ describe("hooks workspace", () => {
     fs.writeFileSync(path.join(extraHookDir, "handler.js"), "export default async () => {};\n");
 
     const entries = loadWorkspaceHookEntries(workspaceDir, {
-      bundledHooksDir: path.join(root, "bundled-none"),
       config: {
         hooks: {
           internal: {

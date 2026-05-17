@@ -12509,99 +12509,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.elevenlabs",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/elevenlabs-speech",
-      "help": "CrawClaw ElevenLabs speech plugin (plugin: elevenlabs)",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.elevenlabs.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/elevenlabs-speech Config",
-      "help": "Plugin-defined config payload for elevenlabs.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.elevenlabs.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/elevenlabs-speech",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.elevenlabs.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.elevenlabs.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.elevenlabs.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.elevenlabs.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
       "path": "plugins.entries.exa",
       "kind": "plugin",
       "type": "object",
@@ -13765,20 +13672,6 @@
       "hasChildren": false
     },
     {
-      "path": "plugins.entries.microsoft",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/microsoft-speech",
-      "help": "CrawClaw Microsoft speech plugin (plugin: microsoft)",
-      "hasChildren": true
-    },
-    {
       "path": "plugins.entries.microsoft-foundry",
       "kind": "plugin",
       "type": "object",
@@ -13859,85 +13752,6 @@
     },
     {
       "path": "plugins.entries.microsoft-foundry.subagent.allowModelOverride",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Allow Plugin Subagent Model Override",
-      "help": "Explicitly allows this plugin to request provider/model overrides in background subagent runs. Keep false unless the plugin is trusted to steer model selection.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.microsoft.config",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "@crawclaw/microsoft-speech Config",
-      "help": "Plugin-defined config payload for microsoft.",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.microsoft.enabled",
-      "kind": "plugin",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Enable @crawclaw/microsoft-speech",
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.microsoft.subagent",
-      "kind": "plugin",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "advanced"
-      ],
-      "label": "Plugin Subagent Policy",
-      "help": "Per-plugin subagent runtime controls for model override trust and allowlists. Keep this unset unless a plugin must explicitly steer subagent model selection.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.microsoft.subagent.allowedModels",
-      "kind": "plugin",
-      "type": "array",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [
-        "access"
-      ],
-      "label": "Plugin Subagent Allowed Models",
-      "help": "Allowed override targets for trusted plugin subagent runs as canonical \"provider/model\" refs. Use \"*\" only when you intentionally allow any model.",
-      "hasChildren": true
-    },
-    {
-      "path": "plugins.entries.microsoft.subagent.allowedModels.*",
-      "kind": "plugin",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "plugins.entries.microsoft.subagent.allowModelOverride",
       "kind": "plugin",
       "type": "boolean",
       "required": false,

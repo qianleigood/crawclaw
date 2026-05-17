@@ -8,8 +8,6 @@ const rootEntries = [
   "src/infra/warning-filter.ts!",
   bundledPluginFile("telegram", "src/audit.ts", "!"),
   bundledPluginFile("telegram", "src/token.ts", "!"),
-  "src/hooks/bundled/*/handler.ts!",
-  "src/hooks/llm-slug-generator.ts!",
   "src/internal-plugin-helpers/*.ts!",
 ] as const;
 
@@ -56,12 +54,9 @@ const config = {
     "**/*.test-utils.ts",
     "src/gateway/live-image-probe.ts",
     "src/secrets/credential-matrix.ts",
-    "src/agents/claude-cli-runner.ts",
-    "src/agents/pi-auth-json.ts",
     "src/agents/tool-policy.conformance.ts",
     "src/auto-reply/reply/audio-tags.ts",
     "src/gateway/live-tool-probe-utils.ts",
-    "src/gateway/server.auth.shared.ts",
     "src/shared/text/assistant-visible-text.ts",
     bundledPluginFile("telegram", "src/bot/reply-threading.ts"),
     bundledPluginFile("telegram", "src/draft-chunking.ts"),

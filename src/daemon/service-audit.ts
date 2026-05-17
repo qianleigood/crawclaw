@@ -2,11 +2,6 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { resolveLaunchAgentPlistPath } from "./launchd.js";
 import { isBunRuntime, isNodeRuntime } from "./runtime-binary.js";
-import {
-  isSystemNodePath,
-  isVersionManagedNodePath,
-  resolveSystemNodePath,
-} from "./runtime-paths.js";
 import { getMinimalServicePathPartsFromEnv } from "./service-env.js";
 import { resolveSystemdUserUnitPath } from "./systemd.js";
 
@@ -40,7 +35,6 @@ export const SERVICE_AUDIT_CODES = {
   gatewayTokenMismatch: "gateway-token-mismatch",
   gatewayRuntimeBun: "gateway-runtime-bun",
   gatewayRuntimeNodeVersionManager: "gateway-runtime-node-version-manager",
-  gatewayRuntimeNodeSystemMissing: "gateway-runtime-node-system-missing",
   gatewayTokenDrift: "gateway-token-drift",
   launchdKeepAlive: "launchd-keep-alive",
   launchdRunAtLoad: "launchd-run-at-load",
@@ -48,6 +42,17 @@ export const SERVICE_AUDIT_CODES = {
   systemdRestartSec: "systemd-restart-sec",
   systemdWantsNetworkOnline: "systemd-wants-network-online",
 } as const;
+
+const VERSION_MANAGER_PATH_MARKERS = [
+  "/.nvm/",
+  "/.fnm/",
+  "/.volta/",
+  "/.asdf/",
+  "/.n/",
+  "/.nodenv/",
+  "/.nodebrew/",
+  "/nvs/",
+] as const;
 
 export function needsNodeRuntimeMigration(issues: ServiceConfigIssue[]): boolean {
   return issues.some(
@@ -59,6 +64,11 @@ export function needsNodeRuntimeMigration(issues: ServiceConfigIssue[]): boolean
 
 function hasGatewaySubcommand(programArguments?: string[]): boolean {
   return Boolean(programArguments?.some((arg) => arg === "gateway"));
+}
+
+function isNativeGatewayEntrypoint(value: string | undefined): boolean {
+  const base = path.basename(value ?? "").toLowerCase();
+  return base === "crawclaw-gateway" || base === "crawclaw-gateway.exe";
 }
 
 function parseSystemdUnit(content: string): {
@@ -196,6 +206,9 @@ function auditGatewayCommand(programArguments: string[] | undefined, issues: Ser
   if (!programArguments || programArguments.length === 0) {
     return;
   }
+  if (isNativeGatewayEntrypoint(programArguments[0])) {
+    return;
+  }
   if (!hasGatewaySubcommand(programArguments)) {
     issues.push({
       code: SERVICE_AUDIT_CODES.gatewayCommandMissing,
@@ -324,8 +337,7 @@ function auditGatewayServicePath(
   }
 }
 
-async function auditGatewayRuntime(
-  env: Record<string, string | undefined>,
+function auditGatewayRuntime(
   command: GatewayServiceCommand,
   issues: ServiceConfigIssue[],
   platform: NodeJS.Platform,
@@ -338,7 +350,7 @@ async function auditGatewayRuntime(
   if (isBunRuntime(execPath)) {
     issues.push({
       code: SERVICE_AUDIT_CODES.gatewayRuntimeBun,
-      message: "Gateway service uses Bun; Bun is incompatible with legacy JS messaging runtimes.",
+      message: "Gateway service uses Bun; reinstall to use the native Rust Gateway binary.",
       detail: execPath,
       level: "recommended",
     });
@@ -349,24 +361,15 @@ async function auditGatewayRuntime(
     return;
   }
 
-  if (isVersionManagedNodePath(execPath, platform)) {
+  const normalizedExecPath = normalizePathEntry(execPath, platform);
+  if (VERSION_MANAGER_PATH_MARKERS.some((marker) => normalizedExecPath.includes(marker))) {
     issues.push({
       code: SERVICE_AUDIT_CODES.gatewayRuntimeNodeVersionManager,
-      message: "Gateway service uses Node from a version manager; it can break after upgrades.",
+      message:
+        "Gateway service uses Node from a version manager; reinstall to use the native Rust Gateway binary.",
       detail: execPath,
       level: "recommended",
     });
-    if (!isSystemNodePath(execPath, env, platform)) {
-      const systemNode = await resolveSystemNodePath(env, platform);
-      if (!systemNode) {
-        issues.push({
-          code: SERVICE_AUDIT_CODES.gatewayRuntimeNodeSystemMissing,
-          message:
-            "System Node 24.x (stable) or Node 25.x (experimental) not found; install one before migrating away from version managers.",
-          level: "recommended",
-        });
-      }
-    }
   }
 }
 
@@ -411,7 +414,7 @@ export async function auditGatewayServiceConfig(params: {
   auditGatewayCommand(params.command?.programArguments, issues);
   auditGatewayToken(params.command, issues, params.expectedGatewayToken);
   auditGatewayServicePath(params.command, issues, params.env, platform);
-  await auditGatewayRuntime(params.env, params.command, issues, platform);
+  auditGatewayRuntime(params.command, issues, platform);
 
   if (platform === "linux") {
     await auditSystemdUnit(params.env, issues);

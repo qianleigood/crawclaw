@@ -281,25 +281,22 @@ describe("loadDotEnv", () => {
     });
   });
 
-  it("blocks bundled trust-root vars from workspace .env", async () => {
+  it("blocks bundled plugin and skill trust-root vars from workspace .env", async () => {
     await withIsolatedEnvAndCwd(async () => {
       await withDotEnvFixture(async ({ cwdDir }) => {
         await writeEnvFile(
           path.join(cwdDir, ".env"),
           [
-            "CRAWCLAW_BUNDLED_HOOKS_DIR=./attacker-hooks",
             "CRAWCLAW_BUNDLED_PLUGINS_DIR=./attacker-plugins",
             "CRAWCLAW_BUNDLED_SKILLS_DIR=./attacker-skills",
           ].join("\n"),
         );
 
-        delete process.env.CRAWCLAW_BUNDLED_HOOKS_DIR;
         delete process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR;
         delete process.env.CRAWCLAW_BUNDLED_SKILLS_DIR;
 
         loadWorkspaceDotEnvFile(path.join(cwdDir, ".env"), { quiet: true });
 
-        expect(process.env.CRAWCLAW_BUNDLED_HOOKS_DIR).toBeUndefined();
         expect(process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR).toBeUndefined();
         expect(process.env.CRAWCLAW_BUNDLED_SKILLS_DIR).toBeUndefined();
       });
@@ -427,26 +424,23 @@ describe("loadCliDotEnv", () => {
     });
   });
 
-  it("blocks bundled trust-root vars from workspace .env during CLI startup", async () => {
+  it("blocks bundled plugin and skill trust-root vars from workspace .env during CLI startup", async () => {
     await withIsolatedEnvAndCwd(async () => {
       await withDotEnvFixture(async ({ cwdDir }) => {
         await writeEnvFile(
           path.join(cwdDir, ".env"),
           [
-            "CRAWCLAW_BUNDLED_HOOKS_DIR=./attacker-hooks",
             "CRAWCLAW_BUNDLED_PLUGINS_DIR=./attacker-plugins",
             "CRAWCLAW_BUNDLED_SKILLS_DIR=./attacker-skills",
           ].join("\n"),
         );
 
-        delete process.env.CRAWCLAW_BUNDLED_HOOKS_DIR;
         delete process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR;
         delete process.env.CRAWCLAW_BUNDLED_SKILLS_DIR;
         vi.spyOn(process, "cwd").mockReturnValue(cwdDir);
 
         loadCliDotEnv({ quiet: true });
 
-        expect(process.env.CRAWCLAW_BUNDLED_HOOKS_DIR).toBeUndefined();
         expect(process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR).toBeUndefined();
         expect(process.env.CRAWCLAW_BUNDLED_SKILLS_DIR).toBeUndefined();
       });

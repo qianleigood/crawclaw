@@ -19,7 +19,6 @@ function createCrawClawRoot(params: {
   prefix: string;
   hasExtensions?: boolean;
   hasSrc?: boolean;
-  hasDistRuntimeExtensions?: boolean;
   hasDistExtensions?: boolean;
   hasGitCheckout?: boolean;
 }) {
@@ -29,9 +28,6 @@ function createCrawClawRoot(params: {
   }
   if (params.hasSrc) {
     fs.mkdirSync(path.join(repoRoot, "src"), { recursive: true });
-  }
-  if (params.hasDistRuntimeExtensions) {
-    fs.mkdirSync(path.join(repoRoot, "dist-runtime", "extensions"), { recursive: true });
   }
   if (params.hasDistExtensions) {
     fs.mkdirSync(path.join(repoRoot, "dist", "extensions"), { recursive: true });
@@ -136,18 +132,7 @@ afterEach(() => {
 describe("resolveBundledPluginsDir", () => {
   it.each([
     [
-      "prefers the staged runtime bundled plugin tree from the package root",
-      {
-        prefix: "crawclaw-bundled-dir-runtime-",
-        hasDistRuntimeExtensions: true,
-        hasDistExtensions: true,
-      },
-      {
-        expectedRelativeDir: path.join("dist-runtime", "extensions"),
-      },
-    ],
-    [
-      "falls back to built dist/extensions in installed package roots",
+      "uses built dist/extensions in installed package roots",
       {
         prefix: "crawclaw-bundled-dir-dist-",
         hasDistExtensions: true,
@@ -161,7 +146,6 @@ describe("resolveBundledPluginsDir", () => {
       {
         prefix: "crawclaw-bundled-dir-vitest-",
         hasExtensions: true,
-        hasDistRuntimeExtensions: true,
         hasDistExtensions: true,
       },
       {
@@ -175,7 +159,6 @@ describe("resolveBundledPluginsDir", () => {
         prefix: "crawclaw-bundled-dir-git-",
         hasExtensions: true,
         hasSrc: true,
-        hasDistRuntimeExtensions: true,
         hasDistExtensions: true,
         hasGitCheckout: true,
       },

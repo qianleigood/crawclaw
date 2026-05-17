@@ -206,7 +206,7 @@ describe("collectBundledExtensionRootDependencyMirrorErrors", () => {
 });
 
 describe("collectForbiddenPackPaths", () => {
-  it("allows bundled plugin runtime deps under dist/extensions but still blocks other node_modules", () => {
+  it("blocks bundled plugin node_modules from the published package", () => {
     expect(
       collectForbiddenPackPaths([
         bundledDistPluginFile("qqbot", "node_modules/@buape/carbon/index.js"),
@@ -214,6 +214,7 @@ describe("collectForbiddenPackPaths", () => {
         "node_modules/.bin/crawclaw",
       ]),
     ).toEqual([
+      bundledDistPluginFile("qqbot", "node_modules/@buape/carbon/index.js"),
       bundledPluginFile("feishu", "node_modules/.bin/feishu"),
       "node_modules/.bin/crawclaw",
     ]);
@@ -232,10 +233,7 @@ describe("collectMissingPackPaths", () => {
     expect(missing).toEqual(
       expect.arrayContaining([
         "docs/reference/templates/AGENTS.md",
-        "scripts/npm-runner.mjs",
-        "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",
-        bundledDistPluginFile("speech-core", "runtime-api.js"),
       ]),
     );
   });
@@ -247,8 +245,6 @@ describe("collectMissingPackPaths", () => {
         "dist/native/crawclaw-gateway",
         "dist/native/crawclaw-native-plugins",
         ...requiredBundledPluginPackPaths,
-        "scripts/npm-runner.mjs",
-        "scripts/postinstall-bundled-plugins.mjs",
         "skills/coding-agent/SKILL.md",
         "docs/reference/templates/AGENTS.md",
         "dist/build-info.json",

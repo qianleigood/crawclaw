@@ -56,11 +56,6 @@ vi.mock("../control/gateway-install-token.js", () => ({
   resolveGatewayInstallToken,
 }));
 
-vi.mock("../control/daemon-runtime.js", () => ({
-  DEFAULT_GATEWAY_DAEMON_RUNTIME: "node",
-  GATEWAY_DAEMON_RUNTIME_OPTIONS: [{ value: "node", label: "Node" }],
-}));
-
 vi.mock("../control/health-format.js", () => ({
   formatHealthCheckFailure: vi.fn(() => "health failed"),
 }));

@@ -69,9 +69,7 @@ function normalizeInstallOptions(entry: HookEntry): HookInstallOption[] {
     let label = (spec.label ?? "").trim();
 
     if (!label) {
-      if (spec.kind === "bundled") {
-        label = "Bundled with CrawClaw";
-      } else if (spec.kind === "npm" && spec.package) {
+      if (spec.kind === "npm" && spec.package) {
         label = `Install ${spec.package} (npm)`;
       } else if (spec.kind === "git" && spec.repository) {
         label = `Install from ${spec.repository}`;

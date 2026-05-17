@@ -33,6 +33,11 @@ async function writePluginFixture(params: {
   const manifest: Record<string, unknown> = {
     id: params.id,
     configSchema: params.schema,
+    native: {
+      protocol: "crawclaw-native-plugin-jsonrpc",
+      schemaVersion: 1,
+      command: ["fixture-plugin"],
+    },
   };
   await fs.writeFile(
     path.join(params.dir, "crawclaw.plugin.json"),

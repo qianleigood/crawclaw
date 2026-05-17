@@ -29,10 +29,7 @@ function normalizeBundledLookupPath(targetPath: string): string {
 
 function buildLegacyBundledPath(localPath: string): string | null {
   const normalized = normalizeBundledLookupPath(localPath);
-  for (const bundledRoot of [
-    path.join("dist", "extensions"),
-    path.join("dist-runtime", "extensions"),
-  ]) {
+  for (const bundledRoot of [path.join("dist", "extensions")]) {
     const marker = `${bundledRoot}${path.sep}`;
     const markerIndex = normalized.lastIndexOf(marker);
     if (markerIndex === -1) {

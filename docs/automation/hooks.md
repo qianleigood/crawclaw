@@ -131,12 +131,11 @@ Each event includes: `type`, `action`, `sessionKey`, `timestamp`, `messages` (pu
 
 Hooks are discovered from these directories, in order of increasing override precedence:
 
-1. **Bundled hooks**: shipped with CrawClaw
-2. **Packaged hooks**: hooks bundled by installed hook packs
-3. **Managed hooks**: `~/.crawclaw/hooks/` (user-installed, shared across workspaces). Extra directories from `hooks.internal.load.extraDirs` share this precedence.
-4. **Workspace hooks**: `<workspace>/hooks/` (per-agent, disabled by default until explicitly enabled)
+1. **Packaged hooks**: hooks bundled by installed hook packs
+2. **Managed hooks**: `~/.crawclaw/hooks/` (user-installed, shared across workspaces). Extra directories from `hooks.internal.load.extraDirs` share this precedence.
+3. **Workspace hooks**: `<workspace>/hooks/` (per-agent, disabled by default until explicitly enabled)
 
-Workspace hooks can add new hook names but cannot override bundled, managed, or packaged hooks with the same name.
+Workspace hooks can add new hook names but cannot override managed or packaged hooks with the same name.
 
 ### Hook packs
 
@@ -144,52 +143,12 @@ Hook packs are npm packages that export hooks via `crawclaw.hooks` in `package.j
 
 Npm specs are registry-only (package name + optional exact version or dist-tag). Git/URL/file specs and semver ranges are rejected.
 
-## Bundled hooks
+## Removed bundled hooks
 
-| Hook                  | Events            | What it does                                          |
-| --------------------- | ----------------- | ----------------------------------------------------- |
-| bootstrap-extra-files | `agent:bootstrap` | Injects additional bootstrap files from glob patterns |
-| command-logger        | `command`         | Logs all commands to `~/.crawclaw/logs/commands.log`  |
-| boot-md               | `gateway:startup` | Runs `BOOT.md` when the gateway starts                |
-
-### bootstrap-extra-files
-
-`bootstrap-extra-files` injects additional workspace bootstrap files during
-agent startup. Configure it with `hooks.internal.entries.bootstrap-extra-files`.
-
-### command-logger
-
-`command-logger` listens to command events and writes an audit log to
-`~/.crawclaw/logs/commands.log`.
-
-### boot-md
-
-`boot-md` runs the workspace `BOOT.md` file after the Gateway starts.
-
-Enable any bundled hook:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-### bootstrap-extra-files config
-
-```json
-{
-  "hooks": {
-    "internal": {
-      "entries": {
-        "bootstrap-extra-files": {
-          "enabled": true,
-          "paths": ["packages/*/AGENTS.md", "packages/*/TOOLS.md"]
-        }
-      }
-    }
-  }
-}
-```
-
-Paths resolve relative to workspace. Only recognized bootstrap basenames are loaded (`AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`, `BOOTSTRAP.md`, `MEMORY.md`), and the default runtime bootstrap remains intentionally smaller.
+CrawClaw no longer ships TypeScript bundled hook handlers. The old
+`bootstrap-extra-files`, `command-logger`, and `boot-md` handlers were removed
+from the product runtime boundary; use a managed hook pack or a workspace hook
+when you need local automation.
 
 ## Plugin hooks
 
@@ -206,7 +165,7 @@ systems on this page for operational automation.
     "internal": {
       "enabled": true,
       "entries": {
-        "command-logger": { "enabled": true }
+        "my-hook": { "enabled": true }
       }
     }
   }

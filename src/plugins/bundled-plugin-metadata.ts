@@ -18,9 +18,7 @@ const CRAWCLAW_PACKAGE_ROOT =
     moduleUrl: import.meta.url,
   }) ?? fileURLToPath(new URL("../..", import.meta.url));
 const CURRENT_MODULE_PATH = fileURLToPath(import.meta.url);
-const RUNNING_FROM_BUILT_ARTIFACT =
-  CURRENT_MODULE_PATH.includes(`${path.sep}dist${path.sep}`) ||
-  CURRENT_MODULE_PATH.includes(`${path.sep}dist-runtime${path.sep}`);
+const RUNNING_FROM_BUILT_ARTIFACT = CURRENT_MODULE_PATH.includes(`${path.sep}dist${path.sep}`);
 const PUBLIC_SURFACE_SOURCE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"] as const;
 const RUNTIME_SIDECAR_ARTIFACTS = new Set([
   "helper-api.js",
@@ -150,21 +148,14 @@ function collectRuntimeSidecarArtifacts(
 
 function resolveBundledPluginScanDir(packageRoot: string): string | undefined {
   const sourceDir = path.join(packageRoot, "extensions");
-  const runtimeDir = path.join(packageRoot, "dist-runtime", "extensions");
   const builtDir = path.join(packageRoot, "dist", "extensions");
   if (RUNNING_FROM_BUILT_ARTIFACT) {
     if (fs.existsSync(builtDir)) {
       return builtDir;
     }
-    if (fs.existsSync(runtimeDir)) {
-      return runtimeDir;
-    }
   }
   if (fs.existsSync(sourceDir)) {
     return sourceDir;
-  }
-  if (fs.existsSync(runtimeDir) && fs.existsSync(builtDir)) {
-    return runtimeDir;
   }
   if (fs.existsSync(builtDir)) {
     return builtDir;
@@ -324,7 +315,6 @@ export function resolveBundledPluginPublicSurfacePath(params: {
 
   for (const candidate of [
     path.resolve(params.rootDir, "dist", "extensions", params.dirName, artifactBasename),
-    path.resolve(params.rootDir, "dist-runtime", "extensions", params.dirName, artifactBasename),
   ]) {
     if (fs.existsSync(candidate)) {
       return candidate;

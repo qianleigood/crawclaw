@@ -15,16 +15,6 @@
   },
   "providerAuthChoices": [
     {
-      "provider": "minimax-portal",
-      "method": "oauth",
-      "choiceId": "minimax-global-oauth",
-      "choiceLabel": "MiniMax OAuth (Global)",
-      "choiceHint": "Global endpoint - api.minimax.io",
-      "groupId": "minimax",
-      "groupLabel": "MiniMax",
-      "groupHint": "M2.7 (recommended)"
-    },
-    {
       "provider": "minimax",
       "method": "api-global",
       "choiceId": "minimax-global-api",
@@ -38,16 +28,6 @@
       "cliFlag": "--minimax-api-key",
       "cliOption": "--minimax-api-key <key>",
       "cliDescription": "MiniMax API key"
-    },
-    {
-      "provider": "minimax-portal",
-      "method": "oauth-cn",
-      "choiceId": "minimax-cn-oauth",
-      "choiceLabel": "MiniMax OAuth (CN)",
-      "choiceHint": "CN endpoint - api.minimaxi.com",
-      "groupId": "minimax",
-      "groupLabel": "MiniMax",
-      "groupHint": "M2.7 (recommended)"
     },
     {
       "provider": "minimax",

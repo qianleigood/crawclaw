@@ -6,7 +6,6 @@ import type { CrawClawConfig } from "../config/config.js";
 import { setLoggerOverride } from "../logging/logger.js";
 import { loggingState } from "../logging/state.js";
 import { stripAnsi } from "../terminal/ansi.js";
-import { captureEnv } from "../test-utils/env.js";
 import {
   clearInternalHooks,
   getRegisteredEventKeys,
@@ -19,7 +18,6 @@ describe("loader", () => {
   let fixtureRoot = "";
   let caseId = 0;
   let tmpDir: string;
-  let envSnapshot: ReturnType<typeof captureEnv>;
 
   beforeAll(async () => {
     fixtureRoot = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-hooks-loader-"));
@@ -31,9 +29,6 @@ describe("loader", () => {
     tmpDir = path.join(fixtureRoot, `case-${caseId++}`);
     await fs.mkdir(tmpDir, { recursive: true });
 
-    // Disable bundled hooks during tests by setting env var to non-existent directory
-    envSnapshot = captureEnv(["CRAWCLAW_BUNDLED_HOOKS_DIR"]);
-    process.env.CRAWCLAW_BUNDLED_HOOKS_DIR = "/nonexistent/bundled/hooks";
     setLoggerOverride({ level: "silent", consoleLevel: "error" });
     loggingState.rawConsole = {
       log: vi.fn(),
@@ -96,7 +91,6 @@ describe("loader", () => {
     clearInternalHooks();
     loggingState.rawConsole = null;
     setLoggerOverride(null);
-    envSnapshot.restore();
   });
 
   afterAll(async () => {

@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   copyStaticExtensionAssets,
   listStaticExtensionAssetOutputs,
-  writeStableRootRuntimeAliases,
+  runRuntimePostBuild,
 } from "../../scripts/runtime-postbuild.mjs";
 
 const cleanupDirs: string[] = [];
@@ -71,7 +71,7 @@ describe("runtime postbuild static assets", () => {
     );
   });
 
-  it("writes stable aliases for hashed root runtime modules", async () => {
+  it("does not write stable root JS runtime aliases", async () => {
     const rootDir = await createTempRoot();
     const distDir = path.join(rootDir, "dist");
     await fs.mkdir(distDir, { recursive: true });
@@ -81,24 +81,14 @@ describe("runtime postbuild static assets", () => {
       "utf8",
     );
     await fs.writeFile(
-      path.join(distDir, "status.summary.runtime-AbCd1234.js"),
-      "export const status = true;\n",
-      "utf8",
-    );
-    await fs.writeFile(
       path.join(distDir, "library-Other123.js"),
       "export const x = true;\n",
       "utf8",
     );
 
-    writeStableRootRuntimeAliases({ rootDir });
+    runRuntimePostBuild({ cwd: rootDir, repoRoot: rootDir, rootDir, assets: [] });
 
-    expect(await fs.readFile(path.join(distDir, "auth-profiles.runtime.js"), "utf8")).toBe(
-      'export * from "./auth-profiles.runtime-XyZ987.js";\n',
-    );
-    expect(await fs.readFile(path.join(distDir, "status.summary.runtime.js"), "utf8")).toBe(
-      'export * from "./status.summary.runtime-AbCd1234.js";\n',
-    );
+    await expect(fs.stat(path.join(distDir, "auth-profiles.runtime.js"))).rejects.toThrow();
     await expect(fs.stat(path.join(distDir, "library.js"))).rejects.toThrow();
   });
 });

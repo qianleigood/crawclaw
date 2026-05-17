@@ -52,11 +52,12 @@ describe("bundled web search metadata", () => {
     });
   });
 
-  it("keeps bundled web search fast-path ids aligned with the registry", async () => {
+  it("keeps bundled web search provider objects out of the TypeScript fast path", async () => {
     expectBundledWebSearchAlignment({
-      actual: [...BUNDLED_WEB_SEARCH_PLUGIN_IDS],
-      expected: await resolveRegistryBundledWebSearchPluginIds(),
+      actual: await resolveRegistryBundledWebSearchPluginIds(),
+      expected: [],
     });
+    expect([...BUNDLED_WEB_SEARCH_PLUGIN_IDS]).toEqual(resolveManifestBundledWebSearchPluginIds());
   });
 });
 

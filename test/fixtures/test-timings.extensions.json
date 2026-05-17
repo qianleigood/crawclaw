@@ -2,18 +2,5 @@
   "config": "vitest.extensions.config.ts",
   "generatedAt": "2026-03-31T06:24:09.128Z",
   "defaultDurationMs": 1000,
-  "files": {
-    "extensions/google/oauth.test.ts": {
-      "durationMs": 127.036376953125,
-      "testCount": 8
-    },
-    "extensions/google/google-shared.test.ts": {
-      "durationMs": 4.324951171875,
-      "testCount": 11
-    },
-    "extensions/xai/web-search.test.ts": {
-      "durationMs": 3.056396484375,
-      "testCount": 21
-    }
-  }
+  "files": {}
 }

@@ -244,6 +244,38 @@
       "destination": "/tools/browser-linux-troubleshooting"
     },
     {
+      "source": "/channels",
+      "destination": "/concepts/messages"
+    },
+    {
+      "source": "/channels/index",
+      "destination": "/concepts/messages"
+    },
+    {
+      "source": "/channels/pairing",
+      "destination": "/gateway/security"
+    },
+    {
+      "source": "/channels/channel-routing",
+      "destination": "/concepts/multi-agent"
+    },
+    {
+      "source": "/channels/group-messages",
+      "destination": "/concepts/messages"
+    },
+    {
+      "source": "/channels/groups",
+      "destination": "/concepts/messages"
+    },
+    {
+      "source": "/channels/broadcast-groups",
+      "destination": "/concepts/messages"
+    },
+    {
+      "source": "/channels/troubleshooting",
+      "destination": "/gateway/troubleshooting"
+    },
+    {
       "source": "/bun",
       "destination": "/install/bun"
     },
@@ -598,6 +630,26 @@
     {
       "source": "/wizard",
       "destination": "/start/wizard"
+    },
+    {
+      "source": "/start/wizard-cli-automation",
+      "destination": "/reference/wizard"
+    },
+    {
+      "source": "/start/wizard-cli-reference",
+      "destination": "/reference/wizard"
+    },
+    {
+      "source": "/install/installer",
+      "destination": "/install"
+    },
+    {
+      "source": "/install/development-channels",
+      "destination": "/install/updating"
+    },
+    {
+      "source": "/debug/node-issue",
+      "destination": "/debug/index"
     },
     {
       "source": "/start/faq",

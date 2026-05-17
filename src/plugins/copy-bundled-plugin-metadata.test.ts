@@ -349,7 +349,7 @@ describe("copyBundledPluginMetadata", () => {
     expect(fs.existsSync(path.join(repoRoot, "dist", "extensions", pluginId))).toBe(expectedExists);
   });
 
-  it("preserves manifest-less speech runtime support package outputs and copies package metadata", () => {
+  it("removes manifest-less runtime support package outputs", () => {
     const repoRoot = makeRepoRoot("crawclaw-bundled-runtime-support-");
     const pluginDir = path.join(repoRoot, "extensions", "speech-core");
     fs.mkdirSync(pluginDir, { recursive: true });
@@ -371,25 +371,6 @@ describe("copyBundledPluginMetadata", () => {
 
     copyBundledPluginMetadata({ repoRoot });
 
-    expect(fs.existsSync(path.join(repoRoot, "dist", "extensions", "speech-core"))).toBe(true);
-    expect(
-      fs.existsSync(path.join(repoRoot, "dist", "extensions", "speech-core", "runtime-api.js")),
-    ).toBe(true);
-    expect(
-      fs.existsSync(
-        path.join(repoRoot, "dist", "extensions", "speech-core", "crawclaw.plugin.json"),
-      ),
-    ).toBe(false);
-    expect(
-      JSON.parse(
-        fs.readFileSync(
-          path.join(repoRoot, "dist", "extensions", "speech-core", "package.json"),
-          "utf8",
-        ),
-      ),
-    ).toMatchObject({
-      name: "@crawclaw/speech-core",
-      type: "module",
-    });
+    expect(fs.existsSync(path.join(repoRoot, "dist", "extensions", "speech-core"))).toBe(false);
   });
 });

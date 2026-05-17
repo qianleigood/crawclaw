@@ -80,9 +80,6 @@ async function createFixtureRepo(): Promise<string> {
   });
   await writeJson(path.join(repoRoot, "extensions", "sample", "package.json"), {
     crawclaw: {
-      bundle: {
-        stageRuntimeDependencies: true,
-      },
       extensions: ["./index.ts"],
       setupEntry: "./setup-entry.ts",
       install: {
@@ -123,7 +120,7 @@ describe("plugin dependency plan", () => {
         dependencies: Record<string, string>;
         enabledByDefault: boolean;
         id: string;
-        install: { npmSpec?: string; stageRuntimeDependencies: boolean };
+        install: { npmSpec?: string };
         providerIds: string[];
       }>;
       managedRuntimes: Array<{
@@ -168,7 +165,6 @@ describe("plugin dependency plan", () => {
         install: expect.objectContaining({
           entryPoints: [],
           npmSpec: "@crawclaw/sample",
-          stageRuntimeDependencies: true,
         }),
         providerIds: ["sample"],
       }),

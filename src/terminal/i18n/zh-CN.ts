@@ -200,7 +200,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.gatewayBindMode": "网关监听模式",
   "ui.text.gatewayPassword": "网关密码",
   "ui.text.gatewayPortForServiceInstall": "服务安装使用的网关端口",
-  "ui.text.gatewayRuntime": "网关服务 runtime",
   "ui.text.gatewayToken": "网关 token",
   "ui.text.gatewayTokenEnvVar": "网关 token 环境变量",
   "ui.text.gatewayTokenSource": "网关 token 来源",
@@ -220,7 +219,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.modelAuthProvider": "模型/认证 provider",
   "ui.text.modelId": "模型 ID",
   "ui.text.noAuth": "无认证",
-  "ui.text.nodeRecommended": "Node（推荐）",
   "ui.text.openaiCompatible": "OpenAI 兼容",
   "ui.text.operator": "操作员",
   "ui.text.outputPresentation": "输出和展示",
@@ -454,7 +452,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
     "原生 Windows 的托管网关安装会先尝试 Scheduled Tasks；如果任务创建被拒绝，会回退到用户 Startup-folder login item。",
   "wizard.daemon.systemdUnavailable":
     "systemd user services 不可用；已跳过服务安装。请直接运行 shell 命令（`crawclaw gateway run`），或在本次会话中去掉 --install-daemon 后重试。",
-  "wizard.daemon.invalidRuntime": "无效的 --daemon-runtime（请使用 node 或 bun）",
   "wizard.daemon.installBlocked":
     "网关安装被阻止：{reason} 请修复网关认证配置/token 输入后重新运行设置。",
   "wizard.daemon.installFailed": "网关服务安装失败：{error}",
@@ -698,7 +695,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.onboard.option.installDaemon": "安装 gateway 服务",
   "command.onboard.option.noInstallDaemon": "跳过 gateway 服务安装",
   "command.onboard.option.skipDaemon": "跳过 gateway 服务安装",
-  "command.onboard.option.daemonRuntime": "Daemon runtime：node|bun",
   "command.onboard.option.skipSkills": "跳过技能设置",
   "command.onboard.option.skipSearch": "跳过搜索 provider 设置",
   "command.onboard.option.skipHealth": "跳过健康检查",
@@ -1047,7 +1043,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.daemon.install.description": "安装 Gateway 服务（launchd/systemd/schtasks）",
   "command.daemon.install.option.port": "Gateway 端口",
   "command.daemon.install.option.runtime": "Daemon runtime（node|bun）。默认：node",
-  "command.daemon.install.option.runtimeEntry": "安装到服务中的 Node runtime 入口文件",
   "command.daemon.install.option.token": "Gateway token（token auth）",
   "command.daemon.install.option.force": "已安装时重新安装/覆盖",
   "command.daemon.uninstall.description": "卸载 Gateway 服务（launchd/systemd/schtasks）",
@@ -1130,9 +1125,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "command.models.auth.pasteToken.option.profileId": "Auth profile id（默认：<provider>:manual）",
   "command.models.auth.pasteToken.option.expiresIn":
     "可选过期时长（例如 365d、12h）。保存为绝对 expiresAt。",
-  "command.models.auth.loginGithubCopilot.description":
-    "通过 GitHub device flow 登录 GitHub Copilot（需要 TTY）",
-  "command.models.auth.loginGithubCopilot.option.yes": "不提示，覆盖已有 profile",
   "command.models.auth.order.description": "管理每个 agent 的 auth profile 顺序覆盖",
   "command.models.auth.order.get.description":
     "显示每个 agent 的 auth 顺序覆盖（来自 auth-profiles.json）",
@@ -1600,7 +1592,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.137": "旧版 cron",
   "cli.visible.138": "旧版 plugin manifests",
   "cli.visible.139": "记忆健康状态",
-  "cli.visible.140": "OAuth TLS",
   "cli.visible.142": "会话锁",
   "cli.visible.144": "Shell 补全",
   "cli.visible.145": "启动检查",

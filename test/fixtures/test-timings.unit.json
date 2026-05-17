@@ -307,10 +307,6 @@
       "durationMs": 84.578125,
       "testCount": 17
     },
-    "src/plugins/stage-bundled-plugin-runtime.test.ts": {
-      "durationMs": 82.215576171875,
-      "testCount": 7
-    },
     "src/config/io.runtime-snapshot-write.test.ts": {
       "durationMs": 81.617431640625,
       "testCount": 6

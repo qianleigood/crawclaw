@@ -3,7 +3,7 @@ title: "Dependency Maintenance"
 summary: "Maintainer workflow for plugin dependency baselines and core skill dependencies"
 read_when:
   - You add, remove, rename, publish, or repackage a bundled plugin
-  - You change plugin package dependencies, staged runtime dependencies, or bundled core skill runtime requirements
+  - You change plugin package dependencies or bundled core skill runtime requirements
   - You need to verify Python requirement lockfiles
 ---
 
@@ -30,7 +30,6 @@ The plan covers:
 - tracked bundled plugin manifests under `extensions/*/crawclaw.plugin.json`
 - each tracked bundled plugin `package.json` dependency section
 - released plugin `crawclaw.install.npmSpec` metadata
-- `crawclaw.bundle.stageRuntimeDependencies` metadata
 - bundled core skill Python package pins from
   `skills/.runtime/requirements.lock.txt`
 - `openai-whisper` Apple Silicon package pins from
@@ -63,9 +62,8 @@ or corrected.
 Treat plugin dependency setup as four separate layers:
 
 - Core runtime dependencies live in the root `package.json`.
-- Bundled plugin JavaScript dependencies live in each plugin package.
-- Staged bundled plugin dependencies are explicitly marked by
-  `crawclaw.bundle.stageRuntimeDependencies`.
+- Bundled plugin development dependencies live in each plugin package and must
+  not become published runtime `node_modules` trees.
 - Python sidecars and external tools must be owned by Rust/native runtime
   descriptors or explicit user configuration, not install-time TS repair flows.
 

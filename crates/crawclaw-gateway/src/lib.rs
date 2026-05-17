@@ -4587,7 +4587,6 @@ struct PluginInstallSource {
     source_path: Option<PathBuf>,
     install_source: String,
     record_fields: Map<String, Value>,
-    package_dependencies: bool,
     cleanup_roots: Vec<PathBuf>,
 }
 
@@ -4613,7 +4612,6 @@ fn plugin_install_source(
             source_path: None,
             install_source: "manifest".to_string(),
             record_fields: Map::new(),
-            package_dependencies: false,
             cleanup_roots: Vec::new(),
         });
     }
@@ -4636,7 +4634,6 @@ fn plugin_install_source(
             source_path: Some(source_root),
             install_source: "bundled".to_string(),
             record_fields: Map::new(),
-            package_dependencies: false,
             cleanup_roots: Vec::new(),
         });
     }
@@ -4652,7 +4649,6 @@ fn plugin_install_source(
             source_path: None,
             install_source: "generated".to_string(),
             record_fields: Map::new(),
-            package_dependencies: false,
             cleanup_roots: Vec::new(),
         })
     })
@@ -4834,14 +4830,7 @@ fn plugin_install_source_from_path(
     }
     let (source_root, manifest_path) = match plugin_manifest_path_from_source(source) {
         Ok(value) => value,
-        Err(_) => {
-            return plugin_install_source_from_package_dir(
-                source,
-                install_source,
-                source_path,
-                cleanup_root,
-            )
-        }
+        Err(_) => return plugin_install_source_from_package_dir(source),
     };
     Ok(PluginInstallSource {
         manifest: read_json_file(&manifest_path)?,
@@ -4849,16 +4838,12 @@ fn plugin_install_source_from_path(
         source_path,
         install_source: install_source.to_string(),
         record_fields: Map::new(),
-        package_dependencies: false,
         cleanup_roots: cleanup_root.into_iter().collect(),
     })
 }
 
 fn plugin_install_source_from_package_dir(
     source: &std::path::Path,
-    install_source: &str,
-    source_path: Option<PathBuf>,
-    cleanup_root: Option<PathBuf>,
 ) -> Result<PluginInstallSource, String> {
     if !source.is_dir() {
         return Err(format!(
@@ -4873,59 +4858,10 @@ fn plugin_install_source_from_package_dir(
             source.display()
         ));
     }
-    let package = read_json_file(&package_path)?;
-    let extensions = package_crawclaw_extensions(&package)?;
-    let package_name = package
-        .get("name")
-        .and_then(Value::as_str)
-        .unwrap_or("plugin")
-        .trim()
-        .to_string();
-    let manifest_id = source
-        .join("crawclaw.plugin.json")
-        .exists()
-        .then(|| read_json_file(&source.join("crawclaw.plugin.json")))
-        .transpose()?
-        .and_then(|manifest| {
-            manifest
-                .get("id")
-                .and_then(Value::as_str)
-                .map(ToOwned::to_owned)
-        });
-    let plugin_id = manifest_id.unwrap_or_else(|| package_name.clone());
-    safe_plugin_id(&plugin_id)?;
-    let version = package
-        .get("version")
-        .and_then(Value::as_str)
-        .unwrap_or("0.0.0")
-        .to_string();
-    let mut manifest = json!({
-        "id": plugin_id,
-        "name": package_name,
-        "version": version,
-        "main": extensions.first().cloned().unwrap_or_else(|| "index.js".to_string()),
-        "extensions": extensions
-    });
-    if let Some(auth_env_vars) = package
-        .get("crawclaw")
-        .and_then(|value| value.get("providerAuthEnvVars"))
-        .cloned()
-    {
-        manifest["providerAuthEnvVars"] = auth_env_vars;
-    }
-    Ok(PluginInstallSource {
-        manifest,
-        source_root: Some(source.to_path_buf()),
-        source_path,
-        install_source: install_source.to_string(),
-        record_fields: Map::new(),
-        package_dependencies: package
-            .get("dependencies")
-            .and_then(Value::as_object)
-            .map(|deps| !deps.is_empty())
-            .unwrap_or(false),
-        cleanup_roots: cleanup_root.into_iter().collect(),
-    })
+    Err(format!(
+        "plugin package {} is missing crawclaw.plugin.json; native plugin packages must include crawclaw.plugin.json in the package root",
+        source.display()
+    ))
 }
 
 fn plugin_install_source_from_npm_spec(
@@ -5199,29 +5135,6 @@ fn encode_plugin_install_dir_name(id: &str) -> String {
     format!("@{}-{hash}", safe_filename(&id.replace('/', "-")))
 }
 
-fn package_crawclaw_extensions(package: &Value) -> Result<Vec<String>, String> {
-    let Some(entries) = package
-        .get("crawclaw")
-        .and_then(|value| value.get("extensions"))
-        .and_then(Value::as_array)
-    else {
-        return Err(
-            "package.json missing crawclaw.extensions; update the plugin package to include crawclaw.extensions".to_string(),
-        );
-    };
-    let values = entries
-        .iter()
-        .filter_map(Value::as_str)
-        .map(str::trim)
-        .filter(|entry| !entry.is_empty())
-        .map(ToOwned::to_owned)
-        .collect::<Vec<_>>();
-    if values.is_empty() {
-        return Err("package.json crawclaw.extensions is empty".to_string());
-    }
-    Ok(values)
-}
-
 fn install_plugin_source(
     source: &PluginInstallSource,
     plugin_dir: &Path,
@@ -5247,9 +5160,6 @@ fn install_plugin_source(
             .map_err(|error| format!("failed to create plugin directory: {error}"))?;
     }
     write_json_file(&manifest_path, &source.manifest)?;
-    if source.package_dependencies {
-        install_plugin_package_dependencies(plugin_dir)?;
-    }
     Ok(manifest_path)
 }
 
@@ -5257,28 +5167,6 @@ fn cleanup_plugin_temp_dir(source: &PluginInstallSource) {
     for path in &source.cleanup_roots {
         let _ = std::fs::remove_dir_all(path);
     }
-}
-
-fn install_plugin_package_dependencies(plugin_dir: &Path) -> Result<(), String> {
-    if !plugin_dir.join("package.json").exists() {
-        return Ok(());
-    }
-    let output = Command::new("npm")
-        .args(["install", "--omit=dev", "--ignore-scripts"])
-        .current_dir(plugin_dir)
-        .env("COREPACK_ENABLE_DOWNLOAD_PROMPT", "0")
-        .env("NPM_CONFIG_IGNORE_SCRIPTS", "true")
-        .output()
-        .map_err(|error| format!("failed to run npm install: {error}"))?;
-    if output.status.success() {
-        return Ok(());
-    }
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-    Err(format!(
-        "npm install failed: {}",
-        if stderr.is_empty() { stdout } else { stderr }
-    ))
 }
 
 fn resolve_archive_kind(path: &Path) -> Option<&'static str> {
@@ -13163,12 +13051,36 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             &json!({
                 "name": "npm-demo",
                 "version": "1.0.0",
-                "crawclaw": {
-                    "extensions": ["index.mjs"]
+                "dependencies": {
+                    "local-dep": "file:dep"
                 }
             }),
         )
         .expect("write package");
+        let dep_root = source_root.join("dep");
+        std::fs::create_dir_all(&dep_root).expect("create local dependency");
+        write_json_file(
+            &dep_root.join("package.json"),
+            &json!({
+                "name": "local-dep",
+                "version": "1.0.0"
+            }),
+        )
+        .expect("write dependency package");
+        write_json_file(
+            &source_root.join("crawclaw.plugin.json"),
+            &json!({
+                "id": "npm-demo",
+                "name": "NPM Demo",
+                "version": "1.0.0",
+                "native": {
+                    "protocol": "crawclaw-native-plugin-jsonrpc",
+                    "schemaVersion": 1,
+                    "bin": "sidecar"
+                }
+            }),
+        )
+        .expect("write manifest");
         std::fs::write(source_root.join("index.mjs"), "export default {};\n")
             .expect("write source entrypoint");
         let spec = format!("file:{}", source_root.to_string_lossy());
@@ -13182,6 +13094,10 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
         let installed_root = runtime_root.join("plugins/npm-demo");
         assert!(installed_root.join("package.json").exists());
         assert!(installed_root.join("crawclaw.plugin.json").exists());
+        assert!(
+            !installed_root.join("node_modules").exists(),
+            "native plugin install must not run npm install for package dependencies"
+        );
 
         let config = read_config_value(&config_path(&state)).expect("read config");
         assert_eq!(
@@ -13200,12 +13116,26 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             &json!({
                 "name": "npm-demo",
                 "version": "1.1.0",
-                "crawclaw": {
-                    "extensions": ["index.mjs"]
+                "dependencies": {
+                    "local-dep": "file:dep"
                 }
             }),
         )
         .expect("update package");
+        write_json_file(
+            &source_root.join("crawclaw.plugin.json"),
+            &json!({
+                "id": "npm-demo",
+                "name": "NPM Demo",
+                "version": "1.1.0",
+                "native": {
+                    "protocol": "crawclaw-native-plugin-jsonrpc",
+                    "schemaVersion": 1,
+                    "bin": "sidecar"
+                }
+            }),
+        )
+        .expect("update manifest");
         let updated = handle_gateway_method(
             &state,
             "plugins.update",
@@ -13221,6 +13151,42 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
         let installed_manifest =
             read_json_file(&installed_root.join("crawclaw.plugin.json")).expect("manifest");
         assert_eq!(installed_manifest["version"], "1.1.0");
+        assert!(
+            !installed_root.join("node_modules").exists(),
+            "native plugin update must not run npm install for package dependencies"
+        );
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+        let _ = std::fs::remove_dir_all(source_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_plugins_install_rejects_package_only_plugin() {
+        let _guard = env_lock().lock().expect("env lock");
+        let runtime_root = unique_test_runtime_root("gateway-package-only-plugin-runtime");
+        let source_root = unique_test_runtime_root("gateway-package-only-plugin-source");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        std::fs::create_dir_all(&source_root).expect("create package source");
+        write_json_file(
+            &source_root.join("package.json"),
+            &json!({
+                "name": "package-only-demo",
+                "version": "1.0.0"
+            }),
+        )
+        .expect("write package");
+
+        let error = handle_gateway_method(
+            &state,
+            "plugins.install",
+            json!({ "raw": source_root.to_string_lossy() }),
+        )
+        .await
+        .expect_err("package-only plugin should fail");
+        assert!(error.contains("missing crawclaw.plugin.json"));
 
         let _ = std::fs::remove_dir_all(runtime_root);
         let _ = std::fs::remove_dir_all(source_root);

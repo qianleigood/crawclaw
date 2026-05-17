@@ -24,25 +24,18 @@ export type HookResolutionCollision = {
 };
 
 const HOOK_SOURCE_POLICIES: Record<HookSource, HookSourcePolicy> = {
-  "crawclaw-bundled": {
-    precedence: 10,
-    trustedLocalCode: true,
-    defaultEnableMode: "default-on",
-    canOverride: ["crawclaw-bundled"],
-    canBeOverriddenBy: ["crawclaw-managed", "crawclaw-plugin"],
-  },
   "crawclaw-plugin": {
     precedence: 20,
     trustedLocalCode: true,
     defaultEnableMode: "default-on",
-    canOverride: ["crawclaw-bundled", "crawclaw-plugin"],
+    canOverride: ["crawclaw-plugin"],
     canBeOverriddenBy: ["crawclaw-managed"],
   },
   "crawclaw-managed": {
     precedence: 30,
     trustedLocalCode: true,
     defaultEnableMode: "default-on",
-    canOverride: ["crawclaw-bundled", "crawclaw-managed", "crawclaw-plugin"],
+    canOverride: ["crawclaw-managed", "crawclaw-plugin"],
     canBeOverriddenBy: ["crawclaw-managed"],
   },
   "crawclaw-workspace": {

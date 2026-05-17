@@ -6,21 +6,12 @@ import { writeStateDirDotEnv } from "../config/test-helpers.js";
 
 const mocks = vi.hoisted(() => ({
   loadAuthProfileStoreForSecretsRuntime: vi.fn(),
-  resolvePreferredNodePath: vi.fn(),
   resolveGatewayProgramArguments: vi.fn(),
-  resolveSystemNodeInfo: vi.fn(),
-  renderSystemNodeWarning: vi.fn(),
   buildServiceEnvironment: vi.fn(),
 }));
 
 vi.mock("../agents/auth-profiles.js", () => ({
   loadAuthProfileStoreForSecretsRuntime: mocks.loadAuthProfileStoreForSecretsRuntime,
-}));
-
-vi.mock("../daemon/runtime-paths.js", () => ({
-  resolvePreferredNodePath: mocks.resolvePreferredNodePath,
-  resolveSystemNodeInfo: mocks.resolveSystemNodeInfo,
-  renderSystemNodeWarning: mocks.renderSystemNodeWarning,
 }));
 
 vi.mock("../daemon/program-args.js", () => ({
@@ -51,37 +42,21 @@ describe("resolveGatewayDevMode", () => {
   });
 });
 
-function mockNodeGatewayPlanFixture(
+function mockGatewayPlanFixture(
   params: {
     workingDirectory?: string;
-    version?: string;
-    supported?: boolean;
-    warning?: string;
     serviceEnvironment?: Record<string, string>;
   } = {},
 ) {
-  const {
-    workingDirectory = "/Users/me",
-    version = "22.0.0",
-    supported = true,
-    warning,
-    serviceEnvironment = { CRAWCLAW_PORT: "3000" },
-  } = params;
-  mocks.resolvePreferredNodePath.mockResolvedValue("/opt/node");
+  const { workingDirectory = "/Users/me", serviceEnvironment = { CRAWCLAW_PORT: "3000" } } = params;
   mocks.resolveGatewayProgramArguments.mockResolvedValue({
-    programArguments: ["node", "gateway"],
+    programArguments: ["/opt/crawclaw/bin/crawclaw-gateway", "--port", "3000"],
     workingDirectory,
   });
   mocks.loadAuthProfileStoreForSecretsRuntime.mockReturnValue({
     version: 1,
     profiles: {},
   });
-  mocks.resolveSystemNodeInfo.mockResolvedValue({
-    path: "/opt/node",
-    version,
-    supported,
-  });
-  mocks.renderSystemNodeWarning.mockReturnValue(warning);
   mocks.buildServiceEnvironment.mockReturnValue(serviceEnvironment);
 }
 
@@ -96,31 +71,27 @@ describe("buildGatewayInstallPlan", () => {
     fs.rmSync(isolatedHome, { recursive: true, force: true });
   });
 
-  it("uses provided nodePath and returns plan", async () => {
-    mockNodeGatewayPlanFixture();
+  it("resolves the native Gateway binary and returns plan", async () => {
+    mockGatewayPlanFixture();
 
     const plan = await buildGatewayInstallPlan({
       env: { HOME: isolatedHome },
       port: 3000,
-      runtime: "node",
-      nodePath: "/custom/node",
     });
 
-    expect(plan.programArguments).toEqual(["node", "gateway"]);
+    expect(plan.programArguments).toEqual(["/opt/crawclaw/bin/crawclaw-gateway", "--port", "3000"]);
     expect(plan.workingDirectory).toBe("/Users/me");
     expect(plan.environment).toEqual({ CRAWCLAW_PORT: "3000" });
-    expect(mocks.resolvePreferredNodePath).not.toHaveBeenCalled();
     expect(mocks.buildServiceEnvironment).toHaveBeenCalledWith(
       expect.objectContaining({
         env: { HOME: isolatedHome },
         port: 3000,
-        extraPathDirs: ["/custom"],
       }),
     );
   });
 
-  it("uses the desktop bundled node path from env for service installs", async () => {
-    mockNodeGatewayPlanFixture();
+  it("ignores desktop Node path env for native Gateway service installs", async () => {
+    mockGatewayPlanFixture();
 
     await buildGatewayInstallPlan({
       env: {
@@ -129,63 +100,25 @@ describe("buildGatewayInstallPlan", () => {
           "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
       },
       port: 3000,
-      runtime: "node",
     });
 
-    expect(mocks.resolvePreferredNodePath).not.toHaveBeenCalled();
     expect(mocks.resolveGatewayProgramArguments).toHaveBeenCalledWith(
       expect.objectContaining({
-        runtime: "node",
-        nodePath: "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
+        port: 3000,
       }),
     );
     expect(mocks.buildServiceEnvironment).toHaveBeenCalledWith(
       expect.objectContaining({
-        extraPathDirs: ["/Applications/CrawClaw Desktop.app/Contents/MacOS"],
+        env: expect.objectContaining({
+          CRAWCLAW_DESKTOP_NODE_PATH:
+            "/Applications/CrawClaw Desktop.app/Contents/MacOS/CrawClaw Desktop",
+        }),
       }),
     );
-  });
-
-  it("does not prepend '.' when nodePath is a bare executable name", async () => {
-    mockNodeGatewayPlanFixture();
-
-    await buildGatewayInstallPlan({
-      env: { HOME: isolatedHome },
-      port: 3000,
-      runtime: "node",
-      nodePath: "node",
-    });
-
-    expect(mocks.buildServiceEnvironment).toHaveBeenCalledWith(
-      expect.objectContaining({
-        extraPathDirs: undefined,
-      }),
-    );
-  });
-
-  it("emits warnings when renderSystemNodeWarning returns one", async () => {
-    const warn = vi.fn();
-    mockNodeGatewayPlanFixture({
-      workingDirectory: undefined,
-      version: "18.0.0",
-      supported: false,
-      warning: "Node too old",
-      serviceEnvironment: {},
-    });
-
-    await buildGatewayInstallPlan({
-      env: {},
-      port: 3000,
-      runtime: "node",
-      warn,
-    });
-
-    expect(warn).toHaveBeenCalledWith("Node too old", "Gateway runtime");
-    expect(mocks.resolvePreferredNodePath).toHaveBeenCalled();
   });
 
   it("merges config env vars into the environment", async () => {
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: {
         CRAWCLAW_PORT: "3000",
         HOME: "/Users/me",
@@ -195,7 +128,6 @@ describe("buildGatewayInstallPlan", () => {
     const plan = await buildGatewayInstallPlan({
       env: {},
       port: 3000,
-      runtime: "node",
       config: {
         env: {
           vars: {
@@ -215,7 +147,7 @@ describe("buildGatewayInstallPlan", () => {
   });
 
   it("drops dangerous config env vars before service merge", async () => {
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: {
         CRAWCLAW_PORT: "3000",
       },
@@ -224,7 +156,6 @@ describe("buildGatewayInstallPlan", () => {
     const plan = await buildGatewayInstallPlan({
       env: {},
       port: 3000,
-      runtime: "node",
       config: {
         env: {
           vars: {
@@ -240,12 +171,11 @@ describe("buildGatewayInstallPlan", () => {
   });
 
   it("does not include empty config env values", async () => {
-    mockNodeGatewayPlanFixture();
+    mockGatewayPlanFixture();
 
     const plan = await buildGatewayInstallPlan({
       env: {},
       port: 3000,
-      runtime: "node",
       config: {
         env: {
           vars: {
@@ -261,12 +191,11 @@ describe("buildGatewayInstallPlan", () => {
   });
 
   it("drops whitespace-only config env values", async () => {
-    mockNodeGatewayPlanFixture({ serviceEnvironment: {} });
+    mockGatewayPlanFixture({ serviceEnvironment: {} });
 
     const plan = await buildGatewayInstallPlan({
       env: {},
       port: 3000,
-      runtime: "node",
       config: {
         env: {
           vars: {
@@ -282,7 +211,7 @@ describe("buildGatewayInstallPlan", () => {
   });
 
   it("keeps service env values over config env vars", async () => {
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: {
         HOME: "/Users/service",
         CRAWCLAW_PORT: "3000",
@@ -292,7 +221,6 @@ describe("buildGatewayInstallPlan", () => {
     const plan = await buildGatewayInstallPlan({
       env: {},
       port: 3000,
-      runtime: "node",
       config: {
         env: {
           HOME: "/Users/config",
@@ -308,7 +236,7 @@ describe("buildGatewayInstallPlan", () => {
   });
 
   it("merges env-backed auth-profile refs into the service environment", async () => {
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: {
         CRAWCLAW_PORT: "3000",
       },
@@ -335,7 +263,6 @@ describe("buildGatewayInstallPlan", () => {
         ANTHROPIC_TOKEN: "ant-test-token",
       },
       port: 3000,
-      runtime: "node",
     });
 
     expect(plan.environment.OPENAI_API_KEY).toBe("sk-openai-test");
@@ -343,7 +270,7 @@ describe("buildGatewayInstallPlan", () => {
   });
 
   it("blocks dangerous auth-profile env refs from the service environment", async () => {
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: {
         CRAWCLAW_PORT: "3000",
       },
@@ -377,7 +304,6 @@ describe("buildGatewayInstallPlan", () => {
         OPENAI_API_KEY: "sk-openai-test", // pragma: allowlist secret
       },
       port: 3000,
-      runtime: "node",
       warn,
     });
 
@@ -389,7 +315,7 @@ describe("buildGatewayInstallPlan", () => {
   });
 
   it("skips non-portable auth-profile env ref keys", async () => {
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: {
         CRAWCLAW_PORT: "3000",
       },
@@ -410,14 +336,13 @@ describe("buildGatewayInstallPlan", () => {
         "BAD KEY": "should-not-pass",
       },
       port: 3000,
-      runtime: "node",
     });
 
     expect(plan.environment["BAD KEY"]).toBeUndefined();
   });
 
   it("skips unresolved auth-profile env refs", async () => {
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: {
         CRAWCLAW_PORT: "3000",
       },
@@ -436,7 +361,6 @@ describe("buildGatewayInstallPlan", () => {
     const plan = await buildGatewayInstallPlan({
       env: {},
       port: 3000,
-      runtime: "node",
     });
 
     expect(plan.environment.OPENAI_API_KEY).toBeUndefined();
@@ -458,12 +382,11 @@ describe("buildGatewayInstallPlan — dotenv merge", () => {
     await writeStateDirDotEnv("BRAVE_API_KEY=BSA-from-env\nOPENROUTER_API_KEY=or-key\n", {
       stateDir: path.join(tmpDir, ".crawclaw"),
     });
-    mockNodeGatewayPlanFixture({ serviceEnvironment: { CRAWCLAW_PORT: "3000" } });
+    mockGatewayPlanFixture({ serviceEnvironment: { CRAWCLAW_PORT: "3000" } });
 
     const plan = await buildGatewayInstallPlan({
       env: { HOME: tmpDir },
       port: 3000,
-      runtime: "node",
     });
 
     expect(plan.environment.BRAVE_API_KEY).toBe("BSA-from-env");
@@ -475,12 +398,11 @@ describe("buildGatewayInstallPlan — dotenv merge", () => {
     await writeStateDirDotEnv("MY_KEY=from-dotenv\n", {
       stateDir: path.join(tmpDir, ".crawclaw"),
     });
-    mockNodeGatewayPlanFixture({ serviceEnvironment: {} });
+    mockGatewayPlanFixture({ serviceEnvironment: {} });
 
     const plan = await buildGatewayInstallPlan({
       env: { HOME: tmpDir },
       port: 3000,
-      runtime: "node",
       config: {
         env: {
           vars: {
@@ -497,26 +419,24 @@ describe("buildGatewayInstallPlan — dotenv merge", () => {
     await writeStateDirDotEnv("HOME=/from-dotenv\n", {
       stateDir: path.join(tmpDir, ".crawclaw"),
     });
-    mockNodeGatewayPlanFixture({
+    mockGatewayPlanFixture({
       serviceEnvironment: { HOME: "/from-service" },
     });
 
     const plan = await buildGatewayInstallPlan({
       env: { HOME: tmpDir },
       port: 3000,
-      runtime: "node",
     });
 
     expect(plan.environment.HOME).toBe("/from-service");
   });
 
   it("works when .env file does not exist", async () => {
-    mockNodeGatewayPlanFixture({ serviceEnvironment: { CRAWCLAW_PORT: "3000" } });
+    mockGatewayPlanFixture({ serviceEnvironment: { CRAWCLAW_PORT: "3000" } });
 
     const plan = await buildGatewayInstallPlan({
       env: { HOME: tmpDir },
       port: 3000,
-      runtime: "node",
     });
 
     expect(plan.environment.CRAWCLAW_PORT).toBe("3000");

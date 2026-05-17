@@ -86,8 +86,6 @@ describe("hooks install (e2e)", () => {
     }
 
     clearInternalHooks();
-    const bundledHooksDir = path.join(baseDir, "bundled-none");
-    await fs.mkdir(bundledHooksDir, { recursive: true });
     const loaded = await loadInternalHooks(
       {
         hooks: {
@@ -98,7 +96,7 @@ describe("hooks install (e2e)", () => {
         },
       },
       workspaceDir,
-      { managedHooksDir: hooksDir, bundledHooksDir },
+      { managedHooksDir: hooksDir },
     );
     expect(loaded).toBeGreaterThanOrEqual(1);
 

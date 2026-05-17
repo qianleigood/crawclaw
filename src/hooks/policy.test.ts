@@ -58,12 +58,11 @@ describe("hook policy", () => {
   });
 
   describe("resolveHookEntries", () => {
-    it("lets managed hooks override bundled and plugin hooks", () => {
-      const bundled = makeHookEntry("shared", "crawclaw-bundled");
+    it("lets managed hooks override plugin hooks", () => {
       const plugin = makeHookEntry("shared", "crawclaw-plugin");
       const managed = makeHookEntry("shared", "crawclaw-managed");
 
-      const resolved = resolveHookEntries([bundled, plugin, managed]);
+      const resolved = resolveHookEntries([plugin, managed]);
       expect(resolved).toHaveLength(1);
       expect(resolved[0]?.hook.source).toBe("crawclaw-managed");
     });

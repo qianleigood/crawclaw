@@ -236,12 +236,12 @@ describe("buildAuthChoiceOptions", () => {
         deprecatedChoiceIds: ["claude-cli"],
       },
       {
-        pluginId: "openai",
-        providerId: "openai-codex",
-        methodId: "oauth",
-        choiceId: "openai-codex",
-        choiceLabel: "OpenAI Codex (ChatGPT OAuth)",
-        deprecatedChoiceIds: ["codex-cli"],
+        pluginId: "zai",
+        providerId: "zai",
+        methodId: "api-key",
+        choiceId: "zai-api-key",
+        choiceLabel: "Z.AI API key",
+        deprecatedChoiceIds: ["zhipu-api-key"],
       },
     ]);
 
@@ -251,7 +251,7 @@ describe("buildAuthChoiceOptions", () => {
 
     expect(cliChoices).not.toContain("oauth");
     expect(cliChoices).not.toContain("claude-cli");
-    expect(cliChoices).not.toContain("codex-cli");
+    expect(cliChoices).not.toContain("zhipu-api-key");
   });
 
   it("keeps static cli help choices off the plugin-backed catalog", () => {
