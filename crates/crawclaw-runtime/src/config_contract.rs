@@ -1,7 +1,20 @@
+use std::fs;
+use std::path::{Path, PathBuf};
+
 use serde_json::Value;
 
 const BASE_CONFIG_SCHEMA_STABLE_JSON: &str =
     include_str!("config_contract/base_config_schema.stable.json");
+const CONFIG_DOC_BASELINE_JSON: &str = include_str!("config_contract/config_doc_baseline.json");
+const CONFIG_DOC_BASELINE_JSONL: &str = include_str!("config_contract/config_doc_baseline.jsonl");
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ConfigDocBaselineWriteResult {
+    pub changed: bool,
+    pub wrote: bool,
+    pub json_path: PathBuf,
+    pub jsonl_path: PathBuf,
+}
 
 pub fn base_config_schema_payload(generated_at: &str) -> Result<Value, String> {
     serde_json::from_str(&base_config_schema_payload_json(generated_at)?)
@@ -28,6 +41,63 @@ pub fn base_config_schema_payload_json(generated_at: &str) -> Result<String, Str
             .expect("cargo package version encodes as JSON"),
         serde_json::to_string(generated_at).expect("generated timestamp encodes as JSON")
     ))
+}
+
+pub fn config_doc_baseline_json() -> &'static str {
+    CONFIG_DOC_BASELINE_JSON
+}
+
+pub fn config_doc_baseline_jsonl() -> &'static str {
+    CONFIG_DOC_BASELINE_JSONL
+}
+
+pub fn write_config_doc_baseline_artifacts(
+    json_path: impl AsRef<Path>,
+    jsonl_path: impl AsRef<Path>,
+    check: bool,
+) -> Result<ConfigDocBaselineWriteResult, String> {
+    let json_path = json_path.as_ref().to_path_buf();
+    let jsonl_path = jsonl_path.as_ref().to_path_buf();
+    let current_json = read_optional_utf8(&json_path)?;
+    let current_jsonl = read_optional_utf8(&jsonl_path)?;
+    let changed = current_json.as_deref() != Some(CONFIG_DOC_BASELINE_JSON)
+        || current_jsonl.as_deref() != Some(CONFIG_DOC_BASELINE_JSONL);
+
+    if check {
+        return Ok(ConfigDocBaselineWriteResult {
+            changed,
+            wrote: false,
+            json_path,
+            jsonl_path,
+        });
+    }
+
+    if changed {
+        write_utf8(&json_path, CONFIG_DOC_BASELINE_JSON)?;
+        write_utf8(&jsonl_path, CONFIG_DOC_BASELINE_JSONL)?;
+    }
+    Ok(ConfigDocBaselineWriteResult {
+        changed,
+        wrote: changed,
+        json_path,
+        jsonl_path,
+    })
+}
+
+fn read_optional_utf8(path: &Path) -> Result<Option<String>, String> {
+    match fs::read_to_string(path) {
+        Ok(value) => Ok(Some(value)),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("failed to read {}: {error}", path.display())),
+    }
+}
+
+fn write_utf8(path: &Path, content: &str) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    }
+    fs::write(path, content).map_err(|error| format!("failed to write {}: {error}", path.display()))
 }
 
 fn extract_top_level_json_field<'a>(raw: &'a str, field: &str) -> Result<&'a str, String> {
@@ -179,5 +249,35 @@ mod tests {
             path(&payload, &["uiHints", "models.providers.*.baseUrl", "tags"]),
             "url-secret"
         ));
+    }
+
+    #[test]
+    fn config_doc_baseline_artifacts_cover_runtime_config_docs() {
+        let baseline: Value =
+            serde_json::from_str(config_doc_baseline_json()).expect("config baseline JSON");
+        assert_eq!(
+            baseline["generatedBy"],
+            "crawclaw-runtime emit-config-doc-baseline"
+        );
+        let entries = baseline["entries"].as_array().expect("baseline entries");
+        assert!(entries.iter().any(|entry| {
+            entry["path"] == "models.providers.*.apiKey"
+                && entry["sensitive"].as_bool() == Some(true)
+        }));
+        assert!(entries.iter().any(|entry| {
+            entry["path"] == "talk.silenceTimeoutMs"
+                && entry["help"]
+                    .as_str()
+                    .is_some_and(|help| help.contains("platform default pause window"))
+        }));
+
+        let mut lines = config_doc_baseline_jsonl().lines();
+        let meta: Value =
+            serde_json::from_str(lines.next().expect("meta line")).expect("meta JSON");
+        assert_eq!(
+            meta["generatedBy"],
+            "crawclaw-runtime emit-config-doc-baseline"
+        );
+        assert_eq!(meta["totalPaths"], entries.len());
     }
 }

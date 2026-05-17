@@ -17,7 +17,10 @@ mod native_plugin_registry;
 mod package_build;
 pub mod special_agents;
 
-pub use config_contract::{base_config_schema_payload, base_config_schema_payload_json};
+pub use config_contract::{
+    base_config_schema_payload, base_config_schema_payload_json, config_doc_baseline_json,
+    config_doc_baseline_jsonl, write_config_doc_baseline_artifacts, ConfigDocBaselineWriteResult,
+};
 use core_tools::build_pi_agent_rust_tool_registry;
 pub use desktop_packaging::{
     check_desktop_runtime_release_inputs, resolve_desktop_runtime_stage_paths,

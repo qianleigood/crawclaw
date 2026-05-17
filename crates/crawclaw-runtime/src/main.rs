@@ -35,6 +35,7 @@ async fn main() {
         "desktop-check" => desktop_check(args),
         "desktop-stage" => desktop_stage(args),
         "emit-base-config-schema" => emit_base_config_schema(args),
+        "emit-config-doc-baseline" => emit_config_doc_baseline(args),
         "emit-provider-model-normalization" => emit_provider_model_normalization(args),
         "package-postbuild" => package_postbuild(args),
         "status" => status(&args),
@@ -118,6 +119,82 @@ fn emit_base_config_schema(args: Vec<String>) {
             std::process::exit(1);
         }
     }
+}
+
+fn emit_config_doc_baseline(args: Vec<String>) {
+    match run_emit_config_doc_baseline(args) {
+        Ok(()) => {}
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn run_emit_config_doc_baseline(args: Vec<String>) -> Result<(), String> {
+    let mut json_output: Option<PathBuf> = None;
+    let mut jsonl_output: Option<PathBuf> = None;
+    let mut check = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--check" => {
+                check = true;
+                index += 1;
+            }
+            "--write" => {
+                index += 1;
+            }
+            "--json-output" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--json-output requires a value".to_string())?;
+                json_output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--jsonl-output" => {
+                let value = args
+                    .get(index + 1)
+                    .ok_or_else(|| "--jsonl-output requires a value".to_string())?;
+                jsonl_output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                return Err(format!(
+                    "unsupported emit-config-doc-baseline option: {other}"
+                ))
+            }
+        }
+    }
+    let json_path =
+        json_output.ok_or_else(|| "usage: crawclaw-runtime emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write]".to_string())?;
+    let jsonl_path =
+        jsonl_output.ok_or_else(|| "usage: crawclaw-runtime emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write]".to_string())?;
+    let result =
+        crawclaw_runtime::write_config_doc_baseline_artifacts(&json_path, &jsonl_path, check)?;
+    if check {
+        if result.changed {
+            return Err([
+                "Config baseline drift detected.".to_string(),
+                format!("Expected current: {}", result.json_path.display()),
+                format!("Expected current: {}", result.jsonl_path.display()),
+                "If this config-surface change is intentional, run `pnpm config:docs:gen` and commit the updated baseline files.".to_string(),
+                "If not intentional, treat this as docs drift or a possible breaking config change and fix the schema/help changes first.".to_string(),
+            ].join("\n"));
+        }
+        println!(
+            "OK {} {}",
+            result.json_path.display(),
+            result.jsonl_path.display()
+        );
+    } else {
+        println!(
+            "Wrote {}\nWrote {}",
+            result.json_path.display(),
+            result.jsonl_path.display()
+        );
+    }
+    Ok(())
 }
 
 fn emit_provider_model_normalization(args: Vec<String>) {
@@ -381,6 +458,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-provider-model-normalization --output <path> | package-postbuild --root <repo-root> | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> | package-postbuild --root <repo-root> | tool <name> [json-input]"
     );
 }
