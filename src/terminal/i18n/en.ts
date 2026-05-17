@@ -1096,7 +1096,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.daemon.status.option.deep": "Scan system-level services",
   "command.daemon.install.description": "Install the Gateway service (launchd/systemd/schtasks)",
   "command.daemon.install.option.port": "Gateway port",
-  "command.daemon.install.option.runtime": "Daemon runtime (node|bun). Default: node",
   "command.daemon.install.option.token": "Gateway token (token auth)",
   "command.daemon.install.option.force": "Reinstall/overwrite if already installed",
   "command.daemon.uninstall.description":
@@ -1636,7 +1635,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.094": "Scanning OpenRouter models...",
   "cli.visible.095": "Select fallback models (ordered)",
   "cli.visible.096": "Select image fallback models (ordered)",
-  "cli.visible.097": "Node daemon runtime",
   "cli.visible.098": "No runtimes found.",
   "cli.visible.099": "No runtimes found.",
   "cli.visible.100": "\\nRuntimes will be automatically recreated when the agent is next used.",

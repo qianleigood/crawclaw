@@ -38,7 +38,6 @@ function isCliVisibleTechnicalLiteral(value: string): boolean {
     "Gateway runtime",
     "Git main",
     "Image fallbacks",
-    "Node daemon runtime",
     "Profile id",
     "Provider id",
     "Token",
