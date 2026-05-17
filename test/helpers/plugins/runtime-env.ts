@@ -1,5 +1,5 @@
 import { vi } from "vitest";
-import type { OutputRuntimeEnv } from "../../../src/internal-plugin-helpers/runtime.js";
+import type { OutputRuntimeEnv } from "../../../src/runtime.js";
 
 export function createRuntimeEnv(options?: { throwOnExit?: boolean }): OutputRuntimeEnv {
   const throwOnExit = options?.throwOnExit ?? true;
