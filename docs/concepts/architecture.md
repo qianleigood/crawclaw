@@ -77,8 +77,8 @@ Details: [Gateway protocol](/gateway/protocol), [Pairing](/channels/pairing),
 
 ## Protocol typing and codegen
 
-- TypeBox schemas define the protocol.
-- JSON Schema is generated from those schemas.
+- TypeBox schemas still back Gateway AJV validators and typed clients.
+- JSON Schema is emitted from the Rust Gateway contract snapshot.
 - Swift models are generated from the JSON Schema.
 
 ## Remote access

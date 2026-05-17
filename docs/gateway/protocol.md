@@ -173,9 +173,9 @@ Method scope is only the first gate. Some slash commands reached through
 
 - `PROTOCOL_VERSION` lives in `src/gateway/protocol/schema.ts`.
 - Clients send `minProtocol` + `maxProtocol`; the server rejects mismatches.
-- Schemas + models are generated from TypeBox definitions:
+- TypeScript schemas still back Gateway AJV validators and typed clients.
+- The packaged JSON Schema artifact is emitted by the Rust Gateway contract snapshot:
   - `pnpm protocol:gen`
-  - `pnpm protocol:gen:swift`
   - `pnpm protocol:check`
 
 ## Auth
@@ -205,5 +205,7 @@ in addition to device/client/role/scopes/token/nonce fields.
 ## Scope
 
 This protocol exposes the **full gateway API** (status, channels, models, chat,
-agent, sessions, approvals, etc.). The exact surface is defined by the
-TypeBox schemas in `src/gateway/protocol/schema.ts`.
+agent, sessions, approvals, etc.). The runtime validator surface is still
+implemented by the TypeBox schemas in `src/gateway/protocol/schema.ts`; the
+generated JSON Schema artifact is emitted from the Rust Gateway contract
+snapshot.

@@ -76,17 +76,17 @@ Authoritative pieces now live in different layers:
 - Runtime validators (AJV): `src/gateway/protocol/index.ts`
 - Gateway protocol schema index: `src/gateway/protocol/schema.ts`
 - Server handshake and method dispatch/runtime behavior: `crates/crawclaw-gateway/src/lib.rs`
+- Rust JSON Schema emitter snapshot:
+  `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
 - Generated JSON Schema: `dist/protocol.schema.json`
-- Generated Swift models: `apps/macos/Sources/CrawClawProtocol/GatewayModels.swift`
 
 ## Current pipeline
 
 - `pnpm protocol:gen`
-  - writes JSON Schema (draft‑07) to `dist/protocol.schema.json`
-- `pnpm protocol:gen:swift`
-  - generates Swift gateway models
+  - calls the Rust Gateway emitter and writes JSON Schema (draft‑07) to
+    `dist/protocol.schema.json`
 - `pnpm protocol:check`
-  - runs both generators and verifies the output is committed
+  - runs the JSON Schema generator and verifies the output is committed
 
 ## How the schemas are used at runtime
 
@@ -294,13 +294,13 @@ Unknown frame types are preserved as raw payloads for forward compatibility.
 
 ## Live schema JSON
 
-Generated JSON Schema is in the repo at `dist/protocol.schema.json`. The
-published raw file is typically available at:
+Generated JSON Schema is emitted to `dist/protocol.schema.json`. The published
+raw file is typically available at:
 
 - [https://raw.githubusercontent.com/qianleigood/crawclaw/main/dist/protocol.schema.json](https://raw.githubusercontent.com/qianleigood/crawclaw/main/dist/protocol.schema.json)
 
 ## When you change schemas
 
-1. Update the TypeBox schemas.
+1. Update the TypeBox schemas and the Rust protocol contract snapshot together.
 2. Run `pnpm protocol:check`.
-3. Commit the regenerated schema + Swift models.
+3. Commit the regenerated schema artifacts.
