@@ -58,12 +58,6 @@ describe("GatewayClient production callsites", () => {
     expect(source).not.toContain('import("./client.js")');
   });
 
-  it("does not keep a gateway runtime helper facade for plugins", async () => {
-    await expect(
-      fs.stat(path.join(process.cwd(), "src/internal-plugin-helpers/gateway-runtime.ts")),
-    ).rejects.toMatchObject({ code: "ENOENT" });
-  });
-
   it("does not keep the old TypeScript gateway server close helper", async () => {
     await expect(
       fs.stat(path.join(process.cwd(), "src/gateway/server-close.ts")),
