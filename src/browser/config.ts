@@ -19,7 +19,7 @@ import {
   parseBrowserHttpUrl,
   resolveBrowserSsrFPolicy,
   resolveCdpPortRangeStart,
-} from "./browser-config-helpers.js";
+} from "./config-helpers.js";
 
 export const DEFAULT_CRAWCLAW_BROWSER_ENABLED = true;
 export const DEFAULT_BROWSER_EVALUATE_ENABLED = true;
@@ -89,7 +89,7 @@ export type ResolvedBrowserProfile = {
   driver: "crawclaw";
 };
 
-export { parseBrowserHttpUrl } from "./browser-config-helpers.js";
+export { parseBrowserHttpUrl } from "./config-helpers.js";
 
 export function resolveBrowserConfig(
   cfg: BrowserConfig | undefined,

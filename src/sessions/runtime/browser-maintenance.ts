@@ -2,7 +2,7 @@ import { randomBytes } from "node:crypto";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-import { runCommandWithTimeout } from "../process/exec.js";
+import { runCommandWithTimeout } from "../../process/exec.js";
 
 export type BrowserSessionCleanupParams = {
   sessionKeys: Array<string | undefined>;

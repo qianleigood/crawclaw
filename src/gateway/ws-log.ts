@@ -1,6 +1,6 @@
 import chalk from "chalk";
+import { resolveSendableOutboundReplyParts } from "../chat/outbound-reply.js";
 import { isVerbose } from "../globals.js";
-import { resolveSendableOutboundReplyParts } from "../internal-plugin-helpers/reply-payload.js";
 import { shouldLogSubsystemToConsole } from "../logging/console.js";
 import { getDefaultRedactPatterns, redactSensitiveText } from "../logging/redact.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";

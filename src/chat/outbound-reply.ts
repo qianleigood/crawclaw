@@ -2,13 +2,13 @@ import {
   formatTextWithAttachmentLinks,
   isNumericTargetId,
   sendMediaWithLeadingCaption,
-} from "./reply-payload-helpers.js";
+} from "./outbound-reply-helpers.js";
 
 export {
   formatTextWithAttachmentLinks,
   isNumericTargetId,
   sendMediaWithLeadingCaption,
-} from "./reply-payload-helpers.js";
+} from "./outbound-reply-helpers.js";
 
 export type OutboundReplyPayload = {
   text?: string;

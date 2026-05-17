@@ -5,7 +5,7 @@ const mkdir = vi.hoisted(() => vi.fn());
 const access = vi.hoisted(() => vi.fn());
 const rename = vi.hoisted(() => vi.fn());
 
-vi.mock("../process/exec.js", () => ({
+vi.mock("../../process/exec.js", () => ({
   runCommandWithTimeout,
 }));
 

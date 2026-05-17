@@ -5,7 +5,7 @@ import { callGateway } from "../../gateway/call.js";
 import { ErrorCodes, errorShape } from "../../gateway/protocol/index.js";
 import { resolveGatewaySessionStoreTarget } from "../../gateway/session-utils.js";
 import { logVerbose } from "../../globals.js";
-import { closeTrackedBrowserTabsForSessions } from "../../internal-plugin-helpers/browser-maintenance.js";
+import { closeTrackedBrowserTabsForSessions } from "./browser-maintenance.js";
 
 const ACP_RUNTIME_CLEANUP_TIMEOUT_MS = 15_000;
 

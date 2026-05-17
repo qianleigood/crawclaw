@@ -9,6 +9,7 @@ import {
   unlinkSync,
 } from "node:fs";
 import path from "node:path";
+import { resolveSendableOutboundReplyParts } from "../../chat/outbound-reply.js";
 import type {
   CrawClawConfig,
   TtsAutoMode,
@@ -16,31 +17,28 @@ import type {
   TtsMode,
   TtsModelOverrideConfig,
   TtsProvider,
-} from "../../internal-plugin-helpers/config-runtime.js";
-import { resolveSendableOutboundReplyParts } from "../../internal-plugin-helpers/reply-payload.js";
-import { redactSensitiveText } from "../../internal-plugin-helpers/runtime-env.js";
-import { isVerbose, logVerbose } from "../../internal-plugin-helpers/runtime-env.js";
+} from "../../config/types.js";
+import { isVerbose, logVerbose } from "../../globals.js";
+import { resolvePreferredCrawClawTmpDir } from "../../infra/temp-download.js";
+import { redactSensitiveText } from "../../logging/redact.js";
+import { stripMarkdown } from "../../shared/text/strip-markdown.js";
+import { CONFIG_DIR, resolveUserPath } from "../../utils.js";
+import { parseTtsDirectives } from "../directives.js";
 import {
   canonicalizeSpeechProviderId,
   getSpeechProvider,
   listSpeechProviders,
   normalizeSpeechProviderId,
-  normalizeTtsAutoMode,
-  parseTtsDirectives,
-  scheduleCleanup,
-  summarizeText,
+} from "../provider-registry.js";
+import {
   type SpeechModelOverridePolicy,
   type SpeechProviderConfig,
   type SpeechVoiceOption,
   type TtsDirectiveOverrides,
   type TtsDirectiveParseResult,
-} from "../../internal-plugin-helpers/speech-core.js";
-import { resolvePreferredCrawClawTmpDir } from "../../internal-plugin-helpers/temp-path.js";
-import {
-  CONFIG_DIR,
-  resolveUserPath,
-  stripMarkdown,
-} from "../../internal-plugin-helpers/text-runtime.js";
+} from "../provider-types.js";
+import { normalizeTtsAutoMode } from "../tts-auto-mode.js";
+import { scheduleCleanup, summarizeText } from "../tts-core.js";
 import { resolveTtsTargetForChannel } from "./tts-target.js";
 
 export type { TtsDirectiveOverrides, TtsDirectiveParseResult };

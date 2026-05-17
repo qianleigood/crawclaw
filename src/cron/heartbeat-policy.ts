@@ -1,5 +1,5 @@
 import { stripHeartbeatToken } from "../chat/heartbeat.js";
-import { resolveSendableOutboundReplyParts } from "../internal-plugin-helpers/reply-payload.js";
+import { resolveSendableOutboundReplyParts } from "../chat/outbound-reply.js";
 
 export type HeartbeatDeliveryPayload = {
   text?: string;
