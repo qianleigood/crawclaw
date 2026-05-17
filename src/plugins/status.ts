@@ -64,7 +64,6 @@ export type PluginInspectReport = {
   }>;
   commands: string[];
   services: string[];
-  gatewayMethods: string[];
   mcpServers: Array<{
     name: string;
     hasStdioTransport: boolean;
@@ -219,7 +218,6 @@ function deriveInspectShape(params: {
   toolCount: number;
   commandCount: number;
   serviceCount: number;
-  gatewayMethodCount: number;
   httpRouteCount: number;
 }): PluginInspectShape {
   if (params.capabilityCount > 1) {
@@ -233,7 +231,6 @@ function deriveInspectShape(params: {
     params.toolCount === 0 &&
     params.commandCount === 0 &&
     params.serviceCount === 0 &&
-    params.gatewayMethodCount === 0 &&
     params.httpRouteCount === 0;
   if (hasOnlyHooks) {
     return "hook-only";
@@ -289,7 +286,6 @@ export function buildPluginInspectReport(params: {
     toolCount: tools.length,
     commandCount: plugin.commands.length,
     serviceCount: plugin.services.length,
-    gatewayMethodCount: plugin.gatewayMethods.length,
     httpRouteCount: plugin.httpRoutes,
   });
 
@@ -348,7 +344,6 @@ export function buildPluginInspectReport(params: {
     tools,
     commands: [...plugin.commands],
     services: [...plugin.services],
-    gatewayMethods: [...plugin.gatewayMethods],
     mcpServers,
     lspServers,
     httpRouteCount: plugin.httpRoutes,

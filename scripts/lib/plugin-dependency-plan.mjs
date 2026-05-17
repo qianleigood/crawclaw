@@ -169,16 +169,8 @@ function collectManifestProviderIds(manifest) {
     .toSorted((left, right) => left.localeCompare(right));
 }
 
-function collectPackageEntryPoints(packageJson) {
-  const crawclaw = packageJson?.crawclaw;
-  const entries = [];
-  if (Array.isArray(crawclaw?.extensions)) {
-    entries.push(...crawclaw.extensions.filter((entry) => typeof entry === "string"));
-  }
-  if (typeof crawclaw?.setupEntry === "string") {
-    entries.push(crawclaw.setupEntry);
-  }
-  return [...new Set(entries)].toSorted((left, right) => left.localeCompare(right));
+function collectPackageEntryPoints() {
+  return [];
 }
 
 async function collectBundledPlugins(repoRoot) {

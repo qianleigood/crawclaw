@@ -3,12 +3,13 @@ import path from "node:path";
 import JSON5 from "json5";
 import { matchBoundaryFileOpenFailure, openBoundaryFileSync } from "../infra/boundary-file-read.js";
 import { isRecord } from "../utils.js";
-import { DEFAULT_PLUGIN_ENTRY_CANDIDATES, PLUGIN_MANIFEST_FILENAME } from "./manifest.js";
+import { PLUGIN_MANIFEST_FILENAME } from "./manifest.js";
 import type { PluginBundleFormat } from "./types.js";
 
 export const CODEX_BUNDLE_MANIFEST_RELATIVE_PATH = ".codex-plugin/plugin.json";
 export const CLAUDE_BUNDLE_MANIFEST_RELATIVE_PATH = ".claude-plugin/plugin.json";
 export const CURSOR_BUNDLE_MANIFEST_RELATIVE_PATH = ".cursor-plugin/plugin.json";
+const REMOVED_PLUGIN_ENTRY_CANDIDATES = ["index.ts", "index.js", "index.mjs", "index.cjs"] as const;
 
 export type BundlePluginManifest = {
   id: string;
@@ -424,7 +425,7 @@ export function detectBundleManifestFormat(rootDir: string): PluginBundleFormat 
     return null;
   }
   if (
-    DEFAULT_PLUGIN_ENTRY_CANDIDATES.some((candidate) =>
+    REMOVED_PLUGIN_ENTRY_CANDIDATES.some((candidate) =>
       fs.existsSync(path.join(rootDir, candidate)),
     )
   ) {

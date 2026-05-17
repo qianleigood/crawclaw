@@ -267,7 +267,6 @@ Code plugins must include the required CrawClaw metadata in `package.json`:
   "version": "1.0.0",
   "type": "module",
   "crawclaw": {
-    "extensions": ["./index.ts"],
     "compat": {
       "pluginApi": ">=2026.3.24-beta.2",
       "minGatewayVersion": "2026.3.24-beta.2"

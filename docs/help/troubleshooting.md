@@ -40,10 +40,10 @@ If you see:
 `HTTP 429: rate_limit_error: Extra usage is required for long context requests`,
 go to [/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context](/gateway/troubleshooting#anthropic-429-extra-usage-required-for-long-context).
 
-## Plugin install fails with missing crawclaw extensions
+## Plugin install fails with old executable entries
 
-If install fails with `package.json missing crawclaw.extensions`, the plugin package
-is using an old shape that CrawClaw no longer accepts.
+If install fails because a package depends on `crawclaw.extensions`, the plugin
+package is using an old TypeScript runtime shape that CrawClaw no longer accepts.
 
 Fix in the plugin package:
 

@@ -21,7 +21,7 @@ import {
   setActivePluginRegistry,
 } from "./runtime.js";
 
-type TempPlugin = { dir: string; file: string; id: string };
+type TempPlugin = { dir: string; file: string; manifest: string; id: string };
 type PluginLoadConfig = NonNullable<Parameters<typeof loadCrawClawPlugins>[0]>["config"];
 type PluginRegistry = ReturnType<typeof loadCrawClawPlugins>;
 
@@ -48,6 +48,15 @@ let tempDirIndex = 0;
 const prevBundledDir = process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR;
 const EMPTY_PLUGIN_SCHEMA = { type: "object", additionalProperties: false, properties: {} };
 
+function nativePluginDescriptor(id: string) {
+  const binName = id.replace(/[^A-Za-z0-9._-]+/g, "-");
+  return {
+    protocol: "crawclaw-native-plugin-jsonrpc",
+    schemaVersion: 1,
+    bin: `${binName}-native`,
+  };
+}
+
 function makeTempDir() {
   const dir = path.join(fixtureRoot, `case-${tempDirIndex++}`);
   mkdirSafe(dir);
@@ -65,11 +74,13 @@ function writePlugin(params: {
   mkdirSafe(dir);
   const file = path.join(dir, filename);
   fs.writeFileSync(file, params.body, "utf-8");
+  const manifest = path.join(dir, "crawclaw.plugin.json");
   fs.writeFileSync(
-    path.join(dir, "crawclaw.plugin.json"),
+    manifest,
     JSON.stringify(
       {
         id: params.id,
+        native: nativePluginDescriptor(params.id),
         configSchema: EMPTY_PLUGIN_SCHEMA,
       },
       null,
@@ -77,7 +88,7 @@ function writePlugin(params: {
     ),
     "utf-8",
   );
-  return { dir, file, id: params.id };
+  return { dir, file, manifest, id: params.id };
 }
 
 function simplePluginBody(id: string) {
@@ -93,7 +104,7 @@ function writeBundledPlugin(params: {
   const bundledDir = params.bundledDir ?? makeTempDir();
   const plugin = writePlugin({
     id: params.id,
-    dir: bundledDir,
+    dir: path.join(bundledDir, params.id),
     filename: params.filename ?? "index.cjs",
     body: params.body ?? simplePluginBody(params.id),
   });
@@ -141,7 +152,7 @@ function loadRegistryFromSinglePlugin(params: {
     ...params.options,
     config: {
       plugins: {
-        load: { paths: [params.plugin.file] },
+        load: { paths: [params.plugin.dir] },
         ...pluginConfig,
       },
     },
@@ -539,14 +550,11 @@ afterAll(() => {
 
 describe("loadCrawClawPlugins", () => {
   it("disables bundled plugins by default", () => {
-    const bundledDir = makeTempDir();
-    writePlugin({
+    writeBundledPlugin({
       id: "bundled",
       body: `module.exports = { id: "bundled" };`,
-      dir: bundledDir,
       filename: "bundled.cjs",
     });
-    process.env.CRAWCLAW_BUNDLED_PLUGINS_DIR = bundledDir;
 
     const registry = loadCrawClawPlugins({
       cache: false,
@@ -608,7 +616,7 @@ describe("loadCrawClawPlugins", () => {
           workspaceDir: plugin.dir,
           config: {
             plugins: {
-              load: { paths: [plugin.file] },
+              load: { paths: [plugin.dir] },
               allow: ["allowed-config-path"],
             },
           },
@@ -616,7 +624,7 @@ describe("loadCrawClawPlugins", () => {
 
         const loaded = registry.plugins.find((entry) => entry.id === "allowed-config-path");
         expect(loaded?.status).toBe("loaded");
-        expect(Object.keys(registry.gatewayHandlers)).not.toContain("allowed-config-path.ping");
+        expect(registry.plugins.map((entry) => entry.id)).toContain("allowed-config-path");
       },
     },
     {
@@ -640,7 +648,7 @@ module.exports = { id: "skipped-scoped-only" };`,
           cache: false,
           config: {
             plugins: {
-              load: { paths: [allowed.file, skipped.file] },
+              load: { paths: [allowed.dir, skipped.dir] },
               allow: ["allowed-scoped-only", "skipped-scoped-only"],
             },
           },
@@ -669,7 +677,7 @@ module.exports = { id: "manifest-only-plugin" };`,
           loadModules: false,
           config: {
             plugins: {
-              load: { paths: [plugin.file] },
+              load: { paths: [plugin.dir] },
               allow: ["manifest-only-plugin"],
               entries: {
                 "manifest-only-plugin": { enabled: true },
@@ -707,6 +715,7 @@ module.exports = { id: "manifest-only-plugin" };`,
             {
               id: "memory-demo",
               kind: "memory",
+              native: nativePluginDescriptor("memory-demo"),
               configSchema: EMPTY_PLUGIN_SCHEMA,
             },
             null,
@@ -721,7 +730,7 @@ module.exports = { id: "manifest-only-plugin" };`,
           loadModules: false,
           config: {
             plugins: {
-              load: { paths: [memoryPlugin.file] },
+              load: { paths: [memoryPlugin.dir] },
               allow: ["memory-demo"],
               slots: { memory: "memory-demo" },
               entries: {
@@ -764,7 +773,7 @@ module.exports = { id: "manifest-only-plugin" };`,
         const options = {
           config: {
             plugins: {
-              load: { paths: [allowed.file, extra.file] },
+              load: { paths: [allowed.dir, extra.dir] },
               allow: ["allowed-cache-scope", "extra-cache-scope"],
             },
           },
@@ -808,7 +817,7 @@ module.exports = { id: "manifest-only-plugin" };`,
           workspaceDir: plugin.dir,
           config: {
             plugins: {
-              load: { paths: [plugin.file] },
+              load: { paths: [plugin.dir] },
               allow: ["allowed-nonactivating-scope"],
             },
           },
@@ -891,8 +900,8 @@ module.exports = { id: "manifest-only-plugin" };`,
         };
 
         return {
-          expectedFirstSource: pluginA.file,
-          expectedSecondSource: pluginB.file,
+          expectedFirstSource: pluginA.manifest,
+          expectedSecondSource: pluginB.manifest,
           loadFirst: () =>
             loadCrawClawPlugins({
               ...options,
@@ -948,8 +957,8 @@ module.exports = { id: "manifest-only-plugin" };`,
         };
 
         return {
-          expectedFirstSource: pluginA.file,
-          expectedSecondSource: pluginB.file,
+          expectedFirstSource: pluginA.manifest,
+          expectedSecondSource: pluginB.manifest,
           loadFirst: () =>
             loadCrawClawPlugins({
               ...options,
@@ -1006,7 +1015,7 @@ module.exports = { id: "manifest-only-plugin" };`,
         const options = {
           config: {
             plugins: {
-              load: { paths: [plugin.file] },
+              load: { paths: [plugin.dir] },
               allow: ["tracked-install-cache"],
               installs: {
                 "tracked-install-cache": {
@@ -1074,7 +1083,7 @@ module.exports = { id: "manifest-only-plugin" };`,
           plugins: {
             allow: ["cache-eviction"],
             load: {
-              paths: [plugin.file],
+              paths: [plugin.dir],
             },
           },
         },
@@ -1127,7 +1136,7 @@ module.exports = { id: "manifest-only-plugin" };`,
 
     expect(
       fs.realpathSync(registry.plugins.find((entry) => entry.id === "tilde-bundled")?.source ?? ""),
-    ).toBe(fs.realpathSync(plugin.file));
+    ).toBe(fs.realpathSync(plugin.manifest));
   });
 
   it("prefers CRAWCLAW_HOME over HOME for env-expanded load paths", () => {
@@ -1167,7 +1176,7 @@ module.exports = { id: "manifest-only-plugin" };`,
       fs.realpathSync(
         registry.plugins.find((entry) => entry.id === "crawclaw-home-demo")?.source ?? "",
       ),
-    ).toBe(fs.realpathSync(plugin.file));
+    ).toBe(fs.realpathSync(plugin.manifest));
   });
 
   it("loads plugins when source and root differ only by realpath alias", () => {
@@ -1251,7 +1260,7 @@ module.exports = { id: "manifest-only-plugin" };`,
         config: {
           plugins: {
             enabled: true,
-            load: { paths: [plugin.file] },
+            load: { paths: [plugin.dir] },
             allow: ["configurable"],
             entries: {
               configurable: {
@@ -1276,7 +1285,7 @@ module.exports = { id: "manifest-only-plugin" };`,
       cache: false,
       config: {
         plugins: {
-          load: { paths: [plugin.file] },
+          load: { paths: [plugin.dir] },
           entries: {
             "config-disable": { enabled: false },
           },
@@ -1310,7 +1319,7 @@ module.exports = { id: "manifest-only-plugin" };`,
             cache: false,
             config: {
               plugins: {
-                load: { paths: [override.file] },
+                load: { paths: [override.dir] },
                 entries: {
                   shadow: { enabled: true },
                 },
@@ -1426,7 +1435,7 @@ module.exports = { id: "manifest-only-plugin" };`,
             logger: createWarningLogger(warnings),
             config: {
               plugins: {
-                load: { paths: [plugin.file] },
+                load: { paths: [plugin.dir] },
               },
             },
           });
@@ -1587,6 +1596,7 @@ module.exports = { id: "manifest-only-plugin" };`,
         {
           id: "profile-aware",
           enabledByDefault: true,
+          native: nativePluginDescriptor("profile-aware"),
           configSchema: EMPTY_PLUGIN_SCHEMA,
         },
         null,
@@ -1627,7 +1637,7 @@ module.exports = { id: "manifest-only-plugin" };`,
       cache: false,
       config: {
         plugins: {
-          load: { paths: [scoped.file, unscoped.file] },
+          load: { paths: [scoped.dir, unscoped.dir] },
           allow: ["@team/shadowed", "shadowed"],
         },
       },
@@ -1722,7 +1732,7 @@ module.exports = { id: "manifest-only-plugin" };`,
             warnings,
             pluginId: plugin.id,
             expectWarning: false,
-            expectedSource: plugin.file,
+            expectedSource: plugin.manifest,
           };
         },
       },
@@ -1737,7 +1747,7 @@ module.exports = { id: "manifest-only-plugin" };`,
             env,
             config: {
               plugins: {
-                load: { paths: [plugin.file] },
+                load: { paths: [plugin.dir] },
                 allow: [plugin.id],
                 installs: {
                   [plugin.id]: {
@@ -1755,7 +1765,7 @@ module.exports = { id: "manifest-only-plugin" };`,
             warnings,
             pluginId: plugin.id,
             expectWarning: false,
-            expectedSource: plugin.file,
+            expectedSource: plugin.manifest,
           };
         },
       },
@@ -1775,7 +1785,7 @@ module.exports = { id: "manifest-only-plugin" };`,
     });
   });
 
-  it("allows bundled plugin entry files that are hardlinked aliases", () => {
+  it("allows bundled plugin manifests that are hardlinked aliases", () => {
     if (process.platform === "win32") {
       return;
     }
@@ -1784,17 +1794,25 @@ module.exports = { id: "manifest-only-plugin" };`,
     mkdirSafe(pluginDir);
 
     const outsideDir = makeTempDir();
-    const outsideEntry = path.join(outsideDir, "outside.cjs");
-    fs.writeFileSync(outsideEntry, 'module.exports = { id: "hardlinked-bundled" };', "utf-8");
+    const outsideManifest = path.join(outsideDir, "crawclaw.plugin.json");
+    fs.writeFileSync(
+      outsideManifest,
+      JSON.stringify({
+        id: "hardlinked-bundled",
+        native: nativePluginDescriptor("hardlinked-bundled"),
+        configSchema: EMPTY_PLUGIN_SCHEMA,
+      }),
+      "utf-8",
+    );
     const plugin = writePlugin({
       id: "hardlinked-bundled",
       body: 'module.exports = { id: "hardlinked-bundled" };',
       dir: pluginDir,
       filename: "index.cjs",
     });
-    fs.rmSync(plugin.file);
+    fs.rmSync(plugin.manifest);
     try {
-      fs.linkSync(outsideEntry, plugin.file);
+      fs.linkSync(outsideManifest, plugin.manifest);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "EXDEV") {
         return;
@@ -1889,7 +1907,7 @@ describe("getCompatibleActivePluginRegistry", () => {
     expect(__testing.getCompatibleActivePluginRegistry()).toBe(registry);
   });
 
-  it("does not reuse the active registry when core gateway method names differ", () => {
+  it("reuses the active registry when compatibility-shaping inputs match", () => {
     const registry = createEmptyPluginRegistry();
     const loadOptions = {
       config: {
@@ -1899,23 +1917,11 @@ describe("getCompatibleActivePluginRegistry", () => {
         },
       },
       workspaceDir: "/tmp/workspace-a",
-      coreGatewayHandlers: {
-        "sessions.get": () => undefined,
-      },
     };
     const { cacheKey } = __testing.resolvePluginLoadCacheContext(loadOptions);
     setActivePluginRegistry(registry, cacheKey);
 
     expect(__testing.getCompatibleActivePluginRegistry(loadOptions)).toBe(registry);
-    expect(
-      __testing.getCompatibleActivePluginRegistry({
-        ...loadOptions,
-        coreGatewayHandlers: {
-          "sessions.get": () => undefined,
-          "sessions.list": () => undefined,
-        },
-      }),
-    ).toBeUndefined();
   });
 });
 

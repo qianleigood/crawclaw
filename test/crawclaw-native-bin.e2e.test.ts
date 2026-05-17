@@ -17,7 +17,7 @@ describe("crawclaw npm package entry", () => {
     const pkg = readPackageJson();
 
     expect(pkg.bin?.crawclaw).toBeUndefined();
-    expect(pkg.exports).not.toHaveProperty("./cli-entry");
+    expect(pkg.exports?.["./cli-entry"]).toBeUndefined();
     expect(pkg.files ?? []).not.toContain("crawclaw.mjs");
   });
 

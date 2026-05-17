@@ -6,7 +6,6 @@ import { detectPackageManager as detectPackageManagerImpl } from "./detect-packa
 import { readPackageName, readPackageVersion } from "./package-json.js";
 import { normalizePackageTagInput } from "./package-tag.js";
 import { trimLogTail } from "./restart-sentinel.js";
-import { resolveStableNodePath } from "./stable-node-path.js";
 import { compareSemverStrings } from "./update-check.js";
 import {
   collectInstalledGlobalPackageErrors,
@@ -855,40 +854,6 @@ export async function runGatewayUpdate(opts: UpdateRunnerOptions = {}): Promise<
         durationMs: Date.now() - startedAt,
       };
     }
-
-    const doctorEntry = path.join(gitRoot, "crawclaw.mjs");
-    const doctorEntryExists = await fs
-      .stat(doctorEntry)
-      .then(() => true)
-      .catch(() => false);
-    if (!doctorEntryExists) {
-      steps.push({
-        name: "crawclaw doctor entry",
-        command: `verify ${doctorEntry}`,
-        cwd: gitRoot,
-        durationMs: 0,
-        exitCode: 1,
-        stderrTail: `missing ${doctorEntry}`,
-      });
-      return {
-        status: "error",
-        mode: "git",
-        root: gitRoot,
-        reason: "doctor-entry-missing",
-        before: { sha: beforeSha, version: beforeVersion },
-        steps,
-        durationMs: Date.now() - startedAt,
-      };
-    }
-
-    // Use --fix so that doctor auto-strips unknown config keys introduced by
-    // schema changes between versions, preventing a startup validation crash.
-    const doctorNodePath = await resolveStableNodePath(process.execPath);
-    const doctorArgv = [doctorNodePath, doctorEntry, "doctor", "--non-interactive", "--fix"];
-    const doctorStep = await runStep(
-      step("crawclaw doctor", doctorArgv, gitRoot, { CRAWCLAW_UPDATE_IN_PROGRESS: "1" }),
-    );
-    steps.push(doctorStep);
 
     const failedStep = steps.find((s) => s.exitCode !== 0);
     const afterShaStep = await runStep(

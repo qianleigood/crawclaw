@@ -84,6 +84,7 @@ async function createFixtureRepo(): Promise<string> {
         stageRuntimeDependencies: true,
       },
       extensions: ["./index.ts"],
+      setupEntry: "./setup-entry.ts",
       install: {
         npmSpec: "@crawclaw/sample",
       },
@@ -165,6 +166,7 @@ describe("plugin dependency plan", () => {
         enabledByDefault: true,
         id: "sample",
         install: expect.objectContaining({
+          entryPoints: [],
           npmSpec: "@crawclaw/sample",
           stageRuntimeDependencies: true,
         }),

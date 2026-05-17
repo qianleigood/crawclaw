@@ -51,7 +51,7 @@ internal Gateway binary:
 
 ## Bleeding edge workflow (Gateway in a terminal)
 
-Goal: work on the TypeScript Gateway and get hot reload.
+Goal: work on the Rust Gateway and desktop host loop.
 
 ### 1) Start the dev Gateway
 

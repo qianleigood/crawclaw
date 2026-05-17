@@ -82,7 +82,7 @@ cat ~/.crawclaw/crawclaw.json
 - systemd linger check on Linux.
 - Workspace bootstrap file size check (truncation/near-limit warnings for context files).
 - Shell completion status check and auto-install/upgrade.
-- Source install checks (pnpm workspace mismatch, missing UI assets, missing tsx binary).
+- Source install checks (pnpm workspace mismatch and npm lockfile drift).
 - Writes updated config + wizard metadata.
 
 ## Detailed behavior and rationale

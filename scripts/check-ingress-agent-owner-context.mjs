@@ -10,11 +10,7 @@ import {
 } from "./lib/ts-guard-utils.mjs";
 
 const sourceRoots = ["src/gateway"];
-const enforcedFiles = new Set([
-  "src/gateway/openai-http.ts",
-  "src/gateway/openresponses-http.ts",
-  "src/gateway/server-node-events.ts",
-]);
+const enforcedFiles = new Set(["src/gateway/boot.ts"]);
 
 export function findLegacyAgentCommandCallLines(content, fileName = "source.ts") {
   const sourceFile = ts.createSourceFile(fileName, content, ts.ScriptTarget.Latest, true);

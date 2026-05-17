@@ -1,60 +1,49 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const gatewayClientState = vi.hoisted(() => ({
-  options: null as Record<string, unknown> | null,
-  requests: [] as string[],
-  startMode: "hello" as "hello" | "close",
-  close: { code: 1008, reason: "unauthorized" },
+const fetchState = vi.hoisted(() => ({
+  calls: [] as Array<{ url: string; init?: RequestInit; options?: { tlsFingerprint?: string } }>,
 }));
 
-class MockGatewayClient {
-  private readonly opts: Record<string, unknown>;
+const { __testing, clampProbeTimeoutMs, probeGateway } = await import("./probe.js");
 
-  constructor(opts: Record<string, unknown>) {
-    this.opts = opts;
-    gatewayClientState.options = opts;
-    gatewayClientState.requests = [];
+function readProbeFetchMethod(call: { init?: RequestInit }): string | undefined {
+  if (typeof call.init?.body !== "string") {
+    throw new Error("expected probe fetch call body to be a string");
   }
-
-  start(): void {
-    void Promise.resolve()
-      .then(async () => {
-        if (gatewayClientState.startMode === "close") {
-          const onClose = this.opts.onClose;
-          if (typeof onClose === "function") {
-            onClose(gatewayClientState.close.code, gatewayClientState.close.reason);
-          }
-          return;
-        }
-        const onHelloOk = this.opts.onHelloOk;
-        if (typeof onHelloOk === "function") {
-          await onHelloOk();
-        }
-      })
-      .catch(() => {});
-  }
-
-  stop(): void {}
-
-  async request(method: string): Promise<unknown> {
-    gatewayClientState.requests.push(method);
-    if (method === "system-presence") {
-      return [];
-    }
-    return {};
-  }
+  return (JSON.parse(call.init.body) as { method?: string }).method;
 }
-
-vi.mock("./client.js", () => ({
-  GatewayClient: MockGatewayClient,
-}));
-
-const { clampProbeTimeoutMs, probeGateway } = await import("./probe.js");
 
 describe("probeGateway", () => {
   beforeEach(() => {
-    gatewayClientState.startMode = "hello";
-    gatewayClientState.close = { code: 1008, reason: "unauthorized" };
+    fetchState.calls = [];
+    __testing.setFetchForTests(
+      async (url: string, init?: RequestInit, options?: { tlsFingerprint?: string }) => {
+        fetchState.calls.push({ url, init, options });
+        const requestUrl = new URL(url);
+        if (requestUrl.pathname === "/health") {
+          return {
+            ok: true,
+            status: 200,
+            statusText: "OK",
+            json: async () => ({ ok: true }),
+          } as Response;
+        }
+        const body = typeof init?.body === "string" ? JSON.parse(init.body) : {};
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => ({
+            ok: true,
+            result: body.method === "system-presence" ? [] : {},
+          }),
+        } as Response;
+      },
+    );
+  });
+
+  afterEach(() => {
+    __testing.resetDepsForTests();
   });
 
   it("clamps probe timeout to timer-safe bounds", () => {
@@ -62,20 +51,28 @@ describe("probeGateway", () => {
     expect(clampProbeTimeoutMs(2_000)).toBe(2_000);
     expect(clampProbeTimeoutMs(3_000_000_000)).toBe(2_147_483_647);
   });
-  it("connects with operator.read scope", async () => {
+  it("uses Rust HTTP RPC for full detail probes by default", async () => {
     const result = await probeGateway({
       url: "ws://127.0.0.1:18789",
       auth: { token: "secret" },
       timeoutMs: 1_000,
     });
 
-    expect(gatewayClientState.options?.scopes).toEqual(["operator.read"]);
-    expect(gatewayClientState.requests).toEqual([
+    expect(fetchState.calls.map((call) => new URL(call.url).pathname)).toEqual([
+      "/api/gateway/rpc",
+      "/api/gateway/rpc",
+      "/api/gateway/rpc",
+      "/api/gateway/rpc",
+    ]);
+    expect(fetchState.calls.map(readProbeFetchMethod)).toEqual([
       "health",
       "status",
       "system-presence",
       "config.get",
     ]);
+    expect(
+      (fetchState.calls[0]?.init?.headers as Record<string, string>)?.["x-crawclaw-gateway-token"],
+    ).toBe("secret");
     expect(result.ok).toBe(true);
   });
 
@@ -87,7 +84,7 @@ describe("probeGateway", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(gatewayClientState.requests).toEqual([]);
+    expect(fetchState.calls.map((call) => new URL(call.url).pathname)).toEqual(["/health"]);
   });
 
   it("uses token auth for authenticated lightweight probes", async () => {
@@ -99,7 +96,10 @@ describe("probeGateway", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(gatewayClientState.requests).toEqual([]);
+    expect(fetchState.calls).toHaveLength(1);
+    expect(
+      (fetchState.calls[0]?.init?.headers as Record<string, string>)?.["x-crawclaw-gateway-token"],
+    ).toBe("secret");
   });
 
   it("fetches only presence for presence-only probes", async () => {
@@ -110,7 +110,7 @@ describe("probeGateway", () => {
     });
 
     expect(result.ok).toBe(true);
-    expect(gatewayClientState.requests).toEqual(["system-presence"]);
+    expect(fetchState.calls.map(readProbeFetchMethod)).toEqual(["system-presence"]);
     expect(result.health).toBeNull();
     expect(result.status).toBeNull();
     expect(result.configSnapshot).toBeNull();
@@ -125,24 +125,29 @@ describe("probeGateway", () => {
       includeDetails: false,
     });
 
-    expect(gatewayClientState.options?.tlsFingerprint).toBe("sha256:abc");
+    expect(fetchState.calls).toHaveLength(1);
+    expect(fetchState.calls[0]?.url).toBe("https://gateway.example/health");
+    expect(fetchState.calls[0]?.options?.tlsFingerprint).toBe("sha256:abc");
   });
 
-  it("surfaces immediate close failures before the probe timeout", async () => {
-    gatewayClientState.startMode = "close";
+  it("surfaces pinned HTTP probe failures", async () => {
+    __testing.setFetchForTests(async () => {
+      throw new Error("gateway tls fingerprint mismatch");
+    });
 
     const result = await probeGateway({
-      url: "ws://127.0.0.1:18789",
+      url: "wss://gateway.example/ws",
       auth: { token: "secret" },
+      tlsFingerprint: "sha256:abc",
       timeoutMs: 5_000,
       includeDetails: false,
     });
 
     expect(result).toMatchObject({
       ok: false,
-      error: "gateway closed (1008): unauthorized",
-      close: { code: 1008, reason: "unauthorized" },
+      error: "gateway tls fingerprint mismatch",
+      close: null,
     });
-    expect(gatewayClientState.requests).toEqual([]);
+    expect(fetchState.calls).toEqual([]);
   });
 });

@@ -34,10 +34,10 @@ use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
 use axum::extract::ws::{Message, WebSocket, WebSocketUpgrade};
-use axum::extract::{Query, State};
+use axum::extract::{Path as AxumPath, Query, State};
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::sse::{Event, KeepAlive, Sse};
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use base64::engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD};
@@ -68,6 +68,9 @@ use tokio::net::TcpListener;
 use tokio::sync::broadcast;
 
 const GATEWAY_TOKEN_HEADER: &str = "x-crawclaw-gateway-token";
+const OPENAI_COMPAT_AGENT_ID_HEADER: &str = "x-crawclaw-agent-id";
+const OPENAI_COMPAT_SESSION_KEY_HEADER: &str = "x-crawclaw-session-key";
+const OPENAI_COMPAT_MESSAGE_CHANNEL_HEADER: &str = "x-crawclaw-message-channel";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum GatewayBind {
@@ -216,6 +219,10 @@ pub async fn run_gateway(config: GatewayRunConfig) -> Result<(), String> {
         .route("/health", get(health))
         .route("/readyz", get(ready))
         .route("/ready", get(ready))
+        .route("/v1/models", get(openai_models))
+        .route("/v1/models/{model}", get(openai_model))
+        .route("/v1/chat/completions", post(openai_chat_completions))
+        .route("/v1/responses", post(openresponses))
         .route("/api/desktop/bootstrap", get(desktop_bootstrap))
         .route("/api/desktop/state", get(desktop_state))
         .route("/api/desktop/runtime", get(runtime_status))
@@ -317,6 +324,70 @@ async fn health() -> Json<GatewayHealth> {
 
 async fn ready() -> Json<GatewayHealth> {
     health().await
+}
+
+async fn openai_models(State(state): State<GatewayState>, headers: HeaderMap) -> Response {
+    if let Err(status) = authorize_headers(&headers, &state) {
+        return status.into_response();
+    }
+    if !openai_compat_models_enabled(&state) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    Json(openai_models_response(&state, None).await).into_response()
+}
+
+async fn openai_model(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    AxumPath(model): AxumPath<String>,
+) -> Response {
+    if let Err(status) = authorize_headers(&headers, &state) {
+        return status.into_response();
+    }
+    if !openai_compat_models_enabled(&state) {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    let response = openai_models_response(&state, Some(model)).await;
+    let status = if response.get("error").is_some() {
+        StatusCode::NOT_FOUND
+    } else {
+        StatusCode::OK
+    };
+    (status, Json(response)).into_response()
+}
+
+async fn openai_chat_completions(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Json(payload): Json<Value>,
+) -> Response {
+    if let Err(status) = authorize_headers(&headers, &state) {
+        return status.into_response();
+    }
+    if !openai_compat_endpoint_enabled(&state, "chatCompletions") {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    match openai_chat_completions_response_with_headers(&state, payload, Some(&headers)).await {
+        Ok(response) => Json(response).into_response(),
+        Err(message) => openai_compat_error(StatusCode::BAD_REQUEST, message).into_response(),
+    }
+}
+
+async fn openresponses(
+    State(state): State<GatewayState>,
+    headers: HeaderMap,
+    Json(payload): Json<Value>,
+) -> Response {
+    if let Err(status) = authorize_headers(&headers, &state) {
+        return status.into_response();
+    }
+    if !openai_compat_endpoint_enabled(&state, "responses") {
+        return StatusCode::NOT_FOUND.into_response();
+    }
+    match openresponses_response_with_headers(&state, payload, Some(&headers)).await {
+        Ok(response) => Json(response).into_response(),
+        Err(message) => openai_compat_error(StatusCode::BAD_REQUEST, message).into_response(),
+    }
 }
 
 async fn ws(ws: WebSocketUpgrade, State(state): State<GatewayState>) -> impl IntoResponse {
@@ -1620,6 +1691,476 @@ fn models_list(state: &GatewayState) -> Value {
         "nativeSpeechProviders": native_registry.speech_provider_descriptors(),
         "nativePluginRegistryDiagnostics": native_registry.diagnostics
     })
+}
+
+async fn openai_models_response(_state: &GatewayState, model_id: Option<String>) -> Value {
+    let ids = openai_compat_model_ids();
+    match model_id {
+        None => json!({
+            "object": "list",
+            "data": ids
+                .into_iter()
+                .map(openai_compat_model_object)
+                .collect::<Vec<_>>()
+        }),
+        Some(model_id) if ids.iter().any(|id| *id == model_id) => {
+            openai_compat_model_object(model_id)
+        }
+        Some(model_id) => json!({
+            "error": {
+                "message": format!("Model '{model_id}' not found."),
+                "type": "invalid_request_error"
+            }
+        }),
+    }
+}
+
+async fn openai_chat_completions_response_with_headers(
+    state: &GatewayState,
+    payload: Value,
+    headers: Option<&HeaderMap>,
+) -> Result<Value, String> {
+    let model = string_param(&payload, &["model"]).unwrap_or_else(|| "crawclaw".to_string());
+    let options = openai_compat_request_options(headers)?;
+    let agent_id = resolve_openai_compat_agent_id(&model, options.agent_id.as_deref())?;
+    let prompt = build_openai_chat_prompt(&payload)?;
+    let user = string_param(&payload, &["user"]);
+    let run_id = format!("chatcmpl_{}", now_millis());
+    let result = run_openai_compat_agent(
+        state,
+        OpenAiCompatAgentRun {
+            run_id: run_id.clone(),
+            agent_id: agent_id.clone(),
+            session_key: openai_compat_session_key(
+                &agent_id,
+                "openai",
+                user.as_deref(),
+                options.session_key.as_deref(),
+            ),
+            message: prompt,
+            channel: options
+                .message_channel
+                .unwrap_or_else(|| "webchat".to_string()),
+        },
+    )
+    .await?;
+    let created = now_seconds();
+    Ok(json!({
+        "id": run_id,
+        "object": "chat.completion",
+        "created": created,
+        "model": model,
+        "choices": [
+            {
+                "index": 0,
+                "message": {
+                    "role": "assistant",
+                    "content": result.assistant_text
+                },
+                "finish_reason": "stop"
+            }
+        ],
+        "usage": {
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0
+        }
+    }))
+}
+
+async fn openresponses_response_with_headers(
+    state: &GatewayState,
+    payload: Value,
+    headers: Option<&HeaderMap>,
+) -> Result<Value, String> {
+    let model = string_param(&payload, &["model"]).unwrap_or_else(|| "crawclaw".to_string());
+    let options = openai_compat_request_options(headers)?;
+    let agent_id = resolve_openai_compat_agent_id(&model, options.agent_id.as_deref())?;
+    let prompt = build_openresponses_prompt(&payload)?;
+    let user = string_param(&payload, &["user"]);
+    let run_id = format!("resp_{}", now_millis());
+    let result = run_openai_compat_agent(
+        state,
+        OpenAiCompatAgentRun {
+            run_id: run_id.clone(),
+            agent_id: agent_id.clone(),
+            session_key: openai_compat_session_key(
+                &agent_id,
+                "openresponses",
+                user.as_deref(),
+                options.session_key.as_deref(),
+            ),
+            message: prompt,
+            channel: options
+                .message_channel
+                .unwrap_or_else(|| "webchat".to_string()),
+        },
+    )
+    .await?;
+    let output_id = format!("msg_{}", now_millis());
+    Ok(json!({
+        "id": run_id,
+        "object": "response",
+        "created_at": now_seconds(),
+        "status": "completed",
+        "model": model,
+        "output": [
+            {
+                "id": output_id,
+                "type": "message",
+                "role": "assistant",
+                "status": "completed",
+                "content": [
+                    {
+                        "type": "output_text",
+                        "text": result.assistant_text,
+                        "annotations": []
+                    }
+                ]
+            }
+        ],
+        "output_text": result.assistant_text,
+        "usage": {
+            "input_tokens": 0,
+            "output_tokens": 0,
+            "total_tokens": 0
+        }
+    }))
+}
+
+struct OpenAiCompatAgentRun {
+    run_id: String,
+    agent_id: String,
+    session_key: String,
+    message: String,
+    channel: String,
+}
+
+async fn run_openai_compat_agent(
+    state: &GatewayState,
+    input: OpenAiCompatAgentRun,
+) -> Result<AgentRunResult, String> {
+    let request = AgentRunRequest {
+        run_id: input.run_id,
+        agent_id: input.agent_id.clone(),
+        session_key: input.session_key.clone(),
+        inbound: ChannelInboundEnvelope {
+            channel: input.channel,
+            account_id: Some("openai-compat".to_string()),
+            from: "operator".to_string(),
+            to: format!("agent:{}", input.agent_id),
+            chat_type: ChannelChatType::Direct,
+            body: input.message.clone(),
+            raw_body: Some(input.message),
+            message_id: None,
+            thread_id: Some(input.session_key),
+            media_urls: Vec::new(),
+            metadata: BTreeMap::new(),
+        },
+        model: AgentModelSelection {
+            provider: "configured".to_string(),
+            model: "configured".to_string(),
+            reasoning_level: None,
+        },
+        enabled_tools: Vec::new(),
+        options: BTreeMap::new(),
+    };
+    let result = state
+        .agent_runtime
+        .run_turn(request)
+        .await
+        .map_err(|error| error.message().to_string())?;
+    record_agent_run_events(state, &result)?;
+    Ok(result)
+}
+
+fn openai_compat_error(status: StatusCode, message: String) -> (StatusCode, Json<Value>) {
+    (
+        status,
+        Json(json!({
+            "error": {
+                "message": message,
+                "type": if status == StatusCode::BAD_REQUEST {
+                    "invalid_request_error"
+                } else {
+                    "api_error"
+                }
+            }
+        })),
+    )
+}
+
+fn openai_compat_model_ids() -> Vec<String> {
+    vec![
+        "crawclaw".to_string(),
+        "crawclaw/default".to_string(),
+        "crawclaw/main".to_string(),
+    ]
+}
+
+fn openai_compat_model_object(id: String) -> Value {
+    json!({
+        "id": id,
+        "object": "model",
+        "created": 0,
+        "owned_by": "crawclaw",
+        "permission": []
+    })
+}
+
+fn openai_compat_models_enabled(state: &GatewayState) -> bool {
+    openai_compat_endpoint_enabled(state, "chatCompletions")
+        || openai_compat_endpoint_enabled(state, "responses")
+}
+
+fn openai_compat_endpoint_enabled(state: &GatewayState, endpoint: &str) -> bool {
+    let config = read_config_value(&config_path(state)).unwrap_or_else(|_| json!({}));
+    get_json_path(
+        &config,
+        &format!("gateway.http.endpoints.{endpoint}.enabled"),
+    )
+    .and_then(Value::as_bool)
+    .unwrap_or(false)
+}
+
+#[derive(Default)]
+struct OpenAiCompatRequestOptions {
+    agent_id: Option<String>,
+    session_key: Option<String>,
+    message_channel: Option<String>,
+}
+
+fn openai_compat_request_options(
+    headers: Option<&HeaderMap>,
+) -> Result<OpenAiCompatRequestOptions, String> {
+    let Some(headers) = headers else {
+        return Ok(OpenAiCompatRequestOptions::default());
+    };
+    Ok(OpenAiCompatRequestOptions {
+        agent_id: optional_header(headers, OPENAI_COMPAT_AGENT_ID_HEADER)
+            .map(|value| validate_openai_compat_agent_id(&value))
+            .transpose()?,
+        session_key: optional_header(headers, OPENAI_COMPAT_SESSION_KEY_HEADER),
+        message_channel: optional_header(headers, OPENAI_COMPAT_MESSAGE_CHANNEL_HEADER)
+            .map(|value| validate_openai_compat_message_channel(&value))
+            .transpose()?,
+    })
+}
+
+fn optional_header(headers: &HeaderMap, name: &str) -> Option<String> {
+    headers
+        .get(name)
+        .and_then(|value| value.to_str().ok())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToOwned::to_owned)
+}
+
+fn resolve_openai_compat_agent_id(
+    model: &str,
+    header_agent_id: Option<&str>,
+) -> Result<String, String> {
+    let model = model.trim();
+    if model.is_empty() || model == "crawclaw" || model == "crawclaw/default" {
+        return Ok(header_agent_id.unwrap_or("main").to_string());
+    }
+    let agent_id = model
+        .strip_prefix("crawclaw/")
+        .or_else(|| model.strip_prefix("crawclaw:"))
+        .or_else(|| model.strip_prefix("agent:"))
+        .ok_or_else(|| "Invalid `model`. Use `crawclaw` or `crawclaw/<agentId>`.".to_string())?;
+    validate_openai_compat_agent_id(agent_id)
+}
+
+fn validate_openai_compat_agent_id(agent_id: &str) -> Result<String, String> {
+    let value = agent_id.trim();
+    let valid = !value.is_empty()
+        && value.len() <= 64
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-')
+        && value
+            .chars()
+            .next()
+            .map(|ch| ch.is_ascii_alphanumeric())
+            .unwrap_or(false);
+    if valid {
+        Ok(value.to_string())
+    } else {
+        Err("Invalid `model`. Use `crawclaw` or `crawclaw/<agentId>`.".to_string())
+    }
+}
+
+fn validate_openai_compat_message_channel(channel: &str) -> Result<String, String> {
+    let value = channel.trim();
+    let valid = !value.is_empty()
+        && value.len() <= 64
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.')
+        && value
+            .chars()
+            .next()
+            .map(|ch| ch.is_ascii_alphanumeric())
+            .unwrap_or(false);
+    if valid {
+        Ok(value.to_string())
+    } else {
+        Err("Invalid `x-crawclaw-message-channel`.".to_string())
+    }
+}
+
+fn openai_compat_session_key(
+    agent_id: &str,
+    prefix: &str,
+    user: Option<&str>,
+    explicit: Option<&str>,
+) -> String {
+    if let Some(explicit) = explicit.map(str::trim).filter(|value| !value.is_empty()) {
+        return explicit.to_string();
+    }
+    let suffix = user
+        .map(safe_openai_compat_session_component)
+        .filter(|value| !value.is_empty())
+        .unwrap_or_else(|| now_millis().to_string());
+    format!("agent:{agent_id}:{prefix}-{suffix}")
+}
+
+fn safe_openai_compat_session_component(value: &str) -> String {
+    value
+        .trim()
+        .chars()
+        .map(|ch| {
+            if ch.is_ascii_alphanumeric() || ch == '_' || ch == '-' || ch == '.' || ch == ':' {
+                ch
+            } else {
+                '_'
+            }
+        })
+        .collect::<String>()
+}
+
+fn build_openai_chat_prompt(payload: &Value) -> Result<String, String> {
+    let messages = payload
+        .get("messages")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "Missing user message in `messages`.".to_string())?;
+    let mut system_parts = Vec::new();
+    let mut conversation = Vec::new();
+    for message in messages {
+        let role = message
+            .get("role")
+            .and_then(Value::as_str)
+            .unwrap_or("")
+            .trim();
+        if role.is_empty() {
+            continue;
+        }
+        let content = extract_openai_text_content(message.get("content").unwrap_or(&Value::Null));
+        let content = content.trim();
+        if content.is_empty() {
+            continue;
+        }
+        match role {
+            "system" | "developer" => system_parts.push(content.to_string()),
+            "assistant" => conversation.push(format!("Assistant: {content}")),
+            "tool" | "function" => conversation.push(format!("Tool: {content}")),
+            "user" => conversation.push(format!("User: {content}")),
+            _ => {}
+        }
+    }
+    if !conversation.iter().any(|entry| entry.starts_with("User: ")) {
+        return Err("Missing user message in `messages`.".to_string());
+    }
+    let mut parts = Vec::new();
+    if !system_parts.is_empty() {
+        parts.push(format!(
+            "System instructions:\n{}",
+            system_parts.join("\n\n")
+        ));
+    }
+    parts.push(conversation.join("\n\n"));
+    Ok(parts.join("\n\n"))
+}
+
+fn build_openresponses_prompt(payload: &Value) -> Result<String, String> {
+    let Some(input) = payload.get("input") else {
+        return Err("Missing `input`.".to_string());
+    };
+    let mut system_parts = Vec::new();
+    if let Some(instructions) = payload.get("instructions").and_then(Value::as_str) {
+        if !instructions.trim().is_empty() {
+            system_parts.push(instructions.trim().to_string());
+        }
+    }
+    let mut conversation = Vec::new();
+    match input {
+        Value::String(text) if !text.trim().is_empty() => {
+            conversation.push(format!("User: {}", text.trim()));
+        }
+        Value::Array(items) => {
+            for item in items {
+                let item_type = item.get("type").and_then(Value::as_str).unwrap_or("");
+                if item_type == "message" {
+                    let role = item.get("role").and_then(Value::as_str).unwrap_or("user");
+                    let content =
+                        extract_openai_text_content(item.get("content").unwrap_or(&Value::Null));
+                    let content = content.trim();
+                    if content.is_empty() {
+                        continue;
+                    }
+                    match role {
+                        "system" | "developer" => system_parts.push(content.to_string()),
+                        "assistant" => conversation.push(format!("Assistant: {content}")),
+                        _ => conversation.push(format!("User: {content}")),
+                    }
+                } else if item_type == "function_call_output" {
+                    let call_id = item
+                        .get("call_id")
+                        .and_then(Value::as_str)
+                        .unwrap_or("unknown");
+                    let output = item.get("output").and_then(Value::as_str).unwrap_or("");
+                    if !output.trim().is_empty() {
+                        conversation.push(format!("Tool:{call_id}: {}", output.trim()));
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    if conversation.is_empty() {
+        return Err("Missing `input`.".to_string());
+    }
+    let mut parts = Vec::new();
+    if !system_parts.is_empty() {
+        parts.push(format!(
+            "System instructions:\n{}",
+            system_parts.join("\n\n")
+        ));
+    }
+    parts.push(conversation.join("\n\n"));
+    Ok(parts.join("\n\n"))
+}
+
+fn extract_openai_text_content(value: &Value) -> String {
+    match value {
+        Value::String(text) => text.clone(),
+        Value::Array(parts) => parts
+            .iter()
+            .filter_map(|part| {
+                part.get("text")
+                    .or_else(|| part.get("input_text"))
+                    .and_then(Value::as_str)
+            })
+            .filter(|text| !text.trim().is_empty())
+            .collect::<Vec<_>>()
+            .join("\n"),
+        _ => String::new(),
+    }
+}
+
+fn now_seconds() -> u64 {
+    (now_millis() / 1000) as u64
 }
 
 fn agents_list(state: &GatewayState) -> Value {
@@ -10444,11 +10985,16 @@ fn authorize_headers(headers: &HeaderMap, state: &GatewayState) -> Result<(), St
 }
 
 fn authorize_token(token: Option<&str>, state: &GatewayState) -> Result<(), StatusCode> {
-    match state.auth_token.as_deref() {
-        None if state.auth_password.is_none() => Ok(()),
-        None => Err(StatusCode::UNAUTHORIZED),
-        Some(expected) if token == Some(expected) => Ok(()),
-        Some(_) => Err(StatusCode::UNAUTHORIZED),
+    if state.auth_token.is_none() && state.auth_password.is_none() {
+        return Ok(());
+    }
+    let Some(token) = token else {
+        return Err(StatusCode::UNAUTHORIZED);
+    };
+    if state.auth_token.as_deref() == Some(token) || state.auth_password.as_deref() == Some(token) {
+        Ok(())
+    } else {
+        Err(StatusCode::UNAUTHORIZED)
     }
 }
 
@@ -10903,18 +11449,29 @@ mod tests {
     }
 
     #[test]
-    fn rust_gateway_method_table_covers_ts_core_gateway_methods() {
-        let ts_methods = ts_core_gateway_methods();
+    fn rust_gateway_method_table_covers_removed_node_core_gateway_methods() {
+        let legacy_methods = legacy_node_core_gateway_methods();
         let rust_methods = gateway_methods().into_iter().collect::<BTreeSet<_>>();
-        let missing = ts_methods
+        let missing = legacy_methods
             .iter()
-            .filter(|method| !rust_methods.contains(method.as_str()))
-            .cloned()
+            .filter(|method| !rust_methods.contains(**method))
+            .copied()
             .collect::<Vec<_>>();
 
         assert!(
             missing.is_empty(),
-            "Rust Gateway is missing TS core Gateway methods: {missing:?}"
+            "Rust Gateway is missing removed Node core Gateway methods: {missing:?}"
+        );
+    }
+
+    #[test]
+    fn rust_gateway_method_table_has_no_duplicates() {
+        let methods = gateway_methods();
+        let unique_methods = methods.iter().copied().collect::<BTreeSet<_>>();
+        assert_eq!(
+            unique_methods.len(),
+            methods.len(),
+            "Rust Gateway method table contains duplicates"
         );
     }
 
@@ -11446,6 +12003,219 @@ mod tests {
             .recv_timeout(Duration::from_secs(2))
             .expect("captured special agent request");
         assert!(request.contains("check this plan"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_openai_models_compat_lists_agent_models() {
+        let runtime_root = unique_test_runtime_root("gateway-openai-models");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let response = openai_models_response(&state, None).await;
+
+        assert_eq!(response["object"], "list");
+        assert!(response["data"]
+            .as_array()
+            .expect("model data")
+            .iter()
+            .any(|model| model["id"] == "crawclaw"));
+        assert!(response["data"]
+            .as_array()
+            .expect("model data")
+            .iter()
+            .any(|model| model["id"] == "crawclaw/default"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_openai_chat_completions_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-openai-chat-compat");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"chat completion from rust gateway"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let response = openai_chat_completions_response_with_headers(
+            &state,
+            json!({
+                "model": "crawclaw",
+                "messages": [
+                    { "role": "system", "content": "Be concise." },
+                    { "role": "user", "content": "Say hello from chat compat" }
+                ]
+            }),
+            None,
+        )
+        .await
+        .expect("chat completion response");
+
+        assert_eq!(response["object"], "chat.completion");
+        assert_eq!(
+            response["choices"][0]["message"]["content"],
+            "chat completion from rust gateway"
+        );
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured provider request");
+        assert!(request.contains("Say hello from chat compat"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_openai_chat_completions_honors_compat_headers() {
+        let runtime_root = unique_test_runtime_root("gateway-openai-chat-compat-headers");
+        let (provider_base_url, _request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"chat completion with headers"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+        let mut headers = HeaderMap::new();
+        headers.insert(OPENAI_COMPAT_AGENT_ID_HEADER, "research".parse().unwrap());
+        headers.insert(
+            OPENAI_COMPAT_SESSION_KEY_HEADER,
+            "agent:research:openai-custom".parse().unwrap(),
+        );
+        headers.insert(
+            OPENAI_COMPAT_MESSAGE_CHANNEL_HEADER,
+            "webchat".parse().unwrap(),
+        );
+
+        let response = openai_chat_completions_response_with_headers(
+            &state,
+            json!({
+                "model": "crawclaw",
+                "messages": [{ "role": "user", "content": "Say hello with headers" }]
+            }),
+            Some(&headers),
+        )
+        .await
+        .expect("chat completion response");
+
+        let run_id = response["id"].as_str().expect("run id");
+        let runs = state.agent_run_events.lock().expect("agent run events");
+        let events = runs.get(run_id).expect("recorded run events");
+        let started = events
+            .iter()
+            .find(|event| event["type"] == "runStarted")
+            .expect("runStarted event");
+        assert_eq!(started["agentId"], "research");
+        assert_eq!(started["sessionKey"], "agent:research:openai-custom");
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[tokio::test]
+    async fn rust_gateway_openresponses_uses_native_agent_runtime() {
+        let runtime_root = unique_test_runtime_root("gateway-openresponses-compat");
+        let (provider_base_url, request_rx) = serve_openai_compatible_once(
+            r#"{"choices":[{"message":{"content":"response from rust gateway"}}]}"#,
+        );
+        let config_dir = runtime_root.join("config");
+        std::fs::create_dir_all(&config_dir).expect("config dir");
+        std::fs::write(
+            config_dir.join("desktop-agent-provider.json"),
+            serde_json::to_vec_pretty(&json!({
+                "runtime": "native-provider",
+                "provider": "openai-compatible",
+                "baseUrl": provider_base_url,
+                "apiKey": "test-key",
+                "model": "test-model"
+            }))
+            .expect("provider config json"),
+        )
+        .expect("write provider config");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            ..GatewayRunConfig::default()
+        });
+
+        let response = openresponses_response_with_headers(
+            &state,
+            json!({
+                "model": "crawclaw",
+                "input": [
+                    {
+                        "type": "message",
+                        "role": "user",
+                        "content": [
+                            { "type": "input_text", "text": "Say hello from responses compat" }
+                        ]
+                    }
+                ]
+            }),
+            None,
+        )
+        .await
+        .expect("openresponses response");
+
+        assert_eq!(response["object"], "response");
+        assert_eq!(
+            response["output"][0]["content"][0]["text"],
+            "response from rust gateway"
+        );
+        let request = request_rx
+            .recv_timeout(Duration::from_secs(2))
+            .expect("captured provider request");
+        assert!(request.contains("Say hello from responses compat"));
+
+        let _ = std::fs::remove_dir_all(runtime_root);
+    }
+
+    #[test]
+    fn rust_gateway_http_auth_accepts_password_bearer() {
+        let runtime_root = unique_test_runtime_root("gateway-http-password-auth");
+        let state = GatewayState::new(GatewayRunConfig {
+            runtime_root: Some(runtime_root.clone()),
+            auth_token: None,
+            auth_password: Some("secret-password".to_string()),
+            ..GatewayRunConfig::default()
+        });
+        let mut headers = HeaderMap::new();
+        headers.insert(
+            "authorization",
+            "Bearer secret-password".parse().expect("header value"),
+        );
+
+        assert_eq!(authorize_headers(&headers, &state), Ok(()));
 
         let _ = std::fs::remove_dir_all(runtime_root);
     }
@@ -14876,25 +15646,159 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
         env::temp_dir().join(format!("{name}-{}", now_millis()))
     }
 
-    fn ts_core_gateway_methods() -> Vec<String> {
-        let source = include_str!("../../../src/gateway/server-methods-list.ts");
-        let start = source
-            .find("const BASE_METHODS = [")
-            .expect("BASE_METHODS start");
-        let rest = &source[start..];
-        let end = rest.find("];").expect("BASE_METHODS end");
-        rest[..end]
-            .lines()
-            .filter_map(|line| {
-                let trimmed = line.trim();
-                let value = trimmed.strip_prefix('"')?.split('"').next()?;
-                if value.is_empty() {
-                    None
-                } else {
-                    Some(value.to_string())
-                }
-            })
-            .collect()
+    fn legacy_node_core_gateway_methods() -> &'static [&'static str] {
+        &[
+            "health",
+            "system.health",
+            "doctor.memory.status",
+            "logs.tail",
+            "status",
+            "system.status",
+            "usage.status",
+            "usage.cost",
+            "tts.status",
+            "tts.providers",
+            "tts.enable",
+            "tts.disable",
+            "tts.convert",
+            "tts.setProvider",
+            "config.get",
+            "config.set",
+            "config.apply",
+            "config.patch",
+            "config.schema",
+            "config.schema.lookup",
+            "exec.approvals.get",
+            "exec.approvals.set",
+            "exec.approval.request",
+            "exec.approval.waitDecision",
+            "exec.approval.resolve",
+            "plugin.approval.request",
+            "plugin.approval.waitDecision",
+            "plugin.approval.resolve",
+            "wizard.start",
+            "wizard.next",
+            "wizard.cancel",
+            "wizard.status",
+            "talk.config",
+            "talk.speak",
+            "talk.mode",
+            "voice.getOverview",
+            "voice.qwen3Tts.preview",
+            "voice.qwen3Tts.uploadReferenceAudio",
+            "models.list",
+            "plugins.list",
+            "plugins.enable",
+            "plugins.disable",
+            "plugins.install",
+            "tools.catalog",
+            "tools.effective",
+            "tools.invoke",
+            "message.policy",
+            "nativePlugin.invoke",
+            "nativePlugin.service.start",
+            "nativePlugin.service.stop",
+            "agents.list",
+            "memory.admin.overview",
+            "memory.status",
+            "memory.refresh",
+            "memory.login",
+            "memory.durable.index.list",
+            "memory.durable.index.get",
+            "memory.dream.status",
+            "memory.dream.history",
+            "memory.dream.run",
+            "memory.sessionSummary.status",
+            "memory.sessionSummary.refresh",
+            "memory.experience.outbox.list",
+            "memory.experience.outbox.updateStatus",
+            "memory.experience.outbox.prune",
+            "memory.experience.sync.flush",
+            "memory.promptJournal.summary",
+            "memory.bootstrap",
+            "memory.ingestBatch",
+            "memory.assemble",
+            "memory.compact",
+            "memory.afterTurn",
+            "memory.prepareSubagentSpawn",
+            "memory.onSubagentEnded",
+            "agentRuntime.summary",
+            "agentRuntime.list",
+            "agentRuntime.get",
+            "agentRuntime.cancel",
+            "agents.create",
+            "agents.update",
+            "agents.delete",
+            "agents.files.list",
+            "agents.files.get",
+            "agents.files.set",
+            "skills.status",
+            "skills.bins",
+            "skills.install",
+            "skills.update",
+            "update.run",
+            "voicewake.get",
+            "voicewake.set",
+            "secrets.reload",
+            "secrets.resolve",
+            "sessions.list",
+            "sessions.subscribe",
+            "sessions.unsubscribe",
+            "sessions.messages.subscribe",
+            "sessions.messages.unsubscribe",
+            "sessions.preview",
+            "sessions.create",
+            "sessions.send",
+            "sessions.abort",
+            "sessions.patch",
+            "sessions.reset",
+            "sessions.delete",
+            "sessions.compact",
+            "last-main-session-wake",
+            "system.mainSessionWake.last",
+            "wake",
+            "cron.list",
+            "cron.start",
+            "cron.stop",
+            "cron.status",
+            "cron.add",
+            "cron.update",
+            "cron.remove",
+            "cron.run",
+            "cron.runs",
+            "gateway.identity.get",
+            "system-presence",
+            "system-event",
+            "send",
+            "poll",
+            "workflow.list",
+            "workflow.get",
+            "workflow.n8n.get",
+            "workflow.match",
+            "workflow.runs",
+            "workflow.enable",
+            "workflow.disable",
+            "workflow.archive",
+            "workflow.unarchive",
+            "workflow.delete",
+            "workflow.deploy",
+            "workflow.run",
+            "workflow.status",
+            "workflow.cancel",
+            "workflow.resume",
+            "agent.identity.get",
+            "agent.inspect",
+            "agent.observations.list",
+            "agent.wait",
+            "workflow.agent.run",
+            "agent.runTurn",
+            "agent.command.run",
+            "agent.streamEvents",
+            "agent.cancel",
+            "chat.history",
+            "chat.abort",
+            "chat.send",
+        ]
     }
 
     fn run_git_test_command(cwd: &std::path::Path, args: &[&str]) {

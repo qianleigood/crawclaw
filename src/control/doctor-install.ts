@@ -15,8 +15,6 @@ export function noteSourceInstallIssues(root: string | null) {
   const warnings: string[] = [];
   const nodeModules = path.join(root, "node_modules");
   const pnpmStore = path.join(nodeModules, ".pnpm");
-  const tsxBin = path.join(nodeModules, ".bin", "tsx");
-  const srcEntry = path.join(root, "src", "entry.ts");
 
   if (fs.existsSync(nodeModules) && !fs.existsSync(pnpmStore)) {
     warnings.push(
@@ -28,10 +26,6 @@ export function noteSourceInstallIssues(root: string | null) {
     warnings.push(
       "- package-lock.json present in a pnpm workspace. If you ran npm install, remove it and reinstall with pnpm.",
     );
-  }
-
-  if (fs.existsSync(srcEntry) && !fs.existsSync(tsxBin)) {
-    warnings.push("- tsx binary is missing for source runs. Run: pnpm install");
   }
 
   if (warnings.length > 0) {

@@ -101,10 +101,8 @@ function isLikelyCrawClawCliProcess(argv: string[] = process.argv): boolean {
     .toLowerCase();
   return (
     entryBasename === "crawclaw" ||
-    entryBasename === "crawclaw.mjs" ||
-    entryBasename === "crawclaw.js" ||
-    entryBasename === "entry.js" ||
-    entryBasename === "entry.mjs"
+    entryBasename === "crawclaw-runtime" ||
+    entryBasename === "crawclaw-gateway"
   );
 }
 

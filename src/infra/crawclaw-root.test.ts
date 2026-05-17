@@ -130,7 +130,10 @@ describe("resolveCrawClawPackageRoot", () => {
         const project = fx("symlink-scenario");
         const bin = path.join(project, "bin", "crawclaw");
         const realPkg = path.join(project, "real-pkg");
-        state.realpaths.set(abs(bin), abs(path.join(realPkg, "crawclaw.mjs")));
+        state.realpaths.set(
+          abs(bin),
+          abs(path.join(realPkg, "dist", "native", "crawclaw-runtime")),
+        );
         setPackageRoot(realPkg);
         return { opts: { argv1: bin }, expected: realPkg };
       },
@@ -199,7 +202,7 @@ describe("resolveCrawClawPackageRoot", () => {
         const argv1 = path.join(project, "node_modules", ".bin", "crawclaw");
         state.realpaths.set(
           abs(argv1),
-          abs(path.join(project, "versions", "current", "crawclaw.mjs")),
+          abs(path.join(project, "versions", "current", "dist", "native", "crawclaw-runtime")),
         );
         const pkgRoot = path.join(project, "node_modules", "crawclaw");
         setPackageRoot(pkgRoot);

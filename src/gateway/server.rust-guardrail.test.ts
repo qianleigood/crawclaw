@@ -6,8 +6,56 @@ import { describe, expect, it } from "vitest";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const removedTsGatewayHandlersFile = ["legacy-ts-gateway", "handlers.ts"].join("-");
+const removedTsGatewayRuntimeFiles = [
+  "src/gateway/server.ts",
+  "src/gateway/server.impl.ts",
+  "src/gateway/server-runtime-state.ts",
+  "src/gateway/server-http.ts",
+  "src/gateway/server-broadcast.ts",
+  "src/gateway/server-chat.ts",
+  "src/gateway/server-maintenance.ts",
+  "src/gateway/server-plugin-bootstrap.ts",
+  "src/gateway/server-plugins.ts",
+  "src/gateway/server-reload-handlers.ts",
+  "src/gateway/server-close.ts",
+  "src/gateway/server-cron.ts",
+  "src/gateway/server-discovery-runtime.ts",
+  "src/gateway/server-discovery.ts",
+  "src/gateway/server-lanes.ts",
+  "src/gateway/server-model-catalog.ts",
+  "src/gateway/server-methods/config.ts",
+  "src/gateway/server-methods/send.ts",
+  "src/gateway/server-methods/skills.ts",
+  "src/gateway/server-methods/talk.ts",
+  "src/gateway/server-methods/web.ts",
+  "src/gateway/server-methods/wizard.ts",
+  "src/gateway/server-restart-sentinel.ts",
+  "src/gateway/server-runtime-config.ts",
+  "src/gateway/server-session-key.ts",
+  "src/gateway/server-startup-log.ts",
+  "src/gateway/server-startup-session-migration.ts",
+  "src/gateway/server-startup.ts",
+  "src/gateway/server-tailscale.ts",
+  "src/gateway/server-utils.ts",
+  "src/gateway/server-wizard-sessions.ts",
+  "src/gateway/server/hooks.ts",
+  "src/gateway/server/http-auth.ts",
+  "src/gateway/server/http-listen.ts",
+  "src/gateway/server/plugins-http.ts",
+  "src/gateway/server/preauth-connection-budget.ts",
+  "src/gateway/server/readiness.ts",
+  "src/gateway/server/tls.ts",
+  "src/gateway/server/ws-types.ts",
+];
 
 describe("TS Gateway server runtime guardrail", () => {
+  it("keeps the legacy TS Gateway runtime entrypoints removed", () => {
+    const existing = removedTsGatewayRuntimeFiles.filter((relative) =>
+      fs.existsSync(path.join(repoRoot, relative)),
+    );
+    expect(existing).toEqual([]);
+  });
+
   it("keeps production source from importing the disabled TS Gateway runtime", () => {
     const offenders = findProductionGatewayRuntimeImports(path.join(repoRoot, "src"));
 
@@ -20,100 +68,8 @@ describe("TS Gateway server runtime guardrail", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("blocks production imports of the legacy TS Gateway entrypoint", () => {
+  it("keeps the legacy TS Gateway opt-in disabled by removing the entrypoint", () => {
     const script = `
-      delete process.env.VITEST;
-      delete process.env.VITEST_POOL_ID;
-      delete process.env.NODE_ENV;
-      delete process.env.CRAWCLAW_ALLOW_TS_GATEWAY;
-      await import("./src/gateway/server.ts").then(
-        () => {
-          console.error("unexpected TS Gateway import success");
-          process.exit(1);
-        },
-        (error) => {
-          const message = String(error?.message ?? error);
-          if (!message.includes("TypeScript Gateway server runtime is disabled")) {
-            console.error(message);
-            process.exit(1);
-          }
-        },
-      );
-    `;
-
-    const result = spawnSync(
-      process.execPath,
-      ["--import", "tsx", "--input-type=module", "-e", script],
-      {
-        cwd: repoRoot,
-        env: {
-          ...process.env,
-          CRAWCLAW_ALLOW_TS_GATEWAY: undefined,
-          VITEST: undefined,
-          VITEST_POOL_ID: undefined,
-          NODE_ENV: undefined,
-        },
-        encoding: "utf8",
-      },
-    );
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe("");
-    expect(result.stderr).toBe("");
-  });
-
-  it("blocks direct imports of the legacy TS Gateway implementation", () => {
-    const script = `
-      delete process.env.VITEST;
-      delete process.env.VITEST_POOL_ID;
-      delete process.env.NODE_ENV;
-      delete process.env.CRAWCLAW_ALLOW_TS_GATEWAY;
-      const blocked = [
-        "./src/gateway/server.impl.ts",
-      ];
-      for (const specifier of blocked) {
-        await import(specifier).then(
-          () => {
-            console.error("unexpected TS Gateway import success: " + specifier);
-            process.exit(1);
-          },
-          (error) => {
-            const message = String(error?.message ?? error);
-            if (!message.includes("TypeScript Gateway server runtime is disabled")) {
-              console.error(specifier + ": " + message);
-              process.exit(1);
-            }
-          },
-        );
-      }
-    `;
-
-    const result = spawnSync(
-      process.execPath,
-      ["--import", "tsx", "--input-type=module", "-e", script],
-      {
-        cwd: repoRoot,
-        env: {
-          ...process.env,
-          CRAWCLAW_ALLOW_TS_GATEWAY: undefined,
-          VITEST: undefined,
-          VITEST_POOL_ID: undefined,
-          NODE_ENV: undefined,
-        },
-        encoding: "utf8",
-      },
-    );
-
-    expect(result.status).toBe(0);
-    expect(result.stdout).toBe("");
-    expect(result.stderr).toBe("");
-  });
-
-  it("does not allow the legacy TS Gateway runtime outside tests", () => {
-    const script = `
-      delete process.env.VITEST;
-      delete process.env.VITEST_POOL_ID;
-      delete process.env.NODE_ENV;
       process.env.CRAWCLAW_ALLOW_TS_GATEWAY = "1";
       await import("./src/gateway/server.ts").then(
         () => {
@@ -121,8 +77,9 @@ describe("TS Gateway server runtime guardrail", () => {
           process.exit(1);
         },
         (error) => {
+          const code = String(error?.code ?? "");
           const message = String(error?.message ?? error);
-          if (!message.includes("TypeScript Gateway server runtime is disabled")) {
+          if (code !== "ERR_MODULE_NOT_FOUND" && !message.includes("Cannot find module")) {
             console.error(message);
             process.exit(1);
           }
@@ -194,8 +151,6 @@ function isTestOrGatewayRuntimeFile(relative: string): boolean {
     return true;
   }
   return (
-    relative === "src/gateway/server.ts" ||
-    relative === "src/gateway/server.impl.ts" ||
     relative.startsWith("src/gateway/test-") ||
     relative.startsWith("src/gateway/server.e2e-ws-harness")
   );
@@ -226,7 +181,7 @@ function isTestOrLegacyGatewayHandlerFile(relative: string): boolean {
   ) {
     return true;
   }
-  return relative === "src/gateway/server.impl.ts";
+  return false;
 }
 
 function importedModuleSpecifiers(source: string): string[] {

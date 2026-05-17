@@ -12,7 +12,6 @@ import type { ProviderRequestTransportOverrides } from "../agents/provider-reque
 import type { ReplyPayload } from "../chat/reply-payload.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
-import type { GatewayRequestHandler } from "../gateway/request-types.js";
 import type { ObservationContext } from "../infra/observation/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type {
@@ -879,11 +878,6 @@ export type SpeechProviderPlugin = {
 
 export type PluginSpeechProviderEntry = SpeechProviderPlugin & {
   pluginId: string;
-};
-
-export type CrawClawPluginGatewayMethod = {
-  method: string;
-  handler: GatewayRequestHandler;
 };
 
 // =============================================================================

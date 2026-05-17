@@ -372,6 +372,19 @@ describe("plugin status reports", () => {
     expectPluginLoaderCall({ loadModules: true });
   });
 
+  it("does not expose removed plugin Gateway method fields in inspect reports", () => {
+    setSinglePluginLoadResult(
+      createPluginRecord({
+        id: "demo",
+        name: "Demo",
+      }),
+    );
+
+    const inspect = expectInspectReport("demo");
+
+    expect(inspect).not.toHaveProperty("gatewayMethods");
+  });
+
   it("preserves raw config activation context when compatibility notices build their own report", () => {
     const { rawConfig, autoEnabledConfig } = createAutoEnabledStatusConfig({
       demo: { enabled: true },

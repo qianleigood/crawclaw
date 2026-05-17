@@ -81,7 +81,7 @@ describe("resolveGatewayProgramArguments", () => {
   });
 
   it("uses target release gateway for dev mode", async () => {
-    const repoToolPath = path.resolve("/repo/scripts/dev/gateway-smoke.ts");
+    const repoToolPath = path.resolve("/repo/src/gateway/boot.ts");
     const gatewayPath = path.resolve("/repo/target/release/crawclaw-gateway");
     process.argv = ["/usr/local/bin/node", repoToolPath];
     fsMocks.realpath.mockResolvedValue(repoToolPath);

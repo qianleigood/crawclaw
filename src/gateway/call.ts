@@ -15,14 +15,7 @@ import {
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { loadGatewayTlsRuntime } from "../infra/tls/gateway.js";
 import { resolveSecretInputString } from "../secrets/resolve-secret-input-string.js";
-import {
-  GATEWAY_CLIENT_MODES,
-  GATEWAY_CLIENT_NAMES,
-  type GatewayClientMode,
-  type GatewayClientName,
-} from "../utils/gateway-client-surface.js";
-import { VERSION } from "../version.js";
-import { GatewayClient, type GatewayClientOptions } from "./client.js";
+import type { GatewayClientMode, GatewayClientName } from "../utils/gateway-client-surface.js";
 import {
   buildGatewayConnectionDetailsWithResolvers,
   type GatewayConnectionDetails,
@@ -36,13 +29,11 @@ import {
   type GatewayRemoteCredentialFallback,
   type GatewayRemoteCredentialPrecedence,
 } from "./credentials.js";
-import {
-  CLI_DEFAULT_OPERATOR_SCOPES,
-  resolveLeastPrivilegeOperatorScopesForMethod,
-  type OperatorScope,
-} from "./method-scopes.js";
-import { PROTOCOL_VERSION } from "./protocol/index.js";
+import { defaultGatewayHttpFetch } from "./http-fetch.js";
+import type { OperatorScope } from "./method-scopes.js";
 export type { GatewayConnectionDetails };
+
+const GATEWAY_TOKEN_HEADER = "x-crawclaw-gateway-token";
 
 type CallGatewayBaseOptions = {
   url?: string;
@@ -82,9 +73,8 @@ export type CallGatewayOptions = CallGatewayBaseOptions & {
   scopes?: OperatorScope[];
 };
 
-const defaultCreateGatewayClient = (opts: GatewayClientOptions) => new GatewayClient(opts);
 const defaultGatewayCallDeps = {
-  createGatewayClient: defaultCreateGatewayClient,
+  fetch: defaultGatewayHttpFetch,
   loadConfig,
   resolveGatewayPort,
   resolveConfigPath,
@@ -146,8 +136,7 @@ export function buildGatewayConnectionDetails(
 
 export const __testing = {
   setDepsForTests(deps: Partial<typeof defaultGatewayCallDeps> | undefined): void {
-    gatewayCallDeps.createGatewayClient =
-      deps?.createGatewayClient ?? defaultGatewayCallDeps.createGatewayClient;
+    gatewayCallDeps.fetch = deps?.fetch ?? defaultGatewayCallDeps.fetch;
     gatewayCallDeps.loadConfig = deps?.loadConfig ?? defaultGatewayCallDeps.loadConfig;
     gatewayCallDeps.resolveGatewayPort =
       deps?.resolveGatewayPort ?? defaultGatewayCallDeps.resolveGatewayPort;
@@ -158,12 +147,8 @@ export const __testing = {
     gatewayCallDeps.loadGatewayTlsRuntime =
       deps?.loadGatewayTlsRuntime ?? defaultGatewayCallDeps.loadGatewayTlsRuntime;
   },
-  setCreateGatewayClientForTests(createGatewayClient?: typeof defaultCreateGatewayClient): void {
-    gatewayCallDeps.createGatewayClient =
-      createGatewayClient ?? defaultGatewayCallDeps.createGatewayClient;
-  },
   resetDepsForTests(): void {
-    gatewayCallDeps.createGatewayClient = defaultGatewayCallDeps.createGatewayClient;
+    gatewayCallDeps.fetch = defaultGatewayCallDeps.fetch;
     gatewayCallDeps.loadConfig = defaultGatewayCallDeps.loadConfig;
     gatewayCallDeps.resolveGatewayPort = defaultGatewayCallDeps.resolveGatewayPort;
     gatewayCallDeps.resolveConfigPath = defaultGatewayCallDeps.resolveConfigPath;
@@ -718,18 +703,6 @@ async function resolveGatewayTlsFingerprint(params: {
   );
 }
 
-function formatGatewayCloseError(
-  code: number,
-  reason: string,
-  connectionDetails: GatewayConnectionDetails,
-): string {
-  const reasonText = reason?.trim() || "no close reason";
-  const hint =
-    code === 1006 ? "abnormal closure (no close frame)" : code === 1000 ? "normal closure" : "";
-  const suffix = hint ? ` ${hint}` : "";
-  return `gateway closed (${code}${suffix}): ${reasonText}\n${connectionDetails.message}`;
-}
-
 function formatGatewayTimeoutError(
   timeoutMs: number,
   connectionDetails: GatewayConnectionDetails,
@@ -766,9 +739,42 @@ function ensureGatewaySupportsRequiredMethods(params: {
   }
 }
 
-async function executeGatewayRequestWithScopes<T>(params: {
+type GatewayRpcEnvelope = {
+  ok?: unknown;
+  result?: unknown;
+  error?: unknown;
+};
+
+function gatewayHttpRpcUrlFromGatewayUrl(url: string): string {
+  const parsed = new URL(url);
+  if (parsed.protocol === "ws:") {
+    parsed.protocol = "http:";
+  } else if (parsed.protocol === "wss:") {
+    parsed.protocol = "https:";
+  }
+  parsed.pathname = "/api/gateway/rpc";
+  parsed.search = "";
+  parsed.hash = "";
+  return parsed.toString();
+}
+
+function gatewayHttpRpcHeaders(token?: string, password?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    "content-type": "application/json",
+  };
+  const credential = token ?? password;
+  if (credential) {
+    headers[GATEWAY_TOKEN_HEADER] = credential;
+  }
+  return headers;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof Error && error.name === "AbortError";
+}
+
+async function executeGatewayHttpRpcRequest<T>(params: {
   opts: CallGatewayBaseOptions;
-  scopes: OperatorScope[];
   url: string;
   token?: string;
   password?: string;
@@ -777,82 +783,68 @@ async function executeGatewayRequestWithScopes<T>(params: {
   safeTimerTimeoutMs: number;
   connectionDetails: GatewayConnectionDetails;
 }): Promise<T> {
-  const { opts, scopes, url, token, password, tlsFingerprint, timeoutMs, safeTimerTimeoutMs } =
-    params;
-  return await new Promise<T>((resolve, reject) => {
-    let settled = false;
-    let ignoreClose = false;
-    const stop = (err?: Error, value?: T) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      clearTimeout(timer);
-      if (err) {
-        reject(err);
-      } else {
-        resolve(value as T);
-      }
-    };
-
-    const client = gatewayCallDeps.createGatewayClient({
-      url,
-      token,
-      password,
-      tlsFingerprint,
-      instanceId: opts.instanceId ?? randomUUID(),
-      clientName: opts.clientName ?? GATEWAY_CLIENT_NAMES.CLI,
-      clientDisplayName: opts.clientDisplayName,
-      clientVersion: opts.clientVersion ?? VERSION,
-      platform: opts.platform,
-      mode: opts.mode ?? GATEWAY_CLIENT_MODES.CLI,
-      role: "operator",
-      scopes,
-      minProtocol: opts.minProtocol ?? PROTOCOL_VERSION,
-      maxProtocol: opts.maxProtocol ?? PROTOCOL_VERSION,
-      onHelloOk: async (hello) => {
-        try {
-          ensureGatewaySupportsRequiredMethods({
-            requiredMethods: opts.requiredMethods,
-            methods: hello.features?.methods,
-            attemptedMethod: opts.method,
-          });
-          const result = await client.request<T>(opts.method, opts.params, {
-            expectFinal: opts.expectFinal,
-            timeoutMs: opts.timeoutMs,
-          });
-          ignoreClose = true;
-          stop(undefined, result);
-          client.stop();
-        } catch (err) {
-          ignoreClose = true;
-          client.stop();
-          stop(err as Error);
-        }
+  const rpcUrl = gatewayHttpRpcUrlFromGatewayUrl(params.url);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), params.safeTimerTimeoutMs);
+  const request = async <TResult>(method: string, requestParams: unknown): Promise<TResult> => {
+    const response = await gatewayCallDeps.fetch(
+      rpcUrl,
+      {
+        method: "POST",
+        headers: gatewayHttpRpcHeaders(params.token, params.password),
+        body: JSON.stringify({
+          id: randomUUID(),
+          method,
+          params: requestParams ?? {},
+        }),
+        signal: controller.signal,
       },
-      onClose: (code, reason) => {
-        if (settled || ignoreClose) {
-          return;
-        }
-        ignoreClose = true;
-        client.stop();
-        stop(new Error(formatGatewayCloseError(code, reason, params.connectionDetails)));
-      },
-    });
+      { tlsFingerprint: params.tlsFingerprint },
+    );
+    if (!response.ok) {
+      throw new Error(
+        [
+          `gateway HTTP RPC failed (${response.status} ${response.statusText})`,
+          params.connectionDetails.message,
+        ].join("\n"),
+      );
+    }
+    const envelope = (await response.json()) as GatewayRpcEnvelope;
+    if (envelope.ok !== true) {
+      const message =
+        typeof envelope.error === "string" && envelope.error.trim().length > 0
+          ? envelope.error
+          : "gateway request failed";
+      throw new Error(message);
+    }
+    return envelope.result as TResult;
+  };
 
-    const timer = setTimeout(() => {
-      ignoreClose = true;
-      client.stop();
-      stop(new Error(formatGatewayTimeoutError(timeoutMs, params.connectionDetails)));
-    }, safeTimerTimeoutMs);
-
-    client.start();
-  });
+  try {
+    if (Array.isArray(params.opts.requiredMethods) && params.opts.requiredMethods.length > 0) {
+      const status = await request<{ gatewayMethods?: string[] }>("system.status", {});
+      ensureGatewaySupportsRequiredMethods({
+        requiredMethods: params.opts.requiredMethods,
+        methods: status.gatewayMethods,
+        attemptedMethod: params.opts.method,
+      });
+    }
+    return await request<T>(params.opts.method, params.opts.params ?? {});
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw new Error(formatGatewayTimeoutError(params.timeoutMs, params.connectionDetails), {
+        cause: error,
+      });
+    }
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function callGatewayWithScopes<T = Record<string, unknown>>(
   opts: CallGatewayBaseOptions,
-  scopes: OperatorScope[],
+  _scopes?: OperatorScope[],
 ): Promise<T> {
   const { timeoutMs, safeTimerTimeoutMs } = resolveGatewayCallTimeout(opts.timeoutMs);
   const context = resolveGatewayCallContext(opts);
@@ -875,9 +867,8 @@ async function callGatewayWithScopes<T = Record<string, unknown>>(
   const url = connectionDetails.url;
   const tlsFingerprint = await resolveGatewayTlsFingerprint({ opts, context, url });
   const { token, password } = resolvedCredentials;
-  return await executeGatewayRequestWithScopes<T>({
+  return await executeGatewayHttpRpcRequest<T>({
     opts,
-    scopes,
     url,
     token,
     password,
@@ -897,33 +888,13 @@ export async function callGatewayScoped<T = Record<string, unknown>>(
 export async function callGatewayCli<T = Record<string, unknown>>(
   opts: CallGatewayCliOptions,
 ): Promise<T> {
-  const scopes = Array.isArray(opts.scopes) ? opts.scopes : CLI_DEFAULT_OPERATOR_SCOPES;
-  return await callGatewayWithScopes(opts, scopes);
-}
-
-export async function callGatewayLeastPrivilege<T = Record<string, unknown>>(
-  opts: CallGatewayBaseOptions,
-): Promise<T> {
-  const scopes = resolveLeastPrivilegeOperatorScopesForMethod(opts.method);
-  return await callGatewayWithScopes(opts, scopes);
+  return await callGatewayWithScopes(opts, opts.scopes);
 }
 
 export async function callGateway<T = Record<string, unknown>>(
   opts: CallGatewayOptions,
 ): Promise<T> {
-  if (Array.isArray(opts.scopes)) {
-    return await callGatewayWithScopes(opts, opts.scopes);
-  }
-  const callerMode = opts.mode ?? GATEWAY_CLIENT_MODES.BACKEND;
-  const callerName = opts.clientName ?? GATEWAY_CLIENT_NAMES.GATEWAY_CLIENT;
-  if (callerMode === GATEWAY_CLIENT_MODES.CLI || callerName === GATEWAY_CLIENT_NAMES.CLI) {
-    return await callGatewayCli(opts);
-  }
-  return await callGatewayLeastPrivilege({
-    ...opts,
-    mode: callerMode,
-    clientName: callerName,
-  });
+  return await callGatewayWithScopes(opts, opts.scopes);
 }
 
 export function randomIdempotencyKey() {

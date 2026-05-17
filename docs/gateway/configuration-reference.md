@@ -149,7 +149,7 @@ Weixin runs through the gateway's web channel (Baileys Web). It starts automatic
 
 </Accordion>
 
-### Feishu
+### Feishu service-account example
 
 ```json5
 {
@@ -327,7 +327,7 @@ Weixin runs through the gateway's web channel (Baileys Web). It starts automatic
 
 **Reaction notification modes:** `off` (none), `own` (bot's messages, default), `all` (all messages), `allowlist` (from `guilds.<id>.users` on all messages).
 
-### Feishu
+### Feishu native channel
 
 ```json5
 {
@@ -480,7 +480,7 @@ When Feishu native commands are enabled:
 - `channels.feishu.requireMention`: require `@mention` before replying in channels.
 - Optional `channels.feishu.defaultAccount` overrides default account selection when it matches a configured account id.
 
-### Weixin
+### Weixin native channel
 
 Weixin is the recommended Weixin path (plugin-backed, configured under `channels.weixin`).
 
@@ -514,7 +514,7 @@ repo-owned channel keys are:
 - `channels.qqbot`
 - `channels.weixin`
 
-### QQBot
+### QQBot native channel
 
 QQBot is Rust-native and configured under `channels.qqbot`.
 
@@ -2202,7 +2202,7 @@ See [Plugins](/tools/plugin).
 
 - Chat Completions: disabled by default. Enable with `gateway.http.endpoints.chatCompletions.enabled: true`.
 - Responses API: `gateway.http.endpoints.responses.enabled`.
-- Responses URL-input hardening:
+- The Rust-native Responses endpoint is currently text-only. These URL-input hardening keys are reserved for deployments that enable file or image inputs:
   - `gateway.http.endpoints.responses.maxUrlParts`
   - `gateway.http.endpoints.responses.files.urlAllowlist`
   - `gateway.http.endpoints.responses.images.urlAllowlist`

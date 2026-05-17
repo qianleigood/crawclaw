@@ -3,8 +3,5 @@
   "version": "2026.5.3",
   "private": true,
   "description": "CrawClaw Qwen3-TTS speech provider",
-  "type": "module",
-  "crawclaw": {
-    "extensions": []
-  }
+  "type": "module"
 }

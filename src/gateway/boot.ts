@@ -11,7 +11,7 @@ import {
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionStore, updateSessionStore } from "../config/sessions/store.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import { agentCommand } from "../control/agent.js";
+import { agentCommandFromIngress } from "../control/agent.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { type RuntimeEnv, defaultRuntime } from "../runtime.js";
 import type { CliDeps } from "../terminal/deps.js";
@@ -171,13 +171,14 @@ export async function runBootOnce(params: {
 
   let agentFailure: string | undefined;
   try {
-    await agentCommand(
+    await agentCommandFromIngress(
       {
         message,
         sessionKey,
         sessionId,
         deliver: false,
         senderIsOwner: true,
+        allowModelOverride: true,
       },
       bootRuntime,
       params.deps,

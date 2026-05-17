@@ -7,7 +7,6 @@ const repoRoot = path.resolve(import.meta.dirname, "..");
 
 const allowedNonExtensionTests = new Set<string>([
   "src/agents/runtime-support.extra-params.test.ts",
-  "src/gateway/server.talk-config.test.ts",
   "src/plugins/contracts/discovery.contract.test.ts",
 ]);
 

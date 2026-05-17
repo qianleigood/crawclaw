@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import {
@@ -35,6 +35,11 @@ describe("plugin extension import boundary inventory", () => {
     expect(inventory.some((entry) => entry.file.startsWith("src/internal-plugin-helpers/"))).toBe(
       false,
     );
+  });
+
+  it("keeps removed broad internal helper barrels out of the repo", () => {
+    expect(existsSync(path.join(repoRoot, "src/internal-plugin-helpers/core.ts"))).toBe(false);
+    expect(existsSync(path.join(repoRoot, "src/internal-plugin-helpers/index.ts"))).toBe(false);
   });
 
   it("produces stable sorted output", async () => {

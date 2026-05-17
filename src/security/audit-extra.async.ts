@@ -20,14 +20,13 @@ import { resolveOAuthDir } from "../config/paths.js";
 import type { AgentToolsConfig } from "../config/types.tools.js";
 import { normalizePluginsConfig } from "../plugins/config-state.js";
 import { normalizeAgentId } from "../routing/session-key.js";
-import { MANIFEST_KEY } from "../shared/manifest-key.js";
 import {
   formatPermissionDetail,
   formatPermissionRemediation,
   inspectPathPermissions,
   safeStat,
 } from "./audit-fs.js";
-import { extensionUsesSkippedScannerPath, isPathInside } from "./scan-paths.js";
+import { isPathInside } from "./scan-paths.js";
 import type { SkillScanFinding } from "./skill-scanner.js";
 import * as skillScanner from "./skill-scanner.js";
 import type { ExecFn } from "./windows-acl.js";
@@ -75,23 +74,6 @@ function expandTilde(p: string, env: NodeJS.ProcessEnv): string | null {
     return path.join(home, p.slice(2));
   }
   return null;
-}
-
-async function readPluginManifestExtensions(pluginPath: string): Promise<string[]> {
-  const manifestPath = path.join(pluginPath, "package.json");
-  const raw = await fs.readFile(manifestPath, "utf-8").catch(() => "");
-  if (!raw.trim()) {
-    return [];
-  }
-
-  const parsed = JSON.parse(raw) as Partial<
-    Record<typeof MANIFEST_KEY, { extensions?: unknown }>
-  > | null;
-  const extensions = parsed?.[MANIFEST_KEY]?.extensions;
-  if (!Array.isArray(extensions)) {
-    return [];
-  }
-  return extensions.map((entry) => (typeof entry === "string" ? entry.trim() : "")).filter(Boolean);
 }
 
 function formatCodeSafetyDetails(findings: SkillScanFinding[], rootDir: string): string {
@@ -900,42 +882,9 @@ export async function collectPluginsCodeSafetyFindings(params: {
 
   for (const pluginName of pluginDirs) {
     const pluginPath = path.join(extensionsDir, pluginName);
-    const extensionEntries = await readPluginManifestExtensions(pluginPath).catch(() => []);
-    const forcedScanEntries: string[] = [];
-    const escapedEntries: string[] = [];
-
-    for (const entry of extensionEntries) {
-      const resolvedEntry = path.resolve(pluginPath, entry);
-      if (!isPathInside(pluginPath, resolvedEntry)) {
-        escapedEntries.push(entry);
-        continue;
-      }
-      if (extensionUsesSkippedScannerPath(entry)) {
-        findings.push({
-          checkId: "plugins.code_safety.entry_path",
-          severity: "warn",
-          title: `Plugin "${pluginName}" entry path is hidden or node_modules`,
-          detail: `Extension entry "${entry}" points to a hidden or node_modules path. Deep code scan will cover this entry explicitly, but review this path choice carefully.`,
-          remediation: "Prefer extension entrypoints under normal source paths like dist/ or src/.",
-        });
-      }
-      forcedScanEntries.push(resolvedEntry);
-    }
-
-    if (escapedEntries.length > 0) {
-      findings.push({
-        checkId: "plugins.code_safety.entry_escape",
-        severity: "critical",
-        title: `Plugin "${pluginName}" has extension entry path traversal`,
-        detail: `Found extension entries that escape the plugin directory:\n${escapedEntries.map((entry) => `  - ${entry}`).join("\n")}`,
-        remediation:
-          "Update the plugin manifest so all crawclaw.extensions entries stay inside the plugin directory.",
-      });
-    }
-
     const summary = await getCodeSafetySummary({
       dirPath: pluginPath,
-      includeFiles: forcedScanEntries,
+      includeFiles: [],
       summaryCache: params.summaryCache,
     }).catch((err) => {
       findings.push({

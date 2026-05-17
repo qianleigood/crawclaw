@@ -2,8 +2,8 @@
   "base": {
     "threadPinned": [
       {
-        "file": "src/auto-reply/reply/commands-acp/install-hints.test.ts",
-        "reason": "Measured ~35% faster under threads than forks on base config after removing process.chdir() from the test."
+        "file": "src/control/model-picker.test.ts",
+        "reason": "Keeps a current base-surface test on the base-pinned planner path after the legacy auto-reply test tree was removed."
       }
     ]
   },

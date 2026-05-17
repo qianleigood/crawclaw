@@ -1,24 +1,22 @@
-import { randomUUID } from "node:crypto";
 import { afterAll, describe, expect, it } from "vitest";
-import { GatewayClient } from "../src/gateway/client.js";
-import { connectGatewayClient } from "../src/gateway/test-helpers.e2e.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../src/utils/gateway-client-surface.js";
 import {
-  type ChatEventPayload,
   type GatewayInstance,
   connectStatusClient,
-  extractFirstTextBlock,
   postJson,
   spawnGatewayInstance,
   stopGatewayInstance,
-  waitForChatFinalEvent,
 } from "./helpers/gateway-e2e-harness.js";
+import {
+  connectTestGatewayWsClient,
+  type TestGatewayWsClient,
+} from "./helpers/gateway-ws-client.js";
 
 const E2E_TIMEOUT_MS = 120_000;
 
 describe("gateway multi-instance e2e", () => {
   const instances: GatewayInstance[] = [];
-  const chatClients: GatewayClient[] = [];
+  const chatClients: TestGatewayWsClient[] = [];
 
   afterAll(async () => {
     for (const client of chatClients) {
@@ -29,50 +27,57 @@ describe("gateway multi-instance e2e", () => {
     }
   });
 
-  it("spins up two gateways and exercises WS + HTTP", { timeout: E2E_TIMEOUT_MS }, async () => {
-    const [gwA, gwB] = await Promise.all([spawnGatewayInstance("a"), spawnGatewayInstance("b")]);
-    instances.push(gwA, gwB);
+  it(
+    "spins up two gateways and exercises Rust WS + HTTP RPC",
+    { timeout: E2E_TIMEOUT_MS },
+    async () => {
+      const [gwA, gwB] = await Promise.all([spawnGatewayInstance("a"), spawnGatewayInstance("b")]);
+      instances.push(gwA, gwB);
 
-    const [hookResA, hookResB] = await Promise.all([
-      postJson(
-        `http://127.0.0.1:${gwA.port}/hooks/wake`,
-        {
-          text: "wake a",
-          mode: "now",
-        },
-        { "x-crawclaw-token": gwA.hookToken },
-      ),
-      postJson(
-        `http://127.0.0.1:${gwB.port}/hooks/wake`,
-        {
-          text: "wake b",
-          mode: "now",
-        },
-        { "x-crawclaw-token": gwB.hookToken },
-      ),
-    ]);
-    expect(hookResA.status).toBe(200);
-    expect((hookResA.json as { ok?: boolean } | undefined)?.ok).toBe(true);
-    expect(hookResB.status).toBe(200);
-    expect((hookResB.json as { ok?: boolean } | undefined)?.ok).toBe(true);
+      const [rpcResA, rpcResB] = await Promise.all([
+        postJson(
+          `http://127.0.0.1:${gwA.port}/api/gateway/rpc`,
+          {
+            id: "health-a",
+            method: "health",
+            params: {},
+          },
+          { "x-crawclaw-gateway-token": gwA.gatewayToken },
+        ),
+        postJson(
+          `http://127.0.0.1:${gwB.port}/api/gateway/rpc`,
+          {
+            id: "health-b",
+            method: "health",
+            params: {},
+          },
+          { "x-crawclaw-gateway-token": gwB.gatewayToken },
+        ),
+      ]);
+      expect(rpcResA.status).toBe(200);
+      expect((rpcResA.json as { ok?: boolean; result?: { runtime?: string } }).ok).toBe(true);
+      expect((rpcResA.json as { result?: { runtime?: string } }).result?.runtime).toBe("rust");
+      expect(rpcResB.status).toBe(200);
+      expect((rpcResB.json as { ok?: boolean; result?: { runtime?: string } }).ok).toBe(true);
+      expect((rpcResB.json as { result?: { runtime?: string } }).result?.runtime).toBe("rust");
 
-    const [statusA, statusB] = await Promise.all([
-      connectStatusClient(gwA),
-      connectStatusClient(gwB),
-    ]);
-    statusA.stop();
-    statusB.stop();
-  });
+      const [statusA, statusB] = await Promise.all([
+        connectStatusClient(gwA),
+        connectStatusClient(gwB),
+      ]);
+      statusA.stop();
+      statusB.stop();
+    },
+  );
 
   it(
-    "delivers final chat event for feishu-shaped session keys",
+    "handles session RPCs for feishu-shaped session keys over Rust WS",
     { timeout: E2E_TIMEOUT_MS },
     async () => {
       const gw = await spawnGatewayInstance("chat-feishu-fixture");
       instances.push(gw);
 
-      const chatEvents: ChatEventPayload[] = [];
-      const chatClient = await connectGatewayClient({
+      const chatClient = await connectTestGatewayWsClient({
         url: `ws://127.0.0.1:${gw.port}`,
         token: gw.gatewayToken,
         clientName: GATEWAY_CLIENT_NAMES.CLI,
@@ -80,33 +85,32 @@ describe("gateway multi-instance e2e", () => {
         clientVersion: "1.0.0",
         platform: "test",
         mode: GATEWAY_CLIENT_MODES.CLI,
-        onEvent: (evt) => {
-          if (evt.event === "chat" && evt.payload && typeof evt.payload === "object") {
-            chatEvents.push(evt.payload as ChatEventPayload);
-          }
-        },
       });
       chatClients.push(chatClient);
 
       const sessionKey = "agent:main:feishu:direct:123456";
-      const idempotencyKey = `idem-${randomUUID()}`;
-      const sendRes = await chatClient.request<{ runId?: string; status?: string }>("chat.send", {
-        sessionKey,
-        message: "/context list",
-        idempotencyKey,
-      });
-      expect(sendRes.status).toBe("started");
-      const runId = sendRes.runId;
-      expect(typeof runId).toBe("string");
+      const createRes = await chatClient.request<{ ok?: boolean; key?: string }>(
+        "sessions.create",
+        {
+          key: sessionKey,
+          label: "Feishu fixture",
+        },
+      );
+      expect(createRes.ok).toBe(true);
+      expect(createRes.key).toBe(sessionKey);
 
-      const finalEvent = await waitForChatFinalEvent({
-        events: chatEvents,
-        runId: String(runId),
-        sessionKey,
+      const patchRes = await chatClient.request<{ ok?: boolean; key?: string }>("sessions.patch", {
+        key: sessionKey,
+        label: "Feishu fixture updated",
       });
-      const finalText = extractFirstTextBlock(finalEvent.message);
-      expect(typeof finalText).toBe("string");
-      expect(finalText?.length).toBeGreaterThan(0);
+      expect(patchRes.ok).toBe(true);
+      expect(patchRes.key).toBe(sessionKey);
+
+      const resetRes = await chatClient.request<{ ok?: boolean; key?: string }>("sessions.reset", {
+        key: sessionKey,
+      });
+      expect(resetRes.ok).toBe(true);
+      expect(resetRes.key).toBe(sessionKey);
     },
   );
 });

@@ -291,8 +291,7 @@ describe("cron run log", () => {
     await withRunLogDir("crawclaw-cron-log-drain-", async (dir) => {
       const logPath = path.join(dir, "runs", "job-drain.jsonl");
 
-      // Fire-and-forget write (simulates the `void appendCronRunLog(...)` pattern
-      // in server-cron.ts). Do NOT await.
+      // Fire-and-forget write. Do NOT await.
       const writePromise = appendCronRunLog(logPath, {
         ts: 42,
         jobId: "job-drain",

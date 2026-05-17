@@ -21,20 +21,6 @@ function resolvePluginManifestPath(pluginDir) {
   return path.join(pluginDir, CANONICAL_PLUGIN_MANIFEST_FILENAME);
 }
 
-export function rewritePackageExtensions(entries) {
-  if (!Array.isArray(entries)) {
-    return undefined;
-  }
-
-  return entries
-    .filter((entry) => typeof entry === "string" && entry.trim().length > 0)
-    .map((entry) => {
-      const normalized = entry.replace(/^\.\//, "");
-      const rewritten = normalized.replace(/\.[^.]+$/u, ".js");
-      return `./${rewritten}`;
-    });
-}
-
 function collectTopLevelPublicSurfaceEntries(pluginDir) {
   if (!fs.existsSync(pluginDir)) {
     return [];
@@ -72,15 +58,6 @@ function isManifestlessBundledRuntimeSupportPackage(params) {
     return false;
   }
   return params.topLevelPublicSurfaceEntries.length > 0;
-}
-
-function rewritePackageEntry(entry) {
-  if (typeof entry !== "string" || entry.trim().length === 0) {
-    return undefined;
-  }
-  const normalized = entry.replace(/^\.\//, "");
-  const rewritten = normalized.replace(/\.[^.]+$/u, ".js");
-  return `./${rewritten}`;
 }
 
 function ensurePathInsideRoot(rootDir, rawPath) {
@@ -288,14 +265,9 @@ export function copyBundledPluginMetadata(params = {}) {
       removeFileIfExists(distPackageJsonPath);
       continue;
     }
-    if (packageJson.crawclaw && "extensions" in packageJson.crawclaw) {
-      packageJson.crawclaw = {
-        ...packageJson.crawclaw,
-        extensions: rewritePackageExtensions(packageJson.crawclaw.extensions),
-        ...(typeof packageJson.crawclaw.setupEntry === "string"
-          ? { setupEntry: rewritePackageEntry(packageJson.crawclaw.setupEntry) }
-          : {}),
-      };
+    if (packageJson.crawclaw && typeof packageJson.crawclaw === "object") {
+      delete packageJson.crawclaw.setupEntry;
+      delete packageJson.crawclaw.extensions;
     }
 
     writeTextFileIfChanged(distPackageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);

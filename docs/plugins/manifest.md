@@ -218,7 +218,7 @@ is removed and no longer has a `contracts` replacement.
 
 Native plugins use the manifest only to discover the native process. The native
 descriptor returned by the Rust SDK is the authority for tools, services,
-gateway methods, providers, and host callbacks.
+providers, and host callbacks.
 
 ```json
 {
@@ -248,10 +248,10 @@ gateway methods, providers, and host callbacks.
 | `bin`           | No       | `string`   | Binary name resolved from the native runtime directory. |
 | `command`       | No       | `string[]` | Explicit command argv for third-party sidecars.         |
 
-Set either `bin` or `command`. For native-only plugins, keep
-`package.json` `crawclaw.extensions` empty so CrawClaw does not load a TS
-entrypoint. Keep `contracts` as a cheap static snapshot for compatibility
-checks; do not treat it as the runtime capability authority.
+Set either `bin` or `command`. `package.json` executable entries are no longer
+loaded; keep runtime capability ownership in the native descriptor. Keep
+`contracts` as a cheap static snapshot for compatibility checks; do not treat it
+as the runtime capability authority.
 
 ## Manifest versus package.json
 

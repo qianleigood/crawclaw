@@ -8,8 +8,6 @@ export function createEmptyPluginRegistry(): PluginRegistry {
     speechProviders: [],
     webFetchProviders: [],
     webSearchProviders: [],
-    gatewayHandlers: {},
-    gatewayMethodScopes: {},
     httpRoutes: [],
     services: [],
     commands: [],

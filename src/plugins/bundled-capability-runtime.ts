@@ -56,7 +56,6 @@ function createCapabilityPluginRecord(params: {
     speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
-    gatewayMethods: [],
     services: [],
     commands: [],
     httpRoutes: 0,

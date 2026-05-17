@@ -59,7 +59,6 @@ export type PluginManifestRecord = {
   workspaceDir?: string;
   rootDir: string;
   source: string;
-  setupSource?: string;
   manifestPath: string;
   schemaCacheKey?: string;
   configSchema?: Record<string, unknown>;
@@ -187,7 +186,6 @@ function buildRecord(params: {
     workspaceDir: params.candidate.workspaceDir,
     rootDir: params.candidate.rootDir,
     source: params.candidate.source,
-    setupSource: params.candidate.setupSource,
     manifestPath: params.manifestPath,
     schemaCacheKey: params.schemaCacheKey,
     configSchema: params.configSchema,

@@ -4,11 +4,7 @@ import { describe, expect, it } from "vitest";
 
 const GATEWAY_CLIENT_CONSTRUCTOR_PATTERN = /new\s+GatewayClient\s*\(/;
 
-const ALLOWED_GATEWAY_CLIENT_CALLSITES = new Set([
-  "src/gateway/call.ts",
-  "src/gateway/operator-approvals-client.ts",
-  "src/gateway/probe.ts",
-]);
+const ALLOWED_GATEWAY_CLIENT_CALLSITES = new Set<string>();
 
 async function collectSourceFiles(dir: string): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
@@ -52,5 +48,44 @@ describe("GatewayClient production callsites", () => {
     }
     const expected = [...ALLOWED_GATEWAY_CLIENT_CALLSITES].toSorted();
     expect(callsites.toSorted()).toEqual(expected);
+  });
+
+  it("keeps callGateway off static GatewayClient and protocol imports", async () => {
+    const source = await fs.readFile(path.join(process.cwd(), "src/gateway/call.ts"), "utf8");
+
+    expect(source).not.toMatch(/from\s+["']\.\/client\.js["']/);
+    expect(source).not.toMatch(/from\s+["']\.\/protocol\/index\.js["']/);
+    expect(source).not.toContain('import("./client.js")');
+  });
+
+  it("does not keep a gateway runtime helper facade for plugins", async () => {
+    await expect(
+      fs.stat(path.join(process.cwd(), "src/internal-plugin-helpers/gateway-runtime.ts")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("does not keep the old TypeScript gateway server close helper", async () => {
+    await expect(
+      fs.stat(path.join(process.cwd(), "src/gateway/server-close.ts")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("does not keep the old Gateway client connect-error compatibility helper", async () => {
+    await expect(
+      fs.stat(path.join(process.cwd(), "src/gateway/protocol/connect-error-details.ts")),
+    ).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("does not keep the old plugin Gateway request handler type bridge", async () => {
+    await expect(
+      fs.stat(path.join(process.cwd(), "src/gateway/request-types.ts")),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
+    await expect(
+      fs.stat(path.join(process.cwd(), "src/plugins/runtime/gateway-request-scope.ts")),
+    ).rejects.toMatchObject({
+      code: "ENOENT",
+    });
   });
 });

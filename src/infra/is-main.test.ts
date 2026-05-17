@@ -39,10 +39,10 @@ describe("isMainModule", () => {
     expect(
       isMainModule({
         currentFile: "/repo/dist/entry.js",
-        argv: ["node", "/repo/crawclaw.mjs"],
+        argv: ["node", "/repo/bin/launcher.js"],
         cwd: "/repo",
         env: {},
-        wrapperEntryPairs: [{ wrapperBasename: "crawclaw.mjs", entryBasename: "entry.js" }],
+        wrapperEntryPairs: [{ wrapperBasename: "launcher.js", entryBasename: "entry.js" }],
       }),
     ).toBe(true);
   });
@@ -51,7 +51,7 @@ describe("isMainModule", () => {
     expect(
       isMainModule({
         currentFile: "/repo/dist/entry.js",
-        argv: ["node", "/repo/crawclaw.mjs"],
+        argv: ["node", "/repo/bin/launcher.js"],
         cwd: "/repo",
         env: {},
       }),
@@ -59,10 +59,10 @@ describe("isMainModule", () => {
     expect(
       isMainModule({
         currentFile: "/repo/dist/runtime.js",
-        argv: ["node", "/repo/crawclaw.mjs"],
+        argv: ["node", "/repo/bin/launcher.js"],
         cwd: "/repo",
         env: {},
-        wrapperEntryPairs: [{ wrapperBasename: "crawclaw.mjs", entryBasename: "entry.js" }],
+        wrapperEntryPairs: [{ wrapperBasename: "launcher.js", entryBasename: "entry.js" }],
       }),
     ).toBe(false);
   });

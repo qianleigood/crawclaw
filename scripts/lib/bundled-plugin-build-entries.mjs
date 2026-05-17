@@ -42,28 +42,6 @@ function isManifestlessBundledRuntimeSupportPackage(params) {
   return params.topLevelPublicSurfaceEntries.length > 0;
 }
 
-function collectPluginSourceEntries(packageJson) {
-  const manifestMetadata = getPackageManifestMetadata(packageJson);
-  const hasExplicitExtensions = Array.isArray(manifestMetadata?.extensions);
-  let packageEntries = hasExplicitExtensions
-    ? manifestMetadata.extensions.filter(
-        (entry) => typeof entry === "string" && entry.trim().length > 0,
-      )
-    : [];
-  const setupEntry =
-    typeof manifestMetadata?.setupEntry === "string" &&
-    manifestMetadata.setupEntry.trim().length > 0
-      ? manifestMetadata.setupEntry
-      : undefined;
-  if (setupEntry) {
-    packageEntries = Array.from(new Set([...packageEntries, setupEntry]));
-  }
-  if (packageEntries.length > 0) {
-    return packageEntries;
-  }
-  return hasExplicitExtensions ? [] : ["./index.ts"];
-}
-
 function shouldStageBundledPluginRuntimeDependencies(packageJson) {
   return getPackageManifestMetadata(packageJson)?.bundle?.stageRuntimeDependencies === true;
 }
@@ -137,12 +115,9 @@ export function collectBundledPluginBuildEntries(params = {}) {
       hasManifest,
       hasPackageJson: packageJson !== null,
       packageJson,
-      sourceEntries: Array.from(
-        new Set([
-          ...(hasManifest ? collectPluginSourceEntries(packageJson) : []),
-          ...(isManifestlessSupportPackage ? topLevelPublicSurfaceEntries : []),
-        ]),
-      ),
+      sourceEntries: isManifestlessSupportPackage
+        ? Array.from(new Set(topLevelPublicSurfaceEntries))
+        : [],
     });
   }
 

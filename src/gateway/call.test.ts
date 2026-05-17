@@ -8,128 +8,103 @@ import {
   resolveGatewayPortMock as resolveGatewayPort,
 } from "./gateway-connection.test-mocks.js";
 
-let lastClientOptions: {
-  url?: string;
-  token?: string;
-  password?: string;
-  tlsFingerprint?: string;
-  scopes?: string[];
-  onHelloOk?: (hello: { features?: { methods?: string[] } }) => void | Promise<void>;
-  onClose?: (code: number, reason: string) => void;
-} | null = null;
-let lastRequestOptions: {
-  method?: string;
-  params?: unknown;
-  opts?: { expectFinal?: boolean; timeoutMs?: number | null };
-} | null = null;
-type StartMode = "hello" | "close" | "silent";
-let startMode: StartMode = "hello";
-let closeCode = 1006;
-let closeReason = "";
-let helloMethods: string[] | undefined = ["health", "secrets.resolve"];
-
-vi.mock("./client.js", () => ({
-  describeGatewayCloseCode: (code: number) => {
-    if (code === 1000) {
-      return "normal closure";
-    }
-    if (code === 1006) {
-      return "abnormal closure (no close frame)";
-    }
-    return undefined;
-  },
-  GatewayClient: class {
-    constructor(opts: {
-      url?: string;
-      token?: string;
-      password?: string;
-      scopes?: string[];
-      onHelloOk?: (hello: { features?: { methods?: string[] } }) => void | Promise<void>;
-      onClose?: (code: number, reason: string) => void;
-    }) {
-      lastClientOptions = opts;
-    }
-    async request(
-      method: string,
-      params: unknown,
-      opts?: { expectFinal?: boolean; timeoutMs?: number | null },
-    ) {
-      lastRequestOptions = { method, params, opts };
-      return { ok: true };
-    }
-    start() {
-      if (startMode === "hello") {
-        void lastClientOptions?.onHelloOk?.({
-          features: {
-            methods: helloMethods,
-          },
-        });
-      } else if (startMode === "close") {
-        lastClientOptions?.onClose?.(closeCode, closeReason);
-      }
-    }
-    stop() {}
-  },
-}));
+let fetchCalls: Array<{
+  url: string;
+  init?: RequestInit;
+  options?: { tlsFingerprint?: string };
+}> = [];
+let fetchMode: "ok" | "http-error" | "hang" = "ok";
+let gatewayMethods: string[] | undefined = ["health", "secrets.resolve"];
 
 const { __testing, buildGatewayConnectionDetails, callGateway, callGatewayCli, callGatewayScoped } =
   await import("./call.js");
-
-class StubGatewayClient {
-  constructor(opts: {
-    url?: string;
-    token?: string;
-    password?: string;
-    scopes?: string[];
-    onHelloOk?: (hello: { features?: { methods?: string[] } }) => void | Promise<void>;
-    onClose?: (code: number, reason: string) => void;
-  }) {
-    lastClientOptions = opts;
-  }
-  async request(
-    method: string,
-    params: unknown,
-    opts?: { expectFinal?: boolean; timeoutMs?: number | null },
-  ) {
-    lastRequestOptions = { method, params, opts };
-    return { ok: true };
-  }
-  start() {
-    if (startMode === "hello") {
-      void lastClientOptions?.onHelloOk?.({
-        features: {
-          methods: helloMethods,
-        },
-      });
-    } else if (startMode === "close") {
-      lastClientOptions?.onClose?.(closeCode, closeReason);
-    }
-  }
-  stop() {}
-}
 
 function resetGatewayCallMocks() {
   loadConfig.mockClear();
   resolveGatewayPort.mockClear();
   pickPrimaryTailnetIPv4.mockClear();
   pickPrimaryLanIPv4.mockClear();
-  lastClientOptions = null;
-  lastRequestOptions = null;
-  startMode = "hello";
-  closeCode = 1006;
-  closeReason = "";
-  helloMethods = ["health", "secrets.resolve"];
+  fetchCalls = [];
+  fetchMode = "ok";
+  gatewayMethods = ["health", "secrets.resolve"];
   const loadConfigForTests = loadConfig as unknown as () => CrawClawConfig;
   const resolveGatewayPortForTests = resolveGatewayPort as unknown as (
     cfg?: CrawClawConfig,
     env?: NodeJS.ProcessEnv,
   ) => number;
   __testing.setDepsForTests({
-    createGatewayClient: (opts) =>
-      new StubGatewayClient(opts as ConstructorParameters<typeof StubGatewayClient>[0]) as never,
+    fetch: async (url: string, init?: RequestInit, options?: { tlsFingerprint?: string }) => {
+      fetchCalls.push({ url, init, options });
+      if (fetchMode === "hang") {
+        return await new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener("abort", () => {
+            const error = new Error("This operation was aborted");
+            error.name = "AbortError";
+            reject(error);
+          });
+        });
+      }
+      if (fetchMode === "http-error") {
+        return {
+          ok: false,
+          status: 503,
+          statusText: "Service Unavailable",
+          json: async () => ({ ok: false, error: "unavailable" }),
+        } as Response;
+      }
+      const body = readFetchBody({ init });
+      return {
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        json: async () => ({
+          ok: true,
+          result:
+            body.method === "system.status" ? { gatewayMethods } : { ok: true, status: "started" },
+        }),
+      } as Response;
+    },
     loadConfig: loadConfigForTests,
     resolveGatewayPort: resolveGatewayPortForTests,
   });
+}
+
+function readFetchBody(call: { init?: RequestInit }): { method?: string; params?: unknown } {
+  if (typeof call.init?.body !== "string") {
+    return {};
+  }
+  return JSON.parse(call.init.body) as { method?: string; params?: unknown };
+}
+
+function lastFetchCall(): {
+  url: string;
+  init?: RequestInit;
+  options?: { tlsFingerprint?: string };
+} {
+  const call = fetchCalls.at(-1);
+  if (!call) {
+    throw new Error("expected gateway HTTP fetch call");
+  }
+  return call;
+}
+
+function lastFetchCredential(): string | undefined {
+  return (lastFetchCall().init?.headers as Record<string, string> | undefined)?.[
+    "x-crawclaw-gateway-token"
+  ];
+}
+
+function gatewayRpcUrl(gatewayUrl: string): string {
+  const parsed = new URL(gatewayUrl);
+  if (parsed.protocol === "ws:") {
+    parsed.protocol = "http:";
+  } else if (parsed.protocol === "wss:") {
+    parsed.protocol = "https:";
+  }
+  parsed.pathname = "/api/gateway/rpc";
+  parsed.search = "";
+  parsed.hash = "";
+  return parsed.toString();
 }
 
 function setGatewayNetworkDefaults(port = 18789) {
@@ -188,7 +163,7 @@ describe("callGateway url resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.url).toBe("ws://127.0.0.1:18800");
+    expect(lastFetchCall().url).toBe("http://127.0.0.1:18800/api/gateway/rpc");
   });
 
   it.each([
@@ -235,7 +210,7 @@ describe("callGateway url resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.url).toBe(expectedUrl);
+    expect(lastFetchCall().url).toBe(gatewayRpcUrl(expectedUrl));
   });
 
   it("uses url override in remote mode even when remote url is missing", async () => {
@@ -251,8 +226,8 @@ describe("callGateway url resolution", () => {
       token: "explicit-token",
     });
 
-    expect(lastClientOptions?.url).toBe("wss://override.example/ws");
-    expect(lastClientOptions?.token).toBe("explicit-token");
+    expect(lastFetchCall().url).toBe("https://override.example/api/gateway/rpc");
+    expect(lastFetchCredential()).toBe("explicit-token");
   });
 
   it("uses CRAWCLAW_GATEWAY_URL env override in remote mode when remote URL is missing", async () => {
@@ -268,9 +243,8 @@ describe("callGateway url resolution", () => {
       method: "health",
     });
 
-    expect(lastClientOptions?.url).toBe("wss://gateway-in-container.internal:9443/ws");
-    expect(lastClientOptions?.token).toBe("env-token");
-    expect(lastClientOptions?.password).toBeUndefined();
+    expect(lastFetchCall().url).toBe("https://gateway-in-container.internal:9443/api/gateway/rpc");
+    expect(lastFetchCredential()).toBe("env-token");
   });
 
   it("uses env URL override credentials without resolving local password SecretRefs", async () => {
@@ -297,9 +271,8 @@ describe("callGateway url resolution", () => {
       method: "health",
     });
 
-    expect(lastClientOptions?.url).toBe("wss://gateway-in-container.internal:9443/ws");
-    expect(lastClientOptions?.token).toBe("env-token");
-    expect(lastClientOptions?.password).toBeUndefined();
+    expect(lastFetchCall().url).toBe("https://gateway-in-container.internal:9443/api/gateway/rpc");
+    expect(lastFetchCredential()).toBe("env-token");
   });
 
   it("uses remote tlsFingerprint with env URL override", async () => {
@@ -316,12 +289,35 @@ describe("callGateway url resolution", () => {
     pickPrimaryTailnetIPv4.mockReturnValue(undefined);
     process.env.CRAWCLAW_GATEWAY_URL = "wss://gateway-in-container.internal:9443/ws";
     process.env.CRAWCLAW_GATEWAY_TOKEN = "env-token";
+    const fetchCalls: Array<{
+      url: string;
+      init?: RequestInit;
+      options?: { tlsFingerprint?: string };
+    }> = [];
+    __testing.setDepsForTests({
+      loadConfig: loadConfig as unknown as () => CrawClawConfig,
+      resolveGatewayPort: resolveGatewayPort as unknown as (
+        cfg?: CrawClawConfig,
+        env?: NodeJS.ProcessEnv,
+      ) => number,
+      fetch: async (url: string, init?: RequestInit, options?: { tlsFingerprint?: string }) => {
+        fetchCalls.push({ url, init, options });
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => ({ ok: true, result: { ok: true } }),
+        } as Response;
+      },
+    } as never);
 
     await callGateway({
       method: "health",
     });
 
-    expect(lastClientOptions?.tlsFingerprint).toBe("remote-fingerprint");
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0]?.url).toBe("https://gateway-in-container.internal:9443/api/gateway/rpc");
+    expect(fetchCalls[0]?.options?.tlsFingerprint).toBe("remote-fingerprint");
   });
 
   it("does not apply remote tlsFingerprint for CLI url override", async () => {
@@ -343,34 +339,71 @@ describe("callGateway url resolution", () => {
       token: "explicit-token",
     });
 
-    expect(lastClientOptions?.tlsFingerprint).toBeUndefined();
+    expect(lastFetchCall().options?.tlsFingerprint).toBeUndefined();
   });
 
   it.each([
     {
-      label: "uses least-privilege scopes by default for non-CLI callers",
+      label: "default caller",
       call: () => callGateway({ method: "health" }),
-      expectedScopes: ["operator.read"],
     },
     {
-      label: "keeps legacy admin scopes for explicit CLI callers",
+      label: "explicit CLI caller",
       call: () => callGatewayCli({ method: "health" }),
-      expectedScopes: ["operator.admin", "operator.read", "operator.write", "operator.approvals"],
     },
-  ])("scope selection: $label", async ({ call, expectedScopes }) => {
+  ])("uses Rust HTTP RPC for $label", async ({ call }) => {
     setLocalLoopbackGatewayConfig();
     await call();
-    expect(lastClientOptions?.scopes).toEqual(expectedScopes);
+    expect(lastFetchCall().url).toBe("http://127.0.0.1:18789/api/gateway/rpc");
   });
 
-  it("passes explicit scopes through, including empty arrays", async () => {
+  it("accepts explicit scope wrappers without using a WebSocket client path", async () => {
     setLocalLoopbackGatewayConfig();
 
     await callGatewayScoped({ method: "health", scopes: ["operator.read"] });
-    expect(lastClientOptions?.scopes).toEqual(["operator.read"]);
+    expect(lastFetchCall().url).toBe("http://127.0.0.1:18789/api/gateway/rpc");
 
     await callGatewayScoped({ method: "health", scopes: [] });
-    expect(lastClientOptions?.scopes).toEqual([]);
+    expect(lastFetchCall().url).toBe("http://127.0.0.1:18789/api/gateway/rpc");
+  });
+
+  it("uses Rust HTTP RPC by default when no WebSocket client override is installed", async () => {
+    setLocalLoopbackGatewayConfig(18800);
+    const fetchCalls: Array<{ url: string; init?: RequestInit }> = [];
+    __testing.setDepsForTests({
+      loadConfig: loadConfig as unknown as () => CrawClawConfig,
+      resolveGatewayPort: resolveGatewayPort as unknown as (
+        cfg?: CrawClawConfig,
+        env?: NodeJS.ProcessEnv,
+      ) => number,
+      fetch: async (url: string | URL, init?: RequestInit) => {
+        fetchCalls.push({ url: String(url), init });
+        return {
+          ok: true,
+          status: 200,
+          statusText: "OK",
+          json: async () => ({ ok: true, result: { ok: true } }),
+        } as Response;
+      },
+    } as never);
+
+    const result = await callGateway({ method: "health", token: "rpc-token" });
+
+    expect(result).toEqual({ ok: true });
+    expect(fetchCalls).toHaveLength(1);
+    const fetchCall = fetchCalls[0];
+    if (!fetchCall?.init || typeof fetchCall.init.body !== "string") {
+      throw new Error("expected HTTP RPC fetch call with a string body");
+    }
+    const headers = fetchCall.init.headers as Record<string, string>;
+    expect(fetchCall.url).toBe("http://127.0.0.1:18800/api/gateway/rpc");
+    expect(fetchCall.init.method).toBe("POST");
+    expect(headers["content-type"]).toBe("application/json");
+    expect(headers["x-crawclaw-gateway-token"]).toBe("rpc-token");
+    expect(JSON.parse(fetchCall.init.body)).toMatchObject({
+      method: "health",
+      params: {},
+    });
   });
 });
 
@@ -568,10 +601,8 @@ describe("callGateway error details", () => {
     vi.useRealTimers();
   });
 
-  it("includes connection details when the gateway closes", async () => {
-    startMode = "close";
-    closeCode = 1006;
-    closeReason = "";
+  it("includes connection details when HTTP RPC returns an error response", async () => {
+    fetchMode = "http-error";
     setLocalLoopbackGatewayConfig();
 
     let err: Error | null = null;
@@ -581,14 +612,14 @@ describe("callGateway error details", () => {
       err = caught as Error;
     }
 
-    expect(err?.message).toContain("gateway closed (1006");
+    expect(err?.message).toContain("gateway HTTP RPC failed (503 Service Unavailable)");
     expect(err?.message).toContain("Gateway target: ws://127.0.0.1:18789");
     expect(err?.message).toContain("Source: local loopback");
     expect(err?.message).toContain("Bind: loopback");
   });
 
   it("includes connection details on timeout", async () => {
-    startMode = "silent";
+    fetchMode = "hang";
     setLocalLoopbackGatewayConfig();
 
     vi.useFakeTimers();
@@ -607,41 +638,28 @@ describe("callGateway error details", () => {
   });
 
   it("does not overflow very large timeout values", async () => {
-    startMode = "silent";
     setLocalLoopbackGatewayConfig();
 
-    vi.useFakeTimers();
-    let errMessage = "";
-    const promise = callGateway({ method: "health", timeoutMs: 2_592_010_000 }).catch((caught) => {
-      errMessage = caught instanceof Error ? caught.message : String(caught);
+    await expect(callGateway({ method: "health", timeoutMs: 2_592_010_000 })).resolves.toEqual({
+      ok: true,
+      status: "started",
     });
-
-    await vi.advanceTimersByTimeAsync(1);
-    expect(errMessage).toBe("");
-
-    lastClientOptions?.onClose?.(1006, "");
-    await promise;
-
-    expect(errMessage).toContain("gateway closed (1006");
   });
 
-  it("forwards caller timeout to client requests", async () => {
+  it("posts the requested method through HTTP RPC", async () => {
     setLocalLoopbackGatewayConfig();
 
     await callGateway({ method: "health", timeoutMs: 45_000 });
 
-    expect(lastRequestOptions?.method).toBe("health");
-    expect(lastRequestOptions?.opts?.timeoutMs).toBe(45_000);
+    expect(readFetchBody(lastFetchCall()).method).toBe("health");
   });
 
-  it("does not inject wrapper timeout defaults into expectFinal requests", async () => {
+  it("uses Rust HTTP RPC by default for expectFinal requests", async () => {
     setLocalLoopbackGatewayConfig();
 
     await callGateway({ method: "health", expectFinal: true });
 
-    expect(lastRequestOptions?.method).toBe("health");
-    expect(lastRequestOptions?.opts?.expectFinal).toBe(true);
-    expect(lastRequestOptions?.opts?.timeoutMs).toBeUndefined();
+    expect(fetchCalls).toHaveLength(1);
   });
 
   it("fails fast when remote mode is missing remote url", async () => {
@@ -658,7 +676,7 @@ describe("callGateway error details", () => {
 
   it("fails before request when a required gateway method is missing", async () => {
     setLocalLoopbackGatewayConfig();
-    helloMethods = ["health"];
+    gatewayMethods = ["health"];
     await expect(
       callGateway({
         method: "secrets.resolve",
@@ -805,7 +823,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.password).toBe(expectedPassword);
+    expect(lastFetchCredential()).toBe(expectedPassword);
   });
 
   it("resolves gateway.auth.password SecretInput refs for gateway calls", async () => {
@@ -828,7 +846,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.password).toBe("resolved-local-ref-password");
+    expect(lastFetchCredential()).toBe("resolved-local-ref-password");
   });
 
   it("does not resolve local password ref when env password takes precedence", async () => {
@@ -851,7 +869,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.password).toBe("from-env");
+    expect(lastFetchCredential()).toBe("from-env");
   });
 
   it("does not resolve local password ref when token auth can win", async () => {
@@ -874,7 +892,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.token).toBe("token-auth");
+    expect(lastFetchCredential()).toBe("token-auth");
   });
 
   it("resolves local password ref before unresolved local token ref can block auth", async () => {
@@ -897,8 +915,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.token).toBeUndefined();
-    expect(lastClientOptions?.password).toBe("resolved-local-fallback-password"); // pragma: allowlist secret
+    expect(lastFetchCredential()).toBe("resolved-local-fallback-password"); // pragma: allowlist secret
   });
 
   it("fails closed when unresolved local token SecretRef would otherwise fall back to remote token", async () => {
@@ -946,8 +963,7 @@ describe("callGateway password resolution", () => {
 
       await callGateway({ method: "health" });
 
-      expect(lastClientOptions?.token).toBeUndefined();
-      expect(lastClientOptions?.password).toBeUndefined();
+      expect(lastFetchCredential()).toBeUndefined();
     },
   );
 
@@ -974,7 +990,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.password).toBe("remote-secret");
+    expect(lastFetchCredential()).toBe("remote-secret");
   });
 
   it("resolves gateway.remote.token SecretInput refs when remote token is required", async () => {
@@ -998,7 +1014,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.token).toBe("resolved-remote-ref-token");
+    expect(lastFetchCredential()).toBe("resolved-remote-ref-token");
   });
 
   it("resolves gateway.remote.password SecretInput refs when remote password is required", async () => {
@@ -1022,7 +1038,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.password).toBe("resolved-remote-ref-password");
+    expect(lastFetchCredential()).toBe("resolved-remote-ref-password");
   });
 
   it("does not resolve remote token ref when remote password already wins", async () => {
@@ -1046,8 +1062,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.token).toBeUndefined();
-    expect(lastClientOptions?.password).toBe("remote-password");
+    expect(lastFetchCredential()).toBe("remote-password");
   });
 
   it("resolves remote token ref before unresolved remote password ref can block auth", async () => {
@@ -1072,8 +1087,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.token).toBe("resolved-remote-ref-token");
-    expect(lastClientOptions?.password).toBeUndefined();
+    expect(lastFetchCredential()).toBe("resolved-remote-ref-token");
   });
 
   it("does not resolve remote password ref when remote token already wins", async () => {
@@ -1097,8 +1111,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.token).toBe("remote-token");
-    expect(lastClientOptions?.password).toBeUndefined();
+    expect(lastFetchCredential()).toBe("remote-token");
   });
 
   it("resolves remote token refs on local-mode calls when fallback token can win", async () => {
@@ -1122,8 +1135,7 @@ describe("callGateway password resolution", () => {
 
     await callGateway({ method: "health" });
 
-    expect(lastClientOptions?.token).toBe("resolved-local-fallback-remote-token");
-    expect(lastClientOptions?.password).toBeUndefined();
+    expect(lastFetchCredential()).toBe("resolved-local-fallback-remote-token");
   });
 
   it.each(["none", "trusted-proxy"] as const)(
@@ -1149,8 +1161,7 @@ describe("callGateway password resolution", () => {
 
       await callGateway({ method: "health" });
 
-      expect(lastClientOptions?.token).toBeUndefined();
-      expect(lastClientOptions?.password).toBeUndefined();
+      expect(lastFetchCredential()).toBeUndefined();
     },
   );
 
@@ -1173,6 +1184,6 @@ describe("callGateway password resolution", () => {
       [testCase.authKey]: testCase.explicitValue,
     });
 
-    expect(lastClientOptions?.[testCase.authKey]).toBe(testCase.explicitValue);
+    expect(lastFetchCredential()).toBe(testCase.explicitValue);
   });
 });

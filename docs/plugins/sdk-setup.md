@@ -18,27 +18,9 @@ Reference for plugin packaging (`package.json` metadata), manifests
 
 ## Package metadata
 
-Your `package.json` needs an `crawclaw` field that tells the plugin system what
-your plugin provides:
-
-**Channel plugin:**
-
-```json
-{
-  "name": "@myorg/crawclaw-my-channel",
-  "version": "1.0.0",
-  "type": "module",
-  "crawclaw": {
-    "extensions": ["./index.ts"],
-    "setupEntry": "./setup-entry.ts",
-    "channel": {
-      "id": "my-channel",
-      "label": "My Channel",
-      "blurb": "Short description of the channel."
-    }
-  }
-}
-```
+Your `package.json` may include a `crawclaw` field for install and publish
+metadata. Runtime capabilities are declared in `crawclaw.plugin.json` and native
+Rust descriptors, not executable package entries.
 
 **Provider plugin / ClawHub publish baseline:**
 
@@ -66,40 +48,18 @@ fields are required. The canonical publish snippets live in
 
 ### `crawclaw` fields
 
-| Field        | Type       | Description                                                                                |
-| ------------ | ---------- | ------------------------------------------------------------------------------------------ |
-| `extensions` | `string[]` | Entry point files (relative to package root)                                               |
-| `setupEntry` | `string`   | Lightweight setup-only entry (optional)                                                    |
-| `channel`    | `object`   | Channel metadata: `id`, `label`, `blurb`, `selectionLabel`, `docsPath`, `order`, `aliases` |
-| `providers`  | `string[]` | Provider ids registered by this plugin                                                     |
-| `install`    | `object`   | Install hints: `npmSpec`, `localPath`, `defaultChoice`                                     |
-| `startup`    | `object`   | Startup behavior flags                                                                     |
+| Field     | Type     | Description                                            |
+| --------- | -------- | ------------------------------------------------------ |
+| `compat`  | `object` | Publish compatibility metadata                         |
+| `build`   | `object` | Publish build metadata                                 |
+| `install` | `object` | Install hints: `npmSpec`, `localPath`, `defaultChoice` |
 
-### Deferred full load
-
-Channel plugins can opt into deferred loading with:
-
-```json
-{
-  "crawclaw": {
-    "extensions": ["./index.ts"],
-    "setupEntry": "./setup-entry.ts",
-    "startup": {
-      "deferConfiguredChannelFullLoadUntilAfterListen": true
-    }
-  }
-}
-```
-
-When enabled, CrawClaw loads only `setupEntry` during the pre-listen startup
-phase, even for already-configured channels. The full entry loads after the
-gateway starts listening.
+### Removed executable entries
 
 <Warning>
-  Only enable deferred loading when your `setupEntry` registers everything the
-  gateway needs before it starts listening (channel registration, HTTP routes,
-  gateway methods). If the full entry owns required startup capabilities, keep
-  the default behavior.
+  The old `crawclaw.extensions`, `crawclaw.setupEntry`, and deferred full-load
+  channel paths were removed with the TypeScript plugin runtime. Native plugin
+  setup, status, and capability surfaces are now owned by the Rust runtime.
 </Warning>
 
 ## Plugin manifest

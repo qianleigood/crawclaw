@@ -13,7 +13,7 @@ read_when:
 CrawClaw's public plugin SDK is the Rust crate `crawclaw-plugin-sdk`.
 The old JavaScript and TypeScript SDK package exports were removed. New plugins
 should expose native descriptors and handle runtime calls through Rust-owned
-JSON-RPC or Gateway methods.
+JSON-RPC.
 
 <Warning>
   The npm package no longer exports JavaScript plugin SDK subpaths. Do not build

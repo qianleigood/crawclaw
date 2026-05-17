@@ -229,7 +229,7 @@ These are recognized and shown in diagnostics, but CrawClaw does not run them:
 
 CrawClaw checks for native plugin format first:
 
-1. `crawclaw.plugin.json` or valid `package.json` with `crawclaw.extensions` — treated as **native plugin**
+1. `crawclaw.plugin.json` — treated as **native plugin**
 2. Bundle markers (`.codex-plugin/`, `.claude-plugin/`, or default Claude/Cursor layout) — treated as **bundle**
 
 If a directory contains both, CrawClaw uses the native path. This prevents

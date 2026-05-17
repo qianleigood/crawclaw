@@ -310,7 +310,7 @@ describe("test planner", () => {
         mode: "local",
         surfaces: [],
         passthroughArgs: [
-          "src/auto-reply/reply/commands-acp/install-hints.test.ts",
+          "src/control/model-picker.test.ts",
           bundledPluginFile("google", "oauth.test.ts"),
         ],
       },
@@ -352,7 +352,7 @@ describe("test planner", () => {
     const explanation = explainExecutionTarget(
       {
         mode: "local",
-        fileFilters: ["src/auto-reply/reply/commands-acp/install-hints.test.ts"],
+        fileFilters: ["src/control/model-picker.test.ts"],
       },
       {
         env: {},

@@ -732,7 +732,7 @@ for usage/billing and raise limits as needed.
 
     ```bash
 
-# Install CrawClaw Desktop from GitHub Releases.
+    # Install CrawClaw Desktop from GitHub Releases.
 
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     # Use CrawClaw Desktop or the local Gateway API for this operation.

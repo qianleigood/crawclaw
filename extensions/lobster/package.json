@@ -4,7 +4,6 @@
   "description": "Lobster workflow tool plugin (typed pipelines + resumable approvals)",
   "type": "module",
   "crawclaw": {
-    "extensions": [],
     "release": {
       "publishToNpm": true
     }

@@ -6,7 +6,6 @@ import { bundledDistPluginFile } from "../../test/helpers/bundled-plugin-paths.j
 import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../plugins/public-artifacts.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { pathExists } from "../utils.js";
-import { resolveStableNodePath } from "./stable-node-path.js";
 import { runGatewayUpdate } from "./update-runner.js";
 
 type CommandResponse = { stdout?: string; stderr?: string; code?: number | null };
@@ -50,20 +49,14 @@ describe("runGatewayUpdate", () => {
   beforeEach(async () => {
     tempDir = path.join(fixtureRoot, `case-${caseId++}`);
     await fs.mkdir(tempDir, { recursive: true });
-    await fs.writeFile(path.join(tempDir, "crawclaw.mjs"), "export {};\n", "utf-8");
   });
 
   afterEach(async () => {
     // Shared fixtureRoot cleaned up in afterAll.
   });
 
-  async function createStableTagRunner(params: {
-    stableTag: string;
-    onDoctor?: () => Promise<void>;
-  }) {
+  async function createStableTagRunner(params: { stableTag: string }) {
     const calls: string[] = [];
-    const doctorNodePath = await resolveStableNodePath(process.execPath);
-    const doctorKey = `${doctorNodePath} ${path.join(tempDir, "crawclaw.mjs")} doctor --non-interactive --fix`;
 
     const runCommand = async (argv: string[]) => {
       const key = argv.join(" ");
@@ -93,17 +86,12 @@ describe("runGatewayUpdate", () => {
       if (key === "pnpm build") {
         return { stdout: "", stderr: "", code: 0 };
       }
-      if (key === doctorKey) {
-        await params.onDoctor?.();
-        return { stdout: "", stderr: "", code: 0 };
-      }
       return { stdout: "", stderr: "", code: 0 };
     };
 
     return {
       runCommand,
       calls,
-      doctorKey,
     };
   }
 
@@ -150,7 +138,6 @@ describe("runGatewayUpdate", () => {
     stableTag: string;
     installCommand: string;
     buildCommand: string;
-    doctorCommand: string;
     onCommand?: (key: string) => Promise<CommandResponse | undefined> | CommandResponse | undefined;
   }) {
     const calls: string[] = [];
@@ -158,7 +145,6 @@ describe("runGatewayUpdate", () => {
       ...buildStableTagResponses(params.stableTag),
       [params.installCommand]: { stdout: "" },
       [params.buildCommand]: { stdout: "" },
-      [params.doctorCommand]: { stdout: "" },
     } satisfies Record<string, CommandResponse>;
 
     const runCommand = async (argv: string[]) => {
@@ -335,14 +321,10 @@ describe("runGatewayUpdate", () => {
     await setupGitCheckout({ packageManager: "pnpm@8.0.0" });
     const stableTag = "v1.0.1-1";
     const betaTag = "v1.0.0-beta.2";
-    const doctorNodePath = await resolveStableNodePath(process.execPath);
     const { runner, calls } = createRunner({
       ...buildStableTagResponses(stableTag, { additionalTags: [betaTag] }),
       "pnpm install": { stdout: "" },
       "pnpm build": { stdout: "" },
-      [`${doctorNodePath} ${path.join(tempDir, "crawclaw.mjs")} doctor --non-interactive --fix`]: {
-        stdout: "",
-      },
     });
 
     const result = await runWithRunner(runner, { channel: "beta" });
@@ -359,7 +341,6 @@ describe("runGatewayUpdate", () => {
       stableTag,
       installCommand: "npm install --no-package-lock --legacy-peer-deps",
       buildCommand: "npm run build",
-      doctorCommand: `${process.execPath} ${path.join(tempDir, "crawclaw.mjs")} doctor --non-interactive`,
       onCommand: (key) => {
         if (key === "pnpm --version") {
           throw new Error("spawn pnpm ENOENT");
@@ -394,7 +375,6 @@ describe("runGatewayUpdate", () => {
       stableTag,
       installCommand: "pnpm install",
       buildCommand: "pnpm build",
-      doctorCommand: `${process.execPath} ${path.join(tempDir, "crawclaw.mjs")} doctor --non-interactive`,
       onCommand: (key) => {
         if (key === "pnpm --version") {
           pnpmVersionChecks += 1;
@@ -783,12 +763,11 @@ describe("runGatewayUpdate", () => {
     expect(calls.some((call) => call.includes("status --porcelain"))).toBe(false);
   });
 
-  it("fails with a clear reason when crawclaw.mjs is missing", async () => {
+  it("does not require the removed root Node entry after build", async () => {
     await setupGitCheckout({ packageManager: "pnpm@8.0.0" });
-    await fs.rm(path.join(tempDir, "crawclaw.mjs"), { force: true });
 
     const stableTag = "v1.0.1-1";
-    const { runner } = createRunner({
+    const { runner, calls } = createRunner({
       ...buildStableTagResponses(stableTag),
       "pnpm install": { stdout: "" },
       "pnpm build": { stdout: "" },
@@ -796,29 +775,19 @@ describe("runGatewayUpdate", () => {
 
     const result = await runWithRunner(runner, { channel: "stable" });
 
-    expect(result.status).toBe("error");
-    expect(result.reason).toBe("doctor-entry-missing");
-    expect(result.steps.at(-1)?.name).toBe("crawclaw doctor entry");
+    expect(result.status).toBe("ok");
+    expect(calls.some((call) => call.includes(" doctor "))).toBe(false);
   });
 
-  it("succeeds when doctor mutates generated assets during the update run", async () => {
+  it("does not run the removed root Node doctor entry during update", async () => {
     await setupGitCheckout({ packageManager: "pnpm@8.0.0" });
 
     const stableTag = "v1.0.1-1";
-    const sidecarPath = path.join(tempDir, FIRST_RUNTIME_SIDECAR);
-    const { runCommand, calls, doctorKey } = await createStableTagRunner({
-      stableTag,
-      onDoctor: async () => {
-        await writeBundledRuntimeSidecars(tempDir);
-      },
-    });
+    const { runCommand, calls } = await createStableTagRunner({ stableTag });
 
     const result = await runWithCommand(runCommand, { channel: "stable" });
 
     expect(result.status).toBe("ok");
-    if (BUNDLED_RUNTIME_SIDECAR_PATHS.length > 0) {
-      expect(await pathExists(sidecarPath)).toBe(true);
-    }
-    expect(calls).toContain(doctorKey);
+    expect(calls.some((call) => call.includes(" doctor "))).toBe(false);
   });
 });

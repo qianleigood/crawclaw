@@ -75,9 +75,7 @@ Authoritative pieces now live in different layers:
 - Shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
 - Runtime validators (AJV): `src/gateway/protocol/index.ts`
 - Gateway protocol schema index: `src/gateway/protocol/schema.ts`
-- Server handshake: `src/gateway/server.impl.ts`
-- Method dispatch/runtime behavior: `crates/crawclaw-gateway/src/lib.rs`
-- Node client: `src/gateway/client.ts`
+- Server handshake and method dispatch/runtime behavior: `crates/crawclaw-gateway/src/lib.rs`
 - Generated JSON Schema: `dist/protocol.schema.json`
 - Generated Swift models: `apps/macos/Sources/CrawClawProtocol/GatewayModels.swift`
 
@@ -94,8 +92,8 @@ Authoritative pieces now live in different layers:
 
 - **Server side**: every inbound frame is validated with AJV. The handshake only
   accepts a `connect` request whose params match `ConnectParams`.
-- **Client side**: the JS client validates event and response frames before
-  using them.
+- **Client side**: generated and test clients validate event and response
+  frames before using them.
 - **Method surface**: the Gateway advertises the supported `methods` and
   `events` in `hello-ok`.
 
@@ -109,8 +107,8 @@ Connect (first message):
   "id": "c1",
   "method": "connect",
   "params": {
-    "minProtocol": 2,
-    "maxProtocol": 2,
+    "minProtocol": 3,
+    "maxProtocol": 3,
     "client": {
       "id": "crawclaw-macos",
       "displayName": "macos",
@@ -132,7 +130,7 @@ Hello-ok response:
   "ok": true,
   "payload": {
     "type": "hello-ok",
-    "protocol": 2,
+    "protocol": 3,
     "server": { "version": "dev", "connId": "ws-1" },
     "features": { "methods": ["health"], "events": ["tick"] },
     "snapshot": {
@@ -266,7 +264,7 @@ pnpm protocol:check
 
 5. **Tests + docs**
 
-Add a server test in `src/gateway/server.*.test.ts` and note the method in docs.
+Add a Rust Gateway test in `crates/crawclaw-gateway/src/lib.rs` and note the method in docs.
 
 ## Swift codegen behavior
 

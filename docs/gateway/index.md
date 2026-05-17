@@ -93,8 +93,8 @@ Why this set matters:
 Planning note:
 
 - `/v1/models` is agent-first: it returns `crawclaw`, `crawclaw/default`, and `crawclaw/<agentId>`.
-- `crawclaw/default` is the stable alias that always maps to the configured default agent.
-- Use `x-crawclaw-model` when you want a backend provider/model override; otherwise the selected agent's normal model and embedding setup stays in control.
+- `crawclaw/default` is the stable alias for the Rust-native `main` agent target.
+- Backend provider/model selection belongs in the selected agent/provider configuration.
 
 All of these run on the main Gateway port and use the same trusted operator auth boundary as the rest of the Gateway HTTP API.
 

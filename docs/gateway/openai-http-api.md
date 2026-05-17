@@ -1,5 +1,5 @@
 ---
-summary: "Expose an OpenAI-compatible /v1/chat/completions HTTP endpoint from the Gateway"
+summary: "Expose a Rust-native OpenAI-compatible /v1/chat/completions HTTP endpoint from the Gateway"
 read_when:
   - Integrating tools that expect OpenAI Chat Completions
 title: "OpenAI Chat Completions"
@@ -7,81 +7,65 @@ title: "OpenAI Chat Completions"
 
 # OpenAI Chat Completions (HTTP)
 
-CrawClaw’s Gateway can serve a small OpenAI-compatible Chat Completions endpoint.
+CrawClaw Gateway can serve a small Rust-native OpenAI-compatible Chat Completions endpoint.
 
 This endpoint is **disabled by default**. Enable it in config first.
 
 - `POST /v1/chat/completions`
 - Same port as the Gateway (WS + HTTP multiplex): `http://<gateway-host>:<port>/v1/chat/completions`
 
-When the Gateway’s OpenAI-compatible HTTP surface is enabled, it also serves:
+When either OpenAI-compatible HTTP endpoint is enabled, the Gateway also serves:
 
 - `GET /v1/models`
 - `GET /v1/models/{id}`
 - `POST /v1/responses`
 
-Under the hood, requests are executed as a normal Gateway agent run (same codepath as CrawClaw Desktop or the local Gateway API), so routing/permissions/config match your Gateway.
+Requests run through the same Rust-native Gateway agent runtime used by CrawClaw Desktop.
 
 ## Authentication
 
-Uses the Gateway auth configuration. Send a bearer token:
+Use the Gateway auth configuration. Send the configured token or password as a bearer secret:
 
-- `Authorization: Bearer <token>`
+- `Authorization: Bearer <token-or-password>`
 
 Notes:
 
-- When `gateway.auth.mode="token"`, use `gateway.auth.token` (or `CRAWCLAW_GATEWAY_TOKEN`).
-- When `gateway.auth.mode="password"`, use `gateway.auth.password` (or `CRAWCLAW_GATEWAY_PASSWORD`).
-- If `gateway.auth.rateLimit` is configured and too many auth failures occur, the endpoint returns `429` with `Retry-After`.
+- When `gateway.auth.mode="token"`, use `gateway.auth.token` or `CRAWCLAW_GATEWAY_TOKEN`.
+- When `gateway.auth.mode="password"`, use `gateway.auth.password` or `CRAWCLAW_GATEWAY_PASSWORD`.
+- Keep this endpoint on loopback, a tailnet, or private ingress. Do not expose it directly to the public internet.
 
-## Security boundary (important)
+## Security Boundary
 
-Treat this endpoint as a **full operator-access** surface for the gateway instance.
+Treat this endpoint as a full operator-access surface for the gateway instance.
 
 - HTTP bearer auth here is not a narrow per-user scope model.
-- A valid Gateway token/password for this endpoint should be treated like an owner/operator credential.
-- Requests run through the same control-plane agent path as trusted operator actions.
-- There is no separate non-owner/per-user tool boundary on this endpoint; once a caller passes Gateway auth here, CrawClaw treats that caller as a trusted operator for this gateway.
-- For shared-secret auth modes (`token` and `password`), the endpoint restores the normal full operator defaults even if the caller sends a narrower `x-crawclaw-scopes` header.
-- Trusted identity-bearing HTTP modes (for example trusted proxy auth or `gateway.auth.mode="none"`) still honor the declared operator scopes on the request.
+- Requests run through the same trusted operator path as the local Gateway API.
 - If the target agent policy allows sensitive tools, this endpoint can use them.
-- Keep this endpoint on loopback/tailnet/private ingress only; do not expose it directly to the public internet.
-
-Auth matrix:
-
-- `gateway.auth.mode="token"` or `"password"` + `Authorization: Bearer ...`
-  - proves possession of the shared gateway operator secret
-  - ignores narrower `x-crawclaw-scopes`
-  - restores the full default operator scope set
-  - treats chat turns on this endpoint as owner-sender turns
-- trusted identity-bearing HTTP modes (for example trusted proxy auth, or `gateway.auth.mode="none"` on private ingress)
-  - authenticate some outer trusted identity or deployment boundary
-  - honor the declared `x-crawclaw-scopes` header
-  - only get owner semantics when `operator.admin` is actually present in those declared scopes
 
 See [Security](/gateway/security) and [Remote access](/gateway/remote).
 
-## Agent-first model contract
+## Agent-First Model Contract
 
-CrawClaw treats the OpenAI `model` field as an **agent target**, not a raw provider model id.
+CrawClaw treats the OpenAI `model` field as an agent target, not as a raw provider model id.
 
-- `model: "crawclaw"` routes to the configured default agent.
-- `model: "crawclaw/default"` also routes to the configured default agent.
+- `model: "crawclaw"` routes to the `main` agent.
+- `model: "crawclaw/default"` routes to the `main` agent.
 - `model: "crawclaw/<agentId>"` routes to a specific agent.
 
-Optional request headers:
-
-- `x-crawclaw-model: <provider/model-or-bare-id>` overrides the backend model for the selected agent.
-- `x-crawclaw-agent-id: <agentId>` remains supported as a compatibility override.
-- `x-crawclaw-session-key: <sessionKey>` fully controls session routing.
-- `x-crawclaw-message-channel: <channel>` sets the synthetic ingress channel context for channel-aware prompts and policies.
-
-Compatibility aliases still accepted:
+Compatibility aliases are also accepted:
 
 - `model: "crawclaw:<agentId>"`
 - `model: "agent:<agentId>"`
 
-## Enabling the endpoint
+Supported request headers:
+
+- `x-crawclaw-agent-id: <agentId>` overrides the target agent when `model` is `crawclaw` or `crawclaw/default`.
+- `x-crawclaw-session-key: <sessionKey>` sets explicit session routing.
+- `x-crawclaw-message-channel: <channel>` sets the synthetic ingress channel context.
+
+Backend provider/model overrides are configured on the selected agent/provider. The old JS compatibility header `x-crawclaw-model` is no longer part of the Rust-native HTTP surface.
+
+## Enabling The Endpoint
 
 Set `gateway.http.endpoints.chatCompletions.enabled` to `true`:
 
@@ -97,91 +81,42 @@ Set `gateway.http.endpoints.chatCompletions.enabled` to `true`:
 }
 ```
 
-## Disabling the endpoint
+## Request Support
 
-Set `gateway.http.endpoints.chatCompletions.enabled` to `false`:
+Current Rust-native support is intentionally small:
 
-```json5
-{
-  gateway: {
-    http: {
-      endpoints: {
-        chatCompletions: { enabled: false },
-      },
-    },
-  },
-}
-```
+- non-streaming JSON responses
+- text `messages` content
+- array content parts with `text` or `input_text`
+- `system` and `developer` messages folded into system instructions
+- `user` used to derive a stable session key when `x-crawclaw-session-key` is not provided
 
-## Session behavior
+Currently unsupported:
 
-By default the endpoint is **stateless per request** (a new session key is generated each call).
+- `stream: true` SSE
+- image content parts
+- client-side tool calls through the OpenAI HTTP compatibility endpoint
+- per-request backend model override headers
 
-If the request includes an OpenAI `user` string, the Gateway derives a stable session key from it, so repeated calls can share an agent session.
+Use CrawClaw Desktop or the local Gateway API for richer native agent operations.
 
-## Why this surface matters
+## Model List
 
-This is the highest-leverage compatibility set for self-hosted frontends and tooling:
+`GET /v1/models` returns CrawClaw agent-target ids:
 
-- Most Open WebUI, LobeChat, and LibreChat setups expect `/v1/models`.
-- Existing OpenAI chat clients can usually start with `/v1/chat/completions`.
-- More agent-native clients increasingly prefer `/v1/responses`.
+- `crawclaw`
+- `crawclaw/default`
+- `crawclaw/main`
 
-## Model list and agent routing
+These ids are compatibility targets for agent routing. They are not raw provider model catalogs.
 
-<AccordionGroup>
-  <Accordion title="What does `/v1/models` return?">
-    An CrawClaw agent-target list.
-
-    The returned ids are `crawclaw`, `crawclaw/default`, and `crawclaw/<agentId>` entries.
-    Use them directly as OpenAI `model` values.
-
-  </Accordion>
-  <Accordion title="Does `/v1/models` list agents or sub-agents?">
-    It lists top-level agent targets, not backend provider models and not sub-agents.
-
-    Sub-agents remain internal execution topology. They do not appear as pseudo-models.
-
-  </Accordion>
-  <Accordion title="Why is `crawclaw/default` included?">
-    `crawclaw/default` is the stable alias for the configured default agent.
-
-    That means clients can keep using one predictable id even if the real default agent id changes between environments.
-
-  </Accordion>
-  <Accordion title="How do I override the backend model?">
-    Use `x-crawclaw-model`.
-
-    Examples:
-    `x-crawclaw-model: openai/gpt-5.4`
-    `x-crawclaw-model: gpt-5.4`
-
-    If you omit it, the selected agent runs with its normal configured model choice.
-
-  </Accordion>
-</AccordionGroup>
-
-## Streaming (SSE)
-
-Set `stream: true` to receive Server-Sent Events (SSE):
-
-- `Content-Type: text/event-stream`
-- Each event line is `data: <json>`
-- Stream ends with `data: [DONE]`
-
-## Open WebUI quick setup
+## Open WebUI Quick Setup
 
 For a basic Open WebUI connection:
 
 - Base URL: `http://127.0.0.1:18789/v1`
-- API key: your Gateway bearer token
+- API key: your Gateway bearer token or password
 - Model: `crawclaw/default`
-
-Expected behavior:
-
-- `GET /v1/models` should list `crawclaw/default`
-- Open WebUI should use `crawclaw/default` as the chat model id
-- If you want a specific backend provider/model for that agent, set the agent's normal default model or send `x-crawclaw-model`
 
 Quick smoke:
 
@@ -190,11 +125,9 @@ curl -sS http://127.0.0.1:18789/v1/models \
   -H 'Authorization: Bearer YOUR_TOKEN'
 ```
 
-If that returns `crawclaw/default`, most Open WebUI setups can connect with the same base URL and token.
-
 ## Examples
 
-Non-streaming:
+Chat completion:
 
 ```bash
 curl -sS http://127.0.0.1:18789/v1/chat/completions \
@@ -206,17 +139,17 @@ curl -sS http://127.0.0.1:18789/v1/chat/completions \
   }'
 ```
 
-Streaming:
+Explicit agent and session:
 
 ```bash
-curl -N http://127.0.0.1:18789/v1/chat/completions \
+curl -sS http://127.0.0.1:18789/v1/chat/completions \
   -H 'Authorization: Bearer YOUR_TOKEN' \
   -H 'Content-Type: application/json' \
-  -H 'x-crawclaw-model: openai/gpt-5.4' \
+  -H 'x-crawclaw-agent-id: research' \
+  -H 'x-crawclaw-session-key: agent:research:openai-demo' \
   -d '{
-    "model": "crawclaw/research",
-    "stream": true,
-    "messages": [{"role":"user","content":"hi"}]
+    "model": "crawclaw",
+    "messages": [{"role":"user","content":"summarize the current project"}]
   }'
 ```
 
@@ -233,9 +166,3 @@ Fetch one model:
 curl -sS http://127.0.0.1:18789/v1/models/crawclaw%2Fdefault \
   -H 'Authorization: Bearer YOUR_TOKEN'
 ```
-
-Notes:
-
-- `/v1/models` returns CrawClaw agent targets, not raw provider catalogs.
-- `crawclaw/default` is always present so one stable id works across environments.
-- Backend provider/model overrides belong in `x-crawclaw-model`, not the OpenAI `model` field.

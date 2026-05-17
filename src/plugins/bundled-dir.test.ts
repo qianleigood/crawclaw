@@ -209,7 +209,7 @@ describe("resolveBundledPluginsDir", () => {
         return {
           installedRoot,
           cwd: cwdRepoRoot,
-          argv1: path.join(installedRoot, "crawclaw.mjs"),
+          argv1: path.join(installedRoot, "dist", "native", "crawclaw-runtime"),
         };
       },
     },
@@ -222,7 +222,7 @@ describe("resolveBundledPluginsDir", () => {
         });
         return {
           installedRoot,
-          argv1: path.join(installedRoot, "crawclaw.mjs"),
+          argv1: path.join(installedRoot, "dist", "native", "crawclaw-runtime"),
           bundledDirOverride: path.join(installedRoot, "missing-extensions"),
         };
       },

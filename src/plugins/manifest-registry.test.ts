@@ -29,8 +29,22 @@ function makeTempDir() {
   return makeTrackedTempDir("crawclaw-manifest-registry", tempDirs);
 }
 
+function nativePluginDescriptor(id: string) {
+  const binName = id.replace(/[^A-Za-z0-9._-]+/g, "-");
+  return {
+    protocol: "crawclaw-native-plugin-jsonrpc",
+    schemaVersion: 1,
+    bin: `${binName}-native`,
+  };
+}
+
 function writeManifest(dir: string, manifest: Record<string, unknown>) {
-  fs.writeFileSync(path.join(dir, "crawclaw.plugin.json"), JSON.stringify(manifest), "utf-8");
+  const manifestId = typeof manifest.id === "string" ? manifest.id : "plugin";
+  fs.writeFileSync(
+    path.join(dir, "crawclaw.plugin.json"),
+    JSON.stringify({ native: nativePluginDescriptor(manifestId), ...manifest }),
+    "utf-8",
+  );
 }
 
 function writeTextFile(rootDir: string, relativePath: string, value: string) {
@@ -132,7 +146,11 @@ function prepareLinkedManifestFixture(params: { id: string; mode: "symlink" | "h
   fs.writeFileSync(path.join(rootDir, "index.ts"), "export default function () {}", "utf-8");
   fs.writeFileSync(
     outsideManifest,
-    JSON.stringify({ id: params.id, configSchema: { type: "object" } }),
+    JSON.stringify({
+      id: params.id,
+      native: nativePluginDescriptor(params.id),
+      configSchema: { type: "object" },
+    }),
     "utf-8",
   );
 

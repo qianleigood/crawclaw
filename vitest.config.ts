@@ -163,17 +163,6 @@ export default defineConfig({
         "src/infra/outbound/outbound-session.ts",
         "src/memory/batch-gemini.ts",
 
-        // Gateway server integration surfaces are intentionally validated via manual/e2e runs.
-        "src/gateway/control-ui.ts",
-        "src/gateway/server-bridge.ts",
-        "src/gateway/server-channels.ts",
-        "src/gateway/server-methods/config.ts",
-        "src/gateway/server-methods/send.ts",
-        "src/gateway/server-methods/skills.ts",
-        "src/gateway/server-methods/talk.ts",
-        "src/gateway/server-methods/web.ts",
-        "src/gateway/server-methods/wizard.ts",
-
         // Process bridges are hard to unit-test in isolation.
         "src/gateway/call.ts",
         "src/process/tau-rpc.ts",
@@ -184,8 +173,6 @@ export default defineConfig({
         "src/browser/**",
         "src/channels/web/**",
         "src/webchat/**",
-        "src/gateway/server.ts",
-        "src/gateway/client.ts",
         "src/gateway/protocol/**",
         "src/infra/tailscale.ts",
       ],

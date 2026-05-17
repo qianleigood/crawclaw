@@ -10,7 +10,6 @@ export type PluginPackageJson = {
   version?: string;
   private?: boolean;
   crawclaw?: {
-    extensions?: string[];
     install?: {
       npmSpec?: string;
     };
@@ -173,7 +172,6 @@ export function collectPublishablePluginPackageErrors(
   const errors: string[] = [];
   const packageName = packageJson.name?.trim() ?? "";
   const packageVersion = packageJson.version?.trim() ?? "";
-  const extensions = packageJson.crawclaw?.extensions ?? [];
 
   if (!packageName.startsWith("@crawclaw/")) {
     errors.push(
@@ -190,11 +188,8 @@ export function collectPublishablePluginPackageErrors(
       `package.json version must match YYYY.M.D, YYYY.M.D-N, or YYYY.M.D-beta.N; found "${packageVersion}".`,
     );
   }
-  if ((!Array.isArray(extensions) || extensions.length === 0) && !candidate.hasNativeManifest) {
-    errors.push("crawclaw.extensions must contain at least one entry.");
-  }
-  if (extensions.some((entry) => typeof entry !== "string" || !entry.trim())) {
-    errors.push("crawclaw.extensions must contain only non-empty strings.");
+  if (!candidate.hasNativeManifest) {
+    errors.push("crawclaw.plugin.json must include a native plugin descriptor.");
   }
 
   return errors;

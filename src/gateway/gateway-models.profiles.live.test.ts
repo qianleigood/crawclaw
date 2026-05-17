@@ -1,10 +1,16 @@
+import { type ChildProcessByStdio, spawn } from "node:child_process";
 import { randomBytes, randomUUID } from "node:crypto";
 import fs from "node:fs/promises";
-import { createServer } from "node:net";
+import { connect as connectTcp, createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
+import type { Readable } from "node:stream";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import { describe, expect, it } from "vitest";
+import {
+  connectTestGatewayWsClient,
+  type TestGatewayWsClient,
+} from "../../test/helpers/gateway-ws-client.js";
 import { resolveCrawClawAgentDir } from "../agents/agent-paths.js";
 import { resolveAgentWorkspaceDir } from "../agents/agent-scope.js";
 import {
@@ -32,7 +38,6 @@ import { normalizeGoogleModelId } from "../internal-plugin-helpers/google-model-
 import { DEFAULT_AGENT_ID } from "../routing/session-key.js";
 import { stripAssistantInternalScaffolding } from "../shared/text/assistant-visible-text.js";
 import { GATEWAY_CLIENT_MODES, GATEWAY_CLIENT_NAMES } from "../utils/gateway-client-surface.js";
-import { GatewayClient } from "./client.js";
 import { renderCatNoncePngBase64 } from "./live-image-probe.js";
 import {
   hasExpectedSingleNonce,
@@ -40,7 +45,6 @@ import {
   shouldRetryExecReadProbe,
   shouldRetryToolReadProbe,
 } from "./live-tool-probe-utils.js";
-import { startGatewayServer } from "./server.js";
 import { loadSessionEntry, readSessionMessages } from "./session-utils.js";
 
 const ZAI_FALLBACK = isTruthyEnvValue(process.env.CRAWCLAW_LIVE_GATEWAY_ZAI_FALLBACK);
@@ -662,7 +666,7 @@ function buildAnthropicRefusalToken(): string {
 }
 
 async function runAnthropicRefusalProbe(params: {
-  client: GatewayClient;
+  client: TestGatewayWsClient;
   sessionKey: string;
   modelKey: string;
   label: string;
@@ -806,36 +810,147 @@ async function getFreeGatewayPort(): Promise<number> {
   throw new Error("failed to acquire a free gateway port block");
 }
 
-async function connectClient(params: { url: string; token: string }) {
-  return await new Promise<GatewayClient>((resolve, reject) => {
-    let settled = false;
-    const stop = (err?: Error, client?: GatewayClient) => {
-      if (settled) {
+type LiveGatewayServer = {
+  close: (opts?: { reason?: string }) => Promise<void>;
+};
+
+type RustGatewayProcess = ChildProcessByStdio<null, Readable, Readable>;
+
+async function startRustGatewayServer(port: number, token: string): Promise<LiveGatewayServer> {
+  const command = await resolveRustGatewayCommand();
+  const stdout: string[] = [];
+  const stderr: string[] = [];
+  let spawnError: Error | undefined;
+  const child = spawn(
+    command.command,
+    [...command.args, "--port", String(port), "--bind", "loopback"],
+    {
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        CRAWCLAW_GATEWAY_TOKEN: token,
+        CRAWCLAW_GATEWAY_PASSWORD: "",
+        CRAWCLAW_SKIP_CHANNELS: "1",
+        CRAWCLAW_SKIP_GMAIL_WATCHER: "1",
+        CRAWCLAW_SKIP_CRON: "1",
+        CRAWCLAW_DISABLE_BONJOUR: "1",
+        CRAWCLAW_TEST_MINIMAL_GATEWAY: "1",
+        VITEST: "1",
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stdout.on("data", (chunk) => stdout.push(String(chunk)));
+  child.stderr.on("data", (chunk) => stderr.push(String(chunk)));
+  child.once("error", (error) => {
+    spawnError = error;
+  });
+
+  try {
+    await waitForRustGatewayPort(child, stdout, stderr, () => spawnError, port);
+  } catch (error) {
+    await stopRustGatewayProcess(child);
+    throw error;
+  }
+
+  return {
+    close: async () => {
+      await stopRustGatewayProcess(child);
+    },
+  };
+}
+
+async function resolveRustGatewayCommand(): Promise<{ command: string; args: string[] }> {
+  const binary = path.resolve(
+    "dist",
+    "native",
+    process.platform === "win32" ? "crawclaw-gateway.exe" : "crawclaw-gateway",
+  );
+  try {
+    await fs.access(binary);
+    return { command: binary, args: [] };
+  } catch {
+    return {
+      command: process.platform === "win32" ? "cargo.exe" : "cargo",
+      args: ["run", "--quiet", "-p", "crawclaw-gateway", "--"],
+    };
+  }
+}
+
+async function waitForRustGatewayPort(
+  child: RustGatewayProcess,
+  stdout: string[],
+  stderr: string[],
+  spawnError: () => Error | undefined,
+  port: number,
+): Promise<void> {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 60_000) {
+    const error = spawnError();
+    if (error) {
+      throw error;
+    }
+    if (child.exitCode !== null) {
+      throw new Error(
+        `Rust Gateway exited before listening (code=${String(child.exitCode)} signal=${String(child.signalCode)})\n` +
+          `--- stdout ---\n${stdout.join("")}\n--- stderr ---\n${stderr.join("")}`,
+      );
+    }
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const socket = connectTcp({ host: "127.0.0.1", port });
+        socket.once("connect", () => {
+          socket.destroy();
+          resolve();
+        });
+        socket.once("error", (socketError) => {
+          socket.destroy();
+          reject(socketError);
+        });
+      });
+      return;
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  }
+
+  throw new Error(
+    `timeout waiting for Rust Gateway on port ${port}\n` +
+      `--- stdout ---\n${stdout.join("")}\n--- stderr ---\n${stderr.join("")}`,
+  );
+}
+
+async function stopRustGatewayProcess(child: RustGatewayProcess): Promise<void> {
+  if (child.exitCode === null && !child.killed) {
+    child.kill("SIGTERM");
+  }
+  const exited = await Promise.race([
+    new Promise<boolean>((resolve) => {
+      if (child.exitCode !== null) {
+        resolve(true);
         return;
       }
-      settled = true;
-      clearTimeout(timer);
-      if (err) {
-        reject(err);
-      } else {
-        resolve(client as GatewayClient);
-      }
-    };
-    const client = new GatewayClient({
-      url: params.url,
-      token: params.token,
-      clientName: GATEWAY_CLIENT_NAMES.TEST,
-      clientDisplayName: "vitest-live",
-      clientVersion: "dev",
-      mode: GATEWAY_CLIENT_MODES.TEST,
-      onHelloOk: () => stop(undefined, client),
-      onConnectError: (err) => stop(err),
-      onClose: (code, reason) =>
-        stop(new Error(`gateway closed during connect (${code}): ${reason}`)),
-    });
-    const timer = setTimeout(() => stop(new Error("gateway connect timeout")), 10_000);
-    timer.unref();
-    client.start();
+      child.once("exit", () => resolve(true));
+    }),
+    new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 1_500)),
+  ]);
+  if (!exited && child.exitCode === null && !child.killed) {
+    child.kill("SIGKILL");
+  }
+}
+
+async function connectClient(params: { url: string; token: string }): Promise<TestGatewayWsClient> {
+  return await connectTestGatewayWsClient({
+    url: params.url,
+    token: params.token,
+    clientName: GATEWAY_CLIENT_NAMES.TEST,
+    clientDisplayName: "vitest-live",
+    clientVersion: "dev",
+    mode: GATEWAY_CLIENT_MODES.TEST,
   });
 }
 
@@ -924,7 +1039,7 @@ async function waitForSessionAssistantText(params: {
 }
 
 async function requestGatewayAgentText(params: {
-  client: GatewayClient;
+  client: TestGatewayWsClient;
   sessionKey: string;
   message: string;
   thinkingLevel: string;
@@ -1163,18 +1278,15 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
     await fs.writeFile(modelsPath, `${JSON.stringify({ providers: liveProviders }, null, 2)}\n`);
   }
 
-  let server: Awaited<ReturnType<typeof startGatewayServer>> | undefined;
-  let client: GatewayClient | undefined;
+  let server: LiveGatewayServer | undefined;
+  let client: TestGatewayWsClient | undefined;
   try {
     const port = await withGatewayLiveProbeTimeout(
       getFreeGatewayPort(),
       `${params.label}: gateway-port`,
     );
     server = await withGatewayLiveProbeTimeout(
-      startGatewayServer(port, {
-        bind: "loopback",
-        auth: { mode: "token", token },
-      }),
+      startRustGatewayServer(port, token),
       `${params.label}: gateway-start`,
     );
 
@@ -1939,18 +2051,15 @@ describeLive("gateway live (dev agent, profile keys)", () => {
     const toolProbePath = path.join(workspaceDir, `.crawclaw-live-zai-fallback.${nonceA}.txt`);
     await fs.writeFile(toolProbePath, `nonceA=${nonceA}\nnonceB=${nonceB}\n`);
 
-    let server: Awaited<ReturnType<typeof startGatewayServer>> | undefined;
-    let client: GatewayClient | undefined;
+    let server: LiveGatewayServer | undefined;
+    let client: TestGatewayWsClient | undefined;
     try {
       const port = await withGatewayLiveProbeTimeout(
         getFreeGatewayPort(),
         "zai-fallback: gateway-port",
       );
       server = await withGatewayLiveProbeTimeout(
-        startGatewayServer(port, {
-          bind: "loopback",
-          auth: { mode: "token", token },
-        }),
+        startRustGatewayServer(port, token),
         "zai-fallback: gateway-start",
       );
 

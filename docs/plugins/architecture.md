@@ -485,11 +485,13 @@ If the provider needs a fully custom wire protocol or custom request executor,
 that is a different class of extension. These hooks are for provider behavior
 that still runs on CrawClaw's normal inference loop.
 
-### Provider configuration
+### Provider hook configuration
 
 TypeScript plugins no longer register LLM providers. Built-in provider
 metadata and runtime behavior live in the Rust provider registry, and custom
 provider entries are configured under `models.providers`.
+
+```ts
 return {
 provider: {
 baseUrl: "https://proxy.example.com/v1",
@@ -529,7 +531,7 @@ return await fetchExampleProxyUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn);
 },
 });
 
-````
+```
 
 ### Built-in examples
 
@@ -596,7 +598,7 @@ const voices = await api.runtime.tts.listVoices({
   provider: "elevenlabs",
   cfg: api.config,
 });
-````
+```
 
 Notes:
 
@@ -802,39 +804,19 @@ Recommended `inspectAccount(...)` behavior:
 This lets read-only commands report "configured but unavailable in this command
 path" instead of crashing or misreporting the account as not configured.
 
-## Package packs
-
-A plugin directory may include a `package.json` with `crawclaw.extensions`:
-
-```json
-{
-  "name": "my-pack",
-  "crawclaw": {
-    "extensions": ["./src/safety.ts", "./src/tools.ts"],
-    "setupEntry": "./src/setup-entry.ts"
-  }
-}
-```
-
-Each entry becomes a plugin. If the pack lists multiple extensions, the plugin id
-becomes `name/<fileBase>`.
+## Package metadata
 
 If your plugin imports npm deps, install them in that directory so
 `node_modules` is available (`npm install` / `pnpm install`).
-
-Security guardrail: every `crawclaw.extensions` entry must stay inside the plugin
-directory after symlink resolution. Entries that escape the package directory are
-rejected.
 
 Security note: CrawClaw Desktop or the local Gateway API installs plugin dependencies with
 `npm install --omit=dev --ignore-scripts` (no lifecycle scripts, no dev dependencies at runtime). Keep plugin dependency
 trees "pure JS/TS" and avoid packages that require `postinstall` builds.
 
-The legacy `crawclaw.setupEntry` channel path and
-`deferConfiguredChannelFullLoadUntilAfterListen` channel startup path were
-removed with the TypeScript channel runtime. Native channel setup/status
-surfaces are owned by Rust.
-contain `{ "entries": [ { "name": "@scope/pkg", "crawclaw": { "channel": {...}, "install": {...} } } ] }`. The parser also accepts `"packages"` or `"plugins"` as legacy aliases for the `"entries"` key.
+The legacy `crawclaw.extensions`, `crawclaw.setupEntry`, and
+`deferConfiguredChannelFullLoadUntilAfterListen` package paths were removed with
+the TypeScript plugin runtime. Native capability setup/status surfaces are owned
+by Rust.
 
 ## Memory plugins
 

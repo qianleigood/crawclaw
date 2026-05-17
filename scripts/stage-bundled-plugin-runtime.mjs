@@ -53,6 +53,19 @@ function shouldCopyRuntimeFile(sourcePath) {
   );
 }
 
+function copyRuntimeFile(sourcePath, targetPath) {
+  if (!sourcePath.replace(/\\/g, "/").endsWith("/package.json")) {
+    fs.copyFileSync(sourcePath, targetPath);
+    return;
+  }
+  const packageJson = JSON.parse(fs.readFileSync(sourcePath, "utf8"));
+  if (packageJson?.crawclaw && typeof packageJson.crawclaw === "object") {
+    delete packageJson.crawclaw.setupEntry;
+    delete packageJson.crawclaw.extensions;
+  }
+  fs.writeFileSync(targetPath, `${JSON.stringify(packageJson, null, 2)}\n`, "utf8");
+}
+
 function writeRuntimeModuleWrapper(sourcePath, targetPath) {
   const specifier = relativeSymlinkTarget(sourcePath, targetPath).replace(/\\/g, "/");
   const normalizedSpecifier = specifier.startsWith(".") ? specifier : `./${specifier}`;
@@ -99,7 +112,7 @@ function stagePluginRuntimeOverlay(sourceDir, targetDir) {
     }
 
     if (shouldCopyRuntimeFile(sourcePath)) {
-      fs.copyFileSync(sourcePath, targetPath);
+      copyRuntimeFile(sourcePath, targetPath);
       continue;
     }
 

@@ -1,10 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import {
-  copyBundledPluginMetadata,
-  rewritePackageExtensions,
-} from "../../scripts/copy-bundled-plugin-metadata.mjs";
+import { copyBundledPluginMetadata } from "../../scripts/copy-bundled-plugin-metadata.mjs";
 import { cleanupTempDirs, makeTempRepoRoot, writeJsonFile } from "../../test/helpers/temp-repo.js";
 
 const tempDirs: string[] = [];
@@ -57,7 +54,7 @@ function readBundledManifest(repoRoot: string, pluginId: string) {
 function readBundledPackageJson(repoRoot: string, pluginId: string) {
   return JSON.parse(
     fs.readFileSync(path.join(repoRoot, "dist", "extensions", pluginId, "package.json"), "utf8"),
-  ) as { crawclaw?: { extensions?: string[] } };
+  ) as { crawclaw?: Record<string, unknown> };
 }
 
 function bundledPluginDir(repoRoot: string, pluginId: string) {
@@ -88,15 +85,6 @@ afterEach(() => {
   cleanupTempDirs(tempDirs);
 });
 
-describe("rewritePackageExtensions", () => {
-  it("rewrites TypeScript extension entries to built JS paths", () => {
-    expect(rewritePackageExtensions(["./index.ts", "./nested/entry.mts"])).toEqual([
-      "./index.js",
-      "./nested/entry.js",
-    ]);
-  });
-});
-
 describe("copyBundledPluginMetadata", () => {
   it("copies plugin manifests, package metadata, and local skill directories", () => {
     const repoRoot = makeRepoRoot("crawclaw-bundled-plugin-meta-");
@@ -125,10 +113,8 @@ describe("copyBundledPluginMetadata", () => {
       ),
     ).toContain("ACP Router");
     expectBundledSkills(repoRoot, "acpx", ["./skills"]);
-    const packageJson = readBundledPackageJson(repoRoot, "acpx") as {
-      crawclaw?: { extensions?: string[] };
-    };
-    expect(packageJson.crawclaw?.extensions).toEqual(["./index.js"]);
+    const packageJson = readBundledPackageJson(repoRoot, "acpx");
+    expect(packageJson.crawclaw).not.toHaveProperty("extensions");
   });
 
   it("relocates node_modules-backed skill paths into bundled-skills and rewrites the manifest", () => {

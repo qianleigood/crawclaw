@@ -37,7 +37,6 @@ export type BundledPluginMetadata = {
   dirName: string;
   idHint: string;
   source: BundledPluginPathPair;
-  setupSource?: BundledPluginPathPair;
   publicSurfaceArtifacts?: readonly string[];
   runtimeSidecarArtifacts?: readonly string[];
   packageName?: string;
@@ -55,13 +54,6 @@ export function clearBundledPluginMetadataCache(): void {
 
 function trimString(value: unknown): string | undefined {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : undefined;
-}
-
-function normalizeStringList(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-  return value.map((entry) => trimString(entry) ?? "").filter(Boolean);
 }
 
 function rewriteEntryToBuiltPath(entry: string | undefined): string | undefined {
@@ -130,13 +122,8 @@ function isTopLevelPublicSurfaceSource(name: string): boolean {
 function collectTopLevelPublicSurfaceArtifacts(params: {
   pluginDir: string;
   sourceEntry: string;
-  setupEntry?: string;
 }): readonly string[] | undefined {
-  const excluded = new Set(
-    [params.sourceEntry, params.setupEntry]
-      .filter((entry): entry is string => typeof entry === "string" && entry.trim().length > 0)
-      .map((entry) => path.basename(entry)),
-  );
+  const excluded = new Set([path.basename(params.sourceEntry)]);
   const artifacts = fs
     .readdirSync(params.pluginDir, { withFileTypes: true })
     .filter((entry) => entry.isFile())
@@ -207,31 +194,18 @@ function collectBundledPluginMetadataForPackageRoot(
 
     const packageJson = readPackageManifest(pluginDir);
     const packageManifest = getPackageManifestMetadata(packageJson);
-    const extensions = normalizeStringList(packageManifest?.extensions);
-    const nativeOnly = extensions.length === 0 && Boolean(manifestResult.manifest.native);
-    if (extensions.length === 0 && !nativeOnly) {
+    const nativeOnly = Boolean(manifestResult.manifest.native);
+    if (!nativeOnly) {
       continue;
     }
-    const sourceEntry = nativeOnly ? `./${PLUGIN_MANIFEST_FILENAME}` : trimString(extensions[0]);
-    const builtEntry = nativeOnly ? PLUGIN_MANIFEST_FILENAME : rewriteEntryToBuiltPath(sourceEntry);
-    if (!sourceEntry || !builtEntry) {
-      continue;
-    }
+    const sourceEntry = `./${PLUGIN_MANIFEST_FILENAME}`;
+    const builtEntry = PLUGIN_MANIFEST_FILENAME;
 
-    const setupSourcePath = trimString(packageManifest?.setupEntry);
-    const setupSource =
-      setupSourcePath && rewriteEntryToBuiltPath(setupSourcePath)
-        ? {
-            source: setupSourcePath,
-            built: rewriteEntryToBuiltPath(setupSourcePath)!,
-          }
-        : undefined;
     const publicSurfaceArtifacts = nativeOnly
       ? undefined
       : collectTopLevelPublicSurfaceArtifacts({
           pluginDir,
           sourceEntry,
-          ...(setupSourcePath ? { setupEntry: setupSourcePath } : {}),
         });
     const runtimeSidecarArtifacts = collectRuntimeSidecarArtifacts(publicSurfaceArtifacts);
     entries.push({
@@ -240,13 +214,12 @@ function collectBundledPluginMetadataForPackageRoot(
         entryPath: sourceEntry,
         manifestId: manifestResult.manifest.id,
         packageName: trimString(packageJson?.name),
-        hasMultipleExtensions: extensions.length > 1,
+        hasMultipleExtensions: false,
       }),
       source: {
         source: sourceEntry,
         built: builtEntry,
       },
-      ...(setupSource ? { setupSource } : {}),
       ...(publicSurfaceArtifacts ? { publicSurfaceArtifacts } : {}),
       ...(runtimeSidecarArtifacts ? { runtimeSidecarArtifacts } : {}),
       ...(trimString(packageJson?.name) ? { packageName: trimString(packageJson?.name) } : {}),

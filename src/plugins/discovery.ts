@@ -1,15 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
-import { matchBoundaryFileOpenFailure, openBoundaryFileSync } from "../infra/boundary-file-read.js";
+import { openBoundaryFileSync } from "../infra/boundary-file-read.js";
 import { resolveUserPath } from "../utils.js";
 import { detectBundleManifestFormat, loadBundleManifest } from "./bundle-manifest.js";
 import {
-  DEFAULT_PLUGIN_ENTRY_CANDIDATES,
   PLUGIN_MANIFEST_FILENAME,
   getPackageManifestMetadata,
   loadPluginManifest,
   type PluginManifest,
-  resolvePackageExtensionEntries,
   type CrawClawPackageManifest,
   type PackageManifest,
 } from "./manifest.js";
@@ -17,12 +15,9 @@ import { formatPosixMode, isPathInside, safeRealpathSync, safeStatSync } from ".
 import { resolvePluginCacheInputs, resolvePluginSourceRoots } from "./roots.js";
 import type { PluginBundleFormat, PluginDiagnostic, PluginFormat, PluginOrigin } from "./types.js";
 
-const EXTENSION_EXTS = new Set([".ts", ".js", ".mts", ".cts", ".mjs", ".cjs"]);
-
 export type PluginCandidate = {
   idHint: string;
   source: string;
-  setupSource?: string;
   rootDir: string;
   origin: PluginOrigin;
   format?: PluginFormat;
@@ -284,14 +279,6 @@ function isUnsafePluginCandidate(params: {
   return true;
 }
 
-function isExtensionFile(filePath: string): boolean {
-  const ext = path.extname(filePath);
-  if (!EXTENSION_EXTS.has(ext)) {
-    return false;
-  }
-  return !filePath.endsWith(".d.ts");
-}
-
 function shouldIgnoreScannedDirectory(dirName: string): boolean {
   const normalized = dirName.trim().toLowerCase();
   if (!normalized) {
@@ -330,50 +317,12 @@ function readPackageManifest(dir: string, rejectHardlinks = true): PackageManife
   }
 }
 
-function deriveIdHint(params: {
-  filePath: string;
-  manifestId?: string;
-  packageName?: string;
-  hasMultipleExtensions: boolean;
-}): string {
-  const base = path.basename(params.filePath, path.extname(params.filePath));
-  const rawManifestId = params.manifestId?.trim();
-  if (rawManifestId) {
-    return params.hasMultipleExtensions ? `${rawManifestId}/${base}` : rawManifestId;
-  }
-  const rawPackageName = params.packageName?.trim();
-  if (!rawPackageName) {
-    return base;
-  }
-
-  // Prefer the unscoped name so config keys stay stable even when the npm
-  // package is scoped (example: @crawclaw/my-plugin -> my-plugin).
-  const unscoped = rawPackageName.includes("/")
-    ? (rawPackageName.split("/").pop() ?? rawPackageName)
-    : rawPackageName;
-  const normalizedPackageId =
-    unscoped.endsWith("-provider") && unscoped.length > "-provider".length
-      ? unscoped.slice(0, -"-provider".length)
-      : unscoped;
-
-  if (!params.hasMultipleExtensions) {
-    return normalizedPackageId;
-  }
-  return `${normalizedPackageId}/${base}`;
-}
-
-function resolveIdHintManifestId(rootDir: string, rejectHardlinks: boolean): string | undefined {
-  const manifest = loadPluginManifest(rootDir, rejectHardlinks);
-  return manifest.ok ? manifest.manifest.id : undefined;
-}
-
 function addCandidate(params: {
   candidates: PluginCandidate[];
   diagnostics: PluginDiagnostic[];
   seen: Set<string>;
   idHint: string;
   source: string;
-  setupSource?: string;
   rootDir: string;
   origin: PluginOrigin;
   format?: PluginFormat;
@@ -406,7 +355,6 @@ function addCandidate(params: {
   params.candidates.push({
     idHint: params.idHint,
     source: resolved,
-    setupSource: params.setupSource,
     rootDir: resolvedRoot,
     origin: params.origin,
     format: params.format ?? "crawclaw",
@@ -464,91 +412,6 @@ function discoverBundleInRoot(params: {
   return "added";
 }
 
-function resolvePackageEntrySource(params: {
-  packageDir: string;
-  entryPath: string;
-  sourceLabel: string;
-  diagnostics: PluginDiagnostic[];
-  rejectHardlinks?: boolean;
-}): string | null {
-  const source = path.resolve(params.packageDir, params.entryPath);
-  const rejectHardlinks = params.rejectHardlinks ?? true;
-  const candidates = [source];
-  if (!rejectHardlinks) {
-    const builtCandidate = source.replace(/\.[^.]+$/u, ".js");
-    if (builtCandidate !== source) {
-      candidates.push(builtCandidate);
-    }
-  }
-
-  for (const candidate of new Set(candidates)) {
-    if (!fs.existsSync(candidate)) {
-      continue;
-    }
-    const opened = openBoundaryFileSync({
-      absolutePath: candidate,
-      rootPath: params.packageDir,
-      boundaryLabel: "plugin package directory",
-      rejectHardlinks,
-    });
-    if (!opened.ok) {
-      return matchBoundaryFileOpenFailure(opened, {
-        path: () => null,
-        io: () => {
-          params.diagnostics.push({
-            level: "warn",
-            message: `extension entry unreadable (I/O error): ${params.entryPath}`,
-            source: params.sourceLabel,
-          });
-          return null;
-        },
-        fallback: () => {
-          params.diagnostics.push({
-            level: "error",
-            message: `extension entry escapes package directory: ${params.entryPath}`,
-            source: params.sourceLabel,
-          });
-          return null;
-        },
-      });
-    }
-    const safeSource = opened.path;
-    fs.closeSync(opened.fd);
-    return safeSource;
-  }
-
-  const opened = openBoundaryFileSync({
-    absolutePath: source,
-    rootPath: params.packageDir,
-    boundaryLabel: "plugin package directory",
-    rejectHardlinks,
-  });
-  if (!opened.ok) {
-    return matchBoundaryFileOpenFailure(opened, {
-      path: () => null,
-      io: () => {
-        params.diagnostics.push({
-          level: "warn",
-          message: `extension entry unreadable (I/O error): ${params.entryPath}`,
-          source: params.sourceLabel,
-        });
-        return null;
-      },
-      fallback: () => {
-        params.diagnostics.push({
-          level: "error",
-          message: `extension entry escapes package directory: ${params.entryPath}`,
-          source: params.sourceLabel,
-        });
-        return null;
-      },
-    });
-  }
-  const safeSource = opened.path;
-  fs.closeSync(opened.fd);
-  return safeSource;
-}
-
 function addNativeManifestCandidate(params: {
   rootDir: string;
   origin: PluginOrigin;
@@ -559,7 +422,6 @@ function addNativeManifestCandidate(params: {
   seen: Set<string>;
   rejectHardlinks: boolean;
   manifest?: PackageManifest | null;
-  setupSource?: string | null;
 }): boolean {
   const manifest = loadPluginManifest(params.rootDir, params.rejectHardlinks);
   if (!manifest.ok || !manifest.manifest.native) {
@@ -571,7 +433,6 @@ function addNativeManifestCandidate(params: {
     seen: params.seen,
     idHint: manifest.manifest.id,
     source: path.join(params.rootDir, PLUGIN_MANIFEST_FILENAME),
-    ...(params.setupSource ? { setupSource: params.setupSource } : {}),
     rootDir: params.rootDir,
     origin: params.origin,
     format: "native",
@@ -610,22 +471,6 @@ function discoverInDirectory(params: {
 
   for (const entry of entries) {
     const fullPath = path.join(params.dir, entry.name);
-    if (entry.isFile()) {
-      if (!isExtensionFile(fullPath)) {
-        continue;
-      }
-      addCandidate({
-        candidates: params.candidates,
-        diagnostics: params.diagnostics,
-        seen: params.seen,
-        idHint: path.basename(entry.name, path.extname(entry.name)),
-        source: fullPath,
-        rootDir: path.dirname(fullPath),
-        origin: params.origin,
-        ownershipUid: params.ownershipUid,
-        workspaceDir: params.workspaceDir,
-      });
-    }
     if (!entry.isDirectory()) {
       continue;
     }
@@ -638,71 +483,6 @@ function discoverInDirectory(params: {
 
     const rejectHardlinks = params.origin !== "bundled";
     const manifest = readPackageManifest(fullPath, rejectHardlinks);
-    const extensionResolution = resolvePackageExtensionEntries(manifest ?? undefined);
-    const extensions = extensionResolution.status === "ok" ? extensionResolution.entries : [];
-    const manifestId = resolveIdHintManifestId(fullPath, rejectHardlinks);
-    const setupEntryPath = getPackageManifestMetadata(manifest ?? undefined)?.setupEntry;
-    const setupSource =
-      typeof setupEntryPath === "string" && setupEntryPath.trim().length > 0
-        ? resolvePackageEntrySource({
-            packageDir: fullPath,
-            entryPath: setupEntryPath,
-            sourceLabel: fullPath,
-            diagnostics: params.diagnostics,
-            rejectHardlinks,
-          })
-        : null;
-
-    if (extensions.length > 0) {
-      for (const extPath of extensions) {
-        const resolved = resolvePackageEntrySource({
-          packageDir: fullPath,
-          entryPath: extPath,
-          sourceLabel: fullPath,
-          diagnostics: params.diagnostics,
-          rejectHardlinks,
-        });
-        if (!resolved) {
-          continue;
-        }
-        addCandidate({
-          candidates: params.candidates,
-          diagnostics: params.diagnostics,
-          seen: params.seen,
-          idHint: deriveIdHint({
-            filePath: resolved,
-            manifestId,
-            packageName: manifest?.name,
-            hasMultipleExtensions: extensions.length > 1,
-          }),
-          source: resolved,
-          ...(setupSource ? { setupSource } : {}),
-          rootDir: fullPath,
-          origin: params.origin,
-          ownershipUid: params.ownershipUid,
-          workspaceDir: params.workspaceDir,
-          manifest,
-          packageDir: fullPath,
-        });
-      }
-      continue;
-    }
-    if (extensionResolution.status === "empty") {
-      addNativeManifestCandidate({
-        rootDir: fullPath,
-        origin: params.origin,
-        ownershipUid: params.ownershipUid,
-        workspaceDir: params.workspaceDir,
-        candidates: params.candidates,
-        diagnostics: params.diagnostics,
-        seen: params.seen,
-        rejectHardlinks,
-        manifest,
-        setupSource,
-      });
-      continue;
-    }
-
     if (
       addNativeManifestCandidate({
         rootDir: fullPath,
@@ -714,7 +494,6 @@ function discoverInDirectory(params: {
         seen: params.seen,
         rejectHardlinks,
         manifest,
-        setupSource,
       })
     ) {
       continue;
@@ -731,26 +510,6 @@ function discoverInDirectory(params: {
     });
     if (bundleDiscovery === "added") {
       continue;
-    }
-
-    const indexFile = [...DEFAULT_PLUGIN_ENTRY_CANDIDATES]
-      .map((candidate) => path.join(fullPath, candidate))
-      .find((candidate) => fs.existsSync(candidate));
-    if (indexFile && isExtensionFile(indexFile)) {
-      addCandidate({
-        candidates: params.candidates,
-        diagnostics: params.diagnostics,
-        seen: params.seen,
-        idHint: entry.name,
-        source: indexFile,
-        ...(setupSource ? { setupSource } : {}),
-        rootDir: fullPath,
-        origin: params.origin,
-        ownershipUid: params.ownershipUid,
-        workspaceDir: params.workspaceDir,
-        manifest,
-        packageDir: fullPath,
-      });
     }
   }
 }
@@ -777,24 +536,10 @@ function discoverFromPath(params: {
 
   const stat = fs.statSync(resolved);
   if (stat.isFile()) {
-    if (!isExtensionFile(resolved)) {
-      params.diagnostics.push({
-        level: "error",
-        message: `plugin path is not a supported file: ${resolved}`,
-        source: resolved,
-      });
-      return;
-    }
-    addCandidate({
-      candidates: params.candidates,
-      diagnostics: params.diagnostics,
-      seen: params.seen,
-      idHint: path.basename(resolved, path.extname(resolved)),
+    params.diagnostics.push({
+      level: "error",
+      message: `plugin path is not a supported plugin directory: ${resolved}`,
       source: resolved,
-      rootDir: path.dirname(resolved),
-      origin: params.origin,
-      ownershipUid: params.ownershipUid,
-      workspaceDir: params.workspaceDir,
     });
     return;
   }
@@ -802,71 +547,6 @@ function discoverFromPath(params: {
   if (stat.isDirectory()) {
     const rejectHardlinks = params.origin !== "bundled";
     const manifest = readPackageManifest(resolved, rejectHardlinks);
-    const extensionResolution = resolvePackageExtensionEntries(manifest ?? undefined);
-    const extensions = extensionResolution.status === "ok" ? extensionResolution.entries : [];
-    const manifestId = resolveIdHintManifestId(resolved, rejectHardlinks);
-    const setupEntryPath = getPackageManifestMetadata(manifest ?? undefined)?.setupEntry;
-    const setupSource =
-      typeof setupEntryPath === "string" && setupEntryPath.trim().length > 0
-        ? resolvePackageEntrySource({
-            packageDir: resolved,
-            entryPath: setupEntryPath,
-            sourceLabel: resolved,
-            diagnostics: params.diagnostics,
-            rejectHardlinks,
-          })
-        : null;
-
-    if (extensions.length > 0) {
-      for (const extPath of extensions) {
-        const source = resolvePackageEntrySource({
-          packageDir: resolved,
-          entryPath: extPath,
-          sourceLabel: resolved,
-          diagnostics: params.diagnostics,
-          rejectHardlinks,
-        });
-        if (!source) {
-          continue;
-        }
-        addCandidate({
-          candidates: params.candidates,
-          diagnostics: params.diagnostics,
-          seen: params.seen,
-          idHint: deriveIdHint({
-            filePath: source,
-            manifestId,
-            packageName: manifest?.name,
-            hasMultipleExtensions: extensions.length > 1,
-          }),
-          source,
-          ...(setupSource ? { setupSource } : {}),
-          rootDir: resolved,
-          origin: params.origin,
-          ownershipUid: params.ownershipUid,
-          workspaceDir: params.workspaceDir,
-          manifest,
-          packageDir: resolved,
-        });
-      }
-      return;
-    }
-    if (extensionResolution.status === "empty") {
-      addNativeManifestCandidate({
-        rootDir: resolved,
-        origin: params.origin,
-        ownershipUid: params.ownershipUid,
-        workspaceDir: params.workspaceDir,
-        candidates: params.candidates,
-        diagnostics: params.diagnostics,
-        seen: params.seen,
-        rejectHardlinks,
-        manifest,
-        setupSource,
-      });
-      return;
-    }
-
     if (
       addNativeManifestCandidate({
         rootDir: resolved,
@@ -878,7 +558,6 @@ function discoverFromPath(params: {
         seen: params.seen,
         rejectHardlinks,
         manifest,
-        setupSource,
       })
     ) {
       return;
@@ -894,28 +573,6 @@ function discoverFromPath(params: {
       seen: params.seen,
     });
     if (bundleDiscovery === "added") {
-      return;
-    }
-
-    const indexFile = [...DEFAULT_PLUGIN_ENTRY_CANDIDATES]
-      .map((candidate) => path.join(resolved, candidate))
-      .find((candidate) => fs.existsSync(candidate));
-
-    if (indexFile && isExtensionFile(indexFile)) {
-      addCandidate({
-        candidates: params.candidates,
-        diagnostics: params.diagnostics,
-        seen: params.seen,
-        idHint: path.basename(resolved),
-        source: indexFile,
-        ...(setupSource ? { setupSource } : {}),
-        rootDir: resolved,
-        origin: params.origin,
-        ownershipUid: params.ownershipUid,
-        workspaceDir: params.workspaceDir,
-        manifest,
-        packageDir: resolved,
-      });
       return;
     }
 

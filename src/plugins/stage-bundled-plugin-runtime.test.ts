@@ -306,7 +306,7 @@ describe("stageBundledPluginRuntime", () => {
       "package.json",
     );
     expect(fs.lstatSync(runtimePackagePath).isSymbolicLink()).toBe(false);
-    expect(fs.readFileSync(runtimePackagePath, "utf8")).toContain('"extensions": [');
+    expect(fs.readFileSync(runtimePackagePath, "utf8")).not.toContain('"extensions"');
   });
 
   it("preserves package metadata needed for bundled plugin discovery from dist-runtime", () => {
@@ -328,6 +328,11 @@ describe("stageBundledPluginRuntime", () => {
       [bundledDistPluginFile("demo", "crawclaw.plugin.json")]: JSON.stringify(
         {
           id: "demo",
+          native: {
+            protocol: "crawclaw-native-plugin-jsonrpc",
+            schemaVersion: 1,
+            bin: "demo-native",
+          },
           configSchema: { type: "object" },
         },
         null,
@@ -354,20 +359,17 @@ describe("stageBundledPluginRuntime", () => {
       diagnostics: discovery.diagnostics,
     });
     const expectedRuntimeMainPath = fs.realpathSync(
-      path.join(runtimeExtensionsDir, "demo", "main.js"),
-    );
-    const expectedRuntimeSetupPath = fs.realpathSync(
-      path.join(runtimeExtensionsDir, "demo", "setup.js"),
+      path.join(runtimeExtensionsDir, "demo", "crawclaw.plugin.json"),
     );
 
     expect(discovery.candidates).toHaveLength(1);
     expect(fs.realpathSync(discovery.candidates[0]?.source ?? "")).toBe(expectedRuntimeMainPath);
-    expect(fs.realpathSync(discovery.candidates[0]?.setupSource ?? "")).toBe(
-      expectedRuntimeSetupPath,
-    );
-    expect(fs.realpathSync(manifestRegistry.plugins[0]?.setupSource ?? "")).toBe(
-      expectedRuntimeSetupPath,
-    );
+    expect(discovery.candidates[0]).not.toHaveProperty("setupSource");
+    expect(manifestRegistry.plugins[0]).not.toHaveProperty("setupSource");
+    const runtimePackageJson = JSON.parse(
+      fs.readFileSync(path.join(runtimeExtensionsDir, "demo", "package.json"), "utf8"),
+    ) as { crawclaw?: Record<string, unknown> };
+    expect(runtimePackageJson.crawclaw).not.toHaveProperty("setupEntry");
   });
 
   it("removes stale runtime plugin directories that are no longer in dist", () => {

@@ -1,4 +1,4 @@
-import { promises as fs } from "node:fs";
+import { existsSync, promises as fs } from "node:fs";
 import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -14,7 +14,20 @@ function getTypeScript() {
 const baseTestSuffixes = [".test.ts", ".test-utils.ts", ".test-harness.ts", ".e2e-harness.ts"];
 
 export function resolveRepoRoot(importMetaUrl) {
-  return path.resolve(path.dirname(fileURLToPath(importMetaUrl)), "..", "..");
+  let dir = path.dirname(fileURLToPath(importMetaUrl));
+  for (;;) {
+    if (
+      existsSync(path.join(dir, "package.json")) &&
+      existsSync(path.join(dir, "pnpm-lock.yaml"))
+    ) {
+      return dir;
+    }
+    const parent = path.dirname(dir);
+    if (parent === dir) {
+      return path.resolve(path.dirname(fileURLToPath(importMetaUrl)), "..", "..");
+    }
+    dir = parent;
+  }
 }
 
 export function resolveSourceRoots(repoRoot, relativeRoots) {

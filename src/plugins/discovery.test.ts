@@ -84,6 +84,11 @@ function writePluginManifest(params: { pluginDir: string; id: string }) {
     path.join(params.pluginDir, "crawclaw.plugin.json"),
     JSON.stringify({
       id: params.id,
+      native: {
+        protocol: "crawclaw-native-plugin-jsonrpc",
+        schemaVersion: 1,
+        bin: `${params.id}-native`,
+      },
       configSchema: { type: "object" },
     }),
     "utf-8",
@@ -95,8 +100,12 @@ function writePluginEntry(filePath: string) {
 }
 
 function writeStandalonePlugin(filePath: string, source = "export default function () {}") {
-  mkdirSafe(path.dirname(filePath));
-  fs.writeFileSync(filePath, source, "utf-8");
+  const pluginId = path.basename(filePath, path.extname(filePath));
+  const pluginDir = path.join(path.dirname(filePath), pluginId);
+  mkdirSafe(pluginDir);
+  writePluginManifest({ pluginDir, id: pluginId });
+  fs.writeFileSync(path.join(pluginDir, "removed-entry.ts"), source, "utf-8");
+  return path.join(pluginDir, "crawclaw.plugin.json");
 }
 
 function createPackagePlugin(params: {
@@ -167,12 +176,6 @@ function expectCandidateSource(
   expect(findCandidateById(candidates, idHint)?.source).toBe(source);
 }
 
-function expectEscapesPackageDiagnostic(diagnostics: Array<{ message: string }>) {
-  expect(diagnostics.some((entry) => entry.message.includes("escapes package directory"))).toBe(
-    true,
-  );
-}
-
 function expectCandidatePresence(
   result: Awaited<ReturnType<typeof discoverCrawClawPlugins>>,
   params: { present?: readonly string[]; absent?: readonly string[] },
@@ -234,29 +237,6 @@ function expectCachedDiscoveryPair(params: {
   params.assert(params.first, params.second);
 }
 
-async function expectRejectedPackageExtensionEntry(params: {
-  stateDir: string;
-  setup: (stateDir: string) => boolean | undefined;
-  expectedDiagnostic?: "escapes" | "none";
-  expectedId?: string;
-}) {
-  if (params.setup(params.stateDir) === false) {
-    return;
-  }
-  const result = await discoverWithStateDir(params.stateDir, {});
-
-  if (params.expectedId) {
-    expectCandidatePresence(result, { absent: [params.expectedId] });
-  } else {
-    expect(result.candidates).toHaveLength(0);
-  }
-  if (params.expectedDiagnostic === "escapes") {
-    expectEscapesPackageDiagnostic(result.diagnostics);
-    return;
-  }
-  expect(result.diagnostics).toEqual([]);
-}
-
 afterEach(() => {
   clearPluginDiscoveryCache();
   cleanupTrackedTempDirs(tempDirs);
@@ -269,11 +249,11 @@ describe("discoverCrawClawPlugins", () => {
 
     const globalExt = path.join(stateDir, "extensions");
     mkdirSafe(globalExt);
-    fs.writeFileSync(path.join(globalExt, "alpha.ts"), "export default function () {}", "utf-8");
+    writeStandalonePlugin(path.join(globalExt, "alpha.ts"));
 
     const workspaceExt = path.join(workspaceDir, ".crawclaw", "extensions");
     mkdirSafe(workspaceExt);
-    fs.writeFileSync(path.join(workspaceExt, "beta.ts"), "export default function () {}", "utf-8");
+    writeStandalonePlugin(path.join(workspaceExt, "beta.ts"));
 
     const { candidates } = await discoverWithStateDir(stateDir, { workspaceDir });
     expectCandidateIds(candidates, { includes: ["alpha", "beta"] });
@@ -285,7 +265,7 @@ describe("discoverCrawClawPlugins", () => {
     const workspaceRoot = path.join(homeDir, "workspace");
     const workspaceExt = path.join(workspaceRoot, ".crawclaw", "extensions");
     mkdirSafe(workspaceExt);
-    fs.writeFileSync(path.join(workspaceExt, "tilde-workspace.ts"), "export default {}", "utf-8");
+    writeStandalonePlugin(path.join(workspaceExt, "tilde-workspace.ts"), "export default {}");
 
     const result = discoverCrawClawPlugins({
       workspaceDir: "~/workspace",
@@ -305,19 +285,19 @@ describe("discoverCrawClawPlugins", () => {
 
     const backupDir = path.join(globalExt, "feishu.backup-20260222");
     mkdirSafe(backupDir);
-    fs.writeFileSync(path.join(backupDir, "index.ts"), "export default function () {}", "utf-8");
+    writePluginManifest({ pluginDir: backupDir, id: "feishu.backup-20260222" });
 
     const disabledDir = path.join(globalExt, "feishu.disabled.20260222");
     mkdirSafe(disabledDir);
-    fs.writeFileSync(path.join(disabledDir, "index.ts"), "export default function () {}", "utf-8");
+    writePluginManifest({ pluginDir: disabledDir, id: "feishu.disabled.20260222" });
 
     const bakDir = path.join(globalExt, "qqbot.bak");
     mkdirSafe(bakDir);
-    fs.writeFileSync(path.join(bakDir, "index.ts"), "export default function () {}", "utf-8");
+    writePluginManifest({ pluginDir: bakDir, id: "qqbot.bak" });
 
     const liveDir = path.join(globalExt, "live");
     mkdirSafe(liveDir);
-    fs.writeFileSync(path.join(liveDir, "index.ts"), "export default function () {}", "utf-8");
+    writePluginManifest({ pluginDir: liveDir, id: "live" });
 
     const { candidates } = await discoverWithStateDir(stateDir, {});
     expectCandidateIds(candidates, {
@@ -326,7 +306,7 @@ describe("discoverCrawClawPlugins", () => {
     });
   });
 
-  it("loads package extension packs", async () => {
+  it("ignores removed package extension entry packs", async () => {
     const stateDir = makeTempDir();
     const globalExt = path.join(stateDir, "extensions", "pack");
     mkdirSafe(path.join(globalExt, "src"));
@@ -340,7 +320,7 @@ describe("discoverCrawClawPlugins", () => {
     writePluginEntry(path.join(globalExt, "src", "two.ts"));
 
     const { candidates } = await discoverWithStateDir(stateDir, {});
-    expectCandidateIds(candidates, { includes: ["pack/one", "pack/two"] });
+    expectCandidateIds(candidates, { excludes: ["pack/one", "pack/two"] });
   });
 
   it("does not discover nested node_modules copies under installed plugins", async () => {
@@ -387,12 +367,13 @@ describe("discoverCrawClawPlugins", () => {
 
   it.each([
     {
-      name: "derives unscoped ids for scoped packages",
+      name: "uses native manifest ids for scoped packages",
       setup: (stateDir: string) => {
         const packageDir = path.join(stateDir, "extensions", "demo-plugin-pack");
         createPackagePluginWithEntry({
           packageDir,
           packageName: "@crawclaw/demo-plugin",
+          pluginId: "demo-plugin",
           entryPath: "src/plugin.ts",
         });
         return {};
@@ -400,7 +381,7 @@ describe("discoverCrawClawPlugins", () => {
       includes: ["demo-plugin"],
     },
     {
-      name: "strips provider suffixes from package-derived ids",
+      name: "uses native manifest ids instead of package-derived provider ids",
       setup: (stateDir: string) => {
         const packageDir = path.join(stateDir, "extensions", "ollama-provider-pack");
         createPackagePluginWithEntry({
@@ -415,7 +396,7 @@ describe("discoverCrawClawPlugins", () => {
       excludes: ["ollama-provider"],
     },
     {
-      name: "normalizes bundled speech package ids to canonical plugin ids",
+      name: "uses native manifest ids for bundled speech package ids",
       setup: (stateDir: string) => {
         for (const [dirName, packageName, pluginId] of [
           ["elevenlabs-speech-pack", "@crawclaw/elevenlabs-speech", "elevenlabs"],
@@ -441,6 +422,7 @@ describe("discoverCrawClawPlugins", () => {
         createPackagePluginWithEntry({
           packageDir,
           packageName: "@crawclaw/demo-plugin-dir",
+          pluginId: "demo-plugin-dir",
           entryPath: "index.js",
         });
         return { extraPaths: [packageDir] };
@@ -530,7 +512,7 @@ describe("discoverCrawClawPlugins", () => {
 
   it.each([
     {
-      name: "falls back to legacy index discovery when a scanned bundle sidecar is malformed",
+      name: "does not fall back to removed index discovery when a scanned bundle sidecar is malformed",
       bundleMarker: ".claude-plugin/plugin.json",
       setup: (stateDir: string) => {
         const pluginDir = path.join(stateDir, "extensions", "legacy-with-bad-bundle");
@@ -541,7 +523,7 @@ describe("discoverCrawClawPlugins", () => {
       },
     },
     {
-      name: "falls back to legacy index discovery for configured paths with malformed bundle sidecars",
+      name: "does not fall back to removed index discovery for configured paths with malformed bundle sidecars",
       bundleMarker: ".codex-plugin/plugin.json",
       setup: (stateDir: string) => {
         const pluginDir = path.join(stateDir, "plugins", "legacy-with-bad-bundle");
@@ -556,104 +538,24 @@ describe("discoverCrawClawPlugins", () => {
     const result = await discoverWithStateDir(stateDir, setup(stateDir));
     const legacy = findCandidateById(result.candidates, "legacy-with-bad-bundle");
 
-    expect(legacy?.format).toBe("crawclaw");
+    expect(legacy).toBeUndefined();
     expect(hasDiagnosticSourceSuffix(result.diagnostics, bundleMarker)).toBe(true);
   });
 
-  it.each([
-    {
-      name: "blocks extension entries that escape package directory",
-      expectedDiagnostic: "escapes" as const,
-      setup: (stateDir: string): undefined => {
-        const globalExt = path.join(stateDir, "extensions", "escape-pack");
-        const outside = path.join(stateDir, "outside.js");
-        mkdirSafe(globalExt);
-        writePluginPackageManifest({
-          packageDir: globalExt,
-          packageName: "@crawclaw/escape-pack",
-          extensions: ["../../outside.js"],
-        });
-        fs.writeFileSync(outside, "export default function () {}", "utf-8");
-        return undefined;
-      },
-    },
-    {
-      name: "skips missing package extension entries without escape diagnostics",
-      expectedDiagnostic: "none" as const,
-      setup: (stateDir: string): undefined => {
-        const globalExt = path.join(stateDir, "extensions", "missing-entry-pack");
-        mkdirSafe(globalExt);
-        writePluginPackageManifest({
-          packageDir: globalExt,
-          packageName: "@crawclaw/missing-entry-pack",
-          extensions: ["./missing.ts"],
-        });
-        return undefined;
-      },
-    },
-    {
-      name: "rejects package extension entries that escape via symlink",
-      expectedDiagnostic: "escapes" as const,
-      expectedId: "pack",
-      setup: (stateDir: string): boolean | undefined => {
-        const globalExt = path.join(stateDir, "extensions", "pack");
-        const outsideDir = path.join(stateDir, "outside");
-        const linkedDir = path.join(globalExt, "linked");
-        mkdirSafe(globalExt);
-        mkdirSafe(outsideDir);
-        fs.writeFileSync(path.join(outsideDir, "escape.ts"), "export default {}", "utf-8");
-        try {
-          fs.symlinkSync(outsideDir, linkedDir, process.platform === "win32" ? "junction" : "dir");
-        } catch {
-          return false;
-        }
-        writePluginPackageManifest({
-          packageDir: globalExt,
-          packageName: "@crawclaw/pack",
-          extensions: ["./linked/escape.ts"],
-        });
-        return undefined;
-      },
-    },
-    {
-      name: "rejects package extension entries that are hardlinked aliases",
-      expectedDiagnostic: "escapes" as const,
-      expectedId: "pack",
-      setup: (stateDir: string): boolean | undefined => {
-        if (process.platform === "win32") {
-          return false;
-        }
-        const globalExt = path.join(stateDir, "extensions", "pack");
-        const outsideDir = path.join(stateDir, "outside");
-        const outsideFile = path.join(outsideDir, "escape.ts");
-        const linkedFile = path.join(globalExt, "escape.ts");
-        mkdirSafe(globalExt);
-        mkdirSafe(outsideDir);
-        fs.writeFileSync(outsideFile, "export default {}", "utf-8");
-        try {
-          fs.linkSync(outsideFile, linkedFile);
-        } catch (err) {
-          if ((err as NodeJS.ErrnoException).code === "EXDEV") {
-            return false;
-          }
-          throw err;
-        }
-        writePluginPackageManifest({
-          packageDir: globalExt,
-          packageName: "@crawclaw/pack",
-          extensions: ["./escape.ts"],
-        });
-        return undefined;
-      },
-    },
-  ] as const)("$name", async ({ setup, expectedDiagnostic, expectedId }) => {
+  it("ignores removed package extension entries without resolving their paths", async () => {
     const stateDir = makeTempDir();
-    await expectRejectedPackageExtensionEntry({
-      stateDir,
-      setup,
-      expectedDiagnostic,
-      ...(expectedId ? { expectedId } : {}),
+    const globalExt = path.join(stateDir, "extensions", "escape-pack");
+    mkdirSafe(globalExt);
+    writePluginPackageManifest({
+      packageDir: globalExt,
+      packageName: "@crawclaw/escape-pack",
+      extensions: ["../../outside.js"],
     });
+
+    const result = await discoverWithStateDir(stateDir, {});
+
+    expect(result.candidates).toHaveLength(0);
+    expect(result.diagnostics).toEqual([]);
   });
 
   it("ignores package manifests that are hardlinked aliases", async () => {
@@ -694,8 +596,9 @@ describe("discoverCrawClawPlugins", () => {
     const stateDir = makeTempDir();
     const globalExt = path.join(stateDir, "extensions");
     mkdirSafe(globalExt);
-    const pluginPath = path.join(globalExt, "world-open.ts");
-    fs.writeFileSync(pluginPath, "export default function () {}", "utf-8");
+    const pluginPath = path.join(globalExt, "world-open");
+    mkdirSafe(pluginPath);
+    writePluginManifest({ pluginDir: pluginPath, id: "world-open" });
     fs.chmodSync(pluginPath, 0o777);
 
     const result = await discoverWithStateDir(stateDir, {});
@@ -713,7 +616,7 @@ describe("discoverCrawClawPlugins", () => {
       const bundledDir = path.join(stateDir, "bundled");
       const packDir = path.join(bundledDir, "demo-pack");
       mkdirSafe(packDir);
-      fs.writeFileSync(path.join(packDir, "index.ts"), "export default function () {}", "utf-8");
+      writePluginManifest({ pluginDir: packDir, id: "demo-pack" });
       fs.chmodSync(packDir, 0o777);
 
       const result = discoverCrawClawPlugins({
@@ -740,11 +643,9 @@ describe("discoverCrawClawPlugins", () => {
       const stateDir = makeTempDir();
       const globalExt = path.join(stateDir, "extensions");
       mkdirSafe(globalExt);
-      fs.writeFileSync(
-        path.join(globalExt, "owner-mismatch.ts"),
-        "export default function () {}",
-        "utf-8",
-      );
+      const pluginPath = path.join(globalExt, "owner-mismatch");
+      mkdirSafe(pluginPath);
+      writePluginManifest({ pluginDir: pluginPath, id: "owner-mismatch" });
 
       const actualUid = (process as NodeJS.Process & { getuid: () => number }).getuid();
       const result = await discoverWithStateDir(stateDir, { ownershipUid: actualUid + 1 });
@@ -760,14 +661,15 @@ describe("discoverCrawClawPlugins", () => {
     const stateDir = makeTempDir();
     const globalExt = path.join(stateDir, "extensions");
     mkdirSafe(globalExt);
-    const pluginPath = path.join(globalExt, "cached.ts");
-    fs.writeFileSync(pluginPath, "export default function () {}", "utf-8");
+    const pluginPath = path.join(globalExt, "cached");
+    mkdirSafe(pluginPath);
+    writePluginManifest({ pluginDir: pluginPath, id: "cached" });
 
     const cachedEnv = buildCachedDiscoveryEnv(stateDir);
     const first = discoverWithCachedEnv({ env: cachedEnv });
     expect(first.candidates.some((candidate) => candidate.idHint === "cached")).toBe(true);
 
-    fs.rmSync(pluginPath, { force: true });
+    fs.rmSync(pluginPath, { force: true, recursive: true });
 
     const second = discoverWithCachedEnv({ env: cachedEnv });
     expect(second.candidates.some((candidate) => candidate.idHint === "cached")).toBe(true);
@@ -805,25 +707,25 @@ describe("discoverCrawClawPlugins", () => {
         const stateDir = makeTempDir();
         const homeA = makeTempDir();
         const homeB = makeTempDir();
-        const pluginA = path.join(homeA, "plugins", "demo.ts");
-        const pluginB = path.join(homeB, "plugins", "demo.ts");
-        writeStandalonePlugin(pluginA, "export default {}");
-        writeStandalonePlugin(pluginB, "export default {}");
+        const pluginA = path.join(homeA, "plugins", "demo");
+        const pluginB = path.join(homeB, "plugins", "demo");
+        const manifestA = writeStandalonePlugin(pluginA, "export default {}");
+        const manifestB = writeStandalonePlugin(pluginB, "export default {}");
         return {
           first: discoverWithCachedEnv({
-            extraPaths: ["~/plugins/demo.ts"],
+            extraPaths: ["~/plugins/demo"],
             env: buildCachedDiscoveryEnv(stateDir, { HOME: homeA }),
           }),
           second: discoverWithCachedEnv({
-            extraPaths: ["~/plugins/demo.ts"],
+            extraPaths: ["~/plugins/demo"],
             env: buildCachedDiscoveryEnv(stateDir, { HOME: homeB }),
           }),
           assert: (
             first: ReturnType<typeof discoverWithCachedEnv>,
             second: ReturnType<typeof discoverWithCachedEnv>,
           ) => {
-            expectCandidateSource(first.candidates, "demo", pluginA);
-            expectCandidateSource(second.candidates, "demo", pluginB);
+            expectCandidateSource(first.candidates, "demo", manifestA);
+            expectCandidateSource(second.candidates, "demo", manifestB);
           },
         };
       },
@@ -835,8 +737,8 @@ describe("discoverCrawClawPlugins", () => {
 
   it("treats configured load-path order as cache-significant", () => {
     const stateDir = makeTempDir();
-    const pluginA = path.join(stateDir, "plugins", "alpha.ts");
-    const pluginB = path.join(stateDir, "plugins", "beta.ts");
+    const pluginA = path.join(stateDir, "plugins", "alpha");
+    const pluginB = path.join(stateDir, "plugins", "beta");
     writeStandalonePlugin(pluginA, "export default {}");
     writeStandalonePlugin(pluginB, "export default {}");
 

@@ -1,5 +1,3 @@
-import { getActivePluginRegistry } from "../plugins/runtime.js";
-
 export const ADMIN_SCOPE = "operator.admin" as const;
 export const READ_SCOPE = "operator.read" as const;
 export const WRITE_SCOPE = "operator.write" as const;
@@ -195,10 +193,6 @@ function resolveScopedMethod(method: string): OperatorScope | undefined {
   const explicitScope = METHOD_SCOPE_BY_NAME.get(method);
   if (explicitScope) {
     return explicitScope;
-  }
-  const pluginScope = getActivePluginRegistry()?.gatewayMethodScopes?.[method];
-  if (pluginScope) {
-    return pluginScope;
   }
   if (ADMIN_METHOD_PREFIXES.some((prefix) => method.startsWith(prefix))) {
     return ADMIN_SCOPE;

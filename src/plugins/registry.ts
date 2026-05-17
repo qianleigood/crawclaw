@@ -1,5 +1,3 @@
-import type { OperatorScope } from "../gateway/method-scopes.js";
-import type { GatewayRequestHandlers } from "../gateway/request-types.js";
 import type { HookEntry } from "../hooks/types.js";
 import type { PluginActivationSource } from "./config-state.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
@@ -97,7 +95,6 @@ export type PluginRecord = {
   speechProviderIds: string[];
   webFetchProviderIds: string[];
   webSearchProviderIds: string[];
-  gatewayMethods: string[];
   services: string[];
   commands: string[];
   httpRoutes: number;
@@ -115,8 +112,6 @@ export type PluginRegistry = {
   speechProviders: PluginSpeechProviderRegistration[];
   webFetchProviders: PluginWebFetchProviderRegistration[];
   webSearchProviders: PluginWebSearchProviderRegistration[];
-  gatewayHandlers: GatewayRequestHandlers;
-  gatewayMethodScopes?: Partial<Record<string, OperatorScope>>;
   httpRoutes: PluginHttpRouteRegistration[];
   services: PluginServiceRegistration[];
   commands: PluginCommandRegistration[];
@@ -125,7 +120,6 @@ export type PluginRegistry = {
 
 export type PluginRegistryParams = {
   logger: PluginLogger;
-  coreGatewayHandlers?: GatewayRequestHandlers;
   // When false, keep registration local to the returned registry and avoid mutating
   // process-global command/hook state during non-activating snapshot loads.
   activateGlobalSideEffects?: boolean;

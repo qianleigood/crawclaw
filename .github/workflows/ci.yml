@@ -496,19 +496,6 @@ jobs:
         continue-on-error: true
         run: pnpm plugin-deps:check
 
-      - name: Run gateway watch regression harness
-        id: gateway_watch_regression
-        continue-on-error: true
-        run: pnpm test:gateway:watch-regression
-
-      - name: Upload gateway watch regression artifacts
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: gateway-watch-regression
-          path: .local/gateway-watch-regression/
-          retention-days: 7
-
       - name: Fail if any additional check failed
         if: always()
         env:
@@ -520,7 +507,6 @@ jobs:
           WEB_SEARCH_PROVIDER_BOUNDARY_OUTCOME: ${{ steps.web_search_provider_boundary.outcome }}
           WEB_FETCH_PROVIDER_BOUNDARY_OUTCOME: ${{ steps.web_fetch_provider_boundary.outcome }}
           PLUGIN_DEPENDENCY_PLAN_OUTCOME: ${{ steps.plugin_dependency_plan.outcome }}
-          GATEWAY_WATCH_REGRESSION_OUTCOME: ${{ steps.gateway_watch_regression.outcome }}
         run: |
           failures=0
           for result in \
@@ -531,8 +517,7 @@ jobs:
             "lint:plugins:no-extension-test-core-imports|$NO_EXTENSION_TEST_CORE_IMPORTS_OUTCOME" \
             "web-search-provider-boundary|$WEB_SEARCH_PROVIDER_BOUNDARY_OUTCOME" \
             "web-fetch-provider-boundary|$WEB_FETCH_PROVIDER_BOUNDARY_OUTCOME" \
-            "plugin-dependency-plan|$PLUGIN_DEPENDENCY_PLAN_OUTCOME" \
-            "gateway-watch-regression|$GATEWAY_WATCH_REGRESSION_OUTCOME"; do
+            "plugin-dependency-plan|$PLUGIN_DEPENDENCY_PLAN_OUTCOME"; do
             name="${result%%|*}"
             outcome="${result#*|}"
             if [ "$outcome" != "success" ]; then

@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import type { CrawClawConfig } from "../config/config.js";
 import type { PluginInstallRecord } from "../config/types.plugins.js";
-import type { GatewayRequestHandler } from "../gateway/request-types.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveUserPath } from "../utils.js";
 import { inspectBundleMcpRuntimeSupport } from "./bundle-mcp.js";
@@ -48,7 +47,6 @@ export type PluginLoadOptions = {
   // instead of the process-global environment.
   env?: NodeJS.ProcessEnv;
   logger?: PluginLogger;
-  coreGatewayHandlers?: Record<string, GatewayRequestHandler>;
   runtimeResolution?: RuntimeResolutionPreference;
   cache?: boolean;
   mode?: "full" | "validate";
@@ -168,13 +166,12 @@ function buildCacheKey(params: {
   );
   const scopeKey = JSON.stringify(params.onlyPluginIds ?? []);
   const moduleLoadMode = params.loadModules === false ? "manifest-only" : "load-modules";
-  const gatewayMethodsKey = JSON.stringify(params.coreGatewayMethodNames ?? []);
   return `${roots.workspace ?? ""}::${roots.global ?? ""}::${roots.stock ?? ""}::${JSON.stringify({
     ...params.plugins,
     installs,
     loadPaths,
     activationMetadataKey: params.activationMetadataKey ?? "",
-  })}::${scopeKey}::${moduleLoadMode}::${params.runtimeResolution ?? "auto"}::${gatewayMethodsKey}`;
+  })}::${scopeKey}::${moduleLoadMode}::${params.runtimeResolution ?? "auto"}`;
 }
 
 function normalizeScopedPluginIds(ids?: string[]): string[] | undefined {
@@ -230,7 +227,6 @@ function hasExplicitCompatibilityInputs(options: PluginLoadOptions): boolean {
     options.env !== undefined ||
     options.onlyPluginIds?.length ||
     options.runtimeResolution !== undefined ||
-    options.coreGatewayHandlers !== undefined ||
     options.loadModules === false,
   );
 }
@@ -242,7 +238,6 @@ function resolvePluginLoadCacheContext(options: PluginLoadOptions = {}) {
   const normalized = normalizePluginsConfig(cfg.plugins);
   const activationSourceNormalized = normalizePluginsConfig(activationSourceConfig.plugins);
   const onlyPluginIds = normalizeScopedPluginIds(options.onlyPluginIds);
-  const coreGatewayMethodNames = Object.keys(options.coreGatewayHandlers ?? {}).toSorted();
   const cacheKey = buildCacheKey({
     workspaceDir: options.workspaceDir,
     plugins: normalized,
@@ -255,7 +250,6 @@ function resolvePluginLoadCacheContext(options: PluginLoadOptions = {}) {
     onlyPluginIds,
     loadModules: options.loadModules,
     runtimeResolution: options.runtimeResolution,
-    coreGatewayMethodNames,
   });
   return {
     env,
@@ -370,7 +364,6 @@ function createPluginRecord(params: {
     speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
-    gatewayMethods: [],
     services: [],
     commands: [],
     httpRoutes: 0,
@@ -720,7 +713,6 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
 
   const { registry } = createPluginRegistry({
     logger,
-    coreGatewayHandlers: options.coreGatewayHandlers as Record<string, GatewayRequestHandler>,
     activateGlobalSideEffects: shouldActivate,
   });
 

@@ -5,13 +5,13 @@ import { request as httpRequest } from "node:http";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
-import { GatewayClient } from "../../src/gateway/client.js";
 import { extractFirstTextBlock } from "../../src/shared/chat-message-content.js";
 import { sleep } from "../../src/utils.js";
 import {
   GATEWAY_CLIENT_MODES,
   GATEWAY_CLIENT_NAMES,
 } from "../../src/utils/gateway-client-surface.js";
+import { connectTestGatewayWsClient, type TestGatewayWsClient } from "./gateway-ws-client.js";
 
 export { extractFirstTextBlock };
 
@@ -256,49 +256,17 @@ export async function postJson(
 export async function connectStatusClient(
   inst: GatewayInstance,
   timeoutMs = GATEWAY_CONNECT_STATUS_TIMEOUT_MS,
-): Promise<GatewayClient> {
-  let settled = false;
-  let timer: NodeJS.Timeout | null = null;
-
-  return await new Promise<GatewayClient>((resolve, reject) => {
-    const finish = (err?: Error) => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      if (timer) {
-        clearTimeout(timer);
-      }
-      if (err) {
-        reject(err);
-        return;
-      }
-      resolve(client);
-    };
-
-    const client = new GatewayClient({
-      url: `ws://127.0.0.1:${inst.port}`,
-      connectChallengeTimeoutMs: 0,
-      token: inst.gatewayToken,
-      clientName: GATEWAY_CLIENT_NAMES.CLI,
-      clientDisplayName: `status-${inst.name}`,
-      clientVersion: "1.0.0",
-      platform: "test",
-      mode: GATEWAY_CLIENT_MODES.CLI,
-      onHelloOk: () => {
-        finish();
-      },
-      onConnectError: (err) => finish(err),
-      onClose: (code, reason) => {
-        finish(new Error(`gateway closed (${code}): ${reason}`));
-      },
-    });
-
-    timer = setTimeout(() => {
-      finish(new Error("timeout waiting for gateway hello"));
-    }, timeoutMs);
-
-    client.start();
+): Promise<TestGatewayWsClient> {
+  return await connectTestGatewayWsClient({
+    url: `ws://127.0.0.1:${inst.port}`,
+    token: inst.gatewayToken,
+    clientName: GATEWAY_CLIENT_NAMES.CLI,
+    clientDisplayName: `status-${inst.name}`,
+    clientVersion: "1.0.0",
+    platform: "test",
+    mode: GATEWAY_CLIENT_MODES.CLI,
+    timeoutMs,
+    timeoutMessage: "timeout waiting for gateway hello",
   });
 }
 

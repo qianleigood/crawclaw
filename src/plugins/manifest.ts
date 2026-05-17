@@ -340,22 +340,8 @@ export type PluginPackageInstall = {
 };
 
 export type CrawClawPackageManifest = {
-  extensions?: string[];
-  setupEntry?: string;
   install?: PluginPackageInstall;
 };
-
-export const DEFAULT_PLUGIN_ENTRY_CANDIDATES = [
-  "index.ts",
-  "index.js",
-  "index.mjs",
-  "index.cjs",
-] as const;
-
-export type PackageExtensionResolution =
-  | { status: "ok"; entries: string[] }
-  | { status: "missing"; entries: [] }
-  | { status: "empty"; entries: [] };
 
 export type ManifestKey = typeof MANIFEST_KEY;
 
@@ -372,20 +358,4 @@ export function getPackageManifestMetadata(
     return undefined;
   }
   return manifest[MANIFEST_KEY];
-}
-
-export function resolvePackageExtensionEntries(
-  manifest: PackageManifest | undefined,
-): PackageExtensionResolution {
-  const raw = getPackageManifestMetadata(manifest)?.extensions;
-  if (!Array.isArray(raw)) {
-    return { status: "missing", entries: [] };
-  }
-  const entries = raw
-    .map((entry) => (typeof entry === "string" ? entry.trim() : ""))
-    .filter(Boolean);
-  if (entries.length === 0) {
-    return { status: "empty", entries: [] };
-  }
-  return { status: "ok", entries };
 }

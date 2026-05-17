@@ -120,4 +120,4 @@ The gateway is the source of truth for client admission.
 
 - **Gateway**: advertises discovery beacons, owns pairing decisions, and hosts the WS endpoint.
 - **Gateway clients**: connect to a selected gateway, show pairing prompts, and use SSH only as a fallback.
-- **Node clients**: browse Bonjour as a convenience and connect to the paired Gateway WS.
+- **Gateway clients**: browse Bonjour as a convenience and connect to the paired Gateway WS.

@@ -79,11 +79,11 @@ describe("collectPublishablePluginPackageErrors", () => {
       collectPublishablePluginPackageErrors({
         extensionId: "demo-alpha",
         packageDir: bundledPluginRoot("demo-alpha"),
+        hasNativeManifest: true,
         packageJson: {
           name: "@crawclaw/demo-alpha",
           version: "2026.3.15",
           crawclaw: {
-            extensions: ["./index.ts"],
             release: {
               publishToNpm: true,
             },
@@ -103,7 +103,6 @@ describe("collectPublishablePluginPackageErrors", () => {
           version: "latest",
           private: true,
           crawclaw: {
-            extensions: [""],
             release: {
               publishToNpm: true,
             },
@@ -114,7 +113,7 @@ describe("collectPublishablePluginPackageErrors", () => {
       'package name must start with "@crawclaw/"; found "broken".',
       "package.json private must not be true.",
       'package.json version must match YYYY.M.D, YYYY.M.D-N, or YYYY.M.D-beta.N; found "latest".',
-      "crawclaw.extensions must contain only non-empty strings.",
+      "crawclaw.plugin.json must include a native plugin descriptor.",
     ]);
   });
 });
