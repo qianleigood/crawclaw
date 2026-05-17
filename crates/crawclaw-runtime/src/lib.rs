@@ -7,6 +7,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod config_contract;
 mod core_tools;
 pub mod cron;
 mod desktop_packaging;
@@ -16,6 +17,7 @@ mod native_plugin_registry;
 mod package_build;
 pub mod special_agents;
 
+pub use config_contract::{base_config_schema_payload, base_config_schema_payload_json};
 use core_tools::build_pi_agent_rust_tool_registry;
 pub use desktop_packaging::{
     check_desktop_runtime_release_inputs, resolve_desktop_runtime_stage_paths,

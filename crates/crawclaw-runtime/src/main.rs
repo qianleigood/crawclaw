@@ -34,6 +34,7 @@ async fn main() {
     match args.remove(0).as_str() {
         "desktop-check" => desktop_check(args),
         "desktop-stage" => desktop_stage(args),
+        "emit-base-config-schema" => emit_base_config_schema(args),
         "emit-provider-model-normalization" => emit_provider_model_normalization(args),
         "package-postbuild" => package_postbuild(args),
         "status" => status(&args),
@@ -103,6 +104,20 @@ fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
         );
     }
     Ok(PathBuf::from(&args[1]))
+}
+
+fn emit_base_config_schema(args: Vec<String>) {
+    if args.len() != 2 || args[0] != "--generated-at" {
+        eprintln!("usage: crawclaw-runtime emit-base-config-schema --generated-at <iso8601>");
+        std::process::exit(2);
+    }
+    match crawclaw_runtime::base_config_schema_payload_json(&args[1]) {
+        Ok(payload) => println!("{payload}"),
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
 }
 
 fn emit_provider_model_normalization(args: Vec<String>) {
@@ -366,6 +381,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-provider-model-normalization --output <path> | package-postbuild --root <repo-root> | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-provider-model-normalization --output <path> | package-postbuild --root <repo-root> | tool <name> [json-input]"
     );
 }
