@@ -8,7 +8,7 @@ import { loadConfig } from "../config/config.js";
 import {
   ANTHROPIC_SETUP_TOKEN_PREFIX,
   validateAnthropicSetupToken,
-} from "../internal-plugin-helpers/provider-auth.js";
+} from "../plugins/provider-auth-token.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
 import {
   type AuthProfileCredential,
