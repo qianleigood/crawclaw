@@ -47,9 +47,9 @@ describe("plugin manifest canonical naming", () => {
 
   it("reads package.json crawclaw metadata", () => {
     const canonical = getPackageManifestMetadata({
-      crawclaw: { extensions: ["./dist/index.js"] },
+      crawclaw: { extensions: ["./dist/plugin.js"] },
     } as PackageManifest);
-    expect(canonical?.extensions).toEqual(["./dist/index.js"]);
+    expect(canonical?.extensions).toEqual(["./dist/plugin.js"]);
     expect(getPackageManifestMetadata({} as PackageManifest)).toBeUndefined();
   });
 

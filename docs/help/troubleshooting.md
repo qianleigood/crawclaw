@@ -47,18 +47,21 @@ is using an old shape that CrawClaw no longer accepts.
 
 Fix in the plugin package:
 
-1. Add `crawclaw.extensions` to `package.json`.
-2. Point entries at built runtime files (usually `./dist/index.js`).
+1. Remove the legacy JavaScript extension entry.
+2. Rebuild the plugin as a Rust native plugin descriptor.
 3. Republish the plugin and run CrawClaw Desktop or the local Gateway API again.
 
 Example:
 
-```json
+```json crawclaw.plugin.json
 {
-  "name": "@crawclaw/my-plugin",
-  "version": "1.2.3",
-  "crawclaw": {
-    "extensions": ["./dist/index.js"]
+  "id": "my-plugin",
+  "name": "My Plugin",
+  "description": "Adds a native capability to CrawClaw",
+  "native": {
+    "protocol": "crawclaw-native-plugin-jsonrpc",
+    "schemaVersion": 1,
+    "bin": "./target/release/my-plugin"
   }
 }
 ```

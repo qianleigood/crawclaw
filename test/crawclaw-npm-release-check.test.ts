@@ -269,13 +269,13 @@ describe("parseNpmPackJsonOutput", () => {
       "> pnpm build",
       "",
       "[copy-hook-metadata] Copied 4 hook metadata files.",
-      '[{"filename":"crawclaw.tgz","files":[{"path":"dist/index.mjs"}]}]',
+      '[{"filename":"crawclaw.tgz","files":[{"path":"dist/native/crawclaw-runtime"}]}]',
     ].join("\n");
 
     expect(parseNpmPackJsonOutput(stdout)).toEqual([
       {
         filename: "crawclaw.tgz",
-        files: [{ path: "dist/index.mjs" }],
+        files: [{ path: "dist/native/crawclaw-runtime" }],
       },
     ]);
   });
@@ -345,8 +345,15 @@ describe("collectReleasePackageMetadataErrors", () => {
         description: "Multi-channel AI gateway with extensible messaging integrations",
         license: "MIT",
         repository: { url: "git+https://github.com/qianleigood/crawclaw.git" },
-        exports: {},
-        files: ["dist/"],
+        files: [
+          "CHANGELOG.md",
+          "LICENSE",
+          "README.md",
+          "assets/",
+          "docs/reference/templates/",
+          "scripts/npm-runner.mjs",
+          "scripts/postinstall-bundled-plugins.mjs",
+        ],
         peerDependencies: { "node-llama-cpp": "3.18.1" },
         peerDependenciesMeta: { "node-llama-cpp": { optional: true } },
       }),
@@ -372,16 +379,20 @@ describe("collectReleasePackageMetadataErrors", () => {
         description: "Multi-channel AI gateway with extensible messaging integrations",
         license: "MIT",
         repository: { url: "git+https://github.com/qianleigood/crawclaw.git" },
+        main: "dist/index.js",
         bin: { crawclaw: "crawclaw.mjs" },
-        exports: { "./cli-entry": "./crawclaw.mjs" },
+        exports: { ".": "./dist/index.js", "./cli-entry": "./crawclaw.mjs" },
         files: ["crawclaw.mjs", "dist/"],
         peerDependencies: { "node-llama-cpp": "3.18.1" },
         peerDependenciesMeta: { "node-llama-cpp": { optional: true } },
       }),
     ).toEqual([
       "package.json must not expose public crawclaw CLI bin.",
+      "package.json must not expose a root Node main entry.",
+      'package.json exports must not expose root JS library entry ".".',
       'package.json exports must not expose legacy "./cli-entry".',
       "package.json files must not include the legacy Node entry file.",
+      "package.json files must not include the legacy dist JS runtime tree.",
     ]);
   });
 });

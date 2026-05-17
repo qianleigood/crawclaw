@@ -47,6 +47,6 @@ The tool accepts a single `input` string that wraps one or more file operations:
 ```json
 {
   "tool": "apply_patch",
-  "input": "*** Begin Patch\n*** Update File: src/index.ts\n@@\n-const foo = 1\n+const foo = 2\n*** End Patch"
+  "input": "*** Begin Patch\n*** Update File: src/plugin.ts\n@@\n-const foo = 1\n+const foo = 2\n*** End Patch"
 }
 ```

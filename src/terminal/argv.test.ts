@@ -389,8 +389,8 @@ describe("argv helpers", () => {
     },
     {
       name: "keeps bun execution argv",
-      rawArgs: ["bun", "src/entry.ts", "status"],
-      expected: ["bun", "src/entry.ts", "status"],
+      rawArgs: ["bun", "src/runtime.ts", "status"],
+      expected: ["bun", "src/runtime.ts", "status"],
     },
   ] as const)("builds parse argv from raw args: $name", ({ rawArgs, expected }) => {
     const parsed = buildParseArgv({

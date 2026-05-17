@@ -114,7 +114,6 @@ const bundledHookEntries = buildBundledHookEntries();
 
 function buildCoreDistEntries(): Record<string, string> {
   return {
-    index: "src/index.ts",
     // Keep long-lived lazy runtime boundaries on stable filenames so rebuilt
     // dist/ trees do not strand already-running gateways on stale hashed chunks.
     "agents/auth-profiles.runtime": "src/agents/auth-profiles.runtime.ts",

@@ -22,7 +22,10 @@
     "LICENSE",
     "README.md",
     "assets/",
-    "dist/",
+    "dist/build-info.json",
+    "dist/extensions/",
+    "dist/migrations/",
+    "dist/native/",
     "!dist/**/*.map",
     "docs/reference/templates/",
     "skills/",
@@ -30,10 +33,6 @@
     "scripts/postinstall-bundled-plugins.mjs"
   ],
   "type": "module",
-  "main": "dist/index.js",
-  "exports": {
-    ".": "./dist/index.js"
-  },
   "scripts": {
     "audit:seams": "node scripts/audit-seams.mjs",
     "build": "node scripts/tsdown-build.mjs && node scripts/runtime-postbuild.mjs && node scripts/build-native-plugins.mjs && node scripts/build-stamp.mjs && node --import tsx scripts/copy-hook-metadata.ts && node --import tsx scripts/write-build-info.ts",
@@ -61,8 +60,8 @@
     "deadcode:ts-unused": "pnpm dlx ts-unused-exports tsconfig.json --ignoreTestFiles --exitWithCount",
     "desktop:tauri:build": "pnpm desktop:tauri:stage-runtime && npm --prefix apps/crawclaw-desktop run tauri:build && pnpm desktop:tauri:release-check",
     "desktop:tauri:dev": "npm --prefix apps/crawclaw-desktop run tauri:dev",
-    "desktop:tauri:release-check": "node scripts/crawclaw-desktop-tauri-runtime.mjs check",
-    "desktop:tauri:stage-runtime": "node scripts/crawclaw-desktop-tauri-runtime.mjs stage",
+    "desktop:tauri:release-check": "cargo run --quiet --release -p crawclaw-runtime -- desktop-check --root .",
+    "desktop:tauri:stage-runtime": "cargo run --quiet --release -p crawclaw-runtime -- desktop-stage --root .",
     "docs:bin": "node scripts/build-docs-list.mjs",
     "docs:check-i18n-glossary": "node scripts/check-docs-i18n-glossary.mjs",
     "docs:check-links": "node scripts/docs-link-audit.mjs",

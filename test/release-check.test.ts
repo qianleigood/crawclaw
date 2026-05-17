@@ -209,7 +209,6 @@ describe("collectForbiddenPackPaths", () => {
   it("allows bundled plugin runtime deps under dist/extensions but still blocks other node_modules", () => {
     expect(
       collectForbiddenPackPaths([
-        "dist/index.js",
         bundledDistPluginFile("qqbot", "node_modules/@buape/carbon/index.js"),
         bundledPluginFile("feishu", "node_modules/.bin/feishu"),
         "node_modules/.bin/crawclaw",
@@ -224,7 +223,6 @@ describe("collectForbiddenPackPaths", () => {
 describe("collectMissingPackPaths", () => {
   it("requires the shipped runtime surface and optional bundled metadata", () => {
     const missing = collectMissingPackPaths([
-      "dist/index.js",
       "dist/native/crawclaw-runtime",
       "dist/native/crawclaw-gateway",
       "dist/native/crawclaw-native-plugins",
@@ -245,7 +243,6 @@ describe("collectMissingPackPaths", () => {
   it("accepts the shipped upgrade surface when optional bundled metadata is present", () => {
     expect(
       collectMissingPackPaths([
-        "dist/index.js",
         "dist/native/crawclaw-runtime",
         "dist/native/crawclaw-gateway",
         "dist/native/crawclaw-native-plugins",

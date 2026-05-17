@@ -40,7 +40,7 @@ describe("parseWindowsCmdline", () => {
 
 describe("isGatewayArgv", () => {
   it("requires the internal gateway binary", () => {
-    expect(isGatewayArgv(["node", "dist/index.js", "--port", "18789"])).toBe(false);
+    expect(isGatewayArgv(["node", "dist/runtime.js", "--port", "18789"])).toBe(false);
     expect(isGatewayArgv(["C:\\bin\\crawclaw.cmd", "gateway"])).toBe(false);
     expect(isGatewayArgv(["/app/dist/native/crawclaw", "gateway"])).toBe(false);
   });
@@ -49,8 +49,8 @@ describe("isGatewayArgv", () => {
     expect(isGatewayArgv(["NODE", "C:\\CrawClaw\\DIST\\ENTRY.JS", "gateway"])).toBe(false);
     expect(isGatewayArgv(["bun", "/srv/crawclaw/scripts/run-node.mjs", "gateway"])).toBe(false);
     expect(isGatewayArgv(["node", "/srv/crawclaw/crawclaw.mjs", "gateway"])).toBe(false);
-    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/entry.ts", "gateway"])).toBe(false);
-    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/index.ts", "gateway"])).toBe(false);
+    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/old-entry.ts", "gateway"])).toBe(false);
+    expect(isGatewayArgv(["tsx", "/srv/crawclaw/src/old-index.ts", "gateway"])).toBe(false);
   });
 
   it("matches the Rust gateway binary", () => {

@@ -121,16 +121,12 @@ export async function spawnGatewayInstance(name: string): Promise<GatewayInstanc
 
   try {
     child = spawn(
-      "node",
-      [
-        "dist/index.js",
-        "gateway",
-        "--port",
-        String(port),
-        "--bind",
-        "loopback",
-        "--allow-unconfigured",
-      ],
+      path.join(
+        "dist",
+        "native",
+        process.platform === "win32" ? "crawclaw-gateway.exe" : "crawclaw-gateway",
+      ),
+      ["--port", String(port), "--bind", "loopback"],
       {
         cwd: process.cwd(),
         env: {

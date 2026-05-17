@@ -25,7 +25,9 @@ describe("tsdown config", () => {
     const configs = asConfigArray(tsdownConfig);
     const distGraphs = configs.filter((config) => {
       const keys = entryKeys(config);
-      return keys.includes("index") || keys.includes("bundled/boot-md/handler");
+      return (
+        keys.includes("agents/auth-profiles.runtime") || keys.includes("bundled/boot-md/handler")
+      );
     });
 
     expect(distGraphs).toHaveLength(1);
@@ -33,11 +35,11 @@ describe("tsdown config", () => {
       expect.arrayContaining([
         "agents/auth-profiles.runtime",
         "agents/pi-model-discovery-runtime",
-        "index",
         "control/status.summary.runtime",
         "bundled/boot-md/handler",
       ]),
     );
+    expect(entryKeys(distGraphs[0])).not.toContain("index");
   });
 
   it("does not emit bundled hooks from a separate dist graph", () => {
@@ -54,7 +56,9 @@ describe("tsdown config", () => {
 
   it("externalizes non-bundleable runtime dependencies", () => {
     const configs = asConfigArray(tsdownConfig);
-    const unifiedGraph = configs.find((config) => entryKeys(config).includes("index"));
+    const unifiedGraph = configs.find((config) =>
+      entryKeys(config).includes("bundled/boot-md/handler"),
+    );
 
     expect(unifiedGraph?.deps?.neverBundle).toEqual(expect.arrayContaining(["@lancedb/lancedb"]));
   });

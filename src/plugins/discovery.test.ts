@@ -122,7 +122,7 @@ function createPackagePluginWithEntry(params: {
   pluginId?: string;
   entryPath?: string;
 }) {
-  const entryPath = params.entryPath ?? "src/index.ts";
+  const entryPath = params.entryPath ?? "src/plugin.ts";
   mkdirSafe(path.dirname(path.join(params.packageDir, entryPath)));
   createPackagePlugin({
     packageDir: params.packageDir,
@@ -360,11 +360,11 @@ describe("discoverCrawClawPlugins", () => {
     writePluginPackageManifest({
       packageDir: pluginDir,
       packageName: "@opik/opik-crawclaw",
-      extensions: ["./src/index.ts"],
+      extensions: ["./src/plugin.ts"],
     });
     writePluginManifest({ pluginDir, id: "opik-crawclaw" });
     fs.writeFileSync(
-      path.join(pluginDir, "src", "index.ts"),
+      path.join(pluginDir, "src", "plugin.ts"),
       "export default function () {}",
       "utf-8",
     );
@@ -393,7 +393,7 @@ describe("discoverCrawClawPlugins", () => {
         createPackagePluginWithEntry({
           packageDir,
           packageName: "@crawclaw/demo-plugin",
-          entryPath: "src/index.ts",
+          entryPath: "src/plugin.ts",
         });
         return {};
       },
@@ -407,7 +407,7 @@ describe("discoverCrawClawPlugins", () => {
           packageDir,
           packageName: "@crawclaw/ollama-provider",
           pluginId: "ollama",
-          entryPath: "src/index.ts",
+          entryPath: "src/plugin.ts",
         });
         return {};
       },
@@ -426,7 +426,7 @@ describe("discoverCrawClawPlugins", () => {
             packageDir,
             packageName,
             pluginId,
-            entryPath: "src/index.ts",
+            entryPath: "src/plugin.ts",
           });
         }
         return {};

@@ -5,8 +5,8 @@ describe("isMainModule", () => {
   it("returns true when argv[1] matches current file", () => {
     expect(
       isMainModule({
-        currentFile: "/repo/dist/index.js",
-        argv: ["node", "/repo/dist/index.js"],
+        currentFile: "/repo/dist/runtime.js",
+        argv: ["node", "/repo/dist/runtime.js"],
         cwd: "/repo",
         env: {},
       }),
@@ -16,10 +16,10 @@ describe("isMainModule", () => {
   it("returns true under PM2 when pm_exec_path matches current file", () => {
     expect(
       isMainModule({
-        currentFile: "/repo/dist/index.js",
+        currentFile: "/repo/dist/runtime.js",
         argv: ["node", "/pm2/lib/ProcessContainerFork.js"],
         cwd: "/repo",
-        env: { pm_exec_path: "/repo/dist/index.js", pm_id: "0" },
+        env: { pm_exec_path: "/repo/dist/runtime.js", pm_id: "0" },
       }),
     ).toBe(true);
   });
@@ -27,10 +27,10 @@ describe("isMainModule", () => {
   it("resolves relative pm_exec_path values against cwd", () => {
     expect(
       isMainModule({
-        currentFile: "/repo/dist/index.js",
+        currentFile: "/repo/dist/runtime.js",
         argv: ["node", "/pm2/lib/ProcessContainerFork.js"],
         cwd: "/repo",
-        env: { pm_exec_path: "./dist/index.js", pm_id: "0" },
+        env: { pm_exec_path: "./dist/runtime.js", pm_id: "0" },
       }),
     ).toBe(true);
   });
@@ -58,7 +58,7 @@ describe("isMainModule", () => {
     ).toBe(false);
     expect(
       isMainModule({
-        currentFile: "/repo/dist/index.js",
+        currentFile: "/repo/dist/runtime.js",
         argv: ["node", "/repo/crawclaw.mjs"],
         cwd: "/repo",
         env: {},
@@ -70,7 +70,7 @@ describe("isMainModule", () => {
   it("returns false when this module is only imported under PM2", () => {
     expect(
       isMainModule({
-        currentFile: "/repo/node_modules/crawclaw/dist/index.js",
+        currentFile: "/repo/node_modules/crawclaw/dist/runtime.js",
         argv: ["node", "/repo/app.js"],
         cwd: "/repo",
         env: { pm_exec_path: "/repo/app.js", pm_id: "0" },
@@ -81,8 +81,8 @@ describe("isMainModule", () => {
   it("returns false for another entrypoint with the same basename", () => {
     expect(
       isMainModule({
-        currentFile: "/repo/node_modules/crawclaw/dist/index.js",
-        argv: ["node", "/repo/dist/index.js"],
+        currentFile: "/repo/node_modules/crawclaw/dist/runtime.js",
+        argv: ["node", "/repo/dist/runtime.js"],
         cwd: "/repo",
         env: {},
       }),
@@ -92,7 +92,7 @@ describe("isMainModule", () => {
   it("returns false when no entrypoint candidate exists", () => {
     expect(
       isMainModule({
-        currentFile: "/repo/dist/index.js",
+        currentFile: "/repo/dist/runtime.js",
         argv: ["node"],
         cwd: "/repo",
         env: {},

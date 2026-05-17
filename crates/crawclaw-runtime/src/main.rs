@@ -32,6 +32,8 @@ async fn main() {
     }
 
     match args.remove(0).as_str() {
+        "desktop-check" => desktop_check(args),
+        "desktop-stage" => desktop_stage(args),
         "status" => status(&args),
         "stage" => stage(args),
         "tool" => run_tool(args).await,
@@ -40,6 +42,50 @@ async fn main() {
             std::process::exit(2);
         }
     }
+}
+
+fn desktop_check(args: Vec<String>) {
+    let root = match parse_root_arg(&args) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    let options = crawclaw_runtime::DesktopRuntimeCheckOptions::new(root);
+    if let Err(error) = crawclaw_runtime::check_desktop_runtime_release_inputs(&options) {
+        eprintln!("{error}");
+        std::process::exit(1);
+    }
+}
+
+fn desktop_stage(args: Vec<String>) {
+    let root = match parse_root_arg(&args) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::stage_desktop_tauri_runtime(root) {
+        Ok(paths) => println!(
+            "Staged CrawClaw Tauri Desktop runtime at {}",
+            paths.runtime_root.display()
+        ),
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
+    if args.len() != 2 || args[0] != "--root" {
+        return Err(
+            "usage: crawclaw-runtime desktop-stage|desktop-check --root <repo-root>".to_string(),
+        );
+    }
+    Ok(PathBuf::from(&args[1]))
 }
 
 fn status(args: &[String]) {
@@ -219,6 +265,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | tool <name> [json-input]"
     );
 }

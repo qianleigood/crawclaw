@@ -16,6 +16,7 @@ type PackageJson = {
   description?: string;
   license?: string;
   repository?: { url?: string } | string;
+  main?: string;
   bin?: Record<string, string>;
   exports?: Record<string, unknown>;
   files?: string[];
@@ -185,12 +186,21 @@ export function collectReleasePackageMetadataErrors(pkg: PackageJson): string[] 
   if (Object.prototype.hasOwnProperty.call(pkg.bin ?? {}, "crawclaw")) {
     errors.push("package.json must not expose public crawclaw CLI bin.");
   }
+  if (typeof pkg.main === "string" && pkg.main.trim().length > 0) {
+    errors.push("package.json must not expose a root Node main entry.");
+  }
+  if (Object.prototype.hasOwnProperty.call(pkg.exports ?? {}, ".")) {
+    errors.push('package.json exports must not expose root JS library entry ".".');
+  }
   if (Object.prototype.hasOwnProperty.call(pkg.exports ?? {}, "./cli-entry")) {
     errors.push('package.json exports must not expose legacy "./cli-entry".');
   }
   const legacyNodeEntrypoint = ["crawclaw", "mjs"].join(".");
   if (pkg.files?.includes(legacyNodeEntrypoint)) {
     errors.push("package.json files must not include the legacy Node entry file.");
+  }
+  if (pkg.files?.includes("dist/")) {
+    errors.push("package.json files must not include the legacy dist JS runtime tree.");
   }
   if (pkg.peerDependencies?.["node-llama-cpp"] !== "3.18.1") {
     errors.push(

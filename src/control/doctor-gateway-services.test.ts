@@ -318,9 +318,10 @@ describe("maybeRepairGatewayServiceConfig", () => {
 
   it("does not flag entrypoint mismatch when symlink and realpath match", async () => {
     setupGatewayEntrypointRepairScenario({
-      currentEntrypoint: "/Users/test/Library/pnpm/global/5/node_modules/crawclaw/dist/index.js",
+      currentEntrypoint:
+        "/Users/test/Library/pnpm/global/5/node_modules/crawclaw/dist/native/crawclaw-gateway",
       installEntrypoint:
-        "/Users/test/Library/pnpm/global/5/node_modules/.pnpm/crawclaw@2026.3.12/node_modules/crawclaw/dist/index.js",
+        "/Users/test/Library/pnpm/global/5/node_modules/.pnpm/crawclaw@2026.3.12/node_modules/crawclaw/dist/native/crawclaw-gateway",
       realpath: async (value: string) => {
         if (value.includes("/global/5/node_modules/crawclaw/")) {
           return value.replace(
@@ -344,8 +345,8 @@ describe("maybeRepairGatewayServiceConfig", () => {
 
   it("does not flag entrypoint mismatch when realpath fails but normalized absolute paths match", async () => {
     setupGatewayEntrypointRepairScenario({
-      currentEntrypoint: "/opt/crawclaw/../crawclaw/dist/index.js",
-      installEntrypoint: "/opt/crawclaw/dist/index.js",
+      currentEntrypoint: "/opt/crawclaw/../crawclaw/dist/native/crawclaw-gateway",
+      installEntrypoint: "/opt/crawclaw/dist/native/crawclaw-gateway",
       realpathError: new Error("no realpath"),
     });
 
@@ -362,8 +363,9 @@ describe("maybeRepairGatewayServiceConfig", () => {
   it("still flags entrypoint mismatch when canonicalized paths differ", async () => {
     setupGatewayEntrypointRepairScenario({
       currentEntrypoint:
-        "/Users/test/.nvm/versions/node/v22.0.0/lib/node_modules/crawclaw/dist/index.js",
-      installEntrypoint: "/Users/test/Library/pnpm/global/5/node_modules/crawclaw/dist/index.js",
+        "/Users/test/.nvm/versions/node/v22.0.0/lib/node_modules/crawclaw/dist/native/crawclaw-gateway",
+      installEntrypoint:
+        "/Users/test/Library/pnpm/global/5/node_modules/crawclaw/dist/native/crawclaw-gateway",
     });
 
     await runRepair({ gateway: {} });
@@ -379,7 +381,8 @@ describe("maybeRepairGatewayServiceConfig", () => {
   it("repairs entrypoint mismatch in non-interactive fix mode", async () => {
     setupGatewayEntrypointRepairScenario({
       currentEntrypoint: "/Users/test/Library/npm/node_modules/crawclaw/dist/entry.js",
-      installEntrypoint: "/Users/test/Library/npm/node_modules/crawclaw/dist/index.js",
+      installEntrypoint:
+        "/Users/test/Library/npm/node_modules/crawclaw/dist/native/crawclaw-gateway",
       installWorkingDirectory: "/tmp",
     });
 
@@ -399,7 +402,8 @@ describe("maybeRepairGatewayServiceConfig", () => {
   it("stages service config repairs during non-interactive update repairs", async () => {
     setupGatewayEntrypointRepairScenario({
       currentEntrypoint: "/Users/test/Library/npm/node_modules/crawclaw/dist/entry.js",
-      installEntrypoint: "/Users/test/Library/npm/node_modules/crawclaw/dist/index.js",
+      installEntrypoint:
+        "/Users/test/Library/npm/node_modules/crawclaw/dist/native/crawclaw-gateway",
       installWorkingDirectory: "/tmp",
     });
 

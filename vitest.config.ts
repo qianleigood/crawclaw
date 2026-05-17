@@ -128,8 +128,6 @@ export default defineConfig({
         "test/**",
         "src/**/*.test.ts",
         // Entrypoints and wiring (covered by CI smoke + manual/e2e flows).
-        "src/entry.ts",
-        "src/index.ts",
         "src/runtime.ts",
         "src/channel-web.ts",
         "src/logging.ts",

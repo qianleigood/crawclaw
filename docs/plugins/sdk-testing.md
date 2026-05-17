@@ -64,7 +64,6 @@ These tests assert:
 The desktop app must not ship the removed JavaScript SDK runtime artifacts:
 
 ```bash
-node --test test/scripts/crawclaw-desktop-tauri-runtime.test.mjs
 pnpm desktop:tauri:release-check
 ```
 

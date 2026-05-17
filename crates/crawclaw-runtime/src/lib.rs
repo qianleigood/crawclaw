@@ -9,12 +9,17 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 mod core_tools;
 pub mod cron;
+mod desktop_packaging;
 pub mod memory;
 mod message_policy;
 mod native_plugin_registry;
 pub mod special_agents;
 
 use core_tools::build_pi_agent_rust_tool_registry;
+pub use desktop_packaging::{
+    check_desktop_runtime_release_inputs, resolve_desktop_runtime_stage_paths,
+    stage_desktop_tauri_runtime, DesktopRuntimeCheckOptions, DesktopRuntimeStagePaths,
+};
 pub use message_policy::execute_message_policy_operation;
 pub use native_plugin_registry::{
     dispatch_native_service_lifecycle, invoke_native_plugin_operation, load_native_plugin_registry,

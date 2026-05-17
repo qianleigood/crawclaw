@@ -1,6 +1,5 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { isBunRuntime, isNodeRuntime } from "./runtime-binary.js";
 
 type GatewayProgramArgs = {
   programArguments: string[];
@@ -9,24 +8,32 @@ type GatewayProgramArgs = {
 
 type GatewayRuntimePreference = "auto" | "node" | "bun";
 
-async function resolveCliEntrypointPathForService(): Promise<string> {
+function nativeGatewayBinaryName(): string {
+  return process.platform === "win32" ? "crawclaw-gateway.exe" : "crawclaw-gateway";
+}
+
+async function resolveGatewayBinaryPathForService(params: {
+  dev?: boolean;
+  runtimeEntryPath?: string;
+}): Promise<string> {
+  if (params.runtimeEntryPath?.trim()) {
+    const explicitPath = path.resolve(params.runtimeEntryPath);
+    await fs.access(explicitPath);
+    return explicitPath;
+  }
+
   const argv1 = process.argv[1];
   if (!argv1) {
-    throw new Error("Unable to resolve runtime entrypoint path");
+    throw new Error("Unable to resolve gateway binary path");
   }
 
   const normalized = path.resolve(argv1);
   const resolvedPath = await resolveRealpathSafe(normalized);
-  const looksLikeDist = /[/\\]dist[/\\].+\.(cjs|js|mjs)$/.test(resolvedPath);
-  if (looksLikeDist) {
+  const looksLikeNativeGateway = isNativeGatewayBinaryPath(resolvedPath);
+  if (looksLikeNativeGateway) {
     await fs.access(resolvedPath);
-    // Prefer the original (possibly symlinked) path over the resolved realpath.
-    // This keeps LaunchAgent/systemd paths stable across package version updates,
-    // since symlinks like node_modules/crawclaw -> .pnpm/crawclaw@X.Y.Z/...
-    // are automatically updated by pnpm, while the resolved path contains
-    // version-specific directories that break after updates.
-    const normalizedLooksLikeDist = /[/\\]dist[/\\].+\.(cjs|js|mjs)$/.test(normalized);
-    if (normalizedLooksLikeDist && normalized !== resolvedPath) {
+    const normalizedLooksLikeGateway = isNativeGatewayBinaryPath(normalized);
+    if (normalizedLooksLikeGateway && normalized !== resolvedPath) {
       try {
         await fs.access(normalized);
         return normalized;
@@ -37,9 +44,11 @@ async function resolveCliEntrypointPathForService(): Promise<string> {
     return resolvedPath;
   }
 
-  const distCandidates = buildDistCandidates(resolvedPath, normalized);
+  const candidates = params.dev
+    ? buildDevGatewayCandidates(resolvedPath, normalized)
+    : buildGatewayCandidates(resolvedPath, normalized);
 
-  for (const candidate of distCandidates) {
+  for (const candidate of candidates) {
     try {
       await fs.access(candidate);
       return candidate;
@@ -49,7 +58,7 @@ async function resolveCliEntrypointPathForService(): Promise<string> {
   }
 
   throw new Error(
-    `Cannot find built CLI at ${distCandidates.join(" or ")}. Run "pnpm build" first, or use dev mode.`,
+    `Cannot find native CrawClaw gateway binary at ${candidates.join(" or ")}. Run "pnpm build" first.`,
   );
 }
 
@@ -61,7 +70,11 @@ async function resolveRealpathSafe(inputPath: string): Promise<string> {
   }
 }
 
-function buildDistCandidates(...inputs: string[]): string[] {
+function isNativeGatewayBinaryPath(inputPath: string): boolean {
+  return path.basename(inputPath).toLowerCase() === nativeGatewayBinaryName().toLowerCase();
+}
+
+function buildGatewayCandidates(...inputs: string[]): string[] {
   const candidates: string[] = [];
   const seen = new Set<string>();
 
@@ -70,29 +83,54 @@ function buildDistCandidates(...inputs: string[]): string[] {
       continue;
     }
     const baseDir = path.dirname(inputPath);
-    appendDistCandidates(candidates, seen, path.resolve(baseDir, ".."));
-    appendDistCandidates(candidates, seen, baseDir);
+    appendNativeGatewayCandidates(candidates, seen, path.resolve(baseDir, ".."));
+    appendNativeGatewayCandidates(candidates, seen, baseDir);
     appendNodeModulesBinCandidates(candidates, seen, inputPath);
   }
 
   return candidates;
 }
 
-function appendDistCandidates(candidates: string[], seen: Set<string>, baseDir: string): void {
-  const distDir = path.resolve(baseDir, "dist");
-  const distEntries = [
-    path.join(distDir, "index.js"),
-    path.join(distDir, "index.mjs"),
-    path.join(distDir, "entry.js"),
-    path.join(distDir, "entry.mjs"),
-  ];
-  for (const entry of distEntries) {
-    if (seen.has(entry)) {
-      continue;
-    }
-    seen.add(entry);
-    candidates.push(entry);
+function buildDevGatewayCandidates(...inputs: string[]): string[] {
+  const candidates: string[] = [];
+  const seen = new Set<string>();
+  for (const inputPath of inputs) {
+    const repoRoot = resolveRepoRootFromPath(inputPath);
+    appendReleaseTargetGatewayCandidate(candidates, seen, repoRoot);
   }
+  return candidates;
+}
+
+function appendNativeGatewayCandidates(
+  candidates: string[],
+  seen: Set<string>,
+  baseDir: string,
+): void {
+  appendCandidate(
+    candidates,
+    seen,
+    path.resolve(baseDir, "dist", "native", nativeGatewayBinaryName()),
+  );
+}
+
+function appendReleaseTargetGatewayCandidate(
+  candidates: string[],
+  seen: Set<string>,
+  repoRoot: string,
+): void {
+  appendCandidate(
+    candidates,
+    seen,
+    path.resolve(repoRoot, "target", "release", nativeGatewayBinaryName()),
+  );
+}
+
+function appendCandidate(candidates: string[], seen: Set<string>, candidate: string): void {
+  if (seen.has(candidate)) {
+    return;
+  }
+  seen.add(candidate);
+  candidates.push(candidate);
 }
 
 function appendNodeModulesBinCandidates(
@@ -111,52 +149,19 @@ function appendNodeModulesBinCandidates(
   const binName = path.basename(inputPath);
   const nodeModulesDir = parts.slice(0, binIndex).join(path.sep);
   const packageRoot = path.join(nodeModulesDir, binName);
-  appendDistCandidates(candidates, seen, packageRoot);
+  appendNativeGatewayCandidates(candidates, seen, packageRoot);
 }
 
-function resolveRepoRootForDev(): string {
-  const argv1 = process.argv[1];
-  if (!argv1) {
-    throw new Error("Unable to resolve repo root");
-  }
-  const normalized = path.resolve(argv1);
+function resolveRepoRootFromPath(inputPath: string): string {
+  const normalized = path.resolve(inputPath);
   const parts = normalized.split(path.sep);
-  const srcIndex = parts.lastIndexOf("src");
-  if (srcIndex === -1) {
-    throw new Error("Dev mode requires running from repo (src/entry.ts)");
-  }
-  return parts.slice(0, srcIndex).join(path.sep);
-}
-
-async function resolveBunPath(): Promise<string> {
-  const bunPath = await resolveBinaryPath("bun");
-  return bunPath;
-}
-
-async function resolveNodePath(): Promise<string> {
-  const nodePath = await resolveBinaryPath("node");
-  return nodePath;
-}
-
-async function resolveBinaryPath(binary: string): Promise<string> {
-  const { execFileSync } = await import("node:child_process");
-  const cmd = process.platform === "win32" ? "where" : "which";
-  try {
-    const output = execFileSync(cmd, [binary], { encoding: "utf8" }).trim();
-    const resolved = output.split(/\r?\n/)[0]?.trim();
-    if (!resolved) {
-      throw new Error("empty");
+  for (const marker of ["src", "scripts"]) {
+    const markerIndex = parts.lastIndexOf(marker);
+    if (markerIndex > 0) {
+      return parts.slice(0, markerIndex).join(path.sep);
     }
-    await fs.access(resolved);
-    return resolved;
-  } catch {
-    if (binary === "bun") {
-      throw new Error("Bun not found in PATH. Install bun: https://bun.sh");
-    }
-    throw new Error(
-      "Node not found in PATH. Install Node 24.x (stable) or Node 25.x (experimental).",
-    );
   }
+  return path.dirname(normalized);
 }
 
 async function resolveCliProgramArguments(params: {
@@ -166,73 +171,15 @@ async function resolveCliProgramArguments(params: {
   nodePath?: string;
   runtimeEntryPath?: string;
 }): Promise<GatewayProgramArgs> {
-  const execPath = process.execPath;
-  const runtime = params.runtime ?? "auto";
-
-  if (runtime === "node") {
-    const nodePath =
-      params.nodePath ?? (isNodeRuntime(execPath) ? execPath : await resolveNodePath());
-    const cliEntrypointPath = params.runtimeEntryPath
-      ? path.resolve(params.runtimeEntryPath)
-      : await resolveCliEntrypointPathForService();
-    await fs.access(cliEntrypointPath);
-    return {
-      programArguments: [nodePath, cliEntrypointPath, ...params.args],
-    };
-  }
-
-  if (runtime === "bun") {
-    if (params.dev) {
-      const repoRoot = resolveRepoRootForDev();
-      const devCliPath = path.join(repoRoot, "src", "entry.ts");
-      await fs.access(devCliPath);
-      const bunPath = isBunRuntime(execPath) ? execPath : await resolveBunPath();
-      return {
-        programArguments: [bunPath, devCliPath, ...params.args],
-        workingDirectory: repoRoot,
-      };
-    }
-
-    const bunPath = isBunRuntime(execPath) ? execPath : await resolveBunPath();
-    const cliEntrypointPath = await resolveCliEntrypointPathForService();
-    return {
-      programArguments: [bunPath, cliEntrypointPath, ...params.args],
-    };
-  }
-
-  if (!params.dev) {
-    try {
-      const cliEntrypointPath = await resolveCliEntrypointPathForService();
-      return {
-        programArguments: [execPath, cliEntrypointPath, ...params.args],
-      };
-    } catch (error) {
-      // If running under bun or another runtime that can execute TS directly
-      if (!isNodeRuntime(execPath)) {
-        return { programArguments: [execPath, ...params.args] };
-      }
-      throw error;
-    }
-  }
-
-  // Dev mode: use bun to run TypeScript directly
-  const repoRoot = resolveRepoRootForDev();
-  const devCliPath = path.join(repoRoot, "src", "entry.ts");
-  await fs.access(devCliPath);
-
-  // If already running under bun, use current execPath
-  if (isBunRuntime(execPath)) {
-    return {
-      programArguments: [execPath, devCliPath, ...params.args],
-      workingDirectory: repoRoot,
-    };
-  }
-
-  // Otherwise resolve bun from PATH
-  const bunPath = await resolveBunPath();
+  void params.runtime;
+  void params.nodePath;
+  const gatewayBinaryPath = await resolveGatewayBinaryPathForService(params);
+  const workingDirectory = params.dev
+    ? resolveRepoRootFromPath(process.argv[1] ?? gatewayBinaryPath)
+    : undefined;
   return {
-    programArguments: [bunPath, devCliPath, ...params.args],
-    workingDirectory: repoRoot,
+    programArguments: [gatewayBinaryPath, ...params.args],
+    workingDirectory,
   };
 }
 
@@ -243,7 +190,7 @@ export async function resolveGatewayProgramArguments(params: {
   nodePath?: string;
   runtimeEntryPath?: string;
 }): Promise<GatewayProgramArgs> {
-  const gatewayArgs = ["gateway", "--port", String(params.port)];
+  const gatewayArgs = ["--port", String(params.port)];
   return resolveCliProgramArguments({
     args: gatewayArgs,
     dev: params.dev,
