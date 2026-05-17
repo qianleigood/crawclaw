@@ -40,7 +40,7 @@
     "canon:enforce": "node scripts/canon.mjs enforce --json",
     "check": "pnpm check:no-conflict-markers && pnpm tsgo && pnpm lint && pnpm lint:boundaries && pnpm lint:webhook:no-low-level-body-read",
     "check:base-config-schema": "node scripts/generate-base-config-schema.mjs --check",
-    "check:bundled-provider-auth-env-vars": "node scripts/generate-bundled-provider-auth-env-vars.mjs --check",
+    "check:bundled-provider-auth-env-vars": "cargo run -q -p crawclaw-runtime -- emit-bundled-provider-auth-env-vars --output src/generated/plugins/bundled-provider-auth-env-vars.generated.ts --check",
     "check:docs": "pnpm format:docs:check && pnpm lint:docs && pnpm docs:check-i18n-glossary && pnpm docs:check-links",
     "check:loc": "node --import tsx scripts/check-ts-max-loc.ts --max 500",
     "check:no-conflict-markers": "node scripts/check-no-conflict-markers.mjs",

@@ -15,6 +15,7 @@ pub mod memory;
 mod message_policy;
 mod native_plugin_registry;
 mod package_build;
+mod provider_contract;
 pub mod special_agents;
 
 pub use config_contract::{
@@ -35,6 +36,10 @@ pub use native_plugin_registry::{
 pub use package_build::{
     list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs, stage_package_postbuild,
     StaticPackageAsset,
+};
+pub use provider_contract::{
+    render_bundled_provider_auth_env_var_module, write_bundled_provider_auth_env_var_module,
+    GeneratedModuleWriteResult,
 };
 
 pub use crawclaw_channels::{
