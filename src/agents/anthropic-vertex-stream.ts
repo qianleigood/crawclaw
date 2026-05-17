@@ -3,11 +3,11 @@ import { homedir, platform } from "node:os";
 import { join } from "node:path";
 import { AnthropicVertex } from "@anthropic-ai/vertex-sdk";
 import { streamAnthropic, type AnthropicOptions, type Model } from "@mariozechner/pi-ai";
+import { ANTHROPIC_VERTEX_DEFAULT_REGION } from "../generated/providers/runtime-constants.generated.js";
 import type { StreamFn } from "./agent-types.js";
 import { resolveProviderEndpoint } from "./provider-attribution.js";
 
 type AnthropicVertexEffort = NonNullable<AnthropicOptions["effort"]>;
-const ANTHROPIC_VERTEX_DEFAULT_REGION = "global";
 const ANTHROPIC_VERTEX_REGION_RE = /^[a-z0-9-]+$/;
 const GCLOUD_DEFAULT_ADC_PATH = join(
   homedir(),

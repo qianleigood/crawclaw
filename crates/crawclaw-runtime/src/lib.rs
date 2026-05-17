@@ -38,7 +38,8 @@ pub use package_build::{
     StaticPackageAsset,
 };
 pub use provider_contract::{
-    render_bundled_provider_auth_env_var_module, write_bundled_provider_auth_env_var_module,
+    render_bundled_provider_auth_env_var_module, render_provider_runtime_constants_module,
+    write_bundled_provider_auth_env_var_module, write_provider_runtime_constants_module,
     GeneratedModuleWriteResult,
 };
 
