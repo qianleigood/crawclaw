@@ -112,6 +112,22 @@ export const PROVIDER_CAPABILITY_FALLBACKS = {
     geminiThoughtSignatureModelHints: ["gemini"],
   },
 } as const;
+export const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
+  "anthropic-openai": ["ANTHROPIC_API_KEY"],
+  cerebras: ["CEREBRAS_API_KEY"],
+  chutes: ["CHUTES_API_KEY"],
+  deepgram: ["DEEPGRAM_API_KEY"],
+  groq: ["GROQ_API_KEY"],
+  litellm: ["LITELLM_API_KEY"],
+  "qwen-dashscope": ["DASHSCOPE_API_KEY"],
+  voyage: ["VOYAGE_API_KEY"],
+} as const satisfies Readonly<Record<string, readonly string[]>>;
+export const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {
+  anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_OAUTH_TOKEN"],
+  chutes: ["CHUTES_API_KEY"],
+  "minimax-cn": ["MINIMAX_API_KEY"],
+} as const satisfies Readonly<Record<string, readonly string[]>>;
+export const EXTRA_PROVIDER_AUTH_ENV_VARS = ["MINIMAX_CODE_PLAN_KEY"] as const;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
   "devstral-medium-latest": 32768,
   "magistral-small": 40000,

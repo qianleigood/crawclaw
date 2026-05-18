@@ -1,21 +1,9 @@
 import { BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES } from "../generated/plugins/bundled-provider-auth-env-vars.generated.js";
-
-const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
-  chutes: ["CHUTES_API_KEY"],
-  voyage: ["VOYAGE_API_KEY"],
-  groq: ["GROQ_API_KEY"],
-  deepgram: ["DEEPGRAM_API_KEY"],
-  cerebras: ["CEREBRAS_API_KEY"],
-  litellm: ["LITELLM_API_KEY"],
-  "anthropic-openai": ["ANTHROPIC_API_KEY"],
-  "qwen-dashscope": ["DASHSCOPE_API_KEY"],
-} as const;
-
-const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {
-  anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_OAUTH_TOKEN"],
-  chutes: ["CHUTES_API_KEY"],
-  "minimax-cn": ["MINIMAX_API_KEY"],
-} as const;
+import {
+  CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES,
+  CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES,
+  EXTRA_PROVIDER_AUTH_ENV_VARS,
+} from "../generated/providers/runtime-constants.generated.js";
 
 /**
  * Provider auth env candidates used by generic auth resolution.
@@ -49,8 +37,6 @@ export function getProviderEnvVars(providerId: string): string[] {
     : undefined;
   return Array.isArray(envVars) ? [...envVars] : [];
 }
-
-const EXTRA_PROVIDER_AUTH_ENV_VARS = ["MINIMAX_CODE_PLAN_KEY"] as const;
 
 const KNOWN_SECRET_ENV_VARS = [
   ...new Set(Object.values(PROVIDER_ENV_VARS).flatMap((keys) => keys)),

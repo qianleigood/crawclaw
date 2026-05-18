@@ -664,6 +664,58 @@ pub const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
     },
 ];
 
+pub const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
+    ProviderAuthEnvVars {
+        provider: "chutes",
+        env_vars: &["CHUTES_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "voyage",
+        env_vars: &["VOYAGE_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "groq",
+        env_vars: &["GROQ_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "deepgram",
+        env_vars: &["DEEPGRAM_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "cerebras",
+        env_vars: &["CEREBRAS_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "litellm",
+        env_vars: &["LITELLM_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "anthropic-openai",
+        env_vars: &["ANTHROPIC_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "qwen-dashscope",
+        env_vars: &["DASHSCOPE_API_KEY"],
+    },
+];
+
+pub const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES: &[ProviderAuthEnvVars] = &[
+    ProviderAuthEnvVars {
+        provider: "anthropic",
+        env_vars: &["ANTHROPIC_API_KEY", "ANTHROPIC_OAUTH_TOKEN"],
+    },
+    ProviderAuthEnvVars {
+        provider: "chutes",
+        env_vars: &["CHUTES_API_KEY"],
+    },
+    ProviderAuthEnvVars {
+        provider: "minimax-cn",
+        env_vars: &["MINIMAX_API_KEY"],
+    },
+];
+
+pub const EXTRA_PROVIDER_AUTH_ENV_VARS: &[&str] = &["MINIMAX_CODE_PLAN_KEY"];
+
 const RUST_PROVIDER_CAPABILITIES: ProviderTransportCapabilities = ProviderTransportCapabilities {
     streaming: true,
     tool_calling: true,
@@ -3850,6 +3902,13 @@ mod tests {
                 && entry
                     .transcript_tool_call_id_model_hints
                     .contains(&"codestral")));
+        assert!(CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES
+            .iter()
+            .any(|entry| entry.provider == "voyage" && entry.env_vars == ["VOYAGE_API_KEY"]));
+        assert!(CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES.iter().any(|entry| {
+            entry.provider == "anthropic" && entry.env_vars.contains(&"ANTHROPIC_OAUTH_TOKEN")
+        }));
+        assert_eq!(EXTRA_PROVIDER_AUTH_ENV_VARS, &["MINIMAX_CODE_PLAN_KEY"]);
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("magistral-small", 40_000)));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("mistral-medium-2508", 8_192)));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);

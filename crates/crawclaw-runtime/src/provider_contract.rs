@@ -254,6 +254,9 @@ export const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES = {anthropic_context_1m_model_p
 export const ANTHROPIC_CONTEXT_1M_TOKENS = {anthropic_context_1m_tokens};
 export const DEFAULT_PROVIDER_CAPABILITIES = {default_provider_capabilities} as const;
 export const PROVIDER_CAPABILITY_FALLBACKS = {provider_capability_fallbacks} as const;
+export const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {core_provider_auth_env_var_candidates} as const satisfies Readonly<Record<string, readonly string[]>>;
+export const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {core_provider_setup_env_var_overrides} as const satisfies Readonly<Record<string, readonly string[]>>;
+export const EXTRA_PROVIDER_AUTH_ENV_VARS = {extra_provider_auth_env_vars} as const;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {mistral_safe_max_tokens_by_model} as const satisfies Readonly<Record<string, number>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = {anthropic_vertex_default_region};
@@ -309,6 +312,14 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             render_default_provider_capabilities(crawclaw_providers::DEFAULT_PROVIDER_CAPABILITIES),
         provider_capability_fallbacks =
             render_provider_capability_fallbacks(crawclaw_providers::PROVIDER_CAPABILITY_FALLBACKS),
+        core_provider_auth_env_var_candidates = render_provider_auth_env_var_record(
+            crawclaw_providers::CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES,
+        ),
+        core_provider_setup_env_var_overrides = render_provider_auth_env_var_record(
+            crawclaw_providers::CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES,
+        ),
+        extra_provider_auth_env_vars =
+            render_static_string_array_inline(crawclaw_providers::EXTRA_PROVIDER_AUTH_ENV_VARS),
         mistral_safe_max_tokens_by_model =
             render_static_u32_record(crawclaw_providers::MISTRAL_SAFE_MAX_TOKENS_BY_MODEL),
         default_claude_cli_model = json_string(crawclaw_providers::DEFAULT_CLAUDE_CLI_MODEL),
@@ -599,6 +610,31 @@ fn render_static_string_record(entries: &[(&str, &str)]) -> String {
         .map(|(key, value)| ((*key).to_string(), (*value).to_string()))
         .collect::<BTreeMap<_, _>>();
     render_string_record(&entries)
+}
+
+fn render_provider_auth_env_var_record(
+    entries: &[crawclaw_providers::ProviderAuthEnvVars],
+) -> String {
+    if entries.is_empty() {
+        return "{}".to_string();
+    }
+    let mut entries = entries.to_vec();
+    entries.sort_by(|left, right| left.provider.cmp(right.provider));
+    let rendered_entries = entries
+        .iter()
+        .map(|entry| {
+            let rendered_key = render_javascript_property_key(entry.provider);
+            let rendered_env_vars = entry
+                .env_vars
+                .iter()
+                .map(|value| serde_json::to_string(value).expect("env var encodes as JSON"))
+                .collect::<Vec<_>>()
+                .join(", ");
+            format!("  {rendered_key}: [{rendered_env_vars}],")
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{{\n{rendered_entries}\n}}")
 }
 
 fn render_u32_record(entries: &BTreeMap<String, u32>) -> String {
@@ -930,6 +966,12 @@ mod tests {
         assert!(source.contains("anthropicToolSchemaMode: \"openai-functions\""));
         assert!(source.contains("transcriptToolCallIdMode: \"strict9\""));
         assert!(source.contains("\"codestral\""));
+        assert!(source.contains("export const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {"));
+        assert!(source.contains("voyage: [\"VOYAGE_API_KEY\"]"));
+        assert!(source.contains("export const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {"));
+        assert!(source.contains("anthropic: [\"ANTHROPIC_API_KEY\", \"ANTHROPIC_OAUTH_TOKEN\"]"));
+        assert!(source
+            .contains("export const EXTRA_PROVIDER_AUTH_ENV_VARS = [\"MINIMAX_CODE_PLAN_KEY\"]"));
         assert!(source.contains("\"magistral-small\": 40000"));
         assert!(source.contains("\"mistral-medium-2508\": 8192"));
         assert!(source.contains("export const ANTHROPIC_VERTEX_DEFAULT_REGION = \"global\";"));
