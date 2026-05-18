@@ -15,21 +15,3 @@ export function writeTextFileIfChanged(filePath, contents) {
   fs.writeFileSync(filePath, next, "utf8");
   return true;
 }
-
-export function removeFileIfExists(filePath) {
-  try {
-    fs.rmSync(filePath, { force: true });
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function removePathIfExists(filePath) {
-  try {
-    fs.rmSync(filePath, { recursive: true, force: true });
-    return true;
-  } catch {
-    return false;
-  }
-}

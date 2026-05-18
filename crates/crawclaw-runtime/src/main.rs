@@ -41,6 +41,7 @@ async fn main() {
         "emit-provider-auth-choices" => emit_provider_auth_choices(args),
         "emit-provider-model-normalization" => emit_provider_model_normalization(args),
         "emit-provider-runtime-constants" => emit_provider_runtime_constants(args),
+        "package-artifacts" => package_artifacts(args),
         "package-postbuild" => package_postbuild(args),
         "status" => status(&args),
         "stage" => stage(args),
@@ -327,6 +328,63 @@ fn package_postbuild(args: Vec<String>) {
         eprintln!("{error}");
         std::process::exit(1);
     }
+}
+
+fn package_artifacts(args: Vec<String>) {
+    let mut root: Option<PathBuf> = None;
+    let mut json_output = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--json" => {
+                json_output = true;
+                index += 1;
+            }
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported package-artifacts option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    let Some(root_dir) = root else {
+        eprintln!("usage: crawclaw-runtime package-artifacts --root <repo-root> --json");
+        std::process::exit(2);
+    };
+    if !json_output {
+        eprintln!("usage: crawclaw-runtime package-artifacts --root <repo-root> --json");
+        std::process::exit(2);
+    }
+    let bundled_plugin_pack_artifacts =
+        match crawclaw_runtime::list_bundled_plugin_pack_artifacts(&root_dir) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
+        };
+    let static_package_asset_outputs =
+        match crawclaw_runtime::list_static_package_asset_outputs(&root_dir) {
+            Ok(value) => value,
+            Err(error) => {
+                eprintln!("{error}");
+                std::process::exit(1);
+            }
+        };
+    println!(
+        "{}",
+        json!({
+            "bundledPluginPackArtifacts": bundled_plugin_pack_artifacts,
+            "staticPackageAssetOutputs": static_package_asset_outputs,
+        })
+    );
 }
 
 fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
@@ -757,6 +815,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-auth-choices --output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | package-postbuild --root <repo-root> | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-auth-choices --output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | tool <name> [json-input]"
     );
 }

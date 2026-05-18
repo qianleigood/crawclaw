@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { listBundledPluginPackArtifacts } from "../scripts/lib/bundled-plugin-build-entries.mjs";
+import {
+  listBundledPluginPackArtifacts,
+  listStaticPackageAssetOutputs,
+} from "../scripts/lib/runtime-package-artifacts.mjs";
 import {
   collectBundledExtensionManifestErrors,
   collectBundledExtensionRootDependencyMirrorErrors,
@@ -7,7 +10,6 @@ import {
   collectMissingPackPaths,
   collectPackUnpackedSizeErrors,
 } from "../scripts/release-check.ts";
-import { listStaticExtensionAssetOutputs } from "../scripts/runtime-postbuild.mjs";
 import { bundledDistPluginFile, bundledPluginFile } from "./helpers/bundled-plugin-paths.js";
 
 function makePackResult(filename: string, unpackedSize: number) {
@@ -15,7 +17,7 @@ function makePackResult(filename: string, unpackedSize: number) {
 }
 
 const requiredBundledPluginPackPaths = listBundledPluginPackArtifacts();
-const requiredStaticExtensionAssetPaths = listStaticExtensionAssetOutputs().flat();
+const requiredStaticExtensionAssetPaths = listStaticPackageAssetOutputs().flat();
 
 describe("collectBundledExtensionManifestErrors", () => {
   it("flags invalid bundled extension install metadata", () => {

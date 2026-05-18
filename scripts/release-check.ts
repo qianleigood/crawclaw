@@ -9,8 +9,10 @@ import {
   type BundledExtension,
   type ExtensionPackageJson as PackageJson,
 } from "./lib/bundled-extension-manifest.ts";
-import { listBundledPluginPackArtifacts } from "./lib/bundled-plugin-build-entries.mjs";
-import { listStaticExtensionAssetOutputs } from "./runtime-postbuild.mjs";
+import {
+  listBundledPluginPackArtifacts,
+  listStaticPackageAssetOutputs,
+} from "./lib/runtime-package-artifacts.mjs";
 
 export { collectBundledExtensionManifestErrors } from "./lib/bundled-extension-manifest.ts";
 
@@ -22,7 +24,7 @@ const requiredPathGroups = [
   ["dist/native/crawclaw-gateway", "dist/native/crawclaw-gateway.exe"],
   ["dist/native/crawclaw-native-plugins", "dist/native/crawclaw-native-plugins.exe"],
   ...listBundledPluginPackArtifacts(),
-  ...listStaticExtensionAssetOutputs(),
+  ...listStaticPackageAssetOutputs(),
   "docs/reference/templates/AGENTS.md",
   "skills/coding-agent/SKILL.md",
   "dist/build-info.json",

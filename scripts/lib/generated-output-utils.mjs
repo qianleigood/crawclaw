@@ -1,7 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { writeTextFileIfChanged } from "../runtime-postbuild-shared.mjs";
 import { readIfExists } from "./bundled-plugin-source-utils.mjs";
+import { writeTextFileIfChanged } from "./write-if-changed.mjs";
 
 export function writeGeneratedOutput(params) {
   const outputPath = path.resolve(params.repoRoot, params.outputPath);
