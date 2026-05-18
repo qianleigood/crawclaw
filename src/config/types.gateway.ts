@@ -175,22 +175,6 @@ export type GatewayRemoteConfig = {
   sshIdentity?: string;
 };
 
-export type GatewayReloadMode = "off" | "restart" | "hot" | "hybrid";
-
-export type GatewayReloadConfig = {
-  /** Reload strategy for config changes (default: hybrid). */
-  mode?: GatewayReloadMode;
-  /** Debounce window for config reloads (ms). Default: 300. */
-  debounceMs?: number;
-  /**
-   * Maximum time (ms) to wait for in-flight operations to complete before
-   * forcing a SIGUSR1 restart. Default: 300000 (5 minutes).
-   * Lower values risk aborting active subagent LLM calls.
-   * @see https://github.com/qianleigood/crawclaw/issues/47711
-   */
-  deferralTimeoutMs?: number;
-};
-
 export type GatewayHttpChatCompletionsConfig = {
   /**
    * If false, the Gateway will not serve `POST /v1/chat/completions`.
@@ -361,7 +345,6 @@ export type GatewayConfig = {
   auth?: GatewayAuthConfig;
   tailscale?: GatewayTailscaleConfig;
   remote?: GatewayRemoteConfig;
-  reload?: GatewayReloadConfig;
   tls?: GatewayTlsConfig;
   http?: GatewayHttpConfig;
   /**

@@ -5990,54 +5990,6 @@
       "hasChildren": false
     },
     {
-      "path": "gateway.reload",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["network", "reliability"],
-      "label": "Config Reload",
-      "help": "Live config-reload policy for how edits are applied and when full restarts are triggered. Keep hybrid behavior for safest operational updates unless debugging reload internals.",
-      "hasChildren": true
-    },
-    {
-      "path": "gateway.reload.debounceMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["network", "performance", "reliability"],
-      "label": "Config Reload Debounce (ms)",
-      "help": "Debounce window (ms) before applying config changes.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.reload.deferralTimeoutMs",
-      "kind": "core",
-      "type": "integer",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["network", "performance", "reliability"],
-      "label": "Restart Deferral Timeout (ms)",
-      "help": "Maximum time (ms) to wait for in-flight operations to complete before forcing a SIGUSR1 restart. Default: 300000 (5 minutes). Lower values risk aborting active subagent LLM calls.",
-      "hasChildren": false
-    },
-    {
-      "path": "gateway.reload.mode",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["network", "reliability"],
-      "label": "Config Reload Mode",
-      "help": "Controls how config edits are applied: \"off\" ignores live edits, \"restart\" forces a process restart for debugging/ops, \"hot\" applies in-process, and \"hybrid\" applies schema-owned config in-process by default.",
-      "hasChildren": false
-    },
-    {
       "path": "gateway.remote",
       "kind": "core",
       "type": "object",
@@ -9600,7 +9552,7 @@
       "sensitive": false,
       "tags": ["advanced"],
       "label": "Enable Plugins",
-      "help": "Enable or disable plugin/extension loading globally during startup and config reload (default: true). Keep enabled only when extension capabilities are required by your deployment.",
+      "help": "Enable or disable plugin loading globally during startup and desktop config writes (default: true). Keep enabled only when plugin capabilities are required by your deployment.",
       "hasChildren": false
     },
     {

@@ -2238,30 +2238,6 @@ See [Multiple Gateways](/gateway/multiple-gateways).
 - `keyPath`: filesystem path to the TLS private key file; keep permission-restricted.
 - `caPath`: optional CA bundle path for client verification or custom trust chains.
 
-### `gateway.reload`
-
-```json5
-{
-  gateway: {
-    reload: {
-      mode: "hybrid", // off | restart | hot | hybrid
-      debounceMs: 500,
-      deferralTimeoutMs: 300000,
-    },
-  },
-}
-```
-
-- `mode`: controls how config edits are applied at runtime.
-  - `"off"`: ignore live edits; changes require an explicit restart.
-  - `"restart"`: force a gateway process restart on config change for debugging or ops.
-  - `"hot"`: apply changes in-process without restarting.
-  - `"hybrid"` (default): apply schema-owned config changes in-process by default.
-- `debounceMs`: debounce window in ms before config changes are applied (non-negative integer).
-- `deferralTimeoutMs`: maximum time in ms to wait for in-flight operations before forcing a restart (default: `300000` = 5 minutes).
-
----
-
 ## Hooks
 
 ```json5

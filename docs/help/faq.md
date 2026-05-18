@@ -1287,11 +1287,10 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="Do I have to restart after changing config?">
-    The Gateway watches the config and applies schema-owned settings online:
+    CrawClaw Desktop and the local Gateway API own supported config writes:
 
-    - `gateway.reload.mode: "hybrid"` (default): reconfigure in-process by default
-    - `hot`, `restart`, `off` are also supported; use `restart` only as an explicit debug/ops override
-    - Listener changes such as `gateway.port`, bind, or TLS can briefly disconnect clients while the listener is rebuilt
+    - Some settings are read dynamically for future operations.
+    - Startup-bound settings such as listener port, bind mode, or TLS take effect after restarting the desktop Gateway from the app.
 
   </Accordion>
 

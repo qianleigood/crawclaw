@@ -61,9 +61,9 @@ Healthy baseline: `Runtime: running` and `RPC probe: ok`.
 </Steps>
 
 <Note>
-Gateway config reload watches the active config file path (resolved from profile/state defaults, or `CRAWCLAW_CONFIG_PATH` when set).
-Default mode is `gateway.reload.mode="hybrid"`.
-After the first successful load, the running process serves the active in-memory config snapshot; successful reload swaps that snapshot atomically.
+CrawClaw Desktop and the local Gateway API own supported config writes. Some
+settings are read dynamically for future operations; startup-bound settings take
+effect after restarting the desktop Gateway from the app.
 </Note>
 
 ## Runtime model
@@ -104,15 +104,6 @@ All of these run on the main Gateway port and use the same trusted operator auth
 | ------------ | ------------------------------------------------------------- |
 | Gateway port | `--port` → `CRAWCLAW_GATEWAY_PORT` → `gateway.port` → `18789` |
 | Bind mode    | CLI/override → `gateway.bind` → `loopback`                    |
-
-### Hot reload modes
-
-| `gateway.reload.mode` | Behavior                              |
-| --------------------- | ------------------------------------- |
-| `off`                 | No config reload                      |
-| `hot`                 | Apply schema-owned changes in-process |
-| `restart`             | Force a process restart for debug/ops |
-| `hybrid` (default)    | Reconfigure in-process by default     |
 
 ## Operator command set
 

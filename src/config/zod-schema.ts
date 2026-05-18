@@ -733,21 +733,6 @@ export const CrawClawSchema = z
           })
           .strict()
           .optional(),
-        reload: z
-          .object({
-            mode: z
-              .union([
-                z.literal("off"),
-                z.literal("restart"),
-                z.literal("hot"),
-                z.literal("hybrid"),
-              ])
-              .optional(),
-            debounceMs: z.number().int().min(0).optional(),
-            deferralTimeoutMs: z.number().int().min(0).optional(),
-          })
-          .strict()
-          .optional(),
         tls: z
           .object({
             enabled: z.boolean().optional(),

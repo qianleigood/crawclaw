@@ -407,7 +407,6 @@ Save to `~/.crawclaw/crawclaw.json` and you can DM the bot from that number.
     },
     tailscale: { mode: "serve", resetOnExit: false },
     remote: { url: "ws://gateway.tailnet:18789", token: "remote-token" },
-    reload: { mode: "hybrid", debounceMs: 300 },
   },
 
   skills: {

@@ -339,46 +339,6 @@ When validation fails:
   </Accordion>
 </AccordionGroup>
 
-## Config hot reload
-
-The Gateway watches `~/.crawclaw/crawclaw.json` and applies changes automatically — no manual restart needed for most settings.
-
-### Reload modes
-
-| Mode                   | Behavior                                                                                |
-| ---------------------- | --------------------------------------------------------------------------------------- |
-| **`hybrid`** (default) | Hot-applies safe changes instantly. Automatically restarts for critical ones.           |
-| **`hot`**              | Hot-applies safe changes only. Logs a warning when a restart is needed — you handle it. |
-| **`restart`**          | Restarts the Gateway on any config change, safe or not.                                 |
-| **`off`**              | Disables file watching. Changes take effect on the next manual restart.                 |
-
-```json5
-{
-  gateway: {
-    reload: { mode: "hybrid", debounceMs: 300 },
-  },
-}
-```
-
-### What reconfigures in-process
-
-In `hybrid` mode, schema-owned config changes reconfigure the running Gateway in-process instead of restarting the Gateway process.
-
-| Category            | Fields                                                                          | Runtime behavior                                            |
-| ------------------- | ------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Channels            | `channels.*`, `web` (Weixin) — all built-in and extension channels              | Reconfigure or restart only the affected channel runtime    |
-| Agent & models      | `agents`, `models`, `auth`                                                      | Update future runs, model/auth caches, and lane concurrency |
-| Automation          | `hooks`, `cron`                                                                 | Rebuild the affected watcher, hook loader, or cron service  |
-| Sessions & messages | `session`, `messages`                                                           | Read dynamically for future operations                      |
-| Tools & media       | `tools`, `browser`, `nodeHost.browserProxy`, `skills`, `media`, `talk`          | Refresh runtime policy/timers or read dynamically           |
-| Runtime metadata    | `acp`, `approvals`, `bindings`, `broadcast`, `cli`, `commands`, `env`, `memory` | Reconfigure owner or explicit no-op                         |
-| Gateway server      | `gateway.*` (port, bind, auth, tailscale, TLS, HTTP, trusted proxy settings)    | Reconfigure; listener changes may briefly reconnect clients |
-| Infrastructure      | `discovery`, `plugins`, `update`, `workflow`, `$schema`, `meta`, `wizard`       | Reconfigure owner or explicit no-op                         |
-
-<Note>
-`gateway.reload.mode="restart"` remains available as an explicit debugging/ops override. Routine desktop settings saves should not need a Gateway process restart.
-</Note>
-
 ## Config RPC (programmatic updates)
 
 <Note>
@@ -387,7 +347,9 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
 
 <AccordionGroup>
   <Accordion title="config.apply (full replace)">
-    Validates + writes the full config. The running Gateway applies changed settings through the live reconfigure pipeline.
+    Validates + writes the full config. Some settings are read dynamically for
+    future operations; startup-bound Gateway settings take effect after
+    restarting CrawClaw Desktop.
 
     <Warning>
     `config.apply` replaces the **entire config**. Use `config.patch` for partial updates, or CrawClaw Desktop or the local Gateway API for single keys.
@@ -397,19 +359,15 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
 
     - `raw` (string) — JSON5 payload for the entire config
     - `baseHash` (optional) — config hash from `config.get` (required when config exists)
-    - `sessionKey` (optional) — session key for a follow-up wake ping when a restart override is used
-    - `note` (optional) — note for the restart sentinel when a restart override is used
-    - `restartDelayMs` (optional) — delay before an explicit restart override
+    - `sessionKey` (optional) — session key for a follow-up wake ping
+    - `note` (optional) — operator note stored with the write request
 
-    If `gateway.reload.mode="restart"` is set, restart requests are coalesced while one is already pending/in-flight, and a 30-second cooldown applies between restart cycles.
-
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    ```json5
+    {
       "raw": "{ agents: { defaults: { workspace: \"~/.crawclaw/workspace\" } } }",
       "baseHash": "<hash>",
-      "sessionKey": "agent:main:weixin:direct:+15555550123"
-    }'
+      "sessionKey": "agent:main:weixin:direct:+15555550123",
+    }
     ```
 
   </Accordion>
@@ -425,15 +383,15 @@ Control-plane write RPCs (`config.apply`, `config.patch`, `update.run`) are rate
 
     - `raw` (string) — JSON5 with just the keys to change
     - `baseHash` (required) — config hash from `config.get`
-    - `sessionKey`, `note`, `restartDelayMs` — same as `config.apply`
+    - `sessionKey`, `note` — same as `config.apply`
 
-    Reconfigure behavior matches `config.apply`: settings are applied online by default; explicit restart mode keeps the same coalescing and cooldown behavior.
+    Runtime behavior matches `config.apply`.
 
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
+    ```json5
+    {
       "raw": "{ channels: { feishu: { groups: { \"*\": { requireMention: false } } } } }",
-      "baseHash": "<hash>"
-    }'
+      "baseHash": "<hash>",
+    }
     ```
 
   </Accordion>
