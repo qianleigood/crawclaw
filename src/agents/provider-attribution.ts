@@ -1,13 +1,32 @@
 import {
+  ANTHROPIC_MESSAGES_API,
+  ANTHROPIC_PROVIDER_ID,
+  GOOGLE_PROVIDER_ID,
+  GROQ_PROVIDER_ID,
   KNOWN_PROVIDER_FAMILIES,
   LOCAL_ENDPOINT_HOSTS as LOCAL_ENDPOINT_HOST_VALUES,
   MODELSTUDIO_NATIVE_BASE_URLS as MODELSTUDIO_NATIVE_BASE_URL_VALUES,
+  MODELSTUDIO_PROVIDER_ID,
   MOONSHOT_COMPAT_PROVIDERS as MOONSHOT_COMPAT_PROVIDER_VALUES,
   MOONSHOT_NATIVE_BASE_URLS as MOONSHOT_NATIVE_BASE_URL_VALUES,
+  MOONSHOT_PROVIDER_ID,
+  MISTRAL_PROVIDER_ID,
+  OLLAMA_PROVIDER_ID,
+  OPENAI_AUDIO_TRANSCRIPTIONS_API,
+  OPENAI_CODEX_PROVIDER_ID,
+  OPENAI_CODEX_RESPONSES_API,
+  OPENAI_COMPLETIONS_API,
+  OPENAI_PROVIDER_ID,
   OPENAI_RESPONSES_APIS as OPENAI_RESPONSES_API_VALUES,
+  OPENAI_RESPONSES_API,
   OPENAI_RESPONSES_PROVIDERS as OPENAI_RESPONSES_PROVIDER_VALUES,
+  OPENROUTER_ATTRIBUTION_CATEGORY,
+  OPENROUTER_ATTRIBUTION_DOCS_URL,
+  OPENROUTER_PROVIDER_ID,
   PROVIDER_ATTRIBUTION_ORIGINATOR,
   PROVIDER_ATTRIBUTION_PRODUCT,
+  PROVIDER_ATTRIBUTION_REFERER_URL,
+  TOGETHER_PROVIDER_ID,
 } from "../generated/providers/runtime-constants.generated.js";
 import type { RuntimeVersionEnv } from "../version.js";
 import { resolveRuntimeServiceVersion } from "../version.js";
@@ -257,17 +276,17 @@ function buildOpenRouterAttributionPolicy(
 ): ProviderAttributionPolicy {
   const identity = resolveProviderAttributionIdentity(env);
   return {
-    provider: "openrouter",
+    provider: OPENROUTER_PROVIDER_ID,
     enabledByDefault: true,
     verification: "vendor-documented",
     hook: "request-headers",
-    docsUrl: "https://openrouter.ai/docs/app-attribution",
+    docsUrl: OPENROUTER_ATTRIBUTION_DOCS_URL,
     reviewNote: "Documented app attribution headers. Verified in CrawClaw runtime wrapper.",
     ...identity,
     headers: {
-      "HTTP-Referer": "https://docs.crawclaw.ai",
+      "HTTP-Referer": PROVIDER_ATTRIBUTION_REFERER_URL,
       "X-OpenRouter-Title": identity.product,
-      "X-OpenRouter-Categories": "cli-agent",
+      "X-OpenRouter-Categories": OPENROUTER_ATTRIBUTION_CATEGORY,
     },
   };
 }
@@ -277,7 +296,7 @@ function buildOpenAIAttributionPolicy(
 ): ProviderAttributionPolicy {
   const identity = resolveProviderAttributionIdentity(env);
   return {
-    provider: "openai",
+    provider: OPENAI_PROVIDER_ID,
     enabledByDefault: true,
     verification: "vendor-hidden-api-spec",
     hook: "request-headers",
@@ -297,7 +316,7 @@ function buildOpenAICodexAttributionPolicy(
 ): ProviderAttributionPolicy {
   const identity = resolveProviderAttributionIdentity(env);
   return {
-    provider: "openai-codex",
+    provider: OPENAI_CODEX_PROVIDER_ID,
     enabledByDefault: true,
     verification: "vendor-hidden-api-spec",
     hook: "request-headers",
@@ -336,31 +355,31 @@ export function listProviderAttributionPolicies(
     buildOpenAIAttributionPolicy(env),
     buildOpenAICodexAttributionPolicy(env),
     buildSdkHookOnlyPolicy(
-      "anthropic",
+      ANTHROPIC_PROVIDER_ID,
       "default-headers",
       "Anthropic JS SDK exposes defaultHeaders, but app attribution is not yet verified.",
       env,
     ),
     buildSdkHookOnlyPolicy(
-      "google",
+      GOOGLE_PROVIDER_ID,
       "user-agent-extra",
       "Google GenAI JS SDK exposes userAgentExtra/httpOptions, but provider-side attribution is not yet verified.",
       env,
     ),
     buildSdkHookOnlyPolicy(
-      "groq",
+      GROQ_PROVIDER_ID,
       "default-headers",
       "Groq JS SDK exposes defaultHeaders, but app attribution is not yet verified.",
       env,
     ),
     buildSdkHookOnlyPolicy(
-      "mistral",
+      MISTRAL_PROVIDER_ID,
       "custom-user-agent",
       "Mistral JS SDK exposes a custom userAgent option, but app attribution is not yet verified.",
       env,
     ),
     buildSdkHookOnlyPolicy(
-      "together",
+      TOGETHER_PROVIDER_ID,
       "default-headers",
       "Together JS SDK exposes defaultHeaders, but app attribution is not yet verified.",
       env,
@@ -409,26 +428,26 @@ export function resolveProviderRequestPolicy(
 
   let attributionProvider: string | undefined;
   if (
-    provider === "openai" &&
-    (api === "openai-completions" ||
-      api === "openai-responses" ||
-      (input.capability === "audio" && api === "openai-audio-transcriptions")) &&
+    provider === OPENAI_PROVIDER_ID &&
+    (api === OPENAI_COMPLETIONS_API ||
+      api === OPENAI_RESPONSES_API ||
+      (input.capability === "audio" && api === OPENAI_AUDIO_TRANSCRIPTIONS_API)) &&
     usesOpenAIPublicAttributionHost
   ) {
-    attributionProvider = "openai";
+    attributionProvider = OPENAI_PROVIDER_ID;
   } else if (
-    provider === "openai-codex" &&
-    (api === "openai-codex-responses" || api === "openai-responses") &&
+    provider === OPENAI_CODEX_PROVIDER_ID &&
+    (api === OPENAI_CODEX_RESPONSES_API || api === OPENAI_RESPONSES_API) &&
     usesOpenAICodexAttributionHost
   ) {
-    attributionProvider = "openai-codex";
-  } else if (provider === "openrouter" && policy?.enabledByDefault) {
+    attributionProvider = OPENAI_CODEX_PROVIDER_ID;
+  } else if (provider === OPENROUTER_PROVIDER_ID && policy?.enabledByDefault) {
     // OpenRouter attribution is documented and intentionally remains
     // provider-key-gated for this pass, including custom base URLs configured
     // under the openrouter provider. The endpoint class is still surfaced so a
     // later host-gating decision can reuse the same classifier without changing
     // callers again.
-    attributionProvider = "openrouter";
+    attributionProvider = OPENROUTER_PROVIDER_ID;
   }
 
   const attributionHeaders = attributionProvider
@@ -447,7 +466,7 @@ export function resolveProviderRequestPolicy(
       attributionProvider !== undefined && policy?.verification === "vendor-hidden-api-spec",
     usesKnownNativeOpenAIEndpoint,
     usesKnownNativeOpenAIRoute:
-      endpointClass === "default" ? provider === "openai" : usesKnownNativeOpenAIEndpoint,
+      endpointClass === "default" ? provider === OPENAI_PROVIDER_ID : usesKnownNativeOpenAIEndpoint,
     usesVerifiedOpenAIAttributionHost,
     usesExplicitProxyLikeEndpoint,
   };
@@ -485,7 +504,7 @@ export function resolveProviderRequestCapabilities(
   if (provider && MOONSHOT_COMPAT_PROVIDERS.has(provider)) {
     compatibilityFamily = "moonshot";
   } else if (
-    provider === "ollama" &&
+    provider === OLLAMA_PROVIDER_ID &&
     normalizedModelId?.startsWith("kimi-k") &&
     normalizedModelId.includes(":cloud")
   ) {
@@ -496,13 +515,15 @@ export function resolveProviderRequestCapabilities(
     ...policy,
     isKnownNativeEndpoint,
     allowsOpenAIServiceTier:
-      (provider === "openai" && api === "openai-responses" && endpointClass === "openai-public") ||
-      (provider === "openai-codex" &&
-        (api === "openai-codex-responses" || api === "openai-responses") &&
+      (provider === OPENAI_PROVIDER_ID &&
+        api === OPENAI_RESPONSES_API &&
+        endpointClass === "openai-public") ||
+      (provider === OPENAI_CODEX_PROVIDER_ID &&
+        (api === OPENAI_CODEX_RESPONSES_API || api === OPENAI_RESPONSES_API) &&
         endpointClass === "openai-codex"),
     allowsAnthropicServiceTier:
-      provider === "anthropic" &&
-      api === "anthropic-messages" &&
+      provider === ANTHROPIC_PROVIDER_ID &&
+      api === ANTHROPIC_MESSAGES_API &&
       (endpointClass === "default" || endpointClass === "anthropic-public"),
     // This is intentionally the gate for emitting `store: false` on Responses
     // transports, not just a statement about vendor support in the abstract.
@@ -518,8 +539,8 @@ export function resolveProviderRequestCapabilities(
     shouldStripResponsesPromptCache:
       api !== undefined && OPENAI_RESPONSES_APIS.has(api) && policy.usesExplicitProxyLikeEndpoint,
     supportsNativeStreamingUsageCompat:
-      (provider === "moonshot" && endpointClass === "moonshot-native") ||
-      (provider === "modelstudio" && endpointClass === "modelstudio-native"),
+      (provider === MOONSHOT_PROVIDER_ID && endpointClass === "moonshot-native") ||
+      (provider === MODELSTUDIO_PROVIDER_ID && endpointClass === "modelstudio-native"),
     compatibilityFamily,
   };
 }

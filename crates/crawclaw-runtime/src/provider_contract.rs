@@ -291,9 +291,15 @@ export const AMAZON_BEDROCK_PROVIDER_ID = {amazon_bedrock_provider_id};
 export const GITHUB_COPILOT_PROVIDER_ID = {github_copilot_provider_id};
 export const GOOGLE_PROVIDER_ID = {google_provider_id};
 export const GOOGLE_VERTEX_PROVIDER_ID = {google_vertex_provider_id};
+export const GROQ_PROVIDER_ID = {groq_provider_id};
+export const MISTRAL_PROVIDER_ID = {mistral_provider_id};
+export const MODELSTUDIO_PROVIDER_ID = {modelstudio_provider_id};
+export const MOONSHOT_PROVIDER_ID = {moonshot_provider_id};
+export const OLLAMA_PROVIDER_ID = {ollama_provider_id};
 export const OPENAI_PROVIDER_ID = {openai_provider_id};
 export const OPENAI_CODEX_PROVIDER_ID = {openai_codex_provider_id};
 export const OPENROUTER_PROVIDER_ID = {openrouter_provider_id};
+export const TOGETHER_PROVIDER_ID = {together_provider_id};
 export const VERCEL_AI_GATEWAY_PROVIDER_ID = {vercel_ai_gateway_provider_id};
 export const XAI_PROVIDER_ID = {xai_provider_id};
 export const ZAI_PROVIDER_ID = {zai_provider_id};
@@ -302,6 +308,14 @@ export const ANTHROPIC_OAUTH_TOKEN_ENV = {anthropic_oauth_token_env};
 export const PROVIDER_USAGE_LABELS = {provider_usage_labels} as const satisfies Readonly<Record<string, string>>;
 export const PROVIDER_ATTRIBUTION_PRODUCT = {provider_attribution_product};
 export const PROVIDER_ATTRIBUTION_ORIGINATOR = {provider_attribution_originator};
+export const PROVIDER_ATTRIBUTION_REFERER_URL = {provider_attribution_referer_url};
+export const OPENROUTER_ATTRIBUTION_DOCS_URL = {openrouter_attribution_docs_url};
+export const OPENROUTER_ATTRIBUTION_CATEGORY = {openrouter_attribution_category};
+export const OPENAI_COMPLETIONS_API = {openai_completions_api};
+export const OPENAI_RESPONSES_API = {openai_responses_api};
+export const OPENAI_CODEX_RESPONSES_API = {openai_codex_responses_api};
+export const OPENAI_AUDIO_TRANSCRIPTIONS_API = {openai_audio_transcriptions_api};
+export const ANTHROPIC_MESSAGES_API = {anthropic_messages_api};
 export const LOCAL_ENDPOINT_HOSTS = {local_endpoint_hosts} as const;
 export const MOONSHOT_NATIVE_BASE_URLS = {moonshot_native_base_urls} as const;
 export const MODELSTUDIO_NATIVE_BASE_URLS = {modelstudio_native_base_urls} as const;
@@ -405,9 +419,15 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         github_copilot_provider_id = json_string(crawclaw_providers::GITHUB_COPILOT_PROVIDER_ID),
         google_provider_id = json_string(crawclaw_providers::GOOGLE_PROVIDER_ID),
         google_vertex_provider_id = json_string(crawclaw_providers::GOOGLE_VERTEX_PROVIDER_ID),
+        groq_provider_id = json_string(crawclaw_providers::GROQ_PROVIDER_ID),
+        mistral_provider_id = json_string(crawclaw_providers::MISTRAL_PROVIDER_ID),
+        modelstudio_provider_id = json_string(crawclaw_providers::MODELSTUDIO_PROVIDER_ID),
+        moonshot_provider_id = json_string(crawclaw_providers::MOONSHOT_PROVIDER_ID),
+        ollama_provider_id = json_string(crawclaw_providers::OLLAMA_PROVIDER_ID),
         openai_provider_id = json_string(crawclaw_providers::OPENAI_PROVIDER_ID),
         openai_codex_provider_id = json_string(crawclaw_providers::OPENAI_CODEX_PROVIDER_ID),
         openrouter_provider_id = json_string(crawclaw_providers::OPENROUTER_PROVIDER_ID),
+        together_provider_id = json_string(crawclaw_providers::TOGETHER_PROVIDER_ID),
         vercel_ai_gateway_provider_id =
             json_string(crawclaw_providers::VERCEL_AI_GATEWAY_PROVIDER_ID),
         xai_provider_id = json_string(crawclaw_providers::XAI_PROVIDER_ID),
@@ -420,6 +440,19 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             json_string(crawclaw_providers::PROVIDER_ATTRIBUTION_PRODUCT),
         provider_attribution_originator =
             json_string(crawclaw_providers::PROVIDER_ATTRIBUTION_ORIGINATOR),
+        provider_attribution_referer_url =
+            json_string(crawclaw_providers::PROVIDER_ATTRIBUTION_REFERER_URL),
+        openrouter_attribution_docs_url =
+            json_string(crawclaw_providers::OPENROUTER_ATTRIBUTION_DOCS_URL),
+        openrouter_attribution_category =
+            json_string(crawclaw_providers::OPENROUTER_ATTRIBUTION_CATEGORY),
+        openai_completions_api = json_string(crawclaw_providers::OPENAI_COMPLETIONS_API),
+        openai_responses_api = json_string(crawclaw_providers::OPENAI_RESPONSES_API),
+        openai_codex_responses_api =
+            json_string(crawclaw_providers::OPENAI_CODEX_RESPONSES_API),
+        openai_audio_transcriptions_api =
+            json_string(crawclaw_providers::OPENAI_AUDIO_TRANSCRIPTIONS_API),
+        anthropic_messages_api = json_string(crawclaw_providers::ANTHROPIC_MESSAGES_API),
         local_endpoint_hosts =
             render_static_string_array_inline(crawclaw_providers::LOCAL_ENDPOINT_HOSTS),
         moonshot_native_base_urls =
@@ -1177,9 +1210,15 @@ mod tests {
         assert!(source.contains("export const GITHUB_COPILOT_PROVIDER_ID = \"github-copilot\";"));
         assert!(source.contains("export const GOOGLE_PROVIDER_ID = \"google\";"));
         assert!(source.contains("export const GOOGLE_VERTEX_PROVIDER_ID = \"google-vertex\";"));
+        assert!(source.contains("export const GROQ_PROVIDER_ID = \"groq\";"));
+        assert!(source.contains("export const MISTRAL_PROVIDER_ID = \"mistral\";"));
+        assert!(source.contains("export const MODELSTUDIO_PROVIDER_ID = \"modelstudio\";"));
+        assert!(source.contains("export const MOONSHOT_PROVIDER_ID = \"moonshot\";"));
+        assert!(source.contains("export const OLLAMA_PROVIDER_ID = \"ollama\";"));
         assert!(source.contains("export const OPENAI_PROVIDER_ID = \"openai\";"));
         assert!(source.contains("export const OPENAI_CODEX_PROVIDER_ID = \"openai-codex\";"));
         assert!(source.contains("export const OPENROUTER_PROVIDER_ID = \"openrouter\";"));
+        assert!(source.contains("export const TOGETHER_PROVIDER_ID = \"together\";"));
         assert!(
             source.contains("export const VERCEL_AI_GATEWAY_PROVIDER_ID = \"vercel-ai-gateway\";")
         );
@@ -1194,6 +1233,22 @@ mod tests {
         assert!(source.contains("zai: \"z.ai\""));
         assert!(source.contains("export const PROVIDER_ATTRIBUTION_PRODUCT = \"CrawClaw\";"));
         assert!(source.contains("export const PROVIDER_ATTRIBUTION_ORIGINATOR = \"crawclaw\";"));
+        assert!(source.contains(
+            "export const PROVIDER_ATTRIBUTION_REFERER_URL = \"https://docs.crawclaw.ai\";"
+        ));
+        assert!(source.contains(
+            "export const OPENROUTER_ATTRIBUTION_DOCS_URL = \"https://openrouter.ai/docs/app-attribution\";"
+        ));
+        assert!(source.contains("export const OPENROUTER_ATTRIBUTION_CATEGORY = \"cli-agent\";"));
+        assert!(source.contains("export const OPENAI_COMPLETIONS_API = \"openai-completions\";"));
+        assert!(source.contains("export const OPENAI_RESPONSES_API = \"openai-responses\";"));
+        assert!(
+            source.contains("export const OPENAI_CODEX_RESPONSES_API = \"openai-codex-responses\";")
+        );
+        assert!(source.contains(
+            "export const OPENAI_AUDIO_TRANSCRIPTIONS_API = \"openai-audio-transcriptions\";"
+        ));
+        assert!(source.contains("export const ANTHROPIC_MESSAGES_API = \"anthropic-messages\";"));
         assert!(source
             .contains("export const LOCAL_ENDPOINT_HOSTS = [\"localhost\", \"127.0.0.1\", \"::1\", \"[::1]\"] as const;"));
         assert!(source.contains("export const MOONSHOT_NATIVE_BASE_URLS = ["));

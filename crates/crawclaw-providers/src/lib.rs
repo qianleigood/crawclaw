@@ -745,9 +745,15 @@ pub const AMAZON_BEDROCK_PROVIDER_ID: &str = "amazon-bedrock";
 pub const GITHUB_COPILOT_PROVIDER_ID: &str = "github-copilot";
 pub const GOOGLE_PROVIDER_ID: &str = "google";
 pub const GOOGLE_VERTEX_PROVIDER_ID: &str = "google-vertex";
+pub const GROQ_PROVIDER_ID: &str = "groq";
+pub const MISTRAL_PROVIDER_ID: &str = "mistral";
+pub const MODELSTUDIO_PROVIDER_ID: &str = "modelstudio";
+pub const MOONSHOT_PROVIDER_ID: &str = "moonshot";
+pub const OLLAMA_PROVIDER_ID: &str = "ollama";
 pub const OPENAI_PROVIDER_ID: &str = "openai";
 pub const OPENAI_CODEX_PROVIDER_ID: &str = "openai-codex";
 pub const OPENROUTER_PROVIDER_ID: &str = "openrouter";
+pub const TOGETHER_PROVIDER_ID: &str = "together";
 pub const VERCEL_AI_GATEWAY_PROVIDER_ID: &str = "vercel-ai-gateway";
 pub const XAI_PROVIDER_ID: &str = "xai";
 pub const ZAI_PROVIDER_ID: &str = "zai";
@@ -777,6 +783,14 @@ pub const MODEL_APIS: &[&str] = &[
 ];
 pub const PROVIDER_ATTRIBUTION_PRODUCT: &str = "CrawClaw";
 pub const PROVIDER_ATTRIBUTION_ORIGINATOR: &str = "crawclaw";
+pub const PROVIDER_ATTRIBUTION_REFERER_URL: &str = "https://docs.crawclaw.ai";
+pub const OPENROUTER_ATTRIBUTION_DOCS_URL: &str = "https://openrouter.ai/docs/app-attribution";
+pub const OPENROUTER_ATTRIBUTION_CATEGORY: &str = "cli-agent";
+pub const OPENAI_COMPLETIONS_API: &str = "openai-completions";
+pub const OPENAI_RESPONSES_API: &str = "openai-responses";
+pub const OPENAI_CODEX_RESPONSES_API: &str = "openai-codex-responses";
+pub const OPENAI_AUDIO_TRANSCRIPTIONS_API: &str = "openai-audio-transcriptions";
+pub const ANTHROPIC_MESSAGES_API: &str = "anthropic-messages";
 pub const LOCAL_ENDPOINT_HOSTS: &[&str] = &["localhost", "127.0.0.1", "::1", "[::1]"];
 pub const MOONSHOT_NATIVE_BASE_URLS: &[&str] =
     &["https://api.moonshot.ai/v1", "https://api.moonshot.cn/v1"];
@@ -4075,9 +4089,15 @@ mod tests {
         assert_eq!(GITHUB_COPILOT_PROVIDER_ID, "github-copilot");
         assert_eq!(GOOGLE_PROVIDER_ID, "google");
         assert_eq!(GOOGLE_VERTEX_PROVIDER_ID, "google-vertex");
+        assert_eq!(GROQ_PROVIDER_ID, "groq");
+        assert_eq!(MISTRAL_PROVIDER_ID, "mistral");
+        assert_eq!(MODELSTUDIO_PROVIDER_ID, "modelstudio");
+        assert_eq!(MOONSHOT_PROVIDER_ID, "moonshot");
+        assert_eq!(OLLAMA_PROVIDER_ID, "ollama");
         assert_eq!(OPENAI_PROVIDER_ID, "openai");
         assert_eq!(OPENAI_CODEX_PROVIDER_ID, "openai-codex");
         assert_eq!(OPENROUTER_PROVIDER_ID, "openrouter");
+        assert_eq!(TOGETHER_PROVIDER_ID, "together");
         assert_eq!(VERCEL_AI_GATEWAY_PROVIDER_ID, "vercel-ai-gateway");
         assert_eq!(XAI_PROVIDER_ID, "xai");
         assert_eq!(ZAI_PROVIDER_ID, "zai");
@@ -4087,6 +4107,23 @@ mod tests {
         assert!(PROVIDER_USAGE_LABELS.contains(&("zai", "z.ai")));
         assert_eq!(PROVIDER_ATTRIBUTION_PRODUCT, "CrawClaw");
         assert_eq!(PROVIDER_ATTRIBUTION_ORIGINATOR, "crawclaw");
+        assert_eq!(
+            PROVIDER_ATTRIBUTION_REFERER_URL,
+            "https://docs.crawclaw.ai"
+        );
+        assert_eq!(
+            OPENROUTER_ATTRIBUTION_DOCS_URL,
+            "https://openrouter.ai/docs/app-attribution"
+        );
+        assert_eq!(OPENROUTER_ATTRIBUTION_CATEGORY, "cli-agent");
+        assert_eq!(OPENAI_COMPLETIONS_API, "openai-completions");
+        assert_eq!(OPENAI_RESPONSES_API, "openai-responses");
+        assert_eq!(OPENAI_CODEX_RESPONSES_API, "openai-codex-responses");
+        assert_eq!(
+            OPENAI_AUDIO_TRANSCRIPTIONS_API,
+            "openai-audio-transcriptions"
+        );
+        assert_eq!(ANTHROPIC_MESSAGES_API, "anthropic-messages");
         assert_eq!(
             LOCAL_ENDPOINT_HOSTS,
             &["localhost", "127.0.0.1", "::1", "[::1]"]
