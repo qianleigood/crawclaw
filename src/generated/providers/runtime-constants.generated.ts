@@ -128,6 +128,15 @@ export const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {
   "minimax-cn": ["MINIMAX_API_KEY"],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 export const EXTRA_PROVIDER_AUTH_ENV_VARS = ["MINIMAX_CODE_PLAN_KEY"] as const;
+export const PROVIDER_USAGE_LABELS = {
+  anthropic: "Claude",
+  "github-copilot": "Copilot",
+  "google-gemini-cli": "Gemini",
+  minimax: "MiniMax",
+  "openai-codex": "Codex",
+  xiaomi: "Xiaomi",
+  zai: "z.ai",
+} as const satisfies Readonly<Record<string, string>>;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
   "devstral-medium-latest": 32768,
   "magistral-small": 40000,

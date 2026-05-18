@@ -2,30 +2,15 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { normalizeProviderId } from "../agents/provider-id.js";
+import { PROVIDER_USAGE_LABELS } from "../generated/providers/runtime-constants.generated.js";
 import { resolveRequiredHomeDir } from "./home-dir.js";
 import type { UsageProviderId } from "./provider-usage.types.js";
 
 export const DEFAULT_TIMEOUT_MS = 5000;
 
-export const PROVIDER_LABELS: Record<UsageProviderId, string> = {
-  anthropic: "Claude",
-  "github-copilot": "Copilot",
-  "google-gemini-cli": "Gemini",
-  minimax: "MiniMax",
-  "openai-codex": "Codex",
-  xiaomi: "Xiaomi",
-  zai: "z.ai",
-};
+export const PROVIDER_LABELS: Record<UsageProviderId, string> = PROVIDER_USAGE_LABELS;
 
-export const usageProviders: UsageProviderId[] = [
-  "anthropic",
-  "github-copilot",
-  "google-gemini-cli",
-  "minimax",
-  "openai-codex",
-  "xiaomi",
-  "zai",
-];
+export const usageProviders: UsageProviderId[] = Object.keys(PROVIDER_LABELS) as UsageProviderId[];
 
 export function resolveUsageProviderId(provider?: string | null): UsageProviderId | undefined {
   if (!provider) {

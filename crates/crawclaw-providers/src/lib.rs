@@ -716,6 +716,16 @@ pub const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES: &[ProviderAuthEnvVars] = &[
 
 pub const EXTRA_PROVIDER_AUTH_ENV_VARS: &[&str] = &["MINIMAX_CODE_PLAN_KEY"];
 
+pub const PROVIDER_USAGE_LABELS: &[(&str, &str)] = &[
+    ("anthropic", "Claude"),
+    ("github-copilot", "Copilot"),
+    ("google-gemini-cli", "Gemini"),
+    ("minimax", "MiniMax"),
+    ("openai-codex", "Codex"),
+    ("xiaomi", "Xiaomi"),
+    ("zai", "z.ai"),
+];
+
 const RUST_PROVIDER_CAPABILITIES: ProviderTransportCapabilities = ProviderTransportCapabilities {
     streaming: true,
     tool_calling: true,
@@ -3909,6 +3919,8 @@ mod tests {
             entry.provider == "anthropic" && entry.env_vars.contains(&"ANTHROPIC_OAUTH_TOKEN")
         }));
         assert_eq!(EXTRA_PROVIDER_AUTH_ENV_VARS, &["MINIMAX_CODE_PLAN_KEY"]);
+        assert!(PROVIDER_USAGE_LABELS.contains(&("openai-codex", "Codex")));
+        assert!(PROVIDER_USAGE_LABELS.contains(&("zai", "z.ai")));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("magistral-small", 40_000)));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("mistral-medium-2508", 8_192)));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
