@@ -237,6 +237,8 @@ export const AGENT_DEFAULT_PROVIDER = {agent_default_provider};
 export const AGENT_DEFAULT_MODEL = {agent_default_model};
 export const AGENT_DEFAULT_CONTEXT_TOKENS = {agent_default_context_tokens};
 export const AGENT_DEFAULT_MODEL_ALIASES = {agent_default_model_aliases} as const satisfies Readonly<Record<string, string>>;
+export const PROVIDER_ID_ALIASES = {provider_id_aliases} as const satisfies Readonly<Record<string, string>>;
+export const PROVIDER_AUTH_ID_ALIASES = {provider_auth_id_aliases} as const satisfies Readonly<Record<string, string>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = {anthropic_vertex_default_region};
 export const ANTHROPIC_VERTEX_CREDENTIALS_MARKER = {anthropic_vertex_credentials_marker};
@@ -261,6 +263,9 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         agent_default_context_tokens = crawclaw_providers::AGENT_DEFAULT_CONTEXT_TOKENS,
         agent_default_model_aliases =
             render_static_string_record(crawclaw_providers::AGENT_DEFAULT_MODEL_ALIASES),
+        provider_id_aliases = render_static_string_record(crawclaw_providers::PROVIDER_ID_ALIASES),
+        provider_auth_id_aliases =
+            render_static_string_record(crawclaw_providers::PROVIDER_AUTH_ID_ALIASES),
         default_claude_cli_model = json_string(crawclaw_providers::DEFAULT_CLAUDE_CLI_MODEL),
         anthropic_vertex_default_region =
             json_string(crawclaw_providers::ANTHROPIC_VERTEX_DEFAULT_REGION),
@@ -664,6 +669,11 @@ mod tests {
         assert!(source.contains("opus: \"anthropic/claude-opus-4-6\""));
         assert!(source.contains("\"gpt-mini\": \"openai/gpt-5-mini\""));
         assert!(source.contains("\"gemini-flash-lite\": \"google/gemini-3.1-flash-lite-preview\""));
+        assert!(source.contains("\"z.ai\": \"zai\""));
+        assert!(source.contains("\"aws-bedrock\": \"amazon-bedrock\""));
+        assert!(source.contains("doubao: \"volcengine\""));
+        assert!(source.contains("\"volcengine-plan\": \"volcengine\""));
+        assert!(source.contains("\"byteplus-plan\": \"byteplus\""));
         assert!(source.contains("export const ANTHROPIC_VERTEX_DEFAULT_REGION = \"global\";"));
         assert!(
             source.contains("export const OLLAMA_DEFAULT_BASE_URL = \"http://127.0.0.1:11434\";")

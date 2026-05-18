@@ -1228,6 +1228,22 @@ pub const AGENT_DEFAULT_MODEL_ALIASES: &[(&str, &str)] = &[
     ("gemini-flash", "google/gemini-3-flash-preview"),
     ("gemini-flash-lite", "google/gemini-3.1-flash-lite-preview"),
 ];
+pub const PROVIDER_ID_ALIASES: &[(&str, &str)] = &[
+    ("z.ai", "zai"),
+    ("z-ai", "zai"),
+    ("opencode-zen", "opencode"),
+    ("opencode-go-auth", "opencode-go"),
+    ("kimi-code", "kimi"),
+    ("kimi-coding", "kimi"),
+    ("bedrock", "amazon-bedrock"),
+    ("aws-bedrock", "amazon-bedrock"),
+    ("bytedance", "volcengine"),
+    ("doubao", "volcengine"),
+];
+pub const PROVIDER_AUTH_ID_ALIASES: &[(&str, &str)] = &[
+    ("volcengine-plan", "volcengine"),
+    ("byteplus-plan", "byteplus"),
+];
 pub const DEFAULT_CLAUDE_CLI_MODEL: &str = "claude-cli/claude-sonnet-4-6";
 pub const ANTHROPIC_VERTEX_DEFAULT_REGION: &str = "global";
 pub const ANTHROPIC_VERTEX_CREDENTIALS_MARKER: &str = "gcp-vertex-credentials";
@@ -3602,6 +3618,11 @@ mod tests {
         assert_eq!(AGENT_DEFAULT_PROVIDER, "anthropic");
         assert_eq!(AGENT_DEFAULT_MODEL, "claude-opus-4-6");
         assert_eq!(AGENT_DEFAULT_CONTEXT_TOKENS, 200_000);
+        assert!(PROVIDER_ID_ALIASES.contains(&("z.ai", "zai")));
+        assert!(PROVIDER_ID_ALIASES.contains(&("aws-bedrock", "amazon-bedrock")));
+        assert!(PROVIDER_ID_ALIASES.contains(&("doubao", "volcengine")));
+        assert!(PROVIDER_AUTH_ID_ALIASES.contains(&("volcengine-plan", "volcengine")));
+        assert!(PROVIDER_AUTH_ID_ALIASES.contains(&("byteplus-plan", "byteplus")));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
         assert_eq!(OLLAMA_DEFAULT_MAX_TOKENS, 8_192);
         assert_eq!(OLLAMA_DEFAULT_MODEL, "glm-4.7-flash");

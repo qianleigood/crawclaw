@@ -13,6 +13,22 @@ export const AGENT_DEFAULT_MODEL_ALIASES = {
   opus: "anthropic/claude-opus-4-6",
   sonnet: "anthropic/claude-sonnet-4-6",
 } as const satisfies Readonly<Record<string, string>>;
+export const PROVIDER_ID_ALIASES = {
+  "aws-bedrock": "amazon-bedrock",
+  bedrock: "amazon-bedrock",
+  bytedance: "volcengine",
+  doubao: "volcengine",
+  "kimi-code": "kimi",
+  "kimi-coding": "kimi",
+  "opencode-go-auth": "opencode-go",
+  "opencode-zen": "opencode",
+  "z-ai": "zai",
+  "z.ai": "zai",
+} as const satisfies Readonly<Record<string, string>>;
+export const PROVIDER_AUTH_ID_ALIASES = {
+  "byteplus-plan": "byteplus",
+  "volcengine-plan": "volcengine",
+} as const satisfies Readonly<Record<string, string>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = "claude-cli/claude-sonnet-4-6";
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = "global";
 export const ANTHROPIC_VERTEX_CREDENTIALS_MARKER = "gcp-vertex-credentials";

@@ -1,37 +1,20 @@
+import {
+  PROVIDER_AUTH_ID_ALIASES,
+  PROVIDER_ID_ALIASES,
+} from "../generated/providers/runtime-constants.generated.js";
+
+const providerIdAliases: Readonly<Record<string, string>> = PROVIDER_ID_ALIASES;
+const providerAuthIdAliases: Readonly<Record<string, string>> = PROVIDER_AUTH_ID_ALIASES;
+
 export function normalizeProviderId(provider: string): string {
   const normalized = provider.trim().toLowerCase();
-  if (normalized === "z.ai" || normalized === "z-ai") {
-    return "zai";
-  }
-  if (normalized === "opencode-zen") {
-    return "opencode";
-  }
-  if (normalized === "opencode-go-auth") {
-    return "opencode-go";
-  }
-  if (normalized === "kimi" || normalized === "kimi-code" || normalized === "kimi-coding") {
-    return "kimi";
-  }
-  if (normalized === "bedrock" || normalized === "aws-bedrock") {
-    return "amazon-bedrock";
-  }
-  // Backward compatibility for older provider naming.
-  if (normalized === "bytedance" || normalized === "doubao") {
-    return "volcengine";
-  }
-  return normalized;
+  return providerIdAliases[normalized] ?? normalized;
 }
 
 /** Normalize provider ID for auth lookup. Coding-plan variants share auth with base. */
 export function normalizeProviderIdForAuth(provider: string): string {
   const normalized = normalizeProviderId(provider);
-  if (normalized === "volcengine-plan") {
-    return "volcengine";
-  }
-  if (normalized === "byteplus-plan") {
-    return "byteplus";
-  }
-  return normalized;
+  return providerAuthIdAliases[normalized] ?? normalized;
 }
 
 export function findNormalizedProviderValue<T>(
