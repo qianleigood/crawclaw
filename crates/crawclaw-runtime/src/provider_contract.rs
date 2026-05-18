@@ -252,6 +252,8 @@ export const DEFAULT_MODEL_MAX_TOKENS = {default_model_max_tokens};
 export const PROVIDER_DEFAULT_API_BY_PROVIDER = {provider_default_api_by_provider} as const satisfies Readonly<Record<string, string>>;
 export const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES = {anthropic_context_1m_model_prefixes} as const;
 export const ANTHROPIC_CONTEXT_1M_TOKENS = {anthropic_context_1m_tokens};
+export const DEFAULT_PROVIDER_CAPABILITIES = {default_provider_capabilities} as const;
+export const PROVIDER_CAPABILITY_FALLBACKS = {provider_capability_fallbacks} as const;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {mistral_safe_max_tokens_by_model} as const satisfies Readonly<Record<string, number>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = {anthropic_vertex_default_region};
@@ -303,6 +305,10 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             crawclaw_providers::ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES,
         ),
         anthropic_context_1m_tokens = crawclaw_providers::ANTHROPIC_CONTEXT_1M_TOKENS,
+        default_provider_capabilities =
+            render_default_provider_capabilities(crawclaw_providers::DEFAULT_PROVIDER_CAPABILITIES),
+        provider_capability_fallbacks =
+            render_provider_capability_fallbacks(crawclaw_providers::PROVIDER_CAPABILITY_FALLBACKS),
         mistral_safe_max_tokens_by_model =
             render_static_u32_record(crawclaw_providers::MISTRAL_SAFE_MAX_TOKENS_BY_MODEL),
         default_claude_cli_model = json_string(crawclaw_providers::DEFAULT_CLAUDE_CLI_MODEL),
@@ -632,6 +638,148 @@ fn render_provider_model_default_cost(
     )
 }
 
+fn render_default_provider_capabilities(
+    capabilities: crawclaw_providers::ProviderCapabilitiesDefault,
+) -> String {
+    format!(
+        "{{\n  anthropicToolSchemaMode: {anthropic_tool_schema_mode},\n  anthropicToolChoiceMode: {anthropic_tool_choice_mode},\n  openAiPayloadNormalizationMode: {open_ai_payload_normalization_mode},\n  providerFamily: {provider_family},\n  preserveAnthropicThinkingSignatures: {preserve_anthropic_thinking_signatures},\n  openAiCompatTurnValidation: {open_ai_compat_turn_validation},\n  geminiThoughtSignatureSanitization: {gemini_thought_signature_sanitization},\n  transcriptToolCallIdMode: {transcript_tool_call_id_mode},\n  transcriptToolCallIdModelHints: {transcript_tool_call_id_model_hints},\n  geminiThoughtSignatureModelHints: {gemini_thought_signature_model_hints},\n  dropThinkingBlockModelHints: {drop_thinking_block_model_hints},\n}}",
+        anthropic_tool_schema_mode = json_string(capabilities.anthropic_tool_schema_mode),
+        anthropic_tool_choice_mode = json_string(capabilities.anthropic_tool_choice_mode),
+        open_ai_payload_normalization_mode =
+            json_string(capabilities.open_ai_payload_normalization_mode),
+        provider_family = json_string(capabilities.provider_family),
+        preserve_anthropic_thinking_signatures =
+            capabilities.preserve_anthropic_thinking_signatures,
+        open_ai_compat_turn_validation = capabilities.open_ai_compat_turn_validation,
+        gemini_thought_signature_sanitization = capabilities.gemini_thought_signature_sanitization,
+        transcript_tool_call_id_mode = json_string(capabilities.transcript_tool_call_id_mode),
+        transcript_tool_call_id_model_hints =
+            render_static_string_array_inline(capabilities.transcript_tool_call_id_model_hints),
+        gemini_thought_signature_model_hints =
+            render_static_string_array_inline(capabilities.gemini_thought_signature_model_hints),
+        drop_thinking_block_model_hints =
+            render_static_string_array_inline(capabilities.drop_thinking_block_model_hints),
+    )
+}
+
+fn render_provider_capability_fallbacks(
+    entries: &[crawclaw_providers::ProviderCapabilityFallback],
+) -> String {
+    if entries.is_empty() {
+        return "{}".to_string();
+    }
+    let mut rendered_by_provider = BTreeMap::new();
+    for entry in entries {
+        rendered_by_provider.insert(
+            entry.provider.to_string(),
+            render_provider_capability(entry),
+        );
+    }
+    let rendered_entries = rendered_by_provider
+        .iter()
+        .map(|(provider, rendered)| {
+            format!(
+                "  {provider}: {rendered},",
+                provider = render_javascript_property_key(provider),
+            )
+        })
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("{{\n{rendered_entries}\n}}")
+}
+
+fn render_provider_capability(entry: &crawclaw_providers::ProviderCapabilityFallback) -> String {
+    let mut fields = Vec::new();
+    push_optional_string_field(
+        &mut fields,
+        "anthropicToolSchemaMode",
+        entry.anthropic_tool_schema_mode,
+    );
+    push_optional_string_field(
+        &mut fields,
+        "anthropicToolChoiceMode",
+        entry.anthropic_tool_choice_mode,
+    );
+    push_optional_string_field(
+        &mut fields,
+        "openAiPayloadNormalizationMode",
+        entry.open_ai_payload_normalization_mode,
+    );
+    push_optional_string_field(&mut fields, "providerFamily", entry.provider_family);
+    push_optional_bool_field(
+        &mut fields,
+        "preserveAnthropicThinkingSignatures",
+        entry.preserve_anthropic_thinking_signatures,
+    );
+    push_optional_bool_field(
+        &mut fields,
+        "openAiCompatTurnValidation",
+        entry.open_ai_compat_turn_validation,
+    );
+    push_optional_bool_field(
+        &mut fields,
+        "geminiThoughtSignatureSanitization",
+        entry.gemini_thought_signature_sanitization,
+    );
+    push_optional_string_field(
+        &mut fields,
+        "transcriptToolCallIdMode",
+        entry.transcript_tool_call_id_mode,
+    );
+    push_non_empty_string_array_field(
+        &mut fields,
+        "transcriptToolCallIdModelHints",
+        entry.transcript_tool_call_id_model_hints,
+    );
+    push_non_empty_string_array_field(
+        &mut fields,
+        "geminiThoughtSignatureModelHints",
+        entry.gemini_thought_signature_model_hints,
+    );
+    push_non_empty_string_array_field(
+        &mut fields,
+        "dropThinkingBlockModelHints",
+        entry.drop_thinking_block_model_hints,
+    );
+    let rendered_fields = fields.join("\n");
+    format!("{{\n{rendered_fields}\n  }}")
+}
+
+fn push_optional_string_field(fields: &mut Vec<String>, name: &str, value: Option<&str>) {
+    if let Some(value) = value {
+        fields.push(format!("    {name}: {},", json_string(value)));
+    }
+}
+
+fn push_optional_bool_field(fields: &mut Vec<String>, name: &str, value: Option<bool>) {
+    if let Some(value) = value {
+        fields.push(format!("    {name}: {value},"));
+    }
+}
+
+fn push_non_empty_string_array_field(fields: &mut Vec<String>, name: &str, values: &[&str]) {
+    if values.is_empty() {
+        return;
+    }
+    fields.push(format!(
+        "    {name}: {},",
+        render_provider_capability_string_array(values)
+    ));
+}
+
+fn render_provider_capability_string_array(values: &[&str]) -> String {
+    let inline = render_static_string_array_inline(values);
+    if values.len() <= 2 && inline.len() <= 48 {
+        return inline;
+    }
+    let rendered_values = values
+        .iter()
+        .map(|value| format!("      {},", json_string(value)))
+        .collect::<Vec<_>>()
+        .join("\n");
+    format!("[\n{rendered_values}\n    ]")
+}
+
 fn render_string_array(values: &[String]) -> String {
     if values.is_empty() {
         return "[]".to_string();
@@ -775,6 +923,13 @@ mod tests {
         assert!(source.contains("export const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES = ["));
         assert!(source.contains("\"claude-opus-4\""));
         assert!(source.contains("export const ANTHROPIC_CONTEXT_1M_TOKENS = 1048576;"));
+        assert!(source.contains("export const DEFAULT_PROVIDER_CAPABILITIES = {"));
+        assert!(source.contains("providerFamily: \"default\""));
+        assert!(source.contains("export const PROVIDER_CAPABILITY_FALLBACKS = {"));
+        assert!(source.contains("kimi: {"));
+        assert!(source.contains("anthropicToolSchemaMode: \"openai-functions\""));
+        assert!(source.contains("transcriptToolCallIdMode: \"strict9\""));
+        assert!(source.contains("\"codestral\""));
         assert!(source.contains("\"magistral-small\": 40000"));
         assert!(source.contains("\"mistral-medium-2508\": 8192"));
         assert!(source.contains("export const ANTHROPIC_VERTEX_DEFAULT_REGION = \"global\";"));

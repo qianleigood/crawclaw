@@ -1,4 +1,8 @@
 import type { CrawClawConfig } from "../config/config.js";
+import {
+  DEFAULT_PROVIDER_CAPABILITIES as GENERATED_DEFAULT_PROVIDER_CAPABILITIES,
+  PROVIDER_CAPABILITY_FALLBACKS as GENERATED_PROVIDER_CAPABILITY_FALLBACKS,
+} from "../generated/providers/runtime-constants.generated.js";
 import { normalizeProviderId } from "./provider-id.js";
 
 export type ProviderCapabilities = {
@@ -10,9 +14,9 @@ export type ProviderCapabilities = {
   openAiCompatTurnValidation: boolean;
   geminiThoughtSignatureSanitization: boolean;
   transcriptToolCallIdMode: "default" | "strict9";
-  transcriptToolCallIdModelHints: string[];
-  geminiThoughtSignatureModelHints: string[];
-  dropThinkingBlockModelHints: string[];
+  transcriptToolCallIdModelHints: readonly string[];
+  geminiThoughtSignatureModelHints: readonly string[];
+  dropThinkingBlockModelHints: readonly string[];
 };
 
 export type ProviderCapabilityLookupOptions = {
@@ -21,59 +25,9 @@ export type ProviderCapabilityLookupOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
-const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilities = {
-  anthropicToolSchemaMode: "native",
-  anthropicToolChoiceMode: "native",
-  openAiPayloadNormalizationMode: "default",
-  providerFamily: "default",
-  preserveAnthropicThinkingSignatures: true,
-  openAiCompatTurnValidation: true,
-  geminiThoughtSignatureSanitization: false,
-  transcriptToolCallIdMode: "default",
-  transcriptToolCallIdModelHints: [],
-  geminiThoughtSignatureModelHints: [],
-  dropThinkingBlockModelHints: [],
-};
-
-const PLUGIN_CAPABILITIES_FALLBACKS: Record<string, Partial<ProviderCapabilities>> = {
-  anthropic: {
-    providerFamily: "anthropic",
-    dropThinkingBlockModelHints: ["claude"],
-  },
-  mistral: {
-    transcriptToolCallIdMode: "strict9",
-    transcriptToolCallIdModelHints: [
-      "mistral",
-      "mixtral",
-      "codestral",
-      "pixtral",
-      "devstral",
-      "ministral",
-      "mistralai",
-    ],
-  },
-  moonshot: {
-    openAiPayloadNormalizationMode: "moonshot-thinking",
-  },
-  kimi: {
-    anthropicToolSchemaMode: "openai-functions",
-    anthropicToolChoiceMode: "openai-string-modes",
-    openAiPayloadNormalizationMode: "moonshot-thinking",
-  },
-  opencode: {
-    openAiCompatTurnValidation: false,
-    geminiThoughtSignatureSanitization: true,
-    geminiThoughtSignatureModelHints: ["gemini"],
-  },
-  "opencode-go": {
-    openAiCompatTurnValidation: false,
-    geminiThoughtSignatureSanitization: true,
-    geminiThoughtSignatureModelHints: ["gemini"],
-  },
-  openai: {
-    providerFamily: "openai",
-  },
-};
+const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilities = GENERATED_DEFAULT_PROVIDER_CAPABILITIES;
+const PLUGIN_CAPABILITIES_FALLBACKS: Readonly<Record<string, Partial<ProviderCapabilities>>> =
+  GENERATED_PROVIDER_CAPABILITY_FALLBACKS;
 
 type ProviderCapabilitiesOverrideResolver = (params: {
   provider: string;
@@ -181,7 +135,10 @@ export function sanitizesGeminiThoughtSignatures(
   return resolveProviderCapabilities(provider, options).geminiThoughtSignatureSanitization;
 }
 
-function modelIncludesAnyHint(modelId: string | null | undefined, hints: string[]): boolean {
+function modelIncludesAnyHint(
+  modelId: string | null | undefined,
+  hints: readonly string[],
+): boolean {
   const normalized = (modelId ?? "").toLowerCase();
   return Boolean(normalized) && hints.some((hint) => normalized.includes(hint));
 }

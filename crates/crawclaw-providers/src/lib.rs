@@ -175,6 +175,39 @@ pub struct ProviderModelDefaultCost {
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct ProviderCapabilitiesDefault {
+    pub anthropic_tool_schema_mode: &'static str,
+    pub anthropic_tool_choice_mode: &'static str,
+    pub open_ai_payload_normalization_mode: &'static str,
+    pub provider_family: &'static str,
+    pub preserve_anthropic_thinking_signatures: bool,
+    pub open_ai_compat_turn_validation: bool,
+    pub gemini_thought_signature_sanitization: bool,
+    pub transcript_tool_call_id_mode: &'static str,
+    pub transcript_tool_call_id_model_hints: &'static [&'static str],
+    pub gemini_thought_signature_model_hints: &'static [&'static str],
+    pub drop_thinking_block_model_hints: &'static [&'static str],
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
+pub struct ProviderCapabilityFallback {
+    pub provider: &'static str,
+    pub anthropic_tool_schema_mode: Option<&'static str>,
+    pub anthropic_tool_choice_mode: Option<&'static str>,
+    pub open_ai_payload_normalization_mode: Option<&'static str>,
+    pub provider_family: Option<&'static str>,
+    pub preserve_anthropic_thinking_signatures: Option<bool>,
+    pub open_ai_compat_turn_validation: Option<bool>,
+    pub gemini_thought_signature_sanitization: Option<bool>,
+    pub transcript_tool_call_id_mode: Option<&'static str>,
+    pub transcript_tool_call_id_model_hints: &'static [&'static str],
+    pub gemini_thought_signature_model_hints: &'static [&'static str],
+    pub drop_thinking_block_model_hints: &'static [&'static str],
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ProviderModelNormalizationMetadata {
     pub anthropic_model_aliases: &'static [ProviderModelAlias],
     pub google_model_aliases: &'static [ProviderModelAlias],
@@ -1283,6 +1316,128 @@ pub const PROVIDER_DEFAULT_API_BY_PROVIDER: &[(&str, &str)] =
     &[("anthropic", "anthropic-messages")];
 pub const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES: &[&str] = &["claude-opus-4", "claude-sonnet-4"];
 pub const ANTHROPIC_CONTEXT_1M_TOKENS: u32 = 1_048_576;
+pub const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilitiesDefault =
+    ProviderCapabilitiesDefault {
+        anthropic_tool_schema_mode: "native",
+        anthropic_tool_choice_mode: "native",
+        open_ai_payload_normalization_mode: "default",
+        provider_family: "default",
+        preserve_anthropic_thinking_signatures: true,
+        open_ai_compat_turn_validation: true,
+        gemini_thought_signature_sanitization: false,
+        transcript_tool_call_id_mode: "default",
+        transcript_tool_call_id_model_hints: &[],
+        gemini_thought_signature_model_hints: &[],
+        drop_thinking_block_model_hints: &[],
+    };
+pub const PROVIDER_CAPABILITY_FALLBACKS: &[ProviderCapabilityFallback] = &[
+    ProviderCapabilityFallback {
+        provider: "anthropic",
+        anthropic_tool_schema_mode: None,
+        anthropic_tool_choice_mode: None,
+        open_ai_payload_normalization_mode: None,
+        provider_family: Some("anthropic"),
+        preserve_anthropic_thinking_signatures: None,
+        open_ai_compat_turn_validation: None,
+        gemini_thought_signature_sanitization: None,
+        transcript_tool_call_id_mode: None,
+        transcript_tool_call_id_model_hints: &[],
+        gemini_thought_signature_model_hints: &[],
+        drop_thinking_block_model_hints: &["claude"],
+    },
+    ProviderCapabilityFallback {
+        provider: "mistral",
+        anthropic_tool_schema_mode: None,
+        anthropic_tool_choice_mode: None,
+        open_ai_payload_normalization_mode: None,
+        provider_family: None,
+        preserve_anthropic_thinking_signatures: None,
+        open_ai_compat_turn_validation: None,
+        gemini_thought_signature_sanitization: None,
+        transcript_tool_call_id_mode: Some("strict9"),
+        transcript_tool_call_id_model_hints: &[
+            "mistral",
+            "mixtral",
+            "codestral",
+            "pixtral",
+            "devstral",
+            "ministral",
+            "mistralai",
+        ],
+        gemini_thought_signature_model_hints: &[],
+        drop_thinking_block_model_hints: &[],
+    },
+    ProviderCapabilityFallback {
+        provider: "moonshot",
+        anthropic_tool_schema_mode: None,
+        anthropic_tool_choice_mode: None,
+        open_ai_payload_normalization_mode: Some("moonshot-thinking"),
+        provider_family: None,
+        preserve_anthropic_thinking_signatures: None,
+        open_ai_compat_turn_validation: None,
+        gemini_thought_signature_sanitization: None,
+        transcript_tool_call_id_mode: None,
+        transcript_tool_call_id_model_hints: &[],
+        gemini_thought_signature_model_hints: &[],
+        drop_thinking_block_model_hints: &[],
+    },
+    ProviderCapabilityFallback {
+        provider: "kimi",
+        anthropic_tool_schema_mode: Some("openai-functions"),
+        anthropic_tool_choice_mode: Some("openai-string-modes"),
+        open_ai_payload_normalization_mode: Some("moonshot-thinking"),
+        provider_family: None,
+        preserve_anthropic_thinking_signatures: None,
+        open_ai_compat_turn_validation: None,
+        gemini_thought_signature_sanitization: None,
+        transcript_tool_call_id_mode: None,
+        transcript_tool_call_id_model_hints: &[],
+        gemini_thought_signature_model_hints: &[],
+        drop_thinking_block_model_hints: &[],
+    },
+    ProviderCapabilityFallback {
+        provider: "opencode",
+        anthropic_tool_schema_mode: None,
+        anthropic_tool_choice_mode: None,
+        open_ai_payload_normalization_mode: None,
+        provider_family: None,
+        preserve_anthropic_thinking_signatures: None,
+        open_ai_compat_turn_validation: Some(false),
+        gemini_thought_signature_sanitization: Some(true),
+        transcript_tool_call_id_mode: None,
+        transcript_tool_call_id_model_hints: &[],
+        gemini_thought_signature_model_hints: &["gemini"],
+        drop_thinking_block_model_hints: &[],
+    },
+    ProviderCapabilityFallback {
+        provider: "opencode-go",
+        anthropic_tool_schema_mode: None,
+        anthropic_tool_choice_mode: None,
+        open_ai_payload_normalization_mode: None,
+        provider_family: None,
+        preserve_anthropic_thinking_signatures: None,
+        open_ai_compat_turn_validation: Some(false),
+        gemini_thought_signature_sanitization: Some(true),
+        transcript_tool_call_id_mode: None,
+        transcript_tool_call_id_model_hints: &[],
+        gemini_thought_signature_model_hints: &["gemini"],
+        drop_thinking_block_model_hints: &[],
+    },
+    ProviderCapabilityFallback {
+        provider: "openai",
+        anthropic_tool_schema_mode: None,
+        anthropic_tool_choice_mode: None,
+        open_ai_payload_normalization_mode: None,
+        provider_family: Some("openai"),
+        preserve_anthropic_thinking_signatures: None,
+        open_ai_compat_turn_validation: None,
+        gemini_thought_signature_sanitization: None,
+        transcript_tool_call_id_mode: None,
+        transcript_tool_call_id_model_hints: &[],
+        gemini_thought_signature_model_hints: &[],
+        drop_thinking_block_model_hints: &[],
+    },
+];
 pub const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL: &[(&str, u32)] = &[
     ("devstral-medium-latest", 32_768),
     ("magistral-small", 40_000),
@@ -3683,6 +3838,18 @@ mod tests {
         assert!(ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES.contains(&"claude-opus-4"));
         assert!(ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES.contains(&"claude-sonnet-4"));
         assert_eq!(ANTHROPIC_CONTEXT_1M_TOKENS, 1_048_576);
+        assert_eq!(DEFAULT_PROVIDER_CAPABILITIES.provider_family, "default");
+        assert!(DEFAULT_PROVIDER_CAPABILITIES.open_ai_compat_turn_validation);
+        assert!(PROVIDER_CAPABILITY_FALLBACKS
+            .iter()
+            .any(|entry| entry.provider == "kimi"
+                && entry.anthropic_tool_schema_mode == Some("openai-functions")));
+        assert!(PROVIDER_CAPABILITY_FALLBACKS
+            .iter()
+            .any(|entry| entry.provider == "mistral"
+                && entry
+                    .transcript_tool_call_id_model_hints
+                    .contains(&"codestral")));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("magistral-small", 40_000)));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("mistral-medium-2508", 8_192)));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);

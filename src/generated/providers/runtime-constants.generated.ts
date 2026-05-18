@@ -60,6 +60,58 @@ export const PROVIDER_DEFAULT_API_BY_PROVIDER = {
 } as const satisfies Readonly<Record<string, string>>;
 export const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES = ["claude-opus-4", "claude-sonnet-4"] as const;
 export const ANTHROPIC_CONTEXT_1M_TOKENS = 1048576;
+export const DEFAULT_PROVIDER_CAPABILITIES = {
+  anthropicToolSchemaMode: "native",
+  anthropicToolChoiceMode: "native",
+  openAiPayloadNormalizationMode: "default",
+  providerFamily: "default",
+  preserveAnthropicThinkingSignatures: true,
+  openAiCompatTurnValidation: true,
+  geminiThoughtSignatureSanitization: false,
+  transcriptToolCallIdMode: "default",
+  transcriptToolCallIdModelHints: [],
+  geminiThoughtSignatureModelHints: [],
+  dropThinkingBlockModelHints: [],
+} as const;
+export const PROVIDER_CAPABILITY_FALLBACKS = {
+  anthropic: {
+    providerFamily: "anthropic",
+    dropThinkingBlockModelHints: ["claude"],
+  },
+  kimi: {
+    anthropicToolSchemaMode: "openai-functions",
+    anthropicToolChoiceMode: "openai-string-modes",
+    openAiPayloadNormalizationMode: "moonshot-thinking",
+  },
+  mistral: {
+    transcriptToolCallIdMode: "strict9",
+    transcriptToolCallIdModelHints: [
+      "mistral",
+      "mixtral",
+      "codestral",
+      "pixtral",
+      "devstral",
+      "ministral",
+      "mistralai",
+    ],
+  },
+  moonshot: {
+    openAiPayloadNormalizationMode: "moonshot-thinking",
+  },
+  openai: {
+    providerFamily: "openai",
+  },
+  opencode: {
+    openAiCompatTurnValidation: false,
+    geminiThoughtSignatureSanitization: true,
+    geminiThoughtSignatureModelHints: ["gemini"],
+  },
+  "opencode-go": {
+    openAiCompatTurnValidation: false,
+    geminiThoughtSignatureSanitization: true,
+    geminiThoughtSignatureModelHints: ["gemini"],
+  },
+} as const;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
   "devstral-medium-latest": 32768,
   "magistral-small": 40000,
