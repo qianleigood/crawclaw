@@ -1,7 +1,7 @@
 import type { AssistantMessage, ToolResultMessage, UserMessage } from "@mariozechner/pi-ai";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { AgentMessage } from "../agent-types.js";
-import { makeAgentAssistantMessage } from "../test-helpers/agent-message-fixtures.js";
+import type { AgentMessage } from "./agent-types.js";
+import { makeAgentAssistantMessage } from "./test-helpers/agent-message-fixtures.js";
 
 let truncateToolResultText: typeof import("./tool-result-truncation.js").truncateToolResultText;
 let truncateToolResultMessage: typeof import("./tool-result-truncation.js").truncateToolResultMessage;

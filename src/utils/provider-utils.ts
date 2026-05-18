@@ -1,4 +1,4 @@
-import type { ProviderRuntimeModel } from "../agents/runtime-support/types.js";
+import type { ProviderRuntimeModel } from "../agents/provider-runtime-types.js";
 import type { CrawClawConfig } from "../config/config.js";
 
 /**

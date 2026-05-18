@@ -3,8 +3,8 @@ import type {
   CliSessionBinding,
   SessionSkillExposureState,
   SessionSystemPromptReport,
-} from "../../config/sessions/types.js";
-import type { CompactPostArtifacts } from "../compaction/post-compact-artifacts.js";
+} from "../config/sessions/types.js";
+import type { CompactPostArtifacts } from "./compaction/post-compact-artifacts.js";
 
 export type ProviderRuntimeModel = Model<Api>;
 

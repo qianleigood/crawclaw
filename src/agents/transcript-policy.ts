@@ -9,8 +9,8 @@ import {
   shouldSanitizeGeminiThoughtSignaturesForModel,
   supportsOpenAiCompatTurnValidation,
 } from "./provider-capabilities.js";
+import type { ProviderRuntimeModel } from "./provider-runtime-types.js";
 import { isGoogleModelApi } from "./runtime-helpers/google.js";
-import type { ProviderRuntimeModel } from "./runtime-support/types.js";
 import type { ToolCallIdMode } from "./tool-call-id.js";
 
 export type TranscriptSanitizeMode = "full" | "images-only";

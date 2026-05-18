@@ -1,12 +1,9 @@
 import { emitSessionTranscriptUpdate } from "../sessions/transcript-events.js";
 import type { AgentMessage } from "./agent-types.js";
-import {
-  HARD_MAX_TOOL_RESULT_CHARS,
-  truncateToolResultMessage,
-} from "./runtime-support/tool-result-truncation.js";
 import { createPendingToolCallState } from "./session-tool-result-state.js";
 import { makeMissingToolResult, sanitizeToolCallInputs } from "./session-transcript-repair.js";
 import { extractToolCallsFromAssistant, extractToolResultId } from "./tool-call-id.js";
+import { HARD_MAX_TOOL_RESULT_CHARS, truncateToolResultMessage } from "./tool-result-truncation.js";
 
 const GUARD_TRUNCATION_SUFFIX =
   "\n\n⚠️ [Content truncated during persistence — original exceeded size limit. " +

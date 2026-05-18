@@ -1,5 +1,5 @@
 import type { TextContent } from "@mariozechner/pi-ai";
-import type { AgentMessage } from "../agent-types.js";
+import type { AgentMessage } from "./agent-types.js";
 
 /**
  * Maximum share of the context window a single tool result should occupy.
