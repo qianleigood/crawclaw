@@ -8,7 +8,6 @@ import {
   type ModelRef,
 } from "../agents/model-selection.js";
 import { resolveModelAsync } from "../agents/runtime-support/model.js";
-import { prepareModelForSimpleCompletion } from "../agents/simple-completion-transport.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ResolvedTtsConfig } from "./tts.js";
 
@@ -17,7 +16,6 @@ const TEMP_FILE_CLEANUP_DELAY_MS = 5 * 60 * 1000; // 5 minutes
 type SummarizeTextDeps = {
   completeSimple: typeof completeSimple;
   getApiKeyForModel: typeof getApiKeyForModel;
-  prepareModelForSimpleCompletion: typeof prepareModelForSimpleCompletion;
   requireApiKey: typeof requireApiKey;
   resolveModelAsync: typeof resolveModelAsync;
 };
@@ -26,7 +24,6 @@ function resolveDefaultSummarizeTextDeps(): SummarizeTextDeps {
   return {
     completeSimple,
     getApiKeyForModel,
-    prepareModelForSimpleCompletion,
     requireApiKey,
     resolveModelAsync,
   };
@@ -132,7 +129,7 @@ export async function summarizeText(
   if (!resolved.model) {
     throw new Error(resolved.error ?? `Unknown summary model: ${ref.provider}/${ref.model}`);
   }
-  const completionModel = deps.prepareModelForSimpleCompletion({ model: resolved.model, cfg });
+  const completionModel = resolved.model;
   const apiKey = deps.requireApiKey(
     await deps.getApiKeyForModel({ model: completionModel, cfg }),
     ref.provider,

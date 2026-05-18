@@ -12,8 +12,6 @@ let completeSimple: typeof import("@mariozechner/pi-ai").completeSimple;
 let getApiKeyForModelMock: typeof import("../../agents/model-auth.js").getApiKeyForModel;
 let requireApiKeyMock: typeof import("../../agents/model-auth.js").requireApiKey;
 let resolveModelAsyncMock: typeof import("../../agents/runtime-support/model.js").resolveModelAsync;
-let ensureCustomApiRegisteredMock: typeof import("../../agents/custom-api-registry.js").ensureCustomApiRegistered;
-let prepareModelForSimpleCompletionMock: typeof import("../../agents/simple-completion-transport.js").prepareModelForSimpleCompletion;
 
 vi.mock("@mariozechner/pi-ai", async (importOriginal) => {
   const original = await importOriginal<typeof import("@mariozechner/pi-ai")>();
@@ -70,10 +68,6 @@ vi.mock("../../agents/model-auth.js", () => ({
   requireApiKey: vi.fn((auth: { apiKey?: string }) => auth.apiKey ?? ""),
 }));
 
-vi.mock("../../agents/custom-api-registry.js", () => ({
-  ensureCustomApiRegistered: vi.fn(),
-}));
-
 const { _test, resolveTtsConfig, maybeApplyTtsToPayload, getTtsProvider } = tts;
 
 const {
@@ -113,7 +107,6 @@ function createSummarizeTextDeps() {
   return {
     completeSimple,
     getApiKeyForModel: getApiKeyForModelMock,
-    prepareModelForSimpleCompletion: prepareModelForSimpleCompletionMock,
     requireApiKey: requireApiKeyMock,
     resolveModelAsync: resolveModelAsyncMock,
   };
@@ -345,9 +338,6 @@ describe("tts", () => {
       await import("../../agents/model-auth.js"));
     ({ resolveModelAsync: resolveModelAsyncMock } =
       await import("../../agents/runtime-support/model.js"));
-    ({ ensureCustomApiRegistered: ensureCustomApiRegisteredMock } =
-      await import("../../agents/custom-api-registry.js"));
-    prepareModelForSimpleCompletionMock = vi.fn(({ model }) => model);
     const registry = createEmptyPluginRegistry();
     registry.speechProviders = [
       { pluginId: "openai", provider: buildTestOpenAISpeechProvider(), source: "test" },
@@ -558,7 +548,6 @@ describe("tts", () => {
       await runSummarizeText();
 
       expect(vi.mocked(completeSimple).mock.calls[0]?.[0]?.api).toBe("ollama");
-      expect(ensureCustomApiRegisteredMock).not.toHaveBeenCalled();
     });
 
     it.each([
