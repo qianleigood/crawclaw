@@ -316,7 +316,7 @@ describe("test planner", () => {
         mode: "local",
         surfaces: [],
         passthroughArgs: [
-          "src/control/models/shared.test.ts",
+          "src/agents/model-selection.test.ts",
           bundledPluginFile("google", "oauth.test.ts"),
         ],
       },
@@ -358,7 +358,7 @@ describe("test planner", () => {
     const explanation = explainExecutionTarget(
       {
         mode: "local",
-        fileFilters: ["src/control/models/shared.test.ts"],
+        fileFilters: ["src/agents/model-selection.test.ts"],
       },
       {
         env: {},

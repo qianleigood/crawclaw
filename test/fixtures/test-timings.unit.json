@@ -243,10 +243,6 @@
       "durationMs": 115.695068359375,
       "testCount": 26
     },
-    "src/infra/gateway-lock.test.ts": {
-      "durationMs": 113.197021484375,
-      "testCount": 9
-    },
     "src/plugins/discovery.test.ts": {
       "durationMs": 107.716064453125,
       "testCount": 25
@@ -422,10 +418,6 @@
     "src/media-understanding/runner.auto-audio.test.ts": {
       "durationMs": 51.368408203125,
       "testCount": 4
-    },
-    "src/infra/restart-stale-pids.test.ts": {
-      "durationMs": 51.15234375,
-      "testCount": 37
     },
     "src/infra/update-startup.test.ts": {
       "durationMs": 50.162841796875,

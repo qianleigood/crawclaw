@@ -156,17 +156,6 @@ export function resolveDefaultConfigCandidates(
 
 export const DEFAULT_GATEWAY_PORT = 18789;
 
-/**
- * Gateway lock directory (ephemeral).
- * Default: os.tmpdir()/crawclaw-<uid> (uid suffix when available).
- */
-export function resolveGatewayLockDir(tmpdir: () => string = os.tmpdir): string {
-  const base = tmpdir();
-  const uid = typeof process.getuid === "function" ? process.getuid() : undefined;
-  const suffix = uid != null ? `crawclaw-${uid}` : "crawclaw";
-  return path.join(base, suffix);
-}
-
 const OAUTH_FILENAME = "oauth.json";
 
 /**

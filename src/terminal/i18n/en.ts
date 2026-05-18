@@ -342,22 +342,9 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.help.docsLabel": "Docs:",
   "cli.help.example.modelsHelp": "Show detailed help for the models command.",
   "cli.help.example.messageSendJson": "Send via your web session and print JSON result.",
-  "cli.help.example.gatewayPort": "Run the WebSocket Gateway locally.",
-  "cli.help.example.devGateway":
-    "Run a dev Gateway (isolated state/config) on ws://127.0.0.1:19001.",
-  "cli.help.example.gatewayForce":
-    "Kill anything bound to the default gateway port, then start it.",
   "cli.help.example.gatewayEllipsis": "Gateway control via WebSocket.",
   "cli.help.example.agentDeliver":
     "Talk directly to the agent using the Gateway; optionally deliver the reply.",
-  "command.setup.description": "Initialize local config and agent workspace",
-  "command.setup.option.workspace":
-    "Agent workspace directory (default: ~/.crawclaw/workspace; stored as agents.defaults.workspace)",
-  "command.setup.option.wizard": "Run interactive onboarding",
-  "command.setup.option.nonInteractive": "Run onboarding without prompts",
-  "command.setup.option.mode": "Onboard mode: local|remote",
-  "command.setup.option.remoteUrl": "Remote Gateway WebSocket URL",
-  "command.setup.option.remoteToken": "Remote Gateway token (optional)",
   "command.configure.option.section": "Configuration sections (repeatable). Options: {sections}",
   "command.config.description":
     "Non-interactive config helpers (get/set/unset/file/validate). Default: starts guided setup.",
@@ -636,38 +623,11 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.acp.client.option.serverArgs": "Extra arguments for the ACP server",
   "command.acp.client.option.serverVerbose": "Enable verbose logging on the ACP server",
   "command.acp.client.option.verbose": "Verbose client logging",
-  "command.gateway.description": "Run, inspect, and query the WebSocket Gateway",
-  "command.gateway.example.run": "Run the gateway in the foreground.",
-  "command.gateway.example.status": "Show runtime status and probe reachability.",
+  "command.gateway.description": "Inspect and query the local Gateway",
+  "command.gateway.example.status": "Show runtime status.",
   "command.gateway.example.discover": "Find local and wide-area gateway beacons.",
   "command.gateway.example.callHealth": "Call a gateway RPC method directly.",
   "command.gateway.option.json": "Output JSON",
-  "command.gateway.run.description": "Run the WebSocket Gateway (foreground)",
-  "command.gateway.run.option.port": "Port for the gateway WebSocket",
-  "command.gateway.run.option.bind":
-    'Bind mode ("loopback"|"lan"|"tailnet"|"auto"|"custom"). Defaults to config gateway.bind (or loopback).',
-  "command.gateway.run.option.token":
-    "Shared token required in connect.params.auth.token (default: CRAWCLAW_GATEWAY_TOKEN env if set)",
-  "command.gateway.run.option.auth": "Gateway auth mode ({choices})",
-  "command.gateway.run.option.password": "Password for auth mode=password",
-  "command.gateway.run.option.passwordFile": "Read gateway password from file",
-  "command.gateway.run.option.tailscale": "Tailscale exposure mode ({choices})",
-  "command.gateway.run.option.tailscaleResetOnExit":
-    "Reset Tailscale serve/funnel configuration on shutdown",
-  "command.gateway.run.option.allowUnconfigured":
-    "Allow gateway start without gateway.mode=local in config",
-  "command.gateway.run.option.dev": "Create a dev config + workspace if missing (no BOOTSTRAP.md)",
-  "command.gateway.run.option.reset":
-    "Reset dev config + credentials + sessions + workspace (requires --dev)",
-  "command.gateway.run.option.force":
-    "Kill any existing listener on the target port before starting",
-  "command.gateway.run.option.verbose": "Verbose logging to stdout/stderr",
-  "command.gateway.run.option.cliBackendLogs":
-    "Only show CLI backend logs in the console (includes stdout/stderr)",
-  "command.gateway.run.option.wsLog": 'WebSocket log style ("auto"|"full"|"compact")',
-  "command.gateway.run.option.compact": 'Alias for "--ws-log compact"',
-  "command.gateway.run.option.rawStream": "Log raw model stream events to jsonl",
-  "command.gateway.run.option.rawStreamPath": "Raw stream jsonl path",
   "command.gateway.call.description": "Call a Gateway method",
   "command.gateway.call.argument.method": "Method name (health/status/system-presence/cron.*)",
   "command.gateway.call.option.params": "JSON object string for params",
@@ -680,17 +640,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.gateway.usageCost.description": "Fetch usage cost summary from session logs",
   "command.gateway.usageCost.option.days": "Number of days to include",
   "command.gateway.health.description": "Call the Gateway health RPC directly",
-  "command.gateway.status.description": "Show Gateway runtime status and probe the Gateway",
-  "command.gateway.probe.description":
-    "Show gateway reachability + discovery + health + status summary (local + remote)",
-  "command.gateway.probe.option.url": "Explicit Gateway WebSocket URL (still probes localhost)",
-  "command.gateway.probe.option.ssh":
-    "SSH target for remote gateway tunnel (user@host or user@host:port)",
-  "command.gateway.probe.option.sshIdentity": "SSH identity file path",
-  "command.gateway.probe.option.sshAuto": "Try to derive an SSH target from Bonjour discovery",
-  "command.gateway.probe.option.token": "Gateway token (applies to all probes)",
-  "command.gateway.probe.option.password": "Gateway password (applies to all probes)",
-  "command.gateway.probe.option.timeout": "Overall probe budget in ms",
+  "command.gateway.status.description": "Show Gateway runtime status",
   "command.gateway.discover.description":
     "Discover gateways via Bonjour (local + wide-area if configured)",
   "command.gateway.discover.option.timeout": "Per-command timeout in ms",
@@ -1354,7 +1304,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "plugins.update.expected": "Expected",
   "plugins.update.actual": "Actual",
   "plugins.update.continuePlugin": 'Continue updating "{pluginId}" with this artifact?',
-  "plugins.update.restartTip": "Restart the gateway to load plugins and hooks.",
   "update.wizard.error.requiresTty":
     "Update wizard requires a TTY. Use `crawclaw update --channel <stable|beta|dev>` instead.",
   "update.wizard.error.nonGitDir":
@@ -1427,23 +1376,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "update.plugins.summary.skipped": "{count} skipped",
   "update.plugins.summary.line": "npm plugins: {parts}.",
   "update.plugins.summary.truncatedList": "{items} +{count} more",
-  "update.restart.heading": "Restarting Gateway runtime...",
-  "update.restart.refreshFailed":
-    "Failed to refresh Gateway runtime environment from updated install: {error}",
-  "update.restart.updatedInstallRefreshFailed":
-    "updated install refresh failed ({candidate}): {detail}",
-  "update.restart.daemonRestartedSuccessfully": "Gateway runtime restarted successfully.",
-  "update.restart.doctorFailed": "Doctor failed: {error}",
-  "update.restart.foundStaleProcesses":
-    "Found stale gateway process(es) after restart: {pids}. Cleaning up...",
-  "update.restart.completed": "Daemon restart completed.",
-  "update.restart.gatewayNotHealthy": "Gateway did not become healthy after restart.",
-  "update.restart.runStatusDeep": "Run `{command}` for details.",
-  "update.restart.failed": "Daemon restart failed: {error}",
-  "update.restart.manualTip": "You may need to restart the service manually: {command}",
-  "update.tip.doctorThenRestart":
-    "Tip: Run `{doctor}`, then `{restart}` to apply updates to a running gateway.",
-  "update.tip.restartOnly": "Tip: Run `{restart}` to apply updates to a running gateway.",
   "update.heading.updating": "Updating CrawClaw...",
   "update.note.tagNpmOnly": "Note: --tag applies to npm installs only; git updates ignore it.",
   "update.skip.dirty":

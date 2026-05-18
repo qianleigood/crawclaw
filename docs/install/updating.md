@@ -34,7 +34,8 @@ See [Development channels](/install/development-channels) for channel semantics.
 # Install CrawClaw Desktop from GitHub Releases.
 ```
 
-Add `--no-onboard` to skip onboarding. For source installs, pass `--install-method git --no-onboard`.
+CrawClaw Desktop owns the supported update and onboarding path. Source installer
+flags for the retired public CLI onboarding flow are no longer documented.
 
 ## Alternative: manual npm or pnpm
 

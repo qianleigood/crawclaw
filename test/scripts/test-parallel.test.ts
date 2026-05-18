@@ -166,7 +166,7 @@ describe("scripts/test-parallel memory trace parsing", () => {
   it("extracts completed test file lines from colored Vitest output", () => {
     const output = [
       "\u001B[32m✓\u001B[39m src/config/doc-baseline.test.ts \u001B[2m(\u001B[22m\u001B[2m8 tests\u001B[22m\u001B[2m)\u001B[22m\u001B[33m 46424\u001B[2mms\u001B[22m\u001B[39m",
-      " \u001B[32m✓\u001B[39m src/infra/restart.test.ts (5 tests) 4.2s",
+      " \u001B[32m✓\u001B[39m src/infra/update-startup.test.ts (10 tests) 4.2s",
     ].join("\n");
 
     expect(parseCompletedTestFileLines(output)).toEqual([
@@ -175,7 +175,7 @@ describe("scripts/test-parallel memory trace parsing", () => {
         durationMs: 46_424,
       },
       {
-        file: "src/infra/restart.test.ts",
+        file: "src/infra/update-startup.test.ts",
         durationMs: 4_200,
       },
     ]);
@@ -243,10 +243,10 @@ describe("scripts/test-parallel lane planning", () => {
   });
 
   it("keeps base-pinned targeted reruns on dedicated forks lanes", () => {
-    const output = runPlannerPlan(["--plan", "--files", "src/control/models/shared.test.ts"]);
+    const output = runPlannerPlan(["--plan", "--files", "src/agents/model-selection.test.ts"]);
 
-    expect(output).toContain("base-pinned-shared");
-    expect(output).not.toContain("base-shared");
+    expect(output).toContain("base-pinned-model-selection");
+    expect(output).not.toContain("base-model-selection");
   });
 
   it("reports capability-derived output for mid-memory local macOS hosts", () => {
@@ -334,7 +334,7 @@ describe("scripts/test-parallel lane planning", () => {
   });
 
   it("explains targeted file ownership and execution policy", () => {
-    const output = runPlannerPlan(["--explain", "src/control/models/shared.test.ts"]);
+    const output = runPlannerPlan(["--explain", "src/agents/model-selection.test.ts"]);
 
     expect(output).toContain("surface=base");
     expect(output).toContain("reasons=base-surface,base-pinned-manifest");
