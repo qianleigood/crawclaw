@@ -1,9 +1,9 @@
-import { isBunRuntime, isNodeRuntime } from "../daemon/runtime-binary.js";
 import {
   consumeRootOptionToken,
   FLAG_TERMINATOR,
   isValueToken,
 } from "../infra/cli-root-options.js";
+import { isBunRuntime, isNodeRuntime } from "./runtime-binary.js";
 
 const HELP_FLAGS = new Set(["-h", "--help"]);
 const VERSION_FLAGS = new Set(["-V", "--version"]);
