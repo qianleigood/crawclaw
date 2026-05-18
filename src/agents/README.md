@@ -1,19 +1,16 @@
 # Agents
 
-`src/agents/**` is the agent kernel.
+`src/agents/**` is the TypeScript agent support surface around the Rust runtime.
 
 It owns:
 
-- model/provider execution
-- tool registration and tool runtime
-- subagent orchestration
-- special-agent substrate
-- process and filesystem tool execution
-- execution-event emission and streaming glue
+- TypeScript Gateway client projections and compatibility helpers
+- prompt, transcript, session, and config read models consumed by TypeScript clients
+- test harnesses and fixtures for TypeScript projection surfaces
+- narrow Rust runtime client seams where TypeScript still needs typed helpers
 
 ## Start Here
 
-- `crawclaw-tools.ts`
 - `command/*`
 - Rust runtime client seams
 - `runtime/*`
@@ -33,6 +30,10 @@ It owns:
 
 ## Boundary Rules
 
+- Do not add new model/provider execution, tool runtime, subagent orchestration,
+  or special-agent runtime ownership here. Those paths belong in
+  `crates/crawclaw-runtime`, `crates/crawclaw-gateway`, or
+  `crates/crawclaw-native-plugins`.
 - Do not import gateway method implementation files, `server.impl.ts`, or other control-plane internals from here.
 - If agent code needs new gateway behavior, add or extend a narrow runtime seam first.
 - Do not create a private background-agent mechanism. Use `src/agents/special/runtime/**` for maintenance or review agents.

@@ -8,7 +8,9 @@ title: Project Cache Strategy
 
 # Project Cache Strategy
 
-CrawClaw does not have one central cache service. It uses domain-owned caches across the agent kernel, web tools, memory, plugins, routing, gateway control plane, media, and UI.
+CrawClaw does not have one central cache service. It uses domain-owned caches
+across the Rust agent runtime, TypeScript projection helpers, web tools,
+memory, plugins, routing, gateway control plane, media, and UI.
 
 The important review question is not “where is the Map.” It is:
 
