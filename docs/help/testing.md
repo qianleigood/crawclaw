@@ -220,26 +220,6 @@ Tip: to see what you can test on your machine (and the exact `provider/model` id
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-## Live: Anthropic setup-token smoke
-
-- Test: `src/agents/anthropic.setup-token.live.test.ts`
-- Goal: verify Claude Code Desktop setup-token (or a pasted setup-token profile) can complete an Anthropic prompt.
-- Enable:
-  - `pnpm test:live` (or `CRAWCLAW_LIVE_TEST=1` if invoking Vitest directly)
-  - `CRAWCLAW_LIVE_SETUP_TOKEN=1`
-- Token sources (pick one):
-  - Profile: `CRAWCLAW_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-token-test`
-  - Raw token: `CRAWCLAW_LIVE_SETUP_TOKEN_VALUE=sk-ant-oat01-...`
-- Model override (optional):
-  - `CRAWCLAW_LIVE_SETUP_TOKEN_MODEL=anthropic/claude-opus-4-6`
-
-Setup example:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-CRAWCLAW_LIVE_SETUP_TOKEN=1 CRAWCLAW_LIVE_SETUP_TOKEN_PROFILE=anthropic:setup-token-test pnpm test:live src/agents/anthropic.setup-token.live.test.ts
-```
-
 ## Live: ACP bind smoke (`/acp spawn ... --bind here`)
 
 - Test: `src/gateway/gateway-acp-bind.live.test.ts`
