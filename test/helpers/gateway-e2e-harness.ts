@@ -109,7 +109,6 @@ export async function spawnGatewayInstance(name: string): Promise<GatewayInstanc
     gateway: {
       port,
       auth: { mode: "token", token: gatewayToken },
-      controlUi: { enabled: false },
     },
     hooks: { enabled: true, token: hookToken, path: "/hooks" },
   };
