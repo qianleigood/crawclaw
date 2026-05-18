@@ -229,7 +229,7 @@ CrawClaw's local Gateway HTTP endpoints are intended for **local use only**.
 
 - Recommended: keep the Gateway **loopback-only** (`127.0.0.1` / `::1`).
   - Config: `gateway.bind="loopback"` (default).
-  - CLI: `crawclaw gateway run --bind loopback`.
+  - Use CrawClaw Desktop or the local Gateway API to keep the Gateway on loopback.
 - CrawClaw keeps deployment flexibility by design and does not hard-forbid non-local setups.
   - Non-local and other risky configurations are surfaced by `crawclaw security audit` as dangerous findings.
   - This operator-selected tradeoff is by design and not, by itself, a security vulnerability.

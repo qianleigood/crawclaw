@@ -8,11 +8,13 @@ title: "Platforms"
 
 # Platforms
 
-CrawClaw core is written in TypeScript. **Node is the recommended runtime**.
-Bun is not recommended for the Gateway (Weixin/Feishu bugs).
+CrawClaw Desktop runs the local Rust Gateway/runtime. TypeScript and JavaScript
+remain for the desktop renderer, docs/build tooling, and typed client helpers,
+not for the default product runtime path.
 
-CrawClaw focuses on the Gateway, CLI, plugins, and node integrations.
-Linux, macOS, and Windows are supported Gateway host targets today.
+CrawClaw focuses on the desktop app, local Rust Gateway, native plugins, and
+local integrations. Linux, macOS, and Windows are supported Gateway host targets
+today.
 
 ## Choose your OS
 
