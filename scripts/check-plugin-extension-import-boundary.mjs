@@ -31,9 +31,6 @@ const baselinePath = path.join(
 let cachedInventoryPromise = null;
 let cachedExpectedInventoryPromise = null;
 
-const bundledWebSearchProviders = new Set(["brave", "gemini", "grok", "kimi", "perplexity"]);
-const bundledWebSearchPluginIds = new Set(["brave", "google", "moonshot", "perplexity", "xai"]);
-
 function compareEntries(left, right) {
   return (
     left.file.localeCompare(right.file) ||
@@ -97,7 +94,7 @@ function scanWebSearchRegistrySmells(sourceFile, filePath) {
     const lineNumber = index + 1;
 
     const pluginMatch = line.match(/pluginId:\s*"([^"]+)"/);
-    if (pluginMatch && bundledWebSearchPluginIds.has(pluginMatch[1])) {
+    if (pluginMatch) {
       pushEntry(entries, {
         file: relativeFile,
         line: lineNumber,
@@ -108,8 +105,8 @@ function scanWebSearchRegistrySmells(sourceFile, filePath) {
       });
     }
 
-    const providerMatch = line.match(/id:\s*"(brave|gemini|grok|kimi|perplexity)"/);
-    if (providerMatch && bundledWebSearchProviders.has(providerMatch[1])) {
+    const providerMatch = line.match(/id:\s*"([^"]+)"/);
+    if (providerMatch) {
       pushEntry(entries, {
         file: relativeFile,
         line: lineNumber,

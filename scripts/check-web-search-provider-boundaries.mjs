@@ -31,15 +31,7 @@ const ignoredDirNames = new Set([
   "node_modules",
 ]);
 
-const bundledProviderPluginToSearchProvider = new Map([
-  ["brave", "brave"],
-  ["google", "gemini"],
-  ["moonshot", "kimi"],
-  ["perplexity", "perplexity"],
-  ["xai", "grok"],
-]);
-
-const providerIds = new Set(["brave", "gemini", "grok", "kimi", "perplexity", "shared"]);
+const providerIds = new Set(["shared"]);
 
 const allowedGenericFiles = new Set([
   "src/control/onboard-search.ts",
@@ -109,23 +101,18 @@ function scanWebSearchProviderRegistry(lines, relativeFile, inventory) {
   for (const [index, line] of lines.entries()) {
     const lineNumber = index + 1;
 
-    const pluginMatch = line.match(/pluginId:\s*"([^"]+)"/);
-    const providerFromPlugin = pluginMatch
-      ? bundledProviderPluginToSearchProvider.get(pluginMatch[1])
-      : undefined;
-    if (providerFromPlugin) {
+    if (line.match(/pluginId:\s*"([^"]+)"/)) {
       pushEntry(inventory, {
-        provider: providerFromPlugin,
+        provider: "shared",
         file: relativeFile,
         line: lineNumber,
         reason: "hardcodes bundled web search plugin ownership in core registry",
       });
     }
 
-    const providerMatch = line.match(/id:\s*"(brave|gemini|grok|kimi|perplexity)"/);
-    if (providerMatch) {
+    if (line.match(/id:\s*"([^"]+)"/)) {
       pushEntry(inventory, {
-        provider: providerMatch[1],
+        provider: "shared",
         file: relativeFile,
         line: lineNumber,
         reason: "hardcodes bundled web search provider id in core registry",
