@@ -28,6 +28,10 @@
     "target": "Gateway 协议 schemas"
   },
   {
+    "source": "TypeBox helper schemas",
+    "target": "TypeBox 辅助 schemas"
+  },
+  {
     "source": "Improvement Center",
     "target": "改进中心"
   },

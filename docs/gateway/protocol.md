@@ -209,7 +209,7 @@ in addition to device/client/role/scopes/token/nonce fields.
 
 This protocol exposes the **full gateway API** (status, channels, models, chat,
 agent, sessions, approvals, etc.). The runtime validator surface is still
-implemented by the Rust Gateway. The generated JSON Schema artifact and
-TypeScript protocol metadata bridge are emitted from the Rust Gateway contract
-snapshot; TypeBox remains for browser-facing client validators and typed helper
-surfaces.
+implemented by the Rust Gateway. The generated JSON Schema artifact, TypeScript
+protocol metadata bridge, and TypeScript schema read model are emitted from the
+Rust Gateway contract snapshot; `src/gateway/protocol/schema.ts` re-exports the
+generated read model for TypeScript AJV and client helpers.

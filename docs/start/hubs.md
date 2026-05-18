@@ -51,7 +51,7 @@ Use these hubs to discover every page, including deep dives and reference docs t
 - [Queue](/concepts/queue)
 - [Slash commands](/tools/slash-commands)
 - [RPC adapters](/reference/rpc)
-- [TypeBox schemas](/concepts/typebox)
+- [TypeBox helper schemas](/concepts/typebox)
 - [Timezone handling](/concepts/timezone)
 - [Presence](/concepts/presence)
 - [Discovery + transports](/gateway/discovery)

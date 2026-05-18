@@ -53,7 +53,7 @@ Use these groups instead of jumping through filenames at random.
 
 - [Architecture](/concepts/architecture)
 - [Features](/concepts/features)
-- [TypeBox](/concepts/typebox)
+- [TypeBox helper schemas](/concepts/typebox)
 
 ## Comparison And Migration Pages
 

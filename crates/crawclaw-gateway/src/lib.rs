@@ -2,8 +2,9 @@
 
 mod protocol_contract;
 pub use protocol_contract::{
-    gateway_protocol_metadata_ts, gateway_protocol_schema_json, gateway_protocol_schema_value,
-    GATEWAY_PROTOCOL_EVENTS, GATEWAY_PROTOCOL_METHODS, GATEWAY_PROTOCOL_VERSION,
+    gateway_protocol_metadata_ts, gateway_protocol_schema_json, gateway_protocol_schema_ts,
+    gateway_protocol_schema_value, GATEWAY_PROTOCOL_EVENTS, GATEWAY_PROTOCOL_METHODS,
+    GATEWAY_PROTOCOL_VERSION,
 };
 
 pub mod desktop {

@@ -97,6 +97,7 @@ fn emit_protocol_schema(args: Vec<String>) -> Result<(), String> {
 fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
     let mut schema_output: Option<PathBuf> = None;
     let mut metadata_output: Option<PathBuf> = None;
+    let mut schema_ts_output: Option<PathBuf> = None;
     let mut index = 0;
     while index < args.len() {
         match args[index].as_str() {
@@ -114,6 +115,13 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
                 metadata_output = Some(PathBuf::from(value));
                 index += 2;
             }
+            "--schema-ts-output" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--schema-ts-output requires a value".to_string());
+                };
+                schema_ts_output = Some(PathBuf::from(value));
+                index += 2;
+            }
             other => {
                 return Err(format!(
                     "unsupported emit-protocol-artifacts option: {other}"
@@ -126,7 +134,7 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
             .to_string()
     })?;
     let metadata_output = metadata_output.ok_or_else(|| {
-        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> --metadata-output <path>"
+        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> --metadata-output <path> [--schema-ts-output <path>]"
             .to_string()
     })?;
     write_protocol_artifact(
@@ -138,7 +146,15 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
         &metadata_output,
         &crawclaw_gateway::gateway_protocol_metadata_ts(),
         "metadata",
-    )
+    )?;
+    if let Some(schema_ts_output) = schema_ts_output {
+        write_protocol_artifact(
+            &schema_ts_output,
+            &crawclaw_gateway::gateway_protocol_schema_ts()?,
+            "typescript schema",
+        )?;
+    }
+    Ok(())
 }
 
 fn write_protocol_artifact(output: &PathBuf, contents: &str, label: &str) -> Result<(), String> {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CronDeliverySchema, CronJobStateSchema } from "../gateway/protocol/schema.js";
+import { CronJobSchema } from "../gateway/protocol/schema.js";
 import type { CronDeliveryMode } from "./types.js";
 
 type SchemaLike = {
@@ -45,12 +45,14 @@ const RUNTIME_DELIVERY_MODES = [
 
 describe("cron protocol conformance", () => {
   it("gateway schema includes all runtime cron delivery modes", () => {
-    const modes = extractDeliveryModes(CronDeliverySchema as SchemaLike);
+    const cronJobProperties = (CronJobSchema as SchemaLike).properties ?? {};
+    const modes = extractDeliveryModes(cronJobProperties.delivery as SchemaLike);
     expect(modes).toEqual([...RUNTIME_DELIVERY_MODES]);
   });
 
   it("cron job state schema keeps the full failover reason set", () => {
-    const properties = (CronJobStateSchema as SchemaLike).properties ?? {};
+    const cronJobProperties = (CronJobSchema as SchemaLike).properties ?? {};
+    const properties = (cronJobProperties.state as SchemaLike).properties ?? {};
     const lastErrorReason = properties.lastErrorReason as SchemaLike | undefined;
     expect(lastErrorReason).toBeDefined();
     expect(extractConstUnionValues(lastErrorReason ?? {})).toEqual([
