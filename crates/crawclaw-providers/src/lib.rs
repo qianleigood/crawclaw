@@ -166,6 +166,15 @@ pub struct ProviderModelAlias {
 
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct ProviderModelDefaultCost {
+    pub input: u32,
+    pub output: u32,
+    pub cache_read: u32,
+    pub cache_write: u32,
+}
+
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct ProviderModelNormalizationMetadata {
     pub anthropic_model_aliases: &'static [ProviderModelAlias],
     pub google_model_aliases: &'static [ProviderModelAlias],
@@ -1262,6 +1271,22 @@ pub const OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS: &[&str] = &[
     "gpt-5.1-codex",
 ];
 pub const GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS: &[&str] = &["gpt-5.2", "gpt-5.2-codex"];
+pub const PROVIDER_MODEL_DEFAULT_COST: ProviderModelDefaultCost = ProviderModelDefaultCost {
+    input: 0,
+    output: 0,
+    cache_read: 0,
+    cache_write: 0,
+};
+pub const PROVIDER_MODEL_DEFAULT_INPUT_TYPES: &[&str] = &["text"];
+pub const PROVIDER_MODEL_DEFAULT_MAX_TOKENS: u32 = 8_192;
+pub const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL: &[(&str, u32)] = &[
+    ("devstral-medium-latest", 32_768),
+    ("magistral-small", 40_000),
+    ("mistral-large-latest", 16_384),
+    ("mistral-medium-2508", 8_192),
+    ("mistral-small-latest", 16_384),
+    ("pixtral-large-latest", 32_768),
+];
 pub const DEFAULT_CLAUDE_CLI_MODEL: &str = "claude-cli/claude-sonnet-4-6";
 pub const ANTHROPIC_VERTEX_DEFAULT_REGION: &str = "global";
 pub const ANTHROPIC_VERTEX_CREDENTIALS_MARKER: &str = "gcp-vertex-credentials";
@@ -3646,6 +3671,12 @@ mod tests {
         assert!(OPENAI_XHIGH_THINKING_MODEL_IDS.contains(&"gpt-5.4"));
         assert!(OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS.contains(&"gpt-5.3-codex-spark"));
         assert!(GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS.contains(&"gpt-5.2-codex"));
+        assert_eq!(PROVIDER_MODEL_DEFAULT_COST.input, 0);
+        assert_eq!(PROVIDER_MODEL_DEFAULT_COST.cache_write, 0);
+        assert_eq!(PROVIDER_MODEL_DEFAULT_INPUT_TYPES, &["text"]);
+        assert_eq!(PROVIDER_MODEL_DEFAULT_MAX_TOKENS, 8_192);
+        assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("magistral-small", 40_000)));
+        assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("mistral-medium-2508", 8_192)));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
         assert_eq!(OLLAMA_DEFAULT_MAX_TOKENS, 8_192);
         assert_eq!(OLLAMA_DEFAULT_MODEL, "glm-4.7-flash");

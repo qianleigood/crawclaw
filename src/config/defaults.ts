@@ -1,6 +1,12 @@
 import { DEFAULT_CONTEXT_TOKENS } from "../agents/defaults.js";
 import { normalizeProviderId, parseModelRef } from "../agents/model-selection.js";
-import { AGENT_DEFAULT_MODEL_ALIASES } from "../generated/providers/runtime-constants.generated.js";
+import {
+  AGENT_DEFAULT_MODEL_ALIASES,
+  DEFAULT_MODEL_COST as GENERATED_DEFAULT_MODEL_COST,
+  DEFAULT_MODEL_INPUT as GENERATED_DEFAULT_MODEL_INPUT,
+  DEFAULT_MODEL_MAX_TOKENS,
+  MISTRAL_SAFE_MAX_TOKENS_BY_MODEL as GENERATED_MISTRAL_SAFE_MAX_TOKENS_BY_MODEL,
+} from "../generated/providers/runtime-constants.generated.js";
 import { DEFAULT_AGENT_MAX_CONCURRENT, DEFAULT_SUBAGENT_MAX_CONCURRENT } from "./agent-limits.js";
 import { resolveAgentModelPrimaryValue } from "./model-input.js";
 import { normalizeTalkConfig } from "./talk.js";
@@ -15,22 +21,10 @@ type AnthropicAuthDefaultsMode = "api_key" | "oauth";
 
 const DEFAULT_MODEL_ALIASES: Readonly<Record<string, string>> = AGENT_DEFAULT_MODEL_ALIASES;
 
-const DEFAULT_MODEL_COST: ModelDefinitionConfig["cost"] = {
-  input: 0,
-  output: 0,
-  cacheRead: 0,
-  cacheWrite: 0,
-};
-const DEFAULT_MODEL_INPUT: ModelDefinitionConfig["input"] = ["text"];
-const DEFAULT_MODEL_MAX_TOKENS = 8192;
-const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
-  "devstral-medium-latest": 32_768,
-  "magistral-small": 40_000,
-  "mistral-large-latest": 16_384,
-  "mistral-medium-2508": 8_192,
-  "mistral-small-latest": 16_384,
-  "pixtral-large-latest": 32_768,
-} as const;
+const DEFAULT_MODEL_COST: ModelDefinitionConfig["cost"] = GENERATED_DEFAULT_MODEL_COST;
+const DEFAULT_MODEL_INPUT: ModelDefinitionConfig["input"] = [...GENERATED_DEFAULT_MODEL_INPUT];
+const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL: Readonly<Record<string, number>> =
+  GENERATED_MISTRAL_SAFE_MAX_TOKENS_BY_MODEL;
 
 type ModelDefinitionLike = Partial<ModelDefinitionConfig> &
   Pick<ModelDefinitionConfig, "id" | "name">;
@@ -73,9 +67,7 @@ export function resolveNormalizedProviderModelMaxTokens(params: {
   }
 
   const safeMaxTokens =
-    MISTRAL_SAFE_MAX_TOKENS_BY_MODEL[
-      params.modelId as keyof typeof MISTRAL_SAFE_MAX_TOKENS_BY_MODEL
-    ] ?? DEFAULT_MODEL_MAX_TOKENS;
+    MISTRAL_SAFE_MAX_TOKENS_BY_MODEL[params.modelId] ?? DEFAULT_MODEL_MAX_TOKENS;
   return Math.min(safeMaxTokens, params.contextWindow);
 }
 

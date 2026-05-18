@@ -47,6 +47,22 @@ export const OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS = [
   "gpt-5.1-codex",
 ] as const;
 export const GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS = ["gpt-5.2", "gpt-5.2-codex"] as const;
+export const DEFAULT_MODEL_COST = {
+  input: 0,
+  output: 0,
+  cacheRead: 0,
+  cacheWrite: 0,
+} as const;
+export const DEFAULT_MODEL_INPUT = ["text"] as const;
+export const DEFAULT_MODEL_MAX_TOKENS = 8192;
+export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
+  "devstral-medium-latest": 32768,
+  "magistral-small": 40000,
+  "mistral-large-latest": 16384,
+  "mistral-medium-2508": 8192,
+  "mistral-small-latest": 16384,
+  "pixtral-large-latest": 32768,
+} as const satisfies Readonly<Record<string, number>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = "claude-cli/claude-sonnet-4-6";
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = "global";
 export const ANTHROPIC_VERTEX_CREDENTIALS_MARKER = "gcp-vertex-credentials";
