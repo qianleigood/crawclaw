@@ -243,10 +243,10 @@ describe("scripts/test-parallel lane planning", () => {
   });
 
   it("keeps base-pinned targeted reruns on dedicated forks lanes", () => {
-    const output = runPlannerPlan(["--plan", "--files", "src/control/model-picker.test.ts"]);
+    const output = runPlannerPlan(["--plan", "--files", "src/control/models/shared.test.ts"]);
 
-    expect(output).toContain("base-pinned-model-picker");
-    expect(output).not.toContain("base-model-picker");
+    expect(output).toContain("base-pinned-shared");
+    expect(output).not.toContain("base-shared");
   });
 
   it("reports capability-derived output for mid-memory local macOS hosts", () => {
@@ -334,7 +334,7 @@ describe("scripts/test-parallel lane planning", () => {
   });
 
   it("explains targeted file ownership and execution policy", () => {
-    const output = runPlannerPlan(["--explain", "src/control/model-picker.test.ts"]);
+    const output = runPlannerPlan(["--explain", "src/control/models/shared.test.ts"]);
 
     expect(output).toContain("surface=base");
     expect(output).toContain("reasons=base-surface,base-pinned-manifest");

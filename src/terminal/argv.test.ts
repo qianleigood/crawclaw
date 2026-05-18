@@ -239,8 +239,8 @@ describe("argv helpers", () => {
     },
     {
       name: "skips --lang value",
-      argv: ["node", "crawclaw", "--lang", "zh-CN", "onboard", "--help"],
-      expected: "onboard",
+      argv: ["node", "crawclaw", "--lang", "zh-CN", "models", "--help"],
+      expected: "models",
     },
   ])("returns primary command: $name", ({ argv, expected }) => {
     expect(getPrimaryCommand(argv)).toBe(expected);

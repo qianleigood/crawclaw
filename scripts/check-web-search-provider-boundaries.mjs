@@ -34,7 +34,6 @@ const ignoredDirNames = new Set([
 const providerIds = new Set(["shared"]);
 
 const allowedGenericFiles = new Set([
-  "src/control/onboard-search.ts",
   "src/plugins/bundled-web-search-registry.ts",
   "src/secrets/runtime-web-tools.ts",
 ]);

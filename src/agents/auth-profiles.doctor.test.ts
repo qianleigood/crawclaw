@@ -8,14 +8,14 @@ const EMPTY_STORE: AuthProfileStore = {
 };
 
 describe("formatAuthDoctorHint", () => {
-  it("guides removed qwen portal users to model studio onboarding", async () => {
+  it("guides removed qwen portal users to model studio auth choices", async () => {
     const hint = await formatAuthDoctorHint({
       store: EMPTY_STORE,
       provider: "qwen-portal",
     });
 
-    expect(hint).toContain("crawclaw onboard --auth-choice modelstudio-api-key");
+    expect(hint).toContain("local Gateway API auth choice modelstudio-api-key");
     expect(hint).toContain("modelstudio-api-key-cn");
-    expect(hint).not.toContain("--provider modelstudio");
+    expect(hint).not.toContain("--auth-choice");
   });
 });

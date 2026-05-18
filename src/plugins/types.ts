@@ -1,13 +1,10 @@
 import type { ReplyPayload } from "../chat/reply-payload.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ObservationContext } from "../infra/observation/types.js";
-import type { RuntimeEnv } from "../runtime.js";
 import type {
   RuntimeWebFetchMetadata,
   RuntimeWebSearchMetadata,
 } from "../secrets/runtime-web-tools.types.js";
-import type { WizardPrompter } from "../wizard/prompts.js";
-import type { SecretInputMode } from "./provider-auth-types.js";
 
 /** Logger passed into plugin registration and CLI surfaces. */
 export type PluginLogger = {
@@ -71,14 +68,6 @@ export type WebSearchRuntimeMetadataContext = {
   };
 };
 
-export type WebSearchProviderSetupContext = {
-  config: CrawClawConfig;
-  runtime: RuntimeEnv;
-  prompter: WizardPrompter;
-  quickstartDefaults?: boolean;
-  secretInputMode?: SecretInputMode;
-};
-
 export type WebFetchCredentialResolutionSource = "config" | "secretRef" | "env" | "missing";
 
 export type WebFetchRuntimeMetadataContext = {
@@ -119,7 +108,6 @@ export type WebSearchProviderPlugin = {
   getConfiguredCredentialValue?: (config?: CrawClawConfig) => unknown;
   setConfiguredCredentialValue?: (configTarget: CrawClawConfig, value: unknown) => void;
   applySelectionConfig?: (config: CrawClawConfig) => CrawClawConfig;
-  runSetup?: (ctx: WebSearchProviderSetupContext) => CrawClawConfig | Promise<CrawClawConfig>;
   resolveRuntimeMetadata?: (
     ctx: WebSearchRuntimeMetadataContext,
   ) => Partial<RuntimeWebSearchMetadata> | Promise<Partial<RuntimeWebSearchMetadata>>;

@@ -203,10 +203,6 @@
       "durationMs": 148.492431640625,
       "testCount": 3
     },
-    "src/wizard/setup.gateway-config.test.ts": {
-      "durationMs": 142.656494140625,
-      "testCount": 7
-    },
     "src/config/sessions/targets.test.ts": {
       "durationMs": 136.714111328125,
       "testCount": 13

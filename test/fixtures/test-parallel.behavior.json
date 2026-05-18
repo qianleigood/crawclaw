@@ -2,7 +2,7 @@
   "base": {
     "threadPinned": [
       {
-        "file": "src/control/model-picker.test.ts",
+        "file": "src/control/models/shared.test.ts",
         "reason": "Keeps a current base-surface test on the base-pinned planner path after the legacy auto-reply test tree was removed."
       }
     ]

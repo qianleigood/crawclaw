@@ -157,9 +157,9 @@ describe("active CLI text translation", () => {
   });
 
   it("translates exact English CLI copy through the active dictionary", () => {
-    expect(translateCliText("zh-CN", "Gateway port")).toBe("网关端口");
+    expect(translateCliText("zh-CN", "Workspace directory")).toBe("工作区目录");
     expect(translateCliText("zh-CN", "Unknown prompt")).toBe("Unknown prompt");
-    expect(translateCliText("en", "Gateway port")).toBe("Gateway port");
+    expect(translateCliText("en", "Workspace directory")).toBe("Workspace directory");
   });
 });
 

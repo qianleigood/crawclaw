@@ -10,7 +10,7 @@ describe("prompt style i18n", () => {
   it("localizes exact prompt message, title, and hint text", () => {
     setActiveCliLocale("zh-CN");
 
-    expect(stylePromptMessage("Gateway port")).toContain("网关端口");
+    expect(stylePromptMessage("Workspace directory")).toContain("工作区目录");
     expect(stylePromptTitle("Note")).toContain("提示");
     expect(stylePromptHint("Recommended default")).toContain("推荐默认值");
   });
