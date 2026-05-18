@@ -1,4 +1,4 @@
-import { BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES } from "../plugins/bundled-provider-auth-env-vars.js";
+import { BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES } from "../generated/plugins/bundled-provider-auth-env-vars.generated.js";
 
 const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
   chutes: ["CHUTES_API_KEY"],
