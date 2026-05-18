@@ -70,8 +70,8 @@ of optional skills and recipes, not a core runtime tree.
 `packages/` is for packages that do not belong in the main runtime tree but are
 still part of the monorepo.
 
-Current examples include package-contract and companion packages. New packages
-should not be added here by default without first deciding whether they are:
+New packages should not be added here by default without first deciding whether
+they are:
 
 - runtime core
 - extension ecosystem
