@@ -1,5 +1,6 @@
 import { normalizeModelRef } from "../agents/model-selection.js";
 import { normalizeProviderId } from "../agents/provider-id.js";
+import { OPENROUTER_WRAPPER_PROVIDERS as OPENROUTER_WRAPPER_PROVIDER_VALUES } from "../generated/providers/runtime-constants.generated.js";
 
 export type CachedModelPricing = {
   input: number;
@@ -11,12 +12,7 @@ export type CachedModelPricing = {
 let cachedPricing = new Map<string, CachedModelPricing>();
 let cachedAt = 0;
 
-const WRAPPER_PROVIDERS = new Set([
-  "cloudflare-ai-gateway",
-  "kilocode",
-  "openrouter",
-  "vercel-ai-gateway",
-]);
+const WRAPPER_PROVIDERS = new Set<string>(OPENROUTER_WRAPPER_PROVIDER_VALUES);
 
 function modelPricingCacheKey(provider: string, model: string): string {
   const providerId = normalizeProviderId(provider);

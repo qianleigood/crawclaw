@@ -174,6 +174,23 @@ export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = [
   "openai-codex-responses",
   "azure-openai-responses",
 ] as const;
+export const OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models";
+export const OPENROUTER_PRICING_PROVIDER_ALIASES = {
+  "google-gemini-cli": "google",
+  kimi: "moonshotai",
+  "kimi-coding": "moonshotai",
+  moonshot: "moonshotai",
+  moonshotai: "moonshotai",
+  "openai-codex": "openai",
+  xai: "x-ai",
+  zai: "z-ai",
+} as const satisfies Readonly<Record<string, string>>;
+export const OPENROUTER_WRAPPER_PROVIDERS = [
+  "cloudflare-ai-gateway",
+  "kilocode",
+  "openrouter",
+  "vercel-ai-gateway",
+] as const;
 export const KNOWN_PROVIDER_FAMILIES = {
   anthropic: "anthropic",
   "azure-openai": "openai-family",

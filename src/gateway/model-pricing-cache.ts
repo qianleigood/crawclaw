@@ -9,6 +9,11 @@ import {
 } from "../agents/model-selection.js";
 import type { CacheGovernanceDescriptor } from "../cache/governance-types.js";
 import type { CrawClawConfig } from "../config/config.js";
+import {
+  OPENROUTER_MODELS_API_URL,
+  OPENROUTER_PRICING_PROVIDER_ALIASES,
+  OPENROUTER_WRAPPER_PROVIDERS as OPENROUTER_WRAPPER_PROVIDER_VALUES,
+} from "../generated/providers/runtime-constants.generated.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   clearGatewayModelPricingCacheState,
@@ -32,25 +37,11 @@ type OpenRouterModelPayload = {
 
 export { getCachedGatewayModelPricing };
 
-const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 const CACHE_TTL_MS = 24 * 60 * 60_000;
 const FETCH_TIMEOUT_MS = 15_000;
-const PROVIDER_ALIAS_TO_OPENROUTER: Record<string, string> = {
-  "google-gemini-cli": "google",
-  kimi: "moonshotai",
-  "kimi-coding": "moonshotai",
-  moonshot: "moonshotai",
-  moonshotai: "moonshotai",
-  "openai-codex": "openai",
-  xai: "x-ai",
-  zai: "z-ai",
-};
-const WRAPPER_PROVIDERS = new Set([
-  "cloudflare-ai-gateway",
-  "kilocode",
-  "openrouter",
-  "vercel-ai-gateway",
-]);
+const PROVIDER_ALIAS_TO_OPENROUTER: Readonly<Record<string, string>> =
+  OPENROUTER_PRICING_PROVIDER_ALIASES;
+const WRAPPER_PROVIDERS = new Set<string>(OPENROUTER_WRAPPER_PROVIDER_VALUES);
 const log = createSubsystemLogger("gateway").child("model-pricing");
 
 export const GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
@@ -303,7 +294,7 @@ export function collectConfiguredModelPricingRefs(config: CrawClawConfig): Model
 async function fetchOpenRouterPricingCatalog(
   fetchImpl: typeof fetch,
 ): Promise<Map<string, OpenRouterPricingEntry>> {
-  const response = await fetchImpl(OPENROUTER_MODELS_URL, {
+  const response = await fetchImpl(OPENROUTER_MODELS_API_URL, {
     headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });

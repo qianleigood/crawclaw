@@ -270,6 +270,9 @@ export const TRANSCRIPT_OPENAI_MODEL_APIS = {transcript_openai_model_apis} as co
 export const TRANSCRIPT_ANTHROPIC_MODEL_APIS = {transcript_anthropic_model_apis} as const;
 export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = {openai_compatible_turn_validation_api};
 export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = {openai_compatible_tool_id_sanitization_apis} as const;
+export const OPENROUTER_MODELS_API_URL = {openrouter_models_api_url};
+export const OPENROUTER_PRICING_PROVIDER_ALIASES = {openrouter_pricing_provider_aliases} as const satisfies Readonly<Record<string, string>>;
+export const OPENROUTER_WRAPPER_PROVIDERS = {openrouter_wrapper_providers} as const;
 export const KNOWN_PROVIDER_FAMILIES = {known_provider_families} as const satisfies Readonly<Record<string, string>>;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {mistral_safe_max_tokens_by_model} as const satisfies Readonly<Record<string, number>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
@@ -361,6 +364,11 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         openai_compatible_tool_id_sanitization_apis = render_static_string_array(
             crawclaw_providers::OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS,
         ),
+        openrouter_models_api_url = json_string(crawclaw_providers::OPENROUTER_MODELS_API_URL),
+        openrouter_pricing_provider_aliases =
+            render_static_string_record(crawclaw_providers::OPENROUTER_PRICING_PROVIDER_ALIASES),
+        openrouter_wrapper_providers =
+            render_static_string_array(crawclaw_providers::OPENROUTER_WRAPPER_PROVIDERS),
         known_provider_families =
             render_static_string_record(crawclaw_providers::KNOWN_PROVIDER_FAMILIES),
         mistral_safe_max_tokens_by_model =
@@ -1043,6 +1051,14 @@ mod tests {
         ));
         assert!(source.contains("export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = ["));
         assert!(source.contains("\"azure-openai-responses\""));
+        assert!(source.contains(
+            "export const OPENROUTER_MODELS_API_URL = \"https://openrouter.ai/api/v1/models\";"
+        ));
+        assert!(source.contains("export const OPENROUTER_PRICING_PROVIDER_ALIASES = {"));
+        assert!(source.contains("\"openai-codex\": \"openai\""));
+        assert!(source.contains("zai: \"z-ai\""));
+        assert!(source.contains("export const OPENROUTER_WRAPPER_PROVIDERS = ["));
+        assert!(source.contains("\"vercel-ai-gateway\""));
         assert!(source.contains("export const KNOWN_PROVIDER_FAMILIES = {"));
         assert!(source.contains("\"openai-codex\": \"openai-family\""));
         assert!(source.contains("kimi: \"moonshot\""));

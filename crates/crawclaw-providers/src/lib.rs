@@ -756,6 +756,23 @@ pub const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS: &[&str] = &[
     "openai-codex-responses",
     "azure-openai-responses",
 ];
+pub const OPENROUTER_MODELS_API_URL: &str = "https://openrouter.ai/api/v1/models";
+pub const OPENROUTER_PRICING_PROVIDER_ALIASES: &[(&str, &str)] = &[
+    ("google-gemini-cli", "google"),
+    ("kimi", "moonshotai"),
+    ("kimi-coding", "moonshotai"),
+    ("moonshot", "moonshotai"),
+    ("moonshotai", "moonshotai"),
+    ("openai-codex", "openai"),
+    ("xai", "x-ai"),
+    ("zai", "z-ai"),
+];
+pub const OPENROUTER_WRAPPER_PROVIDERS: &[&str] = &[
+    "cloudflare-ai-gateway",
+    "kilocode",
+    "openrouter",
+    "vercel-ai-gateway",
+];
 pub const KNOWN_PROVIDER_FAMILIES: &[(&str, &str)] = &[
     ("anthropic", "anthropic"),
     ("azure-openai", "openai-family"),
@@ -4010,6 +4027,14 @@ mod tests {
                 "azure-openai-responses"
             ]
         );
+        assert_eq!(
+            OPENROUTER_MODELS_API_URL,
+            "https://openrouter.ai/api/v1/models"
+        );
+        assert!(OPENROUTER_PRICING_PROVIDER_ALIASES.contains(&("openai-codex", "openai")));
+        assert!(OPENROUTER_PRICING_PROVIDER_ALIASES.contains(&("zai", "z-ai")));
+        assert!(OPENROUTER_WRAPPER_PROVIDERS.contains(&"openrouter"));
+        assert!(OPENROUTER_WRAPPER_PROVIDERS.contains(&"vercel-ai-gateway"));
         assert!(KNOWN_PROVIDER_FAMILIES.contains(&("openai-codex", "openai-family")));
         assert!(KNOWN_PROVIDER_FAMILIES.contains(&("kimi", "moonshot")));
         assert!(KNOWN_PROVIDER_FAMILIES.contains(&("dashscope", "modelstudio")));
