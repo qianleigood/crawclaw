@@ -1,11 +1,18 @@
+import {
+  ANTHROPIC_API_KEY_ENV,
+  ANTHROPIC_PROVIDER_ID,
+  GOOGLE_PROVIDER_ID,
+  GOOGLE_VERTEX_PROVIDER_ID,
+  OPENAI_PROVIDER_ID,
+} from "../generated/providers/runtime-constants.generated.js";
 import { normalizeProviderId } from "./model-selection.js";
 
 const KEY_SPLIT_RE = /[\s,;]+/g;
 const GOOGLE_LIVE_SINGLE_KEY = "CRAWCLAW_LIVE_GEMINI_KEY";
 
 const PROVIDER_PREFIX_OVERRIDES: Record<string, string> = {
-  google: "GEMINI",
-  "google-vertex": "GEMINI",
+  [GOOGLE_PROVIDER_ID]: "GEMINI",
+  [GOOGLE_VERTEX_PROVIDER_ID]: "GEMINI",
 };
 
 type ProviderApiKeyConfig = {
@@ -17,25 +24,25 @@ type ProviderApiKeyConfig = {
 };
 
 const PROVIDER_API_KEY_CONFIG: Record<string, Omit<ProviderApiKeyConfig, "fallbackVars">> = {
-  anthropic: {
+  [ANTHROPIC_PROVIDER_ID]: {
     liveSingle: "CRAWCLAW_LIVE_ANTHROPIC_KEY",
     listVar: "CRAWCLAW_LIVE_ANTHROPIC_KEYS",
-    primaryVar: "ANTHROPIC_API_KEY",
-    prefixedVar: "ANTHROPIC_API_KEY_",
+    primaryVar: ANTHROPIC_API_KEY_ENV,
+    prefixedVar: `${ANTHROPIC_API_KEY_ENV}_`,
   },
-  google: {
+  [GOOGLE_PROVIDER_ID]: {
     liveSingle: GOOGLE_LIVE_SINGLE_KEY,
     listVar: "GEMINI_API_KEYS",
     primaryVar: "GEMINI_API_KEY",
     prefixedVar: "GEMINI_API_KEY_",
   },
-  "google-vertex": {
+  [GOOGLE_VERTEX_PROVIDER_ID]: {
     liveSingle: GOOGLE_LIVE_SINGLE_KEY,
     listVar: "GEMINI_API_KEYS",
     primaryVar: "GEMINI_API_KEY",
     prefixedVar: "GEMINI_API_KEY_",
   },
-  openai: {
+  [OPENAI_PROVIDER_ID]: {
     liveSingle: "CRAWCLAW_LIVE_OPENAI_KEY",
     listVar: "OPENAI_API_KEYS",
     primaryVar: "OPENAI_API_KEY",
@@ -78,7 +85,7 @@ function resolveProviderApiKeyConfig(provider: string): ProviderApiKeyConfig {
   const primaryVar = custom?.primaryVar ?? `${base}_API_KEY`;
   const prefixedVar = custom?.prefixedVar ?? `${base}_API_KEY_`;
 
-  if (normalized === "google" || normalized === "google-vertex") {
+  if (normalized === GOOGLE_PROVIDER_ID || normalized === GOOGLE_VERTEX_PROVIDER_ID) {
     return {
       liveSingle,
       listVar,
@@ -140,11 +147,11 @@ export function collectProviderApiKeys(provider: string): string[] {
 }
 
 export function collectAnthropicApiKeys(): string[] {
-  return collectProviderApiKeys("anthropic");
+  return collectProviderApiKeys(ANTHROPIC_PROVIDER_ID);
 }
 
 export function collectGeminiApiKeys(): string[] {
-  return collectProviderApiKeys("google");
+  return collectProviderApiKeys(GOOGLE_PROVIDER_ID);
 }
 
 export function isApiKeyRateLimitError(message: string): boolean {
