@@ -93,7 +93,7 @@ const DEFAULT_PLUGIN_REGISTRY = new Proxy({} as PluginRegistry, {
 });
 
 function installDefaultPluginRegistry(): void {
-  setActivePluginRegistry(DEFAULT_PLUGIN_REGISTRY, "test:default");
+  setActivePluginRegistry(DEFAULT_PLUGIN_REGISTRY);
 }
 
 beforeAll(() => {

@@ -5,17 +5,11 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { resetDiagnosticEventsForTest } from "../infra/diagnostic-events.js";
 import { withEnv } from "../test-utils/env.js";
 import { clearPluginDiscoveryCache } from "./discovery.js";
-import {
-  __testing,
-  clearPluginLoaderCache,
-  loadCrawClawPlugins,
-  resolveRuntimePluginRegistry,
-} from "./loader.js";
+import { __testing, clearPluginLoaderCache, loadCrawClawPlugins } from "./loader.js";
 import { clearPluginManifestRegistryCache } from "./manifest-registry.js";
 import { createEmptyPluginRegistry } from "./registry.js";
 import {
   getActivePluginRegistry,
-  getActivePluginRegistryKey,
   resetPluginRuntimeStateForTest,
   setActivePluginRegistry,
 } from "./runtime.js";
@@ -807,7 +801,7 @@ module.exports = { id: "manifest-only-plugin" };`,
           body: `module.exports = { id: "allowed-nonactivating-scope" };`,
         });
         const previousRegistry = createEmptyPluginRegistry();
-        setActivePluginRegistry(previousRegistry, "existing-registry");
+        setActivePluginRegistry(previousRegistry);
         const scoped = loadCrawClawPlugins({
           cache: false,
           activate: false,
@@ -823,7 +817,6 @@ module.exports = { id: "manifest-only-plugin" };`,
 
         expect(scoped.plugins.map((entry) => entry.id)).toEqual(["allowed-nonactivating-scope"]);
         expect(getActivePluginRegistry()).toBe(previousRegistry);
-        expect(getActivePluginRegistryKey()).toBe("existing-registry");
       },
     },
   ] as const)("handles config-path and scoped plugin loads: $label", ({ run }) => {
@@ -1837,36 +1830,7 @@ module.exports = { id: "manifest-only-plugin" };`,
   });
 });
 
-describe("getCompatibleActivePluginRegistry", () => {
-  it("reuses the active registry only when the load context cache key matches", () => {
-    const registry = createEmptyPluginRegistry();
-    const loadOptions = {
-      config: {
-        plugins: {
-          allow: ["demo"],
-          load: { paths: ["/tmp/demo.js"] },
-        },
-      },
-      workspaceDir: "/tmp/workspace-a",
-    };
-    const { cacheKey } = __testing.resolvePluginLoadCacheContext(loadOptions);
-    setActivePluginRegistry(registry, cacheKey);
-
-    expect(__testing.getCompatibleActivePluginRegistry(loadOptions)).toBe(registry);
-    expect(
-      __testing.getCompatibleActivePluginRegistry({
-        ...loadOptions,
-        workspaceDir: "/tmp/workspace-b",
-      }),
-    ).toBeUndefined();
-    expect(
-      __testing.getCompatibleActivePluginRegistry({
-        ...loadOptions,
-        onlyPluginIds: ["demo"],
-      }),
-    ).toBeUndefined();
-  });
-
+describe("plugin load cache keys", () => {
   it("does not embed activation secrets in the loader cache key", () => {
     const { cacheKey } = __testing.resolvePluginLoadCacheContext({
       config: {
@@ -1893,55 +1857,6 @@ describe("getCompatibleActivePluginRegistry", () => {
     expect(cacheKey).not.toContain("secret-token");
     expect(cacheKey).not.toContain("botToken");
     expect(cacheKey).not.toContain("feishu configured");
-  });
-
-  it("falls back to the current active runtime when no compatibility-shaping inputs are supplied", () => {
-    const registry = createEmptyPluginRegistry();
-    setActivePluginRegistry(registry, "startup-registry");
-
-    expect(__testing.getCompatibleActivePluginRegistry()).toBe(registry);
-  });
-
-  it("reuses the active registry when compatibility-shaping inputs match", () => {
-    const registry = createEmptyPluginRegistry();
-    const loadOptions = {
-      config: {
-        plugins: {
-          allow: ["demo"],
-          load: { paths: ["/tmp/demo.js"] },
-        },
-      },
-      workspaceDir: "/tmp/workspace-a",
-    };
-    const { cacheKey } = __testing.resolvePluginLoadCacheContext(loadOptions);
-    setActivePluginRegistry(registry, cacheKey);
-
-    expect(__testing.getCompatibleActivePluginRegistry(loadOptions)).toBe(registry);
-  });
-});
-
-describe("resolveRuntimePluginRegistry", () => {
-  it("reuses the compatible active registry before attempting a fresh load", () => {
-    const registry = createEmptyPluginRegistry();
-    const loadOptions = {
-      config: {
-        plugins: {
-          allow: ["demo"],
-        },
-      },
-      workspaceDir: "/tmp/workspace-a",
-    };
-    const { cacheKey } = __testing.resolvePluginLoadCacheContext(loadOptions);
-    setActivePluginRegistry(registry, cacheKey);
-
-    expect(resolveRuntimePluginRegistry(loadOptions)).toBe(registry);
-  });
-
-  it("falls back to the current active runtime when no explicit load context is provided", () => {
-    const registry = createEmptyPluginRegistry();
-    setActivePluginRegistry(registry, "startup-registry");
-
-    expect(resolveRuntimePluginRegistry()).toBe(registry);
   });
 });
 

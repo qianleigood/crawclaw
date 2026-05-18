@@ -18,11 +18,7 @@ import { loadPluginManifestRegistry, type PluginManifestRecord } from "./manifes
 import { isPathInside, safeStatSync } from "./path-safety.js";
 import { createPluginRegistry, type PluginRecord, type PluginRegistry } from "./registry.js";
 import { resolvePluginCacheInputs } from "./roots.js";
-import {
-  getActivePluginRegistry,
-  getActivePluginRegistryKey,
-  setActivePluginRegistry,
-} from "./runtime.js";
+import { setActivePluginRegistry } from "./runtime.js";
 import { validateJsonSchemaValue } from "./schema-validator.js";
 import { hasKind } from "./slots.js";
 import type { PluginDiagnostic, PluginBundleFormat, PluginFormat, PluginLogger } from "./types.js";
@@ -79,7 +75,6 @@ export function clearPluginLoaderCache(): void {
 const defaultLogger = () => createSubsystemLogger("plugins");
 
 export const __testing = {
-  getCompatibleActivePluginRegistry,
   resolvePluginLoadCacheContext,
   get maxPluginRegistryCacheEntries() {
     return pluginRegistryCacheEntryCap;
@@ -202,18 +197,6 @@ function buildActivationMetadataHash(params: {
     .digest("hex");
 }
 
-function hasExplicitCompatibilityInputs(options: PluginLoadOptions): boolean {
-  return Boolean(
-    options.config !== undefined ||
-    options.activationSourceConfig !== undefined ||
-    options.autoEnabledReasons !== undefined ||
-    options.workspaceDir !== undefined ||
-    options.env !== undefined ||
-    options.onlyPluginIds?.length ||
-    options.loadModules === false,
-  );
-}
-
 function resolvePluginLoadCacheContext(options: PluginLoadOptions = {}) {
   const env = options.env ?? process.env;
   const cfg = applyTestPluginDefaults(options.config ?? {}, env);
@@ -245,43 +228,6 @@ function resolvePluginLoadCacheContext(options: PluginLoadOptions = {}) {
     shouldLoadModules: options.loadModules !== false,
     cacheKey,
   };
-}
-
-function getCompatibleActivePluginRegistry(
-  options: PluginLoadOptions = {},
-): PluginRegistry | undefined {
-  const activeRegistry = getActivePluginRegistry() ?? undefined;
-  if (!activeRegistry) {
-    return undefined;
-  }
-  if (!hasExplicitCompatibilityInputs(options)) {
-    return activeRegistry;
-  }
-  const activeCacheKey = getActivePluginRegistryKey();
-  if (!activeCacheKey) {
-    return undefined;
-  }
-  return resolvePluginLoadCacheContext(options).cacheKey === activeCacheKey
-    ? activeRegistry
-    : undefined;
-}
-
-export function resolveRuntimePluginRegistry(
-  options?: PluginLoadOptions,
-): PluginRegistry | undefined {
-  if (!options || !hasExplicitCompatibilityInputs(options)) {
-    return getCompatibleActivePluginRegistry();
-  }
-  return getCompatibleActivePluginRegistry(options) ?? loadCrawClawPlugins(options);
-}
-
-export function resolveCompatibleRuntimePluginRegistry(
-  options?: PluginLoadOptions,
-): PluginRegistry | undefined {
-  // Check whether the active runtime registry is already compatible with these
-  // load options. Unlike resolveRuntimePluginRegistry, this never triggers a
-  // fresh plugin load on cache miss.
-  return getCompatibleActivePluginRegistry(options);
 }
 
 function validatePluginConfig(params: {
@@ -652,8 +598,8 @@ function warnAboutUntrackedLoadedPlugins(params: {
   }
 }
 
-function activatePluginRegistry(registry: PluginRegistry, cacheKey: string): void {
-  setActivePluginRegistry(registry, cacheKey);
+function activatePluginRegistry(registry: PluginRegistry): void {
+  setActivePluginRegistry(registry);
 }
 
 export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegistry {
@@ -683,7 +629,7 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     const cached = getCachedPluginRegistry(cacheKey);
     if (cached) {
       if (shouldActivate) {
-        activatePluginRegistry(cached.registry, cacheKey);
+        activatePluginRegistry(cached.registry);
       }
       return cached.registry;
     }
@@ -1005,7 +951,7 @@ export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegi
     });
   }
   if (shouldActivate) {
-    activatePluginRegistry(registry, cacheKey);
+    activatePluginRegistry(registry);
   }
   return registry;
 }
