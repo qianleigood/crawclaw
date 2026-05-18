@@ -1,4 +1,5 @@
 import { normalizeProviderId } from "../agents/provider-id.js";
+import { BUNDLED_PROVIDER_PLUGIN_IDS } from "./bundled-capability-metadata.js";
 import { withBundledPluginVitestCompat } from "./bundled-compat.js";
 import { normalizePluginsConfig, resolveEffectivePluginActivationState } from "./config-state.js";
 import type { PluginLoadOptions } from "./loader.js";
@@ -19,20 +20,9 @@ export function resolveBundledProviderCompatPluginIds(params: {
   onlyPluginIds?: string[];
 }): string[] {
   const onlyPluginIdSet = params.onlyPluginIds ? new Set(params.onlyPluginIds) : null;
-  const registry = loadPluginManifestRegistry({
-    config: params.config,
-    workspaceDir: params.workspaceDir,
-    env: params.env,
-  });
-  return registry.plugins
-    .filter(
-      (plugin) =>
-        plugin.origin === "bundled" &&
-        plugin.providers.length > 0 &&
-        (!onlyPluginIdSet || onlyPluginIdSet.has(plugin.id)),
-    )
-    .map((plugin) => plugin.id)
-    .toSorted((left, right) => left.localeCompare(right));
+  return BUNDLED_PROVIDER_PLUGIN_IDS.filter(
+    (pluginId) => !onlyPluginIdSet || onlyPluginIdSet.has(pluginId),
+  );
 }
 
 export function resolveEnabledProviderPluginIds(params: {
