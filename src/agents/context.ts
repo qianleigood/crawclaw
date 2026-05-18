@@ -328,9 +328,9 @@ function resolveConfiguredProviderContextWindow(
     return undefined;
   }
 
-  // Mirror the lookup order in runtime-support/model.ts: exact key first,
-  // then normalized fallback. This prevents alias collisions from picking the
-  // wrong contextWindow based on Object.entries iteration order.
+  // Prefer exact provider keys before normalized aliases. This prevents alias
+  // collisions from picking the wrong contextWindow based on Object.entries
+  // iteration order.
   function findContextWindow(matchProviderId: (id: string) => boolean): number | undefined {
     for (const [providerId, providerConfig] of Object.entries(providers!)) {
       if (!matchProviderId(providerId)) {
@@ -406,7 +406,7 @@ export function resolveContextTokensForModel(params: {
     if (params.provider) {
       const configuredWindow = resolveConfiguredProviderContextWindow(
         params.cfg,
-        ref.provider,
+        params.provider,
         ref.model,
       );
       if (configuredWindow !== undefined) {

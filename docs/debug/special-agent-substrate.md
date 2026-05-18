@@ -195,7 +195,8 @@ At the current CrawClaw runtime layer, this closes most of the substrate-level d
 - `parent-fork-context.ts` owns canonical cache identity and parent fork context
   construction
 - `cache-plan.ts` owns direct special-agent cache hints
-- `extra-params.ts` translates cache hints into provider payloads
+- provider request payload translation is owned by the Rust runtime/provider
+  layer
 
 The main remaining difference from Claude Code is that CrawClaw still does not replay the parent query loop as a live in-process clone. The explicit parent fork context is the supported handoff for session-summary history, while request building remains adapter-shaped and cache controls stay as direct special-agent hints.
 
