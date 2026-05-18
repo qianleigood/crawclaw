@@ -726,6 +726,39 @@ pub const PROVIDER_USAGE_LABELS: &[(&str, &str)] = &[
     ("zai", "z.ai"),
 ];
 
+pub const PROVIDER_ATTRIBUTION_PRODUCT: &str = "CrawClaw";
+pub const PROVIDER_ATTRIBUTION_ORIGINATOR: &str = "crawclaw";
+pub const LOCAL_ENDPOINT_HOSTS: &[&str] = &["localhost", "127.0.0.1", "::1", "[::1]"];
+pub const MOONSHOT_NATIVE_BASE_URLS: &[&str] =
+    &["https://api.moonshot.ai/v1", "https://api.moonshot.cn/v1"];
+pub const MODELSTUDIO_NATIVE_BASE_URLS: &[&str] = &[
+    "https://coding-intl.dashscope.aliyuncs.com/v1",
+    "https://coding.dashscope.aliyuncs.com/v1",
+    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+];
+pub const OPENAI_RESPONSES_APIS: &[&str] = &["openai-responses", "azure-openai-responses"];
+pub const OPENAI_RESPONSES_PROVIDERS: &[&str] =
+    &["openai", "azure-openai", "azure-openai-responses"];
+pub const MOONSHOT_COMPAT_PROVIDERS: &[&str] = &["moonshot", "kimi"];
+pub const KNOWN_PROVIDER_FAMILIES: &[(&str, &str)] = &[
+    ("anthropic", "anthropic"),
+    ("azure-openai", "openai-family"),
+    ("azure-openai-responses", "openai-family"),
+    ("github-copilot", "github-copilot"),
+    ("google", "google"),
+    ("groq", "groq"),
+    ("kimi", "moonshot"),
+    ("mistral", "mistral"),
+    ("modelstudio", "modelstudio"),
+    ("moonshot", "moonshot"),
+    ("openai", "openai-family"),
+    ("openai-codex", "openai-family"),
+    ("openrouter", "openrouter"),
+    ("dashscope", "modelstudio"),
+    ("together", "together"),
+];
+
 const RUST_PROVIDER_CAPABILITIES: ProviderTransportCapabilities = ProviderTransportCapabilities {
     streaming: true,
     tool_calling: true,
@@ -3921,6 +3954,27 @@ mod tests {
         assert_eq!(EXTRA_PROVIDER_AUTH_ENV_VARS, &["MINIMAX_CODE_PLAN_KEY"]);
         assert!(PROVIDER_USAGE_LABELS.contains(&("openai-codex", "Codex")));
         assert!(PROVIDER_USAGE_LABELS.contains(&("zai", "z.ai")));
+        assert_eq!(PROVIDER_ATTRIBUTION_PRODUCT, "CrawClaw");
+        assert_eq!(PROVIDER_ATTRIBUTION_ORIGINATOR, "crawclaw");
+        assert_eq!(
+            LOCAL_ENDPOINT_HOSTS,
+            &["localhost", "127.0.0.1", "::1", "[::1]"]
+        );
+        assert!(MOONSHOT_NATIVE_BASE_URLS.contains(&"https://api.moonshot.ai/v1"));
+        assert!(MODELSTUDIO_NATIVE_BASE_URLS
+            .contains(&"https://dashscope.aliyuncs.com/compatible-mode/v1"));
+        assert_eq!(
+            OPENAI_RESPONSES_APIS,
+            &["openai-responses", "azure-openai-responses"]
+        );
+        assert_eq!(
+            OPENAI_RESPONSES_PROVIDERS,
+            &["openai", "azure-openai", "azure-openai-responses"]
+        );
+        assert_eq!(MOONSHOT_COMPAT_PROVIDERS, &["moonshot", "kimi"]);
+        assert!(KNOWN_PROVIDER_FAMILIES.contains(&("openai-codex", "openai-family")));
+        assert!(KNOWN_PROVIDER_FAMILIES.contains(&("kimi", "moonshot")));
+        assert!(KNOWN_PROVIDER_FAMILIES.contains(&("dashscope", "modelstudio")));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("magistral-small", 40_000)));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("mistral-medium-2508", 8_192)));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);

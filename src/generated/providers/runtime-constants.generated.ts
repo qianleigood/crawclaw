@@ -137,6 +137,43 @@ export const PROVIDER_USAGE_LABELS = {
   xiaomi: "Xiaomi",
   zai: "z.ai",
 } as const satisfies Readonly<Record<string, string>>;
+export const PROVIDER_ATTRIBUTION_PRODUCT = "CrawClaw";
+export const PROVIDER_ATTRIBUTION_ORIGINATOR = "crawclaw";
+export const LOCAL_ENDPOINT_HOSTS = ["localhost", "127.0.0.1", "::1", "[::1]"] as const;
+export const MOONSHOT_NATIVE_BASE_URLS = [
+  "https://api.moonshot.ai/v1",
+  "https://api.moonshot.cn/v1",
+] as const;
+export const MODELSTUDIO_NATIVE_BASE_URLS = [
+  "https://coding-intl.dashscope.aliyuncs.com/v1",
+  "https://coding.dashscope.aliyuncs.com/v1",
+  "https://dashscope.aliyuncs.com/compatible-mode/v1",
+  "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+] as const;
+export const OPENAI_RESPONSES_APIS = ["openai-responses", "azure-openai-responses"] as const;
+export const OPENAI_RESPONSES_PROVIDERS = [
+  "openai",
+  "azure-openai",
+  "azure-openai-responses",
+] as const;
+export const MOONSHOT_COMPAT_PROVIDERS = ["moonshot", "kimi"] as const;
+export const KNOWN_PROVIDER_FAMILIES = {
+  anthropic: "anthropic",
+  "azure-openai": "openai-family",
+  "azure-openai-responses": "openai-family",
+  dashscope: "modelstudio",
+  "github-copilot": "github-copilot",
+  google: "google",
+  groq: "groq",
+  kimi: "moonshot",
+  mistral: "mistral",
+  modelstudio: "modelstudio",
+  moonshot: "moonshot",
+  openai: "openai-family",
+  "openai-codex": "openai-family",
+  openrouter: "openrouter",
+  together: "together",
+} as const satisfies Readonly<Record<string, string>>;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
   "devstral-medium-latest": 32768,
   "magistral-small": 40000,

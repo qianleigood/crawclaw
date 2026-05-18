@@ -1,3 +1,14 @@
+import {
+  KNOWN_PROVIDER_FAMILIES,
+  LOCAL_ENDPOINT_HOSTS as LOCAL_ENDPOINT_HOST_VALUES,
+  MODELSTUDIO_NATIVE_BASE_URLS as MODELSTUDIO_NATIVE_BASE_URL_VALUES,
+  MOONSHOT_COMPAT_PROVIDERS as MOONSHOT_COMPAT_PROVIDER_VALUES,
+  MOONSHOT_NATIVE_BASE_URLS as MOONSHOT_NATIVE_BASE_URL_VALUES,
+  OPENAI_RESPONSES_APIS as OPENAI_RESPONSES_API_VALUES,
+  OPENAI_RESPONSES_PROVIDERS as OPENAI_RESPONSES_PROVIDER_VALUES,
+  PROVIDER_ATTRIBUTION_ORIGINATOR,
+  PROVIDER_ATTRIBUTION_PRODUCT,
+} from "../generated/providers/runtime-constants.generated.js";
 import type { RuntimeVersionEnv } from "../version.js";
 import { resolveRuntimeServiceVersion } from "../version.js";
 import { normalizeProviderId } from "./provider-id.js";
@@ -96,26 +107,16 @@ export type ProviderRequestCapabilities = ProviderRequestPolicyResolution & {
   compatibilityFamily?: ProviderRequestCompatibilityFamily;
 };
 
-const CRAWCLAW_ATTRIBUTION_PRODUCT = "CrawClaw";
-const CRAWCLAW_ATTRIBUTION_ORIGINATOR = "crawclaw";
-
-const LOCAL_ENDPOINT_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-const MOONSHOT_NATIVE_BASE_URLS = new Set([
-  "https://api.moonshot.ai/v1",
-  "https://api.moonshot.cn/v1",
-]);
-const MODELSTUDIO_NATIVE_BASE_URLS = new Set([
-  "https://coding-intl.dashscope.aliyuncs.com/v1",
-  "https://coding.dashscope.aliyuncs.com/v1",
-  "https://dashscope.aliyuncs.com/compatible-mode/v1",
-  "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
-]);
-const OPENAI_RESPONSES_APIS = new Set(["openai-responses", "azure-openai-responses"]);
-const OPENAI_RESPONSES_PROVIDERS = new Set(["openai", "azure-openai", "azure-openai-responses"]);
-const MOONSHOT_COMPAT_PROVIDERS = new Set(["moonshot", "kimi"]);
+const LOCAL_ENDPOINT_HOSTS = new Set<string>(LOCAL_ENDPOINT_HOST_VALUES);
+const MOONSHOT_NATIVE_BASE_URLS = new Set<string>(MOONSHOT_NATIVE_BASE_URL_VALUES);
+const MODELSTUDIO_NATIVE_BASE_URLS = new Set<string>(MODELSTUDIO_NATIVE_BASE_URL_VALUES);
+const OPENAI_RESPONSES_APIS = new Set<string>(OPENAI_RESPONSES_API_VALUES);
+const OPENAI_RESPONSES_PROVIDERS = new Set<string>(OPENAI_RESPONSES_PROVIDER_VALUES);
+const MOONSHOT_COMPAT_PROVIDERS = new Set<string>(MOONSHOT_COMPAT_PROVIDER_VALUES);
+const KNOWN_PROVIDER_FAMILY_BY_ID: Readonly<Record<string, string>> = KNOWN_PROVIDER_FAMILIES;
 
 function formatCrawClawUserAgent(version: string): string {
-  return `${CRAWCLAW_ATTRIBUTION_ORIGINATOR}/${version}`;
+  return `${PROVIDER_ATTRIBUTION_ORIGINATOR}/${version}`;
 }
 
 function tryParseHostname(value: string): string | undefined {
@@ -239,42 +240,14 @@ export function resolveProviderEndpoint(
 }
 
 function resolveKnownProviderFamily(provider: string | undefined): string {
-  switch (provider) {
-    case "openai":
-    case "openai-codex":
-    case "azure-openai":
-    case "azure-openai-responses":
-      return "openai-family";
-    case "openrouter":
-      return "openrouter";
-    case "anthropic":
-      return "anthropic";
-    case "google":
-      return "google";
-    case "moonshot":
-    case "kimi":
-      return "moonshot";
-    case "modelstudio":
-    case "dashscope":
-      return "modelstudio";
-    case "github-copilot":
-      return "github-copilot";
-    case "groq":
-      return "groq";
-    case "mistral":
-      return "mistral";
-    case "together":
-      return "together";
-    default:
-      return provider || "unknown";
-  }
+  return provider ? (KNOWN_PROVIDER_FAMILY_BY_ID[provider] ?? provider) : "unknown";
 }
 
 export function resolveProviderAttributionIdentity(
   env: RuntimeVersionEnv = process.env as RuntimeVersionEnv,
 ): ProviderAttributionIdentity {
   return {
-    product: CRAWCLAW_ATTRIBUTION_PRODUCT,
+    product: PROVIDER_ATTRIBUTION_PRODUCT,
     version: resolveRuntimeServiceVersion(env),
   };
 }
@@ -312,7 +285,7 @@ function buildOpenAIAttributionPolicy(
       "OpenAI native traffic supports hidden originator/User-Agent attribution. Verified against the Codex wire contract.",
     ...identity,
     headers: {
-      originator: CRAWCLAW_ATTRIBUTION_ORIGINATOR,
+      originator: PROVIDER_ATTRIBUTION_ORIGINATOR,
       version: identity.version,
       "User-Agent": formatCrawClawUserAgent(identity.version),
     },
@@ -332,7 +305,7 @@ function buildOpenAICodexAttributionPolicy(
       "OpenAI Codex ChatGPT-backed traffic supports the same hidden originator/User-Agent attribution contract.",
     ...identity,
     headers: {
-      originator: CRAWCLAW_ATTRIBUTION_ORIGINATOR,
+      originator: PROVIDER_ATTRIBUTION_ORIGINATOR,
       version: identity.version,
       "User-Agent": formatCrawClawUserAgent(identity.version),
     },

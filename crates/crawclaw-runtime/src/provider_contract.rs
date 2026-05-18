@@ -258,6 +258,15 @@ export const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {core_provider_auth_env_var
 export const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {core_provider_setup_env_var_overrides} as const satisfies Readonly<Record<string, readonly string[]>>;
 export const EXTRA_PROVIDER_AUTH_ENV_VARS = {extra_provider_auth_env_vars} as const;
 export const PROVIDER_USAGE_LABELS = {provider_usage_labels} as const satisfies Readonly<Record<string, string>>;
+export const PROVIDER_ATTRIBUTION_PRODUCT = {provider_attribution_product};
+export const PROVIDER_ATTRIBUTION_ORIGINATOR = {provider_attribution_originator};
+export const LOCAL_ENDPOINT_HOSTS = {local_endpoint_hosts} as const;
+export const MOONSHOT_NATIVE_BASE_URLS = {moonshot_native_base_urls} as const;
+export const MODELSTUDIO_NATIVE_BASE_URLS = {modelstudio_native_base_urls} as const;
+export const OPENAI_RESPONSES_APIS = {openai_responses_apis} as const;
+export const OPENAI_RESPONSES_PROVIDERS = {openai_responses_providers} as const;
+export const MOONSHOT_COMPAT_PROVIDERS = {moonshot_compat_providers} as const;
+export const KNOWN_PROVIDER_FAMILIES = {known_provider_families} as const satisfies Readonly<Record<string, string>>;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {mistral_safe_max_tokens_by_model} as const satisfies Readonly<Record<string, number>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = {anthropic_vertex_default_region};
@@ -323,6 +332,24 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             render_static_string_array_inline(crawclaw_providers::EXTRA_PROVIDER_AUTH_ENV_VARS),
         provider_usage_labels =
             render_static_string_record(crawclaw_providers::PROVIDER_USAGE_LABELS),
+        provider_attribution_product =
+            json_string(crawclaw_providers::PROVIDER_ATTRIBUTION_PRODUCT),
+        provider_attribution_originator =
+            json_string(crawclaw_providers::PROVIDER_ATTRIBUTION_ORIGINATOR),
+        local_endpoint_hosts =
+            render_static_string_array_inline(crawclaw_providers::LOCAL_ENDPOINT_HOSTS),
+        moonshot_native_base_urls =
+            render_static_string_array(crawclaw_providers::MOONSHOT_NATIVE_BASE_URLS),
+        modelstudio_native_base_urls =
+            render_static_string_array(crawclaw_providers::MODELSTUDIO_NATIVE_BASE_URLS),
+        openai_responses_apis =
+            render_static_string_array_inline(crawclaw_providers::OPENAI_RESPONSES_APIS),
+        openai_responses_providers =
+            render_static_string_array(crawclaw_providers::OPENAI_RESPONSES_PROVIDERS),
+        moonshot_compat_providers =
+            render_static_string_array_inline(crawclaw_providers::MOONSHOT_COMPAT_PROVIDERS),
+        known_provider_families =
+            render_static_string_record(crawclaw_providers::KNOWN_PROVIDER_FAMILIES),
         mistral_safe_max_tokens_by_model =
             render_static_u32_record(crawclaw_providers::MISTRAL_SAFE_MAX_TOKENS_BY_MODEL),
         default_claude_cli_model = json_string(crawclaw_providers::DEFAULT_CLAUDE_CLI_MODEL),
@@ -978,6 +1005,26 @@ mod tests {
         assert!(source.contains("export const PROVIDER_USAGE_LABELS = {"));
         assert!(source.contains("\"openai-codex\": \"Codex\""));
         assert!(source.contains("zai: \"z.ai\""));
+        assert!(source.contains("export const PROVIDER_ATTRIBUTION_PRODUCT = \"CrawClaw\";"));
+        assert!(source.contains("export const PROVIDER_ATTRIBUTION_ORIGINATOR = \"crawclaw\";"));
+        assert!(source
+            .contains("export const LOCAL_ENDPOINT_HOSTS = [\"localhost\", \"127.0.0.1\", \"::1\", \"[::1]\"] as const;"));
+        assert!(source.contains("export const MOONSHOT_NATIVE_BASE_URLS = ["));
+        assert!(source.contains("\"https://api.moonshot.ai/v1\""));
+        assert!(source.contains("export const MODELSTUDIO_NATIVE_BASE_URLS = ["));
+        assert!(source.contains("\"https://dashscope.aliyuncs.com/compatible-mode/v1\""));
+        assert!(source.contains(
+            "export const OPENAI_RESPONSES_APIS = [\"openai-responses\", \"azure-openai-responses\"] as const;"
+        ));
+        assert!(source.contains("export const OPENAI_RESPONSES_PROVIDERS = ["));
+        assert!(source.contains("\"azure-openai-responses\""));
+        assert!(source.contains(
+            "export const MOONSHOT_COMPAT_PROVIDERS = [\"moonshot\", \"kimi\"] as const;"
+        ));
+        assert!(source.contains("export const KNOWN_PROVIDER_FAMILIES = {"));
+        assert!(source.contains("\"openai-codex\": \"openai-family\""));
+        assert!(source.contains("kimi: \"moonshot\""));
+        assert!(source.contains("dashscope: \"modelstudio\""));
         assert!(source.contains("\"magistral-small\": 40000"));
         assert!(source.contains("\"mistral-medium-2508\": 8192"));
         assert!(source.contains("export const ANTHROPIC_VERTEX_DEFAULT_REGION = \"global\";"));
