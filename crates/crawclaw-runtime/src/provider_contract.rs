@@ -239,6 +239,11 @@ export const AGENT_DEFAULT_CONTEXT_TOKENS = {agent_default_context_tokens};
 export const AGENT_DEFAULT_MODEL_ALIASES = {agent_default_model_aliases} as const satisfies Readonly<Record<string, string>>;
 export const PROVIDER_ID_ALIASES = {provider_id_aliases} as const satisfies Readonly<Record<string, string>>;
 export const PROVIDER_AUTH_ID_ALIASES = {provider_auth_id_aliases} as const satisfies Readonly<Record<string, string>>;
+export const ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN = {anthropic_adaptive_thinking_model_pattern};
+export const AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN = {amazon_bedrock_adaptive_thinking_model_pattern};
+export const OPENAI_XHIGH_THINKING_MODEL_IDS = {openai_xhigh_thinking_model_ids} as const;
+export const OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS = {openai_codex_xhigh_thinking_model_ids} as const;
+export const GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS = {github_copilot_xhigh_thinking_model_ids} as const;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = {anthropic_vertex_default_region};
 export const ANTHROPIC_VERTEX_CREDENTIALS_MARKER = {anthropic_vertex_credentials_marker};
@@ -266,6 +271,17 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         provider_id_aliases = render_static_string_record(crawclaw_providers::PROVIDER_ID_ALIASES),
         provider_auth_id_aliases =
             render_static_string_record(crawclaw_providers::PROVIDER_AUTH_ID_ALIASES),
+        anthropic_adaptive_thinking_model_pattern =
+            json_string(crawclaw_providers::ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN),
+        amazon_bedrock_adaptive_thinking_model_pattern =
+            json_string(crawclaw_providers::AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN),
+        openai_xhigh_thinking_model_ids =
+            render_static_string_array(crawclaw_providers::OPENAI_XHIGH_THINKING_MODEL_IDS),
+        openai_codex_xhigh_thinking_model_ids =
+            render_static_string_array(crawclaw_providers::OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS),
+        github_copilot_xhigh_thinking_model_ids = render_static_string_array(
+            crawclaw_providers::GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS,
+        ),
         default_claude_cli_model = json_string(crawclaw_providers::DEFAULT_CLAUDE_CLI_MODEL),
         anthropic_vertex_default_region =
             json_string(crawclaw_providers::ANTHROPIC_VERTEX_DEFAULT_REGION),
@@ -674,6 +690,15 @@ mod tests {
         assert!(source.contains("doubao: \"volcengine\""));
         assert!(source.contains("\"volcengine-plan\": \"volcengine\""));
         assert!(source.contains("\"byteplus-plan\": \"byteplus\""));
+        assert!(source.contains(
+            "export const ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN = \"^claude-(?:opus|sonnet)-4"
+        ));
+        assert!(source.contains(
+            "export const AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN = \"claude-(?:opus|sonnet)-4"
+        ));
+        assert!(source.contains("export const OPENAI_XHIGH_THINKING_MODEL_IDS = ["));
+        assert!(source.contains("\"gpt-5.3-codex-spark\""));
+        assert!(source.contains("\"gpt-5.2-codex\""));
         assert!(source.contains("export const ANTHROPIC_VERTEX_DEFAULT_REGION = \"global\";"));
         assert!(
             source.contains("export const OLLAMA_DEFAULT_BASE_URL = \"http://127.0.0.1:11434\";")

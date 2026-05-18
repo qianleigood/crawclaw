@@ -29,6 +29,24 @@ export const PROVIDER_AUTH_ID_ALIASES = {
   "byteplus-plan": "byteplus",
   "volcengine-plan": "volcengine",
 } as const satisfies Readonly<Record<string, string>>;
+export const ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN =
+  "^claude-(?:opus|sonnet)-4(?:\\.|-)6(?:$|[-.])";
+export const AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN =
+  "claude-(?:opus|sonnet)-4(?:\\.|-)6(?:$|[-.])";
+export const OPENAI_XHIGH_THINKING_MODEL_IDS = [
+  "gpt-5.4",
+  "gpt-5.4-pro",
+  "gpt-5.4-mini",
+  "gpt-5.4-nano",
+  "gpt-5.2",
+] as const;
+export const OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS = [
+  "gpt-5.4",
+  "gpt-5.3-codex-spark",
+  "gpt-5.2-codex",
+  "gpt-5.1-codex",
+] as const;
+export const GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS = ["gpt-5.2", "gpt-5.2-codex"] as const;
 export const DEFAULT_CLAUDE_CLI_MODEL = "claude-cli/claude-sonnet-4-6";
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = "global";
 export const ANTHROPIC_VERTEX_CREDENTIALS_MARKER = "gcp-vertex-credentials";

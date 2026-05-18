@@ -1244,6 +1244,24 @@ pub const PROVIDER_AUTH_ID_ALIASES: &[(&str, &str)] = &[
     ("volcengine-plan", "volcengine"),
     ("byteplus-plan", "byteplus"),
 ];
+pub const ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN: &str =
+    r#"^claude-(?:opus|sonnet)-4(?:\.|-)6(?:$|[-.])"#;
+pub const AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN: &str =
+    r#"claude-(?:opus|sonnet)-4(?:\.|-)6(?:$|[-.])"#;
+pub const OPENAI_XHIGH_THINKING_MODEL_IDS: &[&str] = &[
+    "gpt-5.4",
+    "gpt-5.4-pro",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
+    "gpt-5.2",
+];
+pub const OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS: &[&str] = &[
+    "gpt-5.4",
+    "gpt-5.3-codex-spark",
+    "gpt-5.2-codex",
+    "gpt-5.1-codex",
+];
+pub const GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS: &[&str] = &["gpt-5.2", "gpt-5.2-codex"];
 pub const DEFAULT_CLAUDE_CLI_MODEL: &str = "claude-cli/claude-sonnet-4-6";
 pub const ANTHROPIC_VERTEX_DEFAULT_REGION: &str = "global";
 pub const ANTHROPIC_VERTEX_CREDENTIALS_MARKER: &str = "gcp-vertex-credentials";
@@ -3623,6 +3641,11 @@ mod tests {
         assert!(PROVIDER_ID_ALIASES.contains(&("doubao", "volcengine")));
         assert!(PROVIDER_AUTH_ID_ALIASES.contains(&("volcengine-plan", "volcengine")));
         assert!(PROVIDER_AUTH_ID_ALIASES.contains(&("byteplus-plan", "byteplus")));
+        assert!(ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN.contains("opus|sonnet"));
+        assert!(AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN.contains("opus|sonnet"));
+        assert!(OPENAI_XHIGH_THINKING_MODEL_IDS.contains(&"gpt-5.4"));
+        assert!(OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS.contains(&"gpt-5.3-codex-spark"));
+        assert!(GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS.contains(&"gpt-5.2-codex"));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
         assert_eq!(OLLAMA_DEFAULT_MAX_TOKENS, 8_192);
         assert_eq!(OLLAMA_DEFAULT_MODEL, "glm-4.7-flash");
