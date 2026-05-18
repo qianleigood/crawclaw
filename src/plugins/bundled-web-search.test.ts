@@ -2,18 +2,18 @@ import { beforeAll, describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { BUNDLED_WEB_SEARCH_PLUGIN_IDS } from "./bundled-capability-metadata.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
-import { isApiKeylessBundledWebSearchPluginId } from "./web-search-provider-policy.js";
 
 let hasBundledWebSearchCredential: typeof import("./bundled-web-search-registry.js").hasBundledWebSearchCredential;
 let listBundledWebSearchProviders: typeof import("./bundled-web-search.js").listBundledWebSearchProviders;
 let resolveBundledWebSearchPluginIds: typeof import("./bundled-web-search.js").resolveBundledWebSearchPluginIds;
 
 function resolveManifestBundledWebSearchPluginIds() {
+  const bundledWebSearchPluginIds = new Set(BUNDLED_WEB_SEARCH_PLUGIN_IDS);
   return loadPluginManifestRegistry({})
     .plugins.filter(
       (plugin) =>
         plugin.origin === "bundled" &&
-        isApiKeylessBundledWebSearchPluginId(plugin.id) &&
+        bundledWebSearchPluginIds.has(plugin.id) &&
         (plugin.contracts?.webSearchProviders?.length ?? 0) > 0,
     )
     .map((plugin) => plugin.id)
