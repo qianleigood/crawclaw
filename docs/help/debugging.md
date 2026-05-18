@@ -31,26 +31,15 @@ Examples:
 
 ## Gateway watch mode
 
-For fast iteration, run the gateway under the file watcher:
+For fast iteration, use CrawClaw Desktop dev mode or the embedded Gateway API target:
 
 ```bash
 # Use CrawClaw Desktop dev mode or run the embedded Gateway API target.
 ```
 
-This maps to:
-
-```bash
-node scripts/watch-node.mjs gateway --force
-```
-
-The watcher restarts on build-relevant files under `src/`, extension source files,
-extension `package.json` and `crawclaw.plugin.json` metadata, `tsconfig.json`,
-and `package.json`. Extension metadata changes restart the gateway without
-forcing a package postbuild pass; source and config changes still rebuild
-`dist` first.
-
-Add any gateway CLI flags after `desktop Gateway dev mode` and they will be passed through on
-each restart.
+The old standalone Node watcher has been removed. Desktop development should go
+through the app-owned Gateway path so it exercises the same runtime boundary as
+the packaged desktop product.
 
 ## Dev profile + dev gateway (--dev)
 
