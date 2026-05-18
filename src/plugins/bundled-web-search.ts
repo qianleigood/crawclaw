@@ -4,17 +4,6 @@ import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import type { PluginWebSearchProviderEntry } from "./types.js";
 
-type BundledWebSearchProviderEntry = PluginWebSearchProviderEntry & { pluginId: string };
-
-let bundledWebSearchProvidersCache: BundledWebSearchProviderEntry[] | null = null;
-
-function loadBundledWebSearchProviders(): BundledWebSearchProviderEntry[] {
-  if (!bundledWebSearchProvidersCache) {
-    bundledWebSearchProvidersCache = [];
-  }
-  return bundledWebSearchProvidersCache;
-}
-
 export function resolveBundledWebSearchPluginIds(params: {
   config?: PluginLoadOptions["config"];
   workspaceDir?: string;
@@ -38,7 +27,7 @@ export function listBundledWebSearchPluginIds(): string[] {
 }
 
 export function listBundledWebSearchProviders(): PluginWebSearchProviderEntry[] {
-  return loadBundledWebSearchProviders();
+  return [];
 }
 
 export function resolveBundledWebSearchPluginId(
