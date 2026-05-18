@@ -1,4 +1,10 @@
 import type { CrawClawConfig } from "../config/config.js";
+import {
+  OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS,
+  OPENAI_COMPATIBLE_TURN_VALIDATION_API,
+  TRANSCRIPT_ANTHROPIC_MODEL_APIS,
+  TRANSCRIPT_OPENAI_MODEL_APIS,
+} from "../generated/providers/runtime-constants.generated.js";
 import { normalizeProviderId } from "./model-selection.js";
 import {
   isAnthropicProviderFamily,
@@ -33,12 +39,11 @@ export type TranscriptPolicy = {
   allowSyntheticToolResults: boolean;
 };
 
-const OPENAI_MODEL_APIS = new Set([
-  "openai",
-  "openai-completions",
-  "openai-responses",
-  "openai-codex-responses",
-]);
+const OPENAI_MODEL_APIS = new Set<string>(TRANSCRIPT_OPENAI_MODEL_APIS);
+const ANTHROPIC_MODEL_APIS = new Set<string>(TRANSCRIPT_ANTHROPIC_MODEL_APIS);
+const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_API_SET = new Set<string>(
+  OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS,
+);
 
 function isOpenAiApi(modelApi?: string | null): boolean {
   if (!modelApi) {
@@ -52,7 +57,7 @@ function isOpenAiProvider(provider?: string | null): boolean {
 }
 
 function isAnthropicApi(modelApi?: string | null, provider?: string | null): boolean {
-  if (modelApi === "anthropic-messages" || modelApi === "bedrock-converse-stream") {
+  if (modelApi && ANTHROPIC_MODEL_APIS.has(modelApi)) {
     return true;
   }
   // MiniMax now uses openai-completions API, not anthropic-messages
@@ -74,7 +79,7 @@ export function resolveTranscriptPolicy(params: {
   const isAnthropic = isAnthropicApi(params.modelApi, provider);
   const isOpenAi = isOpenAiProvider(provider) || (!provider && isOpenAiApi(params.modelApi));
   const isStrictOpenAiCompatible =
-    params.modelApi === "openai-completions" &&
+    params.modelApi === OPENAI_COMPATIBLE_TURN_VALIDATION_API &&
     !isOpenAi &&
     supportsOpenAiCompatTurnValidation(provider);
   const providerToolCallIdMode = resolveTranscriptToolCallIdMode(provider, modelId);
@@ -85,11 +90,9 @@ export function resolveTranscriptPolicy(params: {
       modelId,
     });
   const requiresOpenAiCompatibleToolIdSanitization =
-    params.modelApi === "openai-completions" ||
-    (!isOpenAi &&
-      (params.modelApi === "openai-responses" ||
-        params.modelApi === "openai-codex-responses" ||
-        params.modelApi === "azure-openai-responses"));
+    params.modelApi != null &&
+    OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_API_SET.has(params.modelApi) &&
+    (params.modelApi === OPENAI_COMPATIBLE_TURN_VALIDATION_API || !isOpenAi);
 
   // Anthropic Claude endpoints can reject replayed `thinking` blocks unless the
   // original signatures are preserved byte-for-byte. Drop them at send-time to

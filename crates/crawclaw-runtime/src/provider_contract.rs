@@ -266,6 +266,10 @@ export const MODELSTUDIO_NATIVE_BASE_URLS = {modelstudio_native_base_urls} as co
 export const OPENAI_RESPONSES_APIS = {openai_responses_apis} as const;
 export const OPENAI_RESPONSES_PROVIDERS = {openai_responses_providers} as const;
 export const MOONSHOT_COMPAT_PROVIDERS = {moonshot_compat_providers} as const;
+export const TRANSCRIPT_OPENAI_MODEL_APIS = {transcript_openai_model_apis} as const;
+export const TRANSCRIPT_ANTHROPIC_MODEL_APIS = {transcript_anthropic_model_apis} as const;
+export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = {openai_compatible_turn_validation_api};
+export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = {openai_compatible_tool_id_sanitization_apis} as const;
 export const KNOWN_PROVIDER_FAMILIES = {known_provider_families} as const satisfies Readonly<Record<string, string>>;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {mistral_safe_max_tokens_by_model} as const satisfies Readonly<Record<string, number>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
@@ -348,6 +352,15 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             render_static_string_array(crawclaw_providers::OPENAI_RESPONSES_PROVIDERS),
         moonshot_compat_providers =
             render_static_string_array_inline(crawclaw_providers::MOONSHOT_COMPAT_PROVIDERS),
+        transcript_openai_model_apis =
+            render_static_string_array(crawclaw_providers::TRANSCRIPT_OPENAI_MODEL_APIS),
+        transcript_anthropic_model_apis =
+            render_static_string_array(crawclaw_providers::TRANSCRIPT_ANTHROPIC_MODEL_APIS),
+        openai_compatible_turn_validation_api =
+            json_string(crawclaw_providers::OPENAI_COMPATIBLE_TURN_VALIDATION_API),
+        openai_compatible_tool_id_sanitization_apis = render_static_string_array(
+            crawclaw_providers::OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS,
+        ),
         known_provider_families =
             render_static_string_record(crawclaw_providers::KNOWN_PROVIDER_FAMILIES),
         mistral_safe_max_tokens_by_model =
@@ -1021,6 +1034,15 @@ mod tests {
         assert!(source.contains(
             "export const MOONSHOT_COMPAT_PROVIDERS = [\"moonshot\", \"kimi\"] as const;"
         ));
+        assert!(source.contains("export const TRANSCRIPT_OPENAI_MODEL_APIS = ["));
+        assert!(source.contains("\"openai-codex-responses\""));
+        assert!(source.contains("export const TRANSCRIPT_ANTHROPIC_MODEL_APIS = ["));
+        assert!(source.contains("\"bedrock-converse-stream\""));
+        assert!(source.contains(
+            "export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = \"openai-completions\";"
+        ));
+        assert!(source.contains("export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = ["));
+        assert!(source.contains("\"azure-openai-responses\""));
         assert!(source.contains("export const KNOWN_PROVIDER_FAMILIES = {"));
         assert!(source.contains("\"openai-codex\": \"openai-family\""));
         assert!(source.contains("kimi: \"moonshot\""));

@@ -157,6 +157,23 @@ export const OPENAI_RESPONSES_PROVIDERS = [
   "azure-openai-responses",
 ] as const;
 export const MOONSHOT_COMPAT_PROVIDERS = ["moonshot", "kimi"] as const;
+export const TRANSCRIPT_OPENAI_MODEL_APIS = [
+  "openai",
+  "openai-completions",
+  "openai-responses",
+  "openai-codex-responses",
+] as const;
+export const TRANSCRIPT_ANTHROPIC_MODEL_APIS = [
+  "anthropic-messages",
+  "bedrock-converse-stream",
+] as const;
+export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = "openai-completions";
+export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = [
+  "openai-completions",
+  "openai-responses",
+  "openai-codex-responses",
+  "azure-openai-responses",
+] as const;
 export const KNOWN_PROVIDER_FAMILIES = {
   anthropic: "anthropic",
   "azure-openai": "openai-family",

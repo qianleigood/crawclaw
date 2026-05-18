@@ -741,6 +741,21 @@ pub const OPENAI_RESPONSES_APIS: &[&str] = &["openai-responses", "azure-openai-r
 pub const OPENAI_RESPONSES_PROVIDERS: &[&str] =
     &["openai", "azure-openai", "azure-openai-responses"];
 pub const MOONSHOT_COMPAT_PROVIDERS: &[&str] = &["moonshot", "kimi"];
+pub const TRANSCRIPT_OPENAI_MODEL_APIS: &[&str] = &[
+    "openai",
+    "openai-completions",
+    "openai-responses",
+    "openai-codex-responses",
+];
+pub const TRANSCRIPT_ANTHROPIC_MODEL_APIS: &[&str] =
+    &["anthropic-messages", "bedrock-converse-stream"];
+pub const OPENAI_COMPATIBLE_TURN_VALIDATION_API: &str = "openai-completions";
+pub const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS: &[&str] = &[
+    "openai-completions",
+    "openai-responses",
+    "openai-codex-responses",
+    "azure-openai-responses",
+];
 pub const KNOWN_PROVIDER_FAMILIES: &[(&str, &str)] = &[
     ("anthropic", "anthropic"),
     ("azure-openai", "openai-family"),
@@ -3972,6 +3987,29 @@ mod tests {
             &["openai", "azure-openai", "azure-openai-responses"]
         );
         assert_eq!(MOONSHOT_COMPAT_PROVIDERS, &["moonshot", "kimi"]);
+        assert_eq!(
+            TRANSCRIPT_OPENAI_MODEL_APIS,
+            &[
+                "openai",
+                "openai-completions",
+                "openai-responses",
+                "openai-codex-responses"
+            ]
+        );
+        assert_eq!(
+            TRANSCRIPT_ANTHROPIC_MODEL_APIS,
+            &["anthropic-messages", "bedrock-converse-stream"]
+        );
+        assert_eq!(OPENAI_COMPATIBLE_TURN_VALIDATION_API, "openai-completions");
+        assert_eq!(
+            OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS,
+            &[
+                "openai-completions",
+                "openai-responses",
+                "openai-codex-responses",
+                "azure-openai-responses"
+            ]
+        );
         assert!(KNOWN_PROVIDER_FAMILIES.contains(&("openai-codex", "openai-family")));
         assert!(KNOWN_PROVIDER_FAMILIES.contains(&("kimi", "moonshot")));
         assert!(KNOWN_PROVIDER_FAMILIES.contains(&("dashscope", "modelstudio")));
