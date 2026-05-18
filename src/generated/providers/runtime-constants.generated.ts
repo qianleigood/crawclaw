@@ -4,6 +4,15 @@ export const CLAUDE_CLI_BACKEND_ID = "claude-cli";
 export const AGENT_DEFAULT_PROVIDER = "anthropic";
 export const AGENT_DEFAULT_MODEL = "claude-opus-4-6";
 export const AGENT_DEFAULT_CONTEXT_TOKENS = 200000;
+export const AGENT_DEFAULT_MODEL_ALIASES = {
+  gemini: "google/gemini-3.1-pro-preview",
+  "gemini-flash": "google/gemini-3-flash-preview",
+  "gemini-flash-lite": "google/gemini-3.1-flash-lite-preview",
+  gpt: "openai/gpt-5.4",
+  "gpt-mini": "openai/gpt-5-mini",
+  opus: "anthropic/claude-opus-4-6",
+  sonnet: "anthropic/claude-sonnet-4-6",
+} as const satisfies Readonly<Record<string, string>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = "claude-cli/claude-sonnet-4-6";
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = "global";
 export const ANTHROPIC_VERTEX_CREDENTIALS_MARKER = "gcp-vertex-credentials";

@@ -655,7 +655,9 @@ mod tests {
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"config.apply"));
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"sessions.spawn"));
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"memory.afterTurn"));
-        assert!(!GATEWAY_PROTOCOL_METHODS.iter().any(|method| method.starts_with("wizard.")));
+        assert!(!GATEWAY_PROTOCOL_METHODS
+            .iter()
+            .any(|method| method.starts_with("wizard.")));
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"session.message"));
         assert!(GATEWAY_PROTOCOL_EVENTS.contains(&"cron"));
 

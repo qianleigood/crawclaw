@@ -1219,6 +1219,15 @@ pub const CLAUDE_CLI_BACKEND_ID: &str = "claude-cli";
 pub const AGENT_DEFAULT_PROVIDER: &str = "anthropic";
 pub const AGENT_DEFAULT_MODEL: &str = "claude-opus-4-6";
 pub const AGENT_DEFAULT_CONTEXT_TOKENS: u32 = 200_000;
+pub const AGENT_DEFAULT_MODEL_ALIASES: &[(&str, &str)] = &[
+    ("opus", "anthropic/claude-opus-4-6"),
+    ("sonnet", "anthropic/claude-sonnet-4-6"),
+    ("gpt", "openai/gpt-5.4"),
+    ("gpt-mini", "openai/gpt-5-mini"),
+    ("gemini", "google/gemini-3.1-pro-preview"),
+    ("gemini-flash", "google/gemini-3-flash-preview"),
+    ("gemini-flash-lite", "google/gemini-3.1-flash-lite-preview"),
+];
 pub const DEFAULT_CLAUDE_CLI_MODEL: &str = "claude-cli/claude-sonnet-4-6";
 pub const ANTHROPIC_VERTEX_DEFAULT_REGION: &str = "global";
 pub const ANTHROPIC_VERTEX_CREDENTIALS_MARKER: &str = "gcp-vertex-credentials";

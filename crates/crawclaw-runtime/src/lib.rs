@@ -39,9 +39,9 @@ pub use package_build::{
 };
 pub use provider_contract::{
     render_bundled_capability_metadata_module, render_bundled_provider_auth_env_var_module,
-    render_provider_runtime_constants_module,
-    write_bundled_capability_metadata_module, write_bundled_provider_auth_env_var_module,
-    write_provider_runtime_constants_module, GeneratedModuleWriteResult,
+    render_provider_runtime_constants_module, write_bundled_capability_metadata_module,
+    write_bundled_provider_auth_env_var_module, write_provider_runtime_constants_module,
+    GeneratedModuleWriteResult,
 };
 
 pub use crawclaw_channels::{
