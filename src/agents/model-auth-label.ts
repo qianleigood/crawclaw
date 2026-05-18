@@ -53,7 +53,7 @@ export function resolveModelAuthLabel(params: {
 
   const envKey = resolveEnvApiKey(providerKey);
   if (envKey?.apiKey) {
-    if (envKey.source.includes("OAUTH_TOKEN")) {
+    if (envKey.mode === "oauth") {
       return `oauth (${envKey.source})`;
     }
     return `api-key (${envKey.source})`;

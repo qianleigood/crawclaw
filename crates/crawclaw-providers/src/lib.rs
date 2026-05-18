@@ -741,11 +741,13 @@ pub const LEGACY_ENV_API_KEY_MARKERS: &[&str] = &[
     "MINIMAX_CODE_PLAN_KEY",
 ];
 pub const ANTHROPIC_PROVIDER_ID: &str = "anthropic";
+pub const ANTHROPIC_VERTEX_PROVIDER_ID: &str = "anthropic-vertex";
 pub const AMAZON_BEDROCK_PROVIDER_ID: &str = "amazon-bedrock";
 pub const GITHUB_COPILOT_PROVIDER_ID: &str = "github-copilot";
 pub const GOOGLE_PROVIDER_ID: &str = "google";
 pub const GOOGLE_VERTEX_PROVIDER_ID: &str = "google-vertex";
 pub const GROQ_PROVIDER_ID: &str = "groq";
+pub const KILOCODE_PROVIDER_ID: &str = "kilocode";
 pub const MINIMAX_PROVIDER_ID: &str = "minimax";
 pub const MINIMAX_PORTAL_PROVIDER_ID: &str = "minimax-portal";
 pub const MISTRAL_PROVIDER_ID: &str = "mistral";
@@ -761,6 +763,13 @@ pub const XAI_PROVIDER_ID: &str = "xai";
 pub const ZAI_PROVIDER_ID: &str = "zai";
 pub const ANTHROPIC_API_KEY_ENV: &str = "ANTHROPIC_API_KEY";
 pub const ANTHROPIC_OAUTH_TOKEN_ENV: &str = "ANTHROPIC_OAUTH_TOKEN";
+pub const ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV: &str = "ANTHROPIC_VERTEX_USE_GCP_METADATA";
+pub const GOOGLE_APPLICATION_CREDENTIALS_ENV: &str = "GOOGLE_APPLICATION_CREDENTIALS";
+pub const OAUTH_PROVIDER_AUTH_ENV_VARS: &[&str] =
+    &[ANTHROPIC_OAUTH_TOKEN_ENV, "MINIMAX_OAUTH_TOKEN"];
+pub const AUTH_COOLDOWN_BYPASS_PROVIDER_IDS: &[&str] =
+    &[OPENROUTER_PROVIDER_ID, KILOCODE_PROVIDER_ID];
+pub const AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID: &str = OPENAI_CODEX_PROVIDER_ID;
 
 pub const PROVIDER_USAGE_LABELS: &[(&str, &str)] = &[
     ("anthropic", "Claude"),
@@ -4094,11 +4103,13 @@ mod tests {
         );
         assert!(LEGACY_ENV_API_KEY_MARKERS.contains(&"AZURE_OPENAI_API_KEY"));
         assert_eq!(ANTHROPIC_PROVIDER_ID, "anthropic");
+        assert_eq!(ANTHROPIC_VERTEX_PROVIDER_ID, "anthropic-vertex");
         assert_eq!(AMAZON_BEDROCK_PROVIDER_ID, "amazon-bedrock");
         assert_eq!(GITHUB_COPILOT_PROVIDER_ID, "github-copilot");
         assert_eq!(GOOGLE_PROVIDER_ID, "google");
         assert_eq!(GOOGLE_VERTEX_PROVIDER_ID, "google-vertex");
         assert_eq!(GROQ_PROVIDER_ID, "groq");
+        assert_eq!(KILOCODE_PROVIDER_ID, "kilocode");
         assert_eq!(MINIMAX_PROVIDER_ID, "minimax");
         assert_eq!(MINIMAX_PORTAL_PROVIDER_ID, "minimax-portal");
         assert_eq!(MISTRAL_PROVIDER_ID, "mistral");
@@ -4114,14 +4125,28 @@ mod tests {
         assert_eq!(ZAI_PROVIDER_ID, "zai");
         assert_eq!(ANTHROPIC_API_KEY_ENV, "ANTHROPIC_API_KEY");
         assert_eq!(ANTHROPIC_OAUTH_TOKEN_ENV, "ANTHROPIC_OAUTH_TOKEN");
+        assert_eq!(
+            ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV,
+            "ANTHROPIC_VERTEX_USE_GCP_METADATA"
+        );
+        assert_eq!(
+            GOOGLE_APPLICATION_CREDENTIALS_ENV,
+            "GOOGLE_APPLICATION_CREDENTIALS"
+        );
+        assert_eq!(
+            OAUTH_PROVIDER_AUTH_ENV_VARS,
+            &["ANTHROPIC_OAUTH_TOKEN", "MINIMAX_OAUTH_TOKEN"]
+        );
+        assert_eq!(
+            AUTH_COOLDOWN_BYPASS_PROVIDER_IDS,
+            &["openrouter", "kilocode"]
+        );
+        assert_eq!(AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID, "openai-codex");
         assert!(PROVIDER_USAGE_LABELS.contains(&("openai-codex", "Codex")));
         assert!(PROVIDER_USAGE_LABELS.contains(&("zai", "z.ai")));
         assert_eq!(PROVIDER_ATTRIBUTION_PRODUCT, "CrawClaw");
         assert_eq!(PROVIDER_ATTRIBUTION_ORIGINATOR, "crawclaw");
-        assert_eq!(
-            PROVIDER_ATTRIBUTION_REFERER_URL,
-            "https://docs.crawclaw.ai"
-        );
+        assert_eq!(PROVIDER_ATTRIBUTION_REFERER_URL, "https://docs.crawclaw.ai");
         assert_eq!(
             OPENROUTER_ATTRIBUTION_DOCS_URL,
             "https://openrouter.ai/docs/app-attribution"

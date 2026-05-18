@@ -287,11 +287,13 @@ export const AWS_PROFILE_ENV = {aws_profile_env};
 export const AWS_SDK_ENV_MARKERS = {aws_sdk_env_markers} as const;
 export const LEGACY_ENV_API_KEY_MARKERS = {legacy_env_api_key_markers} as const;
 export const ANTHROPIC_PROVIDER_ID = {anthropic_provider_id};
+export const ANTHROPIC_VERTEX_PROVIDER_ID = {anthropic_vertex_provider_id};
 export const AMAZON_BEDROCK_PROVIDER_ID = {amazon_bedrock_provider_id};
 export const GITHUB_COPILOT_PROVIDER_ID = {github_copilot_provider_id};
 export const GOOGLE_PROVIDER_ID = {google_provider_id};
 export const GOOGLE_VERTEX_PROVIDER_ID = {google_vertex_provider_id};
 export const GROQ_PROVIDER_ID = {groq_provider_id};
+export const KILOCODE_PROVIDER_ID = {kilocode_provider_id};
 export const MINIMAX_PROVIDER_ID = {minimax_provider_id};
 export const MINIMAX_PORTAL_PROVIDER_ID = {minimax_portal_provider_id};
 export const MISTRAL_PROVIDER_ID = {mistral_provider_id};
@@ -307,6 +309,11 @@ export const XAI_PROVIDER_ID = {xai_provider_id};
 export const ZAI_PROVIDER_ID = {zai_provider_id};
 export const ANTHROPIC_API_KEY_ENV = {anthropic_api_key_env};
 export const ANTHROPIC_OAUTH_TOKEN_ENV = {anthropic_oauth_token_env};
+export const ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV = {anthropic_vertex_use_gcp_metadata_env};
+export const GOOGLE_APPLICATION_CREDENTIALS_ENV = {google_application_credentials_env};
+export const OAUTH_PROVIDER_AUTH_ENV_VARS = {oauth_provider_auth_env_vars} as const;
+export const AUTH_COOLDOWN_BYPASS_PROVIDER_IDS = {auth_cooldown_bypass_provider_ids} as const;
+export const AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID = {auth_wham_cooldown_probe_provider_id};
 export const PROVIDER_USAGE_LABELS = {provider_usage_labels} as const satisfies Readonly<Record<string, string>>;
 export const PROVIDER_ATTRIBUTION_PRODUCT = {provider_attribution_product};
 export const PROVIDER_ATTRIBUTION_ORIGINATOR = {provider_attribution_originator};
@@ -423,11 +430,14 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         legacy_env_api_key_markers =
             render_static_string_array(crawclaw_providers::LEGACY_ENV_API_KEY_MARKERS),
         anthropic_provider_id = json_string(crawclaw_providers::ANTHROPIC_PROVIDER_ID),
+        anthropic_vertex_provider_id =
+            json_string(crawclaw_providers::ANTHROPIC_VERTEX_PROVIDER_ID),
         amazon_bedrock_provider_id = json_string(crawclaw_providers::AMAZON_BEDROCK_PROVIDER_ID),
         github_copilot_provider_id = json_string(crawclaw_providers::GITHUB_COPILOT_PROVIDER_ID),
         google_provider_id = json_string(crawclaw_providers::GOOGLE_PROVIDER_ID),
         google_vertex_provider_id = json_string(crawclaw_providers::GOOGLE_VERTEX_PROVIDER_ID),
         groq_provider_id = json_string(crawclaw_providers::GROQ_PROVIDER_ID),
+        kilocode_provider_id = json_string(crawclaw_providers::KILOCODE_PROVIDER_ID),
         minimax_provider_id = json_string(crawclaw_providers::MINIMAX_PROVIDER_ID),
         minimax_portal_provider_id = json_string(crawclaw_providers::MINIMAX_PORTAL_PROVIDER_ID),
         mistral_provider_id = json_string(crawclaw_providers::MISTRAL_PROVIDER_ID),
@@ -444,6 +454,17 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         zai_provider_id = json_string(crawclaw_providers::ZAI_PROVIDER_ID),
         anthropic_api_key_env = json_string(crawclaw_providers::ANTHROPIC_API_KEY_ENV),
         anthropic_oauth_token_env = json_string(crawclaw_providers::ANTHROPIC_OAUTH_TOKEN_ENV),
+        anthropic_vertex_use_gcp_metadata_env =
+            json_string(crawclaw_providers::ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV),
+        google_application_credentials_env =
+            json_string(crawclaw_providers::GOOGLE_APPLICATION_CREDENTIALS_ENV),
+        oauth_provider_auth_env_vars =
+            render_static_string_array_inline(crawclaw_providers::OAUTH_PROVIDER_AUTH_ENV_VARS),
+        auth_cooldown_bypass_provider_ids = render_static_string_array_inline(
+            crawclaw_providers::AUTH_COOLDOWN_BYPASS_PROVIDER_IDS,
+        ),
+        auth_wham_cooldown_probe_provider_id =
+            json_string(crawclaw_providers::AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID),
         provider_usage_labels =
             render_static_string_record(crawclaw_providers::PROVIDER_USAGE_LABELS),
         provider_attribution_product =
@@ -458,8 +479,7 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             json_string(crawclaw_providers::OPENROUTER_ATTRIBUTION_CATEGORY),
         openai_completions_api = json_string(crawclaw_providers::OPENAI_COMPLETIONS_API),
         openai_responses_api = json_string(crawclaw_providers::OPENAI_RESPONSES_API),
-        openai_codex_responses_api =
-            json_string(crawclaw_providers::OPENAI_CODEX_RESPONSES_API),
+        openai_codex_responses_api = json_string(crawclaw_providers::OPENAI_CODEX_RESPONSES_API),
         openai_audio_transcriptions_api =
             json_string(crawclaw_providers::OPENAI_AUDIO_TRANSCRIPTIONS_API),
         anthropic_messages_api = json_string(crawclaw_providers::ANTHROPIC_MESSAGES_API),
@@ -1224,11 +1244,15 @@ mod tests {
         assert!(source.contains("export const LEGACY_ENV_API_KEY_MARKERS = ["));
         assert!(source.contains("\"AZURE_OPENAI_API_KEY\""));
         assert!(source.contains("export const ANTHROPIC_PROVIDER_ID = \"anthropic\";"));
+        assert!(
+            source.contains("export const ANTHROPIC_VERTEX_PROVIDER_ID = \"anthropic-vertex\";")
+        );
         assert!(source.contains("export const AMAZON_BEDROCK_PROVIDER_ID = \"amazon-bedrock\";"));
         assert!(source.contains("export const GITHUB_COPILOT_PROVIDER_ID = \"github-copilot\";"));
         assert!(source.contains("export const GOOGLE_PROVIDER_ID = \"google\";"));
         assert!(source.contains("export const GOOGLE_VERTEX_PROVIDER_ID = \"google-vertex\";"));
         assert!(source.contains("export const GROQ_PROVIDER_ID = \"groq\";"));
+        assert!(source.contains("export const KILOCODE_PROVIDER_ID = \"kilocode\";"));
         assert!(source.contains("export const MINIMAX_PROVIDER_ID = \"minimax\";"));
         assert!(source.contains("export const MINIMAX_PORTAL_PROVIDER_ID = \"minimax-portal\";"));
         assert!(source.contains("export const MISTRAL_PROVIDER_ID = \"mistral\";"));
@@ -1248,6 +1272,20 @@ mod tests {
         assert!(
             source.contains("export const ANTHROPIC_OAUTH_TOKEN_ENV = \"ANTHROPIC_OAUTH_TOKEN\";")
         );
+        assert!(source.contains(
+            "export const ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV = \"ANTHROPIC_VERTEX_USE_GCP_METADATA\";"
+        ));
+        assert!(source.contains(
+            "export const GOOGLE_APPLICATION_CREDENTIALS_ENV = \"GOOGLE_APPLICATION_CREDENTIALS\";"
+        ));
+        assert!(source.contains(
+            "export const OAUTH_PROVIDER_AUTH_ENV_VARS = [\"ANTHROPIC_OAUTH_TOKEN\", \"MINIMAX_OAUTH_TOKEN\"] as const;"
+        ));
+        assert!(source.contains(
+            "export const AUTH_COOLDOWN_BYPASS_PROVIDER_IDS = [\"openrouter\", \"kilocode\"] as const;"
+        ));
+        assert!(source
+            .contains("export const AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID = \"openai-codex\";"));
         assert!(source.contains("export const PROVIDER_USAGE_LABELS = {"));
         assert!(source.contains("\"openai-codex\": \"Codex\""));
         assert!(source.contains("zai: \"z.ai\""));
@@ -1262,9 +1300,8 @@ mod tests {
         assert!(source.contains("export const OPENROUTER_ATTRIBUTION_CATEGORY = \"cli-agent\";"));
         assert!(source.contains("export const OPENAI_COMPLETIONS_API = \"openai-completions\";"));
         assert!(source.contains("export const OPENAI_RESPONSES_API = \"openai-responses\";"));
-        assert!(
-            source.contains("export const OPENAI_CODEX_RESPONSES_API = \"openai-codex-responses\";")
-        );
+        assert!(source
+            .contains("export const OPENAI_CODEX_RESPONSES_API = \"openai-codex-responses\";"));
         assert!(source.contains(
             "export const OPENAI_AUDIO_TRANSCRIPTIONS_API = \"openai-audio-transcriptions\";"
         ));
@@ -1309,9 +1346,7 @@ mod tests {
         assert!(source.contains(
             "export const OPENROUTER_MODELS_API_URL = \"https://openrouter.ai/api/v1/models\";"
         ));
-        assert!(source.contains(
-            "export const OPENROUTER_DEFAULT_MODEL_REF = \"openrouter/auto\";"
-        ));
+        assert!(source.contains("export const OPENROUTER_DEFAULT_MODEL_REF = \"openrouter/auto\";"));
         assert!(source.contains(
             "export const MODEL_CATALOG_CONFIGURED_PROVIDER_IDS = [\"deepseek\", \"kilocode\", \"ollama\"] as const;"
         ));

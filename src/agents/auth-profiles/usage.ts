@@ -1,4 +1,8 @@
 import type { CrawClawConfig } from "../../config/config.js";
+import {
+  AUTH_COOLDOWN_BYPASS_PROVIDER_IDS,
+  AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID,
+} from "../../generated/providers/runtime-constants.generated.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { logAuthProfileFailureStateChange } from "./state-observation.js";
 import { saveAuthProfileStore, updateAuthProfileStoreWithLock } from "./store.js";
@@ -49,6 +53,7 @@ const WHAM_DEAD_ACCOUNT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const WHAM_TEAM_ROLLING_MAX_COOLDOWN_MS = 2 * 60 * 60 * 1000;
 const WHAM_PERSONAL_MAX_COOLDOWN_MS = 4 * 60 * 60 * 1000;
 const WHAM_TEAM_WEEKLY_MAX_COOLDOWN_MS = 4 * 60 * 60 * 1000;
+const AUTH_COOLDOWN_BYPASS_PROVIDER_ID_SET = new Set<string>(AUTH_COOLDOWN_BYPASS_PROVIDER_IDS);
 
 type WhamUsageWindow = {
   limit_window_seconds?: number;
@@ -72,7 +77,7 @@ type WhamCooldownProbeResult = {
 
 function isAuthCooldownBypassedForProvider(provider: string | undefined): boolean {
   const normalized = normalizeProviderId(provider ?? "");
-  return normalized === "openrouter" || normalized === "kilocode";
+  return AUTH_COOLDOWN_BYPASS_PROVIDER_ID_SET.has(normalized);
 }
 
 function shouldProbeWhamForFailure(
@@ -80,7 +85,7 @@ function shouldProbeWhamForFailure(
   reason: AuthProfileFailureReason,
 ): boolean {
   return (
-    normalizeProviderId(provider ?? "") === "openai-codex" &&
+    normalizeProviderId(provider ?? "") === AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID &&
     (reason === "rate_limit" || reason === "unknown")
   );
 }

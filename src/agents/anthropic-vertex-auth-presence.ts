@@ -1,6 +1,10 @@
 import { existsSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { join } from "node:path";
+import {
+  ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV,
+  GOOGLE_APPLICATION_CREDENTIALS_ENV,
+} from "../generated/providers/runtime-constants.generated.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 
 const GCLOUD_DEFAULT_ADC_PATH = join(
@@ -11,7 +15,9 @@ const GCLOUD_DEFAULT_ADC_PATH = join(
 );
 
 function hasAnthropicVertexMetadataServerAdc(env: NodeJS.ProcessEnv = process.env): boolean {
-  const explicitMetadataOptIn = normalizeOptionalSecretInput(env.ANTHROPIC_VERTEX_USE_GCP_METADATA);
+  const explicitMetadataOptIn = normalizeOptionalSecretInput(
+    env[ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV],
+  );
   return explicitMetadataOptIn === "1" || explicitMetadataOptIn?.toLowerCase() === "true";
 }
 
@@ -28,7 +34,7 @@ function resolveAnthropicVertexDefaultAdcPath(env: NodeJS.ProcessEnv = process.e
 function resolveAnthropicVertexAdcCredentialsPath(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
-  const explicitCredentialsPath = env.GOOGLE_APPLICATION_CREDENTIALS?.trim();
+  const explicitCredentialsPath = env[GOOGLE_APPLICATION_CREDENTIALS_ENV]?.trim();
   if (explicitCredentialsPath) {
     return existsSync(explicitCredentialsPath) ? explicitCredentialsPath : undefined;
   }

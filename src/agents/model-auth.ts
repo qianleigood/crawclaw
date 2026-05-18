@@ -4,10 +4,12 @@ import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
 import {
+  AMAZON_BEDROCK_PROVIDER_ID,
   AWS_ACCESS_KEY_ID_ENV,
   AWS_BEDROCK_BEARER_TOKEN_ENV,
   AWS_PROFILE_ENV,
   AWS_SECRET_ACCESS_KEY_ENV,
+  OLLAMA_PROVIDER_ID,
   OPENAI_COMPATIBLE_TURN_VALIDATION_API,
 } from "../generated/providers/runtime-constants.generated.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
@@ -276,7 +278,7 @@ function shouldDeferSyntheticOllamaProfileAuth(params: {
   resolvedApiKey: string | undefined;
 }): boolean {
   return (
-    normalizeProviderId(params.provider) === "ollama" &&
+    normalizeProviderId(params.provider) === OLLAMA_PROVIDER_ID &&
     params.resolvedApiKey?.trim() === OLLAMA_LOCAL_AUTH_MARKER
   );
 }
@@ -378,13 +380,10 @@ export async function resolveApiKeyForProvider(params: {
 
   const envResolved = resolveEnvApiKey(provider);
   if (envResolved) {
-    const resolvedMode: ResolvedProviderAuth["mode"] = envResolved.source.includes("OAUTH_TOKEN")
-      ? "oauth"
-      : "api-key";
     const result: ResolvedProviderAuth = {
       apiKey: envResolved.apiKey,
       source: envResolved.source,
-      mode: resolvedMode,
+      mode: envResolved.mode,
     };
     return result;
   }
@@ -405,7 +404,7 @@ export async function resolveApiKeyForProvider(params: {
   }
 
   const normalized = normalizeProviderId(provider);
-  if (authOverride === undefined && normalized === "amazon-bedrock") {
+  if (authOverride === undefined && normalized === AMAZON_BEDROCK_PROVIDER_ID) {
     return resolveAwsSdkAuthInfo();
   }
 
@@ -465,13 +464,13 @@ export function resolveModelAuthMode(
     }
   }
 
-  if (authOverride === undefined && normalizeProviderId(resolved) === "amazon-bedrock") {
+  if (authOverride === undefined && normalizeProviderId(resolved) === AMAZON_BEDROCK_PROVIDER_ID) {
     return "aws-sdk";
   }
 
   const envKey = resolveEnvApiKey(resolved);
   if (envKey?.apiKey) {
-    return envKey.source.includes("OAUTH_TOKEN") ? "oauth" : "api-key";
+    return envKey.mode;
   }
 
   if (hasUsableCustomProviderApiKey(cfg, resolved)) {
@@ -528,7 +527,7 @@ export async function hasAvailableAuthForProvider(params: {
     return true;
   }
 
-  return authOverride === undefined && normalizeProviderId(provider) === "amazon-bedrock";
+  return authOverride === undefined && normalizeProviderId(provider) === AMAZON_BEDROCK_PROVIDER_ID;
 }
 
 export async function getApiKeyForModel(params: {

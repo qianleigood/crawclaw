@@ -165,11 +165,13 @@ export const LEGACY_ENV_API_KEY_MARKERS = [
   "MINIMAX_CODE_PLAN_KEY",
 ] as const;
 export const ANTHROPIC_PROVIDER_ID = "anthropic";
+export const ANTHROPIC_VERTEX_PROVIDER_ID = "anthropic-vertex";
 export const AMAZON_BEDROCK_PROVIDER_ID = "amazon-bedrock";
 export const GITHUB_COPILOT_PROVIDER_ID = "github-copilot";
 export const GOOGLE_PROVIDER_ID = "google";
 export const GOOGLE_VERTEX_PROVIDER_ID = "google-vertex";
 export const GROQ_PROVIDER_ID = "groq";
+export const KILOCODE_PROVIDER_ID = "kilocode";
 export const MINIMAX_PROVIDER_ID = "minimax";
 export const MINIMAX_PORTAL_PROVIDER_ID = "minimax-portal";
 export const MISTRAL_PROVIDER_ID = "mistral";
@@ -185,6 +187,14 @@ export const XAI_PROVIDER_ID = "xai";
 export const ZAI_PROVIDER_ID = "zai";
 export const ANTHROPIC_API_KEY_ENV = "ANTHROPIC_API_KEY";
 export const ANTHROPIC_OAUTH_TOKEN_ENV = "ANTHROPIC_OAUTH_TOKEN";
+export const ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV = "ANTHROPIC_VERTEX_USE_GCP_METADATA";
+export const GOOGLE_APPLICATION_CREDENTIALS_ENV = "GOOGLE_APPLICATION_CREDENTIALS";
+export const OAUTH_PROVIDER_AUTH_ENV_VARS = [
+  "ANTHROPIC_OAUTH_TOKEN",
+  "MINIMAX_OAUTH_TOKEN",
+] as const;
+export const AUTH_COOLDOWN_BYPASS_PROVIDER_IDS = ["openrouter", "kilocode"] as const;
+export const AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID = "openai-codex";
 export const PROVIDER_USAGE_LABELS = {
   anthropic: "Claude",
   "github-copilot": "Copilot",
