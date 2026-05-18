@@ -17,6 +17,13 @@ export type BundledNativeWebProviderMetadata = {
   pluginId: string;
   id: string;
   label: string;
+  hint: string;
+  onboardingScopes: ReadonlyArray<"text-inference">;
+  requiresCredential: boolean;
+  envVars: readonly string[];
+  placeholder: string;
+  signupUrl: string;
+  docsUrl: string;
   invocation: BundledNativeProviderInvocation;
 };
 
@@ -337,6 +344,13 @@ export const BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS = [
     pluginId: "searxng",
     id: "searxng",
     label: "SearXNG",
+    hint: "Use the bundled managed local SearXNG web search provider",
+    onboardingScopes: ["text-inference"],
+    requiresCredential: false,
+    envVars: ["SEARXNG_BASE_URL"],
+    placeholder: "",
+    signupUrl: "https://docs.crawclaw.ai/tools/web",
+    docsUrl: "https://docs.crawclaw.ai/tools/web",
     invocation: { pluginId: "searxng", operation: "search" },
   },
 ] as const satisfies readonly BundledNativeWebProviderMetadata[];
@@ -346,6 +360,13 @@ export const BUNDLED_NATIVE_WEB_FETCH_PROVIDERS = [
     pluginId: "spider-fetch",
     id: "spider",
     label: "Spider",
+    hint: "Use the bundled native static HTTP and browser-rendered fetch provider",
+    onboardingScopes: [],
+    requiresCredential: false,
+    envVars: [],
+    placeholder: "",
+    signupUrl: "https://docs.crawclaw.ai/tools/web",
+    docsUrl: "https://docs.crawclaw.ai/tools/web",
     invocation: { pluginId: "spider-fetch", operation: "fetch" },
   },
 ] as const satisfies readonly BundledNativeWebProviderMetadata[];

@@ -24,6 +24,13 @@ export type BundledNativeWebProviderMetadata = {
   pluginId: string;
   id: string;
   label: string;
+  hint: string;
+  onboardingScopes: ReadonlyArray<"text-inference">;
+  requiresCredential: boolean;
+  envVars: readonly string[];
+  placeholder: string;
+  signupUrl: string;
+  docsUrl: string;
   invocation: BundledNativeProviderInvocation;
 };
 

@@ -2,12 +2,9 @@ import type { CrawClawConfig } from "../config/config.js";
 import {
   BUNDLED_NATIVE_WEB_FETCH_PROVIDERS,
   BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS,
-  type BundledNativeWebProviderMetadata,
 } from "./bundled-capability-metadata.js";
 import { enablePluginInConfig } from "./enable.js";
 import type { PluginWebFetchProviderEntry, PluginWebSearchProviderEntry } from "./types.js";
-
-const WEB_DOCS_URL = "https://docs.crawclaw.ai/tools/web";
 
 function pluginConfigEntry(config: CrawClawConfig | undefined, pluginId: string) {
   return (
@@ -43,28 +40,18 @@ function writeNestedPluginConfig(
   sectionConfig[key] = value;
 }
 
-function providerHint(provider: BundledNativeWebProviderMetadata): string {
-  if (provider.id === "searxng") {
-    return "Use the bundled managed local SearXNG web search provider";
-  }
-  if (provider.id === "spider") {
-    return "Use the bundled native static HTTP and browser-rendered fetch provider";
-  }
-  return `Use the bundled native ${provider.label} provider`;
-}
-
 export function listNativeWebSearchProviderEntries(): PluginWebSearchProviderEntry[] {
   return BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS.map((provider) => ({
     id: provider.id,
     pluginId: provider.pluginId,
     label: provider.label,
-    hint: providerHint(provider),
-    onboardingScopes: ["text-inference"],
-    requiresCredential: false,
-    envVars: provider.id === "searxng" ? ["SEARXNG_BASE_URL"] : [],
-    placeholder: "",
-    signupUrl: WEB_DOCS_URL,
-    docsUrl: WEB_DOCS_URL,
+    hint: provider.hint,
+    onboardingScopes: [...provider.onboardingScopes],
+    requiresCredential: provider.requiresCredential,
+    envVars: [...provider.envVars],
+    placeholder: provider.placeholder,
+    signupUrl: provider.signupUrl,
+    docsUrl: provider.docsUrl,
     credentialPath: `plugins.entries.${provider.pluginId}.config.webSearch.baseUrl`,
     getCredentialValue: () => undefined,
     setCredentialValue: () => {},
@@ -81,12 +68,12 @@ export function listNativeWebFetchProviderEntries(): PluginWebFetchProviderEntry
     id: provider.id,
     pluginId: provider.pluginId,
     label: provider.label,
-    hint: providerHint(provider),
-    requiresCredential: false,
-    envVars: [],
-    placeholder: "",
-    signupUrl: WEB_DOCS_URL,
-    docsUrl: WEB_DOCS_URL,
+    hint: provider.hint,
+    requiresCredential: provider.requiresCredential,
+    envVars: [...provider.envVars],
+    placeholder: provider.placeholder,
+    signupUrl: provider.signupUrl,
+    docsUrl: provider.docsUrl,
     credentialPath: `plugins.entries.${provider.pluginId}.config.webFetch.baseUrl`,
     getCredentialValue: () => undefined,
     setCredentialValue: () => {},

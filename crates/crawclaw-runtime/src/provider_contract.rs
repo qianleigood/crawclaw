@@ -6,6 +6,7 @@ const GENERATED_BY: &str = "crawclaw-runtime emit-bundled-provider-auth-env-vars
 const RUNTIME_CONSTANTS_GENERATED_BY: &str = "crawclaw-runtime emit-provider-runtime-constants";
 const BUNDLED_CAPABILITY_METADATA_GENERATED_BY: &str =
     "crawclaw-runtime emit-bundled-capability-metadata";
+const WEB_DOCS_URL: &str = "https://docs.crawclaw.ai/tools/web";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GeneratedModuleWriteResult {
@@ -42,6 +43,13 @@ struct BundledNativeWebProviderMetadataEntry {
     plugin_id: String,
     id: String,
     label: String,
+    hint: String,
+    onboarding_scopes: Vec<String>,
+    requires_credential: bool,
+    env_vars: Vec<String>,
+    placeholder: String,
+    signup_url: String,
+    docs_url: String,
     invocation: BundledNativeProviderInvocation,
 }
 
@@ -168,6 +176,13 @@ export type BundledNativeWebProviderMetadata = {{
   pluginId: string;
   id: string;
   label: string;
+  hint: string;
+  onboardingScopes: ReadonlyArray<"text-inference">;
+  requiresCredential: boolean;
+  envVars: readonly string[];
+  placeholder: string;
+  signupUrl: string;
+  docsUrl: string;
   invocation: BundledNativeProviderInvocation;
 }};
 
@@ -509,12 +524,19 @@ fn bundled_native_provider_metadata_payload() -> BundledNativeProviderMetadataPa
             .extend(descriptor.web_search_providers.into_iter().map(|provider| {
                 BundledNativeWebProviderMetadataEntry {
                     plugin_id: plugin_id.clone(),
-                    id: provider.id,
-                    label: provider.label,
+                    hint: native_web_provider_hint(&provider.id, &provider.label),
+                    onboarding_scopes: vec!["text-inference".to_string()],
+                    requires_credential: false,
+                    env_vars: native_web_provider_env_vars(&provider.id),
+                    placeholder: String::new(),
+                    signup_url: WEB_DOCS_URL.to_string(),
+                    docs_url: WEB_DOCS_URL.to_string(),
                     invocation: BundledNativeProviderInvocation {
                         plugin_id: provider.invocation.plugin_id,
                         operation: provider.invocation.operation,
                     },
+                    id: provider.id,
+                    label: provider.label,
                 }
             }));
         payload
@@ -522,12 +544,19 @@ fn bundled_native_provider_metadata_payload() -> BundledNativeProviderMetadataPa
             .extend(descriptor.web_fetch_providers.into_iter().map(|provider| {
                 BundledNativeWebProviderMetadataEntry {
                     plugin_id: plugin_id.clone(),
-                    id: provider.id,
-                    label: provider.label,
+                    hint: native_web_provider_hint(&provider.id, &provider.label),
+                    onboarding_scopes: Vec::new(),
+                    requires_credential: false,
+                    env_vars: native_web_provider_env_vars(&provider.id),
+                    placeholder: String::new(),
+                    signup_url: WEB_DOCS_URL.to_string(),
+                    docs_url: WEB_DOCS_URL.to_string(),
                     invocation: BundledNativeProviderInvocation {
                         plugin_id: provider.invocation.plugin_id,
                         operation: provider.invocation.operation,
                     },
+                    id: provider.id,
+                    label: provider.label,
                 }
             }));
         payload
@@ -561,6 +590,23 @@ fn bundled_native_provider_metadata_payload() -> BundledNativeProviderMetadataPa
             .then_with(|| left.plugin_id.cmp(&right.plugin_id))
     });
     payload
+}
+
+fn native_web_provider_hint(id: &str, label: &str) -> String {
+    match id {
+        "searxng" => "Use the bundled managed local SearXNG web search provider".to_string(),
+        "spider" => {
+            "Use the bundled native static HTTP and browser-rendered fetch provider".to_string()
+        }
+        _ => format!("Use the bundled native {label} provider"),
+    }
+}
+
+fn native_web_provider_env_vars(id: &str) -> Vec<String> {
+    match id {
+        "searxng" => vec!["SEARXNG_BASE_URL".to_string()],
+        _ => Vec::new(),
+    }
 }
 
 fn render_bundled_capability_snapshots(entries: &[BundledCapabilityMetadataEntry]) -> String {
@@ -604,10 +650,17 @@ fn render_bundled_native_web_provider_metadata(
         .iter()
         .map(|entry| {
             format!(
-                "  {{\n    pluginId: {plugin_id},\n    id: {id},\n    label: {label},\n    invocation: {invocation},\n  }},",
+                "  {{\n    pluginId: {plugin_id},\n    id: {id},\n    label: {label},\n    hint: {hint},\n    onboardingScopes: {onboarding_scopes},\n    requiresCredential: {requires_credential},\n    envVars: {env_vars},\n    placeholder: {placeholder},\n    signupUrl: {signup_url},\n    docsUrl: {docs_url},\n    invocation: {invocation},\n  }},",
                 plugin_id = json_string(&entry.plugin_id),
                 id = json_string(&entry.id),
                 label = json_string(&entry.label),
+                hint = json_string(&entry.hint),
+                onboarding_scopes = render_string_array(&entry.onboarding_scopes),
+                requires_credential = entry.requires_credential,
+                env_vars = render_string_array(&entry.env_vars),
+                placeholder = json_string(&entry.placeholder),
+                signup_url = json_string(&entry.signup_url),
+                docs_url = json_string(&entry.docs_url),
                 invocation = render_bundled_native_provider_invocation(&entry.invocation),
             )
         })
@@ -971,8 +1024,17 @@ mod tests {
         assert!(source.contains("export const BUNDLED_NATIVE_SPEECH_PROVIDERS"));
         assert!(source.contains(r#"id: "searxng""#));
         assert!(source.contains(r#"label: "SearXNG""#));
+        assert!(
+            source.contains(r#"hint: "Use the bundled managed local SearXNG web search provider""#)
+        );
+        assert!(source.contains(r#"onboardingScopes: ["text-inference"]"#));
+        assert!(source.contains(r#"envVars: ["SEARXNG_BASE_URL"]"#));
         assert!(source.contains(r#"invocation: { pluginId: "searxng", operation: "search" }"#));
         assert!(source.contains(r#"id: "spider""#));
+        assert!(source.contains(
+            r#"hint: "Use the bundled native static HTTP and browser-rendered fetch provider""#
+        ));
+        assert!(source.contains(r#"docsUrl: "https://docs.crawclaw.ai/tools/web""#));
         assert!(source.contains(r#"invocation: { pluginId: "spider-fetch", operation: "fetch" }"#));
         assert!(source.contains(r#"id: "qwen3-tts""#));
         assert!(source.contains(r#"voices: ["assistant"]"#));
