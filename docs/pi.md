@@ -126,7 +126,7 @@ Removed TypeScript execution surfaces include:
 
 - legacy TypeScript agent runners
 - typed plugin hook runners
-- TypeScript provider runtime registration
+- legacy provider runtime registration
 - TypeScript special-agent runners
 - TypeScript cron isolated-agent runners
 - TypeScript auto-reply agent runners

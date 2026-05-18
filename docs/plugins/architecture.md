@@ -426,155 +426,27 @@ Conversation binding events are owned by the Rust runtime and internal Gateway
 event bus. TypeScript plugins cannot register production callbacks for binding
 resolution.
 
-## Provider runtime hooks
+## Provider runtime ownership
 
-Provider plugins now have two layers:
+TypeScript plugins no longer register model providers or runtime provider
+hooks. Built-in provider metadata and runtime behavior live in
+`crates/crawclaw-providers`; packaged desktop manifests receive the Rust-staged
+provider records and keep provider setup/status cheap through declarative
+metadata.
 
-- manifest metadata: `providerAuthEnvVars` for cheap env-auth lookup before
-  runtime load, plus `providerAuthChoices` for cheap onboarding/setup labels
-  before runtime load
-- config-time hooks: `catalog` / legacy `discovery`
-- runtime hooks: `resolveDynamicModel`, `prepareDynamicModel`, `normalizeResolvedModel`, `capabilities`, `formatApiKey`, `buildAuthDoctorHint`, `isCacheTtlEligible`, `buildMissingAuthMessage`, `suppressBuiltInModel`, `augmentModelCatalog`, `isBinaryThinking`, `supportsXHighThinking`, `resolveDefaultThinkingLevel`, `isModernModelRef`, `prepareRuntimeAuth`, `resolveUsageAuth`, `fetchUsageSnapshot`, `buildReplayPolicy`, `sanitizeReplayHistory`, `validateReplayTurns`
+Provider plugins can still expose manifest metadata:
 
-CrawClaw still owns the generic agent loop, failover, transcript handling, and
-tool policy. These hooks are the extension surface for provider-specific behavior without
-needing a whole custom inference transport.
+- `providerAuthEnvVars` describes environment credential probes.
+- `providerAuthChoices` describes onboarding/setup labels.
+- `models.providers` config entries describe custom provider endpoints and
+  model rows.
 
-Use manifest `providerAuthEnvVars` when the provider has env-based credentials
-that generic auth/status/model-picker paths should see without loading plugin
-runtime. Use manifest `providerAuthChoices` when onboarding/setup surfaces
-should know the provider's choice id and group labels without loading provider
-runtime. Keep provider runtime
-`envVars` for operator-facing hints such as onboarding labels or OAuth
-client-id/client-secret setup vars.
-
-### Hook order and usage
-
-For model/provider plugins, CrawClaw calls hooks in this rough order.
-The "When to use" column is the quick decision guide.
-
-| #   | Hook                          | What it does                                                                             | When to use                                                                       |
-| --- | ----------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| 1   | `catalog`                     | Publish provider config into `models.providers` during `models.json` generation          | Provider owns a catalog or base URL defaults                                      |
-| --  | _(built-in model lookup)_     | CrawClaw tries the normal registry/catalog path first                                    | _(not a plugin hook)_                                                             |
-| 2   | `resolveDynamicModel`         | Sync fallback for provider-owned model ids not in the local registry yet                 | Provider accepts arbitrary upstream model ids                                     |
-| 3   | `prepareDynamicModel`         | Async warm-up, then `resolveDynamicModel` runs again                                     | Provider needs network metadata before resolving unknown ids                      |
-| 4   | `normalizeResolvedModel`      | Final rewrite before the Rust runtime uses the resolved model                            | Provider needs transport rewrites but still uses a core transport                 |
-| 5   | `capabilities`                | Provider-owned transcript/tooling metadata used by shared core logic                     | Provider needs transcript/provider-family quirks                                  |
-| 6   | `formatApiKey`                | Auth-profile formatter: stored profile becomes the runtime `apiKey` string               | Provider stores extra auth metadata and needs a custom runtime token shape        |
-| 7   | `buildAuthDoctorHint`         | Repair hint appended when credentials are missing, expired, or unusable                  | Provider needs provider-owned auth repair guidance                                |
-| 8   | `isCacheTtlEligible`          | Prompt-cache policy for proxy/backhaul providers                                         | Provider needs proxy-specific cache TTL gating                                    |
-| 9   | `buildMissingAuthMessage`     | Replacement for the generic missing-auth recovery message                                | Provider needs a provider-specific missing-auth recovery hint                     |
-| 10  | `suppressBuiltInModel`        | Stale upstream model suppression plus optional user-facing error hint                    | Provider needs to hide stale upstream rows or replace them with a vendor hint     |
-| 11  | `augmentModelCatalog`         | Synthetic/final catalog rows appended after discovery                                    | Provider needs synthetic forward-compat rows in `models list` and pickers         |
-| 12  | `isBinaryThinking`            | On/off reasoning toggle for binary-thinking providers                                    | Provider exposes only binary thinking on/off                                      |
-| 13  | `supportsXHighThinking`       | `xhigh` reasoning support for selected models                                            | Provider wants `xhigh` on only a subset of models                                 |
-| 14  | `resolveDefaultThinkingLevel` | Default `/think` level for a specific model family                                       | Provider owns default `/think` policy for a model family                          |
-| 15  | `isModernModelRef`            | Modern-model matcher for live profile filters and smoke selection                        | Provider owns live/smoke preferred-model matching                                 |
-| 16  | `prepareRuntimeAuth`          | Exchange a configured credential into the actual runtime token/key just before inference | Provider needs a token exchange or short-lived request credential                 |
-| 17  | `resolveUsageAuth`            | Resolve usage/billing credentials for `/usage` and related status surfaces               | Provider needs custom usage/quota token parsing or a different usage credential   |
-| 18  | `fetchUsageSnapshot`          | Fetch and normalize provider-specific usage/quota snapshots after auth is resolved       | Provider needs a provider-specific usage endpoint or payload parser               |
-| 19  | `buildReplayPolicy`           | Return a replay policy controlling transcript handling for the provider                  | Provider needs custom transcript policy (for example, thinking-block stripping)   |
-| 20  | `sanitizeReplayHistory`       | Rewrite replay history after generic transcript cleanup                                  | Provider needs provider-specific replay rewrites beyond shared compaction helpers |
-| 21  | `validateReplayTurns`         | Final replay-turn validation or reshaping before the Rust runtime                        | Provider transport needs stricter turn validation after generic sanitation        |
-
-If the provider needs a fully custom wire protocol or custom request executor,
-that is a different class of extension. These hooks are for provider behavior
-that still runs on CrawClaw's normal inference loop.
-
-### Provider hook configuration
-
-TypeScript plugins no longer register LLM providers. Built-in provider
-metadata and runtime behavior live in the Rust provider registry, and custom
-provider entries are configured under `models.providers`.
-
-```ts
-return {
-provider: {
-baseUrl: "https://proxy.example.com/v1",
-apiKey,
-api: "openai-completions",
-models: [{ id: "auto", name: "Auto" }],
-},
-};
-},
-},
-resolveDynamicModel: (ctx) => ({
-id: ctx.modelId,
-name: ctx.modelId,
-provider: "example-proxy",
-api: "openai-completions",
-baseUrl: "https://proxy.example.com/v1",
-reasoning: false,
-input: ["text"],
-cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-contextWindow: 128000,
-maxTokens: 8192,
-}),
-prepareRuntimeAuth: async (ctx) => {
-const exchanged = await exchangeToken(ctx.apiKey);
-return {
-apiKey: exchanged.token,
-baseUrl: exchanged.baseUrl,
-expiresAt: exchanged.expiresAt,
-};
-},
-resolveUsageAuth: async (ctx) => {
-const auth = await ctx.resolveOAuthToken();
-return auth ? { token: auth.token } : null;
-},
-fetchUsageSnapshot: async (ctx) => {
-return await fetchExampleProxyUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn);
-},
-});
-
-```
-
-### Built-in examples
-
-- Anthropic uses `resolveDynamicModel`, `capabilities`, `buildAuthDoctorHint`,
-  `resolveUsageAuth`, `fetchUsageSnapshot`, `isCacheTtlEligible`,
-  `resolveDefaultThinkingLevel`, and `isModernModelRef` because it owns Claude
-  4.6 forward-compat, provider-family hints, auth repair guidance, usage
-  endpoint integration, prompt-cache eligibility, and Claude default/adaptive
-  thinking policy.
-- OpenAI uses `resolveDynamicModel`, `normalizeResolvedModel`, and
-  `capabilities` plus `buildMissingAuthMessage`, `suppressBuiltInModel`,
-  `augmentModelCatalog`, `supportsXHighThinking`, and `isModernModelRef`
-  because it owns GPT-5.4 forward-compat, the direct OpenAI
-  `openai-completions` -> `openai-responses` normalization, Codex-aware auth
-  hints, Spark suppression, synthetic OpenAI list rows, and GPT-5 thinking /
-  live-model policy.
-- OpenRouter uses `catalog` plus `resolveDynamicModel` and
-  `prepareDynamicModel` because the provider is pass-through and may expose new
-  model ids before CrawClaw's static catalog updates; it also uses
-  `capabilities` and `isCacheTtlEligible` while Rust provider transport owns
-  request headers, routing metadata, and reasoning payload policy.
-- GitHub Copilot uses `catalog`, `auth`, `resolveDynamicModel`, and
-  `capabilities` plus `prepareRuntimeAuth` and `fetchUsageSnapshot` because it
-  needs provider-owned device login, model fallback behavior, Claude transcript
-  quirks, a GitHub token -> Copilot token exchange, and a provider-owned usage
-  endpoint.
-- OpenAI Codex uses `catalog`, `resolveDynamicModel`,
-  `normalizeResolvedModel` and `augmentModelCatalog` plus `resolveUsageAuth`
-  and `fetchUsageSnapshot` because it owns transport/base URL normalization,
-  default transport choice, synthetic Codex catalog rows, and ChatGPT usage
-  endpoint integration.
-- Google AI Studio uses `resolveDynamicModel` and `isModernModelRef` because it
-  owns Gemini 3.1 forward-compat fallback and modern-model matching.
-- Moonshot uses `catalog`; Rust/native provider transport owns request payload normalization.
-- Kilocode uses `catalog`, `capabilities`, and `isCacheTtlEligible`; Rust provider transport owns request headers and reasoning payload normalization.
-- Z.AI uses `resolveDynamicModel`, `isCacheTtlEligible`, `isBinaryThinking`,
-  `isModernModelRef`, `resolveUsageAuth`, and `fetchUsageSnapshot`; Rust provider transport owns `tool_stream` defaults.
-- Mistral, OpenCode Zen, and OpenCode Go use `capabilities` only to keep
-  transcript/tooling quirks out of core.
-- Catalog-only bundled providers such as `byteplus`, `cloudflare-ai-gateway`,
-  `huggingface`, `kimi-coding`, `modelstudio`, `nvidia`, `qianfan`,
-  `synthetic`, `together`, `venice`, `vercel-ai-gateway`, and `volcengine` use
-  `catalog` only.
-- MiniMax and Xiaomi use `catalog` plus usage hooks because their `/usage`
-  behavior is plugin-owned even though inference still runs through the shared
-  transports.
+Model resolution, auth preparation, request transport, usage snapshots,
+transcript policy, prompt-cache policy, model catalog augmentation, and
+provider-specific compatibility are Rust-owned runtime behavior. Add new
+provider capabilities through the Rust provider registry and native descriptor
+contracts, then expose only the required manifest fields to TypeScript
+renderer or setup surfaces.
 
 ## Runtime helpers
 

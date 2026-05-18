@@ -1,7 +1,6 @@
 import { EventEmitter } from "node:events";
 import type { CrawClawConfig } from "../../config/config.js";
 import { registerUnhandledRejectionHandler } from "../../infra/unhandled-rejections.js";
-import type { ProviderRuntimeModel } from "../../plugins/types.js";
 import {
   hasInterSessionUserProvenance,
   normalizeInputProvenance,
@@ -35,6 +34,7 @@ import {
 } from "../usage.js";
 import { log } from "./logger.js";
 import { dropThinkingBlocks } from "./thinking.js";
+import type { ProviderRuntimeModel } from "./types.js";
 import { describeUnknownError } from "./utils.js";
 
 const GOOGLE_TURN_ORDERING_CUSTOM_TYPE = "google-turn-ordering-bootstrap";

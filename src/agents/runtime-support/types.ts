@@ -1,9 +1,12 @@
+import type { Api, Model } from "@mariozechner/pi-ai";
 import type {
   CliSessionBinding,
   SessionSkillExposureState,
   SessionSystemPromptReport,
 } from "../../config/sessions/types.js";
 import type { CompactPostArtifacts } from "../compaction/post-compact-artifacts.js";
+
+export type ProviderRuntimeModel = Model<Api>;
 
 export type MessagingToolSend = {
   toolName?: string;

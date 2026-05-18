@@ -2,7 +2,6 @@ import type { SimpleStreamOptions } from "@mariozechner/pi-ai";
 import { streamSimple } from "@mariozechner/pi-ai";
 import type { ThinkLevel } from "../../agents/thinking.js";
 import type { CrawClawConfig } from "../../config/config.js";
-import type { ProviderRuntimeModel } from "../../plugins/types.js";
 import type { StreamFn } from "../agent-types.js";
 import { resolveCacheRetention } from "./anthropic-cache-retention.js";
 import { createAnthropicToolPayloadCompatibilityWrapper } from "./anthropic-family-tool-payload-compat.js";
@@ -33,6 +32,7 @@ import {
   resolveOpenAITextVerbosity,
 } from "./openai-stream-wrappers.js";
 import { streamWithPayloadPatch } from "./stream-payload-utils.js";
+import type { ProviderRuntimeModel } from "./types.js";
 
 /**
  * Resolve provider-specific extra params from model config.
