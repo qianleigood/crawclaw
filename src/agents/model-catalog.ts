@@ -1,4 +1,5 @@
 import { type CrawClawConfig, loadConfig } from "../config/config.js";
+import { MODEL_CATALOG_CONFIGURED_PROVIDER_IDS } from "../generated/providers/runtime-constants.generated.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
 import { ensureCrawClawModelsJson } from "./models-config.js";
@@ -42,7 +43,7 @@ let hasLoggedModelCatalogError = false;
 const defaultImportPiSdk = () => import("./pi-model-discovery-runtime.js");
 let importPiSdk = defaultImportPiSdk;
 
-const NON_PI_NATIVE_MODEL_PROVIDERS = new Set(["deepseek", "kilocode", "ollama"]);
+const NON_PI_NATIVE_MODEL_PROVIDERS = new Set<string>(MODEL_CATALOG_CONFIGURED_PROVIDER_IDS);
 
 function shouldLogModelCatalogTiming(): boolean {
   return process.env.CRAWCLAW_DEBUG_INGRESS_TIMING === "1";

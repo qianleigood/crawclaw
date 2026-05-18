@@ -740,6 +740,10 @@ pub const LEGACY_ENV_API_KEY_MARKERS: &[&str] = &[
     "AZURE_API_KEY",
     "MINIMAX_CODE_PLAN_KEY",
 ];
+pub const ANTHROPIC_PROVIDER_ID: &str = "anthropic";
+pub const AMAZON_BEDROCK_PROVIDER_ID: &str = "amazon-bedrock";
+pub const ANTHROPIC_API_KEY_ENV: &str = "ANTHROPIC_API_KEY";
+pub const ANTHROPIC_OAUTH_TOKEN_ENV: &str = "ANTHROPIC_OAUTH_TOKEN";
 
 pub const PROVIDER_USAGE_LABELS: &[(&str, &str)] = &[
     ("anthropic", "Claude"),
@@ -794,6 +798,7 @@ pub const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS: &[&str] = &[
     "azure-openai-responses",
 ];
 pub const OPENROUTER_MODELS_API_URL: &str = "https://openrouter.ai/api/v1/models";
+pub const MODEL_CATALOG_CONFIGURED_PROVIDER_IDS: &[&str] = &["deepseek", "kilocode", "ollama"];
 pub const OPENROUTER_PRICING_PROVIDER_ALIASES: &[(&str, &str)] = &[
     ("google-gemini-cli", "google"),
     ("kimi", "moonshotai"),
@@ -4055,6 +4060,10 @@ mod tests {
             ]
         );
         assert!(LEGACY_ENV_API_KEY_MARKERS.contains(&"AZURE_OPENAI_API_KEY"));
+        assert_eq!(ANTHROPIC_PROVIDER_ID, "anthropic");
+        assert_eq!(AMAZON_BEDROCK_PROVIDER_ID, "amazon-bedrock");
+        assert_eq!(ANTHROPIC_API_KEY_ENV, "ANTHROPIC_API_KEY");
+        assert_eq!(ANTHROPIC_OAUTH_TOKEN_ENV, "ANTHROPIC_OAUTH_TOKEN");
         assert!(PROVIDER_USAGE_LABELS.contains(&("openai-codex", "Codex")));
         assert!(PROVIDER_USAGE_LABELS.contains(&("zai", "z.ai")));
         assert_eq!(PROVIDER_ATTRIBUTION_PRODUCT, "CrawClaw");
@@ -4105,6 +4114,10 @@ mod tests {
         assert_eq!(
             OPENROUTER_MODELS_API_URL,
             "https://openrouter.ai/api/v1/models"
+        );
+        assert_eq!(
+            MODEL_CATALOG_CONFIGURED_PROVIDER_IDS,
+            &["deepseek", "kilocode", "ollama"]
         );
         assert!(OPENROUTER_PRICING_PROVIDER_ALIASES.contains(&("openai-codex", "openai")));
         assert!(OPENROUTER_PRICING_PROVIDER_ALIASES.contains(&("zai", "z-ai")));

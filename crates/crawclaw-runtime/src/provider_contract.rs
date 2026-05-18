@@ -286,6 +286,10 @@ export const AWS_SECRET_ACCESS_KEY_ENV = {aws_secret_access_key_env};
 export const AWS_PROFILE_ENV = {aws_profile_env};
 export const AWS_SDK_ENV_MARKERS = {aws_sdk_env_markers} as const;
 export const LEGACY_ENV_API_KEY_MARKERS = {legacy_env_api_key_markers} as const;
+export const ANTHROPIC_PROVIDER_ID = {anthropic_provider_id};
+export const AMAZON_BEDROCK_PROVIDER_ID = {amazon_bedrock_provider_id};
+export const ANTHROPIC_API_KEY_ENV = {anthropic_api_key_env};
+export const ANTHROPIC_OAUTH_TOKEN_ENV = {anthropic_oauth_token_env};
 export const PROVIDER_USAGE_LABELS = {provider_usage_labels} as const satisfies Readonly<Record<string, string>>;
 export const PROVIDER_ATTRIBUTION_PRODUCT = {provider_attribution_product};
 export const PROVIDER_ATTRIBUTION_ORIGINATOR = {provider_attribution_originator};
@@ -301,6 +305,7 @@ export const GOOGLE_MODEL_APIS = {google_model_apis} as const;
 export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = {openai_compatible_turn_validation_api};
 export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = {openai_compatible_tool_id_sanitization_apis} as const;
 export const OPENROUTER_MODELS_API_URL = {openrouter_models_api_url};
+export const MODEL_CATALOG_CONFIGURED_PROVIDER_IDS = {model_catalog_configured_provider_ids} as const;
 export const OPENROUTER_PRICING_PROVIDER_ALIASES = {openrouter_pricing_provider_aliases} as const satisfies Readonly<Record<string, string>>;
 export const OPENROUTER_WRAPPER_PROVIDERS = {openrouter_wrapper_providers} as const;
 export const KNOWN_PROVIDER_FAMILIES = {known_provider_families} as const satisfies Readonly<Record<string, string>>;
@@ -385,6 +390,10 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         aws_sdk_env_markers = render_static_string_array(crawclaw_providers::AWS_SDK_ENV_MARKERS),
         legacy_env_api_key_markers =
             render_static_string_array(crawclaw_providers::LEGACY_ENV_API_KEY_MARKERS),
+        anthropic_provider_id = json_string(crawclaw_providers::ANTHROPIC_PROVIDER_ID),
+        amazon_bedrock_provider_id = json_string(crawclaw_providers::AMAZON_BEDROCK_PROVIDER_ID),
+        anthropic_api_key_env = json_string(crawclaw_providers::ANTHROPIC_API_KEY_ENV),
+        anthropic_oauth_token_env = json_string(crawclaw_providers::ANTHROPIC_OAUTH_TOKEN_ENV),
         provider_usage_labels =
             render_static_string_record(crawclaw_providers::PROVIDER_USAGE_LABELS),
         provider_attribution_product =
@@ -415,6 +424,9 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             crawclaw_providers::OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS,
         ),
         openrouter_models_api_url = json_string(crawclaw_providers::OPENROUTER_MODELS_API_URL),
+        model_catalog_configured_provider_ids = render_static_string_array_inline(
+            crawclaw_providers::MODEL_CATALOG_CONFIGURED_PROVIDER_IDS
+        ),
         openrouter_pricing_provider_aliases =
             render_static_string_record(crawclaw_providers::OPENROUTER_PRICING_PROVIDER_ALIASES),
         openrouter_wrapper_providers =
@@ -1138,6 +1150,12 @@ mod tests {
         assert!(source.contains("\"AWS_PROFILE\""));
         assert!(source.contains("export const LEGACY_ENV_API_KEY_MARKERS = ["));
         assert!(source.contains("\"AZURE_OPENAI_API_KEY\""));
+        assert!(source.contains("export const ANTHROPIC_PROVIDER_ID = \"anthropic\";"));
+        assert!(source.contains("export const AMAZON_BEDROCK_PROVIDER_ID = \"amazon-bedrock\";"));
+        assert!(source.contains("export const ANTHROPIC_API_KEY_ENV = \"ANTHROPIC_API_KEY\";"));
+        assert!(
+            source.contains("export const ANTHROPIC_OAUTH_TOKEN_ENV = \"ANTHROPIC_OAUTH_TOKEN\";")
+        );
         assert!(source.contains("export const PROVIDER_USAGE_LABELS = {"));
         assert!(source.contains("\"openai-codex\": \"Codex\""));
         assert!(source.contains("zai: \"z.ai\""));
@@ -1171,6 +1189,9 @@ mod tests {
         assert!(source.contains("\"azure-openai-responses\""));
         assert!(source.contains(
             "export const OPENROUTER_MODELS_API_URL = \"https://openrouter.ai/api/v1/models\";"
+        ));
+        assert!(source.contains(
+            "export const MODEL_CATALOG_CONFIGURED_PROVIDER_IDS = [\"deepseek\", \"kilocode\", \"ollama\"] as const;"
         ));
         assert!(source.contains("export const OPENROUTER_PRICING_PROVIDER_ALIASES = {"));
         assert!(source.contains("\"openai-codex\": \"openai\""));

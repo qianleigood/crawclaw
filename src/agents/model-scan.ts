@@ -8,10 +8,10 @@ import {
   type Tool,
 } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
+import { OPENROUTER_MODELS_API_URL } from "../generated/providers/runtime-constants.generated.js";
 import { inferParamBFromIdOrName } from "../shared/model-param-b.js";
 import { normalizeProviderId } from "./provider-id.js";
 
-const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 const DEFAULT_TIMEOUT_MS = 12_000;
 const DEFAULT_CONCURRENCY = 3;
 
@@ -176,7 +176,7 @@ async function withTimeout<T>(
 }
 
 async function fetchOpenRouterModels(fetchImpl: typeof fetch): Promise<OpenRouterModelMeta[]> {
-  const res = await fetchImpl(OPENROUTER_MODELS_URL, {
+  const res = await fetchImpl(OPENROUTER_MODELS_API_URL, {
     headers: { Accept: "application/json" },
   });
   if (!res.ok) {
@@ -495,5 +495,5 @@ export async function scanOpenRouterModels(
   );
 }
 
-export { OPENROUTER_MODELS_URL };
+export { OPENROUTER_MODELS_API_URL as OPENROUTER_MODELS_URL };
 export type { OpenRouterModelMeta, OpenRouterModelPricing };

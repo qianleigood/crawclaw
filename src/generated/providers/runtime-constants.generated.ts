@@ -164,6 +164,10 @@ export const LEGACY_ENV_API_KEY_MARKERS = [
   "AZURE_API_KEY",
   "MINIMAX_CODE_PLAN_KEY",
 ] as const;
+export const ANTHROPIC_PROVIDER_ID = "anthropic";
+export const AMAZON_BEDROCK_PROVIDER_ID = "amazon-bedrock";
+export const ANTHROPIC_API_KEY_ENV = "ANTHROPIC_API_KEY";
+export const ANTHROPIC_OAUTH_TOKEN_ENV = "ANTHROPIC_OAUTH_TOKEN";
 export const PROVIDER_USAGE_LABELS = {
   anthropic: "Claude",
   "github-copilot": "Copilot",
@@ -212,6 +216,7 @@ export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = [
   "azure-openai-responses",
 ] as const;
 export const OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models";
+export const MODEL_CATALOG_CONFIGURED_PROVIDER_IDS = ["deepseek", "kilocode", "ollama"] as const;
 export const OPENROUTER_PRICING_PROVIDER_ALIASES = {
   "google-gemini-cli": "google",
   kimi: "moonshotai",

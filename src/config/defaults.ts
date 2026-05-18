@@ -2,6 +2,10 @@ import { DEFAULT_CONTEXT_TOKENS } from "../agents/defaults.js";
 import { normalizeProviderId, parseModelRef } from "../agents/model-selection.js";
 import {
   AGENT_DEFAULT_MODEL_ALIASES,
+  AMAZON_BEDROCK_PROVIDER_ID,
+  ANTHROPIC_API_KEY_ENV,
+  ANTHROPIC_OAUTH_TOKEN_ENV,
+  ANTHROPIC_PROVIDER_ID,
   DEFAULT_MODEL_COST as GENERATED_DEFAULT_MODEL_COST,
   DEFAULT_MODEL_INPUT as GENERATED_DEFAULT_MODEL_INPUT,
   DEFAULT_MODEL_MAX_TOKENS,
@@ -77,13 +81,13 @@ export function resolveNormalizedProviderModelMaxTokens(params: {
 function resolveAnthropicDefaultAuthMode(cfg: CrawClawConfig): AnthropicAuthDefaultsMode | null {
   const profiles = cfg.auth?.profiles ?? {};
   const anthropicProfiles = Object.entries(profiles).filter(
-    ([, profile]) => profile?.provider === "anthropic",
+    ([, profile]) => profile?.provider === ANTHROPIC_PROVIDER_ID,
   );
 
   const order = cfg.auth?.order?.anthropic ?? [];
   for (const profileId of order) {
     const entry = profiles[profileId];
-    if (!entry || entry.provider !== "anthropic") {
+    if (!entry || entry.provider !== ANTHROPIC_PROVIDER_ID) {
       continue;
     }
     if (entry.mode === "api_key") {
@@ -105,10 +109,10 @@ function resolveAnthropicDefaultAuthMode(cfg: CrawClawConfig): AnthropicAuthDefa
     return "oauth";
   }
 
-  if (process.env.ANTHROPIC_OAUTH_TOKEN?.trim()) {
+  if (process.env[ANTHROPIC_OAUTH_TOKEN_ENV]?.trim()) {
     return "oauth";
   }
-  if (process.env.ANTHROPIC_API_KEY?.trim()) {
+  if (process.env[ANTHROPIC_API_KEY_ENV]?.trim()) {
     return "api_key";
   }
   return null;
@@ -407,13 +411,13 @@ export function applyContextPruningDefaults(cfg: CrawClawConfig): CrawClawConfig
     ): parsed is { provider: string; model: string } =>
       Boolean(
         parsed &&
-        (parsed.provider === "anthropic" ||
-          (parsed.provider === "amazon-bedrock" &&
+        (parsed.provider === ANTHROPIC_PROVIDER_ID ||
+          (parsed.provider === AMAZON_BEDROCK_PROVIDER_ID &&
             parsed.model.toLowerCase().includes("anthropic.claude"))),
       );
 
     for (const [key, entry] of Object.entries(nextModels)) {
-      const parsed = parseModelRef(key, "anthropic");
+      const parsed = parseModelRef(key, ANTHROPIC_PROVIDER_ID);
       if (!isAnthropicCacheRetentionTarget(parsed)) {
         continue;
       }
@@ -433,7 +437,7 @@ export function applyContextPruningDefaults(cfg: CrawClawConfig): CrawClawConfig
       resolveAgentModelPrimaryValue(defaults.model) ?? undefined,
     );
     if (primary) {
-      const parsedPrimary = parseModelRef(primary, "anthropic");
+      const parsedPrimary = parseModelRef(primary, ANTHROPIC_PROVIDER_ID);
       if (isAnthropicCacheRetentionTarget(parsedPrimary)) {
         const key = `${parsedPrimary.provider}/${parsedPrimary.model}`;
         const entry = nextModels[key];

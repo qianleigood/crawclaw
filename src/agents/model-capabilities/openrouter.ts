@@ -21,12 +21,12 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveStateDir } from "../../config/paths.js";
+import { OPENROUTER_MODELS_API_URL } from "../../generated/providers/runtime-constants.generated.js";
 import { resolveProxyFetchFromEnv } from "../../infra/net/proxy-fetch.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
 
 const log = createSubsystemLogger("model-capabilities.openrouter");
 
-const OPENROUTER_MODELS_URL = "https://openrouter.ai/api/v1/models";
 const FETCH_TIMEOUT_MS = 10_000;
 const DISK_CACHE_FILENAME = "openrouter-models.json";
 
@@ -188,7 +188,7 @@ async function doFetch(): Promise<void> {
   try {
     const fetchFn = resolveProxyFetchFromEnv() ?? globalThis.fetch;
 
-    const response = await fetchFn(OPENROUTER_MODELS_URL, {
+    const response = await fetchFn(OPENROUTER_MODELS_API_URL, {
       signal: controller.signal,
     });
 
