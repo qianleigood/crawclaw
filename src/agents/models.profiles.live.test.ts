@@ -11,7 +11,6 @@ import {
 import { isHighSignalLiveModelRef } from "./live-model-filter.js";
 import { isLiveProfileKeyModeEnabled, isLiveTestEnabled } from "./live-test-helpers.js";
 import { getApiKeyForModel, requireApiKey } from "./model-auth.js";
-import { shouldSuppressBuiltInModel } from "./model-suppression.js";
 import { ensureCrawClawModelsJson } from "./models-config.js";
 import { discoverAuthStorage, discoverModels } from "./pi-model-discovery.js";
 import { isRateLimitErrorMessage } from "./runtime-helpers/errors.js";
@@ -427,9 +426,6 @@ describeLive("live models (profile keys)", () => {
       }> = [];
 
       for (const model of models) {
-        if (shouldSuppressBuiltInModel({ provider: model.provider, id: model.id })) {
-          continue;
-        }
         if (providers && !providers.has(model.provider)) {
           continue;
         }

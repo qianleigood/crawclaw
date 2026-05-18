@@ -27,7 +27,6 @@ import { isModelNotFoundErrorMessage } from "../agents/live-model-errors.js";
 import { isHighSignalLiveModelRef } from "../agents/live-model-filter.js";
 import { isLiveProfileKeyModeEnabled, isLiveTestEnabled } from "../agents/live-test-helpers.js";
 import { getApiKeyForModel } from "../agents/model-auth.js";
-import { shouldSuppressBuiltInModel } from "../agents/model-suppression.js";
 import { ensureCrawClawModelsJson } from "../agents/models-config.js";
 import { discoverAuthStorage, discoverModels } from "../agents/pi-model-discovery.js";
 import { isRateLimitErrorMessage } from "../agents/runtime-helpers/errors.js";
@@ -1916,9 +1915,6 @@ describeLive("gateway live (dev agent, profile keys)", () => {
         const candidates: Array<Model<Api>> = [];
         const skipped: Array<{ model: string; error: string }> = [];
         for (const model of wanted) {
-          if (shouldSuppressBuiltInModel({ provider: model.provider, id: model.id })) {
-            continue;
-          }
           if (PROVIDERS && !PROVIDERS.has(model.provider)) {
             continue;
           }

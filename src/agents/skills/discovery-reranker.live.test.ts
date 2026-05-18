@@ -6,7 +6,6 @@ import { collectProviderApiKeys } from "../live-auth-keys.js";
 import { isHighSignalLiveModelRef } from "../live-model-filter.js";
 import { isLiveTestEnabled } from "../live-test-helpers.js";
 import { ensureAuthProfileStore, getApiKeyForModel } from "../model-auth.js";
-import { shouldSuppressBuiltInModel } from "../model-suppression.js";
 import { ensureCrawClawModelsJson } from "../models-config.js";
 import { discoverAuthStorage, discoverModels } from "../pi-model-discovery.js";
 import { createModelSkillDiscoveryReranker } from "./discovery-reranker.js";
@@ -106,13 +105,7 @@ async function resolveRegistryLiveModelChoices(): Promise<Model<Api>[]> {
   await ensureCrawClawModelsJson(cfg);
   const authStorage = discoverAuthStorage(agentDir);
   const registry = discoverModels(authStorage, agentDir);
-  const models = registry
-    .getAll()
-    .filter(
-      (model: Model<Api>) =>
-        !shouldSuppressBuiltInModel({ provider: model.provider, id: model.id }) &&
-        !isLocalModelEndpoint(model),
-    );
+  const models = registry.getAll().filter((model: Model<Api>) => !isLocalModelEndpoint(model));
   const highSignal = models.filter((model: Model<Api>) =>
     isHighSignalLiveModelRef({ provider: model.provider, id: model.id }),
   );
