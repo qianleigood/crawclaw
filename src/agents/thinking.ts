@@ -3,7 +3,6 @@ import {
   isBinaryThinkingProvider as isBinaryThinkingProviderFallback,
   listThinkingLevelLabels as listThinkingLevelLabelsFallback,
   listThinkingLevels as listThinkingLevelsFallback,
-  normalizeProviderId,
   resolveThinkingDefaultForModel as resolveThinkingDefaultForModelFallback,
   supportsBuiltInXHighThinking,
 } from "./thinking.shared.js";
@@ -30,31 +29,11 @@ export type {
   UsageDisplayLevel,
   VerboseLevel,
 } from "./thinking.shared.js";
-import {
-  resolveProviderBinaryThinking,
-  resolveProviderDefaultThinkingLevel,
-  resolveProviderXHighThinking,
-} from "../plugins/provider-thinking.js";
 
-export function isBinaryThinkingProvider(provider?: string | null, model?: string | null): boolean {
-  if (isBinaryThinkingProviderFallback(provider)) {
-    return true;
-  }
-  const normalizedProvider = normalizeProviderId(provider);
-  if (!normalizedProvider) {
-    return false;
-  }
-
-  const pluginDecision = resolveProviderBinaryThinking({
-    provider: normalizedProvider,
-    context: {
-      provider: normalizedProvider,
-      modelId: model?.trim() ?? "",
-    },
-  });
-  if (typeof pluginDecision === "boolean") {
-    return pluginDecision;
-  }
+export function isBinaryThinkingProvider(
+  provider?: string | null,
+  _model?: string | null,
+): boolean {
   return isBinaryThinkingProviderFallback(provider);
 }
 
@@ -65,19 +44,6 @@ export function supportsXHighThinking(provider?: string | null, model?: string |
   }
   if (supportsBuiltInXHighThinking(provider, modelKey)) {
     return true;
-  }
-  const providerKey = normalizeProviderId(provider);
-  if (providerKey) {
-    const pluginDecision = resolveProviderXHighThinking({
-      provider: providerKey,
-      context: {
-        provider: providerKey,
-        modelId: modelKey,
-      },
-    });
-    if (typeof pluginDecision === "boolean") {
-      return pluginDecision;
-    }
   }
   return false;
 }
@@ -112,20 +78,5 @@ export function resolveThinkingDefaultForModel(params: {
   model: string;
   catalog?: ThinkingCatalogEntry[];
 }): ThinkLevel {
-  const normalizedProvider = normalizeProviderId(params.provider);
-  const candidate = params.catalog?.find(
-    (entry) => entry.provider === params.provider && entry.id === params.model,
-  );
-  const pluginDecision = resolveProviderDefaultThinkingLevel({
-    provider: normalizedProvider,
-    context: {
-      provider: normalizedProvider,
-      modelId: params.model,
-      reasoning: candidate?.reasoning,
-    },
-  });
-  if (pluginDecision) {
-    return pluginDecision;
-  }
   return resolveThinkingDefaultForModelFallback(params);
 }
