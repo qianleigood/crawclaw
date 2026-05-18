@@ -14,7 +14,6 @@ import {
   type PluginActivationState,
 } from "./config-state.js";
 import { discoverCrawClawPlugins } from "./discovery.js";
-import { initializeGlobalPluginRegistry } from "./global-registry.js";
 import { loadPluginManifestRegistry, type PluginManifestRecord } from "./manifest-registry.js";
 import { isPathInside, safeStatSync } from "./path-safety.js";
 import { createPluginRegistry, type PluginRecord, type PluginRegistry } from "./registry.js";
@@ -655,7 +654,6 @@ function warnAboutUntrackedLoadedPlugins(params: {
 
 function activatePluginRegistry(registry: PluginRegistry, cacheKey: string): void {
   setActivePluginRegistry(registry, cacheKey);
-  initializeGlobalPluginRegistry(registry);
 }
 
 export function loadCrawClawPlugins(options: PluginLoadOptions = {}): PluginRegistry {

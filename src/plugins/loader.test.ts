@@ -5,7 +5,6 @@ import { afterAll, afterEach, describe, expect, it } from "vitest";
 import { resetDiagnosticEventsForTest } from "../infra/diagnostic-events.js";
 import { withEnv } from "../test-utils/env.js";
 import { clearPluginDiscoveryCache } from "./discovery.js";
-import { getGlobalPluginRegistry, resetGlobalPluginRegistry } from "./global-registry.js";
 import {
   __testing,
   clearPluginLoaderCache,
@@ -809,8 +808,6 @@ module.exports = { id: "manifest-only-plugin" };`,
         });
         const previousRegistry = createEmptyPluginRegistry();
         setActivePluginRegistry(previousRegistry, "existing-registry");
-        resetGlobalPluginRegistry();
-
         const scoped = loadCrawClawPlugins({
           cache: false,
           activate: false,
@@ -827,7 +824,6 @@ module.exports = { id: "manifest-only-plugin" };`,
         expect(scoped.plugins.map((entry) => entry.id)).toEqual(["allowed-nonactivating-scope"]);
         expect(getActivePluginRegistry()).toBe(previousRegistry);
         expect(getActivePluginRegistryKey()).toBe("existing-registry");
-        expect(getGlobalPluginRegistry()).toBeNull();
       },
     },
   ] as const)("handles config-path and scoped plugin loads: $label", ({ run }) => {
