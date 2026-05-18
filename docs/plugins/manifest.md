@@ -24,7 +24,7 @@ against the `crawclaw.plugin.json` schema described here.
 
 For compatible bundles, CrawClaw currently reads bundle metadata plus declared
 skill roots, Claude command roots, Claude bundle `settings.json` defaults, and
-supported hook packs when the layout matches CrawClaw runtime expectations.
+supported hook modules when the layout matches CrawClaw runtime expectations.
 
 Every native CrawClaw plugin **must** ship a `crawclaw.plugin.json` file in the
 **plugin root**. CrawClaw uses this manifest to validate configuration

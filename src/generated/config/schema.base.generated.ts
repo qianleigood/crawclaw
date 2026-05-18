@@ -6252,112 +6252,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 },
                 additionalProperties: false,
               },
-              installs: {
-                type: "object",
-                propertyNames: {
-                  type: "string",
-                },
-                additionalProperties: {
-                  type: "object",
-                  properties: {
-                    source: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "npm",
-                        },
-                        {
-                          type: "string",
-                          const: "archive",
-                        },
-                        {
-                          type: "string",
-                          const: "path",
-                        },
-                        {
-                          type: "string",
-                          const: "clawhub",
-                        },
-                      ],
-                    },
-                    spec: {
-                      type: "string",
-                    },
-                    sourcePath: {
-                      type: "string",
-                    },
-                    installPath: {
-                      type: "string",
-                    },
-                    version: {
-                      type: "string",
-                    },
-                    resolvedName: {
-                      type: "string",
-                    },
-                    resolvedVersion: {
-                      type: "string",
-                    },
-                    resolvedSpec: {
-                      type: "string",
-                    },
-                    integrity: {
-                      type: "string",
-                    },
-                    shasum: {
-                      type: "string",
-                    },
-                    resolvedAt: {
-                      type: "string",
-                    },
-                    installedAt: {
-                      type: "string",
-                    },
-                    clawhubUrl: {
-                      type: "string",
-                    },
-                    clawhubPackage: {
-                      type: "string",
-                    },
-                    clawhubFamily: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "code-plugin",
-                        },
-                        {
-                          type: "string",
-                          const: "bundle-plugin",
-                        },
-                      ],
-                    },
-                    clawhubChannel: {
-                      anyOf: [
-                        {
-                          type: "string",
-                          const: "official",
-                        },
-                        {
-                          type: "string",
-                          const: "community",
-                        },
-                        {
-                          type: "string",
-                          const: "private",
-                        },
-                      ],
-                    },
-                    hooks: {
-                      type: "array",
-                      items: {
-                        type: "string",
-                      },
-                    },
-                  },
-                  required: ["source"],
-                  additionalProperties: false,
-                },
-              },
             },
             additionalProperties: false,
           },
@@ -11056,11 +10950,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "Internal Hook Extra Directories",
       help: "Additional directories searched for internal hook modules beyond default load paths. Keep this minimal and controlled to reduce accidental module shadowing.",
       tags: ["storage"],
-    },
-    "hooks.internal.installs": {
-      label: "Internal Hook Install Records",
-      help: "Install metadata for internal hook modules, including source and resolved artifacts for repeatable deployments. Use this as operational provenance and avoid manual drift edits.",
-      tags: ["advanced"],
     },
     web: {
       label: "Web Chat",

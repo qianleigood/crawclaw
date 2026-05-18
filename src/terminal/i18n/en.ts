@@ -1254,15 +1254,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.hooks.check.description": "Check hooks eligibility status",
   "command.hooks.enable.description": "Enable a hook",
   "command.hooks.disable.description": "Disable a hook",
-  "command.hooks.install.description":
-    "Deprecated: install a hook pack via `crawclaw plugins install`",
-  "command.hooks.install.argument.pathOrSpec": "Path to a hook pack or npm package spec",
-  "command.hooks.install.option.link": "Link a local path instead of copying",
-  "command.hooks.install.option.pin": "Record npm installs as exact resolved <name>@<version>",
-  "command.hooks.update.description": "Deprecated: update hook packs via `crawclaw plugins update`",
-  "command.hooks.update.argument.id": "Hook pack id (omit with --all)",
-  "command.hooks.update.option.all": "Update all tracked hooks",
-  "command.hooks.update.option.dryRun": "Show what would change without writing",
   "command.webhooks.description": "Webhook helpers and integrations",
   "command.plugins.description": "Manage plugin discovery and enablement",
   "command.plugins.option.json": "Print JSON",
@@ -1279,7 +1270,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "command.plugins.uninstall.option.keepFiles": "Keep installed files on disk",
   "command.plugins.uninstall.option.dryRun": "Show what would be removed without making changes",
   "command.plugins.install.description":
-    "Install a plugin or hook pack (path, archive, npm spec, clawhub:package, or marketplace entry)",
+    "Install a plugin (path, archive, npm spec, clawhub:package, or marketplace entry)",
   "command.plugins.install.argument.pathOrSpecOrPlugin":
     "Path (.ts/.js/.zip/.tgz/.tar.gz), npm package spec, or marketplace plugin name",
   "command.plugins.install.option.link": "Link a local path instead of copying",
@@ -1288,9 +1279,9 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
     "Bypass built-in dangerous-code install blocking (plugin hooks may still block)",
   "command.plugins.install.option.marketplace":
     "Install a Claude marketplace plugin from a local repo/path or git/GitHub source",
-  "command.plugins.update.description": "Update installed plugins and tracked hook packs",
-  "command.plugins.update.argument.id": "Plugin or hook-pack id (omit with --all)",
-  "command.plugins.update.option.all": "Update all tracked plugins and hook packs",
+  "command.plugins.update.description": "Update installed plugins",
+  "command.plugins.update.argument.id": "Plugin id (omit with --all)",
+  "command.plugins.update.option.all": "Update all tracked plugins",
   "command.plugins.update.option.dryRun": "Show what would change without writing",
   "command.plugins.doctor.description": "Report plugin load issues",
   "command.plugins.marketplace.description": "Inspect Claude-compatible plugin marketplaces",
@@ -1752,19 +1743,12 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "hooks.runtime.heading.notReady": "Hooks not ready:",
   "hooks.runtime.action.enabled": "Enabled hook",
   "hooks.runtime.action.disabled": "Disabled hook",
-  "hooks.runtime.deprecated.install":
-    "`crawclaw hooks install` is deprecated; use `crawclaw plugins install`.",
-  "hooks.runtime.deprecated.update":
-    "`crawclaw hooks update` is deprecated; use `crawclaw plugins update`.",
-  "plugins.update.noTracked": "No tracked plugins or hook packs to update.",
-  "plugins.update.provideIdOrAll": "Provide a plugin or hook-pack id, or use --all.",
+  "plugins.update.noTracked": "No tracked plugins to update.",
+  "plugins.update.provideIdOrAll": "Provide a plugin id, or use --all.",
   "plugins.update.integrityDrift.plugin": 'Integrity drift detected for "{pluginId}" ({spec})',
-  "plugins.update.integrityDrift.hook":
-    'Integrity drift detected for hook pack "{hookId}" ({spec})',
   "plugins.update.expected": "Expected",
   "plugins.update.actual": "Actual",
   "plugins.update.continuePlugin": 'Continue updating "{pluginId}" with this artifact?',
-  "plugins.update.continueHook": 'Continue updating hook pack "{hookId}" with this artifact?',
   "plugins.update.restartTip": "Restart the gateway to load plugins and hooks.",
   "update.wizard.error.requiresTty":
     "Update wizard requires a TTY. Use `crawclaw update --channel <stable|beta|dev>` instead.",

@@ -131,23 +131,20 @@ Each event includes: `type`, `action`, `sessionKey`, `timestamp`, `messages` (pu
 
 Hooks are discovered from these directories, in order of increasing override precedence:
 
-1. **Packaged hooks**: hooks bundled by installed hook packs
-2. **Managed hooks**: `~/.crawclaw/hooks/` (user-installed, shared across workspaces). Extra directories from `hooks.internal.load.extraDirs` share this precedence.
-3. **Workspace hooks**: `<workspace>/hooks/` (per-agent, disabled by default until explicitly enabled)
+1. **Managed hooks**: `~/.crawclaw/hooks/` (user-installed, shared across workspaces). Extra directories from `hooks.internal.load.extraDirs` share this precedence.
+2. **Workspace hooks**: `<workspace>/hooks/` (per-agent, disabled by default until explicitly enabled)
 
-Workspace hooks can add new hook names but cannot override managed or packaged hooks with the same name.
+Workspace hooks can add new hook names but cannot override managed hooks with the same name.
 
-### Hook packs
+### Hook modules
 
-Hook packs are npm packages that export hooks via `crawclaw.hooks` in `package.json`. Install and enable them from CrawClaw Desktop or through the local Gateway API.
-
-Npm specs are registry-only (package name + optional exact version or dist-tag). Git/URL/file specs and semver ranges are rejected.
+Standalone hook-pack install/update commands have been removed from the default product path. Put trusted hook modules in the managed or workspace hook directories, or ship native plugin capabilities for distributable extension behavior.
 
 ## Removed bundled hooks
 
 CrawClaw no longer ships TypeScript bundled hook handlers. The old
 `bootstrap-extra-files`, `command-logger`, and `boot-md` handlers were removed
-from the product runtime boundary; use a managed hook pack or a workspace hook
+from the product runtime boundary; use a managed hook module or a workspace hook
 when you need local automation.
 
 ## Plugin hooks

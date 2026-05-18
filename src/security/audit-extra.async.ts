@@ -478,69 +478,6 @@ export async function collectPluginsTrustFindings(params: {
     }
   }
 
-  const hookInstalls = params.cfg.hooks?.internal?.installs ?? {};
-  const npmHookInstalls = Object.entries(hookInstalls).filter(
-    ([, record]) => record?.source === "npm",
-  );
-  if (npmHookInstalls.length > 0) {
-    const unpinned = npmHookInstalls
-      .filter(([, record]) => typeof record.spec === "string" && !isPinnedRegistrySpec(record.spec))
-      .map(([hookId, record]) => `${hookId} (${record.spec})`);
-    if (unpinned.length > 0) {
-      findings.push({
-        checkId: "hooks.installs_unpinned_npm_specs",
-        severity: "warn",
-        title: "Hook installs include unpinned npm specs",
-        detail: `Unpinned hook install records:\n${unpinned.map((entry) => `- ${entry}`).join("\n")}`,
-        remediation:
-          "Pin hook install specs to exact versions (for example, `@scope/pkg@1.2.3`) for higher supply-chain stability.",
-      });
-    }
-
-    const missingIntegrity = npmHookInstalls
-      .filter(
-        ([, record]) => typeof record.integrity !== "string" || record.integrity.trim() === "",
-      )
-      .map(([hookId]) => hookId);
-    if (missingIntegrity.length > 0) {
-      findings.push({
-        checkId: "hooks.installs_missing_integrity",
-        severity: "warn",
-        title: "Hook installs are missing integrity metadata",
-        detail: `Hook install records missing integrity:\n${missingIntegrity.map((entry) => `- ${entry}`).join("\n")}`,
-        remediation:
-          "Reinstall or update hooks to refresh install metadata with resolved integrity hashes.",
-      });
-    }
-
-    const hookVersionDrift: string[] = [];
-    for (const [hookId, record] of npmHookInstalls) {
-      const recordedVersion = record.resolvedVersion ?? record.version;
-      if (!recordedVersion) {
-        continue;
-      }
-      const installPath = record.installPath ?? path.join(params.stateDir, "hooks", hookId);
-      // eslint-disable-next-line no-await-in-loop
-      const installedVersion = await readInstalledPackageVersion(installPath);
-      if (!installedVersion || installedVersion === recordedVersion) {
-        continue;
-      }
-      hookVersionDrift.push(
-        `${hookId} (recorded ${recordedVersion}, installed ${installedVersion})`,
-      );
-    }
-    if (hookVersionDrift.length > 0) {
-      findings.push({
-        checkId: "hooks.installs_version_drift",
-        severity: "warn",
-        title: "Hook install records drift from installed package versions",
-        detail: `Detected hook install metadata drift:\n${hookVersionDrift.map((entry) => `- ${entry}`).join("\n")}`,
-        remediation:
-          "Run `crawclaw hooks update --all` (or reinstall affected hooks) to refresh install metadata.",
-      });
-    }
-  }
-
   return findings;
 }
 

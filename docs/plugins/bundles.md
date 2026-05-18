@@ -89,9 +89,9 @@ is detected but not yet wired.
 This means Claude markdown command files work through the normal CrawClaw skill
 loader. Cursor command markdown works through the same path.
 
-#### Hook packs
+#### Hook modules
 
-- bundle hook roots work **only** when they use the normal CrawClaw hook-pack
+- bundle hook roots work **only** when they use the normal CrawClaw hook module
   layout. Today this is primarily the Codex-compatible case:
   - `HOOK.md`
   - `handler.ts` or `handler.js`
@@ -194,7 +194,7 @@ These are recognized and shown in diagnostics, but CrawClaw does not run them:
     Optional content: `skills/`, `hooks/`, `.mcp.json`, `.app.json`
 
     Codex bundles fit CrawClaw best when they use skill roots and CrawClaw-style
-    hook-pack directories (`HOOK.md` + `handler.ts`).
+    hook module directories (`HOOK.md` + `handler.ts`).
 
   </Accordion>
 
@@ -240,7 +240,7 @@ dual-format packages from being partially installed as bundles.
 Bundles have a narrower trust boundary than native plugins:
 
 - CrawClaw does **not** load arbitrary bundle runtime modules in-process
-- Skills and hook-pack paths must stay inside the plugin root (boundary-checked)
+- Skills and hook module paths must stay inside the plugin root (boundary-checked)
 - Settings files are read with the same boundary checks
 - Supported stdio MCP servers may be launched as subprocesses
 
@@ -267,7 +267,7 @@ bundles as trusted content for the features they do expose.
 
   <Accordion title="Claude hooks do not execute">
     `hooks/hooks.json` is detect-only. If you need runnable hooks, use the
-    CrawClaw hook-pack layout or ship a native plugin.
+    CrawClaw hook module layout or ship a native plugin.
   </Accordion>
 </AccordionGroup>
 

@@ -81,10 +81,6 @@ export type HookConfig = {
   [key: string]: unknown;
 };
 
-export type HookInstallRecord = InstallRecordBase & {
-  hooks?: string[];
-};
-
 export type InternalHooksConfig = {
   /** Enable hooks system */
   enabled?: boolean;
@@ -97,8 +93,6 @@ export type InternalHooksConfig = {
     /** Additional hook directories to scan */
     extraDirs?: string[];
   };
-  /** Install records for hook packs or hooks */
-  installs?: Record<string, HookInstallRecord>;
 };
 
 export type HooksConfig = {
@@ -133,4 +127,3 @@ export type HooksConfig = {
   /** Internal agent event hooks */
   internal?: InternalHooksConfig;
 };
-import type { InstallRecordBase } from "./types.installs.js";
