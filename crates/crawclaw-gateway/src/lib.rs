@@ -10947,6 +10947,7 @@ mod tests {
     use super::*;
     use std::collections::BTreeSet;
     use std::io::Read;
+    use std::path::{Path, PathBuf};
     use std::sync::{mpsc, Mutex, OnceLock};
     use std::thread;
     use std::time::Duration;
@@ -10954,6 +10955,150 @@ mod tests {
     fn env_lock() -> &'static Mutex<()> {
         static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
         LOCK.get_or_init(|| Mutex::new(()))
+    }
+
+    const REMOVED_TS_GATEWAY_RUNTIME_FILES: &[&str] = &[
+        "src/gateway/server.ts",
+        "src/gateway/server.impl.ts",
+        "src/gateway/server-runtime-state.ts",
+        "src/gateway/server-http.ts",
+        "src/gateway/server-broadcast.ts",
+        "src/gateway/server-chat.ts",
+        "src/gateway/server-maintenance.ts",
+        "src/gateway/server-plugin-bootstrap.ts",
+        "src/gateway/server-plugins.ts",
+        "src/gateway/server-reload-handlers.ts",
+        "src/gateway/server-close.ts",
+        "src/gateway/server-cron.ts",
+        "src/gateway/server-discovery-runtime.ts",
+        "src/gateway/server-discovery.ts",
+        "src/gateway/server-lanes.ts",
+        "src/gateway/server-model-catalog.ts",
+        "src/gateway/server-methods/config.ts",
+        "src/gateway/server-methods/send.ts",
+        "src/gateway/server-methods/skills.ts",
+        "src/gateway/server-methods/talk.ts",
+        "src/gateway/server-methods/web.ts",
+        "src/gateway/server-methods/wizard.ts",
+        "src/gateway/server-restart-sentinel.ts",
+        "src/gateway/server-runtime-config.ts",
+        "src/gateway/server-session-key.ts",
+        "src/gateway/server-startup-log.ts",
+        "src/gateway/server-startup-session-migration.ts",
+        "src/gateway/server-startup.ts",
+        "src/gateway/server-tailscale.ts",
+        "src/gateway/server-utils.ts",
+        "src/gateway/server-wizard-sessions.ts",
+        "src/gateway/server/hooks.ts",
+        "src/gateway/server/http-auth.ts",
+        "src/gateway/server/http-listen.ts",
+        "src/gateway/server/plugins-http.ts",
+        "src/gateway/server/preauth-connection-budget.ts",
+        "src/gateway/server/readiness.ts",
+        "src/gateway/server/tls.ts",
+        "src/gateway/server/ws-types.ts",
+    ];
+
+    const REMOVED_TS_GATEWAY_BRIDGE_FILES: &[&str] = &[
+        "src/agents/agent-command.ts",
+        "src/agents/command/attempt-execution.ts",
+        "src/agents/command/prepare.ts",
+        "src/agents/command/run-context.ts",
+        "src/agents/command/session.ts",
+        "src/agents/command/types.ts",
+        "src/agents/runtime/agent-ops-summary.ts",
+        "src/chat/abort-primitives.ts",
+        "src/gateway/boot.ts",
+        "src/gateway/chat-abort.ts",
+        "src/gateway/events.ts",
+        "src/gateway/protocol/connect-error-details.ts",
+        "src/gateway/request-types.ts",
+        "src/gateway/session-reset-entry.ts",
+        "src/gateway/session-reset-service.ts",
+        "src/gateway/session-subagent-reactivation.runtime.ts",
+        "src/gateway/session-subagent-reactivation.ts",
+        "src/gateway/sessions-patch.ts",
+        "src/gateway/sessions-resolve.ts",
+        "src/plugins/runtime/gateway-request-scope.ts",
+    ];
+
+    fn repo_root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("repo root")
+            .to_path_buf()
+    }
+
+    fn slash_path(path: &Path) -> String {
+        path.to_string_lossy()
+            .replace(std::path::MAIN_SEPARATOR, "/")
+    }
+
+    fn collect_type_script_files(root: &Path, files: &mut Vec<PathBuf>) {
+        for entry in std::fs::read_dir(root).expect("read source directory") {
+            let entry = entry.expect("source directory entry");
+            let path = entry.path();
+            if path.is_dir() {
+                collect_type_script_files(&path, files);
+            } else if path.is_file() && path.extension().is_some_and(|ext| ext == "ts") {
+                files.push(path);
+            }
+        }
+    }
+
+    fn is_test_or_declaration_ts(relative: &str) -> bool {
+        relative.ends_with(".test.ts")
+            || relative.ends_with(".suite.ts")
+            || relative.ends_with(".live.test.ts")
+            || relative.ends_with(".e2e.test.ts")
+            || relative.ends_with(".d.ts")
+    }
+
+    fn quoted_specifier_after(
+        source: &str,
+        marker: &str,
+        offset: usize,
+    ) -> Option<(String, usize)> {
+        let marker_index = source[offset..].find(marker)? + offset;
+        let after_marker = marker_index + marker.len();
+        let quoted = source[after_marker..].find(['"', '\''])? + after_marker;
+        let quote = source.as_bytes()[quoted] as char;
+        let end = source[quoted + 1..].find(quote)? + quoted + 1;
+        Some((source[quoted + 1..end].to_string(), end + 1))
+    }
+
+    fn imported_module_specifiers(source: &str) -> Vec<String> {
+        let mut specifiers = Vec::new();
+        for marker in ["from ", "import("] {
+            let mut offset = 0;
+            while let Some((specifier, next_offset)) =
+                quoted_specifier_after(source, marker, offset)
+            {
+                specifiers.push(specifier);
+                offset = next_offset;
+            }
+        }
+        specifiers
+    }
+
+    fn resolve_ts_import(from_file: &Path, specifier: &str) -> Option<PathBuf> {
+        if !specifier.starts_with('.') {
+            return None;
+        }
+        let parent = from_file.parent()?;
+        let resolved = parent.join(specifier);
+        if specifier.ends_with(".js") {
+            return Some(resolved.with_extension("ts"));
+        }
+        Some(resolved.with_extension("ts"))
+    }
+
+    fn contains_gateway_client_constructor(source: &str) -> bool {
+        source
+            .split_whitespace()
+            .collect::<String>()
+            .contains("newGatewayClient(")
     }
 
     #[test]
@@ -10969,6 +11114,70 @@ mod tests {
         assert!(
             missing.is_empty(),
             "Rust Gateway is missing removed Node core Gateway methods: {missing:?}"
+        );
+    }
+
+    #[test]
+    fn rust_gateway_repo_guardrails_keep_removed_ts_gateway_surfaces_absent() {
+        let root = repo_root();
+        let existing = REMOVED_TS_GATEWAY_RUNTIME_FILES
+            .iter()
+            .chain(REMOVED_TS_GATEWAY_BRIDGE_FILES.iter())
+            .filter(|relative| root.join(relative).exists())
+            .copied()
+            .collect::<Vec<_>>();
+
+        assert!(
+            existing.is_empty(),
+            "removed TypeScript Gateway surfaces came back: {existing:?}"
+        );
+    }
+
+    #[test]
+    fn rust_gateway_repo_guardrails_keep_production_ts_off_old_gateway_runtime() {
+        let root = repo_root();
+        let mut files = Vec::new();
+        collect_type_script_files(&root.join("src"), &mut files);
+
+        let removed_server = root.join("src/gateway/server.ts");
+        let mut server_imports = Vec::new();
+        let mut handler_imports = Vec::new();
+        let mut gateway_client_callsites = Vec::new();
+
+        for file in files {
+            let relative = slash_path(file.strip_prefix(&root).expect("relative source path"));
+            if is_test_or_declaration_ts(&relative)
+                || relative.starts_with("src/gateway/test-")
+                || relative.starts_with("src/gateway/server.e2e-ws-harness")
+            {
+                continue;
+            }
+
+            let source = std::fs::read_to_string(&file).expect("read TS source");
+            if contains_gateway_client_constructor(&source) {
+                gateway_client_callsites.push(relative.clone());
+            }
+            if source.contains("legacy-ts-gateway-handlers") {
+                handler_imports.push(relative.clone());
+            }
+            if imported_module_specifiers(&source).iter().any(|specifier| {
+                resolve_ts_import(&file, specifier).as_deref() == Some(&removed_server)
+            }) {
+                server_imports.push(relative);
+            }
+        }
+
+        assert!(
+            server_imports.is_empty(),
+            "production TS imports the removed TS Gateway server: {server_imports:?}"
+        );
+        assert!(
+            handler_imports.is_empty(),
+            "production TS imports removed TS Gateway handlers: {handler_imports:?}"
+        );
+        assert!(
+            gateway_client_callsites.is_empty(),
+            "production TS constructs the old GatewayClient directly: {gateway_client_callsites:?}"
         );
     }
 

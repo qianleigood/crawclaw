@@ -88,10 +88,6 @@ These are the standard files CrawClaw expects inside the workspace:
   - Not the recommended place for new scheduled automation.
   - Use cron jobs or hooks for new proactive work.
 
-- `BOOT.md`
-  - Optional startup checklist executed on gateway restart when internal hooks are enabled.
-  - Keep it short; use the message tool for outbound sends.
-
 - `BOOTSTRAP.md`
   - One-time first-run ritual.
   - Only created for a brand-new workspace.

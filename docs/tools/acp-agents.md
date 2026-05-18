@@ -369,8 +369,8 @@ is actually working end-to-end, not just passing unit tests.
 Recommended gate:
 
 1. Verify the deployed gateway version/commit on the target host.
-2. Confirm the deployed source includes the ACP lineage acceptance in
-   `src/gateway/sessions-patch.ts` (`subagent:* or acp:* sessions`).
+2. Confirm the deployed source includes the ACP lineage acceptance in the Rust Gateway session
+   handlers (`subagent:*` or `acp:*` sessions).
 3. Open a temporary ACPX bridge session to a live agent (for example
    `razor(main)` on `jpclawhq`).
 4. Ask that agent to call `sessions_spawn` with:

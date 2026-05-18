@@ -564,10 +564,6 @@
       "destination": "/reference/templates/AGENTS"
     },
     {
-      "source": "/templates/BOOT",
-      "destination": "/reference/templates/BOOT"
-    },
-    {
       "source": "/templates/BOOTSTRAP",
       "destination": "/reference/templates/BOOTSTRAP"
     },
@@ -1100,7 +1096,6 @@
                 "pages": [
                   "reference/AGENTS.default",
                   "reference/templates/AGENTS",
-                  "reference/templates/BOOT",
                   "reference/templates/BOOTSTRAP",
                   "reference/templates/HEARTBEAT",
                   "reference/templates/IDENTITY.dev",
@@ -1507,7 +1502,6 @@
                 "pages": [
                   "zh-CN/reference/AGENTS.default",
                   "zh-CN/reference/templates/AGENTS",
-                  "zh-CN/reference/templates/BOOT",
                   "zh-CN/reference/templates/BOOTSTRAP",
                   "zh-CN/reference/templates/HEARTBEAT",
                   "zh-CN/reference/templates/IDENTITY.dev",

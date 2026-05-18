@@ -1355,7 +1355,7 @@ async function runGatewayModelSuite(params: GatewayModelSuiteParams) {
                   key: sessionKey,
                   model: modelKey,
                 }),
-                `${progressLabel}: sessions-patch`,
+                `${progressLabel}: sessions.patch`,
               );
 
               logProgress(`${progressLabel}: prompt`);
@@ -2088,7 +2088,7 @@ describeLive("gateway live (dev agent, profile keys)", () => {
           key: sessionKey,
           model: "anthropic/claude-opus-4-6",
         }),
-        "zai-fallback: sessions-patch-anthropic",
+        "zai-fallback: sessions.patch-anthropic",
       );
       await withGatewayLiveProbeTimeout(
         client.request("sessions.reset", {
@@ -2123,7 +2123,7 @@ describeLive("gateway live (dev agent, profile keys)", () => {
           key: sessionKey,
           model: "zai/glm-4.7",
         }),
-        "zai-fallback: sessions-patch-zai",
+        "zai-fallback: sessions.patch-zai",
       );
 
       const followupText = await requestGatewayAgentText({

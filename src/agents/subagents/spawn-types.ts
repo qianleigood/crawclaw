@@ -1,3 +1,5 @@
+import type { AgentStreamParams } from "../runtime/stream-params.js";
+
 export const SUBAGENT_SPAWN_MODES = ["run", "session"] as const;
 export type SpawnSubagentMode = (typeof SUBAGENT_SPAWN_MODES)[number];
 
@@ -27,7 +29,7 @@ export type SpawnSubagentParams = {
     mimeType?: string;
   }>;
   attachMountPath?: string;
-  streamParams?: import("../command/types.js").AgentStreamParams;
+  streamParams?: AgentStreamParams;
 };
 
 export type SpawnSubagentContext = {

@@ -1,6 +1,6 @@
 import { callGateway } from "../../gateway/call.js";
-import type { AgentStreamParams } from "../command/types.js";
 import type { SpawnSubagentParams, SpawnSubagentResult } from "../subagents/spawn-types.js";
+import type { AgentStreamParams } from "./stream-params.js";
 import { normalizeAgentSpawnContext, type AgentSpawnToolContext } from "./subagent-context.js";
 
 export type SpawnSessionRuntime = "subagent" | "acp";
