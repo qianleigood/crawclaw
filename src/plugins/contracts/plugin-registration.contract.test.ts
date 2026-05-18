@@ -42,7 +42,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
   {
     pluginId: "qwen3-tts",
     speechProviderIds: ["qwen3-tts"],
-    requireSpeechVoices: true,
   },
   {
     pluginId: "spider-fetch",

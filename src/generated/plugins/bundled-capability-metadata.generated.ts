@@ -9,6 +9,26 @@ export type BundledPluginContractSnapshot = {
   toolNames: readonly string[];
 };
 
+export type BundledNativeProviderInvocation = {
+  pluginId: string;
+  operation: string;
+};
+
+export type BundledNativeWebProviderMetadata = {
+  pluginId: string;
+  id: string;
+  label: string;
+  invocation: BundledNativeProviderInvocation;
+};
+
+export type BundledNativeSpeechProviderMetadata = {
+  pluginId: string;
+  id: string;
+  label: string;
+  voices: readonly string[];
+  synthesize: BundledNativeProviderInvocation;
+};
+
 export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "amazon-bedrock",
@@ -363,6 +383,34 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
     toolNames: [],
   },
 ] as const satisfies readonly BundledPluginContractSnapshot[];
+
+export const BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS = [
+  {
+    pluginId: "searxng",
+    id: "searxng",
+    label: "SearXNG",
+    invocation: { pluginId: "searxng", operation: "search" },
+  },
+] as const satisfies readonly BundledNativeWebProviderMetadata[];
+
+export const BUNDLED_NATIVE_WEB_FETCH_PROVIDERS = [
+  {
+    pluginId: "spider-fetch",
+    id: "spider",
+    label: "Spider",
+    invocation: { pluginId: "spider-fetch", operation: "fetch" },
+  },
+] as const satisfies readonly BundledNativeWebProviderMetadata[];
+
+export const BUNDLED_NATIVE_SPEECH_PROVIDERS = [
+  {
+    pluginId: "qwen3-tts",
+    id: "qwen3-tts",
+    label: "Qwen3-TTS (local)",
+    voices: ["assistant"],
+    synthesize: { pluginId: "qwen3-tts", operation: "synthesize" },
+  },
+] as const satisfies readonly BundledNativeSpeechProviderMetadata[];
 
 export const BUNDLED_LEGACY_PLUGIN_ID_ALIASES = {
   "minimax-portal-auth": "minimax",

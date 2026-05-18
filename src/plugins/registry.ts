@@ -12,7 +12,6 @@ import type {
   PluginLogger,
   PluginKind,
   PluginOrigin,
-  SpeechProviderPlugin,
   WebSearchProviderPlugin,
 } from "./types.js";
 
@@ -24,9 +23,6 @@ type PluginOwnedProviderRegistration<T extends { id: string }> = {
   rootDir?: string;
 };
 
-export type PluginSpeechProviderRegistration =
-  PluginOwnedProviderRegistration<SpeechProviderPlugin>;
-export type PluginProviderRegistration = never;
 export type PluginWebFetchProviderRegistration =
   PluginOwnedProviderRegistration<WebFetchProviderPlugin>;
 export type PluginWebSearchProviderRegistration =
@@ -95,8 +91,6 @@ export type PluginRecord = {
 export type PluginRegistry = {
   plugins: PluginRecord[];
   hooks: WorkspaceHookRegistration[];
-  providers: PluginProviderRegistration[];
-  speechProviders: PluginSpeechProviderRegistration[];
   webFetchProviders: PluginWebFetchProviderRegistration[];
   webSearchProviders: PluginWebSearchProviderRegistration[];
   services: PluginServiceRegistration[];

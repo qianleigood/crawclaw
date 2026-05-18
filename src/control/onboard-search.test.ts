@@ -16,22 +16,11 @@ const mocks = vi.hoisted(() => ({
   resolvePluginWebSearchProviders: vi.fn<
     (params?: { config?: CrawClawConfig }) => PluginWebSearchProviderEntry[]
   >(() => []),
-  listBundledWebSearchProviders: vi.fn<() => PluginWebSearchProviderEntry[]>(() => []),
 }));
 
 vi.mock("../plugins/web-search-providers.runtime.js", () => ({
   resolvePluginWebSearchProviders: mocks.resolvePluginWebSearchProviders,
 }));
-
-vi.mock("../plugins/bundled-web-search.js", async () => {
-  const actual = await vi.importActual<typeof import("../plugins/bundled-web-search.js")>(
-    "../plugins/bundled-web-search.js",
-  );
-  return {
-    ...actual,
-    listBundledWebSearchProviders: mocks.listBundledWebSearchProviders,
-  };
-});
 
 let mod: typeof import("./onboard-search.js");
 

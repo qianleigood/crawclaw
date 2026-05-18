@@ -52,10 +52,10 @@ describe("bundled web search metadata", () => {
     });
   });
 
-  it("keeps bundled web search provider objects out of the TypeScript fast path", async () => {
+  it("uses Rust-generated native descriptors for bundled web search provider objects", async () => {
     expectBundledWebSearchAlignment({
       actual: await resolveRegistryBundledWebSearchPluginIds(),
-      expected: [],
+      expected: resolveManifestBundledWebSearchPluginIds(),
     });
     expect([...BUNDLED_WEB_SEARCH_PLUGIN_IDS]).toEqual(resolveManifestBundledWebSearchPluginIds());
   });

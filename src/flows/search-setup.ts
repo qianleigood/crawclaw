@@ -12,9 +12,7 @@ import {
   resolveBundledWebSearchPluginId,
 } from "../plugins/bundled-web-search.js";
 import { enablePluginInConfig } from "../plugins/enable.js";
-import { loadPluginManifestRegistry } from "../plugins/manifest-registry.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
-import { isApiKeylessBundledWebSearchPluginId } from "../plugins/web-search-provider-policy.js";
 import { resolvePluginWebSearchProviders } from "../plugins/web-search-providers.runtime.js";
 import { sortWebSearchProviders } from "../plugins/web-search-providers.shared.js";
 import type { RuntimeEnv } from "../runtime.js";
@@ -99,72 +97,12 @@ function buildSearchProviderSetupContribution(params: {
   };
 }
 
-function readPluginWebSearchConfig(config: CrawClawConfig | undefined, pluginId: string): unknown {
-  const pluginConfig = (
-    config?.plugins?.entries as
-      | Record<string, { config?: { webSearch?: Record<string, unknown> } }>
-      | undefined
-  )?.[pluginId]?.config;
-  return pluginConfig?.webSearch?.baseUrl;
-}
-
-function writePluginWebSearchConfig(
-  config: CrawClawConfig,
-  pluginId: string,
-  value: unknown,
-): void {
-  const plugins = (config.plugins ??= {}) as Record<string, unknown> satisfies Record<
-    string,
-    unknown
-  >;
-  const entries = (plugins.entries ??= {}) as Record<string, Record<string, unknown>>;
-  const entry = (entries[pluginId] ??= {});
-  const pluginConfig = (entry.config ??= {}) as Record<string, unknown>;
-  const webSearch = (pluginConfig.webSearch ??= {}) as Record<string, unknown>;
-  webSearch.baseUrl = value;
-}
-
-function resolveNativeBundledWebSearchSetupProviders(
-  config?: CrawClawConfig,
-): PluginWebSearchProviderEntry[] {
-  return loadPluginManifestRegistry({
-    config,
-    env: process.env,
-  }).plugins.flatMap((plugin) => {
-    if (plugin.origin !== "bundled" || !isApiKeylessBundledWebSearchPluginId(plugin.id)) {
-      return [];
-    }
-    return (plugin.contracts?.webSearchProviders ?? []).map((providerId) => ({
-      id: providerId,
-      pluginId: plugin.id,
-      label: plugin.name ?? providerId,
-      hint: plugin.description ?? "Use the bundled native web search provider",
-      onboardingScopes: ["text-inference"] as const,
-      requiresCredential: false,
-      envVars: [],
-      placeholder: "",
-      signupUrl: "https://docs.crawclaw.ai/tools/web",
-      docsUrl: "https://docs.crawclaw.ai/tools/web",
-      credentialPath: `plugins.entries.${plugin.id}.config.webSearch.baseUrl`,
-      getCredentialValue: () => undefined,
-      setCredentialValue: () => {},
-      getConfiguredCredentialValue: (targetConfig?: CrawClawConfig) =>
-        readPluginWebSearchConfig(targetConfig, plugin.id),
-      setConfiguredCredentialValue: (targetConfig: CrawClawConfig, value: unknown) =>
-        writePluginWebSearchConfig(targetConfig, plugin.id, value),
-    }));
-  });
-}
-
 export function resolveSearchProviderSetupContributions(
   config?: CrawClawConfig,
 ): SearchProviderSetupContribution[] {
   if (!config) {
     return sortFlowContributionsByLabel(
-      sortWebSearchProviders([
-        ...listBundledWebSearchProviders(),
-        ...resolveNativeBundledWebSearchSetupProviders(),
-      ])
+      sortWebSearchProviders(listBundledWebSearchProviders())
         .filter(showsSearchProviderInSetup)
         .map((provider) => buildSearchProviderSetupContribution({ provider, source: "bundled" })),
     );
@@ -182,13 +120,6 @@ export function resolveSearchProviderSetupContributions(
   );
 
   for (const provider of listBundledWebSearchProviders()) {
-    if (merged.has(provider.id) || !canRepairBundledProviderSelection(config, provider)) {
-      continue;
-    }
-    merged.set(provider.id, buildSearchProviderSetupContribution({ provider, source: "bundled" }));
-  }
-
-  for (const provider of resolveNativeBundledWebSearchSetupProviders(config)) {
     if (merged.has(provider.id) || !canRepairBundledProviderSelection(config, provider)) {
       continue;
     }

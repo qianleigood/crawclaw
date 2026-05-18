@@ -2,6 +2,7 @@ import { BUNDLED_WEB_SEARCH_PLUGIN_IDS } from "./bundled-capability-metadata.js"
 import { resolveBundledWebSearchPluginId as resolveBundledWebSearchPluginIdFromMap } from "./bundled-web-search-provider-ids.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
+import { listNativeWebSearchProviderEntries } from "./native-web-provider-entries.js";
 import type { PluginWebSearchProviderEntry } from "./types.js";
 
 export function resolveBundledWebSearchPluginIds(params: {
@@ -27,7 +28,7 @@ export function listBundledWebSearchPluginIds(): string[] {
 }
 
 export function listBundledWebSearchProviders(): PluginWebSearchProviderEntry[] {
-  return [];
+  return listNativeWebSearchProviderEntries();
 }
 
 export function resolveBundledWebSearchPluginId(

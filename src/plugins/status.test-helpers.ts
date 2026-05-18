@@ -79,8 +79,6 @@ export function createPluginLoadResult(
   return {
     plugins,
     diagnostics: [],
-    providers: [],
-    speechProviders: [],
     webFetchProviders: [],
     webSearchProviders: [],
     hooks: [],

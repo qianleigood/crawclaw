@@ -1,25 +1,9 @@
-import { loadBundledCapabilityRuntimeRegistry } from "./bundled-capability-runtime.js";
 import { BUNDLED_WEB_FETCH_PLUGIN_IDS } from "./bundled-web-fetch-ids.js";
 import { resolveBundledWebFetchPluginId as resolveBundledWebFetchPluginIdFromMap } from "./bundled-web-fetch-provider-ids.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
+import { listNativeWebFetchProviderEntries } from "./native-web-provider-entries.js";
 import type { PluginWebFetchProviderEntry } from "./types.js";
-
-type BundledWebFetchProviderEntry = PluginWebFetchProviderEntry & { pluginId: string };
-
-let bundledWebFetchProvidersCache: BundledWebFetchProviderEntry[] | null = null;
-
-function loadBundledWebFetchProviders(): BundledWebFetchProviderEntry[] {
-  if (!bundledWebFetchProvidersCache) {
-    bundledWebFetchProvidersCache = loadBundledCapabilityRuntimeRegistry({
-      pluginIds: BUNDLED_WEB_FETCH_PLUGIN_IDS,
-    }).webFetchProviders.map((entry) => ({
-      pluginId: entry.pluginId,
-      ...entry.provider,
-    }));
-  }
-  return bundledWebFetchProvidersCache;
-}
 
 export function resolveBundledWebFetchPluginIds(params: {
   config?: PluginLoadOptions["config"];
@@ -40,7 +24,7 @@ export function resolveBundledWebFetchPluginIds(params: {
 }
 
 export function listBundledWebFetchProviders(): PluginWebFetchProviderEntry[] {
-  return loadBundledWebFetchProviders();
+  return listNativeWebFetchProviderEntries();
 }
 
 export function resolveBundledWebFetchPluginId(providerId: string | undefined): string | undefined {

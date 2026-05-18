@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  pluginRegistrationContractRegistry,
-  speechProviderContractRegistry,
-} from "../../../src/plugins/contracts/registry.js";
+import { pluginRegistrationContractRegistry } from "../../../src/plugins/contracts/registry.js";
 import { loadPluginManifestRegistry } from "../../../src/plugins/manifest-registry.js";
 
 type PluginRegistrationContractParams = {
@@ -12,7 +9,6 @@ type PluginRegistrationContractParams = {
   webSearchProviderIds?: string[];
   speechProviderIds?: string[];
   toolNames?: string[];
-  requireSpeechVoices?: boolean;
   manifestAuthChoice?: {
     pluginId: string;
     choiceId: string;
@@ -31,21 +27,6 @@ function findRegistration(pluginId: string) {
     throw new Error(`plugin registration contract missing for ${pluginId}`);
   }
   return entry;
-}
-
-function findSpeechProviderIds(pluginId: string) {
-  return speechProviderContractRegistry
-    .filter((entry) => entry.pluginId === pluginId)
-    .map((entry) => entry.provider.id)
-    .toSorted((left, right) => left.localeCompare(right));
-}
-
-function findSpeechProvider(pluginId: string) {
-  const entry = speechProviderContractRegistry.find((candidate) => candidate.pluginId === pluginId);
-  if (!entry) {
-    throw new Error(`speech provider contract missing for ${pluginId}`);
-  }
-  return entry.provider;
 }
 
 export function describePluginRegistrationContract(params: PluginRegistrationContractParams) {
@@ -77,19 +58,12 @@ export function describePluginRegistrationContract(params: PluginRegistrationCon
         expect(findRegistration(params.pluginId).speechProviderIds).toEqual(
           params.speechProviderIds,
         );
-        expect(findSpeechProviderIds(params.pluginId)).toEqual(params.speechProviderIds);
       });
     }
 
     if (params.toolNames) {
       it("keeps bundled tool ownership explicit", () => {
         expect(findRegistration(params.pluginId).toolNames).toEqual(params.toolNames);
-      });
-    }
-
-    if (params.requireSpeechVoices) {
-      it("keeps bundled speech voice-list support explicit", () => {
-        expect(findSpeechProvider(params.pluginId).listVoices).toEqual(expect.any(Function));
       });
     }
 

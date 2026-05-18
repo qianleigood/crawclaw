@@ -4,8 +4,6 @@ export function createEmptyPluginRegistry(): PluginRegistry {
   return {
     plugins: [],
     hooks: [],
-    providers: [],
-    speechProviders: [],
     webFetchProviders: [],
     webSearchProviders: [],
     services: [],

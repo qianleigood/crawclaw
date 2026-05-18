@@ -578,42 +578,18 @@ return await fetchExampleProxyUsage(ctx.token, ctx.timeoutMs, ctx.fetchFn);
 
 ## Runtime helpers
 
-Plugins can access selected core helpers via `api.runtime`. For TTS:
-
-```ts
-const clip = await api.runtime.tts.textToSpeech({
-  text: "Hello from CrawClaw",
-  cfg: api.config,
-});
-
-const result = await api.runtime.tts.textToSpeechTelephony({
-  text: "Hello from CrawClaw",
-  cfg: api.config,
-});
-
-const voices = await api.runtime.tts.listVoices({
-  provider: "qwen3-tts",
-  cfg: api.config,
-});
-```
-
-Notes:
-
-- `textToSpeech` returns the normal core TTS output payload for file/voice-note surfaces.
-- Uses core `messages.tts` configuration and provider selection.
-- Returns PCM audio buffer + sample rate. Plugins must resample/encode for providers.
-- `listVoices` is optional per provider. Use it for vendor-owned voice pickers or setup flows.
-- Voice listings can include richer metadata such as locale, gender, and personality tags for provider-aware pickers.
-- Bundled speech synthesis is provided by the Rust native `qwen3-tts` plugin.
+TTS is a Rust Gateway and native-plugin surface. The default desktop path uses
+the Rust `tts.*` Gateway methods and the bundled Rust native `qwen3-tts`
+descriptor instead of TypeScript runtime helpers.
 
 Speech providers now come from Rust native plugin descriptors. TypeScript
-plugins can call shared TTS runtime helpers, but they do not register speech
-providers at runtime.
+plugins do not register speech providers at runtime.
 
 Notes:
 
-- Keep TTS policy, fallback, and reply delivery in core.
-- Use speech providers for vendor-owned synthesis behavior.
+- Keep TTS policy and provider metadata in Rust Gateway/native descriptors.
+- Use speech providers for vendor-owned synthesis behavior through native
+  descriptors.
 - The preferred ownership model is company-oriented: one vendor plugin can own
   text, speech, image, and future media providers as CrawClaw adds those
   capability contracts.

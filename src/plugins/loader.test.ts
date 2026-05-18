@@ -855,7 +855,7 @@ module.exports = { id: "manifest-only-plugin" };`,
 
     expect(scoped.plugins.map((entry) => entry.id)).toEqual(["deepseek"]);
     expect(scoped.plugins[0]?.status).toBe("loaded");
-    expect(scoped.providers).toEqual([]);
+    expect(scoped.plugins[0]?.providerIds).toEqual(["deepseek"]);
   });
 
   it("throws when activate:false is used without cache:false", () => {

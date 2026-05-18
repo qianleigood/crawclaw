@@ -17,22 +17,6 @@ import type {
   RuntimeWebFetchMetadata,
   RuntimeWebSearchMetadata,
 } from "../secrets/runtime-web-tools.types.js";
-import type {
-  SpeechDirectiveTokenParseContext,
-  SpeechDirectiveTokenParseResult,
-  SpeechProviderConfiguredContext,
-  SpeechProviderConfig,
-  SpeechProviderResolveConfigContext,
-  SpeechProviderResolveTalkConfigContext,
-  SpeechProviderResolveTalkOverridesContext,
-  SpeechListVoicesRequest,
-  SpeechProviderId,
-  SpeechSynthesisRequest,
-  SpeechSynthesisResult,
-  SpeechTelephonySynthesisRequest,
-  SpeechTelephonySynthesisResult,
-  SpeechVoiceOption,
-} from "../tts/provider-types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { SecretInputMode } from "./provider-auth-types.js";
 
@@ -808,32 +792,6 @@ export type WebFetchProviderPlugin = {
 };
 
 export type PluginWebFetchProviderEntry = WebFetchProviderPlugin & {
-  pluginId: string;
-};
-
-/** Speech capability registered by a plugin. */
-export type SpeechProviderPlugin = {
-  id: SpeechProviderId;
-  label: string;
-  aliases?: string[];
-  autoSelectOrder?: number;
-  models?: readonly string[];
-  voices?: readonly string[];
-  resolveConfig?: (ctx: SpeechProviderResolveConfigContext) => SpeechProviderConfig;
-  parseDirectiveToken?: (ctx: SpeechDirectiveTokenParseContext) => SpeechDirectiveTokenParseResult;
-  resolveTalkConfig?: (ctx: SpeechProviderResolveTalkConfigContext) => SpeechProviderConfig;
-  resolveTalkOverrides?: (
-    ctx: SpeechProviderResolveTalkOverridesContext,
-  ) => SpeechProviderConfig | undefined;
-  isConfigured: (ctx: SpeechProviderConfiguredContext) => boolean;
-  synthesize: (req: SpeechSynthesisRequest) => Promise<SpeechSynthesisResult>;
-  synthesizeTelephony?: (
-    req: SpeechTelephonySynthesisRequest,
-  ) => Promise<SpeechTelephonySynthesisResult>;
-  listVoices?: (req: SpeechListVoicesRequest) => Promise<SpeechVoiceOption[]>;
-};
-
-export type PluginSpeechProviderEntry = SpeechProviderPlugin & {
   pluginId: string;
 };
 

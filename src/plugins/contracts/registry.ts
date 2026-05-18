@@ -1,17 +1,5 @@
-import {
-  BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS,
-  BUNDLED_SPEECH_PLUGIN_IDS,
-} from "../bundled-capability-metadata.js";
-import { loadBundledCapabilityRuntimeRegistry } from "../bundled-capability-runtime.js";
-import type { SpeechProviderPlugin } from "../types.js";
-import { loadVitestSpeechProviderContractRegistry } from "./speech-vitest-registry.js";
+import { BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS } from "../bundled-capability-metadata.js";
 
-type CapabilityContractEntry<T> = {
-  pluginId: string;
-  provider: T;
-};
-
-type SpeechProviderContractEntry = CapabilityContractEntry<SpeechProviderPlugin>;
 type PluginRegistrationContractEntry = {
   pluginId: string;
   providerIds: string[];
@@ -32,23 +20,6 @@ function uniqueStrings(values: readonly string[]): string[] {
     result.push(value);
   }
   return result;
-}
-
-let speechProviderContractRegistryCache: SpeechProviderContractEntry[] | null = null;
-export let providerContractLoadError: Error | undefined = undefined;
-
-function loadSpeechProviderContractRegistry(): SpeechProviderContractEntry[] {
-  if (!speechProviderContractRegistryCache) {
-    speechProviderContractRegistryCache = process.env.VITEST
-      ? loadVitestSpeechProviderContractRegistry()
-      : loadBundledCapabilityRuntimeRegistry({
-          pluginIds: BUNDLED_SPEECH_PLUGIN_IDS,
-        }).speechProviders.map((entry) => ({
-          pluginId: entry.pluginId,
-          provider: entry.provider,
-        }));
-  }
-  return speechProviderContractRegistryCache;
 }
 
 function createLazyArrayView<T>(load: () => T[]): T[] {
@@ -82,10 +53,6 @@ function createLazyArrayView<T>(load: () => T[]): T[] {
     },
   });
 }
-
-export const speechProviderContractRegistry: SpeechProviderContractEntry[] = createLazyArrayView(
-  loadSpeechProviderContractRegistry,
-);
 
 function loadPluginRegistrationContractRegistry(): PluginRegistrationContractEntry[] {
   return BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS.map((entry) => ({

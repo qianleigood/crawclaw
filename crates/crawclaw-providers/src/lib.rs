@@ -1233,8 +1233,6 @@ pub const OLLAMA_DEFAULT_EMBEDDING_MODEL: &str = "nomic-embed-text";
 pub const OPENAI_DEFAULT_MODEL_REF: &str = "openai/gpt-5.4";
 pub const OPENAI_CODEX_DEFAULT_MODEL_REF: &str = "openai-codex/gpt-5.4";
 pub const OPENAI_DEFAULT_IMAGE_MODEL: &str = "gpt-image-1";
-pub const OPENAI_DEFAULT_TTS_MODEL: &str = "gpt-4o-mini-tts";
-pub const OPENAI_DEFAULT_TTS_VOICE: &str = "alloy";
 pub const OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL: &str = "gpt-4o-mini-transcribe";
 pub const OPENAI_DEFAULT_EMBEDDING_MODEL: &str = "text-embedding-3-small";
 pub const GOOGLE_GEMINI_DEFAULT_MODEL_REF: &str = "google/gemini-3.1-pro-preview";
@@ -3606,8 +3604,6 @@ mod tests {
         assert_eq!(OPENAI_DEFAULT_MODEL_REF, "openai/gpt-5.4");
         assert_eq!(OPENAI_CODEX_DEFAULT_MODEL_REF, "openai-codex/gpt-5.4");
         assert_eq!(OPENAI_DEFAULT_IMAGE_MODEL, "gpt-image-1");
-        assert_eq!(OPENAI_DEFAULT_TTS_MODEL, "gpt-4o-mini-tts");
-        assert_eq!(OPENAI_DEFAULT_TTS_VOICE, "alloy");
         assert_eq!(
             OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL,
             "gpt-4o-mini-transcribe"

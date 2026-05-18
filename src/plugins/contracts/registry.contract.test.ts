@@ -2,14 +2,8 @@ import { describe, expect, it } from "vitest";
 import { resolveBundledWebFetchPluginIds } from "../bundled-web-fetch.js";
 import { resolveBundledWebSearchPluginIds } from "../bundled-web-search.js";
 import { loadPluginManifestRegistry } from "../manifest-registry.js";
-import {
-  pluginRegistrationContractRegistry,
-  providerContractLoadError,
-  speechProviderContractRegistry,
-} from "./registry.js";
+import { pluginRegistrationContractRegistry } from "./registry.js";
 import { uniqueSortedStrings } from "./testkit.js";
-
-const REGISTRY_CONTRACT_TIMEOUT_MS = 300_000;
 
 describe("plugin contract registry", () => {
   function expectUniqueIds(ids: readonly string[]) {
@@ -43,7 +37,6 @@ describe("plugin contract registry", () => {
   }
 
   it("loads bundled non-provider capability registries without import-time failure", () => {
-    expect(providerContractLoadError).toBeUndefined();
     expect(pluginRegistrationContractRegistry.length).toBeGreaterThan(0);
   });
 
@@ -64,16 +57,7 @@ describe("plugin contract registry", () => {
     expectUniqueIds(ids());
   });
 
-  it(
-    "does not duplicate bundled speech provider ids",
-    { timeout: REGISTRY_CONTRACT_TIMEOUT_MS },
-    () => {
-      expectUniqueIds(speechProviderContractRegistry.map((entry) => entry.provider.id));
-    },
-  );
-
-  it("keeps native speech provider implementations out of the TypeScript registry", () => {
-    expect(speechProviderContractRegistry).toEqual([]);
+  it("keeps native speech providers as manifest metadata only", () => {
     expectRegistryPluginIds({
       actualPluginIds: pluginRegistrationContractRegistry
         .filter((entry) => entry.speechProviderIds.length > 0)

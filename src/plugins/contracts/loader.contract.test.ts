@@ -46,7 +46,7 @@ describe("plugin loader contract", () => {
   });
 
   it("keeps bundled web search loading scoped to the web search registry", () => {
-    expect(webSearchPluginIds).toEqual([]);
+    expect(webSearchPluginIds).toEqual(["searxng"]);
     expect(bundledWebSearchPluginIds).toEqual(["searxng"]);
   });
 
