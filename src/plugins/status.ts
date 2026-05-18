@@ -71,7 +71,6 @@ export type PluginInspectReport = {
     name: string;
     hasStdioTransport: boolean;
   }>;
-  httpRouteCount: number;
   bundleCapabilities: string[];
   diagnostics: PluginDiagnostic[];
   policy: {
@@ -216,7 +215,6 @@ function deriveInspectShape(params: {
   toolCount: number;
   commandCount: number;
   serviceCount: number;
-  httpRouteCount: number;
 }): PluginInspectShape {
   if (params.capabilityCount > 1) {
     return "hybrid-capability";
@@ -228,8 +226,7 @@ function deriveInspectShape(params: {
     params.customHookCount > 0 &&
     params.toolCount === 0 &&
     params.commandCount === 0 &&
-    params.serviceCount === 0 &&
-    params.httpRouteCount === 0;
+    params.serviceCount === 0;
   if (hasOnlyHooks) {
     return "hook-only";
   }
@@ -284,7 +281,6 @@ export function buildPluginInspectReport(params: {
     toolCount: tools.length,
     commandCount: plugin.commands.length,
     serviceCount: plugin.services.length,
-    httpRouteCount: plugin.httpRoutes,
   });
 
   // Populate MCP server info for bundle-format plugins with a known rootDir.
@@ -344,7 +340,6 @@ export function buildPluginInspectReport(params: {
     services: [...plugin.services],
     mcpServers,
     lspServers,
-    httpRouteCount: plugin.httpRoutes,
     bundleCapabilities: plugin.bundleCapabilities ?? [],
     diagnostics,
     policy: {

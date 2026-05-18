@@ -349,7 +349,6 @@ function createPluginRecord(params: {
     webSearchProviderIds: [],
     services: [],
     commands: [],
-    httpRoutes: 0,
     hookCount: 0,
     configSchema: params.configSchema,
     configUiHints: undefined,

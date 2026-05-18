@@ -1,4 +1,3 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Api, Model } from "@mariozechner/pi-ai";
 import type { AgentMessage } from "../agents/agent-types.js";
 import type { AgentTool } from "../agents/agent-types.js";
@@ -910,22 +909,6 @@ export type CrawClawPluginCommandDefinition = {
   requireAuth?: boolean;
   /** The handler function */
   handler: PluginCommandHandler;
-};
-
-export type CrawClawPluginHttpRouteAuth = "gateway" | "plugin";
-export type CrawClawPluginHttpRouteMatch = "exact" | "prefix";
-
-export type CrawClawPluginHttpRouteHandler = (
-  req: IncomingMessage,
-  res: ServerResponse,
-) => Promise<boolean | void> | boolean | void;
-
-export type CrawClawPluginHttpRouteParams = {
-  path: string;
-  handler: CrawClawPluginHttpRouteHandler;
-  auth: CrawClawPluginHttpRouteAuth;
-  match?: CrawClawPluginHttpRouteMatch;
-  replaceExisting?: boolean;
 };
 
 /** Context passed to long-lived plugin services. */

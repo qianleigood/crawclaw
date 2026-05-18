@@ -52,7 +52,6 @@ function createCapabilityPluginRecord(params: {
     webSearchProviderIds: [],
     services: [],
     commands: [],
-    httpRoutes: 0,
     hookCount: 0,
     configSchema: true,
   };

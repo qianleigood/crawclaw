@@ -4,9 +4,6 @@ import { createEmptyPluginRegistry } from "./registry-empty.js";
 import type {
   WebFetchProviderPlugin,
   CrawClawPluginCommandDefinition,
-  CrawClawPluginHttpRouteAuth,
-  CrawClawPluginHttpRouteMatch,
-  CrawClawPluginHttpRouteHandler,
   CrawClawPluginService,
   PluginConfigUiHint,
   PluginDiagnostic,
@@ -18,15 +15,6 @@ import type {
   SpeechProviderPlugin,
   WebSearchProviderPlugin,
 } from "./types.js";
-
-export type PluginHttpRouteRegistration = {
-  pluginId?: string;
-  path: string;
-  handler: CrawClawPluginHttpRouteHandler;
-  auth: CrawClawPluginHttpRouteAuth;
-  match: CrawClawPluginHttpRouteMatch;
-  source?: string;
-};
 
 type PluginOwnedProviderRegistration<T extends { id: string }> = {
   pluginId: string;
@@ -97,7 +85,6 @@ export type PluginRecord = {
   webSearchProviderIds: string[];
   services: string[];
   commands: string[];
-  httpRoutes: number;
   hookCount: number;
   configSchema: boolean;
   configUiHints?: Record<string, PluginConfigUiHint>;
@@ -112,7 +99,6 @@ export type PluginRegistry = {
   speechProviders: PluginSpeechProviderRegistration[];
   webFetchProviders: PluginWebFetchProviderRegistration[];
   webSearchProviders: PluginWebSearchProviderRegistration[];
-  httpRoutes: PluginHttpRouteRegistration[];
   services: PluginServiceRegistration[];
   commands: PluginCommandRegistration[];
   diagnostics: PluginDiagnostic[];

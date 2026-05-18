@@ -3,16 +3,9 @@ import type { PluginRegistry } from "./registry.js";
 
 const REGISTRY_STATE = Symbol.for("crawclaw.pluginRegistryState");
 
-type RegistrySurfaceState = {
-  registry: PluginRegistry | null;
-  pinned: boolean;
-  version: number;
-};
-
 type RegistryState = {
   activeRegistry: PluginRegistry | null;
   activeVersion: number;
-  httpRoute: RegistrySurfaceState;
   key: string | null;
   importedPluginIds: Set<string>;
 };
@@ -25,11 +18,6 @@ const state: RegistryState = (() => {
     globalState[REGISTRY_STATE] = {
       activeRegistry: null,
       activeVersion: 0,
-      httpRoute: {
-        registry: null,
-        pinned: false,
-        version: 0,
-      },
       key: null,
       importedPluginIds: new Set<string>(),
     };
@@ -41,40 +29,9 @@ export function recordImportedPluginId(pluginId: string): void {
   state.importedPluginIds.add(pluginId);
 }
 
-function installSurfaceRegistry(
-  surface: RegistrySurfaceState,
-  registry: PluginRegistry | null,
-  pinned: boolean,
-) {
-  if (surface.registry === registry && surface.pinned === pinned) {
-    return;
-  }
-  surface.registry = registry;
-  surface.pinned = pinned;
-  surface.version += 1;
-}
-
-function syncTrackedSurface(
-  surface: RegistrySurfaceState,
-  registry: PluginRegistry | null,
-  refreshVersion = false,
-) {
-  if (surface.pinned) {
-    return;
-  }
-  if (surface.registry === registry && !surface.pinned) {
-    if (refreshVersion) {
-      surface.version += 1;
-    }
-    return;
-  }
-  installSurfaceRegistry(surface, registry, false);
-}
-
 export function setActivePluginRegistry(registry: PluginRegistry, cacheKey?: string) {
   state.activeRegistry = registry;
   state.activeVersion += 1;
-  syncTrackedSurface(state.httpRoute, registry, true);
   state.key = cacheKey ?? null;
 }
 
@@ -86,51 +43,8 @@ export function requireActivePluginRegistry(): PluginRegistry {
   if (!state.activeRegistry) {
     state.activeRegistry = createEmptyPluginRegistry();
     state.activeVersion += 1;
-    syncTrackedSurface(state.httpRoute, state.activeRegistry);
   }
   return state.activeRegistry;
-}
-
-export function pinActivePluginHttpRouteRegistry(registry: PluginRegistry) {
-  installSurfaceRegistry(state.httpRoute, registry, true);
-}
-
-export function releasePinnedPluginHttpRouteRegistry(registry?: PluginRegistry) {
-  if (registry && state.httpRoute.registry !== registry) {
-    return;
-  }
-  installSurfaceRegistry(state.httpRoute, state.activeRegistry, false);
-}
-
-export function getActivePluginHttpRouteRegistry(): PluginRegistry | null {
-  return state.httpRoute.registry ?? state.activeRegistry;
-}
-
-export function getActivePluginHttpRouteRegistryVersion(): number {
-  return state.httpRoute.registry ? state.httpRoute.version : state.activeVersion;
-}
-
-export function requireActivePluginHttpRouteRegistry(): PluginRegistry {
-  const existing = getActivePluginHttpRouteRegistry();
-  if (existing) {
-    return existing;
-  }
-  const created = requireActivePluginRegistry();
-  installSurfaceRegistry(state.httpRoute, created, false);
-  return created;
-}
-
-export function resolveActivePluginHttpRouteRegistry(fallback: PluginRegistry): PluginRegistry {
-  const routeRegistry = getActivePluginHttpRouteRegistry();
-  if (!routeRegistry) {
-    return fallback;
-  }
-  const routeCount = routeRegistry.httpRoutes?.length ?? 0;
-  const fallbackRouteCount = fallback.httpRoutes?.length ?? 0;
-  if (routeCount === 0 && fallbackRouteCount > 0) {
-    return fallback;
-  }
-  return routeRegistry;
 }
 
 export function getActivePluginRegistryKey(): string | null {
@@ -169,14 +83,12 @@ function collectLoadedPluginIds(
 export function listImportedRuntimePluginIds(): string[] {
   const imported = new Set(state.importedPluginIds);
   collectLoadedPluginIds(state.activeRegistry, imported);
-  collectLoadedPluginIds(state.httpRoute.registry, imported);
   return [...imported].toSorted((left, right) => left.localeCompare(right));
 }
 
 export function resetPluginRuntimeStateForTest(): void {
   state.activeRegistry = null;
   state.activeVersion += 1;
-  installSurfaceRegistry(state.httpRoute, null, false);
   state.key = null;
   state.importedPluginIds.clear();
 }

@@ -50,11 +50,7 @@ import {
 import { installProcessWarningFilter } from "../src/infra/warning-filter.js";
 import { createEmptyPluginRegistry } from "../src/plugins/registry-empty.js";
 import type { PluginRegistry } from "../src/plugins/registry.js";
-import {
-  getActivePluginRegistry,
-  releasePinnedPluginHttpRouteRegistry,
-  setActivePluginRegistry,
-} from "../src/plugins/runtime.js";
+import { getActivePluginRegistry, setActivePluginRegistry } from "../src/plugins/runtime.js";
 import { cleanupSessionStateForTest } from "../src/test-utils/session-state-cleanup.js";
 import { withIsolatedTestHome } from "./test-env.js";
 
@@ -97,7 +93,6 @@ const DEFAULT_PLUGIN_REGISTRY = new Proxy({} as PluginRegistry, {
 });
 
 function installDefaultPluginRegistry(): void {
-  releasePinnedPluginHttpRouteRegistry();
   setActivePluginRegistry(DEFAULT_PLUGIN_REGISTRY, "test:default");
 }
 
