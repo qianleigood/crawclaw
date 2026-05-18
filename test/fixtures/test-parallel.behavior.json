@@ -25,8 +25,8 @@
         "reason": "This legacy state migration suite builds multi-surface fixture trees and passes when rerun directly; keep it isolated so shared unit-fast pressure does not push it past the timeout budget."
       },
       {
-        "file": "src/plugins/bundled-capability-runtime.test.ts",
-        "reason": "This bundled native capability loader suite passes direct reruns but can time out when the shared unit-fast lane is already saturated with plugin runtime imports; keep it isolated so loader coverage stays deterministic."
+        "file": "src/plugins/loader.test.ts",
+        "reason": "This plugin loader suite passes direct reruns but can time out when the shared unit-fast lane is already saturated with plugin manifest imports; keep it isolated so loader coverage stays deterministic."
       },
       {
         "file": "src/secrets/runtime.coverage.test.ts",

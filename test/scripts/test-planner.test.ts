@@ -382,11 +382,11 @@ describe("test planner", () => {
     expect(explanation.reasons).toContain("unit-memory-isolated");
   });
 
-  it("uses manifest-backed isolation for plugin runtime loader tests", () => {
+  it("uses manifest-backed isolation for plugin loader tests", () => {
     const explanation = explainExecutionTarget(
       {
         mode: "local",
-        fileFilters: ["src/plugins/bundled-capability-runtime.test.ts"],
+        fileFilters: ["src/plugins/loader.test.ts"],
       },
       {
         env: {},
