@@ -299,8 +299,9 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         default_model_max_tokens = crawclaw_providers::PROVIDER_MODEL_DEFAULT_MAX_TOKENS,
         provider_default_api_by_provider =
             render_static_string_record(crawclaw_providers::PROVIDER_DEFAULT_API_BY_PROVIDER),
-        anthropic_context_1m_model_prefixes =
-            render_static_string_array(crawclaw_providers::ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES),
+        anthropic_context_1m_model_prefixes = render_static_string_array_inline(
+            crawclaw_providers::ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES,
+        ),
         anthropic_context_1m_tokens = crawclaw_providers::ANTHROPIC_CONTEXT_1M_TOKENS,
         mistral_safe_max_tokens_by_model =
             render_static_u32_record(crawclaw_providers::MISTRAL_SAFE_MAX_TOKENS_BY_MODEL),
