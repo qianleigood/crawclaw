@@ -41,17 +41,11 @@ let modelCatalogPromise: Promise<ModelCatalogEntry[]> | null = null;
 let hasLoggedModelCatalogError = false;
 const defaultImportPiSdk = () => import("./pi-model-discovery-runtime.js");
 let importPiSdk = defaultImportPiSdk;
-let modelSuppressionPromise: Promise<typeof import("./model-suppression.runtime.js")> | undefined;
 
 const NON_PI_NATIVE_MODEL_PROVIDERS = new Set(["deepseek", "kilocode", "ollama"]);
 
 function shouldLogModelCatalogTiming(): boolean {
   return process.env.CRAWCLAW_DEBUG_INGRESS_TIMING === "1";
-}
-
-function loadModelSuppression() {
-  modelSuppressionPromise ??= import("./model-suppression.runtime.js");
-  return modelSuppressionPromise;
 }
 
 function normalizeConfiguredModelInput(input: unknown): ModelInputType[] | undefined {
@@ -201,7 +195,6 @@ export async function loadModelCatalog(params?: {
       const piSdk = await importPiSdk();
       logStage("pi-sdk-imported");
       const agentDir = resolveCrawClawAgentDir();
-      const { shouldSuppressBuiltInModel } = await loadModelSuppression();
       logStage("catalog-deps-ready");
       const { join } = await import("node:path");
       const authStorage = piSdk.discoverAuthStorage(agentDir);
@@ -221,9 +214,6 @@ export async function loadModelCatalog(params?: {
         }
         const provider = (entry?.provider ?? "").trim();
         if (!provider) {
-          continue;
-        }
-        if (shouldSuppressBuiltInModel({ provider, id })) {
           continue;
         }
         const name = (entry?.name ?? id).trim() || id;
