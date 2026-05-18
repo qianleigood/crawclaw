@@ -1,3 +1,12 @@
+import {
+  MINIMAX_API_HOST_ENV,
+  MINIMAX_DEFAULT_API_HOST,
+  MINIMAX_PORTAL_PROVIDER_ID,
+  MINIMAX_PROVIDER_ID,
+  MINIMAX_VLM_API_PATH,
+  MINIMAX_VLM_MODEL_ID,
+  PROVIDER_ATTRIBUTION_PRODUCT,
+} from "../generated/providers/runtime-constants.generated.js";
 import { ensureGlobalUndiciEnvProxyDispatcher } from "../infra/net/undici-global-dispatcher.js";
 import { isRecord } from "../utils.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
@@ -8,11 +17,11 @@ type MinimaxBaseResp = {
 };
 
 export function isMinimaxVlmProvider(provider: string): boolean {
-  return provider === "minimax" || provider === "minimax-portal";
+  return provider === MINIMAX_PROVIDER_ID || provider === MINIMAX_PORTAL_PROVIDER_ID;
 }
 
 export function isMinimaxVlmModel(provider: string, modelId: string): boolean {
-  return isMinimaxVlmProvider(provider) && modelId.trim() === "MiniMax-VL-01";
+  return isMinimaxVlmProvider(provider) && modelId.trim() === MINIMAX_VLM_MODEL_ID;
 }
 
 function coerceApiHost(params: {
@@ -23,9 +32,9 @@ function coerceApiHost(params: {
   const env = params.env ?? process.env;
   const raw =
     params.apiHost?.trim() ||
-    env.MINIMAX_API_HOST?.trim() ||
+    env[MINIMAX_API_HOST_ENV]?.trim() ||
     params.modelBaseUrl?.trim() ||
-    "https://api.minimax.io";
+    MINIMAX_DEFAULT_API_HOST;
 
   try {
     const url = new URL(raw);
@@ -36,7 +45,7 @@ function coerceApiHost(params: {
     const url = new URL(`https://${raw}`);
     return url.origin;
   } catch {
-    return "https://api.minimax.io";
+    return MINIMAX_DEFAULT_API_HOST;
   }
 }
 
@@ -72,7 +81,7 @@ export async function minimaxUnderstandImage(params: {
     apiHost: params.apiHost,
     modelBaseUrl: params.modelBaseUrl,
   });
-  const url = new URL("/v1/coding_plan/vlm", host).toString();
+  const url = new URL(MINIMAX_VLM_API_PATH, host).toString();
 
   // Ensure env-based proxy dispatcher is active before the outbound fetch call.
   // Without this, HTTP_PROXY/HTTPS_PROXY env vars are silently ignored (#51619).
@@ -83,7 +92,7 @@ export async function minimaxUnderstandImage(params: {
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      "MM-API-Source": "CrawClaw",
+      "MM-API-Source": PROVIDER_ATTRIBUTION_PRODUCT,
     },
     body: JSON.stringify({
       prompt,

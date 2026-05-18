@@ -746,6 +746,8 @@ pub const GITHUB_COPILOT_PROVIDER_ID: &str = "github-copilot";
 pub const GOOGLE_PROVIDER_ID: &str = "google";
 pub const GOOGLE_VERTEX_PROVIDER_ID: &str = "google-vertex";
 pub const GROQ_PROVIDER_ID: &str = "groq";
+pub const MINIMAX_PROVIDER_ID: &str = "minimax";
+pub const MINIMAX_PORTAL_PROVIDER_ID: &str = "minimax-portal";
 pub const MISTRAL_PROVIDER_ID: &str = "mistral";
 pub const MODELSTUDIO_PROVIDER_ID: &str = "modelstudio";
 pub const MOONSHOT_PROVIDER_ID: &str = "moonshot";
@@ -791,6 +793,10 @@ pub const OPENAI_RESPONSES_API: &str = "openai-responses";
 pub const OPENAI_CODEX_RESPONSES_API: &str = "openai-codex-responses";
 pub const OPENAI_AUDIO_TRANSCRIPTIONS_API: &str = "openai-audio-transcriptions";
 pub const ANTHROPIC_MESSAGES_API: &str = "anthropic-messages";
+pub const MINIMAX_VLM_MODEL_ID: &str = "MiniMax-VL-01";
+pub const MINIMAX_API_HOST_ENV: &str = "MINIMAX_API_HOST";
+pub const MINIMAX_DEFAULT_API_HOST: &str = "https://api.minimax.io";
+pub const MINIMAX_VLM_API_PATH: &str = "/v1/coding_plan/vlm";
 pub const LOCAL_ENDPOINT_HOSTS: &[&str] = &["localhost", "127.0.0.1", "::1", "[::1]"];
 pub const MOONSHOT_NATIVE_BASE_URLS: &[&str] =
     &["https://api.moonshot.ai/v1", "https://api.moonshot.cn/v1"];
@@ -4090,6 +4096,8 @@ mod tests {
         assert_eq!(GOOGLE_PROVIDER_ID, "google");
         assert_eq!(GOOGLE_VERTEX_PROVIDER_ID, "google-vertex");
         assert_eq!(GROQ_PROVIDER_ID, "groq");
+        assert_eq!(MINIMAX_PROVIDER_ID, "minimax");
+        assert_eq!(MINIMAX_PORTAL_PROVIDER_ID, "minimax-portal");
         assert_eq!(MISTRAL_PROVIDER_ID, "mistral");
         assert_eq!(MODELSTUDIO_PROVIDER_ID, "modelstudio");
         assert_eq!(MOONSHOT_PROVIDER_ID, "moonshot");
@@ -4124,6 +4132,10 @@ mod tests {
             "openai-audio-transcriptions"
         );
         assert_eq!(ANTHROPIC_MESSAGES_API, "anthropic-messages");
+        assert_eq!(MINIMAX_VLM_MODEL_ID, "MiniMax-VL-01");
+        assert_eq!(MINIMAX_API_HOST_ENV, "MINIMAX_API_HOST");
+        assert_eq!(MINIMAX_DEFAULT_API_HOST, "https://api.minimax.io");
+        assert_eq!(MINIMAX_VLM_API_PATH, "/v1/coding_plan/vlm");
         assert_eq!(
             LOCAL_ENDPOINT_HOSTS,
             &["localhost", "127.0.0.1", "::1", "[::1]"]

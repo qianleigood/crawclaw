@@ -292,6 +292,8 @@ export const GITHUB_COPILOT_PROVIDER_ID = {github_copilot_provider_id};
 export const GOOGLE_PROVIDER_ID = {google_provider_id};
 export const GOOGLE_VERTEX_PROVIDER_ID = {google_vertex_provider_id};
 export const GROQ_PROVIDER_ID = {groq_provider_id};
+export const MINIMAX_PROVIDER_ID = {minimax_provider_id};
+export const MINIMAX_PORTAL_PROVIDER_ID = {minimax_portal_provider_id};
 export const MISTRAL_PROVIDER_ID = {mistral_provider_id};
 export const MODELSTUDIO_PROVIDER_ID = {modelstudio_provider_id};
 export const MOONSHOT_PROVIDER_ID = {moonshot_provider_id};
@@ -316,6 +318,10 @@ export const OPENAI_RESPONSES_API = {openai_responses_api};
 export const OPENAI_CODEX_RESPONSES_API = {openai_codex_responses_api};
 export const OPENAI_AUDIO_TRANSCRIPTIONS_API = {openai_audio_transcriptions_api};
 export const ANTHROPIC_MESSAGES_API = {anthropic_messages_api};
+export const MINIMAX_VLM_MODEL_ID = {minimax_vlm_model_id};
+export const MINIMAX_API_HOST_ENV = {minimax_api_host_env};
+export const MINIMAX_DEFAULT_API_HOST = {minimax_default_api_host};
+export const MINIMAX_VLM_API_PATH = {minimax_vlm_api_path};
 export const LOCAL_ENDPOINT_HOSTS = {local_endpoint_hosts} as const;
 export const MOONSHOT_NATIVE_BASE_URLS = {moonshot_native_base_urls} as const;
 export const MODELSTUDIO_NATIVE_BASE_URLS = {modelstudio_native_base_urls} as const;
@@ -420,6 +426,8 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         google_provider_id = json_string(crawclaw_providers::GOOGLE_PROVIDER_ID),
         google_vertex_provider_id = json_string(crawclaw_providers::GOOGLE_VERTEX_PROVIDER_ID),
         groq_provider_id = json_string(crawclaw_providers::GROQ_PROVIDER_ID),
+        minimax_provider_id = json_string(crawclaw_providers::MINIMAX_PROVIDER_ID),
+        minimax_portal_provider_id = json_string(crawclaw_providers::MINIMAX_PORTAL_PROVIDER_ID),
         mistral_provider_id = json_string(crawclaw_providers::MISTRAL_PROVIDER_ID),
         modelstudio_provider_id = json_string(crawclaw_providers::MODELSTUDIO_PROVIDER_ID),
         moonshot_provider_id = json_string(crawclaw_providers::MOONSHOT_PROVIDER_ID),
@@ -453,6 +461,10 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         openai_audio_transcriptions_api =
             json_string(crawclaw_providers::OPENAI_AUDIO_TRANSCRIPTIONS_API),
         anthropic_messages_api = json_string(crawclaw_providers::ANTHROPIC_MESSAGES_API),
+        minimax_vlm_model_id = json_string(crawclaw_providers::MINIMAX_VLM_MODEL_ID),
+        minimax_api_host_env = json_string(crawclaw_providers::MINIMAX_API_HOST_ENV),
+        minimax_default_api_host = json_string(crawclaw_providers::MINIMAX_DEFAULT_API_HOST),
+        minimax_vlm_api_path = json_string(crawclaw_providers::MINIMAX_VLM_API_PATH),
         local_endpoint_hosts =
             render_static_string_array_inline(crawclaw_providers::LOCAL_ENDPOINT_HOSTS),
         moonshot_native_base_urls =
@@ -1211,6 +1223,8 @@ mod tests {
         assert!(source.contains("export const GOOGLE_PROVIDER_ID = \"google\";"));
         assert!(source.contains("export const GOOGLE_VERTEX_PROVIDER_ID = \"google-vertex\";"));
         assert!(source.contains("export const GROQ_PROVIDER_ID = \"groq\";"));
+        assert!(source.contains("export const MINIMAX_PROVIDER_ID = \"minimax\";"));
+        assert!(source.contains("export const MINIMAX_PORTAL_PROVIDER_ID = \"minimax-portal\";"));
         assert!(source.contains("export const MISTRAL_PROVIDER_ID = \"mistral\";"));
         assert!(source.contains("export const MODELSTUDIO_PROVIDER_ID = \"modelstudio\";"));
         assert!(source.contains("export const MOONSHOT_PROVIDER_ID = \"moonshot\";"));
@@ -1249,6 +1263,12 @@ mod tests {
             "export const OPENAI_AUDIO_TRANSCRIPTIONS_API = \"openai-audio-transcriptions\";"
         ));
         assert!(source.contains("export const ANTHROPIC_MESSAGES_API = \"anthropic-messages\";"));
+        assert!(source.contains("export const MINIMAX_VLM_MODEL_ID = \"MiniMax-VL-01\";"));
+        assert!(source.contains("export const MINIMAX_API_HOST_ENV = \"MINIMAX_API_HOST\";"));
+        assert!(
+            source.contains("export const MINIMAX_DEFAULT_API_HOST = \"https://api.minimax.io\";")
+        );
+        assert!(source.contains("export const MINIMAX_VLM_API_PATH = \"/v1/coding_plan/vlm\";"));
         assert!(source
             .contains("export const LOCAL_ENDPOINT_HOSTS = [\"localhost\", \"127.0.0.1\", \"::1\", \"[::1]\"] as const;"));
         assert!(source.contains("export const MOONSHOT_NATIVE_BASE_URLS = ["));
