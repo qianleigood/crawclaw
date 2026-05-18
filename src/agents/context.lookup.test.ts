@@ -229,7 +229,7 @@ describe("lookupContextTokens", () => {
   it("resolveContextTokensForModel returns configured override via direct config scan (beats discovery)", async () => {
     // Config has an explicit contextWindow; resolveContextTokensForModel should
     // return it via direct config scan, preventing collisions with raw discovery
-    // entries. Real callers (status.summary.ts etc.) always pass cfg.
+    // entries. Production callers pass cfg.
     mockDiscoveryDeps([
       { id: "google-gemini-cli/gemini-3.1-pro-preview", contextWindow: 1_048_576 },
     ]);
@@ -263,7 +263,7 @@ describe("lookupContextTokens", () => {
     // When provider is explicitly "google" and cfg has a Google contextWindow
     // override, the config direct scan returns it before any cache lookup —
     // so the OpenRouter raw "google/gemini-2.5-pro" qualified entry is never hit.
-    // Real callers (status.summary.ts) always pass cfg when provider is explicit.
+    // Production callers pass cfg when provider is explicit.
     mockDiscoveryDeps([{ id: "google/gemini-2.5-pro", contextWindow: 999_000 }]);
 
     const cfg = createContextOverrideConfig("google", "gemini-2.5-pro", 2_000_000);

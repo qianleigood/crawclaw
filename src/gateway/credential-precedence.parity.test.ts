@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { resolveGatewayProbeAuth as resolveStatusGatewayProbeAuth } from "../control/status.gateway-probe.js";
 import { resolveGatewayAuth } from "./auth.js";
 import { resolveGatewayCredentialsFromConfig } from "./credentials.js";
 import { resolveGatewayProbeAuth } from "./probe-auth.js";
@@ -8,7 +7,6 @@ import { resolveGatewayProbeAuth } from "./probe-auth.js";
 type ExpectedCredentialSet = {
   call: { token?: string; password?: string };
   probe: { token?: string; password?: string };
-  status: { token?: string; password?: string };
   auth: { token?: string; password?: string };
 };
 
@@ -37,36 +35,10 @@ function makeRemoteGatewayConfig(remote: { token?: string; password?: string }):
   } as CrawClawConfig;
 }
 
-function withGatewayAuthEnv<T>(env: NodeJS.ProcessEnv, fn: () => T): T {
-  const keys = ["CRAWCLAW_GATEWAY_TOKEN", "CRAWCLAW_GATEWAY_PASSWORD"] as const;
-  const previous = new Map<string, string | undefined>();
-  for (const key of keys) {
-    previous.set(key, process.env[key]);
-    const nextValue = env[key];
-    if (typeof nextValue === "string") {
-      process.env[key] = nextValue;
-    } else {
-      delete process.env[key];
-    }
-  }
-  try {
-    return fn();
-  } finally {
-    for (const key of keys) {
-      const value = previous.get(key);
-      if (typeof value === "string") {
-        process.env[key] = value;
-      } else {
-        delete process.env[key];
-      }
-    }
-  }
-}
-
 describe("gateway credential precedence coverage", () => {
   const cases: TestCase[] = [
     {
-      name: "local mode: env overrides config for call/probe/status, auth remains config-first",
+      name: "local mode: env overrides config for call/probe, auth remains config-first",
       cfg: {
         gateway: {
           mode: "local",
@@ -83,7 +55,6 @@ describe("gateway credential precedence coverage", () => {
       expected: {
         call: { token: "env-token", password: "env-password" }, // pragma: allowlist secret
         probe: { token: "env-token", password: "env-password" }, // pragma: allowlist secret
-        status: { token: "config-token", password: "config-password" }, // pragma: allowlist secret
         auth: { token: "config-token", password: "config-password" }, // pragma: allowlist secret
       },
     },
@@ -97,12 +68,11 @@ describe("gateway credential precedence coverage", () => {
       expected: {
         call: { token: "remote-token", password: "env-password" }, // pragma: allowlist secret
         probe: { token: "remote-token", password: "env-password" }, // pragma: allowlist secret
-        status: { token: "remote-token", password: "remote-password" }, // pragma: allowlist secret
         auth: { token: "local-token", password: "local-password" }, // pragma: allowlist secret
       },
     },
     {
-      name: "remote mode without remote token keeps remote probe/status strict",
+      name: "remote mode without remote token keeps remote probe strict",
       cfg: makeRemoteGatewayConfig({
         password: "remote-password", // pragma: allowlist secret
       }),
@@ -110,7 +80,6 @@ describe("gateway credential precedence coverage", () => {
       expected: {
         call: { token: "env-token", password: "env-password" }, // pragma: allowlist secret
         probe: { token: undefined, password: "env-password" }, // pragma: allowlist secret
-        status: { token: undefined, password: "remote-password" }, // pragma: allowlist secret
         auth: { token: "local-token", password: "local-password" }, // pragma: allowlist secret
       },
     },
@@ -127,7 +96,6 @@ describe("gateway credential precedence coverage", () => {
       mode,
       env,
     });
-    const status = await withGatewayAuthEnv(env, () => resolveStatusGatewayProbeAuth(cfg));
     const auth = resolveGatewayAuth({
       authConfig: cfg.gateway?.auth,
       env,
@@ -135,7 +103,6 @@ describe("gateway credential precedence coverage", () => {
 
     expect(call).toEqual(expected.call);
     expect(probe).toEqual(expected.probe);
-    expect(status).toEqual(expected.status);
     expect({ token: auth.token, password: auth.password }).toEqual(expected.auth);
   });
 });
