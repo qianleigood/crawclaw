@@ -86,18 +86,6 @@ const SECRET_TARGET_REGISTRY: SecretTargetRegistryEntry[] = [
     includeInAudit: true,
   },
   {
-    id: "messages.tts.providers.*.apiKey",
-    targetType: "messages.tts.providers.*.apiKey",
-    configFile: "crawclaw.json",
-    pathPattern: "messages.tts.providers.*.apiKey",
-    secretShape: SECRET_INPUT_SHAPE,
-    expectedResolvedValue: "string",
-    includeInPlan: true,
-    includeInConfigure: true,
-    includeInAudit: true,
-    providerIdPathSegmentIndex: 3,
-  },
-  {
     id: "models.providers.*.apiKey",
     targetType: "models.providers.apiKey",
     targetTypeAliases: ["models.providers.*.apiKey"],

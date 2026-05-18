@@ -147,10 +147,6 @@
       "durationMs": 239.72216796875,
       "testCount": 3
     },
-    "src/tts/tts.test.ts": {
-      "durationMs": 229.763427734375,
-      "testCount": 27
-    },
     "src/plugins/loader.git-path-regression.test.ts": {
       "durationMs": 224.001953125,
       "testCount": 1

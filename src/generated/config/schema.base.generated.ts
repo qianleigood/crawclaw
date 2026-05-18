@@ -5032,74 +5032,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
                 },
                 additionalProperties: {
                   type: "object",
-                  properties: {
-                    apiKey: {
-                      anyOf: [
-                        {
-                          type: "string",
-                        },
-                        {
-                          oneOf: [
-                            {
-                              type: "object",
-                              properties: {
-                                source: {
-                                  type: "string",
-                                  const: "env",
-                                },
-                                provider: {
-                                  type: "string",
-                                  pattern: "^[a-z][a-z0-9_-]{0,63}$",
-                                },
-                                id: {
-                                  type: "string",
-                                  pattern: "^[A-Z][A-Z0-9_]{0,127}$",
-                                },
-                              },
-                              required: ["source", "provider", "id"],
-                              additionalProperties: false,
-                            },
-                            {
-                              type: "object",
-                              properties: {
-                                source: {
-                                  type: "string",
-                                  const: "file",
-                                },
-                                provider: {
-                                  type: "string",
-                                  pattern: "^[a-z][a-z0-9_-]{0,63}$",
-                                },
-                                id: {
-                                  type: "string",
-                                },
-                              },
-                              required: ["source", "provider", "id"],
-                              additionalProperties: false,
-                            },
-                            {
-                              type: "object",
-                              properties: {
-                                source: {
-                                  type: "string",
-                                  const: "exec",
-                                },
-                                provider: {
-                                  type: "string",
-                                  pattern: "^[a-z][a-z0-9_-]{0,63}$",
-                                },
-                                id: {
-                                  type: "string",
-                                },
-                              },
-                              required: ["source", "provider", "id"],
-                              additionalProperties: false,
-                            },
-                          ],
-                        },
-                      ],
-                    },
-                  },
                   additionalProperties: {
                     anyOf: [
                       {
@@ -11329,12 +11261,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "TTS Provider Config",
       help: "Provider-specific TTS configuration for one speech provider id. Keep fields scoped to the plugin that owns that provider.",
       tags: ["media"],
-    },
-    "messages.tts.providers.*.apiKey": {
-      label: "TTS Provider API Key",
-      help: "Provider API key used by that speech provider when its plugin requires authenticated TTS access.",
-      tags: ["security", "auth", "media"],
-      sensitive: true,
     },
     "talk.provider": {
       label: "Talk Active Provider",

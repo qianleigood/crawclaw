@@ -1224,8 +1224,6 @@ export const FIELD_HELP: Record<string, string> = {
     "Provider-specific TTS settings keyed by speech provider id. Use this instead of bundled provider-specific top-level keys so speech plugins stay decoupled from core config schema.",
   "messages.tts.providers.*":
     "Provider-specific TTS configuration for one speech provider id. Keep fields scoped to the plugin that owns that provider.",
-  "messages.tts.providers.*.apiKey":
-    "Provider API key used by that speech provider when its plugin requires authenticated TTS access.", // pragma: allowlist secret
   "agents.defaults.heartbeat.directPolicy":
     'Controls whether heartbeat delivery may target direct/DM chats: "allow" (default) permits DM delivery and "block" suppresses direct-target sends.',
   "agents.list.*.heartbeat.directPolicy":

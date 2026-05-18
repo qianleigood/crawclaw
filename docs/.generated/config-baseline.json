@@ -9004,48 +9004,6 @@
       "hasChildren": false
     },
     {
-      "path": "messages.tts.providers.*.apiKey",
-      "kind": "core",
-      "type": ["object", "string"],
-      "required": false,
-      "deprecated": false,
-      "sensitive": true,
-      "tags": ["auth", "media", "security"],
-      "label": "TTS Provider API Key",
-      "help": "Provider API key used by that speech provider when its plugin requires authenticated TTS access.",
-      "hasChildren": true
-    },
-    {
-      "path": "messages.tts.providers.*.apiKey.id",
-      "kind": "core",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "messages.tts.providers.*.apiKey.provider",
-      "kind": "core",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
-      "path": "messages.tts.providers.*.apiKey.source",
-      "kind": "core",
-      "type": "string",
-      "required": true,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": false
-    },
-    {
       "path": "messages.tts.summaryModel",
       "kind": "core",
       "type": "string",

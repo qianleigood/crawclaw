@@ -382,20 +382,15 @@ export const MarkdownConfigSchema = z
 export const TtsProviderSchema = z.string().min(1);
 export const TtsModeSchema = z.enum(["final", "all"]);
 export const TtsAutoSchema = z.enum(["off", "always", "inbound", "tagged"]);
-const TtsProviderConfigSchema = z
-  .object({
-    apiKey: SecretInputSchema.optional().register(sensitive),
-  })
-  .catchall(
-    z.union([
-      z.string(),
-      z.number(),
-      z.boolean(),
-      z.null(),
-      z.array(z.unknown()),
-      z.record(z.string(), z.unknown()),
-    ]),
-  );
+const TtsProviderConfigValueSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+  z.null(),
+  z.array(z.unknown()),
+  z.record(z.string(), z.unknown()),
+]);
+const TtsProviderConfigSchema = z.record(z.string(), TtsProviderConfigValueSchema);
 export const TtsConfigSchema = z
   .object({
     auto: TtsAutoSchema.optional(),

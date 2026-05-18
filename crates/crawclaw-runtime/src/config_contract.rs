@@ -238,6 +238,33 @@ mod tests {
     }
 
     #[test]
+    fn base_config_schema_payload_keeps_tts_provider_config_plugin_owned() {
+        let payload = base_config_schema_payload("2026-01-02T03:04:05.000Z")
+            .expect("base config schema payload");
+        let provider_config = path(
+            &payload,
+            &[
+                "schema",
+                "properties",
+                "messages",
+                "properties",
+                "tts",
+                "properties",
+                "providers",
+                "additionalProperties",
+            ],
+        );
+        assert!(!provider_config
+            .get("properties")
+            .and_then(Value::as_object)
+            .is_some_and(|properties| properties.contains_key("apiKey")));
+        assert!(!path(&payload, &["uiHints"])
+            .as_object()
+            .expect("ui hints")
+            .contains_key("messages.tts.providers.*.apiKey"));
+    }
+
+    #[test]
     fn base_config_schema_payload_marks_sensitive_urls() {
         let payload = base_config_schema_payload("2026-01-02T03:04:05.000Z")
             .expect("base config schema payload");
@@ -264,6 +291,9 @@ mod tests {
             entry["path"] == "models.providers.*.apiKey"
                 && entry["sensitive"].as_bool() == Some(true)
         }));
+        assert!(!entries
+            .iter()
+            .any(|entry| entry["path"] == "messages.tts.providers.*.apiKey"));
         assert!(entries.iter().any(|entry| {
             entry["path"] == "talk.silenceTimeoutMs"
                 && entry["help"]

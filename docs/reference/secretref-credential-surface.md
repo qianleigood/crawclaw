@@ -26,7 +26,6 @@ Scope intent:
 - `models.providers.*.headers.*`
 - `skills.entries.*.apiKey`
 - `talk.providers.*.apiKey`
-- `messages.tts.providers.*.apiKey`
 - `gateway.auth.password`
 - `gateway.auth.token`
 - `gateway.remote.token`
