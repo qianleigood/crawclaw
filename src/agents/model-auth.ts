@@ -3,6 +3,13 @@ import { type Api, type Model } from "@mariozechner/pi-ai";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
+import {
+  AWS_ACCESS_KEY_ID_ENV,
+  AWS_BEDROCK_BEARER_TOKEN_ENV,
+  AWS_PROFILE_ENV,
+  AWS_SECRET_ACCESS_KEY_ENV,
+  OPENAI_COMPATIBLE_TURN_VALIDATION_API,
+} from "../generated/providers/runtime-constants.generated.js";
 import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { formatCliCommand } from "../terminal/command-format.js";
@@ -228,33 +235,36 @@ function resolveEnvSourceLabel(params: {
 
 function resolveAwsSdkAuthInfo(): { mode: "aws-sdk"; source: string } {
   const applied = new Set(getShellEnvAppliedKeys());
-  if (process.env.AWS_BEARER_TOKEN_BEDROCK?.trim()) {
+  if (process.env[AWS_BEDROCK_BEARER_TOKEN_ENV]?.trim()) {
     return {
       mode: "aws-sdk",
       source: resolveEnvSourceLabel({
         applied,
-        envVars: ["AWS_BEARER_TOKEN_BEDROCK"],
-        label: "AWS_BEARER_TOKEN_BEDROCK",
+        envVars: [AWS_BEDROCK_BEARER_TOKEN_ENV],
+        label: AWS_BEDROCK_BEARER_TOKEN_ENV,
       }),
     };
   }
-  if (process.env.AWS_ACCESS_KEY_ID?.trim() && process.env.AWS_SECRET_ACCESS_KEY?.trim()) {
+  if (
+    process.env[AWS_ACCESS_KEY_ID_ENV]?.trim() &&
+    process.env[AWS_SECRET_ACCESS_KEY_ENV]?.trim()
+  ) {
     return {
       mode: "aws-sdk",
       source: resolveEnvSourceLabel({
         applied,
-        envVars: ["AWS_ACCESS_KEY_ID", "AWS_SECRET_ACCESS_KEY"],
-        label: "AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY",
+        envVars: [AWS_ACCESS_KEY_ID_ENV, AWS_SECRET_ACCESS_KEY_ENV],
+        label: `${AWS_ACCESS_KEY_ID_ENV} + ${AWS_SECRET_ACCESS_KEY_ENV}`,
       }),
     };
   }
-  if (process.env.AWS_PROFILE?.trim()) {
+  if (process.env[AWS_PROFILE_ENV]?.trim()) {
     return {
       mode: "aws-sdk",
       source: resolveEnvSourceLabel({
         applied,
-        envVars: ["AWS_PROFILE"],
-        label: "AWS_PROFILE",
+        envVars: [AWS_PROFILE_ENV],
+        label: AWS_PROFILE_ENV,
       }),
     };
   }
@@ -545,7 +555,10 @@ export function applyLocalNoAuthHeaderOverride<T extends Model<Api>>(
   model: T,
   auth: ResolvedProviderAuth | null | undefined,
 ): T {
-  if (auth?.apiKey !== CUSTOM_LOCAL_AUTH_MARKER || model.api !== "openai-completions") {
+  if (
+    auth?.apiKey !== CUSTOM_LOCAL_AUTH_MARKER ||
+    model.api !== OPENAI_COMPATIBLE_TURN_VALIDATION_API
+  ) {
     return model;
   }
 

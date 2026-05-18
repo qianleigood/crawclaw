@@ -273,6 +273,19 @@ export const PROVIDER_CAPABILITY_FALLBACKS = {provider_capability_fallbacks} as 
 export const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {core_provider_auth_env_var_candidates} as const satisfies Readonly<Record<string, readonly string[]>>;
 export const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {core_provider_setup_env_var_overrides} as const satisfies Readonly<Record<string, readonly string[]>>;
 export const EXTRA_PROVIDER_AUTH_ENV_VARS = {extra_provider_auth_env_vars} as const;
+export const MINIMAX_OAUTH_MARKER = {minimax_oauth_marker};
+export const OAUTH_API_KEY_MARKER_PREFIX = {oauth_api_key_marker_prefix};
+export const OLLAMA_LOCAL_AUTH_MARKER = {ollama_local_auth_marker};
+export const CUSTOM_LOCAL_AUTH_MARKER = {custom_local_auth_marker};
+export const GCP_VERTEX_CREDENTIALS_MARKER = {gcp_vertex_credentials_marker};
+export const NON_ENV_SECRETREF_MARKER = {non_env_secretref_marker};
+export const SECRETREF_ENV_HEADER_MARKER_PREFIX = {secretref_env_header_marker_prefix};
+export const AWS_BEDROCK_BEARER_TOKEN_ENV = {aws_bedrock_bearer_token_env};
+export const AWS_ACCESS_KEY_ID_ENV = {aws_access_key_id_env};
+export const AWS_SECRET_ACCESS_KEY_ENV = {aws_secret_access_key_env};
+export const AWS_PROFILE_ENV = {aws_profile_env};
+export const AWS_SDK_ENV_MARKERS = {aws_sdk_env_markers} as const;
+export const LEGACY_ENV_API_KEY_MARKERS = {legacy_env_api_key_markers} as const;
 export const PROVIDER_USAGE_LABELS = {provider_usage_labels} as const satisfies Readonly<Record<string, string>>;
 export const PROVIDER_ATTRIBUTION_PRODUCT = {provider_attribution_product};
 export const PROVIDER_ATTRIBUTION_ORIGINATOR = {provider_attribution_originator};
@@ -355,6 +368,23 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         ),
         extra_provider_auth_env_vars =
             render_static_string_array_inline(crawclaw_providers::EXTRA_PROVIDER_AUTH_ENV_VARS),
+        minimax_oauth_marker = json_string(crawclaw_providers::MINIMAX_OAUTH_MARKER),
+        oauth_api_key_marker_prefix = json_string(crawclaw_providers::OAUTH_API_KEY_MARKER_PREFIX),
+        ollama_local_auth_marker = json_string(crawclaw_providers::OLLAMA_LOCAL_AUTH_MARKER),
+        custom_local_auth_marker = json_string(crawclaw_providers::CUSTOM_LOCAL_AUTH_MARKER),
+        gcp_vertex_credentials_marker =
+            json_string(crawclaw_providers::GCP_VERTEX_CREDENTIALS_MARKER),
+        non_env_secretref_marker = json_string(crawclaw_providers::NON_ENV_SECRETREF_MARKER),
+        secretref_env_header_marker_prefix =
+            json_string(crawclaw_providers::SECRETREF_ENV_HEADER_MARKER_PREFIX),
+        aws_bedrock_bearer_token_env =
+            json_string(crawclaw_providers::AWS_BEDROCK_BEARER_TOKEN_ENV),
+        aws_access_key_id_env = json_string(crawclaw_providers::AWS_ACCESS_KEY_ID_ENV),
+        aws_secret_access_key_env = json_string(crawclaw_providers::AWS_SECRET_ACCESS_KEY_ENV),
+        aws_profile_env = json_string(crawclaw_providers::AWS_PROFILE_ENV),
+        aws_sdk_env_markers = render_static_string_array(crawclaw_providers::AWS_SDK_ENV_MARKERS),
+        legacy_env_api_key_markers =
+            render_static_string_array(crawclaw_providers::LEGACY_ENV_API_KEY_MARKERS),
         provider_usage_labels =
             render_static_string_record(crawclaw_providers::PROVIDER_USAGE_LABELS),
         provider_attribution_product =
@@ -1093,6 +1123,21 @@ mod tests {
         assert!(source.contains("anthropic: [\"ANTHROPIC_API_KEY\", \"ANTHROPIC_OAUTH_TOKEN\"]"));
         assert!(source
             .contains("export const EXTRA_PROVIDER_AUTH_ENV_VARS = [\"MINIMAX_CODE_PLAN_KEY\"]"));
+        assert!(source.contains("export const MINIMAX_OAUTH_MARKER = \"minimax-oauth\";"));
+        assert!(source.contains("export const OAUTH_API_KEY_MARKER_PREFIX = \"oauth:\";"));
+        assert!(source.contains("export const OLLAMA_LOCAL_AUTH_MARKER = \"ollama-local\";"));
+        assert!(source.contains("export const CUSTOM_LOCAL_AUTH_MARKER = \"custom-local\";"));
+        assert!(source
+            .contains("export const GCP_VERTEX_CREDENTIALS_MARKER = \"gcp-vertex-credentials\";"));
+        assert!(source.contains("export const NON_ENV_SECRETREF_MARKER = \"secretref-managed\";"));
+        assert!(source
+            .contains("export const SECRETREF_ENV_HEADER_MARKER_PREFIX = \"secretref-env:\";"));
+        assert!(source
+            .contains("export const AWS_BEDROCK_BEARER_TOKEN_ENV = \"AWS_BEARER_TOKEN_BEDROCK\";"));
+        assert!(source.contains("export const AWS_SDK_ENV_MARKERS = ["));
+        assert!(source.contains("\"AWS_PROFILE\""));
+        assert!(source.contains("export const LEGACY_ENV_API_KEY_MARKERS = ["));
+        assert!(source.contains("\"AZURE_OPENAI_API_KEY\""));
         assert!(source.contains("export const PROVIDER_USAGE_LABELS = {"));
         assert!(source.contains("\"openai-codex\": \"Codex\""));
         assert!(source.contains("zai: \"z.ai\""));

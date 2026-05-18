@@ -1,9 +1,10 @@
+import {
+  AWS_ACCESS_KEY_ID_ENV,
+  AWS_BEDROCK_BEARER_TOKEN_ENV,
+  AWS_PROFILE_ENV,
+  AWS_SECRET_ACCESS_KEY_ENV,
+} from "../generated/providers/runtime-constants.generated.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
-
-const AWS_BEARER_ENV = "AWS_BEARER_TOKEN_BEDROCK";
-const AWS_ACCESS_KEY_ENV = "AWS_ACCESS_KEY_ID";
-const AWS_SECRET_KEY_ENV = "AWS_SECRET_ACCESS_KEY";
-const AWS_PROFILE_ENV = "AWS_PROFILE";
 
 export type ResolvedProviderAuth = {
   apiKey?: string;
@@ -13,11 +14,11 @@ export type ResolvedProviderAuth = {
 };
 
 export function resolveAwsSdkEnvVarName(env: NodeJS.ProcessEnv = process.env): string | undefined {
-  if (env[AWS_BEARER_ENV]?.trim()) {
-    return AWS_BEARER_ENV;
+  if (env[AWS_BEDROCK_BEARER_TOKEN_ENV]?.trim()) {
+    return AWS_BEDROCK_BEARER_TOKEN_ENV;
   }
-  if (env[AWS_ACCESS_KEY_ENV]?.trim() && env[AWS_SECRET_KEY_ENV]?.trim()) {
-    return AWS_ACCESS_KEY_ENV;
+  if (env[AWS_ACCESS_KEY_ID_ENV]?.trim() && env[AWS_SECRET_ACCESS_KEY_ENV]?.trim()) {
+    return AWS_ACCESS_KEY_ID_ENV;
   }
   if (env[AWS_PROFILE_ENV]?.trim()) {
     return AWS_PROFILE_ENV;

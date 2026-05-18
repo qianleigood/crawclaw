@@ -139,6 +139,31 @@ export const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {
   "minimax-cn": ["MINIMAX_API_KEY"],
 } as const satisfies Readonly<Record<string, readonly string[]>>;
 export const EXTRA_PROVIDER_AUTH_ENV_VARS = ["MINIMAX_CODE_PLAN_KEY"] as const;
+export const MINIMAX_OAUTH_MARKER = "minimax-oauth";
+export const OAUTH_API_KEY_MARKER_PREFIX = "oauth:";
+export const OLLAMA_LOCAL_AUTH_MARKER = "ollama-local";
+export const CUSTOM_LOCAL_AUTH_MARKER = "custom-local";
+export const GCP_VERTEX_CREDENTIALS_MARKER = "gcp-vertex-credentials";
+export const NON_ENV_SECRETREF_MARKER = "secretref-managed";
+export const SECRETREF_ENV_HEADER_MARKER_PREFIX = "secretref-env:";
+export const AWS_BEDROCK_BEARER_TOKEN_ENV = "AWS_BEARER_TOKEN_BEDROCK";
+export const AWS_ACCESS_KEY_ID_ENV = "AWS_ACCESS_KEY_ID";
+export const AWS_SECRET_ACCESS_KEY_ENV = "AWS_SECRET_ACCESS_KEY";
+export const AWS_PROFILE_ENV = "AWS_PROFILE";
+export const AWS_SDK_ENV_MARKERS = [
+  "AWS_BEARER_TOKEN_BEDROCK",
+  "AWS_ACCESS_KEY_ID",
+  "AWS_PROFILE",
+] as const;
+export const LEGACY_ENV_API_KEY_MARKERS = [
+  "GOOGLE_API_KEY",
+  "DEEPSEEK_API_KEY",
+  "FIREWORKS_API_KEY",
+  "NOVITA_API_KEY",
+  "AZURE_OPENAI_API_KEY",
+  "AZURE_API_KEY",
+  "MINIMAX_CODE_PLAN_KEY",
+] as const;
 export const PROVIDER_USAGE_LABELS = {
   anthropic: "Claude",
   "github-copilot": "Copilot",

@@ -715,6 +715,31 @@ pub const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES: &[ProviderAuthEnvVars] = &[
 ];
 
 pub const EXTRA_PROVIDER_AUTH_ENV_VARS: &[&str] = &["MINIMAX_CODE_PLAN_KEY"];
+pub const MINIMAX_OAUTH_MARKER: &str = "minimax-oauth";
+pub const OAUTH_API_KEY_MARKER_PREFIX: &str = "oauth:";
+pub const OLLAMA_LOCAL_AUTH_MARKER: &str = "ollama-local";
+pub const CUSTOM_LOCAL_AUTH_MARKER: &str = "custom-local";
+pub const GCP_VERTEX_CREDENTIALS_MARKER: &str = "gcp-vertex-credentials";
+pub const NON_ENV_SECRETREF_MARKER: &str = "secretref-managed";
+pub const SECRETREF_ENV_HEADER_MARKER_PREFIX: &str = "secretref-env:";
+pub const AWS_BEDROCK_BEARER_TOKEN_ENV: &str = "AWS_BEARER_TOKEN_BEDROCK";
+pub const AWS_ACCESS_KEY_ID_ENV: &str = "AWS_ACCESS_KEY_ID";
+pub const AWS_SECRET_ACCESS_KEY_ENV: &str = "AWS_SECRET_ACCESS_KEY";
+pub const AWS_PROFILE_ENV: &str = "AWS_PROFILE";
+pub const AWS_SDK_ENV_MARKERS: &[&str] = &[
+    AWS_BEDROCK_BEARER_TOKEN_ENV,
+    AWS_ACCESS_KEY_ID_ENV,
+    AWS_PROFILE_ENV,
+];
+pub const LEGACY_ENV_API_KEY_MARKERS: &[&str] = &[
+    "GOOGLE_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "FIREWORKS_API_KEY",
+    "NOVITA_API_KEY",
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_API_KEY",
+    "MINIMAX_CODE_PLAN_KEY",
+];
 
 pub const PROVIDER_USAGE_LABELS: &[(&str, &str)] = &[
     ("anthropic", "Claude"),
@@ -4010,6 +4035,26 @@ mod tests {
             entry.provider == "anthropic" && entry.env_vars.contains(&"ANTHROPIC_OAUTH_TOKEN")
         }));
         assert_eq!(EXTRA_PROVIDER_AUTH_ENV_VARS, &["MINIMAX_CODE_PLAN_KEY"]);
+        assert_eq!(MINIMAX_OAUTH_MARKER, "minimax-oauth");
+        assert_eq!(OAUTH_API_KEY_MARKER_PREFIX, "oauth:");
+        assert_eq!(OLLAMA_LOCAL_AUTH_MARKER, "ollama-local");
+        assert_eq!(CUSTOM_LOCAL_AUTH_MARKER, "custom-local");
+        assert_eq!(GCP_VERTEX_CREDENTIALS_MARKER, "gcp-vertex-credentials");
+        assert_eq!(NON_ENV_SECRETREF_MARKER, "secretref-managed");
+        assert_eq!(SECRETREF_ENV_HEADER_MARKER_PREFIX, "secretref-env:");
+        assert_eq!(AWS_BEDROCK_BEARER_TOKEN_ENV, "AWS_BEARER_TOKEN_BEDROCK");
+        assert_eq!(AWS_ACCESS_KEY_ID_ENV, "AWS_ACCESS_KEY_ID");
+        assert_eq!(AWS_SECRET_ACCESS_KEY_ENV, "AWS_SECRET_ACCESS_KEY");
+        assert_eq!(AWS_PROFILE_ENV, "AWS_PROFILE");
+        assert_eq!(
+            AWS_SDK_ENV_MARKERS,
+            &[
+                "AWS_BEARER_TOKEN_BEDROCK",
+                "AWS_ACCESS_KEY_ID",
+                "AWS_PROFILE"
+            ]
+        );
+        assert!(LEGACY_ENV_API_KEY_MARKERS.contains(&"AZURE_OPENAI_API_KEY"));
         assert!(PROVIDER_USAGE_LABELS.contains(&("openai-codex", "Codex")));
         assert!(PROVIDER_USAGE_LABELS.contains(&("zai", "z.ai")));
         assert_eq!(PROVIDER_ATTRIBUTION_PRODUCT, "CrawClaw");
