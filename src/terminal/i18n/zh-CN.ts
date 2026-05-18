@@ -8,6 +8,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "common.progress.checkingGatewayHealth": "检查网关健康状态…",
   "common.progress.fetchingUsageSnapshot": "获取用量快照…",
   "common.progress.runningSecurityAudit": "运行安全审计…",
+  "note.tailscale.requiresLoopback": "Tailscale 要求监听地址为 loopback，已自动调整为 loopback。",
   "cli.option.json": "输出 JSON",
   "config.updated": "已更新 {path}{suffix}",
   "table.header.active": "活跃",
