@@ -38,23 +38,15 @@ export VLLM_API_KEY="vllm-local"
 }
 ```
 
-## Model discovery (implicit provider)
-
-When `VLLM_API_KEY` is set (or an auth profile exists) and you **do not** define `models.providers.vllm`, CrawClaw will query:
-
-- `GET http://127.0.0.1:8000/v1/models`
-
-…and convert the returned IDs into model entries.
-
-If you set `models.providers.vllm` explicitly, auto-discovery is skipped and you must define models manually.
-
-## Explicit configuration (manual models)
+## Explicit configuration
 
 Use explicit config when:
 
 - vLLM runs on a different host/port.
 - You want to pin `contextWindow`/`maxTokens` values.
 - Your server requires a real API key (or you want to control headers).
+
+CrawClaw writes only the provider models you configure. To inspect local vLLM model IDs, query your server's OpenAI-compatible models endpoint, for example `GET http://127.0.0.1:8000/v1/models`.
 
 ```json5
 {

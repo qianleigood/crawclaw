@@ -1,5 +1,4 @@
 import fs from "node:fs/promises";
-import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
@@ -333,52 +332,6 @@ describe("models-config", () => {
     });
   });
 
-  it("fills anthropic-vertex apiKey with the ADC sentinel when models exist", async () => {
-    await withTempHome(async () => {
-      const adcDir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-adc-"));
-      const credentialsPath = path.join(adcDir, "application_default_credentials.json");
-      await fs.writeFile(credentialsPath, JSON.stringify({ project_id: "vertex-project" }), "utf8");
-      const previousCredentials = process.env.GOOGLE_APPLICATION_CREDENTIALS;
-
-      try {
-        process.env.GOOGLE_APPLICATION_CREDENTIALS = credentialsPath;
-
-        await ensureCrawClawModelsJson({
-          models: {
-            providers: {
-              "anthropic-vertex": {
-                baseUrl: "https://us-central1-aiplatform.googleapis.com",
-                api: "anthropic-messages",
-                models: [
-                  {
-                    id: "claude-sonnet-4-6",
-                    name: "Claude Sonnet 4.6",
-                    reasoning: true,
-                    input: ["text", "image"],
-                    cost: { input: 3, output: 15, cacheRead: 0.3, cacheWrite: 3.75 },
-                    contextWindow: 200000,
-                    maxTokens: 64000,
-                  },
-                ],
-              },
-            },
-          },
-        });
-
-        const parsed = await readGeneratedModelsJson<{
-          providers: Record<string, { apiKey?: string }>;
-        }>();
-        expect(parsed.providers["anthropic-vertex"]?.apiKey).toBe("gcp-vertex-credentials");
-      } finally {
-        if (previousCredentials === undefined) {
-          delete process.env.GOOGLE_APPLICATION_CREDENTIALS;
-        } else {
-          process.env.GOOGLE_APPLICATION_CREDENTIALS = previousCredentials;
-        }
-        await fs.rm(adcDir, { recursive: true, force: true });
-      }
-    });
-  });
   it("merges providers by default", async () => {
     await withTempHome(async () => {
       await writeAgentModelsJson({
@@ -472,53 +425,6 @@ describe("models-config", () => {
     });
   });
 
-  it("replaces stale merged apiKey when provider is SecretRef-managed via auth-profiles", async () => {
-    await withTempHome(async () => {
-      const agentDir = resolveCrawClawAgentDir();
-      await fs.mkdir(agentDir, { recursive: true });
-      await fs.writeFile(
-        path.join(agentDir, "auth-profiles.json"),
-        `${JSON.stringify(
-          {
-            version: 1,
-            profiles: {
-              "minimax:default": {
-                type: "api_key",
-                provider: "minimax",
-                keyRef: { source: "env", provider: "default", id: "MINIMAX_API_KEY" }, // pragma: allowlist secret
-              },
-            },
-          },
-          null,
-          2,
-        )}\n`,
-        "utf8",
-      );
-      await writeAgentModelsJson({
-        providers: {
-          minimax: {
-            baseUrl: "https://api.minimax.io/anthropic",
-            apiKey: "STALE_AGENT_KEY", // pragma: allowlist secret
-            api: "anthropic-messages",
-            models: [{ id: "MiniMax-M2.7", name: "MiniMax M2.7", input: ["text"] }],
-          },
-        },
-      });
-
-      await ensureCrawClawModelsJson({
-        models: {
-          mode: "merge",
-          providers: {},
-        },
-      });
-
-      const parsed = await readGeneratedModelsJson<{
-        providers: Record<string, { apiKey?: string }>;
-      }>();
-      expect(parsed.providers.minimax?.apiKey).toBe("MINIMAX_API_KEY"); // pragma: allowlist secret
-    });
-  });
-
   it("replaces stale non-env marker when provider transitions back to plaintext config", async () => {
     await expectCustomProviderApiKeyRewrite({
       existingApiKey: NON_ENV_SECRETREF_MARKER,
@@ -584,7 +490,7 @@ describe("models-config", () => {
     await expectOpenAiEnvMarkerApiKey({ seedMergedProvider: true });
   });
 
-  it("preserves explicit larger token limits when they exceed implicit catalog defaults", async () => {
+  it("writes explicit larger token limits", async () => {
     await expectMoonshotTokenLimits({
       contextWindow: 350000,
       maxTokens: 16384,

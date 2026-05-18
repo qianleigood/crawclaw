@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  mergeProviderModels,
-  mergeProviders,
   mergeWithExistingProviderSecrets,
   type ExistingProviderConfig,
 } from "./models-config.merge.js";
@@ -9,98 +7,6 @@ import type { ProviderConfig } from "./models-config.providers.secrets.js";
 
 describe("models-config merge helpers", () => {
   const preservedApiKey = "AGENT_KEY"; // pragma: allowlist secret
-
-  it("refreshes implicit model metadata while preserving explicit reasoning overrides", () => {
-    const merged = mergeProviderModels(
-      {
-        api: "openai-responses",
-        models: [
-          {
-            id: "gpt-5.4",
-            name: "GPT-5.4",
-            input: ["text"],
-            reasoning: true,
-            contextWindow: 1_000_000,
-            maxTokens: 100_000,
-          },
-        ],
-      } as ProviderConfig,
-      {
-        api: "openai-responses",
-        models: [
-          {
-            id: "gpt-5.4",
-            name: "GPT-5.4",
-            input: ["image"],
-            reasoning: false,
-            contextWindow: 2_000_000,
-            maxTokens: 200_000,
-          },
-        ],
-      } as ProviderConfig,
-    );
-
-    expect(merged.models).toEqual([
-      expect.objectContaining({
-        id: "gpt-5.4",
-        input: ["text"],
-        reasoning: false,
-        contextWindow: 2_000_000,
-        maxTokens: 200_000,
-      }),
-    ]);
-  });
-
-  it("merges explicit providers onto trimmed keys", () => {
-    const merged = mergeProviders({
-      explicit: {
-        " custom ": {
-          api: "openai-responses",
-          models: [] as ProviderConfig["models"],
-        } as ProviderConfig,
-      },
-    });
-
-    expect(merged).toEqual({
-      custom: expect.objectContaining({ api: "openai-responses" }),
-    });
-  });
-
-  it("preserves implicit provider headers when explicit config adds extra headers", () => {
-    const merged = mergeProviderModels(
-      {
-        baseUrl: "https://api.example.com",
-        api: "anthropic-messages",
-        headers: { "User-Agent": "claude-code/0.1.0" },
-        models: [
-          {
-            id: "kimi-code",
-            name: "Kimi Code",
-            input: ["text", "image"],
-            reasoning: true,
-          },
-        ],
-      } as unknown as ProviderConfig,
-      {
-        baseUrl: "https://api.example.com",
-        api: "anthropic-messages",
-        headers: { "X-Kimi-Tenant": "tenant-a" },
-        models: [
-          {
-            id: "kimi-code",
-            name: "Kimi Code",
-            input: ["text", "image"],
-            reasoning: true,
-          },
-        ],
-      } as unknown as ProviderConfig,
-    );
-
-    expect(merged.headers).toEqual({
-      "User-Agent": "claude-code/0.1.0",
-      "X-Kimi-Tenant": "tenant-a",
-    });
-  });
 
   it("replaces stale baseUrl when model api surface changes", () => {
     const merged = mergeWithExistingProviderSecrets({

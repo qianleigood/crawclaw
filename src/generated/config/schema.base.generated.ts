@@ -8202,7 +8202,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       label: "Models",
       group: "Models",
       order: 70,
-      help: "Model catalog root for provider definitions, merge/replace behavior, and optional Bedrock discovery integration. Keep provider definitions explicit and validated before relying on production failover paths.",
+      help: "Model config root for explicit provider definitions, merge/replace behavior, and SecretRef-aware models.json generation. Keep provider definitions explicit and validated before relying on production failover paths.",
       tags: ["models"],
     },
     messages: {
@@ -10076,7 +10076,7 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "models.mode": {
       label: "Model Catalog Mode",
-      help: 'Controls provider catalog behavior: "merge" keeps built-ins and overlays your custom providers, while "replace" uses only your configured providers. In "merge", matching provider IDs preserve non-empty agent models.json baseUrl values, while apiKey values are preserved only when the provider is not SecretRef-managed in current config/auth-profile context; SecretRef-managed providers refresh apiKey from current source markers, and matching model contextWindow/maxTokens use the higher value between explicit and implicit entries.',
+      help: 'Controls how configured provider definitions are written to agent models.json: "merge" keeps compatible existing agent values for provider IDs you configure, while "replace" writes only the configured providers. In "merge", non-empty existing baseUrl values are preserved unless config sets baseUrl explicitly, and non-empty existing apiKey values are preserved only when the provider is not SecretRef-managed in the current config/auth-profile context; SecretRef-managed apiKey/header values refresh from source markers.',
       tags: ["models"],
     },
     "models.providers": {

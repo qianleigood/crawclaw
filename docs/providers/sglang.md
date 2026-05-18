@@ -46,25 +46,15 @@ export SGLANG_API_KEY="sglang-local"
 }
 ```
 
-## Model discovery (implicit provider)
-
-When `SGLANG_API_KEY` is set (or an auth profile exists) and you **do not**
-define `models.providers.sglang`, CrawClaw will query:
-
-- `GET http://127.0.0.1:30000/v1/models`
-
-and convert the returned IDs into model entries.
-
-If you set `models.providers.sglang` explicitly, auto-discovery is skipped and
-you must define models manually.
-
-## Explicit configuration (manual models)
+## Explicit configuration
 
 Use explicit config when:
 
 - SGLang runs on a different host/port.
 - You want to pin `contextWindow`/`maxTokens` values.
 - Your server requires a real API key (or you want to control headers).
+
+CrawClaw writes only the provider models you configure. To inspect local SGLang model IDs, query your server's OpenAI-compatible models endpoint, for example `GET http://127.0.0.1:30000/v1/models`.
 
 ```json5
 {

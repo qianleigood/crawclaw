@@ -108,17 +108,9 @@ export OLLAMA_API_KEY="ollama-local"
 }
 ```
 
-## Model discovery (implicit provider)
+## Explicit model entries
 
-When you set `OLLAMA_API_KEY` (or an auth profile) and **do not** define `models.providers.ollama`, CrawClaw discovers models from the local Ollama instance at `http://127.0.0.1:11434`:
-
-- Queries `/api/tags`
-- Uses best-effort `/api/show` lookups to read `contextWindow` when available
-- Marks `reasoning` with a model-name heuristic (`r1`, `reasoning`, `think`)
-- Sets `maxTokens` to the default Ollama max-token cap used by CrawClaw
-- Sets all costs to `0`
-
-This avoids manual model entries while keeping the catalog aligned with the local Ollama instance.
+CrawClaw writes only the Ollama models you configure in `models.providers.ollama`. Use the Ollama CLI to inspect local model IDs, then add the entries you want CrawClaw to use.
 
 To see what models are available:
 
