@@ -1,12 +1,6 @@
-const API_KEYLESS_BUNDLED_WEB_SEARCH_PLUGIN_IDS = new Set(["searxng"]);
-const API_KEY_BUNDLED_WEB_SEARCH_PLUGIN_IDS = new Set([
-  "brave",
-  "exa",
-  "google",
-  "moonshot",
-  "perplexity",
-  "xai",
-]);
+import { BUNDLED_WEB_SEARCH_PLUGIN_IDS } from "./bundled-capability-metadata.js";
+
+const API_KEYLESS_BUNDLED_WEB_SEARCH_PLUGIN_IDS = new Set(BUNDLED_WEB_SEARCH_PLUGIN_IDS);
 
 export function isApiKeylessBundledWebSearchPluginId(pluginId: string | undefined): boolean {
   if (!pluginId) {
@@ -15,15 +9,6 @@ export function isApiKeylessBundledWebSearchPluginId(pluginId: string | undefine
   return API_KEYLESS_BUNDLED_WEB_SEARCH_PLUGIN_IDS.has(pluginId.trim().toLowerCase());
 }
 
-export function isApiKeyBundledWebSearchPluginId(pluginId: string | undefined): boolean {
-  if (!pluginId) {
-    return false;
-  }
-  return API_KEY_BUNDLED_WEB_SEARCH_PLUGIN_IDS.has(pluginId.trim().toLowerCase());
-}
-
-export function filterApiKeylessBundledWebSearchPluginIds(
-  pluginIds: readonly string[] | undefined,
-): string[] {
-  return (pluginIds ?? []).filter((pluginId) => isApiKeylessBundledWebSearchPluginId(pluginId));
+export function isApiKeyBundledWebSearchPluginId(_pluginId: string | undefined): boolean {
+  return false;
 }
