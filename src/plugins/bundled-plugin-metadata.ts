@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { resolveCrawClawPackageRootSync } from "../infra/crawclaw-root.js";
 import { resolveBundledPluginsDir } from "./bundled-dir.js";
 import {
   getPackageManifestMetadata,
@@ -10,14 +11,14 @@ import {
   type PackageManifest,
   type PluginManifest,
 } from "./manifest.js";
-import { resolveLoaderPackageRoot } from "./runtime-alias.js";
 
+const CURRENT_MODULE_PATH = fileURLToPath(import.meta.url);
 const CRAWCLAW_PACKAGE_ROOT =
-  resolveLoaderPackageRoot({
-    modulePath: fileURLToPath(import.meta.url),
+  resolveCrawClawPackageRootSync({
+    cwd: path.dirname(CURRENT_MODULE_PATH),
+    ...(process.argv[1] ? { argv1: process.argv[1] } : {}),
     moduleUrl: import.meta.url,
   }) ?? fileURLToPath(new URL("../..", import.meta.url));
-const CURRENT_MODULE_PATH = fileURLToPath(import.meta.url);
 const RUNNING_FROM_BUILT_ARTIFACT = CURRENT_MODULE_PATH.includes(`${path.sep}dist${path.sep}`);
 const PUBLIC_SURFACE_SOURCE_EXTENSIONS = [".ts", ".mts", ".js", ".mjs", ".cts", ".cjs"] as const;
 const RUNTIME_SIDECAR_ARTIFACTS = new Set([

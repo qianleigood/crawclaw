@@ -7,7 +7,6 @@ import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { createEmptyPluginRegistry } from "./registry-empty.js";
 import type { PluginRecord } from "./registry.js";
-import type { RuntimeResolutionPreference } from "./runtime-alias.js";
 import { isApiKeylessBundledWebSearchPluginId } from "./web-search-provider-policy.js";
 
 export function buildBundledCapabilityRuntimeConfig(
@@ -70,7 +69,6 @@ function pushUnique(target: string[], values: readonly string[] | undefined): vo
 export function loadBundledCapabilityRuntimeRegistry(params: {
   pluginIds: readonly string[];
   env?: PluginLoadOptions["env"];
-  runtimeResolution?: RuntimeResolutionPreference;
 }) {
   const env = params.env ?? process.env;
   const pluginIds = new Set(params.pluginIds);

@@ -1,28 +1,14 @@
 import {
   BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS,
   BUNDLED_SPEECH_PLUGIN_IDS,
-  BUNDLED_WEB_FETCH_PLUGIN_IDS,
-  BUNDLED_WEB_SEARCH_PLUGIN_IDS,
 } from "../bundled-capability-metadata.js";
 import { loadBundledCapabilityRuntimeRegistry } from "../bundled-capability-runtime.js";
-import type {
-  SpeechProviderPlugin,
-  WebFetchProviderPlugin,
-  WebSearchProviderPlugin,
-} from "../types.js";
+import type { SpeechProviderPlugin } from "../types.js";
 import { loadVitestSpeechProviderContractRegistry } from "./speech-vitest-registry.js";
 
-type BundledCapabilityRuntimeRegistry = ReturnType<typeof loadBundledCapabilityRuntimeRegistry>;
 type CapabilityContractEntry<T> = {
   pluginId: string;
   provider: T;
-};
-
-type WebSearchProviderContractEntry = CapabilityContractEntry<WebSearchProviderPlugin> & {
-  credentialValue: unknown;
-};
-type WebFetchProviderContractEntry = CapabilityContractEntry<WebFetchProviderPlugin> & {
-  credentialValue: unknown;
 };
 
 type SpeechProviderContractEntry = CapabilityContractEntry<SpeechProviderPlugin>;
@@ -48,207 +34,8 @@ function uniqueStrings(values: readonly string[]): string[] {
   return result;
 }
 
-let webFetchProviderContractRegistryCache: WebFetchProviderContractEntry[] | null = null;
-let webFetchProviderContractRegistryByPluginIdCache: Map<
-  string,
-  WebFetchProviderContractEntry[]
-> | null = null;
-let webSearchProviderContractRegistryCache: WebSearchProviderContractEntry[] | null = null;
-let webSearchProviderContractRegistryByPluginIdCache: Map<
-  string,
-  WebSearchProviderContractEntry[]
-> | null = null;
 let speechProviderContractRegistryCache: SpeechProviderContractEntry[] | null = null;
 export let providerContractLoadError: Error | undefined = undefined;
-
-function formatBundledCapabilityPluginLoadError(params: {
-  pluginId: string;
-  capabilityLabel: string;
-  registry: BundledCapabilityRuntimeRegistry;
-}): Error {
-  const plugin = params.registry.plugins.find((entry) => entry.id === params.pluginId);
-  const diagnostics = params.registry.diagnostics
-    .filter((entry) => entry.pluginId === params.pluginId)
-    .map((entry) => entry.message);
-  const detailParts = plugin
-    ? [
-        `status=${plugin.status}`,
-        ...(plugin.error ? [`error=${plugin.error}`] : []),
-        `providerIds=[${plugin.providerIds.join(", ")}]`,
-        `webFetchProviderIds=[${plugin.webFetchProviderIds.join(", ")}]`,
-        `webSearchProviderIds=[${plugin.webSearchProviderIds.join(", ")}]`,
-      ]
-    : ["plugin record missing"];
-  if (diagnostics.length > 0) {
-    detailParts.push(`diagnostics=${diagnostics.join(" | ")}`);
-  }
-  return new Error(
-    `bundled ${params.capabilityLabel} contract load failed for ${params.pluginId}: ${detailParts.join("; ")}`,
-  );
-}
-
-function loadScopedCapabilityRuntimeRegistryEntries<T>(params: {
-  pluginId: string;
-  capabilityLabel: string;
-  loadEntries: (registry: BundledCapabilityRuntimeRegistry) => T[];
-  loadDeclaredIds: (
-    plugin: BundledCapabilityRuntimeRegistry["plugins"][number],
-  ) => readonly string[];
-}): T[] {
-  let lastFailure: Error | undefined;
-
-  for (let attempt = 0; attempt < 2; attempt += 1) {
-    const registry = loadBundledCapabilityRuntimeRegistry({
-      pluginIds: [params.pluginId],
-      runtimeResolution: "dist",
-    });
-    const entries = params.loadEntries(registry);
-    if (entries.length > 0) {
-      return entries;
-    }
-
-    const plugin = registry.plugins.find((entry) => entry.id === params.pluginId);
-    lastFailure = formatBundledCapabilityPluginLoadError({
-      pluginId: params.pluginId,
-      capabilityLabel: params.capabilityLabel,
-      registry,
-    });
-    const shouldRetry =
-      attempt === 0 &&
-      (!plugin || plugin.status !== "loaded" || params.loadDeclaredIds(plugin).length === 0);
-    if (!shouldRetry) {
-      break;
-    }
-  }
-
-  throw (
-    lastFailure ??
-    new Error(
-      `bundled ${params.capabilityLabel} contract load failed for ${params.pluginId}: no entries`,
-    )
-  );
-}
-
-function resolveWebSearchCredentialValue(provider: WebSearchProviderPlugin): unknown {
-  if (provider.requiresCredential === false) {
-    return `${provider.id}-no-key-needed`;
-  }
-  const envVar = provider.envVars.find((entry) => entry.trim().length > 0);
-  if (!envVar) {
-    return `${provider.id}-test`;
-  }
-  if (envVar === "OPENROUTER_API_KEY") {
-    return "openrouter-test";
-  }
-  return envVar.toLowerCase().includes("api_key") ? `${provider.id}-test` : "sk-test";
-}
-
-function resolveWebFetchCredentialValue(provider: WebFetchProviderPlugin): unknown {
-  if (provider.requiresCredential === false) {
-    return `${provider.id}-no-key-needed`;
-  }
-  const envVar = provider.envVars.find((entry) => entry.trim().length > 0);
-  if (!envVar) {
-    return `${provider.id}-test`;
-  }
-  return envVar.toLowerCase().includes("api_key") ? `${provider.id}-test` : "sk-test";
-}
-
-function loadWebFetchProviderContractRegistry(): WebFetchProviderContractEntry[] {
-  if (!webFetchProviderContractRegistryCache) {
-    const registry = loadBundledCapabilityRuntimeRegistry({
-      pluginIds: BUNDLED_WEB_FETCH_PLUGIN_IDS,
-      runtimeResolution: "dist",
-    });
-    webFetchProviderContractRegistryCache = registry.webFetchProviders.map((entry) => ({
-      pluginId: entry.pluginId,
-      provider: entry.provider,
-      credentialValue: resolveWebFetchCredentialValue(entry.provider),
-    }));
-  }
-  return webFetchProviderContractRegistryCache;
-}
-
-export function resolveWebFetchProviderContractEntriesForPluginId(
-  pluginId: string,
-): WebFetchProviderContractEntry[] {
-  if (webFetchProviderContractRegistryCache) {
-    return webFetchProviderContractRegistryCache.filter((entry) => entry.pluginId === pluginId);
-  }
-
-  const cache =
-    webFetchProviderContractRegistryByPluginIdCache ??
-    new Map<string, WebFetchProviderContractEntry[]>();
-  webFetchProviderContractRegistryByPluginIdCache = cache;
-  const cached = cache.get(pluginId);
-  if (cached) {
-    return cached;
-  }
-
-  const entries = loadScopedCapabilityRuntimeRegistryEntries({
-    pluginId,
-    capabilityLabel: "web fetch provider",
-    loadEntries: (registry) =>
-      registry.webFetchProviders
-        .filter((entry) => entry.pluginId === pluginId)
-        .map((entry) => ({
-          pluginId: entry.pluginId,
-          provider: entry.provider,
-          credentialValue: resolveWebFetchCredentialValue(entry.provider),
-        })),
-    loadDeclaredIds: (plugin) => plugin.webFetchProviderIds,
-  });
-  cache.set(pluginId, entries);
-  return entries;
-}
-
-function loadWebSearchProviderContractRegistry(): WebSearchProviderContractEntry[] {
-  if (!webSearchProviderContractRegistryCache) {
-    const registry = loadBundledCapabilityRuntimeRegistry({
-      pluginIds: BUNDLED_WEB_SEARCH_PLUGIN_IDS,
-      runtimeResolution: "dist",
-    });
-    webSearchProviderContractRegistryCache = registry.webSearchProviders.map((entry) => ({
-      pluginId: entry.pluginId,
-      provider: entry.provider,
-      credentialValue: resolveWebSearchCredentialValue(entry.provider),
-    }));
-  }
-  return webSearchProviderContractRegistryCache;
-}
-
-export function resolveWebSearchProviderContractEntriesForPluginId(
-  pluginId: string,
-): WebSearchProviderContractEntry[] {
-  if (webSearchProviderContractRegistryCache) {
-    return webSearchProviderContractRegistryCache.filter((entry) => entry.pluginId === pluginId);
-  }
-
-  const cache =
-    webSearchProviderContractRegistryByPluginIdCache ??
-    new Map<string, WebSearchProviderContractEntry[]>();
-  webSearchProviderContractRegistryByPluginIdCache = cache;
-  const cached = cache.get(pluginId);
-  if (cached) {
-    return cached;
-  }
-
-  const entries = loadScopedCapabilityRuntimeRegistryEntries({
-    pluginId,
-    capabilityLabel: "web search provider",
-    loadEntries: (registry) =>
-      registry.webSearchProviders
-        .filter((entry) => entry.pluginId === pluginId)
-        .map((entry) => ({
-          pluginId: entry.pluginId,
-          provider: entry.provider,
-          credentialValue: resolveWebSearchCredentialValue(entry.provider),
-        })),
-    loadDeclaredIds: (plugin) => plugin.webSearchProviderIds,
-  });
-  cache.set(pluginId, entries);
-  return entries;
-}
 
 function loadSpeechProviderContractRegistry(): SpeechProviderContractEntry[] {
   if (!speechProviderContractRegistryCache) {
@@ -256,7 +43,6 @@ function loadSpeechProviderContractRegistry(): SpeechProviderContractEntry[] {
       ? loadVitestSpeechProviderContractRegistry()
       : loadBundledCapabilityRuntimeRegistry({
           pluginIds: BUNDLED_SPEECH_PLUGIN_IDS,
-          runtimeResolution: "dist",
         }).speechProviders.map((entry) => ({
           pluginId: entry.pluginId,
           provider: entry.provider,
@@ -296,12 +82,6 @@ function createLazyArrayView<T>(load: () => T[]): T[] {
     },
   });
 }
-
-export const webSearchProviderContractRegistry: WebSearchProviderContractEntry[] =
-  createLazyArrayView(loadWebSearchProviderContractRegistry);
-
-export const webFetchProviderContractRegistry: WebFetchProviderContractEntry[] =
-  createLazyArrayView(loadWebFetchProviderContractRegistry);
 
 export const speechProviderContractRegistry: SpeechProviderContractEntry[] = createLazyArrayView(
   loadSpeechProviderContractRegistry,

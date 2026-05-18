@@ -13,7 +13,6 @@ function loadBundledWebFetchProviders(): BundledWebFetchProviderEntry[] {
   if (!bundledWebFetchProvidersCache) {
     bundledWebFetchProvidersCache = loadBundledCapabilityRuntimeRegistry({
       pluginIds: BUNDLED_WEB_FETCH_PLUGIN_IDS,
-      runtimeResolution: "dist",
     }).webFetchProviders.map((entry) => ({
       pluginId: entry.pluginId,
       ...entry.provider,

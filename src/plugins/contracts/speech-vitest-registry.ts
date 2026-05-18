@@ -10,7 +10,6 @@ export type SpeechProviderContractEntry = {
 export function loadVitestSpeechProviderContractRegistry(): SpeechProviderContractEntry[] {
   const runtimeRegistry = loadBundledCapabilityRuntimeRegistry({
     pluginIds: BUNDLED_SPEECH_PLUGIN_IDS,
-    runtimeResolution: "dist",
   });
   return runtimeRegistry.speechProviders.map((entry) => ({
     pluginId: entry.pluginId,

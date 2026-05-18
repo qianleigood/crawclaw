@@ -20,14 +20,6 @@ import { isPathInside, safeStatSync } from "./path-safety.js";
 import { createPluginRegistry, type PluginRecord, type PluginRegistry } from "./registry.js";
 import { resolvePluginCacheInputs } from "./roots.js";
 import {
-  buildPluginLoaderAliasMap,
-  buildPluginLoaderJitiOptions,
-  type RuntimeResolutionPreference,
-  resolvePluginRuntimeModulePath,
-  resolveRuntimeAliasCandidateOrder,
-  shouldPreferNativeJiti,
-} from "./runtime-alias.js";
-import {
   getActivePluginRegistry,
   getActivePluginRegistryKey,
   setActivePluginRegistry,
@@ -47,7 +39,6 @@ export type PluginLoadOptions = {
   // instead of the process-global environment.
   env?: NodeJS.ProcessEnv;
   logger?: PluginLogger;
-  runtimeResolution?: RuntimeResolutionPreference;
   cache?: boolean;
   mode?: "full" | "validate";
   onlyPluginIds?: string[];
@@ -89,11 +80,6 @@ export function clearPluginLoaderCache(): void {
 const defaultLogger = () => createSubsystemLogger("plugins");
 
 export const __testing = {
-  buildPluginLoaderJitiOptions,
-  buildPluginLoaderAliasMap,
-  resolveRuntimeAliasCandidateOrder,
-  resolvePluginRuntimeModulePath,
-  shouldPreferNativeJiti,
   getCompatibleActivePluginRegistry,
   resolvePluginLoadCacheContext,
   get maxPluginRegistryCacheEntries() {
@@ -140,7 +126,6 @@ function buildCacheKey(params: {
   env: NodeJS.ProcessEnv;
   onlyPluginIds?: string[];
   loadModules?: boolean;
-  runtimeResolution?: RuntimeResolutionPreference;
   coreGatewayMethodNames?: string[];
 }): string {
   const { roots, loadPaths } = resolvePluginCacheInputs({
@@ -171,7 +156,7 @@ function buildCacheKey(params: {
     installs,
     loadPaths,
     activationMetadataKey: params.activationMetadataKey ?? "",
-  })}::${scopeKey}::${moduleLoadMode}::${params.runtimeResolution ?? "auto"}`;
+  })}::${scopeKey}::${moduleLoadMode}`;
 }
 
 function normalizeScopedPluginIds(ids?: string[]): string[] | undefined {
@@ -226,7 +211,6 @@ function hasExplicitCompatibilityInputs(options: PluginLoadOptions): boolean {
     options.workspaceDir !== undefined ||
     options.env !== undefined ||
     options.onlyPluginIds?.length ||
-    options.runtimeResolution !== undefined ||
     options.loadModules === false,
   );
 }
@@ -249,7 +233,6 @@ function resolvePluginLoadCacheContext(options: PluginLoadOptions = {}) {
     env,
     onlyPluginIds,
     loadModules: options.loadModules,
-    runtimeResolution: options.runtimeResolution,
   });
   return {
     env,

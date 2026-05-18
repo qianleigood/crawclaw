@@ -6,8 +6,6 @@ import {
   pluginRegistrationContractRegistry,
   providerContractLoadError,
   speechProviderContractRegistry,
-  webFetchProviderContractRegistry,
-  webSearchProviderContractRegistry,
 } from "./registry.js";
 import { uniqueSortedStrings } from "./testkit.js";
 
@@ -97,11 +95,6 @@ describe("plugin contract registry", () => {
     ).toEqual(bundledWebFetchPluginIds);
   });
 
-  it("keeps native web provider implementations out of the TypeScript registry", () => {
-    expect(webFetchProviderContractRegistry).toEqual([]);
-    expect(webSearchProviderContractRegistry).toEqual([]);
-  });
-
   it("covers every bundled web search plugin from the shared resolver", () => {
     const bundledWebSearchPluginIds = resolveBundledWebSearchPluginIds({});
 
@@ -112,9 +105,5 @@ describe("plugin contract registry", () => {
           .map((entry) => entry.pluginId),
       ),
     ).toEqual(bundledWebSearchPluginIds);
-  });
-
-  it("does not hydrate bundled web search provider objects in TypeScript", () => {
-    expect(webSearchProviderContractRegistry).toEqual([]);
   });
 });
