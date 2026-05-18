@@ -171,7 +171,7 @@ describe("CLI translation coverage", () => {
   });
 
   it("defines every literal production translator key", () => {
-    const productionFiles = listTrackedTsFiles(["src/terminal", "src/control", "extensions"]);
+    const productionFiles = listTrackedTsFiles(["src/terminal", "extensions"]);
     const usedKeys = new Set<string>();
     for (const file of productionFiles) {
       const source = fs.readFileSync(file, "utf8");
@@ -194,7 +194,6 @@ describe("CLI translation coverage", () => {
   it("has zh-CN copy for literal CLI-visible English text", () => {
     const productionFiles = listTrackedTsFiles([
       "src/terminal",
-      "src/control",
       "src/wizard",
       "src/flows",
       "src/terminal",

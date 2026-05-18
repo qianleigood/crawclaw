@@ -4,16 +4,16 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import * as tar from "tar";
+import { resolveHomeDir, resolveUserPath } from "../utils.js";
+import { resolveRuntimeServiceVersion } from "../version.js";
 import {
   buildBackupArchiveBasename,
   buildBackupArchivePath,
   buildBackupArchiveRoot,
   type BackupAsset,
   resolveBackupPlanFromDisk,
-} from "../control/backup-shared.js";
-import { isPathWithin } from "../control/cleanup-utils.js";
-import { resolveHomeDir, resolveUserPath } from "../utils.js";
-import { resolveRuntimeServiceVersion } from "../version.js";
+} from "./backup-shared.js";
+import { isPathWithin } from "./cleanup-utils.js";
 
 export type BackupCreateOptions = {
   output?: string;

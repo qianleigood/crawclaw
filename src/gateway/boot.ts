@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { agentCommandFromIngress } from "../agents/agent-command.js";
 import { SILENT_REPLY_TOKEN } from "../chat/tokens.js";
 import type { CrawClawConfig } from "../config/config.js";
 import {
@@ -11,7 +12,6 @@ import {
 import { resolveStorePath } from "../config/sessions/paths.js";
 import { loadSessionStore, updateSessionStore } from "../config/sessions/store.js";
 import type { SessionEntry } from "../config/sessions/types.js";
-import { agentCommandFromIngress } from "../control/agent.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { type RuntimeEnv, defaultRuntime } from "../runtime.js";
 import type { CliDeps } from "../terminal/deps.js";

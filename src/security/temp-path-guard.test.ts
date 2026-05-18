@@ -189,7 +189,7 @@ function hasDynamicTmpdirJoin(source: string): boolean {
 
 describe("temp path guard", () => {
   it("skips test helper filename variants", () => {
-    expect(shouldSkip("src/control/test-helpers.ts")).toBe(true);
+    expect(shouldSkip("src/gateway/test-helpers.ts")).toBe(true);
   });
 
   it("detects dynamic and ignores static fixtures", () => {

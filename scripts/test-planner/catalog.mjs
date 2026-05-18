@@ -7,7 +7,7 @@ import {
 } from "../lib/bundled-plugin-paths.mjs";
 import { loadTestRunnerBehavior } from "../test-runner-manifest.mjs";
 
-const baseConfigPrefixes = ["src/agents/", "src/control/", "test/", "ui/"];
+const baseConfigPrefixes = ["src/agents/", "test/", "ui/"];
 const contractTestPrefixes = ["src/plugins/contracts/"];
 
 export const normalizeRepoPath = (value) => value.split(path.sep).join("/");

@@ -1,7 +1,8 @@
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
+import { identityHasValues, loadAgentIdentityFromWorkspace } from "../agents/identity-file.js";
+import type { AgentIdentityFile } from "../agents/identity-file.js";
 import { resolveAgentIdentity } from "../agents/identity.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { loadAgentIdentity } from "../control/agents.config.js";
 import { normalizeAgentId } from "../routing/session-key.js";
 import { coerceIdentityValue } from "../shared/assistant-identity-values.js";
 import {
@@ -26,6 +27,14 @@ export type AssistantIdentity = {
   avatar: string;
   emoji?: string;
 };
+
+function loadWorkspaceIdentity(workspace: string): AgentIdentityFile | null {
+  const parsed = loadAgentIdentityFromWorkspace(workspace);
+  if (!parsed) {
+    return null;
+  }
+  return identityHasValues(parsed) ? parsed : null;
+}
 
 function isAvatarUrl(value: string): boolean {
   return isAvatarHttpUrl(value) || isAvatarImageDataUrl(value);
@@ -86,7 +95,7 @@ export function resolveAssistantIdentity(params: {
   const agentId = normalizeAgentId(params.agentId ?? resolveDefaultAgentId(params.cfg));
   const workspaceDir = params.workspaceDir ?? resolveAgentWorkspaceDir(params.cfg, agentId);
   const agentIdentity = resolveAgentIdentity(params.cfg, agentId);
-  const fileIdentity = workspaceDir ? loadAgentIdentity(workspaceDir) : null;
+  const fileIdentity = workspaceDir ? loadWorkspaceIdentity(workspaceDir) : null;
 
   const name =
     coerceIdentityValue(agentIdentity?.name, MAX_ASSISTANT_NAME) ??
