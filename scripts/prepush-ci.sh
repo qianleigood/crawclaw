@@ -18,6 +18,7 @@ run_protocol_ci_mirror() {
   local targets=(
     "dist/protocol.schema.json"
     "src/generated/gateway/protocol-contract.generated.ts"
+    "src/generated/gateway/protocol-schema.generated.ts"
   )
   local before after
   before="$(git diff --no-ext-diff -- "${targets[@]}" || true)"
