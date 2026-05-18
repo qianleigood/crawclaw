@@ -223,15 +223,14 @@ For threat model + hardening guidance (including `crawclaw security audit --deep
 
 - Keep `sessions_spawn` denied unless you explicitly need delegated runs.
 
-### Web Interface Safety
+### Local Gateway HTTP Safety
 
-CrawClaw's web interface (Gateway Control UI + HTTP endpoints) is intended for **local use only**.
+CrawClaw's local Gateway HTTP endpoints are intended for **local use only**.
 
 - Recommended: keep the Gateway **loopback-only** (`127.0.0.1` / `::1`).
   - Config: `gateway.bind="loopback"` (default).
   - CLI: `crawclaw gateway run --bind loopback`.
-- `gateway.controlUi.dangerouslyDisableDeviceAuth` is intended for localhost-only break-glass use.
-  - CrawClaw keeps deployment flexibility by design and does not hard-forbid non-local setups.
+- CrawClaw keeps deployment flexibility by design and does not hard-forbid non-local setups.
   - Non-local and other risky configurations are surfaced by `crawclaw security audit` as dangerous findings.
   - This operator-selected tradeoff is by design and not, by itself, a security vulnerability.
 - Canvas host note: network-visible canvas is **intentional** for trusted node scenarios (LAN/tailnet).
