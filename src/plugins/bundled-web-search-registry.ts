@@ -1,6 +1,12 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveBundledPluginWebSearchProviders } from "./web-search-providers.js";
 
+export function resolveBundledWebSearchProviderEntries(
+  params: Parameters<typeof resolveBundledPluginWebSearchProviders>[0],
+) {
+  return resolveBundledPluginWebSearchProviders(params);
+}
+
 function hasConfiguredCredentialValue(value: unknown): boolean {
   if (typeof value === "string") {
     return value.trim().length > 0;

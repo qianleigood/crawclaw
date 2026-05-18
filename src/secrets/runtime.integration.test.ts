@@ -27,22 +27,9 @@ const { resolveBundledPluginWebSearchProvidersMock } = vi.hoisted(() => ({
   resolveBundledPluginWebSearchProvidersMock: vi.fn(() => [buildBetaWebSearchProvider()]),
 }));
 
-const { resolvePluginWebSearchProvidersMock } = vi.hoisted(() => ({
-  resolvePluginWebSearchProvidersMock: vi.fn(() => [buildBetaWebSearchProvider()]),
-}));
-
 vi.mock("../plugins/web-search-providers.js", () => ({
   resolveBundledPluginWebSearchProviders: resolveBundledPluginWebSearchProvidersMock,
 }));
-
-vi.mock("../plugins/web-search-providers.runtime.js", async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import("../plugins/web-search-providers.runtime.js")>();
-  return {
-    ...actual,
-    resolvePluginWebSearchProviders: resolvePluginWebSearchProvidersMock,
-  };
-});
 
 const OPENAI_ENV_KEY_REF = { source: "env", provider: "default", id: "OPENAI_API_KEY" } as const;
 const OPENAI_FILE_KEY_REF = {

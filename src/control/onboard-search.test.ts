@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it, vi } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 
@@ -11,16 +10,6 @@ const runtime: RuntimeEnv = {
     throw new Error(`unexpected exit ${code}`);
   }) as RuntimeEnv["exit"],
 };
-
-const mocks = vi.hoisted(() => ({
-  resolvePluginWebSearchProviders: vi.fn<
-    (params?: { config?: CrawClawConfig }) => PluginWebSearchProviderEntry[]
-  >(() => []),
-}));
-
-vi.mock("../plugins/web-search-providers.runtime.js", () => ({
-  resolvePluginWebSearchProviders: mocks.resolvePluginWebSearchProviders,
-}));
 
 let mod: typeof import("./onboard-search.js");
 

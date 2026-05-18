@@ -7,13 +7,13 @@ import {
   normalizeSecretInputString,
 } from "../config/types.secrets.js";
 import type { SecretInputMode } from "../control/onboard-types.js";
+import { resolveBundledWebSearchProviderEntries } from "../plugins/bundled-web-search-registry.js";
 import {
   listBundledWebSearchProviders,
   resolveBundledWebSearchPluginId,
 } from "../plugins/bundled-web-search.js";
 import { enablePluginInConfig } from "../plugins/enable.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
-import { resolvePluginWebSearchProviders } from "../plugins/web-search-providers.runtime.js";
 import { sortWebSearchProviders } from "../plugins/web-search-providers.shared.js";
 import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
@@ -35,7 +35,7 @@ export type SearchProviderSetupContribution = FlowContribution & {
   surface: "setup";
   provider: PluginWebSearchProviderEntry;
   option: SearchProviderSetupOption;
-  source: "bundled" | "runtime";
+  source: "bundled";
 };
 
 function resolveSearchProviderCredentialLabel(
@@ -80,7 +80,7 @@ export function resolveSearchProviderOptions(
 
 function buildSearchProviderSetupContribution(params: {
   provider: PluginWebSearchProviderEntry;
-  source: "bundled" | "runtime";
+  source: "bundled";
 }): SearchProviderSetupContribution {
   return {
     id: `search:setup:${params.provider.id}`,
@@ -109,13 +109,13 @@ export function resolveSearchProviderSetupContributions(
   }
 
   const merged = new Map<string, SearchProviderSetupContribution>(
-    resolvePluginWebSearchProviders({
+    resolveBundledWebSearchProviderEntries({
       config,
       bundledAllowlistCompat: true,
       env: process.env,
     }).map((provider) => [
       provider.id,
-      buildSearchProviderSetupContribution({ provider, source: "runtime" }),
+      buildSearchProviderSetupContribution({ provider, source: "bundled" }),
     ]),
   );
 

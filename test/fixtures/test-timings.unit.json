@@ -275,10 +275,6 @@
       "durationMs": 96.423095703125,
       "testCount": 15
     },
-    "src/plugins/web-search-providers.runtime.test.ts": {
-      "durationMs": 95.8154296875,
-      "testCount": 9
-    },
     "src/media-understanding/runner.skip-tiny-audio.test.ts": {
       "durationMs": 92.167236328125,
       "testCount": 3

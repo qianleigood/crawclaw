@@ -8,18 +8,12 @@ import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 
 type WebProviderUnderTest = "alpha" | "beta" | "gamma" | "delta" | "epsilon";
 
-const { resolveBundledPluginWebSearchProvidersMock, resolvePluginWebSearchProvidersMock } =
-  vi.hoisted(() => ({
-    resolveBundledPluginWebSearchProvidersMock: vi.fn(() => buildTestWebSearchProviders()),
-    resolvePluginWebSearchProvidersMock: vi.fn(() => buildTestWebSearchProviders()),
-  }));
+const { resolveBundledPluginWebSearchProvidersMock } = vi.hoisted(() => ({
+  resolveBundledPluginWebSearchProvidersMock: vi.fn(() => buildTestWebSearchProviders()),
+}));
 
 vi.mock("../plugins/web-search-providers.js", () => ({
   resolveBundledPluginWebSearchProviders: resolveBundledPluginWebSearchProvidersMock,
-}));
-
-vi.mock("../plugins/web-search-providers.runtime.js", () => ({
-  resolvePluginWebSearchProviders: resolvePluginWebSearchProvidersMock,
 }));
 
 function asConfig(value: unknown): CrawClawConfig {
@@ -124,8 +118,6 @@ describe("secrets runtime snapshot", () => {
   beforeEach(() => {
     resolveBundledPluginWebSearchProvidersMock.mockReset();
     resolveBundledPluginWebSearchProvidersMock.mockReturnValue(buildTestWebSearchProviders());
-    resolvePluginWebSearchProvidersMock.mockReset();
-    resolvePluginWebSearchProvidersMock.mockReturnValue(buildTestWebSearchProviders());
   });
 
   afterEach(() => {
@@ -133,7 +125,6 @@ describe("secrets runtime snapshot", () => {
     clearRuntimeConfigSnapshot();
     clearConfigCache();
     resolveBundledPluginWebSearchProvidersMock.mockReset();
-    resolvePluginWebSearchProvidersMock.mockReset();
   });
 
   it("resolves env refs for config and auth profiles", async () => {
