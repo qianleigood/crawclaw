@@ -1,9 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { ensureAuthProfileStore } from "./auth-profiles/store.js";
-import {
-  normalizeProviderSpecificConfig,
-  resolveProviderConfigApiKeyResolver,
-} from "./models-config.providers.policy.js";
 import type { ProviderConfig, SecretDefaults } from "./models-config.providers.secrets.js";
 import {
   normalizeConfiguredProviderApiKey,
@@ -97,29 +93,16 @@ export function normalizeProviders(params: {
         normalizedProvider.apiKey
       );
     const profileApiKey = needsProfileApiKey ? resolveProfileApiKey(normalizedKey) : undefined;
-    const providerApiKeyResolver = needsProfileApiKey
-      ? resolveProviderConfigApiKeyResolver(normalizedKey)
-      : undefined;
     const providerWithApiKey = resolveMissingProviderApiKey({
       providerKey: normalizedKey,
       provider: normalizedProvider,
       env,
       profileApiKey,
       secretRefManagedProviders: params.secretRefManagedProviders,
-      providerApiKeyResolver,
     });
     if (providerWithApiKey !== normalizedProvider) {
       mutated = true;
       normalizedProvider = providerWithApiKey;
-    }
-
-    const providerSpecificNormalized = normalizeProviderSpecificConfig(
-      normalizedKey,
-      normalizedProvider,
-    );
-    if (providerSpecificNormalized !== normalizedProvider) {
-      mutated = true;
-      normalizedProvider = providerSpecificNormalized;
     }
 
     const existing = next[normalizedKey];

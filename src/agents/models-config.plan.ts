@@ -1,13 +1,10 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { isRecord } from "../utils.js";
 import {
-  mergeProviders,
   mergeWithExistingProviderSecrets,
   type ExistingProviderConfig,
 } from "./models-config.merge.js";
-import { resolveImplicitProviders } from "./models-config.providers.implicit.js";
 import { normalizeProviders } from "./models-config.providers.normalize.js";
-import { applyNativeStreamingUsageCompat } from "./models-config.providers.policy.js";
 import type { ProviderConfig } from "./models-config.providers.secrets.js";
 import { enforceSourceManagedProviderSecrets } from "./models-config.providers.source-managed.js";
 
@@ -24,25 +21,6 @@ export type ModelsJsonPlan =
       action: "write";
       contents: string;
     };
-
-async function resolveProvidersForModelsJson(params: {
-  cfg: CrawClawConfig;
-  agentDir: string;
-  env: NodeJS.ProcessEnv;
-}): Promise<Record<string, ProviderConfig>> {
-  const { cfg, agentDir, env } = params;
-  const explicitProviders = cfg.models?.providers ?? {};
-  const implicitProviders = await resolveImplicitProviders({
-    agentDir,
-    config: cfg,
-    env,
-    explicitProviders,
-  });
-  return mergeProviders({
-    implicit: implicitProviders,
-    explicit: explicitProviders,
-  });
-}
 
 function resolveExplicitBaseUrlProviders(
   providers: CrawClawConfig["models"] | undefined,
@@ -93,7 +71,7 @@ export async function planCrawClawModelsJson(params: {
   existingParsed: unknown;
 }): Promise<ModelsJsonPlan> {
   const { cfg, agentDir, env } = params;
-  const providers = await resolveProvidersForModelsJson({ cfg, agentDir, env });
+  const providers = cfg.models?.providers ?? {};
 
   if (Object.keys(providers).length === 0) {
     return { action: "skip" };
@@ -125,8 +103,7 @@ export async function planCrawClawModelsJson(params: {
       sourceSecretDefaults: params.sourceConfigForSecrets?.secrets?.defaults,
       secretRefManagedProviders,
     }) ?? mergedProviders;
-  const finalProviders = applyNativeStreamingUsageCompat(secretEnforcedProviders);
-  const nextContents = `${JSON.stringify({ providers: finalProviders }, null, 2)}\n`;
+  const nextContents = `${JSON.stringify({ providers: secretEnforcedProviders }, null, 2)}\n`;
 
   if (params.existingRaw === nextContents) {
     return { action: "noop" };

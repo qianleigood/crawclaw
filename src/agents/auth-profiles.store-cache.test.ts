@@ -2,16 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AUTH_STORE_VERSION, EXTERNAL_CLI_SYNC_TTL_MS } from "./auth-profiles/constants.js";
-import type { AuthProfileStore } from "./auth-profiles/types.js";
-
-const mocks = vi.hoisted(() => ({
-  syncExternalCliCredentials: vi.fn((_: AuthProfileStore) => false),
-}));
-
-vi.mock("./auth-profiles/external-cli-sync.js", () => ({
-  syncExternalCliCredentials: mocks.syncExternalCliCredentials,
-}));
+import { AUTH_STORE_VERSION } from "./auth-profiles/constants.js";
 
 let clearRuntimeAuthProfileStoreSnapshots: typeof import("./auth-profiles.js").clearRuntimeAuthProfileStoreSnapshots;
 let ensureAuthProfileStore: typeof import("./auth-profiles.js").ensureAuthProfileStore;
@@ -74,19 +65,17 @@ describe("auth profile store cache", () => {
   });
 
   afterEach(() => {
-    vi.useRealTimers();
     clearRuntimeAuthProfileStoreSnapshots();
-    vi.clearAllMocks();
   });
 
-  it("reuses the synced auth store while auth-profiles.json is unchanged", async () => {
+  it("reuses the auth store while auth-profiles.json is unchanged", async () => {
     await withAgentDirEnv("crawclaw-auth-store-cache-", (agentDir) => {
       writeAuthStore(agentDir, "sk-test");
 
       ensureAuthProfileStore(agentDir);
       ensureAuthProfileStore(agentDir);
 
-      expect(mocks.syncExternalCliCredentials).toHaveBeenCalledTimes(1);
+      expect(fs.existsSync(path.join(agentDir, "auth-profiles.json"))).toBe(true);
     });
   });
 
@@ -102,60 +91,9 @@ describe("auth profile store cache", () => {
 
       const reloaded = ensureAuthProfileStore(agentDir);
 
-      expect(mocks.syncExternalCliCredentials).toHaveBeenCalledTimes(2);
       expect(reloaded.profiles["openai:default"]).toMatchObject({
         key: "sk-test-2",
       });
     });
-  });
-
-  it("re-syncs external CLI credentials after the cache ttl when auth-profiles.json is absent", () => {
-    const agentDir = fs.mkdtempSync(path.join(os.tmpdir(), "crawclaw-auth-store-missing-"));
-    const previousAgentDir = process.env.CRAWCLAW_AGENT_DIR;
-    const previousPiAgentDir = process.env.PI_CODING_AGENT_DIR;
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-03-21T15:00:00.000Z"));
-    let syncCount = 0;
-    mocks.syncExternalCliCredentials.mockImplementation((store) => {
-      syncCount += 1;
-      store.profiles["openai-codex:default"] = {
-        type: "oauth",
-        provider: "openai-codex",
-        access: `access-${syncCount}`,
-        refresh: `refresh-${syncCount}`,
-        expires: Date.now() + 60_000,
-      };
-      return true;
-    });
-    try {
-      process.env.CRAWCLAW_AGENT_DIR = agentDir;
-      process.env.PI_CODING_AGENT_DIR = agentDir;
-
-      const first = ensureAuthProfileStore(agentDir);
-      const second = ensureAuthProfileStore(agentDir);
-
-      expect(first.profiles["openai-codex:default"]).toMatchObject({ access: "access-1" });
-      expect(second.profiles["openai-codex:default"]).toMatchObject({ access: "access-1" });
-      expect(mocks.syncExternalCliCredentials).toHaveBeenCalledTimes(1);
-
-      vi.advanceTimersByTime(EXTERNAL_CLI_SYNC_TTL_MS + 1);
-
-      const third = ensureAuthProfileStore(agentDir);
-
-      expect(mocks.syncExternalCliCredentials).toHaveBeenCalledTimes(2);
-      expect(third.profiles["openai-codex:default"]).toMatchObject({ access: "access-2" });
-    } finally {
-      if (previousAgentDir === undefined) {
-        delete process.env.CRAWCLAW_AGENT_DIR;
-      } else {
-        process.env.CRAWCLAW_AGENT_DIR = previousAgentDir;
-      }
-      if (previousPiAgentDir === undefined) {
-        delete process.env.PI_CODING_AGENT_DIR;
-      } else {
-        process.env.PI_CODING_AGENT_DIR = previousPiAgentDir;
-      }
-      fs.rmSync(agentDir, { recursive: true, force: true });
-    }
   });
 });

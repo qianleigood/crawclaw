@@ -1,4 +1,4 @@
-import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
 import { NON_ENV_SECRETREF_MARKER } from "./model-auth-markers.js";
 import {
@@ -8,16 +8,6 @@ import {
   withModelsTempHome as withTempHome,
   withTempEnv,
 } from "./models-config.e2e-harness.js";
-
-vi.mock("./models-config.providers.js", async () => {
-  const actual = await vi.importActual<typeof import("./models-config.providers.js")>(
-    "./models-config.providers.js",
-  );
-  return {
-    ...actual,
-    resolveImplicitProviders: async () => ({}),
-  };
-});
 
 installModelsConfigTestHooks();
 

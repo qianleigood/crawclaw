@@ -128,15 +128,6 @@ vi.mock("../agents/auth-profiles.js", () => {
   };
 });
 
-vi.mock("../agents/cli-credentials.js", () => ({
-  readCodexCliCredentialsCached: () => null,
-  readMiniMaxCliCredentialsCached: () => null,
-}));
-
-vi.mock("../agents/auth-profiles/external-cli-sync.js", () => ({
-  syncExternalCliCredentials: () => false,
-}));
-
 let resolveProviderAuths: typeof import("./provider-usage.auth.js").resolveProviderAuths;
 let clearRuntimeAuthProfileStoreSnapshots: typeof import("../agents/auth-profiles.js").clearRuntimeAuthProfileStoreSnapshots;
 let clearConfigCache: typeof import("../config/config.js").clearConfigCache;

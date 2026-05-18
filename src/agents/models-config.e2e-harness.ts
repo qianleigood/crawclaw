@@ -2,7 +2,6 @@ import { afterEach, beforeEach, vi } from "vitest";
 import { withTempHome as withTempHomeBase } from "../../test/helpers/temp-home.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { MockFn } from "../test-utils/vitest-mock-fn.js";
-import { resolveImplicitProviders } from "./models-config.providers.implicit.js";
 
 export function withModelsTempHome<T>(fn: (home: string) => Promise<T>): Promise<T> {
   return withTempHomeBase(fn, { prefix: "crawclaw-models-" });
@@ -146,15 +145,6 @@ export function snapshotImplicitProviderEnv(env?: NodeJS.ProcessEnv): NodeJS.Pro
   }
 
   return snapshot;
-}
-
-export function resolveImplicitProvidersForTest(
-  params: Parameters<typeof resolveImplicitProviders>[0],
-) {
-  return resolveImplicitProviders({
-    ...params,
-    env: snapshotImplicitProviderEnv(params.env),
-  });
 }
 
 export const CUSTOM_PROXY_MODELS_CONFIG: CrawClawConfig = {

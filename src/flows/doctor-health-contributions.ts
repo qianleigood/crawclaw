@@ -11,11 +11,7 @@ import type { CrawClawConfig } from "../config/config.js";
 import { CONFIG_PATH, readConfigFileSnapshot, writeConfigFile } from "../config/config.js";
 import { logConfigUpdated } from "../config/logging.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
-import {
-  maybeRemoveDeprecatedCliAuthProfiles,
-  maybeRepairLegacyOAuthProfileIds,
-  noteAuthProfileHealth,
-} from "../control/doctor-auth.js";
+import { noteAuthProfileHealth } from "../control/doctor-auth.js";
 import { noteBootstrapFileSize } from "../control/doctor-bootstrap-size.js";
 import { noteChromeMcpBrowserReadiness } from "../control/doctor-browser.js";
 import { maybeRepairLegacyCronStore } from "../control/doctor-cron.js";
@@ -128,8 +124,6 @@ async function runGatewayConfigHealth(ctx: DoctorHealthFlowContext): Promise<voi
 }
 
 async function runAuthProfileHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  ctx.cfg = await maybeRepairLegacyOAuthProfileIds(ctx.cfg, ctx.prompter);
-  ctx.cfg = await maybeRemoveDeprecatedCliAuthProfiles(ctx.cfg, ctx.prompter);
   await noteAuthProfileHealth({
     cfg: ctx.cfg,
     prompter: ctx.prompter,
