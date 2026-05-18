@@ -243,22 +243,19 @@ function buildTestOpenAISpeechProvider(): SpeechProviderPlugin {
   };
 }
 
-function buildTestMicrosoftSpeechProvider(): SpeechProviderPlugin {
+function buildTestFallbackSpeechProvider(): SpeechProviderPlugin {
   return {
-    id: "microsoft",
-    label: "Microsoft",
-    aliases: ["edge"],
+    id: "fallback-speech",
+    label: "Fallback Speech",
     autoSelectOrder: 30,
     resolveConfig: ({ rawConfig }) => {
       const providers = (rawConfig.providers ?? {}) as Record<string, unknown>;
-      const edgeConfig = (providers.edge ??
-        providers.microsoft ??
-        rawConfig.edge ??
-        rawConfig.microsoft ??
+      const fallbackConfig = (providers["fallback-speech"] ??
+        rawConfig["fallback-speech"] ??
         {}) as Record<string, unknown>;
       return {
-        ...edgeConfig,
-        outputFormat: edgeConfig.outputFormat ?? "audio-24khz-48kbitrate-mono-mp3",
+        ...fallbackConfig,
+        outputFormat: fallbackConfig.outputFormat ?? "audio-24khz-48kbitrate-mono-mp3",
       };
     },
     isConfigured: () => true,
@@ -268,7 +265,7 @@ function buildTestMicrosoftSpeechProvider(): SpeechProviderPlugin {
       fileExtension: ".mp3",
       voiceCompatible: true,
     }),
-    listVoices: async () => [{ id: "edge", label: "Edge" }],
+    listVoices: async () => [{ id: "fallback", label: "Fallback" }],
   };
 }
 
@@ -330,7 +327,7 @@ describe("tts", () => {
     const registry = createEmptyPluginRegistry();
     registry.speechProviders = [
       { pluginId: "openai", provider: buildTestOpenAISpeechProvider(), source: "test" },
-      { pluginId: "microsoft", provider: buildTestMicrosoftSpeechProvider(), source: "test" },
+      { pluginId: "fallback-speech", provider: buildTestFallbackSpeechProvider(), source: "test" },
       { pluginId: "acme", provider: buildTestAcmeSpeechProvider(), source: "test" },
     ];
     const { cacheKey } = pluginLoaderTesting.resolvePluginLoadCacheContext({ config: {} });
@@ -341,7 +338,7 @@ describe("tts", () => {
     );
   });
 
-  describe("resolveEdgeOutputFormat", () => {
+  describe("resolveFallbackOutputFormat", () => {
     const baseCfg: CrawClawConfig = {
       agents: { defaults: { model: { primary: "openai/gpt-4o-mini" } } },
       messages: { tts: {} },
@@ -360,7 +357,7 @@ describe("tts", () => {
           messages: {
             tts: {
               providers: {
-                edge: { outputFormat: "audio-24khz-96kbitrate-mono-mp3" },
+                "fallback-speech": { outputFormat: "audio-24khz-96kbitrate-mono-mp3" },
               },
             },
           },
@@ -369,7 +366,7 @@ describe("tts", () => {
       },
     ] as const)("$name", ({ cfg, expected, name }) => {
       const config = resolveTtsConfig(cfg);
-      const providerConfig = getResolvedSpeechProviderConfig(config, "microsoft") as {
+      const providerConfig = getResolvedSpeechProviderConfig(config, "fallback-speech") as {
         outputFormat?: string;
       };
       expect(providerConfig.outputFormat, name).toBe(expected);
@@ -398,17 +395,9 @@ describe("tts", () => {
       expect(acmeOverrides?.voiceSettings?.speed).toBe(1.1);
     });
 
-    it("accepts edge as a legacy microsoft provider override", () => {
-      const policy = resolveModelOverridePolicy({ enabled: true, allowProvider: true });
-      const input = "Hello [[tts:provider=edge]] world";
-      const result = parseTtsDirectives(input, policy);
-
-      expect(result.overrides.provider).toBe("edge");
-    });
-
     it("rejects provider override by default while keeping voice overrides enabled", () => {
       const policy = resolveModelOverridePolicy({ enabled: true });
-      const input = "Hello [[tts:provider=edge voice=alloy]] world";
+      const input = "Hello [[tts:provider=acme voice=alloy]] world";
       const result = parseTtsDirectives(input, policy);
       const openaiOverrides = result.overrides.providerOverrides?.openai as
         | { voice?: string }
@@ -590,13 +579,13 @@ describe("tts", () => {
         expected: "acme",
       },
       {
-        name: "falls back to microsoft",
+        name: "falls back to fallback speech",
         env: {
           OPENAI_API_KEY: undefined,
           ACME_SPEECH_API_KEY: undefined,
         },
-        prefsPath: "/tmp/tts-prefs-microsoft.json",
-        expected: "microsoft",
+        prefsPath: "/tmp/tts-prefs-fallback-speech.json",
+        expected: "fallback-speech",
       },
     ] as const)("selects provider based on available API keys: $name", (testCase) => {
       withEnv(testCase.env, () => {
@@ -609,7 +598,7 @@ describe("tts", () => {
           modelOverrides: resolveModelOverridePolicy(undefined),
           providerConfigs: {
             openai: {},
-            microsoft: {},
+            "fallback-speech": {},
             acme: {},
           },
           prefsPath: undefined,
@@ -623,14 +612,14 @@ describe("tts", () => {
   });
 
   describe("resolveTtsConfig provider normalization", () => {
-    it("normalizes legacy edge provider ids to microsoft", () => {
+    it("keeps provider ids literal", () => {
       const config = resolveTtsConfig({
         agents: { defaults: { model: { primary: "openai/gpt-4o-mini" } } },
         messages: {
           tts: {
-            provider: "edge",
+            provider: "fallback-speech",
             providers: {
-              edge: {
+              "fallback-speech": {
                 enabled: true,
               },
             },
@@ -638,8 +627,8 @@ describe("tts", () => {
         },
       });
 
-      expect(config.provider).toBe("microsoft");
-      expect(getTtsProvider(config, "/tmp/tts-prefs-normalized.json")).toBe("microsoft");
+      expect(config.provider).toBe("fallback-speech");
+      expect(getTtsProvider(config, "/tmp/tts-prefs-normalized.json")).toBe("fallback-speech");
     });
   });
 
@@ -681,8 +670,8 @@ describe("tts", () => {
         },
       };
       const fallback: SpeechProviderPlugin = {
-        id: "microsoft",
-        label: "Microsoft",
+        id: "fallback-speech",
+        label: "Fallback Speech",
         autoSelectOrder: 20,
         resolveConfig: () => ({}),
         isConfigured: () => true,
@@ -696,7 +685,7 @@ describe("tts", () => {
       const registry = createEmptyPluginRegistry();
       registry.speechProviders = [
         { pluginId: "openai", provider: throwingPrimary, source: "test" },
-        { pluginId: "microsoft", provider: fallback, source: "test" },
+        { pluginId: "fallback-speech", provider: fallback, source: "test" },
       ];
       const { cacheKey } = pluginLoaderTesting.resolvePluginLoadCacheContext({ config: {} });
       setActivePluginRegistry(registry, cacheKey);
@@ -716,16 +705,16 @@ describe("tts", () => {
       if (!result.success) {
         throw new Error("expected fallback synthesis success");
       }
-      expect(result.provider).toBe("microsoft");
+      expect(result.provider).toBe("fallback-speech");
       expect(result.fallbackFrom).toBe("openai");
-      expect(result.attemptedProviders).toEqual(["openai", "microsoft"]);
+      expect(result.attemptedProviders).toEqual(["openai", "fallback-speech"]);
       expect(result.attempts?.[0]).toMatchObject({
         provider: "openai",
         outcome: "failed",
         reasonCode: "provider_error",
       });
       expect(result.attempts?.[1]).toMatchObject({
-        provider: "microsoft",
+        provider: "fallback-speech",
         outcome: "success",
         reasonCode: "success",
       });
@@ -745,8 +734,8 @@ describe("tts", () => {
         },
       };
       const fallback: SpeechProviderPlugin = {
-        id: "microsoft",
-        label: "Microsoft",
+        id: "fallback-speech",
+        label: "Fallback Speech",
         autoSelectOrder: 20,
         resolveConfig: () => ({}),
         isConfigured: () => true,
@@ -765,7 +754,7 @@ describe("tts", () => {
       const registry = createEmptyPluginRegistry();
       registry.speechProviders = [
         { pluginId: "primary-throws", provider: throwingPrimary, source: "test" },
-        { pluginId: "microsoft", provider: fallback, source: "test" },
+        { pluginId: "fallback-speech", provider: fallback, source: "test" },
       ];
       const { cacheKey } = pluginLoaderTesting.resolvePluginLoadCacheContext({ config: {} });
       setActivePluginRegistry(registry, cacheKey);
@@ -785,16 +774,16 @@ describe("tts", () => {
       if (!result.success) {
         throw new Error("expected telephony fallback success");
       }
-      expect(result.provider).toBe("microsoft");
+      expect(result.provider).toBe("fallback-speech");
       expect(result.fallbackFrom).toBe("primary-throws");
-      expect(result.attemptedProviders).toEqual(["primary-throws", "microsoft"]);
+      expect(result.attemptedProviders).toEqual(["primary-throws", "fallback-speech"]);
       expect(result.attempts?.[0]).toMatchObject({
         provider: "primary-throws",
         outcome: "failed",
         reasonCode: "provider_error",
       });
       expect(result.attempts?.[1]).toMatchObject({
-        provider: "microsoft",
+        provider: "fallback-speech",
         outcome: "success",
         reasonCode: "success",
       });

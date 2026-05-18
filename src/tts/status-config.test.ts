@@ -15,7 +15,7 @@ describe("resolveStatusTtsSnapshot", () => {
         JSON.stringify({
           tts: {
             auto: "always",
-            provider: "edge",
+            provider: "custom-speech",
             maxLength: 2048,
             summarize: false,
           },
@@ -34,7 +34,7 @@ describe("resolveStatusTtsSnapshot", () => {
         }),
       ).toEqual({
         autoMode: "always",
-        provider: "microsoft",
+        provider: "custom-speech",
         maxLength: 2048,
         summarize: false,
       });

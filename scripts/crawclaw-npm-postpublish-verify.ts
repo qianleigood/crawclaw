@@ -1,11 +1,10 @@
 #!/usr/bin/env -S node --import tsx
 
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../src/plugins/public-artifacts.ts";
 import { parseReleaseVersion, resolveNpmCommandInvocation } from "./crawclaw-npm-release-check.ts";
 
 type InstalledPackageJson = {
@@ -55,12 +54,6 @@ export function collectInstalledPackageErrors(params: {
     errors.push(
       `installed package version mismatch: expected ${params.expectedVersion}, found ${params.installedVersion || "<missing>"}.`,
     );
-  }
-
-  for (const relativePath of BUNDLED_RUNTIME_SIDECAR_PATHS) {
-    if (!existsSync(join(params.packageRoot, relativePath))) {
-      errors.push(`installed package is missing required bundled runtime sidecar: ${relativePath}`);
-    }
   }
 
   return errors;

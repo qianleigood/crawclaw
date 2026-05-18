@@ -2,8 +2,6 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { bundledDistPluginFile } from "../../test/helpers/bundled-plugin-paths.js";
-import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../plugins/public-artifacts.js";
 import { captureEnv } from "../test-utils/env.js";
 import {
   canResolveRegistryVersionForPackageTarget,
@@ -21,9 +19,6 @@ import {
   resolveGlobalRoot,
   type CommandRunner,
 } from "./update-global.js";
-
-const FIRST_RUNTIME_SIDECAR =
-  BUNDLED_RUNTIME_SIDECAR_PATHS[0] ?? bundledDistPluginFile("acpx", "runtime-api.js");
 
 describe("update global helpers", () => {
   let envSnapshot: ReturnType<typeof captureEnv> | undefined;
@@ -192,28 +187,17 @@ describe("update global helpers", () => {
     await expect(fs.stat(path.join(root, ".crawclaw-file"))).resolves.toBeDefined();
   });
 
-  it("checks bundled runtime sidecars", async () => {
+  it("checks installed package version", async () => {
     const packageRoot = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-update-global-pkg-"));
     await fs.writeFile(
       path.join(packageRoot, "package.json"),
       JSON.stringify({ name: "crawclaw", version: "1.0.0" }),
       "utf-8",
     );
-    for (const relativePath of BUNDLED_RUNTIME_SIDECAR_PATHS) {
-      const absolutePath = path.join(packageRoot, relativePath);
-      await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-      await fs.writeFile(absolutePath, "export {};\n", "utf-8");
-    }
 
     await expect(collectInstalledGlobalPackageErrors({ packageRoot })).resolves.toEqual([]);
-
-    if (BUNDLED_RUNTIME_SIDECAR_PATHS.length === 0) {
-      return;
-    }
-
-    await fs.rm(path.join(packageRoot, FIRST_RUNTIME_SIDECAR));
-    await expect(collectInstalledGlobalPackageErrors({ packageRoot })).resolves.toContain(
-      `missing bundled runtime sidecar ${FIRST_RUNTIME_SIDECAR}`,
-    );
+    await expect(
+      collectInstalledGlobalPackageErrors({ packageRoot, expectedVersion: "2.0.0" }),
+    ).resolves.toEqual(["expected installed version 2.0.0, found 1.0.0"]);
   });
 });

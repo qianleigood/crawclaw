@@ -172,7 +172,6 @@
     "gaxios": "7.1.4",
     "hono": "4.12.14",
     "ipaddr.js": "^2.3.0",
-    "jiti": "^2.6.1",
     "json5": "^2.2.3",
     "jszip": "^3.10.1",
     "linkedom": "^0.18.12",
@@ -224,7 +223,6 @@
       "optional": true
     }
   },
-  "optionalDependencies": {},
   "engines": {
     "node": ">=24.0.0 <26"
   },

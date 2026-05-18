@@ -162,10 +162,7 @@ function normalizeConfiguredSpeechProviderId(
   providerId: string | undefined,
 ): TtsProvider | undefined {
   const normalized = normalizeSpeechProviderId(providerId);
-  if (!normalized) {
-    return undefined;
-  }
-  return normalized === "edge" ? "microsoft" : normalized;
+  return normalized ? normalized : undefined;
 }
 
 function resolveTtsPrefsPathValue(prefsPath: string | undefined): string {

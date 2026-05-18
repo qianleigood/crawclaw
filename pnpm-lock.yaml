@@ -96,9 +96,6 @@ importers:
       ipaddr.js:
         specifier: ^2.3.0
         version: 2.3.0
-      jiti:
-        specifier: ^2.6.1
-        version: 2.6.1
       json5:
         specifier: ^2.2.3
         version: 2.2.3
@@ -7477,7 +7474,8 @@ snapshots:
       html-escaper: 2.0.2
       istanbul-lib-report: 3.0.1
 
-  jiti@2.6.1: {}
+  jiti@2.6.1:
+    optional: true
 
   jose@6.2.2: {}
 

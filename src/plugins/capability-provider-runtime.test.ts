@@ -179,13 +179,13 @@ describe("resolvePluginCapabilityProviders", () => {
   it("keeps active capability providers even when cfg is passed", () => {
     const active = createEmptyPluginRegistry();
     active.speechProviders.push({
-      pluginId: "microsoft",
-      pluginName: "microsoft",
+      pluginId: "demo-speech",
+      pluginName: "demo-speech",
       source: "test",
       provider: {
-        id: "microsoft",
-        label: "microsoft",
-        aliases: ["edge"],
+        id: "demo-speech",
+        label: "demo-speech",
+        aliases: ["demo-alias"],
         isConfigured: () => true,
         synthesize: async () => ({
           audioBuffer: Buffer.from("x"),
@@ -201,10 +201,10 @@ describe("resolvePluginCapabilityProviders", () => {
 
     const providers = resolvePluginCapabilityProviders({
       key: "speechProviders",
-      cfg: { messages: { tts: { provider: "edge" } } } as CrawClawConfig,
+      cfg: { messages: { tts: { provider: "demo-alias" } } } as CrawClawConfig,
     });
 
-    expectResolvedCapabilityProviderIds(providers, ["microsoft"]);
+    expectResolvedCapabilityProviderIds(providers, ["demo-speech"]);
     expect(mocks.resolveRuntimePluginRegistry).toHaveBeenCalledWith();
     expect(mocks.resolveRuntimePluginRegistry).not.toHaveBeenCalledWith({
       config: expect.anything(),

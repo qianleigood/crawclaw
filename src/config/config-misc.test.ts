@@ -351,7 +351,7 @@ describe("config strict validation", () => {
     }
   });
 
-  it("rejects removed legacy messages.tts provider keys and reports legacyIssues", async () => {
+  it("rejects unknown messages.tts provider keys", async () => {
     await withTempHome(async (home) => {
       await writeCrawClawConfig(home, {
         messages: {
@@ -368,36 +368,8 @@ describe("config strict validation", () => {
       const snap = await readConfigFileSnapshot();
 
       expect(snap.valid).toBe(false);
-      expect(snap.legacyIssues.some((issue) => issue.path === "messages.tts")).toBe(true);
+      expect(snap.legacyIssues.some((issue) => issue.path === "messages.tts")).toBe(false);
       expect(snap.issues.some((issue) => issue.path === "messages.tts")).toBe(true);
-    });
-  });
-
-  it("rejects removed legacy plugins.entries.*.config.tts provider keys", async () => {
-    await withTempHome(async (home) => {
-      await writeCrawClawConfig(home, {
-        plugins: {
-          entries: {
-            "demo-plugin": {
-              config: {
-                tts: {
-                  provider: "openai",
-                  openai: {
-                    model: "gpt-4o-mini-tts",
-                    voice: "alloy",
-                  },
-                },
-              },
-            },
-          },
-        },
-      });
-
-      const snap = await readConfigFileSnapshot();
-
-      expect(snap.valid).toBe(false);
-      expect(snap.legacyIssues.some((issue) => issue.path === "plugins.entries")).toBe(true);
-      expect(snap.issues.some((issue) => issue.path === "plugins.entries")).toBe(true);
     });
   });
 

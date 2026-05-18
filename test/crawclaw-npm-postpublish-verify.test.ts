@@ -3,7 +3,6 @@ import {
   buildPublishedInstallScenarios,
   collectInstalledPackageErrors,
 } from "../scripts/crawclaw-npm-postpublish-verify.ts";
-import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../src/plugins/public-artifacts.ts";
 
 describe("buildPublishedInstallScenarios", () => {
   it("uses a single fresh scenario for plain stable releases", () => {
@@ -33,7 +32,7 @@ describe("buildPublishedInstallScenarios", () => {
 });
 
 describe("collectInstalledPackageErrors", () => {
-  it("flags version mismatches and missing runtime sidecars", () => {
+  it("flags version mismatches", () => {
     const errors = collectInstalledPackageErrors({
       expectedVersion: "2026.3.23-2",
       installedVersion: "2026.3.23",
@@ -43,14 +42,6 @@ describe("collectInstalledPackageErrors", () => {
     expect(errors[0]).toBe(
       "installed package version mismatch: expected 2026.3.23-2, found 2026.3.23.",
     );
-    expect(errors).toEqual(
-      expect.arrayContaining(
-        BUNDLED_RUNTIME_SIDECAR_PATHS.map(
-          (relativePath) =>
-            `installed package is missing required bundled runtime sidecar: ${relativePath}`,
-        ),
-      ),
-    );
-    expect(errors.length).toBeGreaterThanOrEqual(1 + BUNDLED_RUNTIME_SIDECAR_PATHS.length);
+    expect(errors).toHaveLength(1);
   });
 });

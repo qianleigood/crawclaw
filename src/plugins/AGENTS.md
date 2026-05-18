@@ -13,7 +13,6 @@ assembly, and contract enforcement.
 - Definition files:
   - `src/plugins/types.ts`
   - `src/plugins/contracts/registry.ts`
-  - `src/plugins/public-artifacts.ts`
 
 ## Boundary Rules
 

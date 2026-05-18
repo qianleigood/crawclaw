@@ -28,7 +28,6 @@ function hasLegacyThreadBindingTtl(value: unknown): boolean {
   return Boolean(threadBindings && hasOwnKey(threadBindings, "ttlHours"));
 }
 
-const LEGACY_TTS_PROVIDER_KEYS = ["openai", "elevenlabs", "microsoft", "edge"] as const;
 const LEGACY_TALK_TOP_LEVEL_KEYS = [
   "apiKey",
   "modelId",
@@ -37,41 +36,12 @@ const LEGACY_TALK_TOP_LEVEL_KEYS = [
   "voiceId",
 ] as const;
 
-function hasLegacyTtsProviderKeys(value: unknown): boolean {
-  const tts = getRecord(value);
-  if (!tts) {
-    return false;
-  }
-  return LEGACY_TTS_PROVIDER_KEYS.some((key) => hasOwnKey(tts, key));
-}
-
 function hasLegacyTalkTopLevelKeys(value: unknown): boolean {
   const talk = getRecord(value);
   if (!talk) {
     return false;
   }
   return LEGACY_TALK_TOP_LEVEL_KEYS.some((key) => hasOwnKey(talk, key));
-}
-
-function findLegacyPluginEntryTtsIssues(root: Record<string, unknown>): LegacyConfigIssue[] {
-  const plugins = getRecord(root.plugins);
-  const entries = getRecord(plugins?.entries);
-  if (!entries) {
-    return [];
-  }
-  for (const entry of Object.values(entries)) {
-    const config = getRecord(getRecord(entry)?.config);
-    if (config && hasLegacyTtsProviderKeys(config.tts)) {
-      return [
-        {
-          path: "plugins.entries",
-          message:
-            "plugins.entries.*.config.tts.<provider> keys were removed; use messages.tts.providers.<provider> or a Rust-native speech provider instead.",
-        },
-      ];
-    }
-  }
-  return [];
 }
 
 function isLegacyGatewayBindHostAlias(value: unknown): boolean {
@@ -121,12 +91,6 @@ const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
       "top-level heartbeat is not a valid config path; use cron for cadence or agents.defaults.heartbeat for event-driven wake settings.",
   },
   {
-    path: ["messages", "tts"],
-    message:
-      "messages.tts.<provider> keys (openai/elevenlabs/microsoft/edge) were removed; use messages.tts.providers.<provider> instead.",
-    match: (value) => hasLegacyTtsProviderKeys(value),
-  },
-  {
     path: ["talk"],
     message:
       "talk.* legacy provider fields were removed; use talk.providers.<provider> fields or the native qwen3-tts speech provider instead.",
@@ -157,7 +121,6 @@ export function findLegacyConfigIssues(raw: unknown, sourceRaw?: unknown): Legac
     issues.push({ path: rule.path.join("."), message: rule.message });
   }
 
-  issues.push(...findLegacyPluginEntryTtsIssues(root));
   return issues;
 }
 

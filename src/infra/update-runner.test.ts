@@ -2,16 +2,12 @@ import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { bundledDistPluginFile } from "../../test/helpers/bundled-plugin-paths.js";
-import { BUNDLED_RUNTIME_SIDECAR_PATHS } from "../plugins/public-artifacts.js";
 import { withEnvAsync } from "../test-utils/env.js";
 import { pathExists } from "../utils.js";
 import { runGatewayUpdate } from "./update-runner.js";
 
 type CommandResponse = { stdout?: string; stderr?: string; code?: number | null };
 type CommandResult = { stdout: string; stderr: string; code: number | null };
-const FIRST_RUNTIME_SIDECAR =
-  BUNDLED_RUNTIME_SIDECAR_PATHS[0] ?? bundledDistPluginFile("acpx", "runtime-api.js");
 
 function toCommandResult(response?: CommandResponse): CommandResult {
   return {
@@ -190,7 +186,6 @@ describe("runGatewayUpdate", () => {
       JSON.stringify({ name: "crawclaw", version }),
       "utf-8",
     );
-    await writeBundledRuntimeSidecars(pkgRoot);
   }
 
   async function writeGlobalPackageVersion(pkgRoot: string, version = "2.0.0") {
@@ -199,15 +194,6 @@ describe("runGatewayUpdate", () => {
       JSON.stringify({ name: "crawclaw", version }),
       "utf-8",
     );
-    await writeBundledRuntimeSidecars(pkgRoot);
-  }
-
-  async function writeBundledRuntimeSidecars(pkgRoot: string) {
-    for (const relativePath of BUNDLED_RUNTIME_SIDECAR_PATHS) {
-      const absolutePath = path.join(pkgRoot, relativePath);
-      await fs.mkdir(path.dirname(absolutePath), { recursive: true });
-      await fs.writeFile(absolutePath, "export {};\n", "utf-8");
-    }
   }
 
   async function createGlobalPackageFixture(rootDir: string) {
@@ -641,13 +627,7 @@ describe("runGatewayUpdate", () => {
 
     const result = await runWithCommand(runCommand, { cwd: pkgRoot });
 
-    expect(result.status).toBe(BUNDLED_RUNTIME_SIDECAR_PATHS.length === 0 ? "ok" : "error");
-    if (BUNDLED_RUNTIME_SIDECAR_PATHS.length > 0) {
-      expect(result.reason).toBe("global install verify");
-      expect(result.steps.at(-1)?.stderrTail).toContain(
-        `missing bundled runtime sidecar ${FIRST_RUNTIME_SIDECAR}`,
-      );
-    }
+    expect(result.status).toBe("ok");
   });
 
   it("prepends portable Git PATH for global Windows npm updates", async () => {

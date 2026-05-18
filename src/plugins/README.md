@@ -19,7 +19,6 @@ README is the maintainer entry point for the core plugin runtime.
 - `registry.ts`
 - `runtime.ts`
 - `manifest.ts`
-- `public-artifacts.ts`
 
 ## Boundary Rules
 

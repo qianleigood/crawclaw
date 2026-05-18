@@ -69,17 +69,17 @@ describe("speech provider registry", () => {
       ...createEmptyPluginRegistry(),
       speechProviders: [
         {
-          pluginId: "test-microsoft",
+          pluginId: "test-demo-speech",
           source: "test",
-          provider: createSpeechProvider("microsoft", ["edge"]),
+          provider: createSpeechProvider("demo-speech", ["demo-alias"]),
         },
       ],
     });
 
     const cfg = {} as CrawClawConfig;
 
-    expect(listSpeechProviders(cfg).map((provider) => provider.id)).toEqual(["microsoft"]);
-    expect(getSpeechProvider("edge", cfg)?.id).toBe("microsoft");
+    expect(listSpeechProviders(cfg).map((provider) => provider.id)).toEqual(["demo-speech"]);
+    expect(getSpeechProvider("demo-alias", cfg)?.id).toBe("demo-speech");
     expect(resolveRuntimePluginRegistryMock).toHaveBeenCalledWith();
   });
 
@@ -120,19 +120,19 @@ describe("speech provider registry", () => {
     expect(resolveRuntimePluginRegistryMock).toHaveBeenCalledWith();
   });
 
-  it("canonicalizes the legacy edge alias to microsoft", () => {
+  it("canonicalizes provider aliases from the active registry", () => {
     resolveRuntimePluginRegistryMock.mockReturnValue({
       ...createEmptyPluginRegistry(),
       speechProviders: [
         {
-          pluginId: "test-microsoft",
+          pluginId: "test-demo-speech",
           source: "test",
-          provider: createSpeechProvider("microsoft", ["edge"]),
+          provider: createSpeechProvider("demo-speech", ["demo-alias"]),
         },
       ],
     });
 
-    expect(normalizeSpeechProviderId("edge")).toBe("edge");
-    expect(canonicalizeSpeechProviderId("edge")).toBe("microsoft");
+    expect(normalizeSpeechProviderId("demo-alias")).toBe("demo-alias");
+    expect(canonicalizeSpeechProviderId("demo-alias")).toBe("demo-speech");
   });
 });
