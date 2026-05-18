@@ -12,13 +12,17 @@ describe("secrets configure plan helpers", () => {
   it("builds configure candidates from supported configure targets", () => {
     const config = {
       talk: {
-        apiKey: "plain", // pragma: allowlist secret
+        providers: {
+          acme: {
+            apiKey: "plain", // pragma: allowlist secret
+          },
+        },
       },
     } as CrawClawConfig;
 
     const candidates = buildConfigureCandidates(config);
     const paths = candidates.map((entry) => entry.path);
-    expect(paths).toContain("talk.apiKey");
+    expect(paths).toContain("talk.providers.acme.apiKey");
   });
 
   it("collects provider upserts and deletes", () => {
@@ -78,10 +82,14 @@ describe("secrets configure plan helpers", () => {
     const candidates = buildConfigureCandidatesForScope({
       config: {
         talk: {
-          apiKey: {
-            source: "env",
-            provider: "default",
-            id: "TALK_API_KEY",
+          providers: {
+            acme: {
+              apiKey: {
+                source: "env",
+                provider: "default",
+                id: "TALK_API_KEY",
+              },
+            },
           },
         },
       } as CrawClawConfig,
@@ -107,7 +115,7 @@ describe("secrets configure plan helpers", () => {
     expect(candidates).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          path: "talk.apiKey",
+          path: "talk.providers.acme.apiKey",
           existingRef: {
             source: "env",
             provider: "default",
@@ -126,43 +134,42 @@ describe("secrets configure plan helpers", () => {
     );
   });
 
-  it("marks normalized alias paths as derived when not authored directly", () => {
+  it("marks provider-keyed paths as authored directly", () => {
     const candidates = buildConfigureCandidatesForScope({
       config: {
         talk: {
-          provider: "elevenlabs",
+          provider: "acme",
           providers: {
-            elevenlabs: {
+            acme: {
               apiKey: "demo-talk-key", // pragma: allowlist secret
             },
           },
-          apiKey: "demo-talk-key", // pragma: allowlist secret
         },
       } as CrawClawConfig,
       authoredCrawClawConfig: {
         talk: {
-          apiKey: "demo-talk-key", // pragma: allowlist secret
+          providers: {
+            acme: {
+              apiKey: "demo-talk-key", // pragma: allowlist secret
+            },
+          },
         },
       } as CrawClawConfig,
     });
 
-    const legacy = candidates.find((entry) => entry.path === "talk.apiKey");
-    const normalized = candidates.find(
-      (entry) => entry.path === "talk.providers.elevenlabs.apiKey",
-    );
-    expect(legacy?.isDerived).not.toBe(true);
-    expect(normalized?.isDerived).toBe(true);
+    const configured = candidates.find((entry) => entry.path === "talk.providers.acme.apiKey");
+    expect(configured?.isDerived).not.toBe(true);
   });
 
   it("reports configure change presence and builds deterministic plan shape", () => {
     const selected = new Map([
       [
-        "talk.apiKey",
+        "talk.providers.acme.apiKey",
         {
-          type: "talk.apiKey",
-          path: "talk.apiKey",
-          pathSegments: ["talk", "apiKey"],
-          label: "talk.apiKey",
+          type: "talk.providers.*.apiKey",
+          path: "talk.providers.acme.apiKey",
+          pathSegments: ["talk", "providers", "acme", "apiKey"],
+          label: "talk.providers.acme.apiKey",
           configFile: "crawclaw.json" as const,
           expectedResolvedValue: "string" as const,
           ref: {
@@ -192,7 +199,7 @@ describe("secrets configure plan helpers", () => {
       generatedAt: "2026-02-28T00:00:00.000Z",
     });
     expect(plan.targets).toHaveLength(1);
-    expect(plan.targets[0]?.path).toBe("talk.apiKey");
+    expect(plan.targets[0]?.path).toBe("talk.providers.acme.apiKey");
     expect(plan.providerUpserts).toBeDefined();
     expect(plan.options).toEqual({
       scrubEnv: true,

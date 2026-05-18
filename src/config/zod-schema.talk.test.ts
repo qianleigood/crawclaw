@@ -32,7 +32,7 @@ describe("CrawClawSchema talk validation", () => {
         talk: {
           provider: "acme",
           providers: {
-            elevenlabs: {
+            beta: {
               voiceId: "voice-123",
             },
           },
@@ -49,8 +49,8 @@ describe("CrawClawSchema talk validation", () => {
             acme: {
               voiceId: "voice-acme",
             },
-            elevenlabs: {
-              voiceId: "voice-eleven",
+            beta: {
+              voiceId: "voice-beta",
             },
           },
         },

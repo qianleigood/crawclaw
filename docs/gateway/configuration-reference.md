@@ -1337,33 +1337,24 @@ Batches rapid text-only messages from the same sender into a single agent turn. 
     tts: {
       auto: "always", // off | always | inbound | tagged
       mode: "final", // final | all
-      provider: "elevenlabs",
+      provider: "qwen3-tts",
       summaryModel: "openai/gpt-4.1-mini",
       modelOverrides: { enabled: true },
       maxTextLength: 4000,
       timeoutMs: 30000,
       prefsPath: "~/.crawclaw/settings/tts.json",
-      elevenlabs: {
-        apiKey: "elevenlabs_api_key",
-        baseUrl: "https://api.elevenlabs.io",
-        voiceId: "voice_id",
-        modelId: "eleven_multilingual_v2",
-        seed: 42,
-        applyTextNormalization: "auto",
-        languageCode: "en",
-        voiceSettings: {
-          stability: 0.5,
-          similarityBoost: 0.75,
-          style: 0.0,
-          useSpeakerBoost: true,
-          speed: 1.0,
+      providers: {
+        "qwen3-tts": {
+          enabled: true,
+          runtime: "qwen-tts",
+          baseUrl: "http://127.0.0.1:8013",
+          profiles: {
+            assistant: {
+              voice: "Cherry",
+              speed: 1.0,
+            },
+          },
         },
-      },
-      openai: {
-        apiKey: "openai_api_key",
-        baseUrl: "https://api.openai.com/v1",
-        model: "gpt-4o-mini-tts",
-        voice: "alloy",
       },
     },
   },
@@ -1373,9 +1364,8 @@ Batches rapid text-only messages from the same sender into a single agent turn. 
 - `auto` controls auto-TTS. `/tts off|always|inbound|tagged` overrides per session.
 - `summaryModel` overrides `agents.defaults.model.primary` for auto-summary.
 - `modelOverrides` is enabled by default; `modelOverrides.allowProvider` defaults to `false` (opt-in).
-- API keys fall back to `ELEVENLABS_API_KEY`/`XI_API_KEY` and `OPENAI_API_KEY`.
-- `openai.baseUrl` overrides the OpenAI TTS endpoint. Resolution order is config, then `OPENAI_TTS_BASE_URL`, then `https://api.openai.com/v1`.
-- When `openai.baseUrl` points to a non-OpenAI endpoint, CrawClaw treats it as an OpenAI-compatible TTS server and relaxes model/voice validation.
+- Desktop speech uses the local `qwen3-tts` native provider. The default product runtime does not call ElevenLabs, Microsoft, or OpenAI TTS APIs.
+- Provider-specific settings live under `messages.tts.providers.<provider>`.
 
 ---
 
@@ -1386,24 +1376,25 @@ Defaults for Talk mode (macOS; archived mobile runtimes had separate compatibili
 ```json5
 {
   talk: {
-    voiceId: "elevenlabs_voice_id",
-    voiceAliases: {
-      Clawd: "EXAVITQu4vr4xnSDxMaL",
-      Roger: "CwhRBWXzGAHq8TQ4Fs17",
+    provider: "qwen3-tts",
+    providers: {
+      "qwen3-tts": {
+        voiceId: "Cherry",
+        outputFormat: "wav",
+        voiceAliases: {
+          assistant: "Cherry",
+        },
+      },
     },
-    modelId: "eleven_v3",
-    outputFormat: "mp3_44100_128",
-    apiKey: "elevenlabs_api_key",
     silenceTimeoutMs: 1500,
     interruptOnSpeech: true,
   },
 }
 ```
 
-- Voice IDs fall back to `ELEVENLABS_VOICE_ID` or `SAG_VOICE_ID`.
-- `apiKey` and `providers.*.apiKey` accept plaintext strings or SecretRef objects.
-- `ELEVENLABS_API_KEY` fallback applies only when no Talk API key is configured.
-- `voiceAliases` lets Talk directives use friendly names.
+- `talk.provider` selects the active Talk provider when more than one provider is configured.
+- `talk.providers.*.apiKey` accepts plaintext strings or SecretRef objects for providers that require credentials.
+- `talk.providers.*.voiceAliases` lets Talk directives use friendly names.
 - `silenceTimeoutMs` controls how long Talk mode waits after user silence before it sends the transcript. Unset keeps the platform default pause window (`700 ms on macOS and Android, 900 ms on iOS`).
 
 ---

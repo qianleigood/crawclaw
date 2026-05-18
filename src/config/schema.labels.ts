@@ -597,10 +597,6 @@ export const FIELD_LABELS: Record<string, string> = {
   "discovery.wideArea.domain": "Wide-area Discovery Domain",
   "discovery.mdns": "mDNS Discovery",
   talk: "Talk",
-  "talk.voiceId": "Talk Voice ID",
-  "talk.voiceAliases": "Talk Voice Aliases",
-  "talk.modelId": "Talk Model ID",
-  "talk.outputFormat": "Talk Output Format",
   "talk.interruptOnSpeech": "Talk Interrupt on Speech",
   "talk.silenceTimeoutMs": "Talk Silence Timeout (ms)",
   messages: "Messages",
@@ -637,7 +633,6 @@ export const FIELD_LABELS: Record<string, string> = {
   "talk.providers.*.modelId": "Talk Provider Model ID",
   "talk.providers.*.outputFormat": "Talk Provider Output Format",
   "talk.providers.*.apiKey": "Talk Provider API Key", // pragma: allowlist secret
-  "talk.apiKey": "Talk API Key", // pragma: allowlist secret
   "agents.list[].skills": "Agent Skill Filter",
   "agents.list[].identity.avatar": "Agent Avatar",
   "agents.list[].heartbeat.suppressToolErrorWarnings":

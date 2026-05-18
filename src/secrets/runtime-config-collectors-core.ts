@@ -89,16 +89,6 @@ function collectTalkAssignments(params: {
   if (!isRecord(talk)) {
     return;
   }
-  collectSecretInputAssignment({
-    value: talk.apiKey,
-    path: "talk.apiKey",
-    expected: "string",
-    defaults: params.defaults,
-    context: params.context,
-    apply: (value) => {
-      talk.apiKey = value;
-    },
-  });
   const providers = talk.providers;
   if (!isRecord(providers)) {
     return;

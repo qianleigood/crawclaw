@@ -50,7 +50,7 @@ describe("talk config validation fail-closed behavior", () => {
         talk: {
           provider: "acme",
           providers: {
-            elevenlabs: {
+            beta: {
               voiceId: "voice-123",
             },
           },
@@ -69,8 +69,8 @@ describe("talk config validation fail-closed behavior", () => {
             acme: {
               voiceId: "voice-acme",
             },
-            elevenlabs: {
-              voiceId: "voice-eleven",
+            beta: {
+              voiceId: "voice-beta",
             },
           },
         },

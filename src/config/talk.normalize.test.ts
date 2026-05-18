@@ -1,30 +1,8 @@
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { withEnvAsync } from "../test-utils/env.js";
-import { createConfigIO } from "./io.js";
 import { buildTalkConfigResponse, normalizeTalkSection } from "./talk.js";
 
-const envVar = (...parts: string[]) => parts.join("_");
-const elevenLabsApiKeyEnv = ["ELEVENLABS_API", "KEY"].join("_");
-
-async function withTempConfig(
-  config: unknown,
-  run: (configPath: string) => Promise<void>,
-): Promise<void> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "crawclaw-talk-"));
-  const configPath = path.join(dir, "crawclaw.json");
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2));
-  try {
-    await run(configPath);
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true });
-  }
-}
-
 describe("talk normalization", () => {
-  it("maps legacy ElevenLabs fields into provider/providers", () => {
+  it("drops removed legacy top-level Talk fields", () => {
     const normalized = normalizeTalkSection({
       voiceId: "voice-123",
       voiceAliases: { Clawd: "EXAVITQu4vr4xnSDxMaL" }, // pragma: allowlist secret
@@ -36,20 +14,6 @@ describe("talk normalization", () => {
     });
 
     expect(normalized).toEqual({
-      providers: {
-        elevenlabs: {
-          voiceId: "voice-123",
-          voiceAliases: { Clawd: "EXAVITQu4vr4xnSDxMaL" },
-          modelId: "eleven_v3",
-          outputFormat: "pcm_44100",
-          apiKey: "secret-key", // pragma: allowlist secret
-        },
-      },
-      voiceId: "voice-123",
-      voiceAliases: { Clawd: "EXAVITQu4vr4xnSDxMaL" },
-      modelId: "eleven_v3",
-      outputFormat: "pcm_44100",
-      apiKey: "secret-key", // pragma: allowlist secret
       interruptOnSpeech: false,
       silenceTimeoutMs: 1500,
     });
@@ -76,7 +40,6 @@ describe("talk normalization", () => {
           custom: true,
         },
       },
-      voiceId: "legacy-voice",
       interruptOnSpeech: true,
     });
   });
@@ -109,133 +72,57 @@ describe("talk normalization", () => {
           modelId: "acme-model",
         },
       },
-      voiceId: "acme-voice",
-      modelId: "acme-model",
       interruptOnSpeech: true,
     });
   });
 
-  it("fills provider from the resolved legacy talk provider when provider is implicit", () => {
+  it("fills provider from the single configured talk provider when provider is implicit", () => {
     const payload = buildTalkConfigResponse({
-      voiceId: "voice-123",
-      apiKey: "secret-key", // pragma: allowlist secret
+      providers: {
+        acme: {
+          voiceId: "voice-123",
+          apiKey: "secret-key", // pragma: allowlist secret
+        },
+      },
       silenceTimeoutMs: 1500,
     });
 
     expect(payload).toEqual({
-      provider: "elevenlabs",
+      provider: "acme",
       providers: {
-        elevenlabs: {
+        acme: {
           voiceId: "voice-123",
           apiKey: "secret-key", // pragma: allowlist secret
         },
       },
       resolved: {
-        provider: "elevenlabs",
+        provider: "acme",
         config: {
           voiceId: "voice-123",
           apiKey: "secret-key", // pragma: allowlist secret
         },
       },
-      voiceId: "voice-123",
-      apiKey: "secret-key", // pragma: allowlist secret
       silenceTimeoutMs: 1500,
     });
   });
 
   it("preserves SecretRef apiKey values during normalization", () => {
     const normalized = normalizeTalkSection({
-      provider: "elevenlabs",
+      provider: "acme",
       providers: {
-        elevenlabs: {
-          apiKey: { source: "env", provider: "default", id: "ELEVENLABS_API_KEY" },
+        acme: {
+          apiKey: { source: "env", provider: "default", id: "TALK_PROVIDER_API_KEY" },
         },
       },
     });
 
     expect(normalized).toEqual({
-      provider: "elevenlabs",
+      provider: "acme",
       providers: {
-        elevenlabs: {
-          apiKey: { source: "env", provider: "default", id: "ELEVENLABS_API_KEY" },
+        acme: {
+          apiKey: { source: "env", provider: "default", id: "TALK_PROVIDER_API_KEY" },
         },
       },
-    });
-  });
-
-  it("merges ELEVENLABS_API_KEY into normalized defaults for legacy configs", async () => {
-    // pragma: allowlist secret
-    const elevenLabsApiKey = "env-eleven-key"; // pragma: allowlist secret
-    await withEnvAsync({ [elevenLabsApiKeyEnv]: elevenLabsApiKey }, async () => {
-      await withTempConfig(
-        {
-          talk: {
-            voiceId: "voice-123",
-          },
-        },
-        async (configPath) => {
-          const io = createConfigIO({ configPath });
-          const snapshot = await io.readConfigFileSnapshot();
-          expect(snapshot.runtimeConfig.talk?.provider).toBeUndefined();
-          expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.voiceId).toBe("voice-123");
-          expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.apiKey).toBe(elevenLabsApiKey);
-          expect(snapshot.runtimeConfig.talk?.apiKey).toBe(elevenLabsApiKey);
-        },
-      );
-    });
-  });
-
-  it("does not apply ELEVENLABS_API_KEY when active provider is not elevenlabs", async () => {
-    const elevenLabsApiKey = "env-eleven-key"; // pragma: allowlist secret
-    await withEnvAsync({ [elevenLabsApiKeyEnv]: elevenLabsApiKey }, async () => {
-      await withTempConfig(
-        {
-          talk: {
-            provider: "acme",
-            providers: {
-              acme: {
-                voiceId: "acme-voice",
-              },
-            },
-          },
-        },
-        async (configPath) => {
-          const io = createConfigIO({ configPath });
-          const snapshot = await io.readConfigFileSnapshot();
-          expect(snapshot.runtimeConfig.talk?.provider).toBe("acme");
-          expect(snapshot.runtimeConfig.talk?.providers?.acme?.voiceId).toBe("acme-voice");
-          expect(snapshot.runtimeConfig.talk?.providers?.acme?.apiKey).toBeUndefined();
-          expect(snapshot.runtimeConfig.talk?.apiKey).toBeUndefined();
-        },
-      );
-    });
-  });
-
-  it("does not inject ELEVENLABS_API_KEY fallback when talk.apiKey is SecretRef", async () => {
-    await withEnvAsync({ [envVar("ELEVENLABS", "API", "KEY")]: "env-eleven-key" }, async () => {
-      await withTempConfig(
-        {
-          talk: {
-            provider: "elevenlabs",
-            apiKey: { source: "env", provider: "default", id: "ELEVENLABS_API_KEY" },
-            providers: {
-              elevenlabs: {
-                voiceId: "voice-123",
-              },
-            },
-          },
-        },
-        async (configPath) => {
-          const io = createConfigIO({ configPath });
-          const snapshot = await io.readConfigFileSnapshot();
-          expect(snapshot.runtimeConfig.talk?.apiKey).toEqual({
-            source: "env",
-            provider: "default",
-            id: "ELEVENLABS_API_KEY",
-          });
-          expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.apiKey).toBeUndefined();
-        },
-      );
     });
   });
 });

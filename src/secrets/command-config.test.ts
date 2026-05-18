@@ -6,12 +6,20 @@ describe("collectCommandSecretAssignmentsFromSnapshot", () => {
   it("returns assignments from the active runtime snapshot for configured refs", () => {
     const sourceConfig = {
       talk: {
-        apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+        providers: {
+          acme: {
+            apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+          },
+        },
       },
     } as unknown as CrawClawConfig;
     const resolvedConfig = {
       talk: {
-        apiKey: "talk-key", // pragma: allowlist secret
+        providers: {
+          acme: {
+            apiKey: "talk-key", // pragma: allowlist secret
+          },
+        },
       },
     } as unknown as CrawClawConfig;
 
@@ -19,13 +27,13 @@ describe("collectCommandSecretAssignmentsFromSnapshot", () => {
       sourceConfig,
       resolvedConfig,
       commandName: "memory status",
-      targetIds: new Set(["talk.apiKey"]),
+      targetIds: new Set(["talk.providers.*.apiKey"]),
     });
 
     expect(result.assignments).toEqual([
       {
-        path: "talk.apiKey",
-        pathSegments: ["talk", "apiKey"],
+        path: "talk.providers.acme.apiKey",
+        pathSegments: ["talk", "providers", "acme", "apiKey"],
         value: "talk-key",
       },
     ]);
@@ -34,7 +42,11 @@ describe("collectCommandSecretAssignmentsFromSnapshot", () => {
   it("throws when configured refs are unresolved in the snapshot", () => {
     const sourceConfig = {
       talk: {
-        apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+        providers: {
+          acme: {
+            apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+          },
+        },
       },
     } as unknown as CrawClawConfig;
     const resolvedConfig = {
@@ -46,20 +58,30 @@ describe("collectCommandSecretAssignmentsFromSnapshot", () => {
         sourceConfig,
         resolvedConfig,
         commandName: "memory search",
-        targetIds: new Set(["talk.apiKey"]),
+        targetIds: new Set(["talk.providers.*.apiKey"]),
       }),
-    ).toThrow(/memory search: talk\.apiKey is unresolved in the active runtime snapshot/);
+    ).toThrow(
+      /memory search: talk\.providers\.acme\.apiKey is unresolved in the active runtime snapshot/,
+    );
   });
 
   it("skips unresolved refs that are marked inactive by runtime warnings", () => {
     const sourceConfig = {
       talk: {
-        apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+        providers: {
+          acme: {
+            apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+          },
+        },
       },
     } as unknown as CrawClawConfig;
     const resolvedConfig = {
       talk: {
-        apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+        providers: {
+          acme: {
+            apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+          },
+        },
       },
     } as unknown as CrawClawConfig;
 
@@ -67,13 +89,13 @@ describe("collectCommandSecretAssignmentsFromSnapshot", () => {
       sourceConfig,
       resolvedConfig,
       commandName: "talk status",
-      targetIds: new Set(["talk.apiKey"]),
-      inactiveRefPaths: new Set(["talk.apiKey"]),
+      targetIds: new Set(["talk.providers.*.apiKey"]),
+      inactiveRefPaths: new Set(["talk.providers.acme.apiKey"]),
     });
 
     expect(result.assignments).toEqual([]);
     expect(result.diagnostics).toEqual([
-      "talk.apiKey: secret ref is configured on an inactive surface; skipping command-time assignment.",
+      "talk.providers.acme.apiKey: secret ref is configured on an inactive surface; skipping command-time assignment.",
     ]);
   });
 });

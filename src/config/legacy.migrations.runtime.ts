@@ -7,13 +7,10 @@ import {
 import {
   defineLegacyConfigMigration,
   getRecord,
-  mergeMissing,
   type LegacyConfigMigrationSpec,
   type LegacyConfigRule,
 } from "./legacy.shared.js";
 import { DEFAULT_GATEWAY_PORT } from "./paths.js";
-
-const LEGACY_TTS_PROVIDER_KEYS = ["openai", "elevenlabs", "microsoft", "edge"] as const;
 
 function isLegacyGatewayBindHostAlias(value: unknown): boolean {
   if (typeof value !== "string") {
@@ -48,65 +45,6 @@ function escapeControlForLog(value: string): string {
   return value.replace(/\r/g, "\\r").replace(/\n/g, "\\n").replace(/\t/g, "\\t");
 }
 
-function hasLegacyTtsProviderKeys(value: unknown): boolean {
-  const tts = getRecord(value);
-  if (!tts) {
-    return false;
-  }
-  return LEGACY_TTS_PROVIDER_KEYS.some((key) => Object.prototype.hasOwnProperty.call(tts, key));
-}
-
-function getOrCreateTtsProviders(tts: Record<string, unknown>): Record<string, unknown> {
-  const providers = getRecord(tts.providers) ?? {};
-  tts.providers = providers;
-  return providers;
-}
-
-function mergeLegacyTtsProviderConfig(
-  tts: Record<string, unknown>,
-  legacyKey: string,
-  providerId: string,
-): boolean {
-  const legacyValue = getRecord(tts[legacyKey]);
-  if (!legacyValue) {
-    return false;
-  }
-  const providers = getOrCreateTtsProviders(tts);
-  const existing = getRecord(providers[providerId]) ?? {};
-  const merged = structuredClone(existing);
-  mergeMissing(merged, legacyValue);
-  providers[providerId] = merged;
-  delete tts[legacyKey];
-  return true;
-}
-
-function migrateLegacyTtsConfig(
-  tts: Record<string, unknown> | null | undefined,
-  pathLabel: string,
-  changes: string[],
-): void {
-  if (!tts) {
-    return;
-  }
-  const movedOpenAI = mergeLegacyTtsProviderConfig(tts, "openai", "openai");
-  const movedElevenLabs = mergeLegacyTtsProviderConfig(tts, "elevenlabs", "elevenlabs");
-  const movedMicrosoft = mergeLegacyTtsProviderConfig(tts, "microsoft", "microsoft");
-  const movedEdge = mergeLegacyTtsProviderConfig(tts, "edge", "microsoft");
-
-  if (movedOpenAI) {
-    changes.push(`Moved ${pathLabel}.openai → ${pathLabel}.providers.openai.`);
-  }
-  if (movedElevenLabs) {
-    changes.push(`Moved ${pathLabel}.elevenlabs → ${pathLabel}.providers.elevenlabs.`);
-  }
-  if (movedMicrosoft) {
-    changes.push(`Moved ${pathLabel}.microsoft → ${pathLabel}.providers.microsoft.`);
-  }
-  if (movedEdge) {
-    changes.push(`Moved ${pathLabel}.edge → ${pathLabel}.providers.microsoft.`);
-  }
-}
-
 const GATEWAY_BIND_RULE: LegacyConfigRule = {
   path: ["gateway", "bind"],
   message:
@@ -120,15 +58,6 @@ const HEARTBEAT_RULE: LegacyConfigRule = {
   message:
     "top-level heartbeat is not a valid config path; use cron for cadence or agents.defaults.heartbeat for event-driven wake settings.",
 };
-
-const LEGACY_TTS_RULES: LegacyConfigRule[] = [
-  {
-    path: ["messages", "tts"],
-    message:
-      "messages.tts.<provider> keys (openai/elevenlabs/microsoft/edge) are legacy; use messages.tts.providers.<provider> (auto-migrated on load).",
-    match: (value) => hasLegacyTtsProviderKeys(value),
-  },
-];
 
 export const LEGACY_CONFIG_MIGRATIONS_RUNTIME: LegacyConfigMigrationSpec[] = [
   defineLegacyConfigMigration({
@@ -215,15 +144,6 @@ export const LEGACY_CONFIG_MIGRATIONS_RUNTIME: LegacyConfigMigrationSpec[] = [
       gateway.bind = mapped;
       raw.gateway = gateway;
       changes.push(`Normalized gateway.bind "${escapeControlForLog(bindRaw)}" → "${mapped}".`);
-    },
-  }),
-  defineLegacyConfigMigration({
-    id: "tts.providers-generic-shape",
-    describe: "Move legacy bundled TTS config keys into messages.tts.providers",
-    legacyRules: LEGACY_TTS_RULES,
-    apply: (raw, changes) => {
-      const messages = getRecord(raw.messages);
-      migrateLegacyTtsConfig(getRecord(messages?.tts), "messages.tts", changes);
     },
   }),
   defineLegacyConfigMigration({

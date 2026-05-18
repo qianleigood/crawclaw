@@ -163,9 +163,8 @@ describe("secrets runtime snapshot", () => {
         },
       },
       talk: {
-        apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
         providers: {
-          elevenlabs: {
+          acme: {
             apiKey: { source: "env", provider: "default", id: "TALK_PROVIDER_API_KEY" },
           },
         },
@@ -188,7 +187,6 @@ describe("secrets runtime snapshot", () => {
         GITHUB_TOKEN: "ghp-env-token", // pragma: allowlist secret
         REVIEW_SKILL_API_KEY: "sk-skill-ref", // pragma: allowlist secret
         MEMORY_REMOTE_API_KEY: "mem-ref-key", // pragma: allowlist secret
-        TALK_API_KEY: "talk-ref-key", // pragma: allowlist secret
         TALK_PROVIDER_API_KEY: "talk-provider-ref-key", // pragma: allowlist secret
         REMOTE_GATEWAY_TOKEN: "remote-token-ref",
         REMOTE_GATEWAY_PASSWORD: "remote-password-ref", // pragma: allowlist secret
@@ -221,10 +219,7 @@ describe("secrets runtime snapshot", () => {
       "Bearer sk-env-header",
     );
     expect(snapshot.runtimeConfig.skills?.entries?.["review-pr"]?.apiKey).toBe("sk-skill-ref");
-    expect(snapshot.runtimeConfig.talk?.apiKey).toBe("talk-ref-key");
-    expect(snapshot.runtimeConfig.talk?.providers?.elevenlabs?.apiKey).toBe(
-      "talk-provider-ref-key",
-    );
+    expect(snapshot.runtimeConfig.talk?.providers?.acme?.apiKey).toBe("talk-provider-ref-key");
     expect(snapshot.runtimeConfig.gateway?.remote?.token).toBe("remote-token-ref");
     expect(snapshot.runtimeConfig.gateway?.remote?.password).toBe("remote-password-ref");
     expect(snapshot.authStores[0]?.store.profiles["openai:default"]).toMatchObject({
@@ -889,7 +884,11 @@ describe("secrets runtime snapshot", () => {
       prepareSecretsRuntimeSnapshot({
         config: asConfig({
           talk: {
-            apiKey: { source: "exec", provider: "vault", id: "a/../b" },
+            providers: {
+              acme: {
+                apiKey: { source: "exec", provider: "vault", id: "a/../b" },
+              },
+            },
           },
           secrets: {
             providers: {

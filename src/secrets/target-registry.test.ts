@@ -84,7 +84,11 @@ describe("secret target registry", () => {
     const targets = discoverConfigSecretTargetsByIds(
       {
         talk: {
-          apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+          providers: {
+            acme: {
+              apiKey: { source: "env", provider: "default", id: "TALK_API_KEY" },
+            },
+          },
         },
         gateway: {
           remote: {
@@ -92,18 +96,18 @@ describe("secret target registry", () => {
           },
         },
       } as unknown as CrawClawConfig,
-      new Set(["talk.apiKey"]),
+      new Set(["talk.providers.*.apiKey"]),
     );
 
     expect(targets).toHaveLength(1);
-    expect(targets[0]?.entry.id).toBe("talk.apiKey");
-    expect(targets[0]?.path).toBe("talk.apiKey");
+    expect(targets[0]?.entry.id).toBe("talk.providers.*.apiKey");
+    expect(targets[0]?.path).toBe("talk.providers.acme.apiKey");
   });
 
   it("resolves config targets by exact path", () => {
-    const target = resolveConfigSecretTargetByPath(["talk", "apiKey"]);
+    const target = resolveConfigSecretTargetByPath(["talk", "providers", "acme", "apiKey"]);
     expect(target).not.toBeNull();
-    expect(target?.entry.id).toBe("talk.apiKey");
+    expect(target?.entry.id).toBe("talk.providers.*.apiKey");
     expect(target?.refPathSegments).toBeUndefined();
   });
 

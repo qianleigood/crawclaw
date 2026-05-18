@@ -1,6 +1,3 @@
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
 import type {
   ResolvedTalkConfig,
   TalkConfig,
@@ -9,14 +6,6 @@ import type {
 } from "./types.gateway.js";
 import type { CrawClawConfig } from "./types.js";
 import { coerceSecretRef } from "./types.secrets.js";
-
-type TalkApiKeyDeps = {
-  fs?: typeof fs;
-  os?: typeof os;
-  path?: typeof path;
-};
-
-export const LEGACY_TALK_PROVIDER_ID = "elevenlabs";
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -115,47 +104,6 @@ function normalizeTalkProviders(value: unknown): Record<string, TalkProviderConf
   return Object.keys(providers).length > 0 ? providers : undefined;
 }
 
-function normalizedLegacyTalkFields(source: Record<string, unknown>): Partial<TalkConfig> {
-  const legacy: Partial<TalkConfig> = {};
-  const voiceId = normalizeString(source.voiceId);
-  if (voiceId) {
-    legacy.voiceId = voiceId;
-  }
-  const voiceAliases = normalizeVoiceAliases(source.voiceAliases);
-  if (voiceAliases) {
-    legacy.voiceAliases = voiceAliases;
-  }
-  const modelId = normalizeString(source.modelId);
-  if (modelId) {
-    legacy.modelId = modelId;
-  }
-  const outputFormat = normalizeString(source.outputFormat);
-  if (outputFormat) {
-    legacy.outputFormat = outputFormat;
-  }
-  const apiKey = normalizeTalkSecretInput(source.apiKey);
-  if (apiKey !== undefined) {
-    legacy.apiKey = apiKey;
-  }
-  const silenceTimeoutMs = normalizeSilenceTimeoutMs(source.silenceTimeoutMs);
-  if (silenceTimeoutMs !== undefined) {
-    legacy.silenceTimeoutMs = silenceTimeoutMs;
-  }
-  return legacy;
-}
-
-function legacyProviderConfigFromTalk(
-  source: Record<string, unknown>,
-): TalkProviderConfig | undefined {
-  return normalizeTalkProviderConfig({
-    voiceId: source.voiceId,
-    voiceAliases: source.voiceAliases,
-    modelId: source.modelId,
-    outputFormat: source.outputFormat,
-    apiKey: source.apiKey,
-  });
-}
-
 function activeProviderFromTalk(talk: TalkConfig): string | undefined {
   const provider = normalizeString(talk.provider);
   const providers = talk.providers;
@@ -169,69 +117,27 @@ function activeProviderFromTalk(talk: TalkConfig): string | undefined {
   return providerIds.length === 1 ? providerIds[0] : undefined;
 }
 
-function legacyTalkFieldsFromProviderConfig(
-  config: TalkProviderConfig | undefined,
-): Partial<TalkConfig> {
-  if (!config) {
-    return {};
-  }
-  const legacy: Partial<TalkConfig> = {};
-  if (typeof config.voiceId === "string") {
-    legacy.voiceId = config.voiceId;
-  }
-  if (
-    config.voiceAliases &&
-    typeof config.voiceAliases === "object" &&
-    !Array.isArray(config.voiceAliases)
-  ) {
-    const aliases = normalizeVoiceAliases(config.voiceAliases);
-    if (aliases) {
-      legacy.voiceAliases = aliases;
-    }
-  }
-  if (typeof config.modelId === "string") {
-    legacy.modelId = config.modelId;
-  }
-  if (typeof config.outputFormat === "string") {
-    legacy.outputFormat = config.outputFormat;
-  }
-  if (config.apiKey !== undefined) {
-    legacy.apiKey = config.apiKey;
-  }
-  return legacy;
-}
-
-export function normalizeTalkSection(value: TalkConfig | undefined): TalkConfig | undefined {
+export function normalizeTalkSection(value: unknown): TalkConfig | undefined {
   if (!isPlainObject(value)) {
     return undefined;
   }
 
-  const source = value as Record<string, unknown>;
-  const hasNormalizedShape = typeof source.provider === "string" || isPlainObject(source.providers);
+  const source = value;
   const normalized: TalkConfig = {};
-  const legacy = normalizedLegacyTalkFields(source);
-  if (Object.keys(legacy).length > 0) {
-    Object.assign(normalized, legacy);
-  }
   if (typeof source.interruptOnSpeech === "boolean") {
     normalized.interruptOnSpeech = source.interruptOnSpeech;
   }
-
-  if (hasNormalizedShape) {
-    const providers = normalizeTalkProviders(source.providers);
-    const provider = normalizeString(source.provider);
-    if (providers) {
-      normalized.providers = providers;
-    }
-    if (provider) {
-      normalized.provider = provider;
-    }
-    return Object.keys(normalized).length > 0 ? normalized : undefined;
+  const silenceTimeoutMs = normalizeSilenceTimeoutMs(source.silenceTimeoutMs);
+  if (silenceTimeoutMs !== undefined) {
+    normalized.silenceTimeoutMs = silenceTimeoutMs;
   }
-
-  const legacyProviderConfig = legacyProviderConfigFromTalk(source);
-  if (legacyProviderConfig) {
-    normalized.providers = { [LEGACY_TALK_PROVIDER_ID]: legacyProviderConfig };
+  const providers = normalizeTalkProviders(source.providers);
+  const provider = normalizeString(source.provider);
+  if (providers) {
+    normalized.providers = providers;
+  }
+  if (provider) {
+    normalized.provider = provider;
   }
   return Object.keys(normalized).length > 0 ? normalized : undefined;
 }
@@ -297,53 +203,5 @@ export function buildTalkConfigResponse(value: unknown): TalkConfigResponse | un
     payload.resolved = resolved;
   }
 
-  const providerConfig = resolved?.config;
-  const providerCompatibilityLegacy = legacyTalkFieldsFromProviderConfig(providerConfig);
-  const compatibilityLegacy =
-    Object.keys(providerCompatibilityLegacy).length > 0
-      ? providerCompatibilityLegacy
-      : normalizedLegacyTalkFields(normalized as unknown as Record<string, unknown>);
-  Object.assign(payload, compatibilityLegacy);
-
   return Object.keys(payload).length > 0 ? payload : undefined;
-}
-
-export function readTalkApiKeyFromProfile(deps: TalkApiKeyDeps = {}): string | null {
-  const fsImpl = deps.fs ?? fs;
-  const osImpl = deps.os ?? os;
-  const pathImpl = deps.path ?? path;
-
-  const home = osImpl.homedir();
-  const candidates = [".profile", ".zprofile", ".zshrc", ".bashrc"].map((name) =>
-    pathImpl.join(home, name),
-  );
-  for (const candidate of candidates) {
-    if (!fsImpl.existsSync(candidate)) {
-      continue;
-    }
-    try {
-      const text = fsImpl.readFileSync(candidate, "utf-8");
-      const match = text.match(
-        /(?:^|\n)\s*(?:export\s+)?ELEVENLABS_API_KEY\s*=\s*["']?([^\n"']+)["']?/,
-      );
-      const value = match?.[1]?.trim();
-      if (value) {
-        return value;
-      }
-    } catch {
-      // Ignore profile read errors.
-    }
-  }
-  return null;
-}
-
-export function resolveTalkApiKey(
-  env: NodeJS.ProcessEnv = process.env,
-  deps: TalkApiKeyDeps = {},
-): string | null {
-  const envValue = (env.ELEVENLABS_API_KEY ?? "").trim();
-  if (envValue) {
-    return envValue;
-  }
-  return readTalkApiKeyFromProfile(deps);
 }

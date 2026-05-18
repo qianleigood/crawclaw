@@ -29,6 +29,13 @@ function hasLegacyThreadBindingTtl(value: unknown): boolean {
 }
 
 const LEGACY_TTS_PROVIDER_KEYS = ["openai", "elevenlabs", "microsoft", "edge"] as const;
+const LEGACY_TALK_TOP_LEVEL_KEYS = [
+  "apiKey",
+  "modelId",
+  "outputFormat",
+  "voiceAliases",
+  "voiceId",
+] as const;
 
 function hasLegacyTtsProviderKeys(value: unknown): boolean {
   const tts = getRecord(value);
@@ -36,6 +43,14 @@ function hasLegacyTtsProviderKeys(value: unknown): boolean {
     return false;
   }
   return LEGACY_TTS_PROVIDER_KEYS.some((key) => hasOwnKey(tts, key));
+}
+
+function hasLegacyTalkTopLevelKeys(value: unknown): boolean {
+  const talk = getRecord(value);
+  if (!talk) {
+    return false;
+  }
+  return LEGACY_TALK_TOP_LEVEL_KEYS.some((key) => hasOwnKey(talk, key));
 }
 
 function findLegacyPluginEntryTtsIssues(root: Record<string, unknown>): LegacyConfigIssue[] {
@@ -110,6 +125,12 @@ const LEGACY_CONFIG_RULES: LegacyConfigRule[] = [
     message:
       "messages.tts.<provider> keys (openai/elevenlabs/microsoft/edge) were removed; use messages.tts.providers.<provider> instead.",
     match: (value) => hasLegacyTtsProviderKeys(value),
+  },
+  {
+    path: ["talk"],
+    message:
+      "talk.* legacy provider fields were removed; use talk.providers.<provider> fields or the native qwen3-tts speech provider instead.",
+    match: (value) => hasLegacyTalkTopLevelKeys(value),
   },
 ];
 

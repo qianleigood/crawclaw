@@ -88,24 +88,32 @@ describe("web search provider config", () => {
   });
 });
 
-describe("talk.voiceAliases", () => {
-  it("accepts a string map of voice aliases", () => {
+describe("talk.providers.*.voiceAliases", () => {
+  it("accepts a provider string map of voice aliases", () => {
     const res = validateConfigObject({
       talk: {
-        voiceAliases: {
-          Clawd: "EXAVITQu4vr4xnSDxMaL",
-          Roger: "CwhRBWXzGAHq8TQ4Fs17",
+        providers: {
+          acme: {
+            voiceAliases: {
+              Clawd: "voice-clawd",
+              Roger: "voice-roger",
+            },
+          },
         },
       },
     });
     expect(res.ok).toBe(true);
   });
 
-  it("rejects non-string voice alias values", () => {
+  it("rejects non-string provider voice alias values", () => {
     const res = validateConfigObject({
       talk: {
-        voiceAliases: {
-          Clawd: 123,
+        providers: {
+          acme: {
+            voiceAliases: {
+              Clawd: 123,
+            },
+          },
         },
       },
     });
@@ -348,8 +356,8 @@ describe("config strict validation", () => {
       await writeCrawClawConfig(home, {
         messages: {
           tts: {
-            provider: "elevenlabs",
-            elevenlabs: {
+            provider: "openai",
+            openai: {
               apiKey: "test-key",
               voiceId: "voice-1",
             },

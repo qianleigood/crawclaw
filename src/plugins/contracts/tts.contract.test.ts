@@ -124,11 +124,13 @@ function createOpenAiTelephonyCfg(model: "tts-1" | "gpt-4o-mini-tts"): CrawClawC
     messages: {
       tts: {
         provider: "openai",
-        openai: {
-          apiKey: "test-key",
-          model,
-          voice: "alloy",
-          instructions: "Speak warmly",
+        providers: {
+          openai: {
+            apiKey: "test-key",
+            model,
+            voice: "alloy",
+            instructions: "Speak warmly",
+          },
         },
       },
     },
@@ -166,7 +168,8 @@ function buildTestOpenAISpeechProvider(): SpeechProviderPlugin {
     label: "OpenAI",
     autoSelectOrder: 10,
     resolveConfig: ({ rawConfig }) => {
-      const config = (rawConfig.openai ?? {}) as Record<string, unknown>;
+      const providers = (rawConfig.providers ?? {}) as Record<string, unknown>;
+      const config = (providers.openai ?? rawConfig.openai ?? {}) as Record<string, unknown>;
       return {
         ...config,
         baseUrl: resolveBaseUrl(
@@ -265,7 +268,12 @@ function buildTestMicrosoftSpeechProvider(): SpeechProviderPlugin {
     aliases: ["edge"],
     autoSelectOrder: 30,
     resolveConfig: ({ rawConfig }) => {
-      const edgeConfig = (rawConfig.edge ?? rawConfig.microsoft ?? {}) as Record<string, unknown>;
+      const providers = (rawConfig.providers ?? {}) as Record<string, unknown>;
+      const edgeConfig = (providers.edge ??
+        providers.microsoft ??
+        rawConfig.edge ??
+        rawConfig.microsoft ??
+        {}) as Record<string, unknown>;
       return {
         ...edgeConfig,
         outputFormat: edgeConfig.outputFormat ?? "audio-24khz-48kbitrate-mono-mp3",
@@ -282,10 +290,10 @@ function buildTestMicrosoftSpeechProvider(): SpeechProviderPlugin {
   };
 }
 
-function buildTestElevenLabsSpeechProvider(): SpeechProviderPlugin {
+function buildTestAcmeSpeechProvider(): SpeechProviderPlugin {
   return {
-    id: "elevenlabs",
-    label: "ElevenLabs",
+    id: "acme",
+    label: "Acme Speech",
     autoSelectOrder: 20,
     parseDirectiveToken: ({ key, value, currentOverrides }) => {
       if (key === "voiceid") {
@@ -319,15 +327,14 @@ function buildTestElevenLabsSpeechProvider(): SpeechProviderPlugin {
     },
     isConfigured: ({ providerConfig }) =>
       typeof (providerConfig as Record<string, unknown> | undefined)?.apiKey === "string" ||
-      typeof process.env.ELEVENLABS_API_KEY === "string" ||
-      typeof process.env.XI_API_KEY === "string",
+      typeof process.env.ACME_SPEECH_API_KEY === "string",
     synthesize: async () => ({
       audioBuffer: createAudioBuffer(),
       outputFormat: "mp3",
       fileExtension: ".mp3",
       voiceCompatible: true,
     }),
-    listVoices: async () => [{ id: "eleven", label: "Eleven" }],
+    listVoices: async () => [{ id: "acme", label: "Acme" }],
   };
 }
 
@@ -345,7 +352,7 @@ describe("tts", () => {
     registry.speechProviders = [
       { pluginId: "openai", provider: buildTestOpenAISpeechProvider(), source: "test" },
       { pluginId: "microsoft", provider: buildTestMicrosoftSpeechProvider(), source: "test" },
-      { pluginId: "elevenlabs", provider: buildTestElevenLabsSpeechProvider(), source: "test" },
+      { pluginId: "acme", provider: buildTestAcmeSpeechProvider(), source: "test" },
     ];
     const { cacheKey } = pluginLoaderTesting.resolvePluginLoadCacheContext({ config: {} });
     setActivePluginRegistry(registry, cacheKey);
@@ -373,7 +380,9 @@ describe("tts", () => {
           ...baseCfg,
           messages: {
             tts: {
-              edge: { outputFormat: "audio-24khz-96kbitrate-mono-mp3" },
+              providers: {
+                edge: { outputFormat: "audio-24khz-96kbitrate-mono-mp3" },
+              },
             },
           },
         } as CrawClawConfig,
@@ -392,10 +401,10 @@ describe("tts", () => {
     it("extracts overrides and strips directives when enabled", () => {
       const policy = resolveModelOverridePolicy({ enabled: true, allowProvider: true });
       const input =
-        "Hello [[tts:provider=elevenlabs voiceId=pMsXgVXv3BLzUgSXRplE stability=0.4 speed=1.1]] world\n\n" +
+        "Hello [[tts:provider=acme voiceId=voice-123 stability=0.4 speed=1.1]] world\n\n" +
         "[[tts:text]](laughs) Read the song once more.[[/tts:text]]";
       const result = parseTtsDirectives(input, policy);
-      const elevenlabsOverrides = result.overrides.providerOverrides?.elevenlabs as
+      const acmeOverrides = result.overrides.providerOverrides?.acme as
         | {
             voiceId?: string;
             voiceSettings?: { stability?: number; speed?: number };
@@ -404,10 +413,10 @@ describe("tts", () => {
 
       expect(result.cleanedText).not.toContain("[[tts:");
       expect(result.ttsText).toBe("(laughs) Read the song once more.");
-      expect(result.overrides.provider).toBe("elevenlabs");
-      expect(elevenlabsOverrides?.voiceId).toBe("pMsXgVXv3BLzUgSXRplE");
-      expect(elevenlabsOverrides?.voiceSettings?.stability).toBe(0.4);
-      expect(elevenlabsOverrides?.voiceSettings?.speed).toBe(1.1);
+      expect(result.overrides.provider).toBe("acme");
+      expect(acmeOverrides?.voiceId).toBe("voice-123");
+      expect(acmeOverrides?.voiceSettings?.stability).toBe(0.4);
+      expect(acmeOverrides?.voiceSettings?.speed).toBe(1.1);
     });
 
     it("accepts edge as a legacy microsoft provider override", () => {
@@ -588,28 +597,25 @@ describe("tts", () => {
         name: "openai key available",
         env: {
           OPENAI_API_KEY: "test-openai-key",
-          ELEVENLABS_API_KEY: undefined,
-          XI_API_KEY: undefined,
+          ACME_SPEECH_API_KEY: undefined,
         },
         prefsPath: "/tmp/tts-prefs-openai.json",
         expected: "openai",
       },
       {
-        name: "elevenlabs key available",
+        name: "acme key available",
         env: {
           OPENAI_API_KEY: undefined,
-          ELEVENLABS_API_KEY: "test-elevenlabs-key",
-          XI_API_KEY: undefined,
+          ACME_SPEECH_API_KEY: "test-acme-key",
         },
-        prefsPath: "/tmp/tts-prefs-elevenlabs.json",
-        expected: "elevenlabs",
+        prefsPath: "/tmp/tts-prefs-acme.json",
+        expected: "acme",
       },
       {
         name: "falls back to microsoft",
         env: {
           OPENAI_API_KEY: undefined,
-          ELEVENLABS_API_KEY: undefined,
-          XI_API_KEY: undefined,
+          ACME_SPEECH_API_KEY: undefined,
         },
         prefsPath: "/tmp/tts-prefs-microsoft.json",
         expected: "microsoft",
@@ -626,7 +632,7 @@ describe("tts", () => {
           providerConfigs: {
             openai: {},
             microsoft: {},
-            elevenlabs: {},
+            acme: {},
           },
           prefsPath: undefined,
           maxTextLength: 4000,
@@ -645,8 +651,10 @@ describe("tts", () => {
         messages: {
           tts: {
             provider: "edge",
-            edge: {
-              enabled: true,
+            providers: {
+              edge: {
+                enabled: true,
+              },
             },
           },
         },
@@ -880,7 +888,7 @@ describe("tts", () => {
         cfg: {
           ...baseCfg,
           messages: {
-            tts: { openai: { baseUrl: "http://my-server:9000/v1" } },
+            tts: { providers: { openai: { baseUrl: "http://my-server:9000/v1" } } },
           },
         } as CrawClawConfig,
         env: { OPENAI_TTS_BASE_URL: "http://localhost:8880/v1" },
@@ -891,7 +899,7 @@ describe("tts", () => {
         cfg: {
           ...baseCfg,
           messages: {
-            tts: { openai: { baseUrl: "http://my-server:9000/v1///" } },
+            tts: { providers: { openai: { baseUrl: "http://my-server:9000/v1///" } } },
           },
         } as CrawClawConfig,
         env: { OPENAI_TTS_BASE_URL: undefined },
@@ -971,7 +979,9 @@ describe("tts", () => {
         tts: {
           auto: "inbound",
           provider: "openai",
-          openai: { apiKey: "test-key", model: "gpt-4o-mini-tts", voice: "alloy" },
+          providers: {
+            openai: { apiKey: "test-key", model: "gpt-4o-mini-tts", voice: "alloy" },
+          },
         },
       },
     };

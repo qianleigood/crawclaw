@@ -6604,90 +6604,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
               additionalProperties: {},
             },
           },
-          voiceId: {
-            type: "string",
-          },
-          voiceAliases: {
-            type: "object",
-            propertyNames: {
-              type: "string",
-            },
-            additionalProperties: {
-              type: "string",
-            },
-          },
-          modelId: {
-            type: "string",
-          },
-          outputFormat: {
-            type: "string",
-          },
-          apiKey: {
-            anyOf: [
-              {
-                type: "string",
-              },
-              {
-                oneOf: [
-                  {
-                    type: "object",
-                    properties: {
-                      source: {
-                        type: "string",
-                        const: "env",
-                      },
-                      provider: {
-                        type: "string",
-                        pattern: "^[a-z][a-z0-9_-]{0,63}$",
-                      },
-                      id: {
-                        type: "string",
-                        pattern: "^[A-Z][A-Z0-9_]{0,127}$",
-                      },
-                    },
-                    required: ["source", "provider", "id"],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: "object",
-                    properties: {
-                      source: {
-                        type: "string",
-                        const: "file",
-                      },
-                      provider: {
-                        type: "string",
-                        pattern: "^[a-z][a-z0-9_-]{0,63}$",
-                      },
-                      id: {
-                        type: "string",
-                      },
-                    },
-                    required: ["source", "provider", "id"],
-                    additionalProperties: false,
-                  },
-                  {
-                    type: "object",
-                    properties: {
-                      source: {
-                        type: "string",
-                        const: "exec",
-                      },
-                      provider: {
-                        type: "string",
-                        pattern: "^[a-z][a-z0-9_-]{0,63}$",
-                      },
-                      id: {
-                        type: "string",
-                      },
-                    },
-                    required: ["source", "provider", "id"],
-                    additionalProperties: false,
-                  },
-                ],
-              },
-            ],
-          },
           interruptOnSpeech: {
             type: "boolean",
           },
@@ -11279,26 +11195,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
       help: "mDNS discovery configuration group for local network advertisement and discovery behavior tuning. Keep minimal mode for routine LAN discovery unless extra metadata is required.",
       tags: ["network"],
     },
-    "talk.voiceId": {
-      label: "Talk Voice ID",
-      help: "Legacy ElevenLabs default voice ID for Talk mode. Prefer talk.providers.elevenlabs.voiceId.",
-      tags: ["media"],
-    },
-    "talk.voiceAliases": {
-      label: "Talk Voice Aliases",
-      help: 'Use this legacy ElevenLabs voice alias map (for example {"Clawd":"EXAVITQu4vr4xnSDxMaL"}) only during migration. Prefer talk.providers.elevenlabs.voiceAliases.',
-      tags: ["media"],
-    },
-    "talk.modelId": {
-      label: "Talk Model ID",
-      help: "Legacy ElevenLabs model ID for Talk mode (default: eleven_v3). Prefer talk.providers.elevenlabs.modelId.",
-      tags: ["models", "media"],
-    },
-    "talk.outputFormat": {
-      label: "Talk Output Format",
-      help: "Use this legacy ElevenLabs output format for Talk mode (for example pcm_44100 or mp3_44100_128) only during migration. Prefer talk.providers.elevenlabs.outputFormat.",
-      tags: ["media"],
-    },
     "talk.interruptOnSpeech": {
       label: "Talk Interrupt on Speech",
       help: "If true (default), stop assistant speech when the user starts speaking in Talk mode. Keep enabled for conversational turn-taking.",
@@ -11442,12 +11338,12 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     },
     "talk.provider": {
       label: "Talk Active Provider",
-      help: 'Active Talk provider id (for example "elevenlabs").',
+      help: "Active Talk provider id.",
       tags: ["media"],
     },
     "talk.providers": {
       label: "Talk Provider Settings",
-      help: "Provider-specific Talk settings keyed by provider id. During migration, prefer this over legacy talk.* keys.",
+      help: "Provider-specific Talk settings keyed by provider id. Use this shape for Talk integrations so speech providers stay decoupled from core config schema.",
       tags: ["media"],
     },
     "talk.providers.*.voiceId": {
@@ -11473,12 +11369,6 @@ export const GENERATED_BASE_CONFIG_SCHEMA = {
     "talk.providers.*.apiKey": {
       label: "Talk Provider API Key",
       help: "Provider API key for Talk mode.",
-      tags: ["security", "auth", "media"],
-      sensitive: true,
-    },
-    "talk.apiKey": {
-      label: "Talk API Key",
-      help: "Use this legacy ElevenLabs API key for Talk mode only during migration, and keep secrets in env-backed storage. Prefer talk.providers.elevenlabs.apiKey (fallback: ELEVENLABS_API_KEY).",
       tags: ["security", "auth", "media"],
       sensitive: true,
     },

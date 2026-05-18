@@ -38,7 +38,7 @@ CrawClaw can pick up credentials from:
 - **Auth profiles** (per-agent, stored in `auth-profiles.json`).
 - **Environment variables** (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
 - **Config** (`models.providers.*.apiKey`, `plugins.entries.*.config.*`,
-  `talk.apiKey`).
+  `talk.providers.*.apiKey`).
 - **Skills** (`skills.entries.<name>.apiKey`) which may export keys to the skill process env.
 
 ## Features that can spend keys

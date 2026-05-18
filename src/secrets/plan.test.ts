@@ -18,11 +18,11 @@ describe("secrets plan validation", () => {
 
   it("accepts expanded target types beyond legacy surface", () => {
     const resolved = resolveValidatedPlanTarget({
-      type: "talk.apiKey",
-      path: "talk.apiKey",
-      pathSegments: ["talk", "apiKey"],
+      type: "talk.providers.*.apiKey",
+      path: "talk.providers.acme.apiKey",
+      pathSegments: ["talk", "providers", "acme", "apiKey"],
     });
-    expect(resolved?.pathSegments).toEqual(["talk", "apiKey"]);
+    expect(resolved?.pathSegments).toEqual(["talk", "providers", "acme", "apiKey"]);
   });
 
   it("accepts model provider header targets with wildcard-backed paths", () => {
@@ -43,7 +43,7 @@ describe("secrets plan validation", () => {
 
   it("rejects target paths that do not match the registered shape", () => {
     const resolved = resolveValidatedPlanTarget({
-      type: "talk.apiKey",
+      type: "talk.providers.*.apiKey",
       path: "talk.provider",
       pathSegments: ["talk", "provider"],
     });
@@ -58,9 +58,9 @@ describe("secrets plan validation", () => {
       generatedBy: "manual",
       targets: [
         {
-          type: "talk.apiKey",
-          path: "talk.apiKey",
-          pathSegments: ["talk", "apiKey"],
+          type: "talk.providers.*.apiKey",
+          path: "talk.providers.acme.apiKey",
+          pathSegments: ["talk", "providers", "acme", "apiKey"],
           ref: { source: "env", provider: "default", id: "TALK_API_KEY" },
         },
       ],
@@ -112,9 +112,9 @@ describe("secrets plan validation", () => {
         generatedBy: "manual",
         targets: [
           {
-            type: "talk.apiKey",
-            path: "talk.apiKey",
-            pathSegments: ["talk", "apiKey"],
+            type: "talk.providers.*.apiKey",
+            path: "talk.providers.acme.apiKey",
+            pathSegments: ["talk", "providers", "acme", "apiKey"],
             ref: { source: "exec", provider: "vault", id },
           },
         ],
@@ -132,9 +132,9 @@ describe("secrets plan validation", () => {
         generatedBy: "manual",
         targets: [
           {
-            type: "talk.apiKey",
-            path: "talk.apiKey",
-            pathSegments: ["talk", "apiKey"],
+            type: "talk.providers.*.apiKey",
+            path: "talk.providers.acme.apiKey",
+            pathSegments: ["talk", "providers", "acme", "apiKey"],
             ref: { source: "exec", provider: "vault", id },
           },
         ],

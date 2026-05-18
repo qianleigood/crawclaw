@@ -239,8 +239,7 @@ function resolveRawProviderConfig(
     return {};
   }
   const rawProviders = asProviderConfigMap(raw.providers);
-  const direct = rawProviders[providerId] ?? (raw as Record<string, unknown>)[providerId];
-  return asProviderConfig(direct);
+  return asProviderConfig(rawProviders[providerId]);
 }
 
 function resolveLazyProviderConfig(
@@ -252,11 +251,11 @@ function resolveLazyProviderConfig(
     normalizeConfiguredSpeechProviderId(providerId) ?? providerId.trim().toLowerCase();
   const existing = config.providerConfigs[canonical];
   const effectiveCfg = cfg ?? config.sourceConfig;
-  if (existing && !effectiveCfg) {
+  const resolvedProvider = getSpeechProvider(canonical, effectiveCfg);
+  if (existing && (!effectiveCfg || !resolvedProvider?.resolveConfig)) {
     return existing;
   }
   const rawConfig = resolveRawProviderConfig(config.rawConfig, canonical);
-  const resolvedProvider = getSpeechProvider(canonical, effectiveCfg);
   const next =
     effectiveCfg && resolvedProvider?.resolveConfig
       ? resolvedProvider.resolveConfig({
@@ -278,28 +277,6 @@ function collectDirectProviderConfigEntries(raw: TtsConfig): Record<string, Spee
   for (const [providerId, value] of Object.entries(rawProviders)) {
     const normalized = normalizeConfiguredSpeechProviderId(providerId) ?? providerId;
     entries[normalized] = asProviderConfig(value);
-  }
-  const reservedKeys = new Set([
-    "auto",
-    "enabled",
-    "maxTextLength",
-    "mode",
-    "modelOverrides",
-    "prefsPath",
-    "provider",
-    "providers",
-    "summaryModel",
-    "timeoutMs",
-  ]);
-  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (reservedKeys.has(key)) {
-      continue;
-    }
-    if (typeof value !== "object" || value === null || Array.isArray(value)) {
-      continue;
-    }
-    const normalized = normalizeConfiguredSpeechProviderId(key) ?? key;
-    entries[normalized] ??= asProviderConfig(value);
   }
   return entries;
 }

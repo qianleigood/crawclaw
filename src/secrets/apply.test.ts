@@ -525,7 +525,11 @@ describe("secrets apply", () => {
       `${JSON.stringify(
         {
           talk: {
-            apiKey: "sk-talk-plaintext", // pragma: allowlist secret
+            providers: {
+              acme: {
+                apiKey: "sk-talk-plaintext", // pragma: allowlist secret
+              },
+            },
           },
         },
         null,
@@ -541,9 +545,9 @@ describe("secrets apply", () => {
       generatedBy: "manual",
       targets: [
         {
-          type: "talk.apiKey",
-          path: "talk.apiKey",
-          pathSegments: ["talk", "apiKey"],
+          type: "talk.providers.*.apiKey",
+          path: "talk.providers.acme.apiKey",
+          pathSegments: ["talk", "providers", "acme", "apiKey"],
           ref: { source: "env", provider: "default", id: "OPENAI_API_KEY" },
         },
       ],
@@ -558,9 +562,9 @@ describe("secrets apply", () => {
     expect(result.changed).toBe(true);
 
     const nextConfig = JSON.parse(await fs.readFile(fixture.configPath, "utf8")) as {
-      talk?: { apiKey?: unknown };
+      talk?: { providers?: { acme?: { apiKey?: unknown } } };
     };
-    expect(nextConfig.talk?.apiKey).toEqual({
+    expect(nextConfig.talk?.providers?.acme?.apiKey).toEqual({
       source: "env",
       provider: "default",
       id: "OPENAI_API_KEY",
