@@ -459,7 +459,7 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         google_application_credentials_env =
             json_string(crawclaw_providers::GOOGLE_APPLICATION_CREDENTIALS_ENV),
         oauth_provider_auth_env_vars =
-            render_static_string_array_inline(crawclaw_providers::OAUTH_PROVIDER_AUTH_ENV_VARS),
+            render_static_string_array(crawclaw_providers::OAUTH_PROVIDER_AUTH_ENV_VARS),
         auth_cooldown_bypass_provider_ids = render_static_string_array_inline(
             crawclaw_providers::AUTH_COOLDOWN_BYPASS_PROVIDER_IDS,
         ),
@@ -1279,7 +1279,7 @@ mod tests {
             "export const GOOGLE_APPLICATION_CREDENTIALS_ENV = \"GOOGLE_APPLICATION_CREDENTIALS\";"
         ));
         assert!(source.contains(
-            "export const OAUTH_PROVIDER_AUTH_ENV_VARS = [\"ANTHROPIC_OAUTH_TOKEN\", \"MINIMAX_OAUTH_TOKEN\"] as const;"
+            "export const OAUTH_PROVIDER_AUTH_ENV_VARS = [\n  \"ANTHROPIC_OAUTH_TOKEN\",\n  \"MINIMAX_OAUTH_TOKEN\",\n] as const;"
         ));
         assert!(source.contains(
             "export const AUTH_COOLDOWN_BYPASS_PROVIDER_IDS = [\"openrouter\", \"kilocode\"] as const;"
