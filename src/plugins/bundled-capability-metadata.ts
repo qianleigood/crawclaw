@@ -59,6 +59,12 @@ export const BUNDLED_PROVIDER_PLUGIN_IDS = collectPluginIds((entry) => entry.pro
 
 export const BUNDLED_WEB_FETCH_PLUGIN_IDS = collectPluginIds((entry) => entry.webFetchProviderIds);
 
+export const BUNDLED_WEB_FETCH_PROVIDER_PLUGIN_IDS = Object.fromEntries(
+  BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS.flatMap((entry) =>
+    entry.webFetchProviderIds.map((providerId) => [providerId, entry.pluginId] as const),
+  ).toSorted(([left], [right]) => left.localeCompare(right)),
+) as Readonly<Record<string, string>>;
+
 export const BUNDLED_RUNTIME_CONTRACT_PLUGIN_IDS = [
   ...new Set(
     BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS.filter(

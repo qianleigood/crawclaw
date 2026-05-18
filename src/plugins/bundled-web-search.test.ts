@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from "vitest";
 import type { CrawClawConfig } from "../config/config.js";
-import { BUNDLED_WEB_SEARCH_PLUGIN_IDS } from "./bundled-web-search-ids.js";
+import { BUNDLED_WEB_SEARCH_PLUGIN_IDS } from "./bundled-capability-metadata.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { isApiKeylessBundledWebSearchPluginId } from "./web-search-provider-policy.js";
 

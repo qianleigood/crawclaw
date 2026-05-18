@@ -2,8 +2,8 @@ import type { CrawClawConfig } from "../config/config.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { callGateway } from "../gateway/call.js";
 import { validateSecretsResolveResult } from "../gateway/protocol/index.js";
-import { resolveBundledWebFetchPluginId } from "../plugins/bundled-web-fetch-provider-ids.js";
-import { resolveBundledWebSearchPluginId } from "../plugins/bundled-web-search-provider-ids.js";
+import { resolveBundledWebFetchPluginId } from "../plugins/bundled-web-fetch.js";
+import { resolveBundledWebSearchPluginId } from "../plugins/bundled-web-search.js";
 import {
   analyzeCommandSecretAssignmentsFromSnapshot,
   type UnresolvedCommandSecretAssignment,

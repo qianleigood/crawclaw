@@ -1,7 +1,7 @@
 import path from "node:path";
 import { resolveAgentWorkspaceDir, resolveDefaultAgentId } from "../agents/agent-scope.js";
 import { withBundledPluginAllowlistCompat } from "../plugins/bundled-compat.js";
-import { listBundledWebSearchPluginIds } from "../plugins/bundled-web-search-ids.js";
+import { listBundledWebSearchPluginIds } from "../plugins/bundled-web-search.js";
 import {
   normalizePluginsConfig,
   resolveEffectivePluginActivationState,

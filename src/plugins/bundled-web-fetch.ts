@@ -1,5 +1,7 @@
-import { BUNDLED_WEB_FETCH_PLUGIN_IDS } from "./bundled-web-fetch-ids.js";
-import { resolveBundledWebFetchPluginId as resolveBundledWebFetchPluginIdFromMap } from "./bundled-web-fetch-provider-ids.js";
+import {
+  BUNDLED_WEB_FETCH_PLUGIN_IDS,
+  BUNDLED_WEB_FETCH_PROVIDER_PLUGIN_IDS,
+} from "./bundled-capability-metadata.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { listNativeWebFetchProviderEntries } from "./native-web-provider-entries.js";
@@ -28,5 +30,12 @@ export function listBundledWebFetchProviders(): PluginWebFetchProviderEntry[] {
 }
 
 export function resolveBundledWebFetchPluginId(providerId: string | undefined): string | undefined {
-  return resolveBundledWebFetchPluginIdFromMap(providerId);
+  if (!providerId) {
+    return undefined;
+  }
+  const normalizedProviderId = providerId.trim().toLowerCase();
+  if (!(normalizedProviderId in BUNDLED_WEB_FETCH_PROVIDER_PLUGIN_IDS)) {
+    return undefined;
+  }
+  return BUNDLED_WEB_FETCH_PROVIDER_PLUGIN_IDS[normalizedProviderId];
 }

@@ -1,7 +1,7 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
-import { resolveBundledWebFetchPluginId } from "../plugins/bundled-web-fetch-provider-ids.js";
-import { resolveBundledWebSearchPluginId } from "../plugins/bundled-web-search-provider-ids.js";
+import { resolveBundledWebFetchPluginId } from "../plugins/bundled-web-fetch.js";
+import { resolveBundledWebSearchPluginId } from "../plugins/bundled-web-search.js";
 import type {
   PluginWebFetchProviderEntry,
   PluginWebSearchProviderEntry,
