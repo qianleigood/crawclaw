@@ -85,17 +85,14 @@ session side effects.
 - Resume logic can fall back to agent runtime metadata when a plain session
   lookup is not enough.
 - Inspection and ops tooling read the same persisted runtime/task metadata
-  through CrawClaw Desktop or the local Gateway API, CrawClaw Desktop or the local Gateway API, and the gateway
-  `agent.inspect` RPC.
+  through CrawClaw Desktop, the local Gateway API, and the `agent.inspect` RPC.
 
 ## Context Archive
 
 Task-backed runs can also be captured into Context Archive.
 
-- `agent inspect` can surface archive refs, query-context diagnostics, and a
+- `agent.inspect` can surface archive refs, query-context diagnostics, and a
   compact run timeline reconstructed from archived lifecycle events
-- `agent export-context` can export matching archive runs as a replay/debug
-  bundle
 - Context Archive keeps the replay-oriented truth layer for model-visible
   context, tool decisions, and post-turn completion state
 

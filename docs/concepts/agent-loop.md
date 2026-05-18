@@ -94,12 +94,9 @@ the state that the loop, guard, and completion systems already persist.
 Operational surfaces built on this snapshot today:
 
 - CrawClaw Desktop or the local Gateway API
-- CrawClaw Desktop or the local Gateway API
-- CrawClaw Desktop or the local Gateway API
-- CrawClaw Desktop or the local Gateway API
 - gateway RPC `agent.inspect`
 
-`agent inspect` now also reconstructs a compact lifecycle timeline from archived
+`agent.inspect` now also reconstructs a compact lifecycle timeline from archived
 `run.lifecycle.*` events, so provider/tool/subagent/compaction decisions can be
 read back from one inspection surface instead of stitching together multiple
 debug logs.

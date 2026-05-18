@@ -15,8 +15,8 @@ advertised methods, advertised events, the stable JSON Schema snapshot, and the
 generated TypeScript schema read model.
 
 TypeBox still exists in the repository for narrower TypeScript helper surfaces
-that run in React/Node tooling, especially agent and tool schema helpers. Keep
-those helpers scoped to the TypeScript code that consumes them.
+that run in React/Node tooling, especially agent and tool schema compatibility
+types. Keep those helpers scoped to the TypeScript code that consumes them.
 
 Use this split:
 
@@ -68,9 +68,9 @@ contract.
 ## TypeBox helper usage
 
 Use TypeBox only when a TypeScript-owned helper genuinely needs a local runtime
-schema. Current examples include agent/tool schema helpers such as:
+schema or a compatibility type for still-existing TypeScript callers. Current
+examples include agent/tool schema surfaces such as:
 
-- `src/agents/schema/typebox.ts`
 - `src/agents/session-client/schema-types.ts`
 - TypeScript tests and stubs that validate agent/tool schemas
 
