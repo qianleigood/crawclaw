@@ -1,33 +1,34 @@
 ---
-summary: "TypeBox schemas for the Gateway protocol and related typed gateway contracts"
+summary: "Gateway protocol schema pipeline and TypeScript validator surface"
 read_when:
   - Updating protocol schemas or codegen
-title: "TypeBox"
+title: "Gateway protocol schemas"
 ---
 
-# TypeBox as protocol schema source of truth
+# Gateway protocol schema pipeline
 
-Last updated: 2026-04-17
+Last updated: 2026-05-18
 
-TypeBox is a TypeScript-first schema library. We use it to define the **Gateway
-WebSocket protocol** (handshake, request/response, server events). Those schemas
-drive **runtime validation**, **JSON Schema export**, and generated client
-models.
+The packaged **Gateway WebSocket protocol** artifacts are Rust-owned. The Rust
+Gateway contract module owns the protocol version, advertised method list,
+advertised event list, and the stable JSON Schema snapshot that is emitted for
+packaging.
 
-For browser-facing gateway contracts, TypeBox is paired with the shared
-protocol schemas in `src/gateway/protocol/schema.ts` and related schema
-modules.
+TypeBox remains in the repository for TypeScript client validators, typed
+helpers, and tests that still run in the React/Node tooling layer. It is not the
+packaged protocol artifact source of truth.
 
 Use this distinction:
 
-- **TypeBox / ProtocolSchemas**: protocol object shapes and reusable schemas
-- **gateway schema modules**: typed request/response ownership, shared payloads,
-  and codegen inputs for gateway clients
+- **Rust Gateway protocol contract**: protocol metadata and packaged JSON Schema
+  artifacts
+- **TypeBox / ProtocolSchemas**: TypeScript validator and client type surface
+  that must stay aligned with the Rust contract
 
 If you want the higher-level protocol context, start with
 [Gateway architecture](/concepts/architecture). For browser-facing contract
-surfaces, inspect `src/gateway/protocol/schema.ts` and the related
-`schema/*.ts` modules in the repository.
+surfaces, inspect `src/gateway/protocol/schema.ts`, the related `schema/*.ts`
+modules, and the generated Rust metadata bridge.
 
 ## Mental model (30 seconds)
 
@@ -62,40 +63,50 @@ Common methods + events:
 | Sessions  | `sessions.list`, `sessions.patch`, `sessions.delete`      | session admin                      |
 | Events    | `tick`, `presence`, `agent`, `chat`, `health`, `shutdown` | server push                        |
 
-Authoritative pieces now live in different layers:
+Current ownership is split deliberately:
 
-- protocol schemas: `src/gateway/protocol/schema/*`
-- shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
-- gateway protocol schema index: `src/gateway/protocol/schema.ts`
+- Rust protocol metadata and JSON Schema snapshot:
+  `crates/crawclaw-gateway/src/protocol_contract.rs`
+- stable embedded JSON Schema:
+  `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
+- generated TypeScript protocol metadata:
+  `src/generated/gateway/protocol-contract.generated.ts`
+- TypeScript validator/client schema surface: `src/gateway/protocol/schema/*`
 - gateway dispatch/runtime behavior: `crates/crawclaw-gateway/src/lib.rs`
 
 ## Where the schemas live
 
-- Source modules: `src/gateway/protocol/schema/*`
+- Rust contract module: `crates/crawclaw-gateway/src/protocol_contract.rs`
+- Embedded JSON Schema snapshot:
+  `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
+- Generated TypeScript metadata bridge:
+  `src/generated/gateway/protocol-contract.generated.ts`
+- TypeScript validator modules: `src/gateway/protocol/schema/*`
 - Shared protocol exports: `src/gateway/protocol/schema/protocol-schemas.ts`
 - Runtime validators (AJV): `src/gateway/protocol/index.ts`
 - Gateway protocol schema index: `src/gateway/protocol/schema.ts`
 - Server handshake and method dispatch/runtime behavior: `crates/crawclaw-gateway/src/lib.rs`
-- Rust JSON Schema emitter snapshot:
-  `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
 - Generated JSON Schema: `dist/protocol.schema.json`
 
 ## Current pipeline
 
 - `pnpm protocol:gen`
-  - calls the Rust Gateway emitter and writes JSON Schema (draft‑07) to
-    `dist/protocol.schema.json`
+  - calls the Rust Gateway emitter
+  - writes JSON Schema to `dist/protocol.schema.json`
+  - writes Rust-owned protocol metadata to
+    `src/generated/gateway/protocol-contract.generated.ts`
 - `pnpm protocol:check`
-  - runs the JSON Schema generator and verifies the output is committed
+  - runs the Rust generator and verifies tracked generated outputs are committed
 
 ## How the schemas are used at runtime
 
-- **Server side**: every inbound frame is validated with AJV. The handshake only
-  accepts a `connect` request whose params match `ConnectParams`.
+- **Server side**: the Rust Gateway owns handshake, method dispatch, auth, and
+  runtime behavior. It deserializes WebSocket frames, accepts `connect` first,
+  and validates method payloads in the owning Rust handlers.
 - **Client side**: generated and test clients validate event and response
-  frames before using them.
+  frames with the TypeScript AJV helpers before using them.
 - **Method surface**: the Gateway advertises the supported `methods` and
-  `events` in `hello-ok`.
+  `events` in `hello-ok` from Rust protocol metadata.
 
 ## Example frames
 
@@ -206,7 +217,21 @@ ws.on("message", (data) => {
 
 Example: add a new `system.echo` request that returns `{ ok: true, text }`.
 
-1. **Schema (source of truth)**
+1. **Rust protocol metadata and behavior**
+
+Add the method to `GATEWAY_PROTOCOL_METHODS` in
+`crates/crawclaw-gateway/src/protocol_contract.rs`.
+
+Add the Rust Gateway method in `crates/crawclaw-gateway/src/lib.rs`:
+
+```rust
+"system.echo" => Ok(json!({
+    "ok": true,
+    "text": params.get("text").and_then(Value::as_str).unwrap_or_default(),
+})),
+```
+
+2. **TypeScript validator/client schema**
 
 Add to `src/gateway/protocol/schema.ts`:
 
@@ -234,27 +259,13 @@ export type SystemEchoParams = Static<typeof SystemEchoParamsSchema>;
 export type SystemEchoResult = Static<typeof SystemEchoResultSchema>;
 ```
 
-2. **Validation**
+3. **Validation**
 
 In `src/gateway/protocol/index.ts`, export an AJV validator:
 
 ```ts
 export const validateSystemEchoParams = ajv.compile<SystemEchoParams>(SystemEchoParamsSchema);
 ```
-
-3. **Gateway behavior**
-
-Add the Rust Gateway method in `crates/crawclaw-gateway/src/lib.rs`:
-
-```rust
-"system.echo" => Ok(json!({
-    "ok": true,
-    "text": params.get("text").and_then(Value::as_str).unwrap_or_default(),
-})),
-```
-
-Keep the TypeScript protocol schema/client types in sync, but do not add a
-new TypeScript Gateway runtime handler. The local Gateway runtime is Rust-owned.
 
 4. **Regenerate**
 
@@ -278,7 +289,9 @@ Unknown frame types are preserved as raw payloads for forward compatibility.
 
 ## Versioning + compatibility
 
-- `PROTOCOL_VERSION` lives in `src/gateway/protocol/schema.ts`.
+- `GATEWAY_PROTOCOL_VERSION` lives in
+  `crates/crawclaw-gateway/src/protocol_contract.rs`.
+- TypeScript exports `PROTOCOL_VERSION` from the Rust-generated metadata bridge.
 - Clients send `minProtocol` + `maxProtocol`; the server rejects mismatches.
 - The Swift models keep unknown frame types to avoid breaking older clients.
 
@@ -301,6 +314,8 @@ raw file is typically available at:
 
 ## When you change schemas
 
-1. Update the TypeBox schemas and the Rust protocol contract snapshot together.
-2. Run `pnpm protocol:check`.
-3. Commit the regenerated schema artifacts.
+1. Update the Rust protocol contract module and stable snapshot.
+2. Update the TypeScript validator/client schemas only when browser-facing
+   typed clients need the shape.
+3. Run `pnpm protocol:check`.
+4. Commit the regenerated schema artifacts.

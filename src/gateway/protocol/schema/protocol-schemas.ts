@@ -1,4 +1,5 @@
 import type { TSchema } from "@sinclair/typebox";
+import { GATEWAY_PROTOCOL_VERSION } from "../../../generated/gateway/protocol-contract.generated.js";
 import {
   AgentRuntimeCancelParamsSchema,
   AgentRuntimeCancelResultSchema,
@@ -457,4 +458,4 @@ export const ProtocolSchemas = {
   ShutdownEvent: ShutdownEventSchema,
 } satisfies Record<string, TSchema>;
 
-export const PROTOCOL_VERSION = 3 as const;
+export const PROTOCOL_VERSION = GATEWAY_PROTOCOL_VERSION;

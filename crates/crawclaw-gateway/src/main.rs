@@ -25,6 +25,13 @@ async fn main() {
         }
         return;
     }
+    if args.first().map(String::as_str) == Some("emit-protocol-artifacts") {
+        if let Err(error) = emit_protocol_artifacts(args.into_iter().skip(1).collect()) {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+        return;
+    }
     let mut index = 0;
 
     while index < args.len() {
@@ -80,18 +87,72 @@ fn emit_protocol_schema(args: Vec<String>) -> Result<(), String> {
     if args.len() != 2 || args[0] != "--output" {
         return Err("usage: crawclaw-gateway emit-protocol-schema --output <path>".to_string());
     }
-    let output = PathBuf::from(&args[1]);
+    write_protocol_artifact(
+        &PathBuf::from(&args[1]),
+        crawclaw_gateway::gateway_protocol_schema_json(),
+        "schema",
+    )
+}
+
+fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
+    let mut schema_output: Option<PathBuf> = None;
+    let mut metadata_output: Option<PathBuf> = None;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--schema-output" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--schema-output requires a value".to_string());
+                };
+                schema_output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--metadata-output" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--metadata-output requires a value".to_string());
+                };
+                metadata_output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                return Err(format!(
+                    "unsupported emit-protocol-artifacts option: {other}"
+                ))
+            }
+        }
+    }
+    let schema_output = schema_output.ok_or_else(|| {
+        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> --metadata-output <path>"
+            .to_string()
+    })?;
+    let metadata_output = metadata_output.ok_or_else(|| {
+        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> --metadata-output <path>"
+            .to_string()
+    })?;
+    write_protocol_artifact(
+        &schema_output,
+        crawclaw_gateway::gateway_protocol_schema_json(),
+        "schema",
+    )?;
+    write_protocol_artifact(
+        &metadata_output,
+        &crawclaw_gateway::gateway_protocol_metadata_ts(),
+        "metadata",
+    )
+}
+
+fn write_protocol_artifact(output: &PathBuf, contents: &str, label: &str) -> Result<(), String> {
     if let Some(parent) = output.parent() {
         std::fs::create_dir_all(parent).map_err(|error| {
             format!(
-                "failed to create protocol schema output dir {}: {error}",
+                "failed to create protocol {label} output dir {}: {error}",
                 parent.display()
             )
         })?;
     }
-    std::fs::write(&output, crawclaw_gateway::gateway_protocol_schema_json()).map_err(|error| {
+    std::fs::write(output, contents).map_err(|error| {
         format!(
-            "failed to write protocol schema artifact {}: {error}",
+            "failed to write protocol {label} artifact {}: {error}",
             output.display()
         )
     })?;
@@ -147,6 +208,6 @@ fn exit_usage(message: &str) -> ! {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH] | call --method <name> [--params-json JSON] | emit-protocol-schema --output <path>"
+        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH] | call --method <name> [--params-json JSON] | emit-protocol-schema --output <path> | emit-protocol-artifacts --schema-output <path> --metadata-output <path>"
     );
 }

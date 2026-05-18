@@ -171,10 +171,13 @@ Method scope is only the first gate. Some slash commands reached through
 
 ## Versioning
 
-- `PROTOCOL_VERSION` lives in `src/gateway/protocol/schema.ts`.
+- `GATEWAY_PROTOCOL_VERSION` lives in
+  `crates/crawclaw-gateway/src/protocol_contract.rs`; TypeScript re-exports the
+  Rust-generated value as `PROTOCOL_VERSION`.
 - Clients send `minProtocol` + `maxProtocol`; the server rejects mismatches.
-- TypeScript schemas still back Gateway AJV validators and typed clients.
-- The packaged JSON Schema artifact is emitted by the Rust Gateway contract snapshot:
+- TypeScript schemas still back typed clients and client-side AJV validators.
+- The packaged JSON Schema and protocol metadata artifacts are emitted by the
+  Rust Gateway contract snapshot:
   - `pnpm protocol:gen`
   - `pnpm protocol:check`
 
@@ -206,6 +209,7 @@ in addition to device/client/role/scopes/token/nonce fields.
 
 This protocol exposes the **full gateway API** (status, channels, models, chat,
 agent, sessions, approvals, etc.). The runtime validator surface is still
-implemented by the TypeBox schemas in `src/gateway/protocol/schema.ts`; the
-generated JSON Schema artifact is emitted from the Rust Gateway contract
-snapshot.
+implemented by the Rust Gateway. The generated JSON Schema artifact and
+TypeScript protocol metadata bridge are emitted from the Rust Gateway contract
+snapshot; TypeBox remains for browser-facing client validators and typed helper
+surfaces.

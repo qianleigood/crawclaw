@@ -8,6 +8,9 @@ This directory defines the Gateway wire contract for operator clients.
   - `docs/gateway/protocol.md`
   - `docs/concepts/architecture.md`
 - Definition files:
+  - `crates/crawclaw-gateway/src/protocol_contract.rs`
+  - `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
+  - `src/generated/gateway/protocol-contract.generated.ts`
   - `src/gateway/protocol/schema.ts`
   - `src/gateway/protocol/schema/*.ts`
   - `src/gateway/protocol/index.ts`
@@ -17,7 +20,9 @@ This directory defines the Gateway wire contract for operator clients.
 - Treat schema changes as protocol changes, not local refactors.
 - Prefer additive evolution. If a change is incompatible, handle versioning
   explicitly and update all affected clients.
-- Keep schema, runtime validators, docs, tests, and generated client artifacts
-  in sync.
+- Rust owns protocol metadata and packaged generated artifacts. Keep the
+  TypeScript validator/client schemas, docs, tests, and generated artifacts in
+  sync with that Rust contract.
 - New Gateway methods, events, or payload fields should land through the typed
-  protocol definitions here rather than ad hoc JSON shapes elsewhere.
+  protocol definitions here and the Rust protocol contract rather than ad hoc
+  JSON shapes elsewhere.

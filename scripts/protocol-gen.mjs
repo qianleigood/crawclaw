@@ -4,11 +4,29 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const outputPath = path.join(repoRoot, "dist", "protocol.schema.json");
+const schemaOutputPath = path.join(repoRoot, "dist", "protocol.schema.json");
+const metadataOutputPath = path.join(
+  repoRoot,
+  "src",
+  "generated",
+  "gateway",
+  "protocol-contract.generated.ts",
+);
 
 const result = spawnSync(
   "cargo",
-  ["run", "-q", "-p", "crawclaw-gateway", "--", "emit-protocol-schema", "--output", outputPath],
+  [
+    "run",
+    "-q",
+    "-p",
+    "crawclaw-gateway",
+    "--",
+    "emit-protocol-artifacts",
+    "--schema-output",
+    schemaOutputPath,
+    "--metadata-output",
+    metadataOutputPath,
+  ],
   {
     cwd: repoRoot,
     encoding: "utf8",
