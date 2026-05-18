@@ -81,7 +81,6 @@ export function createPluginLoadResult(
     webFetchProviders: [],
     webSearchProviders: [],
     hooks: [],
-    services: [],
     commands: [],
     ...rest,
   };

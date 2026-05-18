@@ -4,7 +4,6 @@ import { createEmptyPluginRegistry } from "./registry-empty.js";
 import type {
   WebFetchProviderPlugin,
   CrawClawPluginCommandDefinition,
-  CrawClawPluginService,
   PluginConfigUiHint,
   PluginDiagnostic,
   PluginBundleFormat,
@@ -32,14 +31,6 @@ export type WorkspaceHookRegistration = {
   pluginId: string;
   entry: HookEntry;
   events: string[];
-  source: string;
-  rootDir?: string;
-};
-
-export type PluginServiceRegistration = {
-  pluginId: string;
-  pluginName?: string;
-  service: CrawClawPluginService;
   source: string;
   rootDir?: string;
 };
@@ -92,7 +83,6 @@ export type PluginRegistry = {
   hooks: WorkspaceHookRegistration[];
   webFetchProviders: PluginWebFetchProviderRegistration[];
   webSearchProviders: PluginWebSearchProviderRegistration[];
-  services: PluginServiceRegistration[];
   commands: PluginCommandRegistration[];
   diagnostics: PluginDiagnostic[];
 };

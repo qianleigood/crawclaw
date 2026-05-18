@@ -119,9 +119,9 @@ Looking for third-party plugins? See [Community Plugins](/plugins/community).
 | `slots`          | Exclusive slot selectors (e.g. `memory`) |
 | `entries.\<id\>` | Per-plugin toggles + config              |
 
-Config changes apply through Gateway live reconfigure. Plugins that implement a
-dedicated reconfigure hook receive the new config directly; older plugin services
-fall back to stop/start without restarting the Gateway process.
+Config changes apply through Gateway live reconfigure. Native plugin descriptors
+are re-read from the Rust runtime; CrawClaw no longer starts TypeScript plugin
+services during desktop reconfigure.
 
 <Accordion title="Plugin states: disabled vs missing vs invalid">
   - **Disabled**: plugin exists but enablement rules turned it off. Config is preserved.

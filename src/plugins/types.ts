@@ -9,7 +9,7 @@ import type {
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { SecretInputMode } from "./provider-auth-types.js";
 
-/** Logger passed into plugin registration, services, and CLI surfaces. */
+/** Logger passed into plugin registration and CLI surfaces. */
 export type PluginLogger = {
   debug?: (message: string) => void;
   info: (message: string) => void;
@@ -235,23 +235,6 @@ export type CrawClawPluginCommandDefinition = {
   requireAuth?: boolean;
   /** The handler function */
   handler: PluginCommandHandler;
-};
-
-/** Context passed to long-lived plugin services. */
-export type CrawClawPluginServiceContext = {
-  config: CrawClawConfig;
-  workspaceDir?: string;
-  stateDir: string;
-  logger: PluginLogger;
-  observation?: PluginObservationContext;
-};
-
-/** Background service owned by a native plugin descriptor. */
-export type CrawClawPluginService = {
-  id: string;
-  start: (ctx: CrawClawPluginServiceContext) => void | Promise<void>;
-  reconfigure?: (ctx: CrawClawPluginServiceContext) => void | Promise<void>;
-  stop?: (ctx: CrawClawPluginServiceContext) => void | Promise<void>;
 };
 
 export type PluginOrigin = "bundled" | "global" | "workspace" | "config";

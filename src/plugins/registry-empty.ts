@@ -6,7 +6,6 @@ export function createEmptyPluginRegistry(): PluginRegistry {
     hooks: [],
     webFetchProviders: [],
     webSearchProviders: [],
-    services: [],
     commands: [],
     diagnostics: [],
   };
