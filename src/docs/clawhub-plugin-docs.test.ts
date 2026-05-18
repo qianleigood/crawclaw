@@ -1,7 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { validateExternalCodePluginPackageJson } from "../../packages/plugin-package-contract/src/index.js";
 
 const DOCS_ROOT = path.join(process.cwd(), "docs");
 const pluginDocs = [
@@ -25,6 +24,13 @@ function extractNamedJsonBlock(markdown: string, label: string) {
   return JSON.parse(match[1].trim()) as unknown;
 }
 
+function readRecord(value: unknown): Record<string, unknown> {
+  expect(value).toBeTruthy();
+  expect(typeof value).toBe("object");
+  expect(Array.isArray(value)).toBe(false);
+  return value as Record<string, unknown>;
+}
+
 describe("ClawHub plugin docs", () => {
   it("keeps the canonical plugin-publish snippets contract-valid", async () => {
     const packageJson = JSON.parse(
@@ -40,7 +46,13 @@ describe("ClawHub plugin docs", () => {
       ),
     ) as { id?: unknown; configSchema?: unknown };
 
-    expect(validateExternalCodePluginPackageJson(packageJson).issues).toEqual([]);
+    const crawclaw = readRecord(readRecord(packageJson).crawclaw);
+    const compat = readRecord(crawclaw.compat);
+    const build = readRecord(crawclaw.build);
+    expect(compat.pluginApi).toBe(">=2026.3.24-beta.2");
+    expect(compat.minGatewayVersion).toBe("2026.3.24-beta.2");
+    expect(build.crawclawVersion).toBe("2026.3.24-beta.2");
+    expect(build.pluginSdkVersion).toBe("2026.3.24-beta.2");
     expect(typeof pluginManifest.id).toBe("string");
     expect(pluginManifest.configSchema).toBeTruthy();
   });

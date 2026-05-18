@@ -314,8 +314,6 @@ importers:
 
   extensions/zai: {}
 
-  packages/plugin-package-contract: {}
-
 packages:
 
   '@agentclientprotocol/sdk@0.17.1':
