@@ -285,9 +285,7 @@ export function resolveGatewayCredentialsFromConfig(params: {
   });
   const mode: GatewayCredentialMode = params.modeOverride ?? plan.configuredMode;
 
-  const localTokenPrecedence =
-    params.localTokenPrecedence ??
-    (env.CRAWCLAW_SERVICE_KIND === "gateway" ? "config-first" : "env-first");
+  const localTokenPrecedence = params.localTokenPrecedence ?? "env-first";
   const localPasswordPrecedence = params.localPasswordPrecedence ?? "env-first";
 
   if (mode === "local") {

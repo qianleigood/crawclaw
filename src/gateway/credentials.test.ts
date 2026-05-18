@@ -155,7 +155,7 @@ describe("resolveGatewayCredentialsFromConfig", () => {
     expectEnvGatewayCredentials(resolved);
   });
 
-  it("uses config-first local token precedence inside gateway service runtime", () => {
+  it("supports explicit config-first local token precedence", () => {
     const resolved = resolveGatewayCredentialsFromConfig({
       cfg: cfg({
         gateway: {
@@ -166,8 +166,8 @@ describe("resolveGatewayCredentialsFromConfig", () => {
       env: {
         CRAWCLAW_GATEWAY_TOKEN: "env-token",
         CRAWCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
-        CRAWCLAW_SERVICE_KIND: "gateway",
       } as NodeJS.ProcessEnv,
+      localTokenPrecedence: "config-first",
     });
     expect(resolved).toEqual({
       token: "config-token",

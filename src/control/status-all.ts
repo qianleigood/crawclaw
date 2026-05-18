@@ -5,8 +5,6 @@ import {
   resolveGatewayPort,
 } from "../config/config.js";
 import { readLastGatewayErrorLine } from "../daemon/diagnostics.js";
-import type { GatewayService } from "../daemon/service.js";
-import { resolveGatewayService } from "../daemon/service.js";
 import { buildGatewayConnectionDetails, callGateway } from "../gateway/call.js";
 import { resolveGatewayProbeAuthSafeWithSecretInputs } from "../gateway/probe-auth.js";
 import { probeGateway } from "../gateway/probe.js";
@@ -30,7 +28,6 @@ import { getAgentLocalStatuses } from "./status-all/agents.js";
 import { formatDurationPrecise, formatGatewayAuthUsed } from "./status-all/format.js";
 import { pickGatewaySelfPresence } from "./status-all/gateway.js";
 import { buildStatusAllReportLines } from "./status-all/report-lines.js";
-import { readServiceStatusSummary } from "./status.service-summary.js";
 import { formatUpdateOneLiner } from "./status.update.js";
 
 export async function statusAllCommand(
@@ -132,26 +129,6 @@ export async function statusAllCommand(
     }).catch(() => null);
     const gatewayReachable = gatewayProbe?.ok === true;
     const gatewaySelf = pickGatewaySelfPresence(gatewayProbe?.presence ?? null);
-    progress.tick();
-
-    progress.setLabel("Checking services…");
-    const readServiceSummary = async (service: GatewayService) => {
-      try {
-        const summary = await readServiceStatusSummary(service, service.label);
-        return {
-          label: summary.label,
-          installed: summary.installed,
-          externallyManaged: summary.externallyManaged,
-          managedByCrawClaw: summary.managedByCrawClaw,
-          loaded: summary.loaded,
-          loadedText: summary.loadedText,
-          runtime: summary.runtime,
-        };
-      } catch {
-        return null;
-      }
-    };
-    const daemon = await readServiceSummary(resolveGatewayService());
     progress.tick();
 
     progress.setLabel("Scanning agents…");
@@ -277,14 +254,6 @@ export async function statusAllCommand(
       gatewaySelfLine
         ? { Item: "Gateway self", Value: gatewaySelfLine }
         : { Item: "Gateway self", Value: "unknown" },
-      daemon
-        ? {
-            Item: "Gateway service",
-            Value: !daemon.installed
-              ? `${daemon.label} not installed`
-              : `${daemon.label} ${daemon.managedByCrawClaw ? "installed · " : ""}${daemon.loadedText}${daemon.runtime?.status ? ` · ${daemon.runtime.status}` : ""}${daemon.runtime?.pid ? ` (pid ${daemon.runtime.pid})` : ""}`,
-          }
-        : { Item: "Gateway service", Value: "unknown" },
       {
         Item: "Agents",
         Value: `${agentStatus.agents.length} total · ${agentStatus.bootstrapPendingCount} bootstrapping · ${aliveAgents} active · ${agentStatus.totalSessions} sessions`,

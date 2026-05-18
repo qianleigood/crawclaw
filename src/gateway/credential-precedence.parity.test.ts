@@ -38,11 +38,7 @@ function makeRemoteGatewayConfig(remote: { token?: string; password?: string }):
 }
 
 function withGatewayAuthEnv<T>(env: NodeJS.ProcessEnv, fn: () => T): T {
-  const keys = [
-    "CRAWCLAW_GATEWAY_TOKEN",
-    "CRAWCLAW_GATEWAY_PASSWORD",
-    "CRAWCLAW_SERVICE_KIND",
-  ] as const;
+  const keys = ["CRAWCLAW_GATEWAY_TOKEN", "CRAWCLAW_GATEWAY_PASSWORD"] as const;
   const previous = new Map<string, string | undefined>();
   for (const key of keys) {
     previous.set(key, process.env[key]);
@@ -116,29 +112,6 @@ describe("gateway credential precedence coverage", () => {
         probe: { token: undefined, password: "env-password" }, // pragma: allowlist secret
         status: { token: undefined, password: "remote-password" }, // pragma: allowlist secret
         auth: { token: "local-token", password: "local-password" }, // pragma: allowlist secret
-      },
-    },
-    {
-      name: "local mode in gateway service runtime uses config-first token precedence",
-      cfg: {
-        gateway: {
-          mode: "local",
-          auth: {
-            token: "config-token",
-            password: "config-password", // pragma: allowlist secret
-          },
-        },
-      } as CrawClawConfig,
-      env: {
-        CRAWCLAW_GATEWAY_TOKEN: "env-token",
-        CRAWCLAW_GATEWAY_PASSWORD: "env-password", // pragma: allowlist secret
-        CRAWCLAW_SERVICE_KIND: "gateway",
-      } as NodeJS.ProcessEnv,
-      expected: {
-        call: { token: "config-token", password: "env-password" }, // pragma: allowlist secret
-        probe: { token: "config-token", password: "env-password" }, // pragma: allowlist secret
-        status: { token: "config-token", password: "config-password" }, // pragma: allowlist secret
-        auth: { token: "config-token", password: "config-password" }, // pragma: allowlist secret
       },
     },
   ];

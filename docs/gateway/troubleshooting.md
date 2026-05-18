@@ -126,9 +126,9 @@ Related:
 - [/gateway/remote](/gateway/remote)
 - [Device pairing](/network)
 
-## Gateway service not running
+## Gateway runtime not reachable
 
-Use this when service is installed but process does not stay up.
+Use this when the local Gateway process does not stay up or the API is not reachable.
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -140,8 +140,6 @@ Use this when service is installed but process does not stay up.
 
 Look for:
 
-- `Runtime: stopped` with exit hints.
-- Service config mismatch (`Config (cli)` vs `Config (service)`).
 - Port/listener conflicts.
 
 Common signatures:

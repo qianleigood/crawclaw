@@ -202,7 +202,7 @@ export async function startGatewayBonjourAdvertiser(
     if (typeof opts.tailnetDns === "string" && opts.tailnetDns.trim()) {
       txtBase.tailnetDns = opts.tailnetDns.trim();
     }
-    // Build TXT record for the gateway service.
+    // Build TXT record for Gateway discovery.
     // In minimal mode, omit sshPort to avoid advertising SSH availability.
     const gatewayTxt: Record<string, string> = {
       ...txtBase,

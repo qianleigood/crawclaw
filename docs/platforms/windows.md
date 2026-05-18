@@ -1,5 +1,5 @@
 ---
-summary: "Windows support matrix for native installs, Gateway service mode, plugins, and validation gates"
+summary: "Windows support matrix for native installs, Gateway runtime mode, plugins, and validation gates"
 read_when:
   - Installing CrawClaw on Windows
   - Defining Windows support scope
@@ -33,7 +33,7 @@ The Windows matrix uses three support states:
 | Installer                           | `supported`  | `CrawClaw Desktop installer` installs Node 24 by default, accepts Node 25 as an experimental runtime, checks Git/PATH prerequisites, and installs CrawClaw. |
 | CLI                                 | `supported`  | Commands run from PowerShell with Windows-safe argument, path, shell, and process-spawn handling.                                                           |
 | Gateway foreground                  | `supported`  | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Windows host.                                                                  |
-| Gateway service                     | `supported`  | Per-user login service: Scheduled Task when allowed, Startup-folder fallback when task creation is denied.                                                  |
+| Gateway runtime                     | `supported`  | CrawClaw Desktop or the local Gateway API starts the local Rust Gateway directly on the Windows host.                                                       |
 | `exec` and `system.run` tools       | `supported`  | PowerShell 7 is preferred with Windows PowerShell fallback; command shims must avoid unsafe shell fallbacks.                                                |
 | Browser automation                  | `supported`  | Supported after Windows smoke coverage for Chrome/Edge/Brave discovery and the browser runtime.                                                             |
 | Feishu, QQBot, DingTalk, Weixin     | `supported`  | Supported through built-in or bundled channel/plugin paths, with smoke coverage where provider credentials permit.                                          |
@@ -74,18 +74,8 @@ Run the Gateway in the foreground:
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-Install managed startup:
-
-```powershell
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-If Scheduled Task creation is denied, CrawClaw falls back to a per-user
-Startup-folder login item and starts the Gateway immediately. This is a
-per-user login service, not a machine service that runs before any user logs in.
-Scheduled Tasks remain preferred because they provide better supervisor status
-and restart visibility.
+Managed OS startup is not part of the default desktop runtime path. Use
+CrawClaw Desktop or the local Gateway API to start the local Rust Gateway.
 
 For Gateway API-only setups, skip health-gated onboarding:
 
@@ -103,9 +93,8 @@ pnpm test:windows:compat
 ```
 
 This gate covers installer wrapper regressions, Windows process spawning,
-PowerShell shell selection, path normalization, Scheduled Task fallback
-behavior, startup fallback handling, browser
-executable discovery, and native runtime spawn helpers.
+PowerShell shell selection, path normalization, browser executable discovery,
+and native runtime spawn helpers.
 
 Full native validation still requires a Windows VM or host:
 
@@ -154,31 +143,11 @@ Native Windows can be described as first-class when all of these are true:
 - [Gateway runbook](/gateway)
 - [Configuration](/gateway/configuration)
 
-## Gateway service install (CLI)
+## Gateway runtime
 
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Or:
-
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Or:
-
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Select **Gateway service** when prompted.
-
-Repair/migrate:
-
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
+Use CrawClaw Desktop or the local Gateway API. The old CLI-managed Scheduled
+OS task and login-item paths have been retired from the default desktop product
+path.
 
 ## Related pages
 

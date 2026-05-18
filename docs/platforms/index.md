@@ -32,19 +32,9 @@ Linux, macOS, and Windows are supported Gateway host targets today.
 - Install guide: [Getting Started](/start/getting-started)
 - Gateway runbook: [Gateway](/gateway)
 - Gateway configuration: [Configuration](/gateway/configuration)
-- Service status: CrawClaw Desktop or the local Gateway API
+- Runtime status: CrawClaw Desktop or the local Gateway API
 
-## Gateway service install (CLI)
+## Gateway runtime
 
-Use one of these (all supported):
-
-- Wizard (recommended): CrawClaw Desktop or the local Gateway API
-- Direct: CrawClaw Desktop or the local Gateway API
-- Configure flow: CrawClaw Desktop or the local Gateway API → select **Gateway service**
-- Repair/migrate: CrawClaw Desktop or the local Gateway API (offers to install or fix the service)
-
-The service target depends on OS:
-
-- macOS: LaunchAgent (`ai.crawclaw.gateway` or `ai.crawclaw.<profile>`; legacy `com.crawclaw.*`)
-- Linux: systemd user service (`crawclaw-gateway[-<profile>].service`)
-- Windows: Scheduled Task with per-user Startup-folder fallback
+Use CrawClaw Desktop or the local Gateway API as the default runtime owner. The
+old CLI-managed OS startup path is no longer part of the desktop product path.

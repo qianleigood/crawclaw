@@ -16,10 +16,6 @@ function resolveCommand(command: string): string {
 
 export type ChildAdapter = SpawnProcessAdapter<NodeJS.Signals | null>;
 
-function isServiceManagedRuntime(): boolean {
-  return Boolean(process.env.CRAWCLAW_SERVICE_MARKER?.trim());
-}
-
 export async function createChildAdapter(params: {
   argv: string[];
   cwd?: string;
@@ -33,10 +29,7 @@ export async function createChildAdapter(params: {
 
   const stdinMode = params.stdinMode ?? (params.input !== undefined ? "pipe-closed" : "inherit");
 
-  // In service-managed mode keep children attached so systemd/launchd can
-  // stop the full process tree reliably. Outside service mode preserve the
-  // existing POSIX detached behavior.
-  const useDetached = process.platform !== "win32" && !isServiceManagedRuntime();
+  const useDetached = process.platform !== "win32";
 
   const options: SpawnOptions = {
     cwd: params.cwd,

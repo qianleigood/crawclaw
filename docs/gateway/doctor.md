@@ -33,7 +33,7 @@ Apply recommended repairs without prompting (repairs + restarts where safe).
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-Apply aggressive repairs too (overwrites custom supervisor configs).
+Apply aggressive repairs too (overwrites custom runtime config).
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -45,7 +45,7 @@ Legacy state migrations run automatically when detected.
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-Scan system services for extra gateway installs (launchd/systemd/schtasks).
+Review legacy startup entries manually if an older install left one behind.
 
 If you want to review changes before writing, open the config file first:
 
@@ -68,16 +68,13 @@ cat ~/.crawclaw/crawclaw.json
 - Config file permission checks (chmod 600) when running locally.
 - Model auth health: checks OAuth expiry, can refresh expiring tokens, and reports auth-profile cooldown/disabled states.
 - Extra workspace dir detection (`~/crawclaw`).
-- Legacy service migration and extra gateway detection.
+- Legacy startup cleanup guidance.
 - Removed TypeScript channel state migrations are no longer maintained.
-- Gateway runtime checks (service installed but not running; cached launchd label).
+- Gateway runtime reachability checks.
 - Channel status warnings (probed from the running gateway).
-- Supervisor config audit (launchd/systemd/schtasks) with optional repair.
-- Gateway runtime best-practice checks (Node vs Bun, version-manager paths).
 - Gateway port collision diagnostics (default `18789`).
 - Security warnings for open DM policies.
 - Gateway auth checks for local token mode (offers token generation when no token source exists; does not overwrite token SecretRef configs).
-- systemd linger check on Linux.
 - Workspace bootstrap file size check (truncation/near-limit warnings for context files).
 - Shell completion status check and auto-install/upgrade.
 - Source install checks (pnpm workspace mismatch and npm lockfile drift).
@@ -246,15 +243,13 @@ catalog and allowlist and warns when it won’t resolve or is disallowed.
 
 that can be detected without mutating the runtime.
 
-### 8) Gateway service migrations and cleanup hints
+### 8) Legacy startup cleanup hints
 
-Doctor detects legacy gateway services (launchd/systemd/schtasks) and
-offers to remove them and install the CrawClaw service using the current gateway
-port. It can also scan for extra gateway-like services and print cleanup hints.
-Profile-named CrawClaw gateway services are considered first-class and are not
-flagged as "extra."
+Doctor focuses on the desktop-owned local Gateway runtime. Older OS supervisor
+entries should be removed manually if they still exist, so the desktop app and
+local Gateway API remain the only default startup path.
 
-### 8b) Startup channel checks
+### 9) Startup channel checks
 
 When a Feishu channel account has a pending or actionable legacy state migration,
 doctor (in `--fix` / `--repair` mode) creates a pre-migration snapshot and then
@@ -268,10 +263,10 @@ is skipped entirely.
 Doctor emits warnings when a provider is open to DMs without an allowlist, or
 when a policy is configured in a dangerous way.
 
-### 10) systemd linger (Linux)
+### 10) Local runtime availability
 
-If running as a systemd user service, doctor ensures lingering is enabled so the
-gateway stays alive after logout.
+Doctor reports whether the local Gateway API is reachable and whether the active
+configuration points at a local or remote Gateway.
 
 ### 11) Workspace status (skills, plugins, and legacy dirs)
 
@@ -338,39 +333,17 @@ unhealthy.
 If the gateway is healthy, doctor runs a channel status probe and reports
 warnings with suggested fixes.
 
-### 15) Supervisor config audit + repair
+### 15) Gateway runtime + port diagnostics
 
-Doctor checks the installed supervisor config (launchd/systemd/schtasks) for
-missing or outdated defaults (e.g., systemd network-online dependencies and
-restart delay). When it finds a mismatch, it recommends an update and can
-rewrite the service file/task to the current defaults.
+Doctor checks whether the local Gateway API is reachable. It also checks for
+port collisions on the gateway port (default `18789`) and reports likely causes
+such as another local runtime or an SSH tunnel.
 
-Notes:
+### 16) Gateway runtime best practices
 
-- CrawClaw Desktop or the local Gateway API prompts before rewriting supervisor config.
-- CrawClaw Desktop or the local Gateway API accepts the default repair prompts.
-- CrawClaw Desktop or the local Gateway API applies recommended fixes without prompts.
-- CrawClaw Desktop or the local Gateway API overwrites custom supervisor configs.
-- If token auth requires a token and `gateway.auth.token` is SecretRef-managed, doctor service install/repair validates the SecretRef but does not persist resolved plaintext token values into supervisor service environment metadata.
-- If token auth requires a token and the configured token SecretRef is unresolved, doctor blocks the install/repair path with actionable guidance.
-- If both `gateway.auth.token` and `gateway.auth.password` are configured and `gateway.auth.mode` is unset, doctor blocks install/repair until mode is set explicitly.
-- For Linux user-systemd units, doctor token drift checks now include both `Environment=` and `EnvironmentFile=` sources when comparing service auth metadata.
-- You can always force a full rewrite via CrawClaw Desktop or the local Gateway API.
-
-### 16) Gateway runtime + port diagnostics
-
-Doctor inspects the service runtime (PID, last exit status) and warns when the
-service is installed but not actually running. It also checks for port collisions
-on the gateway port (default `18789`) and reports likely causes (gateway already
-running, SSH tunnel).
-
-### 17) Gateway runtime best practices
-
-Doctor warns when the gateway service runs on Bun or a version-managed Node path
-(`nvm`, `fnm`, `volta`, `asdf`, etc.). Weixin + Feishu channels require Node,
-and version-manager paths can break after upgrades because the service does not
-load your shell init. Doctor offers to migrate to a system Node install when
-available (Homebrew/apt/choco).
+Use CrawClaw Desktop as the default local runtime owner. Avoid parallel
+long-running shells on the same port unless you are intentionally debugging an
+isolated profile.
 
 ### 18) Config write + wizard metadata
 

@@ -63,7 +63,7 @@ describe("createDoctorPrompter", () => {
     ).resolves.toBe(true);
     await expect(
       prompter.confirmAutoFix({
-        message: "Repair gateway service config?",
+        message: "Repair Gateway runtime config?",
         initialValue: false,
       }),
     ).resolves.toBe(true);
@@ -81,7 +81,7 @@ describe("createDoctorPrompter", () => {
 
     await expect(
       prompter.confirmAggressiveAutoFix({
-        message: "Overwrite gateway service config?",
+        message: "Overwrite Gateway runtime config?",
         initialValue: true,
       }),
     ).resolves.toBe(false);
@@ -94,13 +94,13 @@ describe("createDoctorPrompter", () => {
 
     await expect(
       prompter.confirmAutoFix({
-        message: "Repair gateway service config?",
+        message: "Repair Gateway runtime config?",
         initialValue: false,
       }),
     ).resolves.toBe(true);
     await expect(
       prompter.confirmRuntimeRepair({
-        message: "Restart gateway service now?",
+        message: "Restart Gateway runtime now?",
         initialValue: true,
       }),
     ).resolves.toBe(false);
@@ -112,7 +112,7 @@ describe("createDoctorPrompter", () => {
 
     await expect(
       prompter.confirmAggressiveAutoFix({
-        message: "Overwrite gateway service config?",
+        message: "Overwrite Gateway runtime config?",
         initialValue: false,
       }),
     ).resolves.toBe(true);

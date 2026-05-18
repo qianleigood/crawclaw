@@ -1,5 +1,5 @@
 ---
-summary: "Runbook for the Gateway service, lifecycle, and operations"
+summary: "Runbook for the Gateway runtime, lifecycle, and operations"
 read_when:
   - Running or debugging the gateway process
 title: "Gateway Runbook"
@@ -7,7 +7,7 @@ title: "Gateway Runbook"
 
 # Gateway runbook
 
-Use this page for day-1 startup and day-2 operations of the Gateway service.
+Use this page for day-1 startup and day-2 operations of the local Rust Gateway runtime.
 
 <CardGroup cols={2}>
   <Card title="Deep troubleshooting" icon="siren" href="/gateway/troubleshooting">
@@ -145,51 +145,13 @@ If gateway auth is configured, clients still must send auth (`token`/`password`)
 
 See: [Remote Gateway](/gateway/remote), [Authentication](/gateway/authentication), [Tailscale](/gateway/tailscale).
 
-## Supervision and service lifecycle
+## Desktop lifecycle
 
-Use supervised runs for production-like reliability.
-
-<Tabs>
-  <Tab title="macOS (launchd)">
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-LaunchAgent labels are `ai.crawclaw.gateway` (default) or `ai.crawclaw.<profile>` (named profile). CrawClaw Desktop or the local Gateway API audits and repairs service config drift.
-
-  </Tab>
-
-  <Tab title="Linux (systemd user)">
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-systemctl --user enable --now crawclaw-gateway[-<profile>].service
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-For persistence after logout, enable lingering:
-
-```bash
-sudo loginctl enable-linger <user>
-```
-
-  </Tab>
-
-  <Tab title="Linux (system service)">
-
-Use a system unit for multi-user/always-on hosts.
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable --now crawclaw-gateway[-<profile>].service
-```
-
-  </Tab>
-</Tabs>
+CrawClaw Desktop owns the default local runtime lifecycle. The app starts or
+discovers the bundled Rust Gateway, passes a per-launch local session token to
+the renderer, and stops the local runtime when the desktop app exits. For
+integrations, connect to the local Gateway API instead of installing an
+additional OS supervisor entry.
 
 ## Multiple gateways on one host
 
@@ -206,8 +168,8 @@ Checklist per instance:
 Example:
 
 ```bash
-CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json CRAWCLAW_STATE_DIR=~/.crawclaw-a CrawClaw Desktop or the local Gateway API
-CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b CrawClaw Desktop or the local Gateway API
+CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json CRAWCLAW_STATE_DIR=~/.crawclaw-a <start via CrawClaw Desktop>
+CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b <start via CrawClaw Desktop>
 ```
 
 See: [Multiple gateways](/gateway/multiple-gateways).

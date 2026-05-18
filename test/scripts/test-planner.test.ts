@@ -263,9 +263,15 @@ describe("test planner", () => {
       (unit) => unit.surface === "unit" && !unit.isolate && unit.id.startsWith("unit-fast"),
     );
 
-    expect(sharedUnitBatches.length).toBeGreaterThanOrEqual(4);
-    expect(plan.serialPrefixUnits.some((unit) => unit.serialPhase === "unit-fast")).toBe(true);
-    expect(plan.topLevelParallelLimit).toBe(3);
+    expect(sharedUnitBatches.length).toBeGreaterThanOrEqual(3);
+    expect(plan.selectedUnits.some((unit) => unit.isolate)).toBe(true);
+    expect(plan.selectedUnits.some((unit) => unit.reasons.includes("unit-timed-heavy"))).toBe(true);
+    expect(plan.serialPrefixUnits.map((unit) => unit.id)).toEqual(
+      sharedUnitBatches.map((unit) => unit.id),
+    );
+    const expectedTopLevelLimit =
+      sharedUnitBatches.length >= 4 ? 3 : plan.executionBudget.topLevelParallelLimitNoIsolate;
+    expect(plan.topLevelParallelLimit).toBe(expectedTopLevelLimit);
     artifacts.cleanupTempArtifacts();
   });
 

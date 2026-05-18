@@ -142,10 +142,10 @@
     "test:perf:update-timings": "node scripts/test-update-timings.mjs",
     "test:perf:update-timings:extensions": "node scripts/test-update-timings.mjs --config vitest.extensions.config.ts",
     "test:runtime:stack": "node scripts/test-runtime-stack.mjs",
-    "test:sectriage": "pnpm exec vitest run --config vitest.gateway.config.ts && vitest run --config vitest.unit.config.ts --exclude src/daemon/launchd.integration.test.ts --exclude src/process/exec.test.ts",
+    "test:sectriage": "pnpm exec vitest run --config vitest.gateway.config.ts && vitest run --config vitest.unit.config.ts --exclude src/process/exec.test.ts",
     "test:serial": "node scripts/test-parallel.mjs --profile serial",
     "test:watch": "vitest",
-    "test:windows:compat": "pnpm test -- src/process/exec.windows.test.ts src/daemon/runtime-hints.windows-paths.test.ts src/daemon/schtasks.startup-fallback.test.ts src/daemon/schtasks.install.test.ts src/daemon/schtasks.stop.test.ts src/infra/windows-install-roots.test.ts src/infra/windows-task-restart.test.ts src/agents/shell-utils.test.ts src/agents/path-policy.test.ts",
+    "test:windows:compat": "pnpm test -- src/process/exec.windows.test.ts src/infra/windows-install-roots.test.ts src/agents/shell-utils.test.ts src/agents/path-policy.test.ts",
     "ts-topology": "node --import tsx scripts/ts-topology.ts",
     "tsgo": "node scripts/run-tsgo.mjs",
     "typecheck": "node scripts/typecheck.mjs"

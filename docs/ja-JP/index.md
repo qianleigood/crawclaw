@@ -95,9 +95,9 @@ Gatewayは、セッション、ルーティング、チャネル接続の信頼�
     npm install -g crawclaw@latest
     ```
   </Step>
-  <Step title="オンボーディングとサービスのインストール">
+  <Step title="CrawClaw Desktopを起動">
     ```bash
-    crawclaw onboard --install-daemon
+    # Open CrawClaw Desktop
     ```
   </Step>
   <Step title="WeixinをペアリングしてGatewayを起動">

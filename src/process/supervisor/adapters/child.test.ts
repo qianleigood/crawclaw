@@ -1,7 +1,7 @@
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import { PassThrough } from "node:stream";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { spawnWithFallbackMock, killProcessTreeMock } = vi.hoisted(() => ({
   spawnWithFallbackMock: vi.fn(),
@@ -52,8 +52,6 @@ async function createAdapterHarness(params?: {
 }
 
 describe("createChildAdapter", () => {
-  const originalServiceMarker = process.env.CRAWCLAW_SERVICE_MARKER;
-
   beforeAll(async () => {
     ({ createChildAdapter } = await import("./child.js"));
   });
@@ -61,16 +59,7 @@ describe("createChildAdapter", () => {
   beforeEach(() => {
     spawnWithFallbackMock.mockClear();
     killProcessTreeMock.mockClear();
-    delete process.env.CRAWCLAW_SERVICE_MARKER;
     vi.useRealTimers();
-  });
-
-  afterAll(() => {
-    if (originalServiceMarker === undefined) {
-      delete process.env.CRAWCLAW_SERVICE_MARKER;
-    } else {
-      process.env.CRAWCLAW_SERVICE_MARKER = originalServiceMarker;
-    }
   });
 
   afterEach(() => {
@@ -84,8 +73,8 @@ describe("createChildAdapter", () => {
       options?: { detached?: boolean };
       fallbacks?: Array<{ options?: { detached?: boolean } }>;
     };
-    // On Windows, detached defaults to false (headless Scheduled Task compat);
-    // on POSIX, detached is true with a no-detach fallback.
+    // On Windows, detached defaults to false; on POSIX, detached is true with
+    // a no-detach fallback.
     if (process.platform === "win32") {
       expect(spawnArgs.options?.detached).toBe(false);
       expect(spawnArgs.fallbacks).toEqual([]);
@@ -153,19 +142,6 @@ describe("createChildAdapter", () => {
     await vi.advanceTimersByTimeAsync(4_001);
     await expect(adapter.wait()).resolves.toEqual({ code: 0, signal: "SIGKILL" });
     expect(killMock).toHaveBeenCalledWith("SIGKILL");
-  });
-
-  it("disables detached mode in service-managed runtime", async () => {
-    process.env.CRAWCLAW_SERVICE_MARKER = "crawclaw";
-
-    await createAdapterHarness({ pid: 7777 });
-
-    const spawnArgs = spawnWithFallbackMock.mock.calls[0]?.[0] as {
-      options?: { detached?: boolean };
-      fallbacks?: Array<{ options?: { detached?: boolean } }>;
-    };
-    expect(spawnArgs.options?.detached).toBe(false);
-    expect(spawnArgs.fallbacks ?? []).toEqual([]);
   });
 
   it("keeps inherited env when no override env is provided", async () => {

@@ -16,8 +16,8 @@ function isBlockedServiceEnvVar(key: string): boolean {
 
 /**
  * Read and parse `~/.crawclaw/.env` (or `$CRAWCLAW_STATE_DIR/.env`), returning
- * a filtered record of key-value pairs suitable for embedding in a service
- * environment (LaunchAgent plist, systemd unit, Scheduled Task).
+ * a filtered record of key-value pairs suitable for durable local runtime
+ * environment metadata.
  */
 export function readStateDirDotEnvVars(
   env: Record<string, string | undefined>,

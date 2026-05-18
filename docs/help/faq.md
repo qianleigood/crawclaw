@@ -18,7 +18,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
    # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
-   Fast local summary: OS + update, gateway/service reachability, agents/sessions, provider config + runtime issues (when gateway is reachable).
+   Fast local summary: OS + update, Gateway runtime reachability, agents/sessions, provider config + runtime issues (when gateway is reachable).
 
 2. **Pasteable report (safe to share)**
 
@@ -28,13 +28,13 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
 
    Read-only diagnosis with log tail (tokens redacted).
 
-3. **Daemon + port state**
+3. **Gateway runtime + port state**
 
    ```bash
    # Use CrawClaw Desktop or the local Gateway API for this operation.
    ```
 
-   Shows supervisor runtime vs RPC reachability, the probe target URL, and which config the service likely used.
+   Shows local runtime vs RPC reachability, the probe target URL, and which config is active.
 
 4. **Deep probes**
 
@@ -249,7 +249,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     1. Install CrawClaw on the new machine.
     2. Copy `$CRAWCLAW_STATE_DIR` (default: `~/.crawclaw`) from the old machine.
     3. Copy your workspace (default: `~/.crawclaw/workspace`).
-    4. Run CrawClaw Desktop or the local Gateway API and restart the Gateway service.
+    4. Start CrawClaw Desktop and verify the local Gateway API is reachable.
 
     That preserves config, auth profiles, Weixin creds, sessions, and memory. If you're in
     remote mode, remember the gateway host owns the session store and workspace.
@@ -520,7 +520,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     - **Workspace** location + bootstrap files
     - **Gateway settings** (bind/port/auth/tailscale)
     - **Providers** (Weixin, Feishu, QQBot, Feishu (plugin), Signal, Weixin)
-    - **Daemon install** (LaunchAgent on macOS; systemd user unit on Linux; Scheduled Task or Startup-folder fallback on Windows)
+    - **Local runtime** setup through CrawClaw Desktop and the Rust Gateway
     - **Health checks** and **skills** selection
 
     It also warns if your configured model is unknown or missing auth.
@@ -710,7 +710,7 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="Can I switch between npm and git installs later?">
-    Yes. Install the other flavor, then run Doctor so the gateway service points at the new entrypoint.
+    Yes. Install the other flavor, then start CrawClaw Desktop so the local runtime uses the new entrypoint.
     This **does not delete your data** - it only changes the CrawClaw code install. Your state
     (`~/.crawclaw`) and workspace (`~/.crawclaw/workspace`) stay untouched.
 
@@ -735,7 +735,7 @@ for usage/billing and raise limits as needed.
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Doctor detects a gateway service entrypoint mismatch and offers to rewrite the service config to match the current install (use `--repair` in automation).
+    Doctor still checks config and state after the move; remove any old startup entries manually if they predate the desktop runtime.
 
     Backup tips: see [Backup strategy](#where-things-live-on-disk).
 
@@ -1481,7 +1481,7 @@ for usage/billing and raise limits as needed.
 
   </Accordion>
 
-  <Accordion title="Do remote clients run a gateway service?">
+  <Accordion title="Do remote clients run a local Gateway runtime?">
     No. Only **one gateway** should run per host unless you intentionally run isolated profiles (see [Multiple gateways](/gateway/multiple-gateways)).
     `gateway` and `discovery` changes reconfigure online. Listener-level gateway changes can briefly reconnect clients.
 
@@ -2266,7 +2266,7 @@ Related: [/concepts/oauth](/concepts/oauth) (OAuth flows, token storage, multi-a
   </Accordion>
 
 <Accordion title='Why does CrawClaw Desktop or the local Gateway API
-Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The RPC probe is the CLI actually connecting to the gateway WebSocket and calling `status`.
+Because process state and API reachability are different checks. The RPC probe connects to the Gateway WebSocket and calls `status`.
 
     Use CrawClaw Desktop or the local Gateway API and trust these lines:
 
@@ -2419,25 +2419,19 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Service/supervisor logs (when the gateway runs via launchd/systemd):
+    Gateway runtime logs:
 
-    - macOS: `$CRAWCLAW_STATE_DIR/logs/gateway.log` and `gateway.err.log` (default: `~/.crawclaw/logs/...`; profiles use `~/.crawclaw-<profile>/logs/...`)
-    - Linux: `journalctl --user -u crawclaw-gateway[-<profile>].service -n 200 --no-pager`
-    - Windows: `schtasks /Query /TN "CrawClaw Gateway (<profile>)" /V /FO LIST`
+    - `$CRAWCLAW_STATE_DIR/logs/gateway.log`
+    - `$CRAWCLAW_STATE_DIR/logs/gateway.err.log`
 
     See [Troubleshooting](/gateway/troubleshooting) for more.
 
   </Accordion>
 
-  <Accordion title="How do I start/stop/restart the Gateway service?">
-    Use the gateway helpers:
-
-    ```bash
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    # Use CrawClaw Desktop or the local Gateway API for this operation.
-    ```
-
-    If you run the gateway manually, CrawClaw Desktop or the local Gateway API can reclaim the port. See [Gateway](/gateway).
+  <Accordion title="How do I start/stop/restart the local Gateway runtime?">
+    Use CrawClaw Desktop as the default runtime owner. If you run a manual
+    debug process on the same port, quit it before starting the desktop app.
+    See [Gateway](/gateway).
 
   </Accordion>
 
@@ -2455,7 +2449,7 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Docs: [Windows](/platforms/windows), [Gateway service runbook](/gateway).
+    Docs: [Windows](/platforms/windows), [Gateway runbook](/gateway).
 
   </Accordion>
 
@@ -2552,14 +2546,13 @@ Because "running" is the **supervisor's** view (launchd/systemd/schtasks). The R
     # Use CrawClaw Desktop or the local Gateway API for this operation.
     ```
 
-    Docs: [Gateway service runbook](/gateway).
+    Docs: [Gateway runbook](/gateway).
 
   </Accordion>
 
-<Accordion title="ELI5: CrawClaw Desktop or the local Gateway API - CrawClaw Desktop or the local Gateway API: restarts the **background service** (launchd/systemd). - CrawClaw Desktop or the local Gateway API: runs the gateway **in the foreground** for this terminal session.
+<Accordion title="ELI5: CrawClaw Desktop owns the local Gateway runtime">
 
-    If you installed the service, use the gateway commands. Use CrawClaw Desktop or the local Gateway API when
-    you want a one-off, foreground run.
+    Use CrawClaw Desktop for the normal local runtime. Use the local Gateway API for integrations and diagnostics.
 
   </Accordion>
 

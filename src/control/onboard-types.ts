@@ -9,7 +9,6 @@ export type ResetScope = string;
 
 export type OnboardOptions = {
   [key: string]: unknown;
-  installDaemon?: boolean;
   nonInteractive?: boolean;
   quickstartDefaults?: boolean;
   secretInputMode?: SecretInputMode;

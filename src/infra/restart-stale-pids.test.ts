@@ -413,8 +413,8 @@ describe.skipIf(isWindows)("restart-stale-pids", () => {
     it("polls until port is confirmed free before returning — regression for #33103", () => {
       // Core regression: cleanStaleGatewayProcessesSync must not return while
       // the port is still bound. Previously it returned after a fixed 500ms
-      // sleep regardless of port state, causing systemd's new process to hit
-      // EADDRINUSE and enter an unbounded restart loop.
+      // sleep regardless of port state, causing the new process to hit
+      // EADDRINUSE.
       const stalePid = process.pid + 200;
       const events: string[] = [];
       let call = 0;

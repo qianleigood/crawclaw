@@ -3,7 +3,6 @@ import { normalizeUpdateChannel, resolveUpdateChannelDisplay } from "../infra/up
 import { type RuntimeEnv, writeRuntimeJson } from "../runtime.js";
 import { createCliTranslator, getActiveCliLocale } from "../terminal/i18n/index.js";
 import { withProgress } from "../terminal/progress.js";
-import { getDaemonStatusSummary } from "./status.daemon.js";
 
 type HealthSummary = {
   durationMs?: number;
@@ -176,7 +175,6 @@ export async function statusCommand(
   });
 
   if (opts.json) {
-    const daemon = await getDaemonStatusSummary();
     writeRuntimeJson(runtime, {
       ...summary,
       os: osSummary,
@@ -194,7 +192,6 @@ export async function statusCommand(
         error: gatewayProbe?.error ?? null,
         authWarning: gatewayProbeAuthWarning ?? null,
       },
-      gatewayService: daemon,
       agents: agentStatus,
       securityAudit,
       secretDiagnostics,
@@ -251,8 +248,6 @@ export async function statusCommand(
     runtime.log("");
   }
 
-  const daemon = await getDaemonStatusSummary();
-
   const gatewayValue = (() => {
     const target = remoteUrlMissing
       ? `fallback ${gatewayConnection.url}`
@@ -290,14 +285,6 @@ export async function statusCommand(
     const defSuffix = def ? ` · default ${def.id} active ${defActive}` : "";
     return `${agentStatus.agents.length} · ${pending} · sessions ${agentStatus.totalSessions}${defSuffix}`;
   })();
-  const daemonValue = (() => {
-    if (daemon.installed === false) {
-      return `${daemon.label} not installed`;
-    }
-    const installedPrefix = daemon.managedByCrawClaw ? "installed · " : "";
-    return `${daemon.label} ${installedPrefix}${daemon.loadedText}${daemon.runtimeShort ? ` · ${daemon.runtimeShort}` : ""}`;
-  })();
-
   const defaults = summary.sessions.defaults;
   const defaultCtx = defaults.contextTokens
     ? ` (${formatKTokens(defaults.contextTokens)} ctx)`
@@ -395,7 +382,6 @@ export async function statusCommand(
     ...(gatewayProbeAuthWarning
       ? [{ Item: "Gateway auth warning", Value: warn(gatewayProbeAuthWarning) }]
       : []),
-    { Item: "Gateway service", Value: daemonValue },
     { Item: "Agents", Value: agentsValue },
     { Item: "Plugin compatibility", Value: pluginCompatibilityValue },
     { Item: "Probes", Value: probesValue },

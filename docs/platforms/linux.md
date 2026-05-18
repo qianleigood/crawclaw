@@ -33,61 +33,8 @@ Full Linux server guide: [Linux Server](/vps). Step-by-step VPS example: [exe.de
 - [Gateway runbook](/gateway)
 - [Configuration](/gateway/configuration)
 
-## Gateway service install (CLI)
+## Gateway runtime
 
-Use one of these:
-
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Or:
-
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Or:
-
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Select **Gateway service** when prompted.
-
-Repair/migrate:
-
-```
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-## System control (systemd user unit)
-
-CrawClaw installs a systemd **user** service by default. Use a **system**
-service for shared or always-on servers. The full unit example and guidance
-live in the [Gateway runbook](/gateway).
-
-Minimal setup:
-
-Create `~/.config/systemd/user/crawclaw-gateway[-<profile>].service`:
-
-```
-[Unit]
-Description=CrawClaw Gateway (profile: <profile>, v<version>)
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=/usr/local/bin/CrawClaw Desktop or the local Gateway API
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=default.target
-```
-
-Enable it:
-
-```
-systemctl --user enable --now crawclaw-gateway[-<profile>].service
-```
+Use CrawClaw Desktop or the local Gateway API as the supported runtime owner.
+The old CLI-managed Linux supervisor flow has been retired from the default
+desktop product path.

@@ -53,7 +53,7 @@ x-i18n:
   </Step>
   <Step title="オンボーディングウィザードを実行">
     ```bash
-    crawclaw onboard --install-daemon
+    # Open CrawClaw Desktop
     ```
 
     ウィザードは認証、Gateway設定、およびオプションのチャンネルを構成します。

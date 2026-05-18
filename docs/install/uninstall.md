@@ -1,8 +1,8 @@
 ---
-summary: "Uninstall CrawClaw completely (desktop app, service, state, workspace)"
+summary: "Uninstall CrawClaw completely (desktop app, local runtime state, workspace)"
 read_when:
   - You want to remove CrawClaw from a machine
-  - The gateway service is still running after uninstall
+  - A legacy Gateway startup entry is still running after uninstall
 title: "Uninstall"
 ---
 
@@ -11,7 +11,7 @@ title: "Uninstall"
 Two paths:
 
 - **Easy path** from CrawClaw Desktop.
-- **Manual service removal** if the desktop app is gone but the service is still running.
+- **Manual legacy startup cleanup** if the desktop app is gone but an older startup entry is still running.
 
 ## Easy path
 
@@ -30,13 +30,13 @@ npx -y CrawClaw Desktop or the local Gateway API
 
 Manual steps (same result):
 
-1. Stop the gateway service:
+1. Stop CrawClaw Desktop and any manual Gateway process:
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-2. Uninstall the gateway service (launchd/systemd/schtasks):
+2. Remove any legacy OS startup entry:
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -63,9 +63,9 @@ Notes:
 - If you used profiles (`--profile` / `CRAWCLAW_PROFILE`), repeat step 3 for each state dir (defaults are `~/.crawclaw-<profile>`).
 - In remote mode, the state dir lives on the **gateway host**, so run steps 1-4 there too.
 
-## Manual service removal
+## Manual legacy startup cleanup
 
-Use this if the gateway service keeps running but `crawclaw` is missing.
+Use this if an older startup entry keeps running but `crawclaw` is missing.
 
 ### macOS (launchd)
 
@@ -88,7 +88,7 @@ rm -f ~/.config/systemd/user/crawclaw-gateway.service
 systemctl --user daemon-reload
 ```
 
-### Windows (Scheduled Task)
+### Windows legacy task
 
 Default task name is `CrawClaw Gateway` (or `CrawClaw Gateway (<profile>)`).
 The task script lives under your state dir.
@@ -111,6 +111,6 @@ Remove it with `npm rm -g crawclaw` (or `pnpm remove -g` / `bun remove -g` if yo
 
 If you run from a repo checkout (`git clone` + CrawClaw Desktop or Gateway API / Gateway API calls):
 
-1. Uninstall the gateway service **before** deleting the repo (use the easy path above or manual service removal).
+1. Stop the local Gateway runtime **before** deleting the repo (use the easy path above or manual cleanup).
 2. Delete the repo directory.
 3. Remove state + workspace as shown above.

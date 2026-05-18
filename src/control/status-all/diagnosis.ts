@@ -1,5 +1,5 @@
 import { formatConfigIssueLine } from "../../config/issue-format.js";
-import { resolveGatewayLogPaths } from "../../daemon/launchd.js";
+import { resolveGatewayLogPaths } from "../../daemon/log-paths.js";
 import {
   formatPortDiagnostics,
   isDualStackLoopbackGatewayListeners,

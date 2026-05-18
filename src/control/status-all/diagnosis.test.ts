@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ProgressReporter } from "../../terminal/progress.js";
 
-vi.mock("../../daemon/launchd.js", () => ({
+vi.mock("../../daemon/log-paths.js", () => ({
   resolveGatewayLogPaths: () => {
     throw new Error("skip log tail");
   },

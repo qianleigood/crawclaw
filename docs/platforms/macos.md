@@ -1,5 +1,5 @@
 ---
-summary: "macOS support matrix for native npm installs, Gateway host mode, LaunchAgent startup, and Apple-local capabilities"
+summary: "macOS support matrix for native npm installs, Gateway host mode, desktop runtime startup, and Apple-local capabilities"
 read_when:
   - Installing CrawClaw on macOS
   - Defining macOS support scope
@@ -10,8 +10,8 @@ title: "macOS"
 # macOS
 
 CrawClaw supports **native macOS** for Gateway host use. The macOS product
-boundary is the CLI, Gateway, plugins, install/runtime setup, and
-per-user LaunchAgent startup on the Mac.
+boundary is the CLI, Gateway, plugins, install/runtime setup, and CrawClaw
+Desktop runtime startup on the Mac.
 
 Native macOS support does **not** mean every Apple-local integration is covered
 by the npm install smoke. Apple-local features depend on host permissions,
@@ -34,7 +34,7 @@ The macOS matrix uses two support states:
 | npm installer                       | `supported` | `install CrawClaw Desktop from GitHub Releases` installs the desktop package and runs install-time runtime setup. |
 | CLI                                 | `supported` | Commands run under Node 24.x (stable) or Node 25.x (experimental) with macOS path, shell, and process handling.   |
 | Gateway foreground                  | `supported` | CrawClaw Desktop or the local Gateway API starts the Gateway directly on the Mac.                                 |
-| Gateway service                     | `supported` | Per-user LaunchAgent startup is the native service path.                                                          |
+| Gateway runtime                     | `supported` | CrawClaw Desktop owns the local Rust Gateway lifecycle.                                                           |
 | Browser automation                  | `supported` | Supported through Chrome-family discovery and the install-time browser runtime.                                   |
 | Common provider plugins             | `supported` | Provider catalog and transports are Rust-owned; bundled defaults use native runtime resources.                    |
 | Weixin and Apple-local messaging    | `external`  | Requires Apple-local services, credentials, and permissions; npm install alone is not sufficient.                 |

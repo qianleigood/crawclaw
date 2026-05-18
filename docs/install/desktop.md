@@ -83,7 +83,7 @@ Desktop release assets are built for:
 
 Platform-sensitive features may still differ by OS. The app queries `/api/desktop/capabilities` and disables unsupported actions with the backend-provided reason instead of hiding the route entirely.
 
-## Gateway service
+## Gateway runtime
 
 On first launch, CrawClaw Desktop prepares local runtime state in `~/.crawclaw` and writes missing local defaults:
 

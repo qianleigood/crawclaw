@@ -9,9 +9,8 @@ const STALE_SIGKILL_WAIT_MS = 400;
 /**
  * After SIGKILL, the kernel may not release the TCP port immediately.
  * Poll until the port is confirmed free (or until the budget expires) before
- * returning control to the caller (typically `triggerCrawClawRestart` →
- * `systemctl restart`). Without this wait the new process races the dying
- * process for the port and systemd enters an EADDRINUSE restart loop.
+ * returning control to the restart caller. Without this wait the new process
+ * can race the dying process for the port and hit EADDRINUSE.
  *
  * POLL_SPAWN_TIMEOUT_MS is intentionally much shorter than SPAWN_TIMEOUT_MS
  * so that a single slow or hung lsof invocation does not consume the entire
@@ -248,10 +247,10 @@ function waitForPortFreeSync(port: number): void {
 /**
  * Inspect the gateway port and kill any stale gateway processes holding it.
  * Blocks until the port is confirmed free (or the poll budget expires) so
- * the supervisor (systemd / launchctl) does not race a zombie process for
- * the port and enter an EADDRINUSE restart loop.
+ * the restart caller does not race a zombie process for the port and hit
+ * EADDRINUSE.
  *
- * Called before service restart commands to prevent port conflicts.
+ * Called before runtime restart attempts to prevent port conflicts.
  */
 export function cleanStaleGatewayProcessesSync(portOverride?: number): number[] {
   try {
@@ -271,7 +270,7 @@ export function cleanStaleGatewayProcessesSync(portOverride?: number): number[] 
     // even when `killed` is empty (all pids were already dead before SIGTERM).
     // A process can exit before our signal arrives yet still leave its socket
     // in TIME_WAIT / FIN_WAIT; polling is the only reliable way to confirm the
-    // kernel has fully released the port before systemd fires the new process.
+    // kernel has fully released the port before the new process starts.
     waitForPortFreeSync(port);
     return killed;
   } catch {

@@ -51,7 +51,7 @@ Guide: [Tailscale](/gateway/tailscale).
 
 ## Command flow (what runs where)
 
-One gateway service owns state, channels, and host-side tools.
+One Gateway runtime owns state, channels, and host-side tools.
 
 Flow example (Feishu -> Gateway tool):
 

@@ -92,17 +92,10 @@ For a high-level overview, see [Desktop onboarding](/start/wizard).
     - Skip with `--skip-search`.
     - Configure later: CrawClaw Desktop or the local Gateway API.
   </Step>
-  <Step title="Daemon install">
-    - macOS: LaunchAgent
-      - Requires a logged-in user session; for headless, use a custom LaunchDaemon (not shipped).
-    - Linux: systemd user unit
-      - Onboarding attempts to enable lingering via `loginctl enable-linger <user>` so the Gateway stays up after logout.
-      - May prompt for sudo (writes `/var/lib/systemd/linger`); it tries without sudo first.
-    - Native Windows: Scheduled Task with per-user Startup-folder fallback.
+  <Step title="Local runtime">
+    - CrawClaw Desktop owns the default local Rust Gateway runtime.
+    - The local Gateway API exposes setup/probe operations to desktop clients.
     - **Runtime selection:** bundled channel paths use the Rust native runtime. Bun is **not recommended** for production installs.
-    - If token auth requires a token and `gateway.auth.token` is SecretRef-managed, daemon install validates it but does not persist resolved plaintext token values into supervisor service environment metadata.
-    - If token auth requires a token and the configured token SecretRef is unresolved, daemon install is blocked with actionable guidance.
-    - If both `gateway.auth.token` and `gateway.auth.password` are configured and `gateway.auth.mode` is unset, daemon install is blocked until mode is set explicitly.
   </Step>
   <Step title="Health check">
     - Starts the Gateway (if needed) and runs CrawClaw Desktop or the local Gateway API.
