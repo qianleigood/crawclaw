@@ -1,4 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
+import { BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS } from "./bundled-capability-metadata.js";
 import { resolveBundledPluginWebSearchProviders } from "./web-search-providers.js";
 
 export function resolveBundledWebSearchProviderEntries(
@@ -20,16 +21,22 @@ function readRecord(value: unknown): Record<string, unknown> | undefined {
     : undefined;
 }
 
-function hasNativeSearxngCredential(params: {
+function hasNativeWebSearchCredential(params: {
   config: CrawClawConfig;
   env?: NodeJS.ProcessEnv;
 }): boolean {
-  const pluginConfig = readRecord(params.config.plugins?.entries?.searxng?.config);
-  const webSearch = readRecord(pluginConfig?.webSearch);
-  return (
-    hasConfiguredCredentialValue(webSearch?.baseUrl) ||
-    hasConfiguredCredentialValue(params.env?.SEARXNG_BASE_URL)
-  );
+  return BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS.some((provider) => {
+    const pluginConfig = readRecord(
+      (params.config.plugins?.entries as Record<string, { config?: unknown }> | undefined)?.[
+        provider.pluginId
+      ]?.config,
+    );
+    const webSearch = readRecord(pluginConfig?.webSearch);
+    return (
+      hasConfiguredCredentialValue(webSearch?.baseUrl) ||
+      provider.envVars.some((envVar) => hasConfiguredCredentialValue(params.env?.[envVar]))
+    );
+  });
 }
 
 export function hasBundledWebSearchCredential(params: {
@@ -37,7 +44,7 @@ export function hasBundledWebSearchCredential(params: {
   env?: NodeJS.ProcessEnv;
   searchConfig?: Record<string, unknown>;
 }): boolean {
-  if (hasNativeSearxngCredential(params)) {
+  if (hasNativeWebSearchCredential(params)) {
     return true;
   }
   const searchConfig =
