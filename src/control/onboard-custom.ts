@@ -4,6 +4,7 @@ import { buildModelAliasIndex, modelKey } from "../agents/model-selection.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderConfig } from "../config/types.models.js";
 import { isSecretRef, type SecretInput } from "../config/types.secrets.js";
+import { ensureApiKeyFromEnvOrPrompt } from "../plugins/provider-auth-input.js";
 import { OLLAMA_DEFAULT_BASE_URL } from "../plugins/provider-model-defaults.js";
 import type { RuntimeEnv } from "../runtime.js";
 import { createCliTranslator, getActiveCliLocale } from "../terminal/i18n/text.js";
@@ -13,7 +14,6 @@ import {
   normalizeOptionalSecretInput,
 } from "../utils/normalize-secret-input.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
-import { ensureApiKeyFromEnvOrPrompt } from "./auth-choice.apply-helpers.js";
 import { applyPrimaryModel } from "./model-picker.js";
 import { normalizeAlias } from "./models/shared.js";
 import type { SecretInputMode } from "./onboard-types.js";

@@ -394,8 +394,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.remoteAuth": "认证：{auth}",
   "wizard.setup.webSearchTip":
     "提示：运行 `{command}` 保存 Brave API key 以启用 web_search。文档：https://docs.crawclaw.ai/tools/web",
-  "wizard.setup.error.authChoiceRemoved":
-    '认证方式 "{choice}" 已移除。请使用 "--auth-choice {replacement}"。',
   "wizard.setup.error.invalidSecretInputMode":
     '无效的 --secret-input-mode。请使用 "plaintext" 或 "ref"。',
   "wizard.setup.error.invalidResetScope":
@@ -416,8 +414,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.error.invalidMode": '无效的 --mode "{mode}"（请使用 local|remote）。',
   "wizard.setup.error.configInvalid": "配置无效。请运行 `{doctor}` 修复后重新执行设置。",
   "wizard.setup.error.missingRemoteUrl": "远程模式缺少 --remote-url。",
-  "wizard.setup.error.multipleApiKeyFlags":
-    "非交互设置传入了多个 API key flag。\n请只使用一个 provider flag，或显式传入 --auth-choice。\nFlags：{flags}",
   "wizard.setup.error.invalidNodeManager": "无效的 --node-manager（请使用 npm、pnpm 或 bun）",
   "wizard.setup.error.invalidOutputPreset":
     "无效的 --output-preset（请使用 quiet、balanced 或 operator）。",
@@ -459,20 +455,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
     '无法确定要把哪个环境变量作为 provider "{provider}" 的 ref 存储。\n请设置显式 provider 环境变量后重试，或使用 --secret-input-mode plaintext。',
   "wizard.auth.error.refRequiresExplicitEnv":
     '--secret-input-mode ref 要求 provider "{provider}" 有显式环境变量。\n请设置 provider API key 环境变量后重试，或使用 --secret-input-mode plaintext。',
-  "wizard.auth.error.setupTokenInteractive":
-    '认证方式 "setup-token" 需要交互模式。\n请使用 "--auth-choice token" 并传入 --token 和 --token-provider anthropic。',
-  "wizard.auth.error.oauthRemoved": '认证方式 "oauth" 已移除。请使用 "--auth-choice setup-token"。',
-  "wizard.auth.error.deprecatedChoice":
-    '"{choice}" 已不再支持。请改用 --auth-choice {replacement}。',
   "wizard.auth.error.invalidCustomProviderConfig": "自定义 provider 配置无效：{reason}",
-  "wizard.auth.error.oauthInteractive": "OAuth 需要交互模式。",
-  "wizard.auth.error.flagRequiresEnvRef":
-    "{flag} 不能与 --secret-input-mode ref 一起使用，除非环境变量 {env} 已设置。\n请在环境中设置 {env} 并省略 {flag}，或使用 --secret-input-mode plaintext。",
-  "wizard.auth.error.missingApiKey": "缺少 {flag}（或环境变量 {env}{profileHint}）。",
-  "wizard.auth.error.profileHint": "，或已有 {provider} API-key profile",
-  "wizard.plugin.error.disabled": "{label} plugin 已禁用（{reason}）。",
-  "wizard.plugin.error.nonInteractiveMissing":
-    '认证方式 "{choice}" 需要交互模式。\n{label} provider plugin 未实现非交互设置。',
   "wizard.customApi.validUrl": "请输入有效 URL（例如 http://...）",
   "wizard.customApi.probesOpenAiAnthropic": "先探测 OpenAI 端点，再探测 Anthropic 端点",
   "wizard.customApi.aliasInvalid": "Alias 无效。",
@@ -666,12 +649,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
     "确认 agent 功能强大且完全系统访问存在风险（--non-interactive 必填）",
   "command.onboard.option.flow": "引导流程：quickstart|advanced|manual",
   "command.onboard.option.mode": "引导模式：local|remote",
-  "command.onboard.option.authChoice": "认证方式：{choices}",
-  "command.onboard.option.tokenProvider":
-    "Token provider id（非交互模式；配合 --auth-choice token 使用）",
-  "command.onboard.option.token": "Token 值（非交互模式；配合 --auth-choice token 使用）",
-  "command.onboard.option.tokenProfileId": "认证 profile id（非交互模式；默认：<provider>:manual）",
-  "command.onboard.option.tokenExpiresIn": "可选 token 过期时长（例如 365d、12h）",
   "command.onboard.option.secretInputMode": "API key 持久化模式：plaintext|ref（默认：plaintext）",
   "command.onboard.option.cloudflareAccountId": "Cloudflare Account ID",
   "command.onboard.option.cloudflareGatewayId": "Cloudflare AI Gateway ID",

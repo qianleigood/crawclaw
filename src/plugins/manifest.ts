@@ -23,8 +23,8 @@ export type PluginManifest = {
   /** Cheap provider-auth env lookup without booting plugin runtime. */
   providerAuthEnvVars?: Record<string, string[]>;
   /**
-   * Cheap onboarding/auth-choice metadata used by config validation, CLI help,
-   * and non-runtime auth-choice routing before provider runtime loads.
+   * Cheap provider setup metadata used by config validation and UI surfaces
+   * before provider runtime loads.
    */
   providerAuthChoices?: PluginManifestProviderAuthChoice[];
   skills?: string[];
@@ -57,22 +57,15 @@ export type PluginManifestProviderAuthChoice = {
   provider: string;
   /** Provider auth method id that this choice should dispatch to. */
   method: string;
-  /** Stable auth-choice id used by onboarding and other CLI auth flows. */
+  /** Stable setup choice id used by onboarding and UI setup flows. */
   choiceId: string;
   /** Optional user-facing choice label/hint for grouped onboarding UI. */
   choiceLabel?: string;
   choiceHint?: string;
-  /** Legacy choice ids that should point users at this replacement choice. */
-  deprecatedChoiceIds?: string[];
-  /** Optional grouping metadata for auth-choice pickers. */
+  /** Optional grouping metadata for setup pickers. */
   groupId?: string;
   groupLabel?: string;
   groupHint?: string;
-  /** Optional CLI flag metadata for one-flag auth flows such as API keys. */
-  optionKey?: string;
-  cliFlag?: string;
-  cliOption?: string;
-  cliDescription?: string;
   /**
    * Interactive onboarding surfaces where this auth choice should appear.
    * Defaults to `["text-inference"]` when omitted.
@@ -165,15 +158,9 @@ function normalizeProviderAuthChoices(
     }
     const choiceLabel = typeof entry.choiceLabel === "string" ? entry.choiceLabel.trim() : "";
     const choiceHint = typeof entry.choiceHint === "string" ? entry.choiceHint.trim() : "";
-    const deprecatedChoiceIds = normalizeStringList(entry.deprecatedChoiceIds);
     const groupId = typeof entry.groupId === "string" ? entry.groupId.trim() : "";
     const groupLabel = typeof entry.groupLabel === "string" ? entry.groupLabel.trim() : "";
     const groupHint = typeof entry.groupHint === "string" ? entry.groupHint.trim() : "";
-    const optionKey = typeof entry.optionKey === "string" ? entry.optionKey.trim() : "";
-    const cliFlag = typeof entry.cliFlag === "string" ? entry.cliFlag.trim() : "";
-    const cliOption = typeof entry.cliOption === "string" ? entry.cliOption.trim() : "";
-    const cliDescription =
-      typeof entry.cliDescription === "string" ? entry.cliDescription.trim() : "";
     const onboardingScopes = normalizeStringList(entry.onboardingScopes).filter(
       (scope): scope is PluginManifestOnboardingScope => scope === "text-inference",
     );
@@ -183,14 +170,9 @@ function normalizeProviderAuthChoices(
       choiceId,
       ...(choiceLabel ? { choiceLabel } : {}),
       ...(choiceHint ? { choiceHint } : {}),
-      ...(deprecatedChoiceIds.length > 0 ? { deprecatedChoiceIds } : {}),
       ...(groupId ? { groupId } : {}),
       ...(groupLabel ? { groupLabel } : {}),
       ...(groupHint ? { groupHint } : {}),
-      ...(optionKey ? { optionKey } : {}),
-      ...(cliFlag ? { cliFlag } : {}),
-      ...(cliOption ? { cliOption } : {}),
-      ...(cliDescription ? { cliDescription } : {}),
       ...(onboardingScopes.length > 0 ? { onboardingScopes } : {}),
     });
   }

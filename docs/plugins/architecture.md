@@ -431,8 +431,8 @@ resolution.
 Provider plugins now have two layers:
 
 - manifest metadata: `providerAuthEnvVars` for cheap env-auth lookup before
-  runtime load, plus `providerAuthChoices` for cheap onboarding/auth-choice
-  labels and CLI flag metadata before runtime load
+  runtime load, plus `providerAuthChoices` for cheap onboarding/setup labels
+  before runtime load
 - config-time hooks: `catalog` / legacy `discovery`
 - runtime hooks: `resolveDynamicModel`, `prepareDynamicModel`, `normalizeResolvedModel`, `capabilities`, `formatApiKey`, `buildAuthDoctorHint`, `isCacheTtlEligible`, `buildMissingAuthMessage`, `suppressBuiltInModel`, `augmentModelCatalog`, `isBinaryThinking`, `supportsXHighThinking`, `resolveDefaultThinkingLevel`, `isModernModelRef`, `prepareRuntimeAuth`, `resolveUsageAuth`, `fetchUsageSnapshot`, `buildReplayPolicy`, `sanitizeReplayHistory`, `validateReplayTurns`
 
@@ -442,9 +442,9 @@ needing a whole custom inference transport.
 
 Use manifest `providerAuthEnvVars` when the provider has env-based credentials
 that generic auth/status/model-picker paths should see without loading plugin
-runtime. Use manifest `providerAuthChoices` when onboarding/auth-choice CLI
-surfaces should know the provider's choice id, group labels, and simple
-one-flag auth wiring without loading provider runtime. Keep provider runtime
+runtime. Use manifest `providerAuthChoices` when onboarding/setup surfaces
+should know the provider's choice id and group labels without loading provider
+runtime. Keep provider runtime
 `envVars` for operator-facing hints such as onboarding labels or OAuth
 client-id/client-secret setup vars.
 

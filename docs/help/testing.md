@@ -437,7 +437,6 @@ Located in `src/plugins/contracts/*.contract.test.ts`.
 Located in `src/plugins/contracts/*.contract.test.ts`:
 
 - **auth** - Auth flow contract
-- **auth-choice** - Auth choice/selection
 - **catalog** - Model catalog API
 - **discovery** - Plugin discovery
 - **loader** - Plugin loading

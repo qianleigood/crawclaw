@@ -108,10 +108,9 @@ export type ProviderAuthContext = {
   /**
    * Optional onboarding CLI options that triggered this auth flow.
    *
-   * Present for setup/configure/auth-choice flows so provider methods can
-   * honor preseeded flags like `--openai-api-key` or generic
-   * `--token/--token-provider` pairs. Direct `models auth login` usually
-   * leaves this undefined.
+   * Present for setup/configure flows so provider methods can honor preseeded
+   * provider-owned options. Direct provider login flows usually leave this
+   * undefined.
    */
   opts?: ProviderAuthOptionBag;
   /**

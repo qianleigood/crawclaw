@@ -401,8 +401,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.remoteAuth": "Auth: {auth}",
   "wizard.setup.webSearchTip":
     "Tip: run `{command}` to store your Brave API key for web_search. Docs: https://docs.crawclaw.ai/tools/web",
-  "wizard.setup.error.authChoiceRemoved":
-    'Auth choice "{choice}" has been removed. Use "--auth-choice {replacement}".',
   "wizard.setup.error.invalidSecretInputMode":
     'Invalid --secret-input-mode. Use "plaintext" or "ref".',
   "wizard.setup.error.invalidResetScope":
@@ -425,8 +423,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "wizard.setup.error.configInvalid":
     "Config invalid. Run `{doctor}` to repair it, then re-run setup.",
   "wizard.setup.error.missingRemoteUrl": "Missing --remote-url for remote mode.",
-  "wizard.setup.error.multipleApiKeyFlags":
-    "Multiple API key flags were provided for non-interactive setup.\nUse a single provider flag or pass --auth-choice explicitly.\nFlags: {flags}",
   "wizard.setup.error.invalidNodeManager": "Invalid --node-manager (use npm, pnpm, or bun)",
   "wizard.setup.error.invalidOutputPreset":
     "Invalid --output-preset (use quiet, balanced, or operator).",
@@ -469,21 +465,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
     'Unable to determine which environment variable to store as a ref for provider "{provider}".\nSet an explicit provider env var and retry, or use --secret-input-mode plaintext.',
   "wizard.auth.error.refRequiresExplicitEnv":
     '--secret-input-mode ref requires an explicit environment variable for provider "{provider}".\nSet the provider API key env var and retry, or use --secret-input-mode plaintext.',
-  "wizard.auth.error.setupTokenInteractive":
-    'Auth choice "setup-token" requires interactive mode.\nUse "--auth-choice token" with --token and --token-provider anthropic.',
-  "wizard.auth.error.oauthRemoved":
-    'Auth choice "oauth" has been removed. Use "--auth-choice setup-token".',
-  "wizard.auth.error.deprecatedChoice":
-    '"{choice}" is no longer supported. Use --auth-choice {replacement} instead.',
   "wizard.auth.error.invalidCustomProviderConfig": "Invalid custom provider config: {reason}",
-  "wizard.auth.error.oauthInteractive": "OAuth requires interactive mode.",
-  "wizard.auth.error.flagRequiresEnvRef":
-    "{flag} cannot be used with --secret-input-mode ref unless {env} is set in env.\nSet {env} in env and omit {flag}, or use --secret-input-mode plaintext.",
-  "wizard.auth.error.missingApiKey": "Missing {flag} (or {env} in env{profileHint}).",
-  "wizard.auth.error.profileHint": ", or existing {provider} API-key profile",
-  "wizard.plugin.error.disabled": "{label} plugin is disabled ({reason}).",
-  "wizard.plugin.error.nonInteractiveMissing":
-    'Auth choice "{choice}" requires interactive mode.\nThe {label} provider plugin does not implement non-interactive setup.',
   "wizard.customApi.validUrl": "Please enter a valid URL (e.g. http://...)",
   "wizard.customApi.probesOpenAiAnthropic": "Probes OpenAI then Anthropic endpoints",
   "wizard.customApi.aliasInvalid": "Alias is invalid.",
@@ -686,13 +668,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
     "Acknowledge that agents are powerful and full system access is risky (required for --non-interactive)",
   "command.onboard.option.flow": "Onboard flow: quickstart|advanced|manual",
   "command.onboard.option.mode": "Onboard mode: local|remote",
-  "command.onboard.option.authChoice": "Auth: {choices}",
-  "command.onboard.option.tokenProvider":
-    "Token provider id (non-interactive; used with --auth-choice token)",
-  "command.onboard.option.token": "Token value (non-interactive; used with --auth-choice token)",
-  "command.onboard.option.tokenProfileId":
-    "Auth profile id (non-interactive; default: <provider>:manual)",
-  "command.onboard.option.tokenExpiresIn": "Optional token expiry duration (e.g. 365d, 12h)",
   "command.onboard.option.secretInputMode":
     "API key persistence mode: plaintext|ref (default: plaintext)",
   "command.onboard.option.cloudflareAccountId": "Cloudflare Account ID",

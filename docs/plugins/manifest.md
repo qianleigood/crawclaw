@@ -91,10 +91,6 @@ Those belong in your plugin code and `package.json`.
       "choiceLabel": "OpenRouter API key",
       "groupId": "openrouter",
       "groupLabel": "OpenRouter",
-      "optionKey": "openrouterApiKey",
-      "cliFlag": "--openrouter-api-key",
-      "cliOption": "--openrouter-api-key <key>",
-      "cliDescription": "OpenRouter API key",
       "onboardingScopes": ["text-inference"]
     }
   ],
@@ -129,7 +125,7 @@ Those belong in your plugin code and `package.json`.
 | `channels`            | No       | `string[]`                 | Channel ids owned by this plugin. Used for discovery and config validation.                                                  |
 | `providers`           | No       | `string[]`                 | Provider ids owned by this plugin.                                                                                           |
 | `providerAuthEnvVars` | No       | `Record<string, string[]>` | Cheap provider-auth env metadata that CrawClaw can inspect without loading plugin code.                                      |
-| `providerAuthChoices` | No       | `object[]`                 | Cheap auth-choice metadata for onboarding pickers, preferred-provider resolution, and simple CLI flag wiring.                |
+| `providerAuthChoices` | No       | `object[]`                 | Cheap provider setup metadata for onboarding and UI setup surfaces.                                                          |
 | `contracts`           | No       | `object`                   | Static bundled capability snapshot for speech, web search, and tool ownership.                                               |
 | `skills`              | No       | `string[]`                 | Skill directories to load, relative to the plugin root.                                                                      |
 | `name`                | No       | `string`                   | Human-readable plugin name.                                                                                                  |
@@ -139,23 +135,19 @@ Those belong in your plugin code and `package.json`.
 
 ## providerAuthChoices reference
 
-Each `providerAuthChoices` entry describes one onboarding or auth choice.
+Each `providerAuthChoices` entry describes one provider setup choice.
 CrawClaw reads this before provider runtime loads.
 
 | Field              | Required | Type                      | What it means                                                                                            |
 | ------------------ | -------- | ------------------------- | -------------------------------------------------------------------------------------------------------- |
 | `provider`         | Yes      | `string`                  | Provider id this choice belongs to.                                                                      |
 | `method`           | Yes      | `string`                  | Auth method id to dispatch to.                                                                           |
-| `choiceId`         | Yes      | `string`                  | Stable auth-choice id used by onboarding and CLI flows.                                                  |
+| `choiceId`         | Yes      | `string`                  | Stable setup choice id used by onboarding and UI setup flows.                                            |
 | `choiceLabel`      | No       | `string`                  | User-facing label. If omitted, CrawClaw falls back to `choiceId`.                                        |
 | `choiceHint`       | No       | `string`                  | Short helper text for the picker.                                                                        |
 | `groupId`          | No       | `string`                  | Optional group id for grouping related choices.                                                          |
 | `groupLabel`       | No       | `string`                  | User-facing label for that group.                                                                        |
 | `groupHint`        | No       | `string`                  | Short helper text for the group.                                                                         |
-| `optionKey`        | No       | `string`                  | Internal option key for simple one-flag auth flows.                                                      |
-| `cliFlag`          | No       | `string`                  | CLI flag name, such as `--openrouter-api-key`.                                                           |
-| `cliOption`        | No       | `string`                  | Full CLI option shape, such as `--openrouter-api-key <key>`.                                             |
-| `cliDescription`   | No       | `string`                  | Description used in CLI help.                                                                            |
 | `onboardingScopes` | No       | `Array<"text-inference">` | Which onboarding surfaces this choice should appear in. If omitted, it defaults to `["text-inference"]`. |
 
 ## uiHints reference
@@ -252,7 +244,7 @@ The two files serve different jobs:
 
 | File                   | Use it for                                                                                                         |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| `crawclaw.plugin.json` | Discovery, config validation, auth-choice metadata, and UI hints that must exist before plugin code runs           |
+| `crawclaw.plugin.json` | Discovery, config validation, provider setup metadata, and UI hints that must exist before plugin code runs        |
 | `package.json`         | npm metadata, dependency installation, and the `crawclaw` block used for entrypoints and setup or catalog metadata |
 
 If you are unsure where a piece of metadata belongs, use this rule:
@@ -314,11 +306,10 @@ See [Configuration reference](/gateway/configuration) for the full `plugins.*` s
 - `providerAuthEnvVars` is the cheap metadata path for auth probes, env-marker
   validation, and similar provider-auth surfaces that should not boot plugin
   runtime just to inspect env names.
-- `providerAuthChoices` is the cheap metadata path for auth-choice pickers,
-  `--auth-choice` resolution, preferred-provider mapping, and simple onboarding
-  CLI flag registration without loading plugin runtime. Model provider runtime
-  hooks have been removed; provider config and catalog metadata are owned by the
-  Rust provider registry.
+- `providerAuthChoices` is the cheap metadata path for provider setup pickers
+  without loading plugin runtime. Model provider runtime hooks have been
+  removed; provider config and catalog metadata are owned by the Rust provider
+  registry.
 - Exclusive plugin kinds are selected through `plugins.slots.*`.
   - `kind: "memory"` is the only supported exclusive plugin kind.
   - Legacy `kind: "context-engine"` manifests are rejected by the loader.
