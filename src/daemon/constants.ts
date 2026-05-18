@@ -4,12 +4,6 @@ export const GATEWAY_SYSTEMD_SERVICE_NAME = "crawclaw-gateway";
 export const GATEWAY_WINDOWS_TASK_NAME = "CrawClaw Gateway";
 export const GATEWAY_SERVICE_MARKER = "crawclaw";
 export const GATEWAY_SERVICE_KIND = "gateway";
-export const NODE_LAUNCH_AGENT_LABEL = "ai.crawclaw.node";
-export const NODE_SYSTEMD_SERVICE_NAME = "crawclaw-node";
-export const NODE_WINDOWS_TASK_NAME = "CrawClaw Node";
-export const NODE_SERVICE_MARKER = "crawclaw";
-export const NODE_SERVICE_KIND = "node";
-export const NODE_WINDOWS_TASK_SCRIPT_NAME = "node.cmd";
 export function normalizeGatewayProfile(profile?: string): string | null {
   const trimmed = profile?.trim();
   if (!trimmed || trimmed.toLowerCase() === "default") {
@@ -78,24 +72,4 @@ export function resolveGatewayServiceDescription(params: {
       version: params.environment?.CRAWCLAW_SERVICE_VERSION ?? params.env.CRAWCLAW_SERVICE_VERSION,
     })
   );
-}
-
-export function resolveNodeLaunchAgentLabel(): string {
-  return NODE_LAUNCH_AGENT_LABEL;
-}
-
-export function resolveNodeSystemdServiceName(): string {
-  return NODE_SYSTEMD_SERVICE_NAME;
-}
-
-export function resolveNodeWindowsTaskName(): string {
-  return NODE_WINDOWS_TASK_NAME;
-}
-
-export function formatNodeServiceDescription(params?: { version?: string }): string {
-  const version = params?.version?.trim();
-  if (!version) {
-    return "CrawClaw Node Host";
-  }
-  return `CrawClaw Node Host (v${version})`;
 }

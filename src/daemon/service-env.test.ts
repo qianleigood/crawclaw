@@ -4,7 +4,6 @@ import { describe, expect, it } from "vitest";
 import { resolveGatewayStateDir } from "./paths.js";
 import {
   buildMinimalServicePath,
-  buildNodeServiceEnvironment,
   buildServiceEnvironment,
   getMinimalServicePathParts,
   getMinimalServicePathPartsFromEnv,
@@ -401,82 +400,12 @@ describe("buildServiceEnvironment", () => {
   });
 });
 
-describe("buildNodeServiceEnvironment", () => {
-  it("passes through HOME for node services", () => {
-    const env = buildNodeServiceEnvironment({
-      env: { HOME: "/home/user" },
-    });
-    expect(env.HOME).toBe("/home/user");
-  });
-
-  it("passes through CRAWCLAW_GATEWAY_TOKEN for node services", () => {
-    const env = buildNodeServiceEnvironment({
-      env: { HOME: "/home/user", CRAWCLAW_GATEWAY_TOKEN: " node-token " },
-    });
-    expect(env.CRAWCLAW_GATEWAY_TOKEN).toBe("node-token");
-  });
-
-  it("omits CRAWCLAW_GATEWAY_TOKEN when the env var is empty", () => {
-    const env = buildNodeServiceEnvironment({
-      env: {
-        HOME: "/home/user",
-        CRAWCLAW_GATEWAY_TOKEN: "   ",
-      },
-    });
-    expect(env.CRAWCLAW_GATEWAY_TOKEN).toBeUndefined();
-  });
-
-  it("forwards proxy environment variables for node services", () => {
-    const env = buildNodeServiceEnvironment({
-      env: {
-        HOME: "/home/user",
-        HTTPS_PROXY: " https://proxy.local:7890 ",
-        no_proxy: "localhost,127.0.0.1",
-      },
-    });
-
-    expect(env.HTTPS_PROXY).toBe("https://proxy.local:7890");
-    expect(env.no_proxy).toBe("localhost,127.0.0.1");
-  });
-
-  it("forwards TMPDIR for node services", () => {
-    const env = buildNodeServiceEnvironment({
-      env: { HOME: "/home/user", TMPDIR: "/tmp/custom" },
-    });
-    expect(env.TMPDIR).toBe("/tmp/custom");
-  });
-
-  it("falls back to os.tmpdir for node services when TMPDIR is not set", () => {
-    const env = buildNodeServiceEnvironment({
-      env: { HOME: "/home/user" },
-    });
-    expect(env.TMPDIR).toBe(os.tmpdir());
-  });
-
-  it("prepends extra runtime directories to the node service PATH", () => {
-    const env = buildNodeServiceEnvironment({
-      env: { HOME: "/home/user" },
-      platform: "linux",
-      extraPathDirs: ["/home/user/.nvm/versions/node/v22.22.0/bin"],
-    });
-
-    expect(env.PATH?.split(path.posix.delimiter)[0]).toBe(
-      "/home/user/.nvm/versions/node/v22.22.0/bin",
-    );
-  });
-});
-
 describe("shared Node TLS env defaults", () => {
   const builders = [
     {
       name: "gateway service env",
       build: (env: Record<string, string | undefined>, platform?: NodeJS.Platform) =>
         buildServiceEnvironment({ env, port: 18789, platform }),
-    },
-    {
-      name: "node service env",
-      build: (env: Record<string, string | undefined>, platform?: NodeJS.Platform) =>
-        buildNodeServiceEnvironment({ env, platform }),
     },
   ] as const;
 
@@ -592,15 +521,6 @@ describe("shared Node TLS env defaults", () => {
     expect(env.NODE_USE_SYSTEM_CA).toBe("1");
   });
 
-  it("sets macOS TLS defaults for node services", () => {
-    const env = buildNodeServiceEnvironment({
-      env: { HOME: "/Users/test" },
-      platform: "darwin",
-    });
-    expect(env.NODE_EXTRA_CA_CERTS).toBe("/etc/ssl/cert.pem");
-    expect(env.NODE_USE_SYSTEM_CA).toBe("1");
-  });
-
   it("defaults NODE_EXTRA_CA_CERTS on Linux when NVM_DIR is set", () => {
     const expected = resolveLinuxSystemCaBundle();
     const env = buildServiceEnvironment({
@@ -614,8 +534,9 @@ describe("shared Node TLS env defaults", () => {
 
   it("defaults NODE_EXTRA_CA_CERTS on Linux when execPath is under nvm", () => {
     const expected = resolveLinuxSystemCaBundle();
-    const env = buildNodeServiceEnvironment({
+    const env = buildServiceEnvironment({
       env: { HOME: "/home/user" },
+      port: 18789,
       platform: "linux",
       execPath: "/home/user/.nvm/versions/node/v22.22.0/bin/node",
     });
@@ -633,12 +554,13 @@ describe("shared Node TLS env defaults", () => {
   });
 
   it("respects user-provided NODE_EXTRA_CA_CERTS on Linux with nvm", () => {
-    const env = buildNodeServiceEnvironment({
+    const env = buildServiceEnvironment({
       env: {
         HOME: "/home/user",
         NVM_DIR: "/home/user/.nvm",
         NODE_EXTRA_CA_CERTS: "/custom/ca-bundle.crt",
       },
+      port: 18789,
       platform: "linux",
       execPath: "/home/user/.nvm/versions/node/v22.22.0/bin/node",
     });

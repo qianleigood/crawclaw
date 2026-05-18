@@ -25,7 +25,6 @@ vi.mock("../config/config.js", async (importOriginal) => {
 
 vi.mock("../daemon/constants.js", () => ({
   resolveGatewayLaunchAgentLabel: vi.fn(() => "ai.crawclaw.gateway"),
-  resolveNodeLaunchAgentLabel: vi.fn(() => "ai.crawclaw.node"),
 }));
 
 vi.mock("../daemon/diagnostics.js", () => ({

@@ -12,12 +12,6 @@ import {
   resolveGatewayLaunchAgentLabel,
   resolveGatewaySystemdServiceName,
   resolveGatewayWindowsTaskName,
-  NODE_SERVICE_KIND,
-  NODE_SERVICE_MARKER,
-  NODE_WINDOWS_TASK_SCRIPT_NAME,
-  resolveNodeLaunchAgentLabel,
-  resolveNodeSystemdServiceName,
-  resolveNodeWindowsTaskName,
 } from "./constants.js";
 
 export { isNodeVersionManagerRuntime, resolveLinuxSystemCaBundle };
@@ -280,35 +274,6 @@ export function buildServiceEnvironment(params: {
     CRAWCLAW_WINDOWS_TASK_NAME: resolveGatewayWindowsTaskName(profile),
     CRAWCLAW_SERVICE_MARKER: GATEWAY_SERVICE_MARKER,
     CRAWCLAW_SERVICE_KIND: GATEWAY_SERVICE_KIND,
-    CRAWCLAW_SERVICE_VERSION: VERSION,
-  };
-}
-
-export function buildNodeServiceEnvironment(params: {
-  env: Record<string, string | undefined>;
-  platform?: NodeJS.Platform;
-  extraPathDirs?: string[];
-  execPath?: string;
-}): Record<string, string | undefined> {
-  const { env, extraPathDirs } = params;
-  const platform = params.platform ?? process.platform;
-  const sharedEnv = resolveSharedServiceEnvironmentFields(
-    env,
-    platform,
-    extraPathDirs,
-    params.execPath,
-  );
-  const gatewayToken = env.CRAWCLAW_GATEWAY_TOKEN?.trim() || undefined;
-  return {
-    ...buildCommonServiceEnvironment(env, sharedEnv),
-    CRAWCLAW_GATEWAY_TOKEN: gatewayToken,
-    CRAWCLAW_LAUNCHD_LABEL: resolveNodeLaunchAgentLabel(),
-    CRAWCLAW_SYSTEMD_UNIT: resolveNodeSystemdServiceName(),
-    CRAWCLAW_WINDOWS_TASK_NAME: resolveNodeWindowsTaskName(),
-    CRAWCLAW_TASK_SCRIPT_NAME: NODE_WINDOWS_TASK_SCRIPT_NAME,
-    CRAWCLAW_LOG_PREFIX: "node",
-    CRAWCLAW_SERVICE_MARKER: NODE_SERVICE_MARKER,
-    CRAWCLAW_SERVICE_KIND: NODE_SERVICE_KIND,
     CRAWCLAW_SERVICE_VERSION: VERSION,
   };
 }
