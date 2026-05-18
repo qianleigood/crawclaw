@@ -216,6 +216,27 @@ mod tests {
             .as_object()
             .expect("gateway properties");
         assert!(!gateway_properties.contains_key("reload"));
+        let web_search_properties = path(
+            &payload,
+            &[
+                "schema",
+                "properties",
+                "tools",
+                "properties",
+                "web",
+                "properties",
+                "search",
+                "properties",
+            ],
+        )
+        .as_object()
+        .expect("web search properties");
+        assert!(!web_search_properties.contains_key("openaiCodex"));
+        assert!(!path(&payload, &["uiHints"])
+            .as_object()
+            .expect("ui hints")
+            .keys()
+            .any(|key| key.starts_with("tools.web.search.openaiCodex")));
     }
 
     #[test]
@@ -311,6 +332,9 @@ mod tests {
         assert!(!entries
             .iter()
             .any(|entry| entry["path"].as_str() == Some("wizard")));
+        assert!(!entries.iter().any(|entry| entry["path"]
+            .as_str()
+            .is_some_and(|path| path.starts_with("tools.web.search.openaiCodex"))));
 
         let mut lines = config_doc_baseline_jsonl().lines();
         let meta: Value =

@@ -172,7 +172,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.changeBaseUrl": "修改 base URL",
   "ui.text.changeBaseUrlAndModel": "修改 base URL 和模型",
   "ui.text.changeModel": "修改模型",
-  "ui.text.codexNativeSearchMode": "Codex 原生网页搜索模式",
   "ui.text.configureLink": "配置/连接",
   "ui.text.configureModelAuthNow": "现在为这个 agent 配置模型/认证吗？",
   "ui.text.configureSearchProviderNow": "现在配置或更换托管网页搜索 provider 吗？",

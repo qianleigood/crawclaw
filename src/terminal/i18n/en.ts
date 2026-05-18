@@ -177,7 +177,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "ui.text.changeBaseUrl": "Change base URL",
   "ui.text.changeBaseUrlAndModel": "Change base URL and model",
   "ui.text.changeModel": "Change model",
-  "ui.text.codexNativeSearchMode": "Codex native web search mode",
   "ui.text.configureLink": "Configure/link",
   "ui.text.configureModelAuthNow": "Configure model/auth for this agent now?",
   "ui.text.configureSearchProviderNow": "Configure or change a managed web search provider now?",

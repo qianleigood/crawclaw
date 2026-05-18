@@ -46,35 +46,6 @@ JS-heavy sites or authenticated pages, use the [Web Browser](/tools/browser).
   `categories`, `language`, `safeSearch`, `timeRange`, and `timeoutSeconds`
 - older API-backed search providers are no longer part of the managed tool
 
-## Native Codex web search
-
-Codex-capable models can optionally use the provider-native Responses
-`web_search` tool instead of CrawClaw's managed function.
-
-- Configure it under `tools.web.search.openaiCodex`
-- It only activates for Codex-capable models
-- Managed `web_search` still applies to non-Codex models
-- `mode: "cached"` is the default and recommended setting
-- `tools.web.search.enabled: false` disables both managed and native search
-
-```json5
-{
-  tools: {
-    web: {
-      search: {
-        enabled: true,
-        provider: "searxng",
-        openaiCodex: {
-          enabled: true,
-          mode: "cached",
-          allowedDomains: ["example.com"],
-        },
-      },
-    },
-  },
-}
-```
-
 ## Config
 
 ```json5

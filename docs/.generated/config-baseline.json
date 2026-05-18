@@ -19019,7 +19019,7 @@
       "sensitive": false,
       "tags": ["tools"],
       "label": "Enable Web Search Tool",
-      "help": "Enable managed web_search and optional Codex-native search for eligible models.",
+      "help": "Enable managed web_search.",
       "hasChildren": false
     },
     {
@@ -19032,72 +19032,6 @@
       "tags": ["performance", "tools"],
       "label": "Web Search Max Results",
       "help": "Number of results to return (1-10).",
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.search.openaiCodex",
-      "kind": "core",
-      "type": "object",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
-      "hasChildren": true
-    },
-    {
-      "path": "tools.web.search.openaiCodex.allowedDomains",
-      "kind": "core",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["access", "tools"],
-      "label": "Codex Allowed Domains",
-      "help": "Optional domain allowlist passed to the native Codex web_search tool.",
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.search.openaiCodex.contextSize",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["tools"],
-      "label": "Codex Search Context Size",
-      "help": "Native Codex search context size hint: \"low\", \"medium\", or \"high\".",
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.search.openaiCodex.enabled",
-      "kind": "core",
-      "type": "boolean",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["tools"],
-      "label": "Enable Native Codex Web Search",
-      "help": "Enable native Codex web search for Codex-capable models.",
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.search.openaiCodex.mode",
-      "kind": "core",
-      "type": "string",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": ["tools"],
-      "label": "Codex Web Search Mode",
-      "help": "Native Codex web search mode: \"cached\" (default) or \"live\".",
-      "hasChildren": false
-    },
-    {
-      "path": "tools.web.search.openaiCodex.userLocation",
-      "kind": "core",
-      "required": false,
-      "deprecated": false,
-      "sensitive": false,
-      "tags": [],
       "hasChildren": false
     },
     {
