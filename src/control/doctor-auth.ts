@@ -6,7 +6,6 @@ import {
 import {
   type AuthCredentialReasonCode,
   ensureAuthProfileStore,
-  resolveApiKeyForProfile,
   resolveProfileUnusableUntilForDisplay,
 } from "../agents/auth-profiles.js";
 import { formatAuthDoctorHint } from "../agents/auth-profiles/doctor.js";
@@ -107,7 +106,7 @@ export async function noteAuthProfileHealth(params: {
     note(unusable.join("\n"), "Auth profile cooldowns");
   }
 
-  let summary = buildAuthHealthSummary({
+  const summary = buildAuthHealthSummary({
     store,
     cfg: params.cfg,
     warnAfterMs: DEFAULT_OAUTH_WARN_MS,
@@ -122,62 +121,25 @@ export async function noteAuthProfileHealth(params: {
           profile.status === "missing"),
     );
 
-  let issues = findIssues();
+  const issues = findIssues();
   if (issues.length === 0) {
     return;
   }
 
-  const shouldRefresh = await params.prompter.confirmAutoFix({
-    message: "Refresh expiring OAuth tokens now? (static tokens need re-auth)",
-    initialValue: true,
-  });
-
-  if (shouldRefresh) {
-    const refreshTargets = issues.filter(
-      (issue) =>
-        issue.type === "oauth" && ["expired", "expiring", "missing"].includes(issue.status),
-    );
-    const errors: string[] = [];
-    for (const profile of refreshTargets) {
-      try {
-        await resolveApiKeyForProfile({
-          cfg: params.cfg,
-          store,
-          profileId: profile.profileId,
-        });
-      } catch (err) {
-        errors.push(`- ${profile.profileId}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-    }
-    if (errors.length > 0) {
-      note(errors.join("\n"), "OAuth refresh errors");
-    }
-    summary = buildAuthHealthSummary({
-      store: ensureAuthProfileStore(undefined, {
-        allowKeychainPrompt: false,
-      }),
-      cfg: params.cfg,
-      warnAfterMs: DEFAULT_OAUTH_WARN_MS,
-    });
-    issues = findIssues();
-  }
-
-  if (issues.length > 0) {
-    const issueLines = await Promise.all(
-      issues.map((issue) =>
-        formatAuthIssueLine(
-          {
-            profileId: issue.profileId,
-            provider: issue.provider,
-            status: issue.status,
-            reasonCode: issue.reasonCode,
-            remainingMs: issue.remainingMs,
-          },
-          params.cfg,
-          store,
-        ),
+  const issueLines = await Promise.all(
+    issues.map((issue) =>
+      formatAuthIssueLine(
+        {
+          profileId: issue.profileId,
+          provider: issue.provider,
+          status: issue.status,
+          reasonCode: issue.reasonCode,
+          remainingMs: issue.remainingMs,
+        },
+        params.cfg,
+        store,
       ),
-    );
-    note(issueLines.join("\n"), "Model auth");
-  }
+    ),
+  );
+  note(issueLines.join("\n"), "Model auth");
 }

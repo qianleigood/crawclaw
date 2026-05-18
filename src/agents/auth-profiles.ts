@@ -17,10 +17,6 @@ export {
   upsertAuthProfileWithLock,
 } from "./auth-profiles/profiles.js";
 export {
-  repairOAuthProfileIdMismatch,
-  suggestOAuthProfileIdForLegacyDefault,
-} from "./auth-profiles/repair.js";
-export {
   clearRuntimeAuthProfileStoreSnapshots,
   ensureAuthProfileStore,
   loadAuthProfileStoreForSecretsRuntime,
@@ -33,7 +29,6 @@ export type {
   ApiKeyCredential,
   AuthProfileCredential,
   AuthProfileFailureReason,
-  AuthProfileIdRepairResult,
   AuthProfileStore,
   OAuthCredential,
   ProfileUsageStats,

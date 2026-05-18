@@ -263,7 +263,7 @@ describe("resolveAuthProfileOrder", () => {
     });
     expect(order).toEqual(["minimax:default"]);
   });
-  it("keeps oauth profiles that can refresh", () => {
+  it("drops expired oauth profiles because JavaScript refresh helpers are removed", () => {
     const order = resolveAuthProfileOrder({
       cfg: {
         auth: {
@@ -286,6 +286,6 @@ describe("resolveAuthProfileOrder", () => {
       },
       provider: "anthropic",
     });
-    expect(order).toEqual(["anthropic:oauth"]);
+    expect(order).toEqual([]);
   });
 });

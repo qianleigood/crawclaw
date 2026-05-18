@@ -238,11 +238,10 @@ Doctor checks:
 
 ### 5) Model auth health (OAuth expiry)
 
-Doctor inspects OAuth profiles in the auth store, warns when tokens are
-expiring/expired, and can refresh them when safe. If the Anthropic Claude Code
-profile is stale, it suggests running `claude setup-token` (or pasting a setup-token).
-Refresh prompts only appear when running interactively (TTY); `--non-interactive`
-skips refresh attempts.
+Doctor inspects OAuth and token profiles in the auth store and warns when tokens
+are expiring, expired, or missing. If the Anthropic Claude Code profile is stale,
+it suggests running `claude setup-token` or pasting a setup-token. CrawClaw
+Desktop no longer runs bundled JavaScript OAuth refresh helpers.
 
 Doctor also reports auth profiles that are temporarily unusable due to:
 

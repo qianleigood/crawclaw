@@ -231,7 +231,7 @@ If you generated the token on a different machine, paste it:
 ## Notes
 
 - Generate the setup-token with `claude setup-token` and paste it, or run CrawClaw Desktop or the local Gateway API on the gateway host.
-- If you see “OAuth token refresh failed …” on a Claude subscription, re-auth with a setup-token. See [/gateway/troubleshooting](/gateway/troubleshooting).
+- If a Claude subscription token expires or is rejected, re-auth with a setup-token. See [/gateway/troubleshooting](/gateway/troubleshooting).
 - Auth details + reuse rules are in [/concepts/oauth](/concepts/oauth).
 
 ## Troubleshooting

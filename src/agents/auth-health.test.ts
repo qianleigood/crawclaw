@@ -58,16 +58,15 @@ describe("buildAuthHealthSummary", () => {
     const statuses = profileStatuses(summary);
 
     expect(statuses["anthropic:ok"]).toBe("ok");
-    // OAuth credentials with refresh tokens are auto-renewable, so they report "ok"
-    expect(statuses["anthropic:expiring"]).toBe("ok");
-    expect(statuses["anthropic:expired"]).toBe("ok");
+    expect(statuses["anthropic:expiring"]).toBe("expiring");
+    expect(statuses["anthropic:expired"]).toBe("expired");
     expect(statuses["anthropic:api"]).toBe("static");
 
     const provider = summary.providers.find((entry) => entry.provider === "anthropic");
-    expect(provider?.status).toBe("ok");
+    expect(provider?.status).toBe("expired");
   });
 
-  it("reports expired for OAuth without a refresh token", () => {
+  it("reports expired for OAuth access tokens", () => {
     vi.spyOn(Date, "now").mockReturnValue(now);
     const store = {
       version: 1,

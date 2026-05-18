@@ -1578,7 +1578,6 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.060": "live",
   "cli.visible.061": "Gateway runtime",
   "cli.visible.062": "Docs: https://docs.crawclaw.ai/",
-  "cli.visible.063": "Refresh expiring OAuth tokens now? (static tokens need re-auth)",
   "cli.visible.064":
     "Gateway service CRAWCLAW_GATEWAY_TOKEN should be unset when gateway.auth.token is SecretRef-managed",
   "cli.visible.065": "Gateway service entrypoint does not match the current install.",

@@ -1495,7 +1495,6 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.060": "live",
   "cli.visible.061": "Gateway runtime",
   "cli.visible.062": "文档：https://docs.crawclaw.ai/",
-  "cli.visible.063": "现在刷新即将过期的 OAuth tokens 吗？（静态 tokens 需要重新认证）",
   "cli.visible.064":
     "当 gateway.auth.token 由 SecretRef 管理时，网关服务的 CRAWCLAW_GATEWAY_TOKEN 应取消设置",
   "cli.visible.065": "网关服务入口与当前安装不匹配。",

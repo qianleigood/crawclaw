@@ -10,10 +10,10 @@ title: "OAuth"
 
 # OAuth
 
-CrawClaw still understands OAuth-shaped auth profiles for providers that need
-token refresh, but bundled JavaScript provider login helpers have been removed.
-For Anthropic subscriptions, you can either use the **setup-token** flow or reuse
-a local **Claude CLI** login on the gateway host. Anthropic subscription use
+CrawClaw still understands OAuth-shaped auth profiles as stored credential
+records, but bundled JavaScript provider login and refresh helpers have been
+removed. For Anthropic subscriptions, use the **setup-token** flow or reuse a
+local **Claude CLI** login on the gateway host. Anthropic subscription use
 outside Claude Code has been restricted for some users in the past, so treat it
 as a user-choice risk and verify current Anthropic policy yourself. This page explains:
 
@@ -104,16 +104,18 @@ GitHub Copilot login helpers have been removed. Existing OAuth/token profiles
 can still be present in auth-profile storage, but CrawClaw no longer starts
 those provider-specific JS browser/device flows.
 
-## Refresh + expiry
+## Expiry
 
 Profiles store an `expires` timestamp.
 
 At runtime:
 
 - if `expires` is in the future → use the stored access token
-- if expired → refresh (under a file lock) and overwrite the stored credentials
+- if expired or invalid → treat the profile as unavailable and re-authenticate
 
-The refresh flow is automatic; you generally don't need to manage tokens manually.
+CrawClaw Desktop no longer runs bundled JavaScript OAuth refresh code. Use a
+provider's native setup path, setup-token flow, or API key path to replace stale
+credentials.
 
 ## Multiple accounts (profiles) + routing
 

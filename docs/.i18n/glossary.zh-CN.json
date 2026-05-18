@@ -24,6 +24,10 @@
     "target": "Gateway 网关"
   },
   {
+    "source": "Gateway protocol schemas",
+    "target": "Gateway 协议 schemas"
+  },
+  {
     "source": "Improvement Center",
     "target": "改进中心"
   },

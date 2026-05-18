@@ -64,11 +64,15 @@ export function evaluateStoredCredentialEligibility(params: {
     return { eligible: true, reasonCode: "ok" };
   }
 
-  if (
-    normalizeSecretInputString(credential.access) === undefined &&
-    normalizeSecretInputString(credential.refresh) === undefined
-  ) {
+  if (normalizeSecretInputString(credential.access) === undefined) {
     return { eligible: false, reasonCode: "missing_credential" };
+  }
+  const expiryState = resolveTokenExpiryState(credential.expires, now);
+  if (expiryState === "missing" || expiryState === "invalid_expires") {
+    return { eligible: false, reasonCode: "invalid_expires" };
+  }
+  if (expiryState === "expired") {
+    return { eligible: false, reasonCode: "expired" };
   }
   return { eligible: true, reasonCode: "ok" };
 }

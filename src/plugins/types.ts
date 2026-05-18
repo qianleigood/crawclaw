@@ -407,9 +407,9 @@ export type ProviderFetchUsageSnapshotContext = {
 /**
  * Provider-owned auth-doctor hint input.
  *
- * Called when OAuth refresh fails and CrawClaw wants a provider-specific repair
- * hint to append to the generic re-auth message. Use this for legacy profile-id
- * migrations or other provider-owned auth-store cleanup guidance.
+ * Called when provider credentials are missing, expired, or otherwise unusable
+ * and CrawClaw wants provider-specific repair guidance to append to the generic
+ * re-auth message.
  */
 export type ProviderAuthDoctorHintContext = {
   config?: CrawClawConfig;
@@ -682,21 +682,6 @@ export type ProviderPluginWizardModelPicker = {
 export type ProviderPluginWizard = {
   setup?: ProviderPluginWizardSetup;
   modelPicker?: ProviderPluginWizardModelPicker;
-};
-
-export type ProviderOAuthProfileIdRepair = {
-  /**
-   * Legacy OAuth profile id to migrate away from.
-   *
-   * When omitted, CrawClaw falls back to `<provider>:default`.
-   */
-  legacyProfileId?: string;
-  /**
-   * Optional custom doctor prompt label.
-   *
-   * Defaults to the provider label when omitted.
-   */
-  promptLabel?: string;
 };
 
 export type ProviderModelSelectedContext = {

@@ -1,4 +1,3 @@
-import type { CrawClawConfig } from "../../config/config.js";
 import type { SecretRef } from "../../config/types.secrets.js";
 
 export type OAuthProvider = string;
@@ -87,12 +86,4 @@ export type AuthProfileStore = {
   lastGood?: Record<string, string>;
   /** Usage statistics per profile for round-robin rotation */
   usageStats?: Record<string, ProfileUsageStats>;
-};
-
-export type AuthProfileIdRepairResult = {
-  config: CrawClawConfig;
-  changes: string[];
-  migrated: boolean;
-  fromProfileId?: string;
-  toProfileId?: string;
 };
