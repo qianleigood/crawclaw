@@ -58,6 +58,17 @@ export const DEFAULT_MODEL_MAX_TOKENS = 8192;
 export const PROVIDER_DEFAULT_API_BY_PROVIDER = {
   anthropic: "anthropic-messages",
 } as const satisfies Readonly<Record<string, string>>;
+export const MODEL_APIS = [
+  "openai-completions",
+  "openai-responses",
+  "openai-codex-responses",
+  "anthropic-messages",
+  "google-generative-ai",
+  "github-copilot",
+  "bedrock-converse-stream",
+  "ollama",
+  "azure-openai-responses",
+] as const;
 export const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES = ["claude-opus-4", "claude-sonnet-4"] as const;
 export const ANTHROPIC_CONTEXT_1M_TOKENS = 1048576;
 export const DEFAULT_PROVIDER_CAPABILITIES = {

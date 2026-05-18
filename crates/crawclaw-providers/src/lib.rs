@@ -726,6 +726,17 @@ pub const PROVIDER_USAGE_LABELS: &[(&str, &str)] = &[
     ("zai", "z.ai"),
 ];
 
+pub const MODEL_APIS: &[&str] = &[
+    "openai-completions",
+    "openai-responses",
+    "openai-codex-responses",
+    "anthropic-messages",
+    "google-generative-ai",
+    "github-copilot",
+    "bedrock-converse-stream",
+    "ollama",
+    "azure-openai-responses",
+];
 pub const PROVIDER_ATTRIBUTION_PRODUCT: &str = "CrawClaw";
 pub const PROVIDER_ATTRIBUTION_ORIGINATOR: &str = "crawclaw";
 pub const LOCAL_ENDPOINT_HOSTS: &[&str] = &["localhost", "127.0.0.1", "::1", "[::1]"];
@@ -3962,6 +3973,20 @@ mod tests {
         assert_eq!(PROVIDER_MODEL_DEFAULT_INPUT_TYPES, &["text"]);
         assert_eq!(PROVIDER_MODEL_DEFAULT_MAX_TOKENS, 8_192);
         assert!(PROVIDER_DEFAULT_API_BY_PROVIDER.contains(&("anthropic", "anthropic-messages")));
+        assert_eq!(
+            MODEL_APIS,
+            &[
+                "openai-completions",
+                "openai-responses",
+                "openai-codex-responses",
+                "anthropic-messages",
+                "google-generative-ai",
+                "github-copilot",
+                "bedrock-converse-stream",
+                "ollama",
+                "azure-openai-responses"
+            ]
+        );
         assert!(ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES.contains(&"claude-opus-4"));
         assert!(ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES.contains(&"claude-sonnet-4"));
         assert_eq!(ANTHROPIC_CONTEXT_1M_TOKENS, 1_048_576);

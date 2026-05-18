@@ -1,17 +1,8 @@
 import type { OpenAICompletionsCompat } from "@mariozechner/pi-ai";
+import { MODEL_APIS } from "../generated/providers/runtime-constants.generated.js";
 import type { SecretInput } from "./types.secrets.js";
 
-export const MODEL_APIS = [
-  "openai-completions",
-  "openai-responses",
-  "openai-codex-responses",
-  "anthropic-messages",
-  "google-generative-ai",
-  "github-copilot",
-  "bedrock-converse-stream",
-  "ollama",
-  "azure-openai-responses",
-] as const;
+export { MODEL_APIS };
 
 export type ModelApi = (typeof MODEL_APIS)[number];
 

@@ -250,6 +250,7 @@ export const DEFAULT_MODEL_COST = {default_model_cost} as const;
 export const DEFAULT_MODEL_INPUT = {default_model_input} as const;
 export const DEFAULT_MODEL_MAX_TOKENS = {default_model_max_tokens};
 export const PROVIDER_DEFAULT_API_BY_PROVIDER = {provider_default_api_by_provider} as const satisfies Readonly<Record<string, string>>;
+export const MODEL_APIS = {model_apis} as const;
 export const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES = {anthropic_context_1m_model_prefixes} as const;
 export const ANTHROPIC_CONTEXT_1M_TOKENS = {anthropic_context_1m_tokens};
 export const DEFAULT_PROVIDER_CAPABILITIES = {default_provider_capabilities} as const;
@@ -321,6 +322,7 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         default_model_max_tokens = crawclaw_providers::PROVIDER_MODEL_DEFAULT_MAX_TOKENS,
         provider_default_api_by_provider =
             render_static_string_record(crawclaw_providers::PROVIDER_DEFAULT_API_BY_PROVIDER),
+        model_apis = render_static_string_array(crawclaw_providers::MODEL_APIS),
         anthropic_context_1m_model_prefixes = render_static_string_array_inline(
             crawclaw_providers::ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES,
         ),
@@ -1007,6 +1009,9 @@ mod tests {
         assert!(source.contains("export const DEFAULT_MODEL_MAX_TOKENS = 8192;"));
         assert!(source.contains("export const PROVIDER_DEFAULT_API_BY_PROVIDER = {"));
         assert!(source.contains("anthropic: \"anthropic-messages\""));
+        assert!(source.contains("export const MODEL_APIS = ["));
+        assert!(source.contains("\"openai-codex-responses\""));
+        assert!(source.contains("\"azure-openai-responses\""));
         assert!(source.contains("export const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES = ["));
         assert!(source.contains("\"claude-opus-4\""));
         assert!(source.contains("export const ANTHROPIC_CONTEXT_1M_TOKENS = 1048576;"));
