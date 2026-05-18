@@ -62,7 +62,6 @@ cat ~/.crawclaw/crawclaw.json
 - Browser migration checks for legacy browser configs.
 - OpenCode provider override warnings (`models.providers.opencode` / `models.providers.opencode-go`).
 - Legacy on-disk state migration (sessions/agent dir/Weixin auth).
-- Legacy plugin manifest contract key migration (`speechProviders` → `contracts`) and removal of legacy media-understanding provider keys.
 - Legacy cron store migration (`jobId`, `schedule.cron`, top-level delivery/payload fields, payload `provider`, simple `notify: true` webhook fallback jobs).
 - Session lock file inspection and stale lock cleanup.
 - State integrity and permissions checks (sessions, transcripts, state dir).
@@ -168,15 +167,7 @@ the legacy sessions + agent dir on startup so history/auth/models land in the
 per-agent path without a manual doctor run. Weixin auth is intentionally only
 migrated via CrawClaw Desktop or the local Gateway API.
 
-### 3a) Legacy plugin manifest migrations
-
-Doctor scans all installed plugin manifests for deprecated top-level capability keys.
-When `speechProviders` is found, it offers to move it into the `contracts` object
-and rewrite the manifest file in-place. Legacy `mediaUnderstandingProviders` keys
-are removed because TypeScript media-understanding providers are no longer a
-plugin contract.
-
-### 3b) Legacy cron store migrations
+### 3a) Legacy cron store migrations
 
 Doctor also checks the cron job store (`~/.crawclaw/cron/jobs.json` by default,
 or `cron.store` when overridden) for old job shapes that the scheduler still

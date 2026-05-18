@@ -6,9 +6,6 @@
     "schemaVersion": 1,
     "bin": "crawclaw-native-plugins"
   },
-  "contracts": {
-    "speechProviders": ["qwen3-tts"]
-  },
   "configSchema": {
     "type": "object",
     "additionalProperties": false,

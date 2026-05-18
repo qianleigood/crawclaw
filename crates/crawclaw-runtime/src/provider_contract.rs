@@ -18,7 +18,6 @@ pub struct GeneratedModuleWriteResult {
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 struct BundledCapabilityMetadataEntryBuilder {
     provider_ids: BTreeSet<String>,
-    speech_provider_ids: BTreeSet<String>,
     web_fetch_provider_ids: BTreeSet<String>,
     web_search_provider_ids: BTreeSet<String>,
     tool_names: BTreeSet<String>,
@@ -28,7 +27,6 @@ struct BundledCapabilityMetadataEntryBuilder {
 struct BundledCapabilityMetadataEntry {
     plugin_id: String,
     provider_ids: Vec<String>,
-    speech_provider_ids: Vec<String>,
     web_fetch_provider_ids: Vec<String>,
     web_search_provider_ids: Vec<String>,
     tool_names: Vec<String>,
@@ -60,7 +58,6 @@ struct BundledNativeSpeechProviderMetadataEntry {
 impl BundledCapabilityMetadataEntry {
     fn is_empty(&self) -> bool {
         self.provider_ids.is_empty()
-            && self.speech_provider_ids.is_empty()
             && self.web_fetch_provider_ids.is_empty()
             && self.web_search_provider_ids.is_empty()
             && self.tool_names.is_empty()
@@ -72,7 +69,6 @@ impl BundledCapabilityMetadataEntryBuilder {
         BundledCapabilityMetadataEntry {
             plugin_id,
             provider_ids: self.provider_ids.into_iter().collect(),
-            speech_provider_ids: self.speech_provider_ids.into_iter().collect(),
             web_fetch_provider_ids: self.web_fetch_provider_ids.into_iter().collect(),
             web_search_provider_ids: self.web_search_provider_ids.into_iter().collect(),
             tool_names: self.tool_names.into_iter().collect(),
@@ -159,7 +155,6 @@ pub fn render_bundled_capability_metadata_module() -> String {
 export type BundledPluginContractSnapshot = {{
   pluginId: string;
   providerIds: readonly string[];
-  speechProviderIds: readonly string[];
   webFetchProviderIds: readonly string[];
   webSearchProviderIds: readonly string[];
   toolNames: readonly string[];
@@ -412,12 +407,6 @@ fn bundled_capability_metadata_payload() -> (
                 .into_iter()
                 .map(|provider| provider.id),
         );
-        entry.speech_provider_ids.extend(
-            descriptor
-                .speech_providers
-                .into_iter()
-                .map(|provider| provider.id),
-        );
         entry.web_fetch_provider_ids.extend(
             descriptor
                 .web_fetch_providers
@@ -522,10 +511,9 @@ fn render_bundled_capability_snapshots(entries: &[BundledCapabilityMetadataEntry
         .iter()
         .map(|entry| {
             format!(
-                "  {{\n    pluginId: {plugin_id},\n    providerIds: {provider_ids},\n    speechProviderIds: {speech_provider_ids},\n    webFetchProviderIds: {web_fetch_provider_ids},\n    webSearchProviderIds: {web_search_provider_ids},\n    toolNames: {tool_names},\n  }},",
+                "  {{\n    pluginId: {plugin_id},\n    providerIds: {provider_ids},\n    webFetchProviderIds: {web_fetch_provider_ids},\n    webSearchProviderIds: {web_search_provider_ids},\n    toolNames: {tool_names},\n  }},",
                 plugin_id = json_string(&entry.plugin_id),
                 provider_ids = render_string_array(&entry.provider_ids),
-                speech_provider_ids = render_string_array(&entry.speech_provider_ids),
                 web_fetch_provider_ids = render_string_array(&entry.web_fetch_provider_ids),
                 web_search_provider_ids = render_string_array(&entry.web_search_provider_ids),
                 tool_names = render_string_array(&entry.tool_names),
@@ -745,8 +733,6 @@ mod tests {
         assert!(source.contains(r#"webSearchProviderIds: ["searxng"]"#));
         assert!(source.contains(r#"pluginId: "spider-fetch""#));
         assert!(source.contains(r#"webFetchProviderIds: ["spider"]"#));
-        assert!(source.contains(r#"pluginId: "qwen3-tts""#));
-        assert!(source.contains(r#"speechProviderIds: ["qwen3-tts"]"#));
         assert!(source.contains(r#"pluginId: "comfyui""#));
         assert!(source.contains(r#"toolNames: ["comfyui_workflow"]"#));
         assert!(source.contains(r#""minimax-portal-auth": "minimax""#));

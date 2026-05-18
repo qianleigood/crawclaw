@@ -74,7 +74,6 @@ is present.
 Provider notes:
 
 - TypeScript media-understanding providers are not loaded.
-- Plugin manifests no longer declare `mediaUnderstandingProviders`.
 - MiniMax vision models are routed through the MiniMax VLM path automatically.
 
 ## Config

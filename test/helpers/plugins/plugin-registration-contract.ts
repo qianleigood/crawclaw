@@ -7,7 +7,6 @@ type PluginRegistrationContractParams = {
   providerIds?: string[];
   webFetchProviderIds?: string[];
   webSearchProviderIds?: string[];
-  speechProviderIds?: string[];
   toolNames?: string[];
   manifestAuthChoice?: {
     pluginId: string;
@@ -49,14 +48,6 @@ export function describePluginRegistrationContract(params: PluginRegistrationCon
       it("keeps bundled web fetch ownership explicit", () => {
         expect(findRegistration(params.pluginId).webFetchProviderIds).toEqual(
           params.webFetchProviderIds,
-        );
-      });
-    }
-
-    if (params.speechProviderIds) {
-      it("keeps bundled speech ownership explicit", () => {
-        expect(findRegistration(params.pluginId).speechProviderIds).toEqual(
-          params.speechProviderIds,
         );
       });
     }

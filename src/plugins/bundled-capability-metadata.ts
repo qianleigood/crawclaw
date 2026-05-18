@@ -10,7 +10,6 @@ import {
 export type BundledPluginContractSnapshot = {
   pluginId: string;
   providerIds: readonly string[];
-  speechProviderIds: readonly string[];
   webFetchProviderIds: readonly string[];
   webSearchProviderIds: readonly string[];
   toolNames: readonly string[];
@@ -58,8 +57,6 @@ function collectPluginIds(
 
 export const BUNDLED_PROVIDER_PLUGIN_IDS = collectPluginIds((entry) => entry.providerIds);
 
-export const BUNDLED_SPEECH_PLUGIN_IDS = collectPluginIds((entry) => entry.speechProviderIds);
-
 export const BUNDLED_WEB_FETCH_PLUGIN_IDS = collectPluginIds((entry) => entry.webFetchProviderIds);
 
 export const BUNDLED_RUNTIME_CONTRACT_PLUGIN_IDS = [
@@ -67,7 +64,6 @@ export const BUNDLED_RUNTIME_CONTRACT_PLUGIN_IDS = [
     BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS.filter(
       (entry) =>
         entry.providerIds.length > 0 ||
-        entry.speechProviderIds.length > 0 ||
         entry.webFetchProviderIds.length > 0 ||
         entry.webSearchProviderIds.length > 0,
     ).map((entry) => entry.pluginId),

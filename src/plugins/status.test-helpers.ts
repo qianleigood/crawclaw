@@ -36,7 +36,6 @@ export function createPluginRecord(
     toolNames: [],
     hookNames: [],
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     services: [],

@@ -431,24 +431,6 @@ describe("loadPluginManifestRegistry", () => {
     ]);
   });
 
-  it("does not promote legacy top-level capability fields into contracts", () => {
-    const dir = makeTempDir();
-    writeManifest(dir, {
-      id: "openai",
-      providers: ["openai", "openai-codex"],
-      speechProviders: ["openai"],
-      mediaUnderstandingProviders: ["openai", "openai-codex"],
-      configSchema: { type: "object" },
-    });
-
-    const registry = loadSingleCandidateRegistry({
-      idHint: "openai",
-      rootDir: dir,
-      origin: "bundled",
-    });
-
-    expect(registry.plugins[0]?.contracts).toBeUndefined();
-  });
   it.each([
     {
       name: "skips plugins whose minHostVersion is newer than the current host",

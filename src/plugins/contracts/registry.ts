@@ -3,7 +3,6 @@ import { BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS } from "../bundled-capability-metadat
 type PluginRegistrationContractEntry = {
   pluginId: string;
   providerIds: string[];
-  speechProviderIds: string[];
   webFetchProviderIds: string[];
   webSearchProviderIds: string[];
   toolNames: string[];
@@ -58,7 +57,6 @@ function loadPluginRegistrationContractRegistry(): PluginRegistrationContractEnt
   return BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS.map((entry) => ({
     pluginId: entry.pluginId,
     providerIds: uniqueStrings(entry.providerIds),
-    speechProviderIds: uniqueStrings(entry.speechProviderIds),
     webFetchProviderIds: uniqueStrings(entry.webFetchProviderIds),
     webSearchProviderIds: uniqueStrings(entry.webSearchProviderIds),
     toolNames: uniqueStrings(entry.toolNames),

@@ -3,7 +3,6 @@
 export type BundledPluginContractSnapshot = {
   pluginId: string;
   providerIds: readonly string[];
-  speechProviderIds: readonly string[];
   webFetchProviderIds: readonly string[];
   webSearchProviderIds: readonly string[];
   toolNames: readonly string[];
@@ -33,7 +32,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "amazon-bedrock",
     providerIds: ["amazon-bedrock"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -41,7 +39,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "anthropic",
     providerIds: ["anthropic"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -49,7 +46,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "anthropic-vertex",
     providerIds: ["anthropic-vertex"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -57,7 +53,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "browser",
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: ["browser"],
@@ -65,7 +60,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "byteplus",
     providerIds: ["byteplus", "byteplus-plan"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -73,7 +67,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "chutes",
     providerIds: ["chutes"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -81,7 +74,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "cloudflare-ai-gateway",
     providerIds: ["cloudflare-ai-gateway"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -89,7 +81,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "comfyui",
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: ["comfyui_workflow"],
@@ -97,7 +88,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "copilot-proxy",
     providerIds: ["copilot-proxy"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -105,7 +95,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "deepseek",
     providerIds: ["deepseek"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -113,7 +102,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "fal",
     providerIds: ["fal"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -121,7 +109,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "github-copilot",
     providerIds: ["github-copilot"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -129,7 +116,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "google",
     providerIds: ["google", "google-gemini-cli"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -137,7 +123,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "huggingface",
     providerIds: ["huggingface"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -145,7 +130,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "kilocode",
     providerIds: ["kilocode"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -153,7 +137,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "kimi",
     providerIds: ["kimi", "kimi-coding"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -161,7 +144,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "litellm",
     providerIds: ["litellm"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -169,7 +151,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "llm-task",
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: ["llm-task"],
@@ -177,7 +158,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "lobster",
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: ["lobster"],
@@ -185,7 +165,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "microsoft-foundry",
     providerIds: ["microsoft-foundry"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -193,7 +172,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "minimax",
     providerIds: ["minimax", "minimax-portal"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -201,7 +179,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "mistral",
     providerIds: ["mistral"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -209,7 +186,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "modelstudio",
     providerIds: ["modelstudio"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -217,7 +193,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "moonshot",
     providerIds: ["moonshot"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -225,7 +200,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "nvidia",
     providerIds: ["nvidia"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -233,7 +207,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "ollama",
     providerIds: ["ollama"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -241,7 +214,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "openai",
     providerIds: ["openai", "openai-codex"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -249,7 +221,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "opencode",
     providerIds: ["opencode"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -257,7 +228,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "opencode-go",
     providerIds: ["opencode-go"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -265,7 +235,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "openrouter",
     providerIds: ["openrouter"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -273,15 +242,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "qianfan",
     providerIds: ["qianfan"],
-    speechProviderIds: [],
-    webFetchProviderIds: [],
-    webSearchProviderIds: [],
-    toolNames: [],
-  },
-  {
-    pluginId: "qwen3-tts",
-    providerIds: [],
-    speechProviderIds: ["qwen3-tts"],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -289,7 +249,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "searxng",
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: ["searxng"],
     toolNames: [],
@@ -297,7 +256,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "sglang",
     providerIds: ["sglang"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -305,7 +263,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "spider-fetch",
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: ["spider"],
     webSearchProviderIds: [],
     toolNames: [],
@@ -313,7 +270,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "synthetic",
     providerIds: ["synthetic"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -321,7 +277,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "together",
     providerIds: ["together"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -329,7 +284,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "venice",
     providerIds: ["venice"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -337,7 +291,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "vercel-ai-gateway",
     providerIds: ["vercel-ai-gateway"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -345,7 +298,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "vllm",
     providerIds: ["vllm"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -353,7 +305,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "volcengine",
     providerIds: ["volcengine", "volcengine-plan"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -361,7 +312,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "xai",
     providerIds: ["xai"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -369,7 +319,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "xiaomi",
     providerIds: ["xiaomi"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],
@@ -377,7 +326,6 @@ export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS = [
   {
     pluginId: "zai",
     providerIds: ["zai"],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     toolNames: [],

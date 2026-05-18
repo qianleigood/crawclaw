@@ -26,7 +26,6 @@ import {
   noteMacLaunchAgentOverrides,
   noteMacLaunchctlGatewayEnvOverrides,
 } from "../control/doctor-platform-notes.js";
-import { maybeRepairLegacyPluginManifestContracts } from "../control/doctor-plugin-manifests.js";
 import type { DoctorOptions, DoctorPrompter } from "../control/doctor-prompter.js";
 import { noteSecurityWarnings } from "../control/doctor-security.js";
 import { noteSessionLockHealth } from "../control/doctor-session-locks.js";
@@ -192,14 +191,6 @@ async function runGatewayAuthHealth(ctx: DoctorHealthFlowContext): Promise<void>
     },
   };
   note("Gateway token configured.", "Gateway auth");
-}
-
-async function runLegacyPluginManifestHealth(ctx: DoctorHealthFlowContext): Promise<void> {
-  await maybeRepairLegacyPluginManifestContracts({
-    env: process.env,
-    runtime: ctx.runtime,
-    prompter: ctx.prompter,
-  });
 }
 
 async function runStateIntegrityHealth(ctx: DoctorHealthFlowContext): Promise<void> {
@@ -415,11 +406,6 @@ export function resolveDoctorHealthContributions(): DoctorHealthContribution[] {
       id: "doctor:gateway-auth",
       label: "Gateway auth",
       run: runGatewayAuthHealth,
-    }),
-    createDoctorHealthContribution({
-      id: "doctor:legacy-plugin-manifests",
-      label: "Legacy plugin manifests",
-      run: runLegacyPluginManifestHealth,
     }),
     createDoctorHealthContribution({
       id: "doctor:state-integrity",

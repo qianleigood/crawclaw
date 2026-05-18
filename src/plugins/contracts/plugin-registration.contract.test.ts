@@ -40,10 +40,6 @@ const pluginRegistrationContractTests: PluginRegistrationContractParams[] = [
     webSearchProviderIds: ["searxng"],
   },
   {
-    pluginId: "qwen3-tts",
-    speechProviderIds: ["qwen3-tts"],
-  },
-  {
     pluginId: "spider-fetch",
     webFetchProviderIds: ["spider"],
   },

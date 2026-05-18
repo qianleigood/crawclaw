@@ -194,7 +194,6 @@ read without importing the plugin runtime.
 ```json
 {
   "contracts": {
-    "speechProviders": ["openai"],
     "webSearchProviders": ["gemini"],
     "tools": []
   }
@@ -205,14 +204,8 @@ Each list is optional:
 
 | Field                | Type       | What it means                                                  |
 | -------------------- | ---------- | -------------------------------------------------------------- |
-| `speechProviders`    | `string[]` | Speech provider ids this plugin owns.                          |
 | `webSearchProviders` | `string[]` | Web-search provider ids this plugin owns.                      |
 | `tools`              | `string[]` | Agent tool names this plugin owns for bundled contract checks. |
-
-Legacy top-level `speechProviders` is deprecated. Use CrawClaw Desktop or the local
-Gateway API to move it under `contracts`; normal manifest loading no longer treats
-top-level legacy fields as capability ownership. Legacy `mediaUnderstandingProviders`
-is removed and no longer has a `contracts` replacement.
 
 ## Native sidecar discovery
 

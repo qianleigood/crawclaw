@@ -344,7 +344,6 @@ function createPluginRecord(params: {
     toolNames: [],
     hookNames: [],
     providerIds: [],
-    speechProviderIds: [],
     webFetchProviderIds: [],
     webSearchProviderIds: [],
     services: [],
@@ -369,7 +368,6 @@ function applyNativeManifestContracts(
   manifestRecord: PluginManifestRecord,
 ): void {
   pushUnique(record.providerIds, manifestRecord.providers);
-  pushUnique(record.speechProviderIds, manifestRecord.contracts?.speechProviders);
   pushUnique(record.webFetchProviderIds, manifestRecord.contracts?.webFetchProviders);
   pushUnique(record.webSearchProviderIds, manifestRecord.contracts?.webSearchProviders);
   pushUnique(record.toolNames, manifestRecord.contracts?.tools);

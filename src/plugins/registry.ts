@@ -76,7 +76,6 @@ export type PluginRecord = {
   toolNames: string[];
   hookNames: string[];
   providerIds: string[];
-  speechProviderIds: string[];
   webFetchProviderIds: string[];
   webSearchProviderIds: string[];
   services: string[];
