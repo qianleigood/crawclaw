@@ -18,11 +18,7 @@
       "choiceLabel": "Xiaomi API key",
       "groupId": "xiaomi",
       "groupLabel": "Xiaomi",
-      "groupHint": "API key",
-      "optionKey": "xiaomiApiKey",
-      "cliFlag": "--xiaomi-api-key",
-      "cliOption": "--xiaomi-api-key <key>",
-      "cliDescription": "Xiaomi API key"
+      "groupHint": "API key"
     }
   ],
   "configSchema": {

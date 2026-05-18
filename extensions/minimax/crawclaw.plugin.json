@@ -18,31 +18,21 @@
       "provider": "minimax",
       "method": "api-global",
       "choiceId": "minimax-global-api",
-      "deprecatedChoiceIds": ["minimax", "minimax-api", "minimax-cloud", "minimax-api-lightning"],
       "choiceLabel": "MiniMax API key (Global)",
       "choiceHint": "Global endpoint - api.minimax.io",
       "groupId": "minimax",
       "groupLabel": "MiniMax",
-      "groupHint": "M2.7 (recommended)",
-      "optionKey": "minimaxApiKey",
-      "cliFlag": "--minimax-api-key",
-      "cliOption": "--minimax-api-key <key>",
-      "cliDescription": "MiniMax API key"
+      "groupHint": "M2.7 (recommended)"
     },
     {
       "provider": "minimax",
       "method": "api-cn",
       "choiceId": "minimax-cn-api",
-      "deprecatedChoiceIds": ["minimax-api-key-cn"],
       "choiceLabel": "MiniMax API key (CN)",
       "choiceHint": "CN endpoint - api.minimaxi.com",
       "groupId": "minimax",
       "groupLabel": "MiniMax",
-      "groupHint": "M2.7 (recommended)",
-      "optionKey": "minimaxApiKey",
-      "cliFlag": "--minimax-api-key",
-      "cliOption": "--minimax-api-key <key>",
-      "cliDescription": "MiniMax API key"
+      "groupHint": "M2.7 (recommended)"
     }
   ],
   "configSchema": {

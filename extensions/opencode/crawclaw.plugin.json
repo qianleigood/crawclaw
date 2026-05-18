@@ -18,11 +18,7 @@
       "choiceLabel": "OpenCode Zen catalog",
       "groupId": "opencode",
       "groupLabel": "OpenCode",
-      "groupHint": "Shared API key for Zen + Go catalogs",
-      "optionKey": "opencodeZenApiKey",
-      "cliFlag": "--opencode-zen-api-key",
-      "cliOption": "--opencode-zen-api-key <key>",
-      "cliDescription": "OpenCode API key (Zen catalog)"
+      "groupHint": "Shared API key for Zen + Go catalogs"
     }
   ],
   "configSchema": {

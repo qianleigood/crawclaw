@@ -18,11 +18,7 @@
       "choiceLabel": "Z.AI API key",
       "groupId": "zai",
       "groupLabel": "Z.AI",
-      "groupHint": "GLM Coding Plan / Global / CN",
-      "optionKey": "zaiApiKey",
-      "cliFlag": "--zai-api-key",
-      "cliOption": "--zai-api-key <key>",
-      "cliDescription": "Z.AI API key"
+      "groupHint": "GLM Coding Plan / Global / CN"
     },
     {
       "provider": "zai",
@@ -32,11 +28,7 @@
       "choiceHint": "GLM Coding Plan Global (api.z.ai)",
       "groupId": "zai",
       "groupLabel": "Z.AI",
-      "groupHint": "GLM Coding Plan / Global / CN",
-      "optionKey": "zaiApiKey",
-      "cliFlag": "--zai-api-key",
-      "cliOption": "--zai-api-key <key>",
-      "cliDescription": "Z.AI API key"
+      "groupHint": "GLM Coding Plan / Global / CN"
     },
     {
       "provider": "zai",
@@ -46,11 +38,7 @@
       "choiceHint": "GLM Coding Plan CN (open.bigmodel.cn)",
       "groupId": "zai",
       "groupLabel": "Z.AI",
-      "groupHint": "GLM Coding Plan / Global / CN",
-      "optionKey": "zaiApiKey",
-      "cliFlag": "--zai-api-key",
-      "cliOption": "--zai-api-key <key>",
-      "cliDescription": "Z.AI API key"
+      "groupHint": "GLM Coding Plan / Global / CN"
     },
     {
       "provider": "zai",
@@ -60,11 +48,7 @@
       "choiceHint": "Z.AI Global (api.z.ai)",
       "groupId": "zai",
       "groupLabel": "Z.AI",
-      "groupHint": "GLM Coding Plan / Global / CN",
-      "optionKey": "zaiApiKey",
-      "cliFlag": "--zai-api-key",
-      "cliOption": "--zai-api-key <key>",
-      "cliDescription": "Z.AI API key"
+      "groupHint": "GLM Coding Plan / Global / CN"
     },
     {
       "provider": "zai",
@@ -74,11 +58,7 @@
       "choiceHint": "Z.AI CN (open.bigmodel.cn)",
       "groupId": "zai",
       "groupLabel": "Z.AI",
-      "groupHint": "GLM Coding Plan / Global / CN",
-      "optionKey": "zaiApiKey",
-      "cliFlag": "--zai-api-key",
-      "cliOption": "--zai-api-key <key>",
-      "cliDescription": "Z.AI API key"
+      "groupHint": "GLM Coding Plan / Global / CN"
     }
   ],
   "configSchema": {

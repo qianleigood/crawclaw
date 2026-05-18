@@ -19,11 +19,7 @@
       "choiceHint": "Unified gateway for 100+ LLM providers",
       "groupId": "litellm",
       "groupLabel": "LiteLLM",
-      "groupHint": "Unified LLM gateway (100+ providers)",
-      "optionKey": "litellmApiKey",
-      "cliFlag": "--litellm-api-key",
-      "cliOption": "--litellm-api-key <key>",
-      "cliDescription": "LiteLLM API key"
+      "groupHint": "Unified LLM gateway (100+ providers)"
     }
   ],
   "configSchema": {

@@ -19,11 +19,7 @@
       "choiceLabel": "Kimi Code API key (subscription)",
       "groupId": "moonshot",
       "groupLabel": "Moonshot AI (Kimi K2.5)",
-      "groupHint": "Kimi K2.5",
-      "optionKey": "kimiCodeApiKey",
-      "cliFlag": "--kimi-code-api-key",
-      "cliOption": "--kimi-code-api-key <key>",
-      "cliDescription": "Kimi Code API key (subscription)"
+      "groupHint": "Kimi K2.5"
     }
   ],
   "configSchema": {

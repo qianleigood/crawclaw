@@ -18,11 +18,7 @@
       "choiceLabel": "xAI API key",
       "groupId": "xai",
       "groupLabel": "xAI (Grok)",
-      "groupHint": "API key",
-      "optionKey": "xaiApiKey",
-      "cliFlag": "--xai-api-key",
-      "cliOption": "--xai-api-key <key>",
-      "cliDescription": "xAI API key"
+      "groupHint": "API key"
     }
   ]
 }

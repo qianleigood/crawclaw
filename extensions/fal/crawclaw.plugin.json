@@ -18,11 +18,7 @@
       "choiceLabel": "fal API key",
       "groupId": "fal",
       "groupLabel": "fal",
-      "groupHint": "Image generation",
-      "optionKey": "falApiKey",
-      "cliFlag": "--fal-api-key",
-      "cliOption": "--fal-api-key <key>",
-      "cliDescription": "fal API key"
+      "groupHint": "Image generation"
     }
   ],
   "configSchema": {

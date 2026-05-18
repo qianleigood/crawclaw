@@ -18,11 +18,7 @@
       "choiceLabel": "Vercel AI Gateway API key",
       "groupId": "ai-gateway",
       "groupLabel": "Vercel AI Gateway",
-      "groupHint": "API key",
-      "optionKey": "aiGatewayApiKey",
-      "cliFlag": "--ai-gateway-api-key",
-      "cliOption": "--ai-gateway-api-key <key>",
-      "cliDescription": "Vercel AI Gateway API key"
+      "groupHint": "API key"
     }
   ],
   "configSchema": {

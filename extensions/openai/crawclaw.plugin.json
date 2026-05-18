@@ -18,11 +18,7 @@
       "choiceLabel": "OpenAI API key",
       "groupId": "openai",
       "groupLabel": "OpenAI",
-      "groupHint": "OpenAI API key",
-      "optionKey": "openaiApiKey",
-      "cliFlag": "--openai-api-key",
-      "cliOption": "--openai-api-key <key>",
-      "cliDescription": "OpenAI API key"
+      "groupHint": "OpenAI API key"
     }
   ],
   "configSchema": {

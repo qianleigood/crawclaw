@@ -18,11 +18,7 @@
       "choiceLabel": "Synthetic API key",
       "groupId": "synthetic",
       "groupLabel": "Synthetic",
-      "groupHint": "Anthropic-compatible (multi-model)",
-      "optionKey": "syntheticApiKey",
-      "cliFlag": "--synthetic-api-key",
-      "cliOption": "--synthetic-api-key <key>",
-      "cliDescription": "Synthetic API key"
+      "groupHint": "Anthropic-compatible (multi-model)"
     }
   ],
   "configSchema": {

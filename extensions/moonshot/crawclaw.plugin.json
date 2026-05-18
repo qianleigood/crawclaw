@@ -18,11 +18,7 @@
       "choiceLabel": "Moonshot API key (.ai)",
       "groupId": "moonshot",
       "groupLabel": "Moonshot AI (Kimi K2.5)",
-      "groupHint": "Kimi K2.5",
-      "optionKey": "moonshotApiKey",
-      "cliFlag": "--moonshot-api-key",
-      "cliOption": "--moonshot-api-key <key>",
-      "cliDescription": "Moonshot API key"
+      "groupHint": "Kimi K2.5"
     },
     {
       "provider": "moonshot",
@@ -31,11 +27,7 @@
       "choiceLabel": "Moonshot API key (.cn)",
       "groupId": "moonshot",
       "groupLabel": "Moonshot AI (Kimi K2.5)",
-      "groupHint": "Kimi K2.5",
-      "optionKey": "moonshotApiKey",
-      "cliFlag": "--moonshot-api-key",
-      "cliOption": "--moonshot-api-key <key>",
-      "cliDescription": "Moonshot API key"
+      "groupHint": "Kimi K2.5"
     }
   ]
 }

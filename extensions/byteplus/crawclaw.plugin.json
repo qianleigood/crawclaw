@@ -18,11 +18,7 @@
       "choiceLabel": "BytePlus API key",
       "groupId": "byteplus",
       "groupLabel": "BytePlus",
-      "groupHint": "API key",
-      "optionKey": "byteplusApiKey",
-      "cliFlag": "--byteplus-api-key",
-      "cliOption": "--byteplus-api-key <key>",
-      "cliDescription": "BytePlus API key"
+      "groupHint": "API key"
     }
   ],
   "configSchema": {

@@ -19,11 +19,7 @@
       "choiceHint": "API key (OpenRouter-compatible)",
       "groupId": "kilocode",
       "groupLabel": "Kilo Gateway",
-      "groupHint": "API key (OpenRouter-compatible)",
-      "optionKey": "kilocodeApiKey",
-      "cliFlag": "--kilocode-api-key",
-      "cliOption": "--kilocode-api-key <key>",
-      "cliDescription": "Kilo Gateway API key"
+      "groupHint": "API key (OpenRouter-compatible)"
     }
   ],
   "configSchema": {

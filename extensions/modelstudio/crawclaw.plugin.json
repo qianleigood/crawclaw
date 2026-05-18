@@ -19,11 +19,7 @@
       "choiceHint": "Endpoint: dashscope.aliyuncs.com",
       "groupId": "modelstudio",
       "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
-      "groupHint": "Standard / Coding Plan (CN / Global)",
-      "optionKey": "modelstudioStandardApiKeyCn",
-      "cliFlag": "--modelstudio-standard-api-key-cn",
-      "cliOption": "--modelstudio-standard-api-key-cn <key>",
-      "cliDescription": "Alibaba Cloud Model Studio Standard API key (China)"
+      "groupHint": "Standard / Coding Plan (CN / Global)"
     },
     {
       "provider": "modelstudio",
@@ -33,11 +29,7 @@
       "choiceHint": "Endpoint: dashscope-intl.aliyuncs.com",
       "groupId": "modelstudio",
       "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
-      "groupHint": "Standard / Coding Plan (CN / Global)",
-      "optionKey": "modelstudioStandardApiKey",
-      "cliFlag": "--modelstudio-standard-api-key",
-      "cliOption": "--modelstudio-standard-api-key <key>",
-      "cliDescription": "Alibaba Cloud Model Studio Standard API key (Global/Intl)"
+      "groupHint": "Standard / Coding Plan (CN / Global)"
     },
     {
       "provider": "modelstudio",
@@ -47,11 +39,7 @@
       "choiceHint": "Endpoint: coding.dashscope.aliyuncs.com",
       "groupId": "modelstudio",
       "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
-      "groupHint": "Standard / Coding Plan (CN / Global)",
-      "optionKey": "modelstudioApiKeyCn",
-      "cliFlag": "--modelstudio-api-key-cn",
-      "cliOption": "--modelstudio-api-key-cn <key>",
-      "cliDescription": "Alibaba Cloud Model Studio Coding Plan API key (China)"
+      "groupHint": "Standard / Coding Plan (CN / Global)"
     },
     {
       "provider": "modelstudio",
@@ -61,11 +49,7 @@
       "choiceHint": "Endpoint: coding-intl.dashscope.aliyuncs.com",
       "groupId": "modelstudio",
       "groupLabel": "Qwen (Alibaba Cloud Model Studio)",
-      "groupHint": "Standard / Coding Plan (CN / Global)",
-      "optionKey": "modelstudioApiKey",
-      "cliFlag": "--modelstudio-api-key",
-      "cliOption": "--modelstudio-api-key <key>",
-      "cliDescription": "Alibaba Cloud Model Studio Coding Plan API key (Global/Intl)"
+      "groupHint": "Standard / Coding Plan (CN / Global)"
     }
   ],
   "configSchema": {

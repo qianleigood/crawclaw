@@ -18,11 +18,7 @@
       "choiceLabel": "DeepSeek API key",
       "groupId": "deepseek",
       "groupLabel": "DeepSeek",
-      "groupHint": "API key",
-      "optionKey": "deepseekApiKey",
-      "cliFlag": "--deepseek-api-key",
-      "cliOption": "--deepseek-api-key <key>",
-      "cliDescription": "DeepSeek API key"
+      "groupHint": "API key"
     }
   ],
   "configSchema": {

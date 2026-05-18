@@ -242,14 +242,9 @@ export type GeneratedProviderAuthChoiceMetadata = {{
   choiceId: string;
   choiceLabel: string;
   choiceHint?: string;
-  deprecatedChoiceIds?: readonly string[];
   groupId?: string;
   groupLabel?: string;
   groupHint?: string;
-  optionKey?: string;
-  cliFlag?: string;
-  cliOption?: string;
-  cliDescription?: string;
 }};
 
 export const BUNDLED_PROVIDER_AUTH_CHOICES = {rendered_choices} as const satisfies readonly GeneratedProviderAuthChoiceMetadata[];
@@ -604,12 +599,6 @@ fn render_provider_auth_choice(choice: &crawclaw_providers::BundledProviderAuthC
     if let Some(choice_hint) = choice.choice_hint.as_deref() {
         fields.push(format!("    choiceHint: {},", json_string(choice_hint)));
     }
-    if !choice.deprecated_choice_ids.is_empty() {
-        fields.push(format!(
-            "    deprecatedChoiceIds: {},",
-            render_string_array(&choice.deprecated_choice_ids),
-        ));
-    }
     fields.push(format!("    groupId: {},", json_string(&choice.group_id)));
     fields.push(format!(
         "    groupLabel: {},",
@@ -617,21 +606,6 @@ fn render_provider_auth_choice(choice: &crawclaw_providers::BundledProviderAuthC
     ));
     if let Some(group_hint) = choice.group_hint.as_deref() {
         fields.push(format!("    groupHint: {},", json_string(group_hint)));
-    }
-    if let Some(option_key) = choice.option_key.as_deref() {
-        fields.push(format!("    optionKey: {},", json_string(option_key)));
-    }
-    if let Some(cli_flag) = choice.cli_flag.as_deref() {
-        fields.push(format!("    cliFlag: {},", json_string(cli_flag)));
-    }
-    if let Some(cli_option) = choice.cli_option.as_deref() {
-        fields.push(format!("    cliOption: {},", json_string(cli_option)));
-    }
-    if let Some(cli_description) = choice.cli_description.as_deref() {
-        fields.push(format!(
-            "    cliDescription: {},",
-            json_string(cli_description)
-        ));
     }
     format!("  {{\n{}\n  }},", fields.join("\n"))
 }
@@ -763,12 +737,10 @@ mod tests {
         assert!(source.contains(r#"pluginId: "openai""#));
         assert!(source.contains(r#"providerId: "openai""#));
         assert!(source.contains(r#"choiceId: "openai-api-key""#));
-        assert!(source.contains(r#"cliFlag: "--openai-api-key""#));
         assert!(source.contains(r#"pluginId: "minimax""#));
         assert!(source.contains(r#"choiceId: "minimax-global-api""#));
-        assert!(source.contains(
-            r#"deprecatedChoiceIds: ["minimax", "minimax-api", "minimax-cloud", "minimax-api-lightning"]"#
-        ));
+        assert!(!source.contains("cliFlag"));
+        assert!(!source.contains("deprecatedChoiceIds"));
         assert!(!source.contains("OPENAI_API_KEY"));
     }
 

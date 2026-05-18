@@ -18,11 +18,7 @@
       "choiceLabel": "Together AI API key",
       "groupId": "together",
       "groupLabel": "Together AI",
-      "groupHint": "API key",
-      "optionKey": "togetherApiKey",
-      "cliFlag": "--together-api-key",
-      "cliOption": "--together-api-key <key>",
-      "cliDescription": "Together AI API key"
+      "groupHint": "API key"
     }
   ],
   "configSchema": {

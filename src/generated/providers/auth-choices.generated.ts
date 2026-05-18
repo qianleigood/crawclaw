@@ -7,14 +7,9 @@ export type GeneratedProviderAuthChoiceMetadata = {
   choiceId: string;
   choiceLabel: string;
   choiceHint?: string;
-  deprecatedChoiceIds?: readonly string[];
   groupId?: string;
   groupLabel?: string;
   groupHint?: string;
-  optionKey?: string;
-  cliFlag?: string;
-  cliOption?: string;
-  cliDescription?: string;
 };
 
 export const BUNDLED_PROVIDER_AUTH_CHOICES = [
@@ -25,7 +20,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     choiceId: "anthropic-cli",
     choiceLabel: "Anthropic Claude CLI",
     choiceHint: "Reuse a local Claude CLI login on this host",
-    deprecatedChoiceIds: ["claude-cli"],
     groupId: "anthropic",
     groupLabel: "Anthropic",
     groupHint: "Claude CLI + setup-token + API key",
@@ -50,10 +44,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "anthropic",
     groupLabel: "Anthropic",
     groupHint: "Claude CLI + setup-token + API key",
-    optionKey: "anthropicApiKey",
-    cliFlag: "--anthropic-api-key",
-    cliOption: "--anthropic-api-key <key>",
-    cliDescription: "Anthropic API key",
   },
   {
     pluginId: "byteplus",
@@ -64,10 +54,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "byteplus",
     groupLabel: "BytePlus",
     groupHint: "API key",
-    optionKey: "byteplusApiKey",
-    cliFlag: "--byteplus-api-key",
-    cliOption: "--byteplus-api-key <key>",
-    cliDescription: "BytePlus API key",
   },
   {
     pluginId: "chutes",
@@ -79,10 +65,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "chutes",
     groupLabel: "Chutes",
     groupHint: "API key",
-    optionKey: "chutesApiKey",
-    cliFlag: "--chutes-api-key",
-    cliOption: "--chutes-api-key <key>",
-    cliDescription: "Chutes API key",
   },
   {
     pluginId: "cloudflare-ai-gateway",
@@ -94,10 +76,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "cloudflare-ai-gateway",
     groupLabel: "Cloudflare AI Gateway",
     groupHint: "Account ID + Gateway ID + API key",
-    optionKey: "cloudflareAiGatewayApiKey",
-    cliFlag: "--cloudflare-ai-gateway-api-key",
-    cliOption: "--cloudflare-ai-gateway-api-key <key>",
-    cliDescription: "Cloudflare AI Gateway API key",
   },
   {
     pluginId: "copilot-proxy",
@@ -119,10 +97,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "deepseek",
     groupLabel: "DeepSeek",
     groupHint: "API key",
-    optionKey: "deepseekApiKey",
-    cliFlag: "--deepseek-api-key",
-    cliOption: "--deepseek-api-key <key>",
-    cliDescription: "DeepSeek API key",
   },
   {
     pluginId: "fal",
@@ -133,10 +107,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "fal",
     groupLabel: "fal",
     groupHint: "Image generation",
-    optionKey: "falApiKey",
-    cliFlag: "--fal-api-key",
-    cliOption: "--fal-api-key <key>",
-    cliDescription: "fal API key",
   },
   {
     pluginId: "google",
@@ -147,10 +117,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "google",
     groupLabel: "Google",
     groupHint: "Gemini API key",
-    optionKey: "geminiApiKey",
-    cliFlag: "--gemini-api-key",
-    cliOption: "--gemini-api-key <key>",
-    cliDescription: "Gemini API key",
   },
   {
     pluginId: "huggingface",
@@ -162,10 +128,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "huggingface",
     groupLabel: "Hugging Face",
     groupHint: "Inference API (HF token)",
-    optionKey: "huggingfaceApiKey",
-    cliFlag: "--huggingface-api-key",
-    cliOption: "--huggingface-api-key <key>",
-    cliDescription: "Hugging Face API key (HF token)",
   },
   {
     pluginId: "kilocode",
@@ -177,10 +139,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "kilocode",
     groupLabel: "Kilo Gateway",
     groupHint: "API key (OpenRouter-compatible)",
-    optionKey: "kilocodeApiKey",
-    cliFlag: "--kilocode-api-key",
-    cliOption: "--kilocode-api-key <key>",
-    cliDescription: "Kilo Gateway API key",
   },
   {
     pluginId: "kimi",
@@ -191,10 +149,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "moonshot",
     groupLabel: "Moonshot AI (Kimi K2.5)",
     groupHint: "Kimi K2.5",
-    optionKey: "kimiCodeApiKey",
-    cliFlag: "--kimi-code-api-key",
-    cliOption: "--kimi-code-api-key <key>",
-    cliDescription: "Kimi Code API key (subscription)",
   },
   {
     pluginId: "litellm",
@@ -206,10 +160,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "litellm",
     groupLabel: "LiteLLM",
     groupHint: "Unified LLM gateway (100+ providers)",
-    optionKey: "litellmApiKey",
-    cliFlag: "--litellm-api-key",
-    cliOption: "--litellm-api-key <key>",
-    cliDescription: "LiteLLM API key",
   },
   {
     pluginId: "microsoft-foundry",
@@ -240,14 +190,9 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     choiceId: "minimax-global-api",
     choiceLabel: "MiniMax API key (Global)",
     choiceHint: "Global endpoint - api.minimax.io",
-    deprecatedChoiceIds: ["minimax", "minimax-api", "minimax-cloud", "minimax-api-lightning"],
     groupId: "minimax",
     groupLabel: "MiniMax",
     groupHint: "M2.7 (recommended)",
-    optionKey: "minimaxApiKey",
-    cliFlag: "--minimax-api-key",
-    cliOption: "--minimax-api-key <key>",
-    cliDescription: "MiniMax API key",
   },
   {
     pluginId: "minimax",
@@ -256,14 +201,9 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     choiceId: "minimax-cn-api",
     choiceLabel: "MiniMax API key (CN)",
     choiceHint: "CN endpoint - api.minimaxi.com",
-    deprecatedChoiceIds: ["minimax-api-key-cn"],
     groupId: "minimax",
     groupLabel: "MiniMax",
     groupHint: "M2.7 (recommended)",
-    optionKey: "minimaxApiKey",
-    cliFlag: "--minimax-api-key",
-    cliOption: "--minimax-api-key <key>",
-    cliDescription: "MiniMax API key",
   },
   {
     pluginId: "mistral",
@@ -274,10 +214,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "mistral",
     groupLabel: "Mistral AI",
     groupHint: "API key",
-    optionKey: "mistralApiKey",
-    cliFlag: "--mistral-api-key",
-    cliOption: "--mistral-api-key <key>",
-    cliDescription: "Mistral API key",
   },
   {
     pluginId: "modelstudio",
@@ -289,10 +225,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "modelstudio",
     groupLabel: "Qwen (Alibaba Cloud Model Studio)",
     groupHint: "Standard / Coding Plan (CN / Global)",
-    optionKey: "modelstudioStandardApiKeyCn",
-    cliFlag: "--modelstudio-standard-api-key-cn",
-    cliOption: "--modelstudio-standard-api-key-cn <key>",
-    cliDescription: "Alibaba Cloud Model Studio Standard API key (China)",
   },
   {
     pluginId: "modelstudio",
@@ -304,10 +236,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "modelstudio",
     groupLabel: "Qwen (Alibaba Cloud Model Studio)",
     groupHint: "Standard / Coding Plan (CN / Global)",
-    optionKey: "modelstudioStandardApiKey",
-    cliFlag: "--modelstudio-standard-api-key",
-    cliOption: "--modelstudio-standard-api-key <key>",
-    cliDescription: "Alibaba Cloud Model Studio Standard API key (Global/Intl)",
   },
   {
     pluginId: "modelstudio",
@@ -319,10 +247,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "modelstudio",
     groupLabel: "Qwen (Alibaba Cloud Model Studio)",
     groupHint: "Standard / Coding Plan (CN / Global)",
-    optionKey: "modelstudioApiKeyCn",
-    cliFlag: "--modelstudio-api-key-cn",
-    cliOption: "--modelstudio-api-key-cn <key>",
-    cliDescription: "Alibaba Cloud Model Studio Coding Plan API key (China)",
   },
   {
     pluginId: "modelstudio",
@@ -334,10 +258,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "modelstudio",
     groupLabel: "Qwen (Alibaba Cloud Model Studio)",
     groupHint: "Standard / Coding Plan (CN / Global)",
-    optionKey: "modelstudioApiKey",
-    cliFlag: "--modelstudio-api-key",
-    cliOption: "--modelstudio-api-key <key>",
-    cliDescription: "Alibaba Cloud Model Studio Coding Plan API key (Global/Intl)",
   },
   {
     pluginId: "moonshot",
@@ -348,10 +268,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "moonshot",
     groupLabel: "Moonshot AI (Kimi K2.5)",
     groupHint: "Kimi K2.5",
-    optionKey: "moonshotApiKey",
-    cliFlag: "--moonshot-api-key",
-    cliOption: "--moonshot-api-key <key>",
-    cliDescription: "Moonshot API key",
   },
   {
     pluginId: "moonshot",
@@ -362,10 +278,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "moonshot",
     groupLabel: "Moonshot AI (Kimi K2.5)",
     groupHint: "Kimi K2.5",
-    optionKey: "moonshotApiKey",
-    cliFlag: "--moonshot-api-key",
-    cliOption: "--moonshot-api-key <key>",
-    cliDescription: "Moonshot API key",
   },
   {
     pluginId: "ollama",
@@ -387,10 +299,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "openai",
     groupLabel: "OpenAI",
     groupHint: "OpenAI API key",
-    optionKey: "openaiApiKey",
-    cliFlag: "--openai-api-key",
-    cliOption: "--openai-api-key <key>",
-    cliDescription: "OpenAI API key",
   },
   {
     pluginId: "opencode",
@@ -401,10 +309,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "opencode",
     groupLabel: "OpenCode",
     groupHint: "Shared API key for Zen + Go catalogs",
-    optionKey: "opencodeZenApiKey",
-    cliFlag: "--opencode-zen-api-key",
-    cliOption: "--opencode-zen-api-key <key>",
-    cliDescription: "OpenCode API key (Zen catalog)",
   },
   {
     pluginId: "opencode-go",
@@ -415,10 +319,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "opencode",
     groupLabel: "OpenCode",
     groupHint: "Shared API key for Zen + Go catalogs",
-    optionKey: "opencodeGoApiKey",
-    cliFlag: "--opencode-go-api-key",
-    cliOption: "--opencode-go-api-key <key>",
-    cliDescription: "OpenCode API key (Go catalog)",
   },
   {
     pluginId: "openrouter",
@@ -429,10 +329,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "openrouter",
     groupLabel: "OpenRouter",
     groupHint: "API key",
-    optionKey: "openrouterApiKey",
-    cliFlag: "--openrouter-api-key",
-    cliOption: "--openrouter-api-key <key>",
-    cliDescription: "OpenRouter API key",
   },
   {
     pluginId: "qianfan",
@@ -443,10 +339,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "qianfan",
     groupLabel: "Qianfan",
     groupHint: "API key",
-    optionKey: "qianfanApiKey",
-    cliFlag: "--qianfan-api-key",
-    cliOption: "--qianfan-api-key <key>",
-    cliDescription: "QIANFAN API key",
   },
   {
     pluginId: "sglang",
@@ -468,10 +360,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "synthetic",
     groupLabel: "Synthetic",
     groupHint: "Anthropic-compatible (multi-model)",
-    optionKey: "syntheticApiKey",
-    cliFlag: "--synthetic-api-key",
-    cliOption: "--synthetic-api-key <key>",
-    cliDescription: "Synthetic API key",
   },
   {
     pluginId: "together",
@@ -482,10 +370,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "together",
     groupLabel: "Together AI",
     groupHint: "API key",
-    optionKey: "togetherApiKey",
-    cliFlag: "--together-api-key",
-    cliOption: "--together-api-key <key>",
-    cliDescription: "Together AI API key",
   },
   {
     pluginId: "venice",
@@ -496,10 +380,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "venice",
     groupLabel: "Venice AI",
     groupHint: "Privacy-focused (uncensored models)",
-    optionKey: "veniceApiKey",
-    cliFlag: "--venice-api-key",
-    cliOption: "--venice-api-key <key>",
-    cliDescription: "Venice API key",
   },
   {
     pluginId: "vercel-ai-gateway",
@@ -510,10 +390,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "ai-gateway",
     groupLabel: "Vercel AI Gateway",
     groupHint: "API key",
-    optionKey: "aiGatewayApiKey",
-    cliFlag: "--ai-gateway-api-key",
-    cliOption: "--ai-gateway-api-key <key>",
-    cliDescription: "Vercel AI Gateway API key",
   },
   {
     pluginId: "vllm",
@@ -535,10 +411,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "volcengine",
     groupLabel: "Volcano Engine",
     groupHint: "API key",
-    optionKey: "volcengineApiKey",
-    cliFlag: "--volcengine-api-key",
-    cliOption: "--volcengine-api-key <key>",
-    cliDescription: "Volcano Engine API key",
   },
   {
     pluginId: "xai",
@@ -549,10 +421,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "xai",
     groupLabel: "xAI (Grok)",
     groupHint: "API key",
-    optionKey: "xaiApiKey",
-    cliFlag: "--xai-api-key",
-    cliOption: "--xai-api-key <key>",
-    cliDescription: "xAI API key",
   },
   {
     pluginId: "xiaomi",
@@ -563,10 +431,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "xiaomi",
     groupLabel: "Xiaomi",
     groupHint: "API key",
-    optionKey: "xiaomiApiKey",
-    cliFlag: "--xiaomi-api-key",
-    cliOption: "--xiaomi-api-key <key>",
-    cliDescription: "Xiaomi API key",
   },
   {
     pluginId: "zai",
@@ -577,10 +441,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "zai",
     groupLabel: "Z.AI",
     groupHint: "GLM Coding Plan / Global / CN",
-    optionKey: "zaiApiKey",
-    cliFlag: "--zai-api-key",
-    cliOption: "--zai-api-key <key>",
-    cliDescription: "Z.AI API key",
   },
   {
     pluginId: "zai",
@@ -592,10 +452,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "zai",
     groupLabel: "Z.AI",
     groupHint: "GLM Coding Plan / Global / CN",
-    optionKey: "zaiApiKey",
-    cliFlag: "--zai-api-key",
-    cliOption: "--zai-api-key <key>",
-    cliDescription: "Z.AI API key",
   },
   {
     pluginId: "zai",
@@ -607,10 +463,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "zai",
     groupLabel: "Z.AI",
     groupHint: "GLM Coding Plan / Global / CN",
-    optionKey: "zaiApiKey",
-    cliFlag: "--zai-api-key",
-    cliOption: "--zai-api-key <key>",
-    cliDescription: "Z.AI API key",
   },
   {
     pluginId: "zai",
@@ -622,10 +474,6 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "zai",
     groupLabel: "Z.AI",
     groupHint: "GLM Coding Plan / Global / CN",
-    optionKey: "zaiApiKey",
-    cliFlag: "--zai-api-key",
-    cliOption: "--zai-api-key <key>",
-    cliDescription: "Z.AI API key",
   },
   {
     pluginId: "zai",
@@ -637,9 +485,5 @@ export const BUNDLED_PROVIDER_AUTH_CHOICES = [
     groupId: "zai",
     groupLabel: "Z.AI",
     groupHint: "GLM Coding Plan / Global / CN",
-    optionKey: "zaiApiKey",
-    cliFlag: "--zai-api-key",
-    cliOption: "--zai-api-key <key>",
-    cliDescription: "Z.AI API key",
   },
 ] as const satisfies readonly GeneratedProviderAuthChoiceMetadata[];

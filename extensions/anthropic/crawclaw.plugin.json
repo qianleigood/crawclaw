@@ -15,7 +15,6 @@
       "provider": "anthropic",
       "method": "cli",
       "choiceId": "anthropic-cli",
-      "deprecatedChoiceIds": ["claude-cli"],
       "choiceLabel": "Anthropic Claude CLI",
       "choiceHint": "Reuse a local Claude CLI login on this host",
       "groupId": "anthropic",
@@ -39,11 +38,7 @@
       "choiceLabel": "Anthropic API key",
       "groupId": "anthropic",
       "groupLabel": "Anthropic",
-      "groupHint": "Claude CLI + setup-token + API key",
-      "optionKey": "anthropicApiKey",
-      "cliFlag": "--anthropic-api-key",
-      "cliOption": "--anthropic-api-key <key>",
-      "cliDescription": "Anthropic API key"
+      "groupHint": "Claude CLI + setup-token + API key"
     }
   ],
   "configSchema": {

@@ -102,16 +102,11 @@ pub struct BundledProviderAuthChoice {
     pub provider: String,
     pub method: String,
     pub choice_id: String,
-    pub deprecated_choice_ids: Vec<String>,
     pub choice_label: String,
     pub choice_hint: Option<String>,
     pub group_id: String,
     pub group_label: String,
     pub group_hint: Option<String>,
-    pub option_key: Option<String>,
-    pub cli_flag: Option<String>,
-    pub cli_option: Option<String>,
-    pub cli_description: Option<String>,
 }
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
@@ -1901,16 +1896,11 @@ fn parse_bundled_provider_auth_choice(
         provider,
         method,
         choice_id,
-        deprecated_choice_ids: string_array_field(choice, "deprecatedChoiceIds"),
         choice_label,
         choice_hint: string_field(choice, "choiceHint"),
         group_id,
         group_label,
         group_hint: string_field(choice, "groupHint"),
-        option_key: string_field(choice, "optionKey"),
-        cli_flag: string_field(choice, "cliFlag"),
-        cli_option: string_field(choice, "cliOption"),
-        cli_description: string_field(choice, "cliDescription"),
     })
 }
 
@@ -3476,7 +3466,7 @@ mod tests {
                 && choice.provider == "openai"
                 && choice.method == "api-key"
                 && choice.choice_id == "openai-api-key"
-                && choice.cli_flag.as_deref() == Some("--openai-api-key")
+                && choice.choice_label == "OpenAI API key"
         }));
         assert!(auth_choices.iter().any(|choice| {
             choice.plugin_id == "minimax"
