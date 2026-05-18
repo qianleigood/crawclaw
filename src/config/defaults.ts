@@ -10,6 +10,7 @@ import {
   DEFAULT_MODEL_INPUT as GENERATED_DEFAULT_MODEL_INPUT,
   DEFAULT_MODEL_MAX_TOKENS,
   MISTRAL_SAFE_MAX_TOKENS_BY_MODEL as GENERATED_MISTRAL_SAFE_MAX_TOKENS_BY_MODEL,
+  MISTRAL_PROVIDER_ID,
   PROVIDER_DEFAULT_API_BY_PROVIDER as GENERATED_PROVIDER_DEFAULT_API_BY_PROVIDER,
 } from "../generated/providers/runtime-constants.generated.js";
 import { DEFAULT_AGENT_MAX_CONCURRENT, DEFAULT_SUBAGENT_MAX_CONCURRENT } from "./agent-limits.js";
@@ -69,7 +70,10 @@ export function resolveNormalizedProviderModelMaxTokens(params: {
   rawMaxTokens: number;
 }): number {
   const clamped = Math.min(params.rawMaxTokens, params.contextWindow);
-  if (normalizeProviderId(params.providerId) !== "mistral" || clamped < params.contextWindow) {
+  if (
+    normalizeProviderId(params.providerId) !== MISTRAL_PROVIDER_ID ||
+    clamped < params.contextWindow
+  ) {
     return clamped;
   }
 
