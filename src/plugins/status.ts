@@ -16,7 +16,6 @@ import { loadCrawClawPlugins } from "./loader.js";
 import { createPluginLoaderLogger } from "./logger.js";
 import { resolveBundledProviderCompatPluginIds } from "./providers.js";
 import type { PluginRegistry } from "./registry.js";
-import { listImportedRuntimePluginIds } from "./runtime.js";
 import type { PluginDiagnostic } from "./types.js";
 
 export type PluginStatusReport = PluginRegistry & {
@@ -173,14 +172,13 @@ function buildPluginReport(
     cache: false,
     loadModules,
   });
-  const importedPluginIds = new Set([
-    ...(loadModules
+  const importedPluginIds = new Set(
+    loadModules
       ? registry.plugins
           .filter((plugin) => plugin.status === "loaded" && plugin.format !== "bundle")
           .map((plugin) => plugin.id)
-      : []),
-    ...listImportedRuntimePluginIds(),
-  ]);
+      : [],
+  );
 
   return {
     workspaceDir,

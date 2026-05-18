@@ -13,7 +13,6 @@ const applyPluginAutoEnableMock = vi.fn();
 const resolveBundledProviderCompatPluginIdsMock = vi.fn();
 const withBundledPluginAllowlistCompatMock = vi.fn();
 const withBundledPluginEnablementCompatMock = vi.fn();
-const listImportedRuntimePluginIdsMock = vi.fn();
 let buildPluginSnapshotReport: typeof import("./status.js").buildPluginSnapshotReport;
 let buildPluginDiagnosticsReport: typeof import("./status.js").buildPluginDiagnosticsReport;
 let buildPluginInspectReport: typeof import("./status.js").buildPluginInspectReport;
@@ -45,10 +44,6 @@ vi.mock("./bundled-compat.js", () => ({
     withBundledPluginAllowlistCompatMock(...args),
   withBundledPluginEnablementCompat: (...args: unknown[]) =>
     withBundledPluginEnablementCompatMock(...args),
-}));
-
-vi.mock("./runtime.js", () => ({
-  listImportedRuntimePluginIds: (...args: unknown[]) => listImportedRuntimePluginIdsMock(...args),
 }));
 
 vi.mock("../agents/agent-scope.js", () => ({
@@ -254,7 +249,6 @@ describe("plugin status reports", () => {
     resolveBundledProviderCompatPluginIdsMock.mockReset();
     withBundledPluginAllowlistCompatMock.mockReset();
     withBundledPluginEnablementCompatMock.mockReset();
-    listImportedRuntimePluginIdsMock.mockReset();
     loadConfigMock.mockReturnValue({});
     applyPluginAutoEnableMock.mockImplementation((params: { config: unknown }) => ({
       config: params.config,
@@ -268,7 +262,6 @@ describe("plugin status reports", () => {
     withBundledPluginEnablementCompatMock.mockImplementation(
       (params: { config: unknown }) => params.config,
     );
-    listImportedRuntimePluginIdsMock.mockReturnValue([]);
     setPluginLoadResult({ plugins: [] });
   });
 
@@ -490,27 +483,6 @@ describe("plugin status reports", () => {
     expect(report.plugins[0]?.version).toBe("2026.3.23");
   });
 
-  it("marks plugins as imported when runtime state has loaded them", () => {
-    setPluginLoadResult({
-      plugins: [
-        createPluginRecord({ id: "runtime-loaded" }),
-        createPluginRecord({ id: "bundle-loaded", format: "bundle" }),
-        createPluginRecord({ id: "cold-plugin" }),
-      ],
-    });
-    listImportedRuntimePluginIdsMock.mockReturnValue(["runtime-loaded", "bundle-loaded"]);
-
-    const report = buildPluginSnapshotReport({ config: {} });
-
-    expect(report.plugins).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "runtime-loaded", imported: true }),
-        expect.objectContaining({ id: "bundle-loaded", imported: false }),
-        expect.objectContaining({ id: "cold-plugin", imported: false }),
-      ]),
-    );
-  });
-
   it("marks snapshot-loaded plugin modules as imported during full report loads", () => {
     setPluginLoadResult({
       plugins: [
@@ -525,21 +497,6 @@ describe("plugin status reports", () => {
       expect.arrayContaining([
         expect.objectContaining({ id: "runtime-loaded", imported: true }),
         expect.objectContaining({ id: "bundle-loaded", imported: false }),
-      ]),
-    );
-  });
-
-  it("marks errored plugin modules as imported when full diagnostics already evaluated them", () => {
-    setPluginLoadResult({
-      plugins: [createPluginRecord({ id: "broken-plugin", status: "error" })],
-    });
-    listImportedRuntimePluginIdsMock.mockReturnValue(["broken-plugin"]);
-
-    const report = buildPluginDiagnosticsReport({ config: {} });
-
-    expect(report.plugins).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ id: "broken-plugin", status: "error", imported: true }),
       ]),
     );
   });
