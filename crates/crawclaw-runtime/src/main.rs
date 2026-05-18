@@ -38,6 +38,7 @@ async fn main() {
         "emit-bundled-capability-metadata" => emit_bundled_capability_metadata(args),
         "emit-bundled-provider-auth-env-vars" => emit_bundled_provider_auth_env_vars(args),
         "emit-config-doc-baseline" => emit_config_doc_baseline(args),
+        "emit-provider-auth-choices" => emit_provider_auth_choices(args),
         "emit-provider-model-normalization" => emit_provider_model_normalization(args),
         "emit-provider-runtime-constants" => emit_provider_runtime_constants(args),
         "package-postbuild" => package_postbuild(args),
@@ -47,6 +48,63 @@ async fn main() {
         command => {
             eprintln!("unsupported crawclaw-runtime command: {command}");
             std::process::exit(2);
+        }
+    }
+}
+
+fn emit_provider_auth_choices(args: Vec<String>) {
+    let mut output: Option<PathBuf> = None;
+    let mut check = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--check" => {
+                check = true;
+                index += 1;
+            }
+            "--write" => {
+                index += 1;
+            }
+            "--output" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--output requires a value");
+                    std::process::exit(2);
+                };
+                output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported emit-provider-auth-choices option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    let Some(output_path) = output else {
+        eprintln!(
+            "usage: crawclaw-runtime emit-provider-auth-choices --output <path> [--check|--write]"
+        );
+        std::process::exit(2);
+    };
+    match crawclaw_runtime::write_provider_auth_choices_module(&output_path, check) {
+        Ok(result) => {
+            if check {
+                if result.changed {
+                    eprintln!(
+                        "[provider-auth-choices] stale generated output at {}",
+                        result.output_path.display()
+                    );
+                    std::process::exit(1);
+                }
+            } else if result.wrote {
+                println!(
+                    "[provider-auth-choices] wrote {}",
+                    result.output_path.display()
+                );
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
         }
     }
 }
@@ -699,6 +757,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | package-postbuild --root <repo-root> | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-auth-choices --output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | package-postbuild --root <repo-root> | tool <name> [json-input]"
     );
 }

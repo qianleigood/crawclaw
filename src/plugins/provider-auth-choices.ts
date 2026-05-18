@@ -1,5 +1,6 @@
 import { normalizeProviderIdForAuth } from "../agents/model-selection.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { BUNDLED_PROVIDER_AUTH_CHOICES as GENERATED_BUNDLED_PROVIDER_AUTH_CHOICES } from "../generated/providers/auth-choices.generated.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 
 export type ProviderAuthChoiceMetadata = {
@@ -9,7 +10,7 @@ export type ProviderAuthChoiceMetadata = {
   choiceId: string;
   choiceLabel: string;
   choiceHint?: string;
-  deprecatedChoiceIds?: string[];
+  deprecatedChoiceIds?: readonly string[];
   groupId?: string;
   groupLabel?: string;
   groupHint?: string;
@@ -17,7 +18,7 @@ export type ProviderAuthChoiceMetadata = {
   cliFlag?: string;
   cliOption?: string;
   cliDescription?: string;
-  onboardingScopes?: "text-inference"[];
+  onboardingScopes?: readonly "text-inference"[];
 };
 
 export type ProviderOnboardAuthFlag = {
@@ -39,8 +40,18 @@ export function resolveManifestProviderAuthChoices(params?: {
     env: params?.env,
   });
 
-  return registry.plugins.flatMap((plugin) =>
-    (plugin.providerAuthChoices ?? []).map((choice) => ({
+  const bundledPluginIds = new Set(
+    registry.plugins.filter((plugin) => plugin.origin === "bundled").map((plugin) => plugin.id),
+  );
+  const bundledChoices: readonly ProviderAuthChoiceMetadata[] =
+    GENERATED_BUNDLED_PROVIDER_AUTH_CHOICES.filter((choice) =>
+      bundledPluginIds.has(choice.pluginId),
+    );
+  const manifestChoices = registry.plugins.flatMap((plugin) => {
+    if (plugin.origin === "bundled") {
+      return [];
+    }
+    return (plugin.providerAuthChoices ?? []).map((choice) => ({
       pluginId: plugin.id,
       providerId: choice.provider,
       methodId: choice.method,
@@ -56,8 +67,10 @@ export function resolveManifestProviderAuthChoices(params?: {
       ...(choice.cliOption ? { cliOption: choice.cliOption } : {}),
       ...(choice.cliDescription ? { cliDescription: choice.cliDescription } : {}),
       ...(choice.onboardingScopes ? { onboardingScopes: choice.onboardingScopes } : {}),
-    })),
-  );
+    }));
+  });
+
+  return [...bundledChoices, ...manifestChoices];
 }
 
 export function resolveManifestProviderAuthChoice(
