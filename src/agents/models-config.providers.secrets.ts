@@ -1,5 +1,4 @@
 import type { CrawClawConfig } from "../config/config.js";
-import { resolvePluginWebSearchConfig } from "../config/legacy-web-search.js";
 import { coerceSecretRef, resolveSecretInputRef } from "../config/types.secrets.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import { listProfilesForProvider } from "./auth-profiles/profiles.js";
@@ -305,7 +304,6 @@ export function resolveMissingProviderApiKey(params: {
 export function createProviderApiKeyResolver(
   env: NodeJS.ProcessEnv,
   authStore: ReturnType<typeof ensureAuthProfileStore>,
-  config?: CrawClawConfig,
 ): ProviderApiKeyResolver {
   return (provider: string): { apiKey: string | undefined; discoveryApiKey?: string } => {
     const envVar = resolveEnvApiKeyVarName(provider, env);
@@ -322,13 +320,9 @@ export function createProviderApiKeyResolver(
         discoveryApiKey: fromProfiles.discoveryApiKey,
       };
     }
-    const fromConfig = resolveConfigBackedProviderAuth({
-      provider,
-      config,
-    });
     return {
-      apiKey: fromConfig?.apiKey,
-      discoveryApiKey: fromConfig?.discoveryApiKey,
+      apiKey: undefined,
+      discoveryApiKey: undefined,
     };
   };
 }
@@ -336,7 +330,6 @@ export function createProviderApiKeyResolver(
 export function createProviderAuthResolver(
   env: NodeJS.ProcessEnv,
   authStore: ReturnType<typeof ensureAuthProfileStore>,
-  config?: CrawClawConfig,
 ): ProviderAuthResolver {
   return (provider: string, options?: { oauthMarker?: string }) => {
     const ids = listProfilesForProvider(authStore, provider);
@@ -390,19 +383,6 @@ export function createProviderAuthResolver(
       };
     }
 
-    const fromConfig = resolveConfigBackedProviderAuth({
-      provider,
-      config,
-    });
-    if (fromConfig) {
-      return {
-        apiKey: fromConfig.apiKey,
-        discoveryApiKey: fromConfig.discoveryApiKey,
-        mode: fromConfig.mode,
-        source: "none",
-      };
-    }
-
     return {
       apiKey: undefined,
       discoveryApiKey: undefined,
@@ -410,72 +390,4 @@ export function createProviderAuthResolver(
       source: "none" as const,
     };
   };
-}
-
-function resolveConfigBackedProviderAuth(params: { provider: string; config?: CrawClawConfig }):
-  | {
-      apiKey: string;
-      discoveryApiKey?: string;
-      mode: "api_key";
-      source: "config";
-    }
-  | undefined {
-  const synthetic = resolveXaiConfigFallbackAuth(params);
-  const apiKey = synthetic?.apiKey?.trim();
-  if (!apiKey) {
-    return undefined;
-  }
-  return isNonSecretApiKeyMarker(apiKey)
-    ? {
-        apiKey,
-        discoveryApiKey: toDiscoveryApiKey(apiKey),
-        mode: "api_key",
-        source: "config",
-      }
-    : {
-        apiKey: resolveNonEnvSecretRefApiKeyMarker("file"),
-        discoveryApiKey: toDiscoveryApiKey(apiKey),
-        mode: "api_key",
-        source: "config",
-      };
-}
-
-function resolveXaiConfigFallbackAuth(params: { provider: string; config?: CrawClawConfig }):
-  | {
-      apiKey: string;
-      source: string;
-      mode: "api-key";
-    }
-  | undefined {
-  if (params.provider.trim().toLowerCase() !== "xai") {
-    return undefined;
-  }
-  const xaiPluginEntry = params.config?.plugins?.entries?.xai;
-  if (xaiPluginEntry?.enabled === false) {
-    return undefined;
-  }
-  const pluginApiKey = normalizeOptionalSecretInput(
-    resolvePluginWebSearchConfig(params.config, "xai")?.apiKey,
-  );
-  if (pluginApiKey) {
-    return {
-      apiKey: pluginApiKey,
-      source: "plugins.entries.xai.config.webSearch.apiKey",
-      mode: "api-key",
-    };
-  }
-  const pluginApiKeyRef = coerceSecretRef(
-    resolvePluginWebSearchConfig(params.config, "xai")?.apiKey,
-  );
-  if (pluginApiKeyRef) {
-    return {
-      apiKey:
-        pluginApiKeyRef.source === "env"
-          ? pluginApiKeyRef.id.trim()
-          : resolveNonEnvSecretRefApiKeyMarker(pluginApiKeyRef.source),
-      source: "plugins.entries.xai.config.webSearch.apiKey",
-      mode: "api-key",
-    };
-  }
-  return undefined;
 }

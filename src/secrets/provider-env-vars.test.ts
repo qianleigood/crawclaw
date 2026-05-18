@@ -13,8 +13,6 @@ describe("provider env vars", () => {
         "GITHUB_TOKEN",
         "GH_TOKEN",
         "ANTHROPIC_OAUTH_TOKEN",
-        "BRAVE_API_KEY",
-        "PERPLEXITY_API_KEY",
         "OPENROUTER_API_KEY",
       ]),
     );
@@ -23,8 +21,6 @@ describe("provider env vars", () => {
         "GITHUB_TOKEN",
         "GH_TOKEN",
         "ANTHROPIC_OAUTH_TOKEN",
-        "BRAVE_API_KEY",
-        "PERPLEXITY_API_KEY",
         "OPENROUTER_API_KEY",
       ]),
     );

@@ -568,7 +568,7 @@ describe("loadPluginManifestRegistry", () => {
 
   it.each([
     { name: "provider-style", manifestId: "openai", idHint: "openai-provider" },
-    { name: "plugin-style", manifestId: "brave", idHint: "brave-plugin" },
+    { name: "plugin-style", manifestId: "searxng", idHint: "searxng-plugin" },
     { name: "multi-entry-style", manifestId: "feishu", idHint: "feishu/index" },
     {
       name: "media-understanding-style",

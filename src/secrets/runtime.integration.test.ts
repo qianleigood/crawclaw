@@ -24,11 +24,11 @@ import {
 vi.unmock("../version.js");
 
 const { resolveBundledPluginWebSearchProvidersMock } = vi.hoisted(() => ({
-  resolveBundledPluginWebSearchProvidersMock: vi.fn(() => [buildGeminiWebSearchProvider()]),
+  resolveBundledPluginWebSearchProvidersMock: vi.fn(() => [buildBetaWebSearchProvider()]),
 }));
 
 const { resolvePluginWebSearchProvidersMock } = vi.hoisted(() => ({
-  resolvePluginWebSearchProvidersMock: vi.fn(() => [buildGeminiWebSearchProvider()]),
+  resolvePluginWebSearchProvidersMock: vi.fn(() => [buildBetaWebSearchProvider()]),
 }));
 
 vi.mock("../plugins/web-search-providers.js", () => ({
@@ -67,16 +67,16 @@ function ensureRecord(target: Record<string, unknown>, key: string): Record<stri
   return next;
 }
 
-function buildGeminiWebSearchProvider(): PluginWebSearchProviderEntry {
-  const credentialPath = "plugins.entries.google.config.webSearch.apiKey";
+function buildBetaWebSearchProvider(): PluginWebSearchProviderEntry {
+  const credentialPath = "plugins.entries.beta-plugin.config.webSearch.apiKey";
   return {
-    pluginId: "google",
-    id: "gemini",
-    label: "gemini",
-    hint: "gemini test provider",
-    envVars: ["GEMINI_API_KEY"],
-    placeholder: "gemini-...",
-    signupUrl: "https://example.com/gemini",
+    pluginId: "beta-plugin",
+    id: "beta",
+    label: "beta",
+    hint: "beta test provider",
+    envVars: ["BETA_API_KEY"],
+    placeholder: "beta-...",
+    signupUrl: "https://example.com/beta",
     autoDetectOrder: 20,
     credentialPath,
     inactiveSecretPaths: [credentialPath],
@@ -85,7 +85,7 @@ function buildGeminiWebSearchProvider(): PluginWebSearchProviderEntry {
       searchConfigTarget.apiKey = value;
     },
     getConfiguredCredentialValue: (config) => {
-      const entryConfig = config?.plugins?.entries?.google?.config;
+      const entryConfig = config?.plugins?.entries?.["beta-plugin"]?.config;
       return entryConfig && typeof entryConfig === "object"
         ? (entryConfig as { webSearch?: { apiKey?: unknown } }).webSearch?.apiKey
         : undefined;
@@ -93,7 +93,7 @@ function buildGeminiWebSearchProvider(): PluginWebSearchProviderEntry {
     setConfiguredCredentialValue: (configTarget, value) => {
       const plugins = ensureRecord(configTarget as Record<string, unknown>, "plugins");
       const entries = ensureRecord(plugins, "entries");
-      const pluginEntry = ensureRecord(entries, "google");
+      const pluginEntry = ensureRecord(entries, "beta-plugin");
       const config = ensureRecord(pluginEntry, "config");
       const webSearch = ensureRecord(config, "webSearch");
       webSearch.apiKey = value;
@@ -421,20 +421,20 @@ describe("secrets runtime snapshot integration", () => {
             tools: {
               web: {
                 search: {
-                  provider: "gemini",
+                  provider: "beta",
                 },
               },
             },
             plugins: {
               entries: {
-                google: {
+                "beta-plugin": {
                   enabled: true,
                   config: {
                     webSearch: {
                       apiKey: {
                         source: "env",
                         provider: "default",
-                        id: "WEB_SEARCH_GEMINI_API_KEY",
+                        id: "WEB_SEARCH_BETA_API_KEY",
                       },
                     },
                   },
@@ -443,7 +443,7 @@ describe("secrets runtime snapshot integration", () => {
             },
           }),
           env: {
-            WEB_SEARCH_GEMINI_API_KEY: "web-search-gemini-runtime-key",
+            WEB_SEARCH_BETA_API_KEY: "web-search-beta-runtime-key",
           },
           agentDirs: ["/tmp/crawclaw-agent-main"],
           loadAuthStore: () => ({ version: 1, profiles: {} }),
@@ -456,14 +456,14 @@ describe("secrets runtime snapshot integration", () => {
             ...loadConfig(),
             plugins: {
               entries: {
-                google: {
+                "beta-plugin": {
                   enabled: true,
                   config: {
                     webSearch: {
                       apiKey: {
                         source: "env",
                         provider: "default",
-                        id: "MISSING_WEB_SEARCH_GEMINI_API_KEY",
+                        id: "MISSING_WEB_SEARCH_BETA_API_KEY",
                       },
                     },
                   },
@@ -473,7 +473,7 @@ describe("secrets runtime snapshot integration", () => {
             tools: {
               web: {
                 search: {
-                  provider: "gemini",
+                  provider: "beta",
                 },
               },
             },
@@ -484,31 +484,29 @@ describe("secrets runtime snapshot integration", () => {
 
         const activeAfterFailure = getActiveSecretsRuntimeSnapshot();
         expect(activeAfterFailure).not.toBeNull();
-        const loadedGoogleWebSearchConfig = loadConfig().plugins?.entries?.google?.config as
+        const loadedBetaWebSearchConfig = loadConfig().plugins?.entries?.["beta-plugin"]?.config as
           | { webSearch?: { apiKey?: unknown } }
           | undefined;
-        expect(loadedGoogleWebSearchConfig?.webSearch?.apiKey).toBe(
-          "web-search-gemini-runtime-key",
-        );
-        const activeSourceGoogleWebSearchConfig = activeAfterFailure?.sourceConfig.plugins?.entries
-          ?.google?.config as { webSearch?: { apiKey?: unknown } } | undefined;
-        expect(activeSourceGoogleWebSearchConfig?.webSearch?.apiKey).toEqual({
+        expect(loadedBetaWebSearchConfig?.webSearch?.apiKey).toBe("web-search-beta-runtime-key");
+        const activeSourceBetaWebSearchConfig = activeAfterFailure?.sourceConfig.plugins?.entries?.[
+          "beta-plugin"
+        ]?.config as { webSearch?: { apiKey?: unknown } } | undefined;
+        expect(activeSourceBetaWebSearchConfig?.webSearch?.apiKey).toEqual({
           source: "env",
           provider: "default",
-          id: "WEB_SEARCH_GEMINI_API_KEY",
+          id: "WEB_SEARCH_BETA_API_KEY",
         });
-        expect(getActiveRuntimeWebToolsMetadata()?.search.selectedProvider).toBe("gemini");
+        expect(getActiveRuntimeWebToolsMetadata()?.search.selectedProvider).toBe("beta");
 
         const persistedConfig = JSON.parse(
           await fs.readFile(path.join(home, ".crawclaw", "crawclaw.json"), "utf8"),
         ) as CrawClawConfig;
-        const persistedGoogleWebSearchConfig = persistedConfig.plugins?.entries?.google?.config as
-          | { webSearch?: { apiKey?: unknown } }
-          | undefined;
-        expect(persistedGoogleWebSearchConfig?.webSearch?.apiKey).toEqual({
+        const persistedBetaWebSearchConfig = persistedConfig.plugins?.entries?.["beta-plugin"]
+          ?.config as { webSearch?: { apiKey?: unknown } } | undefined;
+        expect(persistedBetaWebSearchConfig?.webSearch?.apiKey).toEqual({
           source: "env",
           provider: "default",
-          id: "MISSING_WEB_SEARCH_GEMINI_API_KEY",
+          id: "MISSING_WEB_SEARCH_BETA_API_KEY",
         });
       });
     },

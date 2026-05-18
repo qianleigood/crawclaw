@@ -1,4 +1,3 @@
-import { findLegacyWebSearchConfigIssues } from "./legacy-web-search.js";
 import { getRecord } from "./legacy.shared.js";
 import type { LegacyConfigIssue } from "./types.js";
 
@@ -137,7 +136,6 @@ export function findLegacyConfigIssues(raw: unknown, sourceRaw?: unknown): Legac
     issues.push({ path: rule.path.join("."), message: rule.message });
   }
 
-  issues.push(...findLegacyWebSearchConfigIssues(root));
   issues.push(...findLegacyPluginEntryTtsIssues(root));
   return issues;
 }

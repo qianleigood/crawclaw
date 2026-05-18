@@ -43,36 +43,36 @@ describe("plugin contract registry scoped retries", () => {
       .mockReturnValueOnce(
         createMockRuntimeRegistry({
           plugin: {
-            id: "xai",
+            id: "custom-search",
             status: "error",
-            error: "transient grok load failure",
+            error: "transient search load failure",
             providerIds: [],
             webFetchProviderIds: [],
             webSearchProviderIds: [],
           },
-          diagnostics: [{ pluginId: "xai", message: "transient grok load failure" }],
+          diagnostics: [{ pluginId: "custom-search", message: "transient search load failure" }],
         }),
       )
       .mockReturnValueOnce(
         createMockRuntimeRegistry({
           plugin: {
-            id: "xai",
+            id: "custom-search",
             status: "loaded",
-            providerIds: ["xai"],
+            providerIds: [],
             webFetchProviderIds: [],
-            webSearchProviderIds: ["grok"],
+            webSearchProviderIds: ["custom-search"],
           },
           webSearchProviders: [
             {
-              pluginId: "xai",
+              pluginId: "custom-search",
               provider: {
-                id: "grok",
-                label: "Grok Search",
-                hint: "Search the web with Grok",
-                envVars: ["XAI_API_KEY"],
-                placeholder: "XAI_API_KEY",
-                signupUrl: "https://x.ai",
-                credentialPath: "plugins.entries.xai.config.webSearch.apiKey",
+                id: "custom-search",
+                label: "Custom Search",
+                hint: "Search the web with a custom provider",
+                envVars: ["CUSTOM_SEARCH_API_KEY"],
+                placeholder: "CUSTOM_SEARCH_API_KEY",
+                signupUrl: "https://example.com/search",
+                credentialPath: "plugins.entries.custom-search.config.webSearch.apiKey",
                 requiresCredential: true,
                 getCredentialValue: () => undefined,
                 setCredentialValue() {},
@@ -89,8 +89,10 @@ describe("plugin contract registry scoped retries", () => {
     const { resolveWebSearchProviderContractEntriesForPluginId } = await import("./registry.js");
 
     expect(
-      resolveWebSearchProviderContractEntriesForPluginId("xai").map((entry) => entry.provider.id),
-    ).toEqual(["grok"]);
+      resolveWebSearchProviderContractEntriesForPluginId("custom-search").map(
+        (entry) => entry.provider.id,
+      ),
+    ).toEqual(["custom-search"]);
     expect(loadBundledCapabilityRuntimeRegistry).toHaveBeenCalledTimes(2);
   });
 

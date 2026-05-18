@@ -5,7 +5,7 @@ import type {
   PluginWebSearchProviderEntry,
 } from "../plugins/types.js";
 
-type ProviderUnderTest = "brave" | "gemini" | "grok" | "kimi" | "perplexity" | "duckduckgo";
+type ProviderUnderTest = "alpha" | "beta" | "gamma" | "delta" | "epsilon" | "searxng";
 
 const { resolvePluginWebSearchProvidersMock } = vi.hoisted(() => ({
   resolvePluginWebSearchProvidersMock: vi.fn(() => buildTestWebSearchProviders()),
@@ -62,14 +62,14 @@ function asConfig(value: unknown): CrawClawConfig {
 
 function providerPluginId(provider: ProviderUnderTest): string {
   switch (provider) {
-    case "duckduckgo":
-      return "duckduckgo";
-    case "gemini":
-      return "google";
-    case "grok":
-      return "xai";
-    case "kimi":
-      return "moonshot";
+    case "searxng":
+      return "searxng";
+    case "beta":
+      return "beta-plugin";
+    case "gamma":
+      return "gamma-plugin";
+    case "delta":
+      return "delta-plugin";
     default:
       return provider;
   }
@@ -118,15 +118,15 @@ function createTestProvider(params: {
     id: params.provider,
     label: params.provider,
     hint: `${params.provider} test provider`,
-    requiresCredential: params.provider === "duckduckgo" ? false : undefined,
-    envVars: params.provider === "duckduckgo" ? [] : [`${params.provider.toUpperCase()}_API_KEY`],
-    placeholder: params.provider === "duckduckgo" ? "(no key needed)" : `${params.provider}-...`,
+    requiresCredential: params.provider === "searxng" ? false : undefined,
+    envVars: params.provider === "searxng" ? [] : [`${params.provider.toUpperCase()}_API_KEY`],
+    placeholder: params.provider === "searxng" ? "(no key needed)" : `${params.provider}-...`,
     signupUrl: `https://example.com/${params.provider}`,
     autoDetectOrder: params.order,
-    credentialPath: params.provider === "duckduckgo" ? "" : credentialPath,
-    inactiveSecretPaths: params.provider === "duckduckgo" ? [] : [credentialPath],
+    credentialPath: params.provider === "searxng" ? "" : credentialPath,
+    inactiveSecretPaths: params.provider === "searxng" ? [] : [credentialPath],
     getCredentialValue: (searchConfig) =>
-      params.provider === "duckduckgo" ? "duckduckgo-no-key-needed" : searchConfig?.apiKey,
+      params.provider === "searxng" ? "searxng-no-key-needed" : searchConfig?.apiKey,
     setCredentialValue: (searchConfigTarget, value) => {
       searchConfigTarget.apiKey = value;
     },
@@ -139,23 +139,17 @@ function createTestProvider(params: {
     setConfiguredCredentialValue: (configTarget, value) => {
       setConfiguredProviderKey(configTarget, params.pluginId, value);
     },
-    resolveRuntimeMetadata:
-      params.provider === "perplexity"
-        ? () => ({
-            perplexityTransport: "search_api" as const,
-          })
-        : undefined,
   };
 }
 
 function buildTestWebSearchProviders(): PluginWebSearchProviderEntry[] {
   return [
-    createTestProvider({ provider: "brave", pluginId: "brave", order: 10 }),
-    createTestProvider({ provider: "gemini", pluginId: "google", order: 20 }),
-    createTestProvider({ provider: "grok", pluginId: "xai", order: 30 }),
-    createTestProvider({ provider: "kimi", pluginId: "moonshot", order: 40 }),
-    createTestProvider({ provider: "perplexity", pluginId: "perplexity", order: 50 }),
-    createTestProvider({ provider: "duckduckgo", pluginId: "duckduckgo", order: 100 }),
+    createTestProvider({ provider: "alpha", pluginId: "alpha", order: 10 }),
+    createTestProvider({ provider: "beta", pluginId: "beta-plugin", order: 20 }),
+    createTestProvider({ provider: "gamma", pluginId: "gamma-plugin", order: 30 }),
+    createTestProvider({ provider: "delta", pluginId: "delta-plugin", order: 40 }),
+    createTestProvider({ provider: "epsilon", pluginId: "epsilon", order: 50 }),
+    createTestProvider({ provider: "searxng", pluginId: "searxng", order: 100 }),
   ];
 }
 
@@ -326,13 +320,13 @@ describe("runtime web tools resolution", () => {
       }),
     });
 
-    expect(metadata.search.selectedProvider).toBe("duckduckgo");
+    expect(metadata.search.selectedProvider).toBe("searxng");
     expect(metadata.search.providerSource).toBe("auto-detect");
     expect(metadata.search.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "WEB_SEARCH_AUTODETECT_SELECTED",
-          message: expect.stringContaining('keyless provider "duckduckgo"'),
+          message: expect.stringContaining('keyless provider "searxng"'),
         }),
       ]),
     );
@@ -340,29 +334,29 @@ describe("runtime web tools resolution", () => {
 
   it.each([
     {
-      provider: "brave" as const,
-      envRefId: "BRAVE_PROVIDER_REF",
-      resolvedKey: "brave-provider-key",
+      provider: "alpha" as const,
+      envRefId: "ALPHA_PROVIDER_REF",
+      resolvedKey: "alpha-provider-key",
     },
     {
-      provider: "gemini" as const,
-      envRefId: "GEMINI_PROVIDER_REF",
-      resolvedKey: "gemini-provider-key",
+      provider: "beta" as const,
+      envRefId: "BETA_PROVIDER_REF",
+      resolvedKey: "beta-provider-key",
     },
     {
-      provider: "grok" as const,
-      envRefId: "GROK_PROVIDER_REF",
-      resolvedKey: "grok-provider-key",
+      provider: "gamma" as const,
+      envRefId: "GAMMA_PROVIDER_REF",
+      resolvedKey: "gamma-provider-key",
     },
     {
-      provider: "kimi" as const,
-      envRefId: "KIMI_PROVIDER_REF",
-      resolvedKey: "kimi-provider-key",
+      provider: "delta" as const,
+      envRefId: "DELTA_PROVIDER_REF",
+      resolvedKey: "delta-provider-key",
     },
     {
-      provider: "perplexity" as const,
-      envRefId: "PERPLEXITY_PROVIDER_REF",
-      resolvedKey: "pplx-provider-key",
+      provider: "epsilon" as const,
+      envRefId: "EPSILON_PROVIDER_REF",
+      resolvedKey: "epsilon-provider-key",
     },
   ])(
     "resolves configured provider SecretRef for $provider",
@@ -382,9 +376,6 @@ describe("runtime web tools resolution", () => {
       expect(context.warnings.map((warning) => warning.code)).not.toContain(
         "WEB_SEARCH_KEY_UNRESOLVED_NO_FALLBACK",
       );
-      if (provider === "perplexity") {
-        expect(metadata.search.perplexityTransport).toBe("search_api");
-      }
     },
   );
 
@@ -400,57 +391,57 @@ describe("runtime web tools resolution", () => {
         },
         plugins: {
           entries: {
-            brave: {
+            alpha: {
               enabled: true,
               config: {
-                webSearch: { apiKey: { source: "env", provider: "default", id: "BRAVE_REF" } },
+                webSearch: { apiKey: { source: "env", provider: "default", id: "ALPHA_REF" } },
               },
             },
-            google: {
+            "beta-plugin": {
               enabled: true,
               config: {
-                webSearch: { apiKey: { source: "env", provider: "default", id: "GEMINI_REF" } },
+                webSearch: { apiKey: { source: "env", provider: "default", id: "BETA_REF" } },
               },
             },
-            xai: {
+            "gamma-plugin": {
               enabled: true,
               config: {
-                webSearch: { apiKey: { source: "env", provider: "default", id: "GROK_REF" } },
+                webSearch: { apiKey: { source: "env", provider: "default", id: "GAMMA_REF" } },
               },
             },
-            moonshot: {
+            "delta-plugin": {
               enabled: true,
               config: {
-                webSearch: { apiKey: { source: "env", provider: "default", id: "KIMI_REF" } },
+                webSearch: { apiKey: { source: "env", provider: "default", id: "DELTA_REF" } },
               },
             },
-            perplexity: {
+            epsilon: {
               enabled: true,
               config: {
-                webSearch: { apiKey: { source: "env", provider: "default", id: "PERPLEXITY_REF" } },
+                webSearch: { apiKey: { source: "env", provider: "default", id: "EPSILON_REF" } },
               },
             },
           },
         },
       }),
       env: {
-        BRAVE_REF: "brave-precedence-key",
-        GEMINI_REF: "gemini-precedence-key",
-        GROK_REF: "grok-precedence-key",
-        KIMI_REF: "kimi-precedence-key",
-        PERPLEXITY_REF: "pplx-precedence-key",
+        ALPHA_REF: "alpha-precedence-key",
+        BETA_REF: "beta-precedence-key",
+        GAMMA_REF: "gamma-precedence-key",
+        DELTA_REF: "delta-precedence-key",
+        EPSILON_REF: "epsilon-precedence-key",
       },
     });
 
     expect(metadata.search.providerSource).toBe("auto-detect");
-    expect(metadata.search.selectedProvider).toBe("brave");
-    expect(readProviderKey(resolvedConfig, "brave")).toBe("brave-precedence-key");
+    expect(metadata.search.selectedProvider).toBe("alpha");
+    expect(readProviderKey(resolvedConfig, "alpha")).toBe("alpha-precedence-key");
     expect(context.warnings).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ path: "plugins.entries.google.config.webSearch.apiKey" }),
-        expect.objectContaining({ path: "plugins.entries.xai.config.webSearch.apiKey" }),
-        expect.objectContaining({ path: "plugins.entries.moonshot.config.webSearch.apiKey" }),
-        expect.objectContaining({ path: "plugins.entries.perplexity.config.webSearch.apiKey" }),
+        expect.objectContaining({ path: "plugins.entries.beta-plugin.config.webSearch.apiKey" }),
+        expect.objectContaining({ path: "plugins.entries.gamma-plugin.config.webSearch.apiKey" }),
+        expect.objectContaining({ path: "plugins.entries.delta-plugin.config.webSearch.apiKey" }),
+        expect.objectContaining({ path: "plugins.entries.epsilon.config.webSearch.apiKey" }),
       ]),
     );
   });
@@ -467,19 +458,19 @@ describe("runtime web tools resolution", () => {
         },
         plugins: {
           entries: {
-            brave: {
+            alpha: {
               enabled: true,
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "BRAVE_API_KEY_REF" },
+                  apiKey: { source: "env", provider: "default", id: "ALPHA_API_KEY_REF" },
                 },
               },
             },
-            google: {
+            "beta-plugin": {
               enabled: true,
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "MISSING_GEMINI_API_KEY_REF" },
+                  apiKey: { source: "env", provider: "default", id: "MISSING_BETA_API_KEY_REF" },
                 },
               },
             },
@@ -487,24 +478,24 @@ describe("runtime web tools resolution", () => {
         },
       }),
       env: {
-        BRAVE_API_KEY_REF: "brave-runtime-key", // pragma: allowlist secret
+        ALPHA_API_KEY_REF: "alpha-runtime-key", // pragma: allowlist secret
       },
     });
 
     expect(metadata.search.providerSource).toBe("auto-detect");
-    expect(metadata.search.selectedProvider).toBe("brave");
+    expect(metadata.search.selectedProvider).toBe("alpha");
     expect(metadata.search.selectedProviderKeySource).toBe("secretRef");
-    expect(readProviderKey(resolvedConfig, "brave")).toBe("brave-runtime-key");
-    expect(readProviderKey(resolvedConfig, "gemini")).toEqual({
+    expect(readProviderKey(resolvedConfig, "alpha")).toBe("alpha-runtime-key");
+    expect(readProviderKey(resolvedConfig, "beta")).toEqual({
       source: "env",
       provider: "default",
-      id: "MISSING_GEMINI_API_KEY_REF",
+      id: "MISSING_BETA_API_KEY_REF",
     });
     expect(context.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "SECRETS_REF_IGNORED_INACTIVE_SURFACE",
-          path: "plugins.entries.google.config.webSearch.apiKey",
+          path: "plugins.entries.beta-plugin.config.webSearch.apiKey",
         }),
       ]),
     );
@@ -525,19 +516,19 @@ describe("runtime web tools resolution", () => {
         },
         plugins: {
           entries: {
-            brave: {
+            alpha: {
               enabled: true,
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "MISSING_BRAVE_API_KEY_REF" },
+                  apiKey: { source: "env", provider: "default", id: "MISSING_ALPHA_API_KEY_REF" },
                 },
               },
             },
-            google: {
+            "beta-plugin": {
               enabled: true,
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "GEMINI_API_KEY_REF" },
+                  apiKey: { source: "env", provider: "default", id: "BETA_API_KEY_REF" },
                 },
               },
             },
@@ -545,18 +536,18 @@ describe("runtime web tools resolution", () => {
         },
       }),
       env: {
-        GEMINI_API_KEY_REF: "gemini-runtime-key", // pragma: allowlist secret
+        BETA_API_KEY_REF: "beta-runtime-key", // pragma: allowlist secret
       },
     });
 
     expect(metadata.search.providerSource).toBe("auto-detect");
-    expect(metadata.search.selectedProvider).toBe("gemini");
-    expect(readProviderKey(resolvedConfig, "gemini")).toBe("gemini-runtime-key");
+    expect(metadata.search.selectedProvider).toBe("beta");
+    expect(readProviderKey(resolvedConfig, "beta")).toBe("beta-runtime-key");
     expect(context.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "SECRETS_REF_IGNORED_INACTIVE_SURFACE",
-          path: "plugins.entries.brave.config.webSearch.apiKey",
+          path: "plugins.entries.alpha.config.webSearch.apiKey",
         }),
       ]),
     );
@@ -577,11 +568,11 @@ describe("runtime web tools resolution", () => {
         },
         plugins: {
           entries: {
-            google: {
+            "beta-plugin": {
               enabled: true,
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "GEMINI_API_KEY_REF" },
+                  apiKey: { source: "env", provider: "default", id: "BETA_API_KEY_REF" },
                 },
               },
             },
@@ -589,14 +580,14 @@ describe("runtime web tools resolution", () => {
         },
       }),
       env: {
-        GEMINI_API_KEY_REF: "gemini-runtime-key", // pragma: allowlist secret
+        BETA_API_KEY_REF: "beta-runtime-key", // pragma: allowlist secret
       },
     });
 
     expect(metadata.search.providerConfigured).toBeUndefined();
     expect(metadata.search.providerSource).toBe("auto-detect");
-    expect(metadata.search.selectedProvider).toBe("gemini");
-    expect(readProviderKey(resolvedConfig, "gemini")).toBe("gemini-runtime-key");
+    expect(metadata.search.selectedProvider).toBe("beta");
+    expect(readProviderKey(resolvedConfig, "beta")).toBe("beta-runtime-key");
     expect(metadata.search.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -620,17 +611,17 @@ describe("runtime web tools resolution", () => {
       tools: {
         web: {
           search: {
-            provider: "gemini",
+            provider: "beta",
           },
         },
       },
       plugins: {
         entries: {
-          google: {
+          "beta-plugin": {
             enabled: true,
             config: {
               webSearch: {
-                apiKey: { source: "env", provider: "default", id: "MISSING_GEMINI_API_KEY_REF" },
+                apiKey: { source: "env", provider: "default", id: "MISSING_BETA_API_KEY_REF" },
               },
             },
           },
@@ -654,7 +645,7 @@ describe("runtime web tools resolution", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: "WEB_SEARCH_KEY_UNRESOLVED_NO_FALLBACK",
-          path: "plugins.entries.google.config.webSearch.apiKey",
+          path: "plugins.entries.beta-plugin.config.webSearch.apiKey",
         }),
       ]),
     );
@@ -670,17 +661,17 @@ describe("runtime web tools resolution", () => {
           web: {
             search: {
               enabled: true,
-              provider: "gemini",
+              provider: "beta",
             },
           },
         },
         plugins: {
           entries: {
-            google: {
+            "beta-plugin": {
               enabled: true,
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "GEMINI_PROVIDER_REF" },
+                  apiKey: { source: "env", provider: "default", id: "BETA_PROVIDER_REF" },
                 },
               },
             },
@@ -688,11 +679,11 @@ describe("runtime web tools resolution", () => {
         },
       }),
       env: {
-        GEMINI_PROVIDER_REF: "gemini-provider-key",
+        BETA_PROVIDER_REF: "beta-provider-key",
       },
     });
 
-    expect(metadata.search.selectedProvider).toBe("gemini");
+    expect(metadata.search.selectedProvider).toBe("beta");
     expect(bundledSpy).toHaveBeenCalled();
     expect(genericSpy).not.toHaveBeenCalled();
   });
@@ -733,17 +724,17 @@ describe("runtime web tools resolution", () => {
           web: {
             search: {
               enabled: false,
-              provider: "gemini",
+              provider: "beta",
             },
           },
         },
         plugins: {
           entries: {
-            google: {
+            "beta-plugin": {
               enabled: true,
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "GEMINI_PROVIDER_REF" },
+                  apiKey: { source: "env", provider: "default", id: "BETA_PROVIDER_REF" },
                 },
               },
             },
@@ -752,13 +743,13 @@ describe("runtime web tools resolution", () => {
       }),
     });
 
-    expect(metadata.search.providerConfigured).toBe("gemini");
+    expect(metadata.search.providerConfigured).toBe("beta");
     expect(metadata.search.providerSource).toBe("configured");
     expect(context.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "SECRETS_REF_IGNORED_INACTIVE_SURFACE",
-          path: "plugins.entries.google.config.webSearch.apiKey",
+          path: "plugins.entries.beta-plugin.config.webSearch.apiKey",
         }),
       ]),
     );

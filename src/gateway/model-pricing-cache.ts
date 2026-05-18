@@ -9,7 +9,6 @@ import {
 } from "../agents/model-selection.js";
 import type { CacheGovernanceDescriptor } from "../cache/governance-types.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { resolvePluginWebSearchConfig } from "../config/legacy-web-search.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   clearGatewayModelPricingCacheState,
@@ -284,27 +283,6 @@ export function collectConfiguredModelPricingRefs(config: CrawClawConfig): Model
   for (const mapping of config.hooks?.mappings ?? []) {
     addResolvedModelRef({ raw: mapping.model, aliasIndex, refs });
   }
-
-  addResolvedModelRef({
-    raw: resolvePluginWebSearchConfig(config, "google")?.model as string | undefined,
-    aliasIndex,
-    refs,
-  });
-  addResolvedModelRef({
-    raw: resolvePluginWebSearchConfig(config, "xai")?.model as string | undefined,
-    aliasIndex,
-    refs,
-  });
-  addResolvedModelRef({
-    raw: resolvePluginWebSearchConfig(config, "moonshot")?.model as string | undefined,
-    aliasIndex,
-    refs,
-  });
-  addResolvedModelRef({
-    raw: resolvePluginWebSearchConfig(config, "perplexity")?.model as string | undefined,
-    aliasIndex,
-    refs,
-  });
 
   for (const entry of config.tools?.media?.models ?? []) {
     addProviderModelPair({ provider: entry.provider, model: entry.model, refs });

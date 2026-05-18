@@ -19,7 +19,6 @@ export type RuntimeWebSearchMetadata = {
   providerSource: "configured" | "auto-detect" | "none";
   selectedProvider?: string;
   selectedProviderKeySource?: "config" | "secretRef" | "env" | "missing";
-  perplexityTransport?: "search_api" | "chat_completions";
   diagnostics: RuntimeWebDiagnostic[];
 };
 

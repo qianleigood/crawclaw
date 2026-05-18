@@ -4,11 +4,9 @@ import {
   GroupChatSchema,
   HumanDelaySchema,
   IdentitySchema,
-  SecretInputSchema,
   ToolsLinksSchema,
   ToolsMediaSchema,
 } from "./zod-schema.core.js";
-import { sensitive } from "./zod-schema.sensitive.js";
 
 export const HeartbeatSchema = z
   .object({
@@ -84,7 +82,6 @@ export const ToolsWebSearchSchema = z
     maxResults: z.number().int().positive().optional(),
     timeoutSeconds: z.number().int().positive().optional(),
     cacheTtlMinutes: z.number().nonnegative().optional(),
-    apiKey: SecretInputSchema.optional().register(sensitive),
     openaiCodex: z
       .object({
         enabled: z.boolean().optional(),

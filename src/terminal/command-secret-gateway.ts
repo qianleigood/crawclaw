@@ -56,8 +56,8 @@ type GatewaySecretsResolveResult = {
   inactiveRefPaths?: string[];
 };
 
-const WEB_RUNTIME_SECRET_TARGET_ID_PREFIXES = ["tools.web.search", "plugins.entries."] as const;
-const WEB_RUNTIME_SECRET_PATH_PREFIXES = ["tools.web.search.", "plugins.entries."] as const;
+const WEB_RUNTIME_SECRET_TARGET_ID_PREFIXES = ["plugins.entries."] as const;
+const WEB_RUNTIME_SECRET_PATH_PREFIXES = ["plugins.entries."] as const;
 
 function pluginIdFromRuntimeWebPath(path: string): string | undefined {
   const match = /^plugins\.entries\.([^.]+)\.config\.(webSearch|webFetch)\.apiKey$/.exec(path);
@@ -102,10 +102,6 @@ function classifyRuntimeWebTargetPathState(params: {
   config: CrawClawConfig;
   path: string;
 }): "active" | "inactive" | "unknown" {
-  if (params.path === "tools.web.search.apiKey") {
-    return params.config.tools?.web?.search?.enabled !== false ? "active" : "inactive";
-  }
-
   const pluginId = pluginIdFromRuntimeWebPath(params.path);
   if (pluginId) {
     if (params.path.endsWith(".config.webFetch.apiKey")) {
@@ -134,35 +130,13 @@ function classifyRuntimeWebTargetPathState(params: {
     return resolveBundledWebSearchPluginId(configuredProvider) === pluginId ? "active" : "inactive";
   }
 
-  const match = /^tools\.web\.search\.([^.]+)\.apiKey$/.exec(params.path);
-  if (!match) {
-    return "unknown";
-  }
-
-  const search = params.config.tools?.web?.search;
-  if (search?.enabled === false) {
-    return "inactive";
-  }
-
-  const configuredProvider =
-    typeof search?.provider === "string" ? search.provider.trim().toLowerCase() : "";
-  if (!configuredProvider) {
-    return "active";
-  }
-
-  return configuredProvider === match[1] ? "active" : "inactive";
+  return "unknown";
 }
 
 function describeInactiveRuntimeWebTargetPath(params: {
   config: CrawClawConfig;
   path: string;
 }): string | undefined {
-  if (params.path === "tools.web.search.apiKey") {
-    return params.config.tools?.web?.search?.enabled === false
-      ? "tools.web.search is disabled."
-      : undefined;
-  }
-
   const pluginId = pluginIdFromRuntimeWebPath(params.path);
   if (pluginId) {
     if (params.path.endsWith(".config.webFetch.apiKey")) {

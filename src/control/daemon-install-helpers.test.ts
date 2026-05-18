@@ -379,7 +379,7 @@ describe("buildGatewayInstallPlan — dotenv merge", () => {
   });
 
   it("merges .env file vars into the install plan", async () => {
-    await writeStateDirDotEnv("BRAVE_API_KEY=BSA-from-env\nOPENROUTER_API_KEY=or-key\n", {
+    await writeStateDirDotEnv("SEARXNG_BASE_URL=http://127.0.0.1:3210\nOPENAI_API_KEY=oa-key\n", {
       stateDir: path.join(tmpDir, ".crawclaw"),
     });
     mockGatewayPlanFixture({ serviceEnvironment: { CRAWCLAW_PORT: "3000" } });
@@ -389,8 +389,8 @@ describe("buildGatewayInstallPlan — dotenv merge", () => {
       port: 3000,
     });
 
-    expect(plan.environment.BRAVE_API_KEY).toBe("BSA-from-env");
-    expect(plan.environment.OPENROUTER_API_KEY).toBe("or-key");
+    expect(plan.environment.SEARXNG_BASE_URL).toBe("http://127.0.0.1:3210");
+    expect(plan.environment.OPENAI_API_KEY).toBe("oa-key");
     expect(plan.environment.CRAWCLAW_PORT).toBe("3000");
   });
 

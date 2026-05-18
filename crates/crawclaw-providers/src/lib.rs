@@ -486,10 +486,6 @@ pub const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
         env_vars: &["ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"],
     },
     ProviderAuthEnvVars {
-        provider: "brave",
-        env_vars: &["BRAVE_API_KEY"],
-    },
-    ProviderAuthEnvVars {
         provider: "byteplus",
         env_vars: &["BYTEPLUS_API_KEY"],
     },
@@ -504,10 +500,6 @@ pub const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
     ProviderAuthEnvVars {
         provider: "deepseek",
         env_vars: &["DEEPSEEK_API_KEY"],
-    },
-    ProviderAuthEnvVars {
-        provider: "exa",
-        env_vars: &["EXA_API_KEY"],
     },
     ProviderAuthEnvVars {
         provider: "fal",
@@ -588,10 +580,6 @@ pub const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
     ProviderAuthEnvVars {
         provider: "openrouter",
         env_vars: &["OPENROUTER_API_KEY"],
-    },
-    ProviderAuthEnvVars {
-        provider: "perplexity",
-        env_vars: &["PERPLEXITY_API_KEY", "OPENROUTER_API_KEY"],
     },
     ProviderAuthEnvVars {
         provider: "qianfan",

@@ -87,8 +87,8 @@ For a high-level overview, see [Desktop onboarding](/start/wizard).
     - DM security: default is pairing. First DM sends a code; approve via CrawClaw Desktop or the local Gateway API or use allowlists.
   </Step>
   <Step title="Web search">
-    - Pick a provider: Perplexity, Brave, Gemini, Grok, or Kimi (or skip).
-    - Paste your API key (QuickStart auto-detects keys from env vars or existing config).
+    - Enable the bundled managed SearXNG provider or skip.
+    - No provider API key is required for the default desktop path.
     - Skip with `--skip-search`.
     - Configure later: CrawClaw Desktop or the local Gateway API.
   </Step>

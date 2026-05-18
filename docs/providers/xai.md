@@ -28,8 +28,6 @@ CrawClaw ships a bundled `xai` provider plugin for Grok models.
 ```
 
 CrawClaw now uses the xAI Responses API as the bundled xAI transport.
-If you store an xAI key under `plugins.entries.xai.config.webSearch.apiKey`,
-the bundled xAI model provider now reuses that key as a fallback too.
 
 ## Current bundled model catalog
 

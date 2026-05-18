@@ -86,14 +86,6 @@ export function buildWebSearchProviderConfig(params: {
   if (params.enabled !== undefined) {
     search.enabled = params.enabled;
   }
-  const pluginId =
-    params.provider === "gemini"
-      ? "google"
-      : params.provider === "grok"
-        ? "xai"
-        : params.provider === "kimi"
-          ? "moonshot"
-          : params.provider;
   return {
     tools: {
       web: {
@@ -104,7 +96,7 @@ export function buildWebSearchProviderConfig(params: {
       ? {
           plugins: {
             entries: {
-              [pluginId]: {
+              [params.provider]: {
                 config: {
                   webSearch: params.providerConfig,
                 },

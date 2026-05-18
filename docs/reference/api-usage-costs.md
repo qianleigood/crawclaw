@@ -36,8 +36,8 @@ See [Token use & costs](/reference/token-use) for details and examples.
 CrawClaw can pick up credentials from:
 
 - **Auth profiles** (per-agent, stored in `auth-profiles.json`).
-- **Environment variables** (e.g. `OPENAI_API_KEY`, `BRAVE_API_KEY`).
-- **Config** (`models.providers.*.apiKey`, `tools.web.search.*`,
+- **Environment variables** (e.g. `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`).
+- **Config** (`models.providers.*.apiKey`, `plugins.entries.*.config.*`,
   `talk.apiKey`).
 - **Skills** (`skills.entries.<name>.apiKey`) which may export keys to the skill process env.
 
@@ -71,22 +71,11 @@ See [Memory](/concepts/memory).
 
 ### 4) Web search tool
 
-`web_search` uses API keys and may incur usage charges depending on your provider:
+`web_search` uses the bundled managed SearXNG path by default and does not need
+a provider API key. Native provider web search can still consume model-provider
+quota when you explicitly enable the provider-native Codex web search mode.
 
-- **Brave Search API**: `BRAVE_API_KEY` or `plugins.entries.brave.config.webSearch.apiKey`
-- **Gemini (Google Search)**: `GEMINI_API_KEY` or `plugins.entries.google.config.webSearch.apiKey`
-- **Grok (xAI)**: `XAI_API_KEY` or `plugins.entries.xai.config.webSearch.apiKey`
-- **Kimi (Moonshot)**: `KIMI_API_KEY`, `MOONSHOT_API_KEY`, or `plugins.entries.moonshot.config.webSearch.apiKey`
-- **Perplexity Search API**: `PERPLEXITY_API_KEY`, `OPENROUTER_API_KEY`, or `plugins.entries.perplexity.config.webSearch.apiKey`
-
-Legacy `tools.web.search.*` provider paths still load through the temporary compatibility shim, but they are no longer the recommended config surface.
-
-**Brave Search free credit:** Each Brave plan includes \$5/month in renewing
-free credit. The Search plan costs \$5 per 1,000 requests, so the credit covers
-1,000 requests/month at no charge. Set your usage limit in the Brave dashboard
-to avoid unexpected charges.
-
-See [Web tools](/tools/web).
+See [Web Search](/tools/web).
 
 ### 5) Web fetch tool
 

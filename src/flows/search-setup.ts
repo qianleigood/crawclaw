@@ -226,15 +226,8 @@ function providerIsReady(
 }
 
 function rawKeyValue(config: CrawClawConfig, provider: SearchProvider): unknown {
-  const search = config.tools?.web?.search;
   const entry = resolveSearchProviderEntry(config, provider);
-  const configuredValue = entry?.getConfiguredCredentialValue?.(config);
-  return (
-    configuredValue ??
-    (entry?.id === "brave"
-      ? entry.getCredentialValue(search as Record<string, unknown> | undefined)
-      : undefined)
-  );
+  return entry?.getConfiguredCredentialValue?.(config);
 }
 
 export function resolveExistingKey(
@@ -285,9 +278,6 @@ export function applySearchKey(
     return config;
   }
   const search: MutableSearchConfig = { ...config.tools?.web?.search, provider, enabled: true };
-  if (!providerEntry.setConfiguredCredentialValue) {
-    providerEntry.setCredentialValue(search, key);
-  }
   const nextBase: CrawClawConfig = {
     ...config,
     tools: {

@@ -1316,25 +1316,21 @@ for usage/billing and raise limits as needed.
   </Accordion>
 
   <Accordion title="How do I enable web search (and web fetch)?">
-    `web_fetch` works without an API key. `web_search` requires a key for your
-    selected provider (Brave, Gemini, Grok, Kimi, or Perplexity).
-    **Recommended:** run CrawClaw Desktop or the local Gateway API and choose a provider.
-    Environment alternatives:
-
-    - Brave: `BRAVE_API_KEY`
-    - Gemini: `GEMINI_API_KEY`
-    - Grok: `XAI_API_KEY`
-    - Kimi: `KIMI_API_KEY` or `MOONSHOT_API_KEY`
-    - Perplexity: `PERPLEXITY_API_KEY` or `OPENROUTER_API_KEY`
+    `web_fetch` works without an API key. `web_search` uses the bundled managed
+    SearXNG path and also works without a provider API key. **Recommended:** run
+    CrawClaw Desktop or the local Gateway API and enable the bundled provider.
 
     ```json5
     {
       plugins: {
         entries: {
-          brave: {
+          searxng: {
+            enabled: true,
             config: {
               webSearch: {
-                apiKey: "BRAVE_API_KEY_HERE",
+                autoStart: true,
+                host: "127.0.0.1",
+                port: 3210,
               },
             },
           },
@@ -1344,7 +1340,7 @@ for usage/billing and raise limits as needed.
         web: {
           search: {
             enabled: true,
-            provider: "brave",
+            provider: "searxng",
             maxResults: 5,
           },
           fetch: {
@@ -1355,8 +1351,8 @@ for usage/billing and raise limits as needed.
     }
     ```
 
-    Provider-specific web-search config now lives under `plugins.entries.<plugin>.config.webSearch.*`.
-    Legacy `tools.web.search.*` provider paths still load temporarily for compatibility, but they should not be used for new configs.
+    SearXNG-specific web-search config lives under
+    `plugins.entries.searxng.config.webSearch.*`.
 
     Notes:
 

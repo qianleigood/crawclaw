@@ -13,6 +13,12 @@ import {
 import { withEnvOverride, withTempHome, writeStateDirDotEnv } from "./test-helpers.js";
 import type { CrawClawConfig } from "./types.js";
 
+function readSearxngBaseUrl(config: CrawClawConfig): unknown {
+  return (
+    config.plugins?.entries?.searxng?.config as { webSearch?: { baseUrl?: unknown } } | undefined
+  )?.webSearch?.baseUrl;
+}
+
 describe("config env vars", () => {
   it("applies env vars from env block when missing", async () => {
     await withEnvOverride({ OPENROUTER_API_KEY: undefined }, async () => {
@@ -103,19 +109,27 @@ describe("config env vars", () => {
 
   it("loads ${VAR} substitutions from ~/.crawclaw/.env on repeated runtime loads", async () => {
     await withTempHome(async (_home) => {
-      await withEnvOverride({ BRAVE_API_KEY: undefined }, async () => {
+      await withEnvOverride({ SEARXNG_BASE_URL: undefined }, async () => {
         const stateDir = process.env.CRAWCLAW_STATE_DIR?.trim();
         if (!stateDir) {
           throw new Error("Expected CRAWCLAW_STATE_DIR to be set by withTempHome");
         }
         await fs.mkdir(stateDir, { recursive: true });
-        await fs.writeFile(path.join(stateDir, ".env"), "BRAVE_API_KEY=from-dotenv\n", "utf-8");
+        await fs.writeFile(
+          path.join(stateDir, ".env"),
+          "SEARXNG_BASE_URL=http://127.0.0.1:3210\n",
+          "utf-8",
+        );
 
         const config: CrawClawConfig = {
-          tools: {
-            web: {
-              search: {
-                apiKey: "${BRAVE_API_KEY}",
+          plugins: {
+            entries: {
+              searxng: {
+                config: {
+                  webSearch: {
+                    baseUrl: "${SEARXNG_BASE_URL}",
+                  },
+                },
               },
             },
           },
@@ -123,23 +137,26 @@ describe("config env vars", () => {
 
         loadDotEnv({ quiet: true });
         const first = resolveConfigEnvVars(config, process.env) as CrawClawConfig;
-        expect(first.tools?.web?.search?.apiKey).toBe("from-dotenv");
+        expect(readSearxngBaseUrl(first)).toBe("http://127.0.0.1:3210");
 
-        delete process.env.BRAVE_API_KEY;
+        delete process.env.SEARXNG_BASE_URL;
         loadDotEnv({ quiet: true });
         const second = resolveConfigEnvVars(config, process.env) as CrawClawConfig;
-        expect(second.tools?.web?.search?.apiKey).toBe("from-dotenv");
+        expect(readSearxngBaseUrl(second)).toBe("http://127.0.0.1:3210");
       });
     });
   });
 
   it("reads key-value pairs from the state-dir .env file", async () => {
     await withTempHome(async (_home) => {
-      await writeStateDirDotEnv("BRAVE_API_KEY=BSA-test-key\nQQBOT_BOT_TOKEN=qqbot-tok\n", {
-        env: process.env,
-      });
+      await writeStateDirDotEnv(
+        "SEARXNG_BASE_URL=http://127.0.0.1:3210\nQQBOT_BOT_TOKEN=qqbot-tok\n",
+        {
+          env: process.env,
+        },
+      );
       const vars = readStateDirDotEnvVars(process.env);
-      expect(vars.BRAVE_API_KEY).toBe("BSA-test-key");
+      expect(vars.SEARXNG_BASE_URL).toBe("http://127.0.0.1:3210");
       expect(vars.QQBOT_BOT_TOKEN).toBe("qqbot-tok");
     });
   });

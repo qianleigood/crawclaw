@@ -6,7 +6,7 @@ import type { AuthProfileStore } from "../agents/auth-profiles.js";
 import type { CrawClawConfig } from "../config/config.js";
 import type { PluginWebSearchProviderEntry } from "../plugins/types.js";
 
-type WebProviderUnderTest = "brave" | "gemini" | "grok" | "kimi" | "perplexity";
+type WebProviderUnderTest = "alpha" | "beta" | "gamma" | "delta" | "epsilon";
 
 const { resolveBundledPluginWebSearchProvidersMock, resolvePluginWebSearchProvidersMock } =
   vi.hoisted(() => ({
@@ -53,7 +53,7 @@ function createTestProvider(params: {
     getCredentialValue: readSearchConfigKey,
     setCredentialValue: (searchConfigTarget, value) => {
       const providerConfig =
-        params.id === "brave"
+        params.id === "alpha"
           ? searchConfigTarget
           : ((searchConfigTarget[params.id] ??= {}) as { apiKey?: unknown });
       providerConfig.apiKey = value;
@@ -69,22 +69,16 @@ function createTestProvider(params: {
       const webSearch = (config.webSearch ??= {}) as { apiKey?: unknown };
       webSearch.apiKey = value;
     },
-    resolveRuntimeMetadata:
-      params.id === "perplexity"
-        ? () => ({
-            perplexityTransport: "search_api" as const,
-          })
-        : undefined,
   };
 }
 
 function buildTestWebSearchProviders(): PluginWebSearchProviderEntry[] {
   return [
-    createTestProvider({ id: "brave", pluginId: "brave", order: 10 }),
-    createTestProvider({ id: "gemini", pluginId: "google", order: 20 }),
-    createTestProvider({ id: "grok", pluginId: "xai", order: 30 }),
-    createTestProvider({ id: "kimi", pluginId: "moonshot", order: 40 }),
-    createTestProvider({ id: "perplexity", pluginId: "perplexity", order: 50 }),
+    createTestProvider({ id: "alpha", pluginId: "alpha", order: 10 }),
+    createTestProvider({ id: "beta", pluginId: "beta-plugin", order: 20 }),
+    createTestProvider({ id: "gamma", pluginId: "gamma-plugin", order: 30 }),
+    createTestProvider({ id: "delta", pluginId: "delta-plugin", order: 40 }),
+    createTestProvider({ id: "epsilon", pluginId: "epsilon", order: 50 }),
   ];
 }
 
@@ -184,13 +178,6 @@ describe("secrets runtime snapshot", () => {
           password: { source: "env", provider: "default", id: "REMOTE_GATEWAY_PASSWORD" },
         },
       },
-      tools: {
-        web: {
-          search: {
-            apiKey: { source: "env", provider: "default", id: "WEB_SEARCH_API_KEY" },
-          },
-        },
-      },
     });
 
     const snapshot = await prepareSecretsRuntimeSnapshot({
@@ -205,7 +192,6 @@ describe("secrets runtime snapshot", () => {
         TALK_PROVIDER_API_KEY: "talk-provider-ref-key", // pragma: allowlist secret
         REMOTE_GATEWAY_TOKEN: "remote-token-ref",
         REMOTE_GATEWAY_PASSWORD: "remote-password-ref", // pragma: allowlist secret
-        WEB_SEARCH_API_KEY: "web-search-ref", // pragma: allowlist secret
       },
       agentDirs: ["/tmp/crawclaw-agent-main"],
       loadAuthStore: () =>
@@ -241,7 +227,6 @@ describe("secrets runtime snapshot", () => {
     );
     expect(snapshot.runtimeConfig.gateway?.remote?.token).toBe("remote-token-ref");
     expect(snapshot.runtimeConfig.gateway?.remote?.password).toBe("remote-password-ref");
-    expect(snapshot.runtimeConfig.tools?.web?.search?.apiKey).toBe("web-search-ref");
     expect(snapshot.authStores[0]?.store.profiles["openai:default"]).toMatchObject({
       type: "api_key",
       key: "sk-env-openai",
@@ -383,17 +368,23 @@ describe("secrets runtime snapshot", () => {
           web: {
             search: {
               enabled: true,
-              provider: "brave",
-              apiKey: { source: "env", provider: "default", id: "WEB_SEARCH_API_KEY" },
+              provider: "alpha",
             },
           },
         },
         plugins: {
           entries: {
-            xai: {
+            alpha: {
               config: {
                 webSearch: {
-                  apiKey: { source: "env", provider: "default", id: "MISSING_GROK_API_KEY" },
+                  apiKey: { source: "env", provider: "default", id: "WEB_SEARCH_ALPHA_API_KEY" },
+                },
+              },
+            },
+            "gamma-plugin": {
+              config: {
+                webSearch: {
+                  apiKey: { source: "env", provider: "default", id: "MISSING_GAMMA_API_KEY" },
                 },
               },
             },
@@ -401,26 +392,28 @@ describe("secrets runtime snapshot", () => {
         },
       }),
       env: {
-        WEB_SEARCH_API_KEY: "web-search-ref", // pragma: allowlist secret
+        WEB_SEARCH_ALPHA_API_KEY: "web-search-alpha-ref", // pragma: allowlist secret
       },
       agentDirs: ["/tmp/crawclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.runtimeConfig.tools?.web?.search?.apiKey).toBe("web-search-ref");
-    const xaiWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.xai?.config as
+    const alphaWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.alpha?.config as
       | { webSearch?: { apiKey?: unknown } }
       | undefined;
-    expect(xaiWebSearchConfig?.webSearch?.apiKey).toEqual({
+    expect(alphaWebSearchConfig?.webSearch?.apiKey).toBe("web-search-alpha-ref");
+    const gammaPluginWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.["gamma-plugin"]
+      ?.config as { webSearch?: { apiKey?: unknown } } | undefined;
+    expect(gammaPluginWebSearchConfig?.webSearch?.apiKey).toEqual({
       source: "env",
       provider: "default",
-      id: "MISSING_GROK_API_KEY",
+      id: "MISSING_GAMMA_API_KEY",
     });
     expect(snapshot.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "SECRETS_REF_IGNORED_INACTIVE_SURFACE",
-          path: "plugins.entries.xai.config.webSearch.apiKey",
+          path: "plugins.entries.gamma-plugin.config.webSearch.apiKey",
         }),
       ]),
     );
@@ -433,19 +426,25 @@ describe("secrets runtime snapshot", () => {
           web: {
             search: {
               enabled: true,
-              apiKey: { source: "env", provider: "default", id: "WEB_SEARCH_API_KEY" },
             },
           },
         },
         plugins: {
           entries: {
-            google: {
+            alpha: {
+              config: {
+                webSearch: {
+                  apiKey: { source: "env", provider: "default", id: "WEB_SEARCH_ALPHA_API_KEY" },
+                },
+              },
+            },
+            "beta-plugin": {
               config: {
                 webSearch: {
                   apiKey: {
                     source: "env",
                     provider: "default",
-                    id: "WEB_SEARCH_GEMINI_API_KEY",
+                    id: "WEB_SEARCH_BETA_API_KEY",
                   },
                 },
               },
@@ -454,28 +453,30 @@ describe("secrets runtime snapshot", () => {
         },
       }),
       env: {
-        WEB_SEARCH_API_KEY: "web-search-ref", // pragma: allowlist secret
-        WEB_SEARCH_GEMINI_API_KEY: "web-search-gemini-ref", // pragma: allowlist secret
+        WEB_SEARCH_ALPHA_API_KEY: "web-search-alpha-ref", // pragma: allowlist secret
+        WEB_SEARCH_BETA_API_KEY: "web-search-beta-ref", // pragma: allowlist secret
       },
       agentDirs: ["/tmp/crawclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
 
-    expect(snapshot.runtimeConfig.tools?.web?.search?.apiKey).toBe("web-search-ref");
-    const googleWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.google?.config as
+    const alphaWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.alpha?.config as
       | { webSearch?: { apiKey?: unknown } }
       | undefined;
-    expect(googleWebSearchConfig?.webSearch?.apiKey).toEqual({
+    expect(alphaWebSearchConfig?.webSearch?.apiKey).toBe("web-search-alpha-ref");
+    const betaPluginWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.["beta-plugin"]
+      ?.config as { webSearch?: { apiKey?: unknown } } | undefined;
+    expect(betaPluginWebSearchConfig?.webSearch?.apiKey).toEqual({
       source: "env",
       provider: "default",
-      id: "WEB_SEARCH_GEMINI_API_KEY",
+      id: "WEB_SEARCH_BETA_API_KEY",
     });
-    expect(snapshot.webTools.search.selectedProvider).toBe("brave");
+    expect(snapshot.webTools.search.selectedProvider).toBe("alpha");
     expect(snapshot.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: "SECRETS_REF_IGNORED_INACTIVE_SURFACE",
-          path: "plugins.entries.google.config.webSearch.apiKey",
+          path: "plugins.entries.beta-plugin.config.webSearch.apiKey",
         }),
       ]),
     );
@@ -488,20 +489,20 @@ describe("secrets runtime snapshot", () => {
           web: {
             search: {
               enabled: true,
-              provider: "gemini",
+              provider: "beta",
             },
           },
         },
         plugins: {
           entries: {
-            google: {
+            "beta-plugin": {
               config: {
                 webSearch: {
                   enabled: false,
                   apiKey: {
                     source: "env",
                     provider: "default",
-                    id: "WEB_SEARCH_GEMINI_API_KEY",
+                    id: "WEB_SEARCH_BETA_API_KEY",
                   },
                 },
               },
@@ -510,17 +511,16 @@ describe("secrets runtime snapshot", () => {
         },
       }),
       env: {
-        WEB_SEARCH_GEMINI_API_KEY: "web-search-gemini-ref", // pragma: allowlist secret
+        WEB_SEARCH_BETA_API_KEY: "web-search-beta-ref", // pragma: allowlist secret
       },
       agentDirs: ["/tmp/crawclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
     });
-    const resolvedGoogleWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.google?.config as
-      | { webSearch?: { apiKey?: unknown } }
-      | undefined;
-    expect(resolvedGoogleWebSearchConfig?.webSearch?.apiKey).toBe("web-search-gemini-ref");
+    const resolvedBetaWebSearchConfig = snapshot.runtimeConfig.plugins?.entries?.["beta-plugin"]
+      ?.config as { webSearch?: { apiKey?: unknown } } | undefined;
+    expect(resolvedBetaWebSearchConfig?.webSearch?.apiKey).toBe("web-search-beta-ref");
     expect(snapshot.warnings.map((warning) => warning.path)).not.toContain(
-      "plugins.entries.google.config.webSearch.apiKey",
+      "plugins.entries.beta-plugin.config.webSearch.apiKey",
     );
   });
 
@@ -532,19 +532,19 @@ describe("secrets runtime snapshot", () => {
             web: {
               search: {
                 enabled: true,
-                provider: "gemini",
+                provider: "beta",
               },
             },
           },
           plugins: {
             entries: {
-              google: {
+              "beta-plugin": {
                 config: {
                   webSearch: {
                     apiKey: {
                       source: "env",
                       provider: "default",
-                      id: "MISSING_WEB_SEARCH_GEMINI_API_KEY",
+                      id: "MISSING_WEB_SEARCH_BETA_API_KEY",
                     },
                   },
                 },
@@ -565,19 +565,19 @@ describe("secrets runtime snapshot", () => {
         tools: {
           web: {
             search: {
-              provider: "gemini",
+              provider: "beta",
             },
           },
         },
         plugins: {
           entries: {
-            google: {
+            "beta-plugin": {
               config: {
                 webSearch: {
                   apiKey: {
                     source: "env",
                     provider: "default",
-                    id: "WEB_SEARCH_GEMINI_API_KEY",
+                    id: "WEB_SEARCH_BETA_API_KEY",
                   },
                 },
               },
@@ -586,7 +586,7 @@ describe("secrets runtime snapshot", () => {
         },
       }),
       env: {
-        WEB_SEARCH_GEMINI_API_KEY: "web-search-gemini-ref", // pragma: allowlist secret
+        WEB_SEARCH_BETA_API_KEY: "web-search-beta-ref", // pragma: allowlist secret
       },
       agentDirs: ["/tmp/crawclaw-agent-main"],
       loadAuthStore: () => ({ version: 1, profiles: {} }),
@@ -595,18 +595,18 @@ describe("secrets runtime snapshot", () => {
     activateSecretsRuntimeSnapshot(snapshot);
 
     const first = getActiveRuntimeWebToolsMetadata();
-    expect(first?.search.providerConfigured).toBe("gemini");
-    expect(first?.search.selectedProvider).toBe("gemini");
+    expect(first?.search.providerConfigured).toBe("beta");
+    expect(first?.search.selectedProvider).toBe("beta");
     expect(first?.search.selectedProviderKeySource).toBe("secretRef");
     if (!first) {
       throw new Error("missing runtime web tools metadata");
     }
-    first.search.providerConfigured = "brave";
-    first.search.selectedProvider = "brave";
+    first.search.providerConfigured = "alpha";
+    first.search.selectedProvider = "alpha";
 
     const second = getActiveRuntimeWebToolsMetadata();
-    expect(second?.search.providerConfigured).toBe("gemini");
-    expect(second?.search.selectedProvider).toBe("gemini");
+    expect(second?.search.providerConfigured).toBe("beta");
+    expect(second?.search.selectedProvider).toBe("beta");
   });
 
   it("resolves file refs via configured file provider", async () => {
@@ -724,13 +724,13 @@ describe("secrets runtime snapshot", () => {
       },
       plugins: {
         entries: {
-          google: {
+          "beta-plugin": {
             config: {
               webSearch: {
                 apiKey: {
                   source: "env",
                   provider: "default",
-                  id: "DISABLED_WEB_SEARCH_GEMINI_API_KEY",
+                  id: "DISABLED_WEB_SEARCH_BETA_API_KEY",
                 },
               },
             },
@@ -753,11 +753,11 @@ describe("secrets runtime snapshot", () => {
     expect(snapshot.warnings.map((warning) => warning.path)).toEqual(
       expect.arrayContaining([
         "gateway.auth.password",
-        "plugins.entries.brave.config.webSearch.apiKey",
-        "plugins.entries.google.config.webSearch.apiKey",
-        "plugins.entries.xai.config.webSearch.apiKey",
-        "plugins.entries.moonshot.config.webSearch.apiKey",
-        "plugins.entries.perplexity.config.webSearch.apiKey",
+        "plugins.entries.alpha.config.webSearch.apiKey",
+        "plugins.entries.beta-plugin.config.webSearch.apiKey",
+        "plugins.entries.gamma-plugin.config.webSearch.apiKey",
+        "plugins.entries.delta-plugin.config.webSearch.apiKey",
+        "plugins.entries.epsilon.config.webSearch.apiKey",
       ]),
     );
   });
@@ -1278,89 +1278,5 @@ describe("secrets runtime snapshot", () => {
       }
       await fs.rm(root, { recursive: true, force: true });
     }
-  });
-
-  it("preserves removed legacy x_search SecretRefs without runtime migration", async () => {
-    const snapshot = await prepareSecretsRuntimeSnapshot({
-      config: asConfig({
-        tools: {
-          web: {
-            x_search: {
-              apiKey: { source: "env", provider: "default", id: "X_SEARCH_KEY_REF" },
-              enabled: true,
-              model: "grok-4-1-fast",
-            },
-          },
-        },
-      }),
-      env: {
-        X_SEARCH_KEY_REF: "xai-runtime-key",
-      },
-      agentDirs: ["/tmp/crawclaw-agent-main"],
-      loadAuthStore: () => ({ version: 1, profiles: {} }),
-    });
-
-    expect(
-      (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
-    ).toEqual({
-      apiKey: { source: "env", provider: "default", id: "X_SEARCH_KEY_REF" },
-      enabled: true,
-      model: "grok-4-1-fast",
-    });
-    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toBeUndefined();
-  });
-
-  it("preserves removed legacy x_search auth without re-enabling xai", async () => {
-    const snapshot = await prepareSecretsRuntimeSnapshot({
-      config: asConfig({
-        tools: {
-          web: {
-            x_search: {
-              apiKey: { source: "env", provider: "default", id: "X_SEARCH_KEY_REF" },
-              enabled: true,
-            },
-          },
-        },
-      }),
-      env: {
-        X_SEARCH_KEY_REF: "xai-runtime-key-invalid-config",
-      },
-      agentDirs: ["/tmp/crawclaw-agent-main"],
-      loadAuthStore: () => ({ version: 1, profiles: {} }),
-    });
-
-    expect(
-      (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
-    ).toEqual({
-      apiKey: { source: "env", provider: "default", id: "X_SEARCH_KEY_REF" },
-      enabled: true,
-    });
-    expect(snapshot.runtimeConfig.plugins?.entries?.xai?.config).toBeUndefined();
-  });
-
-  it("does not force-enable xai at runtime for knob-only x_search config", async () => {
-    const snapshot = await prepareSecretsRuntimeSnapshot({
-      config: asConfig({
-        tools: {
-          web: {
-            x_search: {
-              enabled: true,
-              model: "grok-4-1-fast",
-            },
-          },
-        },
-      }),
-      env: {},
-      agentDirs: ["/tmp/crawclaw-agent-main"],
-      loadAuthStore: () => ({ version: 1, profiles: {} }),
-    });
-
-    expect(
-      (snapshot.runtimeConfig.tools?.web as Record<string, unknown> | undefined)?.x_search,
-    ).toEqual({
-      enabled: true,
-      model: "grok-4-1-fast",
-    });
-    expect(snapshot.runtimeConfig.plugins?.entries?.xai).toBeUndefined();
   });
 });

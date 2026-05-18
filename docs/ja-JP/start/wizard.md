@@ -67,7 +67,7 @@ crawclaw agents add <name>
 </Note>
 
 <Tip>
-推奨：エージェントが `web_search` を使用できるように、Brave Search APIキーを設定してください（`web_fetch` はキーなしで動作します）。最も簡単な方法：`crawclaw configure --section web` を実行すると `plugins.entries.brave.config.webSearch.apiKey` に保存されます。旧 `tools.web.search.apiKey` パスは互換用に引き続き読み込まれますが、新しい設定では使用しないでください。ドキュメント：[Webツール](/tools/web)。
+推奨：エージェントが `web_search` を使用できるように、バンドルされた SearXNG provider を有効にしてください（`web_fetch` もキーなしで動作します）。最も簡単な方法：CrawClaw Desktop または local Gateway API で Web Search を有効にします。ドキュメント：[Web Search](/tools/web)。
 </Tip>
 
 ## 関連ドキュメント

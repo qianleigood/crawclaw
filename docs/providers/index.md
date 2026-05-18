@@ -47,7 +47,6 @@ Looking for chat channel docs (Weixin/Feishu/community chat/Feishu/native channe
 - [OpenCode](/providers/opencode)
 - [OpenCode Go](/providers/opencode-go)
 - [OpenRouter](/providers/openrouter)
-- [Perplexity (web search)](/providers/perplexity-provider)
 - [Qianfan](/providers/qianfan)
 - [Qwen / Model Studio (Alibaba Cloud)](/providers/qwen_modelstudio)
 - [SGLang (local models)](/providers/sglang)

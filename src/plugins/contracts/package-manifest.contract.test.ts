@@ -4,7 +4,6 @@ type PackageManifestContractParams = Parameters<typeof describePackageManifestCo
 
 const packageManifestContractTests: PackageManifestContractParams[] = [
   { pluginId: "anthropic", minHostVersionBaseline: "2026.3.22" },
-  { pluginId: "brave", minHostVersionBaseline: "2026.3.22" },
   { pluginId: "deepseek", minHostVersionBaseline: "2026.3.22" },
   { pluginId: "ollama", minHostVersionBaseline: "2026.3.22" },
   { pluginId: "openai", minHostVersionBaseline: "2026.3.22" },

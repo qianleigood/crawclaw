@@ -1504,7 +1504,7 @@ export const ZH_CN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.049": "存储 env-backed reference，而不是明文",
   "cli.visible.050": "Token",
   "cli.visible.051": "可信代理 IP（逗号分隔）",
-  "cli.visible.052": "配置网页搜索（Perplexity/Brave）和 fetch",
+  "cli.visible.052": "配置网页搜索（SearXNG）和 fetch",
   "cli.visible.053": "Daemon",
   "cli.visible.054": "安装/启用工作区技能",
   "cli.visible.055": "安装/管理后台服务",

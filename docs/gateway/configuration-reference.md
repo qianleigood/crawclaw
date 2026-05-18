@@ -1560,7 +1560,7 @@ Settings can be defined globally in `tools.loopDetection` and overridden per-age
     web: {
       search: {
         enabled: true,
-        apiKey: "brave_api_key", // or BRAVE_API_KEY env
+        provider: "searxng",
         maxResults: 5,
         timeoutSeconds: 30,
         cacheTtlMinutes: 15,

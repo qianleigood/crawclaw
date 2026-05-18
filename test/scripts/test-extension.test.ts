@@ -48,17 +48,17 @@ describe("scripts/test-extension.mjs", () => {
 
   it("maps changed paths back to extension ids", () => {
     const extensionIds = detectChangedExtensionIds([
-      bundledPluginFile("brave", "package.json"),
+      bundledPluginFile("searxng", "package.json"),
       "src/not-a-plugin/file.ts",
     ]);
 
-    expect(extensionIds).toEqual(["brave"]);
+    expect(extensionIds).toEqual(["searxng"]);
   });
 
   it("lists available extension ids", () => {
     const extensionIds = listAvailableExtensionIds();
 
-    expect(extensionIds).toContain("brave");
+    expect(extensionIds).toContain("searxng");
     expect(extensionIds).not.toContain("ddingtalk");
     expect(extensionIds).toEqual(
       [...extensionIds].toSorted((left, right) => left.localeCompare(right)),

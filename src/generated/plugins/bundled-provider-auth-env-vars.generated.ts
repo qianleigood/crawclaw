@@ -2,12 +2,10 @@
 
 export const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
   anthropic: ["ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"],
-  brave: ["BRAVE_API_KEY"],
   byteplus: ["BYTEPLUS_API_KEY"],
   chutes: ["CHUTES_API_KEY", "CHUTES_OAUTH_TOKEN"],
   "cloudflare-ai-gateway": ["CLOUDFLARE_AI_GATEWAY_API_KEY"],
   deepseek: ["DEEPSEEK_API_KEY"],
-  exa: ["EXA_API_KEY"],
   fal: ["FAL_KEY"],
   "github-copilot": ["COPILOT_GITHUB_TOKEN", "GH_TOKEN", "GITHUB_TOKEN"],
   google: ["GEMINI_API_KEY", "GOOGLE_API_KEY"],
@@ -28,7 +26,6 @@ export const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
   opencode: ["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"],
   "opencode-go": ["OPENCODE_API_KEY", "OPENCODE_ZEN_API_KEY"],
   openrouter: ["OPENROUTER_API_KEY"],
-  perplexity: ["PERPLEXITY_API_KEY", "OPENROUTER_API_KEY"],
   qianfan: ["QIANFAN_API_KEY"],
   sglang: ["SGLANG_API_KEY"],
   synthetic: ["SYNTHETIC_API_KEY"],

@@ -125,7 +125,7 @@ describe("detectChangedScope", () => {
       runSkillsPython: false,
       runChangedSmoke: true,
     });
-    expect(detectChangedScope([bundledPluginFile("brave", "package.json")])).toEqual({
+    expect(detectChangedScope([bundledPluginFile("searxng", "package.json")])).toEqual({
       runNode: true,
       runWindows: true,
       runSkillsPython: false,

@@ -247,9 +247,7 @@ function setResolvedWebSearchApiKey(params: {
   const search = ensureObject(web, "search");
   if (params.provider.setConfiguredCredentialValue) {
     params.provider.setConfiguredCredentialValue(params.resolvedConfig, params.value);
-    if (params.provider.id !== "brave") {
-      return;
-    }
+    return;
   }
   params.provider.setCredentialValue(search, params.value);
 }

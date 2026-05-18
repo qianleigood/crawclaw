@@ -74,14 +74,12 @@ describe("plugins.entries.*.subagent", () => {
 });
 
 describe("web search provider config", () => {
-  it("accepts kimi provider and config", () => {
+  it("accepts searxng provider and config", () => {
     const res = validateConfigObject(
       buildWebSearchProviderConfig({
-        provider: "kimi",
+        provider: "searxng",
         providerConfig: {
-          apiKey: "test-key",
-          baseUrl: "https://api.moonshot.ai/v1",
-          model: "moonshot-v1-128k",
+          baseUrl: "http://127.0.0.1:3210",
         },
       }),
     );

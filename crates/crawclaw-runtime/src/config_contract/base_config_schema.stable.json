@@ -2821,72 +2821,6 @@
                     "type": "number",
                     "minimum": 0
                   },
-                  "apiKey": {
-                    "anyOf": [
-                      {
-                        "type": "string"
-                      },
-                      {
-                        "oneOf": [
-                          {
-                            "type": "object",
-                            "properties": {
-                              "source": {
-                                "type": "string",
-                                "const": "env"
-                              },
-                              "provider": {
-                                "type": "string",
-                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
-                              },
-                              "id": {
-                                "type": "string",
-                                "pattern": "^[A-Z][A-Z0-9_]{0,127}$"
-                              }
-                            },
-                            "required": ["source", "provider", "id"],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "source": {
-                                "type": "string",
-                                "const": "file"
-                              },
-                              "provider": {
-                                "type": "string",
-                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
-                              },
-                              "id": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["source", "provider", "id"],
-                            "additionalProperties": false
-                          },
-                          {
-                            "type": "object",
-                            "properties": {
-                              "source": {
-                                "type": "string",
-                                "const": "exec"
-                              },
-                              "provider": {
-                                "type": "string",
-                                "pattern": "^[a-z][a-z0-9_-]{0,63}$"
-                              },
-                              "id": {
-                                "type": "string"
-                              }
-                            },
-                            "required": ["source", "provider", "id"],
-                            "additionalProperties": false
-                          }
-                        ]
-                      }
-                    ]
-                  },
                   "openaiCodex": {
                     "type": "object",
                     "properties": {
@@ -9591,11 +9525,6 @@
       "help": "Approximate timezone sent to native Codex web search.",
       "tags": ["tools"]
     },
-    "tools.web.search.brave.mode": {
-      "label": "Brave Search Mode",
-      "help": "Brave Search mode: \"web\" (URL results) or \"llm-context\" (pre-extracted page content for LLM grounding).",
-      "tags": ["tools"]
-    },
     "tools.web.fetch.enabled": {
       "label": "Enable Web Fetch Tool",
       "help": "Enable the web_fetch tool (lightweight HTTP fetch).",
@@ -11720,10 +11649,6 @@
     "models.providers.*.headers.*": {
       "sensitive": true,
       "tags": ["security", "models"]
-    },
-    "tools.web.search.apiKey": {
-      "sensitive": true,
-      "tags": ["security", "auth", "tools"]
     },
     "workflow.n8n.apiKey": {
       "sensitive": true,

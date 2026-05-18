@@ -1588,7 +1588,7 @@ export const EN_CLI_TRANSLATIONS: CliTranslations = {
   "cli.visible.049": "Store an env-backed reference instead of plaintext",
   "cli.visible.050": "Token",
   "cli.visible.051": "Trusted proxy IPs (comma-separated)",
-  "cli.visible.052": "Configure web search (Perplexity/Brave) + fetch",
+  "cli.visible.052": "Configure web search (SearXNG) + fetch",
   "cli.visible.053": "Daemon",
   "cli.visible.054": "Install/enable workspace skills",
   "cli.visible.055": "Install/manage the background service",
