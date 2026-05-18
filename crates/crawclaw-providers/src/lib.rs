@@ -1242,6 +1242,18 @@ pub const OLLAMA_DEFAULT_CONTEXT_WINDOW: u32 = 128_000;
 pub const OLLAMA_DEFAULT_MAX_TOKENS: u32 = 8_192;
 pub const OLLAMA_DEFAULT_MODEL: &str = "glm-4.7-flash";
 pub const OLLAMA_DEFAULT_EMBEDDING_MODEL: &str = "nomic-embed-text";
+pub const OPENAI_DEFAULT_MODEL_REF: &str = "openai/gpt-5.4";
+pub const OPENAI_CODEX_DEFAULT_MODEL_REF: &str = "openai-codex/gpt-5.4";
+pub const OPENAI_DEFAULT_IMAGE_MODEL: &str = "gpt-image-1";
+pub const OPENAI_DEFAULT_TTS_MODEL: &str = "gpt-4o-mini-tts";
+pub const OPENAI_DEFAULT_TTS_VOICE: &str = "alloy";
+pub const OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL: &str = "gpt-4o-mini-transcribe";
+pub const OPENAI_DEFAULT_EMBEDDING_MODEL: &str = "text-embedding-3-small";
+pub const GOOGLE_GEMINI_DEFAULT_MODEL_REF: &str = "google/gemini-3.1-pro-preview";
+pub const OPENCODE_GO_DEFAULT_MODEL_REF: &str = "opencode-go/kimi-k2.5";
+pub const OPENCODE_ZEN_DEFAULT_MODEL_REF: &str = "opencode/claude-opus-4-6";
+pub const LEGACY_OPENCODE_ZEN_DEFAULT_MODEL_REFS: &[&str] =
+    &["opencode/claude-opus-4-5", "opencode-zen/claude-opus-4-5"];
 
 pub const ANTHROPIC_MODEL_ALIASES: &[ProviderModelAlias] = &[
     ProviderModelAlias {
@@ -3603,6 +3615,26 @@ mod tests {
         assert_eq!(OLLAMA_DEFAULT_MAX_TOKENS, 8_192);
         assert_eq!(OLLAMA_DEFAULT_MODEL, "glm-4.7-flash");
         assert_eq!(OLLAMA_DEFAULT_EMBEDDING_MODEL, "nomic-embed-text");
+        assert_eq!(OPENAI_DEFAULT_MODEL_REF, "openai/gpt-5.4");
+        assert_eq!(OPENAI_CODEX_DEFAULT_MODEL_REF, "openai-codex/gpt-5.4");
+        assert_eq!(OPENAI_DEFAULT_IMAGE_MODEL, "gpt-image-1");
+        assert_eq!(OPENAI_DEFAULT_TTS_MODEL, "gpt-4o-mini-tts");
+        assert_eq!(OPENAI_DEFAULT_TTS_VOICE, "alloy");
+        assert_eq!(
+            OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL,
+            "gpt-4o-mini-transcribe"
+        );
+        assert_eq!(OPENAI_DEFAULT_EMBEDDING_MODEL, "text-embedding-3-small");
+        assert_eq!(
+            GOOGLE_GEMINI_DEFAULT_MODEL_REF,
+            "google/gemini-3.1-pro-preview"
+        );
+        assert_eq!(OPENCODE_GO_DEFAULT_MODEL_REF, "opencode-go/kimi-k2.5");
+        assert_eq!(OPENCODE_ZEN_DEFAULT_MODEL_REF, "opencode/claude-opus-4-6");
+        assert_eq!(
+            LEGACY_OPENCODE_ZEN_DEFAULT_MODEL_REFS,
+            &["opencode/claude-opus-4-5", "opencode-zen/claude-opus-4-5"]
+        );
     }
 
     #[test]

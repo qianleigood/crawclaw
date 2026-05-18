@@ -253,6 +253,17 @@ export const OLLAMA_DEFAULT_CONTEXT_WINDOW = {ollama_default_context_window};
 export const OLLAMA_DEFAULT_MAX_TOKENS = {ollama_default_max_tokens};
 export const OLLAMA_DEFAULT_MODEL = {ollama_default_model};
 export const OLLAMA_DEFAULT_EMBEDDING_MODEL = {ollama_default_embedding_model};
+export const OPENAI_DEFAULT_MODEL = {openai_default_model};
+export const OPENAI_CODEX_DEFAULT_MODEL = {openai_codex_default_model};
+export const OPENAI_DEFAULT_IMAGE_MODEL = {openai_default_image_model};
+export const OPENAI_DEFAULT_TTS_MODEL = {openai_default_tts_model};
+export const OPENAI_DEFAULT_TTS_VOICE = {openai_default_tts_voice};
+export const OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL = {openai_default_audio_transcription_model};
+export const OPENAI_DEFAULT_EMBEDDING_MODEL = {openai_default_embedding_model};
+export const GOOGLE_GEMINI_DEFAULT_MODEL = {google_gemini_default_model};
+export const OPENCODE_GO_DEFAULT_MODEL_REF = {opencode_go_default_model_ref};
+export const OPENCODE_ZEN_DEFAULT_MODEL = {opencode_zen_default_model};
+export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_models} as const;
 "#,
         claude_cli_backend_id = json_string(crawclaw_providers::CLAUDE_CLI_BACKEND_ID),
         default_claude_cli_model = json_string(crawclaw_providers::DEFAULT_CLAUDE_CLI_MODEL),
@@ -266,6 +277,24 @@ export const OLLAMA_DEFAULT_EMBEDDING_MODEL = {ollama_default_embedding_model};
         ollama_default_model = json_string(crawclaw_providers::OLLAMA_DEFAULT_MODEL),
         ollama_default_embedding_model =
             json_string(crawclaw_providers::OLLAMA_DEFAULT_EMBEDDING_MODEL),
+        openai_default_model = json_string(crawclaw_providers::OPENAI_DEFAULT_MODEL_REF),
+        openai_codex_default_model =
+            json_string(crawclaw_providers::OPENAI_CODEX_DEFAULT_MODEL_REF),
+        openai_default_image_model = json_string(crawclaw_providers::OPENAI_DEFAULT_IMAGE_MODEL),
+        openai_default_tts_model = json_string(crawclaw_providers::OPENAI_DEFAULT_TTS_MODEL),
+        openai_default_tts_voice = json_string(crawclaw_providers::OPENAI_DEFAULT_TTS_VOICE),
+        openai_default_audio_transcription_model =
+            json_string(crawclaw_providers::OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL),
+        openai_default_embedding_model =
+            json_string(crawclaw_providers::OPENAI_DEFAULT_EMBEDDING_MODEL),
+        google_gemini_default_model =
+            json_string(crawclaw_providers::GOOGLE_GEMINI_DEFAULT_MODEL_REF),
+        opencode_go_default_model_ref =
+            json_string(crawclaw_providers::OPENCODE_GO_DEFAULT_MODEL_REF),
+        opencode_zen_default_model =
+            json_string(crawclaw_providers::OPENCODE_ZEN_DEFAULT_MODEL_REF),
+        legacy_opencode_zen_default_models =
+            render_static_string_array(crawclaw_providers::LEGACY_OPENCODE_ZEN_DEFAULT_MODEL_REFS),
     )
 }
 
@@ -472,6 +501,26 @@ fn render_string_array(values: &[String]) -> String {
     format!("[{rendered_values}]")
 }
 
+fn render_static_string_array(values: &[&str]) -> String {
+    if values.is_empty() {
+        return "[]".to_string();
+    }
+    if values.len() > 1 {
+        let rendered_values = values
+            .iter()
+            .map(|value| format!("  {},", json_string(value)))
+            .collect::<Vec<_>>()
+            .join("\n");
+        return format!("[\n{rendered_values}\n]");
+    }
+    let rendered_values = values
+        .iter()
+        .map(|value| json_string(value))
+        .collect::<Vec<_>>()
+        .join(", ");
+    format!("[{rendered_values}]")
+}
+
 fn render_javascript_property_key(value: &str) -> String {
     if is_javascript_identifier(value) {
         value.to_string()
@@ -551,5 +600,14 @@ mod tests {
             source.contains("export const OLLAMA_DEFAULT_BASE_URL = \"http://127.0.0.1:11434\";")
         );
         assert!(source.contains("export const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;"));
+        assert!(source.contains("export const OPENAI_DEFAULT_MODEL = \"openai/gpt-5.4\";"));
+        assert!(source.contains(
+            "export const GOOGLE_GEMINI_DEFAULT_MODEL = \"google/gemini-3.1-pro-preview\";"
+        ));
+        assert!(source
+            .contains("export const OPENCODE_ZEN_DEFAULT_MODEL = \"opencode/claude-opus-4-6\";"));
+        assert!(source.contains(
+            "export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = [\n  \"opencode/claude-opus-4-5\",\n  \"opencode-zen/claude-opus-4-5\",\n] as const;"
+        ));
     }
 }

@@ -9,3 +9,17 @@ export const OLLAMA_DEFAULT_CONTEXT_WINDOW = 128000;
 export const OLLAMA_DEFAULT_MAX_TOKENS = 8192;
 export const OLLAMA_DEFAULT_MODEL = "glm-4.7-flash";
 export const OLLAMA_DEFAULT_EMBEDDING_MODEL = "nomic-embed-text";
+export const OPENAI_DEFAULT_MODEL = "openai/gpt-5.4";
+export const OPENAI_CODEX_DEFAULT_MODEL = "openai-codex/gpt-5.4";
+export const OPENAI_DEFAULT_IMAGE_MODEL = "gpt-image-1";
+export const OPENAI_DEFAULT_TTS_MODEL = "gpt-4o-mini-tts";
+export const OPENAI_DEFAULT_TTS_VOICE = "alloy";
+export const OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL = "gpt-4o-mini-transcribe";
+export const OPENAI_DEFAULT_EMBEDDING_MODEL = "text-embedding-3-small";
+export const GOOGLE_GEMINI_DEFAULT_MODEL = "google/gemini-3.1-pro-preview";
+export const OPENCODE_GO_DEFAULT_MODEL_REF = "opencode-go/kimi-k2.5";
+export const OPENCODE_ZEN_DEFAULT_MODEL = "opencode/claude-opus-4-6";
+export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = [
+  "opencode/claude-opus-4-5",
+  "opencode-zen/claude-opus-4-5",
+] as const;
