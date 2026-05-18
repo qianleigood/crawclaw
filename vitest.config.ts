@@ -132,8 +132,6 @@ export default defineConfig({
         "src/channel-web.ts",
         "src/logging.ts",
         "src/terminal/**",
-        "src/control/**",
-        "src/daemon/**",
         "src/hooks/**",
         "src/macos/**",
 
