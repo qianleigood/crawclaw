@@ -854,8 +854,8 @@ surfaces together:
 - core runner/runtime helper in `src/<capability>/runtime.ts`
 - plugin API registration surface in `src/plugins/types.ts`
 - plugin registry wiring in `src/plugins/registry.ts`
-- plugin runtime exposure in `src/plugins/runtime/*` when feature/channel
-  plugins need to consume it
+- Rust/native descriptor exposure when feature/channel plugins need to consume
+  runtime capabilities
 - capture/test helpers in `src/test-utils/plugin-registration.ts`
 - ownership/contract assertions in `src/plugins/contracts/registry.ts`
 - operator/plugin docs in `docs/`
