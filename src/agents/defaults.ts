@@ -1,6 +1,9 @@
-// Defaults for agent metadata when upstream does not supply them.
-// Model id uses pi-ai's built-in Anthropic catalog.
-export const DEFAULT_PROVIDER = "anthropic";
-export const DEFAULT_MODEL = "claude-opus-4-6";
-// Conservative fallback used when model metadata is unavailable.
-export const DEFAULT_CONTEXT_TOKENS = 200_000;
+import {
+  AGENT_DEFAULT_CONTEXT_TOKENS,
+  AGENT_DEFAULT_MODEL,
+  AGENT_DEFAULT_PROVIDER,
+} from "../generated/providers/runtime-constants.generated.js";
+
+export const DEFAULT_PROVIDER = AGENT_DEFAULT_PROVIDER;
+export const DEFAULT_MODEL = AGENT_DEFAULT_MODEL;
+export const DEFAULT_CONTEXT_TOKENS = AGENT_DEFAULT_CONTEXT_TOKENS;

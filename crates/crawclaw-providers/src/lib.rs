@@ -1216,6 +1216,9 @@ pub const BUNDLED_WEB_PROVIDER_BOUNDARIES: &[BundledWebProviderBoundary] = &[
 ];
 
 pub const CLAUDE_CLI_BACKEND_ID: &str = "claude-cli";
+pub const AGENT_DEFAULT_PROVIDER: &str = "anthropic";
+pub const AGENT_DEFAULT_MODEL: &str = "claude-opus-4-6";
+pub const AGENT_DEFAULT_CONTEXT_TOKENS: u32 = 200_000;
 pub const DEFAULT_CLAUDE_CLI_MODEL: &str = "claude-cli/claude-sonnet-4-6";
 pub const ANTHROPIC_VERTEX_DEFAULT_REGION: &str = "global";
 pub const ANTHROPIC_VERTEX_CREDENTIALS_MARKER: &str = "gcp-vertex-credentials";
@@ -3587,6 +3590,9 @@ mod tests {
             "moderate"
         );
         assert_eq!(OLLAMA_DEFAULT_BASE_URL, "http://127.0.0.1:11434");
+        assert_eq!(AGENT_DEFAULT_PROVIDER, "anthropic");
+        assert_eq!(AGENT_DEFAULT_MODEL, "claude-opus-4-6");
+        assert_eq!(AGENT_DEFAULT_CONTEXT_TOKENS, 200_000);
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
         assert_eq!(OLLAMA_DEFAULT_MAX_TOKENS, 8_192);
         assert_eq!(OLLAMA_DEFAULT_MODEL, "glm-4.7-flash");
