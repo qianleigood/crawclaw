@@ -5,6 +5,31 @@ const GATEWAY_PROTOCOL_SCHEMA_JSON: &str =
 
 pub const GATEWAY_PROTOCOL_VERSION: u16 = 3;
 
+pub const GATEWAY_CLIENT_IDS: &[(&str, &str)] = &[
+    ("WEBCHAT_UI", "webchat-ui"),
+    ("BROWSER_CLIENT", "crawclaw-browser-client"),
+    ("WEBCHAT", "webchat"),
+    ("CLI", "cli"),
+    ("GATEWAY_CLIENT", "gateway-client"),
+    ("MACOS_APP", "crawclaw-macos"),
+    ("IOS_APP", "crawclaw-ios"),
+    ("ANDROID_APP", "crawclaw-android"),
+    ("TEST", "test"),
+    ("FINGERPRINT", "fingerprint"),
+    ("PROBE", "crawclaw-probe"),
+];
+
+pub const GATEWAY_CLIENT_MODES: &[(&str, &str)] = &[
+    ("WEBCHAT", "webchat"),
+    ("CLI", "cli"),
+    ("UI", "ui"),
+    ("BACKEND", "backend"),
+    ("PROBE", "probe"),
+    ("TEST", "test"),
+];
+
+pub const GATEWAY_CLIENT_CAPS: &[(&str, &str)] = &[("TOOL_EVENTS", "tool-events")];
+
 pub const GATEWAY_PROTOCOL_EVENTS: &[&str] = &[
     "runtimeChanged",
     "sessionStarted",
@@ -253,6 +278,21 @@ pub fn gateway_protocol_metadata_ts() -> String {
         "export const GATEWAY_PROTOCOL_VERSION = {} as const;\n\n",
         GATEWAY_PROTOCOL_VERSION
     ));
+    output.push_str(&render_ts_string_object(
+        "GATEWAY_CLIENT_IDS",
+        GATEWAY_CLIENT_IDS,
+    ));
+    output.push('\n');
+    output.push_str(&render_ts_string_object(
+        "GATEWAY_CLIENT_MODES",
+        GATEWAY_CLIENT_MODES,
+    ));
+    output.push('\n');
+    output.push_str(&render_ts_string_object(
+        "GATEWAY_CLIENT_CAPS",
+        GATEWAY_CLIENT_CAPS,
+    ));
+    output.push('\n');
     output.push_str(&render_ts_string_array(
         "GATEWAY_PROTOCOL_METHODS",
         GATEWAY_PROTOCOL_METHODS,
@@ -531,6 +571,19 @@ fn render_ts_string_array(name: &str, values: &[&str]) -> String {
     output
 }
 
+fn render_ts_string_object(name: &str, entries: &[(&str, &str)]) -> String {
+    let mut output = format!("export const {name} = {{\n");
+    for (key, value) in entries {
+        output.push_str("  ");
+        output.push_str(key);
+        output.push_str(": ");
+        output.push_str(&serde_json::to_string(value).expect("protocol metadata string"));
+        output.push_str(",\n");
+    }
+    output.push_str("} as const;\n");
+    output
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -594,6 +647,11 @@ mod tests {
     #[test]
     fn protocol_metadata_has_stable_version_methods_events() {
         assert_eq!(GATEWAY_PROTOCOL_VERSION, 3);
+        assert!(GATEWAY_CLIENT_IDS.contains(&("MACOS_APP", "crawclaw-macos")));
+        assert!(GATEWAY_CLIENT_IDS.contains(&("IOS_APP", "crawclaw-ios")));
+        assert!(GATEWAY_CLIENT_IDS.contains(&("ANDROID_APP", "crawclaw-android")));
+        assert!(GATEWAY_CLIENT_MODES.contains(&("UI", "ui")));
+        assert!(GATEWAY_CLIENT_CAPS.contains(&("TOOL_EVENTS", "tool-events")));
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"config.apply"));
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"sessions.spawn"));
         assert!(GATEWAY_PROTOCOL_METHODS.contains(&"memory.afterTurn"));
@@ -619,12 +677,34 @@ mod tests {
             GATEWAY_PROTOCOL_EVENTS.len(),
             "Gateway protocol event metadata contains duplicates"
         );
+        let client_ids = GATEWAY_CLIENT_IDS
+            .iter()
+            .map(|(_, value)| *value)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            client_ids.len(),
+            GATEWAY_CLIENT_IDS.len(),
+            "Gateway client id metadata contains duplicates"
+        );
+        let client_modes = GATEWAY_CLIENT_MODES
+            .iter()
+            .map(|(_, value)| *value)
+            .collect::<BTreeSet<_>>();
+        assert_eq!(
+            client_modes.len(),
+            GATEWAY_CLIENT_MODES.len(),
+            "Gateway client mode metadata contains duplicates"
+        );
     }
 
     #[test]
     fn protocol_metadata_ts_is_generated_from_rust_contract() {
         let artifact = gateway_protocol_metadata_ts();
         assert!(artifact.contains("export const GATEWAY_PROTOCOL_VERSION = 3 as const;"));
+        assert!(artifact.contains("export const GATEWAY_CLIENT_IDS = {"));
+        assert!(artifact.contains("MACOS_APP: \"crawclaw-macos\""));
+        assert!(artifact.contains("UI: \"ui\""));
+        assert!(artifact.contains("TOOL_EVENTS: \"tool-events\""));
         assert!(artifact.contains("\"config.apply\""));
         assert!(artifact.contains("\"session.message\""));
         assert!(artifact.ends_with("] as const;\n"));
