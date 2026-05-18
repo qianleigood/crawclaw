@@ -4,6 +4,10 @@
 import path from "node:path";
 import { loadConfig } from "../config/config.js";
 import type { CrawClawConfig } from "../config/config.js";
+import {
+  ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES,
+  ANTHROPIC_CONTEXT_1M_TOKENS as GENERATED_ANTHROPIC_CONTEXT_1M_TOKENS,
+} from "../generated/providers/runtime-constants.generated.js";
 import { computeBackoff, type BackoffPolicy } from "../infra/backoff.js";
 import { consumeRootOptionToken, FLAG_TERMINATOR } from "../infra/cli-root-options.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
@@ -24,8 +28,8 @@ type ProviderConfigEntry = { models?: ConfigModelEntry[] };
 type ModelsConfig = { providers?: Record<string, ProviderConfigEntry | undefined> };
 type AgentModelEntry = { params?: Record<string, unknown> };
 
-const ANTHROPIC_1M_MODEL_PREFIXES = ["claude-opus-4", "claude-sonnet-4"] as const;
-export const ANTHROPIC_CONTEXT_1M_TOKENS = 1_048_576;
+const ANTHROPIC_1M_MODEL_PREFIXES = ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES;
+export const ANTHROPIC_CONTEXT_1M_TOKENS = GENERATED_ANTHROPIC_CONTEXT_1M_TOKENS;
 const CONFIG_LOAD_RETRY_POLICY: BackoffPolicy = {
   initialMs: 1_000,
   maxMs: 60_000,

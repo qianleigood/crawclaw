@@ -1281,6 +1281,8 @@ pub const PROVIDER_MODEL_DEFAULT_INPUT_TYPES: &[&str] = &["text"];
 pub const PROVIDER_MODEL_DEFAULT_MAX_TOKENS: u32 = 8_192;
 pub const PROVIDER_DEFAULT_API_BY_PROVIDER: &[(&str, &str)] =
     &[("anthropic", "anthropic-messages")];
+pub const ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES: &[&str] = &["claude-opus-4", "claude-sonnet-4"];
+pub const ANTHROPIC_CONTEXT_1M_TOKENS: u32 = 1_048_576;
 pub const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL: &[(&str, u32)] = &[
     ("devstral-medium-latest", 32_768),
     ("magistral-small", 40_000),
@@ -3678,6 +3680,9 @@ mod tests {
         assert_eq!(PROVIDER_MODEL_DEFAULT_INPUT_TYPES, &["text"]);
         assert_eq!(PROVIDER_MODEL_DEFAULT_MAX_TOKENS, 8_192);
         assert!(PROVIDER_DEFAULT_API_BY_PROVIDER.contains(&("anthropic", "anthropic-messages")));
+        assert!(ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES.contains(&"claude-opus-4"));
+        assert!(ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES.contains(&"claude-sonnet-4"));
+        assert_eq!(ANTHROPIC_CONTEXT_1M_TOKENS, 1_048_576);
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("magistral-small", 40_000)));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("mistral-medium-2508", 8_192)));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
