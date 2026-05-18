@@ -377,7 +377,6 @@ Run full Mintlify anchor validation when you need in-page heading checks too: `p
 These are “real pipeline” regressions without real providers:
 
 - Gateway tool calling (mock OpenAI, real gateway + agent loop): `src/gateway/gateway.test.ts` (case: "runs a mock OpenAI tool call end-to-end via gateway agent loop")
-- Gateway wizard (WS `wizard.start`/`wizard.next`, writes config + auth enforced): `src/gateway/gateway.test.ts` (case: "runs wizard over ws and writes auth token config")
 
 ## Agent reliability evals (skills)
 
@@ -416,7 +415,6 @@ when you touch shared channel or provider surfaces.
 Former TS channel contract tests were removed with the TS channel runtime:
 
 - **plugin** - Basic plugin shape (id, name, capabilities)
-- **setup** - Setup wizard contract
 - **session-binding** - Session binding behavior
 - **outbound-payload** - Message payload structure
 - **inbound** - Inbound message handling
@@ -442,7 +440,6 @@ Located in `src/plugins/contracts/*.contract.test.ts`:
 - **loader** - Plugin loading
 - **runtime** - Provider runtime
 - **shape** - Plugin shape/interface
-- **wizard** - Setup wizard
 
 ### When to run
 

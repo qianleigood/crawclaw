@@ -211,6 +211,7 @@ mod tests {
         assert!(root_properties.contains_key("models"));
         assert!(root_properties.contains_key("plugins"));
         assert!(!root_properties.contains_key("channels"));
+        assert!(!root_properties.contains_key("wizard"));
         let gateway_properties = path(&payload, &["schema", "properties", "gateway", "properties"])
             .as_object()
             .expect("gateway properties");
@@ -307,6 +308,9 @@ mod tests {
         assert!(!entries
             .iter()
             .any(|entry| entry["path"].as_str() == Some("gateway.reload")));
+        assert!(!entries
+            .iter()
+            .any(|entry| entry["path"].as_str() == Some("wizard")));
 
         let mut lines = config_doc_baseline_jsonl().lines();
         let meta: Value =

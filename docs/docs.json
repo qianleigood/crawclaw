@@ -632,14 +632,6 @@
       "destination": "/start/wizard"
     },
     {
-      "source": "/start/wizard-cli-automation",
-      "destination": "/reference/wizard"
-    },
-    {
-      "source": "/start/wizard-cli-reference",
-      "destination": "/reference/wizard"
-    },
-    {
       "source": "/install/installer",
       "destination": "/install"
     },
@@ -1121,7 +1113,6 @@
                 "group": "Technical reference",
                 "pages": [
                   "pi",
-                  "reference/wizard",
                   "reference/n8n-workflow-architecture",
                   "reference/token-use",
                   "reference/secretref-credential-surface",
@@ -1528,7 +1519,6 @@
               {
                 "group": "技术参考",
                 "pages": [
-                  "zh-CN/reference/wizard",
                   "zh-CN/reference/token-use",
                   "zh-CN/reference/api-usage-costs",
                   "zh-CN/reference/transcript-hygiene",

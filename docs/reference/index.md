@@ -15,7 +15,6 @@ title: Reference Docs
 - [Testing](/reference/test)
 - [Release policy](/reference/RELEASING)
 - [RPC](/reference/rpc)
-- [Wizard reference](/reference/wizard)
 - [Credits](/reference/credits)
 
 ## Runtime And Session Reference

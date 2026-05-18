@@ -43,13 +43,6 @@ export type CrawClawConfig = {
       | { enabled?: boolean; timeoutMs?: number }
       | undefined;
   };
-  wizard?: {
-    lastRunAt?: string;
-    lastRunVersion?: string;
-    lastRunCommit?: string;
-    lastRunCommand?: string;
-    lastRunMode?: "local" | "remote";
-  };
   diagnostics?: DiagnosticsConfig;
   logging?: LoggingConfig;
   cli?: CliConfig;

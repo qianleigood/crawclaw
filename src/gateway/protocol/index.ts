@@ -192,22 +192,6 @@ import {
   UpdateRunParamsSchema,
   type WakeParams,
   WakeParamsSchema,
-  type WizardCancelParams,
-  WizardCancelParamsSchema,
-  type WizardNextParams,
-  WizardNextParamsSchema,
-  type WizardNextResult,
-  WizardNextResultSchema,
-  type WizardStartParams,
-  WizardStartParamsSchema,
-  type WizardStartResult,
-  WizardStartResultSchema,
-  type WizardStatusParams,
-  WizardStatusParamsSchema,
-  type WizardStatusResult,
-  WizardStatusResultSchema,
-  type WizardStep,
-  WizardStepSchema,
 } from "./schema.js";
 
 const ajv = new (AjvPkg as unknown as new (opts?: object) => import("ajv").default)({
@@ -288,10 +272,6 @@ export const validateConfigSchemaLookupParams = ajv.compile<ConfigSchemaLookupPa
 export const validateConfigSchemaLookupResult = ajv.compile<ConfigSchemaLookupResult>(
   ConfigSchemaLookupResultSchema,
 );
-export const validateWizardStartParams = ajv.compile<WizardStartParams>(WizardStartParamsSchema);
-export const validateWizardNextParams = ajv.compile<WizardNextParams>(WizardNextParamsSchema);
-export const validateWizardCancelParams = ajv.compile<WizardCancelParams>(WizardCancelParamsSchema);
-export const validateWizardStatusParams = ajv.compile<WizardStatusParams>(WizardStatusParamsSchema);
 export const validateModelsListParams = ajv.compile<ModelsListParams>(ModelsListParamsSchema);
 export const validateSkillsStatusParams = ajv.compile<SkillsStatusParams>(SkillsStatusParamsSchema);
 export const validateToolsCatalogParams = ajv.compile<ToolsCatalogParams>(ToolsCatalogParamsSchema);
@@ -420,14 +400,6 @@ export {
   ConfigSchemaLookupParamsSchema,
   ConfigSchemaResponseSchema,
   ConfigSchemaLookupResultSchema,
-  WizardStartParamsSchema,
-  WizardNextParamsSchema,
-  WizardCancelParamsSchema,
-  WizardStatusParamsSchema,
-  WizardStepSchema,
-  WizardNextResultSchema,
-  WizardStartResultSchema,
-  WizardStatusResultSchema,
   AgentSummarySchema,
   AgentsFileEntrySchema,
   AgentsCreateParamsSchema,
@@ -497,14 +469,6 @@ export type {
   ConfigPatchParams,
   ConfigSchemaParams,
   ConfigSchemaResponse,
-  WizardStartParams,
-  WizardNextParams,
-  WizardCancelParams,
-  WizardStatusParams,
-  WizardStep,
-  WizardNextResult,
-  WizardStartResult,
-  WizardStatusResult,
   AgentSummary,
   AgentsFileEntry,
   AgentsCreateParams,

@@ -2161,7 +2161,7 @@ See [Plugins](/tools/plugin).
 - `port`: single multiplexed port for WS + HTTP. Precedence: `--port` > `CRAWCLAW_GATEWAY_PORT` > `gateway.port` > `18789`.
 - `bind`: `auto`, `loopback` (default), `lan` (`0.0.0.0`), `tailnet` (Tailscale IP only), or `custom`.
 - **Legacy bind aliases**: use bind mode values in `gateway.bind` (`auto`, `loopback`, `lan`, `tailnet`, `custom`), not host aliases (`0.0.0.0`, `127.0.0.1`, `localhost`, `::`, `::1`).
-- **Auth**: required by default. Non-loopback binds require a shared token/password. Onboarding wizard generates a token by default.
+- **Auth**: required by default. Non-loopback binds require a shared token/password. CrawClaw Desktop can generate a token during setup.
 - If both `gateway.auth.token` and `gateway.auth.password` are configured (including SecretRefs), set `gateway.auth.mode` explicitly to `token` or `password`. Startup and service install/repair flows fail when both are configured and mode is unset.
 - `gateway.auth.mode: "none"`: explicit no-auth mode. Use only for trusted local loopback setups; this is intentionally not offered by onboarding prompts.
 - `gateway.auth.mode: "trusted-proxy"`: delegate auth to an identity-aware reverse proxy and trust identity headers from `gateway.trustedProxies` (see [Trusted Proxy Auth](/gateway/trusted-proxy-auth)).
@@ -2680,24 +2680,6 @@ Notes:
   - `"default"`: fixed neutral tagline (`All your chats, one CrawClaw.`).
   - `"off"`: no tagline text (banner title/version still shown).
 - To hide the entire banner (not just taglines), set env `CRAWCLAW_HIDE_BANNER=1`.
-
----
-
-## Wizard
-
-Metadata written by guided setup and diagnostic flows:
-
-```json5
-{
-  wizard: {
-    lastRunAt: "2026-01-01T00:00:00.000Z",
-    lastRunVersion: "2026.1.4",
-    lastRunCommit: "abc1234",
-    lastRunCommand: "configure",
-    lastRunMode: "local",
-  },
-}
-```
 
 ---
 

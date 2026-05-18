@@ -181,7 +181,7 @@ const METHOD_SCOPE_GROUPS: Record<OperatorScope, readonly string[]> = {
   ],
 };
 
-const ADMIN_METHOD_PREFIXES = ["exec.approvals.", "config.", "wizard.", "update."] as const;
+const ADMIN_METHOD_PREFIXES = ["exec.approvals.", "config.", "update."] as const;
 
 const METHOD_SCOPE_BY_NAME = new Map<string, OperatorScope>(
   Object.entries(METHOD_SCOPE_GROUPS).flatMap(([scope, methods]) =>

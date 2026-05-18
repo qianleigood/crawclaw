@@ -285,16 +285,6 @@ export const CrawClawSchema = z
       })
       .catchall(z.string())
       .optional(),
-    wizard: z
-      .object({
-        lastRunAt: z.string().optional(),
-        lastRunVersion: z.string().optional(),
-        lastRunCommit: z.string().optional(),
-        lastRunCommand: z.string().optional(),
-        lastRunMode: z.union([z.literal("local"), z.literal("remote")]).optional(),
-      })
-      .strict()
-      .optional(),
     diagnostics: z
       .object({
         enabled: z.boolean().optional(),

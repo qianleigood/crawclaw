@@ -114,7 +114,6 @@ struct GatewayState {
     events: broadcast::Sender<Value>,
     presence: Arc<std::sync::Mutex<BTreeMap<String, Value>>>,
     approvals: Arc<std::sync::Mutex<BTreeMap<String, ApprovalRecord>>>,
-    wizard_sessions: Arc<std::sync::Mutex<BTreeMap<String, WizardSessionRecord>>>,
     last_main_session_wake: Arc<std::sync::Mutex<Option<Value>>>,
     agent_run_events: Arc<std::sync::Mutex<BTreeMap<String, Vec<Value>>>>,
 }
@@ -129,16 +128,6 @@ struct ApprovalRecord {
     decision: Option<String>,
     resolved_by: Option<String>,
     resolved_at_ms: Option<u64>,
-}
-
-#[derive(Clone, Debug)]
-struct WizardSessionRecord {
-    session_id: String,
-    status: String,
-    error: Option<String>,
-    step: Option<Value>,
-    created_at_ms: u64,
-    updated_at_ms: u64,
 }
 
 #[derive(Deserialize)]
@@ -263,7 +252,6 @@ impl GatewayState {
             events,
             presence: Arc::new(std::sync::Mutex::new(initial_system_presence())),
             approvals: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
-            wizard_sessions: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
             last_main_session_wake: Arc::new(std::sync::Mutex::new(None)),
             agent_run_events: Arc::new(std::sync::Mutex::new(BTreeMap::new())),
         }
@@ -724,10 +712,6 @@ async fn handle_gateway_method(
         "skills.bins" => Ok(skills_bins(state)),
         "skills.install" => skills_install(state, params),
         "skills.update" => skills_update(state, params),
-        "wizard.start" => wizard_start(state, params),
-        "wizard.next" => wizard_next(state, params),
-        "wizard.cancel" => wizard_cancel(state, params),
-        "wizard.status" => wizard_status(state, params),
         "plugins.list" => plugins_list(state),
         "plugins.enable" => plugins_set_enabled(state, params, true),
         "plugins.disable" => plugins_set_enabled(state, params, false),
@@ -3602,146 +3586,6 @@ fn skills_install(state: &GatewayState, params: Value) -> Result<Value, String> 
         "path": skill_path.to_string_lossy(),
         "implementation": "rust-native"
     }))
-}
-
-fn wizard_start(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let mut sessions = state
-        .wizard_sessions
-        .lock()
-        .map_err(|_| "wizard session store lock poisoned".to_string())?;
-    if sessions.values().any(|session| session.status == "running") {
-        return Err("wizard already running".to_string());
-    }
-    let now = now_millis() as u64;
-    let session_id = format!("rust-wizard-{now}");
-    let step = json!({
-        "id": format!("{session_id}-intro"),
-        "type": "note",
-        "title": "CrawClaw Rust Gateway",
-        "message": wizard_intro_message(&params),
-        "executor": "client"
-    });
-    sessions.insert(
-        session_id.clone(),
-        WizardSessionRecord {
-            session_id: session_id.clone(),
-            status: "running".to_string(),
-            error: None,
-            step: Some(step.clone()),
-            created_at_ms: now,
-            updated_at_ms: now,
-        },
-    );
-    Ok(json!({
-        "sessionId": session_id,
-        "done": false,
-        "status": "running",
-        "step": step
-    }))
-}
-
-fn wizard_next(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let session_id = required_param(&params, &["sessionId"])?;
-    let mut sessions = state
-        .wizard_sessions
-        .lock()
-        .map_err(|_| "wizard session store lock poisoned".to_string())?;
-    let session = sessions
-        .get_mut(&session_id)
-        .ok_or_else(|| "wizard not found".to_string())?;
-    if session.status != "running" {
-        return Err("wizard not running".to_string());
-    }
-    if let Some(answer) = params.get("answer") {
-        let expected_step = session
-            .step
-            .as_ref()
-            .and_then(|step| step.get("id"))
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        let answered_step = answer
-            .get("stepId")
-            .and_then(Value::as_str)
-            .unwrap_or_default();
-        if expected_step.is_empty() || answered_step != expected_step {
-            return Err("wizard: no pending step".to_string());
-        }
-        session.status = "done".to_string();
-        session.step = None;
-        session.updated_at_ms = now_millis() as u64;
-        let response = wizard_terminal_response(session, true);
-        sessions.remove(&session_id);
-        return Ok(response);
-    }
-    Ok(wizard_next_response(session))
-}
-
-fn wizard_cancel(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let session_id = required_param(&params, &["sessionId"])?;
-    let mut sessions = state
-        .wizard_sessions
-        .lock()
-        .map_err(|_| "wizard session store lock poisoned".to_string())?;
-    let mut session = sessions
-        .remove(&session_id)
-        .ok_or_else(|| "wizard not found".to_string())?;
-    session.status = "cancelled".to_string();
-    session.error = Some("cancelled".to_string());
-    session.step = None;
-    session.updated_at_ms = now_millis() as u64;
-    Ok(wizard_status_response(&session))
-}
-
-fn wizard_status(state: &GatewayState, params: Value) -> Result<Value, String> {
-    let session_id = required_param(&params, &["sessionId"])?;
-    let sessions = state
-        .wizard_sessions
-        .lock()
-        .map_err(|_| "wizard session store lock poisoned".to_string())?;
-    let session = sessions
-        .get(&session_id)
-        .ok_or_else(|| "wizard not found".to_string())?;
-    Ok(wizard_status_response(session))
-}
-
-fn wizard_intro_message(params: &Value) -> String {
-    let mode = string_param(params, &["mode"]).unwrap_or_else(|| "local".to_string());
-    format!("Rust Gateway setup session is active for {mode} mode.")
-}
-
-fn wizard_next_response(session: &WizardSessionRecord) -> Value {
-    if session.status != "running" || session.step.is_none() {
-        return wizard_terminal_response(session, true);
-    }
-    json!({
-        "sessionId": session.session_id,
-        "done": false,
-        "status": session.status,
-        "step": session.step,
-        "createdAtMs": session.created_at_ms,
-        "updatedAtMs": session.updated_at_ms
-    })
-}
-
-fn wizard_terminal_response(session: &WizardSessionRecord, done: bool) -> Value {
-    json!({
-        "sessionId": session.session_id,
-        "done": done,
-        "status": session.status,
-        "error": session.error,
-        "createdAtMs": session.created_at_ms,
-        "updatedAtMs": session.updated_at_ms
-    })
-}
-
-fn wizard_status_response(session: &WizardSessionRecord) -> Value {
-    json!({
-        "sessionId": session.session_id,
-        "status": session.status,
-        "error": session.error,
-        "createdAtMs": session.created_at_ms,
-        "updatedAtMs": session.updated_at_ms
-    })
 }
 
 fn approvals_snapshot(state: &GatewayState, kind: &str) -> Result<Value, String> {
@@ -13182,69 +13026,6 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
     }
 
     #[tokio::test]
-    async fn rust_gateway_wizard_methods_track_session_state() {
-        let _guard = env_lock().lock().expect("env lock");
-        let runtime_root = unique_test_runtime_root("gateway-wizard");
-        let state = GatewayState::new(GatewayRunConfig {
-            runtime_root: Some(runtime_root.clone()),
-            ..GatewayRunConfig::default()
-        });
-
-        let started = handle_gateway_method(&state, "wizard.start", json!({ "mode": "local" }))
-            .await
-            .expect("wizard start");
-        assert_eq!(started["status"], "running");
-        assert_eq!(started["done"], false);
-        assert_eq!(started["step"]["type"], "note");
-        let session_id = started["sessionId"].as_str().expect("session id");
-        let step_id = started["step"]["id"].as_str().expect("step id");
-
-        let status =
-            handle_gateway_method(&state, "wizard.status", json!({ "sessionId": session_id }))
-                .await
-                .expect("wizard status");
-        assert_eq!(status["status"], "running");
-        assert!(status["error"].is_null());
-
-        let completed = handle_gateway_method(
-            &state,
-            "wizard.next",
-            json!({
-                "sessionId": session_id,
-                "answer": { "stepId": step_id, "value": true }
-            }),
-        )
-        .await
-        .expect("wizard next");
-        assert_eq!(completed["done"], true);
-        assert_eq!(completed["status"], "done");
-
-        let missing =
-            handle_gateway_method(&state, "wizard.status", json!({ "sessionId": session_id }))
-                .await;
-        assert!(missing
-            .expect_err("completed wizard should be purged")
-            .contains("wizard not found"));
-
-        let cancel_started =
-            handle_gateway_method(&state, "wizard.start", json!({ "mode": "local" }))
-                .await
-                .expect("wizard start for cancel");
-        let cancel_session_id = cancel_started["sessionId"].as_str().expect("session id");
-        let cancelled = handle_gateway_method(
-            &state,
-            "wizard.cancel",
-            json!({ "sessionId": cancel_session_id }),
-        )
-        .await
-        .expect("wizard cancel");
-        assert_eq!(cancelled["status"], "cancelled");
-        assert_eq!(cancelled["error"], "cancelled");
-
-        let _ = std::fs::remove_dir_all(runtime_root);
-    }
-
-    #[tokio::test]
     async fn rust_gateway_agent_runtime_reports_session_store_state() {
         let _guard = env_lock().lock().expect("env lock");
         let runtime_root = unique_test_runtime_root("gateway-agent-runtime-state");
@@ -15418,10 +15199,6 @@ printf '%s\n' '{"jsonrpc":"2.0","id":"describe","result":{"descriptors":[{"schem
             "plugin.approval.request",
             "plugin.approval.waitDecision",
             "plugin.approval.resolve",
-            "wizard.start",
-            "wizard.next",
-            "wizard.cancel",
-            "wizard.status",
             "talk.config",
             "talk.speak",
             "talk.mode",

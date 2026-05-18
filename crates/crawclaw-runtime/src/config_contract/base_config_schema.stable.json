@@ -51,36 +51,6 @@
           "type": "string"
         }
       },
-      "wizard": {
-        "type": "object",
-        "properties": {
-          "lastRunAt": {
-            "type": "string"
-          },
-          "lastRunVersion": {
-            "type": "string"
-          },
-          "lastRunCommit": {
-            "type": "string"
-          },
-          "lastRunCommand": {
-            "type": "string"
-          },
-          "lastRunMode": {
-            "anyOf": [
-              {
-                "type": "string",
-                "const": "local"
-              },
-              {
-                "type": "string",
-                "const": "remote"
-              }
-            ]
-          }
-        },
-        "additionalProperties": false
-      },
       "diagnostics": {
         "type": "object",
         "properties": {
@@ -7912,13 +7882,6 @@
     "title": "CrawClawConfig"
   },
   "uiHints": {
-    "wizard": {
-      "label": "Setup Wizard State",
-      "group": "Wizard",
-      "order": 20,
-      "help": "Setup wizard state tracking fields that record the most recent guided setup run details. Keep these fields for observability and troubleshooting of setup flows across upgrades.",
-      "tags": ["advanced"]
-    },
     "update": {
       "label": "Updates",
       "group": "Update",
@@ -8107,31 +8070,6 @@
     "env.vars": {
       "label": "Environment Variable Overrides",
       "help": "Explicit key/value environment variable overrides merged into runtime process environment for CrawClaw. Use this for deterministic env configuration instead of relying only on shell profile side effects.",
-      "tags": ["advanced"]
-    },
-    "wizard.lastRunAt": {
-      "label": "Wizard Last Run Timestamp",
-      "help": "ISO timestamp for when the setup wizard most recently completed on this host. Use this to confirm setup recency during support and operational audits.",
-      "tags": ["advanced"]
-    },
-    "wizard.lastRunVersion": {
-      "label": "Wizard Last Run Version",
-      "help": "CrawClaw version recorded at the time of the most recent wizard run on this config. Use this when diagnosing behavior differences across version-to-version setup changes.",
-      "tags": ["advanced"]
-    },
-    "wizard.lastRunCommit": {
-      "label": "Wizard Last Run Commit",
-      "help": "Source commit identifier recorded for the last wizard execution in development builds. Use this to correlate setup behavior with exact source state during debugging.",
-      "tags": ["advanced"]
-    },
-    "wizard.lastRunCommand": {
-      "label": "Wizard Last Run Command",
-      "help": "Command invocation recorded for the latest wizard run to preserve execution context. Use this to reproduce setup steps when verifying setup regressions.",
-      "tags": ["advanced"]
-    },
-    "wizard.lastRunMode": {
-      "label": "Wizard Last Run Mode",
-      "help": "Wizard execution mode recorded as \"local\" or \"remote\" for the most recent setup flow. Use this to understand whether setup targeted direct local runtime or remote gateway topology.",
       "tags": ["advanced"]
     },
     "diagnostics.otel": {

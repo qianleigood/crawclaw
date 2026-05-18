@@ -1,9 +1,9 @@
 ---
 title: "Plugin Setup and Config"
 sidebarTitle: "Setup and Config"
-summary: "Setup wizards, config schemas, and package.json metadata"
+summary: "Setup metadata, config schemas, and package.json metadata"
 read_when:
-  - You are adding a setup wizard to a plugin
+  - You are adding setup metadata to a plugin
   - You are defining plugin config schemas or package.json crawclaw metadata
 ---
 
