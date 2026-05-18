@@ -284,6 +284,7 @@ export const OPENAI_RESPONSES_PROVIDERS = {openai_responses_providers} as const;
 export const MOONSHOT_COMPAT_PROVIDERS = {moonshot_compat_providers} as const;
 export const TRANSCRIPT_OPENAI_MODEL_APIS = {transcript_openai_model_apis} as const;
 export const TRANSCRIPT_ANTHROPIC_MODEL_APIS = {transcript_anthropic_model_apis} as const;
+export const GOOGLE_MODEL_APIS = {google_model_apis} as const;
 export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = {openai_compatible_turn_validation_api};
 export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = {openai_compatible_tool_id_sanitization_apis} as const;
 export const OPENROUTER_MODELS_API_URL = {openrouter_models_api_url};
@@ -376,6 +377,8 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             render_static_string_array(crawclaw_providers::TRANSCRIPT_OPENAI_MODEL_APIS),
         transcript_anthropic_model_apis =
             render_static_string_array(crawclaw_providers::TRANSCRIPT_ANTHROPIC_MODEL_APIS),
+        google_model_apis =
+            render_static_string_array_inline(crawclaw_providers::GOOGLE_MODEL_APIS),
         openai_compatible_turn_validation_api =
             json_string(crawclaw_providers::OPENAI_COMPATIBLE_TURN_VALIDATION_API),
         openai_compatible_tool_id_sanitization_apis = render_static_string_array(
@@ -1113,6 +1116,9 @@ mod tests {
         assert!(source.contains("\"openai-codex-responses\""));
         assert!(source.contains("export const TRANSCRIPT_ANTHROPIC_MODEL_APIS = ["));
         assert!(source.contains("\"bedrock-converse-stream\""));
+        assert!(source.contains(
+            "export const GOOGLE_MODEL_APIS = [\"google-gemini-cli\", \"google-generative-ai\"] as const;"
+        ));
         assert!(source.contains(
             "export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = \"openai-completions\";"
         ));

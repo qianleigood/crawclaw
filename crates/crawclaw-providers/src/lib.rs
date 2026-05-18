@@ -760,6 +760,7 @@ pub const TRANSCRIPT_OPENAI_MODEL_APIS: &[&str] = &[
 ];
 pub const TRANSCRIPT_ANTHROPIC_MODEL_APIS: &[&str] =
     &["anthropic-messages", "bedrock-converse-stream"];
+pub const GOOGLE_MODEL_APIS: &[&str] = &["google-gemini-cli", "google-generative-ai"];
 pub const OPENAI_COMPATIBLE_TURN_VALIDATION_API: &str = "openai-completions";
 pub const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS: &[&str] = &[
     "openai-completions",
@@ -4041,6 +4042,10 @@ mod tests {
         assert_eq!(
             TRANSCRIPT_ANTHROPIC_MODEL_APIS,
             &["anthropic-messages", "bedrock-converse-stream"]
+        );
+        assert_eq!(
+            GOOGLE_MODEL_APIS,
+            &["google-gemini-cli", "google-generative-ai"]
         );
         assert_eq!(OPENAI_COMPATIBLE_TURN_VALIDATION_API, "openai-completions");
         assert_eq!(

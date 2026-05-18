@@ -178,6 +178,7 @@ export const TRANSCRIPT_ANTHROPIC_MODEL_APIS = [
   "anthropic-messages",
   "bedrock-converse-stream",
 ] as const;
+export const GOOGLE_MODEL_APIS = ["google-gemini-cli", "google-generative-ai"] as const;
 export const OPENAI_COMPATIBLE_TURN_VALIDATION_API = "openai-completions";
 export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = [
   "openai-completions",
