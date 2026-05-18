@@ -204,6 +204,14 @@ export const OPENAI_RESPONSES_API = "openai-responses";
 export const OPENAI_CODEX_RESPONSES_API = "openai-codex-responses";
 export const OPENAI_AUDIO_TRANSCRIPTIONS_API = "openai-audio-transcriptions";
 export const ANTHROPIC_MESSAGES_API = "anthropic-messages";
+export const MODEL_COMPAT_THINKING_FORMATS = [
+  "openai",
+  "openrouter",
+  "zai",
+  "qwen",
+  "qwen-chat-template",
+] as const;
+export const MODEL_COMPAT_MAX_TOKENS_FIELDS = ["max_completion_tokens", "max_tokens"] as const;
 export const MINIMAX_VLM_MODEL_ID = "MiniMax-VL-01";
 export const MINIMAX_API_HOST_ENV = "MINIMAX_API_HOST";
 export const MINIMAX_DEFAULT_API_HOST = "https://api.minimax.io";

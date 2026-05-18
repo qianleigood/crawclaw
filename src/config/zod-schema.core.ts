@@ -7,7 +7,11 @@ import {
   isValidFileSecretRefId,
 } from "../secrets/ref-contract.js";
 import type { ModelCompatConfig } from "./types.models.js";
-import { MODEL_APIS } from "./types.models.js";
+import {
+  MODEL_APIS,
+  MODEL_COMPAT_MAX_TOKENS_FIELDS,
+  MODEL_COMPAT_THINKING_FORMATS,
+} from "./types.models.js";
 import { createAllowDenyChannelRulesSchema } from "./zod-schema.allowdeny.js";
 import { sensitive } from "./zod-schema.sensitive.js";
 
@@ -190,18 +194,8 @@ export const ModelCompatSchema = z
     supportsUsageInStreaming: z.boolean().optional(),
     supportsTools: z.boolean().optional(),
     supportsStrictMode: z.boolean().optional(),
-    maxTokensField: z
-      .union([z.literal("max_completion_tokens"), z.literal("max_tokens")])
-      .optional(),
-    thinkingFormat: z
-      .union([
-        z.literal("openai"),
-        z.literal("openrouter"),
-        z.literal("zai"),
-        z.literal("qwen"),
-        z.literal("qwen-chat-template"),
-      ])
-      .optional(),
+    maxTokensField: z.enum(MODEL_COMPAT_MAX_TOKENS_FIELDS).optional(),
+    thinkingFormat: z.enum(MODEL_COMPAT_THINKING_FORMATS).optional(),
     requiresToolResultName: z.boolean().optional(),
     requiresAssistantAfterToolResult: z.boolean().optional(),
     requiresThinkingAsText: z.boolean().optional(),

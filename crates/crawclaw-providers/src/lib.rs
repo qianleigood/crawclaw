@@ -793,6 +793,9 @@ pub const OPENAI_RESPONSES_API: &str = "openai-responses";
 pub const OPENAI_CODEX_RESPONSES_API: &str = "openai-codex-responses";
 pub const OPENAI_AUDIO_TRANSCRIPTIONS_API: &str = "openai-audio-transcriptions";
 pub const ANTHROPIC_MESSAGES_API: &str = "anthropic-messages";
+pub const MODEL_COMPAT_THINKING_FORMATS: &[&str] =
+    &["openai", "openrouter", "zai", "qwen", "qwen-chat-template"];
+pub const MODEL_COMPAT_MAX_TOKENS_FIELDS: &[&str] = &["max_completion_tokens", "max_tokens"];
 pub const MINIMAX_VLM_MODEL_ID: &str = "MiniMax-VL-01";
 pub const MINIMAX_API_HOST_ENV: &str = "MINIMAX_API_HOST";
 pub const MINIMAX_DEFAULT_API_HOST: &str = "https://api.minimax.io";
@@ -4132,6 +4135,14 @@ mod tests {
             "openai-audio-transcriptions"
         );
         assert_eq!(ANTHROPIC_MESSAGES_API, "anthropic-messages");
+        assert_eq!(
+            MODEL_COMPAT_THINKING_FORMATS,
+            &["openai", "openrouter", "zai", "qwen", "qwen-chat-template"]
+        );
+        assert_eq!(
+            MODEL_COMPAT_MAX_TOKENS_FIELDS,
+            &["max_completion_tokens", "max_tokens"]
+        );
         assert_eq!(MINIMAX_VLM_MODEL_ID, "MiniMax-VL-01");
         assert_eq!(MINIMAX_API_HOST_ENV, "MINIMAX_API_HOST");
         assert_eq!(MINIMAX_DEFAULT_API_HOST, "https://api.minimax.io");

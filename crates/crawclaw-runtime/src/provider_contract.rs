@@ -318,6 +318,8 @@ export const OPENAI_RESPONSES_API = {openai_responses_api};
 export const OPENAI_CODEX_RESPONSES_API = {openai_codex_responses_api};
 export const OPENAI_AUDIO_TRANSCRIPTIONS_API = {openai_audio_transcriptions_api};
 export const ANTHROPIC_MESSAGES_API = {anthropic_messages_api};
+export const MODEL_COMPAT_THINKING_FORMATS = {model_compat_thinking_formats} as const;
+export const MODEL_COMPAT_MAX_TOKENS_FIELDS = {model_compat_max_tokens_fields} as const;
 export const MINIMAX_VLM_MODEL_ID = {minimax_vlm_model_id};
 export const MINIMAX_API_HOST_ENV = {minimax_api_host_env};
 export const MINIMAX_DEFAULT_API_HOST = {minimax_default_api_host};
@@ -461,6 +463,10 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
         openai_audio_transcriptions_api =
             json_string(crawclaw_providers::OPENAI_AUDIO_TRANSCRIPTIONS_API),
         anthropic_messages_api = json_string(crawclaw_providers::ANTHROPIC_MESSAGES_API),
+        model_compat_thinking_formats =
+            render_static_string_array(crawclaw_providers::MODEL_COMPAT_THINKING_FORMATS),
+        model_compat_max_tokens_fields =
+            render_static_string_array_inline(crawclaw_providers::MODEL_COMPAT_MAX_TOKENS_FIELDS),
         minimax_vlm_model_id = json_string(crawclaw_providers::MINIMAX_VLM_MODEL_ID),
         minimax_api_host_env = json_string(crawclaw_providers::MINIMAX_API_HOST_ENV),
         minimax_default_api_host = json_string(crawclaw_providers::MINIMAX_DEFAULT_API_HOST),
@@ -1263,6 +1269,11 @@ mod tests {
             "export const OPENAI_AUDIO_TRANSCRIPTIONS_API = \"openai-audio-transcriptions\";"
         ));
         assert!(source.contains("export const ANTHROPIC_MESSAGES_API = \"anthropic-messages\";"));
+        assert!(source.contains("export const MODEL_COMPAT_THINKING_FORMATS = ["));
+        assert!(source.contains("\"qwen-chat-template\""));
+        assert!(source.contains(
+            "export const MODEL_COMPAT_MAX_TOKENS_FIELDS = [\"max_completion_tokens\", \"max_tokens\"] as const;"
+        ));
         assert!(source.contains("export const MINIMAX_VLM_MODEL_ID = \"MiniMax-VL-01\";"));
         assert!(source.contains("export const MINIMAX_API_HOST_ENV = \"MINIMAX_API_HOST\";"));
         assert!(

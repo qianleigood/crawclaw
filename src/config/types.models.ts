@@ -1,8 +1,12 @@
 import type { OpenAICompletionsCompat } from "@mariozechner/pi-ai";
-import { MODEL_APIS } from "../generated/providers/runtime-constants.generated.js";
+import {
+  MODEL_APIS,
+  MODEL_COMPAT_MAX_TOKENS_FIELDS,
+  MODEL_COMPAT_THINKING_FORMATS,
+} from "../generated/providers/runtime-constants.generated.js";
 import type { SecretInput } from "./types.secrets.js";
 
-export { MODEL_APIS };
+export { MODEL_APIS, MODEL_COMPAT_MAX_TOKENS_FIELDS, MODEL_COMPAT_THINKING_FORMATS };
 
 export type ModelApi = (typeof MODEL_APIS)[number];
 
@@ -19,10 +23,7 @@ type SupportedOpenAICompatFields = Pick<
   | "requiresThinkingAsText"
 >;
 
-type SupportedThinkingFormat =
-  | NonNullable<OpenAICompletionsCompat["thinkingFormat"]>
-  | "openrouter"
-  | "qwen-chat-template";
+type SupportedThinkingFormat = (typeof MODEL_COMPAT_THINKING_FORMATS)[number];
 
 export type ModelCompatConfig = SupportedOpenAICompatFields & {
   thinkingFormat?: SupportedThinkingFormat;
