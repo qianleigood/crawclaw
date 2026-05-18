@@ -45,6 +45,15 @@ pub struct BundledProviderPlugin {
 
 #[derive(Clone, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
+pub struct BundledProviderPluginContractMetadata {
+    pub plugin_id: String,
+    pub provider_ids: Vec<String>,
+    pub legacy_plugin_ids: Vec<String>,
+    pub auto_enable_when_configured_providers: Vec<String>,
+}
+
+#[derive(Clone, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "camelCase")]
 pub struct BundledProviderPluginMetadata {
     pub plugin_id: String,
     pub providers: Vec<String>,
@@ -1444,6 +1453,18 @@ pub fn bundled_provider_plugin_metadata() -> Vec<BundledProviderPluginMetadata> 
         .collect()
 }
 
+pub fn bundled_provider_plugin_contract_metadata() -> Vec<BundledProviderPluginContractMetadata> {
+    BUNDLED_PROVIDER_PLUGIN_MANIFESTS
+        .iter()
+        .map(|(plugin_id, raw)| parse_bundled_provider_plugin_contract_metadata(plugin_id, raw))
+        .filter(|entry| {
+            !entry.provider_ids.is_empty()
+                || !entry.legacy_plugin_ids.is_empty()
+                || !entry.auto_enable_when_configured_providers.is_empty()
+        })
+        .collect()
+}
+
 pub fn bundled_provider_auth_choices() -> Vec<BundledProviderAuthChoice> {
     BUNDLED_PROVIDER_PLUGIN_MANIFESTS
         .iter()
@@ -1831,6 +1852,22 @@ fn parse_bundled_provider_plugin_metadata(
             image_generation,
             media_understanding,
         },
+    }
+}
+
+fn parse_bundled_provider_plugin_contract_metadata(
+    plugin_id: &str,
+    raw: &str,
+) -> BundledProviderPluginContractMetadata {
+    let manifest = serde_json::from_str::<Value>(raw).unwrap_or_else(|_| json!({}));
+    BundledProviderPluginContractMetadata {
+        plugin_id: plugin_id.to_string(),
+        provider_ids: string_array_field(&manifest, "providers"),
+        legacy_plugin_ids: string_array_field(&manifest, "legacyPluginIds"),
+        auto_enable_when_configured_providers: string_array_field(
+            &manifest,
+            "autoEnableWhenConfiguredProviders",
+        ),
     }
 }
 
@@ -3348,6 +3385,39 @@ mod tests {
         assert!(!fal.capabilities.chat);
         assert!(fal.capabilities.non_chat);
         assert!(fal.capabilities.image_generation);
+    }
+
+    #[test]
+    fn bundled_provider_plugin_contract_metadata_covers_manifest_contracts() {
+        let metadata = bundled_provider_plugin_contract_metadata();
+        assert_eq!(metadata.len(), bundled_provider_plugins().len());
+
+        let google = metadata
+            .iter()
+            .find(|entry| entry.plugin_id == "google")
+            .expect("google contract metadata");
+        assert_eq!(google.provider_ids, vec!["google", "google-gemini-cli"]);
+        assert_eq!(
+            google.auto_enable_when_configured_providers,
+            vec!["google-gemini-cli"]
+        );
+
+        let minimax = metadata
+            .iter()
+            .find(|entry| entry.plugin_id == "minimax")
+            .expect("minimax contract metadata");
+        assert_eq!(minimax.provider_ids, vec!["minimax", "minimax-portal"]);
+        assert_eq!(minimax.legacy_plugin_ids, vec!["minimax-portal-auth"]);
+        assert_eq!(
+            minimax.auto_enable_when_configured_providers,
+            vec!["minimax", "minimax-portal"]
+        );
+
+        let openai = metadata
+            .iter()
+            .find(|entry| entry.plugin_id == "openai")
+            .expect("openai contract metadata");
+        assert_eq!(openai.provider_ids, vec!["openai", "openai-codex"]);
     }
 
     #[test]
