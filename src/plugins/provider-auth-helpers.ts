@@ -1,12 +1,5 @@
-import fs from "node:fs";
-import path from "node:path";
-import type { OAuthCredentials } from "@mariozechner/pi-ai";
-import { resolveCrawClawAgentDir } from "../agents/agent-paths.js";
-import { buildAuthProfileId } from "../agents/auth-profiles/identity.js";
-import { upsertAuthProfile } from "../agents/auth-profiles/profiles.js";
 import { normalizeProviderIdForAuth } from "../agents/provider-id.js";
 import type { CrawClawConfig } from "../config/config.js";
-import { resolveStateDir } from "../config/paths.js";
 import {
   coerceSecretRef,
   DEFAULT_SECRET_PROVIDER_ALIAS,
@@ -19,16 +12,8 @@ import type { SecretInputMode } from "./provider-auth-types.js";
 
 const ENV_REF_PATTERN = /^\$\{([A-Z][A-Z0-9_]*)\}$/;
 
-const resolveAuthAgentDir = (agentDir?: string) => agentDir ?? resolveCrawClawAgentDir();
-
 export type ApiKeyStorageOptions = {
   secretInputMode?: SecretInputMode;
-};
-
-export type WriteOAuthCredentialsOptions = {
-  syncSiblingAgents?: boolean;
-  profileName?: string;
-  displayName?: string;
 };
 
 function buildEnvSecretRef(id: string): SecretRef {
@@ -188,98 +173,4 @@ export function applyAuthProfileConfig(
       ...(order ? { order } : {}),
     },
   };
-}
-
-/** Resolve real path, returning null if the target doesn't exist. */
-function safeRealpathSync(dir: string): string | null {
-  try {
-    return fs.realpathSync(path.resolve(dir));
-  } catch {
-    return null;
-  }
-}
-
-function resolveSiblingAgentDirs(primaryAgentDir: string): string[] {
-  const normalized = path.resolve(primaryAgentDir);
-  const parentOfAgent = path.dirname(normalized);
-  const candidateAgentsRoot = path.dirname(parentOfAgent);
-  const looksLikeStandardLayout =
-    path.basename(normalized) === "agent" && path.basename(candidateAgentsRoot) === "agents";
-
-  const agentsRoot = looksLikeStandardLayout
-    ? candidateAgentsRoot
-    : path.join(resolveStateDir(), "agents");
-
-  const entries = (() => {
-    try {
-      return fs.readdirSync(agentsRoot, { withFileTypes: true });
-    } catch {
-      return [];
-    }
-  })();
-  const discovered = entries
-    .filter((entry) => entry.isDirectory() || entry.isSymbolicLink())
-    .map((entry) => path.join(agentsRoot, entry.name, "agent"));
-
-  const seen = new Set<string>();
-  const result: string[] = [];
-  for (const dir of [normalized, ...discovered]) {
-    const real = safeRealpathSync(dir);
-    if (real && !seen.has(real)) {
-      seen.add(real);
-      result.push(real);
-    }
-  }
-  return result;
-}
-
-export async function writeOAuthCredentials(
-  provider: string,
-  creds: OAuthCredentials,
-  agentDir?: string,
-  options?: WriteOAuthCredentialsOptions,
-): Promise<string> {
-  const email =
-    typeof creds.email === "string" && creds.email.trim() ? creds.email.trim() : "default";
-  const profileId = buildAuthProfileId({
-    providerId: provider,
-    profileName: options?.profileName ?? email,
-  });
-  const resolvedAgentDir = path.resolve(resolveAuthAgentDir(agentDir));
-  const targetAgentDirs = options?.syncSiblingAgents
-    ? resolveSiblingAgentDirs(resolvedAgentDir)
-    : [resolvedAgentDir];
-
-  const credential = {
-    type: "oauth" as const,
-    provider,
-    ...creds,
-    ...(options?.displayName ? { displayName: options.displayName } : {}),
-  };
-
-  upsertAuthProfile({
-    profileId,
-    credential,
-    agentDir: resolvedAgentDir,
-  });
-
-  if (options?.syncSiblingAgents) {
-    const primaryReal = safeRealpathSync(resolvedAgentDir);
-    for (const targetAgentDir of targetAgentDirs) {
-      const targetReal = safeRealpathSync(targetAgentDir);
-      if (targetReal && primaryReal && targetReal === primaryReal) {
-        continue;
-      }
-      try {
-        upsertAuthProfile({
-          profileId,
-          credential,
-          agentDir: targetAgentDir,
-        });
-      } catch {
-        // Best-effort: sibling sync failure must not block primary setup.
-      }
-    }
-  }
-  return profileId;
 }

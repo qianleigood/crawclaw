@@ -3,7 +3,6 @@ import type { RuntimeEnv } from "../runtime.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import { applyAuthChoiceApiProviders } from "./auth-choice.apply.api-providers.js";
 import { normalizeApiKeyTokenProviderAuthChoice } from "./auth-choice.apply.api-providers.js";
-import { applyAuthChoiceOAuth } from "./auth-choice.apply.oauth.js";
 import type { AuthChoice, OnboardOptions } from "./onboard-types.js";
 
 export type ApplyAuthChoiceParams = {
@@ -37,7 +36,6 @@ export async function applyAuthChoice(
       ? params
       : { ...params, authChoice: normalizedProviderAuthChoice };
   const handlers: Array<(p: ApplyAuthChoiceParams) => Promise<ApplyAuthChoiceResult | null>> = [
-    applyAuthChoiceOAuth,
     applyAuthChoiceApiProviders,
   ];
 

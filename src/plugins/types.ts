@@ -36,7 +36,6 @@ import type {
 } from "../tts/provider-types.js";
 import type { WizardPrompter } from "../wizard/prompts.js";
 import type { SecretInputMode } from "./provider-auth-types.js";
-import type { createVpsAwareOAuthHandlers } from "./provider-oauth-flow.js";
 
 export type ProviderAuthOptionBag = {
   token?: string;
@@ -151,9 +150,6 @@ export type ProviderAuthContext = {
   allowSecretRefPrompt?: boolean;
   isRemote: boolean;
   openUrl: (url: string) => Promise<void>;
-  oauth: {
-    createVpsAwareHandlers: typeof createVpsAwareOAuthHandlers;
-  };
 };
 
 export type ProviderNonInteractiveApiKeyResult = {
