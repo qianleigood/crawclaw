@@ -28,7 +28,6 @@ type InlineProviderConfig = {
   authHeader?: boolean;
 };
 
-type ProviderRuntimeHooks = Record<string, unknown>;
 export type AuthStorage = {
   getApiKey: (
     provider: string,
@@ -39,16 +38,6 @@ export type AuthStorage = {
 export type ModelRegistry = {
   find: (provider: string, modelId: string) => Model<Api> | null | undefined;
 };
-
-const STATIC_PROVIDER_RUNTIME_HOOKS: ProviderRuntimeHooks = {};
-
-function resolveRuntimeHooks(params?: {
-  runtimeHooks?: ProviderRuntimeHooks;
-  skipProviderRuntimeHooks?: boolean;
-}): ProviderRuntimeHooks {
-  void params;
-  return STATIC_PROVIDER_RUNTIME_HOOKS;
-}
 
 function normalizeResolvedTransportApi(api: unknown): ModelDefinitionConfig["api"] | undefined {
   switch (api) {
@@ -87,16 +76,7 @@ function sanitizeModelHeaders(
   return Object.keys(next).length > 0 ? next : undefined;
 }
 
-function normalizeResolvedModel(params: {
-  provider: string;
-  model: Model<Api>;
-  cfg?: CrawClawConfig;
-  agentDir?: string;
-  runtimeHooks?: ProviderRuntimeHooks;
-}): Model<Api> {
-  void params.cfg;
-  void params.agentDir;
-  void params.runtimeHooks;
+function normalizeResolvedModel(params: { provider: string; model: Model<Api> }): Model<Api> {
   const normalizedInputModel =
     Array.isArray(params.model.input) && params.model.input.length > 0
       ? params.model
@@ -110,20 +90,10 @@ function normalizeResolvedModel(params: {
   });
 }
 
-function resolveProviderTransport(params: {
-  provider: string;
-  api?: Api | null;
-  baseUrl?: string;
-  cfg?: CrawClawConfig;
-  runtimeHooks?: ProviderRuntimeHooks;
-}): {
+function resolveProviderTransport(params: { api?: Api | null; baseUrl?: string }): {
   api?: Api;
   baseUrl?: string;
 } {
-  void params.provider;
-  void params.cfg;
-  void params.runtimeHooks;
-
   return {
     api: normalizeResolvedTransportApi(params.api),
     baseUrl: params.baseUrl,
@@ -171,8 +141,6 @@ function applyConfiguredProviderOverrides(params: {
   discoveredModel: Model<Api>;
   providerConfig?: InlineProviderConfig;
   modelId: string;
-  cfg?: CrawClawConfig;
-  runtimeHooks?: ProviderRuntimeHooks;
 }): Model<Api> {
   const { discoveredModel, providerConfig, modelId } = params;
   if (!providerConfig) {
@@ -205,11 +173,8 @@ function applyConfiguredProviderOverrides(params: {
       : (["text"] as Array<"text" | "image">);
 
   const resolvedTransport = resolveProviderTransport({
-    provider: params.provider,
     api: configuredModel?.api ?? providerConfig.api ?? discoveredModel.api,
     baseUrl: providerConfig.baseUrl ?? discoveredModel.baseUrl,
-    cfg: params.cfg,
-    runtimeHooks: params.runtimeHooks,
   });
   const requestConfig = resolveProviderRequestConfig({
     provider: params.provider,
@@ -252,7 +217,6 @@ export function buildInlineProviderModels(
     });
     return (entry?.models ?? []).map((model) => {
       const transport = resolveProviderTransport({
-        provider: trimmed,
         api: model.api ?? entry?.api,
         baseUrl: entry?.baseUrl,
       });
@@ -285,10 +249,8 @@ function resolveExplicitModelWithRegistry(params: {
   modelId: string;
   modelRegistry: ModelRegistry;
   cfg?: CrawClawConfig;
-  agentDir?: string;
-  runtimeHooks?: ProviderRuntimeHooks;
 }): { kind: "resolved"; model: Model<Api> } | { kind: "suppressed" } | undefined {
-  const { provider, modelId, modelRegistry, cfg, agentDir, runtimeHooks } = params;
+  const { provider, modelId, modelRegistry, cfg } = params;
   if (shouldSuppressBuiltInModel({ provider, id: modelId })) {
     return { kind: "suppressed" };
   }
@@ -303,10 +265,7 @@ function resolveExplicitModelWithRegistry(params: {
       kind: "resolved",
       model: normalizeResolvedModel({
         provider,
-        cfg,
-        agentDir,
         model: inlineMatch as Model<Api>,
-        runtimeHooks,
       }),
     };
   }
@@ -317,17 +276,12 @@ function resolveExplicitModelWithRegistry(params: {
       kind: "resolved",
       model: normalizeResolvedModel({
         provider,
-        cfg,
-        agentDir,
         model: applyConfiguredProviderOverrides({
           provider,
           discoveredModel: model,
           providerConfig,
           modelId,
-          cfg,
-          runtimeHooks,
         }),
-        runtimeHooks,
       }),
     };
   }
@@ -343,10 +297,7 @@ function resolveExplicitModelWithRegistry(params: {
       kind: "resolved",
       model: normalizeResolvedModel({
         provider,
-        cfg,
-        agentDir,
         model: fallbackInlineMatch as Model<Api>,
-        runtimeHooks,
       }),
     };
   }
@@ -354,26 +305,12 @@ function resolveExplicitModelWithRegistry(params: {
   return undefined;
 }
 
-function resolvePluginDynamicModelWithRegistry(params: {
-  provider: string;
-  modelId: string;
-  modelRegistry: ModelRegistry;
-  cfg?: CrawClawConfig;
-  agentDir?: string;
-  runtimeHooks?: ProviderRuntimeHooks;
-}): Model<Api> | undefined {
-  void params;
-  return undefined;
-}
-
 function resolveConfiguredFallbackModel(params: {
   provider: string;
   modelId: string;
   cfg?: CrawClawConfig;
-  agentDir?: string;
-  runtimeHooks?: ProviderRuntimeHooks;
 }): Model<Api> | undefined {
-  const { provider, modelId, cfg, agentDir, runtimeHooks } = params;
+  const { provider, modelId, cfg } = params;
   const providerConfig = resolveConfiguredProviderConfig(cfg, provider);
   const configuredModel = providerConfig?.models?.find((candidate) => candidate.id === modelId);
   const providerHeaders = sanitizeModelHeaders(providerConfig?.headers, {
@@ -386,11 +323,8 @@ function resolveConfiguredFallbackModel(params: {
     return undefined;
   }
   const fallbackTransport = resolveProviderTransport({
-    provider,
     api: providerConfig?.api ?? "openai-responses",
     baseUrl: providerConfig?.baseUrl,
-    cfg,
-    runtimeHooks,
   });
   const requestConfig = resolveProviderRequestConfig({
     provider,
@@ -404,8 +338,6 @@ function resolveConfiguredFallbackModel(params: {
   });
   return normalizeResolvedModel({
     provider,
-    cfg,
-    agentDir,
     model: {
       id: modelId,
       name: modelId,
@@ -425,7 +357,6 @@ function resolveConfiguredFallbackModel(params: {
         DEFAULT_CONTEXT_TOKENS,
       headers: requestConfig.headers,
     } as Model<Api>,
-    runtimeHooks,
   });
 }
 
@@ -434,8 +365,6 @@ export function resolveModelWithRegistry(params: {
   modelId: string;
   modelRegistry: ModelRegistry;
   cfg?: CrawClawConfig;
-  agentDir?: string;
-  runtimeHooks?: ProviderRuntimeHooks;
 }): Model<Api> | undefined {
   const explicitModel = resolveExplicitModelWithRegistry(params);
   if (explicitModel?.kind === "suppressed") {
@@ -443,11 +372,6 @@ export function resolveModelWithRegistry(params: {
   }
   if (explicitModel?.kind === "resolved") {
     return explicitModel.model;
-  }
-
-  const pluginDynamicModel = resolvePluginDynamicModelWithRegistry(params);
-  if (pluginDynamicModel) {
-    return pluginDynamicModel;
   }
 
   return resolveConfiguredFallbackModel(params);
@@ -461,8 +385,6 @@ export function resolveModel(
   options?: {
     authStorage?: AuthStorage;
     modelRegistry?: ModelRegistry;
-    runtimeHooks?: ProviderRuntimeHooks;
-    skipProviderRuntimeHooks?: boolean;
   },
 ): {
   model?: Model<Api>;
@@ -474,14 +396,11 @@ export function resolveModel(
   const authStorage = options?.authStorage ?? discoverAuthStorage(resolvedAgentDir);
   const modelRegistry =
     options?.modelRegistry ?? discoverModels(authStorage as never, resolvedAgentDir);
-  const runtimeHooks = resolveRuntimeHooks(options);
   const model = resolveModelWithRegistry({
     provider,
     modelId,
     modelRegistry,
     cfg,
-    agentDir: resolvedAgentDir,
-    runtimeHooks,
   });
   if (model) {
     return { model, authStorage, modelRegistry };
@@ -491,9 +410,6 @@ export function resolveModel(
     error: buildUnknownModelError({
       provider,
       modelId,
-      cfg,
-      agentDir: resolvedAgentDir,
-      runtimeHooks,
     }),
     authStorage,
     modelRegistry,
@@ -508,9 +424,6 @@ export async function resolveModelAsync(
   options?: {
     authStorage?: AuthStorage;
     modelRegistry?: ModelRegistry;
-    retryTransientProviderRuntimeMiss?: boolean;
-    runtimeHooks?: ProviderRuntimeHooks;
-    skipProviderRuntimeHooks?: boolean;
   },
 ): Promise<{
   model?: Model<Api>;
@@ -522,46 +435,31 @@ export async function resolveModelAsync(
   const authStorage = options?.authStorage ?? discoverAuthStorage(resolvedAgentDir);
   const modelRegistry =
     options?.modelRegistry ?? discoverModels(authStorage as never, resolvedAgentDir);
-  const runtimeHooks = resolveRuntimeHooks(options);
   const explicitModel = resolveExplicitModelWithRegistry({
     provider,
     modelId,
     modelRegistry,
     cfg,
-    agentDir: resolvedAgentDir,
-    runtimeHooks,
   });
   if (explicitModel?.kind === "suppressed") {
     return {
       error: buildUnknownModelError({
         provider,
         modelId,
-        cfg,
-        agentDir: resolvedAgentDir,
-        runtimeHooks,
       }),
       authStorage,
       modelRegistry,
     };
   }
-  const resolveDynamicAttempt = async (attemptOptions?: { clearHookCache?: boolean }) => {
-    void attemptOptions;
-    return resolveModelWithRegistry({
-      provider,
-      modelId,
-      modelRegistry,
-      cfg,
-      agentDir: resolvedAgentDir,
-      runtimeHooks,
-    });
-  };
-  let model =
-    explicitModel?.kind === "resolved" ? explicitModel.model : await resolveDynamicAttempt();
-  if (!model && !explicitModel && options?.retryTransientProviderRuntimeMiss) {
-    // Keep the historical single retry for callers that can see a transient
-    // model registry miss during startup.
-    model = await resolveDynamicAttempt({ clearHookCache: true });
-  }
+  const model =
+    explicitModel?.kind === "resolved"
+      ? explicitModel.model
+      : resolveModelWithRegistry({
+          provider,
+          modelId,
+          modelRegistry,
+          cfg,
+        });
   if (model) {
     return { model, authStorage, modelRegistry };
   }
@@ -570,9 +468,6 @@ export async function resolveModelAsync(
     error: buildUnknownModelError({
       provider,
       modelId,
-      cfg,
-      agentDir: resolvedAgentDir,
-      runtimeHooks,
     }),
     authStorage,
     modelRegistry,
@@ -582,20 +477,10 @@ export async function resolveModelAsync(
 /**
  * Build a more helpful error when the model is not found.
  *
- * Some provider plugins only become available after setup/auth has registered
- * them. When users point `agents.defaults.model.primary` at one of those
- * providers before setup, the raw `Unknown model` error is too vague. Provider
- * plugins can append a targeted recovery hint here.
- *
- * See: https://github.com/qianleigood/crawclaw/issues/17328
+ * Provider-specific suppression messages are resolved from Rust-owned provider
+ * metadata before falling back to the generic unknown-model text.
  */
-function buildUnknownModelError(params: {
-  provider: string;
-  modelId: string;
-  cfg?: CrawClawConfig;
-  agentDir?: string;
-  runtimeHooks?: ProviderRuntimeHooks;
-}): string {
+function buildUnknownModelError(params: { provider: string; modelId: string }): string {
   const suppressed = buildSuppressedBuiltInModelError({
     provider: params.provider,
     id: params.modelId,
@@ -604,8 +489,5 @@ function buildUnknownModelError(params: {
     return suppressed;
   }
   const base = `Unknown model: ${params.provider}/${params.modelId}`;
-  void params.cfg;
-  void params.agentDir;
-  void params.runtimeHooks;
   return base;
 }
