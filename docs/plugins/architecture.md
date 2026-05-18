@@ -696,10 +696,9 @@ JavaScript plugin SDK package exports have been removed from the npm package.
   JavaScript plugin code.
 - Add new plugin-facing runtime capabilities to Rust crates and keep the JSON
   wire shape additive.
-- Bundled extension internals remain private. Core and tests may use documented
-  package-root entry points such as `index.js`, `api.js`, `runtime-api.js`, and
-  `setup-entry.js` for repo-owned packages, but external plugins should use the
-  Rust SDK.
+- Bundled extension internals remain private. Core and tests should read
+  manifest/package metadata and Rust/native descriptors for repo-owned
+  packages; external plugins should use the Rust SDK.
 - Repo-private TypeScript helpers can exist only as implementation detail. They
   are not a public SDK and must not be exported as npm package subpaths.
 
