@@ -6,6 +6,7 @@ import {
   DEFAULT_MODEL_INPUT as GENERATED_DEFAULT_MODEL_INPUT,
   DEFAULT_MODEL_MAX_TOKENS,
   MISTRAL_SAFE_MAX_TOKENS_BY_MODEL as GENERATED_MISTRAL_SAFE_MAX_TOKENS_BY_MODEL,
+  PROVIDER_DEFAULT_API_BY_PROVIDER as GENERATED_PROVIDER_DEFAULT_API_BY_PROVIDER,
 } from "../generated/providers/runtime-constants.generated.js";
 import { DEFAULT_AGENT_MAX_CONCURRENT, DEFAULT_SUBAGENT_MAX_CONCURRENT } from "./agent-limits.js";
 import { resolveAgentModelPrimaryValue } from "./model-input.js";
@@ -25,6 +26,8 @@ const DEFAULT_MODEL_COST: ModelDefinitionConfig["cost"] = GENERATED_DEFAULT_MODE
 const DEFAULT_MODEL_INPUT: ModelDefinitionConfig["input"] = [...GENERATED_DEFAULT_MODEL_INPUT];
 const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL: Readonly<Record<string, number>> =
   GENERATED_MISTRAL_SAFE_MAX_TOKENS_BY_MODEL;
+const PROVIDER_DEFAULT_API_BY_PROVIDER: Readonly<Record<string, ModelDefinitionConfig["api"]>> =
+  GENERATED_PROVIDER_DEFAULT_API_BY_PROVIDER;
 
 type ModelDefinitionLike = Partial<ModelDefinitionConfig> &
   Pick<ModelDefinitionConfig, "id" | "name">;
@@ -36,7 +39,7 @@ function resolveDefaultProviderApi(
   if (providerApi) {
     return providerApi;
   }
-  return normalizeProviderId(providerId) === "anthropic" ? "anthropic-messages" : undefined;
+  return PROVIDER_DEFAULT_API_BY_PROVIDER[normalizeProviderId(providerId)];
 }
 
 function isPositiveNumber(value: unknown): value is number {

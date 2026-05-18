@@ -249,6 +249,7 @@ export const GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS = {github_copilot_xhigh_thi
 export const DEFAULT_MODEL_COST = {default_model_cost} as const;
 export const DEFAULT_MODEL_INPUT = {default_model_input} as const;
 export const DEFAULT_MODEL_MAX_TOKENS = {default_model_max_tokens};
+export const PROVIDER_DEFAULT_API_BY_PROVIDER = {provider_default_api_by_provider} as const satisfies Readonly<Record<string, string>>;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {mistral_safe_max_tokens_by_model} as const satisfies Readonly<Record<string, number>>;
 export const DEFAULT_CLAUDE_CLI_MODEL = {default_claude_cli_model};
 export const ANTHROPIC_VERTEX_DEFAULT_REGION = {anthropic_vertex_default_region};
@@ -294,6 +295,8 @@ export const LEGACY_OPENCODE_ZEN_DEFAULT_MODELS = {legacy_opencode_zen_default_m
             crawclaw_providers::PROVIDER_MODEL_DEFAULT_INPUT_TYPES
         ),
         default_model_max_tokens = crawclaw_providers::PROVIDER_MODEL_DEFAULT_MAX_TOKENS,
+        provider_default_api_by_provider =
+            render_static_string_record(crawclaw_providers::PROVIDER_DEFAULT_API_BY_PROVIDER),
         mistral_safe_max_tokens_by_model =
             render_static_u32_record(crawclaw_providers::MISTRAL_SAFE_MAX_TOKENS_BY_MODEL),
         default_claude_cli_model = json_string(crawclaw_providers::DEFAULT_CLAUDE_CLI_MODEL),
@@ -761,6 +764,8 @@ mod tests {
         assert!(source.contains("cacheWrite: 0"));
         assert!(source.contains("export const DEFAULT_MODEL_INPUT = [\"text\"] as const;"));
         assert!(source.contains("export const DEFAULT_MODEL_MAX_TOKENS = 8192;"));
+        assert!(source.contains("export const PROVIDER_DEFAULT_API_BY_PROVIDER = {"));
+        assert!(source.contains("anthropic: \"anthropic-messages\""));
         assert!(source.contains("\"magistral-small\": 40000"));
         assert!(source.contains("\"mistral-medium-2508\": 8192"));
         assert!(source.contains("export const ANTHROPIC_VERTEX_DEFAULT_REGION = \"global\";"));

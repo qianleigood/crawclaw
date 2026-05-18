@@ -55,6 +55,9 @@ export const DEFAULT_MODEL_COST = {
 } as const;
 export const DEFAULT_MODEL_INPUT = ["text"] as const;
 export const DEFAULT_MODEL_MAX_TOKENS = 8192;
+export const PROVIDER_DEFAULT_API_BY_PROVIDER = {
+  anthropic: "anthropic-messages",
+} as const satisfies Readonly<Record<string, string>>;
 export const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL = {
   "devstral-medium-latest": 32768,
   "magistral-small": 40000,

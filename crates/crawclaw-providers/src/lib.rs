@@ -1279,6 +1279,8 @@ pub const PROVIDER_MODEL_DEFAULT_COST: ProviderModelDefaultCost = ProviderModelD
 };
 pub const PROVIDER_MODEL_DEFAULT_INPUT_TYPES: &[&str] = &["text"];
 pub const PROVIDER_MODEL_DEFAULT_MAX_TOKENS: u32 = 8_192;
+pub const PROVIDER_DEFAULT_API_BY_PROVIDER: &[(&str, &str)] =
+    &[("anthropic", "anthropic-messages")];
 pub const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL: &[(&str, u32)] = &[
     ("devstral-medium-latest", 32_768),
     ("magistral-small", 40_000),
@@ -3675,6 +3677,7 @@ mod tests {
         assert_eq!(PROVIDER_MODEL_DEFAULT_COST.cache_write, 0);
         assert_eq!(PROVIDER_MODEL_DEFAULT_INPUT_TYPES, &["text"]);
         assert_eq!(PROVIDER_MODEL_DEFAULT_MAX_TOKENS, 8_192);
+        assert!(PROVIDER_DEFAULT_API_BY_PROVIDER.contains(&("anthropic", "anthropic-messages")));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("magistral-small", 40_000)));
         assert!(MISTRAL_SAFE_MAX_TOKENS_BY_MODEL.contains(&("mistral-medium-2508", 8_192)));
         assert_eq!(OLLAMA_DEFAULT_CONTEXT_WINDOW, 128_000);
