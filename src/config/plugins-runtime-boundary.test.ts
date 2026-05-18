@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FIELD_HELP } from "./schema.help.js";
-import { FIELD_LABELS } from "./schema.labels.js";
+import { buildConfigSchema } from "./schema.js";
 import { CrawClawSchema } from "./zod-schema.js";
 
 function hasLegacyPluginsRuntimeKeys(keys: string[]): boolean {
@@ -8,9 +7,10 @@ function hasLegacyPluginsRuntimeKeys(keys: string[]): boolean {
 }
 
 describe("plugins runtime boundary config", () => {
-  it("omits legacy plugins.runtime keys from schema metadata", () => {
-    expect(hasLegacyPluginsRuntimeKeys(Object.keys(FIELD_HELP))).toBe(false);
-    expect(hasLegacyPluginsRuntimeKeys(Object.keys(FIELD_LABELS))).toBe(false);
+  it("omits legacy plugins.runtime keys from Rust-generated schema metadata", () => {
+    const schema = buildConfigSchema();
+
+    expect(hasLegacyPluginsRuntimeKeys(Object.keys(schema.uiHints))).toBe(false);
   });
 
   it("omits plugins.runtime from the generated config schema", () => {

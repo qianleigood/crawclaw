@@ -5,9 +5,6 @@ import {
   isSensitiveUrlConfigPath,
   SENSITIVE_URL_HINT_TAG,
 } from "../shared/net/redact-sensitive-url.js";
-import { FIELD_HELP } from "./schema.help.js";
-import { FIELD_LABELS } from "./schema.labels.js";
-import { applyDerivedTags } from "./schema.tags.js";
 import { sensitive } from "./zod-schema.sensitive.js";
 
 let log: ReturnType<typeof createSubsystemLogger> | null = null;
@@ -20,66 +17,6 @@ function getLog(): ReturnType<typeof createSubsystemLogger> {
 }
 
 export type { ConfigUiHint, ConfigUiHints } from "../shared/config-ui-hints-types.js";
-
-const GROUP_LABELS: Record<string, string> = {
-  wizard: "Wizard",
-  update: "Update",
-  cli: "Terminal",
-  diagnostics: "Diagnostics",
-  logging: "Logging",
-  gateway: "Gateway",
-  agents: "Agents",
-  tools: "Tools",
-  bindings: "Bindings",
-  audio: "Audio",
-  models: "Models",
-  messages: "Messages",
-  commands: "Commands",
-  session: "Session",
-  cron: "Cron",
-  hooks: "Hooks",
-  browser: "Browser",
-  talk: "Talk",
-  skills: "Skills",
-  plugins: "Plugins",
-  discovery: "Discovery",
-  presence: "Presence",
-  voicewake: "Voice Wake",
-};
-
-const GROUP_ORDER: Record<string, number> = {
-  wizard: 20,
-  update: 25,
-  cli: 26,
-  diagnostics: 27,
-  gateway: 30,
-  agents: 40,
-  tools: 50,
-  bindings: 55,
-  audio: 60,
-  models: 70,
-  messages: 80,
-  commands: 85,
-  session: 90,
-  cron: 100,
-  hooks: 110,
-  browser: 120,
-  talk: 130,
-  skills: 200,
-  plugins: 205,
-  discovery: 210,
-  presence: 220,
-  voicewake: 230,
-  logging: 900,
-};
-
-const FIELD_PLACEHOLDERS: Record<string, string> = {
-  "gateway.remote.url": "ws://host:18789",
-  "gateway.remote.tlsFingerprint": "sha256:ab12cd34…",
-  "gateway.remote.sshTarget": "user@host",
-  "gateway.browserClients.allowedOrigins": "https://control.example.com",
-  "agents.list[].identity.avatar": "avatars/crawclaw.png",
-};
 
 /**
  * Non-sensitive field names that happen to match sensitive patterns.
@@ -123,30 +60,6 @@ function matchesSensitivePattern(path: string): boolean {
 
 export function isSensitiveConfigPath(path: string): boolean {
   return !isWhitelistedSensitivePath(path) && matchesSensitivePattern(path);
-}
-
-export function buildBaseHints(): ConfigUiHints {
-  const hints: ConfigUiHints = {};
-  for (const [group, label] of Object.entries(GROUP_LABELS)) {
-    hints[group] = {
-      label,
-      group: label,
-      order: GROUP_ORDER[group],
-    };
-  }
-  for (const [path, label] of Object.entries(FIELD_LABELS)) {
-    const current = hints[path];
-    hints[path] = current ? { ...current, label } : { label };
-  }
-  for (const [path, help] of Object.entries(FIELD_HELP)) {
-    const current = hints[path];
-    hints[path] = current ? { ...current, help } : { help };
-  }
-  for (const [path, placeholder] of Object.entries(FIELD_PLACEHOLDERS)) {
-    const current = hints[path];
-    hints[path] = current ? { ...current, placeholder } : { placeholder };
-  }
-  return applyDerivedTags(hints);
 }
 
 export function applySensitiveHints(
