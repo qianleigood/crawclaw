@@ -3,7 +3,7 @@
 export const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
   anthropic: ["ANTHROPIC_OAUTH_TOKEN", "ANTHROPIC_API_KEY"],
   byteplus: ["BYTEPLUS_API_KEY"],
-  chutes: ["CHUTES_API_KEY", "CHUTES_OAUTH_TOKEN"],
+  chutes: ["CHUTES_API_KEY"],
   "cloudflare-ai-gateway": ["CLOUDFLARE_AI_GATEWAY_API_KEY"],
   deepseek: ["DEEPSEEK_API_KEY"],
   fal: ["FAL_KEY"],

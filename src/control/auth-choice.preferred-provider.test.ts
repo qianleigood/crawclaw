@@ -42,12 +42,12 @@ describe("resolvePreferredProviderForAuthChoice", () => {
     resolveManifestProviderAuthChoice.mockReturnValue({
       pluginId: "chutes",
       providerId: "chutes",
-      methodId: "oauth",
-      choiceId: "chutes",
-      choiceLabel: "Chutes OAuth",
+      methodId: "api-key",
+      choiceId: "chutes-api-key",
+      choiceLabel: "Chutes API key",
     });
 
-    await expect(resolvePreferredProviderForAuthChoice({ choice: "chutes" })).resolves.toBe(
+    await expect(resolvePreferredProviderForAuthChoice({ choice: "chutes-api-key" })).resolves.toBe(
       "chutes",
     );
   });

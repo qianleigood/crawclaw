@@ -34,9 +34,9 @@ describe("buildAuthChoiceOptions", () => {
       {
         pluginId: "chutes",
         providerId: "chutes",
-        methodId: "oauth",
-        choiceId: "chutes",
-        choiceLabel: "Chutes (OAuth)",
+        methodId: "api-key",
+        choiceId: "chutes-api-key",
+        choiceLabel: "Chutes API key",
         groupId: "chutes",
         groupLabel: "Chutes",
       },
@@ -177,7 +177,7 @@ describe("buildAuthChoiceOptions", () => {
       "minimax-global-api",
       "moonshot-api-key",
       "together-api-key",
-      "chutes",
+      "chutes-api-key",
       "xai-api-key",
       "mistral-api-key",
       "volcengine-api-key",
@@ -193,9 +193,9 @@ describe("buildAuthChoiceOptions", () => {
       {
         pluginId: "chutes",
         providerId: "chutes",
-        methodId: "oauth",
-        choiceId: "chutes",
-        choiceLabel: "Chutes (OAuth)",
+        methodId: "api-key",
+        choiceId: "chutes-api-key",
+        choiceLabel: "Chutes API key",
       },
       {
         pluginId: "litellm",
@@ -218,7 +218,7 @@ describe("buildAuthChoiceOptions", () => {
     }).split("|");
 
     expect(cliChoices).toContain("openai-api-key");
-    expect(cliChoices).toContain("chutes");
+    expect(cliChoices).toContain("chutes-api-key");
     expect(cliChoices).toContain("litellm-api-key");
     expect(cliChoices).toContain("custom-api-key");
     expect(cliChoices).toContain("skip");
@@ -281,9 +281,9 @@ describe("buildAuthChoiceOptions", () => {
       {
         pluginId: "chutes",
         providerId: "chutes",
-        methodId: "oauth",
-        choiceId: "chutes",
-        choiceLabel: "Chutes (OAuth)",
+        methodId: "api-key",
+        choiceId: "chutes-api-key",
+        choiceLabel: "Chutes API key",
         groupId: "chutes",
         groupLabel: "Chutes",
       },
@@ -295,7 +295,7 @@ describe("buildAuthChoiceOptions", () => {
     const chutesGroup = groups.find((group) => group.value === "chutes");
 
     expect(chutesGroup).toBeDefined();
-    expect(chutesGroup?.options.some((opt) => opt.value === "chutes")).toBe(true);
+    expect(chutesGroup?.options.some((opt) => opt.value === "chutes-api-key")).toBe(true);
   });
 
   it("shows LiteLLM in grouped provider selection", () => {

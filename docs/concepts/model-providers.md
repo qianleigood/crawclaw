@@ -169,7 +169,7 @@ See [/providers/kilocode](/providers/kilocode) for setup details.
 - Cerebras: `cerebras` (`CEREBRAS_API_KEY`)
   - GLM models on Cerebras use ids `zai-glm-4.7` and `zai-glm-4.6`.
   - OpenAI-compatible base URL: `https://api.cerebras.ai/v1`.
-- Chutes: `chutes` (`CHUTES_API_KEY` or OAuth). See [Chutes](/providers/chutes).
+- Chutes: `chutes` (`CHUTES_API_KEY`). See [Chutes](/providers/chutes).
 - Cloudflare AI Gateway: `cloudflare-ai-gateway` (`CLOUDFLARE_AI_GATEWAY_API_KEY`)
 - GitHub Copilot: `github-copilot` (`COPILOT_GITHUB_TOKEN` / `GH_TOKEN` / `GITHUB_TOKEN`)
 - Groq: `groq` (`GROQ_API_KEY`)

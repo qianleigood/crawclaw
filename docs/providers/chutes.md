@@ -1,30 +1,24 @@
 ---
 title: "Chutes"
-summary: "Chutes setup with OAuth or API key auth"
+summary: "Chutes setup with API key auth"
 read_when:
   - You want to use Chutes models with CrawClaw
-  - You need Chutes OAuth, API key, model aliases, or env var setup
+  - You need Chutes API key, model aliases, or env var setup
 ---
 
 # Chutes
 
 Chutes provides hosted open-source models through an OpenAI-compatible endpoint.
-CrawClaw ships a bundled `chutes` provider plugin with OAuth and API key auth.
+CrawClaw ships a bundled `chutes` provider plugin with API key auth.
 
 - Provider: `chutes`
 - Base URL: `https://llm.chutes.ai/v1`
-- Auth: Chutes OAuth, `CHUTES_API_KEY`, or `CHUTES_OAUTH_TOKEN`
+- Auth: `CHUTES_API_KEY`
 - Default model: `chutes/zai-org/GLM-4.7-TEE`
 
 ## Quick start
 
-Use OAuth when you want browser sign-in:
-
-```bash
-# Use CrawClaw Desktop or the local Gateway API for this operation.
-```
-
-Use an API key when you want a simple headless setup:
+Set a Chutes API key through CrawClaw Desktop or the local Gateway API:
 
 ```bash
 # Use CrawClaw Desktop or the local Gateway API for this operation.
@@ -58,19 +52,6 @@ Or store it with onboarding:
 
 If the Gateway runs as a daemon, make sure the key is available to that process,
 for example through `~/.crawclaw/.env` or `env.shellEnv`.
-
-## OAuth setup
-
-The OAuth flow uses browser sign-in and stores a Chutes auth profile. For remote
-or VPS environments, CrawClaw prints a URL for your local browser and asks you to
-paste the callback URL.
-
-Advanced OAuth app settings:
-
-- `CHUTES_CLIENT_ID`: OAuth client id. If unset, CrawClaw prompts for it.
-- `CHUTES_CLIENT_SECRET`: optional OAuth client secret.
-- `CHUTES_OAUTH_REDIRECT_URI`: redirect URI. Defaults to `http://127.0.0.1:1456/oauth-callback`.
-- `CHUTES_OAUTH_SCOPES`: scopes. Defaults to `openid profile chutes:invoke`.
 
 ## Model aliases
 
@@ -113,7 +94,5 @@ You can also use any catalog model directly as `chutes/<model-id>`.
 ## Troubleshooting
 
 - `missing auth` or `unauthorized`: rerun CrawClaw Desktop or the local Gateway API or set `CHUTES_API_KEY`.
-- OAuth callback does not complete: verify the OAuth app redirect URI matches
-  `CHUTES_OAUTH_REDIRECT_URI`.
 - Daemon cannot see the key: put `CHUTES_API_KEY` in the Gateway environment,
   not only in your interactive shell.

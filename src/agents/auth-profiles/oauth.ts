@@ -8,7 +8,6 @@ import { loadConfig, type CrawClawConfig } from "../../config/config.js";
 import { coerceSecretRef } from "../../config/types.secrets.js";
 import { withFileLock } from "../../infra/file-lock.js";
 import { resolveSecretRefString, type SecretRefResolveCache } from "../../secrets/resolve.js";
-import { refreshChutesTokens } from "../chutes-oauth.js";
 import { AUTH_STORE_LOCK_OPTIONS, log } from "./constants.js";
 import { resolveTokenExpiryState } from "./credential-state.js";
 import { formatAuthDoctorHint } from "./doctor.js";
@@ -174,24 +173,14 @@ async function refreshOAuthTokenWithLock(params: {
     }
 
     const oauthCreds: Record<string, OAuthCredentials> = { [cred.provider]: cred };
-    const result =
-      cred.provider === "chutes"
-        ? await (async () => {
-            const newCredentials = await refreshChutesTokens({
-              credential: cred,
-            });
-            return { apiKey: newCredentials.access, newCredentials };
-          })()
-        : await (async () => {
-            const oauthProvider = resolveOAuthProvider(cred.provider);
-            if (!oauthProvider) {
-              return null;
-            }
-            if (typeof getOAuthApiKey !== "function") {
-              return null;
-            }
-            return await getOAuthApiKey(oauthProvider, oauthCreds);
-          })();
+    const oauthProvider = resolveOAuthProvider(cred.provider);
+    if (!oauthProvider) {
+      return null;
+    }
+    if (typeof getOAuthApiKey !== "function") {
+      return null;
+    }
+    const result = await getOAuthApiKey(oauthProvider, oauthCreds);
     if (!result) {
       return null;
     }

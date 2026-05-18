@@ -1,7 +1,7 @@
 import { BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES } from "../plugins/bundled-provider-auth-env-vars.js";
 
 const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
-  chutes: ["CHUTES_OAUTH_TOKEN", "CHUTES_API_KEY"],
+  chutes: ["CHUTES_API_KEY"],
   voyage: ["VOYAGE_API_KEY"],
   groq: ["GROQ_API_KEY"],
   deepgram: ["DEEPGRAM_API_KEY"],
@@ -13,7 +13,7 @@ const CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES = {
 
 const CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES = {
   anthropic: ["ANTHROPIC_API_KEY", "ANTHROPIC_OAUTH_TOKEN"],
-  chutes: ["CHUTES_API_KEY", "CHUTES_OAUTH_TOKEN"],
+  chutes: ["CHUTES_API_KEY"],
   "minimax-cn": ["MINIMAX_API_KEY"],
 } as const;
 

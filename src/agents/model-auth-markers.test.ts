@@ -11,7 +11,7 @@ import {
 describe("model auth markers", () => {
   it("recognizes explicit non-secret markers", () => {
     expect(isNonSecretApiKeyMarker(NON_ENV_SECRETREF_MARKER)).toBe(true);
-    expect(isNonSecretApiKeyMarker(resolveOAuthApiKeyMarker("chutes"))).toBe(true);
+    expect(isNonSecretApiKeyMarker(resolveOAuthApiKeyMarker("anthropic"))).toBe(true);
     expect(isNonSecretApiKeyMarker("ollama-local")).toBe(true);
     expect(isNonSecretApiKeyMarker(GCP_VERTEX_CREDENTIALS_MARKER)).toBe(true);
   });

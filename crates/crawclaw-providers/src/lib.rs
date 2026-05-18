@@ -491,7 +491,7 @@ pub const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES: &[ProviderAuthEnvVars] = &[
     },
     ProviderAuthEnvVars {
         provider: "chutes",
-        env_vars: &["CHUTES_API_KEY", "CHUTES_OAUTH_TOKEN"],
+        env_vars: &["CHUTES_API_KEY"],
     },
     ProviderAuthEnvVars {
         provider: "cloudflare-ai-gateway",
