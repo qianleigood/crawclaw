@@ -166,6 +166,15 @@ export const LEGACY_ENV_API_KEY_MARKERS = [
 ] as const;
 export const ANTHROPIC_PROVIDER_ID = "anthropic";
 export const AMAZON_BEDROCK_PROVIDER_ID = "amazon-bedrock";
+export const GITHUB_COPILOT_PROVIDER_ID = "github-copilot";
+export const GOOGLE_PROVIDER_ID = "google";
+export const GOOGLE_VERTEX_PROVIDER_ID = "google-vertex";
+export const OPENAI_PROVIDER_ID = "openai";
+export const OPENAI_CODEX_PROVIDER_ID = "openai-codex";
+export const OPENROUTER_PROVIDER_ID = "openrouter";
+export const VERCEL_AI_GATEWAY_PROVIDER_ID = "vercel-ai-gateway";
+export const XAI_PROVIDER_ID = "xai";
+export const ZAI_PROVIDER_ID = "zai";
 export const ANTHROPIC_API_KEY_ENV = "ANTHROPIC_API_KEY";
 export const ANTHROPIC_OAUTH_TOKEN_ENV = "ANTHROPIC_OAUTH_TOKEN";
 export const PROVIDER_USAGE_LABELS = {
@@ -216,6 +225,7 @@ export const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS = [
   "azure-openai-responses",
 ] as const;
 export const OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models";
+export const OPENROUTER_DEFAULT_MODEL_REF = "openrouter/auto";
 export const MODEL_CATALOG_CONFIGURED_PROVIDER_IDS = ["deepseek", "kilocode", "ollama"] as const;
 export const OPENROUTER_PRICING_PROVIDER_ALIASES = {
   "google-gemini-cli": "google",

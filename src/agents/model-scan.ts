@@ -8,7 +8,11 @@ import {
   type Tool,
 } from "@mariozechner/pi-ai";
 import { Type } from "@sinclair/typebox";
-import { OPENROUTER_MODELS_API_URL } from "../generated/providers/runtime-constants.generated.js";
+import {
+  OPENROUTER_DEFAULT_MODEL_REF,
+  OPENROUTER_MODELS_API_URL,
+  OPENROUTER_PROVIDER_ID,
+} from "../generated/providers/runtime-constants.generated.js";
 import { inferParamBFromIdOrName } from "../shared/model-param-b.js";
 import { normalizeProviderId } from "./provider-id.js";
 
@@ -346,8 +350,8 @@ function buildOpenRouterScanResult(params: {
   return {
     id: entry.id,
     name: entry.name,
-    provider: "openrouter",
-    modelRef: `openrouter/${entry.id}`,
+    provider: OPENROUTER_PROVIDER_ID,
+    modelRef: `${OPENROUTER_PROVIDER_ID}/${entry.id}`,
     contextLength: entry.contextLength,
     maxCompletionTokens: entry.maxCompletionTokens,
     supportedParametersCount: entry.supportedParametersCount,
@@ -400,7 +404,7 @@ export async function scanOpenRouterModels(
 ): Promise<ModelScanResult[]> {
   const fetchImpl = options.fetchImpl ?? fetch;
   const probe = options.probe ?? true;
-  const apiKey = options.apiKey?.trim() || getEnvApiKey("openrouter") || "";
+  const apiKey = options.apiKey?.trim() || getEnvApiKey(OPENROUTER_PROVIDER_ID) || "";
   if (probe && !apiKey) {
     throw new Error("Missing OpenRouter API key. Set OPENROUTER_API_KEY to run models scan.");
   }
@@ -440,7 +444,7 @@ export async function scanOpenRouterModels(
     return true;
   });
 
-  const baseModel = getModel("openrouter", "openrouter/auto") as OpenAIModel;
+  const baseModel = getModel(OPENROUTER_PROVIDER_ID, OPENROUTER_DEFAULT_MODEL_REF) as OpenAIModel;
 
   options.onProgress?.({
     phase: "probe",

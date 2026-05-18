@@ -10,6 +10,15 @@ import {
   normalizeGoogleModelId,
   normalizeXaiModelId,
 } from "../generated/providers/model-normalization.generated.js";
+import {
+  ANTHROPIC_PROVIDER_ID,
+  GOOGLE_PROVIDER_ID,
+  GOOGLE_VERTEX_PROVIDER_ID,
+  OPENAI_PROVIDER_ID,
+  OPENROUTER_PROVIDER_ID,
+  VERCEL_AI_GATEWAY_PROVIDER_ID,
+  XAI_PROVIDER_ID,
+} from "../generated/providers/runtime-constants.generated.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import { sanitizeForLog } from "../terminal/ansi.js";
 import {
@@ -84,22 +93,22 @@ export {
 };
 
 function normalizeProviderModelId(provider: string, model: string): string {
-  if (provider === "anthropic") {
+  if (provider === ANTHROPIC_PROVIDER_ID) {
     return normalizeAnthropicModelId(model);
   }
-  if (provider === "google" || provider === "google-vertex") {
+  if (provider === GOOGLE_PROVIDER_ID || provider === GOOGLE_VERTEX_PROVIDER_ID) {
     return normalizeGoogleModelId(model);
   }
-  if (provider === "openai") {
+  if (provider === OPENAI_PROVIDER_ID) {
     return model;
   }
-  if (provider === "openrouter") {
-    return model.includes("/") ? model : `openrouter/${model}`;
+  if (provider === OPENROUTER_PROVIDER_ID) {
+    return model.includes("/") ? model : `${OPENROUTER_PROVIDER_ID}/${model}`;
   }
-  if (provider === "xai") {
+  if (provider === XAI_PROVIDER_ID) {
     return normalizeXaiModelId(model);
   }
-  if (provider === "vercel-ai-gateway" && !model.includes("/")) {
+  if (provider === VERCEL_AI_GATEWAY_PROVIDER_ID && !model.includes("/")) {
     // Allow Vercel-specific Claude refs without an upstream prefix.
     const normalizedAnthropicModel = normalizeAnthropicModelId(model);
     if (normalizedAnthropicModel.startsWith("claude-")) {
@@ -322,9 +331,9 @@ export function resolveConfiguredModelRef(params: {
       // Default to anthropic if no provider is specified, but warn as this is deprecated.
       const safeTrimmed = sanitizeForLog(trimmed);
       getLog().warn(
-        `Model "${safeTrimmed}" specified without provider. Falling back to "anthropic/${safeTrimmed}". Please use "anthropic/${safeTrimmed}" in your config.`,
+        `Model "${safeTrimmed}" specified without provider. Falling back to "${ANTHROPIC_PROVIDER_ID}/${safeTrimmed}". Please use "${ANTHROPIC_PROVIDER_ID}/${safeTrimmed}" in your config.`,
       );
-      return { provider: "anthropic", model: trimmed };
+      return { provider: ANTHROPIC_PROVIDER_ID, model: trimmed };
     }
 
     const resolved = resolveModelRefFromString({

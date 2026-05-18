@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Api, Model } from "@mariozechner/pi-ai";
+import { XAI_PROVIDER_ID } from "../generated/providers/runtime-constants.generated.js";
 import { normalizeModelCompat } from "../plugins/provider-model-compat.js";
 import { ensureAuthProfileStore } from "./auth-profiles.js";
 import { PROVIDER_ENV_API_KEY_CANDIDATES } from "./model-auth-env-vars.js";
@@ -35,7 +36,7 @@ function applyDiscoveredProviderCompat(model: Model<Api>): Model<Api> {
   const isMistral =
     provider.includes("mistral") || id.includes("mistral") || baseUrl.includes("mistral.ai");
   const isXai =
-    provider === "xai" ||
+    provider === XAI_PROVIDER_ID ||
     provider.includes("xai") ||
     id.startsWith("x-ai/") ||
     id.includes("grok") ||

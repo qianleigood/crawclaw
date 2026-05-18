@@ -742,6 +742,15 @@ pub const LEGACY_ENV_API_KEY_MARKERS: &[&str] = &[
 ];
 pub const ANTHROPIC_PROVIDER_ID: &str = "anthropic";
 pub const AMAZON_BEDROCK_PROVIDER_ID: &str = "amazon-bedrock";
+pub const GITHUB_COPILOT_PROVIDER_ID: &str = "github-copilot";
+pub const GOOGLE_PROVIDER_ID: &str = "google";
+pub const GOOGLE_VERTEX_PROVIDER_ID: &str = "google-vertex";
+pub const OPENAI_PROVIDER_ID: &str = "openai";
+pub const OPENAI_CODEX_PROVIDER_ID: &str = "openai-codex";
+pub const OPENROUTER_PROVIDER_ID: &str = "openrouter";
+pub const VERCEL_AI_GATEWAY_PROVIDER_ID: &str = "vercel-ai-gateway";
+pub const XAI_PROVIDER_ID: &str = "xai";
+pub const ZAI_PROVIDER_ID: &str = "zai";
 pub const ANTHROPIC_API_KEY_ENV: &str = "ANTHROPIC_API_KEY";
 pub const ANTHROPIC_OAUTH_TOKEN_ENV: &str = "ANTHROPIC_OAUTH_TOKEN";
 
@@ -798,6 +807,7 @@ pub const OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS: &[&str] = &[
     "azure-openai-responses",
 ];
 pub const OPENROUTER_MODELS_API_URL: &str = "https://openrouter.ai/api/v1/models";
+pub const OPENROUTER_DEFAULT_MODEL_REF: &str = "openrouter/auto";
 pub const MODEL_CATALOG_CONFIGURED_PROVIDER_IDS: &[&str] = &["deepseek", "kilocode", "ollama"];
 pub const OPENROUTER_PRICING_PROVIDER_ALIASES: &[(&str, &str)] = &[
     ("google-gemini-cli", "google"),
@@ -4062,6 +4072,15 @@ mod tests {
         assert!(LEGACY_ENV_API_KEY_MARKERS.contains(&"AZURE_OPENAI_API_KEY"));
         assert_eq!(ANTHROPIC_PROVIDER_ID, "anthropic");
         assert_eq!(AMAZON_BEDROCK_PROVIDER_ID, "amazon-bedrock");
+        assert_eq!(GITHUB_COPILOT_PROVIDER_ID, "github-copilot");
+        assert_eq!(GOOGLE_PROVIDER_ID, "google");
+        assert_eq!(GOOGLE_VERTEX_PROVIDER_ID, "google-vertex");
+        assert_eq!(OPENAI_PROVIDER_ID, "openai");
+        assert_eq!(OPENAI_CODEX_PROVIDER_ID, "openai-codex");
+        assert_eq!(OPENROUTER_PROVIDER_ID, "openrouter");
+        assert_eq!(VERCEL_AI_GATEWAY_PROVIDER_ID, "vercel-ai-gateway");
+        assert_eq!(XAI_PROVIDER_ID, "xai");
+        assert_eq!(ZAI_PROVIDER_ID, "zai");
         assert_eq!(ANTHROPIC_API_KEY_ENV, "ANTHROPIC_API_KEY");
         assert_eq!(ANTHROPIC_OAUTH_TOKEN_ENV, "ANTHROPIC_OAUTH_TOKEN");
         assert!(PROVIDER_USAGE_LABELS.contains(&("openai-codex", "Codex")));
@@ -4115,6 +4134,7 @@ mod tests {
             OPENROUTER_MODELS_API_URL,
             "https://openrouter.ai/api/v1/models"
         );
+        assert_eq!(OPENROUTER_DEFAULT_MODEL_REF, "openrouter/auto");
         assert_eq!(
             MODEL_CATALOG_CONFIGURED_PROVIDER_IDS,
             &["deepseek", "kilocode", "ollama"]

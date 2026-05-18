@@ -1,9 +1,15 @@
 import {
   AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN,
+  AMAZON_BEDROCK_PROVIDER_ID,
   ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN,
+  ANTHROPIC_PROVIDER_ID,
   GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS,
+  GITHUB_COPILOT_PROVIDER_ID,
+  OPENAI_CODEX_PROVIDER_ID,
   OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS,
+  OPENAI_PROVIDER_ID,
   OPENAI_XHIGH_THINKING_MODEL_IDS,
+  ZAI_PROVIDER_ID,
 } from "../generated/providers/runtime-constants.generated.js";
 import { normalizeProviderId as normalizeProviderIdValue } from "./provider-id.js";
 
@@ -46,7 +52,7 @@ export function normalizeProviderId(provider?: string | null): string {
 }
 
 export function isBinaryThinkingProvider(provider?: string | null): boolean {
-  return normalizeProviderId(provider) === "zai";
+  return normalizeProviderId(provider) === ZAI_PROVIDER_ID;
 }
 
 export function supportsBuiltInXHighThinking(
@@ -58,13 +64,13 @@ export function supportsBuiltInXHighThinking(
   if (!providerId || !modelId) {
     return false;
   }
-  if (providerId === "openai") {
+  if (providerId === OPENAI_PROVIDER_ID) {
     return matchesExactOrPrefix(modelId, OPENAI_XHIGH_THINKING_MODEL_IDS);
   }
-  if (providerId === "openai-codex") {
+  if (providerId === OPENAI_CODEX_PROVIDER_ID) {
     return matchesExactOrPrefix(modelId, OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS);
   }
-  if (providerId === "github-copilot") {
+  if (providerId === GITHUB_COPILOT_PROVIDER_ID) {
     return (GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS as readonly string[]).includes(modelId);
   }
   return false;
@@ -142,11 +148,14 @@ export function resolveThinkingDefaultForModel(params: {
 }): ThinkLevel {
   const normalizedProvider = normalizeProviderId(params.provider);
   const modelId = params.model.trim();
-  if (normalizedProvider === "anthropic" && ANTHROPIC_ADAPTIVE_THINKING_MODEL_RE.test(modelId)) {
+  if (
+    normalizedProvider === ANTHROPIC_PROVIDER_ID &&
+    ANTHROPIC_ADAPTIVE_THINKING_MODEL_RE.test(modelId)
+  ) {
     return "adaptive";
   }
   if (
-    normalizedProvider === "amazon-bedrock" &&
+    normalizedProvider === AMAZON_BEDROCK_PROVIDER_ID &&
     AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_RE.test(modelId)
   ) {
     return "adaptive";
