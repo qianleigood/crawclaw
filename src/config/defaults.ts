@@ -500,7 +500,3 @@ export function applyCompactionDefaults(cfg: CrawClawConfig): CrawClawConfig {
     },
   };
 }
-
-export function resetSessionDefaultsWarningForTests() {
-  defaultWarnState = { warned: false };
-}

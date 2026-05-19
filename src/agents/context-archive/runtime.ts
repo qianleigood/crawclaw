@@ -6,7 +6,3 @@ export async function resolveSharedContextArchiveService(
 ): Promise<ContextArchiveService | undefined> {
   return undefined;
 }
-
-export function resetSharedContextArchiveServiceForTests(): void {
-  return;
-}

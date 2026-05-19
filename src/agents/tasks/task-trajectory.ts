@@ -1339,18 +1339,6 @@ export function readTaskTrajectorySync(
   }
 }
 
-export async function flushTaskTrajectoryWritesForTest(): Promise<void> {
-  const pending = [...getTaskTrajectoryState().byRunId.values()].map((entry) => entry.persistQueue);
-  await Promise.all(pending);
-}
-
-export function resetTaskTrajectoryBridgeForTest(): void {
-  const state = getTaskTrajectoryState();
-  state.bridgeStop?.();
-  state.bridgeStop = undefined;
-  state.byRunId.clear();
-}
-
 export function resolveTaskTrajectoryRefForTask(params: {
   taskId: string;
   agentId?: string | null;

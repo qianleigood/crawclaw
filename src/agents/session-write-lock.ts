@@ -279,15 +279,6 @@ function registerCleanupHandlers(): void {
   }
 }
 
-function unregisterCleanupHandlers(): void {
-  const cleanupState = resolveCleanupState();
-  for (const [signal, handler] of cleanupState.cleanupHandlers) {
-    process.off(signal, handler);
-  }
-  cleanupState.cleanupHandlers.clear();
-  cleanupState.registered = false;
-}
-
 async function readLockPayload(lockPath: string): Promise<LockFilePayload | null> {
   try {
     const raw = await fs.readFile(lockPath, "utf8");
@@ -575,17 +566,3 @@ export const __testing = {
   releaseAllLocksSync,
   runLockWatchdogCheck,
 };
-
-export async function drainSessionWriteLockStateForTest(): Promise<void> {
-  for (const [sessionFile, held] of Array.from(HELD_LOCKS.entries())) {
-    await releaseHeldLock(sessionFile, held, { force: true }).catch(() => undefined);
-  }
-  stopWatchdogTimer();
-  unregisterCleanupHandlers();
-}
-
-export function resetSessionWriteLockStateForTest(): void {
-  releaseAllLocksSync();
-  stopWatchdogTimer();
-  unregisterCleanupHandlers();
-}

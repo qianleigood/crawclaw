@@ -43,7 +43,3 @@ export function recordDiscoveredSkillDirs(
   }
   discoveredSkillDirsBySession.set(key, current);
 }
-
-export function clearDiscoveredSkillDirsForTest(): void {
-  discoveredSkillDirsBySession.clear();
-}

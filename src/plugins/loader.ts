@@ -79,12 +79,6 @@ export const __testing = {
   get maxPluginRegistryCacheEntries() {
     return pluginRegistryCacheEntryCap;
   },
-  setMaxPluginRegistryCacheEntriesForTest(value?: number) {
-    pluginRegistryCacheEntryCap =
-      typeof value === "number" && Number.isFinite(value) && value > 0
-        ? Math.max(1, Math.floor(value))
-        : MAX_PLUGIN_REGISTRY_CACHE_ENTRIES;
-  },
 };
 
 function getCachedPluginRegistry(cacheKey: string): CachedPluginState | undefined {

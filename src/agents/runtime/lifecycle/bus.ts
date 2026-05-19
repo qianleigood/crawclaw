@@ -165,7 +165,3 @@ export async function emitRunLoopLifecycleEvent(event: RunLoopLifecycleEventInpu
     }
   }
 }
-
-export function resetRunLoopLifecycleHandlersForTests(): void {
-  handlers.clear();
-}

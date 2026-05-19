@@ -185,8 +185,3 @@ function describeUnknownAllowlistSuffix(params: {
         : "These entries won't match any tool unless the plugin is enabled.";
   return preface ? `${preface} ${detail}` : detail;
 }
-
-export function resetToolPolicyWarningCacheForTest(): void {
-  seenToolPolicyWarnings.clear();
-  toolPolicyWarningOrder.length = 0;
-}

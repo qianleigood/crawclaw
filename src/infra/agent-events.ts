@@ -144,10 +144,6 @@ export function clearAgentRunContext(runId: string) {
   getAgentEventState().runContextById.delete(runId);
 }
 
-export function resetAgentRunContextForTest() {
-  getAgentEventState().runContextById.clear();
-}
-
 export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
   const state = getAgentEventState();
   const nextSeq = (state.seqByRun.get(event.runId) ?? 0) + 1;
@@ -170,11 +166,4 @@ export function emitAgentEvent(event: Omit<AgentEventPayload, "seq" | "ts">) {
 export function onAgentEvent(listener: (evt: AgentEventPayload) => void) {
   const state = getAgentEventState();
   return registerListener(state.listeners, listener);
-}
-
-export function resetAgentEventsForTest() {
-  const state = getAgentEventState();
-  state.seqByRun.clear();
-  state.listeners.clear();
-  state.runContextById.clear();
 }

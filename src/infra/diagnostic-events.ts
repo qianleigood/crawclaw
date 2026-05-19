@@ -277,10 +277,3 @@ export function onDiagnosticEvent(listener: (evt: DiagnosticEventPayload) => voi
     state.listeners.delete(listener);
   };
 }
-
-export function resetDiagnosticEventsForTest(): void {
-  const state = getDiagnosticEventsState();
-  state.seq = 0;
-  state.listeners.clear();
-  state.dispatchDepth = 0;
-}

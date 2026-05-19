@@ -22,16 +22,7 @@ const defaultSubagentSpawnDeps: SubagentSpawnDeps = {
   updateSessionStore,
 };
 
-let subagentSpawnDeps: SubagentSpawnDeps = defaultSubagentSpawnDeps;
-
-export function setSubagentSpawnDepsForTest(overrides?: Partial<SubagentSpawnDeps>): void {
-  subagentSpawnDeps = overrides
-    ? {
-        ...defaultSubagentSpawnDeps,
-        ...overrides,
-      }
-    : defaultSubagentSpawnDeps;
-}
+const subagentSpawnDeps: SubagentSpawnDeps = defaultSubagentSpawnDeps;
 
 export function loadSubagentConfig() {
   return subagentSpawnDeps.loadConfig();
