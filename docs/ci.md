@@ -35,7 +35,8 @@ Jobs are ordered so cheap checks fail before expensive ones run:
 2. PRs: `checks` (Rust workspace test), `checks-windows`, `macos`, `android`
 3. Pushes to `main`: `build-artifacts` + `release-check` + Node build compatibility
 
-Scope logic lives in `scripts/ci-changed-scope.mjs` and is covered by unit tests in `src/scripts/ci-changed-scope.test.ts`.
+Scope logic lives in `scripts/ci-changed-scope.mjs`; keep it validated through
+the workflow audit plus affected CI lanes when changing scope behavior.
 The same shared scope module also drives packaging and install smoke scope decisions.
 
 ## Runners

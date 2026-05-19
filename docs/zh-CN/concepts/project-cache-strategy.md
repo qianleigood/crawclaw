@@ -1,7 +1,7 @@
 ---
 read_when:
   - 你在看 prompt cache、memory cache、web fetch cache 或 routing cache 行为
-  - 你要确认缓存 owner、cache key、失效规则或缓存测试
+  - 你要确认缓存 owner、cache key、失效规则或验证 gate
 summary: CrawClaw 的分层缓存模型、当前归属边界与治理规则
 title: 项目缓存策略
 ---
@@ -15,7 +15,7 @@ CrawClaw 没有单一的中心化 cache service。缓存分布在 agent kernel�
 - 谁拥有这个 cache
 - cache key 的 identity 是什么
 - cache 何时过期或失效
-- 测试如何证明它不会跨 user、session、provider 或 config 边界复用
+- 相关 Rust/native gate 如何证明它不会跨 user、session、provider 或 config 边界复用
 
 ## Cache Governance Registry
 
@@ -29,7 +29,7 @@ CrawClaw 没有单一的中心化 cache service。缓存分布在 agent kernel�
 - `invalidation`
 - `observability`
 
-`src/cache/governance.test.ts` 会保持 descriptor ID 唯一，并要求关键可变 cache 注册进治理清单，例如 `config.sessions.store` 和 `agents.web-fetch.response`。
+保持 descriptor ID 唯一，并把 `config.sessions.store` 和 `agents.web-fetch.response` 等关键可变 cache 注册进这份治理清单。
 
 ## Query And Prompt Identity
 
@@ -70,19 +70,18 @@ Session store cache 有两部分：
 - object cache，key 包含 store path、文件 `mtimeMs` 和 size
 - serialized write-through cache，也绑定同一组文件 fingerprint
 
-外部进程改写 session file 后，serialized cache 不能继续跳过写盘。回归覆盖在 `src/config/sessions.cache.test.ts`。
+外部进程改写 session file 后，serialized cache 不能继续跳过写盘。修改 cache 语义前，请通过 Rust/native session persistence gate 验证这个行为。
 
 ## Web Fetch Response Cache
 
 主要代码：
 
-- `src/agents/tools/web-fetch.ts`
-- `src/agents/tools/web-fetch-runtime-helpers.ts`
-- `src/agents/tools/web-shared.ts`
+- `crates/crawclaw-native-plugins/src/web.rs`
+- `src/cache/web-fetch-cache.ts`
 
-`web_fetch` 会在进程内缓存 provider-backed 和本地 fetch response。它的 cache key 包含请求 URL、输出形态、fetch 设置、provider ID、sticky `sessionId` 和 provider wait hints。
+`web_fetch` 会在进程内缓存 Rust native fetch response。它的 cache key 包含请求 URL、输出形态、fetch 设置、provider ID、sticky `sessionId` 和 provider wait hints。
 
-这是安全敏感 cache。一个 sticky browser session 的 provider-backed response 不能被另一个 session 复用。回归覆盖在 `src/agents/tools/web-fetch.provider-fallback.test.ts`。
+这是安全敏感 cache。一个 sticky browser session 的 response 不能被另一个 session 复用。回归覆盖在 Rust native web fetch tests。
 
 ## Routing And Control Plane Caches
 

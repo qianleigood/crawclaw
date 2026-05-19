@@ -32,12 +32,12 @@ export const SESSION_STORE_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
     "Per-process cache retained until TTL expiry, file fingerprint mismatch, explicit invalidation, or process restart.",
   invalidation: [
     "File mtime or size differs from the cached fingerprint",
-    "invalidateSessionStoreCache(storePath) or clearSessionStoreCaches()",
+    "invalidateSessionStoreCache(storePath)",
     "CRAWCLAW_SESSION_CACHE_TTL_MS=0 disables object-cache reuse",
   ],
   observability: [
-    "src/config/sessions.cache.test.ts covers external-write and same-mtime rewrite cases",
-    "clearSessionStoreCacheForTest() resets state for targeted tests",
+    "Registered in src/cache/governance.ts so cache ownership stays visible in audits",
+    "Rust/native session persistence gates cover the desktop runtime path",
   ],
 };
 
@@ -50,11 +50,6 @@ export function getSessionStoreTtl(): number {
 
 export function isSessionStoreCacheEnabled(): boolean {
   return isCacheEnabled(getSessionStoreTtl());
-}
-
-export function clearSessionStoreCaches(): void {
-  SESSION_STORE_CACHE.clear();
-  SESSION_STORE_SERIALIZED_CACHE.clear();
 }
 
 export function invalidateSessionStoreCache(storePath: string): void {

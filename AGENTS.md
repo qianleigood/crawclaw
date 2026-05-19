@@ -7,7 +7,7 @@
 ## Project Structure & Module Organization
 
 - Source code: `src/` (terminal helpers in `src/terminal`, web provider in `src/provider-web.ts`, infra in `src/infra`, media pipeline in `src/media`).
-- Tests: colocated `*.test.ts`.
+- Tests: Rust workspace tests via `pnpm test`; do not add TypeScript test suites.
 - Docs: `docs/` (images, queue, Pi config). Built output lives in `dist/`.
 - Nomenclature: use "plugin" / "plugins" in docs, UI, changelogs, and contributor guidance. The bundled workspace plugin tree remains the internal package layout to avoid repo-wide churn from a rename.
 - Bundled plugin naming: for repo-owned workspace plugins, keep the canonical plugin id aligned across `crawclaw.plugin.json:id`, the default workspace folder name, and package names anchored to the same id (`@crawclaw/<id>` or approved suffix forms like `-provider`, `-plugin`, `-speech`, `-sandbox`, `-media-understanding`). Keep `crawclaw.install.npmSpec` equal to the package name and `crawclaw.channel.id` equal to the plugin id when present. Exceptions must be explicit and covered by the repo invariant test.
@@ -39,7 +39,7 @@
   - Public docs: `docs/plugins/building-plugins.md`, `docs/plugins/architecture.md`, `docs/plugins/sdk-overview.md`, `docs/plugins/sdk-entrypoints.md`, `docs/plugins/sdk-runtime.md`, `docs/plugins/manifest.md`, `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/sdk-provider-plugins.md`
   - Definition files: `crates/crawclaw-plugin-sdk/src/lib.rs`, `crates/crawclaw-native-plugins/src/registry.rs`, `src/plugins/contracts/registry.ts`, `package.json`
   - Rule: third-party authoring contracts belong in the Rust plugin SDK, manifest metadata, and documented runtime helpers. Do not recreate public JavaScript SDK exports.
-  - Rule: core code and tests must not deep-import bundled plugin internals such as a plugin's `src/**` files or `onboard.js`. If core needs a bundled plugin helper, expose it through that plugin's `api.ts`.
+  - Rule: core code must not deep-import bundled plugin internals such as a plugin's `src/**` files or `onboard.js`. If core needs a bundled plugin helper, expose it through that plugin's `api.ts`.
   - Compatibility: new plugin seams are allowed, but they must be added as documented, versioned Rust/native contracts. We have third-party plugins in the wild and do not break them casually.
 - Channel boundary:
   - Public docs: `docs/plugins/sdk-channel-plugins.md`, `docs/plugins/architecture.md`

@@ -11,13 +11,6 @@ import {
 import { runAsScript } from "./lib/ts-guard-utils.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const baselinePath = path.join(
-  repoRoot,
-  "test",
-  "fixtures",
-  "web-search-provider-boundary-inventory.json",
-);
-
 const scanRoots = ["src"];
 const scanExtensions = new Set([".ts", ".js", ".mjs", ".cjs"]);
 const ignoredDirNames = new Set([
@@ -38,13 +31,7 @@ const allowedGenericFiles = new Set([
   "src/secrets/runtime-web-tools.ts",
 ]);
 
-const ignoredFiles = new Set([
-  "src/config/config.web-search-provider.test.ts",
-  "src/plugins/contracts/loader.contract.test.ts",
-  "src/plugins/contracts/registry.contract.test.ts",
-  "src/plugins/web-search-providers.test.ts",
-  "src/secrets/runtime-web-tools.test.ts",
-]);
+const ignoredFiles = new Set();
 
 let webSearchProviderInventoryPromise;
 
@@ -172,14 +159,7 @@ export async function collectWebSearchProviderBoundaryInventory() {
 }
 
 export async function readExpectedInventory() {
-  try {
-    return JSON.parse(await fs.readFile(baselinePath, "utf8"));
-  } catch (error) {
-    if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
-      return [];
-    }
-    throw error;
-  }
+  return [];
 }
 
 export function diffInventory(expected, actual) {

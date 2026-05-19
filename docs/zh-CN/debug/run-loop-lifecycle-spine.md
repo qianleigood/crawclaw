@@ -264,18 +264,9 @@ runtime spine 覆盖专门用来守住这些主链：
 
 当前覆盖包括：
 
-- `src/memory/engine/context-memory-runtime.*.test.ts`
-- `src/memory/session-summary/agent-runner.test.ts`
-- `src/memory/durable/agent-runner.test.ts`
-- `src/memory/dreaming/agent-runner.test.ts`
-- Rust agent runtime attempt tests
-- `src/agents/special/runtime/*.test.ts`
-- `src/commands/agent.inspect.test.ts`
-
-按当前这轮结果，这条测试集已经通过：
-
-- unit lane：8 个文件 / 83 个测试
-- base lane：14 个文件 / 64 个测试
+- `crates/crawclaw-runtime` memory tests
+- `crates/crawclaw-runtime` agent runtime tests
+- `crates/crawclaw-runtime` special-agent tests
 
 这条集合最适合回答这几个问题：
 

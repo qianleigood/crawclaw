@@ -24,21 +24,17 @@ x-i18n:
 - 格式检查：`pnpm format`
 - 推送前的完整检查：`pnpm lint && pnpm build && pnpm test`
 
-## 运行 Pi 测试
+## 运行 Agent Runtime Tests
 
-直接使用 Vitest 运行面向 Pi 的测试集：
+运行 Rust runtime tests 来覆盖执行行为：
 
 ```bash
-pnpm test -- \
-  "src/agents/pi-*.test.ts" \
-  "src/agents/runtime-helpers*.test.ts" \
-  "src/agents/pi-tools*.test.ts" \
-  "src/agents/pi-settings.test.ts" \
-  "src/agents/pi-tool-definition-adapter*.test.ts" \
-  "src/agents/pi-hooks/**/*.test.ts"
+cargo test -p crawclaw-runtime agent_runtime
+cargo test -p crawclaw-runtime memory
+cargo test -p crawclaw-gateway agent_run_turn
 ```
 
-交付前运行更完整的原生 gate：
+交付前运行更完整的 native gate：
 
 ```bash
 pnpm test
@@ -52,10 +48,7 @@ pnpm test
 
 - 以开发模式运行 Gateway 网关：
   - `pnpm gateway:dev`
-- 直接触发智能体：
-  - `pnpm crawclaw agent --message "Hello" --thinking low`
-- 使用终端界面进行交互式调试：
-  - `pnpm tui`
+- 通过 CrawClaw Desktop 或本地 Gateway API 触发 agent。
 
 对于工具调用行为，请提示执行 `read` 或 `exec` 操作，这样你就可以看到工具的流式传输和负载处理。
 

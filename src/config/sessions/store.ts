@@ -18,7 +18,6 @@ import { getFileStatSnapshot } from "../cache-utils.js";
 import { enforceSessionDiskBudget, type SessionDiskBudgetSweepResult } from "./disk-budget.js";
 import { deriveSessionMetaPatch } from "./metadata.js";
 import {
-  clearSessionStoreCaches,
   dropSessionStoreObjectCache,
   getSerializedSessionStore,
   isSessionStoreCacheEnabled,
@@ -47,7 +46,6 @@ const log = createSubsystemLogger("sessions/store");
 let sessionArchiveRuntimePromise: Promise<
   typeof import("../../gateway/session-archive.runtime.js")
 > | null = null;
-let sessionWriteLockAcquirerForTests: typeof acquireSessionWriteLock | null = null;
 
 function loadSessionArchiveRuntime() {
   sessionArchiveRuntimePromise ??= import("../../gateway/session-archive.runtime.js");
@@ -155,59 +153,6 @@ function normalizeSessionStore(store: Record<string, SessionEntry>): void {
       store[key] = normalized;
     }
   }
-}
-
-export function clearSessionStoreCacheForTest(): void {
-  clearSessionStoreCaches();
-  for (const queue of LOCK_QUEUES.values()) {
-    for (const task of queue.pending) {
-      task.reject(new Error("session store queue cleared for test"));
-    }
-  }
-  LOCK_QUEUES.clear();
-}
-
-export function setSessionWriteLockAcquirerForTests(
-  acquirer: typeof acquireSessionWriteLock | null,
-): void {
-  sessionWriteLockAcquirerForTests = acquirer;
-}
-
-export function resetSessionStoreLockRuntimeForTests(): void {
-  sessionWriteLockAcquirerForTests = null;
-}
-
-export async function drainSessionStoreLockQueuesForTest(): Promise<void> {
-  while (LOCK_QUEUES.size > 0) {
-    const queues = [...LOCK_QUEUES.values()];
-    for (const queue of queues) {
-      for (const task of queue.pending) {
-        task.reject(new Error("session store queue cleared for test"));
-      }
-      queue.pending.length = 0;
-    }
-    const activeDrains = queues.flatMap((queue) =>
-      queue.drainPromise ? [queue.drainPromise] : [],
-    );
-    if (activeDrains.length === 0) {
-      LOCK_QUEUES.clear();
-      return;
-    }
-    await Promise.allSettled(activeDrains);
-  }
-}
-
-/** Expose lock queue size for tests. */
-export function getSessionStoreLockQueueSizeForTest(): number {
-  return LOCK_QUEUES.size;
-}
-
-export async function withSessionStoreLockForTest<T>(
-  storePath: string,
-  fn: () => Promise<T>,
-  opts: SessionStoreLockOptions = {},
-): Promise<T> {
-  return await withSessionStoreLock(storePath, fn, opts);
 }
 
 type LoadSessionStoreOptions = {
@@ -595,7 +540,7 @@ async function saveSessionStoreUnlocked(
     const code = getErrorCode(err);
 
     if (code === "ENOENT") {
-      // In tests the temp session-store directory may be deleted while writes are in-flight.
+      // The session-store directory may be removed while writes are in-flight.
       // Best-effort: try a direct write (recreating the parent dir), otherwise ignore.
       try {
         await writeSessionStoreAtomic({ storePath, store, serialized: json });
@@ -794,7 +739,7 @@ async function drainSessionStoreLockQueue(storePath: string): Promise<void> {
         let failed: unknown;
         let hasFailure = false;
         try {
-          lock = await (sessionWriteLockAcquirerForTests ?? acquireSessionWriteLock)({
+          lock = await acquireSessionWriteLock({
             sessionFile: storePath,
             timeoutMs: remainingTimeoutMs,
             staleMs: task.staleMs,

@@ -72,7 +72,6 @@ schema or a compatibility type for still-existing TypeScript callers. Current
 examples include agent/tool schema surfaces such as:
 
 - `src/agents/session-client/schema-types.ts`
-- TypeScript tests and stubs that validate agent/tool schemas
 
 Do not add new handwritten TypeBox modules for Gateway protocol shapes. Protocol
 fields and method contracts should be changed in Rust, regenerated, and then
@@ -95,8 +94,7 @@ consumed through the generated TypeScript read model.
    pnpm protocol:check
    ```
 
-5. Add Rust Gateway tests for behavior and contract coverage. Add TypeScript
-   tests only for existing TypeScript client/helper behavior.
+5. Add Rust Gateway tests for behavior and contract coverage.
 
 ## Versioning
 

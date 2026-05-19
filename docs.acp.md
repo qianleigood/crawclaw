@@ -234,8 +234,8 @@ updates. Terminal Gateway states map to ACP `done` with stop reasons:
 
 ## Testing
 
-- Unit: `src/acp/session.test.ts` covers run id lifecycle.
-- Full gate: `pnpm build && pnpm check && pnpm test && pnpm docs:build`.
+- Runtime coverage lives in the Rust workspace test gate.
+- Full gate: `pnpm build && pnpm check && pnpm test`.
 
 ## Related Docs
 

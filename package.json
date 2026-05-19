@@ -14,8 +14,7 @@
     "url": "git+https://github.com/qianleigood/crawclaw.git"
   },
   "directories": {
-    "doc": "docs",
-    "test": "test"
+    "doc": "docs"
   },
   "files": [
     "CHANGELOG.md",

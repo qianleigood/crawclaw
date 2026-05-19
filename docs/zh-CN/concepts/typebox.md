@@ -259,9 +259,9 @@ export const systemHandlers: GatewayRequestHandlers = {
 pnpm protocol:check
 ```
 
-5. **测试 + 文档**
+5. **Rust 测试 + 文档**
 
-在 `src/gateway/server.*.test.ts` 中添加服务器测试，并在文档中记录该方法。
+为行为和 contract coverage 添加 Rust Gateway tests，并在文档中记录该方法。
 
 ## Swift 代码生成行为
 

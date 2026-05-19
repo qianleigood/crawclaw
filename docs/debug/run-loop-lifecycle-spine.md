@@ -344,15 +344,9 @@ not quietly regress:
 
 Current coverage includes:
 
-- `src/memory/engine/context-memory-runtime.*.test.ts`
 - `crates/crawclaw-runtime` memory tests
 - `crates/crawclaw-runtime` agent runtime tests
 - `crates/crawclaw-runtime` special-agent tests
-
-At the time of writing, this suite passes as:
-
-- unit lane: 8 files / 83 tests
-- base lane: 14 files / 64 tests
 
 This suite is the quickest way to answer:
 

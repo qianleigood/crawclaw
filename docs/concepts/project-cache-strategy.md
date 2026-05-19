@@ -1,7 +1,7 @@
 ---
 read_when:
   - You are reviewing prompt cache, memory cache, web fetch cache, or routing cache behavior
-  - You need to identify cache owners, cache keys, invalidation rules, or cache tests
+  - You need to identify cache owners, cache keys, invalidation rules, or validation gates
 summary: CrawClaw's layered cache model, current ownership boundaries, and governance rules
 title: Project Cache Strategy
 ---
@@ -17,7 +17,7 @@ The important review question is not “where is the Map.” It is:
 - who owns this cache
 - what identity forms the cache key
 - how the cache expires or invalidates
-- how tests prove the cache cannot cross user, session, provider, or config boundaries
+- how the relevant Rust/native gate proves the cache cannot cross user, session, provider, or config boundaries
 
 ## Cache Governance Registry
 
@@ -31,7 +31,8 @@ Each critical cache should have a `CacheGovernanceDescriptor` with:
 - `invalidation`
 - `observability`
 
-`src/cache/governance.test.ts` keeps descriptor IDs unique and requires coverage for critical mutable caches such as `config.sessions.store` and `agents.web-fetch.response`.
+Keep descriptor IDs unique and register critical mutable caches such as
+`config.sessions.store` and `agents.web-fetch.response` in this inventory.
 
 ## Query And Prompt Identity
 
@@ -72,7 +73,9 @@ The session store cache has two parts:
 - an object cache keyed by store path plus file `mtimeMs` and size
 - a serialized write-through cache keyed by the same file fingerprint
 
-The serialized cache must not skip writes after an external process changes the session file. The regression coverage lives in `src/config/sessions.cache.test.ts`.
+The serialized cache must not skip writes after an external process changes the
+session file. Validate this behavior through the Rust/native session
+persistence gate before changing the cache semantics.
 
 ## Web Fetch Response Cache
 
