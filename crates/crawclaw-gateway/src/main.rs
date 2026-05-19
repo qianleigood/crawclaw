@@ -2,6 +2,7 @@
 
 use std::env;
 use std::path::PathBuf;
+use std::process::Command;
 
 use crawclaw_gateway::{call_local_gateway_method, run_gateway, GatewayBind, GatewayRunConfig};
 
@@ -136,6 +137,7 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
             &crawclaw_gateway::gateway_protocol_schema_ts()?,
             "typescript schema",
         )?;
+        format_protocol_typescript_artifact(&schema_ts_output)?;
     }
     Ok(())
 }
@@ -156,6 +158,47 @@ fn write_protocol_artifact(output: &PathBuf, contents: &str, label: &str) -> Res
         )
     })?;
     println!("wrote {}", output.display());
+    Ok(())
+}
+
+fn format_protocol_typescript_artifact(output: &PathBuf) -> Result<(), String> {
+    let repo_root =
+        env::current_dir().map_err(|error| format!("failed to resolve current dir: {error}"))?;
+    let direct_formatter = repo_root
+        .join("node_modules")
+        .join(".bin")
+        .join(if cfg!(windows) { "oxfmt.cmd" } else { "oxfmt" });
+    let mut command = if direct_formatter.exists() {
+        let mut command = Command::new(direct_formatter);
+        command.arg("--write").arg(output);
+        command
+    } else {
+        let mut command = Command::new(if cfg!(windows) { "pnpm.cmd" } else { "pnpm" });
+        command.arg("exec").arg("oxfmt").arg("--write").arg(output);
+        command
+    };
+    let result = command
+        .current_dir(&repo_root)
+        .output()
+        .map_err(|error| format!("failed to launch protocol TypeScript formatter: {error}"))?;
+    if !result.status.success() {
+        let stderr = String::from_utf8_lossy(&result.stderr).trim().to_string();
+        let stdout = String::from_utf8_lossy(&result.stdout).trim().to_string();
+        let details = [stderr, stdout]
+            .into_iter()
+            .filter(|value| !value.is_empty())
+            .collect::<Vec<_>>()
+            .join("\n");
+        return Err(format!(
+            "failed to format protocol TypeScript artifact {}: {}",
+            output.display(),
+            if details.is_empty() {
+                result.status.to_string()
+            } else {
+                details
+            }
+        ));
+    }
     Ok(())
 }
 
