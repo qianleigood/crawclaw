@@ -1,11 +1,4 @@
-import {
-  BUNDLED_AUTO_ENABLE_PROVIDER_PLUGIN_IDS as GENERATED_BUNDLED_AUTO_ENABLE_PROVIDER_PLUGIN_IDS,
-  BUNDLED_LEGACY_PLUGIN_ID_ALIASES as GENERATED_BUNDLED_LEGACY_PLUGIN_ID_ALIASES,
-  BUNDLED_NATIVE_SPEECH_PROVIDERS as GENERATED_BUNDLED_NATIVE_SPEECH_PROVIDERS,
-  BUNDLED_NATIVE_WEB_FETCH_PROVIDERS as GENERATED_BUNDLED_NATIVE_WEB_FETCH_PROVIDERS,
-  BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS as GENERATED_BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS,
-  BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS as GENERATED_BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS,
-} from "../generated/plugins/bundled-capability-metadata.generated.js";
+import BUNDLED_CAPABILITY_METADATA_JSON from "../generated/plugins/bundled-capability-metadata.generated.json" with { type: "json" };
 
 export type BundledPluginContractSnapshot = {
   pluginId: string;
@@ -42,17 +35,29 @@ export type BundledNativeSpeechProviderMetadata = {
   synthesize: BundledNativeProviderInvocation;
 };
 
+type BundledCapabilityMetadataPayload = {
+  pluginContractSnapshots: BundledPluginContractSnapshot[];
+  nativeWebSearchProviders: BundledNativeWebProviderMetadata[];
+  nativeWebFetchProviders: BundledNativeWebProviderMetadata[];
+  nativeSpeechProviders: BundledNativeSpeechProviderMetadata[];
+  legacyPluginIdAliases: Record<string, string>;
+  autoEnableProviderPluginIds: Record<string, string>;
+};
+
+const GENERATED_BUNDLED_CAPABILITY_METADATA =
+  BUNDLED_CAPABILITY_METADATA_JSON as BundledCapabilityMetadataPayload;
+
 export const BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS: readonly BundledPluginContractSnapshot[] =
-  GENERATED_BUNDLED_PLUGIN_CONTRACT_SNAPSHOTS;
+  GENERATED_BUNDLED_CAPABILITY_METADATA.pluginContractSnapshots;
 
 export const BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS: readonly BundledNativeWebProviderMetadata[] =
-  GENERATED_BUNDLED_NATIVE_WEB_SEARCH_PROVIDERS;
+  GENERATED_BUNDLED_CAPABILITY_METADATA.nativeWebSearchProviders;
 
 export const BUNDLED_NATIVE_WEB_FETCH_PROVIDERS: readonly BundledNativeWebProviderMetadata[] =
-  GENERATED_BUNDLED_NATIVE_WEB_FETCH_PROVIDERS;
+  GENERATED_BUNDLED_CAPABILITY_METADATA.nativeWebFetchProviders;
 
 export const BUNDLED_NATIVE_SPEECH_PROVIDERS: readonly BundledNativeSpeechProviderMetadata[] =
-  GENERATED_BUNDLED_NATIVE_SPEECH_PROVIDERS;
+  GENERATED_BUNDLED_CAPABILITY_METADATA.nativeSpeechProviders;
 
 function collectPluginIds(
   pick: (entry: BundledPluginContractSnapshot) => readonly string[],
@@ -102,7 +107,7 @@ export const BUNDLED_PROVIDER_PLUGIN_ID_ALIASES = Object.fromEntries(
 ) as Readonly<Record<string, string>>;
 
 export const BUNDLED_LEGACY_PLUGIN_ID_ALIASES: Readonly<Record<string, string>> =
-  GENERATED_BUNDLED_LEGACY_PLUGIN_ID_ALIASES;
+  GENERATED_BUNDLED_CAPABILITY_METADATA.legacyPluginIdAliases;
 
 export const BUNDLED_AUTO_ENABLE_PROVIDER_PLUGIN_IDS: Readonly<Record<string, string>> =
-  GENERATED_BUNDLED_AUTO_ENABLE_PROVIDER_PLUGIN_IDS;
+  GENERATED_BUNDLED_CAPABILITY_METADATA.autoEnableProviderPluginIds;
