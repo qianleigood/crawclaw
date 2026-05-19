@@ -616,11 +616,3 @@ export function projectAcpToolCallEvent(params: {
     },
   });
 }
-
-export const __testing = {
-  resolveFamily,
-  resolveObjectLabel,
-  simplifyObjectLabel,
-  resolveIntentVerb,
-  toTitleCase,
-};

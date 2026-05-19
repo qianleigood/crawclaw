@@ -136,10 +136,3 @@ export function getSharedRunLoopLifecycleCompatSubscriber(): RunLoopLifecycleCom
   sharedRunLoopLifecycleCompatSubscriber.ensureRegistered();
   return sharedRunLoopLifecycleCompatSubscriber;
 }
-
-export const __testing = {
-  resetSharedRunLoopLifecycleCompatSubscriber(): void {
-    sharedRunLoopLifecycleCompatSubscriber?.dispose();
-    sharedRunLoopLifecycleCompatSubscriber = null;
-  },
-};

@@ -73,10 +73,3 @@ export function getSharedRunLoopObservationIndexLifecycleSubscriber(): RunLoopOb
   sharedRunLoopObservationIndexLifecycleSubscriber.ensureRegistered();
   return sharedRunLoopObservationIndexLifecycleSubscriber;
 }
-
-export const __testing = {
-  resetSharedRunLoopObservationIndexLifecycleSubscriber(): void {
-    sharedRunLoopObservationIndexLifecycleSubscriber?.dispose();
-    sharedRunLoopObservationIndexLifecycleSubscriber = null;
-  },
-};

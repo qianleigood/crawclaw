@@ -105,10 +105,3 @@ export function getSharedRunLoopContextArchiveLifecycleSubscriber(): RunLoopCont
   sharedRunLoopContextArchiveLifecycleSubscriber.ensureRegistered();
   return sharedRunLoopContextArchiveLifecycleSubscriber;
 }
-
-export const __testing = {
-  resetSharedRunLoopContextArchiveLifecycleSubscriber(): void {
-    sharedRunLoopContextArchiveLifecycleSubscriber?.dispose();
-    sharedRunLoopContextArchiveLifecycleSubscriber = null;
-  },
-};

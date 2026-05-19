@@ -114,10 +114,3 @@ export function getSharedRunLoopActionFeedLifecycleSubscriber(): RunLoopActionFe
   sharedRunLoopActionFeedLifecycleSubscriber.ensureRegistered();
   return sharedRunLoopActionFeedLifecycleSubscriber;
 }
-
-export const __testing = {
-  resetSharedRunLoopActionFeedLifecycleSubscriber(): void {
-    sharedRunLoopActionFeedLifecycleSubscriber?.dispose();
-    sharedRunLoopActionFeedLifecycleSubscriber = null;
-  },
-};

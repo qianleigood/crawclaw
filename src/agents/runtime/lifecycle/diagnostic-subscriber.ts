@@ -55,10 +55,3 @@ export function getSharedRunLoopDiagnosticLifecycleSubscriber(): RunLoopDiagnost
   sharedRunLoopDiagnosticLifecycleSubscriber.ensureRegistered();
   return sharedRunLoopDiagnosticLifecycleSubscriber;
 }
-
-export const __testing = {
-  resetRunLoopDiagnosticLifecycleSubscriber(): void {
-    sharedRunLoopDiagnosticLifecycleSubscriber?.dispose();
-    sharedRunLoopDiagnosticLifecycleSubscriber = null;
-  },
-};
