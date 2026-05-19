@@ -6,12 +6,6 @@ import {
   resolveGatewayPort,
   resolveStateDir,
 } from "../config/config.js";
-import { loadConfig as loadConfigFromIo } from "../config/io.js";
-import {
-  resolveConfigPath as resolveConfigPathFromPaths,
-  resolveGatewayPort as resolveGatewayPortFromPaths,
-  resolveStateDir as resolveStateDirFromPaths,
-} from "../config/paths.js";
 import { resolveSecretInputRef } from "../config/types.secrets.js";
 import { loadGatewayTlsRuntime } from "../infra/tls/gateway.js";
 import { resolveSecretInputString } from "../secrets/resolve-secret-input-string.js";
@@ -73,50 +67,8 @@ export type CallGatewayOptions = CallGatewayBaseOptions & {
   scopes?: OperatorScope[];
 };
 
-const defaultGatewayCallDeps = {
-  fetch: defaultGatewayHttpFetch,
-  loadConfig,
-  resolveGatewayPort,
-  resolveConfigPath,
-  resolveStateDir,
-  loadGatewayTlsRuntime,
-};
-const gatewayCallDeps = {
-  ...defaultGatewayCallDeps,
-};
-
-function loadGatewayConfig(): CrawClawConfig {
-  const loadConfigFn =
-    typeof gatewayCallDeps.loadConfig === "function"
-      ? gatewayCallDeps.loadConfig
-      : typeof defaultGatewayCallDeps.loadConfig === "function"
-        ? defaultGatewayCallDeps.loadConfig
-        : loadConfigFromIo;
-  return loadConfigFn();
-}
-
-function resolveGatewayStateDir(env: NodeJS.ProcessEnv): string {
-  const resolveStateDirFn =
-    typeof gatewayCallDeps.resolveStateDir === "function"
-      ? gatewayCallDeps.resolveStateDir
-      : resolveStateDirFromPaths;
-  return resolveStateDirFn(env);
-}
-
 function resolveGatewayConfigPath(env: NodeJS.ProcessEnv): string {
-  const resolveConfigPathFn =
-    typeof gatewayCallDeps.resolveConfigPath === "function"
-      ? gatewayCallDeps.resolveConfigPath
-      : resolveConfigPathFromPaths;
-  return resolveConfigPathFn(env, resolveGatewayStateDir(env));
-}
-
-function resolveGatewayPortValue(config?: CrawClawConfig, env?: NodeJS.ProcessEnv): number {
-  const resolveGatewayPortFn =
-    typeof gatewayCallDeps.resolveGatewayPort === "function"
-      ? gatewayCallDeps.resolveGatewayPort
-      : resolveGatewayPortFromPaths;
-  return resolveGatewayPortFn(config, env);
+  return resolveConfigPath(env, resolveStateDir(env));
 }
 
 export function buildGatewayConnectionDetails(
@@ -128,34 +80,11 @@ export function buildGatewayConnectionDetails(
   } = {},
 ): GatewayConnectionDetails {
   return buildGatewayConnectionDetailsWithResolvers(options, {
-    loadConfig: () => loadGatewayConfig(),
+    loadConfig: () => loadConfig(),
     resolveConfigPath: (env) => resolveGatewayConfigPath(env),
-    resolveGatewayPort: (config, env) => resolveGatewayPortValue(config, env),
+    resolveGatewayPort: (config, env) => resolveGatewayPort(config, env),
   });
 }
-
-export const __testing = {
-  setDepsForTests(deps: Partial<typeof defaultGatewayCallDeps> | undefined): void {
-    gatewayCallDeps.fetch = deps?.fetch ?? defaultGatewayCallDeps.fetch;
-    gatewayCallDeps.loadConfig = deps?.loadConfig ?? defaultGatewayCallDeps.loadConfig;
-    gatewayCallDeps.resolveGatewayPort =
-      deps?.resolveGatewayPort ?? defaultGatewayCallDeps.resolveGatewayPort;
-    gatewayCallDeps.resolveConfigPath =
-      deps?.resolveConfigPath ?? defaultGatewayCallDeps.resolveConfigPath;
-    gatewayCallDeps.resolveStateDir =
-      deps?.resolveStateDir ?? defaultGatewayCallDeps.resolveStateDir;
-    gatewayCallDeps.loadGatewayTlsRuntime =
-      deps?.loadGatewayTlsRuntime ?? defaultGatewayCallDeps.loadGatewayTlsRuntime;
-  },
-  resetDepsForTests(): void {
-    gatewayCallDeps.fetch = defaultGatewayCallDeps.fetch;
-    gatewayCallDeps.loadConfig = defaultGatewayCallDeps.loadConfig;
-    gatewayCallDeps.resolveGatewayPort = defaultGatewayCallDeps.resolveGatewayPort;
-    gatewayCallDeps.resolveConfigPath = defaultGatewayCallDeps.resolveConfigPath;
-    gatewayCallDeps.resolveStateDir = defaultGatewayCallDeps.resolveStateDir;
-    gatewayCallDeps.loadGatewayTlsRuntime = defaultGatewayCallDeps.loadGatewayTlsRuntime;
-  },
-};
 
 export type ExplicitGatewayAuth = {
   token?: string;
@@ -245,7 +174,7 @@ function resolveGatewayCallTimeout(timeoutValue: unknown): {
 }
 
 function resolveGatewayCallContext(opts: CallGatewayBaseOptions): ResolvedGatewayCallContext {
-  const config = opts.config ?? loadGatewayConfig();
+  const config = opts.config ?? loadConfig();
   const configPath = opts.configPath ?? resolveGatewayConfigPath(process.env);
   const isRemoteMode = config.gateway?.mode === "remote";
   const remote = isRemoteMode
@@ -686,7 +615,7 @@ async function resolveGatewayTlsFingerprint(params: {
     !context.remoteUrl &&
     url.startsWith("wss://");
   const tlsRuntime = useLocalTls
-    ? await gatewayCallDeps.loadGatewayTlsRuntime(context.config.gateway?.tls)
+    ? await loadGatewayTlsRuntime(context.config.gateway?.tls)
     : undefined;
   const overrideTlsFingerprint = trimToUndefined(opts.tlsFingerprint);
   const remoteTlsFingerprint =
@@ -787,7 +716,7 @@ async function executeGatewayHttpRpcRequest<T>(params: {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), params.safeTimerTimeoutMs);
   const request = async <TResult>(method: string, requestParams: unknown): Promise<TResult> => {
-    const response = await gatewayCallDeps.fetch(
+    const response = await defaultGatewayHttpFetch(
       rpcUrl,
       {
         method: "POST",
