@@ -7,13 +7,6 @@ import { formatGeneratedModule } from "./lib/format-generated-module.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const schemaOutputPath = path.join(repoRoot, "dist", "protocol.schema.json");
-const metadataOutputPath = path.join(
-  repoRoot,
-  "src",
-  "generated",
-  "gateway",
-  "protocol-contract.generated.ts",
-);
 const schemaTsOutputPath = path.join(
   repoRoot,
   "src",
@@ -33,8 +26,6 @@ const result = spawnSync(
     "emit-protocol-artifacts",
     "--schema-output",
     schemaOutputPath,
-    "--metadata-output",
-    metadataOutputPath,
     "--schema-ts-output",
     schemaTsOutputPath,
   ],
@@ -57,7 +48,7 @@ if (result.status !== 0) {
 }
 process.stdout.write(result.stdout);
 
-for (const outputPath of [metadataOutputPath, schemaTsOutputPath]) {
+for (const outputPath of [schemaTsOutputPath]) {
   const source = fs.readFileSync(outputPath, "utf8");
   const formatted = formatGeneratedModule(source, {
     repoRoot,

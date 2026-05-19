@@ -35,8 +35,6 @@ Gateway protocol files:
 - Rust contract module: `crates/crawclaw-gateway/src/protocol_contract.rs`
 - Embedded JSON Schema snapshot:
   `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
-- Generated TypeScript metadata bridge:
-  `src/generated/gateway/protocol-contract.generated.ts`
 - Generated TypeScript schema read model:
   `src/generated/gateway/protocol-schema.generated.ts`
 - TypeScript compatibility re-export: `src/gateway/protocol/schema.ts`
@@ -50,10 +48,9 @@ pnpm protocol:gen
 pnpm protocol:check
 ```
 
-`pnpm protocol:gen` emits the JSON Schema, TypeScript metadata bridge, and
-TypeScript schema read model from the Rust contract snapshot. `pnpm
-protocol:check` verifies the tracked generated artifacts match the Rust
-contract.
+`pnpm protocol:gen` emits the JSON Schema and TypeScript schema read model from
+the Rust contract snapshot. `pnpm protocol:check` verifies the tracked generated
+artifacts match the Rust contract.
 
 ## Runtime model
 

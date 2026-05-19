@@ -96,7 +96,6 @@ fn emit_protocol_schema(args: Vec<String>) -> Result<(), String> {
 
 fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
     let mut schema_output: Option<PathBuf> = None;
-    let mut metadata_output: Option<PathBuf> = None;
     let mut schema_ts_output: Option<PathBuf> = None;
     let mut index = 0;
     while index < args.len() {
@@ -106,13 +105,6 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
                     return Err("--schema-output requires a value".to_string());
                 };
                 schema_output = Some(PathBuf::from(value));
-                index += 2;
-            }
-            "--metadata-output" => {
-                let Some(value) = args.get(index + 1) else {
-                    return Err("--metadata-output requires a value".to_string());
-                };
-                metadata_output = Some(PathBuf::from(value));
                 index += 2;
             }
             "--schema-ts-output" => {
@@ -130,22 +122,13 @@ fn emit_protocol_artifacts(args: Vec<String>) -> Result<(), String> {
         }
     }
     let schema_output = schema_output.ok_or_else(|| {
-        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> --metadata-output <path>"
-            .to_string()
-    })?;
-    let metadata_output = metadata_output.ok_or_else(|| {
-        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> --metadata-output <path> [--schema-ts-output <path>]"
+        "usage: crawclaw-gateway emit-protocol-artifacts --schema-output <path> [--schema-ts-output <path>]"
             .to_string()
     })?;
     write_protocol_artifact(
         &schema_output,
         crawclaw_gateway::gateway_protocol_schema_json(),
         "schema",
-    )?;
-    write_protocol_artifact(
-        &metadata_output,
-        &crawclaw_gateway::gateway_protocol_metadata_ts(),
-        "metadata",
     )?;
     if let Some(schema_ts_output) = schema_ts_output {
         write_protocol_artifact(
@@ -224,6 +207,6 @@ fn exit_usage(message: &str) -> ! {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH] | call --method <name> [--params-json JSON] | emit-protocol-schema --output <path> | emit-protocol-artifacts --schema-output <path> --metadata-output <path>"
+        "Usage: crawclaw-gateway [--bind 127.0.0.1|0.0.0.0] [--port PORT] [--runtime-root PATH] | call --method <name> [--params-json JSON] | emit-protocol-schema --output <path> | emit-protocol-artifacts --schema-output <path> [--schema-ts-output <path>]"
     );
 }

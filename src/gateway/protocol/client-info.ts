@@ -1,10 +1,29 @@
-import {
-  GATEWAY_CLIENT_CAPS,
-  GATEWAY_CLIENT_IDS,
-  GATEWAY_CLIENT_MODES,
-} from "../../generated/gateway/protocol-contract.generated.js";
+export const GATEWAY_CLIENT_IDS = {
+  WEBCHAT_UI: "webchat-ui",
+  BROWSER_CLIENT: "crawclaw-browser-client",
+  WEBCHAT: "webchat",
+  CLI: "cli",
+  GATEWAY_CLIENT: "gateway-client",
+  MACOS_APP: "crawclaw-macos",
+  IOS_APP: "crawclaw-ios",
+  ANDROID_APP: "crawclaw-android",
+  TEST: "test",
+  FINGERPRINT: "fingerprint",
+  PROBE: "crawclaw-probe",
+} as const;
 
-export { GATEWAY_CLIENT_CAPS, GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES };
+export const GATEWAY_CLIENT_MODES = {
+  WEBCHAT: "webchat",
+  CLI: "cli",
+  UI: "ui",
+  BACKEND: "backend",
+  PROBE: "probe",
+  TEST: "test",
+} as const;
+
+export const GATEWAY_CLIENT_CAPS = {
+  TOOL_EVENTS: "tool-events",
+} as const;
 
 export type GatewayClientId = (typeof GATEWAY_CLIENT_IDS)[keyof typeof GATEWAY_CLIENT_IDS];
 
