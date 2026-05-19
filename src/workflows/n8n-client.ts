@@ -1,21 +1,5 @@
 import type { CrawClawConfig } from "../config/config.js";
 
-type N8nFetch = typeof fetch;
-
-type N8nClientDeps = {
-  fetchImpl: N8nFetch;
-};
-
-const n8nClientDeps: N8nClientDeps = {
-  fetchImpl: fetch,
-};
-
-export const __testing = {
-  setDepsForTest(overrides: Partial<N8nClientDeps> | null) {
-    n8nClientDeps.fetchImpl = overrides?.fetchImpl ?? fetch;
-  },
-};
-
 export type N8nResolvedConfig = {
   baseUrl: string;
   apiKey: string;
@@ -247,7 +231,7 @@ export function createN8nClient(config: N8nResolvedConfig) {
 
   async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
     const url = `${baseUrl}${path}`;
-    const response = await n8nClientDeps.fetchImpl(url, {
+    const response = await fetch(url, {
       ...init,
       headers: buildHeaders(config.apiKey, init?.headers as Record<string, string> | undefined),
     });
@@ -256,7 +240,7 @@ export function createN8nClient(config: N8nResolvedConfig) {
   }
 
   async function requestAbsolute<T>(url: string, init?: RequestInit): Promise<T> {
-    const response = await n8nClientDeps.fetchImpl(url, init);
+    const response = await fetch(url, init);
     await expectOk(response, init?.method ?? "GET", url);
     const contentType = response.headers.get("content-type") ?? "";
     if (contentType.includes("application/json")) {

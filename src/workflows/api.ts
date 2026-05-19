@@ -15,7 +15,6 @@ export {
   updateWorkflowExecutionStepCompensation,
 } from "./executions.js";
 export {
-  __testing,
   createN8nClient,
   resolveN8nCallbackConfig,
   resolveN8nConfig,
