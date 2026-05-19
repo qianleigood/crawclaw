@@ -340,17 +340,65 @@ fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
 }
 
 fn emit_base_config_schema(args: Vec<String>) {
-    if args.len() != 2 || args[0] != "--generated-at" {
-        eprintln!("usage: crawclaw-runtime emit-base-config-schema --generated-at <iso8601>");
-        std::process::exit(2);
-    }
-    match crawclaw_runtime::base_config_schema_payload_json(&args[1]) {
-        Ok(payload) => println!("{payload}"),
+    match run_emit_base_config_schema(args) {
+        Ok(Some(payload)) => println!("{payload}"),
+        Ok(None) => {}
         Err(error) => {
             eprintln!("{error}");
             std::process::exit(1);
         }
     }
+}
+
+fn run_emit_base_config_schema(args: Vec<String>) -> Result<Option<String>, String> {
+    if args.len() == 2 && args[0] == "--generated-at" {
+        return crawclaw_runtime::base_config_schema_payload_json(&args[1]).map(Some);
+    }
+
+    let mut output: Option<PathBuf> = None;
+    let mut check = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--check" => {
+                check = true;
+                index += 1;
+            }
+            "--write" => {
+                index += 1;
+            }
+            "--output" => {
+                let Some(value) = args.get(index + 1) else {
+                    return Err("--output requires a value".to_string());
+                };
+                output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => return Err(format!("unsupported emit-base-config-schema option: {other}")),
+        }
+    }
+
+    let Some(output_path) = output else {
+        return Err(
+            "usage: crawclaw-runtime emit-base-config-schema --generated-at <iso8601> | --output <path> [--check|--write]"
+                .to_string(),
+        );
+    };
+    let result = crawclaw_runtime::write_base_config_schema_artifact(&output_path, check)?;
+    if check {
+        if result.changed {
+            return Err(format!(
+                "[base-config-schema] stale generated output at {}",
+                result.output_path.display()
+            ));
+        }
+    } else if result.wrote {
+        println!(
+            "[base-config-schema] wrote {}",
+            result.output_path.display()
+        );
+    }
+    Ok(None)
 }
 
 fn emit_config_doc_baseline(args: Vec<String>) {

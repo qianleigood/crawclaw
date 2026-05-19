@@ -20,7 +20,8 @@ pub mod special_agents;
 
 pub use config_contract::{
     base_config_schema_payload, base_config_schema_payload_json, config_doc_baseline_json,
-    config_doc_baseline_jsonl, write_config_doc_baseline_artifacts, ConfigDocBaselineWriteResult,
+    config_doc_baseline_jsonl, write_base_config_schema_artifact,
+    write_config_doc_baseline_artifacts, BaseConfigSchemaWriteResult, ConfigDocBaselineWriteResult,
 };
 use core_tools::build_pi_agent_rust_tool_registry;
 pub use desktop_packaging::{
