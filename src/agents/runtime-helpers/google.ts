@@ -1,4 +1,4 @@
-import { GOOGLE_MODEL_APIS } from "../../generated/providers/runtime-constants.generated.js";
+import { GOOGLE_MODEL_APIS } from "../../providers/runtime-constants.js";
 import { sanitizeGoogleTurnOrdering } from "./bootstrap.js";
 
 const GOOGLE_MODEL_API_SET = new Set<string>(GOOGLE_MODEL_APIS);

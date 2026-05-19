@@ -3,6 +3,8 @@ import { type Api, type Model } from "@mariozechner/pi-ai";
 import type { CrawClawConfig } from "../config/config.js";
 import type { ModelProviderAuthMode, ModelProviderConfig } from "../config/types.js";
 import { coerceSecretRef } from "../config/types.secrets.js";
+import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   AMAZON_BEDROCK_PROVIDER_ID,
   AWS_ACCESS_KEY_ID_ENV,
@@ -11,9 +13,7 @@ import {
   AWS_SECRET_ACCESS_KEY_ENV,
   OLLAMA_PROVIDER_ID,
   OPENAI_COMPATIBLE_TURN_VALIDATION_API,
-} from "../generated/providers/runtime-constants.generated.js";
-import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
-import { createSubsystemLogger } from "../logging/subsystem.js";
+} from "../providers/runtime-constants.js";
 import { formatCliCommand } from "../terminal/command-format.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import {

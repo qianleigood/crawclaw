@@ -4,7 +4,7 @@ import { join } from "node:path";
 import {
   ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV,
   GOOGLE_APPLICATION_CREDENTIALS_ENV,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 
 const GCLOUD_DEFAULT_ADC_PATH = join(

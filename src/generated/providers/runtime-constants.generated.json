@@ -1,0 +1,389 @@
+{
+  "AGENT_DEFAULT_CONTEXT_TOKENS": 200000,
+  "AGENT_DEFAULT_MODEL": "claude-opus-4-6",
+  "AGENT_DEFAULT_MODEL_ALIASES": {
+    "gemini": "google/gemini-3.1-pro-preview",
+    "gemini-flash": "google/gemini-3-flash-preview",
+    "gemini-flash-lite": "google/gemini-3.1-flash-lite-preview",
+    "gpt": "openai/gpt-5.4",
+    "gpt-mini": "openai/gpt-5-mini",
+    "opus": "anthropic/claude-opus-4-6",
+    "sonnet": "anthropic/claude-sonnet-4-6"
+  },
+  "AGENT_DEFAULT_PROVIDER": "anthropic",
+  "AMAZON_BEDROCK_ADAPTIVE_THINKING_MODEL_PATTERN": "claude-(?:opus|sonnet)-4(?:\\.|-)6(?:$|[-.])",
+  "AMAZON_BEDROCK_PROVIDER_ID": "amazon-bedrock",
+  "ANTHROPIC_ADAPTIVE_THINKING_MODEL_PATTERN": "^claude-(?:opus|sonnet)-4(?:\\.|-)6(?:$|[-.])",
+  "ANTHROPIC_API_KEY_ENV": "ANTHROPIC_API_KEY",
+  "ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES": [
+    "claude-opus-4",
+    "claude-sonnet-4"
+  ],
+  "ANTHROPIC_CONTEXT_1M_TOKENS": 1048576,
+  "ANTHROPIC_MESSAGES_API": "anthropic-messages",
+  "ANTHROPIC_OAUTH_TOKEN_ENV": "ANTHROPIC_OAUTH_TOKEN",
+  "ANTHROPIC_PROVIDER_ID": "anthropic",
+  "ANTHROPIC_VERTEX_CREDENTIALS_MARKER": "gcp-vertex-credentials",
+  "ANTHROPIC_VERTEX_DEFAULT_REGION": "global",
+  "ANTHROPIC_VERTEX_PROVIDER_ID": "anthropic-vertex",
+  "ANTHROPIC_VERTEX_USE_GCP_METADATA_ENV": "ANTHROPIC_VERTEX_USE_GCP_METADATA",
+  "AUTH_COOLDOWN_BYPASS_PROVIDER_IDS": [
+    "openrouter",
+    "kilocode"
+  ],
+  "AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID": "openai-codex",
+  "AWS_ACCESS_KEY_ID_ENV": "AWS_ACCESS_KEY_ID",
+  "AWS_BEDROCK_BEARER_TOKEN_ENV": "AWS_BEARER_TOKEN_BEDROCK",
+  "AWS_PROFILE_ENV": "AWS_PROFILE",
+  "AWS_SDK_ENV_MARKERS": [
+    "AWS_BEARER_TOKEN_BEDROCK",
+    "AWS_ACCESS_KEY_ID",
+    "AWS_PROFILE"
+  ],
+  "AWS_SECRET_ACCESS_KEY_ENV": "AWS_SECRET_ACCESS_KEY",
+  "CLAUDE_CLI_BACKEND_ID": "claude-cli",
+  "CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES": {
+    "anthropic-openai": [
+      "ANTHROPIC_API_KEY"
+    ],
+    "cerebras": [
+      "CEREBRAS_API_KEY"
+    ],
+    "chutes": [
+      "CHUTES_API_KEY"
+    ],
+    "deepgram": [
+      "DEEPGRAM_API_KEY"
+    ],
+    "groq": [
+      "GROQ_API_KEY"
+    ],
+    "litellm": [
+      "LITELLM_API_KEY"
+    ],
+    "qwen-dashscope": [
+      "DASHSCOPE_API_KEY"
+    ],
+    "voyage": [
+      "VOYAGE_API_KEY"
+    ]
+  },
+  "CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES": {
+    "anthropic": [
+      "ANTHROPIC_API_KEY",
+      "ANTHROPIC_OAUTH_TOKEN"
+    ],
+    "chutes": [
+      "CHUTES_API_KEY"
+    ],
+    "minimax-cn": [
+      "MINIMAX_API_KEY"
+    ]
+  },
+  "CUSTOM_LOCAL_AUTH_MARKER": "custom-local",
+  "DEFAULT_CLAUDE_CLI_MODEL": "claude-cli/claude-sonnet-4-6",
+  "DEFAULT_MODEL_COST": {
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "input": 0,
+    "output": 0
+  },
+  "DEFAULT_MODEL_INPUT": [
+    "text"
+  ],
+  "DEFAULT_MODEL_MAX_TOKENS": 8192,
+  "DEFAULT_PROVIDER_CAPABILITIES": {
+    "anthropicToolChoiceMode": "native",
+    "anthropicToolSchemaMode": "native",
+    "dropThinkingBlockModelHints": [],
+    "geminiThoughtSignatureModelHints": [],
+    "geminiThoughtSignatureSanitization": false,
+    "openAiCompatTurnValidation": true,
+    "openAiPayloadNormalizationMode": "default",
+    "preserveAnthropicThinkingSignatures": true,
+    "providerFamily": "default",
+    "transcriptToolCallIdMode": "default",
+    "transcriptToolCallIdModelHints": []
+  },
+  "EXTRA_PROVIDER_AUTH_ENV_VARS": [
+    "MINIMAX_CODE_PLAN_KEY"
+  ],
+  "GCP_VERTEX_CREDENTIALS_MARKER": "gcp-vertex-credentials",
+  "GITHUB_COPILOT_PROVIDER_ID": "github-copilot",
+  "GITHUB_COPILOT_XHIGH_THINKING_MODEL_IDS": [
+    "gpt-5.2",
+    "gpt-5.2-codex"
+  ],
+  "GOOGLE_APPLICATION_CREDENTIALS_ENV": "GOOGLE_APPLICATION_CREDENTIALS",
+  "GOOGLE_GEMINI_DEFAULT_MODEL": "google/gemini-3.1-pro-preview",
+  "GOOGLE_MODEL_APIS": [
+    "google-gemini-cli",
+    "google-generative-ai"
+  ],
+  "GOOGLE_PROVIDER_ID": "google",
+  "GOOGLE_VERTEX_PROVIDER_ID": "google-vertex",
+  "GROQ_PROVIDER_ID": "groq",
+  "KILOCODE_PROVIDER_ID": "kilocode",
+  "KNOWN_PROVIDER_FAMILIES": {
+    "anthropic": "anthropic",
+    "azure-openai": "openai-family",
+    "azure-openai-responses": "openai-family",
+    "dashscope": "modelstudio",
+    "github-copilot": "github-copilot",
+    "google": "google",
+    "groq": "groq",
+    "kimi": "moonshot",
+    "mistral": "mistral",
+    "modelstudio": "modelstudio",
+    "moonshot": "moonshot",
+    "openai": "openai-family",
+    "openai-codex": "openai-family",
+    "openrouter": "openrouter",
+    "together": "together"
+  },
+  "LEGACY_ENV_API_KEY_MARKERS": [
+    "GOOGLE_API_KEY",
+    "DEEPSEEK_API_KEY",
+    "FIREWORKS_API_KEY",
+    "NOVITA_API_KEY",
+    "AZURE_OPENAI_API_KEY",
+    "AZURE_API_KEY",
+    "MINIMAX_CODE_PLAN_KEY"
+  ],
+  "LEGACY_OPENCODE_ZEN_DEFAULT_MODELS": [
+    "opencode/claude-opus-4-5",
+    "opencode-zen/claude-opus-4-5"
+  ],
+  "LOCAL_ENDPOINT_HOSTS": [
+    "localhost",
+    "127.0.0.1",
+    "::1",
+    "[::1]"
+  ],
+  "MINIMAX_API_HOST_ENV": "MINIMAX_API_HOST",
+  "MINIMAX_DEFAULT_API_HOST": "https://api.minimax.io",
+  "MINIMAX_OAUTH_MARKER": "minimax-oauth",
+  "MINIMAX_PORTAL_PROVIDER_ID": "minimax-portal",
+  "MINIMAX_PROVIDER_ID": "minimax",
+  "MINIMAX_VLM_API_PATH": "/v1/coding_plan/vlm",
+  "MINIMAX_VLM_MODEL_ID": "MiniMax-VL-01",
+  "MISTRAL_PROVIDER_ID": "mistral",
+  "MISTRAL_SAFE_MAX_TOKENS_BY_MODEL": {
+    "devstral-medium-latest": 32768,
+    "magistral-small": 40000,
+    "mistral-large-latest": 16384,
+    "mistral-medium-2508": 8192,
+    "mistral-small-latest": 16384,
+    "pixtral-large-latest": 32768
+  },
+  "MODELSTUDIO_NATIVE_BASE_URLS": [
+    "https://coding-intl.dashscope.aliyuncs.com/v1",
+    "https://coding.dashscope.aliyuncs.com/v1",
+    "https://dashscope.aliyuncs.com/compatible-mode/v1",
+    "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+  ],
+  "MODELSTUDIO_PROVIDER_ID": "modelstudio",
+  "MODEL_APIS": [
+    "openai-completions",
+    "openai-responses",
+    "openai-codex-responses",
+    "anthropic-messages",
+    "google-generative-ai",
+    "github-copilot",
+    "bedrock-converse-stream",
+    "ollama",
+    "azure-openai-responses"
+  ],
+  "MODEL_CATALOG_CONFIGURED_PROVIDER_IDS": [
+    "deepseek",
+    "kilocode",
+    "ollama"
+  ],
+  "MODEL_COMPAT_MAX_TOKENS_FIELDS": [
+    "max_completion_tokens",
+    "max_tokens"
+  ],
+  "MODEL_COMPAT_THINKING_FORMATS": [
+    "openai",
+    "openrouter",
+    "zai",
+    "qwen",
+    "qwen-chat-template"
+  ],
+  "MOONSHOT_COMPAT_PROVIDERS": [
+    "moonshot",
+    "kimi"
+  ],
+  "MOONSHOT_NATIVE_BASE_URLS": [
+    "https://api.moonshot.ai/v1",
+    "https://api.moonshot.cn/v1"
+  ],
+  "MOONSHOT_PROVIDER_ID": "moonshot",
+  "NON_ENV_SECRETREF_MARKER": "secretref-managed",
+  "OAUTH_API_KEY_MARKER_PREFIX": "oauth:",
+  "OAUTH_PROVIDER_AUTH_ENV_VARS": [
+    "ANTHROPIC_OAUTH_TOKEN",
+    "MINIMAX_OAUTH_TOKEN"
+  ],
+  "OLLAMA_DEFAULT_BASE_URL": "http://127.0.0.1:11434",
+  "OLLAMA_DEFAULT_CONTEXT_WINDOW": 128000,
+  "OLLAMA_DEFAULT_EMBEDDING_MODEL": "nomic-embed-text",
+  "OLLAMA_DEFAULT_MAX_TOKENS": 8192,
+  "OLLAMA_DEFAULT_MODEL": "glm-4.7-flash",
+  "OLLAMA_LOCAL_AUTH_MARKER": "ollama-local",
+  "OLLAMA_PROVIDER_ID": "ollama",
+  "OPENAI_AUDIO_TRANSCRIPTIONS_API": "openai-audio-transcriptions",
+  "OPENAI_CODEX_DEFAULT_MODEL": "openai-codex/gpt-5.4",
+  "OPENAI_CODEX_PROVIDER_ID": "openai-codex",
+  "OPENAI_CODEX_RESPONSES_API": "openai-codex-responses",
+  "OPENAI_CODEX_XHIGH_THINKING_MODEL_IDS": [
+    "gpt-5.4",
+    "gpt-5.3-codex-spark",
+    "gpt-5.2-codex",
+    "gpt-5.1-codex"
+  ],
+  "OPENAI_COMPATIBLE_TOOL_ID_SANITIZATION_APIS": [
+    "openai-completions",
+    "openai-responses",
+    "openai-codex-responses",
+    "azure-openai-responses"
+  ],
+  "OPENAI_COMPATIBLE_TURN_VALIDATION_API": "openai-completions",
+  "OPENAI_COMPLETIONS_API": "openai-completions",
+  "OPENAI_DEFAULT_AUDIO_TRANSCRIPTION_MODEL": "gpt-4o-mini-transcribe",
+  "OPENAI_DEFAULT_EMBEDDING_MODEL": "text-embedding-3-small",
+  "OPENAI_DEFAULT_IMAGE_MODEL": "gpt-image-1",
+  "OPENAI_DEFAULT_MODEL": "openai/gpt-5.4",
+  "OPENAI_PROVIDER_ID": "openai",
+  "OPENAI_RESPONSES_API": "openai-responses",
+  "OPENAI_RESPONSES_APIS": [
+    "openai-responses",
+    "azure-openai-responses"
+  ],
+  "OPENAI_RESPONSES_PROVIDERS": [
+    "openai",
+    "azure-openai",
+    "azure-openai-responses"
+  ],
+  "OPENAI_XHIGH_THINKING_MODEL_IDS": [
+    "gpt-5.4",
+    "gpt-5.4-pro",
+    "gpt-5.4-mini",
+    "gpt-5.4-nano",
+    "gpt-5.2"
+  ],
+  "OPENCODE_GO_DEFAULT_MODEL_REF": "opencode-go/kimi-k2.5",
+  "OPENCODE_ZEN_DEFAULT_MODEL": "opencode/claude-opus-4-6",
+  "OPENROUTER_ATTRIBUTION_CATEGORY": "cli-agent",
+  "OPENROUTER_ATTRIBUTION_DOCS_URL": "https://openrouter.ai/docs/app-attribution",
+  "OPENROUTER_DEFAULT_MODEL_REF": "openrouter/auto",
+  "OPENROUTER_MODELS_API_URL": "https://openrouter.ai/api/v1/models",
+  "OPENROUTER_PRICING_PROVIDER_ALIASES": {
+    "google-gemini-cli": "google",
+    "kimi": "moonshotai",
+    "kimi-coding": "moonshotai",
+    "moonshot": "moonshotai",
+    "moonshotai": "moonshotai",
+    "openai-codex": "openai",
+    "xai": "x-ai",
+    "zai": "z-ai"
+  },
+  "OPENROUTER_PROVIDER_ID": "openrouter",
+  "OPENROUTER_WRAPPER_PROVIDERS": [
+    "cloudflare-ai-gateway",
+    "kilocode",
+    "openrouter",
+    "vercel-ai-gateway"
+  ],
+  "PROVIDER_ATTRIBUTION_ORIGINATOR": "crawclaw",
+  "PROVIDER_ATTRIBUTION_PRODUCT": "CrawClaw",
+  "PROVIDER_ATTRIBUTION_REFERER_URL": "https://docs.crawclaw.ai",
+  "PROVIDER_AUTH_ID_ALIASES": {
+    "byteplus-plan": "byteplus",
+    "volcengine-plan": "volcengine"
+  },
+  "PROVIDER_CAPABILITY_FALLBACKS": {
+    "anthropic": {
+      "dropThinkingBlockModelHints": [
+        "claude"
+      ],
+      "providerFamily": "anthropic"
+    },
+    "kimi": {
+      "anthropicToolChoiceMode": "openai-string-modes",
+      "anthropicToolSchemaMode": "openai-functions",
+      "openAiPayloadNormalizationMode": "moonshot-thinking"
+    },
+    "mistral": {
+      "transcriptToolCallIdMode": "strict9",
+      "transcriptToolCallIdModelHints": [
+        "mistral",
+        "mixtral",
+        "codestral",
+        "pixtral",
+        "devstral",
+        "ministral",
+        "mistralai"
+      ]
+    },
+    "moonshot": {
+      "openAiPayloadNormalizationMode": "moonshot-thinking"
+    },
+    "openai": {
+      "providerFamily": "openai"
+    },
+    "opencode": {
+      "geminiThoughtSignatureModelHints": [
+        "gemini"
+      ],
+      "geminiThoughtSignatureSanitization": true,
+      "openAiCompatTurnValidation": false
+    },
+    "opencode-go": {
+      "geminiThoughtSignatureModelHints": [
+        "gemini"
+      ],
+      "geminiThoughtSignatureSanitization": true,
+      "openAiCompatTurnValidation": false
+    }
+  },
+  "PROVIDER_DEFAULT_API_BY_PROVIDER": {
+    "anthropic": "anthropic-messages"
+  },
+  "PROVIDER_ID_ALIASES": {
+    "aws-bedrock": "amazon-bedrock",
+    "bedrock": "amazon-bedrock",
+    "bytedance": "volcengine",
+    "doubao": "volcengine",
+    "kimi-code": "kimi",
+    "kimi-coding": "kimi",
+    "opencode-go-auth": "opencode-go",
+    "opencode-zen": "opencode",
+    "z-ai": "zai",
+    "z.ai": "zai"
+  },
+  "PROVIDER_USAGE_LABELS": {
+    "anthropic": "Claude",
+    "github-copilot": "Copilot",
+    "google-gemini-cli": "Gemini",
+    "minimax": "MiniMax",
+    "openai-codex": "Codex",
+    "xiaomi": "Xiaomi",
+    "zai": "z.ai"
+  },
+  "SECRETREF_ENV_HEADER_MARKER_PREFIX": "secretref-env:",
+  "TOGETHER_PROVIDER_ID": "together",
+  "TRANSCRIPT_ANTHROPIC_MODEL_APIS": [
+    "anthropic-messages",
+    "bedrock-converse-stream"
+  ],
+  "TRANSCRIPT_OPENAI_MODEL_APIS": [
+    "openai",
+    "openai-completions",
+    "openai-responses",
+    "openai-codex-responses"
+  ],
+  "VERCEL_AI_GATEWAY_PROVIDER_ID": "vercel-ai-gateway",
+  "XAI_PROVIDER_ID": "xai",
+  "ZAI_PROVIDER_ID": "zai"
+}

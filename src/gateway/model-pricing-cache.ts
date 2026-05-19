@@ -9,12 +9,12 @@ import {
 } from "../agents/model-selection.js";
 import type { CacheGovernanceDescriptor } from "../cache/governance-types.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   OPENROUTER_MODELS_API_URL,
   OPENROUTER_PRICING_PROVIDER_ALIASES,
   OPENROUTER_WRAPPER_PROVIDERS as OPENROUTER_WRAPPER_PROVIDER_VALUES,
-} from "../generated/providers/runtime-constants.generated.js";
-import { createSubsystemLogger } from "../logging/subsystem.js";
+} from "../providers/runtime-constants.js";
 import {
   getCachedGatewayModelPricing,
   getGatewayModelPricingCacheMeta as getGatewayModelPricingCacheMetaState,

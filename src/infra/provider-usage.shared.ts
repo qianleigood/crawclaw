@@ -2,7 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { normalizeProviderId } from "../agents/provider-id.js";
-import { PROVIDER_USAGE_LABELS } from "../generated/providers/runtime-constants.generated.js";
+import { PROVIDER_USAGE_LABELS } from "../providers/runtime-constants.js";
 import { resolveRequiredHomeDir } from "./home-dir.js";
 import type { UsageProviderId } from "./provider-usage.types.js";
 

@@ -27,7 +27,7 @@ import {
   PROVIDER_ATTRIBUTION_PRODUCT,
   PROVIDER_ATTRIBUTION_REFERER_URL,
   TOGETHER_PROVIDER_ID,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import type { RuntimeVersionEnv } from "../version.js";
 import { resolveRuntimeServiceVersion } from "../version.js";
 import { normalizeProviderId } from "./provider-id.js";

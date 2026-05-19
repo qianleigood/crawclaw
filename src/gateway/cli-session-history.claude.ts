@@ -8,7 +8,7 @@ import {
   type ToolContentBlock,
 } from "../chat/tool-content.js";
 import type { SessionEntry } from "../config/sessions.js";
-import { CLAUDE_CLI_BACKEND_ID } from "../generated/providers/runtime-constants.generated.js";
+import { CLAUDE_CLI_BACKEND_ID } from "../providers/runtime-constants.js";
 import { attachCrawClawTranscriptMeta } from "./session-utils.fs.js";
 
 export const CLAUDE_CLI_PROVIDER = CLAUDE_CLI_BACKEND_ID;

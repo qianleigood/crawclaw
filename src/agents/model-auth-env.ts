@@ -1,10 +1,10 @@
 import { getEnvApiKey } from "@mariozechner/pi-ai";
+import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
 import {
   ANTHROPIC_VERTEX_PROVIDER_ID,
   GOOGLE_VERTEX_PROVIDER_ID,
   OAUTH_PROVIDER_AUTH_ENV_VARS,
-} from "../generated/providers/runtime-constants.generated.js";
-import { getShellEnvAppliedKeys } from "../infra/shell-env.js";
+} from "../providers/runtime-constants.js";
 import { normalizeOptionalSecretInput } from "../utils/normalize-secret-input.js";
 import { hasAnthropicVertexAvailableAuth } from "./anthropic-vertex-auth-presence.js";
 import { PROVIDER_ENV_API_KEY_CANDIDATES } from "./model-auth-env-vars.js";

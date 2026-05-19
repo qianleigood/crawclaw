@@ -1,6 +1,6 @@
 import { normalizeModelRef } from "../agents/model-selection.js";
 import { normalizeProviderId } from "../agents/provider-id.js";
-import { OPENROUTER_WRAPPER_PROVIDERS as OPENROUTER_WRAPPER_PROVIDER_VALUES } from "../generated/providers/runtime-constants.generated.js";
+import { OPENROUTER_WRAPPER_PROVIDERS as OPENROUTER_WRAPPER_PROVIDER_VALUES } from "../providers/runtime-constants.js";
 
 export type CachedModelPricing = {
   input: number;

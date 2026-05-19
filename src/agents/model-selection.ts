@@ -5,6 +5,7 @@ import {
   resolveAgentModelPrimaryValue,
   toAgentModelListLike,
 } from "../config/model-input.js";
+import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   ANTHROPIC_PROVIDER_ID,
   GOOGLE_PROVIDER_ID,
@@ -13,8 +14,7 @@ import {
   OPENROUTER_PROVIDER_ID,
   VERCEL_AI_GATEWAY_PROVIDER_ID,
   XAI_PROVIDER_ID,
-} from "../generated/providers/runtime-constants.generated.js";
-import { createSubsystemLogger } from "../logging/subsystem.js";
+} from "../providers/runtime-constants.js";
 import { sanitizeForLog } from "../terminal/ansi.js";
 import {
   resolveAgentConfig,

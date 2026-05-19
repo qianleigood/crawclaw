@@ -12,7 +12,7 @@ import {
   OPENROUTER_DEFAULT_MODEL_REF,
   OPENROUTER_MODELS_API_URL,
   OPENROUTER_PROVIDER_ID,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { inferParamBFromIdOrName } from "../shared/model-param-b.js";
 import { normalizeProviderId } from "./provider-id.js";
 

@@ -1,8 +1,8 @@
 import fs from "node:fs";
 import path from "node:path";
 import type { Api, Model } from "@mariozechner/pi-ai";
-import { XAI_PROVIDER_ID } from "../generated/providers/runtime-constants.generated.js";
 import { normalizeModelCompat } from "../plugins/provider-model-compat.js";
+import { XAI_PROVIDER_ID } from "../providers/runtime-constants.js";
 import { ensureAuthProfileStore } from "./auth-profiles.js";
 import { PROVIDER_ENV_API_KEY_CANDIDATES } from "./model-auth-env-vars.js";
 import { resolveEnvApiKey } from "./model-auth-env.js";

@@ -3,7 +3,7 @@ import {
   AWS_BEDROCK_BEARER_TOKEN_ENV,
   AWS_PROFILE_ENV,
   AWS_SECRET_ACCESS_KEY_ENV,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
 
 export type ResolvedProviderAuth = {

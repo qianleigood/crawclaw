@@ -1,6 +1,6 @@
 import { type CrawClawConfig, loadConfig } from "../config/config.js";
-import { MODEL_CATALOG_CONFIGURED_PROVIDER_IDS } from "../generated/providers/runtime-constants.generated.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
+import { MODEL_CATALOG_CONFIGURED_PROVIDER_IDS } from "../providers/runtime-constants.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
 import { ensureCrawClawModelsJson } from "./models-config.js";
 import { normalizeProviderId } from "./provider-id.js";

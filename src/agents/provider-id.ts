@@ -1,7 +1,4 @@
-import {
-  PROVIDER_AUTH_ID_ALIASES,
-  PROVIDER_ID_ALIASES,
-} from "../generated/providers/runtime-constants.generated.js";
+import { PROVIDER_AUTH_ID_ALIASES, PROVIDER_ID_ALIASES } from "../providers/runtime-constants.js";
 
 const providerIdAliases: Readonly<Record<string, string>> = PROVIDER_ID_ALIASES;
 const providerAuthIdAliases: Readonly<Record<string, string>> = PROVIDER_AUTH_ID_ALIASES;

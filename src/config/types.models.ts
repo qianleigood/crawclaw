@@ -3,7 +3,7 @@ import {
   MODEL_APIS,
   MODEL_COMPAT_MAX_TOKENS_FIELDS,
   MODEL_COMPAT_THINKING_FORMATS,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import type { SecretInput } from "./types.secrets.js";
 
 export { MODEL_APIS, MODEL_COMPAT_MAX_TOKENS_FIELDS, MODEL_COMPAT_THINKING_FORMATS };

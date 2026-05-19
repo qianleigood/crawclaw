@@ -9,7 +9,7 @@ import {
   OAUTH_API_KEY_MARKER_PREFIX as GENERATED_OAUTH_API_KEY_MARKER_PREFIX,
   OLLAMA_LOCAL_AUTH_MARKER as GENERATED_OLLAMA_LOCAL_AUTH_MARKER,
   SECRETREF_ENV_HEADER_MARKER_PREFIX as GENERATED_SECRETREF_ENV_HEADER_MARKER_PREFIX,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { listKnownProviderEnvApiKeyNames } from "./model-auth-env-vars.js";
 
 export const MINIMAX_OAUTH_MARKER = GENERATED_MINIMAX_OAUTH_MARKER;

@@ -2,7 +2,7 @@ import type { CrawClawConfig } from "../../config/config.js";
 import {
   AUTH_COOLDOWN_BYPASS_PROVIDER_IDS,
   AUTH_WHAM_COOLDOWN_PROBE_PROVIDER_ID,
-} from "../../generated/providers/runtime-constants.generated.js";
+} from "../../providers/runtime-constants.js";
 import { normalizeProviderId } from "../model-selection.js";
 import { logAuthProfileFailureStateChange } from "./state-observation.js";
 import { saveAuthProfileStore, updateAuthProfileStoreWithLock } from "./store.js";

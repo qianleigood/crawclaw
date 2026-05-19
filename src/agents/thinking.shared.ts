@@ -10,7 +10,7 @@ import {
   OPENAI_PROVIDER_ID,
   OPENAI_XHIGH_THINKING_MODEL_IDS,
   ZAI_PROVIDER_ID,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { normalizeProviderId as normalizeProviderIdValue } from "./provider-id.js";
 
 export type ThinkLevel = "off" | "minimal" | "low" | "medium" | "high" | "xhigh" | "adaptive";

@@ -1,3 +1,4 @@
+import { ensureGlobalUndiciEnvProxyDispatcher } from "../infra/net/undici-global-dispatcher.js";
 import {
   MINIMAX_API_HOST_ENV,
   MINIMAX_DEFAULT_API_HOST,
@@ -6,8 +7,7 @@ import {
   MINIMAX_VLM_API_PATH,
   MINIMAX_VLM_MODEL_ID,
   PROVIDER_ATTRIBUTION_PRODUCT,
-} from "../generated/providers/runtime-constants.generated.js";
-import { ensureGlobalUndiciEnvProxyDispatcher } from "../infra/net/undici-global-dispatcher.js";
+} from "../providers/runtime-constants.js";
 import { isRecord } from "../utils.js";
 import { normalizeSecretInput } from "../utils/normalize-secret-input.js";
 

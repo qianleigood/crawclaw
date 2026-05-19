@@ -45,7 +45,7 @@
     "check:loc": "node --import tsx scripts/check-ts-max-loc.ts --max 500",
     "check:no-conflict-markers": "node scripts/check-no-conflict-markers.mjs",
     "check:provider-model-normalization": "cargo run -q -p crawclaw-runtime -- emit-provider-model-normalization --output src/generated/providers/model-normalization.generated.json --check",
-    "check:provider-runtime-constants": "cargo run -q -p crawclaw-runtime -- emit-provider-runtime-constants --output src/generated/providers/runtime-constants.generated.ts --check",
+    "check:provider-runtime-constants": "cargo run -q -p crawclaw-runtime -- emit-provider-runtime-constants --output src/generated/providers/runtime-constants.generated.json --check",
     "config:docs:check": "node scripts/generate-config-doc-baseline.mjs --check",
     "config:docs:gen": "node scripts/generate-config-doc-baseline.mjs --write",
     "config:schema:check": "cargo run -q -p crawclaw-runtime -- emit-base-config-schema --output src/generated/config/schema.base.generated.json --check",

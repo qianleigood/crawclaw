@@ -12,7 +12,7 @@ import {
   MISTRAL_SAFE_MAX_TOKENS_BY_MODEL as GENERATED_MISTRAL_SAFE_MAX_TOKENS_BY_MODEL,
   MISTRAL_PROVIDER_ID,
   PROVIDER_DEFAULT_API_BY_PROVIDER as GENERATED_PROVIDER_DEFAULT_API_BY_PROVIDER,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { DEFAULT_AGENT_MAX_CONCURRENT, DEFAULT_SUBAGENT_MAX_CONCURRENT } from "./agent-limits.js";
 import { resolveAgentModelPrimaryValue } from "./model-input.js";
 import { normalizeTalkConfig } from "./talk.js";
@@ -32,7 +32,9 @@ const DEFAULT_MODEL_INPUT: ModelDefinitionConfig["input"] = [...GENERATED_DEFAUL
 const MISTRAL_SAFE_MAX_TOKENS_BY_MODEL: Readonly<Record<string, number>> =
   GENERATED_MISTRAL_SAFE_MAX_TOKENS_BY_MODEL;
 const PROVIDER_DEFAULT_API_BY_PROVIDER: Readonly<Record<string, ModelDefinitionConfig["api"]>> =
-  GENERATED_PROVIDER_DEFAULT_API_BY_PROVIDER;
+  GENERATED_PROVIDER_DEFAULT_API_BY_PROVIDER as Readonly<
+    Record<string, ModelDefinitionConfig["api"]>
+  >;
 
 type ModelDefinitionLike = Partial<ModelDefinitionConfig> &
   Pick<ModelDefinitionConfig, "id" | "name">;

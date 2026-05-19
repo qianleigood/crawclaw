@@ -4,12 +4,12 @@
 import path from "node:path";
 import { loadConfig } from "../config/config.js";
 import type { CrawClawConfig } from "../config/config.js";
+import { computeBackoff, type BackoffPolicy } from "../infra/backoff.js";
+import { consumeRootOptionToken, FLAG_TERMINATOR } from "../infra/cli-root-options.js";
 import {
   ANTHROPIC_CONTEXT_1M_MODEL_PREFIXES,
   ANTHROPIC_CONTEXT_1M_TOKENS as GENERATED_ANTHROPIC_CONTEXT_1M_TOKENS,
-} from "../generated/providers/runtime-constants.generated.js";
-import { computeBackoff, type BackoffPolicy } from "../infra/backoff.js";
-import { consumeRootOptionToken, FLAG_TERMINATOR } from "../infra/cli-root-options.js";
+} from "../providers/runtime-constants.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
 import { lookupCachedContextTokens, MODEL_CONTEXT_TOKEN_CACHE } from "./context-cache.js";
 import { normalizeProviderId } from "./model-selection.js";

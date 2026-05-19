@@ -2,7 +2,7 @@ import type { CrawClawConfig } from "../config/config.js";
 import {
   DEFAULT_PROVIDER_CAPABILITIES as GENERATED_DEFAULT_PROVIDER_CAPABILITIES,
   PROVIDER_CAPABILITY_FALLBACKS as GENERATED_PROVIDER_CAPABILITY_FALLBACKS,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { normalizeProviderId } from "./provider-id.js";
 
 export type ProviderCapabilities = {
@@ -25,9 +25,12 @@ export type ProviderCapabilityLookupOptions = {
   env?: NodeJS.ProcessEnv;
 };
 
-const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilities = GENERATED_DEFAULT_PROVIDER_CAPABILITIES;
+const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilities =
+  GENERATED_DEFAULT_PROVIDER_CAPABILITIES as ProviderCapabilities;
 const PLUGIN_CAPABILITIES_FALLBACKS: Readonly<Record<string, Partial<ProviderCapabilities>>> =
-  GENERATED_PROVIDER_CAPABILITY_FALLBACKS;
+  GENERATED_PROVIDER_CAPABILITY_FALLBACKS as unknown as Readonly<
+    Record<string, Partial<ProviderCapabilities>>
+  >;
 
 export function resolveProviderCapabilities(
   provider?: string | null,

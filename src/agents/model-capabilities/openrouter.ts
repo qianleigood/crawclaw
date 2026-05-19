@@ -21,9 +21,9 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { resolveStateDir } from "../../config/paths.js";
-import { OPENROUTER_MODELS_API_URL } from "../../generated/providers/runtime-constants.generated.js";
 import { resolveProxyFetchFromEnv } from "../../infra/net/proxy-fetch.js";
 import { createSubsystemLogger } from "../../logging/subsystem.js";
+import { OPENROUTER_MODELS_API_URL } from "../../providers/runtime-constants.js";
 
 const log = createSubsystemLogger("model-capabilities.openrouter");
 

@@ -3,7 +3,7 @@ import {
   CORE_PROVIDER_AUTH_ENV_VAR_CANDIDATES,
   CORE_PROVIDER_SETUP_ENV_VAR_OVERRIDES,
   EXTRA_PROVIDER_AUTH_ENV_VARS,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 
 const BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES =
   BUNDLED_PROVIDER_AUTH_ENV_VAR_CANDIDATES_JSON as Record<string, readonly string[]>;

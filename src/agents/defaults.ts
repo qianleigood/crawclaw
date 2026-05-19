@@ -2,7 +2,7 @@ import {
   AGENT_DEFAULT_CONTEXT_TOKENS,
   AGENT_DEFAULT_MODEL,
   AGENT_DEFAULT_PROVIDER,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 
 export const DEFAULT_PROVIDER = AGENT_DEFAULT_PROVIDER;
 export const DEFAULT_MODEL = AGENT_DEFAULT_MODEL;

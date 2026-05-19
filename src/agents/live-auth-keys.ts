@@ -4,7 +4,7 @@ import {
   GOOGLE_PROVIDER_ID,
   GOOGLE_VERTEX_PROVIDER_ID,
   OPENAI_PROVIDER_ID,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { normalizeProviderId } from "./model-selection.js";
 
 const KEY_SPLIT_RE = /[\s,;]+/g;

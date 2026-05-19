@@ -4,7 +4,7 @@ import {
   OPENAI_COMPATIBLE_TURN_VALIDATION_API,
   TRANSCRIPT_ANTHROPIC_MODEL_APIS,
   TRANSCRIPT_OPENAI_MODEL_APIS,
-} from "../generated/providers/runtime-constants.generated.js";
+} from "../providers/runtime-constants.js";
 import { normalizeProviderId } from "./model-selection.js";
 import {
   isAnthropicProviderFamily,
