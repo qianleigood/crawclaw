@@ -67,10 +67,6 @@ const cacheGitCommit = (searchDir: string, commit: string | null) => {
   return commit;
 };
 
-const clearCachedGitCommits = () => {
-  cachedGitCommitBySearchDir.clear();
-};
-
 const resolveGitLookupDepth = (searchDir: string, packageRoot: string | null) => {
   if (!packageRoot) {
     return undefined;
@@ -226,8 +222,4 @@ export const resolveCommitHash = (
   } catch {
     return cacheGitCommit(searchDir, null);
   }
-};
-
-export const __testing = {
-  clearCachedGitCommits,
 };

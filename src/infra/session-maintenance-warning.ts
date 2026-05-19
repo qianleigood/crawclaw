@@ -12,14 +12,6 @@ type WarningParams = {
 
 const warnedContexts = new Map<string, string>();
 
-function resetSessionMaintenanceWarningForTests() {
-  warnedContexts.clear();
-}
-
-export const __testing = {
-  resetSessionMaintenanceWarningForTests,
-} as const;
-
 function shouldSendWarning(): boolean {
   return !process.env.VITEST && process.env.NODE_ENV !== "test";
 }

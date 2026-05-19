@@ -230,9 +230,3 @@ export async function ensureThreadBindingForSubagentSpawn(params: {
     error: "thread=true is unavailable because TS plugin subagent hooks were removed.",
   };
 }
-
-export const __testing = {
-  resolveSpawnMode,
-  sanitizeMountPathHint,
-  summarizeSpawnError,
-};

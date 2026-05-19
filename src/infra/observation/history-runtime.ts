@@ -39,9 +39,3 @@ export async function indexObservationEventWithDefaultStore(input: {
 }): Promise<void> {
   void input;
 }
-
-export const __testing = {
-  resetSharedObservationHistoryStore(): void {
-    sharedStore = null;
-  },
-};

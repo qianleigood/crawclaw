@@ -312,13 +312,3 @@ export function buildWorkflowActionVisibilityProjection(params: {
       : {}),
   });
 }
-
-export const __testing = {
-  toWorkflowCompensationStatus,
-  toWorkflowExecutionStatus,
-  toWorkflowStepStatus,
-  normalizeOptionalString,
-  resolveCurrentStepLabel,
-  resolveStepLabel,
-  resolveWorkflowLabel,
-};
