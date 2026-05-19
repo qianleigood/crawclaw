@@ -63,7 +63,7 @@ type CachedPluginState = {
 };
 
 const MAX_PLUGIN_REGISTRY_CACHE_ENTRIES = 128;
-let pluginRegistryCacheEntryCap = MAX_PLUGIN_REGISTRY_CACHE_ENTRIES;
+const pluginRegistryCacheEntryCap = MAX_PLUGIN_REGISTRY_CACHE_ENTRIES;
 const registryCache = new Map<string, CachedPluginState>();
 const openAllowlistWarningCache = new Set<string>();
 
@@ -73,13 +73,6 @@ export function clearPluginLoaderCache(): void {
 }
 
 const defaultLogger = () => createSubsystemLogger("plugins");
-
-export const __testing = {
-  resolvePluginLoadCacheContext,
-  get maxPluginRegistryCacheEntries() {
-    return pluginRegistryCacheEntryCap;
-  },
-};
 
 function getCachedPluginRegistry(cacheKey: string): CachedPluginState | undefined {
   const cached = registryCache.get(cacheKey);
