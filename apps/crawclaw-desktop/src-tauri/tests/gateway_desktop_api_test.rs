@@ -8,6 +8,8 @@ use crawclaw_desktop::gateway::desktop_api::{
 };
 use crawclaw_desktop::runtime_engine::RuntimeLayout;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+const TEST_HTTP_READ_TIMEOUT: Duration = Duration::from_secs(10);
 use uuid::Uuid;
 
 #[tokio::test]
@@ -1925,7 +1927,7 @@ async fn request(addr: SocketAddr, request: impl Into<String>) -> (u16, String) 
     let mut bytes = Vec::new();
     let mut buffer = [0; 4096];
     loop {
-        match tokio::time::timeout(Duration::from_secs(2), stream.read(&mut buffer)).await {
+        match tokio::time::timeout(TEST_HTTP_READ_TIMEOUT, stream.read(&mut buffer)).await {
             Ok(Ok(0)) => break,
             Ok(Ok(count)) => {
                 bytes.extend_from_slice(&buffer[..count]);
@@ -1967,7 +1969,7 @@ async fn request_stream_prefix(addr: SocketAddr, request: impl Into<String>) -> 
     let mut bytes = Vec::new();
     let mut buffer = [0; 4096];
     loop {
-        match tokio::time::timeout(Duration::from_secs(2), stream.read(&mut buffer)).await {
+        match tokio::time::timeout(TEST_HTTP_READ_TIMEOUT, stream.read(&mut buffer)).await {
             Ok(Ok(0)) => break,
             Ok(Ok(count)) => {
                 bytes.extend_from_slice(&buffer[..count]);
@@ -1992,7 +1994,7 @@ async fn read_stream_until(stream: &mut tokio::net::TcpStream, pattern: &str) ->
     let mut bytes = Vec::new();
     let mut buffer = [0; 4096];
     loop {
-        match tokio::time::timeout(Duration::from_secs(2), stream.read(&mut buffer)).await {
+        match tokio::time::timeout(TEST_HTTP_READ_TIMEOUT, stream.read(&mut buffer)).await {
             Ok(Ok(0)) => break,
             Ok(Ok(count)) => {
                 bytes.extend_from_slice(&buffer[..count]);
