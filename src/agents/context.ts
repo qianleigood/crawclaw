@@ -11,11 +11,7 @@ import {
 import { computeBackoff, type BackoffPolicy } from "../infra/backoff.js";
 import { consumeRootOptionToken, FLAG_TERMINATOR } from "../infra/cli-root-options.js";
 import { resolveCrawClawAgentDir } from "./agent-paths.js";
-import {
-  clearCachedContextTokens,
-  lookupCachedContextTokens,
-  MODEL_CONTEXT_TOKEN_CACHE,
-} from "./context-cache.js";
+import { lookupCachedContextTokens, MODEL_CONTEXT_TOKEN_CACHE } from "./context-cache.js";
 import { normalizeProviderId } from "./model-selection.js";
 
 type ModelEntry = { id: string; contextWindow?: number };
@@ -235,15 +231,6 @@ function ensureContextWindowCacheLoaded(): Promise<void> {
     // Keep lookup best-effort.
   });
   return loadPromise;
-}
-
-export function resetContextWindowCacheForTest(): void {
-  loadPromise = null;
-  configuredConfig = undefined;
-  configLoadFailures = 0;
-  nextConfigLoadAttemptAtMs = 0;
-  modelsConfigRuntimePromise = undefined;
-  clearCachedContextTokens();
 }
 
 export function lookupContextTokens(

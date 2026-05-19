@@ -15,7 +15,6 @@ import {
   incrementAgentRuntimeToolCall,
   markAgentRuntimeStateTerminal,
   registerAgentRuntimeState,
-  resetAgentRuntimeStateForTest,
   type AgentRuntimeState,
   type AgentRuntimeStatePatch,
   type AgentRuntimeStatus,
@@ -594,14 +593,6 @@ export function markAgentRunCancelled(params: {
     });
   }
   return terminal.state;
-}
-
-export function resetAgentProgressEventsForTest(): void {
-  const state = getAgentProgressState();
-  state.listeners.clear();
-  state.bridgeStop?.();
-  state.bridgeStop = undefined;
-  resetAgentRuntimeStateForTest();
 }
 
 export { clearAgentRuntimeState, getAgentRuntimeState };

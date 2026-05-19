@@ -275,7 +275,3 @@ export function clearAgentRuntimeState(runId: string): void {
   }
   getAgentRuntimeStateStore().byRunId.delete(normalizedRunId);
 }
-
-export function resetAgentRuntimeStateForTest(): void {
-  getAgentRuntimeStateStore().byRunId.clear();
-}

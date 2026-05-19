@@ -43,11 +43,6 @@ export function replaceGatewayModelPricingCache(
   cachedAt = nextCachedAt;
 }
 
-export function clearGatewayModelPricingCacheState(): void {
-  cachedPricing = new Map();
-  cachedAt = 0;
-}
-
 export function getCachedGatewayModelPricing(params: {
   provider?: string;
   model?: string;
@@ -80,24 +75,4 @@ export function getGatewayModelPricingCacheMeta(): {
     ttlMs: 0,
     size: cachedPricing.size,
   };
-}
-
-export function __resetGatewayModelPricingCacheForTest(): void {
-  clearGatewayModelPricingCacheState();
-}
-
-export function __setGatewayModelPricingForTest(
-  entries: Array<{ provider: string; model: string; pricing: CachedModelPricing }>,
-): void {
-  replaceGatewayModelPricingCache(
-    new Map(
-      entries.flatMap((entry) => {
-        const normalized = normalizeModelRef(entry.provider, entry.model, {
-          allowPluginNormalization: false,
-        });
-        const key = modelPricingCacheKey(normalized.provider, normalized.model);
-        return key ? ([[key, entry.pricing]] as const) : [];
-      }),
-    ),
-  );
 }

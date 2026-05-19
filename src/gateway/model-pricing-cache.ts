@@ -16,7 +16,6 @@ import {
 } from "../generated/providers/runtime-constants.generated.js";
 import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
-  clearGatewayModelPricingCacheState,
   getCachedGatewayModelPricing,
   getGatewayModelPricingCacheMeta as getGatewayModelPricingCacheMetaState,
   replaceGatewayModelPricingCache,
@@ -55,7 +54,7 @@ export const GATEWAY_MODEL_PRICING_CACHE_DESCRIPTOR: CacheGovernanceDescriptor =
   invalidation: [
     "refreshGatewayModelPricingCache(...) replaces the cached catalog",
     "startGatewayModelPricingRefresh(...) schedules TTL refresh",
-    "__resetGatewayModelPricingCacheForTest() clears cache and timers",
+    "the stop function returned by startGatewayModelPricingRefresh(...) clears the refresh timer",
   ],
   observability: ["getGatewayModelPricingCacheMeta()", "gateway:model-pricing subsystem logger"],
 };
@@ -418,10 +417,4 @@ export function getGatewayModelPricingCacheMeta(): {
   size: number;
 } {
   return { ...getGatewayModelPricingCacheMetaState(), ttlMs: CACHE_TTL_MS };
-}
-
-export function __resetGatewayModelPricingCacheForTest(): void {
-  clearGatewayModelPricingCacheState();
-  clearRefreshTimer();
-  inFlightRefresh = null;
 }

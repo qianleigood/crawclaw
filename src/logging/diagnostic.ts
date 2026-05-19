@@ -10,9 +10,7 @@ import type { ObservationContext } from "../infra/observation/types.js";
 import {
   diagnosticSessionStates,
   getDiagnosticSessionState,
-  getDiagnosticSessionStateCountForTest as getDiagnosticSessionStateCountForTestImpl,
   pruneDiagnosticSessionStates,
-  resetDiagnosticSessionStateForTest,
   type SessionRef,
   type SessionStateValue,
 } from "./diagnostic-session-state.js";
@@ -460,20 +458,6 @@ export function stopDiagnosticHeartbeat() {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
   }
-}
-
-export function getDiagnosticSessionStateCountForTest(): number {
-  return getDiagnosticSessionStateCountForTestImpl();
-}
-
-export function resetDiagnosticStateForTest(): void {
-  resetDiagnosticSessionStateForTest();
-  webhookStats.received = 0;
-  webhookStats.processed = 0;
-  webhookStats.errors = 0;
-  webhookStats.lastReceived = 0;
-  lastActivityAt = 0;
-  stopDiagnosticHeartbeat();
 }
 
 export { diag as diagnosticLogger };

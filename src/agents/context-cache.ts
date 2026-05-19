@@ -13,7 +13,6 @@ export const MODEL_CONTEXT_TOKEN_CACHE_DESCRIPTOR: CacheGovernanceDescriptor = {
   invalidation: [
     "clearCachedContextTokens(modelId) deletes a single model entry",
     "clearCachedContextTokens() clears the whole cache",
-    "resetContextWindowCacheForTest() clears the cache and loader state",
   ],
   observability: ["getModelContextTokenCacheMeta()", "lookupCachedContextTokens(modelId)"],
 };

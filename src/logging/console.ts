@@ -19,7 +19,7 @@ export type ConsoleLoggerSettings = ConsoleSettings;
 
 const requireConfig = resolveNodeRequireFromMeta(import.meta.url);
 type ConsoleConfigLoader = () => CrawClawConfig["logging"] | undefined;
-const loadConfigFallbackDefault: ConsoleConfigLoader = () => {
+const loadConfigFallback: ConsoleConfigLoader = () => {
   try {
     const loaded = requireConfig?.("../config/config.js") as
       | {
@@ -31,11 +31,6 @@ const loadConfigFallbackDefault: ConsoleConfigLoader = () => {
     return undefined;
   }
 };
-let loadConfigFallback: ConsoleConfigLoader = loadConfigFallbackDefault;
-
-export function setConsoleConfigLoaderForTests(loader?: ConsoleConfigLoader): void {
-  loadConfigFallback = loader ?? loadConfigFallbackDefault;
-}
 
 function normalizeConsoleLevel(level?: string): LogLevel {
   if (isVerbose()) {

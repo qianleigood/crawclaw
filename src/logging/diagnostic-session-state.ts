@@ -158,10 +158,6 @@ export function updateDiagnosticSessionState(
   return state;
 }
 
-export function getDiagnosticSessionStateCountForTest(): number {
-  return diagnosticSessionStates.size;
-}
-
 export function recordDiagnosticChannelStreamingDecision(
   ref: SessionRef,
   decision: Omit<ChannelStreamingDecisionSnapshot, "ts"> & { ts?: number },
@@ -206,9 +202,4 @@ export function listRecentDiagnosticChannelStreamingDecisions(params?: {
     })
     .toSorted((left, right) => right.ts - left.ts)
     .slice(0, limit);
-}
-
-export function resetDiagnosticSessionStateForTest(): void {
-  diagnosticSessionStates.clear();
-  lastSessionPruneAt = 0;
 }

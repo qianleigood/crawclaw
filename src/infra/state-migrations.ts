@@ -318,14 +318,6 @@ function removeDirIfEmpty(dir: string) {
   }
 }
 
-export function resetAutoMigrateLegacyStateForTest() {
-  autoMigrateChecked = false;
-}
-
-export function resetAutoMigrateLegacyAgentDirForTest() {
-  resetAutoMigrateLegacyStateForTest();
-}
-
 export async function detectLegacyStateMigrations(params: {
   cfg: CrawClawConfig;
   env?: NodeJS.ProcessEnv;
