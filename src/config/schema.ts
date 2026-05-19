@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { GENERATED_BASE_CONFIG_SCHEMA } from "../generated/config/schema.base.generated.js";
+import GENERATED_BASE_CONFIG_SCHEMA_JSON from "../generated/config/schema.base.generated.json" with { type: "json" };
 import type { ConfigUiHint, ConfigUiHints } from "./schema.hints.js";
 import { applySensitiveHints, applySensitiveUrlHints } from "./schema.hints.js";
 import {
@@ -300,7 +300,7 @@ function buildBaseConfigSchema(): ConfigSchemaResponse {
   if (cachedBase) {
     return cachedBase;
   }
-  const generated = GENERATED_BASE_CONFIG_SCHEMA as unknown as ConfigSchemaResponse;
+  const generated = GENERATED_BASE_CONFIG_SCHEMA_JSON as unknown as ConfigSchemaResponse;
   const mergedWithoutSensitiveHints = generated.uiHints;
   const mergedHints = applyDerivedTags(
     applySensitiveHints(
