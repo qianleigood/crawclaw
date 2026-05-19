@@ -49,7 +49,9 @@ cargo test -q -p crawclaw-gateway
 Bundled plugin contracts verify registration ownership and descriptor shape:
 
 ```bash
-pnpm test -- src/plugins/contracts/
+cargo test -q -p crawclaw-plugin-host
+cargo test -q -p crawclaw-runtime native_plugin_registry
+cargo test -q -p crawclaw-gateway plugins
 ```
 
 These tests assert:
@@ -58,6 +60,8 @@ These tests assert:
 - Which plugins register speech or media providers
 - Registration shape correctness
 - Runtime contract compliance
+- Guardrails that keep the removed JavaScript plugin SDK and TypeScript test
+  surfaces from returning
 
 ## Desktop packaging guard
 
@@ -68,19 +72,6 @@ pnpm desktop:tauri:release-check
 ```
 
 Run the release check when packaged app artifacts exist locally.
-
-## TypeScript tests
-
-TypeScript tests can still cover repo-private helpers, packaging, docs, and the
-desktop renderer:
-
-```bash
-pnpm test -- <path-or-filter>
-pnpm check
-```
-
-Do not add new tests that import a public JavaScript plugin SDK. That package
-surface has been removed.
 
 ## Related
 
