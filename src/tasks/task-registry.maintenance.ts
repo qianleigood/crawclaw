@@ -272,18 +272,6 @@ export function startTaskRegistryMaintenance() {
   sweeper.unref?.();
 }
 
-export function stopTaskRegistryMaintenanceForTests() {
-  if (deferredSweep) {
-    clearTimeout(deferredSweep);
-    deferredSweep = null;
-  }
-  if (sweeper) {
-    clearInterval(sweeper);
-    sweeper = null;
-  }
-  sweepInProgress = false;
-}
-
 export function getReconciledTaskById(taskId: string): TaskRecord | undefined {
   const task = getTaskById(taskId);
   return task ? reconcileTaskRecordForOperatorInspection(task) : undefined;

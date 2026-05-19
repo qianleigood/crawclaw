@@ -86,9 +86,3 @@ export function configureTaskRegistryRuntime(params: {
     configuredTaskRegistryObservers = params.observers ?? null;
   }
 }
-
-export function resetTaskRegistryRuntimeForTests() {
-  configuredTaskRegistryStore.close?.();
-  configuredTaskRegistryStore = defaultTaskRegistryStore;
-  configuredTaskRegistryObservers = null;
-}

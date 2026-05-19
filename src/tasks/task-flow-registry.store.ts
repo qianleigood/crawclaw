@@ -70,9 +70,3 @@ export function configureTaskFlowRegistryRuntime(params: {
     configuredFlowRegistryObservers = params.observers ?? null;
   }
 }
-
-export function resetTaskFlowRegistryRuntimeForTests() {
-  configuredFlowRegistryStore.close?.();
-  configuredFlowRegistryStore = defaultFlowRegistryStore;
-  configuredFlowRegistryObservers = null;
-}

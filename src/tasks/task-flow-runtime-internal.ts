@@ -11,7 +11,6 @@ export {
   listTaskFlowsForOwnerKey,
   requestFlowCancel,
   resolveTaskFlowForLookupToken,
-  resetTaskFlowRegistryForTests,
   resumeFlow,
   setFlowWaiting,
   syncFlowFromTask,

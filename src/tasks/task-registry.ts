@@ -24,7 +24,6 @@ import {
 import {
   getTaskRegistryObservers,
   getTaskRegistryStore,
-  resetTaskRegistryRuntimeForTests,
   type TaskRegistryObserverEvent,
 } from "./task-registry.store.js";
 import { summarizeTaskRecords } from "./task-registry.summary.js";
@@ -57,7 +56,6 @@ const taskIdsByAgentId = new Map<string, Set<string>>();
 const taskIdsByParentAgentId = new Map<string, Set<string>>();
 const tasksWithPendingDelivery = new Set<string>();
 let listenerStarted = false;
-let listenerStop: (() => void) | null = null;
 let restoreAttempted = false;
 
 type TaskDeliveryOwner = {
@@ -188,13 +186,6 @@ function emitTaskRegistryObserverEvent(createEvent: () => TaskRegistryObserverEv
       error,
     });
   }
-}
-
-function persistTaskRegistry() {
-  getTaskRegistryStore().saveSnapshot({
-    tasks,
-    deliveryStates: taskDeliveryStates,
-  });
 }
 
 function persistTaskUpsert(task: TaskRecord) {
@@ -1322,7 +1313,7 @@ function ensureListener() {
     return;
   }
   listenerStarted = true;
-  listenerStop = onAgentEvent((evt) => {
+  onAgentEvent((evt) => {
     restoreTaskRegistryOnce();
     const scopedTasks = getTasksByRunScope({
       runId: evt.runId,
@@ -1985,33 +1976,4 @@ export function deleteTaskRecordById(taskId: string): boolean {
     previous: cloneTaskRecord(current),
   }));
   return true;
-}
-
-export function resetTaskRegistryForTests(opts?: { persist?: boolean }) {
-  tasks.clear();
-  taskDeliveryStates.clear();
-  taskIdsByRunId.clear();
-  taskIdsByOwnerKey.clear();
-  taskIdsByParentFlowId.clear();
-  taskIdsByRelatedSessionKey.clear();
-  taskIdsByAgentId.clear();
-  taskIdsByParentAgentId.clear();
-  tasksWithPendingDelivery.clear();
-  restoreAttempted = false;
-  resetTaskRegistryRuntimeForTests();
-  if (listenerStop) {
-    listenerStop();
-    listenerStop = null;
-  }
-  listenerStarted = false;
-  if (opts?.persist !== false) {
-    persistTaskRegistry();
-  }
-  // Always close the sqlite handle so Windows temp-dir cleanup can remove the
-  // state directory even when a test intentionally skips persisting the reset.
-  getTaskRegistryStore().close?.();
-}
-
-export function resetTaskRegistryDeliveryRuntimeForTests() {
-  // Delivery is session-event only in the TS runtime.
 }

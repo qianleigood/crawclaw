@@ -12,7 +12,6 @@ import {
   captureSubagentCompletionReply,
   type SubagentRunOutcome,
 } from "./subagent-announce-output.js";
-import { resetAnnounceQueuesForTests } from "./subagent-announce-queue.js";
 import {
   SUBAGENT_ENDED_REASON_COMPLETE,
   SUBAGENT_ENDED_REASON_ERROR,
@@ -120,11 +119,10 @@ const defaultSubagentRegistryDeps: SubagentRegistryDeps = {
   },
 };
 
-let subagentRegistryDeps: SubagentRegistryDeps = defaultSubagentRegistryDeps;
+const subagentRegistryDeps: SubagentRegistryDeps = defaultSubagentRegistryDeps;
 
 let sweeper: NodeJS.Timeout | null = null;
 let listenerStarted = false;
-let listenerStop: (() => void) | null = null;
 // Use var to avoid TDZ when init runs across circular imports during bootstrap.
 var restoreAttempted = false;
 const SUBAGENT_ANNOUNCE_TIMEOUT_MS = 120_000;
@@ -156,13 +154,6 @@ function clearPendingLifecycleError(runId: string) {
   }
   clearTimeout(pending.timer);
   pendingLifecycleErrorByRunId.delete(runId);
-}
-
-function clearAllPendingLifecycleErrors() {
-  for (const pending of pendingLifecycleErrorByRunId.values()) {
-    clearTimeout(pending.timer);
-  }
-  pendingLifecycleErrorByRunId.clear();
 }
 
 async function emitTrackedSubagentLifecycleEvent(params: {
@@ -590,7 +581,7 @@ function ensureListener() {
     return;
   }
   listenerStarted = true;
-  listenerStop = subagentRegistryDeps.onAgentEvent((evt) => {
+  subagentRegistryDeps.onAgentEvent((evt) => {
     void (async () => {
       if (!evt || evt.stream !== "lifecycle") {
         return;
@@ -711,38 +702,6 @@ export function registerSubagentRun(params: {
   retainAttachmentsOnKeep?: boolean;
 }) {
   subagentRunManager.registerSubagentRun(params);
-}
-
-export function resetSubagentRegistryForTests(opts?: { persist?: boolean }) {
-  subagentRuns.clear();
-  resumedRuns.clear();
-  clearAllPendingLifecycleErrors();
-  resetAnnounceQueuesForTests();
-  stopSweeper();
-  restoreAttempted = false;
-  if (listenerStop) {
-    listenerStop();
-    listenerStop = null;
-  }
-  listenerStarted = false;
-  if (opts?.persist !== false) {
-    persistSubagentRuns();
-  }
-}
-
-export const __testing = {
-  setDepsForTest(overrides?: Partial<SubagentRegistryDeps>) {
-    subagentRegistryDeps = overrides
-      ? {
-          ...defaultSubagentRegistryDeps,
-          ...overrides,
-        }
-      : defaultSubagentRegistryDeps;
-  },
-} as const;
-
-export function addSubagentRunForTests(entry: SubagentRunRecord) {
-  subagentRuns.set(entry.runId, entry);
 }
 
 export function releaseSubagentRun(runId: string) {

@@ -3,7 +3,6 @@ import { createSubsystemLogger } from "../logging/subsystem.js";
 import {
   getTaskFlowRegistryObservers,
   getTaskFlowRegistryStore,
-  resetTaskFlowRegistryRuntimeForTests,
   type TaskFlowRegistryObserverEvent,
 } from "./task-flow-registry.store.js";
 import type {
@@ -701,15 +700,4 @@ export function deleteTaskFlowRecordById(flowId: string): boolean {
     previous: cloneFlowRecord(current),
   }));
   return true;
-}
-
-export function resetTaskFlowRegistryForTests(opts?: { persist?: boolean }) {
-  flows.clear();
-  restoreAttempted = false;
-  restoreFailureMessage = null;
-  resetTaskFlowRegistryRuntimeForTests();
-  if (opts?.persist !== false) {
-    persistFlowRegistry();
-  }
-  getTaskFlowRegistryStore().close?.();
 }

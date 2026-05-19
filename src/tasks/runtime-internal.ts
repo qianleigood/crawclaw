@@ -27,7 +27,6 @@ export {
   mergeTaskAgentMetadataById,
   recordTaskProgressByRunId,
   resolveTaskForLookupToken,
-  resetTaskRegistryForTests,
   isParentFlowLinkError,
   setTaskCleanupAfterById,
   setTaskProgressById,
