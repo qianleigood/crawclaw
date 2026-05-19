@@ -14,13 +14,6 @@ export type BrowserOpenSupport = {
   command?: string;
 };
 
-function shouldSkipBrowserOpenInTests(): boolean {
-  if (process.env.VITEST) {
-    return true;
-  }
-  return process.env.NODE_ENV === "test";
-}
-
 export async function resolveBrowserOpenCommand(): Promise<BrowserOpenCommand> {
   const platform = process.platform;
   const hasDisplay = Boolean(process.env.DISPLAY || process.env.WAYLAND_DISPLAY);
@@ -68,9 +61,6 @@ export async function detectBrowserOpenSupport(): Promise<BrowserOpenSupport> {
 }
 
 export async function openUrl(url: string): Promise<boolean> {
-  if (shouldSkipBrowserOpenInTests()) {
-    return false;
-  }
   const resolved = await resolveBrowserOpenCommand();
   if (!resolved.argv) {
     return false;
@@ -97,9 +87,6 @@ export async function openUrl(url: string): Promise<boolean> {
 }
 
 export async function openUrlInBackground(url: string): Promise<boolean> {
-  if (shouldSkipBrowserOpenInTests()) {
-    return false;
-  }
   if (process.platform !== "darwin") {
     return false;
   }

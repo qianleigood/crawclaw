@@ -1,4 +1,3 @@
-import os from "node:os";
 import path from "node:path";
 import { resolveStateDir } from "../config/paths.js";
 
@@ -6,9 +5,6 @@ export function resolveTaskStateDir(env: NodeJS.ProcessEnv = process.env): strin
   const explicit = env.CRAWCLAW_STATE_DIR?.trim();
   if (explicit) {
     return resolveStateDir(env);
-  }
-  if (env.VITEST || env.NODE_ENV === "test") {
-    return path.join(os.tmpdir(), "crawclaw-test-state", String(process.pid));
   }
   return resolveStateDir(env);
 }

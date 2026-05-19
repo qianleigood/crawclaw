@@ -12,10 +12,6 @@ type WarningParams = {
 
 const warnedContexts = new Map<string, string>();
 
-function shouldSendWarning(): boolean {
-  return !process.env.VITEST && process.env.NODE_ENV !== "test";
-}
-
 function buildWarningContext(params: WarningParams): string {
   const { warning } = params;
   return [
@@ -63,10 +59,6 @@ function buildWarningText(warning: SessionMaintenanceWarning): string {
 }
 
 export async function deliverSessionMaintenanceWarning(params: WarningParams): Promise<void> {
-  if (!shouldSendWarning()) {
-    return;
-  }
-
   const contextKey = buildWarningContext(params);
   if (warnedContexts.get(params.sessionKey) === contextKey) {
     return;

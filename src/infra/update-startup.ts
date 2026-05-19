@@ -62,16 +62,6 @@ const AUTO_STABLE_DELAY_HOURS_DEFAULT = 6;
 const AUTO_STABLE_JITTER_HOURS_DEFAULT = 12;
 const AUTO_BETA_CHECK_INTERVAL_HOURS_DEFAULT = 1;
 
-function shouldSkipCheck(allowInTests: boolean): boolean {
-  if (allowInTests) {
-    return false;
-  }
-  if (process.env.VITEST || process.env.NODE_ENV === "test") {
-    return true;
-  }
-  return false;
-}
-
 function resolveAutoUpdatePolicy(cfg: ReturnType<typeof loadConfig>): AutoUpdatePolicy {
   const auto = cfg.update?.auto;
   const stableDelayHours =
@@ -297,7 +287,6 @@ export async function runGatewayUpdateCheck(params: {
   cfg: ReturnType<typeof loadConfig>;
   log: { info: (msg: string, meta?: Record<string, unknown>) => void };
   isNixMode: boolean;
-  allowInTests?: boolean;
   onUpdateAvailableChange?: (updateAvailable: UpdateAvailable | null) => void;
   runAutoUpdate?: (params: {
     channel: "stable" | "beta";
@@ -305,9 +294,6 @@ export async function runGatewayUpdateCheck(params: {
     root?: string;
   }) => Promise<AutoUpdateRunResult>;
 }): Promise<void> {
-  if (shouldSkipCheck(Boolean(params.allowInTests))) {
-    return;
-  }
   if (params.isNixMode) {
     return;
   }

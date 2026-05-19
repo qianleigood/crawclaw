@@ -29,9 +29,6 @@ function formatEnvValue(value: string, redact?: boolean): string {
 }
 
 export function logAcceptedEnvOption(option: AcceptedEnvOption): void {
-  if (process.env.VITEST || process.env.NODE_ENV === "test") {
-    return;
-  }
   if (loggedEnv.has(option.key)) {
     return;
   }
