@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { formatGeneratedModule } from "./lib/format-generated-module.mjs";
 
 const DEFAULT_OUTPUT_PATH = "src/generated/config/schema.base.generated.json";
 const LEGACY_OUTPUT_PATH = "src/generated/config/schema.base.generated.ts";
@@ -14,6 +15,14 @@ function readIfExists(filePath) {
   } catch {
     return null;
   }
+}
+
+function formatGeneratedJson(source, outputPath) {
+  return formatGeneratedModule(source, {
+    repoRoot: REPO_ROOT,
+    outputPath,
+    errorLabel: "base config schema",
+  });
 }
 
 function emitBaseConfigSchemaPayload(generatedAt) {
@@ -54,7 +63,7 @@ function emitBaseConfigSchemaPayload(generatedAt) {
 
 export function renderBaseConfigSchemaModule(params = {}) {
   const payload = emitBaseConfigSchemaPayload(params?.generatedAt ?? new Date().toISOString());
-  return `${JSON.stringify(payload, null, 2)}\n`;
+  return formatGeneratedJson(`${JSON.stringify(payload, null, 2)}\n`, DEFAULT_OUTPUT_PATH);
 }
 
 export function writeBaseConfigSchemaModule(params = {}) {
