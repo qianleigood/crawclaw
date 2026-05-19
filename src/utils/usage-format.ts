@@ -255,7 +255,3 @@ export function estimateUsageCost(params: {
   }
   return total / 1_000_000;
 }
-
-export function __resetUsageFormatCachesForTest(): void {
-  modelsJsonCostCache = null;
-}

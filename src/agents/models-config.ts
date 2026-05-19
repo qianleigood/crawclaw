@@ -196,6 +196,3 @@ export async function ensureCrawClawModelsJson(
     throw error;
   }
 }
-export function resetModelsJsonReadyCacheForTest(): void {
-  MODELS_JSON_READY_CACHE.clear();
-}

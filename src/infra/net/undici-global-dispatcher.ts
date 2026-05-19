@@ -140,8 +140,3 @@ export function ensureGlobalUndiciStreamTimeouts(opts?: { timeoutMs?: number }):
     // Best-effort hardening only.
   }
 }
-
-export function resetGlobalUndiciStreamTimeoutsForTests(): void {
-  lastAppliedTimeoutKey = null;
-  lastAppliedProxyBootstrap = false;
-}

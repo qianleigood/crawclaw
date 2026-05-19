@@ -68,8 +68,3 @@ export function onMainSessionWakeEvent(
 export function getLastMainSessionWakeEvent(): MainSessionWakeEventPayload | null {
   return state.lastWakeEvent;
 }
-
-export function resetMainSessionWakeEventsForTest(): void {
-  state.lastWakeEvent = null;
-  state.listeners.clear();
-}

@@ -40,8 +40,7 @@ type PiRegistryClassLike = {
 
 let modelCatalogPromise: Promise<ModelCatalogEntry[]> | null = null;
 let hasLoggedModelCatalogError = false;
-const defaultImportPiSdk = () => import("./pi-model-discovery-runtime.js");
-let importPiSdk = defaultImportPiSdk;
+const importPiSdk = () => import("./pi-model-discovery-runtime.js");
 
 const NON_PI_NATIVE_MODEL_PROVIDERS = new Set<string>(MODEL_CATALOG_CONFIGURED_PROVIDER_IDS);
 
@@ -130,17 +129,6 @@ function mergeConfiguredOptInProviderModels(params: {
     params.models.push(entry);
     seen.add(key);
   }
-}
-
-export function resetModelCatalogCacheForTest() {
-  modelCatalogPromise = null;
-  hasLoggedModelCatalogError = false;
-  importPiSdk = defaultImportPiSdk;
-}
-
-// Test-only escape hatch: allow mocking the dynamic import to simulate transient failures.
-export function __setModelCatalogImportForTest(loader?: () => Promise<PiSdkModule>) {
-  importPiSdk = loader ?? defaultImportPiSdk;
 }
 
 function instantiatePiModelRegistry(

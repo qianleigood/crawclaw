@@ -50,10 +50,6 @@ function sessionKeyMatchesTranscriptPath(params: {
   ).some((candidate) => resolveTranscriptPathForComparison(candidate) === params.targetPath);
 }
 
-export function clearSessionTranscriptKeyCacheForTests(): void {
-  TRANSCRIPT_SESSION_KEY_CACHE.clear();
-}
-
 export function resolveSessionKeyForTranscriptFile(sessionFile: string): string | undefined {
   const targetPath = resolveTranscriptPathForComparison(sessionFile);
   if (!targetPath) {

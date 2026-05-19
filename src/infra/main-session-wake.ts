@@ -252,17 +252,3 @@ export function hasMainSessionWakeHandler() {
 export function hasPendingMainSessionWake() {
   return pendingWakes.size > 0 || Boolean(timer) || scheduled;
 }
-
-export function resetMainSessionWakeStateForTests() {
-  if (timer) {
-    clearTimeout(timer);
-  }
-  timer = null;
-  timerDueAt = null;
-  timerKind = null;
-  pendingWakes.clear();
-  scheduled = false;
-  running = false;
-  handlerGeneration += 1;
-  handler = null;
-}
