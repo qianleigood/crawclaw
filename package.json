@@ -110,7 +110,7 @@
     "release:crawclaw:npm:verify-published": "node --import tsx scripts/crawclaw-npm-postpublish-verify.ts",
     "release:plugins:npm:check": "node --import tsx scripts/plugin-npm-release-check.ts",
     "release:plugins:npm:plan": "node --import tsx scripts/plugin-npm-release-plan.ts",
-    "test": "node scripts/run-rust-tests.mjs",
+    "test": "cargo run -q -p crawclaw-runtime -- test-workspace",
     "test:all": "pnpm lint && pnpm build && pnpm test",
     "ts-topology": "node --import tsx scripts/ts-topology.ts",
     "tsgo": "node scripts/run-tsgo.mjs",

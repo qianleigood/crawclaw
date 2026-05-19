@@ -19,7 +19,7 @@ Most days:
 - Test-only gate: `pnpm test`
 - Focused crate debugging: `cargo test -p crawclaw-runtime <filter>`
 
-`pnpm test` runs `scripts/run-rust-tests.mjs`, which delegates to `cargo test --workspace -- --test-threads=1` with a larger default Rust stack. The serial default is intentional because several desktop and native runtime tests use shared local resources.
+`pnpm test` runs `crawclaw-runtime test-workspace`, which delegates to `cargo test --workspace -- --test-threads=1` with a larger default Rust stack. The serial default is intentional because several desktop and native runtime tests use shared local resources.
 
 ## Current test commands
 

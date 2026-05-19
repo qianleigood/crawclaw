@@ -9,8 +9,8 @@ title: "Tests"
 
 - Full testing kit: [Testing](/help/testing)
 
-- `pnpm test`: runs the Rust workspace tests through `scripts/run-rust-tests.mjs`.
-- The wrapper sets a conservative stack size and serial Rust test threads so desktop and native runtime integration tests do not race shared local resources.
+- `pnpm test`: runs the Rust workspace tests through `crawclaw-runtime test-workspace`.
+- The Rust runner sets a conservative stack size and serial Rust test threads so desktop and native runtime integration tests do not race shared local resources.
 - For focused debugging, run Cargo directly, for example `cargo test -p crawclaw-runtime <filter>`.
 
 ## Local PR gate

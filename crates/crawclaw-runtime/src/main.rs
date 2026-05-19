@@ -1,6 +1,7 @@
 use std::env;
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
+use std::process::Command;
 
 use serde::Deserialize;
 use serde_json::{json, Value};
@@ -45,6 +46,7 @@ async fn main() {
         "package-postbuild" => package_postbuild(args),
         "status" => status(&args),
         "stage" => stage(args),
+        "test-workspace" => test_workspace(args),
         "tool" => run_tool(args).await,
         command => {
             eprintln!("unsupported crawclaw-runtime command: {command}");
@@ -327,6 +329,31 @@ fn package_postbuild(args: Vec<String>) {
     }
 }
 
+fn test_workspace(args: Vec<String>) {
+    let forwarded = if args.first().is_some_and(|arg| arg == "--") {
+        &args[1..]
+    } else {
+        &args[..]
+    };
+    let mut cargo_args = vec!["test".to_string(), "--workspace".to_string()];
+    cargo_args.extend(forwarded.iter().cloned());
+    cargo_args.extend(["--".to_string(), "--test-threads=1".to_string()]);
+    let status = Command::new("cargo")
+        .args(&cargo_args)
+        .env(
+            "RUST_MIN_STACK",
+            env::var("RUST_MIN_STACK").unwrap_or_else(|_| "16777216".to_string()),
+        )
+        .status();
+    match status {
+        Ok(status) => std::process::exit(status.code().unwrap_or(1)),
+        Err(error) => {
+            eprintln!("failed to run cargo test workspace: {error}");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn package_artifacts(args: Vec<String>) {
     let mut root: Option<PathBuf> = None;
     let mut json_output = false;
@@ -429,7 +456,11 @@ fn run_emit_base_config_schema(args: Vec<String>) -> Result<Option<String>, Stri
                 output = Some(PathBuf::from(value));
                 index += 2;
             }
-            other => return Err(format!("unsupported emit-base-config-schema option: {other}")),
+            other => {
+                return Err(format!(
+                    "unsupported emit-base-config-schema option: {other}"
+                ))
+            }
         }
     }
 
@@ -773,6 +804,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
     );
 }
