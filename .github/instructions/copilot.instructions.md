@@ -8,7 +8,7 @@
 - **Language**: TypeScript (ESM, strict mode)
 - **Package Manager**: pnpm (keep `pnpm-lock.yaml` in sync)
 - **Lint/Format**: Oxlint, Oxfmt (`pnpm check`)
-- **Tests**: Vitest with V8 coverage
+- **Tests**: Rust workspace tests via `pnpm test`; do not add TypeScript test suites
 - **Terminal Utilities**: clack/prompts helpers for retained internal flows
 - **Build**: Rust package postbuild plus native binary staging outputs to `dist/`
 
@@ -49,7 +49,7 @@
 
 - TypeScript (ESM), strict typing, avoid `any`
 - Keep files under ~700 LOC - extract helpers when larger
-- Colocated tests: `*.test.ts` next to source files
+- Add Rust tests under the owning crate or crate integration tests; do not add TypeScript test suites
 - Run `pnpm check` before commits (lint + format)
 - Run `pnpm tsgo` for type checking
 

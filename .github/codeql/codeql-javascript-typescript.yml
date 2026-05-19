@@ -11,7 +11,3 @@ paths-ignore:
   - docs
   - "**/node_modules"
   - "**/coverage"
-  - "**/*.test.ts"
-  - "**/*.test.tsx"
-  - "**/*.e2e.test.ts"
-  - "**/*.e2e.test.tsx"
