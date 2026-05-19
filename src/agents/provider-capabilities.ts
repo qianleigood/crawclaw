@@ -29,49 +29,15 @@ const DEFAULT_PROVIDER_CAPABILITIES: ProviderCapabilities = GENERATED_DEFAULT_PR
 const PLUGIN_CAPABILITIES_FALLBACKS: Readonly<Record<string, Partial<ProviderCapabilities>>> =
   GENERATED_PROVIDER_CAPABILITY_FALLBACKS;
 
-type ProviderCapabilitiesOverrideResolver = (params: {
-  provider: string;
-  config?: CrawClawConfig;
-  workspaceDir?: string;
-  env?: NodeJS.ProcessEnv;
-}) => Partial<ProviderCapabilities> | undefined;
-
-const defaultResolveProviderCapabilitiesWithPlugin: ProviderCapabilitiesOverrideResolver = () =>
-  undefined;
-const providerCapabilityDeps = {
-  resolveProviderCapabilitiesWithPlugin: defaultResolveProviderCapabilitiesWithPlugin,
-};
-
-export const __testing = {
-  setResolveProviderCapabilitiesWithPluginForTest(
-    resolveProviderCapabilitiesWithPlugin?: typeof defaultResolveProviderCapabilitiesWithPlugin,
-  ): void {
-    providerCapabilityDeps.resolveProviderCapabilitiesWithPlugin =
-      resolveProviderCapabilitiesWithPlugin ?? defaultResolveProviderCapabilitiesWithPlugin;
-  },
-  resetDepsForTests(): void {
-    providerCapabilityDeps.resolveProviderCapabilitiesWithPlugin =
-      defaultResolveProviderCapabilitiesWithPlugin;
-  },
-};
-
 export function resolveProviderCapabilities(
   provider?: string | null,
   options?: ProviderCapabilityLookupOptions,
 ): ProviderCapabilities {
   const normalized = normalizeProviderId(provider ?? "");
-  const pluginCapabilities = normalized
-    ? providerCapabilityDeps.resolveProviderCapabilitiesWithPlugin({
-        provider: normalized,
-        config: options?.config,
-        workspaceDir: options?.workspaceDir,
-        env: options?.env,
-      })
-    : undefined;
+  void options;
   return {
     ...DEFAULT_PROVIDER_CAPABILITIES,
     ...PLUGIN_CAPABILITIES_FALLBACKS[normalized],
-    ...pluginCapabilities,
   };
 }
 
