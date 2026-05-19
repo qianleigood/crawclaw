@@ -6,11 +6,6 @@ import {
   toAgentModelListLike,
 } from "../config/model-input.js";
 import {
-  normalizeAnthropicModelId,
-  normalizeGoogleModelId,
-  normalizeXaiModelId,
-} from "../generated/providers/model-normalization.generated.js";
-import {
   ANTHROPIC_PROVIDER_ID,
   GOOGLE_PROVIDER_ID,
   GOOGLE_VERTEX_PROVIDER_ID,
@@ -29,6 +24,11 @@ import {
 import { resolveConfiguredProviderFallback } from "./configured-provider-fallback.js";
 import { DEFAULT_MODEL, DEFAULT_PROVIDER } from "./defaults.js";
 import type { ModelCatalogEntry } from "./model-catalog.js";
+import {
+  normalizeAnthropicModelId,
+  normalizeGoogleModelId,
+  normalizeXaiModelId,
+} from "./model-normalization.js";
 import { splitTrailingAuthProfile } from "./model-ref-profile.js";
 import {
   findNormalizedProviderKey,

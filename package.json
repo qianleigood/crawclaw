@@ -44,7 +44,7 @@
     "check:docs": "pnpm format:docs:check && pnpm lint:docs && pnpm docs:check-i18n-glossary && pnpm docs:check-links",
     "check:loc": "node --import tsx scripts/check-ts-max-loc.ts --max 500",
     "check:no-conflict-markers": "node scripts/check-no-conflict-markers.mjs",
-    "check:provider-model-normalization": "cargo run -q -p crawclaw-runtime -- emit-provider-model-normalization --output src/generated/providers/model-normalization.generated.ts --check",
+    "check:provider-model-normalization": "cargo run -q -p crawclaw-runtime -- emit-provider-model-normalization --output src/generated/providers/model-normalization.generated.json --check",
     "check:provider-runtime-constants": "cargo run -q -p crawclaw-runtime -- emit-provider-runtime-constants --output src/generated/providers/runtime-constants.generated.ts --check",
     "config:docs:check": "node scripts/generate-config-doc-baseline.mjs --check",
     "config:docs:gen": "node scripts/generate-config-doc-baseline.mjs --write",

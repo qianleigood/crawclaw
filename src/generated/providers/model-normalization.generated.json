@@ -1,0 +1,77 @@
+{
+  "anthropicModelAliases": [
+    {
+      "from": "opus-4.6",
+      "to": "claude-opus-4-6"
+    },
+    {
+      "from": "opus-4.5",
+      "to": "claude-opus-4-5"
+    },
+    {
+      "from": "sonnet-4.6",
+      "to": "claude-sonnet-4-6"
+    },
+    {
+      "from": "sonnet-4.5",
+      "to": "claude-sonnet-4-5"
+    }
+  ],
+  "antigravityLowSuffixIds": [
+    "gemini-3-pro",
+    "gemini-3.1-pro",
+    "gemini-3-1-pro"
+  ],
+  "googleModelAliases": [
+    {
+      "from": "gemini-3-pro",
+      "to": "gemini-3-pro-preview"
+    },
+    {
+      "from": "gemini-3-flash",
+      "to": "gemini-3-flash-preview"
+    },
+    {
+      "from": "gemini-3.1-pro",
+      "to": "gemini-3.1-pro-preview"
+    },
+    {
+      "from": "gemini-3.1-flash-lite",
+      "to": "gemini-3.1-flash-lite-preview"
+    },
+    {
+      "from": "gemini-3.1-flash",
+      "to": "gemini-3-flash-preview"
+    },
+    {
+      "from": "gemini-3.1-flash-preview",
+      "to": "gemini-3-flash-preview"
+    }
+  ],
+  "xaiModelAliases": [
+    {
+      "from": "grok-4-fast-reasoning",
+      "to": "grok-4-fast"
+    },
+    {
+      "from": "grok-4-1-fast-reasoning",
+      "to": "grok-4-1-fast"
+    },
+    {
+      "from": "grok-4.20-experimental-beta-0304-reasoning",
+      "to": "grok-4.20-beta-latest-reasoning"
+    },
+    {
+      "from": "grok-4.20-reasoning",
+      "to": "grok-4.20-beta-latest-reasoning"
+    },
+    {
+      "from": "grok-4.20-experimental-beta-0304-non-reasoning",
+      "to": "grok-4.20-beta-latest-non-reasoning"
+    },
+    {
+      "from": "grok-4.20-non-reasoning",
+      "to": "grok-4.20-beta-latest-non-reasoning"
+    }
+  ]
+}

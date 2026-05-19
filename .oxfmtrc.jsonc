@@ -22,6 +22,7 @@
     "src/auto-reply/reply/export-html/",
     "src/generated/config/schema.base.generated.json",
     "src/generated/plugins/*.generated.json",
+    "src/generated/providers/*.generated.json",
     "Swabble/",
     "target/",
     "vendor/",
