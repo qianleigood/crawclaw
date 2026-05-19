@@ -5,7 +5,6 @@ import { existsSync, readdirSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 const skipPrepackPreparedEnv = "CRAWCLAW_PREPACK_PREPARED";
-const legacySkipPrepackPreparedEnv = "CRAWCLAW_PREPACK_PREPARED";
 const requiredPreparedPathGroups = [
   ["dist/native/crawclaw-runtime", "dist/native/crawclaw-runtime.exe"],
   ["dist/native/crawclaw-gateway", "dist/native/crawclaw-gateway.exe"],
@@ -22,7 +21,7 @@ function normalizeFiles(files: Iterable<string>): Set<string> {
 }
 
 export function shouldSkipPrepack(env = process.env): boolean {
-  const raw = env[skipPrepackPreparedEnv] ?? env[legacySkipPrepackPreparedEnv];
+  const raw = env[skipPrepackPreparedEnv];
   if (!raw) {
     return false;
   }

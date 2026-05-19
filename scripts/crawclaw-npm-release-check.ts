@@ -64,7 +64,6 @@ const INSTALL_TIME_NODE_HELPER_FILES = new Set([
 const MAX_CALVER_DISTANCE_DAYS = 2;
 const NPM_PACK_MAX_BUFFER_BYTES = 64 * 1024 * 1024;
 const skipPackValidationEnv = "CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK";
-const legacySkipPackValidationEnv = "CRAWCLAW_NPM_RELEASE_SKIP_PACK_CHECK";
 
 function normalizeRepoUrl(value: unknown): string {
   if (typeof value !== "string") {
@@ -130,7 +129,7 @@ export function resolveNpmDistTagMirrorAuth(params?: {
 }
 
 export function shouldSkipPackedTarballValidation(env = process.env): boolean {
-  const raw = env[skipPackValidationEnv] ?? env[legacySkipPackValidationEnv];
+  const raw = env[skipPackValidationEnv];
   if (!raw) {
     return false;
   }
