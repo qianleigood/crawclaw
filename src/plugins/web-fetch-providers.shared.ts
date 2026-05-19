@@ -2,7 +2,6 @@ import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import {
   withBundledPluginAllowlistCompat,
   withBundledPluginEnablementCompat,
-  withBundledPluginVitestCompat,
 } from "./bundled-compat.js";
 import { resolveBundledWebFetchPluginIds } from "./bundled-web-fetch.js";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "./config-state.js";
@@ -81,11 +80,7 @@ export function resolveBundledWebFetchResolutionConfig(params: {
     config: allowlistCompat,
     pluginIds: bundledCompatPluginIds,
   });
-  const config = withBundledPluginVitestCompat({
-    config: enablementCompat,
-    pluginIds: bundledCompatPluginIds,
-    env: params.env,
-  });
+  const config = enablementCompat;
 
   return {
     config,

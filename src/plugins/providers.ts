@@ -1,17 +1,8 @@
 import { normalizeProviderId } from "../agents/provider-id.js";
 import { BUNDLED_PROVIDER_PLUGIN_IDS } from "./bundled-capability-metadata.js";
-import { withBundledPluginVitestCompat } from "./bundled-compat.js";
 import { normalizePluginsConfig, resolveEffectivePluginActivationState } from "./config-state.js";
 import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
-
-export function withBundledProviderVitestCompat(params: {
-  config: PluginLoadOptions["config"];
-  pluginIds: readonly string[];
-  env?: PluginLoadOptions["env"];
-}): PluginLoadOptions["config"] {
-  return withBundledPluginVitestCompat(params);
-}
 
 export function resolveBundledProviderCompatPluginIds(params: {
   config?: PluginLoadOptions["config"];

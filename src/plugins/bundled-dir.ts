@@ -12,16 +12,10 @@ function isSourceCheckoutRoot(packageRoot: string): boolean {
   );
 }
 
-function resolveBundledDirFromPackageRoot(
-  packageRoot: string,
-  preferSourceCheckout: boolean,
-): string | undefined {
+function resolveBundledDirFromPackageRoot(packageRoot: string): string | undefined {
   const sourceExtensionsDir = path.join(packageRoot, "extensions");
   const builtExtensionsDir = path.join(packageRoot, "dist", "extensions");
-  if (
-    (preferSourceCheckout || isSourceCheckoutRoot(packageRoot)) &&
-    fs.existsSync(sourceExtensionsDir)
-  ) {
+  if (isSourceCheckoutRoot(packageRoot) && fs.existsSync(sourceExtensionsDir)) {
     return sourceExtensionsDir;
   }
   if (fs.existsSync(builtExtensionsDir)) {
@@ -44,7 +38,7 @@ export function resolveBundledPluginsDir(env: NodeJS.ProcessEnv = process.env): 
     try {
       const argvPackageRoot = resolveCrawClawPackageRootSync({ argv1: process.argv[1] });
       if (argvPackageRoot && !isSourceCheckoutRoot(argvPackageRoot)) {
-        const argvFallback = resolveBundledDirFromPackageRoot(argvPackageRoot, false);
+        const argvFallback = resolveBundledDirFromPackageRoot(argvPackageRoot);
         if (argvFallback) {
           return argvFallback;
         }
@@ -55,8 +49,6 @@ export function resolveBundledPluginsDir(env: NodeJS.ProcessEnv = process.env): 
     return resolvedOverride;
   }
 
-  const preferSourceCheckout = Boolean(env.VITEST);
-
   try {
     const packageRoots = [
       resolveCrawClawPackageRootSync({ argv1: process.argv[1] }),
@@ -66,7 +58,7 @@ export function resolveBundledPluginsDir(env: NodeJS.ProcessEnv = process.env): 
       (entry, index, all): entry is string => Boolean(entry) && all.indexOf(entry) === index,
     );
     for (const packageRoot of packageRoots) {
-      const bundledDir = resolveBundledDirFromPackageRoot(packageRoot, preferSourceCheckout);
+      const bundledDir = resolveBundledDirFromPackageRoot(packageRoot);
       if (bundledDir) {
         return bundledDir;
       }

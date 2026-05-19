@@ -143,9 +143,6 @@ export const normalizePluginsConfig = (
   };
 };
 
-const hasExplicitMemorySlot = (plugins?: CrawClawConfig["plugins"]) =>
-  Boolean(plugins?.slots && Object.prototype.hasOwnProperty.call(plugins.slots, "memory"));
-
 export const hasExplicitPluginConfig = (plugins?: CrawClawConfig["plugins"]) => {
   if (!plugins) {
     return false;
@@ -170,58 +167,6 @@ export const hasExplicitPluginConfig = (plugins?: CrawClawConfig["plugins"]) => 
   }
   return false;
 };
-
-export function applyTestPluginDefaults(
-  cfg: CrawClawConfig,
-  env: NodeJS.ProcessEnv = process.env,
-): CrawClawConfig {
-  if (!env.VITEST) {
-    return cfg;
-  }
-  const plugins = cfg.plugins;
-  const explicitConfig = hasExplicitPluginConfig(plugins);
-  if (explicitConfig) {
-    if (hasExplicitMemorySlot(plugins)) {
-      return cfg;
-    }
-    return {
-      ...cfg,
-      plugins: {
-        ...plugins,
-        slots: {
-          ...plugins?.slots,
-          memory: "none",
-        },
-      },
-    };
-  }
-
-  return {
-    ...cfg,
-    plugins: {
-      ...plugins,
-      enabled: false,
-      slots: {
-        ...plugins?.slots,
-        memory: "none",
-      },
-    },
-  };
-}
-
-export function isTestDefaultMemorySlotDisabled(
-  cfg: CrawClawConfig,
-  env: NodeJS.ProcessEnv = process.env,
-): boolean {
-  if (!env.VITEST) {
-    return false;
-  }
-  const plugins = cfg.plugins;
-  if (hasExplicitMemorySlot(plugins)) {
-    return false;
-  }
-  return true;
-}
 
 function resolveExplicitPluginSelection(params: {
   id: string;

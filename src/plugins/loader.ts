@@ -5,7 +5,6 @@ import { createSubsystemLogger } from "../logging/subsystem.js";
 import { resolveUserPath } from "../utils.js";
 import { inspectBundleMcpRuntimeSupport } from "./bundle-mcp.js";
 import {
-  applyTestPluginDefaults,
   normalizePluginsConfig,
   resolveEffectiveEnableState,
   resolveEffectivePluginActivationState,
@@ -186,7 +185,7 @@ function buildActivationMetadataHash(params: {
 
 function resolvePluginLoadCacheContext(options: PluginLoadOptions = {}) {
   const env = options.env ?? process.env;
-  const cfg = applyTestPluginDefaults(options.config ?? {}, env);
+  const cfg = options.config ?? {};
   const activationSourceConfig = options.activationSourceConfig ?? options.config ?? {};
   const normalized = normalizePluginsConfig(cfg.plugins);
   const activationSourceNormalized = normalizePluginsConfig(activationSourceConfig.plugins);
