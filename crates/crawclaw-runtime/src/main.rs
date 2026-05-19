@@ -41,6 +41,7 @@ async fn main() {
         "emit-config-doc-baseline" => emit_config_doc_baseline(args),
         "emit-provider-model-normalization" => emit_provider_model_normalization(args),
         "emit-provider-runtime-constants" => emit_provider_runtime_constants(args),
+        "emit-plugin-dependency-plan" => emit_plugin_dependency_plan(args),
         "emit-rust-tool-catalog" => emit_rust_tool_catalog(args),
         "package-artifacts" => package_artifacts(args),
         "package-build-native-artifacts" => package_build_native_artifacts(args),
@@ -328,6 +329,83 @@ fn package_postbuild(args: Vec<String>) {
     if let Err(error) = crawclaw_runtime::stage_package_postbuild(root) {
         eprintln!("{error}");
         std::process::exit(1);
+    }
+}
+
+fn emit_plugin_dependency_plan(args: Vec<String>) {
+    let mut json_output: Option<PathBuf> = None;
+    let mut jsonl_output: Option<PathBuf> = None;
+    let mut check = false;
+    let mut write = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--check" => {
+                check = true;
+                index += 1;
+            }
+            "--write" => {
+                write = true;
+                index += 1;
+            }
+            "--json-output" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--json-output requires a value");
+                    std::process::exit(2);
+                };
+                json_output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            "--jsonl-output" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--jsonl-output requires a value");
+                    std::process::exit(2);
+                };
+                jsonl_output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported emit-plugin-dependency-plan option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    if check == write {
+        eprintln!("Use exactly one of --check or --write.");
+        std::process::exit(2);
+    }
+    let repo_root = env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+    match crawclaw_runtime::write_plugin_dependency_plan_artifacts(
+        &repo_root,
+        json_output,
+        jsonl_output,
+        check,
+    ) {
+        Ok(result) => {
+            let json_path = crawclaw_runtime::plugin_dependency_plan_relative_to_repo(
+                &repo_root,
+                &result.json_path,
+            );
+            let jsonl_path = crawclaw_runtime::plugin_dependency_plan_relative_to_repo(
+                &repo_root,
+                &result.jsonl_path,
+            );
+            if check {
+                if result.changed {
+                    eprintln!(
+                        "Plugin dependency plan drift detected.\nExpected current: {json_path}\nExpected current: {jsonl_path}\nIf this plugin dependency surface change is intentional, run `pnpm plugin-deps:gen` and commit the updated baseline files.\nIf not intentional, fix the plugin manifest, package metadata, or managed runtime installer change first."
+                    );
+                    std::process::exit(1);
+                }
+                println!("OK {json_path} {jsonl_path}");
+            } else {
+                println!("Wrote {json_path}\nWrote {jsonl_path}");
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
     }
 }
 
@@ -863,6 +941,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-plugin-dependency-plan [--check|--write] [--json-output <path>] [--jsonl-output <path>] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
     );
 }

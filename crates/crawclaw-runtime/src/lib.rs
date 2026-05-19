@@ -17,6 +17,7 @@ pub mod memory;
 mod message_policy;
 mod native_plugin_registry;
 mod package_build;
+mod plugin_dependency_plan;
 mod provider_contract;
 pub mod special_agents;
 
@@ -40,6 +41,10 @@ pub use package_build::{
     list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs,
     stage_native_binary_artifacts, stage_package_postbuild, write_package_build_metadata,
     StaticPackageAsset,
+};
+pub use plugin_dependency_plan::{
+    relative_to_repo as plugin_dependency_plan_relative_to_repo,
+    write_plugin_dependency_plan_artifacts, PluginDependencyPlanWriteResult,
 };
 pub use provider_contract::{
     render_bundled_capability_metadata_module, render_bundled_provider_auth_env_var_module,

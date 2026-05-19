@@ -76,28 +76,6 @@
     },
     {
       "capabilities": [
-        "support"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/brave",
-      "enabledByDefault": false,
-      "id": "brave",
-      "install": {
-        "entryPoints": []
-      },
-      "manifestPath": "extensions/brave/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/brave/package.json",
-      "packageName": "@crawclaw/brave-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "contractKeys": [],
@@ -261,50 +239,6 @@
       "providerIds": [
         "deepseek"
       ],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/duckduckgo",
-      "enabledByDefault": false,
-      "id": "duckduckgo",
-      "install": {
-        "entryPoints": []
-      },
-      "manifestPath": "extensions/duckduckgo/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/duckduckgo/package.json",
-      "packageName": "@crawclaw/duckduckgo-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
-        "support"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/exa",
-      "enabledByDefault": false,
-      "id": "exa",
-      "install": {
-        "entryPoints": []
-      },
-      "manifestPath": "extensions/exa/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/exa/package.json",
-      "packageName": "@crawclaw/exa-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
       "version": "2026.4.1-beta.1"
     },
     {
@@ -837,28 +771,6 @@
     },
     {
       "capabilities": [
-        "support"
-      ],
-      "contractKeys": [],
-      "dependencies": {},
-      "devDependencies": {},
-      "dir": "extensions/perplexity",
-      "enabledByDefault": false,
-      "id": "perplexity",
-      "install": {
-        "entryPoints": []
-      },
-      "manifestPath": "extensions/perplexity/crawclaw.plugin.json",
-      "optionalDependencies": {},
-      "packageJsonPath": "extensions/perplexity/package.json",
-      "packageName": "@crawclaw/perplexity-plugin",
-      "peerDependencies": {},
-      "private": true,
-      "providerIds": [],
-      "version": "2026.4.1-beta.1"
-    },
-    {
-      "capabilities": [
         "provider"
       ],
       "contractKeys": [],
@@ -883,11 +795,9 @@
     },
     {
       "capabilities": [
-        "contract"
+        "support"
       ],
-      "contractKeys": [
-        "speechProviders"
-      ],
+      "contractKeys": [],
       "dependencies": {},
       "devDependencies": {},
       "dir": "extensions/qwen3-tts",
@@ -1195,12 +1105,11 @@
       "version": "2026.4.1-beta.1"
     }
   ],
-  "generatedBy": "scripts/generate-plugin-dependency-plan.mjs",
+  "generatedBy": "crawclaw-runtime emit-plugin-dependency-plan",
   "managedRuntimes": [],
   "root": {
     "dependencies": {
       "@agentclientprotocol/sdk": "0.17.1",
-      "@anthropic-ai/vertex-sdk": "^0.14.4",
       "@aws-sdk/client-bedrock": "3.1020.0",
       "@clack/prompts": "^1.1.0",
       "@homebridge/ciao": "^1.3.6",
@@ -1221,7 +1130,6 @@
       "gaxios": "7.1.4",
       "hono": "4.12.14",
       "ipaddr.js": "^2.3.0",
-      "jiti": "^2.6.1",
       "json5": "^2.2.3",
       "jszip": "^3.10.1",
       "linkedom": "^0.18.12",
@@ -1251,19 +1159,15 @@
       "@types/qrcode-terminal": "^0.12.2",
       "@types/ws": "^8.18.1",
       "@typescript/native-preview": "7.0.0-dev.20260401.1",
-      "@vitest/coverage-v8": "^4.1.2",
       "jscpd": "4.0.8",
-      "jsdom": "^29.0.1",
       "lit": "^3.3.2",
       "node-gyp": "^12.1.0",
       "oxfmt": "0.43.0",
       "oxlint": "^1.58.0",
       "oxlint-tsgolint": "^0.18.1",
       "semver": "7.7.4",
-      "tsdown": "0.21.7",
       "tsx": "^4.21.0",
-      "typescript": "^6.0.2",
-      "vitest": "^4.1.2"
+      "typescript": "^6.0.2"
     },
     "engines": {
       "node": ">=24.0.0 <26"
@@ -1332,20 +1236,20 @@
   },
   "schemaVersion": 1,
   "summary": {
-    "bundledPluginCount": 50,
+    "bundledPluginCount": 46,
     "capabilityCounts": {
-      "contract": 6,
+      "contract": 5,
       "provider": 37,
       "skill": 1,
-      "support": 6
+      "support": 3
     },
-    "disabledByDefaultCount": 9,
+    "disabledByDefaultCount": 5,
     "enabledByDefaultCount": 41,
     "pluginRuntimeDependencyVersionSplits": [],
     "releasedNpmSpecPluginIds": [],
     "rootDependencyCounts": {
-      "dependencies": 42,
-      "devDependencies": 21,
+      "dependencies": 40,
+      "devDependencies": 17,
       "optionalDependencies": 0,
       "peerDependencies": 2
     },
