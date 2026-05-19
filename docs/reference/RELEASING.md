@@ -61,9 +61,8 @@ CrawClaw has three public release lanes:
   also checks the same temp-prefix upgrade path from `YYYY.M.D` to `YYYY.M.D-N`
   so release corrections cannot silently leave older global installs on the
   base stable payload
-- If the release work touched CI planning, extension timing manifests, or fast
-  test matrices, regenerate and review the planner-owned `checks-fast-extensions`
-  shard plan via `node scripts/ci-write-manifest-outputs.mjs --workflow ci`
+- If the release work touched CI planning, regenerate and review the generated
+  check matrix via `node scripts/ci-write-manifest-outputs.mjs --workflow ci`
   before approval so release notes do not describe a stale CI layout
 - Stable macOS release readiness also includes the updater surfaces:
   - the GitHub release must end up with the packaged `.zip`, `.dmg`, and `.dSYM.zip`

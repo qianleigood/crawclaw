@@ -30,23 +30,15 @@ jobs:
       run_skills_python: ${{ steps.manifest.outputs.run_skills_python }}
       run_skills_python_job: ${{ steps.manifest.outputs.run_skills_python_job }}
       run_windows: ${{ steps.manifest.outputs.run_windows }}
-      has_changed_extensions: ${{ steps.manifest.outputs.has_changed_extensions }}
-      changed_extensions_matrix: ${{ steps.manifest.outputs.changed_extensions_matrix }}
       run_build_artifacts: ${{ steps.manifest.outputs.run_build_artifacts }}
-      run_checks_fast: ${{ steps.manifest.outputs.run_checks_fast }}
-      checks_fast_matrix: ${{ steps.manifest.outputs.checks_fast_matrix }}
       run_checks: ${{ steps.manifest.outputs.run_checks }}
       checks_matrix: ${{ steps.manifest.outputs.checks_matrix }}
-      run_extension_fast: ${{ steps.manifest.outputs.run_extension_fast }}
-      extension_fast_matrix: ${{ steps.manifest.outputs.extension_fast_matrix }}
       run_check: ${{ steps.manifest.outputs.run_check }}
       run_check_additional: ${{ steps.manifest.outputs.run_check_additional }}
       run_build_smoke: ${{ steps.manifest.outputs.run_build_smoke }}
       run_check_docs: ${{ steps.manifest.outputs.run_check_docs }}
       run_checks_windows: ${{ steps.manifest.outputs.run_checks_windows }}
       checks_windows_matrix: ${{ steps.manifest.outputs.checks_windows_matrix }}
-      run_macos_node: ${{ steps.manifest.outputs.run_macos_node }}
-      macos_node_matrix: ${{ steps.manifest.outputs.macos_node_matrix }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -89,29 +81,6 @@ jobs:
           install-deps: "false"
           use-sticky-disk: "false"
 
-      - name: Detect changed extensions
-        id: changed_extensions
-        if: steps.docs_scope.outputs.docs_only != 'true' && steps.changed_scope.outputs.run_node == 'true'
-        env:
-          BASE_SHA: ${{ github.event_name == 'push' && github.event.before || github.event.pull_request.base.sha }}
-          BASE_REF: ${{ github.event_name == 'push' && github.ref_name || github.event.pull_request.base.ref }}
-        run: |
-          node --input-type=module <<'EOF'
-          import { appendFileSync } from "node:fs";
-          import { listChangedExtensionIds } from "./scripts/test-extension.mjs";
-
-          const extensionIds = listChangedExtensionIds({
-            base: process.env.BASE_SHA,
-            head: "HEAD",
-            fallbackBaseRef: process.env.BASE_REF,
-            unavailableBaseBehavior: "all",
-          });
-          const matrix = JSON.stringify({ include: extensionIds.map((extension) => ({ extension })) });
-
-          appendFileSync(process.env.GITHUB_OUTPUT, `has_changed_extensions=${extensionIds.length > 0}\n`, "utf8");
-          appendFileSync(process.env.GITHUB_OUTPUT, `changed_extensions_matrix=${matrix}\n`, "utf8");
-          EOF
-
       - name: Build CI manifest
         id: manifest
         env:
@@ -120,8 +89,6 @@ jobs:
           CRAWCLAW_CI_RUN_NODE: ${{ steps.changed_scope.outputs.run_node || 'false' }}
           CRAWCLAW_CI_RUN_WINDOWS: ${{ steps.changed_scope.outputs.run_windows || 'false' }}
           CRAWCLAW_CI_RUN_SKILLS_PYTHON: ${{ steps.changed_scope.outputs.run_skills_python || 'false' }}
-          CRAWCLAW_CI_HAS_CHANGED_EXTENSIONS: ${{ steps.changed_extensions.outputs.has_changed_extensions || 'false' }}
-          CRAWCLAW_CI_CHANGED_EXTENSIONS_MATRIX: ${{ steps.changed_extensions.outputs.changed_extensions_matrix || '{"include":[]}' }}
         run: node scripts/ci-write-manifest-outputs.mjs --workflow ci
 
   # Run the fast security/SCM checks in parallel with scope detection so the
@@ -222,8 +189,8 @@ jobs:
         run: pre-commit run --config "${PRE_COMMIT_CONFIG_PATH:-.pre-commit-config.yaml}" --all-files pnpm-audit-prod
 
   # Build dist once for Node-relevant changes and share it with downstream jobs.
-  # Keep this overlapping with the fast correctness lanes so green PRs get heavy
-  # test/build feedback sooner instead of waiting behind a full `check` pass.
+  # Keep this overlapping with the correctness lanes so green PRs get heavy
+  # build feedback sooner instead of waiting behind a full `check` pass.
   build-artifacts:
     needs: [preflight]
     if: needs.preflight.outputs.run_build_artifacts == 'true'
@@ -259,55 +226,6 @@ jobs:
           path: dist/
           retention-days: 1
 
-  checks-fast:
-    name: ${{ matrix.check_name }}
-    needs: [preflight]
-    if: needs.preflight.outputs.run_checks_fast == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.preflight.outputs.checks_fast_matrix) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-          submodules: false
-
-      - name: Setup Node environment
-        uses: ./.github/actions/setup-node-env
-        with:
-          install-bun: "false"
-          use-sticky-disk: "false"
-
-      - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
-        env:
-          TASK: ${{ matrix.task }}
-          SHARD_COUNT: ${{ matrix.shard_count || '' }}
-          SHARD_INDEX: ${{ matrix.shard_index || '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          case "$TASK" in
-            extensions)
-              if [ -n "$SHARD_COUNT" ] && [ -n "$SHARD_INDEX" ]; then
-                export CRAWCLAW_TEST_SHARDS="$SHARD_COUNT"
-                export CRAWCLAW_TEST_SHARD_INDEX="$SHARD_INDEX"
-              fi
-              pnpm test:extensions
-              ;;
-            contracts|contracts-protocol)
-              pnpm build
-              pnpm test:contracts
-              pnpm protocol:check
-              ;;
-            *)
-              echo "Unsupported checks-fast task: $TASK" >&2
-              exit 1
-              ;;
-          esac
-
   checks:
     name: ${{ matrix.check_name }}
     needs: [preflight, build-artifacts]
@@ -318,41 +236,19 @@ jobs:
       fail-fast: false
       matrix: ${{ fromJson(needs.preflight.outputs.checks_matrix) }}
     steps:
-      - name: Skip compatibility lanes on pull requests
-        if: github.event_name == 'pull_request' && matrix.task == 'compat-node22'
-        run: echo "Skipping push-only lane on pull requests."
-
       - name: Checkout
-        if: github.event_name != 'pull_request' || matrix.task != 'compat-node22'
         uses: actions/checkout@v6
         with:
           persist-credentials: false
           submodules: false
 
       - name: Setup Node environment
-        if: github.event_name != 'pull_request' || matrix.task != 'compat-node22'
         uses: ./.github/actions/setup-node-env
         with:
           node-version: "${{ matrix.node_version || '24.x' }}"
           cache-key-suffix: "${{ matrix.cache_key_suffix || 'node24' }}"
           install-bun: "false"
           use-sticky-disk: "false"
-
-      - name: Configure Node test resources
-        if: (github.event_name != 'pull_request' || matrix.task != 'compat-node22') && matrix.runtime == 'node' && (matrix.task == 'test' || matrix.task == 'compat-node22')
-        env:
-          TASK: ${{ matrix.task }}
-          SHARD_COUNT: ${{ matrix.shard_count || '' }}
-          SHARD_INDEX: ${{ matrix.shard_index || '' }}
-        run: |
-          # `pnpm test` runs `scripts/test-parallel.mjs`, which spawns multiple Node processes.
-          # Default heap limits have been too low on Linux CI (V8 OOM near 4GB).
-          echo "CRAWCLAW_TEST_WORKERS=2" >> "$GITHUB_ENV"
-          echo "CRAWCLAW_TEST_MAX_OLD_SPACE_SIZE_MB=6144" >> "$GITHUB_ENV"
-          if [ -n "$SHARD_COUNT" ] && [ -n "$SHARD_INDEX" ]; then
-            echo "CRAWCLAW_TEST_SHARDS=$SHARD_COUNT" >> "$GITHUB_ENV"
-            echo "CRAWCLAW_TEST_SHARD_INDEX=$SHARD_INDEX" >> "$GITHUB_ENV"
-          fi
 
       - name: Download dist artifact
         if: matrix.task == 'test'
@@ -362,7 +258,6 @@ jobs:
           path: dist/
 
       - name: Run ${{ matrix.task }} (${{ matrix.runtime }})
-        if: github.event_name != 'pull_request' || matrix.task != 'compat-node22'
         env:
           TASK: ${{ matrix.task }}
         shell: bash
@@ -372,42 +267,14 @@ jobs:
             test)
               pnpm test
               ;;
-            compat-node22)
+            build)
               pnpm build
-              pnpm test:build:singleton
               ;;
             *)
               echo "Unsupported checks task: $TASK" >&2
               exit 1
               ;;
           esac
-
-  extension-fast:
-    name: "extension-fast"
-    needs: [preflight]
-    if: needs.preflight.outputs.run_extension_fast == 'true'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.preflight.outputs.extension_fast_matrix) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-          submodules: false
-
-      - name: Setup Node environment
-        uses: ./.github/actions/setup-node-env
-        with:
-          install-bun: "false"
-          use-sticky-disk: "false"
-
-      - name: Run changed extension tests
-        env:
-          CRAWCLAW_CHANGED_EXTENSION: ${{ matrix.extension }}
-        run: pnpm test:extension "$CRAWCLAW_CHANGED_EXTENSION"
 
   # Types, lint, and format check.
   check:
@@ -461,11 +328,6 @@ jobs:
         continue-on-error: true
         run: pnpm run lint:plugins:no-extension-imports
 
-      - name: Run ingress owner guard
-        id: ingress_owner
-        continue-on-error: true
-        run: pnpm run lint:agent:ingress-owner
-
       - name: Run no-register-http-handler guard
         id: no_register_http_handler
         continue-on-error: true
@@ -475,11 +337,6 @@ jobs:
         id: no_extension_src_imports
         continue-on-error: true
         run: pnpm run lint:plugins:no-extension-src-imports
-
-      - name: Run no-extension-test-core-imports guard
-        id: no_extension_test_core_imports
-        continue-on-error: true
-        run: pnpm run lint:plugins:no-extension-test-core-imports
 
       - name: Run web search provider boundary guard
         id: web_search_provider_boundary
@@ -500,10 +357,8 @@ jobs:
         if: always()
         env:
           PLUGIN_EXTENSION_BOUNDARY_OUTCOME: ${{ steps.plugin_extension_boundary.outcome }}
-          INGRESS_OWNER_OUTCOME: ${{ steps.ingress_owner.outcome }}
           NO_REGISTER_HTTP_HANDLER_OUTCOME: ${{ steps.no_register_http_handler.outcome }}
           NO_EXTENSION_SRC_IMPORTS_OUTCOME: ${{ steps.no_extension_src_imports.outcome }}
-          NO_EXTENSION_TEST_CORE_IMPORTS_OUTCOME: ${{ steps.no_extension_test_core_imports.outcome }}
           WEB_SEARCH_PROVIDER_BOUNDARY_OUTCOME: ${{ steps.web_search_provider_boundary.outcome }}
           WEB_FETCH_PROVIDER_BOUNDARY_OUTCOME: ${{ steps.web_fetch_provider_boundary.outcome }}
           PLUGIN_DEPENDENCY_PLAN_OUTCOME: ${{ steps.plugin_dependency_plan.outcome }}
@@ -511,10 +366,8 @@ jobs:
           failures=0
           for result in \
             "plugin-extension-boundary|$PLUGIN_EXTENSION_BOUNDARY_OUTCOME" \
-            "lint:agent:ingress-owner|$INGRESS_OWNER_OUTCOME" \
             "lint:plugins:no-register-http-handler|$NO_REGISTER_HTTP_HANDLER_OUTCOME" \
             "lint:plugins:no-extension-src-imports|$NO_EXTENSION_SRC_IMPORTS_OUTCOME" \
-            "lint:plugins:no-extension-test-core-imports|$NO_EXTENSION_TEST_CORE_IMPORTS_OUTCOME" \
             "web-search-provider-boundary|$WEB_SEARCH_PROVIDER_BOUNDARY_OUTCOME" \
             "web-fetch-provider-boundary|$WEB_FETCH_PROVIDER_BOUNDARY_OUTCOME" \
             "plugin-dependency-plan|$PLUGIN_DEPENDENCY_PLAN_OUTCOME"; do
@@ -558,8 +411,11 @@ jobs:
         if: github.event_name != 'push'
         run: pnpm build
 
-      - name: Smoke test built bundled plugin singleton
-        run: pnpm test:build:singleton
+      - name: Verify native runtime artifacts
+        run: |
+          test -x dist/native/crawclaw-runtime
+          test -x dist/native/crawclaw-gateway
+          test -x dist/native/crawclaw-native-plugins
 
   # Validate docs (format, lint, broken links) only when docs files changed.
   check-docs:
@@ -624,9 +480,6 @@ jobs:
     timeout-minutes: 90
     env:
       NODE_OPTIONS: --max-old-space-size=6144
-      # Keep total concurrency predictable on the 32 vCPU runner.
-      # Windows shard 2 has shown intermittent instability at 2 workers.
-      CRAWCLAW_TEST_WORKERS: 1
     defaults:
       run:
         shell: bash
@@ -650,7 +503,7 @@ jobs:
           }
 
           try {
-            # Defender sometimes intercepts process spawning (vitest workers). If this fails
+            # Defender sometimes intercepts process spawning. If this fails
             # (eg hardened images), keep going and rely on worker limiting above.
             Add-MpPreference -ExclusionPath "$env:GITHUB_WORKSPACE" -ErrorAction Stop
             Add-MpPreference -ExclusionProcess "node.exe" -ErrorAction Stop
@@ -699,18 +552,6 @@ jobs:
           # caches can skip repeated rebuild/download work on later shards/runs.
           pnpm install --frozen-lockfile --prefer-offline --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true --config.side-effects-cache=true || pnpm install --frozen-lockfile --prefer-offline --ignore-scripts=false --config.engine-strict=false --config.enable-pre-post-scripts=true --config.side-effects-cache=true
 
-      - name: Configure test shard (Windows)
-        if: matrix.task == 'test'
-        env:
-          SHARD_COUNT: ${{ matrix.shard_count }}
-          SHARD_INDEX: ${{ matrix.shard_index }}
-        run: |
-          echo "CRAWCLAW_TEST_SHARDS=$SHARD_COUNT" >> "$GITHUB_ENV"
-          echo "CRAWCLAW_TEST_SHARD_INDEX=$SHARD_INDEX" >> "$GITHUB_ENV"
-          # Windows Node 24 can hit Node/Vitest module-status assertions when
-          # large shared unit shards reuse a non-isolated module graph.
-          echo "CRAWCLAW_TEST_ISOLATE=1" >> "$GITHUB_ENV"
-
       - name: Download dist artifact
         id: download_dist
         if: matrix.task == 'test'
@@ -741,59 +582,6 @@ jobs:
               ;;
             *)
               echo "Unsupported Windows checks task: $TASK" >&2
-              exit 1
-              ;;
-          esac
-
-  macos-node:
-    name: ${{ matrix.check_name }}
-    needs: [preflight, build-artifacts]
-    if: always() && needs.preflight.outputs.run_macos_node == 'true' && needs.build-artifacts.result == 'success'
-    runs-on: macos-latest
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix: ${{ fromJson(needs.preflight.outputs.macos_node_matrix) }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-        with:
-          persist-credentials: false
-          submodules: false
-
-      - name: Setup Node environment
-        uses: ./.github/actions/setup-node-env
-        with:
-          install-bun: "false"
-
-      - name: Download dist artifact
-        uses: actions/download-artifact@v8
-        with:
-          name: dist-build
-          path: dist/
-
-      - name: Configure test shard (macOS)
-        if: matrix.task == 'test'
-        env:
-          SHARD_COUNT: ${{ matrix.shard_count }}
-          SHARD_INDEX: ${{ matrix.shard_index }}
-        run: |
-          echo "CRAWCLAW_TEST_SHARDS=$SHARD_COUNT" >> "$GITHUB_ENV"
-          echo "CRAWCLAW_TEST_SHARD_INDEX=$SHARD_INDEX" >> "$GITHUB_ENV"
-
-      - name: TS tests (macOS)
-        env:
-          NODE_OPTIONS: --max-old-space-size=4096
-          TASK: ${{ matrix.task }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          case "$TASK" in
-            test)
-              pnpm test
-              ;;
-            *)
-              echo "Unsupported macOS node task: $TASK" >&2
               exit 1
               ;;
           esac

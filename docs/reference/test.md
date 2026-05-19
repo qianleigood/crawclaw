@@ -1,5 +1,5 @@
 ---
-summary: "How to run tests locally (vitest) and when to use force/coverage modes"
+summary: "How to run the native Rust test gate locally"
 read_when:
   - Running or fixing tests
 title: "Tests"
@@ -7,26 +7,11 @@ title: "Tests"
 
 # Tests
 
-- Full testing kit (suites and live tests): [Testing](/help/testing)
+- Full testing kit: [Testing](/help/testing)
 
-- `pnpm test`: Kills any lingering gateway process holding the default control port, then runs the full Vitest suite with an isolated gateway port so server tests don’t collide with a running instance. Use this when a prior gateway run left port 18789 occupied.
-- `pnpm test:coverage`: Runs the unit suite with V8 coverage (via `vitest.unit.config.ts`). Global thresholds are 70% lines/branches/functions/statements. Coverage excludes integration-heavy gateway/channel bridges to keep the target focused on unit-testable logic.
-- `pnpm test:coverage:changed`: Runs unit coverage only for files changed since `origin/main`.
-- `pnpm test:changed`: runs the wrapper with `--changed origin/main`. The base Vitest config treats the wrapper manifests/config files as `forceRerunTriggers` so scheduler changes still rerun broadly when needed.
-- `pnpm test`: runs the full wrapper. It keeps only a small behavioral override manifest in git, then uses a checked-in timing snapshot to peel the heaviest measured unit files into dedicated lanes.
-- Unit, channel, extension, and gateway wrapper lanes default to Vitest `forks`.
-- Channel adapter tests have moved to Rust-native channel crates; the TS runner no longer has a dedicated channel lane.
-- `pnpm test:extensions` runs through the wrapper and uses `forks` for shared and isolated extension lanes.
-- `pnpm test:extensions`: runs extension/plugin suites.
-- `pnpm test:perf:imports`: enables Vitest import-duration + import-breakdown reporting for the wrapper.
-- `pnpm test:perf:imports:changed`: same import profiling, but only for files changed since `origin/main`.
-- `pnpm test:perf:profile:main`: writes a CPU profile for the Vitest main thread (`.artifacts/vitest-main-profile`).
-- `pnpm test:perf:profile:runner`: writes CPU + heap profiles for the unit runner (`.artifacts/vitest-runner-profile`).
-- `pnpm test:perf:update-timings`: refreshes the checked-in slow-file timing snapshot used by `scripts/test-parallel.mjs`.
-- Gateway integration: opt-in via `CRAWCLAW_TEST_INCLUDE_GATEWAY=1 pnpm test` or `pnpm test:gateway`.
-- `pnpm test:e2e`: Runs gateway end-to-end smoke tests (multi-instance WS/HTTP). Defaults to `forks` + adaptive workers in `vitest.e2e.config.ts`; tune with `CRAWCLAW_E2E_WORKERS=<n>` and set `CRAWCLAW_E2E_VERBOSE=1` for verbose logs.
-  Generic embedded-agent E2E helpers now default to `minimax/MiniMax-M2.7`; provider-specific regression suites still keep their targeted provider configs.
-- `pnpm test:live`: Runs provider live tests (minimax/zai). Requires API keys and `LIVE=1` (or provider-specific `*_LIVE_TEST=1`) to unskip.
+- `pnpm test`: runs the Rust workspace tests through `scripts/run-rust-tests.mjs`.
+- The wrapper sets a conservative stack size and serial Rust test threads so desktop and native runtime integration tests do not race shared local resources.
+- For focused debugging, run Cargo directly, for example `cargo test -p crawclaw-runtime <filter>`.
 
 ## Local PR gate
 
@@ -37,10 +22,7 @@ For local PR land/gate checks, run:
 - `pnpm test`
 - `pnpm check:docs`
 
-If `pnpm test` flakes on a loaded host, rerun once before treating it as a regression, then isolate with `pnpm vitest run <path/to/test>`. For memory-constrained hosts, use:
-
-- `CRAWCLAW_TEST_PROFILE=low CRAWCLAW_TEST_SERIAL_GATEWAY=1 pnpm test`
-- `CRAWCLAW_VITEST_FS_MODULE_CACHE_PATH=/tmp/crawclaw-vitest-cache pnpm test:changed`
+If `pnpm test` flakes on a loaded host, rerun once before treating it as a regression, then isolate the owning crate with `cargo test -p <crate> <filter>`.
 
 ## Model latency bench (local keys)
 

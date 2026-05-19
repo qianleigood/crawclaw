@@ -93,13 +93,13 @@ crawclaw onboard --non-interactive --skip-health
 
 ## 兼容性门禁
 
-仓库保留了聚焦 Windows 兼容性的门禁，可从任意开发主机验证相关代码路径：
+仓库将 Windows 相关兼容性覆盖保留在原生 Rust 工作区 gate 中：
 
 ```bash
-pnpm test:windows:compat
+pnpm test
 ```
 
-该门禁覆盖安装器 wrapper 回归、Windows 进程启动、PowerShell shell 选择、路径规范化、Scheduled Task 回退行为、startup 回退处理、Docker 调用形状、浏览器可执行文件发现，以及插件运行时 spawn helper。
+该 gate 覆盖可从任意开发主机验证的原生运行时 spawn helper 以及跨平台路径/进程行为。
 
 完整原生验证仍需要 Windows VM 或主机：
 

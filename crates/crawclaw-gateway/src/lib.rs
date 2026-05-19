@@ -11022,6 +11022,15 @@ mod tests {
         "src/plugins/runtime/gateway-request-scope.ts",
     ];
 
+    const REMOVED_PUBLIC_NODE_SURFACE_GUARD_FILES: &[&str] =
+        &["src/infra/public-node-surface.guard.test.ts"];
+
+    const REMOVED_PUBLIC_NODE_SOURCE_FILES: &[&str] =
+        &["src/index.ts", "src/entry.ts", "src/library.ts"];
+
+    const REMOVED_TS_GATEWAY_TEST_SUPPORT_FILES: &[&str] =
+        &["src/gateway/live-tool-probe-utils.ts"];
+
     fn repo_root() -> PathBuf {
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .parent()
@@ -11053,6 +11062,15 @@ mod tests {
             || relative.ends_with(".live.test.ts")
             || relative.ends_with(".e2e.test.ts")
             || relative.ends_with(".d.ts")
+    }
+
+    fn is_gateway_ts_test_surface(relative: &str) -> bool {
+        relative.starts_with("src/gateway/")
+            && (relative.ends_with(".test.ts")
+                || relative.ends_with(".live.test.ts")
+                || relative.ends_with(".e2e.test.ts")
+                || relative.ends_with(".test-helpers.ts")
+                || relative.ends_with(".test-mocks.ts"))
     }
 
     fn quoted_specifier_after(
@@ -11123,13 +11141,33 @@ mod tests {
         let existing = REMOVED_TS_GATEWAY_RUNTIME_FILES
             .iter()
             .chain(REMOVED_TS_GATEWAY_BRIDGE_FILES.iter())
+            .chain(REMOVED_PUBLIC_NODE_SURFACE_GUARD_FILES.iter())
+            .chain(REMOVED_PUBLIC_NODE_SOURCE_FILES.iter())
+            .chain(REMOVED_TS_GATEWAY_TEST_SUPPORT_FILES.iter())
             .filter(|relative| root.join(relative).exists())
             .copied()
             .collect::<Vec<_>>();
 
         assert!(
             existing.is_empty(),
-            "removed TypeScript Gateway surfaces came back: {existing:?}"
+            "removed TypeScript Gateway or public Node guard surfaces came back: {existing:?}"
+        );
+    }
+
+    #[test]
+    fn rust_gateway_repo_guardrails_keep_gateway_ts_tests_absent() {
+        let root = repo_root();
+        let mut files = Vec::new();
+        collect_type_script_files(&root.join("src").join("gateway"), &mut files);
+        let existing = files
+            .into_iter()
+            .map(|file| slash_path(file.strip_prefix(&root).expect("relative source path")))
+            .filter(|relative| is_gateway_ts_test_surface(relative))
+            .collect::<Vec<_>>();
+
+        assert!(
+            existing.is_empty(),
+            "removed TypeScript Gateway tests came back: {existing:?}"
         );
     }
 
@@ -11140,7 +11178,12 @@ mod tests {
         collect_type_script_files(&root.join("src"), &mut files);
 
         let removed_server = root.join("src/gateway/server.ts");
+        let removed_public_node_sources = REMOVED_PUBLIC_NODE_SOURCE_FILES
+            .iter()
+            .map(|relative| root.join(relative))
+            .collect::<BTreeSet<_>>();
         let mut server_imports = Vec::new();
+        let mut public_node_imports = Vec::new();
         let mut handler_imports = Vec::new();
         let mut gateway_client_callsites = Vec::new();
 
@@ -11163,13 +11206,23 @@ mod tests {
             if imported_module_specifiers(&source).iter().any(|specifier| {
                 resolve_ts_import(&file, specifier).as_deref() == Some(&removed_server)
             }) {
-                server_imports.push(relative);
+                server_imports.push(relative.clone());
+            }
+            if imported_module_specifiers(&source).iter().any(|specifier| {
+                resolve_ts_import(&file, specifier)
+                    .is_some_and(|path| removed_public_node_sources.contains(&path))
+            }) {
+                public_node_imports.push(relative);
             }
         }
 
         assert!(
             server_imports.is_empty(),
             "production TS imports the removed TS Gateway server: {server_imports:?}"
+        );
+        assert!(
+            public_node_imports.is_empty(),
+            "production TS imports removed public Node entries: {public_node_imports:?}"
         );
         assert!(
             handler_imports.is_empty(),

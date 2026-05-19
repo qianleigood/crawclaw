@@ -38,20 +38,13 @@ pnpm test -- \
   "src/agents/pi-hooks/**/*.test.ts"
 ```
 
-如果还要包含提供商的实时演练：
+交付前运行更完整的原生 gate：
 
 ```bash
-pnpm test:live
+pnpm test
 ```
 
-这涵盖了主要的 Pi 单元测试套件：
-
-- `src/agents/pi-*.test.ts`
-- `src/agents/runtime-helpers*.test.ts`
-- `src/agents/pi-tools*.test.ts`
-- `src/agents/pi-settings.test.ts`
-- `src/agents/pi-tool-definition-adapter.test.ts`
-- `src/agents/pi-hooks/*.test.ts`
+不要为运行时行为新增 TypeScript 测试套件。请覆盖所属 Rust crate 或公共原生边界。
 
 ## 手动测试
 

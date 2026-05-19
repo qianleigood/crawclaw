@@ -317,15 +317,21 @@ lifecycle ownership.
 
 ## Runtime stack regression suite
 
-The canonical regression entry for this architecture is:
+The canonical regression entry for this architecture is now the native Rust
+workspace gate:
 
 ```bash
-pnpm test:runtime:stack
+pnpm test
 ```
 
-This suite is intentionally narrower than `pnpm test`, but higher signal for the
-current runtime spine. It exercises the main cross-cutting paths that should not
-quietly regress:
+For focused debugging, filter the owning Rust crate with Cargo, for example:
+
+```bash
+cargo test -p crawclaw-runtime memory
+```
+
+The runtime spine coverage exercises the main cross-cutting paths that should
+not quietly regress:
 
 - memory/context runtime prompt assembly
 - lifecycle-driven memory scheduling

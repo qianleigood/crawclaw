@@ -478,7 +478,7 @@ review_tests() {
   done
 
   if [ "${#missing_run[@]}" -gt 0 ]; then
-    echo "These requested targets were not observed in vitest run output:"
+    echo "These requested targets were not observed in test run output:"
     printf ' - %s\n' "${missing_run[@]}"
     exit 1
   fi

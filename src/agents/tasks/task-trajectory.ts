@@ -709,9 +709,7 @@ function extractCommand(args: unknown): string | undefined {
 }
 
 function looksLikeTestCommand(command: string): boolean {
-  return /\b(test|vitest|jest|pytest|go test|cargo test|pnpm test|npm test|bun test|ctest)\b/i.test(
-    command,
-  );
+  return /\b(test|pytest|go test|cargo test|pnpm test|npm test|bun test|ctest)\b/i.test(command);
 }
 
 function looksLikeAssertionCommand(command: string): boolean {

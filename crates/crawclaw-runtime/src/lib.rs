@@ -3105,6 +3105,85 @@ mod tests {
     use std::sync::mpsc;
     use std::thread;
 
+    fn repo_root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("repo root")
+            .to_path_buf()
+    }
+
+    fn collect_ts_files(root: &Path, files: &mut Vec<PathBuf>) {
+        for entry in fs::read_dir(root).expect("read source directory") {
+            let entry = entry.expect("source directory entry");
+            let path = entry.path();
+            if path.is_dir() {
+                if path.file_name().is_some_and(|name| name == "node_modules") {
+                    continue;
+                }
+                collect_ts_files(&path, files);
+            } else if path.is_file()
+                && path
+                    .extension()
+                    .is_some_and(|ext| ext == "ts" || ext == "tsx")
+            {
+                files.push(path);
+            }
+        }
+    }
+
+    fn slash_path(path: &Path) -> String {
+        path.to_string_lossy()
+            .replace(std::path::MAIN_SEPARATOR, "/")
+    }
+
+    fn is_core_src_ts_test_surface(relative: &str) -> bool {
+        (relative.starts_with("src/")
+            || relative.starts_with("test/")
+            || relative.starts_with("apps/crawclaw-desktop/"))
+            && (relative.ends_with(".test.ts")
+                || relative.ends_with(".test.tsx")
+                || relative.ends_with(".live.test.ts")
+                || relative.ends_with(".e2e.test.ts")
+                || relative.ends_with(".e2e.test.tsx")
+                || relative.ends_with(".suite.ts")
+                || relative.ends_with(".test-helpers.ts")
+                || relative.ends_with(".test-utils.ts")
+                || relative.ends_with(".test-support.ts")
+                || relative.ends_with(".test-mocks.ts")
+                || relative.ends_with(".test-harness.ts")
+                || relative.ends_with(".e2e-harness.ts")
+                || relative.ends_with("-test-helpers.ts")
+                || relative.ends_with("/test-helpers.ts")
+                || relative.ends_with("/test-utils.ts")
+                || relative.contains("/test-helpers/")
+                || relative.contains("/test-utils/")
+                || relative.starts_with("apps/crawclaw-desktop/src/test/")
+                || relative.starts_with("test/"))
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_core_src_ts_tests_absent() {
+        let root = repo_root();
+        let mut files = Vec::new();
+        collect_ts_files(&root.join("src"), &mut files);
+        collect_ts_files(&root.join("test"), &mut files);
+        collect_ts_files(
+            &root.join("apps").join("crawclaw-desktop").join("src"),
+            &mut files,
+        );
+        let existing = files
+            .into_iter()
+            .map(|file| slash_path(file.strip_prefix(&root).expect("relative source path")))
+            .filter(|relative| is_core_src_ts_test_surface(relative))
+            .collect::<Vec<_>>();
+
+        assert!(
+            existing.is_empty(),
+            "removed TypeScript core src tests came back: {existing:?}"
+        );
+    }
+
     #[test]
     fn runtime_layout_reports_no_default_js_compat() {
         let runtime_root = unique_test_runtime_root("runtime-no-js-compat");

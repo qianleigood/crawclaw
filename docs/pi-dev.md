@@ -28,15 +28,14 @@ cargo test -p crawclaw-runtime memory
 cargo test -p crawclaw-gateway agent_run_turn
 ```
 
-To include the live provider exercise:
+Run the broader native gate before handoff:
 
 ```bash
-pnpm test:live
+pnpm test
 ```
 
-TypeScript tests should focus on Gateway clients, channel projection, SDK
-surfaces, and stale-reference guards. Do not add new execution behavior to the
-removed TypeScript agent runner path.
+Do not add new TypeScript test suites for runtime behavior. Cover the owning
+Rust crate or the public native boundary instead.
 
 ## Manual Testing
 

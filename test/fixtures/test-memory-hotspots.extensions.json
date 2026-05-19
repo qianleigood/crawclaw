@@ -1,7 +1,0 @@
-{
-  "config": "vitest.extensions.config.ts",
-  "generatedAt": "2026-04-03T00:00:00.000Z",
-  "defaultMinDeltaKb": 1048576,
-  "lane": "extensions, extensions-batch-*",
-  "files": {}
-}

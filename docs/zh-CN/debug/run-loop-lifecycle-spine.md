@@ -239,13 +239,19 @@ post-compaction side effects，而不再定义并行的生命周期语义。
 
 ## Runtime stack 回归测试集
 
-这套架构当前的标准回归入口是：
+这套架构当前的标准回归入口是原生 Rust 工作区 gate：
 
 ```bash
-pnpm test:runtime:stack
+pnpm test
 ```
 
-这条测试集比 `pnpm test` 更窄，但对当前 runtime spine 的信号更强，专门用来守住这些主链：
+聚焦调试时，可以用 Cargo 过滤所属 Rust crate，例如：
+
+```bash
+cargo test -p crawclaw-runtime memory
+```
+
+runtime spine 覆盖专门用来守住这些主链：
 
 - memory/context runtime 的 prompt assembly
 - 基于 lifecycle spine 的 memory scheduling

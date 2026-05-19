@@ -527,6 +527,52 @@ mod tests {
     use super::*;
     use serde_json::json;
 
+    fn repo_root() -> PathBuf {
+        Path::new(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .and_then(Path::parent)
+            .expect("repo root")
+            .to_path_buf()
+    }
+
+    fn collect_ts_files(root: &Path, files: &mut Vec<PathBuf>) {
+        for entry in fs::read_dir(root).expect("read source directory") {
+            let entry = entry.expect("source directory entry");
+            let path = entry.path();
+            if path.is_dir() {
+                collect_ts_files(&path, files);
+            } else if path.is_file() && path.extension().is_some_and(|ext| ext == "ts") {
+                files.push(path);
+            }
+        }
+    }
+
+    fn is_plugin_ts_test_surface(relative: &str) -> bool {
+        relative.starts_with("src/plugins/")
+            && (relative.ends_with(".test.ts")
+                || relative.ends_with(".test-support.ts")
+                || relative.ends_with(".test-helpers.ts")
+                || relative.starts_with("src/plugins/test-helpers/")
+                || relative == "src/plugins/contracts/testkit.ts")
+    }
+
+    #[test]
+    fn keeps_plugin_runtime_cleanup_out_of_ts_tests() {
+        let root = repo_root();
+        let mut files = Vec::new();
+        collect_ts_files(&root.join("src").join("plugins"), &mut files);
+        let existing = files
+            .into_iter()
+            .map(|file| slash_path(file.strip_prefix(&root).expect("relative source path")))
+            .filter(|relative| is_plugin_ts_test_surface(relative))
+            .collect::<Vec<_>>();
+
+        assert!(
+            existing.is_empty(),
+            "removed TypeScript plugin runtime tests came back: {existing:?}"
+        );
+    }
+
     #[test]
     fn lists_static_package_asset_outputs_without_legacy_migrations() {
         let temp = tempfile::tempdir().expect("tempdir");

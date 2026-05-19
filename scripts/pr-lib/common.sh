@@ -138,7 +138,7 @@ run_quiet_logged() {
 }
 
 bootstrap_deps_if_needed() {
-  if [ ! -x node_modules/.bin/vitest ]; then
+  if [ ! -d node_modules ]; then
     run_quiet_logged "pnpm install --frozen-lockfile" ".local/bootstrap-install.log" pnpm install --frozen-lockfile
   fi
 }

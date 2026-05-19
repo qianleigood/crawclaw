@@ -167,9 +167,15 @@ export async function readExpectedInventory() {
     return cachedExpectedInventoryPromise;
   }
 
-  cachedExpectedInventoryPromise = fs
-    .readFile(baselinePath, "utf8")
-    .then((contents) => JSON.parse(contents));
+  cachedExpectedInventoryPromise = fs.readFile(baselinePath, "utf8").then(
+    (contents) => JSON.parse(contents),
+    (error) => {
+      if (error && typeof error === "object" && "code" in error && error.code === "ENOENT") {
+        return [];
+      }
+      throw error;
+    },
+  );
   try {
     return await cachedExpectedInventoryPromise;
   } catch (error) {

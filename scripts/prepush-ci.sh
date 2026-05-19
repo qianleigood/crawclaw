@@ -37,13 +37,7 @@ run_linux_ci_mirror() {
   run_step pnpm check
   run_step pnpm build:strict-smoke
   run_protocol_ci_mirror
-  run_step pnpm vitest run --config vitest.extensions.config.ts --maxWorkers=1
-  run_step env CI=true pnpm exec vitest run --config vitest.unit.config.ts --maxWorkers=1
-
-  log_step "CRAWCLAW_TEST_WORKERS=${CRAWCLAW_TEST_WORKERS:-1} CRAWCLAW_TEST_MAX_OLD_SPACE_SIZE_MB=${CRAWCLAW_TEST_MAX_OLD_SPACE_SIZE_MB:-6144} pnpm test"
-  CRAWCLAW_TEST_WORKERS="${CRAWCLAW_TEST_WORKERS:-1}" \
-  CRAWCLAW_TEST_MAX_OLD_SPACE_SIZE_MB="${CRAWCLAW_TEST_MAX_OLD_SPACE_SIZE_MB:-6144}" \
-    pnpm test
+  run_step pnpm test
 }
 
 main() {

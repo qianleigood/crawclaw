@@ -83,18 +83,17 @@ For Gateway API-only setups, skip health-gated onboarding:
 # Use CrawClaw Desktop or the local Gateway API for this operation.
 ```
 
-## Compatibility gate
+## Compatibility Gate
 
-The repo keeps a focused Windows compatibility gate for code paths that can be
-validated from any development host:
+The repo keeps Windows-relevant compatibility coverage inside the native Rust
+workspace gate:
 
 ```bash
-pnpm test:windows:compat
+pnpm test
 ```
 
-This gate covers installer wrapper regressions, Windows process spawning,
-PowerShell shell selection, path normalization, browser executable discovery,
-and native runtime spawn helpers.
+This gate covers native runtime spawn helpers and cross-platform path/process
+behavior that can be validated from any development host.
 
 Full native validation still requires a Windows VM or host:
 

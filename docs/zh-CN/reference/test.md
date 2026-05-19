@@ -1,58 +1,47 @@
 ---
 read_when:
   - 运行或修复测试
-summary: 如何在本地运行测试（vitest）以及何时使用 force/coverage 模式
+summary: 如何本地运行原生 Rust 测试 gate
 title: 测试
 x-i18n:
-  generated_at: "2026-02-03T10:09:52Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: be7b751fb81c8c94b1293624bdca6582e60a26084960d1df9558061969502e6f
+  generated_at: "2026-05-19T00:52:30Z"
+  model: MiniMax-M2.7-highspeed
+  provider: minimax
+  source_hash: b3805a49ea5e253fef66f465c1166243a7d15334028330cf6e78a18646073f1c
   source_path: reference/test.md
   workflow: 15
 ---
 
 # 测试
 
-- 完整测试套件（测试集、实时测试、Docker）：[测试](/help/testing)
+- 完整测试套件： [测试](/help/testing)
 
-- `pnpm test:force`：终止任何占用默认控制端口的遗留 Gateway 网关进程，然后使用隔离的 Gateway 网关端口运行完整的 Vitest 套件，这样服务器测试不会与正在运行的实例冲突。当之前的 Gateway 网关运行占用了端口 18789 时使用此命令。
-- `pnpm test:coverage`：使用 V8 覆盖率运行 Vitest。全局阈值为 70% 的行/分支/函数/语句覆盖率。覆盖率排除了集成密集型入口点（CLI 连接和 gateway/feishu 桥接），以保持目标集中在可单元测试的逻辑上。
-- `pnpm test:e2e`：运行 Gateway 网关端到端冒烟测试（多实例 WS/HTTP/节点配对）。
-  通用 embedded-agent E2E helper 现在默认使用 `minimax/MiniMax-M2.7`；provider 专项回归用例仍保留各自的 provider 配置。
-- `pnpm test:live`：运行提供商实时测试（minimax/zai）。需要 API 密钥和 `LIVE=1`（或提供商特定的 `*_LIVE_TEST=1`）才能取消跳过。
+- `pnpm test`：通过 `scripts/run-rust-tests.mjs` 运行 Rust 工作区测试。
+- 该包装器设置了一个保守的 stack 大小和串行 Rust 测试线程，以避免桌面和原生运行时集成测试在共享本地资源上产生竞争。
+- 聚焦调试时，直接运行 Cargo，例如 `cargo test -p crawclaw-runtime <filter>`.
+
+## 本地 PR gate
+
+对于本地 PR 合并/gate 检查，运行：
+
+- `pnpm check`
+- `pnpm build`
+- `pnpm test`
+- `pnpm check:docs`
+
+如果 `pnpm test` 在负载较高的主机上出现 flaky 测试时，在判定为回归问题前先重新运行一次，然后使用 Cargo 隔离所属 crate： `cargo test -p <crate> <filter>`.
 
 ## 模型延迟基准测试（本地密钥）
 
-脚本：[`scripts/bench-model.ts`](https://github.com/qianleigood/crawclaw/blob/main/scripts/bench-model.ts)
+脚本： [`scripts/bench-model.ts`](https://github.com/qianleigood/crawclaw/blob/main/scripts/bench-model.ts)
 
 用法：
 
 - `source ~/.profile && pnpm tsx scripts/bench-model.ts --runs 10`
-- 可选环境变量：`MINIMAX_API_KEY`、`MINIMAX_BASE_URL`、`MINIMAX_MODEL`、`ANTHROPIC_API_KEY`
-- 默认提示词："Reply with a single word: ok. No punctuation or extra text."
+- 可选环境变量： `MINIMAX_API_KEY`, `MINIMAX_BASE_URL`, `MINIMAX_MODEL`, `ANTHROPIC_API_KEY`
+- 默认提示词：“仅回复一个单词：ok。不使用标点或额外文本。”
 
-上次运行（2025-12-31，20 次）：
+上次运行（2025-12-31，20 次运行）：
 
 - minimax 中位数 1279ms（最小 1114，最大 2431）
 - opus 中位数 2454ms（最小 1224，最大 3170）
-
-## 新手引导 E2E（Docker）
-
-Docker 是可选的；这仅用于容器化的新手引导冒烟测试。
-
-在干净的 Linux 容器中完整的冷启动流程：
-
-```bash
-scripts/e2e/onboard-docker.sh
-```
-
-此脚本通过伪终端驱动交互式向导，验证配置/工作区/会话文件，然后启动 Gateway 网关并运行 `crawclaw health`。
-
-## QR 导入冒烟测试（Docker）
-
-确保 `qrcode-terminal` 在 Docker 中的 Node 22+ 下加载：
-
-```bash
-pnpm test:docker:qr
-```
