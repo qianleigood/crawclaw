@@ -17,18 +17,6 @@ function isAnnounceSkip(text: string | undefined): boolean {
 
 const FAST_TEST_RETRY_INTERVAL_MS = 8;
 
-type SubagentAnnounceOutputDeps = {
-  callGateway: typeof callGateway;
-  loadConfig: typeof loadConfig;
-};
-
-const defaultSubagentAnnounceOutputDeps: SubagentAnnounceOutputDeps = {
-  callGateway,
-  loadConfig,
-};
-
-let subagentAnnounceOutputDeps: SubagentAnnounceOutputDeps = defaultSubagentAnnounceOutputDeps;
-
 function isFastTestMode() {
   return process.env.CRAWCLAW_TEST_FAST === "1";
 }
@@ -72,7 +60,7 @@ function buildBackendSessionCandidates(sessionKey: string): string[] {
   }
 
   const wrapperAgentId = resolveAgentIdFromSessionKey(sessionKey);
-  const cfg = subagentAnnounceOutputDeps.loadConfig();
+  const cfg = loadConfig();
   const storePath = resolveStorePath(cfg.session?.store, { agentId: wrapperAgentId });
   const entry = loadSessionStore(storePath)[sessionKey];
   if (!entry?.acp?.identity) {
@@ -305,7 +293,7 @@ async function readSubagentOutputForSessionKey(
   sessionKey: string,
   outcome?: SubagentRunOutcome,
 ): Promise<string | undefined> {
-  const history = await subagentAnnounceOutputDeps.callGateway<{ messages?: Array<unknown> }>({
+  const history = await callGateway<{ messages?: Array<unknown> }>({
     method: "chat.history",
     params: { sessionKey, limit: 100 },
   });
@@ -365,7 +353,7 @@ export async function waitForSubagentRunOutcome(
   timeoutMs: number,
 ): Promise<AgentWaitResult> {
   const waitMs = Math.max(0, Math.floor(timeoutMs));
-  return await subagentAnnounceOutputDeps.callGateway<AgentWaitResult>({
+  return await callGateway<AgentWaitResult>({
     method: "agent.wait",
     params: {
       runId,
@@ -577,7 +565,7 @@ export async function buildCompactAnnounceStatsLine(params: {
   startedAt?: number;
   endedAt?: number;
 }) {
-  const cfg = subagentAnnounceOutputDeps.loadConfig();
+  const cfg = loadConfig();
   const agentId = resolveAgentIdFromSessionKey(params.sessionKey);
   const storePath = resolveStorePath(cfg.session?.store, { agentId });
   let entry = loadSessionStore(storePath)[params.sessionKey];
@@ -614,14 +602,3 @@ export async function buildCompactAnnounceStatsLine(params: {
   }
   return `Stats: ${parts.join(" • ")}`;
 }
-
-export const __testing = {
-  setDepsForTest(overrides?: Partial<SubagentAnnounceOutputDeps>) {
-    subagentAnnounceOutputDeps = overrides
-      ? {
-          ...defaultSubagentAnnounceOutputDeps,
-          ...overrides,
-        }
-      : defaultSubagentAnnounceOutputDeps;
-  },
-};

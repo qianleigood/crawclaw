@@ -559,10 +559,3 @@ export async function acquireSessionWriteLock(params: {
   const owner = typeof payload?.pid === "number" ? `pid=${payload.pid}` : "unknown";
   throw new Error(`session file locked (timeout ${timeoutMs}ms): ${owner} ${lockPath}`);
 }
-
-export const __testing = {
-  cleanupSignals: [...CLEANUP_SIGNALS],
-  handleTerminationSignal,
-  releaseAllLocksSync,
-  runLockWatchdogCheck,
-};
