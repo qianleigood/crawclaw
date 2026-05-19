@@ -238,11 +238,6 @@ export function getShellPathFromLoginShell(opts: {
   return cachedShellPath;
 }
 
-export function resetShellPathCacheForTests(): void {
-  cachedShellPath = undefined;
-  cachedEtcShells = undefined;
-}
-
 export function getShellEnvAppliedKeys(): string[] {
   return [...lastAppliedKeys];
 }

@@ -160,11 +160,3 @@ export function computePreviousRunAtMs(schedule: CronSchedule, nowMs: number): n
   }
   return previousMs;
 }
-
-export function clearCronScheduleCacheForTest(): void {
-  cronEvalCache.clear();
-}
-
-export function getCronScheduleCacheSizeForTest(): number {
-  return cronEvalCache.size;
-}

@@ -156,7 +156,3 @@ export function resolveSystemEventDeliveryContext(
   }
   return resolved;
 }
-
-export function resetSystemEventsForTest() {
-  queues.clear();
-}

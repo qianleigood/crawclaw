@@ -25,7 +25,3 @@ export function setActivePluginRegistry(registry: PluginRegistry): void {
 export function getActivePluginRegistry(): PluginRegistry | null {
   return state.activeRegistry;
 }
-
-export function resetPluginRuntimeStateForTest(): void {
-  state.activeRegistry = null;
-}

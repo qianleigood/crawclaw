@@ -103,10 +103,6 @@ export function resolveCronRunLogPruneOptions(cfg?: CronConfig["runLog"]): {
   return { maxBytes, keepLines };
 }
 
-export function getPendingCronRunLogWriteCountForTests() {
-  return writesByPath.size;
-}
-
 async function drainPendingWrite(filePath: string): Promise<void> {
   const resolved = path.resolve(filePath);
   const pending = writesByPath.get(resolved);

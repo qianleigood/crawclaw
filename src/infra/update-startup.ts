@@ -54,10 +54,6 @@ export function getUpdateAvailable(): UpdateAvailable | null {
   return updateAvailableCache;
 }
 
-export function resetUpdateAvailableStateForTest(): void {
-  updateAvailableCache = null;
-}
-
 const UPDATE_CHECK_FILENAME = "update-check.json";
 const UPDATE_CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000;
 const ONE_HOUR_MS = 60 * 60 * 1000;

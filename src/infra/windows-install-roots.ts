@@ -9,14 +9,6 @@ const WINDOWS_NT_CURRENT_VERSION_KEY = "HKLM\\SOFTWARE\\Microsoft\\Windows NT\\C
 const WINDOWS_CURRENT_VERSION_KEY = "HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion";
 const REG_QUERY_TIMEOUT_MS = 5_000;
 
-type QueryRegistryValue = (key: string, valueName: string) => string | null;
-type IsReadableFile = (filePath: string) => boolean;
-
-type WindowsInstallRootsTestOverrides = {
-  queryRegistryValue?: QueryRegistryValue;
-  isReadableFile?: IsReadableFile;
-};
-
 export type WindowsInstallRoots = {
   systemRoot: string;
   programFiles: string;
@@ -24,8 +16,6 @@ export type WindowsInstallRoots = {
   programW6432: string | null;
 };
 
-let queryRegistryValueFn: QueryRegistryValue = defaultQueryRegistryValue;
-let isReadableFileFn: IsReadableFile = defaultIsReadableFile;
 let cachedProcessInstallRoots: WindowsInstallRoots | null = null;
 
 function defaultIsReadableFile(filePath: string): boolean {
@@ -114,7 +104,7 @@ function getWindowsRegExeCandidates(env: Record<string, string | undefined>): re
 
 function locateWindowsRegExe(env: Record<string, string | undefined> = process.env): string | null {
   for (const candidate of getWindowsRegExeCandidates(env)) {
-    if (isReadableFileFn(candidate)) {
+    if (defaultIsReadableFile(candidate)) {
       return candidate;
     }
   }
@@ -173,19 +163,20 @@ function getRegistryInstallRoots(): Partial<WindowsInstallRoots> {
   return {
     systemRoot:
       normalizeWindowsInstallRoot(
-        queryRegistryValueFn(WINDOWS_NT_CURRENT_VERSION_KEY, "SystemRoot") ?? undefined,
+        defaultQueryRegistryValue(WINDOWS_NT_CURRENT_VERSION_KEY, "SystemRoot") ?? undefined,
       ) ?? undefined,
     programFiles:
       normalizeWindowsInstallRoot(
-        queryRegistryValueFn(WINDOWS_CURRENT_VERSION_KEY, "ProgramFilesDir") ?? undefined,
+        defaultQueryRegistryValue(WINDOWS_CURRENT_VERSION_KEY, "ProgramFilesDir") ?? undefined,
       ) ?? undefined,
     programFilesX86:
       normalizeWindowsInstallRoot(
-        queryRegistryValueFn(WINDOWS_CURRENT_VERSION_KEY, "ProgramFilesDir (x86)") ?? undefined,
+        defaultQueryRegistryValue(WINDOWS_CURRENT_VERSION_KEY, "ProgramFilesDir (x86)") ??
+          undefined,
       ) ?? undefined,
     programW6432:
       normalizeWindowsInstallRoot(
-        queryRegistryValueFn(WINDOWS_CURRENT_VERSION_KEY, "ProgramW6432Dir") ?? undefined,
+        defaultQueryRegistryValue(WINDOWS_CURRENT_VERSION_KEY, "ProgramW6432Dir") ?? undefined,
       ) ?? undefined,
   };
 }
@@ -247,14 +238,6 @@ export function getWindowsProgramFilesRoots(
     result.push(value);
   }
   return result;
-}
-
-export function _resetWindowsInstallRootsForTests(
-  overrides: WindowsInstallRootsTestOverrides = {},
-): void {
-  queryRegistryValueFn = overrides.queryRegistryValue ?? defaultQueryRegistryValue;
-  isReadableFileFn = overrides.isReadableFile ?? defaultIsReadableFile;
-  cachedProcessInstallRoots = null;
 }
 
 export const _private = {
