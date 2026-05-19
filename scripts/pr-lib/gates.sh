@@ -103,13 +103,10 @@ prepare_gates() {
       echo "Docs-only change detected with high confidence; skipping pnpm test."
     else
       gates_mode="full"
-      local prepare_unit_fast_batch_target_ms
-      prepare_unit_fast_batch_target_ms="${CRAWCLAW_PREPARE_TEST_UNIT_FAST_BATCH_TARGET_MS:-5000}"
-      echo "Running pnpm test with CRAWCLAW_TEST_UNIT_FAST_BATCH_TARGET_MS=$prepare_unit_fast_batch_target_ms for shorter-lived unit-fast workers."
       run_quiet_logged \
         "pnpm test" \
         ".local/gates-test.log" \
-        env CRAWCLAW_TEST_UNIT_FAST_BATCH_TARGET_MS="$prepare_unit_fast_batch_target_ms" pnpm test
+        pnpm test
       previous_full_gates_head="$current_head"
     fi
   fi
