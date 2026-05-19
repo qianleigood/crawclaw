@@ -3,18 +3,55 @@ use std::env;
 use std::ffi::OsStr;
 use std::fs;
 use std::path::{Component, Path, PathBuf};
+use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use serde::Serialize;
 use serde_json::Value;
 
 const CANONICAL_PLUGIN_MANIFEST_FILENAME: &str = "crawclaw.plugin.json";
 const GENERATED_BUNDLED_SKILLS_DIR: &str = "bundled-skills";
 const OPTIONAL_BUNDLED_BUILD_ENV: &str = "CRAWCLAW_INCLUDE_OPTIONAL_BUNDLED";
 const REMOVED_PACKAGE_CRAWCLAW_FIELDS: &[&str] = &["setupEntry", "extensions"];
+const NATIVE_BINARY_PACKAGES: &[NativeBinaryPackage] = &[
+    NativeBinaryPackage {
+        package_name: "crawclaw-native-plugins",
+        binary_name: "crawclaw-native-plugins",
+    },
+    NativeBinaryPackage {
+        package_name: "crawclaw-runtime",
+        binary_name: "crawclaw-runtime",
+    },
+    NativeBinaryPackage {
+        package_name: "crawclaw-gateway",
+        binary_name: "crawclaw-gateway",
+    },
+];
+
+struct NativeBinaryPackage {
+    package_name: &'static str,
+    binary_name: &'static str,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct StaticPackageAsset {
     pub src: PathBuf,
     pub dest: PathBuf,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BuildStamp {
+    built_at: u128,
+    head: Option<String>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct BuildInfo {
+    version: Option<String>,
+    commit: Option<String>,
+    built_at: String,
 }
 
 pub fn stage_package_postbuild(root_dir: impl AsRef<Path>) -> Result<(), String> {
@@ -23,6 +60,77 @@ pub fn stage_package_postbuild(root_dir: impl AsRef<Path>) -> Result<(), String>
     copy_bundled_plugin_metadata(&root_dir)?;
     copy_static_package_assets(&root_dir, &list_static_package_assets(&root_dir)?)?;
     Ok(())
+}
+
+pub fn stage_native_binary_artifacts(root_dir: impl AsRef<Path>) -> Result<Vec<PathBuf>, String> {
+    let root_dir = normalize_root_dir(root_dir.as_ref());
+    let dest_dir = root_dir.join("dist").join("native");
+    fs::create_dir_all(&dest_dir)
+        .map_err(|error| format!("failed to create {}: {error}", dest_dir.display()))?;
+
+    let mut staged = Vec::new();
+    for entry in NATIVE_BINARY_PACKAGES {
+        let status = Command::new("cargo")
+            .args(["build", "-p", entry.package_name, "--release"])
+            .current_dir(&root_dir)
+            .status()
+            .map_err(|error| {
+                format!(
+                    "failed to run cargo build for {}: {error}",
+                    entry.package_name
+                )
+            })?;
+        if !status.success() {
+            return Err(format!(
+                "cargo build -p {} --release failed with status {}",
+                entry.package_name,
+                status
+                    .code()
+                    .map(|code| code.to_string())
+                    .unwrap_or_else(|| "?".to_string())
+            ));
+        }
+
+        let binary_name = platform_binary_name(entry.binary_name);
+        let source = root_dir.join("target").join("release").join(&binary_name);
+        let dest = dest_dir.join(&binary_name);
+        copy_file(&source, &dest)?;
+        set_executable(&dest)?;
+        staged.push(dest);
+    }
+    Ok(staged)
+}
+
+pub fn write_package_build_metadata(
+    root_dir: impl AsRef<Path>,
+    include_build_info: bool,
+) -> Result<Vec<PathBuf>, String> {
+    let root_dir = normalize_root_dir(root_dir.as_ref());
+    let dist_dir = root_dir.join("dist");
+    fs::create_dir_all(&dist_dir)
+        .map_err(|error| format!("failed to create {}: {error}", dist_dir.display()))?;
+
+    let mut written = Vec::new();
+    let stamp_path = dist_dir.join(".buildstamp");
+    let stamp = BuildStamp {
+        built_at: current_unix_millis()?,
+        head: resolve_git_head(&root_dir),
+    };
+    write_json_line(&stamp_path, &stamp)?;
+    written.push(stamp_path);
+
+    if include_build_info {
+        let build_info_path = dist_dir.join("build-info.json");
+        let build_info = BuildInfo {
+            version: read_package_version(&root_dir),
+            commit: resolve_build_commit(&root_dir),
+            built_at: chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Millis, true),
+        };
+        write_json_pretty(&build_info_path, &build_info)?;
+        written.push(build_info_path);
+    }
+
+    Ok(written)
 }
 
 pub fn list_static_package_asset_outputs(
@@ -459,6 +567,108 @@ fn copy_file(source: &Path, dest: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn platform_binary_name(binary_name: &str) -> String {
+    if cfg!(windows) {
+        format!("{binary_name}.exe")
+    } else {
+        binary_name.to_string()
+    }
+}
+
+#[cfg(unix)]
+fn set_executable(path: &Path) -> Result<(), String> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut permissions = fs::metadata(path)
+        .map_err(|error| format!("failed to read metadata for {}: {error}", path.display()))?
+        .permissions();
+    permissions.set_mode(0o755);
+    fs::set_permissions(path, permissions)
+        .map_err(|error| format!("failed to chmod {}: {error}", path.display()))
+}
+
+#[cfg(not(unix))]
+fn set_executable(_path: &Path) -> Result<(), String> {
+    Ok(())
+}
+
+fn current_unix_millis() -> Result<u128, String> {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .map_err(|error| format!("failed to read system time: {error}"))
+}
+
+fn resolve_git_head(root_dir: &Path) -> Option<String> {
+    let output = Command::new("git")
+        .args(["rev-parse", "HEAD"])
+        .current_dir(root_dir)
+        .output()
+        .ok()?;
+    if !output.status.success() {
+        return None;
+    }
+    let head = String::from_utf8(output.stdout).ok()?.trim().to_string();
+    if head.is_empty() {
+        None
+    } else {
+        Some(head)
+    }
+}
+
+fn resolve_build_commit(root_dir: &Path) -> Option<String> {
+    for name in ["GIT_COMMIT", "GIT_SHA"] {
+        if let Ok(value) = env::var(name) {
+            let value = value.trim().to_string();
+            if !value.is_empty() {
+                return Some(value);
+            }
+        }
+    }
+    resolve_git_head(root_dir)
+}
+
+fn read_package_version(root_dir: &Path) -> Option<String> {
+    read_json(&root_dir.join("package.json"))
+        .ok()
+        .and_then(|value| {
+            value
+                .get("version")
+                .and_then(Value::as_str)
+                .map(str::to_string)
+        })
+}
+
+fn write_json_line<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
+    let contents = format!(
+        "{}\n",
+        serde_json::to_string(value)
+            .map_err(|error| format!("failed to serialize {}: {error}", path.display()))?
+    );
+    write_file_if_changed(path, &contents)
+}
+
+fn write_json_pretty<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
+    let contents = format!(
+        "{}\n",
+        serde_json::to_string_pretty(value)
+            .map_err(|error| format!("failed to serialize {}: {error}", path.display()))?
+    );
+    write_file_if_changed(path, &contents)
+}
+
+fn write_file_if_changed(path: &Path, contents: &str) -> Result<(), String> {
+    if fs::read_to_string(path).ok().as_deref() == Some(contents) {
+        return Ok(());
+    }
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)
+            .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+    }
+    fs::write(path, contents)
+        .map_err(|error| format!("failed to write {}: {error}", path.display()))
+}
+
 fn read_json(path: &Path) -> Result<Value, String> {
     let raw = fs::read_to_string(path)
         .map_err(|error| format!("failed to read {}: {error}", path.display()))?;
@@ -669,5 +879,26 @@ mod tests {
         copy_bundled_plugin_metadata(temp.path()).expect("copy");
 
         assert!(!stale.exists());
+    }
+
+    #[test]
+    fn writes_build_metadata_artifacts() {
+        let temp = tempfile::tempdir().expect("tempdir");
+        write_json_if_changed(
+            &temp.path().join("package.json"),
+            &json!({ "version": "2026.5.3" }),
+        )
+        .expect("package");
+
+        let written = write_package_build_metadata(temp.path(), true).expect("metadata");
+
+        assert_eq!(written.len(), 2);
+        let stamp = read_json(&temp.path().join("dist/.buildstamp")).expect("stamp");
+        assert!(stamp.get("builtAt").and_then(Value::as_u64).is_some());
+        assert!(stamp.get("head").is_some());
+        let build_info = read_json(&temp.path().join("dist/build-info.json")).expect("build info");
+        assert_eq!(build_info["version"], "2026.5.3");
+        assert!(build_info.get("commit").is_some());
+        assert!(build_info.get("builtAt").and_then(Value::as_str).is_some());
     }
 }

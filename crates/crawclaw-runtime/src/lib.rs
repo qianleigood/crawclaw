@@ -37,7 +37,8 @@ pub use native_plugin_registry::{
     NativePluginRuntime, NativeSidecarCommand, NativeToolRegistration,
 };
 pub use package_build::{
-    list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs, stage_package_postbuild,
+    list_bundled_plugin_pack_artifacts, list_static_package_asset_outputs,
+    stage_native_binary_artifacts, stage_package_postbuild, write_package_build_metadata,
     StaticPackageAsset,
 };
 pub use provider_contract::{

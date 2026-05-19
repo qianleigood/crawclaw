@@ -43,7 +43,9 @@ async fn main() {
         "emit-provider-runtime-constants" => emit_provider_runtime_constants(args),
         "emit-rust-tool-catalog" => emit_rust_tool_catalog(args),
         "package-artifacts" => package_artifacts(args),
+        "package-build-native-artifacts" => package_build_native_artifacts(args),
         "package-postbuild" => package_postbuild(args),
+        "package-write-build-metadata" => package_write_build_metadata(args),
         "status" => status(&args),
         "stage" => stage(args),
         "test-workspace" => test_workspace(args),
@@ -329,6 +331,63 @@ fn package_postbuild(args: Vec<String>) {
     }
 }
 
+fn package_build_native_artifacts(args: Vec<String>) {
+    let root = match parse_root_arg(&args) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::stage_native_binary_artifacts(&root) {
+        Ok(staged) => {
+            let staged = staged
+                .into_iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            println!("[native-plugins] staged {staged}");
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn package_write_build_metadata(args: Vec<String>) {
+    let mut include_build_info = false;
+    let mut root_args = Vec::new();
+    for arg in args {
+        if arg == "--build-info" {
+            include_build_info = true;
+        } else {
+            root_args.push(arg);
+        }
+    }
+    let root = match parse_root_arg(&root_args) {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::write_package_build_metadata(&root, include_build_info) {
+        Ok(written) => {
+            let written = written
+                .into_iter()
+                .map(|path| path.display().to_string())
+                .collect::<Vec<_>>()
+                .join(", ");
+            println!("[build-metadata] wrote {written}");
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn test_workspace(args: Vec<String>) {
     let forwarded = if args.first().is_some_and(|arg| arg == "--") {
         &args[1..]
@@ -414,7 +473,7 @@ fn package_artifacts(args: Vec<String>) {
 fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
     if args.len() != 2 || args[0] != "--root" {
         return Err(
-            "usage: crawclaw-runtime desktop-stage|desktop-check|package-postbuild --root <repo-root>"
+            "usage: crawclaw-runtime desktop-stage|desktop-check|package-postbuild|package-build-native-artifacts|package-write-build-metadata --root <repo-root>"
                 .to_string(),
         );
     }
@@ -804,6 +863,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | package-build-native-artifacts --root <repo-root> | package-write-build-metadata --root <repo-root> [--build-info] | test-workspace [cargo-test-filter...] | tool <name> [json-input]"
     );
 }

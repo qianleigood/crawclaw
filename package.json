@@ -32,8 +32,8 @@
   "type": "module",
   "scripts": {
     "audit:seams": "node scripts/audit-seams.mjs",
-    "build": "cargo run --quiet --release -p crawclaw-runtime -- package-postbuild --root . && node scripts/build-native-plugins.mjs && node scripts/build-stamp.mjs && node --import tsx scripts/write-build-info.ts",
-    "build:strict-smoke": "cargo run --quiet --release -p crawclaw-runtime -- package-postbuild --root . && node scripts/build-native-plugins.mjs && node scripts/build-stamp.mjs",
+    "build": "cargo run --quiet --release -p crawclaw-runtime -- package-postbuild --root . && cargo run --quiet --release -p crawclaw-runtime -- package-build-native-artifacts --root . && cargo run --quiet --release -p crawclaw-runtime -- package-write-build-metadata --root . --build-info",
+    "build:strict-smoke": "cargo run --quiet --release -p crawclaw-runtime -- package-postbuild --root . && cargo run --quiet --release -p crawclaw-runtime -- package-build-native-artifacts --root . && cargo run --quiet --release -p crawclaw-runtime -- package-write-build-metadata --root .",
     "canon:check": "node scripts/canon.mjs check",
     "canon:check:json": "node scripts/canon.mjs check --json",
     "canon:enforce": "node scripts/canon.mjs enforce --json",
