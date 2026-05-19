@@ -64,7 +64,6 @@ const RUNTIME_PATH_ENV_KEYS = [
   "CRAWCLAW_CONFIG_PATH",
   "CRAWCLAW_AGENT_DIR",
   "PI_CODING_AGENT_DIR",
-  "CRAWCLAW_TEST_FAST",
 ] as const;
 
 let activeSnapshot: PreparedSecretsRuntimeSnapshot | null = null;

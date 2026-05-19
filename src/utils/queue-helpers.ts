@@ -112,9 +112,6 @@ export function waitForQueueDebounce(queue: {
   debounceMs: number;
   lastEnqueuedAt: number;
 }): Promise<void> {
-  if (process.env.CRAWCLAW_TEST_FAST === "1") {
-    return Promise.resolve();
-  }
   const debounceMs = Math.max(0, queue.debounceMs);
   if (debounceMs <= 0) {
     return Promise.resolve();

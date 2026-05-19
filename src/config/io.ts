@@ -2206,11 +2206,6 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
       if (!snapshot.exists) {
         return;
       }
-      const isVitest = deps.env.VITEST === "true";
-      const shouldLogInVitest = deps.env.CRAWCLAW_TEST_CONFIG_OVERWRITE_LOG === "1";
-      if (isVitest && !shouldLogInVitest) {
-        return;
-      }
       const changeSummary =
         typeof changedPathCount === "number" ? `, changedPaths=${changedPathCount}` : "";
       deps.logger.warn(
@@ -2219,12 +2214,6 @@ export function createConfigIO(overrides: ConfigIoDeps = {}) {
     };
     const logConfigWriteAnomalies = () => {
       if (suspiciousReasons.length === 0) {
-        return;
-      }
-      // Tests often write minimal configs (missing meta, etc); keep output quiet unless requested.
-      const isVitest = deps.env.VITEST === "true";
-      const shouldLogInVitest = deps.env.CRAWCLAW_TEST_CONFIG_WRITE_ANOMALY_LOG === "1";
-      if (isVitest && !shouldLogInVitest) {
         return;
       }
       deps.logger.warn(`Config write anomaly: ${configPath} (${suspiciousReasons.join(", ")})`);

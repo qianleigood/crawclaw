@@ -24,10 +24,6 @@ function readEnvValue(env: NodeJS.ProcessEnv, key: string): string | undefined {
   return value || undefined;
 }
 
-function isFastTestEnv(env: NodeJS.ProcessEnv): boolean {
-  return env.CRAWCLAW_TEST_FAST === "1";
-}
-
 function resolveDefaultHomeDir(): string {
   return resolveRequiredHomeDir(process.env, os.homedir);
 }
@@ -92,9 +88,6 @@ export function resolveConfigPathCandidate(
   env: NodeJS.ProcessEnv = process.env,
   homedir: () => string = envHomedir(env),
 ): string {
-  if (isFastTestEnv(env)) {
-    return resolveCanonicalConfigPath(env, resolveStateDir(env, homedir));
-  }
   const candidates = resolveDefaultConfigCandidates(env, homedir);
   const existing = candidates.find((candidate) => {
     try {

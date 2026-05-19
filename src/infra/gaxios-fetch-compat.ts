@@ -35,8 +35,6 @@ type GaxiosConstructor = {
   prototype: GaxiosPrototype;
 };
 
-const TEST_GAXIOS_CONSTRUCTOR_OVERRIDE = "__CRAWCLAW_TEST_GAXIOS_CONSTRUCTOR__";
-
 let installState: "not-installed" | "installing" | "shimmed" | "installed" = "not-installed";
 
 type UndiciRuntimeDeps = {
@@ -197,21 +195,6 @@ function hasGaxiosConstructorShape(value: unknown): value is GaxiosConstructor {
   );
 }
 
-function getTestGaxiosConstructorOverride(): GaxiosConstructor | null | undefined {
-  const testGlobal = globalThis as Record<string, unknown>;
-  if (!Object.prototype.hasOwnProperty.call(testGlobal, TEST_GAXIOS_CONSTRUCTOR_OVERRIDE)) {
-    return undefined;
-  }
-  const override = testGlobal[TEST_GAXIOS_CONSTRUCTOR_OVERRIDE];
-  if (override === null) {
-    return null;
-  }
-  if (hasGaxiosConstructorShape(override)) {
-    return override;
-  }
-  throw new Error("invalid gaxios test constructor override");
-}
-
 function isDirectGaxiosImportMiss(err: unknown): boolean {
   if (!isModuleNotFoundError(err)) {
     return false;
@@ -224,11 +207,6 @@ function isDirectGaxiosImportMiss(err: unknown): boolean {
 }
 
 async function loadGaxiosConstructor(): Promise<GaxiosConstructor | null> {
-  const testOverride = getTestGaxiosConstructorOverride();
-  if (testOverride !== undefined) {
-    return testOverride;
-  }
-
   try {
     const require = createRequire(import.meta.url);
     const resolvedPath = require.resolve("gaxios");

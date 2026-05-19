@@ -15,12 +15,6 @@ function isAnnounceSkip(text: string | undefined): boolean {
   return text?.trim().toUpperCase() === "NO_REPLY";
 }
 
-const FAST_TEST_RETRY_INTERVAL_MS = 8;
-
-function isFastTestMode() {
-  return process.env.CRAWCLAW_TEST_FAST === "1";
-}
-
 type ToolResultMessage = {
   role?: unknown;
   content?: unknown;
@@ -328,7 +322,7 @@ export async function readLatestSubagentOutputWithRetry(params: {
   maxWaitMs: number;
   outcome?: SubagentRunOutcome;
 }): Promise<string | undefined> {
-  const retryIntervalMs = isFastTestMode() ? FAST_TEST_RETRY_INTERVAL_MS : 100;
+  const retryIntervalMs = 100;
   const maxWaitMs = Math.max(0, Math.min(params.maxWaitMs, 15_000));
   let waitedMs = 0;
   let result: string | undefined;
@@ -400,7 +394,7 @@ export async function captureSubagentCompletionReply(
   }
   return await readLatestSubagentOutputWithRetry({
     sessionKey,
-    maxWaitMs: isFastTestMode() ? 50 : 1_500,
+    maxWaitMs: 1_500,
   });
 }
 
@@ -569,8 +563,7 @@ export async function buildCompactAnnounceStatsLine(params: {
   const agentId = resolveAgentIdFromSessionKey(params.sessionKey);
   const storePath = resolveStorePath(cfg.session?.store, { agentId });
   let entry = loadSessionStore(storePath)[params.sessionKey];
-  const tokenWaitAttempts = isFastTestMode() ? 1 : 3;
-  for (let attempt = 0; attempt < tokenWaitAttempts; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     const hasTokenData =
       typeof entry?.inputTokens === "number" ||
       typeof entry?.outputTokens === "number" ||
@@ -578,9 +571,7 @@ export async function buildCompactAnnounceStatsLine(params: {
     if (hasTokenData) {
       break;
     }
-    if (!isFastTestMode()) {
-      await new Promise((resolve) => setTimeout(resolve, 150));
-    }
+    await new Promise((resolve) => setTimeout(resolve, 150));
     entry = loadSessionStore(storePath)[params.sessionKey];
   }
 
