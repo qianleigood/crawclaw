@@ -13,32 +13,6 @@ export type OutputRuntimeEnv = RuntimeEnv & {
   writeJson: (value: unknown, space?: number) => void;
 };
 
-function shouldEmitRuntimeLog(env: NodeJS.ProcessEnv = process.env): boolean {
-  if (env.VITEST !== "true") {
-    return true;
-  }
-  if (env.CRAWCLAW_TEST_RUNTIME_LOG === "1") {
-    return true;
-  }
-  const maybeMockedLog = console.log as unknown as { mock?: unknown };
-  return typeof maybeMockedLog.mock === "object";
-}
-
-function shouldEmitRuntimeStdout(env: NodeJS.ProcessEnv = process.env): boolean {
-  if (env.VITEST !== "true") {
-    return true;
-  }
-  if (env.CRAWCLAW_TEST_RUNTIME_LOG === "1") {
-    return true;
-  }
-  const stdout = process.stdout as NodeJS.WriteStream & {
-    write: {
-      mock?: unknown;
-    };
-  };
-  return typeof stdout.write.mock === "object";
-}
-
 function isPipeClosedError(err: unknown): boolean {
   const code = (err as { code?: string })?.code;
   return code === "EPIPE" || code === "EIO";
@@ -51,9 +25,6 @@ function hasRuntimeOutputWriter(
 }
 
 function writeStdout(value: string): void {
-  if (!shouldEmitRuntimeStdout()) {
-    return;
-  }
   clearActiveProgressLine();
   const line = value.endsWith("\n") ? value : `${value}\n`;
   try {
@@ -71,9 +42,6 @@ function createRuntimeIo(): Pick<OutputRuntimeEnv, "log" | "error" | "writeStdou
     args.map((arg) => (typeof arg === "string" ? translateActiveCliText(arg) : arg));
   return {
     log: (...args: Parameters<typeof console.log>) => {
-      if (!shouldEmitRuntimeLog()) {
-        return;
-      }
       clearActiveProgressLine();
       console.log(...localizeArgs(args));
     },

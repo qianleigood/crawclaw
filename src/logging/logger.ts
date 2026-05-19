@@ -84,15 +84,6 @@ function attachExternalTransport(logger: TsLogger<LogObj>, transport: LogTranspo
   });
 }
 
-function canUseSilentVitestFileLogFastPath(envLevel: LogLevel | undefined): boolean {
-  return (
-    process.env.VITEST === "true" &&
-    process.env.CRAWCLAW_TEST_FILE_LOG !== "1" &&
-    !envLevel &&
-    !loggingState.overrideSettings
-  );
-}
-
 function resolveSettings(): ResolvedSettings {
   if (!canUseNodeFs()) {
     return {
@@ -103,16 +94,6 @@ function resolveSettings(): ResolvedSettings {
   }
 
   const envLevel = resolveEnvLogLevelOverride();
-  // Test runs default file logs to silent. Skip config reads and fallback load in the
-  // common case to avoid pulling heavy config/schema stacks on startup.
-  if (canUseSilentVitestFileLogFastPath(envLevel)) {
-    return {
-      level: "silent",
-      file: defaultRollingPathForToday(),
-      maxFileBytes: DEFAULT_MAX_LOG_FILE_BYTES,
-    };
-  }
-
   let cfg: CrawClawConfig["logging"] | undefined =
     (loggingState.overrideSettings as LoggerSettings | null) ?? readLoggingConfig();
   if (!cfg && !shouldSkipMutatingLoggingConfigRead()) {
@@ -127,9 +108,7 @@ function resolveSettings(): ResolvedSettings {
       cfg = undefined;
     }
   }
-  const defaultLevel =
-    process.env.VITEST === "true" && process.env.CRAWCLAW_TEST_FILE_LOG !== "1" ? "silent" : "info";
-  const fromConfig = normalizeLogLevel(cfg?.level, defaultLevel);
+  const fromConfig = normalizeLogLevel(cfg?.level, "info");
   const level = envLevel ?? fromConfig;
   const file = cfg?.file ?? defaultRollingPathForToday();
   const maxFileBytes = resolveMaxLogFileBytes(cfg?.maxFileBytes);

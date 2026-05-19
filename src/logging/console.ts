@@ -36,9 +36,6 @@ function normalizeConsoleLevel(level?: string): LogLevel {
   if (isVerbose()) {
     return "debug";
   }
-  if (!level && process.env.VITEST === "true" && process.env.CRAWCLAW_TEST_CONSOLE !== "1") {
-    return "silent";
-  }
   return normalizeLogLevel(level, "info");
 }
 
@@ -54,18 +51,6 @@ function normalizeConsoleStyle(style?: string): ConsoleStyle {
 
 function resolveConsoleSettings(): ConsoleSettings {
   const envLevel = resolveEnvLogLevelOverride();
-  // Test runs default to silent console logging unless explicitly overridden.
-  // Skip config-file and full config fallback reads in this fast path.
-  if (
-    process.env.VITEST === "true" &&
-    process.env.CRAWCLAW_TEST_CONSOLE !== "1" &&
-    !isVerbose() &&
-    !envLevel &&
-    !loggingState.overrideSettings
-  ) {
-    return { level: "silent", style: normalizeConsoleStyle(undefined) };
-  }
-
   let cfg: CrawClawConfig["logging"] | undefined =
     (loggingState.overrideSettings as LoggerSettings | null) ?? readLoggingConfig();
   if (!cfg && !shouldSkipMutatingLoggingConfigRead()) {
