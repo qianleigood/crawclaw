@@ -3162,6 +3162,10 @@ mod tests {
                 || relative.starts_with("test/"))
     }
 
+    fn is_ts_declaration(relative: &str) -> bool {
+        relative.ends_with(".d.ts") || relative.ends_with(".d.tsx")
+    }
+
     #[test]
     fn rust_runtime_repo_guardrails_keep_core_src_ts_tests_absent() {
         let root = repo_root();
@@ -3181,6 +3185,39 @@ mod tests {
         assert!(
             existing.is_empty(),
             "removed TypeScript core src tests came back: {existing:?}"
+        );
+    }
+
+    #[test]
+    fn rust_runtime_repo_guardrails_keep_ts_test_env_toggles_absent() {
+        let root = repo_root();
+        let mut files = Vec::new();
+        collect_ts_files(&root.join("src"), &mut files);
+
+        let forbidden_needles = [
+            "process.env.VITEST",
+            "process.env.NODE_ENV === \"test\"",
+            "process.env.NODE_ENV === 'test'",
+            "CRAWCLAW_TEST",
+            "__CRAWCLAW_TEST",
+        ];
+        let mut hits = Vec::new();
+        for file in files {
+            let relative = slash_path(file.strip_prefix(&root).expect("relative source path"));
+            if is_ts_declaration(&relative) || is_core_src_ts_test_surface(&relative) {
+                continue;
+            }
+            let source = fs::read_to_string(&file).expect("read TS source");
+            for needle in forbidden_needles {
+                if source.contains(needle) {
+                    hits.push(format!("{relative}: {needle}"));
+                }
+            }
+        }
+
+        assert!(
+            hits.is_empty(),
+            "removed TypeScript test environment toggles came back: {hits:?}"
         );
     }
 
