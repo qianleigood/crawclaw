@@ -40,6 +40,7 @@ async fn main() {
         "emit-config-doc-baseline" => emit_config_doc_baseline(args),
         "emit-provider-model-normalization" => emit_provider_model_normalization(args),
         "emit-provider-runtime-constants" => emit_provider_runtime_constants(args),
+        "emit-rust-tool-catalog" => emit_rust_tool_catalog(args),
         "package-artifacts" => package_artifacts(args),
         "package-postbuild" => package_postbuild(args),
         "status" => status(&args),
@@ -214,6 +215,60 @@ fn emit_provider_runtime_constants(args: Vec<String>) {
                     "[provider-runtime-constants] wrote {}",
                     result.output_path.display()
                 );
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn emit_rust_tool_catalog(args: Vec<String>) {
+    let mut output: Option<PathBuf> = None;
+    let mut check = false;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--check" => {
+                check = true;
+                index += 1;
+            }
+            "--write" => {
+                index += 1;
+            }
+            "--output" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--output requires a value");
+                    std::process::exit(2);
+                };
+                output = Some(PathBuf::from(value));
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported emit-rust-tool-catalog option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    let Some(output_path) = output else {
+        eprintln!(
+            "usage: crawclaw-runtime emit-rust-tool-catalog --output <path> [--check|--write]"
+        );
+        std::process::exit(2);
+    };
+    match crawclaw_runtime::write_rust_tool_catalog_artifact(&output_path, check) {
+        Ok(result) => {
+            if check {
+                if result.changed {
+                    eprintln!(
+                        "[rust-tool-catalog] stale generated output at {}",
+                        result.output_path.display()
+                    );
+                    std::process::exit(1);
+                }
+            } else if result.wrote {
+                println!("[rust-tool-catalog] wrote {}", result.output_path.display());
             }
         }
         Err(error) => {
@@ -566,25 +621,6 @@ fn emit_provider_model_normalization(args: Vec<String>) {
 
 fn status(args: &[String]) {
     if args.iter().any(|arg| arg == "--json") {
-        let native_tools = crawclaw_runtime::native_plugin_tool_descriptors()
-            .into_iter()
-            .map(|(plugin_id, descriptor)| {
-                json!({
-                    "id": descriptor.name,
-                    "label": descriptor.label,
-                    "description": descriptor.description,
-                    "sectionId": "runtime",
-                    "defaultProfiles": descriptor.default_profiles,
-                    "lifecycle": "runtime_conditional",
-                    "includeInCrawClawGroup": true,
-                    "defaultEnabled": descriptor.default_enabled,
-                    "readOnly": descriptor.read_only,
-                    "status": "rust-native",
-                    "source": "native-plugin",
-                    "pluginId": plugin_id
-                })
-            })
-            .collect::<Vec<_>>();
         println!(
             "{}",
             json!({
@@ -592,11 +628,7 @@ fn status(args: &[String]) {
                 "runtime": "ready",
                 "implementation": "rust-native",
                 "tools": crawclaw_runtime::pi_agent_rust_tool_names(),
-                "toolCatalog": {
-                    "sections": crawclaw_runtime::rust_core_tool_sections(),
-                    "coreTools": crawclaw_runtime::rust_core_tool_definitions(),
-                    "nativeTools": native_tools
-                }
+                "toolCatalog": crawclaw_runtime::rust_tool_catalog_json_payload()
             })
         );
         return;
@@ -741,6 +773,6 @@ fn runtime_root() -> PathBuf {
 
 fn print_help() {
     println!(
-        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | tool <name> [json-input]"
+        "Usage: crawclaw-runtime --worker | status [--json] | stage --output <dir> | desktop-stage --root <repo-root> | desktop-check --root <repo-root> | emit-base-config-schema --generated-at <iso8601> | emit-bundled-capability-metadata --output <path> [--check|--write] | emit-bundled-provider-auth-env-vars --output <path> [--check|--write] | emit-config-doc-baseline --json-output <path> --jsonl-output <path> [--check|--write] | emit-provider-model-normalization --output <path> [--check|--write] | emit-provider-runtime-constants --output <path> [--check|--write] | emit-rust-tool-catalog --output <path> [--check|--write] | package-artifacts --root <repo-root> --json | package-postbuild --root <repo-root> | tool <name> [json-input]"
     );
 }

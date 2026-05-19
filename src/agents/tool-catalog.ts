@@ -2,7 +2,7 @@ import {
   RUST_CORE_TOOL_DEFINITIONS,
   RUST_NATIVE_TOOL_DEFINITIONS,
   RUST_CORE_TOOL_SECTIONS,
-} from "./rust-tool-catalog.generated.js";
+} from "./rust-tool-catalog.js";
 
 export type ToolProfileId = "minimal" | "coding" | "messaging" | "full";
 

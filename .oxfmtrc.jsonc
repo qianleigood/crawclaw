@@ -20,6 +20,7 @@
     "pnpm-lock.yaml/",
     "src/gateway/server-methods/CLAUDE.md",
     "src/auto-reply/reply/export-html/",
+    "src/generated/agents/*.generated.json",
     "src/generated/config/schema.base.generated.json",
     "src/generated/plugins/*.generated.json",
     "src/generated/providers/*.generated.json",

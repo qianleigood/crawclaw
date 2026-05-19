@@ -824,6 +824,76 @@ pub fn native_plugin_tool_descriptors() -> Vec<(String, crawclaw_plugin_sdk::Nat
     crawclaw_native_plugins::registry::builtin_native_tool_descriptors()
 }
 
+pub fn rust_tool_catalog_json_payload() -> Value {
+    let native_tools = native_plugin_tool_descriptors()
+        .into_iter()
+        .map(|(plugin_id, descriptor)| {
+            json!({
+                "id": descriptor.name,
+                "label": descriptor.label,
+                "description": descriptor.description,
+                "sectionId": "runtime",
+                "defaultProfiles": descriptor.default_profiles,
+                "lifecycle": "runtime_conditional",
+                "includeInCrawClawGroup": true,
+                "defaultEnabled": descriptor.default_enabled,
+                "readOnly": descriptor.read_only,
+                "status": "rust-native",
+                "source": "native-plugin",
+                "pluginId": plugin_id
+            })
+        })
+        .collect::<Vec<_>>();
+
+    json!({
+        "sections": rust_core_tool_sections(),
+        "coreTools": rust_core_tool_definitions(),
+        "nativeTools": native_tools
+    })
+}
+
+pub fn render_rust_tool_catalog_artifact() -> String {
+    format!(
+        "{}\n",
+        serde_json::to_string_pretty(&rust_tool_catalog_json_payload())
+            .expect("Rust tool catalog encodes as JSON")
+    )
+}
+
+pub fn write_rust_tool_catalog_artifact(
+    output_path: impl AsRef<Path>,
+    check: bool,
+) -> Result<GeneratedModuleWriteResult, String> {
+    let output_path = output_path.as_ref().to_path_buf();
+    let next = render_rust_tool_catalog_artifact();
+    let current = match fs::read_to_string(&output_path) {
+        Ok(value) => Some(value),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(format!("failed to read {}: {error}", output_path.display())),
+    };
+    let changed = current.as_deref() != Some(next.as_str());
+    if check {
+        return Ok(GeneratedModuleWriteResult {
+            changed,
+            wrote: false,
+            output_path,
+        });
+    }
+    if changed {
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+        }
+        fs::write(&output_path, next)
+            .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;
+    }
+    Ok(GeneratedModuleWriteResult {
+        changed,
+        wrote: changed,
+        output_path,
+    })
+}
+
 pub fn native_plugin_registry(runtime_root: &Path) -> NativePluginRegistry {
     load_native_plugin_registry(runtime_root)
 }
@@ -3600,6 +3670,27 @@ esac
         ] {
             assert!(tool_names.contains(&expected.to_string()));
         }
+    }
+
+    #[test]
+    fn rust_tool_catalog_artifact_uses_runtime_inventory() {
+        let payload = rust_tool_catalog_json_payload();
+        let sections = payload["sections"].as_array().expect("sections");
+        let core_tools = payload["coreTools"].as_array().expect("core tools");
+        let native_tools = payload["nativeTools"].as_array().expect("native tools");
+
+        assert!(sections.iter().any(|section| section["id"] == "runtime"));
+        assert!(core_tools.iter().any(|tool| tool["id"] == "bash"));
+        assert!(native_tools.iter().any(|tool| {
+            tool["id"] == "browser"
+                && tool["source"] == "native-plugin"
+                && tool["status"] == "rust-native"
+        }));
+
+        let artifact = render_rust_tool_catalog_artifact();
+        assert!(artifact.ends_with('\n'));
+        assert!(artifact.contains("\"coreTools\""));
+        assert!(artifact.contains("\"nativeTools\""));
     }
 
     #[tokio::test]
