@@ -35,6 +35,7 @@ async fn main() {
     match args.remove(0).as_str() {
         "desktop-check" => desktop_check(args),
         "desktop-stage" => desktop_stage(args),
+        "docs-list" => docs_list(args),
         "emit-base-config-schema" => emit_base_config_schema(args),
         "emit-bundled-capability-metadata" => emit_bundled_capability_metadata(args),
         "emit-bundled-provider-auth-env-vars" => emit_bundled_provider_auth_env_vars(args),
@@ -49,6 +50,7 @@ async fn main() {
         "package-prepack" => package_prepack(args),
         "package-release-check" => package_release_check(args),
         "package-write-build-metadata" => package_write_build_metadata(args),
+        "repo-check-ts-loc" => repo_check_ts_loc(args),
         "status" => status(&args),
         "stage" => stage(args),
         "test-workspace" => test_workspace(args),
@@ -313,6 +315,30 @@ fn desktop_stage(args: Vec<String>) {
             "Staged CrawClaw Tauri Desktop runtime at {}",
             paths.runtime_root.display()
         ),
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
+fn docs_list(args: Vec<String>) {
+    let root = match parse_optional_root_arg(&args, "docs-list") {
+        Ok(root) => root,
+        Err(message) => {
+            eprintln!("{message}");
+            std::process::exit(2);
+        }
+    };
+    match crawclaw_runtime::render_docs_list(root) {
+        Ok(output) => {
+            if let Err(error) = io::stdout().write_all(output.as_bytes()) {
+                if error.kind() != io::ErrorKind::BrokenPipe {
+                    eprintln!("failed to write docs list: {error}");
+                    std::process::exit(1);
+                }
+            }
+        }
         Err(error) => {
             eprintln!("{error}");
             std::process::exit(1);
@@ -590,6 +616,58 @@ fn package_artifacts(args: Vec<String>) {
     );
 }
 
+fn repo_check_ts_loc(args: Vec<String>) {
+    let mut root = PathBuf::from(".");
+    let mut max_lines = 500usize;
+    let mut index = 0;
+    while index < args.len() {
+        match args[index].as_str() {
+            "--root" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--root requires a value");
+                    std::process::exit(2);
+                };
+                root = PathBuf::from(value);
+                index += 2;
+            }
+            "--max" => {
+                let Some(value) = args.get(index + 1) else {
+                    eprintln!("--max requires a value");
+                    std::process::exit(2);
+                };
+                max_lines = match value.parse::<usize>() {
+                    Ok(value) => value,
+                    Err(_) => {
+                        eprintln!("Missing/invalid --max value");
+                        std::process::exit(2);
+                    }
+                };
+                index += 2;
+            }
+            other => {
+                eprintln!("unsupported repo-check-ts-loc option: {other}");
+                std::process::exit(2);
+            }
+        }
+    }
+    match crawclaw_runtime::collect_ts_loc_offenders(root, max_lines) {
+        Ok(offenders) => {
+            for offender in &offenders {
+                if writeln!(io::stdout(), "{}\t{}", offender.lines, offender.file_path).is_err() {
+                    return;
+                }
+            }
+            if !offenders.is_empty() {
+                std::process::exit(1);
+            }
+        }
+        Err(error) => {
+            eprintln!("{error}");
+            std::process::exit(1);
+        }
+    }
+}
+
 fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
     if args.len() != 2 || args[0] != "--root" {
         return Err(
@@ -598,6 +676,18 @@ fn parse_root_arg(args: &[String]) -> Result<PathBuf, String> {
         );
     }
     Ok(PathBuf::from(&args[1]))
+}
+
+fn parse_optional_root_arg(args: &[String], command: &str) -> Result<PathBuf, String> {
+    if args.is_empty() {
+        return Ok(PathBuf::from("."));
+    }
+    if args.len() == 2 && args[0] == "--root" {
+        return Ok(PathBuf::from(&args[1]));
+    }
+    Err(format!(
+        "usage: crawclaw-runtime {command} [--root <repo-root>]"
+    ))
 }
 
 fn emit_base_config_schema(args: Vec<String>) {

@@ -20,6 +20,7 @@ mod package_build;
 mod package_release;
 mod plugin_dependency_plan;
 mod provider_contract;
+mod repo_checks;
 pub mod special_agents;
 
 pub use config_contract::{
@@ -57,6 +58,7 @@ pub use provider_contract::{
     write_bundled_provider_auth_env_var_module, write_provider_runtime_constants_module,
     GeneratedModuleWriteResult,
 };
+pub use repo_checks::{collect_ts_loc_offenders, render_docs_list, TsLocOffender};
 
 pub use crawclaw_channels::{
     canonical_agent_run_event_types, channel_contract_version, dispatch_native_channel_outbound,
