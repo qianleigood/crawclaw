@@ -68,7 +68,7 @@ CrawClaw 在两个层中持久化会话：
 - 记录：`~/.crawclaw/agents/<agentId>/sessions/<sessionId>.jsonl`
   - Feishu 话题会话：`.../<sessionId>-topic-<threadId>.jsonl`
 
-CrawClaw 通过 `src/config/sessions.ts` 解析这些位置。
+CrawClaw 通过 Rust runtime session store 解析这些位置。
 
 ---
 
@@ -98,13 +98,13 @@ CrawClaw 通过 `src/config/sessions.ts` 解析这些位置。
 - **每日重置**（默认 Gateway 网关主机本地时间凌晨 4:00）在重置边界后的下一条消息时创建一个新的 `sessionId`。
 - **空闲过期**（`session.reset.idleMinutes` 或旧版 `session.idleMinutes`）当消息在空闲窗口后到达时创建一个新的 `sessionId`。当同时配置了每日和空闲时，以先过期者为准。
 
-实现细节：决策发生在 `src/auto-reply/reply/session.ts` 的 `initSessionState()` 中。
+实现细节：决策发生在 Rust runtime session routing 路径中。
 
 ---
 
 ## 会话存储模式（`sessions.json`）
 
-存储的值类型是 `src/config/sessions.ts` 中的 `SessionEntry`。
+存储值是 Rust runtime session store 维护的 `SessionEntry` 等价结构。
 
 关键字段（不完整）：
 

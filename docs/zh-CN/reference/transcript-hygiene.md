@@ -44,8 +44,8 @@ x-i18n:
 
 实现：
 
-- `src/agents/runtime-helpers/images.ts` 中的 `sanitizeSessionMessagesImages`
-- `src/agents/tool-images.ts` 中的 `sanitizeContentBlocksImages`
+- Rust runtime context assembly 会清理 session 和 tool image payloads。
+- 最大图片边长通过 `agents.defaults.imageMaxDimensionPx` 配置，默认 `1200`。
 
 ---
 

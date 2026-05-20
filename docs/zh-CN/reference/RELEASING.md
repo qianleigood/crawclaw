@@ -1,48 +1,90 @@
 ---
+title: "Release Policy"
+summary: "公开 release channels、version naming 和 cadence"
 read_when:
-  - 查找公开发布渠道的定义
-  - 查找版本命名与发布节奏
-summary: 公开发布渠道、版本命名与发布节奏
-title: 发布策略
-x-i18n:
-  generated_at: "2026-03-15T19:23:11Z"
-  model: claude-opus-4-6
-  provider: pi
-  source_hash: df332d3169de7099661725d9266955456e80fc3d3ff95cb7aaf9997a02f0baaf
-  source_path: reference/RELEASING.md
-  workflow: 15
+  - 查找公开 release channel definitions
+  - 查找 version naming 和 cadence
 ---
 
-# 发布策略
+# Release Policy
 
-CrawClaw 有三个公开发布渠道：
+CrawClaw 有三个公开 release lanes：
 
-- stable：带标签的正式发布，发布到 npm `latest`
-- beta：预发布标签，发布到 npm `beta`
-- dev：`main` 分支的最新提交
+- stable：tagged releases，默认发布到 npm `beta`，只有明确请求时才发布到 npm
+  `latest`
+- beta：prerelease tags，发布到 npm `beta`
+- dev：`main` 的移动 head
 
-## 版本命名
+## Version naming
 
-- 正式发布版本号：`YYYY.M.D`
-  - Git 标签：`vYYYY.M.D`
-- Beta 预发布版本号：`YYYY.M.D-beta.N`
-  - Git 标签：`vYYYY.M.D-beta.N`
+- Stable release version：`YYYY.M.D`
+  - Git tag：`vYYYY.M.D`
+- Stable correction release version：`YYYY.M.D-N`
+  - Git tag：`vYYYY.M.D-N`
+- Beta prerelease version：`YYYY.M.D-beta.N`
+  - Git tag：`vYYYY.M.D-beta.N`
 - 月份和日期不补零
-- `latest` 表示当前 npm 正式发布版本
-- `beta` 表示当前 npm 预发布版本
-- Beta 版本可能会在 节点主机跟进之前发布
+- `latest` 表示当前 promoted stable npm release
+- `beta` 表示当前 beta install target
+- Stable 和 stable correction releases 默认发布到 npm `beta`；release operators
+  可以显式选择 `latest`，或稍后把验证过的 beta build promote
+- 每个 CrawClaw release 都以 npm package 作为 canonical artifact
 
-## 发布节奏
+## Release cadence
 
-- 发布遵循 beta 优先原则
-- 仅在最新的 beta 版本验证通过后才会发布正式版本
-- 详细的发布流程、审批、凭证和恢复说明仅限维护者查阅
+- Releases beta-first
+- Stable 只在最新 beta 验证通过后跟进
+- 详细 release procedure、approvals、credentials 和 recovery notes 仅限
+  maintainers
 
-## 公开参考
+## Release preflight
 
-- [`.github/workflows/crawclaw-npm-release.yml`](https://github.com/qianleigood/crawclaw/blob/main/.github/workflows/crawclaw-npm-release.yml)
-- [`scripts/crawclaw-npm-release-check.ts`](https://github.com/qianleigood/crawclaw/blob/main/scripts/crawclaw-npm-release-check.ts)
+- 在 `pnpm release:check` 前运行 `pnpm build`，确保 pack validation 需要的
+  `dist/*` release artifacts 存在
+- 每次 tagged release 前运行 `pnpm release:check`
+- 审批前运行 `RELEASE_TAG=vYYYY.M.D pnpm release:crawclaw:npm:check`，或使用匹配
+  的 beta/correction tag
+- npm publish 后运行
+  `pnpm release:crawclaw:npm:verify-published YYYY.M.D`，或匹配的
+  beta/correction version，在 fresh temp prefix 中验证 published registry install
+  path
+- Maintainer release automation 使用 preflight-then-promote：
+  - real npm publish 必须引用成功的 npm `preflight_run_id`
+  - stable npm releases 默认发布到 `beta`
+  - stable npm publish 可以通过 workflow input 显式选择 `latest`
+  - stable npm promotion from `beta` to `latest` 仍是 trusted
+    `CrawClaw NPM Release` workflow 上的显式 manual mode
+  - 该 promotion mode 仍需要 `npm-release` environment 中有效的 `NPM_TOKEN`
+  - public `macOS Release` 只做 validation
+  - real private mac publish 必须引用成功的 private mac `preflight_run_id` 和
+    `validate_run_id`
+  - real publish paths 复用 prepared artifacts，而不是重新 build
+- 对 `YYYY.M.D-N` 这样的 stable correction releases，post-publish verifier 还会
+  检查从 `YYYY.M.D` 升级到 `YYYY.M.D-N` 的 temp-prefix upgrade path
+- 如果 release work 触碰 CI planning，审批前检查 `.github/workflows/ci.yml` 中的
+  `preflight` manifest logic，避免 release notes 描述过期 CI layout
+- Stable macOS release readiness 还包括 updater surfaces：
+  - GitHub release 必须带有 packaged `.zip`、`.dmg` 和 `.dSYM.zip`
+  - publish 后 `appcast.xml` on `main` 必须指向新的 stable zip
+  - packaged app 必须保持 non-debug bundle id、非空 Sparkle feed URL，以及不低于
+    该 release version canonical Sparkle build floor 的 `CFBundleVersion`
 
-维护者使用
-[`crawclaw/maintainers/release/README.md`](https://github.com/crawclaw/maintainers/blob/main/release/README.md)
-中的私有发布文档作为实际操作手册。
+## NPM workflow inputs
+
+`CrawClaw NPM Release` 接受这些 operator-controlled inputs：
+
+- `tag`：必填 release tag，例如 `v2026.4.2`、`v2026.4.2-1` 或
+  `v2026.4.2-beta.1`
+- `preflight_only`：`true` 表示只 validation/build/package，`false` 表示真实
+  publish path
+- `preflight_run_id`：real publish path 必填，用于复用成功 preflight run 产出的
+  prepared tarball
+- `npm_dist_tag`：publish path 的 npm target tag，默认 `beta`
+- `promote_beta_to_latest`：`true` 表示跳过 publish，把已发布的 stable `beta`
+  build 移到 `latest`
+
+Rules：
+
+- Stable 和 correction tags 可以发布到 `beta` 或 `latest`
+- Beta tags 必须发布到 `beta`
+- `promote_beta_to_latest` 只适用于 stable versions

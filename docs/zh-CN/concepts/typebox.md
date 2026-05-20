@@ -1,299 +1,86 @@
 ---
+summary: TypeBox helper schemas and Gateway protocol generation boundaries
 read_when:
-  - 更新协议模式或代码生成
-summary: TypeBox 模式作为 Gateway 网关协议 schema 来源，并与共享控制面 method contract 配合使用
-title: TypeBox
-x-i18n:
-  generated_at: "2026-02-03T07:47:23Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 233800f4f5fabe8ed0e1b3d8aded2eca27252e08c9b0b24ea9c6293e9282c918
-  source_path: concepts/typebox.md
-  workflow: 15
+  - 更新 TypeBox helpers 或 Gateway protocol codegen
+title: TypeBox helper schemas
 ---
 
-# TypeBox 作为协议 schema 的事实来源
+# TypeBox helper schemas
 
-最后更新：2026-04-17
+最后更新：2026-05-18
 
-TypeBox 是一个 TypeScript 优先的模式库。我们用它来定义 **Gateway 网关 WebSocket 协议**（握手、请求/响应、服务器事件）。这些模式驱动**运行时验证**、**JSON Schema 导出**和 节点主机的 **Swift 代码生成**。
+TypeBox 不再是打包后的 **Gateway WebSocket protocol** 的事实来源。Rust
+Gateway contract module 拥有 protocol version、advertised methods、
+advertised events，以及稳定 JSON Schema snapshot。
 
-对浏览器 Browser client 来说，TypeBox 现在需要和共享 method contract 一起理解：
+TypeBox 在这个仓库里不再承担 product-runtime 角色。新的 protocol 和 runtime
+schema 工作应放在 Rust contract modules 中。
 
-- **TypeBox / ProtocolSchemas**：协议对象 shape 和可复用 schema
-- **`src/gateway/protocol/browser-client-methods.ts`**：前端 method 列表、params/result 映射、scope、capability、effects 元信息
+使用这个划分：
 
-如果你看的是浏览器控制面的稳定 RPC surface，请同时参考
-[控制面 RPC](/gateway/control-plane-rpc)。
+- **Gateway protocol**：Rust-owned contract 和 generated artifacts。
+- **Desktop renderer TypeScript**：仅 UI 代码，通过已文档化的 API payloads
+  消费 Rust-owned protocol surface。
 
-如果你想了解更高层次的协议上下文，请从 [Gateway 网关架构](/concepts/architecture)开始。
+更高层 Gateway 背景请先看 [Gateway architecture](/concepts/architecture) 和
+[Gateway protocol](/gateway/protocol)。
 
-## 心智模型（30 秒）
+## Gateway protocol ownership
 
-每个 Gateway 网关 WS 消息都是以下三种帧之一：
+Gateway protocol files：
 
-- **Request**：`{ type: "req", id, method, params }`
-- **Response**：`{ type: "res", id, ok, payload | error }`
-- **Event**：`{ type: "event", event, payload, seq?, stateVersion? }`
+- Rust contract module: `crates/crawclaw-gateway/src/protocol_contract.rs`
+- Embedded JSON Schema snapshot:
+  `crates/crawclaw-gateway/src/protocol_contract/protocol.schema.stable.json`
+- Generated JSON Schema: `dist/protocol.schema.json`
 
-第一个帧**必须**是 `connect` 请求。之后，客户端可以调用方法（例如 `health`、`send`、`chat.send`）并订阅事件（例如 `presence`、`tick`、`agent`）。
-
-连接流程（最小）：
-
-```
-Client                    Gateway
-  |---- req:connect -------->|
-  |<---- res:hello-ok --------|
-  |<---- event:tick ----------|
-  |---- req:health ---------->|
-  |<---- res:health ----------|
-```
-
-常用方法 + 事件：
-
-| 类别 | 示例                                                      | 说明                            |
-| ---- | --------------------------------------------------------- | ------------------------------- |
-| 核心 | `connect`、`health`、`status`                             | `connect` 必须是第一个          |
-| 消息 | `send`、`poll`、`agent`、`agent.wait`                     | 有副作用的需要 `idempotencyKey` |
-| 聊天 | `chat.history`、`chat.send`、`chat.abort`、`chat.inject`  | Gateway 客户端使用这些          |
-| 会话 | `sessions.list`、`sessions.patch`、`sessions.delete`      | 会话管理                        |
-| 节点 | `node.list`、`node.invoke`、`node.pair.*`                 | Gateway 网关 WS + 节点操作      |
-| 事件 | `tick`、`presence`、`agent`、`chat`、`health`、`shutdown` | 服务器推送                      |
-
-权威入口现在分布在不同层：
-
-- 协议 schema：`src/gateway/protocol/schema/*`
-- 共享 protocol exports：`src/gateway/protocol/schema/protocol-schemas.ts`
-- Browser client method contract：`src/gateway/protocol/browser-client-methods.ts`
-- gateway dispatch/runtime 行为：`src/gateway/server-methods.ts`
-
-## 模式所在位置
-
-- 源模块：`src/gateway/protocol/schema/*`
-- 共享 protocol exports：`src/gateway/protocol/schema/protocol-schemas.ts`
-- 运行时验证器（AJV）：`src/gateway/protocol/index.ts`
-- 控制面 method contract：`src/gateway/protocol/browser-client-methods.ts`
-- 服务器握手 + 方法分发：`src/gateway/server-methods.ts`
-- 节点客户端：`src/gateway/client.ts`
-- 生成的 JSON Schema：`dist/protocol.schema.json`
-- 生成的 Swift 模型：`apps/macos/Sources/CrawClawProtocol/GatewayModels.swift`
-
-## 当前流程
-
-- `pnpm protocol:gen`
-  - 将 JSON Schema（draft‑07）写入 `dist/protocol.schema.json`
-- `pnpm protocol:gen:swift`
-  - 生成 Swift Gateway 网关模型
-- `pnpm protocol:check`
-  - 运行两个生成器并验证输出已提交
-
-## 模式在运行时的使用方式
-
-- **服务器端**：每个入站帧都用 AJV 验证。握手仅接受参数匹配 `ConnectParams` 的 `connect` 请求。
-- **客户端**：JS 客户端在使用之前验证事件和响应帧。
-- **方法表面**：Gateway 网关在 `hello-ok` 中公布支持的 `methods` 和 `events`。
-
-## 示例帧
-
-Connect（第一条消息）：
-
-```json
-{
-  "type": "req",
-  "id": "c1",
-  "method": "connect",
-  "params": {
-    "minProtocol": 2,
-    "maxProtocol": 2,
-    "client": {
-      "id": "crawclaw-macos",
-      "displayName": "macos",
-      "version": "1.0.0",
-      "platform": "macos 15.1",
-      "mode": "ui",
-      "instanceId": "A1B2"
-    }
-  }
-}
-```
-
-Hello-ok 响应：
-
-```json
-{
-  "type": "res",
-  "id": "c1",
-  "ok": true,
-  "payload": {
-    "type": "hello-ok",
-    "protocol": 2,
-    "server": { "version": "dev", "connId": "ws-1" },
-    "features": { "methods": ["health"], "events": ["tick"] },
-    "snapshot": {
-      "presence": [],
-      "health": {},
-      "stateVersion": { "presence": 0, "health": 0 },
-      "uptimeMs": 0
-    },
-    "policy": { "maxPayload": 1048576, "maxBufferedBytes": 1048576, "tickIntervalMs": 30000 }
-  }
-}
-```
-
-请求 + 响应：
-
-```json
-{ "type": "req", "id": "r1", "method": "health" }
-```
-
-```json
-{ "type": "res", "id": "r1", "ok": true, "payload": { "ok": true } }
-```
-
-事件：
-
-```json
-{ "type": "event", "event": "tick", "payload": { "ts": 1730000000 }, "seq": 12 }
-```
-
-## 最小客户端（Node.js）
-
-最小可用流程：connect + health。
-
-```ts
-import { WebSocket } from "ws";
-
-const ws = new WebSocket("ws://127.0.0.1:18789");
-
-ws.on("open", () => {
-  ws.send(
-    JSON.stringify({
-      type: "req",
-      id: "c1",
-      method: "connect",
-      params: {
-        minProtocol: 3,
-        maxProtocol: 3,
-        client: {
-          id: "cli",
-          displayName: "example",
-          version: "dev",
-          platform: "node",
-          mode: "cli",
-        },
-      },
-    }),
-  );
-});
-
-ws.on("message", (data) => {
-  const msg = JSON.parse(String(data));
-  if (msg.type === "res" && msg.id === "c1" && msg.ok) {
-    ws.send(JSON.stringify({ type: "req", id: "h1", method: "health" }));
-  }
-  if (msg.type === "res" && msg.id === "h1") {
-    console.log("health:", msg.payload);
-    ws.close();
-  }
-});
-```
-
-## 实践示例：端到端添加方法
-
-示例：添加一个新的 `system.echo` 请求，返回 `{ ok: true, text }`。
-
-1. **模式（事实来源）**
-
-添加到 `src/gateway/protocol/schema.ts`：
-
-```ts
-export const SystemEchoParamsSchema = Type.Object(
-  { text: NonEmptyString },
-  { additionalProperties: false },
-);
-
-export const SystemEchoResultSchema = Type.Object(
-  { ok: Type.Boolean(), text: NonEmptyString },
-  { additionalProperties: false },
-);
-```
-
-将两者添加到 `ProtocolSchemas` 并导出类型：
-
-```ts
-  SystemEchoParams: SystemEchoParamsSchema,
-  SystemEchoResult: SystemEchoResultSchema,
-```
-
-```ts
-export type SystemEchoParams = Static<typeof SystemEchoParamsSchema>;
-export type SystemEchoResult = Static<typeof SystemEchoResultSchema>;
-```
-
-2. **验证**
-
-在 `src/gateway/protocol/index.ts` 中，导出一个 AJV 验证器：
-
-```ts
-export const validateSystemEchoParams = ajv.compile<SystemEchoParams>(SystemEchoParamsSchema);
-```
-
-3. **服务器行为**
-
-在 Rust Gateway RPC handler 中添加处理程序：
-
-```ts
-export const systemHandlers: GatewayRequestHandlers = {
-  "system.echo": ({ params, respond }) => {
-    const text = String(params.text ?? "");
-    respond(true, { ok: true, text });
-  },
-};
-```
-
-在 `src/gateway/server-methods.ts` 中注册（已合并 `systemHandlers`），然后将 `"system.echo"` 添加到 `src/gateway/server.ts` 中的 `METHODS`。
-
-4. **重新生成**
+生成器通过 Rust Gateway binary 运行：
 
 ```bash
+pnpm protocol:gen
 pnpm protocol:check
 ```
 
-5. **Rust 测试 + 文档**
+`pnpm protocol:gen` 从 Rust contract snapshot 生成 JSON Schema。
+`pnpm protocol:check` 验证 tracked generated artifact 与 Rust contract 一致。
 
-为行为和 contract coverage 添加 Rust Gateway tests，并在文档中记录该方法。
+## Runtime model
 
-## Swift 代码生成行为
+- **Server side**：Rust Gateway 拥有 handshake、auth、method dispatch 和
+  runtime behavior。
+- **Client side**：clients 消费 generated JSON Schema 或已文档化的 Gateway
+  payloads。完整 protocol schema 不再生成为 TypeScript。
+- **Advertised surface**：`hello-ok` 从 Rust protocol metadata 暴露 supported
+  methods 和 events。
 
-Swift 生成器输出：
+## TypeBox helper usage
 
-- 带有 `req`、`res`、`event` 和 `unknown` 情况的 `GatewayFrame` 枚举
-- 强类型的 payload 结构体/枚举
-- `ErrorCode` 值和 `GATEWAY_PROTOCOL_VERSION`
+不要为 Gateway protocol shapes 新增手写 TypeBox modules。Protocol fields 和
+method contracts 应在 Rust 中修改、重新生成，然后通过 generated JSON Schema 或
+已文档化的 Gateway payloads 消费。
 
-未知的帧类型保留为原始 payload 以实现向前兼容。
+## Add a Gateway method
 
-## 版本控制 + 兼容性
+1. 在 `crates/crawclaw-gateway/src/protocol_contract.rs` 中添加 method metadata
+   和 schema contract。
+2. 在 owning Gateway handler 中添加 Rust Gateway behavior。
+3. 重新生成 artifacts：
 
-- `PROTOCOL_VERSION` 在 `src/gateway/protocol/schema.ts` 中。
-- 客户端发送 `minProtocol` + `maxProtocol`；服务器拒绝不匹配的。
-- Swift 模型保留未知帧类型以避免破坏旧客户端。
+   ```bash
+   pnpm protocol:gen
+   ```
 
-## 模式模式和约定
+4. 运行 protocol check：
 
-- 大多数对象使用 `additionalProperties: false` 以实现严格的 payload。
-- `NonEmptyString` 是 ID 和方法/事件名称的默认值。
-- 顶层 `GatewayFrame` 在 `type` 上使用**鉴别器**。
-- 有副作用的方法通常需要在 params 中包含 `idempotencyKey`（示例：`send`、`poll`、`agent`、`chat.send`）。
+   ```bash
+   pnpm protocol:check
+   ```
 
-## 实时 schema JSON
+5. 为 behavior 和 contract coverage 添加 Rust Gateway tests。
 
-生成的 JSON Schema 在仓库的 `dist/protocol.schema.json` 中。发布的原始文件通常可在以下位置获取：
+## Versioning
 
-- https://raw.githubusercontent.com/qianleigood/crawclaw/main/dist/protocol.schema.json
-
-## 当你更改模式时
-
-1. 更新 TypeBox 模式。
-2. 运行 `pnpm protocol:check`。
-3. 提交重新生成的 schema + Swift 模型。
+- `GATEWAY_PROTOCOL_VERSION` 位于
+  `crates/crawclaw-gateway/src/protocol_contract.rs`。
+- Clients 发送 `minProtocol` 和 `maxProtocol`；server 会拒绝不匹配的连接。
+- Swift models 从 `dist/protocol.schema.json` 生成。

@@ -181,11 +181,12 @@ Gateway 网关将这些视为**声明**并强制执行服务器端允许列表�
 
 ## 版本控制
 
-- `PROTOCOL_VERSION` 在 `src/gateway/protocol/schema.ts` 中。
+- `GATEWAY_PROTOCOL_VERSION` 在
+  `crates/crawclaw-gateway/src/protocol_contract.rs` 中。
 - 客户端发送 `minProtocol` + `maxProtocol`；服务器拒绝不匹配的。
-- 模式 + 模型从 TypeBox 定义生成：
+- 打包 JSON Schema 和 protocol metadata artifacts 由 Rust Gateway contract
+  snapshot 生成：
   - `pnpm protocol:gen`
-  - `pnpm protocol:gen:swift`
   - `pnpm protocol:check`
 
 ## 认证
@@ -217,4 +218,5 @@ Gateway 网关将这些视为**声明**并强制执行服务器端允许列表�
 ## 范围
 
 此协议暴露**完整的 Gateway 网关 API**（status、channels、models、chat、
-agent、sessions、nodes、approvals 等）。确切的接口由 `src/gateway/protocol/schema.ts` 中的 TypeBox 模式定义。
+agent、sessions、approvals 等）。runtime validator surface 由 Rust Gateway
+实现，generated JSON Schema artifact 从 Rust Gateway contract snapshot 生成。

@@ -8,9 +8,10 @@ read_when:
 
 # Special-Agent Substrate
 
-CrawClaw 现在已经有一层统一的 special-agent 运行底座，专门服务 run-loop lifecycle spine 上的后台维护型 agent。
+CrawClaw 现在有一层共享的 special-agent 底座，用于运行在 run-loop
+lifecycle spine 之上的后台维护型 agent。
 
-## 范围
+## Scope
 
 这层 substrate 只统一运行时横切面：
 
@@ -21,139 +22,188 @@ CrawClaw 现在已经有一层统一的 special-agent 运行底座，专门服�
 - 显式 cache policy
 - 默认 `maxTurns`
 - 默认 `runTimeoutSeconds`
-- transcript/session spawn context 接线
+- transcript/session spawn context wiring
 - `agent.wait`
 - completion reply capture
-- 共享 lifecycle subscriber 接线
+- 共享 lifecycle subscriber wiring
 - 共享 agent-event / history / usage hooks
 
-它**不会**试图统一这些内容：
+它不会试图统一：
 
-- prompt
-- tool surface
-- result schema
+- prompts
+- tool surfaces
+- result schemas
 - persistence behavior
 - lifecycle gate logic
 
-这和 Claude Code 的做法一致：统一 forked-agent runtime，不把专用 agent 的职责压成一套。
+这遵循 Claude Code 的模式：共享 forked-agent runtime，在其上保留专用 agent。
 
 ## Shared Runtime
 
-共享运行时代码在：
+共享运行时位于：
 
-- `src/agents/special/runtime/types.ts`
-- `src/agents/special/runtime/run-once.ts`
+- `crates/crawclaw-runtime/src/lib.rs`
 
 核心概念：
 
 - `SpecialAgentDefinition`
-  描述某个 special agent 的稳定运行契约，并显式声明
-  `executionMode: "spawned_session" | "runtime_fork"`。
-- `registry.ts`
-  负责按 `spawnSource` 解析已注册的 special-agent definition 和 tool policy。
-- `runSpecialAgentToCompletion(...)`
-  统一按 execution mode dispatch 到对应 substrate，再处理 completion
-  capture、transcript policy 约束，以及可选的 event/history/usage hooks。
-- `embedded-run-once.ts`
-  承载新的 embedded-fork substrate 路径。
+  声明某个 special agent 的稳定运行时契约，包括
+  `executionMode: "spawned_session" | "embedded_fork"`。
+- Rust special-agent registry
+  按 `spawnSource` 解析已注册的 special-agent definitions 和 tool policies。
+- Rust special-agent runtime
+  分发到选定的 special-agent definition，然后处理 completion capture、
+  transcript-policy enforcement，以及可选的 event/history/usage hooks。
+- Rust embedded-fork runner
+  在 native agent runtime 内承载 embedded-fork substrate 路径。
 - `createRunLoopLifecycleRegistration(...)`
-  统一处理 special-agent subscriber 的 phase 注册。
+  处理 special-agent subscribers 的共享 lifecycle phase registration。
 - `createSharedLifecycleSubscriberAccessor(...)`
-  统一处理 shared subscriber 的复用和 reset 行为。
+  处理 shared singleton-style subscriber 的复用和 reset 行为。
 
-## 已接入 Agent
+## Landed Agents
 
-现在已经接入这层 substrate 的有：
+当前使用这层 substrate 的有：
 
 - session summary
-  - `src/memory/session-summary/agent-runner.ts`
-  - definition: `SESSION_SUMMARY_AGENT_DEFINITION`
-- durable memory extraction
-  - `src/memory/durable/agent-runner.ts`
-  - definition: `MEMORY_EXTRACTION_AGENT_DEFINITION`
+  - Rust memory runtime session-summary job
+  - definition id: `session-summary`
+- durable memory agent
+  - Rust memory runtime durable extraction job
+  - definition id: `durable-memory`
 - dream
-  - `src/memory/dreaming/agent-runner.ts`
-  - definition: `DREAM_AGENT_DEFINITION`
+  - Rust memory runtime dream job
+  - definition id: `dream`
 - review-spec
-  - `src/agents/review-agent.ts`
-  - definition: `REVIEW_SPEC_AGENT_DEFINITION`
+  - Rust native special-agent registry
+  - definition id: `review-spec`
 - review-quality
-  - `src/agents/review-agent.ts`
-  - definition: `REVIEW_QUALITY_AGENT_DEFINITION`
+  - Rust native special-agent registry
+  - definition id: `review-quality`
 
-这些试点仍然保留各自原本的：
+这些 pilot 仍保留各自的：
 
-- prompt builder
-- lifecycle subscriber
-- scheduler / worker-manager 逻辑
+- prompt builders
+- lifecycle subscribers
+- scheduler / worker-manager logic
 - result parsing
-- action-feed 标题和摘要
+- action-feed titles and summaries
 
-共享的只是运行底座。
+共享的只有 runtime substrate。
 
-## 为什么这样设计
+## Why This Shape
 
-目标是统一横切运行机制，而不是把专用 agent 的行为揉成一个大而平的统一 contract。
+目标是统一横切机制，而不是把专用 agent 行为压平成一个大 contract。
 
-也就是：
+也就是说：
 
-- lifecycle spine 继续是唯一的 phase owner
-- special agents 共享同一层 runtime substrate
-- 每个 agent 仍然保留自己的使命、tools 和输出
+- lifecycle spine 仍是 phase timing 的唯一 owner
+- special agents 共享同一个 runtime substrate
+- 每个 agent 仍拥有自己的 mission、tools 和 outputs
 
-也就是说，这层共享 runtime 现在已经服务于：
+这让共享 runtime 覆盖：
 
 - session-summary maintenance
-- durable memory extraction
+- durable memory agent
 - dream / auto-dream
 - review
 
-但 prompt、tool contract 和结果 schema 仍然保持专用化。
+Prompts、tool contracts 和 result schemas 仍保持专用化。
 
-## 与 Claude 的对齐程度
+## Claude Alignment
 
-到这一版为止，subtrate 设计层已经很接近 Claude Code：
+在 substrate 设计层面，这已经接近 Claude Code：
 
-- 共享 lifecycle spine
-- 共享 special-agent runtime
-- 对维护型 agent 显式声明 transcript isolation
-- 每个 special agent 显式声明 tool policy，并按 Claude 风格在执行时 deny，而不是在 prompt 侧缩小工具清单
-- 每个 special agent 显式声明 provider 级 cache policy
-- runner 内建共享的 event/history/usage hooks
+- shared lifecycle spine
+- shared special-agent runtime
+- maintenance agents 的显式 transcript isolation
+- 每个 special agent 都有显式 tool policy，在 runtime deny，而不是只在
+  prompt-time 缩小 tool inventory
+- 每个 special agent 都有显式 provider-level cache policy
+- runner 中有共享 event/history/usage hooks
 
-CrawClaw 现在也已经接入了 Claude cache 设计里可以直接移植的那部分：
+CrawClaw 现在只保留当前 memory special agents 会用到的 cache pieces：
 
-- memory 类 special agent 会在 `SpecialAgentDefinition` 上声明 cache policy
-- shared runner 现在会优先基于 canonical 的 parent cache-envelope identity 派生稳定的 prompt-cache key；只有在兼容场景下才回退到 parent session
-- 这些 policy 会沿共享 spawn 链路继续传到 provider request 参数
-- parent run 现在也会按 `runId` 持久化 cache-safe snapshot，special agent 已经可以从父 run 最终 prompt 组装结果开始继承 cache 信息，而不只是依赖 session key
-- 这些 cache-safe snapshot 现在会把内容拆成两层：
-  - 参与 cache identity 的 canonical `CacheEnvelope`
-  - 只用于观测/调试的 run/session 上下文字段
-- 这层 canonical `CacheEnvelope` 现在只覆盖：
+- memory-oriented special agents 在 `SpecialAgentDefinition` 中声明 cache policy
+- shared runner 把这些 policy 转换成 provider request params，例如短 retention
+  和 cache-write suppression
+- parent runs 会从最终 parent prompt assembly 构造 lifecycle
+  `parentForkContext`，这样 runtime forks 可以接收一个捕获的 handoff object，
+  其中包含 model-visible messages 以及 cache/debug metadata
+- runtime forks 声明 definition-level `parentContextPolicy`
+  (`none`, `fork_messages_only`, or `full_envelope`)，由 runtime 决定是否允许
+  附加捕获到的 parent prompt envelope
+- parent fork context 会分离：
+  - 面向 model-visible shared prefix 的 canonical `CacheEnvelope`
+  - 不影响 cache identity 的 run/session debug context fields
+- canonical `CacheEnvelope` 只覆盖：
   - `systemPromptText`
-  - tool prompt payload 和 tool-inventory digest
+  - tool prompt payload + tool-inventory digest
   - thinking config
   - fork-context messages
-- cache 复用和 drift 现在通过显式的 fork-cache plan 统一处理，不再把规则分散在 snapshot 持久化、embedded attempt、provider patch 几处
-- provider 侧的请求 patch 现在只消费已经算好的 cache hints，不再自己定义 cache identity
-- substrate 现在也已经支持显式的 `runtime_fork` execution mode，不再只能把 special agent 建模成 child session
-- runtime memory special agent 现在会继承父 run 捕获到的 system-prompt envelope，而不是每次都从头重建一套无关的隔离 prompt
-- runtime memory special run 现在还会把 inherited thinking/tool/fork-context 和当前 embedded 请求做 drift 校验；如果偏移太大，就自动停用 inherited prompt-cache key
-- runtime memory special run 现在会把共享的 agent-event / history / usage 观测写进 Context Archive，不再依赖 child-session transcript
-- 同一批 runtime memory run 现在也会把 usage，包括 `cacheRead` / `cacheWrite`，回灌到 Action Feed 的完成态 detail 里
-- runtime memory special agent 现在也已经在 substrate 上显式声明 cache-write suppression，并把它映射到 provider 支持的“不要创建新 cache entry”控制，同时尽量保留 prompt-cache read
-- review stage agents 显式保留在 `spawned_session`，共享 substrate contract，但不被当成 fire-and-forget maintenance fork
+- provider-specific request patching 只消费 direct cache hints；不再从 parent
+  envelope 推导 parent prompt-cache key
+- substrate 现在支持显式 `embedded_fork` execution mode，因此 special agents
+  不再只能建模成 child sessions
+- session-summary special runs 使用 lifecycle `parentForkContext` 作为自动父级
+  handoff
+- 该 parent fork context 携带完整的当前 model-visible fork-context messages，
+  与 Claude Code 的 session-memory update shape 对齐，而不依赖 recent-message
+  excerpt fallback
+- session-summary 声明 `parentContextPolicy: "full_envelope"` 用于 handoff
+  object，但不复用 parent system prompt、main-agent prompt extras 或 main
+  memory-runtime recall path
+- 缺少 fork context 的 lifecycle updates 会被跳过；显式 CLI/gateway refresh 会从
+  persisted model-visible rows 构造有界 manual parent fork context
+- 当 parent fork context 可用时，summary-specific instructions 保持在 task
+  prompt 中，而不是追加或合并进 parent system prompt
+- durable extraction 不附加 parent run 捕获的 prompt envelope；
+  `parentContextPolicy: "fork_messages_only"` 只给它 recent-message extraction
+  window 需要的 fork-context messages
+- embedded runs 不会从完整 parent prompt envelope 中推断 fork-context
+  messages；special-agent transport 会根据声明的 `parentContextPolicy` 选择
+  handoff
+- dream 是独立的 embedded maintenance special agent。它不接收 parent fork
+  context，因为 definition 声明 `parentContextPolicy: "none"`，不生成 child
+  session，并且只消费 host 提供的 durable manifest、structured signals 和
+  transcript refs
+- dream 和 experience 使用 embedded maintenance runner，并声明
+  `parentContextPolicy: "none"`，因此这些 run 停留在窄 maintenance prompt
+  surface，而不继承 parent context
+- durable extraction 和 dream special runs 仍保留 cache-write suppression 和
+  short retention
+- session-summary 保留 short retention，但不复用 parent prompt-cache key
+- session-summary-backed compaction 会把渲染后的 compact view 存入 compaction
+  state，并在 preserved tail 前作为 compact summary message 加入 prompt assembly
+- stale `summaryInProgress` leases 会在 compaction 时清理，而不是被 dead summary
+  run 阻塞
+- runtime memory special runs 会把共享 agent-event / history / usage observations
+  记录进 Context Archive，而不依赖 child-session transcript state
+- 同一批 runtime memory runs 会把 usage，包括 `cacheRead` / `cacheWrite`，回传到
+  Action Feed completion details
+- runtime memory special agents 在 substrate 上显式声明 cache-write
+  suppression，并映射到 provider 支持的“不要创建新 cache entries”控制，同时尽量
+  保留 prompt-cache reads
+- review stage agents 明确保留在 `spawned_session`；它们使用共享 substrate
+  contract，但不会被当成 fire-and-forget maintenance forks
 
-在当前 CrawClaw 的 runtime 层，这意味着 special-agent substrate 的主要设计缺口已经基本收口，而且 cache 语义的 owner 也更清楚了：
+在当前 CrawClaw runtime 层，这基本收口了第一轮 embedded-fork rollout 后还存在
+的 substrate 级设计缺口，同时也简化了 ownership：
 
-- `parent-fork-context.ts` 负责 canonical cache identity 和 parent fork context
-- `cache-plan.ts` 负责 direct special-agent cache hints
-- `extra-params.ts` 只负责把 cache hints 映射到 provider payload
+- Rust memory runtime 拥有 canonical cache identity 和 parent fork context
+  construction
+- Rust special-agent definitions 拥有 direct special-agent cache hints
+- provider request payload translation 由 Rust runtime/provider layer 拥有
 
-和 Claude Code 还保留的一条主要差异是：CrawClaw 还没有完全复用同一条 in-process forked query-loop identity。现在继承的 envelope 已经足够形成稳定的 cache identity 和 drift 保护，但 request 重建仍然是适配层语义，而不是 Claude 那个原生 `CacheSafeParams` 对象模型的逐字复用。
+与 Claude Code 的主要差异是：CrawClaw 仍不会把 parent query loop 作为 live
+in-process clone 重放。显式 parent fork context 是 session-summary history 的
+受支持 handoff；request building 仍是 adapter-shaped，cache controls 仍作为
+direct special-agent hints。
 
-未来 task-specific special agent 继续按 case-by-case 接入：
+未来 task-specific special agents 应继续逐案接入：
 
-- 维护型、后台、fire-and-forget agent 优先走 `runtime_fork`
-- 面向用户、需要独立 session 状态的 task agent 默认保持 `spawned_session`
+- maintenance-style、fire-and-forget background agents 应优先使用
+  `embedded_fork`；独立性应来自显式 `parentContextPolicy` 选择和 isolated
+  context behavior，而不是在调用点隐式省略 parent fork context
+- user-invoked 或 session-bearing task agents 应保持 `spawned_session`，除非
+  它们明确比 child-session state 更需要 parent fork context

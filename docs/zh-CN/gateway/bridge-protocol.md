@@ -60,7 +60,8 @@ Gateway 网关 → 客户端：
 - `event`：已订阅会话的聊天更新
 - `ping` / `pong`：保活
 
-旧版允许列表强制执行位于 `src/gateway/server-bridge.ts`（已移除）。
+旧版 TypeScript bridge allowlist enforcement 已移除。当前 enforcement 由 Rust
+Gateway protocol contract 和 runtime handlers 承担。
 
 ## Exec 生命周期事件
 

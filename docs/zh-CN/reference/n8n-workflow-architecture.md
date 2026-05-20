@@ -205,8 +205,8 @@ read_when:
 
 ### 1. Workflow Tool
 
-- `src/agents/tools/workflow-tool.ts`
-- `src/agents/tools/workflowize-tool.ts`
+- Rust core `workflow` tool
+- Rust core `workflowize` tool
 
 职责：
 
@@ -215,19 +215,8 @@ read_when:
 
 ### 2. Workflow Broker
 
-- `src/workflows/`
-
-当前核心文件：
-
-- `registry.ts`
-- `n8n-compiler.ts`
-- `n8n-client.ts`
-- `executions.ts`
-- `status-view.ts`
-- `version-history.ts`
-- `deployments.ts`
-- `diff.ts`
-- `spec-patch.ts`
+- Rust runtime workflow registry, n8n client/compiler, execution, deployment,
+  diff, and version-history surfaces
 
 职责：
 
@@ -240,7 +229,7 @@ read_when:
 
 ### 3. workflow-step-agent
 
-- `src/agents/workflow-step-agent.ts`
+- Rust workflow step-agent runtime surface
 
 职责：
 
@@ -253,11 +242,7 @@ read_when:
 
 当前主要落在：
 
-- `src/workflows/n8n-client.ts`
-- `src/workflows/n8n-compiler.ts`
-- `src/workflows/agent-node-contract.ts`
-- `src/gateway/workflow-agent-http.ts`
-- Rust Gateway workflow RPC handlers
+- Rust Gateway workflow RPC and HTTP handlers
 
 职责：
 

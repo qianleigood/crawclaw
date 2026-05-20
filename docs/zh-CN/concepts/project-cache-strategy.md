@@ -1,27 +1,29 @@
 ---
 read_when:
-  - 你在看 prompt cache、memory cache、web fetch cache 或 routing cache 行为
-  - 你要确认缓存 owner、cache key、失效规则或验证 gate
-summary: CrawClaw 的分层缓存模型、当前归属边界与治理规则
-title: 项目缓存策略
+  - 审查 prompt cache、memory cache、web fetch cache 或 routing cache 行为
+  - 需要识别 cache owners、cache keys、invalidation rules 或 validation gates
+summary: CrawClaw 的分层 cache model、当前 ownership boundaries 和 governance rules
+title: Project Cache Strategy
 ---
 
-# 项目缓存策略
+# Project Cache Strategy
 
-CrawClaw 没有单一的中心化 cache service。缓存分布在 agent kernel、web tools、memory、plugins、routing、gateway control plane、media 和 UI 等领域里，并由各领域自己拥有。
+CrawClaw 没有一个中心化 cache service。它在 Rust agent runtime、native
+plugins、routing、Gateway control plane、media 和 desktop UI 中使用
+domain-owned caches。
 
-审查缓存时，关键问题不是“这个 `Map` 放在哪里”，而是：
+重要的审查问题不是“Map 在哪里”，而是：
 
 - 谁拥有这个 cache
-- cache key 的 identity 是什么
-- cache 何时过期或失效
-- 相关 Rust/native gate 如何证明它不会跨 user、session、provider 或 config 边界复用
+- 什么 identity 构成 cache key
+- cache 如何过期或失效
+- 相关 Rust/native gate 如何证明 cache 不会跨 user、session、provider 或 config
+  boundaries 复用
 
-## Cache Governance Registry
+## Cache Governance
 
-代码层面的缓存盘点从 `src/cache/governance.ts` 开始。
-
-每个关键 cache 都应该有一个 `CacheGovernanceDescriptor`，明确：
+旧 TypeScript cache governance registry 已被移除。每个关键 cache 现在都应由
+它的 Rust/native owner 负责文档和测试，覆盖：
 
 - `owner`
 - `key`
@@ -29,109 +31,94 @@ CrawClaw 没有单一的中心化 cache service。缓存分布在 agent kernel�
 - `invalidation`
 - `observability`
 
-保持 descriptor ID 唯一，并把 `config.sessions.store` 和 `agents.web-fetch.response` 等关键可变 cache 注册进这份治理清单。
+当 cache 会跨 session、provider、account 或 config boundary 时，在 test names
+和 docs 中保持 identifiers 稳定。
 
 ## Query And Prompt Identity
 
-主要代码：
-
-- `src/agents/query-context/cache-contract.ts`
-
-这一层定义 query-layer cache envelope 和以下 hash：
+这一层定义 query-layer cache envelope 和 hashes：
 
 - `queryContextHash`
 - `forkContextMessagesHash`
 - `envelopeHash`
 
-Tool inventory、thinking config、system prompt text 和 fork context 都属于 identity。User prompt content 不是这些 hash 的隐藏输入；调用方必须把它理解为 prompt-prefix identity contract，而不是通用 response cache。
+Tool inventory、thinking config、system prompt text 和 fork context 都是
+identity 的一部分。User prompt content 不是这些 hashes 的隐藏输入；调用方必须
+把它当作 prompt-prefix identity contract，而不是通用 response cache。
 
 ## Runtime Acceleration Caches
 
-主要代码：
-
-- `src/config/cache-utils.ts`
-- `src/agents/context-cache.ts`
-- `src/agents/bootstrap-cache.ts`
-- Rust AgentRuntime session 和 context caches
-
-这些 cache 用来减少重复 runtime work。它们通常是短生命周期、进程内的 cache，并按 TTL、session 或 workspace 作用域隔离。
-
-`src/config/cache-utils.ts` 应保持为小型通用原语层。领域语义和失效规则应该留在拥有数据的 domain cache 里。
+Rust AgentRuntime session 和 context caches 用于减少重复 runtime work。它们通常
+是短生命周期、process-local，并按 TTL、session 或 workspace scoped。领域特定的
+invalidation 应归属于该数据的 Rust/native owner。
 
 ## Session Store Cache
 
-主要代码：
-
-- `src/config/sessions/store-cache.ts`
-- `src/config/sessions/store.ts`
-
 Session store cache 有两部分：
 
-- object cache，key 包含 store path、文件 `mtimeMs` 和 size
-- serialized write-through cache，也绑定同一组文件 fingerprint
+- object cache，key 是 store path 加文件 `mtimeMs` 和 size
+- serialized write-through cache，key 是同一组 file fingerprint
 
-外部进程改写 session file 后，serialized cache 不能继续跳过写盘。修改 cache 语义前，请通过 Rust/native session persistence gate 验证这个行为。
+外部进程改变 session file 后，serialized cache 不能跳过写入。修改 cache
+semantics 前，应通过 Rust/native session persistence gate 验证行为。
 
 ## Web Fetch Response Cache
 
-主要代码：
+Primary code：
 
 - `crates/crawclaw-native-plugins/src/web.rs`
-- `src/cache/web-fetch-cache.ts`
 
-`web_fetch` 会在进程内缓存 Rust native fetch response。它的 cache key 包含请求 URL、输出形态、fetch 设置、provider ID、sticky `sessionId` 和 provider wait hints。
+`web_fetch` 在 process memory 中缓存 Rust native fetch responses。cache key 包含
+requested URL、output shape、fetch settings、provider ID、sticky `sessionId`
+和 provider wait hints。
 
-这是安全敏感 cache。一个 sticky browser session 的 response 不能被另一个 session 复用。回归覆盖在 Rust native web fetch tests。
+这是 security-sensitive cache。某个 sticky browser session 的 rendered
+response 绝不能复用于另一个 session。Regression coverage 位于 Rust native web
+fetch tests。
 
 ## Routing And Control Plane Caches
 
-主要代码：
+Primary code：
 
-- `src/routing/resolve-route.ts`
-- `src/plugins/loader.ts`
-- `src/plugins/discovery.ts`
-- `src/plugins/manifest-registry.ts`
-- `src/gateway/model-pricing-cache.ts`
-- `src/acp/control-plane/runtime-cache.ts`
-- `src/infra/outbound/directory-cache.ts`
+- `crates/crawclaw-runtime/src/native_plugin_registry.rs`
+- `crates/crawclaw-gateway/src/lib.rs`
+- `crates/crawclaw-providers/src/lib.rs`
 
-Routing cache 按 config object 和可变 config section 的内容签名建立 identity，例如 `bindings`、`agents` 和 `session`。这样稳定 config 仍然快，同时测试或 reload flow 中的原地 mutation 也能被识别。
+Routing caches 按 config object 以及 mutable config sections 的 content
+signatures 建 key，例如 `bindings`、`agents` 和 `session`。这样稳定 config 的路径
+仍然快，同时测试或 reload flows 中的 in-place mutations 也会被检测到。
 
-Plugin discovery 和 manifest cache 使用短 TTL 窗口来折叠启动期间的 bursty reload。Loader registry cache 使用有界 entries 和显式 clear function。
+Native plugin discovery 由 Rust runtime registry 拥有。Loader registry caches
+使用 bounded entries 和 explicit clear functions。
 
 ## Memory And File Caches
 
-主要代码：
-
-- `src/memory/session-summary/store.ts`
-- `src/memory/engine/built-in-memory-runtime.ts`
-- `src/memory/durable/body-index.ts`
-- `src/media-understanding/attachments.cache.ts`
-
-这些 cache 由 domain 自己拥有。File cache 通常使用 `mtimeMs + size` fingerprint，这适合作为 best-effort read acceleration，但不应当成 cryptographic content identity。
+这些 cache 由 domain 拥有。File caches 通常使用 `mtimeMs + size`
+fingerprints，适合作为 best-effort read acceleration，但不应视为 cryptographic
+content identity。
 
 ## Extension Caches
 
-示例：
+Extension caches 应包含 channel account、conversation、recipient、provider 或
+file scope，以避免跨账号复用。Long-lived 或 persistent extension caches 还需要
+bounded size、TTL 或 explicit cleanup path。
 
-- `extensions/ddingtalk/src/sent-thread-cache.ts`
-- `extensions/qqbot/src/sent-message-cache.ts`
-- `extensions/feishu/src/sent-message-cache.ts`
-- `extensions/feishu/src/sticker-cache.ts`
-
-Extension cache 应该把 channel account、conversation、recipient、provider 或 file scope 纳入 identity，避免跨账号复用。长生命周期或持久化的 extension cache 还需要 size bound、TTL 或显式 cleanup path。
-
-当 credentials 或 account config 会改变结果时，单独使用 account ID 不够。此时 cache key 应包含非明文的 credential fingerprint 或收窄后的 config signature。
+当 credentials 或 account config 会改变结果时，单独使用 account ID 不够。这种
+情况下，cache key 应包含 non-secret credential fingerprint 或 narrow config
+signature。
 
 ## Maintenance Rules
 
 新增或修改 cache 时：
 
-1. 把 ownership 和 invalidation 放在 domain module 里，不要塞进通用 shared cache layer。
-2. 对关键 cache 新增或更新 governance descriptor。
-3. 为 cross-session、cross-account、cross-provider、external-file-write 或 config-mutation 边界补回归测试。
-4. 安全敏感 cache 使用显式 structured key。
-5. 区分 provider prompt cache、response cache、runtime TTL cache、client-side cache 和 file cache，不要混成一个概念。
+1. 把 ownership 和 invalidation 放在 domain module 中，而不是 generic shared
+   cache layer。
+2. 为 critical caches 添加或更新 governance descriptor。
+3. 为 cross-session、cross-account、cross-provider、external-file-write 或
+   config-mutation boundaries 添加 regression test。
+4. 为 security-sensitive caches 使用 explicit structured keys。
+5. 保持 provider prompt cache、response cache、runtime TTL cache、client-side
+   cache 和 file cache 的概念分离。
 
 ## Related Docs
 

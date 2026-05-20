@@ -91,7 +91,8 @@ CrawClaw 在 CLI 输出中使用龙虾色调调色板。
 - `error` (#E23D2D)：错误、失败。
 - `muted` (#8B7F77)：弱化显示、元数据。
 
-调色板唯一来源：`src/terminal/palette.ts`（也称为 “lobster seam”）。
+调色板由当前 Rust/native terminal output surfaces 拥有；不要重新引入旧
+TypeScript terminal palette module。
 
 ## 命令树
 
