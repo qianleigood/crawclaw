@@ -168,7 +168,7 @@ crawclaw doctor
 
 ## 相关页面
 
-- [Installer internals](/install/installer)
+- [Desktop](/install/desktop)
 - [Node.js install and troubleshooting](/install/node)
 - [Gateway runbook](/gateway)
 - [Gateway configuration](/gateway/configuration)

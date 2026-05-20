@@ -305,7 +305,7 @@ crawclaw doctor
 `crawclaw gateway status`、`crawclaw health --verbose`。
 
 快速调试流程：[出问题后的最初六十秒](#first-60-seconds-if-somethings-broken)。
-安装文档：[安装](/install)、[安装程序标志](/install/installer)、[更新](/install/updating)。
+安装文档：[安装](/install)、[Desktop](/install/desktop)、[更新](/install/updating)。
 
 ### 安装和设置 CrawClaw 的推荐方式是什么
 
@@ -461,7 +461,7 @@ curl -fsSL --proto '=https' --tlsv1.2 https://crawclaw.ai/install.sh | bash -s -
 Windows 安装程序（PowerShell）：
 https://crawclaw.ai/install.ps1
 
-更多详情：[开发渠道](/install/development-channels)和[安装程序标志](/install/installer)。
+更多详情：[Desktop](/install/desktop) 和 [更新](/install/updating)。
 
 ### 安装和新手引导通常需要多长时间
 
@@ -524,7 +524,7 @@ curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --beta --verbose
 curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --install-method git --verbose
 ```
 
-更多选项：[安装程序标志](/install/installer)。
+更多选项：[安装](/install) 和 [Desktop](/install/desktop)。
 
 ### Windows 安装提示找不到 git 或无法识别 crawclaw
 
@@ -555,7 +555,7 @@ Windows 使用原生 PowerShell 安装器。文档：[Windows](/platforms/window
 curl -fsSL https://crawclaw.ai/install.sh | bash -s -- --install-method git
 ```
 
-更多详情：[安装](/install)和[安装程序标志](/install/installer)。
+更多详情：[安装](/install) 和 [Desktop](/install/desktop)。
 
 ### 如何在 Linux 上安装 CrawClaw
 

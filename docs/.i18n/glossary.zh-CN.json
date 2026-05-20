@@ -8,6 +8,10 @@
     "target": "CrawClaw Admin Desktop 设计"
   },
   {
+    "source": "Desktop",
+    "target": "Desktop"
+  },
+  {
     "source": "Windows",
     "target": "Windows"
   },

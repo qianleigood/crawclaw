@@ -1219,7 +1219,7 @@
             "groups": [
               {
                 "group": "安装概览",
-                "pages": ["zh-CN/install/index", "zh-CN/install/installer"]
+                "pages": ["zh-CN/install/index"]
               },
               {
                 "group": "安装方式",
@@ -1458,7 +1458,6 @@
                       "zh-CN/gateway/openai-http-api",
                       "zh-CN/gateway/openresponses-http-api",
                       "zh-CN/gateway/tools-invoke-http-api",
-                      "zh-CN/gateway/cli-backends",
                       "zh-CN/gateway/local-models"
                     ]
                   },

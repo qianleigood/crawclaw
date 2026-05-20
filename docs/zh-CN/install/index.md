@@ -68,7 +68,7 @@ x-i18n:
       </Tab>
     </Tabs>
 
-    所有标志、环境变量以及 CI/自动化选项，请参阅 [Installer internals](/install/installer)。
+    当前推荐入口是 [Desktop](/install/desktop) 和 [Updating](/install/updating)。
 
   </Accordion>
 

@@ -122,7 +122,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Other useful checks are available from CrawClaw Desktop diagnostics or the local Gateway API.
 
     Quick debug loop: [First 60 seconds if something is broken](#first-60-seconds-if-something-is-broken).
-    Install docs: [Install](/install), [Installer flags](/install/installer), [Updating](/install/updating).
+    Install docs: [Install](/install), [Desktop](/install/desktop), [Updating](/install/updating).
 
   </Accordion>
 
@@ -319,7 +319,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Windows installer (PowerShell):
     [GitHub Releases](https://github.com/qianleigood/crawclaw/releases)
 
-    More detail: [Development channels](/install/development-channels) and [Installer flags](/install/installer).
+    More detail: [Desktop](/install/desktop) and [Updating](/install/updating).
 
   </Accordion>
 
@@ -395,7 +395,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     Set-PSDebug -Trace 0
     ```
 
-    More options: [Installer flags](/install/installer).
+    More options: [Install](/install) and [Desktop](/install/desktop).
 
   </Accordion>
 
@@ -460,7 +460,7 @@ Quick answers plus deeper troubleshooting for real-world setups (local dev, VPS,
     # Install CrawClaw Desktop from GitHub Releases.
     ```
 
-    More detail: [Install](/install) and [Installer flags](/install/installer).
+    More detail: [Install](/install) and [Desktop](/install/desktop).
 
   </Accordion>
 
