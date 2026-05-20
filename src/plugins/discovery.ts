@@ -121,6 +121,8 @@ type CandidateBlockIssue = {
   expectedUid?: number;
 };
 
+type DiscoverablePluginOrigin = Exclude<PluginOrigin, "bundled">;
+
 function checkSourceEscapesRoot(params: {
   source: string;
   rootDir: string;
@@ -146,7 +148,6 @@ function checkSourceEscapesRoot(params: {
 function checkPathStatAndPermissions(params: {
   source: string;
   rootDir: string;
-  origin: PluginOrigin;
   uid: number | null;
 }): CandidateBlockIssue | null {
   if (process.platform === "win32") {
@@ -180,7 +181,6 @@ function checkPathStatAndPermissions(params: {
       };
     }
     if (
-      params.origin !== "bundled" &&
       params.uid !== null &&
       typeof stat.uid === "number" &&
       stat.uid !== params.uid &&
@@ -202,7 +202,6 @@ function checkPathStatAndPermissions(params: {
 function findCandidateBlockIssue(params: {
   source: string;
   rootDir: string;
-  origin: PluginOrigin;
   ownershipUid?: number | null;
 }): CandidateBlockIssue | null {
   const escaped = checkSourceEscapesRoot({
@@ -215,7 +214,6 @@ function findCandidateBlockIssue(params: {
   return checkPathStatAndPermissions({
     source: params.source,
     rootDir: params.rootDir,
-    origin: params.origin,
     uid: currentUid(params.ownershipUid),
   });
 }
@@ -236,14 +234,12 @@ function formatCandidateBlockMessage(issue: CandidateBlockIssue): string {
 function isUnsafePluginCandidate(params: {
   source: string;
   rootDir: string;
-  origin: PluginOrigin;
   diagnostics: PluginDiagnostic[];
   ownershipUid?: number | null;
 }): boolean {
   const issue = findCandidateBlockIssue({
     source: params.source,
     rootDir: params.rootDir,
-    origin: params.origin,
     ownershipUid: params.ownershipUid,
   });
   if (!issue) {
@@ -274,13 +270,13 @@ function shouldIgnoreScannedDirectory(dirName: string): boolean {
   return false;
 }
 
-function readPackageManifest(dir: string, rejectHardlinks = true): PackageManifest | null {
+function readPackageManifest(dir: string): PackageManifest | null {
   const manifestPath = path.join(dir, "package.json");
   const opened = openBoundaryFileSync({
     absolutePath: manifestPath,
     rootPath: dir,
     boundaryLabel: "plugin package directory",
-    rejectHardlinks,
+    rejectHardlinks: true,
   });
   if (!opened.ok) {
     return null;
@@ -302,7 +298,7 @@ function addCandidate(params: {
   idHint: string;
   source: string;
   rootDir: string;
-  origin: PluginOrigin;
+  origin: DiscoverablePluginOrigin;
   format?: PluginFormat;
   bundleFormat?: PluginBundleFormat;
   ownershipUid?: number | null;
@@ -321,7 +317,6 @@ function addCandidate(params: {
     isUnsafePluginCandidate({
       source: resolved,
       rootDir: resolvedRoot,
-      origin: params.origin,
       diagnostics: params.diagnostics,
       ownershipUid: params.ownershipUid,
     })
@@ -350,7 +345,7 @@ function addCandidate(params: {
 
 function discoverBundleInRoot(params: {
   rootDir: string;
-  origin: PluginOrigin;
+  origin: DiscoverablePluginOrigin;
   ownershipUid?: number | null;
   workspaceDir?: string;
   candidates: PluginCandidate[];
@@ -364,7 +359,7 @@ function discoverBundleInRoot(params: {
   const bundleManifest = loadBundleManifest({
     rootDir: params.rootDir,
     bundleFormat,
-    rejectHardlinks: params.origin !== "bundled",
+    rejectHardlinks: true,
   });
   if (!bundleManifest.ok) {
     params.diagnostics.push({
@@ -392,16 +387,15 @@ function discoverBundleInRoot(params: {
 
 function addNativeManifestCandidate(params: {
   rootDir: string;
-  origin: PluginOrigin;
+  origin: DiscoverablePluginOrigin;
   ownershipUid?: number | null;
   workspaceDir?: string;
   candidates: PluginCandidate[];
   diagnostics: PluginDiagnostic[];
   seen: Set<string>;
-  rejectHardlinks: boolean;
   manifest?: PackageManifest | null;
 }): boolean {
-  const manifest = loadPluginManifest(params.rootDir, params.rejectHardlinks);
+  const manifest = loadPluginManifest(params.rootDir, true);
   if (!manifest.ok || !manifest.manifest.native) {
     return false;
   }
@@ -424,7 +418,7 @@ function addNativeManifestCandidate(params: {
 
 function discoverInDirectory(params: {
   dir: string;
-  origin: PluginOrigin;
+  origin: DiscoverablePluginOrigin;
   ownershipUid?: number | null;
   workspaceDir?: string;
   candidates: PluginCandidate[];
@@ -459,8 +453,7 @@ function discoverInDirectory(params: {
       continue;
     }
 
-    const rejectHardlinks = params.origin !== "bundled";
-    const manifest = readPackageManifest(fullPath, rejectHardlinks);
+    const manifest = readPackageManifest(fullPath);
     if (
       addNativeManifestCandidate({
         rootDir: fullPath,
@@ -470,7 +463,6 @@ function discoverInDirectory(params: {
         candidates: params.candidates,
         diagnostics: params.diagnostics,
         seen: params.seen,
-        rejectHardlinks,
         manifest,
       })
     ) {
@@ -494,7 +486,7 @@ function discoverInDirectory(params: {
 
 function discoverFromPath(params: {
   rawPath: string;
-  origin: PluginOrigin;
+  origin: DiscoverablePluginOrigin;
   ownershipUid?: number | null;
   workspaceDir?: string;
   env: NodeJS.ProcessEnv;
@@ -523,8 +515,7 @@ function discoverFromPath(params: {
   }
 
   if (stat.isDirectory()) {
-    const rejectHardlinks = params.origin !== "bundled";
-    const manifest = readPackageManifest(resolved, rejectHardlinks);
+    const manifest = readPackageManifest(resolved);
     if (
       addNativeManifestCandidate({
         rootDir: resolved,
@@ -534,7 +525,6 @@ function discoverFromPath(params: {
         candidates: params.candidates,
         diagnostics: params.diagnostics,
         seen: params.seen,
-        rejectHardlinks,
         manifest,
       })
     ) {
