@@ -1,5 +1,8 @@
 import type { CrawClawConfig } from "../config/config.js";
-import { normalizePluginsConfig, resolveEnableState } from "../plugins/config-state.js";
+import {
+  normalizePluginsConfig,
+  resolveEffectivePluginActivationState,
+} from "../plugins/config-state.js";
 import type { PluginOrigin } from "../plugins/types.js";
 import {
   collectSecretInputAssignment,
@@ -63,7 +66,11 @@ export function collectPluginConfigAssignments(params: {
       continue;
     }
 
-    const enableState = resolveEnableState(pluginId, pluginOrigin ?? "config", normalizedConfig);
+    const enableState = resolveEffectivePluginActivationState({
+      id: pluginId,
+      origin: pluginOrigin ?? "config",
+      config: normalizedConfig,
+    });
     collectMcpServerEnvAssignments({
       pluginId,
       pluginConfig,

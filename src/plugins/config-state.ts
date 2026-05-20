@@ -184,7 +184,7 @@ function resolveExplicitPluginSelection(params: {
   return { explicitlyEnabled: false };
 }
 
-export function resolvePluginActivationState(params: {
+function resolvePluginActivationState(params: {
   id: string;
   origin: PluginOrigin;
   config: NormalizedPluginsConfig;
@@ -308,32 +308,6 @@ export function resolvePluginActivationState(params: {
     explicitlyEnabled: explicitSelection.explicitlyEnabled,
     source: "default",
   };
-}
-
-export function resolveEnableState(
-  id: string,
-  origin: PluginOrigin,
-  config: NormalizedPluginsConfig,
-  enabledByDefault?: boolean,
-): { enabled: boolean; reason?: string } {
-  const state = resolvePluginActivationState({
-    id,
-    origin,
-    config,
-    enabledByDefault,
-  });
-  return state.enabled ? { enabled: true } : { enabled: false, reason: state.reason };
-}
-
-export function resolveEffectiveEnableState(params: {
-  id: string;
-  origin: PluginOrigin;
-  config: NormalizedPluginsConfig;
-  rootConfig?: CrawClawConfig;
-  enabledByDefault?: boolean;
-}): { enabled: boolean; reason?: string } {
-  const state = resolveEffectivePluginActivationState(params);
-  return state.enabled ? { enabled: true } : { enabled: false, reason: state.reason };
 }
 
 export function resolveEffectivePluginActivationState(params: {

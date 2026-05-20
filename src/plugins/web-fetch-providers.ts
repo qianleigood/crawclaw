@@ -1,6 +1,6 @@
 import type { CrawClawConfig } from "../config/config.js";
 import { listBundledWebFetchProviders as listBundledWebFetchProviderEntries } from "./bundled-web-fetch.js";
-import { resolveEffectiveEnableState } from "./config-state.js";
+import { resolveEffectivePluginActivationState } from "./config-state.js";
 import type { PluginWebFetchProviderEntry } from "./types.js";
 import {
   resolveBundledWebFetchResolutionConfig,
@@ -26,7 +26,7 @@ export function resolveBundledPluginWebFetchProviders(params: {
     if (onlyPluginIdSet && !onlyPluginIdSet.has(provider.pluginId)) {
       return false;
     }
-    return resolveEffectiveEnableState({
+    return resolveEffectivePluginActivationState({
       id: provider.pluginId,
       origin: "bundled",
       config: normalized,
