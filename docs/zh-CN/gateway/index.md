@@ -1,332 +1,233 @@
 ---
+summary: "Gateway runtime、生命周期和运维 runbook"
 read_when:
-  - 运行或调试 Gateway 网关进程时
-summary: Gateway 网关服务、生命周期和运维的运行手册
-title: Gateway 网关运行手册
-x-i18n:
-  generated_at: "2026-02-03T07:50:03Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 497d58090faaa6bdae62780ce887b40a1ad81e2e99ff186ea2a5c2249c35d9ba
-  source_path: gateway/index.md
-  workflow: 15
+  - Running or debugging the gateway process
+title: "Gateway Runbook"
 ---
 
-# Gateway 网关服务运行手册
+# Gateway runbook
 
-最后更新：2025-12-09
+本页用于本地 Rust Gateway runtime 的 day-1 启动和 day-2 运维。
 
-## 是什么
+<CardGroup cols={2}>
+  <Card title="Deep troubleshooting" icon="siren" href="/gateway/troubleshooting">
+    按症状组织的诊断步骤，包含具体命令梯度和日志特征。
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/gateway/configuration">
+    面向任务的设置指南和完整配置参考。
+  </Card>
+  <Card title="Secrets management" icon="key-round" href="/gateway/secrets">
+    SecretRef contract、runtime snapshot 行为，以及 migrate/reload 操作。
+  </Card>
+  <Card title="Secrets plan contract" icon="shield-check" href="/gateway/secrets-plan-contract">
+    精确的 `secrets apply` target/path 规则和 ref-only auth-profile 行为。
+  </Card>
+</CardGroup>
 
-- 拥有单一 Baileys/Feishu 连接和控制/事件平面的常驻进程。
-- 替代旧版 `gateway` 命令。CLI 入口点：`crawclaw gateway`。
-- 运行直到停止；出现致命错误时以非零退出码退出，以便 supervisor 重启它。
-- 面向浏览器 Browser client 的稳定 method surface、capability 规则和 config 写路径，见 [控制面 RPC](/gateway/control-plane-rpc)。
+## 5-minute local startup
 
-## 如何运行（本地）
-
-```bash
-crawclaw gateway --port 18789
-# 在 stdio 中获取完整的调试/追踪日志：
-crawclaw gateway --port 18789 --verbose
-# 如果端口被占用，终止监听器然后启动：
-crawclaw gateway --force
-# 开发循环（TS 更改时自动重载）：
-pnpm gateway:watch
-```
-
-- 配置热重载监视 `~/.crawclaw/crawclaw.json`（或 `CRAWCLAW_CONFIG_PATH`）。
-  - 默认模式：`gateway.reload.mode="hybrid"`（热应用安全更改，关键更改时重启）。
-  - 热重载在需要时通过 **SIGUSR1** 使用进程内重启。
-  - 使用 `gateway.reload.mode="off"` 禁用。
-- 将 WebSocket 控制平面绑定到 `127.0.0.1:<port>`（默认 18789）。
-- 同一端口也提供 HTTP 服务（hooks、OpenAI 兼容端点、tools invoke）。单端口多路复用。
-  - OpenAI Chat Completions（HTTP）：[`/v1/chat/completions`](/gateway/openai-http-api)。
-  - OpenResponses（HTTP）：[`/v1/responses`](/gateway/openresponses-http-api)。
-  - Tools Invoke（HTTP）：[`/tools/invoke`](/gateway/tools-invoke-http-api)。
-- 输出日志到 stdout；使用 launchd/systemd 保持运行并轮转日志。
-- 故障排除时传递 `--verbose` 以将调试日志（握手、请求/响应、事件）从日志文件镜像到 stdio。
-- `--force` 使用 `lsof` 查找所选端口上的监听器，发送 SIGTERM，记录它终止了什么，然后启动 Gateway 网关（如果缺少 `lsof` 则快速失败）。
-- 如果你在 supervisor（launchd/systemd/mac 应用子进程模式）下运行，stop/restart 通常发送 **SIGTERM**；旧版本可能将其显示为 `pnpm` `ELIFECYCLE` 退出码 **143**（SIGTERM），这是正常关闭，不是崩溃。
-- **SIGUSR1** 在授权时触发进程内重启（`commands.restart` 默认启用；设置 `commands.restart: false` 可禁用手动重启，但 gateway 工具/配置应用/更新仍可使用）。
-- 默认需要 Gateway 网关认证：设置 `gateway.auth.token`（或 `CRAWCLAW_GATEWAY_TOKEN`）或 `gateway.auth.password`。客户端必须发送 `connect.params.auth.token/password`，除非使用 Tailscale Serve 身份。
-- 向导现在默认生成令牌，即使在 loopback 上也是如此。
-- 端口优先级：`--port` > `CRAWCLAW_GATEWAY_PORT` > `gateway.port` > 默认 `18789`。
-
-## 远程访问
-
-- 首选 Tailscale/VPN；否则使用 SSH 隧道：
-  ```bash
-  ssh -N -L 18789:127.0.0.1:18789 user@host
-  ```
-- 然后客户端通过隧道连接到 `ws://127.0.0.1:18789`。
-- 如果配置了令牌，即使通过隧道，客户端也必须在 `connect.params.auth.token` 中包含它。
-
-## 多个 Gateway 网关（同一主机）
-
-通常不需要：一个 Gateway 网关可以服务多个消息渠道和智能体。仅在需要冗余或严格隔离（例如：救援机器人）时使用多个 Gateway 网关。
-
-如果你隔离状态 + 配置并使用唯一端口，则支持。完整指南：[多个 Gateway 网关](/gateway/multiple-gateways)。
-
-服务名称是配置文件感知的：
-
-- macOS：`bot.molt.<profile>`（旧版 `com.crawclaw.*` 可能仍然存在）
-- Linux：`crawclaw-gateway-<profile>.service`
-- Windows：`CrawClaw Gateway (<profile>)`
-
-安装元数据嵌入在服务配置中：
-
-- `CRAWCLAW_SERVICE_MARKER=crawclaw`
-- `CRAWCLAW_SERVICE_KIND=gateway`
-- `CRAWCLAW_SERVICE_VERSION=<version>`
-
-救援机器人模式：保持第二个 Gateway 网关隔离，使用自己的配置文件、状态目录、工作区和基础端口间隔。完整指南：[救援机器人指南](/gateway/multiple-gateways#rescue-bot-guide)。
-
-### Dev 配置文件（`--dev`）
-
-快速路径：运行完全隔离的 dev 实例（配置/状态/工作区）而不触及你的主设置。
+<Steps>
+  <Step title="Start the Gateway">
 
 ```bash
-crawclaw --dev setup
-crawclaw --dev gateway --allow-unconfigured
-# 然后定位到 dev 实例：
-crawclaw --dev status
-crawclaw --dev health
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# debug/trace mirrored to stdio
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# force-kill listener on selected port, then start
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
 ```
 
-默认值（可通过 env/flags/config 覆盖）：
+  </Step>
 
-- `CRAWCLAW_STATE_DIR=~/.crawclaw-dev`
-- `CRAWCLAW_CONFIG_PATH=~/.crawclaw-dev/crawclaw.json`
-- `CRAWCLAW_GATEWAY_PORT=19001`（Gateway 网关 WS + HTTP）
-- 浏览器控制服务端口 = `19003`（派生：`gateway.port+2`，仅 loopback）
-- 当你在 `--dev` 下运行 `setup`/`onboard` 时，`agents.defaults.workspace` 默认变为 `~/.crawclaw/workspace-dev`。
+  <Step title="Verify service health">
 
-派生端口（经验法则）：
+```bash
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+```
 
-- 基础端口 = `gateway.port`（或 `CRAWCLAW_GATEWAY_PORT` / `--port`）
-- 浏览器控制服务端口 = 基础 + 2（仅 loopback）
-- 浏览器配置文件 CDP 端口从 `browser.controlPort + 9 .. + 108` 自动分配（按配置文件持久化）。
+健康基线：`Runtime: running` 和 `RPC probe: ok`。
 
-每个实例的检查清单：
+  </Step>
+
+  <Step title="Validate channel readiness">
+
+```bash
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+```
+
+  </Step>
+</Steps>
+
+<Note>
+CrawClaw Desktop 和 local Gateway API 负责受支持的 config writes。部分设置会在后续操作中动态读取；启动绑定的设置需要从应用内重启 desktop Gateway 后生效。
+</Note>
+
+## Runtime model
+
+- 一个 always-on process 负责 routing、control plane 和 channel connections。
+- 单端口复用：
+  - WebSocket control/RPC
+  - HTTP APIs，OpenAI compatible（`/v1/models`, `/v1/chat/completions`, `/v1/responses`, `/tools/invoke`）
+  - browser-origin checked clients and hooks
+- 默认 bind mode: `loopback`。
+- 默认要求 auth（`gateway.auth.token` / `gateway.auth.password`，或 `CRAWCLAW_GATEWAY_TOKEN` / `CRAWCLAW_GATEWAY_PASSWORD`）。
+
+## OpenAI-compatible endpoints
+
+CrawClaw 现在最高杠杆的 compatibility surface 是：
+
+- `GET /v1/models`
+- `GET /v1/models/{id}`
+- `POST /v1/chat/completions`
+- `POST /v1/responses`
+
+这组端点重要的原因：
+
+- 大多数 Open WebUI、LobeChat 和 LibreChat integration 会先探测 `/v1/models`。
+- Agent-native clients 越来越偏好 `/v1/responses`。
+
+Planning note:
+
+- `/v1/models` 是 agent-first：返回 `crawclaw`, `crawclaw/default` 和 `crawclaw/<agentId>`。
+- `crawclaw/default` 是 Rust-native `main` agent target 的稳定 alias。
+- 后端 provider/model selection 属于所选 agent/provider configuration。
+
+这些端点都运行在主 Gateway port 上，并使用与其余 Gateway HTTP API 相同的 trusted operator auth boundary。
+
+### Port and bind precedence
+
+| Setting      | Resolution order                                              |
+| ------------ | ------------------------------------------------------------- |
+| Gateway port | `--port` → `CRAWCLAW_GATEWAY_PORT` → `gateway.port` → `18789` |
+| Bind mode    | CLI/override → `gateway.bind` → `loopback`                    |
+
+## Operator command set
+
+```bash
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+```
+
+## Remote access
+
+首选：Tailscale/VPN。
+Fallback：SSH tunnel。
+
+```bash
+ssh -N -L 18789:127.0.0.1:18789 user@host
+```
+
+然后让客户端在本地连接 `ws://127.0.0.1:18789`。
+
+<Warning>
+如果配置了 gateway auth，客户端即使通过 SSH tunnel 也必须发送 auth（`token`/`password`）。
+</Warning>
+
+参见：[Remote Gateway](/gateway/remote)、[Authentication](/gateway/authentication)、[Tailscale](/gateway/tailscale)。
+
+## Desktop lifecycle
+
+CrawClaw Desktop 拥有默认本地 runtime lifecycle。应用会启动或发现 bundled Rust
+Gateway，把 per-launch local session token 传给 renderer，并在 desktop app 退出时停止本地
+runtime。集成场景应连接 local Gateway API，不要额外安装 OS supervisor entry。
+
+## Multiple gateways on one host
+
+大多数设置应该只运行 **一个** Gateway。
+只有严格隔离/冗余时才使用多个实例（例如 rescue profile）。
+
+每个实例的 checklist：
 
 - 唯一的 `gateway.port`
 - 唯一的 `CRAWCLAW_CONFIG_PATH`
 - 唯一的 `CRAWCLAW_STATE_DIR`
 - 唯一的 `agents.defaults.workspace`
-- 单独的 Weixin 号码（如果使用 WA）
-
-按配置文件安装服务：
-
-```bash
-crawclaw --profile main gateway install
-crawclaw --profile rescue gateway install
-```
 
 示例：
 
 ```bash
-CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json CRAWCLAW_STATE_DIR=~/.crawclaw-a crawclaw gateway --port 19001
-CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b crawclaw gateway --port 19002
+CRAWCLAW_CONFIG_PATH=~/.crawclaw/a.json CRAWCLAW_STATE_DIR=~/.crawclaw-a <start via CrawClaw Desktop>
+CRAWCLAW_CONFIG_PATH=~/.crawclaw/b.json CRAWCLAW_STATE_DIR=~/.crawclaw-b <start via CrawClaw Desktop>
 ```
 
-## 协议（运维视角）
+参见：[Multiple gateways](/gateway/multiple-gateways)。
 
-- 完整文档：[Gateway 网关协议](/gateway/protocol) 和 [Bridge 协议（旧版）](/gateway/bridge-protocol)。
-- 客户端必须发送的第一帧：`req {type:"req", id, method:"connect", params:{minProtocol,maxProtocol,client:{id,displayName?,version,platform,deviceFamily?,modelIdentifier?,mode,instanceId?}, caps, auth?, locale?, userAgent? } }`。
-- Gateway 网关回复 `res {type:"res", id, ok:true, payload:hello-ok }`（或 `ok:false` 带错误，然后关闭）。
-- 握手后：
-  - 请求：`{type:"req", id, method, params}` → `{type:"res", id, ok, payload|error}`
-  - 事件：`{type:"event", event, payload, seq?, stateVersion?}`
-- 结构化 presence 条目：`{host, ip, version, platform?, deviceFamily?, modelIdentifier?, mode, lastInputSeconds?, ts, reason?, tags?[], instanceId? }`（对于 WS 客户端，`instanceId` 来自 `connect.client.instanceId`）。
-- `agent` 响应是两阶段的：首先 `res` 确认 `{runId,status:"accepted"}`，然后在运行完成后发送最终 `res` `{runId,status:"ok"|"error",summary}`；流式输出作为 `event:"agent"` 到达。
-
-## 方法（初始集）
-
-- `health` — 完整健康快照（与 `crawclaw health --json` 形状相同）。
-- `status` — 简短摘要。
-- `system-presence` — 当前 presence 列表。
-- `system-event` — 发布 presence/系统注释（结构化）。
-- `send` — 通过活跃渠道发送消息。
-- `agent` — 运行智能体轮次（在同一连接上流回事件）。
-- `node.list` — 列出已配对 + 当前连接的节点（包括 `caps`、`deviceFamily`、`modelIdentifier`、`paired`、`connected` 和广播的 `commands`）。
-- `node.describe` — 描述节点（能力 + 支持的 `node.invoke` 命令；适用于已配对节点和当前连接的未配对节点）。
-- `node.invoke` — 在节点上调用命令（例如 `canvas.*`、`camera.*`）。
-- `node.pair.*` — 配对生命周期（`request`、`list`、`approve`、`reject`、`verify`）。
-
-另见：[Presence](/concepts/presence) 了解 presence 如何产生/去重以及为什么稳定的 `client.instanceId` 很重要。
-
-## 事件
-
-- `agent` — 来自智能体运行的流式工具/输出事件（带 seq 标记）。
-- `presence` — presence 更新（带 stateVersion 的增量）推送到所有连接的客户端。
-- `tick` — 定期保活/无操作以确认活跃。
-- `shutdown` — Gateway 网关正在退出；payload 包括 `reason` 和可选的 `restartExpectedMs`。客户端应重新连接。
-
-## Gateway 客户端集成
-
-- 客户端直接与 Gateway 网关 WebSocket 通信以获取历史记录、发送、中止和事件。
-- 远程使用通过相同的 SSH/Tailscale 隧道；如果配置了 Gateway 网关令牌，客户端在 `connect` 期间包含它。
-
-## 类型和验证
-
-- 服务器使用 AJV 根据从协议定义发出的 JSON Schema 验证每个入站帧。
-- 客户端（TS/Swift）消费生成的类型（TS 直接使用；Swift 通过仓库的生成器）。
-- 协议定义是真实来源；使用以下命令重新生成 schema/模型：
-  - `pnpm protocol:gen`
-  - `pnpm protocol:gen:swift`
-
-## 连接快照
-
-- `hello-ok` 包含带有 `presence`、`health`、`stateVersion` 和 `uptimeMs` 的 `snapshot`，以及 `policy {maxPayload,maxBufferedBytes,tickIntervalMs}`，这样客户端无需额外请求即可立即渲染。
-- `health`/`system-presence` 仍可用于手动刷新，但在连接时不是必需的。
-
-## 错误码（res.error 形状）
-
-- 错误使用 `{ code, message, details?, retryable?, retryAfterMs? }`。
-- 标准码：
-  - `NOT_LINKED` — Weixin 未认证。
-  - `AGENT_TIMEOUT` — 智能体未在配置的截止时间内响应。
-  - `INVALID_REQUEST` — schema/参数验证失败。
-  - `UNAVAILABLE` — Gateway 网关正在关闭或依赖项不可用。
-
-## 保活行为
-
-- `tick` 事件（或 WS ping/pong）定期发出，以便客户端知道即使没有流量时 Gateway 网关也是活跃的。
-- 发送/智能体确认保持为单独的响应；不要为发送重载 tick。
-
-## 重放 / 间隙
-
-- 事件不会重放。客户端检测 seq 间隙，应在继续之前刷新（`health` + `system-presence`）。
-
-## 监管（macOS 示例）
-
-- 使用 launchd 保持服务存活：
-  - Program：`crawclaw` 的路径
-  - Arguments：`gateway`
-  - KeepAlive：true
-  - StandardOut/Err：文件路径或 `syslog`
-- 失败时，launchd 重启；致命的配置错误应保持退出，以便运维人员注意到。
-- LaunchAgents 是按用户的，需要已登录的会话；对于无头设置，使用自定义 LaunchDaemon（未随附）。
-  - `crawclaw gateway install` 写入 `~/Library/LaunchAgents/bot.molt.gateway.plist`
-    （或 `bot.molt.<profile>.plist`；旧版 `com.crawclaw.*` 会被清理）。
-  - `crawclaw doctor` 审计 LaunchAgent 配置，可以将其更新为当前默认值。
-
-## Gateway 网关服务管理（CLI）
-
-使用 Gateway 网关 CLI 进行 install/start/stop/restart/status：
+### Dev profile quick path
 
 ```bash
-crawclaw gateway status
-crawclaw gateway install
-crawclaw gateway stop
-crawclaw gateway restart
-crawclaw logs --follow
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
 ```
 
-注意事项：
+默认包含隔离的 state/config 和 base gateway port `19001`。
 
-- `gateway status` 默认使用服务解析的端口/配置探测 Gateway 网关 RPC（使用 `--url` 覆盖）。
-- `gateway status --deep` 添加系统级扫描（LaunchDaemons/系统单元）。
-- `gateway status --no-probe` 跳过 RPC 探测（在网络故障时有用）。
-- `gateway status --json` 对脚本是稳定的。
-- `gateway status` 将 **supervisor 运行时**（launchd/systemd 运行中）与 **RPC 可达性**（WS 连接 + status RPC）分开报告。
-- `gateway status` 打印配置路径 + 探测目标以避免"localhost vs LAN 绑定"混淆和配置文件不匹配。
-- `gateway status` 在服务看起来正在运行但端口已关闭时包含最后一行 Gateway 网关错误。
-- `logs` 通过 RPC 尾随 Gateway 网关文件日志（无需手动 `tail`/`grep`）。
-- 如果检测到其他类似 Gateway 网关的服务，CLI 会发出警告，除非它们是 CrawClaw 配置文件服务。
-  我们仍然建议大多数设置**每台机器一个 Gateway 网关**；使用隔离的配置文件/端口进行冗余或救援机器人。参见[多个 Gateway 网关](/gateway/multiple-gateways)。
-  - 清理：`crawclaw gateway uninstall`（当前服务）和 `crawclaw doctor`（旧版迁移）。
-- `gateway install` 在已安装时是无操作的；使用 `crawclaw gateway install --force` 重新安装（配置文件/env/路径更改）。
+## Protocol quick reference (operator view)
 
-捆绑的 mac 应用：
+- 第一个 client frame 必须是 `connect`。
+- Gateway 返回 `hello-ok` snapshot（`presence`, `health`, `stateVersion`, `uptimeMs`, limits/policy）。
+- Requests: `req(method, params)` → `res(ok/payload|error)`。
+- Common events: `agent`, `chat`, `presence`, `tick`, `health`, `heartbeat`, `shutdown`。
 
-- CrawClaw.app 可以捆绑基于 Node 的 Gateway 网关中继并安装标记为
-  `bot.molt.gateway`（或 `bot.molt.<profile>`；旧版 `com.crawclaw.*` 标签仍能干净卸载）的按用户 LaunchAgent。
-- 要干净地停止它，使用 `crawclaw gateway stop`（或 `launchctl bootout gui/$UID/bot.molt.gateway`）。
-- 要重启，使用 `crawclaw gateway restart`（或 `launchctl kickstart -k gui/$UID/bot.molt.gateway`）。
-  - `launchctl` 仅在 LaunchAgent 已安装时有效；否则先使用 `crawclaw gateway install`。
-  - 运行命名配置文件时，将标签替换为 `bot.molt.<profile>`。
+Agent runs 分两阶段：
 
-## 监管（systemd 用户单元）
+1. Immediate accepted ack（`status:"accepted"`）
+2. Final completion response（`status:"ok"|"error"`），中间有 streamed `agent` events。
 
-CrawClaw 在 Linux 上默认安装 **systemd 用户服务**。我们
-建议单用户机器使用用户服务（更简单的 env，按用户配置）。
-对于多用户或常驻服务器使用**系统服务**（无需 lingering，
-共享监管）。
+完整协议文档见：[Gateway Protocol](/gateway/protocol)。
 
-`crawclaw gateway install` 写入用户单元。`crawclaw doctor` 审计
-单元并可以将其更新以匹配当前推荐的默认值。
+## Operational checks
 
-创建 `~/.config/systemd/user/crawclaw-gateway[-<profile>].service`：
+### Liveness
 
-```
-[Unit]
-Description=CrawClaw Gateway (profile: <profile>, v<version>)
-After=network-online.target
-Wants=network-online.target
+- 打开 WS 并发送 `connect`。
+- 预期收到带 snapshot 的 `hello-ok` response。
 
-[Service]
-ExecStart=/usr/local/bin/crawclaw gateway --port 18789
-Restart=always
-RestartSec=5
-Environment=CRAWCLAW_GATEWAY_TOKEN=
-WorkingDirectory=/home/youruser
+### Readiness
 
-[Install]
-WantedBy=default.target
+```bash
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
 ```
 
-启用 lingering（必需，以便用户服务在登出/空闲后继续存活）：
+### Gap recovery
 
-```
-sudo loginctl enable-linger youruser
-```
+Events 不会 replay。遇到 sequence gaps 时，先刷新 state（`health`, `system-presence`）再继续。
 
-新手引导在 Linux 上运行此命令（可能提示输入 sudo；写入 `/var/lib/systemd/linger`）。
-然后启用服务：
+## Common failure signatures
 
-```
-systemctl --user enable --now crawclaw-gateway[-<profile>].service
-```
+| Signature                                                      | Likely issue                             |
+| -------------------------------------------------------------- | ---------------------------------------- |
+| `refusing to bind gateway ... without auth`                    | Non-loopback bind without token/password |
+| `another gateway instance is already listening` / `EADDRINUSE` | Port conflict                            |
+| `Gateway start blocked: set gateway.mode=local`                | Config set to remote mode                |
+| `unauthorized` during connect                                  | Auth mismatch between client and gateway |
 
-**替代方案（系统服务）** - 对于常驻或多用户服务器，你可以
-安装 systemd **系统**单元而不是用户单元（无需 lingering）。
-创建 `/etc/systemd/system/crawclaw-gateway[-<profile>].service`（复制上面的单元，
-切换 `WantedBy=multi-user.target`，设置 `User=` + `WorkingDirectory=`），然后：
+完整诊断 ladder 见 [Gateway Troubleshooting](/gateway/troubleshooting)。
 
-```
-sudo systemctl daemon-reload
-sudo systemctl enable --now crawclaw-gateway[-<profile>].service
-```
+## Safety guarantees
 
-## Windows
+- Gateway protocol clients 在 Gateway 不可用时 fail fast（没有隐式 direct-channel fallback）。
+- Invalid/non-connect first frames 会被拒绝并关闭。
+- Graceful shutdown 会在 socket close 前发出 `shutdown` event。
 
-Windows 安装使用原生 PowerShell 安装器和每用户启动模式。参阅 [Windows](/platforms/windows)。
+---
 
-## 运维检查
+Related:
 
-- 存活检查：打开 WS 并发送 `req:connect` → 期望收到带有 `payload.type="hello-ok"`（带快照）的 `res`。
-- 就绪检查：调用 `health` → 期望 `ok: true` 并在 `linkChannel` 中有已关联的渠道（适用时）。
-- 调试：订阅 `tick` 和 `presence` 事件；确保 `status` 显示已关联/认证时间；presence 条目显示 Gateway 网关主机和已连接的客户端。
-
-## 安全保证
-
-- 默认假设每台主机一个 Gateway 网关；如果你运行多个配置文件，隔离端口/状态并定位到正确的实例。
-- 不会回退到直接 Baileys 连接；如果 Gateway 网关关闭，发送会快速失败。
-- 非 connect 的第一帧或格式错误的 JSON 会被拒绝并关闭 socket。
-- 优雅关闭：关闭前发出 `shutdown` 事件；客户端必须处理关闭 + 重新连接。
-
-## CLI 辅助工具
-
-- `crawclaw gateway health|status` — 通过 Gateway 网关 WS 请求 health/status。
-- `crawclaw message send --target <num> --message "hi" [--media ...]` — 通过 Gateway 网关发送（对 Weixin 是幂等的）。
-- `crawclaw agent --message "hi" --to <num>` — 运行智能体轮次（默认等待最终结果）。
-- `crawclaw gateway call <method> --params '{"k":"v"}'` — 用于调试的原始方法调用器。
-- `crawclaw gateway stop|restart` — 停止/重启受监管的 Gateway 网关服务（launchd/systemd）。
-- Gateway 网关辅助子命令假设 `--url` 上有运行中的 Gateway 网关；它们不再自动生成一个。
-
-## 迁移指南
-
-- 淘汰 `crawclaw gateway` 和旧版 TCP 控制端口的使用。
-- 更新客户端以使用带有强制 connect 和结构化 presence 的 WS 协议。
+- [Troubleshooting](/gateway/troubleshooting)
+- [Background Process](/gateway/background-process)
+- [Configuration](/gateway/configuration)
+- [Health](/gateway/health)
+- [Doctor](/gateway/doctor)
+- [Authentication](/gateway/authentication)

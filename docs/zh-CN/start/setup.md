@@ -1,131 +1,117 @@
 ---
+summary: "CrawClaw 的高级设置和开发工作流"
 read_when:
   - 设置新机器
-  - 你想要"最新最好的"而不破坏你的个人设置
-summary: 设置指南：在保持最新的同时保持你的 CrawClaw 设置个性化
-title: 设置
-x-i18n:
-  generated_at: "2026-02-03T07:54:27Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: b7f4bd657d0df4feb5035c9f5ee727f9c67b991e9cedfc7768f99d010553fa01
-  source_path: start/setup.md
-  workflow: 15
+  - 你想要“latest + greatest”而不破坏个人设置
+title: "设置"
 ---
 
 # 设置
 
-最后更新：2026-01-01
+<Note>
+如果是第一次设置，请先从 [Getting Started](/start/getting-started) 开始。
+新手引导细节见 [Getting Started](/start/getting-started)。
+</Note>
 
-## 太长不看
+## TL;DR
 
-- **个性化设置存放在仓库之外：** `~/.crawclaw/workspace`（工作区）+ `~/.crawclaw/crawclaw.json`（配置）。
-- **稳定工作流：** 安装运行时并直接运行 Gateway 网关。
-- **前沿工作流：** 通过 `pnpm gateway:watch` 自己运行 Gateway 网关。
+- **个性化内容放在仓库之外：** `~/.crawclaw/workspace`（工作区）+ `~/.crawclaw/crawclaw.json`（配置）。
+- **稳定工作流：** 安装 CrawClaw Desktop，并使用桌面设置界面。
+- **前沿工作流：** 从源码运行桌面应用。
 
-## 先决条件（从源码）
+## 从源码运行的先决条件
 
-- Node `>=22`
+- Node 24.x（稳定）或 Node 25.x（实验）
 - `pnpm`
-- Docker（可选；仅用于容器化设置/e2e — 参阅 [Docker](/install/docker)）
 
-## 个性化策略（让更新不会造成问题）
+## 个性化策略
 
-如果你想要"100% 为我定制"*并且*易于更新，将你的自定义内容保存在：
+如果你想要“100% 为我定制”同时又方便更新，把自定义内容保存在：
 
-- **配置：** `~/.crawclaw/crawclaw.json`（JSON/JSON5 格式）
-- **工作区：** `~/.crawclaw/workspace`（Skills、提示、记忆；将其设为私有 git 仓库）
+- **配置：** `~/.crawclaw/crawclaw.json`（JSON/JSON5-ish）
+- **工作区：** `~/.crawclaw/workspace`（skills、prompts、memories；可以做成私有 git repo）
 
-引导一次：
+从 CrawClaw Desktop 完成引导。应用会写入缺失的本地默认值，并把状态保存在
+`~/.crawclaw`。
+
+## 从仓库运行 Gateway
+
+运行 `pnpm desktop:tauri:stage-runtime` 后，桌面应用会使用打包好的内部 Gateway
+二进制：
 
 ```bash
-crawclaw setup
+./dist/native/crawclaw-gateway --port 18789
 ```
-
-在此仓库内部，使用本地 CLI 入口：
-
-```bash
-crawclaw setup
-```
-
-如果你还没有全局安装，通过 `pnpm crawclaw setup` 运行它。
 
 ## 稳定工作流
 
-1. 安装运行时并在本地启动 Gateway 网关。
-2. 通过 CLI 完成新手引导/配置。
-3. 链接表面（示例：Weixin）：
+1. 安装 CrawClaw Desktop。
+2. 通过桌面设置界面完成 onboarding 和配置。
+3. 使用桌面状态和诊断面板检查本地健康状态。
 
-```bash
-crawclaw channels login
-```
+## 前沿工作流
 
-4. 完整性检查：
+目标：开发 Rust Gateway 和桌面 host loop。
 
-```bash
-crawclaw health
-```
-
-## 前沿工作流（在终端中运行 Gateway 网关）
-
-目标：开发 TypeScript Gateway 网关并获得热重载。
-
-### 1) 启动开发 Gateway 网关
+### 1）启动开发 Gateway
 
 ```bash
 pnpm install
-pnpm gateway:watch
+pnpm desktop:tauri:stage-runtime
+pnpm desktop:tauri:dev
 ```
 
-`gateway:watch` 以监视模式运行 Gateway 网关，并在 TypeScript 更改时重新加载。
+桌面开发 shell 会通过 Tauri host 启动本地 Rust Gateway。
 
-### 2) 验证
+### 2）验证
 
-- 通过 CLI：
-
-```bash
-crawclaw health
-```
+- 使用桌面状态面板或 Gateway API health route。
 
 ### 常见陷阱
 
-- **端口错误：** Gateway 网关 WS 默认为 `ws://127.0.0.1:18789`；保持所有客户端使用同一端口。
-- **状态存储位置：**
-  - 凭证：`~/.crawclaw/credentials/`
-  - 会话：`~/.crawclaw/agents/<agentId>/sessions/`
-  - 日志：`/tmp/crawclaw/`
+- **端口错误：** Gateway WS 默认是 `ws://127.0.0.1:18789`；所有客户端保持同一端口。
+- **状态存放位置：**
+- Credentials: `~/.crawclaw/credentials/`
+- Sessions: `~/.crawclaw/agents/<agentId>/sessions/`
+- Logs: `/tmp/crawclaw/`
 
 ## 凭证存储映射
 
-在调试认证或决定备份什么时使用此映射：
+调试认证或决定备份内容时使用这张映射：
 
-- **Weixin**：`~/.crawclaw/credentials/weixin/<accountId>/creds.json`
-- **Feishu bot token**：配置/环境变量或 `channels.feishu.tokenFile`
-- **QQBot bot token**：配置/环境变量（尚不支持令牌文件）
-- **DingTalk tokens**：配置/环境变量（`channels.ddingtalk.*`）
-- **配对允许列表**：`~/.crawclaw/credentials/<channel>-allowFrom.json`
-- **模型认证配置文件**：`~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`
-- **旧版 OAuth 导入**：`~/.crawclaw/credentials/oauth.json`
-  更多详情：[安全](/gateway/security#credential-storage-map)。
+- **Weixin**: `~/.crawclaw/credentials/weixin/<accountId>/creds.json`
+- **Feishu bot token**: config/env 或 `channels.feishu.tokenFile`（只允许普通文件；拒绝 symlink）
+- **QQBot bot token**: config/env 或 SecretRef（env/file/exec providers）
+- **DingTalk tokens**: config/env (`channels.ddingtalk.*`)
+- **Pairing allowlists**:
+  - `~/.crawclaw/credentials/<channel>-allowFrom.json`（默认账号）
+  - `~/.crawclaw/credentials/<channel>-<accountId>-allowFrom.json`（非默认账号）
+- **Model auth profiles**: `~/.crawclaw/agents/<agentId>/agent/auth-profiles.json`
+- **File-backed secrets payload（可选）**: `~/.crawclaw/secrets.json`
+- **Legacy OAuth import**: `~/.crawclaw/credentials/oauth.json`
+  更多细节见 [Security](/gateway/security#credential-storage-map)。
 
-## 更新（不破坏你的设置）
+## 更新
 
-- 将 `~/.crawclaw/workspace` 和 `~/.crawclaw/` 保持为"你的东西"；不要将个人提示/配置放入 `crawclaw` 仓库。
-- 更新源码：`git pull` + `pnpm install`（当锁文件更改时）+ 继续使用 `pnpm gateway:watch`。
+- 把 `~/.crawclaw/workspace` 和 `~/.crawclaw/` 当作“你的内容”；不要把个人 prompt/config 放进 `crawclaw` 仓库。
+- 更新源码：`git pull` + `pnpm install`（lockfile 变化时）+ 使用 `pnpm desktop:tauri:dev`。
 
-## Linux（systemd 用户服务）
+## Linux
 
-Linux 安装使用 systemd **用户**服务。默认情况下，systemd 在注销/空闲时停止用户服务，这会终止 Gateway 网关。新手引导会尝试为你启用 lingering（可能提示 sudo）。如果仍然关闭，运行：
+Linux 安装使用 systemd **user** service。默认情况下，systemd 会在 logout/idle
+时停止 user service，这会终止 Gateway。Onboarding 会尝试帮你启用 lingering（可能提示
+sudo）。如果仍未启用，运行：
 
 ```bash
 sudo loginctl enable-linger $USER
 ```
 
-对于常驻或多用户服务器，考虑使用**系统**服务而不是用户服务（不需要 lingering）。参阅 [Gateway 网关运行手册](/gateway) 了解 systemd 说明。
+对于 always-on 或多用户服务器，可以考虑使用 **system** service 而不是 user service
+（不需要 lingering）。systemd 说明见 [Gateway runbook](/gateway)。
 
 ## 相关文档
 
-- [Gateway 网关运行手册](/gateway)（标志、监督、端口）
-- [Gateway 网关配置](/gateway/configuration)（配置模式 + 示例）
-- [QQBot](/channels/index) 和 [Feishu](/channels/index)（回复标签 + replyToMode 设置）
-- [CrawClaw 助手设置](/start/crawclaw)
+- [Gateway runbook](/gateway)（supervision、ports）
+- [Gateway configuration](/gateway/configuration)（config schema + examples）
+- [QQBot](/channels/index) 和 [Feishu](/channels/index)（reply tags + replyToMode settings）
+- [CrawClaw assistant setup](/start/crawclaw)

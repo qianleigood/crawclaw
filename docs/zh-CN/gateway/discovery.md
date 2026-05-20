@@ -3,38 +3,30 @@ read_when:
   - 实现或更改 Bonjour 发现/广播
   - 调整远程连接模式（直连 vs SSH）
   - 设计远程节点的节点发现 + 配对
-summary: 用于发现 Gateway 网关的节点发现和传输协议（Bonjour、Tailscale、SSH）
-title: 设备发现 + 传输协议
-x-i18n:
-  generated_at: "2026-02-03T10:06:11Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: e12172c181515bfa6aab8625ed3fbc335b80ba92e2b516c02c6066aeeb9f884c
-  source_path: gateway/discovery.md
-  workflow: 15
+summary: Gateway discovery and transports（Bonjour、Tailscale、SSH）
+title: Discovery and Transports
 ---
 
-# 设备发现 & 传输协议
+# Discovery & transports
 
 CrawClaw 有两个表面上看起来相似的不同问题：
 
 1. **操作员远程控制**：Gateway 客户端控制运行在其他地方的 Gateway 网关。
-2. **节点配对**：节点主机发现 Gateway 网关并安全配对。
+2. **客户端配对**：受信任客户端发现 Gateway 并安全配对。
 
-设计目标是将所有网络发现/广播保留在 **Node Gateway 网关**（`crawclaw gateway`）中，并让客户端和节点主机作为消费者。
+设计目标是把所有网络发现/广播保留在 **Gateway**（CrawClaw Desktop 或 local Gateway API）中，并让客户端作为消费者。
 
 ## 术语
 
-- **Gateway 网关**：一个长期运行的 Gateway 网关进程，拥有状态（会话、配对、节点注册表）并运行渠道。大多数设置每台主机使用一个；也可以进行隔离的多 Gateway 网关设置。
+- **Gateway 网关**：一个长期运行的 gateway 进程，拥有状态（sessions、pairing）并运行 channels。大多数设置每台主机使用一个；也可以进行隔离的多 Gateway 设置。
 - **Gateway 网关 WS（控制平面）**：默认在 `127.0.0.1:18789` 上的 WebSocket 端点；可通过 `gateway.bind` 绑定到 LAN/tailnet。
 - **直连 WS 传输**：面向 LAN/tailnet 的 Gateway 网关 WS 端点（无 SSH）。
 - **SSH 传输（回退）**：通过 SSH 转发 `127.0.0.1:18789` 进行远程控制。
-- **旧版 TCP 桥接（已弃用/移除）**：旧的节点传输（参见 [桥接协议](/gateway/bridge-protocol)）；不再用于发现广播。
+- **Legacy TCP bridge（已移除）**：旧的 bridge transport；不再为 discovery 广播。
 
 协议详情：
 
 - [Gateway 网关协议](/gateway/protocol)
-- [桥接协议（旧版）](/gateway/bridge-protocol)
 
 ## 为什么我们同时保留"直连"和 SSH
 

@@ -1,28 +1,21 @@
 ---
+summary: "调试工具：watch mode、原始模型流和推理泄漏追踪"
 read_when:
-  - 你需要检查原始模型输出以查找推理泄漏
-  - 你想在迭代时以监视模式运行 Gateway 网关
-  - 你需要可重复的调试工作流
-summary: 调试工具：监视模式、原始模型流和追踪推理泄漏
-title: 调试
-x-i18n:
-  generated_at: "2026-02-03T07:47:23Z"
-  model: claude-opus-4-5
-  provider: pi
-  source_hash: 504c824bff4790006c8b73600daca66b919e049178e9711e6e65b6254731911a
-  source_path: help/debugging.md
-  workflow: 15
+  - 需要检查原始模型输出中的推理泄漏
+  - 想在迭代时运行 Gateway
+  - 需要可重复的调试工作流
+title: "调试"
 ---
 
 # 调试
 
-本页介绍用于流式输出的调试辅助工具，特别是当提供商将推理混入正常文本时。
+本页介绍调试 streaming output 的辅助工具，尤其适用于 provider 把 reasoning 混进普通文本时。
 
-## 运行时调试覆盖
+## Runtime debug overrides
 
-在聊天中使用 `/debug` 设置**仅运行时**配置覆盖（内存中，不写入磁盘）。
+在聊天中使用 `/debug` 设置 **runtime-only** 配置覆盖（只在内存中，不写磁盘）。
 `/debug` 默认禁用；通过 `commands.debug: true` 启用。
-当你需要切换不常用的设置而不编辑 `crawclaw.json` 时，这非常方便。
+当你需要切换不常用设置、但不想编辑 `crawclaw.json` 时很方便。
 
 示例：
 
@@ -33,93 +26,87 @@ x-i18n:
 /debug reset
 ```
 
-`/debug reset` 清除所有覆盖并返回到磁盘上的配置。
+`/debug reset` 会清空所有覆盖，并回到磁盘配置。
 
-## Gateway 网关监视模式
+## Gateway watch mode
 
-为了快速迭代，在文件监视器下运行 Gateway 网关：
-
-```bash
-pnpm gateway:watch --force
-```
-
-这映射到：
+快速迭代时，使用 CrawClaw Desktop dev mode 或嵌入式 Gateway API target：
 
 ```bash
-tsx watch src/entry.ts gateway --force
+# 使用 CrawClaw Desktop dev mode，或运行嵌入式 Gateway API target。
 ```
 
-在 `gateway:watch` 后添加任何 Gateway 网关 CLI 标志，它们将在每次重启时传递。
+旧的独立 Node watcher 已移除。Desktop development 应该走 app-owned Gateway 路径，
+这样才能覆盖与打包桌面产品相同的 runtime boundary。
 
-## Dev 配置文件 + dev Gateway 网关（--dev）
+## Dev profile + dev gateway (--dev)
 
-使用 dev 配置文件来隔离状态，并启动一个安全、可丢弃的调试设置。有**两个** `--dev` 标志：
+使用 dev profile 隔离状态，并启动一个安全、可丢弃的调试环境。这里有两个 `--dev`：
 
-- **全局 `--dev`（配置文件）：** 将状态隔离到 `~/.crawclaw-dev` 下，并将 Gateway 网关端口默认为 `19001`（派生端口随之移动）。
-- **`gateway --dev`：告诉 Gateway 网关在缺失时自动创建默认配置 + 工作区**（并跳过 BOOTSTRAP.md）。
+- **Global `--dev` (profile):** 把状态隔离到 `~/.crawclaw-dev`，并把 gateway port
+  默认设为 `19001`（派生端口一起平移）。
+- **`gateway --dev`: 告诉 Gateway 在缺失时自动创建默认 config + workspace**（并跳过
+  BOOTSTRAP.md）。
 
-推荐流程（dev 配置文件 + dev 引导）：
+推荐流程（dev profile + dev bootstrap）：
 
 ```bash
 pnpm gateway:dev
-CRAWCLAW_PROFILE=dev crawclaw tui
+CRAWCLAW_PROFILE=dev CrawClaw Desktop or the local Gateway API
 ```
 
-如果你还没有全局安装，请通过 `pnpm crawclaw ...` 运行 CLI。
+Desktop 用户不需要全局 `crawclaw` 命令。使用 CrawClaw Desktop dev mode 做本地调试。
 
-这会执行：
+这个流程会做：
 
-1. **配置文件隔离**（全局 `--dev`）
+1. **Profile isolation**（global `--dev`）
    - `CRAWCLAW_PROFILE=dev`
    - `CRAWCLAW_STATE_DIR=~/.crawclaw-dev`
    - `CRAWCLAW_CONFIG_PATH=~/.crawclaw-dev/crawclaw.json`
-   - `CRAWCLAW_GATEWAY_PORT=19001`（浏览器/画布相应移动）
+   - `CRAWCLAW_GATEWAY_PORT=19001`（browser/canvas 端口相应平移）
 
-2. **Dev 引导**（`gateway --dev`）
-   - 如果缺失则写入最小配置（`gateway.mode=local`，绑定 loopback）。
-   - 将 `agent.workspace` 设置为 dev 工作区。
-   - 设置 `agent.skipBootstrap=true`（无 BOOTSTRAP.md）。
-   - 如果缺失则填充工作区文件：
-     `AGENTS.md`、`SOUL.md`、`TOOLS.md`、`IDENTITY.md`、`USER.md`、`HEARTBEAT.md`。
-   - 默认身份：**C3‑PO**（礼仪机器人）。
-   - 在 dev 模式下跳过渠道提供商（`CRAWCLAW_SKIP_CHANNELS=1`）。
+2. **Dev bootstrap**（`gateway --dev`）
+   - 缺失时写入最小 config（`gateway.mode=local`，bind loopback）。
+   - 把 `agent.workspace` 设为 dev workspace。
+   - 设置 `agent.skipBootstrap=true`（不读取 BOOTSTRAP.md）。
+   - 缺失时写入 workspace 文件：
+     `AGENTS.md`, `SOUL.md`, `TOOLS.md`, `IDENTITY.md`, `USER.md`, `HEARTBEAT.md`.
+   - 默认 identity: **C3-PO**（protocol droid）。
+   - dev mode 下跳过 channel providers（`CRAWCLAW_SKIP_CHANNELS=1`）。
 
-重置流程（全新开始）：
+重置流程：
 
 ```bash
 pnpm gateway:dev:reset
 ```
 
-注意：`--dev` 是**全局**配置文件标志，会被某些运行器吞掉。
-如果你需要明确拼写，请使用环境变量形式：
+注意：`--dev` 是 **global** profile flag，某些 runner 会吞掉它。如果需要明确指定，
+使用环境变量形式：
 
 ```bash
-CRAWCLAW_PROFILE=dev crawclaw gateway --dev --reset
+CRAWCLAW_PROFILE=dev CrawClaw Desktop or the local Gateway API
 ```
 
-`--reset` 清除配置、凭证、会话和 dev 工作区（使用 `trash`，而非 `rm`），然后重新创建默认的 dev 设置。
+`--reset` 会清除 config、credentials、sessions 和 dev workspace（使用 `trash`，不是
+`rm`），然后重建默认 dev setup。
 
-提示：如果非 dev Gateway 网关已在运行（launchd/systemd），请先停止它：
+提示：如果非 dev Gateway 已在运行（launchd/systemd），先停止它：
 
 ```bash
-crawclaw gateway stop
+# 使用 CrawClaw Desktop 或 local Gateway API 执行这个操作。
 ```
 
-## 原始流日志（CrawClaw）
+## Raw stream logging (CrawClaw)
 
-CrawClaw 可以在任何过滤/格式化之前记录**原始助手流**。
-这是查看推理是否作为纯文本增量到达（或作为单独的思考块）的最佳方式。
+CrawClaw 可以在任何 filtering/formatting 之前记录 **raw assistant stream**。
+这是确认 reasoning 是否以普通文本 delta 到达（或以独立 thinking block 到达）的最直接方式。
 
-通过 CLI 启用：
+从 CrawClaw Desktop dev settings 启用，或在启动 embedded Gateway 前设置环境变量。
 
-```bash
-pnpm gateway:watch --force --raw-stream
-```
-
-可选路径覆盖：
+可选 path override：
 
 ```bash
-pnpm gateway:watch --force --raw-stream --raw-stream-path ~/.crawclaw/logs/raw-stream.jsonl
+CRAWCLAW_RAW_STREAM_PATH=~/.crawclaw/logs/raw-stream.jsonl
 ```
 
 等效环境变量：
@@ -133,9 +120,9 @@ CRAWCLAW_RAW_STREAM_PATH=~/.crawclaw/logs/raw-stream.jsonl
 
 `~/.crawclaw/logs/raw-stream.jsonl`
 
-## 原始块日志（pi-mono）
+## Raw chunk logging (pi-mono)
 
-要在解析为块之前捕获**原始 OpenAI 兼容块**，pi-mono 暴露了一个单独的日志记录器：
+要在解析为 blocks 之前捕获 **raw OpenAI-compat chunks**，pi-mono 提供独立 logger：
 
 ```bash
 PI_RAW_STREAM=1
@@ -151,10 +138,10 @@ PI_RAW_STREAM_PATH=~/.pi-mono/logs/raw-openai-completions.jsonl
 
 `~/.pi-mono/logs/raw-openai-completions.jsonl`
 
-> 注意：这仅由使用 pi-mono 的 `openai-completions` 提供商的进程发出。
+> Note: 只有使用 pi-mono `openai-completions` provider 的进程才会发出这个日志。
 
-## 安全注意事项
+## Safety notes
 
-- 原始流日志可能包含完整提示、工具输出和用户数据。
-- 保持日志在本地并在调试后删除它们。
-- 如果你分享日志，请先清除密钥和个人身份信息。
+- Raw stream logs 可能包含完整 prompts、tool output 和用户数据。
+- 日志只保留在本地，调试后删除。
+- 如果要分享日志，先清理 secrets 和 PII。
