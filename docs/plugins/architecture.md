@@ -699,9 +699,8 @@ surfaces together:
 - core contract types in `src/<capability>/types.ts`
 - core runner/runtime helper in `src/<capability>/runtime.ts`
 - plugin API registration surface in `src/plugins/types.ts`
-- plugin registry wiring in `src/plugins/registry.ts`
-- Rust/native descriptor exposure when feature/channel plugins need to consume
-  runtime capabilities
+- Rust/native descriptor exposure in the owning Rust crate when feature/channel
+  plugins need to consume runtime capabilities
 - ownership/contract assertions in `src/plugins/contracts/registry.ts`
 - operator/plugin docs in `docs/`
 

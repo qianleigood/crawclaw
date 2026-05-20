@@ -78,7 +78,6 @@ For a new capability, expect to touch these areas:
 - `src/<capability>/types.ts`
 - `src/<capability>/...registry/runtime.ts`
 - `src/plugins/types.ts`
-- `src/plugins/registry.ts`
 - `src/plugins/contracts/registry.ts`
 - `crates/crawclaw-plugin-sdk/src/lib.rs`
 - `crates/crawclaw-plugin-host/src/lib.rs`
