@@ -103,11 +103,6 @@ Avoid these older behaviors:
 
 ## Relevant Files
 
-- `src/memory/durable/lifecycle-subscriber.ts`
-- `src/memory/durable/worker-manager.ts`
 - `crates/crawclaw-runtime/src/memory.rs`
-- `src/memory/durable/read.ts`
-- `src/memory/durable/body-index.ts`
-- `src/memory/dreaming/auto-dream.ts`
-- `src/memory/orchestration/context-assembler.ts`
-- `src/memory/engine/context-memory-runtime-recall.ts`
+- `crates/crawclaw-runtime/src/special_agents.rs`
+- `crates/crawclaw-runtime/src/lib.rs`

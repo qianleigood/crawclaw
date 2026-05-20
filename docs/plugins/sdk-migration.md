@@ -21,9 +21,8 @@ The npm package no longer exports JavaScript plugin SDK subpaths or compatibilit
 bridges. Plugins that import those removed paths will fail to load on current
 CrawClaw versions.
 
-The old helper files were kept only as repo-private implementation helpers where
-the TypeScript codebase still needs them. They are not a public SDK and are not
-packaged as plugin authoring artifacts.
+The old helper files are no longer a runtime bridge or public SDK. Current
+packages should rely on manifests plus Rust native descriptors.
 
 ## How to migrate
 

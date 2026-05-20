@@ -178,8 +178,8 @@ They should not define new phase semantics.
 ### PR4: migrate compaction hooks
 
 - make `pre_compact` and `post_compact` first-class spine phases
-- reduce lifecycle compatibility handling to a dedicated `runtime/lifecycle/compat/`
-  module tree
+- reduce lifecycle compatibility handling to dedicated Rust runtime lifecycle
+  adapters
 
 ### PR5: migrate observability and legacy hook surfaces
 
@@ -265,8 +265,8 @@ PR1 is complete when:
 
 This rollout does **not** mean:
 
-- removing `internal-hooks.ts` immediately
-- removing plugin hooks immediately
+- removing every legacy lifecycle side effect immediately
+- removing plugin-facing lifecycle configuration immediately
 - rewriting Action Feed or Context Archive first
 - forcing every hook-like event in the codebase into the spine
 
@@ -284,10 +284,9 @@ PR1 through PR6 are landed:
   lifecycle timing through `MemoryRuntime` callbacks
 - `durable extraction` and `auto-dream` now subscribe to the same `stop` phase
   instead of being scheduled directly from `afterTurn`
-- `runtime/lifecycle/compat/subscriber.ts` is now the unified spine
-  compatibility subscriber, while `compat/internal-hooks.ts`,
-  `compat/plugin-hooks.ts`, and `compat/post-compaction.ts` isolate the legacy
-  translations and side effects
+- Rust lifecycle compatibility adapters now translate canonical spine phases
+  into the remaining internal/plugin side effects without reintroducing a
+  second lifecycle owner
 - Action Feed and Context Archive now consume the same lifecycle spine for
   run-loop phase visibility
 - lifecycle archive records now preserve `ObservationContext` plus lifecycle
@@ -309,11 +308,10 @@ PR1 through PR6 are landed:
 The remaining follow-up is phase coverage expansion, not more duplicate
 lifecycle ownership cleanup.
 
-The remaining run-loop compatibility layer is intentional. It now sits behind
-`runtime/lifecycle/compat/`, where `subscriber.ts` owns subscription and the
-other modules translate canonical spine phases into legacy internal/plugin
-surfaces and post-compaction side effects without reintroducing parallel
-lifecycle ownership.
+The remaining run-loop compatibility layer is intentional. It sits behind the
+Rust runtime lifecycle adapters, which translate canonical spine phases into
+legacy internal/plugin surfaces and post-compaction side effects without
+reintroducing parallel lifecycle ownership.
 
 ## Runtime stack regression suite
 

@@ -64,7 +64,8 @@ CrawClaw already has the right extension boundary for this work:
 - core workflow execution is currently centered on n8n and should not be
   expanded for this first ComfyUI pass
 
-The ComfyUI integration should therefore start as `extensions/comfyui`.
+The ComfyUI integration lives as a manifest package in `extensions/comfyui`,
+with runtime behavior owned by the Rust native plugin crate.
 
 The existing workflow subsystem remains a future consumer. Once this plugin can
 create and run real ComfyUI graphs reliably, CrawClaw can later workflowize a
@@ -117,8 +118,7 @@ Add a bundled plugin:
 
 - `extensions/comfyui/package.json`
 - `extensions/comfyui/crawclaw.plugin.json`
-- `extensions/comfyui/index.ts`
-- `extensions/comfyui/src/*`
+- `crates/crawclaw-native-plugins/src/comfyui.rs`
 
 The plugin id is `comfyui`. The package name should align with repo naming
 rules, for example `@crawclaw/comfyui-plugin`.
@@ -189,7 +189,7 @@ the action is initiated by the model.
 
 ### 1. ComfyUI Client
 
-`src/client.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` client functions
 
 Responsibilities:
 
@@ -204,7 +204,7 @@ This module should not know about graph planning.
 
 ### 2. Node Catalog
 
-`src/node-catalog.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` catalog types
 
 Responsibilities:
 
@@ -220,7 +220,7 @@ users often install custom nodes while ComfyUI is running.
 
 ### 3. Graph IR
 
-`src/graph-ir.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` graph IR types
 
 CrawClaw should not let the model directly author final ComfyUI API JSON.
 Instead, the model plans a smaller intermediate representation:
@@ -251,7 +251,7 @@ compilation.
 
 ### 4. Planner
 
-`src/planner.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` planner functions
 
 Responsibilities:
 
@@ -275,7 +275,7 @@ These patterns do not define the full capability surface. The live catalog does.
 
 ### 5. Validator
 
-`src/validator.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` validator functions
 
 Responsibilities:
 
@@ -302,7 +302,7 @@ type ComfyGraphDiagnostic = {
 
 ### 6. Repair Loop
 
-`src/repair.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` repair loop
 
 Responsibilities:
 
@@ -318,7 +318,7 @@ video nodes or models appear to be missing.
 
 ### 7. Compiler
 
-`src/compiler.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` compiler functions
 
 Responsibilities:
 
@@ -332,7 +332,7 @@ The compiler should only accept validated IR.
 
 ### 8. Output Resolver
 
-`src/outputs.ts`
+`crates/crawclaw-native-plugins/src/comfyui.rs` output resolver
 
 Responsibilities:
 

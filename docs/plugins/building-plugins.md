@@ -22,7 +22,7 @@ falls back to npm automatically.
 ## Prerequisites
 
 - Node >= 22 and a package manager (npm or pnpm)
-- Familiarity with TypeScript (ESM)
+- Familiarity with Rust native descriptors and JSON manifests
 - For in-repo plugins: repository cloned and `pnpm install` done
 
 ## What kind of plugin?

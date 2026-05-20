@@ -28,10 +28,9 @@ Gateway methods.
 
 ## Plugin package boundary
 
-A plugin package may still include TypeScript for docs, generated types, tests,
-or local helper code. That code is not a production execution bridge. The
-production contract is the manifest plus any Rust native descriptor declared by
-the manifest.
+A plugin package may still include package metadata and generated artifacts, but
+that code is not a production execution bridge. The production contract is the
+manifest plus any Rust native descriptor declared by the manifest.
 
 ## Adding a runtime capability
 

@@ -50,4 +50,6 @@ If `pnpm test` flakes on a loaded host, rerun once before treating it as a regre
 cargo test -p crawclaw-runtime <filter>
 ```
 
-Keep focused tests close to the Rust crate that owns the behavior. For product flows that still execute JavaScript or TypeScript as an embedded runtime, cover the public native boundary instead of adding standalone TS test harnesses.
+Keep focused tests close to the Rust crate that owns the behavior. For desktop
+renderer flows, cover the public native boundary instead of adding standalone
+TS test harnesses.

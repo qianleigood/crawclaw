@@ -47,8 +47,8 @@ Core concepts:
 
 - `SpecialAgentDefinition`
   Declares the stable runtime contract for one special agent, including
-  `executionMode: "spawned_session" | "runtime_fork"`.
-- `registry.ts`
+  `executionMode: "spawned_session" | "embedded_fork"`.
+- Rust special-agent registry
   Resolves registered special-agent definitions and tool policies by `spawnSource`.
 - Rust special-agent runtime
   Dispatches to the selected special-agent definition, then handles completion
@@ -66,19 +66,19 @@ The shared substrate is now used by:
 
 - session summary
   - Rust memory runtime session-summary job
-  - definition: `SESSION_SUMMARY_AGENT_DEFINITION`
+  - definition id: `session-summary`
 - durable memory agent
   - Rust memory runtime durable extraction job
-  - definition: `DURABLE_MEMORY_AGENT_DEFINITION`
+  - definition id: `durable-memory`
 - dream
   - Rust memory runtime dream job
-  - definition: `DREAM_AGENT_DEFINITION`
+  - definition id: `dream`
 - review-spec
-  - `src/agents/review-agent.ts`
-  - definition: `REVIEW_SPEC_AGENT_DEFINITION`
+  - Rust native special-agent registry
+  - definition id: `review-spec`
 - review-quality
-  - `src/agents/review-agent.ts`
-  - definition: `REVIEW_QUALITY_AGENT_DEFINITION`
+  - Rust native special-agent registry
+  - definition id: `review-quality`
 
 These pilots keep their existing:
 
@@ -142,16 +142,15 @@ agents:
   - fork-context messages
 - provider-specific request patching now only consumes direct cache hints; it no
   longer derives a parent prompt-cache key from the parent envelope
-- the substrate now supports an explicit `runtime_fork` execution mode, so special agents no longer need to be modeled only as child sessions
+- the substrate now supports an explicit `embedded_fork` execution mode, so special agents no longer need to be modeled only as child sessions
 - session-summary special runs consume the lifecycle `parentForkContext` as the
   automatic parent handoff
 - that parent fork context carries the full current model-visible
   fork-context messages, matching Claude Code's session-memory update shape
   without a recent-message excerpt fallback
-- session-summary now declares `isolatedContext: true`, so it does
-  not reuse the parent system prompt, the main-agent prompt extras, or the main
-  memory-runtime recall path; its `parentContextPolicy: "full_envelope"` only
-  controls the handoff object, not parent-system-prompt reuse
+- session-summary declares `parentContextPolicy: "full_envelope"` for the
+  handoff object without reusing the parent system prompt, the main-agent
+  prompt extras, or the main memory-runtime recall path
 - lifecycle updates with missing fork context are skipped, while explicit
   CLI/gateway refresh builds a bounded manual parent fork context from persisted
   model-visible rows
@@ -169,13 +168,9 @@ agents:
   `parentContextPolicy: "none"`, does not spawn a child session, and consumes
   only the host-provided durable manifest, structured signals, and transcript
   refs.
-- dream also declares `isolatedContext: true`, so the embedded
-  runner skips the default main-agent prompt, skills prompt, docs path,
-  bootstrap context files, workspace reminders, and the main memory runtime
-  recall/lifecycle for that run.
-- experience now also declares `isolatedContext: true`, so its embedded run
-  stays on the narrow maintenance prompt surface instead of inheriting the main
-  agent's skills, docs path, or memory-runtime prompt extras.
+- dream and experience use the embedded maintenance runner with
+  `parentContextPolicy: "none"`, so those runs stay on their narrow
+  maintenance prompt surfaces instead of inheriting parent context.
 - durable extraction and dream special runs still keep cache-write suppression
   and short retention
 - session-summary keeps short retention but does not reuse a parent
@@ -192,9 +187,9 @@ agents:
 
 At the current CrawClaw runtime layer, this closes most of the substrate-level design gap that was still open after the first embedded-fork rollout while also simplifying ownership:
 
-- `parent-fork-context.ts` owns canonical cache identity and parent fork context
+- the Rust memory runtime owns canonical cache identity and parent fork context
   construction
-- `cache-plan.ts` owns direct special-agent cache hints
+- Rust special-agent definitions own direct special-agent cache hints
 - provider request payload translation is owned by the Rust runtime/provider
   layer
 
@@ -203,7 +198,7 @@ The main remaining difference from Claude Code is that CrawClaw still does not r
 Future task-specific special agents should continue to opt in case-by-case:
 
 - maintenance-style, fire-and-forget background agents should prefer
-  `runtime_fork`; independence should come from an explicit
+  `embedded_fork`; independence should come from an explicit
   `parentContextPolicy` choice plus isolated context behavior, not from
   implicitly omitting parent fork context at the call site
 - user-invoked or session-bearing task agents should remain `spawned_session` unless they explicitly need a parent fork context more than child-session state

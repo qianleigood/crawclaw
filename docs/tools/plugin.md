@@ -139,11 +139,13 @@ CrawClaw scans for plugins in this order (first match wins):
   </Step>
 
   <Step title="Workspace extensions">
-    `\<workspace\>/.crawclaw/<plugin-root>/*.ts` and `\<workspace\>/.crawclaw/<plugin-root>/*/index.ts`.
+    Manifest roots under `\<workspace\>/.crawclaw/<plugin-root>/` that contain
+    `crawclaw.plugin.json`.
   </Step>
 
   <Step title="Global extensions">
-    `~/.crawclaw/<plugin-root>/*.ts` and `~/.crawclaw/<plugin-root>/*/index.ts`.
+    Manifest roots under `~/.crawclaw/<plugin-root>/` that contain
+    `crawclaw.plugin.json`.
   </Step>
 
   <Step title="Bundled plugins">

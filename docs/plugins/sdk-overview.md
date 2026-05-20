@@ -57,8 +57,8 @@ field names or the Gateway protocol shape.
 | Tools, services, providers, and Gateway calls | Rust runtime and Gateway crates  |
 | Desktop packaged runtime                      | Native runtime binaries          |
 
-TypeScript and JavaScript can still exist for build scripts, docs tooling,
-tests, and the desktop renderer. They are not a public plugin authoring SDK.
+TypeScript and JavaScript remain scoped to the desktop renderer and package
+metadata where needed. They are not a public plugin authoring SDK.
 
 ## Descriptor helpers
 
