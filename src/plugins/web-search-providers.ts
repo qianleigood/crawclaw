@@ -1,6 +1,6 @@
+import type { CrawClawConfig } from "../config/config.js";
 import { listBundledWebSearchProviders as listBundledWebSearchProviderEntries } from "./bundled-web-search.js";
 import { resolveEffectivePluginActivationState } from "./config-state.js";
-import type { PluginLoadOptions } from "./loader.js";
 import type { PluginWebSearchProviderEntry } from "./types.js";
 import {
   resolveBundledWebSearchResolutionConfig,
@@ -12,9 +12,9 @@ function listBundledWebSearchProviders(): PluginWebSearchProviderEntry[] {
 }
 
 export function resolveBundledPluginWebSearchProviders(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
   bundledAllowlistCompat?: boolean;
   onlyPluginIds?: readonly string[];
 }): PluginWebSearchProviderEntry[] {

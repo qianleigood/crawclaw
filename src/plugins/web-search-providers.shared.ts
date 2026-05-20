@@ -1,3 +1,4 @@
+import type { CrawClawConfig } from "../config/config.js";
 import { applyPluginAutoEnable } from "../config/plugin-auto-enable.js";
 import {
   withBundledPluginAllowlistCompat,
@@ -5,13 +6,12 @@ import {
 } from "./bundled-compat.js";
 import { resolveBundledWebSearchPluginIds } from "./bundled-web-search.js";
 import { normalizePluginsConfig, type NormalizedPluginsConfig } from "./config-state.js";
-import type { PluginLoadOptions } from "./loader.js";
 import type { PluginWebSearchProviderEntry } from "./types.js";
 
 function resolveBundledWebSearchCompatPluginIds(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
 }): string[] {
   return resolveBundledWebSearchPluginIds({
     config: params.config,
@@ -47,14 +47,14 @@ export function sortWebSearchProvidersForAutoDetect(
 }
 
 export function resolveBundledWebSearchResolutionConfig(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
   bundledAllowlistCompat?: boolean;
 }): {
-  config: PluginLoadOptions["config"];
+  config: CrawClawConfig | undefined;
   normalized: NormalizedPluginsConfig;
-  activationSourceConfig?: PluginLoadOptions["config"];
+  activationSourceConfig?: CrawClawConfig;
   autoEnabledReasons: Record<string, string[]>;
 } {
   const autoEnabled =

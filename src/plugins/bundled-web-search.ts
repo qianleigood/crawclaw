@@ -1,16 +1,16 @@
+import type { CrawClawConfig } from "../config/config.js";
 import {
   BUNDLED_WEB_SEARCH_PLUGIN_IDS,
   BUNDLED_WEB_SEARCH_PROVIDER_PLUGIN_IDS,
 } from "./bundled-capability-metadata.js";
-import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 import { listNativeWebSearchProviderEntries } from "./native-web-provider-entries.js";
 import type { PluginWebSearchProviderEntry } from "./types.js";
 
 export function resolveBundledWebSearchPluginIds(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
 }): string[] {
   const bundledWebSearchPluginIdSet = new Set<string>(BUNDLED_WEB_SEARCH_PLUGIN_IDS);
   return loadPluginManifestRegistry({

@@ -1,6 +1,6 @@
+import type { CrawClawConfig } from "../config/config.js";
 import { listBundledWebFetchProviders as listBundledWebFetchProviderEntries } from "./bundled-web-fetch.js";
 import { resolveEffectiveEnableState } from "./config-state.js";
-import type { PluginLoadOptions } from "./loader.js";
 import type { PluginWebFetchProviderEntry } from "./types.js";
 import {
   resolveBundledWebFetchResolutionConfig,
@@ -12,9 +12,9 @@ function listBundledWebFetchProviders(): PluginWebFetchProviderEntry[] {
 }
 
 export function resolveBundledPluginWebFetchProviders(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
   bundledAllowlistCompat?: boolean;
   onlyPluginIds?: readonly string[];
 }): PluginWebFetchProviderEntry[] {

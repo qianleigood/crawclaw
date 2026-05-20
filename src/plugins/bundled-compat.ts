@@ -1,10 +1,10 @@
+import type { CrawClawConfig } from "../config/config.js";
 import type { PluginEntryConfig } from "../config/types.plugins.js";
-import type { PluginLoadOptions } from "./loader.js";
 
 export function withBundledPluginAllowlistCompat(params: {
-  config: PluginLoadOptions["config"];
+  config: CrawClawConfig | undefined;
   pluginIds: readonly string[];
-}): PluginLoadOptions["config"] {
+}): CrawClawConfig | undefined {
   const allow = params.config?.plugins?.allow;
   if (!Array.isArray(allow) || allow.length === 0) {
     return params.config;
@@ -33,9 +33,9 @@ export function withBundledPluginAllowlistCompat(params: {
 }
 
 export function withBundledPluginEnablementCompat(params: {
-  config: PluginLoadOptions["config"];
+  config: CrawClawConfig | undefined;
   pluginIds: readonly string[];
-}): PluginLoadOptions["config"] {
+}): CrawClawConfig | undefined {
   const existingEntries = params.config?.plugins?.entries ?? {};
   let changed = false;
   const nextEntries: Record<string, PluginEntryConfig> = { ...existingEntries };

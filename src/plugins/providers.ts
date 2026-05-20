@@ -1,13 +1,13 @@
 import { normalizeProviderId } from "../agents/provider-id.js";
+import type { CrawClawConfig } from "../config/config.js";
 import { BUNDLED_PROVIDER_PLUGIN_IDS } from "./bundled-capability-metadata.js";
 import { normalizePluginsConfig, resolveEffectivePluginActivationState } from "./config-state.js";
-import type { PluginLoadOptions } from "./loader.js";
 import { loadPluginManifestRegistry } from "./manifest-registry.js";
 
 export function resolveBundledProviderCompatPluginIds(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
   onlyPluginIds?: string[];
 }): string[] {
   const onlyPluginIdSet = params.onlyPluginIds ? new Set(params.onlyPluginIds) : null;
@@ -17,9 +17,9 @@ export function resolveBundledProviderCompatPluginIds(params: {
 }
 
 export function resolveEnabledProviderPluginIds(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
   onlyPluginIds?: string[];
 }): string[] {
   const onlyPluginIdSet = params.onlyPluginIds ? new Set(params.onlyPluginIds) : null;
@@ -47,9 +47,9 @@ export function resolveEnabledProviderPluginIds(params: {
 
 export function resolveOwningPluginIdsForProvider(params: {
   provider: string;
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
 }): string[] | undefined {
   const normalizedProvider = normalizeProviderId(params.provider);
   if (!normalizedProvider) {
@@ -71,9 +71,9 @@ export function resolveOwningPluginIdsForProvider(params: {
 }
 
 export function resolveNonBundledProviderPluginIds(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
 }): string[] {
   const registry = loadPluginManifestRegistry({
     config: params.config,
@@ -98,9 +98,9 @@ export function resolveNonBundledProviderPluginIds(params: {
 }
 
 export function resolveCatalogHookProviderPluginIds(params: {
-  config?: PluginLoadOptions["config"];
+  config?: CrawClawConfig;
   workspaceDir?: string;
-  env?: PluginLoadOptions["env"];
+  env?: NodeJS.ProcessEnv;
 }): string[] {
   const registry = loadPluginManifestRegistry({
     config: params.config,
